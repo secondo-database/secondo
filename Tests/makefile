@@ -33,22 +33,22 @@ TESTNAMES += itlogmsg
 # Prefetch Iterator
 #TESTNAMES += tprefetch
 
-TESTFILES := $(addsuffix $(EXEEXT), $(TESTNAMES)) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
+ifdef file
+TESTFILES := $(file)
+endif
 
-CODE_FILES =$(shell echo *.cpp)
-CODE_DEPENDENCIES = $(patsubst %.cpp, %.dep, $(CODE_FILES))
+CODE_FILES := $(addsuffix .cpp, $(TESTFILES))
+CODE_DEPENDENCIES := $(addsuffix .dep, $(TESTFILES))
 
-
-
+OBJECTS := $(addsuffix $(EXEEXT), $(TESTFILES))
 ifndef file
-OBJECTS = $(TESTFILES)
-else
-OBJECTS = $(file)$(EXEEXT)
+OBJECTS += libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 endif
 
 
 .PHONY: all 
 all:  $(OBJECTS)
+	echo $(OBJECTS)
 
 # create dependencies from include directives
 %.dep: %.cpp
