@@ -128,16 +128,64 @@ class Tuple {
 
 private:
 	
+	/* An AttributeInfo manages one attribute of a tuple,
+		especially deleting a tuple attribute. */
     struct AttributeInfo {
-		Tuple *parent;
+    	/* This pointer refers to the "parent" AttributeInfo of another
+			tuple if exists. See AttrPut method of Tuple. */
+		AttributeInfo *parent;
+		
+		/* keine Ahnung. */
 		bool defined;
+		/* destruct determines wheather the TupleElement* value should 
+			deleted if refCounter = 0 */
 		bool destruct;
+		
+		/* changed determines wheather this attribute differ from its 
+			persistent delineation. */
         bool changed;
+	
+		/* refCount determines the number of tuples using this attribute. */
+		int refCount;
+		
+		/* the value of this tuple component. */
 		TupleElement *value;
+
+		/* the size of this tuple component. */		
 		int size;
+
+		/* simple Constructor. */
 		AttributeInfo(){ 
 			defined = destruct = changed = false;
 			parent = 0; value = 0; size = 0;
+			refCount = 0;
+		}
+		
+		/* increase RefCount in all AttributeInfos 
+			referring to the TupleElement *value */
+		void incRefCount() {
+			refCount++;
+			if (parent != 0) parent->incRefCount();
+		}
+		
+		/* decrease RefCount in all AttributeInfos
+			referring to the TupleElement *value */
+		void decRefCount() {
+			refCount--;
+			if (parent != 0) parent->decRefCount();
+		}
+		
+		/* delete value in all AttributeInfos referring 
+			to the TupleElement *value. */
+		void deleteValue() {
+			delete value;
+			if (parent != 0) parent->deleteValue2();
+		}
+		
+		/* A help method for above one. */
+		void deleteValue2() {
+			value = 0;
+			if (parent != 0) parent->deleteValue2();
 		}
     };
     
@@ -148,7 +196,7 @@ private:
 	    SmiFileId lobFileId; 
     };
 
-	int refCount;					// References to this tuple.
+	//int refCount;					// References to this tuple.
     SmiRecord diskTuple;           	// Membervar which represents an disktuple.
     SmiRecordId diskTupleId; 		// Record that persistently holds the tuple value.
     SmiRecordFile* lobFile;     	// Reference to a File which contains LOBs.
@@ -187,20 +235,6 @@ private:
     void Init();
 
 public:
-
-/*
-  1.5.0 Overloaded memory management operators
-
-*/
-
-    
-	/*
-	void *operator new (size_t sz);
-	*/
-
-/*
-void operator delete (void* address, size_t sz);
-*/
 
 /*
 1.5.1 Constructors
