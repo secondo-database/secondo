@@ -33,6 +33,7 @@ using namespace std;
 #include "RelationAlgebra.h"
 #include "CTable.h"
 #include "SecondoSystem.h"
+#include <vector>
 
 extern NestedList *nl;
 
@@ -265,6 +266,117 @@ void Tuple::DeleteIfAllowed()
 
 void Tuple::Delete()
 {
+}
+
+/*
+3.9 Class ~TupleBuffer~
+
+This class is used to collect tuples for sorting, for example, or
+to do a cartesian product. In this main memory version the buffer
+will be in memory, i.e., the buffer will be an array of tuples.
+
+3.9.1 Struct ~PrivateTupleBuffer~
+
+*/
+struct PrivateTupleBuffer
+{
+  vector<Tuple*> buffer; 
+/*
+The buffer which is a ~vector~ from STL.
+
+*/
+};
+
+/*
+3.9.2 Implementation of the class ~TupleBuffer~
+
+*/
+TupleBuffer::TupleBuffer():
+privateTupleBuffer( new PrivateTupleBuffer() )
+{
+}
+
+TupleBuffer::~TupleBuffer()
+{
+  delete privateTupleBuffer;
+}
+
+const size_t TupleBuffer::Size() const
+{
+  return privateTupleBuffer->buffer.size();
+}
+
+const bool TupleBuffer::IsEmpty() const
+{
+  return privateTupleBuffer->buffer.empty();
+}
+
+void TupleBuffer::Clear()
+{
+  for( size_t i = 0; i < privateTupleBuffer->buffer.size(); i++ )
+    delete privateTupleBuffer->buffer[i];
+  privateTupleBuffer->buffer.clear();
+}
+
+void TupleBuffer::AppendTuple( Tuple *t )
+{
+  privateTupleBuffer->buffer.push_back( t );
+}
+
+TupleBufferIterator *TupleBuffer::MakeScan()
+{
+  return new TupleBufferIterator( this );  
+}
+
+/*
+3.9.3 Struct ~PrivateTupleBufferIterator~
+
+*/
+struct PrivateTupleBufferIterator
+{
+  PrivateTupleBufferIterator( TupleBuffer *tupleBuffer ):
+    tupleBuffer( tupleBuffer ),
+    currentTuple( 0 )
+    {
+    }
+/*
+The constructor.
+
+*/
+  TupleBuffer *tupleBuffer;
+/*
+A pointer to the tuple buffer.
+
+*/
+  size_t currentTuple;
+/*
+The iterator from STL.
+
+*/
+};
+
+/*
+3.9.3 Implementation of the class ~TupleBufferIterator~
+
+*/
+TupleBufferIterator::TupleBufferIterator( TupleBuffer *tupleBuffer ):
+  privateTupleBufferIterator( new PrivateTupleBufferIterator( tupleBuffer ) )
+  {}
+
+TupleBufferIterator::~TupleBufferIterator()
+{
+  delete privateTupleBufferIterator;
+}
+
+Tuple *TupleBufferIterator::GetNextTuple()
+{
+  if( privateTupleBufferIterator->currentTuple == privateTupleBufferIterator->tupleBuffer->privateTupleBuffer->buffer.size() )
+    return 0;
+
+  Tuple *result = privateTupleBufferIterator->tupleBuffer->privateTupleBuffer->buffer[privateTupleBufferIterator->currentTuple];
+  privateTupleBufferIterator->currentTuple++;
+
+  return result;
 }
 
 /*
@@ -502,11 +614,6 @@ RelationIterator *Relation::MakeScan() const
   return new RelationIterator( *this );
 }
 
-RelationIterator *Relation::MakeSortedScan( const TupleCompare* tupleCompare ) const
-{
-  return new RelationIterator( *this, tupleCompare );
-}
-
 /*
 4.3 Struct ~PrivateRelationIterator~
 
@@ -515,23 +622,10 @@ This struct contains the private attributes of the class ~RelationIterator~.
 */
 struct PrivateRelationIterator
 {
-  PrivateRelationIterator( const Relation& rel, const TupleCompare* tupleCompare ):
+  PrivateRelationIterator( const Relation& rel ):
     iterator( rel.privateRelation->tupleArray->Begin() ),
-    order( tupleCompare == 0 ? 0 : new vector<TupleId>() ),
-    currentTuple( 0 ),
-    tupleCompare( tupleCompare ),
     relation( rel )
     {
-      if( tupleCompare != 0 )
-      {
-        while( !iterator.EndOfScan() )
-        {
-          TupleId id = iterator.GetIndex();
-          iterator++;
-          order->push_back( id );
-        }
-        Sort();
-      }
     }
 /*
 The constructor.
@@ -542,120 +636,12 @@ The constructor.
 The iterator.
 
 */
-  vector<TupleId> *order;
-/*
-The order of the tuples to be read. This works for a sorted iterator.
-
-*/
-  unsigned int currentTuple;
-/*
-The current tuple in the order vector. Only used for sorted iteration.
-
-*/
-  const TupleCompare* tupleCompare;
-/*
-The tuple comparison criteria.
-
-*/
   const Relation& relation;
 /*
 A reference to the relation.
 
 */
-  private:
-    void Sort();
-    void QuickSortRecursive( const int low, const int high );
-/*
-Functions for sorting the iterator.
-
-*/
 };
-
-/*
-4.7 Implementation of class ~PrivateRelationIterator~
-
-Implementation of the sorting functions of the ~PrivateRelationIterator~ class.
-
-*/
-void PrivateRelationIterator::Sort()
-{
-  assert( order != 0 && tupleCompare != 0 );
-  if( order->size() > 1 )
-  {
-    int left = 0, right = order->size() - 1;
-    QuickSortRecursive( left, right );
-  }
-}
-
-void PrivateRelationIterator::QuickSortRecursive( const int low, const int high )
-{
-  int l = low;
-  int h = high;
-  Tuple *tl = 0, *th = 0;
-
-  if (l >= h)
-  {
-    return;
-  }
-  else if( l == h - 1 )
-    // sort a two element list by swapping if necessary
-  {
-    tl = (*relation.privateRelation->tupleArray)[(*order)[l].value];
-    th = (*relation.privateRelation->tupleArray)[(*order)[h].value];
-    if( (*tupleCompare)( th, tl ) )
-    {
-      TupleId aux = (*order)[l];
-      (*order)[l] = (*order)[h];
-      (*order)[h] = aux;
-    }
-    return;
-  }
-
-  // Pick a pivot and move it out of the way
-  Tuple *pivot = (*relation.privateRelation->tupleArray)[(*order)[(l + h) / 2].value];
-  TupleId pivotPos = (*order)[(l + h) / 2];
-  (*order)[(l + h) / 2] = (*order)[h];
-  (*order)[h] = pivotPos;
-
-  while( l < h )
-  {
-    // Search forward from a[lo] until an element is found that
-    // is greater than the pivot or lo >= hi
-    tl = (*relation.privateRelation->tupleArray)[(*order)[l].value];
-    while( !(*tupleCompare)( pivot, tl ) && l < h )
-    {
-      l++;
-      tl = (*relation.privateRelation->tupleArray)[(*order)[l].value];
-    }
-
-    // Search backward from a[hi] until element is found that
-    // is less than the pivot, or lo >= hi
-    th = (*relation.privateRelation->tupleArray)[(*order)[h].value];
-    while( !(*tupleCompare)( th, pivot ) && l < h )
-    {
-      h--;
-      th = (*relation.privateRelation->tupleArray)[(*order)[h].value];
-    }
-
-    // Swap elements a[lo] and a[hi]
-    if( l < h )
-    {
-      TupleId aux = (*order)[l];
-      (*order)[l] = (*order)[h];
-      (*order)[h] = aux;
-    }
-  }
-
-  // Put the median in the "center" of the list
-  (*order)[high] = (*order)[h];
-  (*order)[h] = pivotPos;
-
-  // Recursive calls, elements a[lo0] to a[lo-1] are less than or
-  // equal to pivot, elements a[hi+1] to a[hi0] are greater than
-  // pivot.
-  QuickSortRecursive(low, l-1);
-  QuickSortRecursive(h+1, high);
-}
 
 /*
 4.4 Implementation of the class ~RelationIterator~
@@ -663,8 +649,8 @@ void PrivateRelationIterator::QuickSortRecursive( const int low, const int high 
 This class is used for scanning (iterating through) relations. 
 
 */
-RelationIterator::RelationIterator( const Relation& relation, const TupleCompare *tupleCompare ):
-  privateRelationIterator( new PrivateRelationIterator( relation, tupleCompare ) )
+RelationIterator::RelationIterator( const Relation& relation ):
+  privateRelationIterator( new PrivateRelationIterator( relation ) )
   {}
 
 RelationIterator::~RelationIterator()
@@ -674,33 +660,17 @@ RelationIterator::~RelationIterator()
 
 Tuple* RelationIterator::GetNextTuple()  
 {
-  if( privateRelationIterator->tupleCompare == 0 )
-  {
-    if( EndOfScan() )
-      return NULL;
+  if( EndOfScan() )
+    return NULL;
 
-    Tuple *result = *privateRelationIterator->iterator;
-    privateRelationIterator->iterator++;
-    return result; 
-  }
-  else
-  {
-    if( privateRelationIterator->currentTuple == privateRelationIterator->order->size() )
-      return 0;
-
-    Tuple *result = 
-      (*privateRelationIterator->relation.privateRelation->tupleArray)[(*privateRelationIterator->order)[privateRelationIterator->currentTuple].value];
-    privateRelationIterator->currentTuple++;
-    return result;
-  }
+  Tuple *result = *privateRelationIterator->iterator;
+  privateRelationIterator->iterator++;
+  return result; 
 }
 
 const bool RelationIterator::EndOfScan() 
 {
-  if( privateRelationIterator->tupleCompare == 0 )
-    return privateRelationIterator->iterator.EndOfScan();
-  else
-    return privateRelationIterator->currentTuple == privateRelationIterator->order->size();
+  return privateRelationIterator->iterator.EndOfScan();
 }
 
 /*

@@ -363,8 +363,8 @@ This operator compares two tuples ~a~ and ~b~.
 /*
 3.7 Class ~LexicographicalTupleCompare~
 
-This is a specialization of the abstract class ~TupleCompare~ which
-compares tuples by their lexicographical order.
+This is a class used in the sort algorithm that specify the lexicographical
+comparison function between two tuples.
 
 */
 class LexicographicalTupleCompare : public TupleCompare
@@ -376,10 +376,11 @@ class LexicographicalTupleCompare : public TupleCompare
 /*
 3.8 Class ~TupleCompareBy~
 
-This is a specialization of the abstract class ~TupleCompare~ which
-compares tuples by attributes passed in the ~SortOrderSpecification~,
-which is a vector of pairs containing the index of the attribute and
-a bool flag telling if the ordering is ascendant or not (descendant).
+This is a class used in the sort algorithm that specify the comparison
+function between two tuples using a set of attributes specified in
+~SortOrderSpecification~, which is a vector of pairs containing the
+index of the attribute and a bool flag telling if the ordering is
+ascendant or not (descendant).
 
 */
 typedef vector< pair<int, bool> > SortOrderSpecification;
@@ -394,6 +395,110 @@ class TupleCompareBy : public TupleCompare
     bool operator()(const Tuple* aConst, const Tuple* bConst) const;
   private:
     SortOrderSpecification spec;
+};
+
+/*
+3.9 Class ~TupleBuffer~
+
+This class is used to collect tuples for sorting, for example, or
+to do a cartesian product.
+
+*/
+struct PrivateTupleBuffer;
+/*
+Forward declaration of the struct ~PrivateTupleBuffer~. This struct will contain the
+private attributes of the class ~TupleBuffer~ and will be defined later differently
+for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
+
+*/
+class TupleBufferIterator;
+/*
+Forward declaration.
+
+*/
+
+class TupleBuffer
+{
+  public:
+    TupleBuffer();
+/*
+The constructor. Creates an empty tuple buffer. 
+
+*/
+    ~TupleBuffer();
+/*
+The destructor. It is not the intention of the buffer to delete
+tuples. 
+
+*/
+    const size_t Size() const;
+/*
+Returns the number of tuples in the buffer.
+
+*/
+    const bool IsEmpty() const;
+/*
+Checks if the tuple buffer is empty or not.
+
+*/
+    void Clear();
+/*
+Deletes (if allowed) all tuples and also clears the buffer.
+
+*/
+    void AppendTuple( Tuple *t );
+/*
+Appends a tuple to the buffer.
+
+*/
+    TupleBufferIterator *MakeScan();
+/*
+Returns a ~TupleBufferIterator~ for a new scan.    
+
+*/
+
+    friend class TupleBufferIterator;
+    friend struct PrivateTupleBufferIterator;
+
+  private:
+    PrivateTupleBuffer *privateTupleBuffer;    
+};
+
+/*
+3.10 Class ~TupleBufferIterator~
+
+This class is an iterator for the ~TupleBuffer~ class.
+
+*/
+struct PrivateTupleBufferIterator;
+/*
+Forward declaration of the struct ~PrivateTupleBufferIterator~. This struct will contain 
+the private attributes of the class ~TupleBufferIterator~ and will be defined later 
+differently for the Main Memory Relational Algebra and for the Persistent Relational 
+Algebra.
+
+*/
+
+class TupleBufferIterator
+{
+  public:
+    TupleBufferIterator( TupleBuffer *buffer );
+/*
+The constructor.
+
+*/
+    ~TupleBufferIterator();
+/*
+The destructor.
+
+*/
+    Tuple *GetNextTuple();
+/*
+Returns the next tuple of the buffer. Returns 0 if the end of the buffer is reached.
+
+*/
+  private:
+    PrivateTupleBufferIterator *privateTupleBufferIterator;
 };
 
 /*
@@ -520,12 +625,6 @@ Gets the number of tuples in the relation.
 Returns a ~RelationIterator~ for a relation scan.
 
 */
-    RelationIterator *MakeSortedScan( const TupleCompare* tupleCompare ) const;
-/*
-Returns a ~RelationIterator~ for a relation scan sorted by the criterias defined in
-~tupleCompare~.
-
-*/
     PrivateRelation *GetPrivateRelation()
       { return privateRelation; }
 /*
@@ -562,11 +661,10 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class RelationIterator
 {
   public:
-    RelationIterator( const Relation& relation, const TupleCompare *tupleCompare = 0 );
+    RelationIterator( const Relation& relation );
 /*
 The constructor. Creates a ~RelationIterator~ for a given ~relation~ and positions the
-cursor in the first tuple, if exists. If ~tupleCompare~ is defined, the iterator will
-iterate in a sorted way specified by the ~tupleCompare~ criteria.
+cursor in the first tuple, if exists. 
 
 */
     ~RelationIterator();

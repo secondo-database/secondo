@@ -2749,8 +2749,8 @@ int GroupByValueMapping
   Tuple *t;
   Tuple *s;
   Word sWord;
-  Relation* tp;
-  RelationIterator* relIter;
+  TupleBuffer* tp;
+  TupleBufferIterator* relIter;
   int i, j, k;
   int numberatt;
   bool ifequal;
@@ -2799,7 +2799,7 @@ int GroupByValueMapping
         t = gbli->t;
         t = t->CloneIfNecessary();
         assert( t->IsFree() == false );
-        tp = new Relation( t->GetTupleType() );
+        tp = new TupleBuffer();
         tp->AppendTuple(t);
       }
       qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
@@ -2859,7 +2859,8 @@ int GroupByValueMapping
         t->PutAttribute(numberatt + ind, ((Attribute*)value.addr)->Clone()) ;
       }
       result = SetWord(t);
-      tp->Delete();
+      tp->Clear();
+      delete tp;
       return YIELD;
 
     case CLOSE:

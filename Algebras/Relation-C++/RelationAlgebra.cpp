@@ -1434,12 +1434,14 @@ typeerror:
 
 CPUTimeMeasurer productMeasurer;
 
+class NoOrder;
+
 struct ProductLocalInfo
 {
   TupleType *resultTupleType;
   Tuple* currentTuple;
-  Relation *rightRel;
-  RelationIterator *iter;
+  TupleBuffer *rightRel;
+  TupleBufferIterator *iter;
 };
 
 static int
@@ -1463,22 +1465,28 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       
       if(qp->Received(args[1].addr))
       {
-        pli->rightRel = new Relation( ((Tuple*)u.addr)->GetTupleType() );
-        pli->iter = pli->rightRel->MakeScan();
+        pli->rightRel = new TupleBuffer();
       }
       else
       {
         pli->rightRel = 0;
-        pli->iter = 0;
       }
 
       while(qp->Received(args[1].addr))
       {
         Tuple *t = ((Tuple*)u.addr)->CloneIfNecessary();
         pli->rightRel->AppendTuple( t );
-        if( t != u.addr ) t->Delete();
         ((Tuple*)u.addr)->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
+      }
+      
+      if( pli->rightRel )
+      {
+        pli->iter = pli->rightRel->MakeScan();
+      }
+      else
+      {
+        pli->iter = 0;
       }
 
       ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
@@ -1512,7 +1520,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
           assert( resultTuple->IsFree() );
 
           Concat(pli->currentTuple, rightTuple, resultTuple);
-          rightTuple->DeleteIfAllowed();
           result = SetWord(resultTuple);
           productMeasurer.Exit();
           return YIELD;
@@ -1536,7 +1543,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
             assert( resultTuple->IsFree() );
 
             Concat(pli->currentTuple, rightTuple, resultTuple);
-            rightTuple->DeleteIfAllowed();
             result = SetWord(resultTuple);
             productMeasurer.Exit();
             return YIELD;
@@ -1557,7 +1563,8 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       if( pli->iter != 0 )
         delete pli->iter;
       delete pli->resultTupleType;
-      pli->rightRel->Delete();
+      pli->rightRel->Clear();
+      delete pli->rightRel;
       delete pli;
 
       qp->Close(args[0].addr);

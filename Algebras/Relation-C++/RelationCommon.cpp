@@ -191,6 +191,23 @@ ostream& Tuple::ShowTupleStatistics( const bool reset, ostream& o )
   return o;
 }
 
+ostream &operator<< (ostream &os, TupleElement &attrib)
+{
+  return attrib.Print(os);
+}
+
+ostream& operator <<( ostream& o, Tuple& t )
+{
+  o << "<";
+  for( int i = 0; i < t.GetNoAttributes(); i++)
+  {
+    o << *t.GetAttribute(i);
+    if (i < t.GetNoAttributes() - 1)
+      o << ", ";
+  }
+  return o << ">";
+}
+
 Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
 {
   int  attrno, algebraId, typeId, noOfAttrs;
