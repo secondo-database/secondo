@@ -12,10 +12,9 @@ import viewer.hoese.*;
 /**
  * The displayclass of the region datatype (Rose algebra).
  */
-public class Dsplregion extends DisplayGraph {
+public class Dsplregion extends DisplayGraph implements DsplSimple{
   /** The internal datastructure of the region datatype */
   Area areas;
-
 
   /** convert the Listrepresentation LE to a Area */
   public void ScanValue(ListExpr LE){
@@ -77,13 +76,6 @@ public class Dsplregion extends DisplayGraph {
      areas= new Area(GP);
   }
 
-
-
-
-
-
-
-
   /**
    * Init. the Dsplregion instance.
    * @param type The symbol region
@@ -98,7 +90,7 @@ public class Dsplregion extends DisplayGraph {
     ScanValue(value);
     if (err) {
       System.out.println("Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": GA(region))"));
+      qr.addEntry(extendString(AttrName,minTypeWidth)+" : Error(region)");
       return;
     }
     else
@@ -106,6 +98,7 @@ public class Dsplregion extends DisplayGraph {
     RenderObject = areas;
     // System.out.println(value.writeListExprToString());
   }
+
 
 
 }

@@ -13,24 +13,28 @@ import  sj.lang.ListExpr;
  * interface, the subclasses mustn´t do it.
  */
 public class DisplayGraph extends DsplGeneric
-    implements DsplGraph {
+    implements DsplGraph,DsplSimple {
 /** if an error occurs during creation this field will be true */
   protected boolean err = false;
 /** The layer in which this object is drawn */
   protected Layer RefLayer;
-/** The category of this object preset by the defaultcategory */   
+/** The category of this object preset by the defaultcategory */
   protected Category Cat = Category.getDefaultCat();
-/** The shape that was drawn by this instance */  
+/** The shape that was drawn by this instance */
   protected Shape RenderObject;
-/** Point datatayes e.g. point,points need special treatment,therefore this flag need to be set */ 
+/** Point datatayes e.g. point,points need special treatment,therefore this flag need to be set */
   protected boolean ispointType = false;
 /** The label text of this object */
   private String LabelText;
-/** Position of the label */  
+/** Position of the label */
   private Point LabPosOffset = new Point(-30, -10);
+ /** the typewidth to display in a relation */
+ protected int minTypeWidth=0;
+ protected int minValueWidth=0;
+
 
   /**
-   * 
+   *
    * @return true if it is a pointtype object
    * @see <a href="DisplayGraphsrc.html#isPointType">Source</a>
    */
@@ -39,7 +43,7 @@ public class DisplayGraph extends DsplGeneric
   }
 
   /**
-   * 
+   *
    * @return The text of the label.
    * @see <a href="DisplayGraphsrc.html#getLabelText">Source</a>
    */
@@ -57,7 +61,7 @@ public class DisplayGraph extends DsplGeneric
   }
 
   /**
-   * 
+   *
    * @return The position of the label as a Point
    * @see <a href="DisplayGraphsrc.html#getLabPosOffset">Source</a>
    */
@@ -75,14 +79,14 @@ public class DisplayGraph extends DsplGeneric
   }
 
   /**
-   * 
-   * @return The boundingbox of the drawn Shape 
+   *
+   * @return The boundingbox of the drawn Shape
    * @see <a href="DisplayGraphsrc.html#getBounds">Source</a>
    */
   public Rectangle2D.Double getBounds () {
     if (RenderObject == null)
-      return  null; 
-    else 
+      return  null;
+    else
       return  (Rectangle2D.Double)RenderObject.getBounds2D();
   }
 
@@ -129,7 +133,7 @@ public class DisplayGraph extends DsplGeneric
     if (Cat.getFillStyle() != null)
       g2.fill(sh);
     //if (selected) g2.setColor(new Color(Cat.LineColor.getRGB() ^ Color.white.getRGB() ));
-    //else 
+    //else
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
     Color aktLineColor = Cat.getLineColor();
     if (selected){
@@ -159,8 +163,8 @@ public class DisplayGraph extends DsplGeneric
     if (selected) {
       Rectangle2D re = g2.getFont().getStringBounds(LabelText, g2.getFontRenderContext());
       g2.setPaint(new Color(255, 128, 255, 255));
-      g2.fill3DRect((int)(p.getX() + LabPosOffset.getX()), (int)(p.getY() + 
-          LabPosOffset.getY() + re.getY()), (int)re.getWidth(), (int)re.getHeight(), 
+      g2.fill3DRect((int)(p.getX() + LabPosOffset.getX()), (int)(p.getY() +
+          LabPosOffset.getY() + re.getY()), (int)re.getWidth(), (int)re.getHeight(),
           true);
     }
     g2.setPaint(Cat.getLineColor());
@@ -178,7 +182,7 @@ public class DisplayGraph extends DsplGeneric
   }
 
   /**
-   * 
+   *
    * @return The actual category of this instance.
    * @see <a href="DisplayGraphsrc.html#getCategory">Source</a>
    */
@@ -196,7 +200,7 @@ public class DisplayGraph extends DsplGeneric
   }
 
   /**
-   * 
+   *
    * @return The layer of this object
    * @see <a href="DisplayGraphsrc.html#getLayer">Source</a>
    */
@@ -208,7 +212,7 @@ public class DisplayGraph extends DsplGeneric
    * Tests if a given position is contained in the RenderObject.
    * @param xpos The x-Position to test.
    * @param ypos The y-Position to test.
-   * @param scalex The actual x-zoomfactor 
+   * @param scalex The actual x-zoomfactor
    * @param scaley The actual y-zoomfactor
    * @return true if x-, ypos is contained in this points type
    * @see <a href="DisplayGraphsrc.html#contains">Source</a>
@@ -219,11 +223,25 @@ public class DisplayGraph extends DsplGeneric
       return  false;
     return  RenderObject.contains(xpos, ypos);
   }
-  /** The text representation of this object 
+  /** The text representation of this object
    * @see <a href="DisplayGraphsrc.html#toString">Source</a>
    */
   public String toString () {
-    return  AttrName + ":" + Cat.getName();                   
+    return  extendString(AttrName,minTypeWidth) + " : " + extendString(Cat.getName(),minValueWidth);
+  }
+
+  protected static String extendString(String S ,int MinWidth){
+   String R = new String(S);
+   int NoSpaces=MinWidth-R.length();
+   for(int i=0;i<NoSpaces;i++)
+      R = ' '+R;
+   return R;
+  }
+
+  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  { minTypeWidth = typewidth;
+    minValueWidth = valuewidth;
+    init(type,value,qr);
   }
 
 }
