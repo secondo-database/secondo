@@ -41,3 +41,7 @@ clean:
 mrproper: clean
 	(cd ../Javainterface;make mrproper)
 
+
+.PHONY: cleangui
+cleangui:
+	(cd gui;make clean)

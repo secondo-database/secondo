@@ -633,6 +633,8 @@ private int executeFile(String FileName,boolean ignoreErrors){
   }
   catch(Exception e){
     ComPanel.appendText("a IO error is occurred\n");
+    System.out.println(e);
+    e.printStackTrace();
     errors++;
   }
   return errors;

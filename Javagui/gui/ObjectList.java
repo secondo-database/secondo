@@ -10,6 +10,7 @@ import sj.lang.ListExpr;
 import sj.lang.ServerErrorCodes;
 import gui.idmanager.*;
 import java.io.File;
+import javax.swing.event.*;
 
 public class ObjectList extends JPanel{
 
@@ -19,8 +20,9 @@ public final int ERROR_OBJECT_NOT_FOUND=2;
 
 private JOptionPane OptionPane;
 private JPanel ControlPanel;
-private JPanel dummy;         // List not allowed a menu to overlap
-private List Content;
+private JList Content;
+private JScrollPane ScrollPane;
+
 private Vector Objects;
 private ResultProcessor RP;  
 private ViewerControl VC;
@@ -36,6 +38,8 @@ private boolean isRenameMode;
 
 private JFileChooser FileChooser;  
 private RenamePanel aRenamePanel;
+
+private ObjectListModel myListModel;
 
 private final String DisplayMark ="** ";    // ensure thas Displaymark and NoDisplayMark have the same length
 private final String NoDisplayMark ="   ";
@@ -59,10 +63,13 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   ControlPanel = new JPanel();
   OptionPane = new JOptionPane();
   add(ControlPanel,BorderLayout.NORTH);
-  Content=new List(5); 
+  Content=new JList(); 
+  myListModel = new ObjectListModel();
+  Content.setModel(myListModel);
   aRenamePanel = new RenamePanel();
   isRenameMode = false;
-  add(Content,BorderLayout.CENTER);
+  ScrollPane = new JScrollPane(Content);
+  add(ScrollPane,BorderLayout.CENTER);
   Content.setFont(new Font("MonoSpaced",Font.PLAIN,12));
   Objects = new Vector();
   RP = aRP;
@@ -86,7 +93,6 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   ControlPanel.add(RenameBtn);
   FileChooser = new JFileChooser();
   addAllListeners();
-  dummy = new JPanel();
 }
 
 
@@ -115,11 +121,8 @@ public int renameObject(String oldName,String newName){
   if(index<0)
     return ERROR_OBJECT_NOT_FOUND;
   else{
-      String[] UsedNames = ObjectList.this.Content.getItems();
-      for(int i=0;i<UsedNames.length;i++)
-          UsedNames[i] = UsedNames[i].substring(DisplayMark.length()).trim();
-      java.util.List UNList = java.util.Arrays.asList(UsedNames);
-      if (UNList.contains(newName)) 
+      int newindex = getIndexOf(newName);
+      if(newindex>=0)
          return ERROR_NAME_EXISTS;
       else{
          ((SecondoObject)Objects.get(index)).setName(newName);
@@ -135,7 +138,8 @@ public boolean showObject(String Name){
    if (index<0)
       return false;
    else{
-     Content.select(index);
+     Content.setSelectedIndex(index);
+     Content.ensureIndexIsVisible(index);
      showSelectedObject();
      return true;
    }
@@ -147,7 +151,7 @@ public boolean hideObject(String Name){
   if(index <0) 
      return false;
   else{
-     Content.select(index);
+     Content.setSelectedIndex(index);
      hideSelectedObject();
      return true;
   }
@@ -158,7 +162,7 @@ public boolean removeObject(String Name){
   if(index <0) 
      return false;
   else{
-     Content.select(index);
+     Content.setSelectedIndex(index);
      removeSelectedObject();
      return true;
   }
@@ -169,18 +173,21 @@ public boolean saveObject(String Name){
   if(index <0) 
      return false;
   else{
-     Content.select(index);
+     Content.setSelectedIndex(index);
      saveSelectedObject();
      return true;
   }
 }
+
+
+
 
 public boolean storeObject(String Name){
  int index = getIndexOf(Name);
   if(index <0) 
      return false;
   else{
-     Content.select(index);
+     Content.setSelectedIndex(index);
      storeSelectedObject();
      return true;
   }
@@ -207,9 +214,10 @@ public Dimension getMaximumSize(){
 }
 
 private void addAllListeners(){
-   Content.addActionListener(new ActionListener(){
-      public void actionPerformed(ActionEvent evt){
-          showSelectedObject();
+   Content.addMouseListener(new MouseAdapter(){
+      public void mouseClicked(MouseEvent evt){
+          if(evt.getClickCount()==2)
+             showSelectedObject();
       }});
 
    ShowBtn.addActionListener(new ActionListener(){
@@ -253,19 +261,19 @@ private void addAllListeners(){
 
 /** turn off the listdisplay (problems with  overlapping Menus) **/
 public void showNothing(){
-  remove(Content);    
+  //remove(Content);    
 }
 
 /** turn on the listdisplay (problems with overlapping Menus) **/
 public void showList(){
-  add(Content,BorderLayout.CENTER);
+  //add(Content,BorderLayout.CENTER);
 }
 
 
 public void selectObject(SecondoObject SO){
    int index = Objects.indexOf(SO);
    if (index>=0){
-       Content.select(index);
+       Content.setSelectedIndex(index);
    }
 }
 
@@ -276,7 +284,7 @@ public void clearList(){
     if (VC!=null)
         VC.hideObject(this,SO);
     Objects.remove(0);
-    Content.remove(0);
+    myListModel.remove(0);
   }
   updateList(); 
 }
@@ -414,7 +422,7 @@ File CurrentDir = FileChooser.getCurrentDirectory();
    else {
      SecondoObject SO = (SecondoObject) Objects.get(index);
      VC.hideObject(this,SO);
-     Content.remove(index);
+     myListModel.remove(index);
      Objects.remove(index);
      removed = true;
    }
@@ -425,7 +433,7 @@ File CurrentDir = FileChooser.getCurrentDirectory();
  public void removeObject(SecondoObject SO){
    int index = Objects.indexOf(SO);
    if(index>=0){
-      Content.remove(index);
+      myListModel.remove(index);
       Objects.remove(index);
    }
  }
@@ -494,14 +502,13 @@ public void addEntry(SecondoObject SO){
           Objects.add(SO); 
          // check if name used
          String Name = SO.getName().trim();
-         String[] UsedNames = Content.getItems();
-         for(int i=0;i<UsedNames.length;i++)
-             UsedNames[i] = UsedNames[i].substring(DisplayMark.length()).trim(); // remove spaces and 
-         java.util.List UNList = java.util.Arrays.asList(UsedNames);
-         if (UNList.contains(Name) | Name.equals("")){  
+         Vector UsedNames = new Vector(myListModel.getSize());
+         for(int i=0;i<myListModel.getSize();i++)
+           UsedNames.add(((String)myListModel.getElementAt(i)).substring(DisplayMark.length()).trim());
+         if (UsedNames.contains(Name) | Name.equals("")){  
             int no = 1;
             String NName=Name+"_"+no;
-            while (UNList.contains(NName)){
+            while (UsedNames.contains(NName)){
                no++;
                NName = Name+"_"+no;
             }
@@ -509,7 +516,7 @@ public void addEntry(SecondoObject SO){
          }
 
          SO.setName(Name);  // save the change 
-         Content.add(Name);
+         myListModel.add(Name);
          if ((VC!=null) && (VC.isActualDisplayed(SO)))
             markAsDisplayed(SO);
          else
@@ -523,11 +530,11 @@ public void updateObject(SecondoObject SO){
   if(SO !=null){  
       String Name = SO.getName().trim();
       // store all used names
-      String[] UsedNames = Content.getItems();
-      for(int i=0;i<UsedNames.length;i++)
-          UsedNames[i] = UsedNames[i].substring(DisplayMark.length()).trim(); // remove spaces and marks
-      java.util.List UNList = java.util.Arrays.asList(UsedNames);
-      int index = UNList.indexOf(Name);
+      Vector UsedNames = new Vector(myListModel.getSize());
+      for(int i=0;i<myListModel.getSize();i++){
+        UsedNames.add(((String)myListModel.getElementAt(i)).substring(DisplayMark.length()).trim());
+      }
+      int index = UsedNames.indexOf(Name);
       if(index<0)
         addEntry(SO);
       else
@@ -542,11 +549,11 @@ public void updateMarks(){
   SecondoObject SO; 
   for(int i=0;i<Objects.size();i++){
      SO = (SecondoObject) Objects.get(i);
-     Content.remove(i);
+     myListModel.remove(i);
      if (VC!=null && VC.isActualDisplayed(SO))
-        Content.add(DisplayMark+SO.getName(),i);
+        myListModel.add(DisplayMark+SO.getName(),i);
      else
-        Content.add(NoDisplayMark+SO.getName(),i);
+        myListModel.add(NoDisplayMark+SO.getName(),i);
   }
 }
 
@@ -555,8 +562,8 @@ public void updateMarks(){
 private void markAsDisplayed(SecondoObject SO){
    int index = Objects.indexOf(SO);
    if (index>=0){
-      Content.remove(index);
-      Content.add(DisplayMark+SO.getName(),index);
+      myListModel.remove(index);
+      myListModel.add(DisplayMark+SO.getName(),index);
    }
 }
 
@@ -564,8 +571,8 @@ private void markAsDisplayed(SecondoObject SO){
 private void markAsNoDisplayed(SecondoObject SO){
    int index = Objects.indexOf(SO);
    if (index>=0){
-      Content.remove(index);
-      Content.add(NoDisplayMark+SO.getName(),index);
+      myListModel.remove(index);
+      myListModel.add(NoDisplayMark+SO.getName(),index);
    }
 }
 
@@ -577,7 +584,7 @@ private void setRenameMode(boolean mode){
      int index = Content.getSelectedIndex();
      if (index>=0){
          SecondoObject SO = (SecondoObject) Objects.get(index);
-         remove(Content);
+         remove(ScrollPane);
          aRenamePanel.setObject(SO); 
          add(aRenamePanel,BorderLayout.CENTER);
          isRenameMode=true;
@@ -597,7 +604,7 @@ private void setRenameMode(boolean mode){
   } 
   if(!mode && isRenameMode){
     remove(aRenamePanel);
-    add(Content,BorderLayout.CENTER);
+    add(ScrollPane,BorderLayout.CENTER);
     isRenameMode=false;
     on = true;
     ShowBtn.setEnabled(on);
@@ -613,11 +620,11 @@ private void setRenameMode(boolean mode){
 
 /** set the content of Content to the content of Objects **/
 private void updateList(){
-  Content.removeAll();
+  myListModel.removeAll();
   SecondoObject SO;
   for(int i=0;i<Objects.size();i++){
     SO= (SecondoObject) Objects.get(i);
-    Content.add(SO.getName());
+    myListModel.add(SO.getName());
   }
   updateMarks(); 
 }
@@ -650,12 +657,12 @@ private class RenamePanel extends JPanel{
 
      OkBtn.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent evt){
-              String Name = NewName.getText().trim();
-              String[] UsedNames = ObjectList.this.Content.getItems();
-              for(int i=0;i<UsedNames.length;i++)
-                    UsedNames[i] = UsedNames[i].substring(DisplayMark.length()).trim();
-              java.util.List UNList = java.util.Arrays.asList(UsedNames);
-              if (UNList.contains(Name)) {
+              Vector UsedNames = new Vector(myListModel.getSize()); 
+              for(int i=0;i<myListModel.getSize();i++)
+                 UsedNames.add(((String)myListModel.getElementAt(i)).substring(DisplayMark.length()).trim());
+             
+             String Name = NewName.getText();    
+             if (UsedNames.contains(Name)) {
                  ObjectList.this.showMessage("Name allready used\n please choose another one");
               } 
               else{
@@ -686,6 +693,86 @@ private class RenamePanel extends JPanel{
   } 
 }
 
+
+private class ObjectListModel implements ListModel{
+
+public void addListDataListener(ListDataListener LDL){
+  myListDataListeners.add(LDL);
+}
+
+public void removeListDataListener(ListDataListener LDL){
+  int index = myListDataListeners.indexOf(LDL);
+  myListDataListeners.remove(index);
+}
+
+
+public int getSize(){
+  return Content.size();
+}
+
+public Object getElementAt(int index){
+  if(index<0 || index>myListModel.getSize())
+    return null;
+  else
+    return Content.get(index);
+}
+
+
+public boolean contains(String S){
+  return Content.contains(S);
+}
+
+
+public int getIndexOf(String S){
+  return Content.indexOf(S);
+}
+
+public boolean removeIndex(int index){
+  boolean ok = index>=0 & index<Content.size();
+  Content.remove(index);
+  if(ok)
+     informListeners(index);
+  return ok;   
+}
+
+public boolean remove(int index){
+  return removeIndex(index);
+}
+
+public void removeAll(){
+  Content.clear();
+  informListeners(0);
+
+}
+
+
+public boolean add(String S){
+  if(Content.indexOf(S)<0){
+     Content.add(S);
+     informListeners(Content.size());
+     return true;
+  }
+  else
+    return false;
+}
+
+public void add(String S,int index){
+   if(index<0) index=0;
+   if(index>Content.size()) index=Content.size();
+   Content.add(index,S);
+   informListeners(index);
+}
+
+
+private void informListeners(int index){
+  ListDataEvent evt = new ListDataEvent(this,ListDataEvent.CONTENTS_CHANGED,index,index);
+  for(int i=0;i<myListDataListeners.size();i++)
+       ((ListDataListener)myListDataListeners.get(i)).contentsChanged(evt);
+}
+
+private Vector myListDataListeners = new Vector();
+private Vector Content = new Vector(20);
+}
 
 
 }
