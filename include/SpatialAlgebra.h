@@ -24,16 +24,25 @@ shows examples of these spatial data types.
 #include "Rational.h"
 #include "PArray.h"
 
-#define RATIONAL_COORDINATES
+//#define RATIONAL_COORDINATES
+#define DOUBLE_COORDINATES
+
+#ifdef DOUBLE_COORDINATES
+typedef double Coord;
+#else
+
 #ifdef RATIONAL_COORDINATES
 #ifdef WITH_ARBITRARY_PRECISION
 typedef Rational Coord;
-#else // WITH_ARBITRARY_PRECISION
+#else 
 typedef Rational Coord;
 #endif
-#else // RATIONAL_COORDINATES
+#else 
 typedef long Coord;
 #endif
+
+#endif
+
 
 /*
 There are two main defines that will control how the coordinate system is 
