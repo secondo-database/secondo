@@ -615,6 +615,7 @@ SecondoSystem::GetDatabaseName()
 SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   nl = new NestedList();
+  al = new NestedList();
   algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );
   queryProcessor = new QueryProcessor( nl, algebraManager );
   scDescriptive  = 0;
@@ -722,6 +723,12 @@ NestedList*
 SecondoSystem::GetNestedList()
 {
   return (secondoSystem->nl);
+}
+
+NestedList*
+SecondoSystem::GetAppNestedList()
+{
+  return (secondoSystem->al);
 }
 
 bool

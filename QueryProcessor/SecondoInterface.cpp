@@ -28,6 +28,8 @@ September 2002 Ulrich Telle Close database after creation.
 
 November 7, 2002 RHG Implemented the ~let~ command.
 
+December 2002 M. Spiekermann Changes in Secondo(...) and NumTypeExpr(...). 
+
 \tableofcontents
 
 */
@@ -177,6 +179,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     cout << "Initializing the Secondo system ... ";
     ss = new SecondoSystem( &GetAlgebraEntry );
     nl = SecondoSystem::GetNestedList();
+    al = SecondoSystem::GetAppNestedList();
     ok = SecondoSystem::StartUp();
     if ( ok )
     {
@@ -279,6 +282,7 @@ If value 0 is returned, the command was executed without error.
 
   SecParser sp;
   NestedList* nl = SecondoSystem::GetNestedList();
+  NestedList* al = SecondoSystem::GetAppNestedList();
 
   errorMessage = "";
   errorCode    = 0;
@@ -941,14 +945,14 @@ If value 0 is returned, the command was executed without error.
           StartCommand();
 
 	   TimeTest::diffReal(); TimeTest::diffCPU();
-	   cout << "Analyze query ..." << endl;
+	   cerr << "Analyze query ..." << endl;
 
           SecondoSystem::GetQueryProcessor()->
             Construct( level, nl->Second( list ), correct, evaluable, defined,
                        isFunction, tree, resultType );
 
-	   cout << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-	   cout << nl->reportVectorSizes() << endl;
+	   cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+	   cerr << nl->reportVectorSizes() << endl;
 
           if ( !defined )
           {
@@ -958,7 +962,7 @@ If value 0 is returned, the command was executed without error.
           {
             if ( evaluable )
             {
-              cout << "Execute ..." << endl;
+              cerr << "Execute ..." << endl;
 
 	       SecondoSystem::GetQueryProcessor()->
                 Eval( tree, result, 1 );
@@ -968,8 +972,8 @@ If value 0 is returned, the command was executed without error.
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
 
-	       cout << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-              cout << ReportTupleStatistics();
+	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+               cerr << ReportTupleStatistics();
 
             }
             else if ( isFunction ) // abstraction or function object
@@ -1057,6 +1061,13 @@ If value 0 is returned, the command was executed without error.
     nl->WriteToFile( resultFileName, resultList );
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
+  
+  // copy result int application specific list container.
+  if (resultList) {
+     resultList = nl->CopyList(resultList, al);
+  }
+  nl->initializeListMemory();
+  
 }
 
 /*
@@ -1070,7 +1081,9 @@ SecondoInterface::NumericTypeExpr( const AlgebraLevel level, const ListExpr type
   ListExpr list = nl->TheEmptyList();
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
-    list = SecondoSystem::GetCatalog( level )->NumericType( type );
+    list = SecondoSystem::GetCatalog( level )->NumericType( al->CopyList(type,nl) );
+    // use application specific list memory
+    list = nl->CopyList(list, al);
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (list);

@@ -38,6 +38,15 @@ May 2002 Ulrich Telle Port to C++, added initialization and termination
 methods for hiding the details of setting up the "Secondo"[3] environment
 from the user interface program.
 
+December 2002 M. Spiekermann an application specific nested list memory (al) was
+introduced. Every Interface method which returns a nested list copies the
+list from the nl Object into the al Object. If a list is input for some Interface
+methods e.g. NumTypeExpr(...) the list is copied from al to nl. Now the core systems 
+own list memory is refreshed in the Interface method Secondo(...) so that every
+command is processed with an initially empty list container.
+The application has to take care about its own list memory to avoid infinte growing.  
+
+
 1.1 Overview
 
 This module defines the procedure ~Secondo~ as defined in ``The Secondo
@@ -613,10 +622,8 @@ executable) is used to resolve the type name.
 */
   NestedList* GetNestedList();
 /*
-Returns a reference to the nested list container used by the "Secondo"[3] system.
+Returns a reference to the application specific nested list container. 
 
-*/
-/*
 2.2 Error Messages
 
 */
@@ -749,6 +756,7 @@ code may or may not be supplied with an algebra.
 Sets the debug level of the query processor.
 
 */
+	
  protected:
  private:
   void StartCommand();
@@ -756,8 +764,8 @@ Sets the debug level of the query processor.
 
   bool        initialized;       // state of interface
   bool        activeTransaction; // state of transaction block
-  NestedList* nl;                // Reference of
-                                 //   nested list container
+  NestedList  *nl, *al;          // References of
+                                 // nested list containers
   Socket*     server;            // used in C/S version only
 
   static void InitErrorMessages();

@@ -230,9 +230,13 @@ Returns a reference to the "Secondo"[3] catalog of the specified
 algebra ~level~.
 
 */
-  static NestedList*     GetNestedList();
+  static NestedList* GetNestedList();
+  static NestedList* GetAppNestedList();
 /*
 Returns a reference to the associated nested list container.
+The first one is used by the query processor and algebra modules and 
+the second is an application specific list container in which query 
+results are stored.
 
 */
   static bool BeginTransaction();
@@ -268,6 +272,7 @@ Are internal methods for restoring a database.
   static SecondoSystem* secondoSystem;
 
   NestedList*     nl;
+  NestedList*     al;
   AlgebraManager* algebraManager;
   QueryProcessor* queryProcessor;
   SecondoCatalog* scDescriptive;

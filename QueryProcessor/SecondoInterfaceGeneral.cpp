@@ -5,8 +5,9 @@ using namespace std;
 NestedList*
 SecondoInterface::GetNestedList()
 {
-  return (nl);
+  return (al);
 }
+
 
 /*
 3.2 Error Messages
