@@ -1372,7 +1372,8 @@ for a given ~expr~ (+ 3 10).
                 opList = nl->Rest( opList );
               }
               while ( !nl->IsEmpty( opList ) && 
-                      ( nl->IsAtom( resultType ) && nl->AtomType( resultType ) == SymbolType && nl->SymbolValue( resultType ) == "typeerror" ) );
+                      ( nl->IsAtom( resultType ) && nl->AtomType( resultType ) == SymbolType && 
+nl->SymbolValue( resultType ) == "typeerror" ) );
 
               /* use the operator's selection function to get the index 
                  (opFunId) of the evaluation function for this operator: */
@@ -1701,7 +1702,8 @@ string xxx;
 
           paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
 
-          while ( ( nl->IsAtom( paramtype ) && nl->AtomType( paramtype ) == SymbolType && nl->SymbolValue( paramtype ) == "typeerror" ) &&
+          while ( ( nl->IsAtom( paramtype ) && nl->AtomType( paramtype ) == SymbolType && 
+nl->SymbolValue( paramtype ) == "typeerror" ) &&
                   !nl->IsEmpty( rest )  ) 
           {
             first = nl->First( rest );
@@ -2476,7 +2478,7 @@ Returns the type expression of the node ~s~ of the operator tree.
 void
 QueryProcessor::ResetCounters() 
 {
-  for (int i = 1; i <= NO_COUNTERS; i++) counter[i] = 0;
+  for (int i = 1; i < NO_COUNTERS; i++) counter[i] = 0;
 }
 
 ListExpr
@@ -2488,7 +2490,7 @@ QueryProcessor::GetCounters()
 	  nl->TwoElemList( nl->IntAtom(1), nl->IntAtom(counter[1]) ));
   last = list;
 
-  for (int i = 2; i <= NO_COUNTERS; i++) 
+  for (int i = 2; i < NO_COUNTERS; i++) 
   {
     last = nl->Append( last, 	  
       nl->TwoElemList( nl->IntAtom(i), nl->IntAtom(counter[i]) ));
@@ -2545,3 +2547,4 @@ void ErrorReporter::GetErrorMessage(string& msg)
   msg = message;
   message = "";
 };
+
