@@ -11,6 +11,9 @@ Dezember 2004 Christian Bohnbuck, Uwe Hartmann, Marion Langen and Holger
 M[ue]nx during Prof. G[ue]ting's practical course
 'Extensible Database Systems' at Fernuniversit[ae]t Hagen.
 
+March 2005, M. Spiekermann. Function strtupr renamed to xstrtupr
+since a name conflict with /mingw/include/string.h must be resolved.
+
 [TOC]
 
 1 Introduction
@@ -52,7 +55,9 @@ Helper function to convert a string to upper case.
 
 */
 
-static void strupr(char *str)
+
+
+static void xstrupr(char *str)
 {
 	size_t i,len;
 
@@ -62,6 +67,8 @@ static void strupr(char *str)
 		str[i] = toupper(str[i]);
 	}
 }
+
+
 
 /*
 
@@ -487,11 +494,17 @@ bool Picture::Export(string filename) {
 bool Picture::Display(void) {
     if (PA_DEBUG) cerr << "Picture::Display() called" << endl;
 
+#ifndef SECONDO_WIN32 
+
+    static unsigned int fileCtr = 0;
     unsigned int size;
     char* buf = GetJPEGData(size);
 
-    char filename[] = "/tmp/SECONDO.PictureAlgebra.XXXXXX";
-    int fd = mkstemp(filename);
+    stringstream fileStr;
+    fileStr << "/tmp/SECONDO.PictureAlgebra.";
+    filestr << ++fileCtr;
+
+    int fd = mkstemp(fileStr.str().c_str());
     if (fd < 0) {
 	cerr << "could not create temporary file '" 
 	     << filename 
@@ -542,6 +555,11 @@ bool Picture::Display(void) {
 	perror("unlink");
 	return false;
     }
+
+#else
+
+  cerr << "Not yet implemented for win32 systems!" << endl;
+#endif
 
     return true;
 }
@@ -1200,3 +1218,4 @@ int PictureSimpleEqualsValueMap(Word* args,
 
     return 0;
 }
+
