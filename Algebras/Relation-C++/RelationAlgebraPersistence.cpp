@@ -1006,7 +1006,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
     CloseDeleteLobFile(r);
     cout << "RelsCreatedOutRel : " << ccRelsCreated << endl;
     cout << "RelsDeletedOutRel : " << ccRelsDeleted << endl;
-    delete r;
+    //delete r;
 
   }
   else
