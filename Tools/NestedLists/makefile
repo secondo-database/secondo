@@ -10,31 +10,12 @@ ifeq ($(NL_PERSISTENT),"true")
 DEFAULTCCFLAGS += -DNL_PERSISTENT
 endif
 
-OBJECTS=\
-	NLLex.$(OBJEXT) \
-	NLScanner.$(OBJEXT) \
-	NLParser.tab.$(OBJEXT) \
-	NLParser.$(OBJEXT) \
-	NestedList.$(OBJEXT)
+DEP_FILES += NLParser.tab.dep
 
-
-CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
-
+OBJECTS += NLLex.$(OBJEXT) NLParser.tab.cpp NLParser.tab.hpp
 
 .PHONY: all
-all: $(CODE_DEPENDENCIES) $(OBJECTS) NLParser.tab.cpp NLParser.tab.hpp
-
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
-
-# create dependencies from include directives
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< -o $@
-
-%.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-NestedList.$(OBJEXT):
-	$(CC) -c -o $@ $< $(CCFLAGS)
+all: $(OBJECTS)
 
 NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
 	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
@@ -65,8 +46,8 @@ NLLex.cpp: NLLex.l
 	$(LEX) -+ -Pnl -oNLLex.cpp NLLex.l
 
 
-include $(CODE_DEPENDENCIES:.cpp=.dep)
+include $(DEP_FILES)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) *.dep NLParser.tab.hpp NLParser.tab.cpp NLLex.cpp
+	$(RM) $(OBJECTS) $(DEP_FILES)

@@ -6,45 +6,22 @@
 
 include ../../makefile.env
 
-# --- List of all needed header files (including indirect dependencies)
-
-INCFILES=\
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h \
-	$(INCLUDEDIR)/StandardAttribute.h \
-        $(INCLUDEDIR)/DateTime.h
-
-MODNAME=DateTimeAlgebra
-LIBNAME=lib$(MODNAME)
-
-OBJECTS=\
-	$(MODNAME).$(OBJEXT)
+MODNAME = DateTimeAlgebra
+CCFLAGS = $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+all: $(OBJECTS) $(LIBOBJ)
 
-buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+include $(DEP_FILES)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
-
-# --- Date Algebra C++ library ---
-
-$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
+$(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) -lStandardAlgebra $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBOBJ) $(TUPLEMANAGER) -L$(LIBDIR) -lStandardAlgebra -lRelationAlgebra $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+	$(AR) -r $(LIBOBJ) $(OBJECTS)
 endif
-
-# --- PointRectangle Algebra C++ library modules ---
-
-$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
-	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
-
-include ../../include.dep
 
 
 .PHONY:pdf
@@ -68,12 +45,9 @@ DateTimeAlgebra.pd.tex: DateTimeAlgebra.cpp ../../include/DateTime.h
 	$(RM) DateTimeAlgebra.pd
 
 
-
 .PHONY: clean
 clean: cleanpdf
-	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
-	$(RM) *.o
-	$(RM) *.lo
+	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
 
 .PHONY: cleanpdf
 cleanpdf:

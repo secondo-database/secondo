@@ -6,30 +6,21 @@
 
 include ../../makefile.env
 
-OBJECTS :=\
-	Algebra.$(OBJEXT) \
-	AlgebraManager.$(OBJEXT) \
-	AlgebraList.$(OBJEXT)
+CCFLAGS = $(DEFAULTCCFLAGS)
 
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
-
-CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
-
+DEP_FILES += AlgebraList.dep
 
 .PHONY: all
-all: $(OBJECTS) 
+all: $(OBJECTS)
 
-# create dependencies from include directives
 AlgebraList.dep: AlgebraList.i
 
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
+include $(DEP_FILES) 
 
-%.$(OBJEXT): %.cpp
+# special rule for AlgebraList.o
+AlgebraList.$(OBJEXT): AlgebraList.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
-
-Algebra.$(OBJEXT): Algebra.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS)
+	cp $@ $(LIBDIR)/$@
 
 ifeq ($(alg),auto)
 AlgebraList.i: AlgebraList.i.cfg $(BUILDDIR)/makefile.algebras
@@ -40,16 +31,6 @@ AlgebraList.i: AlgebraList.i.cfg
 	$(cp-config-file)
 endif
 
-AlgebraList.$(OBJEXT): AlgebraList.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS)
-	cp $@ $(LIBDIR)/$@
-
-AlgebraManager.$(OBJEXT): AlgebraManager.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-include $(CODE_DEPENDENCIES) 
-
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) *.dep $(LIBDIR)/AlgebraList.$(OBJEXT)
-
+	$(RM) $(OBJECTS) $(DEP_FILES) $(LIBDIR)/AlgebraList.$(OBJEXT)

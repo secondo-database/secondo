@@ -8,22 +8,8 @@
 
 include ../../makefile.env
 
-# --- List of all needed header files (including indirect dependencies)
-
-INCFILES=\
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h \
-	$(INCLUDEDIR)/StandardTypes.h
-
-REFFILE=\
-
-MODNAME=FuzzyAlgebra
-LIBNAME=lib$(MODNAME)
-
-OBJECTS=\
-	$(MODNAME).$(OBJEXT)
-
+MODNAME = FuzzyAlgebra
+CCFLAGS = $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
 
 JAVA_FILES_TMP=$(shell find fuzzyobjects -name "*.java")
 JAVA_FILES1=$(subst fuzzyobjects/,,$(JAVA_FILES_TMP))
@@ -37,29 +23,18 @@ alljava:
 	make -f makejava all
 
 .PHONY: allcpp
-allcpp: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+allcpp: $(OBJECTS) $(LIBOBJ)
 
-buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+include $(DEP_FILES)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
-
-# --- Standard Algebra C++ library ---
-
-$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
+$(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) $(LDJNIFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) $(LDJNIFLAGS) -o $(LIBOBJ) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+	$(AR) -r $(LIBOBJ) $(OBJECTS)
 endif
-
-# --- Standard Algebra C++ library modules ---
-
-$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
-	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
-
-include ../../include.dep
 
 
 .PHONY: pdf
@@ -92,17 +67,6 @@ Appendix.pd: $(JAVA_FILES_TMP)
 .PHONY: clean
 clean:
 	$(MAKE) -f makejava clean
-	$(RM) $(LIBDIR)/$(LIBNAME).a
-	$(RM) $(LIBDIR)/$(LIBNAME).so
-	$(RM) $(LIBDIR)/$(LIBNAME).dll
-	$(RM) $(LIBDIR)/$(LIBNAME).dll.a
-	$(RM) *.o
-	$(RM) *.lo
-	$(RM) *.class
-	$(RM) *~
-	$(RM) *.tmp
+	$(RM) $(OBJECTS) $(DEP_FILES) $(LIBOBJ)
+	$(RM) *.class *~ *.tmp
 	$(RM) *.pdf *.dvi *.log *.aux *.pd *.tex *.toc
-
-
-
-

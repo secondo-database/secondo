@@ -6,23 +6,7 @@
 
 include ../makefile.env
 
-OBJECTS=\
-	SocketIO \
-	SocketAddress \
-	SocketRuleSet \
-        SecondoInterfaceCS
-
-APPLOBJECTS=\
-	SecondoMonitor \
-	SecondoRegistrar \
-	SecondoCheckpoint \
-	SecondoListener \
-	SecondoServer
-
 LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT)
-
-ALL_OBJECTS = $(addsuffix .$(OBJEXT), $(OBJECTS) $(APPLOBJECTS))
-CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(ALL_OBJECTS))
 
 APPLICATIONS =\
 	$(BINDIR)/SecondoRegistrar$(EXEEXT) \
@@ -30,24 +14,23 @@ APPLICATIONS =\
 	$(BINDIR)/SecondoMonitor$(SMIUP)$(EXEEXT) \
 	$(BINDIR)/SecondoServer$(SMIUP)$(EXEEXT)
 
+ifneq ($(platform),win32)
+DEP_FILES := $(filter-out Win32Socket%, $(DEP_FILES))
+else
+DEP_FILES := $(filter-out UnixSocket%, $(DEP_FILES))
+endif
+
 ifneq ($(smitype),ora)
 APPLICATIONS += $(BINDIR)/SecondoCheckpoint$(EXEEXT)
 endif
 
-CCFLAGS := $(DEFAULTCCFLAGS)
+CCFLAGS := $(DEFAULTCCFLAGS) $(JNIINCLUDE)
 
 .PHONY: all
-all: $(ALL_OBJECTS) $(LIBDIROBJECTS)
+all: $(OBJECTS) $(LIBDIROBJECTS)
 
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
-
-# create dependencies from include directives
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< -o $@
-
-%.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE)
 
 $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 	$(CP) $< $@
@@ -87,9 +70,9 @@ $(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDLFAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
 
 
-include $(CODE_DEPENDENCIES:.cpp=.dep)
+include $(DEP_FILES)
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(ALL_OBJECTS) $(LIBDIROBJECTS) $(APPLICATIONS)
+	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBDIROBJECTS) $(APPLICATIONS)
 

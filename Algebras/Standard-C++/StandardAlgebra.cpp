@@ -23,6 +23,9 @@ Integer atoms are now also accepted.
 November 2004. M. Spiekermann. Some small functions were moved to the header
 file in order to implement them as inline functions.
 
+November 2004. M. Spiekermann. Implementation of the operator ~substr~. Moreover, the
+add operator was overloaded once more in order to concatenate strings.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -45,6 +48,7 @@ Following operators are defined:
         int x real --> real
         real x int --> real
         real x real --> real
+	string x string --> string
 ----
 
   * - (subtract)
@@ -150,8 +154,10 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SecondoSystem.h" //operator queries
+
 #include <iostream>
 #include <string>
+
 #include <math.h>
 #include <cstdlib>
 #include <unistd.h>
@@ -1135,7 +1141,7 @@ InCcString( ListExpr typeInfo, ListExpr value,
 Word
 CreateCcString( const ListExpr typeInfo )
 {
-  char p[49] = "";
+  char p[MAX_STRINGSIZE+1] = "";
   return (SetWord( new CcString( false, (STRING*)&p ) ));
 }
 
@@ -1239,6 +1245,11 @@ CcMathTypeMap( ListExpr args )
     {
       return (nl->SymbolAtom( "real" ));
     }
+    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
+    {
+      return (nl->SymbolAtom( "string" ));
+    }
+
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -1296,7 +1307,6 @@ CcMathTypeMap1( ListExpr args )
 
 /*
 4.2.4 Type mapping function CcMathTypeMap2
->>>>>>> 1.18
 
 It is for the operators ~intersection~ and ~minus~.
 
@@ -1506,6 +1516,36 @@ CcStringMapCcString( ListExpr args )
 }
 
 /*
+4.2.10 Type mapping function for the ~substr~ operator:
+
+string x int x int -> string.
+
+*/
+
+ListExpr
+SubStrTypeMap( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 3 )
+  {
+    ListExpr arg1 = nl->First( args );
+    ListExpr arg2 = nl->Second( args );
+    ListExpr arg3 = nl->Third( args );
+   
+    if (    (TypeOfSymbol( arg1 ) == ccstring)
+         && (TypeOfSymbol( arg2 ) == ccint)   
+         && (TypeOfSymbol( arg3 ) == ccint)   
+        ) 
+    {
+      return (nl->SymbolAtom( "string" ));
+    }
+  }
+  ErrorReporter::ReportError("Expecting an argument list of type (string int int).");
+  return (nl->SymbolAtom( "typeerror" ));
+
+}
+
+
+/*
 4.2.11 Type mapping function for the ~relcount~ operator:
 
 string ---> int.
@@ -1607,6 +1647,8 @@ CcMathSelectCompute( ListExpr args )
     return (2);
   if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
     return (3);
+  if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
+    return (4);
   return (-1); // This point should never be reached
 }
 
@@ -1767,6 +1809,34 @@ CcPlus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
+
+int
+CcPlus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  // extract arguments
+  CcString* wstr1 = reinterpret_cast<CcString*>( args[0].addr );
+  CcString* wstr2 = reinterpret_cast<CcString*>( args[1].addr );
+  
+  string str1 = reinterpret_cast<char*>( wstr1->GetStringval() );
+  string str2 = reinterpret_cast<char*>( wstr2->GetStringval() );
+
+  CcString* wres = reinterpret_cast<CcString*>( result.addr );
+
+  // compute result value
+  if ( wstr1->IsDefined() && wstr2->IsDefined() )
+  {
+    wres->Set( true, (STRING*)(str1 + str2).substr(0,MAX_STRINGSIZE).c_str() );
+  }
+  else
+  {
+    STRING str = "";
+    wres->Set( false, &str );
+  }
+  return (0);
+}
+
 
 /*
 4.5 Value mapping functions of operator ~-~
@@ -2902,6 +2972,48 @@ ContainsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+4.15 type and value mapping functions of operator ~substr~
+
+*/
+
+
+
+int
+SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  // extract arguments
+  CcString* wstr = reinterpret_cast<CcString*>( args[0].addr );
+  CcInt* wpos1 = reinterpret_cast<CcInt*>( args[1].addr );
+  CcInt* wpos2 = reinterpret_cast<CcInt*>( args[2].addr );
+  
+  string str1 = reinterpret_cast<char*>( wstr->GetStringval() );
+  int p1 = wpos1->GetIntval();
+  int p2 = wpos2->GetIntval();
+
+  CcString* wres = reinterpret_cast<CcString*>( result.addr );
+
+  // compute result value
+  if (    wstr->IsDefined() 
+       && wpos1->IsDefined() 
+       && wpos2->IsDefined() 
+       && (p2 >= p1) && (p1 >= 1) )
+  {
+    int n = min( static_cast<unsigned int>(p2-p1), str1.length()-p1 );
+    wres->Set( true, (STRING*)(str1.substr(p1-1, n+1).c_str()) );
+  }
+  else
+  {
+    STRING str = "";
+    wres->Set( false, &str );
+  }
+  return (0);
+}
+
+
+
+/*
 4.15 Value mapping functions of operator ~not~
 
 */
@@ -3036,7 +3148,7 @@ IsEmpty_s( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 int
-Upper( Word* args, Word& result, int message, Word& local, Supplier s )
+UpperFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   char * orgStr = (char*)((CcString*)args[0].addr)->GetStringval();
@@ -3546,7 +3658,7 @@ defined, so it easier to make them overloaded.
 
 */
 
-ValueMapping ccplusmap[] = { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr };
+ValueMapping ccplusmap[] = { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr, CcPlus_ss };
 ValueMapping ccminusmap[] = { CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr };
 ValueMapping ccproductmap[] = { CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr };
 ValueMapping ccdivisionmap[] = { CcDivision_ii, CcDivision_ir, CcDivision_ri, CcDivision_rr };
@@ -3591,9 +3703,9 @@ const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(int int) -> int, (int real) -> real, "
 			  "(real int)"
-			  " -> real, (real real) -> real</text--->"
+			  " -> real, (real real) -> real (string string) -> string</text--->"
 			       "<text>_ + _</text--->"
-			       "<text>Addition.</text--->"
+			       "<text>Addition. Strings are concatenated.</text--->"
 			       "<text>query -1.2 + 7</text--->"
 			      ") )";
 
@@ -3863,37 +3975,116 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 	     " NOTE: The second and the third argument must be of the same type T.</text--->"
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],[const string value \"greater\"])</text--->"
              ") )";
+
+
+const string specListHeader = "( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )";
+const string ST = "<text>";
+const string ET = "</text--->";
+
+const string 
+CCSpecSubStr = "(" + specListHeader + "("
+                   + ST + "(string x int x int) ->  string." + ET
+                   + ST + "substr(s, p, q)" + ET
+                   + ST + "Returns the part of a string s between the"  
+                        + "position parameters p and q. Positions start at 0." + ET
+                   + ST + "query substr(\"test\",2,3)" + ET + "))";
+
    
-Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
-Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
-Operator ccproduct( "*", CCSpecMul, 4,ccproductmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
-Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMapdiv );
-Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMap1 );
-Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMap1 );
-Operator ccrandint( "randint", CCSpecRandInt, RandInt, Operator::DummyModel, Operator::SimpleSelect, IntInt );
-Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand, Operator::DummyModel, Operator::SimpleSelect, EmptyInt );
-Operator ccseqinit( "seqinit", CCSpecInitSeq, InitSeq, Operator::DummyModel, Operator::SimpleSelect, IntBool );
-Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq, Operator::DummyModel, Operator::SimpleSelect, EmptyInt );
-Operator cclog( "log", CCSpecLog, LogFun, Operator::DummyModel, Operator::SimpleSelect, IntInt );
-Operator ccless( "<", CCSpecLT, 6, cclessmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator ccequal( "=", CCSpecEQ, 6, ccequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool3 );
-Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool3 );
-Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool1 );
-Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool2 );
-Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool2 );
-Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, CcMathSelectIsEmpty, CcMathTypeMapBool4 );
-Operator ccuper( "upper", CCSpecUpper, Upper, Operator::DummyModel, Operator::SimpleSelect, CcStringMapCcString );
-Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, ccsetintersectionmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
-Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
-Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
-Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
-Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap, ccnomodelmap, Operator::SimpleSelect, keywordsType );
-Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap, ccnomodelmap, Operator::SimpleSelect, ifthenelseType );
+Operator ccplus( "+", CCSpecAdd, 5, ccplusmap, ccnomodelmap, 
+                                    CcMathSelectCompute, CcMathTypeMap );
+
+Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, 
+                                     CcMathSelectCompute, CcMathTypeMap );
+
+Operator ccproduct( "*", CCSpecMul, 4, ccproductmap, ccnomodelmap, 
+                                       CcMathSelectCompute, CcMathTypeMap );
+
+Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap, ccnomodelmap, 
+                                        CcMathSelectCompute, CcMathTypeMapdiv );
+
+Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, 
+                                     Operator::SimpleSelect, CcMathTypeMap1 );
+
+Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, 
+                                      Operator::SimpleSelect, CcMathTypeMap1 );
+
+Operator ccrandint( "randint", CCSpecRandInt, RandInt, Operator::DummyModel, 
+                                              Operator::SimpleSelect, IntInt );
+
+Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand, Operator::DummyModel, 
+                                              Operator::SimpleSelect, EmptyInt );
+
+Operator ccseqinit( "seqinit", CCSpecInitSeq, InitSeq, Operator::DummyModel, 
+                                              Operator::SimpleSelect, IntBool );
+
+Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq, Operator::DummyModel, 
+                                              Operator::SimpleSelect, EmptyInt );
+
+Operator cclog( "log", CCSpecLog, LogFun, Operator::DummyModel, 
+                                          Operator::SimpleSelect, IntInt );
+
+Operator ccless( "<", CCSpecLT, 6, cclessmap, ccnomodelmap, 
+                                   CcMathSelectCompare, CcMathTypeMapBool );
+
+Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, ccnomodelmap, 
+                                         CcMathSelectCompare, CcMathTypeMapBool );
+
+
+Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap, ccnomodelmap, 
+                                      CcMathSelectCompare, CcMathTypeMapBool );
+
+Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap, ccnomodelmap, 
+                                            CcMathSelectCompare, CcMathTypeMapBool );
+
+Operator ccequal( "=", CCSpecEQ, 6, ccequalmap, ccnomodelmap, 
+                                    CcMathSelectCompare, CcMathTypeMapBool );
+
+Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap, ccnomodelmap, 
+                                   CcMathSelectCompare, CcMathTypeMapBool );
+
+Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, ccnomodelmap, 
+                                           Operator::SimpleSelect, CcMathTypeMapBool3 );
+
+Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, 
+                                               Operator::SimpleSelect, CcMathTypeMapBool3 );
+
+Operator ccsubstr( "substr", CCSpecSubStr, SubStrFun, Operator::DummyModel,  
+                                              Operator::SimpleSelect, SubStrTypeMap );
+
+Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, 
+                                     Operator::SimpleSelect, CcMathTypeMapBool1 );
+
+Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, 
+                                     Operator::SimpleSelect, CcMathTypeMapBool2 );
+
+Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, 
+                                  Operator::SimpleSelect, CcMathTypeMapBool2 );
+
+Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, 
+                                                 CcMathSelectIsEmpty, CcMathTypeMapBool4 );
+
+Operator ccuper( "upper", CCSpecUpper, UpperFun, Operator::DummyModel, 
+                                       Operator::SimpleSelect, CcStringMapCcString );
+
+Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, 
+                            ccsetintersectionmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
+
+Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, 
+                                                 CcMathSelectSet, CcMathTypeMap2 );
+
+Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap, 
+                       ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
+
+Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2, 
+                        ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
+
+Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap, 
+                       ccnomodelmap, Operator::SimpleSelect, keywordsType );
+
+Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap, 
+                         ccnomodelmap, Operator::SimpleSelect, ifthenelseType );
+
+
 /*
 6 Class ~CcAlgebra~
 
@@ -3951,6 +4142,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccdiff );
     AddOperator( &ccstarts );
     AddOperator( &cccontains );
+    AddOperator( &ccsubstr );
     AddOperator( &ccnot );
     AddOperator( &ccand );
     AddOperator( &ccor );

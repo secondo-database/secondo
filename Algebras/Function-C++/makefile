@@ -6,47 +6,24 @@
 
 include ../../makefile.env
 
-# --- List of all needed header files (including indirect dependencies)
-
-INCFILES=\
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h
-
-MODNAME=FunctionAlgebra
-LIBNAME=lib$(MODNAME)
-
-OBJECTS=\
-	$(MODNAME).$(OBJEXT)
+MODNAME = FunctionAlgebra
+CCFLAGS = $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+all: $(OBJECTS) $(LIBOBJ)
 
-buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+include $(DEP_FILES)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
-
-# --- Function Algebra C++ library ---
-
-$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
+$(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBOBJ) $(TUPLEMANAGER) -L$(LIBDIR) -lStandardAlgebra -lRelationAlgebra $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+	$(AR) -r $(LIBOBJ) $(OBJECTS)
 endif
-
-# --- Function Algebra C++ library modules ---
-
-$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
-	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
-
-include ../../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
-	$(RM) *.o
-	$(RM) *.lo
+	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
 

@@ -6,37 +6,14 @@
 
 include ../../makefile.env
 
-OBJECTS=\
-	Processes.$(OBJEXT) \
-	Application.$(OBJEXT) \
-	Messenger.$(OBJEXT) \
-	DynamicLibrary.$(OBJEXT) \
-	Profiles.$(OBJEXT) \
-	FileSystem.$(OBJEXT) \
-	UtilFunctions.$(OBJEXT) \
-	WinUnix.$(OBJEXT) \
-	Base64.$(OBJEXT)
-
-
-CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
-
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
-
+CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all: $(CODE_DEPENDENCIES) $(OBJECTS)
+all:  $(OBJECTS)
 
-# create dependencies from include directives
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< -o $@
-
-%.$(OBJEXT): %.cpp 
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-include $(CODE_DEPENDENCIES:.cpp=.dep)
-
+include $(DEP_FILES)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) *.dep 
+	$(RM) $(OBJECTS) $(DEP_FILES) 
 

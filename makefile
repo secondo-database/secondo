@@ -6,6 +6,11 @@
 
 include ./makefile.env
 
+ifneq ($(PWD),$(BUILDDIR))
+  $(error SECONDO_BUID_DIR has another value than the current directory. \
+    Please check your environment setup!)
+endif
+
 # Configuration files which will be created as a copy of example files
 # The corresponding .example files are stored in the CVS
 
@@ -153,14 +158,22 @@ DIST_FILES := $(net)/windows/secondo-win32.tgz \
 .PHONY: dist
 dist: tag-version $(DIST_FILES)
 
+SECONDO_DEMO = secondo-demo
 .PHONY: demo
-demo: TTY2 checkup 
+demo: 
 	mkdir $(SECONDO_DEMO)
-	make -C UserInterfaces TTYDemo
-	cp bin/SecondoConfig.ini bin/opt bin/testqueries $(SECONDO_DEMO)
+	mkdir $(SECONDO_DEMO)/bin
+	cp bin/SecondoTTYBDB bin/SecondoConfig.ini bin/testqueries $(SECONDO_DEMO)/bin
+	strip $(SECONDO_DEMO)/bin/SecondoTTYBDB
 	cp Documents/SecondoManual.pdf $(SECONDO_DEMO)
-	tar -cvzf secondo-demo-$(platform).tar.gz $(SECONDO_DEMO)/*
+ifeq ($(platform),win32)
+	cp $(BERKELEY_DB_DIR)/lib/db*.dll $(SECONDO_DEMO)/bin
+else	
+	cp $(BERKELEY_DB_DIR)/lib/libdb*4.1.so $(SECONDO_DEMO)/bin
+endif
+	tar -cvzf secondo-demo.tar.gz $(SECONDO_DEMO)/*
 	rm -rf $(SECONDO_DEMO)
+
 
 tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
 .PHONY: tag-version

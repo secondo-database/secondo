@@ -22,11 +22,18 @@ small cache, so that they need not be rebuilt from then on.
 [TOC]
 
 */
-#ifdef RELALG_PERSISTENT  
+
+// 30.11.2004 M. Spiekermann. Currently, this flag will never be set and the code does
+// not compile since it havent been compiled for a long time. I think
+// nobody needs an persistent version of the OldRelationAlgebra. Maybe we can remove
+// this file soon.  
+#ifdef RELALG_OLD_PERSISTENT  
 
 using namespace std;
 
 #include "RelationAlgebra.h"
+
+extern NestedList* nl;
 
 class TupleAttributesInfo
 {

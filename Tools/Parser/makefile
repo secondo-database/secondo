@@ -12,7 +12,7 @@ OBJECTS =\
 	NestedText.$(OBJEXT) \
 	SecParser.$(OBJEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+CCFLAGS = $(DEFAULTCCFLAGS)
 
 all: useddirectories $(OBJECTS) 
 
@@ -59,8 +59,6 @@ endif
 lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(PARSEREXT)
 
 	SpecParser/Parser$(PARSEREXT) < ../../Algebras/specs
-
-include ../../include.dep
 
 .PHONY: clean
 clean:

@@ -23,6 +23,7 @@ operator or alias OR pattern  _ infixop _
 
 operator starts alias STARTS pattern _ infixop _
 operator contains alias CONTAINS pattern _ infixop _
+operator substr alias SUBSTR pattern op ( _, _ , _ )
 
 operator isempty alias ISEMPTY pattern op ( _ )
 
