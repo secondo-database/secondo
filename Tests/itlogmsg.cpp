@@ -10,13 +10,13 @@ inline bool __little_endian() { return *(char *)&__endian_detect == 1;}
 int
 main () {
 
- LogMsg::initByString("hallo,test,bla,blub");
+ RTFlag::initByString("hallo,test,bla,blub");
 
- cout << LogMsg::isActive("hallo") << endl;
- cout << LogMsg::isActive("test") << endl;
- cout << LogMsg::isActive("bla") << endl;
- cout << LogMsg::isActive("blub") << endl;
- cout << LogMsg::isActive("xfindo") << endl;
+ cout << RTFlag::isActive("hallo") << endl;
+ cout << RTFlag::isActive("test") << endl;
+ cout << RTFlag::isActive("bla") << endl;
+ cout << RTFlag::isActive("blub") << endl;
+ cout << RTFlag::isActive("xfindo") << endl;
 
  LOGMSG( "bla", 
  
@@ -38,5 +38,11 @@ main () {
    cout << "big";
  }
  cout << " endian byte order!" << endl;
+
+ RTFlag::initByString("");
+ RTFlag::initByString(",");
+ RTFlag::initByString("xvc");
+ cout << RTFlag::isActive("xvc") << endl;
+ 
 
 }
