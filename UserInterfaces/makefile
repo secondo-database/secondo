@@ -20,8 +20,8 @@ APPLICATIONS += $(BINDIR)/TestRunner
 endif
 
 ifeq ($(optimizer),"true")
-APPLICATIONS += $(OPTDIR)/SecondoPL
-APPLICATIONS += $(OPTDIR)/SecondoPLCS
+APPLICATIONS += $(OPTDIR)/SecondoPL$(EXEEXT)
+APPLICATIONS += $(OPTDIR)/SecondoPLCS$(EXEEXT)
 APPLOBJECTS += SecondoPL.$(OBJEXT)
 CCFLAGS += $(PLINCLUDEFLAGS)
 endif
@@ -79,7 +79,7 @@ $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 
-$(BINDIR)/SecondoTTYORA$(EXEEXT):  $(SECLIBSFILES) $(ALGLIBFILES)
+$(BINDIR)/SecondoTTYORA$(EXEEXT):  $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
@@ -87,12 +87,12 @@ $(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS)
 
-$(BINDIR)/TestRunner$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES)
+$(BINDIR)/TestRunner$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 
-$(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES)
+$(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
 
