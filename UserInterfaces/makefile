@@ -73,3 +73,6 @@ include ../include.dep
 .PHONY: clean
 clean:
 	$(RM) $(APPLOBJECTS) $(APPLICATIONS)
+
+.PHONY: clean_client
+	$(BINDIR)/SecondoTTYCS$(EXEEXT)
