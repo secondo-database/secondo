@@ -146,6 +146,7 @@ relation(Rel, AttrList) :-
   spelling(Rel, _),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3),
   card(Rel, _),
+  tuplesize(Rel, _),
   createSampleRelation(Rel, ObjList),
   retract(storedSecondoList(ObjList)).
 
@@ -617,6 +618,7 @@ updateRel(Rel) :-
   lowerfl(Sample, LSample),
   downcase_atom(Sample, DCSample),
   retractall(storedCard(Rel2, _)),
+  retractall(storedTupleSize(Rel2, _)),
   retractall(storedCard(LSample, _)),
   retractall(storedSpell(Rel, _)),
   retractall(storedSpell(Rel:_, _)),
@@ -635,6 +637,7 @@ updateRel(Rel) :-
   lowerfl(Sample, LSample),
   downcase_atom(Sample, DCSample),
   retractall(storedCard(Rel2, _)),
+  retractall(storedTupleSize(Rel2, _)),
   retractall(storedCard(LSample, _)),
   retractall(storedSpell(Rel, _)),
   retractall(storedSpell(Rel:_, _)),
@@ -643,7 +646,76 @@ updateRel(Rel) :-
   retractall(storedRel(Rel, _)),
   retractall(storedIndex(Rel2, _, _, _)),
   retractall(storedNoIndex(Rel2, _)).
+/*
+1.6 Average Size Of A Tuple
 
+---- tuplesize(Rel, Size) :-
+
+----
+
+The average size of a tuple in Bytes of relation ~Rel~ 
+is ~Size~.
+
+1.6.1 Get The Tuple Size
+
+Succeed or failure of this predicate is quite similar to
+predicate ~card/2~, see section about cardinalities of
+relations.
+
+*/
+tuplesize(Rel, Size) :-
+  storedTupleSize(Rel, Size),
+  !.
+/*
+First letter of ~Rel~ is written in lower case.
+
+*/
+tuplesize(Rel, Size) :-
+  spelled(Rel, Rel2, l),
+  Query = (tuplesize(rel(Rel2, _, l))),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  secondo(QueryAtom, [real, Size]),
+  assert(storedTupleSize(Rel2, Size)),
+  !.
+/*
+First letter of ~Rel~ is written in upper case.
+
+*/
+tuplesize(Rel, Size) :-
+  spelled(Rel, Rel2, u),
+  Query = (tuplesize(rel(Rel2, _, u))),
+  plan_to_atom(Query, QueryAtom1),
+  write(QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  secondo(QueryAtom, [real, Size]),
+  assert(storedTupleSize(Rel2, Size)),
+  !.
+
+tuplesize(_, _) :- fail.
+/*
+1.6.2 Storing And Loading Tuple Sizes
+
+*/
+readStoredTupleSizes :-
+  retractall(storedTupleSize(_, _)),
+  [storedTupleSizes].  
+
+writeStoredTupleSizes :-
+  open('storedTupleSizes.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredTupleSize(FD), _),
+  close(FD).
+
+writeStoredTupleSize(Stream) :-
+  storedTupleSize(X, Y),
+  write(Stream, storedTupleSize(X, Y)),
+  write(Stream, '.\n').
+
+:-
+  dynamic(storedTupleSize/2),
+  at_halt(writeStoredTupleSizes),
+  readStoredTupleSizes.
 
 
 
