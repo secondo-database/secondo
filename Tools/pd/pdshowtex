@@ -1,4 +1,0 @@
-latex $1.tex
-dvips -o $1.ps $1.dvi
-$PS_VIEWER $1.ps
-rm $1.aux $1.log $1.dvi $1.ps
