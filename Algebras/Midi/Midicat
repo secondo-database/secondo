@@ -1,0 +1,1 @@
+cat MidiAbstract MidiIntroduction MidiAlgebra.cpp MidiAlgebra.h MidiAlgebra.spec ../../Javagui/viewer/MidiViewer.java ../../Javagui/viewer/midi/MidiFile.java ../../Javagui/viewer/midi/MidiTrack.java > MidiDocu

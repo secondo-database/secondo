@@ -1,0 +1,26 @@
+/*
+\pagebreak
+
+[1] Introduction
+
+MIDI means *M*usical*I*nstrument*D*igital*I*nterface\footnote{www.midi.org} and is a standardized format to provide a way of interchanging time-stamped MIDI data between different programs on the same or different computers. It was originally designed by a group of manufacturers of electronical instruments ( MMA - Midi Manufacturer Association ) to connect their products to each other. Until then every manufacturer had designed their own languages. The created music was only usable on this only product and could not played on electronical instruments from other manufacturers.
+
+A MIDI is not really music. It consists of all information necessary to *produce* music on electronical instruments. That means you have control information which can be converted by these intruments into hearable music. Finally no vocals are available.
+
+Normally a MIDI consists of a header, some tracks and a lot of events. All these information are sequentielly organised inside a file. The header includes some basic information like format and number of tracks. Every tracks stores a variable number of single events. There are 3 different kinds of events existing. ~MidiEvents~ for music control, ~MetaEvents~ for general information and ~SystemEvents~ for system control. Sometimes you will find the expression message instead of event but both means the same.
+
+        The ~MidiEvents~ stores the control about e.g. notes ( on / off ), program or control changes and pitch wheel changes. These information is only valid for a specific note at a fixed position inside a track.
+
+        The ~MetaEvents~ stores general information about the song stored inside the Midi file. They provides i.e. copyright data, instrument names, the song lyrics and so on. You see, all these data are valid for the whole Midi file or at least for a specific track.
+
+        The ~SystemEvents~ includes global song messages like start, stop, continue and so on.
+
+Midi is a standardized format to provide a way of interchanging time-stamped MIDI data between different programs on the same or different computers. One of the primary design goals was compact representation, which makes it very appropriate for disk-based file format, but less appropriate for quick access by a sequencer program.
+
+This MidiAlgebra introduces Midi files to SECONDO. It is completely integrated into the persistency mechanism of SECONDO. Therefore you can store Midi files inside relations as well as use Midi objects as results of SECONDO queries. We are providing several operators to extract information from Midi files or to create new Midi files depending on the users desire.
+
+The also available MidiViewer is a java-based Viewer using a graphical interface with comparable functionality to SECONDO. The big advantage of the Viewer beyond SECONDO is the opportunity to play Midi files and use additional features e.g. easily mute single tracks of a Midi. There you can also check the results you did to a Midi file using the inside SECONDO implemented operators.
+
+At the moment the MidiAlgebra supports only Midi files with format 1, because only a few Midi files are created using the other two formats. You need not to care about this issue, because all formats can be read and stored. But not all operators are released for using all possible formats.
+
+*/
