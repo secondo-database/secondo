@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.22  2003/09/25 13:20:30  spieker
+# Many makefiles were revised in order to generate include dependencies by the compiler.
+#
 # Revision 1.21  2003/09/10 13:45:54  spieker
 # New object added.
 #
@@ -105,7 +108,7 @@ SMILIB=$(BDBSMILIB)
 endif
 
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps java showjni
+all: makedirs buildlibs buildalg buildapps cs java showjni
 
 .PHONY: showjni
 showjni:
@@ -123,6 +126,7 @@ cs: makedirs buildlibs buildalg
 	$(MAKE) -C ClientServer
 	$(MAKE) -C UserInterfaces TTYCS 
 	$(MAKE) -C ClientServer buildapp
+
 
 .PHONY: makedirs
 makedirs:
@@ -173,7 +177,7 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(LIB_SDBTOOL_OBJECTS) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIB_SDBTOOL_OBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $^ 
 endif
 
 # --- Secondo Database Utilities Library ---
@@ -185,7 +189,7 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(LIB_SDBUTILS_OBJECTS) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $(LIB_SDBUTILS_OBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $^
 endif
 
 # --- Secondo Database System Library ---
@@ -197,7 +201,7 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(LIB_SDBSYS_OBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIB_SDBSYS_OBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $^ 
 endif
 
 
