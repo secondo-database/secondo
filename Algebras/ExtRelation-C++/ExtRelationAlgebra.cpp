@@ -3352,15 +3352,17 @@ Result type of ~groupby~ operation.
 */
 ListExpr GroupByTypeMap(ListExpr args)
 {
-  ListExpr first, second, third, rest, listn, lastlistn, first2,
-    second2, firstr, attrtype, listp, lastlistp;
-  ListExpr groupType;
+  ListExpr first, second, third, rest, listn, lastlistn, first2;
+  ListExpr second2, firstr, attrtype, listp, lastlistp;
+  first = second = third = rest = listn = lastlistn = first2 = nl->TheEmptyList();
+  second2 = firstr = attrtype = listp = lastlistp = nl->TheEmptyList();
+  ListExpr groupType = nl->TheEmptyList();
   bool loopok = false;
-  string  attrname;
-  int j;
+  string  attrname = "";
+  int j = 0;
   bool firstcall = true;
-  int numberatt;
-  string listString;
+  int numberatt = 0;
+  string listString = "";
 
   if(nl->ListLength(args) == 3)
   {
