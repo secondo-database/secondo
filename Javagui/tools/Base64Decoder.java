@@ -95,7 +95,9 @@ static    public byte[] decode(String Data){
      while(pos<len){
          // fill the InBuffer
          InPos=0;
-         while(InPos<4){
+         for(int i=0;i<4;i++) 
+             InBuffer[i]=(byte)'=';
+         while(InPos<4 && pos < len ){
             byte c = (byte) Data.charAt(pos);
             if(isAllowed(c)){
                InBuffer[InPos]=(byte)c;
@@ -108,7 +110,7 @@ static    public byte[] decode(String Data){
                pos++;
             }            
          }
-         if(InPos==4){
+         if(InPos==4){ // use only full buffers
             // at this point InBuffer is filled with allowed chars
          
             // cat inbuffer
