@@ -140,7 +140,12 @@ DIST_FILES := $(net)/windows/secondo-win32.tgz \
 	      $(net)/Windows-Installation-Guide.pdf
  
 .PHONY: dist
-dist: $(DIST_FILES)   
+dist: tag-version $(DIST_FILES)
+
+tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
+.PHONY: tag-version
+tag-version:
+	cvs tag $(tag) 
 
 $(net)/windows/secondo-win32.tgz: secondo-win32.tgz
 	cp $< $@ 
