@@ -1,15 +1,17 @@
 package gui;
 
 import java.awt.*;
-
+import viewer.SecondoViewer;
 public interface ViewerControl{
 
  /** check if if the current viewer can display SO **/
  public boolean canActualDisplay(SecondoObject SO);
+
  /** check if SO displayed in current viewer **/
  public boolean isActualDisplayed(SecondoObject SO);
- /** give SO to the current viewer **/
 
+
+ /** give SO to the current viewer **/
  public boolean showObject(SecondoObject SO);
 
  /** sends the remove command to the current viewer **/
@@ -35,6 +37,16 @@ public Frame getMainFrame();
 public void updateObject(SecondoObject SO);
 
 /** allow a viewer to add a object */
-public void addObject(SecondoObject SO);
+public boolean addObject(SecondoObject SO);
+
+
+/** returns all loaded Viewers */
+public SecondoViewer[] getViewers();
+
+/** add a ViewerChangeListener */
+public void addViewerChangeListener(ViewerChangeListener VCL);
+
+/** remove a ViewerChangeListener */
+public void removeViewerChangeListener(ViewerChangeListener VCL);
 
 }
