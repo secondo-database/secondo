@@ -75,6 +75,77 @@ public class Base64Decoder{
        filled=3;
    }
 
+    
+   /** decodes a String object 
+     * if the string don't contains correct base64 encoded text, null is returned
+     **/
+static    public byte[] decode(String Data){
+     int inLength = Data.length();
+     int maxSize = (inLength*3)/4+1;   
+     byte[] buffer = new byte[maxSize]; // buffer containing all bytes
+     byte[] InBuffer = new byte[4]; // buffer containing the four  inputs
+     byte[] OutBuffer = new byte[3];
+     // fill the InBuffer with allowed values
+     int pos = 0; // Position in String
+     int InPos = 0; // Positio in inbuffer
+     int OutPos =0;  // Position in outbuffer
+     int actualLength = 0; // 
+     int len = Data.length(); 
+     int filled = 0;
+     while(pos<len){
+         // fill the InBuffer
+         InPos=0;
+         while(InPos<4){
+            byte c = (byte) Data.charAt(pos);
+            if(isAllowed(c)){
+               InBuffer[InPos]=(byte)c;
+               InPos++;
+               pos++;
+               if(pos>len && InPos!=4 && InPos!=0){ // unexpected end of input
+                  return null;
+               } 
+            }else{
+               pos++;
+            }            
+         }
+         if(InPos==4){
+            // at this point InBuffer is filled with allowed chars
+         
+            // cat inbuffer
+            int all =  (getIndex(InBuffer[0])<<18)+
+	               (getIndex(InBuffer[1])<<12) +
+                       (getIndex(InBuffer[2])<<6) +
+	                getIndex(InBuffer[3]);
+             // extract outbytes
+             for(int i=2;i>=0;i--){
+                 OutBuffer[i]=(byte)(all & 255);
+	         all = all >> 8;
+             }
+             filled=3; // three bytes in outbuffer
+             if(InBuffer[3]=='='){
+                 filled=2;
+             }
+             if(InBuffer[2]=='='){
+	      filled=1;
+             }
+             for(int i=0;i<filled;i++){
+                 buffer[OutPos]=OutBuffer[i];
+                 OutPos++;
+             }
+        }        
+     } // all bytes are decoded in the buffer
+     // copy buffer into an array of bytes with minimum size
+     byte[] result = new byte[OutPos];
+     for(int i=0;i<OutPos;i++)
+         result[i] = buffer[i];
+
+     return result;
+  
+
+}
+
+
+
 
   /** return the next byte of decoded data as positive integer
     * if the end of data reached -1 is returned
@@ -127,6 +198,7 @@ public class Base64Decoder{
            endReached=true;
 	   filled=1;
        }
+
        currentPos = 1; // the first byte is given now
        return unsigned(outbuffer[0]);
     }
@@ -158,6 +230,20 @@ public class Base64Decoder{
 	}
 	public int read() throws IOException{ return Decoder.getNext();}
 	public void close() throws IOException{ Decoder.close();}
+        
+        public int read(byte[] buffer,int off, int len)throws IOException{
+           System.out.println("read called");
+           int pos = off;
+           if(len>0){
+              int last = Decoder.getNext();
+              while(pos<len && last>=0){
+                  buffer[pos] = (byte) last;
+                  pos++;
+                  last = Decoder.getNext();
+              }
+           }
+           return pos-off;
+        }
 	
 	public int available() throws IOException{
             int sav = in!=null ? Decoder.in.available(): 1;
