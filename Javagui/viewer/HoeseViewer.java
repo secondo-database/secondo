@@ -80,6 +80,8 @@ public class HoeseViewer extends SecondoViewer {
   public Rectangle ClipRect = null;
   private JLabel MouseKoordLabel;
   private JLabel actTimeLabel;
+  private JButton DecrementSpeedBtn;
+  private JButton IncrementSpeedBtn;
   private JScrollPane GeoScrollPane;
   private final String CONFIGURATION_FILE = "GBS.cfg";
   private final int NOT_ERROR_CODE = ServerErrorCodes.NOT_ERROR_CODE;
@@ -216,14 +218,66 @@ public class HoeseViewer extends SecondoViewer {
     actTimeLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
     actTimeLabel.setForeground(Color.black);
 
+    String Button_File = configuration.getProperty("FasterIcon");
+    ImageIcon icon;
+    if(Button_File!=null){
+       icon = new ImageIcon(Button_File);
+       if(icon.getImage()!=null){
+          IncrementSpeedBtn = new JButton(icon);
+          icon.setImage(icon.getImage().getScaledInstance(18,18,Image.SCALE_DEFAULT));
+       } else
+          IncrementSpeedBtn = new JButton(">");
+    }
+    else
+       IncrementSpeedBtn = new JButton(">");
+
+    Button_File = configuration.getProperty("SlowerIcon");
+    if(Button_File!=null){
+       icon = new ImageIcon(Button_File);
+       if(icon.getImage()!=null){
+          DecrementSpeedBtn = new JButton(icon);
+          icon.setImage(icon.getImage().getScaledInstance(18,18,Image.SCALE_DEFAULT));
+       } else
+          DecrementSpeedBtn = new JButton(">");
+    }
+    else
+       DecrementSpeedBtn = new JButton(">");
+
+
+
+    ActionListener SpeedControlListener = new ActionListener(){
+         public void actionPerformed(ActionEvent evt){
+            Object src = evt.getSource();
+            long ui = TimeSlider.getUnitIncrement();
+            if(src.equals(DecrementSpeedBtn)){
+                ui = Math.max(ui/2,1);
+            } else if(src.equals(IncrementSpeedBtn)){
+                ui = ui*2;
+            }
+            TimeSlider.setUnitIncrement(ui);
+            TimeSlider.setBlockIncrement(ui*60);
+         };
+    };
+
+    DecrementSpeedBtn.addActionListener(SpeedControlListener);
+    IncrementSpeedBtn.addActionListener(SpeedControlListener);
+    IncrementSpeedBtn.setPreferredSize(new Dimension(22,22));
+    DecrementSpeedBtn.setPreferredSize(new Dimension(22,22));
+
+
+    JToolBar SpeedControlPanel = new JToolBar();
+    SpeedControlPanel.putClientProperty("JToolBar.isRollover", Boolean.TRUE);
+    SpeedControlPanel.setFloatable(false);
+    SpeedControlPanel.add(DecrementSpeedBtn);
+    SpeedControlPanel.add(new JLabel("speed"));
+    SpeedControlPanel.add(IncrementSpeedBtn);
+
+
     JToolBar jtb = new JToolBar();
     jtb.putClientProperty("JToolBar.isRollover", Boolean.TRUE);
     jtb.setFloatable(false);
-    jtb.addSeparator();
-    JPanel AnimPanel = new JPanel(new FlowLayout(2, 0, 4));
-    AnimPanel.setPreferredSize(new Dimension(60, 12));
     JButton ctrls[] = new JButton[6];
-    String Button_File = configuration.getProperty("PlayIcon");
+    Button_File = configuration.getProperty("PlayIcon");
     if(Button_File!=null)
         ctrls[0] = new JButton(new ImageIcon(Button_File));
     else
@@ -261,27 +315,45 @@ public class HoeseViewer extends SecondoViewer {
        ctrls[5] = new JButton("[]");
 
 
+    JPanel AnimControlPanel = new JPanel(new GridLayout(1,9));
     ActionListener al = new AnimCtrlListener();
     for (int i = 0; i < ctrls.length; i++) {
       ctrls[i].setActionCommand(Integer.toString(i));
       ctrls[i].addActionListener(al);
-      //ctrls[i].setMinimumSize(new Dimension(8,8));
-      //ctrls[i].setMargin(new Insets(0, 0, 0, 0));
-      jtb.add(ctrls[i]);
+      if(i!=2){  // ignore the playdef button
+         AnimControlPanel.add(ctrls[i]);
+      }
     }
 
+
+    JPanel ControlPanel=new JPanel(new GridLayout(2,1));
+    ControlPanel.add(AnimControlPanel);
+    ControlPanel.add(SpeedControlPanel);
+    AnimControlPanel.setPreferredSize(new Dimension(100,15));
+
+    jtb.add(ControlPanel);
+    jtb.addSeparator();
+
+
     TimeSlider = new LongScrollBar(0, 0, 1);
-    //JSlider(0,300,0);
     TimeSlider.addChangeValueListener(new TimeChangeListener());
-    TimeSlider.setPreferredSize(new Dimension(400, 15));
+    TimeSlider.setPreferredSize(new Dimension(400, 20));
     TimeSlider.setUnitIncrement(1000); // 1 sec
     TimeSlider.setBlockIncrement(60000); // 1 min
-    JPanel TimeSliderAndLabel = new JPanel(new BorderLayout());
-    TimeSliderAndLabel.add(TimeSlider,BorderLayout.NORTH);
-    TimeSliderAndLabel.add(actTimeLabel,BorderLayout.SOUTH);
+
+    JPanel PositionsPanel = new JPanel(new GridLayout(1,2));
+    PositionsPanel.add(actTimeLabel);
+    PositionsPanel.add(MouseKoordLabel);
+
+    JPanel TimeSliderAndLabels = new JPanel(new BorderLayout());
+    TimeSliderAndLabels.add(TimeSlider,BorderLayout.NORTH);
+    TimeSliderAndLabels.add(PositionsPanel,BorderLayout.SOUTH);
     actTimeLabel.setHorizontalAlignment(SwingConstants.CENTER);
-    jtb.add(TimeSliderAndLabel);
-    jtb.add(MouseKoordLabel);
+    MouseKoordLabel.setHorizontalAlignment(SwingConstants.CENTER);
+    jtb.add(TimeSliderAndLabels);
+
+
+    //jtb.add(MouseKoordLabel);
 
     TextDisplay = new TextWindow(this);
     DoQuerySelection = new QueryListSelectionListener();
@@ -619,7 +691,7 @@ public class HoeseViewer extends SecondoViewer {
     MenuExtension.addMenu(jMenu1);
 
     jMenuGui.setText("Settings");
-    
+
     jMenuGui.add(Menu_Prj);
     MI_PrjSettings.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -1891,7 +1963,7 @@ public boolean canDisplay(SecondoObject o){
        String TmpCatPath = configuration.getProperty("CATEGORY_PATH");
        if(TmpCatPath!=null)
           CatPath = TmpCatPath.trim();
-	  
+
        if(!CatPath.endsWith(FileSeparator))
  	   CatPath += FileSeparator;
 
@@ -2102,7 +2174,7 @@ public boolean canDisplay(SecondoObject o){
 	int index = MenuItems.indexOf(source);
 	if(index<0) return;
 	if(index==selectedIndex) return;
-        
+
 
 	ProjectionManager.setProjection((Projection)Projections.get(index));
 	if(selectedIndex>=0)
