@@ -12,7 +12,7 @@ all: MenuVector.class SecondoViewer.class MessageBox.class
 # compile all viewers
 
 .PHONY: viewers
-viewers : StandardViewer.class RelViewer.class FormattedViewer.class relsplit hoese viewer3d QueryViewer.class fuzzy2d
+viewers : StandardViewer.class RelViewer.class  InquiryViewer.class FormattedViewer.class relsplit hoese viewer3d QueryViewer.class fuzzy2d
 
 #
 # the viewer from Thomas Hoese (a gui in the past)
