@@ -87,11 +87,9 @@ else
    export PD_HEADER="/usr/local/pd/pd.header"
    export DVI_VIEWER=yap
    export BERKELEY_DB_DIR="/usr/local"
-   SWI_HOME_DIR2 = $(echo $SWI_HOME_DIR | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
-   J2SDK_ROOT2 = $(echo $J2SDK_ROOT | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
-
-   TEMPPATH=".:$J2SDK_ROOT2/bin:$J2SDK_ROOT2/jre/bin/client:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR2/bin"
-   export PATH=$(echo $TEMPPATH | sed 's#:C:#:/c#g' | sed 's#:D:#:/d#g')
+   SWI_HOME_DIR2=$(echo $SWI_HOME_DIR | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
+   J2SDK_ROOT2=$(echo $J2SDK_ROOT | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
+   export PATH=".:$J2SDK_ROOT2/bin:$J2SDK_ROOT2/jre/bin/client:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR2/bin"
   
    # gcc on windows needs special treatment
    export CPLUS_INCLUDE_PATH="/usr/local/include"
