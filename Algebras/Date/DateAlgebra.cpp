@@ -42,20 +42,6 @@ using namespace std;
 static NestedList* nl;
 static QueryProcessor* qp;
 
-/*
-1.2 Dummy Functions
-
-Not interesting, but needed in the definition of a type constructor.
-*/
-
-static Word
-NoSpace( int size ) {return (SetWord( Address( 0 ) ));}
-
-static void
-DoNothing( Word& w ) {w.addr = 0;}
- 
-static void* DummyCast( void* addr ) {return (0);}
-
 bool isdate(int  Day, int Month, int Year) 
  {  //in this function, we don't check year information. If the year is a negtive integer, for instance -100, then it represents
     //the year of 100 BC.
@@ -96,6 +82,7 @@ class Date: public StandardAttribute
 {
  public:
   Date(bool Defined, int Day, int Month, int Year);
+  Date();
   ~Date();  
   int      GetDay();
   int      GetMonth();
@@ -127,7 +114,9 @@ class Date: public StandardAttribute
   bool defined;
 };
 
-Date::Date(bool Defined, int Day, int Month, int Year) {cout <<"---Constructor---" << endl; defined = Defined; day = Day; month = Month; year = Year;}
+Date::Date(bool Defined, int Day, int Month, int Year) { defined = Defined; day = Day; month = Month; year = Year;}
+
+Date::Date()  {}
 
 Date::~Date() {}
 
@@ -148,21 +137,21 @@ void Date::Set(bool Defined, int Day, int Month, int Year) {defined = Defined; d
 //*****************************************************************
 //  The following 9 functions are need when porting this data type to tuple
 //*****************************************************************  
-bool Date::IsDefined()  {cout <<"---1---" << endl; return (defined); }
+bool Date::IsDefined()  {return (defined); }
   
-void Date::SetDefined(bool Defined) {cout <<"---2---" << endl; defined = Defined; }
+void Date::SetDefined(bool Defined) {defined = Defined; }
 
-int  Date::Sizeof() {cout <<"---3---" << endl; return sizeof(Date); }
+int  Date::Sizeof() { return sizeof(Date); }
 
-Date*  Date::Clone() {cout <<"---4---" << endl; return (new Date( *this )); }
+Date*  Date::Clone() { return (new Date( *this )); }
 
-ostream& Date::Print( ostream &os ) {cout <<"---5---" << endl; return (os << day << ", "<<month <<", "<<year); } 
+ostream& Date::Print( ostream &os ) { return (os << day << ", "<<month <<", "<<year); } 
 
 // It doesn't make sense in this case, so we can just return the value of day ( or month / year / -1 )...
-void*  Date::GetValue() {cout <<"---6---" << endl; return ((void *)-1); }
+void*  Date::GetValue() { return ((void *)-1); }
 
 size_t Date::HashValue()
-{cout <<"---7---" << endl; 
+{
   if(!defined)  return (0); 
   unsigned long h;
   h=5*(5*day+month)+year;
@@ -170,7 +159,7 @@ size_t Date::HashValue()
 }
   
 void Date::CopyFrom(StandardAttribute* right)
-{cout <<"---8---" << endl; 
+{
   Date * d = (Date*)right;
   defined = d->defined;
   day = d->day;
@@ -179,7 +168,7 @@ void Date::CopyFrom(StandardAttribute* right)
 }
 
 int Date::Compare(Attribute * arg)
-{cout <<"---9---" << endl; 
+{ 
  int res=0;
  Date * d = (Date* )(arg);
  if ( !d ) return (-2);                                                         //somethong wrong with the argument
@@ -216,7 +205,7 @@ The list representation of a date is
 
 static ListExpr
 OutDate( ListExpr typeInfo, Word value ) 
-{cout <<"---A---" << endl;
+{
   Date* date;
   date = (Date*)(value.addr);
   if (date->IsDefined())
@@ -231,7 +220,7 @@ OutDate( ListExpr typeInfo, Word value )
 
 static Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
-{cout <<"---B---" << endl;
+{
   Date* newdate;
 
   if (nl->IsAtom(instance) && nl->AtomType(instance)==SymbolType && nl->SymbolValue(instance)=="undef")
@@ -265,7 +254,7 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
                   }
         			else
                   {
-    				cout <<"---------------------------------------------------" << endl;	    
+    				cout <<"---------------------------------------------------" << endl;
     				cout <<"   >>>invalid date, ignored by the system!<<<" << endl;
     				cout <<"---------------------------------------------------" << endl;	    	   
                   }
@@ -273,6 +262,28 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
 	}
   correct = false;
   return SetWord(Address(0));
+}
+
+//************************************************************
+//These 3 functions are needed when porting the date type to relation
+//************************************************************
+static Word
+CreateDate( int Size )
+{
+  return (SetWord( new Date( false, 0, 0, 0 ) ));
+}
+
+static void
+DeleteDate( Word& w )
+{
+  delete (Date*) w.addr;
+  w.addr = 0;
+}
+
+static void*
+CastDate( void* addr )
+{
+  return (new (addr) Date);
 }
 
 /*
@@ -305,14 +316,14 @@ CheckDate( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor date(
-	"date",					//name		
-	DateProperty, 			//property function describing signature
-	OutDate,   	InDate,		//Out and In functions
-	NoSpace,	DoNothing,	//object creation and deletion
-	DummyCast,				//cast function
-	CheckDate,				//kind checking function
-	0,						//predefined persistence function        	
-	0, 						//predef. pers. function for model
+	"date",		            			        //name		
+	DateProperty, 			            //property function describing signature
+	OutDate,   	InDate,		        //Out and In functions
+    CreateDate, DeleteDate,    //object creation and deletion
+    CastDate,  			                    //cast function
+	CheckDate,				            //kind checking function
+	0,						                        //predefined persistence function        	
+	0, 						                    //predef. pers. function for model
     TypeConstructor::DummyInModel, 	
     TypeConstructor::DummyOutModel,
     TypeConstructor::DummyValueToModel,
@@ -321,9 +332,9 @@ TypeConstructor date(
 
 
 /*
-4 Creating Operators
+3 Creating Operators
 
-4.1 Type Mapping Function
+3.1 Type Mapping Function
 
 Checks whether the correct argument types are supplied for an operator; if so,
 returns a list expression for the result type, otherwise the symbol
@@ -378,7 +389,7 @@ IntIntIntDate( ListExpr args )
 
 
 /*
-4.2 Selection Function
+3.2 Selection Function
 
 Is used to select one of several evaluation functions for an overloaded
 operator, based on the types of the arguments. In case of a non-overloaded
@@ -393,7 +404,7 @@ simpleSelect (ListExpr args ) { return 0; }
 
 
 /*
-4.3 Value Mapping Functions
+3.3 Value Mapping Functions
 
 */
 
@@ -427,7 +438,7 @@ monthFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 static int
 yearFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{cout <<"---C---" << endl;
+{
   Date* d;
   d = ((Date*)args[0].addr);
 
@@ -540,42 +551,15 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
       result.addr=delem;
    } 
   else
-   {/*
-          if  (((Year % 4==0) && (Year % 100!=0)) || (Year % 400==0))  leapyear=true; else leapyear=false;
-	  
-          if (Month<1) Month=1; 
-          if (Month>12) Month=12;
-          
-          switch (Month)
-	      {
-		  case 1:
-  		  case 3:
-  		  case 5:
-		  case 7:
-  		  case 8:
-  		  case 10:
-  		  case 12: daysinmonth=31;break;
- 	      case 4: 
- 	      case 6: 
- 	      case 9: 
- 	      case 11: daysinmonth=30;break;
- 	      case 2:  if (leapyear) daysinmonth=29; else daysinmonth=28;
-	      }
-	      if (Day<1) Day=1;
-          if (Day>daysinmonth) Day=daysinmonth; 
-          cout <<"--------------------------------------------------------------------------" << endl;	    
-          cout <<"   >>>invalid date! It will be replaced by the closest valid date.<<<" << endl;
-          cout <<"--------------------------------------------------------------------------" << endl;	    	   
-          delem=new Date (Day, Month, Year);
-   */
-		  delem=new Date (false, 0, 0, 0);
-          result.addr=delem;
+   {
+       delem=new Date (false, 0, 0, 0);
+       result.addr=delem;
     } 
   return 0;
 }
 
 /*
-4.4 Definition of Operators
+3.4 Definition of Operators
 */
 
 const string DaySpec =
@@ -667,7 +651,7 @@ Operator thedate (
 	IntIntIntDate			//type mapping 
 );	
 /*
-5 Creating the Algebra
+4 Creating the Algebra
 
 */
 
@@ -694,7 +678,7 @@ class DateAlgebra : public Algebra
 DateAlgebra dateAlgebra; 
 
 /*
-6 Initialization
+5 Initialization
 */
 
 extern "C"
