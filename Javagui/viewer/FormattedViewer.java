@@ -361,6 +361,16 @@ public class FormattedViewer extends SecondoViewer {
    Text += "Object";
    Text += objects.listLength()>1?"s\n":"\n";
    Text += "--------------------\n";
+   if(!objects.isEmpty()){
+     Text += "Short List\n\n";
+     ListExpr tmp = objects;
+     while(!tmp.isEmpty()){
+        Text += "  * "+tmp.first().second().symbolValue()+"\n";
+	tmp = tmp.rest();
+     }
+     Text += "\n----------------------\n\n";
+     Text += "Complete List \n\n";
+   }
    if(objects.isEmpty())
       Text +="none";
    else
