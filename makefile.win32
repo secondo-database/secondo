@@ -5,19 +5,21 @@
 ########################################################################
 
 # Secondo build directory
-BUILDDIR = /change/me/Secondo
+BUILDDIR = $(SECONDO_BUILD_DIR)
 INCLUDEDIR = $(BUILDDIR)/include
 LIBDIR = $(BUILDDIR)/lib
 BINDIR = $(BUILDDIR)/bin
-BDBSMILIB = -lsmibdb
-ORASMILIB = -lsmiora
-TOOLLIB   = -lsdbtool
-SDBLIB    = -lsdbsys
-ALGLIB    = -lfunctionalgebra -lstandardalgebra
+BDBSMILIB  = -lsmibdb
+ORASMILIB  = -lsmiora
+TOOLLIB    = -lsdbtool
+SDBLIB     = -lsdbsys
+ALGLIB     = -lfunctionalgebra -lstandardalgebra -lpointrectanglealgebra -lstreamexamplealgebra -lrelationalgebra
+
+# System dependent default libraries
 DEFAULTLIB = -lws2_32 -lstdc++
 
 # Berkeley DB library
-BDBDIR = /change/me/db-4.0.14
+BDBDIR = $(BERKELEY_DB_DIR)
 BDBINCLUDE = -I$(BDBDIR)/include -I$(BDBDIR)/build_win32
 BDBLIBDIR = -L$(BDBDIR)/build_win32
 BDBLIB = -ldb32
@@ -31,7 +33,7 @@ OCICPPLIBPATH = -L$(BUILDDIR)/lib
 OCICPPLIB = -locicpp -loci
 
 # Uncomment next line to compile with debugging information:
-#DEBUG = -g
+DEBUG = -ggdb
 
 PLATFORM = win32
 CC = gcc
@@ -65,7 +67,7 @@ DLLOBJEXT = o
 DLLEXT = dll
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -mconsole -O2 -Wall -D_REENTRANT
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -mconsole -Wall -D_REENTRANT
 
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 
