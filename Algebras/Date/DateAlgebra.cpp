@@ -143,8 +143,6 @@ class Date: public StandardAttribute
   int      Compare(Attribute * arg);
   bool     Adjacent(Attribute * arg);
   Date*    Clone();
-  void     SaveTo(char *target, int& offset) const;
-  void     RestoreFrom(char *source, int& offset);
   ostream& Print( ostream &os );
 
  private:
@@ -318,30 +316,6 @@ bool Date::Adjacent(Attribute *arg)
 }
 
 Date*  Date::Clone() {return (new Date( *this));}
-
-void Date::SaveTo(char *target, int& offset) const
-{
-  memcpy(target + offset, &defined, sizeof(bool));
-  offset += sizeof(bool);
-  memcpy(target + offset, &day, sizeof(int));
-  offset += sizeof(int);
-  memcpy(target + offset, &month, sizeof(int));
-  offset += sizeof(int);
-  memcpy(target + offset, &year, sizeof(int));
-  offset += sizeof(int);
-}
-
-void Date::RestoreFrom(char *source, int& offset)
-{
-  memcpy(&defined, source + offset, sizeof(bool));
-  offset += sizeof(bool);
-  memcpy(&day, source + offset, sizeof(int));
-  offset += sizeof(int);
-  memcpy(&month, source + offset, sizeof(int));
-  offset += sizeof(int);
-  memcpy(&year, source + offset, sizeof(int));
-  offset += sizeof(int);
-}
 
 ostream& Date::Print(ostream &os)
 {
