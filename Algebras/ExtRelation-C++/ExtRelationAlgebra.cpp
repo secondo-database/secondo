@@ -2941,8 +2941,8 @@ ListExpr ExtendstreamTypeMap(ListExpr args)
   algMgr = SecondoSystem::GetAlgebraManager();
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   bool correct=true;
-	  
-  if(nl->ListLength(args) == 2)
+
+    if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);                          //(stream(tuple x))
     second  = nl->Second(args);            //((b1 (map (tuple x) (stream (y1)) ) ) )
@@ -3087,6 +3087,7 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           qp->Close(streamy.addr);
           ((Tuple*)tuplex.addr)->DeleteIfAllowed();
+	  //delete (Tuple*)tuplex.addr;
           qp->Request(args[0].addr, tuplex);
           if (qp->Received(args[0].addr))
           {
@@ -3107,8 +3108,9 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
 
             localinfo->tuplex=tuplex;
             localinfo->streamy=streamy;
-            resultType = GetTupleResultType( s );
-            localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+            //resultType = GetTupleResultType( s );
+            //localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+	    
             local =  SetWord(localinfo);
           }
           else  //streamx is exausted
@@ -3134,6 +3136,7 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
       ctuplexy->PutAttribute( ctuplex->GetNoAttributes(), ((StandardAttribute*)valueY.addr)->Clone() );
       //give valueY to the last attribute
       
+      delete (StandardAttribute*)valueY.addr;
       tuplexy = SetWord(ctuplexy);
       result = tuplexy;
       return YIELD;
