@@ -172,13 +172,13 @@ command and extracts the object dependencies from the annotated query.
       objRec.deleted = true;
       deleted = true; 
       derivedObjNames.erase(it);
+
+      if (!internal) { // in the rebuild phase no messages are printed
+         reportObjDeps(objName);
+         updateTable();
+      }
     }
     
-    if (!internal) { // in the rebuild phase no messages are printed
-       reportObjDeps(objName);
-       updateTable();
-    }
-       
     return deleted;
   }
 
