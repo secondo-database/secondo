@@ -7,7 +7,7 @@
 
 [TOC]
 
-2 Auxilary Functions
+2 Auxiliary Functions
 
 */
 
@@ -34,7 +34,7 @@
 
 /*
 
-1.3 Macro CHECK\_COND
+2.1 Macro CHECK\_COND
 
 This macro makes reporting errors in type mapping functions more convenient.
 
@@ -46,8 +46,20 @@ This macro makes reporting errors in type mapping functions more convenient.
     return nl->SymbolAtom("typeerror");\
   };
 
+/*
+
+2.2 Function ~simpleSelect~
+
+Trivial selection function.
+
+*/
 static int simpleSelect (ListExpr args) { return 0; }
 
+/*
+
+2.2 Type property of type constructor ~btree~
+
+*/
 ListExpr BTreeProp ()
 {
   NestedList* nl = SecondoSystem::GetNestedList();
@@ -60,7 +72,13 @@ ListExpr BTreeProp ()
      nl->SymbolAtom("BTREE"));
 }
 
+/*
 
+2.3 Function ~AttrToKey~
+
+Converts a ~StandardAttribute~ to a ~SmiKey~.
+
+*/
 void AttrToKey(
   StandardAttribute* attr,
   SmiKey::KeyDataType keyType,
@@ -94,6 +112,13 @@ void AttrToKey(
   assert(key.GetType() == keyType);
 }
 
+/*
+
+2.4 Function ~KeyToAttr~
+
+Converts a ~SmiKey~ to a ~StandardAttribute~.
+
+*/
 void KeyToAttr(
   StandardAttribute* attr,
   SmiKey::KeyDataType keyType,
@@ -103,7 +128,7 @@ void KeyToAttr(
   long intval;
   string strval;
 
-  //assert(key.GetType() == keyType);
+  assert(key.GetType() == keyType);
   switch(keyType)
   {
     case SmiKey::Integer:
@@ -127,6 +152,13 @@ void KeyToAttr(
   }
 }
 
+/*
+
+2.5 Function ~WriteRecordId~
+
+Writes a ~SmiRecordId~ to a ~SmiRecord~.
+
+*/
 bool WriteRecordId(SmiRecord& record, SmiRecordId id)
 {
   SmiSize bytesWritten;
@@ -136,6 +168,13 @@ bool WriteRecordId(SmiRecord& record, SmiRecordId id)
   return bytesWritten == idSize;
 }
 
+/*
+
+2.6 Function ~ReadRecordId~
+
+Reads a ~SmiRecordId~ from a ~SmiRecord~.
+
+*/
 bool ReadRecordId(SmiRecord& record, SmiRecordId& id)
 {
   SmiSize bytesRead;
@@ -147,6 +186,13 @@ bool ReadRecordId(SmiRecord& record, SmiRecordId& id)
   return bytesRead == idSize;
 }
 
+/*
+
+3 Class ~BTreeIterator~
+
+Used to iterate over all record ids fulfilling a certain condition.
+
+*/
 class BTreeIterator
 {
   SmiKeyedFileIterator* fileIter;
@@ -217,6 +263,13 @@ public:
   }
 };
 
+/*
+
+4 Class ~BTree~
+
+The key attribute of a btree can be an ~int~, a ~string~, or a ~real~.
+
+*/
 class BTree
 {
 private:
@@ -286,7 +339,6 @@ public:
       this->file = 0;
       this->keyType = SmiKey::Unknown;
     }
-
   }
 
   bool WriteTo(SmiRecord& record, SmiKey::KeyDataType keyType)
@@ -451,25 +503,55 @@ public:
   }
 };
 
+/*
+
+5 Type constructor ~btree~
+
+5.1 Function ~OutBTree~
+
+A btree does not make any sense as an independent value since
+the record ids stored in it become obsolete as soon as
+the underlying relation is deleted. Therefore this function
+outputs an empty list.
+
+*/
 ListExpr OutBTree(ListExpr typeInfo, Word  value)
 {
   NestedList* nl = SecondoSystem::GetNestedList();
   return nl->TheEmptyList();
 }
 
+/*
+
+5.2 Function ~CreateBTree~
+
+*/
 Word CreateBTree(int Size)
 {
   return SetWord(new BTree());
 }
 
+/*
+
+5.3 Function ~InBTree~
+
+Reading a btree from a list does not make sense because a btree
+is not an independent value. Therefore calling this function leads
+to program abort.
+
+*/
 Word InBTree(ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  assert(false /* reading a btree from a list expression
-    does not make sense currently */);
+  assert(false);
   return SetWord(0);
 }
 
+/*
+
+5.4 Function ~DeleteBTree~
+
+*/
 void DeleteBTree(Word& w)
 {
   BTree* btree = (BTree*)w.addr;
@@ -478,19 +560,7 @@ void DeleteBTree(Word& w)
 
 /*
 
-4.3.8 ~Check~-function of type constructor ~rel~
-
-Checks the specification:
-
-----    TUPLE   -> REL          rel
-----
-
-Hence the type expression must have the form
-
-----    (rel x)
-----
-
-and ~x~ must be a type of kind TUPLE.
+5.5 ~Check~-function of type constructor ~btree~
 
 */
 bool CheckBTree(ListExpr type, ListExpr& errorInfo)
@@ -517,18 +587,10 @@ void* CastBTree(void* addr)
 {
   return ( 0 );
 }
+
 /*
 
-3.2.5 ~PersistFunction~ of type constructor ~rel~
-
-This is a slightly modified version of the function ~DefaultPersistValue~ (from
-~Algebra~) which creates the relation from the SmiRecord only if it does not
-yet exist.
-
-The idea is to maintain a cache containing the relation representations that
-have been built in memory. The cache basically stores pairs (recordId, relation
-value). If the record Id passed to this function is found, the cached relation
-value is returned instead of building a new one.
+5.6 ~PersistFunction~ of type constructor ~btree~
 
 */
 bool
@@ -552,8 +614,6 @@ BTreePersistValue( const PersistDirection dir,
   int typeNumber;
   string keyTypeString;
 
-
-  //nl->WriteListExpr(typeInfo, cerr);
   /* find out key type */
   assert(!nl->IsAtom(typeInfo));
   assert(!nl->IsEmpty(typeInfo));
@@ -564,7 +624,6 @@ BTreePersistValue( const PersistDirection dir,
   assert(!nl->IsAtom(first));
   assert(!nl->IsEmpty(first));
   assert(nl->ListLength(first) == 3);
-
 
   keyTypeLE = nl->Third(first);
   assert(!nl->IsAtom(keyTypeLE));
@@ -582,7 +641,6 @@ BTreePersistValue( const PersistDirection dir,
   typeNumber = nl->IntValue(typeNoLE);
 
   keyTypeString = alg->Constrs(algNumber, typeNumber);
-  //cerr << "key type : " << keyTypeString << endl;
 
   if(keyTypeString == "int")
   {
@@ -614,9 +672,10 @@ BTreePersistValue( const PersistDirection dir,
     return success;
   }
 }
+
 /*
 
-3.2.5 ~Model~-functions of type constructor ~btree~
+5.7 ~Model~-functions of type constructor ~btree~
 
 */
 Word BTreeInModel( ListExpr typeExpr, ListExpr list, int objNo )
@@ -641,6 +700,11 @@ Word BTreeValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
   return (SetWord( Address( 0 ) ));
 }
 
+/*
+
+5.8 Type Constructor object for type constructor ~btree~
+
+*/
 TypeConstructor cppbtree( "btree",           BTreeProp,
                         OutBTree,          InBTree,   CreateBTree,
                         DeleteBTree,       CastBTree,   CheckBTree,
@@ -648,6 +712,13 @@ TypeConstructor cppbtree( "btree",           BTreeProp,
 			BTreeInModel,      BTreeOutModel,
 			BTreeValueToModel, BTreeValueListToModel );
 
+/*
+
+6 Operators of the btree algebra
+
+6.1 Type Mapping of operator ~createbtree~
+
+*/
 static ListExpr CreateBTreeTypeMap(ListExpr args)
 {
   string attrName;
@@ -703,12 +774,12 @@ static ListExpr CreateBTreeTypeMap(ListExpr args)
         tupleDescription,
         attrType));
 
-  //nl->WriteListExpr(dbgList, cout);
   return resultType;
 }
+
 /*
 
-4.1.2 Value mapping function of operator ~feed~
+6.2 Value mapping function of operator ~createbtree~
 
 */
 static int
@@ -770,18 +841,18 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
 }
 /*
 
-4.1.3 Specification of operator ~feed~
+6.3 Specification of operator ~createbtree~
 
 */
 const string CreateBTreeSpec =
-  "(<text>(rel x) -> (stream x)</text---><text>Produces a stream from a "
-  "relation by scanning the relation tuple by tuple.</text--->)";
+"(<text>((rel (tuple ((x1 t1)...(xn tn)))) xi) -> "
+"(btree (tuple ((x1 t1)...(xn tn))) ti)</text--->"
+"<text>Creates a btree. The key type ti must be "
+"either string or int or real.</text--->)";
+
 /*
 
-4.1.3 Definition of operator ~feed~
-
-Non-overloaded operators are defined by constructing a new instance of
-class ~Operator~, passing all operator functions as constructor arguments.
+6.4 Definition of operator ~createbtree~
 
 */
 Operator createbtree (
@@ -809,7 +880,12 @@ char* errorMessages[] =
     "Incorrect input for operator rightrange.",
     "Incorrect input for operator range.",
     "Incorrect input for operator exactmatch." };
+/*
 
+6.5 Type mapping function of operators ~range~, ~leftrange~,
+~rightrange~ and ~exactmatch~
+
+*/
 template<int operatorId>
 ListExpr IndexQueryTypeMap(ListExpr args)
 {
@@ -903,10 +979,21 @@ ListExpr IndexQueryTypeMap(ListExpr args)
       nl->SymbolAtom("stream"),
       tupleDescription);
 
-  nl->WriteListExpr(resultType, cout);
   return resultType;
 }
 
+struct IndexQueryLocalInfo
+{
+  CcRel* relation;
+  BTreeIterator* iter;
+};
+
+/*
+
+6.6 Value mapping function of operators ~range~, ~leftrange~,
+~rightrange~ and ~exactmatch~
+
+*/
 template<int operatorId>
 static int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -914,12 +1001,11 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
   QueryProcessor* qp = SecondoSystem::GetQueryProcessor();
 
   BTree* btree;
-  CcRel* relation;
   StandardAttribute* key;
   StandardAttribute* secondKey;
-  BTreeIterator* iter;
   CcTuple* tuple;
   SmiRecordId id;
+  IndexQueryLocalInfo* localInfo;
 
   Word relWord;
   Word btreeWord;
@@ -937,8 +1023,9 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         qp->Request(args[3].addr, secondKeyWord);
       }
 
+      localInfo = new IndexQueryLocalInfo;
       btree = (BTree*)btreeWord.addr;
-      relation = (CcRel*)relWord.addr;
+      localInfo->relation = (CcRel*)relWord.addr;
       key = (StandardAttribute*)keyWord.addr;
       if(operatorId == RANGE)
       {
@@ -947,42 +1034,43 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       assert(btree != 0);
-      assert(relation != 0);
+      assert(localInfo->relation != 0);
       assert(key != 0);
 
       switch(operatorId)
       {
         case EXACTMATCH:
-          iter = btree->ExactMatch(key);
+          localInfo->iter = btree->ExactMatch(key);
           break;
         case RANGE:
-          iter = btree->Range(key, secondKey);
+          localInfo->iter = btree->Range(key, secondKey);
           break;
         case LEFTRANGE:
-          iter = btree->LeftRange(key);
+          localInfo->iter = btree->LeftRange(key);
           break;
         case RIGHTRANGE:
-          iter = btree->RightRange(key);
+          localInfo->iter = btree->RightRange(key);
           break;
         default:
           assert(false);
       }
 
-      if(iter == 0)
+      if(localInfo->iter == 0)
       {
-        return 1;
+        return -1;
       }
-      local = SetWord(iter);
+
+      local = SetWord(localInfo);
       return 0;
 
     case REQUEST :
-      iter = (BTreeIterator*)local.addr;
-      assert(iter != 0);
+      localInfo = (IndexQueryLocalInfo*)local.addr;
+      assert(localInfo != 0);
 
-      if(iter->Next())
+      if(localInfo->iter->Next())
       {
-        id = iter->GetId();
-        tuple = relation->GetTupleById(id);
+        id = localInfo->iter->GetId();
+        tuple = localInfo->relation->GetTupleById(id);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -992,17 +1080,31 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      iter = (BTreeIterator*)local.addr;
-      delete iter;
+      localInfo = (IndexQueryLocalInfo*)local.addr;
+      delete localInfo->iter;
+      delete localInfo;
       return 0;
   }
   return 0;
 }
 
-const string ExactMatchSpec =
-  "(<text>(stream x) -> (rel x)</text---><text>Collects objects from a stream "
-  "into a relation.</text--->)";
+/*
 
+6.7 Specification of operator ~exactmatch~
+
+*/
+const string ExactMatchSpec =
+"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
+" (rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
+"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
+"<text>Uses the given btree to find all tuples in the given "
+"relation with .xi = argument value.</text--->)";
+
+/*
+
+6.8 Definition of operator ~exactmatch~
+
+*/
 Operator exactmatch (
          "exactmatch",            // name
 	 ExactMatchSpec,          // specification
@@ -1012,10 +1114,23 @@ Operator exactmatch (
 	 IndexQueryTypeMap<EXACTMATCH>        // type mapping
 );
 
-const string RangeSpec =
-  "(<text>(stream x) -> (rel x)</text---><text>Collects objects from a stream "
-  "into a relation.</text--->)";
+/*
 
+6.9 Specification of operator ~range~
+
+*/
+const string RangeSpec =
+"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
+" (rel (tuple ((x1 t1)...(xn tn)))) ti ti) -> "
+"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
+"<text>Uses the given btree to find all tuples in the given "
+"relation with .xi >= argument value 1 and .xi <= argument value 2.</text--->)";
+
+/*
+
+6.10 Definition of operator ~range~
+
+*/
 Operator cpprange (
          "range",            // name
 	 RangeSpec,          // specification
@@ -1025,10 +1140,23 @@ Operator cpprange (
 	 IndexQueryTypeMap<RANGE>        // type mapping
 );
 
-const string LeftRangeSpec =
-  "(<text>(stream x) -> (rel x)</text---><text>Collects objects from a stream "
-  "into a relation.</text--->)";
+/*
 
+6.11 Specification of operator ~leftrange~
+
+*/
+const string LeftRangeSpec =
+"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
+" (rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
+"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
+"<text>Uses the given btree to find all tuples in the given "
+"relation with .xi <= argument value.</text--->)";
+
+/*
+
+6.12 Definition of operator ~leftrange~
+
+*/
 Operator leftrange (
          "leftrange",            // name
 	 LeftRangeSpec,          // specification
@@ -1038,10 +1166,23 @@ Operator leftrange (
 	 IndexQueryTypeMap<LEFTRANGE>        // type mapping
 );
 
-const string RightRangeSpec =
-  "(<text>(stream x) -> (rel x)</text---><text>Collects objects from a stream "
-  "into a relation.</text--->)";
+/*
 
+6.13 Specification of operator ~rightrange~
+
+*/
+const string RightRangeSpec =
+"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
+" (rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
+"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
+"<text>Uses the given btree to find all tuples in the given "
+"relation with .xi >= argument value.</text--->)";
+
+/*
+
+6.14 Definition of operator ~rightrange~
+
+*/
 Operator rightrange (
          "rightrange",            // name
 	 RightRangeSpec,          // specification
@@ -1051,6 +1192,11 @@ Operator rightrange (
 	 IndexQueryTypeMap<RIGHTRANGE>        // type mapping
 );
 
+/*
+
+7 Definition and initialization of btree algebra
+
+*/
 class BTreeAlgebra : public Algebra
 {
  public:
