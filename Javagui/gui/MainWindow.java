@@ -31,6 +31,10 @@ private JOptionPane OptionPane;  // to Display Messages
 private ServerDialog ServerDlg;
 private Vector VCLs;
 
+private Vector ListOfObjects=null;
+// contains all objects of the currently opened database
+
+
 
 /* the current Viewer and all possible Viewers */
 private SecondoViewer CurrentViewer;
@@ -64,6 +68,11 @@ private JMenuItem MI_Settings;
 private JMenu OptimizerMenu;
 private JMenuItem MI_OptimizerEnable;
 private JMenuItem MI_OptimizerDisable;
+private JMenu OptimizerCommandMenu;
+private JMenu UpdateRelationsMenu;
+private JMenu UpdateIndexMenu;
+private JMenuItem MI_UpdateRelationList;
+private JMenuItem MI_UpdateIndexList;
 private JMenuItem MI_OptimizerSettings;
 
 
@@ -394,7 +403,7 @@ public MainWindow(String Title){
    if(TMPObjectDirectory!=null){
       ObjectDirectory = TMPObjectDirectory.trim();
    }
-   
+
    String TMPDatabaseDirectory= Config.getProperty("OBJECT_DIRECTORY");
    if(TMPDatabaseDirectory!=null){
       DatabaseDirectory = TMPObjectDirectory.trim();
@@ -415,7 +424,7 @@ public MainWindow(String Title){
 
 
    StartScript = Config.getProperty("STARTSCRIPT");
-   
+
    // optimizer settings
    String OptHost = Config.getProperty("OPTIMIZER_HOST");
    if(OptHost==null){
@@ -506,6 +515,122 @@ public void addViewerChangeListener(ViewerChangeListener VCL){
 
 public void removeViewerChangeListener(ViewerChangeListener VCL){
   VCLs.remove(VCL);
+}
+
+
+/** returns the name of the main type of the given ListExpr;
+  * this means for a list (rel(...))  "rel is returned
+  */
+private String getMainType(ListExpr Type){
+  while(!Type.isAtom() && Type.listLength()>0)
+     Type = Type.first();
+  int atomType = Type.atomType();
+  if(atomType!=ListExpr.SYMBOL_ATOM)
+     return "unknow type";
+  return Type.symbolValue();
+}
+
+
+/** updates the list of objects in the database */
+private void updateObjectList(){
+   if(!ComPanel.isConnected()){
+      ListOfObjects = null;
+      return;
+   }
+   ListExpr LE = ComPanel.getCommandResult("list objects");
+   if(LE==null){
+      ListOfObjects = null;
+      return;
+   }
+   LE = LE.second().second().rest();
+   ListOfObjects = null;
+   ListExpr CurrentObject = null;
+   if(LE.isEmpty()){
+      return;
+   }
+
+   ListOfObjects = new Vector(LE.listLength()+1);
+   while(!LE.isEmpty()){
+      ListOfObjects.add(ListExpr.threeElemList(LE.first().second(),
+                                               ListExpr.symbolAtom(getMainType(LE.first().fourth())),
+					       LE.first().fourth()));
+      LE = LE.rest();
+   }
+
+}
+
+
+/**  reconstructed the menu updateRelationMenu
+  *  the values are given through the current ListOfObjects-Vector
+  */
+private void updateRelationList(){
+  // first remove all entries without the first two one
+  UpdateRelationsMenu.removeAll();
+  UpdateRelationsMenu.add(MI_UpdateRelationList);
+  UpdateIndexMenu.removeAll();
+  UpdateIndexMenu.add(MI_UpdateIndexList);
+  boolean first = true;
+  if(ListOfObjects==null)
+     return;
+  ListExpr CurrentObject;
+  for(int i=0;i<ListOfObjects.size();i++){
+      CurrentObject = (ListExpr) ListOfObjects.get(i);
+      if(CurrentObject.second().symbolValue().equals("rel") ||
+         CurrentObject.second().symbolValue().equals("mrel")){ // found a relation
+           if(first){
+	       UpdateRelationsMenu.addSeparator();
+	       UpdateIndexMenu.addSeparator();
+               first = false;
+	   }
+           // add the MenuEntry and a actionListener for this one
+	   String RelName = CurrentObject.first().symbolValue();
+	   // samples should not be updated
+           if(!RelName.endsWith("_sample")){
+              JMenuItem Rel = UpdateRelationsMenu.add(RelName);
+	      Rel.addActionListener(new ActionListener(){
+	         public void actionPerformed(ActionEvent evt){
+	            String RelName = ((JMenuItem)evt.getSource()).getText().toLowerCase();
+		    String res = ComPanel.sendToOptimizer("updateRelation "+RelName);
+		    ComPanel.appendText("\n optimizer updateRelation "+RelName+"   ");
+		    if(res ==null)
+		       ComPanel.appendText("...failed");
+		    else
+   		       ComPanel.appendText("...successful");
+		    ComPanel.showPrompt();
+	         }
+	      });
+	      JMenu RelMenu = new JMenu(CurrentObject.first().symbolValue());
+	      UpdateIndexMenu.add(RelMenu);
+	      // insert the attributes into the RelMenu
+	      ListExpr FullType = CurrentObject.third().first();
+	      //System.out.println("Fulltype ="+FullType.writeListExprToString());
+	      ListExpr TupleList = FullType.second().second();
+	      JMenuItem MI_Attr;
+	      while(!TupleList.isEmpty()){
+	         String AttrName = TupleList.first().first().symbolValue();
+	         MI_Attr = RelMenu.add(AttrName);
+	         MI_Attr.setActionCommand("optimizer updateIndex "+RelName.toLowerCase()+" "+AttrName.toLowerCase());
+	         MI_Attr.addActionListener(new ActionListener(){
+	              public void actionPerformed(ActionEvent evt){
+                         JMenuItem Btn = (JMenuItem) evt.getSource();
+ 	  	         String command = Btn.getActionCommand();
+		         String res = ComPanel.sendToOptimizer(command);
+		         ComPanel.appendText("\n"+command);
+		         if(res ==null)
+		             ComPanel.appendText("...failed");
+		         else
+		             ComPanel.appendText("...successful");
+		         ComPanel.showPrompt();
+		      }});
+	          TupleList=TupleList.rest();
+               }
+	} // not a _sample
+
+
+      }
+  }
+
+
 }
 
 
@@ -1307,20 +1432,41 @@ private void createMenuBar(){
     }});
 
 
-   
+
    OptimizerMenu = new JMenu("Optimizer");
    MI_OptimizerEnable = OptimizerMenu.add("Enable");
    MI_OptimizerDisable = OptimizerMenu.add("Disable");
+   OptimizerCommandMenu = new JMenu("Command");
+   OptimizerMenu.add(OptimizerCommandMenu);
+   UpdateRelationsMenu = new JMenu("Update Relation");
+   OptimizerCommandMenu.add(UpdateRelationsMenu);
+   UpdateIndexMenu = new JMenu("Update Index");
+   OptimizerCommandMenu.add(UpdateIndexMenu);
+
+   MI_UpdateRelationList = UpdateRelationsMenu.add("Update List");
+   ActionListener A = new ActionListener(){
+          public void actionPerformed(ActionEvent evt){
+           updateObjectList();
+	   updateRelationList();
+          }
+       };
+   MI_UpdateIndexList = UpdateIndexMenu.add("Update List");
+   MI_UpdateRelationList.addActionListener(A);
+   MI_UpdateIndexList.addActionListener(A);
+
+
    MI_OptimizerSettings = OptimizerMenu.add("Settings");
    OptimizerMenu.addMenuListener(new MenuListener(){
      public void menuSelected(MenuEvent evt){
         if(ComPanel.useOptimizer()){
            MI_OptimizerEnable.setEnabled(false);
            MI_OptimizerDisable.setEnabled(true);
+	   OptimizerCommandMenu.setEnabled(true);
         }
         else{
            MI_OptimizerEnable.setEnabled(true);
            MI_OptimizerDisable.setEnabled(false);
+	   OptimizerCommandMenu.setEnabled(true);
 	}
      }
      public void menuDeselected(MenuEvent evt){}
@@ -1784,9 +1930,14 @@ public boolean updateDatabases(){
 /* the following methods implements the interface SecondoChangeListener */
 public void databasesChanged(){
   updateDatabases();
+  updateObjectList();
+  updateRelationList();
 }
 
-public void objectsChanged(){}
+public void objectsChanged(){
+   updateObjectList();
+   updateRelationList();
+}
 
 public void typesChanged(){}
 
@@ -1804,6 +1955,8 @@ public void databaseOpened(String DBName){
   DeleteDatabaseMenu.setEnabled(false);
   Menu_RestoreDatabase.setEnabled(false);
   OList.enableStoring(true);
+  updateObjectList();
+  updateRelationList();
 }
 
 public void databaseClosed(){
@@ -1820,6 +1973,8 @@ public void databaseClosed(){
   DeleteDatabaseMenu.setEnabled(true);
   Menu_RestoreDatabase.setEnabled(true);
   OList.enableStoring(false);
+  ListOfObjects=null;
+  updateRelationList();
 }
 
 public void connectionOpened(){
@@ -1839,6 +1994,8 @@ public void connectionClosed(){
   Menu_ImExport.setEnabled(false);
   Menu_BasicCommands.setEnabled(false);
   Menu_ServerCommand.setEnabled(false);
+  ListOfObjects = null;
+  updateRelationList();
 }
 
 /** the Listener for the SecondoCommands in MainMenu */
