@@ -36,6 +36,7 @@ namespace {
 
 static NestedList* nl;
 
+#define BTREE_PREFETCH
 
 /*
 
@@ -193,6 +194,30 @@ bool ReadRecordId(SmiRecord& record, SmiRecordId& id)
 
 /*
 
+2.7 Function ~ReadRecordId~
+
+Reads a ~SmiRecordId~ from a ~PrefetchingIterator~.
+
+*/
+bool ReadRecordId(PrefetchingIterator* iter, SmiRecordId& id)
+{
+  SmiSize bytesRead;
+  SmiRecordId ids[2];
+  SmiSize idSize = sizeof(SmiRecordId);
+
+  bytesRead = iter->ReadCurrentData(ids, 2 * idSize);
+  id = ids[0];
+  return bytesRead == idSize;
+}
+
+#ifdef BTREE_PREFETCH
+typedef PrefetchingIterator BTreeFileIteratorT;
+#else
+typedef SmiKeyedFileIterator BTreeFileIteratorT;
+#endif /* BTREE_PREFETCH */
+
+/*
+
 3 Class ~BTreeIterator~
 
 Used to iterate over all record ids fulfilling a certain condition.
@@ -200,7 +225,7 @@ Used to iterate over all record ids fulfilling a certain condition.
 */
 class BTreeIterator
 {
-  SmiKeyedFileIterator* fileIter;
+  BTreeFileIteratorT* fileIter;
   StandardAttribute* key;
   SmiRecordId id;
   SmiKey::KeyDataType keyType;
@@ -208,7 +233,7 @@ class BTreeIterator
   SmiRecord record;
 
 public:
-  BTreeIterator(SmiKey::KeyDataType smiKeyType, SmiKeyedFileIterator* iter)
+  BTreeIterator(SmiKey::KeyDataType smiKeyType, BTreeFileIteratorT* iter)
     : fileIter(iter), keyType(smiKeyType)
   {
     assert(
@@ -244,12 +269,29 @@ public:
 
   bool Next()
   {
-    bool received = fileIter->Next(smiKey, record);
+    bool received;
+
+#ifdef BTREE_PREFETCH
+    received = fileIter->Next();
+#else
+    received = fileIter->Next(smiKey, record);
+#endif /* BTREE_PREFETCH */
+
     if(received)
     {
+    
+#ifdef BTREE_PREFETCH
+      fileIter->CurrentKey(smiKey);
+#endif /* BTREE_PREFETCH */
+
       assert(smiKey.GetType() == keyType);
       KeyToAttr(key, keyType, smiKey);
+
+#ifdef BTREE_PREFETCH
+      return ReadRecordId(fileIter, id);
+#else
       return ReadRecordId(record, id);
+#endif /* BTREE_PREFETCH */
     }
     else
     {
@@ -481,15 +523,24 @@ public:
   BTreeIterator* ExactMatch(StandardAttribute* key)
   {
     SmiKey smiKey;
-    SmiKeyedFileIterator* iter;
+    BTreeFileIteratorT* iter;
 
     AttrToKey(key, keyType, smiKey);
+
+#ifdef BTREE_PREFETCH
+    iter = file->SelectRangePrefetched(smiKey, smiKey);
+    if(iter == 0)
+    {
+      return 0;
+    }
+#else
     iter = new SmiKeyedFileIterator(true);
     if(!file->SelectRange(smiKey, smiKey, *iter, SmiFile::ReadOnly, true))
     {
       delete iter;
       return 0;
     }
+#endif /* BTREE_PREFETCH */
 
     return new BTreeIterator(keyType, iter);
   }
@@ -497,15 +548,24 @@ public:
   BTreeIterator* LeftRange(StandardAttribute* key)
   {
     SmiKey smiKey;
-    SmiKeyedFileIterator* iter;
+    BTreeFileIteratorT* iter;
 
     AttrToKey(key, keyType, smiKey);
+
+#ifdef BTREE_PREFETCH
+    iter = file->SelectLeftRangePrefetched(smiKey);
+    if(iter == 0)
+    {
+      return 0;
+    }
+#else
     iter = new SmiKeyedFileIterator(true);
     if(!file->SelectLeftRange(smiKey, *iter, SmiFile::ReadOnly, true))
     {
       delete iter;
       return 0;
     }
+#endif /* BTREE_PREFETCH */
 
     return new BTreeIterator(keyType, iter);
   }
@@ -513,15 +573,24 @@ public:
   BTreeIterator* RightRange(StandardAttribute* key)
   {
     SmiKey smiKey;
-    SmiKeyedFileIterator* iter;
+    BTreeFileIteratorT* iter;
 
     AttrToKey(key, keyType, smiKey);
+
+#ifdef BTREE_PREFETCH
+    iter = file->SelectRightRangePrefetched(smiKey);
+    if(iter == 0)
+    {
+      return 0;
+    }
+#else
     iter = new SmiKeyedFileIterator(true);
     if(!file->SelectRightRange(smiKey, *iter, SmiFile::ReadOnly, true))
     {
       delete iter;
       return 0;
     }
+#endif /* BTREE_PREFETCH */
 
     return new BTreeIterator(keyType, iter);
   }
@@ -530,30 +599,48 @@ public:
   {
     SmiKey leftSmiKey;
     SmiKey rightSmiKey;
-    SmiKeyedFileIterator* iter;
+    BTreeFileIteratorT* iter;
 
     AttrToKey(left, keyType, leftSmiKey);
     AttrToKey(right, keyType, rightSmiKey);
+
+#ifdef BTREE_PREFETCH
+    iter = file->SelectRangePrefetched(leftSmiKey, rightSmiKey);
+    if(iter == 0)
+    {
+      return 0;
+    }
+#else
     iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectRange(leftSmiKey, rightSmiKey, *iter, SmiFile::ReadOnly, true))
+    if(!file->SelectRange(leftSmiKey, rightSmiKey, 
+      *iter, SmiFile::ReadOnly, true))
     {
       delete iter;
       return 0;
     }
+#endif /* BTREE_PREFETCH */
 
     return new BTreeIterator(keyType, iter);
   }
 
   BTreeIterator* SelectAll()
   {
-    SmiKeyedFileIterator* iter;
+    BTreeFileIteratorT* iter;
 
+#ifdef BTREE_PREFETCH
+    iter = file->SelectAllPrefetched();
+    if(iter == 0)
+    {
+      return 0;
+    }
+#else
     iter = new SmiKeyedFileIterator(true);
     if(!file->SelectAll(*iter, SmiFile::ReadOnly, true))
     {
       delete iter;
       return 0;
     }
+#endif /* BTREE_PREFETCH */
 
     return new BTreeIterator(keyType, iter);
   }
