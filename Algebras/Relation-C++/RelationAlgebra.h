@@ -157,6 +157,7 @@ class CcRel
 
     CcTuple* GetTupleById(SmiRecordId id);
     void    AppendTuple (CcTuple*);
+    void Empty();
 
     CcRelIT* MakeNewScan();
 

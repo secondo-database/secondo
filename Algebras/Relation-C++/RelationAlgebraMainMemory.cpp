@@ -117,7 +117,7 @@ CcTuple::~CcTuple ()
 
 Attribute* CcTuple::Get (int index) {return AttrList[index];};
 
-void  CcTuple::Put (int index, Attribute* attr) 
+void  CcTuple::Put (int index, Attribute* attr)
 {
   assert(index < MaxSizeOfAttr);
   AttrList[index] = attr;
@@ -638,6 +638,24 @@ void CcRel::AppendTuple (CcTuple* t)
   NoOfTuples++;
 };
 
+void CcRel::Empty()
+{
+  CTable<CcTuple*>::Iterator iter = TupleList->Begin();
+  Word w;
+
+  while(iter != TupleList->End())
+  {
+    w = SetWord(*iter);
+    DeleteTuple(w);
+    ++iter;
+  }
+  delete TupleList;
+
+  currentId = 1;
+  NoOfTuples = 0;
+  TupleList = new CTable<CcTuple*>(100);
+}
+
 CcRelIT* CcRel::MakeNewScan()
 {
   return new CcRelIT(TupleList->Begin(), this);
@@ -702,7 +720,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
 {
   CcTuple* t;
   ListExpr l, lastElem, tlist, TupleTypeInfo;
-  
+
   CcRel* r = (CcRel*)(value.addr);
 
   CcRelIT* rit = r->MakeNewScan();

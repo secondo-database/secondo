@@ -833,6 +833,11 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 	//cout << "consume starts" << endl;
 
   rel = (CcRel*)((qp->ResultStorage(s)).addr);
+  if(rel->GetNoTuples() > 0)
+  {
+    rel->Empty();
+  }
+  
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
@@ -1636,56 +1641,74 @@ typeerror:
 4.1.2 Value mapping function of operator ~product~
 
 */
+
+struct ProductLocalInfo
+{
+  CcTuple* currentTuple;
+  vector<CcTuple*> rightRel;
+  vector<CcTuple*>::iterator iter;
+};
+
 static int
 Product(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word r, u, t;
   CcTuple* tuple;
+  ProductLocalInfo* pli;
 
   switch (message)
   {
     case OPEN :
 
       qp->Open(args[0].addr);
-      qp->Open(args[1].addr);
       qp->Request(args[0].addr, r);
-      local = (qp->Received(args[0].addr)) ? r : SetWord(Address(0));
+      pli = new ProductLocalInfo;
+      pli->currentTuple = qp->Received(args[0].addr) ? (CcTuple*)r.addr : 0;
+
+      /* materialize right stream */
+      qp->Open(args[1].addr);
+      qp->Request(args[1].addr, u);
+      while(qp->Received(args[1].addr))
+      {
+        pli->rightRel.push_back((CcTuple*)u.addr);
+        qp->Request(args[1].addr, u);
+      }
+
+      pli->iter = pli->rightRel.begin();
+      local = SetWord(pli);
       return 0;
 
     case REQUEST :
+      pli = (ProductLocalInfo*)local.addr;
 
-      if (local.addr == 0)
+      if (pli->currentTuple == 0)
       {
         return CANCEL;
       }
       else
       {
-        r = local;
-        qp->Request(args[1].addr, u);
-        if (qp->Received(args[1].addr))
+        if(pli->iter != pli->rightRel.end())
         {
           tuple = new CcTuple();
           tuple->SetFree(true);
           t = SetWord(tuple);
-          Concat(r, u, t);
+          Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
           result = t;
-          ((CcTuple*)u.addr)->DeleteIfAllowed();
-
+          ++(pli->iter);
           return YIELD;
         }
         else
-        // second stream exhausted and closed now; must get a
-        // new tuple from the first stream and restart second stream
         {
-          ((CcTuple*)r.addr)->DeleteIfAllowed();
+          /* restart iterator for right relation and
+             fetch a new tuple from left stream */
+          pli->currentTuple->DeleteIfAllowed();
+          pli->currentTuple = 0;
           qp->Request(args[0].addr, r);
           if (qp->Received(args[0].addr))
           {
-            local = r;
-            qp->Close(args[1].addr);
-            qp->Open(args[1].addr);
-            qp->Request(args[1].addr, u);
-            if (!qp->Received(args[1].addr)) // second stream is empty
+            pli->currentTuple = (CcTuple*)r.addr;
+            pli->iter = pli->rightRel.begin();
+            if(pli->iter == pli->rightRel.end()) // second stream is empty
             {
               return CANCEL;
             }
@@ -1694,17 +1717,30 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
               tuple = new CcTuple();
               tuple->SetFree(true);
               t = SetWord(tuple);
-              Concat(r, u, t);
-              ((CcTuple*)u.addr)->DeleteIfAllowed();
+              Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
               result = t;
+              ++(pli->iter);
               return YIELD;
             }
           }
-          else return CANCEL; // first stream exhausted
+          else return CANCEL; // left stream exhausted
         }
       }
 
     case CLOSE :
+      pli = (ProductLocalInfo*)local.addr;
+      if(pli->currentTuple != 0)
+      {
+        pli->currentTuple->DeleteIfAllowed();
+      }
+
+      for(pli->iter = pli->rightRel.begin();
+        pli->iter != pli->rightRel.end();
+        ++(pli->iter))
+      {
+        (*(pli->iter))->DeleteIfAllowed();
+      }
+      delete pli;
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -3554,6 +3590,14 @@ template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
 
     ListExpr joinAttrDescription;
+    if(!(nl->IsAtom(nl->Third(args))
+        && nl->IsAtom(nl->Fourth(args))
+        && nl->AtomType(nl->Third(args)) == SymbolType
+        && nl->AtomType(nl->Fourth(args)) == SymbolType))
+    {
+      goto typeerror;
+    }
+
     string attrAName = nl->SymbolValue(nl->Third(args));
     string attrBName = nl->SymbolValue(nl->Fourth(args));
     int attrAIndex = findattr(nl->Second(nl->Second(streamA)), attrAName, attrTypeA, nl);
