@@ -229,6 +229,9 @@ The result of this constructor is a fresh tuple.
   Tuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecordFile *lobfile, 
 	const TupleAttributes *attributes, SmiFile::AccessType mode);
  
+  Tuple(SmiRecordFile* recfile, PrefetchingIterator* iter, SmiRecordFile *lobfile,
+	     const TupleAttributes *attributes);
+ 
 /*
 5.2 Destructor
 
