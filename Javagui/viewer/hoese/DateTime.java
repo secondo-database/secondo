@@ -87,29 +87,29 @@ private static int getMilliSecs(int hour,int minute,int second,int millisecond){
 }
 
 
-public static String getListString(int Days,int msecs){
-   if(Days<0 && msecs>0)
-      Days--;
-  int[] Greg = JulianDate.fromJulian(Days);
-  String res = "(datetime ("+Greg[2]+" "+Greg[1]+" "+Greg[0]+"  ";
-  int rest = msecs;
-  int ms = rest%1000;
-  rest = rest/1000;
-  int sec = rest%60;
-  rest = rest /60;
-  int min = rest%60;
-  rest = rest/60;
-  int hour=rest;
-  res = res+hour+" ";
-  res=res+min+" ";
-  res=res+sec+" ";
-  res = res+ms +"))";
-  return res;
+public static String getListString(int Days,int msecs,boolean asDuration){
+  if(!asDuration){
+     int[] Greg = JulianDate.fromJulian(Days);
+     String res = "(instant ("+Greg[2]+" "+Greg[1]+" "+Greg[0]+"  ";
+     int rest = msecs;
+     int ms = rest%1000;
+     rest = rest/1000;
+     int sec = rest%60;
+     rest = rest /60;
+     int min = rest%60;
+     rest = rest/60;
+     int hour=rest;
+     res = res+hour+" ";
+     res=res+min+" ";
+     res=res+sec+" ";
+     res = res+ms +"))";
+     return res;
+  } else{ // as Duration
+     return "(duration ("+Days+" "+msecs+"))";
+  }
 }
 
 public static String getListStringOld(int Days,int msecs){
-   if(Days<0 && msecs>0)
-      Days--;
   int[] Greg = JulianDate.fromJulian(Days);
   String res = "(datetime "+Greg[2]+" "+Greg[1]+" "+Greg[0]+"  ";
   int rest = msecs;
@@ -128,10 +128,10 @@ public static String getListStringOld(int Days,int msecs){
 }
 
 /** returns a String representation for the given time */
-public static String getListString(double time){
+public static String getListString(double time,boolean AsDuration){
   int Days = (int)time;
   int rest = getMilliSecs(time);
-  return getListString(Days,rest);
+  return getListString(Days,rest,AsDuration);
 }
 
 /** returns a String representation for the given time */
