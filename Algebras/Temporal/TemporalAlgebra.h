@@ -547,15 +547,15 @@ template <class Alpha>
 struct Intime
 {
   Intime() :
-    t( false, 0 )
+    instant( false, 0 )
     {}
 /*
 The simple constructor.
 
 */
 
-  Intime( Instant& t, Alpha& alpha ):
-    t( t.IsDefined(), t.GetRealval() ),
+  Intime( Instant& instant, Alpha& alpha ):
+    instant( instant.IsDefined(), instant.GetRealval() ),
     value()
   {
     value.CopyFrom( &alpha ); 
@@ -566,7 +566,7 @@ The first constructor.
 */
 
   Intime( Intime& intime ):
-    t( intime.t.IsDefined(), intime.t.GetRealval() ),
+    instant( intime.instant.IsDefined(), intime.instant.GetRealval() ),
     value()
   {
     value.CopyFrom( &intime.value );
@@ -576,7 +576,7 @@ The second constructor.
 
 */
 
-  Instant t;
+  Instant instant;
 /*
 The time instant associated.
 
@@ -2382,7 +2382,7 @@ ListExpr OutIntime( ListExpr typeInfo, Word value )
 {
   Intime<Alpha>* intime = (Intime<Alpha>*)(value.addr);
 
-  return nl->TwoElemList( nl->RealAtom( intime->t.GetRealval() ),
+  return nl->TwoElemList( nl->RealAtom( intime->instant.GetRealval() ),
                           OutFun( nl->TheEmptyList(), SetWord( &intime->value ) ) );
 }
 
@@ -2399,11 +2399,11 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
       nl->IsAtom( nl->Second( instance ) ) &&
       nl->AtomType( nl->First( instance ) ) == RealType )
   {
-    Instant t( true, nl->RealValue( nl->First( instance ) ) );
+    Instant instant( true, nl->RealValue( nl->First( instance ) ) );
     Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), errorPos, errorInfo, correct ).addr;
     if( correct  )
     {
-      Intime<Alpha> *intime = new Intime<Alpha>( t, *value );
+      Intime<Alpha> *intime = new Intime<Alpha>( instant, *value );
       delete value;
       return SetWord( intime );
     }

@@ -496,6 +496,74 @@ TypeConstructor intimeint(
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
 
+/*
+6 Type Constructor ~intimereal~
+
+Type ~intimereal~ represents an (instant, value)-pair of reals.
+
+6.1 List Representation
+
+The list representation of an ~intimereal~ is
+
+----    ( t real-value )
+----
+
+For example:
+
+----    ( 1.0 5.0 )
+----
+
+6.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+IntimeRealProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("real -> TEMPORAL"),
+                             nl->StringAtom("(intimereal) "),
+                             nl->StringAtom("( (inst val) "),
+                             nl->StringAtom("( ((instant 0.5) 1.0 )"))));
+}
+
+/*
+6.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly.
+
+*/
+bool
+CheckIntimeReal( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "intimereal" ));
+}
+
+/*
+5.4 Creation of the type constructor ~intimeint~
+
+*/
+TypeConstructor intimereal(
+        "intimereal",                                  //name
+        IntimeRealProperty,                            //property function describing signature
+        OutIntime<CcReal, OutCcReal>,
+        InIntime<CcReal, InCcReal>,                     //Out and In functions
+        0,                      0,                    //SaveToList and RestoreFromList functions
+        CreateIntime<CcReal>,    DeleteIntime<CcReal>,  //object creation and deletion
+        0,                      0,                    // object open and save
+        CloseIntime<CcReal>,     CloneIntime<CcReal>,   //object close and clone
+        CastIntime<CcReal>,                            //cast function
+        SizeOfIntime<CcReal>,                          //sizeof function
+        CheckIntimeReal,                               //kind checking function
+        0,                                            //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
 
 /*
 6 Operators
@@ -579,6 +647,19 @@ bool IsOfRangeType( const ListExpr type, const ListExpr range )
         nl->SymbolValue( range ) == string("periods") && nl->SymbolValue( type ) == string("instant") ) )
     return true;
   return false;
+}
+
+ListExpr RangeBaseType( const ListExpr range )
+{
+  assert( IsRangeAtom( range ) );
+
+  if( nl->SymbolValue( range ) == "rangeint" )
+    return nl->SymbolAtom( "int" );
+  else if( nl->SymbolValue( range ) == "rangereal" )
+    return nl->SymbolAtom( "real" );
+  else if( nl->SymbolValue( range ) == "periods" )
+    return nl->SymbolAtom( "instant" );
+  return nl->SymbolAtom( "typeerror" );
 }
 
 ListExpr
@@ -708,7 +789,7 @@ RangeTypeMapBase( ListExpr args )
   {
     arg1 = nl->First( args );
     if( IsRangeAtom( arg1 ) )
-      return (nl->SymbolAtom( "int" ));
+      return (RangeBaseType( arg1 ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -729,6 +810,65 @@ RangeTypeMapInt( ListExpr args )
     arg1 = nl->First( args );
     if( IsRangeAtom( arg1 ) )
       return (nl->SymbolAtom( "int" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+6.1.6 Type mapping function IntimeTypeMapBase
+
+It is for the operator ~val~.
+
+*/
+bool IsIntimeAtom( const ListExpr atom )
+{
+  if( nl->IsAtom( atom ) &&
+      nl->AtomType( atom ) == SymbolType &&
+      ( nl->SymbolValue( atom ) == "intimeint" ||
+        nl->SymbolValue( atom ) == "intimereal" ) )
+    return true;
+  return false;
+}
+
+ListExpr IntimeBaseType( const ListExpr range )
+{
+  assert( IsIntimeAtom( range ) );
+
+  if( nl->SymbolValue( range ) == "intimeint" )
+    return nl->SymbolAtom( "int" );
+  else if( nl->SymbolValue( range ) == "intimereal" )
+    return nl->SymbolAtom( "real" );
+  return nl->SymbolAtom( "typeerror" );
+}
+
+ListExpr
+IntimeTypeMapBase( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if( IsIntimeAtom( arg1 ) )
+      return (IntimeBaseType( arg1 ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+6.1.6 Type mapping function IntimeTypeMapInstant
+
+It is for the operator ~inst~.
+
+*/
+ListExpr
+IntimeTypeMapInstant( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if( IsIntimeAtom( arg1 ) )
+      return (nl->SymbolAtom( "instant" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -1174,6 +1314,30 @@ int RangeNoComponents_r( Word* args, Word& result, int message, Word& local, Sup
 }
 
 /*
+6.3.11 Value mapping functions of operator ~inst~
+
+*/
+template <class Alpha>
+int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((Instant*)result.addr)->Set( true, ((Intime<Alpha>*)args[0].addr)->instant.GetRealval() );
+  return (0);
+}
+
+/*
+6.3.11 Value mapping functions of operator ~val~
+
+*/
+template <class Alpha>
+int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((Alpha*)result.addr)->CopyFrom( &((Intime<Alpha>*)args[0].addr)->value );
+  return (0);
+}
+
+/*
 6.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -1220,12 +1384,18 @@ ValueMapping rangerealminmap[] = { RangeMinimum_r<CcReal> };
 ValueMapping rangerealmaxmap[] = { RangeMaximum_r<CcReal> };
 ValueMapping rangerealnocomponentsmap[] = { RangeNoComponents_r<CcReal> };
 
+ValueMapping intimeintinstmap[] = { IntimeInst<CcInt> };
+ValueMapping intimeintvalmap[] = { IntimeVal<CcInt> };
+
+ValueMapping intimerealinstmap[] = { IntimeInst<CcReal> };
+ValueMapping intimerealvalmap[] = { IntimeVal<CcReal> };
+
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-ModelMapping instantnomodelmap[] = { TemporalNoModelMapping };
+ModelMapping temporalnomodelmap[] = { TemporalNoModelMapping };
 ModelMapping rangenomodelmap[] = { TemporalNoModelMapping, TemporalNoModelMapping,
                                    TemporalNoModelMapping, TemporalNoModelMapping,
                                    TemporalNoModelMapping, TemporalNoModelMapping };
@@ -1366,6 +1536,22 @@ const string TemporalSpecNoComponents  = "( ( \"Signature\" \"Syntax\" \"Meaning
                                          "<text>no_components ( range1 )</text--->"
                                          ") )";
 
+const string TemporalSpecInst  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                                 "( <text>(intime x) -> instant</text--->"
+                                 "<text>inst ( _ )</text--->"
+                                 "<text>Intime time instant.</text--->"
+                                 "<text>inst ( i1 )</text--->"
+                                 ") )";
+
+const string TemporalSpecVal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(intime x) -> x</text--->"
+                                "<text>val ( _ )</text--->"
+                                "<text>Intime value.</text--->"
+                                "<text>val ( i1 )</text--->"
+                                ") )";
+
 /*
 6.4.3 Operators
 
@@ -1374,7 +1560,7 @@ Operator instantisempty( "isempty",
                           TemporalSpecIsEmpty,
                           1,
                           instantisemptymap,
-                          instantnomodelmap,
+                          temporalnomodelmap,
                           Operator::SimpleSelect,
                           InstantTypeMapBool );
 
@@ -1382,7 +1568,7 @@ Operator instantequal( "=",
                        TemporalSpecEQ,
                        1,
                        instantequalmap,
-                       instantnomodelmap,
+                       temporalnomodelmap,
                        Operator::SimpleSelect,
                        InstantInstantTypeMapBool );
 
@@ -1390,7 +1576,7 @@ Operator instantnotequal( "#",
                           TemporalSpecNE,
                           1,
                           instantnotequalmap,
-                          instantnomodelmap,
+                          temporalnomodelmap,
                           Operator::SimpleSelect,
                           InstantInstantTypeMapBool );
 
@@ -1398,7 +1584,7 @@ Operator instantless( "<",
                       TemporalSpecLT,
                       1,
                       instantlessmap,
-                      instantnomodelmap,
+                      temporalnomodelmap,
                       Operator::SimpleSelect,
                       InstantInstantTypeMapBool );
 
@@ -1406,7 +1592,7 @@ Operator instantlessequal( "<=",
                            TemporalSpecLE,
                            1,
                            instantlessequalmap,
-                           instantnomodelmap,
+                           temporalnomodelmap,
                            Operator::SimpleSelect,
                            InstantInstantTypeMapBool );
 
@@ -1414,7 +1600,7 @@ Operator instantgreater( ">",
                          TemporalSpecLT,
                          1,
                          instantgreatermap,
-                         instantnomodelmap,
+                         temporalnomodelmap,
                          Operator::SimpleSelect,
                          InstantInstantTypeMapBool );
 
@@ -1422,7 +1608,7 @@ Operator instantgreaterqual( ">=",
                              TemporalSpecLE,
                              1,
                              instantgreaterequalmap,
-                             instantnomodelmap,
+                             temporalnomodelmap,
                              Operator::SimpleSelect,
                              InstantInstantTypeMapBool );
 
@@ -1618,6 +1804,38 @@ Operator rangerealnocomponents( "no_components",
                                 Operator::SimpleSelect,
                                 RangeTypeMapInt );
 
+Operator intimeintinst( "inst",
+                        TemporalSpecInst,
+                        1,
+                        intimeintinstmap,
+                        temporalnomodelmap,
+                        Operator::SimpleSelect,
+                        IntimeTypeMapInstant );
+
+Operator intimeintval( "val",
+                       TemporalSpecVal,
+                       1,
+                       intimeintvalmap,
+                       temporalnomodelmap,
+                       Operator::SimpleSelect,
+                       IntimeTypeMapBase );
+
+Operator intimerealinst( "inst",
+                         TemporalSpecInst,
+                         1,
+                         intimerealinstmap,
+                         temporalnomodelmap,
+                         Operator::SimpleSelect,
+                         IntimeTypeMapInstant );
+
+Operator intimerealval( "val",
+                        TemporalSpecVal,
+                        1,
+                        intimerealvalmap,
+                        temporalnomodelmap,
+                        Operator::SimpleSelect,
+                        IntimeTypeMapBase );
+
 /*
 6 Creating the Algebra
 
@@ -1632,11 +1850,13 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &rangeint );
     AddTypeConstructor( &rangereal );
     AddTypeConstructor( &intimeint );
+    AddTypeConstructor( &intimereal );
 
     instant.AssociateKind( "TIME" );
     rangeint.AssociateKind( "RANGE" );
     rangereal.AssociateKind( "RANGE" );
     intimeint.AssociateKind( "TEMPORAL" );
+    intimereal.AssociateKind( "TEMPORAL" );
 
     instant.AssociateKind( "DATA" );
     rangeint.AssociateKind( "DATA" );
@@ -1676,6 +1896,10 @@ class TemporalAlgebra : public Algebra
     AddOperator( &rangerealmax );
     AddOperator( &rangerealnocomponents );
 
+    AddOperator( &intimeintinst );
+    AddOperator( &intimeintval );
+    AddOperator( &intimerealinst );
+    AddOperator( &intimerealval );
   }
   ~TemporalAlgebra() {};
 };
