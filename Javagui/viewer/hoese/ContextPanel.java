@@ -306,7 +306,7 @@ public class ContextPanel extends JPanel {
             ImageSizeClipRB.setEnabled(true);
             ImagePath = file.getPath();
             ImageNameL.setText(file.getName());
-            ImageIcon ii = new ImageIcon(ImagePath);
+            ImageIcon ii = new ImageIcon(ClassLoader.getSystemResource(ImagePath));
             ImageRect = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
             //mw.allProjection=new AffineTransform();
             if (mw.hasBackImage)

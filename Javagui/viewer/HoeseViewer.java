@@ -221,7 +221,7 @@ public class HoeseViewer extends SecondoViewer {
     String Button_File = configuration.getProperty("FasterIcon");
     ImageIcon icon;
     if(Button_File!=null){
-       icon = new ImageIcon(Button_File);
+       icon = new ImageIcon(ClassLoader.getSystemResource(Button_File));
        if(icon.getImage()!=null){
           IncrementSpeedBtn = new JButton(icon);
           icon.setImage(icon.getImage().getScaledInstance(18,18,Image.SCALE_DEFAULT));
@@ -233,7 +233,7 @@ public class HoeseViewer extends SecondoViewer {
 
     Button_File = configuration.getProperty("SlowerIcon");
     if(Button_File!=null){
-       icon = new ImageIcon(Button_File);
+       icon = new ImageIcon(ClassLoader.getSystemResource(Button_File));
        if(icon.getImage()!=null){
           DecrementSpeedBtn = new JButton(icon);
           icon.setImage(icon.getImage().getScaledInstance(18,18,Image.SCALE_DEFAULT));
@@ -279,38 +279,38 @@ public class HoeseViewer extends SecondoViewer {
     JButton ctrls[] = new JButton[6];
     Button_File = configuration.getProperty("PlayIcon");
     if(Button_File!=null)
-        ctrls[0] = new JButton(new ImageIcon(Button_File));
+        ctrls[0] = new JButton(new ImageIcon(ClassLoader.getSystemResource(Button_File)));
     else
         ctrls[0] = new JButton(">");
 
     Button_File = configuration.getProperty("ReverseIcon");
     if(Button_File!=null)
-       ctrls[1] = new JButton(new ImageIcon(Button_File));
+       ctrls[1] = new JButton(new ImageIcon(ClassLoader.getSystemResource(Button_File)));
     else
        ctrls[1] = new JButton("<");
 
     Button_File = configuration.getProperty("PlayDefIcon");
     if(Button_File!=null)
-       ctrls[2] = new JButton(new ImageIcon(Button_File));
+       ctrls[2] = new JButton(new ImageIcon(ClassLoader.getSystemResource(Button_File)));
     else
        ctrls[2] = new JButton(">:");
 
     Button_File = configuration.getProperty("ToendIcon");
     if(Button_File!=null)
-       ctrls[3] = new JButton(new ImageIcon(Button_File));
+       ctrls[3] = new JButton(new ImageIcon(ClassLoader.getSystemResource(Button_File)));
     else
        ctrls[3] = new JButton(">|");
 
     Button_File = configuration.getProperty("TostartIcon");
     if(Button_File!=null)
-        ctrls[4] = new JButton(new ImageIcon(Button_File));
+        ctrls[4] = new JButton(new ImageIcon(ClassLoader.getSystemResource(Button_File)));
     else
        ctrls[4] = new JButton("|<");
 
 
     Button_File = configuration.getProperty("StopIcon");
     if(Button_File!=null)
-        ctrls[5] = new JButton(new ImageIcon(Button_File));
+        ctrls[5] = new JButton(new ImageIcon(ClassLoader.getSystemResource(Button_File)));
     else
        ctrls[5] = new JButton("[]");
 
@@ -1216,8 +1216,13 @@ public boolean canDisplay(SecondoObject o){
 
      if(Type.atomType()!=ListExpr.SYMBOL_ATOM)
         return false;
-     File F = new File("viewer/hoese/algebras/Dspl"+Type.symbolValue()+".class");
-     return F.exists();
+     try{
+        Class.forName("viewer.hoese.algebras.Dspl"+Type.symbolValue());
+        return true;
+     }
+     catch(ClassNotFoundException e){
+        return false;
+     }
   }
 }
 

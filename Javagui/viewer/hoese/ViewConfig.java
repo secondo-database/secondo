@@ -842,10 +842,11 @@ public class ViewConfig extends javax.swing.JDialog {
         return  "Directories";
       }         //end getDescription
     };          // end newFileFilter
-    File f = new File("res/");
+    File f = new File("images/");
     File[] fileList = f.listFiles(DirFilter);
-    for (int i = 0; i < fileList.length; i++)
-      RendTypeCB.addItem(new String("Images in " + fileList[i].getName()));
+    if(fileList!=null)
+       for (int i = 0; i < fileList.length; i++)
+           RendTypeCB.addItem(new String("Images in " + fileList[i].getName()));
   }
 
   /**

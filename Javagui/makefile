@@ -15,32 +15,45 @@ all: makedirs
 .PHONY: help
 help:
 	@echo "make all      -> compile all gui-components and know viewers"
-	@echo "make doc      -> call javadoc, run make all first"
-	@echo "make clean    -> remove all .class files and the documentation"
-	@echo "make mrproper -> cleans all created files"
+	@echo "make doc      -> call javadoc"
+	@echo "make clean    -> remove all files created by this makefile"
+	@echo "make demo     -> creates a single jar archive from the class files and the needed resources"
+	@echo "                 you can find it in the Demo directory with additionally configuration files"
+	@echo "                 as well as a script for starting the demo"
 
 
-.PHONY: doc # creates the documentation
-doc: removedoc
-	$(JAVADOC) -d $(DOCPATH) -classpath $(CLASSPATH) $(shell find -name "*.class"  | sed "s#/[^/]*\.class##g"  | sed "s#/[^/]*\.class##g" | sed "s#^\./##g"  | sed "s#/#.#g" | java tools.DupRemover)
+.PHONY: doc # creates the documentation  via $(JAVADOC)
+doc: removedoc 
+	@make -s all
+	@mkdir $(DOCPATH)
+	@$(JAVADOC)  -d $(DOCPATH) -sourcepath $(CLASSPATH):$(JARS) -classpath $(CLASSPATH):$(JARS) $(shell find -type d -printf '%P\n'|  grep -v  "CVS" | sed -e 's#/#.#g')   
 
 
 .PHONY: demo
-demo: Javagui.jar
+demo:
+	@echo "Building Javagui-Demo-Version, please be patient"
+	@make -s
+	@rm -rf Demotmp
 	@rm -rf Demo
+	@mkdir Demotmp
+	@echo "Javagui recomiled, extract the needed files for Demo"
+	@find . -type d -printf "%P\n" | grep -v '^CVS' | grep -v '^Demotmp' | grep -v '^doc'| sed -e "s#.*#mkdir -p Demotmp/&#g " | sh
+	@find . -name "*.class" -printf "%P\n" | sed -e "s#.*#cp '&' 'Demotmp/&' #g" | sh
+	@echo "Main-Class: gui.MainWindow" > Manifest.txt
+	@(cd Demotmp; jar -xf ../lib/$(MP3); jar -xf ../lib/$(CUPRUNTIME); find -name "*.java" -exec rm {} \; )
+	@cp res/*.gif Demotmp/res
+	@echo "Building jar-archive and removing temporaly files"
+	@(cd Demotmp; jar -cmf ../Manifest.txt ../Javagui.jar .)
+	@rm -rf Demotmp
+	@rm Manifest.txt
 	@mkdir Demo
 	@mv Javagui.jar Demo
-	@cp $(CUPCLASSESRUNTIME) $(MP3CLASSESPATH) Demo
-	@cp -r res Demo
 	@cp gui.cfg Demo
 	@cp GBS.cfg Demo
-	@echo -e "java -Xmx80M -cp "$(CUPRUNTIME)":"$(MP3)":Javagui.jar gui.MainWindow\n" >Demo/start
-	@chmod +x Demo/start
-	@echo -e "java -Xmx80M -cp "$(CUPRUNTIME)";"$(MP3)";Javagui.jar gui.MainWindow\r\n" >Demo/start.bat
+	@echo "java -Xmx80M -jar Javagui.jar" > Demo/sgui
+	@chmod +x Demo/sgui
+	@echo "Building Demo has finished successfully, you can find it in the Demo directory"
 
-Javagui.jar:
-	@make -s all
-	@(jar -cfM Javagui.jar $(shell find -type d | grep -v "CVS" | sed -e "s#\./##g" -e "s#.*#&/*.class#g")) 2>/dev/null ; echo ""
 
 .PHONY: removedoc # removes the documentation
 removedoc:
@@ -60,7 +73,7 @@ makedirs:
 	make -C tools all
 
 .PHONY: clean # removes the documentation and all .class files
-clean:
+clean: removedoc
 	make -C sj clean
 	make -C communication clean
 	make -C components clean
@@ -69,12 +82,5 @@ clean:
 	make -C project clean
 	make -C tools clean
 	make -C viewer clean
-	(rm -f ./doc/* -r)
-	(rm -fr doc)
 	rm -rf Demo
-
-
-.PHONY: cleangui
-cleangui:
-	(cd gui;make clean)
 

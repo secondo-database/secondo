@@ -108,7 +108,7 @@ public class GraphWindow extends JLayeredPane
       BackLabel = null;
       return  null;
     }
-    BackLabel = new ScaledLabel(new ImageIcon(PathToImage), JLabel.LEFT);
+    BackLabel = new ScaledLabel(new ImageIcon(ClassLoader.getSystemResource(PathToImage)), JLabel.LEFT);
     BackLabel.setVerticalAlignment(JLabel.TOP);
     BackLabel.setBounds((int)xo, (int)yo, (int)(-xo + mw.BBoxDC.getWidth()),
         (int)(-yo + mw.BBoxDC.getHeight()));

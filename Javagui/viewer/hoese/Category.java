@@ -409,7 +409,7 @@ public class Category
     if (le.first().atomType() != ListExpr.STRING_ATOM)
       return  null;
     cat.IconName=le.first().stringValue();
-    ImageIcon ii = new ImageIcon(TexturePath+cat.IconName);
+    ImageIcon ii = new ImageIcon(ClassLoader.getSystemResource(TexturePath+cat.IconName));
     if (ii == null)
       style = "nofill";
     if (style.equals("nofill"))
