@@ -65,8 +65,8 @@ install:
 	$(CP) $(BDBLIB_OBJECTS) $(LIBDIR)
 	$(CP) $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) $(BUILDDIR)/bin
 
-
-$(BDB_OBJECTS):
+.PHONY: berkeley_db
+$(BDBLIB_OBJECTS):
 	$(CP) $(NEW_BDB_FILES) $(BDB_BUILD_DIR)
 	make -C $(BDB_BUILD_DIR) -f $(MAKEFILE_BDB)
 
