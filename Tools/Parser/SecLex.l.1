@@ -57,6 +57,7 @@ update		{yylval = NestedText::Atom( yytext, yyleng ); return ZZUPDATE;}
 query		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERY;}
 model           {yylval = NestedText::Atom( yytext, yyleng ); return ZZMODEL;}
 let		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET;}
+derive		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDERIVE;}
 persistent	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPERSISTENT;}
 begin		{yylval = NestedText::Atom( yytext, yyleng ); return ZZBEGIN1;}
 transaction	{yylval = NestedText::Atom( yytext, yyleng ); return ZZTRANSACTION;}

@@ -87,8 +87,14 @@ basic		:	ZZTYPE ZZIDENTIFIER ZZEQ typeexpr
  
 		|		{paramno=0; depth =0;}
 			ZZLET ZZIDENTIFIER ZZEQ valueexpr
-				{PRINTF("(let "); PRINT($3); 
+				{PRINTF("(let "); PRINT($3);
 				PRINTF(" = "); PRINT($5); PRINTF(")\n");}
+
+		|		{paramno=0; depth =0;}
+			ZZDERIVE ZZIDENTIFIER ZZEQ valueexpr
+				{PRINTF("(derive "); PRINT($3);
+				PRINTF(" = "); PRINT($5); PRINTF(")\n");}
+
 		|	ZZPERSISTENT ZZIDENTIFIER
 				{PRINTF("(persistent "); PRINT($2); 
 				PRINTF(")\n");}
