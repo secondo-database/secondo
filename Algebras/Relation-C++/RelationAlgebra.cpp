@@ -438,13 +438,13 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
 
 1.3.2 ~In~-function of type constructor ~tuple~
 
-The ~in~-function of type constructor ~tuple~ takes as inputs a type description (~typeInfo~) of the tuples attribute structure in nested list format and the tuple value in nested list format. The function retrurns a pointer to atuple value, stored in main memory in accordance to the tuple value in nested list format. 
+The ~in~-function of type constructor ~tuple~ takes as inputs a type description (~typeInfo~) of the tuples attribute structure in nested list format and the tuple value in nested list format. The function retrurns a pointer to atuple value, stored in main memory in accordance to the tuple value in nested list format.
 
 Error handling in ~InTuple~: ~Correct~ is only true if there is the right number of attribute values and all values have correct list representations. Otherwise the following error messages are added to ~errorInfo~:
 
 ----	(71 tuple 1 <errorPos>)		        atom instead of value list
 	(71 tuple 2 <errorPos>)		        not enough values
-	(71 tuple 3 <errorPos> <attrno>) 	wrong attribute value in 
+	(71 tuple 3 <errorPos> <attrno>) 	wrong attribute value in
 					        attribute <attrno>
 	(71 tuple 4 <errorPos>)		        too many values
 ----
@@ -591,7 +591,7 @@ Checks the specification:
 
 with the additional constraint that all identifiers used (attribute names) must be distinct. Hence a tuple type has the form:
 
-----	(tuple 
+----	(tuple
 	    (
 		(age x)
 		(name y)))
@@ -4250,7 +4250,7 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[1].addr);
       local = SetWord(new CcInt(true, 0));
       return 0;
-      
+
     case REQUEST :
       if ( (((CcInt*)local.addr)->GetIntval()) == 0)
       {
@@ -4316,43 +4316,43 @@ This function returns true if the type constructor represented by ~type~ is asso
   AlgebraManager* algMgr;
   algMgr = SecondoSystem::GetAlgebraManager();
 
-  result = algMgr->CheckKind(string("DATA"), type, errorInfo);
+  //result = algMgr->CheckKind(string("DATA"), type, errorInfo);
   // The error message is ignored and its nested list destroyed.
   if ((!nl->IsEmpty(errorInfo)) && (!nl->IsAtom(errorInfo))){ // required by Destroy.
     nl->Destroy(errorInfo);
   }
-  return result;
+  return true;//result;
 }
 
 
 /*
 
-7.20 Operator {\tt groupby}
-\label{groupby}
+7.20 Operator ~groupby~
 
 
-7.20.1 Type mapping function of operator {\tt groupby}
+7.20.1 Type mapping function of operator ~groupby~
 
 
-Result type of ~extend~ operation.
+Result type of ~groupby~ operation.
 
-----    ((stream (tuple (x1 ... xn))) ((namei1(fun x y1)) .. (namein (fun x ym)))
+----    ((stream (tuple (xi1 ... xin))) ((namei1(fun x y1)) .. (namein (fun x ym)))
 
-        -> (stream (tuple (yi1 .. yim)))		APPEND (i1,...im)
+        -> (stream (tuple (xi1 .. xin y1 .. ym)))		APPEND (i1,...in)
 ----
 
 */
-
-
-ListExpr ccGroupbyTypeMap(ListExpr args)
+ListExpr GroupByTypeMap(ListExpr args)
 {
   ListExpr first, second, third, rest, listn, lastlistn, first2,
     second2, firstr, attrtype, listp, lastlistp;
+  ListExpr groupType;
   bool loopok;
   string  attrname;
   int j;
   bool firstcall = true;
   int numberatt;
+  string listString;
+
   if(nl->ListLength(args) == 3)
   {
     first = nl->First(args);
@@ -4360,194 +4360,240 @@ ListExpr ccGroupbyTypeMap(ListExpr args)
     third  = nl->Third(args);
 
     if(nl->ListLength(first) == 2  &&
-	(TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-	(TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	(!nl->IsAtom(second)) &&
-	(nl->ListLength(second) > 0))
-	{
-	  int noofattr = nl->ListLength(nl->Second(nl->Second(first)));
-          int *  vgdiff;
-	  numberatt = nl->ListLength(second);
-	  rest = second;
-	  while (!nl->IsEmpty(rest))
-	  {
-	    first2 = nl->First(rest);
-	    rest = nl->Rest(rest);
-	    attrname = nl->SymbolValue(first2);
-	    j =   findattr(nl->Second(nl->Second(first)), attrname, attrtype);
-	    if (j)
-	    {
-	      if (!firstcall)
-	      {
-	        lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
-	        lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
-	      }
-	      else
-	      {
-	        firstcall = false;
- 	        listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
-	        lastlistn = listn;
-	        listp = nl->OneElemList(nl->IntAtom(j));
-	        lastlistp = listp;
-	      }
-	    }
-	    else
-	      return nl->SymbolAtom("typeerror");
-	  }
-	  loopok = true;
-	  rest = third;
-	  while (!(nl->IsEmpty(rest)))
-	  {
-	    firstr = nl->First(rest);
-	    rest = nl->Rest(rest);
-	    first2 = nl->First(firstr);
-	    second2 = nl->Second(firstr);
-	    if ((nl->IsAtom(first2)) &&
-	    	(nl->ListLength(second2) == 3) &&
-	    	(nl->AtomType(first2) == SymbolType) &&
-	    	(TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-		(IsKindData(nl->Third(second2))) &&
-	        (nl->Equal(nl->Second(first),nl->Second(second2))))
-	    {
-	      lastlistn = nl->Append(lastlistn,
-	      (nl->TwoElemList(first2,nl->Third(second2))));
-	  }
-	  else
-	    loopok = false;
-	}
+      (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+      (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+      (!nl->IsAtom(second)) &&
+      (nl->ListLength(second) > 0))
+    {
+      numberatt = nl->ListLength(second);
+      rest = second;
+      while (!nl->IsEmpty(rest))
+      {
+        first2 = nl->First(rest);
+        rest = nl->Rest(rest);
+        attrname = nl->SymbolValue(first2);
+        j =   findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+        if (j)
+        {
+          if (!firstcall)
+          {
+            lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
+            lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
+          }
+          else
+          {
+            firstcall = false;
+            listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
+            lastlistn = listn;
+            listp = nl->OneElemList(nl->IntAtom(j));
+            lastlistp = listp;
+          }
+        }
+        else
+          return nl->SymbolAtom("typeerror");
+
       }
-      if ((loopok) && (comparenames(listn)))
-	return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-	       nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
-		//First argument is number of extra arguments.
-		nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("tuple"),
-		listn)));
+      loopok = true;
+      rest = third;
+
+      groupType =
+        nl->TwoElemList(
+          nl->SymbolAtom("rel"),
+          nl->Second(first));
+      nl->WriteToString(listString, groupType);
+      cout << "Group Type : " << listString << "\n";
+
+      while (!(nl->IsEmpty(rest)))
+      {
+        firstr = nl->First(rest);
+
+        rest = nl->Rest(rest);
+        first2 = nl->First(firstr);
+        second2 = nl->Second(firstr);
+
+        nl->WriteToString(listString, first2);
+        cout << "Third List, First : " << listString << "\n";
+        nl->WriteToString(listString, second2);
+        cout << "Third List, Second : " << listString << "\n";
+        nl->WriteToString(listString, first);
+        cout << "First List, Second : " << listString << "\n";
+
+        if ((nl->IsAtom(first2)) &&
+          (nl->ListLength(second2) == 3) &&
+          (nl->AtomType(first2) == SymbolType) &&
+          (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
+          (true/*IsKindData(nl->Third(second2))*/) &&
+          (nl->Equal(groupType, nl->Second(second2))))
+        {
+          lastlistn = nl->Append(lastlistn,
+          (nl->TwoElemList(first2,nl->Third(second2))));
+        }
+        else
+          loopok = false;
+        }
+      }
+    nl->WriteToString(listString, listp);
+    cout << "ListN : " << listString << "\n";
+    nl->WriteToString(listString, listn);
+    cout << "ListP : " << listString << "\n";
+
+    nl->WriteListExpr(nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+              listn)), cout);
+
+    if ((loopok) && (comparenames(listn)))
+    {
+      return
+        nl->ThreeElemList(
+          nl->SymbolAtom("APPEND"),
+          nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
+          nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+              listn)));
     }
-    return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
 }
 
 /*
-7.20.2 Value mapping function of operator {\tt groupby}
 
+7.20.2 Value mapping function of operator ~groupby~
 
 */
-/*
-int ccGroupby(ADDRESS *args, ADDRESS *result, int message,
-  ADDRESS *local, Supplier supplier)
+
+int GroupByValueMapping
+(Word* args, Word& result, int message, Word& local, Supplier supplier)
 {
-  Tuple *t;
-  Tuple *s;
-  TuplePointer *tp;
+  CcTuple *t;
+  CcTuple *s;
+  Word sWord;
+  CcRel* tp;
   int i, j, k;
   int numberatt;
   bool ifequal;
-  ListExpr first;
-  void * value;
+  Word value;
   Supplier  value2;
   Supplier supplier1;
   Supplier supplier2;
   int ind;
   int noOffun;
   ArgVectorPointer vector;
-ListExpr testn;
-  const int ArgCountPos = 3;
-	// Position in ~args~ of the count of extra arguments.
-  const int PosExtraArg0 = ArgCountPos +1;
+  const int indexOfCountArgument = 3;
+  const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx;
 
-  switch (message)
+  switch(message)
   {
-
     case OPEN:
-      open (args[0]);
-      tp = new TuplePointer;
-      tp->delbyclass=false;
-      first = QueryProcessor$getType(supplier);
-      first = Second(Second(first));
-      tp->newtupleType = internalType(first);
-      first = QueryProcessor$getType(args[0]);
-      first = Second(Second(first));
-      tp->oldtupleType = internalType(first);
-      *local = tp;
-      request(args[0],(void * *)&s);
-      if (received(args[0]))
+      qp->Open (args[0].addr);
+      qp->Request(args[0].addr, sWord);
+      if (qp->Received(args[0].addr))
       {
-        tp->put(s,0);
+        local = SetWord((CcTuple*)sWord.addr);
       }
       else
-        tp->put(0,0);
+      {
+        local = SetWord(0);
+      }
       return 0;
 
     case REQUEST:
-      tp  = (TuplePointer  *)*local;
-      if (tp->get(0) == 0)
-        return CANCEL;
-      numberatt = ((CCINT *)args[ArgCountPos])->GetIntval();
-      tp->reset();
-      tp->put(tp->get(0));
-      t = tp->get(0);
-      i = 1;
-      ifequal = true;
-      tp->put(0,0);
-      request(args[0], (void * *)&s);
-      while ((received(args[0])) && ifequal)
+      tp = new CcRel;
+      if(local.addr == 0)
       {
+        delete tp;
+        return CANCEL;
+      }
+      else
+      {
+        tp->AppendTuple((CcTuple*)local.addr);
+        t = (CcTuple*)local.addr;
+      }
+      numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
+
+      ifequal = true;
+      qp->Request(args[0].addr, sWord);
+      while ((qp->Received(args[0].addr)) && ifequal)
+      {
+        s = (CcTuple*)sWord.addr;
         for (k = 0; k < numberatt; k++)
         {
-          attribIdx = ((CCINT *)args[PosExtraArg0+k])->GetIntval();
-          j=attribIdx-1;
-          if (((Attribute *)t->Get(j))->Compare((Attribute *)s->Get(j)))
+          attribIdx = ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
+          j = attribIdx - 1;
+          if (((Attribute*)t->Get(j))->Compare((Attribute *)s->Get(j)))
             ifequal = false;
         }
         if (ifequal)
         {
-          i++;
-          tp->put(s);
-          request(args[0], (void * *)&s);
+          tp->AppendTuple(s);
+          qp->Request(args[0].addr, sWord);
         }
         else
-          tp->put(s,0);
+          local = SetWord((CcTuple*)sWord.addr);
       }
-      tp->restart(0);
-
-      t = new Tuple(tp->newtupleType);
-      s = tp->get();
-      for (i = 0; i < numberatt; i++)
-      {     // first copy the attributes from the input tuple
-        attribIdx = ((CCINT *)args[PosExtraArg0+i])->GetIntval();
-        if (s->destruct(attribIdx-1))
-          t->DelPut(i, ((Attribute *)s->Get(attribIdx-1))->Clone());
-        else
-          t->Put(i,  s->Get(attribIdx-1));
-      }
-      value2 = (Supplier)args[2];
-      noOffun  =  t->GetAttrNum() - numberatt;
-      for (ind = 0; ind < noOffun; ind++)
+      if(ifequal)
       {
-        tp->restart(0);
-        supplier1 = QueryProcessor$getSupplier(value2, ind + 1);
-        supplier2 = QueryProcessor$getSupplier(supplier1, 2);
-        vector = argument(supplier2);
-        if (ind < (noOffun - 1))
-          tp->deloper = false;
-        else
-          tp->deloper = true;
-        (*vector)[0] = tp;
-        request(supplier2, &value);
-        t->DelPut(numberatt + ind, ((Attribute*)value)->Clone()) ;
+        local = SetWord(0);
       }
-      *result = t;
+
+      t = new CcTuple;
+      tp->NewScan();
+      s = tp->GetTuple();
+
+      for(i = 0; i < numberatt; i++)
+      {
+        attribIdx = ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
+        t->Put(i, ((Attribute*)s->Get(attribIdx - 1))->Clone());
+      }
+      value2 = (Supplier)args[2].addr;
+      noOffun  =  qp->GetNoSons(value2);
+      t->SetNoAttrs(numberatt + noOffun);
+
+      for(ind = 0; ind < noOffun; ind++)
+      {
+        tp->NewScan();
+        supplier1 = qp->GetSupplier(value2, ind);
+        supplier2 = qp->GetSupplier(supplier1, 1);
+        vector = qp->Argument(supplier2);
+        (*vector)[0] = SetWord(tp);
+        qp->Request(supplier2, value);
+        t->Put(numberatt + ind, ((Attribute*)value.addr)->Clone()) ;
+      }
+      result = SetWord(t);
+      delete tp;
       return YIELD;
 
     case CLOSE:
-      tp = (TuplePointer *)*local;
-      delete tp ;
-      close(args[0]);
+      qp->Close(args[0].addr);
       return 0;
   }
 }
+
+/*
+
+4.1.3 Specification of operator ~groupby~
+
 */
+const string GroupBySpec =
+  "(<text>((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjm)))</text---><text>Groups a relation according to attributes ai1, ..., aik and feeds the groups to other functions. The results of those functions are appended to the grouping attributes.</text--->)";
+
+/*
+
+4.1.3 Definition of operator ~groupby~
+
+*/
+Operator cppgroupby (
+         "groupby",             // name
+         GroupBySpec,           // specification
+         GroupByValueMapping,   // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         GroupByTypeMap         // type mapping
+);
 
 /*
 
@@ -4596,6 +4642,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppmergeunion);
     AddOperator(&equiMergeJoinOperator);
     AddOperator(&equiHashJoinOperator);
+    AddOperator(&cppgroupby);
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );
