@@ -45,7 +45,7 @@ VIEWER_CLASSES := \
 		MidiViewer.class \
                 TreeViewer.class
 
-VIEWER_DIRS := fuzzy2d jpeg midi relsplit viewer3d hoese
+VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese
 
 
 # compile all viewers
