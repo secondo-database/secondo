@@ -293,10 +293,10 @@ ListExpr
 NestedList::Append ( const ListExpr lastElem,
                      const ListExpr newSon )
 {
+	assert( EndOfList(lastElem) );
+
   NodeRecord lastElemNodeRec;
   (*nodeTable).Get(lastElem, lastElemNodeRec);
-
-  assert( !IsAtom( lastElem ) && IsEmpty( lastElemNodeRec.n.right ) );
 
   Cardinal newNode = nodeTable->EmptySlot();
 
