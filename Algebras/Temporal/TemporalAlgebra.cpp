@@ -1336,7 +1336,8 @@ bool IsIntimeAtom( const ListExpr atom )
   if( nl->IsAtom( atom ) &&
       nl->AtomType( atom ) == SymbolType &&
       ( nl->SymbolValue( atom ) == "intimeint" ||
-        nl->SymbolValue( atom ) == "intimereal" ) )
+        nl->SymbolValue( atom ) == "intimereal"||
+        nl->SymbolValue( atom ) == "intimepoint" ) )
     return true;
   return false;
 }
@@ -1346,9 +1347,11 @@ ListExpr IntimeBaseType( const ListExpr range )
   assert( IsIntimeAtom( range ) );
 
   if( nl->SymbolValue( range ) == "intimeint" )
-    return nl->SymbolAtom( "int" );
+      return nl->SymbolAtom( "int" );
   else if( nl->SymbolValue( range ) == "intimereal" )
-    return nl->SymbolAtom( "real" );
+      return nl->SymbolAtom( "real" );
+  else if( nl->SymbolValue( range ) == "intimepoint" )
+      return nl->SymbolAtom( "point" );
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -1431,7 +1434,7 @@ MappingTypeMapRangeInstant( ListExpr args )
     if    (( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )||
            ( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal")||
            ( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint"))
-	return (nl->SymbolAtom( "rangereal" ));  //maybe rangeinstant...
+	return (nl->SymbolAtom( "periods" ));
   }
   
   return (nl->SymbolAtom( "typeerror" ));
@@ -2060,7 +2063,7 @@ int atinstant_mpoint( Word* args, Word& result, int message, Word& local, Suppli
 
 */
 int deftime_mint( Word* args, Word& result, int message, Word& local, Supplier s )
-{ // mint --> range(real) note: maybe later range(instant)
+{ // mint --> periods (=range(instant))
   result = qp->ResultStorage( s );
   
   //1.get the input and out put objects
@@ -2085,7 +2088,7 @@ int deftime_mint( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 int deftime_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
-{ // mreal --> range(real) note: maybe later range(instant)
+{ // mreal --> periods (=range(instant))
   result = qp->ResultStorage( s );
   
   //1.get the input and out put objects
@@ -2109,15 +2112,15 @@ int deftime_mreal( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 int deftime_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
-{ // mpoint --> range(real) note: maybe later range(instant)
+{ // mpoint --> periods (=range(instant))
   result = qp->ResultStorage( s );
   
   //1.get the input and out put objects
   MPoint *mpoint;
-  Range<CcReal>* defrange; 
+  Range<Instant>* defrange; 
   
   mpoint=((MPoint*)args[0].addr);
-  defrange=((Range<CcReal>*)result.addr);
+  defrange=((Range<Instant>*)result.addr);
   
   //2.get the timeintervals and add them to the result
   UPoint unit;
@@ -2226,6 +2229,9 @@ ValueMapping intimeintvalmap[] = { IntimeVal<CcInt> };
 
 ValueMapping intimerealinstmap[] = { IntimeInst<CcReal> };
 ValueMapping intimerealvalmap[] = { IntimeVal<CcReal> };
+
+ValueMapping intimepointinstmap[] = { IntimeInst<Point> };
+ValueMapping intimepointvalmap[] = { IntimeVal<Point> };
 
 ValueMapping atinstantmap[] =   {  atinstant_mint,
 			     atinstant_mreal,
@@ -2755,6 +2761,7 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &instant );
     AddTypeConstructor( &rangeint );
     AddTypeConstructor( &rangereal );
+    AddTypeConstructor( &periods );
     AddTypeConstructor( &intimeint );
     AddTypeConstructor( &intimereal );
     AddTypeConstructor( &intimepoint );
@@ -2770,6 +2777,7 @@ class TemporalAlgebra : public Algebra
     instant.AssociateKind( "TIME" );
     rangeint.AssociateKind( "RANGE" );
     rangereal.AssociateKind( "RANGE" );
+    periods.AssociateKind( "RANGE" );
     intimeint.AssociateKind( "TEMPORAL" );
     intimereal.AssociateKind( "TEMPORAL" );
     intimepoint.AssociateKind( "TEMPORAL" );
