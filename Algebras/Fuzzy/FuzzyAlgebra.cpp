@@ -1,3 +1,4 @@
+
 /*
 //paragraph [1] title: [{\Large \bf ]	[}]
 
@@ -323,7 +324,7 @@ void CcFPoint::RestoreJavaObjectFromFLOB(){
   defined = true;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,0);
-  delete [] bytes;   // already done by RealeaseByteArrayElements
+  delete [] bytes;  
  }
 
 
