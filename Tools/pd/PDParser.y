@@ -259,8 +259,9 @@ figure 		: FIGURE figure_text optional_caption
 					printf("\\end{center}\n");
 					printf("        \\caption{");
 						print($3);
-					printf("}\n");
-					printf("\\end{figure}\n");}
+					printf("}\n\\label{fig:");
+						print($4);
+					printf("}\n\\end{figure}\n");}
 		;
 
 optional_caption:			{$$ = atomc("");}
