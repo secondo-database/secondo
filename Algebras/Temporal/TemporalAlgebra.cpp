@@ -13,8 +13,8 @@ March - April 2004 Zhiming Ding
 
 1 Overview
 
-This file contains the implementation of the type constructors ~instant~, 
-~range~, ~intime~, ~const~, and ~mapping~. The memory data structures 
+This file contains the implementation of the type constructors ~instant~,
+~range~, ~intime~, ~const~, and ~mapping~. The memory data structures
 used for these type constructors are implemented in the TemporalAlgebra.h
 file.
 
@@ -116,33 +116,33 @@ void UPoint::TemporalFunction( Instant& t, Point& result )
 
     double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
     double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
- 
+
     result.Set( x, y );
   }
 }
 
 bool UPoint::Passes( Point& p )
 {
-/* 
-VTA - I could use the spatial algebra like this 
+/*
+VTA - I could use the spatial algebra like this
 
 ----    CHalfSegment chs;
         chs.Set( true, p0, p1 );
         return chs.Contains( p );
 ----
-but the Spatial Algebra admit rounding errors (floating point operations). It 
-would then be very hard to return a true for this function. 
+but the Spatial Algebra admit rounding errors (floating point operations). It
+would then be very hard to return a true for this function.
 
 */
   assert( p.IsDefined() );
 
-  if( timeInterval.lc && AlmostEqual( p, p0 ) || 
-      timeInterval.rc && AlmostEqual( p, p1 ) ) 
+  if( timeInterval.lc && AlmostEqual( p, p0 ) ||
+      timeInterval.rc && AlmostEqual( p, p1 ) )
     return true;
 
   if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
       AlmostEqual( p0.GetX(), p.GetX() ) )
-    // If the segment is vertical 
+    // If the segment is vertical
   {
     if( ( p0.GetY() <= p.GetY() && p1.GetY() >= p.GetY() ) ||
         ( p0.GetY() >= p.GetY() && p1.GetY() <= p.GetY() ) )
@@ -150,7 +150,7 @@ would then be very hard to return a true for this function.
   }
   else if( AlmostEqual( p0.GetY(), p1.GetY() ) &&
       AlmostEqual( p0.GetY(), p.GetY() ) )
-    // If the segment is horizontal 
+    // If the segment is horizontal
   {
     if( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
         ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) )
@@ -196,7 +196,7 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
     return true;
   }
 
-  
+
   if( AlmostEqual( p, p1 ) )
   {
     if( !timeInterval.rc )
@@ -215,8 +215,8 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
     if( ( p0.GetY() <= p.GetY() && p1.GetY() >= p.GetY() ) ||
         ( p0.GetY() >= p.GetY() && p1.GetY() <= p.GetY() ) )
     {
-      Instant t( timeInterval.start + 
-                   ( ( timeInterval.end - timeInterval.start ) * 
+      Instant t( timeInterval.start +
+                   ( ( timeInterval.end - timeInterval.start ) *
                    ( ( p.GetY() - p0.GetY() ) / ( p1.GetY() - p0.GetY() ) ) ) );
       Interval<Instant> interval( t, t, true, true );
       UPoint unit( interval, p, p );
@@ -231,8 +231,8 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
     if( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
         ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) )
     {
-      Instant t( timeInterval.start + 
-                   ( ( timeInterval.end - timeInterval.start ) * 
+      Instant t( timeInterval.start +
+                   ( ( timeInterval.end - timeInterval.start ) *
                    ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ) );
       Interval<Instant> interval( t, t, true, true );
       UPoint unit( interval, p, p );
@@ -249,8 +249,8 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
         ( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
           ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) ) )
     {
-      Instant t( timeInterval.start + 
-                   ( ( timeInterval.end - timeInterval.start ) * 
+      Instant t( timeInterval.start +
+                   ( ( timeInterval.end - timeInterval.start ) *
                    ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ) );
       Interval<Instant> interval( t, t, true, true );
       UPoint unit( interval, p, p );
@@ -258,7 +258,7 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -297,7 +297,7 @@ void MPoint::Trajectory( CLine& line )
 
   UPoint unit;
 
-  line.Clear();  
+  line.Clear();
   line.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ )
   {
@@ -495,8 +495,8 @@ The list representation of a ~periods~ is
 
 For example:
 
-----    ( ( (instant 1.01)  (instant 5)     TRUE  FALSE) 
-          ( (instant 6.37)  (instant 9.9)   FALSE FALSE) 
+----    ( ( (instant 1.01)  (instant 5)     TRUE  FALSE)
+          ( (instant 6.37)  (instant 9.9)   FALSE FALSE)
           ( (instant 11.93) (instant 11.99) TRUE  TRUE) )
 ----
 
@@ -676,13 +676,13 @@ TypeConstructor intimeint(
         IntimeIntProperty,             //property function describing signature
         OutIntime<CcInt, OutCcInt>,
         InIntime<CcInt, InCcInt>,      //Out and In functions
-        0,                      
+        0,
         0,                	       //SaveToList and RestoreFromList functions
-        CreateIntime<CcInt>,    
+        CreateIntime<CcInt>,
         DeleteIntime<CcInt>,           //object creation and deletion
-        0,                      
+        0,
         0,                 	       // object open and save
-        CloseIntime<CcInt>,    
+        CloseIntime<CcInt>,
         CloneIntime<CcInt>,            //object close and clone
         CastIntime<CcInt>,             //cast function
         SizeOfIntime<CcInt>,           //sizeof function
@@ -748,13 +748,13 @@ TypeConstructor intimereal(
         IntimeRealProperty,                //property function describing signature
         OutIntime<CcReal, OutCcReal>,
         InIntime<CcReal, InCcReal>,        //Out and In functions
-        0, 
+        0,
         0,            	                   //SaveToList and RestoreFromList functions
-        CreateIntime<CcReal>,    
+        CreateIntime<CcReal>,
         DeleteIntime<CcReal>,              //object creation and deletion
-        0, 
+        0,
         0,             	                   // object open and save
-        CloseIntime<CcReal>, 
+        CloseIntime<CcReal>,
         CloneIntime<CcReal>,               //object close and clone
         CastIntime<CcReal>,                //cast function
         SizeOfIntime<CcReal>,              //sizeof function
@@ -818,13 +818,13 @@ TypeConstructor intimepoint(
         IntimePointProperty,              //property function describing signature
         OutIntime<Point, OutPoint>,
         InIntime<Point, InPoint>,         //Out and In functions
-        0, 
+        0,
         0,                	          //SaveToList and RestoreFromList functions
-        CreateIntime<Point>,    
+        CreateIntime<Point>,
         DeleteIntime<Point>,              //object creation and deletion
         0,
         0,                 	          // object open and save
-        CloseIntime<Point>,     
+        CloseIntime<Point>,
         CloneIntime<Point>,               //object close and clone
         CastIntime<Point>,                //cast function
         SizeOfIntime<Point>,              //sizeof function
@@ -960,7 +960,7 @@ TypeConstructor unitint(
         CreateConstTemporalUnit<CcInt>,
         DeleteConstTemporalUnit<CcInt>,  	//object creation and deletion
         0,                      0,            	        	    // object open and save
-        CloseConstTemporalUnit<CcInt>,     
+        CloseConstTemporalUnit<CcInt>,
         CloneConstTemporalUnit<CcInt>,   	//object close and clone
         CastConstTemporalUnit<CcInt>,       	//cast function
         SizeOfConstTemporalUnit<CcInt>, 	//sizeof function
@@ -982,7 +982,7 @@ function to use.
 
 The list representation of an ~ureal~ is
 
-----    ( timeinterval (a b c r) ) 
+----    ( timeinterval (a b c r) )
 ----
 
 For example:
@@ -1043,7 +1043,7 @@ ListExpr OutUReal( ListExpr typeInfo, Word value )
 /*
 4.8.5 ~In~-function
 
-The Nested list form is like this:  
+The Nested list form is like this:
 
 ----    ( ( 6.37 9.9 TRUE FALSE)   (1.0 2.3 4.1 TRUE) )
 ----
@@ -1189,13 +1189,13 @@ TypeConstructor unitreal(
 /*
 4.9 Type Constructor ~upoint~
 
-Type ~upoint~ represents an (tinterval, (x0, y0, x1, y1))-pair. 
+Type ~upoint~ represents an (tinterval, (x0, y0, x1, y1))-pair.
 
 4.9.1 List Representation
 
 The list representation of an ~upoint~ is
 
-----    ( timeinterval (x0 yo x1 y1) ) 
+----    ( timeinterval (x0 yo x1 y1) )
 ----
 
 For example:
@@ -1479,20 +1479,20 @@ TypeConstructor movingbool(
 /*
 4.10 Type Constructor ~mint~
 
-Type ~mint~ represents a moving integer. 
+Type ~mint~ represents a moving integer.
 
 4.10.1 List Representation
 
 The list representation of a ~mint~ is
 
-----    ( u1 ... un ) 
+----    ( u1 ... un )
 ----
 
 ,where u1, ..., un are units of type ~uint~.
 
 For example:
 
-----    ( 
+----    (
           ( (instant 6.37)  (instant 9.9)   TRUE FALSE) 1 )
           ( (instant 11.4)  (instant 13.9)  FALSE FALSE) 4 )
         )
@@ -1518,7 +1518,7 @@ MIntProperty()
 /*
 4.10.3 Kind Checking Function
 
-This function checks whether the type constructor is applied correctly. 
+This function checks whether the type constructor is applied correctly.
 
 */
 bool
@@ -1534,7 +1534,7 @@ CheckMInt( ListExpr type, ListExpr& errorInfo )
 TypeConstructor movingint(
         "mint",                   	  	      	                 //name
         MIntProperty,                 	     	                         //property function describing signature
-        OutMapping<MInt, UInt, OutConstTemporalUnit<CcInt, OutCcInt> >, 
+        OutMapping<MInt, UInt, OutConstTemporalUnit<CcInt, OutCcInt> >,
         InMapping<MInt, UInt, InConstTemporalUnit<CcInt, InCcInt> >,     //Out and In functions
         0,
         0,           	     	    	                                 //SaveToList and RestoreFromList functions
@@ -1542,7 +1542,7 @@ TypeConstructor movingint(
         DeleteMapping<MInt>,		  	    	                 //object creation and deletion
         0,
         0,                                                               // object open and save
-        CloseMapping<MInt>,   
+        CloseMapping<MInt>,
         CloneMapping<MInt>,	   	                                 //object close and clone
         CastMapping<MInt>,			       	                 //cast function
         SizeOfMapping<MInt>,			 	                 //sizeof function
@@ -1611,13 +1611,13 @@ TypeConstructor movingreal(
         MRealProperty,                 	    //property function describing signature
         OutMapping<MReal, UReal, OutUReal>,
         InMapping<MReal, UReal, InUReal>,   //Out and In functions
-        0,                      
+        0,
         0,           	     	    	    //SaveToList and RestoreFromList functions
         CreateMapping<MReal>,
         DeleteMapping<MReal>,		    //object creation and deletion
-        0,                      
+        0,
         0,            	        	    // object open and save
-        CloseMapping<MReal>,   
+        CloseMapping<MReal>,
         CloneMapping<MReal>,	   	    //object close and clone
         CastMapping<MReal>,		    //cast function
         SizeOfMapping<MReal>,		    //sizeof function
@@ -1884,7 +1884,7 @@ RangeRangeTypeMapRange( ListExpr args )
 
     if( nl->IsEqual( arg1, "rint" ) && nl->IsEqual( arg2, "rint" ) )
       return nl->SymbolAtom( "rint" );
- 
+
     if( nl->IsEqual( arg1, "rreal" ) && nl->IsEqual( arg2, "rreal" ) )
       return nl->SymbolAtom( "rreal" );
 
@@ -1910,7 +1910,7 @@ RangeTypeMapBase( ListExpr args )
 
     if( nl->IsEqual( arg1, "rint" ) )
       return nl->SymbolAtom( "int" );
- 
+
     if( nl->IsEqual( arg1, "rreal" ) )
       return nl->SymbolAtom( "real" );
 
@@ -1921,14 +1921,13 @@ RangeTypeMapBase( ListExpr args )
 }
 
 /*
-16.1.7 Type mapping function ~RangeTypeMapInt~
+16.1.7 Type mapping function ~TemporalSetValueTypeMapInt~
 
-It is for the ~no\_components~ operator which have one
-~range~ as input and a ~int~ as result type.
+It is for the ~no\_components~ operator.
 
 */
 ListExpr
-RangeTypeMapInt( ListExpr args )
+TemporalSetValueTypeMapInt( ListExpr args )
 {
   if ( nl->ListLength( args ) == 1 )
   {
@@ -1936,7 +1935,11 @@ RangeTypeMapInt( ListExpr args )
 
     if( nl->IsEqual( arg1, "rint" ) ||
         nl->IsEqual( arg1, "rreal" ) ||
-        nl->IsEqual( arg1, "periods" ) )
+        nl->IsEqual( arg1, "periods" ) ||
+        nl->IsEqual( arg1, "mbool" ) ||
+        nl->IsEqual( arg1, "mint" ) ||
+        nl->IsEqual( arg1, "mreal" ) ||
+        nl->IsEqual( arg1, "mpoint" ) )
       return nl->SymbolAtom( "int" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -1957,10 +1960,10 @@ IntimeTypeMapBase( ListExpr args )
 
     if( nl->IsEqual( arg1, "ibool" ) )
       return nl->SymbolAtom( "bool" );
- 
+
     if( nl->IsEqual( arg1, "iint" ) )
       return nl->SymbolAtom( "int" );
- 
+
     if( nl->IsEqual( arg1, "ireal" ) )
       return nl->SymbolAtom( "real" );
 
@@ -2005,15 +2008,15 @@ MovingInstantTypeMapIntime( ListExpr args )
   {
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
-   
+
     if( nl->IsEqual( arg2, "instant" ) )
     {
       if( nl->IsEqual( arg1, "mbool" ) )
         return nl->SymbolAtom( "ibool" );
- 
+
       if( nl->IsEqual( arg1, "mint" ) )
         return nl->SymbolAtom( "iint" );
- 
+
       if( nl->IsEqual( arg1, "mreal" ) )
         return nl->SymbolAtom( "ireal" );
 
@@ -2068,7 +2071,7 @@ MovingTypeMapPeriods( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg1 = nl->First( args );
-    
+
     if( nl->IsEqual( arg1, "mbool" ) ||
         nl->IsEqual( arg1, "mint" ) ||
         nl->IsEqual( arg1, "mreal" ) ||
@@ -2090,9 +2093,9 @@ MovingTypeMapSpatial( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg1 = nl->First( args );
-    
+
     if( nl->IsEqual( arg1, "mpoint" ) )
-      return nl->SymbolAtom( "line" ); 
+      return nl->SymbolAtom( "line" );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -2138,7 +2141,7 @@ MovingBaseTypeMapBool( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    
+
     if( (nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "bool" )) ||
         (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" )) ||
 // VTA - This operator is not yet implemented for the type of ~mreal~
@@ -2167,14 +2170,14 @@ MovingBaseTypeMapMoving( ListExpr args )
     if( nl->IsEqual( arg1, "mbool" ) && nl->IsEqual( arg2, "bool" ) )
       return nl->SymbolAtom( "mbool" );
 
-    if( nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" ) ) 
+    if( nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" ) )
       return nl->SymbolAtom( "mint" );
 
 // VTA - This operator is not yet implemented for the type of ~mreal~
 //    if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
 //      return nl->SymbolAtom( "mreal" );
 
-    if( nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" ) ) 
+    if( nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" ) )
       return nl->SymbolAtom( "mpoint" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -2192,13 +2195,13 @@ MovingTypeMapIntime( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     ListExpr arg1 = nl->First( args );
-    
+
     if( nl->IsEqual( arg1, "mbool" ) )
       return nl->SymbolAtom( "ibool" );
- 
+
     if( nl->IsEqual( arg1, "mint" ) )
       return nl->SymbolAtom( "iint" );
- 
+
     if( nl->IsEqual( arg1, "mreal" ) )
       return nl->SymbolAtom( "ireal" );
 
@@ -2229,9 +2232,9 @@ MovingBaseTypeMapMReal( ListExpr args )
 }
 
 /*
-16.1.12 Type Mapping Function ~MovingTypeMapUnits~ 
+16.1.12 Type Mapping Function ~MovingTypeMapUnits~
 
-It is used for the operator ~units~ 
+It is used for the operator ~units~
 
 Type mapping for ~units~ is
 
@@ -2275,55 +2278,55 @@ IntSetTypeMapPeriods( ListExpr args )
 {
   ListExpr argi;
   bool correct=true;
-  
-  if( ( nl->ListLength(args) < 1 ) || ( nl->ListLength(args) > 6) )  
+
+  if( ( nl->ListLength(args) < 1 ) || ( nl->ListLength(args) > 6) )
     return nl->SymbolAtom("typeerror");
-  
+
   if( nl->ListLength(args) >= 1 )
   {
     argi = nl->First(args);
     if( !nl->IsEqual( argi, "int" ) )
       correct = false;
   }
-    
+
   if ( nl->ListLength(args) >= 2 )
   {
     argi = nl->Second(args);
     if( !nl->IsEqual( argi, "int" ) )
       correct = false;
   }
-  
+
   if ( nl->ListLength(args) >= 3 )
   {
     argi = nl->Third(args);
     if( !nl->IsEqual( argi, "int" ) )
       correct = false;
   }
-    
+
   if ( nl->ListLength(args) >= 4 )
   {
     argi = nl->Fourth(args);
     if( !nl->IsEqual( argi, "int" ) )
       correct=false;
   }
-  
+
   if( nl->ListLength(args) >= 5 )
   {
     argi = nl->Fifth(args);
     if( !nl->IsEqual( argi, "int" ) )
       correct=false;
   }
-  
+
   if ( nl->ListLength(args) >= 6 )
   {
     argi = nl->Sixth(args);
     if( !nl->IsEqual( argi, "int" ) )
       correct=false;
   }
-  
-  if( correct ) 
+
+  if( correct )
     return nl->SymbolAtom( "periods" );
-    
+
   return nl->SymbolAtom("typeerror");
 }
 
@@ -2432,7 +2435,7 @@ Is used for the ~isempty~ operation.
 */
 int
 TemporalSimpleSelect( ListExpr args )
-{ 
+{
   ListExpr arg1 = nl->First( args );
 
   if( nl->SymbolValue( arg1 ) == "instant" )
@@ -2499,6 +2502,41 @@ TemporalDualSelect( ListExpr args )
     return 7;
 
   return -1; // This point should never be reached
+}
+
+/*
+16.2.2 Selection function ~TemporalSetValueSelect~
+
+Is used for the ~no\_components~ operation.
+
+*/
+int
+TemporalSetValueSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "rint" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "rreal" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "periods" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "mbool" )
+    return 3;
+
+  if( nl->SymbolValue( arg1 ) == "mint" )
+    return 4;
+
+  if( nl->SymbolValue( arg1 ) == "mreal" )
+    return 5;
+
+  if( nl->SymbolValue( arg1 ) == "mpoint" )
+    return 6;
+
+  return (-1); // This point should never be reached
 }
 
 /*
@@ -2601,19 +2639,19 @@ Is used for the ~passes~ operations.
 */
 int
 MovingBaseSelect( ListExpr args )
-{ 
+{
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
- 
+
   if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "bool" )
     return 0;
-  
+
   if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "int" )
     return 1;
-  
+
   if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "real" )
     return 2;
-  
+
   if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue( arg2 ) == "point" )
     return 3;
 
@@ -3025,17 +3063,29 @@ int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+16.3.19 Value mapping functions of operator ~no\_components~
+
+*/
+template <class Mapping, class Alpha>
+int MappingNoComponents( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((CcInt*)result.addr)->Set( true, ((Mapping*)args[0].addr)->GetNoComponents() );
+  return 0;
+}
+
+/*
 16.3.19 Value mapping functions of operator ~atinstant~
 
 */
 template <class Mapping, class Alpha>
 int MappingAtInstant( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
 
   ((Mapping*)args[0].addr)->AtInstant( *((Instant*)args[1].addr), *pResult );
-    
+
   return 0;
 }
 
@@ -3057,7 +3107,7 @@ int MappingAtPeriods( Word* args, Word& result, int message, Word& local, Suppli
 */
 template <class Mapping>
 int MappingDefTime( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   ((Mapping*)args[0].addr)->DefTime( *(Periods*)result.addr );
   return 0;
@@ -3068,7 +3118,7 @@ int MappingDefTime( Word* args, Word& result, int message, Word& local, Supplier
 
 */
 int MPointTrajectory( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
 
   CLine *line = ((CLine*)result.addr);
@@ -3084,19 +3134,19 @@ int MPointTrajectory( Word* args, Word& result, int message, Word& local, Suppli
 */
 template <class Mapping>
 int MappingPresent_i( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
-  
+
   Mapping *m = ((Mapping*)args[0].addr);
   Instant* inst = ((Instant*)args[1].addr);
- 
+
   if( !inst->IsDefined() )
     ((CcBool *)result.addr)->Set( false, false );
   else if( m->Present( *inst ) )
     ((CcBool *)result.addr)->Set( true, true );
   else
     ((CcBool *)result.addr)->Set( true, false );
-    
+
   return 0;
 }
 
@@ -3124,19 +3174,19 @@ int MappingPresent_p( Word* args, Word& result, int message, Word& local, Suppli
 */
 template <class Mapping, class Alpha>
 int MappingPasses( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
-  
+
   Mapping *m = ((Mapping*)args[0].addr);
   Alpha* val = ((Alpha*)args[1].addr);
- 
+
   if( !val->IsDefined() )
     ((CcBool *)result.addr)->Set( false, false );
   else if( m->Passes( *val ) )
     ((CcBool *)result.addr)->Set( true, true );
   else
     ((CcBool *)result.addr)->Set( true, false );
-   
+
   return 0;
 }
 
@@ -3146,7 +3196,7 @@ int MappingPasses( Word* args, Word& result, int message, Word& local, Supplier 
 */
 template <class Mapping, class Unit, class Alpha>
 int MappingInitial( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   ((Mapping*)args[0].addr)->Initial( *((Intime<Alpha>*)result.addr) );
   return 0;
@@ -3158,7 +3208,7 @@ int MappingInitial( Word* args, Word& result, int message, Word& local, Supplier
 */
 template <class Mapping, class Unit, class Alpha>
 int MappingFinal( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   ((Mapping*)args[0].addr)->Final( *((Intime<Alpha>*)result.addr) );
   return 0;
@@ -3207,10 +3257,10 @@ struct UnitsLocalInfo
 template <class Mapping, class Unit>
 int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Mapping* m;  
-  Unit* unit; 
+  Mapping* m;
+  Unit* unit;
   UnitsLocalInfo *localinfo;
-  
+
   switch( message )
   {
     case OPEN:
@@ -3219,36 +3269,36 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr, localinfo->mWord);
       localinfo->unitIndex = 0;
       local = SetWord(localinfo);
-      
+
       return 0;
 
     case REQUEST:
-      
-      if( local.addr == 0 ) 
+
+      if( local.addr == 0 )
         return CANCEL;
 
       localinfo = (UnitsLocalInfo *) local.addr;
-      m = (Mapping*)localinfo->mWord.addr;   
-      
+      m = (Mapping*)localinfo->mWord.addr;
+
       if( (0 <= localinfo->unitIndex) && (localinfo->unitIndex < m->GetNoComponents()) )
       {
         unit = new Unit;
         m->Get( localinfo->unitIndex++, *unit );
-	  
+
         result = SetWord( unit );
         return YIELD;
       }
-      else 
+      else
         return CANCEL;
 
     case CLOSE:
-      
+
       if( local.addr != 0 )
       {
         localinfo = (UnitsLocalInfo *) local.addr;
         delete localinfo;
       }
-      
+
       return 0;
   }
   /* should not happen */
@@ -3263,9 +3313,9 @@ int TheYear( Word* args, Word& result, int message, Word& local, Supplier s )
 { // int --> periods (=range(instant))
   result = qp->ResultStorage( s );
   Periods* pResult = (Periods*)result.addr;
-  
+
   int intyear = ((CcInt*)args[0].addr)->GetIntval();
-  
+
   Instant inst1, inst2;
   inst1.SetType( instanttype) ;
   inst1.Set( intyear, 1, 1, 0, 0, 0, 0 );
@@ -3274,12 +3324,12 @@ int TheYear( Word* args, Word& result, int message, Word& local, Supplier s )
   inst2.Set( intyear + 1, 1, 1, 0, 0, 0, 0 );
 
   Interval<Instant> timeInterval(inst1, inst2, true, false);
-  	  
+
   pResult->Clear();
   pResult->StartBulkLoad();
-  pResult->Add( timeInterval ); 
+  pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
-  
+
   return 0;
 }
 
@@ -3288,31 +3338,31 @@ int TheYear( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int TheMonth( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
-  
+
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval();
 
   Instant inst1, inst2;
-  
+
   inst1.SetType( instanttype );
   inst1.Set( intyear, intmonth, 1, 0, 0, 0, 0 );
-  
+
   inst2.SetType( instanttype );
   if( intmonth < 12 )
     inst2.Set(intyear, intmonth+1, 1, 0, 0, 0, 0);
-  else 
+  else
     inst2.Set(intyear+1, 1, 1, 0, 0, 0, 0);
-  
+
   Interval<Instant> timeInterval( inst1, inst2, true, false );
-  	  
+
   pResult->Clear();
   pResult->StartBulkLoad();
-  pResult->Add( timeInterval ); 
+  pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
-  
+
   return 0;
 }
 
@@ -3321,30 +3371,30 @@ int TheMonth( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int TheDay( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
-  
+
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval(),
       intday = ((CcInt*)args[2].addr)->GetIntval();
-  
-  Instant inst1, inst2, 
+
+  Instant inst1, inst2,
           oneday( 1, 0, durationtype );
-  
+
   inst1.SetType( instanttype );
   inst1.Set( intyear, intmonth, intday, 0, 0, 0, 0 );
-  
+
   inst2.SetType( instanttype );
   inst2 = inst1 + oneday;
-  
+
   Interval<Instant> timeInterval( inst1, inst2, true, false );
-  	  
+
   pResult->Clear();
   pResult->StartBulkLoad();
-  pResult->Add( timeInterval ); 
+  pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
-  
+
   return 0;
 }
 
@@ -3353,7 +3403,7 @@ int TheDay( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int TheHour( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   Periods* pResult = (Periods*)result.addr;
 
@@ -3361,23 +3411,23 @@ int TheHour( Word* args, Word& result, int message, Word& local, Supplier s )
       intmonth = ((CcInt*)args[1].addr)->GetIntval(),
       intday = ((CcInt*)args[2].addr)->GetIntval(),
       inthour = ((CcInt*)args[3].addr)->GetIntval();
-  
-  Instant inst1, inst2, 
+
+  Instant inst1, inst2,
           onehour( 0, 1*60*60*1000, durationtype );
-  
+
   inst1.SetType( instanttype );
   inst1.Set( intyear, intmonth, intday, inthour, 0, 0, 0 );
-  
+
   inst2 .SetType( instanttype );
   inst2 = inst1 + onehour;
-  
+
   Interval<Instant> timeInterval( inst1, inst2, true, false );
-  	  
+
   pResult->Clear();
   pResult->StartBulkLoad();
-  pResult->Add( timeInterval ); 
+  pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
-  
+
   return 0;
 }
 
@@ -3386,32 +3436,32 @@ int TheHour( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int TheMinute( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
-  
+
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval(),
       intday = ((CcInt*)args[2].addr)->GetIntval(),
       inthour = ((CcInt*)args[3].addr)->GetIntval(),
       intminute = ((CcInt*)args[4].addr)->GetIntval();
-  
-  Instant inst1, inst2, 
+
+  Instant inst1, inst2,
           oneminute( 0, 1*60*1000, durationtype );
-  
+
   inst1.SetType( instanttype );
   inst1.Set( intyear, intmonth, intday, inthour, intminute, 0, 0 );
-  
+
   inst2 .SetType( instanttype );
   inst2 = inst1 + oneminute;
-  
+
   Interval<Instant> timeInterval( inst1, inst2, true, false );
-  	  
+
   pResult->Clear();
   pResult->StartBulkLoad();
-  pResult->Add( timeInterval ); 
+  pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
-  
+
   return 0;
 }
 
@@ -3420,7 +3470,7 @@ int TheMinute( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int TheSecond( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
 
@@ -3430,23 +3480,23 @@ int TheSecond( Word* args, Word& result, int message, Word& local, Supplier s )
       inthour = ((CcInt*)args[3].addr)->GetIntval(),
       intminute = ((CcInt*)args[4].addr)->GetIntval(),
       intsecond = ((CcInt*)args[5].addr)->GetIntval();
-  
-  Instant inst1, inst2, 
+
+  Instant inst1, inst2,
           onesecond( 0, 1000, durationtype );
-  
+
   inst1.SetType( instanttype );
   inst1.Set( intyear, intmonth, intday, inthour, intminute, intsecond, 0 );
-  
+
   inst2.SetType( instanttype );
   inst2 = inst1 + onesecond;
-  
+
   Interval<Instant> timeInterval( inst1, inst2, true, false );
-  	  
+
   pResult->Clear();
   pResult->StartBulkLoad();
-  pResult->Add( timeInterval ); 
+  pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
-  
+
   return 0;
 }
 
@@ -3455,12 +3505,12 @@ int TheSecond( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr,
           *range1 = ((Periods*)args[0].addr),
           *range2 = ((Periods*)args[1].addr);
-  
+
   pResult->Clear();
 
   if( !range1->IsEmpty() || !range2->IsEmpty() )
@@ -3477,15 +3527,15 @@ int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
       range1->Get( range1->GetNoComponents()-1, intv2 );
     }
     else
-    { 
+    {
       range1->Get( 0, intv1 );
       range2->Get( range2->GetNoComponents()-1, intv2 );
-    }  
+    }
 
     Interval<Instant> timeInterval( intv1.start, intv2.end, intv1.lc, intv2.rc );
-  	  
+
     pResult->StartBulkLoad();
-    pResult->Add( timeInterval ); 
+    pResult->Add( timeInterval );
     pResult->EndBulkLoad( false );
   }
   return 0;
@@ -3504,15 +3554,15 @@ defined, so it easier to make them overloaded.
 16.4.1 ValueMapping arrays
 
 */
-ValueMapping temporalisemptymap[] = { InstantIsEmpty, 
-                                      RangeIsEmpty<RInt>, 
+ValueMapping temporalisemptymap[] = { InstantIsEmpty,
+                                      RangeIsEmpty<RInt>,
                                       RangeIsEmpty<RReal>,
                                       RangeIsEmpty<Periods>,
                                       MappingIsEmpty<MBool>,
                                       MappingIsEmpty<MInt>,
                                       MappingIsEmpty<MReal>,
                                       MappingIsEmpty<MPoint> };
-                                      
+
 
 ValueMapping temporalequalmap[] = { InstantEqual,
                                     RangeEqual<RInt>,
@@ -3530,7 +3580,7 @@ ValueMapping temporalnotequalmap[] = { InstantNotEqual,
                                        MappingNotEqual<MBool>,
                                        MappingNotEqual<MInt>,
                                        MappingNotEqual<MReal>,
-                                       MappingNotEqual<MPoint> }; 
+                                       MappingNotEqual<MPoint> };
 
 ValueMapping temporallessmap[] = { InstantLess };
 ValueMapping temporallessequalmap[] = { InstantLessEqual };
@@ -3541,19 +3591,19 @@ ValueMapping temporalintersectsmap[] = { RangeIntersects<RInt>,
                                          RangeIntersects<RReal>,
                                          RangeIntersects<Periods> };
 
-ValueMapping temporalinsidemap[] = { RangeInside_rr<RInt>, 
-                                     RangeInside_rr<RReal>, 
-                                     RangeInside_rr<Periods>, 
+ValueMapping temporalinsidemap[] = { RangeInside_rr<RInt>,
+                                     RangeInside_rr<RReal>,
+                                     RangeInside_rr<Periods>,
                                      RangeInside_ar<CcInt, RInt>,
                                      RangeInside_ar<CcReal, RReal>,
                                      RangeInside_ar<Instant, Periods> };
 
-ValueMapping temporalbeforemap[] = { RangeBefore_rr<RInt>, 
-                                     RangeBefore_rr<RReal>, 
-                                     RangeBefore_rr<Periods>, 
-                                     RangeBefore_ar<CcInt, RInt>, 
-                                     RangeBefore_ar<CcReal, RReal>, 
-                                     RangeBefore_ar<Instant, Periods>, 
+ValueMapping temporalbeforemap[] = { RangeBefore_rr<RInt>,
+                                     RangeBefore_rr<RReal>,
+                                     RangeBefore_rr<Periods>,
+                                     RangeBefore_ar<CcInt, RInt>,
+                                     RangeBefore_ar<CcReal, RReal>,
+                                     RangeBefore_ar<Instant, Periods>,
                                      RangeBefore_ra<RInt, CcInt>,
                                      RangeBefore_ra<RReal, CcReal>,
                                      RangeBefore_ra<Periods, Instant> };
@@ -3580,7 +3630,11 @@ ValueMapping temporalmaxmap[] = { RangeMaximum<RInt, CcInt>,
 
 ValueMapping temporalnocomponentsmap[] = { RangeNoComponents<RInt>,
                                            RangeNoComponents<RReal>,
-                                           RangeNoComponents<Periods> };
+                                           RangeNoComponents<Periods>,
+                                           MappingNoComponents<MBool, CcBool>,
+                                           MappingNoComponents<MInt, CcInt>,
+                                           MappingNoComponents<MReal, CcReal>,
+                                           MappingNoComponents<MPoint, Point>};
 
 ValueMapping temporalinstmap[] = { IntimeInst<CcBool>,
                                    IntimeInst<CcInt>,
@@ -3798,10 +3852,10 @@ const string TemporalSpecMaximum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 const string TemporalSpecNoComponents  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                          "\"Example\" ) "
-                                         "( <text>range(x) -> int</text--->"
+                                         "( <text>range(x) -> int, moving(x) -> int</text--->"
                                          "<text>no_components ( _ )</text--->"
                                          "<text>Number of components.</text--->"
-                                         "<text>no_components ( range1 )</text--->"
+                                         "<text>no_components ( mpoint1 )</text--->"
                                          ") )";
 
 const string TemporalSpecInst  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -4087,14 +4141,14 @@ Operator temporalmax( "maximum",
                       temporalnomodelmap,
                       RangeSimpleSelect,
                       RangeTypeMapBase );
- 
+
 Operator temporalnocomponents( "no_components",
                                TemporalSpecNoComponents,
-                               3,
+                               7,
                                temporalnocomponentsmap,
                                temporalnomodelmap,
-                               RangeSimpleSelect,
-                               RangeTypeMapInt );
+                               TemporalSetValueSelect,
+                               TemporalSetValueTypeMapInt );
 
 Operator temporalinst( "inst",
                        TemporalSpecInst,
@@ -4135,7 +4189,7 @@ Operator temporaldeftime( "deftime",
                           temporalnomodelmap,
                           MovingSimpleSelect,
                           MovingTypeMapPeriods );
- 
+
 Operator temporaltrajectory( "trajectory",
                              TemporalSpecTrajectory,
                              1,
@@ -4274,17 +4328,17 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &intimeint );
     AddTypeConstructor( &intimereal );
     AddTypeConstructor( &intimepoint );
-    
+
     AddTypeConstructor( &unitbool );
     AddTypeConstructor( &unitint );
     AddTypeConstructor( &unitreal );
     AddTypeConstructor( &unitpoint );
-    
+
     AddTypeConstructor( &movingbool );
     AddTypeConstructor( &movingint );
     AddTypeConstructor( &movingreal );
     AddTypeConstructor( &movingpoint );
-	    
+
     rangeint.AssociateKind( "RANGE" );
     rangereal.AssociateKind( "RANGE" );
     periods.AssociateKind( "RANGE" );
@@ -4300,7 +4354,7 @@ class TemporalAlgebra : public Algebra
     movingint.AssociateKind( "TEMPORAL" );
     movingreal.AssociateKind( "TEMPORAL" );
     movingpoint.AssociateKind( "TEMPORAL" );
-    
+
     rangeint.AssociateKind( "DATA" );
     rangereal.AssociateKind( "DATA" );
     periods.AssociateKind( "DATA" );
@@ -4316,7 +4370,7 @@ class TemporalAlgebra : public Algebra
     intimeint.AssociateKind( "DATA" );
     intimereal.AssociateKind( "DATA" );
     intimepoint.AssociateKind( "DATA" );
-    
+
 
     AddOperator( &temporalisempty );
     AddOperator( &temporalequal );
