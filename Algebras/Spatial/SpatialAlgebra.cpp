@@ -1206,7 +1206,7 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
     if (!IsDefined() && !(chs.IsDefined()))  return 0;
     else if (!IsDefined())  return -1;
     else  if (!(chs.IsDefined())) return 1;
-    else  // 1. both defined
+    else  
     {
 	Point dp, sp, DP, SP;
 	dp=GetDPoint(); sp=GetSPoint();
@@ -1215,16 +1215,16 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
 	if (dp < DP) return -1;
 	else if (dp > DP) return 1;
 	else 	
-	{   //2. Dominating Points are equal. then compare the flag
+	{  
 	    if (ldp!=chs.GetLDP())
-	    {           //3. if flages are not equal
+	    {          
 		if (ldp==false) return -1; 
 		else return 1;
 	    }
-	    else  	//4. flags are equal : compute the rotation. 
+	    else  	
 	    {      	
 		if ((dp.GetX()==sp.GetX()) && (DP.GetX()==SP.GetX()))
-		{  //5. both lines are vertical lines
+		{  
 		    if (((sp.GetY()>dp.GetY()) && (SP.GetY()>DP.GetY())) ||
 		        ((sp.GetY()<dp.GetY()) && (SP.GetY()<DP.GetY())))
 		    {
@@ -1244,7 +1244,7 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
 		    }
 		}
 		else if (dp.GetX()==sp.GetX())
-		{  //6. only this is vertical
+		{ 
 		    if (sp.GetY()>dp.GetY()) 
 		    {
 			if (ldp==true) return 1;
@@ -1258,7 +1258,7 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
 		    else cout<<"two end points are identical!";
 		}
 		else if (DP.GetX()==SP.GetX())
-		{   //7. only arg is vertical
+		{  
     		    if (SP.GetY()>DP.GetY()) 
 		    {
 			if (ldp==true) return -1;
@@ -1271,7 +1271,7 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
 		    }
 		    else cout<<"two end points are identical!";
 		}
-		else  //8. both are none-vertical
+		else  
 		{
 		    Coord xd,yd,xs,ys;
 		    Coord Xd,Yd,Xs,Ys;
@@ -1291,7 +1291,7 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
 		     (Xs.IsInteger()? Xs.IntValue():Xs.Value())); 
 		if (k<K) return -1;
 		else if (k>K) return 1;
-		else //9. k==K then compare the secondary point
+		else 
 		{
 		    if (GetSPoint()<chs.GetSPoint()) return -1;
 		    else if (GetSPoint()>chs.GetSPoint()) return 1;
@@ -1502,10 +1502,6 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 	Coord yy(y0);
 	if    ((Xl>xl) &&(Xl<xr))
 	{
-	    //if (((y0>(Yl.IsInteger()? Yl.IntValue():Yl.Value())) && 
-	    //     (y0<(Yr.IsInteger()? Yr.IntValue():Yr.Value()))) || 
-	    //     ((y0>(Yr.IsInteger()? Yr.IntValue():Yr.Value())) && 
-	    //      (y0<(Yl.IsInteger()? Yl.IntValue():Yl.Value()))))
 	    if (((yy>Yl) && (yy<Yr)) || ((yy>Yr) && (yy<Yl)))
 	            return true;
 	    else return false;
@@ -1520,10 +1516,6 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 	//(xl, Y0) is the intersection of l and L
 	if ((xl>Xl) && (xl<Xr))
 	{
-	    //if (((Y0>(yl.IsInteger()? yl.IntValue():yl.Value())) && 
-	    //      (Y0<(yr.IsInteger()? yr.IntValue():yr.Value()))) || 
-	    //     ((Y0>(yr.IsInteger()? yr.IntValue():yr.Value())) && 
-	    //      (Y0<(yl.IsInteger()? yl.IntValue():yl.Value())))) 
 	    if (((YY>yl) && (YY<yr)) || ((YY>yr) && (YY<yl))) 
 	            return true;
 	    else return false;
@@ -1542,10 +1534,6 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 	x0=(A-a) / (k-K);	 // y0=x0*k+a;
 	Coord xx(x0);
 	
-	//if ((x0>(xl.IsInteger()?xl.IntValue():xl.Value())) && 
-	//    (x0<(xr.IsInteger()?xr.IntValue():xr.Value())) && 
-	//    (x0>(Xl.IsInteger()?Xl.IntValue():Xl.Value())) &&
-	//    (x0<(Xr.IsInteger()?Xr.IntValue():Xr.Value())))
 	if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx<Xr))
 	        return true;
 	else return false;
@@ -1622,8 +1610,7 @@ const bool CHalfSegment::Contains( const Point& p ) const
 }
 
 const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
-{   //this function is useful for deciding whether a point is inside a cycle
-    //so the semantics is decided according to this purpose
+{   
     Coord x, y, xl, yl,xr, yr;
     x=p.GetX();
     y=p.GetY();
@@ -1635,11 +1622,10 @@ const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
     bool res=false;
        
     if (xl!=xr) 
-    {           // not vertical. vertical lines will not affect the result
+    {       
 	
 	if ((x==xl) && (yl>y)) 
-	{   //only the left endpoint is checked. in a cycle, if the common point of
-	    //two consecutive edges is above p, then they are counted once.
+	{  
 	    abovey0=(yl.IsInteger()? yl.IntValue():yl.Value());
 	    res=true;
 	}
@@ -1715,7 +1701,8 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance, const int error
   
     if (nl->IsAtom(instance))
     {
-	if ( nl->AtomType(instance)==SymbolType && nl->SymbolValue(instance)=="undef")
+	if ( nl->AtomType(instance)==SymbolType && 
+	     nl->SymbolValue(instance)=="undef")
 	{
 	    correct = true;
 	    chs = new CHalfSegment();
@@ -1754,10 +1741,12 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance, const int error
 	}
       
 	correct=true;
-	LP = (Point*)InPoint(nl->TheEmptyList(), FirstP, 0, errorInfo, correct ).addr;
+	LP = (Point*)InPoint(nl->TheEmptyList(), 
+			     FirstP, 0, errorInfo, correct ).addr;
 	if (correct)  
 	{
-	    RP = (Point*)InPoint( nl->TheEmptyList(), SecondP, 0, errorInfo, correct ).addr;
+	    RP = (Point*)InPoint(nl->TheEmptyList(), 
+			         SecondP, 0, errorInfo, correct ).addr;
 	}    
 	if (correct)
 	{
@@ -1939,9 +1928,9 @@ void CLine::StartBulkLoad()
 void CLine::EndBulkLoad()
 {
   assert( !IsOrdered());
-//  cout << "Before sorting: " << *this << endl;
+  //  cout << "Before sorting: " << *this << endl;
   Sort();
-//  cout << "After sorting: " << *this << endl;
+  //  cout << "After sorting: " << *this << endl;
   ordered = true;
 }
 
@@ -2372,14 +2361,16 @@ static ListExpr
 LineProperty()
 {
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
-			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("line"), 
-			     nl->StringAtom("(<segment>*) where segment is (<x1><y1><x2><y2>)"), 
-			     nl->StringAtom("( (1 1 2 2)(3 3 4 4) )"))));
+            nl->FourElemList(
+		    nl->StringAtom("Signature"), 
+		    nl->StringAtom("Example Type List"), 
+		    nl->StringAtom("List Rep"), 
+		    nl->StringAtom("Example List")),
+            nl->FourElemList(
+		    nl->StringAtom("-> DATA"), 
+		    nl->StringAtom("line"), 
+		    nl->StringAtom("(<segment>*) where segment is (<x1><y1><x2><y2>)"), 
+		    nl->StringAtom("( (1 1 2 2)(3 3 4 4) )"))));
 }
 
 /*
@@ -2763,7 +2754,7 @@ void CRegion::InsertHs( CHalfSegment& chs )
 {
     assert(chs.IsDefined());
     
-    //chs.SetAttr(NULL);
+
     if( !IsOrdered())
     {
 	pos=region->Size();
@@ -2869,7 +2860,7 @@ void CRegion::QuickSortRecursive( const int low, const int high )
 
 void CRegion::logicsort()
 {
-   // assert( !IsOrdered() );
+
 
   if( Size() > 1 ) 
   {
@@ -2933,7 +2924,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
     if (chs.IsDefined())
     {
 	int prevcycleMeet[50];
-	//suppose a face can have at most 50 cycles
+
 	int prevcyclenum=0;
 	for( int i = 0; i< 50; i++ )
 	{
@@ -2946,7 +2937,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 	    
 	    if (auxchs.GetLDP())
 	    {
-		//  to detect whether two cycles intersect each other
+		
 		if (chs.IsDefined())
 		{
 		    if (chs.Intersects(auxchs))
@@ -2975,11 +2966,11 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 		    }
 		    else 
 		    {
-			if ((chs.attr.cycleno>0) &&    //it is a hole
+			if ((chs.attr.cycleno>0) &&  
 			    (auxchs.attr.faceno==chs.attr.faceno) && 
 			    (auxchs.attr.cycleno!=chs.attr.cycleno))
 			{  
-			    //here: compare whether chs is below auxchs
+
 			    if (auxchs.rayAbove(chs.GetLP(), dummyy0))
 			    {
 				prevcycleMeet[auxchs.attr.cycleno]++; 
@@ -2992,7 +2983,6 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 	    }
 	}
 			
-	//  to check relationships between cycles of the SAME face.
 	if ((chs.IsDefined()) && (chs.attr.cycleno>0))
 	{
 	    if  (prevcycleMeet[0] % 2 ==0)
@@ -3030,10 +3020,10 @@ face is not clear. In the following we do this kind of check.
 	    ((!chs.IsDefined())||
 	    (chs.attr.faceno!=chsHoleNEnd.attr.faceno)||
 	    (chs.attr.cycleno!=chsHoleNEnd.attr.cycleno)))
-	{    //chs start another face or cycle
+	{  
 	    
 	    if (chsHoleNEnd.attr.cycleno>1)
-	    {  	// if the cycle just finished is the second hole or later. 
+	    {  
 		
 		int holeNStart=holeNEnd - 1;
 		region->Get(holeNStart, chsHoleNStart );
@@ -3046,7 +3036,6 @@ face is not clear. In the following we do this kind of check.
 		    region->Get(holeNStart, chsHoleNStart );
 		}
 		holeNStart++;
-		//holeNStart marks the begining of the last hole;
 	    
 		int prevHolePnt=holeNStart-1;
 		CHalfSegment chsPrevHole, chsLastHole;
@@ -3063,7 +3052,6 @@ face is not clear. In the following we do this kind of check.
 			stillPrevHole=false;
 		    }
 		
-		    //test whether chsPreHole is inside hole_N;
 		    if (chsPrevHole.GetLDP())
 		    {
 			int holeNMeent=0;
@@ -3071,7 +3059,8 @@ face is not clear. In the following we do this kind of check.
 			{
 			    region->Get(i, chsLastHole );
 			    if ((chsLastHole.GetLDP())&&
-			        (chsLastHole.rayAbove(chsPrevHole.GetLP(), dummyy0)))
+			        (chsLastHole.rayAbove
+			        (chsPrevHole.GetLP(), dummyy0)))
 				holeNMeent++;
 			}
 			if  (holeNMeent % 2 !=0)
@@ -3138,7 +3127,7 @@ OutRegion( ListExpr typeInfo, Word value )
     {
 	CRegion *RCopy=new CRegion(*cr, SecondoSystem::GetLobFile());
 	RCopy->logicsort();
-	//1. halfsegments are now arranged according to face, cycle, edge.
+
 	CHalfSegment chs, chsnext;
 	
 	ListExpr regionNL = nl->TheEmptyList();
@@ -3156,14 +3145,14 @@ OutRegion( ListExpr typeInfo, Word value )
 	Point outputP, leftoverP;
 	
 	for( int i = 0; i < RCopy->Size(); i++ )
-	{   //2. traverse the halfsegments
+	{   
 	    RCopy->Get( i, chs );
 	    if (i==0) 
 	    {
 		currFace=chs.attr.faceno;
 		currCycle=chs.attr.cycleno;
 		RCopy->Get( i+1, chsnext );  
-		//this is safe because a cycle has at least 3 edges
+
 		if ((chs.GetLP() == chsnext.GetLP()) ||
 		    ((chs.GetLP() == chsnext.GetRP())))
 		{
@@ -3181,7 +3170,7 @@ OutRegion( ListExpr typeInfo, Word value )
 		    cout<<"wrong data format!"<<endl;
 		    return nl->TheEmptyList();
 		}
-		//3. write the frist point to the cycleNL
+
 		pointNL=OutPoint( nl->TheEmptyList(), SetWord( &outputP));
 		if (cycleNL==nl->TheEmptyList())
 		{
@@ -3200,7 +3189,7 @@ OutRegion( ListExpr typeInfo, Word value )
 		    if (chs.attr.cycleno==currCycle)
 		    {
 			outputP=leftoverP;
-			//4. according to leftoverp decide the outputp
+
 			if (chs.GetLP()==leftoverP)  leftoverP=chs.GetRP();
 			else if (chs.GetRP()==leftoverP)  
 			{
@@ -3211,7 +3200,7 @@ OutRegion( ListExpr typeInfo, Word value )
 			    cout<<"wrong data format!"<<endl;
 			    return nl->TheEmptyList();
 			}
-			//5. write outputpoint to CycleNL;
+
 			pointNL=OutPoint( nl->TheEmptyList(), 
 					  SetWord( &outputP));
 			if (cycleNL==nl->TheEmptyList())
@@ -3224,9 +3213,9 @@ OutRegion( ListExpr typeInfo, Word value )
 			    cycleNLLast = nl->Append( cycleNLLast, pointNL);
 			}
 		    }
-		    else    //6. another cycle of the same face
+		    else  
 		    {
-			//7. write the cycleNL to FaceNL;
+	
 			if (faceNL==nl->TheEmptyList())
 			{
 			    faceNL=nl->OneElemList( cycleNL);
@@ -3239,7 +3228,7 @@ OutRegion( ListExpr typeInfo, Word value )
 			cycleNL = nl->TheEmptyList();
 			currCycle=chs.attr.cycleno;
 			
-			//8. get the next seg to decide the first outputp;
+	
 			RCopy->Get( i+1, chsnext ); 
 			if ((chs.GetLP() == chsnext.GetLP()) ||
 			    ((chs.GetLP() == chsnext.GetRP())))
@@ -3258,7 +3247,7 @@ OutRegion( ListExpr typeInfo, Word value )
 			    cout<<"wrong data format!"<<endl;
 			    return nl->TheEmptyList();
 			}
-			//9. write outputpoint to CycleNL;
+
 			pointNL=OutPoint( nl->TheEmptyList(), 
 					  SetWord( &outputP));
 			if (cycleNL==nl->TheEmptyList())
@@ -3272,9 +3261,9 @@ OutRegion( ListExpr typeInfo, Word value )
 			}   
 		    }
 		}
-		else   //10. another face
+		else   
 		{
-		    //11. write the cycleNL to FaceNL;
+	
 		    if (faceNL==nl->TheEmptyList())
 		    {
 			faceNL=nl->OneElemList( cycleNL);
@@ -3286,7 +3275,7 @@ OutRegion( ListExpr typeInfo, Word value )
 		    }
 		    cycleNL = nl->TheEmptyList();
 		    
-		    //12. write the faceNL to RegionNL;
+
 		    if (regionNL==nl->TheEmptyList())
 		    {
 			regionNL=nl->OneElemList( faceNL);
@@ -3301,7 +3290,7 @@ OutRegion( ListExpr typeInfo, Word value )
 		    currFace=chs.attr.faceno;
 		    currCycle=chs.attr.cycleno;
 		    
-		    //13. get the next segment to decide the first outputpoint;
+
 		    RCopy->Get( i+1, chsnext );  
 		    if ((chs.GetLP() == chsnext.GetLP()) ||
 		       ((chs.GetLP() == chsnext.GetRP())))
@@ -3320,7 +3309,7 @@ OutRegion( ListExpr typeInfo, Word value )
 			cout<<"wrong data format!"<<endl;
 			return nl->TheEmptyList();
 		    }
-		    //14. write outputpoint to CycleNL;
+
 		    pointNL=OutPoint( nl->TheEmptyList(), SetWord( &outputP));
 		    if (cycleNL==nl->TheEmptyList())
 		    {
@@ -3334,7 +3323,7 @@ OutRegion( ListExpr typeInfo, Word value )
 		}
 	    }
 	}  
-	//15. at the end of the parray,  write the cycleNL to FaceNL;
+
 	if (faceNL==nl->TheEmptyList())
 	{
 	    faceNL=nl->OneElemList( cycleNL);
@@ -3346,7 +3335,7 @@ OutRegion( ListExpr typeInfo, Word value )
 	}
 	cycleNL = nl->TheEmptyList();
 	
-	//16. write faceNL to regionNL;
+
 	if (regionNL==nl->TheEmptyList())
 	{
 	    regionNL=nl->OneElemList( faceNL);
@@ -3384,10 +3373,10 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
   
   if (!nl->IsAtom(instance))
   {
-      // Points *cyclepoints= new Points(SecondoSystem::GetLobFile());
+
       
       while( !nl->IsEmpty( RegionNL ) )
-      {   	  //1. handle the faces one by one
+      {   
 	  FaceNL = nl->First( RegionNL );
 	  RegionNL = nl->Rest( RegionNL); 
 	  fcno++;
@@ -3401,7 +3390,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 	  }
 	  
 	  while (!nl->IsEmpty( FaceNL) )
-	  {   //2. handle the cycles one by one
+	  {   
 	      CycleNL = nl->First( FaceNL );
 	      FaceNL = nl->Rest( FaceNL );
 	      ccno++;
@@ -3427,9 +3416,9 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		  CycleNL = nl->Rest( CycleNL );
 		  
 		  Points *cyclepoints= new Points(SecondoSystem::GetLobFile());
-		  //cyclepoints->clear();
+
 		  Point *currvertex; 
-		  //this variable keep all the points of the cycle.
+
 		  
 		  currvertex = (Point*) InPoint ( nl->TheEmptyList(), 
 			        firstPoint, 0, errorInfo, correct ).addr;
@@ -3440,7 +3429,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		  delete currvertex;
 		  		 		  
 		  while ( !nl->IsEmpty( CycleNL) )
-		  {   //3. handle the points of the cycle one by one
+		  {  
 		      currPoint = nl->First( CycleNL );
 		      CycleNL = nl->Rest( CycleNL );
 		      
@@ -3488,7 +3477,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		      }
 		  }
 		  delete cyclepoints;
-		  //4: handle thee last segment (from point_n to point_1)
+
 		  edno++;
 		  flagedSeg= nl->TwoElemList
 			      (nl-> BoolAtom(true),
@@ -3516,8 +3505,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 	   } 
       }
       
-      //at last, we need to trigger the test by doing the follwoing
-      //only test, not really insert.
+
       CHalfSegment * chs=new CHalfSegment ();
       chs->SetDefined(false);
       if (!( cr->insertOK(*chs) ))
@@ -3601,7 +3589,7 @@ OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
   valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
   CRegion *cr = new CRegion(SecondoSystem::GetLobFile(), recordId );
   value = SetWord( cr );
-  //cout << "OpenLine: " << *cl << endl;
+
   return (true);
 }
 
@@ -3612,7 +3600,7 @@ OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 bool
 SaveRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-  //cout << "SaveLine" << endl;
+
   CRegion *cr = (CRegion*)value.addr;
   cout << "SaveRegion: " << *cr << endl;
   SmiRecordId recordId = cr->GetRegionRecordId();
@@ -3628,16 +3616,21 @@ static ListExpr
 RegionProperty()
 {
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
-			     nl->StringAtom("Example List"),
-			     nl->StringAtom("Remarks")),			     
-            nl->FiveElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("region"), 
-			     nl->StringAtom("(<face>*) where face is (<outercycle><holecycle>*); <outercycle> and <holecycle> are <points>*"), 
-			     nl->StringAtom("( ((3 0)(10 1)(3 1))((3.1 0.1)(3.1 0.9)(6 0.8)) )"),
-			     nl->StringAtom("all <holecycle> must be completely within <outercycle>."))));			     
+            nl->FiveElemList(
+		    nl->StringAtom("Signature"), 
+		    nl->StringAtom("Example Type List"), 
+		    nl->StringAtom("List Rep"), 
+		    nl->StringAtom("Example List"),
+		    nl->StringAtom("Remarks")),			     
+            nl->FiveElemList(
+		    nl->StringAtom("-> DATA"), 
+		    nl->StringAtom("region"), 
+		    nl->StringAtom("(<face>*) where face is 
+				   (<outercycle><holecycle>*); <outercycle> 
+				   and <holecycle> are <points>*"), 
+		    nl->StringAtom("( ((3 0)(10 1)(3 1))((3.1 0.1)(3.1 0.9)(6 0.8)) )"),
+		    nl->StringAtom("all <holecycle> must be completely 
+				   within <outercycle>."))));			     
 }
 
 /*
@@ -4646,12 +4639,12 @@ SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Suppli
     for (int i=0; i<cl1->Size(); i++)
     {
 	cl1->Get(i, chs1);
-	if (chs1.GetLDP())   //only compare left halfsegments
+	if (chs1.GetLDP()) 
 	{
 	    for (int j=0; j<cl2->Size(); j++)
 	    {    
 		cl2->Get(j, chs2);
-		if (chs2.GetLDP())  //only compare left halfsegments
+		if (chs2.GetLDP())
 		{
 		    if (chs1.Intersects(chs2)) 
 		    {
@@ -4692,7 +4685,7 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 			return (0);
 		    }
 		
-		    //since no edges intersects, then we can do the following checking
+
 		    if ((cr2->contain(chs1.GetLP())) || (cr1->contain(chs2.GetLP()))) 
 		    {   
 			((CcBool *)result.addr)->Set( true, true );
@@ -4721,7 +4714,8 @@ SpatialInside_psps( Word* args, Word& result, int message, Word& local, Supplier
 
 static int
 SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s )
-{   //to judge whether one line value is inside another
+{   
+    //to decide whether one line value is inside another
     result = qp->ResultStorage( s );
     CLine *cl1, *cl2;
     CHalfSegment chs1, chs2;
@@ -4793,7 +4787,7 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
 	//&& (chs2 is not masked by another face of region2)
 	{   
 	    if (!(cr1->holeedgecontain(chs2)))
-	    {	//chs2 is inside a hole-edge of region 1 
+	    {	
 		existhole=true;
 		if ((!(cr1->contain(chs2))))
 		{
@@ -4856,7 +4850,7 @@ SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s
 static int
 SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 { 	
-    // this algorithm is easy, and no realm based method is needed.
+
     result = qp->ResultStorage( s );
     
     Point *p=((Point*)args[0].addr);
