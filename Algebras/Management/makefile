@@ -21,6 +21,8 @@ OBJECTS += $(LIBDIR)/AlgebraList.o
 all: $(OBJECTS)
 
 # create dependencies from include directives
+AlgebraList.dep: AlgebraList.i
+
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
 
@@ -41,9 +43,7 @@ endif
 
 AlgebraList.$(OBJEXT): AlgebraList.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
-
-$(LIBDIR)/AlgebraList.o: AlgebraList.o
-	cp $< $@
+	cp $@ $(LIBDIR)/$@
 
 AlgebraManager.$(OBJEXT): AlgebraManager.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
