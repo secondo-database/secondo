@@ -985,16 +985,13 @@ public boolean canDisplay(SecondoObject o){
   }             //GEN-LAST:event_on_jMenu_Browse
 
 /** Save session to selected file 
- * @see <a href="MainWindowsrc.html#on_jMenu_SaveSession">Source</a> 
    */
   private void on_jMenu_SaveSession (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_on_jMenu_SaveSession
     // Add your handling code here:
-    final JFileChooser fc = new JFileChooser(configuration.getProperty("WorkingDir", 
-        "/"));
-    fc.setDialogTitle("Save Session");
-    int returnVal = fc.showSaveDialog(HoeseViewer.this);
+    FC_Session.setDialogTitle("Save Session");
+    int returnVal = FC_Session.showSaveDialog(HoeseViewer.this);
     if (returnVal == JFileChooser.APPROVE_OPTION) {
-      File file = fc.getSelectedFile();
+      File file = FC_Session.getSelectedFile();
       //					File file=new File("Session");
       ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), context.getContextLE(), 
           writeAllCats(), TextDisplay.convertAllQueryResults());
@@ -1636,6 +1633,7 @@ public boolean canDisplay(SecondoObject o){
   }
     }
 }
+
 
 
 
