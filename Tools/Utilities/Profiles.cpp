@@ -66,9 +66,11 @@ string SmiProfile::GetParameter( const string& sectionName,
           valuePos = CmpKey( line, keyName );
           if ( valuePos != string::npos )
           {
-            resultString = 
+            if ( line.find("+=") != string::npos ) { 
+              resultString += ',';
+            } 
+            resultString += 
               line.substr( valuePos, line.find_last_not_of( " \t\r\n" )-valuePos+1 );
-            break;
           }
         }
         break;
@@ -303,8 +305,8 @@ static string::size_type CmpKey( const string& line, const string& keyName )
       {
         if ( n >= nameLen )
         {
-          if ( line[line.find_first_not_of( " \t", i )] == '=' )
-          {
+          string::size_type operatorPos=line.find_first_not_of( " \t", i );
+          if (  line[operatorPos] == '+' || line[operatorPos] == '=') {
             outPos = line.find_first_not_of( " \t\r\n", argPos+1 );
           }
           break;
