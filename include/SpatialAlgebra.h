@@ -1197,7 +1197,7 @@ is called ~lines~.
 
 */
 
-class CLine: public StandardAttribute
+class CLine: public StandardSpatialAttribute
 {
   public:
 /*
@@ -1210,10 +1210,12 @@ as a set of sorted halfsegments, which are stored as a PArray.
 */    
     CLine(SmiRecordFile *recordFile, const int initsize = 0);
     CLine(SmiRecordFile *recordFile, const CLine& cl );
-    CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, 
-	 bool update = true );
+    CLine(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update = true );
+    void Save(SmiRecord& rootRecord) const;
     void Destroy();
     ~CLine();
+    
+    const BBox BoundingBox() const;
     
 /*
 6.2 Functions Reading Property Values from an Object
@@ -1381,6 +1383,8 @@ returns its position. Returns -1 if the half segment is not found.
 The persisten array of half segments.
 
 */  
+    BBox bbox;
+    
     int pos;
 /*
 The pointer to the current half segments. The pointer is important in object traversal algorithms.
@@ -1407,7 +1411,7 @@ composed of a set of faces. Each face consists of a ouer cycle and a groups of h
 
 */
 
-class CRegion: public StandardAttribute
+class CRegion : public StandardSpatialAttribute
 {
   public:
 /*
@@ -1425,10 +1429,12 @@ insertOK() function).
     CRegion(SmiRecordFile *recordFile, const int initsize = 0);
     CRegion(SmiRecordFile *recordFile, const CRegion& cr );
     CRegion(const CRegion& cr, SmiRecordFile *recordFile );
-    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, 
-	     bool update = true );
+    CRegion(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update = true );
+    void Save(SmiRecord& rootRecord) const;
     void Destroy();
     ~CRegion();
+    
+    const BBox BoundingBox() const;
     
 /*
 7.2 Functions Reading Property Values from an Object
@@ -1673,6 +1679,8 @@ returns its position. Returns -1 if the half segment is not found.
 
 */    
     GArray<CHalfSegment>* region;
+    
+    BBox bbox;
     
 /*
 The persisten array of half segments.

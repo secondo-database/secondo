@@ -1158,6 +1158,7 @@ const bool Points::Intersects( const Points& ps ) const
 
   if( IsEmpty() || ps.IsEmpty() )
     return false;
+  
   if( !bbox.Intersects( ps.BoundingBox() ) )
     return false;
 
@@ -3333,12 +3334,14 @@ as a set of sorted halfsegments, which are stored as a PArray.
 
 CLine::CLine(SmiRecordFile *recordFile, const int initsize) :
 	line( recordFile ? new PArray<CHalfSegment>(recordFile, initsize) : new MArray<CHalfSegment>(initsize) ), 
-        ordered( true )
+	bbox(),
+	ordered( true )
 {}
 
 CLine::CLine(SmiRecordFile *recordFile, const CLine& cl ) :
 	line( recordFile ? new PArray<CHalfSegment>(recordFile, cl.Size()) : new MArray<CHalfSegment>(cl.Size()) ), 
-        ordered( true )
+	bbox( cl.BoundingBox() ),
+	ordered( true )
 {
   assert( cl.IsOrdered());
 
@@ -3350,9 +3353,23 @@ CLine::CLine(SmiRecordFile *recordFile, const CLine& cl ) :
   }
 }
 
-CLine::CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update):
-	 line(new PArray<CHalfSegment>(recordFile, recordId, update ) ),ordered(true)
-{}
+CLine::CLine(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update):
+	line( NULL ),
+	bbox(),
+	ordered(true)
+{
+    SmiRecordId recordId;
+    rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
+    line = new PArray<CHalfSegment>( recordFile, recordId, update );
+    rootRecord.Read( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );  
+}
+
+void CLine::Save( SmiRecord& rootRecord ) const
+{
+  SmiRecordId recordId = GetLineRecordId();
+  rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
+  rootRecord.Write( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+}
 
 void CLine::Destroy()
 {
@@ -3362,6 +3379,12 @@ void CLine::Destroy()
 CLine::~CLine()
 {
   delete line;
+}
+
+const BBox CLine::BoundingBox() const
+{
+  //return BBox( *this, *this );  //for point;
+  return bbox;
 }
 
 const bool CLine::IsOrdered() const
@@ -3418,6 +3441,7 @@ CLine& CLine::operator=(const CLine& cl)
     cl.Get( i, chs );
     line->Put( i, chs );
   }
+  bbox = cl.BoundingBox();
   ordered = true;
   return *this;
 }
@@ -3427,6 +3451,8 @@ int CLine::operator==(const CLine& cl) const
   assert( IsOrdered() && cl.IsOrdered() );
 
   if( Size() != cl.Size() )    return 0;
+  
+  if ( bbox != cl.BoundingBox() )   return 0;
 
   for( int i = 0; i < Size(); i++ )
   {
@@ -3443,6 +3469,8 @@ CLine& CLine::operator+=(const CHalfSegment& chs)
 {
   assert(chs.IsDefined());
 
+  bbox=bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+  
   if( !IsOrdered() )
   {
       bool found=false;
@@ -3487,6 +3515,16 @@ CLine& CLine::operator-=(const CHalfSegment& chs)
       line->Put( i, auxchs );
     }
   }
+  
+  // Naive way to redo the bounding box.
+  bbox = BBox();
+  for( int i = 0; i < Size(); i++ )
+  {
+      CHalfSegment auxchs;
+      line->Get( i, auxchs );
+      bbox = bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+  }
+  
   return *this;
 }
 
@@ -3652,6 +3690,7 @@ void  CLine::CopyFrom(StandardAttribute* right)
 	cl->Get( i, chs );
 	line->Put( i, chs );
     }
+    bbox=cl->BoundingBox();
 }
 
 int   CLine::Compare(Attribute * arg)
@@ -3897,11 +3936,14 @@ CloneLine( const Word& w )
 bool
 OpenLine( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-  SmiRecordId recordId;
-  valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-  CLine *cl = new CLine( SecondoSystem::GetLobFile(), recordId );
+  //SmiRecordId recordId;
+  //valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
+  
+  CLine *cl = new CLine( SecondoSystem::GetLobFile(), valueRecord );
   value = SetWord( cl );
+  
   //cout << "OpenLine: " << *cl << endl;
+  
   return (true);
 }
 
@@ -3913,10 +3955,14 @@ bool
 SaveLine( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
   //  cout << "SaveLine" << endl;
+    
   CLine *cl = (CLine*)value.addr;
+  
   //  cout << "SaveLine: " << *cl << endl;
-  SmiRecordId recordId = cl->GetLineRecordId();
-  valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
+  
+  //SmiRecordId recordId = cl->GetLineRecordId();
+  //valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
+  cl->Save(valueRecord);
 
   return (true);
 }
@@ -4015,12 +4061,14 @@ insertOK() function).
 
 CRegion::CRegion(SmiRecordFile *recordFile, const int initsize) :
 	region( recordFile ? new PArray<CHalfSegment>(recordFile, initsize) : new MArray<CHalfSegment>(initsize) ),
+	bbox(),
 	ordered( true )
 {}
 
 CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
 	region( recordFile ? new PArray<CHalfSegment>(recordFile, cr.Size()) : new MArray<CHalfSegment>(cr.Size()) ), 
-        ordered( true )
+	bbox(cr.BoundingBox()),
+	ordered( true )
 {
   assert( cr.IsOrdered());
 
@@ -4034,7 +4082,8 @@ CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
 
 CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
 	  region( recordFile ? new PArray<CHalfSegment>(recordFile, cr.Size()) : new MArray<CHalfSegment>(cr.Size()) ), 
-          ordered( false )
+	  bbox(cr.BoundingBox()),
+	  ordered( false )
 {
     //  assert( cr.IsOrdered());
     int j=0;
@@ -4050,10 +4099,23 @@ CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
     }
 }
 
-CRegion::CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update ): 
-	  region(new PArray<CHalfSegment>( recordFile, recordId, update ) ),
+CRegion::CRegion(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update ): 
+	  region( NULL ),
+	  bbox(),
 	  ordered(true)
-{}
+{
+    SmiRecordId recordId;
+    rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
+    region = new PArray<CHalfSegment>( recordFile, recordId, update );
+    rootRecord.Read( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );  
+}
+
+void CRegion::Save( SmiRecord& rootRecord ) const
+{
+  SmiRecordId recordId = GetRegionRecordId();
+  rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
+  rootRecord.Write( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+}
 
 void CRegion::Destroy()
 {
@@ -4063,6 +4125,11 @@ void CRegion::Destroy()
 CRegion::~CRegion()
 {
   delete region;
+}
+
+const BBox CRegion::BoundingBox() const
+{
+  return bbox;
 }
 
 const bool CRegion::IsOrdered() const
@@ -4110,7 +4177,9 @@ bool CRegion::contain( const Point& p ) const
 {
     //here: if the point is on the border, it is also counted.
     
-   int faceISN[100];
+    if (!bbox.Contains(p)) return false;
+    
+    int faceISN[100];
 
     int lastfaceno=-1;
     for (int i=0; i<100; i++)
@@ -4150,7 +4219,9 @@ bool CRegion::innercontain( const Point& p ) const
 {
     //onborder points are not counted.
     
-   int faceISN[100];
+    if (!bbox.Contains(p)) return false;
+    
+    int faceISN[100];
 
     int lastfaceno=-1;
     for (int i=0; i<100; i++)
@@ -4189,6 +4260,8 @@ bool CRegion::innercontain( const Point& p ) const
 bool CRegion::contain( const CHalfSegment& chs ) const
 { 
     //onborder cases are also counted as contain.
+    
+    if ((!bbox.Contains(chs.GetLP())) || (!bbox.Contains(chs.GetRP()))) return false;
     
     if ((!(this->contain(chs.GetLP())))||(!(this->contain(chs.GetRP()))))
     {
@@ -4300,6 +4373,7 @@ CRegion& CRegion::operator=(const CRegion& cr)
     cr.Get( i, chs );
     region->Put( i, chs );
   }
+  bbox = cr.BoundingBox();
   ordered = true;
   return *this;
 }
@@ -4308,6 +4382,9 @@ int CRegion::operator==(const CRegion& cr) const
 {
   assert( IsOrdered() && cr.IsOrdered() );
   if( Size() != cr.Size() )    return 0;
+  
+  if ( bbox != cr.BoundingBox()) return 0;
+  
   for( int i = 0; i < Size(); i++ )
   {
     CHalfSegment chs1, chs2;
@@ -4323,6 +4400,8 @@ CRegion& CRegion::operator+=(const CHalfSegment& chs)
 {
   assert(chs.IsDefined());
 
+  bbox=bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+    
   if( !IsOrdered() )
   {
       region->Put( region->Size(), chs);
@@ -4358,6 +4437,16 @@ CRegion& CRegion::operator-=(const CHalfSegment& chs)
       region->Put( i, auxchs );
     }
   }
+  
+  // Naive way to redo the bounding box.
+  bbox = BBox();
+  for( int i = 0; i < Size(); i++ )
+  {
+      CHalfSegment auxchs;
+      region->Get( i, auxchs );
+      bbox = bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+  }
+  
   return *this;
 }
 
@@ -4552,6 +4641,7 @@ void  CRegion::CopyFrom(StandardAttribute* right)
 	cr->Get( i, chs );
 	region->Put( i, chs );
     }
+    bbox=cr->BoundingBox();
     //cout<<*this<<endl<<" .vs. "<<endl<<*cr<<endl;
 }
 
@@ -5299,14 +5389,16 @@ CloneRegion( const Word& w )
 bool
 OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-    cout << "Open Region2" << endl;
+  //cout << "Open Region2" << endl;
 
-  SmiRecordId recordId;
-  valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-  CRegion *cr = new CRegion(SecondoSystem::GetLobFile(), recordId );
-  value = SetWord( cr );
+  //SmiRecordId recordId;
+  //valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
+    
+    CRegion *cr = new CRegion(SecondoSystem::GetLobFile(), valueRecord );
+    
+    value = SetWord( cr );
 
-  return (true);
+    return (true);
 }
 
 /*
@@ -5316,13 +5408,16 @@ OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 bool
 SaveRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-    cout << "save Region2" << endl;
+    // cout << "save Region2" << endl;
     
-  CRegion *cr = (CRegion*)value.addr;
-//  cout << "SaveRegion: " << *cr << endl;
-  SmiRecordId recordId = cr->GetRegionRecordId();
-  valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  return (true);
+    CRegion *cr = (CRegion*)value.addr;
+    
+    //  cout << "SaveRegion: " << *cr << endl;
+    //SmiRecordId recordId = cr->GetRegionRecordId();
+    //valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
+    cr->Save(valueRecord);
+    
+    return (true);
 }
 
 /*
@@ -7319,8 +7414,10 @@ static int
 SpatialIntersects_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
+  
   ((CcBool *)result.addr)->
     Set( true, ((Points*)args[0].addr)->Intersects( *((Points*)args[1].addr) ) );
+  
   return (0);
 }
 
@@ -7337,6 +7434,12 @@ SpatialIntersects_psl( Word* args, Word& result, int message, Word& local, Suppl
     ps=((Points*)args[0].addr);
     cl=((CLine*)args[1].addr);
 
+    if(! ps->BoundingBox().Intersects( cl->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+        
     for (int i=0; i<ps->Size(); i++)
     {
 	ps->Get(i, p);
@@ -7368,6 +7471,12 @@ SpatialIntersects_lps( Word* args, Word& result, int message, Word& local, Suppl
     ps=((Points*)args[1].addr);
     cl=((CLine*)args[0].addr);
 
+    if(! ps->BoundingBox().Intersects( cl->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<ps->Size(); i++)
     {
 	ps->Get(i, p);
@@ -7398,6 +7507,12 @@ SpatialIntersects_psr( Word* args, Word& result, int message, Word& local, Suppl
     ps=((Points*)args[0].addr);
     cr=((CRegion*)args[1].addr);
 
+    if(! ps->BoundingBox().Intersects( cr->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<ps->Size(); i++)
     {
 	ps->Get(i, p);
@@ -7426,6 +7541,12 @@ SpatialIntersects_rps( Word* args, Word& result, int message, Word& local, Suppl
     ps=((Points*)args[1].addr);
     cr=((CRegion*)args[0].addr);
 
+    if(! ps->BoundingBox().Intersects( cr->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<ps->Size(); i++)
     {
 	ps->Get(i, p);
@@ -7452,6 +7573,12 @@ SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Suppli
     cl1=((CLine*)args[0].addr);
     cl2=((CLine*)args[1].addr);
 
+    if(! cl1->BoundingBox().Intersects( cl2->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl1->Size(); i++)
     {
 	cl1->Get(i, chs1);
@@ -7487,6 +7614,12 @@ SpatialIntersects_lr( Word* args, Word& result, int message, Word& local, Suppli
     cl=((CLine*)args[0].addr);
     cr=((CRegion*)args[1].addr);
 
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl->Size(); i++)
     {
 	cl->Get(i, chsl);
@@ -7528,6 +7661,12 @@ SpatialIntersects_rl( Word* args, Word& result, int message, Word& local, Suppli
     cl=((CLine*)args[1].addr);
     cr=((CRegion*)args[0].addr);
 
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl->Size(); i++)
     {
 	cl->Get(i, chsl);
@@ -7567,6 +7706,12 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
 
+    if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) ) 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cr1->Size(); i++)
     {
 	cr1->Get(i, chs1);
@@ -7622,10 +7767,18 @@ static int
 SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
+  
   Point *p=((Point*)args[0].addr);
   CLine *cl=((CLine*)args[1].addr);
+  
+  if(! cl->BoundingBox().Contains( *p) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+  
   CHalfSegment chs;
-
+  
   for (int i=0; i<cl->Size(); i++)
   {
       cl->Get(i, chs);
@@ -7648,6 +7801,12 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
+    if(! cr->BoundingBox().Contains( *p) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     if (cr->contain(*p))
     {	//cout<<"p inside r!!!"<<endl;
 	//cout<<*p<<endl<<*cr<<endl;
@@ -7679,6 +7838,12 @@ SpatialInside_psl( Word* args, Word& result, int message, Word& local, Supplier 
   Points *ps=((Points*)args[0].addr);
   CLine *cl=((CLine*)args[1].addr);
 
+  if(! cl->BoundingBox().Contains( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+  
   Point p;
   CHalfSegment chs;
 
@@ -7714,6 +7879,12 @@ SpatialInside_psr( Word* args, Word& result, int message, Word& local, Supplier 
   Points *ps=((Points*)args[0].addr);
   CRegion *cr=((CRegion*)args[1].addr);
 
+  if(! cr->BoundingBox().Contains( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+  
   Point p;
   CHalfSegment chs;
 
@@ -7742,6 +7913,12 @@ SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s
     cl1=((CLine*)args[0].addr);
     cl2=((CLine*)args[1].addr);
 
+    if(! cl2->BoundingBox().Contains( cl1->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl1->Size(); i++)
     {
 	cl1->Get(i, chs1);
@@ -7782,6 +7959,12 @@ SpatialInside_lr( Word* args, Word& result, int message, Word& local, Supplier s
     cl=((CLine*)args[0].addr);
     cr=((CRegion*)args[1].addr);
 
+    if(! cr->BoundingBox().Contains( cl->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl->Size(); i++)
     {
 	cl->Get(i, chsl);
@@ -7809,6 +7992,12 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
 
+    if(! cr2->BoundingBox().Contains( cr1->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cr1->Size(); i++)
     {
 	cr1->Get(i, chs1);
@@ -7880,6 +8069,12 @@ touches_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[0].addr);
     CLine *cl=((CLine*)args[1].addr);
 
+    if(! cl->BoundingBox().Intersects( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     Point p;
     CHalfSegment chs;
 
@@ -7913,6 +8108,12 @@ touches_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[1].addr);
     CLine *cl=((CLine*)args[0].addr);
 
+    if(! cl->BoundingBox().Intersects( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     Point p;
     CHalfSegment chs;
 
@@ -7946,6 +8147,12 @@ touches_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
+    if(! cr->BoundingBox().Intersects( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     Point p;
     CHalfSegment chs;
 
@@ -7976,6 +8183,12 @@ touches_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[1].addr);
     CRegion *cr=((CRegion*)args[0].addr);
 
+    if(! cr->BoundingBox().Intersects( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     Point p;
     CHalfSegment chs;
 
@@ -8007,6 +8220,12 @@ touches_ll( Word* args, Word& result, int message, Word& local, Supplier s )
     cl1=((CLine*)args[0].addr);
     cl2=((CLine*)args[1].addr);
 
+    if(! cl1->BoundingBox().Intersects( cl2->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl1->Size(); i++)
     {
 	cl1->Get(i, chs1);
@@ -8045,6 +8264,12 @@ touches_lr( Word* args, Word& result, int message, Word& local, Supplier s )
     cl=((CLine*)args[0].addr);
     cr=((CRegion*)args[1].addr);
 
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl->Size(); i++)
     {
 	cl->Get(i, chsl);
@@ -8080,6 +8305,12 @@ touches_rl( Word* args, Word& result, int message, Word& local, Supplier s )
     cl=((CLine*)args[1].addr);
     cr=((CRegion*)args[0].addr);
 
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl->Size(); i++)
     {
 	cl->Get(i, chsl);
@@ -8114,6 +8345,12 @@ touches_rr( Word* args, Word& result, int message, Word& local, Supplier s )
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
 
+    if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cr1->Size(); i++)
     {
 	cr1->Get(i, chs1);
@@ -8161,6 +8398,12 @@ attached_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[0].addr);
     CLine *cl=((CLine*)args[1].addr);
 
+    if(! cl->BoundingBox().Intersects( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     Point p;
     CHalfSegment chs;
 
@@ -8205,6 +8448,12 @@ attached_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
+    if(! cr->BoundingBox().Intersects( ps->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     Point p;
     CHalfSegment chs;
 
@@ -8243,6 +8492,12 @@ attached_ll( Word* args, Word& result, int message, Word& local, Supplier s )
     cl1=((CLine*)args[0].addr);
     cl2=((CLine*)args[1].addr);
 
+    if(! cl1->BoundingBox().Intersects( cl2->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl1->Size(); i++)
     {
 	cl1->Get(i, chs1);
@@ -8281,6 +8536,12 @@ attached_lr( Word* args, Word& result, int message, Word& local, Supplier s )
     cl=((CLine*)args[0].addr);
     cr=((CRegion*)args[1].addr);
 
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl->Size(); i++)
     {
 	cl->Get(i, chsl);	
@@ -8310,6 +8571,12 @@ attached_rl( Word* args, Word& result, int message, Word& local, Supplier s )
     cr=((CRegion*)args[0].addr);
     cl=((CLine*)args[1].addr);
 
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cr->Size(); i++)
     {
 	cr->Get(i, chsr);
@@ -8345,6 +8612,12 @@ attached_rr( Word* args, Word& result, int message, Word& local, Supplier s )
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
 
+    if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cr1->Size(); i++)
     {
 	cr1->Get(i, chs1);
@@ -8440,6 +8713,12 @@ overlaps_ll( Word* args, Word& result, int message, Word& local, Supplier s )
     cl1=((CLine*)args[0].addr);
     cl2=((CLine*)args[1].addr);
 
+    if(! cl1->BoundingBox().Intersects( cl2->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl1->Size(); i++)
     {
 	cl1->Get(i, chs1);
@@ -8474,6 +8753,12 @@ overlaps_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 
     cl=((CLine*)args[0].addr);
     cr=((CRegion*)args[1].addr);
+    
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
 
     for (int i=0; i<cl->Size(); i++)
     {
@@ -8504,6 +8789,12 @@ overlaps_rl( Word* args, Word& result, int message, Word& local, Supplier s )
     cl=((CLine*)args[1].addr);
     cr=((CRegion*)args[0].addr);
 
+    if(! cl->BoundingBox().Intersects( cr->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     for (int i=0; i<cl->Size(); i++)
     {
 	cl->Get(i, chsl);	
@@ -8530,6 +8821,12 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
+    
+    if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
 
     for (int i=0; i<cr1->Size(); i++)
     {
@@ -8624,6 +8921,12 @@ SpatialOnBorder_pl( Word* args, Word& result, int message, Word& local, Supplier
     Point *p=((Point*)args[0].addr);
     CLine *cl=((CLine*)args[1].addr);
 
+    if(! cl->BoundingBox().Contains( *p ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     CHalfSegment chs;
 
     if ( p->IsDefined() )
@@ -8659,6 +8962,12 @@ SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
+    if(! cr->BoundingBox().Contains( *p ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     CHalfSegment chs;
 
     if ( p->IsDefined() )
@@ -8696,6 +9005,12 @@ SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Suppli
     Point *p=((Point*)args[0].addr);
     CLine *cl=((CLine*)args[1].addr);
 
+    if(! cl->BoundingBox().Contains( *p ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     CHalfSegment chs;
 
     if ( p->IsDefined() )
@@ -8734,6 +9049,12 @@ SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Suppli
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
+    if(! cr->BoundingBox().Contains( *p ) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
     CHalfSegment chs;
 
     if ( p->IsDefined() )
