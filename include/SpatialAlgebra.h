@@ -251,7 +251,18 @@ Sets the point to defined or undefined depending on the value of ~d~.
 
 */
     void Minus( const Points& ps, Point& result ) const;
+/*
+3.3.10 Operation ~distance~ 
 
+*Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~
+
+*Semantics:* compute the distance between u and v
+
+*Complexity:* $O(1)$
+
+*/
+    double distance( const Point& p ) const;
+    
   private:
 /*
 3.4 Attributes
@@ -777,7 +788,19 @@ useful when we want to decide whether a point is inside a face or region.
     const bool rayAbove( const Point& p, double &abovey0 ) const;
     
 /*
-5.10 attribute comparison Functions
+5.10 Operation ~distance~ (with ~point~)
+
+*Precondition:* ~u.IsDefined()~
+
+*Semantics:*  compute the distance between a line segment and a given point
+
+*Complexity:* $O(1)$ 
+
+*/
+    double distance( const Point& p ) const;
+    
+/*
+5.11 attribute comparison Functions
 
 *Semantics:* These two operations compare two half segments according to their attribute values. They are 
 used for the logicsort() function.

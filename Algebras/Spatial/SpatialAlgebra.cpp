@@ -27,6 +27,9 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
+#include <iostream>
+#include <string>
+#include <math.h>
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -231,6 +234,25 @@ void Point::Minus( const Points& ps, Point& result ) const
     result = *this;
 }
 
+double Point::distance( const Point& p ) const
+{
+    assert( IsDefined() && p.IsDefined() );
+    
+    double result; 
+    
+    Coord x1=this->GetX();
+    Coord y1=this->GetY();
+    Coord x2=p.GetX();
+    Coord y2=p.GetY();
+	
+    double dx = (x2.IsInteger()? x2.IntValue():x2.Value()) - 
+	          (x1.IsInteger()? x1.IntValue():x1.Value());
+    double dy = (y2.IsInteger()? y2.IntValue():y2.Value()) - 
+	          (y1.IsInteger()? y1.IntValue():y1.Value());
+	
+    result=sqrt(dx*dx + dy*dy);
+    return (result);
+}
 
 /*
 4.2 List Representation
@@ -1714,6 +1736,89 @@ const bool CHalfSegment::Contains( const Point& p ) const
       else return false;
   }
   else    return false;
+}
+
+double CHalfSegment::distance( const Point& p ) const
+{  
+    //this function computes the distance of a line segment and a point
+    assert (( p.IsDefined())&&(this->IsDefined()));
+    
+    Coord xl,yl,xr,yr;
+    xl=this->GetLP().GetX(); 
+    yl=this->GetLP().GetY();
+    xr=this->GetRP().GetX();  
+    yr=this->GetRP().GetY();
+    
+    Coord X=p.GetX();
+    Coord Y=p.GetY();
+  
+    double result, auxresult;
+
+    if ((xl==xr)||(yl==yr)) 
+    {
+	if (xl==xr) //chs is vertical
+	{
+	    if (((yl<=Y)&&(Y<=yr))|| ((yr<=Y)&&(Y<=yl)))
+	    {
+		result=(X.IsInteger()? X.IntValue():X.Value())-
+		            (xl.IsInteger()? xl.IntValue():xl.Value());
+		if (result<0) result=result*(-1);
+	    }
+	    else
+	    {
+		result=p.distance(this->GetLP());
+		auxresult=p.distance(this->GetRP());
+		if (result > auxresult) result=auxresult;
+	    }
+	}
+	else         //chs is horizontal line: (yl==yr)
+	{
+	    if ((xl<=X)&&(X<=xr))
+	    {
+		result=(Y.IsInteger()? Y.IntValue():Y.Value())-
+		            (yl.IsInteger()? yl.IntValue():yl.Value());
+		if (result<0) result=result*(-1);
+	    }
+	    else
+	    {
+		result=p.distance(this->GetLP());
+		auxresult=p.distance(this->GetRP());
+		if (result > auxresult) result=auxresult;
+	    }
+	}
+    }
+    else
+    {
+	double k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+	 	   (yl.IsInteger()? yl.IntValue():yl.Value())) / 
+		  ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+		   (xl.IsInteger()? xl.IntValue():xl.Value())); 
+	double a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+		    k*(xl.IsInteger()? xl.IntValue():xl.Value());
+	
+	//double K=-1/k;  //the auxiliary line's slope is K.
+	
+	double xx= (k*((Y.IsInteger()? Y.IntValue():Y.Value())-a)+
+		    (X.IsInteger()? X.IntValue():X.Value())) / (k*k+1);
+	double yy=k*xx+a;  //intersection
+	
+	Coord XX(xx), YY(yy);
+	Point PP(true, XX, YY);
+	if ((xl<=XX)&&(XX<=xr))
+	{
+	    result=p.distance(PP);
+	}
+	else
+	{
+	    result=p.distance(this->GetLP());
+	    
+	    auxresult=p.distance(this->GetRP());
+	    if (result > auxresult)
+		result=auxresult;
+	}
+    }
+    //cout<<"the distance "<<*this<<" and "<<p <<" is: "<<result<<endl;
+    return (result);
 }
 
 const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
@@ -4616,6 +4721,102 @@ singleMap( ListExpr args )
 }
 
 /*
+10.1.6 Type mapping function for operator ~distance~
+
+This type mapping function is used for the ~distance~ operator. This
+operator computes the distance between two spatial objects.
+
+*/
+static ListExpr
+distanceMap( ListExpr args )
+{  
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+    
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "real" ));	
+	
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "real" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "real" ));
+    }
+    
+    return (nl->SymbolAtom( "typeerror" ));    
+}
+
+/*
+10.1.7 Type mapping function for operator ~direction~
+
+This type mapping function is used for the ~direction~ operator. This
+operator computes the direction from the first point to the second point.
+
+*/
+static ListExpr
+directionMap( ListExpr args )
+{  
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+    
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "real" ));
+    }
+    
+    return (nl->SymbolAtom( "typeerror" ));    
+}
+
+/*
 10.2 The dummy model mapping:
 
 */
@@ -5003,6 +5204,94 @@ singleSelect( ListExpr args )
   if ( TypeOfSymbol( arg1 ) == stpoints) 
       return (0);   
     
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.12 Selection function ~distanceSelect~
+
+This select function is used for the ~distance~ operator.
+
+*/
+
+static int
+distanceSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (0);   
+ 
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (1);   
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (2);   
+    
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (3);   
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (4);    
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (5);   
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (6);   
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (7);   
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (8);   
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (9);   
+    
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (10);   
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (11);   
+    
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (12);   
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.12 Selection function ~distanceSelect~
+
+This select function is used for the ~distance~ operator.
+
+*/
+
+static int
+directionSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (0);   
+ 
   return (-1); // This point should never be reached
 }
 
@@ -6795,6 +7084,642 @@ single_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.3.17 Value mapping functions of operator ~distance~
+
+*/
+
+static int
+distance_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p1=((Point*)args[0].addr);
+    Point *p2=((Point*)args[1].addr);
+    
+    if (( p1->IsDefined())&&(p2->IsDefined()))
+    {
+	((CcReal *)result.addr)->Set( true, p1->distance(*p2));
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    Points *ps=((Points*)args[1].addr);
+    Point auxp;
+    
+    float currdistance, mindistance=-1; 
+    
+    if (( p->IsDefined())&&(!(ps->IsEmpty())))
+    {
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, auxp);
+	    currdistance=p->distance(auxp);
+		
+	    if (mindistance==-1)
+		mindistance=currdistance;
+	    else if (mindistance>currdistance)
+		mindistance=currdistance;
+	}
+	
+	((CcReal *)result.addr)->Set( true,mindistance);
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_psp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[1].addr);
+    Points *ps=((Points*)args[0].addr);
+    Point auxp;
+    
+    float currdistance, mindistance=-1; 
+    
+    if (( p->IsDefined())&&(!(ps->IsEmpty())))
+    {
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, auxp);
+	    currdistance=p->distance(auxp);
+		
+	    if (mindistance==-1)
+		mindistance=currdistance;
+	    else if (mindistance>currdistance)
+		mindistance=currdistance;
+	}
+	
+	((CcReal *)result.addr)->Set( true,mindistance);
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if (( p->IsDefined())&&(!(cl->IsEmpty())))
+    {
+	for (int i=0; i<cl->Size(); i++)
+	{ 
+	    cl->Get(i, chs);
+	    if (chs.GetLDP())
+	    {
+		currdistance=chs.distance(*p);
+		
+		if (mindistance==-1)
+		    mindistance=currdistance;
+		else if (mindistance>currdistance)
+		    mindistance=currdistance;
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[1].addr);
+    CLine *cl=((CLine*)args[0].addr);
+    
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if (( p->IsDefined())&&(!(cl->IsEmpty())))
+    {
+	for (int i=0; i<cl->Size(); i++)
+	{ 
+	    cl->Get(i, chs);
+	    if (chs.GetLDP())
+	    {
+		currdistance=chs.distance(*p);
+		
+		if (mindistance==-1)
+		    mindistance=currdistance;
+		else if (mindistance>currdistance)
+		    mindistance=currdistance;
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if (( p->IsDefined())&&(!(cr->IsEmpty())))
+    {
+	if (cr->contain(*p)) 
+	{
+	    ((CcReal *)result.addr)->Set( true, 0 );
+	    return (0);
+	}
+	
+	for (int i=0; i<cr->Size(); i++)
+	{ 
+	    cr->Get(i, chs);
+	    if (chs.GetLDP())
+	    {
+		currdistance=chs.distance(*p);
+		
+		if (mindistance==-1)
+		    mindistance=currdistance;
+		else if (mindistance>currdistance)
+		    mindistance=currdistance;
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[1].addr);
+    CRegion *cr=((CRegion*)args[0].addr);
+    
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if (( p->IsDefined())&&(!(cr->IsEmpty())))
+    {
+	if (cr->contain(*p)) 
+	{
+	    ((CcReal *)result.addr)->Set( true, 0 );
+	    return (0);
+	}
+	
+	for (int i=0; i<cr->Size(); i++)
+	{ 
+	    cr->Get(i, chs);
+	    if (chs.GetLDP())
+	    {
+		currdistance=chs.distance(*p);
+		
+		if (mindistance==-1)
+		    mindistance=currdistance;
+		else if (mindistance>currdistance)
+		    mindistance=currdistance;
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps1=((Points*)args[0].addr);
+    Points *ps2=((Points*)args[1].addr);
+    Point p1, p2;
+    
+    float currdistance, mindistance=-1; 
+    
+    if (!( ps1->IsEmpty())&&(!(ps2->IsEmpty())))
+    {
+	for (int i=0; i<ps1->Size(); i++)
+	{ 
+	    ps1->Get(i, p1);
+	    
+	    for (int j=0; j<ps2->Size(); j++)
+	    { 
+		ps2->Get(j, p2);
+	    
+		currdistance=p1.distance(p2);
+		
+		if (mindistance==-1)
+		    mindistance=currdistance;
+		else if (mindistance>currdistance)
+		    mindistance=currdistance;
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true,mindistance);
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+    
+    Point p;
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if ((!(ps->IsEmpty()))&&(!(cl->IsEmpty())))
+    {
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    
+	    for (int j=0; j<cl->Size(); j++)
+	    { 
+		cl->Get(i, chs);
+		if (chs.GetLDP())
+		{
+		    currdistance=chs.distance(p);
+		
+		    if (mindistance==-1)
+			mindistance=currdistance;
+		    else if (mindistance>currdistance)
+			mindistance=currdistance;
+		}
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[1].addr);
+    CLine *cl=((CLine*)args[0].addr);
+    
+    Point p;
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if ((!(ps->IsEmpty()))&&(!(cl->IsEmpty())))
+    {
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    
+	    for (int j=0; j<cl->Size(); j++)
+	    { 
+		cl->Get(i, chs);
+		if (chs.GetLDP())
+		{
+		    currdistance=chs.distance(p);
+		
+		    if (mindistance==-1)
+			mindistance=currdistance;
+		    else if (mindistance>currdistance)
+			mindistance=currdistance;
+		}
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    
+    Point p;
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if ((!(ps->IsEmpty()))&&(!(cr->IsEmpty())))
+    {
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    
+	    if (cr->contain(p)) 
+	    {
+		((CcReal *)result.addr)->Set( true, 0 );
+		return (0);
+	    }
+	    
+	    for (int j=0; j<cr->Size(); j++)
+	    { 
+		cr->Get(j, chs);
+		if (chs.GetLDP())
+		{
+		    currdistance=chs.distance(p);
+		
+		    if (mindistance==-1)
+			mindistance=currdistance;
+		    else if (mindistance>currdistance)
+			mindistance=currdistance;
+		}
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[1].addr);
+    CRegion *cr=((CRegion*)args[0].addr);
+    
+    Point p;
+    CHalfSegment chs;
+    
+    float currdistance, mindistance=-1; 
+    
+    if ((!(ps->IsEmpty()))&&(!(cr->IsEmpty())))
+    {
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    
+	    if (cr->contain(p)) 
+	    {
+		((CcReal *)result.addr)->Set( true, 0 );
+		return (0);
+	    }
+	    
+	    for (int j=0; j<cr->Size(); j++)
+	    { 
+		cr->Get(j, chs);
+		if (chs.GetLDP())
+		{
+		    currdistance=chs.distance(p);
+		
+		    if (mindistance==-1)
+			mindistance=currdistance;
+		    else if (mindistance>currdistance)
+			mindistance=currdistance;
+		}
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+static int
+distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CLine *cl1=((CLine*)args[0].addr);
+    CLine *cl2=((CLine*)args[1].addr);
+    
+    CHalfSegment chs1, chs2;
+    
+    float currdistance, mindistance=-1; 
+    
+    if ((!(cl1->IsEmpty()))&&(!(cl2->IsEmpty())))
+    {
+	for (int i=0; i<cl1->Size(); i++)
+	{ 
+	    cl1->Get(i, chs1);
+	    if (chs1.GetLDP())
+	    {
+		for (int j=0; j<cl2->Size(); j++)
+		{ 
+		    cl2->Get(j, chs2);
+		    if (chs2.GetLDP())
+		    {
+			currdistance=chs1.distance(chs2.GetLP());
+			if (mindistance==-1)
+			    mindistance=currdistance;
+			else if (mindistance>currdistance)
+			    mindistance=currdistance;
+			
+			currdistance=chs1.distance(chs2.GetRP());
+			if (mindistance==-1)
+			    mindistance=currdistance;
+			else if (mindistance>currdistance)
+			    mindistance=currdistance;
+			
+			currdistance=chs2.distance(chs1.GetLP());
+			if (mindistance==-1)
+			    mindistance=currdistance;
+			else if (mindistance>currdistance)
+			    mindistance=currdistance;
+			
+			currdistance=chs2.distance(chs1.GetRP());
+			if (mindistance==-1)
+			    mindistance=currdistance;
+			else if (mindistance>currdistance)
+			    mindistance=currdistance;
+		    }
+		}
+	    }
+	}
+	
+	((CcReal *)result.addr)->Set( true, mindistance );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+/*
+10.3.18 Value mapping functions of operator ~direction~
+
+*/
+
+static int
+direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p1=((Point*)args[0].addr);
+    Point *p2=((Point*)args[1].addr);
+    
+    double k;
+    double direction; //from p1 to p2
+    
+    if (( p1->IsDefined())&&(p2->IsDefined())&&(*p1!=*p2))
+    {
+	Coord x1=p1->GetX();
+	Coord y1=p1->GetY();
+	Coord x2=p2->GetX();
+	Coord y2=p2->GetY();
+	
+	if (x1==x2)
+	{
+	    if (y2>y1)
+	    {
+		((CcReal *)result.addr)->Set( true, 90 );
+	    }
+	    else
+	    {
+		((CcReal *)result.addr)->Set( true, 270 );
+	    }
+	    return (0);
+	}
+	
+	if (y1==y2)
+	{
+	    if (x2>x1)
+	    {
+		((CcReal *)result.addr)->Set( true, 0 );
+	    }
+	    else
+	    {
+		((CcReal *)result.addr)->Set( true, 180 );
+	    }
+	    return (0);
+	}
+	
+	k=((y2.IsInteger()? y2.IntValue():y2.Value()) -
+	      (y1.IsInteger()? y1.IntValue():y1.Value())) / 
+	     ((x2.IsInteger()? x2.IntValue():x2.Value()) -
+	      (x1.IsInteger()? x1.IntValue():x1.Value())); 
+	
+	//here I should change the slope k to 0-PI
+	direction=atan(k) * 180 /  M_PI;
+	//cout<<k<<"==>"<<direction<<endl;
+	
+	int area;
+	if ((x2>x1)&&(y2>y1))
+	{
+	    area=1;
+	}
+	else if ((x2<x1)&&(y2>y1))
+	{
+	    area=2;
+	    direction=180+direction;
+	}
+	else if ((x2<x1)&&(y2<y1)) 
+	{
+	    area=3;
+	    direction=180+direction;
+	}
+	else if ((x2>x1)&&(y2<y1)) 
+	{
+	    area=4;
+	    direction=360+direction;
+	}
+	
+	((CcReal *)result.addr)->Set( true, direction );
+	return (0);
+    }
+    else
+    {
+	((CcReal *)result.addr)->Set( false, 0 );
+	return (0);
+    }
+}
+
+/*
 10.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -6866,7 +7791,7 @@ ValueMapping intersectionmap[] = 	      { intersection_pp,
 				        intersection_lps,
 				        intersection_psr,
 				        intersection_rps,
-				        };
+				      };
 
 ValueMapping minusmap[] = 	      { minus_pp, 
 				        minus_psp,
@@ -6875,19 +7800,37 @@ ValueMapping minusmap[] = 	      { minus_pp,
 				        minus_psps,
 				        minus_lps,
 				        minus_rps,
-				        };
+				      };
 
 ValueMapping unionmap[] = 	      { union_pps, 
 				        union_psp,
 				        union_psps,
 				        union_ll,
-				        };
+				      };
 
 ValueMapping crossingsmap[] = 	      { crossings_ll
-				        };
+				      };
 
 ValueMapping singlemap[] = 	      { single_ps
-				        };
+				      };
+
+ValueMapping distancemap[] = 	      { distance_pp,
+				        distance_pps,
+				        distance_psp,
+				        distance_pl,
+				        distance_lp,
+				        distance_pr,
+				        distance_rp,
+				        distance_psps,
+				        distance_psl,
+				        distance_lps,
+				        distance_psr,
+				        distance_rps,
+				        distance_ll
+				      };
+
+ValueMapping directionmap[] = 	      { direction_pp
+				      };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping, 
 				       SpatialNoModelMapping, 
@@ -6966,18 +7909,15 @@ const string SpatialSpecGreaterEqual  =
 
 const string SpatialSpecIntersects  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(points points) -> bool, (line line) -> bool, "
-	     "(region region) -> bool</text--->"
+	   "( <text>(geo x geo) -> bool </text--->"
 	     "<text>_ intersects _</text--->"
 	     "<text>Intersects.</text--->"
-	     "<text>query point1 intersects point2</text--->"
+	     "<text>query region1 intersects region2</text--->"
 	     ") )";
 
 const string SpatialSpecInside  = 	
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-	  "( <text>(points points) -> bool, (line line) -> bool, "
-	    "(region region) -> bool, (point points) -> bool, "
-	    "(point line) -> bool, (point region) -> bool</text--->"
+	  "( <text>(geo x geoset) -> bool</text--->"
 	    "<text>_ inside _</text--->"
 	    "<text>Inside.</text--->"
 	    "<text>query point1 inside line1</text--->"
@@ -7037,6 +7977,22 @@ const string SpatialSpecSingle  =
 	     <text> single _</text--->
 	     <text>transform a single-element points value to point value.</text--->
 	     <text>query single points</text--->
+	     ) )";
+
+const string SpatialSpecDistance  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point x point) ->real</text--->
+	     <text> _distance _</text--->
+	     <text>get the distance from a point to a spatial object.</text--->
+	     <text>query distance(p, l)</text--->
+	     ) )";
+
+const string SpatialSpecDirection  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point x point) ->real</text--->
+	     <text> _direction _</text--->
+	     <text>get the direction from a point to another point.</text--->
+	     <text>query direction(p1, p2)</text--->
 	     ) )";
 
 Operator spatialisempty
@@ -7102,6 +8058,15 @@ Operator spatialcrossings
 Operator spatialsingle
 	( "single", SpatialSpecSingle, 1, singlemap, spatialnomodelmap, 
 	  singleSelect, singleMap );
+
+Operator spatialdistance
+	( "distance", SpatialSpecDistance, 13, distancemap, spatialnomodelmap, 
+	  distanceSelect, distanceMap );
+
+Operator spatialdirection
+	( "direction", SpatialSpecDirection, 1, directionmap, spatialnomodelmap, 
+	  directionSelect, directionMap );
+
 /*
 11 Creating the Algebra
 
@@ -7138,6 +8103,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialunion );
     AddOperator( &spatialcrossings );
     AddOperator( &spatialsingle );
+    AddOperator( &spatialdistance );
+    AddOperator( &spatialdirection );
   }
   ~SpatialAlgebra() {};
 };
