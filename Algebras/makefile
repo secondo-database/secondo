@@ -21,6 +21,7 @@ makedirs:
 	$(MAKE) -C PointRectangle
 	$(MAKE) -C StreamExample
 	$(MAKE) -C Relation-C++
+	$(MAKE) -C Polygon
 #	$(MAKE) -C StDb
 
 buildlibs:
@@ -29,6 +30,7 @@ buildlibs:
 	$(MAKE) -C PointRectangle buildlibs
 	$(MAKE) -C StreamExample buildlibs
 	$(MAKE) -C Relation-C++ buildlibs
+	$(MAKE) -C Polygon	buildlibs
 #	$(MAKE) -C StDb         buildlibs
 
 .PHONY: clean
@@ -40,4 +42,5 @@ clean:
 	$(MAKE) -C PointRectangle clean
 	$(MAKE) -C StreamExample clean
 	$(MAKE) -C Relation-C++ clean
+	$(MAKE) -C Polygon clean
 

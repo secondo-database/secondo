@@ -25,4 +25,6 @@ ALGEBRA_INCLUDE(2,FunctionAlgebra,Executable)
 //ALGEBRA_DYNAMIC(2,FunctionAlgebra,Executable)
 ALGEBRA_INCLUDE(3,RelationAlgebra,Executable)
 ALGEBRA_INCLUDE(4,PointRectangleAlgebra,Executable)
-ALGEBRA_INCLUDE(5,StreamExampleAlgebra,Executable)
+ALGEBRA_EXCLUDE(5,StreamExampleAlgebra,Executable)
+ALGEBRA_INCLUDE(6,PolygonAlgebra,Executable)
+
