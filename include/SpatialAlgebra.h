@@ -1157,6 +1157,7 @@ half segment is indicated by ~pos~
 */     
     bool contain( const Point& p ) const;
     bool contain( const CHalfSegment& chs ) const;
+    bool holeedgecontain( const CHalfSegment& chs ) const;
 /*
 to decide whether a point or a half segment is inside the region.
 

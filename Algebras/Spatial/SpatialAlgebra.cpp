@@ -2660,6 +2660,22 @@ bool CRegion::contain( const CHalfSegment& chs ) const
     }
 }
 
+bool CRegion::holeedgecontain( const CHalfSegment& chs ) const
+{
+    CHalfSegment auxchs;
+    
+    for (int i=0; i<this->Size(); i++)
+    {
+	this->Get(i, auxchs);
+	if ((auxchs.GetLDP()) && (auxchs.attr.cycleno>0) &&(chs.Inside(auxchs)))
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
+
 CRegion& CRegion::operator=(const CRegion& cr)
 {
   assert( cr.IsOrdered() );
@@ -4758,7 +4774,7 @@ SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s
 static int
 SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {	
-    //for this algorithm, I need to use Realizator and Derealmizator. DZM
+    //for this algorithm, I need to reimplement it by using Realizator/Derealmizator.
     result = qp->ResultStorage( s );
     CRegion *cr1, *cr2;
     CHalfSegment chs1, chs2;
@@ -4788,14 +4804,16 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
 	cr2->Get(j, chs2);
 	
 	if ((chs2.GetLDP()) && (chs2.attr.cycleno>0) ) 
-	    //&& (chs2 is not masked by another face of region2)
+	//&& (chs2 is not masked by another face of region2)
 	{   
-	    existhole=true;
-	    if ((!(cr1->contain(chs2))))
-	    {
-		allholeedgeinside=false;
+	    if (!(cr1->holeedgecontain(chs2)))
+	    {	//chs2 is inside a hole-edge of region 1 
+		existhole=true;
+		if ((!(cr1->contain(chs2))))
+		{
+		    allholeedgeinside=false;
+		}
 	    }
-	    // some other adjustment is needed.
 	}
     }
     
