@@ -72,7 +72,7 @@ class TupleElement // renamed, previous name: TupleElem
   TupleElement(){};
   virtual ~TupleElement() {};
   virtual int      NumOfFLOBs() { return (0); };
-  virtual FLOB*    GetFLOB( int ){ return (0); };
+  virtual FLOB*    GetFLOB( int ){ cout << "*?????????*" << endl; return (0); };
   virtual ostream& Print( ostream& os ) { return (os << "??"); };
 };
 
