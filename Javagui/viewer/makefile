@@ -11,7 +11,7 @@ include ../makefile.inc
 all: MenuVector.class SecondoViewer.class MessageBox.class
 
 
-# add belo new Viewer classes or subdirectoies to compile
+# add below new Viewer classes or subdirectories to compile
 VIEWER_CLASSES := \
 		FormattedViewer.class \
 		InquiryViewer.class \
@@ -22,9 +22,10 @@ VIEWER_CLASSES := \
 		Fuzzy2D.class \
 		RelSplit.class \
 		HoeseViewer.class \
-		MP3V.class
+		MP3V.class \
+		MidiViewer.class
 
-VIEWER_DIRS := fuzzy2d jpeg relsplit viewer3d hoese
+VIEWER_DIRS := fuzzy2d jpeg midi relsplit viewer3d hoese
 
 
 # compile all viewers
