@@ -59,6 +59,7 @@ secondoOp(extend, postfixbrackets, 2).
 secondoOp(remove, postfixbrackets, 2).
 secondoOp(project, postfixbrackets, 2).
 secondoOp(sortby, postfixbrackets, 2).
+secondoOp(loopsel, postfixbrackets, 2).
 
 
 
