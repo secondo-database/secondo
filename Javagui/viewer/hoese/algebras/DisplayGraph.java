@@ -145,7 +145,7 @@ public class DisplayGraph extends DsplGeneric
    * @see <a href="DisplayGraphsrc.html#drawLabel">Source</a>
    */
   public void drawLabel (Graphics g, Shape ro) {
-    if (LabelText == null)
+    if (LabelText == null || LabelText.trim().equals(""))
       return;
     Graphics2D g2 = (Graphics2D)g;
     Rectangle2D.Double r = (Rectangle2D.Double)ro.getBounds2D();
@@ -162,7 +162,7 @@ public class DisplayGraph extends DsplGeneric
     }
     g2.setPaint(Cat.getLineColor());
     g2.drawString(LabelText, (float)(p.getX() + LabPosOffset.getX()), (float)(
-        p.getY() + LabPosOffset.getY()));
+          p.getY() + LabPosOffset.getY()));
   }
 
   /**
@@ -224,6 +224,8 @@ public class DisplayGraph extends DsplGeneric
   }
 
 }
+
+
 
 
 
