@@ -38,35 +38,40 @@ PROCESSED=0
 PDFAILED=0
 LATEXFAILED=0
 WARNINGS=0
+NOTFOUND=0
 
 for F in $MYFILES
 do
-   PROCESSED=$(expr "$PROCESSED" + 1)
-   S=$((pdtabs <"$F" | maketex >/dev/null) 2>&1)
-   if [ $? -ne 0 ]
-   then
-     echo "pdcheck for $F failed"
-     echo "message : $S"
-     echo -e "\n"
-     PDFAILED=$(expr "$PDFAILED" + 1)
-   else
-     {
-       cat "$PD_HEADER"
-       pdtabs <$F | maketex | linebreaks
-     } >"$TEMPDIR"/tmp.tex
-     latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
-     if [ $? -ne 0 ]; then
-        echo -e "LaTex Error in \"$F\"\n"
-        LATEXFAILED=$(expr "$LATEXFAILED" + 1)
-     else
-        linecheck "$MAXLINES" $F >/dev/null
-        CL="$?"
-        if [ "$CL" -ne 0 ]; then
-           echo -e "Warning: $CL lines too long in \"$F\""
-           WARNINGS=$(expr "$WARNINGS" + 1)
+   if [ ! -e "$F" ]; then
+      NOTFOUND=$(expr "$NOTFOUND" + 1)
+   else   
+      PROCESSED=$(expr "$PROCESSED" + 1)
+      S=$((pdtabs <"$F" | maketex >/dev/null) 2>&1)
+      if [ $? -ne 0 ]
+      then
+        echo "pdcheck for $F failed"
+        echo "message : $S"
+        echo -e "\n"
+        PDFAILED=$(expr "$PDFAILED" + 1)
+      else
+        {
+          cat "$PD_HEADER"
+          pdtabs <$F | maketex | linebreaks
+        } >"$TEMPDIR"/tmp.tex
+        latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
+        if [ $? -ne 0 ]; then
+           echo -e "LaTex Error in \"$F\"\n"
+           LATEXFAILED=$(expr "$LATEXFAILED" + 1)
+        else
+           linecheck "$MAXLINES" $F >/dev/null
+           CL="$?"
+           if [ "$CL" -ne 0 ]; then
+              echo -e "Warning: $CL lines too long in \"$F\""
+              WARNINGS=$(expr "$WARNINGS" + 1)
+           fi
         fi
-     fi
-     rm -f $TEMPDIR/*.dvi $TEMPDIR/*.log $TEMPDIR/*.aux $TEMPDIR/*.tmp $TEMPDIR/*.toc $TEMPDIR/tmp.tex
+        rm -f $TEMPDIR/*.dvi $TEMPDIR/*.log $TEMPDIR/*.aux $TEMPDIR/*.tmp $TEMPDIR/*.toc $TEMPDIR/tmp.tex
+      fi
    fi
 done
 
@@ -74,12 +79,22 @@ cd "$HERE"
 rm -rf "$TEMPDIR"
 
 SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$WARNINGS" - "$LATEXFAILED" )
-echo "Statistic:"
-echo "processed files : $PROCESSED"
-echo "pd errors       : $PDFAILED"
-echo "latex errors    : $LATEXFAILED"
-echo "too long lines  : $WARNINGS"
-echo "files ok        : $SUCCESS"
+if [ "$PROCESSED" -gt 0 ]; then
+   echo "Statistic:"
+   if [ "$NOTFOUND" -gt 0 ]; then
+      echo "files not found : $NOTFOUND "
+   fi
+   echo "processed files : $PROCESSED"
+   echo "pd errors       : $PDFAILED"
+   echo "latex errors    : $LATEXFAILED"
+   echo "too long lines  : $WARNINGS"
+   echo "files ok        : $SUCCESS"
+else
+   if [ "$NOTFOUND" -gt 0 ]; then
+      echo "files not found : $NOTFOUND "
+   fi
+   echo "no files checked"
+fi      
 
 FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
 exit "$FAILED"
