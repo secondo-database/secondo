@@ -123,7 +123,7 @@ int findattr( ListExpr list, string attrname, ListExpr& attrtype)
       name = nl->SymbolValue(nl->First(first));
       if (name == attrname)
       {
-	    attrtype = nl->Second(first);
+        attrtype = nl->Second(first);
         return j;
       }
     }
@@ -713,15 +713,15 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
     if (nl->IsEmpty(attrlist))
     {
       errorInfo = nl->Append(errorInfo,
-	nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-	nl->IntAtom(1)));
+        nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->IntAtom(1)));
       return false;
     }
     if (nl->IsAtom(attrlist))
     {
       errorInfo = nl->Append(errorInfo,
-	nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-	nl->IntAtom(2),
+        nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->IntAtom(2),
         attrlist));
       return false;
     }
@@ -737,16 +737,16 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
       if (nl->ListLength(pair) == 2)
       {
         if ((nl->IsAtom(nl->First(pair))) &&
-	    (nl->AtomType(nl->First(pair)) == SymbolType))
+          (nl->AtomType(nl->First(pair)) == SymbolType))
         {
           attrname = nl->SymbolValue(nl->First(pair));
           unique = std::count(attrnamelist.begin(), attrnamelist.end(),
-	                       attrname);
+                         attrname);
           if (unique > 0)
           {
-	    errorInfo = nl->Append(errorInfo,
-	       nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-	       nl->IntAtom(3), nl->First(pair)));
+            errorInfo = nl->Append(errorInfo,
+             nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+               nl->IntAtom(3), nl->First(pair)));
             correct = false;
           }
           *it = attrname;
@@ -754,8 +754,8 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
           if (!ckd)
           {
             errorInfo = nl->Append(errorInfo,
-	      nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-	      nl->IntAtom(6),nl->Second(pair)));
+              nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+                nl->IntAtom(6),nl->Second(pair)));
           }
           correct = correct && ckd;
         }
@@ -846,9 +846,9 @@ name and the eleven functions previously defined.
 TypeConstructor cpptuple( "tuple",         TupleProp,
                         OutTuple,          InTuple,     CreateTuple,
                         DeleteTuple,       CastTuple,   CheckTuple,
-			0,                 0,
-			TupleInModel,      TupleOutModel,
-			TupleValueToModel, TupleValueListToModel );
+                        0,                 0,
+                        TupleInModel,      TupleOutModel,
+                        TupleValueToModel, TupleValueListToModel );
 /*
 
 1.4 Type constructor ~rel~
@@ -933,7 +933,7 @@ class CcRel
 
     CcRelIT* MakeNewScan()
     {
-    	return new CcRelIT(TupleList->Begin(), this);
+      return new CcRelIT(TupleList->Begin(), this);
     }
 
     void    SetNoTuples (int notuples) {NoOfTuples = notuples;};
@@ -943,8 +943,8 @@ class CcRel
 
 CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r)
 {
-	this->rs = rs;
-	this->r = r;
+  this->rs = rs;
+  this->r = r;
 }
 
 CcRelIT::~CcRelIT () {};
@@ -953,24 +953,24 @@ void CcRelIT::Next() { rs++; };
 bool CcRelIT::EndOfScan() { return ( rs == (r->TupleList)->End() ); };
 CcRelIT& CcRelIT::operator=(CcRelIT& right)
 {
-	rs = right.rs;
-	r = right.r;
-	return (*this);
+  rs = right.rs;
+  r = right.r;
+  return (*this);
 
 };
 
 CcTuple* CcRelIT::GetNextTuple()
 {
-	if( rs == (r->TupleList)->End() )
-	{
-		return 0;
-	}
-	else
-	{
-		CcTuple* result = *rs;
-		rs++;
-		return result;
-	}
+  if( rs == (r->TupleList)->End() )
+  {
+    return 0;
+  }
+  else
+  {
+    CcTuple* result = *rs;
+    rs++;
+    return result;
+  }
 }
 
 /*
@@ -992,7 +992,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
   while ( (t = rit->GetNextTuple()) != 0 )
   {
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+      nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = OutTuple(TupleTypeInfo, SetWord(t));
     if (l == nl->TheEmptyList())
     {
@@ -1057,7 +1057,7 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
   //cout << "InRel " << endl;
   tuplelist = value;
   TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+    nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
   tupleno = 0;
   if (nl->IsAtom(value))
   {
@@ -1187,9 +1187,9 @@ value is returned instead of building a new one.
 
 bool
 RelPersistValue( const PersistDirection dir,
-		SmiRecord& valueRecord,
-		const ListExpr typeInfo,
-		Word& value )
+    SmiRecord& valueRecord,
+    const ListExpr typeInfo,
+    Word& value )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr valueList;
@@ -1637,6 +1637,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
         return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
     }
   }
+  ErrorReporter::ReportError("Incorrect input for operator consume.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -1749,8 +1750,10 @@ ListExpr AttrTypeMap(ListExpr args)
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                   nl->OneElemList(nl->IntAtom(j)), attrtype);
     }
+    ErrorReporter::ReportError("Incorrect input for operator attr.");
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError("Incorrect input for operator attr.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -1822,7 +1825,7 @@ Result type of filter operation.
 ----
 
 */
-ListExpr FilterTypeMap(ListExpr args)
+template<bool isFilter> ListExpr FilterTypeMap(ListExpr args)
 {
   ListExpr first, second;
   if(nl->ListLength(args) == 2)
@@ -1830,16 +1833,21 @@ ListExpr FilterTypeMap(ListExpr args)
     first = nl->First(args);
     second  = nl->Second(args);
 
-    if ( (nl->ListLength(first) == 2) 
+    if ( (nl->ListLength(first) == 2)
 	&& (nl->ListLength(second) == 3)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)  
-	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)    
-	&& (TypeOfRelAlgSymbol(nl->Third(second)) == ccbool)  
+	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)
+	&& (TypeOfRelAlgSymbol(nl->Third(second)) == ccbool)
 	&& (nl->Equal(nl->Second(first),nl->Second(second)))	)
     return first;
   }
+
+  ErrorReporter::ReportError(
+    isFilter ?
+      "Incorrect input for operator filter." :
+      "Incorrect input for operator cancel.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1925,7 +1933,7 @@ Operator tfilter (
          Filter,               // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          simpleSelect,         // trivial selection function
-         FilterTypeMap         // type mapping
+         FilterTypeMap<true>         // type mapping
 );
 /*
 
@@ -1978,7 +1986,11 @@ ListExpr ProjectTypeMap(ListExpr args)
 	{
 	  attrname = nl->SymbolValue(first2);
 	}
-	else return nl->SymbolAtom("typeerror");
+	else 
+  {
+    ErrorReporter::ReportError("Incorrect input for operator project.");
+    return nl->SymbolAtom("typeerror");
+  }
 	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
 	if (j)
 	{
@@ -1998,7 +2010,11 @@ ListExpr ProjectTypeMap(ListExpr args)
 	      nl->Append(lastNumberList, nl->IntAtom(j));
 	  }
 	}
-	else return nl->SymbolAtom("typeerror");
+	else 
+  {
+    ErrorReporter::ReportError("Incorrect input for operator project.");
+    return nl->SymbolAtom("typeerror");
+  }
       }
       // Check whether all new attribute names are distinct
       // - not yet implemented
@@ -2012,6 +2028,7 @@ ListExpr ProjectTypeMap(ListExpr args)
       return outlist;
     }
   }
+  ErrorReporter::ReportError("Incorrect input for operator project.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -2191,13 +2208,13 @@ ListExpr ProductTypeMap(ListExpr args)
           {
             list1 = nl->Second(nl->Second(first));
           }
-          else return nl->SymbolAtom("typeerror");
+          else goto typeerror;
         }
-        else return nl->SymbolAtom("typeerror");
+        else goto typeerror;
       }
-      else return nl->SymbolAtom("typeerror");
+      else goto typeerror;
     }
-    else return nl->SymbolAtom("typeerror");
+    else goto typeerror;
 
     // Check second argument and extract list2
     if (nl->ListLength(second) == 2)
@@ -2210,13 +2227,13 @@ ListExpr ProductTypeMap(ListExpr args)
           {
             list2 = nl->Second(nl->Second(second));
           }
-          else return nl->SymbolAtom("typeerror");
+          else goto typeerror;
         }
-        else return nl->SymbolAtom("typeerror");
+        else goto typeerror;
       }
-      else return nl->SymbolAtom("typeerror");
+      else goto typeerror;
     }
-    else return nl->SymbolAtom("typeerror");
+    else goto typeerror;
 
     list = ConcatLists(list1, list2);
     // Check whether all new attribute names are distinct
@@ -2228,9 +2245,13 @@ ListExpr ProductTypeMap(ListExpr args)
         nl->TwoElemList(nl->SymbolAtom("tuple"), list));
       return outlist;
     }
-    else return nl->SymbolAtom("typeerror");
+    else goto typeerror;
   }
-  else return nl->SymbolAtom("typeerror");
+  else goto typeerror;
+
+typeerror:
+  ErrorReporter::ReportError("Incorrect input for operator product.");
+  return nl->SymbolAtom("typeerror");
 }
 /*
 
@@ -2422,7 +2443,7 @@ Operator cancel (
          Cancel,               // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          simpleSelect,         // trivial selection function
-         FilterTypeMap         // type mapping
+         FilterTypeMap<false>         // type mapping
 );
 /*
 
@@ -2455,6 +2476,7 @@ TCountTypeMap(ListExpr args)
       return nl->SymbolAtom("int");
     }
   }
+  ErrorReporter::ReportError("Incorrect input for operator count.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -2622,8 +2644,10 @@ RenameTypeMap( ListExpr args )
 		nl->TwoElemList(nl->SymbolAtom("tuple"),
 		listn));
     }
+    ErrorReporter::ReportError("Incorrect input for operator rename.");
     return nl->SymbolAtom("typeerror");
   }
+    ErrorReporter::ReportError("Incorrect input for operator rename.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -2718,17 +2742,19 @@ ExtractTypeMap( ListExpr args )
     if((nl->ListLength(first) == 2  ) &&
        (TypeOfRelAlgSymbol(nl->First(first)) == stream)  &&
        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)  &&
-	(nl->IsAtom(second)) &&
-       	(nl->AtomType(second) == SymbolType))
+       (nl->IsAtom(second)) &&
+       (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
       j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
       if (j)
-	return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-			       nl->OneElemList(nl->IntAtom(j)), attrtype);
+        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->OneElemList(nl->IntAtom(j)), attrtype);
     }
+    ErrorReporter::ReportError("Incorrect input for operator extract.");
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError("Incorrect input for operator extract.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -2832,8 +2858,10 @@ HeadTypeMap( ListExpr args )
     {
       return first;
     }
+    ErrorReporter::ReportError("Incorrect input for operator head.");
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError("Incorrect input for operator head.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -2928,12 +2956,16 @@ Type mapping for ~max~ and ~min~ is
 ----
 
 */
-static ListExpr
+template<bool isMax> ListExpr
 MaxMinTypeMap( ListExpr args )
 {
   ListExpr first, second, attrtype;
   string  attrname;
   int j;
+  const char* errorMessage =
+    isMax ?
+      "Incorrect input for operator max."
+      : "Incorrect input for operator min.";
 
   if(nl->ListLength(args) == 2)
   {
@@ -2960,8 +2992,10 @@ MaxMinTypeMap( ListExpr args )
           nl->OneElemList(nl->IntAtom(j)), attrtype);
       }
     }
+    ErrorReporter::ReportError(errorMessage);
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError(errorMessage);
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -3041,7 +3075,7 @@ Operator cppmax (
          MaxMinValueMapping<true>,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         MaxMinTypeMap         // type mapping
+         MaxMinTypeMap<true>         // type mapping
 );
 
 /*
@@ -3064,7 +3098,7 @@ Operator cppmin (
          MaxMinValueMapping<false>,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         MaxMinTypeMap         // type mapping
+         MaxMinTypeMap<false>         // type mapping
 );
 
 /*
@@ -3094,6 +3128,11 @@ AvgSumTypeMap( ListExpr args )
   ListExpr first, second, attrtype;
   string  attrname;
   int j;
+  const char* errorMessage =
+    isAvg ?
+      "Incorrect input for operator avg."
+      : "Incorrect input for operator sum.";
+
 
   if(nl->ListLength(args) == 2)
   {
@@ -3120,8 +3159,10 @@ AvgSumTypeMap( ListExpr args )
             isAvg ? nl->SymbolAtom("real") : attrtype);
       }
     }
+    ErrorReporter::ReportError(errorMessage);
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError(errorMessage);
   return nl->SymbolAtom("typeerror");
 }
 
@@ -3338,21 +3379,26 @@ SortByTypeMap( ListExpr args )
             }
             else
             {
+              ErrorReporter::ReportError("Incorrect input for operator sortby.");
               return nl->SymbolAtom("typeerror");
             }
           }
           else
           {
+            ErrorReporter::ReportError("Incorrect input for operator sortby.");
             return nl->SymbolAtom("typeerror");
           }
         }
         return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               sortOrderDescription, streamDescription);
       };
+      ErrorReporter::ReportError("Incorrect input for operator sortby.");
       return nl->SymbolAtom("typeerror");
     }
+    ErrorReporter::ReportError("Incorrect input for operator sortby.");
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError("Incorrect input for operator sortby.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -3533,10 +3579,13 @@ Type mapping for ~sort~ is
 ----
 
 */
-static ListExpr
+template<bool isSort> ListExpr
 IdenticalTypeMap( ListExpr args )
 {
   ListExpr first;
+  const char* errorMessage = isSort ?
+    "Incorrect input for operator sort."
+    : "Incorrect input for operator rdup.";
 
   if(nl->ListLength(args) == 1)
   {
@@ -3549,8 +3598,10 @@ IdenticalTypeMap( ListExpr args )
     {
       return first;
     }
+    ErrorReporter::ReportError(errorMessage);
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError(errorMessage);
   return nl->SymbolAtom("typeerror");
 }
 
@@ -3574,7 +3625,7 @@ Operator cppsort (
          SortBy<true>,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         IdenticalTypeMap         // type mapping
+         IdenticalTypeMap<true>         // type mapping
 );
 
 /*
@@ -3662,7 +3713,7 @@ Operator cpprdup (
          RdupValueMapping,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         IdenticalTypeMap         // type mapping
+         IdenticalTypeMap<false>         // type mapping
 );
 
 /*
@@ -3675,7 +3726,12 @@ These operators compute set operations on two sorted stream.
 
 */
 
-static ListExpr
+const char* setOpErrorMessages[] =
+  { "Incorrect input for operator mergesec.",
+    "Incorrect input for operator mergediff.",
+    "Incorrect input for operator mergeunion." };
+
+template<int errorMessageIdx> ListExpr
 SetOpTypeMap( ListExpr args )
 {
   ListExpr first, second;
@@ -3693,8 +3749,10 @@ SetOpTypeMap( ListExpr args )
     {
       return first;
     }
+    ErrorReporter::ReportError(setOpErrorMessages[errorMessageIdx]);
     return nl->SymbolAtom("typeerror");
   }
+  ErrorReporter::ReportError(setOpErrorMessages[errorMessageIdx]);
   return nl->SymbolAtom("typeerror");
 }
 
@@ -3962,7 +4020,7 @@ Operator cppmergesec(
          SetOpValueMapping<false, false, true>,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         SetOpTypeMap   // type mapping
+         SetOpTypeMap<0>   // type mapping
 );
 
 /*
@@ -3985,7 +4043,7 @@ Operator cppmergediff(
          SetOpValueMapping<true, false, false>,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         SetOpTypeMap   // type mapping
+         SetOpTypeMap<1>   // type mapping
 );
 
 /*
@@ -4008,7 +4066,7 @@ Operator cppmergeunion(
          SetOpValueMapping<true, true, true>,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         SetOpTypeMap   // type mapping
+         SetOpTypeMap<2>   // type mapping
 );
 
 /*
@@ -4035,7 +4093,13 @@ Type mapping for ~hashjoin~ is
 
 
 */
-template<bool expectIntArgument> ListExpr JoinTypeMap
+
+const char* joinErrorMessages[] =
+  { "Incorrect input for operator mergejoin.",
+    "Incorrect input for operator sortmergejoin.",
+    "Incorrect input for operator hashjoin." };
+
+template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
 (ListExpr args)
 {
   ListExpr attrTypeA, attrTypeB;
@@ -4053,13 +4117,13 @@ template<bool expectIntArgument> ListExpr JoinTypeMap
           {
             list1 = nl->Second(nl->Second(streamA));
           }
-          else return nl->SymbolAtom("typeerror");
+          else goto typeerror;
         }
-        else return nl->SymbolAtom("typeerror");
+        else goto typeerror;
       }
-      else return nl->SymbolAtom("typeerror");
+      else goto typeerror;
     }
-    else return nl->SymbolAtom("typeerror");
+    else goto typeerror;
 
     if (nl->ListLength(streamB) == 2)
     {
@@ -4071,17 +4135,17 @@ template<bool expectIntArgument> ListExpr JoinTypeMap
           {
             list2 = nl->Second(nl->Second(streamB));
           }
-          else return nl->SymbolAtom("typeerror");
+          else goto typeerror;
         }
-        else return nl->SymbolAtom("typeerror");
+        else goto typeerror;
       }
-      else return nl->SymbolAtom("typeerror");
+      else goto typeerror;
     }
-    else return nl->SymbolAtom("typeerror");
+    else goto typeerror;
 
     if(!AttributesAreDisjoint(list1, list2))
     {
-      return nl->SymbolAtom("typeerror");
+      goto typeerror;
     }
 
     list = ConcatLists(list1, list2);
@@ -4095,12 +4159,12 @@ template<bool expectIntArgument> ListExpr JoinTypeMap
     int attrBIndex = findattr(nl->Second(nl->Second(streamB)), attrBName, attrTypeB);
     if(attrAIndex <= 0 || attrBIndex <= 0 || !nl->Equal(attrTypeA, attrTypeB))
     {
-      return nl->SymbolAtom("typeerror");
+      goto typeerror;
     }
 
     if(expectIntArgument && nl->SymbolValue(nl->Fifth(args)) != "int")
     {
-      return nl->SymbolAtom("typeerror");
+      goto typeerror;
     }
 
     joinAttrDescription =
@@ -4108,7 +4172,11 @@ template<bool expectIntArgument> ListExpr JoinTypeMap
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               joinAttrDescription, outlist);
   }
-  else return nl->SymbolAtom("typeerror");
+  else goto typeerror;
+
+typeerror:
+  ErrorReporter::ReportError(joinErrorMessages[errorMessageIdx]);
+  return nl->SymbolAtom("typeerror");
 }
 
 /*
@@ -4454,7 +4522,7 @@ Operator MergeJoinOperator(
          MergeJoin<true>,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         JoinTypeMap<false>   // type mapping
+         JoinTypeMap<false, 0>   // type mapping
 );
 
 /*
@@ -4482,7 +4550,7 @@ Operator SortMergeJoinOperator(
          MergeJoin<false>,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         JoinTypeMap<false>   // type mapping
+         JoinTypeMap<false, 1>   // type mapping
 );
 
 
@@ -4694,7 +4762,7 @@ Operator HashJoinOperator(
          HashJoin,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         JoinTypeMap<true>   // type mapping
+         JoinTypeMap<true, 2>   // type mapping
 );
 
 /*
@@ -4730,9 +4798,9 @@ ExtendTypeMap( ListExpr args )
     first = nl->First(args);
     second  = nl->Second(args);
     if((nl->ListLength(first) == 2)  &&
-	(TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-	(!nl->IsAtom(second)) &&
-	(nl->ListLength(second) > 0))
+      (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+      (!nl->IsAtom(second)) &&
+      (nl->ListLength(second) > 0))
     {
       rest = nl->Second(nl->Second(first));
       listn = nl->OneElemList(nl->First(rest));
@@ -4740,42 +4808,54 @@ ExtendTypeMap( ListExpr args )
       rest = nl->Rest(rest);
       while (!(nl->IsEmpty(rest)))
       {
-   	lastlistn = nl->Append(lastlistn,nl->First(rest));
-   	rest = nl->Rest(rest);
+        lastlistn = nl->Append(lastlistn,nl->First(rest));
+        rest = nl->Rest(rest);
       }
       loopok = true;
       rest = second;
       while (!(nl->IsEmpty(rest)))
       {
-	firstr = nl->First(rest);
-	rest = nl->Rest(rest);
-	first2 = nl->First(firstr);
-	second2 = nl->Second(firstr);
-	if ((nl->IsAtom(first2)) &&
-	    (nl->ListLength(second2) == 3) &&
-	    (nl->AtomType(first2) == SymbolType) &&
-	    (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-	    (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)) &&
-            (nl->Equal(nl->Second(first),nl->Second(second2))))
-	{
-	  lastlistn = nl->Append(lastlistn,
-	  	(nl->TwoElemList(first2,nl->Third(second2))));
-	}
-	else{
-	  loopok = false;
-	}
+        firstr = nl->First(rest);
+        rest = nl->Rest(rest);
+        first2 = nl->First(firstr);
+        second2 = nl->Second(firstr);
+        if ((nl->IsAtom(first2)) &&
+            (nl->ListLength(second2) == 3) &&
+            (nl->AtomType(first2) == SymbolType) &&
+            (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
+            (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)) &&
+                  (nl->Equal(nl->Second(first),nl->Second(second2))))
+        {
+          lastlistn = nl->Append(lastlistn,
+            (nl->TwoElemList(first2,nl->Third(second2))));
+        }
+        else
+        {
+          loopok = false;
+        }
       }
       if ((loopok) && (comparenames(listn)))
       {
-        outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-			nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
+        outlist =
+          nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
         return outlist;
       }
-      else return nl->SymbolAtom("typeerror");
+      else
+      {
+        ErrorReporter::ReportError("Incorrect input for operator extend.");
+        return nl->SymbolAtom("typeerror");
+      }
     }
-    else return nl->SymbolAtom("typeerror");
+    else
+    {
+      ErrorReporter::ReportError("Incorrect input for operator extend.");
+      return nl->SymbolAtom("typeerror");
+    }
   }
-   return nl->SymbolAtom("typeerror");
+  ErrorReporter::ReportError("Incorrect input for operator extend.");
+  return nl->SymbolAtom("typeerror");
 }
 /*
 
@@ -4912,11 +4992,15 @@ ConcatTypeMap( ListExpr args )
        (nl->ListLength(nl->Second(second)) == 2) &&
        (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
        (nl->Equal(GetAttrTypeList(nl->Second(nl->Second(first))),
-	          GetAttrTypeList(nl->Second(nl->Second(second))))))
+          GetAttrTypeList(nl->Second(nl->Second(second))))))
        return first;
     else
+    {
+      ErrorReporter::ReportError("Incorrect input for operator concat.");
       return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Incorrect input for operator concat.");
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -5061,7 +5145,10 @@ ListExpr GroupByTypeMap(ListExpr args)
           }
         }
         else
+        {
+          ErrorReporter::ReportError("Incorrect input for operator groupby.");
           return nl->SymbolAtom("typeerror");
+        }
 
       }
       loopok = true;
@@ -5106,6 +5193,7 @@ ListExpr GroupByTypeMap(ListExpr args)
               listn)));
     }
   }
+  ErrorReporter::ReportError("Incorrect input for operator groupby.");
   return nl->SymbolAtom("typeerror");
 }
 

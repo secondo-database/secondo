@@ -2385,15 +2385,21 @@ string ErrorReporter::message = "";
 
 void ErrorReporter::ReportError(string msg)
 {
-  receivedMessage = true;
-  message = msg;
+  if(!receivedMessage)
+  {
+    receivedMessage = true;
+    message = msg;
+  }
 };
 
 
 void ErrorReporter::ReportError(char* msg)
 {
-  receivedMessage = true;
-  message = msg;
+  if(!receivedMessage)
+  {
+    receivedMessage = true;
+    message = msg;
+  }
 };
 
 void ErrorReporter::GetErrorMessage(string& msg)
