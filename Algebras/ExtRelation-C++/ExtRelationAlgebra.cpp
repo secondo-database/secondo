@@ -2976,7 +2976,6 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if( local.addr != 0 )
       {
         localinfo=(LoopjoinLocalInfo *) local.addr;
-
         if( localinfo->streamy.addr != 0 )
           qp->Close( localinfo->streamy.addr );
 

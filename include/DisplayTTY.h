@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //characters    [2]    formula:    [$]    [$]
 //characters    [3]    capital:    [\textsc{]    [}]
 //characters    [4]    teletype:   [\texttt{]    [}]
-//[i]	[\'{\i}]
+//[i] [\'{\i}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -199,9 +199,18 @@ Are display functions for tuples.
                              ListExpr numType,
                              ListExpr value );
 
-  static void DisplayRect( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
+  static void DisplayRect2( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
+
+
+  static void DisplayRect3( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
+
+  static void DisplayRect4( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
 
   static void DisplayBinfile( ListExpr type,
                              ListExpr numType,
@@ -223,16 +232,16 @@ Are display functions for tuples.
                              ListExpr value );
 
  static void DisplayMidi( ListExpr type,
-			  ListExpr numType,
-			  ListExpr value );
+        ListExpr numType,
+        ListExpr value );
 
  static void DisplayInstant( ListExpr type,
-			  ListExpr numType,
-			  ListExpr value );
+        ListExpr numType,
+        ListExpr value );
 
  static void DisplayDuration( ListExpr type,
-			  ListExpr numType,
-			  ListExpr value );
+        ListExpr numType,
+        ListExpr value );
 
 
 /* Returns the numeric value of a ListExpr containing a IntAtom, a RealAtom

@@ -2402,6 +2402,25 @@ PeriodsPeriodsTypeMapPeriods( ListExpr args )
 }
 
 /*
+10.1.15 Type mapping function "UPointTypeMapRect3"
+
+This type mapping function is used for the ~bbox~ operator. 
+
+*/
+ListExpr UPointTypeMapRect3( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "upoint" ) )
+      return (nl->SymbolAtom( "rect3" ));
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -3149,7 +3168,7 @@ int MappingNoComponents( Word* args, Word& result, int message, Word& local, Sup
 }
 
 /*
-16.3.19 Value mapping functions of operator ~atinstant~
+16.3.20 Value mapping functions of operator ~atinstant~
 
 */
 template <class Mapping, class Alpha>
@@ -3164,7 +3183,7 @@ int MappingAtInstant( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-16.3.19 Value mapping functions of operator ~atperiods~
+16.3.21 Value mapping functions of operator ~atperiods~
 
 */
 template <class Mapping>
@@ -3176,7 +3195,7 @@ int MappingAtPeriods( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-16.3.20 Value mapping functions of operator ~deftime~
+16.3.22 Value mapping functions of operator ~deftime~
 
 */
 template <class Mapping>
@@ -3188,7 +3207,7 @@ int MappingDefTime( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-16.3.21 Value mapping functions of operator ~trajectory~
+16.3.23 Value mapping functions of operator ~trajectory~
 
 */
 int MPointTrajectory( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3203,7 +3222,7 @@ int MPointTrajectory( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-16.3.22 Value mapping functions of operator ~present~
+16.3.24 Value mapping functions of operator ~present~
 
 */
 template <class Mapping>
@@ -3243,7 +3262,7 @@ int MappingPresent_p( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-16.3.22 Value mapping functions of operator ~passes~
+16.3.25 Value mapping functions of operator ~passes~
 
 */
 template <class Mapping, class Alpha>
@@ -3265,7 +3284,7 @@ int MappingPasses( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-16.3.23 Value mapping functions of operator ~initial~
+16.3.26 Value mapping functions of operator ~initial~
 
 */
 template <class Mapping, class Unit, class Alpha>
@@ -3277,7 +3296,7 @@ int MappingInitial( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-16.3.24 Value mapping functions of operator ~final~
+16.3.27 Value mapping functions of operator ~final~
 
 */
 template <class Mapping, class Unit, class Alpha>
@@ -3289,7 +3308,7 @@ int MappingFinal( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
-16.3.22 Value mapping functions of operator ~at~
+16.3.28 Value mapping functions of operator ~at~
 
 */
 template <class Mapping, class Unit, class Alpha>
@@ -3308,7 +3327,7 @@ int MappingAt( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.21 Value mapping functions of operator ~distance~
+16.3.29 Value mapping functions of operator ~distance~
 
 */
 int MPointDistance( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3319,7 +3338,7 @@ int MPointDistance( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-16.3.25 Value mapping functions of operator ~units~
+16.3.30 Value mapping functions of operator ~units~
 
 */
 struct UnitsLocalInfo
@@ -3380,7 +3399,19 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-16.3.26 Value mapping functions of operator ~theyear~
+16.3.31 Value mapping functions of operator ~bbox~
+
+*/
+static int
+UPointBBox( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  *((Rectangle<3>*)result.addr) = ((UPoint*)args[0].addr)->BoundingBox();
+  return (0);
+}
+
+/*
+16.3.32 Value mapping functions of operator ~theyear~
 
 */
 int TheYear( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3408,7 +3439,7 @@ int TheYear( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.26 Value mapping functions of operator ~themonth~
+16.3.33 Value mapping functions of operator ~themonth~
 
 */
 int TheMonth( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3441,7 +3472,7 @@ int TheMonth( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.27 Value mapping functions of operator ~theday~
+16.3.34 Value mapping functions of operator ~theday~
 
 */
 int TheDay( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3473,7 +3504,7 @@ int TheDay( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.28 Value mapping functions of operator ~thehour~
+16.3.35 Value mapping functions of operator ~thehour~
 
 */
 int TheHour( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3506,7 +3537,7 @@ int TheHour( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.28 Value mapping functions of operator ~theminute~
+16.3.36 Value mapping functions of operator ~theminute~
 
 */
 int TheMinute( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3540,7 +3571,7 @@ int TheMinute( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.28 Value mapping functions of operator ~thesecond~
+16.3.37 Value mapping functions of operator ~thesecond~
 
 */
 int TheSecond( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3575,7 +3606,7 @@ int TheSecond( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.29 Value mapping functions of operator ~theperiod~
+16.3.38 Value mapping functions of operator ~theperiod~
 
 */
 int ThePeriod( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -3660,11 +3691,6 @@ ValueMapping temporalnotequalmap[] = { InstantNotEqual,
                                        MappingNotEqual<MReal>,
                                        MappingNotEqual<MPoint> };
 
-ValueMapping temporallessmap[] = { InstantLess };
-ValueMapping temporallessequalmap[] = { InstantLessEqual };
-ValueMapping temporalgreatermap[] = { InstantGreater };
-ValueMapping temporalgreaterequalmap[] = { InstantGreaterEqual };
-
 ValueMapping temporalintersectsmap[] = { RangeIntersects<RInt>,
                                          RangeIntersects<RReal>,
                                          RangeIntersects<Periods> };
@@ -3739,8 +3765,6 @@ ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
                                       MappingDefTime<MReal>,
                                       MappingDefTime<MPoint> };
 
-ValueMapping temporaltrajectorymap[] = { MPointTrajectory };
-
 ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
 		                      MappingPresent_i<MInt>,
 		                      MappingPresent_i<MReal>,
@@ -3770,20 +3794,10 @@ ValueMapping temporalatmap[] = { MappingAt<MBool, UBool, CcBool>,
                                  MappingAt<MReal, UReal, CcReal>,
                                  MappingAt<MPoint, UPoint, Point> };
 
-ValueMapping temporaldistancemap[] = { MPointDistance };
-
 ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,
                                     MappingUnits<MBool, UBool>,
                                     MappingUnits<MReal, UReal>,
                                     MappingUnits<MPoint, UPoint> };
-
-ValueMapping temporaltheyearmap[] = { TheYear };
-ValueMapping temporalthemonthmap[] = { TheMonth };
-ValueMapping temporalthedaymap[] = { TheDay };
-ValueMapping temporalthehourmap[] = { TheHour };
-ValueMapping temporaltheminutemap[] = { TheMinute };
-ValueMapping temporalthesecondmap[] = { TheSecond };
-ValueMapping temporaltheperiodmap[] = { ThePeriod };
 
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
@@ -4045,6 +4059,14 @@ const string TemporalSpecUnits  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "<text>units( mpoint1 )</text--->"
                                 ") )";
 
+const string TemporalSpecBBox  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                    "\"Example\" ) "
+                                    "( <text>upoint -> rect3</text--->"
+                                    "<text>bbox ( _ )</text--->"
+                                    "<text>Returns the 3d bounding box of the unit.</text--->"
+                                    "<text>query bbox( upoint1 )</text--->"
+                                    ") )";
+
 const string TemporalSpecTheYear  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
 		                "( <text>int -> periods</text--->"
@@ -4131,33 +4153,29 @@ Operator temporalnotequal( "#",
 
 Operator temporalless( "<",
                        TemporalSpecLT,
-                       1,
-                       temporallessmap,
-                       temporalnomodelmap,
+                       InstantLess,
+                       Operator::DummyModel,
                        Operator::SimpleSelect,
                        InstantInstantTypeMapBool );
 
 Operator temporallessequal( "<=",
                             TemporalSpecLE,
-                            1,
-                            temporallessequalmap,
-                            temporalnomodelmap,
+                            InstantLessEqual,
+                            Operator::DummyModel,
                             Operator::SimpleSelect,
                             InstantInstantTypeMapBool );
 
 Operator temporalgreater( ">",
                           TemporalSpecLT,
-                          1,
-                          temporalgreatermap,
-                          temporalnomodelmap,
+                          InstantGreater,
+                          Operator::DummyModel,
                           Operator::SimpleSelect,
                           InstantInstantTypeMapBool );
 
 Operator temporalgreaterequal( ">=",
                                TemporalSpecLE,
-                               1,
-                               temporalgreaterequalmap,
-                               temporalnomodelmap,
+                               InstantGreaterEqual,
+                               Operator::DummyModel,
                                Operator::SimpleSelect,
                                InstantInstantTypeMapBool );
 
@@ -4275,9 +4293,8 @@ Operator temporaldeftime( "deftime",
 
 Operator temporaltrajectory( "trajectory",
                              TemporalSpecTrajectory,
-                             1,
-                             temporaltrajectorymap,
-                             temporalnomodelmap,
+                             MPointTrajectory,
+                             Operator::DummyModel,
                              Operator::SimpleSelect,
                              MovingTypeMapSpatial);
 
@@ -4323,9 +4340,8 @@ Operator temporalat( "at",
 
 Operator temporaldistance( "distance",
                            TemporalSpecDistance,
-                           1,
-                           temporaldistancemap,
-                           temporalnomodelmap,
+                           MPointDistance,
+                           Operator::DummyModel,
                            Operator::SimpleSelect,
                            MovingBaseTypeMapMReal );
 
@@ -4335,64 +4351,63 @@ Operator temporalunits( "units",
                         temporalunitsmap,
                         temporalnomodelmap,
                         MovingSimpleSelect,
-                        MovingTypeMapUnits);
+                        MovingTypeMapUnits );
+
+Operator temporalbbox( "bbox",
+                       TemporalSpecBBox,
+                       UPointBBox,
+                       Operator::DummyModel,
+                       Operator::SimpleSelect,
+                       UPointTypeMapRect3 );
 
 Operator temporaltheyear( "theyear",
                           TemporalSpecTheYear,
-                          1,
-                          temporaltheyearmap,
-                          temporalnomodelmap,
+                          TheYear,
+                          Operator::DummyModel,
                           Operator::SimpleSelect,
-                          IntSetTypeMapPeriods);
+                          IntSetTypeMapPeriods );
 
 Operator temporalthemonth( "themonth",
                            TemporalSpecTheMonth,
-                           1,
-                           temporalthemonthmap,
-                           temporalnomodelmap,
+                           TheMonth,
+                           Operator::DummyModel,
                            Operator::SimpleSelect,
-                           IntSetTypeMapPeriods);
+                           IntSetTypeMapPeriods );
 
 Operator temporaltheday( "theday",
                          TemporalSpecTheDay,
-                         1,
-                         temporalthedaymap,
-                         temporalnomodelmap,
+                         TheDay,
+                         Operator::DummyModel,
                          Operator::SimpleSelect,
-                         IntSetTypeMapPeriods);
+                         IntSetTypeMapPeriods );
 
 Operator temporalthehour( "thehour",
                           TemporalSpecTheHour,
-                          1,
-                          temporalthehourmap,
-                          temporalnomodelmap,
+                          TheHour,
+                          Operator::DummyModel,
                           Operator::SimpleSelect,
-                          IntSetTypeMapPeriods);
+                          IntSetTypeMapPeriods );
 
 Operator temporaltheminute( "theminute",
                             TemporalSpecTheMinute,
-                            1,
-                            temporaltheminutemap,
-                            temporalnomodelmap,
+                            TheMinute,
+                            Operator::DummyModel,
                             Operator::SimpleSelect,
-                            IntSetTypeMapPeriods);
+                            IntSetTypeMapPeriods );
 
 Operator temporalthesecond( "thesecond",
                             TemporalSpecTheSecond,
-                            1,
-                            temporalthesecondmap,
-                            temporalnomodelmap,
+                            TheSecond,
+                            Operator::DummyModel,
                             Operator::SimpleSelect,
-                            IntSetTypeMapPeriods);
-
+                            IntSetTypeMapPeriods );
 
 Operator temporaltheperiod( "theperiod",
                             TemporalSpecThePeriod,
-                            1,
-                            temporaltheperiodmap,
-                            temporalnomodelmap,
+                            ThePeriod,
+                            Operator::DummyModel,
                             Operator::SimpleSelect,
-                            PeriodsPeriodsTypeMapPeriods);
+                            PeriodsPeriodsTypeMapPeriods );
 
 /*
 6 Creating the Algebra
@@ -4423,37 +4438,39 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &movingpoint );
 
     rangeint.AssociateKind( "RANGE" );
-    rangereal.AssociateKind( "RANGE" );
-    periods.AssociateKind( "RANGE" );
-    intimebool.AssociateKind( "TEMPORAL" );
-    intimeint.AssociateKind( "TEMPORAL" );
-    intimereal.AssociateKind( "TEMPORAL" );
-    intimepoint.AssociateKind( "TEMPORAL" );
-    unitbool.AssociateKind( "TEMPORAL" );
-    unitint.AssociateKind( "TEMPORAL" );
-    unitreal.AssociateKind( "TEMPORAL" );
-    unitpoint.AssociateKind( "TEMPORAL" );
-    movingbool.AssociateKind( "TEMPORAL" );
-    movingint.AssociateKind( "TEMPORAL" );
-    movingreal.AssociateKind( "TEMPORAL" );
-    movingpoint.AssociateKind( "TEMPORAL" );
-
     rangeint.AssociateKind( "DATA" );
+    rangereal.AssociateKind( "RANGE" );
     rangereal.AssociateKind( "DATA" );
+    periods.AssociateKind( "RANGE" );
     periods.AssociateKind( "DATA" );
-    unitbool.AssociateKind( "DATA" );
-    unitint.AssociateKind( "DATA" );
-    unitreal.AssociateKind( "DATA" );
-    unitpoint.AssociateKind( "DATA" );
-    movingbool.AssociateKind( "DATA" );
-    movingint.AssociateKind( "DATA" );
-    movingreal.AssociateKind( "DATA" );
-    movingpoint.AssociateKind( "DATA" );
+
+    intimebool.AssociateKind( "TEMPORAL" );
     intimebool.AssociateKind( "DATA" );
+    intimeint.AssociateKind( "TEMPORAL" );
     intimeint.AssociateKind( "DATA" );
+    intimereal.AssociateKind( "TEMPORAL" );
     intimereal.AssociateKind( "DATA" );
+    intimepoint.AssociateKind( "TEMPORAL" );
     intimepoint.AssociateKind( "DATA" );
 
+    unitbool.AssociateKind( "TEMPORAL" );
+    unitbool.AssociateKind( "DATA" );
+    unitint.AssociateKind( "TEMPORAL" );
+    unitint.AssociateKind( "DATA" );
+    unitreal.AssociateKind( "TEMPORAL" );
+    unitreal.AssociateKind( "DATA" );
+    unitpoint.AssociateKind( "TEMPORAL" );
+    unitpoint.AssociateKind( "DATA" );
+    unitpoint.AssociateKind( "SPATIAL3D" );
+
+    movingbool.AssociateKind( "TEMPORAL" );
+    movingbool.AssociateKind( "DATA" );
+    movingint.AssociateKind( "TEMPORAL" );
+    movingint.AssociateKind( "DATA" );
+    movingreal.AssociateKind( "TEMPORAL" );
+    movingreal.AssociateKind( "DATA" );
+    movingpoint.AssociateKind( "TEMPORAL" );
+    movingpoint.AssociateKind( "DATA" );
 
     AddOperator( &temporalisempty );
     AddOperator( &temporalequal );
@@ -4474,26 +4491,27 @@ class TemporalAlgebra : public Algebra
 
     AddOperator( &temporalinst );
     AddOperator( &temporalval );
-    AddOperator( &temporalatinstant);
-    AddOperator( &temporalatperiods);
-    AddOperator( &temporaldeftime);
-    AddOperator( &temporaltrajectory);
-    AddOperator( &temporalpresent);
-    AddOperator( &temporalpasses);
-    AddOperator( &temporalinitial);
-    AddOperator( &temporalfinal);
-    AddOperator( &temporalunits);
+    AddOperator( &temporalatinstant );
+    AddOperator( &temporalatperiods );
+    AddOperator( &temporaldeftime );
+    AddOperator( &temporaltrajectory );
+    AddOperator( &temporalpresent );
+    AddOperator( &temporalpasses );
+    AddOperator( &temporalinitial );
+    AddOperator( &temporalfinal );
+    AddOperator( &temporalunits );
+    AddOperator( &temporalbbox );
 
-    AddOperator( &temporalat);
-    AddOperator( &temporaldistance);
+    AddOperator( &temporalat );
+    AddOperator( &temporaldistance );
 
-    AddOperator( &temporaltheyear);
-    AddOperator( &temporalthemonth);
-    AddOperator( &temporaltheday);
-    AddOperator( &temporalthehour);
-    AddOperator( &temporaltheminute);
-    AddOperator( &temporalthesecond);
-    AddOperator( &temporaltheperiod);
+    AddOperator( &temporaltheyear );
+    AddOperator( &temporalthemonth );
+    AddOperator( &temporaltheday );
+    AddOperator( &temporalthehour );
+    AddOperator( &temporaltheminute );
+    AddOperator( &temporalthesecond );
+    AddOperator( &temporaltheperiod );
   }
   ~TemporalAlgebra() {};
 };

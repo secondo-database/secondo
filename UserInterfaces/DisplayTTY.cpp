@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -500,9 +500,14 @@ DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
 }
 
 void
-DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
+DisplayTTY::DisplayRect2( ListExpr type, ListExpr numType, ListExpr value)
 {
-  if(nl->ListLength(value)!=4)
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=4)
      cout << "Incorrect Data Format";
   else{
      bool err;
@@ -529,6 +534,97 @@ DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
      cout << "rect: ( (" << x1 << "," << y1 << ")->(" << x2 << "," << y2 <<"))";
   }
 }
+
+
+void
+DisplayTTY::DisplayRect3( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=6)
+     cout << "Incorrect Data Format";
+  else{
+     bool realValue;
+     double koordValue[5];
+     int i = 0;
+     ListExpr RestList, FirstVal;
+
+     RestList = value;
+     do
+     {
+       FirstVal = nl->First(RestList);
+       realValue = nl->AtomType( FirstVal ) == RealType;
+       if (realValue)
+       {
+         RestList = nl->Rest(RestList);
+         koordValue[i] = nl->RealValue(FirstVal);
+         i++;
+       }
+     } while (i<= 5 && realValue);
+
+     if (realValue)
+     {
+       cout << "rect: ( ("
+            << koordValue[0] << "," << koordValue[1] << ") -> ("
+            << koordValue[2] << "," << koordValue[3] << ") -> ("
+            << koordValue[4] << "," << koordValue[5] << ") )";
+      }
+      else
+      {
+       cout << "Incorrect Data Format";
+       return;
+      }
+  }
+}
+
+void
+DisplayTTY::DisplayRect4( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=8)
+     cout << "Incorrect Data Format";
+  else{
+     bool realValue;
+     double koordValue[7];
+     int i = 0;
+     ListExpr RestList, FirstVal;
+
+     RestList = value;
+     do
+     {
+       FirstVal = nl->First(RestList);
+       realValue = nl->AtomType( FirstVal ) == RealType;
+       if (realValue)
+       {
+         RestList = nl->Rest(RestList);
+         koordValue[i] = nl->RealValue(FirstVal);
+         i++;
+       }
+     } while (i<= 7 && realValue);
+
+     if (realValue)
+     {
+       cout << "rect: ( ("
+            << koordValue[0] << "," << koordValue[1] << ") -> ("
+            << koordValue[2] << "," << koordValue[3] << ") -> ("
+            << koordValue[4] << "," << koordValue[5] << ") -> ("
+            << koordValue[6] << "," << koordValue[7] << ") )";
+      }
+      else
+      {
+       cout << "Incorrect Data Format";
+       return;
+      }
+  }
+}
+
 
 void
 DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
@@ -988,7 +1084,9 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "date",    &DisplayDate );
   InsertDisplayFunction( "text",    &DisplayText );
   InsertDisplayFunction( "xpoint",  &DisplayXPoint);
-  InsertDisplayFunction( "rect",    &DisplayRect);
+  InsertDisplayFunction( "rect2",   &DisplayRect2);
+  InsertDisplayFunction( "rect3",   &DisplayRect3);
+  InsertDisplayFunction( "rect4",   &DisplayRect4);
   InsertDisplayFunction( "array",   &DisplayArray);
   InsertDisplayFunction( "point",   &DisplayPoint);
   InsertDisplayFunction( "binfile", &DisplayBinfile);

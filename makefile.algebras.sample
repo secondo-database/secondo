@@ -87,6 +87,9 @@ ALGEBRAS     +=	DateTimeAlgebra
 ALGEBRA_DIRS +=	Network
 ALGEBRAS     +=	NetworkAlgebra
 
+ALGEBRA_DIRS += PlugJoin	
+ALGEBRAS     +=	PlugJoinAlgebra
+
 
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra

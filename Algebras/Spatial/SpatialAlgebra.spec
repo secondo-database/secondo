@@ -17,6 +17,4 @@ operator insidepathlength alias INSIDEPATHLENGTH pattern  _ infixop _
 operator insidescanned alias INSIDESCANNED pattern  _ infixop _
 operator insideold alias INSIDEOLD pattern  _ infixop _
 operator translate alias TRANSLATE pattern  op ( _, _ , _)
-operator spatialalgebratest alias SPATIALALGEBRATEST pattern op ( _ )
-operator windowclippingin alias WINDOWCLIPPINGIN pattern op ( _ , _)
-operator windowclippingout alias WINDOWCLIPPINGOUT pattern op ( _ , _)
+operator clip alias CLIP pattern  op (_, _)

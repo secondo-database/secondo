@@ -78,7 +78,7 @@ corresponding ~SpatialType~ type name.
 
 */
 
-enum SpatialType { stpoint, stpoints, stline, stregion, sterror };
+enum SpatialType { stpoint, stpoints, stline, stregion, stbox, sterror };
 
 static SpatialType
 TypeOfSymbol( ListExpr symbol )
@@ -90,6 +90,7 @@ TypeOfSymbol( ListExpr symbol )
     if ( s == "points" ) return (stpoints);
     if ( s == "line"   ) return (stline);
     if ( s == "region" ) return (stregion);
+    if ( s == "rect2"   ) return (stbox);
   }
   return (sterror);
 }
@@ -133,9 +134,9 @@ inline const Coord& Point::GetY() const
   return y;
 }
 
-inline const Rectangle Point::BoundingBox() const
+inline const Rectangle<2> Point::BoundingBox() const
 {
-  return Rectangle( true, x, x, y, y );
+  return Rectangle<2>( true, this->x, this->x, this->y, this->y );
 }
 
 inline void Point::Set( const Coord& x, const Coord& y )
@@ -310,6 +311,18 @@ bool Point::Inside( Points& ps ) const
   assert( defined && ps.IsOrdered() );
 
   return ps.Contains( *this );
+}
+
+bool Point::Inside( const Rectangle<2>& r ) const
+{
+  assert( IsDefined() && r.IsDefined() );
+
+  if( x < r.MinD(0) || x > r.MaxD(0) )
+    return false;
+  else if( y < r.MinD(1) || y > r.MaxD(1) )
+    return false;
+
+  return true;
 }
 
 void Point::Intersection( const Point& p, Point& result ) const
@@ -791,7 +804,7 @@ Points::~Points()
 {
 }
 
-const Rectangle Points::BoundingBox() const
+const Rectangle<2> Points::BoundingBox() const
 {
   return bbox;
 }
@@ -1088,7 +1101,7 @@ bool Points::Contains( const Point& p )
   if( IsEmpty() )
     return false;
 
-  if( !bbox.Contains( p ) )
+  if( !p.Inside( bbox ) )
     return false;
 
   int first = 0, last = Size() - 1;
@@ -1646,9 +1659,9 @@ void CHalfSegment::Translate( const Coord& x, const Coord& y )
   rp.Translate( x, y );
 }
 
-const Rectangle CHalfSegment::BoundingBox() const
+const Rectangle<2> CHalfSegment::BoundingBox() const
 {
-  return Rectangle( true,
+  return Rectangle<2>( true,
                     MIN( GetLP().GetX(), GetRP().GetX() ),
                     MAX( GetLP().GetX(), GetRP().GetX() ),
                     MIN( GetLP().GetY(), GetRP().GetY() ),
@@ -1670,7 +1683,7 @@ void CHalfSegment::SetDefined(bool Defined)
     defined = Defined;
 }
 
-void  CHalfSegment::Set(bool LDP, Point& P1, Point& P2)
+void  CHalfSegment::Set(bool LDP, const Point& P1, const Point& P2)
 {
     defined = true;
     ldp = LDP;
@@ -1930,8 +1943,8 @@ bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
     double k, a, K, A;
     double x0; //, y0;  (x0, y0) is the intersection
 
-    Rectangle bbox1=this->BoundingBox();
-    Rectangle bbox2=chs.BoundingBox();
+    Rectangle<2> bbox1=this->BoundingBox();
+    Rectangle<2> bbox2=chs.BoundingBox();
 
     if (!bbox1.Intersects(bbox2)) return false;
 
@@ -3299,7 +3312,7 @@ CastHalfSegment( void* addr )
 static ListExpr
 HalfSegmentProperty()
 {
-  return (nl->TwoElemList(nl->TheEmptyList(), nl->SymbolAtom("SPATIAL")));
+  return (nl->TwoElemList(nl->TheEmptyList(), nl->SymbolAtom("SPATIAL2D")));
 }
 
 /*
@@ -3376,7 +3389,7 @@ CLine::~CLine()
 {
 }
 
-const Rectangle CLine::BoundingBox() const
+const Rectangle<2> CLine::BoundingBox() const
 {
   return bbox;
 }
@@ -3519,6 +3532,143 @@ CLine& CLine::operator-=(const CHalfSegment& chs)
   }
 
   return *this;
+}
+
+const int
+  TOP = 0x1,
+  BOTTOM = 0x2,
+  RIGHT = 0x4,
+  LEFT = 0x8;
+
+int CompOutCode( const Point& p, const Rectangle<2>& r )
+{
+  int code = 0;
+
+  if( p.GetY() > r.MaxD(1) )
+    code |= TOP;
+  else if( p.GetY() < r.MinD(1) )
+    code |= BOTTOM;
+
+  if( p.GetX() > r.MaxD(0) )
+    code |= RIGHT;
+  else if( p.GetX() < r.MinD(0) )
+    code |= LEFT;
+
+  return code;
+}
+
+void Clip2D( const CHalfSegment& chs, const Rectangle<2>& r, CHalfSegment& result )
+{
+  int outcode0, outcode1, outcodeout;
+  bool accept = false, done = false;
+
+  result.Set( chs.GetLDP(), chs.GetLP(), chs.GetRP() );
+  outcode0 = CompOutCode( result.GetDPoint(), r );
+  outcode1 = CompOutCode( result.GetSPoint(), r );
+
+
+  do
+  {
+    if( !(outcode0 | outcode1) )
+    {
+      accept = true;
+      done = true;
+    }
+    else if( outcode0 & outcode1 )
+      done = true;
+    else
+    {
+      Point p;
+
+      outcodeout = outcode0 ? outcode0 : outcode1;
+
+      if( outcodeout & TOP )
+      {
+        p.Set( result.GetDPoint().GetX() + (result.GetSPoint().GetX() - result.GetDPoint().GetX()) *
+                (r.MaxD(1) - result.GetDPoint().GetY()) / (result.GetSPoint().GetY() - result.GetDPoint().GetY()),
+               r.MaxD(1) );
+      }
+      else if( outcodeout & BOTTOM )
+      {
+        p.Set( result.GetDPoint().GetX() + (result.GetSPoint().GetX() - result.GetDPoint().GetX()) *
+                 (r.MinD(1) - result.GetDPoint().GetY()) / (result.GetSPoint().GetY() - result.GetDPoint().GetY()),
+               r.MinD(1) );
+      }
+      else if( outcodeout & RIGHT )
+      {
+        p.Set( r.MaxD(0),
+               result.GetDPoint().GetY() + (result.GetSPoint().GetY() - result.GetDPoint().GetY()) *
+                 (r.MaxD(0) - result.GetDPoint().GetX()) / (result.GetSPoint().GetX() - result.GetDPoint().GetX()) );
+      }
+      else
+      {
+        assert( outcodeout & LEFT );
+        p.Set( r.MinD(0),
+               result.GetDPoint().GetY() + (result.GetSPoint().GetY() - result.GetDPoint().GetY()) *
+                 (r.MinD(0) - result.GetDPoint().GetX()) / (result.GetSPoint().GetX() - result.GetDPoint().GetX()) );
+      }
+
+      if( outcodeout == outcode0 )
+      {
+        result.Set( true, p, result.GetSPoint() );
+        outcode0 = CompOutCode( p, r );
+      }
+      else
+      {
+        result.Set( true, result.GetDPoint(), p );
+        outcode1 = CompOutCode( p, r );
+      }
+    }
+  } while( done == false );
+
+  if( !accept )
+    result.SetDefined( false );
+}
+
+void CLine::Clip( const Rectangle<2>& r, CLine& result )
+{
+  assert( IsDefined() && IsOrdered() );
+  assert( r.IsDefined() );
+  assert( result.IsEmpty() );
+
+  // First tests if it is empty.
+  if( IsEmpty() )
+    return;
+
+  // Then tests if the bounding box intersects with r
+  if( !this->BoundingBox().Intersects( r ) )
+    return;
+
+  // Then checks if the line is completely inside r
+  if( r.Contains( this->BoundingBox() ) )
+  {
+    result.CopyFrom( this );
+    return;
+  }
+
+  // Now the algorithm runs.
+  CHalfSegment chs;
+  SelectFirst();
+  GetHs( chs );
+
+  result.StartBulkLoad();
+  while( !EndOfHs() )
+  {
+    if( chs.GetLDP() )
+    {
+      CHalfSegment chsr;
+      Clip2D( chs, r, chsr );
+      if( chsr.IsDefined() )
+      {
+        result += chsr;
+        chsr.SetLDP( false );
+        result += chsr;
+      }
+    }
+    SelectNext();
+    GetHs( chs );
+  }
+  result.EndBulkLoad();
 }
 
 void CLine::SelectFirst()
@@ -4060,7 +4210,7 @@ CRegion::~CRegion()
 {
 }
 
-const Rectangle CRegion::BoundingBox() const
+const Rectangle<2> CRegion::BoundingBox() const
 {
   return bbox;
 }
@@ -4129,7 +4279,7 @@ void CRegion::Get( const int i, CHalfSegment& chs )
 
 bool CRegion::contain_old( const Point& p )
 {
-    if (!bbox.Contains(p)) return false;
+    if (!p.Inside(bbox)) return false;
 
     int faceISN[100];
 
@@ -4172,7 +4322,7 @@ bool CRegion::contain( const Point& p )
     //here: if the point is on the border, it is also counted.
     //used in inside operator
 
-    if (!bbox.Contains(p)) return false;
+    if (!p.Inside(bbox)) return false;
 
     int faceISN[100];
 
@@ -4318,7 +4468,7 @@ bool CRegion::containpr( const Point& p, int &pathlength, int & scanned )
     pathlength=0;
     scanned=0;
 
-    if (!bbox.Contains(p)) return false;
+    if (!p.Inside(bbox)) return false;
 
     int faceISN[100];
 
@@ -4469,7 +4619,7 @@ bool CRegion::innercontain( const Point& p )
 {
     //onborder points are not counted.
 
-    if (!bbox.Contains(p)) return false;
+    if (!p.Inside(bbox)) return false;
 
     int faceISN[100];
 
@@ -4511,7 +4661,7 @@ bool CRegion::contain( const CHalfSegment& chs )
 {
     //onborder cases are also counted as contain.
 
-    if ((!bbox.Contains(chs.GetLP())) || (!bbox.Contains(chs.GetRP()))) return false;
+    if ((!chs.GetLP().Inside(bbox)) || (!chs.GetRP().Inside(bbox))) return false;
 
     if ((!(this->contain(chs.GetLP())))||(!(this->contain(chs.GetRP()))))
     {
@@ -6962,7 +7112,7 @@ commonborderMap( ListExpr args )
 10.1.15 Type mapping function for operator ~bbox~
 
 This type mapping function is used for the ~bbox~ operator. This operator
-computes the bbox of a region, which is a ~rect~ (see RectangleAlgebra).
+computes the bbox of a region, which is a ~rect2~ (see RectangleAlgebra).
 
 */
 static ListExpr
@@ -6977,7 +7127,7 @@ bboxMap( ListExpr args )
              TypeOfSymbol( arg1 ) == stpoint ||
              TypeOfSymbol( arg1 ) == stline ||
              TypeOfSymbol( arg1 ) == stpoints )
-      return (nl->SymbolAtom( "rect" ));
+      return (nl->SymbolAtom( "rect2" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
 }
@@ -7043,6 +7193,29 @@ translateMap( ListExpr args )
        nl->IsEqual(arg2, "real") &&
        nl->IsEqual(arg3, "real"))
       return (nl->SymbolAtom( "point" ));
+    }
+
+    return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.17 Type mapping function for operator ~clip~
+
+This type mapping function is used for the ~clip~ operator.
+
+*/
+static ListExpr
+clipMap( ListExpr args )
+{
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+        arg1 = nl->First( args );
+        arg2 = nl->Second( args );
+
+        if ( TypeOfSymbol( arg1 ) == stline &&
+             TypeOfSymbol( arg2 ) == stbox )
+            return (nl->SymbolAtom( "line" ));
     }
 
     return (nl->SymbolAtom( "typeerror" ));
@@ -8389,7 +8562,7 @@ SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s
   Point *p=((Point*)args[0].addr);
   CLine *cl=((CLine*)args[1].addr);
 
-  if(! cl->BoundingBox().Contains( *p) )
+  if(! p->Inside( cl->BoundingBox() ) )
     {
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
@@ -8419,7 +8592,7 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
-    if(! cr->BoundingBox().Contains( *p) )
+    if(! p->Inside( cr->BoundingBox() ) )
     {
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
@@ -8447,7 +8620,7 @@ SpatialInside_pr_old( Word* args, Word& result, int message, Word& local, Suppli
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
-    if(! cr->BoundingBox().Contains( *p) )
+    if(! p->Inside( cr->BoundingBox() ) )
     {
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
@@ -8481,7 +8654,7 @@ SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local,
 
     //((CcInt *)result.addr)->Set( true, ps->Size());
 
-    if(! cr->BoundingBox().Contains( *p) )
+    if(! p->Inside( cr->BoundingBox() ) )
     {
   ((CcInt *)result.addr)->Set( true, 0);
   //no chs checked because it is done by checking BBOX
@@ -8508,7 +8681,7 @@ SpatialInside_scanned_pr( Word* args, Word& result, int message, Word& local, Su
 
     //((CcInt *)result.addr)->Set( true, ps->Size());
 
-    if(! cr->BoundingBox().Contains( *p) )
+    if(! p->Inside( cr->BoundingBox() ) )
     {
   ((CcInt *)result.addr)->Set( true, 0);
   //no chs checked because it is done by checking BBOX
@@ -9655,7 +9828,7 @@ SpatialOnBorder_pl( Word* args, Word& result, int message, Word& local, Supplier
     Point *p=((Point*)args[0].addr);
     CLine *cl=((CLine*)args[1].addr);
 
-    if(! cl->BoundingBox().Contains( *p ) )
+    if(! p->Inside( cl->BoundingBox() ) )
     {
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
@@ -9696,7 +9869,7 @@ SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
-    if(! cr->BoundingBox().Contains( *p ) )
+    if(! p->Inside( cr->BoundingBox() ) )
     {
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
@@ -9739,7 +9912,7 @@ SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Suppli
     Point *p=((Point*)args[0].addr);
     CLine *cl=((CLine*)args[1].addr);
 
-    if(! cl->BoundingBox().Contains( *p ) )
+    if(! p->Inside( cl->BoundingBox() ) )
     {
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
@@ -9783,7 +9956,7 @@ SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Suppli
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
 
-    if(! cr->BoundingBox().Contains( *p ) )
+    if(! p->Inside( cr->BoundingBox() ) )
     {
   ((CcBool *)result.addr)->Set( true, false);
   return (0);
@@ -11381,7 +11554,7 @@ static int
 bbox_p( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    *((Rectangle*)result.addr) = ((CPoint*)args[0].addr)->BoundingBox();
+    *((Rectangle<2>*)result.addr) = ((CPoint*)args[0].addr)->BoundingBox();
     return (0);
 }
 
@@ -11389,7 +11562,7 @@ static int
 bbox_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    *((Rectangle*)result.addr) = ((CPoints*)args[0].addr)->BoundingBox();
+    *((Rectangle<2>*)result.addr) = ((CPoints*)args[0].addr)->BoundingBox();
     return (0);
 }
 
@@ -11397,7 +11570,7 @@ static int
 bbox_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    *((Rectangle*)result.addr) = ((CLine*)args[0].addr)->BoundingBox();
+    *((Rectangle<2>*)result.addr) = ((CLine*)args[0].addr)->BoundingBox();
     return (0);
 }
 
@@ -11405,7 +11578,7 @@ static int
 bbox_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    *((Rectangle*)result.addr) = ((CRegion*)args[0].addr)->BoundingBox();
+    *((Rectangle<2>*)result.addr) = ((CRegion*)args[0].addr)->BoundingBox();
     return (0);
 }
 
@@ -11792,6 +11965,32 @@ translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.4.27 Value mapping functions of operator ~clip~
+
+*/
+
+static int
+clip_l( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    CLine *l=((CLine*)args[0].addr);
+    Rectangle<2> *r = ((Rectangle<2>*)args[1].addr);
+
+    if ( l->IsDefined() && r->IsDefined() )
+    {
+        if( l->BoundingBox().Intersects( *r ) )
+          l->Clip( *r, *((CLine *)result.addr) );
+        return (0);
+    }
+    else
+    {
+        ((CLine *)result.addr)->SetDefined( false );
+        return (0);
+    }
+}
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -11977,6 +12176,8 @@ ValueMapping translatemap[] = { translate_p,
                 translate_l,
                 translate_r
               };
+
+ValueMapping spatialclipmap[] = { clip_l };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
                SpatialNoModelMapping,
@@ -12196,7 +12397,7 @@ const string SpatialSpecNoSegments  =
 
 const string SpatialSpecBbox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region) -> rect</text--->"
+  "( <text>(point||points||line||region) -> rect2</text--->"
   "<text> bbox( _ )</text--->"
   "<text>return the bounding box of a spatial type.</text--->"
   "<text>query bbox(region)</text--->"
@@ -12257,6 +12458,15 @@ const string SpatialSpecTranslate  =
   "<text> move the object parallely for some distance.</text--->"
   "<text> query translate(region1, 3.5, 15.1)</text--->"
   ") )";
+
+const string SpatialSpecClip  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>line x bbox -> line</text--->"
+        "<text>clip(_, _)</text--->"
+        "<text>Returns the pieces of the line inside the rectangle.</text--->"
+        "<text>query clip ( line1, box1 )</text--->"
+        ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -12389,6 +12599,10 @@ Operator spatialtranslate
   ( "translate", SpatialSpecTranslate, 4, translatemap, spatialnomodelmap,
     translateSelect, translateMap );
 
+Operator spatialclip
+        ( "clip", SpatialSpecClip, 1, spatialclipmap, spatialnomodelmap,
+          SimpleSelect, clipMap );
+
 /*
 11 Creating the Algebra
 
@@ -12409,10 +12623,10 @@ class SpatialAlgebra : public Algebra
     line.AssociateKind("DATA");       //of kind DATA are expected, e.g. in
     region.AssociateKind("DATA"); //tuples.
 
-    point.AssociateKind("SPATIAL");     //this means that point and rectangle
-    points.AssociateKind("SPATIAL");    //can be used in places where types
-    line.AssociateKind("SPATIAL");        //of kind SPATIAL are expected, e.g. in
-    region.AssociateKind("SPATIAL");  //tuples.
+    point.AssociateKind("SPATIAL2D");     //this means that point and rectangle
+    points.AssociateKind("SPATIAL2D");    //can be used in places where types
+    line.AssociateKind("SPATIAL2D");        //of kind SPATIAL2D are expected, e.g. in
+    region.AssociateKind("SPATIAL2D");  //tuples.
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
@@ -12446,6 +12660,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialinsidepathlength );
     AddOperator( &spatialinsidescanned );
     AddOperator( &spatialtranslate );
+    AddOperator( &spatialclip );
   }
   ~SpatialAlgebra() {};
 };

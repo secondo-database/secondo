@@ -64,7 +64,7 @@ The type system of the Temporal Algebra can be seen below.
 #include "SpatialAlgebra.h"
 #include "NestedList.h"
 #include "DBArray.h"
-
+#include "RectangleAlgebra.h"
 #include "DateTime.h"
 
 /*
@@ -710,7 +710,7 @@ inside the temporal unit given a time instant (also inside the temporal unit).
 
 */
 template <class Alpha>
-struct TemporalUnit : public StandardAttribute
+struct TemporalUnit
 {
 /*
 3.5.1 Constructors and Destructor
@@ -850,42 +850,6 @@ to ~val~.
 /*
 Returns a unit restricted to the time interval ~i~.
 
-3.3.4 Functions to be part of relations
-
-*/
-  virtual bool IsDefined() const
-  {
-    return true;
-  }
-
-  virtual void SetDefined( bool Defined )
-  {
-  }
-
-  virtual int Compare( Attribute* arg )
-  {
-    return 0;
-  }
-
-  virtual bool Adjacent( Attribute* arg )
-  {
-    return false;
-  }
-
-  virtual ostream& Print( ostream &os )
-  {
-    return os << "Temporal Algebra---TemporalUnit" << endl;
-  }
-
-  virtual size_t HashValue()
-  {
-    return 0;
-  }
-
-  virtual TemporalUnit<Alpha>* Clone() = 0;
-  virtual void CopyFrom( StandardAttribute* right ) = 0;
-  
-/*
 3.5.3 Attributes
 
 */
@@ -896,6 +860,148 @@ The time interval of the temporal unit.
 
 */
     
+};
+
+/*
+3.6 StandardTemporalUnit
+
+This class inherits from ~StandardAttribute~ and allows temporal units
+of standard types to be part of relations. One should note that it is
+still an abstract class, because the functions ~CopyFrom~ and ~Clone~
+are not implemented.
+
+*/
+template<class Alpha>
+class StandardTemporalUnit : public StandardAttribute, public TemporalUnit<Alpha>
+{
+  public:
+
+    StandardTemporalUnit() {}
+/*
+The simple constructor. This constructor should not be used.
+
+*/
+
+    StandardTemporalUnit( Interval<Instant>& interval ):
+      TemporalUnit<Alpha>( interval )
+      {}
+/*
+This constructor sets the time interval of the temporal unit.
+
+*/
+
+    virtual ~StandardTemporalUnit() {}
+/*
+The destructor.
+
+3.5.2 Member Functions
+
+3.6.4.1 Functions to be part of relations
+
+*/
+    virtual bool IsDefined() const
+    {
+      return true;
+    }
+
+    virtual void SetDefined( bool Defined )
+    {
+    }
+
+    virtual int Compare( Attribute* arg )
+    {
+      return 0;
+    }
+
+    virtual bool Adjacent( Attribute* arg )
+    {
+      return false;
+    }
+
+    virtual ostream& Print( ostream &os )
+    {
+      return os << "Temporal Algebra---TemporalUnit" << endl;
+    }
+
+    virtual size_t HashValue()
+    {
+      return 0;
+    }
+
+    virtual StandardTemporalUnit<Alpha>* Clone() = 0;
+    virtual void CopyFrom( StandardAttribute* right ) = 0;
+
+};
+
+/*
+3.7 SpatialTemporalUnit
+
+This class inherits from ~SpatialStandardAttribute~ and allows temporal units
+of spatial types to be part of relations. This class is a template also on the 
+dimensionality. One should note that it is still an abstract class, because 
+the functions ~CopyFrom~ and ~Clone~
+are not implemented.
+
+*/
+template <class Alpha, unsigned dim>
+class SpatialTemporalUnit : public StandardSpatialAttribute<dim>, public TemporalUnit<Alpha>
+{
+  public: 
+    SpatialTemporalUnit() {}
+/*
+The simple constructor. This constructor should not be used.
+
+*/
+
+    SpatialTemporalUnit( Interval<Instant>& interval ):
+      TemporalUnit<Alpha>( interval )
+      {}
+/*
+This constructor sets the time interval of the temporal unit.
+
+*/
+
+    virtual ~SpatialTemporalUnit() {}
+/*
+The destructor.
+
+3.5.2 Member Functions
+
+3.6.4.1 Functions to be part of relations
+
+*/
+    virtual bool IsDefined() const
+    {
+      return true;
+    }
+
+    virtual void SetDefined( bool Defined )
+    {
+    }
+
+    virtual int Compare( Attribute* arg )
+    {
+      return 0;
+    }
+
+    virtual bool Adjacent( Attribute* arg )
+    {
+      return false;
+    }
+
+    virtual ostream& Print( ostream &os )
+    {
+      return os << "Temporal Algebra---SpatialTemporalUnit" << endl;
+    }
+
+    virtual size_t HashValue()
+    {
+      return 0;
+    }
+
+    virtual SpatialTemporalUnit<Alpha, dim>* Clone() = 0;
+    virtual void CopyFrom( StandardAttribute* right ) = 0;
+    virtual const Rectangle<dim> BoundingBox() const = 0;
 };
 
 /*
@@ -929,7 +1035,7 @@ their values change only in discrete steps.
 
 */
 template <class Alpha>
-struct ConstTemporalUnit : public TemporalUnit<Alpha> 
+struct ConstTemporalUnit : public StandardTemporalUnit<Alpha> 
 {
 /*
 3.6.1 Constructors, Destructor
@@ -938,7 +1044,7 @@ struct ConstTemporalUnit : public TemporalUnit<Alpha>
   ConstTemporalUnit() {}
     
   ConstTemporalUnit( Interval<Instant>& interval, Alpha& a ):
-    TemporalUnit<Alpha>( interval )
+    StandardTemporalUnit<Alpha>( interval )
   {
     constValue.CopyFrom( &a );
   }
@@ -1089,7 +1195,7 @@ This class will be used in the ~ureal~ type constructor, i.e., the type construc
 for the temporal unit of real numbers.
 
 */
-struct UReal : public TemporalUnit<CcReal>
+struct UReal : public StandardTemporalUnit<CcReal>
 {
 /*
 3.7.1 Constructors and Destructor
@@ -1102,7 +1208,7 @@ struct UReal : public TemporalUnit<CcReal>
          const double b,
          const double c,
          const bool r ):
-    TemporalUnit<CcReal>( interval ),  
+    StandardTemporalUnit<CcReal>( interval ),  
     a( a ), b( b ), c( c ),
     r( r )
     {}
@@ -1223,7 +1329,7 @@ This class will be used in the ~upoint~ type constructor, i.e., the type constru
 for the temporal unit of point values.
 
 */
-struct UPoint : public TemporalUnit<Point>
+struct UPoint : public SpatialTemporalUnit<Point, 3> 
 {
 /*
 3.8.1 Constructors and Destructor
@@ -1234,14 +1340,14 @@ struct UPoint : public TemporalUnit<Point>
   UPoint( Interval<Instant>& interval, 
           const double x0, const double y0, 
           const double x1, const double y1 ): 
-    TemporalUnit<Point>( interval ), 
+    SpatialTemporalUnit<Point, 3>( interval ), 
     p0( true, x0, y0 ),
     p1( true, x1, y1 )
     {}
     
   UPoint( Interval<Instant>& interval, 
           const Point& p0, const Point& p1 ):
-    TemporalUnit<Point>( interval ), 
+    SpatialTemporalUnit<Point, 3>( interval ), 
     p0( p0 ),
     p1( p1 )
     {}
@@ -1341,6 +1447,16 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     p1 = i->p1;
   }
 
+  virtual const Rectangle<3> BoundingBox() const
+  {
+    return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
+                               MAX( p0.GetX(), p1.GetX() ), 
+                               MIN( p0.GetY(), p1.GetY() ),
+                               MAX( p0.GetY(), p1.GetY() ),
+                               timeInterval.start.ToDouble(), 
+                               timeInterval.end.ToDouble() );
+  }
+                                  
 /*
 3.8.4 Attributes
 

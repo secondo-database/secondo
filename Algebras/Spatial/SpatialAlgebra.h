@@ -76,12 +76,12 @@ precision (~Rational~).
 
 3 Class StandardSpatialAttribute
 
+Now implemented in RectangleAlgebra.
+
 */
-class StandardSpatialAttribute : public StandardAttribute
-{
-  public:
-    virtual const Rectangle BoundingBox() const = 0;
-};
+
+
+
 
 /*
 3 Class Point
@@ -98,7 +98,7 @@ A forward declaration of the class ~Points~.
 
 */
 
-class Point: public StandardSpatialAttribute
+class Point: public StandardSpatialAttribute<2>
 {
   public:
 /*
@@ -145,7 +145,7 @@ Returns the ~y~ coordinate of the point.
 *Precondition:* ~IsDefined()~
 
 */
-    inline const Rectangle BoundingBox() const;
+    inline const Rectangle<2> BoundingBox() const;
 /*
 Returns the point bounding box which is also a point.
 
@@ -233,7 +233,7 @@ Assignement operator redefinition.
 */
     inline bool operator>( const Point& p ) const;
 /*
-3.3.7 Operation ~inside~
+3.3.7 Operation ~inside~ (with ~points~)
 
 *Precondition:* ~u.IsDefined() $\&\&$ V.IsOrdered()~
 
@@ -243,6 +243,17 @@ Assignement operator redefinition.
 
 */
     bool Inside( Points& ps ) const;
+/*
+3.3.8 Operation ~inside~ (with ~rectangle~)
+
+*Precondition:* ~u.IsDefined()~
+
+*Semantics:* $u \in V$
+
+*Complexity:* $O(1)$
+
+*/
+    bool Inside( const Rectangle<2>& r ) const;
 /*
 3.3.8 Operation ~intersection~ (with ~point~)
 
@@ -353,7 +364,7 @@ The implementation of the points type constructor is a persistent array of point
 ordered by lexicographic order.
 
 */
-class Points: public StandardSpatialAttribute
+class Points: public StandardSpatialAttribute<2>
 {
   public:
 /*
@@ -420,7 +431,7 @@ Marks the end of a bulk load and sorts the point set.
 4.3 Member functions
 
 */
-    const Rectangle BoundingBox() const;
+    const Rectangle<2> BoundingBox() const;
 /*
 Returns the bounding box that spatially contains all points.
 
@@ -604,10 +615,10 @@ as an attribute.
 */
     DBArray<Point> points;
 /*
-The persisten array of points.
+The persistent array of points.
 
 */
-    Rectangle bbox;
+    Rectangle<2> bbox;
 /*
 The bounding box that spatially contains all points.
 
@@ -735,7 +746,7 @@ This function returns the boolean flag which indicates whether the dominating po
 left side.
 
 */
-    const Rectangle BoundingBox() const;
+    const Rectangle<2> BoundingBox() const;
 /*
 Returns the bounding box of the half segment.
 
@@ -752,7 +763,7 @@ useful when we process region values.
 *Complexity:* $O( 1)$
 
 */
-    void     Set(bool LDP, Point& LP, Point& RP);
+    void     Set(bool LDP, const Point& LP, const Point& RP);
 /*
 This function sets the value of a half segment. The parameter LP and RP can ignore the order, and the
 function will compare the parameter points and put the smaller one to LP and larger one to RP.
@@ -988,7 +999,7 @@ is called ~lines~.
 
 */
 
-class CLine: public StandardSpatialAttribute
+class CLine: public StandardSpatialAttribute<2>
 {
   public:
 /*
@@ -1009,7 +1020,7 @@ This constructor should not be used.
     void Destroy();
     ~CLine();
 
-    const Rectangle BoundingBox() const;
+    const Rectangle<2> BoundingBox() const;
 
 /*
 6.2 Functions Reading Property Values from an Object
@@ -1087,10 +1098,20 @@ This function marks the end of a bulk load and sorts the half segments.
 
 *Semantics:* $this -=chs$. It deletes a half segment from a line value.
 
-*Complexity:* $O( log(n)+n)$ .
+*Complexity:* $O( log(n)+n)$.
 
 */
     CLine& operator-=(const CHalfSegment& chs);
+/*
+6.4.5 Operation ~Clip~
+
+*Semantics:* This operation receives a rectangle and clips the line to the parts that are 
+inside the rectangle.
+
+*Complexity:* $O(n)$.
+
+*/
+    void Clip( const Rectangle<2>& r, CLine& result );
 /*
 
 6.5 Clone Function
@@ -1176,7 +1197,7 @@ returns its position. Returns -1 if the half segment is not found.
 The persisten array of half segments.
 
 */
-    Rectangle bbox;
+    Rectangle<2> bbox;
 /*
 The bounding box that fully encloses all half segments of the line.
 
@@ -1207,7 +1228,7 @@ composed of a set of faces. Each face consists of a ouer cycle and a groups of h
 
 */
 
-class CRegion : public StandardSpatialAttribute
+class CRegion : public StandardSpatialAttribute<2>
 {
   public:
 /*
@@ -1231,7 +1252,7 @@ This constructor should not be used.
     void Destroy();
     ~CRegion();
 
-    const Rectangle BoundingBox() const;
+    const Rectangle<2> BoundingBox() const;
 
 /*
 7.2 Functions Reading Property Values from an Object
@@ -1478,7 +1499,7 @@ returns its position. Returns -1 if the half segment is not found.
 */
     DBArray<CHalfSegment> region;
 
-    Rectangle bbox;
+    Rectangle<2> bbox;
 
 /*
 The persisten array of half segments.
