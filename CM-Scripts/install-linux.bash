@@ -12,10 +12,6 @@ fi
 
 cdpath="$PWD"
 instpath="$HOME"
-
-install -d $HOME/secondo-sdk
-install -d $HOME/temp-build
-
 temp=$HOME/temp-build
 sdk=$HOME/secondo-sdk
 
@@ -23,7 +19,13 @@ printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from "
 printf "\n* '$cdpath' to '$instpath' \n" 
 
 printf "\n* Installing Java SDK ... this needs some user interaction \n"
-printf " \n* all other tools will be compiled and installed silently \n"
+printf "\n* all other tools will be compiled and installed silently \n"
+printf "\n* "
+printf "\n* Installation starts in 5 seconds. Press CTRL-C to abort. \n"
+sleep 5
+
+install -d $sdk
+install -d $temp
 
 cp $cdpath/../java/j2sdk*.bin $temp
 cd $temp && chmod u+x j2sdk*.bin
@@ -60,7 +62,7 @@ if { ! tar -xzf $cdpath/../java/cvs/jcvs*.tgz; }; then
   exit 4
 fi
 
-logfile="$temp/secondo-install.log"
+logfile="$HOME/secondo-install.log"
 touch $logfile
 xterm -T "Installation Protocol" -e "tail -f $logfile" &
 
