@@ -3727,16 +3727,16 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
         }
         else if( interval.rc == true )
         {
-          if( ++j == periods.GetNoComponents() )
+          if( ++i == GetNoComponents() )
             break;
-          periods.Get( j, interval );
+          Get( i, unit );
         }
         else
         {
           assert( unit.timeInterval.rc == true );
-          if( ++i == GetNoComponents() )
+          if( ++j == periods.GetNoComponents() )
             break;
-          Get( i, unit );
+          periods.Get( j, interval );
         }
       }
       else if( interval.end > unit.timeInterval.end )
@@ -3756,6 +3756,8 @@ void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& re
   }
   
   result.EndBulkLoad( false );
+
+// VTA - The merge of the result is not implemented yet.
 }
 
 template <class Unit, class Alpha>

@@ -86,8 +86,14 @@ bool UReal::At( CcReal& val, TemporalUnit<CcReal>& result )
 }
 
 void UReal::AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result )
-  // VTA - Not implemented yet
 {
+  TemporalUnit<CcReal>::AtInterval( i, result );
+
+  UReal *pResult = (UReal*)&result;
+  pResult->a = a;
+  pResult->b = b;
+  pResult->c = c;
+  pResult->r = r;
 }
 
 /*
@@ -2117,7 +2123,7 @@ MovingBaseTypeMapBool( ListExpr args )
 /*
 16.1.10 Type mapping function ~MovingBaseTypeMapBool~
 
-It is for the operator ~passes~.
+It is for the operator ~at~.
 
 */
 ListExpr
@@ -2135,8 +2141,9 @@ MovingBaseTypeMapMoving( ListExpr args )
     if( nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" ) ) 
       return nl->SymbolAtom( "mint" );
 
-    if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom( "mreal" );
+// VTA - This operator is not yet implemented for the type of ~mreal~
+//    if( nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" ) )
+//      return nl->SymbolAtom( "mreal" );
 
     if( nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" ) ) 
       return nl->SymbolAtom( "mpoint" );
