@@ -300,6 +300,44 @@ private void searchText(){
    res.append("</ul>");
    return res.toString();
  }
+ 
+ /** returns the html code for objects */
+ private String getHTMLCode_Objects(ListExpr Value){
+   ListExpr tmp = Value.rest(); // ignore  "SYMBOLS"
+   if(tmp.isEmpty())
+      return "no existing objects";
+   StringBuffer res = new StringBuffer();
+   res.append("<h2> Objects - short list </h2>\n ");
+   res.append("<ul>\n");
+   while(!tmp.isEmpty()){
+      res.append("  <li>"+tmp.first().second().symbolValue()+ " </li> \n");
+      tmp = tmp.rest();
+   }
+   res.append("</ul><br><hr><br>");
+   res.append("<h2> Objects - full list </h2>\n");
+   res.append("<pre>\n"+Value.rest().writeListExprToString() +"</pre>");
+   return res.toString();
+ }
+
+ /** returns the html code for types */
+ private String getHTMLCode_Types(ListExpr Value){
+   ListExpr tmp = Value.rest(); // ignore  "TYPES"
+   if(tmp.isEmpty())
+      return "no existing type";
+   StringBuffer res = new StringBuffer();
+   res.append("<h2> Types - short list </h2>\n ");
+   res.append("<ul>\n");
+   while(!tmp.isEmpty()){
+      res.append("  <li>"+tmp.first().second().symbolValue()+ " </li> \n");
+      tmp = tmp.rest();
+   }
+   res.append("</ul><br><hr><br>");
+   res.append("<h2> Types - full list </h2>\n");
+   res.append("<pre>\n"+Value.rest().writeListExprToString() +"</pre>");
+   return res.toString();
+ }
+
+
 
  /** returns a html formatted list for algebras */
  private String getHTMLCode_Algebras(ListExpr Value){
@@ -353,17 +391,11 @@ private void searchText(){
       }
       else if(inquiryType.equals(OBJECTS)){
 	Text.append("<h1> Objects </h1>\n");
-	Text.append("<pre>\n");
-	// rest() ignores the OBJECTS smybol
-	Text.append(VL.second().rest().writeListExprToString());
-	Text.append("</pre>\n");
+	Text.append(getHTMLCode_Objects(VL.second()));
       }
       else if(inquiryType.equals(TYPES)){
 	Text.append("<h1> Types </h1>\n");
-	Text.append("<pre>\n");
-	// rest() ignores the TYPES symbol
-	Text.append(VL.second().rest().writeListExprToString());
-	Text.append("</pre>\n");
+	Text.append(getHTMLCode_Types(VL.second()));
       }
       Text.append("\n</body>\n</html>\n");
       return Text.toString();
