@@ -6,6 +6,8 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -16,12 +18,10 @@ April 2002 Ulrich Telle
 #include "SmiCodes.h"
 #include "Profiles.h"
 
-using namespace std;
-
 /* --- Implementation of class SmiKeyedFile --- */
 
 SmiKeyedFile::SmiKeyedFile( const SmiKey::KeyDataType keyType,
-                            const bool hasUniqueKeys = true )
+                            const bool hasUniqueKeys /* = true */ )
 {
   fileType    = Keyed;
   keyDataType = keyType;
@@ -35,8 +35,8 @@ SmiKeyedFile::~SmiKeyedFile()
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,
                             SmiKeyedFileIterator& iterator,
-                            const SmiFile::AccessType accessType =
-                                  SmiFile::ReadOnly )
+                            const SmiFile::AccessType accessType
+                              /* = SmiFile::ReadOnly */ )
 {
   int rc;
   DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
@@ -71,8 +71,8 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,
                             SmiRecord& record,
-                            const SmiFile::AccessType accessType =
-                                  SmiFile::ReadOnly )
+                            const SmiFile::AccessType accessType
+                              /* = SmiFile::ReadOnly */ )
 {
   int rc = 0;
   Dbt bdbKey;
@@ -124,9 +124,9 @@ bool
 SmiKeyedFile::SelectRange( const SmiKey& fromKey, 
                            const SmiKey& toKey, 
                            SmiKeyedFileIterator& iterator,
-                           const SmiFile::AccessType accessType =
-                                 SmiFile::ReadOnly,
-                           const bool reportDuplicates = false )
+                           const SmiFile::AccessType accessType
+                             /* = SmiFile::ReadOnly */,
+                           const bool reportDuplicates /* = false */ )
 {
   int rc;
   DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
@@ -162,9 +162,9 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
 bool
 SmiKeyedFile::SelectLeftRange( const SmiKey& toKey, 
                                SmiKeyedFileIterator& iterator,
-                               const SmiFile::AccessType accessType =
-                                     SmiFile::ReadOnly,
-                               const bool reportDuplicates = false )
+                               const SmiFile::AccessType accessType
+                                 /* = SmiFile::ReadOnly */,
+                               const bool reportDuplicates /* = false */ )
 {
   int rc;
   DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
@@ -201,9 +201,9 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
 bool
 SmiKeyedFile::SelectRightRange( const SmiKey& fromKey, 
                                 SmiKeyedFileIterator& iterator,
-                                const SmiFile::AccessType accessType =
-                                      SmiFile::ReadOnly,
-                                const bool reportDuplicates = false )
+                                const SmiFile::AccessType accessType
+                                  /* = SmiFile::ReadOnly */,
+                                const bool reportDuplicates /* = false */ )
 {
   int rc;
   DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
@@ -239,9 +239,9 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
 
 bool
 SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
-                         const SmiFile::AccessType accessType =
-                               SmiFile::ReadOnly,
-                         const bool reportDuplicates = false )
+                         const SmiFile::AccessType accessType
+                           /* = SmiFile::ReadOnly */,
+                         const bool reportDuplicates /* = false */ )
 {
   int rc;
   DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;

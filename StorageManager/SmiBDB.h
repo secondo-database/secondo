@@ -16,7 +16,7 @@
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: Storage Management Interface (Berkeley DB Implementation)
+1 Header File: Storage Management Interface (Berkeley DB)
 
 January 2002 Ulrich Telle
 
@@ -309,7 +309,9 @@ catalog. The function returns ~true~ if the deletion was successful.
   ~Implementation();
  private:
   string  bdbHome;         // Home directory
+  u_int32_t minutes;       // Time between checkpoints 
   DbEnv*  bdbEnv;          // Berkeley DB environment handle
+  bool    envClosed;       // Flag if environment is closed
   DbTxn*  usrTxn;          // User transaction handle
   bool    txnStarted;      // User transaction started
   Db*     bdbDatabases;    // Database Catalog handle

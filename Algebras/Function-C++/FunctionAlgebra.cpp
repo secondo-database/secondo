@@ -9,11 +9,11 @@ The sole purpose of this little algebra is to provide a type constructor ~map~ w
 
 */
 
+using namespace std;
+
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-
-using namespace std;
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -32,7 +32,7 @@ FunctionProperty()
 static Word
 DummyInModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 static ListExpr
@@ -44,7 +44,7 @@ DummyOutModel( ListExpr typeExpr, Word model )
 static Word
 DummyValueToModel( ListExpr typeExpr, Word value )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 static Word
@@ -53,13 +53,13 @@ DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
 {
   correct = true;
   errorInfo = 0;
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 static Word
 NoSpace( int size )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 static void
@@ -82,7 +82,7 @@ Errors will be found when the function is used, i.e., sent to the
 query processor.
 
 */
-  return (Word( instance ));
+  return (SetWord( instance ));
 }
 
 static ListExpr
@@ -106,6 +106,7 @@ CheckMap( ListExpr type, ListExpr& errorInfo )
 TypeConstructor functionMap( "map",             FunctionProperty,
                              OutMap,            InMap,         NoSpace,
                              DoNothing,         DummyCast,     CheckMap,
+                             0,                 0,
                              DummyInModel,      DummyOutModel,
                              DummyValueToModel, DummyValueListToModel );
 

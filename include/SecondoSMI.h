@@ -111,16 +111,18 @@ aborted and rolled back automatically.
 
 The class ~SmiEnvironment~ provides the following methods:
 
-[23]    Environment    & Transaction handling & Error handling     \\
+[23]    Environment     & Transaction handling & Error handling     \\
         [--------]
-        StartUp        & BeginTransaction     & CheckLastErrorCode \\
-        ShutDown       & CommitTransaction    & GetLastErrorCode   \\
-        SetUser        & AbortTransaction     & SetError           \\
-        CreateDatabase &  &  \\
-        OpenDatabase   &  &  \\
-        CloseDatabase  &  &  \\
-        EraseDatabase  &  &  \\
-        ListDatabases  &  &  \\
+        StartUp         & BeginTransaction     & CheckLastErrorCode \\
+        ShutDown        & CommitTransaction    & GetLastErrorCode   \\
+        SetUser         & AbortTransaction     & SetError           \\
+        CreateDatabase  &  &  \\
+        OpenDatabase    &  &  \\
+        CloseDatabase   &  &  \\
+        EraseDatabase   &  &  \\
+        ListDatabases   &  &  \\
+        IsDatabaseOpen  &  &  \\
+        CurrentDatabase &  &  \\
 
 The classes ~SmiRecordFile~ and ~SmiKeyedFile~ inherit the following methods
 from their base class ~SmiFile~:
@@ -310,7 +312,7 @@ The behaviour of the storage management system in single user mode is
 implementation dependent.
 
 */
-  static SmiType GetImplementationType() { return (smiType); };
+  static SmiType GetImplementationType();
 /*
 returns the implementation type of the storage management interface.
 
@@ -318,7 +320,7 @@ returns the implementation type of the storage management interface.
 thus allowing to perform implementation dependent activities.
 
 */
-  static SmiEnvironment* GetInstance() { return (&instance); };
+  static SmiEnvironment* GetInstance();
 /*
 returns a pointer to the Secondo Storage Management Environment
 (probably unnecessary).
@@ -341,9 +343,15 @@ implicitly. It is necessary to close *all* open ~SmiFiles~, iterators and
 record handles before shutting down the system.
 
 */
-  static bool IsDatabaseOpen() { return (dbOpened); }
+  static bool IsDatabaseOpen();
 /*
 returns ~true~ if a database is currently open, otherwise ~false~ is returned.
+
+*/
+  static string CurrentDatabase();
+/*
+returns the name of the currently open database. If no database is open
+a blank string is returned.
 
 */
   static bool CreateDatabase( const string& dbname );

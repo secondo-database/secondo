@@ -137,7 +137,9 @@ If there are no models, it returns some constant cost.
 #define ALGEBRA_MANAGER_H
 
 #include <map>
+#include "AlgebraTypes.h"
 #include "NestedList.h"
+#include "SecondoSMI.h"
 
 const int MAXARG = 10;
 /*
@@ -155,42 +157,10 @@ are constants for stream processing.
 
 */
 
+enum PersistDirection { ReadFrom, WriteTo };
+
 /*
 1.5 Types
-
-*/
-
-typedef void* (*ObjectCast)(void*);
-
-#ifndef TYPE_ADDRESS_DEFINED
-#define TYPE_ADDRESS_DEFINED
-typedef void* Address;
-#endif
-/*
-is the type for generic references. To use such references one need to
-apply an appropriate type cast.
-
-*/
-
-union Word
-{
-  Word()                   : addr( 0 )       {};
-  Word( Address  newaddr ) : addr( newaddr ) {};
-  Word( ListExpr newlist ) : list( newlist ) {};
-  Word( int      newival ) : ival( newival ) {};
-  Word( float    newrval ) : rval( newrval ) {};
-
-  Address  addr; // generic reference
-  ListExpr list; // nested list expression
-  int      ival; // integer value
-  float    rval; // floating point value with single precision
-};
-/*
-specifies a generic variant type for a ~Word~ of memory used for ~Secondo~
-objects. To be independent of the underlying processor architecture no
-assumptions about the size of a ~Word~ should be made but all required
-variants should be defined as a separate variant. For each variant a
-constructor must be added to the list of constructors.
 
 */
 
@@ -232,6 +202,14 @@ The type of a selection function:
 
 */
 typedef int (*SelectFunction)( ListExpr typeList );
+
+/*
+The type of a function for object value and model persistence:
+
+*/
+typedef bool (*PersistFunction)( PersistDirection dir,
+                                 SmiRecord& valueRecord,
+                                 const string& type, Word& value );
 
 /*
 The types of model mapping functions and of ~in~ and ~out~ functions for
@@ -279,6 +257,8 @@ typedef Word (*ObjectCreation)( const int size );
 
 typedef void (*ObjectDeletion)( Word& object ); 
 
+typedef void* (*ObjectCast)(void*);
+
 /*
 Type Checking functions, one for each type constructor:
 
@@ -308,8 +288,6 @@ are ~forward declarations~ of used data structures and classes.
 class AlgebraManager
 {
  public:
-  enum AlgebraLevel { None = 0,       Descriptive = 1,
-                      Executable = 2, Hybrid = 3 };
   AlgebraManager( NestedList& nlRef );
   virtual ~AlgebraManager();
 
@@ -463,6 +441,19 @@ returns the address of the type casting function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
+  bool PersistValue( const int algebraId, const int typeId,
+                     const PersistDirection dir,
+                     SmiRecord& valueRecord,
+                     const string& type, Word& value );
+  bool PersistModel( const int algebraId, const int typeId,
+                     const PersistDirection dir,
+                     SmiRecord& modelRecord,
+                     const string& type, Word& model );
+/*
+return the address of the persistence functions for values and models
+respectively of type constructor ~typeId~ of algebra ~algebraId~.
+
+*/
   InModelFunction
     InModel( const int algebraId, const int typeId );
 /*
@@ -572,20 +563,20 @@ struct AlgebraListEntry
 {
   AlgebraListEntry()
     : algebraId( 0 ), algebraName( "" ),
-      level( AlgebraManager::None ),
+      level( UndefinedLevel ),
       algebraInit( 0 ), useAlgebra( false ) {}
   AlgebraListEntry( const int algId, const string& algName,
-                    const AlgebraManager::AlgebraLevel algLevel,
+                    const AlgebraLevel algLevel,
                     const AlgebraInitFunction algInit,
                     const bool algUse )
     : algebraId( algId ), algebraName( algName ),
       level( algLevel ), algebraInit( algInit ),
-      useAlgebra( false ) {}
-  int                          algebraId;
-  string                       algebraName;
-  AlgebraManager::AlgebraLevel level;
-  AlgebraInitFunction          algebraInit;
-  bool                         useAlgebra;
+      useAlgebra( algUse ) {}
+  int                  algebraId;
+  string               algebraName;
+  AlgebraLevel         level;
+  AlgebraInitFunction  algebraInit;
+  bool                 useAlgebra;
 };
 /*
 is the type for entries in the list of algebras. Each algebra has a
@@ -611,16 +602,16 @@ initialization process or not.
 AlgebraListEntry AlgebraManager::algebraList[] = {
 
 #define ALGEBRA_LIST_END \
-  AlgebraListEntry( -1, "", AlgebraManager::None, 0, false ) };
+  AlgebraListEntry( -1, "", UndefinedLevel, 0, false ) };
 
 #define ALGEBRA_LIST_INCLUDE(ALGNO,ALGNAME,ALGTYPE) \
  AlgebraListEntry( ALGNO, #ALGNAME,\
-                   AlgebraManager::##ALGTYPE,\
+                   ALGTYPE##Level,\
                    &Initialize##ALGNAME, true ),
 
 #define ALGEBRA_LIST_EXCLUDE(ALGNO,ALGNAME,ALGTYPE) \
  AlgebraListEntry( ALGNO, #ALGNAME,\
-                   AlgebraManager::##ALGTYPE, 0, false ),
+                   ALGTYPE##Level, 0, false ),
 
 #define ALGEBRA_PROTO_INCLUDE(ALGNO,ALGNAME,ALGTYPE) \
 extern "C" Algebra* \

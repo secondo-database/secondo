@@ -98,7 +98,7 @@ creates a Secondo command parser.
 destroys a Secondo parser.
 
 */
-  int Text2List( string& inputString,
+  int Text2List( const string& inputString,
                  string& outputString,
                  string& errors );
 /*

@@ -1,7 +1,59 @@
 Installation
 ------------
 
-* Prerequisite: The Berkeley-DB 4.0.14 must be installed with C++ support
+* Prerequisites
+
+  The Storage Management Interface of Secondo is based on an additional
+  component. One may choose to use
+
+  (a) the Berkeley DB (Version 4.0.14)
+  (b) the OCI C++ Library (Version 0.5.6)
+
+  Berkeley DB
+  ===========
+  Unpack the file db-4.0.14.tar.gz or db-4.0.14.zip into a directory of
+  your choice. Building the library depends on the operating system:
+
+  Linux / Solaris
+  ---------------
+  Follow the installation instructions in the documentation of the
+  Berkeley DB.
+
+  *Note*: The Berkeley-DB 4.0.14 must be installed with C++ support,
+  i.e. use the option --enable-cxx of configure. For Solaris set the
+  environment variable CC to gcc (CC=gcc).
+  
+  Windows
+  -------
+  The Berkeley DB currently has no direct build support for GNU GCC
+  (MinGW). Additionally some source files need changes to be compilable.
+  The Secondo build process performs these changes automatically and
+  builds the Berkeley DB library files, too. You only need to configure
+  the MAKE configuration file appropriately.
+  
+  OCI C++ Library
+  ===============
+
+  *NOTE*: Before the OCI C++ Library can be build at least the Oracle
+  Client software including OCI support needs to be installed.
+
+  Unpack the file ocicpplib-0.5.6.tar.gz into a directory of your choice.
+  Building the library depends on the operating system:
+
+  Linux / Solaris
+  ---------------
+  Follow the installation instructions in the documentation of the
+  OCI C++ Library documentation (README, INSTALL).
+  *NOTE*: The Secondo SMI based on Oracle was not tested for Linux and
+  Solaris.
+
+  Windows
+  -------
+  The OCI C++ Library currently has no direct build support for GNU GCC
+  (MinGW). Additionally some source files need changes to be compilable.
+  The Secondo build process performs these changes automatically and
+  builds the OCI C++ Library, too. You only need to configure the
+  MAKE configuration file appropriately.
 
 * Unzip the Secondo archive into a directory of your choice
   then change to this directory
@@ -16,6 +68,9 @@ Installation
 * Run 'make' and/or 'make shared=yes'
   - libraries are created and copied to the 'lib' directory
 
+  *NOTE*: Add the option 'smitype=ora' if you want to use the Secondo
+  SMI based on Oracle.
+
 * Run 'make tests' and/or 'make tests shared=yes'
   - test programs are created and copied to the 'bin' directory
 
@@ -25,6 +80,8 @@ Installation
     - export LD_LIBRARY_PATH=<Secondo>/lib:<BerkeleyDB>/lib:$LD_LIBRARY_PATH
       where <Secondo> is the Secondo home directory and
             <BerkeleyDB> is the Berkeley DB home directory
+    or by setting the PATH environment variable on Windows systems.
+
   - create a directory for the Secondo database files and change
     'SecondoConfig.ini' appropriately.
 

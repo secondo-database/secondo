@@ -6,6 +6,9 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+using namespace OCICPP;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -15,9 +18,6 @@ April 2002 Ulrich Telle
 #include "SmiORA.h"
 #include "SmiCodes.h"
 #include "Profiles.h"
-
-using namespace std;
-using namespace OCICPP;
 
 /* --- Implementation of class SmiFile --- */
 
@@ -122,7 +122,7 @@ SmiFile::CheckName( const string& name )
 }
 
 bool
-SmiFile::Create( const string& context = "Default" )
+SmiFile::Create( const string& context /* = "Default" */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->sysConnection;
@@ -213,7 +213,7 @@ SmiFile::Create( const string& context = "Default" )
 }
 
 bool
-SmiFile::Open( const string& name, const string& context = "Default" )
+SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
   bool ok = false;
   bool existing = false;
@@ -350,7 +350,7 @@ SmiFile::Open( const string& name, const string& context = "Default" )
 }
 
 bool
-SmiFile::Open( const SmiFileId fileId, const string& context = "Default" )
+SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 {
   int rc = 0;
 
@@ -661,5 +661,5 @@ SmiFileIterator::Restart()
   return (ok);
 }
 
-/* --- bdbfile.cpp --- */
+/* --- oraFile.cpp --- */
 

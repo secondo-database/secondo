@@ -1,9 +1,11 @@
 /*
 1 File System Management
 
-December 2001 Ulrich Telle
+May 2002 Ulrich Telle
 
 */
+
+using namespace std;
 
 #include "SecondoConfig.h"
 
@@ -377,6 +379,81 @@ delete each file.
   // Restore current directory.
   SetCurrentFolder( oldFolder );
   return true;
+}
+
+bool
+FileSystem::SearchPath( const string& fileName, string& foundFile )
+{
+  bool ok = false;
+#ifdef SECONDO_WIN32
+  char buffer[MAX_PATH];
+  char* filepart;
+  if ( ::SearchPath( NULL, fileName.c_str(), NULL, MAX_PATH, buffer, &filepart ) == 0 )
+  {
+    if ( ::SearchPath( NULL, fileName.c_str(), ".exe", MAX_PATH, buffer, &filepart ) != 0 )
+    {
+      foundFile = buffer;
+      ok = true;
+    }
+  }
+  else
+  {
+    foundFile = buffer;
+    ok = true;
+  }
+#else
+  if ( fileName[0] == PATH_SLASH[0] )
+  {
+    // file name is fully qualified
+    foundFile = fileName;
+    ok = FileOrFolderExists( fileName );
+  }
+  else
+  {
+    // 1. Search in current directory
+    string cwd = GetCurrentFolder();
+    AppendSlash( cwd );
+    foundFile = cwd + fileName;
+    ok = FileOrFolderExists( foundFile );
+    if ( !ok )
+    {
+      // 2. Search path if file name was not partially qualified
+      if ( fileName.find( PATH_SLASH ) != std::string::npos )
+      {
+        char* envPath = getenv( "PATH" );
+        if ( envPath != 0 )
+        {
+          string path;
+          string pathRest = envPath;
+          string::size_type delim;
+          while ( pathRest.length() > 0 )
+          {
+            delim = pathRest.find( ":" );
+            if ( delim != string::npos )
+            {
+              path = pathRest.substr( 0, delim-1 );
+              pathRest = pathRest.substr( delim+1 );
+            }
+            else
+            {
+              path = pathRest;
+              pathRest = "";
+            }
+            AppendSlash( path );
+            foundFile = path + fileName;
+            ok = FileOrFolderExists( foundFile );
+            if ( ok ) break;
+          }
+        }
+      }
+    }
+  }
+#endif
+  if ( !ok )
+  {
+    foundFile = "";
+  }
+  return (ok);
 }
 
 void

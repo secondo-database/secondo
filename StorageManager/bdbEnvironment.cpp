@@ -2,9 +2,11 @@
 
 1 Implementation of SmiEnvironment using the Berkeley-DB 
 
-April 2002 Ulrich Telle
+May 2002 Ulrich Telle
 
 */
+
+using namespace std;
 
 #include <string>
 #include <algorithm>
@@ -21,8 +23,6 @@ April 2002 Ulrich Telle
 #include "SmiCodes.h"
 #include "Profiles.h"
 #include "FileSystem.h"
-
-using namespace std;
 
 /* --- Prototypes of internal functions --- */
 
@@ -44,7 +44,7 @@ string         SmiEnvironment::registrar;
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
 SmiEnvironment::Implementation::Implementation()
-  : bdbHome( "" ), usrTxn( 0 ), txnStarted( false ),
+  : bdbHome( "" ), envClosed( false ), usrTxn( 0 ), txnStarted( false ),
     bdbDatabases( 0 ), bdbSeq( 0 ), bdbCatalog( 0 ), bdbCatalogIndex( 0 )
 {
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
@@ -56,6 +56,11 @@ SmiEnvironment::Implementation::Implementation()
 
 SmiEnvironment::Implementation::~Implementation()
 {
+  if ( !envClosed )
+  {
+    CloseDbHandles();
+    bdbEnv->close( 0 );
+  }
   delete bdbEnv;
 }
 
@@ -86,7 +91,6 @@ SmiEnvironment::Implementation::AllocateDbHandle()
     new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS );
   instance.impl->dbHandles[idx].inUse    = true;
   instance.impl->dbHandles[idx].nextFree = 0;
-
   return (idx);
 }
 
@@ -346,6 +350,7 @@ SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
 bool
 SmiEnvironment::Implementation::InsertIntoCatalog( const SmiCatalogEntry& entry, DbTxn* tid )
 {
+cout << "InsertIntoCatalog: " << entry.fileId << ":" << entry.fileName << endl;
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
@@ -660,7 +665,7 @@ SmiEnvironment::~SmiEnvironment()
 }
 
 void
-SmiEnvironment::SetError( const SmiError smiErr, const int sysErr = 0 )
+SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
 {
   lastError = smiErr;
   if ( sysErr != 0 )
@@ -696,6 +701,11 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   dbenv->set_error_stream( &errStream );
   dbenv->set_errpfx( "SecondoSMI" );
+
+  // --- Set time between checkpoints
+
+  instance.impl->minutes =
+    SmiProfile::GetParameter( "BerkeleyDB", "CheckpointTime", 5, parmFile );
 
   // --- Set cache size
 
@@ -749,7 +759,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   if ( rc == 0 )
   {
-    instance.impl->bdbHome = SmiProfile::GetParameter( "BerkeleyDB", "SecondoHome", "", parmFile.c_str() );
+    instance.impl->bdbHome = SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile.c_str() );
     u_int32_t flags = 0;
     switch ( mode )
     {
@@ -768,8 +778,9 @@ Using this mode is not recommended except for read-only databases.
       case SmiEnvironment::SingleUser:
         singleUserMode  = true;
         useTransactions = true;
-        flags = DB_PRIVATE  | DB_CREATE     | DB_RECOVER  |
-                DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN;
+        flags = DB_PRIVATE   | DB_CREATE   | DB_RECOVER  |
+                DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
+                DB_INIT_TXN;
 /*
 creates a private environment for the calling process and enables
 automatic recovery during startup. If the environment does not exist,
@@ -853,6 +864,7 @@ SmiEnvironment::ShutDown()
   {
     CloseDatabase();
   }
+  SmiEnvironment::Implementation::CloseDbHandles();
 
   // --- Close Berkeley DB environment
 
@@ -862,8 +874,8 @@ SmiEnvironment::ShutDown()
     delete dbctlg;
     instance.impl->bdbDatabases = 0;
   }
-
   rc = dbenv->close( 0 );
+  instance.impl->envClosed = true;
   smiStarted = false;
 
   // --- Check error condition
@@ -1159,6 +1171,10 @@ SmiEnvironment::CommitTransaction()
     }
     instance.impl->txnStarted = false;
     instance.impl->usrTxn = 0;
+    if ( singleUserMode )
+    {
+      instance.impl->bdbEnv->txn_checkpoint( 0, instance.impl->minutes, 0 );
+    }
   }
   else
   {
@@ -1193,6 +1209,10 @@ SmiEnvironment::AbortTransaction()
     }
     instance.impl->txnStarted = false;
     instance.impl->usrTxn = 0;
+    if ( singleUserMode )
+    {
+      instance.impl->bdbEnv->txn_checkpoint( 0, instance.impl->minutes, 0 );
+    }
   }
   else
   {

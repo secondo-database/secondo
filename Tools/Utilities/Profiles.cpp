@@ -1,12 +1,12 @@
 // --- profiles.cpp  --- 
 
+using namespace std;
+
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
 #include "Profiles.h"
-
-using namespace std;
 
 static bool              CmpSec( const string& line, const string& appName );
 static string::size_type CmpKey( const string& line, const string& keyName );

@@ -11,6 +11,8 @@ through sockets.
 
 */
 
+using namespace std;
+
 #include "SecondoConfig.h"
 #include "SocketIO.h"
 

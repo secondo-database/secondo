@@ -1,0 +1,75 @@
+#
+# MinGW makefile for OCI C++ Library 0.5.6
+#
+# make -f libocicpp.mingw
+#
+
+.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
+
+CC=gcc
+LD=gcc
+AR=ar
+
+DEFAULTLIBS= -L/tools/impdef/test/ -loci -lstdc++
+
+OCIORACLEINCLUDE=/oracle/ora81/oci/include
+
+OBJECTS=\
+	Connection.o\
+	Cursor.o\
+	Lob.o\
+	OraDate.o\
+	OraDummy.o\
+	OraError.o\
+	OraLabel.o\
+	OraLob.o\
+	OraNumber.o\
+	OraRaw.o\
+	OraRefCur.o\
+	OraRowID.o\
+	OraString.o\
+	OraType.o\
+	RowID.o\
+	db.o\
+	ocicpp.o\
+	OraBFile.o\
+	BFile.o\
+	TLob.o\
+	AQMessage.o\
+	AQQueue.o
+
+LDFLAGS = -s -shared
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,libocicpp.dll.a
+
+all: libocicpp.a libocicpp.dll example
+
+CXXFLAGS= -mconsole -DPACKAGE=\"ocicpplib\" -DVERSION=\"0.5.6\" -I. -I$(OCIORACLEINCLUDE) -O2 -Wall 
+#CFLAGS_TARGET_02= -mconsole -DPACKAGE=\"ocicpplib\" -DVERSION=\"0.5.6\" -I. -I$(OCIORACLEINCLUDE) -O2 -Wall -s
+
+# static library
+
+libocicpp.a: $(OBJECTS)
+	$(AR) -r libocicpp.a $(OBJECTS)
+
+# dll
+
+libocicpp.dll: $(OBJECTS)
+	$(LD) $(LDFLAGS) -o libocicpp.dll $(LDOPT) $(OBJECTS) $(DEFAULTLIBS)
+
+#  C++ example
+
+example:\
+	demo.exe
+
+demo.exe: demo.o
+	$(CC) -s -Wl,--enable-auto-import -o demo.exe demo.o $(CXXFLAGS) -L./ -locicpp $(DEFAULTLIBS)
+
+demo.o: ../demo/demo-mingw.cpp
+	$(CC) -c -o demo.o ../demo/demo-mingw.cpp $(CXXFLAGS)
+
+
+# Source files
+
+.cpp.o:
+	$(CC) -c -o $@ $< $(CXXFLAGS)
+

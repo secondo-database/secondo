@@ -1,15 +1,16 @@
+using namespace std;
+
 #include "AlgebraManager.h"
 #include "Algebra.h"
 #include "NestedList.h"
-
-using namespace std;
+#include "SecondoSystem.h"
 
 /* Member functions of class Operator: */
 
 Word
 Operator::DummyModel( ArgVector, Supplier )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 ListExpr
@@ -25,11 +26,10 @@ Operator::Operator( const string& nm,
                     ModelMapping mms[],
                     SelectFunction sf,
                     TypeMapping tm,
-                    CostMapping cm = Operator::DummyCost )
+                    CostMapping cm /* = Operator::DummyCost */ )
 {
   name           = nm;
   specString     = spec;
-  specification  = 0;
   numOfFunctions = noF;
   selectFunc     = sf;
   valueMap       = new ValueMapping[numOfFunctions];
@@ -50,11 +50,10 @@ Operator::Operator( const string& nm,
                     ModelMapping mm,
                     SelectFunction sf,
                     TypeMapping tm,
-                    CostMapping cm = Operator::DummyCost )
+                    CostMapping cm /* = Operator::DummyCost */ )
 {
   name           = nm;
   specString     = spec;
-  specification  = 0;
   numOfFunctions = 1;
   selectFunc     = sf;
   valueMap       = new ValueMapping[1];
@@ -139,10 +138,98 @@ Operator::CallCostMapping( ListExpr argList )
 
 /* Member functions of Class TypeConstructor */
 
+bool
+TypeConstructor::DefaultPersistValue( const PersistDirection dir,
+                                      SmiRecord& valueRecord,
+                                      const string& type, Word& value )
+{
+  NestedList* nl = SecondoSystem::GetNestedList();
+  ListExpr typeExpr, valueList;
+  string valueString;
+  int valueLength;
+  nl->ReadFromString( type, typeExpr );  
+  if ( dir == ReadFrom )
+  {
+    ListExpr errorInfo = 0;
+    bool correct;
+    valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+    char* buffer = new char[valueLength];
+    valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+    valueString.assign( buffer, valueLength );
+    delete []buffer;
+    nl->ReadFromString( valueString, valueList );
+    value = In( typeExpr, valueList, 1, errorInfo, correct );
+    if ( errorInfo != 0 )
+    {
+      nl->Destroy( errorInfo );
+    }
+  }
+  else // WriteTo
+  {
+    valueList = Out( typeExpr, value );
+    nl->WriteToString( valueString, valueList );
+    valueLength = valueString.length();
+    valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
+    valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+  }
+  nl->Destroy( valueList );
+  nl->Destroy( typeExpr );
+  return (true);
+}
+
+bool
+TypeConstructor::DefaultPersistModel( const PersistDirection dir,
+                                      SmiRecord& modelRecord,
+                                      const string& type, Word& model )
+{
+  NestedList* nl = SecondoSystem::GetNestedList();
+  ListExpr typeExpr, modelList;
+  string modelString;
+  int modelLength;
+  nl->ReadFromString( type, typeExpr );  
+  if ( dir == ReadFrom )
+  {
+    modelRecord.Read( &modelLength, sizeof( modelLength ), 0 );
+    char* buffer = new char[modelLength];
+    modelRecord.Read( buffer, modelLength, sizeof( modelLength ) );
+    modelString.assign( buffer, modelLength );
+    delete []buffer;
+    nl->ReadFromString( modelString, modelList );
+    model = InModel( typeExpr, modelList, 1 );
+  }
+  else
+  {
+    modelList = OutModel( typeExpr, model );
+    nl->WriteToString( modelString, modelList );
+    modelLength = modelString.length();
+    modelRecord.Write( &modelLength, sizeof( modelLength ), 0 );
+    modelRecord.Write( modelString.data(), modelString.length(), sizeof( modelLength ) );
+  }
+  nl->Destroy( modelList );
+  nl->Destroy( typeExpr );
+  return (true);
+}
+
+bool
+TypeConstructor::DummyPersistValue( const PersistDirection dir,
+                                    SmiRecord& valueRecord,
+                                    const string& type, Word& value )
+{
+  return (true);
+}
+
+bool
+TypeConstructor::DummyPersistModel( const PersistDirection dir,
+                                    SmiRecord& modelRecord,
+                                    const string& type, Word& model )
+{
+  return (true);
+}
+
 Word
 TypeConstructor::DummyInModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 ListExpr
@@ -154,7 +241,7 @@ TypeConstructor::DummyOutModel( ListExpr typeExpr, Word model )
 Word
 TypeConstructor::DummyValueToModel( ListExpr typeExpr, Word value )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 Word
@@ -164,7 +251,7 @@ TypeConstructor::DummyValueListToModel( const ListExpr typeExpr,
                                         ListExpr& errorInfo,
                                         bool& correct )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 TypeConstructor::TypeConstructor( const string& nm,
@@ -175,13 +262,14 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   ObjectDeletion del,
                                   ObjectCast ca,
                                   TypeCheckFunction tcf,
+                                  PersistFunction pvf,
+                                  PersistFunction pmf,
                                   InModelFunction inm,
                                   OutModelFunction outm,
                                   ValueToModelFunction vtm,
                                   ValueListToModelFunction vltm )
 {
   name                 = nm;
-  property             = 0;
   propFunc             = prop;
   outFunc              = out;
   inFunc               = in;
@@ -189,6 +277,8 @@ TypeConstructor::TypeConstructor( const string& nm,
   deleteFunc           = del;
   castFunc             = ca;
   typeCheckFunc        = tcf;
+  persistValueFunc     = pvf;
+  persistModelFunc     = pmf;
   inModelFunc          = inm;
   outModelFunc         = outm;
   valueToModelFunc     = vtm;
@@ -211,10 +301,7 @@ TypeConstructor::AssociateKind( const string& kindName )
 ListExpr
 TypeConstructor::Property()
 {
-  if ( property == 0 )
-  {
-    property = (*propFunc)();
-  }
+  ListExpr property = (*propFunc)();
   return (property);
 }
 
@@ -241,6 +328,36 @@ void
 TypeConstructor::Delete( Word& w )
 {
   (*deleteFunc)( w );
+}
+
+bool
+TypeConstructor::PersistValue( PersistDirection dir,
+                               SmiRecord& valueRecord,
+                               const string& type, Word& value )
+{
+  if ( persistValueFunc != 0 )
+  {
+    return ((*persistValueFunc)( dir, valueRecord, type, value ));
+  }
+  else
+  {
+    return (DefaultPersistValue( dir, valueRecord, type, value ));
+  }
+}
+
+bool
+TypeConstructor::PersistModel( PersistDirection dir,
+                               SmiRecord& modelRecord,
+                               const string& type, Word& model )
+{
+  if ( persistModelFunc != 0 )
+  {
+    return ((*persistModelFunc)( dir, modelRecord, type, model ));
+  }
+  else
+  {
+    return (DefaultPersistModel( dir, modelRecord, type, model ));
+  }
 }
 
 Word

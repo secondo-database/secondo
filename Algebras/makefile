@@ -25,6 +25,7 @@ makedirs:
 
 .PHONY: clean
 clean:
+	$(RM) specs
 	$(MAKE) -C Management clean
 	$(MAKE) -C Standard-C++ clean
 	$(MAKE) -C Function-C++ clean

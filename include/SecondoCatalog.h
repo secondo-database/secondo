@@ -1,0 +1,543 @@
+/*
+
+1 Header File: SecondoCatalog
+
+September 1996 Claudia Freundorfer
+
+December 20, 1996 RHG Changed definition of procedure ~OutObject~.
+
+May 15, 1998 RHG Added treatment of models, especially functions
+~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~. 
+
+This module defines the module ~SecondoCatalog~. It manages a set of
+databases. A database consists of a set of named types, a set of objects
+with given type name or type expressions and a set of models for
+objects. Objects can be persistent or not. Persistent objects are
+implemented by the ~StorageManager~. When a database is opened, the
+catalog with informations about types, type constructors, operators,
+objects and models of the database is loaded as *Secondo Catalog* into
+main memory. The implementation of the ~SecondoCatalog~ is based on the
+concept of ~compact tables~ (module ~Catalog Manager~) and thereby safe
+under transactions. Furthermore the catalog of each algebra is loaded
+into memory by calling the procedures of the module ~Algebra Manager2~. 
+
+1.2 Interface
+    
+*/
+
+#ifndef SECONDO_CATALOG_H
+#define SECONDO_CATALOG_H
+
+#include "AlgebraManager.h"
+#include "NestedList.h"
+#include "NameIndex.h"
+#include "SecondoSMI.h"
+
+/************************************************************************** 
+2.1 Export 
+
+*/ 
+
+/**************************************************************************
+
+3.1 Types, Variables
+
+*/
+
+/*
+The type ~dbState~ has two valid states : only one database can be
+opened concurrently at any time, then the SECONDO database system has
+the state ~dbOpen~, otherwise it has the state ~dbClosed~. 
+
+*/
+
+/*enum DbState { dbOpen, dbClosed };*/
+
+/**************************************************************************
+3.2 Exported Functions and Procedures 
+
+3.2.1 Interface to DatabasesAndTransactions 
+
+*/
+
+class SecondoCatalog
+{
+ public:
+  SecondoCatalog( const string& name,
+                  const AlgebraLevel level );
+  virtual ~SecondoCatalog();
+  bool Open();
+  bool Close();
+  bool Save();
+  bool CleanUp( const bool revert );
+
+/**********************************************************
+3.2.2 Database Types   
+
+*/
+  ListExpr ListTypes();
+/*
+Returns a list of types of the whole database in the following format:
+
+---- (TYPES 
+       (TYPE <type name><type expression>)* 
+     )
+----
+
+Precondition: dbState = dbOpen.
+
+*/
+  bool InsertType( const string& typeName, ListExpr typeExpr );
+/*
+Inserts a new type with identifier ~typeName~ defined by a list
+~typeExpr~ of already existing types in the database. Returns ~false~,
+if the name was already defined. 
+
+Precondition: dbState = dbOpen.
+
+*/
+  int DeleteType( const string& typeName );
+/*
+Deletes a type with identifier ~typename~ in the database. Returns error
+1 if type is used by an object, error 2, if ~typename~ is not known. 
+
+Precondition: dbState = dbOpen.
+
+*/
+
+  bool MemberType( const string& typeName );
+/*                  
+Returns true, if type with name ~typename~ is member of the actually
+open database. 
+
+Precondition: dbState = dbOpen.
+
+*/                          
+
+  bool LookUpTypeExpr( const ListExpr typeExpr, string& typeName,
+                       int& algebraId, int& typeId );
+/*                        
+Returns the algebra identifier ~algebraId~ and the type identifier
+~opId~ and the name ~typecon~ of the outermost type constructor for a
+given type expression ~typeExpr~, if it exists, otherwise an empty
+string as ~typeName~ and value 0 for the identifiers. 
+
+Precondition: dbState = dbOpen.
+
+*/
+  ListExpr GetTypeExpr( const string& typeName );
+/*                        
+Returns a type expression for a given type name ~typename~,
+if exists. 
+
+Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
+
+*/
+  ListExpr NumericType( const ListExpr type );
+/*
+Transforms a given type expression into a list structure where each type
+constructor has been replaced by the corresponding pair (algebraId,
+typeId). For example, 
+
+----	int	->	(1 1)
+
+	(rel (tuple ((name string) (age int)))
+
+	-> 	((2 1) ((2 2) ((name (1 4)) (age (1 1))))
+----
+
+Identifiers such as ~name~, ~age~ are moved unchanged into the result
+list. If a type expression contains other constants that are not
+symbols, e.g. integer constants as in (array 10 real), they are also
+moved unchanged into the result list. 
+
+The resulting form of the type expression is useful for calling the type
+specific ~In~ and ~Out~ procedures. 
+
+*/
+  ListExpr ExpandedType ( const ListExpr type );
+/*
+Transforms a given type definition (a type expression possibly
+containing type names, or just a single type name) into the
+corresponding type expression where all names have been replaced by
+their defining expressions. 
+
+*/
+/****************************************************************************
+3.1.1 Kind Checking
+
+*/
+  bool KindCorrect ( const ListExpr type, ListExpr& errorInfo );
+/*
+Here ~type~ is a type expression. ~KindCorrect~ does the kind checking;
+if there are errors, they are reported in the list ~errorInfo~, and
+~FALSE~ is returned. ~errorInfo~ is a list whose entries are again
+lists, the first element of an entry is an error code number. For
+example, an entry 
+
+----	(1 DATA (hello world))
+----
+
+says that kind ~DATA~ does not match the type expression ~(hello
+world)~. This is the meaning of the general error code 1. The other
+error codes are type-constructor specific. 
+
+*/
+
+/************************************************************************
+3.2.3 Database Objects and Models
+
+*/                                
+  ListExpr ListObjects();
+/*
+Returns a list of ~objects~ of the whole database in the same format that is used in the procedures ~SaveDatabase~ and ~RestoreDatabase~:
+
+---- (OBJECTS 
+       (OBJECT <object name>(<type name>) <type expression>)* 
+     )
+----
+
+For each object the *value* component is missing, otherwise the whole database will be returned.
+
+Precondition: dbState = dbOpen.
+
+*/
+  ListExpr ListObjectsFull();
+/*
+Returns a list of ~objects~ of the whole database in the following format:
+
+---- (OBJECTS 
+       (OBJECT <object name>(<type name>) <type expression> <value> <model>)*
+     )
+----
+
+*/
+  bool CreateObject( const string& objectName, const string& typeName,
+                     const ListExpr typeExpr, const int sizeOfComponents );
+/*
+Creates a new object with identifier ~objectName~ defined with type name
+~typeName~ (can be empty) and type ~typeExpr~. The value is not yet
+defined, and no memory is allocated. Returns error 1, if the object name
+is defined already. 
+
+Precondition: dbState = dbOpen.
+
+*/
+  bool InsertObject( const string& objectName, const string& typeName,
+                     const ListExpr typeExpr, const Word valueWord,
+                     const bool defined, const Word modelWord );
+/*
+Inserts a new object with identifier ~objectName~ and value ~word~
+defined by type name ~typeName~ or by a list ~typeExpr~ of already
+existing types (which always exists) into the database catalog.
+Parameter ~defined~ tells, whether ~word~ actually contains a defined
+value. Further, ~modelWord~ contains a model for this value, possibly 0,
+the undefined model. If the object name already exists, the procedure
+has no effect. Returns error 1 if the ~objectName~ is used already. 
+
+When the given object has no type name, it is mandatory, that ~typeName~
+is an empty string.
+
+Precondition: dbState = dbOpen.
+
+*/
+
+  bool DeleteObject( const string& objectName );
+/*
+Deletes an object with identifier ~objectName~ in the database. Returns
+error 1 if the object does not exist. 
+
+Precondition: dbState = dbOpen.
+
+*/
+
+  Word InObject( const ListExpr typeExpr,
+                 const ListExpr valueList,
+                 const int errorPos,
+                 ListExpr& errorInfo,
+                 bool& correct );
+/*
+Converts an object of the type given by ~typeExpr~ and the value given
+as a nested list into a WORD representation which is returned. Any
+errors found are returned together with the given ~errorPos~ in the list
+~errorInfo~. ~Correct~ is set to TRUE if a value was created (which
+means that the input was at least partially correct). 
+
+Works only at the executable level.
+
+Precondition: dbState = dbOpen.
+
+*/
+  ListExpr GetObjectValue( const string& objectName );
+/*
+Returns the value of a locally stored database object with identifier
+~objectName~ as list expression to show the value to the database
+user. If the value is undefined, an empty list is returned. 
+
+Works only at the executable level.
+
+Precondition: dbState = dbOpen.
+
+*/
+  ListExpr OutObject( const ListExpr type, const Word object );
+/*
+Returns for a given ~object~ of type ~type~ its value in nested list
+representation. 
+
+Works only at the executable level.
+
+*/
+  bool IsObjectName( const string& objectName );
+/*
+Checks whether ~objectName~ is a valid object name.
+
+*/
+  bool GetObject( const string& objectName,
+                  Word& word, bool& defined );
+/*
+Returns the value ~word~ of an object with identifier ~objectName~.
+~defined~ tells whether the word contains a meaningful value. 
+
+Works only at the executable level.
+
+Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+
+*/
+  bool GetObjectExpr( const string& objectName,
+                      string& typeName,
+                      ListExpr& typeExpr,
+                      Word& word,
+                      bool& defined,
+                      Word& model,
+                      bool& hasTypeName );
+/*
+Returns the value ~word~, the type name ~typeName~, the type expression
+~typeExpr~, and the ~model~ of an object with identifier ~objectName~.
+~defined~ tells whether ~word~ contains a defined value. If object has
+no type name the variable ~hasTypeName~ is set to FALSE and the
+procedure returns an empty string as ~typeName~. 
+
+Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+
+*/
+  bool GetObjectType( const string& objectName, string& typeName );
+/* 
+Returns the type name ~typeName~ of an object with identifier
+~objectName~, if the type name exists and an empty string otherwise. 
+
+Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+
+*/
+  bool UpdateObject( const string& objectName, const Word word );
+/*
+Overwrites the value of the object with identifier ~objectName~ with a
+new value ~word~. Returns error 1 if object does not exist. 
+
+Works only at the executable level.
+
+*/
+  Word InObjectModel( const ListExpr typeExpr,
+                      const ListExpr modelList,
+                      const int objNo );
+/*
+Converts a model of the type given by ~typeExpr~ and the value given as
+a nested list into a WORD representation which is returned. 
+
+Precondition: dbState = dbOpen.
+
+*/
+
+  ListExpr OutObjectModel( const ListExpr typeExpr, const Word model );
+/*
+Returns for a given ~model~ of type ~typeExpr~ its description in nested
+list representation. 
+
+*/
+
+  Word ValueToObjectModel( const ListExpr typeExpr, const Word value );
+/*
+Returns for a given ~value~ of type ~typeExpr~ its model.
+
+Works only at the executable level.
+
+*/
+  Word ValueListToObjectModel( const ListExpr typeExpr,
+                               const ListExpr valueList,
+                               int& errorPos, 
+                               ListExpr& errorInfo, 
+                               bool& correct );
+/*
+Returns for a given ~valueList~ of type ~typeExpr~ its model. Any errors
+found are returned together with the given ~errorPos~ in the list
+~errorInfo~. ~Correct~ is set to TRUE if a model was created . 
+
+Works only at the descriptive level.
+
+*/
+
+/************************************************************************
+3.2.4 Algebra Type Constructors
+
+*/
+  ListExpr ListTypeConstructors();
+/*
+Returns a list of type constructors of the actually load
+algebras in the following format: 
+
+---- (
+      (<type constructor name> (<arg 1>..<arg n>) <result>) * 
+     )
+----
+
+*/
+  bool IsTypeName( const string& typeName );
+/*
+Checks whether ~typeName~ is a valid name for an algebra type
+constructor or a database type. 
+
+*/
+  bool GetTypeId( const string& typeName,
+                  int& algebraId, int& typeId );
+/*
+Returns the algebra identifier ~algebraId~ and the type identifier
+~opId~ of an existing type constructor or database type with name
+~typeName~. 
+
+Precondition: ~IsTypeName(typeName)~ delivers TRUE.
+  
+*/
+  string GetTypeName( const int algebraId, const int typeId );
+/*
+Looks up the name of a type constructor defined by the algebra
+identifier ~algebraId~ and the type identifier ~opId~. 
+
+*/
+  ListExpr GetTypeDS( const int algebraId, const int typeId );
+/*
+Looks up the properties of a type constructor defined by the
+algebra identifier ~algebraId~ and the type identifier ~opId~. 
+
+*/
+
+/************************************************************************
+3.2.5 Algebra Operators
+
+*/
+  ListExpr ListOperators();
+/*
+Returns a list of operators specifications in the following format: 
+
+----
+(  
+  ( <operator name>   
+    (<arg type spec 1>..<arg type spec n>)
+    <result type spec>
+    <syntax>
+    <variable defs>
+    <formula>
+    <explaining text>
+  )*
+) 
+----
+This format is based on the formal definition of the syntax of operator
+specifications from [BeG95b, Section3.1]. 
+
+*/
+  bool IsOperatorName( const string& opName );
+/*
+Checks whether ~opName~ is a valid operator name.
+
+*/
+  void GetOperatorId( const string& opName, int& algebraId, int& opId );
+/*
+Returns the algebra identifier ~algebraId~ and the operator identifier
+~opId~ of an existing ~opName~. 
+
+Precondition: ~IsOperatorName(opName)~ delivers TRUE.  
+
+*/
+
+  string GetOperatorName( const int algebraId, const int opId );
+/*
+Looks for the name of an operator defined by the algebra identifier ~algebraId~ and the operator ~opId~.
+
+*/ 
+  ListExpr GetOperatorSpec( const int algebraId, const int opId );
+/*
+Returns the operator specification of an operator defined by the
+algebra identifier ~algebraId~ and the operator identifier ~opId~ in the
+following format: 
+
+----
+  ( <operator name>   
+    (<arg type spec 1>..<arg type spec n>)
+    <result type spec>
+    <syntax>
+    <variable defs>
+    <formula>
+    <explaining text>
+  )
+----
+
+*/
+ protected:
+  bool TypeUsedByObject( const string& typeName );
+
+ private:
+  string           catalogName;
+  AlgebraLevel     catalogLevel;
+  NestedList*      nl;
+  AlgebraManager*  am;
+
+  struct CatalogEntry
+  {
+    int      algebraId;
+    int      entryId;
+  };
+  typedef map<string,CatalogEntry> LocalCatalog;
+  LocalCatalog constructors;
+  LocalCatalog operators;
+
+  enum EntryState { EntryInsert, EntryUpdate, EntryDelete };
+
+  struct TypesCatalogEntry
+  {
+    int        algebraId;
+    int        typeId;
+    string     typeExpr;
+    EntryState state;
+  };
+  typedef map<string,TypesCatalogEntry> TypesCatalog;
+  TypesCatalog types;
+  SmiKeyedFile typeCatalogFile;
+
+  struct ObjectsCatalogEntry
+  {
+    int         algebraId;
+    int         typeId;
+    string      typeName;
+    string      typeExpr;
+    Word        value;
+    bool        valueDefined;
+    SmiRecordId valueRecordId;
+    Word        model;
+    SmiRecordId modelRecordId;
+    EntryState  state;
+  };
+  typedef map<string,ObjectsCatalogEntry> ObjectsCatalog;
+  ObjectsCatalog objects;
+  SmiKeyedFile   objCatalogFile;
+  SmiRecordFile  objValueFile;
+  SmiRecordFile  objModelFile;
+
+  bool testMode;
+/*
+If ~testMode~ is set some preconditions are tested. If an error occurs,
+HALT is called.
+
+*/
+  friend class SecondoSystem;
+};
+
+#endif
+

@@ -1,6 +1,6 @@
 /*
 
-1 Header File: Unix32Socket
+1 Header File: UnixSocket
 
 February 2002 Ulrich Telle
 

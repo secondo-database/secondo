@@ -6,6 +6,9 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+using namespace OCICPP;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -13,9 +16,6 @@ April 2002 Ulrich Telle
 #include "SecondoSMI.h"
 #include "SmiORA.h"
 #include "SmiCodes.h"
-
-using namespace std;
-using namespace OCICPP;
 
 /* --- Implementation of class SmiRecord --- */
 
@@ -47,7 +47,7 @@ SmiRecord::~SmiRecord()
 SmiSize
 SmiRecord::Read( void* buffer, 
                  const SmiSize numberOfBytes,
-                 const SmiSize offset = 0 )
+                 const SmiSize offset /* = 0 */ )
 {
   SmiSize actRead = 0;
 
@@ -82,7 +82,7 @@ SmiRecord::Read( void* buffer,
 SmiSize
 SmiRecord::Write( const void*   buffer, 
                   const SmiSize numberOfBytes, 
-                  const SmiSize offset = 0 )
+                  const SmiSize offset /* = 0 */ )
 {
   SmiSize actWritten = 0;
 

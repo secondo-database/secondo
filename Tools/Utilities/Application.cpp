@@ -5,6 +5,8 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+
 #include <cstdio>
 #include <iostream>
 #include <sstream>
@@ -20,13 +22,16 @@ April 2002 Ulrich Telle
 #include <unistd.h>
 #endif
 
-using namespace std;
-
 #ifndef _POSIX_OPEN_MAX
 #define _POSIX_OPEN_MAX	256
 #endif
 
 Application* Application::appPointer = 0;
+
+Application* Application::Instance()
+{
+  return (appPointer);
+}
 
 /*
 Class constructors/destructors
@@ -52,7 +57,6 @@ Application::Application( int argc, const char** argv )
     SocketDescriptor sd;
     istringstream is( argv[argc-1]+9 );
     is >> sd;
-cout << "Socket is " << sd << endl;
     clientSocket = Socket::CreateClient( sd );
   }
   if ( strncmp( argv[argc-1], "--ppid=", 7 ) == 0 )
@@ -60,7 +64,6 @@ cout << "Socket is " << sd << endl;
     argCount--;
     istringstream is( argv[argc-1]+7 );
     is >> parent;
-cout << "Parent is " << parent;
   }
   else
   {
@@ -90,7 +93,11 @@ cout << "Parent is " << parent;
   }
 #endif
   lastSignal = 0;
-	
+  abortMode = false;
+  abortFlag = false;
+  user1Flag = false;
+  user2Flag = false;
+
 #ifndef SECONDO_WIN32
   // --- Trap all signals that would terminate the program by default anyway.
   signal( SIGHUP,    Application::AbortOnSignalHandler );
@@ -124,13 +131,11 @@ cout << "Parent is " << parent;
   DWORD dwProcess = ::GetCurrentProcessId();
   ostringstream os;
   os << "SECONDO_RSH_" << dwProcess;
-cout << "RemoteSignalHandler: " << os.str() << endl;
   rshSocket = Socket::CreateLocal( os.str() );
 
   HANDLE rshHandle;
   DWORD  rshId;
   rshHandle = CreateThread( 0, 0, Application::RemoteSignalThread, (LPVOID) this, 0, &rshId );
-cout << "rshId=" << rshId << endl;
   if ( rshHandle != 0 )
   {
     ::CloseHandle( rshHandle );
@@ -144,9 +149,7 @@ Application::~Application()
 #ifdef SECONDO_WIN32
   if ( rshSocket != 0 )
   {
-cout << " CancelAccept start" << endl;
     rshSocket->CancelAccept();
-cout << " CancelAccept ready" << endl;
     delete rshSocket;
     rshSocket = 0;
   }
@@ -225,7 +228,6 @@ Application::RemoteSignalHandler()
       iostream& ss = request->GetSocketStream();
       string cmd;
       ss >> cmd;
-cout << "RemoteSignalHandler cmd=<" << cmd << ">" << endl;
       if ( cmd == "TERMINATE" )
       {
         if ( abortMode )
@@ -262,7 +264,6 @@ cout << "RemoteSignalHandler cmd=<" << cmd << ">" << endl;
       delete request;
     }
   }
-cout << "RemoteSignalHandler exit" << endl;
   return (0);
 }
 
@@ -270,7 +271,6 @@ BOOL
 Application::AbortOnSignalHandler( DWORD sig )
 {
   Application::appPointer->lastSignal = sig;
-//  cout << "sigtype=" << sigtype << endl;
   if ( sig == CTRL_C_EVENT || 
        sig == CTRL_BREAK_EVENT ||
        sig == CTRL_CLOSE_EVENT ||

@@ -1,3 +1,5 @@
+using namespace std;
+
 #include "NestedList.h"
 #include "NLParser.h"
 #include "NLScanner.h"

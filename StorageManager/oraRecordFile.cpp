@@ -6,6 +6,9 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+using namespace OCICPP;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -15,13 +18,10 @@ April 2002 Ulrich Telle
 #include "SmiORA.h"
 #include "SmiCodes.h"
 
-using namespace std;
-using namespace OCICPP;
-
 /* --- Implementation of class SmiRecordFile --- */
 
 SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
-                              SmiSize recordLength = 0 )
+                              SmiSize recordLength /* = 0 */ )
 {
   opened = false;
   if ( hasFixedLengthRecords )
@@ -45,8 +45,8 @@ SmiRecordFile::~SmiRecordFile()
 bool
 SmiRecordFile::SelectRecord( const SmiRecordId recno, 
                              SmiRecord& record,
-                             const SmiFile::AccessType accessType =
-                                   SmiFile::ReadOnly )
+                             const SmiFile::AccessType accessType
+                               /* = SmiFile::ReadOnly */ )
 {
   Connection& con = SmiEnvironment::instance.impl->usrConnection;
   try
@@ -90,8 +90,8 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
 
 bool
 SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
-                          const SmiFile::AccessType accessType =
-                                SmiFile::ReadOnly )
+                          const SmiFile::AccessType accessType
+                            /* = SmiFile::ReadOnly */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->usrConnection;

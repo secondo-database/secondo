@@ -16,7 +16,7 @@
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: Storage Management Interface (Oracle Implementation)
+1 Header File: Storage Management Interface (Oracle DB)
 
 April 2002 Ulrich Telle
 

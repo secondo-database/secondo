@@ -6,6 +6,8 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -16,12 +18,10 @@ April 2002 Ulrich Telle
 #include "SmiBDB.h"
 #include "SmiCodes.h"
 
-using namespace std;
-
 /* --- Implementation of class SmiRecordFile --- */
 
 SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
-                              SmiSize recordLength = 0 )
+                              SmiSize recordLength /* = 0 */ )
 {
   opened = false;
   if ( hasFixedLengthRecords )
@@ -45,8 +45,8 @@ SmiRecordFile::~SmiRecordFile()
 bool
 SmiRecordFile::SelectRecord( const SmiRecordId recno, 
                              SmiRecord& record,
-                             const SmiFile::AccessType accessType =
-                                   SmiFile::ReadOnly )
+                             const SmiFile::AccessType accessType
+                               /* = SmiFile::ReadOnly */ )
 {
   int rc = 0;
   Dbt key;
@@ -96,8 +96,8 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
 
 bool
 SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
-                          const SmiFile::AccessType accessType =
-                                SmiFile::ReadOnly )
+                          const SmiFile::AccessType accessType
+                            /* = SmiFile::ReadOnly */ )
 {
   int rc;
   DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;

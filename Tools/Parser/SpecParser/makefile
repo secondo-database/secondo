@@ -25,6 +25,12 @@ Parser$(EXEEXT): Translate.cpp SpecParser.tab.cpp lex.yy.cpp ../NestedText.h ../
 ../NestedText.$(OBJEXT): ../NestedText.cpp ../NestedText.h
 	$(CC) -c -o ../NestedText.$(OBJEXT) ../NestedText.cpp -I.. $(DEFAULTCCFLAGS)
 
+clean:
+	$(RM) *.o
+	$(RM) *.lo
+	$(RM) SpecParser.tab.hpp SpecParser.tab.cpp lex.yy.cpp
+	$(RM) Lexer$(EXEEXT) Parser$(EXEEXT)
+
 else
 # Platform not specified
 .DEFAULT:

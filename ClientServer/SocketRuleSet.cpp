@@ -10,6 +10,8 @@ This class implements a set of access rules based on IP adresses and IP masks.
 
 */
 
+using namespace std;
+
 #include "SecondoConfig.h"
 #include "SocketIO.h"
 #include <iostream>
@@ -25,7 +27,7 @@ SocketRule::SocketRule()
 
 SocketRule::SocketRule( const string& strIpAddr,
                         const string& strIpMask,
-                        const Policy setAllowDeny = ALLOW )
+                        const Policy setAllowDeny /* = ALLOW */ )
    : allowDeny( setAllowDeny) 
 {
   ipMask.s_addr = inet_addr( strIpMask.c_str() );
@@ -51,7 +53,7 @@ SocketRule::Denied( const SocketAddress& host )
 }
    
 void
-SocketRule::SetDelimiter( const char newDelimiter = '/' )
+SocketRule::SetDelimiter( const char newDelimiter /* = '/' */ )
 {
   delimiter = newDelimiter;
 }
@@ -78,7 +80,7 @@ SocketRuleSet::SocketRuleSet( SocketRule::Policy initDefaultPolicy = SocketRule:
 void
 SocketRuleSet::AddRule( const string& strIpAddr,
                         const string& strIpMask,
-                        SocketRule::Policy allowDeny = SocketRule::ALLOW )
+                        SocketRule::Policy allowDeny /* = SocketRule::ALLOW */ )
 {
   SocketRule rule( strIpAddr, strIpMask, allowDeny );
   rules.insert( rules.end(), rule);

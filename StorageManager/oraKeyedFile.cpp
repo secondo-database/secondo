@@ -6,6 +6,9 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+using namespace OCICPP;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -14,13 +17,10 @@ April 2002 Ulrich Telle
 #include "SmiORA.h"
 #include "SmiCodes.h"
 
-using namespace std;
-using namespace OCICPP;
-
 /* --- Implementation of class SmiKeyedFile --- */
 
 SmiKeyedFile::SmiKeyedFile( const SmiKey::KeyDataType keyType,
-                            const bool hasUniqueKeys = true )
+                            const bool hasUniqueKeys /* = true */ )
 {
   fileType    = Keyed;
   keyDataType = keyType;
@@ -34,8 +34,8 @@ SmiKeyedFile::~SmiKeyedFile()
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,
                             SmiKeyedFileIterator& iterator,
-                            const SmiFile::AccessType accessType =
-                                  SmiFile::ReadOnly )
+                            const SmiFile::AccessType accessType
+                              /* = SmiFile::ReadOnly */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->usrConnection;
@@ -83,8 +83,8 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,
                             SmiRecord& record,
-                            const SmiFile::AccessType accessType =
-                                  SmiFile::ReadOnly )
+                            const SmiFile::AccessType accessType
+                              /* = SmiFile::ReadOnly */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->usrConnection;
@@ -138,9 +138,9 @@ bool
 SmiKeyedFile::SelectRange( const SmiKey& fromKey, 
                            const SmiKey& toKey, 
                            SmiKeyedFileIterator& iterator,
-                           const SmiFile::AccessType accessType =
-                                 SmiFile::ReadOnly,
-                           const bool reportDuplicates = false )
+                           const SmiFile::AccessType accessType
+                             /* = SmiFile::ReadOnly */,
+                           const bool reportDuplicates /* = false */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->usrConnection;
@@ -198,9 +198,9 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
 bool
 SmiKeyedFile::SelectLeftRange( const SmiKey& toKey, 
                                SmiKeyedFileIterator& iterator,
-                               const SmiFile::AccessType accessType =
-                                     SmiFile::ReadOnly,
-                               const bool reportDuplicates = false )
+                               const SmiFile::AccessType accessType
+                                 /* = SmiFile::ReadOnly */,
+                               const bool reportDuplicates /* = false */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->usrConnection;
@@ -250,9 +250,9 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
 bool
 SmiKeyedFile::SelectRightRange( const SmiKey& fromKey, 
                                 SmiKeyedFileIterator& iterator,
-                                const SmiFile::AccessType accessType =
-                                      SmiFile::ReadOnly,
-                                const bool reportDuplicates = false )
+                                const SmiFile::AccessType accessType
+                                  /* = SmiFile::ReadOnly */,
+                                const bool reportDuplicates /* = false */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->usrConnection;
@@ -301,9 +301,9 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
 
 bool
 SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
-                         const SmiFile::AccessType accessType =
-                               SmiFile::ReadOnly,
-                         const bool reportDuplicates = false )
+                         const SmiFile::AccessType accessType
+                           /* = SmiFile::ReadOnly */,
+                         const bool reportDuplicates /* = false */ )
 {
   bool ok = false;
   Connection& con = SmiEnvironment::instance.impl->usrConnection;
@@ -444,7 +444,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key )
 
 /* --- Implementation of class  --- */
 
-SmiKeyedFileIterator::SmiKeyedFileIterator( bool reportDuplicates = false )
+SmiKeyedFileIterator::SmiKeyedFileIterator( bool reportDuplicates /* = false */ )
   : firstKey(), lastKey()
 {
 }

@@ -250,7 +250,9 @@ The following steps are executed with a small list expression.
   2 ListExpr [->] String [->] ListExpr [->] String ; PrintString
 
 */
-
+  cout << "WriteListExpr start" << endl;
+  nl.WriteListExpr (ListExpr3);
+  cout << "WriteListExpr stop" << endl;
   ErrorVar = nl.WriteToFile ("testout_SmallListFile", ListExpr3);
   cout << "WriteToFile" << endl;
   ErrorVar = nl.WriteToString ( String1, ListExpr3 );

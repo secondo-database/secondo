@@ -5,6 +5,8 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
@@ -12,16 +14,18 @@ April 2002 Ulrich Telle
 
 #include "Processes.h"
 
-using namespace std;
-
 #ifndef _POSIX_OPEN_MAX
 #define _POSIX_OPEN_MAX	256
 #endif
 
+#ifndef WAIT_ANY
+#define WAIT_ANY (-1)
+#endif
+
 ProcessFactory* ProcessFactory::instance = 0;
 
-ProcessFactory::ProcessFactory( const bool reuseTerminated = true,
-                                const int maxChildProcesses = DEFAULT_MAX_PROCESSES )
+ProcessFactory::ProcessFactory( const bool reuseTerminated /* = true */,
+                                const int maxChildProcesses /* = DEFAULT_MAX_PROCESSES */ )
   : processList( maxChildProcesses ), maxChilds( maxChildProcesses ),
     reuseTerminatedEntries( reuseTerminated )
 {
@@ -37,8 +41,8 @@ ProcessFactory::~ProcessFactory()
 }
 
 bool
-ProcessFactory::StartUp( const bool reuseTerminated = true,
-                         const int maxChildProcesses = DEFAULT_MAX_PROCESSES )
+ProcessFactory::StartUp( const bool reuseTerminated /* = true */,
+                         const int maxChildProcesses /* = DEFAULT_MAX_PROCESSES */ )
 {
   if ( ProcessFactory::instance == 0 )
   {
@@ -62,8 +66,8 @@ bool
 ProcessFactory::SpawnProcess( const string& programpath,
                               const string& arguments,
                               int& processId,
-                              const bool hidden = true,
-                              Socket* clientSocket = 0 )
+                              const bool hidden /* = true */,
+                              Socket* clientSocket /* = 0 */ )
 {
   int    idx;
   string pathbuf = programpath;
@@ -398,7 +402,7 @@ ProcessFactory::GetRealProcessId( const int processId )
 
 bool
 ProcessFactory::SignalProcess( const int processId,
-                               const ProcessSignal sig = eSIGTERM )
+                               const ProcessSignal sig /* = eSIGTERM */ )
 {
   bool ok = false;
   int index = processId / instance->maxChilds;
@@ -415,7 +419,7 @@ ProcessFactory::SignalProcess( const int processId,
 
 bool
 ProcessFactory::SignalRealProcess( const ProcessId processId,
-                                   const ProcessSignal signo = eSIGTERM )
+                                   const ProcessSignal signo /* = eSIGTERM */ )
 {
   bool ok = false;
   int idx;
@@ -503,7 +507,6 @@ ProcessFactory::WaitForProcess( const int processId )
   {
     if ( !instance->processList[index].terminated )
     {
-cout << "WaitForProcess: call WaitForTermination" << endl;
       ok = instance->processList[index].WaitForTermination();
     }
     else
@@ -629,7 +632,6 @@ Process::Process()
 #else
   pid = -1;
 #endif
-  cout << "Process constructor called" << endl;
 }
 
 Process::~Process()
@@ -641,7 +643,6 @@ Process::~Process()
     event = 0;
   }
 #endif
-  cout << "Process destructor called" << endl;
 }
 
 Process::Process( const Process& other )
@@ -673,7 +674,6 @@ Process::operator=( Process const &other )
 #else
   pid          = other.pid;
 #endif
-  cout << "Process copy constructor called" << endl;
   return (*this);
 }
 
@@ -681,7 +681,6 @@ bool
 Process::WaitForTermination()
 {
   bool ok = false;
-cout << "Start Process::WaitForTermination" << endl;
   if ( reserved && !terminated )
   {
 #ifdef SECONDO_WIN32
@@ -703,12 +702,11 @@ cout << "Start Process::WaitForTermination" << endl;
   {
     ok = (reserved && terminated);
   }
-cout << "End Process::WaitForTermination" << endl;
   return (ok);
 }
 
 bool
-Process::SendSignal( const ProcessSignal signo = eSIGTERM )
+Process::SendSignal( const ProcessSignal signo /* = eSIGTERM */ )
 {
   bool ok = false;
   if ( reserved && !terminated )
@@ -716,7 +714,6 @@ Process::SendSignal( const ProcessSignal signo = eSIGTERM )
 #ifdef SECONDO_WIN32
     ostringstream os;
     os << "SECONDO_RSH_" << processInfo.dwProcessId;
-cout << "SignalTerminate: " << os.str() << endl;
     Socket* rshClient = Socket::Connect( os.str(), "", Socket::SockLocalDomain );
     if ( rshClient->IsOk() )
     {
@@ -744,7 +741,6 @@ cout << "SignalTerminate: " << os.str() << endl;
     }
     else
     {
-cout << "Fehler bei Connect" << endl;
     }
     delete rshClient;
 #else
@@ -840,7 +836,6 @@ process table.
       // --- child process terminated; mark in table and signal event
       terminated = true;
       GetExitCodeProcess( childProcessHandle, (DWORD*) &exitStatus );
-cout << endl << "Exit code: " << exitStatus << endl;
       rc = 0;
       if ( hasSocket )
       {

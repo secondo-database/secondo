@@ -19,7 +19,7 @@
 
 1 Header File: File System Management
 
-January 2002 Ulrich Telle
+May 2002 Ulrich Telle
 
 1.1 Overview
 
@@ -38,6 +38,7 @@ The class ~SmiEnvironment~ provides the following methods:
         SetCurrentFolder & RenameFileOrFolder & GetFileAttributes \\
         CreateFolder     & DeleteFileOrFolder & SetFileAttributes \\
         EraseFolder      & FileSearch         &      \\
+                         & AppendSlash        &      \\
 
 1.4 Imports, Constants, Types
 
@@ -199,8 +200,13 @@ list of filenames.
 If ~fullPath~ is true, the complete pathname of each file will be returned.
 
 */
- protected:
- private:
+  static bool SearchPath( const string& fileName, string& foundFile );
+/*
+searches the file ~fileName~ on the path and returns ~true~ if the file was
+found, otherweise ~false~. If the file was found the complete pathname of
+the file is returned in ~foundFile~.
+
+*/
   static void AppendSlash( string& pathName );
 /*
 appends the proper slash character to a pathname.
@@ -208,6 +214,8 @@ This character will either be a forward or backward
 slash, depending on the operating system used.
 
 */
+ protected:
+ private:
 #ifdef SECONDO_WIN32
   static void UnprotectFile( const string& fileName );
 /*

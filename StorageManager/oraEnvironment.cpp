@@ -6,6 +6,9 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+using namespace OCICPP;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -19,9 +22,6 @@ April 2002 Ulrich Telle
 #include "SmiORA.h"
 #include "SmiCodes.h"
 #include "Profiles.h"
-
-using namespace std;
-using namespace OCICPP;
 
 /* --- Implementation of class SmiEnvironment --- */
 
@@ -425,7 +425,7 @@ SmiEnvironment::~SmiEnvironment()
 }
 
 void
-SmiEnvironment::SetError( const SmiError smiErr, const int sysErr = 0 )
+SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
 {
   lastError = smiErr;
   if ( sysErr != 0 )

@@ -81,6 +81,7 @@ The class ~ProcessFactory~ offers the following routines:
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <libgen.h>

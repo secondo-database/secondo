@@ -8,8 +8,11 @@
 BUILDDIR = /Diplom/Redesign/Secondo-Neu
 INCLUDEDIR = $(BUILDDIR)/include
 LIBDIR = -L$(BUILDDIR)/lib
-SMILIB = -lsmibdb
-TOOLLIB = -lsdbtool
+BDBSMILIB = -lsmibdb
+ORASMILIB = -lsmiora
+TOOLLIB   = -lsdbtool
+SDBLIB    = -lsdbsys
+ALGLIB    = -lfunctionalgebra -lstandardalgebra
 DEFAULTLIB = -lws2_32 -lstdc++
 
 # Berkeley DB library
@@ -19,7 +22,8 @@ BDBLIBDIR = -L$(BDBDIR)/build_mingw
 BDBLIB = -ldb32
 
 # Oracle OCI C++ library
-ORACLEINCLUDE = /oracle/ora81/oci/include
+ORACLEHOME = /oracle/ora81
+ORACLEINCLUDE = $(ORACLEHOME)/oci/include
 OCICPPDIR = /Diplom/Libraries/ocicpplib56
 OCICPPINCLUDE = -I$(OCICPPDIR)/ocicpp -I$(ORACLEINCLUDE)
 OCICPPLIBPATH = -L$(BUILDDIR)/lib
@@ -52,13 +56,15 @@ PICFLAG =
 OBJEXT = o
 LIBEXT = a
 LDFLAGS =
-EXEFLAGS = -static
+EXEFLAGS =
 endif
 
+DLLPICFLAG =
+DLLOBJEXT = o
 DLLEXT = dll
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = -I. -I$(INCLUDEDIR) -mconsole -O2 -Wall -D_REENTRANT
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -mconsole -O2 -Wall -D_REENTRANT
 
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 

@@ -2,10 +2,10 @@
 
 */
 
+using namespace std;
+
 #include "SpecParser.tab.hpp"
 #include "NestedText.h"
-
-using namespace std;
 
 int yylval;
 int yylex();

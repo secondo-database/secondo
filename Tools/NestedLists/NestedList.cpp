@@ -1,5 +1,4 @@
 /*
-
 //paragraph [1] Title: [{\Large \bf ] [}]
 //[ae] [\"a]
 //[oe] [\"o]
@@ -49,24 +48,31 @@ A nested list is represented by four stable tables called ~Nodes~, ~Ints~,
 
 */
 
+using namespace std;
+
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 #include "NestedList.h"
 #include "NLParser.h"
 
-using namespace std;
-
 /*
-
 3 Preliminaries
 
 3.1 Constants, Types \& Variables
 
 Definitions implied by convention:
+
+*/
+
+bool NestedList::doDestroy = false;
+/*
+This constant defines whether the ~Destroy~ method really destroys a
+nested list. Only if ~doDestroy~ is ~true~, nested lists are destroyed.
 
 */
 
@@ -81,7 +87,6 @@ NestedList::~NestedList()
 }
 
 /*
-
 3.1 PrintTableTexts
 
 PrintTableTexts displays the contents of the Table 'Texts' on the screen. 
@@ -89,6 +94,7 @@ The procedure was very helpful during the test phase of the module, and is
 not used anywhere in the current version of the module. 
 
 */
+
 void
 NestedList::PrintTableTexts()
 {
@@ -110,7 +116,6 @@ NestedList::PrintTableTexts()
 }
 
 /*
-
 3.2 NodeType2Text
 
 Converts an instance of NODETYPE into the corresponding textual representation.
@@ -134,7 +139,6 @@ NestedList::NodeType2Text( NodeType type )
 }
 
 /* 
-
 4 Construction
 
 4.1 TheEmptyList
@@ -175,7 +179,6 @@ NestedList::Cons( const ListExpr left, const ListExpr right )
 }
 
 /* 
-
 4.3 Append
 
 */
@@ -184,7 +187,7 @@ ListExpr
 NestedList::Append ( const ListExpr lastElem,
                      const ListExpr newSon )
 {
-  assert( !IsAtom( lastElem ) && !IsEmpty( nodeTable[lastElem].n.right ) );
+  assert( !IsAtom( lastElem ) && IsEmpty( nodeTable[lastElem].n.right ) );
 
   Cardinal newNode = nodeTable.EmptySlot();
   NodeRecord& newNodeRef = nodeTable[newNode];
@@ -202,9 +205,7 @@ NestedList::Append ( const ListExpr lastElem,
   return (newNode);
 }
 
-
 /* 
-
 4.4 Destroy
 
 */
@@ -212,12 +213,16 @@ NestedList::Append ( const ListExpr lastElem,
 void
 NestedList::Destroy ( const ListExpr list )
 {
-  assert( !IsEmpty( list ) && !IsAtom( list ) && nodeTable[list].n.isRoot );
-  DestroyRecursive( list );
+  if ( !IsEmpty( list ) && !IsAtom( list ) && nodeTable[list].n.isRoot )
+  {
+    if ( doDestroy )
+    {
+      DestroyRecursive( list );
+    }
+  }
 }
 
 /* 
-
 Internal procedure *DestroyRecursive* 
 
 */
@@ -277,7 +282,6 @@ NestedList::DestroyRecursive ( const ListExpr list )
 }
 
 /*
-
 4.5 OneElemList, .., SixElemList
 
 */
@@ -339,9 +343,7 @@ NestedList::SixElemList( const ListExpr elem1, const ListExpr elem2,
                                         Cons( elem6, TheEmptyList () ) ) ) ) ) ));
 }
 
-
 /* 
-
 5 Simple Tests
 
 5.1 IsEmpty, IsAtom, EndOfList, ListLength
@@ -492,7 +494,8 @@ Test for deep equality of two nested lists
 }
 
 bool
-NestedList::IsEqual( const ListExpr atom, const string& str )
+NestedList::IsEqual( const ListExpr atom, const string& str,
+                     const bool caseSensitive )
 {
 /* 
 returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
@@ -500,7 +503,18 @@ returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
 */ 
   if ( IsAtom( atom ) && (AtomType( atom ) == SymbolType) )
   { 
-    return (SymbolValue( atom ) == str);
+    if ( caseSensitive )
+    {
+      return (SymbolValue( atom ) == str);
+    }
+    else
+    {
+      string aStr = SymbolValue( atom );
+      string bStr = str;
+      transform( aStr.begin(), aStr.end(), aStr.begin(), toupper );
+      transform( bStr.begin(), bStr.end(), bStr.begin(), toupper );
+      return (aStr == bStr);
+    }
   }
   else
   {
@@ -686,6 +700,7 @@ NestedList::WriteToFile( const string& fileName, const ListExpr list )
   if ( outFile )
   {
     outStream = &outFile;
+//    outStream.rdbuf( outFile.rdbuf() );
     /* bool afterList = */ WriteList( list, 0, false, false );
     *outStream << endl;
     outFile.close();
@@ -748,7 +763,6 @@ Internal procedure *WriteToStringLocal*
 bool
 NestedList::WriteToStringLocal( string& nlChars, ListExpr list )
 {
-
 /* 
 Error Handling in this procedure: If anything goes wrong, the execution of the 
 function is finished immediately, and the function result is ~false~, if the
@@ -1313,6 +1327,7 @@ NestedList::SymbolValue( const ListExpr atom )
 9.6.1 CreateTextScan
 
 */
+
 TextScan
 NestedList::CreateTextScan (const ListExpr atom )
 {
@@ -1394,6 +1409,7 @@ NestedList::GetText ( TextScan       textScan,
 9.6.3 TextLength
 
 */
+
 Cardinal
 NestedList::TextLength ( const ListExpr textAtom )
 {
@@ -1430,6 +1446,7 @@ NestedList::EndOfText( const TextScan textScan )
 9.6.5 DestroyTextScan
 
 */
+
 void
 NestedList::DestroyTextScan( TextScan& textScan )
 {
@@ -1444,6 +1461,7 @@ NestedList::DestroyTextScan( TextScan& textScan )
 10 AtomType
 
 */
+
 NodeType
 NestedList::AtomType (const ListExpr atom )
 {

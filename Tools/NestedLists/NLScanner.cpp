@@ -1,3 +1,5 @@
+using namespace std;
+
 #include "NLScanner.h"
 
 NLScanner::NLScanner( NestedList* nestedList, istream* yyin = 0, ostream* yyout = 0 )

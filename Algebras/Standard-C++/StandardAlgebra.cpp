@@ -102,6 +102,8 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 
 */
 
+using namespace std;
+
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -111,8 +113,6 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
-
-using namespace std;
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -241,12 +241,12 @@ InCcInt( ListExpr typeInfo, ListExpr value,
   if ( nl->IsAtom( value ) && nl->AtomType( value ) == IntType )
   {
     correct = true;
-    return (Word( new CcInt( true, nl->IntValue( value ) ) ));
+    return (SetWord( new CcInt( true, nl->IntValue( value ) ) ));
   }
   else
   {
     correct = false;
-    return (Word( Address( 0 ) ));
+    return (SetWord( Address( 0 ) ));
   }
 }
 
@@ -257,7 +257,7 @@ InCcInt( ListExpr typeInfo, ListExpr value,
 static Word
 CreateCcInt( int Size )
 {
-  return (Word( new CcInt( false, 0 ) ));
+  return (SetWord( new CcInt( false, 0 ) ));
 }
 
 static void
@@ -317,7 +317,7 @@ struct IntSetModel
       int min;
       int max;
       int card;
-    };
+    } t;
   };
 };
 
@@ -360,15 +360,16 @@ OutIntSetModel( ListExpr typeExpr, Word inModel )
     {
       return (nl->FourElemList(
                 nl->SymbolAtom( "set" ),
-                nl->IntAtom( model->min ),
-                nl->IntAtom( model->max ),
-    	        nl->IntAtom( model->card ) ));
+                nl->IntAtom( model->t.min ),
+                nl->IntAtom( model->t.max ),
+    	        nl->IntAtom( model->t.card ) ));
     }
     else
     {
       return (nl->TheEmptyList());
     }
   }
+  return (nl->TheEmptyList());
 }
 
 static Word
@@ -376,7 +377,7 @@ InIntSetModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
   if ( nl->IsEmpty( list ) )
   {
-    return (Word( Address( 0 ) ));
+    return (SetWord( Address( 0 ) ));
   }
   else
   {
@@ -389,11 +390,11 @@ InIntSetModel( ListExpr typeExpr, ListExpr list, int objNo )
     else
     {
       model->constOrSet = Set;
-      model->min = nl->IntValue( nl->Second( list ) );
-      model->max = nl->IntValue( nl->Third( list ) );
-      model->card = nl->IntValue( nl->Fourth( list ) );
+      model->t.min = nl->IntValue( nl->Second( list ) );
+      model->t.max = nl->IntValue( nl->Third( list ) );
+      model->t.card = nl->IntValue( nl->Fourth( list ) );
     }
-    return (Word( model ));
+    return (SetWord( model ));
   }
 }
 
@@ -403,7 +404,7 @@ IntToIntSetModel( ListExpr typeExpr, Word value )
   IntSetModel* model = new IntSetModel;
   model->constOrSet = Const;
   model->value = ((CcInt*)value.addr)->GetIntval();
-  return (Word( model ));
+  return (SetWord( model ));
 }
 
 static Word
@@ -415,7 +416,7 @@ IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
   model->value = nl->IntValue( valueList );
   errorInfo = nl->TheEmptyList();
   correct = true;
-  return (Word( model ));
+  return (SetWord( model ));
 }
 
 /*
@@ -425,6 +426,7 @@ IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
 TypeConstructor ccInt( "int",            CcProperty,
                        OutCcInt,         InCcInt,        CreateCcInt, 
                        DeleteCcInt,      CastInt,        CheckInt,
+                       0,                0,
                        InIntSetModel,    OutIntSetModel,
                        IntToIntSetModel, IntListToIntSetModel );
 
@@ -469,19 +471,19 @@ InCcReal( ListExpr typeInfo, ListExpr value,
   if ( nl->IsAtom( value ) && nl->AtomType( value ) == RealType )
   {
     correct = true;
-    return (Word( new CcReal( true, nl->RealValue( value )) ));
+    return (SetWord( new CcReal( true, nl->RealValue( value )) ));
   }
   else
   {
     correct = false;
-    return (Word( Address( 0 ) ));
+    return (SetWord( Address( 0 ) ));
   }
 }
 
 static Word
 CreateCcReal( int size )
 {
-  return (Word( new CcReal( false, 0 ) ));
+  return (SetWord( new CcReal( false, 0 ) ));
 }
 
 static void
@@ -583,19 +585,19 @@ InCcBool( ListExpr typeInfo, ListExpr value,
   if ( nl->IsAtom( value ) && nl->AtomType( value ) == BoolType )
   {
     correct = true;
-    return (Word( new CcBool( true, nl->BoolValue( value ) ) ));
+    return (SetWord( new CcBool( true, nl->BoolValue( value ) ) ));
   }
   else
   {
     correct = false;
-    return (Word( Address( 0 ) ));
+    return (SetWord( Address( 0 ) ));
   }
 }
 
 static Word
 CreateCcBool( int size )
 {
-  return (Word( new CcBool( false, 0 ) ));
+  return (SetWord( new CcBool( false, 0 ) ));
 }
 
 static void
@@ -668,7 +670,7 @@ InBoolSetModel( ListExpr typeExpr, ListExpr list, int objNo )
   {
     *result = nl->RealValue( list );
   }
-  return (Word( result ));
+  return (SetWord( result ));
 }
 
 static Word
@@ -676,7 +678,7 @@ BoolToBoolSetModel( ListExpr typeExpr, Word value )
 {
   BoolSetModel* result = new BoolSetModel;
   *result = (((CcBool*)value.addr)->GetBoolval()) ? 1.0 : 0.0;
-  return (Word( result ));
+  return (SetWord( result ));
 }
 
 static Word
@@ -687,7 +689,7 @@ BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
   *result = (nl->BoolValue( valueList )) ? 1.0 : 0.0;
   errorInfo = nl->TheEmptyList();
   correct = true;
-  return (Word( result ));
+  return (SetWord( result ));
 }
 
 /*
@@ -697,6 +699,7 @@ BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
 TypeConstructor ccBool( "bool",             CcProperty,
                         OutCcBool,          InCcBool,        CreateCcBool,
                         DeleteCcBool,       CastBool,        CheckBool,
+                        0,                  0,
                         InBoolSetModel,     OutBoolSetModel,
                         BoolToBoolSetModel, BoolListToBoolSetModel );
 
@@ -744,12 +747,12 @@ InCcString( ListExpr typeInfo, ListExpr value,
     correct = true;
 //    STRING p;
 //    StringValue( value, p );
-    return (Word( new CcString( true, nl->StringValue( value ) ) ));
+    return (SetWord( new CcString( true, nl->StringValue( value ) ) ));
   }
   else
   {
     correct = false;
-    return (Word( Address( 0 ) ));
+    return (SetWord( Address( 0 ) ));
   }
 }
 
@@ -760,7 +763,7 @@ InCcString( ListExpr typeInfo, ListExpr value,
 static Word
 CreateCcString( int size )
 {
-  return (Word( new CcString( true, "" ) ));
+  return (SetWord( new CcString( true, "" ) ));
 }
 
 static void
@@ -2317,18 +2320,18 @@ IiGreaterModel( ArgVector arg, Supplier opTreeNode )
     else
     {
       /* model2 has a set, model1 a constant */
-      if ( model1->value <= model2->min )
+      if ( model1->value <= model2->t.min )
       {
         *result = 0.0;
       }
-      else if ( model1->value > model2->max )
+      else if ( model1->value > model2->t.max )
       {
         *result = 1.0;
       }
       else
       {
-        *result = (float)((model1->value - 1) - (model2->min - 1)) /
-                  (float)(model2->max - (model2->min - 1));
+        *result = (float)((model1->value - 1) - (model2->t.min - 1)) /
+                  (float)(model2->t.max - (model2->t.min - 1));
       }
     }
   }
@@ -2337,18 +2340,18 @@ IiGreaterModel( ArgVector arg, Supplier opTreeNode )
     if ( model2->constOrSet == Const )
     {
       /* model1 has a set, model2 a constant */
-      if ( model1->min > model2->value )
+      if ( model1->t.min > model2->value )
       {
         *result = 1.0;
       }
-      else if ( model1->max <= model2->value )
+      else if ( model1->t.max <= model2->value )
       {
         *result = 0.0;
       }
       else
       {
-        *result = (float)(model1->max - model2->value) /
-                  (float)(model1->max - (model1->min - 1));
+        *result = (float)(model1->t.max - model2->value) /
+                  (float)(model1->t.max - (model1->t.min - 1));
       }
     }
     else
@@ -2357,7 +2360,7 @@ IiGreaterModel( ArgVector arg, Supplier opTreeNode )
       *result = 0.5;
     }
   }
-  return (Word( result ));
+  return (SetWord( result ));
 }
 
 /*
@@ -2368,7 +2371,7 @@ The dummy model mapping:
 static Word
 CcNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
-  return (Word( Address( 0 ) ));
+  return (SetWord( Address( 0 ) ));
 }
 
 /*

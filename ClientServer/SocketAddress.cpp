@@ -1,3 +1,5 @@
+using namespace std;
+
 #include "SecondoConfig.h"
 #ifdef SECONDO_WIN32
 #include <winsock2.h>
@@ -59,7 +61,8 @@ bool SocketAddress::operator==( const SocketAddress& sockAddr ) const
   return (result);
 }
 
-void SocketAddress::SetAddress( const string& ipAddr, uint16_t portNo = 0 )
+void SocketAddress::SetAddress( const string& ipAddr,
+                                uint16_t portNo /* = 0 */ )
 {
   assert( this );
   assert( &ipAddr );

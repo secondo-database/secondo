@@ -6,6 +6,8 @@ April 2002 Ulrich Telle
 
 */
 
+using namespace std;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -16,8 +18,6 @@ April 2002 Ulrich Telle
 #include "SmiBDB.h"
 #include "SmiCodes.h"
 #include "Profiles.h"
-
-using namespace std;
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
@@ -81,7 +81,7 @@ SmiFile::CheckName( const string& name )
 }
 
 bool
-SmiFile::Create( const string& context = "Default" )
+SmiFile::Create( const string& context /* = "Default" */ )
 {
   int rc = 0;
 
@@ -170,7 +170,7 @@ SmiFile::Create( const string& context = "Default" )
 }
 
 bool
-SmiFile::Open( const string& name, const string& context = "Default" )
+SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
   int rc = 0;
   bool existing = false;
@@ -298,7 +298,7 @@ SmiFile::Open( const string& name, const string& context = "Default" )
 }
 
 bool
-SmiFile::Open( const SmiFileId fileId, const string& context = "Default" )
+SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 {
   int rc = 0;
 

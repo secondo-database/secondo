@@ -9,18 +9,101 @@ include makefile.config
 
 # Check whether platform is specified
 ifdef platform
+include makefile.$(platform)
+
+TOOLOBJECTS=\
+	ClientServer/SocketIO.$(OBJEXT) \
+	ClientServer/SocketAddress.$(OBJEXT) \
+	ClientServer/SocketRuleSet.$(OBJEXT) \
+	Tools/NestedLists/NestedList.$(OBJEXT) \
+	Tools/NestedLists/NLLex.$(OBJEXT) \
+	Tools/NestedLists/NLScanner.$(OBJEXT) \
+	Tools/NestedLists/NLParser.$(OBJEXT) \
+	Tools/NestedLists/NLParser.tab.$(OBJEXT) \
+	Tools/Parser/SecLex.$(OBJEXT) \
+	Tools/Parser/SecParser.$(OBJEXT) \
+	Tools/Parser/SecParser.tab.$(OBJEXT) \
+	Tools/Parser/NestedText.$(OBJEXT) \
+	Tools/Utilities/Processes.$(OBJEXT) \
+	Tools/Utilities/Application.$(OBJEXT) \
+	Tools/Utilities/Messenger.$(OBJEXT) \
+	Tools/Utilities/DynamicLibrary.$(OBJEXT) \
+	Tools/Utilities/FileSystem.$(OBJEXT) \
+	Tools/Utilities/Profiles.$(OBJEXT)
+
+SDBSYSOBJECTS=\
+	Algebras/Management/Algebra.$(OBJEXT) \
+	Algebras/Management/AlgebraManager.$(OBJEXT) \
+	QueryProcessor/QueryProcessor.$(OBJEXT) \
+	QueryProcessor/SecondoSystem.$(OBJEXT) \
+	QueryProcessor/SecondoCatalog.$(OBJEXT) \
+	QueryProcessor/SecondoInterfaceGeneral.$(OBJEXT)
 
 .PHONY: all
-all: buildlib
+all: makedirs buildlibs buildapps
 
-.PHONY: buildlib
-buildlib:
+.PHONY: makedirs
+makedirs:
 	$(MAKE) -C ClientServer
 	$(MAKE) -C Tools
 	$(MAKE) -C StorageManager
+	$(MAKE) -C Algebras
+	$(MAKE) -C QueryProcessor
+	$(MAKE) -C UserInterfaces
+
+buildlibs: lib/libsdbtool.$(LIBEXT) lib/libsdbsys.$(LIBEXT)
+
+# --- Secondo Database Tools library ---
+
+# ... Windows needs special treatment when creating DLLs
+ifeq ($(shared),yes)
+ifeq ($(platform),win32)
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbtool.$(LIBEXT).a
+endif
+endif
+
+lib/libsdbtool.$(LIBEXT): makedirs $(TOOLOBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o lib/libsdbtool.$(LIBEXT) $(LDOPT) $(TOOLOBJECTS) $(DEFAULTLIB)
+ifeq ($(platform),win32)
+	$(CP) libsdbtool.$(LIBEXT) bin/libsdbtool.$(LIBEXT)
+endif
+else
+# ... as static library
+	$(AR) -r lib/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
+endif
+
+# --- Secondo Database System library ---
+
+# ... Windows needs special treatment when creating DLLs
+ifeq ($(shared),yes)
+ifeq ($(platform),win32)
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbsys.$(LIBEXT).a
+endif
+endif
+
+lib/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o lib/libsdbsys.$(LIBEXT) $(LDOPT) $(SDBSYSOBJECTS) $(DEFAULTLIB)
+ifeq ($(platform),win32)
+	$(CP) libsdbtool.$(LIBEXT) bin/libsdbsys.$(LIBEXT)
+endif
+else
+# ... as static library
+	$(AR) -r lib/libsdbsys.$(LIBEXT) $(SDBSYSOBJECTS)
+endif
+
+# --- Applications
+
+.PHONY: buildapps
+buildapps:
+	$(MAKE) -C ClientServer buildapp
+	$(MAKE) -C UserInterfaces buildapp
 
 .PHONY: tests
-tests: buildlib
+tests: buildlibs
 	$(MAKE) -C Tests
 
 #.PHONY: install
@@ -36,6 +119,12 @@ clean:
 	$(MAKE) -C ClientServer clean
 	$(MAKE) -C StorageManager clean
 	$(MAKE) -C Tools clean
+	$(MAKE) -C Algebras clean
+	$(MAKE) -C QueryProcessor clean
+	$(MAKE) -C UserInterfaces clean
+	$(RM) *.a
+	$(RM) *.so
+	$(RM) *.dll
 
 .PHONY: clean_tests
 clean_tests:
@@ -49,6 +138,9 @@ distclean:
 	$(MAKE) -C ClientServer distclean
 	$(MAKE) -C StorageManager distclean
 	$(MAKE) -C Tools distclean
+	$(MAKE) -C Algebras distclean
+	$(MAKE) -C QueryProcessor distclean
+	$(MAKE) -C UserInterfaces distclean
 
 usage:
 	@echo *** Usage of the SECONDO makefile:

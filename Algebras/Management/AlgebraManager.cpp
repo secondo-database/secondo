@@ -1,8 +1,8 @@
+using namespace std;
+
 #include "AlgebraManager.h"
 #include "Algebra.h"
 #include "SecondoSystem.h"
-
-using namespace std;
 
 AlgebraManager::AlgebraManager( NestedList& nlRef )
 {
@@ -24,7 +24,7 @@ AlgebraManager::AlgebraManager( NestedList& nlRef )
   for ( j = 0; j <= maxAlgebraId; j++ )
   {
     algebra[j] = 0;
-    algType[j] = AlgebraManager::None;
+    algType[j] = UndefinedLevel;
   }
 }
 
@@ -65,13 +65,36 @@ AlgebraManager::UnloadAlgebras()
 {
 }
 
+bool
+AlgebraManager::IsAlgebraLoaded( const int algebraId )
+{
+  bool loaded = false;
+  if ( algebraId >= 1 && algebraId <= maxAlgebraId )
+  {
+    loaded = (algType[algebraId] != UndefinedLevel);
+  }
+  return (loaded);
+}
+
+bool
+AlgebraManager::IsAlgebraLoaded( const int algebraId,
+                                 const AlgebraLevel level )
+{
+  bool loaded = false;
+  if ( algebraId >= 1 && algebraId <= maxAlgebraId )
+  {
+    loaded = (algType[algebraId] == level);
+  }
+  return (loaded);
+}
+
 int
 AlgebraManager::CountAlgebra()
 {
   int count = 0;
   for ( int j = 1; j <= maxAlgebraId; j++ )
   {
-    if ( algType[j] != AlgebraManager::None )
+    if ( algType[j] != UndefinedLevel )
     {
       count++;
     }
@@ -83,11 +106,11 @@ int
 AlgebraManager::CountAlgebra( const AlgebraLevel level )
 {
   int count = 0;
-  if ( level != AlgebraManager::None )
+  if ( level != UndefinedLevel )
   {
     for ( int j = 1; j <= maxAlgebraId; j++ )
     {
-      if ( algType[j] == level || algType[j] == AlgebraManager::Hybrid )
+      if ( algType[j] == level || algType[j] == HybridLevel )
       {
         count++;
       }
@@ -105,7 +128,7 @@ AlgebraManager::NextAlgebraId( int& algebraId, AlgebraLevel& level )
   {
     while ( !found && algebraId <= maxAlgebraId )
     {
-      if ( algType[algebraId] != AlgebraManager::None )
+      if ( algType[algebraId] != UndefinedLevel )
       {
         found = true;
         level = algType[algebraId];
@@ -119,7 +142,7 @@ AlgebraManager::NextAlgebraId( int& algebraId, AlgebraLevel& level )
   else
   {
     algebraId = 0;
-    level = AlgebraManager::None;
+    level = UndefinedLevel;
   }
   return (found);
 }
@@ -134,7 +157,7 @@ AlgebraManager::NextAlgebraId( const AlgebraLevel level, int& algebraId )
     while ( !found && algebraId <= maxAlgebraId )
     {
       if ( algType[algebraId] == level ||
-           algType[algebraId] == AlgebraManager::Hybrid )
+           algType[algebraId] == HybridLevel )
       {
         found = true;
       }
@@ -166,24 +189,13 @@ AlgebraManager::Ops( int algebraId, int operatorId )
 ListExpr
 AlgebraManager::Specs( int algebraId, int operatorId )
 {
-  ListExpr spec;
-  if ( algebra[algebraId]->GetOperator( operatorId )->specification != 0 )
-  {
-    spec = algebra[algebraId]->GetOperator( operatorId )->specification;
-  }
-  else
-  {
-    if ( nl->ReadFromString(
-           algebra[algebraId]->GetOperator( operatorId )->specString,
-           spec ) )
-    {
-      algebra[algebraId]->GetOperator( operatorId )->specification = spec;
-    }
-    else
-    {
-      spec = 0;
-    }
-  }
+//cout << "Specs " << algebraId << "/" << operatorId << endl;
+//cout << algebra[algebraId]->GetOperator( operatorId )->specString << endl;
+  ListExpr spec = nl->TheEmptyList();
+  nl->ReadFromString(
+        algebra[algebraId]->GetOperator( operatorId )->specString,
+        spec );
+//cout << spec << endl;
   return (spec);
 }
 
@@ -277,6 +289,26 @@ ObjectCast
 AlgebraManager::Cast( int algebraId, int typeId )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )->castFunc);
+}
+
+bool
+AlgebraManager::PersistValue( const int algebraId, const int typeId,
+                              const PersistDirection dir,
+                              SmiRecord& valueRecord,
+                              const string& type, Word& value )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->
+    PersistValue( dir, valueRecord, type, value ));
+}
+
+bool
+AlgebraManager::PersistModel( const int algebraId, const int typeId,
+                              const PersistDirection dir,
+                              SmiRecord& modelRecord,
+                              const string& type, Word& model )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->
+    PersistModel( dir, modelRecord, type, model ));
 }
 
 InModelFunction

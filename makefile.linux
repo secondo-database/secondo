@@ -10,11 +10,14 @@
 #INCLUDE_INSTALL = $(INSTALL_PREFIX)/include
 
 # Secondo build directory
-BUILDDIR = /home/ulrich/Diplom/Secondo-Neu
+BUILDDIR   = /home/ulrich/Diplom/Secondo-Neu
 INCLUDEDIR = $(BUILDDIR)/include
-LIBDIR = -L$(BUILDDIR)/lib
-SMILIB = -lsmibdb
-TOOLLIB = -lsdbtool
+LIBDIR     = -L$(BUILDDIR)/lib
+BDBSMILIB  = -lsmibdb
+ORASMILIB  = -lsmiora
+TOOLLIB    = -lsdbtool
+SDBLIB     = -lsdbsys
+ALGLIB     = -lfunctionalgebra -lstandardalgebra
 DEFAULTLIB = -ldl -lstdc++
 
 # Berkeley DB library
@@ -40,7 +43,7 @@ RANLIB = ranlib
 CP = cp
 RM = rm -f
 LEX = flex
-YACC = bison
+YACC = /usr/local/bin/bison
 
 EXEEXT =
 
@@ -55,13 +58,16 @@ PICFLAG =
 OBJEXT = o
 LIBEXT = a
 LDFLAGS =
-EXEFLAGS = -static
+#EXEFLAGS = -static
+EXEFLAGS =
 endif
 
+DLLPICFLAG = -fPIC
+DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = -I. -I$(INCLUDEDIR) -O2 -Wall -D_REENTRANT
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -O2 -Wall -D_REENTRANT
 
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 

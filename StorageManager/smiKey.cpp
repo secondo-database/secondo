@@ -1,3 +1,5 @@
+using namespace std;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -6,11 +8,9 @@
 #include "SecondoSMI.h"
 #include "SmiCodes.h"
 
-using namespace std;
-
 /* --- Implementation of class SmiKey --- */
 
-SmiKey::SmiKey( MapKeyFunc mapKey = 0 )
+SmiKey::SmiKey( MapKeyFunc mapKey /* = 0 */ )
 {
   keyType = SmiKey::Unknown;
   mapFunc = mapKey;
@@ -123,7 +123,8 @@ SmiKey::FreeData()
   }
 }
 
-const void* SmiKey::GetAddr() const
+const void*
+SmiKey::GetAddr() const
 {
   const void* addr;
 
@@ -142,7 +143,8 @@ const void* SmiKey::GetAddr() const
   return addr;
 }
 
-void SmiKey::SetKey( const SmiRecordId key )
+void
+SmiKey::SetKey( const SmiRecordId key )
 {
   FreeData();
   keyType   = SmiKey::RecNo;
@@ -150,7 +152,8 @@ void SmiKey::SetKey( const SmiRecordId key )
   recnoKey = key;
 }
 
-void SmiKey::SetKey( const long key )
+void
+SmiKey::SetKey( const long key )
 {
   FreeData();
   keyType    = SmiKey::Integer;
@@ -158,7 +161,8 @@ void SmiKey::SetKey( const long key )
   integerKey = key;
 }
 
-void SmiKey::SetKey( const double key )
+void
+SmiKey::SetKey( const double key )
 {
   FreeData();
   keyType   = SmiKey::Float;
@@ -166,7 +170,8 @@ void SmiKey::SetKey( const double key )
   floatKey  = key;
 }
 
-void SmiKey::SetKey( const string& key )
+void
+SmiKey::SetKey( const string& key )
 {
   FreeData();
   keyType = SmiKey::String;
@@ -184,7 +189,8 @@ void SmiKey::SetKey( const string& key )
   }
 }
 
-void SmiKey::SetKey( const void* key, const SmiSize keyLen, MapKeyFunc mapKey )
+void
+SmiKey::SetKey( const void* key, const SmiSize keyLen, MapKeyFunc mapKey )
 {
   static char mapdata[SMI_MAX_KEYLEN];
   char* data;
@@ -217,9 +223,10 @@ void SmiKey::SetKey( const void* key, const SmiSize keyLen, MapKeyFunc mapKey )
   data[keyLength] = 0;
 }
 
-void SmiKey::SetKey( const KeyDataType kdt,
-                     const void* key, const SmiSize keyLen,
-                     MapKeyFunc mapKey = 0 )
+void
+SmiKey::SetKey( const KeyDataType kdt,
+                const void* key, const SmiSize keyLen,
+                MapKeyFunc mapKey /* = 0 */ )
 {
   switch (kdt)
   {
@@ -352,7 +359,8 @@ SmiKey::GetKey( void* key, const SmiSize maxKeyLen, SmiSize& keyLen )
   return ok;
 }
 
-void SmiKey::Map( const long inData, void* outData )
+void
+SmiKey::Map( const long inData, void* outData )
 {
   const unsigned char* s = (unsigned char*) &inData;
         unsigned char* t = (unsigned char*) outData;
@@ -370,7 +378,8 @@ void SmiKey::Map( const long inData, void* outData )
   t[0] ^= 0x80;
 }
 
-void SmiKey::Map( const double inData, void* outData )
+void
+SmiKey::Map( const double inData, void* outData )
 {
   const unsigned char* s = (unsigned char*) &inData;
         unsigned char* t = (unsigned char*) outData;
@@ -395,7 +404,8 @@ void SmiKey::Map( const double inData, void* outData )
   }
 }
 
-void SmiKey::Unmap( const void* inData, long& outData )
+void
+SmiKey::Unmap( const void* inData, long& outData )
 {
   const unsigned char* s = (unsigned char*) inData;
         unsigned char* t = (unsigned char*) &outData;
@@ -414,7 +424,8 @@ void SmiKey::Unmap( const void* inData, long& outData )
 #endif
 }
 
-void SmiKey::Unmap( const void* inData, double& outData )
+void
+SmiKey::Unmap( const void* inData, double& outData )
 {
   const unsigned char* s = (unsigned char*) inData;
         unsigned char* t = (unsigned char*) &outData;
@@ -447,5 +458,5 @@ void SmiKey::Unmap( const void* inData, double& outData )
 #endif
 }
 
-/* --- bdbkey.cpp --- */
+/* --- smiKey.cpp --- */
 

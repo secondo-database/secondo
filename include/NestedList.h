@@ -408,7 +408,8 @@ tests for deep equality of two nested lists. Returns ~true~ if ~list1~ is
 equivalent to ~list2~, otherwise ~false~.
 
 */
-  bool IsEqual( const ListExpr atom, const string& str );
+  bool IsEqual( const ListExpr atom, const string& str,
+                const bool caseSensitive = true );
 /* 
 returns ~true~ if ~atom~ is a symbol atom and has the same value as ~str~.
 
@@ -646,6 +647,17 @@ value 'NoAtom'.
   CTable<StringRecord> stringTable; // strings
   CTable<TextRecord>   textTable  ; // texts
   ostream*             outStream;
+  static bool          doDestroy;
+/*
+The class member ~doDestroy~ defines whether the ~Destroy~ method really
+destroys a nested list. Only if ~doDestroy~ is ~true~, nested lists are
+destroyed.
+
+As long as the "Nested List"[1] class does not support reference counting
+it might be necessary to set ~doDestroy~ to ~false~ to avoid problems due
+to deleting parts of nested lists which are still in use elsewhere.
+
+*/
 };
 
 #endif

@@ -146,7 +146,7 @@ on its own, but for child processes which are created using the
 ~ProcessFactory~ class the parent process identification is accessible.
 
 */
-  static Application* Instance() { return (appPointer); };
+  static Application* Instance();
 /*
 returns a reference to the single ~Application~ instance.
 
@@ -261,7 +261,7 @@ is the default signal handler for handling user signals (SIGUSR1 and SIGUSR2).
   {
     return (((Application*) app)->RemoteSignalHandler());
   }
-  static BOOL AbortOnSignalHandler( DWORD sig );
+  static BOOL __stdcall AbortOnSignalHandler( DWORD sig );
 /*
 These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 

@@ -5,6 +5,8 @@ March 2002 Ulrich Telle Port to C++
 
 */
 
+using namespace std;
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -15,8 +17,6 @@ March 2002 Ulrich Telle Port to C++
 #define yyFlexLexer xxFlexLexer
 #include <FlexLexer.h>
 #endif
-
-using namespace std;
 
 extern string* yacc_outtext;
 extern char*   yacc_error;
@@ -38,7 +38,7 @@ SecParser::~SecParser()
 }
 
 int
-SecParser::Text2List( string& inputString, string& outputString, string& errors)
+SecParser::Text2List( const string& inputString, string& outputString, string& errors)
 {
   istringstream is( inputString );
   xxFlexLexer lex( &is );

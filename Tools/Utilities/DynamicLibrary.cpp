@@ -6,14 +6,14 @@ January 2002 Ulrich Telle
 
 */
 
+using namespace std;
+
 #include "SecondoConfig.h"
 #include "DynamicLibrary.h"
 
 #ifndef SECONDO_WIN32
 #include <dlfcn.h>
 #endif
-
-using namespace std;
 
 DynamicLibrary::DynamicLibrary()
   : libraryHandle( 0 ), libName( "" ), errorMessage( "" )

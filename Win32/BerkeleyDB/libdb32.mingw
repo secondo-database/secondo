@@ -1,0 +1,863 @@
+#
+# MinGW makefile for Berkeley DB 4.0.14
+#
+# make library:    make -f libdb32.mingw
+# make utilities:  make -f libdb32.mingw utilities
+# make examples:   make -f libdb32.mingw examples
+#
+
+.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
+
+CC=gcc
+LD=gcc
+AR=ar
+RC=windres
+LDFLAGS=-s -shared
+LIBS_DLL= -lstdc++
+
+OBJECTS=\
+	bt_compare.o\
+	bt_conv.o\
+	bt_curadj.o\
+	bt_cursor.o\
+	bt_delete.o\
+	bt_method.o\
+	bt_open.o\
+	bt_put.o\
+	bt_rec.o\
+	bt_reclaim.o\
+	bt_recno.o\
+	bt_rsearch.o\
+	bt_search.o\
+	bt_split.o\
+	bt_stat.o\
+	bt_upgrade.o\
+	bt_verify.o\
+	btree_auto.o\
+	crdel_auto.o\
+	crdel_rec.o\
+	cxx_db.o\
+	cxx_dbc.o\
+	cxx_dbt.o\
+	cxx_env.o\
+	cxx_except.o\
+	cxx_lock.o\
+	cxx_logc.o\
+	cxx_mpool.o\
+	cxx_txn.o\
+	db.o\
+	db_am.o\
+	db_auto.o\
+	db_byteorder.o\
+	db_cam.o\
+	db_conv.o\
+	db_dispatch.o\
+	db_dup.o\
+	db_err.o\
+	db_getlong.o\
+	db_iface.o\
+	db_join.o\
+	db_log2.o\
+	db_meta.o\
+	db_method.o\
+	db_overflow.o\
+	db_pr.o\
+	db_rec.o\
+	db_reclaim.o\
+	db_ret.o\
+	db_salloc.o\
+	db_shash.o\
+	db_upg.o\
+	db_upg_opd.o\
+	db_vrfy.o\
+	db_vrfyutil.o\
+	dbm.o\
+	env_method.o\
+	env_open.o\
+	env_recover.o\
+	env_region.o\
+	hash.o\
+	hash_auto.o\
+	hash_conv.o\
+	hash_dup.o\
+	hash_func.o\
+	hash_meta.o\
+	hash_method.o\
+	hash_page.o\
+	hash_rec.o\
+	hash_reclaim.o\
+	hash_stat.o\
+	hash_upgrade.o\
+	hash_verify.o\
+	hsearch.o\
+	lock.o\
+	lock_deadlock.o\
+	lock_method.o\
+	lock_region.o\
+	lock_stat.o\
+	lock_util.o\
+	log.o\
+	log_archive.o\
+	log_auto.o\
+	log_compare.o\
+	log_findckp.o\
+	log_get.o\
+	log_method.o\
+	log_put.o\
+	log_rec.o\
+	log_register.o\
+	mp_alloc.o\
+	mp_bh.o\
+	mp_fget.o\
+	mp_fopen.o\
+	mp_fput.o\
+	mp_fset.o\
+	mp_method.o\
+	mp_region.o\
+	mp_register.o\
+	mp_stat.o\
+	mp_sync.o\
+	mp_trickle.o\
+	mut_tas.o\
+	mutex.o\
+	os_abs.o\
+	os_alloc.o\
+	os_clock.o\
+	os_dir.o\
+	os_errno.o\
+	os_fid.o\
+	os_finit.o\
+	os_fsync.o\
+	os_handle.o\
+	os_map.o\
+	os_method.o\
+	os_oflags.o\
+	os_open.o\
+	os_region.o\
+	os_rename.o\
+	os_root.o\
+	os_rpath.o\
+	os_rw.o\
+	os_seek.o\
+	os_sleep.o\
+	os_spin.o\
+	os_stat.o\
+	os_tmpdir.o\
+	os_type.o\
+	os_unlink.o\
+	qam.o\
+	qam_auto.o\
+	qam_conv.o\
+	qam_files.o\
+	qam_method.o\
+	qam_open.o\
+	qam_rec.o\
+	qam_stat.o\
+	qam_upgrade.o\
+	qam_verify.o\
+	rep_method.o\
+	rep_record.o\
+	rep_region.o\
+	rep_util.o\
+	txn.o\
+	txn_auto.o\
+	txn_method.o\
+	txn_rec.o\
+	txn_recover.o\
+	txn_region.o\
+	txn_stat.o\
+	util_log.o\
+	util_sig.o\
+	xa.o\
+	xa_db.o\
+	xa_map.o
+
+OBJECTS_DLL=\
+	dllmain.o\
+	libdb.o
+
+all: libdb32.a libdb32.dll
+	echo dir=$(BDBDIR)
+
+CXXFLAGS= -mconsole -I. -I../include  -I../include_auto -DNDEBUG -O2 -Wall 
+
+#
+#  getopt (needed for utilities and examples)
+#
+
+getopt.o: ../clib/getopt.c
+	$(CC) -c -o getopt.o ../clib/getopt.c $(CXXFLAGS)
+
+#
+#  all utilities
+#
+
+utilities:\
+	db_archive.exe\
+	db_checkpoint.exe\
+	db_deadlock.exe\
+	db_dump.exe\
+	db_load.exe\
+	db_printlog.exe\
+	db_recover.exe\
+	db_stat.exe\
+	db_upgrade.exe\
+	db_verify.exe
+
+db_archive.exe: db_archive.o getopt.o
+	$(CC) -o db_archive.exe db_archive.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_archive.o: ../db_archive/db_archive.c
+	$(CC) -c -o db_archive.o ../db_archive/db_archive.c $(CXXFLAGS)
+
+db_checkpoint.exe: db_checkpoint.o getopt.o
+	$(CC) -o db_checkpoint.exe db_checkpoint.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_checkpoint.o: ../db_checkpoint/db_checkpoint.c
+	$(CC) -c -o db_checkpoint.o ../db_checkpoint/db_checkpoint.c $(CXXFLAGS)
+
+db_deadlock.exe: db_deadlock.o getopt.o
+	$(CC) -o db_deadlock.exe db_deadlock.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_deadlock.o: ../db_deadlock/db_deadlock.c
+	$(CC) -c -o db_deadlock.o ../db_deadlock/db_deadlock.c $(CXXFLAGS)
+
+db_dump.exe: db_dump.o getopt.o
+	$(CC) -o db_dump.exe db_dump.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_dump.o: ../db_dump/db_dump.c
+	$(CC) -c -o db_dump.o ../db_dump/db_dump.c $(CXXFLAGS)
+
+db_load.exe: db_load.o getopt.o
+	$(CC) -o db_load.exe db_load.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_load.o: ../db_load/db_load.c
+	$(CC) -c -o db_load.o ../db_load/db_load.c $(CXXFLAGS)
+
+db_printlog.exe: db_printlog.o getopt.o
+	$(CC) -o db_printlog.exe db_printlog.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_printlog.o: ../db_printlog/db_printlog.c
+	$(CC) -c -o db_printlog.o ../db_printlog/db_printlog.c $(CXXFLAGS)
+
+db_recover.exe: db_recover.o getopt.o
+	$(CC) -o db_recover.exe db_recover.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_recover.o: ../db_recover/db_recover.c
+	$(CC) -c -o db_recover.o ../db_recover/db_recover.c $(CXXFLAGS)
+
+db_stat.exe: db_stat.o getopt.o
+	$(CC) -o db_stat.exe db_stat.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_stat.o: ../db_stat/db_stat.c
+	$(CC) -c -o db_stat.o ../db_stat/db_stat.c $(CXXFLAGS)
+
+db_upgrade.exe: db_upgrade.o getopt.o
+	$(CC) -o db_upgrade.exe db_upgrade.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_upgrade.o: ../db_upgrade/db_upgrade.c
+	$(CC) -c -o db_upgrade.o ../db_upgrade/db_upgrade.c $(CXXFLAGS)
+
+db_verify.exe: db_verify.o getopt.o
+	$(CC) -o db_verify.exe db_verify.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+db_verify.o: ../db_verify/db_verify.c
+	$(CC) -c -o db_verify.o ../db_verify/db_verify.c $(CXXFLAGS)
+
+#
+#  all examples (C and C++)
+#
+
+examples: examples_c examples_cxx
+
+#
+#  C examples
+#
+
+examples_c:\
+	ex_access.exe\
+	ex_btrec.exe\
+	ex_dbclient.exe\
+	ex_env.exe\
+	ex_lock.exe\
+	ex_mpool.exe\
+	ex_tpcb.exe
+
+ex_access.exe: ex_access.o getopt.o
+	$(CC) -o ex_access.exe ex_access.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_access.o: ../examples_c/ex_access.c
+	$(CC) -c -o ex_access.o ../examples_c/ex_access.c $(CXXFLAGS)
+
+ex_btrec.exe: ex_btrec.o getopt.o
+	$(CC) -o ex_btrec.exe ex_btrec.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_btrec.o: ../examples_c/ex_btrec.c
+	$(CC) -c -o ex_btrec.o ../examples_c/ex_btrec.c $(CXXFLAGS)
+
+ex_dbclient.exe: ex_dbclient.o getopt.o
+	$(CC) -o ex_dbclient.exe ex_dbclient.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_dbclient.o: ../examples_c/ex_dbclient.c
+	$(CC) -c -o ex_dbclient.o ../examples_c/ex_dbclient.c $(CXXFLAGS)
+
+ex_env.exe: ex_env.o getopt.o
+	$(CC) -o ex_env.exe ex_env.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_env.o: ../examples_c/ex_env.c
+	$(CC) -c -o ex_env.o ../examples_c/ex_env.c $(CXXFLAGS)
+
+ex_lock.exe: ex_lock.o getopt.o
+	$(CC) -o ex_lock.exe ex_lock.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_lock.o: ../examples_c/ex_lock.c
+	$(CC) -c -o ex_lock.o ../examples_c/ex_lock.c $(CXXFLAGS)
+
+ex_mpool.exe: ex_mpool.o getopt.o
+	$(CC) -o ex_mpool.exe ex_mpool.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_mpool.o: ../examples_c/ex_mpool.c
+	$(CC) -c -o ex_mpool.o ../examples_c/ex_mpool.c $(CXXFLAGS)
+
+ex_thread.exe: ex_thread.o getopt.o
+	$(CC) -o ex_thread.exe ex_thread.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_thread.o: ../examples_c/ex_thread.c
+	$(CC) -c -o ex_thread.o ../examples_c/ex_thread.c $(CXXFLAGS)
+
+ex_tpcb.exe: ex_tpcb.o getopt.o
+	$(CC) -o ex_tpcb.exe ex_tpcb.o getopt.o $(CXXFLAGS) -L./ -ldb32
+
+ex_tpcb.o: ../examples_c/ex_tpcb.c
+	$(CC) -c -o ex_tpcb.o ../examples_c/ex_tpcb.c $(CXXFLAGS)
+
+#
+#  C++ examples
+#
+
+examples_cxx:\
+	excxx_access.exe\
+	excxx_btrec.exe\
+	excxx_env.exe\
+	excxx_lock.exe\
+	excxx_mpool.exe\
+	excxx_tpcb.exe
+
+excxx_access.exe: excxx_access.o getopt.o
+	$(CC) -o excxx_access.exe excxx_access.o getopt.o $(CXXFLAGS) -L./ -ldb32 -lstdc++
+
+excxx_access.o: ../examples_cxx/AccessExample.cpp
+	$(CC) -c -o excxx_access.o ../examples_cxx/AccessExample.cpp $(CXXFLAGS)
+
+excxx_btrec.exe: excxx_btrec.o getopt.o
+	$(CC) -o excxx_btrec.exe excxx_btrec.o getopt.o $(CXXFLAGS) -L./ -ldb32 -lstdc++
+
+excxx_btrec.o: ../examples_cxx/BtRecExample.cpp
+	$(CC) -c -o excxx_btrec.o ../examples_cxx/BtRecExample.cpp $(CXXFLAGS)
+
+excxx_env.exe: excxx_env.o getopt.o
+	$(CC) -o excxx_env.exe excxx_env.o getopt.o $(CXXFLAGS) -L./ -ldb32 -lstdc++
+
+excxx_env.o: ../examples_cxx/EnvExample.cpp
+	$(CC) -c -o excxx_env.o ../examples_cxx/EnvExample.cpp $(CXXFLAGS)
+
+excxx_lock.exe: excxx_lock.o getopt.o
+	$(CC) -o excxx_lock.exe excxx_lock.o getopt.o $(CXXFLAGS) -L./ -ldb32 -lstdc++
+
+excxx_lock.o: ../examples_cxx/LockExample.cpp
+	$(CC) -c -o excxx_lock.o ../examples_cxx/LockExample.cpp $(CXXFLAGS)
+
+excxx_mpool.exe: excxx_mpool.o getopt.o
+	$(CC) -o excxx_mpool.exe excxx_mpool.o getopt.o $(CXXFLAGS) -L./ -ldb32 -lstdc++
+
+excxx_mpool.o: ../examples_cxx/MpoolExample.cpp
+	$(CC) -c -o excxx_mpool.o ../examples_cxx/MpoolExample.cpp $(CXXFLAGS)
+
+excxx_tpcb.exe: excxx_tpcb.o getopt.o
+	$(CC) -o excxx_tpcb.exe excxx_tpcb.o getopt.o $(CXXFLAGS) -L./ -ldb32 -lstdc++
+
+excxx_tpcb.o: ../examples_cxx/TpcbExample.cpp
+	$(CC) -c -o excxx_tpcb.o ../examples_cxx/TpcbExample.cpp $(CXXFLAGS)
+
+#
+#  DLL
+#
+
+libdb32.a: $(OBJECTS)
+	$(AR) -r libdb32.a $(OBJECTS)
+
+libdb32.dll: $(OBJECTS) $(OBJECTS_DLL)
+	$(LD) $(LDFLAGS) -o libdb32.dll -Wl,--export-dynamic \
+	-Wl,--out-implib,libdb32.dll.a $(OBJECTS) $(OBJECTS_DLL) $(LIBS_DLL)
+
+bt_compare.o: ../btree/bt_compare.c
+	$(CC) -c -o bt_compare.o ../btree/bt_compare.c $(CXXFLAGS)
+
+bt_conv.o: ../btree/bt_conv.c
+	$(CC) -c -o bt_conv.o ../btree/bt_conv.c $(CXXFLAGS)
+
+bt_curadj.o: ../btree/bt_curadj.c
+	$(CC) -c -o bt_curadj.o ../btree/bt_curadj.c $(CXXFLAGS)
+
+bt_cursor.o: ../btree/bt_cursor.c
+	$(CC) -c -o bt_cursor.o ../btree/bt_cursor.c $(CXXFLAGS)
+
+bt_delete.o: ../btree/bt_delete.c
+	$(CC) -c -o bt_delete.o ../btree/bt_delete.c $(CXXFLAGS)
+
+bt_method.o: ../btree/bt_method.c
+	$(CC) -c -o bt_method.o ../btree/bt_method.c $(CXXFLAGS)
+
+bt_open.o: ../btree/bt_open.c
+	$(CC) -c -o bt_open.o ../btree/bt_open.c $(CXXFLAGS)
+
+bt_put.o: ../btree/bt_put.c
+	$(CC) -c -o bt_put.o ../btree/bt_put.c $(CXXFLAGS)
+
+bt_rec.o: ../btree/bt_rec.c
+	$(CC) -c -o bt_rec.o ../btree/bt_rec.c $(CXXFLAGS)
+
+bt_reclaim.o: ../btree/bt_reclaim.c
+	$(CC) -c -o bt_reclaim.o ../btree/bt_reclaim.c $(CXXFLAGS)
+
+bt_recno.o: ../btree/bt_recno.c
+	$(CC) -c -o bt_recno.o ../btree/bt_recno.c $(CXXFLAGS)
+
+bt_rsearch.o: ../btree/bt_rsearch.c
+	$(CC) -c -o bt_rsearch.o ../btree/bt_rsearch.c $(CXXFLAGS)
+
+bt_search.o: ../btree/bt_search.c
+	$(CC) -c -o bt_search.o ../btree/bt_search.c $(CXXFLAGS)
+
+bt_split.o: ../btree/bt_split.c
+	$(CC) -c -o bt_split.o ../btree/bt_split.c $(CXXFLAGS)
+
+bt_stat.o: ../btree/bt_stat.c
+	$(CC) -c -o bt_stat.o ../btree/bt_stat.c $(CXXFLAGS)
+
+bt_upgrade.o: ../btree/bt_upgrade.c
+	$(CC) -c -o bt_upgrade.o ../btree/bt_upgrade.c $(CXXFLAGS)
+
+bt_verify.o: ../btree/bt_verify.c
+	$(CC) -c -o bt_verify.o ../btree/bt_verify.c $(CXXFLAGS)
+
+btree_auto.o: ../btree/btree_auto.c
+	$(CC) -c -o btree_auto.o ../btree/btree_auto.c $(CXXFLAGS)
+
+db_log2.o: ../common/db_log2.c
+	$(CC) -c -o db_log2.o ../common/db_log2.c $(CXXFLAGS)
+
+db_err.o: ../common/db_err.c
+	$(CC) -c -o db_err.o ../common/db_err.c $(CXXFLAGS)
+
+db_getlong.o: ../common/db_getlong.c
+	$(CC) -c -o db_getlong.o ../common/db_getlong.c $(CXXFLAGS)
+
+db_byteorder.o: ../common/db_byteorder.c
+	$(CC) -c -o db_byteorder.o ../common/db_byteorder.c $(CXXFLAGS)
+
+util_log.o: ../common/util_log.c
+	$(CC) -c -o util_log.o ../common/util_log.c $(CXXFLAGS)
+
+util_sig.o: ../common/util_sig.c
+	$(CC) -c -o util_sig.o ../common/util_sig.c $(CXXFLAGS)
+
+cxx_db.o: ../cxx/cxx_db.cpp
+	$(CC) -c -o cxx_db.o ../cxx/cxx_db.cpp $(CXXFLAGS)
+
+cxx_dbc.o: ../cxx/cxx_dbc.cpp
+	$(CC) -c -o cxx_dbc.o ../cxx/cxx_dbc.cpp $(CXXFLAGS)
+
+cxx_dbt.o: ../cxx/cxx_dbt.cpp
+	$(CC) -c -o cxx_dbt.o ../cxx/cxx_dbt.cpp $(CXXFLAGS)
+
+cxx_env.o: ../cxx/cxx_env.cpp
+	$(CC) -c -o cxx_env.o ../cxx/cxx_env.cpp $(CXXFLAGS)
+
+cxx_except.o: ../cxx/cxx_except.cpp
+	$(CC) -c -o cxx_except.o ../cxx/cxx_except.cpp $(CXXFLAGS)
+
+cxx_lock.o: ../cxx/cxx_lock.cpp
+	$(CC) -c -o cxx_lock.o ../cxx/cxx_lock.cpp $(CXXFLAGS)
+
+cxx_logc.o: ../cxx/cxx_logc.cpp
+	$(CC) -c -o cxx_logc.o ../cxx/cxx_logc.cpp $(CXXFLAGS)
+
+cxx_mpool.o: ../cxx/cxx_mpool.cpp
+	$(CC) -c -o cxx_mpool.o ../cxx/cxx_mpool.cpp $(CXXFLAGS)
+
+cxx_txn.o: ../cxx/cxx_txn.cpp
+	$(CC) -c -o cxx_txn.o ../cxx/cxx_txn.cpp $(CXXFLAGS)
+
+db_cam.o: ../db/db_cam.c
+	$(CC) -c -o db_cam.o ../db/db_cam.c $(CXXFLAGS)
+
+crdel_rec.o: ../db/crdel_rec.c
+	$(CC) -c -o crdel_rec.o ../db/crdel_rec.c $(CXXFLAGS)
+
+db.o: ../db/db.c
+	$(CC) -c -o db.o ../db/db.c $(CXXFLAGS)
+
+db_am.o: ../db/db_am.c
+	$(CC) -c -o db_am.o ../db/db_am.c $(CXXFLAGS)
+
+db_auto.o: ../db/db_auto.c
+	$(CC) -c -o db_auto.o ../db/db_auto.c $(CXXFLAGS)
+
+crdel_auto.o: ../db/crdel_auto.c
+	$(CC) -c -o crdel_auto.o ../db/crdel_auto.c $(CXXFLAGS)
+
+db_conv.o: ../db/db_conv.c
+	$(CC) -c -o db_conv.o ../db/db_conv.c $(CXXFLAGS)
+
+db_dispatch.o: ../db/db_dispatch.c
+	$(CC) -c -o db_dispatch.o ../db/db_dispatch.c $(CXXFLAGS)
+
+db_dup.o: ../db/db_dup.c
+	$(CC) -c -o db_dup.o ../db/db_dup.c $(CXXFLAGS)
+
+db_iface.o: ../db/db_iface.c
+	$(CC) -c -o db_iface.o ../db/db_iface.c $(CXXFLAGS)
+
+db_join.o: ../db/db_join.c
+	$(CC) -c -o db_join.o ../db/db_join.c $(CXXFLAGS)
+
+db_meta.o: ../db/db_meta.c
+	$(CC) -c -o db_meta.o ../db/db_meta.c $(CXXFLAGS)
+
+db_method.o: ../db/db_method.c
+	$(CC) -c -o db_method.o ../db/db_method.c $(CXXFLAGS)
+
+db_overflow.o: ../db/db_overflow.c
+	$(CC) -c -o db_overflow.o ../db/db_overflow.c $(CXXFLAGS)
+
+db_pr.o: ../db/db_pr.c
+	$(CC) -c -o db_pr.o ../db/db_pr.c $(CXXFLAGS)
+
+db_rec.o: ../db/db_rec.c
+	$(CC) -c -o db_rec.o ../db/db_rec.c $(CXXFLAGS)
+
+db_reclaim.o: ../db/db_reclaim.c
+	$(CC) -c -o db_reclaim.o ../db/db_reclaim.c $(CXXFLAGS)
+
+db_ret.o: ../db/db_ret.c
+	$(CC) -c -o db_ret.o ../db/db_ret.c $(CXXFLAGS)
+
+db_upg.o: ../db/db_upg.c
+	$(CC) -c -o db_upg.o ../db/db_upg.c $(CXXFLAGS)
+
+db_upg_opd.o: ../db/db_upg_opd.c
+	$(CC) -c -o db_upg_opd.o ../db/db_upg_opd.c $(CXXFLAGS)
+
+db_vrfy.o: ../db/db_vrfy.c
+	$(CC) -c -o db_vrfy.o ../db/db_vrfy.c $(CXXFLAGS)
+
+db_vrfyutil.o: ../db/db_vrfyutil.c
+	$(CC) -c -o db_vrfyutil.o ../db/db_vrfyutil.c $(CXXFLAGS)
+
+dbm.o: ../dbm/dbm.c
+	$(CC) -c -o dbm.o ../dbm/dbm.c $(CXXFLAGS)
+
+env_open.o: ../env/env_open.c
+	$(CC) -c -o env_open.o ../env/env_open.c $(CXXFLAGS)
+
+db_shash.o: ../env/db_shash.c
+	$(CC) -c -o db_shash.o ../env/db_shash.c $(CXXFLAGS)
+
+env_method.o: ../env/env_method.c
+	$(CC) -c -o env_method.o ../env/env_method.c $(CXXFLAGS)
+
+db_salloc.o: ../env/db_salloc.c
+	$(CC) -c -o db_salloc.o ../env/db_salloc.c $(CXXFLAGS)
+
+env_recover.o: ../env/env_recover.c
+	$(CC) -c -o env_recover.o ../env/env_recover.c $(CXXFLAGS)
+
+env_region.o: ../env/env_region.c
+	$(CC) -c -o env_region.o ../env/env_region.c $(CXXFLAGS)
+
+hash_auto.o: ../hash/hash_auto.c
+	$(CC) -c -o hash_auto.o ../hash/hash_auto.c $(CXXFLAGS)
+
+hash.o: ../hash/hash.c
+	$(CC) -c -o hash.o ../hash/hash.c $(CXXFLAGS)
+
+hash_conv.o: ../hash/hash_conv.c
+	$(CC) -c -o hash_conv.o ../hash/hash_conv.c $(CXXFLAGS)
+
+hash_dup.o: ../hash/hash_dup.c
+	$(CC) -c -o hash_dup.o ../hash/hash_dup.c $(CXXFLAGS)
+
+hash_func.o: ../hash/hash_func.c
+	$(CC) -c -o hash_func.o ../hash/hash_func.c $(CXXFLAGS)
+
+hash_meta.o: ../hash/hash_meta.c
+	$(CC) -c -o hash_meta.o ../hash/hash_meta.c $(CXXFLAGS)
+
+hash_method.o: ../hash/hash_method.c
+	$(CC) -c -o hash_method.o ../hash/hash_method.c $(CXXFLAGS)
+
+hash_page.o: ../hash/hash_page.c
+	$(CC) -c -o hash_page.o ../hash/hash_page.c $(CXXFLAGS)
+
+hash_rec.o: ../hash/hash_rec.c
+	$(CC) -c -o hash_rec.o ../hash/hash_rec.c $(CXXFLAGS)
+
+hash_reclaim.o: ../hash/hash_reclaim.c
+	$(CC) -c -o hash_reclaim.o ../hash/hash_reclaim.c $(CXXFLAGS)
+
+hash_stat.o: ../hash/hash_stat.c
+	$(CC) -c -o hash_stat.o ../hash/hash_stat.c $(CXXFLAGS)
+
+hash_upgrade.o: ../hash/hash_upgrade.c
+	$(CC) -c -o hash_upgrade.o ../hash/hash_upgrade.c $(CXXFLAGS)
+
+hash_verify.o: ../hash/hash_verify.c
+	$(CC) -c -o hash_verify.o ../hash/hash_verify.c $(CXXFLAGS)
+
+hsearch.o: ../hsearch/hsearch.c
+	$(CC) -c -o hsearch.o ../hsearch/hsearch.c $(CXXFLAGS)
+
+lock_stat.o: ../lock/lock_stat.c
+	$(CC) -c -o lock_stat.o ../lock/lock_stat.c $(CXXFLAGS)
+
+lock_deadlock.o: ../lock/lock_deadlock.c
+	$(CC) -c -o lock_deadlock.o ../lock/lock_deadlock.c $(CXXFLAGS)
+
+lock_method.o: ../lock/lock_method.c
+	$(CC) -c -o lock_method.o ../lock/lock_method.c $(CXXFLAGS)
+
+lock_region.o: ../lock/lock_region.c
+	$(CC) -c -o lock_region.o ../lock/lock_region.c $(CXXFLAGS)
+
+lock.o: ../lock/lock.c
+	$(CC) -c -o lock.o ../lock/lock.c $(CXXFLAGS)
+
+lock_util.o: ../lock/lock_util.c
+	$(CC) -c -o lock_util.o ../lock/lock_util.c $(CXXFLAGS)
+
+log_archive.o: ../log/log_archive.c
+	$(CC) -c -o log_archive.o ../log/log_archive.c $(CXXFLAGS)
+
+log.o: ../log/log.c
+	$(CC) -c -o log.o ../log/log.c $(CXXFLAGS)
+
+log_auto.o: ../log/log_auto.c
+	$(CC) -c -o log_auto.o ../log/log_auto.c $(CXXFLAGS)
+
+log_compare.o: ../log/log_compare.c
+	$(CC) -c -o log_compare.o ../log/log_compare.c $(CXXFLAGS)
+
+log_findckp.o: ../log/log_findckp.c
+	$(CC) -c -o log_findckp.o ../log/log_findckp.c $(CXXFLAGS)
+
+log_get.o: ../log/log_get.c
+	$(CC) -c -o log_get.o ../log/log_get.c $(CXXFLAGS)
+
+log_method.o: ../log/log_method.c
+	$(CC) -c -o log_method.o ../log/log_method.c $(CXXFLAGS)
+
+log_put.o: ../log/log_put.c
+	$(CC) -c -o log_put.o ../log/log_put.c $(CXXFLAGS)
+
+log_rec.o: ../log/log_rec.c
+	$(CC) -c -o log_rec.o ../log/log_rec.c $(CXXFLAGS)
+
+log_register.o: ../log/log_register.c
+	$(CC) -c -o log_register.o ../log/log_register.c $(CXXFLAGS)
+
+mp_bh.o: ../mp/mp_bh.c
+	$(CC) -c -o mp_bh.o ../mp/mp_bh.c $(CXXFLAGS)
+
+mp_alloc.o: ../mp/mp_alloc.c
+	$(CC) -c -o mp_alloc.o ../mp/mp_alloc.c $(CXXFLAGS)
+
+mp_fget.o: ../mp/mp_fget.c
+	$(CC) -c -o mp_fget.o ../mp/mp_fget.c $(CXXFLAGS)
+
+mp_fopen.o: ../mp/mp_fopen.c
+	$(CC) -c -o mp_fopen.o ../mp/mp_fopen.c $(CXXFLAGS)
+
+mp_fput.o: ../mp/mp_fput.c
+	$(CC) -c -o mp_fput.o ../mp/mp_fput.c $(CXXFLAGS)
+
+mp_fset.o: ../mp/mp_fset.c
+	$(CC) -c -o mp_fset.o ../mp/mp_fset.c $(CXXFLAGS)
+
+mp_method.o: ../mp/mp_method.c
+	$(CC) -c -o mp_method.o ../mp/mp_method.c $(CXXFLAGS)
+
+mp_region.o: ../mp/mp_region.c
+	$(CC) -c -o mp_region.o ../mp/mp_region.c $(CXXFLAGS)
+
+mp_register.o: ../mp/mp_register.c
+	$(CC) -c -o mp_register.o ../mp/mp_register.c $(CXXFLAGS)
+
+mp_stat.o: ../mp/mp_stat.c
+	$(CC) -c -o mp_stat.o ../mp/mp_stat.c $(CXXFLAGS)
+
+mp_sync.o: ../mp/mp_sync.c
+	$(CC) -c -o mp_sync.o ../mp/mp_sync.c $(CXXFLAGS)
+
+mp_trickle.o: ../mp/mp_trickle.c
+	$(CC) -c -o mp_trickle.o ../mp/mp_trickle.c $(CXXFLAGS)
+
+mutex.o: ../mutex/mutex.c
+	$(CC) -c -o mutex.o ../mutex/mutex.c $(CXXFLAGS)
+
+mut_tas.o: ../mutex/mut_tas.c
+	$(CC) -c -o mut_tas.o ../mutex/mut_tas.c $(CXXFLAGS)
+
+qam_stat.o: ../qam/qam_stat.c
+	$(CC) -c -o qam_stat.o ../qam/qam_stat.c $(CXXFLAGS)
+
+qam_auto.o: ../qam/qam_auto.c
+	$(CC) -c -o qam_auto.o ../qam/qam_auto.c $(CXXFLAGS)
+
+qam_conv.o: ../qam/qam_conv.c
+	$(CC) -c -o qam_conv.o ../qam/qam_conv.c $(CXXFLAGS)
+
+qam_files.o: ../qam/qam_files.c
+	$(CC) -c -o qam_files.o ../qam/qam_files.c $(CXXFLAGS)
+
+qam_method.o: ../qam/qam_method.c
+	$(CC) -c -o qam_method.o ../qam/qam_method.c $(CXXFLAGS)
+
+qam_open.o: ../qam/qam_open.c
+	$(CC) -c -o qam_open.o ../qam/qam_open.c $(CXXFLAGS)
+
+qam_rec.o: ../qam/qam_rec.c
+	$(CC) -c -o qam_rec.o ../qam/qam_rec.c $(CXXFLAGS)
+
+qam.o: ../qam/qam.c
+	$(CC) -c -o qam.o ../qam/qam.c $(CXXFLAGS)
+
+qam_upgrade.o: ../qam/qam_upgrade.c
+	$(CC) -c -o qam_upgrade.o ../qam/qam_upgrade.c $(CXXFLAGS)
+
+qam_verify.o: ../qam/qam_verify.c
+	$(CC) -c -o qam_verify.o ../qam/qam_verify.c $(CXXFLAGS)
+
+rep_method.o: ../rep/rep_method.c
+	$(CC) -c -o rep_method.o ../rep/rep_method.c $(CXXFLAGS)
+
+rep_record.o: ../rep/rep_record.c
+	$(CC) -c -o rep_record.o ../rep/rep_record.c $(CXXFLAGS)
+
+rep_region.o: ../rep/rep_region.c
+	$(CC) -c -o rep_region.o ../rep/rep_region.c $(CXXFLAGS)
+
+rep_util.o: ../rep/rep_util.c
+	$(CC) -c -o rep_util.o ../rep/rep_util.c $(CXXFLAGS)
+
+txn_region.o: ../txn/txn_region.c
+	$(CC) -c -o txn_region.o ../txn/txn_region.c $(CXXFLAGS)
+
+txn_auto.o: ../txn/txn_auto.c
+	$(CC) -c -o txn_auto.o ../txn/txn_auto.c $(CXXFLAGS)
+
+txn_rec.o: ../txn/txn_rec.c
+	$(CC) -c -o txn_rec.o ../txn/txn_rec.c $(CXXFLAGS)
+
+txn_recover.o: ../txn/txn_recover.c
+	$(CC) -c -o txn_recover.o ../txn/txn_recover.c $(CXXFLAGS)
+
+txn.o: ../txn/txn.c
+	$(CC) -c -o txn.o ../txn/txn.c $(CXXFLAGS)
+
+txn_method.o: ../txn/txn_method.c
+	$(CC) -c -o txn_method.o ../txn/txn_method.c $(CXXFLAGS)
+
+txn_stat.o: ../txn/txn_stat.c
+	$(CC) -c -o txn_stat.o ../txn/txn_stat.c $(CXXFLAGS)
+
+xa_map.o: ../xa/xa_map.c
+	$(CC) -c -o xa_map.o ../xa/xa_map.c $(CXXFLAGS)
+
+xa_db.o: ../xa/xa_db.c
+	$(CC) -c -o xa_db.o ../xa/xa_db.c $(CXXFLAGS)
+
+xa.o: ../xa/xa.c
+	$(CC) -c -o xa.o ../xa/xa.c $(CXXFLAGS)
+
+os_alloc.o: ../os/os_alloc.c
+	$(CC) -c -o os_alloc.o ../os/os_alloc.c $(CXXFLAGS)
+
+os_fsync.o: ../os/os_fsync.c
+	$(CC) -c -o os_fsync.o ../os/os_fsync.c $(CXXFLAGS)
+
+os_handle.o: ../os/os_handle.c
+	$(CC) -c -o os_handle.o ../os/os_handle.c $(CXXFLAGS)
+
+os_method.o: ../os/os_method.c
+	$(CC) -c -o os_method.o ../os/os_method.c $(CXXFLAGS)
+
+os_oflags.o: ../os/os_oflags.c
+	$(CC) -c -o os_oflags.o ../os/os_oflags.c $(CXXFLAGS)
+
+os_region.o: ../os/os_region.c
+	$(CC) -c -o os_region.o ../os/os_region.c $(CXXFLAGS)
+
+os_root.o: ../os/os_root.c
+	$(CC) -c -o os_root.o ../os/os_root.c $(CXXFLAGS)
+
+os_rpath.o: ../os/os_rpath.c
+	$(CC) -c -o os_rpath.o ../os/os_rpath.c $(CXXFLAGS)
+
+os_rw.o: ../os/os_rw.c
+	$(CC) -c -o os_rw.o ../os/os_rw.c $(CXXFLAGS)
+
+os_stat.o: ../os/os_stat.c
+	$(CC) -c -o os_stat.o ../os/os_stat.c $(CXXFLAGS)
+
+os_tmpdir.o: ../os/os_tmpdir.c
+	$(CC) -c -o os_tmpdir.o ../os/os_tmpdir.c $(CXXFLAGS)
+
+os_unlink.o: ../os/os_unlink.c
+	$(CC) -c -o os_unlink.o ../os/os_unlink.c $(CXXFLAGS)
+
+os_abs.o: ../os_win32/os_abs.c
+	$(CC) -c -o os_abs.o ../os_win32/os_abs.c $(CXXFLAGS)
+
+os_clock.o: ../os_win32/os_clock.c
+	$(CC) -c -o os_clock.o ../os_win32/os_clock.c $(CXXFLAGS)
+
+os_dir.o: ../os_win32/os_dir.c
+	$(CC) -c -o os_dir.o ../os_win32/os_dir.c $(CXXFLAGS)
+
+os_errno.o: ../os_win32/os_errno.c
+	$(CC) -c -o os_errno.o ../os_win32/os_errno.c $(CXXFLAGS)
+
+os_fid.o: ../os_win32/os_fid.c
+	$(CC) -c -o os_fid.o ../os_win32/os_fid.c $(CXXFLAGS)
+
+os_finit.o: ../os_win32/os_finit.c
+	$(CC) -c -o os_finit.o ../os_win32/os_finit.c $(CXXFLAGS)
+
+os_map.o: ../os_win32/os_map.c
+	$(CC) -c -o os_map.o ../os_win32/os_map.c $(CXXFLAGS)
+
+os_open.o: ../os_win32/os_open.c
+	$(CC) -c -o os_open.o ../os_win32/os_open.c $(CXXFLAGS)
+
+os_rename.o: ../os_win32/os_rename.c
+	$(CC) -c -o os_rename.o ../os_win32/os_rename.c $(CXXFLAGS)
+
+os_seek.o: ../os_win32/os_seek.c
+	$(CC) -c -o os_seek.o ../os_win32/os_seek.c $(CXXFLAGS)
+
+os_sleep.o: ../os_win32/os_sleep.c
+	$(CC) -c -o os_sleep.o ../os_win32/os_sleep.c $(CXXFLAGS)
+
+os_spin.o: ../os_win32/os_spin.c
+	$(CC) -c -o os_spin.o ../os_win32/os_spin.c $(CXXFLAGS)
+
+os_type.o: ../os_win32/os_type.c
+	$(CC) -c -o os_type.o ../os_win32/os_type.c $(CXXFLAGS)
+
+dllmain.o: dllmain.c
+	$(CC) -c -o dllmain.o dllmain.c $(CXXFLAGS)
+
+libdb.o: libdb.rc
+	$(RC) libdb.rc libdb.o
+

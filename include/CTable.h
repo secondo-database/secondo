@@ -17,7 +17,7 @@
 //[star]  [\verb|*|]
 //[cppref] [\verb|[]|]
 
-1 Header File Compact Table
+1 Header File: Compact Table
 
 February 1994 Gerd Westerman
 

@@ -11,7 +11,7 @@ include ../makefile.$(platform)
 CCFLAGS= -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all: testctable testfilesystem testprofiles testsmi \
+all: testctable testnl testfilesystem testprofiles testsmi \
 	testdynlib testsock1 testsock2 testsock3
 
 # --- Storage Management Interface library ---
@@ -30,6 +30,14 @@ testctable: tctable$(EXEEXT)
 
 tctable$(EXEEXT): tctable.cpp ../include/CTable.h ../include/CTable.cpp
 	$(CC) -o tctable$(EXEEXT) tctable.cpp  $(DEFAULTCCFLAGS) $(DEFAULTLIB)
+
+# Test Nested List module
+
+testnl: tnestedlist$(EXEEXT)
+	$(CP) tnestedlist$(EXEEXT) ../bin/tnestedlist$(EXEEXT)
+
+tnestedlist$(EXEEXT): tnestedlist.cpp ../include/NestedList.h ../include/CTable.h ../include/CTable.cpp
+	$(CC) -o tnestedlist$(EXEEXT) tnestedlist.cpp  $(DEFAULTCCFLAGS) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 # Test filesystem module
 
@@ -59,13 +67,13 @@ testsmi: tsmi$(EXEEXT) tsmi3$(EXEEXT)
 	$(CP) tsmi$(EXEEXT) ../bin/tsmi$(EXEEXT)
 
 tsmi$(EXEEXT): tsmi.o ../lib/libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o tsmi$(EXEEXT) tsmi.o $(LIBDIR) $(SMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) -o tsmi$(EXEEXT) tsmi.o $(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
 tsmi.o: tsmi.cpp ../include/SecondoConfig.h ../include/SecondoSMI.h ../StorageManager/SmiBDB.h
 	$(CC) -c -o tsmi.o tsmi.cpp $(CCFLAGS)
 
-tsmi3$(EXEEXT): tsmi3.o ../lib/libsmi.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o tsmi3$(EXEEXT) tsmi3.o $(LIBDIR) $(SMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+tsmi3$(EXEEXT): tsmi3.o ../lib/libsmibdb.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tsmi3$(EXEEXT) tsmi3.o $(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
 tsmi3.o: tsmi3.cpp ../include/SecondoConfig.h ../include/SecondoSMI.h ../StorageManager/SmiBDB.h
 	$(CC) -c -o tsmi3.o tsmi3.cpp $(CCFLAGS)
@@ -83,19 +91,19 @@ testdynlib: tdynlib
 	$(CP) libtdynlib1.$(DLLEXT) ../bin/libtdynlib1.$(DLLEXT)
 	$(CP) libtdynlib2.$(DLLEXT) ../bin/libtdynlib2.$(DLLEXT)
 
-tdynlib: tdlmain.o tdynlib1.$(OBJEXT) tdynlib2.$(OBJEXT) ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(DLLFLAGS) -o libtdynlib1.$(DLLEXT) $(LDOPT1) tdynlib1.$(OBJEXT) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-	$(LD) $(DLLFLAGS) -o libtdynlib2.$(DLLEXT) $(LDOPT2) tdynlib2.$(OBJEXT) -L. -ltdynlib1 $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+tdynlib: tdlmain.o tdynlib1.$(DLLOBJEXT) tdynlib2.$(DLLOBJEXT) ../lib/libsdbtool.$(LIBEXT)
+	$(LD) $(DLLFLAGS) -o libtdynlib1.$(DLLEXT) $(LDOPT1) tdynlib1.$(DLLOBJEXT) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(DLLFLAGS) -o libtdynlib2.$(DLLEXT) $(LDOPT2) tdynlib2.$(DLLOBJEXT) -L. -ltdynlib1 $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 	$(LD) $(EXEFLAGS) -o tdlmain$(EXEEXT) tdlmain.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 tdlmain.o: tdlmain.cpp ../include/SecondoConfig.h ../include/DynamicLibrary.h
 	$(CC) -c -o tdlmain.o tdlmain.cpp $(CCFLAGS)
 
-tdynlib1.$(OBJEXT): tdynlib1.cpp
-	$(CC) -c $(PICFLAG) -o tdynlib1.$(OBJEXT) tdynlib1.cpp $(CCFLAGS)
+tdynlib1.$(DLLOBJEXT): tdynlib1.cpp
+	$(CC) -c $(DLLPICFLAG) -o tdynlib1.$(DLLOBJEXT) tdynlib1.cpp $(CCFLAGS)
 
-tdynlib2.$(OBJEXT): tdynlib2.cpp
-	$(CC) -c $(PICFLAG) -o tdynlib2.$(OBJEXT) tdynlib2.cpp $(CCFLAGS)
+tdynlib2.$(DLLOBJEXT): tdynlib2.cpp
+	$(CC) -c $(DLLPICFLAG) -o tdynlib2.$(DLLOBJEXT) tdynlib2.cpp $(CCFLAGS)
 
 # Test Socket I/O module
 

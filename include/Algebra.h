@@ -151,8 +151,7 @@ adds a model mapping function to the list of overloaded operator functions.
 
 */
   string         name;           // Name of operator
-  string         specString;     // Specification (string)
-  ListExpr       specification;  // Specification (nested list)
+  string         specString;     // Specification
   int            numOfFunctions; // No. of overloaded functions
   SelectFunction selectFunc;
   ValueMapping*  valueMap; // Array of size numOfFunctions
@@ -198,6 +197,8 @@ class TypeConstructor
                    ObjectDeletion del,
                    ObjectCast ca,
                    TypeCheckFunction tcf,
+                   PersistFunction pvf = 0,
+                   PersistFunction pmf = 0,
                    InModelFunction inm =
                      TypeConstructor::DummyInModel,
                    OutModelFunction outm =
@@ -239,11 +240,29 @@ returns the properties of the type constructor as a nested list.
                              const int errorPos,
                              ListExpr& errorInfo,
                              bool& correct );
+  bool     PersistValue( const PersistDirection dir,
+                         SmiRecord& valueRecord,
+                         const string& type, Word& value );
+  bool     PersistModel( const PersistDirection dir,
+                         SmiRecord& modelRecord,
+                         const string& type, Word& model );
+  bool     DefaultPersistValue( const PersistDirection dir,
+                                SmiRecord& valueRecord,
+                                const string& type, Word& value );
+  bool     DefaultPersistModel( const PersistDirection dir,
+                                SmiRecord& modelRecord,
+                                const string& type, Word& model );
 /*
 are methods to manipulate objects and models according to the type
 constructor.
 
 */
+  static bool     DummyPersistValue( const PersistDirection dir,
+                                     SmiRecord& valueRecord,
+                                     const string& type, Word& value );
+  static bool     DummyPersistModel( const PersistDirection dir,
+                                     SmiRecord& modelRecord,
+                                     const string& type, Word& model );
   static Word     DummyInModel( ListExpr typeExpr, ListExpr list, int objNo );
   static ListExpr DummyOutModel( ListExpr typeExpr, Word model );
   static Word     DummyValueToModel( ListExpr typeExpr, Word value );
@@ -259,13 +278,14 @@ constructor functions.
 */
  private:
   string                   name;       // Name of type constr.
-  ListExpr                 property;   // Properties
   TypeProperty             propFunc;
   OutObject                outFunc;
   InObject                 inFunc;
   ObjectCreation           createFunc;
   ObjectDeletion           deleteFunc;
   ObjectCast               castFunc;
+  PersistFunction          persistValueFunc;
+  PersistFunction          persistModelFunc;
   InModelFunction          inModelFunc;
   OutModelFunction         outModelFunc;
   ValueToModelFunction     valueToModelFunc;

@@ -6,6 +6,8 @@ January 2002 Ulrich Telle
 
 */
 
+using namespace std;
+
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -18,7 +20,36 @@ January 2002 Ulrich Telle
 #include "FileSystem.h"
 #include "Messenger.h"
 
-using namespace std;
+SmiEnvironment::SmiType
+SmiEnvironment::GetImplementationType()
+{
+  return (smiType);
+}
+
+SmiEnvironment*
+SmiEnvironment::GetInstance()
+{
+  return (&instance);
+}
+
+bool
+SmiEnvironment::IsDatabaseOpen()
+{
+  return (dbOpened);
+}
+
+string
+SmiEnvironment::CurrentDatabase()
+{
+  if ( dbOpened )
+  {
+    return (database);
+  }
+  else
+  {
+    return ("");
+  }
+}
 
 SmiError
 SmiEnvironment::CheckLastErrorCode()
