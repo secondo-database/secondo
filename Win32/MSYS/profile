@@ -62,10 +62,4 @@ fi
 export USER=$LOGNAME
 cd "$HOME"
 
-
-
-# set SECONDO environment variables
-alias setvar="source /etc/setvar.bash"
-source /etc/setvar.bash /secondo
-export CVSUSER=$USER  
-
+source ./secondo-bashrc

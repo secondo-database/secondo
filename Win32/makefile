@@ -1,6 +1,6 @@
 ########################################################################
 #
-# SECONDO makefile for Oracle OCI Win32 import library
+# SECONDO makefile for Oracle OCI Win32 import library and Berkeley DB
 #
 ########################################################################
 
@@ -9,12 +9,13 @@ RM := rm
 CC := gcc
 
 OCIDLLHOME=$(ORACLEHOME)/bin
-BDB_BUILD_DIR=/usr/local/db-4.1.25/build_win32
+BDB_BUILD_DIR=$(SECONDO_SDK)/db-4.1.25/build_win32
 
-LIBDIR := /usr/local/lib
-INCDIR := /usr/local/include
+LIBDIR := $(SECONDO_SDK)/lib
+INCDIR := $(SECONDO_SDK)/local/include
 
-# --- Berkeley DB
+# --- Berkeley DB some files were modified in order to translate
+#     it with GCC. For Documentation of changes see directory Berkeley
 MODIFIED_BDB_FILES = \
 		 db.h \
 		 db_config.h \

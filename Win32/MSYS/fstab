@@ -13,7 +13,6 @@
 #Blank lines are ignored.
 
 #Win32_Path		Mount_Point
-\usr\local		/local
-\usr\local		/usr/local
 \mingw			/mingw
 \secondo		/secondo
+\secondo-sdk		/secondo-sdk

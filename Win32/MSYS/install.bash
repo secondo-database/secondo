@@ -41,23 +41,29 @@ printf "\n* '$cdpath' to '$instpath' \n"
 printf "\n* Creating mount points ... \n"
 
 
-mkdir "$msysdir/usr"
+mkdir "$msysdir/secondo-sdk"
 mkdir "$msysdir/secondo"
 mkdir "$msysdir/mingw"
-
-
-printf  "\n* Changing MSYS configuration ... \n"
-cd "$msysdir/etc"
-tar -xzf "$cdpath/etc.tgz"
 
 printf "\n* Uncompressing archives ... "
 
 cd "$instpath"
 tar -xzf "$cdpath/secondo.tgz"
-tar -xzf "$cdpath/usr.tgz"
+tar -xzf "$cdpath/sdk.tgz"
+cd "$instpath/secondo-sdk"
 tar -xzf "$cdpath/../java/cvs/jcvs-522.tgz"
-cd "$instpath/usr/local"
 tar -xzf "$cdpath/../bdb/db-4.1.25.tgz"
+printf "\n* Note: The errors above are harmless :-) "
+
+
+printf  "\n* Copying configuration files ... \n"
+cd "$instpath/secondo"
+chmod u+x setvar.bash catvar secondo-bashrc
+cp setvar.bash catvar "$instpath/secondo-sdk/bin"
+cp secondo-bashrc "$HOME"
+
+cd "$cdpath" 
+cp --backup fstab profile "$msysdir/etc"
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"

@@ -1,23 +1,42 @@
 # makefile for archiving msys configuration files
 # and copying them to the Secondo-CDROM directory
 
-SETVAR_SCRIPT_DIR=../..
+include ../../makefile.env
 
-.PHONY: all
-all: $(NETDEV)/etc.tgz $(NETDEV)/install.bash
+ROOT_DIR=../..
+	
+# Configuration files for MSYS
+.PHONY: config-msys
+config-msys: config-all /etc/profile /etc/fstab
 
+# Configuration files shared by Linux and Windows
+.PHONY: config-all 
+config-all: $(SECONDO_SDK)/bin/setvar.bash $(SECONDO_SDK)/bin/catvar $(HOME)/secondo-bashrc
+	
+$(SECONDO_SDK)/bin/setvar.bash: $(ROOT_DIR)/setvar.bash
+	cp --backup $< $@
 
-.PHONY: install
-install: /etc/setvar.bash /etc/profile
+$(SECONDO_SDK)/bin/catvar: $(ROOT_DIR)/catvar.sh
+	cp --backup $< $@
 
-/etc/setvar.bash: ../../setvar.bash
+$(HOME)/secondo-bashrc: $(ROOT_DIR)/secondo-bashrc
 	cp --backup $< $@
 
 /etc/profile: profile
 	cp --backup $< $@
 
-$(NETDEV)/install.bash: install.bash
+/etc/fstab: fstab
+	cp --backup $< $@
+
+# Copying files to SECONDO_CD
+.PHONY: dist
+dist: $(NETDEV)/fstab $(NETDEV)/profile $(NETDEV)/install-msys.bash
+
+$(NETDEV)/install-msys.bash: $(ROOT_DIR)/install-msys.bash
 	cp $< $@
 
-$(NETDEV)/etc.tgz: fstab profile $(SETVAR_SCRIPT_DIR)/setvar.bash 
-	tar -cvzf $@ fstab profile -C $(SETVAR_SCRIPT_DIR) setvar.bash
+$(NETDEV)/fstab: fstab
+	cp $< $@
+
+$(NETDEV)/profile: profile
+	cp $< $@
