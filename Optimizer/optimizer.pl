@@ -942,7 +942,16 @@ plan_to_atom(attribute(X, Y), Result) :-
   plan_to_atom(Y, YAtom),
   concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
+ 
 
+plan_to_atom(date(X), Result) :-
+  plan_to_atom(X, XAtom),
+  concat_atom(['[const instant value ', XAtom, ']'], '', Result),
+  !.
+  
+plan_to_atom(interval(X, Y), Result) :-
+  concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
+  !.
 
 
 /*
@@ -2212,6 +2221,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 :- op(930, xfx, as).
 :- op(970, xfx, groupby).
 :- op(980, xfx, orderby).
+:- op(986, xfx, first).
 :- op(930, xf, asc).
 :- op(930, xf, desc).
 
@@ -2219,7 +2229,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 This ensures that the select-from-where statement is viewed as a term with the
 structure:
 
-----	from(select(AttrList(), where(RelList, PredList))
+----	from(select(AttrList), where(RelList, PredList))
 ----
 
 That this works, can be tested with:
@@ -2318,6 +2328,9 @@ lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
   lookupAttrs(Attrs2, Attrs3).
+  
+lookup(Query first N, Query2 first N) :-
+  lookup(Query, Query2).
 
 
 makeList(L, L) :- is_list(L).
@@ -2832,6 +2845,10 @@ countQuery(Query orderby _) :-
 Same as ~queryToPlan~, but returns a stream plan, if possible.
 
 */
+
+queryToStream(Query first N, head(Stream, N), Cost) :-
+  queryToStream(Query, Stream, Cost),
+  !.
 
 queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
   translate(Query, Stream, Select, Cost),
