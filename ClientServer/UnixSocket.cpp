@@ -46,6 +46,11 @@ extern "C" {
 #include <cstdio>
 #include <signal.h>
 #include <string>
+#include <iostream>
+
+#include "LogMsg.h"
+
+using namespace std;
 
 #define MAX_HOST_NAME   256
 
@@ -594,8 +599,12 @@ UnixSocket::Read( void* buf, size_t size )
 bool
 UnixSocket::Write( void const* buf, size_t size )
 { 
+  int sleepCtr = 0;
+  int writeAttempts = 0;
+
   if ( state != SS_OPEN )
   {
+    cerr << "EC_NOT_OPENED" << endl;
     SetStreamState( ios::failbit );
     lastError = EC_NOT_OPENED;
     return (false);
@@ -604,27 +613,35 @@ UnixSocket::Write( void const* buf, size_t size )
   do
   {
     ssize_t rc; 
-    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR );
+    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR ) { usleep(100); sleepCtr++; };
     if ( rc < 0 )
     {
+      cerr << "Lasterror = " << errno << endl;
       SetStreamState( ios::failbit );
       lastError = errno;
       return (false);
     }
     else if ( rc == 0 )
     {
+      cerr << "Broken Pipe!" << endl;
       SetStreamState( ios::failbit | ios::eofbit );
       lastError = EC_BROKEN_PIPE;
       return (false);
     }
     else
     {
+      if ( rc < size ) { writeAttempts++; } 
       buf = (char*) buf + rc; 
       size -= rc; 
     }
   }
   while (size != 0); 
 
+  LOGMSG( "Socket:SendStat",
+    if ( writeAttempts || sleepCtr ) {
+      cerr << "Write Attempts: " << writeAttempts << ", " << "Sleep calls (100ms): " << sleepCtr << endl;
+    } 
+  )
   return (true);
 }
     

@@ -141,6 +141,8 @@ internally only, the class interface is not described here.
 #include <sys/socket.h>
 #endif
 
+using namespace std;
+
 #define DEFAULT_CONNECT_MAX_ATTEMPTS 100
 /*
 Defines the default for how many attempts are made at most to connect
@@ -744,6 +746,20 @@ Flushes all output data from the buffer to the associated socket.
 
 */
   virtual int pbackfail( int ch = EOF );
+
+
+  int showmanyc() { cerr << "showmanyc called!" << endl; return 0; };
+
+  streampos seekpos ( streampos sp, ios_base::openmode which = ios_base::in | ios_base::out ) {
+  
+    cerr << "streampos called!" << endl; 
+    return EOF; 
+  };
+  
+  streambuf * setbuf ( char * s, streamsize n ) { cerr << "setbuf called!" << endl; return this; };
+  void imbue ( const locale & loc ) { cerr << "imbue called!" << endl; };
+
+
 /*
 Disallows to unget a character.
 
