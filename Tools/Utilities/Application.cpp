@@ -17,6 +17,7 @@ using namespace std;
 
 #include "SecondoConfig.h"
 #include "Application.h"
+#include "Counter.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
@@ -41,6 +42,7 @@ Class constructors/destructors
 
 Application::Application( int argc, const char** argv )
 {
+
   if ( appPointer )
   {
     cerr << "Fatal error: Only one *Application* instance allowed!" << endl;
@@ -161,6 +163,7 @@ Application::~Application()
     rshSocket = 0;
   }
 #endif
+  Counter::reportValues();
 }
 
 void

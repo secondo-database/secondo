@@ -23,6 +23,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
+#include "Counter.h"
 
 /* --- Implementation of class SmiRecord --- */
 
@@ -89,6 +90,7 @@ SmiRecord::Read( void* buffer,
         rc = impl->bdbFile->get( 0, &key, &data, flags );
       }
     }
+    Counter::getRef("SmiRecord::Read")++;
 
     if ( rc == 0 )
     {
@@ -133,6 +135,7 @@ SmiRecord::Write( const void*   buffer,
       key.set_size( recordKey.keyLength );
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
     }
+    Counter::getRef("SmiRecord::Write")++;
     if ( rc == 0 )
     {
       if ( offset + numberOfBytes > recordSize )

@@ -70,6 +70,7 @@ using namespace std;
 #include "SecParser.h"
 #include "TimeTest.h"
 #include "LogMsg.h"
+#include "Counter.h"
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -1130,6 +1131,9 @@ If value 0 is returned, the command was executed without error.
         }
         else
         {
+          Counter::getRef("SmiRecord::Write")=0;
+          Counter::getRef("SmiRecord::Read")=0;
+          
           StartCommand();
 
 	   TimeTest::diffReal(); TimeTest::diffCPU();
@@ -1168,6 +1172,10 @@ If value 0 is returned, the command was executed without error.
 	         cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
 	         cerr << nl->reportVectorSizes() << endl;
 	       }
+               if (RTFlag::isActive("SI:PrintCounters")) {
+                 Counter::reportValues();
+               }
+
                LOGMSG( "SI:Statistics", Tuple::ShowTupleStatistics( true, cout ); )
                LOGMSG( "SI:Statistics", ShowStandardTypesStatistics( true, cout ); )
             }

@@ -3,7 +3,9 @@ Implementention of some useful helper funtions.
 
 November 2002 M. Spiekermann, Implementation of TimeTest.
 
-September 2003 M. Spiekermann, Implementation of LogMsg.
+September 2003 M. Spiekermann, Implementation of LogMsg/RTFlags.
+
+December 2003 M. Spiekermann, 
 
 */
 
@@ -19,10 +21,14 @@ September 2003 M. Spiekermann, Implementation of LogMsg.
 
 #include "TimeTest.h"
 #include "LogMsg.h"
-
-static const int BUFSIZE=20;
+#include "Counter.h"
 
 using namespace std;
+
+/*
+1 Implementation of Class TimeTest
+
+*/
 
 const string
 TimeTest::diffReal() {
@@ -30,16 +36,14 @@ TimeTest::diffReal() {
    static bool firstcall = true;
    static time_t lasttime = 0;
    time_t currenttime = 0;
-   char sbuf1[BUFSIZE+1];
-   char sbuf2[BUFSIZE+1];
    ostringstream buffer;
-   double diffseconds = 0, full =0, frac = 0, sec =0, min = 0;
    
    if (time(&currenttime) == (-1)) {
         buffer << "Error when calling time()!" << endl;
 	return buffer.str();
    }
    
+   double diffseconds = 0, full =0, frac = 0, sec =0, min = 0;
    if (firstcall) {
      diffseconds = 0;
      firstcall = false;
@@ -55,6 +59,9 @@ TimeTest::diffReal() {
   min = full;
   sec = diffseconds - (60 * min);
   
+  const int BUFSIZE=20;
+  char sbuf1[BUFSIZE+1];
+  char sbuf2[BUFSIZE+1];
   const tm *ltime = localtime(&currenttime);
   strftime(&sbuf1[0], BUFSIZE, "%H:%M:%S", ltime);
   sprintf(&sbuf2[0], "%.0f:%02.0f", min, sec);
@@ -89,6 +96,10 @@ TimeTest::diffCPU() {
    
 }
 
+/*
+2 Implementation of Class RTFlag
+
+*/
 
 map<string,bool>::iterator
 RTFlag::it;
@@ -125,4 +136,17 @@ RTFlag::initByString( const string &keyList ) {
 
    delete [] pbuf;
 }
+
+
+/*
+3 Implementation of Class Counter
+
+*/
+
+
+map<string,long>::iterator
+Counter::it;
+
+map<string,long>
+Counter::CounterMap;
 
