@@ -1499,72 +1499,78 @@ static char* sortDescending = "desc";
 ListExpr SortByTypeMap( ListExpr args )
 {
   ListExpr attrtype;
-  string  attrname;
+  string  attrname, argstr;
+  cout << "InSortby1" << endl;
+  CHECK_COND(nl->ListLength(args) == 2,
+    "Operator sortby expects a list of length two.");
+  
+  ListExpr streamDescription = nl->First(args);
+  ListExpr sortSpecification  = nl->Second(args);
+  
+  nl->WriteToString(argstr, streamDescription);
+  cout << "InSortby2" << endl;
 
-  if(nl->ListLength(args) == 2)
+  CHECK_COND(nl->ListLength(streamDescription) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
+             (nl->ListLength(nl->Second(streamDescription)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == tuple),
+    "Operator sortby expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator sortby gets as first argument '" + argstr + "'.");
+  cout << "InSortby2" << endl;
+    
+  int numberOfSortAttrs = nl->ListLength(sortSpecification); 
+
+  CHECK_COND(numberOfSortAttrs > 0,
+    "Operator sortby: Attribute list may not be enpty!");
+
+  ListExpr sortOrderDescription = nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
+  ListExpr sortOrderDescriptionLastElement = sortOrderDescription;
+  ListExpr rest = sortSpecification;
+  while(!nl->IsEmpty(rest))
   {
-    ListExpr streamDescription = nl->First(args);
-    ListExpr sortSpecification  = nl->Second(args);
+    ListExpr attributeSpecification = nl->First(rest);
+    rest = nl->Rest(rest);
 
-    if((nl->ListLength(streamDescription) == 2  ) &&
-      (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream)  &&
-      (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == tuple))
+    nl->WriteToString(argstr, attributeSpecification);
+    CHECK_COND(nl->ListLength(attributeSpecification) == 2  &&
+               (nl->IsAtom(nl->First(attributeSpecification))) &&
+               (nl->AtomType(nl->First(attributeSpecification)) == SymbolType) &&
+	       (nl->IsAtom(nl->Second(attributeSpecification))) &&
+               (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType),
+      "Operator sortby expects as second argument a list " 
+      "((ai asc/desc)+)\n"
+      "Operator sortby gets a list '" + argstr + "'.");
+      
+    attrname = nl->SymbolValue(nl->First(attributeSpecification));
+    int j = FindAttribute(nl->Second(nl->Second(streamDescription)), attrname, attrtype);
+
+    if (j > 0)
     {
-      int numberOfSortAttrs = nl->ListLength(sortSpecification);
-      if(numberOfSortAttrs > 0)
-      {
-        ListExpr sortOrderDescription = nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
-        ListExpr sortOrderDescriptionLastElement = sortOrderDescription;
-        ListExpr rest = sortSpecification;
-        while(!nl->IsEmpty(rest))
-        {
-          ListExpr attributeSpecification = nl->First(rest);
-          rest = nl->Rest(rest);
-          if((nl->ListLength(attributeSpecification) == 2)
-            && (nl->IsAtom(nl->First(attributeSpecification)))
-            && (nl->AtomType(nl->First(attributeSpecification)) == SymbolType)
-            && (nl->IsAtom(nl->Second(attributeSpecification)))
-            && (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType))
-          {
-            attrname = nl->SymbolValue(nl->First(attributeSpecification));
-            int j = FindAttribute(nl->Second(nl->Second(streamDescription)), attrname, attrtype);
-            if ((j > 0)
-              && ((nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending)
-                  || (nl->SymbolValue(nl->Second(attributeSpecification)) == sortDescending)))
-            {
-              sortOrderDescriptionLastElement =
-                nl->Append(sortOrderDescriptionLastElement, nl->IntAtom(j));
-              bool isAscending =
-                nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending;
-              sortOrderDescriptionLastElement =
-                nl->Append(sortOrderDescriptionLastElement,
-                  nl->BoolAtom(isAscending));
-            }
-            else
-            {
-              ErrorReporter::ReportError("Incorrect input for operator sortby.");
-              return nl->SymbolAtom("typeerror");
-            }
-          }
-          else
-          {
-            ErrorReporter::ReportError("Incorrect input for operator sortby.");
-            return nl->SymbolAtom("typeerror");
-          }
-        }
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-              sortOrderDescription, streamDescription);
-      };
-      ErrorReporter::ReportError("Incorrect input for operator sortby.");
+      nl->WriteToString(argstr, nl->Second(attributeSpecification));
+      CHECK_COND( ((nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending)
+                  || (nl->SymbolValue(nl->Second(attributeSpecification)) == sortDescending)),
+        "Operator sortby: sorting criteria must be asc or desc, not '" + argstr + "'!" );
+
+      sortOrderDescriptionLastElement =
+        nl->Append(sortOrderDescriptionLastElement, nl->IntAtom(j));
+      bool isAscending =
+        nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending;
+      sortOrderDescriptionLastElement =
+        nl->Append(sortOrderDescriptionLastElement,
+        nl->BoolAtom(isAscending));
+    }
+    else
+    {
+      nl->WriteToString( argstr, nl->Second(nl->Second(streamDescription)) );
+      ErrorReporter::ReportError("Operator sortby: Attributename '" + attrname +
+        "' is not known.\nKnown Attribute(s): " + argstr);
       return nl->SymbolAtom("typeerror");
     }
-    ErrorReporter::ReportError("Incorrect input for operator sortby.");
-    return nl->SymbolAtom("typeerror");
   }
-  ErrorReporter::ReportError("Incorrect input for operator sortby.");
-  return nl->SymbolAtom("typeerror");
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    sortOrderDescription, streamDescription);
 }
-
 /*
 2.11.2 Value mapping function of operator ~sortBy~
 
