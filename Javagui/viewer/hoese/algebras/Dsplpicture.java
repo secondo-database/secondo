@@ -127,16 +127,26 @@ public PictureViewerFrame(){
             if(FitToFrame.isSelected()){
                 PictureViewerFrame.this.getContentPane().remove(SP);
                 PictureViewerFrame.this.getContentPane().add(FitPanel,BorderLayout.CENTER);
+                DontGrowCB.setEnabled(true);
             } else{
                 PictureViewerFrame.this.getContentPane().remove(FitPanel);
                 PictureViewerFrame.this.getContentPane().add(SP,BorderLayout.CENTER);
+                DontGrowCB.setEnabled(false);
             }
             PictureViewerFrame.this.invalidate();
             PictureViewerFrame.this.validate();
             PictureViewerFrame.this.repaint();
-       }}); 
+       }});
+  DontGrowCB = new JCheckBox("only shrink");
+  DontGrowCB.setEnabled(false);
+  DontGrowCB.addChangeListener(new ChangeListener(){
+       public void stateChanged(ChangeEvent e){
+           FitPanel.repaint();
+       }
+  });  
   FitPanel = new JPanel(){
      public void paint(Graphics g){
+          super.paint(g);
           Dimension D = getSize();
           if((image!=null) && (image.getHeight(null)>0) && (image.getWidth(null)>0)){
               int w = image.getWidth(null); 
@@ -144,6 +154,9 @@ public PictureViewerFrame(){
               double sx = ((double) D.width)/w;
               double sy = ((double) D.height)/h;
               double scale = Math.min(sx,sy);
+              if(DontGrowCB.isSelected()){
+                 scale = Math.min(scale,1.0);
+              }
               int dx = (D.width-(int)( scale*w))/2;
               int dy = (D.height-(int)(scale*h))/2; 
               g.drawImage(image,dx,dy,(int)(w*scale),(int)(h*scale),null);
@@ -152,6 +165,7 @@ public PictureViewerFrame(){
      }
   };
   ControlPanel.add(FitToFrame);
+  ControlPanel.add(DontGrowCB);
   ControlPanel.add(CloseBtn);
   getContentPane().add(ControlPanel,BorderLayout.SOUTH); 
   setSize(640,480); 
@@ -185,6 +199,7 @@ private ScrollablePicture picture=new ScrollablePicture();
 private JScrollPane SP; // scrooling in a image
 private JPanel FitPanel; // fit image to window
 private JCheckBox FitToFrame;
+private JCheckBox DontGrowCB;
 private static Toolkit TK = Toolkit.getDefaultToolkit();
 
 /** This ImageObserver repaints the image if it full loaded.
