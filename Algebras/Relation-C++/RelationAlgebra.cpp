@@ -29,6 +29,7 @@ of these symbols, then the value ~error~ is returned.
 
 */
 
+#include <set.h>
 #include "RelationAlgebra.h"
 
 NestedList* nl = 0;
@@ -105,6 +106,7 @@ int findattr( ListExpr list, string attrname, ListExpr& attrtype, NestedList* nl
   }
   return 0; // attrname not found
 }
+
 /*
 
 5.6 Function ~ConcatLists~
@@ -1008,6 +1010,214 @@ Operator project (
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          simpleSelect,         // trivial selection function
          ProjectTypeMap        // type mapping
+);
+
+//***********************the following code is for ~remove~ operation***********************
+/*
+
+7.3 Operator ~remove~
+
+7.3.1 Type mapping function of operator ~remove~
+
+Result type of ~remove~ operation.
+
+----	((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))	->
+
+		(APPEND
+			(n-k (j1 ... jn-k))
+			(stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))
+		)
+----
+
+The type mapping computes the number of attributes and the list of attribute
+numbers for the given left attributes (after removal) and asks the query processor to
+append it to the given arguments.
+
+*/
+ListExpr RemoveTypeMap(ListExpr args)
+{
+  bool firstcall;
+  int noAttrs, j;
+  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
+           lastNumberList, numberList, outlist;
+  string attrname;
+  set<int> removeSet;
+  removeSet.clear();
+  
+  firstcall = true;
+  if (nl->ListLength(args) == 2)
+  {
+    first = nl->First(args);
+    second = nl->Second(args);
+
+    if ((nl->ListLength(first) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+	(nl->ListLength(nl->Second(first)) == 2) &&
+	(TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+	(!nl->IsAtom(second)) &&
+	(nl->ListLength(second) > 0))
+    {
+      while (!(nl->IsEmpty(second)))
+      {
+	first2 = nl->First(second);
+	second = nl->Rest(second);
+	
+	if (nl->AtomType(first2) == SymbolType)
+	{
+	  attrname = nl->SymbolValue(first2);
+	}
+	else 
+	{
+	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
+	  return nl->SymbolAtom("typeerror");
+	}
+	
+	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
+	if (j)  removeSet.insert(j);
+	else 
+	{
+	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
+	  return nl->SymbolAtom("typeerror");
+	}
+      }       
+      //*****here: we need to generate new attr list according to removeSet*****
+      ListExpr oldAttrList;
+      int i;
+      i=0;  // i is the index of the old attriblist
+      first = nl->First(args);
+      second = nl->Second(args);
+      oldAttrList=nl->Second(nl->Second(first));
+      noAttrs = nl->ListLength(oldAttrList) - nl->ListLength(second);  // n-k
+      
+      while (!(nl->IsEmpty(oldAttrList)))
+      {
+	i++;
+	first2 = nl->First(oldAttrList);
+	oldAttrList = nl->Rest(oldAttrList);
+	
+	if (removeSet.find(i)==removeSet.end())  //the attribute is not in the removal list
+	{
+	  if (firstcall)
+	  {
+	    firstcall = false;
+	    newAttrList = nl->OneElemList(first2);
+	    lastNewAttrList = newAttrList;
+	    numberList = nl->OneElemList(nl->IntAtom(i));
+	    lastNumberList = numberList;
+	  }
+	  else
+	  {
+	    lastNewAttrList = nl->Append(lastNewAttrList, first2);
+	    lastNumberList = nl->Append(lastNumberList, nl->IntAtom(i));
+	  }
+	}
+      }
+
+      // Check whether all new attribute names are distinct
+      // - not yet implemented
+      //check whether the returning list is null
+      if (noAttrs>0)
+      {outlist = nl->ThreeElemList(
+                 nl->SymbolAtom("APPEND"),
+		 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
+		 nl->TwoElemList(nl->SymbolAtom("stream"),
+		               nl->TwoElemList(nl->SymbolAtom("tuple"),
+			                     newAttrList)));
+      return outlist;
+      }
+      else
+      {
+      ErrorReporter::ReportError("Incorrect input for operator ~remove~ - trying to remove all attributes.");
+      return nl->SymbolAtom("typeerror");
+      }
+    }
+  }
+  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+
+4.1.2 Value mapping function of operator ~remove~
+
+*/
+static int
+Remove(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word elem1, elem2, arg2;
+  int noOfAttrs, index;
+  Supplier son;
+  Attribute* attr;
+  CcTuple* t;
+
+
+  switch (message)
+  {
+    case OPEN :
+
+	//cout << "project OPEN" << endl;
+
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST :
+
+	//cout << "project REQUEST" << endl;
+
+      qp->Request(args[0].addr, elem1);
+      if (qp->Received(args[0].addr))
+      {
+        t = new CcTuple();
+        t->SetFree(true);
+
+	qp->Request(args[2].addr, arg2);
+        noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
+        t->SetNoAttrs(noOfAttrs);
+        for (int i=1; i <= noOfAttrs; i++)
+        {
+          son = qp->GetSupplier(args[3].addr, i-1);
+          qp->Request(son, elem2);
+          index = ((CcInt*)elem2.addr)->GetIntval();
+          attr = ((CcTuple*)elem1.addr)->Get(index-1);
+          t->Put(i-1, ((StandardAttribute*)attr->Clone()));
+        }
+        ((CcTuple*)elem1.addr)->DeleteIfAllowed();
+        result = SetWord(t);
+        return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE :
+
+	//cout << "project CLOSE" << endl;
+
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  return 0;
+}
+/*
+
+4.1.3 Specification of operator ~remove~
+
+*/
+const string RemoveSpec =
+  "(<text>((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream "
+  "(tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))</text---><text>Produces a removal "
+  "tuple for each tuple of its input stream.</text--->)";
+/*
+
+4.1.3 Definition of operator ~remove~
+
+*/
+Operator removal (
+         "remove",                             // name
+         RemoveSpec,                        // specification
+         Remove,                               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,                       // trivial selection function
+         RemoveTypeMap               // type mapping
 );
 /*
 
@@ -4304,6 +4514,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&attr);
     AddOperator(&tfilter);
     AddOperator(&project);
+    AddOperator(&removal);
     AddOperator(&product);
     AddOperator(&cancel);
     AddOperator(&tcount);
