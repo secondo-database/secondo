@@ -530,7 +530,7 @@ This class contains only static member functions. These functions
 permit reporting an error message (~ReportError~) and
 retrieving it (~GetErrorMessage~). Once an error message has been
 retrieved, it is removed. If there is no error message, the function
-~GetErrorMessage~ sets its argument to ~""~.
+~RemoveErrorMessage~ sets its argument to ~""~. 
 
 An example of the usage of function ~ReportError~ is given in the 
 type mapping function of operator ~feed~ in the relational algebra.
@@ -544,6 +544,9 @@ private:
   static string message;
 
 public:
+	static bool FreezeMessage;
+  static bool TypeMapError;
+	static void Reset() { TypeMapError=false; message=""; }
   static void ReportError(string msg);
   static void ReportError(char* msg);
   static void GetErrorMessage(string& msg);
