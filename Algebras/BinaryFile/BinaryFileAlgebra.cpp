@@ -281,7 +281,44 @@ DeleteBinaryFile( Word& w )
 }
 
 /*
-2.8 ~Close~-function
+2.8 ~Open~-function
+
+*/
+bool
+OpenBinaryFile( SmiRecord& valueRecord,
+                const ListExpr typeInfo,
+                Word& value )
+{
+  BinaryFile *bf = new BinaryFile( 0 );
+
+  // This Open function is implemented in the TupleElement class
+  // and uses the same method of the Tuple manager to open objects
+  bf->Open( valueRecord, typeInfo );
+
+  value = SetWord( bf );
+  return true;
+}
+
+/*
+2.9 ~Save~-function
+
+*/
+bool
+SaveBinaryFile( SmiRecord& valueRecord,
+                const ListExpr typeInfo,
+                Word& value )
+{
+  BinaryFile *bf = (BinaryFile *)value.addr;
+
+  // This Save function is implemented in the TupleElement class
+  // and uses the same method of the Tuple manager to save objects
+  bf->Save( valueRecord, typeInfo );
+
+  return true;
+}
+
+/*
+2.10 ~Close~-function
 
 */
 void
@@ -292,7 +329,7 @@ CloseBinaryFile( Word& w )
 }
 
 /*
-2.9 ~Clone~-function
+2.11 ~Clone~-function
 
 */
 Word
@@ -302,7 +339,7 @@ CloneBinaryFile( const Word& w )
 }
 
 /*
-2.10 ~SizeOf~-function
+2.12 ~SizeOf~-function
 
 */
 int
@@ -312,7 +349,7 @@ SizeOfBinaryFile()
 }
 
 /*
-2.11 ~Cast~-function
+2.13 ~Cast~-function
 
 */
 void* CastBinaryFile( void* addr )
@@ -321,7 +358,7 @@ void* CastBinaryFile( void* addr )
 }
 
 /*
-2.12 Kind Checking Function
+2.14 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
 type constructor ~binfile~ does not have arguments, this is trivial.
@@ -334,20 +371,20 @@ CheckBinaryFile( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-2.13 Creation of the Type Constructor Instance
+2.15 Creation of the Type Constructor Instance
 
 */
 TypeConstructor binfile(
 	"binfile",				//name
 	BinaryFileProperty, 	                //property function describing signature
-        OutBinaryFile,   	  InBinaryFile,		//Out and In functions
-        0,                0,	        	//SaveToList and RestoreFromList functions
-	CreateBinaryFile,	  DeleteBinaryFile,	//object creation and deletion
-        0, 0, 					//object open and save
-        CloseBinaryFile, CloneBinaryFile,    		//object close and clone
+        OutBinaryFile,     InBinaryFile,	//Out and In functions
+        0,                 0,	        	//SaveToList and RestoreFromList functions
+	CreateBinaryFile,  DeleteBinaryFile,	//object creation and deletion
+        OpenBinaryFile,    SaveBinaryFile, 	//object open and save
+        CloseBinaryFile,   CloneBinaryFile,    	//object close and clone
 	CastBinaryFile,				//cast function
-        SizeOfBinaryFile, 				//sizeof function
-	CheckBinaryFile,	                	//kind checking function
+        SizeOfBinaryFile, 			//sizeof function
+	CheckBinaryFile,	                //kind checking function
 	0, 					//predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
