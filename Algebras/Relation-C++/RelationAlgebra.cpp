@@ -1165,11 +1165,11 @@ ListExpr ProjectTypeMap(ListExpr args)
 	{
 	  attrname = nl->SymbolValue(first2);
 	}
-	else 
-  {
-    ErrorReporter::ReportError("Incorrect input for operator project.");
-    return nl->SymbolAtom("typeerror");
-  }
+	else
+        {
+          ErrorReporter::ReportError("Incorrect input for operator project.");
+          return nl->SymbolAtom("typeerror");
+        }
 	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
 	if (j)
 	{
@@ -1189,7 +1189,7 @@ ListExpr ProjectTypeMap(ListExpr args)
 	      nl->Append(lastNumberList, nl->IntAtom(j));
 	  }
 	}
-	else 
+	else
   {
     ErrorReporter::ReportError("Incorrect input for operator project.");
     return nl->SymbolAtom("typeerror");
