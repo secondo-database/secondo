@@ -7,11 +7,10 @@ include ./makefile.inc
 
 .PHONY: help
 help:
-	@echo "make all   -> compile all gui-components and know viewers"
-	@echo "make doc   -> call javadoc, run make all first"
-	@echo "make clean -> remove all .class files and the documentation"
-	@echo ""
-	@echo " create and compile the Javainterface first !! "
+	@echo "make all      -> compile all gui-components and know viewers"
+	@echo "make doc      -> call javadoc, run make all first"
+	@echo "make clean    -> remove all .class files and the documentation"
+	@echo "make mrproper -> clean + make mrproper Javainterface"
 
 
 .PHONY: doc # creates the documentation
@@ -21,13 +20,12 @@ doc:
 
 .PHONY: all #creates the gui and all know viewers
 all:
+	(cd components;make all)
+	(cd ../Javainterface;make all)
 	(cd viewer;make all)
 	(cd gui;make all)
 	(cd viewer;make viewers)
 
-.PHONY: viewers # creates all know viewers
-viewers:
-	(cd viewer;make viewers)
 
 
 .PHONY: clean # removes the documentation and all .class files
@@ -35,8 +33,11 @@ clean:
 	rm -f  *.class
 	(cd viewer; make clean)
 	(cd gui; make clean)
+	(cd components;make clean)
 	(rm -f ./doc/* -r)
-	(rmdir doc)
+	(rm -fd doc)
 
-
+.PHONY: mrproper
+mrproper: clean
+	(cd ../Javainterface;make mrproper)
 

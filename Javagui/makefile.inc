@@ -18,15 +18,20 @@ CLASSPATH = ".:$(JAVAINTERFACEPATH):$(GUIPATH)"
 
 DOCPATH = ./doc
 
-GUIPACKAGE = gui
+GUIPACKAGE = gui gui.idmanager
 
 # the viewerpackages
 # if you insert a new viewer extend this 
 #
 VIEWERMAINPACKAGE = viewer
 HOESEVIEWERPACKAGE = viewer.hoese viewer.hoese.algebras
+VIEWER3DPACKAGE = components viewer.viewer3d viewer.viewer3d.mathe \
+                  viewer.viewer3d.graphic2d viewer.viewer3d.graphic3d \
+                  viewer.viewer3d.objects
+RELSPLITPACKAGE = viewer.relsplit
 
-VIEWERPACKAGES = $(VIEWERMAINPACKAGE) $(HOESEVIEWERPACKAGE)
+VIEWERPACKAGES = $(VIEWERMAINPACKAGE) $(HOESEVIEWERPACKAGE) $(VIEWER3DPACKAGE) \
+                 $(RELSPLITPACKAGE)
 
 RUNCALL="java gui.MainWindow"
 RUNSCRIPTNAME = sgui
