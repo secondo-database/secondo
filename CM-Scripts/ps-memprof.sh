@@ -24,6 +24,8 @@ if [ "$3" != "" ]; then
   timeInterval="$3"
 fi
 
+sleep $timeInterval
+
 pidcmd="ps -o pid -C"$cmd
 pid=$( $pidcmd | tail -n1 )
 
