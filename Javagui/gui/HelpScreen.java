@@ -106,6 +106,7 @@ private void init(){
  GC.add("gui storeObject <ObjectName>");
  GC.add("gui connect ");
  GC.add("gui disconnect ");
+ GC.add("gui status");
  GC.add("gui serverSettings ");
  GC.add("gui renameObject <oldName> -> <newName> ");
  GC.add("gui onlyViewer ");
