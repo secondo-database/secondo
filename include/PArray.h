@@ -120,6 +120,12 @@ Returns the element ~index~ of the array.
 
 */
 
+  void Clear();
+/*
+Clears the persistent array.
+
+*/
+  
   template<class Compare>
   void Sort( const Compare& cmp )
   {
@@ -247,6 +253,20 @@ PArray<T>::~PArray()
       record.Write( &size, sizeof( int ) );
     }
   }
+}
+
+template<class T>
+void PArray<T>::Clear()
+{
+  if( marray )
+  {
+    marray->clear();
+  }
+  else
+  {
+    record.Truncate( 0 );
+  }
+  size = 0;
 }
 
 template<class T>
