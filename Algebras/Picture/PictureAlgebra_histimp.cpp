@@ -361,43 +361,46 @@ double Histogram::GetHistogramMaxValue(void) {
 
 The function compares two ~histogram~ objects whether they are equal or not.
 Therefore, it  calculates the average values of an specified number ~n~
-of values in a row. The ~histogram~ objects are defined as equal if the average values differs less than ~p~ percent from each other. 
+of values in a row. The ~histogram~ objects are defined as equal if the average values differs less 
+than ~p/10000~ from each other. 
 
 */
 
-bool Histogram::Equals(Histogram* h, int n, int p, bool& valid) {
+bool Histogram::Equals(Histogram* h, int n, int p, bool& valid, double& diff) {
+
+    static const double Tolerance_Unit = 0.0001;
+
     if (PA_DEBUG) cerr << "Histogram::Equals() called" << endl;
 
     if ( n <= 0 )
     {
         cerr << endl << endl
 	     << "Function: equals: picture x picture x int x int"  << endl	
-	     << "Third argument must not be 0." << endl << endl;
+	     << "Third argument " << n << " must be positive. It will be set to 1." 
+             << endl << endl;
        
-        valid = false;
-	return false;
+	n=1;
     }
     if ( n > 256 )
     {
         cerr << endl << endl
 	     << "Function: equals: picture x picture x int x int"  << endl	
-	     << "Third argmument must be lower equal 256" <<endl << endl;
+	     << "Third argmument " << n << " must be lower equal 256. It will be set to 1." 
+             << endl << endl;
        
-        valid = false;
-	return false;
+	n=1;
     }
-    if ((p<0) || (p>100))
+    if ( (p<0) || ((double)p > (100/Tolerance_Unit)) )
     {
         cerr << endl << endl
 	     << "Function: equals: picture x picture x int x int"  << endl	
-	     << "The percentage value must be between 0 and 100"<<endl
-             << "Specified value: " << p << endl << endl;
+	     << "The tolerance value must be between 0 and " << 100/Tolerance_Unit << endl
+             << "Specified value: " << p << " will be set to 100" << endl << endl;
        
-        valid = false;
-	return false;
+	p=100;
     }
 
-    double m1, m2;
+    double m1=0, m2=0;
     valid = true;
     bool isEqual = true;
 
@@ -440,19 +443,23 @@ bool Histogram::Equals(Histogram* h, int n, int p, bool& valid) {
 	//
 	//	Check, whether these pictures are equal !
 	//
-        if ( abs( m1 - m2 ) > p )
+        double dist = abs( m1 - m2 );
+        double maxdiff = p * Tolerance_Unit;
+        if ( dist > maxdiff )
 	{
-		cerr << i<< ". [" << m1-p << ", " << m1+p 
+        if (PA_DEBUG)
+		cerr << i<< ". [" << m1-maxdiff << ", " << m1+maxdiff 
 				<< "] , m2 = " << m2 << endl;
 		isEqual = false;
-		break;
+                diff += dist; 
 	}
         if (PA_DEBUG)
-		cerr << i<< ". [" << m1-p << ", " 
-			<< m1+p << "] (, m1 = " << m1 
+		cerr << i<< ". [" << m1-maxdiff << ", " 
+			<< m1+maxdiff << "] (, m1 = " << m1 
 			<< "), m2 = " << m2 << endl;
     }
- 
+
+    cerr << "histogram difference: " << diff << endl; 
     if (PA_DEBUG) cerr << "These pictures are " 
 			<< ((isEqual)? "": "not " ) << "equal." << endl;
     return( isEqual );

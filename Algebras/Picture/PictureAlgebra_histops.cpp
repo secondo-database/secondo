@@ -80,7 +80,7 @@ these objects.
 
 */
 
-bool Picture::Equals(Picture* pic, int n, int p, bool &valid) {
+bool Picture::Equals(Picture* pic, int n, int p, bool &valid, double& diff) {
     if (PA_DEBUG) cerr << "Picture::Equals() called" << endl;
 
     //
@@ -98,7 +98,7 @@ bool Picture::Equals(Picture* pic, int n, int p, bool &valid) {
     //	 << (int) h2
     //	 << endl;
 
-    bool rc = h1->Equals( h2, n, p, valid );
+    bool rc = h1->Equals( h2, n, p, valid, diff);
     //
     //	Delete everything!
     //
@@ -291,7 +291,7 @@ ListExpr PictureEqualsTypeMap(ListExpr args) {
 	    return (nl->SymbolAtom("typeerror"));
     }
     
-    return( nl->SymbolAtom("bool"));
+    return( nl->SymbolAtom("real"));
 }
 
 ListExpr PictureLikeTypeMap(ListExpr args) {
@@ -447,11 +447,12 @@ int PictureEqualsValueMap(Word* args,
 
     if ( pic1->IsDefined() && pic2->IsDefined() )
     {
-        bool valid;
+        bool valid = false;
+        double diff = 0;
 	bool rc = pic1->Equals( pic2, numberValue->GetIntval(), 
-			averageValue->GetIntval(), valid );
+			averageValue->GetIntval(), valid, diff );
         
-    	((CcBool*)result.addr)->Set( valid, rc ); 
+    	((CcReal*)result.addr)->Set( valid, diff ); 
     }
     else
     {
@@ -459,7 +460,7 @@ int PictureEqualsValueMap(Word* args,
              << "At least one of the specified picture is not defined."
              << endl << endl;
 
-	((CcBool*)result.addr)->Set(false, false);
+	((CcReal*)result.addr)->Set(false, false);
     }
 
     return( 0 );

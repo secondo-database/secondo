@@ -220,7 +220,7 @@ class to provide their functionality. See the description of class
 ~Picture~ for details.
 
 */
-    bool Equals(Histogram* h, int n, int p, bool& valid);
+    bool Equals(Histogram* h, int n, int p, bool& valid, double& diff);
     bool Like(int p, int t, int l, int u, bool& valid);
     bool Like(float p, float t, int l, int u, bool& valid);
 
@@ -501,7 +501,7 @@ averages of ~n~ consecutive elements of the histograms of both images exists
 so that the averages have a differences of more than ~p~ percent.
 
 */
-    bool Equals(Picture* pic, int n, int p, bool & valid);
+    bool Equals(Picture* pic, int n, int p, bool & valid, double& diff);
 
 /*
 

@@ -164,10 +164,13 @@ static const string pictureColordistSpec =
 
 static const string pictureEqualsSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>picture picture int int -> bool</text--->"
-    "<text>_ _ equals [ _, _ ]</text--->"
-    "<text>Returns TRUE if pictures are 'similar'.</text--->"
-    "<text>pic1 pic2 equals [ 30, 5 ]</text--->"
+    "( <text>picture picture int int -> real</text--->"
+    "<text>p1 p2 equals [ n, p ]</text--->"
+    "<text>Returns 0 if pictures are 'similar' in the sense "
+    "that |avg_n(p1_hist)-avg_n(p2_hist)| < t/10000. If this "
+    "tolerance is exceeded the sum of all"
+    "aberrations will be calculated.</text--->"
+    "<text>pic1 pic2 equals [ 5, 100 ]</text--->"
     ") )";
 
 static const string pictureSimpleEqualsSpec =
