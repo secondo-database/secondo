@@ -65,7 +65,7 @@ class PArray
 {
  public:
 
-  PArray( SmiRecordFile *parrays );
+  PArray( SmiRecordFile *parrays, const int initsize = 0 );
 
 /*
 Creates creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
@@ -74,7 +74,7 @@ array with the argument ~initsize~.
 
 */
   
-  PArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update = true );
+  PArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update = true );
 
 /*
 Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
@@ -159,7 +159,7 @@ SecondoSMI interface.
 */
 
 template<class T>
-PArray<T>::PArray( SmiRecordFile *parrays ) :
+PArray<T>::PArray( SmiRecordFile *parrays, const int initsize ) :
 writeable( true ),
 size( 0 ),
 canDelete( false ),
@@ -167,10 +167,13 @@ parrays( parrays )
 {
   parrays->AppendRecord( recid, record );
   record.Write( &size, sizeof(int) );
+
+  int nil = 0;
+  record.Write( &nil, sizeof(int) + initsize * sizeof(T) - sizeof(int) );
 }
 
 template<class T>
-PArray<T>::PArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update ) :
+PArray<T>::PArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update ) :
 writeable( update ),
 canDelete( false ),
 parrays( parrays )

@@ -95,8 +95,8 @@ class Polygon //: public Attribute
 {
 	
   public:
-    Polygon( SmiRecordFile *recordFile );
-    Polygon( SmiRecordFile *recordFile, SmiRecordId recordId, bool update = true );
+    Polygon( SmiRecordFile *recordFile, const int maxVertices = 0 );
+    Polygon( SmiRecordFile *recordFile, const SmiRecordId& recordId, bool update = true );
     ~Polygon();
     
 //    int NumOfFLOBs();
@@ -122,6 +122,7 @@ class Polygon //: public Attribute
 
   private:
     int noVertices;
+    int maxVertices;
     PArray<Vertex> *vertices;
     PolygonState state;
 };
@@ -133,9 +134,10 @@ class Polygon //: public Attribute
 This first constructor creates a new polygon.
 
 */
-Polygon::Polygon( SmiRecordFile *recordFile ) :
+Polygon::Polygon( SmiRecordFile *recordFile, const int maxVertices ) :
   noVertices( 0 ),
-  vertices( new PArray<Vertex>( recordFile ) ),
+  maxVertices( maxVertices ),
+  vertices( new PArray<Vertex>( recordFile, maxVertices ) ),
   state( partial ) 
 {}
 
@@ -148,7 +150,7 @@ it is necessary to be completed for a polygon to
 be closed.
 
 */
-Polygon::Polygon( SmiRecordFile *recordFile, SmiRecordId recordId, bool update ) :
+Polygon::Polygon( SmiRecordFile *recordFile, const SmiRecordId& recordId, bool update ) :
   vertices( new PArray<Vertex>( recordFile, recordId, update ) ),
   state( complete ) 
 {
@@ -222,7 +224,7 @@ copy of ~this~.
 Polygon *Polygon::Clone() 
 {
   assert( state == complete );
-  Polygon *p = new Polygon( SecondoSystem::GetLobFile() );
+  Polygon *p = new Polygon( SecondoSystem::GetLobFile(), maxVertices );
   for( int i = 0; i < noVertices; i++ )
     p->Append( this->GetVertex( i ) );
   p->Complete();
@@ -250,6 +252,8 @@ void Polygon::Append( Vertex& v )
 {
   assert( state == partial );
   vertices->Put( noVertices++, v );
+  if( noVertices > maxVertices )
+    maxVertices = noVertices;
 }
 
 /*
@@ -467,8 +471,8 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
   if( nl->IsEmpty( first ) )
     // new polygon. Recordid unknown
   {
-    polygon = new Polygon( SecondoSystem::GetLobFile() );
     ListExpr rest = nl->Rest( instance );
+    polygon = new Polygon( SecondoSystem::GetLobFile(), nl->ListLength( rest ) );
     while( !nl->IsEmpty( rest ) )
     {
       first = nl->First( rest ); 
@@ -494,7 +498,7 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
   else if( nl->ListLength( first ) == 1 && nl->IsAtom( nl->First( first ) ) && nl->AtomType( nl->First( first ) ) == IntType )
     // persistent polygon. First list contains the recordid
   {
-    polygon = new Polygon( SecondoSystem::GetLobFile(), nl->IntValue( nl->First( first ) ) );
+    polygon = new Polygon( SecondoSystem::GetLobFile(), nl->IntValue( nl->First( first ) ), true );
     correct = true;
     return SetWord( polygon );
   }
