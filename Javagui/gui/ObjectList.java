@@ -320,7 +320,7 @@ public boolean showSelectedObject(){
     int index = Content.getSelectedIndex();
     if (index>=0){
         SecondoObject SO = (SecondoObject) Objects.get(index); 
-        if (VC!=null && VC.canActualDisplay(SO) ){
+        if (VC!=null){
             if (VC.showObject(SO)){
                  markAsDisplayed(SO);
                  ok = true;
@@ -776,6 +776,7 @@ private Vector Content = new Vector(20);
 
 
 }
+
 
 
 

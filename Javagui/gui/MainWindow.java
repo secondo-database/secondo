@@ -77,6 +77,8 @@ private String ObjectDirectory ="./"; // where search for Objects
 
 private JFileChooser FC_History = new JFileChooser();
 private JFileChooser FC_ExecuteFile = new JFileChooser();
+private PriorityDialog PriorityDlg;
+
 
 
 /* display a message in a new frame */
@@ -126,8 +128,9 @@ public MainWindow(String Title){
        }
   });
 
+  PriorityDlg = new PriorityDialog(this);
+ 
   createMenuBar();
-
   CurrentViewer = null;
   ViewerMenuItems = new Vector(10);
   AllViewers = new Vector(10); 
@@ -293,6 +296,7 @@ private void addViewer(SecondoViewer NewViewer){
             if (index>=0)
                 MainWindow.this.setViewerindex(index);
          }}); 
+      PriorityDlg.addViewer(NewViewer);   
       viewersChanged();
    }
    setViewer(NewViewer); 
@@ -733,6 +737,17 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
          OList.addEntry(o);
          if(CurrentViewer!=null){
             try{
+              SecondoViewer SV = PriorityDlg.getBestViewer(CurrentViewer,o);
+              if(SV==null)
+                showMessage("no viewer found to display the result");
+              else{
+                  if(SV!=CurrentViewer)
+                     setViewer(SV);
+                  CurrentViewer.addObject(o);
+                  OList.updateMarks();
+               }    
+              /*
+               
                if (CurrentViewer.canDisplay(o)){
                    CurrentViewer.addObject(o);
                    OList.updateMarks();
@@ -753,6 +768,7 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
                   else
                      showMessage("no Viewer loaded to display this result");
                }
+               */
             } catch(Exception e){showMessage("an error is occurred (in current viewer)");}
          }
          ComPanel.appendText("see result in object list");
@@ -791,7 +807,21 @@ public boolean showObject(SecondoObject SO){
   if (CurrentViewer==null) 
       return false;
   else
-     try{return CurrentViewer.addObject(SO);}
+     try{
+        if(CurrentViewer.canDisplay(SO))
+           return CurrentViewer.addObject(SO);
+        else{
+          SecondoViewer TheBest = PriorityDlg.getBestViewer(CurrentViewer,SO);
+          if(TheBest==null){
+             showMessage("no Viewer found to display this object");
+             return false;
+          }   
+          else{
+             setViewer(TheBest);
+             return CurrentViewer.addObject(SO);
+          }  
+        }  
+     }      
      catch(Exception e){
         System.out.println("error in Viewer :"+CurrentViewer+" method addObject");
         e.printStackTrace();
@@ -995,6 +1025,15 @@ private void createMenuBar(){
 
    Viewers = new JMenu("Viewers");
    Viewers.addSeparator();
+
+   JMenuItem ViewerPriorities = Viewers.add("set priorities");
+   ViewerPriorities.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+         PriorityDlg.setVisible(true);
+      }
+   });   
+   
+   
    MI_ShowOnlyViewer = Viewers.add("Show only viewer");
    MI_ShowOnlyViewer.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -1228,6 +1267,7 @@ class Command_Listener implements ActionListener{
 
 
 }
+
 
 
 
