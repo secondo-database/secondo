@@ -2383,15 +2383,12 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       nSortAttrs = (int)((StandardAttribute*)args[2].addr)->GetValue();
-      cout << "n attrs : " << nSortAttrs;
       for(i = 1; i <= nSortAttrs; i++)
       {
         sortAttrIndex =
           (int)((StandardAttribute*)args[2 * i + 1].addr)->GetValue();
         sortOrderIsAscending =
           (bool*)((StandardAttribute*)args[2 * i + 2].addr)->GetValue();
-        cout << "sortAttrIndex : " << sortAttrIndex;
-        cout << "is ascending : " << sortOrderIsAscending;
         spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
       };
       ccCmp.spec = spec;
