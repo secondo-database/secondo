@@ -57,6 +57,7 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include <iostream>
 #include <string>
 
 static NestedList* nl;

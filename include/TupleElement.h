@@ -48,6 +48,8 @@ typedef void* Address;
 
 #include "FLOB.h"
 
+#include <iostream>
+
 /*
 Are type definitions for a generic address pointer and for a ~fake large object~.
 
