@@ -521,50 +521,46 @@ bool SaveNetwork( SmiRecord& valueRecord,
 3.12 ~Open~-function of type constructor ~network~
 
 */
-bool Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Network *&n )
+Network *Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
 {
-  n = new Network();
+  Relation *routes, *junctions, *sections;
+  BTree *routesBTree;
 
-  if( !( n->routes = Relation::Open( valueRecord, offset, 
-                                     SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesTypeInfo() ) ) ) ) 
-  {
-    n->routes = 0;
-    return false;
-  }
+  if( !( routes = Relation::Open( valueRecord, offset, 
+                                  SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesTypeInfo() ) ) ) ) 
+    return 0;
 
-  if( !( n->junctions = Relation::Open( valueRecord, offset, 
-                                        SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsInternalTypeInfo() ) ) ) ) 
+  if( !( junctions = Relation::Open( valueRecord, offset, 
+                                     SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsInternalTypeInfo() ) ) ) ) 
   {  
-    n->junctions = 0;
-    n->routes->Delete(); n->routes = 0;
-    return false;
+    routes->Delete(); 
+    return 0;
   }
 
-  if( !( n->sections = Relation::Open( valueRecord, offset, 
-                                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
+  if( !( sections = Relation::Open( valueRecord, offset, 
+                                    SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
   {
-    n->sections = 0;
-    n->routes->Delete(); n->routes = 0;
-    n->junctions->Delete(); n->junctions = 0;
-    return false;
+    routes->Delete(); 
+    junctions->Delete(); 
+    return 0;
   }
 
-  if( !( n->routesBTree = BTree::Open( valueRecord, offset, 
-                                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
+  if( !( routesBTree = BTree::Open( valueRecord, offset, 
+                                    SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
   {
-    n->routesBTree = 0;
-    n->routes->Delete(); n->routes = 0;
-    n->junctions->Delete(); n->junctions = 0;
-    n->sections->Delete(); n->sections = 0;
-    return false;
+    routes->Delete(); 
+    junctions->Delete(); 
+    sections->Delete();
+    return 0;
   }
 
-  return true;
+  return new Network( routes, junctions, sections, routesBTree );
 }
 
 bool OpenNetwork( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Word& value )
 {
-  return Network::Open( valueRecord, offset, typeInfo, (Network*)value.addr );
+  value.addr = Network::Open( valueRecord, offset, typeInfo );
+  return value.addr != 0;
 }
 
 /*

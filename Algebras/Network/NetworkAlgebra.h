@@ -116,7 +116,7 @@ to the operator ~thenetwork~.
 
     ListExpr Out( ListExpr typeInfo );
     ListExpr Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
-    static bool Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Network *&n );
+    static Network *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
 /*
 The ~Out~, ~Save~, and ~Open~ functions of the type constructor ~network~. The ~In~ function is not
 provided, given that the creation of the network is only done via the ~thenetwork~ operator.
