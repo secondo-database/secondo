@@ -232,5 +232,8 @@ The top right point of the rectangle.
 */
 };
 
+Word
+InRectangle( const ListExpr typeInfo, const ListExpr instance,
+             const int errorPos, ListExpr& errorInfo, bool& correct );
 #endif
 
