@@ -2216,6 +2216,234 @@ Operator cppextract (
          simpleSelect,          // trivial selection function
          ExtractTypeMap         // type mapping
 );
+
+/*
+
+7.3 Operator ~sortBy~
+
+This operator sorts a stream of tuples by a given list of attributes.
+For each attribute it must be specified wether the list should be sorted
+in ascending (asc) or descending (desc) order with regard to that attribute.
+
+7.3.1 Type mapping function of operator ~sortBy~
+
+Type mapping for ~sortBy~ is
+
+----	((stream (tuple ((x1 t1)...(xn tn))) ((xi1 asc/desc) ... (xij asc/desc))) 	-> (stream (tuple ((x1 t1)...(xn tn)))
+							APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc) ti)
+----
+
+*/
+
+static char* sortAscending = "asc";
+static char* sortDescending = "desc";
+
+static ListExpr
+SortByTypeMap( ListExpr args )
+{
+  ListExpr attrtype;
+  string  attrname;
+
+  if(nl->ListLength(args) == 2)
+  {
+    ListExpr streamDescription = nl->First(args);
+    ListExpr sortSpecification  = nl->Second(args);
+
+    if((nl->ListLength(streamDescription) == 2  ) &&
+      (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream)  &&
+      (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == tuple))
+    {
+      int numberOfSortAttrs = nl->ListLength(sortSpecification);
+      if(numberOfSortAttrs > 0)
+      {
+        ListExpr sortOrderDescription = nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
+        ListExpr sortOrderDescriptionLastElement = sortOrderDescription;
+        ListExpr rest = sortSpecification;
+        while(!nl->IsEmpty(rest))
+        {
+          ListExpr attributeSpecification = nl->First(rest);
+          rest = nl->Rest(rest);
+          if((nl->ListLength(attributeSpecification) == 2)
+            && (nl->IsAtom(nl->First(attributeSpecification)))
+            && (nl->AtomType(nl->First(attributeSpecification)) == SymbolType)
+            && (nl->IsAtom(nl->Second(attributeSpecification)))
+            && (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType))
+          {
+            attrname = nl->SymbolValue(nl->First(attributeSpecification));
+            int j = findattr(nl->Second(nl->Second(streamDescription)), attrname, attrtype);
+            if ((j > 0)
+              && ((nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending)
+                  || (nl->SymbolValue(nl->Second(attributeSpecification)) == sortDescending)))
+            {
+              sortOrderDescriptionLastElement =
+                nl->Append(sortOrderDescriptionLastElement, nl->IntAtom(j));
+              bool isAscending =
+                nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending;
+              sortOrderDescriptionLastElement =
+                nl->Append(sortOrderDescriptionLastElement,
+                  nl->BoolAtom(isAscending));
+            }
+            else
+            {
+              return nl->SymbolAtom("typeerror");
+            }
+          }
+          else
+          {
+            return nl->SymbolAtom("typeerror");
+          }
+        }
+        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+              sortOrderDescription, streamDescription);
+      };
+      return nl->SymbolAtom("typeerror");
+    }
+    return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+
+4.1.2 Value mapping function of operator ~sortBy~
+
+The argument vector ~args~ contains in the first slot ~args[0]~ the stream and
+in ~args[2]~ the number of sort attributes. ~args[3]~ contains the index of the first
+sort attribute, ~args[4]~ a boolean indicating wether the stream is sorted in
+ascending order with regard to the sort first attribute. ~args[5]~ and ~args[6]~
+contain these values for the second sort attribute  and so on.
+
+*/
+
+typedef vector< pair<int, bool> > SortOrderSpecification;
+
+class CcTupleCmp
+{
+public:
+  SortOrderSpecification spec;
+  bool operator()(const CcTuple* aConst, const CcTuple* bConst) const
+  {
+    CcTuple* a = (CcTuple*)aConst;
+    CcTuple* b = (CcTuple*)bConst;
+
+    SortOrderSpecification::const_iterator iter = spec.begin();
+    while(iter != spec.end())
+    {
+      if(((Attribute*)a->Get(iter->first - 1))->
+        Compare(((Attribute*)b->Get(iter->first - 1))) < 0)
+      {
+        return iter->second;
+      }
+      else
+      {
+        if(((Attribute*)a->Get(iter->first - 1))->
+          Compare(((Attribute*)b->Get(iter->first - 1))) > 0)
+        {
+          return !(iter->second);
+        }
+      }
+      iter++;
+    }
+    return false;
+  }
+};
+
+struct SortByLocalInfo
+{
+  vector<CcTuple*>* tuples;
+  size_t currentIndex;
+};
+
+static int
+SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word tuple;
+  vector<CcTuple*>* tuples;
+  SortByLocalInfo* localInfo;
+  SortOrderSpecification spec;
+  int i;
+  int sortAttrIndex;
+  int nSortAttrs;
+  bool sortOrderIsAscending;
+  int index;
+  char* str;
+  ListExpr listArg;
+  CcTupleCmp ccCmp;
+
+  switch(message)
+  {
+    case OPEN:
+      tuples = new vector<CcTuple*>;
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr,tuple);
+      while(qp->Received(args[0].addr))
+      {
+        tuples->push_back((CcTuple*)tuple.addr);
+        qp->Request(args[0].addr,tuple);
+      }
+
+      nSortAttrs = (int)((StandardAttribute*)args[2].addr)->GetValue();
+      cout << "n attrs : " << nSortAttrs;
+      for(i = 1; i <= nSortAttrs; i++)
+      {
+        sortAttrIndex =
+          (int)((StandardAttribute*)args[2 * i + 1].addr)->GetValue();
+        sortOrderIsAscending =
+          (bool*)((StandardAttribute*)args[2 * i + 2].addr)->GetValue();
+        cout << "sortAttrIndex : " << sortAttrIndex;
+        cout << "is ascending : " << sortOrderIsAscending;
+        spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
+      };
+      ccCmp.spec = spec;
+      sort(tuples->begin(), tuples->end(), ccCmp);
+
+      localInfo = new SortByLocalInfo;
+      localInfo->tuples = tuples;
+      localInfo->currentIndex = 0;
+      local = SetWord(localInfo);
+      return 0;
+    case REQUEST:
+      localInfo = (SortByLocalInfo*)local.addr;
+      tuples = localInfo->tuples;
+      if(localInfo->currentIndex <= tuples->size() - 1)
+      {
+        result = SetWord((*tuples)[localInfo->currentIndex]);
+        localInfo->currentIndex++;
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    case CLOSE:
+      localInfo = (SortByLocalInfo*)local.addr;
+      delete localInfo->tuples;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+/*
+
+4.1.3 Specification of operator ~sortBy~
+
+*/
+const string SortBySpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input stream according to a list of attributes ai1 ... aij.</text--->)";
+/*
+
+4.1.3 Definition of operator ~sortBy~
+
+*/
+Operator sortBy (
+         "sortby",             // name
+         SortBySpec,           // specification
+         SortBy,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         SortByTypeMap         // type mapping
+);
+
 /*
 
 7.3 Operator ~extend~
@@ -2226,8 +2454,8 @@ Extends each input tuple by new attributes as specified in the parameter list.
 
 Type mapping for ~extend~ is
 
-----     ((stream x) ((b1 (map x y1)) ... (bm (map x ym))))  
- 
+----     ((stream x) ((b1 (map x y1)) ... (bm (map x ym))))
+
         -> (stream (tuple ((a1 x1) ... (an xn) (b1 y1 ... bm ym))))
 
         wobei x = (tuple ((a1 x1) ... (an xn)))
@@ -2275,7 +2503,7 @@ ExtendTypeMap( ListExpr args )
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
-    second  = nl->Second(args);			
+    second  = nl->Second(args);
     if((nl->ListLength(first) == 2)  &&
 	(TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
 	(!nl->IsAtom(second)) &&
@@ -2287,7 +2515,7 @@ ExtendTypeMap( ListExpr args )
       rest = nl->Rest(rest);
       while (!(nl->IsEmpty(rest)))
       {
-   	lastlistn = nl->Append(lastlistn,nl->First(rest)); 
+   	lastlistn = nl->Append(lastlistn,nl->First(rest));
    	rest = nl->Rest(rest);
       }
       loopok = true;
@@ -2509,7 +2737,7 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[1].addr);
       delete (CcInt*)local.addr;
       return 0;
-  }   
+  }
 }
 /*
 
@@ -2536,7 +2764,7 @@ Operator cppconcat (
 6 Class ~RelationAlgebra~
 
 A new subclass ~RelationAlgebra~ of class ~Algebra~ is declared. The only 
-specialization with respect to class ~Algebra~ takes place within the 
+specialization with respect to class ~Algebra~ takes place within the
 constructor: all type constructors and operators are registered at the actual algebra.
 
 After declaring the new class, its only instance ~RelationAlgebra~ is defined.
@@ -2565,6 +2793,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppextract);
     AddOperator(&cppextend);
     AddOperator(&cppconcat);
+    AddOperator(&sortBy);
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );
