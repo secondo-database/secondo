@@ -146,6 +146,8 @@ None private fields are defined in the ServerErrorCodes class.
       // returned by the Secondo Server.
       errors.setElementAt("Network error in SecondoInterface. ", 98); 
       errors.setElementAt("Internal error in SecondoInterface.", 99);
+      errors.setElementAt("Secondo protocol error.",80);
+      errors.setElementAt("Connection to Secondo server lost.",81);
 
     }
     
