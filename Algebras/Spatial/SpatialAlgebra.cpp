@@ -9841,9 +9841,9 @@ const string SpatialSpecIntersection  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text> (point||points||line||region x point||points||line||region)"
 	"-> points||line||region</text--->"
-	"<text>_ intersection _</text--->"
+	"<text>_intersection_</text--->"
 	"<text>intersection of two sets.</text--->"
-	"<text>query point intersection region</text--->"
+	"<text>query points intersection region</text--->"
 	") )";
 
 const string SpatialSpecMinus  =
@@ -9858,7 +9858,7 @@ const string SpatialSpecMinus  =
 const string SpatialSpecUnion  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(point||points||line x point||points||line) -> points||line</text--->"
-	"<text>_ union _</text--->"
+	"<text>_union_</text--->"
 	"<text>union of two sets.</text--->"
 	"<text>query points union point</text--->"
 	") )";
@@ -9866,23 +9866,23 @@ const string SpatialSpecUnion  =
 const string SpatialSpecCrossings  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(line x line) -> points</text--->"
-	"<text>_ crossings _</text--->"
-	"<text>crossing points of two line.</text--->"
-	"<text>query line1 crossings line2</text--->"
+	"<text>crossings(_,_)</text--->"
+	"<text>crossing points of two lines.</text--->"
+	"<text>query crossings(line1, line2)</text--->"
 	") )";
 
 const string SpatialSpecSingle  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(points) -> point</text--->"
-	"<text> single _</text--->"
+	"<text> single(_)</text--->"
 	"<text>transform a single-element points value to point value.</text--->"
-	"<text>query single points</text--->"
+	"<text>query single(points)</text--->"
 	") )";
 
 const string SpatialSpecDistance  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(point||points||line x point||points||line) -> real</text--->"
-	"<text> _distance _</text--->"
+	"<text>distance(_, _)</text--->"
 	"<text>compute distance between two spatial objects.</text--->"
 	"<text>query distance(point, line)</text--->"
 	") )";
@@ -9890,7 +9890,7 @@ const string SpatialSpecDistance  =
 const string SpatialSpecDirection  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(point x point) -> real</text--->"
-	"<text> _direction _</text--->"
+	"<text>direction(_, _)</text--->"
 	"<text>compute the direction (0 - 360 degree) from one point to another point.</text--->"
 	"<text>query direction(p1, p2)</text--->"
 	") )";
@@ -9914,17 +9914,17 @@ const string SpatialSpecSize  =
 const string SpatialSpecTouchpoints  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(line||region x region) -> points</text--->"
-	"<text> _touchpoints_ </text--->"
+	"<text> touchpoints(_, _) </text--->"
 	"<text> return the touch points of a region and another region or line.</text--->"
-	"<text> query line touchpoints region</text--->"
+	"<text> query touchpoints(line, region)</text--->"
 	") )";
 
 const string SpatialSpecCommonborder  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(region x region) -> line</text--->"
-	"<text> _commonborder_ </text--->"
+	"<text> commonborder(_, _ )</text--->"
 	"<text> return the common border of two regions.</text--->"
-	"<text> query region1 commonborder region2</text--->"
+	"<text> query commonborder(region1, region2)</text--->"
 	") )";
 /*
 10.5.3 Definition of the operators
