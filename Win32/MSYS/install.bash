@@ -55,6 +55,7 @@ printf "\n* Uncompressing archives ... "
 cd "$instpath"
 tar -xzf "$cdpath/secondo.tgz"
 tar -xzf "$cdpath/usr.tgz"
+tar -xzf "$cdpath/../java/cvs/jcvs-522.tgz"
 cd "$instpath/usr/local"
 tar -xzf "$cdpath/../bdb/db-4.1.25.tgz"
 
