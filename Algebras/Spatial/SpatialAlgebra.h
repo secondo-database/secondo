@@ -426,15 +426,13 @@ Returns if the point se is ordered. There is a flag ~ordered~ (see attributes) i
 to avoid a scan in the point set to answer this question.
 
 */
-    void     setOrdered(bool isordered);
-
     void StartBulkLoad();
 /*
 Marks the begin of a bulk load of points relaxing the condition that the points must be
 ordered.
 
 */
-    void EndBulkLoad();
+    void EndBulkLoad( const bool sort = true );
 /*
 Marks the end of a bulk load and sorts the point set.
 
@@ -1045,8 +1043,6 @@ This constructor should not be used.
 This function decides whether the half segments in the line value is sorted.
 
 */
-    void     setOrdered(bool isordered);
-
     bool IsEmpty() const;
 /*
 This function decides whether the line value is empty.
@@ -1071,7 +1067,7 @@ must be ordered.
 
 */
 
-    void EndBulkLoad();
+    void EndBulkLoad( const bool sort = true );
 /*
 This function marks the end of a bulk load and sorts the half segments.
 
@@ -1300,7 +1296,7 @@ Marks the begin of a bulk load of line relaxing the condition that the half segm
 ordered.
 
 */
-    void EndBulkLoad();
+    void EndBulkLoad( const bool sort = true );
 /*
 Marks the end of a bulk load and sorts the half segments.
 
@@ -1464,8 +1460,6 @@ The following two functions are used to sort the half segments according to thei
 
 */
     void logicsort();
-
-    void setOrdered(bool isordered);
 /*
 7.12 Functions needed to import the the ~Region~ data type to tuple
 

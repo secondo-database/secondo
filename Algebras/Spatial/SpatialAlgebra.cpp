@@ -950,23 +950,17 @@ void Points::StartBulkLoad()
   ordered = false;
 }
 
-void Points::EndBulkLoad()
+void Points::EndBulkLoad( const bool sort )
 {
   assert( !IsOrdered() );
-//  cout << "Before sorting: " << *this << endl;
-  Sort();
-//  cout << "After sorting: " << *this << endl;
+  if( sort )
+    Sort();
   ordered = true;
 }
 
 bool Points::IsOrdered() const
 {
   return ordered;
-}
-
-void  Points::setOrdered(bool isordered)
-{
-  ordered = isordered;
 }
 
 bool Points::operator==( Points& ps )
@@ -3422,21 +3416,17 @@ bool CLine::IsOrdered() const
   return ordered;
 }
 
-void  CLine::setOrdered(bool isordered)
-{
-  ordered = isordered;
-}
-
 void CLine::StartBulkLoad()
 {
   assert( IsOrdered() );
   ordered = false;
 }
 
-void CLine::EndBulkLoad()
+void CLine::EndBulkLoad( const bool sort )
 {
   assert( !IsOrdered());
-  Sort();
+  if( sort )
+    Sort();
   ordered = true;
 }
 
@@ -4249,39 +4239,33 @@ void CRegion::StartBulkLoad()
   ordered = false;
 }
 
-void CRegion::EndBulkLoad()
+void CRegion::EndBulkLoad( const bool sort )
 {
-    //1. Original EndBulkload code
-    assert( !IsOrdered());
-    //  cout << "Before sorting: " << *this << endl;
+  //1. Original EndBulkload code
+  assert( !IsOrdered());
+  if( sort )
     Sort();
-    //  cout << "After sorting: " << *this << endl;
-    ordered = true;
 
-    //2. here: linean scan to create coverage number
-    CHalfSegment chs;
-    int currCoverageNo=0;
+  //2. here: linean scan to create coverage number
+  CHalfSegment chs;
+  int currCoverageNo = 0;
 
-    for (int i=0; i<this->Size(); i++)
-    {
-  this->Get(i, chs);
+  for( int i = 0; i < this->Size(); i++ )
+  {
+    this->Get( i, chs );
 
-  if  (chs.GetLDP())
-           currCoverageNo++;
-  else  currCoverageNo--;
+    if( chs.GetLDP() )
+      currCoverageNo++;
+    else
+      currCoverageNo--;
 
-  chs.attr.coverageno=currCoverageNo;
+    chs.attr.coverageno = currCoverageNo;
 
-  //cout<<chs<<endl;
+    //The following line must be added in order for coverageno to carry value
+    region.Put( i, chs );
+  }
 
-  //The following line must be added in order for coverageno to carry value
-  region.Put( i, chs );
-    }
-}
-
-void  CRegion::setOrdered(bool isordered)
-{
-  ordered = isordered;
+  ordered = true;
 }
 
 bool CRegion::IsEmpty() const
@@ -5728,56 +5712,48 @@ OutRegion( ListExpr typeInfo, Word value )
 */
 
 static Word
-RestoreFromListRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
+RestoreFromListRegion( const ListExpr typeInfo, 
+                       const ListExpr instance, 
+                       const int errorPos, 
+                       ListExpr& errorInfo, 
+                       bool& correct )
 {
-    //cout<<"RestoreFromListRegion###########"<<endl;
-    //Fron NL DIRECTLY to Class Objects. Analogious to IN_Region
-    CRegion* cr = new CRegion( 0 );
+  //cout<<"RestoreFromListRegion###########"<<endl;
+  //Fron NL DIRECTLY to Class Objects. Analogious to IN_Region
+  CRegion* cr = new CRegion( 0 );
 
-    cr->setOrdered(false);    // == cr->StartBulkLoad() to avoid sorting
+  cr->StartBulkLoad();
 
-    ListExpr RegionNL = instance;
-    ListExpr flagedSeg, CHS_NL;
+  ListExpr RegionNL = instance;
+  ListExpr flagedSeg, CHS_NL;
 
-    while( !nl->IsEmpty( RegionNL ) )
-    {
-  //1. To Fetch one Halfsegment to CHS_NL=(true ((1 1) (2 2)) 3 4 5 0)
-  CHS_NL = nl->First( RegionNL );
-  RegionNL = nl->Rest( RegionNL );
-  //cout<<"the CHS_NL is:";
-  //nl->WriteListExpr( CHS_NL, cout );
-
-  //2. Translate the CHS_NL to real halfsegment format=(true ((1 1) (2 2)))
-  flagedSeg = nl->TwoElemList (nl->First(CHS_NL),
-             nl->Second(CHS_NL));
-
-  //cout<<"the real NL is:"<<endl;
-  //nl->WriteListExpr( flagedSeg, cout );
-  //cout<<endl;
-
-  //3. Create the Halfsegment
-  CHalfSegment * chs = (CHalfSegment*)InHalfSegment
-               ( nl->TheEmptyList(), flagedSeg,
-                 0, errorInfo, correct ).addr;
-  if (correct)
+  while( !nl->IsEmpty( RegionNL ) )
   {
-      //cout<<*chs<<endl;
-      chs->attr.faceno = (nl->IntValue(nl->Third(CHS_NL)));  //faceNo;
-      chs->attr.cycleno = (nl->IntValue(nl->Fourth(CHS_NL)));  //cycleNo;
-      chs->attr.edgeno = (nl->IntValue(nl->Fifth(CHS_NL)));  //edgeNo;
-      chs->attr.coverageno = (nl->IntValue(nl->Sixth(CHS_NL)));  //coverageNo;
+    //1. To Fetch one Halfsegment to CHS_NL=(true ((1 1) (2 2)) 3 4 5 0)
+    CHS_NL = nl->First( RegionNL );
+    RegionNL = nl->Rest( RegionNL );
 
-      //4. append the halfsegment
-      (*cr) += (*chs);
-      //cout<<"the chs is:"<<*chs<<endl;
+    //2. Translate the CHS_NL to real halfsegment format=(true ((1 1) (2 2)))
+    flagedSeg = nl->TwoElemList(
+                  nl->First(CHS_NL),
+                  nl->Second(CHS_NL));
+
+    //3. Create the Halfsegment
+    CHalfSegment *chs = (CHalfSegment*)InHalfSegment( nl->TheEmptyList(), flagedSeg,
+                                                      0, errorInfo, correct ).addr;
+    assert( correct );
+    chs->attr.faceno = (nl->IntValue(nl->Third(CHS_NL)));  //faceNo;
+    chs->attr.cycleno = (nl->IntValue(nl->Fourth(CHS_NL)));  //cycleNo;
+    chs->attr.edgeno = (nl->IntValue(nl->Fifth(CHS_NL)));  //edgeNo;
+    chs->attr.coverageno = (nl->IntValue(nl->Sixth(CHS_NL)));  //coverageNo;
+
+    //4. append the halfsegment
+    (*cr) += (*chs);
   }
-  else cout<<"incorrect  inner halfsegment format!!!"<<endl;
-    }
 
-    //cr->EndBulkLoad(); This line is replaced by the following line to aviod sorting
-    cr->setOrdered(true);
-    correct = true;
-    return SetWord( cr );
+  cr->EndBulkLoad( false ); 
+  correct = true;
+  return SetWord( cr );
 }
 
 static Word
@@ -7186,39 +7162,36 @@ moves a region parallelly to another place and gets another region.
 
 */
 static ListExpr
-translateMap( ListExpr args )
+TranslateMap( ListExpr args )
 {
-    ListExpr arg1, arg2, arg3;
-    if ( nl->ListLength( args ) == 3 )
-    {
-  arg1 = nl->First( args );
-  arg2 = nl->Second( args );
-  arg3 = nl->Third( args );
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
 
-  if ( TypeOfSymbol( arg1 ) == stregion &&
-       nl->IsEqual(arg2, "real") &&
-       nl->IsEqual(arg3, "real"))
-        //((nl->IsEqual(arg2, "real"))||(nl->IsEqual(arg2, "int")))  &&
-        //((nl->IsEqual(arg3, "real"))||(nl->IsEqual(arg3, "int"))))
+    if( TypeOfSymbol( arg1 ) == stregion &&
+        nl->IsEqual(nl->First( arg2 ), "real") &&
+        nl->IsEqual(nl->Second( arg2 ), "real"))
       return (nl->SymbolAtom( "region" ));
 
-  if ( TypeOfSymbol( arg1 ) == stline &&
-       nl->IsEqual(arg2, "real") &&
-       nl->IsEqual(arg3, "real"))
+    if( TypeOfSymbol( arg1 ) == stline &&
+        nl->IsEqual(nl->First( arg2 ), "real") &&
+        nl->IsEqual(nl->Second( arg2 ), "real"))
       return (nl->SymbolAtom( "line" ));
 
-  if ( TypeOfSymbol( arg1 ) == stpoints &&
-       nl->IsEqual(arg2, "real") &&
-       nl->IsEqual(arg3, "real"))
+    if( TypeOfSymbol( arg1 ) == stpoints &&
+        nl->IsEqual(nl->First( arg2 ), "real") &&
+        nl->IsEqual(nl->Second( arg2 ), "real"))
       return (nl->SymbolAtom( "points" ));
 
-  if ( TypeOfSymbol( arg1 ) == stpoint &&
-       nl->IsEqual(arg2, "real") &&
-       nl->IsEqual(arg3, "real"))
+    if( TypeOfSymbol( arg1 ) == stpoint &&
+        nl->IsEqual(nl->First( arg2 ), "real") &&
+        nl->IsEqual(nl->Second( arg2 ), "real"))
       return (nl->SymbolAtom( "point" ));
-    }
+  }
 
-    return (nl->SymbolAtom( "typeerror" ));
+  return nl->SymbolAtom( "typeerror" );
 }
 
 /*
@@ -7915,7 +7888,7 @@ This select function is used for the ~translate~ operator.
 */
 
 static int
-translateSelect( ListExpr args )
+TranslateSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
@@ -11812,54 +11785,51 @@ Implementation with Spatial Scan
 */
 
 static int
-commonborder_Scan_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+CommonBorderScan_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-    //void rrSelectFirst(CRegion& R1, CRegion& R2, object& obj, status& stat)
-    int eee=0;
-    result = qp->ResultStorage( s );
+  //void rrSelectFirst(CRegion& R1, CRegion& R2, object& obj, status& stat)
+  int i = 0;
+  result = qp->ResultStorage( s );
 
-    CRegion *cr1, *cr2;
-    CHalfSegment reschs;
+  CHalfSegment reschs;
 
-    cr1=((CRegion*)args[0].addr);
-    cr2=((CRegion*)args[1].addr);
+  CRegion *cr1 = (CRegion*)args[0].addr,
+          *cr2 = (CRegion*)args[1].addr,
+          *pResult = (CRegion*)result.addr;
 
-    if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) )
-    {
-  //cout<<"not intersect by MBR"<<endl;
-  ((CLine *)result.addr)->Clear();
-  return (0);
-    }
-
+  if( !cr1->BoundingBox().Intersects( cr2->BoundingBox() ) )
+  {
     ((CLine *)result.addr)->Clear();
-    ((CLine *)result.addr)->StartBulkLoad();
+    return (0);
+  }
 
-    object obj;
-    status stat;
+  pResult->Clear();
+  pResult->StartBulkLoad();
 
-    rrSelectFirst(*cr1, *cr2, obj, stat);
-    if (obj==both)
-    {
-  cr1->GetHs(reschs);
-  *((CLine *)result.addr) += reschs;
-  eee++;
-    }
+  object obj;
+  status stat;
 
-    while (stat==endnone)
-    {
-  rrSelectNext(*cr1, *cr2, obj, stat);
+  rrSelectFirst(*cr1, *cr2, obj, stat);
   if (obj==both)
   {
-      cr1->GetHs(reschs);
-      *((CLine *)result.addr) += reschs;
-      eee++;
+    cr1->GetHs(reschs);
+    *pResult += reschs;
+    i++;
   }
-    }
 
-    //((CLine *)result.addr)->EndBulkLoad();
-    ((CLine *)result.addr)->setOrdered(true);
-    cout<<"CHS# written to result: "<<eee<<endl;
-    return (0);
+  while (stat==endnone)
+  {
+    rrSelectNext(*cr1, *cr2, obj, stat);
+    if (obj==both)
+    {
+      cr1->GetHs(reschs);
+      *pResult += reschs;
+      i++;
+    }
+  }
+
+  pResult->EndBulkLoad( false );
+  return 0;
 }
 
 /*
@@ -11868,130 +11838,149 @@ commonborder_Scan_rr( Word* args, Word& result, int message, Word& local, Suppli
 */
 
 static int
-translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
+Translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-    result = qp->ResultStorage( s );
+  result = qp->ResultStorage( s );
 
-    Point *p=((Point*)args[0].addr);
-    CcReal *xx=(CcReal *)args[1].addr;
-    CcReal *yy=(CcReal *)args[2].addr;
+  Point *p= (Point*)args[0].addr,
+        *pResult = (Point*)result.addr;
+  Supplier son = qp->GetSupplier( args[1].addr, 0 );
+  Word t;
+  qp->Request( son, t );
 
-    if ( p->IsDefined())
-    {
-  Point resP(true, p->GetX()+xx->GetRealval(), p->GetY()+yy->GetRealval());
-  *((Point *)result.addr)=resP;
-  return (0);
-    }
-    else
-    {
-  ((Point *)result.addr)->SetDefined( false );
-  return (0);
-    }
-}
+  double tx, ty;
+  tx = ((CcReal *)t.addr)->GetRealval();
+  son = qp->GetSupplier( args[1].addr, 1 );
+  qp->Request( son, t );
+  ty = ((CcReal *)t.addr)->GetRealval();
 
-static int
-translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-    result = qp->ResultStorage( s );
-
-    ((Points *)result.addr)->Clear();
-
-    Points *ps=((Points*)args[0].addr);
-    CcReal *xx=(CcReal *)args[1].addr;
-    CcReal *yy=(CcReal *)args[2].addr;
-
-    if (!( ps->IsEmpty()))
-    {
-  Point auxp;
-  ((Points *)result.addr)->StartBulkLoad();
-
-  for (int i=0; i<ps->Size(); i++)
+  if ( p->IsDefined())
   {
-      ps->Get(i, auxp);
-      auxp.Translate(xx->GetRealval(), yy->GetRealval());
-      *((Points *)result.addr) += auxp;
+    *pResult = *p;
+    pResult->Translate( tx, ty );
+    return 0;
   }
-
-  ((Points *)result.addr)->setOrdered(true);
-  return (0);
-    }
-    else
-    {
-  return (0);
-    }
+  else
+  {
+    pResult->SetDefined( false );
+    return 0;
+  }
 }
 
 static int
-translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
+Translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-    result = qp->ResultStorage( s );
+  result = qp->ResultStorage( s );
 
-    ((CLine *)result.addr)->Clear();
+  Points *ps = (Points*)args[0].addr,
+         *pResult = (Points*)result.addr;
+  pResult->Clear();
 
-    CLine *cl=((CLine *)args[0].addr);
-    CcReal *xx=(CcReal *)args[1].addr;
-    CcReal *yy=(CcReal *)args[2].addr;
+  Supplier son = qp->GetSupplier( args[1].addr, 0 );
+  Word t;
+  qp->Request( son, t );
 
-    CHalfSegment chs;
+  double tx, ty;
+  tx = ((CcReal *)t.addr)->GetRealval();
+  son = qp->GetSupplier( args[1].addr, 1 );
+  qp->Request( son, t );
+  ty = ((CcReal *)t.addr)->GetRealval();
 
-    if (!( cl->IsEmpty()))
-    {
-  ((CLine *)result.addr)->StartBulkLoad();
-
-  for (int i=0; i<cl->Size(); i++)
+  if( !ps->IsEmpty() )
   {
+    Point auxp;
+    pResult->StartBulkLoad();
+
+    for( int i = 0; i < ps->Size(); i++ )
+    {
+      ps->Get( i, auxp );
+      auxp.Translate( tx, ty );
+      *pResult += auxp;
+    }
+    pResult->EndBulkLoad( false );
+  }
+  return 0;
+}
+
+static int
+Translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+
+  CLine *cl = (CLine *)args[0].addr,
+        *pResult = (CLine *)result.addr;
+  CHalfSegment chs;
+
+  pResult->Clear();
+
+  Supplier son = qp->GetSupplier( args[1].addr, 0 );
+  Word t;
+  qp->Request( son, t );
+
+  double tx, ty;
+  tx = ((CcReal *)t.addr)->GetRealval();
+  son = qp->GetSupplier( args[1].addr, 1 );
+  qp->Request( son, t );
+  ty = ((CcReal *)t.addr)->GetRealval();
+
+  if( !cl->IsEmpty() )
+  {
+    pResult->StartBulkLoad();
+
+    for( int i = 0; i < cl->Size(); i++ )
+    {
       cl->Get(i, chs);
-      chs.Translate(xx->GetRealval(), yy->GetRealval());
-      *((CLine *)result.addr) += chs;
-  }
+      chs.Translate( tx, ty );
+      *pResult += chs;
+    }
 
-  ((CLine *)result.addr)->setOrdered(true);
-  return (0);
-    }
-    else
-    {
-  return (0);
-    }
+    pResult->EndBulkLoad( false );
+  }
+  return 0;
 }
 
 static int
-translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
+Translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-    result = qp->ResultStorage( s );
+  result = qp->ResultStorage( s );
 
-    ((CRegion *)result.addr)->Clear();
+  CRegion *cr = (CRegion *)args[0].addr,
+          *pResult = (CRegion *)result.addr;
+  CHalfSegment chs;
 
-    CRegion *cr=((CRegion *)args[0].addr);
-    CcReal *xx=(CcReal *)args[1].addr;
-    CcReal *yy=(CcReal *)args[2].addr;
+  pResult->Clear();
 
-    CHalfSegment chs;
+  Supplier son = qp->GetSupplier( args[1].addr, 0 );
+  Word t;
+  qp->Request( son, t );
 
-    if (!( cr->IsEmpty()))
-    {
-  ((CRegion *)result.addr)->StartBulkLoad();
+  double tx, ty;
+  tx = ((CcReal *)t.addr)->GetRealval();
+  son = qp->GetSupplier( args[1].addr, 1 );
+  qp->Request( son, t );
+  ty = ((CcReal *)t.addr)->GetRealval();
 
-  for (int i=0; i<cr->Size(); i++)
+  if( !cr->IsEmpty() )
   {
-      cr->Get(i, chs);
-      chs.Translate(xx->GetRealval(), yy->GetRealval());
-      *((CRegion *)result.addr) += chs;
-  }
+    pResult->StartBulkLoad();
 
-  ((CRegion *)result.addr)->setOrdered(true);
-  return (0);
-    }
-    else
+    for( int i = 0; i < cr->Size(); i++ )
     {
-  return (0);
+      cr->Get(i, chs);
+      chs.Translate( tx, ty );
+      *pResult += chs;
     }
+
+    pResult->EndBulkLoad( false );
+  }
+  return 0;
 }
 
 /*
 10.4.27 Value mapping functions of operator ~clip~
 
 */
-
 static int
 clip_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -12191,13 +12180,13 @@ ValueMapping touchpointsmap[] =    { touchpoints_lr,
 
 ValueMapping commonbordermap[] = { commonborder_rr
               };
-ValueMapping commonborderscanmap[] = { commonborder_Scan_rr
+ValueMapping commonborderscanmap[] = { CommonBorderScan_rr
               };
 
-ValueMapping translatemap[] = { translate_p,
-                translate_ps,
-                translate_l,
-                translate_r
+ValueMapping translatemap[] = { Translate_p,
+                Translate_ps,
+                Translate_l,
+                Translate_r
               };
 
 ValueMapping spatialclipmap[] = { clip_l };
@@ -12477,9 +12466,9 @@ const string SpatialSpecCommonborderscan  =
 const string SpatialSpecTranslate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point||points||line||region x real x real) -> point||points||line||region</text--->"
-  "<text> translate(_, _, _)</text--->"
+  "<text> _ translate[list]</text--->"
   "<text> move the object parallely for some distance.</text--->"
-  "<text> query translate(region1, 3.5, 15.1)</text--->"
+  "<text> query region1 translate[3.5, 15.1]</text--->"
   ") )";
 
 const string SpatialSpecClip  =
@@ -12620,7 +12609,7 @@ Operator spatialcommonborderscan
 
 Operator spatialtranslate
   ( "translate", SpatialSpecTranslate, 4, translatemap, spatialnomodelmap,
-    translateSelect, translateMap );
+    TranslateSelect, TranslateMap );
 
 Operator spatialclip
         ( "clip", SpatialSpecClip, 1, spatialclipmap, spatialnomodelmap,

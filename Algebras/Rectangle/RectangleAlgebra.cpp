@@ -325,104 +325,66 @@ RectangleTypeMapBool1( ListExpr args )
 }
 
 /*
-4.1.3 Type mapping function ~StreamRectangleTypeMapRectangle~
+4.1.3 Type mapping function ~RectRectTypeMapRect~
 
-It is used for the operator ~unionbbox~ and ~intersectionbbox~
-
-Type mapping for ~unionbbox~ and ~intersectionbbox~ is
-
-----  ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> ti
-              APPEND (i ti)
-----
+It is for the operator ~union~ and ~intersection~, which takes
+two rectangles as arguments and return a rectangle.
 
 */
-template<bool isUnion> ListExpr
-StreamRectangleTypeMapRectangle( ListExpr args )
+ListExpr
+RectRectTypeMapRect( ListExpr args )
 {
-nl->WriteListExpr( args );
-cout << endl;
-
-  ListExpr first, second, attrtype;
-  string  attrname, argstr, argstrtmp;
-  int j;
-
-  const char* errorMessage1 =
-  isUnion ?
-    "Operator unionbbox expects a list of length two."
-  : "Operator intersectionbbox expects a list of length two.";
-
-  CHECK_COND(nl->ListLength(args) == 2,
-    errorMessage1);
-
-  first = nl->First(args);
-  second = nl->Second(args);
-
-  cout << "passed " << errorMessage1 << endl;
-
-  nl->WriteToString(argstr, first);
-  string errorMessage2 =
-  isUnion ?
-    "Operator unionbbox expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator unionbbox gets as first argument '" + argstr + "'."
-  : "Operator intersectionbbox expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator intersectionbbox gets as first argument '" + argstr + "'.";
-  CHECK_COND(nl->ListLength(first) == 2  &&
-             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-             (nl->ListLength(nl->Second(first)) == 2) &&
-             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       (IsTupleDescription(nl->Second(nl->Second(first)))),
-       errorMessage2);
-
-  cout << "passed " << errorMessage2 << endl;
-
-  nl->WriteToString(argstr, second);
-  string errorMessage3 =
-  isUnion ?
-    "Operator unionbbox expects as second argument an atom (attributename).\n"
-    "Operator unionbbox gets '" + argstr + "'.\n"
-    "Atrributename may not be the name of a Secondo object!"
-  : "Operator intersectionbbox expects as second argument an atom (attributename).\n"
-    "Operator intersectionbbox gets '" + argstr + "'.\n"
-    "Atrributename may not be the name of a Secondo object!";
-  CHECK_COND((nl->IsAtom(second)) &&
-             (nl->AtomType(second) == SymbolType),
-       errorMessage3);
-
-  cout << "passed " << errorMessage3 << endl;
-
-  attrname = nl->SymbolValue(second);
-  nl->WriteToString(argstr, nl->Second(nl->Second(first)));
-  j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-  string errorMessage4 =
-    "Attributename '" + attrname + "' is not known.\n"
-    "Known Attribute(s): " + argstr;
-  string errorMessage5 =
-    "Attribute type is not of type rect||rect3||rect4.";
-  if ( j )
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
   {
-    cout << "passed " << errorMessage4 << endl;
-
-    CHECK_COND( (nl->SymbolValue(attrtype) == "rect" ||
-                 nl->SymbolValue(attrtype) == "rect3" ||
-                 nl->SymbolValue(attrtype) == "rect4"),
-    errorMessage5);
-
-    cout << "passed " << errorMessage5 << endl;
-
-    cout << "ok" << endl;
-
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-           nl->OneElemList(nl->IntAtom(j)), attrtype);
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) )
+      return nl->SymbolAtom( "rect" );
+    if( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) )
+      return nl->SymbolAtom( "rect3" );
+    if( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
+      return nl->SymbolAtom( "rect4" );
   }
-  else
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.4 Type mapping function ~TranslateTypeMap~
+
+It is used for the ~translate~ operator.
+
+*/
+ListExpr TranslateTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength( args ) == 2 )
   {
-    nl->WriteToString( argstr, nl->Second(nl->Second(first)) );
-    ErrorReporter::ReportError(errorMessage4);
-    return nl->SymbolAtom("typeerror");
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "rect" ) && 
+        nl->ListLength( arg2 ) == 2 &&
+        nl->IsEqual( nl->First( arg2 ), "real" ) &&
+        nl->IsEqual( nl->Second( arg2 ), "real" ) )
+      return nl->SymbolAtom( "rect" );
+
+    if( nl->IsEqual( arg1, "rect3" ) &&
+        nl->ListLength( arg2 ) == 3 &&
+        nl->IsEqual( nl->First( arg2 ), "real" ) &&
+        nl->IsEqual( nl->Second( arg2 ), "real" ) &&
+        nl->IsEqual( nl->Third( arg2 ), "real" ) )
+      return nl->SymbolAtom( "rect3" );
+    
+    if( nl->IsEqual( arg1, "rect4" ) &&
+        nl->ListLength( arg2 ) == 4 &&
+        nl->IsEqual( nl->First( arg2 ), "real" ) &&
+        nl->IsEqual( nl->Second( arg2 ), "real" ) &&
+        nl->IsEqual( nl->Third( arg2 ), "real" ) &&
+        nl->IsEqual( nl->Fourth( arg2 ), "real" ) )
+      return nl->SymbolAtom( "rect4" );
   }
+  return nl->SymbolAtom( "typeerror" );
 }
 
 /*
@@ -491,38 +453,6 @@ RectangleBinarySelect( ListExpr args )
 
   return -1; // should never occur
 }
-
-/*
-4.3.3 Selection function ~StreamRectangleSelect~
-
-Is used for the ~unionbbox~ and ~intersectionbbox~ operators.
-
-*/
-int
-StreamRectangleSelect( ListExpr args )
-{
-nl->WriteListExpr( args );
-cout << endl;
-
-  ListExpr first = nl->First(args),
-           second = nl->Second(args),
-           attrtype;
-
-  string attrname = nl->SymbolValue(second);
-  FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-
-  if( nl->SymbolValue(attrtype) == "rect" )
-    return 0;
-
-  if( nl->SymbolValue(attrtype) == "rect3" )
-    return 1;
-
-  if( nl->SymbolValue(attrtype) == "rect4" )
-    return 2;
-
-  return -1; // should never occur.
-}
-
 
 /*
 4.4 Value mapping functions
@@ -630,68 +560,64 @@ int RectangleInside( Word* args, Word& result, int message, Word& local, Supplie
 }
 
 /*
-4.4.5 Value mapping function of operator ~unionbbox~ and ~intersectionbbox~
+4.4.6 Value mapping functions of operator ~union~
 
 */
-template<unsigned dim, bool isUnion>
-int RectangleUnionIntersectionBBox( Word* args, Word& result, int message, Word& local, Supplier s )
+template <unsigned dim>
+int RectangleUnion( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  Word currentTupleWord;
-  Rectangle<dim>* aggr = (Rectangle<dim>*)(qp->ResultStorage(s)).addr;
-  aggr->SetDefined(false);
-  result = SetWord(aggr);
+  result = qp->ResultStorage( s );
+  *((Rectangle<dim> *)result.addr) = 
+      ((Rectangle<dim>*)args[1].addr)->Union( *((Rectangle<dim>*)args[0].addr) );
+  return (0);
+}
 
-  assert(args[2].addr != 0);
-  int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
+/*
+4.4.7 Value mapping functions of operator ~intersection~
 
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, currentTupleWord);
-  while(qp->Received(args[0].addr))
-  {
-    Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
-    Rectangle<dim>* currentAttr =
-      (Rectangle<dim>*)currentTuple->GetAttribute(attributeIndex);
-
-    if( isUnion )
-      *aggr = aggr->Union( *currentAttr );
-    else
-      *aggr = aggr->Intersection( *currentAttr );
-
-    currentTuple->DeleteIfAllowed();
-    qp->Request(args[0].addr, currentTupleWord);
-  }
-  qp->Close(args[0].addr);
-
-  return 0;
+*/
+template <unsigned dim>
+int RectangleIntersection( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  *((Rectangle<dim> *)result.addr) =
+      ((Rectangle<dim>*)args[1].addr)->Intersection( *((Rectangle<dim>*)args[0].addr) );
+  return (0);
 }
 
 /*
 10.4.26 Value mapping functions of operator ~translate~
 
 */
-//template <unsigned dim>
-//int RectangleTranslate( Word* args, Word& result, int message, Word& local, Supplier s )
-//{
-//  result = qp->ResultStorage( s );
-//  Rectangle *pResult = (Rectangle *)result.addr;
-//
-//  Rectangle<dim> *r = ((Rectangle<dim>*)args[0].addr);
-//
-//  CcReal *x = (CcReal *)args[1].addr;
-//  CcReal *y = (CcReal *)args[2].addr;
-//
-//  if( r->IsDefined() )
-//  {
-//    *pResult = *r;
-//    pResult->Translate( x->GetRealval(), y->GetRealval() );
-//    return (0);
-//  }
-//  else
-//  {
-//    pResult->SetDefined( false );
-//    return (0);
-//  }
-//}
+template <unsigned dim>
+int RectangleTranslate( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<dim> *pResult = (Rectangle<dim> *)result.addr;
+  Rectangle<dim> *r = ((Rectangle<dim>*)args[0].addr);
+  double t[dim];
+  Supplier son;
+  Word arg;
+
+  for( unsigned d = 0; d < dim; d++ )
+  {
+    son = qp->GetSupplier( args[1].addr, d );
+    qp->Request( son, arg );
+    t[d] = ((CcReal *)arg.addr)->GetRealval();
+  }
+
+  if( r->IsDefined() )
+  {
+    *pResult = *r;
+    pResult->Translate( t );
+    return (0);
+  }
+  else
+  {
+    pResult->SetDefined( false );
+    return (0);
+  }
+}
 
 /*
 4.5 Definition of operators
@@ -726,13 +652,17 @@ ValueMapping rectangleinsidemap[] = { RectangleInside<2>,
                                       RectangleInside<3>,
                                       RectangleInside<4> };
 
-ValueMapping rectangleunionbboxmap[] = { RectangleUnionIntersectionBBox<2, true>,
-                                         RectangleUnionIntersectionBBox<3, true>,
-                                         RectangleUnionIntersectionBBox<4, true> };
+ValueMapping rectangletranslatemap[] = { RectangleTranslate<2>,
+                                         RectangleTranslate<3>,
+                                         RectangleTranslate<4> };
 
-ValueMapping rectangleintersectionbboxmap[] = { RectangleUnionIntersectionBBox<2, false>,
-                                                RectangleUnionIntersectionBBox<3, false>,
-                                                RectangleUnionIntersectionBBox<4, false> };
+ValueMapping rectangleunionmap[] = { RectangleUnion<2>,
+                                     RectangleUnion<3>,
+                                     RectangleUnion<4> };
+
+ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
+                                            RectangleIntersection<3>,
+                                            RectangleIntersection<4> };
 
 ModelMapping rectanglenomodelmap[] = { RectangleNoModelMapping,
                                        RectangleNoModelMapping,
@@ -781,33 +711,31 @@ const string RectangleSpecInside  =
         "<text>query rect1 inside rect</text--->"
         ") )";
 
-const string RectangleSpecUnionBBox  =
-        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-        "( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
-        "<text>_ unionbbox [ _ ]</text--->"
-        "<text>Returns the union of the bounding boxes of attribute "
-        "ai over the input stream.</text--->"
-        "<text>query cities feed unionbbox [ citybox ]"
-        "</text--->"
+const string RectangleSpecUnion  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>(rect<d> x rect<d>) -> rect<d></text--->"
+        "<text>_ union _</text--->"
+        "<text>return the union of two rectangles.</text--->"
+        "<text>query rect1 union rect2</text--->"
         ") )";
 
-const string RectangleSpecIntersectionBBox  =
-        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-        "( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
-        "<text>_ unionbbox [ _ ]</text--->"
-        "<text>Returns the intersection of the bounding boxes of attribute "
-        "ai over the input stream.</text--->"
-        "<text>query cities feed intersectionbbox [ citybox ]"
-        "</text--->"
+const string RectangleSpecIntersection  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>(rect<d> x rect<d>) -> rect<d></text--->"
+        "<text>_ intersection _</text--->"
+        "<text>return the intersection of two rectangles.</text--->"
+        "<text>query rect1 intersection rect2</text--->"
         ") )";
 
-//const string RectangleSpecTranslate  =
-//  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-//  "( <text>(rect x real x real) -> rect</text--->"
-//  "<text> translate(_, _, _)</text--->"
-//  "<text> move the rectangle parallely for some distance.</text--->"
-//  "<text> query translate(rect1, 3.5, 15.1)</text--->"
-//  ") )";
+const string RectangleSpecTranslate  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(rect (real real)) -> rect "
+  "(rect3 (real real real)) -> rect3 "
+  "(rect4 (real real real real)) -> rect4</text--->"
+  "<text> translate[_; list]</text--->"
+  "<text> move the rectangle parallely for some distance.</text--->"
+  "<text> query translate[rect1; 3.5, 15.1]</text--->"
+  ") )";
 
 /*
 4.5.3 Definition of the operators
@@ -853,29 +781,29 @@ Operator rectangleinside( "inside",
                           RectangleBinarySelect,
                           RectangleTypeMapBool );
 
-Operator rectangleunionbbox( "unionbbox",
-                             RectangleSpecUnionBBox,
+Operator rectangleunion( "union",
+                          RectangleSpecUnion,
+                          3,
+                          rectangleunionmap,
+                          rectanglenomodelmap,
+                          RectangleBinarySelect,
+                          RectRectTypeMapRect );
+
+Operator rectangleintersection( "intersection",
+                                RectangleSpecIntersection,
+                                3,
+                                rectangleintersectionmap,
+                                rectanglenomodelmap,
+                                RectangleBinarySelect,
+                                RectRectTypeMapRect );
+
+Operator rectangletranslate( "translate",
+                             RectangleSpecTranslate,
                              3,
-                             rectangleunionbboxmap,
+                             rectangletranslatemap,
                              rectanglenomodelmap,
-                             StreamRectangleSelect,
-                             StreamRectangleTypeMapRectangle<true> );
-
-Operator rectangleintersectionbbox( "intersectionbbox",
-                                    RectangleSpecIntersectionBBox,
-                                    3,
-                                    rectangleintersectionbboxmap,
-                                    rectanglenomodelmap,
-                                    StreamRectangleSelect,
-                                    StreamRectangleTypeMapRectangle<false> );
-
-//Operator rectangletranslate( "translate",
-//                             RectangleSpecTranslate,
-//                             3,
-//                             rectangletranslatemap,
-//                             rectanglenomodelmap,
-//                             RectangleUnarySelect,
-//                             RectangleTypeMapRectangle );
+                             RectangleUnarySelect,
+                             TranslateTypeMap );
 
 /*
 5 Creating the Algebra
@@ -900,9 +828,9 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglenotequal );
     AddOperator( &rectangleintersects );
     AddOperator( &rectangleinside );
-    AddOperator( &rectangleunionbbox );
-    AddOperator( &rectangleintersectionbbox );
-//    AddOperator( &rectangletranslate );
+    AddOperator( &rectangleunion );
+    AddOperator( &rectangleintersection );
+    AddOperator( &rectangletranslate );
   }
   ~RectangleAlgebra() {};
 };

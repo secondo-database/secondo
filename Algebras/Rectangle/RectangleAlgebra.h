@@ -322,10 +322,13 @@ template <unsigned dim>
 Rectangle<dim>& Rectangle<dim>::operator = ( const Rectangle<dim>& r )
 {
   this->defined = r.defined;
-  for( unsigned i = 0; i < dim; i++ )
+  if( defined )
   {
-    this->min[i] = r.min[i];
-    this->max[i] = r.max[i];
+    for( unsigned i = 0; i < dim; i++ )
+    {
+      this->min[i] = r.min[i];
+      this->max[i] = r.max[i];
+    }
   }
   assert( Proper() );
   return *this;
