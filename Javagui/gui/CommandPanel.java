@@ -68,11 +68,15 @@ public class CommandPanel extends JScrollPane {
      }
   } 
    
+  /** returns the connection state from secondointerface */
+  public boolean isConnected(){
+    return Secondointerface.isConnected();
+  }
+  
 
   /**
    * Add code to the end of the textarea.
    * @param txt Text to append.
-   * @see <a href="CommandPanelsrc.html#appendText">Source</a>
    */
   public void appendText (String txt) {
     //SystemArea.setForeground(Color.black);	

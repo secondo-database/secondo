@@ -283,8 +283,18 @@ public boolean hideSelectedObject(){
   return hidden;
 }
 
+/* sends the remove message for all objects to the ViewerControl*/
+public void hideAll(){
+   SecondoObject SO;
+   for(int i=0;i<Objects.size();i++){
+      SO = (SecondoObject) Objects.get(i);
+      if (VC!=null)
+          VC.hideObject(this,SO);
+   }
+   updateMarks();
+}
 
-
+/* sends the showObject message for the selected object to the ViewerControl */
 public boolean showSelectedObject(){
     boolean ok=false; 
     int index = Content.getSelectedIndex();
@@ -300,7 +310,16 @@ public boolean showSelectedObject(){
     return ok;
 } 
 
-
+/* sends the showObject message for all Objects to the ViewerControl */
+public void showAll(){
+   SecondoObject SO;
+   for(int i=0;i<Objects.size();i++){
+      SO =(SecondoObject)Objects.get(i);
+      if(VC!=null && VC.canActualDisplay(SO))
+          VC.showObject(SO);
+   }
+   updateMarks();
+}
 
 
 

@@ -7,7 +7,7 @@ include ../makefile.inc
 .PHONY: all
 all: SecondoObject.class ViewerControl.class ServerDialog.class \
      ResultProcessor.class ObjectList.class CommandPanel.class \
-     MainWindow.class
+     HelpScreen.class MainWindow.class 
 
 SecondoObject.class: SecondoObject.java
 	$(JAVAC) -classpath $(CLASSPATH) SecondoObject.java
@@ -27,8 +27,13 @@ CommandPanel.class: CommandPanel.java
 ObjectList.class: ObjectList.java
 	$(JAVAC) -classpath $(CLASSPATH) ObjectList.java
 
+HelpScreen.class: HelpScreen.java
+	$(JAVAC) -classpath $(CLASSPATH) HelpScreen.java
+
 MainWindow.class: MainWindow.java
 	$(JAVAC) -classpath $(CLASSPATH) MainWindow.java
+
+
 
 
 

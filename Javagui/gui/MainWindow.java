@@ -45,6 +45,14 @@ private JMenu ServerCommand_List;
 private JMenuItem MI_ListDatabases;
 private JMenuItem MI_ListTypes;
 private JMenuItem MI_ListTypeConstructors;
+private JMenuItem MI_ListObjects;
+private JMenuItem MI_ListOperators;
+
+private JMenu HelpMenu;
+private JMenuItem MI_ShowGuiCommands;
+private JMenuItem MI_ShowSecondoCommands;
+private HelpScreen MyHelp;
+
 
 private JMenu Viewers;
 private JMenuItem MI_ShowOnlyViewer;
@@ -70,6 +78,7 @@ public MainWindow(String Title){
   setSize(800,600);
   OptionPane = new JOptionPane();
   ServerDlg = new ServerDialog(this); 
+  MyHelp = new HelpScreen(this);
   this.getContentPane().setLayout(new BorderLayout());
   PanelTop = new JPanel(new BorderLayout(),true);
   ComPanel = new CommandPanel(this);
@@ -283,6 +292,9 @@ private void setViewer(SecondoViewer SV){
 
 
 /** executes a gui-command 
+  *
+  * don't forget to extend the HelpScreen if added a new command
+  * 
   * available commands :
   * exit 
   * addViewer <ViewerName>
@@ -301,6 +313,8 @@ private void setViewer(SecondoViewer SV){
   * renameObject <oldName> -> <newName>
   * onlyViewer
   * listCommands
+  * showAll
+  * hideAll
   */
 public void execGuiCommand(String command){
   ComPanel.appendText("\n"); 
@@ -440,7 +454,9 @@ public void execGuiCommand(String command){
       ComPanel.appendText("gui selectViewer <ViewerName> \n");
       ComPanel.appendText("gui clearHistory\n");
       ComPanel.appendText("gui showObject <ObjectName>\n");
+      ComPanel.appendText("gui showAll\n");
       ComPanel.appendText("gui hideObject <ObjectName>\n");
+      ComPanel.appendText("gui hideAll\n");
       ComPanel.appendText("gui removeObject <ObjectName>\n");
       ComPanel.appendText("gui clearObjectList \n");
       ComPanel.appendText("gui saveObject <ObjectName> \n");
@@ -454,15 +470,19 @@ public void execGuiCommand(String command){
       ComPanel.appendText("gui listCommands \n");
       ComPanel.appendText(" ==> Note : all commands and names are case sensitive \n");
       ComPanel.showPrompt();
-  }
+  } else if(command.startsWith("hideAll")){
+    OList.hideAll(); 
+    ComPanel.showPrompt();
+  } else if(command.startsWith("showAll")){
+    OList.showAll(); 
+    ComPanel.showPrompt();
+  } 
   else {
     ComPanel.appendText("unknow gui command \n input \"gui listCommands\" to get a list of available commands");
     ComPanel.showPrompt();
   }
 
 }
-
-
 
 
 /** make Menu appropriate to MenuVector from CurrentViewer */
@@ -531,8 +551,10 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
          o.fromList(ResultList);
          OList.addEntry(o);
          if(CurrentViewer!=null){
-            if (CurrentViewer.canDisplay(o))
+            if (CurrentViewer.canDisplay(o)){
                CurrentViewer.addObject(o);
+               OList.updateMarks();
+            }
             else {   // search a Viewer to display the result
                SecondoViewer Cand=null;
                boolean found = false;
@@ -544,6 +566,7 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
                if(found){
                   setViewer(Cand);
                   CurrentViewer.addObject(o);
+                  OList.updateMarks();
                }
                else
                   showMessage("no Viewer loaded to display this result");
@@ -628,6 +651,23 @@ private void createMenuBar(){
      }});
 
    ServerMenu = new JMenu("Server");
+   ServerMenu.addMenuListener(new MenuListener(){
+     public void menuSelected(MenuEvent evt){
+        if(ComPanel.isConnected()){
+           MI_Connect.setEnabled(false);
+           MI_Disconnect.setEnabled(true);
+        }
+        else{
+           MI_Connect.setEnabled(true);
+           MI_Disconnect.setEnabled(false);
+        }
+     }
+     public void menuDeselected(MenuEvent evt){}
+     public void menuCanceled(MenuEvent evt){}
+   } );
+
+
+
    MainMenu.add(ServerMenu); 
    MI_Connect = ServerMenu.add("Connect");
    MI_Disconnect = ServerMenu.add("Disconnect");
@@ -654,11 +694,33 @@ private void createMenuBar(){
    MI_ListDatabases=ServerCommand_List.add("databases");
    MI_ListTypes = ServerCommand_List.add("types");
    MI_ListTypeConstructors = ServerCommand_List.add("type constructors");
+   MI_ListObjects = ServerCommand_List.add("objects");
+   MI_ListOperators = ServerCommand_List.add("operators");
    Command_Listener Com_Listener = new Command_Listener();
    MI_ListDatabases.addActionListener(Com_Listener);
    MI_ListTypes.addActionListener(Com_Listener);
    MI_ListTypeConstructors.addActionListener(Com_Listener);
+   MI_ListObjects.addActionListener(Com_Listener);
+   MI_ListOperators.addActionListener(Com_Listener);
 
+   HelpMenu = new JMenu("Help");
+   MI_ShowGuiCommands=HelpMenu.add("Show gui commands");
+   MI_ShowSecondoCommands = HelpMenu.add("Show secondo commands");
+   MI_ShowGuiCommands.addActionListener(new ActionListener(){
+           public void actionPerformed(ActionEvent evt){
+               MyHelp.setMode(MyHelp.GUI_COMMANDS);
+               MyHelp.setVisible(true);
+           }
+        });
+
+   MI_ShowSecondoCommands.addActionListener(new ActionListener(){
+           public void actionPerformed(ActionEvent evt){
+               MyHelp.setMode(MyHelp.SECONDO_COMMANDS);
+               MyHelp.setVisible(true);
+           }
+        });
+
+   MainMenu.add(HelpMenu); 
 
    Viewers = new JMenu("Viewers");
    Viewers.addSeparator();
@@ -788,9 +850,17 @@ class Command_Listener implements ActionListener{
                     ok = true;
                     cmd ="list type constructors";
                 }
-                 
+                if (Source.equals(MainWindow.this.MI_ListObjects)){
+                    ok = true;
+			  cmd ="list objects";
+                } 
+                if(Source.equals(MainWindow.this.MI_ListOperators)){
+                    ok = true;
+			  cmd="list operators";
+                }
+     
                 if (ok) {
-                   //MainWindow.this.ComPanel.appendText(cmd+"\n");
+                    //MainWindow.this.ComPanel.appendText(cmd+"\n");
                     MainWindow.this.ComPanel.execUserCommand(cmd);
                 }
              }
