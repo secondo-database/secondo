@@ -26,6 +26,7 @@ import viewer.hoese.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.text.EditorKit;
 
 
 /**
@@ -103,8 +104,14 @@ private String Entry;
 private static class HTMLViewerFrame extends JFrame{
 
 public HTMLViewerFrame(){
+
   getContentPane().setLayout(new BorderLayout());
   Display = new JEditorPane();
+  if(EKText==null){
+      EKText = Display.createEditorKitForContentType("text/plain");
+      EKHtml = Display.createEditorKitForContentType("text/html");
+  }
+
   JScrollPane ScrollPane = new JScrollPane(Display);
   getContentPane().add(ScrollPane,BorderLayout.CENTER);
   CloseBtn = new JButton("Close");
@@ -117,19 +124,20 @@ public HTMLViewerFrame(){
   ShowSourceBtn = new JButton(SHOWSOURCE);
   ShowSourceBtn.addActionListener(new ActionListener(){
         public void actionPerformed(ActionEvent evt){
-            if(ShowSourceBtn.getLabel().equals(SHOWSOURCE)){ // switch to source
-                 String Text = Display.getText();
-                 Display.setContentType("text/plain");
+            if(ShowSourceBtn.getText().equals(SHOWSOURCE)){ // switch to source
+                 String Text = TheText;// Text without automatic changes from editor
+                 Display.setEditorKit(EKText);
                  Display.setText(Text);
                  Display.setEditable(true);
-                 ShowSourceBtn.setLabel(SHOWFORMATTED);
+                 ShowSourceBtn.setText(SHOWFORMATTED);
                  Display.setCaretPosition(0);
             } else{ // switch to html view
                  String Text = Display.getText();
-                 Display.setContentType("text/html");
-                 Display.setText(Text);
+                 TheText = Text;
+                 Display.setEditorKit(EKHtml);
                  Display.setEditable(false);
-                 ShowSourceBtn.setLabel(SHOWSOURCE);
+                 Display.setText(Text);
+                 ShowSourceBtn.setText(SHOWSOURCE);
                  Display.setCaretPosition(0); 
            }
         }      
@@ -144,11 +152,12 @@ public HTMLViewerFrame(){
 
 public void setSource(Dsplhtml S){
     Source = S;
-    Display.setContentType("text/html");
+    Display.setEditorKit(EKHtml);
     Display.setEditable(false); 
-    Display.setText(S.Text);
+    TheText = S.Text;
+    Display.setText(TheText);
     Display.setCaretPosition(0);// go to top 
-    ShowSourceBtn.setLabel(SHOWSOURCE);
+    ShowSourceBtn.setText(SHOWSOURCE);
 }
 
 public Dsplhtml getSource(){
@@ -159,8 +168,11 @@ private JEditorPane Display;
 private JButton CloseBtn;
 private Dsplhtml Source;
 private JButton ShowSourceBtn;
+private String TheText;
 private final static String SHOWSOURCE = "Show Source";
 private final static String SHOWFORMATTED = "Show Formatted";
+private static EditorKit EKText=null;
+private static EditorKit EKHtml=null;
 
 }
 
