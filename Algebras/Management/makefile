@@ -15,10 +15,10 @@ CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 
 CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
 
-OBJECTS += $(LIBDIR)/AlgebraList.o
 
 .PHONY: all
-all: $(OBJECTS)
+all: $(OBJECTS) 
+	echo $(OBJECTS)
 
 # create dependencies from include directives
 AlgebraList.dep: AlgebraList.i
@@ -52,5 +52,5 @@ include $(CODE_DEPENDENCIES)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS)
+	$(RM) $(OBJECTS) *.dep $(LIBDIR)/AlgebraList.$(OBJEXT)
 
