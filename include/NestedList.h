@@ -48,7 +48,15 @@ February 2004, M. Spiekermann. Reading of binary encoded lists was implemented.
 June 2004, M. Spiekermann. The persistent implementation of this module was finished. Now it
 is possible to process lists which have big textual representations (e.g. 500MB).
 
-July 2004, M. Spiekermann. A runtime check isPersistentImpl() was added.
+July 2004, M. Spiekermann. A runtime check IsPersistentImpl() was added.
+
+July 14, 2004, M. Spiekermann. The struct NodeRecord has been carefully changed
+to reduce the size from 20 bytes to 12 bytes. Moreover values for int, real,
+bool and small strings and symbols (up to 8 characters) could be stored
+directly in the NodeRecord instead of an index for a CTable. Hence one of the
+compact tables could be removed. All in all in the average case (no big text
+atoms) the memory representation of a nested list will only take about 50
+percent compared to the implementation before.
 
 1.1 Overview
 
@@ -163,7 +171,7 @@ and the following operations:
 [21]	Initialization and Analysis \\
 	[--------]
 	initializeListMemory        \\
-	reportVectorSizes           \\
+	ReportTableSizes           \\
 			       
 The operations are defined below. 
 
@@ -192,7 +200,9 @@ works with both implementaions.
 
 */
 #ifdef NL_PERSISTENT
+#ifndef CTABLE_PERSISTENT
 #define CTABLE_PERSISTENT
+#endif
 #endif
 
 #include "CTable.h"
@@ -218,16 +228,17 @@ Is the type to represent nested lists.
 
 */
 
-enum NodeType
-{
-  NoAtom,
-  IntType,
-  RealType,
-  BoolType,
-  StringType, 
-  SymbolType,
-  TextType
-};
+typedef unsigned char NodeType;
+
+const NodeType NoAtom = 1;
+const NodeType IntType = 2;
+const NodeType RealType = 3;
+const NodeType BoolType = 4;
+const NodeType StringType = 5; 
+const NodeType SymbolType = 6;
+const NodeType TextType = 7;
+
+
 /*
 Is an enumeration of the different node types of a nested list.
 
@@ -276,12 +287,21 @@ such a scan. ~currentFragment~ is a pointer to a (valid) entry in the table
 
 */
 
-const unsigned int STRINGSIZE = 32; typedef char StringArray [STRINGSIZE];
-struct StringRecord { StringArray field; };
+const unsigned char STRINGSIZE = 16;
+const unsigned char MAX_STRINGSIZE = 3 * STRINGSIZE;
+const unsigned char StringFragmentSize = STRINGSIZE - sizeof(StringsEntry);
+const unsigned char STRING_INTERNAL_SIZE = 2*sizeof(TextsEntry);
+
+struct StringRecord 
+{ 
+  StringsEntry next;
+  char         field[StringFragmentSize]; 
+};
 /*
 Symbols and strings with a maximum size of "3\times STRINGSIZE"[2] characters
-are represented as at most "3"[2] chunks of "STRINGSIZE"[2] characters. This
-approach was chosen to minimize memory consumption.
+are represented as at most "4"[2] chunks of "STRINGSIZE"[2] characters. This
+approach was chosen to minimize memory consumption. If a string is smaller than
+STRING\_INTERNAL\_SIZE it can directly be stored in a node record.
 
 *NOTE*: The struct type ~StringRecord~ is introduced only because the vector
 templates used in the implementation of compact tables don't allow character
@@ -289,15 +309,21 @@ arrays as the template data type.
 
 */
 
-const int TEXTSIZE = 64;
-const Cardinal MaxFragmentLength = TEXTSIZE - sizeof(TextsEntry);
+const unsigned int TEXTSIZE = 64;
+const unsigned int TextFragmentSize = TEXTSIZE - sizeof(TextsEntry);
   
 struct TextRecord
 {
   TextsEntry next;
-  char       field[MaxFragmentLength];
+  char       field[TextFragmentSize];
+  // unsigned char emptyChars; This may be useful for storing binary data in Text Atoms
+  // currently a value of 0 in field indicates the end.
+  // Cardinal length of the has been removed from the NodeRecord definition to
+  // shrink the size of a node record. A future improvement could be a meta record
+  // which stores the length and/or other information about a text atom.
 };
 typedef TextRecord* Text;
+
 /*
 A text entry is represented as a simple linked list of text chunks.
 
@@ -306,30 +332,31 @@ A text entry is represented as a simple linked list of text chunks.
 struct NodeRecord
 {
   NodeType nodeType;
+  unsigned char isRoot;     // only used for nodeType NoAtom
+  unsigned char strLength;  // only used for nodeType String
+  unsigned char inLine;     // only used for nodeType String
   union 
   {
     struct                   // NoAtom
     {
       NodesEntry left;
       NodesEntry right;
-      bool       isRoot;
     } n;
     struct                  // IntType, RealType, BoolType
     {
-      IntsEntry index;
+      Constant value;
     } a;
     struct                  // StringType, SymbolType
     {
-      StringsEntry first;
-      StringsEntry second;
-      StringsEntry third;
-      Cardinal     strLength;
+      union {        
+	StringsEntry first;
+        char field[STRING_INTERNAL_SIZE];
+      };
     } s;
     struct                  // TextType
     {
       TextsEntry start;
       TextsEntry last;
-      Cardinal   length;
     } t;
   };
 };
@@ -370,15 +397,8 @@ least ~initialEntries~ nodes.
 
 */
 
-   string MemoryModel();
-
-/*
-Returns the Memory-Model of the underlying CTable data structures. Possible values
-are PERSISTENT and NON-PERSISTENT. The PERSISTENT variant uses Berkeley-DB Records
-for its nodes instead of the NON-PERSISTENT version which uses heap memory.
-
-*/
-   virtual ~NestedList();
+  virtual ~NestedList();
+  
 /*
 Destroys a nested list container.
 
@@ -795,19 +815,31 @@ Determines the type of list expression ~atom~ according to the enumeration
 type ~NodeType~. If the parameter is not an atom, the function returns the
 value 'NoAtom'.
 
-1.3.11 Size and Implementation Info
+1.3.11 Size and Implementaion Info
 
 */
-  const string reportVectorSizes();
-  const string reportTableStates() { 
-    return (   "Nodes: " + nodeTable->StateToStr() + "\n" 
-             + "Const: " + intTable->StateToStr() );
+  const string ReportTableSizes();
+  const string ReportTableStates() { 
+    return ( "Nodes: " + nodeTable->StateToStr() + "\n" );
   }
-  static const bool isPersistentImpl() { return isPersistent; }
+  static string SizeOfStructs(); 
 
 /*
 Reports the slot numbers and allocated memory of all
-private CTable members and the underlying vector classes.
+private CTable members and the underlying vector classes.  
+
+*/
+
+  static const bool IsPersistentImpl() { return isPersistent; }
+  string MemoryModel();
+
+
+/*
+Returns the Memory-Model of the underlying CTable data structures. Possible values
+are PERSISTENT and NON-PERSISTENT. The PERSISTENT variant uses Berkeley-DB Records
+for its nodes instead of the NON-PERSISTENT version which uses heap memory. SizeOfStructs
+returns the memory used for some of the structs defined above.
+
 
 1.3.12 New Initialization of List Memory
 
@@ -828,7 +860,7 @@ useful in the present development state of SECONDO.
 
 */
 
-  const ListExpr CopyList( const ListExpr list, const NestedList* target );
+  const ListExpr CopyList( const ListExpr list, NestedList* target );
 
 /*
 Copies a nested list from ~this~ instance to the target instance.
@@ -859,6 +891,15 @@ Copies a nested list from ~this~ instance to the target instance.
 
  private:
  
+  unsigned int UsedBytesOfTextFragment(const TextRecord& fragment);
+ 
+  // Common code for symbols and strings
+  string NestedList::StringSymbolValue( const ListExpr atom );
+ 
+  // Two alternative list copying methods
+  const ListExpr SimpleCopy( const ListExpr list, NestedList* target );
+  const ListExpr SophisticatedCopy( const ListExpr list, const NestedList* target );
+  
   // prototypes for functions used for the binary encoding/decoding of lists
   bool  WriteBinaryRec( ListExpr list, ostream& os );
   bool  ReadBinaryRec( ListExpr& result, istream& in );
@@ -872,7 +913,7 @@ Copies a nested list from ~this~ instance to the target instance.
   void  NestedList::swap(char* buffer); 
   
   CTable<NodeRecord>   *nodeTable;   // nodes
-  CTable<Constant>     *intTable;    // ints;
+  //CTable<Constant>     *intTable;    // ints;
   CTable<StringRecord> *stringTable; // strings
   CTable<TextRecord>   *textTable  ; // texts
 

@@ -119,55 +119,45 @@ int
 TestNLCopy()
 {
    int testcase = 0;
-   NestedList listA(rf,1000,1000,1000,1000);
-   NestedList listB(rf,1000,1000,1000,1000);
+   NestedList nA(rf,1000,1000,1000,1000);
+   NestedList nB(rf,1000,1000,1000,1000);
 
-   cout << endl << "### Copy lists between two C++ NestedList-Objects" << endl;
+   cout << endl << "### Copy lists between two C++ NestedList-Objects (nA, nB)." << endl;
 
    cout << "NodeRecord Size: " << sizeof(NodeRecord) << endl
 	<< "ConstRecord Size: " << sizeof(Constant) << endl 
 	<< endl;
    
-   cout << ++testcase << " reportVectorSizes():" << endl
-	<< "listA: " << listA.reportVectorSizes() << endl;
+   vector<string> listStr(4);
+   listStr[0]=string("(create fifty : (rel(tuple((n int)))))");
+   listStr[1]=string("(0 (1 2) (3 4))"); 
+   listStr[2]=string("(1 2 (3 5) 7 (9 2 3 4 5) (2 (3 4 (5 6)) 4))");
+   listStr[3]=string("(1 \"jhgjhg\" 6 <text> hallo dies ist ein recht langer und langweiliger Text, hier gibt es nichts zu erfahren. Wir wollen nur testen ob Text-Atome korrekt behandelt werden. </text---> \"anbsdfklsd sksdjf sdksdf sdfj asdkjf sdkjssd\" 7 (9 10))");
 
-   string listStr1("(create fifty : (rel(tuple((n int)))))");
-   //string listStr1("(0 (1 2) (3 4))"); 
-   //string listStr1("(1 2 (3 5) 7 (9 2 3 4 5) (2 (3 4 (5 6)) 4))");
-   //string listStr1("(1 \"jhgjhg\" 6 <text> hallo dies inst ein recht langer und langweiliger Text, hier gibt es nichts zu erfahren. Wir wollen nur testen ob Text-Atome korrekt behandelt werden. </text---> \"anbsdfklsd sksdjf sdksdf sdfj asdkjf sdkjssd\" 7 (9 10))");
-   ListExpr listExp1 =0;
-   cout << ++testcase << " ReadFromString():" << endl
-	<< "Trying String: " << ">>" << listStr1 << "<<" << endl;
-   if ( listA.ReadFromString(listStr1, listExp1) ) {
-      cout << "Ok!" << endl;
-   } else {
-      cout << "Failed!" << endl;
-   }
+   vector<string>::iterator it;
 
-   cout << ++testcase << " reportVectorSizes():" << endl
-	<< "listA: " << listA.reportVectorSizes() << endl;
-   
-      
-   string listStr2("");
-   listA.WriteToString(listStr2, listExp1);
-   cout << ++testcase << " WriteToString(): " << endl
-	<< "Result: " << ">>" << listStr2 << "<<" << endl;
-   
+   for ( it = listStr.begin(); it != listStr.end(); it++ ) {
 
-   cout << ++testcase << " reportVectorSizes():" << endl
-	<< "listA: " << listA.reportVectorSizes() << endl;
-   
-   string listStr3("");
-   ListExpr newExp1 = listA.CopyList(listExp1, &listB);
-   listB.WriteToString(listStr3, newExp1);
-   cout << ++testcase << " CopyList(): " << endl
-	<< "Result: " << ">>" << listStr3 << "<<" << endl;
+     ListExpr listA = 0;
+     cout << ++testcase << " nA.ReadFromString(): " << endl;
+     nA.ReadFromString(*it, listA);
+     cout << " nA.CopyList(): A->B " << endl;
+     ListExpr listB = nA.CopyList(listA, &nB);
 
-   cout << ++testcase << " reportVectorSizes(): " << endl
-	<< "listA: " << listA.reportVectorSizes() << endl
-	<< "listB: " << listB.reportVectorSizes() << endl;
-   
-   return 0;
+     cout << " B.WriteToString: A->B " << endl;
+     string strB = "";
+     nB.WriteToString(strB, listB);
+     cout << "  strA: " << *it << endl;
+     cout << "  strB: " << strB << endl;
+
+  }
+
+     cout << " ReportTableSizes(): " << endl
+	  << " listA: " << endl << nA.ReportTableSizes() << endl
+	  << " listB: " << endl << nB.ReportTableSizes() << endl;
+
+  
+  return 0;
 }
 
 /*
@@ -294,29 +284,32 @@ struct IntPairs {
 int 
 TestBasicOperations()
 {
-   ListExpr  ListExpr1,  ListExpr2,  ListExpr3, 
-	     ListExpr4,  ListExpr5,  ListExpr6,
-	     ListExpr8,  ListExpr9, ListExpr15,
-	     EmptyListVar,
-	     IntAtomVar,
-	     RealAtomVar,
-	     BoolAtomVar,
-	     StringAtomVar,
-	     SymbolAtomVar,
-	     TextAtomVar, TextAtomVar2;
+   ListExpr  ListExpr1 = 0,  ListExpr2 = 0,  ListExpr3 = 0, 
+	     ListExpr4 = 0,  ListExpr5 = 0,  ListExpr6 = 0,
+	     ListExpr8 = 0,  ListExpr9 = 0, ListExpr15 = 0,
+	     EmptyListVar = 0,
+	     IntAtomVar = 0,
+	     RealAtomVar = 0,
+	     BoolAtomVar = 0,
+	     StringAtomVar = 0,
+	     SymbolAtomVar = 0,
+	     TextAtomVar = 0, TextAtomVar2 = 0;
 
-   long IntValue, IntValue2, ErrorVar;
-   double RealValue, RealValue2;
-   bool BoolValue, BoolValue2;
+   long ErrorVar = 0;
+   double RealValue = 0, RealValue2 = 0;
+   bool BoolValue = false, BoolValue2 = false;
 
-   string NLStringValue, NLStringValue2, SymbolValue, SymbolValue2;
-   string String1, String2, String3, Chars;
+   string NLStringValue = "", NLStringValue2 = "", SymbolValue = "", SymbolValue2 = "";
+   string String1 = "", String2 = "", String3 = "", Chars = "";
    TextScan TextScan1;
-   Cardinal Position;
+   Cardinal Position = 0;
 
    
    NestedList nl(rf,1000,1000,1000,1000);
 
+  ListExpr sym2 = nl.OneElemList(nl.SymbolAtom("ERRORS"));
+  nl.ReadFromString( "(open database opt)", sym2 );
+  nl.WriteListExpr(sym2);
 /******************************************************************************
 
 4.1 Elementary methods 
@@ -405,6 +398,8 @@ TestBasicOperations()
 4.1.5 String atoms
 
 ******************************************************************************/
+
+   /////////////////1234567890123456789012345
    NLStringValue = "Here I go again and again";
    StringAtomVar = nl.StringAtom (NLStringValue);
    if (nl.AtomType(StringAtomVar) == StringType)
@@ -431,13 +426,14 @@ TestBasicOperations()
    }
   cout.flush();  
 
+
 /****************************************************************************** 
 
 4.1.6 Text atoms and text scans 
 
 ******************************************************************************/
 
-   /* Short text (one fragment only) */
+   cout << endl << " Short text (one fragment only)" << endl; 
    TextAtomVar = nl.TextAtom();
    Chars = "1__4__7__10__4__7__20__4__7__30__4__7__40__4__7__50__4__7";
    nl.AppendText (TextAtomVar, Chars);
@@ -445,7 +441,7 @@ TestBasicOperations()
    ListExpr textList = nl.OneElemList(TextAtomVar);
    string s1("");
    nl.WriteToString(s1, textList);
-   cout << endl << "A one element list wit text atom: " << s1 << endl;
+   cout << endl << "A one element list with text atom: " << s1 << endl;
 	   
    TextScan1 = nl.CreateTextScan (TextAtomVar);
    Chars = "";
@@ -459,18 +455,21 @@ TestBasicOperations()
 
    nl.DestroyTextScan (TextScan1);
 
-   cout << "After Text with one fragment: Memory-Usage: " << nl.reportVectorSizes() << endl;
+   cout << "After Text with one fragment: Memory-Usage: " << nl.ReportTableSizes() << endl;
 
-   /* Text in several fragments */ 
+   cout << endl << "Text in several fragments!" << endl; 
    TextAtomVar2 = nl.TextAtom();
    Chars = 
      "1__4__7__10__4__7__20__4__7__30__4__7__40__4__7__50__4__7__60__4__7__70__4__7_";
    nl.AppendText (TextAtomVar2, Chars);
-   
+ 
    Chars = 
      "1++4++7++10++4++7++20++4++7++30++4++7++40++4++7++50++4++7++60++4++7++70++4++7+";
    nl.AppendText (TextAtomVar2, Chars);
    textList = nl.OneElemList(TextAtomVar2);
+   int textLen = nl.TextLength(TextAtomVar2);
+
+   cout << "Chars.length() == Text Length: " << textLen << " == " <<  2 * Chars.length() << endl;
 
    s1 = "";
    nl.WriteToString(s1, textList);
@@ -487,10 +486,10 @@ TestBasicOperations()
    cout << "After While" << endl;
    nl.DestroyTextScan (TextScan1);
 
-   cout << "After Text with more than one fragment, Memory-Usage: " << nl.reportVectorSizes() << endl;
+   cout << "After Text with more than one fragment, Memory-Usage: " << nl.ReportTableSizes() << endl;
    
    ListExpr15 = nl.TwoElemList (TextAtomVar, TextAtomVar2);
-   cout << "ListExpr15" << endl;
+   cout << "ListExpr15" << nl.ToString(ListExpr15) << endl;
 
 
 /****************************************************************************** 
@@ -501,7 +500,7 @@ TestBasicOperations()
    ListExpr1 = nl.SixElemList (EmptyListVar, IntAtomVar, 
 			       BoolAtomVar,  StringAtomVar,
 			       SymbolAtomVar, ListExpr15);
-   cout << "ListExpr1" << endl;
+   cout << "ListExpr1" << nl.ToString(ListExpr1) <<  endl;
 
    ListExpr2 = nl.Cons (nl.StringAtom(NLStringValue2), ListExpr1);
    cout << "ListExpr2" << endl;
@@ -567,7 +566,7 @@ The following steps are executed with a small list expression.
   
 
 
-   cout << "After String <-> List Conversions, Memory-Usage: " << nl.reportVectorSizes() << endl;
+   cout << "After String <-> List Conversions, Memory-Usage: " << nl.ReportTableSizes() << endl;
   
 /******************************************************************************
 
@@ -592,7 +591,7 @@ The following steps are executed with a small list expression.
    cout << String2 << endl;
    cout << String3 << endl;
 
-   cout << "After Destruction, Memory-Usage: " << nl.reportVectorSizes() << endl;
+   cout << "After Destruction, Memory-Usage: " << nl.ReportTableSizes() << endl;
 
    return (0);
 }
@@ -609,7 +608,7 @@ File [->] ListExpr [->] String [->] File
 
 */
 
-bool 
+ListExpr 
 TestFile(const string& fileBaseName, NestedList& nl) {
 
    string fileIn = fileBaseName + ".nl";
@@ -618,8 +617,11 @@ TestFile(const string& fileBaseName, NestedList& nl) {
 
    ListExpr list = nl.TheEmptyList();
 
+
+   cout << nl.ReportTableSizes() << endl;
    cout << endl << "Reading " << fileIn << " ..." << endl;
    nl.ReadFromFile( fileIn, list );
+   cout << nl.ReportTableSizes() << endl;
    cout << endl << "Writing " << fileOut << " ..." << endl;
    nl.WriteToFile( fileOut, list );
 
@@ -630,16 +632,17 @@ TestFile(const string& fileBaseName, NestedList& nl) {
 
    outFile2.close();
 
-   return true;
+   return list;
 }
 
 
 void
 TestInputOutput() {
 
-   NestedList nl(rf,1000,1000,1000,1000);
+   NestedList nl(rf,10000,10000,10000,10000);
 
-   TestFile("simpleList", nl); 
+   ListExpr sList = TestFile("simpleList", nl);
+   nl.WriteListExpr(sList); 
    TestFile("geo", nl);
 
 }
@@ -763,7 +766,11 @@ TestRun_MainMemory() {
 int
 main() {
 
-  if ( NestedList::isPersistentImpl() ) { 
+  cout << "Struct Sizes: " << endl;
+  cout << NestedList::SizeOfStructs() << endl;
+  cout << "STRING_INTERNAL_SIZE: " << (int) STRING_INTERNAL_SIZE << endl;
+
+  if ( NestedList::IsPersistentImpl() ) { 
    return TestRun_Persistent();
   } else {
    return TestRun_MainMemory();

@@ -487,9 +487,12 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
 {
   static Cardinal pageNo = 0;
   bool pageChange = false;
- 
-  // enlarge the array if necessary 
-  if (index == size) {
+  
+  // The array will be enlarged by slots per page if necessary 
+  // array indices can only accessed randomly if they are one
+  // page above the current size of the array.  
+  assert ( (index >= 0) && (index <= (size + pageRecord.slots)) ); 
+  if ( (index >= size) && (index <= (size + pageRecord.slots)) ) {
      size = size + pageRecord.slots;
   }
 
@@ -520,7 +523,7 @@ void PagedArray<T>::Put(Cardinal const index, T& elem)
   static int slot = 0;
 
   assert ( writeable );
-  assert ( (0 <= index) && (index <= size) );
+
 
   GetSlot(index, slot);
   bufPtr[slot] = elem;
@@ -543,10 +546,9 @@ template<class T>
 void PagedArray<T>::Get(Cardinal const index, T& elem)
 {
   static int slot = 0;
-  
-  assert ( (0 <= index) && (index < size) );
-  
+    
   GetSlot(index, slot); 
+  
   // reinitialize type T at a given address
   elem = *( new(&(bufPtr[slot])) T );
 
