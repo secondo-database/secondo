@@ -64,19 +64,16 @@ public String toString(){
 public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
      String T = new String(type.symbolValue());
-     String V;
-
-     if (value.listLength()==1)
-     value = value.first();
-     if(value.atomType()!=ListExpr.TEXT_ATOM){
-        V =  "error in value ";
-        theList = ListExpr.textAtom(V);
-     }
-     else{
-        V =  value.textValue();
-        theList = value;
-     }
      T=extendString(T,typewidth);
+     if(value.listLength()!=5){
+        qr.addEntry(T+" : Error");
+        return;
+     }
+     if(value.fifth().atomType()!=ListExpr.TEXT_ATOM){
+        qr.addEntry(T+" : Error");
+        return;
+     }
+     theList=value.fifth();
      Entry = T+" : <picture>"; 
      qr.addEntry(this);
      return;
