@@ -33,4 +33,8 @@ ALGEBRA_INCLUDE(9,RangeAlgebra,Executable)
 ALGEBRA_INCLUDE(10,SpatialAlgebra,Executable)
 ALGEBRA_INCLUDE(11,FTextAlgebra,Executable)
 ALGEBRA_INCLUDE(12,ArrayAlgebra,Executable)
+//ALGEBRA_INCLUDE(13,JNIExampleAlgebra,Executable)
+//ALGEBRA_INCLUDE(14,RoseAlgebra,Executable)
+//ALGEBRA_INCLUDE(15,FuzzyAlgebra,Executable)
+
 
