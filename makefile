@@ -129,7 +129,12 @@ tag=HEAD
 endif
 
 
-DIST_FILES = $(net)/windows/secondo-win32.tgz $(net)/linux/secondo-linux.tgz $(net)/linux/install-linux.bash $(net)/windows/install-msys.bash
+DIST_FILES := $(net)/windows/secondo-win32.tgz \
+	      $(net)/windows/install-msys.bash \
+	      $(net)/linux/secondo-linux.tgz \
+	      $(net)/linux/install-linux.bash \
+	      $(net)/Linux-Installation-Guide.pdf \
+	      $(net)/Windows-Installation-Guide.pdf
  
 .PHONY: dist
 dist: $(DIST_FILES)   
@@ -158,6 +163,8 @@ $(net)/windows/install-msys.bash: $(SCRIPT_DIR)/install-msys.bash
 $(net)/linux/install-linux.bash: $(SCRIPT_DIR)/install-linux.bash
 	cp $< $@
 
+$(net)/%.pdf: Documents/Installation/%.ps
+	ps2pdf $< $@
 
 .PHONY: clean
 clean:
