@@ -871,7 +871,7 @@ algebra modules.
   GetAlgebraEntryFunction getAlgebraEntry;
   
   static const int MAX_ALG=50;
-  static const int MAX_OP=30;
+  static const int MAX_OP=100;
   Operator* opPtrField[MAX_ALG][MAX_OP];
 
   void InitOpPtrField();
