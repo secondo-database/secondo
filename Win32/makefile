@@ -7,7 +7,7 @@
 include ../makefile.env
 
 OCIDLLHOME=$(ORACLEHOME)/bin
-BDB_BUILD_DIR=$(BDBDIR)/build_win32
+BDB_BUILD_DIR=/usr/local/db-4.1.25/build_win32
 
 
 # --- Berkeley DB

@@ -22,4 +22,4 @@ $(NETDEV)/install.bash: install.bash
 	cp $< $@
 
 $(NETDEV)/etc.tgz: fstab profile $(SETVAR_SCRIPT_DIR)/setvar.bash 
-	tar -cvzf $@ $< -C $(SETVAR_SCRIPT_DIR) setvar.bash
+	tar -cvzf $@ fstab profile -C $(SETVAR_SCRIPT_DIR) setvar.bash
