@@ -1,8 +1,0 @@
-\documentclass[11pt]{article}
-\usepackage{epsfig, a4wide, xspace, times}
-\parindent0em
-\parskip0.8ex plus0.4ex minus 0.4ex
-\setcounter{secnumdepth}{4}
-\setcounter{tocdepth}{3}
-\fussy
-\begin{document}
