@@ -76,7 +76,7 @@ Algebra implementation figure below.
 This class will implement the unique identification for tuples inside a relation.
 
 */
-struct TupleId;
+typedef long TupleId;
 
 /*
 3.2 Class ~Attribute~
@@ -692,7 +692,7 @@ The destructor.
 Appends a tuple to the relation.
 
 */
-//    Tuple* GetTuple( const TupleId& tupleId ) const;
+    Tuple* GetTuple( const TupleId& tupleId ) const;
 /*
 Returns the tuple identified by ~tupleId~.
 

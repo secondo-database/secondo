@@ -47,63 +47,6 @@ These global variables are used for caching relations.
 
 3 Type constructor ~tuple~
 
-3.1 Class ~TupleId~
-
-This class implements the unique identification for tuples inside a relation. Once a relation
-is an array of tuples, the ~TupleId~ data type can be an integer indexing the position of the
-tuple in the relation's array. 
-
-*/
-struct TupleId
-{
-  TupleId( const int id ):
-    value( id )
-    {}
-  TupleId( const TupleId& id ):
-    value( id.value )
-    {}
-/*
-The constructors.
-
-*/
-  const TupleId& operator= ( const TupleId& id )
-    { value = id.value; return *this; }
-  const TupleId& operator+= ( const TupleId& id )
-    { value += id.value; return *this; }
-  const TupleId& operator-= ( const TupleId& id )
-    { value -= id.value; return *this; }
-  const TupleId& operator++ ()
-    { value++; return *this; }
-  TupleId operator++ (int)
-    { TupleId result = *this; result += 1; return result; }
-  const TupleId& operator-- ()
-    { value--; return *this; }
-  TupleId operator-- (int)
-    { TupleId result = *this; result -= 1; return result; }
-  int operator==( const TupleId& id ) const
-  { return value == id.value; }
-  int operator!=( const TupleId& id ) const
-  { return value != id.value; }
-  int operator<=( const TupleId& id ) const
-  { return value <= id.value; }
-  int operator>=( const TupleId& id ) const
-  { return value >= id.value; }
-  int operator<( const TupleId& id ) const
-  { return value < id.value; }
-  int operator>( const TupleId& id ) const
-  { return value > id.value; }
-/*
-Operator redefinitions.
-
-*/
-  int value;
-/*
-The ~id~ value.
-
-*/
-};
-
-/*
 3.2 Struct ~PrivateTuple~
 
 This struct contains the private attributes of the class ~Tuple~. 
@@ -205,7 +148,7 @@ Tuple::~Tuple()
 
 const TupleId& Tuple::GetTupleId() const
 {
-  return privateTuple->tupleId;
+  return (TupleId&)privateTuple->tupleId;
 }
 
 void Tuple::SetTupleId( const TupleId& tupleId )
@@ -586,10 +529,10 @@ void Relation::AppendTuple( Tuple *tuple )
   privateRelation->noTuples += 1;
 }
 
-//Tuple* Relation::GetTuple( const TupleId& tupleId ) const
-//{
-//  return (*privateRelation->tupleArray)[ tupleId.value ];
-//}
+Tuple* Relation::GetTuple( const TupleId& tupleId ) const
+{
+  return (*privateRelation->tupleArray)[ tupleId ];
+}
 
 void Relation::Clear()
 {

@@ -13,7 +13,7 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-	../Relation-C++/RelationAlgebra.h
+	$(INCLUDEDIR)/RelationAlgebra.h
 
 MODNAME=BTreeAlgebra
 LIBNAME=lib$(MODNAME)

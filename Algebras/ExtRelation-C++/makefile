@@ -34,7 +34,7 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I.
 
 #This define RELALG_PERSISTENT is used to compile the Persistent Relational Algebra.
 #Uncomment this line below to change it to the Main Memory Relational Algebra.
-CCFLAGS+= -DRELALG_PERSISTENT
+#CCFLAGS+= -DRELALG_PERSISTENT
 
 # --- Relation Algebra C++ library ---
 

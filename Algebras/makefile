@@ -29,18 +29,20 @@ makedirs:
 	$(MAKE) -C StreamExample
 	$(MAKE) -C Relation-C++
 	$(MAKE) -C ExtRelation-C++
+	$(MAKE) -C BTree          
 	$(MAKE) -C Date
 	$(MAKE) -C Polygon
 
 buildlibs:
-	$(MAKE) -C Standard-C++  	  buildlibs
+	$(MAKE) -C Standard-C++  	buildlibs
 	$(MAKE) -C Function-C++   	buildlibs
 	$(MAKE) -C PointRectangle 	buildlibs
-	$(MAKE) -C StreamExample 	  buildlibs
+	$(MAKE) -C StreamExample 	buildlibs
 	$(MAKE) -C Relation-C++   	buildlibs
 	$(MAKE) -C ExtRelation-C++ 	buildlibs
+	$(MAKE) -C BTree	 	buildlibs
 	$(MAKE) -C Date           	buildlibs
-	$(MAKE) -C Polygon	  	    buildlibs
+	$(MAKE) -C Polygon	  	buildlibs
 
 .PHONY: clean
 clean:
@@ -52,6 +54,7 @@ clean:
 	$(MAKE) -C StreamExample  	clean
 	$(MAKE) -C Relation-C++   	clean
 	$(MAKE) -C ExtRelation-C++ 	clean
+	$(MAKE) -C BTree	 	clean
 	$(MAKE) -C Date           	clean
 	$(MAKE) -C Polygon        	clean
 	

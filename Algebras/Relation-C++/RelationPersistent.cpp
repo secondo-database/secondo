@@ -53,66 +53,6 @@ extern NestedList *nl;
 /*
 3 Type constructor ~tuple~
 
-3.1 Class ~TupleId~
-
-This class implements the unique identification for tuples inside a relation. Once a relation
-is persistent in an ~SmiFile~ and each tuple is stored in a different ~SmiRecord~ of this file,
-the ~SmiRecordId~ will be this identification.
-
-*/
-struct TupleId
-{
-  TupleId():
-    value( 0 )
-    {}
-  TupleId( const SmiRecordId id ):
-    value( id )
-    {}
-  TupleId( const TupleId& id ):
-    value( id.value )
-    {}
-/*
-The constructors.
-
-*/
-  const TupleId& operator= ( const TupleId& id )
-    { value = id.value; return *this; }
-  const TupleId& operator+= ( const TupleId& id )
-    { value += id.value; return *this; }
-  const TupleId& operator-= ( const TupleId& id )
-    { value -= id.value; return *this; }
-  const TupleId& operator++ ()
-    { value++; return *this; }
-  TupleId operator++ (int)
-    { TupleId result = *this; result += 1; return result; }
-  const TupleId& operator-- ()
-    { value--; return *this; }
-  TupleId operator-- (int)
-    { TupleId result = *this; result -= 1; return result; }
-  int operator==( const TupleId& id ) const
-  { return value == id.value; }
-  int operator!=( const TupleId& id ) const
-  { return value != id.value; }
-  int operator<=( const TupleId& id ) const
-  { return value <= id.value; }
-  int operator>=( const TupleId& id ) const
-  { return value >= id.value; }
-  int operator<( const TupleId& id ) const
-  { return value < id.value; }
-  int operator>( const TupleId& id ) const
-  { return value > id.value; }
-/*
-Operator redefinitions.
-
-*/
-  SmiRecordId value;
-/*
-The ~id~ value.
-
-*/
-};
-
-/*
 3.2 Struct ~PrivateTuple~
 
 This struct contains the private attributes of the class ~Tuple~.
@@ -208,7 +148,7 @@ Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading from ~record~.
 
 */
 
-  TupleId tupleId;
+  SmiRecordId tupleId;
 /*
 The unique identification of the tuple inside a relation.
 
@@ -312,7 +252,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
     offset += tupleType.GetAttributeType(i).size;
   }
 
-  bool rc = tupleFile->AppendRecord( tupleId.value, *tupleRecord );
+  bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
   rc = tupleRecord->Write( &extensionSize, sizeof(int), 0) && rc;
   rc = tupleRecord->Write( memoryTuple, tupleType.GetTotalSize(), sizeof(int)) && rc;
   if( extensionSize > 0 )
@@ -343,7 +283,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   lobFile = lobfile;
 
   // read tuple header and memory tuple from disk
-  bool ok = tupleFile->SelectRecord( tupleId.value, *tupleRecord );
+  bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord );
   if( !ok )
   {
     tupleId = 0;
@@ -417,7 +357,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   assert( state == Fresh && lobFile == 0 && tupleFile == 0 && tupleRecord == 0 );
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
 
-  iter->ReadCurrentRecordNumber( tupleId.value );
+  iter->ReadCurrentRecordNumber( tupleId );
   tupleFile = tuplefile;
   lobFile = lobfile;
 
@@ -490,13 +430,13 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
 
   SmiKey key;
   key = record->GetKey();
-  key.GetKey( tupleId.value );
+  key.GetKey( tupleId );
   tupleRecord = record;
   tupleFile = tuplefile;
   lobFile = lobfile;
 
   // read tuple header and memory tuple from disk
-  bool ok = tupleFile->SelectRecord( tupleId.value, *tupleRecord );
+  bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord );
   if( !ok )
   {
     tupleId = 0;
@@ -601,12 +541,12 @@ Tuple::~Tuple()
 
 const TupleId& Tuple::GetTupleId() const
 {
-  return privateTuple->tupleId;
+  return (TupleId)privateTuple->tupleId;
 }
 
 void Tuple::SetTupleId( const TupleId& tupleId )
 {
-  privateTuple->tupleId = tupleId;
+  privateTuple->tupleId = (SmiRecordId)tupleId;
 }
 
 Attribute* Tuple::GetAttribute( const int index ) const
@@ -1136,6 +1076,15 @@ void Relation::Clear()
   privateRelation->lobFile.Close();
   assert( privateRelation->lobFile.Drop() );
   assert( privateRelation->lobFile.Create() );
+}
+
+Tuple *Relation::GetTuple( const TupleId& id ) const
+{
+  Tuple *result = new Tuple( privateRelation->tupleType );
+  result->GetPrivateTuple()->Open( &privateRelation->tupleFile,
+                                   &privateRelation->lobFile,
+                                   id );
+  return result;
 }
 
 const int Relation::GetNoTuples() const
