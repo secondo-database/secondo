@@ -4,11 +4,17 @@
 #
 # 04/19/05 M. Spiekermann
 
+if [ "x$1" == "xtestmode" ]; then
+   HOME="$HOME/DUMMY-HOME"
+   install -d $HOME
+   printf "\n * Running in test mode \n"
+fi
+
 cdpath="$PWD"
 instpath="$HOME"
 
-mkdir $HOME/secondo-sdk
-mkdir $HOME/temp-build
+install -d $HOME/secondo-sdk
+install -d $HOME/temp-build
 
 temp=$HOME/temp-build
 sdk=$HOME/secondo-sdk
@@ -16,14 +22,12 @@ sdk=$HOME/secondo-sdk
 printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
 printf "\n* '$cdpath' to '$instpath' \n" 
 
-printf "\n* Installing Java SDK ... this needs some user interaction"
-printf" \n* all other tools will be compiled and installed silently"
+printf "\n* Installing Java SDK ... this needs some user interaction \n"
+printf " \n* all other tools will be compiled and installed silently \n"
 
 cp $cdpath/../java/j2sdk*.bin $temp
-cd $temp
-chmod u+x j2sdk*.bin
-cd $sdk
-xterm -T "JAVA 2 Installer" -e $temp/j2sdk*.bin &
+cd $temp && chmod u+x j2sdk*.bin
+cd $sdk && xterm -T "JAVA 2 Installer" -e $temp/j2sdk*.bin &
 
 cd "$temp"
 printf "\n* Uncompressing 3d-party tools ... \n"
@@ -58,24 +62,39 @@ fi
 
 logfile="$temp/secondo-install.log"
 touch $logfile
-xterm -T "Installation Protocol" -e "tail -f $temp/$logfile" &
+xterm -T "Installation Protocol" -e "tail -f $logfile" &
 
 printf "\n* Compiling GCC ... this will take the most time ... \n"
-cd $temp/gcc-* && ./configure --prefix=$sdk >> $logfile
-make bootstrap >> $logfile && make install >> $logfile
+cd $temp/gcc-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make bootstrap >> $logfile 2>&1 && make install >> $logfile 2>&1
 export PATH=".:$sdk/bin:$PATH"
-printf "\n <PATH: $PATH> \n"
-gcc --version
+printf "\n <PATH: $PATH> \n" >> $logfile
+gcc --version >> $logfile
 
 printf "\n* Compiling Berkeley-DB ... \n"
-cd $temp/db-*/build-unix && ./configure --prefix=$sdk --enable-cxx >> $logfile
-make >> $logfile && make install >> $logfile
+cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1
 
 printf "\n* Compiling SWI-Prolog ... \n"
-cd $temp/readline-* && ./configure --prefix=$sdk >> $logfile
-make >> $logfile && make install >> $logfile
-cd $temp/pl-* && ./configure --prefix=$sdk >> $logfile
-make >> $logfile && make install >> $logfile
+cd $temp/readline-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1
+cd $temp/pl-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1
+
+printf "\n* Compiling flex and bison, the scanner and parser generators \n"
+cd $temp/flex-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1
+cd $temp/bison-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1
+
+printf "\n* Compiling JPEG library ... \n"
+cd $temp/jpeg-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1 && make install-lib >> $logfile 2>&1
+
+printf "\n* Compiling the make tool ... \n"
+cd $temp/make-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1 
+
 
 printf  "\n* Copying configuration files ... \n"
 cd "$HOME/secondo/CM-Scripts"
@@ -84,6 +103,6 @@ cp --backup .secondorc .bashrc-sample "$HOME"
 cd "$instpath/secondo-sdk/bin"
 chmod u+x setvar.bash catvar.sh 
 cd "$HOME"
-chmod u+x .secondorc .bashrc
+chmod u+x .secondorc .bashrc-sample
 
-printf  "\n\n* Proceed with the installation guide ... \n"
+printf  "\n\n* Proceed with the installation guide ... \n\n"
