@@ -7,9 +7,9 @@
 
 January 2003 VTA
 
-This ~polygon~ example algebra is intended as a documentation of the state diagram of objects inside the Secondo system. This state diagram shown in Figure 1 is needed because objects can have some persistent part handled by its own algebra. 
+This ~polygon~ example algebra is intended as a documentation of the state diagram of objects inside the Secondo system. This state diagram shown in Figure 1 is needed because objects can have some persistent part handled by its own algebra.
 Every object in the Secondo system must have a memory part and may have a persistent part not handled by the Secondo system, but by the algebra from which the object belongs.
-In this algebra, the vertices of the polygon are persistent using a ~PArray~ (from Persistent Array) structure. 
+In this algebra, the vertices of the polygon are persistent using a ~PArray~ (from Persistent Array) structure.
 
 In this way, objects, when they exist in the Secondo system, can stay into two states: \emph{opened} and \emph{closed}. Figure 1 shows the state diagram for objects in the Secondo system. When an object is in ~opened~ state, it has the memory part already loaded into memory and the files/records needed for the persistent part (if used) are opened and ready for use. When an object is in ~closed~ state the files/records needed for the persistent part are closed and the memory part is freed.
 
@@ -52,16 +52,16 @@ struct Vertex
   Vertex( int xcoord, int ycoord ):
     x( xcoord ), y( ycoord )
     {}
- 
+
   Vertex():
     x( 0 ), y( 0 )
     {}
-    
+
   int x;
   int y;
 };
 
-/* 
+/*
 
 2.2 Class Edge
 
@@ -91,14 +91,14 @@ enum PolygonState { partial, complete, closed };
 2.3 Class Polygon
 
 */
-class Polygon //: public Attribute 
+class Polygon //: public Attribute
 {
-	
+
   public:
     Polygon( SmiRecordFile *recordFile, const int maxVertices = 0 );
     Polygon( SmiRecordFile *recordFile, const SmiRecordId& recordId, bool update = true );
     ~Polygon();
-    
+
 //    int NumOfFLOBs();
 //    FLOB *GetFLOB(int i);
 //    int Compare(Attribute*);
@@ -127,8 +127,8 @@ class Polygon //: public Attribute
     PolygonState state;
 };
 
-	
-/* 
+
+/*
 2.3.1 Constructors.
 
 This first constructor creates a new polygon.
@@ -138,7 +138,7 @@ Polygon::Polygon( SmiRecordFile *recordFile, const int maxVertices ) :
   noVertices( 0 ),
   maxVertices( maxVertices ),
   vertices( new PArray<Vertex>( recordFile, maxVertices ) ),
-  state( partial ) 
+  state( partial )
 {}
 
 /*
@@ -152,7 +152,7 @@ be closed.
 */
 Polygon::Polygon( SmiRecordFile *recordFile, const SmiRecordId& recordId, bool update ) :
   vertices( new PArray<Vertex>( recordFile, recordId, update ) ),
-  state( complete ) 
+  state( complete )
 {
   noVertices = vertices->Size();
 }
@@ -165,32 +165,32 @@ Polygon::Polygon( SmiRecordFile *recordFile, const SmiRecordId& recordId, bool u
 
 */
 Polygon::~Polygon()
-{ 
-  assert( state == closed ); 
+{
+  assert( state == closed );
 }
-    
+
 /*
 2.3.3 NumOfFLOBs.
 
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-//int Polygon::NumOfFLOBs() 
+//int Polygon::NumOfFLOBs()
 //{
-//  return 0; 
+//  return 0;
 //}
-	
+
 /*
 2.3.4 GetFLOB
 
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-//FLOB *Polygon::GetFLOB(int i) 
-//{ 
+//FLOB *Polygon::GetFLOB(int i)
+//{
 //  return 0;
 //}
-    
+
 /*
 2.3.5 Compare
 
@@ -198,10 +198,10 @@ Not yet implemented. Needed to be a tuple attribute.
 
 */
 //int Polygon::Compare(Attribute*)
-//{ 
-//  return 0; 
+//{
+//  return 0;
 //}
-	
+
 /*
 
 2.3.6 Sizeof
@@ -210,18 +210,18 @@ Not yet implemented. Needed to be a tuple attribute.
 
 */
 //int Polygon::Sizeof()
-//{ 
-//  return 0; 
+//{
+//  return 0;
 //}
-	
+
 /*
 2.3.7 Clone
 
-Returns a new created polygon (clone) which is a 
+Returns a new created polygon (clone) which is a
 copy of ~this~.
 
 */
-Polygon *Polygon::Clone() 
+Polygon *Polygon::Clone()
 {
   assert( state == complete );
   Polygon *p = new Polygon( SecondoSystem::GetLobFile(), maxVertices );
@@ -230,7 +230,7 @@ Polygon *Polygon::Clone()
   p->Complete();
   return p;
 }
-	
+
 /*
 2.3.8 IsDefined
 
@@ -414,7 +414,7 @@ ostream& operator<<(ostream& os, Vertex& v)
 
 ostream& operator<<(ostream& os, Polygon& p)
 {
-  os << "RecordId: " << p.GetRecordId() 
+  os << "RecordId: " << p.GetRecordId()
      << " State: " << p.GetState()
      << "<";
 
@@ -422,7 +422,7 @@ ostream& operator<<(ostream& os, Polygon& p)
     os << p.GetVertex( i ) << " ";
 
   os << ">";
-  
+
   return os;
 }
 
@@ -447,15 +447,24 @@ OutPolygon( ListExpr typeInfo, Word value )
   cout << "Polygon Algebra: Out" << endl;
 
   Polygon* polygon = (Polygon*)(value.addr);
-  ListExpr result = nl->OneElemList( nl->OneElemList( nl->IntAtom( polygon->GetRecordId() ) ) );
-  ListExpr last = result;
+  ListExpr result;
 
-  for( int i = 0; i < polygon->NoVertices(); i++ )
+  if( polygon->NoVertices() == 0 )
   {
-    last = nl->Append( last,
-                       nl->TwoElemList( nl->IntAtom( polygon->GetVertex(i).x ), nl->IntAtom( polygon->GetVertex(i).y ) ) );
+    result = nl->TheEmptyList();
   }
+  else
+  {
+    result = nl->OneElemList( nl->TwoElemList( nl->IntAtom( polygon->GetVertex(0).x ),
+                                               nl->IntAtom( polygon->GetVertex(0).y ) ) );
+    ListExpr last = result;
 
+    for( int i = 1; i < polygon->NoVertices(); i++ )
+    {
+      last = nl->Append( last,
+                         nl->TwoElemList( nl->IntAtom( polygon->GetVertex(i).x ), nl->IntAtom( polygon->GetVertex(i).y ) ) );
+    }
+  }
   return result;
 }
 
@@ -466,45 +475,30 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
   cout << "Polygon Algebra: In" << endl;
 
   Polygon* polygon;
-  ListExpr first = nl->First( instance );
 
-  if( nl->IsEmpty( first ) )
-    // new polygon. Recordid unknown
+  ListExpr rest = instance;
+  polygon = new Polygon( SecondoSystem::GetLobFile(), nl->ListLength( rest ) );
+  while( !nl->IsEmpty( rest ) )
   {
-    ListExpr rest = nl->Rest( instance );
-    polygon = new Polygon( SecondoSystem::GetLobFile(), nl->ListLength( rest ) );
-    while( !nl->IsEmpty( rest ) )
+    ListExpr first = nl->First( rest );
+    rest = nl->Rest( rest );
+
+    if( nl->ListLength( first ) == 2 &&
+        nl->IsAtom( nl->First( first ) ) && nl->AtomType( nl->First( first ) ) == IntType &&
+        nl->IsAtom( nl->Second( first ) ) && nl->AtomType( nl->Second( first ) ) == IntType )
     {
-      first = nl->First( rest ); 
-      rest = nl->Rest( rest );
-
-      if( nl->ListLength( first ) == 2 && 
-          nl->IsAtom( nl->First( first ) ) && nl->AtomType( nl->First( first ) ) == IntType &&
-          nl->IsAtom( nl->Second( first ) ) && nl->AtomType( nl->Second( first ) ) == IntType )
-      {
-        Vertex v( nl->IntValue( nl->First( first ) ), nl->IntValue( nl->Second( first ) ) );
-        polygon->Append( v );
-      }
-      else
-      {
-        correct = false;
-        return SetWord( Address(0) );
-      }
+      Vertex v( nl->IntValue( nl->First( first ) ), nl->IntValue( nl->Second( first ) ) );
+      polygon->Append( v );
     }
-    polygon->Complete();
-    correct = true;
-    return SetWord( polygon );
+    else
+    {
+      correct = false;
+      return SetWord( Address(0) );
+    }
   }
-  else if( nl->ListLength( first ) == 1 && nl->IsAtom( nl->First( first ) ) && nl->AtomType( nl->First( first ) ) == IntType )
-    // persistent polygon. First list contains the recordid
-  {
-    polygon = new Polygon( SecondoSystem::GetLobFile(), nl->IntValue( nl->First( first ) ), true );
-    correct = true;
-    return SetWord( polygon );
-  }
-
-  correct = false;
-  return SetWord(Address(0));
+  polygon->Complete();
+  correct = true;
+  return SetWord( polygon );
 }
 
 /*
@@ -516,15 +510,15 @@ static ListExpr
 PolygonProperty()
 {
   return (nl->TwoElemList(
-         nl->FiveElemList(nl->StringAtom("Signature"), 
-	                  nl->StringAtom("Example Type List"), 
-			  nl->StringAtom("List Rep"), 
+         nl->FiveElemList(nl->StringAtom("Signature"),
+	                  nl->StringAtom("Example Type List"),
+			  nl->StringAtom("List Rep"),
 			  nl->StringAtom("Example List"),
 			  nl->StringAtom("Remarks")),
-         nl->FiveElemList(nl->StringAtom("-> DATA"), 
-	                  nl->StringAtom("polygon"), 
+         nl->FiveElemList(nl->StringAtom("-> DATA"),
+	                  nl->StringAtom("polygon"),
 			  nl->StringAtom("(<point>*) where <point> is "
-			  "(<x> <y>)"), 
+			  "(<x> <y>)"),
 			  nl->StringAtom("( () (3 4) (10 10) (8 2) (6 4) "
 			  "(3 4) )"),
 			  nl->StringAtom("x- and y-coordinates must be of "
@@ -546,7 +540,7 @@ CheckPolygon( ListExpr type, ListExpr& errorInfo )
 
 /*
 
-3.5 ~Create~-function 
+3.5 ~Create~-function
 
 */
 Word CreatePolygon(const ListExpr typeInfo)
@@ -614,7 +608,7 @@ SavePolygon( SmiRecord& valueRecord,
 
   if( ( bytesWritten = valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 ) ) != sizeof( SmiRecordId ) )
     return (false);
-  
+
   return (true);
 }
 
@@ -654,31 +648,56 @@ void* CastPolygon(void* addr)
 /*
 3.11 Creation of the Type Constructor Instance
 
+The ~\#ifdef RELALG\_PERSISTENT~ is necessary becuase if the
+persistent relational algebra is not being used, then the
+polygon will use the default functions for Open and Save.
+Otherwise, Open and Save functions for the polygon type
+constructors are implemented and used.
+
 */
+
+#ifdef RELALG_PERSISTENT
 TypeConstructor polygon(
-        "polygon",				//name
-        PolygonProperty,			//property function describing signature
-        OutPolygon,	InPolygon,		//Out and In functions
-        0,              0,                      //SaveToList and RestoreFromList functions
-        CreatePolygon,  DeletePolygon,		//object creation and deletion
-        OpenPolygon,    SavePolygon,            //object open and save 
-        ClosePolygon,   ClonePolygon,		//object close and clone
-        CastPolygon,                    	//cast function
-        CheckPolygon,				//kind checking function
-        0,					//predefined persistence function for model
+        "polygon",						//name
+        PolygonProperty,				//property function describing signature
+        OutPolygon,	InPolygon,			//Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
+        CreatePolygon,  DeletePolygon,	//object creation and deletion
+        OpenPolygon,    SavePolygon,    //object open and save
+        ClosePolygon,   ClonePolygon,	//object close and clone
+        CastPolygon,                   	//cast function
+        CheckPolygon,					//kind checking function
+        0,								//predefined persistence function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
+#else
+TypeConstructor polygon(
+        "polygon",			            	//name
+        PolygonProperty,		         	//property function describing signature
+        OutPolygon,	InPolygon,	         	//Out and In functions
+        0,              0,                  //SaveToList and RestoreFromList functions
+        CreatePolygon,  DeletePolygon,		//object creation and deletion
+        0,    			0,                  //object open and save
+        ClosePolygon,   ClonePolygon,		//object close and clone
+        CastPolygon,                    	//cast function
+        CheckPolygon,	              		//kind checking function
+        0,					                //predefined persistence function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+#endif //RELALG_PERSISTENT
 
 /*
 4 PolygonAlgebra
 
 */
-class PolygonAlgebra : public Algebra 
+class PolygonAlgebra : public Algebra
 {
   public:
-    PolygonAlgebra() : Algebra() 
+    PolygonAlgebra() : Algebra()
     {
       AddTypeConstructor( &polygon );
     }
@@ -687,7 +706,7 @@ class PolygonAlgebra : public Algebra
 
 PolygonAlgebra polygonAlgebra;
 
-/* 
+/*
 
 5 Initialization
 
@@ -695,7 +714,7 @@ PolygonAlgebra polygonAlgebra;
 
 extern "C"
 Algebra*
-InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef) 
+InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;
