@@ -1,0 +1,78 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# a test for the BinaryFile Algebra
+# run with : Runner -c MyConfig.config < binfiletest
+# (Runner can be found in directory UserInterfaces)
+
+# clean up what may be left over from e.g. a segfault
+delete database binfiletest;
+
+#setup
+create database binfiletest;
+open database binfiletest;
+e
+
+(create geo : binfile);
+(update geo := (binfile <file>geo</file--->));
+
+(create jni : binfile);
+(update jni := (binfile <file>JNI.ini</file--->));
+
+(create relFile :
+  (rel
+    (tuple
+      (
+        (no int)
+        (file binfile)
+        (name string)
+      )
+    )
+  )
+);
+
+
+(update relFile :=
+(
+  (rel
+    (tuple
+      (
+        (no int)
+        (file binfile)
+        (name string)
+      )
+    )
+  )
+  (
+    (1 <file>JNI.ini</file---> "JNI2.ini")
+  )
+) );
+
+#testcase binfile1
+#yields (bool TRUE)
+query geo saveto "geo2";
+
+#testcase binfile2
+#yields (int 1)
+query relFile feed filter[.file saveto .name] count;
+
+#teardown
+close database;
+delete database binfiletest;
+
