@@ -7,7 +7,7 @@
 
 # include function definitions
 # libutil.sh must be in a directory specified in $PATH 
-source libutil.sh
+source ${0%/*}/libutil.sh
 
 cmd_rm="rm"
 cmd_cp="cp -v"

@@ -60,7 +60,7 @@ catvar
 
 printf "cvs user who commited or added files yesterday:\n"
 
-recipients=$( cvs history -c -a -D yesterday | 
+recipients=$( cvs history -c -a -D yesterday -p secondo | 
               awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
 
 printf "${recipients}\n"
