@@ -140,6 +140,10 @@ through special interface procedures to the query processor described in
 Section 1.9. They can also produce or consume streams in cooperation
 with the query processor (that is, ~eval~). 
 
+  4 More recently, support for ~counters~ has been added. At any node of an
+operator tree returning a stream, a counter can be switched on. This allows one
+to determine selectivities of predicates while processing a query.
+
 1.1 Imports
 
 */
@@ -370,6 +374,8 @@ one of these symbols, then the value ~error~ is returned.
     else if ( s == "typeerror"   ) return (QP_TYPEERROR);
     else if ( s == "APPEND"      ) return (QP_APPEND);
     else if ( s == "undefined"   ) return (QP_UNDEFINED);
+    else if ( s == "counter"     ) return (QP_COUNTER);
+    else if ( s == "counterdef"  ) return (QP_COUNTERDEF);
     else                           return (QP_ERROR);
   }
   else
@@ -409,20 +415,21 @@ struct OpNode
     } iobj;
     struct OpNodeOperator
     {
-      int              algebraId;
-      int              opFunId;
-      int              noSons;
-      OpTree           sons[MAXARG];
-      bool             isFun;
-      ArgVectorPointer funArgs;
-      int              funNo;        /* needed for testing only */
-      bool             isStream;
-      Word             local;
-      bool             received;
-      int              resultAlgId;
-      int              resultTypeId;
-      Word             resultWord;
-      Word             subtreeModel;
+      int		algebraId;
+      int		opFunId;
+      int		noSons;
+      OpTree		sons[MAXARG];
+      bool		isFun;
+      ArgVectorPointer	funArgs;
+      int		funNo;        /* needed for testing only */
+      bool		isStream;
+      Word		local;
+      bool		received;
+      int		resultAlgId;
+      int		resultTypeId;
+      Word		resultWord;
+      Word		subtreeModel;
+      int		counterNo;	
     } op;
   } u;
 };
@@ -500,6 +507,10 @@ operator application.
 
   * ~subtreeModel~: the model resulting from evaluating the model mappings
 of this subtree. 
+
+  * ~counterNo~: the number of a counter associated with this node. If this
+number is greater than 0 (between 1 and MAXCOUNTERS), then for every evaluation
+request received by the node the counter ~counterNo~ is incremented.
 
 The three kinds of nodes will be represented graphically as follows:
 
@@ -620,9 +631,11 @@ Represents an operator tree through a list expression. Used for testing.
                     nl->BoolAtom( tree->u.op.isFun ),
                     nl->SymbolAtom( "funNo" ),
                     nl->IntAtom( tree->u.op.funNo ) ),
-                  nl->TwoElemList(
+                  nl->FourElemList(
                     nl->SymbolAtom( "isStream" ),
-                    nl->BoolAtom( tree->u.op.isStream ) ),
+                    nl->BoolAtom( tree->u.op.isStream ),
+                    nl->SymbolAtom( "counterNo" ),
+                    nl->IntAtom( tree->u.op.counterNo ) ),
                   list ));
       }
     }
@@ -695,7 +708,7 @@ are distinguished:
 
   * ~s~ is an empty list. This is interpreted as an empty list of arguments.
 
-----	()        ->        ((none arglist ()) ())
+----	()	->	((none arglist ()) ())
 ----
 
   * ~s~ is an integer, real, boolean, or string atom (a constant). 
@@ -704,9 +717,9 @@ are distinguished:
 ~real~, ~string~, and ~bool~ (provided by some algebra) is called to
 create a constant of the respective type. 
 
-----	7 	->        ((7 constant 1)        int)
+----	7	->	((7 constant 1)        int)
 
-        <value>	->        ((<value> constant <index>) <type>)
+        <value>	->	((<value> constant <index>) <type>)
 ----
 
         Here ~index~ is an index into array ~values~ containing
@@ -715,35 +728,35 @@ array.
 
   * ~s~ is a symbol atom: an operator
 
-----        add        ->        ((add operator 1 4) typeerror)
+----	add	->	((add operator 1 4) typeerror)
 
-        <op>        ->        ((<op> operator <algebraId> <operatorId>) typeerror)
+        <op>	->	((<op> operator <algebraId> <operatorId>) typeerror)
 ----
 	Here, once the operators can be overloaded between different algebras, 
 the construction of the operator list inside the ~Annotate~ function need to
 have more than one entry to the tuple (algebraId, operatorId). In this way, its
 representation internally in the function is done with a sublist of this tuples.
 
-        <op>        ->        ((<op> operator ((<alId1> <opId1>) ... (<alIdN> <opIdN>)) ) typeerror)
+        <op>	->	((<op> operator ((<alId1> <opId1>) ... (<alIdN>
+				<opIdN>)) ) typeerror)
 
 	After the decision of which operator is suitable for the argument types,
 using the ~TranformType~ function, it comes back to the representation with only
 one pair (algebraId, operatorId) repeated below.
 
-----	add	->        ((add operator 1 4) typeerror)
+----	add	->	((add operator 1 4) typeerror)
 
-	<op>	->        ((<op> operator <algebraId> <operatorId>) typeerror)
+	<op>	->	((<op> operator <algebraId> <operatorId>) typeerror)
 ----
 
   * ~s~ is a symbol atom: an object of the database, that ~is not itself
 a function~, which means the type of the object does not start ``(map
 ...)''. 
 
-----	cities		->        ((cities object 7)
-                                (rel (tuple ((name string) (pop int))))        )
+----	cities		->	((cities object 7)
+                                (rel (tuple ((name string) (pop int)))) )
 
-        <object name>	->
-                        (<object name> object <index>)        <type>)
+        <object name>	->	(<object name> object <index>) <type>)
 ----
 
         Here ~index~ again refers to the array ~values~.
@@ -752,8 +765,9 @@ a function~, which means the type of the object does not start ``(map
 the form ``(map ...)''. The corresponding function definition
 (abstraction) is retrieved from the database and annotated recursively. 
 
-----	double		->	((double function annotate((fun (x int) (add x x))))
-					(map int int))
+----	double		->	((double function annotate((fun (x int) (
+					add x x)))) 	
+				(map int int))
 
         <function name>	-> 	(<function name> function annotate(<abstraction>))
                                 	<type>)
@@ -763,10 +777,10 @@ the form ``(map ...)''. The corresponding function definition
 defined in some enclosing function definition (= abstraction), which
 means it can be found in the table ~variableNames~. 
 
-----	x        	->        ((x variable 3 5) real)
+----	x		->	((x variable 3 5) real)
 
-        <var name>	->
-                        ((<var name> variable <position> <functionno>) <type>)
+        <var name>	->	((<var name> variable <position> <functionno>)
+				<type>) 
 ----
 
         Here ~position~ is the relative position of the variable in the
@@ -774,8 +788,12 @@ list of arguments of the defining function, and ~functionno~ is a number
 identifying that function (see below the strategy for maintaining
 function numbers). 
 
+  * ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
 
-  * ~s~ is a symbol atom: neither operator nor object nor variable.
+----	counter		->	((counter counter) typeerror)
+----
+
+  * ~s~ is a symbol atom: none of the forms before.
 
 ----	pop		->        ((pop identifier) pop)
 
@@ -830,7 +848,9 @@ result. The first element can be:
 
   3 an annotated abstraction ((. abstraction .) .)
 
-  4 something else, that is, a constant, a DB object, a variable, an
+  4 a counter definition ((. counter) .)
+
+  5 something else, that is, a constant, a DB object, a variable, an
 identifier, or an empty list. 
 
 Case (1). In the first case we have an operator application (~op~ ~arg1~
@@ -890,7 +910,7 @@ query processor to add the index of the attribute to the arguments. For
 example, assume that the attribute name refers to the first attribute
 and this is of type ~string~. Then the type mapping returns: 
 
-----        (APPEND (1) string)
+----	(APPEND (1) string)
 ----
 
 The query processor, more precisely the procedure ~annotate~, will
@@ -903,7 +923,7 @@ argument types of the function object are checked against the types of
 the actual arguments and the result type of the function is returned.
 The result is 
 
-----        ((none applyfun (ann(function) ann(arg1) ... ann(argn))) <resulttype>)
+----	((none applyfun (ann(function) ann(arg1) ... ann(argn))) <resulttype>)
 ----
 
 
@@ -911,14 +931,39 @@ Case (3). This is an application of an abstraction. Like the previous
 case, argument types are checked and the result type of the abstraction
 is returned. 
 
-----        ((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))<resulttype>)
+----	((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))<resulttype>)
 ----
 
+Case (4). This is a definition of a counter associated with the subexpressions.
+A counter is defined in a query in the form
 
-Case (4). The whole list is then just a list of expressions (terms). The
+----	(counter 5 <subexpr>)
+----
+
+Hence after annotation it is
+
+----	(
+	  ((counter counter) typeerror)
+	  ((5 constant 1) int)
+	  ann(subexpr)
+	)
+----
+
+The result is
+
+----	(
+	  (none counterdef n ann(subexpr)) 
+	  <resulttype>
+	)
+----	
+
+where ~n~ is the counter number. The result type is taken from the
+subexpression.
+
+Case (5). The whole list is then just a list of expressions (terms). The
 result type is just the list of types of the expressions. 
 
-----        (t1 t2 ... tn)   ->  ((none arglist (ann(t1) ann(t2) ... ann(tn)))
+----	(t1 t2 ... tn)   ->  ((none arglist (ann(t1) ann(t2) ... ann(tn)))
 					(type(t1) type(t2) ... type(tn)))
 ----
 
@@ -1167,6 +1212,14 @@ function index.
                       nl->IntAtom( funindex ) ),
                     typeExpr ));
         }
+	else if ( TypeOfSymbol( expr ) == QP_COUNTER )
+        {
+	  return nl->TwoElemList(
+		    nl->TwoElemList(
+		      expr,
+		      nl->SymbolAtom( "counter" ) ),
+		    nl->SymbolAtom( "typeerror" ) );
+	}
         else
         {
           return (nl->TwoElemList(
@@ -1483,8 +1536,43 @@ for a given ~expr~ (+ 3 10).
                 return (nl->SymbolAtom( "exprerror" ));
               }
             }
+
+	    case QP_COUNTER:
+	    {
+
+		// cout << "The list expression is:" << endl;
+                //   nl->WriteListExpr( list, cout );
+		// cout << endl;
+
+	      int counterNo = 
+		nl->IntValue(nl->First( nl->First( nl->Second( list ))));
+
+	      if ( counterNo > 0 && counterNo <= NO_COUNTERS )
+	      {
+	        return nl->TwoElemList(
+		  nl->FourElemList(
+		    nl->SymbolAtom("none"),
+		    nl->SymbolAtom("counterdef"),
+		    nl->First( nl->First( nl->Second( list ))), 
+		    nl->Third(list) ),
+		  nl->Second( nl->Third( list ))  );
+	      }
+	      else
+	      {
+		cout << "counter number " << counterNo << 
+			" is out of the range of counters." << endl; 
+	        return nl->TwoElemList(
+		  nl->FourElemList(
+		    nl->SymbolAtom("none"),
+		    nl->SymbolAtom("counterdef"),
+		    nl->First( nl->First( nl->Second( list ))), 
+		    nl->Third(list) ),
+		  nl->SymbolAtom("typeerror") );		 
+	      }
+	    }
+
             default:
-            {  /* we have a list of terms, case (4) above) */
+            {  /* we have a list of terms, case (5) above) */
                /* Again extract the list of types. We know the list "list"
                                                             is not empty */
               rest = list;
@@ -1749,10 +1837,10 @@ string xxx, yyy, zzz;
   switch (TypeOfSymbol( nl->Second( nl->First( expr ) ) ))
   {
     /* possible is:
-         constant        object                operator
-         variable        applyop               abstraction
-         identifier      arglist               function
-         applyabs        applyfun                        */
+         constant	object		operator
+         variable	applyop		abstraction
+         identifier	arglist		function
+         applyabs	applyfun	counterdef	*/
 
     case QP_CONSTANT:
     case QP_OBJECT:
@@ -1782,6 +1870,7 @@ string xxx, yyy, zzz;
       node->u.op.funNo = 0;
       node->u.op.isStream = false;
       node->u.op.resultAlgId = 0;
+      node->u.op.counterNo = 0;
       return (node);
     }
     case QP_VARIABLE:
@@ -1916,9 +2005,24 @@ string xxx, yyy, zzz;
       node->u.op.resultAlgId = 0;
       return (node);
     }
+    case QP_COUNTERDEF:
+    {
+	// cout << "Yes, we get into the counter definition." << endl;
+        // nl->WriteListExpr( expr, cout );
+	// cout << endl; 
+
+      node = Subtree( level, nl->Fourth( nl->First( expr )));
+      if ( node->nodetype == Operator )
+        node->u.op.counterNo = nl->IntValue( nl->Third( nl->First( expr )));
+      return(node);
+    }
+
     default:
     { 
-      cerr << "subtree: unexpected stuff in annotated expr";
+      cerr << "subtree: unexpected stuff in annotated expr" << endl;
+      cerr << "The expression is: " << endl;
+      nl->WriteListExpr( expr, cout );
+      cout << endl; 
       exit( 0 );
     }
   }
@@ -1981,6 +2085,7 @@ the function in a database object.
       correct = true;
 
       tree = SubtreeX( level, list );
+      ResetCounters();
 
       evaluable = tree->evaluable;
       if ( level == DescriptiveLevel )
@@ -2230,6 +2335,8 @@ supplied before). The result is returned in ~result~.
 
 */
   Eval( (OpTree) s, result, REQUEST );
+  if ( ((OpTree) s)->nodetype == Operator && ((OpTree) s)->u.op.counterNo ) 
+    counter[((OpTree) s)->u.op.counterNo]++;
 }
 
 bool
@@ -2283,7 +2390,7 @@ Supplier
 QueryProcessor::GetSupplier( const Supplier s, const int no )
 {
 /*
-From a given supplier ~s~ that represents an argument list, get its son
+>From a given supplier ~s~ that represents an argument list, get its son
 number ~no~. Can be used to traverse the operator tree in order to
 access arguments within (nested) argument lists. Values or function or
 stream evaluation can then be obtained from the returned supplier by the
@@ -2360,6 +2467,35 @@ Returns the type expression of the node ~s~ of the operator tree.
   OpTree tree = (OpTree) s;
   return (tree->typeExpr);
 }
+
+
+/*
+1.3 Using Counters
+
+*/
+void
+QueryProcessor::ResetCounters() 
+{
+  for (int i = 1; i <= NO_COUNTERS; i++) counter[i] = 0;
+}
+
+ListExpr
+QueryProcessor::GetCounters()
+{
+  ListExpr list, last;
+
+  list = nl->OneElemList( 
+	  nl->TwoElemList( nl->IntAtom(1), nl->IntAtom(counter[1]) ));
+  last = list;
+
+  for (int i = 2; i <= NO_COUNTERS; i++) 
+  {
+    last = nl->Append( last, 	  
+      nl->TwoElemList( nl->IntAtom(i), nl->IntAtom(counter[i]) ));
+  }
+  return list;
+}
+
 
 void
 QueryProcessor::SetDebugLevel( const int level )
