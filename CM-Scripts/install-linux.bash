@@ -15,11 +15,11 @@ instpath="$HOME"
 temp=$HOME/temp-build
 sdk=$HOME/secondo-sdk
 
-printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
+printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from" 
 printf "\n* '$cdpath' to '$instpath' \n" 
 
-printf "\n* Installing Java SDK ... this needs some user interaction \n"
-printf "\n* all other tools will be compiled and installed silently \n"
+printf "\n* Installing Java SDK ... this needs some user interaction"
+printf "\n* all other tools will be compiled and installed silently"
 printf "\n* "
 printf "\n* Installation starts in 5 seconds. Press CTRL-C to abort. \n"
 sleep 5
