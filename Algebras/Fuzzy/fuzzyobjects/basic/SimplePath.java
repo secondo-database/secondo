@@ -15,8 +15,8 @@ public SimplePath(){
 
 
 /** extend the SimplePath with P
-  * the first Point of P must be equals to the last Point of this SimplePath,
-  * this SimplePath can not be a circle
+  * the first Point of P must be equals to the last Point of
+  * this SimplePath, this SimplePath can not be a circle
   * this SimplePath and P can not have cuts
   * @return true if sucessfull
   */
@@ -30,7 +30,8 @@ if( Plength==0)
   return true;           // no change this SimplePath
 
 if (length>1 &&              // a circle?
-    ((BasicPoint)Points.get(0)).equals((BasicPoint)Points.get(length-1)))
+    ((BasicPoint)Points.get(0)).equals(
+                  (BasicPoint)Points.get(length-1)))
     return false;
 
 BasicPoint OldLast  = (BasicPoint)(Points.get(length-1));
@@ -74,7 +75,8 @@ return true;
 
 
 /** computes a simple Path between P1 and P2 */
-public static SimplePath computeSimplePath(BasicPoint P1,BasicPoint P2){
+public static SimplePath computeSimplePath(BasicPoint P1,
+                                           BasicPoint P2){
  SimplePath  result = new SimplePath();
  Path help = Path.computePath(P1,P2);
  result.Points = help.Points;
@@ -145,7 +147,8 @@ int s = Points.size();
 // min 3 points and  first point is equal to the last point
 
 return ( s>2) &&
-       ( (BasicPoint) Points.get(0)).equals((BasicPoint) Points.get(s-1));
+       ( (BasicPoint) Points.get(0)).equals((BasicPoint)
+                      Points.get(s-1));
 
 }
 
@@ -273,10 +276,11 @@ return ret;
 
 
 /** computes enclosed Triangles */
-private void  computeEnclosedTriangles(BasicTriangle   Current,
-                                       BasicSegment[]  Segments,
-                                       boolean[]       used,
-                                       Vector          result){
+private void  computeEnclosedTriangles
+                  (BasicTriangle   Current,
+                   BasicSegment[]  Segments,
+                   boolean[]       used,
+                   Vector          result){
 
 
 BasicTriangle test;  // Triangle allready in result
@@ -293,7 +297,7 @@ int pos1 = getPos(Segments,Sides[0]);
 int pos2 = getPos(Segments,Sides[1]);
 int pos3 = getPos(Segments,Sides[2]);
 
-if( ( pos1>-1 && used[pos1]) |          // current in exterior
+if( ( pos1>-1 && used[pos1]) |   // current in exterior
     ( pos2>-1 && used[pos2]) |
     ( pos3>-1 && used[pos3]) ) {
     return;
@@ -326,7 +330,7 @@ for(int i=0;i<Segs.length;i++){
      return i;
 }
 return -1;
-  
+
 }
 
 /**
@@ -356,9 +360,5 @@ public SimplePath split(BasicPoint BP){
  Points = FPoints;
  return result;
 }
-
-
-
-
 
 } // class

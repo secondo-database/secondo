@@ -136,7 +136,8 @@ public boolean add(fTriangle fT){
        BB.setBox(minX,minY,maxX,maxY);
     }
     else
-      BB.setBox(fT.getMinX(),fT.getMinY(),fT.getMaxX(),fT.getMaxY());
+      BB.setBox(fT.getMinX(),fT.getMinY(),
+                fT.getMaxX(),fT.getMaxY());
   }
  return ok;
 }
@@ -180,7 +181,8 @@ public void overwrite(fTriangle fT){
         BB.setBox(minX,minY,maxX,maxY);
       }
       else
-        BB.setBox(fT.getMinX(),fT.getMinY(),fT.getMaxX(),fT.getMaxY());
+        BB.setBox(fT.getMinX(),fT.getMinY(),
+                  fT.getMaxX(),fT.getMaxY());
   }
  }
 
@@ -289,19 +291,20 @@ return result;
 
 /** computes all membershipvalues on BP */
 public double[] ZRel(BasicPoint BP){
-Vector tmp=new Vector(10); // contains all Triangles connected with BP
+Vector tmp=new Vector(10);
 BasicPoint[] Neightboors = BP.getNeightboors();
 // find all pairs of connected Neightboors
 
  for(int i=0;i<Neightboors.length-1;i++)
    for(int j=i+1;j<Neightboors.length;j++)
       if( Neightboors[i].neightbooring(Neightboors[j]))
-        tmp.add(new BasicTriangle(BP,Neightboors[i],Neightboors[j]));
-
+        tmp.add(new BasicTriangle(BP,Neightboors[i],
+                                  Neightboors[j]));
 Vector tmpResult = new Vector();
 fTriangle currentfT;
 for(int k=0;k<Neightboors.length;k++){
-   currentfT = (fTriangle) fTs.search((BasicTriangle) tmp.get(k));
+   currentfT = (fTriangle)
+                fTs.search((BasicTriangle) tmp.get(k));
    if(currentfT!=null)
      tmpResult.add(new Double(currentfT.Zfkt(BP)));
    else
@@ -314,7 +317,6 @@ for(int i=0;i<tmpResult.size();i++){
 }
 return result;
 }
-
 
 /** computes the maximal membershipvalue on BP */
 public double maxZfkt(BasicPoint BP){
@@ -334,7 +336,9 @@ public double Zfkt(BasicPoint BP, BasicTriangle BT){
   return result;
 }
 
-/** computes the membership-value on (x,y) by give BasicTriangle */
+/** computes the membership-value on (x,y)
+  *  by given BasicTriangle
+  */
 public double Zfkt(double x, double y, BasicTriangle BT){
  if (BT.contains(x,y)){
    fTriangle FT = (fTriangle) fTs.search(BT);
@@ -375,21 +379,20 @@ public double midZfkt(double x, double y){
  return sum/cands.length;
 }
 
-
 /** computes all basicTriangles containing in this fRegion */
 public BasicTriangle[] basics() {
   BasicTriangle[] result = new BasicTriangle[fTs.getSize()];
   if(! fTs.isEmpty()) {
     for(int i=0;i<fTs.getSize();i++)
-      result[i] = (BasicTriangle) ((fTriangle)fTs.get(i)).basic();
+      result[i]=(BasicTriangle)((fTriangle)fTs.get(i)).basic();
   }
-  return result; 
+  return result;
 } // basics
 
 /** computes the maximal membershipvalue */
 public double maxZ(){
  double max = 0.0;
- double currentmax;       
+ double currentmax;
  double Z1,Z2,Z3;
  fTriangle current;
  for(int i=0;i<fTs.getSize();i++){
@@ -409,7 +412,7 @@ public double minZ(){
  double min = 1.0;
  if(fTs.getSize()==0)
    min=0.0;
- double currentmin;       
+ double currentmin;
  double Z1,Z2,Z3;
  fTriangle current;
  for(int i=0;i<fTs.getSize();i++){
@@ -424,7 +427,6 @@ public double minZ(){
   return min;
 } // minZ
 
-
 /** returns a copy of this FRegion */
 public FRegion copy(){
   FRegion C = new FRegion(SF);
@@ -437,7 +439,6 @@ public FRegion copy(){
 public boolean isEmpty(){
  return fTs.isEmpty();
 }
-
 
 /*************************************************************
    Operators
@@ -454,7 +455,6 @@ public FRegion scaledUnion(FRegion With){
   result.norm();
   return result;
 }
-
 
 /** the operator intersection */
 public FRegion intersection(FRegion With){
@@ -501,7 +501,8 @@ public FRegion alphaCut(double alpha, boolean strong){
 
  for(int i=0; i<fTs.getSize(); i++){
     Current = (fTriangle) fTs.get(i);
-    midZ = (Current.getZ1()+ Current.getZ2() + Current.getZ3())/3;
+    midZ = (Current.getZ1()+ Current.getZ2() +
+            Current.getZ3())/3;
     if (strong)
        isValid = midZ>alpha;
     else
@@ -557,7 +558,6 @@ public double similar(FRegion F2){
         return Fintersection.area() / Funion.area();
 }
 
-
 /**
  * returns a sharp Fregion
  * all membershipvalues are 1.0
@@ -582,9 +582,8 @@ BasicTriangle[] Neightboors;
 BasicSegment BS;
 
 for(int i=0;i<fTs.getSize();i++){
-   CurrentBT = (BasicTriangle) ( (fTriangle) fTs.get(i)).basic();
+   CurrentBT = (BasicTriangle) ((fTriangle) fTs.get(i)).basic();
    Neightboors = CurrentBT.getNeightboors();
-
    for(int j=0;j<Neightboors.length;j++) {
       if ( fTs.search(Neightboors[j])==null ) {
           BS = CurrentBT.commonSegment(Neightboors[j]);
@@ -608,7 +607,7 @@ private void getComponent(fTriangle FT, FRegion result){
  BasicTriangle[] Neightboors = BT.getNeightboors();
 
  for (int i=0;i<Neightboors.length;i++) {
-    if(result.fTs.getPos(Neightboors[i])<0){      // not in result 
+    if(result.fTs.getPos(Neightboors[i])<0){  // not in result
       fTriangle NB = (fTriangle) fTs.search(Neightboors[i]);
        // in current Region ?
       if(NB!=null){
@@ -616,12 +615,10 @@ private void getComponent(fTriangle FT, FRegion result){
       }
     }
  }
-
 }
 */
 
 private void getComponent(fTriangle FT, FRegion result){
-
   Vector List = new Vector(fTs.getSize());
   fTriangle Current;
   boolean found;
@@ -629,17 +626,16 @@ private void getComponent(fTriangle FT, FRegion result){
   BasicTriangle CurrentBasic;
   BasicTriangle[] Neightboors;
   BasicTriangle Next;
-
   Current = FT;
-
   do{
      CurrentBasic = (BasicTriangle) Current.basic();
      result.add(Current);
      Neightboors = CurrentBasic.getNeightboors();
-     for(int i=0;i<Neightboors.length;i++){  // for all Neightboors
+     for(int i=0;i<Neightboors.length;i++){
+        // for all Neightboors
         found=false;
         for(int j=0;j<List.size();j++){
-           if(Neightboors[i].equals((BasicTriangle) List.get(j))) 
+           if(Neightboors[i].equals((BasicTriangle)List.get(j)))
               found=true;
         }
 
@@ -659,17 +655,14 @@ private void getComponent(fTriangle FT, FRegion result){
      else
        Current = null;
   } while( Current!=null);
-
 }
-
 
 /** returns the connected components of this FRegion */
 public FRegion[] faces(){
   if(isEmpty()) return null;
   Vector tmp = new Vector();  // for the faces ;
-                              // use Vector hence number of faces unknow
+  // use Vector hence number of faces is unknow
   FRegion Copy = this.copy();
-
   while( ! Copy.isEmpty()){
     FRegion nextFace = new FRegion(SF);
     fTriangle First = (fTriangle) Copy.fTs.get(0);
@@ -723,7 +716,8 @@ while(!allready){
           Numbers.add(new Integer(i));
        }
        else {
-        compareT = (BasicTriangle) ((fTriangle) allSmallest.get(0)).basic();
+        compareT = (BasicTriangle)
+                    ((fTriangle) allSmallest.get(0)).basic();
         int comp = currentT.basic().compareTo(compareT);
         if(comp==0) {  // a Triangle with smallest Basic
           allSmallest.add(currentT);
@@ -743,7 +737,7 @@ while(!allready){
   if(!allready){
     double Z1=0,Z2=0,Z3=0;
     BasicTriangle BT = (BasicTriangle) (
-                            (fTriangle) allSmallest.get(0)).basic();
+                       (fTriangle) allSmallest.get(0)).basic();
     fTriangle CT;
     for(int i=0;i<allSmallest.size();i++){
        // update numbers
@@ -803,7 +797,8 @@ while(!allready){
           Numbers.add(new Integer(i));
        }
        else {
-        compareT = (BasicTriangle) ((fTriangle) allSmallest.get(0)).basic();
+        compareT = (BasicTriangle) (
+                       (fTriangle) allSmallest.get(0)).basic();
         int comp = currentT.basic().compareTo(compareT);
         if(comp==0) {  // a Triangle with smallest Basic
           allSmallest.add(currentT);
@@ -850,18 +845,16 @@ while(!allready){
  * fRegion having BP as cornerpoint
  */
 public int numberOfTriangles(BasicPoint BP){
-
-// returns number of Triangles which have BP as cornerpoint
-
-Vector tmp=new Vector(10); // contains all Triangles connected with BP
-
+Vector tmp=new Vector(10);
+ // contains all Triangles connected with BP
 BasicPoint[] Neightboors = BP.getNeightboors();
 // find all pairs of connected Neightboors
 
  for(int i=0;i<Neightboors.length-1;i++)
    for(int j=i+1;j<Neightboors.length;j++)
       if( Neightboors[i].neightbooring(Neightboors[j]))
-        tmp.add(new BasicTriangle(BP,Neightboors[i],Neightboors[j]));
+        tmp.add(new BasicTriangle(BP,Neightboors[i],
+                                  Neightboors[j]));
 
 // try to find this triangles
 int result=0;
@@ -896,7 +889,8 @@ public boolean onBoundary(BasicSegment BS){
 /** is BP on boundary of this fRegion ? */
 public boolean onBoundary(BasicPoint BP){
 // a Point is on a Boundary of a Region R <=>
-// exists a Segment  S : BP isendpoint of BP and S is on the Boundary of R
+// exists a Segment  S : BP isendpoint of BP and S
+// is on the Boundary of R
 
 BasicPoint[] Neightboors = BP.getNeightboors();
 BasicSegment BS;
@@ -908,7 +902,6 @@ for(int i=0;i<Neightboors.length&!found;i++){
 }
   return found;
 }
-
 
 
 /** returns commonLines which are not part of a common area */
@@ -948,7 +941,9 @@ return result;
 
 
 
-/** returns the common points which not are a part of a common segment */
+/** returns the common points which not are
+  * a part of a common segment
+  */
 public FPoint commonPoints(FRegion R2){
 
 int max = fTs.getSize();
@@ -984,8 +979,6 @@ return result;
 
 }
 
-
-
 /**
   * converts a fLine with propertys of a circled Simple path to a
   * Simple Path
@@ -1001,9 +994,8 @@ result.extend(CurrentB.getEP1());
 result.extend(CurrentB.getEP2());
 
 do{
-
   BasicPoint BP = result.getLastPoint();
-  BasicSegment[] ConnectedSegment = BasicSegment.getSegments(BP);
+  BasicSegment[] ConnectedSegment=BasicSegment.getSegments(BP);
 
   int j=-1;
   for(int i=0;i<ConnectedSegment.length;i++){
@@ -1026,9 +1018,6 @@ while(!result.isACircle());
 return result;
 }
 
-
-
-
 /** splits a connected Line into SimplePaths */
 private SimplePath[] splitLine(FLine L){
  SimplePath[] result;
@@ -1044,17 +1033,16 @@ private SimplePath[] splitLine(FLine L){
    // compute simple Path from a selfcut to another one
    SortedObjects fSegs = L.getSortedObjects(); // the segments
 
-   boolean[] used = new boolean[fSegs.getSize()]; // mark used segments
+   // mark used segments
+   boolean[] used = new boolean[fSegs.getSize()];
    for(int i=0;i<used.length;i++) // no segment is used
       used[i] = false;
 
    BasicSegment[] NextSegments; // the segments from a selfcut
-
    int pos; // the pos of a segment in fSegs
-
    for(int i=0;i<cuts.length;i++){ // from a selfcut
       NextSegments = BasicSegment.getSegments(cuts[i]);
-      for(int j=0;j<NextSegments.length;j++){ // explore all Segs
+      for(int j=0;j<NextSegments.length;j++){ //explore all Segs
         pos = fSegs.getPos(NextSegments[j]);
         if( pos>=0 && !used[pos] ) {
            BasicSegment CurrentB = NextSegments[j];
@@ -1093,7 +1081,8 @@ private SimplePath[] splitLine(FLine L){
                 else
                   Last = BP1;
                 nextPath.extend(Last);
-                CurrentB= ConnectedSegment[k]; // explore the next segment
+                // explore the next segment
+                CurrentB= ConnectedSegment[k];
                 for (int n=0;n<cuts.length;n++)
                    if(Last.equals(cuts[n]))
                       ready = true;
@@ -1101,12 +1090,12 @@ private SimplePath[] splitLine(FLine L){
            } // if(!ready)
            tmp.add(nextPath);
         } // if(!used && found)
-      } // for(each startsegment) 
+      } // for(each startsegment)
     } // for each selfcut
 
    // build circles from the Paths
    Vector tmp2 = new Vector(); // contains the result
-   Vector tmp3 = new Vector();   // contains not circled path 
+   Vector tmp3 = new Vector();   // contains not circled path
 
    for(int o=0;o<tmp.size();o++)
      if(((SimplePath) tmp.get(o)).isACircle())
@@ -1146,12 +1135,12 @@ private SimplePath[] splitLine(FLine L){
                EPath = (SimplePath) tmp3.get(p);
                F2 = EPath.getFirstPoint();
                L2 = EPath.getLastPoint();
-               if( F2.equals(Last) || L2.equals(Last)   ){ 
+               if( F2.equals(Last) || L2.equals(Last)   ){
                   found=true;
                   usedPath[p] = true;
                }
              }
-           }// for 
+           }// for
 
            // EPath is a Path extendend CurrentPath
            if(L2.equals(Last)){
@@ -1208,7 +1197,9 @@ private SimplePath[] splitLine(FLine L){
 }
 
 
-/** compute the simplePaths from the boundary of a connected FRegion */
+/** compute the simplePaths from the boundary
+  * of a connected FRegion
+  */
 private SimplePath[] computeSimplePathsOfAFace(FRegion F){
 
 FLine Bound = F.boundary();
@@ -1283,8 +1274,6 @@ protected static void setFts(FRegion R1, FRegion R2){
    R1.BB = R2.BB;
 }
 
-
-
 /**
   * process a single triangle for many oparators
   */
@@ -1293,210 +1282,183 @@ private void processElements(fTriangle F1, double scale1,
                              FRegion Goal,
                              int Operator){
 
-// 1 input parameter can be null 
-// if both fTriangles not null, then they must have the same basic
-
+// 1 input parameter can be null
+// if both fTriangles not null, then they must
+// have the same basic
   if( F1==null & F2==null) return;
-
 
   double Z1,Z2,Z3;
   fTriangle newFT;
-
   switch (Operator){
 
      case UNION  :  {  // the union of 2 regions ignoring SFs
+            if(F1==null)
+               Goal.fTs.insert(F2.copy());
+            else if(F2==null)
+               Goal.fTs.insert(F1.copy());
+            else { // both fTriangles are not null
+               Z1 = Math.max(F1.getZ1(),F2.getZ1());
+               Z2 = Math.max(F1.getZ2(),F2.getZ2());
+               Z3 = Math.max(F1.getZ3(),F2.getZ3());
+               newFT = new fTriangle((BasicTriangle)
+                                      F1.basic(),
+                                      Z1,Z2,Z3    );
+               Goal.fTs.insert(newFT);
+             } // else
+          }
+          break;
 
-                      if(F1==null)
-                          Goal.fTs.insert(F2.copy());
-                      else
-                         if(F2==null)
-                           Goal.fTs.insert(F1.copy());
-                         else { // both fTriangles are not null
-                           Z1 = Math.max(F1.getZ1(),F2.getZ1());
-                           Z2 = Math.max(F1.getZ2(),F2.getZ2());
-                           Z3 = Math.max(F1.getZ3(),F2.getZ3());
-                           newFT = new fTriangle((BasicTriangle)
-                                                   F1.basic(),
-                                                   Z1,Z2,Z3    );
-                           Goal.fTs.insert(newFT);
-
-                         } // else
-
-                    }
-                    break;
-
-    case INTERSECTION :
-                    {  if (F1==null | F2==null)
-                         ;  
-                       else { // both are not null
-                           Z1 = Math.min(F1.getZ1(),F2.getZ1());
-                           Z2 = Math.min(F1.getZ2(),F2.getZ2());
-                           Z3 = Math.min(F1.getZ3(),F2.getZ3());
-                       if(Z1+Z2+Z3>0){
-                           newFT = new fTriangle((BasicTriangle)
-                                                      F1.basic(),
-                                                      Z1,Z2,Z3    );
-                           Goal.fTs.insert(newFT);
-                       }
-                       }
-
-                    } break;
+    case INTERSECTION : {
+           if (F1==null | F2==null)
+              ;
+           else { // both are not null
+              Z1 = Math.min(F1.getZ1(),F2.getZ1());
+              Z2 = Math.min(F1.getZ2(),F2.getZ2());
+              Z3 = Math.min(F1.getZ3(),F2.getZ3());
+              if(Z1+Z2+Z3>0){
+                newFT = new fTriangle((BasicTriangle)
+                                       F1.basic(),
+                                       Z1,Z2,Z3    );
+                 Goal.fTs.insert(newFT);
+              }
+           }
+         }
+         break;
 
     case ADD     :  {
-                      if(F1==null)
-                          Goal.fTs.insert(F2.copy());
-                      else
-                         if(F2==null)
-                           Goal.fTs.insert(F1.copy());
-                         else { // both fTriangles are not null
-                           Z1 = Math.min(1,F1.getZ1()+F2.getZ1());
-                           Z2 = Math.min(1,F1.getZ2()+F2.getZ2());
-                           Z3 = Math.min(1,F1.getZ3()+F2.getZ3());
-                           newFT = new fTriangle((BasicTriangle)
-                                                   F1.basic(),
-                                                   Z1,Z2,Z3    );
-                           Goal.fTs.insert(newFT);
-
-                         } // else
-
-                    }
-                    break;
+           if(F1==null)
+              Goal.fTs.insert(F2.copy());
+           else if(F2==null)
+              Goal.fTs.insert(F1.copy());
+           else { // both fTriangles are not null
+              Z1 = Math.min(1,F1.getZ1()+F2.getZ1());
+              Z2 = Math.min(1,F1.getZ2()+F2.getZ2());
+              Z3 = Math.min(1,F1.getZ3()+F2.getZ3());
+              newFT = new fTriangle((BasicTriangle)
+                                    F1.basic(),
+                                    Z1,Z2,Z3    );
+              Goal.fTs.insert(newFT);
+           } // else
+         }
+         break;
 
     case SUBTRACT :{
-                        if(F1 == null)
-                            ;
-                        else
-                           if(F2==null)
-                             Goal.fTs.insert(F1.copy());
-                           else  {   // both not null
-                              Z1 = Math.max(0,F1.getZ1()-F2.getZ1());
-                              Z2 = Math.max(0,F1.getZ2()-F2.getZ2());
-                              Z3 = Math.max(0,F1.getZ3()-F2.getZ3());
-                              if ((Z1+Z2+Z3)>0) {
-                                newFT = new fTriangle( (BasicTriangle)
-                                                       F1.basic(),Z1,Z2,Z3);
-                                Goal.fTs.insert(newFT);
-                              }
-                           }
-                       } break;
+           if(F1 == null)
+             ;
+           else if(F2==null)
+              Goal.fTs.insert(F1.copy());
+           else  {   // both not null
+              Z1 = Math.max(0,F1.getZ1()-F2.getZ1());
+              Z2 = Math.max(0,F1.getZ2()-F2.getZ2());
+              Z3 = Math.max(0,F1.getZ3()-F2.getZ3());
+              if ((Z1+Z2+Z3)>0) {
+                newFT = new fTriangle( (BasicTriangle)
+                                        F1.basic(),Z1,Z2,Z3);
+                Goal.fTs.insert(newFT);
+              }
+           }
+         }
+         break;
+
+    case SCALEDUNION  :{
+           fTriangle newTriangle;
+           if (F1==null)
+              newTriangle = new fTriangle( (BasicTriangle)
+                                           F2.basic(),
+                                           F2.getZ1()*scale2,
+                                           F2.getZ2()*scale2,
+                                           F2.getZ3()*scale2 );
+           else if (F2==null)
+               newTriangle = new fTriangle( (BasicTriangle)
+                                             F1.basic(),
+                                             F1.getZ1()*scale1,
+                                             F1.getZ2()*scale1,
+                                             F1.getZ3()*scale1);
+           else {
+               Z1 = Math.max(F1.getZ1()*scale1,
+                             F2.getZ1()*scale2);
+               Z2 = Math.max(F1.getZ2()*scale1,
+                             F2.getZ2()*scale2);
+               Z3 = Math.max(F1.getZ3()*scale1,
+                             F2.getZ3()*scale2);
+               newTriangle = new fTriangle( (BasicTriangle)
+                                            F1.basic(),
+                                            Z1,Z2,Z3);
+           }  // else
+           Goal.add(newTriangle);
+         }
+         break;   // scaled union
+
+   case SCALEDINTERSECTION :
+          if (F1==null || F2==null)
+              ;
+          else {
+             Z1 = Math.min(F1.getZ1()*scale1,
+                           F2.getZ1()*scale2);
+             Z2 = Math.min(F1.getZ2()*scale1,
+                           F2.getZ2()*scale2);
+                           Z3 = Math.min(F1.getZ3()*scale1,
+                           F2.getZ3()*scale2);
+             Goal.add(new fTriangle( (BasicTriangle)
+                                     F1.basic(),
+                                     Z1,Z2,Z3));
+         }
+         break;
+
+   case SCALEDADD : {
+          if(F1==null)
+            Goal.add(new fTriangle( (BasicTriangle)
+                                    F2.basic(),
+                                    F2.getZ1()*scale2,
+                                    F2.getZ2()*scale2,
+                                    F2.getZ3()*scale2));
+          else if(F2==null)
+            Goal.add(new fTriangle( (BasicTriangle)
+                                     F1.basic(),
+                                     F1.getZ1()*scale1,
+                                     F1.getZ2()*scale1,
+                                     F1.getZ3()*scale1));
+          else {
+            Goal.add(new fTriangle( (BasicTriangle)
+                                     F1.basic(),
+                                     F1.getZ1()*scale1 +
+                                       F2.getZ1()*scale2 ,
+                                     F1.getZ2()*scale1 +
+                                       F2.getZ2()*scale2 ,
+                                     F1.getZ3()*scale1 +
+                                       F2.getZ3()*scale2 ));
+           }
+         }
+         break;
 
 
-        case SCALEDUNION    :
-                      { fTriangle newTriangle;
-                        if (F1==null) 
-                           newTriangle = new fTriangle( (BasicTriangle)
-                                                        F2.basic(),
-                                                      F2.getZ1()*scale2,
-                                                      F2.getZ2()*scale2,
-                                                      F2.getZ3()*scale2 );
-                         else
-                           if (F2==null)
-                              newTriangle = new fTriangle( (BasicTriangle)
-                                                           F1.basic(),
-                                                          F1.getZ1()*scale1,
-                                                          F1.getZ2()*scale1,
-                                                          F1.getZ3()*scale1);
-                           else {
-                             Z1 = Math.max(F1.getZ1()*scale1,
-                                                  F2.getZ1()*scale2);
-                             Z2 = Math.max(F1.getZ2()*scale1,
-                                                  F2.getZ2()*scale2);
-                             Z3 = Math.max(F1.getZ3()*scale1,
-                                                  F2.getZ3()*scale2);
-
-                             newTriangle = new fTriangle( (BasicTriangle)
-                                                           F1.basic(),
-                                                           Z1,Z2,Z3);
-                           }  // else
-                       Goal.add(newTriangle);
-
-                      } break;   // scaled union
-
-     
-        case SCALEDINTERSECTION :  if (F1==null || F2==null)
-                                         ;
-                                   else {
-                                     Z1 = Math.min(F1.getZ1()*scale1,
-                                                         F2.getZ1()*scale2);
-                                     Z2 = Math.min(F1.getZ2()*scale1,
-                                                         F2.getZ2()*scale2);
-                                     Z3 = Math.min(F1.getZ3()*scale1,
-                                                         F2.getZ3()*scale2);
-
-                                    Goal.add(new fTriangle( (BasicTriangle)
-                                                            F1.basic(),
-                                                            Z1,Z2,Z3));
-                                   } break;
-
-        case SCALEDADD : {
-                          if(F1==null)
-                             Goal.add(new fTriangle( (BasicTriangle)
-                                                     F2.basic(),
-                                                     F2.getZ1()*scale2,
-                                                     F2.getZ2()*scale2,
-                                                     F2.getZ3()*scale2));
-                          else
-                            if(F2==null)
-                              Goal.add(new fTriangle( (BasicTriangle)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1,
-                                                      F1.getZ2()*scale1,
-                                                      F1.getZ3()*scale1));
-                            else {
-
-                              Goal.add(new fTriangle( (BasicTriangle)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1 +
-                                                      F2.getZ1()*scale2 ,
-                                                      F1.getZ2()*scale1 +
-                                                      F2.getZ2()*scale2 ,
-                                                      F1.getZ3()*scale1 +
-                                                      F2.getZ3()*scale2 ));
-
-
-                            }
-
-                        } break;
-
-
-        case SCALEDDIFFERENCE   :
-                       {
-                          if(F1==null)
-                             Goal.add(new fTriangle( (BasicTriangle)
-                                                     F2.basic(),
-                                                     -F2.getZ1()*scale2,
-                                                     -F2.getZ2()*scale2,
-                                                     -F2.getZ3()*scale2));
-                          else
-                            if(F2==null)
-                              Goal.add(new fTriangle( (BasicTriangle)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1,
-                                                      F1.getZ2()*scale1,
-                                                      F1.getZ3()*scale1));
-                            else {
-
-                              Goal.add(new fTriangle( (BasicTriangle)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1 -
-                                                      F2.getZ1()*scale2 ,
-                                                      F1.getZ2()*scale1 -
-                                                      F2.getZ2()*scale2 ,
-                                                      F1.getZ3()*scale1 -
-                                                      F2.getZ3()*scale2 ));
-
-
-                            }
-
-                        } break;
-
-   
-
-    default      : System.out.println("unimplementierter operator");
-
-
+   case SCALEDDIFFERENCE   : {
+           if(F1==null)
+              Goal.add(new fTriangle( (BasicTriangle)
+                                      F2.basic(),
+                                     -F2.getZ1()*scale2,
+                                     -F2.getZ2()*scale2,
+                                     -F2.getZ3()*scale2));
+           else if(F2==null)
+               Goal.add(new fTriangle( (BasicTriangle)
+                                       F1.basic(),
+                                       F1.getZ1()*scale1,
+                                       F1.getZ2()*scale1,
+                                       F1.getZ3()*scale1));
+           else {
+               Goal.add(new fTriangle( (BasicTriangle)
+                                        F1.basic(),
+                                        F1.getZ1()*scale1 -
+                                          F2.getZ1()*scale2 ,
+                                        F1.getZ2()*scale1 -
+                                          F2.getZ2()*scale2 ,
+                                        F1.getZ3()*scale1 -
+                                          F2.getZ3()*scale2 ));
+           }
+         }
+         break;
+    default : System.err.println("operator not implemented");
   } // switch
-
 } // processElements
 
 
@@ -1520,12 +1482,12 @@ if(maxFromFR>0)
    FRFirst = (fTriangle) FR.fTs.get(0);
 
 if (maxMy >0 && maxFromFR>0){
-   myFirst = (fTriangle) fTs.get(my);    
+   myFirst = (fTriangle) fTs.get(my);
    FRFirst = (fTriangle) FR.fTs.get(fromFR);
    int compareResult;
    while(my<maxMy && fromFR<maxFromFR){
       // both sets have unprocessed elements
-      compareResult = myFirst.basic().compareTo(FRFirst.basic());
+      compareResult=myFirst.basic().compareTo(FRFirst.basic());
       if(compareResult < 0) {
          processElements(myFirst,SF,null,FR.SF,result,op);
          my++;
@@ -1533,22 +1495,22 @@ if (maxMy >0 && maxFromFR>0){
              myFirst = (fTriangle) fTs.get(my);
       }
       else if(compareResult > 0){
-            processElements(null,SF,FRFirst,FR.SF,result,op);
-            fromFR++;
-            if(fromFR<maxFromFR)
-               FRFirst = (fTriangle) FR.fTs.get(fromFR);
-           }
-           else {     // elements have the same basic
-             processElements(myFirst,SF,FRFirst,FR.SF,result,op);
-             my++;
-             fromFR++;
-             if (my<maxMy)
-               myFirst = (fTriangle) fTs.get(my);
-             if (fromFR<maxFromFR)
-               FRFirst = (fTriangle) FR.fTs.get(fromFR);
-           }
+          processElements(null,SF,FRFirst,FR.SF,result,op);
+          fromFR++;
+          if(fromFR<maxFromFR)
+             FRFirst = (fTriangle) FR.fTs.get(fromFR);
+      }
+      else {     // elements have the same basic
+           processElements(myFirst,SF,FRFirst,FR.SF,result,op);
+           my++;
+           fromFR++;
+           if (my<maxMy)
+              myFirst = (fTriangle) fTs.get(my);
+           if (fromFR<maxFromFR)
+              FRFirst = (fTriangle) FR.fTs.get(fromFR);
+      }
    } // while
-} // if 
+} // if
 
 // elements from one (or both) regions are processed
 
@@ -1588,7 +1550,7 @@ private void norm(){
  }
 
  if(Zmin > 0) Zmin=0;
- 
+
  if(Zmax==0 & Zmin==0)
     fTs.makeEmpty();
  else{
@@ -1631,17 +1593,18 @@ public boolean contains(BasicTriangle BT){
   return fTs.search(BT)!=null;
 }
 
-/*************************************************************************
- *                                                                       *
- *                   Topology of the  basic                              *
- *                                                                       *
- *************************************************************************/
+/***********************************************************
+ *                                                         *
+ *                   Topology of the  basic                *
+ *                                                         *
+ ***** ****************************************************/
 
 
 
 /** this method is helping for basicTopolRelation */
-private static void processTriangle(BasicTriangle T,FRegion R1,FRegion R2,
-                                    M9Int goal){
+private static void processTriangle(
+                       BasicTriangle T,FRegion R1,FRegion R2,
+                       M9Int goal){
 BasicPoint[] BP = new BasicPoint[3];
 boolean onR1,onR2,onBoundary1,onBoundary2;
 
@@ -1677,7 +1640,8 @@ boolean onR1,onR2,onBoundary1,onBoundary2;
 M9Int basicTopolRelation(FRegion R2){
 
  M9Int result = new M9Int();
- result.setValue(true,M9Int.EXTERIOR,M9Int.EXTERIOR); // this holds ever
+  // this holds ever
+ result.setValue(true,M9Int.EXTERIOR,M9Int.EXTERIOR);
 
  boolean ready=false; // all checked intersections are true
  int currentThis=0;
@@ -1715,7 +1679,7 @@ while( (currentThis<maxThis)  & (currentR2<maxR2) & !ready) {
      minT=C1;
      result.setValue(true,M9Int.INTERIOR,M9Int.INTERIOR);
    }
-   processTriangle( (BasicTriangle) minT.basic(),this,R2,result);
+   processTriangle((BasicTriangle) minT.basic(),this,R2,result);
 
 }  // while
 
@@ -1744,7 +1708,9 @@ return result;
 }
 
 
-/** computes the topology for this region with another fuzzy object */
+/** computes the topology for this region with another
+  * fuzzy object
+  */
 public M9Int basicTopolRelation(CompositeObject CO){
 
 M9Int result;
@@ -1759,30 +1725,31 @@ return null;
 }
 
 
-/*****************************************************************
- *                                                               *
- *           topology on fuzzy objects                           *
- *                                                               *
- *****************************************************************/
+/*****************************************************
+ *                                                   *
+ *           topology on fuzzy objects               *
+ *                                                   *
+ *****************************************************/
 
 /**
   * this function get membershipvalues and a cut-position
-  * for a given BasicSegment 
-  * <br><ul>
-  *       <li> result[0] : the membership-value for the first endpoint of
-  *                         the BasicSegment (maximum of all fSegments
-  *                         with the same basic as BS </li>
-  *        <li> result[1] : the same for the second endpoint  </li>
-  *        <li> if the length of the result greater then 2 then
-  *             exists two crossing fSgements in this region with same
-  *             basic as BS.
-  *             <ul>
-  *                <li> result[2] where is the cross point </li>
-  *                <li> result[3] the membershipvalue over the cross
-  *                     point </li>
-  *            </ul>
-  *        </li>
-  *      </ul>
+  * for a given BasicSegment
+  * <br>
+  * <ul>
+  *  <li> result[0] : the membership-value for the first
+          endpoint of the BasicSegment (maximum of all fSegments
+  *       with the same basic as BS </li>
+  *  <li> result[1] : the same for the second endpoint  </li>
+  *  <li> if the length of the result greater then 2 then
+  *       exists two crossing fSgements in this region with same
+  *       basic as BS.
+  *       <ul>
+  *         <li> result[2] where is the cross point </li>
+  *         <li> result[3] the membershipvalue over the cross
+  *              point </li>
+  *         </ul>
+  *   </li>
+  *  </ul>
   */
 double[] getValues(BasicSegment BS){
 
@@ -1828,7 +1795,7 @@ else{  // both fTriangles exists
     result[2] = pos;
     result[3] = value;
   }
-} // else 
+} // else
 return result;
 }
 
@@ -1867,8 +1834,6 @@ else{
 V2 = Z2_1 + pos*(Z2_2-Z2_1);
 return Math.max(V1,V2);
 }
-
-
 
 
 /** computes the topological relationship between this and R2 */
@@ -1975,7 +1940,6 @@ for(int i=0;i<fTs.getSize();i++){
               result.computeValue(0.5,0.5);
 
         } // else (both region have crossing segments)
-
      }  // if contains segment
   } // process sides
 
@@ -1989,13 +1953,14 @@ for(int i=0;i<fTs.getSize();i++){
      Z2_2 = FT2.getZ2();
      Z2_3 = FT2.getZ3();
 
-     if( (Z1_1<Z2_1 & Z1_2<Z2_2 & Z1_3<Z2_3) |    // all under or
-         (Z1_1>Z2_1 & Z1_2>Z2_2 & Z1_3>Z2_3)  )   // all over
+     if( (Z1_1<Z2_1 & Z1_2<Z2_2 & Z1_3<Z2_3) |   // all under or
+         (Z1_1>Z2_1 & Z1_2>Z2_2 & Z1_3>Z2_3)  )  // all over
         result.computeValue(Z1_1,Z2_1);
      else
         if(Z1_1==Z2_1 & Z1_2==Z2_2 & Z1_3==Z2_3)
           result.computeValue(0.5,0.5);
-        else { // the triangles are crossing; this covers all cases
+        else { // the triangles are crossing;
+               // this covers all cases
           result.computeValue(0.3,0.7);
           result.computeValue(0.7,0.3);
           result.computeValue(0.5,0.5);
@@ -2043,20 +2008,23 @@ public ListExpr toListExpr(){
   if(fTs.getSize()==0)
      Triangles = ListExpr.theEmptyList();
   else {
-     Triangles = ListExpr.oneElemList(((fTriangle)fTs.get(0)).toListExpr()); 
+     Triangles = ListExpr.oneElemList(
+                    ((fTriangle)fTs.get(0)).toListExpr());
      Last = Triangles;
   }
-  fTriangle NextTriangle; 
+  fTriangle NextTriangle;
   for(int i=1;i<fTs.getSize();i++){
      NextTriangle = (fTriangle) fTs.get(i);
      Last=ListExpr.append(Last,NextTriangle.toListExpr());
   }
-  return ListExpr.twoElemList( ListExpr.realAtom((float)SF),Triangles);
+  return ListExpr.twoElemList(
+            ListExpr.realAtom((float)SF),Triangles);
 }
 
 /** creates a new ListEXpr <type,value>*/
 public ListExpr toTypedListExpr(){
-  return ListExpr.twoElemList( ListExpr.symbolAtom("fregion"),toListExpr());
+  return ListExpr.twoElemList(
+           ListExpr.symbolAtom("fregion"),toListExpr());
 }
 
 
@@ -2073,11 +2041,13 @@ public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr SFList = LE.first();
-  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM ||
+  if( !( SFList.isAtom() &&
+        (SFList.atomType()==ListExpr.INT_ATOM ||
          SFList.atomType()==ListExpr.REAL_ATOM)))
      return false;
-  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() :
-                               SFList.realValue();
+  double z= SFList.atomType()==ListExpr.INT_ATOM ?
+                      SFList.intValue() :
+                      SFList.realValue();
   if(z<=0)
      return false;
   this.SF = z;
@@ -2085,7 +2055,7 @@ public boolean readFromListExpr(ListExpr LE){
 
   ListExpr Triangles = LE.second();
   fTriangle T;
-  boolean ok = true; 
+  boolean ok = true;
   while( !Triangles.isEmpty() & ok) {
     T = new fTriangle(0,0,0,0,0,0,0,0,0);
     if(T.readFromListExpr(Triangles.first())){
@@ -2094,13 +2064,13 @@ public boolean readFromListExpr(ListExpr LE){
     }
     else
        ok = false;
-
   }
   return ok;
-
 }
 
-/** returns a String representation of the corresponding ListExpr*/
+/** returns a String representation of
+  * the corresponding ListExpr
+  */
 public String toListString(){
   return toListExpr().writeListExprToString();
 }
@@ -2116,17 +2086,19 @@ public boolean readFromListString(String List){
      return false;
   }
   else{
-     return readFromListExpr(LE); 
+     return readFromListExpr(LE);
  }
 }
 
-/** this method is used for reading a fuzzy region from a byte array;
+/** this method is used for reading a fuzzy region
+  * from a byte array;
   * returns null if the construction of the object failed
   */
 public static FRegion readFrom(byte[] buffer){
    try{
       ObjectInputStream ois;
-      ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+      ois = new ObjectInputStream(new
+                   ByteArrayInputStream(buffer));
       FRegion res = (FRegion) ois.readObject();
       ois.close();
       return res;
@@ -2142,7 +2114,8 @@ public  byte[] writeToByteArray(){
   try{
      ByteArrayOutputStream byteout;
      byteout = new ByteArrayOutputStream(fTs.getSize()*16+25);
-     ObjectOutputStream objectout = new ObjectOutputStream(byteout);
+     ObjectOutputStream objectout;
+     objectout = new ObjectOutputStream(byteout);
      objectout.writeObject(this);
      objectout.flush();
      byte[] res = byteout.toByteArray();
@@ -2156,18 +2129,16 @@ public  byte[] writeToByteArray(){
 /** computes a hash-value for this FPoint */
 public int getHashValue(){
   return Math.abs((BB.getMaxX()-BB.getMinX())*
-                  (BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
+                  (BB.getMaxY()-BB.getMinY())+BB.getMinX()
+                  +BB.getMinY());
 }
 
 
-
-
-
 // define constants for the operators
-private static final int UNION = 0;             // union based on max
-private static final int INTERSECTION=1;   // difference based on min
-private static final int ADD=2;                 // addition with cut if >1
-private static final int SUBTRACT=3;            // substraction with cut if<0
+private static final int UNION = 0;
+private static final int INTERSECTION=1;
+private static final int ADD=2;
+private static final int SUBTRACT=3;
 
 private static final int SCALEDUNION=4;
 private static final int SCALEDINTERSECTION=5;

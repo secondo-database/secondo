@@ -44,7 +44,8 @@ public fEPoint(int x, int y, double Z){
 
 /**
  * returns a copy of this
- * @return a new fEPoint whith same location and fuzziness as this
+ * @return a new fEPoint whith same location and
+ * fuzziness as this
  */
 public fEPoint copy() {
    return new fEPoint(BP.copy(),Z);
@@ -125,13 +126,14 @@ for (int i=0; i<fEPs.length;i++)
 public ListExpr toListExpr(){
   return ListExpr.threeElemList(ListExpr.intAtom(BP.getX()), 
                                 ListExpr.intAtom(BP.getY()),
-					  ListExpr.realAtom((float) Z)); 
+                                ListExpr.realAtom((float) Z));
 }
 
 
-/** set this fEPoint to values from LE 
+/** set this fEPoint to values from LE
   * if LE is not a valid fEPoint this fEPoint is not changed
-  * @return true if LE represent a valid fEPoint , false otherwise 
+  * @return true if LE represent a valid fEPoint ,
+  *  false otherwise
   */
 public boolean readFromListExpr(ListExpr LE){
    if (LE==null)
@@ -140,9 +142,9 @@ public boolean readFromListExpr(ListExpr LE){
       return false;
    ListExpr LE1 = LE.first();
    ListExpr LE2 = LE.second();
-   ListExpr LE3 = LE.third(); 
+   ListExpr LE3 = LE.third();
    int x,y;
-   float z;     
+   float z;
    if(LE1.isAtom() && LE1.atomType()==ListExpr.INT_ATOM){
       x = LE1.intValue();
     }
@@ -161,7 +163,7 @@ public boolean readFromListExpr(ListExpr LE){
           z=LE3.intValue();
        }
        else{
-          z=LE3.realValue(); 
+          z=LE3.realValue();
        }
     else
        return false;
@@ -174,8 +176,8 @@ public boolean readFromListExpr(ListExpr LE){
        return false;
     }
     this.BP=P;
-    this.Z = z; 
-    return true;  
+    this.Z = z;
+    return true;
 }
 
 

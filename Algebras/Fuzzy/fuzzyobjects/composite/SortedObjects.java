@@ -141,17 +141,19 @@ boolean result = true;
 if( V.size()==0)
     V.add(SO);                     // the first element
 else
-   if ( compare(BO,(SimpleObject)V.get(0))<0)  // the first element
+   if ( compare(BO,(SimpleObject)V.get(0))<0)
+      // the first element
       V.add(0,SO);
    else
-      if( compare(BO,(SimpleObject)V.get(V.size()-1)) >0 )   // last Element
+      if( compare(BO,(SimpleObject)V.get(V.size()-1)) >0 )
+         // last Element
          V.add(SO);
       else{
          // search insertPosition
         int min = 0;
         int max = V.size()-1;
         int mid;
- 
+
         boolean found = false;
         SimpleObject current;
 
@@ -200,7 +202,8 @@ int result = -1;
 
  // in the cases : V is empty | BO<V.first or BO>V.Last is
  // nothing to do
- if (!(  (V.size()==0) || (compare(BO,(SimpleObject)V.get(V.size()-1))>0)
+ if (!(  (V.size()==0) ||
+         (compare(BO,(SimpleObject)V.get(V.size()-1))>0)
       || (compare(BO, (SimpleObject)V.get(0))<0) )){
 
 

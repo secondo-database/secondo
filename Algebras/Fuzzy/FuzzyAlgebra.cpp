@@ -1,6 +1,6 @@
 
 /*
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ]        [}]
 
 \title{Fuzzy Algebra}
 \author{Thomas Behr}
@@ -75,7 +75,7 @@ The following three classes are implemented in the
 java programming language. The C++ functions invoke the corresponding
 java methods.
 
-2.1 The wrapper class for java implementation of a fuzzy point
+2.1 The Class CcFPoint
 
 */
 class CcFPoint: public StandardAttribute{
@@ -131,7 +131,7 @@ private:
 
 
 /*
-2.2 A class for fuzzy Lines based on  a FLine Java implementation
+2.2 The Class CcFLine
 
 */
 class CcFLine : public StandardAttribute{
@@ -190,7 +190,7 @@ class CcFLine : public StandardAttribute{
 };
 
 /*
-2.3 The wrapper class for java implementation of a fuzzy region
+2.3 The Class CcFRegion
 
 */
 class CcFRegion: public StandardAttribute{
@@ -720,7 +720,7 @@ CcFPoint* CcFPoint::Union(CcFPoint* P){
 
 
 /*
-3.2 Definition of the Functions for FLines
+3.2 Definition of the Functions for CcFLines
 
 ~The standard constructor~
 
@@ -729,8 +729,8 @@ CcFLine::CcFLine(){}
 
 CcFLine::CcFLine(const int size):
          objectData(size),
-	 canDelete(false)
-	 {}
+         canDelete(false)
+         {}
 
 /*
 ~RestoreFLOBFromJavaObject~
@@ -1016,7 +1016,7 @@ static ListExpr FTriangleToListExpr(jobject obj){
   jobject P3 = env->CallObjectMethod(obj,mid3);
   ListExpr res = nl->ThreeElemList( fEPointToListExpr(P1),
                                     fEPointToListExpr(P2),
-				    fEPointToListExpr(P3));
+                                    fEPointToListExpr(P3));
   return res;
 }
 
@@ -1310,7 +1310,7 @@ CcFLine* CcFLine::Union(CcFLine* L){
 
 
 /*
-3.3 The Definition of the Functions for CcFRegion
+3.3 The Definition of the Functions for CcFRegions
 
 ~The standard Constructor~
 
@@ -1319,8 +1319,8 @@ CcFRegion::CcFRegion(){}
 
 CcFRegion::CcFRegion(const int size):
          objectData(size),
-	 canDelete(false)
-	 {}
+         canDelete(false)
+         {}
 
 void CcFRegion::RestoreFLOBFromJavaObject(){
    jmethodID mid;
@@ -1342,7 +1342,7 @@ void CcFRegion::RestoreFLOBFromJavaObject(){
      if(cls==0) error(__LINE__);
      if(&objectData==0){
          defined=false;
-	 return;
+         return;
      }
      int size=objectData.Size();
      char* bytes = new char[size];
@@ -1764,6 +1764,7 @@ CcFRegion* CcFRegion::Union(CcFRegion* R){
 /*
 
 4 Type Constructors
+
 4.1 Out Functions
 
 */
@@ -1825,10 +1826,10 @@ static ListExpr OutFRegion(ListExpr typeInfo,Word value){
 
 */
 static Word InFPoint (const ListExpr typeInfo,
-		     const ListExpr instance,
-		     const int errorPos,
-		     ListExpr& errorInfo,
-		     bool& correct ) {
+                     const ListExpr instance,
+                     const int errorPos,
+                     ListExpr& errorInfo,
+                     bool& correct ) {
 
 
   if (nl->ListLength(instance)!=2){  // error
@@ -1864,19 +1865,19 @@ static Word InFPoint (const ListExpr typeInfo,
   while(ok & !nl->IsEmpty(Points)){
         PL = nl->First(Points);
         NextPoint = ListExprTofEPoint(PL);
-	count++;
-	if(NextPoint==0){
-	    ok = false;
-	    cerr << "error in ListExprTofEPoint in" ;
-	    cerr << "object number :" << count << endl;
-	}
-	else{
-	   ok = env->CallBooleanMethod(FP,mid,NextPoint);
-	   if(!ok)
-	       cerr << "error in converting point no ";
-	       cerr << count << endl;
-	}
-	Points = nl->Rest(Points);
+        count++;
+        if(NextPoint==0){
+            ok = false;
+            cerr << "error in ListExprTofEPoint in" ;
+            cerr << "object number :" << count << endl;
+        }
+        else{
+           ok = env->CallBooleanMethod(FP,mid,NextPoint);
+           if(!ok)
+               cerr << "error in converting point no ";
+               cerr << count << endl;
+        }
+        Points = nl->Rest(Points);
     }
 
 
@@ -1892,10 +1893,10 @@ static Word InFPoint (const ListExpr typeInfo,
 }
 
 static Word InFLine( const ListExpr typeInfo,
-			   const ListExpr instance,
-			   const int errorPos,
-			   ListExpr& errorInfo,
-			   bool& correct){
+                           const ListExpr instance,
+                           const int errorPos,
+                           ListExpr& errorInfo,
+                           bool& correct){
 
 
   if (nl->ListLength(instance)!=2){
@@ -1930,14 +1931,14 @@ static Word InFLine( const ListExpr typeInfo,
   while(ok & !nl->IsEmpty(Segments)){
         SL = nl->First(Segments);
         NextSegment = ListExprToFSegment(SL);
-	count++;
-	if(NextSegment==0){
-	    ok = false;
-	}
-	else{
-	   ok = env->CallBooleanMethod(FL,mid,NextSegment);
-	}
-	Segments = nl->Rest(Segments);
+        count++;
+        if(NextSegment==0){
+            ok = false;
+        }
+        else{
+           ok = env->CallBooleanMethod(FL,mid,NextSegment);
+        }
+        Segments = nl->Rest(Segments);
     }
 
   if(ok){
@@ -1989,14 +1990,14 @@ static Word InFRegion(const ListExpr typeInfo,
   while(ok & !nl->IsEmpty(Triangles)){
         TL = nl->First(Triangles);
         NextTriangle = ListExprToFTriangle(TL);
-	count++;
-	if(NextTriangle==0){
-	    ok = false;
-	}
-	else{
-	   ok = env->CallBooleanMethod(FR,mid,NextTriangle);
-	}
-	Triangles = nl->Rest(Triangles);
+        count++;
+        if(NextTriangle==0){
+            ok = false;
+        }
+        else{
+           ok = env->CallBooleanMethod(FR,mid,NextTriangle);
+        }
+        Triangles = nl->Rest(Triangles);
     }
   if(ok){
      correct=true;
@@ -2118,16 +2119,16 @@ static ListExpr FPointProperty() {
   return
     (nl->TwoElemList(
        nl->FourElemList(
-	 nl->StringAtom("Signature"),
-	 nl->StringAtom("Example Type List"),
-	 nl->StringAtom("List Rep"),
-	 nl->StringAtom("Example List")
+         nl->StringAtom("Signature"),
+         nl->StringAtom("Example Type List"),
+         nl->StringAtom("List Rep"),
+         nl->StringAtom("Example List")
        ),
        nl->FourElemList(
-	 nl->StringAtom("-> DATA"),
-	 nl->StringAtom("fpoint"),
-	 nl->StringAtom("factor <fepointlist>"),
-	 nl->StringAtom("(20.4 ((0 0 0.5)(20 30 0.1)(-20 60 1.0))")
+         nl->StringAtom("-> DATA"),
+         nl->StringAtom("fpoint"),
+         nl->StringAtom("factor <fepointlist>"),
+         nl->StringAtom("(20.4 ((0 0 0.5)(20 30 0.1)(-20 60 1.0))")
        )
      )
     );
@@ -2140,13 +2141,14 @@ static ListExpr FLineProperty(){
         nl->StringAtom("Signature"),
         nl->StringAtom("Example Type List"),
         nl->StringAtom("List Rep"),
-	nl->StringAtom("Example List")
+        nl->StringAtom("Example List")
       ),
       nl->FourElemList(
-	nl->StringAtom("->DATA"),
-	nl->StringAtom("fline"),
-	nl->StringAtom("(scale <fuzzy segment list>)"),
-	nl->StringAtom("(100.0 (((0 0 1.0) (20 30 0.5))((0 0 0.8)(-20 -30 0.0))))")
+        nl->StringAtom("->DATA"),
+        nl->StringAtom("fline"),
+        nl->StringAtom("(scale <fuzzy segment list>)"),
+        nl->StringAtom("(100.0 (((0 0 1.0) (20 30 0.5))((0 0 0.8)"
+                       "(-20 -30 0.0))))")
       )
     )
   );
@@ -2181,7 +2183,7 @@ all type constructors  does not have arguments, this is trivial.
 */
 
 static bool CheckPoint( ListExpr type, ListExpr& errorInfo ) {
-	return (nl->IsEqual(type, "fpoint"));
+        return (nl->IsEqual(type, "fpoint"));
 }
 
 static bool CheckFLine(ListExpr type, ListExpr& errorInfo){
@@ -2198,7 +2200,7 @@ static bool CheckFRegion(ListExpr type, ListExpr& errorInfo){
 */
 bool OpenFPoint(SmiRecord& valueRecord,
                 const ListExpr typeInfo,
-		Word& value){
+                Word& value){
    CcFPoint* FP = new CcFPoint(0);
    FP->Open(valueRecord, typeInfo);
    FP->RestoreJavaObjectFromFLOB();
@@ -2208,7 +2210,7 @@ bool OpenFPoint(SmiRecord& valueRecord,
 
 bool OpenFLine(SmiRecord& valueRecord,
                 const ListExpr typeInfo,
-		Word& value){
+                Word& value){
    CcFLine* FL = new CcFLine(0);
    FL->Open(valueRecord, typeInfo);
    FL->RestoreJavaObjectFromFLOB();
@@ -2218,7 +2220,7 @@ bool OpenFLine(SmiRecord& valueRecord,
 
 bool OpenFRegion(SmiRecord& valueRecord,
                  const ListExpr typeInfo,
-		 Word& value){
+                 Word& value){
    CcFRegion* FR = new CcFRegion(0);
    FR->Open(valueRecord, typeInfo);
    FR->RestoreJavaObjectFromFLOB();
@@ -2232,7 +2234,7 @@ bool OpenFRegion(SmiRecord& valueRecord,
 */
 bool SaveFPoint( SmiRecord& valueRecord,
                  const ListExpr typeInfo,
-		 Word& value)
+                 Word& value)
 { CcFPoint* FP = (CcFPoint*) value.addr;
   FP->Save(valueRecord,typeInfo);
   return true;
@@ -2240,7 +2242,7 @@ bool SaveFPoint( SmiRecord& valueRecord,
 
 bool SaveFLine( SmiRecord& valueRecord,
                  const ListExpr typeInfo,
-		 Word& value)
+                 Word& value)
 {
   CcFLine* FL = (CcFLine*) value.addr;
   FL->Save(valueRecord,typeInfo);
@@ -2249,7 +2251,7 @@ bool SaveFLine( SmiRecord& valueRecord,
 
 bool SaveFRegion( SmiRecord& valueRecord,
                   const ListExpr typeInfo,
-		  Word& value)
+                  Word& value)
 {
   CcFRegion* FR = (CcFRegion*) value.addr;
   FR->Save(valueRecord,typeInfo);
@@ -2424,11 +2426,11 @@ static ListExpr FOiRealFOi(ListExpr args){
       if(nl->IsEqual(nl->Second(args),"real")){
          ListExpr f = nl->First(args);
          if(nl->IsEqual(f,"fpoint"))
-	    return nl->SymbolAtom("fpoint");
+            return nl->SymbolAtom("fpoint");
          if(nl->IsEqual(f,"fline"))
-	    return nl->SymbolAtom("fline");
+            return nl->SymbolAtom("fline");
          if(nl->IsEqual(f,"fregion"))
-	    return nl->SymbolAtom("fregion");
+            return nl->SymbolAtom("fregion");
       }
     }
    return nl->SymbolAtom("typeerror");
@@ -3742,13 +3744,13 @@ ModelMapping Model_3[] =
 */
 Operator op_add
 (
- "add", 		//name
- add_spec,  		//specification ....
+ "add",                 //name
+ add_spec,                  //specification ....
  3,                     // number of functions
- AddMap,		//value mapping
- Model_3,	      	//dummy model mapping
- fuzzySelect,		//selection function
- FOiFOiFOi		//type mapping
+ AddMap,                //value mapping
+ Model_3,                      //dummy model mapping
+ fuzzySelect,                //selection function
+ FOiFOiFOi                //type mapping
 );
 
 Operator op_setsf
@@ -3764,332 +3766,332 @@ Operator op_setsf
 
 Operator op_alphacut
 (
- "alphacut", 	//name
- alphacut_spec,	//specification ....
+ "alphacut",         //name
+ alphacut_spec,        //specification ....
  3,
- AlphaCutMap,	//value mapping
- Model_3,  	//dummy model mapping, defined in Algebra.h
- fuzzySelect,	//trivial selection function
- FOiRealBoolFOi	//type mapping
+ AlphaCutMap,        //value mapping
+ Model_3,          //dummy model mapping, defined in Algebra.h
+ fuzzySelect,        //trivial selection function
+ FOiRealBoolFOi        //type mapping
 );
 
 Operator op_basiccard
 (
- "basiccard", 		//name
- basiccard_spec,  	//specification ....
- BasicCard_P,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FPointReal		//type mapping
+ "basiccard",                 //name
+ basiccard_spec,          //specification ....
+ BasicCard_P,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FPointReal                //type mapping
 );
 
 Operator op_cardinality
 (
- "cardinality", 	//name
- cardinality_spec,  	//specification ....
- Cardinality_P,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FPointReal		//type mapping
+ "cardinality",         //name
+ cardinality_spec,          //specification ....
+ Cardinality_P,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FPointReal                //type mapping
 );
 
 Operator op_length3d
 (
- "length3d", 		//name
- length3d_spec,  	//specification ....
- Length3D_L,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FLineReal		//type mapping
+ "length3d",                 //name
+ length3d_spec,          //specification ....
+ Length3D_L,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FLineReal                //type mapping
 );
 
 Operator op_length
 (
- "length", 		//name
- length_spec,  		//specification ....
- Length_L,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FLineReal		//type mapping
+ "length",                 //name
+ length_spec,                  //specification ....
+ Length_L,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FLineReal                //type mapping
 );
 
 Operator op_basiclength
 (
- "basiclength", 	//name
- basiclength_spec,  	//specification ....
- BasicLength_L,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FLineReal		//type mapping
+ "basiclength",         //name
+ basiclength_spec,          //specification ....
+ BasicLength_L,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FLineReal                //type mapping
 );
 
 Operator op_area
 (
- "area", 		//name
- area_spec,  		//specification ....
- Area_R,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FRegionReal		//type mapping
+ "area",                 //name
+ area_spec,                  //specification ....
+ Area_R,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FRegionReal                //type mapping
 );
 
 Operator op_area3d
 (
- "area3d", 		//name
- area3d_spec,  		//specification ....
- Area3D_R,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FRegionReal		//type mapping
+ "area3d",                 //name
+ area3d_spec,                  //specification ....
+ Area3D_R,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FRegionReal                //type mapping
 );
 
 Operator op_basicarea
 (
- "basicarea", 		//name
- basicarea_spec,  	//specification ....
- BasicArea_R,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FRegionReal		//type mapping
+ "basicarea",                 //name
+ basicarea_spec,          //specification ....
+ BasicArea_R,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FRegionReal                //type mapping
 );
 
 Operator op_basicsimilar
 (
- "basicsimilar", 	//name
- basicsimilar_spec,  	//specification ....
- 3,			// number of fucntions
- BasicSimilarMap,	//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOiFOiReal		//type mapping
+ "basicsimilar",         //name
+ basicsimilar_spec,          //specification ....
+ 3,                        // number of fucntions
+ BasicSimilarMap,        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOiFOiReal                //type mapping
 );
 
 Operator op_boundary
 (
- "boundary", 		//name
- boundary_spec,  	//specification ....
+ "boundary",                 //name
+ boundary_spec,          //specification ....
  2,
- BoundaryMap,		//value mapping
- Model_2,	       	//dummy model mapping, defined in Algebra.h
- RLSelect,		//trivial selection function
- BoundaryTypeMap	//type mapping
+ BoundaryMap,                //value mapping
+ Model_2,                       //dummy model mapping, defined in Algebra.h
+ RLSelect,                //trivial selection function
+ BoundaryTypeMap        //type mapping
 );
 
 Operator op_contour
 (
- "contour", 		//name
- contour_spec,  	//specification ....
- Contour_R,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FRegionFLine		//type mapping
+ "contour",                 //name
+ contour_spec,          //specification ....
+ Contour_R,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FRegionFLine                //type mapping
 );
 
 Operator op_commonlines
 (
- "commonlines", 	//name
- commonlines_spec,  	//specification ....
- CommonLines_RR,	//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FRegionFRegionFLine	//type mapping
+ "commonlines",         //name
+ commonlines_spec,          //specification ....
+ CommonLines_RR,        //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FRegionFRegionFLine        //type mapping
 );
 
 Operator op_commonpoints
 (
- "commonpoints", 	//name
- commonpoints_spec,  	//specification ....
+ "commonpoints",         //name
+ commonpoints_spec,          //specification ....
  2,
- CommonPointsMap,	//value mapping
- Model_2,		//dummy model mapping, defined in Algebra.h
- RLSelect,		//trivial selection function
- CommonPointsTypeMap	//type mapping
+ CommonPointsMap,        //value mapping
+ Model_2,                //dummy model mapping, defined in Algebra.h
+ RLSelect,                //trivial selection function
+ CommonPointsTypeMap        //type mapping
 );
 
 Operator op_difference
 (
- "difference", 		//name
- difference_spec,  	//specification ....
+ "difference",                 //name
+ difference_spec,          //specification ....
  3,
- DifferenceMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOiFOiFOi		//type mapping
+ DifferenceMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOiFOiFOi                //type mapping
 );
 
 Operator op_scalefactor
 (
- "scalefactor", 	//name
- getscalefactor_spec,  	//specification ....
+ "scalefactor",         //name
+ getscalefactor_spec,          //specification ....
  3,
- ScaleFactorMap,	//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOReal			//type mapping
+ ScaleFactorMap,        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOReal                        //type mapping
 );
 
 Operator op_holes
 (
- "holes", 		//name
- holes_spec,  		//specification ....
- Holes_R,		//value mapping
- Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
- simpleSelect,		//trivial selection function
- FRegionFRegion		//type mapping
+ "holes",                 //name
+ holes_spec,                  //specification ....
+ Holes_R,                //value mapping
+ Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+ simpleSelect,                //trivial selection function
+ FRegionFRegion                //type mapping
 );
 
 Operator op_intersection
 (
- "fuzzy_intersection", 	//name
- intersection_spec,  	//specification ....
+ "fuzzy_intersection",         //name
+ intersection_spec,          //specification ....
   3,
- IntersectionMap,	//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOiFOiFOi		//type mapping
+ IntersectionMap,        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOiFOiFOi                //type mapping
 );
 
 Operator op_isempty
 (
- "isempty", 		//name
- isempty_spec,  	//specification ....
+ "isempty",                 //name
+ isempty_spec,          //specification ....
  3,
- IsEmptyMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOBool			//type mapping
+ IsEmptyMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOBool                        //type mapping
 );
 
 Operator op_maxv
 (
- "maxvalue", 		//name
- maxz_spec,  		//specification ....
+ "maxvalue",                 //name
+ maxz_spec,                  //specification ....
  3,
- MaxValueMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOReal			//type mapping
+ MaxValueMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOReal                        //type mapping
 );
 
 Operator op_minv
 (
- "minvalue", 		//name
- minz_spec,  		//specification ....
+ "minvalue",                 //name
+ minz_spec,                  //specification ....
  3,
- MinValueMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOReal			//type mapping
+ MinValueMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOReal                        //type mapping
 );
 
 Operator op_max_value_at
 (
- "max_value_at", 	//name
- maxzfkt_spec,  	//specification ....
+ "max_value_at",         //name
+ maxzfkt_spec,          //specification ....
  3,
- MaxValueAtMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FORealRealReal		//type mapping
+ MaxValueAtMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FORealRealReal                //type mapping
 );
 
 Operator op_mid_value_at
 (
- "mid_value_at", 	//name
- midzfkt_spec,  	//specification ....
+ "mid_value_at",         //name
+ midzfkt_spec,          //specification ....
  3,
- MidValueAtMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FORealRealReal		//type mapping
+ MidValueAtMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FORealRealReal                //type mapping
 );
 
 Operator op_min_value_at
 (
- "min_value_at", 	//name
- minzfkt_spec,  	//specification ....
+ "min_value_at",         //name
+ minzfkt_spec,          //specification ....
  3,
- MinValueAtMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FORealRealReal		//type mapping
+ MinValueAtMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FORealRealReal                //type mapping
 );
 
 Operator op_scaled_add
 (
- "scaled_add", 		//name
- scaledadd_spec,  	//specification ....
+ "scaled_add",                 //name
+ scaledadd_spec,          //specification ....
  3,
- ScaledAddMap,		//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOiFOiFOi		//type mapping
+ ScaledAddMap,                //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOiFOiFOi                //type mapping
 );
 
 Operator op_scaled_difference
 (
- "scaled_difference", 	//name
+ "scaled_difference",         //name
  scaleddifference_spec, //specification ....
  3,
- ScaledDifferenceMap,	//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,		//trivial selection function
- FOiFOiFOi		//type mapping
+ ScaledDifferenceMap,        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                //trivial selection function
+ FOiFOiFOi                //type mapping
 );
 
 Operator op_scaled_intersection
 (
- "scaled_intersection", 	//name
- scaledintersection_spec,	//specification ....
+ "scaled_intersection",         //name
+ scaledintersection_spec,        //specification ....
  3,
- ScaledIntersectionMap,		//value mapping
- Model_3,			//dummy model mapping
- fuzzySelect,			//trivial selection function
- FOiFOiFOi			//type mapping
+ ScaledIntersectionMap,                //value mapping
+ Model_3,                        //dummy model mapping
+ fuzzySelect,                        //trivial selection function
+ FOiFOiFOi                        //type mapping
 );
 
 Operator op_scaled_union
 (
- "scaled_union", 			//name
- scaledunion_spec,  		//specification ....
+ "scaled_union",                         //name
+ scaledunion_spec,                  //specification ....
  3,
- ScaledUnionMap,			//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function
- FOiFOiFOi		//type mapping
+ ScaledUnionMap,                        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                        //trivial selection function
+ FOiFOiFOi                //type mapping
 );
 
 Operator op_union
 (
- "fuzzy_union", 			//name
- union_spec,  		//specification ....
+ "fuzzy_union",                         //name
+ union_spec,                  //specification ....
  3,
- UnionMap,			//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function
- FOiFOiFOi		//type mapping
+ UnionMap,                        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                        //trivial selection function
+ FOiFOiFOi                //type mapping
 );
 
 Operator op_sharp
 (
- "sharp", 			//name
- sharp_spec,  		//specification ....
+ "sharp",                         //name
+ sharp_spec,                  //specification ....
  3,
- SharpMap,			//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function
- FOiFOi		//type mapping
+ SharpMap,                        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                        //trivial selection function
+ FOiFOi                //type mapping
 );
 
 Operator op_similar
 (
- "similar", 			//name
- similar_spec,  		//specification ....
+ "similar",                         //name
+ similar_spec,                  //specification ....
  3,
- SimilarMap,			//value mapping
- Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function
- FOiFOiReal		//type mapping
+ SimilarMap,                        //value mapping
+ Model_3,                //dummy model mapping, defined in Algebra.h
+ fuzzySelect,                        //trivial selection function
+ FOiFOiReal                //type mapping
 );
 
 /*

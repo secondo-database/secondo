@@ -84,7 +84,8 @@ public int getDim() { return 0; }
 
 /**
  * check whether this is a valid point
- * i.e. here is ckecked whether all containing fuzzy elementary points
+ * i.e. here is ckecked whether all containing fuzzy
+ * elementary points
  * are valid and the factor of scale is greater then 0
  */
 public boolean isValid(){
@@ -141,10 +142,11 @@ else{
 /**
  * inserted a new fuzzy elementary point to this FPoint
  * @param SP the fEPoint to inserted
- * @return <ul>
- *            <li> true if SP is not containing in original FPoint
- *            <li> false if SP is in FPoint, SP is not inserted
- *         </ul>
+ * @return
+ * <ul>
+ *    <li> true if SP is not containing in original FPoint
+ *    <li> false if SP is in FPoint, SP is not inserted
+ * </ul>
  */
 public boolean add(fEPoint SP){
 
@@ -167,7 +169,8 @@ if(ok) { // update bounding box
     BB.setBox(minX,minY,maxX,maxY);
  }
  else
-   BB.setBox(SP.getMinX(),SP.getMinY(),SP.getMaxX(),SP.getMaxY());
+   BB.setBox(SP.getMinX(),SP.getMinY(),
+             SP.getMaxX(),SP.getMaxY());
 }
 return ok;
 
@@ -176,10 +179,11 @@ return ok;
 /**
  * updated a fEPoint containing in this FPoint
  * @param SP the fEPoint to updated
- * @return <ul>
- *           <li> true if SP is containing in this
- *           <li> false SP is not a element of this, nothing to update
- *         </ul>
+ * @return
+ * <ul>
+ *   <li> true if SP is containing in this
+ *   <li> false SP is not a element of this, nothing to update
+ * </ul>
  */
 public boolean update(fEPoint SP){
    if(feP.update(SP.copy())){
@@ -226,12 +230,13 @@ public void overwrite(fEPoint SP){
    BB.setBox(minX,minY,maxX,maxY);
  }
  else
-   BB.setBox(SP.getMinX(),SP.getMinY(),SP.getMaxX(),SP.getMaxY());
+   BB.setBox(SP.getMinX(),SP.getMinY(),
+             SP.getMaxX(),SP.getMaxY());
 }
 
 /**
- * creates a new FPoint and invokes <a href="#overwrite(fEPoint)">
- * overwrite(fEPoint) </A>
+ * creates a new FPoint and invokes
+ * <a href="#overwrite(fEPoint)"> * overwrite(fEPoint) </a>
  * @return true if (x,y,Z) is a valid fEPoint
  */
 public boolean overwrite(int x, int y , double Z){
@@ -264,7 +269,8 @@ public double[] ZRel(double x, double y) {
  double[] Rel = new double[1];
  Rel[0] = 0.0;
  if ( (int)x == x  && (int)y==y){  // x and y are integers
-     fEPoint P = (fEPoint) feP.search( new BasicPoint((int)x,(int)y) );
+     fEPoint P = (fEPoint) feP.search(
+                    new BasicPoint((int)x,(int)y) );
      if (P!=null)
         Rel[0] = P.getZ();
  }
@@ -354,7 +360,7 @@ public double[] ZRel(BasicPoint BP){
  */
 public double Zfkt(double x, double y, BasicPoint BP){
 double result=0.0;
-if ( (int)x == x  && (int) y ==y) 
+if ( (int)x == x  && (int) y ==y)
   if (BP.getX()==x && BP.getY()==y) {
     fEPoint P = (fEPoint) feP.search(BP);
     if (P!=null)
@@ -615,7 +621,8 @@ while(!allready){
           Numbers.add(new Integer(i));
        }
        else {
-        compareP = (BasicPoint) ((fEPoint) allSmallest.get(0)).basic();
+        compareP = (BasicPoint)((fEPoint)
+                                 allSmallest.get(0)).basic();
         int comp =  currentP.basic().compareTo(compareP);
         if(comp==0) {  // a Triangle with smallest Basic
           allSmallest.add(currentP);
@@ -637,7 +644,8 @@ while(!allready){
 
   if(!allready){
     double Z=0;
-    BasicPoint BP = (BasicPoint) ((fEPoint)allSmallest.get(0)).basic();
+    BasicPoint BP = (BasicPoint) ((fEPoint)
+                                   allSmallest.get(0)).basic();
     fEPoint CP;
     for(int i=0;i<allSmallest.size();i++){
        // update numbers
@@ -695,7 +703,8 @@ while(!allready){
           Numbers.add(new Integer(i));
        }
        else {
-        compareP = (BasicPoint) ((fEPoint) allSmallest.get(0)).basic();
+        compareP = (BasicPoint) ((fEPoint)
+                    allSmallest.get(0)).basic();
         int comp =  currentP.basic().compareTo(compareP);
         if(comp==0) {  // a Triangle with smallest Basic
           allSmallest.add(currentP);
@@ -717,7 +726,8 @@ while(!allready){
 
   if(!allready){
     double Z=0;
-    BasicPoint BP = (BasicPoint) ((fEPoint)allSmallest.get(0)).basic();
+    BasicPoint BP = (BasicPoint) ((fEPoint)
+                                   allSmallest.get(0)).basic();
     fEPoint CP;
     for(int i=0;i<allSmallest.size();i++){
        // update numbers
@@ -751,7 +761,8 @@ private void processElements(fEPoint F1, double scale1,
                              int Operator){
 
 // 1 input parameter can be null
-// if both fTriangles not null, then they must have the same basic
+// if both fTriangles not null, then they must have the
+// same basic
 
   if( F1==null & F2==null) return;
 
@@ -762,122 +773,110 @@ private void processElements(fEPoint F1, double scale1,
   switch (Operator){
 
      case UNION  :  {  // the union of 2 Points ignoring SFs
+           if(F1==null)
+              Goal.feP.insert(F2.copy());
+           else if(F2==null)
+              Goal.feP.insert(F1.copy());
+           else { // both fEPoints are not null
+              Z = Math.max(F1.getZ(),F2.getZ());
+              newFEP = new fEPoint((BasicPoint)F1.basic(),Z);
+              Goal.feP.insert(newFEP);
+            } // else
+           }
+           break;
 
-                      if(F1==null)
-                          Goal.feP.insert(F2.copy());
-                      else
-                         if(F2==null)
-                           Goal.feP.insert(F1.copy());
-                         else { // both fEPoints are not null
-                           Z = Math.max(F1.getZ(),F2.getZ());
-                           newFEP = new fEPoint((BasicPoint)F1.basic(),Z);
-                           Goal.feP.insert(newFEP);
-                         } // else
-                    }
-                    break;
-
-    case INTERSECTION :
-                    {  if (F1==null | F2==null)
-                         ;
-                       else { // both are not null
-                          Z = Math.min(F1.getZ(),F2.getZ());
-                          newFEP = new fEPoint((BasicPoint)F1.basic(),Z);
-                          Goal.feP.insert(newFEP);
-                       }
-                    } break;
+    case INTERSECTION :{
+           if (F1==null | F2==null)
+               ;
+           else { // both are not null
+              Z = Math.min(F1.getZ(),F2.getZ());
+              newFEP = new fEPoint((BasicPoint)F1.basic(),Z);
+              Goal.feP.insert(newFEP);
+           }
+         } break;
 
     case ADD     :  {
-                      if(F1==null)
-                          Goal.feP.insert(F2.copy());
-                      else
-                         if(F2==null)
-                           Goal.feP.insert(F1.copy());
-                         else { // both fEPoints are not null
-                           Z = Math.min(1,F1.getZ()+F2.getZ());
-                           newFEP = new fEPoint((BasicPoint)F1.basic(),Z);
-                           Goal.feP.insert(newFEP);
-                         } // else
-                    }
-                    break;
+           if(F1==null)
+             Goal.feP.insert(F2.copy());
+           else if(F2==null)
+             Goal.feP.insert(F1.copy());
+           else { // both fEPoints are not null
+             Z = Math.min(1,F1.getZ()+F2.getZ());
+             newFEP = new fEPoint((BasicPoint)F1.basic(),Z);
+             Goal.feP.insert(newFEP);
+           } // else
+         }
+         break;
 
     case SUBTRACT :{
-                        if(F1 == null)
-                            ;
-                        else
-                           if(F2==null)
-                             Goal.feP.insert(F1.copy());
-                           else  {   // both not null
-                              Z = Math.max(0,F1.getZ()-F2.getZ());
-                              if (Z>0) {
-                                newFEP=new fEPoint((BasicPoint)F1.basic(),Z);
-                                Goal.feP.insert(newFEP);
-                              }
-                           }
-                       } break;
+           if(F1 == null)
+              ;
+           else  if(F2==null)
+              Goal.feP.insert(F1.copy());
+           else  {   // both not null
+              Z = Math.max(0,F1.getZ()-F2.getZ());
+              if (Z>0) {
+                 newFEP=new fEPoint((BasicPoint)F1.basic(),Z);
+                 Goal.feP.insert(newFEP);
+              }
+           }
+          } break;
 
+    case SCALEDUNION    :
+           { fEPoint newfePoint;
+             if (F1==null)
+                newfePoint = new fEPoint((BasicPoint)F2.basic(),
+                                          F2.getZ()*scale2);
+             else if (F2==null)
+                newfePoint=new fEPoint((BasicPoint)F1.basic(),
+                                        F1.getZ()*scale1);
+             else {
+                Z = Math.max(F1.getZ()*scale1,F2.getZ()*scale2);
+                newfePoint = new fEPoint((BasicPoint)F1.basic(),
+                                          Z);
+             }  // else
+             Goal.add(newfePoint);
+           } break;   // scaled union
 
-      case SCALEDUNION    :
-                      { fEPoint newfePoint;
-                        if (F1==null)
-                          newfePoint = new fEPoint((BasicPoint)F2.basic(),
-                                                    F2.getZ()*scale2);
-                         else
-                           if (F2==null)
-                              newfePoint=new fEPoint((BasicPoint)F1.basic(),
-                                                      F1.getZ()*scale1);
-                           else {
-                             Z = Math.max(F1.getZ()*scale1,F2.getZ()*scale2);
-                             newfePoint = new fEPoint((BasicPoint)F1.basic(),
-                                                       Z);
-                           }  // else
-                        Goal.add(newfePoint);
-                      } break;   // scaled union
-
-
-      case SCALEDINTERSECTION :  if (F1==null || F2==null)
-                                         ;
-                                   else {
-                                     Z = Math.min(F1.getZ()*scale1,
-                                                  F2.getZ()*scale2);
-
-                                    Goal.add(new fEPoint( (BasicPoint)
-                                                            F1.basic(),Z));
-                                   } break;
+    case SCALEDINTERSECTION :
+           if (F1==null || F2==null)
+               ;
+           else {
+             Z = Math.min(F1.getZ()*scale1,
+                          F2.getZ()*scale2);
+             Goal.add(new fEPoint( (BasicPoint)
+                                   F1.basic(),Z));
+           } break;
 
       case SCALEDADD : {
-                          if(F1==null)
-                             Goal.add(new fEPoint( (BasicPoint)F2.basic(),
-                                                    F2.getZ()*scale2));
-                          else
-                            if(F2==null)
-                              Goal.add(new fEPoint( (BasicPoint)F1.basic(),
-                                                     F1.getZ()*scale1 ));
-                            else {
-                              Goal.add(new fEPoint((BasicPoint)F1.basic(),
-                                                    F1.getZ()*scale1 +
-                                                    F2.getZ()*scale2 ));
-                            }
-                        } break;
+             if(F1==null)
+               Goal.add(new fEPoint( (BasicPoint)F2.basic(),
+                                      F2.getZ()*scale2));
+             else if(F2==null)
+               Goal.add(new fEPoint( (BasicPoint)F1.basic(),
+                                     F1.getZ()*scale1 ));
+             else {
+               Goal.add(new fEPoint((BasicPoint)F1.basic(),
+                                     F1.getZ()*scale1 +
+                                     F2.getZ()*scale2 ));
+             }
+           } break;
 
-      case SCALEDDIFFERENCE   :
-                       {
-                          if(F1==null)
-                             Goal.add(new fEPoint( (BasicPoint) F2.basic(),
-                                                    -F2.getZ()*scale2 ));
-                          else
-                            if(F2==null)
-                              Goal.add(new fEPoint( (BasicPoint) F1.basic(),
-                                                     F1.getZ()*scale1 ));
-                            else {
-                              Goal.add(new fEPoint( (BasicPoint) F1.basic(),
-                                                      F1.getZ()*scale1 -
-                                                      F2.getZ()*scale2 ));
-                            }
-                        } break;
+      case SCALEDDIFFERENCE   : {
+              if(F1==null)
+                 Goal.add(new fEPoint( (BasicPoint) F2.basic(),
+                                      -F2.getZ()*scale2 ));
+              else  if(F2==null)
+                 Goal.add(new fEPoint( (BasicPoint) F1.basic(),
+                                        F1.getZ()*scale1 ));
+              else {
+                 Goal.add(new fEPoint( (BasicPoint) F1.basic(),
+                                        F1.getZ()*scale1 -
+                                        F2.getZ()*scale2 ));
+            }
+           } break;
 
-    default      : System.out.println("unimplementierter operator");
-
-
+    default : System.out.println("operator not implemented");
   } // switch
 
 } // processElements
@@ -910,9 +909,9 @@ if (maxMy >0 && maxFromFP>0){
    FPFirst = (fEPoint) FP.feP.get(fromFP);
    int compareResult;
 
-   while(my<maxMy && fromFP<maxFromFP){ // both sets have unprocessed elements
-
-      compareResult = myFirst.basic().compareTo(FPFirst.basic());
+   while(my<maxMy && fromFP<maxFromFP){
+       // both sets have unprocessed elements
+      compareResult=myFirst.basic().compareTo(FPFirst.basic());
       if(compareResult < 0) {
          processElements(myFirst,SF,null,FP.SF,result,op);
          my++;
@@ -920,20 +919,19 @@ if (maxMy >0 && maxFromFP>0){
              myFirst = (fEPoint) feP.get(my);
       }
       else if(compareResult > 0){
-            processElements(null,SF,FPFirst,FP.SF,result,op);
-            fromFP++;
-            if(fromFP<maxFromFP)
-               FPFirst = (fEPoint) FP.feP.get(fromFP);
-           }
-           else {     // elements have the same basic
-             processElements(myFirst,SF,FPFirst,FP.SF,result,op);
-             my++;
-             fromFP++;
-             if (my<maxMy)
-               myFirst = (fEPoint) feP.get(my);
-             if (fromFP<maxFromFP)
-               FPFirst = (fEPoint) FP.feP.get(fromFP);
-           }
+         processElements(null,SF,FPFirst,FP.SF,result,op);
+         fromFP++;
+         if(fromFP<maxFromFP)
+            FPFirst = (fEPoint) FP.feP.get(fromFP);
+      } else {     // elements have the same basic
+          processElements(myFirst,SF,FPFirst,FP.SF,result,op);
+          my++;
+          fromFP++;
+          if (my<maxMy)
+            myFirst = (fEPoint) feP.get(my);
+          if (fromFP<maxFromFP)
+            FPFirst = (fEPoint) FP.feP.get(fromFP);
+      }
    } // while
 } // if
 
@@ -989,7 +987,8 @@ private void norm(){
     for(int i=0;i<feP.getSize();i++){
        Current = (fEPoint) feP.get(i);
        Z = Current.getZ();
-       fePnew = new fEPoint((BasicPoint) Current.basic(),(Z-Zmin)/SFnew);
+       fePnew = new fEPoint((BasicPoint) Current.basic(),
+                            (Z-Zmin)/SFnew);
        if (fePnew.getZ() >0)
           newfePs.insert(fePnew);
    } // for
@@ -1000,18 +999,17 @@ private void norm(){
 }
 
 
-/****************************************************************
- *                                                              *
- *                  topological relationships                   *
- *                                                              *
- ****************************************************************/
+/*************************************************************
+ *                                                           *
+ *                  topological relationships                *
+ *                                                           *
+ *************************************************************/
 
-
-/****************************************************************
-*                                                               *
-*           Topology in the basic                               *
-*                                                               *
-*****************************************************************/
+/************************************************************
+*                                                           *
+*           Topology in the basic                           *
+*                                                           *
+*************************************************************/
 
 /**
  * returns a String representing the topological relationship
@@ -1057,14 +1055,14 @@ M9Int basicTopolRelation(FPoint P2){
  int maxThis = feP.getSize();
  int maxP2   = P2.feP.getSize();
 
- fEPoint FirstThis = (fEPoint)feP.get(0);  // the first unprocessed Elements
+ fEPoint FirstThis = (fEPoint)feP.get(0);
  fEPoint FirstP2   = (fEPoint)P2.feP.get(0);
  int compareResult;
 
  boolean ready = false; // all possible intersections are true ?
 
  while(currentThis<maxThis & currentP2<maxP2 & !ready){
-   compareResult =  FirstThis.basic().compareTo(FirstP2.basic());
+   compareResult = FirstThis.basic().compareTo(FirstP2.basic());
 
    if(compareResult<0){
      // a (basic)Point of this is in exterior of P2
@@ -1217,7 +1215,7 @@ M9Int basicTopolRelation(FRegion Region){
            result.getValue(M9Int.INTERIOR,M9Int.BOUNDARY) &
            result.getValue(M9Int.INTERIOR,M9Int.EXTERIOR);
    // all possible intersections are true => no more changes
- } // for 
+ } // for
 
 return result;
 }
@@ -1240,11 +1238,11 @@ return null;
 
 
 
-/*******************************************************************
- *                                                                 *
- *               Topology on fuzzy objects                         *
- *                                                                 *
- *******************************************************************/
+/*********************************************************
+ *                                                       *
+ *               Topology on fuzzy objects               *
+ *                                                       *
+ *********************************************************/
 
 /** computes the fuzzy top. Relation between this and P2 */
 public FuzzyTopRel topolRelation(FPoint P2){
@@ -1361,7 +1359,7 @@ public FuzzyTopRel topolRelation(CompositeObject CO){
 }
 
 
-/** returns the ListExpr representation of this FPoint 
+/** returns the ListExpr representation of this FPoint
   * (SF , (<PointList>))
   */
 public ListExpr toListExpr(){
@@ -1371,7 +1369,8 @@ public ListExpr toListExpr(){
   if(feP.getSize()==0)
      Points = ListExpr.theEmptyList();
   else {
-     Points = ListExpr.oneElemList(((fEPoint)feP.get(0)).toListExpr());
+     Points = ListExpr.oneElemList(
+                     ((fEPoint)feP.get(0)).toListExpr());
      Last = Points;
   }
   fEPoint NextPoint;
@@ -1379,10 +1378,13 @@ public ListExpr toListExpr(){
      NextPoint = (fEPoint) feP.get(i);
      Last=ListExpr.append(Last,NextPoint.toListExpr());
   }
-  return ListExpr.twoElemList( ListExpr.realAtom((float)SF),Points);
+  return ListExpr.twoElemList(
+                  ListExpr.realAtom((float)SF),Points);
 }
 
-/** returns a String representation of the corresponding ListExpr*/
+/** returns a String representation of
+  * the corresponding ListExpr
+  */
 public String toListString(){
   return toListExpr().writeListExprToString();
 }
@@ -1390,12 +1392,14 @@ public String toListString(){
 
 /** creates a new ListEXpr <type,value>*/
 public ListExpr toTypedListExpr(){
-  return ListExpr.twoElemList( ListExpr.symbolAtom("fpoint"),toListExpr());
+  return ListExpr.twoElemList(
+               ListExpr.symbolAtom("fpoint"),toListExpr());
 }
 
 
 /** read the FPoint from a String representation of a ListExpr
-  * @return true if List is a String of a ListExpr containing a correct FPoint
+  * @return true if List is a String of a ListExpr containing
+  *  a correct FPoint
   */
 public boolean readFromListString(String List){
   ListExpr LE = new ListExpr();
@@ -1432,11 +1436,13 @@ public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr SFList = LE.first();
-  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM ||
+  if( !( SFList.isAtom() &&
+         (SFList.atomType()==ListExpr.INT_ATOM ||
          SFList.atomType()==ListExpr.REAL_ATOM)))
      return false;
-  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() :
-                                                   SFList.realValue();
+  double z= SFList.atomType()==ListExpr.INT_ATOM ?
+                                 SFList.intValue() :
+                                 SFList.realValue();
   if(z<=0)
      return false;
   this.SF = z;
@@ -1463,13 +1469,15 @@ public boolean readFromListExpr(ListExpr LE){
 }
 
 
-/** this method is used for reading a fuzzy point from a byte array;
+/** this method is used for reading a fuzzy point from
+  *  a byte array;
   * returns null if the construction of the object failed
   */
 public static FPoint readFrom(byte[] buffer){
    try{
       ObjectInputStream ois;
-      ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+      ois = new ObjectInputStream(
+                  new ByteArrayInputStream(buffer));
       FPoint res = (FPoint) ois.readObject();
       ois.close();
       return res;
@@ -1485,7 +1493,8 @@ public  byte[] writeToByteArray(){
   try{
      ByteArrayOutputStream byteout;
      byteout = new ByteArrayOutputStream(feP.getSize()*16+25);
-     ObjectOutputStream objectout = new ObjectOutputStream(byteout);
+     ObjectOutputStream objectout;
+     objectout = new ObjectOutputStream(byteout);
      objectout.writeObject(this);
      objectout.flush();
      byte[] res = byteout.toByteArray();
@@ -1499,7 +1508,8 @@ public  byte[] writeToByteArray(){
 /** computes a hash-value for this FPoint */
 public int getHashValue(){
   return Math.abs((BB.getMaxX()-BB.getMinX())*
-                  (BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
+                  (BB.getMaxY()-BB.getMinY())+BB.getMinX()
+                  +BB.getMinY());
 }
 
 
@@ -1511,7 +1521,8 @@ public void save(){
   try{
      OutputStream out = new FileOutputStream(FileName);
      byte[] content = writeToByteArray();
-     System.out.println("write "+content.length+" bytes to "+FileName);
+     System.out.println("write "+content.length+
+                        " bytes to "+FileName);
      for(int i=0;i<content.length;i++){
          out.write(content[i]);
      }
@@ -1524,10 +1535,10 @@ public void save(){
 
 
 // define constants for the operators
-private static final int UNION = 0;             // union based on max
-private static final int INTERSECTION=1;        // difference based on min
-private static final int ADD=2;                 // addition with cut if >1
-private static final int SUBTRACT=3;            // substraction with cut if<0
+private static final int UNION = 0;
+private static final int INTERSECTION=1;
+private static final int ADD=2;
+private static final int SUBTRACT=3;
 
 private static final int SCALEDUNION=4;
 private static final int SCALEDINTERSECTION=5;
@@ -1538,7 +1549,4 @@ private static int no = 0;
 
 
 } // FPoint;
-
-
-
 

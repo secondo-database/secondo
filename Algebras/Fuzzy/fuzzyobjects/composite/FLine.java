@@ -203,7 +203,8 @@ public boolean add(fSegment fS){
        BB.setBox(minX,minY,maxX,maxY);
     }
     else
-      BB.setBox(fS.getMinX(),fS.getMinY(),fS.getMaxX(),fS.getMaxY());
+      BB.setBox(fS.getMinX(),fS.getMinY(),
+                fS.getMaxX(),fS.getMaxY());
   }   
   return ok;
 }
@@ -243,7 +244,8 @@ public void overwrite(fSegment fS){
      BB.setBox(minX,minY,maxX,maxY);
    }
    else
-      BB.setBox(fS.getMinX(),fS.getMinY(),fS.getMaxX(),fS.getMaxY());
+      BB.setBox(fS.getMinX(),fS.getMinY(),
+                fS.getMaxX(),fS.getMaxY());
 }
 
 /**
@@ -327,7 +329,9 @@ Vector tmp = new Vector();
 BasicPoint[] Neightboors = BP.getNeightboors();
 
 for(int i=0;i<Neightboors.length;i++){
-  fSegment fS= (fSegment) fSeg.search(new BasicSegment(BP,Neightboors[i]));
+  fSegment fS= (fSegment) fSeg.search(
+                             new BasicSegment(
+                                   BP,Neightboors[i]));
   if(fS!=null)
     tmp.add(new Double( fS.Zfkt(BP)));
 } // for all Neighboors
@@ -391,7 +395,9 @@ public double Zfkt(BasicPoint BP, BasicSegment BS){
  return result;
 }
 
-/** computes the membershipvalue on (x,y) by given basic segment */
+/** computes the membershipvalue on (x,y) by given
+  * basic segment
+  */
 public double Zfkt(double x, double y, BasicSegment BS){
  double result = 0;
  if (BS.contains(x,y)){
@@ -412,7 +418,8 @@ public BasicSegment[] basics() {
      return result;
   else{
     for(int i=0;i<fSeg.getSize();i++)
-      result[i] = (BasicSegment) ((fSegment)fSeg.get(i)).basic();
+      result[i] = (BasicSegment) (
+                        (fSegment)fSeg.get(i)).basic();
     }
      return result; 
 } // basics
@@ -653,7 +660,9 @@ public FLine sharp(){
  FLine result = new FLine(1);
  fSegment CurrentSegment;
  for(int i=0;i<fSeg.getSize();i++){
-   CurrentSegment = new fSegment( (BasicSegment) (fSeg.get(i).basic()),1,1);
+   CurrentSegment = new fSegment(
+                     (BasicSegment)
+                              (fSeg.get(i).basic()),1,1);
    result.add(CurrentSegment);
  }
   return result;
@@ -688,8 +697,10 @@ for(int i=0;i<fSeg.getSize();i++){
  Neightboors = EP1.getNeightboors();
  found=false;
  for(int j=0;j<Neightboors.length&!found;j++){
-   if(!EP2.equals(Neightboors[j])) { // exclude current Basicsegment
-     found = fSeg.search(new BasicSegment(EP1,Neightboors[j]))!=null;
+   if(!EP2.equals(Neightboors[j])) {
+     // exclude current Basicsegment
+     found = fSeg.search(
+                new BasicSegment(EP1,Neightboors[j]))!=null;
    }
  }
  if(!found)  // EP1 is a endpoint
@@ -699,7 +710,8 @@ for(int i=0;i<fSeg.getSize();i++){
  found=false;
  for(int j=0;j<Neightboors.length&!found;j++){
    if(!EP1.equals(Neightboors[j])) {
-     found = fSeg.search(new BasicSegment(EP2,Neightboors[j]))!=null;
+     found = fSeg.search(
+                new BasicSegment(EP2,Neightboors[j]))!=null;
    }
  }
  if(!found) // EP2 is a endpoint
@@ -723,7 +735,7 @@ private void getComponent(fSegment FS, FLine result){
  BasicSegment[] Neightboors = BS.getNeightboors();
 
  for(int i=0;i<Neightboors.length;i++) {
-    if(result.fSeg.getPos(Neightboors[i])<0){      // not in result
+    if(result.fSeg.getPos(Neightboors[i])<0){ // not in result
       fSegment NB = (fSegment) this.fSeg.search(Neightboors[i]);
       if(NB!=null){
         getComponent(NB,result);
@@ -744,7 +756,7 @@ public boolean equals(FLine L2){
 public FLine[] faces(){
   if(isEmpty()) return null;
   Vector tmp = new Vector();  // for the faces ;
-                              // use Vector hence number of faces unknow
+  // use Vector hence number of faces unknow
   FLine Copy = this.copy();
 
   while( ! Copy.isEmpty()){
@@ -829,7 +841,8 @@ while(!allready){
           Numbers.add(new Integer(i));
        }
        else {
-        compareS = (BasicSegment) ((fSegment) allSmallest.get(0)).basic();
+        compareS = (BasicSegment)
+                   ((fSegment) allSmallest.get(0)).basic();
         int comp = currentS.basic().compareTo(compareS);
         if(comp==0) {  // a Segement with smallest Basic
           allSmallest.add(currentS);
@@ -848,7 +861,8 @@ while(!allready){
 
   if(!allready){
     double Z1=0,Z2=0;
-    BasicSegment BS = (BasicSegment) ((fSegment) allSmallest.get(0)).basic();
+    BasicSegment BS = (BasicSegment)
+                      ((fSegment) allSmallest.get(0)).basic();
     fSegment CS;
     for(int i=0;i<allSmallest.size();i++){
        // update numbers
@@ -869,7 +883,8 @@ while(!allready){
 }
 
 /**
- * a implementation of the scaled mid - operator for a set of FLines
+ * a implementation of the scaled mid
+ * operator for a set of FLines
  */
 public static FLine scaledMid(FLine[] Lns){
 if(Lns.length==0) return null;
@@ -906,7 +921,8 @@ while(!allready){
           Numbers.add(new Integer(i));
        }
        else {
-        compareS = (BasicSegment) ((fSegment) allSmallest.get(0)).basic();
+        compareS = (BasicSegment)
+                   ((fSegment) allSmallest.get(0)).basic();
         int comp = currentS.basic().compareTo(compareS);
         if(comp==0) {  // a Segement with smallest Basic
           allSmallest.add(currentS);
@@ -925,7 +941,8 @@ while(!allready){
 
   if(!allready){
     double Z1=0,Z2=0;
-    BasicSegment BS = (BasicSegment) ((fSegment) allSmallest.get(0)).basic();
+    BasicSegment BS = (BasicSegment)
+                      ((fSegment) allSmallest.get(0)).basic();
     fSegment CS;
     for(int i=0;i<allSmallest.size();i++){
        // update numbers
@@ -984,199 +1001,175 @@ private void processElements(fSegment F1, double scale1,
                              FLine Goal,
                              int Operator){
 
-// 1 input parameter can be null 
-// if both fTriangles not null, then they must have the same basic
-
+// 1 input parameter can be null
+// if both fTriangles not null, then they must
+// have the same basic
   if( F1==null & F2==null) return;
-
   double Z1,Z2;
   fSegment newFS;
-
   switch (Operator){
-
      case UNION  :  {  // the union of 2 Lines ignoring SFs
+            if(F1==null)
+               Goal.fSeg.insert(F2.copy());
+            else if(F2==null)
+               Goal.fSeg.insert(F1.copy());
+            else { // both fTriangles are not null
+               Z1 = Math.max(F1.getZ1(),F2.getZ1());
+               Z2 = Math.max(F1.getZ2(),F2.getZ2());
+               newFS = new fSegment((BasicSegment)
+                                     F1.basic(),
+                                     Z1,Z2);
+               Goal.fSeg.insert(newFS);
+            } // else
+          }
+          break;
 
-                      if(F1==null)
-                          Goal.fSeg.insert(F2.copy());
-                      else
-                         if(F2==null)
-                           Goal.fSeg.insert(F1.copy());
-                         else { // both fTriangles are not null
-                           Z1 = Math.max(F1.getZ1(),F2.getZ1());
-                           Z2 = Math.max(F1.getZ2(),F2.getZ2());
-                           newFS = new fSegment((BasicSegment)
-                                                 F1.basic(),
-                                                 Z1,Z2);
-                           Goal.fSeg.insert(newFS);
-
-                         } // else
-
-                    }
-                    break;
-
-    case INTERSECTION :
-                    {  if (F1==null | F2==null)
-                         ;  
-                       else { // both are not null
-                           Z1 = Math.min(F1.getZ1(),F2.getZ1());
-                           Z2 = Math.min(F1.getZ2(),F2.getZ2());
-                           if(Z1+Z2>0){
-                              newFS = new fSegment((BasicSegment)
-                                                    F1.basic(),
-                                                    Z1,Z2 );
-                              Goal.fSeg.insert(newFS);
-                           }
-                       }
-
-                    } break;
+    case INTERSECTION : {
+            if (F1==null | F2==null)
+              ;
+            else { // both are not null
+              Z1 = Math.min(F1.getZ1(),F2.getZ1());
+              Z2 = Math.min(F1.getZ2(),F2.getZ2());
+              if(Z1+Z2>0){
+                newFS = new fSegment((BasicSegment)
+                                      F1.basic(),
+                                      Z1,Z2 );
+                Goal.fSeg.insert(newFS);
+              }
+            }
+          }
+          break;
 
     case ADD     :  {
-                      if(F1==null)
-                          Goal.fSeg.insert(F2.copy());
-                      else
-                         if(F2==null)
-                           Goal.fSeg.insert(F1.copy());
-                         else { // both fSegments are not null
-                           Z1 = Math.min(1,F1.getZ1()+F2.getZ1());
-                           Z2 = Math.min(1,F1.getZ2()+F2.getZ2());
-                           newFS = new fSegment((BasicSegment)
-                                                 F1.basic(),
-                                                 Z1,Z2);
-                           Goal.fSeg.insert(newFS);
-
-                         } // else
-
-                    }
-                    break;
+           if(F1==null)
+              Goal.fSeg.insert(F2.copy());
+           else
+              if(F2==null)
+                 Goal.fSeg.insert(F1.copy());
+              else { // both fSegments are not null
+                 Z1 = Math.min(1,F1.getZ1()+F2.getZ1());
+                 Z2 = Math.min(1,F1.getZ2()+F2.getZ2());
+                 newFS = new fSegment((BasicSegment)
+                                       F1.basic(),
+                                       Z1,Z2);
+                 Goal.fSeg.insert(newFS);
+              } // else
+           }
+           break;
 
     case SUBTRACT :{
-                        if(F1 == null)
-                            ;
-                        else
-                           if(F2==null)
-                             Goal.fSeg.insert(F1.copy());
-                           else  {   // both not null
-                              Z1 = Math.max(0,F1.getZ1()-F2.getZ1());
-                              Z2 = Math.max(0,F1.getZ2()-F2.getZ2());
-                              if ((Z1+Z2)>0) {
-                                newFS = new fSegment( (BasicSegment)
-                                                       F1.basic(),Z1,Z2);
-                                Goal.fSeg.insert(newFS);
-                              }
-                           }
-                       } break;
+            if(F1 == null)
+               ;
+            else if(F2==null)
+              Goal.fSeg.insert(F1.copy());
+            else  {   // both not null
+               Z1 = Math.max(0,F1.getZ1()-F2.getZ1());
+               Z2 = Math.max(0,F1.getZ2()-F2.getZ2());
+               if ((Z1+Z2)>0) {
+                  newFS = new fSegment( (BasicSegment)
+                                        F1.basic(),Z1,Z2);
+                  Goal.fSeg.insert(newFS);
+               }
+            }
+          } break;
 
 
-        case SCALEDUNION    :
-                      { fSegment newSegment;
-                        if (F1==null) 
-                           newSegment = new fSegment( (BasicSegment)
-                                                       F2.basic(),
-                                                       F2.getZ1()*scale2,
-                                                       F2.getZ2()*scale2);
-                         else
-                           if (F2==null)
-                              newSegment = new fSegment( (BasicSegment)
-                                                          F1.basic(),
-                                                          F1.getZ1()*scale1,
-                                                          F1.getZ2()*scale1);
-                           else {
-                             Z1 = Math.max(F1.getZ1()*scale1,
-                                                  F2.getZ1()*scale2);
-                             Z2 = Math.max(F1.getZ2()*scale1,
-                                                  F2.getZ2()*scale2);
-
-                             newSegment = new fSegment( (BasicSegment)
-                                                           F1.basic(),
-                                                           Z1,Z2);
-                           }  // else
-                       Goal.add(newSegment);
-
-                      } break;   // scaled union
-
-     
-        case SCALEDINTERSECTION :  if (F1==null || F2==null)
-                                         ;
-                                   else {
-                                     Z1 = Math.min(F1.getZ1()*scale1,
-                                                         F2.getZ1()*scale2);
-                                     Z2 = Math.min(F1.getZ2()*scale1,
-                                                         F2.getZ2()*scale2);
-
-                                    Goal.add(new fSegment( (BasicSegment)
-                                                            F1.basic(),
-                                                            Z1,Z2));
-                                   } break;
-
-        case SCALEDADD : {
-                          if(F1==null)
-                             Goal.add(new fSegment( (BasicSegment)
-                                                     F2.basic(),
-                                                     F2.getZ1()*scale2,
-                                                     F2.getZ2()*scale2));
-                          else
-                            if(F2==null)
-                              Goal.add(new fSegment( (BasicSegment)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1,
-                                                      F1.getZ2()*scale1));
-                            else {
-
-                              Goal.add(new fSegment( (BasicSegment)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1 +
-                                                      F2.getZ1()*scale2 ,
-                                                      F1.getZ2()*scale1 +
-                                                      F2.getZ2()*scale2 ));
-
-                            }
-
-                        } break;
+    case SCALEDUNION    : {
+           fSegment newSegment;
+           if (F1==null)
+              newSegment = new fSegment( (BasicSegment)
+                                          F2.basic(),
+                                          F2.getZ1()*scale2,
+                                          F2.getZ2()*scale2);
+           else  if (F2==null)
+               newSegment = new fSegment( (BasicSegment)
+                                           F1.basic(),
+                                           F1.getZ1()*scale1,
+                                           F1.getZ2()*scale1);
+           else {
+              Z1 = Math.max(F1.getZ1()*scale1,
+                            F2.getZ1()*scale2);
+              Z2 = Math.max(F1.getZ2()*scale1,
+                            F2.getZ2()*scale2);
+              newSegment = new fSegment( (BasicSegment)
+                                          F1.basic(),
+                                          Z1,Z2);
+            }  // else
+            Goal.add(newSegment);
+          }
+          break;   // scaled union
 
 
-        case SCALEDDIFFERENCE   :
-                       {
-                          if(F1==null)
-                             Goal.add(new fSegment( (BasicSegment)
-                                                     F2.basic(),
-                                                     -F2.getZ1()*scale2,
-                                                     -F2.getZ2()*scale2));
-                          else
-                            if(F2==null)
-                              Goal.add(new fSegment( (BasicSegment)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1,
-                                                      F1.getZ2()*scale1));
-                            else {
+    case SCALEDINTERSECTION :
+           if (F1==null || F2==null)
+             ;
+           else {
+              Z1 = Math.min(F1.getZ1()*scale1,
+                            F2.getZ1()*scale2);
+              Z2 = Math.min(F1.getZ2()*scale1,
+                            F2.getZ2()*scale2);
+              Goal.add(new fSegment( (BasicSegment)
+                                     F1.basic(),
+                                     Z1,Z2));
+           }
+           break;
 
-                              Goal.add(new fSegment( (BasicSegment)
-                                                      F1.basic(),
-                                                      F1.getZ1()*scale1 -
-                                                      F2.getZ1()*scale2 ,
-                                                      F1.getZ2()*scale1 -
-                                                      F2.getZ2()*scale2 ));
+    case SCALEDADD : {
+            if(F1==null)
+              Goal.add(new fSegment( (BasicSegment)
+                                     F2.basic(),
+                                     F2.getZ1()*scale2,
+                                     F2.getZ2()*scale2));
+            else if(F2==null)
+              Goal.add(new fSegment( (BasicSegment)
+                                      F1.basic(),
+                                      F1.getZ1()*scale1,
+                                      F1.getZ2()*scale1));
+            else {
+              Goal.add(new fSegment( (BasicSegment)
+                                      F1.basic(),
+                                      F1.getZ1()*scale1 +
+                                      F2.getZ1()*scale2 ,
+                                      F1.getZ2()*scale1 +
+                                      F2.getZ2()*scale2 ));
+             }
+           }
+           break;
 
+    case SCALEDDIFFERENCE   : {
+            if(F1==null)
+               Goal.add(new fSegment( (BasicSegment)
+                                       F2.basic(),
+                                      -F2.getZ1()*scale2,
+                                      -F2.getZ2()*scale2));
+            else if(F2==null)
+               Goal.add(new fSegment( (BasicSegment)
+                                       F1.basic(),
+                                       F1.getZ1()*scale1,
+                                       F1.getZ2()*scale1));
+            else {
+               Goal.add(new fSegment( (BasicSegment)
+                                       F1.basic(),
+                                       F1.getZ1()*scale1 -
+                                       F2.getZ1()*scale2 ,
+                                       F1.getZ2()*scale1 -
+                                       F2.getZ2()*scale2 ));
+            }
+         }
+         break;
 
-                            }
-
-                        } break;
-
-    case SHARPINTERSECTION :
-                    {  if (F1==null | F2==null)
-                         ;  
-                       else {
-                         newFS = new fSegment((BasicSegment) F1.basic(),1,1);
-                         Goal.fSeg.insert(newFS);
-                       }
-                    } break;
-
-   
-
-    default      : System.out.println("unimplementierter operator");
-
+    case SHARPINTERSECTION :{
+           if (F1==null | F2==null)
+              ;
+           else {
+              newFS = new fSegment((BasicSegment)F1.basic(),1,1);
+              Goal.fSeg.insert(newFS);
+           }
+         }
+         break;
+     default : System.err.println("operator not implemented");
 
   } // switch
-
 } // processElements
 
 
@@ -1200,14 +1193,14 @@ if(maxFromFL>0)
    FLFirst = (fSegment) FL.fSeg.get(0);
 
 if (maxMy >0 && maxFromFL>0){
-   myFirst = (fSegment) fSeg.get(my);    
+   myFirst = (fSegment) fSeg.get(my);
    FLFirst = (fSegment) FL.fSeg.get(fromFL);
 
    int compareResult;
 
    while(my<maxMy && fromFL<maxFromFL){
        // both sets have unprocessed elements
-      compareResult = myFirst.basic().compareTo(FLFirst.basic());
+      compareResult=myFirst.basic().compareTo(FLFirst.basic());
       if(compareResult < 0) {
          processElements(myFirst,SF,null,FL.SF,result,op);
          my++;
@@ -1221,16 +1214,16 @@ if (maxMy >0 && maxFromFL>0){
                FLFirst = (fSegment) FL.fSeg.get(fromFL);
            }
            else {     // elements have the same basic
-             processElements(myFirst,SF,FLFirst,FL.SF,result,op);
-             my++;
-             fromFL++;
-             if (my<maxMy)
-               myFirst = (fSegment) fSeg.get(my);
-             if (fromFL<maxFromFL)
-               FLFirst = (fSegment) FL.fSeg.get(fromFL);
+            processElements(myFirst,SF,FLFirst,FL.SF,result,op);
+            my++;
+            fromFL++;
+            if (my<maxMy)
+              myFirst = (fSegment) fSeg.get(my);
+            if (fromFL<maxFromFL)
+              FLFirst = (fSegment) FL.fSeg.get(fromFL);
            }
    } // while
-} // if 
+} // if
 
 // elements from one (or both) regions are processed
 
@@ -1272,7 +1265,7 @@ private void norm(){
  }
 
  if(Zmin > 0) Zmin=0;
- 
+
  if(Zmax==0 & Zmin==0)
     fSeg.makeEmpty();
  else{
@@ -1299,26 +1292,27 @@ private void norm(){
 
 
 
-/******************************************************************
- *                                                                *
- *              topological Relationships                         *
- *                                                                *
- ******************************************************************/
+/*************************************************************
+ *                                                           *
+ *              topological Relationships                    *
+ *                                                           *
+ *************************************************************/
 
 
-/******************************************************************
- *                                                                *
- *             Topology in the basic                              *
- *                                                                *
- ******************************************************************/
+/*************************************************************
+ *                                                           *
+ *             Topology in the basic                         *
+ *                                                           *
+ *************************************************************/
 
 
 /** helping method to compute the top Rel in the basic */
 private static void checkPointsBasic(
-                          int Segs1, int Segs2,   
-                          M9Int goal ){           
+                          int Segs1, int Segs2,
+                          M9Int goal ){
 
-/* this method checks the intersection of two lines in a BasicPoint BP
+/* this method checks the intersection of two lines in a
+   BasicPoint BP
    Paramters :
       Segs1, Segs2 : numberOfSegments of each Line in BP
       Z1,Z2        : maxZfkt(BP) for each Line
@@ -1495,14 +1489,14 @@ for(int i=0;i<fSeg.getSize();i++){
            if(SegNumber1==1)
              result.setValue(true,M9Int.BOUNDARY,M9Int.BOUNDARY);
            else  // a interior point of the Line
-               result.setValue(true,M9Int.INTERIOR,M9Int.BOUNDARY);
+             result.setValue(true,M9Int.INTERIOR,M9Int.BOUNDARY);
         } // onBound1
 
         if(onBound2)  {
            if(SegNumber2==1)
-              result.setValue(true,M9Int.BOUNDARY,M9Int.BOUNDARY);
+             result.setValue(true,M9Int.BOUNDARY,M9Int.BOUNDARY);
            else
-              result.setValue(true,M9Int.INTERIOR,M9Int.BOUNDARY);
+             result.setValue(true,M9Int.INTERIOR,M9Int.BOUNDARY);
         } // onBound2
      } // TriNumberSeg==0
 
@@ -1523,9 +1517,9 @@ for(int i=0;i<fSeg.getSize();i++){
 
         if(onBound2)  {
            if(SegNumber2==1)
-              result.setValue(true,M9Int.BOUNDARY,M9Int.BOUNDARY);
+             result.setValue(true,M9Int.BOUNDARY,M9Int.BOUNDARY);
            else
-              result.setValue(true,M9Int.INTERIOR,M9Int.BOUNDARY);
+             result.setValue(true,M9Int.INTERIOR,M9Int.BOUNDARY);
         } // onBound2
      } // TriNumberSeg==2
 }
@@ -1564,11 +1558,11 @@ return null;
 
 
 
-/********************************************************************
+/**********************************************************
  *
- *                 Topology of fuzzy objects
+ *            Topology of fuzzy objects
  *
- ********************************************************************/
+ **********************************************************/
 
 /**
   * returns the membership-value on given pos on a given
@@ -1742,7 +1736,8 @@ for(int current=0;current<max;current++){
      if( (Z1L==Z1R) & (Z2L==Z2R) ) // equals segments
         result.computeValue(0.5,0.5);
    }
-   else{ // in the regions exists crossing triangles over this BS
+   else{
+    // in the regions exists crossing triangles over this BS
      Z1R = values[0];
      Z2R = values[1];
      double ZMR = values[3];
@@ -1797,20 +1792,23 @@ public ListExpr toListExpr(){
   if(fSeg.getSize()==0)
      Segments = ListExpr.theEmptyList();
   else {
-     Segments = ListExpr.oneElemList(((fSegment)fSeg.get(0)).toListExpr()); 
+     Segments = ListExpr.oneElemList(
+                     ((fSegment)fSeg.get(0)).toListExpr());
      Last = Segments;
   }
-  fSegment NextSegment; 
+  fSegment NextSegment;
   for(int i=1;i<fSeg.getSize();i++){
      NextSegment = (fSegment) fSeg.get(i);
      Last=ListExpr.append(Last,NextSegment.toListExpr());
   }
-  return ListExpr.twoElemList( ListExpr.realAtom((float)SF),Segments);
+  return ListExpr.twoElemList(
+                ListExpr.realAtom((float)SF),Segments);
 }
 
 /** creates a new ListEXpr <type,value>*/
 public ListExpr toTypedListExpr(){
-  return ListExpr.twoElemList( ListExpr.symbolAtom("fline"),toListExpr());
+  return ListExpr.twoElemList(
+            ListExpr.symbolAtom("fline"),toListExpr());
 }
 
 /** read this FLine from a ListExpr
@@ -1826,11 +1824,12 @@ public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr SFList = LE.first();
-  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM ||
-         SFList.atomType()==ListExpr.REAL_ATOM)))
+  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM
+         || SFList.atomType()==ListExpr.REAL_ATOM)))
      return false;
-  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() :
-            SFList.realValue();
+  double z= SFList.atomType()==ListExpr.INT_ATOM ?
+                  SFList.intValue() :
+                  SFList.realValue();
   if(z<=0)
      return false;
   this.SF = z;
@@ -1852,13 +1851,16 @@ public boolean readFromListExpr(ListExpr LE){
 
 }
 
-/** returns a String representation of the corresponding ListExpr*/
+/** returns a String representation of
+  * the corresponding ListExpr
+  */
 public String toListString(){
   return toListExpr().writeListExprToString();
 }
 
-/** read the FLine from a String representation of a ListExpr 
-  * @return true if List is a String of a ListExpr containing a correct FLine
+/** read the FLine from a String representation of a ListExpr
+  * @return true if List is a String of a ListExpr
+  * containing a correct FLine
   */
 public boolean readFromListString(String List){
   ListExpr LE = new ListExpr();
@@ -1866,17 +1868,19 @@ public boolean readFromListString(String List){
      return false;
   }
   else{
-     return readFromListExpr(LE); 
+     return readFromListExpr(LE);
  }
 }
 
-/** this method is used for reading a fuzzy point from a byte array;
+/** this method is used for reading a fuzzy line
+  * from a byte array;
   * returns null if the construction of the object failed
   */
 public static FLine readFrom(byte[] buffer){
    try{
-      ObjectInputStream ois = new ObjectInputStream(
-                                  new ByteArrayInputStream(buffer));
+      ObjectInputStream ois;
+      ois= new ObjectInputStream(
+                  new ByteArrayInputStream(buffer));
       FLine res = (FLine) ois.readObject();
       ois.close();
       return res;
@@ -1892,7 +1896,8 @@ public  byte[] writeToByteArray(){
   try{
      ByteArrayOutputStream byteout;
      byteout = new ByteArrayOutputStream(fSeg.getSize()*16+25);
-     ObjectOutputStream objectout = new ObjectOutputStream(byteout);
+     ObjectOutputStream objectout;
+     objectout = new ObjectOutputStream(byteout);
      objectout.writeObject(this);
      objectout.flush();
      byte[] res = byteout.toByteArray();
@@ -1913,10 +1918,10 @@ public int getHashValue(){
 
 
 // define constants for the operators
-private static final int UNION = 0;        // union based on max
-private static final int INTERSECTION=1;   // difference based on min
-private static final int ADD=2;            // addition with cut if >1
-private static final int SUBTRACT=3;       // substraction with cut if<0
+private static final int UNION = 0;
+private static final int INTERSECTION=1;
+private static final int ADD=2;
+private static final int SUBTRACT=3;
 
 private static final int SCALEDUNION=4;
 private static final int SCALEDINTERSECTION=5;
@@ -1928,5 +1933,3 @@ private static final int SHARPINTERSECTION=8;
 // == intersection(sharp(L1),sharp(L2))
 
 } // FLine;
-
-

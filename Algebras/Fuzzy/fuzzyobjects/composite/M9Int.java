@@ -68,7 +68,8 @@ switch(Relation){
  * @param value : the value to set
  * @param PartA : the Part of the first object
  * @param PartB : the Part of the second object
- * a Part can be INTERIOR, EXTERIOR OR BOUNDARY defined in this class
+ * a Part can be INTERIOR, EXTERIOR OR BOUNDARY defined
+ * in this class
  */
 void setValue(boolean value, int PartA , int PartB){
  if(!(PartA<0 | PartB<0 | PartA>2 | PartB>2))

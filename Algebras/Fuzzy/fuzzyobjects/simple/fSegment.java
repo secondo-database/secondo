@@ -89,7 +89,8 @@ public fSegment( fEPoint SP_1, fEPoint SP_2) {
 
 /**
  * returns a copy of this
- * @return a new fSegment whith same location and fuzziness as this
+ * @return a new fSegment whith same
+ * location and fuzziness as this
  */
 public fSegment copy(){
   fSegment C = new fSegment(EP_1.copy(),Z1, EP_2.copy(),Z2);
@@ -98,7 +99,8 @@ public fSegment copy(){
 
 /**
  * check whether this is equal to fS
- * @return true if this and fS have same location and fuzziness#
+ * @return true if this and fS have same
+ * location and fuzziness
  */
 public boolean equals(fSegment fS) {
  return EP_1.equals(fS.EP_1) && EP_2.equals(fS.EP_2) &&
@@ -107,7 +109,8 @@ public boolean equals(fSegment fS) {
 
 /**
  * check whether this and fS have the same location
- * @return true if fS and this have the same underlying BasicSegment
+ * @return true if fS and this have the same underlying
+ *  BasicSegment
  */
 public boolean equalsBasic(fSegment fS) {
  return this.basic().equals(fS.basic());
@@ -118,7 +121,8 @@ public boolean equalsBasic(fSegment fS) {
  * @return a String representing this segment
  */
 public String toString() {
- return "fS : ( (" + EP_1 + ","+Z1+") -> (" + EP_2 + ","+Z2+"))";
+ return "fS : ( (" + EP_1 + ","+Z1+") -> (" +
+         EP_2 + ","+Z2+"))";
 }
 
 /**
@@ -203,7 +207,9 @@ public double length(){
   double y1 = EP_1.getY();
   double x2 = EP_2.getX();
   double y2 = EP_2.getY();
-  return Math.sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) +(Z2-Z1)*(Z2-Z1));
+  return Math.sqrt( (x2-x1)*(x2-x1) +
+                    (y2-y1)*(y2-y1) +
+                    (Z2-Z1)*(Z2-Z1));
 }
 
 public int getMinX(){
@@ -231,7 +237,8 @@ public ListExpr toListExpr(){
 }
 
 
-/** set the values of ths fSegment to LE, if LE represent a valid FSegment
+/** set the values of ths fSegment to LE,
+  * if LE represent a valid FSegment
   * @return true if LE is a valid fSegment
   */
 public boolean readFromListExpr(ListExpr LE){
@@ -239,8 +246,9 @@ public boolean readFromListExpr(ListExpr LE){
      return false;
   fEPoint P1 = new fEPoint(0,0,0);
   fEPoint P2 = new fEPoint(0,0,0);
-  if(!( P1.readFromListExpr(LE.first()) && P2.readFromListExpr(LE.second())))
-     return false; 
+  if(!( P1.readFromListExpr(LE.first()) &&
+        P2.readFromListExpr(LE.second())))
+     return false;
   BasicPoint BP1 = (BasicPoint) P1.basic();
   BasicPoint BP2 = (BasicPoint) P2.basic();
   if (! BP1.neightbooring(BP2))

@@ -3,7 +3,8 @@ package fuzzyobjects.basic;
 import fuzzyobjects.*;
 
 /**
- * in this class are BasicSegments of the X-triangulation defined
+ * in this class are BasicSegments of the X-triangulation
+ * defined
  * @author Thomas Behr
  */
 public class BasicSegment implements BasicObject{
@@ -83,11 +84,12 @@ public boolean isValid(){
 /**
  * compares this with another BasicObject
  * @param O the BasicObject to compare
- * @return <ul>
- *            <li> -1 if O not a BasicSegment or this is smaller then O </li>
- *            <li>  0 if O equals to this                               </lI>
- *            <li>  1 if O is a BasicSegment and this is greater then O </li>
- *          </ul>
+ * @return
+ * <ul>
+ * <li>-1 if O not a BasicSegment or this is smaller then O </li>
+ * <li> 0 if O equals to this                               </li>
+ * <li> 1 if O is a BasicSegment and this is greater then O </li>
+ * </ul>
  */
 public int compareTo(BasicObject O) {
 if (! (O instanceof BasicSegment))
@@ -129,10 +131,11 @@ public double length(){
 }
 
 /**
- * computes the euclidic distance between this an a another BasicObject
+ * computes the euclidic distance between this an
+ * another BasicObject
  * @param BO the another BasicObject
- * @return the smallest euclidic distance between both endpoints to all
- *  BasicPoints of BO
+ * @return the smallest euclidic distance between
+ * both endpoints to all BasicPoints of BO
  */
 public double euclid_distance(BasicObject BO){
   double m1 = EP_1.q_euclid_distance(BO);
@@ -143,8 +146,8 @@ public double euclid_distance(BasicObject BO){
 /**
  * computes the quadratic euclidic distance to BO
  * @params BO the another BasicObject
- * @return the smallest quadratic euclidic distance between both enbdpoints
- * of this to all BasicPoints from BO
+ * @return the smallest quadratic euclidic distance between both
+ * endpoints of this to all BasicPoints from BO
  * @see euclidic_distance(BasicObject)
  */
 public double q_euclid_distance(BasicObject BO){
@@ -157,7 +160,8 @@ public double q_euclid_distance(BasicObject BO){
  * check whether (x,y) is a point on this segment
  * @param x the x-coordinate of the to checked point
  * @param y the y-coordinate of the to checked point
- * @return true if (x,y) contained in the pointset of this segment
+ * @return true if (x,y) contained in the pointset of this
+ *  segment
  */
 public boolean on(double x, double y){
 // check : "(x,y) is a Point on this Segment ?"
@@ -202,7 +206,8 @@ public BasicPoint getEP2(){
 public BasicSegment[] getNeightboors(){
   BasicPoint[] ToEP1 = EP_1.getNeightboors();
   BasicPoint[] ToEP2 = EP_2.getNeightboors();
-  BasicSegment[] result = new BasicSegment[ ToEP1.length + ToEP2.length -2 ];
+  BasicSegment[] result;
+  result = new BasicSegment[ ToEP1.length + ToEP2.length -2 ];
   // all neightbooring points without EP1 or EP2 respectively
   int j=0;  // current position in result
   for(int i=0;i<ToEP1.length;i++)
@@ -328,7 +333,8 @@ public static BasicSegment[] getSegments(double x, double y){
    BasicSegment[] result;
    int a = fuzzyobjects.Params.a;
    int b = fuzzyobjects.Params.b;
-   // compute "rectangle" of the x-triangulation which contains (x,y)
+   // compute "rectangle" of the x-triangulation which
+   // contains (x,y)
    int ix = (int) x;
    int iy = (int) y;
    int ltx = (ix/a)*a;
@@ -439,7 +445,8 @@ public int getMaxY(){
  */
 protected  BasicPoint EP_1,EP_2;
 
-/** for approximate test "a point is containg in this segment ?" */ 
-private static double epsilon = 0.3; // for check: point is of a Segment?
+/** for approximate test "a point is containg in
+    this segment ?" */
+private static double epsilon = 0.3;
 
 } // class

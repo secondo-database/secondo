@@ -89,7 +89,8 @@ boolean result = true;
 if( V.size()==0)
     V.add(BO);                     // the first element
 else
-   if ( BO.compareTo( (BasicObject) V.get(0) ) <0)  // the first element
+    // the first element
+   if ( BO.compareTo( (BasicObject) V.get(0) ) <0)
       V.add(0,BO);
    else
       if( BO.compareTo( (BasicObject) V.get(V.size()-1) ) >0 )

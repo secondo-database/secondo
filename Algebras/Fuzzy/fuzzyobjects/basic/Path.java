@@ -84,7 +84,9 @@ public static Path computePath(BasicPoint BP1, BasicPoint BP2){
   return result;
 }
 
-/** returns the length(number of containing Points) of this Path */
+/** returns the length(number of containing Points) of
+  * this Path
+  */
 public int length(){
   int result = Points.size();
   // check of circle
@@ -120,8 +122,8 @@ public BasicPoint getLastPoint(){
 
 
 /** extend the Path with P
-  * the first Point of P must be equals to the last Point of this Path,
-  * this Path can not be a circle
+  * the first Point of P must be equals to the last Point
+  * of this Path, this Path can not be a circle
   * this Path and P can not have cuts
   * @return true if sucessfull
   */
@@ -145,11 +147,13 @@ boolean overlappingLine = false;
 BasicSegment FromThis;
 BasicSegment FromExtend;
 for(int i=0;i<length-1;i++){
-   FromThis = new BasicSegment((BasicPoint)Points.get(i),
-                               (BasicPoint)Points.get(i+1));
+   FromThis = new BasicSegment(
+                    (BasicPoint)Points.get(i),
+                    (BasicPoint)Points.get(i+1));
    for(int j=0;j<Plength-1;j++) {
-       FromExtend = new BasicSegment((BasicPoint)P.Points.get(j),
-                                     (BasicPoint)P.Points.get(j+1));
+       FromExtend = new BasicSegment(
+                           (BasicPoint)P.Points.get(j),
+                           (BasicPoint)P.Points.get(j+1));
        if(FromThis.equals(FromExtend))
           overlappingLine = true;
    }
@@ -176,8 +180,10 @@ return true;
 
 
 /** extend this path to BP
- * first is computed a path from the current last point to BP
- * if possible (see extend(PATH)) is this extended with the new Path
+ * first is computed a path from the current last
+ * point to BP
+ * if possible (see extend(PATH)) is this extended
+ *  with the new Path
  **/
 
 public boolean extend(BasicPoint BP){
@@ -199,7 +205,8 @@ if(size==0){
 }
 
 boolean overlappingLine = false;
-BasicSegment BS = new BasicSegment((BasicPoint)Points.get(size-1),BP);
+BasicSegment BS;
+BS = new BasicSegment((BasicPoint)Points.get(size-1),BP);
 BasicSegment BS_old;
 for(int i=0;i<size-1;i++){
   BS_old = new BasicSegment((BasicPoint)Points.get(i),
@@ -273,7 +280,9 @@ public int getMaxX(){return maxX;}
 public int getMaxY(){return maxY;}
 
 
-/** returns the first Position from BP or -1 if BP not contained */
+/** returns the first Position from BP or
+  * -1 if BP not contained
+  */
 public int getPos(BasicPoint BP){
 int result = -1;
 BasicPoint Current;

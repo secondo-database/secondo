@@ -56,7 +56,8 @@ public BasicPoint copy() {
 /**
  * check for equality
  * @param B the another BasicPoint
- * @return true if B is on the same location as this ; else false
+ * @return true if B is on the same location as this
+ *  otherwise false
  */
 public boolean equals(BasicPoint B) {
   return x==B.x & y==B.y;
@@ -76,7 +77,8 @@ public double euclid_distance(BasicObject BO) {
 }
 
 /**
- * computes the quadratic euclidic distance to a another BasicObject
+ * computes the quadratic euclidic distance to
+ * another BasicObject
  * @param BO the another BasicObject
  * @return the square of the smallest euclidic distance to all
  *  BasicPoints from BO
@@ -85,10 +87,12 @@ public double euclid_distance(BasicObject BO) {
 public double q_euclid_distance(BasicObject BO) {
 // get the quadratic euclidic distance
   BasicPoint[] BPs = BO.getBasicPoints();
-  double min = ( (BPs[0].x-x)*(BPs[0].x-x)+(BPs[0].y-y)*(BPs[0].y-y) );
+  double min = ( (BPs[0].x-x)*(BPs[0].x-x)
+                +(BPs[0].y-y)*(BPs[0].y-y) );
   double current;
   for(int i=1;i<BPs.length;i++) {
-     current = ( (BPs[i].x-x)*(BPs[i].x-x)+(BPs[i].y-y)*(BPs[i].y-y) );
+     current = ( (BPs[i].x-x)*(BPs[i].x-x) +
+                 (BPs[i].y-y)*(BPs[i].y-y) );
       if (current<min)
           min = current;
   }
@@ -129,11 +133,12 @@ public static boolean isBasicPoint(double x, double y){
 /**
  * compares this with another BasicObject
  * @param O the another BasicObject
- * @return <ul>
- *           <li> -1 if O not a BasicPoint or this is smaller then O </li>
- *           <li>  0 if this equals to O                             </li>
- *           <li>  1 if O is a BasicPoint and this greater then O    </li>
- *         </ul>
+ * @return
+ * <ul>
+ * <li> -1 if O not a BasicPoint or this is smaller then O </li>
+ * <li>  0 if this equals to O                             </li>
+ * <li>  1 if O is a BasicPoint and this greater then O    </li>
+ * </ul>
  */
 public int compareTo(BasicObject O){
  if(!(O instanceof BasicPoint))
@@ -223,7 +228,8 @@ public boolean neightbooring(BasicPoint B){
  boolean result;
  int dx = Math.abs(x-B.x);
  int dy = Math.abs(y-B.y);
- if ((x/a)*a ==x){   // a corner of rectangle of the X triangulation
+ if ((x/a)*a ==x){
+  // a corner of rectangle of the X triangulation
   result = (  dx==0   &  dy == b )   ||  // horizontal
            (  dx==a   &  dy == 0 )   ||  // vertical
            (  dx== a/2 & dy == b/2);     // diagonal
@@ -316,7 +322,8 @@ public BasicPoint[] computePath(BasicPoint BP){
      else
         sy=-1;
 
-     if( (CurrentX/a)*a==CurrentX) { // current point on corner of rectangle
+     if( (CurrentX/a)*a==CurrentX) {
+     // current point on corner of rectangle
         if(CurrentX == GoalX)
            CurrentY = CurrentY + sy*b;
         else 

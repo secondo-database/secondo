@@ -31,7 +31,8 @@ public BasicTriangle(BasicPoint CP_1,
  * @return a new BasicTriangle on the same location as this
  */
 public BasicTriangle copy(){
-  return new BasicTriangle( CP_1.copy(), CP_2.copy(), CP_3.copy());
+  return new BasicTriangle( CP_1.copy(), CP_2.copy(),
+                            CP_3.copy());
 }
 
 /**
@@ -59,7 +60,8 @@ public String toString(){
  * @return true if all cornerpoints are valid and connected
  */
 public  boolean isValid(){
-  boolean ok = CP_1.isValid() && CP_2.isValid() && CP_3.isValid();
+  boolean ok = CP_1.isValid() && CP_2.isValid() &&
+               CP_3.isValid();
   if(ok) {
     ok =  CP_1.neightbooring(CP_2) &&
           CP_1.neightbooring(CP_3) &&
@@ -127,14 +129,14 @@ public boolean sconnected(BasicTriangle BT) {
 /**
  * computes the euclidic distance to another BasicObject
  * @param BO the another BasicObject
- * @return the smallest euclidic distance from the 3 cornerpoints to
- * all BasicPoints from BO
+ * @return the smallest euclidic distance from the
+ * 3 cornerpoints to all BasicPoints from BO
  */
 public double euclid_distance(BasicObject BO) {
 
   double min = Math.min( CP_1.q_euclid_distance(BO),
-                         Math.min(  CP_2.q_euclid_distance(BO),
-                                    CP_3.q_euclid_distance(BO)  )  );
+                       Math.min( CP_2.q_euclid_distance(BO),
+                                 CP_3.q_euclid_distance(BO)));
   return Math.sqrt(min);
 
 }
@@ -142,8 +144,8 @@ public double euclid_distance(BasicObject BO) {
 /**
  * computes the square of the euclidic distance to a BasicObject
  * @param BO the another BasicObject
- * @return the square of the smallest distance between the 3 cornerpoints
- * and the BasicPoints of BO
+ * @return the square of the smallest distance between the
+ * 3 cornerpoints and the BasicPoints of BO
  */
 public double q_euclid_distance(BasicObject BO) {
   return Math.min( CP_1.q_euclid_distance(BO) ,
@@ -172,7 +174,8 @@ public boolean borderSegment(BasicSegment BL) {
 
 /**
  * computes the size from this Triangle
- * @return the standard-size of a Triangle in the X-Triangulation
+ * @return the standard-size of a Triangle in the
+ * X-Triangulation
  */
 public double  surface() {
   return Params.a*Params.b/4;
@@ -181,11 +184,14 @@ public double  surface() {
 /**
  * compares this whith another BasicObject
  * @param O the another BasicObject
- * @return <ul>
- *           <li> -1 if O not a BasicTriangle or this is smaller then O </li>
- *           <li>  0 id O equals to this                                </li>
- *           <li>  1 if 0 is a BasicTriangle and this is greater then O </li>
- *         </ul>
+ * @return
+ * <ul>
+ *  <li> -1 if O not a BasicTriangle or this is smaller
+          then O </li>
+ *   <li>  0 id O equals to this </li>
+ *   <li>  1 if 0 is a BasicTriangle and this is greater
+ *         then O </li>
+ * </ul>
  */
 public int compareTo(BasicObject O){
  if(!(O instanceof BasicTriangle))
@@ -253,7 +259,8 @@ public BasicTriangle[] getRealNeightboors(){
 
 /**
  * computes all (simple) connected Triangles
- * @return all Triangles having 1 or 2 common BasicPoints whith this
+ * @return all Triangles having 1 or 2 common
+ * BasicPoints whith this
  */
 public BasicTriangle[] getNeightboors(){
   Vector Tmp = new Vector();
@@ -262,12 +269,12 @@ public BasicTriangle[] getNeightboors(){
   BasicPoint[] NB3 = CP_3.getNeightboors();
   for(int i=0;i<NB1.length;i++){
     for(int j=0;j<NB2.length;j++)
-      if(NB1[i].equals(NB2[j]) && !NB1[i].equals(CP_3) )   
+      if(NB1[i].equals(NB2[j]) && !NB1[i].equals(CP_3) )
          Tmp.add(new BasicTriangle(CP_1,CP_2,NB1[i]));
   }
   for(int i=0;i<NB1.length;i++){
     for(int j=0;j<NB3.length;j++)
-      if(NB1[i].equals(NB3[j]) && !NB1[i].equals(CP_2) )   
+      if(NB1[i].equals(NB3[j]) && !NB1[i].equals(CP_2) )
          Tmp.add(new BasicTriangle(CP_1,CP_3,NB1[i]));
   }
   for(int i=0;i<NB2.length;i++){
@@ -296,7 +303,8 @@ tmp[0] = BT.CP_1;
 tmp[1] = BT.CP_2;
 tmp[2] = BT.CP_3;
 for(int i=0;i<3;i++){
-  if (CP_1.equals(tmp[i]) | CP_2.equals(tmp[i]) | CP_3.equals(tmp[i]) )
+  if (CP_1.equals(tmp[i]) | CP_2.equals(tmp[i]) |
+      CP_3.equals(tmp[i]) )
     if (N1<0)
        N1 = i;
     else
@@ -331,8 +339,8 @@ public static BasicTriangle[] getTriangles(BasicPoint BP){
 /**
  * computes all Triangles having a given point in their pointset
  * @param x,y the given point
- * @return a array containing all Triangles having (x,y) in their
- *  pointset
+ * @return a array containing all Triangles having (x,y) in
+ * their pointset
  */
 public static BasicTriangle[] getTriangles(double x, double y){
 
@@ -355,8 +363,8 @@ public static BasicTriangle[] getTriangles(double x, double y){
               tmp.add(BTs[j]);
           }
       }
-      
- } 
+
+ }
 
  else { // case 3: (x,y) is in the interior
 
@@ -394,28 +402,31 @@ public static BasicTriangle[] getTriangles(double x, double y){
 
     if( b/a > (b-y)/x ){ //  case 1
             tmp.add( new BasicTriangle(
-                                  new BasicPoint(xC+Aint/2,yC+Bint/2),
-                                  new BasicPoint(xC+Aint,yC+Bint),
-                                  new BasicPoint(xC,yC+Bint)));
+                         new BasicPoint(xC+Aint/2,yC+Bint/2),
+                         new BasicPoint(xC+Aint,yC+Bint),
+                         new BasicPoint(xC,yC+Bint)));
     }
     else { // case 2
-       tmp.add( new BasicTriangle( new BasicPoint(xC,yC+Bint),
-                                   new BasicPoint(xC+Aint/2,yC+Bint/2),
-                                   new BasicPoint(xC,yC)));
+       tmp.add( new BasicTriangle(
+                      new BasicPoint(xC,yC+Bint),
+                      new BasicPoint(xC+Aint/2,yC+Bint/2),
+                      new BasicPoint(xC,yC)));
    }
   }
 
   else{   //  right-bottom cases 3 and 4
 
      if( b/a > (b-y)/x  ) {   // case 4
-        tmp.add( new BasicTriangle( new BasicPoint(xC+Aint/2,yC+Bint/2),
-                                  new BasicPoint(xC+Aint,yC+Bint),
-                                  new BasicPoint(xC+Aint,yC) ));
+        tmp.add( new BasicTriangle(
+                       new BasicPoint(xC+Aint/2,yC+Bint/2),
+                       new BasicPoint(xC+Aint,yC+Bint),
+                       new BasicPoint(xC+Aint,yC) ));
     }
     else{  // case 3
-        tmp.add(new BasicTriangle( new BasicPoint(xC,yC),
-                                 new BasicPoint(xC+Aint/2,yC+Bint/2),
-                                 new BasicPoint(xC+Aint,yC)));
+        tmp.add(new BasicTriangle(
+                       new BasicPoint(xC,yC),
+                       new BasicPoint(xC+Aint/2,yC+Bint/2),
+                       new BasicPoint(xC+Aint,yC)));
    }
   }
 
@@ -457,22 +468,26 @@ public int getY3(){return CP_3.getY();}
 
 /** returns the minimum x of the bounding box */
 public int getMinX(){
-  return Math.min(CP_1.getX(),Math.min(CP_2.getX(),CP_3.getX()));
+  return Math.min(CP_1.getX(),
+                  Math.min(CP_2.getX(),CP_3.getX()));
 }
 
 /** returns the minimum y of the bounding box */
 public int getMinY(){
-  return Math.min(CP_1.getY(),Math.min(CP_2.getY(),CP_3.getY()));
+  return Math.min(CP_1.getY(),
+                  Math.min(CP_2.getY(),CP_3.getY()));
 }
 
 /** returns the maximum x of the bounding box */
 public int getMaxX(){
-  return Math.max(CP_1.getX(),Math.max(CP_2.getX(),CP_3.getX()));
+  return Math.max(CP_1.getX(),
+                  Math.max(CP_2.getX(),CP_3.getX()));
 }
 
 /** returns the maximum y of the bounding box */
 public int getMaxY(){
-  return Math.max(CP_1.getY(),Math.max(CP_2.getY(),CP_3.getY()));
+  return Math.max(CP_1.getY(),
+                  Math.max(CP_2.getY(),CP_3.getY()));
 }
 
 /** returns the 3 Sides of this Triangle */
@@ -484,9 +499,7 @@ result[2] = new BasicSegment(CP_1,CP_3);
 return result;
 }
 
-
 /** a Cornerpoint of this Triangle */
 private BasicPoint CP_1, CP_2, CP_3;
-
 
 } // class BasicTriangle

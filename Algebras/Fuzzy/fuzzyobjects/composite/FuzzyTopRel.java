@@ -120,12 +120,14 @@ public boolean isEqual(){
 
 /** is this in the over-cluster ? */
 public boolean isOver(){
- return  ! Values[0] & !Values[2] & !Values[3] & Values[4] & !Values[5];
+ return  ! Values[0] & !Values[2] & !Values[3]
+           & Values[4] & !Values[5];
 }
 
 /** is this in the under-cluster ? */
 public boolean isUnder(){
- return !Values[0] & !Values[1] & !Values[3] & !Values[4] & Values[5];
+ return !Values[0] & !Values[1] & !Values[3] &
+        !Values[4] & Values[5];
 }
 
 /** is this in the overequal-cluster ? */
@@ -149,7 +151,8 @@ public boolean isOverlap(){
  return  (Values[4] & Values[5]) |
          (Values[4] & Values[2]) |
          (Values[5] & Values[1]) |
-         (Values[1] & Values[2] & (Values[3] | Values[4] | Values[5]));
+         (Values[1] & Values[2] & (Values[3]
+          | Values[4] | Values[5]));
 }
 
 

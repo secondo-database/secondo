@@ -89,7 +89,8 @@ public fTriangle( int x1, int y1, double Z1,
  * @param BT the location of this Triangle
  * @param Z? the degree of fuzziness in a cornerPoint
  */
-public fTriangle( BasicTriangle BT, double Z1, double Z2, double Z3){
+public fTriangle( BasicTriangle BT, double Z1,
+                  double Z2, double Z3){
    this (  BT.getCP1(),Z1, BT.getCP2(), Z2, BT.getCP3(),Z3 );
 }
 
@@ -109,8 +110,8 @@ public boolean equals(fTriangle fT){
 
 /** returns a String representing this Triangle */
 public String toString(){
-  return "FTriangle :"+
-          "["+ CP_1+","+Z1+"]["+CP_2+","+Z2+"]["+CP_3+","+Z3+"]";
+  return "FTriangle :["+ CP_1+","+Z1+"]["+
+         CP_2+","+Z2+"]["+CP_3+","+Z3+"]";
 
 }
 
@@ -290,7 +291,8 @@ return result;
   *          1 degree is greater then 0
   */
 public boolean isValid(){
-  boolean BasicIsValid = (new BasicTriangle(CP_1,CP_2,CP_3)).isValid();
+  boolean BasicIsValid =
+           (new BasicTriangle(CP_1,CP_2,CP_3)).isValid();
   return BasicIsValid &&
          0<=Z1 && Z1<=1 && 0<=Z2 && Z2 <=1 && 0<=Z3 && Z3<= 1 &&
          (Z1+Z2+Z3)>0;
@@ -326,7 +328,8 @@ public double area3D(){
    double a2 = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
    double b2 = (x3-x2)*(x3-x2) + (y3-y2)*(y3-y2);
    double c2 = (x1-x3)*(x1-x3) + (y1-y3)*(y1-y3);
-   return Math.sqrt((2*a2*b2 + 2*a2*c2 + 2*b2*c2 -a2*a2 -b2*b2 -c2*c2)/2);
+   return Math.sqrt((2*a2*b2 + 2*a2*c2 +
+                     2*b2*c2 -a2*a2 -b2*b2 -c2*c2)/2);
 }
 
 /** returns the greatest degree of fuzziness in this Triangle */
@@ -341,17 +344,21 @@ public double getMinZ(){
 }
 
 public int getMinX(){
-  return Math.min(CP_1.getX(),Math.min(CP_2.getX(),CP_3.getX()));
+  return Math.min(CP_1.getX(),
+                  Math.min(CP_2.getX(),CP_3.getX()));
 }
 
 public int getMinY(){
-  return Math.min(CP_1.getY(),Math.min(CP_2.getY(),CP_3.getY()));
+  return Math.min(CP_1.getY(),
+                  Math.min(CP_2.getY(),CP_3.getY()));
 }
 public int getMaxX(){
-  return Math.max(CP_1.getX(),Math.max(CP_2.getX(),CP_3.getX()));
+  return Math.max(CP_1.getX(),
+                  Math.max(CP_2.getX(),CP_3.getX()));
 }
 public int getMaxY(){
-  return Math.max(CP_1.getY(),Math.max(CP_2.getY(),CP_3.getY()));
+  return Math.max(CP_1.getY(),
+                  Math.max(CP_2.getY(),CP_3.getY()));
 }
 
 /** returns the ListExpr for this fTriangle */
@@ -364,7 +371,8 @@ public ListExpr toListExpr(){
 }
 
 
-/** set the values of this fTriangle to LE, if LE represent a valid FTriangle
+/** set the values of this fTriangle to LE,
+  * if LE represent a valid FTriangle
   * @return true if LE is a valid fTriangle
   */
 public boolean readFromListExpr(ListExpr LE){
@@ -373,7 +381,8 @@ public boolean readFromListExpr(ListExpr LE){
   fEPoint P1 = new fEPoint(0,0,0);
   fEPoint P2 = new fEPoint(0,0,0);
   fEPoint P3 = new fEPoint(0,0,0);
-  if(!( P1.readFromListExpr(LE.first()) && P2.readFromListExpr(LE.second())
+  if(!( P1.readFromListExpr(LE.first()) &&
+        P2.readFromListExpr(LE.second())
         && P3.readFromListExpr(LE.third()) ))
      return false;
   BasicPoint BP1 = (BasicPoint) P1.basic();
