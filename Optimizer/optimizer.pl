@@ -927,6 +927,36 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(Expr, EAtom),
   concat_atom([NAtom, ': ', EAtom], '', Result).
 
+/*
+Special Operators for Algebras
+
+Picture Algebra:
+
+*/
+plan_to_atom(equals(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, ' ', YAtom, ' equals[', AAtom, ', ', BAtom, ']'], '', Result),
+  !.
+
+plan_to_atom(like(X, Y, Z, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(Z, ZAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, ' like[', YAtom, ', ', ZAtom, ', ', AAtom, ', ', BAtom, ']'], 
+  '', Result),
+  !.
+
+/*
+End of Picture Algebra
+
+*/
+
+
 
 
 
@@ -2508,6 +2538,12 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   write(' doubly defined in query.'),
   nl.
 
+/*
+Currently terms involving operators with up to five arguments are handled. This may need to be extended in the future. Then ~lookupPreds~ should also be extended.
+
+*/
+
+
 lookupAttr(Term, Term2) :-
   compound(Term),
   functor(Term, Op, 1),
@@ -2527,7 +2563,59 @@ lookupAttr(Term, Term2) :-
   arg(1, Term2, Res1),
   arg(2, Term2, Res2).
 
-% may need to be extended to more than two arguments in a term.
+lookupAttr(Term, Term2) :-
+  compound(Term),
+  functor(Term, Op, 3),
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  lookupAttr(Arg1, Res1),
+  lookupAttr(Arg2, Res2),
+  lookupAttr(Arg3, Res3),
+  functor(Term2, Op, 3),
+  arg(1, Term2, Res1),
+  arg(2, Term2, Res2),
+  arg(3, Term2, Res3).
+
+lookupAttr(Term, Term2) :-
+  compound(Term),
+  functor(Term, Op, 4),
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  arg(4, Term, Arg4),
+  lookupAttr(Arg1, Res1),
+  lookupAttr(Arg2, Res2),
+  lookupAttr(Arg3, Res3),
+  lookupAttr(Arg4, Res4),
+  functor(Term2, Op, 4),
+  arg(1, Term2, Res1),
+  arg(2, Term2, Res2),
+  arg(3, Term2, Res3),
+  arg(4, Term2, Res4).
+
+lookupAttr(Term, Term2) :-
+  compound(Term),
+  functor(Term, Op, 5),
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  arg(4, Term, Arg4),
+  arg(5, Term, Arg5),
+  lookupAttr(Arg1, Res1),
+  lookupAttr(Arg2, Res2),
+  lookupAttr(Arg3, Res3),
+  lookupAttr(Arg4, Res4),
+  lookupAttr(Arg5, Res5),
+  functor(Term2, Op, 5),
+  arg(1, Term2, Res1),
+  arg(2, Term2, Res2),
+  arg(3, Term2, Res3),
+  arg(4, Term2, Res4),
+  arg(5, Term2, Res5).
+
+
+% may need to be extended to more than five arguments in a term.
 
 
 lookupAttr(Name, attr(Name, 0, u)) :-
@@ -2605,6 +2693,11 @@ lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   N1 is N + 1,
   append(RelsBefore, [Rel2], RelsAfter).
 
+/*
+Currently terms involving operators with up to five arguments are handled. When this is extended, modify also ~lookupAttrs~.
+
+*/
+
 lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   compound(Term),
   functor(Term, F, 1), !,
@@ -2618,13 +2711,65 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
   functor(Term, F, 2), !,
   arg(1, Term, Arg1),
   arg(2, Term, Arg2),
-  lookupPred1(Arg1, Arg1Out, N, RelsBefore, M1, RelsAfter1),
-  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M, RelsAfter),
+  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
+  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1,  M, RelsAfter),
   functor(Term2, F, 2),
   arg(1, Term2, Arg1Out),
   arg(2, Term2, Arg2Out).
 
-% may need to be extended to operators with more than two arguments.
+lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
+  compound(Term),
+  functor(Term, F, 3), !,
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
+  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
+  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2,  M, RelsAfter),
+  functor(Term2, F, 3),
+  arg(1, Term2, Arg1Out),
+  arg(2, Term2, Arg2Out),
+  arg(3, Term2, Arg3Out).
+
+lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
+  compound(Term),
+  functor(Term, F, 4), !,
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  arg(4, Term, Arg4),
+  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
+  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
+  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
+  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3,  M, RelsAfter),
+  functor(Term2, F, 4),
+  arg(1, Term2, Arg1Out),
+  arg(2, Term2, Arg2Out),
+  arg(3, Term2, Arg3Out),
+  arg(4, Term2, Arg4Out).
+
+lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
+  compound(Term),
+  functor(Term, F, 5), !,
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  arg(4, Term, Arg4),
+  arg(5, Term, Arg5),
+  lookupPred1(Arg1, Arg1Out,  N, RelsBefore, M1, RelsAfter1),
+  lookupPred1(Arg2, Arg2Out, M1, RelsAfter1, M2, RelsAfter2),
+  lookupPred1(Arg3, Arg3Out, M2, RelsAfter2, M3, RelsAfter3),
+  lookupPred1(Arg4, Arg4Out, M3, RelsAfter3, M4, RelsAfter4),
+  lookupPred1(Arg5, Arg5Out, M4, RelsAfter4,  M, RelsAfter),
+  functor(Term2, F, 5),
+  arg(1, Term2, Arg1Out),
+  arg(2, Term2, Arg2Out),
+  arg(3, Term2, Arg3Out),
+  arg(4, Term2, Arg4Out),
+  arg(5, Term2, Arg5Out).
+
+
+% may need to be extended to operators with more than five arguments.
 
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
