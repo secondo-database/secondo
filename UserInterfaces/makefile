@@ -61,6 +61,7 @@ clean:
 # create dependencies from include directives
 
 CCFLAGS += $(DEFAULTCCFLAGS)
+CCFLAGS += -fPIC 
 
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
@@ -97,7 +98,7 @@ $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS)  -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
 
 $(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES)
-$(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
+$(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(PLLDFLAGS)
 
 
