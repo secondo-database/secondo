@@ -35,7 +35,7 @@ Following operators are defined:
         real x real --> real
 ----
 
-  * - (subtract) 
+  * - (subtract)
 
 ----    int x int --> int
         int x real --> real
@@ -176,7 +176,7 @@ TypeOfSymbol( ListExpr symbol )
 
 A type constructor is created by defining an instance of class 
 ~TypeConstructor~. Before this instance definition may take place we have
-to define some functions which are passed as constructor arguments 
+to define some functions which are passed as constructor arguments
 during ~TypeConstructor~ instantiation.
 
 3.1 Type properties
@@ -850,6 +850,7 @@ STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
 int       CcString::Sizeof() { return (sizeof(CcString)); };
 CcString* CcString::Clone() { return (new CcString( *this )); };
+void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 
 size_t 
 CcString::HashValue()

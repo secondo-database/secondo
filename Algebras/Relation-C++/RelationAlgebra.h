@@ -48,6 +48,7 @@ class CcTuple
     /* if a tuple is free, then a stream receiving the tuple can delete or
        reuse it */
     bool isFree;
+    SmiRecordId id;
 
   public:
 
@@ -63,10 +64,13 @@ class CcTuple
     void SetFree(bool);
 
     CcTuple* CloneIfNecessary();
-    
+
     CcTuple* Clone();
 
     void DeleteIfAllowed();
+
+    SmiRecordId GetId();
+    void SetId(SmiRecordId id);
 
     friend
     ostream& operator<<(ostream& s, CcTuple t);
@@ -120,20 +124,20 @@ typedef CTable<CcTuple*>* Relation;
 class CcRel;
 
 class CcRelIT
-{  
+{
   CTable<CcTuple*>::Iterator rs;
-  CcRel* r; 
+  CcRel* r;
   public :
-    
+
   CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r);
   ~CcRelIT ();
   CcRelIT& operator=(CcRelIT& right);
-  
+
   CcTuple* GetTuple();
   void Next();
-  bool EndOfScan(); 
+  bool EndOfScan();
   CcTuple* GetNextTuple();
-    
+
 };
 
 class CcRel
@@ -144,12 +148,14 @@ class CcRel
 
     int NoOfTuples;
     Relation TupleList;
+    SmiRecordId currentId;
 
   public:
 
     CcRel ();
     ~CcRel ();
 
+    CcTuple* GetTupleById(SmiRecordId id);
     void    AppendTuple (CcTuple*);
 
     CcRelIT* MakeNewScan();

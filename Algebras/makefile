@@ -9,8 +9,8 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec	
-	cat $^ | sort -b | ./specs.awk 
+specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec BTree/*.spec
+	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
 .PHONY: makedirs
@@ -22,6 +22,7 @@ makedirs:
 	$(MAKE) -C Relation-C++
 	$(MAKE) -C Date
 	$(MAKE) -C Polygon
+	$(MAKE) -C BTree
 #	$(MAKE) -C StDb
 
 buildlibs:
@@ -32,6 +33,7 @@ buildlibs:
 	$(MAKE) -C Relation-C++ buildlibs
 	$(MAKE) -C Date  buildlibs
 	$(MAKE) -C Polygon	buildlibs
+	$(MAKE) -C BTree	buildlibs
 #	$(MAKE) -C StDb         buildlibs
 
 .PHONY: clean
@@ -45,4 +47,5 @@ clean:
 	$(MAKE) -C Relation-C++ clean
 	$(MAKE) -C Date clean
 	$(MAKE) -C Polygon clean
+	$(MAKE) -C BTree clean
 

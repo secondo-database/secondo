@@ -127,6 +127,16 @@ bool CcTuple::IsFree() { return isFree; }
 
 void CcTuple::SetFree(bool b) { isFree = b; }
 
+SmiRecordId CcTuple::GetId()
+{
+  return id;
+}
+
+void CcTuple::SetId(SmiRecordId id)
+{
+  this->id = id;
+}
+
 CcTuple* CcTuple::Clone()
 {
   CcTuple* result = new CcTuple();
@@ -603,19 +613,22 @@ ListExpr RelProp ()
           nl->SymbolAtom("REL")));
 }
 
-CcRel::CcRel () 
+CcRel::CcRel ()
 {
-  NoOfTuples = 0; 
+  currentId = 1;
+  NoOfTuples = 0;
   TupleList = new CTable<CcTuple*>(100);
 };
 
-CcRel::~CcRel () 
-{ 
-  delete TupleList; 
+CcRel::~CcRel ()
+{
+  delete TupleList;
 };
 
 void CcRel::AppendTuple (CcTuple* t)
 {
+  t->SetId(currentId);
+  currentId++;
   TupleList->Add(t);
   NoOfTuples++;
 };
@@ -625,12 +638,17 @@ CcRelIT* CcRel::MakeNewScan()
   return new CcRelIT(TupleList->Begin(), this);
 }
 
-void CcRel::SetNoTuples (int notuples) 
+CcTuple* CcRel::GetTupleById(SmiRecordId id)
+{
+  return (*TupleList)[id];
+}
+
+void CcRel::SetNoTuples (int notuples)
 {
   NoOfTuples = notuples;
 };
 
-int CcRel::GetNoTuples () 
+int CcRel::GetNoTuples ()
 {
   return NoOfTuples;
 };
@@ -685,7 +703,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
   CcRelIT* rit = r->MakeNewScan();
   l = nl->TheEmptyList();
 
-  //cout << "OutRel " << endl;
+  //cerr << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
   {
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
@@ -712,6 +730,7 @@ of ~rel~. The ~Size~-parameter is not evaluated.
 */
 Word CreateRel(int Size)
 {
+  //cerr << "CreateRel " << endl;
   CcRel* rel = new CcRel();
   return (SetWord(rel));
 }
@@ -750,7 +769,7 @@ Word InRel(ListExpr typeInfo, ListExpr value,
   count = 0;
   rel = new CcRel();
 
-  //cout << "InRel " << endl;
+  //cerr << "InRel " << endl;
   tuplelist = value;
   TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
     nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
@@ -812,7 +831,7 @@ void DeleteRel(Word& w)
   Word v;
 
   r = (CcRel*)w.addr;
-  //cout << "DeleteRel " << endl;
+  //cerr << "DeleteRel " << endl;
   CcRelIT* rit = r->MakeNewScan();
   while ( (t = rit->GetNextTuple()) != 0 )
   {
@@ -888,7 +907,9 @@ RelPersistValue( const PersistDirection dir,
   ListExpr valueList;
   string valueString;
   int valueLength;
-  
+
+  //cerr << "RelPersistValue "  << (dir == ReadFrom ? "R" : "W") << endl;
+
   if ( dir == ReadFrom )
   {
     SmiKey mykey;
@@ -896,8 +917,6 @@ RelPersistValue( const PersistDirection dir,
     mykey = valueRecord.GetKey();
     if ( ! mykey.GetKey(recId) ) cout << "
 	RelPersistValue: Couldn't get the key!" << endl;
-
-    // cout << "the record number is: " << recId << endl;
 
     static bool firsttime = true;
     const int cachesize = 20;

@@ -28,4 +28,5 @@ ALGEBRA_INCLUDE(4,PointRectangleAlgebra,Executable)
 ALGEBRA_INCLUDE(5,StreamExampleAlgebra,Executable)
 ALGEBRA_INCLUDE(6,PolygonAlgebra,Executable)
 ALGEBRA_INCLUDE(7,DateAlgebra,Executable)
+ALGEBRA_INCLUDE(8,BTreeAlgebra,Executable)
 
