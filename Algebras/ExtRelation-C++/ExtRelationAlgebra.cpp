@@ -2559,11 +2559,11 @@ Extends each input tuple by new attributes as specified in the parameter list.
 
 Type mapping for ~extend~ is
 
-----     ((stream x) ((b1 (map x y1)) ... (bm (map x ym))))
+----     ((stream X) ((b1 (map x y1)) ... (bm (map x ym))))
 
-        -> (stream (tuple ((a1 x1) ... (an xn) (b1 y1 ... bm ym))))
+        -> (stream (tuple ((a1 x1) ... (an xn) (b1 y1) ... (bm ym)))))
 
-        wobei x = (tuple ((a1 x1) ... (an xn)))
+        where X = (tuple ((a1 x1) ... (an xn)))
 ----
 
 */
@@ -3303,7 +3303,7 @@ For instance,
 
 */
 
-ListExpr ExtendstreamTypeMap(ListExpr args)
+ListExpr ExtendStreamTypeMap(ListExpr args)
 {
   ListExpr first, second;
   ListExpr listX, listY, list, outlist, errorInfo;
@@ -3316,7 +3316,7 @@ ListExpr ExtendstreamTypeMap(ListExpr args)
     "Operator extendstream expects a list of length two.");
 
   first = nl->First(args);
-  second  = nl->First(nl->Second(args));
+  second  = nl->Second(args);
 
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
@@ -3330,13 +3330,16 @@ ListExpr ExtendstreamTypeMap(ListExpr args)
     "Operator extendstream gets as first argument '" + argstr + "'." );
 
   nl->WriteToString(argstr, second);
-  CHECK_COND( (nl->ListLength(second) == 2) &&
-     (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == ccmap) &&
-     (nl->ListLength(nl->Third(nl->Second(second))) == 2) &&
-     (TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(second)))) == stream),
+  CHECK_COND( !nl->IsAtom(second) &&
+     nl->ListLength(second) == 1 &&
+     nl->ListLength(nl->First(second)) == 2 &&
+     TypeOfRelAlgSymbol(nl->First(nl->Second(nl->First(second)))) == ccmap &&
+     nl->ListLength(nl->Third(nl->Second(nl->First(second)))) == 2 &&
+     TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(nl->First(second)))) == stream),
     "Operator extendstream expects as second argument a list with length two"
     " and structure (<attrname>(map (tuple (...)) (stream <type(DATA)>))).\n"
     " Operator extendstream gets as second argument '" + argstr + "'.\n" );
+  second = nl->First(second);
 
   CHECK_COND((nl->Equal(nl->Second(first), nl->Second(nl->Second(second)))),
     "Operator extendstream: Input tuple for mapping and the first argument "
@@ -3376,57 +3379,51 @@ ListExpr ExtendstreamTypeMap(ListExpr args)
 
 */
 
-struct ExtendstreamLocalInfo
+struct ExtendStreamLocalInfo
 {
-  Word tuplex;
-  Word streamy;
+  Tuple *tupleX;
+  Word streamY;
   TupleType *resultTupleType;
 };
 
-int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
+int ExtendStream(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  //cout<<"ExtendstreamValueMap CALLED!!!"<<endl;
+  //cout<<"ExtendStreamValueMap CALLED!!!"<<endl;
   ArgVectorPointer funargs;
-  Word tuplex, valueY, tuplexy, streamy;
-  Tuple* ctuplex;
-  Tuple* ctuplexy;
-  ExtendstreamLocalInfo *localinfo;
+  Word wTupleX, wValueY;
+  Tuple* tupleXY;
+  ExtendStreamLocalInfo *localinfo;
 
   TupleType *resultTupleType;
   ListExpr resultType;
 
   Supplier supplier, supplier2, supplier3;
 
-  switch ( message )
+  switch( message )
   {
     case OPEN:
-
+    {
       //1. open the input stream and initiate the arguments
-      qp->Open (args[0].addr);
-      qp->Request(args[0].addr, tuplex);
-      if (qp->Received(args[0].addr))
+      qp->Open( args[0].addr );
+      qp->Request( args[0].addr, wTupleX );
+      if( qp->Received( args[0].addr ) )
       {
-
         //2. compute the result "stream y" from tuple x
         //funargs = qp->Argument(args[1].addr);   //here should be changed to the following...
         supplier = args[1].addr;
-        supplier2 = qp->GetSupplier(supplier, 0);
-        supplier3 = qp->GetSupplier(supplier2, 1);
-        funargs = qp->Argument(supplier3);
+        supplier2 = qp->GetSupplier( supplier, 0 );
+        supplier3 = qp->GetSupplier( supplier2, 1 );
+        funargs = qp->Argument( supplier3 );
 
-        (*funargs)[0] = tuplex;
-
-       streamy = SetWord(supplier3);         //originally args[1];  should be changed...
-       //qp->Request(supplier3,streamy);  //this way only suits simply data types...not for streams...
-
-       qp->Open (streamy.addr);                 //streamY is directly the output of the mapping function
+        (*funargs)[0] = wTupleX;
+        qp->Open( supplier3 ); 
 
         //3. save the local information
-        localinfo = new ExtendstreamLocalInfo;
+        localinfo = new ExtendStreamLocalInfo;
         resultType = GetTupleResultType( s );
         localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
-        localinfo->tuplex = tuplex;
-        localinfo->streamy = streamy;
+        localinfo->tupleX = (Tuple*)wTupleX.addr;
+        localinfo->streamY = SetWord( supplier3 );
         local = SetWord(localinfo);
       }
       else
@@ -3434,98 +3431,88 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
         local = SetWord(Address(0));
       }
       return 0;
-
+    }
     case REQUEST:
-      if (local.addr ==0) return CANCEL;
+    {
+      if( local.addr == 0 ) 
+        return CANCEL;
 
       //1. recover local information
-      localinfo=(ExtendstreamLocalInfo *) local.addr;
+      localinfo=(ExtendStreamLocalInfo *) local.addr;
       resultTupleType = (TupleType *)localinfo->resultTupleType;
-      tuplex=localinfo->tuplex;
-      ctuplex=(Tuple*)tuplex.addr;
-      streamy=localinfo->streamy;
 
-      //2. prepare tupleX and valueY. If valueY is empty, then get next tupleX
-      valueY=SetWord(Address(0));
-      while (valueY.addr==0)
+      //2. prepare tupleX and wValueY. If wValueY is empty, then get next tupleX
+      wValueY = SetWord(Address(0));
+      while( wValueY.addr == 0 )
       {
-        qp->Request(streamy.addr, valueY);
-        if (!(qp->Received(streamy.addr)))
+        qp->Request( localinfo->streamY.addr, wValueY );
+        if( !(qp->Received( localinfo->streamY.addr )) )
         {
-          qp->Close(streamy.addr);
-          ((Tuple*)tuplex.addr)->DeleteIfAllowed();
-	  //delete (Tuple*)tuplex.addr;
-          qp->Request(args[0].addr, tuplex);
-          if (qp->Received(args[0].addr))
+          qp->Close( localinfo->streamY.addr );
+          localinfo->tupleX->DeleteIfAllowed();
+          qp->Request( args[0].addr, wTupleX );
+          if( qp->Received(args[0].addr) )
           {
-            //funargs = qp->Argument(args[1].addr);   ///changed to the following lines
-           supplier = args[1].addr;
-           supplier2 = qp->GetSupplier(supplier, 0);
-           supplier3 = qp->GetSupplier(supplier2, 1);
-           funargs = qp->Argument(supplier3);
+            supplier = args[1].addr;
+            supplier2 = qp->GetSupplier(supplier, 0);
+            supplier3 = qp->GetSupplier(supplier2, 1);
+            funargs = qp->Argument(supplier3);
 
-            ctuplex=(Tuple*)tuplex.addr;
-            (*funargs)[0] = tuplex;
+            localinfo->tupleX = (Tuple*)wTupleX.addr;
+            (*funargs)[0] = wTupleX;
+            qp->Open( supplier3 );
 
-            //streamy=args[1]; //replaced by the following line.
-            streamy = SetWord(supplier3);
+            localinfo->tupleX = (Tuple*)wTupleX.addr;
+            localinfo->streamY = SetWord(supplier3);
 
-            qp->Open (streamy.addr);
-            valueY=SetWord(Address(0));
-
-            localinfo->tuplex=tuplex;
-            localinfo->streamy=streamy;
-            //resultType = GetTupleResultType( s );
-            //localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
-
-            local =  SetWord(localinfo);
+            wValueY = SetWord(Address(0));
           }
           else  //streamx is exausted
           {
-            localinfo->streamy = SetWord(0);
-            localinfo->tuplex = SetWord(0);
+            localinfo->streamY = SetWord(0);
+            localinfo->tupleX = 0;
             return CANCEL;
           }
         }
-        else
-        {
-          //ctupley=(Tuple*)tupley.addr;
-        }
       }
 
-      //3. compute tupleXY from tupleX and valueY
-      ctuplexy = new Tuple( *localinfo->resultTupleType, true );
-      assert( ctuplexy->IsFree() == true );
+      //3. compute tupleXY from tupleX and wValueY
+      tupleXY = new Tuple( *localinfo->resultTupleType, true );
+      assert( tupleXY->IsFree() == true );
 
-      for( int i = 0; i < ctuplex->GetNoAttributes(); i++ )
-	  ctuplexy->PutAttribute( i, ctuplex->GetAttribute( i )->Clone() );
+      for( int i = 0; i < localinfo->tupleX->GetNoAttributes(); i++ )
+        tupleXY->PutAttribute( i, localinfo->tupleX->GetAttribute( i )->Clone() );
 
-      ctuplexy->PutAttribute( ctuplex->GetNoAttributes(), ((StandardAttribute*)valueY.addr)->Clone() );
-      //give valueY to the last attribute
+      tupleXY->PutAttribute( localinfo->tupleX->GetNoAttributes(), ((StandardAttribute*)wValueY.addr)->Clone() );
 
-      delete (StandardAttribute*)valueY.addr;
-      tuplexy = SetWord(ctuplexy);
-      result = tuplexy;
+      // deleting wValueY
+      const AttributeType& yAttributeType = 
+        localinfo->resultTupleType->GetAttributeType( localinfo->resultTupleType->GetNoAttributes() - 1 );
+      (SecondoSystem::GetAlgebraManager()->DeleteObj( yAttributeType.algId, yAttributeType.typeId ))( wValueY );
+
+      // setting the result
+      result = SetWord( tupleXY );
       return YIELD;
-
+    }
     case CLOSE:
+    {
       if( local.addr != 0 )
       {
-        localinfo=(ExtendstreamLocalInfo *) local.addr;
+        localinfo = (ExtendStreamLocalInfo *)local.addr;
 
-        if( localinfo->streamy.addr != 0 )
-          qp->Close( localinfo->streamy.addr );
+        if( localinfo->streamY.addr != 0 )
+          qp->Close( localinfo->streamY.addr );
 
-        if( localinfo->tuplex.addr != 0 )
-          ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
+        if( localinfo->tupleX != 0 )
+          localinfo->tupleX->DeleteIfAllowed();
 
         delete localinfo->resultTupleType;
         delete localinfo;
       }
-      qp->Close(args[0].addr);
+      qp->Close( args[0].addr );
       return 0;
+    }
   }
-
   return 0;
 }
 
@@ -3533,7 +3520,7 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
 2.19.3 Specification of operator ~extendstream~
 
 */
-const string ExtendstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string ExtendStreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                              "\"Example\" ) "
                              "( <text>((stream tuple1) (map tuple1 "
                              "stream(type))) -> (stream tuple1*tuple2)"
@@ -3550,13 +3537,367 @@ const string ExtendstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 2.19.4 Definition of operator ~extendstream~
 
 */
-Operator extrelExtendstream (
+Operator extrelextendstream (
          "extendstream",                // name
-         ExtendstreamSpec,              // specification
-         Extendstream,                  // value mapping
+         ExtendStreamSpec,              // specification
+         ExtendStream,                  // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,            // trivial selection function
-         ExtendstreamTypeMap            // type mapping
+         ExtendStreamTypeMap            // type mapping
+);
+
+/*
+2.21 Operator ~projectextendstream~
+
+This operator does the same as ~extendstream~ with a projection on some attributes. It is
+very often that a big attribute is converted into a stream of a small pieces, for example,
+a text into keywords. When applying the ~extendstream~ operator, the big attribute belongs
+to the result type, and is copied for every occurrence of its smaller pieces. A projection
+is a normal operation after such operation. To avoid this copying, the projection operation
+is now built in the operation. 
+
+The type mapping function of the ~projectextendstream~ operation is as follows:
+
+----  ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik) 
+        (map (tuple ((x1 T1) ... (xn Tn))) (b stream(Tb))))  ->
+      (APPEND
+        (k (i1 ... ik))
+        (stream (tuple ((ai1 Ti1) ... (aik Tik)(b Tb)))))
+----
+
+For instance,
+
+----  query people feed projectextendstream [id, age; parts : .name keywords] consume;
+----
+
+*/
+ListExpr ProjectExtendStreamTypeMap(ListExpr args)
+{
+  ListExpr errorInfo;
+  AlgebraManager* algMgr;
+  algMgr = SecondoSystem::GetAlgebraManager();
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  string argstr, argstr2;
+
+  CHECK_COND(nl->ListLength(args) == 3,
+    "Operator projectextendstream expects a list of length three.");
+
+  ListExpr first = nl->First(args),
+           second = nl->Second(args),
+           third = nl->Third(args);
+
+nl->WriteListExpr( first );
+cout << endl;
+nl->WriteListExpr( second );
+cout << endl;
+nl->WriteListExpr( third );
+cout << endl;
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+       (nl->ListLength(nl->Second(first)) == 2) &&
+       (IsTupleDescription(nl->Second(nl->Second(first)))),
+    "Operator projectextendstream expects as first argument a list with structure "
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator projectextendstream gets as first argument '" + argstr + "'." );
+
+  nl->WriteToString(argstr, second);
+  CHECK_COND( !nl->IsAtom(second) &&
+     nl->ListLength(second) > 0, 
+    "Operator projectextendstream expects as second argument a list of attribute names\n"
+    " Operator projectextendstream gets as second argument '" + argstr + "'.\n" );
+
+  nl->WriteToString(argstr, third);
+  CHECK_COND( !nl->IsAtom(third) &&
+     nl->ListLength(third) == 1 &&
+     nl->ListLength(nl->First(third)) == 2 &&
+     TypeOfRelAlgSymbol(nl->First(nl->Second(nl->First(third)))) == ccmap &&
+     nl->ListLength(nl->Third(nl->Second(nl->First(third)))) == 2 &&
+     TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(nl->First(third)))) == stream),
+    "Operator projectextendstream expects as third argument a list with length two"
+    " and structure (<attrname>(map (tuple (...)) (stream <type(DATA)>))).\n"
+    " Operator projectextendstream gets as third argument '" + argstr + "'.\n" );
+  third = nl->First(third);
+
+  ListExpr secondRest = second, secondFirst, attrType, 
+           newAttrList, numberList,
+           lastNewAttrList, lastNumberList;
+  string attrName;
+  bool firstCall = true;
+  while( !nl->IsEmpty(secondRest) )
+  {
+    secondFirst = nl->First(secondRest);
+    secondRest = nl->Rest(secondRest);
+    if( nl->AtomType(secondFirst) == SymbolType )
+    {
+      attrName = nl->SymbolValue(secondFirst);
+    }
+    else
+    {
+      nl->WriteToString(argstr, secondFirst);
+      ErrorReporter::ReportError( 
+        "Operator projectextendstream expects as second argument a list of attribute names\n"
+        " The element '" + argstr + "' is not an attribute name.\n" );
+      return nl->SymbolAtom("typeerror");
+    }
+
+    int j = FindAttribute( nl->Second(nl->Second(first)), attrName, attrType );
+    if( j )
+    {
+      if( firstCall )
+      {
+        firstCall = false;
+        newAttrList = nl->OneElemList(nl->TwoElemList(secondFirst, attrType));
+        lastNewAttrList = newAttrList;
+        numberList = nl->OneElemList(nl->IntAtom(j));
+        lastNumberList = numberList;
+      }
+      else
+      {
+        lastNewAttrList =
+          nl->Append( lastNewAttrList, nl->TwoElemList(secondFirst, attrType) );
+        lastNumberList =
+          nl->Append( lastNumberList, nl->IntAtom(j) );
+      }
+    }
+    else
+    {
+      nl->WriteToString(argstr, first);
+      ErrorReporter::ReportError(
+        "Operator projectextendstream expects as second argument a list of attribute names\n"
+        " Attribute name '" + attrName + "' does not belong to the tuple stream: \n"
+        "'" + argstr + "'.\n" );
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+
+
+  CHECK_COND((nl->Equal(nl->Second(first), nl->Second(nl->Second(third)))),
+    "Operator projectextendstream: Input tuple for mapping (third argument) and the first argument\n"
+    "tuple must have the same description." );
+
+  nl->WriteToString(argstr,
+                    nl->Second(nl->Third(nl->Second(third))));
+  CHECK_COND((nl->IsAtom(nl->Second(nl->Third(nl->Second(third)))))  &&
+             (algMgr->CheckKind("DATA",
+               nl->Second(nl->Third(nl->Second(third))), errorInfo)),
+    "Operator projectextendstream: the return stream value in the third argument\n"
+    "must implement the kind DATA.\n"
+    "The return stream value is of type '" + argstr + "'.\n" );
+
+  ListExpr appendAttr = nl->TwoElemList(
+                          nl->First(third),
+                          nl->Second(nl->Third(nl->Second(third))));
+
+  nl->WriteToString(argstr, nl->Second(nl->Second(first)));
+  nl->WriteToString(argstr2, appendAttr);
+  CHECK_COND( AttributesAreDisjoint( nl->Second(nl->Second(first)), nl->OneElemList(appendAttr) ),
+    "Operator projectextendstream: new attribute name '" + argstr2 + "' must be different\n"
+    "from the attribute names in first argument list.\n"
+    "First argument list: '" + argstr + "'.\n" );
+
+
+  lastNewAttrList =
+          nl->Append( lastNewAttrList, appendAttr );  
+  
+  return nl->ThreeElemList(
+           nl->SymbolAtom("APPEND"),
+           nl->TwoElemList(
+             nl->IntAtom( nl->ListLength(second) ), 
+             numberList),
+           nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 newAttrList)));
+}
+
+/*
+2.19.2 Value mapping function of operator ~projectextendstream~
+
+*/
+struct ProjectExtendStreamLocalInfo
+{
+  Tuple *tupleX;
+  Word streamY;
+  TupleType *resultTupleType;
+  vector<long> attrs;
+};
+
+int ProjectExtendStream(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  ArgVectorPointer funargs;
+  Word wTupleX, wValueY;
+  Tuple* tupleXY;
+  ProjectExtendStreamLocalInfo *localinfo;
+
+  TupleType *resultTupleType;
+  ListExpr resultType;
+
+  Supplier supplier, supplier2, supplier3;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      //1. open the input stream and initiate the arguments
+      qp->Open( args[0].addr );
+      qp->Request( args[0].addr, wTupleX );
+      if( qp->Received( args[0].addr ) )
+      {
+        //2. compute the result "stream y" from tuple x
+        supplier = args[2].addr;
+        supplier2 = qp->GetSupplier( supplier, 0 );
+        supplier3 = qp->GetSupplier( supplier2, 1 );
+        funargs = qp->Argument( supplier3 );
+
+        (*funargs)[0] = wTupleX;
+        qp->Open( supplier3 );
+
+        //3. save the local information
+        localinfo = new ProjectExtendStreamLocalInfo;
+        resultType = GetTupleResultType( s );
+        localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+        localinfo->tupleX = (Tuple*)wTupleX.addr;
+        localinfo->streamY = SetWord( supplier3 );
+
+        //4. get the attribute numbers
+        Word arg2;
+        qp->Request(args[3].addr, arg2);
+        int noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
+        for( int i = 0; i < noOfAttrs; i++)
+        {
+          Supplier son = qp->GetSupplier(args[4].addr, i);
+          Word elem2;
+          qp->Request(son, elem2);
+          localinfo->attrs.push_back( ((CcInt*)elem2.addr)->GetIntval()-1 );
+        }
+
+        local = SetWord(localinfo);
+      }
+      else
+      {
+        local = SetWord(Address(0));
+      }
+      return 0;
+    }
+    case REQUEST:
+    {
+      if( local.addr == 0 )
+        return CANCEL;
+
+      //1. recover local information
+      localinfo=(ProjectExtendStreamLocalInfo *) local.addr;
+      resultTupleType = (TupleType *)localinfo->resultTupleType;
+
+      //2. prepare tupleX and wValueY. If wValueY is empty, then get next tupleX
+      wValueY = SetWord(Address(0));
+      while( wValueY.addr == 0 )
+      {
+        qp->Request( localinfo->streamY.addr, wValueY );
+        if( !(qp->Received( localinfo->streamY.addr )) )
+        {
+          qp->Close( localinfo->streamY.addr );
+          localinfo->tupleX->DeleteIfAllowed();
+          qp->Request( args[0].addr, wTupleX );
+          if( qp->Received(args[0].addr) )
+          {
+            supplier = args[2].addr;
+            supplier2 = qp->GetSupplier(supplier, 0);
+            supplier3 = qp->GetSupplier(supplier2, 1);
+            funargs = qp->Argument(supplier3);
+
+            localinfo->tupleX = (Tuple*)wTupleX.addr;
+            (*funargs)[0] = wTupleX;
+            qp->Open( supplier3 );
+
+            localinfo->tupleX = (Tuple*)wTupleX.addr;
+            localinfo->streamY = SetWord(supplier3);
+
+            wValueY = SetWord(Address(0));
+          }
+          else  //streamx is exausted
+          {
+            localinfo->streamY = SetWord(0);
+            localinfo->tupleX = 0;
+            return CANCEL;
+          }
+        }
+      }
+
+      //3. compute tupleXY from tupleX and wValueY
+      tupleXY = new Tuple( *localinfo->resultTupleType, true );
+      assert( tupleXY->IsFree() == true );
+
+      size_t i;
+      for( i = 0; i < localinfo->attrs.size(); i++ )
+        tupleXY->PutAttribute( i, localinfo->tupleX->GetAttribute( localinfo->attrs[i] )->Clone() );
+
+      assert( i == (size_t)tupleXY->GetNoAttributes()-1 );
+      tupleXY->PutAttribute( i, ((StandardAttribute*)wValueY.addr)->Clone() );
+
+      // deleting wValueY
+      const AttributeType& yAttributeType =
+        localinfo->resultTupleType->GetAttributeType( localinfo->resultTupleType->GetNoAttributes() - 1 );
+      (SecondoSystem::GetAlgebraManager()->DeleteObj( yAttributeType.algId, yAttributeType.typeId ))( wValueY );
+
+      // setting the result
+      result = SetWord( tupleXY );
+      return YIELD;
+    }
+    case CLOSE:
+    {
+      if( local.addr != 0 )
+      {
+        localinfo = (ProjectExtendStreamLocalInfo *)local.addr;
+
+        if( localinfo->streamY.addr != 0 )
+          qp->Close( localinfo->streamY.addr );
+
+        if( localinfo->tupleX != 0 )
+          localinfo->tupleX->DeleteIfAllowed();
+
+        delete localinfo->resultTupleType;
+        delete localinfo;
+      }
+      qp->Close( args[0].addr );
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+2.19.3 Specification of operator ~projectextendstream~
+
+*/
+const string ProjectExtendStreamSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                             "\"Example\" ) "
+                             "( <text>((stream tuple1) (ai1 ... aik) (map tuple1 "
+                             "stream(type))) -> (stream tuple1[ai1 ... aik]*type)"
+                             "</text--->"
+                             "<text>_ projectextendstream [ list; funlist ]</text--->"
+                             "<text>This operator does the same as the extendstream does,"
+                             " projecting the result stream of tuples to some specified"
+                             " list of attribute names.</text--->"
+                             "<text>query UBahn feed projectextendstream"
+                             "[ Id, Up; newattr:  units(.Trajectory)] consume</text--->"
+                             ") )";
+
+/*
+2.19.4 Definition of operator ~projectextendstream~
+
+*/
+Operator extrelprojectextendstream (
+         "projectextendstream",                // name
+         ProjectExtendStreamSpec,              // specification
+         ProjectExtendStream,                  // value mapping
+         Operator::DummyModel,                 // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,               // trivial selection function
+         ProjectExtendStreamTypeMap            // type mapping
 );
 
 /*
@@ -4181,7 +4522,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extreloldhashjoin);
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
-    AddOperator(&extrelExtendstream);
+    AddOperator(&extrelextendstream);
+    AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
     AddOperator(&extrelgroupby);
   }

@@ -1426,23 +1426,24 @@ ListExpr ProjectTypeMap(ListExpr args)
       if (firstcall)
       {
         firstcall = false;
-	newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
-	lastNewAttrList = newAttrList;
-	numberList = nl->OneElemList(nl->IntAtom(j));
-	lastNumberList = numberList;
+        newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
+        lastNewAttrList = newAttrList;
+	      numberList = nl->OneElemList(nl->IntAtom(j));
+        lastNumberList = numberList;
       }
       else
       {
         lastNewAttrList =
-	  nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
-	lastNumberList =
-	  nl->Append(lastNumberList, nl->IntAtom(j));
+          nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
+        lastNumberList =
+          nl->Append(lastNumberList, nl->IntAtom(j));
       }
     }
     else
     {
-      ErrorReporter::ReportError("Operator project: Attributename '" + attrname + 
-	"' is not a known attributename in the tuple stream.");
+      ErrorReporter::ReportError(
+        "Operator project: Attributename '" + attrname + 
+        "' is not a known attributename in the tuple stream.");
           return nl->SymbolAtom("typeerror");
     }
   }
