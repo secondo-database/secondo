@@ -77,7 +77,8 @@ sleep 5
 
 install -d "$sdk"
 
-
+# the mount point must exists before installing mingw
+install -d "$msysdir/mingw"
 printf "\n* Starting MinGW Installer ... \n"
 cd "$cdpath/mingw"
 Min*.exe
@@ -145,6 +146,7 @@ fi
 
 printf "\n* Compiling Berkeley-DB ... \n\n"
 export SECONDO_SDK="$sdk"
+export PATH="/c/mingw/bin:$PATH"
 cd $HOME/secondo/Win32
 logfile="$HOME/secondo-install.log"
 touch $logfile
@@ -162,7 +164,6 @@ cd "$HOME"
 chmod u+x .secondorc .bashrc .profile
 cd "$HOME/secondo/Win32/MSYS"
 cp --backup fstab "$msysdir/etc"
-install -d "$msysdir/mingw"
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"

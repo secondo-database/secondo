@@ -95,6 +95,9 @@ printf "\n* Compiling the make tool ... \n"
 cd $temp/make-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1 
 
+printf "\n* Compiling libncurses ... \n"
+cd $temp/ncurses-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1 
 
 printf  "\n* Copying configuration files ... \n"
 cd "$HOME/secondo/CM-Scripts"
