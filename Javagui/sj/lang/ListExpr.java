@@ -59,16 +59,9 @@ import  sj.lang.JavaListExpr.NLParser;
  */
 
 /* From the java.io package */
-import  java.io.FileOutputStream;
-import  java.io.OutputStreamWriter;
-import  java.io.StringReader;
-import  java.io.FileReader;
-import  java.io.Reader;
-import  java.io.Writer;
-import  java.io.IOException;
-import  java.io.FileNotFoundException;
-import  java.io.OutputStream;
-import  java.io.InputStream;
+import java.io.*;
+import  tools.Base64Decoder;
+
 
 /* From the Cup (parser builder) utilities */
 import  java_cup.runtime.*;
@@ -140,6 +133,10 @@ public class ListExpr extends Object {
   private final static String BEGIN_TEXT ="<text>";
   // tag for end of text
   private final static String END_TEXT ="</text--->";
+  // the current directory when reading a file
+  // should ever be null if not a file is readed
+  private static String CurrentDir=null;
+
 
   /*
    3.3 Class constructors.
@@ -163,7 +160,17 @@ public class ListExpr extends Object {
   public static void setDebugMode(boolean enabled){
     DEBUG_MODE = enabled;
   }
-  
+
+  /*
+    3.4.0 The getDirectory Method
+    returns the current working directory.
+    if not a file is parsed null is returned
+  */
+  public static String getDirectory(){
+      return CurrentDir;
+  }
+
+
   /*
     3.4.0 The ~setMaxStringLength~ method.
     set the maximal length for strings in string atoms
@@ -338,6 +345,24 @@ public class ListExpr extends Object {
     return  chars.toString();
   }
 
+
+
+  /** stores the Directory of the given filename */
+  private void storeDirectory(String FileName){
+     if(FileName==null)
+        CurrentDir = null;
+     else{
+        int index = FileName.lastIndexOf(File.separatorChar);
+        if(index<0)
+           CurrentDir = FileName;
+        else
+           CurrentDir = FileName.substring(0,index);
+     }
+  }
+
+
+
+
   /**
    * put your documentation comment here
    * @param list
@@ -472,9 +497,11 @@ public class ListExpr extends Object {
     this.setValueTo(ListExpr.theEmptyList());
     try {
       inputReader = new FileReader(fileName);
+      storeDirectory((new File(fileName)).getAbsolutePath());
       parser = new NLParser(inputReader);
       result = parser.parse();
       inputReader.close();
+      storeDirectory(null);
       if (result == null) {
         // If the parser returns a null value, then an error was detected
         // when parsing the input.
@@ -523,10 +550,12 @@ public class ListExpr extends Object {
       }
     }
     try {
+      storeDirectory((new File(fileName)).getAbsolutePath());
       file = new OutputStreamWriter(new FileOutputStream(fileName));
       recursiveWriteToFile(this, file, "");
       file.flush();
       file.close();
+      storeDirectory(null);
     } catch (SecurityException except) {
       // If an error happened when creating the file, returns WRITE_TO_FILE_ERROR.
       if (this.DEBUG_MODE) {
@@ -1096,8 +1125,8 @@ catch(Exception e){
    return 0 if no error happened, an error code otherwise.
    *Preconditions:* this ListExpr object can not be an atom.
    This method doesn't use a String object as type of the ~chars~ parameter due to
-   the impossibility to change the data stored in a Java String object once it 
-   was created. This is why it uses a StringBuffer object as type of the ~chars~ 
+   the impossibility to change the data stored in a Java String object once it
+   was created. This is why it uses a StringBuffer object as type of the ~chars~
    parameter instead.
    */
   public int writeToString (StringBuffer chars) {
@@ -1117,14 +1146,14 @@ catch(Exception e){
    * put your documentation comment here
    * @param list
    * @param chars
-   * @return 
+   * @return
    */
   private final static int writeAppeningToString (ListExpr list, StringBuffer chars) {
     /*
      This method is implemented to improve the performance of the implementation
      of the ~writetoString~ method. The main improvement is that it does not deletes
-     the content of the input StringBuffer ~chars~ (it is really needed at start, 
-     when writeToString() is called by the user), but only appends the text to it. 
+     the content of the input StringBuffer ~chars~ (it is really needed at start,
+     when writeToString() is called by the user), but only appends the text to it.
      In this way the recursive calls can work with the same buffer, avoiding using
      auxiliar buffers in each recursive call.
      */
@@ -1212,7 +1241,7 @@ catch(Exception e){
    * @param elem1
    * @param elem2
    * @param elem3
-   * @return 
+   * @return
    */
   public static ListExpr threeElemList (ListExpr elem1, ListExpr elem2, ListExpr elem3) {
     return  cons(elem1, cons(elem2, cons(elem3, theEmptyList())));
@@ -1558,12 +1587,12 @@ catch(Exception e){
    This method returns the text value (a String) stored in this ListExpr
    object.
    *Precondition:* This ListExpr object must be a textAtom.
-   The methods set createTextScan(), endOfText(), destroyTextScan() and 
+   The methods set createTextScan(), endOfText(), destroyTextScan() and
    getText() defined in the original NestedLists code in Modula are replaced
    here by this simplier (and less powerful) version named textValue().
    It returns all the text atom content.
    This simplifies the interface between the java code and the original NestedLists tool which otherwise would be very complex. The main drawback is that now, with the ~textValue()~ method, for getting the content of a text atom it must be retrieved in only one step, needing to store all its content together in memory.
-   One solution to this drawback would be define a getText() method what would accept two parameters ~startPos~ and ~length~ allowing the user define which substring of the text stored into the textAtom he want to retrieve (this solution is not yet implemented). 
+   One solution to this drawback would be define a getText() method what would accept two parameters ~startPos~ and ~length~ allowing the user define which substring of the text stored into the textAtom he want to retrieve (this solution is not yet implemented).
    */
   public String textValue () {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
