@@ -9,13 +9,11 @@
 if ! source libutil.sh; then exit 1; fi
 
 inputDir="${buildDir}/Tests/Testspecs"
-testSuites=$(find ${inputDir} -name "*.test" -printf "%f ")
+testSuites=$(find ${inputDir} -name "*.test")
 
 printf "\n%s\n" "Running tests in ${buildDir}."
 
-cd ${buildDir}/bin
 #overule configuration file parameter
-
 dbDir="${buildDir}/test-databases-${date_TimeStamp}"
 export SECONDO_PARAM_SecondoHome="$dbDir"
 
@@ -35,11 +33,13 @@ fi
 declare -i error=0
 for testName in $testSuites
 do 
-  file="${inputDir}/${testName}"
-  printf "\n%s\n" "Running ${testName} ..."
+  baseDir=${testName%/*}
+  file=${testName##*/}
   logFile="${file}.log"
-  echo "===================================================================\n"  > $logFile
-  echo "===================================================================\n"  > $logFile
+  printf "\n%s\n" "Running ${file} in directory $baseDir"
+  cd $baseDir
+  printf "%s\n" "==================================================================="  > $logFile
+  printf "%s\n" "===================================================================\n"  > $logFile
   checkCmd "time TestRunner -i  ${file} > ${logFile} 2>&1"
   if [ $rc -ne 0 ]; then
     let error++
