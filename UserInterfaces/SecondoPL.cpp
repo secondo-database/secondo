@@ -377,27 +377,34 @@ pl_call_secondo(term_t command, term_t result)
 
 PL_extension predicates[] =
 {
-  { "call_secondo", 2, pl_call_secondo, 0 },
+  { "secondo", 2, pl_call_secondo, 0 },
   { "secondo_error_info", 2, pl_get_error_info, 0 },
-  { "print_term", 1, pl_print_term_le, 0 },
+  { "secondo_print_le", 1, pl_print_term_le, 0 },
   { NULL, 0, NULL, 0 } /* terminating line */
 };
 
 /*
 
-7 Function RemoveConfigFileNameFromArgV
+7 Function GetConfigFileNameFromArgV
 
-Serch the arguments of the main function for two sucessive
+Attempts to retrieve the configuration file name via the
+enviroment. If it is found, it is returned. Otherwise,
+search the arguments of the main function for two sucessive
 strings of the form -c FileName. These two strings are then
 removed from the argument vector and the argument count is
 reduced by 2. Returns the FileName on success and NULL otherwise.
 
 */
-char* RemoveConfigFileNameFromArgV(int& argc, char** argv)
+char* GetConfigFileNameFromArgV(int& argc, char** argv)
 {
   int i = 0;
   int j;
   char* result;
+
+  if((result = getenv("SECONDO_CONFIG")) != 0)
+  {
+    return result;
+  }
 
   while(i < argc - 1 && strcmp(argv[i], "-c") != 0)
   {
@@ -463,7 +470,7 @@ main(int argc, char **argv)
 
   /* Start Secondo and remove Secondo command line arguments
      from the argument vector .*/
-  configFile = RemoveConfigFileNameFromArgV(argc, argv);
+  configFile = GetConfigFileNameFromArgV(argc, argv);
   if(configFile == 0 || !StartSecondoC(configFile))
   {
     cout << "Usage : SecondoPL -c ConfigFileName" << endl;
