@@ -5,7 +5,7 @@
 
 [1] Array Algebra
 
-Apr 2003 Oliver Lueck
+Aug 2003 Oliver Lueck
 
 The algebra provides a type constructor ~array~, which defines a generic
 array. The elements of the array must have a list representation.
@@ -272,28 +272,11 @@ functions of the elements of the array.
 
 */
 Word CreateArray(const ListExpr typeInfo) {
-//cout << "In CreateArray Function!" << endl;
 
   return SetWord(new Array());
 }
 
-void DeleteArray(Word& w) {
-//cout << "In DeleteArray Function!" << endl;
-
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-  Array* array = (Array*)w.addr;
-
-  for (int i=0; i<array->getSize(); i++) {
-    Word element = array->getElement(i);
-    (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(element);
-  }
-
-  delete array;
-  w.addr = 0;
-}
-
 Word CloneArray(const Word& w) {
-//cout << "In CloneArray Funktion!" << endl;
 
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
@@ -315,10 +298,26 @@ Word CloneArray(const Word& w) {
 }
 
 void CloseArray( Word& w ) {
-//cout << "In CloseArray Function!" << endl;
 
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  Array* array = (Array*)w.addr;
+
+  for (int i=0; i<array->getSize(); i++) {
+    Word element = array->getElement(i);
+    (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(element);
+  }
+
+  delete array;
   w.addr = 0;
 }
+
+void DeleteArray(Word& w) {
+// Because the array has a main memory representation, the Deletion function
+// is identical to the Close function.
+
+  CloseArray(w);
+}
+
 /*
 2.6 Function Describing the Signature of the Type Constructor
 
@@ -415,6 +414,43 @@ trivial selection function.
 */
 static int
 simpleSelect (ListExpr args) { return 0; }
+
+/*
+3.1 Generic Clone Function
+
+This generic clone function is useful for several operators.
+
+*/
+static Word 
+genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
+{
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Word clone;
+
+  // Try cloning with the clone-Function of the appropriate type
+  clone = (am->CloneObj(algebraId, typeId))(object);
+
+  //if (clone.addr == 0) {
+  if (true) {
+    // The original Algebra just provides a dummy clone function, 
+    // therefore try cloning via the standard list expression.
+
+    ListExpr objectLE;
+
+    int errorPos;
+    ListExpr errorInfo;
+    bool correct;
+
+    objectLE = (am->OutObj(algebraId, typeId))(typeInfo, object);
+    clone = (am->InObj(algebraId, typeId))
+                   (typeInfo, objectLE, errorPos, errorInfo, correct);
+
+    assert (correct);
+  }
+
+  return clone;
+}
 
 /*
 3.1 Operator ~size~
@@ -532,16 +568,10 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
   // should always be true
 
     SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
     Word element = array->getElement(i);
 
     Word clonedElement;
-    ListExpr elemLE;
-
-    int errorPos;
-    ListExpr errorInfo;
-    bool correct;
 
     int algebraId = array->getElemAlgId();
     int typeId = array->getElemTypeId();
@@ -549,9 +579,7 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
     ListExpr resultType = qp->GetType(s);
     resultType = sc->NumericType(resultType);
 
-    elemLE = (am->OutObj(algebraId, typeId))(resultType, element);
-    clonedElement = (am->InObj(algebraId, typeId))
-                           (resultType, elemLE, errorPos, errorInfo, correct);
+    clonedElement = genericClone(algebraId, typeId, resultType, element);
 
     result.addr = clonedElement.addr;
 
@@ -635,7 +663,6 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
   // should always be true
 
     SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
     int n = array->getSize();
     int algebraId = array->getElemAlgId();
@@ -643,20 +670,13 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     Word a[array->getSize()];
     Word element;    
-    ListExpr elemLE;
-
-    int errorPos;
-    ListExpr errorInfo;
-    bool correct;
 
     ListExpr resultType = qp->GetType(s);
     ListExpr typeOfElement = sc->NumericType(nl->Second(resultType));
 
     for (int l=0; l < n; l++) {
       element = (l!=i) ? array->getElement(l) : newelement;
-      elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, element);
-      a[l] = (am->InObj(algebraId, typeId))
-                    (typeOfElement, elemLE, errorPos, errorInfo, correct);
+      a[l] = genericClone(algebraId, typeId, typeOfElement, element);
     }
 
     result = qp->ResultStorage(s);
@@ -727,7 +747,6 @@ static int
 makearrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   ListExpr type = qp->GetType(s);
   ListExpr typeOfElement = sc->NumericType(nl->Second(type));
@@ -740,17 +759,9 @@ makearrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int n = qp->GetNoSons(s);
 
   Word a[n];
-  ListExpr elemLE;
-
-  int errorPos;
-  ListExpr errorInfo;
-  bool correct;
 
   for (int i=0; i<n; i++) {
-
-    elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, args[i]);
-    a[i] = (am->InObj(algebraId, typeId))
-                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+    a[i] = genericClone(algebraId, typeId, typeOfElement, args[i]);
   }
 
   result = qp->ResultStorage(s);
@@ -1220,7 +1231,6 @@ static int
 loopFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* array = ((Array*)args[0].addr);
 
@@ -1239,12 +1249,6 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   Word a[n];
 
-  ListExpr elemLE;
-
-  int errorPos;
-  ListExpr errorInfo;
-  bool correct;
-
   for (int i=0; i<n; i++) {
     (*funargs)[0] = array->getElement(i);
 
@@ -1257,9 +1261,7 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s)
     cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
          << " seconds." << endl;
 
-    elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
-    a[i] = (am->InObj(algebraId, typeId))
-                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   result = qp->ResultStorage(s);
@@ -1328,7 +1330,6 @@ static int
 loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* firstArray = ((Array*)args[0].addr);
   Array* secondArray = ((Array*)args[1].addr);
@@ -1349,12 +1350,6 @@ loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   Word a[n * m];
 
-  ListExpr elemLE;
-
-  int errorPos;
-  ListExpr errorInfo;
-  bool correct;
-
   for (int i=0; i<n; i++) {
     for (int l=0; l<m; l++) {
       (*funargs)[0] = firstArray->getElement(i);
@@ -1369,10 +1364,7 @@ loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s)
       cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
            << " seconds." << endl;
 
-      elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
-
-      a[i * m + l] = (am->InObj(algebraId, typeId))
-                          (typeOfElement, elemLE, errorPos, errorInfo, correct);
+      a[i * m + l] = genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
 
@@ -1402,7 +1394,306 @@ Operator loop2 (
 );
 
 /*
-3.11 Operator ~sortarray~
+3.11 Operator ~loopswitch~
+
+The operator ~loopswitch~ evaluates each element of an array with the first 
+~or~ the second function. Both functions may get (approximately) the same time 
+for calculation, so that the faster function will process more elements 
+of the array.
+
+The formal specification of type mapping is:
+
+---- ((array t) (map t r) (map t r)) -> (array r)
+----
+
+*/
+static ListExpr
+loopswitchTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 3) 
+  {
+    ListExpr arrayDesc = nl->First(args);
+    ListExpr firstmapDesc = nl->Second(args); 
+    ListExpr secondmapDesc = nl->Third(args);
+
+    if (nl->IsEqual(nl->First(arrayDesc), "array") 
+        && nl->IsEqual(nl->First(firstmapDesc), "map")
+        && nl->Equal(firstmapDesc, secondmapDesc)
+        && nl->ListLength(firstmapDesc) == 3)
+    {
+      if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
+      {
+        return nl->TwoElemList(nl->SymbolAtom("array"),
+                               nl->Third(firstmapDesc));
+      }
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+loopswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+
+  Array* array = ((Array*)args[0].addr);
+
+  ArgVectorPointer funargs[2];
+  funargs[0] = qp->Argument(args[1].addr);
+  funargs[1] = qp->Argument(args[2].addr);
+
+  Word funresult;
+
+  double consumedTime[2] = {0, 0};
+  int funCount[2] = {0, 0};
+  int selectedFun;
+
+  double timediff;
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = array->getSize();
+
+  Word a[n];
+
+  for (int i=0; i<n; i++) {
+    selectedFun = (consumedTime[0] <= consumedTime[1]) ? 0 : 1;
+
+    (*funargs[selectedFun])[0] = array->getElement(i);
+
+    cout << "Operator loopswitch, element " << i << ", function " 
+         << selectedFun + 1 << ", ";
+    clock_t c1 = clock();
+
+    qp->Request(args[selectedFun + 1].addr, funresult);
+
+    clock_t c2 = clock();
+    timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
+    consumedTime[selectedFun] += timediff;
+    funCount[selectedFun]++;
+
+    cout << "used CPU time: " << timediff << " (" << consumedTime[selectedFun] 
+         << ") seconds." << endl;
+
+    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+  }
+
+  for (int i=0; i<=1; i++) {
+    cout << "Operator loopswitch, summary, function " << i + 1 << " used " 
+         << funCount[i] << " times, used CPU time: " << consumedTime[i] 
+         << " seconds." << endl;
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+
+  return 0;
+}
+
+const string loopswitchSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) (map t r) (map t r)) -> (array r)</text--->"
+       "<text>_ loopswitch [ fun, fun ]</text--->"
+       "<text>Evaluates each element of an array with the first or the "
+       "second function. Both functions may get (approximately) the same "
+       "time for calculation, so that the \"faster\" function will process "
+       "more elements of the array.</text--->"
+       "<text>query ai loopswitch[fun(i:int)(i*2), fun(l:int)(l+l)]"
+       "</text---> ))";
+
+Operator loopswitch (
+	"loopswitch",
+	loopswitchSpec,
+	loopswitchFun,
+	Operator::DummyModel,
+	simpleSelect,
+	loopswitchTypeMap
+);
+
+/*
+3.12 Operator ~loopselect~
+
+The operator ~loopselect~ evaluates the first n elements of the array with 
+~both~ functions and cumulates the used calculation times. The remaining elements 
+are processed with the (so far) faster function.
+
+The formal specification of type mapping is:
+
+---- ((array t) (map t r) (map t r) int real) -> (array r)
+----
+
+The above mentioned parameter n is given by the int- and the real-
+parameter. Let x the int- and y the real-parameter, than n is calculated
+similar to the operator ~sample~ of the Relation Algebra:
+
+n := min(arraySize, max(x, y * arraySize))
+
+*/
+static ListExpr
+loopselectTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 5) 
+  {
+    ListExpr arrayDesc = nl->First(args);
+    ListExpr firstmapDesc = nl->Second(args); 
+    ListExpr secondmapDesc = nl->Third(args);
+
+    if (nl->IsEqual(nl->First(arrayDesc), "array") 
+        && nl->IsEqual(nl->First(firstmapDesc), "map")
+        && nl->Equal(firstmapDesc, secondmapDesc)
+        && nl->ListLength(firstmapDesc) == 3
+        && nl->IsEqual(nl->Fourth(args), "int")
+        && nl->IsEqual(nl->Fifth(args), "real"))
+    {
+      if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
+      {
+        return nl->TwoElemList(nl->SymbolAtom("array"),
+                               nl->Third(firstmapDesc));
+      }
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+loopselectFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+
+  Array* array = ((Array*)args[0].addr);
+
+  ArgVectorPointer funargs[2];
+  funargs[0] = qp->Argument(args[1].addr);
+  funargs[1] = qp->Argument(args[2].addr);
+
+  CcInt* absTestCcInt = ((CcInt*)args[3].addr);
+  int absTest = absTestCcInt->GetIntval();
+
+  CcReal* relTestCcReal = ((CcReal*)args[4].addr);
+  double relTest = relTestCcReal->GetRealval();
+
+  Word funresult;
+
+  double consumedTime[2] = {0, 0};
+  int funCount[2] = {0, 0};
+  int selectedFun;
+
+  double timediff;
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = array->getSize();
+
+  if (absTest < 1) { absTest = 1; }
+  if (absTest > n) { absTest = n; }
+
+  if (relTest < 0) { relTest = 0; }
+  if (relTest > 1) { relTest = 1; }
+
+  int test = max(absTest, (int)(n * relTest));
+
+  Word a[n];
+
+  for (int i=0; i<n; i++) {
+
+    if (i < test) {
+
+      for (int j=0; j<=1; j++) {
+        (*funargs[j])[0] = array->getElement(i);
+
+        cout << "Operator loopselect, element " << i << ", function " 
+             << j + 1 << ", ";
+
+        clock_t c1 = clock();
+
+        qp->Request(args[j + 1].addr, funresult);
+
+        clock_t c2 = clock();
+        timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
+        consumedTime[j] += timediff;
+        funCount[j]++;
+
+        cout << "used CPU time: " << timediff << " (" << consumedTime[j] 
+             << ") seconds." << endl;
+      }
+    }
+    else {
+
+      if (i == test) {
+        selectedFun = consumedTime[0] <= consumedTime[1] ? 0 : 1;
+      }
+
+      (*funargs[selectedFun])[0] = array->getElement(i);
+
+      cout << "Operator loopselect, element " << i << ", function " 
+           << selectedFun + 1 << ", ";
+
+      clock_t c1 = clock();
+
+      qp->Request(args[selectedFun + 1].addr, funresult);
+
+      clock_t c2 = clock();
+      timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
+      consumedTime[selectedFun] += timediff;
+      funCount[selectedFun]++;
+
+      cout << "used CPU time: " << timediff << " (" 
+           << consumedTime[selectedFun] << ") seconds." << endl;
+
+    }
+
+    a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+  }
+
+  for (int i=0; i<=1; i++) {
+    cout << "Operator loopselect, summary, function " << i + 1 
+         << " used " << funCount[i] << " times, used CPU time: " 
+         << consumedTime[i] << " seconds." << endl;
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+
+  return 0;
+}
+
+const string loopselectSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) (map t r) (map t r) int real) -> (array r)</text--->"
+       "<text>_ loopselect [ fun, fun, int, real ]</text--->"
+       "<text>Evaluates the first \"n\" elements of the array with both "
+       "functions and cumulates the used calculation times. The remaining "
+       "elements are processed with the (so far) \"faster\" function."
+       "</text--->"
+       "<text>query ai loopselect[fun(i:int)(i*2), fun(l:int)(l+l), 10, 0.1]"
+       "</text---> ))";
+
+Operator loopselect (
+	"loopselect",
+	loopselectSpec,
+	loopselectFun,
+	Operator::DummyModel,
+	simpleSelect,
+	loopselectTypeMap
+);
+
+/*
+3.13 Operator ~sortarray~
 
 The operator ~sortarray~ sorts an array in order of the function values
 of the elements.
@@ -1457,7 +1748,6 @@ static int
 sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* array = ((Array*)args[0].addr);
 
@@ -1477,12 +1767,6 @@ sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
   vector<IntPair> index(n);
   Word a[n];
 
-  ListExpr elemLE;
-
-  int errorPos;
-  ListExpr errorInfo;
-  bool correct;
-
   for (int i=0; i<n; i++) {
     (*funargs)[0] = array->getElement(i);
 
@@ -1496,10 +1780,8 @@ sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   for (int i=0; i<n; i++) {
 
-    elemLE = (am->OutObj(algebraId, typeId))
-                     (typeOfElement, array->getElement(index[i].second));
-    a[i] = (am->InObj(algebraId, typeId))
-                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+    a[i] = genericClone(algebraId, typeId, typeOfElement, 
+                            array->getElement(index[i].second));
   }
 
   result = qp->ResultStorage(s);
@@ -1527,7 +1809,7 @@ Operator sortarray (
 );
 
 /*
-3.12 Operator ~tie~
+3.14 Operator ~tie~
 
 The operator calculates a single "value" of an array by evaluating the 
 elements of an array with a given function from left to right, e.g.
@@ -1586,12 +1868,6 @@ tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int n = array->getSize();
   Word partResult;
 
-  ListExpr partResLE;
-
-  int errorPos;
-  ListExpr errorInfo;
-  bool correct;
-
   partResult = array->getElement(0);
 
   for (int i=1; i<n; i++) {
@@ -1600,11 +1876,8 @@ tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     qp->Request(args[1].addr, funresult);
 
-    partResLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
-
     (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(partResult);
-    partResult = (am->InObj(algebraId, typeId))
-                      (typeOfElement, partResLE, errorPos, errorInfo, correct);
+    partResult = genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
   result.addr = partResult.addr;
@@ -1630,7 +1903,7 @@ Operator tie (
 );
 
 /*
-3.13 Operator ~cumulate~
+3.15 Operator ~cumulate~
 
 The operator cumulates the values of the array under a given function. The 
 i-th element of the resulting array is the concatination from the first to 
@@ -1693,12 +1966,6 @@ cumulateFun (Word* args, Word& result, int message, Word& local, Supplier s)
   Word a[n];
   Word cumResult;
 
-  ListExpr elemLE, cumResultLE;
-
-  int errorPos;
-  ListExpr errorInfo;
-  bool correct;
-
   cumResult = array->getElement(0);
 
   for (int i=0; i<n; i++) {
@@ -1708,17 +1975,11 @@ cumulateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Request(args[1].addr, funresult);
 
-      cumResultLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
-
       (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(cumResult);
-      cumResult = (am->InObj(algebraId, typeId))
-                          (typeOfElement, cumResultLE, errorPos, errorInfo, correct);
+      cumResult = genericClone(algebraId, typeId, typeOfElement, funresult);
     }
 
-    elemLE = (am->OutObj(algebraId, typeId))
-                     (typeOfElement, cumResult);
-    a[i] = (am->InObj(algebraId, typeId))
-                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+    a[i] = genericClone(algebraId, typeId, typeOfElement, cumResult);
   }
 
   result = qp->ResultStorage(s);
@@ -1770,6 +2031,8 @@ class ArrayAlgebra : public Algebra
 
     AddOperator( &loop );
     AddOperator( &loop2 );
+    AddOperator( &loopswitch );
+    AddOperator( &loopselect );
 
     AddOperator( &sortarray );
 
