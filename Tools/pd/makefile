@@ -53,7 +53,8 @@ OBJECTS = pdtabs \
 	  makeascii \
 	  enumerate \
 	  maketex \
-          linecheck
+          linecheck \
+	  filterpd
 
 DOCU = docu docuhtml
 
