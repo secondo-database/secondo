@@ -38,7 +38,8 @@ static int pos = 0;
 static int tmppos = 0;
 static int textAtomPosition = 0;
 
-char buffer[50];
+const int MAX_STRING_LENGTH = 48;
+char buffer[MAX_STRING_LENGTH+2];
 char *s = buffer;
 
 double f;
@@ -191,17 +192,16 @@ string         \"[^\"]*\"
 
 {string}       {
                  /* ECHO; printf(" : is a string\n"); */
-                 if ( yyleng - 2 > 48 )
+                 if ( yyleng - 2 > MAX_STRING_LENGTH )
                  {
-                   printf("Error: too long string\n");
+		   yyleng = MAX_STRING_LENGTH;
+                   printf("Warning: string %s was truncated!\n", yytext);
                  }
-                 else 
-                 {
-                   s = strncpy( s, &yytext[1], yyleng-2 );
-                   s[yyleng-2] = '\0';
-                   yylval = nl->StringAtom( s );
-                   return (ZZSTRING);
-                 }
+		 
+                 s = strncpy( s, &yytext[1], yyleng-2 );
+                 s[yyleng-2] = '\0';
+                 yylval = nl->StringAtom( s );
+                 return (ZZSTRING);
                }
 
 {symbol}       { 
