@@ -4,6 +4,16 @@
 # Oct. 2003, M. Spiekermann - initial version
 # May  2004, M. Spiekermann - some improvements
 
+# set up Home directory
+if [ "x$LOGNAME" == "x" ]; then
+  LOGNAME="unknown" 
+fi
+HOME="/home/$LOGNAME"
+if [ ! -d "$HOME" ]; then
+  printf "\n You have no user name! Creating directory $HOME. \n"
+  mkdir -p "$HOME"
+fi
+
 cdpath="$PWD"
 instpath="/c"
 if [ "$1" = "" ]; then
@@ -16,7 +26,6 @@ else if [ "$1" = "testmode" ]; then
      install -d "$instpath/msys/1.0/home/dummy"
      install -d "$instpath/msys/1.0"
      install -d "$instpath/msys/1.0/etc"
-     install -d "$instpath/mingw"
      install -d "$instpath/secondo-sdk"
      install -d "$instpath/secondo"
    else
@@ -39,14 +48,9 @@ if [ ! -d "$msysdir" ]; then
    continue="false"
 fi
 
-if [ ! -d "$mingwdir" ]; then
-   printf  "\n ERROR: Directory $mingwdir not found." 
-   printf  "\n        Please install MinGW first.  \n "
-   continue="false"
-fi
 
 if [ "$continue" = "false" ]; then
-   exit
+   exit 1
 fi   
 
 printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
@@ -61,15 +65,22 @@ printf "\n* Starting MinGW Installer ... \n"
 cd "$cdpath/mingw"
 Min*.exe
 
+if [ ! -d "$mingwdir" ]; then
+   printf  "\n ERROR: Directory $mingwdir not found." 
+   printf  "\n        Please install MinGW into directory $mingwdir.  \n "
+   exit 2
+fi
+
 printf "\n* Installing unzip ... \n"
 
-install -d "$instpath/secondo-sdk/bin"
-cd "$instpath/secondo-sdk/bin"
+sdk="$instpath/secondo-sdk"
+install -d "$sdk/bin"
+cd "$sdk/bin"
 "$cdpath/non-gnu/unzip/unz550xN.exe" > /dev/null 
-export PATH="$instpath/secondo-sdk/bin:$instpath/secondo-sdk/lib:$PATH"
+export PATH="$sdk/bin:$sdk/lib:$PATH"
 unzip -q -o "$cdpath/non-gnu/unzip/zip23xN.zip"
 
-cd "$instpath/secondo-sdk"
+cd "$sdk"
 printf "\n* Uncompressing 3d-party tools ... \n"
 
 for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
@@ -78,13 +89,13 @@ for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
   for file in $zipFiles; do
     printf "\n  processing $file ..."
     if { ! unzip -q -o $file; }; then
-      exit 1
+      exit 3 
     fi
   done
   for file in $gzFiles; do
     printf "\n  processing $file ..."
     if { ! tar -xzf $file; }; then
-      exit 2 
+      exit 4 
     fi
   done
 done
@@ -92,7 +103,7 @@ done
 cd "$HOME"
 printf "\n\n* Uncompressing SECONDO source files ... \n"
 if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
-  exit 3
+  exit 5
 fi
 
 printf  "\n* Copying configuration files ... \n"
@@ -111,10 +122,23 @@ printf  "\n* Starting SWI-Prolog Installer ... \n"
 cd "$cdpath/prolog"
 w32pl*.exe
 
+prologdir="$sdk/pl"
+if [ ! -d "$prologdir" ]; then
+   printf  "\n ERROR: Directory $prologdir not found." 
+   printf  "\n        Please install SWI-Prolog into director $prologdir.  \n "
+   exit 6 
+fi
 
 printf  "\n* Starting JAVA Installer ... \n"
 cd "$cdpath/../java"
 j2sdk*windows*.exe
+
+javadir="$sdk/j2sdk1.4.2"
+if [ ! -d "$javadir" ]; then
+   printf  "\n ERROR: Directory $javadir not found." 
+   printf  "\n        Please install JAVA 2 int directory $javadir.  \n "
+   exit 7 
+fi
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"

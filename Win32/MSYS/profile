@@ -27,10 +27,13 @@ else
   LOGNAME="$USERNAME"
 fi
 
-# Set up USER's home directory
-if [ -z "$HOME" ]; then
-  HOME="/home/$LOGNAME"
+if [ "x$LOGNAME" == "x" ]; then
+  LOGNAME="unknown"
 fi
+
+
+# Set up USER's home directory
+HOME="/home/$LOGNAME"
 
 if [ ! -d "$HOME" ]; then
   mkdir -p "$HOME"
