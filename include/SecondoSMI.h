@@ -185,6 +185,8 @@ The class ~SmiKey~ provides the following methods:
 #ifndef SECONDO_SMI_H
 #define SECONDO_SMI_H
 
+using namespace std;
+
 #include "SecondoConfig.h"
 #include <string>
 
