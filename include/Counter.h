@@ -14,6 +14,8 @@
 
 December 2003 M. Spiekermann 
 
+August 2004 M. Spiekermann, Function ~resetAll~ introduced.
+
 1.1 Overview
 
 The class ~Counter~ provides a mechanism for registering counters with an
@@ -65,6 +67,14 @@ public:
       return CounterRef;
     }
   };
+	
+	
+	static void resetAll() {
+	 
+	   for ( it = CounterMap.begin(); it != CounterMap.end(); it++ ) {
+		   it->second = 0;
+		}
+	}
 
   static void reportValues() {
 
