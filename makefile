@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.18  2003/06/27 14:01:52  behr
+# jni support added
+#
 # Revision 1.17  2003/04/17 21:04:16  telle
 # Fixed makefile problems when building shared library version. (LIBNAME needs to be a target specific variable if there are more than one library to be built within one makefile.)
 # Definition of variable SMILIB moved from main makefile to makefile.env.
@@ -78,11 +81,20 @@ TOOLOBJECTS = $(addsuffix .$(OBJEXT), $(TOOLOBJECTBASENAMES))
 SDBSYSOBJECTS = $(addsuffix .$(OBJEXT), $(SDBSYSOBJECTBASENAMES))
 
 .PHONY: all
-all: showjni makedirs buildlibs buildalg buildapps
+all: showjni makedirs buildlibs buildalg buildapps showjavagui
 
 .PHONY: showjni
-showjni: 
+showjni:
 	@echo $(JNITEXT)
+	
+.PHONY: showjavagui
+showjavagui:
+	@echo "if you want to use the java based gui"
+	@echo "enter make javagui"
+
+.PHONY: javagui
+javagui:
+	$(MAKE) -C Javagui all	
 
 .PHONY: clientserver
 clientserver:
