@@ -16,8 +16,10 @@ fi
 
 cdpath="$PWD"
 instpath="/c"
+sdk="$instpath/secondo-sdk"
+
 if [ "$1" = "" ]; then
-   printf "\n* Using default installation $instpath \n"
+   printf "\n* Using default installation destintation $instpath \n"
 else if [ "$1" = "testmode" ]; then
      printf "\n* Running Test Mode! \n"
      #create directory structure
@@ -53,13 +55,28 @@ if [ "$continue" = "false" ]; then
    exit 1
 fi   
 
-printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
-printf "\n* '$cdpath' to '$instpath' \n" 
-printf "\n* Creating mount points ... \n"
 
-install -d "$msysdir/secondo-sdk"
-install -d "$msysdir/secondo"
-install -d "$msysdir/mingw"
+if [ -d "$mingwdir" ]; then
+   printf "\n Warning: Directory $mingwdir already exists. \n"
+fi 
+
+if [ -d "$sdk" ]; then
+   printf "\n Warning: Directory $sdk already exists. \n"
+fi
+
+if [ -d "$sdk/pl" ]; then
+   printf "\n Warning: Directory $sdk/pl already exists. \n"
+fi
+
+
+printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
+printf "\n* '$cdpath' to '$instpath' " 
+printf "\n* "
+printf "\n* Starting in 5 secondos. Press CRTL-C to abort!"
+sleep 5
+
+install -d "$sdk"
+
 
 printf "\n* Starting MinGW Installer ... \n"
 cd "$cdpath/mingw"
@@ -70,7 +87,7 @@ if [ ! -d "$mingwdir" ]; then
    printf  "\n        Please install MinGW into directory $mingwdir.  \n "
    exit 2
 fi
-
+ 
 printf  "\n* Starting SWI-Prolog Installer ... \n"
 cd "$cdpath/prolog"
 w32pl*.exe
@@ -94,7 +111,6 @@ if [ ! -d "$javadir" ]; then
 fi
 printf "\n* Installing unzip ... \n"
 
-sdk="$instpath/secondo-sdk"
 install -d "$sdk/bin"
 cd "$sdk/bin"
 "$cdpath/non-gnu/unzip/unz550xN.exe" > /dev/null 
@@ -127,23 +143,26 @@ if { ! tar -xzf "$cdpath/secondo-win32.tgz"; }; then
   exit 5
 fi
 
-printf "\n* Compiling Berkeley-DB
-source $HOME/secondo/CM-scripts/setvar.bash $HOME/secondo
-cd $HOME/Win32
-make && "make install"
+printf "\n* Compiling Berkeley-DB ... \n\n"
+export SECONDO_SDK="$sdk"
+cd $HOME/secondo/Win32
+logfile="$HOME/secondo-install.log"
+touch $logfile
+rxvt -sl 50000 -title "Berkeley-DB Compilation" -e tail -f $logfile
+make > $logfile 2>&1 && make install >> $logfile 2>&1
 
-printf  "\n* Copying configuration files ... \n"
+printf  "\n* MSYS and MinGW Configuration ... \n"
 cd "$HOME/secondo/CM-Scripts"
 cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
-cp --backup .secondorc .bashrc-sample "$HOME"
+cp --backup .profile .secondorc .bashrc-sample "$HOME"
 cp --backup .bashrc-sample "$HOME/.bashrc"
 cd "$instpath/secondo-sdk/bin"
 chmod u+x setvar.bash catvar.sh 
 cd "$HOME"
-chmod u+x .secondorc .bashrc
+chmod u+x .secondorc .bashrc .profile
 cd "$HOME/secondo/Win32/MSYS"
-cp --backup fstab profile "$msysdir/etc"
-
+cp --backup fstab "$msysdir/etc"
+install -d "$msysdir/mingw"
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"
