@@ -1499,98 +1499,15 @@ for a given ~expr~ (+ 3 10).
           {
             case QP_OPERATOR:
             {	
-	      string operatorSymbolStr = nl->SymbolValue( nl->First(first) );
+	            string operatorStr = nl->SymbolValue( nl->First(first) );
               ListExpr opList = nl->Third( first );
               assert( nl->ListLength( opList ) > 0 );
 
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
-
-              if ( traceMode ) {
-                cout << "Type mapping for operator " << operatorSymbolStr << ":" << endl;
-              }								
-              string typeErrorMsg = "";
-              do // Overloading: test operator candidates 
-              {
-                alId = nl->IntValue( nl->First( nl->First( opList ) ) );
-                opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
-                
-		
-                /* apply the operator's type mapping: */
-                resultType = (algebraManager->TransformType( alId, opId ))( typeList );
-		string algName = algebraManager->GetAlgebraName(alId);	
 							
-		if ( traceMode ) {
-		
-		  stringstream traceMsg;
-	          traceMsg << algName << ": " << operatorSymbolStr << " (algId=" 
-		           << alId << ", opId=" << opId << ") "<< ends;
-							 					 
-		  if (    nl->IsAtom( resultType ) 
-		       && nl->AtomType( resultType ) == SymbolType 
-		       && nl->SymbolValue( resultType ) == "typeerror" ) 
-		  {			 
-		    cout  << traceMsg.str() << "rejected!" << endl;			 
-		  } else {		  		       
-		    cout << traceMsg.str() << "accepted!" << endl;
-		  }
-		} 
-		
-		if ( !ErrorReporter::TypeMapError ) {
- 		  string msg = "";
-		  ErrorReporter::GetErrorMessage(msg); // remove errors produced by testing operators
-                  typeErrorMsg += "\n-- " + algName + ": " + msg;
-		}
-
-                opList = nl->Rest( opList );
-              }
-              while ( !nl->IsEmpty( opList ) && 
-                      ( nl->IsAtom( resultType ) && nl->AtomType( resultType ) == SymbolType && 
-nl->SymbolValue( resultType ) == "typeerror" ) );
-
-              
-              // check if the final result of testing is still a typeerror.
-	      // If so save the messages in the error reporter. Errors detected
-	      // afterwards will not be reported any more.
-	      if ( !ErrorReporter::TypeMapError 
-		   && nl->IsAtom( resultType ) 
-		   && nl->AtomType( resultType ) == SymbolType 
-		   && nl->SymbolValue( resultType ) == "typeerror" ) {
-		  ErrorReporter::TypeMapError = true; 
-		  ErrorReporter::ReportError("Possible type mapping Errors:\n" + typeErrorMsg);	
-	       }
-
-
-              /* use the operator's selection function to get the index 
-                 (opFunId) of the evaluation function for this operator: */
-
-              opFunId = (algebraManager->Select( alId, opId ))( typeList );
-              opFunId = opFunId * 65536 + opId;
-
-              /* Check whether this is a type operator; in that case
-                 opFunId will be negative. A type operator does only a type
-                 mapping, nothig else; hence it is wrong here and we return
-                 type error. */
-
-              if ( opFunId < 0 )
-              {
-                resultType = nl->SymbolAtom( "typeerror" );
-              }
-
-
-	      if ( traceMode ) {
-			
-	          cout << endl;		
-		  cout << "Result of type mapping for operator " << operatorSymbolStr
-		       << " >>>>>>>>" << endl;
-		  cout << "IN: " << endl;
-		  nl->WriteListExpr(typeList);
-		  cout << endl;
-		  cout << "OUT: " << endl;
-		  nl->WriteListExpr(resultType);
-		  cout << " <<<<<<<<" << endl;
-		  
-	       }
+              resultType = TestOverloadedOperators( operatorStr, opList, typeList, 
+							                                      alId, opId, opFunId, true, traceMode ); 
 		
               /* check whether the type mapping has requested to append
                  further arguments: */
@@ -1804,6 +1721,118 @@ nl->SymbolValue( resultType ) == "typeerror" ) );
   return (nl->SymbolAtom( "exprerror" ));
 } // annotate;
 
+
+ListExpr 
+QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr, 
+                                         ListExpr opList, 
+																		     ListExpr typeList,
+																				 int& alId,
+																				 int& opId,
+																				 int& opFunId,
+																				 const bool checkFunId,
+																		     const bool traceMode     ) 
+{
+
+  ListExpr resultType = nl->TheEmptyList();
+
+	if ( traceMode ) {
+		cout << "Type mapping for operator " << operatorSymbolStr << ":" << endl;
+	}								
+	string typeErrorMsg = "";
+	do // Overloading: test operator candidates 
+	{
+		alId = nl->IntValue( nl->First( nl->First( opList ) ) );
+		opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
+	
+
+		/* apply the operator's type mapping: */
+		resultType = (algebraManager->TransformType( alId, opId ))( typeList );
+		string algName = algebraManager->GetAlgebraName(alId);	
+
+		if ( traceMode ) {
+
+			stringstream traceMsg;
+						traceMsg << algName << ": " << operatorSymbolStr << " (algId=" 
+							<< alId << ", opId=" << opId << ") "<< ends;
+					 
+			if (    nl->IsAtom( resultType ) 
+					&& nl->AtomType( resultType ) == SymbolType 
+					&& nl->SymbolValue( resultType ) == "typeerror" ) 
+			{			 
+				cout  << traceMsg.str() << "rejected!" << endl;			 
+			} else {		  		       
+				cout << traceMsg.str() << "accepted!" << endl;
+			}
+		} 
+
+		if ( !ErrorReporter::TypeMapError ) {
+			string msg = "";
+			ErrorReporter::GetErrorMessage(msg); // remove errors produced by testing operators
+			typeErrorMsg += "\n-- " + algName + ": " + msg;
+		}
+
+		opList = nl->Rest( opList );
+	}
+	while ( !nl->IsEmpty( opList ) && 
+					( nl->IsAtom( resultType ) && 
+					nl->AtomType( resultType ) == SymbolType && 
+					nl->SymbolValue( resultType ) == "typeerror" ) );
+
+
+	/*  check if the final result of testing is still a typeerror.
+	 *  If so save the messages in the error reporter. Errors detected
+	 *  afterwards will not be reported any more.
+	 */
+	if ( !ErrorReporter::TypeMapError 
+				&& nl->IsAtom( resultType ) 
+				&& nl->AtomType( resultType ) == SymbolType 
+				&& nl->SymbolValue( resultType ) == "typeerror" ) 
+	{
+		ErrorReporter::TypeMapError = true; 
+		ErrorReporter::ReportError("Possible type mapping Errors:\n" + typeErrorMsg);	
+	}
+	
+	/*   use the operator's selection function to get the index 
+	 *  (opFunId) of the evaluation function for this operator: 
+	 */
+
+  if ( checkFunId ) {
+	
+		opFunId = (algebraManager->Select( alId, opId ))( typeList );
+		opFunId = opFunId * 65536 + opId;
+
+		/*  Check whether this is a type operator; in that case
+		*  opFunId will be negative. A type operator does only a type
+		*  mapping, nothig else; hence it is wrong here and we return
+		*  type error. 
+		*/
+
+		if ( opFunId < 0 )
+		{
+			resultType = nl->SymbolAtom( "typeerror" );
+		}
+	}
+
+	if ( traceMode ) {
+
+		cout << endl;		
+		cout << "Result of type mapping for operator " << operatorSymbolStr
+				<< " >>>>>>>>" << endl;
+		cout << "IN: " << endl;
+		nl->WriteListExpr(typeList);
+		cout << endl;
+		cout << "OUT: " << endl;
+		nl->WriteListExpr(resultType);
+		cout << " <<<<<<<<" << endl;
+
+	}
+	
+
+	return resultType;
+}
+
+
+
 ListExpr
 QueryProcessor::AnnotateFunction( const AlgebraLevel level,
                                   const ListExpr expr,
@@ -1899,26 +1928,15 @@ arguments preceding this function argument in an operator application.
         }
         else if ( GetCatalog( level )->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
+				
           ListExpr opList = GetCatalog( level )->GetOperatorIds( name2 );
-          ListExpr first = nl->First( opList );
-          ListExpr rest = nl->Rest( opList );
-          int alId = nl->IntValue( nl->First( first ) ),
-              opId = nl->IntValue( nl->Second( first ) );
-
-          paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
-
-          while ( ( nl->IsAtom( paramtype ) && nl->AtomType( paramtype ) == SymbolType && 
-nl->SymbolValue( paramtype ) == "typeerror" ) &&
-                  !nl->IsEmpty( rest )  ) 
-          {
-            first = nl->First( rest );
-            rest = nl->Rest( rest );
-
-            alId = nl->IntValue( nl->First( first ) );
-            opId = nl->IntValue( nl->Second( first ) );
-
-            paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
-          }
+					ListExpr typeList = nl->Rest( fatherargtypes );
+					
+					int alId = 0;
+					int opId = 0;
+					int opFunId = 0;
+					paramtype = TestOverloadedOperators( name2, opList, typeList, 
+							                                  alId, opId, opFunId, false, traceMode ); 
         }
         else
         { 

@@ -43,6 +43,13 @@ January 26, 2001 RHG Added an ~isFunction~ parameter to procedure ~construct~.
 May 2002 Ulrich Telle Port to C++, integrated descriptive algebra level
 and function mapping.
 
+August 2004, M. Spiekermann. Private method ~TestOverloadedOperators~ introduced.
+This function checks a list of operators if they can map a given input type to 
+some other type. The first operator returning not result type "typeerror" will
+be used. Moreover, the input and outputs of the type mapping functions can be traced
+and if all type mappings fail all possible operators together with their algebra names
+are reported.
+
 February 3, 2003 RHG Added QP\_COUNTER and QP\_COUNTERDEF.
 
 1.1 Overview
@@ -459,6 +466,22 @@ catch the case that ~functionno~ is incremented during annotation of the
 function body. 
 
 */
+
+  ListExpr TestOverloadedOperators( const string& operatorSymbolStr, 
+                                    ListExpr opList, 
+																		ListExpr typeList,
+																		int& alId,
+																		int& opId,
+																		int& opFunId,
+																		const bool checkFunId,
+																		const bool traceMode     );
+/*
+Test all possible type mappings for overloaded operators. The output of the
+first successfully applied type mapping will be returned.
+
+*/ 
+
+
   void DestroyValuesArray( const AlgebraLevel level );
 /*
 Destroys the ~values~ array. This function is used when there is a failure
