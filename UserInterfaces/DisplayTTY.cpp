@@ -490,6 +490,7 @@ DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
   nl->Destroy( valuedescr );  
 }
 
+
 ListExpr
 DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
 {
@@ -499,29 +500,35 @@ DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
   }
   else
   {
-    return nl->Cons(nl->First(list1), ConcatLists(nl->Rest(list1), list2));
+    ListExpr first = nl->First(list1);
+    ListExpr rest = nl->Rest(list1);
+
+    ListExpr second =  ConcatLists(rest, list2);
+
+    ListExpr newnode = nl->Cons(first,second);
+    return newnode;
   }
 }
 
 void
 DisplayTTY::DisplayResult2( ListExpr value )
 {
+  int counter=0;
   ListExpr headerlist, concatenatedlist;
   
   headerlist = value;
   concatenatedlist = nl->TheEmptyList();
-  concatenatedlist = nl->Second(nl->First(headerlist));
+  concatenatedlist = nl->Second( nl->First(headerlist) );
   headerlist = nl->Rest(headerlist);
   while (!nl->IsEmpty( headerlist ))
   {
     concatenatedlist = 
       ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
     headerlist = nl->Rest(headerlist);
+    counter++;
   }
   
   int maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
-  //int  maxHeadNameLen = 17; 
-  //int  maxHeadNameLen = 9; 
   while (!nl->IsEmpty( value ))
   {   
     DisplayDescriptionLines( nl->First(value), maxHeadNameLen );

@@ -1112,6 +1112,7 @@ If value 0 is returned, the command was executed without error.
 
 	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
                cerr << ReportTupleStatistics();
+	       cerr << nl->reportVectorSizes() << endl;
                //cerr << ReportRelStatistics();
                //cerr << ReportRelITStatistics();
 	       //cerr << ReportTupleAttributesInfoStatistics();
@@ -1202,7 +1203,11 @@ If value 0 is returned, the command was executed without error.
     nl->WriteToFile( resultFileName, resultList );
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
-  
+ 
+#if NL_DEBUG
+  cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
+#endif 
+
   // copy result into application specific list container.
   if (resultList) {
      resultList = nl->CopyList(resultList, al);

@@ -537,6 +537,10 @@ SecondoTTY::CallSecondo2()
 {
   ListExpr result;
   result = CallSecondo();
+
+#ifdef NL_DEBUG
+  cerr << endl << "### ResultStr: " << nl->ToString(result) << endl;
+#endif
 	  
   if ( isQuery )
   {
