@@ -2025,13 +2025,15 @@ the moment.
         result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; // *** -1 added
         return;
       }
-      case Operator:         /* First evaluate all subtrees that are not
-                                functions or streams. Then call this 
-                                operator's implementation procedure. */
+      case Operator:         /* If this operator is not itself a stream
+				operator, then evaluate all subtrees that are not
+				functions or streams. Other subtrees are not evaluated,
+				just copied to the argument vector. Then call this
+				operator's implementation procedure. */
       {
         for ( i = 0; i < tree->u.op.noSons; i++ )
         {
-          if ( tree->u.op.sons[i]->evaluable )
+          if ( tree->u.op.sons[i]->evaluable && ( ! tree->u.op.isStream) )
           {
             Eval( tree->u.op.sons[i], arg[i], message );
           }
