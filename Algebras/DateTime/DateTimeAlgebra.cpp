@@ -23,23 +23,39 @@ be changed from instant to duration.
 The Algebra provides the following operators.
 
 \begin{tabular}{|l|l|l|}\hline
- {\bf Operator} & {\bf Signature} & {\bf Remarks }\\\hline
-   +            & instant $\times$ duration $\rightarrow$ instant  & addition of the arguments \\\cline{2-2}
-                & duration $\times$ instant $\rightarrow$ instant  & possible change of the type \\\cline{2-2}
-		& duration $\times$ duration $\rightarrow$  duration & \\\hline
-   -            & instant $\times$ duration $\rightarrow$ instant    & difference of two time instances \\\cline{2-2}
-                & instant $\times$ instant $\rightarrow$ duration    & possible change of the type \\\cline{2-2}
-		& duration $\times$ duration $\rightarrow$ duration  & \\\hline
-   *            & duration $\times$ int $\rightarrow$ duration       & the multiple of a duration \\\hline
-   =, $<$, $>$        & instant $\times$ instant $\rightarrow$ bool        & the familiar comparisons \\\cline{2-2}
-                & duration $\times$ duration $\rightarrow$ bool      & \\\hline
-   weekday      & instant $\rightarrow$ string                       & the weekday in a human readable format \\\hline
-   leapyear     & int $\rightarrow$ bool                             & checks for leapyear \\\hline
-year,month,day  & instant $\rightarrow$ int                          & the date parts of an instant \\\hline
-hour, minute,       & instant $\rightarrow$ int                      & the time parts of an instant \\
-second, millisecond &                                                &         \\\hline
-now                 & $\rightarrow$ instant                          & creates a new instant from the systemtime \\\hline
-today               & $\rightarrow$ instant                          & creates a new instant today at 0:00  \\\hline
+ {\bf Operator}     & {\bf Signature} & {\bf Remarks }\\\hline
+   +                & instant $\times$ duration $\rightarrow$ instant
+                    & addition of the arguments \\\cline{2-2}
+                    & duration $\times$ instant $\rightarrow$ instant
+		    & possible change of the type \\\cline{2-2}
+		    & duration $\times$ duration $\rightarrow$  duration
+		    & \\\hline
+   -                & instant $\times$ duration $\rightarrow$ instant
+                    & difference of two time instances \\\cline{2-2}
+                    & instant $\times$ instant $\rightarrow$ duration
+		    & possible change of the type \\\cline{2-2}
+		    & duration $\times$ duration $\rightarrow$ duration
+		    & \\\hline
+   *                & duration $\times$ int $\rightarrow$ duration
+                    & the multiple of a duration \\\hline
+   =, $<$, $>$      & instant $\times$ instant $\rightarrow$ bool
+                    & the familiar comparisons \\\cline{2-2}
+                    & duration $\times$ duration $\rightarrow$ bool
+		    & \\\hline
+   weekday          & instant $\rightarrow$ string
+                    & the weekday in a human readable format \\\hline
+   leapyear         & int $\rightarrow$ bool
+                    & checks for leapyear \\\hline
+year,month,day      & instant $\rightarrow$ int
+                    & the date parts of an instant \\\hline
+hour, minute,       & instant $\rightarrow$ int
+                    & the time parts of an instant \\
+second, millisecond &
+                    &         \\\hline
+now                 & $\rightarrow$ instant
+                    & creates a new instant from the systemtime \\\hline
+today               & $\rightarrow$ instant
+                    & creates a new instant today at 0:00  \\\hline
 \end{tabular}
 
 1 Includes and Definitions
@@ -191,7 +207,8 @@ void DateTime::Now(){
   ms = tb.millitm;
   tm* time = localtime(&now);
   day = ToJulian(time->tm_year+1900,time->tm_mon+1,time->tm_mday);
-  milliseconds = ((((time->tm_hour)*60)+time->tm_min)*60+time->tm_sec)*1000+ms;
+  milliseconds = ((((time->tm_hour)*60)+time->tm_min)*
+                     60+time->tm_sec)*1000+ms;
 }
 
 /*
@@ -821,7 +838,8 @@ void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,int& offset){
 /*
 ~Save~
 
-The ~Save~ functions saves the data of the DateTime value to  {\tt valueRecord}.
+The ~Save~ functions saves the data of the DateTime value to
+{\tt valueRecord}.
 
 */
 void DateTime::Save(SmiRecord& valueRecord, const ListExpr typeinfo){
@@ -850,9 +868,11 @@ bool DateTime::Adjacent(Attribute* arg){
   DateTime* T2 = (DateTime*) arg;
   if(day==T2->day && abs(milliseconds-T2->milliseconds)==1)
     return true;
-  if((day-1==T2->day) && (milliseconds==MILLISECONDS-1) && (T2->milliseconds==0))
+  if((day-1==T2->day) && (milliseconds==MILLISECONDS-1)
+      && (T2->milliseconds==0))
      return true;
-  if( (day==T2->day-1) && (milliseconds==0) && (T2->milliseconds==MILLISECONDS-1))
+  if( (day==T2->day-1) && (milliseconds==0)
+       && (T2->milliseconds==MILLISECONDS-1))
      return true;
   return false;
 }
@@ -1078,10 +1098,7 @@ Word InDuration( const ListExpr typeInfo, const ListExpr instance,
 
 
 /*
-2.2 Property Function
-
-Beacuse we only export the subtypes of datetime (instant and duration, we does not
-need any property function for this.
+2.2 Property Functions
 
 */
 ListExpr InstantProperty(){
@@ -1114,7 +1131,8 @@ ListExpr DurationProperty(){
                 nl->StringAtom("instant"),
                 nl->StringAtom("(int int)"),
                 nl->StringAtom("(12 273673)"),
-                nl->StringAtom("The first argument is day, the second one milliseconds")
+                nl->StringAtom("The first argument is day,"
+		               " the second one milliseconds")
          )));
 }
 
@@ -1151,7 +1169,8 @@ void DeleteDateTime(Word &w){
 bool OpenDateTime( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value ){
-  DateTime* T = new DateTime(instanttype); // the type will be overwritten when opened
+  DateTime* T = new DateTime(instanttype);
+  // the type will be overwritten when opened
   T->Open(valueRecord,typeInfo);
   value = SetWord(T);
   return true;
@@ -1358,7 +1377,8 @@ ListExpr CheckComparisons(ListExpr args){
 4.2 Value Mappings
 
 */
-int LeapYearFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int LeapYearFun(Word* args, Word& result, int message,
+                Word& local, Supplier s){
     result = qp->ResultStorage(s);
     CcInt* Y = (CcInt*) args[0].addr;
     DateTime T;
@@ -1422,7 +1442,8 @@ int SecondFun(Word* args, Word& result, int message, Word& local, Supplier s){
     return 0;
 }
 
-int MillisecondFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int MillisecondFun(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetMillisecond());
@@ -1489,7 +1510,8 @@ int MulFun(Word* args, Word& result, int message, Word& local, Supplier s){
     return 0;
 }
 
-int WeekdayFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int WeekdayFun(Word* args, Word& result, int message,
+               Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     int day = T->GetWeekday();
