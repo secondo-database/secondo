@@ -60,6 +60,7 @@ export CVSROOT=":pserver:$SECONDO_CVS_USER@zeppelin.fernuni-hagen.de:2401/home/c
 if [ $SECONDO_PLATFORM != "win32" ]; then 
    
    # unix
+   export SWI_HOME_DIR="$SECONDO_SDK/lib/pl-5.0.10"
    export PL_INCLUDE_DIR="$SECONDO_SDK/include"
    export PL_LIB_DIR="$SECONDO_SDK/lib/pl-5.0.10/runtime/i686-linux"
    export J2SDK_ROOT="$SECONDO_SDK/j2sdk1.4.2_01"
