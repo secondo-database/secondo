@@ -10,8 +10,8 @@ include ./makefile.env
 all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
 
 
-.PHONY: config
-config:
+.PHONY: update-environment 
+update-environment:
 ifeq ($(platform),win32)
 	$(MAKE) -C Win32/MSYS config-msys
 else
