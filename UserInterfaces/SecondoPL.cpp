@@ -367,6 +367,7 @@ pl_call_secondo(term_t command, term_t result)
     {
       if(PL_unify(result, ListExprToTerm(resultList, plnl)) != 0)
       {
+        plnl->initializeListMemory();
         PL_succeed;
       }
     }
