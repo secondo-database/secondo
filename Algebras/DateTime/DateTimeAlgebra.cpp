@@ -1,16 +1,21 @@
 /*
 
-\title{DateTime Algebra}
-\author{Thomas Behr}
-\maketitle
+//[_] [\_]
+//[TOC] [\tableofcontents]
+//[Title] [ \title{DateTime Algebra} \author{Thomas Behr} \maketitle]
+//[times] [\ensuremath{\times}]
+//[->] [\ensuremath{\rightarrow}]
+
+[Title]
+[TOC]
+
 \noindent
 
-\tableofcontents
 
 0 Introduction
 
 Time is a very important datatype. They are two different kinds
-of time, namely  {\tt duration} and {\tt instant}. Both types
+of time, namely  *duration* and *instant*. Both types
 can be handled by the same data structure. Unfortunately, not
 all combinations of types makes any sense in each operator, e.g.
 the addition of two instants. To handle this problem, the type
@@ -23,38 +28,38 @@ be changed from instant to duration.
 The Algebra provides the following operators.
 
 \begin{tabular}{|l|l|l|}\hline
- {\bf Operator}     & {\bf Signature} & {\bf Remarks }\\\hline
-   +                & instant $\times$ duration $\rightarrow$ instant
+ *Operator*     & *Signature* & *Remarks* \\\hline
+   +                & instant [times] duration [->] instant
                     & addition of the arguments \\\cline{2-2}
-                    & duration $\times$ instant $\rightarrow$ instant
+                    & duration [times] instant [->] instant
                     & possible change of the type \\\cline{2-2}
-                    & duration $\times$ duration $\rightarrow$  duration
+                    & duration [times] duration [->]  duration
                     & \\\hline
-   -                & instant $\times$ duration $\rightarrow$ instant
+   -                & instant [times]  duration [->] instant
                     & difference of two time instances \\\cline{2-2}
-                    & instant $\times$ instant $\rightarrow$ duration
+                    & instant [times] instant [->] duration
                     & possible change of the type \\\cline{2-2}
-                    & duration $\times$ duration $\rightarrow$ duration
+                    & duration [times] duration [->] duration
                     & \\\hline
-   *                & duration $\times$ int $\rightarrow$ duration
+    *                & duration [times] int [->] duration
                     & the multiple of a duration \\\hline
-   =, $<$, $>$      & instant $\times$ instant $\rightarrow$ bool
+   =, $<$, $>$      & instant [times] instant [->] bool
                     & the familiar comparisons \\\cline{2-2}
-                    & duration $\times$ duration $\rightarrow$ bool
+                    & duration [times] duration [->] bool
                     & \\\hline
-   weekday          & instant $\rightarrow$ string
+   weekday          & instant [->] string
                     & the weekday in a human readable format \\\hline
-   leapyear         & int $\rightarrow$ bool
+   leapyear         & int [->] bool
                     & checks for leapyear \\\hline
-yearof,monthof,dayof      & instant $\rightarrow$ int
+year[_]of,month[_]of,day[_]of      & instant [->] int
                     & the date parts of an instant \\\hline
-hourof, minuteof,       & instant $\rightarrow$ int
+hour[_]of, minute[_]of,       & instant [->] int
                     & the time parts of an instant \\
-secondof, millisecondof &
+second[_]of, millisecond[_]of &
                     &         \\\hline
-now                 & $\rightarrow$ instant
+now                 & [->] instant
                     & creates a new instant from the systemtime \\\hline
-today               & $\rightarrow$ instant
+today               & [->] instant
                     & creates a new instant today at 0:00  \\\hline
 \end{tabular}
 
@@ -125,7 +130,7 @@ DateTime::DateTime(){}
 /*
 ~Constructor~
 
-This constructor creates a DateTime at the NULL\_DAY and
+This constructor creates a DateTime at the NULL[_]DAY and
 duration zero, respectively.
 
 */
@@ -503,8 +508,10 @@ This function reads the Time from a given string. If the string
 don't represent a valid Time value, this instance remains unchanged
 and false is returned. In the other case, this instance will hold the
 the time represented by the string and the result is true.
-The format of the string must be:\\
- \hspace{1cm}    YEAR-MONTH-DAY-HOUR:MIN[:SECOND[.MILLISECOND]] \\
+The format of the string must be:
+
+  *  YEAR-MONTH-DAY-HOUR:MIN[:SECOND[.MILLISECOND]] 
+
 Spaces are not allowed in this string. The squared brackets
 indicates optional parts. This function is not defined for durations.
 
@@ -796,13 +803,15 @@ bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
 /*
 ~CompareTo~
 
-This function compare this DateTime instance with another one.
+This function compares this DateTime instance with another one.
 The result will be:
-\begin{description}
-   \item[-1] if this instance is before P2
-   \item[0] if this instance is equals to P2
-   \item[1] if this instance is after P2
-\end{description}
+
+  * -1 if this instance is before P2
+
+  * 0 if this instance is equals to P2
+
+  * 1 if this instance is after P2
+
 The types of the arguments has to be equals.
 
 */
@@ -876,7 +885,7 @@ void DateTime::ReadFromSmiRecord(SmiRecord& valueRecord,int& offset){
 ~Open~
 
 The ~Open~ function reads the DateTime value from the argument
-{\tt valueRecord}. Because the DateTime class don't uses FLOBs,
+*valueRecord*. Because the DateTime class don't uses FLOBs,
 this is very simple.
 
 */
@@ -889,7 +898,7 @@ void DateTime::Open(SmiRecord& valueRecord, const ListExpr typeinfo){
 ~WriteToSmiRecord~
 
 This function write the data part of this DateTime instance to
-{\tt valueRecord} beginning at the given offset. After calling
+*valueRecord* beginning at the given offset. After calling
 this function the offset will be behind the written data part.
 
 */
@@ -910,7 +919,7 @@ void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,int& offset)const{
 ~Save~
 
 The ~Save~ functions saves the data of the DateTime value to
-{\tt valueRecord}.
+*valueRecord*.
 
 */
 void DateTime::Save(SmiRecord& valueRecord, const ListExpr typeinfo){
@@ -1935,21 +1944,21 @@ const string DaySpec =
    " ( \"instant -> int\""
    " \" day_of ( _ ) \" "
    "   \"return the day of this instant\" "
-   "   \" query T1 day\" ))";
+   "   \" query day_of(T1) \" ))";
 
 const string MonthSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
    " \" month_of ( _ ) \" "
    "   \"return the month of this instant\" "
-   "   \" query T1 month\" ))";
+   "   \" query month_of(T1)  \" ))";
 
 const string YearSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
    " \" year_of ( _ ) \" "
    "   \"return the year of this instant\" "
-   "   \" query T1 year\" ))";
+   "   \" query year_of(T1) \" ))";
 
 
 const string HourSpec =
@@ -1957,28 +1966,28 @@ const string HourSpec =
    " ( \"instant -> int\""
    " \" hour_of(_)\" "
    "   \"return the hour of this instant\" "
-   "   \" query T1 hour\" ))";
+   "   \" query hour_of(T1) \" ))";
 
 const string MinuteSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
    " \"minute_of(_) \" "
    "   \"return the minute of this instant\" "
-   "   \" query T1 minute\" ))";
+   "   \" query minute_of(T1) \" ))";
 
 const string SecondSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
    " \" second_of ( _ )\" "
    "   \"return the second of this instant\" "
-   "   \" query T1 second\" ))";
+   "   \" query second_of(T1) \" ))";
 
 const string MillisecondSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" millisecondof(_) \" "
+   " \" millisecond_of(_) \" "
    "   \"return the millisecond of this instant\" "
-   "   \" query T1 millisecond\" ))";
+   "   \" query millisecond_of(T1) \" ))";
 
 const string AddSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -2028,7 +2037,7 @@ const string WeekdaySpec =
    " ( \"instant -> string\""
    " \"  weekday_of ( _ ) \" "
    "   \"returns the weekday in human readable format\" "
-   "   \" query T weekday\" ))";
+   "   \" query weekday_of(today())\" ))";
 
 /*
 4.3 ValueMappings of overloaded Operators
