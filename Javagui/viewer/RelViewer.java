@@ -15,6 +15,8 @@ public class RelViewer extends SecondoViewer{
  private JTable CurrentTable;
  private Vector Tables;
  private JPanel dummy;  // to show nothing
+ // the value of MAX_TEXT_LENGTH must be greater then five
+ private final int MAX_TEXT_LENGTH=100;
 
  /** creates a new RelationViewer **/
  public RelViewer(){
@@ -123,11 +125,15 @@ public class RelViewer extends SecondoViewer{
            Elem = TupleValue.first();
            if (Elem.isAtom() && Elem.atomType()==ListExpr.STRING_ATOM)
               row[pos] = Elem.stringValue();
-           else if(Elem.isAtom() && Elem.atomType()==ListExpr.TEXT_ATOM){
-	     if(Elem.textLength()<40)
+           else if((Elem.isAtom() && Elem.atomType()==ListExpr.TEXT_ATOM) ||
+	           (!Elem.isAtom() && Elem.listLength()==1 && Elem.first().isAtom() &&
+		     Elem.first().atomType()==ListExpr.TEXT_ATOM)){
+	     if(!Elem.isAtom())
+	        Elem = Elem.first();
+	     if(Elem.textLength()<MAX_TEXT_LENGTH)
 	        row[pos] = Elem.textValue();
 	     else
-	        row[pos] = "a long text";
+	        row[pos] = Elem.textValue().substring(0,MAX_TEXT_LENGTH-4)+" ...";
            }
 	   else
               row[pos] = TupleValue.first().writeListExprToString();
