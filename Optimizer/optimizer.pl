@@ -2499,8 +2499,8 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
   not(is_list(Term)),
-  write('Error in where-clause: symbol '), write(Term), 
-  write(' not recognized.'), nl, !.
+  write('Symbol '), write(Term), 
+  write(' not recognized, supposed to be a Secondo object.'), nl, !.
 
 lookupPred1(Term, Term, N, Rels, N, Rels).
  
