@@ -333,7 +333,7 @@ using a prefetching iterator.
 */
 Tuple::Tuple
   (SmiRecordFile* recfile, 
-  PrefetchingIterator*iter, 
+  PrefetchingIterator* iter, 
   SmiRecordFile *lobfile,
   const TupleAttributes *attributes) 
 {
