@@ -351,23 +351,30 @@ public int loadObject(){
            File[] Fs = FileChooser.getSelectedFiles();
            for(int i=0;i<Fs.length;i++){
               File F = Fs[i];
-              String FullFileName=F.getPath();
-              ListExpr LE = new ListExpr();  
-              try{      
-                if (LE.readFromFile(FullFileName)!=0)
-                    showMessage("cannot load the file "+F.getName());
-                else{
-                    SecondoObject SO = new SecondoObject(IDManager.getNextID());
-                    SO.setName("File :"+F.getName());
-                    SO.fromList(LE); 
-                    addEntry(SO);
-                    number++;
-                }
-              } catch(Exception e){}
+              if(loadObject(F))
+                 number++;
+              else  
+                 showMessage("cannot load the file:"+F.getName());
            }
        }
        return number;
 }
+
+
+public boolean loadObject(File ObjectFile){
+  ListExpr LE = new ListExpr();
+  if(LE.readFromFile(ObjectFile.getPath())!=0)
+     return false;
+  else{
+     SecondoObject SO = new SecondoObject(IDManager.getNextID());
+     SO.setName("File :"+ObjectFile.getName());
+     SO.fromList(LE);
+     addEntry(SO);
+     return true;
+  }
+}
+
+
 
 /** save the selected Object into a File */
 public boolean saveSelectedObject(){
@@ -396,6 +403,8 @@ File CurrentDir = FileChooser.getCurrentDirectory();
   return saved;
  }
 
+
+ 
  // delete the selected object from list **/
  public boolean removeSelectedObject(){
    boolean removed = false;
@@ -680,4 +689,5 @@ private class RenamePanel extends JPanel{
 
 
 }
+
 

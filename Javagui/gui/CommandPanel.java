@@ -33,7 +33,6 @@ public class CommandPanel extends JScrollPane {
   /**
    * The constructor sets up the internal textarea.
    * @param   ResultViewer Link for show results
-   * @see <a href="CommandPanelsrc.html#CommandPanel">Source</a>
    */
   public CommandPanel (ResultProcessor aRV) {
     super();
@@ -59,7 +58,7 @@ public class CommandPanel extends JScrollPane {
     */
   public Dimension getPreferredSize(){
      if(RV==null)
-        return new Dimension(400,300);
+        return new Dimension(600,300);
      else{
         Dimension ParentSize = RV.getSize();
         int myWidth = (ParentSize.width * 3 ) / 4;
@@ -108,7 +107,7 @@ public class CommandPanel extends JScrollPane {
     History = new Vector(50,10);
   } 
 
- //    **********  moved from MainWindow ****************/
+
  /**
    * This method allows to any class to command to this SecondoJava object to
    * execute a Secondo command, and this object will execute the Secondo command
@@ -116,16 +115,15 @@ public class CommandPanel extends JScrollPane {
    * 
    * @param command The user command
    */
-  public void execUserCommand (String command) {
+  public boolean execUserCommand (String command) {
     command = command.trim();
     if (command.equals("")){
        showPrompt();
-       return;
+       return true;
     }
     
     if(command.startsWith("gui") & RV!=null){
-       RV.execGuiCommand(command.substring(4));
-       return;
+       return RV.execGuiCommand(command.substring(4));
     }
 
     ListExpr displayErrorList;
@@ -158,10 +156,12 @@ public class CommandPanel extends JScrollPane {
          false,      // result as ListExpr.
          resultList, errorCode, errorPos, errorMessage);
          RV.processResult(command,resultList,errorCode,errorPos,errorMessage);
+         return errorCode.value==0;
     }
     else{
       appendText("\n you are not connected to SecondoServer \n");
       showPrompt();
+      return false;
     }
      
   }
@@ -301,6 +301,7 @@ public class CommandPanel extends JScrollPane {
   }
 
 }
+
 
 
 

@@ -96,9 +96,12 @@ private void init(){
  GC.add("gui serverSettings ");
  GC.add("gui renameObject <oldName> -> <newName> ");
  GC.add("gui onlyViewer ");
+ GC.add("gui executeFile [-i] filename");
+ GC.add("    -i = ignore errors");
  GC.add("gui listCommands ");
  GuiCommands = new JList(GC);
 }
 
 
 }
+

@@ -65,6 +65,9 @@ private Container DefaultContentPane;
 private MenuListener BlendOutList; // a Menu cannot overlap a List ??
 
 
+private String ObjectDirectory ="./"; // where search for Objects
+
+
 /* display a message in a new frame */
 public void showMessage(String Text){
   OptionPane.showMessageDialog(this,Text);
@@ -217,7 +220,7 @@ public MainWindow(String Title){
         }
    } 
    
-   String ObjectDirectory= Config.getProperty("OBJECT_DIRECTORY");
+   ObjectDirectory= Config.getProperty("OBJECT_DIRECTORY");
    if(ObjectDirectory!=null){
       OList.setObjectDirectory(new  File(ObjectDirectory));
    }
@@ -369,10 +372,13 @@ private void setViewer(SecondoViewer SV){
   * listCommands
   * showAll
   * hideAll
+  * executeFile [-i] <FileName>
   */
-public void execGuiCommand(String command){
+public boolean execGuiCommand(String command){
   ComPanel.appendText("\n"); 
   command=command.trim();
+  boolean success=true;
+
   if(command.startsWith("exit")){
      setVisible(false);
      ComPanel.disconnect();
@@ -390,10 +396,13 @@ public void execGuiCommand(String command){
         Object Cand = VC.newInstance();
         if(Cand instanceof SecondoViewer)
            addViewer((SecondoViewer)Cand);
-        else
+        else{
            ComPanel.appendText("this is not a SecondoViewer");
+           success=false;
+        }   
      }catch(Exception e){
         ComPanel.appendText("cannot load viewer:"+ViewerName+"\n");
+        success=false;
      }
      ComPanel.showPrompt();
   } 
@@ -420,8 +429,10 @@ public void execGuiCommand(String command){
                i++;
         if(found) 
             setViewer((SecondoViewer)AllViewers.get(i));
-        else  
-            showMessage("I can't find the Viewer \""+ViewerName+"\"");
+        else  {
+             ComPanel.appendText("I can't find the Viewer \""+ViewerName+"\"\n");
+             success=false;
+        }     
      }
      ComPanel.showPrompt();
   } else if(command.startsWith("clearHistory")){
@@ -430,20 +441,26 @@ public void execGuiCommand(String command){
   } else if(command.startsWith("showObject")){
       if(OList.showObject(command.substring(10)))
          ComPanel.appendText("OK");
-      else
+      else{
          ComPanel.appendText("ObjectName not found");
+         success=false;
+      }   
       ComPanel.showPrompt();
   } else if(command.startsWith("hideObject")){
       if(OList.hideObject(command.substring(10)))
          ComPanel.appendText("OK");
-      else
+      else{
          ComPanel.appendText("ObjectName not found");
+         success=false;    
+      }   
       ComPanel.showPrompt();
   } else if(command.startsWith("removeObject")){
       if(OList.removeObject(command.substring(12)))
          ComPanel.appendText("OK");
-      else
+      else{
          ComPanel.appendText("ObjectName not found");
+         success=false;
+      }   
       ComPanel.showPrompt();
   } else if(command.startsWith("clearObjectList")){
       ComPanel.appendText("OK");
@@ -452,8 +469,10 @@ public void execGuiCommand(String command){
   } else if(command.startsWith("saveObject")){
       if(OList.saveObject(command.substring(10)))
          ComPanel.appendText("OK");
-      else
+      else{
          ComPanel.appendText("ObjectName not found");
+         success=false;
+      }   
       ComPanel.showPrompt();
   } else if(command.startsWith("loadObject")){
       OList.loadObject();
@@ -461,15 +480,19 @@ public void execGuiCommand(String command){
   } else if(command.startsWith("storeObject")){
       if(OList.storeObject(command.substring(11)))
          ComPanel.appendText("OK");
-      else
+      else{
          ComPanel.appendText("ObjectName not found");
+         success=false;
+      }   
       ComPanel.showPrompt();
   }
   else if(command.startsWith("connect")){
     if(ComPanel.connect())
        ComPanel.appendText("you are connected to a secondo server");
-    else
+    else{
        ComPanel.appendText("i can't connect to secondo server (are the settings correct?)");
+       success=false;
+    }   
     ComPanel.showPrompt();
   }  
   else if(command.startsWith("disconnect")){
@@ -486,12 +509,15 @@ public void execGuiCommand(String command){
      int pos = command.indexOf("->");
      if(pos <0){ // no correct input
         ComPanel.appendText("usage:  \"gui rename <oldname> -> <newName>\"");
+        success=false;
      }
      else{
        String oldName = command.substring(0,pos).trim();
        String newName = command.substring(pos+2).trim();
-       if(oldName.equals("") || newName.equals(""))
+       if(oldName.equals("") || newName.equals("")){
           ComPanel.appendText("usage:  \"gui rename <oldname> -> <newName>\"");
+          success=false;
+       }   
        else{
          int EC = OList.renameObject(oldName,newName);
          ComPanel.appendText(OList.getErrorText(EC));
@@ -530,11 +556,62 @@ public void execGuiCommand(String command){
   } else if(command.startsWith("showAll")){
     OList.showAll(); 
     ComPanel.showPrompt();
-  } 
+  } else if(command.startsWith("executeFile")){
+    String crest = command.substring(11).trim();
+    int errors = 0;
+    if (crest.startsWith("-i"))
+       errors = executeFile(crest.substring(2).trim(),true);
+    else
+       errors = executeFile(crest,false);
+    if(errors>0){
+       ComPanel.appendText("there are "+errors+" errors");
+       success=false;
+    }   
+    else
+       ComPanel.appendText("executeFile successful");
+       
+    ComPanel.showPrompt();   
+  }
   else {
     ComPanel.appendText("unknow gui command \n input \"gui listCommands\" to get a list of available commands");
     ComPanel.showPrompt();
+    success=false;
   }
+  return success;
+}
+
+
+/** executes all commands in a file */
+private int executeFile(String FileName,boolean ignoreErrors){
+  BufferedReader BR = null;
+  try{
+     BR = new BufferedReader(new FileReader(FileName));
+  }
+  catch(Exception e){
+    ComPanel.appendText("File \""+FileName+"\" not found\n");
+    return 1;
+  }
+  int errors =0;
+  try{
+    String Line=BR.readLine();
+    boolean ok=true;
+    while(Line!=null & ok){
+       Line = Line.trim();
+       ComPanel.appendText(Line+"\n");
+       if (!ComPanel.execUserCommand(Line)){
+          errors++;
+          if(!ignoreErrors)
+             ok=false;
+       }
+       Line = BR.readLine();
+    }
+  
+  }
+  catch(Exception e){
+    ComPanel.appendText("a IO error is occurred\n");
+    errors++;
+  }
+  return errors;
 
 }
 
@@ -642,7 +719,10 @@ public boolean canActualDisplay(SecondoObject SO){
       return false;
   else
     try{return CurrentViewer.canDisplay(SO);}
-    catch(Exception e){ return false; }
+    catch(Exception e){
+       System.out.println("error in method canDisplay in the current Viewer");
+       return false;
+    }
 }
 
 // tests if SO displayed in the current Viewer **/
@@ -651,7 +731,10 @@ public boolean isActualDisplayed(SecondoObject SO){
      return false;
   else
      try{return CurrentViewer.isDisplayed(SO);}
-     catch(Exception e){ return false; }
+     catch(Exception e){ 
+        System.out.println("error in current Viewer "+CurrentViewer+" method: isDisplayed");
+        return false; 
+     }
 } 
 
 /** shows SO in current Viewer if possible **/
@@ -660,7 +743,11 @@ public boolean showObject(SecondoObject SO){
       return false;
   else
      try{return CurrentViewer.addObject(SO);}
-     catch(Exception e){return false;}
+     catch(Exception e){
+        System.out.println("error in Viewer :"+CurrentViewer+" method addObject");
+        e.printStackTrace();
+        return false;
+     }
 }
 
 
@@ -675,7 +762,9 @@ public void hideObject(Object Sender,SecondoObject SO){
         try{
           ((SecondoViewer)AllViewers.get(i)).removeObject(SO);
         }
-        catch(Exception e){}
+        catch(Exception e){
+           System.out.println("an Exception is occured in removeObject-Method of a Viewer");
+        }
      }
 }
 
@@ -949,5 +1038,7 @@ class Command_Listener implements ActionListener{
 
 
 }
+
+
 
 

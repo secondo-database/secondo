@@ -17,7 +17,8 @@ interface ResultProcessor{
  public int internCommand(String cmd);
 
  /** executes a guiCommand */
- public void execGuiCommand(String command);
+ public boolean execGuiCommand(String command);
 
  public Dimension getSize();
 }
+
