@@ -377,7 +377,7 @@ public class ListExpr extends Object {
   }
 
   /** This function is called when the virtual machine 
-    * detrect that no more references refer to this list.
+    * detect that no more references refer to this list.
     * In the case of an external TextAtom, we delete its temporal file.
     */
   protected void finalize() throws Throwable{ 
@@ -2007,6 +2007,9 @@ catch(Exception e){
 
 
 
+/* Some Operations for accessing text Values */
+
+
  /*
    3.4.0 The decodeText() method.
    This method returns an inputstream from which can readed the
@@ -2017,6 +2020,65 @@ catch(Exception e){
       Base64Decoder BD = new Base64Decoder(new StringReader(textValue()));
       return BD.getInputStream();
   }
+
+
+/* returns the content of a text atom as an array of bytes */
+public byte[] textValueAsByteArray () {
+    //if CHECK_PRECONDITIONS is set, it checks the preconditions.
+    if (CHECK_PRECONDITIONS) {
+      if (atomType() != TEXT_ATOM) {
+        System.err.println("CHECK PRECONDITIONS:");
+        System.err.println(" Error when calling the textValueAsByteArray() method:");
+        System.err.println(" the ListExpr object is not a text atom.");
+      }
+    }
+    if(ExtFile==null){ // main memory based
+       return  ((String)this.value).getBytes();
+    }else{
+       try{
+         int len = (int)ExtFile.length();
+         byte[] content = new byte[(int)len];
+         BufferedInputStream in = new BufferedInputStream(new FileInputStream(ExtFile));
+         int pos = 0; 
+         while(pos<len){
+             pos += in.read(content,pos,len-pos);
+         }
+         in.close(); 
+         return content;
+       }catch(Exception e){
+          if(DEBUG_MODE)
+            e.printStackTrace();
+          System.err.println("Cannot load a TextAtom value from its temporal file ");
+          System.err.println(" empty String is returned");
+          return new byte[0]; 
+       }
+    }
+  }
+
+/** Returns an InputStream for accessing the content of a text atom.
+  * If an error occurs or the list is not an InputSTream, null is 
+  * returned.
+  **/
+public InputStream textValueAsInputStream() throws IOException{
+  if(type!=TEXT_ATOM){
+    if(CHECK_PRECONDITIONS){
+       System.err.println("Check preconditions failed");
+       System.err.println("  error in textValueAsInputStream");
+       System.err.println("  list is not of type text atom ");
+    }
+    return null;
+  }
+  if(ExtFile==null){
+    return new ByteArrayInputStream( ((String)value).getBytes());
+  }else{
+    return new FileInputStream(ExtFile);
+  }
+}
+
+
+
+
+
   /*
    3.4.34 The atomType() method.
    This method returns an int value representing what kind of atom is this
