@@ -100,6 +100,10 @@ November 26, 2002 RHG Corrected ~AnnotateFunction~ in order to let
 function bodies that are two-element lists (in particular applications
 of database function objects) be recognized correctly.
 
+February 2004, Hoffmann added static method ~ExecuteQuery~. This method
+executes Secondo queries, given in nested list syntax of C++-type ~string~,
+and returns a result of type ~Word~.
+
 \tableofcontents
 
 1.1 Brief Overview
@@ -2710,6 +2714,58 @@ QueryProcessor::SetDebugLevel( const int level )
     traceMode = true;
   }
 }
+
+bool
+QueryProcessor::ExecuteQuery( const string& queryListStr, Word& queryResult )
+{
+  ListExpr resultType, queryList;
+  QueryProcessor* qpp;
+  OpTree tree;
+  AlgebraLevel level;
+  bool correct      = false;
+  bool evaluable    = false;
+  bool defined      = false;
+  bool isFunction   = false;
+  NestedList* nli = SecondoSystem::GetNestedList();
+
+
+  nli->ReadFromString( queryListStr, queryList );
+
+    qpp = new QueryProcessor( nli, SecondoSystem::GetAlgebraManager() );
+    level = SecondoSystem::GetAlgebraLevel();
+    qpp->Construct( level, queryList, correct, 
+      evaluable, defined, isFunction, tree, resultType );
+      if ( !defined )
+    {
+      cout << "object value is undefined" << endl;
+      delete qpp;
+      return ( false );         
+    }
+    else if ( correct )
+    {
+      if ( evaluable )
+      {
+	// evaluate the operator tree
+        qpp->Eval( tree, queryResult, 1 );
+	qpp->Destroy( tree, false );
+      }
+      else 
+      {
+	cout << "Operator query not evaluable" << endl;
+	delete qpp;
+        return ( false );  
+      }
+    }
+    else
+    { 
+      cout << "Error in operator query" << endl;
+      delete qpp;
+      return ( false );  
+    }
+    delete qpp;
+    return ( true );
+}
+
 
 bool ErrorReporter::receivedMessage = false;
 string ErrorReporter::message = "";

@@ -344,6 +344,14 @@ Sets the debug level for the query processor. The following levels are defined:
   * *2* -- Debug *and* trace mode are turned on
 
 */
+  static bool ExecuteQuery( const string& queryListStr,
+                            Word& queryResult);
+/*
+Executes a Secondo query, given in nested list syntax of type string and returns 
+a query result of type Word. This static method can be used for Secondo queries
+within an operator implementation of an algebra.
+
+*/
  private:
   void GetVariable( const string& name, NameIndex& varnames,
                     const VarEntryCTable& vartable,
