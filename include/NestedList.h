@@ -171,7 +171,7 @@ member variables of the nested list container class ~NestedList~.
 
 */
 const int INITIAL_ENTRIES = 10000;
-const int PAGED_ARRAY_RECSIZE = 8000;
+const int PAGED_ARRAY_RECSIZE = 4000;
 /*
 The first specifies the default size of the compact tables. This value can be overwritten
 in the constructor. The second defines the record length of the record-file in the persistent
