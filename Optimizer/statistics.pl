@@ -141,7 +141,47 @@ cardQuery(Pred, Rel1, Rel2, Query) :-
   sample(Rel2, Rel2S),
   possiblyRename(Rel1S, Rel1Query),
   possiblyRename(Rel2S, Rel2Query),
-  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
+  transformPred(Pred, t, 1, Pred2),
+  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
+
+/*
+
+----	transformPred(Pred, Param, Arg, Pred2) :- 
+----
+
+~Pred2~ is ~Pred~ transformed such that the attribute X of relation ~ArgNo~ is written
+as ``attribute(Param, attrname(X))''
+
+*/
+
+transformPred(attr(Attr, Arg, Case), Param, Arg, 
+  attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
+
+transformPred(attr(Attr, Arg, Case), _, _, attr(Attr, Arg, Case)) :- !.
+
+transformPred(Pred, Param, Arg, Pred2) :-
+  compound(Pred),
+  functor(Pred, T, 1), !,
+  arg(1, Pred, Arg1),
+  transformPred(Arg1, Param, Arg, Arg1T),
+  functor(Pred2, T, 1),
+  arg(1, Pred2, Arg1T).
+
+transformPred(Pred, Param, Arg, Pred2) :-
+  compound(Pred),
+  functor(Pred, T, 2), !,
+  arg(1, Pred, Arg1),
+  arg(2, Pred, Arg2),
+  transformPred(Arg1, Param, Arg, Arg1T),
+  transformPred(Arg2, Param, Arg, Arg2T),
+  functor(Pred2, T, 2),
+  arg(1, Pred2, Arg1T),
+  arg(2, Pred2, Arg2T).
+
+transformPred(Pred, _, _, Pred).
+
+
+%  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
 dynamicCardQuery(Pred, Rel, Query) :-
   dynamicPossiblyRename(Rel, RelQuery),
