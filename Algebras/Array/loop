@@ -74,6 +74,25 @@ let plzArray = plz feed extend[pkg: log(randint(65535))] distribute[pkg];
 
 (query (loop plzArray wald));
 
+
+
+# Text syntax:
+
+delete type plztype;
+
+type plztype = rel(tuple([PLZ:int, Ort:string]));
+
+query plzArray loop[fun(p:plztype) p count];
+
+query plzArray loop[fun (p:plztype) p feed filter[.Ort contains "wald"]
+	consume];
+
+
+
+
+
+
+
 # ---- TEIL 4 ----
 
 (delete ten);
