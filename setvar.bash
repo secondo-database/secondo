@@ -39,21 +39,20 @@ fi
 
 export SECONDO_BUILD_DIR=$1
 
+if [ "$OSTYPE" = "msys" ]; then
+   export SECONDO_PLATFORM="win32"
+else 
+   export SECONDO_PLATFORM="win32"
+fi
+
 #########################################################
 ##
 ## start configurable part
 ##
 #########################################################
 
-export SECONDO_PLATFORM="linux"
 
-export SECONDO_CONFIG=$1"/SecondoConfig.ini"
-
-export BERKELEY_DB_DIR="$HOME/secondo-sdk"
-
-export DVI_VIEWER=kdvi
-
-export PD_HEADER=$PREFIX/pd/pd.header
+#export SECONDO_CONFIG="$1/bin/SecondoConfig.ini"
 
 export CVSROOT=":pserver:$CVSUSER@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
 
@@ -62,7 +61,7 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
    # unix
    export PL_INCLUDE_DIR="$HOME/secondo-sdk/include"
    export PL_LIB_DIR="$HOME/secondo-sdk/lib/pl-5.0.10/runtime/i686-linux"
-
+   export JNIDIR="/usr/java/j2sdk1.4.2/jre/lib/i386:/usr/java/j2sdk1.4.2/jre/lib/i386/client"
 else 
 
    # windows 
@@ -70,7 +69,6 @@ else
    export SWI_HOME_DIR=""
 fi
 
-export JNIDIR="/usr/java/j2sdk1.4.2/jre/lib/i386:/usr/java/j2sdk1.4.2/jre/lib/i386/client"
 
 #########################################################
 ##
@@ -79,11 +77,18 @@ export JNIDIR="/usr/java/j2sdk1.4.2/jre/lib/i386:/usr/java/j2sdk1.4.2/jre/lib/i3
 #########################################################
 
 if [ $SECONDO_PLATFORM != "win32" ]; then
-
-   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin"
+   export PD_HEADER="$HOME/secondo-sdk/pd/pd.header"
+   export DVI_VIEWER=kdvi
+   export BERKELEY_DB_DIR="$HOME/secondo-sdk"
    export LD_LIBRARY_PATH="$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR:$JNIDIR" 
 else
-   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin:$SECONDO_BUILD_DIR/lib:$SWI_HOME_DIR\\bin"
+   export PD_HEADER="/usr/local/pd/pd.header"
+   export DVI_VIEWER=yap
+   export BERKELEY_DB_DIR="/usr/local"
+   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$Berkeley_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR\\bin"
+  
+   # gcc on windows needs special treatment
+   export CPLUS_INCLUDE_PATH="/usr/local/include"
 fi
 
 
