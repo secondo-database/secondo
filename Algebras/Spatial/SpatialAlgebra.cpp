@@ -262,7 +262,6 @@ int  Point::Sizeof()
 
 Point*  Point::Clone()
 {
-    cout<<"***********************!"<<endl;
     return (new Point( *this));
 }
 
@@ -589,7 +588,6 @@ ClosePoint( Word& w )
 static Word
 ClonePoint( const Word& w )
 {
-  cout<<"******§§§§§§§§******!"<<endl;
   assert( ((Point *)w.addr)->IsDefined() );
   Point *p = new Point( *((Point *)w.addr) );
   return SetWord( p );
@@ -1197,7 +1195,6 @@ int  Points::Sizeof()
 
 Points*  Points::Clone()
 {
-    cout<<"***********************!"<<endl;
     return (new Points(SecondoSystem::GetLobFile(),  *this));
 }
 
@@ -3383,7 +3380,6 @@ int  CLine::Sizeof()
 
 CLine*  CLine::Clone()
 {
-    cout<<"***********************!"<<endl;
     return (new CLine(SecondoSystem::GetLobFile(),  *this));
 }
 
@@ -4315,7 +4311,7 @@ int  CRegion::Sizeof()
 
 CRegion*  CRegion::Clone()
 {
-    cout<<"***********************!"<<endl;
+    //cout<<"***********************!"<<endl;
     return (new CRegion(SecondoSystem::GetLobFile(),  *this));
 }
 
