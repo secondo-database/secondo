@@ -9,13 +9,11 @@ static QueryProcessor* qp;
 #include "Attribute.h"
 #include "FLOB.h"
 
+namespace {
+
 struct Point { int x; int y; };
 
-ostream &operator<<(ostream &, Point &);
-
 struct Rectangle { Point ur; Point ul; Point ll; Point lr; };
-
-ostream &operator<<(ostream &, Rectangle &);
 
 class Polygon : public Attribute {
   	friend void SecondoMain(int, char *[]); /* Simplify writing test programs. */
@@ -170,6 +168,7 @@ PolygonAlgebra polygonalgebra;
 
 /* Initialization */
 
+
 extern "C"
 Algebra*
 InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef) {
@@ -178,4 +177,4 @@ InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef) {
 	return (&polygonalgebra);
 }
 
-
+} // end of namespace {

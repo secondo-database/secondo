@@ -23,6 +23,8 @@ using namespace std;
 #include "../Algebras/Polygon/PolygonAlgebra.cpp"
 
 
+namespace {
+
 static const bool needIdent = false;
 
 class SecondoTestFrame : public Application
@@ -948,6 +950,7 @@ int SecondoTestFrame::Execute() {
   return rc;
 }
 
+} // end of namespace{
 
 /*
 14 main
