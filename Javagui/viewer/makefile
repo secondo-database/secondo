@@ -28,16 +28,11 @@ subhoese:
 
 #### the 3D-Viewer for fuzzy objects
 .PHONY: viewer3d
-viewer3d: subviewer3d viewer3dhere
+viewer3d: subviewer3d Viewer3D.class
 
 .PHONY: subviewer3d
 subviewer3d:
 	(cd viewer3d;make all);
-
-.PHONY: viewer3dhere
-viewer3dhere: Viewer3D.java
-	$(JAVAC) -classpath $(CLASSPATH) Viewer3D.java
-
 
 # ----- viewer3d end --------
 
