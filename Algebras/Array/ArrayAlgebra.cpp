@@ -326,6 +326,7 @@ void CloseArray( Word& w ) {
   }
 
   delete array;
+
   w.addr = 0;
 }
 
@@ -418,7 +419,7 @@ TypeConstructor array(
 	"array",                      // name		
 	ArrayProperty,                // property function describing signature
 	OutArray, InArray,            // out and in functions
-        0, 0,                         // SaveToList and RestoreFromList functions
+	0, 0,                         // SaveToList and RestoreFromList functions
 	CreateArray, DeleteArray,     // object creation and deletion
 	0, 0,                         // default object open and save
 	CloseArray, CloneArray,       // opject close and clone
@@ -1014,8 +1015,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
   if (sc->GetTypeId("rel", algebraId, typeId)) {
-    Array* newarray = new Array(algebraId, typeId, n, a);
-    result = SetWord(newarray);
+    ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
 
     return 0;
   }
