@@ -20,7 +20,7 @@ June 10, 1996 RHG Changed result type of procedure RealValue back to REAL.
 
 September 24, 1996 RHG Cleaned up PD representation.
 
-October 22, 1996 RHG Corrected EndOfList, Nth-Element, and Second ... Sixth. Made operations ~ListLength~ and ~WriteListExpr~ available. Changed internal procedure ~WriteList~ so that atoms following a list are written indented to the same level as a preceding list. This affects all output of lists. 
+October 22, 1996 RHG Corrected EndOfList, Nth-Element, and Second ... Sixth. Made operations ~ListLength~ and ~WriteListExpr~ available. Changed internal procedure ~WriteList~ so that atoms following a list are written indented to the same level as a preceding list. This affects all output of lists.
 
 November 14, 1996 RHG Removed ~SetValid~ commands.
 
@@ -30,7 +30,7 @@ November 22, 1996 RHG Added a final ~WriteLn~ in ~WriteToFile~.
 
 January 20, 1997 RHG Corrected procedure ~AtomType~. Removed error message from ~ReadFromString~.
 
-September 26, 1997 Stefan Dieker Corrected wrong order of CTable calls in 
+September 26, 1997 Stefan Dieker Corrected wrong order of CTable calls in
 ~Append~, ~AppendText~, and all procedures creating atoms.
 
 May 8, 1998 RHG Changed the way how text atoms are written to the screen. Affects procedures ~WriteAtom~, ~WriteLists~.
@@ -39,13 +39,15 @@ October 12, 1998 Stefan Dieker. The name of the temporary file created by ~ReadF
 
 December 1, 2001 Ulrich Telle Port to C++
 
-November 28, 2002 M. Spiekermann coding of reportVectorSizes(). 
+November 28, 2002 M. Spiekermann coding of reportVectorSizes().
 
 December 05, 2002 M. Spiekermann methods InitializeListMemory() and CopyList/CopyRecursive implemented.
 
+April 22, 2003 V. Almeida changed the methods CopyList and Destroy to use iteration instead of recursion.
+
 1 Introduction
 
-A nested list is represented by four stable tables called ~Nodes~, ~Ints~, 
+A nested list is represented by four stable tables called ~Nodes~, ~Ints~,
 ~Strings~, and ~Texts~.
 
 2 Imports
@@ -112,10 +114,10 @@ NestedList::deleteListMemory()
 
 void
 NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
-		                  Cardinal StringEntries, Cardinal TextEntries ) 
-{   
+		                  Cardinal StringEntries, Cardinal TextEntries )
+{
    deleteListMemory();
-   
+
    nodeTable   = new CTable<NodeRecord>(NodeEntries);
    intTable    = new CTable<Constant>(ConstEntries);
    stringTable = new CTable<StringRecord>(StringEntries);
@@ -125,9 +127,9 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
 /*
 3.1 PrintTableTexts
 
-PrintTableTexts displays the contents of the Table 'Texts' on the screen. 
-The procedure was very helpful during the test phase of the module, and is 
-not used anywhere in the current version of the module. 
+PrintTableTexts displays the contents of the Table 'Texts' on the screen.
+The procedure was very helpful during the test phase of the module, and is
+not used anywhere in the current version of the module.
 
 */
 
@@ -241,10 +243,21 @@ NestedList::Append ( const ListExpr lastElem,
   return (newNode);
 }
 
-/* 
+/*
 4.4 Destroy
 
 */
+struct DestroyStackRecord
+{
+  DestroyStackRecord( NodeRecord& nr, ListExpr le ):
+   nr( nr ),
+   le( le )
+   {}
+
+  NodeRecord& nr;
+  ListExpr le;
+};
+
 
 void
 NestedList::Destroy ( const ListExpr list )
@@ -253,70 +266,71 @@ NestedList::Destroy ( const ListExpr list )
   {
     if ( doDestroy )
     {
-      DestroyRecursive( list );
-    }
-  }
-}
-
-/* 
-Internal procedure *DestroyRecursive* 
-
-*/
-
-void
-NestedList::DestroyRecursive ( const ListExpr list )
-{
-  Cardinal elem, nextElem;
-
-  if ( !IsEmpty( list ) )
-  {
-    if ( nodeTable->IsValid( list ) )
-    {       /* node not yet destroyed */
-      NodeRecord& listRef = (*nodeTable)[list];
-      switch (listRef.nodeType)
+      stack<DestroyStackRecord*> nodeRecordStack;
+      nodeRecordStack.push( new DestroyStackRecord( (*nodeTable)[list], list ) );
+  
+      while( !nodeRecordStack.empty() )
       {
-        case NoAtom:
-          DestroyRecursive( listRef.n.left );
-          DestroyRecursive( listRef.n.right );
-          nodeTable->Remove( list );
-          break;
-        case IntType:
-        case RealType:
-        case BoolType:
-          intTable->Remove( listRef.a.index);
-          nodeTable->Remove( list );
-          break;
-        case StringType:
-        case SymbolType:
-          if ( listRef.s.first  != 0 )
+        DestroyStackRecord *sr = nodeRecordStack.top();
+        nodeRecordStack.pop();
+
+        switch (sr->nr.nodeType)
+        {
+          case NoAtom:
           {
-            stringTable->Remove( listRef.s.first );
+            nodeRecordStack.push( new DestroyStackRecord( (*nodeTable)[sr->nr.n.left], sr->nr.n.left ) );
+            nodeRecordStack.push( new DestroyStackRecord( (*nodeTable)[sr->nr.n.right], sr->nr.n.right ) );
+            nodeTable->Remove( sr->le );
+            delete sr;
+            break;
           }
-          if ( listRef.s.second != 0 )
+          case IntType:
+          case RealType:
+          case BoolType:
           {
-            stringTable->Remove( listRef.s.second );
+            intTable->Remove( sr->nr.a.index);
+            nodeTable->Remove( sr->le );
+            delete sr;
+            break;
           }
-          if ( listRef.s.third  != 0 )
+          case StringType:
+          case SymbolType:
           {
-            stringTable->Remove( listRef.s.third );
+            if ( sr->nr.s.first  != 0 )
+            {
+              stringTable->Remove( sr->nr.s.first );
+            }
+            if ( sr->nr.s.second != 0 )
+            {
+              stringTable->Remove( sr->nr.s.second );
+            }
+            if ( sr->nr.s.third  != 0 )
+            {
+              stringTable->Remove( sr->nr.s.third );
+            }
+            nodeTable->Remove( sr->le );
+            delete sr;
+            break;
           }
-          nodeTable->Remove( list );
-          break;
-        case TextType:
-          elem = listRef.t.start;
-          while ( elem != 0 )
+          case TextType:
           {
-            nextElem = (*textTable)[elem].next;
-            textTable->Remove( elem );
-            elem = nextElem;
+            Cardinal elem = sr->nr.t.start;
+            while ( elem != 0 )
+            {
+              Cardinal nextElem = (*textTable)[elem].next;
+              textTable->Remove( elem );
+              elem = nextElem;
+            }
+            nodeTable->Remove( sr->le );
+            delete sr;
+            break;
           }
-          nodeTable->Remove( list );
-          break;
+        }
       }
     }
   }
 }
-
+    
 /*
 4.5 OneElemList, .., SixElemList
 
@@ -379,7 +393,7 @@ NestedList::SixElemList( const ListExpr elem1, const ListExpr elem2,
                                         Cons( elem6, TheEmptyList () ) ) ) ) ) ));
 }
 
-/* 
+/*
 5 Simple Tests
 
 5.1 IsEmpty, IsAtom, EndOfList, ListLength
@@ -401,8 +415,8 @@ NestedList::IsAtom( const ListExpr list )
      return (false);
   }
   else
-  { 
-    return ((*nodeTable)[list].nodeType != NoAtom);   
+  {
+    return ((*nodeTable)[list].nodeType != NoAtom);
   }
 }
 
@@ -410,13 +424,13 @@ bool
 NestedList::EndOfList( ListExpr list )
 {
   if ( IsEmpty( list ) )
-  { 
+  {
     return (false);
   }
   else if ( IsAtom( list ) )
   {
     return (false);
-  } 
+  }
   else
   {
     return (Rest( list ) == 0);
@@ -427,14 +441,14 @@ int
 NestedList::ListLength( ListExpr list )
 {
 /*
-~list~ may be any list expression. Returns the number of elements, if it is 
+~list~ may be any list expression. Returns the number of elements, if it is
 a list, and -1, if it is an atom.
 
 */
   int result = 0;
 
   if ( IsAtom( list ) )
-  { 
+  {
     result = -1;
   }
   else
@@ -451,7 +465,7 @@ a list, and -1, if it is an atom.
 int
 NestedList::ExprLength( ListExpr expr )
 {
-/* 
+/*
 Reads a list expression ~expr~ and counts the number ~length~ of
 subexpressions.
 
@@ -517,7 +531,7 @@ Test for deep equality of two nested lists
     {
       return (false);
     }
-  }  
+  }
   else if ( !IsAtom( list1 ) && !IsAtom( list2 ) )
   {
     return (Equal( First( list1 ), First( list2 ) ) &&
@@ -529,108 +543,171 @@ Test for deep equality of two nested lists
   }
 }
 
+enum NodesStacked { None, Left, Right, Both };
+struct CopyStackRecord
+{
+  CopyStackRecord( NodeRecord& nr, NodesStacked ns = None, ListExpr le = 0 ):
+   nr( nr ),
+   ns( ns ),
+   le( le )
+   {}
+
+  NodeRecord& nr;
+  NodesStacked ns;
+  ListExpr le;
+};
+
 
 const ListExpr
 NestedList::CopyList(const ListExpr list, const NestedList* target)
 {
-   return CopyRecursive(list, target);
-}
+  stack<CopyStackRecord*> nodeRecordStack;
+  ListExpr newnode = 0;
+  CTable<NodeRecord> *pnT_target = target->nodeTable;
+  CTable<StringRecord>  *psT_target = target->stringTable;
+  ListExpr result = 0;
 
+  if (list == 0)
+  {
+    return 0;
+  }
 
-const ListExpr
-NestedList::CopyRecursive(const ListExpr list, const NestedList* target)
-{ 
-   ListExpr newnode = 0; 
-   CTable<NodeRecord> *pnT_target = target->nodeTable; 
+  CopyStackRecord *sr = new CopyStackRecord( (*nodeTable)[list] );
+  nodeRecordStack.push( sr );
 
-   if (list == 0) {
-     return 0;
-   }
-   
-   NodeRecord& listRef = (*nodeTable)[list];
+  while( !nodeRecordStack.empty() )
+  {
+    CopyStackRecord *sr = nodeRecordStack.top();
 
-      switch (listRef.nodeType)
+    switch (sr->nr.nodeType)
+    {
+      case IntType:
+      case RealType:
+      case BoolType:
       {
-        case NoAtom: {
-	  ListExpr left = 0, right = 0; 
-			     
-	  if (listRef.n.left) {
-          left = CopyRecursive( listRef.n.left, target );
-	  }
-	  if (listRef.n.right) {
-          right = CopyRecursive( listRef.n.right, target );
-	  }
-	  
-	  // create a new node record in the target list and link it
-	  // with the left and right subtrees.
-	  newnode = pnT_target->Add( listRef );
-	  (*pnT_target)[newnode].n.left = left;
-	  (*pnT_target)[newnode].n.right = right;
-          
-	  break; }
-        case IntType:
-        case RealType:
-        case BoolType: {
-	  ListExpr newconst = 0;
-			       
-	  // create a new constant and node records in the target list. 
-	  newconst = target->intTable->Add( (*intTable)[listRef.a.index] );
-	  newnode = pnT_target->Add( listRef );
-	  (*pnT_target)[newnode].a.index = newconst;
-	  }
-          break;
-        case StringType:
-        case SymbolType: {
-          CTable<StringRecord>  *psT_target = target->stringTable;
-	  ListExpr newstr = 0;
-	  StringRecord sRec;
+	assert( sr->ns == None );
+        ListExpr newconst = 0;
 
-	  newnode = pnT_target->Add(listRef);
-	  if (listRef.s.third) {
-	    sRec = (*stringTable)[listRef.s.third];
-	    newstr = psT_target->Add(sRec);
-	    (*pnT_target)[newnode].s.third = newstr;
-	  }
-	  if (listRef.s.second) {
-	    sRec = (*stringTable)[listRef.s.second];
-	    newstr = psT_target->Add(sRec);
-	    (*pnT_target)[newnode].s.second = newstr;
-	  }
-	  if (listRef.s.first) {
-	    sRec = (*stringTable)[listRef.s.first];
-	    newstr = psT_target->Add(sRec);
-	    (*pnT_target)[newnode].s.first = newstr;
-	  }
+        // create a new constant and node records in the target list.
+        newconst = target->intTable->Add( (*intTable)[sr->nr.a.index] );
+        newnode = pnT_target->Add( sr->nr );
+        (*pnT_target)[newnode].a.index = newconst;
 
-          break; }
-        case TextType: {
-
-	  ListExpr newtext=0, newstart=0, tnext=0, tlast=0;
-	  TextRecord tRec;
-
-	  newnode = pnT_target->Add(listRef);
-	  tRec = (*textTable)[listRef.t.start];
-	  newstart = target->textTable->Add(tRec);
-	  (*pnT_target)[newnode].t.start = newstart;
-	  (*pnT_target)[newnode].t.last = newstart;
-
-	  ListExpr tCurrent = listRef.t.start;
-          while ( (tnext = (*textTable)[tCurrent].next) != 0 )
-	  {
-	    tRec = (*textTable)[tnext];
-	    newtext = target->textTable->Add(tRec);
-	    (*target->textTable)[newtext].next = 0;
-	    tlast = (*pnT_target)[newnode].t.last;
-	    (*target->textTable)[tlast].next = newtext;
-	    (*pnT_target)[newnode].t.last = newtext;
-	    tCurrent = tnext;
-          }
-
-          break; }
-	default:
-	  break;
+        delete sr;
+        nodeRecordStack.pop();
+        result = newnode;
+        break;
       }
-   return newnode;
+
+      case StringType:
+      case SymbolType:
+      {
+	assert( sr->ns == None );
+        ListExpr newstr = 0;
+        StringRecord sRec;
+
+        newnode = pnT_target->Add(sr->nr);
+        if (sr->nr.s.third)
+        {
+          sRec = (*stringTable)[sr->nr.s.third];
+          newstr = psT_target->Add(sRec);
+          (*pnT_target)[newnode].s.third = newstr;
+        }
+        if (sr->nr.s.second)
+        {
+          sRec = (*stringTable)[sr->nr.s.second];
+          newstr = psT_target->Add(sRec);
+          (*pnT_target)[newnode].s.second = newstr;
+        }
+        if (sr->nr.s.first)
+        {
+          sRec = (*stringTable)[sr->nr.s.first];
+          newstr = psT_target->Add(sRec);
+          (*pnT_target)[newnode].s.first = newstr;
+        }
+
+        delete sr;
+        nodeRecordStack.pop();
+        result = newnode;
+        break;
+      }
+
+      case TextType:
+      {
+        ListExpr newtext=0, newstart=0, tnext=0, tlast=0;
+        TextRecord tRec;
+
+        newnode = pnT_target->Add(sr->nr);
+        tRec = (*textTable)[sr->nr.t.start];
+        newstart = target->textTable->Add(tRec);
+        (*pnT_target)[newnode].t.start = newstart;
+        (*pnT_target)[newnode].t.last = newstart;
+
+        ListExpr tCurrent = sr->nr.t.start;
+        while ( (tnext = (*textTable)[tCurrent].next) != 0 )
+        {
+          tRec = (*textTable)[tnext];
+          newtext = target->textTable->Add(tRec);
+          (*target->textTable)[newtext].next = 0;
+          tlast = (*pnT_target)[newnode].t.last;
+          (*target->textTable)[tlast].next = newtext;
+          (*pnT_target)[newnode].t.last = newtext;
+          tCurrent = tnext;
+        }
+
+        delete sr;
+        nodeRecordStack.pop();
+        result = newnode;
+        break;
+      }
+
+      case NoAtom:
+      {
+        if( sr->ns == None )
+        {
+  	  newnode = pnT_target->Add( sr->nr );
+  	  sr->le = newnode;
+          if( sr->nr.n.left )
+	  {
+  	    sr->ns = Left;
+   	    sr = new CopyStackRecord( (*nodeTable)[sr->nr.n.left] );
+	  }
+	  else if( sr->nr.n.right )
+	  {
+  	    sr->ns = Right;
+   	    sr = new CopyStackRecord( (*nodeTable)[sr->nr.n.right] );
+	  }
+          nodeRecordStack.push( sr );
+        }
+        else if( sr->ns == Left )
+        {
+          (*pnT_target)[sr->le].n.left = result;
+          if( sr->nr.n.right )
+          {
+	    sr->ns = Both;
+	    sr = new CopyStackRecord( (*nodeTable)[sr->nr.n.right] );
+            nodeRecordStack.push( sr );
+          }
+          else
+          {
+            result = sr->le;
+            delete sr;
+            nodeRecordStack.pop();
+          }
+        }
+        else if( sr->ns == Right || sr->ns == Both )
+        {
+          (*pnT_target)[sr->le].n.right = result;
+          result = sr->le;
+          delete sr;
+ 	  nodeRecordStack.pop();
+        }
+        break;
+      }
+    }
+  }
+  assert( result != 0 );
+  return result;
 }
 
 bool
@@ -784,19 +861,19 @@ Write a list ~List~ indented by 4 blanks for each ~Level~ of nesting. Atoms are 
   bool after;
 
   if ( IsEmpty( list ) )
-  { 
+  {
     *outStream << endl;
     for ( i = 1; i <= level; i++ )
     {
       *outStream << "    ";
     }
-    *outStream << "()"; 
+    *outStream << "()";
     return (afterList);
   }
   else if ( IsAtom( list ))
   {
     if ( afterList || (AtomType( list) == TextType ) )
-    { 
+    {
       *outStream << endl;
       for ( i = 1; i <= level; i++ )
       {
@@ -821,7 +898,7 @@ Write a list ~List~ indented by 4 blanks for each ~Level~ of nesting. Atoms are 
       *outStream << " ";
       after = WriteList( First( list ), level+1, after, toScreen );
     }
-    *outStream << ")"; 
+    *outStream << ")";
     return (true);
   }
 }
@@ -858,17 +935,16 @@ NestedList::WriteToFile( const string& fileName, const ListExpr list )
 bool
 NestedList::ReadFromString( const string& nlChars, ListExpr& list )
 {
-/* 
+/*
    The job of this procedure is to read a string and to convert it to a nested
    list.
 
-   Short: String [->] NestedList 
+   Short: String [->] NestedList
 
 */
 
   bool success = false;
   list = 0;
-  assert(!(nlChars == ""));
   istringstream inString( nlChars );
   if ( inString )
   {
@@ -899,15 +975,15 @@ NestedList::WriteToString( string& nlChars, const ListExpr list )
 }
 
 /*
-Internal procedure *WriteToStringLocal* 
+Internal procedure *WriteToStringLocal*
 
 */
 
 bool
 NestedList::WriteToStringLocal( string& nlChars, ListExpr list )
 {
-/* 
-Error Handling in this procedure: If anything goes wrong, the execution of the 
+/*
+Error Handling in this procedure: If anything goes wrong, the execution of the
 function is finished immediately, and the function result is ~false~, if the
 string nlChars could not be written properly, or if there was something wrong
 within the structure of the list, otherwise, the function result is ~true~.
@@ -948,7 +1024,7 @@ within the structure of the list, otherwise, the function result is ~true~.
         {
           TextScan textScan = CreateTextScan( list );
           string tempText = "";
-          GetText( textScan, TextLength( list ), tempText ); 
+          GetText( textScan, TextLength( list ), tempText );
           DestroyTextScan( textScan );
           nlChars += "<text>" + tempText + "</text--->";
         }
@@ -1011,7 +1087,7 @@ Write ~list~ indented by level to standard output.
   outStream = 0;
 }
 
-/* 
+/*
 7 Traversal
 
 7.1 First
@@ -1021,7 +1097,7 @@ ListExpr
 NestedList::First( const ListExpr list )
 {
   assert( !IsEmpty( list ) && !IsAtom( list ) );
-  return ((*nodeTable)[list].n.left);    
+  return ((*nodeTable)[list].n.left);
 }
 
 /*
@@ -1304,7 +1380,7 @@ NestedList::TextAtom()
   return (newNode);
 }
 
-/* 
+/*
 8.7 AppendText
 
 */
@@ -1318,21 +1394,21 @@ NestedList::AppendText( const ListExpr atom,
   NodeRecord& atomContent  = (*nodeTable)[atom];
   TextRecord* lastFragment = &(*textTable)[atomContent.t.last];
 
-  Cardinal lastFragmentLength, emptyFragmentLength; 
-  for ( lastFragmentLength = 0; 
+  Cardinal lastFragmentLength, emptyFragmentLength;
+  for ( lastFragmentLength = 0;
         lastFragmentLength < MaxFragmentLength &&
         lastFragment->field[lastFragmentLength];
         lastFragmentLength++ );
   emptyFragmentLength = MaxFragmentLength - lastFragmentLength;
 
-/* 
+/*
 There are two cases: Either there is enough space in the current fragment
 for NoChars, or there is not enough space. The last fragment of a text atom
 is never filled completely (with MaxFragmentLength characters), but it is
 empty or it is filled with up to MaxFragmentLength-1 characters.
 
 */
-  
+
   Cardinal textLength = textBuffer.length();
   Cardinal textStart  = 0;
   if ( (lastFragmentLength + textLength) <= MaxFragmentLength )
@@ -1510,7 +1586,7 @@ NestedList::GetText ( TextScan       textScan,
 
   if ( fragment.next == 0 )
   {
-    for ( fragmentLength = 0; 
+    for ( fragmentLength = 0;
           fragmentLength < MaxFragmentLength &&
           fragment.field[fragmentLength];
           fragmentLength++ );
@@ -1520,7 +1596,7 @@ NestedList::GetText ( TextScan       textScan,
     fragmentLength = MaxFragmentLength;
   }
   fragmentRestLength = fragmentLength - textScan->currentPosition;
-  
+
   if ( noChars <= fragmentRestLength )
   {
     /* Enough text in the current fragment */
@@ -1532,7 +1608,7 @@ NestedList::GetText ( TextScan       textScan,
     /* Treat a special case: */
     if ( textScan->currentPosition >= MaxFragmentLength )
     {
-      textScan->currentFragment = fragment.next;  
+      textScan->currentFragment = fragment.next;
       textScan->currentPosition = 0;
     }
   }
@@ -1547,10 +1623,10 @@ NestedList::GetText ( TextScan       textScan,
 
     if ( textScan->currentPosition >= MaxFragmentLength )
     {
-      textScan->currentFragment = fragment.next;  
+      textScan->currentFragment = fragment.next;
       textScan->currentPosition = 0;
     }
-    
+
     /* Get more text if there are more fragments */
     if ( fragment.next != 0 )
     {
@@ -1588,11 +1664,11 @@ NestedList::EndOfText( const TextScan textScan )
   {
     TextRecord& fragment = (*textTable)[textScan->currentFragment];
     Cardinal fragmentLength;
-    for ( fragmentLength = 0; 
+    for ( fragmentLength = 0;
           fragmentLength < MaxFragmentLength &&
           fragment.field[fragmentLength];
           fragmentLength++ );
-    return ((fragment.next == 0) && 
+    return ((fragment.next == 0) &&
             (textScan->currentPosition >= fragmentLength));
   }
 }
@@ -1612,7 +1688,7 @@ NestedList::DestroyTextScan( TextScan& textScan )
   }
 }
 
-/* 
+/*
 10 AtomType
 
 */
@@ -1627,7 +1703,7 @@ NestedList::AtomType (const ListExpr atom )
   else
   {
     return ((*nodeTable)[atom].nodeType);
-  } 
+  }
 }
 
 /*
@@ -1638,15 +1714,15 @@ const string
 NestedList::reportVectorSizes() {
 
   ostringstream report;
- 
-  report << "List memory (slots/used): " 
-	 << "nodes " << nodeTable->Size() << "/" << nodeTable->NoEntries() << ", " 
- 	 << "int " << intTable->Size() << "/" << intTable->NoEntries() << ", " 
+
+  report << "List memory (slots/used): "
+	 << "nodes " << nodeTable->Size() << "/" << nodeTable->NoEntries() << ", "
+ 	 << "int " << intTable->Size() << "/" << intTable->NoEntries() << ", "
 	 << "str " << stringTable->Size() << "/" <<  stringTable->NoEntries() << ". "
-         << endl << "Total " 
+         << endl << "Total "
 	 << nodeTable->totalMemory() + intTable->totalMemory() + stringTable->totalMemory()
          << " Bytes." << endl;
-	 
+
   return report.str();
 
 }
