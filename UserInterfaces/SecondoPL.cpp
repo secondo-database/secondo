@@ -22,6 +22,8 @@ support for calling Secondo from PROLOG.
 
 #include <SWI-Prolog.h>
 
+using namespace std;
+
 #include "SecondoInterface.h"
 
 SecondoInterface* si = 0;
@@ -378,10 +380,10 @@ pl_call_secondo(term_t command, term_t result)
 
 PL_extension predicates[] =
 {
-  { "secondo", 2, pl_call_secondo, 0 },
-  { "secondo_error_info", 2, pl_get_error_info, 0 },
-  { "secondo_print_le", 1, pl_print_term_le, 0 },
-  { NULL, 0, NULL, 0 } /* terminating line */
+  { "secondo", 2, (void*)pl_call_secondo, 0 },
+  { "secondo_error_info", 2, (void*)pl_get_error_info, 0 },
+  { "secondo_print_le", 1, (void*)pl_print_term_le, 0 },
+  { 0, 0, 0, 0 } /* terminating line */
 };
 
 /*
