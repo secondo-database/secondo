@@ -189,9 +189,12 @@ The list representation of a ~binfile~ are
 
 ----	( <file>filename</file---> )
 ----
+
 and
+
 ----	( <text>filename</text---> )
 ----
+
 If first representation is used, then the contents of a file is read
 into the second representation. This is done automatically by the
 Secondo parser.
@@ -252,8 +255,8 @@ BinaryFileProperty()
 			     nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"),
 	                     nl->StringAtom("binfile"),
-			     nl->StringAtom("( <file>filename</file---> )"),
-			     nl->StringAtom("( <file>Document.pdf</file---> )"),
+			     nl->StringAtom("<file>filename</file--->"),
+			     nl->StringAtom("<file>Document.pdf</file--->"),
 			     nl->StringAtom(""))));
 }
 
