@@ -448,7 +448,6 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
   string attrname;
   bool correct, ckd;
   int unique;
-  vector<string>::iterator it;
   AlgebraManager* algMgr;
 
   if ((nl->ListLength(type) == 2) && (nl->IsEqual(nl->First(type), "tuple",
@@ -471,8 +470,7 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
       return false;
     }
     algMgr = SecondoSystem::GetAlgebraManager();
-    attrnamelist.resize(MaxSizeOfAttr);
-    it = attrnamelist.begin();
+
     unique = 0;
     correct = true;
     while (!nl->IsEmpty(attrlist))
@@ -494,7 +492,7 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
                nl->IntAtom(3), nl->First(pair)));
             correct = false;
           }
-          *it = attrname;
+          attrnamelist.push_back(attrname);
           ckd =  algMgr->CheckKind("DATA", nl->Second(pair), errorInfo);
           if (!ckd)
           {
@@ -519,7 +517,6 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
           nl->IntAtom(5),pair ));
         correct = false;
       }
-      it++;
     }
     return correct;
   }
