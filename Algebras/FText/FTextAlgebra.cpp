@@ -123,7 +123,7 @@ void FText::Destroy()
 
 bool FText::SearchString( const char* subString )
 {
-  char *text = theText.BringToMemory();
+  const char *text = theText.BringToMemory();
   return strstr( text, subString ) != NULL;
 }
 
@@ -190,7 +190,7 @@ size_t FText::HashValue()
     return 0;
 
   unsigned long h = 0;
-  char* s = theText.BringToMemory();
+  const char* s = theText.BringToMemory();
   while(*s != 0)
   {
     h = 5 * h + *s;
@@ -205,7 +205,7 @@ void FText::CopyFrom( StandardAttribute* right )
     cout << '\n' << "Start CopyFrom" << '\n';
 
   FText* r = (FText*)right;
-  char *s = r->theText.BringToMemory();
+  const char *s = r->theText.BringToMemory();
   Set( r->defined, s );
 }
 
@@ -228,8 +228,8 @@ int FText::Compare( Attribute *arg )
   if ( !f )
     return -2;
 
-  char *s1 = f->theText.BringToMemory(),
-       *s2 = this->theText.BringToMemory();
+  const char *s1 = f->theText.BringToMemory(),
+             *s2 = this->theText.BringToMemory();
 
   return strcmp( s2, s1 );
 }
@@ -261,8 +261,8 @@ bool FText::Adjacent(Attribute *arg)
   if(traces)
     cout << '\n' << "Start Adjacent" << '\n';
 
-  char *a = theText.BringToMemory(),
-       *b = ((FText *)arg)->theText.BringToMemory();
+  const char *a = theText.BringToMemory(),
+             *b = ((FText *)arg)->theText.BringToMemory();
 
 
   if( strcmp( a, b ) == 0 )
