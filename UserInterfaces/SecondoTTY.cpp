@@ -329,12 +329,12 @@ SecondoTTY::GetCommand()
           {
             complete = IsInternalCommand( line );
           }
-          cmd = line;
+          cmd = line + " ";
           first = false;
         }
         else
         {
-          cmd += line;
+          cmd = cmd + line + " ";
         }
       }
     }
