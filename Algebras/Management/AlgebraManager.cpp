@@ -189,13 +189,10 @@ AlgebraManager::Ops( int algebraId, int operatorId )
 ListExpr
 AlgebraManager::Specs( int algebraId, int operatorId )
 {
-//cout << "Specs " << algebraId << "/" << operatorId << endl;
-//cout << algebra[algebraId]->GetOperator( operatorId )->specString << endl;
   ListExpr spec = nl->TheEmptyList();
   nl->ReadFromString(
         algebra[algebraId]->GetOperator( operatorId )->specString,
         spec );
-//cout << spec << endl;
   return (spec);
 }
 

@@ -1,14 +1,45 @@
 /*
+//paragraph    [10]    title:           [{\Large \bf ] [}]
+//paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     [\end{tabular}\end{quote}]
+//paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    [\end{tabular}\end{quote}]
+//paragraph    [23]    table3columns:   [\begin{quote}\begin{tabular}{lll}]   [\end{tabular}\end{quote}]
+//paragraph    [24]    table4columns:   [\begin{quote}\begin{tabular}{llll}]  [\end{tabular}\end{quote}]
+//[--------]    [\hline]
+//characters    [1]    verbatim:   [$]    [$]
+//characters    [2]    formula:    [$]    [$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
+//[ae] [\"a]
+//[oe] [\"o]
+//[ue] [\"u]
+//[ss] [{\ss}]
+//[<=] [\leq]
+//[#]  [\neq]
+//[tilde] [\verb|~|]
+//[Contents] [\tableofcontents]
+
+1 Header File: Query Processor
+
 August 16 RHG Changed includes to remove indirection.
+
+May 2002 Ulrich Telle Port to C++, integrated descriptive algebra level
+and function mapping.
+
+1.1 Overview
+
+1.2 Imports and Types
 
 */
 
 #ifndef QUERY_PROCESSOR_H
 #define QUERY_PROCESSOR_H
 
-#include "AlgebraManager.h"	//defines the basic types of the query processor
-				//such as ArgVectorPointer, Supplier, 
-				//ADDRESS, etc.
+#include "AlgebraManager.h"
+/*
+defines the basic types of the query processor
+such as ArgVectorPointer, Supplier, Word, Address, etc.
+
+*/
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 
@@ -27,7 +58,8 @@ typedef CTable<VarEntry>  VarEntryCTable;
 class QueryProcessor
 {
  public:
-  QueryProcessor( NestedList* newNestedList, AlgebraManager* newAlgebraManager );
+  QueryProcessor( NestedList* newNestedList,
+                  AlgebraManager* newAlgebraManager );
   virtual ~QueryProcessor();
 
 /************************************************************************** 
@@ -67,7 +99,8 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object. 
 
 */
-  void Eval( const OpTree tree, Word& result, const int message );
+  void Eval( const OpTree tree, Word& result,
+             const int message );
 /*
 Traverses the operator tree ~tree~ calling operator implementations for
 each node, and returns the result in ~result~. The ~message~ is OPEN,
@@ -189,7 +222,8 @@ Represents an operator tree through a list expression. Used for testing.
  private:
   void GetVariable( const string& name, NameIndex& varnames,
                     const VarEntryCTable& vartable,
-                    int& position, int& funindex, ListExpr& typeexpr );
+                    int& position, int& funindex,
+                    ListExpr& typeexpr );
 /*
 Get for variable ~name~ its ~position~ (number of parameter in the list of
 parameters) and the number of the abstraction (function definition) ~funindex~
@@ -198,9 +232,11 @@ defining it, as well as the associated ~typeexpr~.
 *Precondition*: ~IsVariable(name, varnames)~.
 
 */
-  void EnterVariable( const string& name, NameIndex& varnames,
+  void EnterVariable( const string& name,
+                      NameIndex& varnames,
                       VarEntryCTable& vartable,
-                      const int position, const int funindex,
+                      const int position,
+                      const int funindex,
                       const ListExpr typeexpr );
 /*
 Enter ~position~ (number of parameter), ~funindex~ (number of abstraction definition)
@@ -209,25 +245,28 @@ and ~typeexpr~ for the variable ~name~ into tables ~varnames~ and ~vartable~.
 *Precondition*: NOT ~IsVariable(name, varnames)~.
 
 */
-  bool IsVariable( const string& name, NameIndex& varnames );
+  bool IsVariable( const string& name,
+                   NameIndex& varnames );
 /*
 Check whether ~name~ is the name of a variable, that is, occurs in ~varnames~.
 
 */
   bool IsIdentifier( const AlgebraLevel level,
-                     const ListExpr expr, NameIndex& varnames );
+                     const ListExpr expr,
+                     NameIndex& varnames );
 /*
 ~Expr~ may be any list expression. Check whether it is an identifier, that is,
 a symbol atom which is not registered as a variable or an operator.
 
 */
-enum QueryProcessorType { QP_MAP, QP_FUN, QP_STREAM,
-                          QP_CONSTANT, QP_OPERATOR, QP_OBJECT, 
-                          QP_FUNCTION, QP_VARIABLE, QP_IDENTIFIER,
-                          QP_ABSTRACTION, QP_APPLYOP,
-                          QP_ARGLIST, QP_APPLYABS, QP_APPLYFUN,
-                          QP_TYPEERROR, QP_ERROR, QP_APPEND,
-                          QP_UNDEFINED };
+enum QueryProcessorType
+       { QP_MAP, QP_FUN, QP_STREAM,
+         QP_CONSTANT, QP_OPERATOR, QP_OBJECT, 
+         QP_FUNCTION, QP_VARIABLE, QP_IDENTIFIER,
+         QP_ABSTRACTION, QP_APPLYOP,
+         QP_ARGLIST, QP_APPLYABS, QP_APPLYFUN,
+         QP_TYPEERROR, QP_ERROR, QP_APPEND,
+         QP_UNDEFINED };
   QueryProcessorType TypeOfSymbol( const ListExpr symbol );
 /*
 Transforms a list expression ~symbol~ into one of the values of type
@@ -267,12 +306,12 @@ types of the operator to which this function is a parameter.
 /*
 Annotate an abstraction ~expr~ which has the form:
 
-----        (fun (x1 t1) ... (xn tn) e)
+----  (fun (x1 t1) ... (xn tn) e)
 ----
 
 and return the annotated version:
 
-----                ->        ((none abstraction annotate(expr) <functionno>) <type>)
+----  ->  ((none abstraction annotate(expr) <functionno>) <type>)
 ----
 
 where ~type~ is a functional type of the form (map ...). ~Functionno~ is

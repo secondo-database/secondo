@@ -44,6 +44,8 @@ using namespace std;
 #include "NestedList.h"
 #include "DisplayTTY.h"
 
+static const bool needIdent = false;
+
 class SecondoTTY : public Application
 {
  public:
@@ -55,8 +57,6 @@ class SecondoTTY : public Application
   void ProcessCommand();
   void ProcessCommands();
   bool CheckConfiguration();
-  bool Initialize();
-  void Terminate();
   int  Execute();
   void ShowPrompt( const bool first );
   void TypeOutputList ( ListExpr list );
@@ -66,44 +66,38 @@ class SecondoTTY : public Application
   void WriteErrorList ( ListExpr list );
   ListExpr CallSecondo();
   void CallSecondo2();
-  void TestNL();
  private:
-  SmiEnvironment::SmiType smiType;
-  string parmFile;
-  int  pidCheckpoint;
-  string cmd;
-  bool isStdInput;
-  bool quit;
-  NestedList* nl;
-  AlgebraLevel currentLevel;
-  bool batchMode;
-  bool isQuery;
+  string            parmFile;
+  string            user;
+  string            pswd;
+  string            host;
+  string            port;
+  string            iFileName;
+  string            oFileName;
+  string            cmd;
+  bool              isStdInput;
+  bool              quit;
+  NestedList*       nl;
+  AlgebraLevel      currentLevel;
+  bool              isQuery;
   SecondoInterface* si;
 };
-
-void
-SecondoTTY::TestNL()
-{
-  ListExpr list;
-cout << "TestNL start" << endl;
-  nl->ReadFromString( "(<text> (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real </text---><text> Addition. </text--->)", list );
-cout << "TestNL before write" << endl;
-  nl->WriteListExpr( list );
-cout << "TestNL stop" << endl;
-}
 
 SecondoTTY::SecondoTTY( const int argc, const char** argv )
   : Application( argc, argv )
 {
-  smiType       = SmiEnvironment::GetImplementationType();
   parmFile      = "";
-  pidCheckpoint = 0;
+  user          = "";
+  pswd          = "";
+  host          = "";
+  port          = "";
+  iFileName     = "";
+  oFileName     = "";
   string cmd    = "";
   isStdInput    = true;
   quit          = false;
   nl            = 0;
   currentLevel  = DescriptiveLevel;
-  batchMode     = false;
   si            = 0;
 }
 
@@ -137,13 +131,16 @@ SecondoTTY::Usage()
 void
 SecondoTTY::ProcessFile( const string& fileName )
 {
+  bool saveIsStdInput = isStdInput;
   streambuf* oldBuffer;
   ifstream fileInput( fileName.c_str() );
   if ( fileInput )
   {
     oldBuffer = cin.rdbuf( fileInput.rdbuf() );
     cout << "*** Begin processing file '" << fileName << "'." << endl;
+    isStdInput = false;
     ProcessCommands();
+    isStdInput = saveIsStdInput;
     cout << "*** End processing file '" << fileName << "'." << endl;
     cin.rdbuf( oldBuffer );
   }
@@ -226,6 +223,7 @@ SecondoTTY::ProcessCommand()
   }
   else
   {
+    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY");
     if ( currentLevel == HybridLevel )
     {
       if ( cmdWord == "QUERY" || cmdWord == "(QUERY" ||
@@ -359,9 +357,7 @@ SecondoTTY::TypeOutputList ( ListExpr list )
   else
   {
     cout << "=> Result:" << endl;
-cout << "List " << list << endl;
     nl->WriteListExpr( list );
-//    nl->WriteToFile( "tol.xxx", list );
     cout << endl;
   }
 }
@@ -466,7 +462,7 @@ SecondoTTY::CallSecondo()
   }
   if ( errorCode > 0 )
   {
-    cout << "*** Error in Secondo command:" << endl;
+    cout << "*** Error in Secondo command: " << errorCode << endl;
     cout << SecondoInterface::GetErrorMessage( errorCode ) << endl;
     if ( errorMessage.length() > 0 )
     {
@@ -543,156 +539,167 @@ If a valid configuration file was found initialization continues.
 bool
 SecondoTTY::CheckConfiguration()
 {
-  bool found = false;
-  cout << "Checking configuration ..." << endl;
-  // --- Find configuration file
-  parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "";
-  if ( parmFile.length() > 0 )
-  {
-    cout << "Configuration file '" << parmFile;
-    found = FileSystem::FileOrFolderExists( parmFile );
-    if ( found )
-    {
-      cout << "':" << endl;
-    }
-    else
-    {
-      cout << "' not found!" << endl;
-    }
-  }
-  if ( !found )
-  {
-    cout << "Searching environment for configuration file ..." << endl;
-    char* home = getenv( "SECONDO_HOME" );
-    if ( home != 0 )
-    {
-      parmFile = home;
-      FileSystem::AppendSlash( parmFile );
-      parmFile += "SecondoConfig.ini";
-      cout << "Configuration file '" << parmFile;
-      found = FileSystem::FileOrFolderExists( parmFile );
-      if ( found )
-      {
-        cout << "':" << endl;
-      }
-      else
-      {
-        cout << "' not found!" << endl;
-      }
-    }
-    else
-    {
-      cout << "Environment variable SECONDO_HOME not defined." << endl;
-    }
-    if ( !found )
-    {
-      cout << "Searching current directory for configuration file ..." << endl;
-      string cwd = FileSystem::GetCurrentFolder();
-      FileSystem::AppendSlash( cwd );
-      parmFile = cwd + "SecondoConfig.ini";
-      cout << "Configuration file '" << parmFile;
-      found = FileSystem::FileOrFolderExists( parmFile );
-      if ( found )
-      {
-        cout << "':" << endl;
-      }
-      else
-      {
-        cout << "' not found!" << endl;
-      }
-    }
-  }
-  if ( found )
-  {
-    string value, foundValue;
-    if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")
-    {
-      cout << "Error: Secondo home directory not specified. Terminating program." << endl;
-      found = false;
-    }
-    else
-    {
-      cout << "Configuration seems to be ok." << endl << endl;
-    }
-  }
-  else
-  {
-    cout << "Sorry, no configuration file found. Terminating program." << endl;
-  }
-  return (found);
-}
-
-/*
-1 Initialize
-
-This function initializes the Secondo system.
-
-If the SmiEnvironment is based on the Berkeley DB implementation the process factory
-and the checkpoint utility must be started.
-
-*/
-
-bool
-SecondoTTY::Initialize()
-{
   bool ok = true;
-  // --- Check storage management interface
-  cout << "Initializing storage management interface ... ";
-  if ( SmiEnvironment::StartUp( SmiEnvironment::SingleUser, parmFile, cout ) )
+  int i = 1;
+  string argSwitch, argValue;
+  bool argOk;
+  while (i < GetArgCount())
   {
-    cout << "completed." << endl;
-  }
-  else
-  {
-    cout << "failed." << endl;
-    string errMsg;
-    SmiEnvironment::GetLastErrorCode( errMsg );
-    cout << "Error: " << errMsg << endl;
-    ok = false;
-  }
-  if (ok)
-  {
-    cout << "Initializing the Secondo system ... ";
-    nl = SecondoSystem::GetNestedList();
-    ok = SecondoSystem::StartUp();
-    if ( ok )
+    argSwitch = GetArgValues()[i];
+    if ( i < GetArgCount()-1)
     {
-      cout << "completed." << endl;
-      si = new SecondoInterface();
-      DisplayTTY::Initialize( si );
+      argValue  = GetArgValues()[i+1];
+      argOk = (argValue[0] != '-');
     }
     else
     {
-      cout << "failed." << endl;
+      argValue = "";
+      argOk = false;
+    }
+    if ( argSwitch == "-?" || argSwitch == "--help" )  // Help
+    {
+      cout << "Usage: SecondoTTY{BDB|ORA|CS} [options]" << endl << endl
+           << "Options:                                             (Environment)" << endl
+           << "  -c config  : Secondo configuration file            (SECONDO_CONFIG)" << endl
+           << "  -i input   : Name of input file  (default: stdin)" << endl
+           << "  -o output  : Name of output file (default: stdout)" << endl
+           << "  -u user    : User id                               (SECONDO_USER)" << endl
+           << "  -s pswd    : Password                              (SECONDO_PSWD)" << endl
+           << "  -h host    : Host address of Secondo server        (SECONDO_HOST)" << endl
+           << "  -p port    : Port of Secondo server                (SECONDO_PORT)" << endl << endl
+           << "Command line options overrule environment variables." << endl;
+      ok = false;
+      break;
+    }
+    else if ( argOk && argSwitch == "-c" )  // Configuration file
+    {
+      parmFile = argValue;
+    }
+    else if ( argOk && argSwitch == "-i" )  // Input file
+    {
+      iFileName = argValue;
+    }
+    else if ( argOk && argSwitch == "-o" )  // Output file
+    {
+      oFileName = argValue;
+    }
+    else if ( argOk && argSwitch == "-u" )  // User id
+    {
+      user = argValue;
+    }
+    else if ( argOk && argSwitch == "-s" )  // Password
+    {
+      pswd = argValue;
+    }
+    else if ( argOk && argSwitch == "-h" )  // Host
+    {
+      host = argValue;
+    }
+    else if ( argOk && argSwitch == "-p" )  // Port
+    {
+      port = argValue;
+    }
+    else
+    {
+      cout << "Error: Invalid option: '" << argSwitch << "'." << endl;
+      if ( argOk )
+      {
+        cout << "  having option value: '" << argValue << "'." << endl;
+      }
+      ok = false;
+    }
+    i++;
+    if ( argOk )
+    {
+      i++;
+    }
+  }
+  char* envValue;
+  if ( parmFile.length() == 0 )
+  {
+    envValue = getenv( "SECONDO_CONFIG" );
+    if ( envValue != 0 )
+    {
+      parmFile = envValue;
+    }
+  }
+  if ( user.length() == 0 )
+  {
+    envValue = getenv( "SECONDO_USER" );
+    if ( envValue != 0 )
+    {
+      user = envValue;
+    }
+  }
+  if ( pswd.length() == 0 )
+  {
+    envValue = getenv( "SECONDO_PSWD" );
+    if ( envValue != 0 )
+    {
+      pswd = envValue;
+    }
+  }
+  if ( host.length() == 0 )
+  {
+    envValue = getenv( "SECONDO_HOST" );
+    if ( envValue != 0 )
+    {
+      host = envValue;
+    }
+  }
+  if ( port.length() == 0 )
+  {
+    envValue = getenv( "SECONDO_PORT" );
+    if ( envValue != 0 )
+    {
+      port = envValue;
+    }
+  }
+  if ( needIdent ) // Is user identification needed?
+  {
+    int count = 0;
+    while (count <= 3 && user.length() == 0)
+    {
+      count++;
+      cout << "Enter user id: ";
+      getline( cin, user );
+    }
+    ok = user.length() > 0;
+    if ( !ok )
+    {
+      cout << "Error: No user id specified." << endl;
+    }
+    if ( ok && pswd.length() == 0 )
+    {
+      count = 0;
+      while (count <= 3 && user.length() == 0)
+      {
+        count++;
+        cout << "Enter password: ";
+        getline( cin, pswd );
+      }
+      if ( pswd.length() == 0 )
+      {
+        cout << "Error: No password specified." << endl;
+        ok = false;
+      }
+    }
+  }
+  else
+  {
+    user = "SECONDO";
+    pswd = "SECONDO";
+  }
+  if ( ok )
+  {
+    // config file or (host and port) must be specified
+    ok = parmFile.length() > 0 || (host.length() > 0 && port.length() > 0);
+    if ( !ok )
+    {
+      cout << "Error: Neither config file nor host and port of Secondo server specified." << endl;
     }
   }
   return (ok);
-}
-
-void
-SecondoTTY::Terminate()
-{
-  cout << "Terminating Secondo TTY ..." << endl;
-  cout << "Terminating Secondo system ...";
-//  SecondoInterface::Secondo( "close database", 0, 0, 0, 0, &ResultList,
-//                             &ErrCode, &ErrPos, &ErrMess );
-  delete si;
-  if ( SecondoSystem::ShutDown() )
-  {
-    cout << "completed." << endl;
-  }
-  else
-  {
-    cout << "failed." << endl;
-  }
-  if ( !SmiEnvironment::ShutDown() )
-  {
-    string errMsg;
-    SmiEnvironment::GetLastErrorCode( errMsg );
-    cout << "Error: Shutdown of the storage management interface failed." << endl;
-    cout << "Error: " << errMsg << endl;
-  }
-  cout << "SecondoTTY terminated." << endl;
 }
 
 /*
@@ -714,13 +721,56 @@ SecondoTTY::Execute()
        << endl << endl;
   if ( CheckConfiguration() )
   {
-    if ( Initialize() )
+    streambuf* oldInputBuffer  = 0;
+    streambuf* oldOutputBuffer = 0;
+    ifstream fileInput;
+    ofstream fileOutput;
+    si = new SecondoInterface();
+    if ( si->Initialize( user, pswd, host, port, parmFile ) )
     {
-      cout << endl << "Secondo TTY ready for operation." << endl
-           << "Type 'HELP' to get a list of available commands." << endl;
+      if ( iFileName.length() > 0 )
+      {
+        fileInput.open( iFileName.c_str() );
+        if ( fileInput.is_open() )
+        {
+          oldInputBuffer = cin.rdbuf( fileInput.rdbuf() );
+          isStdInput = false;
+        }
+      }
+      if ( oFileName.length() > 0 )
+      {
+        fileOutput.open( oFileName.c_str() );
+        if ( fileOutput.is_open() )
+        {
+          oldOutputBuffer = cout.rdbuf( fileOutput.rdbuf() );
+        }
+      }
+      nl = si->GetNestedList();
+      DisplayTTY::Initialize( si );
+      if ( isStdInput )
+      {
+        cout << endl << "Secondo TTY ready for operation." << endl
+             << "Type 'HELP' to get a list of available commands." << endl;
+      }
       ProcessCommands();
+      if ( iFileName.length() > 0 )
+      {
+        if ( fileInput.is_open() )
+        {
+          cin.rdbuf( oldInputBuffer );
+        }
+      }
+      if ( oFileName.length() > 0 )
+      {
+        if ( fileOutput.is_open() )
+        {
+          cout.rdbuf( oldOutputBuffer );
+        }
+      }
     }
-    Terminate();
+    si->Terminate();
+    delete si;
+    cout << "SecondoTTY terminated." << endl;
   }
   else
   {

@@ -255,7 +255,7 @@ Precondition: dbState = dbOpen.
     TypesCatalogEntry typeEntry;
     typeEntry.state = EntryInsert;
     LookUpTypeExpr( typeExpr, name, typeEntry.algebraId, typeEntry.typeId );
-    nl->WriteToString( typeEntry.typeExpr, typeExpr );
+    nl->WriteToString( typeEntry.typeExpr, nl->OneElemList( typeExpr ) );
     types.insert( make_pair( typeName, typeEntry ) );
     ok = true;
   }
@@ -367,11 +367,14 @@ SecondoCatalog::TypeUsedByObject( const string& typeName )
       while (!used && oIterator.Next( oRec ))
       {
         oRec.Read( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
-        buffer = new char[nameSize];
-        oRec.Read( buffer, nameSize, CE_OBJS_TYPEINFO_START );
-        typeName2.assign( buffer, nameSize );
-        delete []buffer;
-        used = (typeName == typeName2); 
+        if ( nameSize > 0 )
+        {
+          buffer = new char[nameSize];
+          oRec.Read( buffer, nameSize, CE_OBJS_TYPEINFO_START );
+          typeName2.assign( buffer, nameSize );
+          delete []buffer;
+          used = (typeName == typeName2);
+        }
       }
     }
   }
@@ -495,6 +498,7 @@ Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
       typeExprString.assign( tBuffer, exprSize );
       delete []tBuffer;
       nl->ReadFromString( typeExprString, typeExpr );
+      typeExpr = nl->First( typeExpr );
     }
     else if ( testMode )
     {
@@ -664,7 +668,6 @@ Precondition: dbState = dbOpen.
   SmiKey oKey;
   SmiRecord oRec;
   ObjectsCatalog::iterator oPos;
-
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " ListObjects: database is closed!" << endl;
@@ -688,8 +691,15 @@ Precondition: dbState = dbOpen.
       if ( !oRec.Read( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE ) ) continue;
       int bufSize = (nameSize > exprSize) ? nameSize : exprSize;
       oBuffer = new char[bufSize];
-      if ( !oRec.Read( oBuffer, nameSize, CE_OBJS_TYPEINFO_START ) ) continue;
-      typeName.assign( oBuffer, nameSize );
+      if ( nameSize > 0 )
+      {
+        if ( !oRec.Read( oBuffer, nameSize, CE_OBJS_TYPEINFO_START ) ) continue;
+        typeName.assign( oBuffer, nameSize );
+      }
+      else
+      {
+        typeName = "";
+      }
       if ( !oRec.Read( oBuffer, exprSize, CE_OBJS_TYPEINFO_START+nameSize ) ) continue;
       typeExprString.assign( oBuffer, exprSize );
       delete []oBuffer;
@@ -896,7 +906,7 @@ Creates a new object with identifier ~objectName~ defined with type name ~typeNa
 Precondition: dbState = dbOpen.
 
 */
-  int alId, typeId;
+  int alId = 7, typeId = 7;
   Word value;
   string typecon;
   Word model;
@@ -941,6 +951,7 @@ Precondition: dbState = dbOpen.
 
 */
   bool ok = false;
+  string name;
   SmiRecord oRecord;
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
@@ -960,9 +971,9 @@ Precondition: dbState = dbOpen.
       oPos->second.model = modelWord;
       oPos->second.modelRecordId = 0;
       oPos->second.typeName = typeName;
-//      LookUpTypeExpr( typeExpr, name,
-//                      oPos->second.algebraId, oPos->second.entryId );
-      nl->WriteToString( oPos->second.typeExpr, typeExpr );
+      LookUpTypeExpr( typeExpr, name,
+                      oPos->second.algebraId, oPos->second.typeId );
+      nl->WriteToString( oPos->second.typeExpr, nl->OneElemList( typeExpr ) );
       ok = true;
     }
   }
@@ -976,8 +987,8 @@ Precondition: dbState = dbOpen.
     objEntry.model = modelWord;
     objEntry.modelRecordId = 0;
     objEntry.typeName = typeName;
-//    LookUpTypeExpr( typeExpr, name, objEntry.algebraId, objEntry.entryId );
-    nl->WriteToString( objEntry.typeExpr, typeExpr );
+    LookUpTypeExpr( typeExpr, name, objEntry.algebraId, objEntry.typeId );
+    nl->WriteToString( objEntry.typeExpr, nl->OneElemList( typeExpr ) );
     objects.insert( make_pair( objectName, objEntry ) );
     ok = true;
   }
@@ -1395,6 +1406,7 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     {
       typeName    = oPos->second.typeName;
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+      typeExpr = nl->First( typeExpr ); //???
       value       = oPos->second.value;
       defined     = oPos->second.valueDefined;
       model       = oPos->second.model;
@@ -1437,6 +1449,7 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       typeExprString.assign( buffer, exprSize );
       delete []buffer;
       nl->ReadFromString( typeExprString, typeExpr );
+      typeExpr = nl->First( typeExpr );
       hasTypeName = (typeName != "");
       if ( defined )
       {
@@ -1655,7 +1668,7 @@ Precondition: ~IsTypeName(typeName)~ delivers TRUE.
     else
     {
       SmiRecord tRec;
-      bool found = typeCatalogFile.SelectRecord( SmiKey( typeName ), tRec );
+      found = typeCatalogFile.SelectRecord( SmiKey( typeName ), tRec );
       if ( found )
       {
         tRec.Read( &algebraId, sizeof( int ), CE_TYPES_ALGEBRA_ID );
@@ -1930,12 +1943,6 @@ SecondoCatalog::Close()
 }
 
 bool
-SecondoCatalog::Save()
-{
-  return (true);
-}
-
-bool
 SecondoCatalog::CleanUp( const bool revert )
 {
   bool ok = true;
@@ -2054,7 +2061,7 @@ SecondoCatalog::CleanUp( const bool revert )
           {
             bool ok2;
             oRec.Write( &oPos->second.value, sizeof( int ), CE_OBJS_VALUE );
-            oRec.Write( &oPos->second.valueDefined, sizeof( int ), CE_OBJS_VALUE_DEF );
+            oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
             if ( oPos->second.valueDefined )
             {
               SmiRecord vRec;

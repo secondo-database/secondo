@@ -54,7 +54,9 @@ else
 endif
 
 clean:
+	$(MAKE) -C SpecParser clean
 	$(RM) $(OBJECTS) SecLex.cpp SecParser.tab.cpp SecParser.tab.hpp
+	$(RM) lexrules tokens yaccrules1 yaccrules2 SecLex.l SecParser.y
 
 else
 # Platform not specified

@@ -1,6 +1,8 @@
 /*
 1 Header File: Algebra
 
+May 2002 Ulrich Telle Port to C++
+
 1.1 Overview
 
 A snapshot of a working Secondo system will show a collection of algebras,
@@ -108,13 +110,19 @@ returns the index of the overloaded evaluation function depending on
 the argument types ~argtypes~.
 
 */
-  int CallValueMapping( const int index, ArgVector args, Word& result,
-                        int message, Word& local, Supplier s );
+  int CallValueMapping( const int index,
+                        ArgVector args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s );
 /*
 calls the value mapping function of the operator.
 
 */
-  Word CallModelMapping( const int index, ArgVector argv, Supplier s );
+  Word CallModelMapping( const int index,
+                         ArgVector argv,
+                         Supplier s );
 /*
 calls the model mapping function of the operator.
 
@@ -152,7 +160,7 @@ adds a model mapping function to the list of overloaded operator functions.
 */
   string         name;           // Name of operator
   string         specString;     // Specification
-  int            numOfFunctions; // No. of overloaded functions
+  int            numOfFunctions; // No. overloaded functions
   SelectFunction selectFunc;
   ValueMapping*  valueMap; // Array of size numOfFunctions
   ModelMapping*  modelMap; // Array of size numOfFunctions
@@ -227,8 +235,11 @@ returns the properties of the type constructor as a nested list.
 
 */
   ListExpr Out( ListExpr type, Word value );
-  Word     In( const ListExpr type, const ListExpr value, 
-               const int errorPos, ListExpr& errorInfo, bool& correct );
+  Word     In( const ListExpr type,
+               const ListExpr value, 
+               const int errorPos,
+               ListExpr& errorInfo,
+               bool& correct );
   Word     Create( int Size );
   void     Delete( Word& w );
 
@@ -242,16 +253,20 @@ returns the properties of the type constructor as a nested list.
                              bool& correct );
   bool     PersistValue( const PersistDirection dir,
                          SmiRecord& valueRecord,
-                         const string& type, Word& value );
+                         const string& type,
+                         Word& value );
   bool     PersistModel( const PersistDirection dir,
                          SmiRecord& modelRecord,
-                         const string& type, Word& model );
+                         const string& type,
+                         Word& model );
   bool     DefaultPersistValue( const PersistDirection dir,
                                 SmiRecord& valueRecord,
-                                const string& type, Word& value );
+                                const string& type,
+                                Word& value );
   bool     DefaultPersistModel( const PersistDirection dir,
                                 SmiRecord& modelRecord,
-                                const string& type, Word& model );
+                                const string& type,
+                                Word& model );
 /*
 are methods to manipulate objects and models according to the type
 constructor.
@@ -259,25 +274,31 @@ constructor.
 */
   static bool     DummyPersistValue( const PersistDirection dir,
                                      SmiRecord& valueRecord,
-                                     const string& type, Word& value );
+                                     const string& type,
+                                     Word& value );
   static bool     DummyPersistModel( const PersistDirection dir,
                                      SmiRecord& modelRecord,
-                                     const string& type, Word& model );
-  static Word     DummyInModel( ListExpr typeExpr, ListExpr list, int objNo );
-  static ListExpr DummyOutModel( ListExpr typeExpr, Word model );
-  static Word     DummyValueToModel( ListExpr typeExpr, Word value );
-  static Word     DummyValueListToModel( const ListExpr typeExpr,
-                                         const ListExpr valueList,
-                                         const int errorPos,
-                                         ListExpr& errorInfo,
-                                         bool& correct );
+                                     const string& type,
+                                     Word& model );
+  static Word     DummyInModel( ListExpr typeExpr,
+                                ListExpr list,
+                                int objNo );
+  static ListExpr DummyOutModel( ListExpr typeExpr,
+                                 Word model );
+  static Word DummyValueToModel( ListExpr typeExpr,
+                                 Word value );
+  static Word DummyValueListToModel( const ListExpr typeExpr,
+                                     const ListExpr valueList,
+                                     const int errorPos,
+                                     ListExpr& errorInfo,
+                                     bool& correct );
 /*
 are dummy methods used as placeholders for model manipulating type
 constructor functions.
 
 */
  private:
-  string                   name;       // Name of type constr.
+  string                   name;   // Name of type constr.
   TypeProperty             propFunc;
   OutObject                outFunc;
   InObject                 inFunc;
@@ -292,7 +313,7 @@ constructor functions.
   ValueListToModelFunction valueListToModelFunc;
   TypeCheckFunction        typeCheckFunc;
 
-  vector<string>           kinds;      // Kinds of type constr.
+  vector<string>           kinds;  // Kinds of type constr.
 
   friend class AlgebraManager;
 };

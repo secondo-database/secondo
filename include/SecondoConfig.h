@@ -5,8 +5,9 @@
 //paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
 //paragraph	[24]	table4columns:	[\begin{quote}\begin{tabular}{llll}]	[\end{tabular}\end{quote}]
 //[--------]	[\hline]
-//characters	[1]	verbatim:	[$]	[$]
-//characters	[2]	formula:	[$]	[$]
+//characters    [1]     verbatim:       [$]         [$]
+//characters    [2]     formula:        [$]         [$]
+//characters    [3]     capital:        [\textsc{]  [}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -21,14 +22,13 @@ January 2002 Ulrich Telle
 
 1.1 Overview
 
-The compilation of Secondo has to take into account differences in the
-architecture of the underlying operating system. Usually the compiler defines
-symbols which can be used to identify the operating system Secondo is built for.
+The compilation of "Secondo"[3] has to take into account differences
+in the architecture of the underlying operating system. Usually the
+compiler defines symbols which can be used to identify the operating system
+"Secondo"[3] is built for.
 
-Depending on the actual operating system several constants are defined 
-of the c
-In this header file the operating system is identified and depending on the
-operating system several constants are defined and system dependent 
+Depending on the actual operating system several constants and system
+dependent macros are defined.
 
 1.1 Imports, Types
 
@@ -37,8 +37,8 @@ operating system several constants are defined and system dependent
 #ifndef SECONDO_CONFIG_H
 #define SECONDO_CONFIG_H
 
-#define SECONDO_VERSION            "1.0.1"
-#define SECONDO_VERSION_MAJOR      1
+#define SECONDO_VERSION            "2.0.1"
+#define SECONDO_VERSION_MAJOR      2
 #define SECONDO_VERSION_MINOR      0
 #define SECONDO_VERSION_REVISION   1	
 
@@ -46,6 +46,8 @@ operating system several constants are defined and system dependent
 /*
 Define the preprocessor symbol *SECONDO\_LITTLE\_ENDIAN* if your machine has a little
 endian byte order architecture. Otherwise ~\#undef~ this symbol.
+
+*TODO*: Detection of endianess should be done automatically.
 
 */
 
@@ -86,6 +88,11 @@ Define SMI\_USE\_DLL if compiling modules which want to use a DLL for this compo
 Define SMI\_CREATE\_DLL if compiling this component as a DLL.
 
 If none of these symbols is defined it is assumed that a static library is to be built.
+
+*NOTE*: The GNU C++ compiler does not require these symbols to be present in
+class definitions since all exportable symbols of a DLL are exported by default.
+But to be compatible with compilers like Microsoft Visual C++ they should be
+used.
 
 */
 #  if defined(SDB_USE_DLL)
@@ -166,21 +173,6 @@ Size of a structure member.
 */
 #define sizeofm(struct_t,member) \
   ((size_t)(sizeof(((struct_t *)0)->member)))
-
-/*
-Conversion between timeval and timespec
-
-*/
-#define CONVERT_TIMEVAL_TO_TIMESPEC(tv,ts) \
-{ \
-	(ts)->tv_sec=(tv)->tv_sec; \
-	(ts)->tv_nsec=(tv)->tv_usec*1000; \
-}
-#define CONVERT_TIMESPEC_TO_TIMEVAL(tv,ts) \
-{ \
-	(tv)->tv_sec=(ts)->tv_sec; \
-	(tv)->tv_usec=(ts)->tv_nsec/1000; \
-}
 
 /*
 Default includes:

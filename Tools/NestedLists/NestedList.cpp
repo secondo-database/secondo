@@ -444,7 +444,7 @@ Test for deep equality of two nested lists
   {
     return (true);
   }
-  else if ( !(IsEmpty( list1 ) && IsEmpty( list2 )) )
+  else if ( IsEmpty( list1 ) || IsEmpty( list2 ) )
   {
     return (false);
   }
@@ -750,9 +750,11 @@ NestedList::ReadFromString( const string& nlChars, ListExpr& list )
 bool
 NestedList::WriteToString( string& nlChars, const ListExpr list )
 {
-  assert( !IsAtom( list ) );
+//  assert( !IsAtom( list ) );
   nlChars = "";
   return (WriteToStringLocal( nlChars, list ));
+//  bool ok = WriteToStringLocal( nlChars, list );
+//  return (ok);
 }
 
 /*

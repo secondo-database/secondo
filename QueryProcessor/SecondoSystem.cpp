@@ -1,33 +1,43 @@
 /*
+//paragraph    [10]    title:           [{\Large \bf ] [}]
+//paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     [\end{tabular}\end{quote}]
+//paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    [\end{tabular}\end{quote}]
+//paragraph    [23]    table3columns:   [\begin{quote}\begin{tabular}{lll}]   [\end{tabular}\end{quote}]
+//paragraph    [24]    table4columns:   [\begin{quote}\begin{tabular}{llll}]  [\end{tabular}\end{quote}]
+//[--------]    [\hline]
+//characters    [1]    verbatim:   [$]    [$]
+//characters    [2]    formula:    [$]    [$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
+//[ae] [\"a]
+//[oe] [\"o]
+//[ue] [\"u]
+//[ss] [{\ss}]
+//[<=] [\leq]
+//[#]  [\neq]
+//[tilde] [\verb|~|]
+//[Contents] [\tableofcontents]
 
-1 The Implementation-Module *SecondoCatalog*
+1 The Implementation-Module *SecondoSystem*
 
-September 1996 Claudia Freundorfer
+May 2002 Ulrich Telle Port to C++
 
-November 18, 1996 RHG Replaced all calls to ~CatalogManager~ by calls to ~CTable~.
+This module implements those parts of the "Secondo"[3] catalog which
+are independent of the algebra level (descriptive or executable).
 
-December 20, 1996 Changed procedures ~OutObject~ and ~GetObjectValue~ and introduced ~NumericType~.
-
-December 30, 1996 RHG Added procedures ~ExpandedType~ and ~KindCorrect~.
-
-January 7-9, 1997 RHG Major revision for error handling.
-
-January 13, 1997 RHG Corrected error in procedure ~OpenDatabase~.
-
-December 23, 1997 RHG Corrected procedure ~LookUpTypeExpr~ to make it safe against wrong type expressions.
-
-May 15, 1998 RHG Added treatment of models, especially functions ~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~.
-
-October 13, 1998 Stefan Dieker ~NumericTypeExpr~ may now be called in database state ~dbClosed~, too.
-
-September 9, 1998 Stefan Dieker Reimplemented functions ~CloseDatabase~ and
-~OpenDatabase~ in such a way that all CTables and NameIndexes used for
-storing object and type information are saved to files and loaded from those
-files, respectively. Now the catalog is
-semi-persistent, i.e. as persistent as provided by the underlying OS, without
-access being save under transactions, logged, and locked.
-
-This module implements the module *SecondoCatalog*. It consists of six parts: First it contains an interface to *Databases and Transactions* for loading the actual catalog of database types and objects and for managing transactions. Therefore it offers database functions to open, close, save, restore, create and destroy a named database as described in the SECONDO Programming Interface. Second it offers an interface for inquiries to give the database user information about the type system and the used algebras. Third it delivers functions for retrieving and manipulating database types. Fourth the module offers functions for retrieving, updating, deleting and inserting database objects. Fifth and Sixth it delivers functions to look up the type constructors and operators of the actually loaded algebras. These functions are implemented by applying the functions of the lower modules *CTable*, *NameIndex*, *AlgebraManager2*, *ObjectListManager* and *ObjectManager*. 
+It consists of six parts: First it contains an interface to
+ *Databases and Transactions* for loading the actual catalog of database
+ types and objects and for managing transactions. Therefore it offers
+ database functions to open, close, save, restore, create and destroy a
+ named database as described in the SECONDO Programming Interface. Second
+ it offers an interface for inquiries to give the database user information
+ about the type system and the used algebras. Third it delivers functions
+ for retrieving and manipulating database types. Fourth the module offers
+ functions for retrieving, updating, deleting and inserting database objects.
+ Fifth and Sixth it delivers functions to look up the type constructors and
+ operators of the actually loaded algebras. These functions are implemented
+ by applying the functions of the lower modules *CTable*, *NameIndex*,
+ *AlgebraManager2*, *ObjectListManager* and *ObjectManager*. 
 The names of existing databases are stored in a list ~DBTable~. 
 
 \tableofcontents 
@@ -670,5 +680,27 @@ NestedList*
 SecondoSystem::GetNestedList()
 {
   return (secondoSystem.nl);
+}
+
+bool
+SecondoSystem::BeginTransaction()
+{
+  return (SmiEnvironment::BeginTransaction());
+}
+
+bool
+SecondoSystem::CommitTransaction()
+{
+  secondoSystem.scDescriptive->CleanUp( false );
+  secondoSystem.scExecutable->CleanUp( false );
+  return (SmiEnvironment::CommitTransaction());
+}
+
+bool
+SecondoSystem::AbortTransaction()
+{
+  secondoSystem.scDescriptive->CleanUp( true );
+  secondoSystem.scExecutable->CleanUp( true );
+  return (SmiEnvironment::AbortTransaction());
 }
 

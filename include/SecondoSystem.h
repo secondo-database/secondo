@@ -1,28 +1,58 @@
 /*
+//paragraph    [10]    title:           [{\Large \bf ] [}]
+//paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     [\end{tabular}\end{quote}]
+//paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    [\end{tabular}\end{quote}]
+//paragraph    [23]    table3columns:   [\begin{quote}\begin{tabular}{lll}]   [\end{tabular}\end{quote}]
+//paragraph    [24]    table4columns:   [\begin{quote}\begin{tabular}{llll}]  [\end{tabular}\end{quote}]
+//[--------]    [\hline]
+//characters    [1]    verbatim:   [$]    [$]
+//characters    [2]    formula:    [$]    [$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
+//[ae] [\"a]
+//[oe] [\"o]
+//[ue] [\"u]
+//[ss] [{\ss}]
+//[<=] [\leq]
+//[#]  [\neq]
+//[tilde] [\verb|~|]
+//[Contents] [\tableofcontents]
 
-1 Header File: SecondoCatalog
+1 Header File: SecondoSystem
 
-September 1996 Claudia Freundorfer
+May 2002 Ulrich Telle Port to C++
 
-December 20, 1996 RHG Changed definition of procedure ~OutObject~.
+1.1 Overview
 
-May 15, 1998 RHG Added treatment of models, especially functions
-~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~. 
+This module implements those parts of the "Secondo"[3] catalog which
+are independent of the algebra level (descriptive or executable).
 
-This module defines the module ~SecondoCatalog~. It manages a set of
-databases. A database consists of a set of named types, a set of objects
-with given type name or type expressions and a set of models for
-objects. Objects can be persistent or not. Persistent objects are
-implemented by the ~StorageManager~. When a database is opened, the
-catalog with informations about types, type constructors, operators,
-objects and models of the database is loaded as *Secondo Catalog* into
-main memory. The implementation of the ~SecondoCatalog~ is based on the
-concept of ~compact tables~ (module ~Catalog Manager~) and thereby safe
-under transactions. Furthermore the catalog of each algebra is loaded
-into memory by calling the procedures of the module ~Algebra Manager2~. 
+It manages a set of databases. A database consists of a set of named
+types, a set of objects with given type name or type expressions and
+a set of models for objects. Objects can be persistent or not.
+Persistent objects are implemented by the ~Storage Management Interface~.
+When a database is opened, for each algebra level a catalog with
+informations about types, type constructors, operators, objects and
+models of the database is loaded. Furthermore the catalog of each
+algebra is loaded into memory by calling the procedures of the module
+~Algebra Manager~.
 
-1.2 Interface
+1.2 Interface methods
     
+The class ~SecondoSystem~ provides the following methods:
+
+[23]    System Management & Database Management & Information    \\
+        [--------]
+        GetInstance       & CreateDatabase      & ListDatabaseNames \\
+        StartUp           & DestroyDatabase     & IsDatabaseOpen \\
+        ShutDown          & OpenDatabase        & GetDatabaseName \\
+        GetAlgebraManager & CloseDatabase       &  \\
+        GetQueryProcessor & SaveDatabase        &  \\
+        GetCatalog        & RestoreDatabase     &  \\
+        GetNestedList     &                     &  \\
+
+1.4 Imports
+
 */
 
 #ifndef SECONDO_SYSTEM_H
@@ -32,36 +62,22 @@ into memory by calling the procedures of the module ~Algebra Manager2~.
 #include "AlgebraManager.h"
 #include "SecondoCatalog.h"
 
-/************************************************************************** 
-2.1 Export 
-
-*/ 
-
 /**************************************************************************
-
-3.1 Types, Variables
-
-*/
-
-/*
-The type ~dbState~ has two valid states : only one database can be
-opened concurrently at any time, then the SECONDO database system has
-the state ~dbOpen~, otherwise it has the state ~dbClosed~. 
+Forward declaration of several classes:
 
 */
-
-/**************************************************************************
-3.2 Exported Functions and Procedures 
-
-3.2.1 Interface to DatabasesAndTransactions 
-
-*/
-
 class NestedList;
 class AlgebraManager;
 class QueryProcessor;
 class SecondoCatalog;
 
+/*
+1.3 Class "SecondoSystem"[1]
+
+This class implements all algebra level independent functionality of the
+"Secondo"[3] catalog management.
+
+*/
 class SecondoSystem
 {
  public:
@@ -75,50 +91,46 @@ Simply returns the names of existing databases in a list:
 */
   bool CreateDatabase( const string& dbname );
 /*
-Creates a new database named ~dbname~ and a logfile used by transaction
-management and loads the algebraic operators and type constructors into
-the SECONDO programming interface. Returns error 1 if a database under
-this name exists already. 
+Creates a new database named ~dbname~ and loads the algebraic operators
+and type constructors for each algebra level into the "Secondo"[3]
+programming interface. Returns ~false~ if a database under
+this name already exists.
 
-Precondition: DBState = dbClosed.
+Precondition: No database is open.
 
 */
-
   bool DestroyDatabase( const string& dbname );
 /*
-Deletes a database named ~dbname~ and the logfile that was created by
-~CreateDatabase~. Returns error 1 if the ~dbname~ is not known. 
+Deletes a database named ~dbname~ and all data files belonging to it.
+Returns ~false~ if the database ~dbname~ is not known. 
 
-Precondition: dbState = dbClosed.
+Precondition: No database is open.
 
 */
-
   bool OpenDatabase( const string& dbname );
 /*
-Opens a database with name ~dbname~. Especially opens a logfile for
-managing the transactions of the database system. Returns error 1 if
-~dbname~ is unknown. 
+Opens a database with name ~dbname~.
+Returns ~false~ if database ~dbname~ is unknown. 
 
-Precondition: dbState = dbClosed.
+Precondition: No database is open.
 
 */
   bool CloseDatabase();
 /*
-Closes the actually opened database. All open segments are closed and
-the allocated memory for internal data structures is returned. 
+Closes the actually opened database.
 
-Precondition: dbState = dbOpen.
+Precondition: A database is open.
 
 */
   bool IsDatabaseOpen();
 /* 
-Returns ~true~ if the database is open state, otherwise ~false~.
+Returns ~true~ if a database is in open state, otherwise ~false~.
 
 */
   bool SaveDatabase( const string& filename );
 /*
 Writes the currently open database called ~dbname~ to a file with name
-~filename~ in nested list format. The format is the following: 
+~filename~ in nested list format. The format is as follows: 
 
 ---- (DATABASE <database name>
        (TYPES 
@@ -130,16 +142,19 @@ Writes the currently open database called ~dbname~ to a file with name
      ) 
 ----   
 
-Returns error 1 if there was a problem in writing the file.
+Returns ~false~ if there was a problem in writing the file.
 
-Precondition: dbState = dbOpen.
+Precondition: A database is open.
 
 */
-  int RestoreDatabase( const string& dbname, const string& filename, ListExpr& errorInfo );
+  int RestoreDatabase( const string& dbname,
+                       const string& filename,
+                       ListExpr& errorInfo );
 /*
 Reads a database from a file named ~filename~ that has the same nested
-list format as in the procedure ~SaveDatabase~ and fills the catalogs
-for database types and objects. The database state changes to ~dbOpen~.
+list format as described in the method ~SaveDatabase~ and fills the catalogs
+for database types and objects. The database is in open state after
+successful completion.
 Returns error 1 if ~dbname~ is not a known database name, error 2, if
 the database name in the file is different from ~dbname~ here, error 3,
 if there was a problem in reading the file, and error 4, if the list
@@ -149,17 +164,68 @@ errors in type definitions and/or object list expressions.
 Furthermore, any errors found by kind checking and by ~In~ procedures
 are returned in the list ~errorInfo~. 
 
-Precondition: dbState = dbClosed.
+Precondition: No database is open.
 
 */
   string                 GetDatabaseName();
+/*
+Returns the name of the currently open database. An empty string is
+returned if no database is in open state.
+
+*/
   static SecondoSystem*  GetInstance();
+/*
+Returns a reference to the single instance of the "Secondo"[3] system.
+
+*/
   static bool            StartUp();
+/*
+Initializes the "Secondo"[3] system. The ~Storage Management Interface~
+is started and the algebra modules are loaded into main memory.
+
+*/
   static bool            ShutDown();
+/*
+Shuts down the "Secondo"[3] system and the ~Storage Management Interface~.
+Dynamically loaded algebra modules are unloaded.
+
+*/
   static AlgebraManager* GetAlgebraManager();
+/*
+Returns a reference to the associated algebra manager.
+
+*/
   static QueryProcessor* GetQueryProcessor();
+/*
+Returns a reference to the associated query processor.
+
+*/
   static SecondoCatalog* GetCatalog( const AlgebraLevel level );
+/*
+Returns a reference to the "Secondo"[3] catalog of the specified
+algebra ~level~.
+
+*/
   static NestedList*     GetNestedList();
+/*
+Returns a reference to the associated nested list container.
+
+*/
+  static bool BeginTransaction();
+/*
+begins a transaction.
+
+*/
+  static bool CommitTransaction();
+/*
+commits a transaction.
+
+*/
+  static bool AbortTransaction();
+/*
+aborts a transaction.
+
+*/
  protected:
   SecondoSystem();
   SecondoSystem( const SecondoSystem& );

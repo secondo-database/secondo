@@ -67,7 +67,7 @@ DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I/opt/pdsoft/include -O2 -Wall -D_REENTRANT -B/opt/pdsoft/bin/
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I/opt/pdsoft/include -O2 -Wall -D_REENTRANT -B/opt/pdsoft/binutils/bin/
 
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 

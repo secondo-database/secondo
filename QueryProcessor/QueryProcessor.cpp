@@ -1284,6 +1284,7 @@ for a given ~expr~ (+ 3 10).
                  (opFunId) of the evaluation function for this operator: */
 
               opFunId = (algebraManager->Select( alId, opId ))( typeList );
+              opFunId = opFunId * 65536 + opId;
 
               /* Check whether this is a type operator; in that case
                  opFunId will be negative. A type operator does only a type

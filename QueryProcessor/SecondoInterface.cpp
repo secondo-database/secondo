@@ -32,6 +32,8 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
 #include "QueryProcessor.h"
+#include "Profiles.h"
+#include "FileSystem.h"
 
 #include "SecondoSMI.h"
 #include "SecParser.h"
@@ -42,13 +44,165 @@ using namespace std;
 */
 
 SecondoInterface::SecondoInterface()
-  : activeTransaction( false )
+  : initialized( false ), activeTransaction( false ), nl( 0 ), server( 0 )
 {
-  nl = SecondoSystem::GetNestedList();
 }
 
 SecondoInterface::~SecondoInterface()
 {
+  if ( initialized )
+  {
+    Terminate();
+  }
+}
+
+bool
+SecondoInterface::Initialize( const string& user, const string& pswd,
+                              const string& host, const string& port,
+                              string& parmFile )
+{
+  bool ok = false;
+  cout << "Checking configuration ..." << endl;
+  if ( parmFile.length() > 0 )
+  {
+    bool found = false;
+    cout << "Configuration file '" << parmFile;
+    found = FileSystem::FileOrFolderExists( parmFile );
+    if ( found )
+    {
+      cout << "':" << endl;
+    }
+    else
+    {
+      cout << "' not found!" << endl;
+    }
+    if ( !found )
+    {
+      cout << "Searching environment for configuration file ..." << endl;
+      char* home = getenv( "SECONDO_HOME" );
+      if ( home != 0 )
+      {
+        parmFile = home;
+        FileSystem::AppendSlash( parmFile );
+        parmFile += "SecondoConfig.ini";
+        cout << "Configuration file '" << parmFile;
+        found = FileSystem::FileOrFolderExists( parmFile );
+        if ( found )
+        {
+          cout << "':" << endl;
+        }
+        else
+        {
+          cout << "' not found!" << endl;
+        }
+      }
+      else
+      {
+        cout << "Environment variable SECONDO_HOME not defined." << endl;
+      }
+      if ( !found )
+      {
+        cout << "Searching current directory for configuration file ..." << endl;
+        string cwd = FileSystem::GetCurrentFolder();
+        FileSystem::AppendSlash( cwd );
+        parmFile = cwd + "SecondoConfig.ini";
+        cout << "Configuration file '" << parmFile;
+        found = FileSystem::FileOrFolderExists( parmFile );
+        if ( found )
+        {
+          cout << "':" << endl;
+        }
+        else
+        {
+          cout << "' not found!" << endl;
+        }
+      }
+    }
+
+    string value, foundValue;
+    if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")
+    {
+      cout << "Error: Secondo home directory not specified." << endl;
+    }
+    else
+    {
+      ok = true;
+    }
+  }
+  else
+  {
+    cout << "Error: No configuration file specified." << endl;
+    return (false);
+  }
+
+  if ( ok )
+  {
+    // --- Check storage management interface
+    cout << "Initializing storage management interface ... ";
+    if ( SmiEnvironment::StartUp( SmiEnvironment::SingleUser, parmFile, cout ) )
+    {
+      cout << "completed." << endl;
+      ok = true;
+    }
+    else
+    {
+      cout << "failed." << endl;
+      string errMsg;
+      SmiEnvironment::GetLastErrorCode( errMsg );
+      cout << "Error: " << errMsg << endl;
+      ok = false;
+    }
+  }
+  if (ok)
+  {
+    cout << "Initializing the Secondo system ... ";
+    nl = SecondoSystem::GetNestedList();
+    ok = SecondoSystem::StartUp();
+    if ( ok )
+    {
+      cout << "completed." << endl;
+    }
+    else
+    {
+      cout << "failed." << endl;
+    }
+  }
+  initialized = ok;
+  return (ok);
+}
+
+void
+SecondoInterface::Terminate()
+{
+  if ( initialized )
+  {
+    cout << "Terminating Secondo system ...";
+//  SecondoInterface::Secondo( "close database", 0, 0, 0, 0, &ResultList,
+//                             &ErrCode, &ErrPos, &ErrMess );
+    if ( SecondoSystem::ShutDown() )
+    {
+      cout << "completed." << endl;
+    }
+    else
+    {
+      cout << "failed." << endl;
+    }
+    if ( !SmiEnvironment::ShutDown() )
+    {
+      string errMsg;
+      SmiEnvironment::GetLastErrorCode( errMsg );
+      cout << "Error: Shutdown of the storage management interface failed." << endl;
+      cout << "Error: " << errMsg << endl;
+    }
+    initialized = false;
+    activeTransaction = false;
+    nl = 0;
+    server = 0;
+  }
+  else
+  {
+    cout << "Error: Secondo system already terminated." << endl;
+  }
 }
 
 void
@@ -184,7 +338,7 @@ cout << "length=" << length << endl;
       {
         if ( !activeTransaction )
         {
-          if ( SmiEnvironment::BeginTransaction() )
+          if ( SecondoSystem::BeginTransaction() )
           {
             activeTransaction = true;
           }
@@ -202,7 +356,7 @@ cout << "length=" << length << endl;
       {
         if ( activeTransaction )
         {
-          if ( !SmiEnvironment::CommitTransaction() )
+          if ( !SecondoSystem::CommitTransaction() )
           {
             errorCode = 23;
           }
@@ -217,7 +371,7 @@ cout << "length=" << length << endl;
       {
         if ( activeTransaction )
         {
-          if ( !SmiEnvironment::AbortTransaction() )
+          if ( !SecondoSystem::AbortTransaction() )
           {
             errorCode = 23;
           }
@@ -299,7 +453,7 @@ cout << "length=" << length << endl;
         {
           if ( activeTransaction )
           {
-            SmiEnvironment::CommitTransaction();
+            SecondoSystem::CommitTransaction();
             activeTransaction = false;
           }
           SecondoSystem::GetInstance()->CloseDatabase();
@@ -316,22 +470,13 @@ cout << "length=" << length << endl;
         }
         else
         {
-          if ( !activeTransaction )
-          {
-            SmiEnvironment::BeginTransaction();
-          }
+          StartCommand();
           filename = nl->SymbolValue( nl->Fourth( list ) ); 
           if ( !SecondoSystem::GetInstance()->SaveDatabase( filename ) )
           {
             errorCode = 26;  // Problem in writing to file
           }
-          if ( !activeTransaction )
-          {
-            if ( !SmiEnvironment::CommitTransaction() )
-            {
-              errorCode = 23;
-            }
-          }
+          FinishCommand( errorCode );
         }                            
       }
       else if ( nl->IsEqual( first, "restore" ) && 
@@ -386,17 +531,14 @@ cout << "length=" << length << endl;
 
     else if ( nl->IsEqual( first, "list" ) )
     {
-cout << "List command" << endl;
       if ( nl->IsEqual( nl->Second( list ), "type" ) && (length == 3) &&
            nl->IsEqual( nl->Third( list ), "constructors" ) )
       {
-cout << "list type constructors" << endl;
         resultList =
           SecondoSystem::GetCatalog( level )->ListTypeConstructors();
       }
       else if ( nl->IsEqual( nl->Second(list), "operators" ) )
       {
-cout << "list operators" << endl;
         resultList =
           SecondoSystem::GetCatalog( level )->ListOperators();
       }
@@ -412,19 +554,10 @@ cout << "list operators" << endl;
         }
         else
         {
-          if ( !activeTransaction )
-          {
-            SmiEnvironment::BeginTransaction();
-          }
+          StartCommand();
           resultList =
             SecondoSystem::GetCatalog( level )->ListTypes();
-          if ( !activeTransaction )
-          {
-            if ( !SmiEnvironment::CommitTransaction() )
-            {
-              errorCode = 23;
-            }
-          }
+          FinishCommand( errorCode );
         }                    
       }
       else if ( nl->IsEqual( nl->Second( list ), "objects" ) )
@@ -435,19 +568,10 @@ cout << "list operators" << endl;
         }
         else
         {
-          if ( !activeTransaction )
-          {
-            SmiEnvironment::BeginTransaction();
-          }
+          StartCommand();
           resultList =
             SecondoSystem::GetCatalog( level )->ListObjects();
-          if ( !activeTransaction )
-          {
-            if ( !SmiEnvironment::CommitTransaction() )
-            {
-              errorCode = 23;
-            }
-          }
+          FinishCommand( errorCode );
         }                    
       }
       else
@@ -465,10 +589,7 @@ cout << "list operators" << endl;
     {
       if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
       {
-        if ( !activeTransaction )
-        {
-          SmiEnvironment::BeginTransaction();
-        }
+        StartCommand();
         typeName = nl->SymbolValue( nl->Second( list ) );
         typeExpr = nl->Fourth( list );
         typeExpr2 =
@@ -487,13 +608,7 @@ cout << "list operators" << endl;
           errorCode = 5;     // Wrong type expression
           resultList = errorList;
         }
-        if ( !activeTransaction )
-        {
-          if ( !SmiEnvironment::CommitTransaction() )
-          {
-            errorCode = 23;
-          }
-        }
+        FinishCommand( errorCode );
       }
       else
       {
@@ -508,10 +623,7 @@ cout << "list operators" << endl;
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
         {
-          if ( !activeTransaction )
-          {
-            SmiEnvironment::BeginTransaction();
-          }
+          StartCommand();
           typeName = nl->SymbolValue( nl->Third( list ) ); 
           message =
             SecondoSystem::GetCatalog( level )->DeleteType( typeName );
@@ -523,13 +635,7 @@ cout << "list operators" << endl;
           {
             errorCode = 11;   // identifier not a known type name
           }
-          if ( !activeTransaction )
-          {
-            if ( !SmiEnvironment::CommitTransaction() )
-            {
-              errorCode = 23;
-            }
-          }
+          FinishCommand( errorCode );
         }
         else
         {
@@ -541,10 +647,7 @@ cout << "list operators" << endl;
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
         {
-          if ( !activeTransaction )
-          {
-            SmiEnvironment::BeginTransaction();
-          }
+          StartCommand();
           objName = nl->SymbolValue( nl->Second( list ) ); 
           message =
             SecondoSystem::GetCatalog( level )->DeleteObject( objName );
@@ -552,13 +655,7 @@ cout << "list operators" << endl;
           {
             errorCode = 12;   // identifier not a known object name
           }
-          if ( !activeTransaction )
-          {
-            if ( !SmiEnvironment::CommitTransaction() )
-            {
-              errorCode = 23;
-            }
-          }
+          FinishCommand( errorCode );
         }
         else
         {
@@ -580,11 +677,8 @@ cout << "list operators" << endl;
     {
       if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
       {
-        if ( !activeTransaction )
-        {
-          SmiEnvironment::BeginTransaction();
-        }
-        objName = nl->SymbolValue( nl->Second( list ) ); 
+        StartCommand();
+        objName = nl->SymbolValue( nl->Second( list ) );
         typeExpr = nl->Fourth( list );
         typeExpr2 =
           SecondoSystem::GetCatalog( level )->ExpandedType( typeExpr );
@@ -613,13 +707,7 @@ cout << "list operators" << endl;
           errorCode = 4;     // Wrong type expression
           resultList = errorList;
         }
-        if ( !activeTransaction )
-        {
-          if ( !SmiEnvironment::CommitTransaction() )
-          {
-            errorCode = 23;
-          }
-        }
+        FinishCommand( errorCode );
       }
       else
       {
@@ -642,11 +730,8 @@ cout << "list operators" << endl;
         }
         else
         {
-          if ( !activeTransaction )
-          {
-            SmiEnvironment::BeginTransaction();
-          }
-          objName = nl->SymbolValue( nl->Second( list ) ); 
+          StartCommand();
+          objName = nl->SymbolValue( nl->Second( list ) );
           valueExpr = nl->Fourth( list );
           SecondoSystem::GetQueryProcessor()->
             Construct( level, valueExpr, correct, evaluable, defined,
@@ -706,13 +791,7 @@ cout << "list operators" << endl;
           {
             errorCode = 2;    // Error in expression
           }
-          if ( !activeTransaction )
-          {
-            if ( !SmiEnvironment::CommitTransaction() )
-            {
-              errorCode = 23;
-            }
-          }
+          FinishCommand( errorCode );
         }
       }
       else
@@ -733,10 +812,7 @@ cout << "list operators" << endl;
         }
         else
         {
-          if ( !activeTransaction )
-          {
-            SmiEnvironment::BeginTransaction();
-          }
+          StartCommand();
           SecondoSystem::GetQueryProcessor()->
             Construct( level, nl->Second( list ), correct, evaluable, defined, 
                        isFunction, tree, resultType );
@@ -778,13 +854,7 @@ cout << "list operators" << endl;
           {
             errorCode = 2;    // Error in query
           }
-          if ( !activeTransaction )
-          {
-            if ( !SmiEnvironment::CommitTransaction() )
-            {
-              errorCode = 23;
-            }
-          }
+          FinishCommand( errorCode );
         }
       }
       else
@@ -799,10 +869,7 @@ cout << "list operators" << endl;
     {
       if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
       {
-        if ( !activeTransaction )
-        {
-          SmiEnvironment::BeginTransaction();
-        }
+        StartCommand();
         SecondoSystem::GetQueryProcessor()->
           Construct( level, nl->Second( list ), correct, evaluable, defined, 
                      isFunction, tree, resultType );
@@ -831,13 +898,7 @@ cout << "list operators" << endl;
         {
           errorCode = 2;     // Error in query
         }
-        if ( !activeTransaction )
-        {
-          if ( !SmiEnvironment::CommitTransaction() )
-          {
-            errorCode = 23;
-          }
-        }
+        FinishCommand( errorCode );
       }
       else
       {
@@ -892,3 +953,33 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
   return (ok);
 }
 
+void
+SecondoInterface::StartCommand()
+{
+  if ( !activeTransaction )
+  {
+    SecondoSystem::BeginTransaction();
+  }
+}
+
+void
+SecondoInterface::FinishCommand( int& errorCode )
+{
+  if ( !activeTransaction )
+  {
+    if ( errorCode == 0 )
+    {
+      if ( !SecondoSystem::CommitTransaction() )
+      {
+        errorCode = 23;
+      }
+    }
+    else
+    {
+      if ( !SecondoSystem::AbortTransaction() )
+      {
+        errorCode = 23;
+      }
+    }
+  }
+}

@@ -31,7 +31,7 @@ command		:	basic
 		|	inquiries
 		;	
 
-basic		:	TYPE IDENTIFIER '=' typeexpr
+basic		:	TYPE IDENTIFIER EQ typeexpr
 				{PRINTF("(type "); PRINT($2); 
 				PRINTF(" = "); PRINT($4); PRINTF(")\n");}
 		|	DELETE TYPE IDENTIFIER	
@@ -60,7 +60,7 @@ basic		:	TYPE IDENTIFIER '=' typeexpr
                                 PRINTF(")\n");}
  
 		|		{paramno=0; depth =0;}
-			LET IDENTIFIER '=' valueexpr
+			LET IDENTIFIER EQ valueexpr
 				{PRINTF("(let "); PRINT($3); 
 				PRINTF(" = "); PRINT($5); PRINTF(")\n");}
 		|	PERSISTENT IDENTIFIER
@@ -253,7 +253,7 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 
 		| GROUP					{$$ = NestedText::AtomC(param);}
 
-		| valueexpr '=' valueexpr
+		| valueexpr EQ valueexpr
 			{$$ = NestedText::Concat(NestedText::AtomC("(="), 
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($1,

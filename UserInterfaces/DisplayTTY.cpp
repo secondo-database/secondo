@@ -256,9 +256,16 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
   string  name;
   si->LookUpTypeExpr( ExecutableLevel, type, name, algebraId, typeId );
   ListExpr numType = si->NumericTypeExpr( ExecutableLevel, type );
-  CallDisplayFunction( nl->First( numType ), type, numType, value );
-  cout << endl;
+  if ( !nl->IsAtom( type ) )
+  {
+    CallDisplayFunction( nl->First( numType ), type, numType, value );
+  }
+  else
+  {
+    CallDisplayFunction( numType, type, numType, value );
+  }
   nl->Destroy( numType );
+  cout << endl;
 }
 
 void

@@ -264,7 +264,6 @@ static void
 DeleteCcInt( Word& w )
 {
   delete (CcInt*) w.addr;
-//cout << "delete int \n";
   w.addr = 0;
 }
 
@@ -828,13 +827,21 @@ CcMathTypeMap( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
+    {
       return (nl->SymbolAtom( "int" ));
+    }
     if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccreal )
+    {
       return (nl->SymbolAtom( "real" ));
+    }
     if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccint )
+    {
       return (nl->SymbolAtom( "real" ));
+    }
     if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
+    {
       return (nl->SymbolAtom( "real" ));
+    }
   }
   return (nl->SymbolAtom( "typeerror" ));
 }

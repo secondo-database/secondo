@@ -53,10 +53,14 @@ constructor must be added to the list of constructors.
 
 */
 
-static inline Word SetWord( Address  newaddr ) { Word w; w.addr = newaddr; return w; };
-static inline Word SetWord( ListExpr newlist ) { Word w; w.list = newlist; return w; };
-static inline Word SetWord( int      newival ) { Word w; w.ival = newival; return w; };
-static inline Word SetWord( float    newrval ) { Word w; w.rval = newrval; return w; };
+static inline Word SetWord( Address  newaddr )
+                     { Word w; w.addr = newaddr; return w; };
+static inline Word SetWord( ListExpr newlist )
+                     { Word w; w.list = newlist; return w; };
+static inline Word SetWord( int      newival )
+                     { Word w; w.ival = newival; return w; };
+static inline Word SetWord( float    newrval )
+                     { Word w; w.rval = newrval; return w; };
 /*
 are several inline initialization functions for ~Word~ instances.
 

@@ -209,7 +209,8 @@ The type of a function for object value and model persistence:
 */
 typedef bool (*PersistFunction)( PersistDirection dir,
                                  SmiRecord& valueRecord,
-                                 const string& type, Word& value );
+                                 const string& type,
+                                 Word& value );
 
 /*
 The types of model mapping functions and of ~in~ and ~out~ functions for

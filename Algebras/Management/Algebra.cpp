@@ -158,7 +158,7 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
     valueString.assign( buffer, valueLength );
     delete []buffer;
     nl->ReadFromString( valueString, valueList );
-    value = In( typeExpr, valueList, 1, errorInfo, correct );
+    value = In( typeExpr, nl->First( valueList ), 1, errorInfo, correct );
     if ( errorInfo != 0 )
     {
       nl->Destroy( errorInfo );
@@ -167,6 +167,7 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
   else // WriteTo
   {
     valueList = Out( typeExpr, value );
+    valueList = nl->OneElemList( valueList );
     nl->WriteToString( valueString, valueList );
     valueLength = valueString.length();
     valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );

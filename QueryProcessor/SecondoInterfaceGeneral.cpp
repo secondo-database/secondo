@@ -53,6 +53,7 @@ SecondoInterface::InitErrorMessages()
 
   errors[30] = "Command not yet implemented. ";
   errors[31] = "Command level not yet implemented. ";
+  errors[32] = "Command not yet implemented at this level. ";
 
   errors[40] = "Error in type definition. ";                // (40 i)
   errors[41] = "Type name doubly defined. ";                // (41 i n)

@@ -1,6 +1,24 @@
 /*
+//paragraph    [10]    title:           [{\Large \bf ] [}]
+//paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     [\end{tabular}\end{quote}]
+//paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    [\end{tabular}\end{quote}]
+//paragraph    [23]    table3columns:   [\begin{quote}\begin{tabular}{lll}]   [\end{tabular}\end{quote}]
+//paragraph    [24]    table4columns:   [\begin{quote}\begin{tabular}{llll}]  [\end{tabular}\end{quote}]
+//[--------]    [\hline]
+//characters    [1]    verbatim:   [$]    [$]
+//characters    [2]    formula:    [$]    [$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
+//[ae] [\"a]
+//[oe] [\"o]
+//[ue] [\"u]
+//[ss] [{\ss}]
+//[<=] [\leq]
+//[#]  [\neq]
+//[tilde] [\verb|~|]
+//[Contents] [\tableofcontents]
 
-1 Header File: SecondoCatalog
+1 Header File: Secondo Catalog
 
 September 1996 Claudia Freundorfer
 
@@ -9,20 +27,42 @@ December 20, 1996 RHG Changed definition of procedure ~OutObject~.
 May 15, 1998 RHG Added treatment of models, especially functions
 ~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~. 
 
-This module defines the module ~SecondoCatalog~. It manages a set of
-databases. A database consists of a set of named types, a set of objects
-with given type name or type expressions and a set of models for
-objects. Objects can be persistent or not. Persistent objects are
-implemented by the ~StorageManager~. When a database is opened, the
-catalog with informations about types, type constructors, operators,
-objects and models of the database is loaded as *Secondo Catalog* into
-main memory. The implementation of the ~SecondoCatalog~ is based on the
-concept of ~compact tables~ (module ~Catalog Manager~) and thereby safe
-under transactions. Furthermore the catalog of each algebra is loaded
-into memory by calling the procedures of the module ~Algebra Manager2~. 
+May 2002 Ulrich Telle Port to C++
 
-1.2 Interface
+1.1 Overview
+
+This module defines the module ~SecondoCatalog~. It manages a set of
+named types, a set of objects with given type name or type expressions
+and a set of models for objects for a database at a specific algebra
+level. Objects can be persistent or not. Persistent objects are
+implemented by the ~Storage Management Interface~.
+
+1.2 Interface methods
     
+The class ~SecondoCatalog~ provides the following methods:
+  
+[23]    Catalog and Types     & Object Values and Models & Type Constructors / Operators \\
+        [--------]
+        SecondoCatalog        & ListObjects              & ListTypeConstructors \\
+        [tilde]SecondoCatalog & ListObjectsFull          & IsTypeName           \\
+        Open                  & CreateObject             & GetTypeId            \\
+        Close                 & InsertObject             & GetTypeName          \\
+        CleanUp               & DeleteObject             & GetTypeDS            \\
+                              & InObject                 &   \\
+                              & GetObjectValue           &   \\
+                              & OutObject                &   \\
+        ListTypes             & IsObjectName             & ListOperators        \\
+        InsertType            & GetObject                & IsOperatorName       \\
+        DeleteType            & GetObjectExpr            & GetOperatorId        \\
+        MemberType            & GetObjectType            & GetOperatorName      \\
+        LookUpTypeExpr        & UpdateObject             &   \\
+        GetTypeExpr           & InObjectModel            &   \\
+        NumericType           & OutObjectModel           &   \\
+        ExpandedType          & ValueToObjectModel       &   \\
+        KindCorrect           & ValueListToObjectModel   &   \\
+
+1.4 Imports
+
 */
 
 #ifndef SECONDO_CATALOG_H
@@ -33,30 +73,15 @@ into memory by calling the procedures of the module ~Algebra Manager2~.
 #include "NameIndex.h"
 #include "SecondoSMI.h"
 
-/************************************************************************** 
-2.1 Export 
-
-*/ 
-
 /**************************************************************************
+1.3 Class "SecondoCatalog"[1]
 
-3.1 Types, Variables
+This class implements all functionality of the
+"Secondo"[3] catalog management dependent of a specific algebra level.
 
-*/
-
-/*
-The type ~dbState~ has two valid states : only one database can be
-opened concurrently at any time, then the SECONDO database system has
-the state ~dbOpen~, otherwise it has the state ~dbClosed~. 
-
-*/
-
-/*enum DbState { dbOpen, dbClosed };*/
-
-/**************************************************************************
-3.2 Exported Functions and Procedures 
-
-3.2.1 Interface to DatabasesAndTransactions 
+All operations on types and objects are valid only, when the associated
+database is open. Type constructors and operators may be accessed when
+no database is open.
 
 */
 
@@ -65,11 +90,31 @@ class SecondoCatalog
  public:
   SecondoCatalog( const string& name,
                   const AlgebraLevel level );
+/*
+Creates a new catalog with the given ~name~ for the specified algebra ~level~.
+
+*/
   virtual ~SecondoCatalog();
+/*
+Destroys a catalog.
+
+*/
   bool Open();
+/*
+Opens the catalog for operation.
+
+*/
   bool Close();
-  bool Save();
+/*
+Closes the catalog.
+
+*/
   bool CleanUp( const bool revert );
+/*
+Cleans up the memory representation when a transaction is completed.
+The switch ~revert~ is ~true~ if the transaction is aborted.
+
+*/
 
 /**********************************************************
 3.2.2 Database Types   
@@ -79,21 +124,18 @@ class SecondoCatalog
 /*
 Returns a list of types of the whole database in the following format:
 
----- (TYPES 
-       (TYPE <type name><type expression>)* 
-     )
+----  (TYPES 
+        (TYPE <type name><type expression>)* 
+      )
 ----
 
-Precondition: dbState = dbOpen.
-
 */
-  bool InsertType( const string& typeName, ListExpr typeExpr );
+  bool InsertType( const string& typeName,
+                   ListExpr typeExpr );
 /*
 Inserts a new type with identifier ~typeName~ defined by a list
 ~typeExpr~ of already existing types in the database. Returns ~false~,
 if the name was already defined. 
-
-Precondition: dbState = dbOpen.
 
 */
   int DeleteType( const string& typeName );
@@ -101,20 +143,15 @@ Precondition: dbState = dbOpen.
 Deletes a type with identifier ~typename~ in the database. Returns error
 1 if type is used by an object, error 2, if ~typename~ is not known. 
 
-Precondition: dbState = dbOpen.
-
 */
-
   bool MemberType( const string& typeName );
 /*                  
-Returns true, if type with name ~typename~ is member of the actually
+Returns ~true~, if type with name ~typename~ is member of the actually
 open database. 
 
-Precondition: dbState = dbOpen.
-
 */                          
-
-  bool LookUpTypeExpr( const ListExpr typeExpr, string& typeName,
+  bool LookUpTypeExpr( const ListExpr typeExpr,
+                       string& typeName,
                        int& algebraId, int& typeId );
 /*                        
 Returns the algebra identifier ~algebraId~ and the type identifier
@@ -122,15 +159,13 @@ Returns the algebra identifier ~algebraId~ and the type identifier
 given type expression ~typeExpr~, if it exists, otherwise an empty
 string as ~typeName~ and value 0 for the identifiers. 
 
-Precondition: dbState = dbOpen.
-
 */
   ListExpr GetTypeExpr( const string& typeName );
 /*                        
 Returns a type expression for a given type name ~typename~,
 if exists. 
 
-Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
+Precondition: ~MemberType(typeName)~ delivers ~true~.
 
 */
   ListExpr NumericType( const ListExpr type );
@@ -139,11 +174,11 @@ Transforms a given type expression into a list structure where each type
 constructor has been replaced by the corresponding pair (algebraId,
 typeId). For example, 
 
-----	int	->	(1 1)
+----  int -> (1 1)
 
-	(rel (tuple ((name string) (age int)))
+      (rel (tuple ((name string) (age int)))
 
-	-> 	((2 1) ((2 2) ((name (1 4)) (age (1 1))))
+      ->  ((2 1) ((2 2) ((name (1 4)) (age (1 1))))
 ----
 
 Identifiers such as ~name~, ~age~ are moved unchanged into the result
@@ -171,11 +206,11 @@ their defining expressions.
 /*
 Here ~type~ is a type expression. ~KindCorrect~ does the kind checking;
 if there are errors, they are reported in the list ~errorInfo~, and
-~FALSE~ is returned. ~errorInfo~ is a list whose entries are again
+~false~ is returned. ~errorInfo~ is a list whose entries are again
 lists, the first element of an entry is an error code number. For
 example, an entry 
 
-----	(1 DATA (hello world))
+----  (1 DATA (hello world))
 ----
 
 says that kind ~DATA~ does not match the type expression ~(hello
@@ -192,14 +227,12 @@ error codes are type-constructor specific.
 /*
 Returns a list of ~objects~ of the whole database in the same format that is used in the procedures ~SaveDatabase~ and ~RestoreDatabase~:
 
----- (OBJECTS 
-       (OBJECT <object name>(<type name>) <type expression>)* 
-     )
+----  (OBJECTS 
+        (OBJECT <object name>(<type name>) <type expression>)* 
+      )
 ----
 
 For each object the *value* component is missing, otherwise the whole database will be returned.
-
-Precondition: dbState = dbOpen.
 
 */
   ListExpr ListObjectsFull();
@@ -207,50 +240,48 @@ Precondition: dbState = dbOpen.
 Returns a list of ~objects~ of the whole database in the following format:
 
 ---- (OBJECTS 
-       (OBJECT <object name>(<type name>) <type expression> <value> <model>)*
+       (OBJECT <object name>(<type name>) <type expression>
+                                          <value> <model>)*
      )
 ----
 
 */
-  bool CreateObject( const string& objectName, const string& typeName,
-                     const ListExpr typeExpr, const int sizeOfComponents );
+  bool CreateObject( const string& objectName,
+                     const string& typeName,
+                     const ListExpr typeExpr,
+                     const int sizeOfComponents );
 /*
 Creates a new object with identifier ~objectName~ defined with type name
 ~typeName~ (can be empty) and type ~typeExpr~. The value is not yet
 defined, and no memory is allocated. Returns error 1, if the object name
 is defined already. 
 
-Precondition: dbState = dbOpen.
-
 */
-  bool InsertObject( const string& objectName, const string& typeName,
-                     const ListExpr typeExpr, const Word valueWord,
-                     const bool defined, const Word modelWord );
+  bool InsertObject( const string& objectName,
+                     const string& typeName,
+                     const ListExpr typeExpr,
+                     const Word valueWord,
+                     const bool defined,
+                     const Word modelWord );
 /*
-Inserts a new object with identifier ~objectName~ and value ~word~
+Inserts a new object with identifier ~objectName~ and value ~valueWord~
 defined by type name ~typeName~ or by a list ~typeExpr~ of already
 existing types (which always exists) into the database catalog.
-Parameter ~defined~ tells, whether ~word~ actually contains a defined
+Parameter ~defined~ tells, whether ~valueWord~ actually contains a defined
 value. Further, ~modelWord~ contains a model for this value, possibly 0,
 the undefined model. If the object name already exists, the procedure
-has no effect. Returns error 1 if the ~objectName~ is used already. 
+has no effect. Returns ~false~ if the ~objectName~ is already in use.
 
 When the given object has no type name, it is mandatory, that ~typeName~
 is an empty string.
 
-Precondition: dbState = dbOpen.
-
 */
-
   bool DeleteObject( const string& objectName );
 /*
 Deletes an object with identifier ~objectName~ in the database. Returns
-error 1 if the object does not exist. 
-
-Precondition: dbState = dbOpen.
+~false~ if the object does not exist. 
 
 */
-
   Word InObject( const ListExpr typeExpr,
                  const ListExpr valueList,
                  const int errorPos,
@@ -258,14 +289,12 @@ Precondition: dbState = dbOpen.
                  bool& correct );
 /*
 Converts an object of the type given by ~typeExpr~ and the value given
-as a nested list into a WORD representation which is returned. Any
+as a nested list into a ~Word~ representation which is returned. Any
 errors found are returned together with the given ~errorPos~ in the list
-~errorInfo~. ~Correct~ is set to TRUE if a value was created (which
+~errorInfo~. ~Correct~ is set to ~true~ if a value was created (which
 means that the input was at least partially correct). 
 
 Works only at the executable level.
-
-Precondition: dbState = dbOpen.
 
 */
   ListExpr GetObjectValue( const string& objectName );
@@ -276,10 +305,9 @@ user. If the value is undefined, an empty list is returned.
 
 Works only at the executable level.
 
-Precondition: dbState = dbOpen.
-
 */
-  ListExpr OutObject( const ListExpr type, const Word object );
+  ListExpr OutObject( const ListExpr type,
+                      const Word object );
 /*
 Returns for a given ~object~ of type ~type~ its value in nested list
 representation. 
@@ -300,35 +328,37 @@ Returns the value ~word~ of an object with identifier ~objectName~.
 
 Works only at the executable level.
 
-Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+Precondition: ~IsObjectName(objectName)~ delivers ~true~.
 
 */
   bool GetObjectExpr( const string& objectName,
                       string& typeName,
                       ListExpr& typeExpr,
-                      Word& word,
+                      Word& value,
                       bool& defined,
                       Word& model,
                       bool& hasTypeName );
 /*
-Returns the value ~word~, the type name ~typeName~, the type expression
+Returns the value ~value~, the type name ~typeName~, the type expression
 ~typeExpr~, and the ~model~ of an object with identifier ~objectName~.
-~defined~ tells whether ~word~ contains a defined value. If object has
-no type name the variable ~hasTypeName~ is set to FALSE and the
-procedure returns an empty string as ~typeName~. 
+~defined~ tells whether ~value~ contains a defined value. If object has
+no type name the variable ~hasTypeName~ is set to ~false~ and the
+procedure returns an empty string as ~typeName~.
 
-Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+Precondition: ~IsObjectName(objectName)~ delivers ~true~.
 
 */
-  bool GetObjectType( const string& objectName, string& typeName );
+  bool GetObjectType( const string& objectName,
+                      string& typeName );
 /* 
 Returns the type name ~typeName~ of an object with identifier
 ~objectName~, if the type name exists and an empty string otherwise. 
 
-Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+Precondition: ~IsObjectName(objectName)~ delivers ~true~.
 
 */
-  bool UpdateObject( const string& objectName, const Word word );
+  bool UpdateObject( const string& objectName,
+                     const Word word );
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
 new value ~word~. Returns error 1 if object does not exist. 
@@ -343,18 +373,16 @@ Works only at the executable level.
 Converts a model of the type given by ~typeExpr~ and the value given as
 a nested list into a WORD representation which is returned. 
 
-Precondition: dbState = dbOpen.
-
 */
-
-  ListExpr OutObjectModel( const ListExpr typeExpr, const Word model );
+  ListExpr OutObjectModel( const ListExpr typeExpr,
+                           const Word model );
 /*
 Returns for a given ~model~ of type ~typeExpr~ its description in nested
 list representation. 
 
 */
-
-  Word ValueToObjectModel( const ListExpr typeExpr, const Word value );
+  Word ValueToObjectModel( const ListExpr typeExpr,
+                           const Word value );
 /*
 Returns for a given ~value~ of type ~typeExpr~ its model.
 
@@ -384,9 +412,9 @@ Works only at the descriptive level.
 Returns a list of type constructors of the actually load
 algebras in the following format: 
 
----- (
-      (<type constructor name> (<arg 1>..<arg n>) <result>) * 
-     )
+----  (
+        (<type constructor name> (<arg 1>..<arg n>) <result>) * 
+      )
 ----
 
 */
@@ -403,7 +431,7 @@ Returns the algebra identifier ~algebraId~ and the type identifier
 ~opId~ of an existing type constructor or database type with name
 ~typeName~. 
 
-Precondition: ~IsTypeName(typeName)~ delivers TRUE.
+Precondition: ~IsTypeName(typeName)~ delivers ~true~.
   
 */
   string GetTypeName( const int algebraId, const int typeId );
@@ -428,16 +456,16 @@ algebra identifier ~algebraId~ and the type identifier ~opId~.
 Returns a list of operators specifications in the following format: 
 
 ----
-(  
-  ( <operator name>   
-    (<arg type spec 1>..<arg type spec n>)
-    <result type spec>
-    <syntax>
-    <variable defs>
-    <formula>
-    <explaining text>
-  )*
-) 
+      (  
+        ( <operator name>   
+          (<arg type spec 1>..<arg type spec n>)
+          <result type spec>
+          <syntax>
+          <variable defs>
+          <formula>
+          <explaining text>
+        )*
+      ) 
 ----
 This format is based on the formal definition of the syntax of operator
 specifications from [BeG95b, Section3.1]. 
@@ -448,35 +476,36 @@ specifications from [BeG95b, Section3.1].
 Checks whether ~opName~ is a valid operator name.
 
 */
-  void GetOperatorId( const string& opName, int& algebraId, int& opId );
+  void GetOperatorId( const string& opName,
+                      int& algebraId, int& opId );
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
 ~opId~ of an existing ~opName~. 
 
-Precondition: ~IsOperatorName(opName)~ delivers TRUE.  
+Precondition: ~IsOperatorName(opName)~ delivers ~true~.  
 
 */
-
-  string GetOperatorName( const int algebraId, const int opId );
+  string GetOperatorName( const int algebraId,
+                          const int opId );
 /*
 Looks for the name of an operator defined by the algebra identifier ~algebraId~ and the operator ~opId~.
 
 */ 
-  ListExpr GetOperatorSpec( const int algebraId, const int opId );
+  ListExpr GetOperatorSpec( const int algebraId,
+                            const int opId );
 /*
 Returns the operator specification of an operator defined by the
 algebra identifier ~algebraId~ and the operator identifier ~opId~ in the
 following format: 
 
-----
-  ( <operator name>   
-    (<arg type spec 1>..<arg type spec n>)
-    <result type spec>
-    <syntax>
-    <variable defs>
-    <formula>
-    <explaining text>
-  )
+----  ( <operator name>   
+        (<arg type spec 1>..<arg type spec n>)
+        <result type spec>
+        <syntax>
+        <variable defs>
+        <formula>
+        <explaining text>
+      )
 ----
 
 */
