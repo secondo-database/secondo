@@ -6,8 +6,9 @@ Use the parser to transform from implicitly formatted text to HTML.
 
 */
 
-main()
-{	int error;
+int main() {	
 
-	error = yyparse();
+    int error=0;
+    error = yyparse();
+    return error;
 }

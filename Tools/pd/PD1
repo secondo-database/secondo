@@ -43,8 +43,8 @@ At a lower level there are three scripts which convert PD to other formats:
 
   * ~pd2ps~  is called by ~pdshow~ and creates a postscript file.
  
-These scripts may be useful to recreate a DVI file while previewing an older version. Since the previewer will detect automatically
-that there exists a newer DVI file and Displays it. Another application may be to use Adobe Distiller to create a PDF starting
+These scripts may be useful to recreate a DVI file while previewing an older version. The preview will detect automatically
+that there exists a newer DVI file and reloads it. Another application may be to use Adobe Distiller in order to create a PDF starting
 from a postscript file. 
 
 As an example, the processing steps used in ~pdshow~ are illustrated in Figure 2.

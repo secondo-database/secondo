@@ -1,1 +1,16 @@
-pdtabs < $1 | makehtml > $1.html
+#!/bin/bash 
+#
+# pd2html - Converts a PD file to a HTML file
+#
+# May 2004, M. Spiekermann
+
+pdFile="$1"
+htmlFile="$1.html"
+
+if { ! pdtabs < $pdFile | makehtml > /dev/null; }; then
+
+   printf "\n PD-Error: Could not create $htmlFile! \n\n"
+   exit 1
+fi
+pdtabs < $pdFile | makehtml > $htmlFile 
+
