@@ -11513,7 +11513,7 @@ static int
 commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-
+    int eee=0;
     CRegion *cr1, *cr2;
     CHalfSegment chs1, chs2, reschs;
 
@@ -11543,15 +11543,72 @@ commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 			*((CLine *)result.addr) += reschs;
 			reschs.SetLDP(false);
 			*((CLine *)result.addr) += reschs;
+			eee=eee+2;
 		    }
 		}
 	    }
 	}
     }
     ((CLine *)result.addr)->EndBulkLoad();
+    cout<<"CHS# written to result: "<<eee<<endl;
     return (0);
 }
 
+/*
+110.4.25 Value mapping functions of operator ~commomborder~
+Implementation with Spatial Scan
+*/
+
+static int
+commonborder_Scan_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //void rrSelectFirst(CRegion& R1, CRegion& R2, object& obj, status& stat)
+    int eee=0;
+    result = qp->ResultStorage( s );
+
+    CRegion *cr1, *cr2;
+    CHalfSegment reschs;
+
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+
+    if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) )
+    {
+	//cout<<"not intersect by MBR"<<endl;
+	((CLine *)result.addr)->Clear();
+	return (0);
+    }
+    
+    ((CLine *)result.addr)->StartBulkLoad();
+
+    object obj;
+    status stat;
+    
+    rrSelectFirst(*cr1, *cr2, obj, stat);
+    if (obj==both) 
+    {
+	cr1->GetHs(reschs);
+	*((CLine *)result.addr) += reschs;
+	eee++;
+    }
+    
+    while (stat==endnone) 
+    {
+	rrSelectNext(*cr1, *cr2, obj, stat);
+	if (obj==both) 
+	{
+	    cr1->GetHs(reschs);
+	    *((CLine *)result.addr) += reschs;
+	    eee++;
+	}
+    }
+    
+    //((CLine *)result.addr)->EndBulkLoad();
+    ((CLine *)result.addr)->setOrdered(true);
+    cout<<"CHS# written to result: "<<eee<<endl;
+    return (0);
+}
+	
 /*
 10.4.26 Value mapping functions of operator ~translate~
 
@@ -11858,6 +11915,8 @@ ValueMapping touchpointsmap[] =  	 { touchpoints_lr,
 			                 };
 
 ValueMapping commonbordermap[] = { commonborder_rr
+				      };
+ValueMapping commonborderscanmap[] = { commonborder_Scan_rr
 				      };
 
 ValueMapping translatemap[] = { translate_p,
@@ -12261,6 +12320,10 @@ Operator spatialcommonborder
 	( "commonborder", SpatialSpecCommonborder, 1, commonbordermap, spatialnomodelmap,
 	  commonborderSelect, commonborderMap );
 
+Operator spatialcommonborderscan
+	( "commonborderscan", SpatialSpecCommonborder, 1, commonborderscanmap, spatialnomodelmap,
+	  commonborderSelect, commonborderMap );
+
 Operator spatialtranslate
 	( "translate", SpatialSpecTranslate, 4, translatemap, spatialnomodelmap,
 	  translateSelect, translateMap );
@@ -12311,6 +12374,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialcrossings );
     AddOperator( &spatialtouchpoints);
     AddOperator( &spatialcommonborder);
+    AddOperator( &spatialcommonborderscan);
     AddOperator( &spatialsingle );
     AddOperator( &spatialdistance );
     AddOperator( &spatialdirection );
