@@ -2441,6 +2441,10 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
     double k, a, K, A;
     double x0; //, y0;  (x0, y0) is the intersection
 
+    if ((lp==chs.GetLP())||(lp==chs.GetRP())|| 
+        (rp==chs.GetLP())||(rp==chs.GetRP()))
+    return false;
+	    
     xl=lp.GetX();  yl=lp.GetY();
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
@@ -2810,7 +2814,11 @@ of the other line segment.
 const bool CHalfSegment::Inside(const CHalfSegment& chs) const
 { //to decide whether *this is part of *arg.
   assert( IsDefined() && chs.IsDefined() );
-
+  
+  if (((lp==chs.GetLP()) &&(rp==chs.GetRP())) ||
+      ((lp==chs.GetRP()) &&(rp==chs.GetLP())))
+  return true;
+      
   Coord xl,yl,xr,yr;
   Coord Xl,Yl,Xr,Yr;
   double k, a, K, A;
@@ -2868,7 +2876,8 @@ const bool CHalfSegment::Inside(const CHalfSegment& chs) const
 /*
 6.1.14 Contain Function
 
-This function decides whether a point is inside a line segment.
+This function decides whether a point is inside a line segment. Semantically, if the point is 
+on the end points of the segment, then it is also "contained".
 
 */
 const bool CHalfSegment::Contains( const Point& p ) const
@@ -2878,6 +2887,8 @@ const bool CHalfSegment::Contains( const Point& p ) const
   if( !IsDefined() )
     return false;
 
+  if ((p==lp) || (p==rp)) return true;
+  
   Coord xl,yl,xr,yr;
   Coord X,Y;
 
@@ -2886,7 +2897,7 @@ const bool CHalfSegment::Contains( const Point& p ) const
 
   X=p.GetX(); Y=p.GetY();
   
-  if ((xr!=xl)&&(X!=xl))
+    if ((xr!=xl)&&(X!=xl))
   {
       double k1, k2;
 #ifdef RATIONAL_COORDINATES
@@ -4097,6 +4108,8 @@ const SmiRecordId CRegion::GetRegionRecordId() const
 
 bool CRegion::contain( const Point& p ) const
 {
+    //here: if the point is on the border, it is also counted.
+    
    int faceISN[100];
 
     int lastfaceno=-1;
@@ -4135,6 +4148,8 @@ bool CRegion::contain( const Point& p ) const
 
 bool CRegion::innercontain( const Point& p ) const
 {
+    //onborder points are not counted.
+    
    int faceISN[100];
 
     int lastfaceno=-1;
@@ -4172,7 +4187,9 @@ bool CRegion::innercontain( const Point& p ) const
 }
 
 bool CRegion::contain( const CHalfSegment& chs ) const
-{
+{ 
+    //onborder cases are also counted as contain.
+    
     if ((!(this->contain(chs.GetLP())))||(!(this->contain(chs.GetRP()))))
     {
 	return false;
@@ -4195,6 +4212,10 @@ bool CRegion::contain( const CHalfSegment& chs ) const
 	    if (chs.cross(auxchs))
 	    {
 		return false;
+	    }
+	    else if (chs.Inside(auxchs))
+	    {       //chs is part of the border
+		return true;
 	    }
 	    else //two cases: not intersect or intersect
 	    {
