@@ -939,13 +939,15 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
           
-	  TimeTest::diffReal(); TimeTest::diffCPU();
-	  cout << "Analyze query ..." << endl
-	       << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+	   TimeTest::diffReal(); TimeTest::diffCPU();
+	   cout << "Analyze query ..." << endl;
 
           SecondoSystem::GetQueryProcessor()->
             Construct( level, nl->Second( list ), correct, evaluable, defined, 
                        isFunction, tree, resultType );
+
+	   cout << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+
           if ( !defined )
           {
             errorCode = 8;         // Undefined object value
@@ -954,16 +956,17 @@ If value 0 is returned, the command was executed without error.
           {
             if ( evaluable )
             {
-              cout << "Execute ..." << endl
-	           << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+              cout << "Execute ..." << endl;
 
-	      SecondoSystem::GetQueryProcessor()->
+	       SecondoSystem::GetQueryProcessor()->
                 Eval( tree, result, 1 );
               valueList = SecondoSystem::GetCatalog( level )->
                             OutObject( resultType, result );
               resultList = nl->TwoElemList( resultType, valueList );
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
+
+	       cout << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
 
             }
             else if ( isFunction ) // abstraction or function object
