@@ -1,6 +1,11 @@
 /*
 
-August 2004, M. Spiekermann. InitRTFlags introduced. This removes some code redundancies. 
+August 2004, M. Spiekermann. InitRTFlags introduced. This removes 
+some code redundancies. 
+
+Nov 2004, M. Spiekermann. The CMsg instance was moved to the file 
+Application.cpp since not all applications are linked with
+SecondoInterfaceGeneral.o
 
 */
 
@@ -9,13 +14,6 @@ using namespace std;
 #include "SecondoInterface.h"
 #include "LogMsg.h"
 #include "Profiles.h"
-
-
-// global instance of a Message object. All messages should be reported
-// using this object to have a flexible mechanism for message handling.
-// The class is dclared in the file LogMsg.h.
-CMsg cmsg;
-
 
 NestedList*
 SecondoInterface::GetNestedList()

@@ -1,7 +1,7 @@
 /*
-//paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
-//[--------]	[\hline]
-//characters	[1]	verbatim:	[\verb|]	[|]
+//paragraph [23]  table3columns:  [\begin{quote}\begin{tabular}{lll}] [\end{tabular}\end{quote}]
+//[--------]  [\hline]
+//characters  [1] verbatim: [\verb|]  [|]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -15,6 +15,9 @@
 December 2003 M. Spiekermann 
 
 August 2004 M. Spiekermann. Implemented class ~CMsg~
+
+Nov 2004 M. Spiekermann. Tabstops were replaced by spaces since different
+setting of tabstops in editors will mess the code formatting.
 
 1.1 Overview
 
@@ -52,13 +55,13 @@ Here are some examples how to use the interface:
 
 ---- cmsg.info() << "Non critical information send to cout" << endl;
      cmsg.send();
-		 cmsg.warning() << "More critical information send to cout" << endl;
-		 cmsg.send();
-		 cmsg.error() << "Error information send to cerr" << endl;
-		 cmsg.send();
-		 cmsg.file() << "Information send to the file secondo.log" << endl;
-		 cmsg.send();
-		 cmsg.file("my-logfile.log") << Information send to my-logfile.log" << endl;
+     cmsg.warning() << "More critical information send to cout" << endl;
+     cmsg.send();
+     cmsg.error() << "Error information send to cerr" << endl;
+     cmsg.send();
+     cmsg.file() << "Information send to the file secondo.log" << endl;
+     cmsg.send();
+     cmsg.file("my-logfile.log") << "Information send to my-logfile.log" << endl;
 ----
 
 Before changing the output channel it is important to clear the messsage buffer with
@@ -101,7 +104,6 @@ private:
   ~RTFlag(){}
 
   static map<string,bool> flagMap;
-  
   static map<string,bool>::iterator it;
 
 };
@@ -111,81 +113,80 @@ class CMsg {
 
 public:
   
-	CMsg() : 
-	stdOutput(1), 
-	fp(new ofstream()),
-	logFileStr("secondo.log")
+  CMsg() : 
+  stdOutput(1), 
+  fp(new ofstream()),
+  logFileStr("secondo.log")
   {
-	  files[logFileStr] = fp;
-		fp->open(logFileStr.c_str()); 
+    files[logFileStr] = fp;
+    fp->open(logFileStr.c_str()); 
   }
-	~CMsg() // close open files
-	{
-		for ( map<string,ofstream*>::iterator it = files.begin();
-	        it != files.end();
-					it++ )
-		{
-		   it->second->close();
-			 delete it->second;
-		}			
-	}
+  ~CMsg() // close open files
+  {
+    for ( map<string,ofstream*>::iterator it = files.begin();
+          it != files.end();
+          it++ )
+    {
+       it->second->close();
+       delete it->second;
+    }     
+  }
 
-	ostream& file() 
-	{
-	  fp = files[logFileStr]; 
-		stdOutput = 3;	
-		return buffer; 
-	}
-	ostream& file(const string& fileName) 
-	{ 
-	  map<string,ofstream*>::iterator it = files.find(fileName);
-		
-		if  ( it != files.end() ) {
-		
-		  fp = it->second;
-			
-	  } else {
-		
-		  fp = new ofstream();
-			files[fileName] = fp;
-      fp->open(fileName.c_str());
-	  }
-		stdOutput = 3;	  
-		return buffer; 
+  inline ostream& file() 
+  {
+    fp = files[logFileStr]; 
+    stdOutput = 3;  
+    return buffer; 
   }
-	ostream& info()    { stdOutput = 1; return buffer; }
-	ostream& warning() { stdOutput = 1; return buffer; }
-	ostream& error()   { stdOutput = 2; return buffer; }	
-  void send() {
-	
-	  if ( stdOutput == 3 ) {
-		  (*fp) << buffer.str();
+  inline ostream& file(const string& fileName) 
+  { 
+    map<string,ofstream*>::iterator it = files.find(fileName);
+    
+    if  ( it != files.end() ) {
+    
+      fp = it->second;
+      
+    } else {
+    
+      fp = new ofstream();
+      files[fileName] = fp;
+      fp->open(fileName.c_str());
     }
-		else {
-		
-		  if ( stdOutput == 1) {
-		   cout << buffer.str();
-		  } 
-		  else {
-		   cerr << buffer.str();
-		  }
-		}
-		buffer.str("");
-		buffer.clear();
-		stdOutput = 1;		
-	}
+    stdOutput = 3;    
+    return buffer; 
+  }
+  inline ostream& info()    { stdOutput = 1; return buffer; }
+  inline ostream& warning() { stdOutput = 1; return buffer; }
+  inline ostream& error()   { stdOutput = 2; return buffer; }  
+  inline void send() {
+  
+    if ( stdOutput == 3 ) {
+      (*fp) << buffer.str();
+    }
+    else {
+    
+      if ( stdOutput == 1) {
+       cout << buffer.str();
+      } 
+      else {
+       cerr << buffer.str();
+      }
+    }
+    buffer.str("");
+    buffer.clear();
+  }
 
 private:
 
   int stdOutput;
-	ofstream* fp;
-	stringstream buffer;
-	const string logFileStr;
-	map<string,ofstream*> files;
+  ofstream* fp;
+  stringstream buffer;
+  const string logFileStr;
+  map<string,ofstream*> files;
 
 };
 
-// defined in SecondoInterfaceGeneral.cpp
+// defined in Application.cpp
 extern CMsg cmsg;
 
 #endif

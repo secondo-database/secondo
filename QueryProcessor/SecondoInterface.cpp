@@ -1118,19 +1118,30 @@ If value 0 is returned, the command was executed without error.
   )
   nl->initializeListMemory();
   
-  LOGMSG( "SI:CommandTime",
-	
+  if ( RTFlag::isActive("SI:CommandTime") ){
+   
     static int nr = 0;
+    static bool writeHeadLine = true;
+    const string logFile="cmd-times.csv";	
+    const string sep="|";
+   
+    if ( writeHeadLine ) {
+      cmsg.file(logFile) << "#nr" << sep
+                         << "command" << sep
+                         << "realtime" << sep
+                         << "cpu-time" << endl; 
+      cmsg.send();
+      writeHeadLine = false; 
+    } 
+
     nr++;
-    cmsg.file("cmd-idx.log") << nr << ": " << commandText << endl;
-    cmsg.send();
-    cmsg.file("cmd-real.log") << nr << " " << cmdTime.diffSecondsReal() << endl;
-    cmsg.send();						
-    cmsg.file("cmd-cpu.log") << nr << " " << cmdTime.diffSecondsCPU() << endl;
+    cmsg.file(logFile) << nr << sep << commandText
+                       << sep << cmdTime.diffSecondsReal()
+                       << sep << cmdTime.diffSecondsCPU() << endl;
     cmsg.send();								
     cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
     cmsg.send();
-  )
+ } 
   
 }
 

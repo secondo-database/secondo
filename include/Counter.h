@@ -16,6 +16,9 @@ December 2003 M. Spiekermann
 
 August 2004 M. Spiekermann, Function ~resetAll~ introduced.
 
+Nove 2004 M. Spiekermann. The counter values will additonally be
+saved in CSV format in a file called "cmd-counters.csv".
+
 1.1 Overview
 
 The class ~Counter~ provides a mechanism for registering counters with an
@@ -45,6 +48,7 @@ be introduced and called at a suitable position.
 #include <string>
 #include <iostream>
 
+#include "LogMsg.h"
 
 using namespace std;
 
@@ -78,20 +82,40 @@ public:
 
   static void reportValues() {
 
-    string sep("_____________________________________________________________");
+    static int nr = 0;
+    static size_t mapsize = 0; 
+    const string sep(60,'_');
+    const string csvsep="|";
+    ostream& clog = cmsg.file("cmd-counters.csv");  
+
+    if ( mapsize != CounterMap.size() ) { // this implies CounterMap > 0
+      
+      it=CounterMap.begin();
+      clog << it->first;
+      for ( it++; it!=CounterMap.end(); it++) {
+       clog << csvsep << it->first;
+      }
+      clog << endl;
+      cmsg.send();
+      mapsize = CounterMap.size();
+    }
+
     cout << sep << endl << "Counter Values ...  ";
+    clog << ++nr;
     for (it=CounterMap.begin(); it!=CounterMap.end(); it++) {
 
        cout << it->first << "=" << it->second << ", ";
+       clog << csvsep << it->second;
     }
     cout << endl << sep << endl << endl;
+    clog << endl;
+    cmsg.send();
 
   };
 
 private:
 
   static map<string,long> CounterMap;
-  
   static map<string,long>::iterator it;
 
 };

@@ -5,6 +5,10 @@ April 2002 Ulrich Telle
 
 August 2002 Ulrich Telle Bug fix for uninitialized variables
 
+Nov 2004 M. Spiekermann. A global instance of class CMsg is defined
+in this file to be used by an application to transmit Informations
+to files, screen or (in case of the server) to a client. 
+
 */
 
 #include <cstdio>
@@ -29,6 +33,12 @@ using namespace std;
 #ifndef _POSIX_OPEN_MAX
 #define _POSIX_OPEN_MAX	256
 #endif
+
+// global instance of a Message object. All messages should be reported
+// using this object to have a flexible mechanism for message handling.
+// The class is dclared in the file LogMsg.h.
+CMsg cmsg;
+
 
 Application* 
 Application::appPointer = 0;
