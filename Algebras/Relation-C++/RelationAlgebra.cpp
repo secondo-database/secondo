@@ -790,8 +790,8 @@ static ListExpr FeedTypeMap(ListExpr args)
 static int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Relation* r;
-  RelationIterator* rit;
+  GenericRelation* r;
+  GenericRelationIterator* rit;
   Word argRelation;
 
 
@@ -799,14 +799,14 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
       qp->Request(args[0].addr, argRelation);
-      r = ((Relation*)argRelation.addr);
+      r = ((GenericRelation*)argRelation.addr);
       rit = r->MakeScan();
 
       local = SetWord(rit);
       return 0;
 
     case REQUEST :
-      rit = (RelationIterator*)local.addr;
+      rit = (GenericRelationIterator*)local.addr;
       Tuple *t;
       if ((t = rit->GetNextTuple()) != 0)
       {
@@ -819,7 +819,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      rit = (RelationIterator*)local.addr;
+      rit = (GenericRelationIterator*)local.addr;
       delete rit;
       return 0;
   }

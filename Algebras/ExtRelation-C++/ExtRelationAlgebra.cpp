@@ -2859,8 +2859,8 @@ int GroupByValueMapping
         t->PutAttribute(numberatt + ind, ((Attribute*)value.addr)->Clone()) ;
       }
       result = SetWord(t);
-      tp->Clear();
-      delete tp;
+//      tp->Clear();
+//      delete tp;
       return YIELD;
 
     case CLOSE:

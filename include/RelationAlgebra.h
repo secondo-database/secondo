@@ -398,70 +398,28 @@ class TupleCompareBy : public TupleCompare
 };
 
 /*
-3.9 Class ~TupleBuffer~
-
-This class is used to collect tuples for sorting, for example, or
-to do a cartesian product.
+3.10 Class ~GenericRelationIterator~
 
 */
-struct PrivateTupleBuffer;
-/*
-Forward declaration of the struct ~PrivateTupleBuffer~. This struct will contain the
-private attributes of the class ~TupleBuffer~ and will be defined later differently
-for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
-
-*/
-class TupleBufferIterator;
-/*
-Forward declaration.
-
-*/
-
-class TupleBuffer
+class GenericRelationIterator
 {
   public:
-    TupleBuffer();
+    virtual ~GenericRelationIterator() {};
+    virtual Tuple *GetNextTuple() = 0;
+};
+
 /*
-The constructor. Creates an empty tuple buffer. 
+3.9 Class ~GenericRelation~
 
 */
-    ~TupleBuffer();
-/*
-The destructor. It is not the intention of the buffer to delete
-tuples. 
-
-*/
-    const size_t Size() const;
-/*
-Returns the number of tuples in the buffer.
-
-*/
-    const bool IsEmpty() const;
-/*
-Checks if the tuple buffer is empty or not.
-
-*/
-    void Clear();
-/*
-Deletes (if allowed) all tuples and also clears the buffer.
-
-*/
-    void AppendTuple( Tuple *t );
-/*
-Appends a tuple to the buffer.
-
-*/
-    TupleBufferIterator *MakeScan();
-/*
-Returns a ~TupleBufferIterator~ for a new scan.    
-
-*/
-
-    friend class TupleBufferIterator;
-    friend struct PrivateTupleBufferIterator;
-
-  private:
-    PrivateTupleBuffer *privateTupleBuffer;    
+class GenericRelation
+{
+  public:
+    virtual ~GenericRelation() {};
+    virtual const int GetNoTuples() const = 0;
+    virtual void Clear() = 0;
+    virtual void AppendTuple( Tuple *t ) = 0;
+    virtual GenericRelationIterator *MakeScan() const = 0;
 };
 
 /*
@@ -470,19 +428,25 @@ Returns a ~TupleBufferIterator~ for a new scan.
 This class is an iterator for the ~TupleBuffer~ class.
 
 */
+class TupleBuffer;
+/*
+Forward declaration.
+
+*/
+
 struct PrivateTupleBufferIterator;
 /*
-Forward declaration of the struct ~PrivateTupleBufferIterator~. This struct will contain 
-the private attributes of the class ~TupleBufferIterator~ and will be defined later 
-differently for the Main Memory Relational Algebra and for the Persistent Relational 
+Forward declaration of the struct ~PrivateTupleBufferIterator~. This struct will contain
+the private attributes of the class ~TupleBufferIterator~ and will be defined later
+differently for the Main Memory Relational Algebra and for the Persistent Relational
 Algebra.
 
 */
 
-class TupleBufferIterator
+class TupleBufferIterator : public GenericRelationIterator
 {
   public:
-    TupleBufferIterator( TupleBuffer *buffer );
+    TupleBufferIterator( const TupleBuffer& buffer );
 /*
 The constructor.
 
@@ -502,8 +466,134 @@ Returns the next tuple of the buffer. Returns 0 if the end of the buffer is reac
 };
 
 /*
+3.9 Class ~TupleBuffer~
+
+This class is used to collect tuples for sorting, for example, or
+to do a cartesian product.
+
+*/
+struct PrivateTupleBuffer;
+/*
+Forward declaration of the struct ~PrivateTupleBuffer~. This struct will contain the
+private attributes of the class ~TupleBuffer~ and will be defined later differently
+for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
+
+*/
+class TupleBuffer : public GenericRelation
+{
+  public:
+    TupleBuffer();
+/*
+The constructor. Creates an empty tuple buffer. 
+
+*/
+    ~TupleBuffer();
+/*
+The destructor. It is not the intention of the buffer to delete
+tuples. 
+
+*/
+    const int GetNoTuples() const;
+/*
+Returns the number of tuples in the buffer.
+
+*/
+    const bool IsEmpty() const;
+/*
+Checks if the tuple buffer is empty or not.
+
+*/
+    void Clear();
+/*
+Deletes (if allowed) all tuples and also clears the buffer.
+
+*/
+    void AppendTuple( Tuple *t );
+/*
+Appends a tuple to the buffer.
+
+*/
+    TupleBufferIterator *MakeScan() const; 
+/*
+Returns a ~TupleBufferIterator~ for a new scan.    
+
+*/
+
+    friend class TupleBufferIterator;
+    friend struct PrivateTupleBufferIterator;
+
+  private:
+    PrivateTupleBuffer *privateTupleBuffer;    
+};
+
+/*
 4 Type constructor ~rel~
 
+4.2 Class ~RelationIterator~
+
+This class is used for scanning (iterating through) relations.
+
+*/
+
+class Relation;
+/*
+Forward declaration.
+
+*/
+
+struct PrivateRelationIterator;
+/*
+Forward declaration of the struct ~PrivateRelationIterator~. This struct will contain the
+private attributes of the class ~RelationIterator~ and will be defined later differently
+for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
+
+*/
+
+class RelationIterator : public GenericRelationIterator
+{
+  public:
+    RelationIterator( const Relation& relation );
+/*
+The constructor. Creates a ~RelationIterator~ for a given ~relation~ and positions the
+cursor in the first tuple, if exists.
+
+*/
+    ~RelationIterator();
+/*
+The destructor.
+
+*/
+//    Tuple *GetTuple();
+/*
+Retrieves the tuple in the current position of the iterator. Returns NULL if the cursor
+is in the end of a relation.
+
+*/
+    Tuple *GetNextTuple();
+/*
+Retrieves the tuple in the current position of the iterator and moves the cursor forward
+to the next tuple. Returns NULL if the cursor is in the end of a relation.
+
+*/
+//    void Next();
+/*
+Moves the cursor forward to the next tuple.
+
+*/
+    const bool EndOfScan();
+/*
+Tells if the cursor is in the end of a relation.
+
+*/
+  private:
+    PrivateRelationIterator *privateRelationIterator;
+/*
+The private attributes of the class ~RelationIterator~.
+
+*/
+};
+
+/*
 4.1 Class ~Relation~
 
 This class implements the memory representation of the type constructor ~rel~.
@@ -524,15 +614,7 @@ private attributes of the class ~Relation~ and will be defined later differently
 for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
 
 */
-
-class RelationIterator;
-/*
-Forward declaration of the class ~RelationIterator~ which is needed in the class
-~Relation~.
-
-*/
-
-class Relation
+class Relation : public GenericRelation
 {
   public:
     Relation( const ListExpr typeInfo, const bool isTemporary = false );
@@ -640,64 +722,6 @@ Function to give outside access to the private part of the relation class.
     PrivateRelation *privateRelation;
 /*
 The private attributes of the class ~Relation~.
-
-*/
-};
-
-/*
-4.2 Class ~RelationIterator~
-
-This class is used for scanning (iterating through) relations.
-
-*/
-struct PrivateRelationIterator;
-/*
-Forward declaration of the struct ~PrivateRelationIterator~. This struct will contain the
-private attributes of the class ~RelationIterator~ and will be defined later differently
-for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
-
-*/
-
-class RelationIterator
-{
-  public:
-    RelationIterator( const Relation& relation );
-/*
-The constructor. Creates a ~RelationIterator~ for a given ~relation~ and positions the
-cursor in the first tuple, if exists. 
-
-*/
-    ~RelationIterator();
-/*
-The destructor.
-
-*/
-//    Tuple *GetTuple();
-/*
-Retrieves the tuple in the current position of the iterator. Returns NULL if the cursor
-is in the end of a relation.
-
-*/
-    Tuple *GetNextTuple();
-/*
-Retrieves the tuple in the current position of the iterator and moves the cursor forward
-to the next tuple. Returns NULL if the cursor is in the end of a relation.
-
-*/
-//    void Next();
-/*
-Moves the cursor forward to the next tuple.
-
-*/
-    const bool EndOfScan();
-/*
-Tells if the cursor is in the end of a relation.
-
-*/
-  private:
-    PrivateRelationIterator *privateRelationIterator;
-/*
-The private attributes of the class ~RelationIterator~.
 
 */
 };

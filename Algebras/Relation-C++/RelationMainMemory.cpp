@@ -301,7 +301,7 @@ TupleBuffer::~TupleBuffer()
   delete privateTupleBuffer;
 }
 
-const size_t TupleBuffer::Size() const
+const int TupleBuffer::GetNoTuples() const
 {
   return privateTupleBuffer->buffer.size();
 }
@@ -323,9 +323,9 @@ void TupleBuffer::AppendTuple( Tuple *t )
   privateTupleBuffer->buffer.push_back( t );
 }
 
-TupleBufferIterator *TupleBuffer::MakeScan()
+TupleBufferIterator *TupleBuffer::MakeScan() const
 {
-  return new TupleBufferIterator( this );  
+  return new TupleBufferIterator( *this );  
 }
 
 /*
@@ -334,7 +334,7 @@ TupleBufferIterator *TupleBuffer::MakeScan()
 */
 struct PrivateTupleBufferIterator
 {
-  PrivateTupleBufferIterator( TupleBuffer *tupleBuffer ):
+  PrivateTupleBufferIterator( const TupleBuffer& tupleBuffer ):
     tupleBuffer( tupleBuffer ),
     currentTuple( 0 )
     {
@@ -343,7 +343,7 @@ struct PrivateTupleBufferIterator
 The constructor.
 
 */
-  TupleBuffer *tupleBuffer;
+  const TupleBuffer& tupleBuffer;
 /*
 A pointer to the tuple buffer.
 
@@ -359,7 +359,7 @@ The iterator from STL.
 3.9.3 Implementation of the class ~TupleBufferIterator~
 
 */
-TupleBufferIterator::TupleBufferIterator( TupleBuffer *tupleBuffer ):
+TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
   privateTupleBufferIterator( new PrivateTupleBufferIterator( tupleBuffer ) )
   {}
 
@@ -370,10 +370,10 @@ TupleBufferIterator::~TupleBufferIterator()
 
 Tuple *TupleBufferIterator::GetNextTuple()
 {
-  if( privateTupleBufferIterator->currentTuple == privateTupleBufferIterator->tupleBuffer->privateTupleBuffer->buffer.size() )
+  if( privateTupleBufferIterator->currentTuple == privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->buffer.size() )
     return 0;
 
-  Tuple *result = privateTupleBufferIterator->tupleBuffer->privateTupleBuffer->buffer[privateTupleBufferIterator->currentTuple];
+  Tuple *result = privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->buffer[privateTupleBufferIterator->currentTuple];
   privateTupleBufferIterator->currentTuple++;
 
   return result;

@@ -758,7 +758,7 @@ TupleBuffer::~TupleBuffer()
   delete privateTupleBuffer;
 }
 
-const size_t TupleBuffer::Size() const
+const int TupleBuffer::GetNoTuples() const
 {
   if( privateTupleBuffer->inMemory )
     return privateTupleBuffer->memoryBuffer.size();
@@ -826,9 +826,9 @@ void TupleBuffer::AppendTuple( Tuple *t )
   }
 }
 
-TupleBufferIterator *TupleBuffer::MakeScan()
+TupleBufferIterator *TupleBuffer::MakeScan() const
 {
-  return new TupleBufferIterator( this );
+  return new TupleBufferIterator( *this );
 }
 
 /*
@@ -837,10 +837,10 @@ TupleBufferIterator *TupleBuffer::MakeScan()
 */
 struct PrivateTupleBufferIterator
 {
-  PrivateTupleBufferIterator( TupleBuffer *tupleBuffer ):
+  PrivateTupleBufferIterator( const TupleBuffer& tupleBuffer ):
     tupleBuffer( tupleBuffer ),
     currentTuple( 0 ),
-    diskIterator( tupleBuffer->privateTupleBuffer->inMemory ? 0 : tupleBuffer->privateTupleBuffer->diskBuffer->MakeScan() )
+    diskIterator( tupleBuffer.privateTupleBuffer->inMemory ? 0 : tupleBuffer.privateTupleBuffer->diskBuffer->MakeScan() )
     {
     }
 /*
@@ -855,7 +855,7 @@ The constructor.
 The destructor.
 
 */
-  TupleBuffer *tupleBuffer;
+  const TupleBuffer& tupleBuffer;
 /*
 A pointer to the tuple buffer.
 
@@ -876,7 +876,7 @@ The iterator if it is not in memory.
 3.9.3 Implementation of the class ~TupleBufferIterator~
 
 */
-TupleBufferIterator::TupleBufferIterator( TupleBuffer *tupleBuffer ):
+TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
   privateTupleBufferIterator( new PrivateTupleBufferIterator( tupleBuffer ) )
   {}
 
@@ -893,10 +893,10 @@ Tuple *TupleBufferIterator::GetNextTuple()
   }
   else
   {
-    if( privateTupleBufferIterator->currentTuple == privateTupleBufferIterator->tupleBuffer->privateTupleBuffer->memoryBuffer.size() )
+    if( privateTupleBufferIterator->currentTuple == privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->memoryBuffer.size() )
       return 0;
 
-    Tuple *result = privateTupleBufferIterator->tupleBuffer->privateTupleBuffer->memoryBuffer[privateTupleBufferIterator->currentTuple];
+    Tuple *result = privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->memoryBuffer[privateTupleBufferIterator->currentTuple];
     privateTupleBufferIterator->currentTuple++;
 
     return result;
