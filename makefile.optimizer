@@ -5,24 +5,18 @@ ifeq ($(platform),win32)
 
    ifndef SWI_HOME_DIR
    $(warning Variable SWI_HOME_DIR not defined. If you want to use the optimizer you have to set it up!)
-   else
-   PL_INCLUDE_DIR := $(SWI_HOME_DIR)/include
-   PL_LIB_DIR := $(SWI_HOME_DIR)/lib
+   endif
+
+endif
+
+ifdef PL_INCLUDE_DIR
+   ifdef PL_LIB_DIR
    optimizer := "true"
-   endif
-
-else
-
-   ifdef PL_INCLUDE_DIR
-     ifdef PL_LIB_DIR
-     optimizer := "true"
-     else
-     $(warning Variable PL_LIB_DIR not defined. If you want to use the optimizer you have to set it up!)
-     endif
    else
-   $(warning Variable PL_INCLUDE_DIR not defined. If you want to use the optimizer you have to set it up!)
+   $(warning Variable PL_LIB_DIR not defined. If you want to use the optimizer you have to set it up!)
    endif
-
+else
+   $(warning Variable PL_INCLUDE_DIR not defined. If you want to use the optimizer you have to set it up!)
 endif
 
 export PL_LIB_DIR PL_INCLUDE_DIR optimizer

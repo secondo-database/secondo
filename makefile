@@ -10,13 +10,17 @@ include ./makefile.env
 all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
 
 
-.PHONY: msys-config
-msys-config:
-	$(MAKE) -C Win32/MSYS install
+.PHONY: config
+config:
+ifeq ($(platform),win32)
+	$(MAKE) -C Win32/MSYS config-msys
+else
+	$(MAKE) -C Win32/MSYS config-all
+endif
 
 .PHONY: javagui
-javagui:
-	$(MAKE) -C Javagui all
+javagui: java2
+
 
 .PHONY: clientserver
 clientserver: cs
@@ -30,6 +34,7 @@ cs: makedirs buildlibs buildalg checkup
 
 .PHONY: makedirs
 makedirs:
+	@echo -e "\n *** Building objects for Secondo libraries *** \n"
 	$(MAKE) -C ClientServer
 	$(MAKE) -C Tools
 	$(MAKE) -C StorageManager
@@ -44,7 +49,8 @@ buildalg:
 
 
 .PHONY: buildlibs
-buildlibs: 
+buildlibs:
+	@echo -e "\n *** Creating library files *** \n"
 	$(MAKE) -f ./makefile.libs
 
 
@@ -53,6 +59,7 @@ java: java2 checkup
 
 .PHONY: java2
 java2:
+	@echo -e "\n *** Compiling the java based GUI *** \n"
 	$(MAKE) -C Javagui all
 
 
@@ -67,6 +74,7 @@ optimizer2: makedirs buildlibs buildalg
 .PHONY: optserver
 optserver:
 ifeq ($(optimizer),"true")
+	@echo -e "\n *** Building JPL and the optimizer server *** \n"
 	$(MAKE) -C Jpl all
 	$(MAKE) -C OptServer all
 endif
@@ -90,6 +98,7 @@ TestRunner2: makedirs buildlibs buildalg
 
 .PHONY: buildapps
 buildapps: 
+	@echo -f "\n *** Linking Applications *** \n"
 	$(MAKE) -C UserInterfaces buildapp
 	$(MAKE) -C ClientServer buildapp
 
