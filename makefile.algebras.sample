@@ -72,6 +72,9 @@ ALGEBRAS     +=	SpatialAlgebra
 ALGEBRA_DIRS +=	FText
 ALGEBRAS     +=	FTextAlgebra
 
+ALGEBRA_DIRS +=	BinaryFile
+ALGEBRAS     +=	BinaryFileAlgebra
+
 
 # JNI Algebras - Java code will be called from C++ code.
 
