@@ -2466,7 +2466,7 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   Word elem;
   int count = 0;
 
-  cout << "tcount" << endl;
+	//cout << "tcount" << endl;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
