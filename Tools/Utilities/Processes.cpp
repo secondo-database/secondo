@@ -3,6 +3,8 @@
 
 April 2002 Ulrich Telle
 
+April 2003 Ulrich Telle Fixed a bug in the transfer of Win32 socket handle on Windows 98 & ME systems
+
 */
 
 using namespace std;
@@ -147,7 +149,7 @@ ProcessFactory::SpawnProcess( const string& programpath,
     DuplicateHandle( GetCurrentProcess(), (HANDLE) sd,
                      GetCurrentProcess(), (HANDLE*) &sdDup,
                      0, TRUE, DUPLICATE_SAME_ACCESS );
-    os.seekp( 0 );
+    os.str( "" );
     os << " --socket=" << sdDup;
     localArgs += os.str();
   }
