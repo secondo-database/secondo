@@ -45,7 +45,7 @@ public static boolean writeAlgebra(PrintStream out,
  
   // print forard declarations for the classes
   out.println("/*\n");
-  out.println(" 1.0 Forward Declarations for Algebra Classes \n");
+  out.println("1.0 Forward Declarations for Algebra Classes \n");
   out.println("*/");
    
   for(int i=0;i<classes.length;i++)
