@@ -930,6 +930,11 @@ const bool Points::IsOrdered() const
   return ordered;
 }
 
+void  Points::setOrdered(bool isordered)
+{
+  ordered = isordered;
+}
+
 int Points::operator==( const Points& ps ) const
 {
   assert( IsOrdered() && ps.IsOrdered() );
@@ -1240,6 +1245,7 @@ void  Points::Clear()
     points->Clear();
     pos=-1;
     ordered=true;
+    bbox.SetDefined(false);
 }
 
 void  Points::CopyFrom(StandardAttribute* right)
@@ -1667,6 +1673,13 @@ void     CHalfSegment::SetLDP(bool LDP)
 {
     assert(IsDefined());
     ldp=LDP;
+}
+
+void    CHalfSegment::translate(double xx, double yy)
+{
+    assert(IsDefined());
+    lp.translate(xx,yy);
+    rp.translate(xx,yy);
 }
 
 const Rectangle CHalfSegment::BoundingBox() const
@@ -3409,6 +3422,11 @@ const bool CLine::IsOrdered() const
   return ordered;
 }
 
+void  CLine::setOrdered(bool isordered)
+{
+  ordered = isordered;
+}
+
 void CLine::StartBulkLoad()
 {
   assert( IsOrdered() );
@@ -3693,6 +3711,7 @@ void  CLine::Clear()
     line->Clear();
     pos=-1;
     ordered=true;
+    bbox.SetDefined(false);
 }
 
 void  CLine::CopyFrom(StandardAttribute* right)
@@ -5033,6 +5052,7 @@ void  CRegion::Clear()
     region->Clear();
     pos=-1;
     ordered=true;
+    bbox.SetDefined(false);
 }
 
 void  CRegion::CopyFrom(StandardAttribute* right)
@@ -6828,7 +6848,7 @@ unionMap( ListExpr args )
 }
 
 /*
-10.1.4 Type mapping function for operator ~crossings~
+10.1.7 Type mapping function for operator ~crossings~
 
 This type mapping function is the one for ~crossings~ operator. This operator
 compute the crossing point of two lines so that the result type is a set of points.
@@ -6853,7 +6873,7 @@ crossingsMap( ListExpr args )
 
 
 /*
-10.1.5 Type mapping function for operator ~single~
+10.1.8 Type mapping function for operator ~single~
 
 This type mapping function is used for the ~single~ operator. This
 operator transform a single-element points value to a point.
@@ -6874,7 +6894,7 @@ singleMap( ListExpr args )
 }
 
 /*
-10.1.6 Type mapping function for operator ~distance~
+10.1.9 Type mapping function for operator ~distance~
 
 This type mapping function is used for the ~distance~ operator. This
 operator computes the distance between two spatial objects.
@@ -6946,7 +6966,7 @@ distanceMap( ListExpr args )
 }
 
 /*
-10.1.7 Type mapping function for operator ~direction~
+10.1.10 Type mapping function for operator ~direction~
 
 This type mapping function is used for the ~direction~ operator. This
 operator computes the direction from the first point to the second point.
@@ -6970,7 +6990,7 @@ directionMap( ListExpr args )
 }
 
 /*
-10.1.8 Type mapping function for operator ~nocompoents~
+10.1.11 Type mapping function for operator ~nocompoents~
 
 This type mapping function is used for the ~nocomponents~ operator. This
 operator computes the number of components of a spatial object. For poins
@@ -6995,7 +7015,7 @@ nocomponentsMap( ListExpr args )
 }
 
 /*
-10.1.9 Type mapping function for operator ~size~
+10.1.12 Type mapping function for operator ~size~
 
 This type mapping function is used for the ~size~ operator. This operator
 computes the size of the spatial object. For line, the size is the totle length
@@ -7017,7 +7037,7 @@ sizeMap( ListExpr args )
 }
 
 /*
-10.1.10 Type mapping function for operator ~touchpoints~
+10.1.13 Type mapping function for operator ~touchpoints~
 
 This type mapping function is used for the ~touchpoints~ operator. This operator
 computes the touchpoints of a region and another region or a line.
@@ -7049,7 +7069,7 @@ touchpointsMap( ListExpr args )
 }
 
 /*
-10.1.11 Type mapping function for operator ~commonborder~
+10.1.14 Type mapping function for operator ~commonborder~
 
 This type mapping function is used for the ~commonborder~ operator. This operator
 computes the commonborder of two regions.
@@ -7073,7 +7093,7 @@ commonborderMap( ListExpr args )
 }
 
 /*
-10.1.11 Type mapping function for operator ~bbox~
+10.1.15 Type mapping function for operator ~bbox~
 
 This type mapping function is used for the ~bbox~ operator. This operator
 computes the bbox of a region, which is a ~rect~ (see RectangleAlgebra).
@@ -7097,7 +7117,7 @@ bboxMap( ListExpr args )
 }
 
 /*
-10.1.12 Type mapping function for operator ~insidepathlength~ and ~insidescanned~
+10.1.16 Type mapping function for operator ~insidepathlength~ and ~insidescanned~
 
 This type mapping function is used for the ~insidepathlength~ and  ~insidescanned~ operators.
 
@@ -7117,6 +7137,49 @@ insidepsMap( ListExpr args )
     }
 
     return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.17 Type mapping function for operator ~translate~
+
+This type mapping function is used for the ~translate~ operator. This operator 
+moves a region parallelly to another place and gets another region.  
+
+*/
+static ListExpr
+translateMap( ListExpr args )
+{  
+    ListExpr arg1, arg2, arg3;
+    if ( nl->ListLength( args ) == 3 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+	arg3 = nl->Third( args );
+	
+	if ( TypeOfSymbol( arg1 ) == stregion &&
+	     nl->IsEqual(arg2, "real") &&
+	     nl->IsEqual(arg3, "real"))
+	      //((nl->IsEqual(arg2, "real"))||(nl->IsEqual(arg2, "int")))  &&
+	      //((nl->IsEqual(arg3, "real"))||(nl->IsEqual(arg3, "int"))))
+	    return (nl->SymbolAtom( "region" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline &&
+	     nl->IsEqual(arg2, "real") &&
+	     nl->IsEqual(arg3, "real"))
+	    return (nl->SymbolAtom( "line" ));
+		
+	if ( TypeOfSymbol( arg1 ) == stpoints &&
+	     nl->IsEqual(arg2, "real") &&
+	     nl->IsEqual(arg3, "real"))
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoint &&
+	     nl->IsEqual(arg2, "real") &&
+	     nl->IsEqual(arg3, "real"))
+	    return (nl->SymbolAtom( "point" ));
+    }
+    
+    return (nl->SymbolAtom( "typeerror" ));    
 }
 
 /*
@@ -7779,6 +7842,33 @@ commonborderSelect( ListExpr args )
        TypeOfSymbol( arg2 ) == stregion )
       return (0);
 
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.19 Selection function ~translateSelect~
+
+This select function is used for the ~translate~ operator.
+
+*/
+
+static int
+translateSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if (TypeOfSymbol( arg1 ) == stpoint)
+      return (0);
+  
+  if (TypeOfSymbol( arg1 ) == stpoints)
+      return (1);
+    
+  if (TypeOfSymbol( arg1 ) == stline)
+      return (2);
+      
+  if (TypeOfSymbol( arg1 ) == stregion)
+      return (3);
+ 
   return (-1); // This point should never be reached
 }
 
@@ -11645,6 +11735,135 @@ commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 /*
+10.4.26 Value mapping functions of operator ~translate~
+
+*/
+
+static int
+translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    Point *p=((Point*)args[0].addr);
+    CcReal *xx=(CcReal *)args[1].addr;
+    CcReal *yy=(CcReal *)args[2].addr;
+    
+    if ( p->IsDefined())
+    {
+	Point resP(true, p->GetX()+xx->GetRealval(), p->GetY()+yy->GetRealval());
+	*((Point *)result.addr)=resP;
+	//((Point *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
+	return (0);
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((Points *)result.addr)->Clear();
+    
+    Points *ps=((Points*)args[0].addr);
+    CcReal *xx=(CcReal *)args[1].addr;
+    CcReal *yy=(CcReal *)args[2].addr;
+
+    if (!( ps->IsEmpty()))
+    {
+	Point auxp;
+	((Points *)result.addr)->StartBulkLoad();
+	
+	for (int i=0; i<ps->Size(); i++)
+	{
+	    ps->Get(i, auxp);
+	    auxp.translate(xx->GetRealval(), yy->GetRealval());
+	    *((Points *)result.addr) += auxp;
+	}
+	
+	((Points *)result.addr)->setOrdered(true);
+	//((Points *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+static int
+translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((CLine *)result.addr)->Clear();
+    
+    CLine *cl=((CLine *)args[0].addr);
+    CcReal *xx=(CcReal *)args[1].addr;
+    CcReal *yy=(CcReal *)args[2].addr;
+    
+    CHalfSegment chs;
+
+    if (!( cl->IsEmpty()))
+    {
+	((CLine *)result.addr)->StartBulkLoad();
+	
+	for (int i=0; i<cl->Size(); i++)
+	{
+	    cl->Get(i, chs);
+	    chs.translate(xx->GetRealval(), yy->GetRealval());
+	    *((CLine *)result.addr) += chs;
+	}
+	
+	((CLine *)result.addr)->setOrdered(true);
+	//((CLine *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+static int
+translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((CRegion *)result.addr)->Clear();
+    
+    CRegion *cr=((CRegion *)args[0].addr);
+    CcReal *xx=(CcReal *)args[1].addr;
+    CcReal *yy=(CcReal *)args[2].addr;
+
+    CHalfSegment chs;
+
+    if (!( cr->IsEmpty()))
+    {
+	((CRegion *)result.addr)->StartBulkLoad();
+	
+	for (int i=0; i<cr->Size(); i++)
+	{
+	    cr->Get(i, chs);
+	    chs.translate(xx->GetRealval(), yy->GetRealval());
+	    *((CRegion *)result.addr) += chs;
+	}
+	
+	((CRegion *)result.addr)->setOrdered(true);
+	//((CRegion *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+/*
 10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -11821,6 +12040,12 @@ ValueMapping touchpointsmap[] =  	 { touchpoints_lr,
 			                 };
 
 ValueMapping commonbordermap[] = { commonborder_rr
+				      };
+
+ValueMapping translatemap[] = { translate_p,
+			          translate_ps,
+			          translate_l,
+			          translate_r				  
 				      };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
@@ -12086,6 +12311,14 @@ const string SpatialSpecCommonborder  =
 	"<text> return the common border of two regions.</text--->"
 	"<text> query commonborder(region1, region2)</text--->"
 	") )";
+
+const string SpatialSpecTranslate  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(point||points||line||region x real x real) -> point||points||line||region</text--->"
+	"<text> translate(_, _, _)</text--->"
+	"<text> move the object parallely for some distance.</text--->"
+	"<text> query translate(region1, 3.5, 15.1)</text--->"
+	") )";
 /*
 10.5.3 Definition of the operators
 
@@ -12210,6 +12443,9 @@ Operator spatialcommonborder
 	( "commonborder", SpatialSpecCommonborder, 1, commonbordermap, spatialnomodelmap,
 	  commonborderSelect, commonborderMap );
 
+Operator spatialtranslate
+	( "translate", SpatialSpecTranslate, 4, translatemap, spatialnomodelmap,
+	  translateSelect, translateMap );
 
 /*
 11 Creating the Algebra
@@ -12266,6 +12502,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialbbox);
     AddOperator( &spatialinsidepathlength );
     AddOperator( &spatialinsidescanned );
+    AddOperator( &spatialtranslate );
   }
   ~SpatialAlgebra() {};
 };

@@ -16,4 +16,5 @@ operator bbox alias BBOX pattern  op ( _ )
 operator insidepathlength alias INSIDEPATHLENGTH pattern  _ infixop _
 operator insidescanned alias INSIDESCANNED pattern  _ infixop _
 operator insideold alias INSIDEOLD pattern  _ infixop _
+operator translate alias TRANSLATE pattern  op ( _, _ , _)
 

@@ -140,6 +140,12 @@ Returns the point bounding box which is also a point.
 This function set the value of the point object.
 
 */
+    void  translate( double xx, double yy)
+    {
+	x=x+xx;
+	y=y+yy;
+    }
+    
     Point& operator=(const Point& p);
 /*
 Assignement operator redefinition.
@@ -405,6 +411,8 @@ Returns if the point se is ordered. There is a flag ~ordered~ (see attributes) i
 to avoid a scan in the point set to answer this question.
 
 */
+    void     setOrdered(bool isordered);
+    
     void StartBulkLoad();
 /*
 Marks the begin of a bulk load of points relaxing the condition that the points must be 
@@ -563,8 +571,10 @@ using ROSE algebra algorithms (DZM).
     bool EndOfPt();
     void GetPt( Point& p );
     void InsertPt( Point& p );
-
-  private:
+    
+    void     Clear();
+    
+    private:
 /*
 4.5 Private member functions
 
@@ -596,7 +606,7 @@ as an attribute.
     int      Sizeof() const;
     Points*    Clone() ;
     ostream& Print( ostream &os );
-    void     Clear();
+
 /*
 4.6 Atrtibutes
 
@@ -751,6 +761,8 @@ This function sets the value of a half segment. The parameter LP and RP can igno
 function will compare the parameter points and put the smaller one to LP and larger one to RP.
 
 */
+    void     translate(double xx, double yy);
+    
     void     SetDefined(bool Defined);
 /*
 This function sets the value of the "defined" argument of a half segment. 
@@ -1012,6 +1024,8 @@ as a set of sorted halfsegments, which are stored as a PArray.
 This function decides whether the half segments in the line value is sorted.
 
 */    
+    void     setOrdered(bool isordered);
+    
     const bool IsEmpty() const;
 /*
 This function decides whether the line value is empty.
