@@ -54,15 +54,18 @@ The class ~SecondoCatalog~ provides the following methods:
                               & InObject                 &   \\
                               & GetObjectValue           &   \\
                               & OutObject                &   \\
+                              & UpdateObject             &   \\
+                              & CloneObject              &   \\
         ListTypes             & IsObjectName             & ListOperators        \\
         InsertType            & GetObject                & IsOperatorName       \\
         DeleteType            & GetObjectExpr            & GetOperatorId        \\
         MemberType            & GetObjectType            & GetOperatorName      \\
-        LookUpTypeExpr        & UpdateObject             &   \\
+        LookUpTypeExpr        & GetObjectTypeExpr        &   \\
         GetTypeExpr           & InObjectModel            &   \\
         NumericType           & OutObjectModel           &   \\
         ExpandedType          & ValueToObjectModel       &   \\
-        KindCorrect           & ValueListToObjectModel   &   \\
+        KindCorrect           &                          &   \\
+                              & ValueListToObjectModel   &   \\
 
 1.4 Imports
 
@@ -367,11 +370,28 @@ Returns the type name ~typeName~ of an object with identifier
 *Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
+  ListExpr GetObjectTypeExpr( const string& objectName );
+/* 
+Returns the type expression of an object with identifier
+~objectName~. 
+
+*Precondition*: "IsObjectName( objectName ) == true"[4].
+
+*/
   bool UpdateObject( const string& objectName,
                      const Word word );
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
 new value ~word~. Returns "false"[4] if object does not exist. 
+
+*NOTE*: Works only at the executable level.
+
+*/
+  bool CloneObject( const string& objectName,
+                    const Word word );
+/*
+Overwrites the value of the object with identifier ~objectName~ with a
+new value cloned from ~word~. Returns "false"[4] if object does not exist. 
 
 *NOTE*: Works only at the executable level.
 

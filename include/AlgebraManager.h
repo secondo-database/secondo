@@ -45,9 +45,18 @@ April 2002 Ulrich Telle Port to C++, complete revision
 August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
+<<<<<<< AlgebraManager.h
+January, 2003 VTA Changed ~PersistValue~ interface and created three
+new functions ~Open~, ~Save~, ~Close~, and ~Clone~ that join the ~Create~ 
+and ~Delete~ to form the object state diagram in the Figure 1.
+
+Figure 1: Object state diagram [objstatediagram.eps]
+
+=======
 February 2003 Ulrich Telle Introduced new mode ~DeleteFrom~ for the
 ~PersistValue~ and ~PersistModel~ interface
 
+>>>>>>> 1.9
 1.1 Overview
  
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -99,10 +108,12 @@ operations:
   * ~Create~, ~Delete~. Allocate/deallocate internal memory. Not needed
 for types represented in a single word of storage. 
 
-  * ~Open~, ~Close~. Only needed, if the type is ~independently~
+  * ~Open~, ~Close~, ~Save~. Only needed, if the type is ~independently~
 persistent. For example, they will be needed for relations or object
 classes, but not for tuples or atomic values (if we decide that the
 latter are not independently persistent). 
+
+  * ~Clone~. Clones an instance of a type constructor.
 
   * ~In~, ~Out~. Map a nested list into a value of the type and vice
 versa. Used for delivering a value to the application (among other
@@ -126,15 +137,14 @@ structure
 
   * ~ValueListToModel~.
 
-For support of persistent storage of object values and models two more
-operations:
-
-  * ~PersistValue~. Saving and restoring an object value.
+For support of persistent storage of object models one more
+operation:
 
   * ~PersistModel~. Saving and restoring an object model.
 
-Two default implementations (~DefaultPersistValue~ and ~DefaultPersistModel~)
-are supplied which store values and models in their nested list representation.
+Three default implementations (~DefaultOpen~, ~DefaultSave~ and 
+~DefaultPersistModel~) are supplied which store values and models in 
+their nested list representation.
 
 The algebra module offers five (sets of) functions for every operator,
 namely 
@@ -277,7 +287,7 @@ models.
 
 */
 
-typedef Word (*InObject)( const ListExpr numType,
+typedef Word (*InObject)( const ListExpr typeInfo,
                           const ListExpr valueList,
                           const int errorPos,
                           ListExpr& errorInfo,
@@ -286,9 +296,21 @@ typedef Word (*InObject)( const ListExpr numType,
 typedef ListExpr (*OutObject)( const ListExpr numType,
                                const Word object );
 
-typedef Word (*ObjectCreation)( const int size );
+typedef Word (*ObjectCreation)( const ListExpr typeInfo );
 
 typedef void (*ObjectDeletion)( Word& object ); 
+
+typedef bool (*ObjectOpen)( SmiRecord& valueRecord,
+                            const ListExpr typeExpr,
+                            Word& value );
+
+typedef bool (*ObjectSave)( SmiRecord& valueRecord,
+                            const ListExpr typeExpr,
+                            Word& value );
+
+typedef void (*ObjectClose)( Word& object ); 
+
+typedef Word (*ObjectClone)( const Word& object ); 
 
 typedef void* (*ObjectCast)(void*);
 
@@ -630,22 +652,50 @@ Returns the address of the object deletion function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
+  bool OpenObj( const int algebraId, const int typeId,
+                SmiRecord& valueRecord,
+                const ListExpr typeInfo, Word& value );
+/*
+Open objects of type as constructed by type constructor 
+~typeId~ of algebra ~algebraId~.
+Return "true"[4], if the operation was successful.
+
+*/
+  bool SaveObj( const int algebraId, const int typeId,
+                SmiRecord& valueRecord,
+                const ListExpr typeInfo, Word& value );
+/*
+Save objects of type as constructed by type constructor 
+~typeId~ of algebra ~algebraId~.
+Return "true"[4], if the operation was successful.
+
+*/
+  ObjectClose
+    CloseObj( const int algebraId, const int typeId );
+/*
+Returns the address of the object close function of type constructor
+~typeId~ of algebra ~algebraId~.
+
+*/
+  ObjectClone
+    CloneObj( const int algebraId, const int typeId );
+/*
+Returns the address of the object clone function of type constructor
+~typeId~ of algebra ~algebraId~.
+
+*/
   ObjectCast Cast( const int algebraId, const int typeId );
 /*
 Returns the address of the type casting function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
-  bool PersistValue( const int algebraId, const int typeId,
-                     const PersistDirection dir,
-                     SmiRecord& valueRecord,
-                     const ListExpr typeInfo, Word& value );
   bool PersistModel( const int algebraId, const int typeId,
                      const PersistDirection dir,
                      SmiRecord& modelRecord,
                      const ListExpr typeExpr, Word& model );
 /*
-Save or restore object or model values for objects of type as
+Save or restore object model for objects of type as
 constructed by type constructor ~typeId~ of algebra ~algebraId~.
 Return "true"[4], if the operation was successful.
 

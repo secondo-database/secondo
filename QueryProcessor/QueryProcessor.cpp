@@ -163,7 +163,7 @@ using namespace std;
 
 1.2.1 Query Constants and Objects: Arrays ~values~ and ~models~
 
-The variable ~values~ of type ARRAY OF WORD is used to store the values
+The variable ~values~ of type ARRAY OF VALUEINFO is used to store the values
 of constants given in a query as well as of database objects mentioned.
 ~valueno~ is the current index of the array. Whenever a new query is
 annotated, ~valueno~ is reset to 1. Whenever a constant or object is
@@ -406,6 +406,8 @@ struct OpNode
       Word value;
       int  valNo;        /* needed for testing only */
       Word model;
+      bool isRoot;
+      bool isConstant;
     } dobj;
     struct OpNodeIndirectObject
     {
@@ -433,6 +435,7 @@ struct OpNode
     } op;
   } u;
 };
+
 /*
 
 The fields of the tree have the following meaning:
@@ -466,6 +469,12 @@ model value. For type constructors, for which models are not (yet)
 defined, the value WORD(0) is used to describe the undefined model. If
 models exist, they may have their own value to describe an undefined
 model (e.g. NIL for a pointer type). 
+
+  * ~isRoot~ is a flag that tells if the object is the root of a
+query processor tree. It is used to destroy the tree correctly.
+
+  * ~isConstant~ is a flag that tells if the object contains a 
+constant value or a variable value.
 
 It can be an ``indirect object'' which is accessible through an argument
 vector attached to a subtree representing a function argument: 
@@ -642,7 +651,40 @@ Represents an operator tree through a list expression. Used for testing.
   }
   return (nl->SymbolAtom( "ERROR" ));
 }
- 
+
+/*
+
+This function is used to test if the query processor tree is composed only
+by an object which is certainly the root node.
+
+*/
+bool IsRootObject( OpTree tree )
+{
+  if( tree->nodetype == Object )
+  {
+    assert( tree->u.dobj.isRoot == true );
+    return true;
+  }
+  return false;
+}
+
+/*
+
+This function is used to test if the query processor tree is composed by 
+only an object which is certainly the root node and if this node is a 
+constant value.
+
+*Precondition*: ~isRootObject(tree) == true~.
+
+*/
+bool IsConstantObject( OpTree tree )
+{
+  assert( IsRootObject( tree ) == true );
+  assert( tree->nodetype == Object );
+  assert( tree->u.dobj.isRoot == true );
+
+  return( tree->u.dobj.isConstant );
+}
 /************************************************************************** 
 1.4 Annotating the Query: Procedures ~annotate~ and ~annotateX~
 
@@ -723,8 +765,8 @@ create a constant of the respective type.
 ----
 
         Here ~index~ is an index into array ~values~ containing
-constants in the form of words. ~Annotate~ enters the value into that
-array. 
+constants in the form of {~algId~, ~typeId~, ~value~}.  ~Annotate~ 
+enters the value into that array. 
 
   * ~s~ is a symbol atom: an operator
 
@@ -792,9 +834,6 @@ function numbers).
 
 ----	counter		->	((counter counter) typeerror)
 ----
-
-  * ~s~ is a symbol atom: none of the forms before.
-
 ----	pop		->        ((pop identifier) pop)
 
 	<ident>		->        ((<ident> identifier) <ident>)
@@ -1039,13 +1078,21 @@ function index.
 		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
 	  /* special treatment of integers at descriptive level; these can
 	  be attribute numbers and must be treated as values in that case. */
-	  values[valueno].list = nl->IntValue( expr );
+          values[valueno].isConstant = true;
+          values[valueno].isList = true;
+	  values[valueno].value.list = nl->IntValue( expr );
         }
 	else
         {
+          int algId, typeId;
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "int" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "int" ), expr,
 		errorPos, errorInfo, correct );
-          values[valueno] = value;
+          values[valueno].isConstant = true;
+          values[valueno].isList = false;
+          values[valueno].algId = algId;
+          values[valueno].typeId = typeId;
+          values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
 		nl->SymbolAtom( "int" ), value );
         }
@@ -1067,9 +1114,15 @@ function index.
         }
 	else
         {
+          int algId, typeId;
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "real" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "real" ), expr,
 		errorPos, errorInfo, correct );
-          values[valueno] = value;  
+          values[valueno].isConstant = true;
+          values[valueno].isList = false;
+          values[valueno].algId = algId;
+          values[valueno].typeId = typeId;
+          values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
 		nl->SymbolAtom( "real" ), value );
         }
@@ -1091,9 +1144,15 @@ function index.
         }
 	else
         {
+          int algId, typeId;
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "bool" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "bool" ), expr,
 		errorPos, errorInfo, correct );
-          values[valueno] = value;  
+          values[valueno].isConstant = true;
+          values[valueno].isList = false;
+          values[valueno].algId = algId;
+          values[valueno].typeId = typeId;
+          values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
 		nl->SymbolAtom( "bool" ), value );
         }
@@ -1115,9 +1174,15 @@ function index.
         }
 	else
         {
+          int algId, typeId;
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "string" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "string" ), expr,
 		errorPos, errorInfo, correct );
-          values[valueno] = value;  
+          values[valueno].isConstant = true;
+          values[valueno].isList = false;
+          values[valueno].algId = algId;
+          values[valueno].typeId = typeId;
+          values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
 		nl->SymbolAtom( "string" ), value );
         }
@@ -1139,8 +1204,14 @@ function index.
         name = nl->SymbolValue( expr );
         if ( GetCatalog( level )->IsObjectName( name ) )
         {
-          GetCatalog( level )->GetObjectExpr( name, typeName, typeExpr, values[valueno], 
+          int algId, typeId;
+          GetCatalog( level )->GetObjectExpr( name, typeName, typeExpr, values[valueno].value, 
                              definedValue, models[valueno], hasNamedType );
+          GetCatalog( level )->LookUpTypeExpr( typeExpr, typeName, algId, typeId );
+          values[valueno].isConstant = false;
+          values[valueno].isList = false;
+          values[valueno].algId = algId;
+          values[valueno].typeId = typeId;
 
           if ( !definedValue )
           {
@@ -1154,7 +1225,8 @@ function index.
 
               NameIndex newvarnames;
               VarEntryCTable newvartable(20); 
-	      functionList = values[valueno-1].list;
+	      functionList = values[valueno-1].value.list;
+              values[valueno-1].isList = true;
 
 	      list = Annotate( level, functionList, newvarnames, newvartable,
                                defined, nl->TheEmptyList() );
@@ -1277,7 +1349,13 @@ function index.
         if ( correct )
         {
           AllocateValuesAndModels( valueno );
-          values[valueno] = value;
+          int algId, typeId;
+          GetCatalog( level )->LookUpTypeExpr( nl->First( expr ), typeName, algId, typeId );
+          values[valueno].isConstant = false;
+          values[valueno].isList = false;
+          values[valueno].algId = algId;
+          values[valueno].typeId = typeId;
+          values[valueno].value = value;
           models[valueno] = SetWord( Address( 0 ) );
           valueno++;
           return (nl->TwoElemList(
@@ -1778,6 +1856,29 @@ QueryProcessor::IsCorrectTypeExpr( const AlgebraLevel level,
 }
 
 /*****************************************************************************
+3.6 Deleting all objects and constants in the values array 
+
+This function is called if there are errors in the Annotate process. It is not
+necessary to build the query tree and all constants and objects in the ~values~
+array must be deleted and closed respectively.
+
+*/
+void
+QueryProcessor::DestroyValuesArray( const AlgebraLevel level )
+{
+  for( int i = 0; i < valueno; i++ )
+  {
+    if( !values[i].isList )
+    {
+      if( values[i].isConstant )
+        (algebraManager->DeleteObj( values[i].algId, values[i].typeId ))( values[i].value );
+      else    
+        (algebraManager->CloseObj( values[i].algId, values[i].typeId ))( values[i].value );
+    }
+  }
+}
+
+/*****************************************************************************
 3.6 Building an Operator Tree from an Annotated Query: Procedures
 ~subtree~, ~subtreeX~ 
 
@@ -1796,8 +1897,8 @@ QueryProcessor::SubtreeX( const AlgebraLevel level,
       (*argVectors[i])[j].addr = 0;
     }
   }
-  
-  OpTree resultTree = Subtree( level, expr );
+  bool first = true;  
+  OpTree resultTree = Subtree( level, expr, first );
   if ( debugMode )
   {
     cout << endl << "*** SubtreeX Begin ***" << endl;
@@ -1811,12 +1912,14 @@ QueryProcessor::SubtreeX( const AlgebraLevel level,
 
 OpTree
 QueryProcessor::Subtree( const AlgebraLevel level,
-                         const ListExpr expr )
+                         const ListExpr expr, 
+                         bool&  first )
 {
   OpTree node;
   ListExpr list;
   string typeName;
-string xxx, yyy, zzz;
+  string xxx, yyy, zzz;
+  bool oldfirst = first; first = false;
 
   if ( testMode )
   {
@@ -1845,6 +1948,19 @@ string xxx, yyy, zzz;
          applyabs	applyfun	counterdef	*/
 
     case QP_CONSTANT:
+    {
+      node = new OpNode;
+      node->evaluable = true;
+      node->typeExpr = nl->Second( expr );
+      node->nodeLevel = level;
+      node->nodetype = Object;
+      node->u.dobj.isRoot = oldfirst;  
+      node->u.dobj.isConstant = true;
+      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
+      node->u.dobj.value = values[node->u.dobj.valNo].value;
+      node->u.dobj.model = models[node->u.dobj.valNo];
+      return (node);
+    }
     case QP_OBJECT:
     {
       node = new OpNode;
@@ -1852,8 +1968,10 @@ string xxx, yyy, zzz;
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Object;
+      node->u.dobj.isRoot = oldfirst;  
+      node->u.dobj.isConstant = false;
       node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
-      node->u.dobj.value = values[node->u.dobj.valNo];
+      node->u.dobj.value = values[node->u.dobj.valNo].value;
       node->u.dobj.model = models[node->u.dobj.valNo];
       return (node);
     }
@@ -1889,7 +2007,8 @@ string xxx, yyy, zzz;
     }
     case QP_APPLYOP:
     {
-      node = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ) );
+      first = false;
+      node = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ), first );
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
       node->u.op.opFunId = nl->IntValue( nl->Third( expr ));
@@ -1897,7 +2016,7 @@ string xxx, yyy, zzz;
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {
-        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ) );
+        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ), first );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -1928,14 +2047,13 @@ string xxx, yyy, zzz;
         }
         node->u.op.resultWord =
           (algebraManager->CreateObj( node->u.op.resultAlgId,
-                                      node->u.op.resultTypeId ))( 0 );
-                              /* size parameter currently not used */
+                                      node->u.op.resultTypeId ))( GetCatalog( level )->NumericType( node->typeExpr ) );
       }
       return (node);
     }
     case QP_ABSTRACTION:
     {
-      node = Subtree( level, nl->Third( nl->First( expr ) ) );
+      node = Subtree( level, nl->Third( nl->First( expr ) ), first );
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
       node->u.op.isFun = true;
@@ -1950,12 +2068,14 @@ string xxx, yyy, zzz;
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Object;
+      node->u.dobj.value = SetWord( Address( 0 ) );
       node->u.dobj.valNo = 0;
+      node->u.dobj.isConstant = false;
       return (node);
     }
     case QP_ARGLIST:
     {
-      node = new OpNode;
+      node = new OpNode; 
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
@@ -1966,7 +2086,7 @@ string xxx, yyy, zzz;
       list = nl->Third( nl->First( expr ) );
       while (!nl->IsEmpty( list ))
       {
-        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ) );
+        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ), first );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -1978,7 +2098,7 @@ string xxx, yyy, zzz;
     }
     case QP_FUNCTION:
     {
-      return (Subtree( level, nl->Third( nl->First( expr ) ) ));
+      return (Subtree( level, nl->Third( nl->First( expr ) ), first) );
     }
     case QP_APPLYABS:
     case QP_APPLYFUN:
@@ -1992,12 +2112,12 @@ string xxx, yyy, zzz;
                                 of an abstraction */
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
-      node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ) );
+      node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ), first );
 								/* the abstraction */
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {                        /* the arguments */
-        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ) );
+        node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ), first );
         node->u.op.noSons++;
         list = nl->Rest( list );
       }
@@ -2013,7 +2133,7 @@ string xxx, yyy, zzz;
         // nl->WriteListExpr( expr, cout );
 	// cout << endl; 
 
-      node = Subtree( level, nl->Fourth( nl->First( expr )));
+      node = Subtree( level, nl->Fourth( nl->First( expr )), first);
       if ( node->nodetype == Operator )
         node->u.op.counterNo = nl->IntValue( nl->Third( nl->First( expr )));
       return(node);
@@ -2081,6 +2201,14 @@ the function in a database object.
       correct = false;
       evaluable = false;
       isFunction = false;
+      DestroyValuesArray( level );
+    }
+    else if( !defined )
+    {
+      correct = true;
+      evaluable = false;
+      isFunction = false;
+      DestroyValuesArray( level );
     }
     else
     {
@@ -2131,6 +2259,35 @@ Deletes an operator tree object.
           /* space was allocated for result */
           (algebraManager->DeleteObj( tree->u.op.resultAlgId, tree->u.op.resultTypeId ))
 		( tree->u.op.resultWord );
+        }
+        break;
+      }
+      case Object:
+      {
+        if( !tree->u.dobj.isRoot || destroyRootValue )
+          // will delete the object if it is not the root of the tree or
+          // if it is the root of the tree and the flag ~destroyRootValue~ is true
+        {
+          string typeName;
+          int algebraId, typeId;
+          if( tree->u.dobj.value.addr != 0 && 
+              GetCatalog( tree->nodeLevel )->LookUpTypeExpr( tree->typeExpr, typeName, algebraId, typeId ) )
+          {
+            if( tree->u.dobj.isConstant )
+              (algebraManager->DeleteObj( algebraId, typeId )) ( tree->u.dobj.value );
+            else
+              (algebraManager->CloseObj( algebraId, typeId )) ( tree->u.dobj.value );
+          }
+        }
+        break;
+      }
+      case IndirectObject:
+      {
+        string typeName;
+        int algebraId, typeId;
+        if( GetCatalog( tree->nodeLevel )->LookUpTypeExpr( tree->typeExpr, typeName, algebraId, typeId ) )
+        {
+          (algebraManager->CloseObj( algebraId, typeId )) ( (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1] );
         }
         break;
       }

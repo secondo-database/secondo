@@ -40,7 +40,8 @@ class CcInt : public StandardAttribute
   void     Set( bool d, int v );
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
-  int      Compare(Attribute * arg);
+  int      Compare(Attribute *arg);
+  int      Adjacent(Attribute *arg);
   int      Sizeof() ;
   CcInt*   Clone() ;
   ostream& Print( ostream &os ) { return (os << intval); }
@@ -69,6 +70,7 @@ class CcReal : public StandardAttribute
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute* arg );
+  int      Adjacent( Attribute* arg );
   int      Sizeof() ;
   CcReal*  Clone() ;
   ostream& Print( ostream &os ) { return (os << realval); }
@@ -96,6 +98,7 @@ class CcBool : public StandardAttribute
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute * arg );
+  int      Adjacent( Attribute * arg );
   int      Sizeof()  ;
   CcBool*  Clone() ;
   ostream& Print( ostream &os ) {
@@ -128,6 +131,7 @@ class CcString : public StandardAttribute
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
   int       Compare( Attribute* arg );
+  int       Adjacent( Attribute* arg );
   int       Sizeof()  ;
   CcString* Clone() ;
   ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }

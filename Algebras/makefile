@@ -9,7 +9,7 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec BTree/*.spec
+specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec BTree/*.spec Range/*.spec Spatial/*.spec
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
@@ -23,29 +23,33 @@ makedirs:
 	$(MAKE) -C Date
 	$(MAKE) -C Polygon
 	$(MAKE) -C BTree
-#	$(MAKE) -C StDb
+	$(MAKE) -C Range
+	$(MAKE) -C Spatial
 
 buildlibs:
-	$(MAKE) -C Standard-C++ buildlibs
-	$(MAKE) -C Function-C++ buildlibs
+	$(MAKE) -C Standard-C++   buildlibs
+	$(MAKE) -C Function-C++   buildlibs
 	$(MAKE) -C PointRectangle buildlibs
-	$(MAKE) -C StreamExample buildlibs
-	$(MAKE) -C Relation-C++ buildlibs
-	$(MAKE) -C Date  buildlibs
-	$(MAKE) -C Polygon	buildlibs
-	$(MAKE) -C BTree	buildlibs
-#	$(MAKE) -C StDb         buildlibs
+	$(MAKE) -C StreamExample  buildlibs
+	$(MAKE) -C Relation-C++   buildlibs
+	$(MAKE) -C Date           buildlibs
+	$(MAKE) -C Polygon	  buildlibs
+	$(MAKE) -C BTree	  buildlibs
+	$(MAKE) -C Range          buildlibs
+	$(MAKE) -C Spatial        buildlibs
 
 .PHONY: clean
 clean:
 	$(RM) specs
-	$(MAKE) -C Management clean
-	$(MAKE) -C Standard-C++ clean
-	$(MAKE) -C Function-C++ clean
+	$(MAKE) -C Management     clean
+	$(MAKE) -C Standard-C++   clean
+	$(MAKE) -C Function-C++   clean
 	$(MAKE) -C PointRectangle clean
-	$(MAKE) -C StreamExample clean
-	$(MAKE) -C Relation-C++ clean
-	$(MAKE) -C Date clean
-	$(MAKE) -C Polygon clean
-	$(MAKE) -C BTree clean
-
+	$(MAKE) -C StreamExample  clean
+	$(MAKE) -C Relation-C++   clean
+	$(MAKE) -C Date           clean
+	$(MAKE) -C Polygon        clean
+	$(MAKE) -C BTree          clean
+	$(MAKE) -C Range          clean
+	$(MAKE) -C Spatial        clean
+	

@@ -580,7 +580,7 @@ The function is used to allocate memory sufficient for keeping one instance
 of ~tuple~. The ~Size~-parameter is not evaluated.
 
 */
-Word CreateTuple(int Size)
+Word CreateTuple(const ListExpr typeInfo)
 {
   CcTuple* tup;
   tup = new CcTuple();
@@ -778,7 +778,7 @@ The function is used to allocate memory sufficient for keeping one instance
 of ~rel~. The ~Size~-parameter is not evaluated.
 
 */
-Word CreateRel(int Size)
+Word CreateRel(const ListExpr typeInfo)
 {
   //cerr << "CreateRel " << endl;
   CcRel* rel = new CcRel();
@@ -948,10 +948,9 @@ value is returned instead of building a new one.
 
 */
 bool
-RelPersistValue( const PersistDirection dir,
-    SmiRecord& valueRecord,
-    const ListExpr typeInfo,
-    Word& value )
+OpenRel( SmiRecord& valueRecord,
+         const ListExpr typeInfo,
+         Word& value )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr valueList;
@@ -960,90 +959,88 @@ RelPersistValue( const PersistDirection dir,
 
   //cerr << "RelPersistValue "  << (dir == ReadFrom ? "R" : "W") << endl;
 
-  switch ( dir )
-  {
-    case ReadFrom:
-    {
-      SmiKey mykey;
-      SmiRecordId recId;
-      mykey = valueRecord.GetKey();
-      if ( ! mykey.GetKey(recId) )
-      { 
-        cout << "\tRelPersistValue: Couldn't get the key!" << endl;
-      }
-
-      static bool firsttime = true;
-      const int cachesize = 20;
-      static int current = 0;
-      static SmiRecordId key[cachesize];
-      static Word cache[cachesize];
-
-      // initialize
-
-      if ( firsttime ) {
-        for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
-        firsttime = false;
-      }
-
-      // check whether value was cached
-
-      bool found = false;
-      int pos;
-      for ( int j = 0; j < cachesize; j++ )
-        if ( key[j]  == recId ) {
-	  found = true;
-          pos = j;
-          break;
-        }
-
-      if ( found ) {value = cache[pos]; return true;}
-
-      // prepare to cache the value constructed from the list
-
-      if ( key[current] != 0 ) { 
-        // cout << "I do delete!" << endl;
-        DeleteRel(cache[current]);
-      }
-
-      key[current] = recId;
-
-      ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-      bool correct;
-      valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
-      char* buffer = new char[valueLength];
-      valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
-      valueString.assign( buffer, valueLength );
-      delete []buffer;
-      nl->ReadFromString( valueString, valueList );
-      value = InRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo,
-  	correct); 
-
-      cache[current++] = value;
-      if ( current == cachesize ) current = 0;
-        
-      if ( errorInfo != 0 )     {
-        nl->Destroy( errorInfo );
-      }
-    }
-    break;
-    case WriteTo:
-    {
-      valueList = OutRel( nl->First(typeInfo), value );
-      valueList = nl->OneElemList( valueList );
-      nl->WriteToString( valueString, valueList );
-      valueLength = valueString.length();
-      valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-      valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
-
-      value = SetWord(Address(0));
-    }
-    break;
-    case DeleteFrom:
-    {
-      // Nothing has to be done in this case
-    }
-    break;
+  SmiKey mykey;
+  SmiRecordId recId;
+  mykey = valueRecord.GetKey();
+  if ( ! mykey.GetKey(recId) )
+  { 
+    cout << "\tRelPersistValue: Couldn't get the key!" << endl;
   }
+
+  static bool firsttime = true;
+  const int cachesize = 20;
+  static int current = 0;
+  static SmiRecordId key[cachesize];
+  static Word cache[cachesize];
+
+  // initialize
+
+  if ( firsttime ) {
+    for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
+    firsttime = false;
+  }
+
+  // check whether value was cached
+
+  bool found = false;
+  int pos;
+  for ( int j = 0; j < cachesize; j++ )
+    if ( key[j]  == recId ) {
+      found = true;
+      pos = j;
+      break;
+    }
+
+  if ( found ) {value = cache[pos]; return true;}
+
+  // prepare to cache the value constructed from the list
+
+  if ( key[current] != 0 ) { 
+    // cout << "I do delete!" << endl;
+    DeleteRel(cache[current]);
+  }
+
+  key[current] = recId;
+
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  bool correct;
+  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+  char* buffer = new char[valueLength];
+  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+  valueString.assign( buffer, valueLength );
+  delete []buffer;
+  nl->ReadFromString( valueString, valueList );
+  value = InRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct); 
+
+  cache[current++] = value;
+  if ( current == cachesize ) current = 0;
+        
+  if ( errorInfo != 0 )     {
+    nl->Destroy( errorInfo );
+  }
+  nl->Destroy( valueList );
+  return (true);
+}
+
+bool
+SaveRel( SmiRecord& valueRecord,
+         const ListExpr typeInfo,
+         Word& value )
+{
+  NestedList* nl = SecondoSystem::GetNestedList();
+  ListExpr valueList;
+  string valueString;
+  int valueLength;
+
+  valueList = OutRel( nl->First(typeInfo), value );
+  valueList = nl->OneElemList( valueList );
+  nl->WriteToString( valueString, valueList );
+  valueLength = valueString.length();
+  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
+  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+
+  value = SetWord(Address(0));
+
   nl->Destroy( valueList );
   return (true);
 }

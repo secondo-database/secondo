@@ -5332,10 +5332,15 @@ class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
+void DummyDelete(Word& w) {};
+void DummyClose(Word& w) {};
+Word DummyClone(const Word& w) { return SetWord( Address(0) ); };
+
 TypeConstructor cpptuple( "tuple",           TupleProp,
-                          OutTuple,          InTuple,     CreateTuple,
-                          DeleteTuple,       CastTuple,   CheckTuple,
-			  0,                 0,
+                          OutTuple,          InTuple,		CreateTuple,
+                          DummyDelete,       0, 0, 		DummyClose, DummyClone,
+                          CastTuple,   CheckTuple,
+			  0,
 			  TupleInModel,      TupleOutModel,
 			  TupleValueToModel, TupleValueListToModel );
 /*
@@ -5347,10 +5352,13 @@ class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
-TypeConstructor cpprel( "rel",           RelProp,
-                        OutRel,          InRel,   CreateRel,
-                        DeleteRel,       CastRel,   CheckRel,
-			RelPersistValue, 0,
+
+TypeConstructor cpprel( "rel",          RelProp,
+                        OutRel,         InRel,   	
+                        CreateRel, 	DummyDelete,     
+			OpenRel, 	SaveRel,	DummyClose, DummyClone, 
+                        CastRel,   CheckRel,
+			0,
 			RelInModel,      RelOutModel,
 			RelValueToModel, RelValueListToModel );
 

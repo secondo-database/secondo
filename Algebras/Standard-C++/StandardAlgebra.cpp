@@ -247,6 +247,14 @@ int    CcInt::Compare( Attribute* arg )
   return (0);
 };
 
+int CcInt::Adjacent( Attribute* arg )
+{
+  int a = GetIntval(),
+      b = ((CcInt *)arg)->GetIntval();
+
+  return( a == b || a == b + 1 || b == a + 1 );
+}
+
 /*
 Now we define a function, ~OutInt~, that takes as inputs a type description
 and a pointer to a value of this type. The representation of this value in
@@ -307,7 +315,7 @@ InCcInt( ListExpr typeInfo, ListExpr value,
 */
 
 static Word
-CreateCcInt( int Size )
+CreateCcInt( const ListExpr typeInfo )
 {
   return (SetWord( new CcInt( false, 0 ) ));
 }
@@ -317,6 +325,19 @@ DeleteCcInt( Word& w )
 {
   delete (CcInt*) w.addr;
   w.addr = 0;
+}
+
+static void
+CloseCcInt( Word& w )
+{
+  delete (CcInt*) w.addr;
+  w.addr = 0;
+}
+
+static Word 
+CloneCcInt( const Word& w )
+{
+  return SetWord( ((CcInt*)w.addr)->Clone() );
 }
 
 /*
@@ -474,9 +495,11 @@ IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 
 TypeConstructor ccInt( "int",            CcProperty,
-                       OutCcInt,         InCcInt,        CreateCcInt,
-                       DeleteCcInt,      CastInt,        CheckInt,
-                       0,                0,
+                       OutCcInt,         InCcInt,        
+                       CreateCcInt,      DeleteCcInt,      
+                       0,        0,      CloseCcInt, CloneCcInt,
+                       CastInt,          CheckInt,
+                       0,
                        InIntSetModel,    OutIntSetModel,
                        IntToIntSetModel, IntListToIntSetModel );
 
@@ -546,6 +569,11 @@ int     CcReal::Compare( Attribute * arg )
   return (0);
 };
 
+int CcReal::Adjacent( Attribute *arg )
+{
+  return( GetRealval() == ((CcReal *)arg)->GetRealval() );
+}
+
 static ListExpr
 OutCcReal( ListExpr typeinfo, Word value )
 {
@@ -581,7 +609,7 @@ InCcReal( ListExpr typeInfo, ListExpr value,
 }
 
 static Word
-CreateCcReal( int size )
+CreateCcReal( const ListExpr typeInfo )
 {
   return (SetWord( new CcReal( false, 0 ) ));
 }
@@ -591,6 +619,19 @@ DeleteCcReal( Word& w )
 {
   delete (CcReal*)w.addr;
   w.addr = 0;
+}
+
+static void
+CloseCcReal( Word& w )
+{
+  delete (CcReal*)w.addr;
+  w.addr = 0;
+}
+
+static Word 
+CloneCcReal( const Word& w )
+{
+  return SetWord( ((CcReal*)w.addr)->Clone() );
 }
 
 /*
@@ -619,7 +660,8 @@ CheckReal( ListExpr type, ListExpr& errorInfo )
 
 TypeConstructor ccReal( "real",       CcProperty,
                         OutCcReal,    InCcReal,   CreateCcReal,
-                        DeleteCcReal, CastReal,   CheckReal );
+                        DeleteCcReal, 0, 0, CloseCcReal, CloneCcReal,
+                        CastReal,   CheckReal );
 
 /*
 3.3 Type constructor *ccbool*
@@ -676,6 +718,11 @@ int     CcBool::Compare(Attribute* arg)
   return (0);
 };
 
+int CcBool::Adjacent(Attribute* arg)
+{
+  return 1;
+}
+
 /*
 Now we define a function, ~OutBool~, that takes as inputs a type description
 and a pointer to a value of this type. The representation of this value in
@@ -729,7 +776,7 @@ InCcBool( ListExpr typeInfo, ListExpr value,
 }
 
 static Word
-CreateCcBool( int size )
+CreateCcBool( const ListExpr typeInfo )
 {
   return (SetWord( new CcBool( false, 0 ) ));
 }
@@ -741,6 +788,18 @@ DeleteCcBool( Word& w )
   w.addr = 0;
 }
 
+static void
+CloseCcBool( Word& w )
+{
+  delete (CcBool*)w.addr;
+  w.addr = 0;
+}
+
+static Word 
+CloneCcBool( const Word& w )
+{
+  return SetWord( ((CcBool*)w.addr)->Clone() );
+}
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
 
@@ -831,8 +890,9 @@ BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
 
 TypeConstructor ccBool( "bool",             CcProperty,
                         OutCcBool,          InCcBool,        CreateCcBool,
-                        DeleteCcBool,       CastBool,        CheckBool,
-                        0,                  0,
+                        DeleteCcBool,       0, 0,            CloseCcBool, CloneCcBool,
+                        CastBool,        CheckBool,
+                        0,
                         InBoolSetModel,     OutBoolSetModel,
                         BoolToBoolSetModel, BoolListToBoolSetModel );
 
@@ -900,6 +960,37 @@ int       CcString::Compare( Attribute* arg )
   // return (stringval.compare( p->stringval ));
 };
 
+int CcString::Adjacent( Attribute* arg )
+{
+  STRING *a = GetStringval(),
+         *b = ((CcString *)arg)->GetStringval();
+
+  if( strcmp( *a, *b ) == 0 )
+    return 1;
+
+  if( strlen( *a ) == strlen( *b ) )
+  {
+    if( strncmp( *a, *b, strlen( *a ) - 1 ) == 0 )
+    {
+      char cha = (*a)[strlen(*a)-1],
+           chb = (*b)[strlen(*b)-1];
+      return( cha == chb + 1 || chb == cha + 1 );
+    } 
+  }
+  else if( strlen( *a ) == strlen( *b ) + 1 )
+  {
+    return( strncmp( *a, *b, strlen( *b ) ) == 0 && 
+            ( (*a)[strlen(*a)-1] == 'a' || (*a)[strlen(*a)-1] == 'A' ) );
+  }
+  else if( strlen( *a ) + 1 == strlen( *b ) )
+  {
+    return( strncmp( *a, *b, strlen( *a ) ) == 0 && 
+            ( (*b)[strlen(*b)-1] == 'a' || (*b)[strlen(*b)-1] == 'A' ) );
+  }
+  
+  return 0; 
+}
+
 /*
 
 */
@@ -948,10 +1039,10 @@ InCcString( ListExpr typeInfo, ListExpr value,
 */
 
 static Word
-CreateCcString( int size )
+CreateCcString( const ListExpr typeInfo )
 {
   char p[49] = "";
-  return (SetWord( new CcString( true, (STRING*)&p ) ));
+  return (SetWord( new CcString( false, (STRING*)&p ) ));
 }
 
 static void
@@ -961,6 +1052,18 @@ DeleteCcString( Word& w )
   w.addr = 0;
 }
 
+static void
+CloseCcString( Word& w )
+{
+  delete (CcString*)w.addr;
+  w.addr = 0;
+}
+
+static Word 
+CloneCcString( const Word& w )
+{
+  return SetWord( ((CcString*)w.addr)->Clone() );
+}
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
 
@@ -985,7 +1088,8 @@ CheckString( ListExpr type, ListExpr& errorInfo )
 
 TypeConstructor ccString( "string",       CcProperty,
                           OutCcString,    InCcString, CreateCcString,
-                          DeleteCcString, CastString, CheckString );
+                          DeleteCcString, 0, 0,       CloseCcString, CloneCcString,
+                          CastString, CheckString );
 
 /*
 4 Operators
@@ -1086,13 +1190,34 @@ CcMathTypeMap1( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+/*
+4.2.4 Type mapping function CcMathTypeMap2
 
+It is for the operators ~intersection~ and ~minus~.
 
-
-
+*/
+static ListExpr
+CcMathTypeMap2( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
+      return (nl->SymbolAtom( "int" ));
+    if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
+      return (nl->SymbolAtom( "real" ));
+    if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool )
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
+      return (nl->SymbolAtom( "string" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
 
 /*
-4.2.x Type mapping function IntInt
+4.2.4 Type mapping function IntInt
 
 Used for operators ~randint~ and ~log~.
 
@@ -1114,7 +1239,7 @@ IntInt( ListExpr args )
 
 
 /*
-4.2.4 Type mapping function CcMathTypeMapBool
+4.2.5 Type mapping function CcMathTypeMapBool
 
 It is for the Compare operators which have ~bool~ as resulttype.
 
@@ -1145,7 +1270,7 @@ CcMathTypeMapBool( ListExpr args )
 }
 
 /*
-4.2.5 Type mapping function CcMathTypeMapBool1
+4.2.6 Type mapping function CcMathTypeMapBool1
 
 It is for the  operator ~not~ which have ~bool~ as input and resulttype.
 
@@ -1165,7 +1290,7 @@ CcMathTypeMapBool1( ListExpr args )
 }
 
 /*
-4.2.6 Type mapping function CcMathTypeMapBool2
+4.2.7 Type mapping function CcMathTypeMapBool2
 
 It is for the  operators and and or  which have bool as input and resulttype.
 
@@ -1186,7 +1311,7 @@ CcMathTypeMapBool2( ListExpr args )
 }
 
 /*
-4.2.7 Type mapping function CcMathTypeMapBool3
+4.2.8 Type mapping function CcMathTypeMapBool3
 
 It is for the  operators ~starts~ and ~contains~  which have ~string~ as input and ~bool~ resulttype.
 
@@ -1207,7 +1332,7 @@ CcMathTypeMapBool3( ListExpr args )
 }
 
 /*
-4.2.8 Type mapping function CcMathTypeMapBool4
+4.2.9 Type mapping function CcMathTypeMapBool4
 
 It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string~ as input and ~bool~ resulttype.
 
@@ -1233,7 +1358,7 @@ CcMathTypeMapBool4( ListExpr args )
 }
 
 /*
-4.2.9 Type mapping function for the ~upper~ operator:
+4.2.10 Type mapping function for the ~upper~ operator:
 
 string ---> string.
 
@@ -1325,6 +1450,30 @@ CcMathSelectCompare( ListExpr args )
     return (5);
   return (-1); // This point should never be reached
 }
+
+/*
+4.3.4 Selection function  CcMathSelectSet
+
+It is used for the set operators ~intersection~ and ~minus~.
+
+*/
+
+static int
+CcMathSelectSet( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  if ( TypeOfSymbol( arg1 ) == ccint && TypeOfSymbol( arg2 ) == ccint )
+    return (0);
+  if ( TypeOfSymbol( arg1 ) == ccreal && TypeOfSymbol( arg2 ) == ccreal )
+    return (1);
+  if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool )
+    return (2);
+  if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
+    return (3);
+  return (-1); // This point should never be reached
+}
+
 
 /*
 4.3.3 Selection function  CcMathSelectIsEmpty
@@ -2688,6 +2837,155 @@ Upper( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+4.19 Value mapping functions of operator ~intersection~
+
+*/
+
+static int
+CcSetIntersection_ii( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcInt*)args[0].addr)->IsDefined() &&
+       ((CcInt*)args[1].addr)->IsDefined() )
+  {
+    if( ((CcInt*)args[0].addr)->GetIntval() == ((CcInt*)args[1].addr)->GetIntval() )
+    {
+      ((CcInt *)result.addr)->Set( true, ((CcInt*)args[0].addr)->GetIntval() ); 
+      return (0);
+    }
+  }
+  ((CcInt *)result.addr)->Set( false, 0 );
+  return (0);
+}
+
+static int
+CcSetIntersection_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcReal*)args[0].addr)->IsDefined() &&
+       ((CcReal*)args[1].addr)->IsDefined() )
+  {
+    if( ((CcReal*)args[0].addr)->GetRealval() == ((CcReal*)args[1].addr)->GetRealval() )
+    {
+      ((CcReal *)result.addr)->Set( true, ((CcReal*)args[0].addr)->GetRealval() );
+      return (0);
+    }
+  }
+  ((CcReal *)result.addr)->Set( false, 0.0 );
+  return (0);
+}
+
+static int
+CcSetIntersection_bb( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcBool*)args[0].addr)->IsDefined() &&
+       ((CcBool*)args[1].addr)->IsDefined() )
+  {
+    if( ((CcBool*)args[0].addr)->GetBoolval() == ((CcBool*)args[1].addr)->GetBoolval() )
+    {
+      ((CcBool*)result.addr)->Set( true, ((CcBool*)args[0].addr)->GetBoolval() );
+      return (0);
+    }
+  }
+  ((CcBool *)result.addr)->Set( false, false );
+  return (0);
+}
+
+static int
+CcSetIntersection_ss( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcString*)args[0].addr)->IsDefined() &&
+       ((CcString*)args[1].addr)->IsDefined() )
+  {
+    if( strcmp( *((CcString*)args[0].addr)->GetStringval(), *((CcString*)args[1].addr)->GetStringval() ) == 0 )
+    {
+      ((CcString*)result.addr)->Set( true, ((CcString*)args[0].addr)->GetStringval() );
+      return (0);
+    }
+  }
+  STRING nullStr = "";
+  ((CcString*)result.addr)->Set( false, &nullStr );
+  return (0);
+}
+
+/*
+4.19 Value mapping functions of operator ~minus~
+
+*/
+
+static int
+CcSetMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcInt*)args[0].addr)->IsDefined() &&
+       ((CcInt*)args[1].addr)->IsDefined() )
+  {
+    if( ((CcInt*)args[0].addr)->GetIntval() == ((CcInt*)args[1].addr)->GetIntval() )
+    {
+      ((CcInt *)result.addr)->Set( false, 0 );
+      return (0);
+    }
+  }
+  ((CcInt *)result.addr)->Set( true, ((CcInt*)args[0].addr)->GetIntval() );
+  return (0);
+}
+
+static int
+CcSetMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcReal*)args[0].addr)->IsDefined() &&
+       ((CcReal*)args[1].addr)->IsDefined() )
+  {
+    if( ((CcReal*)args[0].addr)->GetRealval() == ((CcReal*)args[1].addr)->GetRealval() )
+    {
+      ((CcReal *)result.addr)->Set( false, 0.0 );
+      return (0);
+    }
+  }
+  ((CcReal *)result.addr)->Set( true, ((CcReal*)args[0].addr)->GetRealval() );
+  return (0);
+}
+
+static int
+CcSetMinus_bb( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcBool*)args[0].addr)->IsDefined() &&
+       ((CcBool*)args[1].addr)->IsDefined() )
+  {
+    if( ((CcBool*)args[0].addr)->GetBoolval() == ((CcBool*)args[1].addr)->GetBoolval() )
+    {
+      ((CcBool *)result.addr)->Set( false, false );
+      return (0);
+    }
+  }
+  ((CcBool*)result.addr)->Set( true, ((CcBool*)args[0].addr)->GetBoolval() );
+  return (0);
+}
+
+static int
+CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((CcString*)args[0].addr)->IsDefined() &&
+       ((CcString*)args[1].addr)->IsDefined() )
+  {
+    if( strcmp( *((CcString*)args[0].addr)->GetStringval(), *((CcString*)args[1].addr)->GetStringval() ) == 0 )
+    {
+      STRING nullStr = "";
+      ((CcString*)result.addr)->Set( false, &nullStr );
+      return (0);
+    }
+  }
+  ((CcString*)result.addr)->Set( true, ((CcString*)args[0].addr)->GetStringval() );
+  return (0);
+}
+
+
+/*
 1.10 Operator Model Mappings
 
 */
@@ -2808,6 +3106,8 @@ ValueMapping ccandmap[] = { AndFun };
 ValueMapping ccormap[] = { OrFun };
 ValueMapping ccnotmap[] = { NotFun };
 ValueMapping ccisemptymap[] = { IsEmpty_b, IsEmpty_i, IsEmpty_r, IsEmpty_s };
+ValueMapping ccsetintersectionmap[] = { CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb, CcSetIntersection_ss };
+ValueMapping ccsetminusmap[] = { CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
 
 ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
@@ -2835,6 +3135,8 @@ const string CCSpecAnd  = "(<text> (bool bool) -> bool</text---><text> Logical A
 const string CCSpecOr   = "(<text> (bool bool) -> bool</text---><text> Logical Or. </text--->)";
 const string CCSpecIsEmpty   = "(<text> bool -> bool, int -> bool, real -> bool, string -> bool</text---><text> Returns whether the value is defined or not. </text--->)";
 const string CCSpecUpper   = "(<text> (string) -> string</text---><text> Returns a string immediately upper to the original one. </text--->)";
+const string CCSpecSetIntersection   = "(<text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text---><text> Set intersection. </text--->)";
+const string CCSpecSetMinus   = "(<text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text---><text> Set minus. </text--->)";
 
 Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
@@ -2856,14 +3158,9 @@ Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, SimpleSelect, CcMat
 Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
 Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
 Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, CcMathSelectIsEmpty, CcMathTypeMapBool4 );
-Operator ccuper(
-	"upper", 		//name
-	CCSpecUpper,         //specification
-	Upper,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	SimpleSelect,		//trivial selection function 
-	CcStringMapCcString	//type mapping 
-);
+Operator ccuper( "upper", CCSpecUpper, Upper, Operator::DummyModel, SimpleSelect, CcStringMapCcString );
+Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, ccsetintersectionmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
+Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
 
 /*
 6 Class ~CcAlgebra~
@@ -2898,6 +3195,11 @@ class CcAlgebra1 : public Algebra
     ccBool.AssociateKind( "DATA" );
     ccString.AssociateKind( "DATA" );
 
+    ccInt.AssociateKind( "BASE" );
+    ccReal.AssociateKind( "BASE" );
+    ccBool.AssociateKind( "BASE" );
+    ccString.AssociateKind( "BASE" );
+
     AddOperator( &ccplus );
     AddOperator( &ccminus );
     AddOperator( &ccproduct );
@@ -2919,6 +3221,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccor );
     AddOperator( &ccisempty );
     AddOperator( &ccuper );
+    AddOperator( &ccsetintersection );
+    AddOperator( &ccsetminus );
   }
   ~CcAlgebra1() {};
 };

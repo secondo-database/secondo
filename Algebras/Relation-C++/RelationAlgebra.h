@@ -97,7 +97,7 @@ bool CheckTuple(ListExpr, ListExpr&);
 
 void* CastTuple(void*);
 
-Word CreateTuple(int);
+Word CreateTuple(const ListExpr);
 
 Word TupleInModel( ListExpr, ListExpr, int);
 
@@ -168,7 +168,7 @@ class CcRel
 
 ListExpr OutRel(ListExpr, Word);
 
-Word CreateRel(int);
+Word CreateRel(const ListExpr);
 
 Word InRel(ListExpr, ListExpr,
           int, ListExpr&, bool&);
@@ -179,10 +179,13 @@ bool CheckRel(ListExpr, ListExpr&);
 
 void* CastRel(void*);
 
-bool RelPersistValue( const PersistDirection,
-    SmiRecord&,
-    const ListExpr,
-    Word& );
+bool OpenRel( SmiRecord&,
+              const ListExpr,
+              Word& );
+
+bool SaveRel( SmiRecord&,
+              const ListExpr,
+              Word& );
     
 Word RelInModel( ListExpr, ListExpr, int );
 

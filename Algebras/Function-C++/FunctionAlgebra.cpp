@@ -56,7 +56,7 @@ DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
 }
 
 static Word
-NoSpace( int size )
+NoSpace( const ListExpr typeInfo )
 {
   return (SetWord( Address( 0 ) ));
 }
@@ -65,6 +65,12 @@ static void
 DoNothing( Word& w )
 {
   w.addr = 0;
+}
+
+static Word
+CloneNothing( const Word& w )
+{
+  return SetWord( Address(0) );
 }
 
 /*
@@ -104,8 +110,9 @@ CheckMap( ListExpr type, ListExpr& errorInfo )
 
 TypeConstructor functionMap( "map",             FunctionProperty,
                              OutMap,            InMap,         NoSpace,
-                             DoNothing,         DummyCast,     CheckMap,
-                             0,                 0,
+                             DoNothing,         0, 0,          DoNothing, CloneNothing,
+                             DummyCast,     CheckMap,
+                             0,        
                              DummyInModel,      DummyOutModel,
                              DummyValueToModel, DummyValueListToModel );
 

@@ -140,51 +140,49 @@ Operator::CallCostMapping( ListExpr argList )
 /* Member functions of Class TypeConstructor */
 
 bool
-TypeConstructor::DefaultPersistValue( const PersistDirection dir,
-                                      SmiRecord& valueRecord,
-                                      const ListExpr typeInfo,
-                                      Word& value )
+TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
+                              const ListExpr typeInfo,
+                              Word& value )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr valueList = 0;
   string valueString;
   int valueLength;
   
-  switch ( dir )
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  bool correct;
+  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+  char* buffer = new char[valueLength];
+  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+  valueString.assign( buffer, valueLength );
+  delete []buffer;
+  nl->ReadFromString( valueString, valueList );
+  value = In( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
+  if ( errorInfo != 0 )
   {
-    case ReadFrom:
-    {
-      ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-      bool correct;
-      valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
-      char* buffer = new char[valueLength];
-      valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
-      valueString.assign( buffer, valueLength );
-      delete []buffer;
-      nl->ReadFromString( valueString, valueList );
-      value = In( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
-      if ( errorInfo != 0 )
-      {
-        nl->Destroy( errorInfo );
-      }
-    }
-    break;
-    case WriteTo:
-    {
-      valueList = Out( nl->First(typeInfo), value );
-      valueList = nl->OneElemList( valueList );
-      nl->WriteToString( valueString, valueList );
-      valueLength = valueString.length();
-      valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-      valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
-    }
-    break;
-    case DeleteFrom:
-    {
-      // Nothing needs to be done in this case
-    }
-    break;
+    nl->Destroy( errorInfo );
   }
+  nl->Destroy( valueList );
+  return (true);
+}
+
+bool
+TypeConstructor::DefaultSave( SmiRecord& valueRecord,
+                              const ListExpr typeInfo,
+                              Word& value )
+{
+  NestedList* nl = SecondoSystem::GetNestedList();
+  ListExpr valueList;
+  string valueString;
+  int valueLength;
+
+  valueList = Out( nl->First(typeInfo), value );
+  valueList = nl->OneElemList( valueList );
+  nl->WriteToString( valueString, valueList );
+  valueLength = valueString.length();
+  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
+  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+
   nl->Destroy( valueList );
   return (true);
 }
@@ -232,15 +230,6 @@ TypeConstructor::DefaultPersistModel( const PersistDirection dir,
 }
 
 bool
-TypeConstructor::DummyPersistValue( const PersistDirection dir,
-                                    SmiRecord& valueRecord,
-                                    const ListExpr typeInfo,
-                                    Word& value )
-{
-  return (true);
-}
-
-bool
 TypeConstructor::DummyPersistModel( const PersistDirection dir,
                                     SmiRecord& modelRecord,
                                     const ListExpr typeExpr,
@@ -283,9 +272,12 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   InObject in,
                                   ObjectCreation create,
                                   ObjectDeletion del,
+                                  ObjectOpen open,
+                                  ObjectSave save,
+                                  ObjectClose close,
+                                  ObjectClone clone,
                                   ObjectCast ca,
                                   TypeCheckFunction tcf,
-                                  PersistFunction pvf,
                                   PersistFunction pmf,
                                   InModelFunction inm,
                                   OutModelFunction outm,
@@ -298,9 +290,12 @@ TypeConstructor::TypeConstructor( const string& nm,
   inFunc               = in;
   createFunc           = create;
   deleteFunc           = del;
+  openFunc             = open;
+  saveFunc             = save;
+  closeFunc            = close;
+  cloneFunc            = clone;
   castFunc             = ca;
   typeCheckFunc        = tcf;
-  persistValueFunc     = pvf;
   persistModelFunc     = pmf;
   inModelFunc          = inm;
   outModelFunc         = outm;
@@ -335,16 +330,16 @@ TypeConstructor::Out( ListExpr type, Word value )
 }
 
 Word
-TypeConstructor::In( const ListExpr type, const ListExpr value,
+TypeConstructor::In( const ListExpr typeInfo, const ListExpr value,
                      const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  return ((*inFunc)( type, value, errorPos, errorInfo, correct ));
+  return ((*inFunc)( typeInfo, value, errorPos, errorInfo, correct ));
 }
 
 Word
-TypeConstructor::Create( int size )
+TypeConstructor::Create( const ListExpr typeInfo )
 {
-  return ((*createFunc)( size ));
+  return ((*createFunc)( typeInfo ));
 }
 
 void
@@ -354,19 +349,45 @@ TypeConstructor::Delete( Word& w )
 }
 
 bool
-TypeConstructor::PersistValue( PersistDirection dir,
-                               SmiRecord& valueRecord,
-                               const ListExpr typeInfo,
-                               Word& value )
+TypeConstructor::Open( SmiRecord& valueRecord,
+                       const ListExpr typeInfo,
+                       Word& value )
 {
-  if ( persistValueFunc != 0 )
+  if ( openFunc != 0 )
   {
-    return ((*persistValueFunc)( dir, valueRecord, typeInfo, value ));
+    return ((*openFunc)( valueRecord, typeInfo, value ));
   }
   else
   {
-    return (DefaultPersistValue( dir, valueRecord, typeInfo, value ));
+    return (DefaultOpen( valueRecord, typeInfo, value ));
   }
+}
+
+bool
+TypeConstructor::Save( SmiRecord& valueRecord,
+                       const ListExpr typeInfo,
+                       Word& value )
+{
+  if ( saveFunc != 0 )
+  {
+    return ((*saveFunc)( valueRecord, typeInfo, value ));
+  }
+  else
+  {
+    return (DefaultSave( valueRecord, typeInfo, value ));
+  }
+}
+
+void
+TypeConstructor::Close( Word& w )
+{
+  (*closeFunc)( w );
+}
+
+Word
+TypeConstructor::Clone( const Word& w )
+{
+  return (*cloneFunc)( w );
 }
 
 bool

@@ -674,7 +674,7 @@ ListExpr OutBTree(ListExpr typeInfo, Word  value)
 5.2 Function ~CreateBTree~
 
 */
-Word CreateBTree(int Size)
+Word CreateBTree(const ListExpr typeInfo)
 {
   return SetWord(new BTree());
 }
@@ -697,18 +697,38 @@ Word InBTree(ListExpr typeInfo, ListExpr value,
 
 /*
 
-5.4 Function ~DeleteBTree~
+5.4 Function ~CloseBTree~
+
+*/
+void CloseBTree(Word& w)
+{
+  BTree* btree = (BTree*)w.addr;
+  delete btree;
+}
+/*
+
+5.5 Function ~CloneBTree~
+
+*/
+Word CloneBTree(const Word& w)
+{
+  return SetWord( Address(0) );
+}
+/*
+
+5.6 Function ~DeleteBTree~
 
 */
 void DeleteBTree(Word& w)
 {
   BTree* btree = (BTree*)w.addr;
+  btree->DeleteFile();
   delete btree;
 }
 
 /*
 
-5.5 ~Check~-function of type constructor ~btree~
+5.7 ~Check~-function of type constructor ~btree~
 
 */
 bool CheckBTree(ListExpr type, ListExpr& errorInfo)
@@ -740,14 +760,93 @@ void* CastBTree(void* addr)
 
 /*
 
-5.6 ~PersistFunction~ of type constructor ~btree~
+5.8 ~OpenFunction~ of type constructor ~btree~
 
 */
 bool
-BTreePersistValue( const PersistDirection dir,
-    SmiRecord& valueRecord,
-    const ListExpr typeInfo,
-    Word& value )
+OpenBTree( SmiRecord& valueRecord,
+           const ListExpr typeInfo,
+           Word& value )
+{
+  AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
+  BTree* btree;
+
+  ListExpr first;
+  SmiKey::KeyDataType keyType;
+  ListExpr keyTypeLE;
+  ListExpr algNoLE;
+  ListExpr typeNoLE;
+  int algNumber;
+  int typeNumber;
+  string keyTypeString;
+
+  /* find out key type */
+  assert(!nl->IsAtom(typeInfo));
+  assert(!nl->IsEmpty(typeInfo));
+  assert(nl->ListLength(typeInfo) == 1);
+
+  first = nl->First(typeInfo);
+
+  assert(!nl->IsAtom(first));
+  assert(!nl->IsEmpty(first));
+  assert(nl->ListLength(first) == 3);
+
+  keyTypeLE = nl->Third(first);
+  assert(!nl->IsAtom(keyTypeLE));
+  assert(!nl->IsEmpty(keyTypeLE));
+  assert(nl->ListLength(keyTypeLE) == 2);
+  algNoLE = nl->First(keyTypeLE);
+  typeNoLE = nl->Second(keyTypeLE);
+
+  assert(nl->IsAtom(algNoLE));
+  assert(nl->IsAtom(typeNoLE));
+  assert(nl->AtomType(algNoLE) == IntType);
+  assert(nl->AtomType(typeNoLE) == IntType);
+
+  algNumber = nl->IntValue(algNoLE);
+  typeNumber = nl->IntValue(typeNoLE);
+
+  keyTypeString = alg->Constrs(algNumber, typeNumber);
+
+  if(keyTypeString == "int")
+  {
+    keyType = SmiKey::Integer;
+  }
+  else if(keyTypeString == "string")
+  {
+    keyType = SmiKey::String;
+  }
+  else if(keyTypeString == "real")
+  {
+    keyType = SmiKey::Float;
+  }
+  else
+  {
+    assert(false /* no proper key type given */);
+  }
+
+  btree = new BTree(valueRecord, keyType);
+  if(btree->IsInitialized())
+  {
+    value = SetWord(btree);
+    return true;
+  }
+  else
+  {
+    delete btree;
+    return false;
+  }
+}
+
+/*
+
+5.9 ~SaveFunction~ of type constructor ~btree~
+
+*/
+bool
+SaveBTree( SmiRecord& valueRecord,
+           const ListExpr typeInfo,
+           Word& value )
 {
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
 
@@ -808,44 +907,14 @@ BTreePersistValue( const PersistDirection dir,
     assert(false /* no proper key type given */);
   }
 
-  switch (dir)
-  {
-    case ReadFrom:
-    {
-      btree = new BTree(valueRecord, keyType);
-      if(btree->IsInitialized())
-      {
-        value = SetWord(btree);
-        return true;
-      }
-      else
-      {
-        delete btree;
-        return false;
-      }
-    }
-    break;
-    case WriteTo:
-    {
-      btree = (BTree*)value.addr;
-      success = btree->WriteTo(valueRecord, keyType);
-      return success;
-    }
-    break;
-    case DeleteFrom:
-    {
-      btree = (BTree*)value.addr;
-      btree->DeleteFile();
-      return true;
-    }
-    break;
-  }
-  return false;
+  btree = (BTree*)value.addr;
+  success = btree->WriteTo(valueRecord, keyType);
+  return success;
 }
 
 /*
 
-5.7 ~Model~-functions of type constructor ~btree~
+5.10 ~Model~-functions of type constructor ~btree~
 
 */
 Word BTreeInModel( ListExpr typeExpr, ListExpr list, int objNo )
@@ -872,15 +941,18 @@ Word BTreeValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
 
 /*
 
-5.8 Type Constructor object for type constructor ~btree~
+5.11 Type Constructor object for type constructor ~btree~
 
 */
-TypeConstructor cppbtree( "btree",           BTreeProp,
-                        OutBTree,          InBTree,   CreateBTree,
-                        DeleteBTree,       CastBTree,   CheckBTree,
-			BTreePersistValue, 0,
-			BTreeInModel,      BTreeOutModel,
-			BTreeValueToModel, BTreeValueListToModel );
+TypeConstructor cppbtree( "btree",		BTreeProp,
+                          OutBTree,		InBTree,   
+                          CreateBTree,		DeleteBTree,
+			  OpenBTree,		SaveBTree,
+			  CloseBTree,		CloneBTree,
+			  CastBTree,   		CheckBTree,
+			  0,
+			  BTreeInModel,		BTreeOutModel,
+			  BTreeValueToModel,	BTreeValueListToModel );
 
 /*
 

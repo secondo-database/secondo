@@ -127,6 +127,8 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 
 struct OpNode;
 typedef OpNode* OpTree;
+bool IsRootObject( OpTree tree );
+bool IsConstantObject( OpTree tree );
 
 struct VarEntry
 {
@@ -452,10 +454,18 @@ catch the case that ~functionno~ is incremented during annotation of the
 function body. 
 
 */
+  void DestroyValuesArray( const AlgebraLevel level );
+/*
+Destroys the ~values~ array. This function is used when there is a failure
+in the Annotate process and the query tree is not built. When the query 
+tree is built, the ~Destroy~ function should be called. 
+
+*/
   bool IsCorrectTypeExpr( const AlgebraLevel level,
                           const ListExpr expr );
   OpTree Subtree( const AlgebraLevel level,
-                  const ListExpr expr );
+                  const ListExpr expr,
+                  bool& first );
 /*
 Construct operator tree recursively for a given annotated ~expr~. See
 ~Annotate~ and ~AnnotateFunction~ for the possible structures to be processed.
@@ -477,7 +487,28 @@ Construct operator tree recursively for a given annotated ~expr~. See
   bool debugMode;
   bool traceMode;
 
-  vector<Word> values; // MAXVALUE = 200
+  struct ValueInfo
+  {
+    bool isConstant;
+    bool isList;
+    int  algId;
+    int  typeId;
+    Word value;
+  };
+/*
+This ~ValueInfo~ structure will be stored in the ~values~ array defined 
+below. The most important information in this structure is the ~value~, 
+the others are only used to destroy the array. The flag ~isConstant~ tells 
+if the value stored is a constant or an object because they have different 
+forms to be destroyed. Constants are deleted because they have been just 
+created and objects are only closed because they have been opened. The 
+second flag ~isList~ tells if the ~value~ Word is a list an not an address. 
+In the case of a list nothing is done in the destruction process. The ~algId~
+and ~typeId~ are necessary to call the functions ~delete~ and ~close~
+of the type constructor associated with the ~value~.
+
+*/ 
+  vector<ValueInfo> values; // MAXVALUE = 200
   vector<Word> models;
   vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 

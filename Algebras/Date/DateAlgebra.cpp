@@ -127,12 +127,12 @@ class Date: public StandardAttribute
   void     SetMonth( int Yonth);
   void     SetYear( int Year);
   void     Set(bool Defined,  int Day, int Month, int Year);
-
+  void     successor(Date *d, Date *s);
 /*************************************************************************
 
-  The following 9 virtual functions: IsDefined(),SetDefined(), GetValue(), HashValue(),
-  CopyFrom(), Compare(), Sizeof(), Clone(), Print(), need to be defined if we want to
-  use ~date~ as an attribute type in tuple definitions.
+  The following 10 virtual functions: IsDefined(),SetDefined(), GetValue(), HashValue(),
+  CopyFrom(), Compare(), Adjacent() Sizeof(), Clone(), Print(), need to be defined if 
+  we want to use ~date~ as an attribute type in tuple definitions.
 
 *************************************************************************/
 
@@ -142,6 +142,7 @@ class Date: public StandardAttribute
   size_t   HashValue();
   void	   CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
+  int      Adjacent(Attribute * arg);
   int      Sizeof() ;
   Date*    Clone() ;
   ostream& Print( ostream &os );
@@ -250,6 +251,78 @@ int Date::Compare(Attribute * arg)
                                    else res=0;
             }
   return (res);
+}
+
+void Date::successor(Date *d, Date *s)
+{
+    assert(isdate(d->GetDay(), d->GetMonth(), d->GetYear()));
+    
+    int Year, Month, Day;
+    Year=d->GetYear(); Month=d->GetMonth(); Day=d->GetDay();
+//    cout<<"OldDate"<<Year<<":"<<Month<<":"<<Day<<endl;
+    bool leapyear;
+    int daysinmonth;
+    if  (((Year % 4==0) && (Year % 100!=0)) || (Year % 400==0))
+             leapyear=true; 
+    else  leapyear=false;
+    
+   switch (Month)
+	{
+	  case 1:
+ 	  case 3:
+ 	  case 5:
+	  case 7:
+ 	  case 8:
+ 	  case 10:
+ 	  case 12: daysinmonth=31; break;
+ 	  case 4:
+          	  case 6:
+          	  case 9:
+          	  case 11: daysinmonth=30; break;
+       	  case 2:  if (leapyear) daysinmonth=29; else daysinmonth=28;
+	}
+    if ((Day<daysinmonth)) 
+           Day++;
+    else //==
+    {
+           Day=1;
+            if (Month<12) Month++;
+            else 
+	    {
+		Month=1; 
+		Year++;
+                    }
+    }
+    s->year=Year; s->month=Month; s->day=Day; s->defined=true;
+//    cout<<"NewDate"<<Year<<":"<<Month<<":"<<Day<<endl;
+}
+	
+int Date::Adjacent(Attribute *arg)
+{
+  Date *d = (Date *)arg;
+  if( this->Compare( d ) == 0 ) return 1;                 //both undefined or they are equal
+  
+  if (!IsDefined() || !(arg->IsDefined()))  return 0;  //one is undefined and another defined
+  else					  //both defined and they are not equal
+  {
+      Date * auxdate=new Date();
+  
+      successor(this, auxdate);
+      if (auxdate->Compare(d)==0) 
+      {
+	  delete auxdate;
+	  return 1;
+      }
+      
+      successor(d, auxdate);
+      if (this->Compare(auxdate)==0) 
+      {
+	  delete auxdate;
+	  return 1;
+      }
+      delete auxdate;
+      return 0;
+  }
 }
 
 int  Date::Sizeof() {return sizeof(Date);}
@@ -445,12 +518,12 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
 
 /***********************************************************************
 
-The following 3 functions must be defined if we want to use ~date~ as an attribute type in tuple definitions.
+The following 5 functions must be defined if we want to use ~date~ as an attribute type in tuple definitions.
 
 ************************************************************************/
 
 static Word
-CreateDate( int Size )
+CreateDate( const ListExpr typeInfo )
 {
   return (SetWord( new Date( false, 0, 0, 0 )));
 }
@@ -460,6 +533,19 @@ DeleteDate( Word& w )
 {
   delete (Date*) w.addr;
   w.addr = 0;
+}
+
+static void
+CloseDate( Word& w )
+{
+  delete (Date*) w.addr;
+  w.addr = 0;
+}
+
+static Word
+CloneDate( const Word& w )
+{
+  return SetWord( ((Date *)w.addr)->Clone() );
 }
 
 static void*
@@ -506,9 +592,9 @@ TypeConstructor date(
 	DateProperty, 		            //property function describing signature
 	OutDate,  InDate,		    //Out and In functions
 	CreateDate, DeleteDate,		    //object creation and deletion
+        0, 0, CloseDate, CloneDate,	    //object open, save, close, and clone
 	CastDate,  		            //cast function
 	CheckDate,			    //kind checking function
-	0,				    //predefined persistence function
 	0, 				    //predef. pers. function for model
 	TypeConstructor::DummyInModel,
 	TypeConstructor::DummyOutModel,

@@ -52,6 +52,7 @@ class Attribute : public TupleElement
 {
  public:
   virtual int        Compare( Attribute *attrib ) = 0;
+  virtual int        Adjacent( Attribute *attrib ) = 0;
   virtual Attribute* Clone()     = 0;
   virtual bool       IsDefined() = 0;
   virtual int        Sizeof()    = 0;

@@ -20,7 +20,8 @@ TESTRULES := \
 	TupleTestBDB\
 	tdlmain\
 	tnlcopy\
-	# tnl
+	tparray
+
 TESTFILES := $(addsuffix $(EXEEXT), $(TESTRULES)) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 
 ifndef file
@@ -149,6 +150,14 @@ tsock3$(EXEEXT): tsock3.o libsdbtool.$(LIBEXT)
 
 tsock3.o: tsock3.cpp SecondoConfig.h SocketIO.h
 	$(CC) -c -o $@ $<  $(CCFLAGS)
+
+# Test Persistent Array Module
+
+tparray$(EXEEXT): tparray.o libsmibdb.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
+tparray.o: tparray.cpp PArray.h SecondoConfig.h ../StorageManager/SmiBDB.h SecondoSMI.h
+	$(CC) -c -o $@ $<  $(CCFLAGS) 
 
 .PHONY: clean
 clean:

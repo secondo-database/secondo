@@ -271,14 +271,13 @@ If value 0 is returned, the command was executed without error.
            valueList, modelList, valueExpr,
            typeExpr2, errorList,  errorInfo, functionList;
   string filename, dbName, objName, typeName;
-  Word result, word, model;
+  Word result;
   OpTree tree;
   int length;
   bool correct      = false;
   bool evaluable    = false;
   bool defined      = false;
   bool isFunction   = false;
-  bool hasNamedType = false;
   int message;                /* error code from called procedures */
   string listCommand;         /* buffer for command in list form */
   AlgebraLevel level;
@@ -817,9 +816,9 @@ If value 0 is returned, the command was executed without error.
             }
             else
             {
-              SecondoSystem::GetCatalog( level )->
-                GetObjectExpr( objName, typeName, typeExpr,
-                               word, defined, model, hasNamedType );
+              typeExpr = SecondoSystem::GetCatalog( level )->
+                           GetObjectTypeExpr( objName );
+  
               if ( !nl->Equal( typeExpr, resultType ) )
               {
                 errorCode = 13;   // types of object and expression do not agree
@@ -828,10 +827,20 @@ If value 0 is returned, the command was executed without error.
               {
                 SecondoSystem::GetQueryProcessor()->
                   Eval( tree, result, 1 );
-                SecondoSystem::GetCatalog( level )->
-                  UpdateObject( objName, result );
-                SecondoSystem::GetQueryProcessor()->
-                  Destroy( tree, false );
+                if( IsRootObject( tree ) && !IsConstantObject( tree ) )
+                {
+                  SecondoSystem::GetCatalog( level )->
+                    CloneObject( objName, result );
+                  SecondoSystem::GetQueryProcessor()->
+                    Destroy( tree, true );
+                }
+                else
+                {
+                  SecondoSystem::GetCatalog( level )->
+                    UpdateObject( objName, result );
+                  SecondoSystem::GetQueryProcessor()->
+                    Destroy( tree, false );
+                }
               }
               else if ( isFunction )   // abstraction or function object
               {
@@ -896,27 +905,37 @@ If value 0 is returned, the command was executed without error.
           }
           else if ( correct )
           {
-
-		if ( SecondoSystem::GetCatalog(level)->IsObjectName(objName) )
+            if ( SecondoSystem::GetCatalog(level)->IsObjectName(objName) )
             {
               errorCode = 10;   // identifier is already used
             }
             else
             {
               if ( evaluable || isFunction )
-		  {
+              {
 		    typeName = "";
  		    SecondoSystem::GetCatalog(level)->
 		        CreateObject(objName, typeName, resultType, 0);
-		  }
-		  if ( evaluable )
+              }
+              if ( evaluable )
               {
                 SecondoSystem::GetQueryProcessor()->
                   Eval( tree, result, 1 );
-                SecondoSystem::GetCatalog( level )->
-                  UpdateObject( objName, result );
-                SecondoSystem::GetQueryProcessor()->
-                  Destroy( tree, false );
+
+                if( IsRootObject( tree ) && !IsConstantObject( tree ) )
+                {
+                  SecondoSystem::GetCatalog( level )->
+                    CloneObject( objName, result );
+                  SecondoSystem::GetQueryProcessor()->
+                    Destroy( tree, true );
+                }
+                else
+                {
+                  SecondoSystem::GetCatalog( level )->
+                    UpdateObject( objName, result );
+                  SecondoSystem::GetQueryProcessor()->
+                    Destroy( tree, false );
+                }
               }
               else if ( isFunction )   // abstraction or function object
               {

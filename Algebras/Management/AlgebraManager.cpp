@@ -328,20 +328,40 @@ AlgebraManager::DeleteObj( int algebraId, int typeId )
   return (algebra[algebraId]->GetTypeConstructor( typeId )->deleteFunc);
 }
 
+bool
+AlgebraManager::OpenObj( const int algebraId, const int typeId,
+                         SmiRecord& valueRecord,
+                         const ListExpr typeInfo, Word& value )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->
+    Open( valueRecord, typeInfo, value ));
+}
+
+bool
+AlgebraManager::SaveObj( const int algebraId, const int typeId,
+                         SmiRecord& valueRecord,
+                         const ListExpr typeInfo, Word& value )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->
+    Save( valueRecord, typeInfo, value ));
+}
+
+ObjectClose
+AlgebraManager::CloseObj( int algebraId, int typeId )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->closeFunc);
+}
+
+ObjectClone
+AlgebraManager::CloneObj( int algebraId, int typeId )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->cloneFunc);
+}
+
 ObjectCast
 AlgebraManager::Cast( int algebraId, int typeId )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )->castFunc);
-}
-
-bool
-AlgebraManager::PersistValue( const int algebraId, const int typeId,
-                              const PersistDirection dir,
-                              SmiRecord& valueRecord,
-                              const ListExpr typeInfo, Word& value )
-{
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->
-    PersistValue( dir, valueRecord, typeInfo, value ));
 }
 
 bool

@@ -24,6 +24,12 @@ May 2002 Ulrich Telle Port to C++
 August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
+January 2003 VTA Changed ~PersistValue~ interface and created three
+new functions ~Open~, ~Save~, and ~Close~ that join the ~Create~ and ~Delete~
+to form the object state diagram in the Figure 1. 
+
+Figure 1: Object state diagram [objstatediagram.eps]
+
 1.1 Overview
 
 A snapshot of a working "Secondo"[3] system will show a collection of algebras,
@@ -209,6 +215,14 @@ An instance of class ~TypeConstructor~ consists of
 
   * a function (``deleteFunc'') releasing the memory previously allocated by
     createFunc.
+  
+  * a function (``openFunc'').
+
+  * a function (``saveFunc'').
+
+  * a function (``closeFunc'').
+
+  * a function (``cloneFunc'').
 
 All properties of an instance of class TypeConstructor are set within the
 constructor.
@@ -224,9 +238,12 @@ class TypeConstructor
                    InObject in,
                    ObjectCreation create,
                    ObjectDeletion del,
+                   ObjectOpen open,
+                   ObjectSave save,
+                   ObjectClose close,
+                   ObjectClone clone,
                    ObjectCast ca,
                    TypeCheckFunction tcf,
-                   PersistFunction pvf = 0,
                    PersistFunction pmf = 0,
                    InModelFunction inm =
                      TypeConstructor::DummyInModel,
@@ -256,13 +273,21 @@ Returns the properties of the type constructor as a nested list.
 
 */
   ListExpr Out( ListExpr type, Word value );
-  Word     In( const ListExpr type,
+  Word     In( const ListExpr typeInfo,
                const ListExpr value, 
                const int errorPos,
                ListExpr& errorInfo,
                bool& correct );
-  Word     Create( int Size );
+  Word     Create( const ListExpr typeInfo );
   void     Delete( Word& w );
+  bool     Open( SmiRecord& valueRecord,
+                 const ListExpr typeInfo,
+                 Word& value );
+  bool     Save( SmiRecord& valueRecord,
+                 const ListExpr typeInfo,
+                 Word& value );
+  void     Close( Word& w );
+  Word     Clone( const Word& w );
 
   Word     InModel( ListExpr, ListExpr, int );
   ListExpr OutModel( ListExpr, Word );
@@ -277,22 +302,20 @@ Are methods to manipulate objects and models according to the type
 constructor.
 
 */
-  bool     PersistValue( const PersistDirection dir,
-                         SmiRecord& valueRecord,
-                         const ListExpr typeInfo,
-                         Word& value );
   bool     PersistModel( const PersistDirection dir,
                          SmiRecord& modelRecord,
                          const ListExpr typeExpr,
                          Word& model );
-  bool     DefaultPersistValue( const PersistDirection dir,
-                                SmiRecord& valueRecord,
-                                const ListExpr typeInfo,
-                                Word& value );
   bool     DefaultPersistModel( const PersistDirection dir,
                                 SmiRecord& modelRecord,
                                 const ListExpr typeExpr,
                                 Word& model );
+  bool     DefaultOpen( SmiRecord& valueRecord,
+                        const ListExpr typeInfo,
+                        Word& value );
+  bool     DefaultSave( SmiRecord& valueRecord,
+                        const ListExpr typeInfo,
+                        Word& value );
 /*
 Are methods to support persistence for objects and models according to the type
 constructor. The same methods are used for saving or restoring an object or model
@@ -312,10 +335,6 @@ this mechanism. The tuples and relations itself should be stored into ~SmiFiles~
 by the algebra module.
 
 */
-  static bool DummyPersistValue( const PersistDirection dir,
-                                 SmiRecord& valueRecord,
-                                 const ListExpr typeInfo,
-                                 Word& value );
   static bool DummyPersistModel( const PersistDirection dir,
                                  SmiRecord& modelRecord,
                                  const ListExpr typeExpr,
@@ -344,8 +363,11 @@ constructor functions.
   InObject                 inFunc;
   ObjectCreation           createFunc;
   ObjectDeletion           deleteFunc;
+  ObjectOpen               openFunc;
+  ObjectSave               saveFunc;
+  ObjectClose              closeFunc;
+  ObjectClone              cloneFunc;
   ObjectCast               castFunc;
-  PersistFunction          persistValueFunc;
   PersistFunction          persistModelFunc;
   InModelFunction          inModelFunc;
   OutModelFunction         outModelFunc;

@@ -1373,7 +1373,7 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
           ListExpr typeExpr, typeInfo;
           nl->ReadFromString( typeExprString, typeExpr );  
           typeInfo = NumericType( typeExpr );
-          am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeInfo, value );
+          am->OpenObj( algebraId, typeId, vRec, typeInfo, value );
           nl->Destroy( typeInfo );
           nl->Destroy( typeExpr );
         }
@@ -1473,7 +1473,7 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
           ListExpr typeExpr, typeInfo;
           nl->ReadFromString( typeExprString, typeExpr );  
           typeInfo = NumericType( typeExpr );
-          am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeInfo, value );
+          am->OpenObj( algebraId, typeId, vRec, typeInfo, value );
           nl->Destroy( typeInfo );
           nl->Destroy( typeExpr );
         }
@@ -1554,6 +1554,65 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
   return (typeName == "");
 }
 
+ListExpr
+SecondoCatalog::GetObjectTypeExpr( const string& objectName )
+{
+/*
+
+Returns the type expression of an object with identifier ~objectName~.
+
+*Precondition*: "IsObjectName( objectName ) == true"[4].
+
+*/
+  ListExpr typeExpr;
+
+  if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
+  {
+    cerr << " GetObjectTypeExpr: database is closed!" << endl;
+    return (nl->TheEmptyList());
+  }
+  ObjectsCatalog::iterator oPos = objects.find( objectName );
+  if ( oPos != objects.end() )
+  {
+    if ( oPos->second.state != EntryDelete )
+    {
+      nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+      typeExpr = nl->First( typeExpr ); //???
+    }
+    else
+    {
+      typeExpr    = nl->TheEmptyList();
+    }
+  }
+  else
+  {
+    SmiRecord oRec;
+    if ( objCatalogFile.SelectRecord( SmiKey( objectName ), oRec ) )
+    {
+      int nameSize, exprSize, bufSize;
+      string typeName;
+
+      oRec.Read( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
+      oRec.Read( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
+      bufSize = (nameSize > exprSize) ? nameSize : exprSize;
+      char* buffer = new char[bufSize];
+      oRec.Read( buffer, nameSize, CE_OBJS_TYPEINFO_START );
+      typeName.assign( buffer, nameSize );
+      oRec.Read( buffer, exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+      string typeExprString;
+      typeExprString.assign( buffer, exprSize );
+      delete []buffer;
+      nl->ReadFromString( typeExprString, typeExpr );
+      typeExpr = nl->First( typeExpr );
+    }
+    else
+    {
+      typeExpr    = nl->TheEmptyList();
+    }
+  }
+  return typeExpr;
+}
+
 bool
 SecondoCatalog::UpdateObject( const string& objectName, const Word value )
 {
@@ -1568,6 +1627,11 @@ new value ~value~. Returns error 1 if object does not exist.
   {
     if ( oPos->second.state != EntryDelete )
     {
+      if( oPos->second.valueDefined )
+      {
+        ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, oPos->second.typeId );
+        del( oPos->second.value );
+      }
       oPos->second.value = value;
       oPos->second.valueDefined = true;
       found = true;
@@ -1580,8 +1644,7 @@ new value ~value~. Returns error 1 if object does not exist.
     found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec );
     if ( found )
     {
-      oEntry.value = value;
-      oEntry.valueDefined = true;
+      oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       oRec.Read( &oEntry.model, sizeof( Word ), CE_OBJS_MODEL );
       oRec.Read( &oEntry.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );
@@ -1598,6 +1661,103 @@ new value ~value~. Returns error 1 if object does not exist.
       oEntry.typeExpr.assign( buffer, exprSize );
       delete []buffer;
       oEntry.state = EntryUpdate;
+      if( oEntry.valueDefined )
+      {
+        SmiRecord vRec;
+        if ( objValueFile.SelectRecord( oEntry.valueRecordId, vRec ) )
+        {
+          Word oldvalue;
+          ListExpr typeExpr, typeInfo;
+          ObjectDeletion del = am->DeleteObj( oEntry.algebraId, oEntry.typeId );
+
+          nl->ReadFromString( oEntry.typeExpr, typeExpr );
+          typeInfo = NumericType( typeExpr );
+
+          if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, typeInfo, oldvalue ) )
+            del( oldvalue );
+
+          nl->Destroy( typeInfo );
+          nl->Destroy( typeExpr );
+        }
+      }
+      oEntry.value = value;
+      oEntry.valueDefined = true;
+      objects.insert( make_pair( objectName, oEntry ) );
+    }
+  }
+  return (found);
+}
+
+bool
+SecondoCatalog::CloneObject( const string& objectName, const Word value )
+{
+/*
+Overwrites the value of the object with identifier ~objectName~ with a
+new value cloned from ~value~. Returns error 1 if object does not exist.
+
+*/
+  bool found = false;
+  ObjectsCatalog::iterator oPos = objects.find( objectName );
+  if ( oPos != objects.end() )
+  {
+    if ( oPos->second.state != EntryDelete )
+    {
+      if( oPos->second.valueDefined )
+      {
+        ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, oPos->second.typeId );
+        del( oPos->second.value );
+      }
+      oPos->second.value = (am->CloneObj( oPos->second.algebraId, oPos->second.typeId ))( value );
+      oPos->second.valueDefined = true;
+      found = true;
+    }
+  }
+  else
+  {
+    ObjectsCatalogEntry oEntry;
+    SmiRecord oRec;
+    found = objCatalogFile.SelectRecord( SmiKey( objectName ), oRec );
+    if ( found )
+    {
+      oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
+      oRec.Read( &oEntry.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+      oRec.Read( &oEntry.model, sizeof( Word ), CE_OBJS_MODEL );
+      oRec.Read( &oEntry.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );
+      oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
+      oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
+      int nameSize, exprSize, bufSize;
+      oRec.Read( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
+      oRec.Read( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
+      bufSize = (nameSize > exprSize) ? nameSize : exprSize;
+      char* buffer = new char[bufSize];
+      oRec.Read( buffer, nameSize, CE_OBJS_TYPEINFO_START );
+      oEntry.typeName.assign( buffer, nameSize );
+      oRec.Read( buffer, exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+      oEntry.typeExpr.assign( buffer, exprSize );
+      delete []buffer;
+      oEntry.state = EntryUpdate;
+      if( oEntry.valueDefined )
+      {
+        SmiRecord vRec;
+        if ( objValueFile.SelectRecord( oEntry.valueRecordId, vRec ) )
+        {
+          Word oldvalue;
+          ListExpr typeExpr, typeInfo;
+          ObjectDeletion del = am->DeleteObj( oEntry.algebraId, oEntry.typeId );
+
+          nl->ReadFromString( oEntry.typeExpr, typeExpr );
+          typeInfo = NumericType( typeExpr );
+
+          if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, typeInfo, oldvalue ) )
+            del( oldvalue );
+
+          nl->Destroy( typeInfo );
+          nl->Destroy( typeExpr );
+        }
+      }
+      ObjectClone clone = am->CloneObj( oEntry.algebraId, oEntry.typeId );
+      oEntry.value = clone( value );
+      oEntry.valueDefined = true;
       objects.insert( make_pair( objectName, oEntry ) );
     }
   }
@@ -2073,9 +2233,9 @@ SecondoCatalog::CleanUp( const bool revert )
                 ListExpr typeExpr, typeInfo;
                 nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
                 typeInfo = NumericType( typeExpr );
-                am->PersistValue( oPos->second.algebraId, oPos->second.typeId,
-                                  WriteTo, vRec,
-                                  typeInfo, oPos->second.value );
+                am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
+                             vRec, typeInfo, oPos->second.value );
+                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value ); 
                 nl->Destroy( typeInfo );
                 nl->Destroy( typeExpr );
               }
@@ -2111,10 +2271,6 @@ SecondoCatalog::CleanUp( const bool revert )
             ok = false;
           }
         }
-        if ( oPos->second.valueDefined )
-        {
-          (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
-        }
         break;
       }
       case EntryUpdate:
@@ -2142,9 +2298,9 @@ SecondoCatalog::CleanUp( const bool revert )
                 ListExpr typeExpr, typeInfo;
                 nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
                 typeInfo = NumericType( typeExpr );
-                am->PersistValue( oPos->second.algebraId, oPos->second.typeId,
-                                  WriteTo, vRec,
-                                  typeInfo, oPos->second.value );
+                am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
+                             vRec, typeInfo, oPos->second.value );
+                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
                 nl->Destroy( typeInfo );
                 nl->Destroy( typeExpr );
               }
@@ -2187,10 +2343,6 @@ SecondoCatalog::CleanUp( const bool revert )
             ok = false;
           }
         }
-        if ( oPos->second.valueDefined )
-        {
-          (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
-        }
         break;
       }
       case EntryDelete:
@@ -2199,27 +2351,6 @@ SecondoCatalog::CleanUp( const bool revert )
         {
           if ( objCatalogFile.DeleteRecord( SmiKey( oPos->first ) ) )
           {
-            if ( oPos->second.valueRecordId != 0 &&
-                 oPos->second.valueDefined )
-            {
-              SmiRecord vRec;
-              ok = objValueFile.SelectRecord( oPos->second.valueRecordId, vRec );
-              if ( ok )
-              {
-                ListExpr typeExpr, typeInfo;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
-                typeInfo = NumericType( typeExpr );
-                am->PersistValue( oPos->second.algebraId, oPos->second.typeId,
-                                  DeleteFrom, vRec,
-                                  typeInfo, oPos->second.value );
-                nl->Destroy( typeInfo );
-                nl->Destroy( typeExpr );
-              }
-            }
-            if ( oPos->second.valueRecordId != 0 )
-            {
-              objValueFile.DeleteRecord( oPos->second.valueRecordId );
-            }
             if ( oPos->second.modelRecordId != 0 )
             {
               SmiRecord mRec;
@@ -2238,15 +2369,19 @@ SecondoCatalog::CleanUp( const bool revert )
             {
               objModelFile.DeleteRecord( oPos->second.modelRecordId );
             }
+            if ( oPos->second.valueRecordId != 0 )
+            {
+              objValueFile.DeleteRecord( oPos->second.valueRecordId );
+            }
+            if ( oPos->second.valueDefined )
+            {
+              (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+            }
           }
           else
           {
             ok = false;
           }
-        }
-        if ( oPos->second.valueDefined )
-        {
-          (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
         }
         break;
       }

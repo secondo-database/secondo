@@ -44,12 +44,6 @@ static QueryProcessor* qp;
 Not interesting, but needed in the definition of a type constructor.
 
 */
-static Word
-NoSpace( int size ) {return (SetWord( Address( 0 ) ));}
-
-static void
-DoNothing( Word& w ) {w.addr = 0;}
- 
 static void* DummyCast( void* addr ) {return (0);}
 /*
 2 Type Constructor ~point~
@@ -66,6 +60,7 @@ class Point
   int	   GetY();
   void     SetX( int x );
   void     SetY( int y );
+  Point*   Clone();
  private:
   int x;
   int y;
@@ -83,6 +78,7 @@ void Point::SetX(int X) {x = X;}
 
 void Point::SetY(int Y) {y = Y;}
 
+Point* Point::Clone() { return new Point( *this ); }
 
 /*
 2.2 List Representation
@@ -127,6 +123,32 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
+static Word
+CreatePoint( const ListExpr typeInfo ) 
+{
+  return (SetWord( new Point( 0, 0 ) ));
+}
+
+static void
+DeletePoint( Word& w ) 
+{
+  delete (Point *)w.addr;
+  w.addr = 0;
+}
+ 
+static void
+ClosePoint( Word& w ) 
+{
+  delete (Point *)w.addr;
+  w.addr = 0;
+}
+ 
+static Word
+ClonePoint( const Word& w ) 
+{
+  return SetWord( ((Point *)w.addr)->Clone() );
+}
+ 
 /*
 2.4 Function Describing the Signature of the Type Constructor
 
@@ -163,10 +185,10 @@ TypeConstructor point(
 	"point",			//name		
 	PointRectangleProperty, 	//property function describing signature
         OutPoint,   	InPoint,	//Out and In functions
-	NoSpace,	DoNothing,	//object creation and deletion
+	CreatePoint,	DeletePoint,	//object creation and deletion
+        0, 0, ClosePoint, ClonePoint,    //object open, save, and close
 	DummyCast,			//cast function
 	CheckPoint,	                //kind checking function
-	0,				//predefined persistence function        	
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel, 	
         TypeConstructor::DummyOutModel,
@@ -196,7 +218,7 @@ class Rectangle
   int GetXRight() {return xr;}
   int GetYBottom() {return yb;}
   int GetYTop() {return yt;}
-
+  Rectangle* Clone() { return new Rectangle( *this ); }
   bool intersects( Rectangle r);
 
  private:
@@ -285,6 +307,32 @@ InRectangle( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
+static Word
+CreateRectangle( const ListExpr typeInfo )
+{
+  return (SetWord( new Rectangle( 0, 0, 0, 0 ) ));
+}
+
+static void
+DeleteRectangle( Word& w )
+{
+  delete (Rectangle *)w.addr;
+  w.addr = 0;
+}
+
+static void
+CloseRectangle( Word& w )
+{
+  delete (Rectangle *)w.addr;
+  w.addr = 0;
+}
+
+static Word
+CloneRectangle( const Word& w ) 
+{
+  return SetWord( ((Rectangle *)w.addr)->Clone() );
+}
+
 /*
 3.4 Property Function - Signature of the Type Constructor
 
@@ -306,9 +354,11 @@ CheckRectangle( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rectangle( "rectangle",	PointRectangleProperty,
-        		OutRectangle, 	InRectangle,         
-			NoSpace,	DoNothing, 	DummyCast,     
-			CheckRectangle,	0,        	0);
+        		OutRectangle, 		InRectangle,         
+			CreateRectangle,	DeleteRectangle, 	
+        		0, 0, 			CloseRectangle,     CloneRectangle,
+                        DummyCast,    		CheckRectangle,	
+                        0);
 /*
 4 Creating Operators
 

@@ -74,7 +74,7 @@ array with the argument ~initsize~.
 
 */
   
-  PArray( SmiRecordId id, bool update = true );
+  PArray( const SmiRecordId id, const bool update = true );
 
 /*
 Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
@@ -100,7 +100,7 @@ destruction of the object.
 
 */
 
-  void Put(int const index, T& elem);
+  void Put(int const index, const T& elem);
 
 /*
 Copies element ~elem~ into the persistent array at index ~index~.
@@ -118,14 +118,14 @@ Returns the element ~index~ of the array.
 
 */
 
-  int Size();
+  const int Size() const;
 
 /*
 Returns the size of this array.
 
 */
 
-  SmiRecordId Id();
+  const SmiRecordId Id() const;
 
 /*
 Returns the identifier of this array.
@@ -171,7 +171,7 @@ canDelete( false )
 }
 
 template<class T>
-PArray<T>::PArray( SmiRecordId id, bool update ) :
+PArray<T>::PArray( const SmiRecordId id, const bool update ) :
 writeable( update ),
 parrays( false, 0 ),
 canDelete( false )
@@ -199,7 +199,7 @@ PArray<T>::~PArray()
 }
 
 template<class T>
-void PArray<T>::Put(int const index, T& elem)
+void PArray<T>::Put(const int index, const T& elem)
 {
   assert ( writeable );
   	
@@ -227,16 +227,17 @@ void PArray<T>::MarkDelete()
 
 
 template<class T>
-int PArray<T>::Size() 
+const int PArray<T>::Size() const
 {
   return size;
 }
 
 
 template<class T>
-SmiRecordId PArray<T>::Id() 
+const SmiRecordId PArray<T>::Id() const 
 { 
   return recid;
 }
+
 #endif
 
