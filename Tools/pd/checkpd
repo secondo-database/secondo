@@ -35,7 +35,8 @@ fi
 cd "$TEMPDIR"
 
 PROCESSED=0
-FAILED=0
+PDFAILED=0
+LATEXFAILED=0
 WARNINGS=0
 
 for F in $MYFILES
@@ -47,7 +48,7 @@ do
      echo "pdcheck for $F failed"
      echo "message : $S"
      echo -e "\n"
-     FAILED=$(expr "$FAILED" + 1)
+     PDFAILED=$(expr "$PDFAILED" + 1)
    else
      {
        cat "$PD_HEADER"
@@ -56,7 +57,7 @@ do
      latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
      if [ $? -ne 0 ]; then
         echo -e "LaTex Error in \"$F\"\n"
-        FAILED=$(expr "$FAILED" + 1)
+        LATEXFAILED=$(expr "$LATEXFAILED" + 1)
      else
         linecheck "$MAXLINES" $F >/dev/null
         CL="$?"
@@ -74,11 +75,13 @@ if [ "$EXIST" = "FALSE" ]; then
   rmdir  --ignore-fail-on-non-empty "$TEMPDIR"
 fi
 
-SUCCESS=$(expr "$PROCESSED" - "$FAILED" - "$WARNINGS")
+SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$WARNINGS" - "$LATEXFAILED" )
 echo "Statistic:"
 echo "processed files : $PROCESSED"
+echo "pd errors       : $PDFAILED"
+echo "latex errors    : $LATEXFAILED"
+echo "too long lines  : $WARNINGS"
 echo "files ok        : $SUCCESS"
-echo "warnings        : $WARNINGS"
-echo "files failed    : $FAILED"
 
+FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
 exit "$FAILED"
