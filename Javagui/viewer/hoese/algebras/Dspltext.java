@@ -27,6 +27,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.text.EditorKit;
+import javax.swing.text.Document;
 import tools.Base64Decoder;
 import org.jpedal.*;
 
@@ -214,8 +215,29 @@ public TextViewerFrame(){
       EKRtf = Display.createEditorKitForContentType("text/rtf");
   }
 
-  ScrollPane = new JScrollPane(Display);
-  getContentPane().add(ScrollPane,BorderLayout.CENTER);
+  TextScrollPane = new JScrollPane(Display);
+  TextPanel = new JPanel(new BorderLayout());
+  JPanel SearchPanel = new JPanel();
+  SearchPanel.add(CaseSensitive);
+  SearchPanel.add(SearchField);
+  SearchPanel.add(SearchBtn);
+  SearchBtn.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        searchText();
+     }
+  });
+  SearchField.addKeyListener(new KeyListener(){
+     public void keyPressed(KeyEvent evt){
+         if(evt.getKeyCode()==evt.VK_ENTER)
+            searchText();
+     }
+     public void keyTyped(KeyEvent evt){}
+     public void keyReleased(KeyEvent evt){}
+  });
+  TextPanel.add(TextScrollPane,BorderLayout.CENTER);
+  TextPanel.add(SearchPanel,BorderLayout.SOUTH); 
+
+  getContentPane().add(TextPanel,BorderLayout.CENTER);
   CloseBtn = new JButton("Close");
   CloseBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -242,6 +264,7 @@ public TextViewerFrame(){
   ActionListener FormatSwitcher = new ActionListener(){
      public void actionPerformed(ActionEvent evt){
          Object src = evt.getSource();
+         LastSearchPos=0;
          // get the text if it is editable 
          if(TextViewerFrame.this.Display.isEditable()&&!ISPDF){
               TextViewerFrame.this.TheText = TextViewerFrame.this.Display.getText();
@@ -259,7 +282,7 @@ public TextViewerFrame(){
               TextViewerFrame.this.PdfBtn.setEnabled(true);
               if(TextViewerFrame.this.ISPDF){
                  CP.remove(pdf_viewer);
-                 CP.add(ScrollPane,BorderLayout.CENTER);
+                 CP.add(TextPanel,BorderLayout.CENTER);
                  ISPDF=false;
                  TextViewerFrame.this.invalidate();
                  TextViewerFrame.this.validate();
@@ -279,7 +302,7 @@ public TextViewerFrame(){
               TextViewerFrame.this.PdfBtn.setEnabled(true);
               if(TextViewerFrame.this.ISPDF){
                  CP.remove(pdf_viewer);
-                 CP.add(ScrollPane,BorderLayout.CENTER);
+                 CP.add(TextPanel,BorderLayout.CENTER);
                  ISPDF=false;
                  TextViewerFrame.this.invalidate();
                  TextViewerFrame.this.validate();
@@ -302,7 +325,7 @@ public TextViewerFrame(){
               TextViewerFrame.this.PdfBtn.setEnabled(true);
               if(TextViewerFrame.this.ISPDF){
                  CP.remove(pdf_viewer);
-                 CP.add(ScrollPane,BorderLayout.CENTER);
+                 CP.add(TextPanel,BorderLayout.CENTER);
                  ISPDF=false;
                  TextViewerFrame.this.invalidate();
                  TextViewerFrame.this.validate();
@@ -320,7 +343,7 @@ public TextViewerFrame(){
                 TextViewerFrame.this.RtfBtn.setEnabled(true);
                 TextViewerFrame.this.PdfBtn.setEnabled(false);
                 if(!TextViewerFrame.this.ISPDF ){
-                    CP.remove(ScrollPane);
+                    CP.remove(TextPanel);
                     CP.add(pdf_viewer,BorderLayout.CENTER);
                     ISPDF=true;
                     TextViewerFrame.this.invalidate();
@@ -355,11 +378,50 @@ public TextViewerFrame(){
   setSize(640,480); 
 }
 
+/** searchs the text in the textfield in the document and
+  * marks its if found
+  */
+private void searchText(){
+  String Text = SearchField.getText();
+  if(Text.length()==0){
+    MessageBox.showMessage("no text to search");
+    return;
+  }
+  try{
+     Document Doc = Display.getDocument();
+     String DocText = Doc.getText(0,Doc.getLength());
+     if(!CaseSensitive.isSelected()){
+        DocText = DocText.toUpperCase();
+        Text = Text.toUpperCase();
+     }
+     int pos = DocText.indexOf(Text,LastSearchPos);
+     if(pos<0){
+        MessageBox.showMessage("end of text is reached");
+        LastSearchPos=0;
+        return;
+     }
+     pos = pos;
+     int i1 = pos;
+     int i2 = pos+Text.length();
+     LastSearchPos = pos+1;
+     Display.setCaretPosition(i1);
+     Display.moveCaretPosition(i2);
+     Display.getCaret().setSelectionVisible(true);
+  } catch(Exception e){
+    if(gui.Environment.DEBUG_MODE)
+       e.printStackTrace();
+    MessageBox.showMessage("error in searching text");
+
+  }
+
+}
+
 
 private void setToPlainBecauseError(){
+    
     JOptionPane.showMessageDialog(null,"Cannot show the text in specified format\n"+
                                        ", switch to plain text","Error",JOptionPane.ERROR_MESSAGE);
-    
+    LastSearchPos=0;
     Display.setEditorKit(EKPlain);
     Display.setEditable(true);
     TheText = Source.theList.textValue();
@@ -372,7 +434,7 @@ private void setToPlainBecauseError(){
     PdfBtn.setEnabled(true);
     if(ISPDF){
        getContentPane().remove(pdf_viewer); 
-       getContentPane().add(ScrollPane,BorderLayout.CENTER);
+       getContentPane().add(TextPanel,BorderLayout.CENTER);
        ISPDF=false;
        invalidate();
        validate();
@@ -382,6 +444,7 @@ private void setToPlainBecauseError(){
 
 public void setSource(Dspltext S){
     Source = S;
+    LastSearchPos=0;
     PlainBtn.setEnabled(true);
     HtmlBtn.setEnabled(true);
     RtfBtn.setEnabled(true);
@@ -410,7 +473,7 @@ public void setSource(Dspltext S){
        if(ISPDF){
           ISPDF=false;
           getContentPane().remove(pdf_viewer);
-          getContentPane().add(ScrollPane,BorderLayout.CENTER);
+          getContentPane().add(TextPanel,BorderLayout.CENTER);
           invalidate();validate();repaint();
        }
     } else{
@@ -419,7 +482,7 @@ public void setSource(Dspltext S){
           pdf_viewer.setPdfData(content);
           PdfBtn.setEnabled(false);
           if(!ISPDF){
-             getContentPane().remove(ScrollPane);
+             getContentPane().remove(TextPanel);
              getContentPane().add(pdf_viewer,BorderLayout.CENTER);
              ISPDF=true;
              invalidate();validate();repaint();
@@ -448,8 +511,8 @@ public PDFPanel(){
      CommandPanel.add(new JLabel("    "));
      CommandPanel.add(GBtn);
      CommandPanel.add(LBtn);
-     ScrollPane = new JScrollPane(CurrentPage);
-     add(ScrollPane,BorderLayout.CENTER);
+     PdfScrollPane = new JScrollPane(CurrentPage);
+     add(PdfScrollPane,BorderLayout.CENTER);
      add(CommandPanel,BorderLayout.SOUTH);
      ActionListener Control= new ActionListener(){
         public void actionPerformed(ActionEvent evt){
@@ -552,7 +615,7 @@ public boolean setPdfData(byte[] data){
    }
 } 
 private PdfDecoder pdf_decoder=new PdfDecoder();
-private JScrollPane ScrollPane;
+private JScrollPane PdfScrollPane;
 private JButton FirstBtn = new JButton("|<");
 private JButton PrevBtn = new JButton("<");
 private JButton NextBtn = new JButton(">");
@@ -580,10 +643,14 @@ private String TheText;
 private static EditorKit EKPlain=null;
 private static EditorKit EKHtml=null;
 private static EditorKit EKRtf=null;
-private static JScrollPane ScrollPane;
+private static JScrollPane TextScrollPane;
 private static PDFPanel pdf_viewer;     // Panel for displaying pdf contents
-private JPanel TextPanel = new JPanel();  // Panel for displaying plain text, html and rtf content
+private static JPanel TextPanel; // Panel for displaying text in plain, html and rtf format
 private boolean ISPDF = false;
+private JCheckBox CaseSensitive = new JCheckBox("case sensitive");
+private JTextField SearchField = new JTextField(20);
+private JButton SearchBtn = new JButton("search");
+private int LastSearchPos=0;
 
 }
 
