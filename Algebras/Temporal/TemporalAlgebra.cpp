@@ -35,222 +35,7 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 #include "TemporalAlgebra.h"
-/*
-3 Type Constructor ~instant~
 
-Type ~instant~ represents a point in time or is undefined. Time is considered to
-be linear and continuous, i.e., isomorphic to the real numbers.
-
-3.1 List Representation
-
-The list representation of an ~instant~ is
-
-----    i  or ( instant i )
-----
-
-For example:
-
-----    1.0  or ( instant 1.0 )
-----
-
-3.2 function Describing the Signature of the Type Constructor
-
-*/
-
-/* 
-  
-========THIS PART IS REPLACED BY THOMAS'S DATA TYPE (DZM 18.05.04)========
-   
-ListExpr
-InstantProperty()
-{
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> TIME"),
-                             nl->StringAtom("instant"),
-                             nl->StringAtom("(<instant_value>)"),
-                             nl->StringAtom("12.0 or 14e-3 or .23"))));
-}
-
-/ *
-3.3 Kind Checking Function
-
-This function checks whether the type constructor is applied correctly. 
-
-* /
-bool
-CheckInstant( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, "instant" ));
-}
-
-/ *
-3.4 ~Out~-function ( object -> NL )
-
-* / 
-ListExpr
-OutInstant( ListExpr typeinfo, Word value )
-{
-    if( ((Instant*)value.addr)->IsDefined() )
-    {
-	ListExpr instantValue=nl->RealAtom( ((Instant*)value.addr)->GetRealval() );
-	return (nl->TwoElemList(nl->SymbolAtom( "instant"), instantValue ));
-    }
-    else
-    {
-	return (nl->SymbolAtom("undef"));
-    }
-}
- 
-/ *
-3.5 ~In~-function ( NL -> object )
-
-* /
-Word
-InInstant( ListExpr typeInfo, ListExpr value,
-	   int errorPos, ListExpr& errorInfo, bool& correct )
-{
-    //1. get the instant value into instantValue
-    ListExpr instantValue;
-    if (nl->ListLength( value ) == 2 )
-    {
-	if ((nl->IsAtom(nl->First(value)))&&
-	    (nl->AtomType(nl->First(value)) == SymbolType)&&
-	    ((nl->SymbolValue(nl->First(value))=="instant")||
-	     (nl->SymbolValue(nl->First(value))=="datetime")))
-	{
-	    instantValue=nl->Second(value);
-	}
-	else
-	{ 
-	    correct = false;
-	    return (SetWord( Address( 0 ) ));
-	}
-    }
-    else  instantValue=value;
-    
-    //2. read the instant value into the class object
-    if ( nl->IsAtom( instantValue ) && nl->AtomType( instantValue ) == RealType )
-    {
-	correct = true;
-	return (SetWord( new Instant( true, nl->RealValue( instantValue )) ));
-    }
-    else if ( nl->IsAtom( instantValue ) && 
-	  nl->AtomType( instantValue ) == SymbolType && 
-	  nl->SymbolValue( instantValue ) == "undef" )
-    {
-	correct = true;
-	return (SetWord( new Instant( false, 0.0) ));
-    }
-    else
-    {
-	correct = false;
-	return (SetWord( Address( 0 ) ));
-    }
-}
-
-/ *
-3.6 ~Create~-function
-
-* /
-Word
-CreateInstant( const ListExpr typeInfo )
-{
-  return (SetWord( new Instant( false, 0.0 ) ));
-}
-
-/ *
-3.7 ~Delete~-function
-
-* /
-void
-DeleteInstant( Word& w )
-{
-  delete (Instant*)w.addr;
-  w.addr = 0;
-}
-
-/ *
-3.8 ~Close~-function
-
-* /
-void
-CloseInstant( Word& w )
-{
-  delete (Instant*)w.addr;
-  w.addr = 0;
-}
-
-/ *
-3.9 ~Clone~-function
-
-* /
-Word
-CloneInstant( const Word& w )
-{
-  return SetWord( ((Instant*)w.addr)->Clone() );
-}
-
-/ *
-3.10 ~Sizeof~-function
-
-* /
-int
-SizeOfInstant()
-{
-  return sizeof(Instant);
-}
-
-/ *
-3.11 ~Cast~-function
-
-* /
-void*
-CastInstant( void* addr )
-{
-  CcReal::realsCreated--;
-  return new (addr) Instant;
-}
-
-/ *
-3.12 Creation of the type constructor ~instant~
-
-* /
-TypeConstructor instant( "instant",	InstantProperty,
-                         OutInstant,    InInstant,
-                         0,             0,
-                         CreateInstant, DeleteInstant,
-                         0,             0,
-                         CloseInstant,  CloneInstant,
-                         CastInstant,   SizeOfInstant, 
-                         CheckInstant );
-======THIS PART OF INSTANT DATA TYPE IS REPLACED BY THOMAS'S DATA TYPE======
-
-*/
-
-/*
-4 Type Constructor ~rangeint~
-
-This type constructor implements the carrier set for ~range(int)~.
-
-4.1 List Representation
-
-The list representation of a ~range(int)~ is
-
-----    ( (i1b i1e lc1 rc1) (i2b i2e lc2 rc2) ... (inb ine lcn rcn) )
-----
-
-For example:
-
-----    ( (1 5 TRUE FALSE) (6 9 FALSE FALSE) (11 11 TRUE TRUE) )
-----
-
-4.2 function Describing the Signature of the Type Constructor
-
-*/
 ListExpr
 RangeIntProperty()
 {
@@ -1548,6 +1333,39 @@ MappingTypeMapIntime( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+/*
+16.1.12 Type Mapping Function for the Operstor ~units~ 
+
+Checks whether the correct argument types are supplied for an operator; if so,
+returns a list expression for the result type, otherwise the symbol
+~typeerror~.
+
+
+Type mapping for ~units~ is
+
+----	(mpoint) -> (stream upoint)
+                (mint) -> (stream constint)
+	(mreal) -> (stream ureal)
+----
+
+*/
+ListExpr
+MappingTypeMapUnits( ListExpr args ){
+  ListExpr arg1;
+  if ( nl->ListLength(args) == 1 )
+  {
+    arg1 = nl->First(args);
+    //arg2 = nl->Second(args);
+    if ( nl->IsEqual(arg1, "mpoint"))
+	return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("upoint"));
+    if ( nl->IsEqual(arg1, "mint"))
+	return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("constint"));
+    if ( nl->IsEqual(arg1, "mreal"))
+	return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("ureal"));
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
 
 /*
 16.2 Selection function
@@ -1690,6 +1508,30 @@ TemporalSelectInitialFinal( ListExpr args )
 
   //assert( false );
   return (-1); // This point should never be reached
+}
+
+/*
+16.2.5 Selection function ~units~
+
+Is used for the ~units~ operations.
+
+*/
+
+int
+TemporalSelectUnits( ListExpr args )
+{
+    ListExpr arg1 = nl->First( args );
+  
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
+	return (0);
+  
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )
+	return (1);
+  
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" )
+	return (2);	
+  
+    return (-1); // This point should never be reached
 }
 
 /*
@@ -2203,6 +2045,8 @@ int deftime_mint( Word* args, Word& result, int message, Word& local, Supplier s
 { // mint --> periods (=range(instant))
   result = qp->ResultStorage( s );
   
+  ((Range<Instant>*)result.addr)->Clear();
+  
   //1.get the input and out put objects
   MInt *mint;
   
@@ -2230,6 +2074,7 @@ int deftime_mint( Word* args, Word& result, int message, Word& local, Supplier s
 int deftime_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
 { // mreal --> periods (=range(instant))
   result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
   
   //1.get the input and out put objects
   MReal *mreal;
@@ -2257,6 +2102,7 @@ int deftime_mreal( Word* args, Word& result, int message, Word& local, Supplier 
 int deftime_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
 { // mpoint --> periods (=range(instant))
   result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
   
   //1.get the input and out put objects
   MPoint *mpoint;
@@ -2288,6 +2134,7 @@ int deftime_mpoint( Word* args, Word& result, int message, Word& local, Supplier
 int trajectory_mp( Word* args, Word& result, int message, Word& local, Supplier s )
 { // moving(point) --> line
   result = qp->ResultStorage( s );
+  ((CLine *)result.addr)->Clear();
   
   //1.get the input and out put objects
   MPoint *mpoint;
@@ -2677,6 +2524,204 @@ int final_mpoint( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
+16.3.25 Value mapping functions of operator ~units~
+
+(mpoint) ---- (stream upoint)
+
+(mint) ---- (stream constint)
+
+(mreal) ---- (stream ureal)
+
+*/
+
+struct UnitsLocalInfo
+{
+  Word mpir;     //the address of the moving point/int/real value
+  int unitIndex;  //current item index
+};
+
+int
+units_mp (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+Create upoint stream. Note that for any operator that produces a stream its arguments are NOT
+evaluated automatically. To get the argument value, the value mapping function
+needs to use ~qp->Request~ to ask the query processor for evaluation explicitly.
+This is illustrated in the value mapping functions below.
+
+*/
+{
+  Word arg0;  //address of the input value  (mpoint / mint / mreal)
+  //Word tuplex, tupley, tuplexy, streamy;
+  
+  MPoint* mp;  //the corresponding class objects (input and output)
+  UPoint* unit; 
+    
+  UnitsLocalInfo *localinfo;
+  
+  switch( message )
+  {
+    case OPEN:
+
+      qp->Request(args[0].addr, arg0);
+
+      mp = ((MPoint*)arg0.addr);  //receive the MPoint value
+
+      localinfo = new UnitsLocalInfo;
+      localinfo->mpir = arg0;
+      localinfo->unitIndex = 0;
+      local = SetWord(localinfo);
+      
+      return 0;
+
+    case REQUEST:
+      
+      if (local.addr ==0) return CANCEL;
+      localinfo=(UnitsLocalInfo *) local.addr;
+      
+      arg0 = localinfo->mpir;
+      mp = (MPoint*)arg0.addr;   //recover from local info.
+      
+      if (( 0 <= localinfo->unitIndex )&&( localinfo->unitIndex < mp->GetNoComponents() ))
+      {
+	  unit = new UPoint;
+	  mp->Get(localinfo->unitIndex++, *unit);
+	  
+	  //cout<<*unit<<endl;
+	  result.addr = unit;
+	  return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE:
+      
+      if( local.addr != 0 )
+      {
+	  localinfo=(UnitsLocalInfo *) local.addr;
+	  delete localinfo;
+      }
+      
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+int
+units_mi (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word arg0;  //address of the input value  (mpoint / mint / mreal)
+  //Word tuplex, tupley, tuplexy, streamy;
+  
+  MInt* mi;  //the corresponding class objects (input and output)
+  ConstTemporalUnit<CcInt> *unit;
+  
+  UnitsLocalInfo *localinfo;
+  
+  switch( message )
+  {
+    case OPEN:
+
+      qp->Request(args[0].addr, arg0);
+
+      mi = ((MInt*)arg0.addr);  //receive the MPoint value
+
+      localinfo = new UnitsLocalInfo;
+      localinfo->mpir = arg0;
+      localinfo->unitIndex = 0;
+      local = SetWord(localinfo);
+      
+      return 0;
+
+    case REQUEST:
+      
+      if (local.addr ==0) return CANCEL;
+      localinfo=(UnitsLocalInfo *) local.addr;
+      
+      arg0 = localinfo->mpir;
+      mi = (MInt*)arg0.addr;   //recover from local info.
+      
+      if (( 0 <= localinfo->unitIndex )&&( localinfo->unitIndex < mi->GetNoComponents() ))
+      {
+	  unit = new ConstTemporalUnit<CcInt>;
+	  mi->Get(localinfo->unitIndex++, *unit);
+	  
+	  result.addr = unit;
+	  return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE:
+      
+      if( local.addr != 0 )
+      {
+	  localinfo=(UnitsLocalInfo *) local.addr;
+	  delete localinfo;
+      }
+      
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+int
+units_mr (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word arg0;  //address of the input value  (mpoint / mint / mreal)
+  
+  MReal* mr;  //the corresponding class objects (input and output)
+  UReal* unit; 
+    
+  UnitsLocalInfo *localinfo;
+  
+  switch( message )
+  {
+    case OPEN:
+
+      qp->Request(args[0].addr, arg0);
+
+      mr = ((MReal*)arg0.addr);  //receive the MPoint value
+
+      localinfo = new UnitsLocalInfo;
+      localinfo->mpir = arg0;
+      localinfo->unitIndex = 0;
+      local = SetWord(localinfo);
+      
+      return 0;
+
+    case REQUEST:
+      
+      if (local.addr ==0) return CANCEL;
+      localinfo=(UnitsLocalInfo *) local.addr;
+      
+      arg0 = localinfo->mpir;
+      mr = (MReal*)arg0.addr;   //recover from local info.
+      
+      if (( 0 <= localinfo->unitIndex )&&( localinfo->unitIndex < mr->GetNoComponents() ))
+      {
+	  unit = new UReal;
+	  mr->Get(localinfo->unitIndex++, *unit);
+	  
+	  result.addr = unit;
+	  return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE:
+      
+      if( local.addr != 0 )
+      {
+	  localinfo=(UnitsLocalInfo *) local.addr;
+	  delete localinfo;
+      }
+      
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -2762,6 +2807,11 @@ ValueMapping initialmap[] =   {  initial_mint,
 ValueMapping finalmap[] =   {  final_mint,
 			     final_mreal,
 			     final_mpoint
+			   };
+
+ValueMapping unitsmap[] =   {  units_mp,
+			     units_mi,
+			     units_mr
 			   };
 
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
@@ -2989,6 +3039,14 @@ const string TemporalSpecFinal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "<text> final( _ )</text--->"
                                 "<text>get the Intime value corresponding to the final instant.</text--->"
                                 "<text>final(mpoint1)</text--->"
+                                ") )";
+
+const string TemporalSpecUnits  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>mpoint||mint||mreal -> stream(upoint||constint||ureal)</text--->"
+                                "<text> units( _ )</text--->"
+                                "<text>get the stream of units of the moving value.</text--->"
+                                "<text>units(mpoint1)</text--->"
                                 ") )";
 
 /*
@@ -3332,6 +3390,14 @@ Operator final( "final",
                         TemporalSelectInitialFinal,
                         MappingTypeMapIntime );
 
+Operator units( "units",
+                        TemporalSpecUnits,
+                        3,
+                        unitsmap,
+                        temporalnomodelmap,
+                        TemporalSelectUnits,
+                        MappingTypeMapUnits);
+
 /*
 6 Creating the Algebra
 
@@ -3421,6 +3487,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &passes);
     AddOperator( &initial);
     AddOperator( &final);
+    AddOperator( &units);
   }
   ~TemporalAlgebra() {};
 };
