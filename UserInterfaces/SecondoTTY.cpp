@@ -393,14 +393,16 @@ this function. The filename is given to DisplayTTY by this function.
 void
 SecondoTTY::ShowQueryResult( ListExpr list )
 {
-  if ( nl->IsEmpty( list ) || (nl->ListLength( list ) != 2) )
+  if ( nl->IsEmpty( list ) || 
+       (nl->ListLength( list ) != 2) ||
+       ( (nl->ListLength( list ) == 2) && (nl->IsEmpty(nl->Second( list ))) ) 
+     )
   {
     cout << "=> []" << endl;
     return;
   }
   else
   {
-    cout << "=> Result of query:" << endl;
     DisplayTTY::DisplayResult( nl->First( list ), nl->Second( list ) );
   }
 }
@@ -511,6 +513,7 @@ SecondoTTY::CallSecondo2()
 {
   ListExpr result;
   result = CallSecondo();
+	  
   if ( isQuery )
   {
     ShowQueryResult( result );
@@ -519,10 +522,7 @@ SecondoTTY::CallSecondo2()
   {
     TypeOutputList( result );
   }
-  if ( result != nl->TheEmptyList() )
-  {
-    nl->Destroy( result );
-  }
+  nl->initializeListMemory();
 }
 
 /*
