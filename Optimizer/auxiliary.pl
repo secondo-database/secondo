@@ -22,12 +22,17 @@ is_atomic_list([Head | Tail]) :-
   atomic(Head),
   is_atomic_list(Tail).
 
-write_tabs(0) :- !.
+write_spaces(0).
+
+write_spaces(N) :-
+  N > 0,
+  write(' '),
+  N1 is N - 1,
+  write_spaces(N1).
 
 write_tabs(N) :-
-  write('  '),
-  N1 is N - 1,
-  write_tabs(N1).
+  N1 is 2 * N ,
+  write_spaces(N1).
 
 write_atoms([X]) :-
   !,
@@ -71,14 +76,53 @@ write_elements([X | L], N) :-
   write(','),
   nl,
   write_elements(L, N).
-  
+
+max_attr_length([], 0).
+
+max_attr_length([[Name, _] | AttrDescription], M) :-
+  max_attr_length(AttrDescription, M1),
+  atom_length(Name, M2),
+  M is max(M1, M2).
+
+write_tuple([], [], _).
+
+write_tuple([[Name, _] | RestOfAttr], [AttrValue | RestOfValues], M) :-
+  write(Name),
+  atom_length(Name, NLength),
+  PadLength is M - NLength,
+  write_spaces(PadLength),
+  write(' : '),
+  write(AttrValue),
+  nl,
+  write_tuple(RestOfAttr, RestOfValues, M).
+
+write_tuples(_, [], _).
+
+write_tuples(AttrDescription, [Tuple], M) :-
+  !,
+  write_tuple(AttrDescription, Tuple, M).
+
+write_tuples(AttrDescription, [Tuple | TupleList], M) :-
+  write_tuple(AttrDescription, Tuple, M),
+  nl,
+  write_tuples(AttrDescription, TupleList, M).
+
 /*
 
 1.1.2 Predicate ~pretty\_print~
 
 */
+
+pretty_print([[rel, [tuple, AttrDescription]], Tuples]) :-
+  !,
+  nl,
+  max_attr_length(AttrDescription, AttrLength),
+  write_tuples(AttrDescription, Tuples, AttrLength).
+
 pretty_print(L) :-
   write_element(L, 0).
+
+
 
 /*
 
@@ -105,6 +149,59 @@ secondo(X) :-
     write('and error message : '),
     nl,
     write(ErrorString),
-    nl,
+    nl, 
+    !,
     fail
   ).
+
+/*
+
+1.3 Operators ~query~, ~update~, ~let~, ~create~, and ~delete~
+
+The purpose of these operators is to make using the PROLOG interface
+similar to using SecondoTTY. A SecondoTTY query
+
+----    query ten
+----
+
+can be issued as
+
+----    query 'ten'.
+----
+
+in the PROLOG interface via the ~query~ operator. The operators
+~delete~, ~let~, ~create~, and ~update~ work the same way.
+
+*/
+
+query(Query) :-
+  atom(Query),
+  atom_concat('query ', Query, QueryText),
+  secondo(QueryText).
+
+let(Query) :-
+  atom(Query),
+  atom_concat('let ', Query, QueryText),
+  secondo(QueryText).
+
+create(Query) :-
+  atom(Query),
+  atom_concat('create ', Query, QueryText),
+  secondo(QueryText).
+
+update(Query) :-
+  atom(Query),
+  atom_concat('update ', Query, QueryText),
+  secondo(QueryText).
+
+delete(Query) :-
+  atom(Query),
+  atom_concat('delete ', Query, QueryText),
+  secondo(QueryText).
+
+:-
+  op(800, fx, query),
+  op(800, fx, delete),
+  op(800, fx, let),
+  op(800, fx, create),
+  op(800, fx, update).
