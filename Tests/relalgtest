@@ -22,6 +22,12 @@ e
 (create oddTest : (rel(tuple((no int)))));
 (update oddTest := ((rel(tuple((no int))))((1)(3)(5)(7)(9)(11)(13)(15)(17)(19))));
 
+(create duplicatesTest : (rel(tuple((no int)))));
+(update duplicatesTest := ((rel(tuple((no int))))((1)(1)(1)(6)(6)(7)(9)(9)(9)(9))));
+
+(create realTest : (rel(tuple((no real)))));
+(update realTest := ((rel(tuple((no real))))((1.0)(3.0)(-6.0)(7.0)(9.0)(0.875)(-9.875)(-23.625))));
+
 (create EmployeeTest :
 	(rel
                 (tuple
@@ -145,13 +151,25 @@ e
                 ("Wuerzburg" 128000 8700 "0931" "WUE")
                 ("Wuppertal" 377000 5600 "0202" "W"))));
 
-#testcase FilterTest
+#testcase FilterTest1
 #yields (int 5)
 query tenTest feed filter[.no > 5] consume count;
 
-#testcase AverageTest
+#testcase FilterTest2
+#yields error
+query StaedteTest feed filter[.SName > 5] consume count;
+
+#testcase AverageTest1
 #yields (real 325017.25)
 query StaedteTest feed avg[Bev];
+
+#testcase AverageTest2
+#yields (real -2.328125)
+query realTest feed avg[no];
+
+#testcase AverageTest3
+#yields error
+query StaedteTest feed avg[SName];
 
 #testcase HeadTest1
 #yields ((rel(tuple((no int))))((1)(2)(3)(4)(5)))
@@ -187,23 +205,45 @@ query EmployeeTest feed sortby[DeptNr asc] groupby[DeptNr; anz : group count] co
     (("Bush" 11 1 "Bush" 1)("Callahan" 1 2 "Myers" 2)("Jones" 14 2 "Myers" 2)))
 query EmployeeTest feed DeptTest feed rename[A] hashjoin[DeptNr, DeptNrA, 17] sort head[3] consume;
 
-#testcase MergeJoinTest
+#testcase HashJoinTest2
+#yields ((rel(tuple((no int)(noA int))))((1 1)(6 6)(7 7)(9 9)))
+query duplicatesTest feed tenTest feed rename[A] hashjoin[no, noA, 23] sort rdup consume
+
+#testcase MergeJoinTest1
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
     (LeaderA string)(DeptNrA int))))\
     (("Bush" 11 1 "Bush" 1)("Callahan" 1 2 "Myers" 2)("Jones" 14 2 "Myers" 2)))
 query EmployeeTest feed DeptTest feed rename[A] sortmergejoin[DeptNr, DeptNrA] sort head[3] consume;
 
-#testcase MaxTest
+#testcase MergeJoinTest2
+#yields ((rel(tuple((no int)(noA int))))((1 1)(6 6)(7 7)(9 9)))
+query duplicatesTest feed tenTest feed rename[A] mergejoin[no, noA] sort rdup consume
+
+#testcase MaxTest1
 #yields (string "Wuppertal")
 query StaedteTest feed max[SName];
 
-#testcase MinTest
+#testcase MaxTest2
+#yields (real 9.0)
+query realTest feed max[no];
+
+
+#testcase MinTest1
 #yields (string "Aachen")
 query StaedteTest feed min[SName];
 
-#testcase SumTest
+#testcase MinTest2
+#yields (real -23.625)
+query realTest feed min[no];
+
+
+#testcase SumTest1
 #yields (int 18612000)
 query StaedteTest feed sum[Bev];
+
+#testcase SumTest2
+#yields (real -19.625)
+query realTest feed sum[no];
 
 #testcase ProductTest1
 #yields error
