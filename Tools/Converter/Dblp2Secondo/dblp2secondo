@@ -94,7 +94,8 @@ fi
 
 # ask the user for the nexte step
 echo ""
-if [ $EXIST = true ]; then
+ANSWER="overwrite"
+if [ "$EXIST" = "true" ]; then
   echo "One of the files authors, authordoc and/or documents exists"
   echo "What want you to do ?"
   select ANSWER in "overwrite" "abort" "use"; do
