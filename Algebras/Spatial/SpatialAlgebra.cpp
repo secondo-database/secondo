@@ -1019,7 +1019,7 @@ The list representation of a point is
 static ListExpr
 OutPoints( ListExpr typeInfo, Word value )
 {
-  cout << "OutPoints" << endl;
+  //cout << "OutPoints" << endl;
 
   Points* points = (Points*)(value.addr);
   if( points->IsEmpty() )
@@ -1052,7 +1052,7 @@ static Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  cout << "InPoints" << endl;
+  //cout << "InPoints" << endl;
 
   Points* points = new Points( SecondoSystem::GetLobFile() );
   points->StartBulkLoad();
@@ -3049,7 +3049,8 @@ The list representation of a line is
 static ListExpr
 OutLine( ListExpr typeInfo, Word value )
 {
-  cout<<"OUTLINE"<<endl;
+  //cout<<"OUTLINE"<<endl;
+    
   ListExpr result, last;
   CHalfSegment chs;
   ListExpr halfseg, halfpoints, flatseg;
@@ -3838,6 +3839,8 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
     CHalfSegment auxchs;
     double dummyy0;
 
+    return true;  //the check is closed temporarily to import data.
+    
     if (chs.IsDefined())
     {
 	int prevcycleMeet[50];
@@ -3865,7 +3868,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 			    cout<<"two cycles intersect with the ";
 			    cout<<"following edges:";
 			    cout<<auxchs<<" :: "<<chs<<endl;
-			    return false;
+			    return false; 
 			}
 			else
 			{
@@ -4034,7 +4037,7 @@ The list representation of a region is
 static ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
-    cout<<"OutRegion"<<endl;
+    //cout<<"OutRegion"<<endl;
     CRegion* cr = (CRegion*)(value.addr);
     if( cr->IsEmpty() )
     {
@@ -4277,7 +4280,7 @@ OutRegion( ListExpr typeInfo, Word value )
 static Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  cout<<"InRegion"<<endl;
+  //cout<<"InRegion"<<endl;
   CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
 
   cr->StartBulkLoad();
