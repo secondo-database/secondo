@@ -76,6 +76,8 @@ This module offers the following routines:
 
 #include "SecondoConfig.h"
 #include "SocketIO.h"
+#include <string>
+#include <map>
 
 #ifndef SECONDO_PID
 #define SECONDO_PID
@@ -261,6 +263,13 @@ the process.
 Is the default signal handler for handling user signals (SIGUSR1 and SIGUSR2).
 
 */
+
+ static void Application::PrintStacktrace(void);
+/*
+Print out a stack trace in cas of abnormal program termination.
+
+*/
+
 #else
   Socket* rshSocket;
   DWORD WINAPI RemoteSignalHandler();
@@ -276,6 +285,7 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 #endif
 
   static Application* appPointer;
+  static map<int, std::string> signalStr;
 };
 
 #endif // APPLICATION_H

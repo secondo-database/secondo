@@ -12,12 +12,14 @@ August 2002 Ulrich Telle Bug fix for uninitialized variables
 #include <sstream>
 #include <signal.h>
 #include <string>
+#include <map>
 #include <sys/stat.h>
 using namespace std;
 
 #include "SecondoConfig.h"
 #include "Application.h"
 #include "Counter.h"
+#include "LogMsg.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
@@ -28,7 +30,11 @@ using namespace std;
 #define _POSIX_OPEN_MAX	256
 #endif
 
-Application* Application::appPointer = 0;
+Application* 
+Application::appPointer = 0;
+
+map<int, string>
+Application::signalStr;
 
 Application* Application::Instance()
 {
@@ -110,13 +116,21 @@ Application::Application( int argc, const char** argv )
   user2Flag = false;
 
 #ifndef SECONDO_WIN32
+  signalStr[SIGINT] = "SIGINT";
+  signalStr[SIGQUIT] = "SIGQUIT";
+  signalStr[SIGILL] = "SIGILL";
+  signalStr[SIGABRT] = "SIGABRT";
+  signalStr[SIGFPE] = "SIGFPE";
+  signalStr[SIGTERM] = "SIGTERM";
+  signalStr[SIGSEGV] = "SIGSEGV";
+
   // --- Trap all signals that would terminate the program by default anyway.
 //  signal( SIGHUP,    Application::AbortOnSignalHandler );
-//  /*signal( SIGINT,    Application::AbortOnSignalHandler );*/
+  signal( SIGINT,    Application::AbortOnSignalHandler );
   signal( SIGQUIT,   Application::AbortOnSignalHandler );
-//  signal( SIGILL,    Application::AbortOnSignalHandler );
+  signal( SIGILL,    Application::AbortOnSignalHandler );
   signal( SIGABRT,   Application::AbortOnSignalHandler );
-//  signal( SIGFPE,    Application::AbortOnSignalHandler );
+  signal( SIGFPE,    Application::AbortOnSignalHandler );
 //  signal( SIGPIPE,   Application::AbortOnSignalHandler );
 //  signal( SIGALRM,   Application::AbortOnSignalHandler );
   signal( SIGTERM,   Application::AbortOnSignalHandler );
@@ -124,7 +138,7 @@ Application::Application( int argc, const char** argv )
 //  signal( SIGUSR1,   Application::UserSignalHandler );
 //  signal( SIGUSR2,   Application::UserSignalHandler );
 //  signal( SIGTRAP,   Application::AbortOnSignalHandler );
-//  signal( SIGBUS,    Application::AbortOnSignalHandler );
+  signal( SIGBUS,    Application::AbortOnSignalHandler );
 #ifdef SIGSTKFLT
 //  signal( SIGSTKFLT, Application::AbortOnSignalHandler );
 #endif
@@ -186,26 +200,73 @@ Application::Sleep( const int seconds )
 
 /* Obtain a backtrace and print it to stdout. */
 void
-print_trace (void)
+Application::PrintStacktrace(void)
 {
-  void *array[50];
-  char **strings;
+  void* buffer[256];
+  int depth = backtrace(buffer,256);
+  char** STP = backtrace_symbols(buffer,depth);
 
-  size_t size = backtrace (array, 50);
-  strings = backtrace_symbols (array, size);
+  const string tenStars = " ********** ";
+  const string stackTrace = "Stacktrace";
 
-  cout << "***** Obtained " << size << " stack frames:" << endl;
+  cout << tenStars << " Begin " << stackTrace << tenStars << endl;
+  for(int i=0;i<depth;i++)
+  {
+    string str(STP[i]);
 
-  for (size_t i = 0; i < size; i++) {
-     cout << strings[i] << endl;
+    string cmd1 = "addr2line -e SecondoTTYBDB ";
+    string cmd2 = "c++filt ";
+    string address = "";
+    string symbolName = "";
+
+    // extract address information
+    unsigned int p1 = str.find_last_of("[");
+    unsigned int p2 = str.find_last_of("]");
+    if (p1==string::npos || p2==string::npos) {
+
+      cmd1 = "";
+
+    } else {
+      
+      address = str.substr(p1+1,p2-p1-1);
+      cmd1 += address;
+    }
+
+    // extract demangled C++ function name
+    p1 = str.find("(");
+    p2 = str.find_last_of("+");
+
+    if (p1==string::npos || p2==string::npos) 
+    {
+      cmd2 = "";
+
+    } else {
+
+      symbolName = str.substr(p1+1,p2-p1-1);
+      cmd2 += symbolName;
+    }
+
+    if ( RTFlag::isActive("DEBUG:TranslateStacktrace") )
+    {
+      if ( cmd1 != "" )
+        system(cmd1.c_str());
+      if ( cmd2 != "" )
+        system(cmd2.c_str());
+
+    } else {
+     
+      if ( (cmd1 == "") || (cmd2 == "") ) { 
+        cout << str << endl;
+      } else {
+        cout << symbolName << " " << address << endl;
+      }
+    }
   }
+  cout << tenStars << " End " << stackTrace << tenStars << endl;
 
-  cout << "*****" << endl;
 
-  free (strings);
+  free(STP);
 }
-
-
 
 void
 Application::AbortOnSignalHandler ( int sig )
@@ -215,8 +276,11 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
-  cout << endl << "***** Signal #" << sig << " caught!" << endl;
-  print_trace();
+  cout << endl << " ***************************************";
+  cout << endl << " **";
+  cout << endl << " ** Signal #" << signalStr[sig] << " caught! ";
+  cout << endl << " **" << endl;
+  PrintStacktrace();
   if ( Application::appPointer->abortMode )
   {
     if ( Application::appPointer->AbortOnSignal( sig ) )
