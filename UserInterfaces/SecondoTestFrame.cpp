@@ -13,7 +13,6 @@ using namespace std;
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-
 #include "Application.h"
 #include "Profiles.h"
 #include "FileSystem.h"
@@ -524,13 +523,22 @@ Test 05: show all tuples in the file.
 */
 void SecondoTestFrame::Test05(const TupleAttributes *attributes, SmiRecordFile *recFile) {
 	cout << "\tnot yet implemented." << endl;
-	/*
-	it = new SmiRecordFileIterator();
-	myTuple = new Tuple(&tupleType1);
+	SmiRecordFileIterator *it = new SmiRecordFileIterator();
+	bool rc = recFile->SelectAll(*it, SmiFile::ReadOnly); 
+	bool hasMore = true;
+	SmiRecordId recId = 2;
+	SmiRecord rec;
+	Tuple *tuple;
+	
 	do {
-		more = it->Next(*myTuple);
-		cout << "\t" << *myTuple << endl;
-	} while (more); */
+		hasMore = it->Next(recId, rec);
+		cout << "record number:" << recId << endl;
+		//tuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
+		//cout << "Contents of tuple: " << *tuple << endl;
+		//delete tuple;
+	} while (hasMore == true);
+	
+	delete it;
 }
 
 /*
