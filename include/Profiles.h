@@ -43,6 +43,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 January 2002 Ulrich Telle
 
+January 2005, M. Spiekermann. Key values set in the configuration file can
+be overruled by environment variables named SECONDO\_PARAM\_~keyname~.
+
 1.1 Overview
 
 Applications often need a mechanism for providing configuration parameters.

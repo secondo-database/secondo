@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+Jan 2005, M. Spiekermann. Changes in getParameter.
+
 */
 
 using namespace std;
@@ -27,6 +29,7 @@ using namespace std;
 #include <string>
 #include <iostream>
 #include <fstream>
+
 #include <stdio.h>
 #include <unistd.h>
 #include "Profiles.h"
@@ -81,6 +84,13 @@ string SmiProfile::GetParameter( const string& sectionName,
     resultString = defaultValue;
   }
 
+  // overrule parameter if environment variable is set
+  char* envStr = 0;
+  envStr= getenv( ("SECONDO_PARAM_"+keyName).c_str() );
+  if (envStr) {
+      resultString = string(envStr);
+  }
+
   return resultString;
 }
 
@@ -90,14 +100,21 @@ long SmiProfile::GetParameter ( const string& sectionName,
                                 const string& keyName, long defaultValue,
                                 const string& fileName )
 {
-  string txt;
   long value = defaultValue;
+  string txt = GetParameter( sectionName, keyName, "", fileName );
 
-  txt = GetParameter( sectionName, keyName, "", fileName );
-  if (txt.length() > 0 )
+  if (txt.length() > 0)
   {
     value = atol( txt.c_str() );
   }
+
+  // overrule parameter if environment variable is set
+  char* envStr = 0;
+  envStr= getenv( ("SECONDO_PARAM"+keyName).c_str() );
+  if (envStr) {
+      value = atol(envStr);
+  }
+
   return value;
 }
 
