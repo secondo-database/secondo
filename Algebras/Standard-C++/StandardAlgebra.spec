@@ -26,6 +26,8 @@ operator contains alias CONTAINS pattern _ infixop _
 
 operator isempty alias ISEMPTY pattern op ( _ )
 
+operator intersection alias INTERSECTION pattern _ infixop _
+operator minus alias SET_MINUS pattern _ infixop _
 
 
 
