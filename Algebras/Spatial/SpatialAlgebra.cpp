@@ -393,6 +393,70 @@ OutPoint( ListExpr typeInfo, Word value )
 4.4 ~In~-function
 
 */
+double largeint_double(ListExpr NList, bool &correct)
+{
+    //(largeint +  2  206547878  79) or  (largeint 2  206547878  79)
+    
+    int sign=1;
+    int size=0;
+    double value=0;
+    
+    ListExpr Third=NList;
+    ListExpr Fst, Rst;
+    
+    Fst = nl->First(Third);//largeint
+    Rst = nl->Rest(Third);//(+-  2  206547878  79) or  (2  206547878  79)
+			    
+    if (nl->AtomType(nl->Second(Third))==SymbolType)
+    {
+	if ((nl->SymbolValue(nl->Second(Third))=="-") ||
+	(nl->SymbolValue(nl->Second(Third))=="+")) 
+	{
+	    //(largeint +-  2  206547878  79)
+	    Fst = nl->First(Rst);//+-
+	    Rst = nl->Rest(Rst);//(2  206547878  79)
+	    if (nl->SymbolValue(nl->Second(Third))=="-")
+		sign=-1;
+	    else sign=1;
+	}
+	else
+	{
+	    correct=false;
+	}
+    }
+    else if (nl->AtomType(nl->Second(Third))==IntType)
+    {
+	//(largeint  3  206547878  79  5)
+	sign=1;
+    }
+    else correct = false;
+			    
+    if (correct)
+    {
+	//Rst=(2  -206547878  79)
+	Fst = nl->First(Rst);//Size==2
+	Rst = nl->Rest(Rst);//(206547878  79)
+	if (nl->AtomType(Fst) == IntType)
+	    size = nl->IntValue(Fst);
+	else correct=false;
+    }
+    
+    if ((correct) &&(size==nl->ListLength( Rst )))
+    {
+	while ((correct)&&(size>0))
+	{
+	    Fst = nl->First(Rst);//Size==2
+	    Rst = nl->Rest(Rst);//(206547878  79)
+	    if (nl->AtomType(Fst) == IntType)
+		value = value+nl->IntValue(Fst) * pow(2, 32*(size-1));
+	    else  correct = false;
+	    size--;
+	}
+	value=sign*value;
+    }
+    return value;
+}
+
 static Word
 InPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
@@ -424,20 +488,37 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 	              (nl->AtomType(nl->First(First)) == SymbolType)&&
 	              (nl->SymbolValue(nl->First(First))=="rat"))
 	{   //RATIONAL NUMBERS
-	    if (nl->ListLength( First ) == 5 )  //(rat 4 1107 / 10000)
+	    if (nl->ListLength( First ) == 5 )  //(rat 4 1107 / 10000)  
 	    {
 		if  ((nl->IsAtom(nl->Fourth(First)))&&
 		     (nl->AtomType(nl->Fourth(First)) == SymbolType)&&
 		     (nl->SymbolValue(nl->Fourth(First))=="/"))
-		{
-		    if ((nl->IsAtom(nl->Third(First))) &&
-		        (nl->AtomType(nl->Third(First)) == IntType))
-			xx=nl->IntValue(nl->Third(First));
+		{  
+		    ListExpr Third=nl->Third(First);
+		    ListExpr Fifth=nl->Fifth(First);
+		    
+		    if ((nl->IsAtom(Third)) &&
+		        (nl->AtomType(Third) == IntType))
+			xx=nl->IntValue(Third);
+		    else if (!(nl->IsAtom(Third)) && 
+			  (nl->AtomType(nl->First(Third))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Third))=="largeint"))
+		    {	
+			    //here: process the longint value;   
+			    xx=largeint_double(Third, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Fifth(First))) &&
 		        (nl->AtomType(nl->Fifth(First)) == IntType))
 			xx=xx / nl->IntValue(nl->Fifth(First));
+		    else if (!(nl->IsAtom(Fifth)) && 
+			  (nl->AtomType(nl->First(Fifth))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Fifth))=="largeint"))
+		    {
+			    //here: process the longint value;   
+			    xx=xx / largeint_double(Fifth, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Second(First))) &&
@@ -449,6 +530,9 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 	    }
 	    else //(rat - 4 1107 / 10000)
 	    {
+		ListExpr Fourth=nl->Fourth(First);
+		ListExpr Sixth=nl->Sixth(First);
+		
 		if  ((nl->IsAtom(nl->Fifth(First)))&&
 		     (nl->AtomType(nl->Fifth(First)) == SymbolType)&&
 		     (nl->SymbolValue(nl->Fifth(First))=="/"))
@@ -456,11 +540,25 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 		    if ((nl->IsAtom(nl->Fourth(First))) &&
 		        (nl->AtomType(nl->Fourth(First)) == IntType))
 			xx=nl->IntValue(nl->Fourth(First));
+		    else if (!(nl->IsAtom(Fourth)) && 
+			  (nl->AtomType(nl->First(Fourth))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Fourth))=="largeint"))
+		    {	
+			    //here: process the longint value;   
+			    xx=largeint_double(Fourth, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Sixth(First))) &&
 		        (nl->AtomType(nl->Sixth(First)) == IntType))
 			xx=xx / nl->IntValue(nl->Sixth(First));
+		    else if (!(nl->IsAtom(Sixth)) && 
+			  (nl->AtomType(nl->First(Sixth))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Sixth))=="largeint"))
+		    {	
+			    //here: process the longint value;   
+			    xx=xx / largeint_double(Sixth, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Third(First))) &&
@@ -500,6 +598,9 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 	{   //RATIONAL NUMBERS
 	    if (nl->ListLength( Second ) == 5 )  //(rat 4 1107 / 10000)
 	    {
+		ListExpr Third=nl->Third(Second);
+		ListExpr Fifth=nl->Fifth(Second);
+		    
 		if  ((nl->IsAtom(nl->Fourth(Second)))&&
 		     (nl->AtomType(nl->Fourth(Second)) == SymbolType)&&
 		     (nl->SymbolValue(nl->Fourth(Second))=="/"))
@@ -507,11 +608,25 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 		    if ((nl->IsAtom(nl->Third(Second))) &&
 		        (nl->AtomType(nl->Third(Second)) == IntType))
 			yy=nl->IntValue(nl->Third(Second));
+		    else if (!(nl->IsAtom(Third)) && 
+			  (nl->AtomType(nl->First(Third))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Third))=="largeint"))
+		    {	
+			    //here: process the longint value;   
+			    yy=largeint_double(Third, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Fifth(Second))) &&
 		        (nl->AtomType(nl->Fifth(Second)) == IntType))
 			yy=yy / nl->IntValue(nl->Fifth(Second));
+		    else if (!(nl->IsAtom(Fifth)) && 
+			  (nl->AtomType(nl->First(Fifth))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Fifth))=="largeint"))
+		    {	
+			    //here: process the longint value;   
+			    yy=yy / largeint_double(Fifth, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Second(Second))) &&
@@ -523,6 +638,9 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 	    }
 	    else //(rat - 4 1107 / 10000)
 	    {
+		ListExpr Fourth=nl->Fourth(Second);
+		ListExpr Sixth=nl->Sixth(Second);
+		
 		if  ((nl->IsAtom(nl->Fifth(Second)))&&
 		     (nl->AtomType(nl->Fifth(Second)) == SymbolType)&&
 		     (nl->SymbolValue(nl->Fifth(Second))=="/"))
@@ -530,11 +648,25 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 		    if ((nl->IsAtom(nl->Fourth(Second))) &&
 		        (nl->AtomType(nl->Fourth(Second)) == IntType))
 			yy=nl->IntValue(nl->Fourth(Second));
+		    else if (!(nl->IsAtom(Fourth)) && 
+			  (nl->AtomType(nl->First(Fourth))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Fourth))=="largeint"))
+		    {	
+			    //here: process the longint value;   
+			    yy=largeint_double(Fourth, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Sixth(Second))) &&
 		        (nl->AtomType(nl->Sixth(Second)) == IntType))
 			yy=yy / nl->IntValue(nl->Sixth(Second));
+		    else if (!(nl->IsAtom(Sixth)) && 
+			  (nl->AtomType(nl->First(Sixth))==SymbolType)&&
+			  (nl->SymbolValue(nl->First(Sixth))=="largeint"))
+		    {	
+			    //here: process the longint value;   
+			    yy=yy / largeint_double(Sixth, correct);
+		    }
 		    else correct = false;
 		    
 		    if ((nl->IsAtom(nl->Third(Second))) &&
@@ -10187,6 +10319,7 @@ nocomponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
 static int
 size_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {
+    //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     result = qp->ResultStorage( s );
 
     CLine *cl=((CLine*)args[0].addr);
