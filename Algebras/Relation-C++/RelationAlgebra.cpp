@@ -444,9 +444,6 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
   switch (message)
   {
     case OPEN :
-
-	//cout << "Feed OPEN " << endl;
-
       qp->Request(args[0].addr, argRelation);
       r = ((CcRel*)argRelation.addr);
       rit = r->MakeNewScan();
@@ -455,13 +452,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST :
-
-	//cout << "Feed REQUEST " << endl;
-
       rit = (CcRelIT*)local.addr;
       if (!(rit->EndOfScan()))
       {
-        //cout << "Tuple: " << (CcTuple)(*(rit->GetTuple())) << endl;
         result = SetWord(rit->GetTuple());
         rit->Next();
         return YIELD;
@@ -474,9 +467,6 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
       rit = (CcRelIT*)local.addr;
       delete rit;
-
-	//cout << "Feed CLOSE " << endl;
-
       return 0;
   }
   return 0;
@@ -505,6 +495,300 @@ Operator feed (
           simpleSelect,         // trivial selection function
           FeedTypeMap           // type mapping
 );
+
+/*
+
+4.1 Operator ~sample~
+
+Produces a stream representing a sample of a relation.
+
+4.1.1 Function ~MakeRandomSubset~
+
+Generates a random subset of the numbers 1 ... ~setSize~, the size
+of which is ~subsetSize~. This function is needed for operator ~sample~.
+
+The strategy for generating a random subset works as follows: The algorithm
+maintains a set of already drawn numbers. The algorithm draws a new random
+number (using the libc random number generator) and adds it to the set of
+already drawn numbers, if it has not been
+already drawn. This is repeated until the size of the drawn set equals
+~subsetSize~. If ~subsetSize~ it not considerably smaller than ~setSize~, e.g.
+~subsetSize~ = ~setSize~ - 1, this approach becomes very inefficient
+or may even not terminate, because towards the end of the algorithm
+it may take a very long (or infinitely long)
+time until the random number generator hits one of the few numbers,
+which have not been already drawn. Therefore, if ~subsetSize~ is more
+than half of ~subSet~, we simple draw a subset of size
+~setSize~ - ~subsetSize~ and take the complement of that set as result set.
+
+*/
+void
+MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
+{
+  assert(subsetSize >= 1);
+  assert(setSize >= 2);
+  assert(setSize <= RAND_MAX);
+  assert(setSize > subsetSize);
+
+  set<int> drawnNumbers;
+  set<int>::iterator iter;
+  int drawSize;
+  int nDrawn = 0;
+  int i;
+  int r;
+  bool doInvert;
+
+  result.resize(0);
+  srand(time(0));
+
+  if(((double)setSize) / ((double)subsetSize) <= 2)
+  {
+    doInvert = true;
+    drawSize = setSize - subsetSize;
+  }
+  else
+  {
+    doInvert = false;
+    drawSize = subsetSize;
+  }
+
+  while(nDrawn < drawSize)
+  {
+    r = rand();
+    r = r % (setSize + 1);
+    if(r == 0)
+    {
+      continue;
+    }
+
+    if(drawnNumbers.find(r) == drawnNumbers.end())
+    {
+      drawnNumbers.insert(r);
+      ++nDrawn;
+    }
+  }
+
+  if(doInvert)
+  {
+    for(i = 1; i <= setSize; ++i)
+    {
+      if(drawnNumbers.find(i) == drawnNumbers.end())
+      {
+        result.push_back(i);
+      }
+    }
+  }
+  else
+  {
+    for(iter = drawnNumbers.begin(); iter != drawnNumbers.end(); ++iter)
+    {
+      result.push_back(*iter);
+    }
+  }
+}
+
+/*
+
+4.1.1 Type mapping function of operator ~sample~
+
+A type mapping function takes a nested list as argument. Its contents are
+type descriptions of an operator's input parameters. A nested list describing
+the output type of the operator is returned.
+
+Result type of feed operation.
+
+----	((rel x) int real)		-> (stream x)
+----
+
+*/
+static ListExpr SampleTypeMap(ListExpr args)
+{
+  ListExpr first ;
+  ListExpr minSampleSizeLE;
+  ListExpr minSampleRateLE;
+
+  CHECK_COND(nl->ListLength(args) == 3,
+    "Operator sample expects a list of length three.");
+
+  first = nl->First(args);
+  minSampleSizeLE = nl->Second(args);
+  minSampleRateLE = nl->Third(args);
+
+  CHECK_COND(nl->ListLength(first) == 2,
+    "Operator sample expects a relation as first argument.");
+  CHECK_COND(TypeOfRelAlgSymbol(nl->First(first)) == rel,
+    "Operator sample expects a relation as first argument.");
+
+  CHECK_COND(nl->IsAtom(minSampleSizeLE),
+    "Operator sample expects an int as second argument.")
+  CHECK_COND(nl->AtomType(minSampleSizeLE) == SymbolType,
+    "Operator sample expects an int as second argument.")
+  CHECK_COND(nl->SymbolValue(minSampleSizeLE) == "int",
+    "Operator sample expects an int as second argument.");
+  CHECK_COND(nl->IsAtom(minSampleRateLE),
+    "Operator sample expects a real as third argument.")
+  CHECK_COND(nl->AtomType(minSampleRateLE) == SymbolType,
+    "Operator sample expects a real as third argument.")
+  CHECK_COND(nl->SymbolValue(minSampleRateLE) == "real",
+    "Operator sample expects a real as third argument.");
+
+  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+}
+/*
+
+4.1.2 Value mapping function of operator ~sample~
+
+*/
+struct SampleLocalInfo
+{
+  vector<int> sampleIndices;
+  vector<int>::iterator iter;
+  int lastIndex;
+  CcRelIT* relIT;
+};
+
+static int
+Sample(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SampleLocalInfo* localInfo;
+  Word argRelation;
+  Word sampleSizeWord;
+  Word sampleRateWord;
+
+  CcRel* rel;
+  CcTuple* tuple;
+
+  int sampleSize;
+  int relSize;
+  float sampleRate;
+  int i;
+  int currentIndex;
+
+  switch(message)
+  {
+    case OPEN :
+      localInfo = new SampleLocalInfo();
+      local = SetWord(localInfo);
+
+      qp->Request(args[0].addr, argRelation);
+      qp->Request(args[1].addr, sampleSizeWord);
+      qp->Request(args[2].addr, sampleRateWord);
+
+      rel = (CcRel*)argRelation.addr;
+      relSize = rel->GetNoTuples();
+      localInfo->relIT = rel->MakeNewScan();
+      sampleSize = ((CcInt*)sampleSizeWord.addr)->GetIntval();
+      sampleRate = ((CcReal*)sampleRateWord.addr)->GetRealval();
+
+      if(sampleSize < 1)
+      {
+        sampleSize = 1;
+      }
+      if(sampleRate <= 0.0)
+      {
+        sampleRate = 0.0;
+      }
+      else if(sampleRate > 1.0)
+      {
+        sampleRate = 1.0;
+      }
+      if((int)(sampleRate * (float)relSize) > sampleSize)
+      {
+        sampleSize = (int)(sampleRate * (float)relSize);
+      }
+
+      if(relSize <= sampleSize)
+      {
+        for(i = 1; i <= relSize; ++i)
+        {
+          localInfo->sampleIndices.push_back(i);
+        }
+      }
+      else
+      {
+        MakeRandomSubset(localInfo->sampleIndices, sampleSize, relSize);
+      }
+
+      localInfo->iter = localInfo->sampleIndices.begin();
+      localInfo->lastIndex = 0;
+      return 0;
+
+    case REQUEST:
+      localInfo = (SampleLocalInfo*)local.addr;
+      if(localInfo->iter == localInfo->sampleIndices.end())
+      {
+        return CANCEL;
+      }
+      else
+      {
+        currentIndex = *(localInfo->iter);
+        if(!localInfo->relIT->EndOfScan())
+        {
+          tuple = localInfo->relIT->GetTuple();
+          localInfo->relIT->Next();
+        }
+        else
+        {
+          return CANCEL;
+        }
+
+        /* Advance iterator to the the next tuple belonging to the sample */
+        for(i = 1; i < currentIndex - localInfo->lastIndex; ++i)
+        {
+          tuple->DeleteIfAllowed();
+          if(!localInfo->relIT->EndOfScan())
+          {
+            tuple = localInfo->relIT->GetTuple();
+            localInfo->relIT->Next();
+          }
+          else
+          {
+            return CANCEL;
+          }
+        }
+
+        result = SetWord(tuple);
+        localInfo->lastIndex = *(localInfo->iter);
+        localInfo->iter++;
+        return YIELD;
+      }
+
+    case CLOSE :
+      localInfo = (SampleLocalInfo*)local.addr;
+      delete localInfo->relIT;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+/*
+
+4.1.3 Specification of operator ~sample~
+
+*/
+const string SampleSpec =
+  "(<text>(rel x) int real -> (stream x)</text--->"
+  "<text>Produces a random sample of a relation. The sample size is "
+  "min(relSize, max(s, t * relSize)), where relSize is the "
+  "size of the argument relation, s is the second argument, "
+  "and t the third.</text--->)";
+/*
+
+4.1.3 Definition of operator ~sample~
+
+Non-overloaded operators are defined by constructing a new instance of
+class ~Operator~, passing all operator functions as constructor arguments.
+
+*/
+Operator sample (
+          "sample",                // name
+          SampleSpec,              // specification
+          Sample,                  // value mapping
+          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
+          simpleSelect,         // trivial selection function
+          SampleTypeMap           // type mapping
+);
+
 /*
 4.1 Operator ~consume~
 
@@ -4527,6 +4811,7 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpprel );
 
     AddOperator(&feed);
+    AddOperator(&sample);
     AddOperator(&consume);
     AddOperator(&TUPLE);
     AddOperator(&GROUP);

@@ -33,3 +33,5 @@ operator hashjoin alias HASHJOIN pattern _ _ op [_, _, _]
 
 operator rename alias RENAME pattern _ op [ _ ]
 operator extract alias EXTRACT pattern _ op [ _ ]
+
+operator sample alias SAMPLEFEED pattern _ op [_, _]

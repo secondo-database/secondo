@@ -53,6 +53,7 @@ ListExprToTerm(ListExpr expr, NestedList* nl)
   bool boolValue;
   string stringValue;
   string stringRepr;
+  TextScan scan;
 
   term_t elem;
   term_t result = PL_new_term_ref();
@@ -88,7 +89,10 @@ ListExprToTerm(ListExpr expr, NestedList* nl)
         break;
 
       case TextType:
-        PL_put_atom_chars(result, "text_atom");
+        scan = nl->CreateTextScan(expr);
+        nl->GetText(scan, nl->TextLength(expr) + 2, stringValue);
+        nl->DestroyTextScan(scan);
+        PL_put_atom_chars(result, stringValue.c_str());
         break;
 
       default:
