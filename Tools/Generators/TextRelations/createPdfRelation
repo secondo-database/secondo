@@ -26,7 +26,7 @@
 
 USAGE="createPdfRelation ObjectName \n"
 
-HEADER="(OBJECT $1 ()  (rel (tuple ( (filename text)(pdf text)(theText text) ))) ("
+HEADER="(OBJECT $1 ()  (rel (tuple ( (Filename text)(Pdf text)(TheText text) ))) ("
 END=")())"
 
 

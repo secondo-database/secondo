@@ -49,7 +49,7 @@ CONTENT="text"
 # change here the name of the content
 # avoid to use 'filename' as contentname
 #
-CONTENTNAME="theText"
+CONTENTNAME="TheText"
 
 
 
@@ -57,7 +57,7 @@ CONTENTNAME="theText"
 
 
 if [ "$CONTENTNAME" = "filename" ]; then
-   echo "Error in configguration " >&2
+   echo "Error in configuration " >&2
    echo "filename not allowed as name of content" >&2
    exit 1
 fi
@@ -82,7 +82,7 @@ fi
 
 USAGE="createTextRelation ObjectName [<file_1>..<file_n>] \n"
 
-HEADER="(OBJECT $1 ()  (rel (tuple ( (filename text)($CONTENTNAME $CONTENTTYPE ) ))) ("
+HEADER="(OBJECT $1 ()  (rel (tuple ( (Filename text)($CONTENTNAME $CONTENTTYPE ) ))) ("
 END=")())"
 
 
