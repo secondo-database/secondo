@@ -24,7 +24,7 @@ VIEWER_CLASSES := \
 		HoeseViewer.class \
 		MP3V.class
 
-VIEWER_DIRS := fuzzy2d jpeg relsplit viewer3d
+VIEWER_DIRS := fuzzy2d jpeg relsplit viewer3d hoese
 
 
 # compile all viewers
