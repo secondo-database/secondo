@@ -24,7 +24,6 @@ using namespace std;
 #include "AlgebraManager.h"
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
-// #include "DynamicLibrary.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
@@ -51,7 +50,9 @@ enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
 
 1.2 Function ~TypeOfRelAlgSymbol~
 
-Transforms a list expression ~symbol~ into one of the values of type ~RelationType~. ~Symbol~ is allowed to be any list. If it is not one of these symbols, then the value ~error~ is returned.
+Transforms a list expression ~symbol~ into one of the values of
+type ~RelationType~. ~Symbol~ is allowed to be any list. If it is not one
+of these symbols, then the value ~error~ is returned.
 
 */
 static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
@@ -73,7 +74,11 @@ static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
 
 5.6 Function ~findattr~
 
-Here ~list~ should be a list of pairs of the form (~name~,~datatype~). The function ~findattr~ determines whether ~attrname~ occurs as one of the names in this list. If so, the index in the list (counting from 1) is returned and the corresponding datatype is returned in ~attrtype~. Otherwise 0 is returned. Used in operator ~attr~.
+Here ~list~ should be a list of pairs of the form (~name~,~datatype~).
+The function ~findattr~ determines whether ~attrname~ occurs as one of
+the names in this list. If so, the index in the list (counting from 1)
+is returned and the corresponding datatype is returned in ~attrtype~.
+Otherwise 0 is returned. Used in operator ~attr~.
 
 */
 int findattr( ListExpr list, string attrname, ListExpr& attrtype)
@@ -234,7 +239,7 @@ For example, for
 
 ----	(tuple
 		(
-			(name string) 
+			(name string)
 			(age int)))
 ----
 
@@ -248,7 +253,12 @@ the typeinfo is
 		2)
 ----
 
-The typeinfo list consists of three lists. The first list is a pair (AlgebraID, Constructor ID). The second list represents the attributelist of the tuple. This list is a sequence of pairs (attribute name (AlgebraID ConstructorID)). Here the ConstructorID is the identificator of a standard data type, e.g. int. The third list is an atom and counts the number of the tuple's attributes.
+The typeinfo list consists of three lists. The first list is a
+pair (AlgebraID, Constructor ID). The second list represents the
+attributelist of the tuple. This list is a sequence of pairs (attribute
+name (AlgebraID ConstructorID)). Here the ConstructorID is the identificator
+of a standard data type, e.g. int. The third list is an atom and counts the
+number of the tuple's attributes.
 
 1.3.1 Type property of type constructor ~tuple~
 
@@ -263,7 +273,8 @@ static ListExpr TupleProp ()
 
 1.3.1 Main memory representation
 
-Each instance of the class defined below will be the main memory representation of a value of type ~tuple~.
+Each instance of the class defined below will be the main memory
+representation of a value of type ~tuple~.
 
 		Figure 1: Main memory representation of a tuple (class ~CcTuple~) [tuple.eps]
 
@@ -346,7 +357,8 @@ class CcTuple
 };
 /*
 
-The next function supports writing objects of class CcTuple to standard output. It is only needed for internal tests.
+The next function supports writing objects of class CcTuple to standard
+output. It is only needed for internal tests.
 
 */
 ostream& operator<<(ostream& os, CcTuple t)
@@ -401,10 +413,14 @@ public:
 
 1.3.2 ~Out~-function of type constructor ~tuple~
 
-The ~out~-function of type constructor ~tuple~ takes as inputs a type description (~typeInfo~) of the tuples attribute structure in nested list format and a pointer to a tuple value, stored in main memory. The function returns the tuple value from main memory storage in nested list format. 
+The ~out~-function of type constructor ~tuple~ takes as inputs a type 
+description (~typeInfo~) of the tuples attribute structure in nested list 
+format and a pointer to a tuple value, stored in main memory. 
+The function returns the tuple value from main memory storage 
+in nested list format.
 
 */
-ListExpr OutTuple (ListExpr typeInfo, Word  value) 
+ListExpr OutTuple (ListExpr typeInfo, Word  value)
 {
   int attrno, algebraId, typeId;
   ListExpr l, lastElem, attrlist, first, valuelist;
@@ -438,9 +454,15 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
 
 1.3.2 ~In~-function of type constructor ~tuple~
 
-The ~in~-function of type constructor ~tuple~ takes as inputs a type description (~typeInfo~) of the tuples attribute structure in nested list format and the tuple value in nested list format. The function retrurns a pointer to atuple value, stored in main memory in accordance to the tuple value in nested list format.
+The ~in~-function of type constructor ~tuple~ takes as inputs a type 
+description (~typeInfo~) of the tuples attribute structure in nested 
+list format and the tuple value in nested list format. The function 
+returns a pointer to atuple value, stored in main memory in accordance to 
+the tuple value in nested list format.
 
-Error handling in ~InTuple~: ~Correct~ is only true if there is the right number of attribute values and all values have correct list representations. Otherwise the following error messages are added to ~errorInfo~:
+Error handling in ~InTuple~: ~Correct~ is only true if there is the right 
+number of attribute values and all values have correct list representations. 
+Otherwise the following error messages are added to ~errorInfo~:
 
 ----	(71 tuple 1 <errorPos>)		        atom instead of value list
 	(71 tuple 2 <errorPos>)		        not enough values
@@ -449,7 +471,8 @@ Error handling in ~InTuple~: ~Correct~ is only true if there is the right number
 	(71 tuple 4 <errorPos>)		        too many values
 ----
 
-is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple in the relation list (passed by ~InRelation~).
+is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple in the 
+relation list (passed by ~InRelation~).
 
 
 */
@@ -489,7 +512,7 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
   }
   else
   {
-	
+
     AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
     while (!nl->IsEmpty(attrlist))
     {
@@ -498,10 +521,10 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
       attrno++;
       algebraId = nl->IntValue(nl->First(nl->Second(first)));
       typeId = nl->IntValue(nl->Second(nl->Second(first)));
-      if (nl->IsEmpty(valuelist)) 
+      if (nl->IsEmpty(valuelist))
       {
 	correct = false;
-	errorInfo = nl->Append(errorInfo, 
+	errorInfo = nl->Append(errorInfo,
 	  nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
 	    nl->IntAtom(errorPos)));
         delete tupleaddr;
@@ -512,7 +535,7 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
       {
  	firstvalue = nl->First(valuelist);
 	valuelist = nl->Rest(valuelist);
-        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first), 
+        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
                  firstvalue, attrno, errorInfo, valueCorrect);
 	if (valueCorrect)
 	{
@@ -527,7 +550,7 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
 	    nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
 		nl->IntAtom(errorPos), nl->IntAtom(attrno)));
           delete tupleaddr;
-          return SetWord(Address(0));		
+          return SetWord(Address(0));
    	}
       }
     }
@@ -539,16 +562,18 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
       nl->IntAtom(errorPos)));
       delete tupleaddr;
       return SetWord(Address(0));
-    }    
+    }
   }
   tupleaddr->SetNoAttrs(noOfAttrs);
-  return (SetWord(tupleaddr));	
+  return (SetWord(tupleaddr));
 }
 /*
 
 1.3.4 ~Destroy~-function of type constructor ~tuple~
 
-A type constructor's ~destroy~-function is used by the query processor in order to deallocate memory occupied by instances of Secondo objects. They may have been created in two ways:
+A type constructor's ~destroy~-function is used by the query processor in order 
+to deallocate memory occupied by instances of Secondo objects. They may have 
+been created in two ways:
 
   * as return values of operator calls
 
@@ -568,7 +593,7 @@ void DeleteTuple(Word& w)
   {
     // typname = typeid(*(tupleptr->Get(i))).name();
     // cout << typeid(*(tupleptr->Get(i))).name() << endl;
-    
+
     // delete &(typeid(*(tupleptr->Get(i))));
     delete (TupleElement*)tupleptr->Get(i);
     //if (typeid(*(tupleptr->Get(i))) == typeid(CcInt))
@@ -589,7 +614,8 @@ Checks the specification:
 ----	(ident x DATA)+		-> TUPLE	tuple
 ----
 
-with the additional constraint that all identifiers used (attribute names) must be distinct. Hence a tuple type has the form:
+with the additional constraint that all identifiers used (attribute names) 
+must be distinct. Hence a tuple type has the form:
 
 ----	(tuple
 	    (
@@ -597,7 +623,8 @@ with the additional constraint that all identifiers used (attribute names) must 
 		(name y)))
 ----
 
-and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces the following error codes:
+and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces the 
+following error codes:
 
 ----	(... 1) 	Empty tuple type
 	(... 2 x)  	x is not an attribute list, but an atom
@@ -635,7 +662,7 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
     {
       errorInfo = nl->Append(errorInfo,
 	nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-	nl->IntAtom(2), 
+	nl->IntAtom(2),
         attrlist));
       return false;
     }
@@ -670,7 +697,7 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
             errorInfo = nl->Append(errorInfo,
 	      nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
 	      nl->IntAtom(6),nl->Second(pair)));
-          }            
+          }
           correct = correct && ckd;
         }
         else
@@ -697,12 +724,12 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
     errorInfo = nl->Append(errorInfo,
       nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("TUPLE"), type));
     return false;
-  }  
+  }
 }
 /*
 
 3.2.5 ~Cast~-function of type constructor ~tuple~
- 
+
 */
 static void* CastTuple(void* addr)
 {
@@ -712,14 +739,15 @@ static void* CastTuple(void* addr)
 
 1.3.3 ~Create~-function of type constructor ~tuple~
 
-The function is used to allocate memory sufficient for keeping one instance of ~tuple~. The ~Size~-parameter is not evaluated.
+The function is used to allocate memory sufficient for keeping one instance 
+of ~tuple~. The ~Size~-parameter is not evaluated.
 
 */
 static Word CreateTuple(int Size)
 {
   // cout << "CreateTuple" <<endl;
   CcTuple* tup;
-  
+
   tup = new CcTuple();
   //cout << "CreateTuple: -> " << tup << endl;
   return (SetWord(tup));
@@ -727,7 +755,7 @@ static Word CreateTuple(int Size)
 /*
 
 3.2.5 ~Model~-functions of type constructor ~tuple~
- 
+
 */
 static Word TupleInModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
@@ -750,12 +778,14 @@ static Word TupleValueListToModel( const ListExpr typeExpr, const ListExpr value
   correct = true;
   //errorInfo = 0;
   return (SetWord( Address( 0 ) ));
-} 
+}
 /*
 
 1.3.5 Defnition of type constructor ~tuple~
 
-Eventually a type constructor is created by defining an instance of class ~TypeConstructor~. Constructor's arguments are the type constructor's name and the eleven functions previously defined.
+Eventually a type constructor is created by defining an instance of 
+class ~TypeConstructor~. Constructor's arguments are the type constructor's 
+name and the eleven functions previously defined.
 
 */
 TypeConstructor cpptuple( "tuple",         TupleProp,
@@ -796,7 +826,7 @@ static ListExpr RelProp ()
   return (nl->TwoElemList(nl->OneElemList(nl->SymbolAtom("TUPLE")),
           nl->SymbolAtom("REL")));
 }
-/* 
+/*
 
 1.3.1 Main memory representation
 
@@ -805,7 +835,7 @@ static ListExpr RelProp ()
 */
 typedef CTable<CcTuple*>* Relation;
 
-class CcRel 
+class CcRel
 {
   private:
 
@@ -826,28 +856,28 @@ class CcRel
     void    AppendTuple (CcTuple* t) {TupleList->Add(t);};
     void    SetNoTuples (int notuples) {NoOfTuples = notuples;};
     int     GetNoTuples () {return NoOfTuples;};
-  
+
 };
 /*
 
 1.4.2 ~Out~-function of type constructor ~rel~
 
 */
-ListExpr OutRel(ListExpr typeInfo, Word  value) 
+ListExpr OutRel(ListExpr typeInfo, Word  value)
 {
   // CTable<CcTuple>::Iterator rs;
   CcTuple* t;
   ListExpr l, lastElem, tlist, TupleTypeInfo;
-  
+
   // cout << "OutRel" << endl;
 
   // cout << nl->WriteToFile("/dev/tty",typeInfo) << endl;
-      
+
   // Relation r = (Relation)(value.addr);
   CcRel* r = (CcRel*)(value.addr);
 
   // rs = r->Begin();
-  
+
     //CcTuple tup;
     //r->NewScan();
     //for (int i = 1; i <= 4;i++)
@@ -859,7 +889,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
 
   r->NewScan();
   l = nl->TheEmptyList();
- 
+
   // while (rs != r->End())
   while (!r->EndOfScan())
   {
@@ -881,13 +911,14 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
   // cout << nl->WriteToFile("/dev/tty",l);
   //TupleAttributesInfo* tai = new TupleAttributesInfo(nl->Second(typeInfo), nl->First(l));
   return l;
-  
+
 }
 /*
 
 1.3.3 ~Create~-function of type constructor ~rel~
 
-The function is used to allocate memory sufficient for keeping one instance of ~rel~. The ~Size~-parameter is not evaluated.
+The function is used to allocate memory sufficient for keeping one instance 
+of ~rel~. The ~Size~-parameter is not evaluated.
 
 */
 static Word CreateRel(int Size)
@@ -904,14 +935,22 @@ static Word CreateRel(int Size)
 
 1.4.2 ~In~-function of type constructor ~rel~
 
-~value~ is the list representation of the relation. The structure of ~typeInfol~ and ~value~ are described above. Error handling in ~InRel~:
+~value~ is the list representation of the relation. The structure of 
+~typeInfol~ and ~value~ are described above. Error handling in ~InRel~:
 
-The result relation will contain all tuples that have been converted correctly (have correct list expressions). For all other tuples, an error message containing the position of the tuple within this relation (list) is added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~). If any tuple representation is wrong, then ~InRel~ will return ~correct~ as FALSE and will itself add an error message of the form
+The result relation will contain all tuples that have been converted 
+correctly (have correct list expressions). For all other tuples, an error 
+message containing the position of the tuple within this relation (list) is 
+added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~). 
+If any tuple representation is wrong, then ~InRel~ will return ~correct~ as 
+FALSE and will itself add an error message of the form
 
 ----	(InRelation <errorPos>)
 ----
 
-to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment; probably it is the position of the relation object in the list of database objects.
+to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment; 
+probably it is the position of the relation object in the list of 
+database objects.
 
 */
 static Word InRel(ListExpr typeInfo, ListExpr value,
@@ -923,12 +962,12 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
   CcTuple* tupleaddr;
   int tupleno, count;
   bool tupleCorrect;
-  
+
   correct = true;
   count = 0;
-  
+
   // cout << "InRel" << endl;
-  
+
   // cout << nl->WriteToFile("/dev/tty",typeInfo) << endl;
   // cout << nl->WriteToFile("/dev/tty",value) << endl;
 
@@ -954,12 +993,12 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
       first = nl->First(tuplelist);
       tuplelist = nl->Rest(tuplelist);
       tupleno++;
-      tupleaddr = (CcTuple*)(InTuple(TupleTypeInfo, first, tupleno, 
+      tupleaddr = (CcTuple*)(InTuple(TupleTypeInfo, first, tupleno,
         errorInfo, tupleCorrect).addr);
       //cout << "InRelTuples1 -> " << tupleaddr << endl;
 
       //cout << (*(CcInt*)(tupleaddr->Get(0))).GetIntval() << endl;
- 
+
       if (tupleCorrect)
       {
         // rel->Add(*((CcTuple*)tupleaddr));
@@ -978,7 +1017,7 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
 	nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
     }
     else rel->SetNoTuples(count);
-    
+
     //std::cout << (*(CcInt*)(((CcTuple)((*rel)[1])).Get(0))).GetIntval() << endl;
     //std::cout << (*(CcInt*)(((CcTuple)((*rel)[2])).Get(0))).GetIntval() << endl;
     //std::cout << (*(CcInt*)(((CcTuple)((*rel)[3])).Get(0))).GetIntval() << endl;
@@ -994,7 +1033,7 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
     }
     return (SetWord((void*)rel));
   }
-  
+
 }
 /*
 
@@ -1034,30 +1073,30 @@ void DeleteRel(Word& w)
   delete r;
 }
 /*
- 
-4.3.8 ~Check~-function of type constructor ~rel~ 
- 
+
+4.3.8 ~Check~-function of type constructor ~rel~
+
 Checks the specification:
- 
+
 ----    TUPLE   -> REL          rel
 ----
- 
+
 Hence the type expression must have the form
- 
+
 ----    (rel x)
 ----
- 
+
 and ~x~ must be a type of kind TUPLE.
- 
-*/ 
+
+*/
 static bool CheckRel(ListExpr type, ListExpr& errorInfo)
 {
   AlgebraManager* algMgr;
-  
+
   // cout << nl->WriteToFile("/dev/tty", type);
-  
+
   // cout << "CheckRel" << endl;
-  
+
   if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "rel"))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
@@ -1073,7 +1112,7 @@ static bool CheckRel(ListExpr type, ListExpr& errorInfo)
 /*
 
 3.2.5 ~Cast~-function of type constructor ~rel~
- 
+
 */
 static void* CastRel(void* addr)
 {
@@ -1082,7 +1121,7 @@ static void* CastRel(void* addr)
 /*
 
 3.2.5 ~Model~-functions of type constructor ~rel~
- 
+
 */
 static Word RelInModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
@@ -1110,7 +1149,9 @@ static Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueLi
 
 1.3.5 Defnition of type constructor ~tuple~
 
-Eventually a type constructor is created by defining an instance of class ~TypeConstructor~. Constructor's arguments are the type constructor's name and the eleven functions previously defined.
+Eventually a type constructor is created by defining an instance of 
+class ~TypeConstructor~. Constructor's arguments are the type constructor's 
+name and the eleven functions previously defined.
 
 */
 TypeConstructor cpprel( "rel",           RelProp,
@@ -1146,7 +1187,8 @@ static int typeOperatorSelect(ListExpr args) { return -1; }
 
 6.1 Type Operator ~TUPLE~
 
-Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
+Type operators are used only for inferring argument types of parameter 
+functions. They have a type mapping but no evaluation function.
 
 6.1.1 Type mapping function of operator ~TUPLE~
 
@@ -1179,7 +1221,9 @@ ListExpr TUPLETypeMap(ListExpr args)
 
 */
 const string TUPLESpec =
-  "(<text>((stream x)...) -> x, ((rel x)...) -> x</text---><text>Extract tuple type from a stream or relation type given as the first argument.</text--->)";
+  "(<text>((stream x)...) -> x, ((rel x)...) -> x</text--->"
+  "<text>Extract tuple type from a stream or relation type "
+  "given as the first argument.</text--->)";
 /*
 
 4.1.3 Definition of operator ~TUPLE~
