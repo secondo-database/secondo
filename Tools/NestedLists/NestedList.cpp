@@ -1489,3 +1489,18 @@ NestedList::AtomType (const ListExpr atom )
   } 
 }
 
+const string
+NestedList::reportVectorSizes() {
+
+  ostringstream report;
+ 
+  report << intTable.reportVectorSizes("  int") << endl
+         << nodeTable.reportVectorSizes("nodes") << endl
+         << stringTable.reportVectorSizes("  str") << endl
+         << textTable.reportVectorSizes(" text") << endl;
+	 
+  return report.str();
+
+}
+
+

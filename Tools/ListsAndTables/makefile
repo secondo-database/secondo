@@ -4,15 +4,20 @@
 #
 ########################################################################
 
-include makefile.env
+include ../../makefile.env
 
-.PHONY: all
-all:
-	$(CP) CTable.h $(INCLUDEDIR)
-	$(CP) CTable.cpp $(INCLUDEDIR)
+OBJECTS = $(INCLUDEDIR)/CTable.cpp $(INCLUDEDIR)/CTable.h
+
+.PHONY: all 
+all: $(OBJECTS)
+	
+$(INCLUDEDIR)/%.cpp : %.cpp
+	$(CP) $< $(INCLUDEDIR)
+
+$(INCLUDEDIR)/%.h : %.h
+	$(CP) $< $(INCLUDEDIR)
 
 .PHONY: clean
 clean:
-	$(RM) *.o
-	$(RM) *.lo
-
+	$(RM) $(OBJECTS)
+	

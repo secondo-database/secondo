@@ -30,6 +30,8 @@ October 22, 1996 RHG Made operations ~ListLength~ and ~WriteListExpr~ available.
 
 February 2002 Ulrich Telle Port to C++
 
+November 28, 2002 M. Spiekermann method reportVectorSizes() added. 
+
 1.1 Overview
 
 A ~nested list~ can be viewed in two different ways. The first is to consider
@@ -632,7 +634,16 @@ Determines the type of list expression ~atom~ according to the enumeration
 type ~NodeType~. If the parameter is not an atom, the function returns the 
 value 'NoAtom'.
 
+1.3.11 Size Info
+
 */
+  const string reportVectorSizes();
+
+/*
+Reports the slot numbers and allocated memory of all
+private CTable members and the underlying vector classes.
+*/
+  
  protected:
   void DestroyRecursive ( const ListExpr list );
   void PrintTableTexts();
