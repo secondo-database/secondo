@@ -226,10 +226,10 @@ public class HoeseViewer extends SecondoViewer {
           IncrementSpeedBtn = new JButton(icon);
           icon.setImage(icon.getImage().getScaledInstance(18,18,Image.SCALE_DEFAULT));
        } else
-          IncrementSpeedBtn = new JButton(">");
+          IncrementSpeedBtn = new JButton("+");
     }
     else
-       IncrementSpeedBtn = new JButton(">");
+       IncrementSpeedBtn = new JButton("+");
 
     Button_File = configuration.getProperty("SlowerIcon");
     if(Button_File!=null){
@@ -238,10 +238,10 @@ public class HoeseViewer extends SecondoViewer {
           DecrementSpeedBtn = new JButton(icon);
           icon.setImage(icon.getImage().getScaledInstance(18,18,Image.SCALE_DEFAULT));
        } else
-          DecrementSpeedBtn = new JButton(">");
+          DecrementSpeedBtn = new JButton("-");
     }
     else
-       DecrementSpeedBtn = new JButton(">");
+       DecrementSpeedBtn = new JButton("-");
 
 
 

@@ -38,6 +38,8 @@ ReverseIcon=res/REVERSE.gif
 ToendIcon=res/TOEND.gif
 TostartIcon=res/TOFRONT.gif
 StopIcon=res/stop.gif
+SlowerIcon=res/slower.gif
+FasterIcon=res/faster.gif
 #Working Directory for Objects,Databases in Files 
 WorkingDir = ./user
 
