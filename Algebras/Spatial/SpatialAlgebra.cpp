@@ -68,7 +68,9 @@ static QueryProcessor* qp;
 */
 bool AlmostEqual( const double d1, const double d2 )
 {
-  double factor = abs( d1 + d2 ) * FACTOR;
+  double factor=FACTOR;
+  if ( (d1 + d2) < 1)
+    factor = abs( d1 + d2 ) * FACTOR;
   if( abs(d1 - d2) <= factor )
     return true;
   return false;
