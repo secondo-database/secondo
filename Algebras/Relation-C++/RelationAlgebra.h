@@ -25,9 +25,19 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern int ccTuplesCreated;
 extern int ccTuplesDeleted;
+extern int ccRelsCreated;
+extern int ccRelsDeleted;
 
 extern TypeConstructor cpptuple;
 extern TypeConstructor cpprel;
+extern ListExpr AttrTypeList;
+
+
+class CcRel;
+void CloseRecFile (CcRel*);
+void CloseDeleteRecFile (CcRel*);
+void CloseLobFile (CcRel*);
+void CloseDeleteLobFile (CcRel*);
 
 enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
 
@@ -38,8 +48,30 @@ bool IsTupleDescription(ListExpr a, NestedList* nl);
 
 ListExpr TupleProp ();
 
+class TupleAttributesInfo
+{
+
+    TupleAttributes* tupleType;
+    AttributeType* attrTypes;
+
+  public:
+
+    TupleAttributesInfo (ListExpr, ListExpr);
+    TupleAttributesInfo (ListExpr);
+    TupleAttributesInfo (ListExpr, int);
+    TupleAttributesInfo (TupleAttributes*, AttributeType*);
+    ~TupleAttributesInfo ();
+    TupleAttributes* GetTupleTypeInfo ();
+    AttributeType* GetAttributesTypeInfo ();
+
+};
+
+extern TupleAttributesInfo* tai;
+
 class CcTuple
 {
+  #ifndef RELALG_PERSISTENT
+  
   private:
 
     int NoOfAttr;
@@ -49,13 +81,35 @@ class CcTuple
        reuse it */
     bool isFree;
     SmiRecordId id;
+    
+  #else
+  
+  private:
 
+    int NoOfAttr;
+    Tuple* AttrList;
+    bool isFree;
+    SmiRecordId id;
+    AttributeType* attrTypes;
+    TupleAttributes* tupleType;
+    
+  #endif
+  
   public:
 
     CcTuple ();
+    CcTuple ( TupleAttributes*, AttributeType* );
+    CcTuple ( Tuple*, int, AttributeType*, TupleAttributes* );
 
     virtual ~CcTuple ();
-
+    
+    void PutTuple(Tuple*);
+    void PutAttrTypes(AttributeType*);
+    void PutTupleType(TupleAttributes*);  
+    Tuple* GetTuple ();
+    TupleAttributes* GetTupleAttributes();
+    void SetAttrType(int, int, AttributeType*);
+    AttributeType* GetAttributeType();
     Attribute* Get (int);
     void  Put (int, Attribute*);
     void  SetNoAttrs (int);
@@ -64,13 +118,14 @@ class CcTuple
     void SetFree(bool);
 
     CcTuple* CloneIfNecessary();
-
+    
     CcTuple* Clone();
 
     void DeleteIfAllowed();
-
+    
     SmiRecordId GetId();
     void SetId(SmiRecordId id);
+
 
     friend
     ostream& operator<<(ostream& s, CcTuple t);
@@ -79,12 +134,20 @@ class CcTuple
 class LexicographicalCcTupleCmp
 {
 
-public:
+  public:
 
-  bool operator()(const CcTuple*, const CcTuple*) const;
+    bool operator()(const CcTuple*, const CcTuple*) const;
 };
 
+AttributeType* CloneAttributesTypeInfo ( TupleAttributesInfo*, int );
+AttributeType* CloneAttributesType ( AttributeType*, int );
+TupleAttributes* CloneTupleTypeInfo ( TupleAttributesInfo*, int );
+TupleAttributes* CloneTupleType ( AttributeType*, int );
+
 string ReportTupleStatistics();
+string ReportRelStatistics();
+string ReportRelITStatistics();
+string ReportTupleAttributesInfoStatistics();
 
 ListExpr OutTuple (ListExpr, Word);
 
@@ -124,47 +187,104 @@ typedef CTable<CcTuple*>* Relation;
 class CcRel;
 
 class CcRelIT
-{
+{ 
+  friend class CcRel;
+  
+  #ifndef RELALG_PERSISTENT
+  
   CTable<CcTuple*>::Iterator rs;
+  
+  #else
+  
+  SmiRecordFileIterator* rs;
+  SmiRecord actualrec;
+  SmiRecordId actualrecid;
+  
+  #endif
+   
   CcRel* r;
+   
   public :
-
+    
+  //CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r);
+  //CcRelIT (SmiRecordFileIterator* rs, CcRel* r);
+  CcRelIT ();
+  CcRelIT (SmiRecordFileIterator*, CcRel*, SmiRecordId, SmiRecord);
   CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r);
   ~CcRelIT ();
   CcRelIT& operator=(CcRelIT& right);
-
+  
+  CcRel* GetRel();  
   CcTuple* GetTuple();
   void Next();
-  bool EndOfScan();
+  bool EndOfScan(); 
   CcTuple* GetNextTuple();
-
+    
 };
 
 class CcRel
 {
   friend class CcRelIT;
 
+  #ifndef RELALG_PERSISTENT
+  
   private:
 
     int NoOfTuples;
     Relation TupleList;
     SmiRecordId currentId;
+    
+  #else
+    
+  private:
+  
+    int NoOfTuples;
+    TupleAttributesInfo* reltai;
+    TupleAttributes* tupleType;
+    Relation TupleList;
+    SmiRecordFile* recFile;
+    int recFileId;
+    SmiRecordFile* lobFile;
+    int lobFileId;
+    
+  #endif
 
   public:
 
     CcRel ();
+    CcRel ( ListExpr, ListExpr );
+    CcRel ( int, int, TupleAttributesInfo*, int );
     ~CcRel ();
-
-    CcTuple* GetTupleById(SmiRecordId id);
-    void    AppendTuple (CcTuple*);
+    
+    static TupleAttributesInfo* globreltai;
+    
+    bool OpenRecFile ();
+    bool OpenLobFile ();
+    
+    void CloseRecFile ();
+    void CloseLobFile ();
+    
+    CcTuple* GetTupleById(SmiRecordId id);    
+    void AppendTuple (CcTuple*);
     void Empty();
+    
+    TupleAttributesInfo* GetTupleAttributesInfo ();
+    void SetRelTupleAttributesInfo ( TupleAttributesInfo* );
+        
+    SmiRecordFile* GetRecFile();
+    int GetRecFileId();
+    
+    SmiRecordFile* GetLobFile();
+    int GetLobFileId();
 
     CcRelIT* MakeNewScan();
 
-    void    SetNoTuples (int);
-    int     GetNoTuples ();
+    void SetNoTuples (int);
+    int GetNoTuples ();
 
 };
+
+void Concat ( Word, Word, Word& );
 
 ListExpr OutRel(ListExpr, Word);
 

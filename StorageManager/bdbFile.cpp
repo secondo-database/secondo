@@ -437,6 +437,9 @@ SmiFile::Drop()
     dropEntry.dropOnCommit = true;
     SmiEnvironment::instance.impl->bdbFilesToDrop.push( dropEntry );
     SmiCatalogFilesEntry catalogEntry;
+    
+    /* FIXME : commented out because the persistent version 
+               does not work otherwise    
     if ( fileName.length() > 0 )
     {
       string newName = fileContext + '.' + fileName;
@@ -447,7 +450,8 @@ SmiFile::Drop()
       catalogEntry.entry.isFixed = fileType == FixedLength;
       catalogEntry.updateOnCommit = false;
       SmiEnvironment::instance.impl->bdbFilesToCatalog[newName] = catalogEntry;
-    }
+    }*/
+    
     SmiEnvironment::SetError( E_SMI_OK );
   }
   return (ok);

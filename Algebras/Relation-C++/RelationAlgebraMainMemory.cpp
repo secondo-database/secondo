@@ -32,13 +32,69 @@ using namespace std;
 
 int ccTuplesCreated = 0;
 int ccTuplesDeleted = 0;
+int ccRelsCreated = 0;
+int ccRelsDeleted = 0;
+int ccRelITsCreated = 0;
+int ccRelITsDeleted = 0;
+int ccTupleAttributesInfoCreated = 0;
+int ccTupleAttributesInfoDeleted = 0;
 
+void CloseRecFile (CcRel* r) { return; };
+void CloseDeleteRecFile (CcRel* r) { return; };
+void CloseLobFile (CcRel* r) { return; };
+void CloseDeleteLobFile (CcRel* r) { return; };
 
 //static NestedList* nl;
 //static QueryProcessor* qp;
 
 //enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
 
+TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
+{
+  tupleType = 0;
+  attrTypes = 0;
+  ccTupleAttributesInfoCreated++;
+};
+
+TupleAttributesInfo::TupleAttributesInfo (ListExpr value, int attrno)
+{
+  tupleType = 0;
+  attrTypes = 0;
+  ccTupleAttributesInfoCreated++;
+};
+  
+TupleAttributesInfo::TupleAttributesInfo (TupleAttributes* ta, AttributeType* at)
+{
+  tupleType = 0;
+  attrTypes = 0;
+  ccTupleAttributesInfoCreated++;
+}
+
+TupleAttributesInfo::~TupleAttributesInfo ()
+{
+  ccTupleAttributesInfoDeleted++;
+};
+
+AttributeType* TupleAttributesInfo::GetAttributesTypeInfo () {return 0;};
+
+TupleAttributes* TupleAttributesInfo::GetTupleTypeInfo () { return 0; };
+
+AttributeType* CloneAttributesType ( AttributeType* attrt, int attrno )
+{
+  return 0;
+}
+
+TupleAttributes* CloneTupleType ( AttributeType* attrt, int attrno )
+{
+  return 0;
+}
+
+TupleAttributes* CloneTupleTypeInfo ( TupleAttributesInfo* tuai, int attrno )
+{
+  return 0;
+}
+
+//TupleAttributes* TupleAttributesInfo::GetTupleAttributesInfo () {return 0;};
 /*
 
 3 Type constructors of the Algebra
@@ -107,27 +163,33 @@ CcTuple::CcTuple ()
   NoOfAttr = 0;
   for (int i=0; i < MaxSizeOfAttr; i++)
     AttrList[i] = 0;
-    ccTuplesCreated++;
+  ccTuplesCreated++;
 };
+
+CcTuple::CcTuple ( TupleAttributes* attributes, AttributeType* at )
+{
+  NoOfAttr = 0;
+  ccTuplesCreated++;
+};
+
+//CcTuple::CcTuple (TupleAttributes* attributes) {};
 
 CcTuple::~CcTuple ()
 {
   ccTuplesDeleted++;
 };
 
+Tuple* CcTuple::GetTuple () { return 0; };
+
+TupleAttributes* CcTuple::GetTupleAttributes () { return 0; };
+
+AttributeType* CcTuple::GetAttributeType () { return 0; };
+
 Attribute* CcTuple::Get (int index) {return AttrList[index];};
 
-void  CcTuple::Put (int index, Attribute* attr)
-{
-  assert(index < MaxSizeOfAttr);
-  AttrList[index] = attr;
-};
+void  CcTuple::Put (int index, Attribute* attr) {AttrList[index] = attr;};
 
-void  CcTuple::SetNoAttrs (int noattr)
-{
-  assert(noattr <= MaxSizeOfAttr);
-  NoOfAttr = noattr;
-};
+void  CcTuple::SetNoAttrs (int noattr) {NoOfAttr = noattr;};
 
 int   CcTuple::GetNoAttrs () {return NoOfAttr;};
 
@@ -243,6 +305,80 @@ ReportTupleStatistics()
   ccTuplesDeleted = 0;
   return buf.str();
 }
+
+string
+ReportRelStatistics()
+{
+  ostringstream buf;
+  buf << ccRelsCreated << " relations created, "
+      << ccRelsDeleted << " relations deleted, difference is "
+      << (ccRelsCreated - ccRelsDeleted) << "." << endl;
+
+  ccRelsCreated = 0;
+  ccRelsDeleted = 0;
+  return buf.str();
+}
+
+string
+ReportRelITStatistics()
+{
+  ostringstream buf;
+  buf << ccRelITsCreated << " relationits created, "
+      << ccRelITsDeleted << " relationits deleted, difference is "
+      << (ccRelITsCreated - ccRelITsDeleted) << "." << endl;
+
+  ccRelITsCreated = 0;
+  ccRelITsDeleted = 0;
+  return buf.str();
+}
+
+string
+ReportTupleAttributesInfoStatistics()
+{
+  ostringstream buf;
+  buf << ccTupleAttributesInfoCreated << " tupleattributesinfos created, "
+      << ccTupleAttributesInfoDeleted << " tupleattributesinfos deleted, difference is "
+      << (ccTupleAttributesInfoCreated - ccTupleAttributesInfoDeleted) << "." << endl;
+
+  ccTupleAttributesInfoCreated = 0;
+  ccTupleAttributesInfoDeleted = 0;
+  return buf.str();
+}
+/*
+5.6.1 Help Function ~Concat~
+
+Copies the attribute values of two tuples
+(words) ~r~ and ~s~ into tuple (word) ~t~.
+
+*/
+void Concat (Word r, Word s, Word& t)
+{
+  int rnoattrs, snoattrs, tnoattrs;
+  Attribute* attr;
+
+  rnoattrs = ((CcTuple*)r.addr)->GetNoAttrs();
+  snoattrs = ((CcTuple*)s.addr)->GetNoAttrs();
+  if ((rnoattrs + snoattrs) > MaxSizeOfAttr)
+  {
+    tnoattrs = MaxSizeOfAttr;
+  }
+  else
+  {
+    tnoattrs = rnoattrs + snoattrs;
+  }
+
+  ((CcTuple*)t.addr)->SetNoAttrs(tnoattrs);
+  for (int i = 1; i <= rnoattrs; i++)
+  {
+    attr = ((CcTuple*)r.addr)->Get(i - 1);
+    ((CcTuple*)t.addr)->Put((i - 1), ((StandardAttribute*)attr)->Clone());
+  }
+  for (int j = (rnoattrs + 1); j <= tnoattrs; j++)
+  {
+    attr = ((CcTuple*)s.addr)->Get(j - rnoattrs - 1);
+    ((CcTuple*)t.addr)->Put((j - 1), ((StandardAttribute*)attr)->Clone());
+  }
+}
 /*
 
 1.3.2 ~Out~-function of type constructor ~tuple~
@@ -283,141 +419,6 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
       lastElem = nl->Append(lastElem, valuelist);
   }
   return l;
-}
-/*
-
-1.3.2 ~In~-function of type constructor ~tuple~
-
-The ~in~-function of type constructor ~tuple~ takes as inputs a type
-description (~typeInfo~) of the tuples attribute structure in nested
-list format and the tuple value in nested list format. The function
-returns a pointer to atuple value, stored in main memory in accordance to
-the tuple value in nested list format.
-
-Error handling in ~InTuple~: ~Correct~ is only true if there is the right
-number of attribute values and all values have correct list representations.
-Otherwise the following error messages are added to ~errorInfo~:
-
-----	(71 tuple 1 <errorPos>)		        atom instead of value list
-	(71 tuple 2 <errorPos>)		        not enough values
-	(71 tuple 3 <errorPos> <attrno>) 	wrong attribute value in
-					        attribute <attrno>
-	(71 tuple 4 <errorPos>)		        too many values
-----
-
-is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple in the
-relation list (passed by ~InRelation~).
-
-
-*/
-Word InTuple(ListExpr typeInfo, ListExpr value,
-          int errorPos, ListExpr& errorInfo, bool& correct)
-{
-  int  attrno, algebraId, typeId, noOfAttrs;
-  Word attr;
-  CcTuple* tupleaddr;
-  bool valueCorrect;
-  ListExpr first, firstvalue, valuelist, attrlist;
-
-  attrno = 0;
-  noOfAttrs = 0;
-  tupleaddr = new CcTuple();
-
-  attrlist =  nl->Second(nl->First(typeInfo));
-  valuelist = value;
-  correct = true;
-  if (nl->IsAtom(valuelist))
-  {
-    correct = false;
-
-    cout << "Error in reading tuple: an atom instead of a list of values." << endl;
-    cout << "Tuple no." << errorPos << endl;
-    cout << "The tuple is: " << endl;
-    nl->WriteListExpr(value);
-
-    errorInfo = nl->Append(errorInfo,
-      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(1),
-      nl->IntAtom(errorPos)));
-    delete tupleaddr;
-    return SetWord(Address(0));
-  }
-  else
-  {
-
-    AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-    while (!nl->IsEmpty(attrlist))
-    {
-      first = nl->First(attrlist);
-      attrlist = nl->Rest(attrlist);
-      attrno++;
-      algebraId = nl->IntValue(nl->First(nl->Second(first)));
-      typeId = nl->IntValue(nl->Second(nl->Second(first)));
-      if (nl->IsEmpty(valuelist))
-      {
-        correct = false;
-
-        cout << "Error in reading tuple: list of values is empty." << endl;
-        cout << "Tuple no." << errorPos << endl;
-        cout << "The tuple is: " << endl;
-        nl->WriteListExpr(value);
-
-        errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
-            nl->IntAtom(errorPos)));
-        delete tupleaddr;
-        return SetWord(Address(0));
-
-      }
-      else
-      {
-        firstvalue = nl->First(valuelist);
-        valuelist = nl->Rest(valuelist);
-        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
-                 firstvalue, attrno, errorInfo, valueCorrect);
-        if (valueCorrect)
-        {
-          correct = true;
-          tupleaddr->Put(attrno - 1, (Attribute*)attr.addr);
-          noOfAttrs++;
-        }
-        else
-        {
-          correct = false;
-
-	  cout << "Error in reading tuple: wrong attribute value representation." << endl;
-	  cout << "Tuple no." << errorPos << endl;
-	  cout << "The tuple is: " << endl;
-	  nl->WriteListExpr(value);
-	  cout << endl << "The attribute is: " << endl;
-	  nl->WriteListExpr(firstvalue);
-	  cout << endl;
-
-          errorInfo = nl->Append(errorInfo,
-            nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
-          nl->IntAtom(errorPos), nl->IntAtom(attrno)));
-          delete tupleaddr;
-          return SetWord(Address(0));
-        }
-      }
-    }
-    if (!nl->IsEmpty(valuelist))
-    {
-      correct = false;
-
-      cout << "Error in reading tuple: too many attribute values." << endl;
-      cout << "Tuple no." << errorPos << endl;
-      cout << "The tuple is: " << endl;
-      nl->WriteListExpr(value);
-
-      errorInfo = nl->Append(errorInfo,
-      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(4),
-      nl->IntAtom(errorPos)));
-      delete tupleaddr;
-      return SetWord(Address(0));
-    }
-  }
-  tupleaddr->SetNoAttrs(noOfAttrs);
-  return (SetWord(tupleaddr));
 }
 /*
 
@@ -483,6 +484,7 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
   string attrname;
   bool correct, ckd;
   int unique;
+  vector<string>::iterator it;
   AlgebraManager* algMgr;
 
   if ((nl->ListLength(type) == 2) && (nl->IsEqual(nl->First(type), "tuple",
@@ -505,7 +507,8 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
       return false;
     }
     algMgr = SecondoSystem::GetAlgebraManager();
-
+    attrnamelist.resize(MaxSizeOfAttr);
+    it = attrnamelist.begin();
     unique = 0;
     correct = true;
     while (!nl->IsEmpty(attrlist))
@@ -527,7 +530,7 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
                nl->IntAtom(3), nl->First(pair)));
             correct = false;
           }
-          attrnamelist.push_back(attrname);
+          *it = attrname;
           ckd =  algMgr->CheckKind("DATA", nl->Second(pair), errorInfo);
           if (!ckd)
           {
@@ -552,6 +555,7 @@ bool CheckTuple(ListExpr type, ListExpr& errorInfo)
           nl->IntAtom(5),pair ));
         correct = false;
       }
+      it++;
     }
     return correct;
   }
@@ -645,17 +649,53 @@ ListExpr RelProp ()
           nl->SymbolAtom("REL")));
 }
 
-CcRel::CcRel ()
+TupleAttributesInfo* CcRel::globreltai = 0;
+
+CcRel::CcRel () 
 {
   currentId = 1;
-  NoOfTuples = 0;
+  NoOfTuples = 0; 
   TupleList = new CTable<CcTuple*>(100);
+  ccRelsCreated++;
 };
 
-CcRel::~CcRel ()
+CcRel::CcRel ( ListExpr ti, ListExpr v ) 
 {
-  delete TupleList;
+  currentId = 1;
+  NoOfTuples = 0; 
+  TupleList = new CTable<CcTuple*>(100);
+  ccRelsCreated++;
 };
+
+CcRel::CcRel ( int rfi, int lfi, TupleAttributesInfo* t, int noTuples )
+{
+  currentId = 1;
+  NoOfTuples = 0; 
+  TupleList = new CTable<CcTuple*>(100);
+  ccRelsCreated++;
+};
+
+CcRel::~CcRel () 
+{ 
+  delete TupleList;
+  ccRelsDeleted++; 
+};
+
+void CcRel::SetRelTupleAttributesInfo ( TupleAttributesInfo* ta )
+{
+  return;
+}
+
+void CcRel::CloseRecFile () //dummy function
+{
+  return;
+}
+
+void CcRel::CloseLobFile () //dummy function
+{
+  return;
+}
+
 
 void CcRel::AppendTuple (CcTuple* t)
 {
@@ -683,6 +723,8 @@ void CcRel::Empty()
   TupleList = new CTable<CcTuple*>(100);
 }
 
+SmiRecordFile* CcRel::GetRecFile() { return 0; };
+
 CcRelIT* CcRel::MakeNewScan()
 {
   return new CcRelIT(TupleList->Begin(), this);
@@ -693,12 +735,12 @@ CcTuple* CcRel::GetTupleById(SmiRecordId id)
   return (*TupleList)[id];
 }
 
-void CcRel::SetNoTuples (int notuples)
+void CcRel::SetNoTuples (int notuples) 
 {
   NoOfTuples = notuples;
 };
 
-int CcRel::GetNoTuples ()
+int CcRel::GetNoTuples () 
 {
   return NoOfTuples;
 };
@@ -710,6 +752,11 @@ CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r)
 }
 
 CcRelIT::~CcRelIT () {};
+
+CcRel* CcRelIT::GetRel()
+{
+  return r;
+}
 
 CcTuple* CcRelIT::GetTuple() {return ((CcTuple*)(*rs));};
 
@@ -747,13 +794,13 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
 {
   CcTuple* t;
   ListExpr l, lastElem, tlist, TupleTypeInfo;
-
+  
   CcRel* r = (CcRel*)(value.addr);
 
   CcRelIT* rit = r->MakeNewScan();
   l = nl->TheEmptyList();
 
-  //cerr << "OutRel " << endl;
+  //cout << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
   {
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
@@ -780,86 +827,8 @@ of ~rel~. The ~Size~-parameter is not evaluated.
 */
 Word CreateRel(int Size)
 {
-  //cerr << "CreateRel " << endl;
   CcRel* rel = new CcRel();
   return (SetWord(rel));
-}
-/*
-
-1.4.2 ~In~-function of type constructor ~rel~
-
-~value~ is the list representation of the relation. The structure of
-~typeInfol~ and ~value~ are described above. Error handling in ~InRel~:
-
-The result relation will contain all tuples that have been converted
-correctly (have correct list expressions). For all other tuples, an error
-message containing the position of the tuple within this relation (list) is
-added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~).
-If any tuple representation is wrong, then ~InRel~ will return ~correct~ as
-FALSE and will itself add an error message of the form
-
-----	(InRelation <errorPos>)
-----
-
-to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment;
-probably it is the position of the relation object in the list of
-database objects.
-
-*/
-Word InRel(ListExpr typeInfo, ListExpr value,
-          int errorPos, ListExpr& errorInfo, bool& correct)
-{
-  ListExpr tuplelist, TupleTypeInfo, first;
-  CcRel* rel;
-  CcTuple* tupleaddr;
-  int tupleno, count;
-  bool tupleCorrect;
-
-  correct = true;
-  count = 0;
-  rel = new CcRel();
-
-  //cerr << "InRel " << endl;
-  tuplelist = value;
-  TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-    nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
-  tupleno = 0;
-  if (nl->IsAtom(value))
-  {
-    correct = false;
-    errorInfo = nl->Append(errorInfo,
-    nl->ThreeElemList(nl->IntAtom(70), nl->SymbolAtom("rel"), tuplelist));
-    return SetWord(rel);
-  }
-  else
-  { // increase tupleno
-    while (!nl->IsEmpty(tuplelist))
-    {
-      first = nl->First(tuplelist);
-      tuplelist = nl->Rest(tuplelist);
-      tupleno++;
-      tupleaddr = (CcTuple*)(InTuple(TupleTypeInfo, first, tupleno,
-        errorInfo, tupleCorrect).addr);
-
-      if (tupleCorrect)
-      {
-        tupleaddr->SetFree(false);
-        rel->AppendTuple(tupleaddr);
-        count++;
-      }
-      else
-      {
-        correct = false;
-      }
-    }
-    if (!correct)
-    {
-      errorInfo = nl->Append(errorInfo,
-      nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
-    }
-    else rel->SetNoTuples(count);
-    return (SetWord((void*)rel));
-  }
 }
 /*
 
@@ -869,7 +838,7 @@ Word InRel(ListExpr typeInfo, ListExpr value,
 The corresponding function of type constructor ~rel~ is called ~DeleteRel~.
 
 */
-void DeleteRel(Word& w)
+/*void DeleteRel(Word& w)
 {
   if(w.addr == 0)
   {
@@ -881,7 +850,7 @@ void DeleteRel(Word& w)
   Word v;
 
   r = (CcRel*)w.addr;
-  //cerr << "DeleteRel " << endl;
+  //cout << "DeleteRel " << endl;
   CcRelIT* rit = r->MakeNewScan();
   while ( (t = rit->GetNextTuple()) != 0 )
   {
@@ -890,7 +859,7 @@ void DeleteRel(Word& w)
   }
   delete rit;
   delete r;
-}
+}*/
 /*
 
 4.3.8 ~Check~-function of type constructor ~rel~
@@ -947,7 +916,7 @@ value). If the record Id passed to this function is found, the cached relation
 value is returned instead of building a new one.
 
 */
-bool
+/*bool
 RelPersistValue( const PersistDirection dir,
     SmiRecord& valueRecord,
     const ListExpr typeInfo,
@@ -957,96 +926,84 @@ RelPersistValue( const PersistDirection dir,
   ListExpr valueList;
   string valueString;
   int valueLength;
-
-  //cerr << "RelPersistValue "  << (dir == ReadFrom ? "R" : "W") << endl;
-
-  switch ( dir )
+  
+  if ( dir == ReadFrom )
   {
-    case ReadFrom:
-    {
-      SmiKey mykey;
-      SmiRecordId recId;
-      mykey = valueRecord.GetKey();
-      if ( ! mykey.GetKey(recId) )
-      { 
-        cout << "\tRelPersistValue: Couldn't get the key!" << endl;
+    SmiKey mykey;
+    SmiRecordId recId;
+    mykey = valueRecord.GetKey();
+    if ( ! mykey.GetKey(recId) ) cout << "
+	RelPersistValue: Couldn't get the key!" << endl;
+
+    // cout << "the record number is: " << recId << endl;
+
+    static bool firsttime = true;
+    const int cachesize = 20;
+    static int current = 0;
+    static SmiRecordId key[cachesize];
+    static Word cache[cachesize];
+
+    // initialize
+
+    if ( firsttime ) {
+      for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
+      firsttime = false;
+    }
+
+    // check whether value was cached
+
+    bool found = false;
+    int pos;
+    for ( int j = 0; j < cachesize; j++ )
+      if ( key[j]  == recId ) {
+	found = true;
+	pos = j;
+        break;
       }
+    
+    if ( found ) {value = cache[pos]; return true;}
 
-      static bool firsttime = true;
-      const int cachesize = 20;
-      static int current = 0;
-      static SmiRecordId key[cachesize];
-      static Word cache[cachesize];
+    // prepare to cache the value constructed from the list
 
-      // initialize
+    if ( key[current] != 0 ) { 
+      	// cout << "I do delete!" << endl;
+      DeleteRel(cache[current]);
+    }
 
-      if ( firsttime ) {
-        for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
-        firsttime = false;
-      }
+    key[current] = recId;
 
-      // check whether value was cached
+    ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+    bool correct;
+    valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+    char* buffer = new char[valueLength];
+    valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+    valueString.assign( buffer, valueLength );
+    delete []buffer;
+    nl->ReadFromString( valueString, valueList );
+    value = InRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo,
+	correct); 
 
-      bool found = false;
-      int pos;
-      for ( int j = 0; j < cachesize; j++ )
-        if ( key[j]  == recId ) {
-	  found = true;
-          pos = j;
-          break;
-        }
-
-      if ( found ) {value = cache[pos]; return true;}
-
-      // prepare to cache the value constructed from the list
-
-      if ( key[current] != 0 ) { 
-        // cout << "I do delete!" << endl;
-        DeleteRel(cache[current]);
-      }
-
-      key[current] = recId;
-
-      ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-      bool correct;
-      valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
-      char* buffer = new char[valueLength];
-      valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
-      valueString.assign( buffer, valueLength );
-      delete []buffer;
-      nl->ReadFromString( valueString, valueList );
-      value = InRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo,
-  	correct); 
-
-      cache[current++] = value;
-      if ( current == cachesize ) current = 0;
+    cache[current++] = value;
+    if ( current == cachesize ) current = 0;
         
-      if ( errorInfo != 0 )     {
-        nl->Destroy( errorInfo );
-      }
+    if ( errorInfo != 0 )     {
+      nl->Destroy( errorInfo );
     }
-    break;
-    case WriteTo:
-    {
-      valueList = OutRel( nl->First(typeInfo), value );
-      valueList = nl->OneElemList( valueList );
-      nl->WriteToString( valueString, valueList );
-      valueLength = valueString.length();
-      valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-      valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+  }
+  else // WriteTo
+  {
+    valueList = OutRel( nl->First(typeInfo), value );
+    valueList = nl->OneElemList( valueList );
+    nl->WriteToString( valueString, valueList );
+    valueLength = valueString.length();
+    valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
+    valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
 
-      value = SetWord(Address(0));
-    }
-    break;
-    case DeleteFrom:
-    {
-      // Nothing has to be done in this case
-    }
-    break;
+    value = SetWord(Address(0));
   }
   nl->Destroy( valueList );
   return (true);
-}
+}*/
 /*
 
 3.2.5 ~Model~-functions of type constructor ~rel~
@@ -1073,6 +1030,36 @@ Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
   correct = true;
   return (SetWord( Address( 0 ) ));
 }
+/*
+
+5 Defnition of type constructor ~tuple~
+
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
+name and the eleven functions previously defined.
+
+*/
+TypeConstructor cpptuple( "tuple",           TupleProp,
+                          OutTuple,          InTuple,     CreateTuple,
+                          DeleteTuple,       CastTuple,   CheckTuple,
+			  0,                 0,
+			  TupleInModel,      TupleOutModel,
+			  TupleValueToModel, TupleValueListToModel );
+/*
+
+5 Definition of type constructor ~rel~
+
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
+name and the eleven functions previously defined.
+
+*/
+TypeConstructor cpprel( "rel",           RelProp,
+                        OutRel,          InRel,   CreateRel,
+                        DeleteRel,       CastRel,   CheckRel,
+			RelPersistValue, 0,
+			RelInModel,      RelOutModel,
+			RelValueToModel, RelValueListToModel );
 
 #endif
 
