@@ -4226,7 +4226,8 @@ const SmiRecordId CRegion::GetRegionRecordId() const
 bool CRegion::contain( const Point& p ) const
 {
     //here: if the point is on the border, it is also counted.
-   
+    //used in inside operator
+    
     if (!bbox.Contains(p)) return false;
     
     int faceISN[100];
@@ -4239,18 +4240,6 @@ bool CRegion::contain( const Point& p ) const
 
     CHalfSegment chs;
     
-    //cout<<"============================================"<<endl;
-    //cout<<"number of chs in the region: "<<this->Size()<<endl;
-    
-    //cout<<"!!!the region value is!!!: "<<endl;
-    //for (int i=0; i<this->Size(); i++)
-    //{
-    //	this->Get(i, chs); 
-    //	cout<<chs<<endl;
-    //}
-    //cout<<"!!!the point value is!!!: "<<endl;
-    //cout<<p<<endl;
-    
     /*  ======================================================
     //This part will be replaced by the new method from Ralf.
     for (int i=0; i<this->Size(); i++)
@@ -4261,8 +4250,8 @@ bool CRegion::contain( const Point& p ) const
 	if  ((chs.GetLDP()) &&(chs.Contains(p)))
 	    return true;
 	
-	if ((chs.GetLDP())&&( (chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
-	    cout<<"eligable: "<<chs<<endl;
+	//if ((chs.GetLDP())&&( (chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
+	//    cout<<"eligable: "<<chs<<endl;
 	
 	if ((chs.GetLDP()) &&(chs.rayAbove(p, y0)))
 	{
@@ -4358,7 +4347,7 @@ bool CRegion::contain( const Point& p ) const
 	i--;  //the iterator
     }
     //cout<<"number of chs actually checked: "<<chsVisited2<<" + "<<chsVisiteds<<endl;
-    // ================= End of the new method =================
+    // ================= End of the new method ================= */
     
     for (int j=0; j<=lastfaceno; j++)
     {
@@ -4373,7 +4362,8 @@ bool CRegion::contain( const Point& p ) const
 bool CRegion::containpr( const Point& p, int &pathlength, int & scanned ) const
 {
     //here: if the point is on the border, it is also counted.
-    
+    //used in inside_pathlength and inside_scaned operators
+
     pathlength=0;
     scanned=0;
     
@@ -8404,10 +8394,6 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
 
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
-    
-    //TESTING    
-    //    ((CcBool *)result.addr)->Set( true, false);
-    //    return (0);
     
     if(! cr->BoundingBox().Contains( *p) )  
     {
