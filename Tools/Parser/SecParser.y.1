@@ -1,0 +1,44 @@
+%{
+#include <cstdio>
+#include <string>
+#include <string.h>
+#include "NestedText.h"
+
+#define YYDEBUG 1
+
+extern int yylex();
+
+string* yacc_outtext;
+char*   yacc_error;
+
+typedef char cstring[50];
+cstring param, param2, paramname, paramtype, paramtype2;
+int paramno, depth;
+cstring paramstack[20];
+
+void yyerror( char* s )
+{
+  yacc_error = s;
+  cerr << "Syntax error in textual command: " << s << endl;
+}
+
+void PRINTF (char *s)
+{
+  (*yacc_outtext).append( s );
+}
+
+void PRINT (int i)
+{
+  string temp;
+  NestedText::CopyOut( i, temp );
+  *yacc_outtext += temp;
+}
+%}
+
+%token 	IDENTIFIER, FUN, INTEGER, REAL, STRING, BOOLEAN, CONST, TUPLE, GROUP,
+
+	TYPE, DELETE, CREATE, UPDATE, QUERY, MODEL, LET, PERSISTENT,
+	BEGIN1, TRANSACTION, COMMIT, ABORT, DATABASE, OPEN, CLOSE, SAVE, TO,
+	RESTORE, FROM, LIST, DATABASES, CONSTRUCTORS, OPERATORS, TYPES,
+	OBJECTS, ASSIGN, DOUBLE
+

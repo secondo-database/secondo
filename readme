@@ -1,0 +1,30 @@
+Installation
+------------
+
+* Prerequisite: The Berkeley-DB 4.0.14 must be installed with C++ support
+
+* Unzip the Secondo archive into a directory of your choice
+  then change to this directory
+
+* Select the appropriate platform in 'makefile.config'
+
+* Adjust the path information in the platform dependent makefile
+  - 'makefile.win32' for Windows
+  - 'makefile.linux' for Linux
+  - 'makefile.solaris' for Sun/Solaris
+
+* Run 'make' and/or 'make shared=yes'
+  - libraries are created and copied to the 'lib' directory
+
+* Run 'make tests' and/or 'make tests shared=yes'
+  - test programs are created and copied to the 'bin' directory
+
+* Before running the tests:
+  - make the libraries accessible by defining
+    LD_LIBRARY_PATH on Unix-like systems:
+    - export LD_LIBRARY_PATH=<Secondo>/lib:<BerkeleyDB>/lib:$LD_LIBRARY_PATH
+      where <Secondo> is the Secondo home directory and
+            <BerkeleyDB> is the Berkeley DB home directory
+  - create a directory for the Secondo database files and change
+    'SecondoConfig.ini' appropriately.
+

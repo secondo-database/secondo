@@ -1,0 +1,67 @@
+########################################################################
+#
+# SECONDO makefile definitions for Linux and gcc 2.95.3
+#
+########################################################################
+
+# These are the directories where the library is installed by default:
+#INSTALL_PREFIX = /usr/local
+#LIB_INSTALL = $(INSTALL_PREFIX)/lib
+#INCLUDE_INSTALL = $(INSTALL_PREFIX)/include
+
+# Secondo build directory
+BUILDDIR = /home/ulrich/Diplom/Secondo-Neu
+INCLUDEDIR = $(BUILDDIR)/include
+LIBDIR = -L$(BUILDDIR)/lib
+SMILIB = -lsmibdb
+TOOLLIB = -lsdbtool
+DEFAULTLIB = -ldl -lstdc++
+
+# Berkeley DB library
+BDBDIR = /usr/local/BerkeleyDB.4.0
+BDBINCLUDE = -I$(BDBDIR)/include
+BDBLIBDIR = -L$(BDBDIR)/lib
+BDBLIB = -ldb_cxx -ldb
+
+# Oracle OCI C++ library
+#OCICPPDIR = ocicpplib
+#OCICPPINCLUDE = -I$(OCICPPDIR)/ocicpp
+#OCICPPLIBPATH = -L$(BUILDDIR)/lib
+#OCICPPLIB = -locicpp
+
+# Uncomment next line to compile with debugging information:
+#DEBUG = -g
+
+PLATFORM = linux
+CC = gcc
+LD = gcc
+AR = ar
+RANLIB = ranlib
+CP = cp
+RM = rm -f
+LEX = flex
+YACC = bison
+
+EXEEXT =
+
+ifeq ($(shared),yes)
+PICFLAG = -fPIC
+OBJEXT = lo
+LIBEXT = so
+LDFLAGS = -s -shared
+EXEFLAGS =
+else
+PICFLAG =
+OBJEXT = o
+LIBEXT = a
+LDFLAGS =
+EXEFLAGS = -static
+endif
+
+DLLEXT = so
+DLLFLAGS = -s -shared
+
+DEFAULTCCFLAGS = -I. -I$(INCLUDEDIR) -O2 -Wall -D_REENTRANT
+
+.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
+

@@ -1,0 +1,76 @@
+/*
+May 15, 1998 RHG. Added ~model~ token.
+
+August 8, 2000 RHG. Changed %p (the number of positions for Lex) to 5000.
+
+August 10, 2000 RHG. Changed %e (the number of parse tree nodes) to 2000.
+
+March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ and ~yacc~.
+The pattern for floating point numbers is adjusted so that numbers produced by
+C/C++ programs are interpreted correctly.
+
+*/
+			
+%p 8000
+%n 1000
+%e 2000
+%{
+#include "SecParser.tab.hpp"
+#include "NestedText.h"
+
+#define yylval xxlval
+extern int yylval;
+
+#define YY_NO_UNPUT
+%}
+
+letter         [a-zA-Z]
+digit          [0-9]
+ident          {letter}({letter}|{digit}|_)*  
+num1	       [-+]?{digit}+\.?([eE][-+]?{digit}+)?
+num2	       [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
+number	       {num1}|{num2}
+string         \"[^\"]*\"         
+
+%%
+
+[ \t\n]+  	;
+
+-?[0-9]+  	{yylval = NestedText::Atom( yytext, yyleng ); return INTEGER;}
+{number}	{yylval = NestedText::Atom( yytext, yyleng ); return REAL;}
+TRUE  		{yylval = NestedText::Atom( yytext, yyleng ); return BOOLEAN;}
+FALSE		{yylval = NestedText::Atom( yytext, yyleng ); return BOOLEAN;}
+{string} 	{yylval = NestedText::Atom( yytext, yyleng ); return STRING;}
+fun		{yylval = NestedText::Atom( yytext, yyleng ); return FUN;}
+const		{yylval = NestedText::Atom( yytext, yyleng ); return CONST;}
+tuple		{yylval = NestedText::Atom( yytext, yyleng ); return TUPLE;}
+group		{yylval = NestedText::Atom( yytext, yyleng ); return GROUP;}
+
+type		{yylval = NestedText::Atom( yytext, yyleng ); return TYPE;}
+delete		{yylval = NestedText::Atom( yytext, yyleng ); return DELETE;}
+create		{yylval = NestedText::Atom( yytext, yyleng ); return CREATE;}
+update		{yylval = NestedText::Atom( yytext, yyleng ); return UPDATE;}
+":="		{yylval = NestedText::Atom( yytext, yyleng ); return ASSIGN;}
+query		{yylval = NestedText::Atom( yytext, yyleng ); return QUERY;}
+model           {yylval = NestedText::Atom( yytext, yyleng ); return MODEL;}
+let		{yylval = NestedText::Atom( yytext, yyleng ); return LET;}
+persistent	{yylval = NestedText::Atom( yytext, yyleng ); return PERSISTENT;}
+begin		{yylval = NestedText::Atom( yytext, yyleng ); return BEGIN1;}
+transaction	{yylval = NestedText::Atom( yytext, yyleng ); return TRANSACTION;}
+commit		{yylval = NestedText::Atom( yytext, yyleng ); return COMMIT;}
+abort		{yylval = NestedText::Atom( yytext, yyleng ); return ABORT;}
+database	{yylval = NestedText::Atom( yytext, yyleng ); return DATABASE;}
+open		{yylval = NestedText::Atom( yytext, yyleng ); return OPEN;}
+close		{yylval = NestedText::Atom( yytext, yyleng ); return CLOSE;}
+save		{yylval = NestedText::Atom( yytext, yyleng ); return SAVE;}
+to		{yylval = NestedText::Atom( yytext, yyleng ); return TO;}
+restore		{yylval = NestedText::Atom( yytext, yyleng ); return RESTORE;}
+from		{yylval = NestedText::Atom( yytext, yyleng ); return FROM;}
+list		{yylval = NestedText::Atom( yytext, yyleng ); return LIST;}
+databases	{yylval = NestedText::Atom( yytext, yyleng ); return DATABASES;}
+constructors	{yylval = NestedText::Atom( yytext, yyleng ); return CONSTRUCTORS;}
+operators	{yylval = NestedText::Atom( yytext, yyleng ); return OPERATORS;}
+types		{yylval = NestedText::Atom( yytext, yyleng ); return TYPES;}
+objects		{yylval = NestedText::Atom( yytext, yyleng ); return OBJECTS;}
+".."		{yylval = NestedText::Atom( yytext, yyleng ); return DOUBLE;}
+

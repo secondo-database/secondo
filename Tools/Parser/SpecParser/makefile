@@ -1,0 +1,33 @@
+########################################################################
+#
+# SECONDO makefile for special Secondo parser
+#
+########################################################################
+
+include ../../../makefile.config
+ifdef platform
+include ../../../makefile.$(platform)
+
+all: Lexer$(EXEEXT) Parser$(EXEEXT)
+
+lex.yy.cpp: SpecLex.l SpecParser.tab.hpp
+	$(LEX) -olex.yy.cpp SpecLex.l
+
+SpecParser.tab.hpp SpecParser.tab.cpp: SpecParser.y
+	$(YACC) -d -o SpecParser.tab.cpp SpecParser.y
+
+Lexer$(EXEEXT): LexTest.cpp lex.yy.cpp ../NestedText.h ../NestedText.$(OBJEXT)
+	$(CC) -o Lexer$(EXEEXT) LexTest.cpp lex.yy.cpp ../NestedText.$(OBJEXT) -I.. $(DEFAULTCCFLAGS) -lstdc++
+
+Parser$(EXEEXT): Translate.cpp SpecParser.tab.cpp lex.yy.cpp ../NestedText.h ../NestedText.$(OBJEXT)
+	$(CC) -o Parser$(EXEEXT) Translate.cpp SpecParser.tab.cpp lex.yy.cpp ../NestedText.$(OBJEXT) -I.. $(DEFAULTCCFLAGS) -lstdc++
+
+../NestedText.$(OBJEXT): ../NestedText.cpp ../NestedText.h
+	$(CC) -c -o ../NestedText.$(OBJEXT) ../NestedText.cpp -I.. $(DEFAULTCCFLAGS)
+
+else
+# Platform not specified
+.DEFAULT:
+	@echo *** Platform not specified in makefile.config
+endif
+
