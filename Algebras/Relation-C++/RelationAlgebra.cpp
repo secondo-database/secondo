@@ -1057,9 +1057,11 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
   index = (int)((StandardAttribute*)args[2].addr)->GetValue();
   if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))
   {
-    result = qp->ResultStorage(s);
-    ((StandardAttribute*)result.addr)->CopyFrom(
-      (StandardAttribute*)tupleptr->Get(index - 1));
+    //result = qp->ResultStorage(s);
+    //((StandardAttribute*)result.addr)->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
+      
+      result = SetWord(tupleptr->Get(index - 1));
+
     return 0;
   }
   else
