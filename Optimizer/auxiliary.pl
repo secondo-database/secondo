@@ -127,6 +127,21 @@ pretty_print(L) :-
 
 /*
 
+1.1.2 Predicate ~show~
+
+*/
+
+
+show([Type, Value]) :-
+  !,
+  display(Type, Value).
+
+show(Y) :-
+  pretty_print(Y),
+  nl.
+
+/*
+
 1.1.3 Predicate ~display~
 
 ----	display(Type, Value) :-
@@ -137,13 +152,7 @@ type constructors are added to Secondo.
 
 */
 
-show([Type, Value]) :-
-  !,
-  display(Type, Value).
 
-show(Y) :-
-  pretty_print(Y),
-  nl.
 
 display(int, N) :-
   !, 
@@ -161,6 +170,7 @@ display(string, N) :-
   !,
   term_to_atom(String, N), 
   displayString(String).
+
 
 display([rel, [tuple, Attrs]], Tuples) :-
   !,
