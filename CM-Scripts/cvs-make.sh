@@ -10,44 +10,52 @@
 # 05/01/27 M. Spiekermann, major revision, automatic test runs
 
 
-# recognize aliases also in an non interactive shell
-shopt -s expand_aliases
-source $HOME/.bashrc
-
-
-
-# check arguments and initialize variables
-if [ $# -eq 0 ]
-then
-
-  printf "%s\n" "Usage: $0 <build-dir> [<checkout-dir>]"
-  exit 1
-fi
-
-
-rootDir=$1
-if [ "$2" != "" ]; then 
-  coDir=$2
-else
-  coDir="tmp-secondo-build"
-fi
-buildDir=${rootDir}/${coDir}
-scriptDir=${buildDir}/CM-Scripts
-
 # include function definitions
 # libutil.sh must be in the same directory as this file
 source  ${0%/*}/libutil.sh
 
+# check arguments and initialize variables
+if [ "$1" == "-h" ]; then
+
+  printf "%s\n" "Usage: $0 [<root-dir>=$HOME] [<checkout-dir>=tmp_secondo_<time>]"
+  exit 0
+fi
+
+
+if [ "$1" != "" ]; then
+  rootDir=$1
+else
+  rootDir=$HOME
+fi
+
+if [ "$2" != "" ]; then 
+  coDir=$2
+else
+  coDir=tmp_secondo_${date_ymd}_${date_HMS}
+fi
+
+# directories
+buildDir=${rootDir}/${coDir}
+scriptDir=${buildDir}/CM-Scripts
+
+# recognize aliases also in an non interactive shell
+shopt -s expand_aliases
+source $HOME/.bashrc
+
 ## report host status 
 printSep "host status"
+printf "%s\n" "uptime"
 uptime
+printf "\n%s\n" "disk free"
 df -k
+printf "\n%s\n" "memory usage"
 free -m
 
 
 ## checkout work copy
 printSep "Checking out work copy"
 setvar $buildDir
+printf "%s\n" "Environment settings"
 catvar
 
 printf "cvs user who commited or added files yesterday:\n"

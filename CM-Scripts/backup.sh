@@ -4,6 +4,11 @@
 #
 # 14.01.05 M. Spiekermann 
 
+
+# include function definitions
+# libutil.sh must be in the same directory as this file
+source  ${0%/*}/libutil.sh
+
 cmd_rm="rm"
 cmd_cp="cp -v"
 
@@ -11,7 +16,7 @@ cmd_cp="cp -v"
 if [ "$1" != "-i" -a "$1" != "-f" -o $# -ne 3 ]; then
 
   printf "%s\n" "Usage: $0 [-i (=incremental) | -f (=full backup)] <SourceDir> <BackupDir>"
-  printf "%s\n" "  SourceDir must at least one /"
+  printf "%s\n" "  SourceDir must have at least one /"
 
   exit 1
 
@@ -25,20 +30,22 @@ printf "%s\n" "Backing up $SourceDir -> ${BackupDir}/$LastName ..."
 
 if [ $1 == "-f" ]; then
 
-  printf "%s\n" "Starting full backup of $SourceDir ..."
-  if ( tar -cjf $BackupDir/FULL_BACKUP_OF_${LastName}_${date_ymd}.tar.bz2 $SourceDir )
+  printSep "Starting full backup of $SourceDir ..."
+  if ( tar -cjf ${BackupDir}/${date_ymd}_FULL_BACKUP_OF_${LastName}.tar.bz2 $SourceDir )
   then
-    $cmd_rm -rf $BackupDir/$LastName
+    $cmd_rm -rf ${BackupDir}/$LastName
   fi
+  
+  printSep "Changing permissons in the repository directory ..."
   find $SourceDir ! -perm "+u=w" -print -exec chmod u+w '{}' ';'
 
 else
 
-  printf "%s\n" "Starting incremental backup of $SourceDir ..."
+  printSep "Starting incremental backup of ${SourceDir} ..."
 
 fi
 
-printf "%s\n" "Copying new files ..."
+printSep "Copying new files ..."
 
 $cmd_cp -ru $SourceDir $BackupDir;
 

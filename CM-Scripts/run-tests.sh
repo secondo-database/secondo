@@ -41,7 +41,7 @@ for testName in $testSuites
 do 
   file="${inputDir}/${testName}"
   printf "\n%s\n" "Running ${testName} ..."
-  checkCmd "$time TestRunner -i  ${file} > ${file}.log 2>&1"
+  checkCmd "time TestRunner -i  ${file} > ${file}.log 2>&1"
 done
 
 #clean up
