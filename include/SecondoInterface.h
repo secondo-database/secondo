@@ -558,28 +558,55 @@ in ~resultList~.
       list types
       list objects
       list counters
+      list algebras
+      list algebra <algebraname>
 ----
 
-The last two commands are only valid when a database is open.
+The commands list types and list objects are only valid when a database is open.
+
+All Secondo list commands return a nested list with the following general list structure:
+
+----  ( inquiry ( <inquirydestination> <valuelist> ) )
+----
+
+where ~inquiry~ is a fixed symbol atom, <inquirydestination> a symbol atom with the value ~databases~,
+~algebras~, ~algebra~, ~types~, ~objects~, ~constructors~ or operators and <valuelist> is of type nested
+list.  
 
 ----  list databases
+      ( inquiry ( databases <valuelist> ) )
+      E.G.: ( inquiry ( databases ( GEO OPT BERLIN ) ) )
 ----
 
 Returns a list of names of existing databases. Possible errors: none.
 
 ----  list type constructors
+      ( inquiry ( constructors <valuelist> ) )
+      E.G: ( inquiry (constructors 
+             (
+               (date 
+                 ("Signature" "Example Type List" "List Rep" "Example List")
+                 ("-> DATA" "date" <text>"<year>-<month>-<day>"</text---> <text>"2003-09-05"</text--->)))))
 ----
 
 Return a nested list of type constructors (and their specifications).
 For the precise format see [G[ue]95]. Possible errors: none. 
 
 ----  list operators
+      ( inquiry ( operators <valuelist> ) )
+      E.G.: (inquiry (operators 
+              (
+                (and 
+                  ("Signature" "Syntax" "Meaning" "Example")
+                  (<text>(bool bool) -> bool</text---> <text>_ and _</text---> <text>Logical And.
+                   </text---> <text>query (8 = 8) and (3 < 4)</text--->)))))
 ----
 
 Return a nested list of operators (and their specifications). For the
 precise format see [G[ue]95]. Possible errors: none. 
 
 ----  list types
+      ( inquiry ( types <valuelist> ) )
 ----
 
 Return a nested list of type names defined in the currently open
@@ -595,6 +622,7 @@ Possible errors:
   * 6: no database open
 
 ----  list objects
+      ( inquiry ( objects <valuelist> ) )
 ----
 
 Return a nested list of objects existing in the currently open database.
@@ -621,6 +649,31 @@ contains the counter values from the last query.
 Possible errors:
 
   * 6: no database open
+  
+----    list algebras
+        ( inquiry ( algebras <valuelist> ) )
+        E.G.: (inquiry (algebras 
+              (StandardAlgebra RelationAlgebra))) 
+----
+
+Returns a list of the currently active included algebras at Secondo runtime.
+Possible errors: none.
+
+----    list algebra <algebraname>
+        ( inquiry ( algebra <valuelist> ) )
+        E.G.: (inquiry (algebra 
+               (RectangleAlgebra 
+                 (
+                   (
+                     (rect 
+                       ("Signature" "Example Type List" "List Rep" "Example List")
+                       ("-> DATA" "rect" "(<left> <right> <bottom> <top>)" "(0 1 0 1)")))
+                   (
+                     (intersects 
+                        ("Signature" "Syntax" "Meaning" "Example")
+                        (<text>(rect x rect) -> bool </text---> <text>_ intersects _</text---> 
+                         <text>Intersects.</text---> <text>query rect1 intersects rect2</text--->)))))))
+----
 
 
 1.3.1 Type transformation and information methods
