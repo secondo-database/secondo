@@ -214,7 +214,7 @@ int    CcInt::GetIntval() { return (intval); };
 void*  CcInt::GetValue() { return (void *)intval;};
 bool   CcInt::IsDefined() { return (defined); };
 void   CcInt::SetDefined(bool defined) { this->defined = defined; };
-CcInt* CcInt::Clone() { return (new CcInt( *this )); };
+CcInt* CcInt::Clone() { return (new CcInt( this->defined, this->intval )); };
 size_t CcInt::HashValue() { return (defined ? intval : 0); };
 
 void CcInt::CopyFrom(StandardAttribute* right)
@@ -525,7 +525,7 @@ float   CcReal::GetRealval() { return (realval);};
 void*   CcReal::GetValue() { return ((void*)-1); };
 void    CcReal::Set( float v ) { defined = true, realval = v; };
 void    CcReal::Set( bool d, float v ) { defined = d, realval = v; };
-CcReal* CcReal::Clone() { return (new CcReal(*this)); };
+CcReal* CcReal::Clone() { return (new CcReal(this->defined, this->realval)); };
 
 size_t CcReal::HashValue()
 {
@@ -695,7 +695,7 @@ bool    CcBool::IsDefined() { return defined; };
 void    CcBool::SetDefined(bool defined) { this->defined = defined; };
 bool    CcBool::GetBoolval() { return boolval; };
 void*   CcBool::GetValue() { return (void *)boolval; };
-CcBool* CcBool::Clone() { return new CcBool(*this); };
+CcBool* CcBool::Clone() { return new CcBool(this->defined, this->boolval); };
 size_t CcBool::HashValue() { return (defined ? boolval : false); };
 
 void CcBool::CopyFrom(StandardAttribute* right)
@@ -924,7 +924,7 @@ bool      CcString::IsDefined() { return (defined); };
 void      CcString::SetDefined(bool defined) { this->defined = defined; };
 STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
-CcString* CcString::Clone() { return (new CcString( this->IsDefined(), GetStringval() )); };
+CcString* CcString::Clone() { return (new CcString( this->defined, &this->stringval )); };
 void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 
 size_t 

@@ -295,9 +295,9 @@ of ~tuple~.
 static Word 
 CreateTuple(const ListExpr typeInfo)
 {
-//  Tuple *tup = new Tuple( nl->Second( typeInfo ) );
-//  return (SetWord(tup));
-  return (SetWord(Address(0)));
+  Tuple *tup = new Tuple( nl->Second( typeInfo ) );
+  return (SetWord(tup));
+//  return (SetWord(Address(0)));
 }
 
 /*
@@ -380,9 +380,9 @@ void DummyDelete(Word& w) {}
  
 TypeConstructor cpptuple( "tuple",           	TupleProp,
                           OutTuple,          	InTuple,		
-                          CreateTuple,		DummyDelete,       	
+                          CreateTuple,		DeleteTuple,       	
 			  0, 			0, 		
-                          DummyClose, 		CloneTuple,
+                          CloseTuple, 		CloneTuple,
                           CastTuple,   		SizeOfTuple,
                           CheckTuple,           0,
 			  TupleInModel,      	TupleOutModel,
@@ -426,7 +426,6 @@ ListExpr RelProp ()
 static ListExpr 
 OutRel(ListExpr typeInfo, Word  value)
 {
-  cout << "Out-function for Relation" << endl;
   return ((Relation *)value.addr)->Out( typeInfo );
 }
 /*
@@ -439,7 +438,6 @@ of ~rel~.
 static Word 
 CreateRel(const ListExpr typeInfo)
 {
-  cout << "Create-function for Relation" << endl;
   Relation* rel = new Relation( typeInfo );
   return (SetWord(rel));
 }
@@ -469,7 +467,6 @@ static Word
 InRel(ListExpr typeInfo, ListExpr value,
       int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  cout << "In-function for Relation" << endl;
   return SetWord( Relation::In( typeInfo, value, errorPos, errorInfo, correct ) );
 }
 
@@ -479,7 +476,6 @@ InRel(ListExpr typeInfo, ListExpr value,
 */
 void DeleteRel(Word& w)
 {
-  cout << "Delete-function for Relation" << endl;
   return ((Relation *)w.addr)->Delete();
 }
 
@@ -539,7 +535,6 @@ In this case we will implement one function that does nothing, called
 */
 void CloseRel(Word& w) 
 {
-  cout << "Close-function for Relation" << endl;
   return ((Relation *)w.addr)->Close();
 }
 
@@ -561,7 +556,6 @@ OpenRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
 {
-  cout << "Open-function for Relation" << endl;
   return Relation::Open( valueRecord, typeInfo, (Relation *)value.addr );
 }
 
@@ -574,7 +568,6 @@ SaveRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
 {
-  cout << "Save-function for Relation" << endl;
   return ((Relation *)value.addr)->Save( valueRecord, typeInfo );
 }
 
@@ -914,8 +907,6 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   Word actual;
   Relation* rel;
 
-	//cout << "consume starts" << endl;
-
   rel = (Relation*)((qp->ResultStorage(s)).addr);
   if(rel->GetNoTuples() > 0)
   {
@@ -926,11 +917,9 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    Tuple* tuple;
-    tuple = ((Tuple*)actual.addr)->Clone( false );
+    Tuple* tuple = ((Tuple*)actual.addr)->CloneIfNecessary();
     rel->AppendTuple(tuple);
-    assert( tuple->IsFree() == false );
-    tuple->DeleteIfAllowed();
+    if( tuple != actual.addr ) tuple->Delete();
     ((Tuple*)actual.addr)->DeleteIfAllowed();
 
     qp->Request(args[0].addr, actual);
@@ -939,8 +928,6 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   result = SetWord((void*) rel);
 
   qp->Close(args[0].addr);
-
-	//cout << "consume finishes" << endl;
 
   return 0;
 }
@@ -1140,14 +1127,10 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case OPEN:
 
-	//cout << "tfilter OPEN " << endl;
-
       qp->Open (args[0].addr);
       return 0;
 
     case REQUEST:
-
-	//cout << "tfilter REQUEST " << endl;
 
       funargs = qp->Argument(args[1].addr);
       qp->Request(args[0].addr, elem);
@@ -1176,8 +1159,6 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
 
     case CLOSE:
-
-	//cout << "tfilter CLOSE " << endl;
 
       qp->Close(args[0].addr);
       return 0;
@@ -1314,7 +1295,6 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
-	//cout << "project OPEN" << endl;
       ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
       TupleType *tupleType = new TupleType( nl->Second( resultType ) );
       local.addr = tupleType;
@@ -1329,7 +1309,6 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
       Supplier son;
       Attribute* attr;
 
-	//cout << "project REQUEST" << endl;
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
@@ -1357,7 +1336,6 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE :
     {
-	//cout << "project CLOSE" << endl;
       delete (TupleType *)local.addr;
       qp->Close(args[0].addr);
       return 0;
@@ -1515,7 +1493,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         Tuple *t = ((Tuple*)u.addr)->CloneIfNecessary();
         pli->rightRel->AppendTuple( t );
-        t->DeleteIfAllowed();
+        if( t != u.addr ) t->Delete();
         ((Tuple*)u.addr)->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
       }
@@ -1554,7 +1532,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
           Concat(pli->currentTuple, rightTuple, resultTuple);
           rightTuple->DeleteIfAllowed();
           result = SetWord(resultTuple);
-
           productMeasurer.Exit();
           return YIELD;
         }
@@ -1579,7 +1556,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
             result = SetWord(resultTuple);
-
             productMeasurer.Exit();
             return YIELD;
           }
@@ -1679,8 +1655,6 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word elem;
   int count = 0;
-
-	//cout << "tcount" << endl;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);

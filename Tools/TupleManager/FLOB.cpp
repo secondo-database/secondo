@@ -96,7 +96,7 @@ FLOB::~FLOB() {
   if (start != 0)
   {
     assert( !IsLob() );
-    free(start);
+//    free(start);
     start = 0;
   }
 }
@@ -111,7 +111,7 @@ Destroy persistent representation.
 void FLOB::Destroy() {
   if (start != 0) {
       assert( !IsLob() );
-      free(start);
+//      free(start);
       start = 0;
       size = 0;
   }

@@ -260,6 +260,10 @@ void Tuple::DeleteIfAllowed()
     delete this;
 }
 
+void Tuple::Delete()
+{
+}
+
 /*
 4 Type constructor ~rel~
 

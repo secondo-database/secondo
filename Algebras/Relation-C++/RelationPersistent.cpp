@@ -45,7 +45,8 @@ otherwise, the main memory version will be compiled.
 using namespace std;
 
 #include "RelationAlgebra.h"
-#include "TMTuple.h"
+#include "SecondoSystem.h"
+#include "FLOB.h"
 
 extern NestedList *nl;
 
@@ -114,53 +115,129 @@ The ~id~ value.
 This struct contains the private attributes of the class ~Tuple~.
 
 */
+enum TupleState {Fresh, Solid};
+
 struct PrivateTuple
 {
   PrivateTuple( const TupleType& tupleType, const bool isFree ):
     tupleId( 0 ),
-    tupleType( new TupleType( tupleType ) ),
-    tmTuple( new TMTuple( tupleType ) ),
-    isFree( isFree )
+    tupleType( tupleType ),
+    attributes( new (TupleElement*)[ tupleType.GetNoAttributes() ] ),
+    tupleRecord( 0 ),
+    lobFile( 0 ),
+    tupleFile( 0 ),
+    state( Fresh ),
+    isFree( isFree ),
+    memoryTuple( 0 ),
+    extensionTuple( 0 )
     {
-
+      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+        attributes[i] = 0;
     }
 /*
-The constructor.
+The first constructor. It creates a fresh tuple from a ~tupleType~.
 
 */
   PrivateTuple( const ListExpr typeInfo, const bool isFree ):
     tupleId( 0 ),
-    tupleType( new TupleType( typeInfo ) ),
-    tmTuple( new TMTuple( *tupleType ) ),
-    isFree( isFree )
+    tupleType( typeInfo ),
+    attributes( new (TupleElement*)[ tupleType.GetNoAttributes() ] ),
+    tupleRecord( 0 ),
+    lobFile( 0 ),
+    tupleFile( 0 ),
+    state( Fresh ),
+    isFree( isFree ),
+    memoryTuple( 0 ),
+    extensionTuple( 0 )
     {
+      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+        attributes[i] = 0;
     }
 /*
-The constructor.
+The second constructor. It creates a fresh tuple from a ~typeInfo~.
 
 */
   ~PrivateTuple()
   {
-    delete tupleType;
-    delete tmTuple;
+    if( memoryTuple == 0 )
+    {
+      assert( extensionTuple == 0 );
+      // This was a fresh tuple saved. In this way, the attributes were
+      // created outside the tuple and inserted in the tuple using the
+      // ~PutAttribute~ method. They must be deleted.
+      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+        delete attributes[i];
+    }
+    else 
+    {
+      free( memoryTuple );
+      if( extensionTuple != 0 )
+        free( extensionTuple );
+    }
+    delete []attributes;
+    delete tupleRecord;
   }
 /*
 The destructor.
 
 */
+  const bool Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile );
+/*
+Saves a fresh tuple into ~tuplefile~ and ~lobfile~. 
+
+*/
+  const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
+                   SmiRecordId rid );
+/*
+Opens a solid tuple from ~tuplefile~(~rid~) and ~lobfile~.
+
+*/
+  const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
+                   PrefetchingIterator *iter );
+/*
+Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading the current record of ~iter~. 
+
+*/
+  const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
+                   SmiRecord *record );
+/*
+Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading from ~record~. 
+
+*/
+
   TupleId tupleId;
 /*
 The unique identification of the tuple inside a relation.
 
 */
-  TupleType *tupleType;
+  TupleType tupleType;
 /*
 Stores the tuple type.
 
 */
-  TMTuple *tmTuple;
+  TupleElement **attributes;
 /*
-The tuple from the Tuple Manager.
+The attributes pointer array. The tuple information is kept in memory.
+
+*/
+  SmiRecord *tupleRecord;
+/*
+The record that persistently holds the tuple value.
+
+*/
+  SmiRecordFile* lobFile;
+/*
+Reference to an ~SmiRecordFile~ which contains LOBs.
+
+*/
+  SmiRecordFile* tupleFile;
+/*
+Reference to an ~SmiRecordFile~ which contains the tuple.
+
+*/
+  TupleState state;
+/*
+State of the tuple (Fresh, Solid).
 
 */
   bool isFree;
@@ -169,7 +246,320 @@ A flag that tells if a tuple is free for deletion. If a tuple is free, then a st
 the tuple can delete or reuse it
 
 */
+  char *memoryTuple;
+/*
+Stores the attributes array in memory.
+
+*/
+  char *extensionTuple;
+/*
+Stores the extension (small FLOBs) in memory.
+
+*/
 };
+
+const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
+{
+  assert( state == Fresh && 
+          lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
+          memoryTuple == 0 && extensionTuple == 0 );
+
+  lobFile = lobfile;
+  tupleFile = tuplefile;
+  tupleRecord = new SmiRecord();
+
+  // Calculate the size of FLOB data
+  int extensionSize = 0;
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++) 
+  {
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) 
+    {
+      FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+      attributes[i]->SaveFLOB(j);
+      if( !tmpFLOB->IsLob() ) 
+        extensionSize += tmpFLOB->GetSize();
+    }
+  }
+
+  // Move FLOB data to extension tuple
+  if( extensionSize > 0 ) 
+  {
+    extensionTuple = (char *)malloc(extensionSize);
+    char *extensionPtr = extensionTuple;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++) 
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) 
+      {
+        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+        if( !tmpFLOB->IsLob() ) 
+        {
+          tmpFLOB->Get(0, tmpFLOB->GetSize(), extensionPtr);
+          extensionPtr += tmpFLOB->GetSize();
+        }
+      }
+    }
+  }
+
+  // Move external attributes to memory tuple
+  memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
+  int offset = 0;
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++) 
+  {
+    memcpy( &memoryTuple[offset], attributes[i], tupleType.GetAttributeType(i).size );
+    offset += tupleType.GetAttributeType(i).size;
+  }
+
+  bool rc = tupleFile->AppendRecord( tupleId.value, *tupleRecord );
+  rc = tupleRecord->Write( &extensionSize, sizeof(int), 0) && rc;
+  rc = tupleRecord->Write( memoryTuple, tupleType.GetTotalSize(), sizeof(int)) && rc;
+  if( extensionSize > 0 ) 
+    rc = tupleRecord->Write( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && rc;
+
+  state = Solid;
+
+  free( extensionTuple ); extensionTuple = 0;
+  free( memoryTuple ); memoryTuple = 0;
+
+  return rc;
+}
+
+const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile, SmiRecordId rid )
+{
+  assert( state == Fresh && 
+          lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
+          memoryTuple == 0 && extensionTuple == 0 );
+
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+
+  tupleId = rid;
+  tupleRecord = new SmiRecord();
+  tupleFile = tuplefile;
+  lobFile = lobfile;
+
+  // read tuple header and memory tuple from disk
+  bool ok = tupleFile->SelectRecord( tupleId.value, *tupleRecord );
+  if( !ok ) 
+  {
+    tupleId = 0;
+    delete tupleRecord;
+    tupleFile = 0;
+    lobFile = 0;
+    return false;
+  }
+
+  int extensionSize = 0;
+  ok = tupleRecord->Read( &extensionSize, sizeof(int), 0 );
+
+  memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
+  ok = tupleRecord->Read( memoryTuple, tupleType.GetTotalSize(), sizeof(int) ) && ok;
+
+  if( !ok ) 
+  {
+    tupleId = 0;
+    delete tupleRecord;
+    tupleFile = 0;
+    lobFile = 0;
+    free( memoryTuple ); memoryTuple = 0;
+    return false;
+  }
+
+
+  // Read attribute values from memoryTuple.
+  char *valuePtr = memoryTuple;
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ ) 
+  {
+    int algId = tupleType.GetAttributeType(i).algId;
+    int typeId = tupleType.GetAttributeType(i).typeId;
+    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    valuePtr += tupleType.GetAttributeType(i).size;
+  }
+
+  // move FLOB data to extension tuple if exists.
+  if( extensionSize > 0 ) 
+  {
+    extensionTuple = (char *)malloc( extensionSize );
+    ok = tupleRecord->Read( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && ok;
+    if( !ok ) 
+    {
+      tupleId = 0;
+      delete tupleRecord;
+      tupleFile = 0;
+      lobFile = 0;
+      free( memoryTuple ); memoryTuple = 0;
+      free( extensionTuple ); extensionTuple = 0;
+      return false;
+    }
+
+    char *extensionPtr = extensionTuple;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++ ) 
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ ) 
+      {
+        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+        if( !tmpFLOB->IsLob() ) 
+          extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+      }
+    }
+  }
+
+  state = Solid;
+  return true;
+}
+
+const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile, PrefetchingIterator *iter )
+{
+  assert( state == Fresh && lobFile == 0 && tupleFile == 0 && tupleRecord == 0 );
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+
+  iter->ReadCurrentRecordNumber( tupleId.value );
+  tupleRecord = new SmiRecord();
+  tupleFile = tuplefile;
+  lobFile = lobfile;
+
+
+  int extensionSize = 0;
+  bool ok = iter->ReadCurrentData( &extensionSize, sizeof(int), 0 );
+
+  memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
+  ok = iter->ReadCurrentData( memoryTuple, tupleType.GetTotalSize(), sizeof(int) ) && ok;
+
+  if( !ok ) 
+  {
+    tupleId = 0;
+    delete tupleRecord;
+    tupleFile = 0;
+    lobFile = 0;
+    free( memoryTuple ); memoryTuple = 0;
+    return false;
+  }
+
+
+  // Read attribute values from memoryTuple.
+  char *valuePtr = memoryTuple;
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+  {
+    int algId = tupleType.GetAttributeType(i).algId;
+    int typeId = tupleType.GetAttributeType(i).typeId;
+    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    valuePtr += tupleType.GetAttributeType(i).size;
+  }
+
+  // move FLOB data to extension tuple if exists.
+  if( extensionSize > 0 )
+  {
+    extensionTuple = (char *)malloc( extensionSize );
+    ok = tupleRecord->Read( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && ok;
+    if( !ok )
+    {
+      tupleId = 0;
+      delete tupleRecord;
+      tupleFile = 0;
+      lobFile = 0;
+      free( memoryTuple ); memoryTuple = 0;
+      free( extensionTuple ); extensionTuple = 0;
+      return false;
+    }
+
+    char *extensionPtr = extensionTuple;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
+      {
+        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+        if( !tmpFLOB->IsLob() )
+          extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+      }
+    }
+  }
+
+  state = Solid;
+  return true;
+}
+
+const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile, SmiRecord *record )
+{
+  assert( state == Fresh &&
+          lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
+          memoryTuple == 0 && extensionTuple == 0 );
+
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+
+  SmiKey key;
+  key = record->GetKey();
+  key.GetKey( tupleId.value );
+  tupleRecord = record;
+  tupleFile = tuplefile;
+  lobFile = lobfile;
+
+  // read tuple header and memory tuple from disk
+  bool ok = tupleFile->SelectRecord( tupleId.value, *tupleRecord );
+  if( !ok )
+  {
+    tupleId = 0;
+    delete tupleRecord;
+    tupleFile = 0;
+    lobFile = 0;
+    return false;
+  }
+
+  int extensionSize = 0;
+  ok = tupleRecord->Read( &extensionSize, sizeof(int), 0 );
+
+  memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
+  ok = tupleRecord->Read( memoryTuple, tupleType.GetTotalSize(), sizeof(int) ) && ok;
+
+  if( !ok )
+  {
+    tupleId = 0;
+    delete tupleRecord;
+    tupleFile = 0;
+    lobFile = 0;
+    free( memoryTuple ); memoryTuple = 0;
+    return false;
+  }
+
+
+  // Read attribute values from memoryTuple.
+  char *valuePtr = memoryTuple;
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+  {
+    int algId = tupleType.GetAttributeType(i).algId;
+    int typeId = tupleType.GetAttributeType(i).typeId;
+    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    valuePtr += tupleType.GetAttributeType(i).size;
+  }
+
+  // move FLOB data to extension tuple if exists.
+  if( extensionSize > 0 )
+  {
+    extensionTuple = (char *)malloc( extensionSize );
+    ok = tupleRecord->Read( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && ok;
+    if( !ok )
+    {
+      tupleId = 0;
+      delete tupleRecord;
+      tupleFile = 0;
+      lobFile = 0;
+      free( memoryTuple ); memoryTuple = 0;
+      free( extensionTuple ); extensionTuple = 0;
+      return false;
+    }
+
+    char *extensionPtr = extensionTuple;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
+      {
+        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+        if( !tmpFLOB->IsLob() )
+          extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+      }
+    }
+  }
+
+  state = Solid;
+  return true;
+}
 
 /*
 3.3 Implementation of the class ~Tuple~
@@ -216,23 +606,29 @@ void Tuple::SetTupleId( const TupleId& tupleId )
 
 Attribute* Tuple::GetAttribute( const int index ) const
 {
-  return (Attribute *)privateTuple->tmTuple->Get( index );
+  assert( index >= 0 && index < GetNoAttributes() );
+  assert( privateTuple->attributes[index] != 0 );
+
+  return (Attribute *)privateTuple->attributes[index];
 }
 
 void Tuple::PutAttribute( const int index, Attribute* attr )
 {
-  assert( index >= 0 && index < privateTuple->tupleType->GetNoAttributes() );
-  privateTuple->tmTuple->Put( index, attr );
+  assert( index >= 0 && index < GetNoAttributes() );
+    
+  if( privateTuple->attributes[index] != 0 )
+    delete privateTuple->attributes[index];
+  privateTuple->attributes[index] = attr;
 }
 
 const int Tuple::GetNoAttributes() const
 {
-  return privateTuple->tupleType->GetNoAttributes();
+  return privateTuple->tupleType.GetNoAttributes();
 }
 
 const TupleType& Tuple::GetTupleType() const
 {
-  return *(privateTuple->tupleType);
+  return privateTuple->tupleType;
 }
 
 const bool Tuple::IsFree() const
@@ -253,12 +649,37 @@ Tuple *Tuple::Clone( const bool isFree ) const
 
 Tuple *Tuple::CloneIfNecessary()
 {
-  return this->Clone( false );
+  if( privateTuple->state == Fresh )
+    return this;
+  else
+    return this->Clone( false );
 }
 
 void Tuple::DeleteIfAllowed()
 {
   delete this;
+}
+
+void Tuple::Delete()
+{
+  delete this;
+}
+
+ostream& operator <<( ostream& o, Tuple& t )
+{
+  o << "<";
+  for( int i = 0; i < t.GetNoAttributes(); i++) 
+  {
+    o << *t.GetAttribute(i);
+    if (i < t.GetNoAttributes() - 1) 
+      o << ", ";
+  }
+  return o << ">";
+}
+
+ostream &operator<< (ostream &os, TupleElement &attrib) 
+{
+  return attrib.Print(os);
 }
 
 /*
@@ -439,7 +860,7 @@ void Relation::Delete()
 
 void Relation::AppendTuple( Tuple *tuple )
 {
-  tuple->GetPrivateTuple()->tmTuple->SaveTo( &privateRelation->tupleFile, &privateRelation->lobFile );
+  tuple->GetPrivateTuple()->Save( &privateRelation->tupleFile, &privateRelation->lobFile );
   privateRelation->noTuples += 1;
 }
 
@@ -530,13 +951,9 @@ Tuple* RelationIterator::GetNextTuple()
   }
 
   Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
-  delete result->GetPrivateTuple()->tmTuple;
-  result->GetPrivateTuple()->tmTuple = 
-    new TMTuple( &privateRelationIterator->relation.privateRelation->tupleFile,
-                 privateRelationIterator->iterator,
-                 &privateRelationIterator->relation.privateRelation->lobFile,
-                 privateRelationIterator->relation.privateRelation->tupleType );
-  result->SetTupleId( result->GetPrivateTuple()->tmTuple->GetPersistentId() );
+  result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
+                                   &privateRelationIterator->relation.privateRelation->lobFile,
+                                   privateRelationIterator->iterator );
   return result;
 }
 
@@ -644,13 +1061,13 @@ void Concat( Tuple *r, Tuple *s, Tuple *t )
 
   for( int i = 0; i < rnoattrs; i++)
   {
-    attr = r->GetAttribute( i );
+    attr = r->GetAttribute( i )->Clone();
     t->PutAttribute( i, attr );
   }
-  for (int j = rnoattrs; j < tnoattrs; j++)
+  for (int j = 0; j < snoattrs; j++)
   {
-    attr = s->GetAttribute( j - rnoattrs );
-    t->PutAttribute( j, attr );
+    attr = s->GetAttribute( j )->Clone();
+    t->PutAttribute( rnoattrs + j, attr );
   }
 }
 

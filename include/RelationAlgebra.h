@@ -305,6 +305,12 @@ Deletes the tuple if it is allowed.
 *Need some more explanations about whether it is allowed or not.*
 
 */
+    void Delete();
+/*
+Deletes the tuple.
+*Need some more explanations.*
+
+*/
     PrivateTuple *GetPrivateTuple()
       { return privateTuple; }
 /*
@@ -328,7 +334,10 @@ The private attributes of the class ~Tuple~.
 */
 };
 
+ostream& operator <<( ostream& o, Tuple& t );
 /*
+The print function for tuples. Used for debugging purposes
+
 4 Type constructor ~rel~
 
 4.1 Class ~Relation~

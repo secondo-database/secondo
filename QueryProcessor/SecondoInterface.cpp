@@ -1005,7 +1005,6 @@ If value 0 is returned, the command was executed without error.
           {
             if ( evaluable )
             {
-              Tuple::ShowTupleStatistics( false, cerr );
               cerr << "Execute ..." << endl;
 
 	      SecondoSystem::GetQueryProcessor()->
