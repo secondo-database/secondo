@@ -9,7 +9,8 @@ include ../makefile.env
 OBJECTS=\
 	SocketIO \
 	SocketAddress \
-	SocketRuleSet
+	SocketRuleSet \
+        SecondoInterfaceCS
 
 APPLOBJECTS=\
 	SecondoMonitor \
@@ -18,7 +19,7 @@ APPLOBJECTS=\
 	SecondoListener \
 	SecondoServer
 
-APPLOBJECTS += $(LIBDIR)/SecondoInterfaceCS
+LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT)
 
 ALL_OBJECTS = $(addsuffix .$(OBJEXT), $(OBJECTS) $(APPLOBJECTS))
 CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(ALL_OBJECTS))
@@ -36,7 +37,7 @@ endif
 CCFLAGS := $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all: $(ALL_OBJECTS) 
+all: $(ALL_OBJECTS) $(LIBDIROBJECTS)
 
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
@@ -46,14 +47,11 @@ buildapp: $(APPLICATIONS)
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
 
-$(LIBDIR)/%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
-
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCFLAGS) $(JNIINCLUDE)
 
-$(LIBDIR)/%.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCFLAGS) $(JNIINCLUDE)
+$(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
+	$(CP) $< $@
 
 
 # --- Link applications
@@ -94,5 +92,5 @@ include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(ALL_OBJECTS) $(APPLICATIONS)
+	$(RM) *.dep $(ALL_OBJECTS) $(LIBDIROBJECTS) $(APPLICATIONS)
 
