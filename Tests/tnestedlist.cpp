@@ -34,6 +34,8 @@ In this module the nested list functions from the module NestedList are called t
 #include "SecondoSMI.h"
 #include "WinUnix.h"
 
+using namespace std;
+
 namespace {
 
 SmiRecordFile* rf = 0;
@@ -169,8 +171,10 @@ TestNLCopy()
 }
 
 /*
+
 The next functions contain code which is extraced from
 the secondo system to isolate bugs.
+
 */
 
 void
@@ -257,6 +261,35 @@ void empty_textResult() {
 }
 
 
+bool
+BeginCheck(const string& str) {
+
+  cout << "-- " << str << endl;
+  
+  return false;
+}
+
+void
+EndCheck(bool result) {
+
+  static int errCtr = 0;
+  
+  if ( result ) {
+    cout << "-- OK --" << endl;
+  } else {
+    cout << "-- ERROR --" << endl;
+    errCtr++;
+  } 
+}
+
+
+struct IntPairs {
+
+   int v;
+   ListExpr l;
+   IntPairs(int val) : v(val), l(0) {};
+};
+
 
 int 
 TestBasicOperations()
@@ -291,25 +324,53 @@ TestBasicOperations()
 4.1.1 Empty List 
 
 ******************************************************************************/
+   bool ok = false;
+   ok = BeginCheck("TheEmptyList() ");
    EmptyListVar = nl.TheEmptyList(); 
-   if ( nl.IsEmpty (EmptyListVar) )
-   {
-     cout << "EmptyListVar is the empty list." << endl << endl;
-   }
+   ok = nl.IsEmpty(EmptyListVar) && ( !nl.IsEmpty(7) );
+   EndCheck(ok);
 
 /******************************************************************************
 
 4.1.2 Integer atoms
 
 ******************************************************************************/
-   IntValue = 123;
-   IntAtomVar = nl.IntAtom (IntValue);
-   if ( nl.AtomType (IntAtomVar) == IntType)
+   
+   vector<IntPairs> IntValues;
+      
+   IntValues.push_back( IntPairs(0) );
+   IntValues.push_back( IntPairs(1) );
+   IntValues.push_back( IntPairs(-1) );
+   IntValues.push_back( IntPairs(255) );
+   IntValues.push_back( IntPairs(-255) );
+   IntValues.push_back( IntPairs(32536) );
+   IntValues.push_back( IntPairs(-32536) );
+   
+   ok = BeginCheck("IntAtom(), IntValue(), AtomType() ");
+   for ( vector<IntPairs>::iterator it = IntValues.begin(); 
+         it != IntValues.end();
+	 it++ )
    {
-     cout << "IntAtomVar is an INTEGER atom: ";
-     IntValue2 = nl.IntValue (IntAtomVar);
-     cout << IntValue2 << endl << endl;
+      it->l = nl.IntAtom(it->v); // create Integer Atoms
    }
+   
+   ok = true;
+   for ( vector<IntPairs>::iterator it = IntValues.begin(); 
+         it != IntValues.end();
+	 it++ )
+   {
+      
+     if ( nl.AtomType(it->l) != IntType)
+     {
+       cout << "  Error: AtomType != int";
+       ok = false;
+     }
+     ok = ok && ( nl.IntValue(it->l) == it->v );
+     cout << "   " << nl.IntValue(it->l) << " == " << it->v << endl;
+   }
+   EndCheck(ok);
+   
+   
 
 /****************************************************************************** 
 
@@ -465,9 +526,10 @@ The following steps are executed with a small list expression.
   2 ListExpr [->] String [->] ListExpr [->] String ; PrintString
 
 */
-   cout << "WriteListExpr start" << endl;
+   ok = BeginCheck("WriteListExpr()");
    nl.WriteListExpr (ListExpr3);
-   cout << "WriteListExpr stop" << endl;
+   EndCheck(true);
+   
    ErrorVar = nl.WriteToFile ("testout_SmallListFile", ListExpr3);
    cout << "WriteToFile" << endl;
    ErrorVar = nl.WriteToString ( String1, ListExpr3 );
@@ -701,11 +763,11 @@ TestRun_MainMemory() {
 int
 main() {
 
-#ifdef NL_PERSISTENT   
+  if ( NestedList::isPersistentImpl() ) { 
    return TestRun_Persistent();
-#else
+  } else {
    return TestRun_MainMemory();
-#endif
+  }
 
 }
 
