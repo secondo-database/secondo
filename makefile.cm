@@ -21,7 +21,7 @@ RC_FILES := $(HOME)/.secondorc \
 .PHONY: update-environment 
 update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) show-update-msg
 ifeq ($(platform),win32)
-	@echo "-e Creating mount point /mingw if necessary. \n"	
+	@echo -e "Create a mount point /mingw in /etc/fstab if necessary. \n"	
 endif
 
 UPDATE_MSG := "\n\

@@ -38,7 +38,7 @@ declare -i stepCtr=1
 function printSep() {
 
   printf "\n%s\n" "Step ${stepCtr}: ${1}"
-  printf "%s\n" "------------------------------------"
+  printf "%s\n" "---------------------------------------------------------------------------"
   let stepCtr++
 }
 
@@ -109,7 +109,7 @@ function showGPL() {
 
 function uncompressFolders() {
 
-for folder in $1; do
+for folder in $*; do
   zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
   gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
   for file in $zipFiles; do
@@ -125,21 +125,6 @@ for folder in $1; do
     fi
   done
 done
-
-}
-
-# runTTYBDB
-#
-# $1 SECONDO command
-#
-# Starts SecondoTTYBDB runs command $1
-
-declare -i rc_ttybdb=0
-function runTTYBDB() {
-
-SecondoTTYBDB <<< "$1"
-
-let rc_ttybdb=$?
 
 }
 
