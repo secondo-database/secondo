@@ -32,6 +32,7 @@ operator sortmergejoin alias SORTMERGEJOIN pattern _ _ op [_, _]
 operator hashjoin alias HASHJOIN pattern _ _ op [_, _, _]
 
 operator loopjoin alias LOOPJOIN pattern _ op [ fun ] implicit parameter tuple type TUPLE
+operator loopjoinrel alias LOOPJOINREL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 
 operator rename alias RENAME pattern _ op [ _ ]
 operator extract alias EXTRACT pattern _ op [ _ ]
