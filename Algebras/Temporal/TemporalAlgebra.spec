@@ -21,4 +21,6 @@ operator theday alias THEDAY pattern op ( _, _, _ )
 operator thehour alias THEHOUR pattern op ( _, _, _ ,_ )
 operator theminute alias THEMINUTE pattern op ( _, _, _ ,_ , _ )
 operator thesecond alias THESECOND pattern op ( _, _, _ ,_ , _, _ )
+operator theperiod alias THEPERIOD pattern op ( _, _ )
+
 

@@ -3130,6 +3130,48 @@ int thesecondfun( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
+16.3.29 Value mapping functions of operator ~theperiod~
+
+(periods x periods) ---- (periods)
+
+*/
+
+int theperiodfun( Word* args, Word& result, int message, Word& local, Supplier s )
+{ cout<<"the period called"<<endl;
+  result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
+  
+  //1.get the input and out put objects
+  Range<Instant>  *range1, *range2;
+  
+  range1=((Range<Instant>*)args[0].addr);
+  range2=((Range<Instant>*)args[1].addr);
+  
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  
+  //2.get the timeintervals and add them to the result
+  defrange->StartBulkLoad();
+  
+  Interval<Instant> intv1, intv2;
+  if (!(range1->IsEmpty()))
+      range1->Get(0, intv1);
+  
+  if (!(range2->IsEmpty()))
+      range2->Get(range2->GetNoComponents()-1, intv2);
+  
+  if ((!(range1->IsEmpty()))&&(!(range2->IsEmpty())))
+  {
+	  Interval<Instant> timeInterval(intv1.start, intv2.end, intv1.lc, intv2.rc);
+  	  
+	  defrange->Add( timeInterval ); 
+	  defrange->EndBulkLoad( true );
+  
+	  defrange->Merge(((Range<Instant>*)result.addr));
+  }
+  return (0);
+}
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -3228,7 +3270,7 @@ ValueMapping intperiodsmap[] =   {      theyearfun,
 				    thehourfun,
 				    theminutefun,
 				    thesecondfun,
-				    theyearfun
+				    theperiodfun
 				};
 
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
@@ -3466,12 +3508,60 @@ const string TemporalSpecUnits  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "<text>units(mpoint1)</text--->"
                                 ") )";
 
-const string TemporalSpecIntPeriods  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string TemporalSpecTheyear  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-		"( <text>{int} -> periods</text--->"
+		"( <text>int -> periods</text--->"
                                 "<text> theyear( _ )</text--->"
                                 "<text>get the periods value of the year.</text--->"
                                 "<text>theyear(2002)</text--->"
+                                ") )";
+
+const string TemporalSpecThemonth  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+		"( <text>int x int -> periods</text--->"
+                                "<text> themonth( _, _ )</text--->"
+                                "<text>get the periods value of the month.</text--->"
+                                "<text>themonth(2002, 3)</text--->"
+                                ") )";
+
+const string TemporalSpecTheday  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+		"( <text>int x int x int -> periods</text--->"
+                                "<text> theday( _, _, _ )</text--->"
+                                "<text>get the periods value of the day.</text--->"
+                                "<text>theday(2002, 6,3)</text--->"
+                                ") )";
+
+const string TemporalSpecThehour  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+		"( <text>int x int x int x int -> periods</text--->"
+                                "<text> thehour( _, _, _ , _)</text--->"
+                                "<text>get the periods value of the hour.</text--->"
+                                "<text>theyear(2002, 2, 28, 8)</text--->"
+                                ") )";
+
+const string TemporalSpecTheminute  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+		"( <text>int x int x int x int x int -> periods</text--->"
+                                "<text> theminute( _ )</text--->"
+                                "<text>get the periods value of the minute.</text--->"
+                                "<text>theminute(2002, 3, 28, 8, 59)</text--->"
+                                ") )";
+
+const string TemporalSpecThesecond  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+		"( <text>int x int x int x int x int x int  -> periods</text--->"
+                                "<text> thesecond( _ )</text--->"
+                                "<text>get the periods value of the second.</text--->"
+                                "<text>thesecond(2002, 12, 31, 23, 59, 59)</text--->"
+                                ") )";
+
+const string TemporalSpecTheperiod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+		"( <text>period x periods -> periods</text--->"
+                                "<text> theperiod( _, _ )</text--->"
+                                "<text>get the periods value of the 2 periods.</text--->"
+                                "<text>theperiod(theyear(2002), theyear(2004))</text--->"
                                 ") )";
 
 /*
@@ -3824,7 +3914,7 @@ Operator units( "units",
                         MappingTypeMapUnits);
 
 Operator theyear( "theyear",
-                        TemporalSpecIntPeriods,
+                        TemporalSpecTheyear,
                         7,
                         intperiodsmap,
                         temporalnomodelmap,
@@ -3832,7 +3922,7 @@ Operator theyear( "theyear",
                         MappingTypeMapIntPeriods);
 
 Operator themonth( "themonth",
-                        TemporalSpecIntPeriods,
+                        TemporalSpecThemonth,
                         7,
                         intperiodsmap,
                         temporalnomodelmap,
@@ -3840,7 +3930,7 @@ Operator themonth( "themonth",
                         MappingTypeMapIntPeriods);
 
 Operator theday( "theday",
-                        TemporalSpecIntPeriods,
+                        TemporalSpecTheday,
                         7,
                         intperiodsmap,
                         temporalnomodelmap,
@@ -3848,7 +3938,7 @@ Operator theday( "theday",
                         MappingTypeMapIntPeriods);
 
 Operator thehour( "thehour",
-                        TemporalSpecIntPeriods,
+                        TemporalSpecThehour,
                         7,
                         intperiodsmap,
                         temporalnomodelmap,
@@ -3856,7 +3946,7 @@ Operator thehour( "thehour",
                         MappingTypeMapIntPeriods);
 
 Operator theminute( "theminute",
-                        TemporalSpecIntPeriods,
+                        TemporalSpecTheminute,
                         7,
                         intperiodsmap,
                         temporalnomodelmap,
@@ -3864,12 +3954,20 @@ Operator theminute( "theminute",
                         MappingTypeMapIntPeriods);
 
 Operator thesecond( "thesecond",
-                        TemporalSpecIntPeriods,
+                        TemporalSpecThesecond,
                         7,
                         intperiodsmap,
                         temporalnomodelmap,
                         TemporalSelectIntPeriods,
                         MappingTypeMapIntPeriods);
+
+Operator theperiod( "theperiod",
+                        TemporalSpecTheperiod,
+                        7,
+                        intperiodsmap,
+                        temporalnomodelmap,
+                        TemporalSelectIntPeriods,
+                        MappingTypeMapPeriodsPeriods);
 
 /*
 6 Creating the Algebra
@@ -3967,6 +4065,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &thehour);
     AddOperator( &theminute);
     AddOperator( &thesecond);
+    AddOperator( &theperiod);
   }
   ~TemporalAlgebra() {};
 };
