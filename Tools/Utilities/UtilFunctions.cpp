@@ -14,14 +14,16 @@ November 2002 M. Spiekermann, Implementation of TimeTest.
 #include <stdio.h>
 #include "TimeTest.h"
 
+#define BUFSIZE 20
+
 const string
 TimeTest::diffReal() {
 
    static bool firstcall = true;
    static time_t lasttime = 0;
    time_t currenttime = 0;
-   char sbuf1[21];
-   char sbuf2[21];
+   char sbuf1[BUFSIZE+1];
+   char sbuf2[BUFSIZE+1];
    ostringstream buffer;
    double diffseconds = 0, full =0, frac = 0, sec =0, min = 0;
    
@@ -46,7 +48,7 @@ TimeTest::diffReal() {
   sec = diffseconds - (60 * min);
   
   const tm *ltime = localtime(&currenttime);
-  strftime(&sbuf1[0], 20, "%H:%M:%S", ltime);
+  strftime(&sbuf1[0], BUFSIZE, "%H:%M:%S", ltime);
   sprintf(&sbuf2[0], "%.0f:%02.0f", min, sec);
   buffer << sbuf1 << " -> elapsed time " << sbuf2  << " minutes."; 
   

@@ -939,7 +939,7 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
           
-	  
+	  TimeTest::diffReal(); TimeTest::diffCPU();
 	  cout << "Analyze query ..." << endl
 	       << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
 
@@ -964,9 +964,6 @@ If value 0 is returned, the command was executed without error.
               resultList = nl->TwoElemList( resultType, valueList );
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
-		
-	     cout << "Result ..." << endl
-	          << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
 
             }
             else if ( isFunction ) // abstraction or function object
