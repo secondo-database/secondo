@@ -216,6 +216,11 @@ public MainWindow(String Title){
            }
         }
    } 
+   
+   String ObjectDirectory= Config.getProperty("OBJECT_DIRECTORY");
+   if(ObjectDirectory!=null){
+      OList.setObjectDirectory(new  File(ObjectDirectory));
+   }
  
   } catch(Exception e){
     System.out.println("I can't read the configuration-file: "+CONFIGURATION_FILE);
@@ -943,3 +948,4 @@ class Command_Listener implements ActionListener{
 
 
 }
+
