@@ -71,9 +71,14 @@ public class DisplayTimeGraph extends DisplayGraph
    * @see <a href="DisplayTimeGraphsrc.html#getMapAt">Source</a>
    */
   public Object getMapAt (double time, Vector iv, Vector maps) {
-    for (int i = 0; i < iv.size(); i++)
-      if (((Interval)iv.elementAt(i)).isDefinedAt(time))
-        return  maps.elementAt(i);
+    for (int i = 0; i < iv.size(); i++){
+      Interval interval = (Interval) iv.get(i);
+      if (interval.isDefinedAt(time)){
+         if(time<interval.getStart() | time>interval.getEnd())
+	    System.out.println("wrong interval found");
+         return  maps.elementAt(i);
+      }
+     }
     return  null;
   }
   /** A method of the Timed-Interface
@@ -82,7 +87,7 @@ public class DisplayTimeGraph extends DisplayGraph
    */
   public Vector getIntervals(){
     return Intervals;
-    } 
+    }
 
 }
 

@@ -87,6 +87,10 @@ private static int getMilliSecs(int hour,int minute,int second,int millisecond){
    return ((hour*60+minute)*60+second)*1000+millisecond;
 }
 
+
+public static final long DAY_RESOLUTION = 86400000;  // 1 millisecond
+
+
 }
 
 

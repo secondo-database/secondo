@@ -18,6 +18,17 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
   Vector PointMaps;
   Rectangle2D.Double bounds;
 
+  /** returns the first index in Intervals containing t
+    * if not an intervals containing t exists -1 is returned
+    */
+  private int getTimeIndex(double t,Vector Intervals){
+     for(int i=0;i<Intervals.size();i++)
+        if( ((Interval) Intervals.get(i)).isDefinedAt(t))
+	    return i;
+     return -1;
+  }
+
+
   /**
    * Gets the shape of this instance at the ActualTime
    * @param at The actual transformation, used to calculate the correct size.
@@ -26,12 +37,26 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
    */
   public Shape getRenderObject (AffineTransform at) {
     double t = RefLayer.getActualTime();
-    PointMap pm = (PointMap)getMapAt(t, Intervals, PointMaps);
-    if (pm == null) {
+
+    int index = getTimeIndex(t,Intervals);
+    if(index<0){
       RenderObject = null;
       return  RenderObject;
     }
-    point = new Point2D.Double(pm.ax*t + pm.bx, pm.ay*t + pm.by);
+
+    PointMap pm = (PointMap) PointMaps.get(index);
+    Interval in = (Interval)Intervals.get(index);
+    double t1 = in.getStart();
+    double t2 = in.getEnd();
+    double Delta = (t-t1)/(t2-t1);
+    double x = pm.x1+Delta*(pm.x2-pm.x1);
+    double y = pm.y1+Delta*(pm.y2-pm.y1);
+
+    //System.out.println("interval:"+in+"\nTime  "+DateTime.getString(t)+"\n PointMap="+pm);
+    //System.out.println("Delta ="+Delta+"\n(x,y)= "+x+","+y+"\n");
+
+    point = new Point2D.Double(x, y);
+
     double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
     //double pix = Cat.getPointSize();
     double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
@@ -62,7 +87,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
         return  null;
       le = le.rest();
     }
-    return  new PointMap(value[0].doubleValue(), value[2].doubleValue(), value[1].doubleValue(),
+    return  new PointMap(value[0].doubleValue(), value[1].doubleValue(), value[2].doubleValue(),
         value[3].doubleValue());
   }
 
@@ -126,25 +151,24 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
       System.out.println("Dsplmovingpoint Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mpoint))"));
       return;
-    } 
-    else 
+    }
+    else
       qr.addEntry(this);
     //ListIterator li=iv.listIterator();
     bounds = null;
     TimeBounds = null;
     for (int j = 0; j < Intervals.size(); j++) {
       Interval in = (Interval)Intervals.elementAt(j);
-      Interval i = new Interval(in.getStart() + 0.0001, in.getEnd() - 0.0001, 
-          true, true);
       PointMap pm = (PointMap)PointMaps.elementAt(j);
-      Rectangle2D.Double r = new Rectangle2D.Double(pm.ax*i.getStart() + pm.bx, 
-          pm.ay*i.getStart() + pm.by, 0, 0);
-      r = (Rectangle2D.Double)r.createUnion(new Rectangle2D.Double(pm.ax*i.getEnd()
-          + pm.bx, pm.ay*i.getEnd() + pm.by, 0, 0));
+      Rectangle2D.Double r = new Rectangle2D.Double(pm.x1,pm.y1,0,0);
+      r = (Rectangle2D.Double)r.createUnion(new Rectangle2D.Double(pm.x2,pm.y2,0,0));
+
+
+
       if (bounds == null) {
         bounds = r;
         TimeBounds = in;
-      } 
+      }
       else {
         bounds = (Rectangle2D.Double)bounds.createUnion(r);
         TimeBounds = TimeBounds.union(in);
@@ -152,7 +176,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
     }
   }
 
-  /** 
+  /**
    * @return The overall boundingbox of the movingpoint
    * @see <a href="Dsplmovingpointsrc.html#getBounds">Source</a>
    */
@@ -161,20 +185,18 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
   }
 
   class PointMap {
-    double ax, bx, ay, by;
+    double x1,x2,y1,y2;
 
-    /**
-     * Constructor
-     * @param     double x1
-     * @param     double x2
-     * @param     double y1
-     * @param     double y2
-     */
-    public PointMap (double x1, double x2, double y1, double y2) {
-      ax = x1;
-      bx = x2;
-      ay = y1;
-      by = y2;
+    public PointMap (double x1, double y1, double x2, double y2) {
+       this.x1 = x1;
+       this.y1 = y1;
+       this.x2 = x2;
+       this.y2 = y2;
+
+    }
+
+    public String toString(){
+      return ("[x1,y1 | x2,y2] = ["+x1+","+y1+" <> "+x2+","+y2+"]");
     }
   }
 }
