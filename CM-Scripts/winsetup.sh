@@ -8,7 +8,7 @@
 mkdir -p $msysdir/mingw
 printSep "Starting MinGW Installer ..."
 cd $platformdir/mingw
-Min*.exe
+$exec Min*.exe
 
 if [ ! -d "$mingwdir" ]; then
    printf  "\n%s\n" " WARNING: Directory $mingwdir not found." 
@@ -17,7 +17,7 @@ fi
  
 printSep  "Starting SWI-Prolog Installer ..."
 cd $platformdir/prolog
-w32pl*.exe
+$exec w32pl*.exe
 
 prologdir=$sdk/pl
 if [ ! -d "$prologdir" ]; then
@@ -29,24 +29,24 @@ fi
 printSep "Installing unzip ..."
 
 cd $sdk/bin
-$platformdir/non-gnu/unzip/unz550xN.exe > /dev/null 
+$exec "$platformdir/non-gnu/unzip/unz550xN.exe > /dev/null" 
 export PATH="$sdk/bin:$sdk/lib:$PATH"
-unzip -q -o "$platformdir/non-gnu/unzip/zip23xN.zip"
+$exec "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
 
-printSep "\n%s\n" "* Uncompressing 3d-party tools ..."
+printSep "Uncompressing 3d-party tools ..."
 
 cd $sdk
 uncompressFolders "$platformdir/gnu" "$platformdir/non-gnu"
 
-printSep "\n* Compiling Berkeley-DB ... \n\n"
+printf "\n"
+printSep "Compiling Berkeley-DB ..."
 
 export PATH=/c/mingw/bin:$PATH
-rxvt -sl 5000 -title "Berkeley-DB Compilation" -e tail -f $logfile &
-cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx --enable-mingw >> $logfile 2>&1
-make > $logfile 2>&1 && make install >> $logfile 2>&1
+$xterm -title \"Berkeley-DB Compilation\" -e tail -f $logfile &
+$exec "cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx --enable-mingw >> $logfile 2>&1"
+$exec "make > $logfile 2>&1 && make install >> $logfile 2>&1"
 
-printf  "\n* MSYS and MinGW Configuration ... \n"
-make SECONDO_SDK=$sdk -f makefile.cm update-environment
+copyConfigFiles
 
 printf "%s\n" "* MSYS Configuration and file extraction has been finished."
 printf "%s\n" "* Close all open MSYS windows and open a new one, otherwise"
