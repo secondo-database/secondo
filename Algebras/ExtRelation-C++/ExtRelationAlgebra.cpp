@@ -142,13 +142,6 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   assert(subsetSize >= 1);
   assert(setSize >= 2);
   assert(setSize > subsetSize);
-  // 28.04.04 M. Spiekermann. Multiply the random numbers by a factor greater than 1 when
-  // the requested setSize is bigger than the number of possible random numbers. This is a
-  // work around for windows, since the RAND_MAX value on windows is very small.
-  double randomStrechFactor = (double)setSize / (double)RAND_MAX;
-  if (randomStrechFactor < 1) {
-    randomStrechFactor = 1.0;
-  }
 
   set<int> drawnNumbers;
   set<int>::iterator iter;
@@ -172,11 +165,20 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
     drawSize = subsetSize;
   }
 
+  // Using Windows RAND_MAX is very small (about 2^15) therefore we need to limit the drawSize
+  // to 3/4 (to avoid long runtimes) of this size. 
+  int drawMax = 3*RAND_MAX/4;
+  if ( drawSize > drawMax ) {
+    drawSize = drawMax;
+    cerr << "Warning: Sample size reduced to 3/4*RAND_MAX." << endl;
+  }
+
   while(nDrawn < drawSize)
   {
-    // the calculation of random numbers blow is recommended in the man page 
-    // documentation of the rand() function
-    r = (int) ((double)randomStrechFactor * (double)(setSize + 1) * rand()/(RAND_MAX+1.0)); 
+    // 28.04.04 M. Spiekermann.
+    // The calculation of random numbers blow is recommended in the man page 
+    // documentation of the rand() function.
+    r = (int) ((double)(setSize + 1) * rand()/(RAND_MAX+1.0)); 
     if(r == 0)
     {
       continue;
@@ -2482,13 +2484,15 @@ conditions are passed on to the output stream.
 
 For instance,
 
-----  query Staedte feed loopjoin [plz feed filter [.Ort=.SName] ] consume;
+----    query Staedte feed {s1} loopjoin[ fun(t1: TUPLE) plz feed filter [ attr(t1, SName_s1) = .Ort]] count;
 
-      (query (consume (loopjoin (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
-    (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
+        (query (count (loopjoin (rename (feed Staedte) s1) (fun (t1 TUPLE) (filter (feed plz)
+               (fun (tuple1 TUPLE) (= (attr t1 SName_s1) (attr tuple1 Ort))))))))
+ 
 ----
 
-2.19.1 Type mapping function of operator ~loopjoin~
+The renaming is necessary whenever the underlying relations have at least one common attribute name
+in order to assure that the output tuple stream consists of different named attributes.
 
 The type mapping function of the loopjoin operation is as follows:
 
@@ -2666,9 +2670,11 @@ const string LoopjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                              "<text>_ loopjoin [ fun ]</text--->"
                              "<text>Only tuples in the cartesian product "
                              "which satisfy certain conditions are passed on"
-                             " to the output stream.</text--->"
-                             "<text>query cities feed loopjoin [five feed "
-                             "filter [.no > 2]] consume</text--->"
+                             " to the output stream. Note: The input tuples must"
+                             " have different attribute names, hence renaming may be applied"
+                             " to one of the input streams.</text--->"
+                             "<text>query Staedte feed {s1} loopjoin[ fun(t1: TUPLE) plz feed"
+                             " filter [ attr(t1, SName_s1) = .Ort]] count</text--->"
                              ") )";
 
 /*
@@ -2694,10 +2700,11 @@ certain conditions are passed on to the output stream.
 
 For instance,
 
-----    query Staedte feed loopselect [plz feed filter [.Ort=.SName] ] consume;
+----    query Staedte feed loopsel [ fun(t1: TUPLE) plz feed filter [ attr(t1, SName) = .Ort ]] count;   
 
-        (query (consume (loopselect (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
-                (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
+        (query (count (loopsel (feed Staedte) (fun (t1 TUPLE) (filter (feed plz)
+                    (fun (tuple1 TUPLE) (= (attr t1 SName) (attr tuple1 Ort))))))))
+
 ----
 
 7.4.1 Type mapping function of operator ~loopsel~
@@ -2878,8 +2885,8 @@ const string LoopselectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "<text>Only tuples in the cartesian product "
                                "which satisfy certain conditions are passed on"
                                " to the output stream.</text--->"
-                               "<text>query cities feed loopselect [five feed "
-                               "filter [.no > 2]] consume</text--->"
+                               "<text>query Staedte feed loopsel [ fun(t1: TUPLE) plz feed "
+                               "filter [ attr(t1, SName) = .Ort ]] count</text--->"   
                                ") )";
 /*
 
