@@ -803,15 +803,13 @@ private static boolean writeBinaryRec(ListExpr LE, MyDataOutputStream OS){
    */
 private  byte getBinaryType(){
 int AT = atomType();
-/* if(true)  // use version 1.0 for binary lists
-   return (byte) AT; */
 
 switch(AT){
   case BOOL_ATOM    : return  BIN_BOOLEAN;
   case INT_ATOM     :  { int v = intValue();
-                         if(v>=-127 & v<=128)
+                         if(v>=-128 & v<=127)
 			    return BIN_BYTE;
-			 if(v>=-32767 & v<=32768)
+			 if(v>=-32768 & v<=32767)
 			    return BIN_SHORTINT;
 			 return BIN_INTEGER;
 		       }
