@@ -2,14 +2,14 @@
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
 pace}
 \centerline{\LARGE \bf  DisplayTTY}
- 
+
 \centerline{Friedhelm Becker , Mai1998}
- 
+
 \begin{center}
 \footnotesize
 \tableofcontents
 \end{center}
- 
+
 1 Overview
 
 There must be exactly one TTY display function of type DisplayFunction
@@ -18,7 +18,7 @@ are loaded by *AlgebraManager2*. The first parameter is the type
 expression in numeric nested list format describing the value which is
 going to be displayed by the display function. The second parameter is
 this value in nested list format.
- 
+
 1.2 Includes and defines
 
 maxLineLength gives the maximum length of an input line (an command)
@@ -42,7 +42,7 @@ using namespace std;
 
 /*
 1.3 Managing display functions
- 
+
 The map *displayFunctions* holds all existing display functions. It
 is indexed by a string created from the algebraId and the typeId of
 the corresponding type constructor.
@@ -103,13 +103,13 @@ DisplayTTY::InsertDisplayFunction( const string& name,
 
 /*
 1.4 Display functions
- 
+
 Display functions of the DisplayTTY module are used to  transform a
 nested list value into a pretty printed output in text format. Display
 functions which are called with a value of compound type usually call
 recursively the display functions of the subtypes, passing the subtype
 and subvalue, respectively.
- 
+
 */
 
 void
@@ -235,7 +235,7 @@ DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  } 
+  }
   else
   {
     if ( nl->BoolValue( value ) )
@@ -255,9 +255,9 @@ DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  } 
+  }
   else
-  { 
+  {
     cout << nl->StringValue( value );
   }
 }
@@ -268,12 +268,12 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
   string printstr, line, restline;
   int lastblank, position;
   bool lastline;
-  
-  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && 
+
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
     nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  } 
+  }
   else
   {
     TextScan txtscan = nl->CreateTextScan(nl->First(value));
@@ -287,7 +287,7 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
       if (printstr[i-1] == ' ') lastblank = position;
       position++;
       lastline = ( i == printstr.length() );
-      if ( position == LINELENGTH || lastline || (printstr[i-1] == '\n') ) 
+      if ( position == LINELENGTH || lastline || (printstr[i-1] == '\n') )
       {
         if ( lastline || (printstr[i-1] == '\n') )
 	{
@@ -295,7 +295,7 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
 	  line = "";
 	  lastblank = -1;
 	  position = 0;
-	}	      
+	}
         else
 	{
           if ( lastblank > 0 )
@@ -313,7 +313,7 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
 	    line = "";
 	    lastblank = -1;
 	    position = 0;
-	  }	
+	  }
 	}
       }
     }
@@ -342,7 +342,7 @@ DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
    {
       d =  nl->Second( value ) ;
       m =  nl->Third( value ) ;
-      y = nl->Fourth( value );  
+      y = nl->Fourth( value );
       nl->WriteListExpr( d, cout );
       cout << ",";
       nl->WriteListExpr( m, cout );
@@ -354,6 +354,173 @@ DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
       cout <<nl->StringValue(value);
   else
       cout <<"Incorrect Data Format!";
+}
+
+
+double DisplayTTY::getNumeric(ListExpr value, bool &err){
+   if(nl->AtomType(value)==IntType){
+      err=false;
+      return nl->IntValue(value);
+   }
+   if(nl->AtomType(value)==RealType){
+      err=false;
+      return nl->RealValue(value);
+   }
+   if(nl->AtomType(value)==NoAtom){
+      int len = nl->ListLength(value);
+      if(len!=5 & len!=6){
+        err=true;
+	return 0;
+      }
+      ListExpr F = nl->First(value);
+      if(nl->AtomType(F)!=SymbolType){
+         err=true;
+	 return 0;
+      }
+      if(nl->SymbolValue(F)!="rat"){
+        err=true;
+        return 0;
+      }
+      value = nl->Rest(value);
+      double sign = 1.0;
+      if(nl->ListLength(value)==5){  // with sign
+        ListExpr SignList = nl->First(value);
+        if(nl->AtomType(SignList)!=SymbolType){
+	   err=true;
+           return 0;
+	}
+        string SignString = nl->SymbolValue(SignList);
+	if(SignString=="-")
+	   sign = -1.0;
+	else if(SignString=="+")
+	   sign = 1.0;
+	else{
+	  err=true;
+	  return 0;
+	}
+        value= nl->Rest(value);
+      }
+      if(nl->AtomType(nl->First(value))==IntType && nl->AtomType(nl->Second(value))==IntType &&
+         nl->AtomType(nl->Third(value))==SymbolType && nl->SymbolValue(nl->Third(value))=="/" &&
+	 nl->AtomType(nl->Fourth(value))==IntType){
+	    err=false;
+	    double intpart = nl->IntValue(nl->First(value));
+	    double numDecimal = nl->IntValue(nl->Second(value));
+	    double denomDecimal = nl->IntValue(nl->Fourth(value));
+	    if(denomDecimal==0){
+	       err=true;
+	       return 0;
+	    }
+	    double res1 = intpart*denomDecimal + numDecimal/denomDecimal;
+	    return sign*res1;
+	 } else{
+	err = true;
+	return 0;
+     }
+   }
+   err=true;
+   return 0;
+}
+
+void
+DisplayTTY::DisplayXPoint( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)!=2)
+     cout << "Incorrect Data Format";
+  else{
+     bool err;
+     double x = getNumeric(nl->First(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     double y = getNumeric(nl->Second(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     cout << "xpoint (" << x << "," << y << ")";
+  }
+}
+
+void
+DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)!=2)
+     cout << "Incorrect Data Format";
+  else{
+     bool err;
+     double x = getNumeric(nl->First(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     double y = getNumeric(nl->Second(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     cout << "point: (" << x << "," << y << ")";
+  }
+}
+
+void
+DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)!=4)
+     cout << "Incorrect Data Format";
+  else{
+     bool err;
+     double x1 = getNumeric(nl->First(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     double y1 = getNumeric(nl->Second(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     double x2 = getNumeric(nl->Third(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     double y2 = getNumeric(nl->Fourth(value),err);
+     if(err){
+       cout << "Incorrect Data Format";
+       return;
+     }
+     cout << "rect: ( (" << x1 << "," << y1 << ")->(" << x2 << "," << y2 <<"))";
+  }
+}
+
+
+void
+DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
+{
+
+  if(nl->ListLength(value)==0)
+     cout << "an empty array";
+  else{
+     ListExpr AType = nl->Second(type);
+     ListExpr ANumType = nl->Second(numType);
+     // find the idpair
+     ListExpr idpair = ANumType;
+     while(nl->AtomType(nl->First(idpair))!=IntType)
+        idpair = nl->First(idpair);
+
+     int No = 1;
+     cout << "*************** BEGIN ARRAY ***************" << endl;
+     while( !nl->IsEmpty(value)){
+        cout << "--------------- Field No: " << No++ << " ---------------" << endl;
+        CallDisplayFunction(idpair,AType,ANumType,nl->First(value));
+	cout << endl;
+	value = nl->Rest(value);
+     }
+     cout << "***************  END ARRAY  ***************";
+
+  }
 }
 
 void
@@ -372,7 +539,7 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
     CallDisplayFunction( numType, type, numType, value );
   }
   nl->Destroy( numType );
-  cout << endl;         
+  cout << endl;
 }
 
 void
@@ -382,27 +549,27 @@ DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
   int position, lastblank;
   ListExpr valueheader, valuedescr;
   bool firstline, lastline;
-  
+
   valueheader = nl->Second(value);
   valuedescr  = nl->Third(value);
-  
+
   cout << endl;
-  
+
   blanks.assign( maxNameLen-4 , ' ' );
   cout << blanks << "Name: " << nl->SymbolValue(nl->First(value)) << endl;
-    
+
   while (!nl->IsEmpty( valueheader ))
-  {  
+  {
     s = nl->StringValue( nl->First( valueheader ));
     blanks.assign( maxNameLen-s.length() , ' ' );
     //cout << blanks << s << ": ";
     printstr = blanks + s + ": ";
-    
-    if( nl->IsAtom(nl->First( valuedescr ))) //&& 
+
+    if( nl->IsAtom(nl->First( valuedescr ))) //&&
       //nl->AtomType(nl->First(valuedescr))==StringType)
     {
       if ( nl->AtomType(nl->First(valuedescr))==StringType )
-      //DisplayString(nl->TheEmptyList(), nl->TheEmptyList(), 
+      //DisplayString(nl->TheEmptyList(), nl->TheEmptyList(),
         //nl->First(valuedescr));
       printstr += nl->StringValue( nl->First(valuedescr) );
       else
@@ -418,7 +585,7 @@ DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 	}
       }
       //check whether line break is necessary
-      if (printstr.length() <= LINELENGTH) cout << printstr << endl; 
+      if (printstr.length() <= LINELENGTH) cout << printstr << endl;
       //cout << endl;
       else
       {
@@ -463,7 +630,7 @@ DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 	      lastblank = -1;
 	      position = line.length();
 	    }
-	    else 
+	    else
 	    {
 	      if (firstline)
 	      {
@@ -478,16 +645,16 @@ DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 	      line = "";
 	      lastblank = -1;
 	      position = 0;
-	    }	      
+	    }
 	  }
 	}
       }
-    }	  
-    valueheader   = nl->Rest( valueheader ); 
-    valuedescr    = nl->Rest( valuedescr ); 
+    }
+    valueheader   = nl->Rest( valueheader );
+    valuedescr    = nl->Rest( valuedescr );
   }
   nl->Destroy( valueheader );
-  nl->Destroy( valuedescr );  
+  nl->Destroy( valuedescr );
 }
 
 
@@ -646,5 +813,9 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "map",    &DisplayFun );
   InsertDisplayFunction( "date",    &DisplayDate );
   InsertDisplayFunction( "text",    &DisplayText );
+  InsertDisplayFunction( "xpoint",  &DisplayXPoint);
+  InsertDisplayFunction( "rect",    &DisplayRect);
+  InsertDisplayFunction( "array",   &DisplayArray);
+  InsertDisplayFunction( "point",   &DisplayPoint);
 }
 

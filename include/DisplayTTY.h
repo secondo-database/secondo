@@ -167,6 +167,26 @@ Are display functions for tuples.
                              ListExpr numType,
                              ListExpr value );
 
+  static void DisplayXPoint( ListExpr type,
+                             ListExpr numType,
+                             ListExpr value );
+
+  static void DisplayPoint( ListExpr type,
+                             ListExpr numType,
+                             ListExpr value );
+
+  static void DisplayRect( ListExpr type,
+                             ListExpr numType,
+                             ListExpr value );
+
+ static void DisplayArray( ListExpr type,
+                             ListExpr numType,
+                             ListExpr value );
+
+/* Returns the numeric value of a ListExpr containing a IntAtom, a RealAtom
+   or a list representing a rational number */
+   static double getNumeric(ListExpr value, bool &err);
+
 /*
 Are display functions for the types of the standard algebra.
 
@@ -181,7 +201,7 @@ Is a display function for functions.
   static void DisplayDate( ListExpr type,
                           ListExpr numType,
                           ListExpr value );
-  
+
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
   static map<string,DisplayFunction> displayFunctions;
