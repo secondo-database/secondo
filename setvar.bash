@@ -37,7 +37,7 @@ fi
 
 fi
 
-export SECONDO_BUILD_DIR="/home/behr/secondo"
+export SECONDO_BUILD_DIR=$1
 
 #########################################################
 ##
@@ -47,7 +47,7 @@ export SECONDO_BUILD_DIR="/home/behr/secondo"
 
 export SECONDO_PLATFORM="linux"
 
-export SECONDO_CONFIG="/home/behr/secondo/bin/SecondoConfig.ini"
+export SECONDO_CONFIG=$1"/SecondoConfig.ini"
 
 export BERKELEY_DB_DIR="/usr/local/BerkeleyDB.4.1/"
 
