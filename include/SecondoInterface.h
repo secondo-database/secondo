@@ -50,6 +50,12 @@ April 29 2003 Hoffmann Added save and restore commands for single objects.
 
 May 2004, M. Spiekermann. Support for derived objects added.
 
+August 2004, M. Spiekermann. All error codes of the interface are now represented
+by constants. The mapping between codes and error messages is also implemented in
+the header file to facalitate maintenance. Moreover, new private methods for some 
+Secondo commands have been declared to reduce the complex nesting in the 
+implementation of the ~Secondo~ function.
+
 
 1.1 Overview
 
@@ -92,44 +98,66 @@ in the treatment of the database state in database commands.
 // forward declaration to avoid cyclic includes
 class DerivedObj;
 
-// constants for error messages. After all numbers are
-// replaced by these constants the errors should by defined
-// by an enum typedef.
+// global constants for error messages.
+typedef int SI_Error;
 
-const short ERR_NO_ERROR = 0;
-const short ERR_CMD_NOT_RECOGNIZED = 1;
-const short ERR_IN_QUERY_EXPR = 2;
-const short ERR_EXPR_NOT_EVALUABLE = 3;
-const short ERR_NO_OBJ_CREATED = 4;
-const short ERR_NO_TYPE_DEFINED = 5;
-const short ERR_NO_DATABASE_OPEN = 6;
-const short ERR_DATABASE_OPEN = 7;
-const short ERR_UNDEF_OBJ_VALUE = 8;
-const short ERR_SYNTAX_ERROR = 9;
+const SI_Error ERR_NO_ERROR = 0;
+const SI_Error ERR_CMD_NOT_RECOGNIZED = 1;
+const SI_Error ERR_IN_QUERY_EXPR = 2;
+const SI_Error ERR_EXPR_NOT_EVALUABLE = 3;
+const SI_Error ERR_NO_OBJ_CREATED = 4;
+const SI_Error ERR_NO_TYPE_DEFINED = 5;
+const SI_Error ERR_NO_DATABASE_OPEN = 6;
+const SI_Error ERR_DATABASE_OPEN = 7;
+const SI_Error ERR_UNDEF_OBJ_VALUE = 8;
+const SI_Error ERR_SYNTAX_ERROR = 9;
 
-const short ERR_IDENT_USED = 10;
-const short ERR_IDENT_UNKNOWN_TYPE = 11;
-const short ERR_IDENT_UNKNOWN_OBJ = 12;
-const short ERR_EXPR_TYPE_NEQ_OBJ_TYPE = 13;
-const short ERR_TYPE_NAME_USED_BY_OBJ = 14;
-const short ERR_IDENT_RESERVED = 15;
-const short ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED = 16;
+const SI_Error ERR_IDENT_USED = 10;
+const SI_Error ERR_IDENT_UNKNOWN_TYPE = 11;
+const SI_Error ERR_IDENT_UNKNOWN_OBJ = 12;
+const SI_Error ERR_EXPR_TYPE_NEQ_OBJ_TYPE = 13;
+const SI_Error ERR_TYPE_NAME_USED_BY_OBJ = 14;
+const SI_Error ERR_IDENT_RESERVED = 15;
+const SI_Error ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED = 16;
 
-const short ERR_TRANSACTION_ACTIVE = 20; 
-const short ERR_NO_TRANSACTION_ACTIVE = 21; 
-const short ERR_BEGIN_TRANSACTION_FAILED = 22; 
-const short ERR_COMMIT_OR_ABORT_FAILED = 23;
+const SI_Error ERR_TRANSACTION_ACTIVE = 20; 
+const SI_Error ERR_NO_TRANSACTION_ACTIVE = 21; 
+const SI_Error ERR_BEGIN_TRANSACTION_FAILED = 22; 
+const SI_Error ERR_COMMIT_OR_ABORT_FAILED = 23;
+const SI_Error ERR_IN_DEFINITIONS_FILE = 24;
+const SI_Error ERR_IDENT_UNKNOWN_DB_NAME = 25;
+const SI_Error ERR_PROBLEM_IN_WRITING_TO_FILE = 26;
+const SI_Error ERR_DB_NAME_NEQ_IDENT = 27;
+const SI_Error ERR_PROBLEM_IN_READING_FILE = 28;
+const SI_Error ERR_IN_LIST_STRUCTURE_IN_FILE = 29;
 
-const short ERR_IN_DEFINITIONS_FILE = 24;
-const short ERR_IDENT_UNKNOWN_DB_NAME = 25;
-const short ERR_PROBLEM_IN_WRITING_TO_FILE = 26;
-const short ERR_DB_NAME_NEQ_IDENT = 27;
-const short ERR_PROBLEM_IN_READING_FILE = 28;
-const short ERR_IN_LIST_STRUCTURE_IN_FILE = 29;
-const short ERR_CMD_NOT_YET_IMPL = 30;
-const short ERR_CMD_LEVEL_NOT_YET_IMPL = 31;
-const short ERR_CMD_NOT_IMPL_AT_THIS_LEVEL = 32;
+const SI_Error ERR_CMD_NOT_YET_IMPL = 30;
+const SI_Error ERR_CMD_LEVEL_NOT_YET_IMPL = 31;
+const SI_Error ERR_CMD_NOT_IMPL_AT_THIS_LEVEL = 32;
 
+const SI_Error ERR_IN_TYPE_DEFINITION = 40;  
+const SI_Error ERR_NAME_DOUBLY_DEFINED = 41;
+const SI_Error ERR_IN_TYPE_EXPRESSION = 42;
+ 
+const SI_Error ERR_IN_OBJ_DEFINITION = 50;
+const SI_Error ERR_OBJ_NAME_DOUBLY_DEFINED = 51;
+const SI_Error ERR_WRONG_TYPE_EXPR_FOR_OBJ = 52;
+const SI_Error ERR_WRONG_LIST_REP_FOR_OBJ = 53;
+
+const SI_Error ERR_KIND_DOES_NOT_MATCH_TYPE_EXPR = 60;
+const SI_Error ERR_SPECIFIC_KIND_CHECKING_ERROR = 61;
+
+const SI_Error ERR_IN_VALUELIST_TC_V = 70;
+const SI_Error ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR = 71;
+const SI_Error ERR_IN_VALUELIST_TC = 72;
+const SI_Error ERR_AT_POS_IN_VALUELIST = 73;
+
+const SI_Error ERR_IN_SECONDO_PROTOCOL = 80;
+const SI_Error ERR_CONNECTION_TO_SERVER_LOST = 81;
+const SI_Error ERR_IDENT_UNKNOWN_DB_OBJECT = 82;
+const SI_Error ERR_OBJ_NAME_IN_FILE_NEQ_IDENT = 83;
+const SI_Error ERR_IDENT_ALREADY_KNOWN_IN_DB = 84;
+const SI_Error ERR_ALGEBRA_UNKNOWN = 85;
 
 
 /************************************************************************** 
@@ -841,71 +869,162 @@ after the error number have the following meaning:
 
   * ~v~: value list, list structure representing a value for a given type constructor.
 
-----
-    errors[1]  = "Command not recognized.";
-    errors[2]  = "Error in (query) expression.";
-    errors[3]  = "Expression not evaluable. "
-                 "(Operator not recognized or stream?)";
-    errors[4]  = "Error in type expression. No object created.";
-    errors[5]  = "Error in type expression. No type defined.";
-    errors[6]  = "No database open.";
-    errors[7]  = "A database is open.";
-    errors[8]  = "Undefined object value in (query) expression";
-    errors[9]  = "Syntax error in command/expression";
+*/
 
-    errors[10] = "Identifier already used.";
-    errors[11] = "Identifier is not a known type name.";
-    errors[12] = "Identifier is not a known object name.";
-    errors[13] = "Type of expression is different from type of "
-                 "object.";
-    errors[14] = "Type name is used by an object. Type not deleted.";
+  static void InitErrorMessages() {
 
-    errors[20] = "Transaction already active.";
-    errors[21] = "No transaction active.";
-    errors[22] = "Begin transaction failed.";
-    errors[23] = "Commit/Abort transaction failed.";
+	errors[ERR_NO_ERROR]            
+				 = "No Error!";
+				 
+	errors[ERR_CMD_NOT_RECOGNIZED]  
+				 = "Command not recognized.";
+				 
+	errors[ERR_IN_QUERY_EXPR]      
+				 = "Error in (query) expression.";
+				 
+	errors[ERR_EXPR_NOT_EVALUABLE]  
+				 = "Expression not evaluable. (Operator not recognized or stream?)";
+																		
+	errors[ERR_NO_OBJ_CREATED]   
+				 = "Error in type expression. No object created.";
+				 
+	errors[ERR_NO_TYPE_DEFINED]  
+				 = "Error in type expression. No type defined.";
+				 
+	errors[ERR_NO_DATABASE_OPEN] 
+				 = "No database open.";
+				 
+	errors[ERR_DATABASE_OPEN]    
+				 = "A database is open.";
+				 
+	errors[ERR_UNDEF_OBJ_VALUE]  
+				 = "Undefined object value in (query) expression";
+				 
+	errors[ERR_SYNTAX_ERROR]     
+				 = "Syntax error in command/expression";
+				 
+	errors[ERR_IDENT_RESERVED]   
+				 = "Identifier reserved for system use. ";
+	
+	errors[ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED] 
+				 = "Update of derived objects not supported. ";
 
-    errors[24] = "Error in type or object definitions in file.";
-    errors[25] = "Identifier is not a known database name.";
-    errors[26] = "Problem in writing to file.";
-    errors[27] = "Database name in file different from identifier.";
-    errors[28] = "Problem in reading from file.";
-    errors[29] = "Error in the list structure in the file.";
-    errors[30] = "Command not yet implemented.";
-    errors[31] = "Command level not yet implemented.";
-    errors[32] = "Command not yet implemented at this level.";
+	errors[ERR_IDENT_USED]             
+				 = "Identifier already used.";
+				 
+	errors[ERR_IDENT_UNKNOWN_TYPE]     
+				 = "Identifier is not a known type name.";
+				 
+	errors[ERR_IDENT_UNKNOWN_OBJ]      
+				 = "Identifier is not a known object name.";
+				 
+	errors[ERR_EXPR_TYPE_NEQ_OBJ_TYPE]
+				 = "Type of expression is different from type of object.";
+				 
+	errors[ERR_TYPE_NAME_USED_BY_OBJ]  
+				 = "Type name is used by an object. Type not deleted.";
 
-    errors[40] = "Error in type definition.";             // (40 i)
-    errors[41] = "Type name doubly defined.";             // (41 i n)
-    errors[42] = "Error in type expression.";             // (42 i n)
+	errors[ERR_TRANSACTION_ACTIVE]       
+				 = "Transaction already active.";
+				 
+	errors[ERR_NO_TRANSACTION_ACTIVE]    
+				 = "No transaction active.";
+				 
+	errors[ERR_BEGIN_TRANSACTION_FAILED] 
+				 = "Begin transaction failed.";
+				 
+	errors[ERR_COMMIT_OR_ABORT_FAILED]   
+				 = "Commit/Abort transaction failed.";
 
-    errors[50] = "Error in object definition.";           // (50 i)
-    errors[51] = "Object name doubly defined.";           // (51 i n)
-    errors[52] = "Wrong type expression for object.";     // (52 i n)
-    errors[53] = "Wrong list representation for object."; // (53 i n)
+	errors[ERR_IN_DEFINITIONS_FILE]     
+				 = "Error in type or object definitions in file.";
+				 
+	errors[ERR_IDENT_UNKNOWN_DB_NAME]   
+				 = "Identifier is not a known database name.";
+				 
+	errors[ERR_PROBLEM_IN_WRITING_TO_FILE] 
+				 = "Problem in writing to file.";
+				 
+	errors[ERR_DB_NAME_NEQ_IDENT]       
+				 = "Database name in file different from identifier.";
+				 
+	errors[ERR_PROBLEM_IN_READING_FILE] 
+				 = "Problem in reading from file.";
+				 
+	errors[ERR_IN_LIST_STRUCTURE_IN_FILE] 
+				 = "Error in the list structure in the file.";
+	
 
-    errors[60] = "Kind does not match type expression.";  // (60 k t)
-    errors[61] = "Specific kind checking error for kind.";
-                                 // (61 k j ...)
+  errors[ERR_CMD_NOT_YET_IMPL] 
+	       = "Command not yet implemented.";
+				 
+  errors[ERR_CMD_LEVEL_NOT_YET_IMPL] 
+	       = "Command level not yet implemented.";
+				 
+  errors[ERR_CMD_NOT_IMPL_AT_THIS_LEVEL] 
+	       = "Command not yet implemented at this level.";
 
-    errors[70] = "Value list is not a representation for type "
-                 "constructor."; // (70 tc v)
-    errors[71] = "Specific error for type constructor in "
-                 "value list.";  // (71 tc j ...)
-    errors[72] = "Value list is not a representation for type "
-                 "constructor."; // (72 tc)
-    errors[73] = "Error at a position within value list for type "
-                 "constructor."; // (73 pos)
+  errors[ERR_IN_TYPE_DEFINITION] 
+	       = "Error in type definition. ";   // (40 i)
+				 
+  errors[ERR_NAME_DOUBLY_DEFINED] 
+	       = "Type name doubly defined. ";  // (41 i n)
+				 
+  errors[ERR_IN_TYPE_EXPRESSION] 
+	       = "Error in type expression. ";   // (42 i n)
 
-    errors[80] = "Secondo protocol error.";
-    errors[81] = "Connection to Secondo server lost.";
-    
-    errors[82] = "Identifier of object is not a known database object. ";
-    errors[83] = "Object name in file different from indentifier for object. ";
-    errors[84] = "Identifier of object already known in the database. ";
-    errors[85] = "Algebra not known or currently not included."
+	errors[ERR_IN_OBJ_DEFINITION] 
+				 = "Error in object definition.";  // (50 i)
+				 
+	errors[ERR_OBJ_NAME_DOUBLY_DEFINED] 
+				 = "Object name doubly defined.";  // (51 i n)
+				 
+	errors[ERR_WRONG_TYPE_EXPR_FOR_OBJ] 
+				 = "Wrong type expression for object.";  // (52 i n)
+				 
+	errors[ERR_WRONG_LIST_REP_FOR_OBJ] 
+				 = "Wrong list representation for object."; // (53 i n)
 
-----
+	errors[ERR_KIND_DOES_NOT_MATCH_TYPE_EXPR] 
+				 = "Kind does not match type expression.";  // (60 k t)
+				 
+	errors[ERR_SPECIFIC_KIND_CHECKING_ERROR] 
+				 = "Specific kind checking error for kind."; // (61 k j ...)
+
+	errors[ERR_IN_VALUELIST_TC_V] 
+				 = "Value list is not a representation for type constructor."; // (70 tc v)
+				 
+	errors[ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR] 
+				 = "Specific error for type constructor in value list.";  // (71 tc j ...)
+				 
+	errors[ERR_IN_VALUELIST_TC] 
+				 = "Value list is not a representation for type constructor."; // (72 tc)
+				 
+	errors[ERR_AT_POS_IN_VALUELIST] 
+				 = "Error at a position within value list for type constructor."; // (73 pos)
+
+	errors[ERR_IN_SECONDO_PROTOCOL] 
+				 = "Secondo protocol error.";
+				 
+	errors[ERR_CONNECTION_TO_SERVER_LOST] 
+				 = "Connection to Secondo server lost.";
+	
+	errors[ERR_IDENT_UNKNOWN_DB_OBJECT] 
+				 = "Identifier of object is not a known database object. ";
+				 
+	errors[ERR_OBJ_NAME_IN_FILE_NEQ_IDENT] 
+				 = "Object name in file different from indentifier for object. ";
+				 
+	errors[ERR_IDENT_ALREADY_KNOWN_IN_DB] 
+				 = "Identifier of object already known in the database. ";
+				 
+	errors[ERR_ALGEBRA_UNKNOWN] 
+				 = "Algebra not known or currently not included.";
+
+}
+
+
+/*
 
 The error messages 61 and 71 allow a kind checking procedure or an ~In~
 procedure to introduce its own specific error codes (just numbered 1, 2,
@@ -926,9 +1045,20 @@ Sets the debug level of the query processor.
  protected:
  private:
   void StartCommand();
-  void FinishCommand( int& errorCode );
+  void FinishCommand( SI_Error& errorCode );
 	
-	int Command_Query(const AlgebraLevel level, ListExpr list, ListExpr& result, string& errorMessage);
+	// implementation of SECONDO commands
+	SI_Error Command_Query( const AlgebraLevel level, const ListExpr list, 
+	                        ListExpr& result, string& errorMessage );
+									
+	SI_Error Command_Let( const AlgebraLevel level, const ListExpr list );
+									 	 
+	SI_Error Command_Derive( const AlgebraLevel level, const ListExpr list );
+	
+	SI_Error Command_Update( const AlgebraLevel level, const ListExpr list );
+
+	SI_Error Command_Create( const AlgebraLevel level, const ListExpr list,
+	                         ListExpr& result, ListExpr& error );
 
   bool        initialized;       // state of interface
   bool        activeTransaction; // state of transaction block
@@ -936,7 +1066,6 @@ Sets the debug level of the query processor.
                                  // nested list containers
   Socket*     server;            // used in C/S version only
 
-  static void InitErrorMessages();
   static bool errMsgInitialized;
   static map<int,string> errors;
 

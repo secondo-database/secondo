@@ -39,9 +39,12 @@ Procedure ~InitErrorMessages~ should be copied after any changes into the defini
 bool SecondoInterface::errMsgInitialized = false;
 map<int,string> SecondoInterface::errors;
 
+#ifdef COMPILE_INIT_ERROR_MSG
 void
 SecondoInterface::InitErrorMessages()
 {
+  InitErrorCodes(errors);
+
   errors[1] = "Command not recognized. ";
   errors[2] = "Error in (query) expression. ";
   errors[3] = "Expression not evaluable. (Operator not recognized or stream?)";
@@ -106,6 +109,7 @@ SecondoInterface::InitErrorMessages()
   errors[85] = "Algebra not known or currently not included.";
 
 }
+#endif
 
 /*
 1.4 Procedure ~GetErrorMessage~

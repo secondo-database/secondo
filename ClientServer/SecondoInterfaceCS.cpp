@@ -193,7 +193,7 @@ If value 0 is returned, the command was executed without error.
 
   if ( server == 0 )
   {
-    errorCode = 80;
+    errorCode = ERR_IN_SECONDO_PROTOCOL;
   }
   else
   {
@@ -210,7 +210,7 @@ If value 0 is returned, the command was executed without error.
         {
           if ( !nl->WriteToString( cmdText, commandLE ) )
           {
-            errorCode = 9;  // syntax error in command/expression
+            errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
           }
         }
         break;
@@ -223,7 +223,7 @@ If value 0 is returned, the command was executed without error.
       }
       default:
       {
-        errorCode = 31;  // Command level not implemented
+        errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;  // Command level not implemented
       }
     } // switch
   }
@@ -231,7 +231,7 @@ If value 0 is returned, the command was executed without error.
   iostream& iosock = server->GetSocketStream();
   if ( iosock.fail() )
   {
-    errorCode = 81;
+    errorCode = ERR_CONNECTION_TO_SERVER_LOST;
   }
   if ( errorCode != 0 )
   {
@@ -306,7 +306,7 @@ If value 0 is returned, the command was executed without error.
     else
     {
       // Syntax error in list
-      errorCode = 9;
+      errorCode = ERR_SYNTAX_ERROR;
     }
   }
   else if ( posSave != string::npos && // save object to filename
@@ -374,7 +374,7 @@ If value 0 is returned, the command was executed without error.
     else
     {
       // Syntax error in list
-      errorCode = 9;
+      errorCode = ERR_SYNTAX_ERROR;
     }
   }
   
@@ -436,7 +436,7 @@ If value 0 is returned, the command was executed without error.
     else
     {
       // Syntax error in list
-      errorCode = 9;
+      errorCode = ERR_SYNTAX_ERROR;
     }
   }
   
@@ -505,7 +505,7 @@ If value 0 is returned, the command was executed without error.
     else
     {
       // Syntax error in list
-      errorCode = 9;
+      errorCode = ERR_SYNTAX_ERROR;
     }
   }
   else
@@ -546,7 +546,7 @@ If value 0 is returned, the command was executed without error.
 	getline( iosock, line );
 	if (line != "</SecondoResponse>" ) {
 	  cerr << "Error: No </SecondoResponse> found after receiving a binary list!" << endl;
-	  errorCode = 80;
+	  errorCode = ERR_IN_SECONDO_PROTOCOL;
           resultList = nl->TheEmptyList();
 	} else {
           success = true;
@@ -563,13 +563,13 @@ If value 0 is returned, the command was executed without error.
     }
     else if ( line == "<SecondoError>" )
     {
-      errorCode = 80;
+      errorCode = ERR_IN_SECONDO_PROTOCOL;
       getline( iosock, errorMessage );
       getline( iosock, line );
     }
     else
     {
-      errorCode = 80;
+      errorCode = ERR_IN_SECONDO_PROTOCOL;
     }
   }
   if ( resultAsText )
@@ -711,7 +711,7 @@ SecondoInterface::StartCommand()
 }
 
 void
-SecondoInterface::FinishCommand( int& errorCode )
+SecondoInterface::FinishCommand( SI_Error& errorCode )
 {
 }
 
