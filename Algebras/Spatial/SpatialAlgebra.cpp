@@ -5,7 +5,7 @@
 
 February, 2003. Victor Teixeira de Almeida
 
-March, 2003. Zhiming Ding
+March-April, 2003. Zhiming Ding
 
 1 Overview
 
@@ -1540,6 +1540,103 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
       }
 }
 
+const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
+{
+    Coord xl,yl,xr,yr;
+    Coord Xl,Yl,Xr,Yr;
+    double k, a, K, A; 
+    double x0, y0; // (x0, y0) is the intersection
+
+    xl=lp.GetX();  yl=lp.GetY();
+    xr=rp.GetX();  yr=rp.GetY();
+    if (xl!=xr) 
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+	      (yl.IsInteger()? yl.IntValue():yl.Value())) / 
+	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+	      (xl.IsInteger()? xl.IntValue():xl.Value())); 
+	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+    }
+    
+    Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
+    Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
+    if (Xl!=Xr)
+    {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
+	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) / 
+ 	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
+	        (Xl.IsInteger()? Xl.IntValue():Xl.Value())); 
+	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
+	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+    }
+
+    if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
+      {
+	return false;
+      }
+    
+    if (Xl==Xr)    //only L is vertical
+    {
+	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a; 
+	//(Xl, y0) is the intersection of l and L
+	Coord xx(Xl);
+	Coord yy(y0);
+	
+	if    ((Xl>=xl) &&(Xl<=xr))
+	{
+	    if (((yy>=Yl) && (yy<=Yr)) || ((yy>=Yr) && (yy<=Yl)))
+	    {
+		p.Set(true, xx, yy);
+		return true;
+	    }
+	    else return false;
+	}
+	else return false;
+    }
+
+    if (xl==xr)    //only l is vertical
+    {
+	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A; 
+	//(xl, Y0) is the intersection of l and L
+	Coord XX(xl);
+	Coord YY(Y0);
+	
+	if ((xl>=Xl) && (xl<=Xr))
+	{
+	    if (((YY>=yl) && (YY<=yr)) || ((YY>=yr) && (YY<=yl))) 
+	    {
+		p.Set(true, XX, YY);
+		return true;
+	    }
+	    else return false;
+	}
+	else return false;
+    }
+    
+    //otherwise: both *this and *arg are non-vertical lines
+
+    if (k==K) 
+      {
+	return false;
+      }
+      else
+      {
+	x0=(A-a) / (k-K);	 
+	y0=x0*k+a;
+	
+	Coord xx(x0);
+	Coord yy(y0);
+	
+	if ((xx>=xl) && (xx<=xr) && (xx>=Xl) && (xx<=Xr))
+	{
+	    p.Set(true, xx, yy);
+	    return true;
+	}
+	else return false;
+      }
+}
+
 const bool CHalfSegment::Inside(const CHalfSegment& chs) const 
 { //to decide whether *this is part of *arg. 
   assert( IsDefined() && chs.IsDefined() );
@@ -1604,8 +1701,18 @@ const bool CHalfSegment::Contains( const Point& p ) const
 
   X=p.GetX(); Y=p.GetY();
   
-  if (((Y-yl)*(xr-xl) ==(yr-yl)*(X-xl)) && (X>=xl) && (X <=xr))
-             return true;
+  if ((Y-yl)*(xr-xl) == (yr-yl)*(X-xl))
+  {
+      if ((xl!=xr)&&(X>=xl) && (X <=xr))
+      {
+	  return true;
+      }
+      else if ((xl==xr)&&((yl<=Y)&&(Y<=yr)||(yl>=Y)&&(Y>=yr)))
+      {
+	  return true;
+      }
+      else return false;
+  }
   else    return false;
 }
 
@@ -3679,344 +3786,13 @@ TypeConstructor region(
 	TypeConstructor::DummyValueToModel,
 	TypeConstructor::DummyValueListToModel );
 
-/*
-9 Operators
-
-Definition of operators is similar to definition of type constructors. An
-operator is defined by creating an instance of class ~Operator~. Again we
-have to define some functions before we are able to create an ~Operator~
-instance.
-
-9.1 Type mapping function
-
-A type mapping function takes a nested list as argument. Its contents are
-type descriptions of an operator's input parameters. A nested list describing
-the output type of the operator is returned.
-
-9.1.1 Type mapping function SpatialTypeMapBool
-
-It is for the compare operators which have ~bool~ as resulttype, like =, !=, <, 
-<=, >, >=.
-
-*/
-static ListExpr
-SpatialTypeMapBool( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoint)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoints)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stline && TypeOfSymbol( arg2 ) == stline)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stregion && TypeOfSymbol( arg2 ) == stregion)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoints)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoint)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stline)
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stregion)
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
-}
-
-static ListExpr
-GeoGeoMapBool( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if (((TypeOfSymbol( arg1 ) == stpoint)  ||
-         (TypeOfSymbol( arg1 ) == stpoints) ||
-         (TypeOfSymbol( arg1 ) == stline)     ||
-         (TypeOfSymbol( arg1 ) == stregion)) &&
-        ((TypeOfSymbol( arg2 ) == stpoint)  ||
-         (TypeOfSymbol( arg2 ) == stpoints) ||
-         (TypeOfSymbol( arg2 ) == stline)     ||
-         (TypeOfSymbol( arg2 ) == stregion)))
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
-}
 
 /*
-9.1.2 Type mapping function SpatialTypeMapBool1
+9 Object Traversal functions
 
-It is for the operator ~isempty~ which have ~point~, ~points~, ~line~, and ~region~ as input and ~bool~ resulttype.
+These functions are utilities useful for traversing objects.  They are basic functions
+to be called by the operations defined below.
 
-*/
-
-static ListExpr
-SpatialTypeMapBool1( ListExpr args )
-{
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == stpoint )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stpoints )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stline )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stregion )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
-}
-
-/*
-9.1.3 The dummy model mapping:
-
-*/
-static Word
-SpatialNoModelMapping( ArgVector arg, Supplier opTreeNode )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-/*
-9.2 Selection function
-
-A selection function is quite similar to a type mapping function. The only
-difference is that it doesn't return a type but the index of a value
-mapping function being able to deal with the respective combination of
-input parameter types.
-
-Note that a selection function does not need to check the correctness of
-argument types; it has already been checked by the type mapping function that it
-is applied to correct arguments.
-
-9.2.1 Selection function ~SimpleSelect~
-
-Is used for all non-overloaded operators.
-
-*/
-static int
-SimpleSelect( ListExpr args ) 
-{
-  return (0);
-}
-
-/*
-9.2.2 Selection function ~SpatialSelectIsEmpty~
-
-It is used for the ~isempty~ operator
-
-*/
-static int
-SpatialSelectIsEmpty( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  if ( TypeOfSymbol( arg1 ) == stpoint )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == stpoints )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == stline )
-    return (2);
-  if ( TypeOfSymbol( arg1 ) == stregion )
-    return (3);
-  return (-1); // This point should never be reached
-}
-
-/*
-9.2.3 Selection function ~SpatialSelectCompare~
-
-It is used for compare operators ($=$, $\neq$, $<$, $>$, $\geq$, $\leq$)
-
-*/
-static int
-SpatialSelectCompare( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stpoint )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stpoints )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == stline &&
-       TypeOfSymbol( arg2 ) == stline )
-    return (2);
-  if ( TypeOfSymbol( arg1 ) == stregion && 
-       TypeOfSymbol( arg2 ) == stregion )
-    return (3);
-  return (-1); // This point should never be reached
-}
-
-/*
-9.2.4 Selection function ~SpatialSelectSets1~
-
-It is used for set operators (~intersects~)
-
-*/
-
-/*
-  
-----
-static int
-SpatialSelectSets1( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stpoints )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == stline && 
-       TypeOfSymbol( arg2 ) == stline )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == stregion && 
-       TypeOfSymbol( arg2 ) == stregion )
-    return (2);
-  return (-1); 
-}
-----
-
-*/
-
-/*
-9.2.5 Selection function ~SpatialSelectSets2~
-
-It is used for set operators (~inside~) that allow the first argument to be
-simple.
-
-*/
-
-/*
-----
-static int
-SpatialSelectSets2( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-        TypeOfSymbol( arg2 ) == stpoints )
-    return (0);
-  if ( TypeOfSymbol( arg1 ) == stline && 
-       TypeOfSymbol( arg2 ) == stline )
-    return (1);
-  if ( TypeOfSymbol( arg1 ) == stregion && 
-       TypeOfSymbol( arg2 ) == stregion )
-    return (2);
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stpoints )
-    return (3);
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stline )
-    return (4);
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stregion )
-    return (5);
-  return (-1); // This point should never be reached
-}
-----
-
-*/
-
-static int
-intersectSelect( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stpoints )
-      return (0);
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stline )
-      return (1);
-  if ( TypeOfSymbol( arg1 ) == stline && 
-       TypeOfSymbol( arg2 ) == stpoints )
-      return (2);
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (3);
-  if ( TypeOfSymbol( arg1 ) == stregion && 
-       TypeOfSymbol( arg2 ) == stpoints )
-      return (4);
-  if ( TypeOfSymbol( arg1 ) == stline && 
-       TypeOfSymbol( arg2 ) == stline )
-      return (5);
-  if ( TypeOfSymbol( arg1 ) == stline && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (6);
-  if ( TypeOfSymbol( arg1 ) == stregion && 
-       TypeOfSymbol( arg2 ) == stline )
-      return (7);
-  if ( TypeOfSymbol( arg1 ) == stregion && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (8);
-  
-  return (-1); // This point should never be reached
-}
-
-static int
-insideSelect( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stpoints )
-      return (0);  
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stline )
-      return (1);  
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (2);  
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stpoints )
-      return (3);
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stline )
-      return (4);  
-  if ( TypeOfSymbol( arg1 ) == stpoints && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (5);  
-  if ( TypeOfSymbol( arg1 ) == stline && 
-       TypeOfSymbol( arg2 ) == stline )
-    return (6);
-  if ( TypeOfSymbol( arg1 ) == stline && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (7);
-  if ( TypeOfSymbol( arg1 ) == stregion && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (8);
-  
-  return (-1); // This point should never be reached
-}
-
-static int
-onBorder_inInteriorSelect( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stline )
-      return (0);
-  if ( TypeOfSymbol( arg1 ) == stpoint && 
-       TypeOfSymbol( arg2 ) == stregion )
-      return (1);
-  
-  return (-1); // This point should never be reached
-}
-
-/*
-9.3 Object Traversal functions
-
-These functions are useful if we want to traverse the objects.  
 There are 6 combinations, pp, pl, pr, ll, lr, rr
 
 */
@@ -4508,7 +4284,690 @@ void rrSelectNext(CRegion& R1, CRegion& R2, object& obj, status& stat)
 
 
 /*
-9.4 Value mapping functions
+10 Operators
+
+Definition of operators is similar to definition of type constructors. An
+operator is defined by creating an instance of class ~Operator~. Again we
+have to define some functions before we are able to create an ~Operator~
+instance.
+
+10.1 Type mapping function
+
+A type mapping function takes a nested list as argument. Its contents are
+type descriptions of an operator's input parameters. A nested list describing
+the output type of the operator is returned.
+
+10.1.1 Type mapping function SpatialTypeMapBool
+
+It is for the compare operators which have ~bool~ as resulttype, like =, !=, <, 
+<=, >, >=.
+
+*/
+static ListExpr
+SpatialTypeMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoint)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoints)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stline && TypeOfSymbol( arg2 ) == stline)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stregion && TypeOfSymbol( arg2 ) == stregion)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoints)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoint)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stline)
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stregion)
+      return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/*
+10.1.2 Type mapping function GeoGeoMapBool
+
+It is for the binary operators which have ~bool~ as result type, such as interscets, 
+inside, onborder, ininterior, etc.
+
+*/
+
+static ListExpr
+GeoGeoMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if (((TypeOfSymbol( arg1 ) == stpoint)  ||
+         (TypeOfSymbol( arg1 ) == stpoints) ||
+         (TypeOfSymbol( arg1 ) == stline)     ||
+         (TypeOfSymbol( arg1 ) == stregion)) &&
+        ((TypeOfSymbol( arg2 ) == stpoint)  ||
+         (TypeOfSymbol( arg2 ) == stpoints) ||
+         (TypeOfSymbol( arg2 ) == stline)     ||
+         (TypeOfSymbol( arg2 ) == stregion)))
+      return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.3 Type mapping function SpatialTypeMapBool1
+
+It is for the operator ~isempty~ which have ~point~, ~points~, ~line~, and ~region~ as input and ~bool~ resulttype.
+
+*/
+
+static ListExpr
+SpatialTypeMapBool1( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( TypeOfSymbol( arg1 ) == stpoint )
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stpoints )
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stline )
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == stregion )
+      return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.4 Type mapping function for operator ~intersection~
+
+This type mapping function is the one for ~intersection~ operator. This is a SET operation
+so that the result type is a set such as points, line, or region.
+
+*/
+
+static ListExpr
+intersectionMap( ListExpr args )
+{
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+    
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "point" ));
+    
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "point" ));
+    
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "point" ));
+    
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "point" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "point" ));
+   
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "point" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "point" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "points" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "points" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "points" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "points" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "line" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "line" ));
+  
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "line" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "region" ));
+
+    }  
+    return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.5 Type mapping function for operator ~minus~
+
+This type mapping function is the one for ~minus~ operator. This is a SET operation
+so that the result type is a set such as points, line, or region.
+
+*/
+
+static ListExpr
+minusMap( ListExpr args )
+{
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+    
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "point" ));
+    
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "line" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "region" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "line" ));   
+	
+	if ( TypeOfSymbol( arg1 ) == stregion && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "region" ));
+	
+//	if ( TypeOfSymbol( arg1 ) == stline && 
+//	     TypeOfSymbol( arg2 ) == stline )
+//	    return (nl->SymbolAtom( "line" ));
+	
+//	if ( TypeOfSymbol( arg1 ) == stregion && 
+//	     TypeOfSymbol( arg2 ) == stline )
+//	    return (nl->SymbolAtom( "region" ));
+	
+//	if ( TypeOfSymbol( arg1 ) == stregion && 
+//	     TypeOfSymbol( arg2 ) == stregion )
+//	    return (nl->SymbolAtom( "region" ));
+	
+    }  
+    return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.6 Type mapping function for operator ~union~
+
+This type mapping function is the one for ~union~ operator. This is a SET operation
+so that the result type is a set such as points, line, or region.
+
+*/
+
+static ListExpr
+unionMap( ListExpr args )
+{  
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+    
+	if ( TypeOfSymbol( arg1 ) == stpoint && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "points" ));
+    
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoint )
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stpoints && 
+	     TypeOfSymbol( arg2 ) == stpoints )
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "line" ));
+    }  
+    return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.4 Type mapping function for operator ~crossings~
+
+This type mapping function is the one for ~crossings~ operator. This operator 
+compute the crossing point of two lines so that the result type is a set of points.
+
+*/
+
+static ListExpr
+crossingsMap( ListExpr args )
+{  
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+    
+	if ( TypeOfSymbol( arg1 ) == stline && 
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "points" ));
+    }
+    return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.2 The dummy model mapping:
+
+*/
+static Word
+SpatialNoModelMapping( ArgVector arg, Supplier opTreeNode )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+/*
+10.3 Selection function
+
+A selection function is quite similar to a type mapping function. The only
+difference is that it doesn't return a type but the index of a value
+mapping function being able to deal with the respective combination of
+input parameter types.
+
+Note that a selection function does not need to check the correctness of
+argument types; it has already been checked by the type mapping function that it
+is applied to correct arguments.
+
+10.3.1 Selection function ~SimpleSelect~
+
+Is used for all non-overloaded operators.
+
+*/
+static int
+SimpleSelect( ListExpr args ) 
+{
+  return (0);
+}
+
+/*
+10.3.2 Selection function ~SpatialSelectIsEmpty~
+
+It is used for the ~isempty~ operator
+
+*/
+static int
+SpatialSelectIsEmpty( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  if ( TypeOfSymbol( arg1 ) == stpoint )
+    return (0);
+  if ( TypeOfSymbol( arg1 ) == stpoints )
+    return (1);
+  if ( TypeOfSymbol( arg1 ) == stline )
+    return (2);
+  if ( TypeOfSymbol( arg1 ) == stregion )
+    return (3);
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.3 Selection function ~SpatialSelectCompare~
+
+It is used for compare operators ($=$, $\neq$, $<$, $>$, $\geq$, $\leq$)
+
+*/
+static int
+SpatialSelectCompare( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoint )
+    return (0);
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+    return (1);
+  
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
+    return (2);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
+    return (3);
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.4 Selection function ~SpatialSelectSets1~
+
+It is used for set operators (~intersects~)
+
+*/
+
+static int
+intersectSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (0);
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (1);
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (2);
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (3);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (4);
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (5);
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (6);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (7);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (8);
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.5 Selection function ~insideSelect~
+
+This select function is used for the ~inside~ operator.
+
+*/
+
+static int
+insideSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (0);  
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (1);  
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (2);  
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (3);
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (4);  
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (5);  
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (6);
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (7);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (8);
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.6 Selection function ~onBorder \& inInteriorSelect~
+
+This select function is used for the ~onborder~ operator and the ~ininterior~ operator.
+
+*/
+
+static int
+onBorder_inInteriorSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (0);
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (1);
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.7 Selection function ~intersectionSelect~
+
+This select function is used for the ~intersection~ operator.
+
+*/
+
+static int
+intersectionSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (0);
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (1);  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (2);    
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (3);
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (4);
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (5);
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (6);
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (7);    
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (8);
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (9);
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (10);
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (11);
+//  if ( TypeOfSymbol( arg1 ) == stline && 
+//       TypeOfSymbol( arg2 ) == stline )
+//      return (12);
+//  if ( TypeOfSymbol( arg1 ) == stline && 
+//       TypeOfSymbol( arg2 ) == stregion )
+//      return (13);
+//  if ( TypeOfSymbol( arg1 ) == stregion && 
+//       TypeOfSymbol( arg2 ) == stline )
+//      return (14);
+//  if ( TypeOfSymbol( arg1 ) == stregion && 
+//       TypeOfSymbol( arg2 ) == stregion )
+//      return (15);
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.8 Selection function ~minusSelect~
+
+This select function is used for the ~minus~ operator.
+
+*/
+
+static int
+minusSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (0);
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (1);  
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (2);    
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (3);    
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (4);
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (5);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (6);
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.9 Selection function ~unionSelect~
+
+This select function is used for the ~union~ operator.
+
+*/
+
+static int
+unionSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (0);
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoint )
+      return (1);  
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (2);  
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (3);   
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.10 Selection function ~crossingsSelect~
+
+This select function is used for the ~crossings~ operator.
+
+*/
+
+static int
+crossingsSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (0);   
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.4 Value mapping functions
 
 A value mapping function implements an operator's main functionality: it takes
 input arguments and computes the result. Each operator consists of at least
@@ -4516,7 +4975,7 @@ one value mapping function. In the case of overloaded operators there are
 several value mapping functions, one for each possible combination of input
 parameter types. 
 
-9.4.1 Value mapping functions of operator ~isempty~
+10.4.1 Value mapping functions of operator ~isempty~
 
 */
 static int
@@ -4582,7 +5041,7 @@ IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-9.4.2 Value mapping functions of operator ~$=$~
+10.3.2 Value mapping functions of operator ~$=$~
 
 */
 static int
@@ -4628,7 +5087,7 @@ SpatialEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 /*
-9.4.3 Value mapping functions of operator ~$\neq$~
+10.3.3 Value mapping functions of operator ~$\neq$~
 
 */
 static int
@@ -4673,7 +5132,7 @@ SpatialNotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-9.4.4 Value mapping functions of operator ~$<$~
+10.3.4 Value mapping functions of operator ~$<$~
 
 */
 static int
@@ -4694,7 +5153,7 @@ SpatialLess_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-9.4.5 Value mapping functions of operator ~$\leq$~
+10.3.5 Value mapping functions of operator ~$\leq$~
 
 */
 static int
@@ -4715,7 +5174,7 @@ SpatialLessEqual_pp( Word* args, Word& result, int message, Word& local, Supplie
 }
 
 /*
-9.4.6 Value mapping functions of operator ~$>$~
+10.3.6 Value mapping functions of operator ~$>$~
 
 */
 static int
@@ -4736,7 +5195,7 @@ SpatialGreater_pp( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-9.4.7 Value mapping functions of operator ~$\geq$~
+10.3.7 Value mapping functions of operator ~$\geq$~
 
 */
 static int
@@ -4757,7 +5216,7 @@ SpatialGreaterEqual_pp( Word* args, Word& result, int message, Word& local, Supp
 }
 
 /*
-9.4.8 Value mapping functions of operator ~intersects~
+10.3.8 Value mapping functions of operator ~intersects~
 
 */
 static int
@@ -5043,7 +5502,7 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-9.4.9 Value mapping functions of operator ~inside~
+10.3.9 Value mapping functions of operator ~inside~
 
 */
 
@@ -5299,7 +5758,7 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
-9.4.10 Value mapping functions of operator ~onborder~
+10.3.10 Value mapping functions of operator ~onborder~
 
 */
 
@@ -5371,7 +5830,7 @@ SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-9.4.11 Value mapping functions of operator ~ininterior~
+10.3.11 Value mapping functions of operator ~ininterior~
 
 */
 
@@ -5459,7 +5918,818 @@ SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-9.5 Definition of operators
+10.3.12 Value mapping functions of operator ~intersection~
+
+*/
+
+static int
+intersection_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p1=((Point*)args[0].addr);
+    Point *p2=((Point*)args[1].addr);
+    
+    if (( p1->IsDefined()) && ( p2->IsDefined()))
+    {
+	if (*p1==*p2)
+	{
+	    *((Point *)result.addr)=*p1;
+	    return (0);
+	}
+	else
+	{
+	    ((Point *)result.addr)->SetDefined( false );
+	    return (0);
+	}
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+intersection_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    Points *ps=((Points*)args[1].addr);
+    
+    if (( p->IsDefined()) && (!( ps->IsEmpty())))
+    {
+	if (ps->Contains(*p))
+	{
+	    *((Point *)result.addr)=*p;
+	    return (0);
+	}
+	else
+	{
+	    ((Point *)result.addr)->SetDefined( false );
+	    return (0);
+	}
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+intersection_psp( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[1].addr);
+    Points *ps=((Points*)args[0].addr);
+    
+    if (( p->IsDefined()) && (!( ps->IsEmpty())))
+    {
+	if (ps->Contains(*p))
+	{
+	    *((Point *)result.addr)=*p;
+	    return (0);
+	}
+	else
+	{
+	    ((Point *)result.addr)->SetDefined( false );
+	    return (0);
+	}
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+intersection_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if (( p->IsDefined()) && (!( cl->IsEmpty())))
+    {
+	for (int i=0; i<cl->Size(); i++)
+	{ 
+	    cl->Get(i, chs);
+	    if (chs.Contains(*p))
+	    {
+		*((Point *)result.addr)=*p;
+		return (0);
+	    }
+	}
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+intersection_lp( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[1].addr);
+    CLine *cl=((CLine*)args[0].addr);
+    
+    CHalfSegment chs;
+    
+    if (( p->IsDefined()) && (!( cl->IsEmpty())))
+    {
+	for (int i=0; i<cl->Size(); i++)
+	{ 
+	    cl->Get(i, chs);
+	    if (chs.Contains(*p))
+	    {
+		*((Point *)result.addr)=*p;
+		return (0);
+	    }
+	}
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+intersection_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    
+    if (( p->IsDefined()) && (!( cr->IsEmpty())))
+    {
+	if (cr->contain(*p))
+	{
+	    *((Point *)result.addr)=*p;
+	    return (0);
+	}
+	else
+	{
+	    ((Point *)result.addr)->SetDefined( false );
+	    return (0);
+	}
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+intersection_rp( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[1].addr);
+    CRegion *cr=((CRegion*)args[0].addr);
+    
+    if (( p->IsDefined()) && (!( cr->IsEmpty())))
+    {
+	if (cr->contain(*p))
+	{
+	    *((Point *)result.addr)=*p;
+	    return (0);
+	}
+	else
+	{
+	    ((Point *)result.addr)->SetDefined( false );
+	    return (0);
+	}
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+intersection_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Points *ps1=((Points*)args[0].addr);
+    Points *ps2=((Points*)args[1].addr);
+    Point p1, p2;
+
+    assert((ps1->IsOrdered())&&(ps2->IsOrdered()));
+    
+    if (!( ps1->IsEmpty()) && (!( ps2->IsEmpty())))
+    {
+	int i=0;
+	int j=0;
+	((Points *)result.addr)->StartBulkLoad();
+	while ((i<ps1->Size()) && (j<ps2->Size()))
+	{
+	    ps1->Get(i, p1);
+	    ps2->Get(j, p2);
+	    while ((p1<p2)&&(i<ps1->Size()-1))
+	    { 
+		i++;
+		ps1->Get(i, p1);
+	    }
+	    
+	    while ((p2<p1)&&(j<ps2->Size()-1))
+	    { 
+		j++;
+		ps2->Get(j, p2);
+	    }
+	    if (p1==p2)
+	    {
+		*((Points *)result.addr) += p1;
+	    }
+	    i++;
+	    j++;
+	}
+	((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else  // one of the input is null
+    {
+	return (0);
+    }
+    return (0);
+}
+
+static int
+intersection_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+    Point p;
+    CHalfSegment chs;
+
+    if (!( ps->IsEmpty()) && (!( cl->IsEmpty())))
+    {
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    bool found=false;
+	    for (int j=0; ((j<cl->Size())&&(!found)); j++)
+	    { 
+		cl->Get(j, chs);
+		if ((chs.GetLDP())&&(chs.Contains(p)))
+		{
+		    found=true;
+		    *((Points *)result.addr) += p;
+		}
+	    }
+	}
+	 ((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else  // one of the input is null
+    {
+	return (0);
+    }
+    return (0);
+}
+
+static int
+intersection_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[1].addr);
+    CLine *cl=((CLine*)args[0].addr);
+    Point p;
+    CHalfSegment chs;
+
+    if (!( ps->IsEmpty()) && (!( cl->IsEmpty())))
+    {
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    bool found=false;
+	    for (int j=0; ((j<cl->Size())&&(!found)); j++)
+	    { 
+		cl->Get(j, chs);
+		if ((chs.GetLDP())&&(chs.Contains(p)))
+		{
+		    found=true;
+		    *((Points *)result.addr) += p;
+		}
+	    }
+	}
+	((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else  // one of the input is null
+    {
+	return (0);
+    }
+    return (0);
+}
+
+static int
+intersection_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    Point p;
+
+    if (!( ps->IsEmpty()) && (!( cr->IsEmpty())))
+    {
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    if (cr->contain(p))
+	    {
+		*((Points *)result.addr) += p;
+	    }
+	}
+	((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else  // one of the input is null
+    {
+	return (0);
+    }
+    return (0);
+}
+
+static int
+intersection_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[1].addr);
+    CRegion *cr=((CRegion*)args[0].addr);
+    Point p;
+
+    if (!( ps->IsEmpty()) && (!( cr->IsEmpty())))
+    {
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, p);
+	    if (cr->contain(p))
+	    {
+		*((Points *)result.addr) += p;
+	    }
+	}
+	((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else  // one of the input is null
+    {
+	return (0);
+    }
+    return (0);
+}
+
+static int
+intersection_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    CLine *cl1=((CLine*)args[0].addr);
+    CLine *cl2=((CLine*)args[1].addr);
+    CHalfSegment chs1, chs2, chs;
+
+    if (!( cl1->IsEmpty()) && (!( cl2->IsEmpty())))
+    {
+	for (int i=0; i<cl1->Size(); i++)
+	{ 
+	    cl1->Get(i, chs1);
+	    if (chs1.GetLDP())
+	    {
+		for (int j=0; (j<cl2->Size()); j++)
+		{ 
+		    cl2->Get(j, chs2);
+		    //if ((chs2.GetLDP())&&(chs1.intersect(chs2, chs)))
+		    //{
+		    //	*((CLine *)result.addr) += chs;
+		    //}
+		}
+	    }
+	}
+	return (0);
+    }
+    else  // one of the input is null
+    {
+	return (0);
+    }
+    return (0);
+}
+
+/*
+10.3.13 Value mapping functions of operator ~minus~
+
+*/
+
+static int
+minus_pp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p1=((Point*)args[0].addr);
+    Point *p2=((Point*)args[1].addr);
+    
+    if ( p1->IsDefined())
+    {
+	if ( p2->IsDefined())
+	{
+	    if (*p1==*p2)
+	    {
+		((Point *)result.addr)->SetDefined( false );
+		return (0);
+	    }
+	    else
+	    {
+		*((Point *)result.addr)=*p1;
+		return (0);
+	    }
+	}
+	else
+	{
+	    *((Point *)result.addr)=*p1;
+	    return (0);
+	}
+    }
+    else
+    {
+	((Point *)result.addr)->SetDefined( false );
+	return (0);
+    }
+}
+
+static int
+minus_psp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    Point *p=((Point*)args[1].addr);
+    
+    if (!( ps->IsEmpty()))
+    {
+	Point auxp;
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, auxp);
+	    if (auxp!=*p)
+	    {
+		*((Points *)result.addr) += auxp;
+	    }
+	}
+	((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+static int
+minus_lp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CLine *cl=((CLine *)args[0].addr);
+    //Point *p=((Point*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if (!( cl->IsEmpty()))
+    {
+	((CLine *)result.addr)->StartBulkLoad();
+	for (int i=0; i<cl->Size(); i++)
+	{ 
+	    cl->Get(i, chs);
+	    *((CLine *)result.addr) += chs;
+	}
+	((CLine *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+static int
+minus_rp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CRegion *cr=((CRegion *)args[0].addr);
+    //Point *p=((Point*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if (!( cr->IsEmpty()))
+    {
+	((CRegion *)result.addr)->StartBulkLoad();
+	for (int i=0; i<cr->Size(); i++)
+	{ 
+	    cr->Get(i, chs);
+	    *((CRegion *)result.addr) += chs;
+	}
+	((CLine *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+static int
+minus_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps1=((Points*)args[0].addr);
+    Points *ps2=((Points*)args[1].addr);
+    
+    if (!( ps1->IsEmpty()))
+    {
+	Point auxp;
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps1->Size(); i++)
+	{ 
+	    ps1->Get(i, auxp);
+	    if (!(ps2->Contains(auxp)))
+	    {
+		*((Points *)result.addr) += auxp;
+	    }
+	}
+	((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+static int
+minus_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CLine *cl=((CLine *)args[0].addr);
+    //Points *ps=((Points*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if (!( cl->IsEmpty()))
+    {
+	((CLine *)result.addr)->StartBulkLoad();
+	for (int i=0; i<cl->Size(); i++)
+	{ 
+	    cl->Get(i, chs);
+	    *((CLine *)result.addr) += chs;
+	}
+	((CLine *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+static int
+minus_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CRegion *cr=((CRegion *)args[0].addr);
+    //Point *ps=((Point*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if (!( cr->IsEmpty()))
+    {
+	((CRegion *)result.addr)->StartBulkLoad();
+	for (int i=0; i<cr->Size(); i++)
+	{ 
+	    cr->Get(i, chs);
+	    *((CRegion *)result.addr) += chs;
+	}
+	((CLine *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+    else
+    {
+	return (0);
+    }
+}
+
+/*
+10.3.14 Value mapping functions of operator ~union~
+
+*/
+
+static int
+union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    Points *ps=((Points*)args[1].addr);
+    
+    if ( ps->Contains(p))
+    {
+	*((Points *)result.addr)=*ps;
+	return (0);
+    }
+    else
+    {
+	Point auxp;
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, auxp);
+	    *((Points*)result.addr) += auxp;
+	}
+	*((Points*)result.addr) += *p;
+	((Points *)result.addr)->EndBulkLoad();
+	return (0);
+    }
+}
+
+static int
+union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[1].addr);
+    Points *ps=((Points*)args[0].addr);
+    
+    if ( ps->Contains(p))
+    {
+	*((Points *)result.addr)=*ps;
+	return (0);
+    }
+    else
+    {
+	Point auxp;
+	((Points *)result.addr)->StartBulkLoad();
+	for (int i=0; i<ps->Size(); i++)
+	{ 
+	    ps->Get(i, auxp);
+	    *((Points*)result.addr) += auxp;
+	}
+	*((Points*)result.addr) += *p;
+	((Points*)result.addr)->EndBulkLoad();
+	return (0);
+    }
+}
+
+static int
+union_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps1=((Points*)args[1].addr);
+    Points *ps2=((Points*)args[0].addr);
+    
+    Point auxp;
+    
+    assert((ps1->IsOrdered())&&(ps2->IsOrdered()));
+    
+    ((Points *)result.addr)->StartBulkLoad();
+    
+    for (int i=0; i<ps1->Size(); i++)
+    { 
+	ps1->Get(i, auxp);
+	*((Points*)result.addr) += auxp;
+    }
+    
+    for (int i=0; i<ps2->Size(); i++)
+    { 
+	ps2->Get(i, auxp);
+	if (!(ps1->Contains(auxp)))
+	    *((Points*)result.addr) += auxp;
+    }
+       
+    ((Points *)result.addr)->EndBulkLoad();
+    return (0);
+}
+   
+static int
+union_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CLine *cl1=((CLine*)args[0].addr);
+    CLine *cl2=((CLine*)args[1].addr);
+    
+    CHalfSegment chs1, chs2;
+    
+    assert((cl1->IsOrdered())&&(cl2->IsOrdered()));
+    
+    ((CLine *)result.addr)->StartBulkLoad();
+    
+    for (int i=0; i<cl1->Size(); i++)
+    { 
+	cl1->Get(i, chs1);
+	*((CLine*)result.addr) += chs1;
+    }
+    
+    for (int i=0; i<cl2->Size(); i++)
+    { 
+	cl2->Get(i, chs2);
+	if (chs2.GetLDP())
+	{
+	    bool appeared=false;
+	    
+	    for (int j=0; ((j<cl1->Size())&&(!appeared)); j++)
+	    { 
+		cl1->Get(j, chs1);
+		if ((chs1.GetLDP())&&(chs2.Inside(chs1))) 
+		{
+		    appeared=true;
+		}
+	    }
+	
+	    if (!appeared)
+	    {
+		*((CLine*)result.addr) += chs2;
+		chs2.SetLDP(false);
+		*((CLine*)result.addr) += chs2;
+	    }
+	}
+    }
+           
+    ((CLine *)result.addr)->EndBulkLoad();
+    return (0);
+}
+
+/*
+10.3.15 Value mapping functions of operator ~crossings~
+
+*/
+
+static int
+crossings_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CLine *cl1=((CLine*)args[0].addr);
+    CLine *cl2=((CLine*)args[1].addr);
+    
+    CHalfSegment chs1, chs2;
+    Point p;
+    
+    assert((cl1->IsOrdered())&&(cl2->IsOrdered()));
+    
+    ((Points*)result.addr)->StartBulkLoad();
+    for (int i=0; i<cl1->Size(); i++)
+    { 
+	cl1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cl2->Size(); j++)
+	    { 
+		cl2->Get(j, chs2);
+		if ((chs2.GetLDP())&&(chs1.crossings(chs2, p)))
+		{
+		    *((Points*)result.addr) += p;
+		}
+	    }
+	}
+    }
+        
+    ((Points*)result.addr)->EndBulkLoad();
+    return (0);
+}
+
+/*
+10.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
@@ -5518,6 +6788,38 @@ ValueMapping onbordermap[] = 	      { SpatialOnBorder_pl,
 ValueMapping ininteriormap[] = 	      { SpatialInInterior_pl, 
 				        SpatialInInterior_pr };
 
+ValueMapping intersectionmap[] = 	      { intersection_pp, 
+				        intersection_pps,
+				        intersection_psp,
+				        intersection_pl,
+				        intersection_lp,
+				        intersection_pr,
+				        intersection_rp,
+				        intersection_psps,
+				        intersection_psl,
+				        intersection_lps,
+				        intersection_psr,
+				        intersection_rps,
+				        };
+
+ValueMapping minusmap[] = 	      { minus_pp, 
+				        minus_psp,
+				        minus_lp,
+				        minus_rp,
+				        minus_psps,
+				        minus_lps,
+				        minus_rps,
+				        };
+
+ValueMapping unionmap[] = 	      { union_pps, 
+				        union_psp,
+				        union_psps,
+				        union_ll,
+				        };
+
+ValueMapping crossingsmap[] = 	      { crossings_ll
+				        };
+
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping, 
 				       SpatialNoModelMapping, 
 				       SpatialNoModelMapping, 
@@ -5525,6 +6827,13 @@ ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
 				       SpatialNoModelMapping, 
 				       SpatialNoModelMapping, 
 				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 				       
 				       SpatialNoModelMapping, 				       
 				       SpatialNoModelMapping };
 
@@ -5614,12 +6923,44 @@ const string SpatialSpecOnBorder  =
 	    ") )";
 			      
 const string SpatialSpecInInterior  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	  "( <text>(point line or region) -> bool</text--->"
-	    "<text>_ ininterior _</text--->"
-	    "<text>in interior of a line or region.</text--->"
-	    "<text>query point ininterior region</text--->"
-	    ") )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point line or region) -> bool</text--->
+	     <text>_ ininterior _</text--->
+	     <text>in interior of a line or region.</text--->
+	     <text>query point ininterior region</text--->
+	     ) )";
+
+const string SpatialSpecIntersection  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text> (a b) -> a </text--->
+	     <text>_ intersection _</text--->
+	     <text>intersection of two sets.</text--->
+	     <text>query point intersection region</text--->
+	     ) )";
+
+const string SpatialSpecMinus  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(a b) ->a</text--->
+	     <text>_ minus _</text--->
+	     <text>minus of two sets.</text--->
+	     <text>query points minus point</text--->
+	     ) )";
+
+const string SpatialSpecUnion  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(a b) ->c</text--->
+	     <text>_ union _</text--->
+	     <text>union of two sets.</text--->
+	     <text>query points union point</text--->
+	     ) )";
+
+const string SpatialSpecCrossings  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(line line) ->points</text--->
+	     <text>_ crossings _</text--->
+	     <text>crossing points of two line.</text--->
+	     <text>query line1 crossings line2</text--->
+	     ) )";
 
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, 
@@ -5665,8 +7006,24 @@ Operator spatialininterior
 	( "ininterior", SpatialSpecOnBorder, 2, ininteriormap, spatialnomodelmap, 
 	  onBorder_inInteriorSelect, GeoGeoMapBool );
 
+Operator spatialintersection
+	( "intersection", SpatialSpecIntersection, 12, intersectionmap, spatialnomodelmap, 
+	  intersectionSelect, intersectionMap );
+
+Operator spatialminus
+	( "minus", SpatialSpecMinus, 7, minusmap, spatialnomodelmap, 
+	  minusSelect, minusMap );
+
+Operator spatialunion
+	( "union", SpatialSpecUnion, 4, unionmap, spatialnomodelmap, 
+	  unionSelect, unionMap );
+
+Operator spatialcrossings
+	( "crossings", SpatialSpecCrossings, 1, crossingsmap, spatialnomodelmap, 
+	  crossingsSelect, crossingsMap );
+
 /*
-10 Creating the Algebra
+11 Creating the Algebra
 
 */
 
@@ -5696,6 +7053,10 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialinside );
     AddOperator( &spatialonborder );
     AddOperator( &spatialininterior );
+    AddOperator( &spatialintersection );
+    AddOperator( &spatialminus );
+    AddOperator( &spatialunion );
+    AddOperator( &spatialcrossings );
   }
   ~SpatialAlgebra() {};
 };
@@ -5703,7 +7064,7 @@ class SpatialAlgebra : public Algebra
 SpatialAlgebra spatialAlgebra; 
 
 /*
-11 Initialization
+12 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list

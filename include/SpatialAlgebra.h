@@ -5,7 +5,7 @@
 
 February, 2003 Victor Teixeira de Almeida
 
-March, 2003 Zhiming DING
+March-April, 2003 Zhiming DING
 
 1 Overview
 
@@ -106,6 +106,17 @@ Returns the ~y~ coordinate of the point.
 *Precondition:* ~IsDefined()~
 
 */
+    void  Set( const bool D, const Coord& X, const Coord& Y)
+    {
+	defined=D;
+	x=X;
+	y=Y;
+    }
+/*
+  
+This function set the value of the point object.
+
+*/
     Point& operator=(const Point& p);
 /*
 Assignement operator redefinition.
@@ -114,6 +125,7 @@ Assignement operator redefinition.
 
 */
     void SetDefined( const bool d = true );
+    
 /*
 Sets the point to defined or undefined depending on the value of ~d~.
 
@@ -705,8 +717,34 @@ which is decided by ~cross~. That is: cross=intersect with middle points.
 *Complexity:* $O( 1 )$ 
 
 */
-    const bool Intersects( const CHalfSegment& chs ) const;
+    const bool Intersects( const CHalfSegment& chs) const;    
+/*
+This first intersects function compute whether two half segments intersect each other. 
+
+*/
+    const bool Intersects( const CHalfSegment& chs, CHalfSegment& reschs) const;
+/*
+This second intersects function compute whether two half segments intersect each other. 
+If they intersect, then the intersected part will be returned so that the function initiates the 
+call can know where they intersect. The intersected part is a segment. If it is a point, then
+the two endpoints of the segment will be the same.
+
+*/
     const bool cross( const CHalfSegment& chs ) const;
+/*
+This third intersect function, named as ~cross~, compute whether two half segments intersect
+ with their mid-points. If they only meet with their endpoints, they are considered as "not cross".
+
+*/    
+    
+    const bool crossings( const CHalfSegment& chs, Point& p ) const;
+/*
+This last intersect function, named crossings, is ued for the ~crossings~ operator. It computes 
+whether two half segments crossing each other. If they do not intersect, or they are parellel, 
+they are consider not crossing each other. 
+
+*/
+    
 /*
 5.7 Inside Function
 
