@@ -533,13 +533,10 @@ Print the point set ~ps~ int the out stream ~o~.
 
 /*
 The following type definition indicates the structure of the ~attr~ value associated with 
-half segments. Currently, it is defined as a set of integers. But soon it will be replaced by
-a structure according to the needs of our implementation to the region data type.
+half segments. This attribute is utilized only when we are handling regions. In line values
+this attibute is ignored.
 
 */
-//typedef set<int> attrtype;
-//typedef int attrtype;
-
 typedef struct  
 {
     int faceno;
@@ -730,13 +727,21 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 */
     const bool Contains( const Point& p ) const;
     
+/*
+5.9 attribute comparison Functions
+
+*Semantics:* These two operations compare two half segments according to their attribute values. They are 
+used for the logicsort() function.
+
+*Complexity:* $O( 1 )$ 
+
+*/
     int logicless(const CHalfSegment& chs) const;
-    
     int logicgreater(const CHalfSegment& chs) const;
     
   private:
 /*
-5.9 Properties
+5.10 Properties
 
 */
     bool defined;
@@ -765,7 +770,7 @@ paper. Currently the ~attribute~ value is composed of a set of int, but it will 
 */  
 };
 /*
-5.10 overloaded output operator
+5.11 overloaded output operator
 
 */
 ostream& operator<<( ostream& o, const CHalfSegment& chs );
@@ -973,16 +978,11 @@ class CRegion
 7.1 Constructors and Destructor
 
 A ~region~ value is a set of halfsegments. In the external (nestlist) representation, a region value is 
-expressed as a set of segments. However, in the internal (class) representation, it is expressed
-as a set of sorted halfsegments, which are stored as a PArray.
+expressed as a set of faces, and each face is composed of a set of cycles.  However, in the internal 
+(class) representation, it is expressed as a set of sorted halfsegments, which are stored as a PArray.
 
-The system will do the basic check on the validity of the region data. For instance, the region should have 
-at least 3 edges, and every vertex should have even-numbered edges associated.
-
-~This initial design is made before I get the document describing the nested list format of the region
-data type. In the following step, I will change this design: The internal representation of a region
-is still a set of  sorted halfsegments, but the external representation (nestedlist) will be changed to
- include the concepts of cycles and faces.~
+The system will do the basic check on the validity of the region data (see the explaination of the 
+insertOK() function). 
 
 */    
     
@@ -1134,10 +1134,31 @@ half segment is indicated by ~pos~
 */     
     
     const bool insertOK(const CHalfSegment& chs);
-    
+/*
+this function check whether a half segment is valid. Whenever a half segment is inserted,
+the state of the region is checked. A valid region must satisfy the following conditions:
+
+1)  any two cycles of the same region must be disconnect;
+
+2)  for a certain cycle, each vertex can only appear once;
+
+3)  holes must be inside the outer cycle;
+
+4)  any cycle must be made up of at least 3 edges;
+
+5)  faces must have the outer cycle, but they can have no holes;
+
+6)  any two edges of the same cycle can not intersect each with their middle points. They
+can only intersect with their endpoints;
+
+*/
     void logicsort();
     void logicQuickSortRecursive( const int low, const int high );
-	    
+/*
+these two function are used to sort the half segments according to their attributes;
+
+*/    
+    
   private:
 /*
 7.8 Private member functions
@@ -1187,6 +1208,6 @@ ostream& operator<<( ostream& o, const CRegion& cr );
 /*
 8 Operations of the Spatial Algebra
 
-This part is in another document.
+See ~Operations to be Implemented in the Spatial Algebra~ for the discription of operations of the spatial algebra.
 
 */
