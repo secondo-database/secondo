@@ -32,6 +32,8 @@ December 2002 M. Spiekermann Changes in Secondo(...) and NumTypeExpr(...).
 
 February 3, 2003 RHG Added a ~list counters~ command.
 
+April 29 2003 Hoffmann Added save and restore commands for single objects.
+
 April 29, 2003 M. Spiekermann bug fix in LookUpTypeExpr(...).
 
 \tableofcontents
@@ -581,6 +583,94 @@ If value 0 is returned, the command was executed without error.
         errorCode = 1;  // Command not recognized.
       }
     }
+    
+    // --- Writing command for objects
+    
+    else if ( nl->IsEqual( first, "save" ) &&
+              nl->IsEqual( nl->Third( list ), "to" ) && (length == 4) &&
+              nl->IsAtom( nl->Second( list )) && 
+              nl->AtomType( nl->Second( list )) == SymbolType && 
+	      nl->IsAtom( nl->Fourth( list )) && 
+              nl->AtomType( nl->Fourth( list )) == SymbolType )
+    {
+      filename = nl->SymbolValue( nl->Fourth( list ) );
+      string objectname = nl->SymbolValue( nl->Second( list ) );
+      
+      if ( !SecondoSystem::GetInstance()->IsDatabaseOpen() )
+      {
+        errorCode = 6;  // no database open
+      }
+      else
+      {
+        if ( !SecondoSystem::GetInstance()->IsDatabaseObject( objectname ) )
+	{
+	  errorCode = 82; // object is not known in the database
+	}
+        else
+        {
+          StartCommand();
+          if ( !SecondoSystem::GetInstance()->SaveObject( objectname, 
+	    filename ) )
+          {
+            errorCode = 26;  // Problem in writing to file
+          }
+          FinishCommand( errorCode );
+        }
+      }                                
+    }
+    
+    // --- Reading command for objects
+    
+    else if ( nl->IsEqual( first, "restore" ) &&
+              nl->IsEqual( nl->Second( list ), "object" ) && 
+             (length == 5) && nl->IsAtom( nl->Third( list )) &&
+             (nl->AtomType( nl->Third( list )) == SymbolType) &&
+              nl->IsEqual( nl->Fourth( list ), "from" ) &&
+              nl->IsAtom( nl->Fifth( list )) && 
+             (nl->AtomType( nl->Fifth( list )) == SymbolType) )
+    {
+      if ( !SecondoSystem::GetInstance()->IsDatabaseOpen() )
+      {
+        errorCode = 6;  // no database open
+      }
+      else
+      {
+        objName = nl->SymbolValue( nl->Third( list ) );
+        filename = nl->SymbolValue( nl->Fifth( list ) );
+	
+        if ( SecondoSystem::GetInstance()->IsDatabaseObject( objName ) )
+	{
+	  errorCode = 84; // object is not known in the database
+	}
+	else
+	{
+	
+          message = SecondoSystem::GetInstance()->RestoreObjectFromFile( 
+	                                          objName, filename, errorInfo );
+          switch (message)
+          {
+            case 0:
+              break;
+            case 1:
+              errorCode = 83;  // object name in file different from identifier
+              break;
+            case 2:
+              errorCode = 28;  // problem in reading the file
+              break;
+            case 3:
+              errorCode = 29;  // error in list structure in file
+              break;
+            case 4:
+              errorCode = 24;  // error in type or object definitions in file
+              resultList = errorList;
+              break;
+            default:
+              errorCode = 1;   // Should never occur
+              break;
+          }
+	}
+      }
+    }
 
     // --- List commands
 
@@ -650,7 +740,7 @@ If value 0 is returned, the command was executed without error.
         errorCode = 1;  // Command not recognized.
       }
     }
-
+    
     // --- Type definition
 
     else if ( nl->IsEqual( first, "type" ) &&
