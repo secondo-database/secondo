@@ -212,12 +212,6 @@ private:
 	char *extensionTuple;			// Used to load temporarily the extension 
 									// of a disk tuple into memory.
 
-    /* Copies the content of a TupleHeader into a char buffer. */
-	void TupleHeaderToBuffer(TupleHeader *th, char *str);
-
-	/* Recovers the data of a TupleHeader from a char buffer. */
-	void BufferToTupleHeader(char *str, TupleHeader *th);
-	
 	/* for debug purposes. */
 	void printBuffer(char *buf, int len);
 	
@@ -230,7 +224,19 @@ private:
    	/* initialisation of member variables */
     void Init(const TupleAttributes *attributes);
 
+	/* Determine the size of FLOB data stored in lobFile. */
+	int Tuple::CalcSizeOfFLOBData();
+
+	/* move FLOB data to extension tuple. */
+	char *Tuple::moveFLOBDataToExtensionTuple();
+
+
+	/* move external attribue values to memory tuple */
+	void Tuple::MoveExternalAttributeToMemoryTuple();
+
 public:
+	/* true if a tuple could not read from SmiFile. */
+	bool error;
 
 /*
 1.5.1 Constructors

@@ -15,8 +15,6 @@ private:
   int size;
 
   friend class Tuple;
-  //friend class Polygon;
-  //friend void *CastPolygon(void *addr); // this method needs access to lobFile
   
   bool SaveToLob();   /* Switch from Main Memory to LOB Representation */
   
