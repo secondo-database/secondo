@@ -9,11 +9,13 @@ March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ a
 The pattern for floating point numbers is adjusted so that numbers produced by
 C/C++ programs are interpreted correctly.
 
+January 29, 2004 RHG. Increased numbers %n to 2000 and %e to 4000.
+
 */
 			
 %p 8000
-%n 1000
-%e 2000
+%n 2000
+%e 4000
 %{
 #include "SecParser.tab.hpp"
 #include "NestedText.h"
