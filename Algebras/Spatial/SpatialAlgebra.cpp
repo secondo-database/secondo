@@ -5,7 +5,7 @@
 
 February, 2003. Victor Teixeira de Almeida
 
-March-April, 2003. Zhiming Ding
+March-June, 2003. Zhiming Ding
 
 1 Overview
 
@@ -3634,7 +3634,7 @@ The list representation of a line is
 static ListExpr
 OutLine( ListExpr typeInfo, Word value )
 {
-    cout<<"OUTLINE##################"<<endl;
+  //  cout<<"OUTLINE##################"<<endl;
     
   ListExpr result, last;
   CHalfSegment chs;
@@ -3685,7 +3685,7 @@ OutLine( ListExpr typeInfo, Word value )
 static Word
 InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-    cout<<"Inline###########"<<endl;
+  //  cout<<"Inline###########"<<endl;
   CLine* cl = new CLine( SecondoSystem::GetLobFile());
   CHalfSegment * chs;
   cl->StartBulkLoad();
@@ -4757,7 +4757,7 @@ The list representation of a region is
 static ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
-    cout<<"OutRegion#############"<<endl;
+    //cout<<"OutRegion#############"<<endl;
     CRegion* cr = (CRegion*)(value.addr);
     if( cr->IsEmpty() )
     {
@@ -5001,7 +5001,7 @@ OutRegion( ListExpr typeInfo, Word value )
 static Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-    cout<<"InRegion#############"<<endl;
+  //  cout<<"InRegion#############"<<endl;
   CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
 
   cr->StartBulkLoad();
