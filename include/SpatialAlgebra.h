@@ -537,8 +537,17 @@ half segments. Currently, it is defined as a set of integers. But soon it will b
 a structure according to the needs of our implementation to the region data type.
 
 */
-typedef set<int> attrtype;
+//typedef set<int> attrtype;
 //typedef int attrtype;
+
+typedef struct  
+{
+    int faceno;
+    int cycleno;
+    int edgeno;
+    //set<int> attr;
+    int attr;
+} attrtype;
 
 /*
 5 Class Half Segment
@@ -565,7 +574,8 @@ A Half Segment is composed of two points which are called ~left point~ LP and ~r
 the dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ value.
 
 */
-    
+//    int cycleno;  // this is a temporary variable used for the infunction
+        
     CHalfSegment(bool Defined, bool LDP, Point& LP, Point& RP);
     CHalfSegment( const CHalfSegment& chs );
     CHalfSegment();
@@ -720,6 +730,10 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 */
     const bool Contains( const Point& p ) const;
     
+    int logicless(const CHalfSegment& chs) const;
+    
+    int logicgreater(const CHalfSegment& chs) const;
+    
   private:
 /*
 5.9 Properties
@@ -741,6 +755,7 @@ This boolean property indicates whether the half segment has its left point as i
 These two properties give the left and right point of the half segment.
 
 */  
+    public:    
     attrtype attr;
 /*
 This ~attribute~ property is useful if we process region values in a way similar to that indicated in the ROSE
@@ -973,6 +988,7 @@ is still a set of  sorted halfsegments, but the external representation (nestedl
     
     CRegion(SmiRecordFile *recordFile);
     CRegion(SmiRecordFile *recordFile, const CRegion& cr );
+    CRegion(const CRegion& cr, SmiRecordFile *recordFile );
     CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true );
     void Destroy();
     ~CRegion();
@@ -985,7 +1001,7 @@ is still a set of  sorted halfsegments, but the external representation (nestedl
 /*
 decides whether the half segments in the region value is sorted.
 
-*/   
+*/
     const bool IsEmpty() const;
 /*
 decides whether the region value is empty.
@@ -1021,7 +1037,7 @@ Marks the end of a bulk load and sorts the half segments.
 7.4 Validity Checking Function
 
 */    
-    const bool IsValid() const;
+//    const bool IsValid() const;
     
 /*
 7.5 Overloaded Class Operators
@@ -1116,6 +1132,12 @@ update the ~attr~ value of the current half segment from the region value.The cu
 half segment is indicated by ~pos~
 
 */     
+    
+    const bool insertOK(const CHalfSegment& chs);
+    
+    void logicsort();
+    void logicQuickSortRecursive( const int low, const int high );
+	    
   private:
 /*
 7.8 Private member functions
@@ -1136,6 +1158,7 @@ returns its position. Returns -1 if the half segment is not found.
 
 */    
     PArray<CHalfSegment>* region;
+//    PArray<vertex>* regionvertex;
 /*
 The persisten array of half segments.
 
@@ -1149,7 +1172,7 @@ The pointer to the current half segments. The pointer is important in object tra
 /*
 Whether the half segments in the region value are sorted.
 
-*/      
+*/ 
 };
 
 /*
@@ -1164,45 +1187,6 @@ ostream& operator<<( ostream& o, const CRegion& cr );
 /*
 8 Operations of the Spatial Algebra
 
-In this part, we discribe the signatures of operations which should be implemented in the spatial algebra.
-
-We use the following notations:
-
-EXT={line, region}
-
-GEOSET={points, EXT}
-
-GEO={point, GEOSET}
-
-8.1 Operations from the Foundation Paper
-
-Predicates:
-
-isempty    geo --> bool
-
-intersects   geo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+This part is in another document.
 
 */
