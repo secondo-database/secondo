@@ -237,18 +237,6 @@ NestedList::NodeType2Text( NodeType type )
   }
 }
 
-/*
-4 Construction
-
-4.1 TheEmptyList
-
-*/
-
-inline ListExpr
-NestedList::TheEmptyList()
-{
-  return (0);
-}
 
 /*
 4.2 Cons
@@ -430,110 +418,11 @@ NestedList::Destroy ( const ListExpr list )
 }
     
 /*
-4.5 OneElemList, .., SixElemList
-
-*/
-
-inline ListExpr
-NestedList::OneElemList( const ListExpr elem1 )
-{
-  return (Cons( elem1, TheEmptyList() ));
-}
-
-inline ListExpr
-NestedList::TwoElemList( const ListExpr elem1, const ListExpr elem2 )
-{
-  return (Cons( elem1,
-                Cons( elem2, TheEmptyList () ) ));
-}
-
-inline ListExpr
-NestedList::ThreeElemList( const ListExpr elem1, const ListExpr elem2,
-                           const ListExpr elem3 )
-{
-  return (Cons( elem1,
-                Cons( elem2,
-                      Cons( elem3, TheEmptyList () ) ) ));
-}
-
-inline ListExpr
-NestedList::FourElemList( const ListExpr elem1, const ListExpr elem2,
-                          const ListExpr elem3, const ListExpr elem4 )
-{
-  return (Cons( elem1,
-                Cons( elem2,
-                      Cons( elem3,
-                            Cons( elem4, TheEmptyList () ) ) ) ));
-}
-
-inline ListExpr
-NestedList::FiveElemList( const ListExpr elem1, const ListExpr elem2,
-                          const ListExpr elem3, const ListExpr elem4,
-                          const ListExpr elem5 )
-{
-  return (Cons( elem1,
-                Cons( elem2,
-                      Cons( elem3,
-                            Cons( elem4,
-                                  Cons( elem5, TheEmptyList () ) ) ) ) ));
-}
-
-inline ListExpr
-NestedList::SixElemList( const ListExpr elem1, const ListExpr elem2,
-                         const ListExpr elem3, const ListExpr elem4,
-                         const ListExpr elem5, const ListExpr elem6 )
-{
-  return (Cons( elem1,
-                Cons( elem2,
-                      Cons( elem3,
-                            Cons( elem4,
-                                  Cons( elem5,
-                                        Cons( elem6, TheEmptyList () ) ) ) ) ) ));
-}
-
-/*
 5 Simple Tests
 
-5.1 IsEmpty, IsAtom, EndOfList, ListLength
+5.1 ListLength
 
 */
-
-inline bool
-NestedList::IsEmpty( const ListExpr list )
-{
-  return (list == 0);
-}
-
-
-inline bool
-NestedList::IsAtom( const ListExpr list )
-{
-  if ( IsEmpty( list ) )
-  {
-     return (false);
-  }
-  else
-  {
-    return ((*nodeTable)[list].nodeType != NoAtom);
-  }
-}
-
-inline bool
-NestedList::EndOfList( ListExpr list )
-{
-  if ( IsEmpty( list ) )
-  {
-    return (false);
-  }
-  else if ( IsAtom( list ) )
-  {
-    return (false);
-  }
-  else
-  {
-    return (Rest( list ) == 0);
-  }
-}
 
 int
 NestedList::ListLength( ListExpr list )
@@ -1393,29 +1282,6 @@ Write ~list~ indented by level to standard output.
 /*
 7 Traversal
 
-7.1 First
-
-*/
-inline ListExpr
-NestedList::First( const ListExpr list )
-{
-  assert( !IsEmpty( list ) && !IsAtom( list ) );
-  return ((*nodeTable)[list].n.left);
-}
-
-/*
-7.2 Rest
-
-*/
-
-inline ListExpr
-NestedList::Rest( const ListExpr list )
-{
-  assert( !IsEmpty( list ) && !IsAtom( list ) );
-  return ((*nodeTable)[list].n.right);
-}
-
-/*
 7.3 NthElement
 
 */
@@ -1461,60 +1327,7 @@ least ~N~ elements.
   return (0);
 }
 
-/*
-7.4 Second
 
-*/
-
-inline ListExpr
-NestedList::Second( const ListExpr list)
-{
-  return (NthElement( 2, 2, list ));
-}
-
-/*
-7.5 Third
-
-*/
-
-inline ListExpr
-NestedList::Third( const ListExpr list )
-{
-  return (NthElement( 3, 3, list ));
-}
-
-/*
-7.6 Fourth
-
-*/
-
-inline ListExpr
-NestedList::Fourth( const ListExpr list )
-{
-  return (NthElement( 4, 4, list ));
-}
-
-/*
-7.7 Fifth
-
-*/
-
-inline ListExpr
-NestedList::Fifth( const ListExpr list )
-{
-  return (NthElement( 5, 5, list ));
-}
-
-/*
-7.8 Sixth
-
-*/
-
-inline ListExpr
-NestedList::Sixth( const ListExpr list )
-{
-  return (NthElement( 6, 6, list ));
-}
 
 /*
 8 Construction of Atoms

@@ -154,6 +154,7 @@ The operations are defined below.
 
 #include <string>
 #include <iostream>
+#include <assert.h>
 
 /* define switch NL_PERSISTENT with the -D option of gcc in order to use persistent memory representation */
 #ifdef NL_PERSISTENT
@@ -355,7 +356,7 @@ Destroys a nested list container.
 1.3.2 Construction Operations
 
 */
-  inline ListExpr TheEmptyList();
+  inline ListExpr TheEmptyList() { return (0); };
 /*
 Returns a pointer to an empty list (a ``nil'' pointer).
 
@@ -401,17 +402,42 @@ result.
 1.3.3 Test Operations
 
 */
-  inline bool IsEmpty( const ListExpr list );
+  inline bool IsEmpty( const ListExpr list ) { return (list == 0); };
 /*
 Returns "true"[4] if ~list~ is the empty list.
 
 */
-  inline bool IsAtom( const ListExpr list );
+  inline bool IsAtom( const ListExpr list )
+  {
+    if ( IsEmpty( list ) )
+    {
+       return (false);
+    }
+    else
+    {
+      return ((*nodeTable)[list].nodeType != NoAtom);
+    }
+  };
 /*
 Returns "true"[4] if ~list~ is an atom.
 
 */
-  inline bool EndOfList( ListExpr list );
+  inline bool EndOfList( ListExpr list )
+  {
+    if ( IsEmpty( list ) )
+    {
+      return (false);
+    }
+    else if ( IsAtom( list ) )
+    {
+      return (false);
+    }
+    else
+    {
+      return (Rest( list ) == 0);
+    }
+  };
+
 /*
 Returns "true"[4] if ~Right~(~list~) is the empty list. Returns "false"[4] 
 otherwise and if ~list~ is empty or an atom.
@@ -448,14 +474,22 @@ Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
 1.3.4 Traversal
 
 */
-  inline ListExpr First( const ListExpr list );
+  inline ListExpr First( const ListExpr list )
+  {
+    assert( !IsEmpty( list ) && !IsAtom( list ) );
+    return ((*nodeTable)[list].n.left);
+  };
 /*
 Returns (a pointer to) the left son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
 */
-  inline ListExpr Rest( const ListExpr list );
+  inline ListExpr Rest( const ListExpr list )
+  {
+    assert( !IsEmpty( list ) && !IsAtom( list ) );
+    return ((*nodeTable)[list].n.right);
+  };
 /*
 Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
@@ -526,27 +560,67 @@ A number of procedures is offered to construct lists with one, two, three,
 etc. up to six elements. 
 
 */
-  inline ListExpr OneElemList( const ListExpr elem1 );
+  inline ListExpr OneElemList( const ListExpr elem1 )
+  {
+    return (Cons( elem1, TheEmptyList() ));
+  };
+
   inline ListExpr TwoElemList( const ListExpr elem1,
-                        const ListExpr elem2 );
+                        const ListExpr elem2 )
+  {
+    return (Cons( elem1,
+                Cons( elem2, TheEmptyList () ) ));
+  };
+
   inline ListExpr ThreeElemList( const ListExpr elem1,
                           const ListExpr elem2,
-                          const ListExpr elem3 );
+                          const ListExpr elem3 )
+  {
+    return (Cons( elem1,
+                  Cons( elem2,
+                        Cons( elem3, TheEmptyList () ) ) ));
+  };
+
+
   inline ListExpr FourElemList( const ListExpr elem1,
                          const ListExpr elem2,
                          const ListExpr elem3,
-                         const ListExpr elem4 );
+                         const ListExpr elem4 )
+  {
+    return (Cons( elem1,
+                  Cons( elem2,
+                        Cons( elem3,
+                              Cons( elem4, TheEmptyList () ) ) ) ));
+  };
+
   inline ListExpr FiveElemList( const ListExpr elem1,
                          const ListExpr elem2,
                          const ListExpr elem3,
                          const ListExpr elem4,
-                         const ListExpr elem5 );
+                         const ListExpr elem5 )
+  {
+    return (Cons( elem1,
+                  Cons( elem2,
+                        Cons( elem3,
+                              Cons( elem4,
+                                    Cons( elem5, TheEmptyList () ) ) ) ) ));
+  };
+
+
   inline ListExpr SixElemList( const ListExpr elem1,
                         const ListExpr elem2,
                         const ListExpr elem3,
                         const ListExpr elem4,
                         const ListExpr elem5,
-                        const ListExpr elem6 );
+                        const ListExpr elem6 )
+  {
+    return (Cons( elem1,
+                  Cons( elem2,
+                        Cons( elem3,
+                              Cons( elem4,
+                                    Cons( elem5,
+                                         Cons( elem6, TheEmptyList () ) ) ) ) ) ));
+  };
 /*
 A pointer to the new list is returned.
 
@@ -556,11 +630,12 @@ Similarly, there are procedures to access the second, ..., sixth element.
 Acessing the first element is a basic operation defined above.
 
 */
-  inline ListExpr Second( const ListExpr list );
-  inline ListExpr Third( const ListExpr list );
-  inline ListExpr Fourth( const ListExpr list );
-  inline ListExpr Fifth( const ListExpr list );
-  inline ListExpr Sixth( const ListExpr list );
+  inline ListExpr Second( const ListExpr list ) { return (NthElement( 2, 2, list )); };
+  inline ListExpr  Third( const ListExpr list ) { return (NthElement( 3, 3, list )); };
+  inline ListExpr Fourth( const ListExpr list ) { return (NthElement( 4, 4, list )); };
+  inline ListExpr  Fifth( const ListExpr list ) { return (NthElement( 5, 5, list )); };
+  inline ListExpr  Sixth( const ListExpr list ) { return (NthElement( 6, 6, list )); };
+
 /*
 A pointer to the respective element is returned. Result may be the empty list, 
 of course.
