@@ -166,11 +166,11 @@ Preds is a list of predicate names, e.g. [p, q, r]
 ----	node(No, Preds, Partition)
 ----
 
-A node. 
+A node.
 
 ~No~ is the number of the node into which the evaluated predicates
 are encoded (each bit corresponds to a predicate number, e.g. node number
-5 = 101 (binary) says that the first predicate (no 1) and the third 
+5 = 101 (binary) says that the first predicate (no 1) and the third
 predicate (no 4) have been evaluated in this node. For predicate i,
 its predicate number is "2^{i-1}"[1].
 
@@ -613,7 +613,7 @@ Note that the upper or lower case distinction refers only to the first letter
 of a relation or attribute name. Other letters are written on the PROLOG side 
 in the same way as in Secondo.
 
-Note further that if explicit variables are used, the attribute name will 
+Note further that if explicit variables are used, the attribute name will
 include them, e.g. s:sName.
 
 The projection occurring in the select-from-where statement is for the moment 
@@ -729,6 +729,32 @@ wp(Plan) :-
   write(PlanAtom).
 
 /*
+
+Function ~newVariable~ outputs a new unique variable name.
+The variable name is unique in the sense that ~newVariable~ never
+outputs the same name twice (in a PROLOG session). 
+It should be emphasized that the output
+is not a PROLOG variable but a variable name to be used for defining
+abstractions in the Secondo system.
+
+*/
+
+:-
+  dynamic(varDefined/1).
+
+newVariable(Var) :-
+  (
+    varDefined(N),
+    N1 is N + 1,
+    retract(varDefined(N)),
+    assert(varDefined(N1)),
+    atom_concat('var', N1, Var)
+  );(
+    assert(varDefined(1)),
+    Var = 'var1'
+  ).
+
+/*
 Arguments:
 
 */
@@ -820,6 +846,20 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(B, BAtom),
   concat_atom([XAtom, YAtom, 'sortmergejoin[',
     AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(loopjoin(A, B), Result) :-
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([AAtom, 'loopjoin[', BAtom, '] '], Result),
+  !.
+
+plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
+  plan_to_atom(Rel, RelAtom),
+  plan_to_atom(a(Name, R, Case), AttrAtom),
+  newVariable(T),
+  concat_atom(['fun(', T, ' : TUPLE) ', IndexName,
+    ' ', RelAtom, 'exactmatch[attr(', T, ', ', AttrAtom, ')] '], Result),
   !.
 
 plan_to_atom(extend(X, NewAttrs), Result) :-
@@ -961,7 +1001,7 @@ arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
 
 */
 
-select(Arg, pr(Pred, _)) => filter(ArgS, Pred) :- 
+select(Arg, pr(Pred, _)) => filter(ArgS, Pred) :-
   Arg => ArgS.
 
 /*
@@ -976,6 +1016,71 @@ A join can always be translated to filtering the Cartesian product.
 join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
+
+/*
+
+Special handling of index joins:
+
+*/
+exactmatchfun(IndexName, arg(N), Attr) =>
+  exactmatchfun(IndexName, rel(Name, *, Case), Attr) :-
+  argument(N, rel(Name, *, Case)),
+  !.
+
+exactmatchfun(IndexName, arg(N), Attr) =>
+  rename(exactmatchfun(IndexName, rel(Name, Var, Case), Attr), Var) :-
+  argument(N, rel(Name, Var, Case)),
+  !.
+
+/*
+
+For index joins we also employ the extend/remove technique 
+described below.
+
+*/
+
+join(Arg1, arg(N), pr(X=Y, _, _)) =>
+remove(loopjoin(Arg1Extend, MatchExpr), [attrname(attr(ext_expr, 1, l))]) :-
+  isOfSecond(Attr2, X, Y),
+  isNotOfSecond(LExpr, X, Y),
+  not(LExpr = attr(_, _, _)),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr2, IndexName),
+  Arg1 => Arg1S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(ext_expr, 1, l)), LExpr)]),
+  exactmatchfun(IndexName, arg(N), attr(ext_expr, 1, l)) =>
+    MatchExpr.
+
+join(arg(N), Arg2, pr(X=Y, _, _)) =>
+remove(loopjoin(Arg2Extend, MatchExpr), [attrname(attr(ext_expr, 2, l))]) :-
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(RExpr, X, Y),
+  not(RExpr = attr(_, _, _)),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, IndexName),
+  Arg2 => Arg2S,
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(ext_expr, 2, l)), RExpr)]),
+  exactmatchfun(IndexName, arg(N), attr(ext_expr, 2, l)) =>
+    MatchExpr.
+
+join(Arg1, arg(N), pr(X=Y, _, _)) => loopjoin(Arg1S, MatchExpr) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr2, IndexName),
+  Arg1 => Arg1S,
+  exactmatchfun(IndexName, arg(N), Attr1) =>
+    MatchExpr.
+
+join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, IndexName),
+  Arg2 => Arg2S,
+  exactmatchfun(IndexName, arg(N), Attr2) =>
+    MatchExpr.
+
 
 /*
 
@@ -1016,7 +1121,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
   Arg2 => Arg2S,
   join00(Arg1S, Arg2S, pr(X=Y, R1, R2)) => JoinPlan.
 
-join(Arg1, Arg2, pr(X=Y, R1, R2)) => 
+join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
 	remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
   X = attr(_, _, _),
   not(Y = attr(_, _, _)), !,
@@ -1025,7 +1130,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
   join00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
 
-join(Arg1, Arg2, pr(X=Y, R1, R2)) => 
+join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
 	remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
   not(X = attr(_, _, _)),
   Y = attr(_, _, _), !,
@@ -1034,16 +1139,16 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
   join00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2)) => JoinPlan.
 
-join(Arg1, Arg2, pr(X=Y, R1, R2)) => 
-	remove(JoinPlan, [attrname(attr(l_expr, 1, l)), 
-		attrname(attr(r_expr, 2, l))]) :-   
+join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
+	remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
+		attrname(attr(r_expr, 2, l))]) :-
   not(X = attr(_, _, _)),
   not(Y = attr(_, _, _)), !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
   Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
-  join00(Arg1Extend, Arg2Extend, 
+  join00(Arg1Extend, Arg2Extend,
 	pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
 
 
@@ -1063,6 +1168,11 @@ isOfFirst(X, X, _) :- X = attr(_, 1, _).
 isOfFirst(Y, _, Y) :- Y = attr(_, 1, _).
 isOfSecond(X, X, _) :- X = attr(_, 2, _).
 isOfSecond(Y, _, Y) :- Y = attr(_, 2, _).
+
+isNotOfFirst(Y, X, Y) :- X = attr(_, 1, _).
+isNotOfFirst(X, X, Y) :- Y = attr(_, 1, _).
+isNotOfSecond(Y, X, Y) :- X = attr(_, 2, _).
+isNotOfSecond(X, X, Y) :- Y = attr(_, 2, _).
 
 
 /*
@@ -1265,6 +1375,22 @@ cost(product(X, Y), _, S, C) :-
   S is SizeX * SizeY,
   C is CostX + SizeX * CostY + S * A.
 
+/*
+
+Simplistic cost estimation for loop joins.
+The cost are deliberatly set to low values,
+otherwise the loopjoin would not be called for
+intersesting queries.
+
+*/
+
+cost(loopjoin(X, Y), Sel, S, C) :-
+  cost(X, 1, SizeX, CostX),
+  cost(Y, 1, SizeY, CostY),
+  S is SizeX * SizeY * Sel,
+  C is CostX + SizeY * CostY.
+
+cost(exactmatchfun(_, Rel, Attr), _, 0, 0).
 
 /*
 

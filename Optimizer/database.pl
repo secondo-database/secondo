@@ -32,6 +32,12 @@ spelling(ten:no, lc(no)).
 spelling(thousand, lc(thousand)).
 spelling(thousand:no, lc(no)).
 
+hasIndex(Rel, attr(_:A, _, _), IndexName) :-
+  hasIndex(Rel, attr(A, _, _), IndexName).
+
+hasIndex(rel(plz, _, _), attr(ort, _, _), plz_ind).
+hasIndex(rel(plz, _, _), attr(pLZ, _, _), plz_plz).
+
 
 
 
