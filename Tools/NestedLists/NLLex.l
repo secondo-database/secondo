@@ -112,6 +112,13 @@ file		"<file>".*"</file--->"
                         text = new ostringstream();
 		        }
 
+ /*
+<TEXT>[^<]{1,4096}      {
+                        //cerr << "Match length: " << yyleng << endl;
+                        text->write(yytext, yyleng);
+                        }
+ */
+
 <TEXT>.|\n              { 
                         text->put( yytext[0] );
                         }
@@ -154,12 +161,15 @@ file		"<file>".*"</file--->"
 
                  string fileNameStr(yytext);
                  fileNameStr = fileNameStr.substr(6,yyleng-16);
+                 int start = fileNameStr.find_first_not_of(' ');
+                 int end = fileNameStr.find_last_not_of(' ');
+                 fileNameStr = fileNameStr.substr(start,end-start+1);
                  ifstream inFile;
 		 stringstream textStream;
 
 		 inFile.open(fileNameStr.c_str(), ios::binary);
 		 if ( !inFile.is_open() ) {
-		    cerr << "can not open file " << fileNameStr << endl; 
+		    cerr << "can not open file '" << fileNameStr << "'" << endl; 
                     exit(1);
                  }
 		 Base64* encoder = new Base64();

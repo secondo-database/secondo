@@ -237,7 +237,7 @@ Base64::decode(string& text, char* bytes) {
   
   string byteStr = byteStream.str();
   int length=byteStr.length();
-  strncpy(bytes, byteStream.str().c_str(), length);
+  byteStr.copy(bytes, length);
 
   return length;
 }
