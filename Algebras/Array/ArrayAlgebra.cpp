@@ -57,6 +57,11 @@ Not interesting, but needed in the definition of a type constructor.
  
 static void* DummyCast(void* addr) { return (0); }
 
+// The following function is prepared for changing to the persistent 
+// RelationAlgebra
+
+// static void* DummyCast( void* addr, SmiRecordFile* ) { return (0); }
+
 /*
 2 Type Constructor ~array~
 
@@ -329,6 +334,13 @@ void DeleteArray(Word& w) {
   w.addr = 0;
 }
 
+// The following function is prepared for changing to the persistent 
+// RelationAlgebra
+
+// int SizeOfArray() {
+//   return sizeof(Array);
+// }
+
 /*
 2.6 Function Describing the Signature of the Type Constructor
 
@@ -398,6 +410,10 @@ an instance of the class TypeConstructor is called with the properties and
 functions for the array as parameters.
 
 */
+
+// When changing to the persistent RelationAlgebra, insert the size-of 
+// function between the cast and the kind checking function.
+
 TypeConstructor array(
 	"array",                      // name		
 	ArrayProperty,                // property function describing signature
@@ -1251,14 +1267,17 @@ loopTypeMap( ListExpr args )
     ListExpr arrayDesc = nl->First(args);
     ListExpr mapDesc = nl->Second(args); 
 
-    if (nl->IsEqual(nl->First(arrayDesc), "array") 
-        && nl->IsEqual(nl->First(mapDesc), "map")
-        && nl->ListLength(mapDesc) == 3)
+    if ((nl->ListLength(arrayDesc) == 2)
+        && (nl->ListLength(mapDesc) == 3))
     {
-      if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc)))
+      if (nl->IsEqual(nl->First(arrayDesc), "array") 
+          && nl->IsEqual(nl->First(mapDesc), "map"))
       {
-        return nl->TwoElemList(nl->SymbolAtom("array"),
-                               nl->Third(mapDesc));
+        if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc)))
+        {
+          return nl->TwoElemList(nl->SymbolAtom("array"),
+                                 nl->Third(mapDesc));
+        }
       }
     }
   }
@@ -1347,16 +1366,20 @@ loop2TypeMap( ListExpr args )
     ListExpr secondArrayDesc = nl->Second(args);
     ListExpr mapDesc = nl->Third(args); 
 
-    if (nl->IsEqual(nl->First(firstArrayDesc), "array") 
-        && nl->IsEqual(nl->First(secondArrayDesc), "array")
-        && nl->IsEqual(nl->First(mapDesc), "map")
-        && nl->ListLength(mapDesc) == 4)
+    if ((nl->ListLength(firstArrayDesc) == 2)
+        && (nl->ListLength(secondArrayDesc) == 2)
+        && (nl->ListLength(mapDesc) == 4))
     {
-      if (nl->Equal(nl->Second(firstArrayDesc), nl->Second(mapDesc))
-          && nl->Equal(nl->Second(secondArrayDesc), nl->Third(mapDesc)))
+      if (nl->IsEqual(nl->First(firstArrayDesc), "array") 
+          && nl->IsEqual(nl->First(secondArrayDesc), "array")
+          && nl->IsEqual(nl->First(mapDesc), "map"))
       {
-        return nl->TwoElemList(nl->SymbolAtom("array"),
-                               nl->Fourth(mapDesc));
+        if (nl->Equal(nl->Second(firstArrayDesc), nl->Second(mapDesc))
+            && nl->Equal(nl->Second(secondArrayDesc), nl->Third(mapDesc)))
+        {
+          return nl->TwoElemList(nl->SymbolAtom("array"),
+                                 nl->Fourth(mapDesc));
+        }
       }
     }
   }
@@ -1454,15 +1477,18 @@ loopswitchTypeMap( ListExpr args )
     ListExpr firstmapDesc = nl->Second(args); 
     ListExpr secondmapDesc = nl->Third(args);
 
-    if (nl->IsEqual(nl->First(arrayDesc), "array") 
-        && nl->IsEqual(nl->First(firstmapDesc), "map")
-        && nl->Equal(firstmapDesc, secondmapDesc)
-        && nl->ListLength(firstmapDesc) == 3)
+    if ((nl->ListLength(arrayDesc) == 2)
+        && (nl->ListLength(firstmapDesc) == 3))
     {
-      if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
+      if (nl->IsEqual(nl->First(arrayDesc), "array") 
+          && nl->IsEqual(nl->First(firstmapDesc), "map")
+          && nl->Equal(firstmapDesc, secondmapDesc))
       {
-        return nl->TwoElemList(nl->SymbolAtom("array"),
+        if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
+        {
+          return nl->TwoElemList(nl->SymbolAtom("array"),
                                nl->Third(firstmapDesc));
+        }
       }
     }
   }
@@ -1583,17 +1609,20 @@ loopselectTypeMap( ListExpr args )
     ListExpr firstmapDesc = nl->Second(args); 
     ListExpr secondmapDesc = nl->Third(args);
 
-    if (nl->IsEqual(nl->First(arrayDesc), "array") 
-        && nl->IsEqual(nl->First(firstmapDesc), "map")
-        && nl->Equal(firstmapDesc, secondmapDesc)
-        && nl->ListLength(firstmapDesc) == 3
-        && nl->IsEqual(nl->Fourth(args), "int")
-        && nl->IsEqual(nl->Fifth(args), "real"))
+    if ((nl->ListLength(arrayDesc) == 2)
+        && (nl->ListLength(firstmapDesc) == 3))
     {
-      if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
+      if (nl->IsEqual(nl->First(arrayDesc), "array") 
+          && nl->IsEqual(nl->First(firstmapDesc), "map")
+          && nl->Equal(firstmapDesc, secondmapDesc)
+          && nl->IsEqual(nl->Fourth(args), "int")
+          && nl->IsEqual(nl->Fifth(args), "real"))
       {
-        return nl->TwoElemList(nl->SymbolAtom("array"),
-                               nl->Third(firstmapDesc));
+        if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
+        {
+          return nl->TwoElemList(nl->SymbolAtom("array"),
+                                 nl->Third(firstmapDesc));
+        }
       }
     }
   }
@@ -1731,6 +1760,235 @@ Operator loopselect (
 );
 
 /*
+3.12 Operator ~partjoin~
+
+The operator ~partjoin~ allows to calculate joins between two partitioned 
+relations (two arrays of relations) in an efficient way.
+
+The formal specification of type mapping is:
+
+---- ((array (rel t)) (array (rel u)) (map (rel t) (rel u) r)) -> (array r)
+
+     at which t and u are of the type tuple, r may be any type
+----
+
+*/
+static ListExpr
+partjoinTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 3) 
+  {
+    ListExpr firstArrayDesc = nl->First(args);
+    ListExpr secondArrayDesc = nl->Second(args); 
+    ListExpr mapDesc = nl->Third(args);
+
+    if ((nl->ListLength(firstArrayDesc) == 2)
+        && (nl->ListLength(secondArrayDesc) == 2)
+        && (nl->ListLength(mapDesc) == 4))
+    {
+      if (nl->IsEqual(nl->First(firstArrayDesc), "array")
+          && nl->IsEqual(nl->First(secondArrayDesc), "array")
+          && !nl->IsAtom(nl->Second(firstArrayDesc)) 
+          && !nl->IsAtom(nl->Second(secondArrayDesc))
+          && nl->IsEqual(nl->First(mapDesc), "map"))
+      {
+        ListExpr firstElementDesc = nl->Second(firstArrayDesc);
+        ListExpr secondElementDesc = nl->Second(secondArrayDesc);
+
+        if (nl->IsEqual(nl->First(firstElementDesc), "rel")
+            && nl->IsEqual(nl->First(secondElementDesc), "rel")
+            && nl->Equal(firstElementDesc, nl->Second(mapDesc))
+            && nl->Equal(secondElementDesc, nl->Third(mapDesc)))
+        {
+          ListExpr firstTupleDesc = nl->Second(firstElementDesc);
+          ListExpr secondTupleDesc = nl->Second(secondElementDesc);
+
+          if (nl->IsEqual(nl->First(firstTupleDesc), "tuple")
+              && nl->IsEqual(nl->First(secondTupleDesc), "tuple"))
+          {
+            return nl->TwoElemList(nl->SymbolAtom("array"),
+                                   nl->Fourth(mapDesc));
+          }
+        }
+      }
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static void
+appendToRel (CcRel* rel, Word append)
+{
+// Auxiliary routine used by the partjoin algorithm
+
+  CcRel* part = (CcRel*)(append.addr);
+  CcRelIT* rit = part->MakeNewScan();
+  CcTuple* tuple;
+
+  while (!rit->EndOfScan()) {
+    tuple = rit->GetTuple();
+    tuple->CloneIfNecessary();
+    tuple->SetFree(false);
+    rel->AppendTuple(tuple);
+    rit->Next();
+  }
+}
+
+static int
+partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+
+  Array* firstArray = ((Array*)args[0].addr);
+  Array* secondArray = ((Array*)args[1].addr);
+
+  ArgVectorPointer funargs = qp->Argument(args[2].addr);
+
+  Word funresult;
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = firstArray->getSize();
+  int m = secondArray->getSize();
+
+  Word a[n + m - 1];
+  int c = 0;
+
+  int i = 0;
+  int j = 0;
+
+  CcRel* Acum = new CcRel();
+  CcRel* Bcum = new CcRel();
+
+  Acum->Empty();
+  Bcum->Empty();
+
+  clock_t c1;
+  clock_t c2;
+
+  if ((i-j) <= (n-m)) {
+    while ((i-j) <= (n-m)) {
+      cout << "Operator partjoin, evaluating partitions " << i << " and " << j;
+
+      (*funargs)[0] = firstArray->getElement(i);
+      (*funargs)[1] = secondArray->getElement(j);
+
+      c1 = clock();
+
+      qp->Request(args[2].addr, funresult);
+
+      c2 = clock();
+      cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
+           << " seconds." << endl;
+
+      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+
+      if (i > 0) {
+        appendToRel(Acum, firstArray->getElement(i-1));
+      }
+      i++;
+    }
+    j++;
+    appendToRel(Bcum, secondArray->getElement(0));
+  }
+  else {
+    while ((i-j) >= (n-m)) {
+      cout << "Operator partjoin, evaluating partitions " << i << " and " << j;
+
+      (*funargs)[0] = firstArray->getElement(i);
+      (*funargs)[1] = secondArray->getElement(j);
+
+      c1 = clock();
+
+      qp->Request(args[2].addr, funresult);
+
+      c2 = clock();
+      cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
+           << " seconds." << endl;
+
+      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+
+      appendToRel(Bcum, secondArray->getElement(j));
+      j++;
+    }
+    i++;
+  }
+
+  while (i < n) {
+    appendToRel(Acum, firstArray->getElement(i-1));
+    appendToRel(Bcum, secondArray->getElement(j));
+
+    cout << "Operator partjoin, evaluating partitions [0;" << i-1 << "] and " << j;
+
+    (*funargs)[0] = SetWord(Acum);
+    (*funargs)[1] = secondArray->getElement(j);
+
+    c1 = clock();
+
+    qp->Request(args[2].addr, funresult);
+
+    c2 = clock();
+    cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
+         << " seconds." << endl;
+
+    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+
+    cout << "Operator partjoin, evaluating partitions " << i << " and [0;" << j << "]";
+
+    (*funargs)[0] = firstArray->getElement(i);
+    (*funargs)[1] = SetWord(Bcum);
+
+    c1 = clock();
+
+    qp->Request(args[2].addr, funresult);
+
+    c2 = clock();
+    cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
+         << " seconds." << endl;
+
+    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
+
+    i++;
+    j++;
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, c, a);
+
+  Acum->Empty();
+  Bcum->Empty();
+
+  return 0;
+}
+
+const string partjoinSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array (rel t)) (array (rel u)) (map (rel t) (rel u) r)) "
+       "-> (array r)</text--->"
+       "<text>_ _ partjoin [ fun ]</text--->"
+       "<text>Allows to calculate joins between two arrays of relations "
+       "in an efficient way.</text--->"
+       "<text>query ar ar partjoin[fun(r1:reltype,r2:reltype)r1 feed r2 feed "
+       "rename[A] product count]</text---> ))";
+
+Operator partjoin (
+	"partjoin",
+	partjoinSpec,
+	partjoinFun,
+	Operator::DummyModel,
+	simpleSelect,
+	partjoinTypeMap
+);
+
+/*
 3.13 Operator ~sortarray~
 
 The operator ~sortarray~ sorts an array in order of the function values
@@ -1765,16 +2023,19 @@ sortarrayTypeMap( ListExpr args )
   if (nl->ListLength(args) == 2) 
   {
     ListExpr arrayDesc = nl->First(args);
-    ListExpr mapDesc = nl->Second(args); 
+    ListExpr mapDesc = nl->Second(args);
 
-    if (nl->IsEqual(nl->First(arrayDesc), "array") 
-        && nl->IsEqual(nl->First(mapDesc), "map")
-        && nl->ListLength(mapDesc) == 3)
+    if ((nl->ListLength(arrayDesc) == 2)
+        && (nl->ListLength(mapDesc) == 3))
     {
-      if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc))
-          && nl->IsEqual(nl->Third(mapDesc), "int"))
+      if (nl->IsEqual(nl->First(arrayDesc), "array") 
+          && nl->IsEqual(nl->First(mapDesc), "map"))
       {
-        return arrayDesc;
+        if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc))
+            && nl->IsEqual(nl->Third(mapDesc), "int"))
+        {
+          return arrayDesc;
+        }
       }
     }
   }
@@ -1866,18 +2127,22 @@ tieTypeMap( ListExpr args )
   if (nl->ListLength(args) == 2) 
   {
     ListExpr arrayDesc = nl->First(args);
-    ListExpr elementDesc = nl->Second(arrayDesc);
     ListExpr mapDesc = nl->Second(args); 
 
-    if (nl->IsEqual(nl->First(arrayDesc), "array") 
-        && nl->IsEqual(nl->First(mapDesc), "map")
+    if ((nl->ListLength(arrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 4))
     {
-      if (nl->Equal(elementDesc, nl->Second(mapDesc))
-          && nl->Equal(elementDesc, nl->Third(mapDesc))
-          && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
+      if (nl->IsEqual(nl->First(arrayDesc), "array") 
+          && nl->IsEqual(nl->First(mapDesc), "map"))
       {
-        return elementDesc;
+        ListExpr elementDesc = nl->Second(arrayDesc);
+
+        if (nl->Equal(elementDesc, nl->Second(mapDesc))
+            && nl->Equal(elementDesc, nl->Third(mapDesc))
+            && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
+        {
+          return elementDesc;
+        }
       }
     }
   }
@@ -1962,18 +2227,21 @@ cumulateTypeMap( ListExpr args )
   if (nl->ListLength(args) == 2) 
   {
     ListExpr arrayDesc = nl->First(args);
-    ListExpr elementDesc = nl->Second(arrayDesc);
     ListExpr mapDesc = nl->Second(args); 
 
-    if (nl->IsEqual(nl->First(arrayDesc), "array") 
-        && nl->IsEqual(nl->First(mapDesc), "map")
+    if ((nl->ListLength(arrayDesc) == 2)
         && (nl->ListLength(mapDesc) == 4))
     {
-      if (nl->Equal(elementDesc, nl->Second(mapDesc))
-          && nl->Equal(elementDesc, nl->Third(mapDesc))
-          && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
+    if (nl->IsEqual(nl->First(arrayDesc), "array") 
+        && nl->IsEqual(nl->First(mapDesc), "map"))
       {
-        return arrayDesc;
+        ListExpr elementDesc = nl->Second(arrayDesc);
+        if (nl->Equal(elementDesc, nl->Second(mapDesc))
+            && nl->Equal(elementDesc, nl->Third(mapDesc))
+            && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
+        {
+          return arrayDesc;
+        }
       }
     }
   }
@@ -2071,6 +2339,8 @@ class ArrayAlgebra : public Algebra
     AddOperator( &loop2 );
     AddOperator( &loopswitch );
     AddOperator( &loopselect );
+
+    AddOperator( &partjoin );
 
     AddOperator( &sortarray );
 

@@ -4,6 +4,7 @@ operator loop alias LOOP pattern _ op [ fun ] implicit parameter element type EL
 operator loop2 alias LOOP2 pattern _ _ op [ fun ] implicit parameters first, second types ELEMENT, ELEMENT2
 operator loopswitch alias LOOPSWITCH pattern _ op [ fun, fun ] implicit parameter element type ELEMENT
 operator loopselect alias LOOPSELECT pattern _ op [ fun, fun, _, _ ] implicit parameter element type ELEMENT
+operator partjoin alias PARTJOIN pattern _ _ op [ fun ] implicit parameters first, second types ELEMENT, ELEMENT2
 operator sortarray alias SORTARRAY pattern _ op [ fun ] implicit parameter element type ELEMENT
 operator get alias GET pattern op ( _, _ )
 operator put alias PUT pattern op ( _, _, _ )
