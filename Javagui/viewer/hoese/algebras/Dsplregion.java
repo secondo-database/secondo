@@ -55,6 +55,7 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
 
      //System.out.println("Area with +"+no+" points");
      GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD,no);
+     boolean empty = true;
      while(!LE.isEmpty()){
         ListExpr Face = LE.first();
         LE = LE.rest();
@@ -71,7 +72,7 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
 	      try{
 	        float x1 = (float)ProjectionManager.getPrjX(x.doubleValue(),y.doubleValue());
 	        float y1 = (float)ProjectionManager.getPrjY(x.doubleValue(),y.doubleValue());
-
+                empty = false;
 	        if(isFirstPoint){
 	            GP.moveTo(x1,y1);
 		    isFirstPoint=false;
@@ -91,7 +92,10 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
 	   GP.closePath();
 	}
      }
-     areas= new Area(GP);
+     if(!empty) 
+        areas= new Area(GP);
+     else
+        areas= null;
   }
 
   /**
