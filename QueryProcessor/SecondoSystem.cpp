@@ -51,7 +51,7 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
 
-SecondoSystem SecondoSystem::secondoSystem;
+SecondoSystem* SecondoSystem::secondoSystem = 0;
 
 /**************************************************************************
 3 Functions and Procedures 
@@ -585,15 +585,16 @@ SecondoSystem::GetDatabaseName()
 
 */
 
-SecondoSystem::SecondoSystem()
+SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   nl = new NestedList();
-  algebraManager = new AlgebraManager( *nl );
+  algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );
   queryProcessor = new QueryProcessor( nl, algebraManager );
   scDescriptive  = 0;
   scExecutable   = 0;
   initialized    = false;
   testMode       = true; // At least during the programming and test phase
+  secondoSystem  = this;
 }
 
 SecondoSystem::~SecondoSystem()
@@ -613,54 +614,55 @@ SecondoSystem::~SecondoSystem()
   delete queryProcessor;
   delete algebraManager;
   delete nl;
+  secondoSystem = 0;
 }
 
 SecondoSystem*
 SecondoSystem::GetInstance()
 {
-  return (&secondoSystem);
+  return (secondoSystem);
 }
 
 bool
 SecondoSystem::StartUp()
 {
-  if ( !secondoSystem.initialized )
+  if ( !secondoSystem->initialized )
   {
-    secondoSystem.algebraManager->LoadAlgebras();
-    secondoSystem.scDescriptive =
+    secondoSystem->algebraManager->LoadAlgebras();
+    secondoSystem->scDescriptive =
       new SecondoCatalog( "Descriptive", DescriptiveLevel );
-    secondoSystem.scExecutable  =
+    secondoSystem->scExecutable  =
       new SecondoCatalog( "Executable",  ExecutableLevel );
-    secondoSystem.initialized = true;
+    secondoSystem->initialized = true;
   }
-  return (secondoSystem.initialized);
+  return (secondoSystem->initialized);
 }
 
 bool
 SecondoSystem::ShutDown()
 {
-  if ( secondoSystem.initialized )
+  if ( secondoSystem->initialized )
   {
-    secondoSystem.algebraManager->UnloadAlgebras();
-    delete secondoSystem.scDescriptive;
-    secondoSystem.scDescriptive = 0;
-    delete secondoSystem.scExecutable;
-    secondoSystem.scExecutable  = 0;
-    secondoSystem.initialized   = false;
+    secondoSystem->algebraManager->UnloadAlgebras();
+    delete secondoSystem->scDescriptive;
+    secondoSystem->scDescriptive = 0;
+    delete secondoSystem->scExecutable;
+    secondoSystem->scExecutable  = 0;
+    secondoSystem->initialized   = false;
   }
-  return (!secondoSystem.initialized);
+  return (!secondoSystem->initialized);
 }
 
 AlgebraManager*
 SecondoSystem::GetAlgebraManager()
 {
-  return (secondoSystem.algebraManager);
+  return (secondoSystem->algebraManager);
 }
 
 QueryProcessor*
 SecondoSystem::GetQueryProcessor()
 {
-  return (secondoSystem.queryProcessor);
+  return (secondoSystem->queryProcessor);
 }
 
 SecondoCatalog*
@@ -668,18 +670,18 @@ SecondoSystem::GetCatalog( const AlgebraLevel level )
 {
   if ( level == DescriptiveLevel )
   {
-    return (secondoSystem.scDescriptive);
+    return (secondoSystem->scDescriptive);
   }
   else
   {
-    return (secondoSystem.scExecutable);
+    return (secondoSystem->scExecutable);
   }
 }
 
 NestedList*
 SecondoSystem::GetNestedList()
 {
-  return (secondoSystem.nl);
+  return (secondoSystem->nl);
 }
 
 bool
@@ -691,16 +693,16 @@ SecondoSystem::BeginTransaction()
 bool
 SecondoSystem::CommitTransaction()
 {
-  secondoSystem.scDescriptive->CleanUp( false );
-  secondoSystem.scExecutable->CleanUp( false );
+  secondoSystem->scDescriptive->CleanUp( false );
+  secondoSystem->scExecutable->CleanUp( false );
   return (SmiEnvironment::CommitTransaction());
 }
 
 bool
 SecondoSystem::AbortTransaction()
 {
-  secondoSystem.scDescriptive->CleanUp( true );
-  secondoSystem.scExecutable->CleanUp( true );
+  secondoSystem->scDescriptive->CleanUp( true );
+  secondoSystem->scExecutable->CleanUp( true );
   return (SmiEnvironment::AbortTransaction());
 }
 

@@ -34,11 +34,16 @@ BDBSMIHDR = SmiBDB.h $(SMIHDR)
 ifeq ($(smitype),ora)
 CCFLAGS= $(PICFLAG) $(OCICPPINCLUDE) $(DEFAULTCCFLAGS)
 
-all: $(LIBDIR)/libsmiora.$(LIBEXT)
+all: $(ORAOBJECTS)
+
+buildlibs: $(LIBDIR)/libsmiora.$(LIBEXT)
+
 else
 CCFLAGS= $(PICFLAG) $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
-all: $(LIBDIR)/libsmibdb.$(LIBEXT)
+all: $(BDBOBJECTS)
+
+buildlibs: $(LIBDIR)/libsmibdb.$(LIBEXT)
 endif
 
 

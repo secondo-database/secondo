@@ -92,11 +92,11 @@ $(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o $(LIBDIR)/libsdbtool.$
 $(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o $(LIBDIR)/libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoListener$(EXEEXT) SecondoListener.o -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerBDB$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerBDB$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerORA$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerORA$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 

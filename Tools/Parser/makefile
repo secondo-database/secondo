@@ -23,7 +23,7 @@ useddirectories:
 	$(MAKE) -C SpecParser
 
 SecLex.$(OBJEXT): SecLex.cpp SecParser.tab.hpp NestedText.h
-	$(CC) -c -o SecLex.$(OBJEXT) SecLex.cpp $(DEFAULTCCFLAGS)
+	$(CC) -c -o SecLex.$(OBJEXT) SecLex.cpp $(CCFLAGS)
 
 SecLex.cpp: SecLex.l
 	$(LEX) -+ -oSecLex.cpp -Pxx SecLex.l
@@ -60,6 +60,8 @@ include ../../include.dep
 .PHONY: clean
 clean:
 	$(MAKE) -C SpecParser clean
+	$(RM) *.o
+	$(RM) *.lo
 	$(RM) $(OBJECTS) SecLex.cpp SecParser.tab.cpp SecParser.tab.hpp
 	$(RM) lexrules tokens yaccrules1 yaccrules2 SecLex.l SecParser.y
 

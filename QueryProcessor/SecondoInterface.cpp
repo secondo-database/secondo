@@ -35,11 +35,16 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
 #include "QueryProcessor.h"
+#include "AlgebraManager.h"
 #include "Profiles.h"
 #include "FileSystem.h"
 
 #include "SecondoSMI.h"
 #include "SecParser.h"
+
+extern AlgebraListEntry& GetAlgebraEntry( const int j );
+
+static SecondoSystem* ss = 0;
 
 /************************************************************************** 
 3.1 The Secondo Procedure 
@@ -162,6 +167,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   if (ok)
   {
     cout << "Initializing the Secondo system ... ";
+    ss = new SecondoSystem( &GetAlgebraEntry );
     nl = SecondoSystem::GetNestedList();
     ok = SecondoSystem::StartUp();
     if ( ok )
@@ -201,6 +207,11 @@ SecondoInterface::Terminate()
     else
     {
       cout << "failed." << endl;
+    }
+    if ( ss != 0 )
+    {
+      delete ss;
+      ss = 0;
     }
     if ( !SmiEnvironment::ShutDown() )
     {

@@ -18,8 +18,8 @@ OBJECTS=\
 	QueryProcessor.$(OBJEXT) \
 	SecondoCatalog.$(OBJEXT) \
 	SecondoSystem.$(OBJEXT) \
-	SecondoInterface.$(OBJEXT) \
-	SecondoInterfaceGeneral.$(OBJEXT)
+	SecondoInterface.o \
+	SecondoInterfaceGeneral.o
 
 .PHONY: all
 all: $(OBJECTS)
@@ -35,13 +35,13 @@ SecondoCatalog.$(OBJEXT): SecondoCatalog.cpp $(INCLUDEDIR)/SecondoCatalog.h $(IN
 SecondoSystem.$(OBJEXT): SecondoSystem.cpp $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/QueryProcessor.h
 	$(CC) -c -o SecondoSystem.$(OBJEXT) SecondoSystem.cpp $(CCFLAGS)
 
-SecondoInterface.$(OBJEXT): SecondoInterface.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/QueryProcessor.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/SecParser.h
-	$(CC) -c -o SecondoInterface.$(OBJEXT) SecondoInterface.cpp $(CCFLAGS)
-	$(CP) SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterface.$(OBJEXT)
+SecondoInterface.o: SecondoInterface.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/QueryProcessor.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/SecParser.h
+	$(CC) -c -o SecondoInterface.o SecondoInterface.cpp $(CCFLAGS)
+	$(CP) SecondoInterface.o $(LIBDIR)/SecondoInterface.o
 
-SecondoInterfaceGeneral.$(OBJEXT): SecondoInterfaceGeneral.cpp $(INCLUDEDIR)/SecondoInterface.h
-	$(CC) -c -o SecondoInterfaceGeneral.$(OBJEXT) SecondoInterfaceGeneral.cpp $(CCFLAGS)
-	$(CP) SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT)
+SecondoInterfaceGeneral.o: SecondoInterfaceGeneral.cpp $(INCLUDEDIR)/SecondoInterface.h
+	$(CC) -c -o SecondoInterfaceGeneral.o SecondoInterfaceGeneral.cpp $(CCFLAGS)
+	$(CP) SecondoInterfaceGeneral.o $(LIBDIR)/SecondoInterfaceGeneral.o
 
 include ../include.dep
 

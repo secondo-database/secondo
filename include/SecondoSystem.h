@@ -81,6 +81,8 @@ This class implements all algebra level independent functionality of the
 class SecondoSystem
 {
  public:
+  SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc );
+  virtual ~SecondoSystem();
   ListExpr ListDatabaseNames();
 /*
 Simply returns the names of existing databases in a list:
@@ -237,10 +239,8 @@ Aborts a transaction.
 
 */
  protected:
-  SecondoSystem();
   SecondoSystem( const SecondoSystem& );
   SecondoSystem& operator=( const SecondoSystem& );
-  virtual ~SecondoSystem();
  private:
   bool RestoreCatalog( SecondoCatalog* sc,
                        ListExpr types, ListExpr objects,
@@ -253,7 +253,7 @@ Aborts a transaction.
 Are internal methods for restoring a database.
 
 */
-  static SecondoSystem secondoSystem;
+  static SecondoSystem* secondoSystem;
 
   NestedList*     nl;
   AlgebraManager* algebraManager;

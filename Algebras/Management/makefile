@@ -17,6 +17,7 @@ INCFILES=\
 
 OBJECTS=\
 	Algebra.$(OBJEXT) \
+	AlgebraList.o \
 	AlgebraManager.$(OBJEXT)
 
 .PHONY: all
@@ -26,6 +27,10 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
 Algebra.$(OBJEXT): Algebra.cpp $(INCFILES)
 	$(CC) -c -o Algebra.$(OBJEXT) Algebra.cpp $(CCFLAGS)
+
+AlgebraList.o: AlgebraList.cpp $(INCFILES)
+	$(CC) -c -o AlgebraList.o AlgebraList.cpp $(CCFLAGS)
+	$(CP) AlgebraList.o $(LIBDIR)/AlgebraList.o
 
 AlgebraManager.$(OBJEXT): AlgebraManager.cpp AlgebraList.i $(INCFILES)
 	$(CC) -c -o AlgebraManager.$(OBJEXT) AlgebraManager.cpp $(CCFLAGS)

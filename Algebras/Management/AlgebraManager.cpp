@@ -7,61 +7,19 @@ using namespace std;
 #include "SecondoSystem.h"
 #include "DynamicLibrary.h"
 
-/*
-1.2 List of available Algebras
-
-*/
-
-/*
-Creation of the prototypes of the initilization functions of all requested
-algebra modules.
-
-*/
-#define ALGEBRA_INCLUDE ALGEBRA_PROTO_INCLUDE
-#define ALGEBRA_EXCLUDE ALGEBRA_PROTO_EXCLUDE
-#define ALGEBRA_DYNAMIC ALGEBRA_PROTO_DYNAMIC
-#include "AlgebraList.i"
-
-/*
-Creation of the list of all requested algebra modules.
-The algebra manager uses this list to initialize the algebras and
-to access the type constructor and operator functions provided by
-the algebra modules.
-
-*/
-
-#undef ALGEBRA_INCLUDE
-#undef ALGEBRA_EXCLUDE
-#undef ALGEBRA_DYNAMIC
-#define ALGEBRA_INCLUDE ALGEBRA_LIST_INCLUDE
-#define ALGEBRA_EXCLUDE ALGEBRA_LIST_EXCLUDE
-#define ALGEBRA_DYNAMIC ALGEBRA_LIST_DYNAMIC
-
-static
-AlgebraListEntry& GetAlgebraEntry( const int j )
-{
-ALGEBRA_LIST_START
-#include "AlgebraList.i"
-ALGEBRA_LIST_END
-/*
-is the static list of all available algebra modules.
-
-*/
-  return (algebraList[j]);
-}
-
-AlgebraManager::AlgebraManager( NestedList& nlRef )
+AlgebraManager::AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   int j;
   nl = &nlRef;
+  getAlgebraEntry = getAlgebraEntryFunc;
   maxAlgebraId = 0;
-  for ( j = 0; GetAlgebraEntry( j ).algebraId > 0; j++ )
+  for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
-    if ( GetAlgebraEntry( j ).useAlgebra )
+    if ( (*getAlgebraEntry)( j ).useAlgebra )
     {
-      if ( GetAlgebraEntry( j ).algebraId > maxAlgebraId )
+      if ( (*getAlgebraEntry)( j ).algebraId > maxAlgebraId )
       {
-        maxAlgebraId = GetAlgebraEntry( j ).algebraId;
+        maxAlgebraId = (*getAlgebraEntry)( j ).algebraId;
       }
     }
   }
@@ -85,47 +43,47 @@ AlgebraManager::LoadAlgebras()
   TypeConstructor* tc;
   int j, k;
 
-  for ( j = 0; GetAlgebraEntry( j ).algebraId > 0; j++ )
+  for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
-    if ( GetAlgebraEntry( j ).useAlgebra )
+    if ( (*getAlgebraEntry)( j ).useAlgebra )
     {
-      if ( GetAlgebraEntry( j ).algebraInit != 0 )
+      if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
       {
-        algebra[GetAlgebraEntry( j ).algebraId] =
-          (GetAlgebraEntry( j ).algebraInit)( nl, qp );
+        algebra[(*getAlgebraEntry)( j ).algebraId] =
+          ((*getAlgebraEntry)( j ).algebraInit)( nl, qp );
       }
       else
       {
         bool loaded = false;
-        string libraryName  = string( "lib" ) + GetAlgebraEntry( j ).algebraName;
-        string initFuncName = string( "Initialize" ) + GetAlgebraEntry( j ).algebraName;
-        GetAlgebraEntry( j ).dynlib = new DynamicLibrary();
+        string libraryName  = string( "lib" ) + (*getAlgebraEntry)( j ).algebraName;
+        string initFuncName = string( "Initialize" ) + (*getAlgebraEntry)( j ).algebraName;
+        (*getAlgebraEntry)( j ).dynlib = new DynamicLibrary();
         transform( libraryName.begin(), libraryName.end(), libraryName.begin(), tolower );
-        if ( GetAlgebraEntry( j ).dynlib->Load( libraryName ) )
+        if ( (*getAlgebraEntry)( j ).dynlib->Load( libraryName ) )
         {
           AlgebraInitFunction initFunc =
-            (AlgebraInitFunction) GetAlgebraEntry( j ).dynlib->GetFunctionAddress( initFuncName );
+            (AlgebraInitFunction) (*getAlgebraEntry)( j ).dynlib->GetFunctionAddress( initFuncName );
           if ( initFunc != 0 )
           {
-            algebra[GetAlgebraEntry( j ).algebraId] = (initFunc)( nl, qp );
+            algebra[(*getAlgebraEntry)( j ).algebraId] = (initFunc)( nl, qp );
             loaded = true;
           }
           else
           {
-            GetAlgebraEntry( j ).dynlib->Unload();
+            (*getAlgebraEntry)( j ).dynlib->Unload();
           }
         }
         if ( !loaded )
         {
-          delete GetAlgebraEntry( j ).dynlib;
-          GetAlgebraEntry( j ).dynlib = 0;
+          delete (*getAlgebraEntry)( j ).dynlib;
+          (*getAlgebraEntry)( j ).dynlib = 0;
           continue;
         }
       }
-      algType[GetAlgebraEntry( j ).algebraId] = GetAlgebraEntry( j ).level;
-      for ( k = 0; k < algebra[GetAlgebraEntry( j ).algebraId]->GetNumTCs(); k++ )
+      algType[(*getAlgebraEntry)( j ).algebraId] = (*getAlgebraEntry)( j ).level;
+      for ( k = 0; k < algebra[(*getAlgebraEntry)( j ).algebraId]->GetNumTCs(); k++ )
       {
-        tc = algebra[GetAlgebraEntry( j ).algebraId]->GetTypeConstructor( k );
+        tc = algebra[(*getAlgebraEntry)( j ).algebraId]->GetTypeConstructor( k );
         for ( vector<string>::size_type idx = 0; idx < tc->kinds.size(); idx++ )
         {
           if ( tc->kinds[idx] != "" )
@@ -141,13 +99,13 @@ AlgebraManager::LoadAlgebras()
 void
 AlgebraManager::UnloadAlgebras()
 {
-  for ( int j = 0; GetAlgebraEntry( j ).algebraId > 0; j++ )
+  for ( int j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
-    if ( GetAlgebraEntry( j ).useAlgebra && GetAlgebraEntry( j ).dynlib != 0 )
+    if ( (*getAlgebraEntry)( j ).useAlgebra && (*getAlgebraEntry)( j ).dynlib != 0 )
     {
-      GetAlgebraEntry( j ).dynlib->Unload();
-      delete GetAlgebraEntry( j ).dynlib;
-      GetAlgebraEntry( j ).dynlib = 0;
+      (*getAlgebraEntry)( j ).dynlib->Unload();
+      delete (*getAlgebraEntry)( j ).dynlib;
+      (*getAlgebraEntry)( j ).dynlib = 0;
     }
   }
 }

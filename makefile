@@ -56,8 +56,11 @@ makedirs:
 	$(MAKE) -C QueryProcessor
 	$(MAKE) -C UserInterfaces
 
-buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
+buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) buildsmi $(LIBDIR)/libsdbsys.$(LIBEXT)
 	$(MAKE) -C Algebras buildlibs
+
+buildsmi:
+	$(MAKE) -C StorageManager buildlibs
 
 # --- Secondo Database Tools library ---
 
@@ -92,7 +95,7 @@ endif
 $(LIBDIR)/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) -L$(LIBDIR) $(ALGLIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) -L$(LIBDIR) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
 	$(CP) $(LIBDIR)/libsdbsys.$(LIBEXT) $(BINDIR)/libsdbsys.$(LIBEXT)
 endif
@@ -130,7 +133,8 @@ clean:
 	$(MAKE) -C UserInterfaces clean
 	$(RM) $(LIBDIR)/libsdb*.a $(LIBDIR)/libsdb*.so $(LIBDIR)/libsdb*.dll $(LIBDIR)/libsdb*.dll.a
 	$(RM) $(LIBDIR)/libsmi*.a $(LIBDIR)/libsmi*.so $(LIBDIR)/libsmi*.dll $(LIBDIR)/libsmi*.dll.a
-	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.so
+	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.lo
+	$(RM) $(LIBDIR)/AlgebraList.o $(LIBDIR)/AlgebraList.lo
 
 .PHONY: clean_tests
 clean_tests:
