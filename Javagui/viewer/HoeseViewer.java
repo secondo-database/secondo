@@ -84,7 +84,6 @@ public class HoeseViewer extends SecondoViewer {
   private final String CONFIGURATION_FILE = "GBS.cfg";
   private final int NOT_ERROR_CODE = ServerErrorCodes.NOT_ERROR_CODE;
 
-  private final boolean DEBUG_MODE = true;
 
   /** The main configuration parameter hash-table */
   public static Properties configuration;
@@ -169,6 +168,10 @@ public class HoeseViewer extends SecondoViewer {
       UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
     } catch (Exception exc) {
       System.err.println("Error loading L&F: " + exc);
+      if(DEBUG_MODE){
+        System.err.println(exc);
+	exc.printStackTrace();
+      }
     }
 
     Properties SystemProps = System.getProperties();
@@ -395,7 +398,7 @@ public class HoeseViewer extends SecondoViewer {
        return true;
      } catch(Exception e){
        return false;
-     }  
+     }
   }
 
 
@@ -1064,7 +1067,12 @@ public boolean addProjection(String Name){
      PrjSelector.addProjection((Projection)P);
      return true;
     }
- catch(Exception e){ System.out.println(e); e.printStackTrace(); return false;}
+ catch(Exception e){ 
+     if(DEBUG_MODE){
+         System.out.println(e); 
+	 e.printStackTrace();
+     }
+     return false;}
 }
 
 
@@ -1808,14 +1816,22 @@ public boolean canDisplay(SecondoObject o){
     // Once the address of the configuration file is known, it tries to
     boolean success=true;
     configuration = new Properties();
+    File CF = new File(CONFIGURATION_FILE);
+    if(!CF.exists()){
+       MessageBox.showMessage("HoeseViewer : configuration file not found");
+       return;
+    }
     try {
-      FileInputStream Cfg = new FileInputStream(CONFIGURATION_FILE);
+      FileInputStream Cfg = new FileInputStream(CF);
       configuration.load(Cfg);
       Cfg.close();
       }
     catch(Exception e){
-       MessageBox.showMessage("HoeseViewer : i can't read the configuration file");
-       success=false;
+       if(DEBUG_MODE){
+          System.err.println(e);
+	  e.printStackTrace();
+       }
+       return;
     }
     if(success){
        CatPath="";
