@@ -120,6 +120,7 @@ Application::Application( int argc, const char** argv )
 //  signal( SIGPIPE,   Application::AbortOnSignalHandler );
 //  signal( SIGALRM,   Application::AbortOnSignalHandler );
   signal( SIGTERM,   Application::AbortOnSignalHandler );
+  signal( SIGSEGV,   Application::AbortOnSignalHandler );
 //  signal( SIGUSR1,   Application::UserSignalHandler );
 //  signal( SIGUSR2,   Application::UserSignalHandler );
 //  signal( SIGTRAP,   Application::AbortOnSignalHandler );
