@@ -263,13 +263,21 @@ SecondoTTY::ShowPrompt( const bool first )
 {
   if ( isStdInput ) // Display input prompt
   {
+    string level;
+    switch (currentLevel)
+    {
+      case DescriptiveLevel: level = "(D)"; break;
+      case ExecutableLevel:  level = "(E)"; break;
+      case HybridLevel:      level = "(H)"; break;
+      default:               level = "(?)"; break;
+    }
     if ( first )
     {
-      cout << "Secondo => ";     // First line of command
+      cout << level << " Secondo => ";  // First line of command
     }
     else
     {
-      cout << "Secondo -> ";     // Continuation line of command
+      cout << level << " Secondo -> ";  // Continuation line of command
     }
   }
 }
