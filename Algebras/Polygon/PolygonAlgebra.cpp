@@ -7,7 +7,7 @@ static QueryProcessor* qp;
 
 #include "Tuple.h"
 #include "Attribute.h"
-#include "FLOB.h"
+#include "DBArray.h"
 
 struct CcPoint { int x; int y; };
 struct CcRectangle { CcPoint ur; CcPoint ul; CcPoint ll; CcPoint lr; };
@@ -16,16 +16,21 @@ class CcPolygon : public Attribute {
   	friend void SecondoMain(int, char *[]); /* Simplify writing test programs. */
 	friend void *CastPolygon(void *addr); // this method needs access to convexHull.
   	int numberOfPoints;
-  	FLOB X;
-	FLOB Y;
+  	DBArray X;
+	DBArray Y;
 	
 public:
 	CcPolygon(SmiRecordFile *recfile) : X(recfile), Y(recfile) {};
-	CcPolygon(SmiRecordFile *recfile, int inNumberOfPoints, char *inX, char *inY) 
-		: X(recfile, inNumberOfPoints * sizeof(int)), Y(recfile, inNumberOfPoints * sizeof(int)) {
+
+	/* inX and inY must be pointers to arrays of ints with capacity of inNumberPoints. */
+	CcPolygon(SmiRecordFile *recfile, int inNumberOfPoints, int *inX, int *inY) 
+		: X(recfile, sizeof(int), inNumberOfPoints), Y(recfile, sizeof(int), inNumberOfPoints) {
 		numberOfPoints = inNumberOfPoints;
-		X.Write(0, inNumberOfPoints * sizeof(int), inX);
-		Y.Write(0, inNumberOfPoints * sizeof(int), inY);
+		
+		for (int i = 0; i < numberOfPoints; i++) {
+			X.Put(i, (char *)(&(inX[i])));
+			Y.Put(i, (char *)(&(inY[i])));
+		}
 	}
 
     ~CcPolygon(){};
@@ -41,7 +46,7 @@ public:
    	int Sizeof(){ 
 		return sizeof(CcPolygon); 
 	};
-   	class Attribute * Clone() {return NULL;};
+   	class Attribute *Clone() {return NULL;};
    	bool IsDefined(){return true;};
 
   	ostream &Print(ostream &os);
@@ -67,16 +72,15 @@ ostream &operator<<(ostream &os, CcRectangle &r){
 };
 
 ostream &CcPolygon::Print(ostream &os) {
+	int value;
+	
 	os << "{POLYGON: ";
 	
-	int *xArray = new int[numberOfPoints];
-	int *yArray = new int[numberOfPoints];
-	
-	X.Get(0, numberOfPoints * sizeof(int), (char *)xArray);
-	Y.Get(0, numberOfPoints * sizeof(int), (char *)yArray);
-	
 	for (int i = 0; i < numberOfPoints; i++) {
-		os << "(" << xArray[i] << ", " << yArray[i] << ")";
+		X.Get(i, (char *)&value);
+		os << "(" << value << ", ";
+		Y.Get(i, (char *)&value);
+		os  << value << ")";
 		if (i < numberOfPoints - 1) os << ", ";
 	}		
 	os << "}";
