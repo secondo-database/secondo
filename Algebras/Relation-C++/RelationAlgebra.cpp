@@ -1384,7 +1384,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if (local.addr == 0)
       {
-        qp->Close(args[1].addr);
         return CANCEL;
       }
       else
