@@ -23,9 +23,12 @@ Algebra. These common functionalities belongs to this implementation file.
 */
 #include "RelationAlgebra.h"
 #include "SecondoSystem.h"
+#include "QueryProcessor.h"
+#include "NestedList.h"
 #include <set>
 
 extern NestedList *nl;
+extern QueryProcessor *qp;
 
 long Tuple::tuplesCreated = 0;
 long Tuple::tuplesDeleted = 0;
@@ -642,5 +645,44 @@ bool IsTupleDescription( ListExpr a )
     }
   }
   return true;
+}
+
+/*
+6.8 Function ~GetTupleResultType~
+
+This function returns the tuple result type as a list expression
+given the Supplier ~s~.
+
+*/
+ListExpr GetTupleResultType( Supplier s )
+{
+  ListExpr result = qp->GetType( s ),
+           first = nl->First( result );
+
+  assert( nl->IsAtom( first ) && 
+          nl->AtomType( first ) == SymbolType );
+
+  switch( TypeOfRelAlgSymbol( first ) )
+  {
+    case ccmap:
+    {
+      result = nl->Third( result );
+      break;
+    }
+    case stream:
+    {
+      // the result already corresponds to the stream.
+      break;
+    }
+    default:
+      assert( false );
+  }
+ 
+  first = nl->First( result ); 
+  assert( nl->IsAtom( first ) && 
+          nl->AtomType( first ) == SymbolType &&
+          nl->SymbolValue( first ) == "stream" );
+
+  return SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( result );
 }
 

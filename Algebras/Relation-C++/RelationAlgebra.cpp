@@ -1398,12 +1398,11 @@ ListExpr ProjectTypeMap(ListExpr args)
 int
 Project(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-
   switch (message)
   {
     case OPEN :
     {
-      ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+      ListExpr resultType = GetTupleResultType( s );
       TupleType *tupleType = new TupleType( nl->Second( resultType ) );
       local.addr = tupleType;
 
@@ -1623,7 +1622,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
         pli->iter = 0;
       }
 
-      ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+      ListExpr resultType = GetTupleResultType( s );
       pli->resultTupleType = new TupleType( nl->Second( resultType ) );
 
       local = SetWord(pli);

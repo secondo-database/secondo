@@ -530,7 +530,7 @@ int Remove(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
-      ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+      ListExpr resultType = GetTupleResultType( s );
       TupleType *tupleType = new TupleType( nl->Second( resultType ) );
       local.addr = tupleType;
       qp->Open(args[0].addr);
@@ -2377,13 +2377,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
 
       qp->Open(args[0].addr);
-      resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
-
-//      ListExpr result = qp->GetType( s );
-//      cout << "Extend result type" << endl;
-//      nl->WriteListExpr( result );
-//      cout << endl;
-
+      resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( resultTupleType );
       return 0;
@@ -2560,7 +2554,7 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
         qp->Open (streamy.addr);
       
         localinfo = new LoopjoinLocalInfo;
-        ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+        ListExpr resultType = GetTupleResultType( s );
         localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
         localinfo->tuplex = tuplex;
         localinfo->streamy = streamy;
@@ -2759,7 +2753,7 @@ Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
         
         // put the information of tuplex and rely into local
         localinfo = new LoopselectLocalInfo;
-        ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+        ListExpr resultType = GetTupleResultType( s );
         localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
         localinfo->tuplex=tuplex;
         localinfo->streamy=streamy;
@@ -3164,7 +3158,7 @@ int GroupByValueMapping
       {
         gbli = new GroupByLocalInfo;
         gbli->t = (Tuple*)sWord.addr;
-        ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( supplier ) );
+        ListExpr resultType = GetTupleResultType( supplier );
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
         local = SetWord(gbli);
       }

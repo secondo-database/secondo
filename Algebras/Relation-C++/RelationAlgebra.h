@@ -831,4 +831,13 @@ Checks wether a ~ListExpr~ is of the form
 */
 bool IsTupleDescription( ListExpr tupleDesc );
 
+/*
+5.7 Function ~GetTupleResultType~
+
+This function returns the tuple result type as a list expression
+given the Supplier ~s~.
+
+*/
+ListExpr GetTupleResultType( Supplier s );
+
 #endif // _RELATION_ALGEBRA_H_
