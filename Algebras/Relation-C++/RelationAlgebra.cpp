@@ -3792,10 +3792,15 @@ public:
     attrIndexA = (int)((StandardAttribute*)attrIndexAWord.addr)->GetValue() - 1;
     attrIndexB = (int)((StandardAttribute*)attrIndexBWord.addr)->GetValue() - 1;
     nBuckets = (int)((StandardAttribute*)nBucketsWord.addr)->GetValue();
-    if(nBuckets < MIN_BUCKETS || nBuckets > MAX_BUCKETS)
+    if(nBuckets < MIN_BUCKETS)
     {
-      nBuckets = DEFAULT_BUCKETS;
+      nBuckets = MIN_BUCKETS;
     }
+    else if(nBuckets > MAX_BUCKETS)
+    {
+      nBuckets = MAX_BUCKETS;
+    }
+
     bucketsA.resize(nBuckets);
     bucketsB.resize(nBuckets);
 

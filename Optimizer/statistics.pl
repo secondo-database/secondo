@@ -3,7 +3,7 @@
 
 [File ~statistics.pl~]
 
-1.1  Cardinalities of Relations
+1.1  Hard-Coded Cardinalities of Relations
 
 */
 
@@ -13,7 +13,7 @@ card(ten, 10).
 card(thousand, 1000).
 
 /*
-1.2 Selectivities of Predicates
+1.2 Hard-Coded Selectivities of Predicates
 
 */
 
@@ -39,8 +39,9 @@ sel(staedte:kennzeichen starts "W", 0.068).
 
 1.3 Determine the Simple Form of Predicates
 
-First, determine the simple form of predicates, as stored in the database
-file.
+Simple forms of predicates are stored in predicate ~sel~ or 
+in predicate ~storedSel~.
+
 
 ----	simple(Term, Rel1, Rel2, Simple) :-
 ----
@@ -94,7 +95,9 @@ simplePred(X, _) :- throw(X).
 
 /*
 
-Auxliary predicates for ~selectivity~.
+1.4 Retrieving, Storing, and Loading Selectivities
+
+Auxiliary predicates for ~selectivity~.
 
 */
 
@@ -136,6 +139,7 @@ sels(Pred, Sel) :-
   storedSel(Pred2, Sel).
 
 /*
+
 ----	selectivity(P, Sel) :-
 ----
 
@@ -196,8 +200,6 @@ selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl, fail.
 
 /*
-
-1.4 Storing and Loading Selectivities
 
 The selectivities retrieved via Secondo queries can be loaded
 (by calling ~readStoredSels~) and stored (by calling
