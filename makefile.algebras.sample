@@ -81,10 +81,14 @@ ALGEBRAS     +=	BinaryFileAlgebra
 ALGEBRA_DIRS +=	Temporal
 ALGEBRAS     +=	TemporalAlgebra
 
-#ALGEBRA_DIRS += MP3	
+#ALGEBRA_DIRS +=	DateTime
+#ALGEBRAS     +=	DateTimeAlgebra
+
+
+#ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra
 
-#ALGEBRA_DIRS += JPEG	
+#ALGEBRA_DIRS += JPEG
 #ALGEBRAS     += JPEGAlgebra
 #ALGEBRA_DEPS += jpeg           # libjpeg is used and must be installed
 
@@ -99,5 +103,5 @@ ALGEBRAS     +=	TemporalAlgebra
 #JNI_ALGEBRA_DIRS += JNIExample
 #JNIALGEBRAS      += JNIExampleAlgebra
 
-#JNI_ALGEBRA_DIRS += Rose 
+#JNI_ALGEBRA_DIRS += Rose
 #JNIALGEBRAS      += RoseAlgebra
