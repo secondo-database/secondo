@@ -125,7 +125,6 @@ of two possible user specified actions.
 */
 
 class ProcessFactory;
-
 /*
 Forward declaration of class ~ProcessFactory~
 
@@ -196,9 +195,7 @@ be used.
   void ActivateWaiter();
   DWORD WINAPI Waiter();
   static DWORD WINAPI WaiterThread( LPVOID p )
-  {
-    return (((Process*) p)->Waiter());
-  }
+  { return (((Process*) p)->Waiter()); }
 #else
   pid_t         pid;
 #endif
@@ -349,4 +346,3 @@ Returns a reference to the single instance of the process factory.
 };
 
 #endif
-

@@ -278,9 +278,17 @@ Application::AbortOnSignalHandler( DWORD sig )
        sig == CTRL_LOGOFF_EVENT ||
        sig == CTRL_SHUTDOWN_EVENT )
   {
+    Application::appPointer->lastSignal = sig;
     if ( Application::appPointer->abortMode )
     {
-      Application::appPointer->AbortOnSignal( sig );
+      if ( Application::appPointer->AbortOnSignal( sig ) )
+      {
+        exit( -999 );
+      }
+      else
+      {
+        Application::appPointer->abortFlag = true;
+      }
     }
     else
     {

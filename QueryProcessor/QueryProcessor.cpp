@@ -981,7 +981,7 @@ function index.
 	else
         {
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
-          values[valueno] = value; 
+          values[valueno] = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel( nl->SymbolAtom( "int" ), value );
         }
         valueno++;
@@ -1079,7 +1079,6 @@ function index.
           {
             if ( TypeOfSymbol( nl->First( typeExpr ) ) == QP_MAP )
             { /* function object */
-
               /* this should be analyzed using fresh tables of variables.
               Not yet implemented. One needs first to change the catalog so 
               that function objects can be stored and retrieved.*/
@@ -1509,6 +1508,7 @@ arguments preceding this function argument in an operator application.
   ListExpr annexpr, list, paramtype;
   int alId, opId, localfunctionno;
 
+string xxx;
   localfunctionno = functionno;
   if ( traceMode )
   {
@@ -1628,6 +1628,10 @@ QueryProcessor::SubtreeX( const AlgebraLevel level,
   for ( int i = 0; i < functionno; i++)
   {
     argVectors[i] = (ArgVectorPointer) new ArgVector;
+    for ( int j = 0; j < MAXARG; j++ )
+    {
+      (*argVectors[i])[j].addr = 0;
+    }
   }
   OpTree resultTree = Subtree( level, expr );
   if ( debugMode )
@@ -1648,6 +1652,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
   OpTree node;
   ListExpr list;
   string typeName;
+string xxx, yyy, zzz;
 
   if ( testMode )
   {
@@ -1662,7 +1667,9 @@ QueryProcessor::Subtree( const AlgebraLevel level,
   {
     cout << "subtree applied to: " << endl;
     nl->WriteListExpr( expr, cout );
-    cout << endl;
+    cout << endl << "TypeOfSymbol applied to <";
+    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout );
+    cout << ">" << endl;
   }
 
   switch (TypeOfSymbol( nl->Second( nl->First( expr ) ) ))
@@ -1711,7 +1718,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->nodeLevel = level;
       node->nodetype = IndirectObject;
       node->u.iobj.funNumber = nl->IntValue( nl->Fourth( nl->First( expr ) ) );
-      node->u.iobj.vector = argVectors[node->u.iobj.funNumber];
+      node->u.iobj.vector = argVectors[node->u.iobj.funNumber-1]; // *** -1 added
       node->u.iobj.argIndex = nl->IntValue( nl->Third( nl->First( expr ) ) );
       return (node);
     }
@@ -1768,8 +1775,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->u.op.isFun = true;
       node->u.op.funNo = nl->IntValue( nl->Fourth( nl->First( expr ) ) );
-//      cout << endl:
-      node->u.op.funArgs = argVectors[node->u.op.funNo];
+      node->u.op.funArgs = argVectors[node->u.op.funNo-1]; // *** -1 added
       return (node);
     }
     case QP_IDENTIFIER:
@@ -1821,7 +1827,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
                                 of an abstraction */
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
-      node->u.op.sons[0] = Subtree( level, nl->Third( nl->First( expr ) ) );                /* the abstraction */
+      node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ) );                /* the abstraction */
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {                        /* the arguments */
@@ -1972,6 +1978,11 @@ the moment.
   int i;
   int status;
   ArgVector arg;
+  for ( int j = 0; j < MAXARG; j++ )
+  {
+    arg[j].addr = 0;
+  }
+  result.addr = 0;
 
   if ( tree == 0 )
   {
@@ -1989,7 +2000,7 @@ the moment.
       }
       case IndirectObject:
       {
-        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex];
+        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; // *** -1 added
         return;
       }
       case Operator:         /* First evaluate all subtrees that are not
@@ -2010,7 +2021,6 @@ the moment.
 
         if ( (tree->u.op.algebraId == 0) && (tree->u.op.opFunId == 0) )
         { /* abstraction application */
-          /*
           ArgVectorPointer absArgs;
           if ( traceMode )
           {
@@ -2018,15 +2028,16 @@ the moment.
             nl->WriteListExpr( ListOfTree( tree ), cout );
             cout << endl;
           }
-          absArgs = argument(tree->u.op.sons[0] );
+          absArgs = Argument(tree->u.op.sons[0] );
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
-            absArgs[i-1] = arg[i];
+            (*absArgs)[i-1] = arg[i];
             if ( traceMode )
             {
-              cout << "argument " << i-1 << " is" << ((int) arg[i]) << endl;
+              cout << "argument " << i-1 << " is" << int(arg[i].addr) << endl;
             }
           }
+          /*
           */
           Eval( tree->u.op.sons[0], result, message );
           /* cerr << "result is " << result << endl; */
@@ -2087,7 +2098,7 @@ handle stream evaluation.
       }
       case IndirectObject:
       {
-        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex];
+        result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; // *** -1 added
         return;
       }
       case Operator:

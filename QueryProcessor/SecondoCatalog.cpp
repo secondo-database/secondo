@@ -1371,6 +1371,10 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
           am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeExprString, value );
         }
       }
+      else
+      {
+        value.addr = 0;
+      }
     }
     else
     {
@@ -1462,12 +1466,16 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
           am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeExprString, value );
         }
       }
+      else
+      {
+        value.addr = 0;
+      }
       if ( model.addr != 0 )
       {
         SmiRecord mRec;
         if ( objModelFile.SelectRecord( modelRecId, mRec ) )
         {
-          am->PersistValue( algebraId, typeId, ReadFrom, mRec, typeExprString, model );
+          am->PersistModel( algebraId, typeId, ReadFrom, mRec, typeExprString, model );
         }
       }
       ok = true;

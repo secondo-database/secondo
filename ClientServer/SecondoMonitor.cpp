@@ -273,12 +273,10 @@ SecondoMonitor::CheckConfiguration()
   if ( !found )
   {
     cout << "Searching environment for configuration file ..." << endl;
-    char* home = getenv( "SECONDO_HOME" );
-    if ( home != 0 )
+    char* config = getenv( "SECONDO_CONFIG" );
+    if ( config != 0 )
     {
-      parmFile = home;
-      FileSystem::AppendSlash( parmFile );
-      parmFile += "SecondoConfig.ini";
+      parmFile = config;
       cout << "Configuration file '" << parmFile;
       found = FileSystem::FileOrFolderExists( parmFile );
       if ( found )
@@ -292,7 +290,7 @@ SecondoMonitor::CheckConfiguration()
     }
     else
     {
-      cout << "Environment variable SECONDO_HOME not defined." << endl;
+      cout << "Environment variable SECONDO_CONFIG not defined." << endl;
     }
     if ( !found )
     {

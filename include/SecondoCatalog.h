@@ -519,7 +519,6 @@ following format:
 */
  protected:
   bool TypeUsedByObject( const string& typeName );
-
  private:
   string           catalogName;
   AlgebraLevel     catalogLevel;
@@ -580,4 +579,3 @@ an error it should always be reported to the client.
 };
 
 #endif
-

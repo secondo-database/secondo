@@ -234,19 +234,19 @@ such circumstances.
 
 */
  private:
-  int          argCount;      // number of arguments
-  const char** argValues;     // array of arguments
-  string       appName;       // name of application
-  string       appPath;       // path of application
-  ProcessId    ownpid;        // own process id
-  ProcessId    parent;        // parent process id
-  bool         hasSocket;     // flag 
-  Socket*      clientSocket;  // reference to client socket
-  int          lastSignal;    // last signal received
-  bool         abortMode;     // abort mode
-  bool         abortFlag;     // abort signal flag
-  bool         user1Flag;     // user1 signal flag
-  bool         user2Flag;     // user2 signal flag
+  int           argCount;     // number of arguments
+  const char**  argValues;    // array of arguments
+  string        appName;      // name of application
+  string        appPath;      // path of application
+  ProcessId     ownpid;       // own process id
+  ProcessId     parent;       // parent process id
+  bool          hasSocket;    // flag 
+  Socket*       clientSocket; // reference to client socket
+  int           lastSignal;   // last signal received
+  bool          abortMode;    // abort mode
+  volatile bool abortFlag;    // abort signal flag
+  volatile bool user1Flag;    // user1 signal flag
+  volatile bool user2Flag;    // user2 signal flag
 
 #ifndef SECONDO_WIN32
   static void AbortOnSignalHandler( int sig );

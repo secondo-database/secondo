@@ -707,6 +707,7 @@ SecondoTTY::CheckConfiguration()
     if ( !ok )
     {
       cout << "Error: Neither config file nor host and port of Secondo server specified." << endl;
+      cout << "Use option -? or --help to get information about available options." << endl;
     }
   }
   return (ok);

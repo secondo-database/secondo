@@ -100,7 +100,7 @@ DummyCast( void* addr )
 static bool
 CheckMap( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "map" ));
+  return (nl->IsEqual( nl->First( type ), "map" ));
 }
 
 TypeConstructor functionMap( "map",             FunctionProperty,

@@ -44,9 +44,10 @@ bool
 ProcessFactory::StartUp( const bool reuseTerminated /* = true */,
                          const int maxChildProcesses /* = DEFAULT_MAX_PROCESSES */ )
 {
+  int maxChild = (maxChildProcesses > 0) ? maxChildProcesses : 1;
   if ( ProcessFactory::instance == 0 )
   {
-    ProcessFactory::instance = new ProcessFactory( reuseTerminated, maxChildProcesses );
+    ProcessFactory::instance = new ProcessFactory( reuseTerminated, maxChild );
   }
   return (ProcessFactory::instance != 0);
 }
@@ -377,7 +378,7 @@ A session without a control tty can only have background jobs.
   }
   Sleep( 0 );
 #endif
-  processId = idx * instance->maxChilds + instance->processList[idx].cycle;
+  processId = idx * (instance->maxChilds+1) + instance->processList[idx].cycle;
   return (true);
 }
 
@@ -385,8 +386,8 @@ ProcessId
 ProcessFactory::GetRealProcessId( const int processId )
 {
   ProcessId pid = INVALID_PID;
-  int index = processId / instance->maxChilds;
-  int cycle = processId % instance->maxChilds;
+  int index = processId / (instance->maxChilds+1);
+  int cycle = processId % (instance->maxChilds+1);
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved &&
       !instance->processList[index].terminated )
@@ -405,8 +406,8 @@ ProcessFactory::SignalProcess( const int processId,
                                const ProcessSignal sig /* = eSIGTERM */ )
 {
   bool ok = false;
-  int index = processId / instance->maxChilds;
-  int cycle = processId % instance->maxChilds;
+  int index = processId / (instance->maxChilds+1);
+  int cycle = processId % (instance->maxChilds+1);
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved &&
       !instance->processList[index].terminated )
@@ -456,8 +457,8 @@ bool
 ProcessFactory::GetExitCode( const int processId, int& status )
 {
   bool ok = false;
-  int index = processId / instance->maxChilds;
-  int cycle = processId % instance->maxChilds;
+  int index = processId / (instance->maxChilds+1);
+  int cycle = processId % (instance->maxChilds+1);
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved &&
        instance->processList[index].terminated )
@@ -472,8 +473,8 @@ bool
 ProcessFactory::IsProcessOk( const int processId )
 {
   bool ok = false;
-  int index = processId / instance->maxChilds;
-  int cycle = processId % instance->maxChilds;
+  int index = processId / (instance->maxChilds+1);
+  int cycle = processId % (instance->maxChilds+1);
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {
@@ -486,8 +487,8 @@ bool
 ProcessFactory::IsProcessTerminated( const int processId )
 {
   bool ok = false;
-  int index = processId / instance->maxChilds;
-  int cycle = processId % instance->maxChilds;
+  int index = processId / (instance->maxChilds+1);
+  int cycle = processId % (instance->maxChilds+1);
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {
@@ -500,8 +501,8 @@ bool
 ProcessFactory::WaitForProcess( const int processId )
 {
   bool ok = false;
-  int index = processId / instance->maxChilds;
-  int cycle = processId % instance->maxChilds;
+  int index = processId / (instance->maxChilds+1);
+  int cycle = processId % (instance->maxChilds+1);
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {
