@@ -672,6 +672,7 @@ indicated in the ROSE paper.
 
 */   
     int operator==(const CHalfSegment& chs) const;
+    int operator!=(const CHalfSegment& chs) const;
 /*
 5.4.4 Operation $<$ (~less than~)
 
@@ -726,7 +727,7 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 
 */
     const bool Contains( const Point& p ) const;
-    
+    const bool rayAbove( const Point& p ) const;
 /*
 5.9 attribute comparison Functions
 
@@ -1150,6 +1151,8 @@ the state of the region is checked. A valid region must satisfy the following co
 
 6)  any two edges of the same cycle can not intersect each with their middle points. They
 can only intersect with their endpoints;
+
+7)  any hole can not be inside another hole of the same face;
 
 */
     void logicsort();
