@@ -1,9 +1,12 @@
 /*
+//[_] [\_]
+
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
 pace}
 \centerline{\LARGE \bf  SecondoTTY}
 
 \centerline{Friedhelm Becker , Dec1997}
+
 
 Changes:
 
@@ -121,11 +124,14 @@ SecondoTTY::Usage()
 {
   cout << "The following internal commands are available:" << endl << endl
        << "  ?, HELP         - display this message" << endl
-       << "  @{FILE}         - read commands from file 'FILE' (may be nested)" << endl
+       << "  @{FILE}         - read commands from file 'FILE'"
+       << " (may be nested)" << endl
        << "  D, DESCRIPTIVE  - set 'DESCRIPTIVE' level" << endl
        << "  E, EXECUTABLE   - set 'EXECUTABLE' level" << endl
-       << "  H, HYBRID       - set 'HYBRID' level, i.e. commands are executed" << endl
-       << "                    first at 'DESCRIPTIVE' and then at 'EXECUTABLE' level" << endl
+       << "  H, HYBRID       - set 'HYBRID' level,"
+       << " i.e. commands are executed" << endl
+       << "                    first at 'DESCRIPTIVE' and then at"
+       << " 'EXECUTABLE' level" << endl
        << "  SHOW {OPTION}   - show system status information" << endl
        << "                    OPTION = { LEVEL }" << endl
        << "                      LEVEL      - current level" << endl
@@ -134,11 +140,15 @@ SecondoTTY::Usage()
        << "                      1   - debug mode turned on" << endl
        << "                      2   - debug and trace mode turned on" << endl
        << "  Q, QUIT         - exit the program" << endl << endl
-       << "  # ...           - comment line (first character on line has to be '#')" << endl << endl
+       << "  # ...           - comment line (first character"
+       << " on line has to be '#')" << endl << endl
        << "Additionally you may enter any valid Secondo command." << endl
-       << "Internal commands are restricted to ONE line, while Secondo commands may span" << endl
-       << "several lines; a semicolon as the last character on a line ends a command, but" << endl
-       << "is not part of the command, alternatively you may enter an empty line." << endl << endl;
+       << "Internal commands are restricted to ONE line, while Secondo"
+       << " commands may span" << endl
+       << "several lines; a semicolon as the last character on a line"
+       << " ends a command, but" << endl
+       << "is not part of the command, alternatively you may"
+       << " enter an empty line." << endl << endl;
 }
 
 void
@@ -169,7 +179,8 @@ SecondoTTY::ProcessCommand()
   string cmdWord;
   istringstream is( cmd );
   is >> cmdWord;
-  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
+  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(),
+             ToUpperProperFunction );
 
   if ( cmdWord == "?" || cmdWord == "HELP" )
   {
@@ -193,7 +204,8 @@ SecondoTTY::ProcessCommand()
   else if ( cmdWord == "SHOW" )
   {
     is >> cmdWord;
-    transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
+    transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(),
+               ToUpperProperFunction );
     if ( cmdWord == "LEVEL" )
     {
       switch (currentLevel)
@@ -243,11 +255,13 @@ SecondoTTY::ProcessCommand()
   }
   else
   {
-    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" || cmdWord == "( QUERY");
+    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" ||
+               cmdWord == "( QUERY");
     if ( currentLevel == HybridLevel )
     {
-      if ( cmdWord == "QUERY"  || cmdWord == "(QUERY"  || cmdWord == "( QUERY" ||
-           cmdWord == "UPDATE" || cmdWord == "(UPDATE" || cmdWord == "( UPDATE" )
+      if ( cmdWord == "QUERY"  || cmdWord == "(QUERY"  ||
+           cmdWord == "( QUERY" || cmdWord == "UPDATE" ||
+           cmdWord == "(UPDATE" || cmdWord == "( UPDATE" )
       {
         cout << "*** Hey, don't do that in 'HYBRID' mode!" << endl;
       }
@@ -307,7 +321,8 @@ SecondoTTY::IsInternalCommand( const string& line )
   string cmdWord;
   istringstream is( line );
   is >> cmdWord;
-  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
+  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(),
+             ToUpperProperFunction );
 
   return ( cmdWord == "?" || cmdWord == "HELP"        ||
            cmdWord == "D" || cmdWord == "DESCRIPTIVE" ||
@@ -661,14 +676,21 @@ SecondoTTY::CheckConfiguration()
     if ( argSwitch == "-?" || argSwitch == "--help" )  // Help
     {
       cout << "Usage: SecondoTTY{BDB|ORA|CS} [options]" << endl << endl
-           << "Options:                                             (Environment)" << endl
-           << "  -c config  : Secondo configuration file            (SECONDO_CONFIG)" << endl
+           << "Options:"
+           << "                                             (Environment)"
+           << endl
+           << "  -c config  : Secondo configuration file"
+           << "            (SECONDO_CONFIG)" << endl
            << "  -i input   : Name of input file  (default: stdin)" << endl
            << "  -o output  : Name of output file (default: stdout)" << endl
-           << "  -u user    : User id                               (SECONDO_USER)" << endl
-           << "  -s pswd    : Password                              (SECONDO_PSWD)" << endl
-           << "  -h host    : Host address of Secondo server        (SECONDO_HOST)" << endl
-           << "  -p port    : Port of Secondo server                (SECONDO_PORT)" << endl << endl
+           << "  -u user    : User id"
+           << "                               (SECONDO_USER)" << endl
+           << "  -s pswd    : Password"
+           << "                              (SECONDO_PSWD)" << endl
+           << "  -h host    : Host address of Secondo server"
+           << "        (SECONDO_HOST)" << endl
+           << "  -p port    : Port of Secondo server"
+           << "                (SECONDO_PORT)" << endl << endl
            << "Command line options overrule environment variables." << endl;
       ok = false;
       break;
@@ -708,7 +730,8 @@ SecondoTTY::CheckConfiguration()
       {
         cout << "  having option value: '" << argValue << "'." << endl;
       }
-      cout << "Use option -? or --help to get information about available options." << endl;
+      cout << "Use option -? or --help to get"
+           << " information about available options." << endl;
       ok = false;
     }
     i++;
@@ -799,8 +822,10 @@ SecondoTTY::CheckConfiguration()
     ok = parmFile.length() > 0 || (host.length() > 0 && port.length() > 0);
     if ( !ok )
     {
-      cout << "Error: Neither config file nor host and port of Secondo server specified." << endl;
-      cout << "Use option -? or --help to get information about available options." << endl;
+      cout << "Error: Neither config file nor host and"
+           << " port of Secondo server specified." << endl;
+      cout << "Use option -? or --help to get information about"
+           << " available options." << endl;
     }
   }
   return (ok);
@@ -834,7 +859,8 @@ SecondoTTY::Execute()
     if ( si->Initialize( user, pswd, host, port, parmFile ) )
     {
       //set AlgebraLevel and LogMsg prefixes
-      string algLevelStr = SmiProfile::GetParameter( "Environment", "AlgebraLevel", "Descriptive", parmFile );
+      string algLevelStr = SmiProfile::GetParameter( "Environment",
+                              "AlgebraLevel", "Descriptive", parmFile );
 
       char chLevel = toupper( (algLevelStr.data())[0] );
       switch (chLevel) {
@@ -895,6 +921,100 @@ SecondoTTY::Execute()
   return (rc);
 }
 
+
+#ifdef READLINE
+/*
+15 Keyword extraction
+
+~commands~
+
+This array contains all keywords used in SECONDO for expansion with
+the tab key.
+Duplicates are not allowed in this array and the last entry has to
+be NULL.
+
+*/
+char* keywords[] = { "abort", "algebra", "algebras", "begin", "commit",
+                     "close", "constructors", "consume","count", "create",
+                     "database", "databases", "DEBUG", "delete",
+		     "extend", "feed", "filter", "from",  "let", "list",
+		     "objects", "open", "operators", "query",
+		     "restore", "save", "SHOW", "transaction", "type",
+		     "types", "update",
+		     (char *)0 };
+
+
+/*
+~dupstr~
+
+This fucntion returns a clone of the argument string;
+
+*/
+char *
+dupstr (char* s)
+{
+  char *r;
+  r =(char*) malloc (strlen (s) + 1);
+  strcpy (r, s);
+  return (r);
+}
+
+
+/*
+~strcmp~
+
+The function ~strcmp~ compares two string up to a given length.
+
+*/
+int strcmp(const char* s1,const char* s2, int len){
+ int index = 0;
+ while((s1[index]==s2[index]) && (index<len)) index++;
+ if (index==len) index--;
+ if(s1[index]<s2[index]) return -1;
+ if(s1[index]>s2[index]) return 1;
+ return 0;
+}
+
+/*
+~command[_]generator~
+
+This function computes the next match of the current partial input
+to the avaiable keywords.
+
+*/
+char* command_generator(const char* text, int state)
+{
+   static int index,len;
+   char* name;
+   if(!state){
+      index=0;
+      len = strlen(text);
+   }
+   while( (name = keywords[index])){
+      index++;
+      int cmp = strcmp(name,text,len);
+      if(cmp==0){
+         return (dupstr(name));
+      }
+   }
+   return ((char*)NULL);
+}
+
+
+/*
+~secondo[_]completion~
+
+This function is used by the readline library to determine all string
+with the same beginning like the current input.
+
+*/
+char** secondo_completion(const char* text, int start, int end){
+   return rl_completion_matches(text,command_generator);
+}
+
+#endif
+
+
 /*
 14 main
 
@@ -907,6 +1027,8 @@ main( const int argc, const char* argv[] )
   SecondoTTY* appPointer = new SecondoTTY( argc, argv );
 #ifdef READLINE
   rl_initialize();
+  rl_readline_name = "secondo";
+  rl_attempted_completion_function = secondo_completion;
 #endif
   int rc = appPointer->Execute();
   delete appPointer;
