@@ -21,7 +21,7 @@ $(JPL_LIB)/jpl.o:
 
 $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT):
 	$(CC) -shared $(EXEFLAGS) $(LDFLAGS) -Wl,-soname,$(SHARED_PREF)jpl.$(SHARED_EXT)\
-              -o $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT) $(LINKFILES) $(LD_LINK_LIBS) $(PLLDFLAGS)
+              -o $(OPTDIR)/$(SHARED_PREF)jpl.$(SHARED_EXT) $(LINKFILES) $(LD_LINK_LIBS) $(PLLDFLAGS) $(JPLDEF)
 
 .PHONY:clean
 clean:
