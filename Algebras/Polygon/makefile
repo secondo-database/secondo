@@ -1,0 +1,64 @@
+########################################################################
+#
+# SECONDO makefile for Polygon Algebra
+#
+########################################################################
+
+include ../../makefile.env
+
+
+# --- List of all needed header files (including indirect dependencies)
+
+INCFILES=\
+	$(INCLUDEDIR)/Algebra.h \
+	$(INCLUDEDIR)/NestedList.h \
+	$(INCLUDEDIR)/QueryProcessor.h \
+	$(INCLUDEDIR)/StandardTypes.h
+
+LIBNAME=libpolygonalgebra
+MODNAME=PolygonAlgebra
+
+OBJECTS=\
+	$(MODNAME).$(OBJEXT)
+
+.PHONY: all
+all: $(OBJECTS)
+
+buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+
+# --- Standard Algebra C++ library ---
+
+# ... Windows needs special treatment when creating DLLs
+ifeq ($(shared),yes)
+ifeq ($(platform),win32)
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
+endif
+endif
+
+$(LIBDIR)/libpolygonalgebra.$(LIBEXT): $(OBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+ifeq ($(platform),win32)
+	$(CP) $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(BINDIR)/$(LIBNAME).$(LIBEXT)
+endif
+else
+# ... as static library
+	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+endif
+
+# --- Standard Algebra C++ library modules ---
+
+$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
+	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
+
+include ../../include.dep
+
+.PHONY: clean
+clean:
+	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
+	$(RM) *.o
+	$(RM) *.lo
+
