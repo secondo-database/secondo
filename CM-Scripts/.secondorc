@@ -9,7 +9,7 @@
 #
 # at the end of file $HOME/.bashrc.
 #
-# Look in the files 
+# Consult the files 
 #
 #    .secondo.win32rc 
 # or .secondo.linuxrc
@@ -28,14 +28,14 @@ else
 fi
 
 # define important base directories
-sdkDir=${prefix}/secondo-sdk
+buildDir=$PWD
 if [ "$1" != "" ]; then
-sdkDir=$1
+buildDir=$1
 fi
 
-buildDir=${HOME}/secondo
+sdkDir=${prefix}/secondo-sdk
 if [ "$2" != "" ]; then
-buildDir=$2
+sdkDir=$2
 fi
 
 ok="true"
@@ -63,13 +63,13 @@ export SECONDO_PLATFORM=$platform
 source ${HOME}/.secondo.${platform}rc
 
 # include command aliases
-source ${buildDir}/CM-Scripts/aliaslist.sh
+source ${sdkDir}/bin/aliaslist.sh
 
 # include common definitions
 source ${HOME}/.secondo.sdkrc
 
 # set common variables
-source ${sdkDir}/bin/setvar.bash ${buildDir}
+${sdkDir}/bin/setvar.bash ${buildDir}
 
 # Berkeley-DB Library
 #
@@ -112,3 +112,10 @@ fi
 
 # end of "$ok"="true"
 fi
+
+catvar 
+printf "\n%s\n"  "In case of trouble consult the environment setup files:"
+printf "%s\n"    "  ${HOME}/.secondo.sdkrc"
+printf "%s\n"    "  ${HOME}/.secondo.${platform}rc"
+printf "%s\n"    "  ${HOME}/.secondorc"
+printf "%s\n\n"  "  ${sdkDir}/bin/setvar.bash"

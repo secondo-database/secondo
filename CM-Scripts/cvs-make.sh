@@ -10,38 +10,64 @@
 # 05/01/27 M. Spiekermann, major revision, automatic test runs
 
 
+
+if [ -z $SECONDO_SDK ]; then
+source $HOME/.bashrc
+fi
+
 # include function definitions
-# libutil.sh must be in the same directory as this file
-source  ${0%/*}/libutil.sh
+# libutil.sh must be in the search PATH 
+if ! source libutil.sh; then exit 1; fi
 
-# check arguments and initialize variables
-if [ "$1" == "-h" ]; then
+#default options
+rootDir=$HOME
+coDir=tmp_secondo_${date_ymd}_${date_HMS}
+cvsDir=/${CVSROOT#*/}
+coTag="HEAD"
+coModule="secondo"
 
-  printf "%s\n" "Usage: $0 [<root-dir>=$HOME] [<checkout-dir>=tmp_secondo_<time>]"
-  exit 0
-fi
+declare -i numOfArgs=$#
+let numOfArgs++
 
+while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
 
-if [ "$1" != "" ]; then
-  rootDir=$1
-else
-  rootDir=$HOME
-fi
+  getopts "hnr:c:t:" optKey
+  if [ "$optKey" == "?" ]; then
+    optKey="h"
+  fi
 
-if [ "$2" != "" ]; then 
-  coDir=$2
-else
-  coDir=tmp_secondo_${date_ymd}_${date_HMS}
-fi
+  case $optKey in
 
-# directories
-cvsDir=${HOME}/cvsroot
+   h) showGPL
+      printf "\n%s\n" "Usage of ${0##*/}:" 
+      printf "%s\n"   "  -r<root-dir> => Mandatory argument"
+      printf "%s\n"   "Options:"
+      printf "%s\n"   "  -h print this message and exit."
+      printf "%s\n"   "  -n send no mails. Just print the message to stdout."
+      printf "%s\n"   "  -t<version-tag> => \"${coTag}\" "
+      printf "%s\n"   "  -m<cvs-module> => \"${coModule}\" "
+      printf "%s\n\n" "  -c<checkout-dir> => \"tmp_secondo_<date>\""
+      printf "%s\n"   "The script checks out a local copy of <cvs-module> into the directoy"
+      printf "%s\n"   "into <root-dir>/<checkout-dir> and runs make, various tests, etc."
+      printf "%s\n\n" "In case of a failure an email will be sent to the CVS users."
+      exit 0;;
+   
+   r) rootDir=$OPTARG;;
+
+   c) coDir=$OPTARG;;
+
+   t) coTag=$OPTARG;;
+
+   n) sendMail_Deliver="false"
+
+  esac
+
+done
+
+# derive some other important directories
 buildDir=${rootDir}/${coDir}
 scriptDir=${buildDir}/CM-Scripts
 
-# recognize aliases also in an non interactive shell
-shopt -s expand_aliases
-source $HOME/.bashrc
 
 ## report host status 
 printSep "host status"
@@ -146,6 +172,6 @@ cvs -nQ update
 
 ## clean up
 printSep "Cleaning up"
-rm -rf ${buildDir}/${coDir}
+rm -rf ${buildDir}
 
 exit $errors

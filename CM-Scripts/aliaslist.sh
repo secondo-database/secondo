@@ -31,7 +31,6 @@ cmdDir=CM-Scripts
 newAlias backup backup.sh
 newAlias runtests run-tests.sh
 newAlias cvstest cvs-make.sh
-newAlias catvar catvar.sh
 
 cmdDir=Tools/Generators/TPC-H/secondo
 newAlias tpcgen tpcgen.sh
@@ -43,8 +42,9 @@ newAlias SecondoMonitor "SecondoMonitorBDB -s"
 
 
 # define some useful aliases
-alias setvar='source ${sdkDir}/bin/setvar.bash' 
-alias jcvs='java -jar ${sdkDir}/jCVS-5.2.2/jars/jcvsii.jar'
+alias setvar="source ${SECONDO_SDK}/bin/setvar.bash" 
+alias catvar="${SECONDO_SDK}/bin/catvar.sh" 
+alias jcvs='java -jar ${SECONDO_SDK}/jCVS-5.2.2/jars/jcvsii.jar'
 alias cvs-info='cvs -nq update | grep "^[A-Z]"'
 alias cvs-mod='cvs -nq update | grep "^[M]"'
 

@@ -2,19 +2,8 @@
 #
 # Feb 2005, Markus Spiekermann
 
-libFile="libutil.sh"
 #include libutil.sh if present
-buildDir=${SECONDO_BUILD_DIR}
-scriptDir="."
-if [ -z $buildDir ]; then
-  printf "%s\n" "Error: I can't find file ${libUtil}."
-  exit 1
-else
-  scriptDir=${buildDir}/CM-Scripts
-fi
-
-source ${scriptDir}/$libFile
-if [ $? -ne 0 ]; then exit 1; fi
+if ! source libutil.sh; then exit 1; fi
 
 # default options
 searchDir=$HOME

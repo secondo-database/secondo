@@ -7,15 +7,17 @@
 if [ -z $SETVAR_FIRST_CALL ]; then
 
   export SETVAR_FIRST_CALL="true"
-  export COPY_OF_PATH="$PATH"
-  export COPY_OF_LD_PATH="$LD_LIBRARY_PATH"
-
+  export COPY_OF_PATH=$PATH
+  export COPY_OF_LD_PATH=$LD_LIBRARY_PATH
 fi
 
+PATH=$COPY_OF_PATH
+LD_LIBRARY_PATH=$COPY_OF_LD_PATH
+
 if [ "$1" != "" ]; then
-export SECONDO_BUILD_DIR=$1
+  export SECONDO_BUILD_DIR=$1
 else
-export SECONDO_BUILD_DIR=$PWD
+  export SECONDO_BUILD_DIR=$PWD
 fi
 
 export SECONDO_CONFIG=${SECONDO_BUILD_DIR}/bin/SecondoConfig.ini
@@ -31,14 +33,14 @@ export BISON_SIMPLE=${SECONDO_SDK}/share/bison/bison.simple
 export JNI_INIT=${SECONDO_BUILD_DIR}/bin/JNI.ini
 
 ## Extend the search path
-PATH=.:${J2SDK_ROOT}/bin:${SECONDO_SDK}/bin:${COPY_OF_PATH}
+PATH=.:${J2SDK_ROOT}/bin:${SECONDO_SDK}/bin:${PATH}
 
 # The runtime linker uses different variables on linux and windows
 if [ $SECONDO_PLATFORM != "win32" ]; then
 
    pathList=${J2SDK_ROOT}/jre/lib/i386
    pathList=${pathList}:${J2SDK_ROOT}/jre/lib/i386/client
-   pathList=${pathList}:${COPY_OF_LD_PATH}
+   pathList=${pathList}:${LD_LIBRARY_PATH}
    pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
    pathList=${pathList}:${SECONDO_SDK}/lib
    pathList=${pathList}:${BERKELEY_DB_DIR}/lib
@@ -52,7 +54,7 @@ else
    pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
    pathList=${pathList}:${SECONDO_SDK}/lib
    pathList=${pathList}:${SECONDO_SDK}/pl/bin
-   pathList=${pathList}:${COPY_OF_PATH}
+   pathList=${pathList}:${PATH}
 
    PATH=.:${PATH}:${pathList}
 fi

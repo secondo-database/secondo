@@ -1,7 +1,9 @@
 # Shell script which displays the current 
 # environment settings for SECONDO 
 
-echo "---"
+echo ""
+echo "Environment variables used by SECONDO:"
+echo "--------------------------------------"
 echo "SECONDO_PLATFORM : " \"$SECONDO_PLATFORM\"
 echo "SECONDO_BUILD_DIR: " \"$SECONDO_BUILD_DIR\"
 echo "SECONDO_CONFIG   : " \"$SECONDO_CONFIG\"

@@ -6,12 +6,7 @@
 
 # include function definitions
 # libutil.sh must be in the same directory as this file
-source  ${0%/*}/libutil.sh
-
-buildDir=$1
-if [ "$1" == "" ]; then
-  buildDir=$SECONDO_BUILD_DIR
-fi
+if ! source libutil.sh; then exit 1; fi
 
 inputDir="${buildDir}/Tests/Testspecs"
 testSuites=$(find ${inputDir} -name "*.test" -printf "%f ")
@@ -45,7 +40,7 @@ do
   logFile="${file}.log"
   echo "===================================================================\n"  > $logFile
   echo "===================================================================\n"  > $logFile
-  checkCmd "time TestRunner -i  ${file} > ${file}.log 2>&1"
+  checkCmd "time TestRunner -i  ${file} > ${logFile} 2>&1"
   if [ $rc -ne 0 ]; then
     let error++
   fi

@@ -8,10 +8,17 @@ if [ -z "$BASH" ]; then
   exit 1
 fi
 
-# Useful date and time information 
+# recognize aliases also in an non interactive shell
+shopt -s expand_aliases
+
+# getTimeStamp
+function getTimeStamp() {
+
 date_TimeStamp=$(date "+%y%m%d-%H%M%S")
 date_ymd=${date_TimeStamp%-*}
 date_HMS=${date_TimeStamp#*-}
+
+}
 
 # printSep $1
 #
@@ -52,15 +59,23 @@ function checkCmd() {
 #
 # Sends a mail (with a given attachment) to the list of
 # recipients.
+sendMail_deliver="true"
 function sendMail() {
 
   if [ "${4}" != "" ]; then
     attachment="-a ${4}"
   fi
 
+  if [ sendMail_Deliver == "true" ]; then
   mail -s"$1" ${attachment} "$2" <<-EOFM
 $3
 EOFM
+
+  else
+    printf "%s\n" "Mail Command:"
+    printf "%s\n" "mail -s $1 $attchament $2"
+
+  fi
 
 }
 
@@ -134,6 +149,8 @@ optDir=${buildDir}/Optimizer
 PATH="${PATH}:${binDir}:${optDir}:${scriptDir}"
 LD_LIBRARY_PATH="/lib:${LD_LIBRARY_PATH}"
 
+#initialize date_ variables
+getTimeStamp
 
 ####################################################################################
 #
