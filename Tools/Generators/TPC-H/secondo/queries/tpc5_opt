@@ -1,0 +1,31 @@
+# hand optimized query plan for TPC 5
+
+query 
+  LINEITEM feed 
+            project[L_EXTENDEDPRICE, L_DISCOUNT, L_SUPPKEY, L_ORDERKEY]
+  SUPPLIER feed
+        project[S_SUPPKEY, S_NATIONKEY]
+  NATION feed 
+      project[N_REGIONKEY, N_NATIONKEY, N_NAME]
+  REGION feed 
+    project[R_REGIONKEY, R_NAME] 
+      filter[(.R_NAME = "ASIA")] 
+        hashjoin[N_REGIONKEY, R_REGIONKEY, 997] 
+          hashjoin[S_NATIONKEY, N_NATIONKEY, 997] 
+            hashjoin[L_SUPPKEY, S_SUPPKEY, 997] 
+  CUSTOMER feed 
+          project[C_CUSTKEY, C_NATIONKEY]
+  ORDERS feed  
+    project[O_CUSTKEY, O_ORDERKEY, O_ORDERDATE]
+      filter[(.O_ORDERDATE < cmpdate5_2)]  
+        filter[not((.O_ORDERDATE < cmpdate5_1))] 
+            hashjoin[C_CUSTKEY, O_CUSTKEY, 997] 
+              hashjoin[L_ORDERKEY, O_ORDERKEY, 997]  
+                filter[(.C_NATIONKEY = .S_NATIONKEY)]  
+                  sortby[N_NAME asc] 
+                    groupby[N_NAME; Revenue: group feed 
+                              extend[xxxExprField: (.L_EXTENDEDPRICE * (1 - .L_DISCOUNT))] 
+                              sum[xxxExprField] ] 
+                      sortby[Revenue desc]  
+                        project[N_NAME, Revenue]  
+                          consume;

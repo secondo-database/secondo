@@ -1,0 +1,22 @@
+# restore TPC-H Benchmark tables created by dbgen
+# and define some constants used in queries
+
+restore PART from part_tbl;
+restore PARTSUPP from partsupp_tbl;
+restore SUPPLIER from supplier_tbl;
+restore CUSTOMER from customer_tbl;
+restore LINEITEM from lineitem_tbl;
+restore ORDERS from orders_tbl;
+restore NATION from nation_tbl;
+restore REGION from region_tbl;
+
+#constant used in query 1
+let cmpdate1 = [const instant value "1998-12-01"] - [const duration value (90 0)];
+
+#constants used in query 5
+let cmpdate5_1 = [const instant value "1994-01-01"];
+let cmpdate5_2 = [const instant value "1995-01-01"];
+
+#constants used in query 10
+let cmpdate10_1 = [const instant value "1993-10-01"];
+let cmpdate10_2 = [const instant value "1994-01-01"];
