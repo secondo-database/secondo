@@ -880,7 +880,11 @@ switch(AT){
   */
 public static ListExpr readBinaryFrom(InputStream In){
  try{
-    MyDataInputStream DIN = new MyDataInputStream(In);
+    MyDataInputStream DIN=null;
+    if(In instanceof MyDataInputStream)
+       DIN = (MyDataInputStream) In;
+    else
+       DIN = new MyDataInputStream(In);
     String Sig = DIN.readString(3);
     int major = DIN.readShort();
     int minor = DIN.readShort();
@@ -954,13 +958,13 @@ try{
 	                           return ListExpr.symbolAtom(in.readString(len));
 	                        }
       case BIN_SHORTTEXT      : { int length = getPositiveInt(in.readByte());
-	                          return ListExpr.textAtom(in.readString(length));
+                                  return ListExpr.textAtom(in.readString(length));
 	                        }
       case BIN_TEXT           : { int length = getPositiveInt(in.readShort());
-	                          return ListExpr.textAtom(in.readString(length));
+                                  return ListExpr.textAtom(in.readString(length));
 	                        }
       case BIN_LONGTEXT       : { int length = in.readInt();
-	                          return ListExpr.textAtom(in.readString(length));
+                                  return ListExpr.textAtom(in.readString(length));
 	                        }
 
       case BIN_SHORTLIST      : { int length= getPositiveInt(in.readByte());

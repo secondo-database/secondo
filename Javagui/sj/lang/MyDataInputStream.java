@@ -86,7 +86,7 @@ private int getUnsigned(byte b){
 
 /** read a integer from stream */
 public int readInt() throws IOException{
-  In.read(IntBuffer);
+  readFullBuffer(IntBuffer);
   int res = 0;
   for(int i=0;i<4;i++)
      res = res*256+getUnsigned(IntBuffer[i]);
@@ -96,7 +96,7 @@ public int readInt() throws IOException{
 
 /** reads a short value from stream */
 public short readShort() throws IOException{
-   In.read(ShortBuffer);
+   readFullBuffer(ShortBuffer);
    int tmp = 0;
    for(int i=0;i<2;i++)
       tmp = 256*tmp+getUnsigned(ShortBuffer[i]);
@@ -121,7 +121,7 @@ public byte readByte() throws IOException{
 /** reads a string with specified length from stream */
 public String readString(int size) throws IOException{
   byte[] TMP = new byte[size];
-  In.read(TMP);
+  readFullBuffer(TMP);
   return new String(TMP);
 }
 
@@ -162,7 +162,7 @@ public String readLine(OutputStream o) throws IOException{
 
 /** read a integer from stream */
 public int readInt(OutputStream o) throws IOException{
-  In.read(IntBuffer);
+  readFullBuffer(IntBuffer);
   o.write(IntBuffer);
   int res = 0;
   for(int i=0;i<4;i++)
@@ -173,7 +173,7 @@ public int readInt(OutputStream o) throws IOException{
 
 /** reads a short value from stream */
 public short readShort(OutputStream o) throws IOException{
-   In.read(ShortBuffer);
+   readFullBuffer(ShortBuffer);
    o.write(ShortBuffer);
    int tmp = 0;
    for(int i=0;i<2;i++)
@@ -200,9 +200,25 @@ public byte readByte(OutputStream o) throws IOException{
 /** reads a string with specified length from stream */
 public String readString(int size,OutputStream o) throws IOException{
   byte[] TMP = new byte[size];
-  In.read(TMP);
+  readFullBuffer(TMP);
   o.write(TMP);
   return new String(TMP);
+}
+
+
+/** fills the buffer
+  * if not enough data are available a IOException is thrown
+  */
+private void readFullBuffer(byte[] buffer) throws IOException{
+  int size = buffer.length;
+  int readed = 0;
+  int small;
+  while(readed<size){
+     small = In.read(buffer,readed,size-readed);
+     if(small<0)
+       throw new IOException("not enough bytes available");
+     readed += small;
+  }
 }
 
 

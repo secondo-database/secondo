@@ -541,10 +541,11 @@ If value 0 is returned, the command was executed without error.
 	     line = inSocketStream.readLine();
 	     if(!line.equals("</SecondoResponse>")){
 	        System.out.println("SecondoInterface: Missing </SecondoResponse>");
+		System.out.println("received :" +line);
 		throw new IOException();
 	     }
-	     /*long t = System.currentTimeMillis()-t1;
-	     System.out.println("receive and building a nested list (binary) :"+t+" milliseconds");*/
+	     long t = System.currentTimeMillis()-t1;
+	     System.out.println("receive and building a nested list (binary) :"+t+" milliseconds");
 
 	  }
           errorCode.value = answerList.first().intValue();
