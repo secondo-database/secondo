@@ -16,79 +16,73 @@ public class Dsplregion extends DisplayGraph {
   /** The internal datastructure of the region datatype */
   Area areas;
 
-  /**
-   * Scans the representation of the region datatype and build up the areas by adding or
-   * subtracting(hole) single polygons.
-   * @param v A list of polygons/holepolygons
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplregionsrc.html#ScanValue">Source</a>
-  */
-  public void ScanValue (ListExpr value) {
-    if (value.isEmpty()) {
-      err = true;
-      return;
-    }
-    double koord[] = new double[2];
-    //System.out.println(value.writeListExprToString());
-    areas = new Area();
-    double x,y;
-    while (!value.isEmpty()) {                  // value while
-      ListExpr face = value.first();
-      ////System.out.println(v.writeListExprToString());
-      boolean isHole = false;
-      //Vector polygons= new Vector(10,10);
-      Area area = new Area();
-      while (!face.isEmpty()) {                 // face while
-        ListExpr poly = face.first();
-        //Vector vertices= new Vector(10,10);
-        GeneralPath path = new GeneralPath();
-        boolean firstpoint = true;
-        while (!poly.isEmpty()) {               //poly while
-          ListExpr v = poly.first();
-          if (v.listLength() != 2) {
-            System.out.println("Error: No correct region expression: 2 elements needed");
-            err = true;
-            return;
-          }
-          for (int koordindex = 0; koordindex < 2; koordindex++) {
-            Double d = LEUtils.readNumeric(v.first());
-            if (d == null) {
-              err = true;
-              return;
-            }
-            koord[koordindex] = d.doubleValue();
-            v = v.rest();
-          }                     //end for
-          try{
-	    x = ProjectionManager.getPrjX(koord[0],koord[1]);
-	    y = ProjectionManager.getPrjY(koord[0],koord[1]);
-	    if (firstpoint)
-               path.moveTo((float)x, (float)y);
-            else
-               path.lineTo((float)x, (float)y);
-	  } catch(Exception e){
-	     System.out.println("error in projection: values ("+koord[0]+","+koord[1]+")");
-	     err = true;
-	     return;
 
-	  }
-          //vertices.add(point);
-          firstpoint = false;
-          poly = poly.rest();
-        }       //end poly while
-        //polygons.add(vertices);
-        Area a = new Area(path);
-        if (isHole)
-          area.subtract(a);
-        else
-          area.add(a);
-        isHole = true;
-        face = face.rest();
-      }         //end face while
-      areas.add(area);
-      value = value.rest();
-    }           //end value while
+  /** convert the Listrepresentation LE to a Area */
+  public void ScanValue(ListExpr LE){
+     if(LE==null){
+       err=true;
+       return;
+     }
+     areas = null;
+     // first compute the number of all containing points
+     ListExpr TMP  = LE;
+     int no = 0;
+     while(!TMP.isEmpty()){
+         ListExpr Face = TMP.first();
+	 TMP = TMP.rest();
+         while(!Face.isEmpty()){
+	    no = no+Face.first().listLength()+1;
+            Face = Face.rest();
+	 }
+     }
+
+     //System.out.println("Area with +"+no+" points");
+     GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD,no);
+     while(!LE.isEmpty()){
+        ListExpr Face = LE.first();
+        LE = LE.rest();
+	while(!Face.isEmpty()){
+           ListExpr Cycle = Face.first();
+	   Face = Face.rest();
+           boolean isFirstPoint=true;
+	   while(!Cycle.isEmpty()){
+	      ListExpr P = Cycle.first();
+	      Cycle=Cycle.rest();
+	      Double x = LEUtils.readNumeric(P.first());
+	      Double y = LEUtils.readNumeric(P.second());
+	      if(x!=null && y!=null)
+	      try{
+	        float x1 = (float)ProjectionManager.getPrjX(x.doubleValue(),y.doubleValue());
+	        float y1 = (float)ProjectionManager.getPrjY(x.doubleValue(),y.doubleValue());
+
+	        if(isFirstPoint){
+	            GP.moveTo(x1,y1);
+		    isFirstPoint=false;
+	         }else{
+	            GP.lineTo(x1,y1);
+	         }
+	      } catch(Exception e){
+	         System.out.println("Error in Projection at ("+x+","+y+")");
+		 err=true;
+		 return;
+	      }
+	      else{
+	        err=true;
+		return;
+	      }
+	   }
+	   GP.closePath();
+	}
+     }
+     areas= new Area(GP);
   }
+
+
+
+
+
+
+
 
   /**
    * Init. the Dsplregion instance.
@@ -106,8 +100,8 @@ public class Dsplregion extends DisplayGraph {
       System.out.println("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(region))"));
       return;
-    } 
-    else 
+    }
+    else
       qr.addEntry(this);
     RenderObject = areas;
     // System.out.println(value.writeListExprToString());

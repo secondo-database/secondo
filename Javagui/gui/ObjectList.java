@@ -165,29 +165,31 @@ public boolean showObject(String Name){
 
 public boolean hideObject(String Name){
   int index = getIndexOf(Name);
-  if(index <0) 
+  if(index <0)
      return false;
   else{
      Content.setSelectedIndex(index);
      hideSelectedObject();
+     System.gc();
      return true;
   }
 }
 
 public boolean removeObject(String Name){
  int index = getIndexOf(Name);
-  if(index <0) 
+  if(index <0)
      return false;
   else{
      Content.setSelectedIndex(index);
      removeSelectedObject();
+     System.gc();
      return true;
   }
 }
 
 public boolean saveObject(String Name){
  int index = getIndexOf(Name);
-  if(index <0) 
+  if(index <0)
      return false;
   else{
      Content.setSelectedIndex(index);
@@ -201,7 +203,7 @@ public boolean saveObject(String Name){
 
 public boolean storeObject(String Name){
  int index = getIndexOf(Name);
-  if(index <0) 
+  if(index <0)
      return false;
   else{
      Content.setSelectedIndex(index);
@@ -218,7 +220,7 @@ public Dimension getMinimumSize(){
    if (RP==null)
       return new Dimension(320,400);
    else
-      return new Dimension(320,RP.getSize().height/4);   
+      return new Dimension(320,RP.getSize().height/4);
 }
 
 /** return the preferredSize **/
@@ -303,7 +305,8 @@ public void clearList(){
     Objects.remove(0);
     myListModel.remove(0);
   }
-  updateList(); 
+  System.gc();
+  updateList();
 }
 
 
@@ -378,7 +381,7 @@ public int loadObject(){
               File F = Fs[i];
               if(loadObject(F))
                  number++;
-              else  
+              else
                  showMessage("cannot load the file:"+F.getName());
            }
        }
@@ -393,6 +396,12 @@ public boolean loadObject(File ObjectFile){
   else{
      SecondoObject SO = new SecondoObject(IDManager.getNextID());
      SO.setName("File :"+ObjectFile.getName());
+     // if a LE is a OBJECT-List then extract the Type and Value */
+     if(LE.listLength()==6){
+        ListExpr Obj = LE.first();
+	if(Obj.atomType()==ListExpr.SYMBOL_ATOM && Obj.symbolValue().equals("OBJECT"))
+	   LE = ListExpr.twoElemList(LE.fourth(),LE.fifth());
+     }
      SO.fromList(LE);
      addEntry(SO);
      return true;
@@ -424,17 +433,17 @@ File CurrentDir = FileChooser.getCurrentDirectory();
           ListExpr LE = SO.toListExpr();
           saved = LE.writeToFile(FullFileName)==0; 
        }
-  } 
+  }
   return saved;
  }
 
 
- 
+
  // delete the selected object from list **/
  public boolean removeSelectedObject(){
    boolean removed = false;
    int index = Content.getSelectedIndex();
-   if (index<0)
+   if (index<0 || index>=Objects.size())
       showMessage("no item selected");
    else {
      SecondoObject SO = (SecondoObject) Objects.get(index);
@@ -446,7 +455,7 @@ File CurrentDir = FileChooser.getCurrentDirectory();
    return removed;
  }
 
- // remove the given Object 
+ // remove the given Object
  public void removeObject(SecondoObject SO){
    int index = Objects.indexOf(SO);
    if(index>=0){

@@ -152,7 +152,7 @@ public class LEUtils {
   public static Double readNumeric (ListExpr le) {
     if (le.isAtom()) {
       if (! (le.atomType()==ListExpr.INT_ATOM || le.atomType()==ListExpr.REAL_ATOM)) {
-        System.out.println("Error: No correct numeric expression: rat or int-type needed");
+        System.out.println("Error: No correct numeric expression: rat or int or real-type needed");
         return  null;
       }
       if (le.atomType()==ListExpr.INT_ATOM)
