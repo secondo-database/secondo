@@ -58,6 +58,9 @@ makedirs:
 	$(MAKE) -C UserInterfaces
 
 
+.PHONY: libs
+libs: makedirs buildlibs
+
 .PHONY: buildalg
 buildalg:
 	$(MAKE) -C Algebras buildlibs
