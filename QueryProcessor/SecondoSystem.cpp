@@ -643,6 +643,7 @@ SecondoSystem::~SecondoSystem()
   delete queryProcessor;
   delete algebraManager;
   delete nl;
+  delete al;
   secondoSystem = 0;
 }
 
