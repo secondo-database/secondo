@@ -84,13 +84,14 @@ public class RelViewer extends SecondoViewer{
     // analyse type
     ListExpr maintype = type.first();
     if (type.listLength()!=2 || !maintype.isAtom() || maintype.atomType()!=ListExpr.SYMBOL_ATOM 
-        || !maintype.symbolValue().equals("rel"))
+        || !(maintype.symbolValue().equals("rel") | maintype.symbolValue().equals("mrel")))
        return null; // not a relation
     ListExpr tupletype = type.second();
     // analyse Tuple
     ListExpr TupleFirst=tupletype.first();
-    if (tupletype.listLength()!=2 || !TupleFirst.isAtom() || 
-         TupleFirst.atomType()!=ListExpr.SYMBOL_ATOM || !TupleFirst.symbolValue().equals("tuple"))
+    if (tupletype.listLength()!=2 || !TupleFirst.isAtom() ||
+         TupleFirst.atomType()!=ListExpr.SYMBOL_ATOM || 
+	 !(TupleFirst.symbolValue().equals("tuple") | TupleFirst.symbolValue().equals("mtuple")))
        return null; // not a tuple
     ListExpr TupleTypeValue = tupletype.second();
     // the table head
@@ -184,7 +185,8 @@ public class RelViewer extends SecondoViewer{
        return false;
      else{
        LE = LE.first();
-       if(LE.isAtom() && LE.atomType()==ListExpr.SYMBOL_ATOM && LE.symbolValue().equals("rel"))
+       if(LE.isAtom() && LE.atomType()==ListExpr.SYMBOL_ATOM &&
+       (LE.symbolValue().equals("rel") | LE.symbolValue().equals("mrel")) )
            return true;
        else
            return false;

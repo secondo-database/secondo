@@ -29,7 +29,8 @@ public static boolean isRelation(ListExpr LE){
   if(Type.listLength()!=2) 
     return false;
   ListExpr R = Type.first();
-  return (R.isAtom() && (R.atomType()==ListExpr.SYMBOL_ATOM) && R.symbolValue().equals("rel"));
+  return (R.isAtom() && (R.atomType()==ListExpr.SYMBOL_ATOM) &&
+           (R.symbolValue().equals("rel") | R.symbolValue().equals("mrel")));
 }
 
 
@@ -41,9 +42,9 @@ public boolean readFromRelTypeLE(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr R = LE.first();
-  if ( !R.isAtom() || !(R.atomType()==ListExpr.SYMBOL_ATOM) || !R.symbolValue().equals("rel"))
+  if(!isRelation(R))
      return false;
-  
+
   ListExpr Tuple = LE.second();
   if(Tuple.listLength()!=2)
      return false;
@@ -51,14 +52,14 @@ public boolean readFromRelTypeLE(ListExpr LE){
 
   ListExpr TupleType = Tuple.first();
   if ( !TupleType.isAtom() || !(TupleType.atomType()==ListExpr.SYMBOL_ATOM) ||
-       !TupleType.symbolValue().equals("tuple"))
+       !(TupleType.symbolValue().equals("tuple") | TupleType.symbolValue().equals("mtuple")) )
      return false;
 
 
   ListExpr TupleValue = Tuple.second(); // should be ( <name type) (name type) ... )
   boolean ok = true;
 
-  
+
   while (TupleValue.listLength()>0 & ok) {
      ListExpr EntryList = TupleValue.first();
      if(EntryList.listLength()!=2){  // (name type)
