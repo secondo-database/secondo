@@ -1103,6 +1103,12 @@ private static void printKindCheckings(PrintStream out,Class[] classes){
 private static void printKindChecking(PrintStream out, Class cls){
     String Name = getShortString(cls);
     out.println(" static bool Check"+Name+"(ListExpr type, ListExpr& errorInfo){");
+   /*
+    // the following class uses the type check of algebra type
+    // because on other places code exists which excludes the use
+    // of composite types, we can make it simpler and
+    // remove the checkType method from the AlgebraType interface
+    //
     out.println("    jclass cls = "+getShortString(cls)+"_class;");
     out.println("    jmethodID mid = env->GetMethodID(cls,\"<init>\",\"()V\");");
     out.println("    if(mid==0) error(__LINE__);");
@@ -1115,6 +1121,12 @@ private static void printKindChecking(PrintStream out, Class cls){
     out.println("    env->DeleteLocalRef(tlist);");
     out.println("    env->DeleteLocalRef(obj);");
     out.println("    return res; ");
+   */
+   // if composite type are not allowed, use the following code:
+    String SName = getSecondoType(cls);
+    out.println("   return nl->IsEqual(type,\""+SName+"\");");
+
+    // common code for both versions
     out.println("}\n\n");
 }
 

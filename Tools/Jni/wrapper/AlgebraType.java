@@ -33,7 +33,11 @@ public interface AlgebraType extends Serializable,Comparable{
   boolean loadFrom(ListExpr typeInfo,ListExpr instance);    
   /** Returns the value of this as a nested list */
   ListExpr toListExpr(ListExpr typeInfo);
+
+
   /** Checks the type of this. */
-  boolean checkType(ListExpr LE);
+  // This method is only needed if composite types are
+  // possible 
+  //boolean checkType(ListExpr LE);
   
 }
