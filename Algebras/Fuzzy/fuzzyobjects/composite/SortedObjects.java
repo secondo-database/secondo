@@ -38,6 +38,26 @@ public String toString(){
 public int getSize(){ return V.size(); }
 
 
+
+public int compareTo(SortedObjects SO){
+   int max = Math.min(getSize(),SO.getSize());
+   SimpleObject E1,E2;
+   int comp;
+   for(int i=0;i<max;i++){
+      E1 = (SimpleObject) V.get(i);
+      E2 = (SimpleObject) SO.V.get(i);
+      comp= compare(E1,E2);
+      if(comp!=0)
+         return comp;
+   }
+   if(V.size()<SO.V.size())
+      return -1;
+   if(V.size()>SO.V.size())
+      return 1;
+   return 0;      
+}
+
+
 /** check for equality with SO */
 public boolean equals(SortedObjects SO){
 if(this==SO) return true;

@@ -5,10 +5,11 @@
 
 2003-06-10 Thomas Behr
 
-This class provides three datatypes CcFPoint, CcFLine and CcFRegion
+This algebra provides three datatypes: CcFPoint, CcFLine and CcFRegion
 and a lot of operators. The datatypes are described in
-'Modellierung, Implementierung und Visualisierung unscharfer
- r"aumlicher Objekte'.
+'Modellierung, Implementierung und Visualisierung unscharfer r"aumlicher Objekte'.
+The implementation of the datatypes and operators is based on  a Java-implementation.
+The Java methods are invoked using JNI.
 
 1 Preliminaries
 
@@ -22,7 +23,9 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "StandardTypes.h"	//needed because we return a CcBool in an op.
+#include "StandardTypes.h"
+#include "StandardAttribute.h"
+#include "FLOB.h"
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -66,16 +69,28 @@ static void error(int line) {
 /* 2.1 Declaration of the fuzzy object classes. */
 
 /* 2.1.1 The wrapper class for java implementation of a fuzzy point */
-class CcFPoint{
+class CcFPoint: public StandardAttribute{
 public:
    CcFPoint();
+   CcFPoint(int size);
    CcFPoint(const jobject jobj);
    ~CcFPoint();
+   void Destroy();
    CcFPoint* Clone();
-   bool IsDefined();
+   bool IsDefined() const;
    void SetDefined(bool d);
+
+   size_t HashValue();
+
+   void CopyFrom(StandardAttribute* right);
+   int Compare(Attribute *arg);
+   bool Adjacent(Attribute * arg);
+   int NumOfFLOBs();
+   FLOB *GetFLOB(const int i);
+   void Initialize();
+
    jobject GetObject();
-   // the methods for operators
+    // the methods for operators
    CcFPoint* Add(CcFPoint* P);
    CcFPoint* AlphaCut(double alpha, bool strong);
    double BasicCard();
@@ -97,11 +112,32 @@ public:
    CcFPoint* Sharp();
    double Similar(CcFPoint* P);
    CcFPoint* Union(CcFPoint* P);
+
 private:
   jclass cls;  // pointer to the corresponding java class Point.
   jobject obj; // pointer to the corresponding instance
   bool defined;
-};
+  FLOB objectData;
+  bool canDelete;
+  void RestoreFLOBFromJavaObject();
+  void RestoreJavaObjectFromFLOB();
+  // for debugging only
+  void Print();
+
+ };
+
+
+void CcFPoint::Print(){
+   jmethodID mid = env->GetMethodID(cls,"print","()V");
+   if(mid == 0){
+       error(__LINE__);
+   }
+   env->CallVoidMethod(obj,mid);
+   cout << endl << "defined : " << defined << endl;
+   cout << "canDelete : " << canDelete << endl;
+   cout << "FLOB_SIZE :" << objectData.Size() << endl;
+}
+
 
 
 /*
@@ -112,7 +148,7 @@ class CcFLine{
      CcFLine(const jobject jobj);
      ~CcFLine();
      CcFLine* Clone();
-     bool IsDefined();
+     bool IsDefined() const;
      void SetDefined(bool d);
      jobject GetObject();
      ListExpr toListExpr();
@@ -126,7 +162,7 @@ class CcFLine{
      CcFPoint* Boundary();
      CcFPoint* CommonPoints(CcFLine * L);
      CcFLine* Difference(CcFLine* L);
-     //CcFLine*[] Faces(); 
+     //CcFLine*[] Faces();
      double ScaleFactor();
      CcFLine* Intersection(CcFLine* L);
      bool IsEmpty();
@@ -157,7 +193,7 @@ public:
    CcFRegion(const jobject jobj);
    ~CcFRegion();
    CcFRegion* Clone();
-   bool IsDefined();
+   bool IsDefined() const;
    void SetDefined(bool d);
    jobject GetObject();
    ListExpr toListExpr();
@@ -174,7 +210,7 @@ public:
    double BasicSimilar(const CcFRegion* R);
    CcFLine* Boundary();
    CcFLine* Contour();
-   CcFLine* CommonLines(const CcFRegion* R); 
+   CcFLine* CommonLines(const CcFRegion* R);
    CcFPoint* CommonPoints(const CcFRegion* R);
    CcFRegion* Difference(const CcFRegion* R);
    //bool Equals(CcFRegion* R);
@@ -196,10 +232,10 @@ public:
    double Similar(const CcFRegion* R);
    // M9Int TopolRelation ???
    CcFRegion* Union(CcFRegion* R);
-  
+
 private:
   jclass cls;  // pointer to the corresponding java class FRegion.
-  jobject obj; // pointer to the corresponding instance 
+  jobject obj; // pointer to the corresponding instance
   bool defined;
 };
 
@@ -211,45 +247,166 @@ private:
 
 /* 2.2.1 Definition of Point functions */
 
-/* Standard constructor. */
-CcFPoint::CcFPoint() {
-  jmethodID mid;
+/* Standard constructor.
+ *  This Constructor should not be used directly.
+ *  Its invoked by the persistent storing mechanism.
+ *  When invoked the FLOB already exists. From the given Flob the
+ *  Java-Object is to constructed.
+ */
+CcFPoint::CcFPoint() {}
 
+
+CcFPoint::CcFPoint(const int size):objectData(size),canDelete(false){}
+
+
+
+/* restores the java object from FLOB
+ * the FLOB must be exist
+ */
+void CcFPoint::RestoreFLOBFromJavaObject(){
+  cout << "enter function RestoreFLOBFromJavaObject" << endl;
+  jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
+  if(mid == 0){
+     error(__LINE__);
+  }
+  jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,mid);
+  if(jbytes == 0){
+       error(__LINE__);
+  }
+  int size = env->GetArrayLength(jbytes);
+  char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
+  objectData.Resize(size);
+  objectData.Put(0,size,bytes);
+  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+  defined=true;
+  cout << "leave function RestoreFLOBFromJavaObject" << endl;
+}
+
+
+/* creates the content of a FLOB from the given Java-Object
+ */
+void CcFPoint::RestoreJavaObjectFromFLOB(){
+   cout << "enter function void CcFPoint::RestoreJavaObjectFromFLOB" << endl;
+   // read the data from flob
+   cls = env->FindClass("fuzzyobjects/composite/FPoint");
+   if (cls == 0) {
+    error(__LINE__);
+  }
+   if(&objectData == 0){
+       defined=false;
+       return;
+   }
+   cout << "flob is ok " << endl;
+   int size = objectData.Size();
+   cout << "size of flob is " << size << endl;
+   char *bytes = new char[size];
+   cout << "before reading data " << endl;
+   objectData.Get(0,size,bytes);
+   cout << "after reading data " << endl;
+  // copy the data into a java-array
+  jbyteArray jbytes = env->NewByteArray(size);
+  env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
+  jmethodID mid = env->GetStaticMethodID(cls,"readFrom","([B)Lfuzzyobjects/composite/FPoint;");
+  if(mid == 0){
+     error(__LINE__);
+  }
+  jobject jres = env->CallStaticObjectMethod(cls,mid,jbytes);
+  if(jres == 0){
+     error(__LINE__);
+  }
+  obj = jres;
+  defined = true;
+  cout << "object created" << endl;
+  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+  delete [] bytes;
+  Print();
+
+  cout << "leave function void CcFPoint::RestoreJavaObjectFromFLOB" << endl;
+}
+
+
+
+/* construct a new CcFpoint from a given jobject */
+CcFPoint::CcFPoint(const jobject jobj):objectData(1){
+  cout << "enter constructor CcFPoint::CcFPoint(const jobject jobj)" << endl;
   /* Find the class Point. */
+  canDelete = false;
   cls = env->FindClass("fuzzyobjects/composite/FPoint");
   if (cls == 0) {
     error(__LINE__);
   }
-
-  /* Get the method ID of the constructor which takes no parameters. */
-  mid = env->GetMethodID(cls, "<init>", "()V");
-  if (mid == 0) {
-    error(__LINE__);
-  }
-  
-  /* Create a Java-object FPoint. */
-  obj = env->NewObject(cls, mid);
-  if (obj == 0) {
-    error(__LINE__);
-  }  
-  defined = true;
-}
-
-/* construct a new CcFpoint from a given jobject */
-CcFPoint::CcFPoint(const jobject jobj){
-  /* Find the class Point. */
-  cls = env->FindClass("fuzzyobjects/composite/FPoint");  
-  if (cls == 0) {
-    error(__LINE__);
-  }
   obj = jobj;
-  defined=true;
+  // create the corresponding FLOB
+  RestoreFLOBFromJavaObject();
+  defined = true;
+  cout << "leave constructor CcFPoint::CcFPoint(const jobject jobj)" << endl;
 }
 
 
-/* Destructor of a CcFPoint. Deletes the corresponding java object. */ 
+/* Destructor of a CcFPoint. Deletes the corresponding java object. */
 CcFPoint::~CcFPoint(){
-  env->DeleteLocalRef(obj);
+  if(canDelete){
+     env->DeleteLocalRef(obj);
+     Destroy();
+  }
+}
+
+void CcFPoint::Destroy(){
+  canDelete=true;
+}
+
+
+
+
+size_t CcFPoint::HashValue(){
+  jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
+  if(mid == 0){
+     error(__LINE__);
+  }
+  return (size_t) env->CallIntMethod(obj,mid);
+}
+
+
+void CcFPoint::CopyFrom(StandardAttribute* right){
+   cout << "enter CopyFrom" << endl;
+   CcFPoint *P = (CcFPoint *)right;
+   cls = env->FindClass("fuzzyobjects/composite/FPoint");
+   defined = P->defined;
+   objectData.Resize(P->objectData.Size());
+   char *data = new char[P->objectData.Size()];
+   P->objectData.Get(0,P->objectData.Size(),data);
+   objectData.Put(0,P->objectData.Size(),data);
+   delete [] data;
+   RestoreJavaObjectFromFLOB();
+}
+
+
+int CcFPoint::Compare(Attribute * arg){
+  jmethodID mid = env->GetMethodID(cls,"compareTo","(Lfuzzyobjects/compositte/FPoint;)I");
+  if(mid == 0){
+      error(__LINE__);
+  }
+  CcFPoint *P = (CcFPoint *) arg;
+  return env->CallIntMethod(obj,mid,P->obj);
+}
+
+
+bool CcFPoint::Adjacent(Attribute * arg){
+   return false;
+}
+
+int CcFPoint::NumOfFLOBs(){
+  return 1;
+}
+
+FLOB *CcFPoint::GetFLOB(const int i){
+   assert(i==0);
+      return &objectData;
+}
+
+void CcFPoint::Initialize() {
+  cout << "CcFPoint::Initialize" << endl;
+  RestoreJavaObjectFromFLOB();
 }
 
 /* returns the jobject to manage */
@@ -257,7 +414,7 @@ jobject CcFPoint::GetObject(){
   return obj;
 }
 
-bool CcFPoint::IsDefined(){
+bool CcFPoint::IsDefined() const{
   return defined;
 }
 
@@ -268,12 +425,13 @@ void CcFPoint::SetDefined(bool d){
 
 /* returns a clone of this CcFPoint */
 CcFPoint* CcFPoint::Clone(){
+  cout << "enter Clone()" << endl;
   jmethodID mid;
-  jobject jobj; 
+  jobject jobj;
 
   mid=env->GetMethodID(cls,"copy","()Lfuzzyobjects/composite/FPoint;");
   if(mid==0) error(__LINE__);
-  
+
   jobj = env->CallObjectMethod(obj,mid);
   if(jobj==0) error(__LINE__);
 
@@ -283,7 +441,7 @@ CcFPoint* CcFPoint::Clone(){
 
 /* The operator functions for a fpoint.
    The documentation for this operators you can find
-   in the java implementation or in 
+   in the java implementation or in
    Modellierung,Implementierung und Visualisierung unscharfer
    r"aumlicher Objekte. */
 
@@ -293,7 +451,7 @@ CcFPoint* CcFPoint::Add(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 }
 
 CcFPoint* CcFPoint::AlphaCut(double alpha, bool strong){
@@ -301,14 +459,14 @@ CcFPoint* CcFPoint::AlphaCut(double alpha, bool strong){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,alpha,strong);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);                                    
+  return new CcFPoint(res);
 }
 
 double CcFPoint::BasicCard(){
   jmethodID mid = env->GetMethodID(cls,"basicCard","()D");
   if(mid==0) error(__LINE__);
   jdouble res = env->CallDoubleMethod(obj,mid);
-  return res; 
+  return res;
 }
 
 double CcFPoint::BasicSimilar(CcFPoint* P){
@@ -331,7 +489,7 @@ CcFPoint* CcFPoint::Difference(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 }
 
 double CcFPoint::ScaleFactor(){
@@ -347,7 +505,7 @@ CcFPoint* CcFPoint::Intersection(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 }
 
 bool CcFPoint::IsEmpty(){
@@ -361,7 +519,7 @@ double CcFPoint::MaxValue(){
   jmethodID mid = env->GetMethodID(cls,"maxZ","()D");
   if(mid==0) error(__LINE__);
   jdouble res = env->CallDoubleMethod(obj,mid);
-  return res; 
+  return res;
 }
 
 
@@ -369,7 +527,7 @@ double CcFPoint::MinValue(){
   jmethodID mid = env->GetMethodID(cls,"minZ","()D");
   if(mid==0) error(__LINE__);
   jdouble res = env->CallDoubleMethod(obj,mid);
-  return res; 
+  return res;
 }
 
 
@@ -409,7 +567,7 @@ CcFPoint* CcFPoint::ScaledDifference(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 }
 
 
@@ -602,26 +760,6 @@ static ListExpr FTriangleToListExpr(jobject obj){
 
 /* convert the CcFLine to ListExpr */
 ListExpr CcFLine::toListExpr(){
- /*
-   // the old implementation using java conversion 
-   jmethodID mid;
-   char* jnlstr;
-   jstring jnljstr;
-   string cppstr;
-   ListExpr le;
-   bool success;
-   mid=env->GetMethodID(cls,"toListString","()Ljava/lang/String;");
-   if(mid==0) error(__LINE__);
-   jnljstr =(jstring) env->CallObjectMethod(obj,mid);
-   if(jnljstr==0) error(__LINE__);
-   jnlstr=(char *)env->GetStringUTFChars(jnljstr,0);
-   if(jnlstr==0) error(__LINE__);
-   cppstr=jnlstr;
-   success=nl->ReadFromString(cppstr,le);
-   if(!success) error(__LINE__);
-   return le; 
- */
-  // the new cpp implementation
    jmethodID mid;
    mid = env->GetMethodID(cls,"getSF","()D");
    if(mid==0) error(__LINE__);
@@ -702,8 +840,8 @@ jobject CcFLine::GetObject(){
    return obj;
 }
 
-bool CcFLine::IsDefined(){
-  return IsDefined();
+bool CcFLine::IsDefined() const{
+  return defined;
 }
 
 void CcFLine::SetDefined(bool d){
@@ -851,7 +989,7 @@ double CcFLine::MinValueAt(double x, double y){
 double CcFLine::MinValue(){
   jmethodID mid = env->GetMethodID(cls,"minZ","()D");
   if(mid==0) error(__LINE__);
-  return env->CallDoubleMethod(obj,mid); 
+  return env->CallDoubleMethod(obj,mid);
 }
 
 CcFLine* CcFLine::ScaledAdd(CcFLine* L){
@@ -861,7 +999,7 @@ CcFLine* CcFLine::ScaledAdd(CcFLine* L){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,L->obj);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 CcFLine* CcFLine::ScaledDifference(CcFLine* L){
@@ -871,7 +1009,7 @@ CcFLine* CcFLine::ScaledDifference(CcFLine* L){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,L->obj);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 CcFLine* CcFLine::ScaledIntersection(CcFLine* L){
@@ -881,7 +1019,7 @@ CcFLine* CcFLine::ScaledIntersection(CcFLine* L){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,L->obj);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 CcFLine* CcFLine::ScaledUnion(CcFLine* L){
@@ -891,7 +1029,7 @@ CcFLine* CcFLine::ScaledUnion(CcFLine* L){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,L->obj);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 CcFLine* CcFLine::Sharp(){
@@ -900,7 +1038,7 @@ CcFLine* CcFLine::Sharp(){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 double CcFLine::Similar(CcFLine* L){
@@ -916,7 +1054,7 @@ CcFLine* CcFLine::Union(CcFLine* L){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,L->obj);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 
@@ -1003,8 +1141,8 @@ bool CcFRegion::readFromListExpr(ListExpr LE){
   // remove all objects from the FRegion
   jmethodID mid = env->GetMethodID(cls,"clear","()V");
   if(mid==0) error(__LINE__);
-  env->CallVoidMethod(obj,mid);  
-  
+  env->CallVoidMethod(obj,mid);
+
   // set the factor
   mid = env->GetMethodID(cls,"setSF","(D)Z");
   if(mid==0) error(__LINE__);
@@ -1037,7 +1175,7 @@ jobject CcFRegion::GetObject(){
 }
 
 /*return true if the CcFRegion is defined*/
-bool CcFRegion::IsDefined(){
+bool CcFRegion::IsDefined() const{
    return defined;
 }
 
@@ -1305,41 +1443,6 @@ CcFRegion* CcFRegion::Union(CcFRegion* R){
 
 /* get the list representation of a FPoint */
 static ListExpr OutFPoint( ListExpr typeInfo, Word value ){
-/*
-   // use java function
-  CcFPoint* ccfpoint;
-  ccfpoint = (CcFPoint*)(value.addr);
-  jclass cls;
-  jmethodID mid;
-  char* jnlstr;
-  jstring jnljstr;
-  string cppstr;
-  ListExpr le;
-  bool success;
-
-  cls = env->FindClass("fuzzyobjects/composite/FPoint");
-  if (cls == 0) error(__LINE__);
-
-  mid = env->GetMethodID(cls,"toListString","()Ljava/lang/String;");
-  if(mid==0) error(__LINE__);
-
-  jnljstr = (jstring) env->CallObjectMethod(ccfpoint->GetObject(),mid);
-  if(jnljstr==0) error(__LINE__);
-
-  // Get the c string of above java string
-  jnlstr = (char *)env->GetStringUTFChars(jnljstr, 0);
-  if (jnlstr == 0) error(__LINE__);
-
-  cppstr = jnlstr;
-
-  success=nl->ReadFromString(cppstr, le);
-
-  if(success==false) error(__LINE__);
-  return le;
-*/
-
-  // converting in c++
-
   CcFPoint* ccfpoint;
   ccfpoint = (CcFPoint*)(value.addr);
   jmethodID mid = env->GetMethodID(PointCls,"getSize","()I");
@@ -1374,7 +1477,7 @@ static ListExpr OutFPoint( ListExpr typeInfo, Word value ){
        Last = nl->Append(Last,fEPointToListExpr(NextPoint));
   }
    return nl->TwoElemList(nl->RealAtom(z),Points);
-  
+
 }
 
 
@@ -1385,66 +1488,7 @@ static Word InFPoint (const ListExpr typeInfo,
 		     ListExpr& errorInfo,
 		     bool& correct ) {
 
-/*
-  // a implementation using java function to convert
-  CcFPoint* newfpoint;
-  string  nlstr;
-  jstring jstr;
-  jmethodID mid;
-  jmethodID cons;
-  jclass cls;
-  jobject jfpoint;
-  jboolean success;
-  char* nlchar;
 
-  // we need a string representation for the ListExpr instance
-  if(nl->WriteToString(nlstr,instance)==false)
-    error(__LINE__);
-
-  nlchar = (char *)nlstr.c_str();
-
-  jstr = env->NewStringUTF(nlchar);
-  if (jstr == 0) error(__LINE__);
-
-
-  // Find the class FPoint.
-  cls = env->FindClass("fuzzyobjects/composite/FPoint");
-  if (cls == 0) {
-    error(__LINE__);
-  }
-
-  // Get the method ID of the constructor which takes no parameters.
-  cons = env->GetMethodID(cls, "<init>", "()V");
-  if (cons == 0) {
-    error(__LINE__);
-  }
-
-  // Create a Java-object FPoint.
-  jfpoint = env->NewObject(cls, cons);
-  if (jfpoint == 0) {
-    error(__LINE__);
-  }
-
-  // get the method id to read in a FPoint from a String
-  mid = env->GetMethodID(cls,"readFromListString","(Ljava/lang/String;)Z");
-  if(mid==0) error(__LINE__);
-
-  success=env->CallBooleanMethod(jfpoint,mid,jstr);
-
-  if(success==false){
-     // destroy the fpoint
-     env->DeleteLocalRef(jfpoint);
-     correct = false;
-     return SetWord(Address(0));
-  } else{
-    correct=true;
-    newfpoint = new CcFPoint(jfpoint);
-    return SetWord(newfpoint);
-  }
-
-*/  
-
-// converting in  cpp
   if (nl->ListLength(instance)!=2){  // error
      return SetWord(Address(0));
      correct = false;
@@ -1452,7 +1496,7 @@ static Word InFPoint (const ListExpr typeInfo,
 
   ListExpr Factor = nl->First(instance);
   ListExpr Points = nl->Second(instance);
- 
+
  if(nl->AtomType(Factor)!=RealType){
        correct=false;
        return SetWord(Address(0));
@@ -1464,17 +1508,17 @@ static Word InFPoint (const ListExpr typeInfo,
   if(mid==0) error(__LINE__);
   jobject FP = env->NewObject(PointCls,mid);
   if(FP==0) error(__LINE__);
-  
+
   mid = env->GetMethodID(PointCls,"setSF","(D)Z");
   if(mid==0) error(__LINE__);
   bool ok = env->CallBooleanMethod(FP,mid,z);
-   
+
       mid = env->GetMethodID(PointCls,"add","(Lfuzzyobjects/simple/fEPoint;)Z");
    if(mid==0) error(__LINE__);
 
    jobject NextPoint;
    ListExpr PL;  // list for a singe point
-   
+
    int count =0;
    while(ok & !nl->IsEmpty(Points)){
         PL = nl->First(Points);
@@ -1506,7 +1550,13 @@ static Word InFPoint (const ListExpr typeInfo,
 
 
 static Word CreateFPoint(const ListExpr typeInfo) {
-  return (SetWord(new CcFPoint()));
+  cout << "enter createFPoint" << endl;
+  jclass cls = env->FindClass("fuzzyobjects/composite/FPoint");
+  jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+  if(mid==0) error(__LINE__);
+  jobject FP = env->NewObject(PointCls,mid);
+  if(FP==0) error(__LINE__);
+  return (SetWord(new CcFPoint(FP)));
 }
 
 static void DeleteFPoint(Word &w) {
@@ -1523,12 +1573,16 @@ static Word CloneFPoint(const Word &w) {
   return SetWord(((CcFPoint *)w.addr)->Clone());
 }
 
+static void* CastFPoint( void* addr ) {
+  return new (addr) CcFPoint;
+}
+
 /* static functions needed by typconstructor for a Fline */
 
 static ListExpr OutFLine(ListExpr typeInfo,Word value){
   CcFLine* L;
   L = (CcFLine*)(value.addr);
-  return L->toListExpr();  
+  return L->toListExpr();
 }
 
 
@@ -1566,8 +1620,6 @@ static void CloseFLine(Word &w){
 static Word CloneFLine(const Word &w){
   return SetWord(((CcFLine *)w.addr)->Clone());
 }
-
-
 
 /* the static methods for FRegions needed by type constructor */
 
@@ -1643,7 +1695,7 @@ static ListExpr FPointProperty() {
 	    nl->StringAtom("-> DATA"),
 	    nl->StringAtom("fpoint"),
 	    nl->StringAtom("factor <fepointlist>"),
-	    nl->StringAtom("(20.4 ((0,0,0.5)(20,30,0.1)(-20,60,1.0))"))));
+	    nl->StringAtom("(20.4 ((0 0 0.5)(20 30 0.1)(-20 60 1.0))"))));
 }
 
 
@@ -1737,7 +1789,7 @@ TypeConstructor ccfpoint
  0,                // object save
  CloseFPoint,       // object close
  CloneFPoint,       // object clone
- DummyCast,        // cast function
+ CastFPoint,        // cast function
  SizeOfFPoint,     // Size of a point
  CheckPoint,       // kind checking function
  0,                // predef. pers. function for model

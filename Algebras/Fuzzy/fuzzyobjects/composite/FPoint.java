@@ -4,6 +4,7 @@ import fuzzyobjects.basic.*;
 import fuzzyobjects.simple.*;
 import java.util.Vector;
 import sj.lang.ListExpr;
+import java.io.*;
 
 /**
  * this class provides a implementation of
@@ -56,6 +57,7 @@ public fEPoint getPointAt(int index){
 public FPoint(double scale){
    feP = new SortedObjects();
    SF  = scale;
+   no++;
 }
 
 /**
@@ -94,6 +96,15 @@ public boolean isValid(){
  */
 public String toString(){
   return  "FPoint  (SF="+SF+")\n"+feP.toString();
+}
+
+
+/** prints out a representation of this FPoint to 
+  * the standard-oiutput
+  * it's for debuggng only 
+  */
+public void print(){
+   System.out.println(this);
 }
 
 
@@ -378,7 +389,7 @@ public BasicPoint[] basics() {
     for(int i=0;i<feP.getSize();i++)
       result[i] = (BasicPoint) ((fEPoint)feP.get(i)).basic();
    }
-     return result; 
+     return result;
 } // basics
 
 
@@ -739,7 +750,7 @@ private void processElements(fEPoint F1, double scale1,
                              FPoint Goal,
                              int Operator){
 
-// 1 input parameter can be null 
+// 1 input parameter can be null
 // if both fTriangles not null, then they must have the same basic
 
   if( F1==null & F2==null) return;
@@ -767,7 +778,7 @@ private void processElements(fEPoint F1, double scale1,
 
     case INTERSECTION :
                     {  if (F1==null | F2==null)
-                         ;  
+                         ;
                        else { // both are not null
                           Z = Math.min(F1.getZ(),F2.getZ());
                           newFEP = new fEPoint((BasicPoint)F1.basic(),Z);
@@ -807,7 +818,7 @@ private void processElements(fEPoint F1, double scale1,
 
       case SCALEDUNION    :
                       { fEPoint newfePoint;
-                        if (F1==null) 
+                        if (F1==null)
                           newfePoint = new fEPoint((BasicPoint)F2.basic(),
                                                     F2.getZ()*scale2);
                          else
@@ -822,7 +833,7 @@ private void processElements(fEPoint F1, double scale1,
                         Goal.add(newfePoint);
                       } break;   // scaled union
 
-     
+
       case SCALEDINTERSECTION :  if (F1==null || F2==null)
                                          ;
                                    else {
@@ -895,7 +906,7 @@ if(maxFromFP>0)
    FPFirst = (fEPoint) FP.feP.get(0);
 
 if (maxMy >0 && maxFromFP>0){
-   myFirst = (fEPoint) feP.get(my);    
+   myFirst = (fEPoint) feP.get(my);
    FPFirst = (fEPoint) FP.feP.get(fromFP);
    int compareResult;
 
@@ -924,7 +935,7 @@ if (maxMy >0 && maxFromFP>0){
                FPFirst = (fEPoint) FP.feP.get(fromFP);
            }
    } // while
-} // if 
+} // if
 
 // elements from one (or both) regions are processed
 
@@ -966,7 +977,7 @@ private void norm(){
  }
 
  if(Zmin > 0) Zmin=0;
- 
+
  if(Zmax==0 & Zmin==0)
     feP.makeEmpty();
  else{
@@ -1051,7 +1062,7 @@ M9Int basicTopolRelation(FPoint P2){
  int compareResult;
 
  boolean ready = false; // all possible intersections are true ?
- 
+
  while(currentThis<maxThis & currentP2<maxP2 & !ready){
    compareResult =  FirstThis.basic().compareTo(FirstP2.basic());
 
@@ -1397,6 +1408,17 @@ public boolean readFromListString(String List){
 }
 
 
+/** compares two FPoints */
+public int compareTo(FPoint P){
+   if(SF<P.SF)
+      return -1;
+   if(SF>P.SF)
+      return 1;
+   return feP.compareTo(P.feP);
+}
+
+
+
 /** read this FPoint from a ListExpr
   * @return true if LE is a valid Representaion of a FPoint
   * all valid Points of this List are insertet
@@ -1439,6 +1461,60 @@ public boolean readFromListExpr(ListExpr LE){
 }
 
 
+/** this method is used for reading a fuzzy point from a byte array;
+  * returns null if the construction of the object failed
+  */
+public static FPoint readFrom(byte[] buffer){
+   try{
+      ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+      FPoint res = (FPoint) ois.readObject();
+      ois.close();
+      return res;
+   } catch(Exception e){
+         return null;
+     }
+}
+
+
+/** this method serialized an object */
+public  byte[] writeToByteArray(){
+
+  try{
+     ByteArrayOutputStream byteout = new ByteArrayOutputStream(feP.getSize()*16+25);
+     ObjectOutputStream objectout = new ObjectOutputStream(byteout);
+     objectout.writeObject(this);
+     objectout.flush();
+     byte[] res = byteout.toByteArray();
+     objectout.close();
+     return  res;
+  } catch(Exception e){
+     return null;
+  }
+}
+
+/** computes a hash-value for this FPoint */
+public int getHashValue(){
+  return Math.abs((BB.getMaxX()-BB.getMinX())*(BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
+}
+
+
+/** save the byte representation of this object in a file, for debugging only */
+public void save(){
+  String FileName = "fpoint"+no;
+  try{
+     OutputStream out = new FileOutputStream(FileName);
+     byte[] content = writeToByteArray();
+     System.out.println("write "+content.length+" bytes to "+FileName);
+     for(int i=0;i<content.length;i++){
+         out.write(content[i]);
+     }
+     out.flush();
+     out.close();
+  }catch(Exception e){
+     System.out.println("error in writing fpoint");
+  }
+}
+
 
 // define constants for the operators
 private static final int UNION = 0;             // union based on max
@@ -1450,6 +1526,8 @@ private static final int SCALEDUNION=4;
 private static final int SCALEDINTERSECTION=5;
 private static final int SCALEDADD=6;
 private static final int SCALEDDIFFERENCE=7;
+
+private static int no = 0;
 
 
 } // FPoint;
