@@ -72,6 +72,14 @@ if [ $platform != "linux" ]; then
   msysdir="$instpath/msys/1.0"
   mingwdir="$instpath/mingw"
 
+  for xdir in $msysdir $mingwdir; do 
+    if [ ! -d $xdir ]; then
+       printf  "\n%s\n" "ERROR: Directory $xdir not found."
+       exit 1; 
+    fi
+  done
+
+
 else
 
   instpath=$HOME
@@ -105,11 +113,22 @@ sdk=$instpath/secondo-sdk
 temp=$HOME/temp-build
 build=$HOME/secondo
 
+
 printf "\n%s\n" "* Installation of the SECONDO DEVELOPMENT TOOLKIT" 
 printf "\n%s\n" "  Installation source: $cdpath"
 printf "%s\n"   "  Target for tools   : $sdk"
 printf "%s\n"   "  Target for SECONDO : $build"
 printf "%s\n"   "  Temporary directory: $temp"
+
+for xdir in "$sdk" "$sdk/pl" "$sdk/bin" "$temp" "$build"; do
+   
+  if [ -d $xdir ]; then
+    printf "\n%s\n" "WARNING: Directory $xdir already exists."
+  else
+    mkdir -p $xdir
+  fi
+done
+
 
 printf "\n%s\n" "This procedure will install various 3rd party tools on your computer."
 printf "%s\n"   "We assume that you have read the installation guide. What would you like to do now?"
@@ -125,26 +144,30 @@ done
 
 if [ "$installJava" == "true" ]; then 
 
-  printf "\n%s\n" "* Installing Java SDK ..."
+  printSep "Installing Java SDK ..."
   if [ "$platform" == "linux" ]; then
 
-    mkdir -p $sdk
-    mkdir -p $temp
-
-    cp $platformdir/java/j2sdk*.bin $temp
-    cd $temp && chmod u+x j2sdk*.bin
+    cp $cdpath/java/j2sdk*.bin $temp
+    chmod u+x $temp/j2sdk*.bin
     cd $sdk
     if { ! xterm -T "JAVA 2 Installer" -e $temp/j2sdk*.bin & }; then 
-       printf "\n%s\n" "Error: Could not start xterm, maybe you are not allowed to connect to the xhost!n"
+       printf "\n%s\n" "Error: Could not start xterm, maybe you are "
+       printf "%s\n"   "not allowed to connect to the xhost!"
     fi
 
   else
 
-    cd $platformdir/java
+    cd $cdpath/java
     j2sdk*windows*.exe
 
   fi  
 
+fi
+
+printSep "Uncompressing JCVS, a java cvs client ... "
+cd $sdk
+if { ! tar -xzf $cdpath/java/cvs/jcvs*.tgz; }; then
+  exit 4
 fi
 
 mkdir -p $temp
@@ -152,7 +175,7 @@ logfile="$temp/secondo-install.log"
 touch $logfile
 
 cd $HOME
-printf "\n\n* Uncompressing SECONDO source files ... \n"
+printSep "Uncompressing SECONDO source files ..."
 if { ! tar -xzf "$platformdir/secondo-${platform}.tgz"; }; then
   exit 3
 fi
@@ -164,21 +187,16 @@ if [ "$platform" != "linux" ]; then
   exit 
 fi
 
-cd "$temp"
-printf "\n* Uncompressing 3d-party tools ... \n"
+cd $temp
+printSep "\n* Uncompressing 3d-party tools ..."
 
 uncompressFolders "$platformdir/gnu" "$platformdir/non-gnu" "$platformdir/prolog"
-
-cd $sdk
-if { ! tar -xzf $cdpath/java/cvs/jcvs*.tgz; }; then
-  exit 4
-fi
 
 if { ! xterm -T "Installation Protocol" -e "tail -f $logfile" & }; then
   exit 5
 fi
 
-printf "\n* Compiling GCC ... this will take the most time ... \n"
+printSep "Compiling GCC ... this will take the most time ..."
 cd $temp/gcc-* && ./configure --prefix=$sdk >> $logfile 2>&1
 if { ! make bootstrap >> $logfile 2>&1; }; then
   printf "\n Error: Compiling GCC failed! \n"
@@ -189,37 +207,37 @@ export PATH=".:$sdk/bin:$PATH"
 printf "\n <PATH: $PATH> \n" >> $logfile
 gcc --version >> $logfile
 
-printf "\n* Compiling Berkeley-DB ... \n"
+printSep "Compiling Berkeley-DB ..."
 cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
 
-printf "\n* Compiling libncurses ... \n"
+printSep "Compiling libncurses ..."
 cd $temp/ncurses-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1 
 
-printf "\n* Compiling SWI-Prolog ... \n"
+printSep "Compiling SWI-Prolog ..."
 cd $temp/readline-* && ./configure --prefix=$sdk --with-curses >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
 cd $temp/pl-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
 
-printf "\n* Compiling flex and bison, the scanner and parser generators \n"
+printSep "Compiling flex and bison, the scanner and parser generators"
 cd $temp/flex-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
 cd $temp/bison-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
 
-printf "\n* Compiling JPEG library ... \n"
+printSep "Compiling JPEG library ..."
 cd $temp/jpeg-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1 && make install-lib >> $logfile 2>&1
 
-printf "\n* Compiling the make tool ... \n"
+printSep "Compiling the make tool ..."
 cd $temp/make-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1 
 
-printf  "\n* Copying configuration files ... \n"
+printSep "Copying configuration files ..."
 make SECONDO_SDK=$sdk -f makefile.cm update-environment
 
-printf  "\n\n* Proceed with the installation guide ... \n\n"
+printf  "\n\n%s\n\n" "* Proceed with the installation guide ..."
 
 exit

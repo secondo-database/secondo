@@ -63,9 +63,8 @@ ifndef tag
 tag=HEAD
 endif
 
-INSTALL_SCRIPTS := $(net)/install \
-		$(net)/winsetup.sh \
-		$(net)/libutil.sh
+INSTALL_SCRIPTS := $(net)/scripts/winsetup.sh \
+		$(net)/scripts/libutil.sh
 
 SRC_FILES := $(net)/windows/secondo-win32.tgz \
 		$(net)/linux/secondo-linux.tgz
@@ -74,7 +73,7 @@ INSTGUIDE_FILES := $(net)/Linux-Installation-Guide.pdf \
  		$(net)/Windows-Installation-Guide.pdf
  
 .PHONY: dist
-dist: tag-version $(SRC_FILES) $(INSTALL_SCRIPTS) $(INSTGUIDE_FILES)
+dist: tag-version $(net)/installsdk $(SRC_FILES) $(INSTALL_SCRIPTS) $(INSTGUIDE_FILES)
 
 SECONDO_DEMO = secondo-demo
 
@@ -119,19 +118,13 @@ else
 endif
 	rm -r secondo
 
-$(net)/install: $(SCRIPT_DIR)/install.bash
+$(net)/installsdk: $(SCRIPT_DIR)/install.bash
 	cp $< $@
-	chmod u+x $@
-ifeq ($(platform),win32)
-	recode lat1..cp1252 $@
-endif
+	chmod ugo+x $@
 
-$(net)/%.sh: $(SCRIPT_DIR)/%.sh
+$(net)/scripts/%.sh: $(SCRIPT_DIR)/%.sh
 	cp $< $@
-	chmod u+x $@
-ifeq ($(platform),win32)
-	recode lat1..cp1252 $@
-endif
+	chmod ugo+x $@
 
 $(net)/%.pdf: Documents/Installation/%.ps
 	ps2pdf $< $@
