@@ -230,13 +230,6 @@ public class DisplayGraph extends DsplGeneric
     return  extendString(AttrName,minTypeWidth) + " : " + extendString(Cat.getName(),minValueWidth);
   }
 
-  protected static String extendString(String S ,int MinWidth){
-   String R = new String(S);
-   int NoSpaces=MinWidth-R.length();
-   for(int i=0;i<NoSpaces;i++)
-      R = ' '+R;
-   return R;
-  }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   { minTypeWidth = typewidth;

@@ -38,13 +38,6 @@ public class Dsplreal extends DsplGeneric implements DsplSimple{
      return;
   }
 
-  private String extendString(String S ,int MinWidth){
-   String R = new String(S);
-   int NoSpaces=MinWidth-R.length();
-   for(int i=0;i<NoSpaces;i++)
-      R = ' '+R;
-   return R;
-  }
 
 }
 
