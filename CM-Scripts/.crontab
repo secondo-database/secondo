@@ -1,0 +1,11 @@
+# Building SECONDO from Scratch
+00 5 * * * ./bin/cvs-make.sh SNAPSHOT
+
+# Correcting access properties for new created directories
+# and files
+00 0,6,8,10,12,14,16,18,20 * * * chgrp -R cvs-dipl /var/lock/cvs/secondo
+00 0,6,8,10,12,14,16,18,20 * * * chgrp -R cvs-dipl /var/lock/cvs/secondo-data
+
+# Backup /home/cvsroot
+00 6 * * 2,3,4,5,6 ./bin/cvs-backup.sh incremental 
+45 5 * * 1 ./bin/cvs-backup.sh complete 
