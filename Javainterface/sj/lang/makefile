@@ -1,4 +1,4 @@
-# Filename: SecondoJava/sj/lang/makefile 
+# Filename: SecondoJava/sj/lang/makefile
 #
 # Last change: Oct. 2002, M. Spiekermann
 
@@ -7,7 +7,7 @@ include ../../makejava.inc
 all: Java_ListExpr langClasses
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
-             ESInterface.class ListExpr.class
+             ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class
 
 Java_ListExpr:
 	(cd JavaListExpr; make all)

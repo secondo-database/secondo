@@ -16,8 +16,6 @@ package sj.lang;
 import java.net.*;
 import java.io.*;
 import java.util.StringTokenizer;
-import extern.fileio.*;
-import extern.binarylist.*;
 
 /*
 
@@ -80,8 +78,6 @@ not accessible by the user code.
   protected Socket serverSocket;
   // flag for binary reading lists from Server
   private boolean binaryLists = false;
-  // object to read binary lists
-  private BinaryList BNL = new BinaryList();
   // Connection's input reader (from secondoServerSocket).
   private MyDataInputStream inSocketStream;
   // Connection's output writer (to secondoServerSocket).
@@ -99,6 +95,15 @@ not accessible by the user code.
     {
       terminate();
     }
+  }
+
+  /* switch for using binary or textual list format */
+  public void useBinaryLists(boolean ubl){
+     binaryLists=ubl;
+     if(ubl)
+        System.out.println("use binary lists");
+     else
+        System.out.println("use textual lists");
   }
 
   public boolean initialize( String user, String pswd,
@@ -510,6 +515,7 @@ If value 0 is returned, the command was executed without error.
 	boolean ok = true;
         try {
 	  if(!binaryLists){
+	     long t1 = System.currentTimeMillis();
              do {
                line = inSocketStream.readLine();
 	       if(line!=null){
@@ -524,10 +530,23 @@ If value 0 is returned, the command was executed without error.
                }
              } while (ok && line.compareTo( "</SecondoResponse>" ) != 0);
 	     answerList.readFromString( result );
+	     long t  = System.currentTimeMillis()-t1;
+	     System.out.println("receive and building a nested list (textual) : "+t+" milliseconds");
 	  } else{ // read list binary
-             answerList = BNL.readBinaryFrom(inSocketStream);
-	     if(answerList==null)
+	     long t1 = System.currentTimeMillis();
+	     answerList = ListExpr.readBinaryFrom(inSocketStream);
+	    if(answerList==null){
+	       System.out.println("SecondoInterface: Error in reading binary list");
 	       throw new IOException();
+	     }
+	     line = inSocketStream.readLine();
+	     if(!line.equals("</SecondoResponse>")){
+	        System.out.println("SecondoInterface: Missing </SecondoResponse>");
+		throw new IOException();
+	     }
+	     long t = System.currentTimeMillis()-t1;
+	     System.out.println("receive and building a nested list (binary) :"+t+" milliseconds");
+
 	  }
           errorCode.value = answerList.first().intValue();
           errorPos.value  = answerList.second().intValue();

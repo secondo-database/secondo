@@ -3,7 +3,7 @@
 //paragraph	[10]	title:		[\centerline{\Large \bf] [}]
 
 [10] ServerErrorCodes.java
-  
+
 November 3, 1998. Jose Antonio Cotelo Lema, Miguel Rodriguez Luaces.
 
 \tableofcontents
@@ -14,7 +14,7 @@ November 3, 1998. Jose Antonio Cotelo Lema, Miguel Rodriguez Luaces.
 /*
 1 Overview.
 
-This static class translates the error codes received from the server to one 
+This static class translates the error codes received from the server to one
 string with the appropiated error message text. To change the messages related with each error code of SecondoInterface only this class needs to be modified.
 
 It is part of the package:
@@ -64,7 +64,7 @@ The following public fields are defined in the ServerErrorCodes class.
     public static final int NOT_DB_NAME_CODE = 25;
     public static final int FILE_WRITE_ERROR_CODE = 26;
     public static final int FILE_READ_ERROR_CODE = 28;
-    // This two error codes were defined in addition to the error codes 
+    // This two error codes were defined in addition to the error codes
     // returned by the Secondo Server.
     public static final int NETWORK_ERROR_CODE = 98;
     public static final int INTERNAL_ERROR_CODE = 99;
@@ -89,10 +89,10 @@ None private fields are defined in the ServerErrorCodes class.
 
  This constructor creates a new ServerErrorCodes object.
 
-*/ 
+*/
     public ServerErrorCodes(){
       // it has nothing to do.
-    }   
+    }
 
 /*
 3.4 The ~static~ statement.
@@ -128,30 +128,33 @@ None private fields are defined in the ServerErrorCodes class.
       errors.setElementAt("Error in the list structure in the file. ",29);
       errors.setElementAt("Command not yet implemented. ",30);
       errors.setElementAt("Command level not yet implemented. ",31);
-      errors.setElementAt( "Error in type definition. ",40);  // (40 i) 	      
-      errors.setElementAt( "Type name doubly defined. ",41);   // 	(41 i n)      
-      errors.setElementAt("Error in type expression. ",42);   // 	(42 i n)      
-      errors.setElementAt("Error in object definition. ",50);   //	(50 i)	      
-      errors.setElementAt( "Object name doubly defined. ",51);   //	(51 i n)      
-      errors.setElementAt("Wrong type expression for object. ",52);   //	(52 i n)      
+      errors.setElementAt( "Error in type definition. ",40);  // (40 i)
+      errors.setElementAt( "Type name doubly defined. ",41);   // 	(41 i n)
+      errors.setElementAt("Error in type expression. ",42);   // 	(42 i n)
+      errors.setElementAt("Error in object definition. ",50);   //	(50 i)
+      errors.setElementAt( "Object name doubly defined. ",51);   //	(51 i n)
+      errors.setElementAt("Wrong type expression for object. ",52);   //	(52 i n)
       errors.setElementAt("Wrong list representation for object. ",53);   // (53 i n)
-      errors.setElementAt("Kind does not match type expression. ", 60);   //	(60 k t)      
-      errors.setElementAt("Specific kind checking error for kind. ",61);   //	(61 k j ...)  
-      errors.setElementAt("Value list is not a representation for type constructor. ",70);   //	(70 tc v)     
-      errors.setElementAt("Specific error for type constructor in value list. ",71);   //	(71 tc j ...) 
-      errors.setElementAt("Value list is not a representation for type constructor. ", 72);   //	(72 tc)       
+      errors.setElementAt("Kind does not match type expression. ", 60);   //	(60 k t)
+      errors.setElementAt("Specific kind checking error for kind. ",61);   //	(61 k j ...)
+      errors.setElementAt("Value list is not a representation for type constructor. ",70);   //	(70 tc v)
+      errors.setElementAt("Specific error for type constructor in value list. ",71);   //	(71 tc j ...)
+      errors.setElementAt("Value list is not a representation for type constructor. ", 72);   //	(72 tc)
       errors.setElementAt("Error at a position within value list for type constructor. ", 73);   //	(73 pos)
 
-      // This two error codes were defined in addition to the error codes 
+      // This two error codes were defined in addition to the error codes
       // returned by the Secondo Server.
-      errors.setElementAt("Network error in SecondoInterface. ", 98); 
+      errors.setElementAt("Network error in SecondoInterface. ", 98);
       errors.setElementAt("Internal error in SecondoInterface.", 99);
       errors.setElementAt("Secondo protocol error.",80);
       errors.setElementAt("Connection to Secondo server lost.",81);
+      
+      // error code for the list algebra xxx operator
+      errors.setElementAt("Algebra not know or currently not included",85);
 
     }
-    
-  
+
+
 /*
 
 3.5 Public methods.

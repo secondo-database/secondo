@@ -70,6 +70,8 @@ import  java.io.Reader;
 import  java.io.Writer;
 import  java.io.IOException;
 import  java.io.FileNotFoundException;
+import  java.io.OutputStream;
+import  java.io.InputStream;
 
 /* From the Cup (parser builder) utilities */
 import  java_cup.runtime.*;
@@ -93,7 +95,27 @@ public class ListExpr extends Object {
   public final static int STRING_ATOM = 4;      // String atom.
   public final static int SYMBOL_ATOM = 5;      // Symbol atom.
   public final static int TEXT_ATOM = 6;        // Text atom.
-  /*
+
+  // Types for binary writing
+  public final static int BIN_LONGLIST = 0;
+  public final static int BIN_INTEGER  = 1;
+  public final static int BIN_REAL = 2;
+  public final static int BIN_BOOLEAN = 3;
+  public final static int BIN_LONGSTRING = 4;
+  public final static int BIN_LONGSYMBOL = 5;
+  public final static int BIN_LONGTEXT = 6;
+  public final static int BIN_LIST = 10;
+  public final static int BIN_SHORTLIST = 11;
+  public final static int BIN_SHORTINT  = 12;
+  public final static int BIN_BYTE = 13;
+  public final static int BIN_STRING = 14;
+  public final static int BIN_SHORTSTRING = 15;
+  public final static int BIN_SYMBOL= 16;
+  public final static int BIN_SHORTSYMBOL = 17;
+  public final static int BIN_TEXT = 18;
+  public final static int BIN_SHORTTEXT=19;
+    
+    /*
    3.2 Private fields.
    The following private fields are defined, and hence they can be accessed only
    by the code belonging to this class.
@@ -164,7 +186,7 @@ public class ListExpr extends Object {
 
   /*
    3.4.3 The cons() method.
-   This method construct a new ListExpr which is the union of the argument lists (being 
+   This method construct a new ListExpr which is the union of the argument lists (being
    ~left~ and ~right~ the left and right part respectively) and returns it.
    *Preconditions:*
    ~right~ can not be an Atom.
@@ -244,7 +266,7 @@ public class ListExpr extends Object {
 
   /*
    3.4.8 The endOfList() method.
-   This method returns true if this ListExpr object is the end of a list, is 
+   This method returns true if this ListExpr object is the end of a list, is
    not an atom and is not empty. Returns false otherwise.
    */
   public boolean endOfList () {
@@ -313,7 +335,7 @@ public class ListExpr extends Object {
    * @param chars
    * @param identation
    */
-  private final static void writeListExprAppeningToString (ListExpr list, StringBuffer chars, 
+  private final static void writeListExprAppeningToString (ListExpr list, StringBuffer chars,
       String identation) {
     /*
      This method is implemented to improve the performance of the implementation
@@ -412,7 +434,7 @@ public class ListExpr extends Object {
    object what is identical to this ListExpr but without the first element. The
    result can be an empty list.
    *Preconditions:* this ListExpr object can not be an atom and can not be
-   empty. 
+   empty.
    */
   public ListExpr rest () {
     ListExpr result = new ListExpr();
@@ -431,7 +453,7 @@ public class ListExpr extends Object {
    this ListExpr object.
    It returns 0 if reading was succesful. Otherwise, returns READ\_FROM\_FILE\_ERROR (-1) if the file
    could not be accessed, or the line number in the file where an error was
-   detected. 
+   detected.
    */
   public int readFromFile (String fileName) {
     FileReader inputReader;
@@ -448,7 +470,7 @@ public class ListExpr extends Object {
         // If the parser returns a null value, then an error was detected
         // when parsing the input.
         if (this.DEBUG_MODE) {
-          System.err.println("DEBUG MODE: Error in line " + parser.linePos + 
+          System.err.println("DEBUG MODE: Error in line " + parser.linePos +
               " when parsing input file in ReadFromFile()");
         }
         // It returns the line number where the error was detected.
@@ -514,10 +536,10 @@ public class ListExpr extends Object {
   }
 
   /*
-   This method is implemented to support the implementation of the ~writeToFile~ 
-   method. 
+   This method is implemented to support the implementation of the ~writeToFile~
+   method.
    */
-  private final static void recursiveWriteToFile (ListExpr list, Writer file, 
+  private final static void recursiveWriteToFile (ListExpr list, Writer file,
       String identation) throws IOException {
     String separator = " ";
     boolean hasSubLists = false;
@@ -588,6 +610,389 @@ public class ListExpr extends Object {
   }
   ;             // End writeAppeningToString();
 
+
+
+
+  /*
+   3.4.151 The writeBinaryTo() method.
+   This method writes this ListExpr object to outputstream os in binary format.
+   Returns true if writing was sucessful, false if the list could not be written
+   properly.
+  */
+
+  public boolean writeBinaryTo(OutputStream OS){
+  if(OS==null)
+     return false;
+  MyDataOutputStream   DOS=null;
+  try{
+     DOS = new MyDataOutputStream(OS);
+     DOS.writeString("bnl");
+     DOS.writeShort(1);
+     DOS.writeShort(1);
+     boolean ok = writeBinaryRec(this,DOS);
+     DOS.close();
+     return ok;
+   } catch(Exception e){
+     if(DEBUG_MODE)
+        e.printStackTrace();
+     try{DOS.close();}catch(Exception e1){}
+     return false;
+   }
+}
+
+
+/* This method is implemented to support the implementation of the ~writeBinaryTo~
+   method.
+   */
+private static boolean writeBinaryRec(ListExpr LE, MyDataOutputStream OS){
+   byte T = LE.getBinaryType();
+   if(T<0){
+      if(DEBUG_MODE)
+        System.err.println("unknow Listtype in writeBinaryRec");
+      return false;
+   }
+
+   try{
+      switch(T){
+          case BIN_BOOLEAN      : { OS.writeByte(T);
+   	                           boolean b = LE.boolValue();
+			           byte value =(byte) (b?1:0);
+			           OS.writeByte(value);
+			           return true;
+			          }
+	  case BIN_INTEGER      : {OS.writeByte(T);
+	                           int value = LE.intValue();
+			           OS.writeInt(value);
+			           return true;
+			          }
+	  case BIN_SHORTINT     : {OS.writeByte(T);
+	                           short value = (short) LE.intValue();
+			           OS.writeShort(value);
+			           return true;
+			          }
+	  case BIN_BYTE         : {OS.writeByte(T);
+	                            byte value = (byte) LE.intValue();
+			            OS.writeByte(value);
+			            return true;
+			           }
+
+	  case BIN_REAL         :  {OS.writeByte(T);
+	                            float value = LE.realValue();
+			            OS.writeReal(value);
+			            return true;
+			           }
+	  case BIN_SHORTSTRING  :  {OS.writeByte(T);
+	                            String value = LE.stringValue();
+			            OS.writeByte((byte)value.length());
+			            OS.writeString(value);
+			            return true;
+			           }
+          case BIN_STRING       :  {OS.writeByte(T);
+	                            String value = LE.stringValue();
+			            OS.writeShort((short)value.length());
+			            OS.writeString(value);
+			            return true;
+			           }
+          case BIN_LONGSTRING   :  {OS.writeByte(T);
+	                            String value = LE.stringValue();
+			            OS.writeInt(value.length());
+			            OS.writeString(value);
+			            return true;
+			           }
+
+	  case BIN_SHORTSYMBOL  :  {OS.writeByte(T);
+	                            String value = LE.symbolValue();
+			            OS.writeByte((byte)value.length());
+			            OS.writeString(value);
+			            return true;
+			           }
+          case BIN_SYMBOL       :  {OS.writeByte(T);
+	                            String value = LE.symbolValue();
+			            OS.writeShort((short)value.length());
+			            OS.writeString(value);
+			            return true;
+			           }
+
+          case BIN_LONGSYMBOL   :  {OS.writeByte(T);
+	                            String value = LE.symbolValue();
+			            OS.writeInt(value.length());
+			            OS.writeString(value);
+			            return true;
+			           }
+
+	  case BIN_SHORTTEXT    :  {OS.writeByte(T);
+	                            String value = LE.textValue();
+			            int L = value.length();
+			            OS.writeByte((byte)L);
+			            OS.writeString(value);
+			            return true;
+			            }
+          case BIN_TEXT         :  {OS.writeByte(T);
+	                            String value = LE.textValue();
+			            int L = value.length();
+			            OS.writeShort((short)L);
+			            OS.writeString(value);
+			            return true;
+			            }
+          case BIN_LONGTEXT    :  {OS.writeByte(T);
+	                            String value = LE.textValue();
+			            int L = value.length();
+			            OS.writeInt(L);
+			            OS.writeString(value);
+			            return true;
+			            }
+
+
+	  case BIN_SHORTLIST    : { OS.writeByte(T);
+	                            int length = LE.listLength();
+			            OS.writeByte((byte)length);
+                                    while(!LE.isEmpty()){
+                                       if(! writeBinaryRec(LE.first(),OS)) // error in writing sublist
+			                  return false;
+                                       LE=LE.rest();
+			            }
+                                    return true;
+	                           }
+          case BIN_LIST         : { OS.writeByte(T);
+	                            int length = LE.listLength();
+			            OS.writeShort((short)length);
+                                    while(!LE.isEmpty()){
+                                       if(! writeBinaryRec(LE.first(),OS)) // error in writing sublist
+			                  return false;
+                                       LE=LE.rest();
+			            }
+                                    return true;
+	                           }
+          case BIN_LONGLIST     : { OS.writeByte(T);
+	                            int length = LE.listLength();
+			            OS.writeInt(length);
+                                    while(!LE.isEmpty()){
+                                       if(! writeBinaryRec(LE.first(),OS)) // error in writing sublist
+			                  return false;
+                                       LE=LE.rest();
+			            }
+                                    return true;
+	                           }
+
+	  default      : return false;
+      }
+   }
+   catch(Exception e){
+     if(DEBUG_MODE)
+        e.printStackTrace();
+     return false;
+   }
+}
+
+
+/*
+   This method is implemented to support the implementation of the ~writeBinaryTo~
+   method.
+   */
+private  byte getBinaryType(){
+int AT = atomType();
+/* if(true)  // use version 1.0 for binary lists
+   return (byte) AT; */
+
+switch(AT){
+  case BOOL_ATOM    : return  BIN_BOOLEAN;
+  case INT_ATOM     :  { int v = intValue();
+                         if(v>=-127 & v<=128)
+			    return BIN_BYTE;
+			 if(v>=-32767 & v<=32768)
+			    return BIN_SHORTINT;
+			 return BIN_INTEGER;
+		       }
+  case REAL_ATOM    : return BIN_REAL;
+  case SYMBOL_ATOM  : { int len = symbolValue().length();
+                        if(len<256)
+			   return BIN_SHORTSYMBOL;
+			if(len<65536)
+			   return BIN_SYMBOL;
+			return BIN_LONGSYMBOL;
+                      }
+  case STRING_ATOM  : {  int len = stringValue().length();
+                         if(len<256)
+			    return BIN_SHORTSTRING;
+			 if(len<65536)
+			    return BIN_STRING;
+			 return BIN_LONGSTRING;
+		       }
+  case TEXT_ATOM    : { int len = textValue().length();
+                        if(len<256)
+			   return BIN_SHORTTEXT;
+			if(len<65536)
+			   return BIN_TEXT;
+			return BIN_LONGTEXT;}
+  case NO_ATOM       : {int len = listLength();
+                        if(len<256)
+			  return BIN_SHORTLIST;
+			if(len<65536)
+			   return BIN_LIST;
+			return BIN_LONGLIST;
+			}
+  default : return (byte) -1;
+}
+
+}
+
+
+  /*
+   3.4.152 The readBinaryFrom() method.
+   This method read a ListExpr from inputstream in.
+   If an error is occurred nul is returned.
+  */
+public static ListExpr readBinaryFrom(InputStream In){
+ try{
+    MyDataInputStream DIN = new MyDataInputStream(In);
+    String Sig = DIN.readString(3);
+    int major = DIN.readShort();
+    int minor = DIN.readShort();
+    if(!Sig.equals("bnl") ){
+      System.out.println("wrong signatur or version "+Sig );
+      return null;
+    }
+    if(major!=1 | ( minor!=0 & minor!=1)){
+       System.out.println("wrong version numer "+major+"."+minor);
+       return null;
+    }
+
+    ListExpr LE = readBinaryRec(DIN);
+    return LE;
+ }
+ catch(Exception e){
+   return null;
+ }
+}
+
+
+/* returns an integer in range 0..255 */
+private static int getPositiveInt(byte b){
+  if(b<0)
+    return 256+b;
+  else
+    return b;
+}
+
+private static int getPositiveInt(short s){
+  if(s<0)
+    return 65536+s;
+  else
+    return s;
+}
+
+/*
+   This method is implemented to support the implementation of the ~readBinaryFrom~
+   method.
+   */
+private static  ListExpr readBinaryRec(MyDataInputStream in){
+
+try{
+  int Type = in.readByte();
+  switch(Type){
+      case BIN_BOOLEAN        : { return boolAtom(in.readBool()); }
+      case BIN_BYTE           : { return intAtom(in.readByte());}
+      case BIN_SHORTINT       : { return intAtom(in.readShort());}
+      case BIN_INTEGER        : { return intAtom(in.readInt());}
+      case BIN_REAL           : { return realAtom(in.readReal());}
+      case BIN_SHORTSTRING    : { int len = getPositiveInt(in.readByte());
+                                  return stringAtom(in.readString(len));
+                                }
+      case BIN_STRING         : { int len = getPositiveInt(in.readShort());
+                                  return stringAtom(in.readString(len));
+				} 
+      case BIN_LONGSTRING     : {  int len = in.readInt();
+	                           return ListExpr.stringAtom(in.readString(len));
+	                        }
+      case BIN_SHORTSYMBOL    : {  int len = getPositiveInt(in.readByte());
+	                           return ListExpr.symbolAtom(in.readString(len));
+	                        }
+      case BIN_SYMBOL         : {  int len = getPositiveInt(in.readShort());
+	                           return ListExpr.symbolAtom(in.readString(len));
+	                        }
+      case BIN_LONGSYMBOL     : {  int len = in.readInt();
+	                           return ListExpr.symbolAtom(in.readString(len));
+	                        }
+      case BIN_SHORTTEXT      : { int length = getPositiveInt(in.readByte());
+	                          return ListExpr.textAtom(in.readString(length));
+	                        }
+      case BIN_TEXT           : { int length = getPositiveInt(in.readShort());
+	                          return ListExpr.textAtom(in.readString(length));
+	                        }
+      case BIN_LONGTEXT       : { int length = in.readInt();
+	                          return ListExpr.textAtom(in.readString(length));
+	                        }
+
+      case BIN_SHORTLIST      : { int length= getPositiveInt(in.readByte());
+   	                          if(length==0)
+				     return ListExpr.theEmptyList();
+				  ListExpr F = readBinaryRec(in);
+				  if(F==null) // error in reading sublist
+				     return null;
+				  ListExpr LE = ListExpr.oneElemList(F);
+				  ListExpr Last = LE;
+				  ListExpr Next = null;
+				  for(int i=1;i<length;i++){
+				      Next = readBinaryRec(in);
+                                      if(Next==null) // error in reading sublist
+				          return null;
+				      Last= ListExpr.append(Last,Next);
+				  }
+				  return LE;
+	                         }
+
+      case BIN_LIST           : { int length= getPositiveInt(in.readShort());
+   	                          if(length==0)
+				     return ListExpr.theEmptyList();
+				  ListExpr F = readBinaryRec(in);
+				  if(F==null) // error in reading sublist
+				     return null;
+				  ListExpr LE = ListExpr.oneElemList(F);
+				  ListExpr Last = LE;
+				  ListExpr Next = null;
+				  for(int i=1;i<length;i++){
+				      Next = readBinaryRec(in);
+                                      if(Next==null) // error in reading sublist
+				          return null;
+				      Last= ListExpr.append(Last,Next);
+				  }
+				  return LE;
+	                         }
+
+      case BIN_LONGLIST      : { int length= in.readInt();
+   	                          if(length==0)
+				     return ListExpr.theEmptyList();
+				  ListExpr F = readBinaryRec(in);
+				  if(F==null) // error in reading sublist
+				     return null;
+				  ListExpr LE = ListExpr.oneElemList(F);
+				  ListExpr Last = LE;
+				  ListExpr Next = null;
+				  for(int i=1;i<length;i++){
+				      Next = readBinaryRec(in);
+                                      if(Next==null) // error in reading sublist
+				          return null;
+				      Last= ListExpr.append(Last,Next);
+				  }
+				  return LE;
+	                         }
+
+
+	  default      : return null;
+  }
+
+}
+catch(Exception e){
+  return null;
+}
+
+}
+
+
+
+
+
+
   /*
    3.4.16 The readFromString() method.
    This method is the same as ReadFromFile(), but reads the nested list from
@@ -609,25 +1014,25 @@ public class ListExpr extends Object {
    <boolAtom> =	{ 'TRUE' | 'FALSE' }
    <intAtom> =	<sign> <number>
    <sign> =	['-']  // This includes the option of having no sign.
-   <realAtom> =	<sign> <number> '.' <number> 
-   |	<sign> <number> '.' <number> <exponent> 
+   <realAtom> =	<sign> <number> '.' <number>
+   |	<sign> <number> '.' <number> <exponent>
    |	<sign> <number> <exponent>
    <stringAtom> =	'"' <characterSeq> '"'
    <symbolAtom> =	<letter> {<letter> | <digit> | <underline>}*
    |	<otherChar> {<otherChar>}*
-   <textAtom> =	'<' text '>' {<anyChar>}* '<' '\' text '-' '-' '-' '>' 
+   <textAtom> =	'<' text '>' {<anyChar>}* '<' '\' text '-' '-' '-' '>'
    ----
    Where:
    ----
    <number> =	<digit> {<digit>}*
-   <exponent> =	'E' <sign> <number> 
+   <exponent> =	'E' <sign> <number>
    <characterSeq> =	<stringCharacter> <characterSeq>
    |
    <anyChar> =	<any possible character>
    <letter> =	'A'-'Z'
    |	'a'-'z'
    <digit> =	'0'-'9'
-   <stringCharacter> =	<any character except the doble quote '"' 
+   <stringCharacter> =	<any character except the doble quote '"'
    character>
    <underline> =	<The underline character '_'>
    <otherChar> =	<any character which is neither a <letter> nor a
