@@ -15,15 +15,32 @@ for example,
 
 March 2002 Ulrich Telle Port to C++
 
-November 5, 2002 RHG Added the cases ~function~ and ~IDENTIFIER '(' elems ')' ~ to
-~valueexpr~ to support function definitions and function calls.
+November 5, 2002 RHG Added the cases ~function~ and ~IDENTIFIER '(' elems ')'
+~ to ~valueexpr~ to support function definitions and function calls.
 
-November 7, 2002 RHG Extended the definition of ~function~ and of ~valueexpr~ to support
-function definitions and function calls with 0 parameters; these are translated to functions
-with an integer parameter and which are called with 0.
+November 7, 2002 RHG Extended the definition of ~function~ and of ~valueexpr~
+to support function definitions and function calls with 0 parameters; these are
+translated to functions with an integer parameter and which are called with 0.
 
-November 22, 2002 RHG Discovered that the query processor can handle functions with 0
-parameters; hence translated definitions and function calls directly to use 0 parameters.
+November 22, 2002 RHG Discovered that the query processor can handle
+functions with 0 parameters; hence translated definitions and function calls
+directly to use 0 parameters.
+
+December 12, 2002 RHG Changed the notation for constants once more so that
+relation constants can be parsed correctly. The new notation is
+
+        [const <type> value <value-list>]
+
+for example
+
+        [const int value 25]    
+
+        [const rel(tuple([no1:int, no2:int])) value ((1 4) (2 5) (3 6))]
+
+February 3, 2003 RHG Added translation of counters of the form e.g. ``{5}'' and
+a ``list counters'' command.
+
+
 
 */
 
@@ -115,6 +132,8 @@ inquiries	:	LIST DATABASES
 				{PRINTF("(list types)\n");}
 		|	LIST OBJECTS
 				{PRINTF("(list objects)\n");}
+		|	LIST COUNTERS
+				{PRINTF("(list counters)\n");}
 		;
 
 
@@ -302,6 +321,14 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 				NestedText::Concat($1,
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($3,
+				NestedText::AtomC(")")     )))));}
+
+		| valueexpr '{' INTEGER '}'
+			{$$ = NestedText::Concat(NestedText::AtomC("(counter"), 
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($3,
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($1,
 				NestedText::AtomC(")")     )))));}
 
 
