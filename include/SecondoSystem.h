@@ -24,6 +24,8 @@ May 2002 Ulrich Telle Port to C++
 
 August 2002 Ulrich Telle Added methods to set and get the current algebra level.
 
+April 29 2003 Added save and restore commands for single objects.
+
 1.1 Overview
 
 This module implements those parts of the "Secondo"[3] catalog which
@@ -131,6 +133,27 @@ Closes the currently opened database.
 Returns "true"[4] if a database is in open state, otherwise "false"[4].
 
 */
+bool IsDatabaseObject( const string& objectName );
+/*
+Returns whether object with ~objectName~ is known in the currently opened
+database.
+
+*/ 
+bool SaveObject ( const string& objectName, 
+                  const string& filename );
+/*
+Writes the currently open database called ~dbname~ to a file with name
+~filename~ in nested list format. The format is the following:
+
+---- (OBJECT <object name> (<type name>) <type expression> <value> <model>)*
+
+----   
+
+Returns error 1 if there was a problem in writing the file.
+
+Precondition: dbState = dbOpen.
+
+*/
   bool SaveDatabase( const string& filename );
 /*
 Writes the currently open database called ~dbname~ to a file with name
@@ -161,6 +184,22 @@ Returns "false"[4] if there was a problem in writing the file.
 *Precondition*: A database is open.
 
 */
+  int RestoreObjectFromFile( const string& objectname,
+                             const string& filename,
+                             ListExpr& errorInfo );
+/*
+Reads an object from a file named ~filename~ and fills the catalog
+with this object. The database remains in state ~dbOpen~.
+Returns error 1, if object name in file is different from parameter ~objectname~, 
+error 2, if there was a problem in reading the file, error 3, if the list structure 
+in the file was not correct, error 4, if there is an error in object list expression,
+
+Furthermore, any errors found by kind checking and by ~In~ procedures are added to 
+the list ~errorInfo~.
+
+*Precondition*: Database is open and object is not known in the currently opened database.
+*/
+
   int RestoreDatabase( const string& dbname,
                        const string& filename,
                        ListExpr& errorInfo );
