@@ -44,6 +44,8 @@ December 29, 2003  Neumann (first revision)
 prior to
 December 24, 2003  Schoenhammer
 
+February 27, 2004  M. Spiekermann. A problem with the tiles operator was fixed. However,
+                     other problems still remain.  
 
 *******************************************************************************/
 /*******************************************************************************
@@ -53,6 +55,10 @@ December 24, 2003  Schoenhammer
 
 
 #include "JPEGAlgebra.h"
+
+// runtime switches for trace messages to be configured in SecondoConfig.ini
+#include "LogMsg.h"
+static const string JPEG_RT_DEBUG = "JPEGAlgebra:Debug";
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -741,22 +747,34 @@ bool JPEG::Tile(JPEG * outjpeg, int x, int y, int xdist, int ydist)
   {
     success = InitializeJPEG();
     initialized = success;
+    cerr << "InitializeJPEG() called" << endl;
   }
 
-  if (success)
+  if (success){
     success = src->PrepareCompress(outjpeg->GetFLOB(0));
-  if (success)
+    if (!success)
+      cerr << "PrepareCompress failed" << endl;
+  }
+  if (success) {
     success = src->ConfigureCut(x, y, xdist, ydist);
-  if (success)
+    if (!success)
+      cerr << "ConfigureCut failed" << endl;
+  }
+  if (success) {
     success = src->Compress();
+    if (!success)
+      cerr << "Compress failed" << endl;
+  }
 
   outjpeg->SetDefined(success);
 
   if (!success)
     jpegAlgGlobalError = true;
 
-  if (initialized) // ... initialized here ? so SrcMgr probably not needed
+  if (initialized) { // ... initialized here ? so SrcMgr probably not needed
     DropSrcMgr();
+    cerr << "DropSrcMgr() called" << endl;
+  }
 
   return success;
 }
@@ -2072,7 +2090,7 @@ class TupleStack {
 
    ~TupleStack()
    {
-     delete arr;
+     delete [] arr;
    };
 
    void push(Tuple * t){
@@ -2200,7 +2218,7 @@ TilesFun( Word*  args,  Word& result, int  message,
       vTiles = new TupleStack(rows * cols);
 
       for (r = rows-1; r >= 0 ; r--)
-        for (c = cols -1; c >= 0 ; c--)
+        for (c = cols-1; c >= 0 ; c--)
         {
           outjpeg = new JPEG(estimatedSize); // constructs also FLOB of right size
                                        // doesn't need a SourceMgr, injpeg does
@@ -2213,11 +2231,24 @@ TilesFun( Word*  args,  Word& result, int  message,
             return 0;
           }
 
-          injpeg->Tile(outjpeg, c * xdist, r * ydist, xdist, ydist);
+          if ( !injpeg->Tile(outjpeg, c*xdist, r*ydist, xdist, ydist) ) {
+            cerr << "Error: Problems with injepeg->Tile" << endl;
+          } 
 
+          // M. Spiekermann: This is not the idea of stream processing. Stream processing is used
+          // to save memory hence data should only be loaded into memory when it is
+          // requested.
           t = new Tuple (*tupleType, true);
           t->PutAttribute(0, outjpeg);
-          vTiles->arr[r*cols+c] = t;
+          vTiles->push(t);  // The last cvs version of the JPEG group contained
+                            // a bug here. However, an output relation will no be created 
+                            // but all tiles contain the same picture. Maybe there is a bug
+                            // in the SrcMgr code or the extension of the jpeg library functions.
+
+          if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
+            cerr << "push() -> tuple address: " << t << endl;
+            cerr << "Attribute address: " << outjpeg << endl;
+          }
         }
 
       local = SetWord(vTiles);
@@ -2230,6 +2261,11 @@ TilesFun( Word*  args,  Word& result, int  message,
       if (!vTiles->isEmpty())
       {
         t = vTiles->pop();
+        Attribute* attr = t->GetAttribute(0);
+        if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
+          cerr << "pop() -> tuple address: " << t << endl;
+          cerr << "Attribute dddress: " << attr << endl;
+        }
         result = SetWord(t);
         return YIELD;
       }

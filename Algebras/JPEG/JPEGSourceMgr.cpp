@@ -745,7 +745,7 @@ bool JPEGSourceMgr::PrepareCompress(FLOB * flob)
 {
   assert(flob != 0);
   store_info_valid = true;
-  assert(store_info_valid);
+  // assert(store_info_valid);  paranoid ???
 
   if (!decompressed) // rasterImage allready constructed?
     Decompress();
@@ -753,7 +753,7 @@ bool JPEGSourceMgr::PrepareCompress(FLOB * flob)
   store_info.err = jpeg_std_error(&j_store_error);
   jpeg_create_compress(&store_info);
   compressCreated = true; // later checked if memory has to be released
-  
+ 
   jpeg_flob_dest(&store_info, flob); // connect to destination
   return true;
 }
