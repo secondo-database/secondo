@@ -20,9 +20,9 @@ doc:
 
 .PHONY: all #creates the gui and all know viewers
 all:
+	(cd ../Javainterface;make all)	
 	(cd extern;make all)
 	(cd components;make all)
-	(cd ../Javainterface;make all)
 	(cd viewer;make all)
 	(cd project;make all);
 	(cd gui;make all)
