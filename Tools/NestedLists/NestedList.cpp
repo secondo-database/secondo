@@ -47,7 +47,7 @@ April 22, 2003 V. Almeida changed the methods CopyList and Destroy to use iterat
 
 Jan - May 2003, M. Spiekermann. Get() and Put() Methods of CTable.h were used to allow switching between
 persistent and in memory implementations of NL without writing special code for both implementations. 
-Uncomment the precompiler directive #define CTABLE_PERSISTENT for support of big nested lists. 
+Uncomment the precompiler directive \#define CTABLE\_PERSISTENT for support of big nested lists. 
 Currently it is not possible to mix both alternatives.
 
 December 2003, M. Spiekermann. A new method GetNextText has been introduced and and the
@@ -56,6 +56,7 @@ implementation of Text2String was changed in order to use stringstreams.
 February 2004, M. Spiekermann. Reading of binary encoded lists was implemented. WriteAtom changed; 
 only 48 bytes of text atoms are displayed on screen now. 
 
+July 2004, M. Spiekermann. A big constant was replaced by UINT\_MAX and PD syntax corrected.
 
 
 1 Introduction
@@ -109,10 +110,12 @@ nested list. Only if ~doDestroy~ is ~true~, nested lists are destroyed.
 
 The ~Destroy~ method was never used. The concept for freeing list memory has
 changed and therefore an implementation of this method is no longer useful.
-The code in this file will not compile but may be used as starting
-*/
-//#define COMPILE_DESTROY
+However, the code for destroying in this file will not be compiled but unless
+you comment out the line below.
 
+*/
+
+//#define COMPILE_DESTROY
 
 
 NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardinal ConstEntries,
@@ -172,7 +175,9 @@ NestedList::MemoryModel() {
 
    return nodeTable->MemoryModel();
 }
+
 /*
+
 3.1 PrintTableTexts
 
 PrintTableTexts displays the contents of the Table 'Texts' on the screen.
@@ -1182,10 +1187,12 @@ NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
 
 
 /*
+
 6.4 hton (host to network) converts a 'long' value with 
     LSB (little endian) byte order into the network representation 
     MSB (big endian). This computation should be independent of the
     hosts internal representation of a long value.  
+    
 */
 
 char*
@@ -1364,9 +1371,11 @@ NestedList::swap(char* buffer) {
 
 
 /*
+
 6.4 ReadString: This function allocates temporarily 
     a character buffer, reads a given number of characters into it and
     converts the buffer into a string object. 
+    
 */
 
 void
@@ -1470,7 +1479,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
                                   result = StringAtom( str );
 				  return true;
 				}
-      case BIN_LONGSTRING     : { len = 4294967295 & ReadInt(in);
+      case BIN_LONGSTRING     : { len = UINT_MAX & ReadInt(in);
 				  ReadString(in, str, len);
 				  pos = pos + 4 + len;
                                   result = StringAtom( str );
@@ -1488,7 +1497,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
                                   result =  SymbolAtom( str );
 				  return true;
 	                        }
-      case BIN_LONGSYMBOL     : { len = 4294967295 & ReadInt(in);
+      case BIN_LONGSYMBOL     : { len = UINT_MAX & ReadInt(in);
 				  ReadString(in, str, len);
                                   pos = pos + 4 + len;
                                   result =  SymbolAtom( str );
@@ -1510,8 +1519,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 				  result = text;
 				  return true;
 	                        }
-      case BIN_LONGTEXT       : { len = 4294967295 & ReadInt(in); 
-                                  // 2^31-1 doesn't work!
+      case BIN_LONGTEXT       : { len = UINT_MAX & ReadInt(in); 
 				  ReadString(in, str, len);
                                   pos = pos + 4 + len;
 				  ListExpr text = TextAtom();
@@ -1573,8 +1581,10 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 
 
 /*
+
 6.4 WriteBinaryRec: This recursive function  writes 
     lists in binary format to the output stream.
+    
 */
 
 bool
@@ -2410,6 +2420,7 @@ NestedList::DestroyTextScan( TextScan& textScan )
 /*
 
 9.6.1 Text2String
+
 */
 
 void
@@ -2425,6 +2436,7 @@ NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) {
 }
 
 /*
+
 10 AtomType
 
 */
@@ -2443,7 +2455,9 @@ NestedList::AtomType (const ListExpr atom )
 }
 
 /*
+
 11 ReportVectorSizes
+
 */
 
 const string
