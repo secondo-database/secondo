@@ -1,0 +1,517 @@
+%% modified by Thomas Behr
+% the numeric type real is added
+% restriction of direction for cycles is removed
+% the types Date and Datetime are added
+% the representation for <map_point_value> is changed (numeric problems)
+% 23.4.2004  another representations for instant included
+
+\documentclass[english,a4paper]{article}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{a4}
+\usepackage{amsmath}
+\headheight-1cm
+\headsep0mm
+\textheight25.5cm
+
+%\makeatletter
+
+
+\sloppy
+
+\usepackage{babel}
+%\makeatother
+
+\newcommand{\R}{\ensuremath{\mbox{I\hspace*{-0.1em}R}}}
+\begin{document}
+
+\title{External Representation of Spatial and Spatio-Temporal Values}
+
+
+\author{Jose Antonio Cotelo Lema \\{\small extended by Thomas Behr}}
+
+\maketitle
+\begin{quote}
+%%\begin{center}Last change: 17.03.2000\end{center}
+%%\begin{center}Last change: 18.12.2003\end{center}
+\begin{center}Last change: 23.4.2004\end{center}
+\end{quote}
+
+\section{Introduction}
+
+For supporting the diffusion and interchange of any kind of information
+between systems, a well defined and unambiguous specification of an
+external representation for such information is required. Therefore,
+we need to specify an external representation for the spatial and
+spatio-temporal information used by the \emph{STDB} package. The main
+goal in such a format must be to allow the exchange of this information
+between completely different platforms.
+
+
+\subsection{Notation}
+
+In the definitions of the external representation of spatial and spatio-temporal
+data types in the \emph{STDB} package, the following nomenclature
+will be used:
+
+\begin{description}
+\item [<x>]a value \emph{x}, represented using the string representation
+corresponding to the type of such a value.
+\item [<x$_{1}$>~<x$_{2}$>~$\cdots $~<x$_{n}$>]a list of \emph{n}
+values. If nothing explicit is said, \emph{n}$\, \geq \, $0. Note
+that \emph{n}$\, =\, $0 means an empty list.
+\end{description}
+
+\section{Numerical Representation}
+
+For the representation of spatial and spatio-temporal data, a relevant
+issue is the representation of their numeric values (used for representing
+coordinates, instants in time or functions from the time domain to
+the space domain). A requirement is that the representation used for
+such numeric values must be able to represent their values exactly,
+so the process of exporting and importing data will be safe and will
+allow (for example) to restore the data that we have previously exported.
+
+For ensuring the robustness and closure of spatial and spatio-temporal
+operations, the use of rational numbers for representing coordinates
+and time is required, and the precision used in such numbers could
+be arbitrarily large. Therefore, we need to specify how the numeric
+values of spatial and spatio-temporal types must be represented in
+such cases. For this purpose we will define the external representation
+of an auxiliary type \emph{Numeric}, to which belong the coordinates
+in space, time instants and the coefficients of spatio-temporal functions.
+When representing a spatial or spatio-temporal value, it is allowed
+to mix the different representation formats for the \emph{Numeric}
+values in it, using for each \emph{Numeric} value the more appropiate
+one.
+
+
+\paragraph{Integer numbers:}
+
+An integer \emph{Numeric} value \emph{I} can be represented in two
+different ways, depending on the size of the integer value:
+
+\begin{itemize}
+\item \textbf{Signed integers of 32 or less bits:} in this case it can be
+represented just as the string representation of the integer number,
+optionally with sign (if no sign appears, positive is assumed).
+
+\begin{quote}
+\textbf{NOTE:} such a representation of an integer number does NOT
+enclose the integer value in brackets.
+\end{quote}
+\item \textbf{Signed integers of more than 32 bits:} this category includes
+arbitrary precision integers. In this case the integer number is represented
+as an integer in base $2^{32}$, in the form:
+
+\begin{quotation}
+( largeint <sign> <size> <m$_{size-1}$> $\cdots $ <m$_{0}$> )
+\end{quotation}
+where:
+
+\begin{itemize}
+\item <sign> can be either the symbol {}``+'' (positive number), {}``-''
+(negative number) or nothing (interpreted as positive).
+\item <size> is an integer number (its string representation) defining the
+number of elements \emph{m$_{i}$} appearing after it. \emph{<size>}
+must be bigger than 0.
+\item \emph{<m$_{i}$>} is the string representation of a 32 bits unsigned
+integer.
+
+
+The value \emph{I} represented is:
+
+\begin{description}
+\item[] \emph{I$\, =\, $sign\_value$\, *\, $(m$_{size-1}$$*$$\left(2^{32}\right)^{size-1}$$+$$\cdots $$+$}\emph{m$_{1}$$\, *$$\left(2^{32}\right)^{1}$$+\, $m$_{0}$)}
+\end{description}
+where \emph{<sign\_value>} is 1 if \emph{<sign>} is positive ({}``+''
+or nothing) and -1 if \emph{<sign>} is negative ({}``-'').
+
+\end{itemize}
+Integer numbers of 32 or less bits can (optionally) be represented
+using the format for integers of more than 32 bits.
+
+\end{itemize}
+
+
+\paragraph{Real numbers:}
+\label{real_numbers}
+A real number is represented as the string representation of the real number.
+The string is formed in the familar way used in the most programming languages
+like C or Pascal. Because no cast function exists, a dot or an exponent is required
+to distinguish a real number from an integer.
+
+
+\paragraph{Rational numbers:}
+
+A rational \emph{Numeric} value \emph{R} is represented as:
+
+\begin{quotation}
+( rat <sign> <intPart> <numDecimal> / <denomDecimal> )
+\end{quotation}
+where
+
+\begin{itemize}
+\item \emph{<sign>} can be either the symbol {}``+'' (positive number),
+{}``-'' (negative number) or nothing (interpreted as positive).
+\item \emph{<intPart>}, \emph{<numDecimal>} and \emph{<denomDecimal>} are
+non negative ($\geq 0$) integer \emph{Numeric} values (each of them
+in any of the formats defined above), \emph{<numDecimal>}$\, <\, $\emph{<denomDecimal>}
+and g.c.d.(\emph{<numDecimal>}, \emph{<denomDecimal>})$\, =\, $1
+(if \emph{<numDecimal>}$\, =\, $0 then \emph{<denomDecimal>}$\, =\, $1).
+\end{itemize}
+The value of \emph{R} represented is:
+
+\begin{quotation}
+\emph{R}$\, =\, $\emph{sign\_value $*$} (\emph{intPart}$\, +\, \frac{\textrm{numDecimal}}{\textrm{denomDecimal}}$)
+\end{quotation}
+where \emph{<sign\_value>} is 1 if \emph{<sign>} is positive ({}``+''
+or nothing) and -1 if \emph{<sign>} is negative ({}``-'').
+
+If the value of \emph{R} is in fact an integer value, it can (optionally)
+be represented as an integer \emph{Numeric} value.
+
+
+\section{Spatial Values}
+
+
+\subsection{Point}
+
+\begin{quotation}
+(\emph{<xCoord>} \emph{<yCoord>})
+\end{quotation}
+where \emph{<xCoord>} and \emph{<yCoord>} are the \emph{X} and \emph{Y}
+coordinates of the point respectively. Both are \emph{Numeric} values.
+
+
+\subsection{Points}
+
+\begin{quotation}
+((<x$_{1}$> <y$_{1}$>) (<x$_{2}$> <y$_{2}$>) $\cdots $ (<x$_{n}$>
+<y$_{n}$>))
+\end{quotation}
+where (\emph{<x$_{i}$> <y$_{i}$>}) represents a point value and
+\emph{n}$\, \geq \, $0.
+
+
+\subsection{Line}
+
+\begin{quotation}
+(<seg$_{1}$> <seg$_{2}$> $\cdots $ <seg$_{n}$>)
+\end{quotation}
+where \emph{<seg$_{i}$>} is a segment value and \emph{n}$\geq $0.
+
+A segment value is represented as:
+
+\begin{quotation}
+(<x$_{1}$> <y$_{1}$> <x$_{2}$> <y$_{2}$>)
+\end{quotation}
+where \emph{<x$_{i}$>} and \emph{<y$_{i}$>} are the coordinates
+of the end point \emph{i}. All of them are \emph{Numeric} values.
+
+
+\subsection{Region}
+
+\begin{quotation}
+(<face$_{1}$> <face$_{2}$> <face$_{n}$>)
+\end{quotation}
+where \emph{<face$_{i}$>} represents a face in the space, as a polygon
+with (optionally) holes, and \emph{n}$\, \geq \, $0.
+
+A face is represented as:
+
+\begin{quotation}
+(<outer\_cycle> <hole\_cycle$_{1}$> <hole\_cycle$_{2}$> $\cdots $
+<hole\_cycle$_{n}$>)
+\end{quotation}
+where the \emph{outer\_cycle} and all the \emph{hole\_cycles} are
+cycles (simple polygons) and \emph{n}$\, \geq \, $0 (this is, it
+can be a face without holes).
+
+A cycle is represented as:
+
+\begin{quotation}
+(<vertex$_{1}$> <vertex$_{2}$> $\cdots $ <vertex$_{n}$>)
+\end{quotation}
+being \emph{<vertex$_{i}$>} and \emph{<vertex$_{(i\, mod\, n)+1}$>}
+consecutive vertices (and \emph{hence <vertex$_{1}$>}$\, \neq \, $\emph{<vertex$_{n}$>})
+and \emph{n}$\, \geq \, $3.
+
+A vertex is a \emph{Point} value.
+
+
+
+\section{Instant-Values}
+There are several representations for an \emph{instant} value.
+All Applications using instants must be able to read each of this.
+
+\paragraph{Date}:
+A \emph{<Date>} value is represented as:
+\begin{quotation}
+  (date <day> <month> <year>)
+\end{quotation}
+where all values are of type integer. The three values must build a valid
+date. A \emph{<Date>} is a shortcut for a \emph{<DateTime>} where all
+non-date values are zero.
+
+\paragraph{DateTime}:
+A \emph{<DateTime>} value is represented as:
+\begin{description}
+  \item (datetime <day> <month> <year> <hour> <minute> [ <second> [ <millisecond> ]])
+\end{description}
+
+All values are integers. The \emph{<second>} and \emph{<millisecond>} are
+optionally (indicated by [...]). If it is omitted, zero is assumed.
+\emph{<day>}, \emph{<month>}  and \emph{<year>} must build a
+valid date. The remaining values must be in the appropriate range.
+
+\paragraph{Instant}:
+A \emph{<Instant>} value is represented as a list containing the symbol {\tt instant}
+and a real value (see \ref{real_numbers}).
+\begin{description}
+  \item (instant <real number>)
+\end{description}
+
+
+\paragraph{Conversions between DateTime and Instant}:
+The representation as real value can be computed using the following
+mapping (the symbol "datetime" is omitted for a better readability):\\
+ $ T : \mbox{\emph{<DateTime>}} \rightarrow \R  $\\
+ $ T(d\: m\: y\: h\: {min}\: {sec}\: {msec}) :=
+      {ToJulian}(d\, m\, y) +
+      \frac{ (((h\cdot 60) + min)\cdot 60 + sec)\cdot 1000+ msec}
+           { 86400000 } $\\[1em]
+
+The inverse direction can also be computed.
+$ DT : \R \rightarrow \mbox{\emph{<DateTime>}}$\\
+The single fields of a \emph{<DateTime>} value can be computed by the following C function.
+Note that the granularity is restricted to milliseconds after this conversion.
+\begin{footnotesize}
+\begin{verbatim}
+   void toDateTime(const double instant, int& year, int& month, int& day,
+                   int& hour, int& minute, int& second, int& millisecond){
+      ToGregorian((long)instant, year,month,day);
+      double rest = instant - ((double)((long)instant));
+      long R = (long) 86400000*rest;
+      millisecond = R % 1000;
+      R = R  / 1000;
+      second = R % 60;
+      R = R / 60;
+      minute = R % 60;
+      R = R / 60;
+      hour = R;
+   }
+\end{verbatim}
+\end{footnotesize}
+
+The functions for converting a Julian Date into a Gregorian date and vice versa are
+given in the appendix.
+
+\section{Spatio-temporal Values}
+
+Basically any spatio-temporal value of type \emph{<moving\_type>}
+is represented as a string:
+
+\begin{quotation}
+(<unit$_{1}$> <unit$_{2}$> $\cdots $ <unit$_{n}$>)
+\end{quotation}
+where \emph{<unit$_{i}$>} is a unit value of the unit type corresponding
+to \emph{<moving\_type>} and \emph{n}$\, \geq \, $0.
+
+A unit value of a type \emph{<moving\_type>} is represented as:
+
+\begin{quotation}
+(<interval> <map\_type\_value>)
+\end{quotation}
+
+An \emph{<interval>} value is represented as:
+
+\begin{quotation}
+(<start> <end> <leftclosed> <rightclosed>)
+\end{quotation}
+where \emph{<start>} and \emph{<end>} are of type \emph{instant}
+representing the start and end instant of the time interval, respectively, and
+\emph{<leftclosed>} and \emph{<rightclosed>} are boolean values defining
+if the interval is open (\emph{false}) or closed (\emph{true}) at
+the start or end time instant, respectively.
+
+
+\vspace*{3em}
+The representation of a \emph{<map\_type\_value>} depends on the specific
+\emph{type}.
+
+
+\subsection{moving(point)}
+
+The representation of a \emph{<map\_point\_value>} is:
+
+\begin{quotation}
+   (<x$_1$> <y$_1$> <x$_2$> <y$_2$>)
+\end{quotation}
+where x$_i$ and y$_i$ are \emph{Numeric} values. In a given Unit\\
+\mbox{((<start> <end> <leftclosed> <rightclosed>) (<x$_1$> <y$_1$> <x$_2$> <y$_2$>))}
+the point moves in the given interval from (x$_1$,y$_1$) to (x$_2$,y$_2$).
+The position of a moving point can be computed for a single unit
+using the following function:\\
+ $ {pos} : {unit(point)} \times {instant} \rightarrow {point} $ \\
+ $ {pos}(((s\ e\ l\ r) (x_1 y_1 x_2 y_2))),I) := \left\{
+   \begin{array} {ll}
+         \mbox{undefined} & \mbox{if } I \notin (s\: e\: l\: r) \\
+         (x_1,y_1) & \mbox{if } s=e \mbox{\bf{} and } I \in (s\: e\: l\: r)\\
+         (x_I,y_I) &  \mbox{otherwise}
+   \end{array}
+    \right. $\\[1em]
+
+  where:\nopagebreak[4] \begin{description} \nopagebreak[4]
+       \item $x_I = x_1+\frac{I-s}{e-s}\cdot(x_2 - x_1) $
+       \item $y_I = y_1+\frac{I-s}{e-s}\cdot(y_2 - y_1) $
+  \end{description}
+
+
+
+\subsection{moving(points)}
+
+The representation of a \emph{<map\_points\_value>} is:
+
+\begin{quotation}
+(<map\_point\_value$_{1}$> <map\_point\_value$_{2}$> $\cdots $
+<map\_point\_value$_{n}$>)
+\end{quotation}
+with \emph{n}$\, >\, $0. If the \emph{movingpoints} value is empty
+for a given time interval, no unit referring to such a time interval
+appears in its representation.%
+\footnote{This is the reason why \emph{n}$\, \neq \, $0.%
+}
+
+
+\subsection{moving(line)}
+
+The representation of a \emph{<map\_line\_value>} is:
+
+\begin{quotation}
+(<map\_seg\_value$_{1}$> <map\_seg\_value$_{2}$> $\cdots $ <map\_seg\_value$_{n}$>)
+\end{quotation}
+where \emph{<map\_seg\_value$_{i}$>} is the mapping value of a segment
+and n$\, >\, $0. If the \emph{movingline} value is empty for a given
+time interval, no unit referring to such a time interval appears in
+its representation.
+
+A \emph{<map\_seg\_value>} is represented as:
+
+\begin{quotation}
+( \emph{<map\_point\_value$_{1}$>} \emph{<map\_point\_value$_{2}$>)}
+\end{quotation}
+representing the \emph{<map\_point\_value>} values of its end points.
+
+\begin{description}
+\item [Restriction:]a \emph{<map\_seg\_value>} must be defined over a plane
+in the 3D space \emph{X}, \emph{Y}, \emph{Time}.
+\end{description}
+
+\subsection{moving(region)}
+
+The representation of a \emph{<map\_region\_value>} is:
+
+\begin{quotation}
+(<map\_face\_value$_{1}$> <map\_face\_value$_{2}$> $\cdots $ <map\_face\_value$_{n}$>)
+\end{quotation}
+where n$\, >\, $0.
+
+If the \emph{movingregion} value is empty for a given time interval,
+no unit referring to such a time interval appears in its representation.
+
+The representation of a \emph{<map\_face\_value>} is the same as the
+spatial representation of a \emph{<face>}, but in this case each vertex
+of its cycles is represented as a \emph{<map\_point\_value>}.
+
+\begin{description}
+\item [Restriction:]in a similar way as with the representation of a \emph{<map\_line\_value>},
+any segment defined by two consecutive vertices \emph{<map\_point\_value$_{i}$>}
+and \emph{<map\_point\_value$_{(i\, mod\, n)+1}$>} in a cycle of
+a \emph{<map\_face\_value>} must be defined over a plane in the 3D
+space \emph{X}, \emph{Y}, \emph{Time}.\end{description}
+
+
+
+\appendix
+
+\section{Conversion from a Gregorian Date to Julian Date and vice versa}
+
+
+\begin{footnotesize}
+\begin{verbatim}
+#include <math.h>
+static const long NULL_DAY = 2451547;
+// this corresponds to 3.1.2004 and must be a multiple of 7
+
+/*
+   The function ToJulian computes the Julian day number of the given
+   Gregorian date + the reference time.Positive year signifies A.D.,
+   negative year B.C.Remember that the year after 1 B.C. was 1 A.D.
+   Julian day 0 is a Monday.
+   This algorithm is from Press et al., Numerical Recipes
+   in C, 2nd ed., Cambridge University Press 1992
+*/
+
+static long ToJulian(int year, int month, int day){
+  int jy = year;
+  if (year < 0)
+     jy++;
+  int jm = month;
+  if (month > 2)
+     jm++;
+  else{
+     jy--;
+     jm += 13;
+  }
+
+  int jul = (int)(floor(365.25 * jy) + floor(30.6001*jm)
+                  + day + 1720995.0);
+  int IGREG = 15 + 31*(10+12*1582);
+  // Gregorian Calendar adopted Oct. 15, 1582
+  if (day + 31 * (month + 12 * year) >= IGREG){
+     // change over to Gregorian calendar
+     int ja = (int)(0.01 * jy);
+     jul += 2 - ja + (int)(0.25 * ja);
+  }
+  return jul-NULL_DAY;
+}
+
+/*
+   This function converts a Julian day to a date in the Gregorian calender.
+
+   This algorithm is from Press et al., Numerical Recipes
+   in C, 2nd ed., Cambridge University Press 1992
+
+*/
+static void ToGregorian(long Julian, int &year, int &month, int &day){
+   int j=(int)(Julian+NULL_DAY);
+   int ja = j;
+   int JGREG = 2299161;
+   /* the Julian date of the adoption of the Gregorian
+      calendar
+   */
+    if (j >= JGREG){
+    /* cross-over to Gregorian Calendar produces this
+       correction
+    */
+       int jalpha = (int)(((float)(j - 1867216) - 0.25)/36524.25);
+       ja += 1 + jalpha - (int)(0.25 * jalpha);
+    }
+    int jb = ja + 1524;
+    int jc = (int)(6680.0 + ((float)(jb-2439870) - 122.1)/365.25);
+    int jd = (int)(365 * jc + (0.25 * jc));
+    int je = (int)((jb - jd)/30.6001);
+    day = jb - jd - (int)(30.6001 * je);
+    month = je - 1;
+    if (month > 12) month -= 12;
+    year = jc - 4715;
+    if (month > 2) --year;
+    if (year <= 0) --year;
+}
+
+\end{verbatim}
+\end{footnotesize}
+
+\end{document}
+
