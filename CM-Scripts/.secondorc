@@ -1,16 +1,16 @@
-# secondo-bashrc executed at startup of a bash
+# secondorc executed at startup of a bash
 #
 # Copy this file into your $HOME directory and add
 # the line 
 #
-# source ./secondo-bashrc
+# source ./secondorc
 #
 # at the end of file $HOME/.bashrc
 #
 # DO NOT CHANGE THIS FILE unless you know what you are doing!
 
 if [ "$OSTYPE" = "msys" ]; then
-   SECONDO_PREFIX=""
+   SECONDO_PREFIX="/c"
 else 
    SECONDO_PREFIX="$HOME"
 fi

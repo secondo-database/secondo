@@ -72,7 +72,7 @@ fi
 printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
 printf "\n* '$cdpath' to '$instpath' " 
 printf "\n* "
-printf "\n* Starting in 5 secondos. Press CRTL-C to abort!"
+printf "\n* Starting in 5 seconds. Press CRTL-C to abort! \n"
 sleep 5
 
 install -d "$sdk"
@@ -95,7 +95,7 @@ w32pl*.exe
 prologdir="$sdk/pl"
 if [ ! -d "$prologdir" ]; then
    printf  "\n ERROR: Directory $prologdir not found." 
-   printf  "\n        Please install SWI-Prolog into director $prologdir.  \n "
+   printf  "\n        Please install SWI-Prolog into directory $prologdir.  \n "
    exit 6 
 fi
 
@@ -106,7 +106,7 @@ j2sdk*windows*.exe
 javadir="$sdk/j2sdk1.4.2"
 if [ ! -d "$javadir" ]; then
    printf  "\n ERROR: Directory $javadir not found." 
-   printf  "\n        Please install JAVA 2 int directory $javadir.  \n "
+   printf  "\n        Please install JAVA 2 into directory $javadir.  \n "
    exit 7 
 fi
 printf "\n* Installing unzip ... \n"
@@ -148,7 +148,7 @@ export SECONDO_SDK="$sdk"
 cd $HOME/secondo/Win32
 logfile="$HOME/secondo-install.log"
 touch $logfile
-rxvt -sl 50000 -title "Berkeley-DB Compilation" -e tail -f $logfile
+rxvt -sl 5000 -title "Berkeley-DB Compilation" -e tail -f $logfile &
 make > $logfile 2>&1 && make install >> $logfile 2>&1
 
 printf  "\n* MSYS and MinGW Configuration ... \n"
