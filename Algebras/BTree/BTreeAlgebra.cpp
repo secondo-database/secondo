@@ -19,7 +19,6 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
-#include "Tuple.h"
 
 #include <iostream>
 #include <string>
@@ -57,6 +56,37 @@ This macro makes reporting errors in type mapping functions more convenient.
     ErrorReporter::ReportError(msg);\
     return nl->SymbolAtom("typeerror");\
   };
+
+/*
+3.4 Function ~IsTupleDescription~
+
+Checks wether a ListExpression is of the form
+((a1 t1) ... (ai ti)).
+
+*/
+bool IsTupleDescription(ListExpr a, NestedList* nl)
+{
+  ListExpr rest = a;
+  ListExpr current;
+
+  while(!nl->IsEmpty(rest))
+  {
+    current = nl->First(rest);
+    rest = nl->Rest(rest);
+    if((nl->ListLength(current) == 2)
+      && (nl->IsAtom(nl->First(current)))
+      && (nl->AtomType(nl->First(current)) == SymbolType)
+      && (nl->IsAtom(nl->Second(current)))
+      && (nl->AtomType(nl->Second(current)) == SymbolType))
+    {
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return true;
+}
 
 /*
 
@@ -753,7 +783,7 @@ bool CheckBTree(ListExpr type, ListExpr& errorInfo)
   return true;
 }
 
-void* CastBTree(void* addr)
+void* CastBTree(void* addr, SmiRecordFile*)
 {
   return ( 0 );
 }
@@ -997,7 +1027,7 @@ static ListExpr CreateBTreeTypeMap(ListExpr args)
   CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
   CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
   CHECK_COND(IsTupleDescription(attrList, nl), errmsg);
-  CHECK_COND((attrIndex = findattr(attrList, attrName, attrType, nl)) > 0, errmsg);
+  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType, nl)) > 0, errmsg);
 
   assert
     (nl->SymbolValue(attrType) == "string"

@@ -1,199 +1,492 @@
-#ifndef RELATION_ALGEBRA_PERSISTENCE_H
-#define RELATION_ALGEBRA_PERSISTENCE_H
-
-#include "Algebra.h"
-#include "AlgebraManager.h"
-#include "SecondoSystem.h"
-#include "SecondoCatalog.h"
-#include "NestedList.h"
-#include "QueryProcessor.h"
-#include "StandardTypes.h"
-#include <iostream>
-#include <string>
-#include <deque>
-#include <set>
-#include <algorithm>
-#include <cstdlib>
-#include <unistd.h>
-#include <errno.h>
-#include <sstream>
-#include <typeinfo>
-#include "RelationAlgebraInfo.h"
-#include "Tuple.h"
-
-extern NestedList* nl;
-extern QueryProcessor* qp;
-extern int ccTuplesCreated;
-extern int ccTuplesDeleted;
-
-extern TypeConstructor cpptuple;
-extern TypeConstructor cpprel;
-
-enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
-
-const int MaxSizeOfAttr = 20;
-
-int findattr( ListExpr list, string attrname, ListExpr& attrtype, NestedList* nl);
-bool IsTupleDescription(ListExpr a, NestedList* nl);
-
-ListExpr TupleProp ();
-
-class CcTuple
-{
-  private:
-
-    int NoOfAttr;
-    Attribute* AttrList [MaxSizeOfAttr];
-
-    /* if a tuple is free, then a stream receiving the tuple can delete or
-       reuse it */
-    bool isFree;
-    SmiRecordId id;
-
-  public:
-
-    CcTuple ();
-
-    virtual ~CcTuple ();
-
-    Attribute* Get (int);
-    void  Put (int, Attribute*);
-    void  SetNoAttrs (int);
-    int   GetNoAttrs ();
-    bool IsFree();
-    void SetFree(bool);
-
-    CcTuple* CloneIfNecessary();
-
-    CcTuple* Clone();
-
-    void DeleteIfAllowed();
-
-    SmiRecordId GetId();
-    void SetId(SmiRecordId id);
-
-    friend
-    ostream& operator<<(ostream& s, CcTuple t);
-};
-
-class LexicographicalCcTupleCmp
-{
-
-public:
-
-  bool operator()(const CcTuple*, const CcTuple*) const;
-};
-
-string ReportTupleStatistics();
-
-ListExpr OutTuple (ListExpr, Word);
-
-Word InTuple(ListExpr typeInfo, ListExpr value,
-          int errorPos, ListExpr& errorInfo, bool& correct);
-
-void DeleteTuple(Word&);
-
-bool CheckTuple(ListExpr, ListExpr&);
-
-void* CastTuple(void*);
-
-Word CreateTuple(const ListExpr);
-
-Word TupleInModel( ListExpr, ListExpr, int);
-
-ListExpr TupleOutModel( ListExpr, Word);
-
-Word TupleValueToModel( ListExpr, Word);
-
-Word TupleValueListToModel( const ListExpr, const ListExpr,
-                       const int, ListExpr&, bool& );
-
-ListExpr RelProp ();
-
 /*
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
 
-1.3.1 Main memory representation
+[1] Header file  of the Relational Algebra
 
-(Figure needs to be redrawn, doesn't work.)
+March 2003 Victor Almeida created the new Relational Algebra organization
 
-Figure 2: Main memory representation of a relation (~Compact Table~) [relation.eps]
+
+[TOC]
+
+
+1 Overview
+
+The Relational Algebra basically implements two type constructors, namely ~tuple~ and ~rel~.
+The type system of the Relational Algebra can be seen below.
+
+\begin{displaymath}
+\begin{array}{lll}
+& \to \textrm{DATA} & {\underline{\smash{\mathit{int}}}}, {\underline{\smash{\mathit{real}}}}, 
+	{\underline{\smash{\mathit{bool}}}}, {\underline{\smash{\mathit{string}}}} \\
+({\underline{\smash{\mathit{ident}}}} \times \textrm{DATA})^{+} & \to \textrm{TUPLE} & 
+	{\underline{\smash{\mathit{tuple}}}} \\
+\textrm{TUPLE} & \to \textrm{REL} & {\underline{\smash{\mathit{rel}}}}
+\end{array}
+\end{displaymath}
+
+The DATA kind should be incremented with more complex data types such as, for example, 
+${\underline{\smash{\mathit{point}}}}$, ${\underline{\smash{\mathit{points}}}}$, 
+${\underline{\smash{\mathit{line}}}}$, and ${\underline{\smash{\mathit{region}}}}$ 
+of the ROSE Algebra.
+
+As an example, a relation cities should be described as
+
+\begin{displaymath}
+{\underline{\smash{\mathit{rel}}}}
+  ({\underline{\smash{\mathit{tuple}}}}
+    (<
+      (\textrm{name}, {\underline{\smash{\mathit{string}}}}), 
+      (\textrm{country}, {\underline{\smash{\mathit{string}}}}),
+      (\textrm{pop}, {\underline{\smash{\mathit{int}}}}),
+      (\textrm{pos}, {\underline{\smash{\mathit{point}}}})
+    >)
+  )
+\end{displaymath}
+
+This file will contain an interface of the memory representation structures (~classes~) for these 
+two type constructors, namely ~Tuple~ and ~Relation~, and some additional ones that will be needed
+for the Relational Algebra, namely ~TupleId~, ~RelationIterator~, ~TupleType~, ~Attribute~ 
+(which is defined inside the file Attribute.h), and ~AttributeType~.
+
+It is intended to have two implementation of these classes, one with a persistent representation and
+another with a main memory representation. We will call these two Persistent Relation Algebra and
+Main Memory Relational Algebra, respectively. This can be seen in the architecture of the Relational
+Algebra implementation figure below.
+
+                Figure 1: Relational Algebra implementation architecture. [RelationAlgebraArchitecture.eps] 
+
+2 Defines, includes, and constants
 
 */
-typedef CTable<CcTuple*>* Relation;
+#ifndef _RELATION_ALGEBRA_H_
+#define _RELATION_ALGEBRA_H_
 
-class CcRel;
+#include "Algebra.h"
+#include "StandardAttribute.h"
+#include "NestedList.h"
 
-class CcRelIT
+/*
+3 Type Constructor ~tuple~
+
+3.1 Struct ~TupleId~
+
+This class will implement the unique identification for tuples inside a relation. 
+
+*/
+struct TupleId;
+
+/*
+3.2 Class ~Attribute~
+
+This abstract class ~Attribute~ is inside the file Attribute.h and contains a set
+of functions necessary to the management of attributes. All type constructors of the 
+kind DATA must be a sub-class of ~Attribute~.
+
+3.3 Struct ~AttributeType~
+
+This ~AttributeType~ struct implements the type of each attribute inside a tuple. 
+To identify a data type in the Secondo system the ~algebraId~ and the ~typeId~ 
+are necessary. The size of the attribute is also necessary to previously know 
+how much space will be necessary to store an instance of such attribute's data type.
+
+*/
+struct AttributeType 
 {
-  CTable<CcTuple*>::Iterator rs;
-  CcRel* r;
-  public :
+  AttributeType()
+    {}
+/*
+This constructor should not be used.
 
-  CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r);
-  ~CcRelIT ();
-  CcRelIT& operator=(CcRelIT& right);
+*/
+  AttributeType( const int algId, const int typeId, const int size ):
+    algId( algId ),
+    typeId( typeId ),
+    size( size )
+    {}
+/*
+The constructor.
 
-  CcTuple* GetTuple();
-  void Next();
-  bool EndOfScan();
-  CcTuple* GetNextTuple();
+*/
+  int algId;
+/*
+The data type's algebra ~id~ of the attribute.
 
+*/
+  int typeId;
+/*
+The data type's ~id~ of the attribute.
+
+*/
+  int size;
+/*
+Size of attribute instance in bytes.
+
+*/
 };
 
-class CcRel
+/*
+3.4 Class ~TupleType~
+
+A ~TupleType~ is a collection (an array) of all attribute types (~AttributeType~)
+of the tuple. This structure contains the metadata of a tuple attributes.
+
+*/
+class TupleType 
 {
-  friend class CcRelIT;
+  public:
+    TupleType( const ListExpr typeInfo );
+/*
+The first constructor. Creates a tuple type from a ~typeInfo~ list expression. It sets 
+all member variables, including the total size.
+
+*/
+    TupleType( const TupleType& tupleType );
+/*
+The second constructor. Creates a tuple type which is a copy of ~tupleType~. 
+
+*/
+    ~TupleType();
+/*
+The destructor.
+
+*/
+    const int GetNoAttributes() const;
+/*
+Returns the number of attributes of the tuple type.
+
+*/
+    TupleType *Concat( const TupleType& t );
+/*
+Returns a new created tuple type which is a concatenation of this tuple type 
+and ~t~.
+
+*/
+    const AttributeType& GetAttributeType( const int index ) const;
+/*
+Returns the attribute type at ~index~ position.
+
+*/
+    void PutAttributeType( const int index, const AttributeType& attrType );
+/*
+Puts the attribute type ~attrType~ in the position ~index~.
+
+*/
+  private:
+
+    TupleType( const int noAttr, AttributeType *attrs );
+/*
+A private constructor that receives directly the array of tuple attributes. It
+needs to set the ~totalSize~ attribute.
+   
+*/
+    int noAttributes;
+/*
+Number of attributes.
+
+*/
+    AttributeType *attrTypeArray;
+/*
+Array of attribute type descriptions.
+
+*/
+    int totalSize;
+/*
+Sum of all attribute sizes.
+
+*/
+};
+
+/*
+3.5 Class ~Tuple~
+
+This class implements the memory representation of the type constructor ~tuple~.
+
+*/
+struct PrivateTuple;
+/*
+Forward declaration of the struct ~PrivateTuple~. This struct will contain the
+private attributes of the class ~Tuple~ and will be defined later differently 
+for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
+
+*/
+
+class Tuple
+{
+  public:
+    Tuple( const TupleType& tupleType, const bool isFree = false );
+/*
+The constructor. It contructs a tuple with the metadata passed in the ~tupleType~
+as argument.
+
+*/
+    Tuple( const ListExpr typeInfo, const bool isFree = false );
+/*
+A similar constructor as the above, unless that it takes a list expression ~typeInfo~ 
+and first convert it to a ~TupleType~.
+
+*/
+    ~Tuple();
+/*
+The destructor.
+
+*/
+    const TupleId& GetTupleId() const;
+/*
+Returns the unique ~id~ of the tuple.
+
+*/
+    void SetTupleId( const TupleId& tupleId );
+/*
+Sets the tuple unique ~id~ of the tuple. This function is necessary because at the 
+construction time, the tuple does not know its id.
+
+*/
+    Attribute* GetAttribute( const int index ) const;
+/*
+Returns the attribute at position ~index~ inside the tuple.
+
+*/
+    void PutAttribute( const int index, Attribute* attr );
+/*
+Puts an attribute in the position ~index~ inside the tuple.
+
+*/
+    const int GetNoAttributes() const;
+/*
+Returns the number of attributes of the tuple.
+
+*/
+    const TupleType& GetTupleType() const;
+/*
+Returns the tuple type.
+
+*/
+    const bool IsFree() const;
+/*
+Returns if a tuple is free.
+*Need some more explanations about why it is used.*
+
+*/
+    Tuple *Clone( const bool isFree = true ) const;
+/*
+Create a new tuple which is a clone of this tuple.
+
+*/
+    Tuple *CloneIfNecessary();
+/*
+Calls the ~Clone~ function if the flag if it is necessary. 
+*Need some more explanations about whether it is necessary or not.*
+
+*/
+    void DeleteIfAllowed();
+/*
+Deletes the tuple if it is allowed.
+*Need some more explanations about whether it is allowed or not.*
+
+*/
+  private:
+
+    PrivateTuple *privateTuple;
+/*
+The private attributes of the class ~Tuple~.
+
+*/
+};
+
+/*
+4 Type constructor ~rel~
+
+4.1 Class ~Relation~
+
+This class implements the memory representation of the type constructor ~rel~.
+
+*/
+
+struct PrivateRelation;
+/*
+Forward declaration of the struct ~PrivateRelation~. This struct will contain the
+private attributes of the class ~Relation~ and will be defined later differently 
+for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
+
+*/
+
+class RelationIterator;
+/*
+Forward declaration of the class ~RelationIterator~ which is needed in the class
+~Relation~.
+
+*/
+
+class Relation
+{
+  public:
+    Relation();
+/*
+The constructor. It creates an empty relation.
+
+*/
+    ~Relation();
+/*
+The destructor.
+
+*/
+    void AppendTuple( Tuple *tuple );
+/*
+Appends a tuple to the relation.
+
+*/
+    const Tuple* GetTuple( const TupleId& tupleId ) const;
+/*
+Returns the tuple identified by ~tupleId~.
+
+*/
+    void Clear();
+/*
+Clears (empties) a relation removing all its tuples.
+
+*/
+    const int GetNoTuples() const;
+/*
+Gets the number of tuples in the relation.
+
+*/
+    RelationIterator *MakeScan() const;
+/*
+Returns a ~RelationIterator~ for a relation scan.
+
+*/
+    friend class RelationIterator;
+    friend struct PrivateRelationIterator;
 
   private:
 
-    int NoOfTuples;
-    Relation TupleList;
-    SmiRecordId currentId;
+    PrivateRelation *privateRelation;
+/*
+The private attributes of the class ~Relation~.
 
-  public:
-
-    CcRel ();
-    ~CcRel ();
-
-    CcTuple* GetTupleById(SmiRecordId id);
-    void    AppendTuple (CcTuple*);
-    void Empty();
-
-    CcRelIT* MakeNewScan();
-
-    void    SetNoTuples (int);
-    int     GetNoTuples ();
-
+*/
 };
 
-ListExpr OutRel(ListExpr, Word);
+/*
+4.2 Class ~RelationIterator~
 
-Word CreateRel(const ListExpr);
+This class is used for scanning (iterating through) relations.
 
-Word InRel(ListExpr, ListExpr,
-          int, ListExpr&, bool&);
+*/
+struct PrivateRelationIterator;
+/*
+Forward declaration of the struct ~PrivateRelationIterator~. This struct will contain the
+private attributes of the class ~RelationIterator~ and will be defined later differently 
+for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
 
-void DeleteRel(Word&);
+*/
 
-bool CheckRel(ListExpr, ListExpr&);
+class RelationIterator
+{
+  public:
+    RelationIterator( const Relation& relation );
+/*
+The constructor. Creates a ~RelationIterator~ for a given ~relation~ and positions the
+cursor in the first tuple, if exists.
 
-void* CastRel(void*);
+*/
+    ~RelationIterator();
+/*
+The destructor.
 
-bool OpenRel( SmiRecord&,
-              const ListExpr,
-              Word& );
+*/
+    Tuple *GetNextTuple() const;
+/*
+Retrieves the tuple in the current position of the iterator and moves the cursor forward 
+to the next tuple. Returns NULL if the cursor is in the end of a relation.
 
-bool SaveRel( SmiRecord&,
-              const ListExpr,
-              Word& );
-    
-Word RelInModel( ListExpr, ListExpr, int );
+*/
+    const bool EndOfScan() const;
+/*
+Tells if the cursor is in the end of a relation.
 
-ListExpr RelOutModel( ListExpr, Word );
+*/
+  private:
+  
+    PrivateRelationIterator *privateRelationIterator;
+/*
+The private attributes of the class ~RelationIterator~.
 
-Word RelValueToModel( ListExpr, Word );
+*/
+};
 
-Word RelValueListToModel( const ListExpr, const ListExpr,
-                       const int, ListExpr&, bool& );
+/*
+4 Auxiliary functions' interface
 
-#endif /* RELATION_ALGEBRA_PERSISTENCE_H */
+4.1 Function ~TypeOfRelAlgSymbol~
+
+Transforms a list expression ~symbol~ into one of the values of
+type ~RelationType~. ~Symbol~ is allowed to be any list. If it is not one
+of these symbols, then the value ~error~ is returned.
+
+*/
+enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
+RelationType TypeOfRelAlgSymbol (ListExpr symbol);
+
+/*
+4.2 Macro ~CHECK\_COND~
+
+This macro makes reporting errors in type mapping functions more conveniently.
+
+*/
+#define CHECK_COND(cond, msg) \
+  if(!(cond)) \
+  {\
+    ErrorReporter::ReportError(msg);\
+    return nl->SymbolAtom("typeerror");\
+  };
+
+/*
+3.2 Function ~FindAttribute~
+
+Here ~list~ should be a list of pairs of the form (~name~,~datatype~).
+The function ~FindAttribute~ determines whether ~attrname~ occurs as one of
+the names in this list. If so, the index in the list (counting from 1)
+is returned and the corresponding datatype is returned in ~attrtype~.
+Otherwise 0 is returned. Used in operator ~attr~, for example.
+
+*/
+int FindAttribute( ListExpr list, string attrname, ListExpr& attrtype);
+
+/*
+3.3 Function ~ConcatLists~
+
+Concatenates two lists.
+
+*/
+ListExpr ConcatLists( ListExpr list1, ListExpr list2);
+
+/*
+3.5 Function ~AttributesAreDisjoint~
+
+Checks wether two ListExpressions are of the form
+((a1 t1) ... (ai ti)) and ((b1 d1) ... (bj dj))
+and wether the ai and the bi are disjoint.
+
+*/
+bool AttributesAreDisjoint(ListExpr a, ListExpr b);
+
+/*
+3.6 Function ~Concat~
+
+Copies the attribute values of two tuples
+(words) ~r~ and ~s~ into tuple (word) ~t~.
+
+*/
+void Concat (Word r, Word s, Word& t);
+
+/*
+3.7 Function ~CompareNames~
+
+*/
+bool CompareNames(ListExpr list);
+
+
+#endif // _RELATION_ALGEBRA_H_

@@ -223,9 +223,9 @@ The end of the interval.
 
 The ~Range~ class implements a set of disjoint, non-adjacent ~Intervals~.
 For this implementation, it is used a persistent array of ordered intervals.
-We could not use the ~PArray~ package because the ~Interval~ class is made
+We could not use the ~DBArray~ package because the ~Interval~ class is made
 of memory pointers to a generic type ~StandardAttribute~, but the main 
-funcionalities of the persistent array (~PArray~) were included in this 
+funcionalities of the persistent array (~DBArray~) were included in this 
 class ~Range~.
 
 */

@@ -45,18 +45,14 @@ April 2002 Ulrich Telle Port to C++, complete revision
 August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
-<<<<<<< AlgebraManager.h
-January, 2003 VTA Changed ~PersistValue~ interface and created three
+January, 2003 Victor Almeida Changed ~PersistValue~ interface and created three
 new functions ~Open~, ~Save~, ~Close~, and ~Clone~ that join the ~Create~ 
 and ~Delete~ to form the object state diagram in the Figure 1.
 
 Figure 1: Object state diagram [objstatediagram.eps]
 
-=======
-February 2003 Ulrich Telle Introduced new mode ~DeleteFrom~ for the
-~PersistValue~ and ~PersistModel~ interface
+March 2003, Victor Almeida created the function ~SizeOf~
 
->>>>>>> 1.9
 1.1 Overview
  
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -118,6 +114,8 @@ latter are not independently persistent).
   * ~In~, ~Out~. Map a nested list into a value of the type and vice
 versa. Used for delivering a value to the application (among other
 things). 
+
+  * ~SizeOf~. Returns the size of the RootRecord of the object. 
 
 Every value of every type has a representation as a single "Word"[4] of
 storage. For a simple type, this can be all. For more complex types, it
@@ -312,7 +310,9 @@ typedef void (*ObjectClose)( Word& object );
 
 typedef Word (*ObjectClone)( const Word& object ); 
 
-typedef void* (*ObjectCast)(void*);
+typedef void* (*ObjectCast)( void*, SmiRecordFile* );
+
+typedef int (*ObjectSizeof)(); 
 
 /*
 Are the types used for creating, deleting and initializing the
@@ -687,6 +687,13 @@ Returns the address of the object clone function of type constructor
   ObjectCast Cast( const int algebraId, const int typeId );
 /*
 Returns the address of the type casting function of type constructor
+~typeId~ of algebra ~algebraId~.
+
+*/
+  ObjectSizeof
+    SizeOfObj( const int algebraId, const int typeId );
+/*
+Returns the address of the object sizeof function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */

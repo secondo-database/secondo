@@ -276,6 +276,21 @@ DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
 }
 
 void
+DisplayTTY::DisplayPolygon( ListExpr type, ListExpr numType, ListExpr value)
+{
+  ListExpr rest = value;
+
+  cout << "< ";
+  while( !nl->IsEmpty( rest ) )
+  {
+    ListExpr first = nl->First( rest );
+    rest = nl->Rest( rest );
+    cout << "(" << nl->IntValue( nl->First( first ) ) << " " << nl->IntValue( nl->Second( first ) ) << ") "; 
+  }
+  cout << ">";
+}
+  
+void
 DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 {
   int algebraId, typeId;
@@ -299,13 +314,14 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
 {
   si = secondoInterface;
   nl = si->GetNestedList();
-  InsertDisplayFunction( "int",    &DisplayInt );
-  InsertDisplayFunction( "real",   &DisplayReal );
-  InsertDisplayFunction( "bool",   &DisplayBoolean );
-  InsertDisplayFunction( "string", &DisplayString );
-  InsertDisplayFunction( "rel",    &DisplayRelation );
-  InsertDisplayFunction( "tuple",  &DisplayTuples );
-  InsertDisplayFunction( "map",    &DisplayFun );
+  InsertDisplayFunction( "int",     &DisplayInt );
+  InsertDisplayFunction( "real",    &DisplayReal );
+  InsertDisplayFunction( "bool",    &DisplayBoolean );
+  InsertDisplayFunction( "string",  &DisplayString );
+  InsertDisplayFunction( "rel",     &DisplayRelation );
+  InsertDisplayFunction( "tuple",   &DisplayTuples );
+  InsertDisplayFunction( "map",     &DisplayFun );
   InsertDisplayFunction( "date",    &DisplayDate );
+  InsertDisplayFunction( "polygon", &DisplayPolygon );
 }
 

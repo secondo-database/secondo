@@ -347,6 +347,16 @@ ClonePoint( const Word& w )
 }
  
 /*
+4.8 ~SizeOf~-function
+
+*/
+static int
+SizeOfPoint() 
+{
+  return sizeof(Point);
+}
+
+/*
 4.9 Function describing the signature of the type constructor
 
 */
@@ -375,7 +385,7 @@ CheckPoint( ListExpr type, ListExpr& errorInfo )
 4.11 ~Cast~-function
 
 */
-void* CastPoint(void* addr)
+void* CastPoint(void* addr, SmiRecordFile*)
 {
   return ( 0 );
 }
@@ -391,6 +401,7 @@ TypeConstructor point(
 	CreatePoint,	DeletePoint,	//object creation and deletion
         0, 0, ClosePoint, ClonePoint,   //object open, save, close, and clone
 	CastPoint,			//cast function
+        SizeOfPoint,                    //sizeof function
 	CheckPoint,	                //kind checking function
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel, 	
@@ -408,12 +419,12 @@ A ~points~ value is a finite set of points.
 
 */
 Points::Points() :
-  points( new PArray<Point>() ),
+  points( new DBArray<Point>( SecondoSystem::GetFlobFile() ) ),
   ordered( true )
 {}
 
 Points::Points( const Points& ps ) :
-  points( new PArray<Point>() ), 
+  points( new DBArray<Point>( SecondoSystem::GetFlobFile() ) ), 
   ordered( true )
 {
   assert( ps.IsOrdered() );
@@ -427,7 +438,7 @@ Points::Points( const Points& ps ) :
 }
 
 Points::Points( const SmiRecordId recordId, bool update ):
-  points( new PArray<Point>( recordId, update ) ),
+  points( new DBArray<Point>( SecondoSystem::GetFlobFile(), recordId, update ) ),
   ordered( true )
   {}
 
@@ -450,12 +461,12 @@ void Points::Get( const int i, Point& p ) const
 
 const int Points::Size() const 
 {
-  return points->Size();
+  return points->GetNoComponents();
 }
 
 const bool Points::IsEmpty() const
 {
-  return points->Size() == 0;
+  return Size() == 0;
 }
 
 const int Points::Position( const Point& p ) const
@@ -479,9 +490,15 @@ const int Points::Position( const Point& p ) const
    return -1;
 }
 
-const SmiRecordId Points::GetPointsRecordId() const
+const SmiRecordId Points::GetRecordId() const
 {
-  return points->Id();
+  return points->GetRecordId();
+}
+
+const bool Points::Save() 
+{
+  assert( IsOrdered() );
+  return points->Save();
 }
 
 Points& Points::operator=( const Points& ps )
@@ -490,7 +507,7 @@ Points& Points::operator=( const Points& ps )
 
   points->MarkDelete();
   delete points;
-  points = new PArray<Point>();
+  points = new DBArray<Point>( SecondoSystem::GetFlobFile() );
   for( int i = 0; i < ps.Size(); i++ )
   {
     Point p;
@@ -510,9 +527,7 @@ void Points::StartBulkLoad()
 void Points::EndBulkLoad()
 {
   assert( !IsOrdered() );
-  cout << "Before sorting: " << *this << endl;
   Sort();
-  cout << "After sorting: " << *this << endl;
   ordered = true;
 }
 
@@ -552,14 +567,14 @@ Points& Points::operator+=(const Point& p)
 
   if( !IsOrdered() )
   {
-    points->Put( points->Size(), p );
+    points->Put( Size(), p );
   }
   else
   {
     int pos = Position( p );
     if( pos != -1 )
     {
-      for( int i = points->Size() - 1; i >= pos; i++ )
+      for( int i = Size() - 1; i >= pos; i++ )
       {
         Point auxp;
         points->Get( i, auxp );
@@ -577,7 +592,7 @@ Points& Points::operator+=(const Points& ps)
   {
     Point p;
     ps.Get( i, p );
-    points->Put( points->Size(), p );
+    points->Put( Size(), p );
   }
   if( IsOrdered() )
   {
@@ -607,7 +622,7 @@ Points& Points::operator-=(const Point& p)
 
 ostream& operator<<( ostream& o, const Points& ps )
 {
-  o << "(" << ps.GetPointsRecordId() << ") <";
+  o << "<";
   for( int i = 0; i < ps.Size(); i++ )
   {
     Point p;
@@ -787,8 +802,6 @@ The list representation of a point is
 static ListExpr
 OutPoints( ListExpr typeInfo, Word value )
 {
-  cout << "OutPoints" << endl;
-
   Points* points = (Points*)(value.addr);
   if( points->IsEmpty() )
   {
@@ -820,8 +833,6 @@ static Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  cout << "InPoints" << endl;
-
   Points* points = new Points();
   points->StartBulkLoad();
 
@@ -854,8 +865,6 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
 static Word
 CreatePoints( const ListExpr typeInfo ) 
 {
-  cout << "CreatePoints" << endl;
-
   return (SetWord( new Points() ));
 }
 
@@ -866,8 +875,6 @@ CreatePoints( const ListExpr typeInfo )
 static void
 DeletePoints( Word& w ) 
 {
-  cout << "DeletePoints" << endl;
-
   Points *ps = (Points *)w.addr;
   ps->Destroy();
   delete ps;
@@ -881,8 +888,6 @@ DeletePoints( Word& w )
 static void
 ClosePoints( Word& w ) 
 {
-  cout << "ClosePoints" << endl;
-
   delete (Points *)w.addr;
   w.addr = 0;
 }
@@ -894,12 +899,22 @@ ClosePoints( Word& w )
 static Word
 ClonePoints( const Word& w ) 
 {
-  cout << "ClonePoints" << endl;
-
   Points *p = new Points( *((Points *)w.addr) );
   return SetWord( p );
 }
  
+/*
+5.8 ~SizeOf~-function
+
+Not implemented yet.
+
+*/
+static int
+SizeOfPoints() 
+{
+  return 0;
+}
+
 /*
 5.9 ~Open~-function
 
@@ -909,15 +924,12 @@ OpenPoints( SmiRecord& valueRecord,
             const ListExpr typeInfo,
             Word& value )
 {
-  cout << "OpenPoints" << endl;
-
   SmiRecordId recordId;
 
   valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
   Points *points = new Points( recordId );
   value = SetWord( points );
 
-  cout << "OpenPoints: " << *points << endl;
   return (true);
 }
 
@@ -930,14 +942,10 @@ SavePoints( SmiRecord& valueRecord,
             const ListExpr typeInfo,
             Word& value )
 {
-  cout << "SavePoints" << endl;
-
   Points *points = (Points*)value.addr;
 
-  cout << "SavePoints: " << *points << endl;
-
-  SmiRecordId recordId = points->GetPointsRecordId();
-
+  points->Save();
+  SmiRecordId recordId = points->GetRecordId();
   valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
 
   return (true);
@@ -972,7 +980,7 @@ CheckPoints( ListExpr type, ListExpr& errorInfo )
 5.13 ~Cast~-function
 
 */
-void* CastPoints(void* addr)
+void* CastPoints(void* addr, SmiRecordFile*)
 {
   return ( 0 );
 }
@@ -989,6 +997,7 @@ TypeConstructor points(
         OpenPoints, 	SavePoints,    	// object open and save
         ClosePoints, 	ClonePoints,   	//object close and clone
 	CastPoints,			//cast function
+        SizeOfPoints,                   //sizeof function
 	CheckPoints,	                //kind checking function
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel, 	

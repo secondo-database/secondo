@@ -42,9 +42,9 @@ class CcInt : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int      Compare(Attribute *arg);
   int      Adjacent(Attribute *arg);
-  int      Sizeof() ;
   CcInt*   Clone() ;
   ostream& Print( ostream &os ) { return (os << intval); }
+
  private:
   bool defined;
   int  intval;
@@ -71,7 +71,6 @@ class CcReal : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute* arg );
   int      Adjacent( Attribute* arg );
-  int      Sizeof() ;
   CcReal*  Clone() ;
   ostream& Print( ostream &os ) { return (os << realval); }
  private:
@@ -99,7 +98,6 @@ class CcBool : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute * arg );
   int      Adjacent( Attribute * arg );
-  int      Sizeof()  ;
   CcBool*  Clone() ;
   ostream& Print( ostream &os ) {
     if (boolval == true) return (os << "TRUE");
@@ -132,7 +130,6 @@ class CcString : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int       Compare( Attribute* arg );
   int       Adjacent( Attribute* arg );
-  int       Sizeof()  ;
   CcString* Clone() ;
   ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }
  private:

@@ -24,11 +24,13 @@ May 2002 Ulrich Telle Port to C++
 August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
-January 2003 VTA Changed ~PersistValue~ interface and created three
+January 2003 Victor Almeida Changed ~PersistValue~ interface and created three
 new functions ~Open~, ~Save~, and ~Close~ that join the ~Create~ and ~Delete~
 to form the object state diagram in the Figure 1. 
 
 Figure 1: Object state diagram [objstatediagram.eps]
+
+March 2003 Victor Almeida created the function "SizeOf".
 
 1.1 Overview
 
@@ -243,6 +245,7 @@ class TypeConstructor
                    ObjectClose close,
                    ObjectClone clone,
                    ObjectCast ca,
+                   ObjectSizeof sizeOf,
                    TypeCheckFunction tcf,
                    PersistFunction pmf = 0,
                    InModelFunction inm =
@@ -272,31 +275,32 @@ Associates the kind ~kindName~ with this type constructor.
 Returns the properties of the type constructor as a nested list.
 
 */
-  ListExpr Out( ListExpr type, Word value );
-  Word     In( const ListExpr typeInfo,
-               const ListExpr value, 
-               const int errorPos,
-               ListExpr& errorInfo,
-               bool& correct );
-  Word     Create( const ListExpr typeInfo );
-  void     Delete( Word& w );
-  bool     Open( SmiRecord& valueRecord,
-                 const ListExpr typeInfo,
-                 Word& value );
-  bool     Save( SmiRecord& valueRecord,
-                 const ListExpr typeInfo,
-                 Word& value );
-  void     Close( Word& w );
-  Word     Clone( const Word& w );
+  ListExpr   Out( ListExpr type, Word value );
+  Word       In( const ListExpr typeInfo,
+                 const ListExpr value, 
+                 const int errorPos,
+                 ListExpr& errorInfo,
+                 bool& correct );
+  Word       Create( const ListExpr typeInfo );
+  void       Delete( Word& w );
+  bool       Open( SmiRecord& valueRecord,
+                   const ListExpr typeInfo,
+                   Word& value );
+  bool       Save( SmiRecord& valueRecord,
+                   const ListExpr typeInfo,
+                  Word& value );
+  void       Close( Word& w );
+  Word       Clone( const Word& w );
+  int        SizeOf();
 
-  Word     InModel( ListExpr, ListExpr, int );
-  ListExpr OutModel( ListExpr, Word );
-  Word     ValueToModel( ListExpr, Word );
-  Word     ValueListToModel( const ListExpr typeExpr,
-                             const ListExpr valueList,
-                             const int errorPos,
-                             ListExpr& errorInfo,
-                             bool& correct );
+  Word       InModel( ListExpr, ListExpr, int );
+  ListExpr   OutModel( ListExpr, Word );
+  Word       ValueToModel( ListExpr, Word );
+  Word       ValueListToModel( const ListExpr typeExpr,
+                               const ListExpr valueList,
+                               const int errorPos,
+                               ListExpr& errorInfo,
+                               bool& correct );
 /*
 Are methods to manipulate objects and models according to the type
 constructor.
@@ -368,6 +372,7 @@ constructor functions.
   ObjectClose              closeFunc;
   ObjectClone              cloneFunc;
   ObjectCast               castFunc;
+  ObjectSizeof             sizeofFunc;
   PersistFunction          persistModelFunc;
   InModelFunction          inModelFunc;
   OutModelFunction         outModelFunc;

@@ -131,7 +131,7 @@ class Date: public StandardAttribute
 /*************************************************************************
 
   The following 10 virtual functions: IsDefined(),SetDefined(), GetValue(), HashValue(),
-  CopyFrom(), Compare(), Adjacent() Sizeof(), Clone(), Print(), need to be defined if 
+  CopyFrom(), Compare(), Adjacent(), Clone(), Print(), need to be defined if 
   we want to use ~date~ as an attribute type in tuple definitions.
 
 *************************************************************************/
@@ -143,7 +143,6 @@ class Date: public StandardAttribute
   void	   CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
   int      Adjacent(Attribute * arg);
-  int      Sizeof() ;
   Date*    Clone() ;
   ostream& Print( ostream &os );
 
@@ -324,8 +323,6 @@ int Date::Adjacent(Attribute *arg)
       return 0;
   }
 }
-
-int  Date::Sizeof() {return sizeof(Date);}
 
 Date*  Date::Clone() {return (new Date( *this));}
 
@@ -548,8 +545,14 @@ CloneDate( const Word& w )
   return SetWord( ((Date *)w.addr)->Clone() );
 }
 
+static int
+SizeOfDate()
+{
+  return sizeof(Date);
+}
+
 static void*
-CastDate( void* addr )
+CastDate( void* addr, SmiRecordFile* )
 {
   return (new (addr) Date);
 }
@@ -594,6 +597,7 @@ TypeConstructor date(
 	CreateDate, DeleteDate,		    //object creation and deletion
         0, 0, CloseDate, CloneDate,	    //object open, save, close, and clone
 	CastDate,  		            //cast function
+        SizeOfDate,			    //sizeof function
 	CheckDate,			    //kind checking function
 	0, 				    //predef. pers. function for model
 	TypeConstructor::DummyInModel,

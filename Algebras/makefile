@@ -22,34 +22,31 @@ makedirs:
 	$(MAKE) -C Relation-C++
 	$(MAKE) -C Date
 	$(MAKE) -C Polygon
-	$(MAKE) -C BTree
 	$(MAKE) -C Range
 	$(MAKE) -C Spatial
 
 buildlibs:
-	$(MAKE) -C Standard-C++   buildlibs
-	$(MAKE) -C Function-C++   buildlibs
-	$(MAKE) -C PointRectangle buildlibs
-	$(MAKE) -C StreamExample  buildlibs
-	$(MAKE) -C Relation-C++   buildlibs
-	$(MAKE) -C Date           buildlibs
-	$(MAKE) -C Polygon	  buildlibs
-	$(MAKE) -C BTree	  buildlibs
-	$(MAKE) -C Range          buildlibs
-	$(MAKE) -C Spatial        buildlibs
+	$(MAKE) -C Standard-C++  	buildlibs
+	$(MAKE) -C Function-C++   	buildlibs
+	$(MAKE) -C PointRectangle 	buildlibs
+	$(MAKE) -C StreamExample 	buildlibs
+	$(MAKE) -C Relation-C++   	buildlibs
+	$(MAKE) -C Date           	buildlibs
+	$(MAKE) -C Polygon	  	buildlibs
+	$(MAKE) -C Range          	buildlibs
+	$(MAKE) -C Spatial        	buildlibs
 
 .PHONY: clean
 clean:
 	$(RM) specs
-	$(MAKE) -C Management     clean
-	$(MAKE) -C Standard-C++   clean
-	$(MAKE) -C Function-C++   clean
-	$(MAKE) -C PointRectangle clean
-	$(MAKE) -C StreamExample  clean
-	$(MAKE) -C Relation-C++   clean
-	$(MAKE) -C Date           clean
-	$(MAKE) -C Polygon        clean
-	$(MAKE) -C BTree          clean
-	$(MAKE) -C Range          clean
-	$(MAKE) -C Spatial        clean
+	$(MAKE) -C Management     	clean
+	$(MAKE) -C Standard-C++   	clean
+	$(MAKE) -C Function-C++   	clean
+	$(MAKE) -C PointRectangle 	clean
+	$(MAKE) -C StreamExample  	clean
+	$(MAKE) -C Relation-C++   	clean
+	$(MAKE) -C Date           	clean
+	$(MAKE) -C Polygon        	clean
+	$(MAKE) -C Range          	clean
+	$(MAKE) -C Spatial        	clean
 	

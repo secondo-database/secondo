@@ -162,6 +162,17 @@ Is a display function for functions.
   static void DisplayDate( ListExpr type,
                           ListExpr numType,
                           ListExpr value );
+/*
+Is a display function for date.
+
+*/
+  static void DisplayPolygon( ListExpr type,
+                              ListExpr numType,
+                              ListExpr value );
+/*
+Is a display function for polygon.
+
+*/
   
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container

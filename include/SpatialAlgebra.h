@@ -20,7 +20,7 @@ shows examples of these spatial data types.
 #define __SPATIAL_ALGEBRA_H__
 
 #include "Rational.h"
-#include "PArray.h"
+#include "DBArray.h"
 
 #define RATIONAL_COORDINATES
 #ifdef RATIONAL_COORDINATES
@@ -295,7 +295,7 @@ set which is a copy of ~ps~.
 The third and the last one receives a ~recordId~ and a flag ~update~ as arguments.
 This constructor is applied not to create a new point set, but to read it from
 the disk. The ~recordId~ gives the position of the point set in the persistent
-array (~PArray~) structure and the flag ~update~ is used to open the array for 
+array (~DBArray~) structure and the flag ~update~ is used to open the array for 
 update or read-only.
 
 */
@@ -356,9 +356,16 @@ Retrieves the point ~p~ at position ~i~ in the point set.
 *Precondition:* $0 \leq i < Size()$
 
 */
-    const SmiRecordId GetPointsRecordId() const;
+    const SmiRecordId GetRecordId() const;
 /*
-Returns the record identification of the points persistent array.
+Returns the record id of the DB-array of points.
+
+*/
+    const bool Save();
+/*
+Saves the points persistent array and returns its ~SmiRecord~ identification.
+
+*Precondition:* ~IsOrdered()~
 
 */
     Points& operator=(const Points& ps);
@@ -486,7 +493,7 @@ returns its position. Returns -1 if the point is not found.
 4.6 Atrtibutes
 
 */
-    PArray<Point>* points;
+    DBArray<Point>* points;
 /*
 The persisten array of points.
 

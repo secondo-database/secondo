@@ -1016,8 +1016,6 @@ If value 0 is returned, the command was executed without error.
                 Destroy( tree, true );
 
 	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-               cerr << ReportTupleStatistics();
-
             }
             else if ( isFunction ) // abstraction or function object
             {

@@ -67,9 +67,25 @@ class TupleElement // renamed, previous name: TupleElem
  public:
   TupleElement(){};
   virtual ~TupleElement() {};
-  virtual int      NumOfFLOBs() { return (0); };
-  virtual FLOB*    GetFLOB( int ){ cout << "*?????????*" << endl; return (0); };
+  virtual int NumOfFLOBs() { return (0); };
+  virtual FLOB* GetFLOB( const int ){ cout << "*?????????*" << endl; return (0); };
+  virtual const bool SaveFLOB( const int ){ return (0); };
+  virtual inline char *GetRootRecord()
+    { return (char *)this; }
   virtual ostream& Print( ostream& os ) { return (os << "??"); };
+  void SetInsideTuple( const bool it = true )
+  {
+    insideTuple = it;
+    for( int i = 0; i < NumOfFLOBs(); i++ )
+    {
+      FLOB *tmpFLOB = GetFLOB( i );
+      tmpFLOB->SetInsideTuple( it );
+    }
+  }
+  
+ protected:
+  bool insideTuple;
+
 };
 
 ostream& operator<< (ostream &os, TupleElement &attrib);

@@ -109,7 +109,6 @@ void Range::Get(const int index, Interval& interval)
 {
   assert ( 0 <= index && index < intervalCount );
   assert ( interval.GetBegin() != NULL && interval.GetEnd() != NULL );
-  assert ( interval.GetBegin()->Sizeof() == size && interval.GetEnd()->Sizeof() == size );
 
   record.Read(interval.GetBegin(), size, 4 * sizeof(int) + size *  2 * index );
   record.Read(interval.GetEnd(),   size, 4 * sizeof(int) + size * (2 * index + 1) );
@@ -121,7 +120,6 @@ void Range::Get(const int index, const IntervalPosition pos, StandardAttribute *
 {
   assert ( 0 <= index && index < intervalCount );
   assert ( a != NULL );
-  assert ( a->Sizeof() == size );
 
   if( pos == Begin )
     record.Read(a, size, 4 * sizeof(int) + size *  2 * index );
@@ -1204,10 +1202,7 @@ InRange( const ListExpr typeInfo, const ListExpr instance,
   ListExpr alphaInfo = nl->Second( typeInfo );
   int algebraId = nl->IntValue( nl->First( alphaInfo ) ),
       typeId = nl->IntValue( nl->Second( alphaInfo ) );
-  StandardAttribute *aux = (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( alphaInfo ).addr;
-  int objSize = aux->Sizeof();
-  Word w = SetWord( aux );
-  (algM->DeleteObj(algebraId, typeId))( w );
+  int objSize = (algM->SizeOfObj(algebraId, typeId))();
 
   Range* range = new Range( algebraId, typeId, objSize );
   range->StartBulkLoad();
@@ -1252,10 +1247,7 @@ CreateRange( const ListExpr typeInfo )
   ListExpr alphaInfo = nl->Second( typeInfo );
   int algebraId = nl->IntValue( nl->First( alphaInfo ) ),
       typeId = nl->IntValue( nl->Second( alphaInfo ) );
-  StandardAttribute *aux = (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( alphaInfo ).addr;
-  int objSize = aux->Sizeof();
-  Word w = SetWord( aux );
-  (algM->DeleteObj(algebraId, typeId))( w );
+  int objSize = (algM->SizeOfObj(algebraId, typeId))();
   return (SetWord( new Range( algebraId, typeId, objSize ) ));
 }
 
@@ -1290,6 +1282,16 @@ static Word
 CloneRange( const Word& w )
 {
   return SetWord( 0 );
+}
+
+/*
+3.9 ~Sizeof~-function
+
+*/
+static int
+SizeOfRange()
+{
+  return 0;
 }
 
 /*
@@ -1367,7 +1369,7 @@ CheckRange( ListExpr type, ListExpr& errorInfo )
 3.14 ~Cast~-function
 
 */
-void* CastRange(void* addr)
+void* CastRange(void* addr, SmiRecordFile*)
 {
   return ( 0 );
 }
@@ -1383,6 +1385,7 @@ TypeConstructor range(
         OpenRange,              SaveRange,      // object open and save
         CloseRange,             CloneRange,     //object close and clone
         CastRange,                              //cast function
+        SizeOfRange,                            //sizeof function
         CheckRange,                             //kind checking function
         0,                                              //predef. pers. function for model
         TypeConstructor::DummyInModel,

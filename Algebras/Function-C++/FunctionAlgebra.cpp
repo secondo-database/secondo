@@ -73,6 +73,12 @@ CloneNothing( const Word& w )
   return SetWord( Address(0) );
 }
 
+static int
+SizeOfNothing()
+{
+  return 0;
+}
+
 /*
 2.2 The Functions Needed
 
@@ -97,7 +103,7 @@ OutMap( ListExpr typeInfo, Word value )
 }
 
 static void*
-DummyCast( void* addr )
+DummyCast( void* addr, SmiRecordFile* )
 {
   return (0);
 }
@@ -111,7 +117,7 @@ CheckMap( ListExpr type, ListExpr& errorInfo )
 TypeConstructor functionMap( "map",             FunctionProperty,
                              OutMap,            InMap,         NoSpace,
                              DoNothing,         0, 0,          DoNothing, CloneNothing,
-                             DummyCast,     CheckMap,
+                             DummyCast,         SizeOfNothing, CheckMap,
                              0,        
                              DummyInModel,      DummyOutModel,
                              DummyValueToModel, DummyValueListToModel );

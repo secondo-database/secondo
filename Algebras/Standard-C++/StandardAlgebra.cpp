@@ -214,7 +214,6 @@ int    CcInt::GetIntval() { return (intval); };
 void*  CcInt::GetValue() { return (void *)intval;};
 bool   CcInt::IsDefined() { return (defined); };
 void   CcInt::SetDefined(bool defined) { this->defined = defined; };
-int    CcInt::Sizeof() { return (sizeof(CcInt)); };
 CcInt* CcInt::Clone() { return (new CcInt( *this )); };
 size_t CcInt::HashValue() { return (defined ? intval : 0); };
 
@@ -340,13 +339,19 @@ CloneCcInt( const Word& w )
   return SetWord( ((CcInt*)w.addr)->Clone() );
 }
 
+static int
+SizeOfCcInt()
+{
+  return sizeof(CcInt);
+}
+
 /*
 3.2.5 {\em Cast}-function of type constructor {\tt ccint}
 
 */
 
 static void*
-CastInt( void* addr )
+CastInt( void* addr, SmiRecordFile* )
 {
   return (new (addr) CcInt);
 }
@@ -498,7 +503,7 @@ TypeConstructor ccInt( "int",            CcProperty,
                        OutCcInt,         InCcInt,        
                        CreateCcInt,      DeleteCcInt,      
                        0,        0,      CloseCcInt, CloneCcInt,
-                       CastInt,          CheckInt,
+                       CastInt,          SizeOfCcInt, CheckInt,
                        0,
                        InIntSetModel,    OutIntSetModel,
                        IntToIntSetModel, IntListToIntSetModel );
@@ -520,7 +525,6 @@ float   CcReal::GetRealval() { return (realval);};
 void*   CcReal::GetValue() { return ((void*)-1); };
 void    CcReal::Set( float v ) { defined = true, realval = v; };
 void    CcReal::Set( bool d, float v ) { defined = d, realval = v; };
-int     CcReal::Sizeof() { return (sizeof(CcReal)); };
 CcReal* CcReal::Clone() { return (new CcReal(*this)); };
 
 size_t CcReal::HashValue()
@@ -634,13 +638,19 @@ CloneCcReal( const Word& w )
   return SetWord( ((CcReal*)w.addr)->Clone() );
 }
 
+static int
+SizeOfCcReal()
+{
+  return sizeof(CcReal);
+}
+
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
  
 */
 
 static void*
-CastReal( void* addr )
+CastReal( void* addr, SmiRecordFile* )
 {
   return new (addr) CcReal;
 }
@@ -661,7 +671,7 @@ CheckReal( ListExpr type, ListExpr& errorInfo )
 TypeConstructor ccReal( "real",       CcProperty,
                         OutCcReal,    InCcReal,   CreateCcReal,
                         DeleteCcReal, 0, 0, CloseCcReal, CloneCcReal,
-                        CastReal,   CheckReal );
+                        CastReal,   SizeOfCcReal, CheckReal );
 
 /*
 3.3 Type constructor *ccbool*
@@ -685,7 +695,6 @@ bool    CcBool::IsDefined() { return defined; };
 void    CcBool::SetDefined(bool defined) { this->defined = defined; };
 bool    CcBool::GetBoolval() { return boolval; };
 void*   CcBool::GetValue() { return (void *)boolval; };
-int     CcBool::Sizeof() { return sizeof(CcBool); };
 CcBool* CcBool::Clone() { return new CcBool(*this); };
 size_t CcBool::HashValue() { return (defined ? boolval : false); };
 
@@ -800,13 +809,20 @@ CloneCcBool( const Word& w )
 {
   return SetWord( ((CcBool*)w.addr)->Clone() );
 }
+
+static int
+SizeOfCcBool()
+{
+  return sizeof(CcBool);
+}
+
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
 
 */
 
 static void*
-CastBool( void* addr )
+CastBool( void* addr, SmiRecordFile* )
 {
   return (new (addr) CcBool);
 }
@@ -891,7 +907,7 @@ BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
 TypeConstructor ccBool( "bool",             CcProperty,
                         OutCcBool,          InCcBool,        CreateCcBool,
                         DeleteCcBool,       0, 0,            CloseCcBool, CloneCcBool,
-                        CastBool,        CheckBool,
+                        CastBool,           SizeOfCcBool,  CheckBool,
                         0,
                         InBoolSetModel,     OutBoolSetModel,
                         BoolToBoolSetModel, BoolListToBoolSetModel );
@@ -908,7 +924,6 @@ bool      CcString::IsDefined() { return (defined); };
 void      CcString::SetDefined(bool defined) { this->defined = defined; };
 STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
-int       CcString::Sizeof() { return (sizeof(CcString)); };
 CcString* CcString::Clone() { return (new CcString( *this )); };
 void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 
@@ -1064,13 +1079,20 @@ CloneCcString( const Word& w )
 {
   return SetWord( ((CcString*)w.addr)->Clone() );
 }
+
+static int
+SizeOfCcString()
+{
+  return sizeof(CcString);
+}
+
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
 
 */
 
 static void*
-CastString( void* addr )
+CastString( void* addr, SmiRecordFile* )
 {
   return (new (addr) CcString);
 }
@@ -1087,9 +1109,9 @@ CheckString( ListExpr type, ListExpr& errorInfo )
 }
 
 TypeConstructor ccString( "string",       CcProperty,
-                          OutCcString,    InCcString, CreateCcString,
-                          DeleteCcString, 0, 0,       CloseCcString, CloneCcString,
-                          CastString, CheckString );
+                          OutCcString,    InCcString,     CreateCcString,
+                          DeleteCcString, 0, 0,           CloseCcString, CloneCcString,
+                          CastString,     SizeOfCcString, CheckString );
 
 /*
 4 Operators

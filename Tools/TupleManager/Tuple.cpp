@@ -213,12 +213,8 @@ void Tuple::Init(const TupleAttributes *attributes) {
   attribInfo = new AttributeInfo[attrNum];
   for (int i = 0; i < attrNum; i++) {
     int actSize = attributes->type[i].size;
-    int algId = attributes->type[i].algId;
-    int typeId = attributes->type[i].typeId;
     attribInfo[i].size = actSize;
-    char *attrMem = (char *)malloc(actSize);
-    // call cast function of tuple attribute
-    attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(attrMem);
+    attribInfo[i].value = (TupleElement *)NULL;
     attribInfo[i].destruct = false;
     attribInfo[i].incRefCount();
   } 
@@ -279,14 +275,11 @@ Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
   // read attribute values from memoryTuple.
   char *valuePtr = memoryTuple;
   for (int i = 0; i < attrNum; i++) {
-    memcpy(attribInfo[i].value, valuePtr, attribInfo[i].size);
+    int algId = attributes->type[i].algId;
+    int typeId = attributes->type[i].typeId;
+    attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    attribInfo[i].value->SetInsideTuple();
     valuePtr = valuePtr + attributes->type[i].size;
-    FLOB *tmpFLOB;
-    for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-      tmpFLOB = attribInfo[i].value->GetFLOB(j);
-      tmpFLOB->lobFile = lobFile;
-    }
-    
   }
   
   if (th.size > 0) {
@@ -297,7 +290,7 @@ Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
     for (int i = 0; i < attrNum; i++) {
       for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
 	tmpFLOB = attribInfo[i].value->GetFLOB(j);
-	extensionSize = extensionSize + tmpFLOB->size;
+	extensionSize = extensionSize + tmpFLOB->GetSize();
       }
     }
     
@@ -321,92 +314,6 @@ Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
   
   if (ok == false) error = true;
 }
-
-/*
-
-5.3 Constructor of the class Tuple. 
-
-Creates a solid tuple and
-reads its data into memory,
-using a prefetching iterator.
-
-*/
-Tuple::Tuple
-  (SmiRecordFile* recfile, 
-  PrefetchingIterator*iter, 
-  SmiRecordFile *lobfile,
-  const TupleAttributes *attributes) 
-{
-  bool ok;
-  
-  // initialize member attributes.
-  Init(attributes);
-  
-  iter->ReadCurrentRecordNumber(diskTupleId);
-  recFile = recfile;
-  lobFile = lobfile;
-  
-  // read tuple header and memory tuple from disk
-  TupleHeader th = {0};
-  char *buf = (char *)malloc(sizeof(TupleHeader));
-  ok = iter->ReadCurrentData(buf, sizeof(TupleHeader), 0);
-  ok = iter->ReadCurrentData(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
-  memcpy(&(th.size), buf, sizeof(int));
-  free(buf);
-  
-  if (ok == false) {
-    error = true;
-    return;
-  }
-  
-  state = SolidRead;
-  
-  // read attribute values from memoryTuple.
-  char *valuePtr = memoryTuple;
-  for (int i = 0; i < attrNum; i++) {
-    memcpy(attribInfo[i].value, valuePtr, attribInfo[i].size);
-    valuePtr = valuePtr + attributes->type[i].size;
-    FLOB *tmpFLOB;
-    for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-      tmpFLOB = attribInfo[i].value->GetFLOB(j);
-      tmpFLOB->lobFile = lobFile;
-    }
-    
-  }
-  
-  if (th.size > 0) {
-    // Determine the size of FLOB data stored in lobFile
-    FLOB *tmpFLOB;
-    extensionSize = 0;
-    
-    for (int i = 0; i < attrNum; i++) {
-      for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-	tmpFLOB = attribInfo[i].value->GetFLOB(j);
-	extensionSize = extensionSize + tmpFLOB->size;
-      }
-    }
-    
-    extensionTuple = 0;
-    // move FLOB data to extension tuple if exists.
-    if (extensionSize > 0) {
-      extensionTuple = (char *)malloc(extensionSize);
-      ok = iter->ReadCurrentData(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
-      
-      char *extensionPtr = extensionTuple;
-      for (int i = 0; i < attrNum; i++) {
-	for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-	  tmpFLOB = attribInfo[i].value->GetFLOB(j);
-	  if (!tmpFLOB->IsLob()) {
-	    extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
-	  }	
-	}
-      }				
-    }
-  }
-  
-  if (ok == false) error = true;
-}
-
 
 /*
 
@@ -470,9 +377,9 @@ int Tuple::CalcSizeOfFLOBData() {
   for (int i = 0; i < attrNum; i++) {
     for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
       tmpFLOB = attribInfo[i].value->GetFLOB(j);
-      bool stl = tmpFLOB->SaveToLob();
+      bool stl = attribInfo[i].value->SaveFLOB(j);
       if (stl == false) {
-	result = result + tmpFLOB->Size();
+	result = result + tmpFLOB->GetSize();
       }
     }
   }
@@ -494,8 +401,8 @@ char *Tuple::MoveFLOBDataToExtensionTuple() {
     for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
       tmpFLOB = attribInfo[i].value->GetFLOB(j);
       if (tmpFLOB->IsLob() == false) {
-	tmpFLOB->Get(0, tmpFLOB->size, extensionPtr);
-	extensionPtr = extensionPtr + tmpFLOB->size;
+	tmpFLOB->Get(0, tmpFLOB->GetSize(), extensionPtr);
+	extensionPtr = extensionPtr + tmpFLOB->GetSize();
       }
     }
   }
@@ -512,7 +419,7 @@ move external attribue values to memory tuple
 void Tuple::MoveExternalAttributeToMemoryTuple() {
   int offset = 0;
   for (int i = 0; i < attrNum; i++) {
-    memcpy(&memoryTuple[offset], attribInfo[i].value, attribInfo[i].size);
+    memcpy(&memoryTuple[offset], attribInfo[i].value->GetRootRecord(), attribInfo[i].size);
     attribInfo[i].changed = false;
     offset = offset + attribInfo[i].size;
   }
@@ -549,17 +456,14 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   
   memcpy(buf, &(th.size), sizeof(int));
   
-  diskTuple.Truncate(0);
-  bool rc = tuplefile->AppendRecord(diskTupleId, diskTuple);
-  rc = diskTuple.Write(buf, sizeof(TupleHeader), 0) && rc;
-  rc = diskTuple.Write(memoryTuple, memorySize, sizeof(TupleHeader)) && rc;
-
-  if (extensionTuple != 0) 
-  {
-    rc = diskTuple.Write(extensionTuple, extensionSize,
-      sizeof(TupleHeader) + memorySize) && rc;
-  }
-
+  SmiRecord newTuple;
+  bool rc = tuplefile->AppendRecord(diskTupleId, newTuple);
+  rc = newTuple.Write(buf, sizeof(TupleHeader), 0) && rc;
+  rc = newTuple.Write(memoryTuple, memorySize, sizeof(TupleHeader)) && rc;
+  if (extensionTuple != 0) {
+    rc = newTuple.Write(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && rc;
+  }	
+  diskTuple = newTuple;
   state = SolidWrite;
   free(buf);
   
@@ -659,6 +563,7 @@ bool Tuple::Put(int attrno, TupleElement *value) {
       attribInfo[attrno].deleteValue();
     }
     attribInfo[attrno].value = value;
+    attribInfo[attrno].value->SetInsideTuple();
     attribInfo[attrno].incRefCount();
     attribInfo[attrno].destruct = false;
     attribInfo[attrno].prev = 0;
@@ -698,6 +603,7 @@ bool Tuple::DelPut(int attrno, TupleElement *value) {
       attribInfo[attrno].deleteValue();
     }
     attribInfo[attrno].value = value;
+    attribInfo[attrno].value->SetInsideTuple();
     attribInfo[attrno].destruct = true;
     attribInfo[attrno].prev = 0;
     attribInfo[attrno].next = 0;

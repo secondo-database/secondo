@@ -277,6 +277,7 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   ObjectClose close,
                                   ObjectClone clone,
                                   ObjectCast ca,
+                                  ObjectSizeof sizeOf,
                                   TypeCheckFunction tcf,
                                   PersistFunction pmf,
                                   InModelFunction inm,
@@ -295,6 +296,7 @@ TypeConstructor::TypeConstructor( const string& nm,
   closeFunc            = close;
   cloneFunc            = clone;
   castFunc             = ca;
+  sizeofFunc           = sizeOf;
   typeCheckFunc        = tcf;
   persistModelFunc     = pmf;
   inModelFunc          = inm;
@@ -388,6 +390,12 @@ Word
 TypeConstructor::Clone( const Word& w )
 {
   return (*cloneFunc)( w );
+}
+
+int
+TypeConstructor::SizeOf()
+{
+  return (*sizeofFunc)();
 }
 
 bool

@@ -178,6 +178,7 @@ Precondition: dbState = dbClosed.
       if ( scExecutable->Open() )
       {
         ok = true;
+        ok = ok && flobFile->Open( "FLOB" );
         SmiEnvironment::CommitTransaction();
       }
       else
@@ -207,6 +208,7 @@ Precondition: dbState = dbOpen.
   }
   scExecutable->Close();
   scDescriptive->Close();
+  flobFile->Close();
   return (SmiEnvironment::CloseDatabase());
 }
 
@@ -618,6 +620,7 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   al = new NestedList();
   algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );
   queryProcessor = new QueryProcessor( nl, algebraManager );
+  flobFile = new SmiRecordFile( false );
   scDescriptive  = 0;
   scExecutable   = 0;
   currentLevel   = UndefinedLevel;
@@ -644,6 +647,7 @@ SecondoSystem::~SecondoSystem()
   delete algebraManager;
   delete nl;
   delete al;
+  delete flobFile;
   secondoSystem = 0;
 }
 
@@ -754,3 +758,7 @@ SecondoSystem::AbortTransaction()
   return (SmiEnvironment::AbortTransaction());
 }
 
+SmiRecordFile *SecondoSystem::GetFlobFile()
+{
+  return (secondoSystem->flobFile);
+}

@@ -44,7 +44,7 @@ static QueryProcessor* qp;
 Not interesting, but needed in the definition of a type constructor.
 
 */
-static void* DummyCast( void* addr ) {return (0);}
+static void* DummyCast( void* addr, SmiRecordFile* ) {return (0);}
 /*
 2 Type Constructor ~point~
 
@@ -148,6 +148,12 @@ ClonePoint( const Word& w )
 {
   return SetWord( ((Point *)w.addr)->Clone() );
 }
+
+static int
+SizeOfPoint()
+{
+  return sizeof(Point);
+}
  
 /*
 2.4 Function Describing the Signature of the Type Constructor
@@ -188,6 +194,7 @@ TypeConstructor point(
 	CreatePoint,	DeletePoint,	//object creation and deletion
         0, 0, ClosePoint, ClonePoint,    //object open, save, and close
 	DummyCast,			//cast function
+        SizeOfPoint, 			//sizeof function
 	CheckPoint,	                //kind checking function
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel, 	
@@ -333,6 +340,12 @@ CloneRectangle( const Word& w )
   return SetWord( ((Rectangle *)w.addr)->Clone() );
 }
 
+static int
+SizeOfRectangle()
+{
+  return sizeof(Rectangle);
+}
+
 /*
 3.4 Property Function - Signature of the Type Constructor
 
@@ -357,7 +370,7 @@ TypeConstructor rectangle( "rectangle",	PointRectangleProperty,
         		OutRectangle, 		InRectangle,         
 			CreateRectangle,	DeleteRectangle, 	
         		0, 0, 			CloseRectangle,     CloneRectangle,
-                        DummyCast,    		CheckRectangle,	
+                        DummyCast,    		SizeOfRectangle,    CheckRectangle,	
                         0);
 /*
 4 Creating Operators

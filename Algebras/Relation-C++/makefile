@@ -19,9 +19,10 @@ MODNAME=RelationAlgebra
 LIBNAME=lib$(MODNAME)
 
 OBJECTS=\
-	$(MODNAME).$(OBJEXT) \
-	RelationAlgebraPersistence.$(OBJEXT) \
-	RelationAlgebraMainMemory.$(OBJEXT)
+	RelationCommon.$(OBJEXT) \
+	RelationPersistent.$(OBJEXT) \
+	RelationMainMemory.$(OBJEXT) \
+	$(MODNAME).$(OBJEXT) 
 
 .PHONY: all
 all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
@@ -47,11 +48,14 @@ endif
 $(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
 	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
 
-RelationAlgebraPersistence.$(OBJEXT): RelationAlgebraPersistence.cpp  $(INCFILES)
-	$(CC) -c -o RelationAlgebraPersistence.$(OBJEXT) RelationAlgebraPersistence.cpp $(CCFLAGS)
+RelationCommon.$(OBJEXT): RelationCommon.cpp  $(INCFILES)
+	$(CC) -c -o RelationCommon.$(OBJEXT) RelationCommon.cpp $(CCFLAGS)
 
-RelationAlgebraMainMemory.$(OBJEXT): RelationAlgebraMainMemory.cpp  $(INCFILES)
-	$(CC) -c -o RelationAlgebraMainMemory.$(OBJEXT) RelationAlgebraMainMemory.cpp $(CCFLAGS)
+RelationPersistent.$(OBJEXT): RelationPersistent.cpp  $(INCFILES)
+	$(CC) -c -o RelationPersistent.$(OBJEXT) RelationPersistent.cpp $(CCFLAGS)
+
+RelationMainMemory.$(OBJEXT): RelationMainMemory.cpp  $(INCFILES)
+	$(CC) -c -o RelationMainMemory.$(OBJEXT) RelationMainMemory.cpp $(CCFLAGS)
 
 include ../../include.dep
 

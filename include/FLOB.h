@@ -42,7 +42,7 @@ SmiRecord in an SmiFile.
 
 */
 class FLOB {
-private:
+protected:
 	/* This is the tresholdsize for a FLOB. 
 		Whenever the size of this FLOB exceeds
 		the thresholdsize the data will stored
@@ -67,14 +67,14 @@ private:
 		of the FLOB is stored if the FLOB is small. */
 	char *start;
 
-	/* The friend relationship between FLOB and Tuple is
-		necessary because after the recreation of a FLOB
-		from its persistent representation the pointer lobFile
-		is invalid. The tuple will set this pointer to its 
-		lobFile attribute. */
-  	friend class Tuple;
-       
-  	  
+        /* This is a flag that tells if the FLOB is a LOB or  
+                is stored in memory */
+        bool isLob;
+
+        /* This is a flag that tells if the FLOB is used inside
+                a tuple of separetely in a Secondo object */
+        bool insideTuple;
+
 public:
 /*
 
@@ -90,7 +90,15 @@ public:
 Create from scratch.
 
 */
-  	FLOB(SmiRecordFile* inlobFile, int sz);
+  	FLOB(SmiRecordFile* inlobFile, int sz, const bool alloc, const bool update);
+/*
+
+3.3 Constructor.
+
+Opens a FLOB.
+
+*/
+  	FLOB(SmiRecordFile* inlobFile, const SmiRecordId id, const bool update);
 
 /*
 3.3 Destructor. 
@@ -131,7 +139,7 @@ Write Flob data into source.
 Returns the size of a FLOB.
 
 */
-   	int Size();
+   	int GetSize();
   
   
 /*
@@ -157,7 +165,7 @@ Restore from byte string.
 Returns treue, if value stored in underlying LOB, otherwise false.
 
 */
-  	bool IsLob();
+  	bool IsLob() const;
 	
 /* 
 3.11 SaveToLob
@@ -167,6 +175,20 @@ if the size of this FLOB exceeds threshold size.
 
 */
   	bool SaveToLob();
-	 
+/* 
+3.12 GetLobId 
+
+Returns the lob record id.
+
+*/
+  	const SmiRecordId GetLobId();
+
+/*
+3.13 SetInsideTuple
+
+Sets this flob to be inside a tuple or not depending on the value of ~it~.
+
+*/
+        void SetInsideTuple( const bool it = true );
 };
 #endif

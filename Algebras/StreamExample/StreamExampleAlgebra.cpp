@@ -131,7 +131,7 @@ printintstreamType( ListExpr args )
 }
 
 /*
-Type mapping for ~filter~ is
+Type mapping for ~sfilter~ is
 
 ----	((stream int) (map int bool)) -> (stream x)
 ----
@@ -397,7 +397,7 @@ Operator printintstream (
 	printintstreamType	//type mapping
 );
 
-Operator filter (
+Operator sfilter (
 	"filter", 		//name
 	filterSpec,		//specification
 	filterFun,		//value mapping
@@ -421,7 +421,7 @@ class StreamExampleAlgebra : public Algebra
     AddOperator( &intstream );
     AddOperator( &cppcount );
     AddOperator( &printintstream );
-    AddOperator( &filter );
+    AddOperator( &sfilter );
   }
   ~StreamExampleAlgebra() {};
 };
