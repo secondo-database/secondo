@@ -1498,6 +1498,9 @@ Whether the half segments in the region value are sorted.
 */
 ostream& operator<<( ostream& o, CRegion& cr );
 
+Word InPoint( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutPoint( ListExpr typeInfo, Word value );
+
 #endif // __SPATIAL_ALGEBRA_H__
 
 

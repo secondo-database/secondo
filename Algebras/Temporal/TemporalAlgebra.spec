@@ -7,4 +7,5 @@ operator maximum alias MAXIMUM pattern op ( _ )
 operator no_components alias NO_COMPONENTS pattern op ( _ )
 operator inst alias INST pattern op ( _ )
 operator val alias VAL pattern op ( _ )
+operator atinstant alias ATINSTANT pattern _ infixop _
 
