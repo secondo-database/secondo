@@ -27,6 +27,7 @@ SecondoInterface::SecondoInterface()
   : initialized( false ), activeTransaction( false ), server( 0 )
 {
   nl = new NestedList();
+  al = nl;
 }
 
 SecondoInterface::~SecondoInterface()
@@ -36,7 +37,9 @@ SecondoInterface::~SecondoInterface()
     Terminate();
   }
   delete nl;
+  al = 0;
 }
+
 
 bool
 SecondoInterface::Initialize( const string& user, const string& pswd,
