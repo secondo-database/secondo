@@ -581,6 +581,18 @@ TypeMapTextInt( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
+ListExpr
+TypeMapkeywords( ListExpr args ){
+  ListExpr arg;
+  
+  if ( nl->ListLength(args) == 1 )
+  {
+    arg = nl->First(args);
+    if ( nl->IsEqual(arg, typeName) )
+      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("string"));
+  }
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 
@@ -679,6 +691,145 @@ Value Mapping for the ~length~ operator with a text and a string operator .
   return 0;
 }
 
+/*
+4.21 Value mapping function of operator ~keywords~
+
+The following auxiliary function ~trim~ removes any kind of space
+characters from the end of a string.
+
+*/
+
+int trimstr (char s[])
+{
+  int n;
+  
+  for(n = strlen(s) - 1; n >= 0; n--)
+   if ( !isspace(s[n]) ) break;
+  s[n+1] = '\0';
+  return n;
+}
+
+int
+ValMapkeywords (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+Creates a stream of strings containing the single words
+of the origin text, on the assumption, that words in the text
+are separated by a space character.
+
+*/
+{
+  struct Subword {int start, nochr, strlength; char* subw;}* subword;
+
+  CcString* elem;
+  const char* cpystr;
+  int i;
+  string tmpstr;
+  STRING outstr;
+  Word arg0;
+
+  switch( message )
+  {
+    case OPEN:
+      // cout << "open" << endl;     
+      qp->Request(args[0].addr, arg0);
+     
+      subword = new Subword;
+      subword->start = 0;
+      subword->nochr = 0;
+      cpystr = ((FText*)arg0.addr)->Get();
+      subword->subw = (char*)malloc(strlen(cpystr) + 1);
+      strcpy(subword->subw, cpystr);
+      subword->subw[strlen(cpystr)] = '\0';
+      trimstr(subword->subw); //remove spaces from the end of the string
+      
+      subword->strlength = strlen(subword->subw);
+      // get the necessary values to determine the first single word in the 
+      // string, if it is not empty or contains only space characters. 
+      if ( subword->strlength > 0) {     
+        i=0;
+        do {
+	  while ( isspace(subword->subw[i]) ) i++;     
+          subword->start = i;    
+          i = subword->start;
+          while ( (!(isspace(((subword->subw)[i]))) && 
+	          ((subword->subw)[i]) != '\0') ) i++;
+          subword->nochr = i - subword->start;
+          if (subword->nochr > 48) {
+	    // text is a single word with more than 48 characters
+	    if (subword->nochr == subword->strlength) {
+	      subword->strlength = 0;
+	      break;
+	    }
+            i = subword->nochr;
+          }
+	  if (subword->nochr > 48 ) {
+            i = subword->nochr;
+          }
+        }while ( subword->nochr > 48);
+      }      
+      local.addr = subword;
+      return 0;
+
+    case REQUEST:
+    
+      subword = ((Subword*) local.addr);
+      // cout << "request" << endl;
+      // another single word in the string still exists
+      if ( (subword->strlength > 0) && (subword->start < subword->strlength) )
+      {
+        tmpstr = (((string)(subword->subw)).substr(subword->start,subword->nochr));
+	strcpy(outstr, (char*)tmpstr.c_str());
+        elem = new CcString(true, &outstr);
+	result.addr = elem;
+
+	subword->start += subword->nochr;	
+        i = subword->start;
+	do {
+	  if (i < subword->strlength ) {
+            while ( isspace((subword->subw)[i]) ) i++; 
+            subword->start = i;
+            while ( (!isspace((subword->subw)[i])) && 
+	            (((subword->subw)[i]) != '\0') )  i++;
+	    subword->nochr = i - subword->start;
+	    if ( (subword->subw[i] == '\0') && (subword->nochr > 48) ) {
+	      subword->start = subword->strlength;
+	      return YIELD;
+	    }
+            subword->nochr++;
+	    if (subword->nochr > 48) {
+	      i = subword->nochr + subword->start;
+	    }
+	  }
+	}while ( subword->nochr > 48 && subword->subw[i] != '\0');		
+        local.addr = subword;
+      
+        return YIELD;
+      }
+      // no more single words in the string
+      else
+      {
+        // string is empty or contains only space characters
+        if ( subword->strlength == 0 ) {
+	  outstr[0] = '\0';
+          elem = new CcString(true, &outstr);
+	  result.addr = elem;
+	  subword->start = subword->strlength = 1;
+	  local.addr = subword;
+	  return YIELD;
+        }	  
+      return CANCEL;
+      }
+       
+    case CLOSE:
+      //cout << "close" << endl;
+      subword = ((Subword*) local.addr);
+      free(subword->subw);
+      delete subword;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
 
 /*
 3.4 Definition of Operators
@@ -716,6 +867,16 @@ const string lengthSpec =
     "<text>length returns the length of "+typeName+".</text--->"
     ")"
   ")";
+  
+const string keywordsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(text) -> (stream string)</text--->"
+             "<text>_ keywords</text--->"
+             "<text>Creates a stream of strings containing the single words"
+             " of the origin text, on the assumption, that words in the text"
+             " are separated by a space character.</text--->"
+             "<text>query ten feed extendstream(name: mytext keywords) consume</text--->"
+             ") )"; 
 
 /*
 The Definition of the operators of the type ~text~.
@@ -753,6 +914,15 @@ Operator length
   TypeMapTextInt        //type mapping
 );
 
+Operator getkeywords
+(
+  "keywords",            //name
+  keywordsSpec,          //specification
+  ValMapkeywords,        //value mapping
+  Operator::DummyModel,  //dummy model mapping, defined in Algebra.h
+  simpleSelect,          //trivial selection function
+  TypeMapkeywords        //type mapping
+);
 
 /*
 5 Creating the algebra
@@ -771,6 +941,7 @@ public:
     AddOperator( &containsString );
     AddOperator( &containsText );
     AddOperator( &length );
+    AddOperator( &getkeywords );
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
     )
