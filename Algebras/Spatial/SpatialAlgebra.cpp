@@ -2839,7 +2839,7 @@ face is not clear. In the following we do this kind of check.
 }
 
 /*
-This function check whether a region value is after thr insertion of a new half segment.
+This function check whether a region value is valid after thr insertion of a new half segment.
 Whenever a half segment is about to be inserted, the state of the region is checked. 
 A valid region must satisfy the following conditions:
 
@@ -4446,13 +4446,13 @@ SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s
     for (int i=0; i<cl1->Size(); i++)
     {
 	cl1->Get(i, chs1);
-	if (chs1.GetLDP())   //only compare left halfsegments
+	if (chs1.GetLDP()) 
 	{
-	    bool found=false;//found a seg in cl2 which contain chs1
+	    bool found=false;
 	    for (int j=0; ((j<cl2->Size()) && !found); j++)
 	    {    
 		cl2->Get(j, chs2);
-		if (chs2.GetLDP())  //only compare left halfsegments
+		if (chs2.GetLDP()) 
 		{
 		    if ((chs1.Inside(chs2)))
 		    {
@@ -4587,7 +4587,7 @@ class SpatialAlgebra : public Algebra
 
     point.AssociateKind("DATA");   	//this means that point and rectangle
     points.AssociateKind("DATA");   	//can be used in places where types
-    line.AssociateKind("DATA");	//of kind DATA are expected, e.g. in
+    line.AssociateKind("DATA");      	//of kind DATA are expected, e.g. in
     region.AssociateKind("DATA");	//tuples.
 	
     AddOperator( &spatialisempty );
