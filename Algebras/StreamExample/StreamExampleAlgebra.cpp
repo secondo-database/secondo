@@ -45,18 +45,18 @@ This algebra provides the following operators:
 the second argument. If the second argument is smaller than the first, the
 stream will be empty.
 
-  * For d in ANY: stream(d) [->] int	count
+  * stream(int) [->] int	count
 
-    Returns the number of elements in a stream. Here the kind ANY represents
-any type.
+    Returns the number of elements in an integer stream.  
+
 
   * stream(int) [->] stream(int)		printintstream
 
     Prints out all elements of the stream
 
-  * For d in ANY: stream(d) x (d [->] bool) [->] stream(d)	filter
+  * stream(int) x (int [->] bool) [->] stream(int)	filter
 
-    Filters the elements of a stream by a predicate.
+    Filters the elements of an integer stream by a predicate.
 
 
 2.2 Type Mapping Function
@@ -88,18 +88,21 @@ intstreamType( ListExpr args ){
 /*
 Type mapping for ~count~ is
 
-----	((stream x)) -> int
+----	((stream int)) -> int
 ----
 
 */
 static ListExpr
 countType( ListExpr args )
 {
-  ListExpr arg11;
+  ListExpr arg1;
   if ( nl->ListLength(args) == 1 )
   {
-    arg11 = nl->First(nl->First(args));
-    if ( nl->IsEqual(arg11, "stream") )
+    arg1 = nl->First(args);
+
+    if ( nl->ListLength(arg1) == 2 ) 
+      if ( nl->IsEqual(nl->First(arg1), "stream") 
+	   && nl->IsEqual(nl->Second(arg1), "int") ) 
       return nl->SymbolAtom("int");
   }
   return nl->SymbolAtom("typeerror");
@@ -130,7 +133,7 @@ printintstreamType( ListExpr args )
 /*
 Type mapping for ~filter~ is
 
-----	((stream x) (map x bool)) -> (stream x)
+----	((stream int) (map int bool)) -> (stream x)
 ----
 
 */
@@ -145,9 +148,10 @@ filterType( ListExpr args )
 
     if ( nl->ListLength(arg1) == 2 && nl->ListLength(arg2) == 3 
       && nl->IsEqual(nl->First(arg1), "stream")
+      && nl->IsEqual(nl->Second(arg1), "int")
       && nl->IsEqual(nl->First(arg2), "map")
-      && nl->IsEqual(nl->Third(arg2), "bool")
-      && nl->Equal(nl->Second(arg1), nl->Second(arg2)) )
+      && nl->IsEqual(nl->Second(arg2), "int")
+      && nl->IsEqual(nl->Third(arg2), "bool") )
     return arg1;
   } 
   return nl->SymbolAtom("typeerror");
@@ -194,7 +198,7 @@ This is illustrated in the value mapping functions below.
     case OPEN:
 
       qp->Request(args[0].addr, arg0);
-      qp->Request(args[1].addr, arg0);
+      qp->Request(args[1].addr, arg1);
 
       i1 = ((CcInt*)arg0.addr);
       i2 = ((CcInt*)arg1.addr);
@@ -239,13 +243,12 @@ Count the number of elements in a stream. An example for consuming a stream.
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
-  delete elem.addr;			//release storage, this operator ``consumes''
-					//the stream
+
   while ( qp->Received(args[0].addr) )
   {
     count++;
+    delete((CcInt*) elem.addr);			//consume the stream objects
     qp->Request(args[0].addr, elem);
-    delete elem.addr;			//release storage
   }
   result = qp->ResultStorage(s);
   ((CcInt*) result.addr)->Set(true, count);		
