@@ -630,7 +630,9 @@ public class CommandPanel extends JScrollPane {
     if(command.startsWith("gui ") & RV!=null){
        return RV.execGuiCommand(command.substring(4));
     }
-    if(command.startsWith("optimizer ")){
+   
+    boolean eval=false; 
+    if((eval = command.startsWith(EvalString)) || command.startsWith(OptString)){
        if(!useOptimizer()){
           appendText("\noptimizer not available");
 	  showPrompt();
@@ -639,20 +641,46 @@ public class CommandPanel extends JScrollPane {
        long starttime=0;
        if(Environment.MEASURE_TIME)
           starttime = System.currentTimeMillis();
-       String answer = sendToOptimizer(command.substring(10));
+
+       int OptCommandLength = eval?EvalString.length():OptString.length();
+
+       String answer = sendToOptimizer(command.substring(OptCommandLength));
+
        if(Environment.MEASURE_TIME)
           System.out.println("used time for optimizing: "+(System.currentTimeMillis()-starttime)+" ms");
+
        if(answer==null){
           appendText("\nerror in optimizer command");
 	  showPrompt();
 	  return  false;
        }
        else{
-          appendText("\n"+answer);
-	  showPrompt();
-	  return true;
+         if(!eval){
+             appendText("\n"+answer);
+   	     showPrompt();
+	     return true;
+         }else{ // execute the plan
+             // remove the "VARNAME =  " from the answer
+             int pos = answer.indexOf("=");
+             if(pos >= 0){
+                 answer = "query " + answer.substring(pos+1);
+             }
+             if(answer.startsWith(EvalString)){
+                 appendText("\npossible infinite recursion detected");
+                 appendText("\nsuppress execution of the optimized result");
+                 appendText("\n the result is:\n"+answer);
+                 showPrompt();
+                 return false; 
+             } else{
+                 appendText("\nevaluate the query:\n"+answer+"\n"); 
+                 addToHistory(answer);
+                 return execUserCommand(answer); 
+             }
+         }
        }
     }
+   
+
 
     ListExpr displayErrorList;
     int displayErrorCode;
@@ -1092,6 +1120,10 @@ public class CommandPanel extends JScrollPane {
      int min=0;
      int max=0;
   }
+
+// define strings for special treatment when a command begins with it
+private static final String OptString ="optimizer "; 
+private static final String EvalString="eval ";
 
 
 }
