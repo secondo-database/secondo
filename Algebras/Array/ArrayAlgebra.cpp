@@ -1133,7 +1133,56 @@ Operator ELEMENT (
 );
 
 /*
-3.8 Operator ~loop~
+
+3.8 Type Operator ~ELEMENT2~
+
+Type operators are used only for inferring argument types of parameter
+functions. They have a type mapping but no evaluation function.
+
+This type operator extracts the type of the elements from the second 
+array type within a list of argument types.
+
+----    ((array x) (array y) ...) -> y
+----
+
+(The first argument must not be an array. It may also be any other 
+type)
+*/
+ListExpr ELEMENT2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) >= 2)
+  {
+    ListExpr second = nl->Second(args);
+    if (nl->ListLength(second) == 2)
+    {
+      if (nl->IsEqual(nl->First(second), "array")) {
+        return nl->Second(second);
+      }
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+const string ELEMENT2Spec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+     "( <text>((array x) (array y) ... ) -> (y)</text--->"
+       "<text>type operator</text--->"
+       "<text>Extracts the type of the elements from an array type given "
+       "as the second argument.</text--->"
+       "<text>not for use with sos-syntax. The first argument must not "
+       "be an array. It may also be any other type.</text---> ))";
+
+Operator ELEMENT2 (
+      "ELEMENT2",
+      ELEMENT2Spec,
+      0,
+      Operator::DummyModel,
+      simpleSelect,
+      ELEMENT2TypeMap
+);
+
+/*
+3.9 Operator ~loop~
 
 The Operator ~loop~ evaluates each element of an array with a given function and
 returns an array which contains the resulting values.
@@ -1229,7 +1278,7 @@ Operator loop (
 );
 
 /*
-3.9 Operator ~loop2~
+3.10 Operator ~loop2~
 
 The operator ~loop2~ evaluates each pair of elements from two arrays with 
 a given function and returns an array which contains the resulting values.
@@ -1337,7 +1386,7 @@ Operator loop2 (
 );
 
 /*
-3.9 Operator ~sortarray~
+3.11 Operator ~sortarray~
 
 The operator ~sortarray~ sorts an array in order of the function values
 of the elements.
@@ -1483,6 +1532,7 @@ class ArrayAlgebra : public Algebra
     AddOperator( &summarize );
 
     AddOperator( &ELEMENT );
+    AddOperator( &ELEMENT2 );
 
     AddOperator( &loop );
     AddOperator( &loop2 );
