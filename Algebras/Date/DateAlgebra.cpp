@@ -4,11 +4,11 @@
 [1] Date Algebra
 
 December 11-16, 2002 DZM
-*********************************************************************
+***************************************************************************************************
 This little example algebra provides one type constructor ~date~  and 7 operators:
-date -> int                       year, month, day
-date x date -> bool       <  = >
-ini x int x int->date      opdate
+date -> int                      year, month, day
+date x date -> bool       <,  =, >
+ini x int x int->date       opdate
 
 The algerbra provides basic checking on the validity of data. For instance, Fabruary in
 leap years (every 4 years except 100th year, and every 400th year) has 29 days, and 
@@ -18,7 +18,7 @@ If an invalid date is input with list representation, then the system will refus
 If an invalid date is input with operator ~opdate~, the system will change it into the
 nearest valid date. For instance, opdate(29,2,1900) and opdate(31,4,2000) will return 
 (28 2 1900) and (30 4 2000) respectively.
-*********************************************************************
+*****************************************************************************************************
 1 Preliminaries
 
 1.1 Includes
