@@ -1,0 +1,169 @@
+/*
+Parser of Nested Lists for Java.
+Based in the parser for nested lists in C of Secondo.
+
+March 1999. Jose Antonio Cotelo Lema.
+
+June 1999: added to the package sj.lang.JavaListExpr
+
+*/
+  package sj.lang.JavaListExpr;
+  ////////////// IMPORTS //////////////////////
+  import java.io.Reader;
+  import java.util.Vector;
+  import sj.lang.ListExpr;
+  import sj.lang.JavaListExpr.NLTokenizer;
+
+  ////////////// USER CODE ////////////////////
+
+
+  parser code {:
+    // NLTokenizer object to be used as tokenizer in this NLParser object.
+    public NLTokenizer tokenizer = null;
+
+    // The number of line of the input where the parser is reading.
+    // It considers the first line is line 1.
+    public int linePos;
+    // The number of character of the input where the parser is reading.
+    // It considers the first character as character 1.
+    public int charPos;
+    // Defines a constructor for this class,which gets the input Reader as
+    // argument.
+    // The parser class must have the name ~NLParser~.
+    public NLParser(Reader inputReader){
+      // Calls the code of the predefined constructor.
+      this();
+      // Creates the tokenizer and setups it to read from the given Reader
+      // object.
+      this.tokenizer = new NLTokenizer(inputReader);
+    }
+  :};
+
+  init with {:
+    // If the tokenizer was not initialized, then the parser was created
+    // using the standard constructor (with no parameters), what means that
+    // the tokenizer (scaner) must read from the standard input.
+    // So, it creates the tokenizer using the standard input as argument.
+    if (this.tokenizer == null){
+      this.tokenizer = new NLTokenizer(System.in);
+    }
+  :};
+  // Setups the scanner.
+  scan with {:
+    NLToken result = this.tokenizer.nextToken();
+    this.linePos = result.linePos;
+    this.charPos = result.charPos;
+    return result;
+  :};
+
+
+///////////////////// SYMBOLS ///////////////////////////
+
+// Terminals.
+terminal ListExpr TT_INT_ATOM, TT_BOOL_ATOM, TT_REAL_ATOM, TT_STRING_ATOM, TT_SYMBOL_ATOM, TT_TEXT_ATOM;
+terminal      TT_OPEN_PAR, TT_CLOSE_PAR;
+
+  // Non Terminals.
+non terminal ListExpr list_expr, ok;
+non terminal Vector   list_expr_seq;
+
+
+/////////////////////// RULES /////////////////////////
+
+  start with ok;
+
+  // Rule 0
+  ok ::= list_expr:list1 {: 
+            RESULT = list1;
+         :};
+// Rule 1
+list_expr ::= TT_OPEN_PAR list_expr_seq:listSeq TT_CLOSE_PAR  {:
+                 // It takes the vector in ~listSeq~ and builds the 
+                 // equivalent ListExpr.
+                 ListExpr auxList = ListExpr.theEmptyList();
+                 for(int index= listSeq.size()-1; index>=0; index--){
+                   auxList= ListExpr.cons((ListExpr)listSeq.elementAt(index), auxList);
+                 }
+                 RESULT = auxList;
+              :};
+// Rule 2
+list_expr ::= TT_INT_ATOM:atom {:
+                RESULT = atom;
+              :};
+// Rule 3
+list_expr ::= TT_BOOL_ATOM:atom {:
+                RESULT = atom;
+              :};
+// Rule 4
+list_expr ::= TT_REAL_ATOM:atom {:
+                RESULT = atom;
+              :};
+// Rule5
+list_expr ::= TT_STRING_ATOM:atom {:
+                RESULT = atom;
+              :};
+// Rule 6
+list_expr ::= TT_SYMBOL_ATOM:atom {:
+                RESULT = atom;
+              :};
+// Rule 7
+list_expr ::= TT_TEXT_ATOM:atom {:
+                RESULT = atom;
+              :};
+// Rule 8
+list_expr_seq ::= list_expr_seq:listSeq list_expr:listExpr {:
+                    // The value of a ~list_expr_seq~ is stored as a vector,
+                    // because for using the ~cons()~ method of the ~ListExpr~
+                    // class we need to use the elements in reverse order to
+                    // the one with which we get them. So we store all them
+                    // and when we find apply the rule 1 we build the
+                    // equivalent ListExpr value. 
+                    listSeq.addElement(listExpr);
+                    RESULT = listSeq;
+                  :};
+// Rule 8
+list_expr_seq ::= {:
+		    RESULT = new Vector();
+                  :};
+
+/*  ///////////////////////////////
+
+
+
+
+
+%{
+#include <stdio.h>
+#include "nestedlist.h"
+
+ListExpr listExpression;
+%}
+
+%token INTEGER REAL BOOLEAN SYMBOL STRING TEXT OPEN CLOSE 
+%%
+
+
+
+rest : CLOSE       {$$ = theEmptyList();}
+     | atom rest   {$$ = Cons($1, $2);}
+     | list rest   {$$ = Cons($1, $2);}
+     ;
+
+atom : INTEGER     {$$ = $1; // printf("Index of Nodes: %d\n",$1);// }
+     | REAL        {$$ = $1; // printf("Index of Nodes: %d\n",$1);// }
+     | BOOLEAN     {$$ = $1;}
+     | SYMBOL      {$$ = $1;}
+     | STRING      {$$ = $1;}
+     | TEXT        {$$ = $1;}
+     ;
+
+%%
+extern char yytext[];
+extern FILE *yyin;
+
+yyerror(s)
+char *s;
+{
+   fprintf(stderr, "%s processing '%s'!\n",s, yytext);
+}
+*/

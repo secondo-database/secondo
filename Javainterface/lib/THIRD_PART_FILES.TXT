@@ -1,0 +1,80 @@
+The following files contain third part classes:
+
+- visualrt.zip: contain the runtime classes of the Java Workshop 2.0. Java Workshop is a trademark of Sun Microsystems. You can find this aplication in "http://www.sun.com/workshop/java/".
+
+  ***********************************************************************
+  * ADVICE!!:								*
+  * 	The classes in the visualrt.zip file are copyright of Sun 	*
+  *	Microsystems (Copyright 1997 Sun Microsystems, Inc. All rights 	*
+  *	reserved). Hence, the content of this file is subject to 	*
+  *	certain licenses and restrictions that are incorporated herein	*
+  *	by reference.							*
+  *									*
+  *	In its license agreement Sun Microsystems specifically:		*
+  *	"prohibits users of Customer's Program from modifying, 		*
+  *	decompiling, disassembling, decrypting, extracting, reducing to *
+  *	human-readable form or otherwise reverse engineering the 	*
+  *	Module". In this sentence the "Module" referres to the runtime	*
+  *	libraries, provided with this program in the file 		*
+  *	"visualrt.zip". So, the user of this program is not allowed to	*
+  *	modify, etc.. this file.					*
+  ***********************************************************************
+
+At the time (02/10/23) the above URL seems to be outdated, the following message appears:
+
+Thank you for your interest in Java WorkShop[tm]. We have discontinued all activities around Java WorkShop and are focusing on the NetBeans[tm] Open Tools Platform and the Forte[tm] for Java[tm] product line. We encourage you to download Forte for Java, Community Edition for your Java application development needs. This product is offered at no charge and includes a complete and highly-integrated set of tools, allowing you to build stand-alone applications, applets, JavaBeans, and Java clients. For more information, please visit the Forte for Java homepage.
+
+
+- Cup_v10{i,k}_runtime.jar: contains the runtime classes of the Cup utilities version 0.10{i,k}. Cup is a LALR parser generator for Java. You can find this tool in the address "http://www.cs.princeton.edu/~appel/modern/java/CUP/"
+
+******************************************************************************
+*
+* CUP PARSER GENERATOR COPYRIGHT NOTICE, LICENSE AND DISCLAIMER.
+*
+* Copyright 1996 by Scott Hudson, Frank Flannery, C. Scott Ananian
+*
+* Permission to use, copy, modify, and distribute this software and its
+* documentation for any purpose and without fee is hereby granted,
+* provided that the above copyright notice appear in all copies and that
+* both the copyright notice and this permission notice and warranty
+* disclaimer appear in supporting documentation, and that the names of
+* the authors or their employers not be used in advertising or publicity 
+* pertaining to distribution of the software without specific, written 
+* prior permission
+*
+* The authors and their employers disclaim all warranties with regard to 
+* this software, including all implied warranties of merchantability and 
+* fitness.  In no event shall the authors or their employers be liable 
+* for any special, indirect or consequential damages or any damages 
+* whatsoever resulting from loss of use, data or profits, whether in an 
+* action of contract, negligence or other tortious action, arising out of 
+* or in connection with the use or performance of this software
+*
+*******************************************************************************
+
+
+
+********************************************************************************************
+*
+* JLEX COPYRIGHT NOTICE, LICENSE AND DISCLAIMER.
+* Copyright 1996-2000 by Elliot Joel Berk and C. Scott Ananian 
+*
+* Permission to use, copy, modify, and distribute this software and its documentation 
+* for any purpose and without fee is hereby granted, provided that the above copyright 
+* notice appear in all copies and that both the copyright notice and this permission notice 
+* and warranty disclaimer appear in supporting documentation, and that the name of the 
+* authors or their employers not be used in advertising or publicity pertaining to 
+* distribution of the software without specific, written prior permission. 
+* 
+* The authors and their employers disclaim all warranties with regard to this software, 
+* including all implied warranties of merchantability and fitness. In no event shall the 
+* authors or their employers be liable for any special, indirect or consequential damages 
+* or any damages whatsoever resulting from loss of use, data or profits, whether in an action 
+* of contract, negligence or other tortious action, arising out of or in connection with the 
+* use or performance of this software. 
+* 
+* Java is a trademark of Sun Microsystems, Inc. References to the Java programming language 
+* in relation to JLex are not meant to imply that Sun endorses this product. 
+* 
+*********************************************************************************************
+
