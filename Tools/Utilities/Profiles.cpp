@@ -1,4 +1,4 @@
-// --- profiles.cpp  --- 
+// --- profiles.cpp  ---
 
 using namespace std;
 
@@ -6,6 +6,7 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include <unistd.h>
 #include "Profiles.h"
 
 #ifdef SECONDO_WIN32
@@ -119,7 +120,7 @@ bool SmiProfile::SetParameter ( const string& sectionName,
       return false;
     }
     tmp = tmpFile;
-    ofstream outf( tmpFd );
+    ofstream outf( tmp.c_str() );
 #endif
     outf.open( tmp.c_str() );
     if ( outf )
@@ -143,7 +144,7 @@ bool SmiProfile::SetParameter ( const string& sectionName,
       else  // section found
       {
         if ( keyName.length() == 0 )
-        { 
+        {
           // remove section but keep comments
           while(getline(inf, line) )
           {
@@ -192,6 +193,10 @@ bool SmiProfile::SetParameter ( const string& sectionName,
       outf.close();
       remove( tmp.c_str() );
     }
+
+#ifndef SECONDO_WIN32
+    close(tmpFd);
+#endif
     outf.close();
   }
   else if ( sectionName.length() > 0 && keyName.length() > 0 )
