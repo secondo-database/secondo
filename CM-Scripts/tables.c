@@ -1,5 +1,9 @@
 /*  tables.c - tables serialization code
  *
+ *  Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+ *  Database Systems for New Applications.
+ *  All rights reserved.
+ *
  *  Copyright (c) 1990 The Regents of the University of California.
  *  All rights reserved.
  *

@@ -8,6 +8,15 @@ if [ -z "$BASH" ]; then
   exit 1
 fi
 
+if [ "$OSTYPE" == "msys" ]; then
+   prefix=/c
+   platform="win32"
+else 
+   prefix=$HOME
+   platform="linux"
+fi
+
+
 # recognize aliases also in an non interactive shell
 shopt -s expand_aliases
 
@@ -29,7 +38,7 @@ declare -i stepCtr=1
 function printSep() {
 
   printf "\n%s\n" "Step ${stepCtr}: ${1}"
-  printf "%s\n" "------------------------------------"
+  printf "%s\n" "---------------------------------------------------------------------------"
   let stepCtr++
 }
 
@@ -42,11 +51,22 @@ function printSep() {
 declare -i rc=0
 function checkCmd() {
 
-  eval ${1}  # useful if $1 contains quotes or variables
-  let rc=$?  # save returncode
+  printf "%s\n" "cmd: $*"
+  if [ "$testMode" != "true" ]; then
+    # call command using eval 
+    if [ -z $checkCmd_log ]; then
+      eval "$*"  
+    else
+      printf "%s\n" "-------------------------------------------------" >> $checkCmd_log
+      printf "%s\n" "msg for: $*" >> $checkCmd_log
+      printf "%s\n" "-------------------------------------------------" >> $checkCmd_log
+      eval "{ $*; } >> $checkCmd_log 2>&1"
+    fi
+    let rc=$?  # save returncode
 
-  if [ $rc -ne 0 ]; then
-    printf "\n Failure! Command {${1}} returned with value ${rc} \n"
+    if [ $rc -ne 0 ]; then
+      printf "\n Failure! Command {${1}} returned with value ${rc} \n"
+    fi
   fi
 }
 
@@ -91,18 +111,31 @@ function showGPL() {
   printf "%s\n"   "FOR A PARTICULAR PURPOSE."
 }
 
-# runTTYBDB
+#uncompressFolders
 #
-# $1 SECONDO command
+# $1 list of directories
 #
-# Starts SecondoTTYBDB runs command $1
+# For each direcory all *.gz files are assumed to be a tar archive and
+# all *.zip files a zip archive
 
-declare -i rc_ttybdb=0
-function runTTYBDB() {
+function uncompressFolders() {
 
-SecondoTTYBDB <<< "$1"
-
-let rc_ttybdb=$?
+for folder in $*; do
+  zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
+  gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
+  for file in $zipFiles; do
+    printf "\n  processing $file ..."
+    if { ! unzip -q -o $file; }; then
+      exit 21 
+    fi
+  done
+  for file in $gzFiles; do
+    printf "\n  processing $file ..."
+    if { ! tar -xzf $file; }; then
+      exit 22 
+    fi
+  done
+done
 
 }
 

@@ -135,7 +135,7 @@ query staedte;
 #     yields     success          
 query staedte feed avg[Bev];
 
-#testcase Markus's Bug
+#testcase query a constant value 
 #yields success
 (query 1)
 

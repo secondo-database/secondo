@@ -51,6 +51,7 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
 else
 
    pathList=${J2SDK_ROOT}/jre/bin/client
+   pathList=${pathList}:${MINGW_DIR}
    pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
    pathList=${pathList}:${SECONDO_SDK}/lib
    pathList=${pathList}:${SECONDO_SDK}/pl/bin

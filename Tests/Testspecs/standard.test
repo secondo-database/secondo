@@ -1,0 +1,198 @@
+# Check basic SECONDO commands
+#
+# Feb 2005, M. Spiekermann
+#
+
+delete database basic_cmd;
+
+#setup basic_cmd
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed 
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the 
+# SETUP has failed)
+
+create database basic_cmd;
+e
+
+
+#testcase list algebras 
+#yields success 
+list algebras;
+
+#testcase list operators 
+#yields success 
+list operators;
+
+#testcase list type constructors 
+#yields success 
+list type constructors;
+
+#testcase list objects; 
+#yields error
+list objects;
+ 
+#testcase open database 
+#yields success
+open database basic_cmd;
+
+#testcase list objects; 
+#yields success 
+list objects;
+
+# Test standard algebra 
+# Operations with int and real 
+
+#testcase create a real object with let; 
+#yields success
+let x = -1.2 
+
+#testcase create a real object with let; 
+#yields success
+let y = [const real value -.2];
+
+#testcase create a int object with let; 
+#yields success
+let a = 7 
+
+#testcase create a int object with let; 
+#yields success
+let b = [const int value -4]; 
+
+#testcase create a int object with let; 
+#yields success
+let c = [const int value 2]; 
+
+#testcase a+b
+#yields (int 3) 
+query a + b
+
+#testcase a-b
+#yields (int 11)
+query a - b 
+ 
+#testcase a*b
+#yields (int -28)
+query a * b 
+
+#testcase a/c
+#yields (real 2.5)
+query a / c 
+
+#testcase a mod c
+#yields (int 1)
+query a mod c 
+ 
+#testcase a div c
+#yields (int 2)
+query a div c 
+
+#testcase a>b
+#yields (bool TRUE)
+query a > b
+
+#testcase a>=b
+#yields (bool TRUE)
+query a >= b
+
+#testcase b>a
+#yields (bool FALSE)
+query b > a 
+
+#testcase b<=a
+#yields (bool FALSE)
+query b <= a 
+
+#testcase a=a
+#yields (bool TRUE)
+query a = a;
+
+#testcase a>=a
+#yields (bool TRUE)
+query a >= a;
+
+#testcase a<=a
+#yields (bool TRUE)
+query a <= a;
+
+#testcase randint
+#yields (bool TRUE)
+query randint (9) <= 8
+
+#testcase randint
+#yields (bool TRUE)
+query randint (9) >= 0 
+
+#testcase maxrand
+#yields success
+query maxrand
+
+#testcase nextseq
+#yields (int 1)
+query nextseq()
+
+#testcase initseq
+#yields success 
+query initseq (100)
+
+#testcase nextseq
+#yields (int 101)
+query nextseq ()
+
+#testcase log
+#yields (int 8)
+query log (256)
+
+# Boolean Operations
+#testcase not
+#yields (bool FALSE)
+query not ( 4=4 )
+
+#testcase and
+#yields (bool TRUE)
+query (8 = 8) and (3 < 4)
+
+#testcase or
+#yields (bool TRUE)
+query (3 <= 4) or ("hotel" > "house")
+
+# String Operations
+#testcase starts 1
+#yields (bool TRUE)
+query "starts" starts "st"
+
+#testcase starts 2
+#yields (bool FALSE)
+query "starts" starts "xv"
+
+#testcase contains 1
+#yields (bool TRUE)
+query "starts" constains "rt"
+
+#testcase contains 2 
+#yields (bool FALSE)
+query "starts" constains "xc"
+
+#testcase substr
+#yields (bool TRUE)
+query substr("test",2,3) = "es"
+
+#testcase str < str
+#yields (bool FALSE)
+query "house" < "hotel"
+
+#testcase upper
+#yields (bool TRUE)
+query upper ( "hello" ) = "hellp"
+
+
+# ... to be continued
+
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+#teardown
+
+close database;
+delete database basic_cmd;
+

@@ -60,10 +60,7 @@ messages.
 
 The set of classes defined here supports a subset of the TCP/IP protocol
 suite. Currently only IP version 4 is supported, but support for IP version
-6 could be incorporated. The code is partly based on the socket module of
-the ~System Abstraction Layer~ C++ library written by Konstantin Knizhnik
-(http://www.ispras.ru/[tilde]knizhnik/), but was completely rewritten
-to support for instance I/O streams on sockets.
+6 could be incorporated. 
 
 Implementations of sockets are mostly based on socket libraries provided
 by the operating system. Local domain sockets are directly supported only

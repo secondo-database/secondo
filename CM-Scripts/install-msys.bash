@@ -1,42 +1,9 @@
-#!/bin/sh
-# install.bash <path> - uncompress files and change MSYS configuration
+# winsetup.sh - uncompress files and change MSYS configuration
 #
 # Oct. 2003, M. Spiekermann - initial version
 # May  2004, M. Spiekermann - some improvements
 
-# set up Home directory
-if [ "x$LOGNAME" == "x" ]; then
-  LOGNAME="unknown" 
-fi
-HOME="/home/$LOGNAME"
-if [ ! -d "$HOME" ]; then
-  printf "\n You have no user name! Creating directory $HOME. \n"
-  mkdir -p "$HOME"
-fi
 
-cdpath="$PWD"
-instpath="/c"
-sdk="$instpath/secondo-sdk"
-
-if [ "$1" = "" ]; then
-   printf "\n* Using default installation destintation $instpath \n"
-else if [ "$1" = "testmode" ]; then
-     printf "\n* Running Test Mode! \n"
-     #create directory structure
-     instpath="$HOME/SANDBOX-DRV-C"
-     HOME="$instpath/msys/1.0/home/dummy"
-     install -d "$instpath/msys/1.0/home/dummy"
-     install -d "$instpath/msys/1.0"
-     install -d "$instpath/msys/1.0/etc"
-     install -d "$instpath/secondo-sdk"
-     install -d "$instpath/secondo"
-   else
-     instpath="$1"
-   fi
-fi
-
-msysdir="$instpath/msys/1.0"
-mingwdir="$instpath/mingw"
 continue="true"
 
 if [ ! -d "$instpath" ]; then
@@ -100,9 +67,6 @@ if [ ! -d "$prologdir" ]; then
    exit 6 
 fi
 
-printf  "\n* Starting JAVA Installer ... \n"
-cd "$cdpath/../java"
-j2sdk*windows*.exe
 
 javadir="$sdk/j2sdk1.4.2"
 if [ ! -d "$javadir" ]; then
@@ -151,19 +115,11 @@ cd $HOME/secondo/Win32
 logfile="$HOME/secondo-install.log"
 touch $logfile
 rxvt -sl 5000 -title "Berkeley-DB Compilation" -e tail -f $logfile &
+cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx --enable-mingw >> $logfile 2>&1
 make > $logfile 2>&1 && make install >> $logfile 2>&1
 
 printf  "\n* MSYS and MinGW Configuration ... \n"
-cd "$HOME/secondo/CM-Scripts"
-cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
-cp --backup .profile .secondorc .bashrc-sample "$HOME"
-cp --backup .bashrc-sample "$HOME/.bashrc"
-cd "$instpath/secondo-sdk/bin"
-chmod u+x setvar.bash catvar.sh 
-cd "$HOME"
-chmod u+x .secondorc .bashrc .profile
-cd "$HOME/secondo/Win32/MSYS"
-cp --backup fstab "$msysdir/etc"
+make SECONDO_SDK=$sdk -f makefile.cm update-environment
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"

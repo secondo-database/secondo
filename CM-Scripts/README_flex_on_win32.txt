@@ -1,5 +1,3 @@
-# ./Win32/Flex/readme.txt
-#
 # 27.01.2004 M. Spiekermann
 
 the file 
