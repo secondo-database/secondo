@@ -10,13 +10,16 @@ Apr 2003 Oliver Lueck
 The algebra provides a type constructor ~array~, which defines a generic
 array. The elements of the array must have a list representation.
 
-The algebra has three operators ~size~, ~get~ and ~put~. The operators
+The algebra has three basic operators ~size~, ~get~ and ~put~. The operators
 are used to get the size of the array, to retrieve an element with a given
 index or to set a value to an element with a given index.
 
 Note that the first element has the index 0. Precondition for the operators
 ~get~ and ~set~ is a valid index between 0 and the size of the array minus 
 1.
+
+The operator ~loop~ evaluates each element of an array with a given function
+and returns an array which contains the resulting values.
 
 Additionally the algebra provides two special operators ~distribute~ and
 ~summarize~ which help to work with arrays of relations.
@@ -34,8 +37,10 @@ using namespace std;
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 
-//NestedList* nl;
-//QueryProcessor* qp;
+namespace {
+
+NestedList* nl;
+QueryProcessor* qp;
 
 /*
 1.2 Dummy Functions
@@ -146,7 +151,27 @@ void Array::setElement(int index, Word element) {
 }
 
 /*
-2.2 List Representation
+2.2 Auxiliary Function
+
+*/
+void extractIds(const ListExpr numType, int& algebraId, int& typeId) {
+
+  ListExpr pair;
+
+  if (nl->IsAtom(nl->First(numType))) {
+    pair = numType;
+  }
+  else
+  {
+    pair = nl->First(numType);
+  }
+
+  algebraId = nl->IntValue(nl->First(pair));
+  typeId = nl->IntValue(nl->Second(pair));
+}
+
+/*
+2.3 List Representation
 
 The list representation of an array is
 
@@ -155,7 +180,7 @@ The list representation of an array is
 The representation of the elements of the array depends from their type.
 So a1 ... an may be nested lists themselves.
 
-2.3 ~In~ and ~Out~ Functions
+2.4 ~In~ and ~Out~ Functions
 
 These functions use the ~In~ and ~Out~ Functions for the elements of 
 the array.
@@ -214,16 +239,7 @@ InArray( const ListExpr typeInfo, const ListExpr instance,
     ListExpr listOfElements = instance;
     ListExpr element;
 
-    ListExpr pair;
-    if (nl->IsAtom(nl->First(typeOfElement))) {
-      pair = typeOfElement;
-    }
-    else
-    {
-      pair = nl->First(typeOfElement);
-    }
-    algebraId = nl->IntValue(nl->First(pair));
-    typeId = nl->IntValue(nl->Second(pair));
+    extractIds(typeOfElement, algebraId, typeId);
 
     int i = 0;
 
@@ -248,7 +264,7 @@ InArray( const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
-2.4 Object ~Creation~, ~Deletion~, ~Close~ and ~Clone~ Functions
+2.5 Object ~Creation~, ~Deletion~, ~Close~ and ~Clone~ Functions
 
 The ~Deletion~ and the ~Clone~ functions use the ~Delete~ and ~Clone~ 
 functions of the elements of the array.
@@ -303,7 +319,7 @@ void CloseArray( Word& w ) {
   w.addr = 0;
 }
 /*
-2.5 Function Describing the Signature of the Type Constructor
+2.6 Function Describing the Signature of the Type Constructor
 
 The type of the elements of the array may be described by any valid Type 
 Constructor, but the elements must have a list representation.
@@ -324,11 +340,12 @@ ArrayProperty()
               nl->StringAtom("(array int)"),
               nl->StringAtom("(a1 a2 ... an)"),
               nl->StringAtom("(0 1 2 3)"),
-              nl->StringAtom("The elements of the array must have a list representation."))));
+              nl->StringAtom("The elements of the array must have a list "
+                             "representation."))));
 }
 
 /*
-2.6 Kind Checking Function
+2.7 Kind Checking Function
 
 The Type Constructor of an array is a list (array type). The first element
 of that list is the symbol "array" and the second element has to be a valid
@@ -361,7 +378,7 @@ CheckArray( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-2.7 Creation of the Type Constructor Instance
+2.8 Creation of the Type Constructor Instance
 
 Here an object of the type TypeConstructor is created. The constructor for
 an instance of the class TypeConstructor is called with the properties and 
@@ -436,8 +453,8 @@ sizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 const string sizeSpec = 
           "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-           " ( <text>((array x)) -> int</text--->"
-            "  <text>size( _ )</text--->"
+            "( <text>((array x)) -> int</text--->"
+              "<text>size( _ )</text--->"
               "<text>Returns the size of an array.</text--->"
               "<text>query size(ai)</text---> ))";
 
@@ -848,11 +865,13 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 const string distributeSpec = 
-          "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-            "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi) -> (array (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... (xn tn)))))</text--->"
-              "<text>_ distribute [ _ ]</text--->"
-              "<text>Distributes a stream of tuples into an array or relations. The attribute xi determines the index of the relation, therefore ti must be int.</text--->"
-              "<text>let prel = plz feed distribute [pkg]</text---> ))";
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi) -> "
+       "(array (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... (xn tn)))))</text--->"
+       "<text>_ distribute [ _ ]</text--->"
+       "<text>Distributes a stream of tuples into an array or relations. The attribute xi "
+       "determines the index of the relation, therefore ti must be int.</text--->"
+       "<text>let prel = plz feed distribute [pkg]</text---> ))";
 
 Operator distribute (
 	"distribute",
@@ -957,11 +976,11 @@ summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 const string summarizeSpec = 
-          "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-            "( <text>((array (rel x))) -> (stream x)</text--->"
-              "<text>_ summarize</text--->"
-              "<text>Produces a stream of the tuples from all relations in the array.</text--->"
-              "<text>query prel summarize consume</text---> ))";
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array (rel x))) -> (stream x)</text--->"
+       "<text>_ summarize</text--->"
+       "<text>Produces a stream of the tuples from all relations in the array.</text--->"
+       "<text>query prel summarize consume</text---> ))";
 
 Operator summarize (
 	"summarize",
@@ -970,6 +989,103 @@ Operator summarize (
 	Operator::DummyModel,
 	simpleSelect,
 	summarizeTypeMap
+);
+
+/*
+3.6 Operator ~loop~
+
+The Operator ~loop~ evaluates each element of an array with a given function and
+returns an array which contains the resulting values.
+
+The formal specification of type mapping is:
+
+---- ((array t) (map t r)) -> (array r)
+----
+
+*/
+static ListExpr
+loopTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) 
+  {
+    ListExpr arrayDesc = nl->First(args);
+    ListExpr mapDesc = nl->Second(args); 
+
+    if (nl->IsEqual(nl->First(arrayDesc), "array") 
+        && nl->IsEqual(nl->First(mapDesc), "map"))
+    {
+      if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc)))
+      {
+        return nl->TwoElemList(nl->SymbolAtom("array"),
+                               nl->Third(mapDesc));
+      }
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+loopFun (Word* args, Word& result, int message, Word& local, Supplier s) {
+
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Array* array = ((Array*)args[0].addr);
+
+  ArgVectorPointer funargs = qp->Argument(args[1].addr);
+  Word funresult;
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = array->getSize();
+  Word a[n];
+
+  ListExpr elemLE;
+
+  int errorPos;
+  ListExpr errorInfo;
+  bool correct;
+
+  for (int i=0; i<n; i++) {
+    (*funargs)[0] = array->getElement(i);
+
+    qp->Request(args[1].addr, funresult);
+
+    elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
+
+    a[i] = (am->InObj(algebraId, typeId))
+                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+
+  return 0;
+}
+
+const string loopSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) (map t r)) -> (array r)</text--->"
+       "<text>_ _ loop</text--->"
+       "<text>Evaluates each element of an array with a given function and returns "
+       "an array which contains the resulting values.</text--->"
+       "<text>query ai square loop</text---> ))";
+
+Operator loop (
+	"loop",
+	loopSpec,
+	loopFun,
+	Operator::DummyModel,
+	simpleSelect,
+	loopTypeMap
 );
 
 /*
@@ -991,10 +1107,11 @@ class ArrayAlgebra : public Algebra
 
     AddOperator( &distribute );
     AddOperator( &summarize );
+
+    AddOperator( &loop );
   }
   ~ArrayAlgebra() {};
 };
-
 
 ArrayAlgebra arrayAlgebra; 
 
@@ -1021,4 +1138,6 @@ InitializeArrayAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   nl = nlRef;
   qp = qpRef;
   return (&arrayAlgebra);
+}
+
 }
