@@ -1131,7 +1131,6 @@ NestedList::ToString( const ListExpr list )
 bool
 NestedList::WriteToString( string& nlChars, const ListExpr list )
 {
-  assert( !IsAtom( list ) );
   bool ok =false;
   nlChars = "";
   return (ok=WriteToStringLocal( nlChars, list ));
