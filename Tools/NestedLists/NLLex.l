@@ -74,7 +74,7 @@ number	       {num1}|{num2}
 
 string         \"[^\"]*\"
 
-file		"<file>".*"</file--->"
+file		"<file>"[^<\n]+"</file--->"
 
 %x TEXT
 %%
