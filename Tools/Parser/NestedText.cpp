@@ -18,8 +18,8 @@ which case ~atomstring~ must be NULL.
 */
 
 Cardinal               NestedText::firstFreeChar = 0;
-CTable<ListExpression> NestedText::nodeSpace( 64 );
-CTable<TextNode>       NestedText::textSpace( 16 );
+MemCTable<ListExpression> NestedText::nodeSpace( 64 );
+MemCTable<TextNode>       NestedText::textSpace( 16 );
 
 /***************************************
 

@@ -99,7 +99,8 @@ The following is what is technically exported from this file:
 #define NESTED_TEXT
 
 #include <string>
-#include "CTable.h"
+
+#include "MemCTable.h"
 
 struct ListExpression
 {
@@ -133,8 +134,8 @@ class NestedText
   static void     CopyList( Cardinal list, string& target );
   static Cardinal               firstFreeChar;
   static Cardinal               maxFreeChar;
-  static CTable<ListExpression> nodeSpace;
-  static CTable<TextNode>       textSpace;
+  static MemCTable<ListExpression> nodeSpace;
+  static MemCTable<TextNode>       textSpace;
 };
 
 #endif

@@ -154,7 +154,7 @@ to determine selectivities of predicates while processing a query.
 
 using namespace std;
 
-#include "CTable.h"
+#include "MemCTable.h"
 #include "NameIndex.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -256,7 +256,7 @@ QueryProcessor::AllocateArgVectors( int idx )
 void
 QueryProcessor::GetVariable( const string& name,
                              NameIndex& varnames,
-                             const VarEntryCTable& vartable,
+                             const VarEntryTable& vartable,
                              int& position,                /* out */
                              int& funindex,                /* out */
                              ListExpr& typeexpr        /* out */)
@@ -279,7 +279,7 @@ of parameters) and the number of the abstraction (function definition)
 void
 QueryProcessor::EnterVariable( const string& name,
                                NameIndex& varnames,       /* in/out */
-                               VarEntryCTable& vartable,  /* in/out */
+                               VarEntryTable& vartable,  /* in/out */
                                const int position,
                                const int funindex,
                                const ListExpr typeexpr )
@@ -706,7 +706,7 @@ expression have defined values.
 
 */
   NameIndex varnames;
-  VarEntryCTable vartable(20);
+  VarEntryTable vartable(20);
   ListExpr list;
 
   defined = true;
@@ -730,7 +730,7 @@ ListExpr
 QueryProcessor::Annotate ( const AlgebraLevel level,
                            const ListExpr expr,
                            NameIndex& varnames,
-                           VarEntryCTable& vartable,
+                           VarEntryTable& vartable,
                            bool& defined,
                            const ListExpr fatherargtypes ) 
 {
@@ -1265,7 +1265,7 @@ function index.
             { /* function object */
 
               NameIndex newvarnames;
-              VarEntryCTable newvartable(20); 
+              VarEntryTable newvartable(20); 
 	      functionList = values[valueno-1].value.list;
               values[valueno-1].isList = true;
 
@@ -1737,7 +1737,7 @@ ListExpr
 QueryProcessor::AnnotateFunction( const AlgebraLevel level,
                                   const ListExpr expr,
                                   NameIndex& varnames,      /* in/out */
-                                  VarEntryCTable& vartable, /* in/out */
+                                  VarEntryTable& vartable, /* in/out */
                                   bool& defined,            /* in/out */
                                   const int paramno,
                                   const ListExpr typeList,

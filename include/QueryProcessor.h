@@ -43,7 +43,7 @@ January 26, 2001 RHG Added an ~isFunction~ parameter to procedure ~construct~.
 May 2002 Ulrich Telle Port to C++, integrated descriptive algebra level
 and function mapping.
 
-February 3, 2003 RHG Added QP_COUNTER and QP_COUNTERDEF.
+February 3, 2003 RHG Added QP\_COUNTER and QP\_COUNTERDEF.
 
 1.1 Overview
 
@@ -120,6 +120,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 */
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
+#include "MemCTable.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -133,7 +134,7 @@ struct VarEntry
   ListExpr typeexpr;
 };
 
-typedef CTable<VarEntry>  VarEntryCTable;
+typedef MemCTable<VarEntry>  VarEntryTable;
 
 /************************************************************************** 
 3.2 Class "QueryProcessor"[1]
@@ -354,7 +355,7 @@ within an operator implementation of an algebra.
 */
  private:
   void GetVariable( const string& name, NameIndex& varnames,
-                    const VarEntryCTable& vartable,
+                    const VarEntryTable& vartable,
                     int& position, int& funindex,
                     ListExpr& typeexpr );
 /*
@@ -367,7 +368,7 @@ defining it, as well as the associated ~typeexpr~.
 */
   void EnterVariable( const string& name,
                       NameIndex& varnames,
-                      VarEntryCTable& vartable,
+                      VarEntryTable& vartable,
                       const int position,
                       const int funindex,
                       const ListExpr typeexpr );
@@ -414,7 +415,7 @@ one of these symbols, then the value ~error~ is returned.
   ListExpr Annotate( const AlgebraLevel level,
                      const ListExpr expr,
                      NameIndex& varnames,
-                     VarEntryCTable& vartable,
+                     VarEntryTable& vartable,
                      bool& defined,
                      const ListExpr fatherargtypes );
 /*
@@ -434,7 +435,7 @@ types of the operator to which this function is a parameter.
   ListExpr AnnotateFunction( const AlgebraLevel level,
                              const ListExpr expr,
                              NameIndex& varnames,
-                             VarEntryCTable& vartable,
+                             VarEntryTable& vartable,
                              bool& defined,
                              const int paramno,
                              const ListExpr typeList,
