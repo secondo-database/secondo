@@ -1,16 +1,7 @@
 /*
-//paragraph	[10]	title:		[{\Large \bf ] [}]
-//paragraph	[11]	title:		[{\large \bf ] [}]
-//paragraph	[12]	title:		[{\normalsize \bf ] [}]
-//paragraph	[21]	table1column:	[\begin{quote}\begin{tabular}{l}]	[\end{tabular}\end{quote}]
-//paragraph	[22]	table2columns:	[\begin{quote}\begin{tabular}{ll}]	[\end{tabular}\end{quote}]
 //paragraph	[23]	table3columns:	[\begin{quote}\begin{tabular}{lll}]	[\end{tabular}\end{quote}]
-//paragraph	[24]	table4columns:	[\begin{quote}\begin{tabular}{llll}]	[\end{tabular}\end{quote}]
 //[--------]	[\hline]
-//characters	[1]	verbatim:	[$]	[$]
-//characters	[2]	formula:	[$]	[$]
-//characters    [3]    capital:    [\textsc{]    [}]
-//characters    [4]    teletype:   [\texttt{]    [}]
+//characters	[1]	verbatim:	[\verb|]	[|]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -25,25 +16,33 @@ August 2003 M. Spiekermann
 
 1.1 Overview
 
-This module offers a generic persistent array implemented as a template class on top of the
-SecondoSMI interface. Many slots of the array are stored inside a fixed sized Berkeley-DB
-record which is a multiple of the operating systems pagesize. All records IDs which contain
-array slots are hold in a vector in main memory. The currently used record is bufferd in a memory array reducing SMI calls. This ~cache~ or in other words the frame-buffer of the page oriented memory organisation of the array is variable and can be defined in the configuration file by setting NL:MaxFrames.
+This module offers a generic persistent array implemented as a template class
+on top of the SecondoSMI interface. Many slots of the array are stored inside
+a fixed sized Berkeley-DB record which is a multiple of the operating systems
+pagesize. All records IDs which contain array slots are hold in a vector in
+main memory. The currently used record is bufferd in a memory array reducing
+SMI calls. This ~cache~ or in other words the frame-buffer of the page
+oriented memory organisation of the array is variable and can be defined by
+setting the constant "MAX_PAGE_FRAMES"[1].
 
-Restrictions: Currently this tool can not be used for saving and reconstructing large arrays, but it is useful to use it temporary instead of main memory. Therefore some code snipets are commented out and have to be revised for usage as persistent array. 
+Restrictions: Currently this tool can not be used for saving and
+reconstructing large arrays, but it is useful to use it temporary instead of
+main memory. Therefore some code snipets are commented out and have to be
+revised for usage as persistent array. 
 
-Note: Since the record-size is an attribute of the record-file, this size is defined 
-at construction time of the file and hence a parameter for the constructor of this class.
-The maximium record-size is limited by the operating systems page size
+Note: Since the record-size is an attribute of the record-file, this size is
+defined at construction time of the file and hence a parameter for the
+constructor of this class.  The maximium record-size is limited by the
+operating systems page size
 
 1.2 Interface methods
 
-This module offers the following methods:
+This module offers the following public methods:
 
 [23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
 	[--------]
-	PagedArray        		& Get 		& Size		\\  	
-	[tilde]PagedArray		& Put		& Id		\\
+	PagedArray        	& Get 		& Size		\\  	
+	[tilde]PagedArray	& Put		& Id		\\
 	MarkDelete		&		& 		\\
 
 
@@ -67,8 +66,7 @@ elements of type ~T~.
 #include "SecondoSMI.h"
 
 typedef unsigned long Cardinal;
-
-extern unsigned int FileCtr;  // quick and dirty!, sorry
+extern unsigned int FileCtr;    // quick and dirty, sorry!
 
 template<class T>
 class PagedArray
@@ -84,11 +82,13 @@ array with the argument ~initsize~.
 
 */
   
-  //PagedArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update = true );
+  //PagedArray( SmiRecordFile *parrays, const SmiRecordId id, 
+  //            const bool update = true );
 
 /*
-Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
-value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-only.
+Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The
+boolean value ~update~ indicates if open mode: ~true~ for update and ~false~
+for read-only.
 
 Note: Currently not implemented.
 
@@ -97,15 +97,15 @@ Note: Currently not implemented.
   ~PagedArray();
 
 /*
-Destroys the handle. If the array is marked for deletion, then it also destroys the
-persistent array.
+Destroys the handle. If the array is marked for deletion, then it also
+destroys the persistent array.
 
 */
 
   void MarkDelete();
 
 /*
-Marks the persistent array for deletion. It will be permanently deleted on the 
+Marks the persistent array for deletion. It will be permanently deleted on the
 destruction of the object.
 
 *Precondition:* The array must be opened in update mode.
@@ -117,7 +117,8 @@ destruction of the object.
 /*
 Copies element ~elem~ into the persistent array at index ~index~.
 
-*Precondition:* 0 [<=] ~index~ [<=] ~size~ - 1. The array must be opened in update mode.
+*Precondition:* 0 [<=] ~index~ [<=] ~size~ - 1. The array must be opened in
+update mode.
 
 */
 
@@ -142,6 +143,8 @@ Returns the size of this array.
 /*
 Returns the identifier of this array.
 
+1.3.1 Performance Analysis
+
 */
 
  unsigned long PageChanges() {  
@@ -156,6 +159,13 @@ Returns the identifier of this array.
      return swap; 
  }
 
+/*
+These two functions return useful characteristics of the ~cache~.  The first
+represents the number of reading and writing a record on disk and the second
+reflects the total number of the called ~Get~ operations.
+   
+*/ 
+  
  private:
 
   // Number of pages which are hold in memory
@@ -232,8 +242,8 @@ August 2003 M. Spiekermann
 
 2.1 Overview
 
-This module offers a generic persistent array implemented as template class on top of the
-SecondoSMI interface.
+This module offers a generic persistent array implemented as template class on
+top of the SecondoSMI interface.
 
 */
 
@@ -350,7 +360,7 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
   // calculate page number
   pageNo = index / pageRecord.slots;
   
-  if (currentPage.no != pageNo ) {
+  if ( currentPage.no != pageNo ) {
 
   it = pageTable.find( pageNo ); // check if page number is in the cache
 
@@ -380,7 +390,8 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
      currentPage.no = pageNo;
 
      if ( log.switchedOn ) {
-       *(log.filePtr) << index << " | PageChange: " << frameChangeIter->first << " -> " << pageNo; 
+       *(log.filePtr) << index << " | PageChange: " 
+	              << frameChangeIter->first << " -> " << pageNo; 
        pageChange = true;
        log.pageChangeCounter++;
      }

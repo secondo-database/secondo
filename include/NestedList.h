@@ -35,7 +35,13 @@ November 28, 2002 M. Spiekermann; method reportVectorSizes() added.
 
 December 05, 2002 M. Spiekermann; methods InitializeListMemory() and CopyList() supplemented.
 
-Aug/Sept 2003 M. Spiekermann; Some methods are declarated as inline. Producing a nested list in textual format is now done by an ostream object to avoid creating big string objects when it is possible to write to a stream (e.g. cout, file or a TCP/IP socket). Moreover a new method WriteBinaryTo() creates a byte sequence representing a nested list which is much smaller than the textual format. All this modifications gain a speed up of the client-server communication. 
+Aug/Sept 2003 M. Spiekermann. Some often called methods were defined as inline
+functions to reduce the runtime stack.  Producing a nested list in textual
+format is now done by an ostream object to avoid creating big string objects
+when it is possible to write to a stream (e.g.  cout, file or a TCP/IP
+socket). Moreover, a new method WriteBinaryTo() creates a byte sequence
+representing a nested list which is much smaller than the textual format. All
+this modifications gain a speed up of the client-server communication. 
 
 1.1 Overview
 
@@ -127,8 +133,8 @@ and the following operations:
         Append         & EndOfList   &            & ReadFromString  \\
         Destroy        & ListLength  &            & WriteToString   \\
                        & ExprLength  &            & WriteListExpr   \\
-        OneElemList    & Equal       &                              \\
-        TwoElemList    & IsEqual     & Second                       \\
+        OneElemList    & Equal       &            & WriteStringTo   \\
+        TwoElemList    & IsEqual     & Second     & WriteBinaryTo   \\
         ThreeElemList  &             & Third                        \\
         FourElemList   &             & Fourth                       \\
         FiveElemList   &             & Fifth                        \\
@@ -145,7 +151,13 @@ and the following operations:
         TextAtom               & CreateTextScan               \\
         AppendText             & GetText                      \\
                                & EndOfText                    \\
+                               & Text2String                  \\
 
+[21]	Initialization and Analysis \\
+	[--------]
+	initializeListMemory        \\
+	reportVectorSizes           \\
+			       
 The operations are defined below. 
 
 1.3 Includes, Constants and Types
@@ -572,38 +584,38 @@ etc. up to six elements.
     return (Cons( elem1, TheEmptyList() )); };
 
   inline ListExpr TwoElemList( const ListExpr elem1,
-                        const ListExpr elem2 )
+                               const ListExpr elem2 )
   {
     return (Cons( elem1, OneElemList(elem2) )); };
 
   inline ListExpr ThreeElemList( const ListExpr elem1,
-                          const ListExpr elem2,
-                          const ListExpr elem3 )
+                                 const ListExpr elem2,
+                                 const ListExpr elem3 )
   {
     return (Cons( elem1, TwoElemList(elem2, elem3) )); };
 
 
   inline ListExpr FourElemList( const ListExpr elem1,
-                         const ListExpr elem2,
-                         const ListExpr elem3,
-                         const ListExpr elem4 )
+                                const ListExpr elem2,
+                                const ListExpr elem3,
+                                const ListExpr elem4 )
   {
     return (Cons( elem1, ThreeElemList(elem2, elem3, elem4) )); };
 
   inline ListExpr FiveElemList( const ListExpr elem1,
-                         const ListExpr elem2,
-                         const ListExpr elem3,
-                         const ListExpr elem4,
-                         const ListExpr elem5 )
+                                const ListExpr elem2,
+                                const ListExpr elem3,
+                                const ListExpr elem4,
+                                const ListExpr elem5 )
   {
     return (Cons( elem1, FourElemList(elem2, elem3, elem4, elem5) )); };
 
   inline ListExpr SixElemList( const ListExpr elem1,
-                        const ListExpr elem2,
-                        const ListExpr elem3,
-                        const ListExpr elem4,
-                        const ListExpr elem5,
-                        const ListExpr elem6 )
+                               const ListExpr elem2,
+                               const ListExpr elem3,
+                               const ListExpr elem4,
+                               const ListExpr elem5,
+                               const ListExpr elem6 )
   {
     return (Cons( elem1, FiveElemList(elem2, elem3, elem4, elem5, elem6) )); };
     
@@ -764,7 +776,7 @@ private CTable members and the underlying vector classes.
 			     Cardinal TextEntries = 50 );
 
 /*
-Creates new CTable Objects with the given size and deletes the old ones.
+Creates new ~CTable~ objects with the given size and deletes the old ones.
 The default values are tuning parameters and reflect values which are
 useful in the present development state of SECONDO.  
 
@@ -775,7 +787,7 @@ useful in the present development state of SECONDO.
   const ListExpr CopyList( const ListExpr list, const NestedList* target );
   
 /*
-Copies a nested list from this instance to the target instance.
+Copies a nested list from ~this~ instance to the target instance.
 
 */
 
