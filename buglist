@@ -1,0 +1,55 @@
+# File buglist
+#
+# This file contains a list of bug reports.
+# The following pattern should be used.
+
+=================================================
+Title       : 
+System      : (Solaris, Linux, Win98, Win2000)
+Status      : (Open | Closed)
+reported by : [<name> <date>]+
+revised by  : [<name> <date>]+
+----------------------------------------
+Example:
+
+Description:
+
+----------------------------------------
+<name> <date>:
+
+--------------------------
+<name> <date>:
+
+...
+
+
+=================================================
+
+#################################################
+##
+## SECONDO BUG PARADE 
+##
+#################################################
+
+
+=================================================
+Title       : Division by Zero
+System      : Solaris
+Status      : Open
+reported by : RHG 11/20/02 
+revised by  :
+----------------------------------------
+Example: 
+  query 3 div 0; => Result of query: 0
+  query 3/0; => Result of query: 0
+
+Description:
+  Error probably also on windows and linux.
+
+----------------------------------------
+RHG 11/20/02:
+  Undefined CcInt Object is possibly written
+  with value 0 into nested lists instead of writing
+  symbol atom undefined.
+
+===================================================
