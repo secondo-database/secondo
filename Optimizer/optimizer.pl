@@ -827,7 +827,7 @@ plan_to_atom(newattr(Attr, Expr), Result) :-
   plan_to_atom(Attr, AttrAtom),
   plan_to_atom(Expr, ExprAtom),
   concat_atom([AttrAtom, ': ', ExprAtom], '', Result),
-  !. 
+  !.
 
 plan_to_atom(remove(X, Attrs), Result) :-
   plan_to_atom(X, XAtom),
@@ -1106,77 +1106,7 @@ selectivities as facts of the form edgeSelectivity(Source, Target, Sel).
 
 Delete sizes from memory.
 
-7.1 Determine the Simple Form of Predicates
-
-First, determine the simple form of predicates, as stored in the database
-file.
-
-----	simple(Term, Rel1, Rel2, Simple) :-
-----
-
-The simple form of a term ~Term~ containing attributes of ~Rel1~ and/or ~Rel2~
-is ~Simple~.
-
-*/
-
-simple(attr(Var:Attr, 0, _), rel(Rel, Var, _), _, Rel:Attr) :- !.
-simple(attr(Attr, 0, _), rel(Rel, *, _), _, Rel:Attr) :- !.
-
-simple(attr(Var:Attr, 1, _), rel(Rel, Var, _), _, Rel:Attr) :- !.
-simple(attr(Attr, 1, _), rel(Rel, *, _), _, Rel:Attr) :- !.
-
-simple(attr(Var:Attr, 2, _), _, rel(Rel, Var, _),  Rel:Attr) :- !.
-simple(attr(Attr, 2, _), _, rel(Rel, *, _), Rel:Attr) :- !.
-
-simple(Term, Rel1, Rel2, Simple) :-
-  compound(Term),
-  functor(Term, T, 1), !,
-  arg(1, Term, Arg1),
-  simple(Arg1, Rel1, Rel2, Arg1Simple),
-  functor(Simple, T, 1),
-  arg(1, Simple, Arg1Simple).
-
-simple(Term, Rel1, Rel2, Simple) :-
-  compound(Term),
-  functor(Term, T, 2), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  simple(Arg1, Rel1, Rel2, Arg1Simple),
-  simple(Arg2, Rel1, Rel2, Arg2Simple),
-  functor(Simple, T, 2),
-  arg(1, Simple, Arg1Simple),
-  arg(2, Simple, Arg2Simple).
-
-simple(Term, _, _, Term).
-
-/*
-----	simplePred(Pred, Simple) :-
-----
-
-The simple form of predicate ~Pred~ is ~Simple~.
-
-*/
-
-simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple).
-simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple).
-
-/*
-----	selectivity(P, Sel) :-
-----
-
-The selectivity of predicate ~P~ is ~Sel~.
-
-*/
-
-selectivity(P, Sel) :- simplePred(P, PSimple), sels(PSimple, Sel), !.
-selectivity(P, _) :- write('Error in optimizer: cannot find selectivity for '),
-  simplePred(P, PSimple), write(PSimple), nl, fail.
-
-sels(Pred, Sel) :- sel(Pred, Sel), !.
-sels(Pred, Sel) :- commute(Pred, Pred2), sel(Pred2, Sel).
-
-/*
-7.2 Assigning Sizes and Selectivities
+7.1 Assigning Sizes and Selectivities
 
 It is important that edges are processed in the order in which they have been
 created. This will ensure that for an edge the size of its argument nodes are

@@ -25,6 +25,7 @@ The optimizer is started by loading this file.
   assert(boundaryMaxSize(0)),
   [optimizer],
   [database],
+  [statistics],
   [operators],
   [boundary],
   [searchtree].
