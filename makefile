@@ -115,6 +115,7 @@ endif
 
 .PHONY: dist
 dist:	secondo.tgz
+	$(MAKE) -C Win32/MSYS dist
 
 secondo.tgz:
 	cvs export -r$(tag) secondo
