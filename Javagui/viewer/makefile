@@ -53,5 +53,5 @@ clean:
 
 # default rule for creating java classes
 %.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+	$(JAVAC) -classpath $(CLASSPATH):$(MP3CLASSESPATH) $<
 

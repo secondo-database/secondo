@@ -12,19 +12,21 @@ ifndef SECONDO_BUILD_DIR
 $(error Variable SECONDO_BUILD_DIR is not defined. This variable must hold the directory of Secondo)
 endif
 
-SECONDOPATH = $(SECONDO_BUILD_DIR)
+SECONDOPATH := $(SECONDO_BUILD_DIR)
 
-GUIPATH = $(SECONDOPATH)/Javagui
+GUIPATH := $(SECONDOPATH)/Javagui
 
 JLEXCLASSESPATH := $(GUIPATH)/lib/JLex_v1.2.3.zip
-CUPCLASSESPATH = $(GUIPATH)/lib/java_cup_v10i.zip
-CUPCLASSESRUNTIME = $(GUIPATH)/lib/java_cup/v10i_runtime.jar
+CUPCLASSESPATH := $(GUIPATH)/lib/java_cup_v10i.zip
+CUPCLASSESRUNTIME := $(GUIPATH)/lib/java_cup/v10i_runtime.jar
 
-CLASSPATH = $(GUIPATH)
+MP3CLASSESPATH := $(GUIPATH)/lib/javalayer0.4.zip
 
-DOCPATH = ./doc
+CLASSPATH := $(GUIPATH)
 
-GUIPACKAGE = gui gui.idmanager project communication extern
+DOCPATH := ./doc
+
+GUIPACKAGE := gui gui.idmanager project communication extern
 
 # the viewerpackages
 # if you insert a new viewer extend this
@@ -46,7 +48,7 @@ RUNSCRIPTNAME = sgui
 # On Windows the classpath separator is a ";" and on Solaris/Linux it is ":".
 # Also some .bat files have to be generated
 ifeq ($(SECONDO_PLATFORM),win32)
- CLASSPATH := $(subst :,;, $(CLASSPATH))
+# CLASSPATH := $(subst :,;, $(CLASSPATH))
 # JISCRIPT_FILES := $(patsubst %.sh,%$(EXT), $(JISCRIPT_SRC))
   WINSCRIPTNAME := $(RUNSCRIPTNAME).bat
 endif

@@ -41,7 +41,6 @@ makedirs:
 	make -C viewer all
 	make -C project all
 	make -C gui all
-	make -C javazoom all
 	make -C viewer viewers
 	make -C tools all
 
@@ -54,7 +53,6 @@ clean:
 	make -C gui clean
 	make -C project clean
 	make -C tools clean
-	make -C javazoom clean
 	make -C viewer clean
 	make -C java_cup clean
 	(rm -f ./doc/* -r)
