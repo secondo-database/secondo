@@ -14,4 +14,4 @@ doc:
 clean:
 	make -C lib clean
 	make -C src clean
-	rm -rf doc/*	
+	rm -rf $$(find doc ! -path "*CVS*" ! -name "doc")
