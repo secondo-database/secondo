@@ -111,19 +111,21 @@ Array::~Array() {
 }
 
 void Array::initialize(int algebraId, int typeId, int n, Word* elements) {
-// Precondition: Array is undefined
+// If the array is already defined, it will be cleared and redefined
 
-  if (!defined) {
-    defined = true;
-    elemAlgId = algebraId;
-    elemTypeId = typeId;
-    size = n;
-    array = new Word[size];
-
-    for (int i=0; i<size; i++) {
-     array[i] = elements[i];
-    } 
+  if (defined) {
+    delete []array;
   }
+
+  defined = true;
+  elemAlgId = algebraId;
+  elemTypeId = typeId;
+  size = n;
+  array = new Word[size];
+
+  for (int i=0; i<size; i++) {
+   array[i] = elements[i];
+  } 
 }
 
 int Array::getSize() { return size; }
@@ -283,6 +285,8 @@ Word CloneArray(const Word& w) {
   Array* array = (Array*)w.addr;
   Array* newarray;
 
+  bool ok = true;
+
   int n = array->getSize();
   int algebraId = array->getElemAlgId();
   int typeId = array->getElemTypeId();
@@ -291,9 +295,18 @@ Word CloneArray(const Word& w) {
 
   for (int i=0; i < n; i++) {
     a[i] = (am->CloneObj(algebraId, typeId))(array->getElement(i));
+
+    // Check, if cloning was successful
+    ok = ok && (a[i].addr != 0);
   }
 
-  newarray = new Array(algebraId, typeId, n, a);
+  if (ok) {
+    newarray = new Array(algebraId, typeId, n, a);
+  }
+  else {
+    newarray = 0;
+  }
+  
   return SetWord(newarray);
 }
 
@@ -429,8 +442,7 @@ genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
   // Try cloning with the clone-Function of the appropriate type
   clone = (am->CloneObj(algebraId, typeId))(object);
 
-  //if (clone.addr == 0) {
-  if (true) {
+  if (clone.addr == 0) {
     // The original Algebra just provides a dummy clone function, 
     // therefore try cloning via the standard list expression.
 
@@ -441,6 +453,7 @@ genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
     bool correct;
 
     objectLE = (am->OutObj(algebraId, typeId))(typeInfo, object);
+
     clone = (am->InObj(algebraId, typeId))
                    (typeInfo, objectLE, errorPos, errorInfo, correct);
 
@@ -575,6 +588,19 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
     int typeId = array->getElemTypeId();
 
     ListExpr resultType = qp->GetType(s);
+
+    if (nl->ListLength(resultType) > 1) {
+      if (nl->IsEqual(nl->First(resultType), "map")) {
+        // In case of a mapping only the type of the resulting object of
+        // the mapping is relevant.
+
+        while (nl->ListLength(resultType) > 1) {
+          resultType = nl->Rest(resultType);
+        }
+        resultType = nl->First(resultType);
+      }
+    }
+
     resultType = sc->NumericType(resultType);
 
     clonedElement = genericClone(algebraId, typeId, resultType, element);
@@ -670,6 +696,20 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
     Word element;    
 
     ListExpr resultType = qp->GetType(s);
+
+    if (nl->ListLength(resultType) > 1) {
+      if (nl->IsEqual(nl->First(resultType), "map")) {
+        // In case of a mapping only the type of the resulting object of
+        // the mapping is relevant.
+
+        while (nl->ListLength(resultType) > 1) {
+          resultType = nl->Rest(resultType);
+        }
+        resultType = nl->First(resultType);
+      }
+    }
+
+    resultType = sc->NumericType(resultType);
     ListExpr typeOfElement = sc->NumericType(nl->Second(resultType));
 
     for (int l=0; l < n; l++) {

@@ -6,6 +6,10 @@ let al = makearray(100,200);
 
 query ai sortarray[.*-1];
 
+query ai loop[get(ai,.)];
+
+query ai loop[put(ai,999,.)];
+
 # Neuer Operator tie!
 
 query ai tie[.+..];
@@ -19,9 +23,6 @@ let plzArray = plz feed extend[pkg : log(randint(65536))] distribute[pkg];
 query plzArray loop[. count];
 query plzArray loop[. feed filter[.Ort contains "wald"] consume];
 
-delete type notype;
-type notype = rel(tuple((no:int)));
-
 delete ar;
 create ar : array(rel(tuple((no:int))));
 update ar := [const array(rel(tuple((no:int))))
@@ -29,7 +30,7 @@ update ar := [const array(rel(tuple((no:int))))
 
 query ar ar loop2[. feed .. feed rename[A] product consume] sortarray[. count];
 
-# Zwei Möglichkeiten zu zählen, wie oft ein Ort mit "wald" vorkommt!
+# Zählen, wie oft ein Ort mit "wald" vorkommt!
 
 query plz feed filter[.Ort contains "wald"] count;
 
