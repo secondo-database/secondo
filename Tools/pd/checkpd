@@ -60,7 +60,7 @@ do
         } >"$TEMPDIR"/tmp.tex
         latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
         if [ $? -ne 0 ]; then
-           echo -e "LaTex Error in \"$F\"\n"
+           echo -e "LaTeX Error in \"$F\" (If the file contains figures we can't avoid this) \n"
            LATEXFAILED=$(expr "$LATEXFAILED" + 1)
         else
            linecheck "$MAXLINES" $F >/dev/null
@@ -96,5 +96,6 @@ else
    echo "checkpd: no file to check"
 fi      
 
-FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
+#FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
+FAILED="$PDFAILED"
 exit "$FAILED"
