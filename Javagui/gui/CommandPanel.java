@@ -567,7 +567,7 @@ public class CommandPanel extends JScrollPane {
      SelectClause = command.substring(SelectClauseInterval.min,SelectClauseInterval.max);
 
      // optimize the select-clause
-     String opt = OptInt.optimize(SelectClause,OpenedDatabase,Err);
+     String opt = OptInt.optimize_execute(SelectClause,OpenedDatabase,Err,false);
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
         appendText("\nerror in optimization of this query");
         showPrompt();
@@ -602,8 +602,26 @@ public class CommandPanel extends JScrollPane {
        return true;
     }
 
-    if(command.startsWith("gui") & RV!=null){
+    if(command.startsWith("gui ") & RV!=null){
        return RV.execGuiCommand(command.substring(4));
+    }
+    if(command.startsWith("optimizer ")){
+       if(!useOptimizer()){
+          appendText("\noptimizer not available");
+	  showPrompt();
+	  return false;
+       }
+       String answer = sendToOptimizer(command.substring(10));
+       if(answer==null){
+          appendText("\nerror in optimizer command");
+	  showPrompt();
+	  return  false;
+       }
+       else{
+          appendText("\n"+answer);
+	  showPrompt();
+	  return true;
+       }
     }
 
     ListExpr displayErrorList;
@@ -791,6 +809,20 @@ public class CommandPanel extends JScrollPane {
   }
 
 
+  /** sends the given command to the optimizer
+    * returns null if not successful
+    */
+  public String sendToOptimizer(String cmd){
+     if(!OptInt.isConnected())
+        return null;
+     IntObj Err = new IntObj();
+     String res = OptInt.optimize_execute(cmd,OpenedDatabase,Err,true);
+     if(Err.value!=ErrorCodes.NO_ERROR)
+        return null;
+     else
+        return  res;
+  }
+
   /** disables the use of the optimizer */
   public void disableOptimizer(){
       OptInt.disconnect();
@@ -813,6 +845,8 @@ public class CommandPanel extends JScrollPane {
          OptInt.setPort(OptSet.getPort());
      }
   }
+
+  
 
 
 

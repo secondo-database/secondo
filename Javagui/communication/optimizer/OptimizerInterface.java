@@ -127,23 +127,29 @@ public void disconnect(){
 }
 
 
-public String optimize(String query, String Database, IntObj ErrorCode){
+public String optimize_execute(String query, String Database, IntObj ErrorCode, boolean executeFlag){
    query = query.trim();
    String QUERY = query.toUpperCase();
-   if(!QUERY.startsWith("SQL") && !QUERY.startsWith("SELECT")){
+   if(!QUERY.startsWith("SQL") && !QUERY.startsWith("SELECT") && ! executeFlag){
        ErrorCode.value = ErrorCodes.NO_OPTIMIZATION_POSSIBLE;
        return query;
    }
 
    try{
-     sendLine("<optimize>");
+     if(executeFlag)
+        sendLine("<execute>");
+     else
+        sendLine("<optimize>");
      sendLine("<database>");
      sendLine(Database);
      sendLine("</database>");
      sendLine("<query>");
      sendLine(query);
      sendLine("</query>");
-     sendLine("</optimize>");
+     if(executeFlag)
+        sendLine("</execute>");
+     else
+        sendLine("</optimize>");
      out.flush();
      String answer = in.readLine();
      if(answer==null){ // Server is down
@@ -164,7 +170,10 @@ public String optimize(String query, String Database, IntObj ErrorCode){
      }
      StringBuffer result = new StringBuffer();
      while(!Line.equals("</answer>")){
-       result.append(Line);
+       if(executeFlag)
+          result.append(Line+"\n");
+       else
+          result.append(Line);
        Line = in.readLine();
        if(Line==null){ // Server is down
          LastError = ErrorCodes.CONNECTION_BROKEN;
