@@ -26,6 +26,8 @@ August 2002 Ulrich Telle Set the current algebra level for SecondoSystem.
 
 September 2002 Ulrich Telle Close database after creation.
 
+November 7, 2002 RHG Implemented the ~let~ command.
+
 \tableofcontents
 
 */
@@ -835,6 +837,92 @@ If value 0 is returned, the command was executed without error.
         errorCode = 6;        // no database open
       } 
     }
+
+
+    // --- Let command
+
+    else if ( nl->IsEqual( first, "let" ) && (length == 4) && 
+              nl->IsAtom( nl->Second( list )) &&
+             (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
+              nl->IsEqual( nl->Third( list ), "=" ) )
+    {
+      if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
+      {
+        if ( level == DescriptiveLevel )
+        {
+          errorCode = 32;  // Command not yet implemented at this level
+        }
+        else
+        {
+          StartCommand();
+          objName = nl->SymbolValue( nl->Second( list ) );
+          valueExpr = nl->Fourth( list );
+          SecondoSystem::GetQueryProcessor()->
+            Construct( level, valueExpr, correct, evaluable, defined,
+                       isFunction, tree, resultType );
+          if ( !defined )
+          {
+            errorCode = 8;      // Undefined object value in expression
+          }
+          else if ( correct )
+          {
+
+		if ( SecondoSystem::GetCatalog(level)->IsObjectName(objName) )
+            {
+              errorCode = 10;   // identifier is already used
+            }
+            else
+            {
+              if ( evaluable || isFunction )
+		  {
+		    typeName = "";
+ 		    bool b = SecondoSystem::GetCatalog(level)->
+		        CreateObject(objName, typeName, resultType, 0);
+		  }
+		  if ( evaluable )
+              {
+                SecondoSystem::GetQueryProcessor()->
+                  Eval( tree, result, 1 );
+                SecondoSystem::GetCatalog( level )->
+                  UpdateObject( objName, result );
+                SecondoSystem::GetQueryProcessor()->
+                  Destroy( tree, false );
+              }
+              else if ( isFunction )   // abstraction or function object
+              {
+                if ( nl->IsAtom( valueExpr ) )  // function object
+                {
+                  functionList = 
+                    SecondoSystem::GetCatalog( level )->
+                      GetObjectValue( nl->SymbolValue( valueExpr ) );
+                  SecondoSystem::GetCatalog( level )->
+                    UpdateObject( objName, SetWord( functionList ) );
+                }
+                else
+                {
+                  SecondoSystem::GetCatalog( level )->
+                    UpdateObject( objName, SetWord( valueExpr ) );
+                }
+              }
+              else
+              {
+                errorCode = 3;   // Expression not evaluable
+              }
+            }
+          }
+          else
+          {
+            errorCode = 2;    // Error in expression
+          }
+          FinishCommand( errorCode );
+        }
+      }
+      else
+      {
+        errorCode = 6;        // no database open
+      } 
+    }
+
 
     // --- Query command
 
