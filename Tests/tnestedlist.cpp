@@ -637,10 +637,8 @@ listDB() {
    string dbname;
 
    cout << "*** Start list of databases ***" << endl;
-   while (SmiEnvironment::ListDatabases( dbname ))
-   {
-     cout << dbname << endl;
-   }
+   SmiEnvironment::ListDatabases( dbname );
+   cout << dbname << endl;
    cout << "*** End list of databases ***" << endl;
  
 }
@@ -657,11 +655,11 @@ TestRun_Persistent() {
    listDB();
    pause();
    
-   //assert( openDB("PARRAY") ); 
+   assert( openDB("PARRAY") ); 
    //cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
    
-   /*
-   rf = new SmiRecordFile(true, 8000, true);
+   
+   rf = new SmiRecordFile(true, 512, true);
    if ( !(rf->Create()) ) {
    string errMsg;
    SmiError errCode = SmiEnvironment::GetLastErrorCode(errMsg);
@@ -670,25 +668,14 @@ TestRun_Persistent() {
    } else {
      cout << "SmiRecordFile created!" << endl;
    }
-   */
-   //ConcatLists_bug();  
- 
-   //assert( closeDB() );
-   //assert( openDB("PARRAY2") );   
   
-   pause();
-   TestInputOutput();
- 
+   //ConcatLists_bug();  
    pause();
    TestBasicOperations();
    
-   /*
-   assert( rf->Close() );
-   delete rf;      
-   rf = 0;
-   */  
+   pause();
+   TestInputOutput();
 
-   //exit(0); 
    cout << endl << "Test list copy function" << endl;
    
    pause();
@@ -696,7 +683,11 @@ TestRun_Persistent() {
    
    //cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
    
-   //assert( closeDB() );
+   assert( rf->Close() );
+   delete rf;      
+   rf = 0;
+   assert( closeDB() );
+
    pause();
    
    rc = SmiEnvironment::ShutDown();

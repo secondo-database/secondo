@@ -57,15 +57,14 @@ OBJECTS += libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 endif
 
 
+CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS) $(myflags)
+
 .PHONY: all 
 all:  $(OBJECTS)
 
 # create dependencies from include directives
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
-
-
-CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS) $(myflags)
 
 # some default rules
 %$(EXEEXT): %.cpp libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT) libsdbutils.$(LIBEXT)

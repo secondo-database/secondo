@@ -22,33 +22,24 @@ void pause()
   cin.getline( buf, sizeof(buf) );
 }
 
-/*
 bool
-InstantiateByRecordIdTest() {
+RecordBufferTest() {
 
- int recId;
- char inChar;
+  cout << "Tests for the Record Buffer" << endl;
+  RecordBuffer rb(rf, 200, 4, true);
+  
+  cout << "Show the buffer addresses for 100 pages" << endl;
+  for (int i=0; i<100; i++) {
 
- cout << "CTable von Disk laden (y,n)?";
- cin >> inChar;
+    bool change=false;
+    void* ptr =  rb.GetBufPtr(i, change);
+    cout << " " << (void*) ptr << "(" << change << "), " << endl; 
+  }
+  cout << endl;
+  
+  return true;
 
- if ( inChar == 'y' || inChar == 'Y' ) {
-    
-    cout << "Record Id?";	 
-    cin >> recId;
-
-    CTable<int> cti(recId,true);
-    CTable<int>::Iterator it;
-    for ( it = cti.Begin(); it != cti.End(); ++it )
-    {
-       cout << "it " << *it << ", i=" << it.GetIndex() << endl;
-    }
-    
- }
-	
- return true;
 }
-*/
 
 
 bool
@@ -57,18 +48,23 @@ PArrayTest() {
   cout << "Tests for the PArray template class!" << endl << endl;
   PagedArray<int> pa(rf);
 
-  int max = 100;
+  int max = 1000000;
+  cout << "Storing numbers from 1 to " << max << ", read back, and sum them up ... " << endl;
   for (int j = 0; j < max; j++) {
 
-  int val = max-j;
+  int val = j+1;
   pa.Put(j, val);	  
   }	 
 
+  double sum = 0.0;
   for (int k = 0; k < max; k++) {
   int val;
   pa.Get(k, val);
-  cout << "pa[" << k << "] = " << val << endl; 
+  sum += val;
   }
+  cout << "Sum (" 
+       << ((double) max)/((double) 2.0) * ((double) max+1) 
+       << ") = " << sum << endl; 
   
   return true;
 }
@@ -116,9 +112,6 @@ PCTableTest() {
   
   cout << "1: " << ct.IsValid( 1 ) << endl;
   cout << "2: " << ct.IsValid( 2 ) << endl;
-  cout << "3: " << ct.IsValid( 3 ) << endl;
-  cout << "4: " << ct.IsValid( 4 ) << endl;
-  cout << "5: " << ct.IsValid( 5 ) << endl;
   ct.Add( 10 );
   ct.Add( 11 );
   ct.Add( 12 );
@@ -126,7 +119,7 @@ PCTableTest() {
   ct.Add( 14 );
 
   // show values
-  cout << "values : (10,1,11,40,12,13,14,) --> (";
+  cout << "values : (1,40,10,11,12,13,14,) --> (";
   for (int k = 1; k <= 7; k++) {
     
      cout << ct[k] << ","; 
@@ -138,25 +131,27 @@ PCTableTest() {
   cout << "NoEntries(): " << ct.NoEntries() << endl;
   
   
+  cout << "Test ot iterators. Print 1st and 2nd element of the table" << endl;
   CTable<int>::Iterator it, it2;
   it2 = ct.Begin();
   it = it2++;
-  cout << "it  " << *it  << ", i= " << it.GetIndex()  << endl;
-  
+  cout << "*it  " << *it  << ", i= " << it.GetIndex()  << endl;
+  cout << "*it2 " << *it2 << ", i2=" << it2.GetIndex() << endl;
+
+  cout << "Set first element to value 5 and remove the 5th element." << endl;
   ct.Get(it.GetIndex(), val);
   val = 5;
   ct.Put(it.GetIndex(), val);
-  
-  cout << "it2 " << *it2 << ", i2=" << it2.GetIndex() << endl;
   ct.Remove( 5 );
+
+  cout << "Enumerate all used slots ..." << endl;
   for ( it = ct.Begin(); it != ct.End(); ++it )
   {
     cout << "it " << *it << ", i=" << it.GetIndex() << endl;
   }
-  cout << "Test for end of scan!" << endl;
-  cout << "eos? " << it.EndOfScan() << endl;
-  ++it;
-  cout << "eos? " << it.EndOfScan() << endl;
+  cout << "Test for end of scan! Result of it.EndOfScan() && (++it).EndOfScan(): " 
+       << (it.EndOfScan() && (++it).EndOfScan())
+       << endl;
 
   //cout << "Id of CTable: " << ct.Id() << endl;
 
@@ -216,20 +211,29 @@ main() {
     pause();
     if ( ok )
     {
-      cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
-     
-	rf = new SmiRecordFile(true, 512);
-	ok = rf->Open("parrayfile");
-	cout << "parrayfile opened: " << ok << endl;
-
+      //cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
+    
+      int recSize=512;
  
-      //InstantiateByRecordIdTest();
+      rf = new SmiRecordFile(true, recSize, true);
+      if ( !(rf->Create()) ) {
+       string errMsg;
+       SmiError errCode = SmiEnvironment::GetLastErrorCode(errMsg);
+	 cerr << "SmiError: " << "SmiErrorCode " << errCode << " Msg: " << errMsg << endl;
+       exit(0);
+      } else {
+       cout << "Temporary SmiRecordFile (recSize=" << recSize << ") created!" << endl;
+      }
+
+      pause();
+      RecordBufferTest(); 
       pause();
       PArrayTest();
       pause();
       PCTableTest();
       
-      cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
+      rf->Close();
+      //cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
       cout << "*** Closing Database ***" << endl;
       if ( SmiEnvironment::CloseDatabase() )
         cout << "CloseDatabase ok." << endl;
