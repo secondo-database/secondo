@@ -1,0 +1,11 @@
+#!/bin/bash 
+#
+# pd2ps <file> - Converts a PD file to a postscript file
+#
+# May 2004, M. Spiekermann
+
+if { ! pd2dvi $1; }; then
+   exit 1
+fi
+
+dvips -o "$1.ps" "$1.dvi"
