@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.19  2003/07/25 13:00:24  behr
+# add the target javagui
+#
 # Revision 1.18  2003/06/27 14:01:52  behr
 # jni support added
 #
@@ -10,8 +13,6 @@
 # Fixed makefile problems when building shared library version. (LIBNAME needs to be a target specific variable if there are more than one library to be built within one makefile.)
 # Definition of variable SMILIB moved from main makefile to makefile.env.
 # Changed references to variable BDBSMILIB to SMILIB in several algebra modul makefiles to make them independent of the used SMI implementation.
-# FTextAlgebra.cpp: include <iostream> instead of <iostream.h> (which is deprecated)
-# SpatialAlgebra.cpp: changed long string constants to avoid warnings.
 #
 # Revision 1.16  2003/04/09 12:49:53  spieker
 # Rule dist modified.
@@ -48,10 +49,7 @@
 
 include makefile.env
 
-TOOLOBJECTBASENAMES=\
-	ClientServer/SocketIO \
-	ClientServer/SocketAddress \
-	ClientServer/SocketRuleSet \
+TOOLOBJECTS_BASENAMES=\
 	Tools/NestedLists/NestedList \
 	Tools/NestedLists/NLLex \
 	Tools/NestedLists/NLScanner \
@@ -60,16 +58,24 @@ TOOLOBJECTBASENAMES=\
 	Tools/Parser/SecLex \
 	Tools/Parser/SecParser \
 	Tools/Parser/SecParser.tab \
-	Tools/Parser/NestedText \
+	Tools/Parser/NestedText 
+
+
+UTILOBJECTS_BASENAMES=\
 	Tools/Utilities/Processes \
 	Tools/Utilities/Application \
 	Tools/Utilities/Messenger \
 	Tools/Utilities/DynamicLibrary \
 	Tools/Utilities/FileSystem \
 	Tools/Utilities/Profiles \
-	Tools/Utilities/UtilFunctions
+	Tools/Utilities/UtilFunctions \
+	ClientServer/SocketIO \
+	ClientServer/SocketAddress \
+	ClientServer/SocketRuleSet
 
-SDBSYSOBJECTBASENAMES=\
+
+
+SDBSYSOBJECTS_BASENAMES=\
 	Algebras/Management/Algebra \
 	Algebras/Management/AlgebraManager \
 	QueryProcessor/QueryProcessor \
@@ -77,8 +83,15 @@ SDBSYSOBJECTBASENAMES=\
 	QueryProcessor/SecondoCatalog
 
 
-TOOLOBJECTS = $(addsuffix .$(OBJEXT), $(TOOLOBJECTBASENAMES))
-SDBSYSOBJECTS = $(addsuffix .$(OBJEXT), $(SDBSYSOBJECTBASENAMES))
+TOOLOBJECTS = $(addsuffix .$(OBJEXT), $(TOOLOBJECTS_BASENAMES))
+UTILOBJECTS = $(addsuffix .$(OBJEXT), $(UTILOBJECTS_BASENAMES))
+SDBSYSOBJECTS = $(addsuffix .$(OBJEXT), $(SDBSYSOBJECTS_BASENAMES))
+
+ifeq ($(smitype),ora)
+SMILIB=$(ORASMILIB)
+else
+SMILIB=$(BDBSMILIB)
+endif
 
 .PHONY: all
 all: showjni makedirs buildlibs buildalg buildapps showjavagui
@@ -112,7 +125,7 @@ makedirs:
 	$(MAKE) -C UserInterfaces
 
 .PHONY: buildlibs
-buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) buildsmi $(LIBDIR)/libsdbsys.$(LIBEXT)
+buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmi $(LIBDIR)/libsdbsys.$(LIBEXT)
 	$(MAKE) -C Algebras buildlibs
 
 .PHONY: buildsmi
@@ -140,6 +153,18 @@ else
 	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
 endif
 
+# --- Secondo Database util library ---
+
+LIBNAME=libsdbutils
+$(LIBDIR)/libsdbutils.$(LIBEXT): $(UTILOBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(UTILOBJECTS) $(DEFAULTLIB)
+else
+# ... as static library
+	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $(UTILOBJECTS)
+endif
+
 # --- Secondo Database System library ---
 
 $(LIBDIR)/libsdbsys.$(LIBEXT): LIBNAME=libsdbsys
@@ -149,7 +174,6 @@ ifeq ($(shared),yes)
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(SDBSYSOBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-#$(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
 	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $(SDBSYSOBJECTS)
 endif
 	
