@@ -688,10 +688,19 @@ In the target language, we use the following operators:
 				where	Tuple2 is Tuple1 from which the mentioned
 					attributes have been removed.
 
+	project:	stream(Tuple1) x Attrname+ -> stream(Tuple2)
+
+				where	Tuple2 is Tuple1 projected on the
+					mentioned attributes..
+
 	rename		stream(Tuple1) x NewName -> stream(Tuple2)
 
 				where 	Tuple2 is Tuple1 modified by appending
 					"_newname" to each attribute name
+
+	count		stream(Tuple) -> int
+
+				count the number of tuples in a stream
 ----
 
 In PROLOG, all expressions involving such operators are written in prefix
@@ -719,6 +728,11 @@ wp(Plan) :-
   plan_to_atom(Plan, PlanAtom),
   write(PlanAtom).
 
+/*
+Arguments:
+
+*/
+
 plan_to_atom(rel(Name, _, l), Result) :-
   atom_concat(Name, ' ', Result),
   !.
@@ -732,6 +746,26 @@ plan_to_atom(res(N), Result) :-
   atom_concat('res(', N, Res1),
   atom_concat(Res1, ') ', Result),
   !.
+
+/*
+Lists:
+
+*/
+
+plan_to_atom([X], AtomX) :-
+  plan_to_atom(X, AtomX),
+  !.
+
+plan_to_atom([X | Xs], Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Xs, XsAtom),
+  concat_atom([XAtom, ', ', XsAtom], '', Result),
+  !.
+
+/*
+Operators:
+
+*/
 
 plan_to_atom(feed(X), Result) :-
   plan_to_atom(X, ResX),
@@ -775,9 +809,38 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
+plan_to_atom(extend(X, NewAttrs), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(NewAttrs, NewAttrsAtom),
+  concat_atom([XAtom, 'extend[', NewAttrsAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(newattr(Attr, Expr), Result) :-
+  plan_to_atom(Attr, AttrAtom),
+  plan_to_atom(Expr, ExprAtom),
+  concat_atom([AttrAtom, ': ', ExprAtom], '', Result),
+  !. 
+
+plan_to_atom(remove(X, Attrs), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Attrs, AttrsAtom),
+  concat_atom([XAtom, 'remove[', AttrsAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(project(X, Attrs), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Attrs, AttrsAtom),
+  concat_atom([XAtom, 'project[', AttrsAtom, '] '], '', Result),
+  !.
+
 plan_to_atom(rename(X, Y), Result) :-
   plan_to_atom(X, XAtom),
   concat_atom([XAtom, '{', Y, '} '], '', Result),
+  !.
+
+plan_to_atom(count(X), Result) :-
+  plan_to_atom(X, ResX),
+  atom_concat(ResX, 'count ', Result),
   !.
 
 plan_to_atom(X = Y, Result) :-
@@ -929,24 +992,62 @@ can be translated to
 	consume
 ----
 
-This technique is not yet built into the optimizer.
+This technique is built into the optimizer as follows. We first define the four
+cases (at the moment for equijoin only; this may later be extended) which also
+translate the arguments into streams. Then the rules translating to join
+methods can be formulated independently from this general technique. They
+translate terms of the form join00(Arg1Stream, Arg2Stream, Pred).
 
 */
 
+join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  join00(Arg1S, Arg2S, pr(X=Y, R1, R2)) => JoinPlan.
 
-join(Arg1, Arg2, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
+join(Arg1, Arg2, pr(X=Y, R1, R2)) => 
+	remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
+  X = attr(_, _, _),
+  not(Y = attr(_, _, _)), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  join00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
+
+join(Arg1, Arg2, pr(X=Y, R1, R2)) => 
+	remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  join00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2)) => JoinPlan.
+
+join(Arg1, Arg2, pr(X=Y, R1, R2)) => 
+	remove(JoinPlan, [attrname(attr(l_expr, 1, l)), 
+		attrname(attr(r_expr, 2, l))]) :-   
+  not(X = attr(_, _, _)),
+  not(Y = attr(_, _, _)), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  join00(Arg1Extend, Arg2Extend, 
+	pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
+
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
 	attrname(Attr1), attrname(Attr2))   :-
   isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  Arg1 => Arg1S,
-  Arg2 => Arg2S.
+  isOfSecond(Attr2, X, Y).
 
-join(Arg1, Arg2, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
+
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
 	attrname(Attr1), attrname(Attr2), 997)   :-
   isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
-  Arg1 => Arg1S,
-  Arg2 => Arg2S.
+  isOfSecond(Attr2, X, Y).
 
 
 isOfFirst(X, X, _) :- X = attr(_, 1, _).
@@ -1255,6 +1356,11 @@ cost(extend(X, _), Sel, S, C) :-
 cost(remove(X, _), Sel, S, C) :-
   cost(X, Sel, S, C1),
   removeTC(A),
+  C is C1 + A * S.
+
+cost(project(X, _), Sel, S, C) :-
+  cost(X, Sel, S, C1),
+  projectTC(A),
   C is C1 + A * S.
 
 cost(rename(X, _), Sel, S, C) :-
@@ -1605,16 +1711,15 @@ bestPlan :-
   dijkstra(0, N, Path, Cost),
   plan(Path, Plan),
   write('The best plan is:'), nl, nl,
-  wp(consume(Plan)),
+  wp(Plan),
   nl, nl,
   write('The cost is: '), write(Cost), nl.
 
-bestPlan(Query, Cost) :-
+bestPlan(Plan, Cost) :-
   assignCosts,
   highNode(N),
   dijkstra(0, N, Path, Cost),
-  plan(Path, Plan),
-  plan_to_atom(consume(Plan), Query).
+  plan(Path, Plan).
 
 /*
 10 A Larger Example
@@ -1889,12 +1994,11 @@ attribute names have the form as required in [Section Translation].
 */
 
 lookup(select Attrs from Rels where Preds,
-	select Attrs2List from Rels2List where Preds2List) :-
+	select Attrs2 from Rels2List where Preds2List) :-
   lookupRels(Rels, Rels2),
   lookupAttrs(Attrs, Attrs2),
   lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
-  makeList(Attrs2, Attrs2List),
   makeList(Preds2, Preds2List).
 
 lookup(select Attrs from Rels,
@@ -2004,6 +2108,8 @@ lookupAttr(Attr, Attr2) :-
   spelled(Rel:Attr, Attr2).
 
 lookupAttr(*, *).
+
+lookupAttr(count(*), count(*)).
 
 lookupAttr(Name, Name) :-
   write('Error in attribute list: could not recognize '), write(Name), nl, fail.
@@ -2175,12 +2281,22 @@ optimize(Query) :-
   bestPlan.
 
 optimize(Query, QueryOut, CostOut) :-
+  Query = (select * from _ where _), !,
   write(Query), nl, nl,
-  Query = (select _ from _ where _),
   translate(Query,
     select _ from Rels2 where Preds2),
   pog(Rels2, Preds2, _, _),
-  bestPlan(QueryOut, CostOut).
+  bestPlan(Plan, CostOut),
+  plan_to_atom(consume(Plan), QueryOut).
+
+optimize(Query, QueryOut, CostOut) :-
+  Query = (select count(*) from _ where _), !,
+  write(Query), nl, nl,
+  translate(Query,
+    select _ from Rels2 where Preds2),
+  pog(Rels2, Preds2, _, _),
+  bestPlan(Plan, CostOut),
+  plan_to_atom(count(Plan), QueryOut).
 
 
 /*
@@ -2387,4 +2503,28 @@ example21(Query, Cost) :- optimize(
     p2:plz = p3:plz * 5],
   Query, Cost
   ).
+
+/*
+
+12 Optimizing and Calling Secondo
+
+----	sql Term
+----	
+
+~Term~ must be select * from Rels where Preds. It is optimized and Secondo is
+called to execute it.
+
+*/
+
+:- op(980, fx, sql).
+
+sql Term :-
+  optimize(Term, Query, _),
+  query(Query).
+
+
+
+
+
+
 
