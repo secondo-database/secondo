@@ -44,6 +44,9 @@ extern int ccTuplesDeleted;
 extern TypeConstructor ccreltuple;
 extern TypeConstructor ccrelprel;
 
+// type mapping functions implemented in ExtRelationAlgebra.cpp
+extern ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false);
+
 static CcRelationType CcTypeOfRelAlgSymbol (ListExpr symbol) 
 {
   string s;
@@ -441,9 +444,9 @@ static ListExpr CcFeedTypeMap(ListExpr args)
     "Operator feed expects a list of length one.");
   first = nl->First(args);
   CHECK_COND(nl->ListLength(first) == 2,
-    "Operator feed expects an argument of type relation.");
+    "Operator feed expects an argument of type mrel(...)");
   CHECK_COND(CcTypeOfRelAlgSymbol(nl->First(first)) == mrel,
-    "Operator feed expects an argument of type relation.");
+    "Operator feed expects an argument of type mrel");
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 /*
@@ -5432,117 +5435,17 @@ Operator ccrelconcat (
 
 7.20.1 Type mapping function of operator ~groupby~
 
-
 Result type of ~groupby~ operation.
 
-----    ((stream (mtuple (xi1 ... xin))) ((namei1(fun x y1)) .. (namein (fun x ym)))
 
-        -> (stream (mtuple (xi1 .. xin y1 .. ym)))		APPEND (i1,...in)
-----
 
 */
 ListExpr 
 CcGroupByTypeMap(ListExpr args)
 {
-  ListExpr first, second, third, rest, listn, lastlistn, first2;
-  ListExpr second2, firstr, attrtype, listp, lastlistp;
-  first = second = third = rest = listn = lastlistn = first2 = nl->TheEmptyList();
-  second2 = firstr = attrtype = listp = lastlistp = nl->TheEmptyList();
-  ListExpr groupType = nl->TheEmptyList();
-  bool loopok;
-  string  attrname = "";
-  int j = 0;
-  bool firstcall = true;
-  int numberatt = 0;
-  string listString = "";
-
-  if(nl->ListLength(args) == 3)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-    third  = nl->Third(args);
-
-    if(nl->ListLength(first) == 2  &&
-      (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
-      (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
-      (!nl->IsAtom(second)) &&
-      (nl->ListLength(second) > 0))
-    {
-      numberatt = nl->ListLength(second);
-      rest = second;
-      while (!nl->IsEmpty(rest))
-      {
-        first2 = nl->First(rest);
-        rest = nl->Rest(rest);
-        attrname = nl->SymbolValue(first2);
-        j = CcFindAttribute(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-        if (j)
-        {
-          if (!firstcall)
-          {
-            lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
-            lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
-          }
-          else
-          {
-            firstcall = false;
-            listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
-            lastlistn = listn;
-            listp = nl->OneElemList(nl->IntAtom(j));
-            lastlistp = listp;
-          }
-        }
-        else
-        {
-          ErrorReporter::ReportError("Incorrect input for operator groupby.");
-          return nl->SymbolAtom("typeerror");
-        }
-
-      }
-      loopok = true;
-      rest = third;
-
-      groupType =
-        nl->TwoElemList(
-          nl->SymbolAtom("mrel"),
-          nl->Second(first));
-
-      while (!(nl->IsEmpty(rest)))
-      {
-        firstr = nl->First(rest);
-
-        rest = nl->Rest(rest);
-        first2 = nl->First(firstr);
-        second2 = nl->Second(firstr);
-
-        if((nl->IsAtom(first2)) &&
-          (nl->ListLength(second2) == 3) &&
-          (nl->AtomType(first2) == SymbolType) &&
-          (CcTypeOfRelAlgSymbol(nl->First(second2)) == mmap) &&
-          (nl->Equal(groupType, nl->Second(second2))))
-        {
-          lastlistn = nl->Append(lastlistn,
-          (nl->TwoElemList(first2,nl->Third(second2))));
-        }
-        else
-          loopok = false;
-        }
-      }
-    if ((loopok) && (CcCompareNames(listn)))
-    {
-      return
-        nl->ThreeElemList(
-          nl->SymbolAtom("APPEND"),
-          nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
-          nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-              nl->SymbolAtom("mtuple"),
-              listn)));
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator groupby.");
-  return nl->SymbolAtom("typeerror");
+  // To avoid code redundancy the type mapping is 
+  // implemented in the file ExtRelationAlgebra.cpp
+  return GroupByTypeMap2(args, true);
 }
 
 /*

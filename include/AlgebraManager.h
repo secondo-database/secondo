@@ -57,6 +57,9 @@ August 2003 VTA Added the ~SaveToList~ and ~RestoreFromList~ functions
 
 September 2003 Frank Hoffmann Added ~ListAlgebras~ and ~GetAlgebraId~
 
+August 2004, M. Spiekermann. Getting an algebra name by its ID is now supported
+with the function ~GetAlgebraName~
+
 1.1 Overview
 
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -528,10 +531,13 @@ The list format is :
 
 */
 
-  int GetAlgebraId( const string algName);
+  int GetAlgebraId( const string& algName);
+  const string& GetAlgebraName( const int algId ); 
+
 /*
 Returns the id of the algebra with name algName, if this algebra is currently
-included, otherwise 0.
+included, otherwise 0. The second function returns the name of an algebra 
+specified by algId. 
 
 */
   void LoadAlgebras();
@@ -818,6 +824,7 @@ Is the highest algebra id occuring in the list of algebras.
 
 */
   vector<Algebra*>         algebra;
+  map<int, string>         algebraNames;
 /*
 Is an array for references to all loaded algebra modules.
 

@@ -28,6 +28,7 @@ called Relational Algebra and Extended Relational Algebra.
 
 #include <vector>
 #include <deque>
+#include <sstream>
 
 #include "RelationAlgebra.h"
 #include "QueryProcessor.h"
@@ -3345,119 +3346,211 @@ Operator extrelconcat (
 
 Result type of ~groupby~ operation.
 
-----    ((stream (tuple (xi1 ... xin))) ((namei1(fun x y1)) .. (namein (fun x ym)))
+----   Let X = tuple ((x1 t1) ... (xn tn)), R = rel(X):
+       
+       ( (stream X) (xi1 ... xik) ( (y1 (map R T1)) ... (ym (map R Tm)) )
 
-        -> (stream (tuple (xi1 .. xin y1 .. ym)))   APPEND (i1,...in)
+        -> ( APPEND (m p1 ... pm) (stream (tuple (xj1 tj1)... (xjl tjl) (y1 T1) ... (ym Tm)))) 
+	
+       with tj,Ti in kind DATA, xi <> xj and k+l=n, pi <> pj and 1 <= pi <= m. This means attributes xi ... xik
+       are removed from the stream and attributes y1 ... ym are appended. These new attributes represent
+       aggregated values computed by maps of R -> Ti which must have a result type of kind DATA.
 ----
 
 */
+ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
+{
+  ListExpr first, second, third;     // list used for analysing input
+	ListExpr listn, lastlistn, listp;  // list used for constructing output
+  
+  first = second = third = nl->TheEmptyList();
+	listn = lastlistn = listp = nl->TheEmptyList();
+    
+  string relSymbolStr = "rel";
+  string tupleSymbolStr = "tuple";
+
+  if ( memoryImpl ) {
+    relSymbolStr = "mrel";
+    tupleSymbolStr = "mtuple";
+  }
+
+  bool listOk = true;
+  listOk = listOk && ( nl->ListLength(args) == 3 );
+	 
+  if ( listOk ) {
+	
+    first  = nl->First(args);
+    second = nl->Second(args);
+    third  = nl->Third(args);
+	
+    // check input list structure
+    listOk = listOk && (nl->ListLength(first) == 2);
+		listOk = listOk && !nl->IsEmpty( third );
+		listOk = listOk && !nl->IsAtom(second) && ( nl->ListLength(second) > 0 );
+	
+	}		
+	
+	if( !listOk )
+  {
+	  stringstream errMsg;
+		errMsg << "groupby: Invalid input list structure. "
+			     << "The structure should be a three elem list "
+					 << "like (stream (" << tupleSymbolStr 
+					 << "((x1 t1) ... (xn tn)) (xi1 ... xik) "
+					 << "( (y1 (map R T1)) ... (ym (map R Tm))!";
+										 
+    ErrorReporter::ReportError(errMsg.str());																
+    return nl->SymbolAtom("typeerror");
+  }
+
+  ListExpr tuple = nl->First(nl->Second(first)); 
+      
+  listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(first)) == stream );
+  listOk = listOk && ( nl->AtomType(tuple) == SymbolType );
+  listOk = listOk && ( nl->SymbolValue(tuple) == tupleSymbolStr );
+									
+	if ( !listOk ) {
+	
+	  ErrorReporter::ReportError( "groupby: Input is not of type (stream " 
+	                              + tupleSymbolStr + "(...))." );
+    return nl->SymbolAtom("typeerror");
+	}								
+				 
+	// list seems to be ok. Extract the grouping attributes 
+	// out of the input stream			 		 
+	
+	ListExpr rest = second;
+	while (!nl->IsEmpty(rest))
+	{
+	  ListExpr attrtype = nl->TheEmptyList();
+	  ListExpr lastlistp = nl->TheEmptyList();
+		ListExpr first2 = nl->First(rest);
+		rest = nl->Rest(rest);
+		string attrname = nl->SymbolValue(first2);
+
+		// calculate index of attribute in tuple
+		bool firstcall = true;
+		int j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+		if (j)
+		{
+			if (!firstcall)
+			{
+				lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
+				lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
+			}
+			else
+			{
+				firstcall = false;
+				listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
+				lastlistn = listn;
+				listp = nl->OneElemList(nl->IntAtom(j));
+				lastlistp = listp;
+			}
+		}
+		else // grouping attribute not in input stream
+		{
+			string errMsg = "groupby: Attribute " + attrname 
+											+ " not present in input stream!"; 
+											
+			ErrorReporter::ReportError(errMsg);
+			return nl->SymbolAtom("typeerror");
+		}
+	} // end while
+			
+			
+		// compute output tuple with attribute names and their types
+		//loopok = true;
+		rest = third;
+		ListExpr groupType = nl->TwoElemList( nl->SymbolAtom(relSymbolStr),
+																          nl->Second(first) );
+
+		while (!(nl->IsEmpty(rest))) // check functions y1 .. ym
+		{
+  		// iterate over elements of the 3rd input list 
+			ListExpr firstr = nl->First(rest); 			
+			rest = nl->Rest(rest);
+			
+			ListExpr newAttr = nl->First(firstr);
+			ListExpr mapDef = nl->Second(firstr); // (map <InTypeExpr> <OutTypeExpr>)
+			ListExpr mapOut = nl->Third(mapDef);
+
+			// check list structure
+			bool listOk = true;
+			listOk = listOk && ( nl->IsAtom(newAttr) );
+			listOk = listOk && ( nl->ListLength(mapDef) == 3 );
+			listOk = listOk && ( nl->AtomType(newAttr) == SymbolType );
+			listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(mapDef)) == ccmap );
+			listOk = listOk && ( nl->Equal(groupType, nl->Second(mapDef)) );
+			 
+			if( !listOk ) { // Todo: there could be more fine grained error messages
+				
+				ErrorReporter::ReportError("groupby: Function definition is not correct!");
+				return nl->SymbolAtom("typeerror");
+			} 
+						 
+			// Check if mapOut is of kind DATA or if the function returns a typeerror 
+		 
+			ListExpr typeConstructor = nl->TheEmptyList();
+			if ( nl->IsAtom(mapOut) ) // function returns a simple type
+			{
+				assert( nl->AtomType(mapOut) == SymbolType );		
+				typeConstructor = mapOut;
+		
+			} else { // function returns a complex type
+	
+				typeConstructor = nl->First(mapOut);
+				assert( nl->AtomType(typeConstructor) == SymbolType );
+			}
+	
+			// check if the Type Constructor belongs to KIND DATA   
+			// If the functions result type is typeerror this check will also fail
+			ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+			AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+	
+			if ( !algMgr->CheckKind("DATA", typeConstructor, errorInfo) ) {
+
+				stringstream errMsg;
+				errMsg << "groupby: The aggregate function for attribute \"" 
+							<< nl->SymbolValue(newAttr) << "\""
+							<< " returns a type which is not usable in tuples." 
+							<< " The type constructor \"" 
+							<< nl->SymbolValue(typeConstructor) << "\""
+							<< " belongs not to kind DATA!"
+							<< ends;
+	 
+				ErrorReporter::ReportError(errMsg.str());
+				return nl->SymbolAtom("typeerror");
+	
+			}
+			
+			lastlistn = nl->Append(lastlistn,(nl->TwoElemList(newAttr,mapOut)));
+			
+	} // end of while check functions
+	
+			
+	if ( !CompareNames(listn) ) { // check if attribute names are uniqe
+	
+		ErrorReporter::ReportError("groupby: Attribute names are not unique");
+		return nl->SymbolAtom("typeerror");	
+	}
+	
+	// Type mapping is correct, return result type.
+	return
+			nl->ThreeElemList(
+				nl->SymbolAtom("APPEND"),
+				nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
+				nl->TwoElemList(
+					nl->SymbolAtom("stream"),
+					nl->TwoElemList(
+						nl->SymbolAtom(tupleSymbolStr),
+						listn)));
+		
+}
+
+
 ListExpr GroupByTypeMap(ListExpr args)
 {
-  ListExpr first, second, third, rest, listn, lastlistn, first2;
-  ListExpr second2, firstr, attrtype, listp, lastlistp;
-  first = second = third = rest = listn = lastlistn = first2 = nl->TheEmptyList();
-  second2 = firstr = attrtype = listp = lastlistp = nl->TheEmptyList();
-  ListExpr groupType = nl->TheEmptyList();
-  bool loopok = false;
-  string  attrname = "";
-  int j = 0;
-  bool firstcall = true;
-  int numberatt = 0;
-  string listString = "";
-
-  if(nl->ListLength(args) == 3)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-    third  = nl->Third(args);
-
-    if( nl->IsEmpty( third ) )
-    {
-      ErrorReporter::ReportError("Incorrect input for operator groupby.");
-      return nl->SymbolAtom("typeerror");
-    }
-
-    if(nl->ListLength(first) == 2  &&
-      (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-      (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-      (!nl->IsAtom(second)) &&
-      (nl->ListLength(second) > 0))
-    {
-      numberatt = nl->ListLength(second);
-      rest = second;
-      while (!nl->IsEmpty(rest))
-      {
-        first2 = nl->First(rest);
-        rest = nl->Rest(rest);
-        attrname = nl->SymbolValue(first2);
-        j =   FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-        if (j)
-        {
-          if (!firstcall)
-          {
-            lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
-            lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
-          }
-          else
-          {
-            firstcall = false;
-            listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
-            lastlistn = listn;
-            listp = nl->OneElemList(nl->IntAtom(j));
-            lastlistp = listp;
-          }
-        }
-        else
-        {
-          ErrorReporter::ReportError("Incorrect input for operator groupby.");
-          return nl->SymbolAtom("typeerror");
-        }
-
-      }
-      loopok = true;
-      rest = third;
-
-      groupType =
-        nl->TwoElemList(
-          nl->SymbolAtom("rel"),
-          nl->Second(first));
-
-      while (!(nl->IsEmpty(rest)))
-      {
-        firstr = nl->First(rest);
-
-        rest = nl->Rest(rest);
-        first2 = nl->First(firstr);
-        second2 = nl->Second(firstr);
-
-        if((nl->IsAtom(first2)) &&
-          (nl->ListLength(second2) == 3) &&
-          (nl->AtomType(first2) == SymbolType) &&
-          (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-          (nl->Equal(groupType, nl->Second(second2))))
-        {
-          lastlistn = nl->Append(lastlistn,
-          (nl->TwoElemList(first2,nl->Third(second2))));
-        }
-        else
-          loopok = false;
-      }
-    }
-    if ((loopok) && (CompareNames(listn)))
-    {
-      return
-        nl->ThreeElemList(
-          nl->SymbolAtom("APPEND"),
-          nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
-          nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-              nl->SymbolAtom("tuple"),
-              listn)));
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator groupby.");
-  return nl->SymbolAtom("typeerror");
+  return GroupByTypeMap2(args);
 }
 
 /*
