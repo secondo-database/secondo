@@ -2218,30 +2218,30 @@ static bool CheckFRegion(ListExpr type, ListExpr& errorInfo){
 
 */
 bool OpenFPoint(SmiRecord& valueRecord,
+                size_t & offset,
                 const ListExpr typeInfo,
                 Word& value){
-   CcFPoint* FP = new CcFPoint(0);
-   FP->Open(valueRecord, typeInfo);
+   CcFPoint* FP = (CcFPoint*) TupleElement::Open(valueRecord,offset,typeInfo);
    FP->RestoreJavaObjectFromFLOB();
    value = SetWord(FP);
    return true;
 }
 
 bool OpenFLine(SmiRecord& valueRecord,
+                size_t& offset,
                 const ListExpr typeInfo,
                 Word& value){
-   CcFLine* FL = new CcFLine(0);
-   FL->Open(valueRecord, typeInfo);
+   CcFLine* FL = (CcFLine*) TupleElement::Open(valueRecord,offset,typeInfo);
    FL->RestoreJavaObjectFromFLOB();
    value = SetWord(FL);
    return true;
 }
 
 bool OpenFRegion(SmiRecord& valueRecord,
+                 size_t& offset,
                  const ListExpr typeInfo,
                  Word& value){
-   CcFRegion* FR = new CcFRegion(0);
-   FR->Open(valueRecord, typeInfo);
+   CcFRegion* FR = (CcFRegion*) TupleElement::Open(valueRecord,offset,typeInfo);
    FR->RestoreJavaObjectFromFLOB();
    value = SetWord(FR);
    return true;
@@ -2252,28 +2252,31 @@ bool OpenFRegion(SmiRecord& valueRecord,
 
 */
 bool SaveFPoint( SmiRecord& valueRecord,
+                 size_t& offset,
                  const ListExpr typeInfo,
                  Word& value)
 { CcFPoint* FP = (CcFPoint*) value.addr;
-  FP->Save(valueRecord,typeInfo);
+  TupleElement::Save(valueRecord,offset,typeInfo,FP);
   return true;
 }
 
 bool SaveFLine( SmiRecord& valueRecord,
+                 size_t& offset,
                  const ListExpr typeInfo,
                  Word& value)
 {
   CcFLine* FL = (CcFLine*) value.addr;
-  FL->Save(valueRecord,typeInfo);
+  TupleElement::Save(valueRecord,offset,typeInfo,FL);
   return true;
 }
 
 bool SaveFRegion( SmiRecord& valueRecord,
+                  size_t& offset,
                   const ListExpr typeInfo,
                   Word& value)
 {
   CcFRegion* FR = (CcFRegion*) value.addr;
-  FR->Save(valueRecord,typeInfo);
+  TupleElement::Save(valueRecord,offset,typeInfo,FR);
   return true;
 }
 
