@@ -8,7 +8,8 @@ include ./makefile.env
 
 ifneq ($(PWD),$(BUILDDIR))
   $(error SECONDO_BUID_DIR has another value than the current directory. \
-    Please check your environment setup!)
+    Please check your environment setup! Go to the root of your SECONDO \
+    tree and enter setvar $PWD )
 endif
 
 # Configuration files which will be created as a copy of example files
@@ -25,11 +26,16 @@ CONFIG_FILES = bin/SecondoConfig.ini \
 all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
 
 # Rules for copying configuration scripts
-SCRIPT_DIR = ./CM-Scripts
-SCRIPT_FILES = $(SECONDO_SDK)/bin/setvar.bash $(SECONDO_SDK)/bin/catvar.sh $(HOME)/.secondorc $(HOME)/.bashrc-sample
+SCRIPT_DIR := ./CM-Scripts
+SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash
+
+RC_FILES := $(HOME)/.secondorc \
+	    $(HOME)/.secondo.sdkrc \
+            $(HOME)/.secondo.$(platform)rc
+
 
 .PHONY: update-environment 
-update-environment: $(SCRIPT_FILES)
+update-environment: $(SCRIPT_FILES) $(RC_FILES)
 ifeq ($(platform),win32)
 	$(MAKE) -C Win32/MSYS config
 endif
@@ -37,13 +43,7 @@ endif
 $(SECONDO_SDK)/bin/setvar.bash: $(SCRIPT_DIR)/setvar.bash
 	cp --backup $< $@
 
-$(SECONDO_SDK)/bin/catvar.sh: $(SCRIPT_DIR)/catvar.sh
-	cp --backup $< $@
-
-$(HOME)/.secondorc: $(SCRIPT_DIR)/.secondorc
-	cp --backup $< $@
-
-$(HOME)/.bashrc-sample: $(SCRIPT_DIR)/.bashrc-sample
+$(RC_FILES): $(HOME)/.sec%rc: $(SCRIPT_DIR)/.sec%rc
 	cp --backup $< $@
 
 
