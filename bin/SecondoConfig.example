@@ -25,8 +25,8 @@ SecondoHost=127.0.0.1
 ;;; Port of the Secondo server (default: )
 SecondoPort=1234
 
-;;; Runtime Flags (RTFlags). This key can be used to define a comma separated 
-;;; list of runtime flags which switch on some special messages 
+;;; Runtime Flags (refer to class RTFlags). This key can be used to define 
+;;; a comma separated list of runtime flags which switch on some special messages 
 ;;; (for debugging or profiling) or some features like creating binary 
 ;;; list formats for CS-communication. Please document new flags otherwise
 ;;; this mechanism is not useful.
@@ -37,6 +37,8 @@ SecondoPort=1234
 ;
 ; SI:NoQueryAnalysis  : Supress to measure cpu-time,real-time, and nested list 
 ;                       memory used for processing a query.
+; SI:NoCommandEcho    : Suppress the output of the command in NL format before execution
+;
 ; SI:RelStatistics    : Various statistical information about tuples and relations.
 ;                       Note: Currently, this doesn't work!
 ; SI:ResultList       : Print out nested list of the result before copying it into 
@@ -48,7 +50,7 @@ SecondoPort=1234
 ; Socket:SendStat  : Show how often the requested buffersize could not be 
 ;                    transferred and the number of sleep calls; 
 ;
-;RTFlags=SI:NoQueryAnalysis,SI:ResultList
+;RTFlags=SI:NoQueryAnalysis,SI:ResultList,SI:NoCommandEcho
 
 ; --- Berkeley DB Section ---
 ;

@@ -41,6 +41,10 @@ April 30 2003 Hoffmann Changes syntax for the restore objects command.
 September 2003 Hoffmann Extended section List-Commands for Secondo-Commands
 ~list algebras~ and ~list algebra <algebra name>~.
 
+October 2003 M. Spiekermann made the command echo (printing out the command in NL format) configurable.
+This is useful for server configuration, since the output of big lists consumes more time than processing
+the command.
+
 \tableofcontents
 
 */
@@ -382,8 +386,10 @@ If value 0 is returned, the command was executed without error.
   }
   SecondoSystem::SetAlgebraLevel( level );
 
-  nl->WriteListExpr(list, cerr);
-  cerr << endl;
+  if (!RTFlag::isActive("SI:NoCommandEcho")) {
+     nl->WriteListExpr(list, cerr);
+     cerr << endl;
+  }
   length = nl->ListLength( list );
   if ( length > 1 )
   {
