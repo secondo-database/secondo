@@ -58,7 +58,7 @@ A forward declaration of the class ~Points~.
 
 */
 
-class Point
+class Point: public StandardAttribute
 {
   public:
 /*
@@ -315,7 +315,7 @@ The implementation of the points type constructor is a persistent array of point
 ordered by lexicographic order.
 
 */
-class Points
+class Points: public StandardAttribute
 {
   public:
 /*
@@ -928,7 +928,7 @@ is called ~lines~.
 
 */
 
-class CLine
+class CLine: public StandardAttribute
 {
   public:
 /*
@@ -1139,7 +1139,7 @@ composed of a set of faces. Each face consists of a ouer cycle and a groups of h
 
 */
 
-class CRegion
+class CRegion: public StandardAttribute
 {
   public:
 /*
