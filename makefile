@@ -30,7 +30,6 @@ ALL_TARGETS = makedirs \
 	buildapps \
 	$(OPTIMIZER_SERVER) \
 	java2 \
-	update-environment \
 	update-config
 
 .PHONY: all
