@@ -5,7 +5,7 @@ operator framecount alias FRAMECOUNT pattern _ op
 operator songlength alias SONGLENGTH pattern _ op
 operator getid3 alias GETID3 pattern _ op
 operator author alias AUTHOR pattern _ op
-operator title alias TITLE pattern _ op
+operator titleof alias TITLEOF pattern _ op
 operator album alias ALBUM pattern _ op
 operator comment alias COMMENT pattern _ op
 operator genre alias GENRE pattern _ op

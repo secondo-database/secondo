@@ -44,7 +44,7 @@ xi) ~getid3~ - get the ID3 tag from an MP3.
 
 xii) ~author~ - returns the author of an ID3.
 
-xiii) ~title~ - returns the title of an ID3.
+xiii) ~titleof~ - returns the title of an ID3.
 
 xiv) ~album~ - returns the album of an ID3.
 
@@ -3581,11 +3581,11 @@ Operator author (
 
 /*
 
-5.14 Operator ~title~
+5.14 Operator ~titleof~
 
 Gets the title of an ID3-Tag.
 
-5.14.1 Type mapping function of operator ~title~
+5.14.1 Type mapping function of operator ~titleof~
 
 ----    (id3)               -> string
 ----
@@ -3604,7 +3604,7 @@ ListExpr TitleTypeMap(ListExpr args) {
 
 /*
 
-5.14.2 Value mapping functions of operator ~title~
+5.14.2 Value mapping functions of operator ~titleof~
 
 */
 int TitleFun(Word* args, Word& result, int message, Word& local, Supplier s) {
@@ -3634,20 +3634,20 @@ const string TitleSpec  =
 "\"Example\" ) "
 "( <text>id3 -> string"
 "</text--->"
-"<text>_ title</text--->"
+"<text>_ titleof</text--->"
 "<text>Extracts the title from an id3 object"
 ".</text--->"
-"<text>query id3 title</text--->"
+"<text>query id3 titleof</text--->"
 ") )";
 
 /*
 
-5.14.4 Definition of operator ~title~
+5.14.4 Definition of operator ~titleof~
 
 */
-Operator title (
+Operator cctitle (
     // name
-    "title",
+    "titleof",
     // specification
     TitleSpec,
     // value mapping
@@ -4538,7 +4538,7 @@ public:
 	AddOperator(&removeid3);
 	AddOperator(&getid3);
 	AddOperator(&author);
-	AddOperator(&title);
+	AddOperator(&cctitle);
 	AddOperator(&album);
 	AddOperator(&comment);
 	AddOperator(&track);

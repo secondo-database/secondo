@@ -584,7 +584,8 @@ TypeMapTextInt( ListExpr args )
 ListExpr
 TypeMapkeywords( ListExpr args ){
   ListExpr arg;
-  
+  string nlchrs;
+
   if ( nl->ListLength(args) == 1 )
   {
     arg = nl->First(args);
@@ -730,7 +731,7 @@ are separated by a space character.
   switch( message )
   {
     case OPEN:
-      // cout << "open" << endl;     
+      //cout << "open" << endl;     
       qp->Request(args[0].addr, arg0);
      
       subword = new Subword;
@@ -739,6 +740,7 @@ are separated by a space character.
       cpystr = ((FText*)arg0.addr)->Get();
       subword->subw = (char*)malloc(strlen(cpystr) + 1);
       strcpy(subword->subw, cpystr);
+      delete (FText*)arg0.addr;
       subword->subw[strlen(cpystr)] = '\0';
       trimstr(subword->subw); //remove spaces from the end of the string
       
@@ -875,7 +877,7 @@ const string keywordsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "<text>Creates a stream of strings containing the single words"
              " of the origin text, on the assumption, that words in the text"
              " are separated by a space character.</text--->"
-             "<text>query ten feed extendstream(name: mytext keywords) consume</text--->"
+             "<text>let Keyword = documents feed extendstream[kword: .title keywords] consume</text--->"
              ") )"; 
 
 /*
