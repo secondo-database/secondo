@@ -532,11 +532,16 @@ public class HoeseViewer extends SecondoViewer {
           if (le.readFromFile(file.getPath()) == 0) {
             Cats = new Vector(30, 10);
             Cats.add(Category.getDefaultCat());
-            suc = "OK";
-            readAllCats(le);
+            suc ="OK";
+	    if (readAllCats(le))
+	       MessageBox.showMessage("categories loaded");
+	    else
+	       MessageBox.showMessage("error in categories");
           }
-          else
+          else{
             suc = "Failed";
+	    MessageBox.showMessage("error in categories");
+	  }
         }
       }
     });
