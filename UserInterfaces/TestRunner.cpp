@@ -902,8 +902,8 @@ The main function creates the TestRunner and starts its execution.
 int
 main( const int argc, const char* argv[] )
 {
-  int devNullFd = open("/dev/null", O_RDONLY);
-  dup2(devNullFd, 2);
+  //int devNullFd = open("/dev/null", O_RDONLY);
+  //dup2(devNullFd, 2);
 
   TestRunner* appPointer = new TestRunner( argc, argv );
   int rc = appPointer->Execute();
