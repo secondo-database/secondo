@@ -31,7 +31,7 @@ ALGEBRA_DEPS :=
 # -lname1 -lname2 ... etc. This is used to link the algebra objects
 # into an executable. If the algebra code itself depends on other
 # librares, e.g. the jpeg algebra depends on libjepeg, put these libraries
-# into the variable ALGEBRA_DEP.
+# into the variable ALGEBRA_DEPS.
 
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     +=	FunctionAlgebra
@@ -84,22 +84,9 @@ ALGEBRAS     +=	TemporalAlgebra
 ALGEBRA_DIRS +=	DateTime
 ALGEBRAS     +=	DateTimeAlgebra
 
-ALGEBRA_DIRS +=	Network
-ALGEBRAS     +=	NetworkAlgebra
-
 ALGEBRA_DIRS += PlugJoin	
 ALGEBRAS     +=	PlugJoinAlgebra
 
-
-#ALGEBRA_DIRS += MP3
-#ALGEBRAS     += MP3Algebra
-
-#ALGEBRA_DIRS += JPEG
-#ALGEBRAS     += JPEGAlgebra
-#ALGEBRA_DEPS += jpeg           # libjpeg is used and must be installed
-
-#ALGEBRA_DIRS  += Midi
-#ALGEBRAS      += MidiAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 
@@ -108,9 +95,6 @@ ALGEBRAS     +=	PlugJoinAlgebra
 
 #JNI_ALGEBRA_DIRS := JBBox
 #JNIALGEBRAS      := JBBoxAlgebra
-
-#JNI_ALGEBRA_DIRS += JNIExample
-#JNIALGEBRAS      += JNIExampleAlgebra
 
 #JNI_ALGEBRA_DIRS += Rose
 #JNIALGEBRAS      += RoseAlgebra

@@ -72,26 +72,6 @@ makedirs:
 	make -C viewer viewers
 	make -C tools all
 
-.PHONY: external # create a version for external use
-external:
-	rm -rf external
-	mkdir external
-	find -maxdepth 1 \! -name external \! -name '.' -exec cp -r {} external \;
-	sed -i 's#GUIPATH *:=.*#GUIPATH := $$(SECONDO_BUILD_DIR)/Javagui/external#g' external/makefile.inc
-	make -sC external clean
-	find external -type d -name "CVS" | sed "s#.*#rm -r &#g" | sh
-	rm -r external/viewer/jpeg
-	rm -r external/viewer/midi
-	rm external/viewer/MP3V.java
-	rm external/viewer/hoese/algebras/Dsplpicture.java
-	rm external/viewer/MidiViewer.java
-	sed -i -e "s#midi# #g"  -e "s#jpeg# #g" -e "s#MP3V.class# #g" -e "s#MidiViewer.class# #g" external/viewer/makefile
-	@#make -C external
-	@#make -C external clean
-	sed -i 's#GUIPATH *:=.*#GUIPATH := $$(SECONDO_BUILD_DIR)/Javagui#g' external/makefile.inc
-
-	
-
 
 .PHONY: clean # removes the documentation and all .class files
 clean: removedoc

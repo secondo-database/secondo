@@ -22,7 +22,7 @@
 # changes:
 # 05-2003; Thomas Behr
 # 01-2004: stefan.wich@fernuni-hagen.de: jpeg added, sorted viewers alnum, one line per subtask
-# 02-2004: Markus Spiekermann: The makfile was revised to make it more generic.
+# 02-2004: Markus Spiekermann: The makefile was revised to make it more generic.
 include ../makefile.inc
 
 
@@ -41,11 +41,9 @@ VIEWER_CLASSES := \
 		Fuzzy2D.class \
 		RelSplit.class \
 		HoeseViewer.class \
-		MP3V.class \
-		MidiViewer.class \
                 TreeViewer.class
 
-VIEWER_DIRS := fuzzy2d jpeg midi relsplit viewer3d hoese
+VIEWER_DIRS := fuzzy2d relsplit viewer3d hoese
 
 
 # compile all viewers
