@@ -80,25 +80,25 @@ $(LIBDIR)/SecondoInterfaceCS.o: SecondoInterfaceCS.cpp SecondoInterface.h Profil
 # --- Link applications
 
 $(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT)  
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB) $(JNILINKOPTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB) $(JNILINKOPTS)
 
 $(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) $(LDLFAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 

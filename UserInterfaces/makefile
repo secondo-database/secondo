@@ -64,7 +64,7 @@ $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterface.o S
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB) $(JNILINKOPTS) $(JNIINCLUDE)
 
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
 
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
