@@ -8,3 +8,5 @@ operator hour alias HOUR pattern _ op
 operator minute alias MINUTE pattern _ op
 operator second alias SECOND pattern _ op
 operator millisecond alias MILLISECOND pattern _ op
+operator getdate alias GETDATE pattern _ op
+operator time alias TIME pattern _ op

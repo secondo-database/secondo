@@ -274,6 +274,16 @@ value of tho DateTime to it.
 */
      void Now();
 
+/*
+1.2.18 Today
+
+This function read this dateTime value from the System
+ignoring the time part.
+
+*/
+     void Today();
+
+
 
 /*
 1.2.17

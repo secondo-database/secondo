@@ -149,6 +149,21 @@ void DateTime::Now(){
 }
 
 /*
+~Today~
+
+This function reads this DateTime value from the Systemtime. The time part is
+ignored here. This means, that hour ... millisecond are assumed to be zero.
+*/
+void DateTime::Today(){
+   time_t today;
+   time(&today);
+   tm* lt = localtime(&today);
+   day = ToJulian(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday);
+   milliseconds = 0;
+}
+
+
+/*
 ~GetDay~
 
 This function returns the day of this Time instance as
@@ -558,6 +573,10 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
     if(nl->SymbolValue(ValueList)=="now"){
           Now();
 	  return true;
+    }
+    if(nl->SymbolValue(ValueList)=="today"){
+          Today();
+	  return  true;
     }
   }
 
@@ -1159,6 +1178,26 @@ int NowFun_VoidDateTime(Word* args, Word& result, int message, Word& local, Supp
     return 0;
 }
 
+int TodayFun_VoidDateTime(Word* args, Word& result, int message, Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Today();
+    return 0;
+}
+
+
+int DateFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    DateTime* T = (DateTime*) args[0].addr;
+    ((CcInt*) result.addr)->Set(true,(int)(T->GetDay()));
+    return 0;
+}
+
+int TimeFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    DateTime* T = (DateTime*) args[0].addr;
+    ((CcInt*) result.addr)->Set(true,(int)(T->GetAllMilliSeconds()));
+    return 0;
+}
 
 int DayFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
@@ -1195,7 +1234,6 @@ int MinuteFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier
     return 0;
 }
 
-
 int SecondFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
@@ -1209,7 +1247,6 @@ int MillisecondFun_DTInt(Word* args, Word& result, int message, Word& local, Sup
     ((CcInt*) result.addr)->Set(true,T->GetMillisecond());
     return 0;
 }
-
 
 int AddFun_datetimedatetime(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
@@ -1329,6 +1366,26 @@ const string NowSpec =
    "   \"creates a datetime from the current systemtime\" "
    "   \" query now()\" ))";
 
+const string TodaySpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \" -> datetime\""
+   " \" today \" "
+   "   \"creates a datetime from the current systemtime\" "
+   "   \" query today()\" ))";
+
+const string DateSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"daytime -> int\""
+   " \" _ date \" "
+   "   \"return the date of this datetime (the difference to 2000-1-3) \" "
+   "   \" query T1 date\" ))";
+
+const string TimeSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"daytime -> int\""
+   " \" _ time \" "
+   "   \"return the time part of this day in milliseconds since midnight\" "
+   "   \" query T1 time\" ))";
 
 const string DaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -1458,6 +1515,29 @@ Operator dt_now(
        Operator::SimpleSelect,
        VoidDateTime);
 
+Operator dt_today(
+       "today", // name
+       TodaySpec, // specification
+       TodayFun_VoidDateTime,
+       Operator::DummyModel,
+       Operator::SimpleSelect,
+       VoidDateTime);
+
+Operator dt_date(
+       "getdate", // name
+       DateSpec, // specification
+       DateFun_DTInt,
+       Operator::DummyModel,
+       Operator::SimpleSelect,
+       DateTimeInt);
+
+Operator dt_time(
+       "time", // name
+       TimeSpec, // specification
+       TimeFun_DTInt,
+       Operator::DummyModel,
+       Operator::SimpleSelect,
+       DateTimeInt);
 
 Operator dt_day(
        "day", // name
@@ -1612,8 +1692,9 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_second);
     AddOperator(&dt_millisecond);
     AddOperator(&dt_now);
-
-
+    AddOperator(&dt_today);
+    AddOperator(&dt_date);
+    AddOperator(&dt_time);
   }
   ~DateTimeAlgebra() {};
 };
