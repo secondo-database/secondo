@@ -119,7 +119,7 @@ TestRunner::TestRunner( const int argc, const char** argv )
 bool
 TestRunner::AbortOnSignal( int sig )
 {
-  return (false);
+  return (true);
 }
 
 void
