@@ -15,14 +15,14 @@ import  viewer.HoeseViewer;
 import  viewer.MessageBox;
 
 
-/** 
+/**
  * The objects in a query result had no category in the beginning. This dialog offers the
- * ability to associate single raphical objects or whole quries. A label attribute can be 
+ * ability to associate single raphical objects or whole quries. A label attribute can be
  * selected. An attribute can be chosen for attribute dependant rendering.The top is made
  * up by the InfoPanel, followed by the Ref or NavPanel (reference depending mode or single
  * tupel mode.The buttonPanel is the bottommost region in this dialog.
  * @author  hoese
- * @version 
+ * @version
  */
 public class ViewConfig extends javax.swing.JDialog {
   /** Application's main window */
@@ -35,7 +35,7 @@ public class ViewConfig extends javax.swing.JDialog {
   int AttrCount = 0;
   /** The no. of tupel in the query */
   int TupelCount = 1;
-  /** The actual tupel in single tupel modus */  
+  /** The actual tupel in single tupel modus */
   int AktTupNr = 1;
   /** The four JPanels the dialog is devided in.*/
   JPanel InfoPanel, NavPanel, RefPanel, ButPanel;
@@ -46,7 +46,7 @@ public class ViewConfig extends javax.swing.JDialog {
 
   ListExpr AttrValues;
   LinkAttrCat LAC;
-  
+
   /** Creates new JDialog ViewConfig with the attribute-name an
    */
   public ViewConfig (HoeseViewer parent, String an) {
@@ -540,7 +540,7 @@ public class ViewConfig extends javax.swing.JDialog {
         public boolean accept (File f) {
           String name = f.getName().toLowerCase();
           return  name.endsWith(".gif") || name.endsWith(".jpg");
-        } 
+        }
         public String getDescription () {
           return  "Hintergrundkarten (*.gif , *.jpg)";
         }       //end getDescription
@@ -550,14 +550,14 @@ public class ViewConfig extends javax.swing.JDialog {
       if (fileList.length != 0) {
         chg = chg%fileList.length;
         ImageIcon ii = new ImageIcon(fileList[chg].getPath());
-        BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(), 
+        BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
             BufferedImage.TYPE_INT_ARGB);
         Graphics2D big = bi.createGraphics();
         big.drawImage(ii.getImage(), 0, 0, null);
         Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
         //NewCat.setPointasRect(true);
         NewCat.setFillStyle(new TexturePaint(bi, r));
-        NewCat.setIconPath(fileList[chg].getPath());
+        NewCat.setIconName(fileList[chg].getName());
       }
     }
     if (RendType.equals("Point Size <32Px")) {

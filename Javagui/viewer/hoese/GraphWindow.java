@@ -37,7 +37,7 @@ public class GraphWindow extends JLayeredPane
       /**
        * Shows /hides the layer associatd with the layer-button responsable for this event
        * @param evt
-       * @see <a href="Categorysrc.html#actionPerformed">Source</a> 
+       * @see <a href="Categorysrc.html#actionPerformed">Source</a>
    */
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         int laynr = Integer.parseInt(evt.getActionCommand());
@@ -51,7 +51,7 @@ public class GraphWindow extends JLayeredPane
    * Craetes a copy of this object.
    * @return A cloned object
    * @exception CloneNotSupportedException
-   * @see <a href="Categorysrc.html#clone">Source</a> 
+   * @see <a href="Categorysrc.html#clone">Source</a>
    */
   public Object clone () throws CloneNotSupportedException {
     return  super.clone();
@@ -60,7 +60,7 @@ public class GraphWindow extends JLayeredPane
   /**
    * Gets the applications transformation
    * @return The actual Transformation
-   * @see <a href="Categorysrc.html#getProjection">Source</a> 
+   * @see <a href="Categorysrc.html#getProjection">Source</a>
    */
   public AffineTransform getProjection () {
     return  mw.allProjection;
@@ -70,7 +70,7 @@ public class GraphWindow extends JLayeredPane
    * This method creates a random category, used when automatic category is selected in the menu
    * A manual object-category association is not neccessaary.
    * @return A Category with name AutoXX, where XX is a running no.
-   * @see <a href="Categorysrc.html#createAutoCat">Source</a> 
+   * @see <a href="Categorysrc.html#createAutoCat">Source</a>
    */
   public Category createAutoCat () {
     Category defCat = new Category();
@@ -78,7 +78,7 @@ public class GraphWindow extends JLayeredPane
     /*		r=(int)(Math.random()*256);
      g=(int)(Math.random()*256);
      b=(int)(Math.random()*256);
-     defCat.setLineColor(new Color(r,g,b));* @see <a href="Categorysrc.html#GraphWindow">Source</a> 
+     defCat.setLineColor(new Color(r,g,b));* @see <a href="Categorysrc.html#GraphWindow">Source</a>
    */
     defCat.setLineColor(Color.black);
     defCat.setName("Auto" + Integer.toString(CategoryEditor.CpCnt++));
@@ -99,18 +99,18 @@ public class GraphWindow extends JLayeredPane
    * Creates the back-image-layer out of an imagefile with offsets xo,yo
    * @param PathToImage A imagefilename String
    * @return The layertoggle of this layer
-   * @see <a href="Categorysrc.html#createBackLayer">Source</a> 
+   * @see <a href="Categorysrc.html#createBackLayer">Source</a>
    */
   public JToggleButton createBackLayer (String PathToImage, double xo, double yo) {
     if (BackLabel != null)
-      remove(BackLabel); 
+      remove(BackLabel);
     if (PathToImage == null) {
       BackLabel = null;
       return  null;
     }
     BackLabel = new ScaledLabel(new ImageIcon(PathToImage), JLabel.LEFT);
     BackLabel.setVerticalAlignment(JLabel.TOP);
-    BackLabel.setBounds((int)xo, (int)yo, (int)(-xo + mw.BBoxDC.getWidth()), 
+    BackLabel.setBounds((int)xo, (int)yo, (int)(-xo + mw.BBoxDC.getWidth()),
         (int)(-yo + mw.BBoxDC.getHeight()));
     add(BackLabel, new Integer(-1));
     JToggleButton jt = new JToggleButton();
@@ -134,11 +134,14 @@ public class GraphWindow extends JLayeredPane
       ListIterator li = grob.listIterator();
       while (li.hasNext()) {
         DsplGraph dg = ((DsplGraph)li.next());
-        dg.setCategory(acat);
+	if(dg==null)
+	   System.out.println("viewer.hoese.GraphWindow .addLayerObjects has received a null object");
+	else
+           dg.setCategory(acat);
         //dg.LabelText=dg.getAttrName();
       }
-    } 
-    else 
+    }
+    else
       newQueryRepresentation(grob);             // spaeter werden hier aus Viewconfig den GOs die Cats,Labels zugeordnet
     Layer lay = new Layer(grob, this);
     //	add (lay,new Integer(highestLayer()+1));
@@ -149,8 +152,8 @@ public class GraphWindow extends JLayeredPane
   }
 
   /**
-   * Adds the Layer l to the top of layerstack 
-   * @param l 
+   * Adds the Layer l to the top of layerstack
+   * @param l
    * @return The layertoggle of this layer
    * @see <a href="Categorysrc.html#addLayer">Source</a> 
    */
@@ -169,21 +172,27 @@ public class GraphWindow extends JLayeredPane
    */
   public void newQueryRepresentation (Vector go) {
     //acat=Category.getDefaultCat();
-    ListIterator li = go.listIterator();
-    Vector v = new Vector(5, 1);
-    while (li.hasNext()) {
-      String aname = ((DsplGraph)li.next()).getAttrName();
-      if (!v.contains(aname)) {
-        v.add(aname);
-        JComboBox cb = mw.TextDisplay.getQueryCombo();
-        QueryResult Query = (QueryResult)cb.getSelectedItem();
-        ViewConfig VCfg = Query.getViewConfigAt(Query.getViewConfigIndex(aname));
-        if (VCfg==null){
-            VCfg = new ViewConfig(mw,aname);
-            Query.addViewConfig(VCfg);
-        }   
-        VCfg.setVisible(true);
+    try{
+       ListIterator li = go.listIterator();
+       Vector v = new Vector(5, 1);
+       while (li.hasNext()) {
+         String aname = ((DsplGraph)li.next()).getAttrName();
+         if (!v.contains(aname)) {
+           v.add(aname);
+           JComboBox cb = mw.TextDisplay.getQueryCombo();
+           QueryResult Query = (QueryResult)cb.getSelectedItem();
+           ViewConfig VCfg = Query.getViewConfigAt(Query.getViewConfigIndex(aname));
+           if (VCfg==null){
+               VCfg = new ViewConfig(mw,aname);
+               Query.addViewConfig(VCfg);
+           }
+           VCfg.setVisible(true);
+         }
       }
+    }
+    catch(Exception e){
+      System.out.println("Exception in : GraphWindow.newQueryRep "+e );
+      e.printStackTrace();
     }
   }
 

@@ -557,21 +557,21 @@ public class CategoryEditor extends javax.swing.JDialog {
     if (NoFillRB.isSelected())
       cat.setFillStyle(null); 
     else if (SolidRB.isSelected())
-      cat.setFillStyle(SolidColorB.getBackground()); 
+      cat.setFillStyle(SolidColorB.getBackground());
     else if (GradientRB.isSelected())
-      cat.setFillStyle(new GradientPaint(0.0f, 0.0f, SolidColorB.getBackground(), 
-          20.0f, 20.0f, GradientColorB.getBackground(), true)); 
+      cat.setFillStyle(new GradientPaint(0.0f, 0.0f, SolidColorB.getBackground(),
+          20.0f, 20.0f, GradientColorB.getBackground(), true));
     else if (TextureRB.isSelected()) {
-      cat.setIconPath(Iconfile.getPath());
+      cat.setIconName(Iconfile.getName());
       ImageIcon ii = (ImageIcon)TextureIconB.getIcon();
-      BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(), 
+      BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
           BufferedImage.TYPE_INT_ARGB);
       Graphics2D big = bi.createGraphics();
       big.drawImage(ii.getImage(), 0, 0, null);
       Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
       cat.setFillStyle(new TexturePaint(bi, r));
     }
-    //		return cat;						
+    //		return cat;
   }
 
   // Variables declaration - do not modify//GEN-BEGIN:variables

@@ -144,6 +144,9 @@ public class HoeseViewer extends SecondoViewer {
   /** a FileChooser for Categories*/
   private JFileChooser FC_Category=new JFileChooser();
 
+  private String TexturePath;
+  private String FileSeparator;
+
 
   /**
    * Creates a MainWindow with all its components, initializes Secondo-Server, loads the
@@ -156,11 +159,18 @@ public class HoeseViewer extends SecondoViewer {
       System.err.println("Error loading L&F: " + exc);
     }
 
+    Properties SystemProps = System.getProperties();
+    FileSeparator = SystemProps.getProperty("file.separator");
+    if(FileSeparator==null){
+        FileSeparator ="/";
+	System.out.println("i can't determine the Systems file separator");
+     }
+     TexturePath = FileSeparator;
+
     init();
     Cats = new Vector(30, 10);
     context = new ContextPanel(this);
     Cats.add(Category.getDefaultCat());
-
     //Load S Categories
     String Catfiles = configuration.getProperty("StandardCats");
     if (Catfiles != null) {
@@ -325,7 +335,7 @@ public class HoeseViewer extends SecondoViewer {
 
 
   /**
-   * 
+   *
    * @return A listExpr of all the categories in Cats
    */
   public ListExpr writeAllCats () {
@@ -333,7 +343,7 @@ public class HoeseViewer extends SecondoViewer {
     ListExpr left = le;
     for (int i = 0; i < Cats.size(); i++)
       if (le.isEmpty()) {
-        left = ListExpr.cons(Category.ConvertCattoLE((Category)Cats.elementAt(i)), 
+        left = ListExpr.cons(Category.ConvertCattoLE((Category)Cats.elementAt(i)),
             le);
         le = left;
       } 
@@ -418,6 +428,7 @@ public class HoeseViewer extends SecondoViewer {
     JMenuItem MIloadCat = new JMenuItem("Load categories");
     MIloadCat.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
+        FC_Category.setFileSelectionMode(JFileChooser.FILES_ONLY);
         int returnVal = FC_Category.showOpenDialog(HoeseViewer.this);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
           File file = FC_Category.getSelectedFile();
@@ -428,8 +439,8 @@ public class HoeseViewer extends SecondoViewer {
             Cats.add(Category.getDefaultCat());
             suc = "OK";
             readAllCats(le);
-          } 
-          else 
+          }
+          else
             suc = "Failed";
         }
       }
@@ -440,12 +451,13 @@ public class HoeseViewer extends SecondoViewer {
     JMenuItem MISaveCat = new JMenuItem("Save categories");
     MISaveCat.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        int returnVal = FC_Category.showSaveDialog(HoeseViewer.this);
+        FC_Category.setFileSelectionMode(JFileChooser.FILES_ONLY);
+	int returnVal = FC_Category.showSaveDialog(HoeseViewer.this);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
           File file = FC_Category.getSelectedFile();
           ListExpr le = writeAllCats();
           String suc;
-          if (le.writeToFile(file.getPath())!= 0) 
+          if (le.writeToFile(file.getPath())!= 0)
              showMessage("save category failed");
           else
              showMessage("success");
@@ -519,8 +531,7 @@ public class HoeseViewer extends SecondoViewer {
           ClipRect = null;
           Point p = GeoScrollPane.getViewport().getViewPosition();
           updateViewParameter();
-          GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),
-              (int)(p.getY()*zf)));
+          //GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
           return;
         }
         ZoomFactor *= zf;
@@ -1596,10 +1607,26 @@ public boolean canDisplay(SecondoObject o){
        String SessionPath = configuration.getProperty("SESSION_PATH");
        if(SessionPath!=null)
           FC_Session.setCurrentDirectory(new File(SessionPath));
-	  
-       String TexturePath = configuration.getProperty("TEXTURE_PATH");
-       if(TexturePath!=null)
-              CategoryEditor.setTextureDirectory(new File(TexturePath));
+
+       TexturePath = configuration.getProperty("TEXTURE_PATH");
+       if(TexturePath!=null){
+           TexturePath = TexturePath.trim();
+	   if(!TexturePath.endsWith(FileSeparator))
+	      TexturePath = TexturePath+FileSeparator;
+
+	   File F = new File(TexturePath);
+	   if(!F.exists()){
+                 System.out.println("the TEXTURE_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
+		 System.out.println("please set this variable to a existing non relative pathname");
+	   }else{
+	       CategoryEditor.setTextureDirectory(new File(TexturePath));
+	       System.out.println("set TexturePath to "+TexturePath);
+	       Category.setTexturePath(TexturePath);
+	   }
+        } else{
+	  System.out.println("TEXTURE_PATH is not defined in "+CONFIGURATION_FILE);
+	  System.out.println("please set this variable to a existing non relative pathname");
+	}
     }
 
 
