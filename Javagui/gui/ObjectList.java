@@ -429,7 +429,7 @@ public boolean saveSelectedObject(){
 	  // convert to SecondoObject ready for a restore
 	  if(FullFileName.endsWith("obj") && LE.listLength()==2){
 	      String name = SO.getName().trim();
-	      name.replace(' ','_');
+	      name = name.replace(' ','_');
 	      if(name.length()>48)
 	         name = name.substring(0,48);
 	      LE = ListExpr.sixElemList( ListExpr.symbolAtom("OBJECT"),
