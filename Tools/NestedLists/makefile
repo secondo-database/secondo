@@ -36,13 +36,13 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 NestedList.$(OBJEXT):
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
-# The RECODE macro is only used for platform wine
-ifdef WINE
-RECODE := cat NLParser.tab.c | recode cp1252..lat1 | 
-endif
 NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
 	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
-	$(RECODE) sed \
+# The RECODE macro is only used for platform wine
+ifeq ($(WINE),true)
+	recode cp1252..lat1 NLParser.tab.c 
+endif
+	sed \
 	   -e "/^int yyparse (void[ *]*);$$/d" \
 	   -e "/^YYSTYPE yylval;/d" \
 	   -e "/^YYPARSE_RETURN_TYPE yyparse (void[ *]*);$$/d" \

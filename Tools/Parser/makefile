@@ -46,9 +46,19 @@ SecLex.l: SecLex.l.1 lexrules SecLex.l.2
 SecParser.y: SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.y.3
 	cat SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.y.3 > SecParser.y
 
-lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(EXEEXT)
+ifdef WINE
+# wine has problem to execute the Specparser
+# as work around it will be compiled with the
+# native compiler from linux using the shell script
+# wmake.sh
+PARSEREXT := .linux
+else
+PARSEREXT := $(EXEEXT) 
+endif
 
-	SpecParser/Parser < ../../Algebras/specs
+lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(PARSEREXT)
+
+	SpecParser/Parser$(PARSEREXT) < ../../Algebras/specs
 
 include ../../include.dep
 

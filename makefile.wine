@@ -11,9 +11,9 @@ DEFAULTLIB = -lws2_32 -lm -lstdc++
 BDBDIR = /home/spieker/Windows-Wine-Root/usr/local
 
 # Berkeley DB library
-BDBINCLUDE = -I$(BDBDIR)/include 
+BDBINCLUDE = -I$(BDBDIR)/include
 BDBLIBDIR = -L$(BDBDIR)/lib
-BDBLIB = -L$(BDBLIBDIR) -ldb32
+BDBLIB = $(BDBLIBDIR) -ldb32
 
 # Uncomment next line to compile with debugging information:
 DEBUG = -ggdb

@@ -13,6 +13,7 @@ LS_COMMAND = $(addsuffix /*.spec, $(ALGEBRA_DIRS) $(JNI_ALGEBRA_DIRS) )
 SPECFILES = $(shell ls $(LS_COMMAND))
 
 specs:  $(SPECFILES)
+	chmod u+x *.awk
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
