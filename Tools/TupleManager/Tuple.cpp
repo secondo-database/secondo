@@ -17,26 +17,18 @@
 
 */
 
-/* for debugging purposes. */
-void dbg(char *message) {
-	//cout << message << endl;
-}
-
 /* constructor. Sets all member variables, including size. */
 TupleAttributes::TupleAttributes(int noAttrs, AttributeType *attrTypes) {
-	dbg("### Tuple::TupleAttributes(int noAttrs, AttributeType *attrTypes) called.");
 	totalNumber = noAttrs;
 	type = attrTypes;
 	totalSize = 0;
 	for (int i = 0; i < noAttrs; i++) {
     	totalSize = totalSize + attrTypes[i].size;
 	}
-	dbg("### Tuple::TupleAttributes(int noAttrs, AttributeType *attrTypes) finished.");
 }
 
 /* initialisation of member variables */
 void Tuple::Init(const TupleAttributes *attributes) {
-	dbg("### Tuple::Init() called.");
 	diskTupleId = 0;
 	lobFile = 0;
 	recFile = 0;
@@ -46,6 +38,7 @@ void Tuple::Init(const TupleAttributes *attributes) {
 	attrNum = attributes->totalNumber;
 	memorySize = attributes->totalSize;
 	extensionSize = 0;
+	error = false;
 	
 	// get Reference of AlgebraManager
   	algM = SecondoSystem::GetAlgebraManager();
@@ -55,7 +48,6 @@ void Tuple::Init(const TupleAttributes *attributes) {
 	extensionTuple = 0;
 	
 	// copy attribute info
-	dbg("###### copy attribute info begin");
   	attribInfo = new AttributeInfo[attrNum];
   	for (int i = 0; i < attrNum; i++) {
 		int actSize = attributes->type[i].size;
@@ -68,64 +60,67 @@ void Tuple::Init(const TupleAttributes *attributes) {
 		attribInfo[i].destruct = false;
 		attribInfo[i].incRefCount();
   	} 
-	dbg("###### copy attribute info finished.");
-	
-	dbg("### Tuple::Init() finished.");
 }
 
 /* creates a fresh tuple. */
 Tuple::Tuple(const TupleAttributes *attributes) {
-	dbg("### Tuple::Tuple(SmiRecordFile* recFile, const TupleAttributes *attributes) called.");
-	
 	// initialize member attributes.
   	Init(attributes);
 	
 	// this tuple is not persistent yet.	
 	state = Fresh;
-  
-	dbg("### Tuple::Tuple(SmiRecordFile* recFile, const TupleAttributes *attributes) finished."); 	
 }
 
 /* Creates a solid tuple. Reads its data into memory. */
 Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttributes *attributes, SmiFile::AccessType mode) : diskTuple() {
-	dbg("### Tuple::Tuple(SmiRecordFile *rfile, const SmiRecordId rid, const TupleAttributes *attributes, SmiFile::AccessType mode) called.");
-	
 	// initialize member attributes.
 	Init(attributes);
 	
   	diskTupleId = rid;
   	recFile = recfile;
 	
-	// reading tuple header from disk
+	// read tuple header and memory tuple from disk
 	bool ok = recFile->SelectRecord(diskTupleId, diskTuple, mode);
-	
+	if (ok == false) {
+		error = true;
+		return;
+	}
 	TupleHeader th = {0, 0};
-
-	if (ok == true) {
-		char *buf = (char *)malloc(sizeof(TupleHeader));
-  		ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
-		ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
-  		BufferToTupleHeader(buf, &th);
-  		free(buf);
+	char *buf = (char *)malloc(sizeof(TupleHeader));
+  	ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
+	ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
+	memcpy(&(th.size), buf, sizeof(int));
+	memcpy(&(th.lobFileId), buf + sizeof(int), sizeof(SmiFileId));
+  	free(buf);
 		
-		if (ok) {
-			/*
-			lobFile = new SmiRecordFile(false);
-			lobFileOpened = lobFile->Open(th.lobFileId);
-			ok = lobFileOpened;
-			cout << "&&&&&&&&&&&&&OPENED:" << ok << endl;
-			cout << "&&&&&&&&&&&&&id: " << th.lobFileId << endl;
-			cout << "&&&&&&&&&&&&&id:" << lobFile->GetFileId() << endl;
-			*/
+	if (ok == false) {
+		error = true;
+		return;
+	}
+	
+	// open lobFile.
+	lobFile = new SmiRecordFile(false);
+	lobFileOpened = lobFile->Open(th.lobFileId);
+	ok = lobFileOpened;
+
+	if (ok == false) {
+		error = true;
+		return;
+	}
+	
+	state = SolidRead;
+
+	// read attribute values from memoryTuple.
+	char *valuePtr = memoryTuple;
+	for (int i = 0; i < attrNum; i++) {
+		memcpy(attribInfo[i].value, valuePtr, attribInfo[i].size);
+		valuePtr = valuePtr + attributes->type[i].size;
+		FLOB *tmpFLOB;
+		for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+			tmpFLOB = attribInfo[i].value->GetFLOB(j);
+			tmpFLOB->lobFile = lobFile;
 		}
 
-		state = SolidRead;
-
-		char *valuePtr = memoryTuple;
-		for (int i = 0; i < attrNum; i++) {
-			memcpy(attribInfo[i].value, valuePtr, attribInfo[i].size);
-			valuePtr = valuePtr + attributes->type[i].size;
-		}
 	}
 	
 	if (th.size > 0) {
@@ -154,17 +149,15 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 						extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
     				}	
 				}
-			}
+			}				
 		}
 	}
 	
-	dbg("### Tuple::Tuple(SmiRecordFile *rfile, const SmiRecordId rid, const TupleAttributes *attributes, SmiFile::AccessType mode) finished.");
+	if (ok == false) error = true;
 }
 
 /* previously called Close. */
 Tuple::~Tuple() {
-	dbg("### Tuple::~Tuple() called.");
-	
 	if (lobFileOpened == true) {
 		lobFile->Close();
 		lobFileOpened = false;
@@ -186,103 +179,80 @@ Tuple::~Tuple() {
   	if (attribInfo != 0) {
     	delete[] attribInfo;
   	}
-
-  	dbg("### Tuple::~Tuple() finished.");
 }
 
-/* Copies the content of a TupleHeader into a buffer. */
-void Tuple::TupleHeaderToBuffer(TupleHeader *th, char *str) {
-	dbg("### Tuple::TupleHeaderToBuffer(TupleHeader *th, char *str) called.");
-	memcpy(str, &(th->size), sizeof(int));
-	memcpy(str + sizeof(int), &(th->lobFileId), sizeof(SmiFileId));
-	dbg("### Tuple::TupleHeaderToBuffer(TupleHeader *th, char *str) finished.");
-}
-
-/* Recovers the data of a TupleHeader from a buffer. */
-void Tuple::BufferToTupleHeader(char *str, TupleHeader *th) {
-	dbg("### Tuple::BufferToTupleHeader(char *str, TupleHeader *th) called.");
-	memcpy(&(th->size), str, sizeof(int));
-	memcpy(&(th->lobFileId), str + sizeof(int), sizeof(SmiFileId));
-	dbg("### Tuple::BufferToTupleHeader(char *str, TupleHeader *th) finished.");
-}
-
-/* for debug purposes. */
-void Tuple::printBuffer(char *buf, int len) {
-	cout << "{";
-	for (int i = 0; i < len; i++) {
-		cout << (int)buf[i];
-		if (i < len - 1) cout  << ", ";
-	}
-	cout << "}" << endl;
-}
-
-/* for debug purposes. */
-void Tuple::printMemoryTuple() {
-	cout << "{";
-	for (int i = 0; i < memorySize; i++) {
-		cout << (int)memoryTuple[i];
-		if (i < memorySize - 1) cout  << ", ";
-	}
-	cout << "}" << endl;
-}
-
-/* for debug purposes. */
-void Tuple::printTupleHeader(TupleHeader th) {
-	cout << "{" << th.size << ", " << th.lobFileId << "}" << endl;
-}
-
-/*
-1.5.3 SaveTo
-
-*/
-bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
-  	dbg("### bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) called.");
-  
-  	lobFile = lobfile;
-  	recFile = tuplefile;
-	
-	/* Determine the size of FLOB data stored in lobFile */ 
+/* Determine the size of FLOB data stored in lobFile. */
+int Tuple::CalcSizeOfFLOBData() {
 	FLOB *tmpFLOB;
-	extensionSize = 0;
+	int rc = 0;
 	for (int i = 0; i < attrNum; i++) {
 		for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
 			tmpFLOB = attribInfo[i].value->GetFLOB(j);
 			bool stl = tmpFLOB->SaveToLob();
 			if (stl == false) {
-				extensionSize = extensionSize + tmpFLOB->Size();
+				rc = rc + tmpFLOB->Size();
 			}
 		}
 	}
+	return rc;
+}
 
-	extensionTuple = 0;
-	// move FLOB data to extension tuple if exists.
-	if (extensionSize > 0) {
-		extensionTuple = (char *)malloc(extensionSize);
-		char *extensionPtr = extensionTuple;
-		for (int i = 0; i < attrNum; i++) {
-			for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-				tmpFLOB = attribInfo[i].value->GetFLOB(j);
-				if (tmpFLOB->IsLob() == false) {
-					tmpFLOB->Get(0, tmpFLOB->size, extensionPtr);
-					extensionPtr = extensionPtr + tmpFLOB->size;
-				}
+/* move FLOB data to extension tuple. */
+char *Tuple::moveFLOBDataToExtensionTuple() {
+	char *rc = (char *)malloc(extensionSize);
+	char *extensionPtr = rc;
+	FLOB *tmpFLOB;
+	for (int i = 0; i < attrNum; i++) {
+		for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+			tmpFLOB = attribInfo[i].value->GetFLOB(j);
+			if (tmpFLOB->IsLob() == false) {
+				tmpFLOB->Get(0, tmpFLOB->size, extensionPtr);
+				extensionPtr = extensionPtr + tmpFLOB->size;
 			}
 		}
 	}
-	
-  	/* move external attribue values to memory tuple */
+	return rc;
+}
+
+/* move external attribue values to memory tuple */
+void Tuple::MoveExternalAttributeToMemoryTuple() {
   	int offset = 0;
   	for (int i = 0; i < attrNum; i++) {
       	memcpy(&memoryTuple[offset], attribInfo[i].value, attribInfo[i].size);
       	attribInfo[i].changed = false;
     	offset = offset + attribInfo[i].size;
   	}
-	
+}
 
+
+
+/*
+1.5.3 SaveTo
+
+*/
+bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
+  	if (error == true) return false;
+  
+  	lobFile = lobfile;
+  	recFile = tuplefile;
+	extensionSize = CalcSizeOfFLOBData();
+
+
+	extensionTuple = 0;
+	// move FLOB data to extension tuple if exists.
+	if (extensionSize > 0) {
+		extensionTuple = moveFLOBDataToExtensionTuple();
+	}
+
+	MoveExternalAttributeToMemoryTuple();
+	
   	/* Store memory tuple to disk tuple */
   	TupleHeader th = {extensionSize, lobFile->GetFileId()};
   	char *buf = (char *)malloc(sizeof(TupleHeader));
-  	TupleHeaderToBuffer(&th, buf);
+	
+	memcpy(buf, &(th.size), sizeof(int));
+	memcpy(buf + sizeof(int), &(th.lobFileId), sizeof(SmiFileId));
+	
   	SmiRecord newTuple;
   	bool rc = tuplefile->AppendRecord(diskTupleId, newTuple);
   	rc = newTuple.Write(buf, sizeof(TupleHeader), 0) && rc;
@@ -294,7 +264,6 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   	state = SolidWrite;
 	free(buf);
   
-  	dbg("### bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) finished.");
   	return rc;
 }
 
@@ -303,40 +272,17 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
 
 */
 bool Tuple::Save() {
-	dbg("### bool Tuple::Save() called.");
+	if (error == true) return false;
 	
 	// to make fresh tuple persistent use SaveTo instead.
-	if (state == Fresh) {
-		return false;
-	}
+	if (state == Fresh) return false;
 	
-	/* Determine the size of FLOB data stored in lobFile */ 
-	FLOB *tmpFLOB;
-	extensionSize = 0;
-	for (int i = 0; i < attrNum; i++) {
-		for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-			tmpFLOB = attribInfo[i].value->GetFLOB(j);
-			bool stl = tmpFLOB->SaveToLob();
-			if (stl == true) {
-				extensionSize = extensionSize + tmpFLOB->Size();
-			}
-		}
-	}
+	extensionSize = CalcSizeOfFLOBData();
 
 	extensionTuple = 0;
 	// move FLOB data to extension tuple if exists.
 	if (extensionSize > 0) {
-		extensionTuple = (char *)malloc(extensionSize);
-		char *extensionPtr = extensionTuple;
-		for (int i = 0; i < attrNum; i++) {
-			for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-				tmpFLOB = attribInfo[i].value->GetFLOB(j);
-				if (tmpFLOB->IsLob() == false) {
-					tmpFLOB->Get(0, tmpFLOB->size, extensionPtr);
-					extensionPtr = extensionPtr + tmpFLOB->size;
-				}
-			}
-		}
+		extensionTuple = moveFLOBDataToExtensionTuple();
 	}
 
 	
@@ -349,15 +295,9 @@ bool Tuple::Save() {
 	}
 	
   	if (hasChanged == true) {
-		/* move external attribute values to memory tuple. */
-		int offset = 0;
-  		for (int i = 0; i < attrNum; i++) {
-			memcpy(&(memoryTuple[offset]), attribInfo[i].value, attribInfo[i].size);
-      		attribInfo[i].changed = false;
-			offset = offset + attribInfo[i].size;
-  		}
+		MoveExternalAttributeToMemoryTuple();
 	}
-  
+
 	bool res = true;
 	if (hasChanged == true) {
 		/* Store memory tuple to disk tuple. */
@@ -369,8 +309,6 @@ bool Tuple::Save() {
 			res = diskTuple.Write(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && res;
 		}
 	}
-
-	dbg("### bool Tuple::Save() finished.");
 	
 	return res;											
 }
@@ -380,11 +318,10 @@ bool Tuple::Save() {
 
 */
 bool Tuple::Destroy() {
-	dbg("### bool Tuple::Destroy() called.");
+	if (error == true) return false;
 	bool rc = recFile->DeleteRecord(diskTupleId);
 	diskTupleId = 0;
   	state = Fresh;
-	dbg("### bool Tuple::Destroy() finished.");
 	return rc;
 }
 
@@ -398,7 +335,7 @@ referenced by that tuple record.
 
 */
 bool Tuple::Put(int attrno, TupleElement *value) {
-	dbg("### bool Tuple::Put(int attrno, TupleElement *value) called.");
+	if (error == true) return false;
 	bool succ = false;
   	if ((attrno < attrNum) && (attrno >= 0)) {
 		// attrno is correct.
@@ -416,8 +353,6 @@ bool Tuple::Put(int attrno, TupleElement *value) {
     	attribInfo[attrno].changed = true;
     	succ = true;
   	}
-	
-	dbg("### bool Tuple::Put(int attrno, TupleElement *value) finished.");
 
  	return succ; 
 }
@@ -440,7 +375,7 @@ to be changed as the close operation is now the destructor !!!!
 */
 
 bool Tuple::DelPut(int attrno, TupleElement *value) {
-	dbg("### bool Tuple::DelPut(int attrno, TupleElement *value) called.");
+	if (error == true) return false;
 	bool succ = false;
   	if ( (attrno < attrNum) && (attrno >= 0) ) {
 		// attrno is correct.
@@ -458,8 +393,6 @@ bool Tuple::DelPut(int attrno, TupleElement *value) {
 		attribInfo[attrno].incRefCount();
     	succ = true;
   	}
-	
-	dbg("### bool Tuple::DelPut(int attrno, TupleElement *value) finished.");
 
  	return succ; 
 }
@@ -470,7 +403,7 @@ bool Tuple::DelPut(int attrno, TupleElement *value) {
 */
 
 bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
-	dbg("### bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) called.");
+	if (error == true) return false;
   	bool succ = false;
   	if (
 			(attrno_to < attrNum) && 
@@ -493,10 +426,8 @@ bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 		attribInfo[attrno_to].incRefCount();
     	succ = true;
   	}
-	
-	dbg("### bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) finished.");
 
- 	return succ; 
+	return succ; 
 }
 
 
@@ -506,7 +437,7 @@ bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 */
 
 TupleElement* Tuple::Get(int attrno) {
-	return ((attrno >= 0 && attrno < attrNum) ? attribInfo[attrno].value : 0);
+	return ((attrno >= 0 && attrno < attrNum && error == false) ? attribInfo[attrno].value : 0);
 }
 
 /*
@@ -542,11 +473,15 @@ int Tuple::GetSize() {
 ostream &Tuple::Print(ostream &os) {
   	os << "(";
 	
-	for (int i = 0; i < attrNum; i++) {
-		os << *attribInfo[i].value;
-		if (i < attrNum - 1) os << ", ";
+	if (error == true) {
+		os << "ERROR";
 	}
-	
+	else {
+		for (int i = 0; i < attrNum; i++) {
+			os << *attribInfo[i].value;
+			if (i < attrNum - 1) os << ", ";
+		}
+	}
   	return os << ")";
 }
 
