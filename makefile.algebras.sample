@@ -30,14 +30,14 @@ ALGEBRAS     := StandardAlgebra
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     +=	FunctionAlgebra
 
-#ALGEBRA_DIRS += PointRectangle
-#ALGEBRAS     += PointRectangleAlgebra
+ALGEBRA_DIRS += PointRectangle
+ALGEBRAS     += PointRectangleAlgebra
 
-#ALGEBRA_DIRS +=	Array
-#ALGEBRAS     +=	ArrayAlgebra
+ALGEBRA_DIRS +=	Array
+ALGEBRAS     +=	ArrayAlgebra
 
-#ALGEBRA_DIRS += StreamExample
-#ALGEBRAS     +=	StreamExampleAlgebra
+ALGEBRA_DIRS += StreamExample
+ALGEBRAS     +=	StreamExampleAlgebra
 
 ALGEBRA_DIRS += OldRelation-C++
 ALGEBRAS     +=	OldRelationAlgebra
@@ -73,12 +73,10 @@ ALGEBRA_DIRS +=	FText
 ALGEBRAS     +=	FTextAlgebra
 
 
-# JNI Algebras
-# These Algebras are only used when 
-# make jni=true is called.
+# JNI Algebras - Java code will be called from C++ code.
 
-JNI_ALGEBRA_DIRS := Fuzzy
-JNIALGEBRAS      := FuzzyAlgebra
+#JNI_ALGEBRA_DIRS := Fuzzy
+#JNIALGEBRAS      := FuzzyAlgebra
 
 #JNI_ALGEBRA_DIRS += JNIExample
 #JNIALGEBRAS      += JNIExampleAlgebra

@@ -45,8 +45,7 @@ JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm 
 
 endif
 
-JNITEXT=" you try to use jni --- please check the settings in makefile.jni --- \
-          and the setting in  bin/JNI.ini --- \
-          if you work under Linux ensure to add the path of libjava.so \
-	  and libjvm.so to be in LD_LIBRARY_PATH"
+JNITEXT= "\n* You try to use algebras using JNI! Please check the settings" \
+	 "\n* in bin/JNI.ini. If you are working under linux ensure " \
+	 "\n* that the path of libjava.so and libjvm.so was set in LD_LIBRARY_PATH. "
 

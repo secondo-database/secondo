@@ -6,23 +6,22 @@
 
 include ../../makefile.env
 
-OBJECTS=\
+OBJECTS :=\
 	Algebra.$(OBJEXT) \
 	AlgebraManager.$(OBJEXT) \
-	$(LIBDIR)/AlgebraList.$(OBJEXT)
+	AlgebraList.$(OBJEXT)
 
 CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 
 CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
 
+OBJECTS += $(LIBDIR)/AlgebraList.o
+
 .PHONY: all
-all: $(OBJECTS) 
+all: $(OBJECTS)
 
 # create dependencies from include directives
 %.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
-
-$(LIBDIR)/%.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
 
 %.$(OBJEXT): %.cpp
@@ -35,15 +34,21 @@ ifeq ($(alg),auto)
 AlgebraList.i: AlgebraList.i.cfg $(BUILDDIR)/makefile.algebras
 	rm -f $@
 	chmod 755 ./alg.bash && ./alg.bash $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
+else
+AlgebraList.i: AlgebraList.i.cfg
+	$(cp-config-file)
 endif
 
-$(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i
+AlgebraList.$(OBJEXT): AlgebraList.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
-AlgebraManager.$(OBJEXT): AlgebraManager.cpp AlgebraList.i
+$(LIBDIR)/AlgebraList.o: AlgebraList.o
+	cp $< $@
+
+AlgebraManager.$(OBJEXT): AlgebraManager.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
-include $(CODE_DEPENDENCIES:.cpp=.dep)
+include $(CODE_DEPENDENCIES) 
 
 .PHONY: clean
 clean:

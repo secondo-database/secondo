@@ -51,8 +51,9 @@ fi
 ##
 #########################################################
 
-
 export SECONDO_CONFIG="$1/bin/SecondoConfig.ini"
+
+export JNI_INIT="$1/bin/JNI.ini"
 
 export CVSROOT=":pserver:$CVSUSER@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
 
@@ -65,7 +66,7 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
 else 
 
    # windows 
-   # It is important to start with C:/ and to use / as separator!
+   # It is important to start with C:/ (uppercase) and to use / as separator!
    export SWI_HOME_DIR="C:/Programme/pl"
    export J2SDK_ROOT="C:/j2sdk1.4.2"
 fi
@@ -87,7 +88,7 @@ else
    export DVI_VIEWER=yap
    export BERKELEY_DB_DIR="/usr/local"
    TEMPPATH=".:$J2SDK_ROOT/bin:$J2SDK_ROOT/jre/bin/client:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR/bin"
-   export PATH=$(echo $TEMPPATH | sed 's#C:#/c#g')
+   export PATH=$(echo $TEMPPATH | sed 's#:C:#:/c#g' | sed 's#:D:#:/d#g')
   
    # gcc on windows needs special treatment
    export CPLUS_INCLUDE_PATH="/usr/local/include"

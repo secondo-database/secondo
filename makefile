@@ -7,7 +7,7 @@
 include ./makefile.env
 
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps java $(OPTIMIZER_SERVER) checkup 
+all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
 
 
 .PHONY: javagui
@@ -45,7 +45,10 @@ buildlibs:
 
 
 .PHONY: java
-java:
+java: java2 checkup
+
+.PHONY: java2
+java2:
 	$(MAKE) -C Javagui all
 
 
@@ -59,8 +62,10 @@ optimizer2: makedirs buildlibs buildalg
 
 .PHONY: optserver
 optserver:
+ifeq ($(optimizer),"true")
 	$(MAKE) -C Jpl all
 	$(MAKE) -C OptServer all
+endif
 
 
 .PHONY: TTY
@@ -119,50 +124,54 @@ clean:
 
 ###
 ### Some special rules
-###
+### Automatic creation of configuration files
 
 .PHONY: checkup
 checkup: config showjni
 
 .PHONY: showjni
 showjni:
-	@echo $(JNITEXT)
+	@echo -e $(JNITEXT)
 	
 .PHONY: config
-config: bin/SecondoConfig.ini Optimizer/SecondoConfig.ini bin/JNI.ini
+config: bin/SecondoConfig.ini \
+	Optimizer/SecondoConfig.ini \
+	bin/JNI.ini \
+	Javagui/gui.cfg \
+	Javagui/GBS.cfg
 
-BIN_INI := $(shell ls bin/SecondoConfig.ini)
 bin/SecondoConfig.ini: bin/SecondoConfig.example
-ifdef BIN_INI
-	@echo "Warning: Configuration file $< is newer than $@!"
-else
-	cp $< $@
-endif
+	$(cp-config-file)
 	
-OPT_INI := $(shell ls Optimizer/SecondoConfig.ini)
 Optimizer/SecondoConfig.ini: bin/SecondoConfig.example
-ifdef OPT_INI
-	@echo "Warning: Configuration file $< is newer than $@!"
-else
-	cp $< $@
-endif
+	$(cp-config-file)
 
-JNI_INI := $(shell ls bin/JNI.ini)
 bin/JNI.ini: bin/JNI.ini.sample
-ifdef JNI_INI
-	@echo "Warning: Configuration file $< is newer than $@!"
-else
-	cp $< $@
-endif
+	$(cp-config-file)
+
+$(BUILDDIR)/makefile.algebras: $(BUILDDIR)/makefile.algebras.sample
+	$(cp-config-file)
+
+Javagui/gui.cfg: Javagui/gui.cfg.example
+	$(cp-config-file)
+	
+Javagui/GBS.cfg: Javagui/GBS.cfg.sample
+	$(cp-config-file)
 
 .PHONY: help
 help:
 	@echo "*** Usage of the SECONDO makefile:"
-	@echo "***"
-	@echo "*** make [shared=yes] [target]"
-	@echo "***"
-	@echo "*** The optional definition shared=yes specifies"
-	@echo "*** that shared libraries are built. Make sure that"
-	@echo "*** the ./lib directory is in your LD_LIBRARY_PATH"
-	@echo "*** variable (on windows the PATH variable). Consult"
-	@echo "*** the readme file for deatiled information."
+	@echo "*** "
+	@echo "*** make [alg=auto] [TTY||optimizer|java|clean|TestRunner]"
+	@echo "*** "
+	@echo "*** The optional parameters or targets are explained below:"
+	@echo "*** -------------------------------------------------------"
+	@echo "*** alg=auto: The File Management/LagebraList.i will be generated automatically."
+	@echo "*** "
+	@echo "*** TTY       : Compile only a single user Version of Secondo."
+	@echo "*** optimizer : Create only SecondoPL, SecondoPLCS and OptServer." 
+	@echo "*** java      : The Java-Gui of Secondo will be created."
+	@echo "*** clean     : Delete all created objects."
+	@echo "*** TestRunner: Compile only the TestRunner, a tool to automate tests."
+	@echo "*** "
+	@echo "*** without any options every of the above applications will be compiled."

@@ -21,7 +21,8 @@ doc:
 	$(JAVADOC) -d $(DOCPATH) -classpath "$(CLASSPATH)" $(GUIPACKAGE) $(VIEWERPACKAGES)
 
 .PHONY: all #creates the gui and all known viewers
-all: makedirs config
+all: makedirs
+	chmod ugo+x sgui	
 
 .PHONY: makedirs
 makedirs:
@@ -33,28 +34,6 @@ makedirs:
 	(cd project;make all);
 	(cd gui;make all)
 	(cd viewer;make viewers)
-
-.PHONY: config
-config: GBS.cfg gui.cfg
-	chmod ugo+x sgui
-	
-# Automatic creation of configuration files
-
-INI_1 := $(shell ls gui.cfg)
-gui.cfg: gui.cfg.example
-ifdef INI_1
-	@echo "Warning: Configuration file $< is newer than $@!"
-else
-	cp $< $@
-endif
-	
-INI_2 := $(shell ls GBS.cfg)
-GBS.cfg: GBS.cfg.sample
-ifdef INI_2
-	@echo "Warning: Configuration file $< is newer than $@!"
-else
-	cp $< $@
-endif
 
 .PHONY: clean # removes the documentation and all .class files
 clean:
