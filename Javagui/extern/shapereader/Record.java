@@ -129,7 +129,7 @@ private boolean readPolyLine(byte[] Buffer){
           double y1 = Points[1][i];
           double x2 = Points[0][i+1];
           double y2 = Points[1][i+1];
-          if(x1!=x2 | y1!=y2){
+          if((float)x1!=(float)x2 | (float)y1!=(float)y2){
              ListExpr Seg = ListExpr.fourElemList(ListExpr.realAtom((float)x1),
 	                                          ListExpr.realAtom((float)y1),
 					          ListExpr.realAtom((float)x2),
@@ -145,7 +145,11 @@ private boolean readPolyLine(byte[] Buffer){
        }
     }
 
-  LE = TMP;
+  if(TMP!=null)
+      LE = TMP;
+  else
+      LE = new ListExpr();     
+
   return true;
 }
 
