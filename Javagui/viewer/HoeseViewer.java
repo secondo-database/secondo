@@ -219,19 +219,50 @@ public class HoeseViewer extends SecondoViewer {
     JPanel AnimPanel = new JPanel(new FlowLayout(2, 0, 4));
     AnimPanel.setPreferredSize(new Dimension(60, 12));
     JButton ctrls[] = new JButton[6];
-    ctrls[0] = new JButton(new ImageIcon(configuration.getProperty("PlayIcon")));
-    ctrls[1] = new JButton(new ImageIcon(configuration.getProperty("ReverseIcon")));
-    ctrls[2] = new JButton(new ImageIcon(configuration.getProperty("PlayDefIcon")));
-    ctrls[3] = new JButton(new ImageIcon(configuration.getProperty("ToendIcon")));
-    ctrls[4] = new JButton(new ImageIcon(configuration.getProperty("TostartIcon")));
-    ctrls[5] = new JButton(new ImageIcon(configuration.getProperty("StopIcon")));
+    String Button_File = configuration.getProperty("PlayIcon");
+    if(Button_File!=null)
+        ctrls[0] = new JButton(new ImageIcon(Button_File));
+    else
+        ctrls[0] = new JButton(">");
+
+    Button_File = configuration.getProperty("ReverseIcon");
+    if(Button_File!=null)
+       ctrls[1] = new JButton(new ImageIcon(Button_File));
+    else
+       ctrls[1] = new JButton("<");
+
+    Button_File = configuration.getProperty("PlayDefIcon");
+    if(Button_File!=null)
+       ctrls[2] = new JButton(new ImageIcon(Button_File));
+    else
+       ctrls[2] = new JButton(">:");
+
+    Button_File = configuration.getProperty("ToendIcon");
+    if(Button_File!=null)
+       ctrls[3] = new JButton(new ImageIcon(Button_File));
+    else
+       ctrls[3] = new JButton(">|");
+
+    Button_File = configuration.getProperty("TostartIcon");
+    if(Button_File!=null)
+        ctrls[4] = new JButton(new ImageIcon(Button_File));
+    else
+       ctrls[4] = new JButton("|<");
+
+
+    Button_File = configuration.getProperty("StopIcon");
+    if(Button_File!=null)
+        ctrls[5] = new JButton(new ImageIcon(Button_File));
+    else
+       ctrls[5] = new JButton("[]");
+
 
     ActionListener al = new AnimCtrlListener();
     for (int i = 0; i < ctrls.length; i++) {
       ctrls[i].setActionCommand(Integer.toString(i));
       ctrls[i].addActionListener(al);
       //ctrls[i].setMinimumSize(new Dimension(8,8));
-      ctrls[i].setMargin(new Insets(0, 0, 0, 0));
+      //ctrls[i].setMargin(new Insets(0, 0, 0, 0));
       jtb.add(ctrls[i]);
     }
 
