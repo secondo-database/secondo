@@ -3342,17 +3342,17 @@ are separated by a space character.
 {
   struct Subword {int start, nochr, strlength; STRING* subw;}* subword;
 
-  CcString* elem;
-  CcString* str;
+  CcString* elem, *str;
+  //CcString* str;
   int i;
   string teststr, tmpstr;
-  STRING* outstrptr;
+  STRING outstr;
   Word arg0;
 
   switch( message )
   {
     case OPEN:
-      //cout << "open" << endl;
+      // cout << "open" << endl;
       qp->Request(args[0].addr, arg0);
 
       str = ((CcString*)arg0.addr);
@@ -3361,51 +3361,52 @@ are separated by a space character.
       subword->start = 0;
       subword->nochr = 0;
       
-      
-      subword->subw = str->GetStringval();
-      trim(*subword->subw); //remove spaces from the end of the string
+      subword->subw = (STRING*)malloc(strlen(*str->GetStringval()) + 1);
+      // copy input string to allocated memory      
+      strcpy(*subword->subw, *str->GetStringval());
+      trim( *subword->subw ); //remove spaces from the end of the string
       
       subword->strlength = strlen(*subword->subw);
+      (*subword->subw)[subword->strlength] = '\0';
       // get the necessary values to determine the first single word in the 
       // string, if it is not empty or contains only space characters. 
-      if ( subword->strlength > 0) { 
+      if ( subword->strlength > 0) {
         i=0;
-        while ( isspace((*(str->GetStringval()))[i]) ) i++;     
+        while ( isspace(*subword->subw[i]) ) i++;     
         subword->start = i;
       
         i=subword->start;
-        while ( !isspace((*(str->GetStringval()))[i]) ) i++;
+        while ( (!(isspace(((*subword->subw)[i]))) && 
+	        ((*subword->subw)[i]) != '\0') ) i++;
         subword->nochr = i - subword->start;
       }
       local.addr = subword;
-
       return 0;
 
     case REQUEST:
-
+      //  cout << "request" << endl;
       subword = ((Subword*) local.addr);
-      //cout << "request" << endl;
       // another single word in the string still exists
       if ( (subword->strlength > 0) && (subword->start < subword->strlength) )
-      {
+      { 
         tmpstr = (((string)(*subword->subw)).substr(subword->start,subword->nochr));
-	
-	outstrptr = (STRING*)malloc(strlen(*subword->subw));
-	strcpy(*outstrptr, (char*)tmpstr.c_str());
-        elem = new CcString(true, outstrptr);
+	strcpy(outstr, (char*)tmpstr.c_str());
+        elem = new CcString(true, &outstr);
 	result.addr = elem;
-
-	subword->start += subword->nochr;	
+        // determine the necessary values to get the next word in the string,
+	// if there is any.
+	subword->start += subword->nochr;
         i = subword->start;
 	if (i < subword->strlength ) {
           while ( isspace((*subword->subw)[i]) ) i++; 
 
           subword->start = i;	
-          //i = subword->start;
-          while ( (!isspace((*subword->subw)[i])) ) i++;
+          while ( (!isspace((*subword->subw)[i])) && 
+	          (((*subword->subw)[i]) != '\0') )  i++;
           subword->nochr = i - subword->start + 1;
-	}	
+	}		
 	local.addr = subword;
+
 	return YIELD;
       }
       // no more single words in the string
@@ -3413,9 +3414,8 @@ are separated by a space character.
       {
         // string is empty or contains only space characters
         if ( subword->strlength == 0 ) {
-	  outstrptr = (STRING*)malloc(1);
-	  *outstrptr[0] = '\0';
-          elem = new CcString(true, outstrptr);
+	  outstr[0] = '\0';
+          elem = new CcString(true, &outstr);
 	  result.addr = elem;
 	  subword->start = subword->strlength = 1;
 	  local.addr = subword;
@@ -3425,8 +3425,9 @@ are separated by a space character.
       }
        
     case CLOSE:
-      //cout << "close" << endl;
+      // cout << "close" << endl;
       subword = ((Subword*) local.addr);
+      free(subword->subw);
       delete subword;
       return 0;
   }
