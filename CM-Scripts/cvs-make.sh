@@ -71,30 +71,31 @@ checkCmd "cvs -Q checkout -d $coDir secondo"
 ## run make
 printSep "Compiling SECONDO"
 
+declare -i errors=0
 cd $buildDir
 checkCmd "make > ../make-all.log 2>&1" 
 
-if [ "$rc" != "0" ]; then
+if [ $rc -ne 0 ]; then
 
   printf "%s\n" "Problems during build, sending a mail to:"
   printf "%s\n" "$recipients"
 
 mailBody="This is a generated message!  
 
-  Users who comitted to CVS yesterday:
+  Users who committed to CVS yesterday:
   $recipients
 
   You will find the output of make in the attached file.
   Please fix the problem as soon as possible."
 
   sendMail "Building SECONDO failed!" "$recipients" "$mailBody" "../make-all.log"
-  proceed="false"
+  let errors++ 
 
 fi
 
 ## run tests
 
-if [ "$proceed" != "false" ]; then
+if [ $errors -ne 0 ]; then
 
 printSep "Running automatic tests"
 if ! ( ${scriptDir}/run-tests.sh )
@@ -106,13 +107,14 @@ then
 
 mailBody="This is a generated message!  
 
-  Users who comitted to CVS yesterday:
+  Users who committed to CVS yesterday:
   $recipients
 
   You will find the output of run-tests in the attached file.
   Please fix the problem as soon as possible."
 
   sendMail "Automatic tests failed!" "$recipients" "$mailBody" "./run-tests.log"
+  let errors++
 
 fi
 
@@ -126,14 +128,15 @@ checkCmd "make realclean > ../make-clean.log 2>&1"
 printSep "Check for undeleted files ( *.{o,a,so,dll,class} )"
 find . -iregex ".*\.\([oa]\|so\|dll\|class\)"
 
-printf "%s\n" "files in SECONDO's /lib and /bin directory"
+printf "\n%s\n" "files in SECONDO's /lib and /bin directory:"
 find ./lib ! -path "*CVS*" 
 find ./bin ! -path "*CVS*"
 
-printf "%s\n" "files unkown to CVS"
+printf "\n%s\n" "files unkown to CVS:"
 cvs -nQ update
 
 ## clean up
-##printSep "Cleaning up"
-##cd ..
-##echo "rm -rf ${buildDir}/${coDir}"
+printSep "Cleaning up"
+rm -rf ${buildDir}/${coDir}
+
+exit $errors

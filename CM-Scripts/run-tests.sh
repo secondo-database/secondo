@@ -37,14 +37,20 @@ else
 fi
 
 
+declare -i error=0
 for testName in $testSuites
 do 
   file="${inputDir}/${testName}"
   printf "\n%s\n" "Running ${testName} ..."
   checkCmd "time TestRunner -i  ${file} > ${file}.log 2>&1"
+  if [ $rc -ne 0 ]; then
+    let error++
+  fi
 done
 
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
 rm -rf $dbDir
+
+exit $error
 

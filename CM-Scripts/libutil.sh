@@ -3,6 +3,11 @@
 # Jan 2005, M. Spiekermann. This is a small library
 # of functions useful for several shell scripts.
 
+if [ -z "$BASH" ]; then
+  printf "%s\n" "Error: You need a bash shell to run this script!"
+  exit 1
+fi
+
 # Useful date and time information 
 date_TimeStamp=$(date "+%y%m%d-%H%M%S")
 date_ymd=${date_TimeStamp%-*}
@@ -27,12 +32,13 @@ function printSep() {
 #
 # execute a command. In case of an error display the
 # returncode
+declare -i rc=0
 function checkCmd() {
 
   eval ${1}  # useful if $1 contains quotes or variables
-  rc=$?      # save returncode
+  let rc=$?  # save returncode
 
-  if [ "$rc" != "0" ]; then
+  if [ $rc -ne 0 ]; then
     printf "\n Failure! Command {${1}} returned with value ${rc} \n"
   fi
 }
@@ -58,7 +64,10 @@ EOFM
 
 }
 
-
+TEMP="/tmp"
+if [ ! -d $TEMP ]; then
+  printf "%s\n" "creating directory $TEMP"
+fi 
 
 if [ "$1" == "test" ]; then  
 
