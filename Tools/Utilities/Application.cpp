@@ -1,39 +1,7 @@
 /*
----- 
-This file is part of SECONDO.
-
-Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics 
-and Computer Science, Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
 1 Implementation of the Application Management
 
 April 2002 Ulrich Telle
-
-August 2002 Ulrich Telle Bug fix for uninitialized variables
-
-Nov 2004 M. Spiekermann. A global instance of class CMsg is defined
-in this file to be used by an application to transmit Informations
-to files, screen or (in case of the server) to a client. 
-
-May 2005 M. Spiekermann. Demangling of stack trace improved.
-
-July 2005 M. Spiekermann. Retrieval of the application name for the addr2line
-command instead of hard coded application name SecondoTTYBDB
 
 */
 
@@ -42,52 +10,23 @@ command instead of hard coded application name SecondoTTYBDB
 #include <sstream>
 #include <signal.h>
 #include <string>
-#include <map>
 #include <sys/stat.h>
-#include <cstdlib>
-#include <cstring>
 
 #include "SecondoConfig.h"
 #include "Application.h"
-#include "Counter.h"
-#include "LogMsg.h"
-#include "License.h"
-#include "WinUnix.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
 #include <unistd.h>
-#include <execinfo.h>
-#include <sys/types.h>
-#include <fcntl.h>
 #endif
+
+using namespace std;
 
 #ifndef _POSIX_OPEN_MAX
-#define _POSIX_OPEN_MAX 256
+#define _POSIX_OPEN_MAX	256
 #endif
 
-#if defined(SECONDO_LINUX)
-#include <link.h>
-#endif
-
-#include "Messages.h"
-MessageCenter* MessageCenter::msg = 0;
-#ifdef THREAD_SAFE
- boost::mutex MessageCenter::mtx; 
-#endif
-
- using namespace std;
- 
 Application* Application::appPointer = 0;
-map<int, string> Application::signalStr;
-bool Application::dumpStacktrace = true;
-char* Application::stacktraceOutput = NULL;
-char* Application::relocationInfo = NULL;
-
-Application* Application::Instance()
-{
-  return (appPointer);
-}
 
 /*
 Class constructors/destructors
@@ -101,7 +40,7 @@ Application::Application( int argc, const char** argv )
     cerr << "Fatal error: Only one *Application* instance allowed!" << endl;
     exit( -999 );
   }
-
+	
   string programName = argv[0];
   appPointer = this;
   argCount   = argc;
@@ -113,33 +52,26 @@ Application::Application( int argc, const char** argv )
     SocketDescriptor sd;
     istringstream is( argv[argc-1]+9 );
     is >> sd;
+cout << "Socket is " << sd << endl;
     clientSocket = Socket::CreateClient( sd );
-  }
-  else
-  {
-    hasSocket = false;
-    clientSocket = 0;
   }
   if ( strncmp( argv[argc-1], "--ppid=", 7 ) == 0 )
   {
     argCount--;
     istringstream is( argv[argc-1]+7 );
     is >> parent;
+cout << "Parent is " << parent;
   }
   else
   {
     parent = INVALID_PID;
   }
-
+	
 #ifndef SECONDO_WIN32
-  ownpid = getpid();
-  char* pgmName = strdup(programName.c_str());
-  appName = basename( pgmName );
-  appPath = dirname( pgmName );
-  free(pgmName);
+  char* pgmName = strdup( programName.c_str() );
+  appName = strdup( basename( pgmName ) );
+  appPath = strdup( dirname( pgmName ) );
 #else
-  rshSocket = 0;
-  ownpid = ::GetCurrentProcessId();
   char fileName[MAX_PATH];
   if ( GetModuleFileName( NULL, fileName, MAX_PATH ) != 0 )
   {
@@ -158,127 +90,47 @@ Application::Application( int argc, const char** argv )
   }
 #endif
   lastSignal = 0;
-  abortMode = true;
-  abortFlag = false;
-  user1Flag = false;
-  user2Flag = false;
-
- 
-#if defined(SECONDO_LINUX)
-  // Fetch in-memory relocation offset. Needed when compiled
-  // as position-independent-code (-fPIC) and tools which work 
-  // with ELF addresses (e.g., addr2line) should be used.
-  //
-  // Calculation of the string needs to be made here. In the 
-  // signal handler, no new memory allcations can be made.
-  uintptr_t relocation = _r_debug.r_map->l_addr;
-
-  Application::relocationInfo = 
-      (char *) malloc(128 * sizeof(char));
-
-  snprintf(relocationInfo, 128, 
-      "\nBinary relocation: 0x%" PRIxPTR "\n\n", relocation);
-#endif
- 
+	
 #ifndef SECONDO_WIN32
-  
-  // Store stacktrace output filenanme for later 
-  // use. If the application crashes, it's not ensured that the 
-  // env variabes can be accessed. 
-
-  char* localStacktrace = getenv("SECONDO_LOCAL_STACKTRACE");
-  if(localStacktrace == 0){
-    char *output = getenv ("SEGFAULT_OUTPUT_NAME");
-    if(output != NULL && output[0] != '\0') {
-     int ret = access (output, R_OK | W_OK);
- 
-     if(ret == 0 || (ret == -1 && errno == ENOENT)) {
-       Application::stacktraceOutput = strdup(output);
-     }
-    }
-  }else {
-     stringstream st;
-     st << "secondo_stacktrace." << WinUnix::getpid();
-     Application::stacktraceOutput = strdup(st.str().c_str());
-  }
-
-
   // --- Trap all signals that would terminate the program by default anyway.
-  signalStr[SIGHUP] = "SIGINT";
   signal( SIGHUP,    Application::AbortOnSignalHandler );
-
-  signalStr[SIGINT] = "SIGINT";
   signal( SIGINT,    Application::AbortOnSignalHandler );
-
-  signalStr[SIGQUIT] = "SIGQUIT";
   signal( SIGQUIT,   Application::AbortOnSignalHandler );
-
-  signalStr[SIGILL] = "SIGILL";
   signal( SIGILL,    Application::AbortOnSignalHandler );
-
-  signalStr[SIGABRT] = "SIGABRT";
   signal( SIGABRT,   Application::AbortOnSignalHandler );
-
-  signalStr[SIGFPE] = "SIGFPE";
   signal( SIGFPE,    Application::AbortOnSignalHandler );
-
+  signal( SIGKILL,   Application::AbortOnSignalHandler );
+  signal( SIGSEGV,   Application::AbortOnSignalHandler );
   signal( SIGPIPE,   Application::AbortOnSignalHandler );
   signal( SIGALRM,   Application::AbortOnSignalHandler );
-
-  signalStr[SIGTERM] = "SIGTERM";
   signal( SIGTERM,   Application::AbortOnSignalHandler );
-
-  signalStr[SIGSEGV] = "SIGSEGV";
-  signal( SIGSEGV,   Application::AbortOnSignalHandler );
-  
-  signalStr[SIGUSR1] = "SIGUSR1";
   signal( SIGUSR1,   Application::UserSignalHandler );
-  
-  signalStr[SIGUSR2] = "SIGUSR2";
   signal( SIGUSR2,   Application::UserSignalHandler );
-  
-  signalStr[SIGTRAP] = "SIGTRAP";
   signal( SIGTRAP,   Application::AbortOnSignalHandler );
-  
-  signalStr[SIGBUS] = "SIGBUS";
   signal( SIGBUS,    Application::AbortOnSignalHandler );
 #ifdef SIGSTKFLT
-  signalStr[SIGSTKFLT] = "SIGSTKFLT";
   signal( SIGSTKFLT, Application::AbortOnSignalHandler );
 #endif
-  signalStr[SIGIO] = "SIGKIO";
   signal( SIGIO,     Application::AbortOnSignalHandler );
-#ifdef SIGPOLL
-  signalStr[SIGPOLL] = "SIGPOLL";
   signal( SIGPOLL,   Application::AbortOnSignalHandler );
-#endif
-  signalStr[SIGXCPU] = "SIGXCPU";
   signal( SIGXCPU,   Application::AbortOnSignalHandler );
-  
-  signalStr[SIGXFSZ] = "SIGXFSZ";
   signal( SIGXFSZ,   Application::AbortOnSignalHandler );
-  
-  signalStr[SIGVTALRM] = "SIGVTALRM";
   signal( SIGVTALRM, Application::AbortOnSignalHandler );
-  
-  //signalStr[SIGPROF] = "SIGPROF";
-  //signal( SIGPROF,   Application::AbortOnSignalHandler );
-#ifdef SIGPWR
-  signalStr[SIGPWR] = "SIGPWR";
+  signal( SIGPROF,   Application::AbortOnSignalHandler );
   signal( SIGPWR,    Application::AbortOnSignalHandler );
-#endif
 #else
   ::SetConsoleCtrlHandler( Application::AbortOnSignalHandler, TRUE );
 
   DWORD dwProcess = ::GetCurrentProcessId();
   ostringstream os;
   os << "SECONDO_RSH_" << dwProcess;
+cout << "RemoteSignalHandler: " << os.str() << endl;
   rshSocket = Socket::CreateLocal( os.str() );
 
   HANDLE rshHandle;
   DWORD  rshId;
-  rshHandle = CreateThread( 0, 0, Application::RemoteSignalThread, 
-                           (LPVOID) this, 0, &rshId                );
+  rshHandle = CreateThread( 0, 0, Application::RemoteSignalThread, (LPVOID) this, 0, &rshId );
+cout << "rshId=" << rshId << endl;
   if ( rshHandle != 0 )
   {
     ::CloseHandle( rshHandle );
@@ -289,26 +141,27 @@ Application::Application( int argc, const char** argv )
 
 Application::~Application()
 {
-    if(Application::relocationInfo != NULL) {
-        free(Application::relocationInfo);
-        Application::relocationInfo = NULL;
-    }
-
-    if(Application::stacktraceOutput != NULL) {
-        free(Application::stacktraceOutput);
-        Application::stacktraceOutput = NULL;
-    }
-    
 #ifdef SECONDO_WIN32
   if ( rshSocket != 0 )
   {
+cout << " CancelAccept start" << endl;
     rshSocket->CancelAccept();
+cout << " CancelAccept ready" << endl;
     delete rshSocket;
     rshSocket = 0;
   }
 #endif
 }
 
+void
+Application::Sleep( const int seconds )
+{
+#ifdef SECONDO_WIN32
+  ::Sleep( (DWORD) (seconds*1000) );
+#else
+  ::sleep( seconds );
+#endif
+}
 
 #ifndef SECONDO_WIN32
 
@@ -320,32 +173,34 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
-  cout << endl << "*** Signal " << signalStr[sig] 
-       << " (" << sig << ") caught!";
-   
-  if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
+
+  if ( Application::appPointer->abortMode )
   {
-     if(Application::dumpStacktrace) {
-        Application* ap = Application::Instance();
-        string appName = ap->GetApplicationName();
-        WinUnix::stacktrace(appName.c_str(), stacktraceOutput, 
-            Application::relocationInfo);
-     }
+    if ( Application::appPointer->AbortOnSignal( sig ) )
+    {
+      signal( sig, SIG_DFL );
+      kill( getpid(), sig );
+    }
+    else
+    {
+      Application::appPointer->abortFlag = true;
+      Application::appPointer->lastSignal = sig;
+      signal( sig, Application::AbortOnSignalHandler );
+    }
   }
-  cout << " Calling default signal handler ..." << endl;
-  signal( sig, SIG_DFL );
-  raise(sig);
+  else
+  {
+    Application::appPointer->abortFlag = true;
+    Application::appPointer->lastSignal = sig;
+    signal( sig, Application::AbortOnSignalHandler );
+  }
 }
 
 void
 Application::UserSignalHandler ( int sig )
 {
-  // SIGUSR1 is used to cancel running queries
   if ( sig == SIGUSR1 )
   {
-    cout << endl << endl;
-    cout << "Got Signal, cancel running query." << endl;
-    
     Application::appPointer->user1Flag = true;
   }
   else
@@ -370,6 +225,7 @@ Application::RemoteSignalHandler()
       iostream& ss = request->GetSocketStream();
       string cmd;
       ss >> cmd;
+cout << "RemoteSignalHandler cmd=<" << cmd << ">" << endl;
       if ( cmd == "TERMINATE" )
       {
         if ( abortMode )
@@ -406,6 +262,7 @@ Application::RemoteSignalHandler()
       delete request;
     }
   }
+cout << "RemoteSignalHandler exit" << endl;
   return (0);
 }
 
@@ -413,23 +270,16 @@ BOOL
 Application::AbortOnSignalHandler( DWORD sig )
 {
   Application::appPointer->lastSignal = sig;
+//  cout << "sigtype=" << sigtype << endl;
   if ( sig == CTRL_C_EVENT || 
        sig == CTRL_BREAK_EVENT ||
        sig == CTRL_CLOSE_EVENT ||
        sig == CTRL_LOGOFF_EVENT ||
        sig == CTRL_SHUTDOWN_EVENT )
   {
-    Application::appPointer->lastSignal = sig;
     if ( Application::appPointer->abortMode )
     {
-      if ( Application::appPointer->AbortOnSignal( sig ) )
-      {
-        exit( -999 );
-      }
-      else
-      {
-        Application::appPointer->abortFlag = true;
-      }
+      Application::appPointer->AbortOnSignal( sig );
     }
     else
     {

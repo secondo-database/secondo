@@ -1,25 +1,4 @@
 /*
----- 
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
 //paragraph	[10]	title:		[{\Large \bf ] [}]
 //paragraph	[11]	title:		[{\large \bf ] [}]
 //paragraph	[12]	title:		[{\normalsize \bf ] [}]
@@ -30,7 +9,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
-//characters	[4]	teletype:	[\texttt{]	[}]
+//characters	[3]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -80,7 +59,7 @@ The class ~ProcessFactory~ offers the following routines:
         ShutDown        & WaitForProcess    & IsProcessTerminated \\
         GetInstance     & WaitForAll        & GetExitCode         \\
                         & SignalProcess     & GetRealProcessId    \\
-                        & SignalRealProcess & SetDirectory        \\
+                        & SignalRealProcess &                     \\
                         & Sleep             &                     \\
 
 1.3 Imports, Constants, Types
@@ -102,17 +81,14 @@ The class ~ProcessFactory~ offers the following routines:
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <libgen.h>
-#else
-#include <windows.h>
 #endif
 
-#define DEFAULT_MAX_PROCESSES 100
+#define DEFAULT_MAX_PROCESSES 10
 /*
-Is the default size of the process collection of the process factory;
+is the default size of the process collection of the process factory;
 
 */
 
@@ -127,13 +103,13 @@ typedef DWORD ProcessId;
 #endif
 #endif
 /*
-Is the type definition for process identifiers.
+is the type definition for process identifiers.
 
 */
 
   enum ProcessSignal { eSIGTERM, eSIGUSR1, eSIGUSR2 };
 /*
-Is an enumeration of supported signals.
+is an enumeration of supported signals.
 
 The following signals are currently supported:
 
@@ -163,30 +139,30 @@ class Process
  public:
   Process();
 /*
-Constructs a process administration instance.
+constructs a process administration instance.
 
 */
   ~Process();
 /*
-Destroys a process administration instance.
+destroys a process administration instance.
 
 */
   bool SendSignal( const ProcessSignal signo = eSIGTERM );
 /*
-Sends the signal ~signo~ to the associated process.
-In case of success "true"[4] is returned, otherwise "false"[4].
+sends the signal ~signo~ to the associated process.
+In case of success ~true~ is returned, otherwise ~false~.
 
 */
   bool WaitForTermination();
 /*
-Waits for the termination of the associated process. The methode
-returns "true"[4], if a termination signal was received. In case of an error
-"false"[4] is returned.
+waits for the termination of the associated process. The methode
+returns ~true~, if a termination signal was received. In case of an error
+~false~ is returned.
 
 */
   void Finish();
 /*
-Cleans up a reserved, but terminated process administration instance.
+cleans up a reserved, but terminated process administration instance.
 This function is used by the process factory to reclaim entries in the
 process collection of terminated processes, if the application has not
 checked the exit code of a terminated process but has allowed the reuse
@@ -219,7 +195,9 @@ be used.
   void ActivateWaiter();
   DWORD WINAPI Waiter();
   static DWORD WINAPI WaiterThread( LPVOID p )
-  { return (((Process*) p)->Waiter()); }
+  {
+    return (((Process*) p)->Waiter());
+  }
 #else
   pid_t         pid;
 #endif
@@ -229,11 +207,6 @@ be used.
 /*
 1.5 Class "ProcessFactory"[1]
 
-This class provides methods to manage a collection of subprocesses.
-After spawning a new process it is possible to wait for completion
-of the process and to check its exit code. Simple means to communicate
-with the process are availabe through a signal mechanism.
-
 */
 class ProcessFactory
 {
@@ -242,33 +215,21 @@ class ProcessFactory
                        const int  maxChildProcesses =
                                     DEFAULT_MAX_PROCESSES );
 /*
-Initializes the process factory. The flag ~reuseTerminated~ controls
-whether entries in the internal child process table may be reused
-after termination of the child process but before the parent process
-has checked the exit code of the child process. If the parent process
-is not interested in the exit codes, the flag should be set to "true"[4].
-
-The parameter ~maxChildProcesses~ defines the size of the internal
-child process table, i.e. the maximal number of concurrent child processes.
+initializes the process factory.
 
 */
   static bool ShutDown();
 /*
-Shuts down the process factory.
+shuts down the process factory.
 
 */
-  static void SetDirectory( const std::string& directory );
-/*
-sets the directory to be used for the nexed spawned process.
-
-*/
-  static bool SpawnProcess( const std::string& programpath,
-                            const std::string& arguments,
+  static bool SpawnProcess( const string& programpath,
+                            const string& arguments,
                             int& processId,
                             const bool hidden = true,
                             Socket* clientSocket = 0 );
 /*
-Spawns a process. The program specified by ~programpath~ will be started as a
+spawns a process. The program specified by ~programpath~ will be started as a
 separate process and receives the ~arguments~ string as its command line.
 The internal process identifier is returned as ~processId~.
 
@@ -284,8 +245,8 @@ the newly created process. Client sockets are usually created by the
 */
   static ProcessId GetRealProcessId( const int processId );
 /*
-Returns the operating system dependent process identifier. If the process
-does not exist or is already terminated, the value "INVALID\_PID"[4] is returned.
+returns the operating system dependent process identifier. If the process
+does not exist or is already terminated, the value INVALID\_PID is returned.
 
 *NOTE*: In situations where an application needs to send signals to processes
 it did not spawn itself access to the real process identifier is necessary.
@@ -294,67 +255,65 @@ since this could interfer with this class and could cause unpredictable results.
 
 */
   static bool SignalProcess( const int processId,
-                             const ProcessSignal signo =
-                                     eSIGTERM );
+                             const ProcessSignal signo = eSIGTERM );
 /*
-Sends the specified signal ~signo~ to the process ~processId~, if that
-process is still running. In case of success "true"[4] is returned, otherwise
-"false"[4].
+sends the specified signal ~signo~ to the process ~processId~, if that
+process is still running. In case of success ~true~ is returned, otherwise
+~false~.
 
 */
   static bool SignalRealProcess( const ProcessId processId,
-                                 const ProcessSignal signo =
-                                         eSIGTERM );
+                                 const ProcessSignal signo = eSIGTERM );
 /*
-Sends the specified signal ~signo~ to the process ~processId~, if that
-process is still running. In case of success "true"[4] is returned, otherwise
-"false"[4].
+sends the specified signal ~signo~ to the process ~processId~, if that
+process is still running. In case of success ~true~ is returned, otherwise
+~false~.
 
 */
   static bool GetExitCode( const int processId, int& status );
 /*
-Provides access to the exit code ~status~ of the process ~processId~.
-The method returns "true"[4], if the process has already terminated.
+provides access to the exit code ~status~ of the process ~processId~.
+The method returns ~true~, if the process has already terminated.
 
 */
   static bool IsProcessOk( const int processId );
 /*
-Checks whether the process ~processId~ exists in the process collection.
-The method returns "true"[4] if the process exists and is still running or
-is in terminated state, otherwise "false"[4] is returned.
+checks whether the process ~processId~ exists in the process collection.
+The method returns ~true~ if the process exists and is still running or
+is in terminated state, otherwise ~false~ is returned.
 
 */
   static bool IsProcessTerminated( const int processId );
 /*
-Checks whether the process ~processId~ is in terminated state.
-If the process is terminated "true"[4] is returned, otherwise "false"[4].
+checks whether the process ~processId~ is in terminated state.
+If the process is terminated ~true~ is returned, otherwise ~false~.
 An application should check both ~IsProcessOk~ *and* ~IsProcessTerminated~
 to detect an error condition.
 
 */
   static bool WaitForProcess( const int processId );
 /*
-Waits for the termination of process ~processId~.
-In case the process terminated "true"[4] is returned, in case of an error
-"false"[4] is returned.
+waits for the termination of process ~processId~.
+In case the process terminated ~true~ is returned, in case of an error
+~false~ is returned.
 
 */
   static bool WaitForAll();
 /*
-Waits for the termination *all* processes under control of the process factory.
-The method returns "true"[4] if all processes have terminated; in case of an error
-"false"[4] is returned.
+waits for the termination *all* processes under control of the process factory.
+The method returns ~true~ if all processes have terminated; in case of an error
+~false~ is returned.
 
 */
   static void Sleep( const int seconds );
 /*
-Causes the application to enter a wait state until a time interval of ~seconds~
+causes the application to enter a wait state until a time interval of ~seconds~
 seconds has expired.
 
 */
   ProcessFactory* GetInstance() { return (instance); }
 /*
-Returns a reference to the single instance of the process factory.
+returns a reference to the single instance of the process factory.
 
 */
  protected:
@@ -366,8 +325,7 @@ Returns a reference to the single instance of the process factory.
   ProcessFactory( ProcessFactory& );
 
   static ProcessFactory* instance;
-  std::string processDirectory;
-  std::vector<Process> processList;
+  vector<Process> processList;
   int  maxChilds;
   bool reuseTerminatedEntries;
 #ifndef SECONDO_WIN32
@@ -376,3 +334,4 @@ Returns a reference to the single instance of the process factory.
 };
 
 #endif
+

@@ -1,97 +1,74 @@
-#This file is part of SECONDO.
-#
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-#Database Systems for New Applications.
-#
-#SECONDO is free software; you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2 of the License, or
-#(at your option) any later version.
-#
-#SECONDO is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with SECONDO; if not, write to the Free Software
-#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
 ########################################################################
 #
 # SECONDO makefile for the Storage Management Interface
 #
 ########################################################################
 
-include ../makefile.env
+include ../makefile.config
+ifdef platform
+include ../makefile.$(platform)
 
-# Add the base name of your .cpp file here. The deafult rules should
-# compile and link it, otherwise add special rules
+CCFLAGS= -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
-# Nested List and Compact Tables
-TESTNAMES += tctable tpctable tnestedlist
+.PHONY: all
+all: testctable testfilesystem testprofiles testsmi \
+	testdynlib testsock1 testsock2 testsock3
 
-# Some Tools
-TESTNAMES += tfilesystem tprofiles
+# --- Storage Management Interface library ---
 
-# Storage Mangement Interface and Berkeley-DB
-TESTNAMES += tsmi tsmi3 bdbtest bdb-perf
-
-# Socket Communication
-TESTNAMES += tsock1 tsock2 tsock3
-
-# Dynamic Library Module 
-TESTNAMES += tdlmain
-
-# Tool for Log Messages 
-TESTNAMES += itlogmsg
-
-# Persistent Array
-#TESTNAMES += tparray
-
-# Prefetch Iterator
-#TESTNAMES += tprefetch
-
-
-# Base64 encoding
-TESTNAMES += base64encoder
-
-# Nested List: Parsing lists and converting from text to binary format
-TESTNAMES += nlchecker 
-
-ifdef file
-TESTFILES := $(file)
-else
-TESTFILES := $(TESTNAMES)
+ifeq ($(shared),yes)
+# ... as shared object
+ifeq ($(platform),win32)
+LDOPT = -Wl,--auto-import
+endif
 endif
 
-CODE_FILES := $(addsuffix .cpp, $(TESTFILES))
-#CODE_DEPENDENCIES := $(addsuffix .dep, $(TESTFILES))
+# Test CTable module
 
-OBJECTS := $(addsuffix $(EXEEXT), $(TESTFILES))
-ifndef file
-OBJECTS += libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
-endif
+testctable: tctable$(EXEEXT)
+	$(CP) tctable$(EXEEXT) ../bin/tctable$(EXEEXT)
 
-CCFLAGS := -I../StorageManager -I../Algebras/TupleIdentifier $(DEFAULTCCFLAGS) $(myflags)
-CCFLAGS += -std=c++17
-LIBS := ../UserInterfaces/cmsg.o $(LD_LINK_LIBS)
+tctable$(EXEEXT): tctable.cpp ../include/CTable.h ../include/CTable.cpp
+	$(CC) -o tctable$(EXEEXT) tctable.cpp  $(DEFAULTCCFLAGS) $(DEFAULTLIB)
 
-.PHONY: all 
-all:  $(OBJECTS)
+# Test filesystem module
 
+testfilesystem: tfilesystem$(EXEEXT)
+	$(CP) tfilesystem$(EXEEXT) ../bin/tfilesystem$(EXEEXT)
 
-# create dependencies from include directives
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
+tfilesystem$(EXEEXT): tfilesystem.o ../lib/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tfilesystem$(EXEEXT) tfilesystem.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
+tfilesystem.o: tfilesystem.cpp ../include/SecondoConfig.h ../include/FileSystem.h
+	$(CC) -c -o tfilesystem.o tfilesystem.cpp $(CCFLAGS)
 
-%.o: %.cpp
-	$(CC) -c -o $@ $(CCFLAGS) $< 
+# Test profiles module
 
-# default rule for linking
-%$(EXEEXT): %.o
-	$(CC) $(EXEFLAGS) -o $@ $< $(LIBS) $(COMMON_LD_FLAGS)
+testprofiles: tprofiles$(EXEEXT)
+	$(CP) tprofiles$(EXEEXT) ../bin/tprofiles$(EXEEXT)
+
+tprofiles$(EXEEXT): tprofiles.o ../lib/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tprofiles$(EXEEXT) tprofiles.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+
+tprofiles.o: tprofiles.cpp ../include/Profiles.h
+	$(CC) -c -o tprofiles.o tprofiles.cpp $(CCFLAGS)
+
+# Test SMI module
+
+testsmi: tsmi$(EXEEXT) tsmi3$(EXEEXT)
+	$(CP) tsmi$(EXEEXT) ../bin/tsmi$(EXEEXT)
+
+tsmi$(EXEEXT): tsmi.o ../lib/libsmibdb.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tsmi$(EXEEXT) tsmi.o $(LIBDIR) $(SMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
+tsmi.o: tsmi.cpp ../include/SecondoConfig.h ../include/SecondoSMI.h ../StorageManager/SmiBDB.h
+	$(CC) -c -o tsmi.o tsmi.cpp $(CCFLAGS)
+
+tsmi3$(EXEEXT): tsmi3.o ../lib/libsmi.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tsmi3$(EXEEXT) tsmi3.o $(LIBDIR) $(SMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
+tsmi3.o: tsmi3.cpp ../include/SecondoConfig.h ../include/SecondoSMI.h ../StorageManager/SmiBDB.h
+	$(CC) -c -o tsmi3.o tsmi3.cpp $(CCFLAGS)
 
 # Test Dynamic Library module
 
@@ -101,23 +78,65 @@ LDOPT1 = -Wl,--export-dynamic -Wl,--out-implib,libtdynlib1.$(DLLEXT).a
 LDOPT2 = -Wl,--export-dynamic -Wl,--out-implib,libtdynlib2.$(DLLEXT).a
 endif
 
-libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT): tdlmain.o tdynlib1.$(DLLOBJEXT) tdynlib2.$(DLLOBJEXT) libsdbnl.$(LIBEXT)
-	$(CC) $(DLLFLAGS) -o libtdynlib1.$(DLLEXT) $(LDOPT1) tdynlib1.$(DLLOBJEXT) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-	$(CC) $(DLLFLAGS) -o libtdynlib2.$(DLLEXT) $(LDOPT2) tdynlib2.$(DLLOBJEXT) -L. -ltdynlib1 -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+testdynlib: tdynlib
+	$(CP) tdlmain$(EXEEXT) ../bin/tdlmain$(EXEEXT)
+	$(CP) libtdynlib1.$(DLLEXT) ../bin/libtdynlib1.$(DLLEXT)
+	$(CP) libtdynlib2.$(DLLEXT) ../bin/libtdynlib2.$(DLLEXT)
 
+tdynlib: tdlmain.o tdynlib1.$(OBJEXT) tdynlib2.$(OBJEXT) ../lib/libsdbtool.$(LIBEXT)
+	$(LD) $(DLLFLAGS) -o libtdynlib1.$(DLLEXT) $(LDOPT1) tdynlib1.$(OBJEXT) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(DLLFLAGS) -o libtdynlib2.$(DLLEXT) $(LDOPT2) tdynlib2.$(OBJEXT) -L. -ltdynlib1 $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) -o tdlmain$(EXEEXT) tdlmain.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-tdynlib1.$(DLLOBJEXT): tdynlib1.cpp
-	$(CC) -c $(DLLPICFLAG) -o tdynlib1.$(DLLOBJEXT) tdynlib1.cpp $(CCFLAGS)
+tdlmain.o: tdlmain.cpp ../include/SecondoConfig.h ../include/DynamicLibrary.h
+	$(CC) -c -o tdlmain.o tdlmain.cpp $(CCFLAGS)
 
-tdynlib2.$(DLLOBJEXT): tdynlib2.cpp
-	$(CC) -c $(DLLPICFLAG) -o tdynlib2.$(DLLOBJEXT) tdynlib2.cpp $(CCFLAGS)
+tdynlib1.$(OBJEXT): tdynlib1.cpp
+	$(CC) -c $(PICFLAG) -o tdynlib1.$(OBJEXT) tdynlib1.cpp $(CCFLAGS)
 
-	
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES:.cpp=.dep)
-endif
+tdynlib2.$(OBJEXT): tdynlib2.cpp
+	$(CC) -c $(PICFLAG) -o tdynlib2.$(OBJEXT) tdynlib2.cpp $(CCFLAGS)
+
+# Test Socket I/O module
+
+testsock1: tsock1$(EXEEXT)
+	$(CP) tsock1$(EXEEXT) ../bin/tsock1$(EXEEXT)
+
+tsock1$(EXEEXT): tsock1.o ../lib/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tsock1$(EXEEXT) tsock1.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+
+tsock1.o: tsock1.cpp ../include/SecondoConfig.h ../include/SocketIO.h
+	$(CC) -c -o tsock1.o tsock1.cpp $(CCFLAGS)
+
+testsock2: tsock2$(EXEEXT)
+	$(CP) tsock2$(EXEEXT) ../bin/tsock2$(EXEEXT)
+
+tsock2$(EXEEXT): tsock2.o ../lib/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tsock2$(EXEEXT) tsock2.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+
+tsock2.o: tsock2.cpp ../include/SecondoConfig.h ../include/SocketIO.h
+	$(CC) -c -o tsock2.o tsock2.cpp $(CCFLAGS)
+
+testsock3: tsock3$(EXEEXT)
+	$(CP) tsock3$(EXEEXT) ../bin/tsock3$(EXEEXT)
+
+tsock3$(EXEEXT): tsock3.o ../lib/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o tsock3$(EXEEXT) tsock3.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+
+tsock3.o: tsock3.cpp ../include/SecondoConfig.h ../include/SocketIO.h
+	$(CC) -c -o tsock3.o tsock3.cpp $(CCFLAGS)
 
 .PHONY: clean
 clean:
-	$(RM) *.dep *.$(OBJEXT) $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))
-	$(RM) tdynlib1.$(DLLOBJEXT) tdynlib2.$(DLLOBJEXT)
+	$(RM) *.o
+	$(RM) *.lo
+	$(RM) *.a
+	$(RM) *.so
+	$(RM) *.dll
+
+else
+# Platform not specified
+.DEFAULT:
+	@echo *** Platform not specified in makefile.config
+endif
+

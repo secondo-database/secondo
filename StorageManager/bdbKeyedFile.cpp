@@ -1,50 +1,16 @@
 /*
-----
-This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-1 Implementation of SmiKeyedFile using the Berkeley-DB
+1 Implementation of SmiKeyedFile using the Berkeley-DB 
 
 April 2002 Ulrich Telle
 
-September 2002 Ulrich Telle, fixed flag (DB\_DIRTY\_READ) in Berkeley DB calls for system catalog files
-
-April 2003 Ulrich Telle, implemented temporary SmiFiles
-
-May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namely ~SmiBtreeFile~ and
-~SmiHashFile~, for B-Tree and hash access methods, respectively.
-
 */
-
-
-//#define TRACE_ON 1
-#undef TRACE_ON
-#include "LogMsg.h"
 
 #include <string>
 #include <algorithm>
 #include <cctype>
-#include <cassert>
 
 #include <db_cxx.h>
-#include "DbVersion.h"
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
@@ -54,46 +20,34 @@ using namespace std;
 
 /* --- Implementation of class SmiKeyedFile --- */
 
-SmiKeyedFile::SmiKeyedFile( const SmiFile::FileType fileType,
-                            const SmiKey::KeyDataType keyType,
-                            const bool hasUniqueKeys /* = true */,
-                            const bool isTemporary /* = false */ )
-  : SmiCachedFile( isTemporary )
+SmiKeyedFile::SmiKeyedFile( const SmiKey::KeyDataType keyType,
+                            const bool hasUniqueKeys = true )
 {
-  this->fileType = fileType;
+  fileType    = Keyed;
   keyDataType = keyType;
   uniqueKeys  = hasUniqueKeys;
 }
-
+  
 SmiKeyedFile::~SmiKeyedFile()
 {
 }
-
-SmiKey::KeyDataType
-SmiKeyedFile::GetKeyType() const
-{
-  return keyDataType;
-}
-
+  
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,
                             SmiKeyedFileIterator& iterator,
-                            const SmiFile::AccessType accessType
-                              /* = SmiFile::ReadOnly */ )
+                            const SmiFile::AccessType accessType =
+                                  SmiFile::ReadOnly )
 {
-  int rc=0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-               SmiEnvironment::instance.impl->usrTxn : 0;
-
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
-    rc = impl->bdbFile->cursor( 0, &dbc, flags );
+    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
   }
   if ( rc == 0 )
   {
@@ -105,18 +59,20 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
     iterator.rangeSearch      = false;
     iterator.firstKey         = key;
     iterator.searchKey        = &iterator.firstKey;
+    SmiEnvironment::SetError( E_SMI_OK );
   }
-
-  if (rc != DB_NOTFOUND)
-    SmiEnvironment::SetBDBError(rc);
+  else
+  {
+    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
+  }
   return (rc == 0);
 }
 
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,
                             SmiRecord& record,
-                            const SmiFile::AccessType accessType
-                              /* = SmiFile::ReadOnly */ )
+                            const SmiFile::AccessType accessType =
+                                  SmiFile::ReadOnly )
 {
   int rc = 0;
   Dbt bdbKey;
@@ -125,13 +81,10 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = !impl->isTemporaryFile ?
-               SmiEnvironment::instance.impl->usrTxn : 0;
-
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
   if ( uniqueKeys && accessType == SmiFile::Update )
   {
-    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_RMW : 0;
-    rc = impl->bdbFile->get( tid, &bdbKey, &data, flags );
+    rc = impl->bdbFile->get( tid, &bdbKey, &data, DB_RMW );
   }
   else if ( !impl->isSystemCatalogFile )
   {
@@ -139,16 +92,9 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
-    rc = impl->bdbFile->get( 0, &bdbKey, &data, flags );
+    rc = impl->bdbFile->get( 0, &bdbKey, &data, 0 );
   }
-
-// VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if ( DB_VERSION_REQUIRED(4,3))
-  if ( rc == DB_BUFFER_SMALL )
-#else
   if ( rc == ENOMEM )
-#endif
   {
     if ( record.initialized )
     {
@@ -163,11 +109,11 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
     record.impl->closeCursor = false;
     record.impl->bdbCursor   = 0;
     record.initialized       = true;
+    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
-    if (rc != DB_NOTFOUND)
-      SmiEnvironment::SetBDBError(rc);
+    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
     record.initialized     = false;
   }
 
@@ -175,17 +121,170 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 }
 
 bool
+SmiKeyedFile::SelectRange( const SmiKey& fromKey, 
+                           const SmiKey& toKey, 
+                           SmiKeyedFileIterator& iterator,
+                           const SmiFile::AccessType accessType =
+                                 SmiFile::ReadOnly,
+                           const bool reportDuplicates = false )
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
+  {
+    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+  }
+  else
+  {
+    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+  }
+  if ( rc == 0 )
+  {
+    iterator.smiFile          = this;
+    iterator.opened           = true;
+    iterator.impl->bdbCursor  = dbc;
+    iterator.solelyDuplicates = false;
+    iterator.ignoreDuplicates = !reportDuplicates;
+    iterator.rangeSearch      = true;
+    iterator.firstKey         = fromKey;
+    iterator.lastKey          = toKey;
+    iterator.searchKey        = &iterator.firstKey;
+    SmiEnvironment::SetError( E_SMI_OK );
+  }
+  else
+  {
+    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
+  }
+  return (rc == 0);
+}
+
+bool
+SmiKeyedFile::SelectLeftRange( const SmiKey& toKey, 
+                               SmiKeyedFileIterator& iterator,
+                               const SmiFile::AccessType accessType =
+                                     SmiFile::ReadOnly,
+                               const bool reportDuplicates = false )
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
+  {
+    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+  }
+  else
+  {
+    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+  }
+  if ( rc == 0 )
+  {
+    iterator.smiFile          = this;
+    iterator.opened           = true;
+    iterator.impl->bdbCursor  = dbc;
+    iterator.solelyDuplicates = false;
+    iterator.ignoreDuplicates = !reportDuplicates;
+    iterator.rangeSearch      = false;
+    SmiKey dummy( toKey.mapFunc );
+    iterator.firstKey         = dummy;
+    iterator.lastKey          = toKey;
+    iterator.searchKey        = &iterator.firstKey;
+    SmiEnvironment::SetError( E_SMI_OK );
+  }
+  else
+  {
+    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
+  }
+  return (rc == 0);
+}
+
+bool
+SmiKeyedFile::SelectRightRange( const SmiKey& fromKey, 
+                                SmiKeyedFileIterator& iterator,
+                                const SmiFile::AccessType accessType =
+                                      SmiFile::ReadOnly,
+                                const bool reportDuplicates = false )
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
+  {
+    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+  }
+  else
+  {
+    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+  }
+  if ( rc == 0 )
+  {
+    iterator.smiFile          = this;
+    iterator.opened           = true;
+    iterator.impl->bdbCursor  = dbc;
+    iterator.solelyDuplicates = false;
+    iterator.ignoreDuplicates = !reportDuplicates;
+    iterator.rangeSearch      = true;
+    SmiKey dummy( fromKey.mapFunc );
+    iterator.firstKey         = fromKey;
+    iterator.lastKey          = dummy;
+    iterator.searchKey        = &iterator.firstKey;
+    SmiEnvironment::SetError( E_SMI_OK );
+  }
+  else
+  {
+    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
+  }
+  return (rc == 0);
+}
+
+bool
+SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
+                         const SmiFile::AccessType accessType =
+                               SmiFile::ReadOnly,
+                         const bool reportDuplicates = false )
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
+  {
+    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+  }
+  else
+  {
+    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+  }
+  if ( rc == 0 )
+  {
+    iterator.smiFile          = this;
+    iterator.opened           = true;
+    iterator.impl->bdbCursor  = dbc;
+    iterator.solelyDuplicates = false;
+    iterator.ignoreDuplicates = !reportDuplicates;
+    iterator.rangeSearch      = false;
+    SmiKey dummy;
+    iterator.firstKey         = dummy;
+    iterator.lastKey          = dummy;
+    iterator.searchKey        = &iterator.firstKey;
+    SmiEnvironment::SetError( E_SMI_OK );
+  }
+  else
+  {
+    SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
+  }
+  return (rc == 0);
+}
+
+bool
 SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
 {
   int rc = 0;
   char buffer = 0;
-  Dbc* dbc = 0;
-
   Dbt bdbKey( (void*) key.GetAddr(), key.keyLength );
   Dbt data( &buffer, 0 );
   data.set_dlen( 0 );
-  DbTxn* tid = !impl->isTemporaryFile ?
-               SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
 
   if ( uniqueKeys )
   {
@@ -195,7 +294,6 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   {
     // --- Use of a cursor is required when duplicates are allowed
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
-    SmiEnvironment::SetBDBError( rc );
     if ( rc == 0 )
     {
       rc = dbc->put( &bdbKey, &data, DB_KEYLAST );
@@ -226,6 +324,7 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
       record.impl->bdbCursor   = dbc;
     }
     record.initialized = true;
+    SmiEnvironment::SetError( E_SMI_OK );
   }
   else if ( rc == DB_KEYEXIST )
   {
@@ -234,72 +333,59 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   }
   else
   {
-    SmiEnvironment::SetBDBError( rc );
+    SmiEnvironment::SetError( E_SMI_RECORD_INSERT, rc );
     record.initialized = false;
   }
   return (record.initialized);
 }
-
+  
 bool
-SmiKeyedFile::DeleteRecord( const SmiKey& key,
-                            const bool all, const SmiRecordId recordId )
+SmiKeyedFile::DeleteRecord( const SmiKey& key )
 {
-  if( all )
+  int rc = 0;
+  Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  
+  rc = impl->bdbFile->del( tid, &bdbKey, 0 );
+  if ( rc == 0 )
   {
-    int rc = 0;
-
-    Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
-    DbTxn* tid = !impl->isTemporaryFile ?
-                 SmiEnvironment::instance.impl->usrTxn : 0;
-
-    rc = impl->bdbFile->del( tid, &bdbKey, 0 );
-    SmiEnvironment::SetBDBError( rc );
-    return (rc == 0);
+    SmiEnvironment::SetError( E_SMI_OK );
   }
   else
   {
-    SmiKeyedFileIterator iter;
-    if( SelectRecord( key, iter, SmiFile::Update ) )
-    {
-      SmiRecord record;
-      while( iter.Next( record ) )
-      {
-        SmiSize bytesRead;
-        SmiRecordId id;
-        SmiSize idSize = sizeof(SmiRecordId);
-        bytesRead = record.Read(&id, idSize);
-        if( bytesRead == idSize && id == recordId )
-          return iter.DeleteCurrent();
-      }
-    }
-    return false;
+    SmiEnvironment::SetError( E_SMI_RECORD_DELETE, rc );
   }
+  
+  return (rc == 0);  
 }
 
 /* --- Implementation of class  --- */
 
-SmiKeyedFileIterator::SmiKeyedFileIterator( bool reportDuplicates )
-  : SmiFileIterator(), firstKey(), lastKey()
+SmiKeyedFileIterator::SmiKeyedFileIterator( bool reportDuplicates = false )
+  : firstKey(), lastKey()
 {
 }
-
+  
 SmiKeyedFileIterator::~SmiKeyedFileIterator()
 {
 }
-
+  
 bool
 SmiKeyedFileIterator::Next( SmiKey& key, SmiRecord& record )
 {
   bool ok = SmiFileIterator::Next( record );
   if ( ok )
   {
+    MapKeyFunc oldFunc = key.mapFunc;
     key = record.recordKey;
+    key.mapFunc = oldFunc;
     if ( lastKey.GetType() != SmiKey::Unknown )
     {
       ok = !(record.recordKey > lastKey);
       if ( !ok )
       {
         endOfScan = true;
+        SmiEnvironment::SetError( E_SMI_CURSOR_ENDOFSCAN );
       }
     }
   }
@@ -316,10 +402,11 @@ SmiKeyedFileIterator::Next( SmiRecord& record )
     if ( !ok )
     {
       endOfScan = true;
+      SmiEnvironment::SetError( E_SMI_CURSOR_ENDOFSCAN );
     }
   }
   return (ok);
 }
-
+  
 /* --- bdbKeyedFile.cpp --- */
 

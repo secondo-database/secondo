@@ -1,24 +1,4 @@
 /*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
 1 Header File: Win32Socket
 
@@ -41,89 +21,52 @@ For a description of the public interface see the ~SocketIO~ header file.
 
 class Win32Socket : public Socket
 {
- public:
-  Win32Socket( const std::string& address, const std::string& port,
-	       std::ostream* traceInStream, std::ostream* traceOutStream,
-	       bool destroyTrace );
-  Win32Socket( SOCKET newSock,
-	       std::ostream* traceInStream, std::ostream* traceOutStream,
-	       bool destroyTrace );
+ public: 
+  Win32Socket( const string& address, const string& port );
+  Win32Socket( SOCKET newSock );
   ~Win32Socket();
   SocketDescriptor GetDescriptor();
-  bool    Open( const int listenQueueSize,
-                const int socketType,
-                const int flags = 0 );
+  bool    Open( const int listenQueueSize, const int socketType, const int flags = 0 );
   bool    Connect( const int maxAttempts, const time_t timeout );
   int     Read( void* buf, size_t minSize, size_t maxSize, time_t timeout );
   bool    Read( void* buf, size_t size );
   bool    Write( void const* buf, size_t size );
   bool    IsOk();
-  std::string  GetErrorText();
-  std::string  GetSocketAddress() const;
-  std::string  GetPeerAddress() const;
-  Socket* Accept( std::ostream* traceInStream,
-		  std::ostream* traceOutStream,
-		  bool destryTrace);
+  string  GetErrorText();
+  string  GetSocketAddress() const;
+  string  GetPeerAddress() const;
+  Socket* Accept();
   bool    CancelAccept();
   bool    Close();
   bool    ShutDown();
-
-
-  void setTraceStreams( std::ostream* traceInStream,
-		        std::ostream* traceOutStream,
-			bool destroyTrace) {
-     
-  }
-
  protected:
-  void    SetStreamState( std::ios::iostate newState );
+  void    SetStreamState( ios::iostate newState );
 
-  SOCKET  s;
-  int     lastError;  // error code of last failed operation
-  std::string  hostAddress;
-  std::string  hostPort;
-  std::ostream* traceInStream;
-  std::ostream* traceOutStream;
-  bool destroyTrace;
-
-  void removeTraces(){
-     if(traceInStream==traceOutStream){
-       traceOutStream = 0;
-     }
-     if(destroyTrace){
-        if(traceInStream) delete traceInStream;
-        if(traceOutStream) delete traceOutStream;
-     }
-     traceInStream = 0;
-     traceOutStream=0;
-  }
-
+  SOCKET  s; 
+  int     lastError;  // error code of last failed operation 
+  string  hostAddress;
+  string  hostPort;
 
   enum ErrorCodes
-  {
+  { 
     EC_OK                  =  0,
     EC_NOT_OPENED          = -1,
     EC_BAD_ADDRESS         = -2,
     EC_CONNECTION_FAILED   = -3,
-    EC_BROKEN_PIPE         = -4,
+    EC_BROKEN_PIPE         = -4, 
     EC_INVALID_ACCESS_MODE = -5,
     EC_MESSAGE_TRUNCATED   = -6
   };
 };
 
-#define SOCKET_BUF_SIZE (8*1024)
+#define SOCKET_BUF_SIZE (8*1024) 
 #define ACCEPT_TIMEOUT  (30*1000)
 
 class LocalWin32Socket : public Socket
 {
- public:
-  LocalWin32Socket( const std::string& address,
-		    std::ostream* traceInStream,
-		    std::ostream* traceOutStream,
-		    bool destroyStream );
-  LocalWin32Socket( std::ostream* traceInStream, 
-                    std::ostream* traceOutStream, 
-                    bool destroyStream );
+ public: 
+  LocalWin32Socket( const string& address );
+  LocalWin32Socket(); 
   ~LocalWin32Socket();
   SocketDescriptor GetDescriptor();
   bool    Open( const int listenQueueSize );
@@ -131,25 +74,16 @@ class LocalWin32Socket : public Socket
   int     Read( void* buf, size_t minSize, size_t maxSize,time_t timeout );
   bool    Read( void* buf, size_t size );
   bool    Write( void const* buf, size_t size );
-  bool    IsOk();
-  std::string  GetErrorText();
-  std::string  GetSocketAddress() const;
-  std::string  GetPeerAddress() const;
-  Socket* Accept( std::ostream* traceInStream,
-		  std::ostream* traceOutStream,
-		  bool destroyTrace);
+  bool    IsOk(); 
+  string  GetErrorText();
+  string  GetSocketAddress() const;
+  string  GetPeerAddress() const;
+  Socket* Accept();
   bool    CancelAccept();
   bool    Close();
   bool    ShutDown();
-
-  void setTraceStreams( std::ostream* traceInStream,
-		        std::ostream* traceOutStream,
-			bool destroyTrace) {
-     
-  }
-
- protected:
-  void    SetStreamState( std::ios::iostate newState );
+ protected: 
+  void    SetStreamState( ios::iostate newState );
 
   enum ErrorCodes
   {
@@ -175,12 +109,12 @@ class LocalWin32Socket : public Socket
   //------------------------------------------------------
 
   struct LocalSocketBuffer
-  {
+  { 
     volatile int  recvWaitFlag;
     volatile int  sendWaitFlag;
     volatile int  dataEnd;
     volatile int  dataBeg;
-             char dataBuf[SOCKET_BUF_SIZE - 4*sizeof(int)];
+             char dataBuf[SOCKET_BUF_SIZE - 4*sizeof(int)];  
   };
 
   struct AcceptData
@@ -197,29 +131,12 @@ class LocalWin32Socket : public Socket
 
   LocalSocketBuffer* recvBuffer;
   LocalSocketBuffer* sendBuffer;
-  HANDLE      signalHandle[4];
+  HANDLE      signalHandle[4];	   
   HANDLE      mutexHandle;
   HANDLE      bufferHandle;
   int         lastError;
-  std::string      localName;
-
-  std::ostream* traceInStream;
-  std::ostream* traceOutStream;
-  bool destroyTrace;
-  
-  void removeTraces(){
-     if(traceInStream==traceOutStream){
-       traceOutStream = 0;
-     }
-     if(destroyTrace){
-        if(traceInStream) delete traceInStream;
-        if(traceOutStream) delete traceOutStream;
-     }
-     traceInStream = 0;
-     traceOutStream=0;
-  }
-
+  string      localName;
 };
-
+	   
 #endif
 

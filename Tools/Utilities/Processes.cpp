@@ -1,33 +1,9 @@
 /*
----- 
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
 1 Implementation of the Process Management
 
 April 2002 Ulrich Telle
 
-April 2003 Ulrich Telle Fixed a bug in the transfer of Win32 socket handle on Windows 98 and ME systems
-
 */
-
 
 #include <cstdlib>
 #include <iostream>
@@ -39,22 +15,16 @@ April 2003 Ulrich Telle Fixed a bug in the transfer of Win32 socket handle on Wi
 using namespace std;
 
 #ifndef _POSIX_OPEN_MAX
-#define _POSIX_OPEN_MAX 256
-#endif
-
-#ifndef WAIT_ANY
-#define WAIT_ANY (-1)
+#define _POSIX_OPEN_MAX	256
 #endif
 
 ProcessFactory* ProcessFactory::instance = 0;
 
-ProcessFactory::ProcessFactory( 
-  const bool reuseTerminated /* = true */,
-  const int maxChildProcesses /* = DEFAULT_MAX_PROCESSES */ )
+ProcessFactory::ProcessFactory( const bool reuseTerminated = true,
+                                const int maxChildProcesses = DEFAULT_MAX_PROCESSES )
   : processList( maxChildProcesses ), maxChilds( maxChildProcesses ),
     reuseTerminatedEntries( reuseTerminated )
 {
-  processDirectory = "";
 #ifndef SECONDO_WIN32
   // --- Always trap the SIGCHLD signal to avoid zombie processes
   signal( SIGCHLD, ProcessFactory::ChildTerminationHandler );
@@ -67,14 +37,12 @@ ProcessFactory::~ProcessFactory()
 }
 
 bool
-ProcessFactory::StartUp( 
-  const bool reuseTerminated /* = true */,
-  const int maxChildProcesses /*=DEFAULT_MAX_PROCESSES*/ )
+ProcessFactory::StartUp( const bool reuseTerminated = true,
+                         const int maxChildProcesses = DEFAULT_MAX_PROCESSES )
 {
-  int maxChild = (maxChildProcesses > 0) ? maxChildProcesses : 1;
   if ( ProcessFactory::instance == 0 )
   {
-    ProcessFactory::instance = new ProcessFactory( reuseTerminated, maxChild );
+    ProcessFactory::instance = new ProcessFactory( reuseTerminated, maxChildProcesses );
   }
   return (ProcessFactory::instance != 0);
 }
@@ -90,18 +58,12 @@ ProcessFactory::ShutDown()
   return (instance == 0);
 }
 
-void
-ProcessFactory::SetDirectory( const string& directory )
-{
-  instance->processDirectory = directory;
-}
-
 bool
 ProcessFactory::SpawnProcess( const string& programpath,
                               const string& arguments,
                               int& processId,
-                              const bool hidden /* = true */,
-                              Socket* clientSocket /* = 0 */ )
+                              const bool hidden = true,
+                              Socket* clientSocket = 0 )
 {
   int    idx;
   string pathbuf = programpath;
@@ -119,6 +81,7 @@ ProcessFactory::SpawnProcess( const string& programpath,
       break;
     }
   }
+
   if ( idx >= instance->maxChilds && instance->reuseTerminatedEntries )
   {
     for ( idx = 0; idx < instance->maxChilds; idx++)
@@ -152,7 +115,6 @@ ProcessFactory::SpawnProcess( const string& programpath,
     // no filename extension supplied; .exe is assumed
     pathbuf += ".exe";
   }
-  localArgs = "\"" + pathbuf + "\" " + arguments;
 
   createFlags = CREATE_NEW_CONSOLE | NORMAL_PRIORITY_CLASS;
   if ( !hidden )
@@ -173,22 +135,13 @@ ProcessFactory::SpawnProcess( const string& programpath,
     DuplicateHandle( GetCurrentProcess(), (HANDLE) sd,
                      GetCurrentProcess(), (HANDLE*) &sdDup,
                      0, TRUE, DUPLICATE_SAME_ACCESS );
-    os.str( "" );
+    os.seekp( 0 );
     os << " --socket=" << sdDup;
     localArgs += os.str();
   }
   char* argsbuf = new char[localArgs.length()+1];
   localArgs.copy( argsbuf, localArgs.length() );
   argsbuf[localArgs.length()] = 0;
-
-  LPCTSTR processDir = NULL;
-  if (instance->processDirectory.length() > 0 )
-  {
-    processDir = instance->processDirectory.c_str();
-  }
-  cout << "Starting Process:" << endl
-       << "Program: " << pathbuf << endl
-       << "Args: " << argsbuf << endl;
 
   success = CreateProcess( pathbuf.c_str(),
                            argsbuf,
@@ -197,7 +150,7 @@ ProcessFactory::SpawnProcess( const string& programpath,
                            TRUE,        // inherit handles
                            createFlags, // creation control flags
                            0,           // environment variable block
-                           processDir,  // current directory is that of parent
+                           0,           // current directory is that of parent
                            &startInfo,  // startup info block
                            &processInfo);
   delete argsbuf;
@@ -250,11 +203,6 @@ ProcessFactory::SpawnProcess( const string& programpath,
   localArgs.copy( argsbuf, localArgs.length() );
   argsbuf[localArgs.length()] = 0;
 
-
-  cout << "Starting Process:" << endl
-       << "Program: " << pathbuf << endl
-       << "Args: " << argsbuf << endl;
-  
   // --- Compute "argc"
 
   int argc = 1;
@@ -388,15 +336,12 @@ A session without a control tty can only have background jobs.
     {
       sigset_t sigs;
       sigset_t oldsigs;
+      int rc;
       sigemptyset( &sigs );
       sigaddset( &sigs, SIGTTOU );
       sigprocmask( SIG_BLOCK, &sigs, &oldsigs );
-      tcsetpgrp( ctty, pgrp );
+      rc = tcsetpgrp( ctty, pgrp );
       sigprocmask( SIG_SETMASK, &oldsigs, NULL );
-    }
-    if (instance->processDirectory.length() > 0 )
-    {
-      chdir( instance->processDirectory.c_str() );
     }
     execv( spath, argv );
     exit( -3 );  // only reached if exec() failed
@@ -404,8 +349,7 @@ A session without a control tty can only have background jobs.
 
   // -- parent process
   delete []argv;
-  delete[] argsbuf;
-  free(spath);
+  delete argsbuf;
   
   if ( pid < 0 )
   {
@@ -429,8 +373,7 @@ A session without a control tty can only have background jobs.
   }
   Sleep( 0 );
 #endif
-  instance->processDirectory = "";
-  processId = idx * (instance->maxChilds+1) + instance->processList[idx].cycle;
+  processId = idx * instance->maxChilds + instance->processList[idx].cycle;
   return (true);
 }
 
@@ -438,8 +381,8 @@ ProcessId
 ProcessFactory::GetRealProcessId( const int processId )
 {
   ProcessId pid = INVALID_PID;
-  int index = processId / (instance->maxChilds+1);
-  int cycle = processId % (instance->maxChilds+1);
+  int index = processId / instance->maxChilds;
+  int cycle = processId % instance->maxChilds;
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved &&
       !instance->processList[index].terminated )
@@ -455,11 +398,11 @@ ProcessFactory::GetRealProcessId( const int processId )
 
 bool
 ProcessFactory::SignalProcess( const int processId,
-                               const ProcessSignal sig /* = eSIGTERM */ )
+                               const ProcessSignal sig = eSIGTERM )
 {
   bool ok = false;
-  int index = processId / (instance->maxChilds+1);
-  int cycle = processId % (instance->maxChilds+1);
+  int index = processId / instance->maxChilds;
+  int cycle = processId % instance->maxChilds;
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved &&
       !instance->processList[index].terminated )
@@ -472,7 +415,7 @@ ProcessFactory::SignalProcess( const int processId,
 
 bool
 ProcessFactory::SignalRealProcess( const ProcessId processId,
-                                   const ProcessSignal signo /* = eSIGTERM */ )
+                                   const ProcessSignal signo = eSIGTERM )
 {
   bool ok = false;
   int idx;
@@ -509,8 +452,8 @@ bool
 ProcessFactory::GetExitCode( const int processId, int& status )
 {
   bool ok = false;
-  int index = processId / (instance->maxChilds+1);
-  int cycle = processId % (instance->maxChilds+1);
+  int index = processId / instance->maxChilds;
+  int cycle = processId % instance->maxChilds;
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved &&
        instance->processList[index].terminated )
@@ -525,8 +468,8 @@ bool
 ProcessFactory::IsProcessOk( const int processId )
 {
   bool ok = false;
-  int index = processId / (instance->maxChilds+1);
-  int cycle = processId % (instance->maxChilds+1);
+  int index = processId / instance->maxChilds;
+  int cycle = processId % instance->maxChilds;
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {
@@ -539,8 +482,8 @@ bool
 ProcessFactory::IsProcessTerminated( const int processId )
 {
   bool ok = false;
-  int index = processId / (instance->maxChilds+1);
-  int cycle = processId % (instance->maxChilds+1);
+  int index = processId / instance->maxChilds;
+  int cycle = processId % instance->maxChilds;
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {
@@ -553,14 +496,14 @@ bool
 ProcessFactory::WaitForProcess( const int processId )
 {
   bool ok = false;
-  int index = processId / (instance->maxChilds+1);
-  int cycle = processId % (instance->maxChilds+1);
-
+  int index = processId / instance->maxChilds;
+  int cycle = processId % instance->maxChilds;
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {
     if ( !instance->processList[index].terminated )
     {
+cout << "WaitForProcess: call WaitForTermination" << endl;
       ok = instance->processList[index].WaitForTermination();
     }
     else
@@ -686,6 +629,7 @@ Process::Process()
 #else
   pid = -1;
 #endif
+  cout << "Process constructor called" << endl;
 }
 
 Process::~Process()
@@ -697,6 +641,7 @@ Process::~Process()
     event = 0;
   }
 #endif
+  cout << "Process destructor called" << endl;
 }
 
 Process::Process( const Process& other )
@@ -728,6 +673,7 @@ Process::operator=( Process const &other )
 #else
   pid          = other.pid;
 #endif
+  cout << "Process copy constructor called" << endl;
   return (*this);
 }
 
@@ -735,11 +681,11 @@ bool
 Process::WaitForTermination()
 {
   bool ok = false;
+cout << "Start Process::WaitForTermination" << endl;
   if ( reserved && !terminated )
   {
 #ifdef SECONDO_WIN32
-    ok = ( ::WaitForSingleObject( processInfo.hProcess, INFINITE ) 
-           == WAIT_OBJECT_0 );
+    ok = (::WaitForSingleObject( processInfo.hProcess, INFINITE ) == WAIT_OBJECT_0);
 //
 //  - exit status besorgen
 //  - process handle schliessen
@@ -757,11 +703,12 @@ Process::WaitForTermination()
   {
     ok = (reserved && terminated);
   }
+cout << "End Process::WaitForTermination" << endl;
   return (ok);
 }
 
 bool
-Process::SendSignal( const ProcessSignal signo /* = eSIGTERM */ )
+Process::SendSignal( const ProcessSignal signo = eSIGTERM )
 {
   bool ok = false;
   if ( reserved && !terminated )
@@ -769,8 +716,8 @@ Process::SendSignal( const ProcessSignal signo /* = eSIGTERM */ )
 #ifdef SECONDO_WIN32
     ostringstream os;
     os << "SECONDO_RSH_" << processInfo.dwProcessId;
-    Socket* rshClient = Socket::Connect( os.str(), "", 
-                                         Socket::SockLocalDomain );
+cout << "SignalTerminate: " << os.str() << endl;
+    Socket* rshClient = Socket::Connect( os.str(), "", Socket::SockLocalDomain );
     if ( rshClient->IsOk() )
     {
       iostream& ss = rshClient->GetSocketStream();
@@ -797,6 +744,7 @@ Process::SendSignal( const ProcessSignal signo /* = eSIGTERM */ )
     }
     else
     {
+cout << "Fehler bei Connect" << endl;
     }
     delete rshClient;
 #else
@@ -892,6 +840,7 @@ process table.
       // --- child process terminated; mark in table and signal event
       terminated = true;
       GetExitCodeProcess( childProcessHandle, (DWORD*) &exitStatus );
+cout << endl << "Exit code: " << exitStatus << endl;
       rc = 0;
       if ( hasSocket )
       {

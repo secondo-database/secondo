@@ -1,61 +1,75 @@
-#This file is part of SECONDO.
-#
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-#Database Systems for New Applications.
-#
-#SECONDO is free software; you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2 of the License, or
-#(at your option) any later version.
-#
-#SECONDO is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with SECONDO; if not, write to the Free Software
-#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
 ########################################################################
 #
 # SECONDO makefile for nested lists
 #
 ########################################################################
 
-include ../../makefile.env
+include ../../makefile.config
+ifdef platform
+include ../../makefile.$(platform)
+.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 
-platform=$(SECONDO_PLATFORM)
-
-
-TOKENDEF := NLParser.tab.hpp
-SCANNER := NLLex.cpp 
-PARSER := NLParser.tab.cpp
-
-DEP_FILES += NLParser.tab.dep
-
-# expand compile flags if necessary
-#CCFLAGS += $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)
-CCFLAGS += -DYY_FLEX_MAJOR_VERSION=$(shell ../../bin/getversion.sh major flex -V)
-CCFLAGS += -DYY_FLEX_MINOR_VERSION=$(shell ../../bin/getversion.sh minor flex -V)
-CCFLAGS += -DYY_FLEX_SUBMINOR_VERSION=$(shell ../../bin/getversion.sh subminor flex -V)
-
-GENSRC := $(TOKENDEF) $(PARSER) $(SCANNER)
-OBJECTS += NLLex.$(OBJEXT) NLParser.tab.o NLParser.o
+OBJECTS=\
+	NLLex.$(OBJEXT) \
+	NLScanner.$(OBJEXT) \
+	NLParser.tab.$(OBJEXT) \
+	NLParser.$(OBJEXT) \
+	NestedList.$(OBJEXT)
 
 .PHONY: all
-all: $(GENSRC) $(OBJECTS)
+all: $(OBJECTS) ../../include/CTable.h
 
-NLParser.tab.cpp $(TOKENDEF): NLParser.y
-	$(YACC) -d -o $@ $<
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-NLLex.cpp: NLLex.l $(TOKENDEF)
-	$(LEX) -d -+ -Pnl -o$@ $<
+../../include/CTable.h: ../ListsAndTables/CTable.h ../ListsAndTables/CTable.cpp
+	$(CP) ../ListsAndTables/CTable.h ../../include
+	$(CP) ../ListsAndTables/CTable.cpp ../../include
 
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
+NestedList.$(OBJEXT): NestedList.cpp ../../include/NestedList.h NLParser.h
+	$(CC) -c -o NestedList.$(OBJEXT) NestedList.cpp $(CCFLAGS)
+
+NLParser.$(OBJEXT):	NLParser.cpp NLParser.h NLScanner.h ../../include/NestedList.h
+	$(CC) -c -o NLParser.$(OBJEXT) NLParser.cpp $(CCFLAGS)
+
+NLParser.tab.$(OBJEXT):	NLParser.tab.cpp NLParser.h ../../include/NestedList.h
+	$(CC) -DYYDEBUG -c -o NLParser.tab.$(OBJEXT) NLParser.tab.cpp $(CCFLAGS)
+
+NLParser.tab.cpp NLParser.tab.hpp:	NLParser.y
+	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
+	sed \
+	   -e "/^int yyparse (void[ *]*);$$/d" \
+	   -e s/__NLParser__parse/NLParser::yyparse/g \
+	   -e s/__NLParser__lex/yylex/g \
+	   -e s/__NLParser__error/yyerror/g \
+	   -e s/__NLParser__lval/NLParser::yylval/g \
+	   -e s/__NLParser__char/NLParser::yychar/g \
+	   -e s/__NLParser__debug/NLParser::yydebug/g \
+	   -e s/__NLParser__nerrs/NLParser::yynerrs/g \
+	   < NLParser.tab.c > NLParser.tab.cpp
+	$(RM) NLParser.tab.c
+	sed \
+	   -e s/__NLParser__lval/NLParser::yylval/g \
+	   < NLParser.tab.h > NLParser.tab.hpp
+	$(RM) NLParser.tab.h
+
+NLScanner.$(OBJEXT):	NLScanner.cpp NLScanner.h
+	$(CC) -c -o NLScanner.$(OBJEXT) NLScanner.cpp $(CCFLAGS)
+
+NLLex.$(OBJEXT):	NLLex.cpp NLScanner.h NLParser.h NLParser.tab.hpp
+	$(CC) $(CCFLAGS) -c -o NLLex.$(OBJEXT) NLLex.cpp
+
+NLLex.cpp:	NLLex.l ../../include/NestedList.h NLParser.tab.hpp
+	$(LEX) -+ -Pnl -oNLLex.cpp NLLex.l
 
 .PHONY: clean
 clean:
-	$(RM) NLParser.output NLParser.tab.* $(GENSRC) $(OBJECTS) $(DEP_FILES)
+	$(RM) *.o
+	$(RM) *.lo
+	$(RM) NLLex.cpp NLParser.tab.hpp NLParser.tab.cpp
+
+else
+# Platform not specified
+all:
+	@echo *** Platform not specified in makefile.config
+endif
+

@@ -1,25 +1,4 @@
 /*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
 //paragraph	[10]	title:		[{\Large \bf ] [}]
 //paragraph	[11]	title:		[{\large \bf ] [}]
 //paragraph	[12]	title:		[{\normalsize \bf ] [}]
@@ -30,7 +9,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
-//characters	[4]	teletype:	[\texttt{]	[}]
+//characters	[3]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -39,18 +18,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: Profiles
+1 Header File: Profiles 
 
 January 2002 Ulrich Telle
-
-January 2005, M. Spiekermann. Key values set in the configuration file can
-be overruled by environment variables named SECONDO\_PARAM\_~keyname~.
 
 1.1 Overview
 
 Applications often need a mechanism for providing configuration parameters.
 One way to supply those parameters is a profile. A profile is a text file
-consisting of one ore more named sections which contain one or more named
+consisting of one ore more named sections which contain one or more named 
 parameters and their values, respectively. Each line in the profile is
 either a section heading, a key/value pair or a comment. A section heading
 is enclosed in square brackets; key name and key value are separated by an
@@ -89,74 +65,46 @@ stored in a text file:
 #ifndef SMI_PROFILES_H
 #define SMI_PROFILES_H
 
-#include <string>
-#include <sstream>
-
 #include "SecondoConfig.h"
-#include "WinUnix.h"
+#include <string>
 
 class SMI_EXPORT SmiProfile
 {
  public:
-  static std::string GetParameter( const std::string& sectionName,
-                              const std::string& keyName,
-                              const std::string& defaultValue,
-                              const std::string& fileName,
-                              const bool expand=true );
+  static string GetParameter( const string& sectionName,
+                              const string& keyName, 
+                              const string& defaultValue,
+                              const string& fileName );
 /*
-Searches the profile ~fileName~ for the key ~keyName~ under the section heading
-~sectionName~. If found, the associated string is returned, else the
+searches the profile ~fileName~ for the key ~keyName~ under the section heading
+~sectionName~. If found, the associated string is returned, else the 
 default value is returned.
 
-If ~sectionName~ is the empty string, it will be ignored. i.e. ALL sections are
-searched.
-
 */
 
-
-  static std::string GetUniqueSocketName(const std::string& fileName,
-                                         const std::string& port);
-
-
-/*
-If many Secondo installations are placed on the same server, the name of the 
-socket used to communicate with the SecondoRegistrar process needs to be 
-unique. Since the port 
-number for client server communication needs also to be unique we use it as
-identifier in the socket name. During runtime, a file like
- tmp/SECREGIS\_port1234
-may represent such a socket.
-
-*/
-
-
-
-  static long   GetParameter( const std::string& sectionName,
-                              const std::string& keyName,
+  static long   GetParameter( const string& sectionName,
+                              const string& keyName,
                               long          defaultValue,
-                              const std::string& fileName );
+                              const string& fileName );
 /*
-Searches the profile ~fileName~ for the key ~keyName~ under the section heading
+searches the profile ~fileName~ for the key ~keyName~ under the section heading
 ~sectionName~. The function returns
 
   * ~zero~ -- if the key value is not an integer,
 
-  * ~actual value~ -- if it is possible to interpret the key value as an
+  * ~actual value~ -- if it is possible to interpret the key value as an 
 integer (Note that only the beginning of the key value is interpreted, i.e.
-"key=345abc"[4] returns "345"[4])
+"key=345abc"[3] returns "345"[3])
 
   * ~default value~ -- if key or section not found
 
-If ~sectionName~ is the empty string, it will be ignored. i.e. ALL sections are
-searched.
-
 */
-  static bool   SetParameter( const std::string& sectionName,
-                              const std::string& keyName,
-                              const std::string& keyValue,
-                              const std::string& fileName );
+  static bool   SetParameter( const string& sectionName,
+                              const string& keyName,
+                              const string& keyValue,
+                              const string& fileName );
 /*
-Searches the profile ~fileName~ for the section heading ~sectionName~ and
+searches the profile ~fileName~ for the section heading ~sectionName~ and
 the key ~keyName~. If found the value is changed to ~keyValue~, otherwise
 it will be added.
 

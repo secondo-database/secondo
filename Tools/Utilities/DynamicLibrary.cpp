@@ -1,24 +1,4 @@
 /*
----- 
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
 1 Dynamic Library Management
 
@@ -26,19 +6,14 @@ January 2002 Ulrich Telle
 
 */
 
-
 #include "SecondoConfig.h"
 #include "DynamicLibrary.h"
-
 
 #ifndef SECONDO_WIN32
 #include <dlfcn.h>
 #endif
 
-#include <cassert>
-
 using namespace std;
-
 
 DynamicLibrary::DynamicLibrary()
   : libraryHandle( 0 ), libName( "" ), errorMessage( "" )
@@ -87,7 +62,7 @@ DynamicLibrary::Unload()
   if ( IsLoaded() )
   {
 #ifdef SECONDO_WIN32
-    ok = (::FreeLibrary( static_cast<HINSTANCE>(libraryHandle) ) != 0);
+    ok = ::FreeLibrary( static_cast<HINSTANCE>(libraryHandle) );
     libraryHandle = 0;
 #else
     ok = ::dlclose( libraryHandle ) == 0;
@@ -132,9 +107,8 @@ DynamicLibrary::GetFunctionAddress( const string& functionName )
   if ( IsLoaded() )
   {
 #ifdef SECONDO_WIN32
-    functionAddr = (void*) ::GetProcAddress( 
-	static_cast<HINSTANCE>(libraryHandle),
-        functionName.c_str());
+    functionAddr = ::GetProcAddress( static_cast<HINSTANCE>(libraryHandle),
+                                     functionName.c_str());
 #else
     functionAddr = ::dlsym( libraryHandle, functionName.c_str() );
 #endif
@@ -165,12 +139,12 @@ DynamicLibrary::SetErrorMessage()
 #ifdef SECONDO_WIN32
   ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
                    NULL, GetLastError(),
-                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
                    (LPTSTR) &msgBuffer, 0, NULL );
   errorMessage = msgBuffer;
   LocalFree( msgBuffer );
 #else
-  msgBuffer = (char*)::dlerror();
+  msgBuffer = ::dlerror();
   errorMessage = (msgBuffer != 0) ? msgBuffer : "";
 #endif
 }

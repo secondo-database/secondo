@@ -1,24 +1,4 @@
 /*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
 1 UnixSocket -- Socket implementation for Unix-like platforms
 
@@ -33,25 +13,15 @@ For a description of the public interface see the ~SocketIO~ header file.
 
 */
 
-// Uncomment the following line to apply Thomas Achmann's patch to handle
-// limited length of socket names.
-// On Linux64 palttform, this makes Secondo report errors and crash when
-// connecting in the client server mode.
-
-#define ACHMANNPATCH
-
-#include "SecondoConfig.h"
-#include "WinUnix.h"
-
 #if defined(__svr4__)
 #define mutex system_mutex
 #define socklen_t int
 #ifndef INADDR_NONE
 #define INADDR_NONE -1
 #endif
-#endif
+#endif 
 
-#ifdef SECONDO_UNIX
+#ifdef SECONDO_LINUX
 #include <sys/ioctl.h>
 #else
 #include <stropts.h>
@@ -62,22 +32,11 @@ For a description of the public interface see the ~SocketIO~ header file.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/utsname.h>
-#ifndef offsetof
-#include <stddef.h>
-#endif
-
-#ifdef ACHMANNPATCH
-#include <sys/un.h>
-#endif
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <errno.h>
-
-//#include <sys/select.h>
-
 extern "C" {
 #include <netdb.h>
 }
@@ -86,19 +45,28 @@ extern "C" {
 #include "UnixSocket.h"
 #include <cstdio>
 #include <signal.h>
-#include <string.h>
 #include <string>
-#include <iostream>
-#include <cassert>
-
-#include "LogMsg.h"
-
-using namespace std;
 
 #define MAX_HOST_NAME   256
 
-
 const string unixSocketDir = "/tmp/";
+
+/*
+1.1 Initialization of ~Socket~ library
+
+*/
+class UnixSocketLibrary
+{
+ public:
+  UnixSocketLibrary()
+  {
+    static struct sigaction sigpipeIgnore;
+    sigpipeIgnore.sa_handler = SIG_IGN;
+    sigaction( SIGPIPE, &sigpipeIgnore, NULL );
+  }
+};
+
+static UnixSocketLibrary unisockLib;
 
 bool
 Socket::IsLibraryInitialized()
@@ -110,12 +78,8 @@ Socket::IsLibraryInitialized()
 1.1 Global and Local Unix Sockets
 
 */
-UnixSocket::UnixSocket( const string& addr,
-                        const string& port, const SocketDomain domain,
-                        std::ostream* _traceInStream,
-                        std::ostream* _traceOutStream,
-                        bool _destroyStreams )
-{
+UnixSocket::UnixSocket( const string& addr, const string& port, const SocketDomain domain )
+{ 
   hostAddress    = addr;
   hostPort       = port;
   if ( domain == SockAnyDomain &&
@@ -131,39 +95,24 @@ UnixSocket::UnixSocket( const string& addr,
   lastError      = EC_OK;
   ioSocketBuffer = 0;
   ioSocketStream = 0;
-  traceInStream = _traceInStream;
-  traceOutStream = _traceOutStream;
-  destroyStreams = _destroyStreams;
-
 }
 
-UnixSocket::UnixSocket( int newFd,
-                        ostream* _traceInStream,
-                        ostream* _traceOutStream,
-                        bool _destroyStreams )
-{
-  fd = newFd;
+UnixSocket::UnixSocket( int newFd ) 
+{ 
+  fd = newFd; 
   hostAddress = "";
   hostPort = "";
   createFile = false;
-  state = SS_OPEN;
+  state = SS_OPEN; 
   lastError = EC_OK;
-  traceInStream = _traceInStream;
-  traceOutStream = _traceOutStream;
-  destroyStreams = _destroyStreams;
-  ioSocketBuffer = new SocketBuffer(*this);
+  ioSocketBuffer = new SocketBuffer( *this );
   ioSocketStream = new iostream( ioSocketBuffer );
   ioSocketStream->clear();
 }
 
-
-
 UnixSocket::~UnixSocket()
 {
-  try{
-     Close();
-  } catch(...) {}
-
+  Close();
   if ( createFile )
   {
     char name[MAX_HOST_NAME];
@@ -171,68 +120,28 @@ UnixSocket::~UnixSocket()
     unlink( name );
   }
   if ( ioSocketStream != 0 )
-  { try{
-       delete ioSocketStream;
-    } catch(...) {}
-    ioSocketStream=0;
+  {
+    delete ioSocketStream;
   }
   if ( ioSocketBuffer != 0 )
   {
-    try{
-        delete ioSocketBuffer;
-    } catch(...) {}
-    ioSocketBuffer=0;
-  }
-  destroyTracing();
-}
-
-void UnixSocket::destroyTracing(){ 
-  if(destroyStreams){
-      if(traceInStream==traceOutStream){
-         traceOutStream = 0;
-      }
-      if(traceInStream){
-         delete traceInStream;
-         traceInStream = 0;
-      }
-      if(traceOutStream){
-          delete traceOutStream;
-          traceOutStream = 0;
-      }
+    delete ioSocketBuffer;
   }
 }
-
-void UnixSocket::setTraceStreams( std::ostream* _traceInStream,
-                      std::ostream* _traceOutStream,
-                      bool _destroyStreams) {
-   destroyTracing();
-   traceInStream = _traceInStream;
-   traceOutStream = _traceOutStream;
-   destroyStreams = _destroyStreams;
-}
-
-
-
-
-
 
 bool
-UnixSocket::Open( const int listenQueueSize,
-                  const int sockType, const int flags )
+UnixSocket::Open( const int listenQueueSize, const int sockType, const int flags )
 {
   union
   {
     sockaddr    sock;
-#ifdef ACHMANNPATCH
-    sockaddr_un sock_unix;
-#endif
     sockaddr_in sock_inet;
     char        name[MAX_HOST_NAME];
   } u;
   int sa_len;
 
-  createFile = false;
-
+  createFile = false; 
+  
   if ( hostAddress.length() > 0 )
   {
     char hostname[MAX_HOST_NAME];
@@ -243,23 +152,16 @@ UnixSocket::Open( const int listenQueueSize,
       lastError = EC_BAD_ADDRESS;
       return (false);
     }
-
+    
     if ( domain == SockLocalDomain )
     {
-#ifdef ACHMANNPATCH
-      u.sock_unix.sun_family = AF_UNIX;
-      sa_len = offsetof( sockaddr_un, sun_path ) +
-                          sprintf( u.sock_unix.sun_path, "%s%s",
-                          unixSocketDir.c_str(), hostAddress.c_str() );
-      unlink( u.sock_unix.sun_path ); // remove file if existed
-#else
       u.sock.sa_family = AF_UNIX;
-      sa_len = offsetof( sockaddr, sa_data ) +
-                          sprintf( u.sock.sa_data, "%s%s",
-                          unixSocketDir.c_str(), hostAddress.c_str() );
+      sa_len = offsetof( sockaddr, sa_data ) + 
+               sprintf( u.sock.sa_data, "%s%s", 
+               unixSocketDir.c_str(), hostAddress.c_str() );
+      
       unlink( u.sock.sa_data ); // remove file if existed
-#endif
-      createFile = true;
+      createFile = true; 
     }
     else
     {
@@ -267,13 +169,13 @@ UnixSocket::Open( const int listenQueueSize,
       u.sock_inet.sin_addr.s_addr = htonl( INADDR_ANY );
       u.sock_inet.sin_port = htons( port );
       sa_len = sizeof(sockaddr_in);
-    }
+    } 
   }
   else
   {
     u.sock.sa_family = AF_INET;
     sa_len = 0;
-  }
+  } 
   if ( (fd = socket( u.sock.sa_family, sockType, 0 )) < 0)
   {
     lastError = errno;
@@ -284,7 +186,7 @@ UnixSocket::Open( const int listenQueueSize,
     int on = 1;
     setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, (char*) &on, sizeof(on) );
 
-    if ( ::bind( fd, &u.sock, sa_len ) < 0 )
+    if ( bind( fd, &u.sock, sa_len ) < 0 )
     {
       lastError = errno;
       ::close(fd);
@@ -303,9 +205,8 @@ UnixSocket::Open( const int listenQueueSize,
   else if ( flags & ENABLE_BROADCAST )
   {
     int enabled = 1;
-    setsockopt( fd, SOL_SOCKET, SO_BROADCAST,
-                (char*) &enabled, sizeof(enabled) );
-  }
+    setsockopt( fd, SOL_SOCKET, SO_BROADCAST, (char*) &enabled, sizeof(enabled) );
+  }    
   lastError = EC_OK;
   state = SS_OPEN;
   return (true);
@@ -320,7 +221,7 @@ UnixSocket::IsOk()
 string
 UnixSocket::GetErrorText()
 {
-  string msg;
+  string msg; 
   switch (lastError)
   {
     case EC_OK:
@@ -337,14 +238,14 @@ UnixSocket::GetErrorText()
       break;
     case EC_BROKEN_PIPE:
       msg = "Connection is broken";
-      break;
+      break; 
     case EC_INVALID_ACCESS_MODE:
       msg = "Invalid access mode";
       break;
     case EC_MESSAGE_TRUNCATED:
       msg = "Sent message was truncated";
       break;
-    default:
+    default: 
       msg = strerror( lastError );
       break;
   }
@@ -408,11 +309,8 @@ UnixSocket::GetPeerAddress() const
 }
 
 Socket*
-UnixSocket::Accept( ostream* traceInStream,
-                    ostream* traceOutStream,
-                    bool destroyStreams)
+UnixSocket::Accept()
 {
-  
   int s;
 
   if ( state != SS_OPEN )
@@ -443,7 +341,7 @@ UnixSocket::Accept( ostream* traceInStream,
                        (char*) &enabled, sizeof(enabled) ) != 0 )
       {
         lastError = errno;
-        ::close( s );
+        ::close( s );    
         return (NULL);
       }
     }
@@ -451,10 +349,10 @@ UnixSocket::Accept( ostream* traceInStream,
     {
       lastError = EC_INVALID_ACCESS_MODE;
       ::close( s );
-      return (NULL);
+      return (NULL); 
     }
     lastError = EC_OK;
-    return (new UnixSocket( s, traceInStream, traceOutStream, destroyStreams));
+    return (new UnixSocket( s ));
   }
 }
 
@@ -470,13 +368,13 @@ UnixSocket::GetDescriptor()
 }
 
 bool
-UnixSocket::CancelAccept()
+UnixSocket::CancelAccept() 
 {
   // Wakeup listener
   state = SS_SHUTDOWN;
   delete Socket::Connect( hostAddress, hostPort, domain, 1, 0 );
   return (true);
-}
+}  
 
 bool
 UnixSocket::Connect( int maxAttempts, time_t timeout )
@@ -493,14 +391,11 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
       return (false);
     }
   }
-  createFile = false;
+  createFile = false; 
 
   union
-  {
+  { 
     sockaddr    sock;
-#ifdef ACHMANNPATCH
-    sockaddr_un sock_unix;
-#endif
     sockaddr_in sock_inet;
     char        name[MAX_HOST_NAME];
   } u;
@@ -512,29 +407,20 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
        (hostPort.length() == 0 || hostAddress == "localhost")) )
   {
     // connect UNIX socket
-#ifdef ACHMANNPATCH
-    u.sock_unix.sun_family = AF_UNIX;
-    sa_len = offsetof( sockaddr_un, sun_path ) +
-             sprintf( u.sock_unix.sun_path, "%s%s",
-                      unixSocketDir.c_str(), hostAddress.c_str() );
-    //unlink( u.sock_unix.sun_path ); // remove file if existed
-    //createFile = true;
-#else
     u.sock.sa_family = AF_UNIX;
     sa_len = offsetof( sockaddr, sa_data ) +
              sprintf( u.sock.sa_data, "%s%s",
              unixSocketDir.c_str(), hostAddress.c_str() );
-#endif
   }
   else
   {
-    u.sock_inet.sin_family = AF_INET;
+    u.sock_inet.sin_family = AF_INET;  
     u.sock_inet.sin_addr.s_addr = inet_addr( hostAddress.c_str() );
-
+  
     if ( (int)(u.sock_inet.sin_addr.s_addr) == -1 )
     {
       struct hostent* hp;  // entry in hosts table
-      if ( (hp = gethostbyname( hostAddress.c_str() )) == NULL ||
+      if ( (hp = gethostbyname( hostAddress.c_str() )) == NULL || 
             hp->h_addrtype != AF_INET )
       {
         lastError = EC_BAD_ADDRESS;
@@ -587,7 +473,7 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
                          (char*) &enabled, sizeof(enabled) ) != 0 )
         {
           lastError = errno;
-          ::close( fd );
+          ::close( fd );    
           return (false);
         }
       }
@@ -605,7 +491,7 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
 
 int
 UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
-{
+{ 
   size_t size = 0;
   time_t start = 0;
   if ( state != SS_OPEN )
@@ -616,11 +502,11 @@ UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
   }
   if ( timeout != WAIT_FOREVER )
   {
-    start = time( NULL );
+    start = time( NULL ); 
   }
   do
   {
-    ssize_t rc;
+    ssize_t rc; 
     if ( timeout != WAIT_FOREVER)
     {
       fd_set events;
@@ -642,7 +528,7 @@ UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
         return (size);
       }
       time_t now = time( NULL );
-      timeout = start + timeout >= now ? timeout + start - now : 0;
+      timeout = start + timeout >= now ? timeout + start - now : 0;  
     }
     while ( (rc = ::read( fd, (char*) buf + size, maxSize - size )) < 0 &&
             errno == EINTR );
@@ -656,26 +542,21 @@ UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
     {
       SetStreamState( ios::failbit | ios::eofbit );
       lastError = EC_BROKEN_PIPE;
-      return (-1);
+      return (-1); 
     }
     else
     {
-      if(traceInStream){
-        traceInStream->write((char*)buf+size,rc);
-        traceInStream->flush();
-      }
-      size += rc;
+      size += rc; 
     }
   }
-  while (size < minSize);
-
+  while (size < minSize); 
 
   return ((int) size);
 }
 
 bool
 UnixSocket::Read( void* buf, size_t size )
-{
+{ 
   if ( state != SS_OPEN )
   {
     SetStreamState( ios::failbit );
@@ -685,7 +566,7 @@ UnixSocket::Read( void* buf, size_t size )
 
   do
   {
-    ssize_t rc;
+    ssize_t rc; 
     while ( (rc = ::read( fd, buf, size )) < 0 && errno == EINTR );
     if ( rc < 0 )
     {
@@ -701,98 +582,52 @@ UnixSocket::Read( void* buf, size_t size )
     }
     else
     {
-      if(traceInStream){
-        traceInStream->write((char*)buf,rc);
-        traceInStream->flush();
-      }
-      buf = (char*) buf + rc;
-      size -= rc;
+      buf = (char*) buf + rc; 
+      size -= rc; 
     }
   }
-  while ( size != 0 );
+  while ( size != 0 ); 
 
   return (true);
 }
-
+    
 bool
 UnixSocket::Write( void const* buf, size_t size )
-{
-  int sleepCtr = 0;
-  int writeAttempts = 0;
-
+{ 
   if ( state != SS_OPEN )
   {
-    cerr << "EC_NOT_OPENED" << endl;
     SetStreamState( ios::failbit );
     lastError = EC_NOT_OPENED;
     return (false);
   }
-
+  
   do
   {
-    ssize_t rc;
-
-    // Write the content of the buffer onto the socket, set 
-    // MSG_NOSIGNAL to prevent the SIGPIPE signal when writing 
-    // on an already closed socket. Set the ios::failbit instead 
-    // and let the application code handle the failure.
-
-#ifdef SECONDO_MAC_OSX
-#ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL SO_NOSIGPIPE
-#endif
-#endif
-
-    while ((rc = ::send(fd, buf, size, MSG_NOSIGNAL)) < 0) {
-
-       if(errno != EINTR) {
-          break;
-       }
- 
-       usleep(100); 
-       sleepCtr++; 
-    }
-   
-    if ( (rc <=0 ) &&  (errno == EPIPE))
+    ssize_t rc; 
+    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR );
+    if ( rc < 0 )
     {
-      cerr << "Broken Pipe!" << endl;
-      cerr << "rc = " << rc << ", errno = " << errno 
-           << ", size = " << size << endl;
-      SetStreamState( ios::failbit | ios::eofbit );
-      lastError = EC_BROKEN_PIPE;
-      return (false);
-    }
-    else if ( rc < 0 )
-    {
-      cerr << "Lasterror = " << errno << endl;
       SetStreamState( ios::failbit );
       lastError = errno;
       return (false);
     }
+    else if ( rc == 0 )
+    {
+      SetStreamState( ios::failbit | ios::eofbit );
+      lastError = EC_BROKEN_PIPE;
+      return (false);
+    }
     else
-    { // the cast below is necessary to avoid a warning of
-      // comparison of signed and unsigned values.
-      if ( ((size_t) rc) < size ) { writeAttempts++; }
-      if(traceOutStream){
-         traceOutStream->write((char*)buf,rc);
-         traceOutStream->flush();
-      }
-
-      buf = (char*) buf + rc;
-      size -= rc;
+    {
+      buf = (char*) buf + rc; 
+      size -= rc; 
     }
   }
-  while (size != 0);
+  while (size != 0); 
 
-  LOGMSG( "Socket:SendStat",
-    if ( writeAttempts || sleepCtr ) {
-      cerr << "Write Attempts: " << writeAttempts
-           << ", " << "Sleep calls (100ms): " << sleepCtr << endl;
-    }
-  )
   return (true);
 }
-
+    
 bool
 UnixSocket::Close()
 {
@@ -829,8 +664,8 @@ UnixSocket::ShutDown()
       SetStreamState( ios::failbit );
       lastError = errno;
       return (false);
-    }
-  }
+    } 
+  } 
   return (true);
 }
 
@@ -844,40 +679,25 @@ UnixSocket::SetStreamState( ios::iostate newState )
 }
 
 Socket*
-Socket::CreateLocal( const string& address, const int listenQueueSize,
-                     ostream* traceInStream,
-                     ostream* traceOutStream,
-                     bool destroyStreams )
+Socket::CreateLocal( const string& address, const int listenQueueSize )
 {
-  UnixSocket* sock = new UnixSocket( address, "0", SockLocalDomain ,
-                                    traceInStream, traceOutStream, 
-                                    destroyStreams);
+  UnixSocket* sock = new UnixSocket( address, "0", SockLocalDomain );
   sock->Open( listenQueueSize, SOCK_STREAM );
   return (sock);
 }
 
 Socket*
-Socket::CreateGlobal( const string& address,
-                      const string& port, const int listenQueueSize,
-                      ostream* traceInStream,
-                      ostream* traceOutStream,
-                      bool destroyStreams )
+Socket::CreateGlobal( const string& address, const string& port, const int listenQueueSize )
 {
-  UnixSocket* sock = new UnixSocket( address, port, SockGlobalDomain,
-                                     traceInStream, traceOutStream,
-                                     destroyStreams );
+  UnixSocket* sock = new UnixSocket( address, port, SockGlobalDomain );
   sock->Open( listenQueueSize, SOCK_STREAM );
   return (sock);
 }
 
 Socket*
-Socket::CreateClient( const SocketDescriptor sd,
-                      ostream* traceInStream,
-                      ostream* traceOutStream,
-                      bool destroyStreams )
+Socket::CreateClient( const SocketDescriptor sd )
 {
-  UnixSocket* sock = new UnixSocket( sd, traceInStream, traceOutStream, 
-                                     destroyStreams);
+  UnixSocket* sock = new UnixSocket( sd );
   return (sock);
 }
 
@@ -922,23 +742,18 @@ Socket::GetHostname( const string& ipAddress )
 
 Socket*
 Socket::Connect( const string& address, const string& port,
-                 const SocketDomain domain,
-                 const int maxAttempts, const time_t timeout,
-                 ostream* traceInStream,
-                 ostream* traceOutStream,
-                 bool destroyStreams )
+                 const SocketDomain domain, 
+                 const int maxAttempts, const time_t timeout )
 {
-  UnixSocket* sock = new UnixSocket( address, port, domain, 
-                                     traceInStream, traceOutStream,
-                                     destroyStreams );
-  sock->Connect( maxAttempts, timeout);
+  UnixSocket* sock = new UnixSocket( address, port, domain );
+  sock->Connect( maxAttempts, timeout );
   return (sock);
 }
 
-
+  
 string
-GetProcessName()
-{
+GetProcessName() 
+{ 
   static char name[MAX_HOST_NAME+8];
   struct utsname localHost;
   uname( &localHost );
@@ -946,8 +761,5 @@ GetProcessName()
   return (name);
 }
 
-//=============================================================================
-// Unix implementation of UDPSockets
-//=============================================================================
-
 // --- End of source ---
+

@@ -1,30 +1,43 @@
-#This file is part of SECONDO.
+########################################################################
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-#Database Systems for New Applications.
+# SECONDO makefile definitions for Windows and MinGW gcc 2.95.3
 #
-#SECONDO is free software; you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2 of the License, or
-#(at your option) any later version.
-#
-#SECONDO is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with SECONDO; if not, write to the Free Software
-#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+########################################################################
 
-############################################################
-#
-# SECONDO makefile definitions for Windows and MinGW gcc
-#
-############################################################
+# Secondo build directory
+BUILDDIR = /Diplom/Redesign/Secondo-Neu
+INCLUDEDIR = $(BUILDDIR)/include
+LIBDIR = -L$(BUILDDIR)/lib
+SMILIB = -lsmibdb
+TOOLLIB = -lsdbtool
+DEFAULTLIB = -lws2_32 -lstdc++
 
-# System dependent default libraries
-DEFAULTLIB = -lws2_32 -lm -lstdc++ -lpthread
+# Berkeley DB library
+BDBDIR = /Diplom/Libraries/Berkeley-DB/db-4.0.14
+BDBINCLUDE = -I$(BDBDIR)/include -I$(BDBDIR)/build_mingw
+BDBLIBDIR = -L$(BDBDIR)/build_mingw
+BDBLIB = -ldb32
+
+# Oracle OCI C++ library
+ORACLEINCLUDE = /oracle/ora81/oci/include
+OCICPPDIR = /Diplom/Libraries/ocicpplib56
+OCICPPINCLUDE = -I$(OCICPPDIR)/ocicpp -I$(ORACLEINCLUDE)
+OCICPPLIBPATH = -L$(BUILDDIR)/lib
+OCICPPLIB = -locicpp -loci
+
+# Uncomment next line to compile with debugging information:
+#DEBUG = -g
+
+PLATFORM = win32
+CC = gcc
+LD = gcc
+AR = ar
+RANLIB = ranlib
+CP = cp
+RM = rm -f
+RC = windres
+LEX = flex
+YACC = bison
 
 EXEEXT = .exe
 
@@ -34,20 +47,18 @@ OBJEXT = o
 LIBEXT = dll
 LDFLAGS = -s -shared
 EXEFLAGS =
-# ... Windows needs special treatment when creating DLLs
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
 else
 PICFLAG =
 OBJEXT = o
 LIBEXT = a
 LDFLAGS =
-EXEFLAGS =
+EXEFLAGS = -static
 endif
 
-DLLPICFLAG =
-DLLOBJEXT = o
 DLLEXT = dll
 DLLFLAGS = -s -shared
 
-# Set up default flags for the compiler
-DEFAULTCCFLAGS += -mconsole
+DEFAULTCCFLAGS = -I. -I$(INCLUDEDIR) -mconsole -O2 -Wall -D_REENTRANT
+
+.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
+

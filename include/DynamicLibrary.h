@@ -1,25 +1,4 @@
 /*
----- 
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
 //paragraph	[10]	title:		[{\Large \bf ] [}]
 //paragraph	[11]	title:		[{\large \bf ] [}]
 //paragraph	[12]	title:		[{\normalsize \bf ] [}]
@@ -30,7 +9,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
-//characters	[4]	teletype:	[\texttt{]	[}]
+//characters	[3]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -79,10 +58,10 @@ the same. Using C++ things get more complicated since due to the name
 mangling the C++ compiler performs to make calling functions type-safe
 and to allow overloading of functions.
 For example the function name ~init~ might look like
-"init\_int23\@myclass\@qbe\_ev\_abc"[4] or something similar strange. So
+~init\_int23\@myclass\@qbe\_ev\_abc~ or something similar strange. So
 finding the function isn't an easy task, but there is a way out of the
 problem when there exists at least *one* C call protected from name
-mangling with "extern C"[4] in the dynamic library that returns a pointer
+mangling with ~extern C~ in the dynamic library that returns a pointer
 to a class instance. Clever as it is this ~trick~ solves only part of
 the problem since the calling program wont actually have any knowledge
 about the object, unless there is a common parent class from which the
@@ -118,66 +97,60 @@ system specific mechanisms to load libraries at runtime.
 #define DYNAMIC_LIBRARY_H
 
 #include "SecondoConfig.h"
-#ifdef SECONDO_WIN32
-#include <windows.h>
-#endif
-
-#include<string>
-
 
 class SDB_EXPORT DynamicLibrary
 {
  public:
   DynamicLibrary();
 /*
-Initializes the ~DynamicLibrary~ object.
+initializes the ~DynamicLibrary~ object.
 Once the object is constructed, use the method ~Load~
 to dynamically link to a dynamic library while the process is running.
 
 */
   virtual ~DynamicLibrary();
 /*
-Destroys an instance of ~DynamicLibrary~
+destroys an instance of ~DynamicLibrary~
 The method ~Unload~ is call implicitly.
 
 */
-  bool Load( const std::string& libraryName );
+  bool Load( const string& libraryName );
 /*
-Loads a dynamic library ~libraryName~ into a process while it is
+loads a dynamic library ~libraryName~ into a process while it is
 running (dynamic linking).
-The method returns "true"[4] on success, otherwise "false"[4].
+The method returns ~true~ on success, otherwise ~false~.
 On failure use method ~GetLastErrorMessage~ to get an error
 message.
 
 */
   bool Unload();
 /*
-Unloads a dynamic library from a process while it is running.
-The method returns "true"[4] on success, otherwise "false"[4].
+unloads a dynamic library from a process while it is running.
+The method returns ~true~ on success, otherwise ~false~.
 On failure use method ~GetLastErrorMessage~ to get an error
 message.
 
 */
   bool IsLoaded() const;
 /*
-Returns "true"[4] if a dynamic library is currently loaded into the process.
+returns true if a dynamic library is currently loaded into the process.
 
 */
-  std::string GetLibraryName() const;
+  string GetLibraryName() const;
 /*
-Returns the name of the currently loaded dynamic library.
+returns the name of the currently loaded dynamic library.
 An empty string is returned when no library is loaded.
 
 */
-  void* GetFunctionAddress( const std::string& functionName );
+  void* GetFunctionAddress( const string& functionName );
 /*
-Finds the function named ~functionName~ and returns a function pointer to it.
+finds the function named ~functionName~ and returns a function pointer to it.
 If the function cannot be found, a null pointer is returned.
 
 */
-  std::string GetLastErrorMessage();
+  string GetLastErrorMessage();
 /*
-Returns the error message text of the last failed class method.
+returns the error message text of the last failed class method.
 An empty string is returned when no error occurred.
 The internal message buffer is emptied.
 
@@ -188,12 +161,12 @@ The internal message buffer is emptied.
 #else
   void* libraryHandle;
 #endif
-  std::string libName;       // Name of currently loaded library
-  std::string errorMessage;  // Error message text
+  string libName;       // Name of currently loaded library
+  string errorMessage;  // Error message text
  private:
   void SetErrorMessage();
 /*
-Is used to create an error message when one of dynamic library system calls failed.
+is used to create an error message when one of dynamic library system calls failed.
 The method ~GetLastErrorMessage~ returns this message to the user on request.
 
 */

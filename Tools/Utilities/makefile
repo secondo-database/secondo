@@ -1,47 +1,53 @@
-#This file is part of SECONDO.
-#
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-#Database Systems for New Applications.
-#
-#SECONDO is free software; you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2 of the License, or
-#(at your option) any later version.
-#
-#SECONDO is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with SECONDO; if not, write to the Free Software
-#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 ########################################################################
 #
 # SECONDO makefile for utility modules
 #
 ########################################################################
 
-include ../../makefile.env
+include ../../makefile.config
+ifdef platform
+include ../../makefile.$(platform)
+.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 
-CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
-ifeq ($(platform),android)
-CCFLAGS += -DSECONDO_ANDROID 
-endif
-
+OBJECTS=\
+	Processes.$(OBJEXT) \
+	Application.$(OBJEXT) \
+	Messenger.$(OBJEXT) \
+	DynamicLibrary.$(OBJEXT) \
+	Profiles.$(OBJEXT) \
+	FileSystem.$(OBJEXT)
 
 .PHONY: all
-all:  Crypt.o $(OBJECTS)
+all: $(OBJECTS)
 
-Crypt.o: Crypt.cpp
-	$(CC) -fPIC -c -I ../../include -Wall -o Crypt.o $<
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
+DynamicLibrary.$(OBJEXT): DynamicLibrary.cpp ../../include/DynamicLibrary.h
+	$(CC) -c -o DynamicLibrary.$(OBJEXT) DynamicLibrary.cpp $(CCFLAGS)
+
+Profiles.$(OBJEXT): Profiles.cpp ../../include/Profiles.h
+	$(CC) -c -o Profiles.$(OBJEXT) Profiles.cpp $(CCFLAGS)
+
+FileSystem.$(OBJEXT): FileSystem.cpp ../../include/FileSystem.h
+	$(CC) -c -o FileSystem.$(OBJEXT) FileSystem.cpp $(CCFLAGS)
+
+Processes.$(OBJEXT): Processes.cpp ../../include/Processes.h ../../include/SocketIO.h ../../include/SecondoConfig.h
+	$(CC) -c -o Processes.$(OBJEXT) Processes.cpp $(CCFLAGS)
+
+Application.$(OBJEXT): Application.cpp ../../include/Application.h ../../include/SocketIO.h ../../include/SecondoConfig.h
+	$(CC) -c -o Application.$(OBJEXT) Application.cpp $(CCFLAGS)
+
+Messenger.$(OBJEXT): Messenger.cpp ../../include/Messenger.h
+	$(CC) -c -o Messenger.$(OBJEXT) Messenger.cpp $(CCFLAGS)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) $(DEP_FILES) 
+	$(RM) *.o
+	$(RM) *.lo
+
+else
+# Platform not specified
+all:
+	@echo *** Platform not specified in makefile.config
+endif
 

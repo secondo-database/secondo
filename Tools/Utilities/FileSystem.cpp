@@ -1,51 +1,14 @@
 /*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
 1 File System Management
 
-May 2002 Ulrich Telle
-
-Sept 2004 M. Spiekermann. Bugs in ~GetparentFolder~ and ~AppendSlash~ corrected.
-
-Sept 2006 M. Spiekermann. When windows.h is included many WIN-API functions
-like ~CopyFile~ are defined as a macro and mapped to ~CopyFileA~ or
-~CopyFileB~. This is very awful since code parts using the
-same name like class member functions are also renamed which causes strange
-linker errors!
-
-June 2009 Sven Jungnickel new function MakeTemp() added.
+December 2001 Ulrich Telle
 
 */
 
-
-#include "SecondoException.h"
 #include "SecondoConfig.h"
-#include <iostream>
-#include <cassert>
 
 #ifdef SECONDO_WIN32
-#include <io.h>
-#include <windows.h>
-#include <time.h>
+#  include <io.h>
 #else
 #include <unistd.h>
 #include <sys/stat.h>
@@ -53,49 +16,6 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 #endif
 
 #include "FileSystem.h"
-#include "LogMsg.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <cstring>
-
-#include <sstream>
-#include <stdexcept>
-
-#include "WinUnix.h"
-
-#include <stack>
-
-#ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
-#endif
-
-
-using namespace std;
-
-/*
-2 ~FileErr~ a class representing Nested-List exceptions
-
-*/
-class FileErr : public SecondoException {
-
-  public:
-
-  FileErr(const string& Msg, const int rc) : SecondoException(Msg), rc(rc) {}
-  const string msg() {
-    /*
-    stringstream tmp;
-    tmp << msgStr << "( rc = " << rc ")";
-    return tmp.str(); */
-    return msgStr;
-  }
-
-  private:
-  int rc;
-
-};
-
-
 
 #ifdef SECONDO_WIN32
 const FileAttributes attrMask = ( FILE_ATTRIBUTE_HIDDEN   |
@@ -137,27 +57,6 @@ FileSystem::GetCurrentFolder()
   return (folder);
 }
 
-
-string
-FileSystem::GetParentFolder( const string& folder, int level /* =1 */)
-{
-  string parent = folder;
-  string::size_type n = parent.find_last_of(PATH_SLASH[0]);
-
-  if ( n != string::npos ) { // erase path information
-    parent.erase(n);
-  } else {
-     return ""; // no parent found
-  }
-
-  if (level-1) {
-    return GetParentFolder(parent,level-1);
-  } else {
-    return parent;
-  }
-}
-
-
 bool
 FileSystem::SetCurrentFolder( const string& folder )
 {
@@ -168,24 +67,6 @@ FileSystem::SetCurrentFolder( const string& folder )
   return (chdir( folder.c_str() ) ==0);
 #endif
 }
-
-bool FileSystem::CreateFolderEx(string pathname){
-
-  size_t pos = 0;
-  bool ret_val = true;
-
-   while(ret_val && pos != std::string::npos) {
-     pos = pathname.find(PATH_SLASH[0], pos + 1);
-     if(pos==std::string::npos){
-        ret_val = CreateFolder(pathname.substr(0, pos));
-     } else {
-        CreateFolder(pathname.substr(0, pos));
-     }
-   }
-  return ret_val;
-}
-
-
 
 bool
 FileSystem::CreateFolder( const string& folder )
@@ -198,40 +79,11 @@ FileSystem::CreateFolder( const string& folder )
 #endif
 }
 
-
-
-
-
-bool
-FileSystem::IsDirectory( const string& fileName )
-{
-  try {
-  if (fileName == "") {
-    return false;
-  }
-  FileAttributes fileAttribs = Get_FileAttributes( fileName );
-#ifdef SECONDO_WIN32
-  int isFolder = (fileAttribs & FILE_ATTRIBUTE_DIRECTORY);
-#else
-  int isFolder = S_ISDIR( fileAttribs );
-#endif
-    return isFolder != 0;
-  } catch (FileErr &f) {
-    cerr << f.msg();
-    return false;
-  }
-}
-
 bool
 FileSystem::DeleteFileOrFolder( const string& fileName )
 {
-  int rc=0;
-  const string errMsg = "Can't remove element \"" + fileName + "\"! ";
-  try {
-  if (fileName == "")
-    throw FileErr(errMsg, rc);
-
-  FileAttributes fileAttribs = Get_FileAttributes( fileName );
+  assert( &fileName );
+  FileAttributes fileAttribs = GetFileAttributes( fileName );
 #ifdef SECONDO_WIN32
   int isFolder = (fileAttribs & FILE_ATTRIBUTE_DIRECTORY);
 #else
@@ -242,33 +94,20 @@ FileSystem::DeleteFileOrFolder( const string& fileName )
   {
     // Remove the directory.
 #ifdef SECONDO_WIN32
-    rc = ::RemoveDirectory( fileName.c_str() );
-    if (!(rc != 0))
-      throw FileErr(errMsg, rc);
+    return (::RemoveDirectory( fileName.c_str() ) != 0);
 #else
-    rc = ::rmdir( fileName.c_str() );
-    if (!(rc == 0))
-      throw FileErr(errMsg, rc);
+    return (::rmdir( fileName.c_str() ) == 0);
 #endif
   }
   else
   {
     // Delete the file
 #ifdef SECONDO_WIN32
-    rc = ::DeleteFile( fileName.c_str() );
-    if (!(rc != 0))
-      throw FileErr(errMsg, rc);
+    return (::DeleteFile( fileName.c_str() ) != 0);
 #else
-    rc = ::unlink( fileName.c_str() );
-    if (!(rc == 0))
-      throw FileErr(errMsg, rc);
+    return (::unlink( fileName.c_str()) == 0);
 #endif
   }
-  } catch (FileErr &f) {
-    cerr << f.msg();
-    return false;
-  }
-  return true;
 }
 
 bool
@@ -277,7 +116,7 @@ FileSystem::EraseFolder( const string& folder, uint16_t maxLevels )
   assert( &folder );
 #ifdef SECONDO_WIN32
   // Determine file type
-  FileAttributes fileAttribs = Get_FileAttributes( folder );
+  FileAttributes fileAttribs = GetFileAttributes( folder );
   if ( fileAttribs & FILE_ATTRIBUTE_DIRECTORY )
   {
     // Remove the folder (directory):
@@ -318,12 +157,12 @@ FileSystem::RenameFileOrFolder( const string& currentName,
 #else
   string command = "mv " + currentName + " " + newName;
   int syserr = ::system( command.c_str() );
-  return (syserr == 0);
+  return (syserr != 127 && syserr != -1);
 #endif
 }
 
 bool
-FileSystem::Copy_File( const string& source, const string& dest )
+FileSystem::CopyFile( const string& source, const string& dest )
 {
   assert( &source );
   assert( &dest );
@@ -344,15 +183,14 @@ FileSystem::FileOrFolderExists( const string& fileName )
 }
 
 FileAttributes
-FileSystem::Get_FileAttributes( const string& fileName )
+FileSystem::GetFileAttributes( const string& fileName )
 {
   assert( &fileName );
   FileAttributes attribs = 0;
 #ifdef SECONDO_WIN32
   attribs = ::GetFileAttributes( fileName.c_str() );
-  if ( (void*) attribs == (void*)INVALID_HANDLE_VALUE ) {
+  if ( attribs == reinterpret_cast<FileAttributes>(INVALID_HANDLE_VALUE) )
     attribs = 0;
-  }
 #else
   struct stat filestatus;
   int rc = ::lstat( fileName.c_str(), &filestatus );
@@ -365,27 +203,15 @@ FileSystem::Get_FileAttributes( const string& fileName )
 }
 
 bool
-FileSystem::Set_FileAttributes( const string& fileName, FileAttributes attribs )
+FileSystem::SetFileAttributes( const string& fileName, FileAttributes attribs )
 {
+  assert( &fileName );
+  assert( &attribs );
 #ifdef SECONDO_WIN32
   return (::SetFileAttributes( fileName.c_str(), attribs ) != 0);
 #else
   return (::chmod( fileName.c_str(), attribs ) != -1);
 #endif
-}
-int32_t
-FileSystem::GetFileSize( const string& fileName )
-{
-  if(!FileOrFolderExists(fileName)) {
-    return -1;
-  }
-  std::ifstream f;
-  f.open(fileName.c_str(), std::ios_base::binary | std::ios_base::in);
-  if (!f.good() || f.eof() || !f.is_open()) { return 0; }
-  f.seekg(0, std::ios_base::beg);
-  std::ifstream::pos_type begin_pos = f.tellg();
-  f.seekg(0, std::ios_base::end);
-  return static_cast<int32_t>(f.tellg() - begin_pos);
 }
 
 bool
@@ -402,11 +228,7 @@ FileSystem::FileSearch( const string& folder,
 
   // Save the current folder and change to folder where the search starts.
   string oldFolder = GetCurrentFolder();
-  if(!SetCurrentFolder( folder ))
-  {
-    SetCurrentFolder(oldFolder);
-    return false;
-  }
+  SetCurrentFolder( folder );
 
   // Get absolute pathname of the current folder.
   string absoluteFolder = GetCurrentFolder();
@@ -509,7 +331,7 @@ delete each file.
       string pathName = absoluteFolder;
       AppendSlash( pathName );
       pathName += dirEntry->d_name;
-      FileAttributes fileAttribs = Get_FileAttributes( pathName );
+      FileAttributes fileAttribs = GetFileAttributes( pathName );
 /*
 The names of files in subfolders are inserted into the list before
 the names of subfolders are added. This ensures that folders are empty
@@ -527,7 +349,7 @@ delete each file.
 
       // Subfolders will only be added to the list if requested
 
-      if ( S_ISLNK( fileAttribs ) == 0 &&
+      if ( S_ISLNK( fileAttribs ) == 0 && 
           (!isFolder || (isFolder && includeFolders)) )
       {
         if ( !searchName ||
@@ -535,8 +357,7 @@ delete each file.
         {
           if ( !fileSearchCallback ||
               (fileSearchCallback &&
-               fileSearchCallback( absoluteFolder,
-                                   dirEntry->d_name, fileAttribs )) )
+               fileSearchCallback( absoluteFolder, dirEntry->d_name, fileAttribs )) )
           {
             if ( fullPath )
             {
@@ -558,151 +379,30 @@ delete each file.
   return true;
 }
 
-bool
-FileSystem::SearchPath( const string& fileName, string& foundFile )
-{
-  bool ok = false;
-#ifdef SECONDO_WIN32
-  char buffer[MAX_PATH];
-  char* filepart;
-  if ( ::SearchPath( NULL, fileName.c_str(), NULL,
-                     MAX_PATH, buffer, &filepart ) == 0 )
-  {
-    if ( ::SearchPath( NULL, fileName.c_str(), ".exe",
-                       MAX_PATH, buffer, &filepart ) != 0 )
-    {
-      foundFile = buffer;
-      ok = true;
-    }
-  }
-  else
-  {
-    foundFile = buffer;
-    ok = true;
-  }
-#else
-  if ( fileName[0] == PATH_SLASH[0] )
-  {
-    // file name is fully qualified
-    foundFile = fileName;
-    ok = FileOrFolderExists( fileName );
-  }
-  else
-  {
-    // 1. Search in current directory
-    string cwd = GetCurrentFolder();
-    AppendSlash( cwd );
-    foundFile = cwd + fileName;
-    ok = FileOrFolderExists( foundFile );
-    if ( !ok )
-    {
-      // 2. Search path if file name was not partially qualified
-      if ( fileName.find( PATH_SLASH ) != std::string::npos )
-      {
-        char* envPath = getenv( "PATH" );
-        if ( envPath != 0 )
-        {
-          string path;
-          string pathRest = envPath;
-          string::size_type delim;
-          while ( pathRest.length() > 0 )
-          {
-            delim = pathRest.find( ":" );
-            if ( delim != string::npos )
-            {
-              path = pathRest.substr( 0, delim-1 );
-              pathRest = pathRest.substr( delim+1 );
-            }
-            else
-            {
-              path = pathRest;
-              pathRest = "";
-            }
-            AppendSlash( path );
-            foundFile = path + fileName;
-            ok = FileOrFolderExists( foundFile );
-            if ( ok ) break;
-          }
-        }
-      }
-    }
-  }
-#endif
-  if ( !ok )
-  {
-    foundFile = "";
-  }
-  return (ok);
-}
-
-string
-FileSystem::MakeTemp(const string& templ)
-{
-  static int ctr = 0;	
-  #ifdef THREAD_SAFE
-     static boost::mutex mtx;
-     boost::lock_guard<boost::mutex> guard(mtx);  
-  #endif
-
-  // append CPU clock and placeholder for mktemp function
-  
-  stringstream ss;
-  ss << templ << clock() << "-" << WinUnix::getpid() << "-" << ctr++;
-
-  return ss.str();
-}
-
-void
-FileSystem::AppendItem( string& pathName, const string& item )
-{
-  string::size_type n = pathName.find_last_of(PATH_SLASH[0]);
-
-  if ( n != pathName.length() ) // last character is not a path separator
-  {
-    pathName += PATH_SLASH;
-    pathName += item;
-  }
-}
-
 void
 FileSystem::AppendSlash( string& pathName )
 {
-  AppendItem(pathName,"");
+  if ( pathName.length() )
+  {
+    size_t idx = pathName.length()-1;
+    if ( pathName[idx] != PATH_SLASH[0] )
+    {
+      pathName += PATH_SLASH;
+    }
+  }
 }
-
-string FileSystem::Basename(const string& pathName){
-   string path_sep = PATH_SLASH;
-   #ifdef SECONDO_WIN32
-      path_sep += "/";
-   #endif 
-   string::size_type n = pathName.find_last_of(path_sep);
-
-   if(n == string::npos){
-     return pathName;
-   }
-   if(n + 1 == pathName.length()){
-     if(n==0){
-        return pathName;
-     } else {
-        return Basename(pathName.substr(0,n));
-     }
-   }
-   return pathName.substr(n+1);
-}
-
-
 
 #ifdef SECONDO_WIN32
 void
 FileSystem::UnprotectFile( const string& fileName )
 {
   assert( &fileName );
-  FileAttributes fileAttribs = Get_FileAttributes( fileName );
+  FileAttributes fileAttribs = GetFileAttributes( fileName );
   if ( fileAttribs & attrMask )
   {
     // File has attributes that must be cleared before it may be deleted.
     fileAttribs &= ~attrMask;
-    Set_FileAttributes( fileName, fileAttribs );
+    SetFileAttributes( fileName, fileAttribs );
   }
 }
 #endif

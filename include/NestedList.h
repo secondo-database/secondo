@@ -1,45 +1,21 @@
 /*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
 //paragraph    [10]    title:          [{\Large \bf ]                          [}]
 //paragraph    [21]    table1column:   [\begin{quote}\begin{tabular}{l}]       [\end{tabular}\end{quote}]
 //paragraph    [22]    table2columns:  [\begin{quote}\begin{tabular}{ll}]      [\end{tabular}\end{quote}]
 //paragraph    [23]    table3columns:  [\begin{quote}\begin{tabular}{lll}]     [\end{tabular}\end{quote}]
 //paragraph    [24]    table4columns:  [\begin{quote}\begin{tabular}{llll}]    [\end{tabular}\end{quote}]
 //characters    [1]    verbatim:       [\verb@]                                [@]
-//characters    [2]    formula:       [$]                                     [$]
-//characters    [3]    capital:    [\textsc{]    [}]
-//characters    [4]    teletype:   [\texttt{]    [}]
+//characters	[2]    verbatim:       [$]                                     [$]
 //[--------]    [\hline]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
 //[ss] [{\ss}]
-//[star] [{\*}]
 
 1 Header File: Nested List
 
 Copyright (C) 1995 Gral Support Team
-
+    
 November 1995 Ralf Hartmut G[ue]ting
 
 May 13, 1996 Carsten Mund
@@ -52,44 +28,6 @@ October 22, 1996 RHG Made operations ~ListLength~ and ~WriteListExpr~ available.
 
 February 2002 Ulrich Telle Port to C++
 
-November 28, 2002 M. Spiekermann. Method reportVectorSizes() added.
-
-December 05, 2002 M. Spiekermann. Methods InitializeListMemory() and CopyList()
- supplemented.
-
-Aug/Sept 2003, M. Spiekermann. Some often called methods were defined as inline
-functions to reduce the runtime stack.  Producing a nested list in textual
-format is now done by an ostream object to avoid creating big string objects
-when it is possible to write to a stream (e.g.  cout, file or a TCP/IP
-socket). Moreover, a new method WriteBinaryTo() creates a byte sequence
-representing a nested list which is much smaller than the textual format. All
-this modifications gain a speed up of the client-server communication.
-
-February 2004, M. Spiekermann. Reading of binary encoded lists was implemented.
-
-June 2004, M. Spiekermann. The persistent implementation of this module was 
-finished. Now it
-is possible to process lists which have big textual representations
- (e.g. 500MB).
-
-July 2004, M. Spiekermann. A runtime check IsPersistentImpl() was added.
-
-July 14, 2004, M. Spiekermann. The struct NodeRecord has been carefully changed
-to reduce the size from 20 bytes to 12 bytes. Moreover values for int, real,
-bool and small strings and symbols (up to 8 characters) could be stored
-directly in the NodeRecord instead of an index for a CTable. Hence one of the
-compact tables could be removed. All in all in the average case (no big text
-atoms) the memory representation of a nested list will only take about 50
-percent compared to the implementation before.
-
-July 2005, M. Spiekermann. Function ~TextAtom~ overloaded. Now a string can be
-passed directly in order to set a value.
-
-February 2006, M. Spiekermann. All value reading functions are now declared as
-~fn() const~.  Moreover, some code was moved between the ".h" and ".cpp" files
-and a new function ~Empty()~ as alternative for ~TheEmptyList()~ was
-introduced.
-
 1.1 Overview
 
 A ~nested list~ can be viewed in two different ways. The first is to consider
@@ -101,11 +39,11 @@ nested list. An example of a nested list (in textual representation) is:
 
 The structure of this list can be shown better by writing it indented:
 
----- (   query
-         (   select
-             cities
-             (   fun
-                 (c city)
+---- (   query 
+         (   select 
+             cities 
+             (   fun 
+                 (c city) 
                  (> (attribute c pop) 500)
              )
          )
@@ -118,9 +56,9 @@ atoms ``select'' and ``cities'', followed by another list. And so forth. Note
 that the structure of the list is determined only by parentheses and blanks.
 
 The second, perhaps more implementation-oriented, view of a nested list is
-that it is a binary tree. Atoms are the leaves of this tree.
+that it is a binary tree. Atoms are the leaves of this tree. 
 
-                Figure 1: Nested List [SNLFigure4.eps]
+		Figure 1: Nested List [SNLFigure4.eps]
 
 The nested list module described here offers a type ~ListExpr~ to represent
 such structures. A value of this type can be viewed as a pointer which can
@@ -141,8 +79,7 @@ example atoms are shown):
      String           "Hello, World", "Germany"
      Symbol           fun, c, <=, type
      Text             <text>This is a so-called "text"!</text--->
-                      'This is also \'text\'!'
-----
+----    
 
 The precise textual format of the various atoms is important for the
 representation of nested lists in files. Files can be edited by a user;
@@ -165,12 +102,9 @@ characters'':
 
 ----  (    )    "
 ----
-
+   
 Finally, a text value is any sequence of characters of arbitrary length
-enclosed within brackets of the form "<text>"[1] and "</text--->", or enclosed
-within single quotes. Within text atoms, the backslash is used as an escape
-character. A single quote, the text ending tag, and the backsslash itself can
-be used inside a text when immediately following a backslash.
+enclosed within brackets of the form "<text>"[1] and "</text--->".
 
 1.2 Interface methods
 
@@ -179,18 +113,18 @@ and the following operations:
 
 [24]    Construction    & Test        & Traversal  & Input/Output    \\
         [--------]
-        Empty          & IsEmpty     & First      & ReadFromFile    \\
+        TheEmptyList   & IsEmpty     & First      & ReadFromFile    \\
         Cons           & IsAtom      & Rest       & WriteToFile     \\
         Append         & EndOfList   &            & ReadFromString  \\
         Destroy        & ListLength  &            & WriteToString   \\
                        & ExprLength  &            & WriteListExpr   \\
-        OneElemList    & Equal       &            & WriteStringTo   \\
-        TwoElemList    & IsEqual     & Second     & WriteBinaryTo   \\
-        ThreeElemList  &             & Third      & ReadBinaryFrom  \\
+        OneElemList    & Equal       &                              \\
+        TwoElemList    & IsEqual     & Second                       \\
+        ThreeElemList  &             & Third                        \\
         FourElemList   &             & Fourth                       \\
         FiveElemList   &             & Fifth                        \\
         SixElemList    &             & Sixth                        \\
-
+                                
 [23]    Construction of atoms  & Reading atoms  & Atom test   \\
         [--------]
         IntAtom                & IntValue       & AtomType    \\
@@ -202,14 +136,8 @@ and the following operations:
         TextAtom               & CreateTextScan               \\
         AppendText             & GetText                      \\
                                & EndOfText                    \\
-                               & Text2String                  \\
 
-[21]    Initialization and Analysis \\
-        [--------]
-        initializeListMemory        \\
-        ReportTableSizes           \\
-
-The operations are defined below.
+The operations are defined below. 
 
 1.3 Includes, Constants and Types
 
@@ -219,85 +147,48 @@ The operations are defined below.
 #define NESTED_LIST_H
 
 #include <string>
-#include <iostream>
-#include <cmath>
-#include <string.h>
-#include <sstream>
-
-#include <assert.h>
-#include <set>
-
-
+#include "CTable.h"
 /*
-
-The implementation of the nested list structure is based on the CTABLE
-structure which has a memory and a SMI based implementation. In order to manage
-lists of arbitary size you should switch on the persistent implementation.
-define switch NL\_PERSISTENT with the -D option of gcc in order to use
-persistent memory representation. This should be configured in the file
-makefile.env at the top level of SECONDOs directory structure. But be careful,
-the interfaces are not exactly the same. The restrictions are explained in the
-file CTable.h. If you change code in the nested list module take care that it
-works with both implementaions.
-
-*/
-
-#include <errno.h>
-#include <float.h>
-
-#include "../Tools/BigArray/BigArray.h"
-
-#ifdef THREAD_SAFE
-#include <boost/thread.hpp>
-#endif
-
-
-
-/*
-
 Nested lists are represented by four compact tables called
 ~nodeTable~, ~intTable~, ~stringTable~, and ~textTable~, which are private
 member variables of the nested list container class ~NestedList~.
 
 */
-const int INITIAL_ENTRIES = 10000;
+const int INITIAL_ENTRIES = 50;
 /*
-The first specifies the default size of the compact tables. This value can be
-overwritten in the constructor.
+specifies the default size of the compact tables. This value can be overwritten
+in the constructor.
 
 */
 
 typedef unsigned long ListExpr;
 /*
-Is the type to represent nested lists.
+is the type to represent nested lists.
 
 */
 
-typedef unsigned char NodeType;
-
-const NodeType NoAtom = 1;
-const NodeType IntType = 2;
-const NodeType RealType = 3;
-const NodeType BoolType = 4;
-const NodeType StringType = 5;
-const NodeType SymbolType = 6;
-const NodeType TextType = 7;
-
-
-
+enum NodeType
+{
+  NoAtom,
+  IntType,
+  RealType,
+  BoolType,
+  StringType, 
+  SymbolType,
+  TextType
+};
 /*
-Is an enumeration of the different node types of a nested list.
+is an enumeration of the different node types of a nested list.
 
 */
 
-typedef unsigned long Cardinal;
 typedef Cardinal NodesEntry;
 typedef Cardinal IntsEntry;
 typedef Cardinal StringsEntry;
 typedef Cardinal TextsEntry;
 
 /*
-Pointers into the various tables are all represented by integers;
+Pointers into the various tables are all represented by integers; 
 0 is interpreted as a nil pointer.
 
 */
@@ -325,33 +216,25 @@ struct TextScanRecord
 };
 typedef TextScanRecord* TextScan;
 
-/*
+/* 
 Text entries can be of arbitrary size and are split across as many nodes
 of the ~textTable~ table as necesary. It is possible to iterate over these
 nodes using a text scan. A ~TextScanrecord~ is used to hold the state of
 such a scan. ~currentFragment~ is a pointer to a (valid) entry in the table
-~textTable~; ~currentPos~ is a pointer to a character of the current text
- fragment.
+~textTable~; ~currentPos~ is a pointer to a character of the current text fragment.
 
 */
 
-const unsigned char STRINGSIZE = 24;
-const unsigned char MAX_STRINGSIZE = 2 * STRINGSIZE;
-const unsigned char StringFragmentSize = STRINGSIZE - sizeof(StringsEntry);
-const unsigned char STRING_INTERNAL_SIZE = 2*sizeof(TextsEntry);
-
-typedef char StringAtomCharVec[MAX_STRINGSIZE+1];
-
+const unsigned int STRINGSIZE = 16;
+typedef char StringArray [STRINGSIZE];
 struct StringRecord
 {
-  StringsEntry next;
-  char field[StringFragmentSize];
+  StringArray field;
 };
 /*
-Symbols and strings with a maximum size of "3\times STRINGSIZE"[2] characters
-are represented as at most "4"[2] chunks of "STRINGSIZE"[2] characters. This
-approach was chosen to minimize memory consumption. If a string is smaller than
-STRING\_INTERNAL\_SIZE it can directly be stored in a node record.
+Symbols and strings with a maximum size of 48 characters are represented as
+at most 3 chunks of 16 characters. This approach was chosen to minimize memory
+consumption.
 
 *NOTE*: The struct type ~StringRecord~ is introduced only because the vector
 templates used in the implementation of compact tables don't allow character
@@ -359,27 +242,15 @@ arrays as the template data type.
 
 */
 
-const Cardinal TEXTSIZE = 64;
-const Cardinal TextFragmentSize = TEXTSIZE - sizeof(TextsEntry);
-
+const int TEXTSIZE = 64;
+const Cardinal MaxFragmentLength = TEXTSIZE - sizeof(TextsEntry);
+  
 struct TextRecord
 {
   TextsEntry next;
-  char       field[TextFragmentSize];
-
-  // unsigned char emptyChars; This may be useful for storing binary
-  // data in Text Atoms
-  // currently a value of 0 in field indicates the end.
-  // Cardinal length of the has been removed from the NodeRecord
-  // definition to shrink the size of a node record. A future
-  // improvement could be a meta record which stores the length
-  // and/or other information about a text atom.
-
-  Cardinal used() const;
-
+  char       field[MaxFragmentLength];
 };
 typedef TextRecord* Text;
-
 /*
 A text entry is represented as a simple linked list of text chunks.
 
@@ -387,40 +258,35 @@ A text entry is represented as a simple linked list of text chunks.
 
 struct NodeRecord
 {
-  NodeRecord();
   NodeType nodeType;
-  unsigned char isRoot;     // only used for nodeType NoAtom
-  unsigned char strLength;  // only used for nodeType String
-  unsigned char inLine;     // only used for nodeType String
-  uint32_t references;
-  union
+  union 
   {
     struct                   // NoAtom
     {
       NodesEntry left;
       NodesEntry right;
+      bool       isRoot;
     } n;
     struct                  // IntType, RealType, BoolType
     {
-      Constant value;
+      IntsEntry index;
     } a;
     struct                  // StringType, SymbolType
     {
-      union {
-        StringsEntry first;
-        char field[STRING_INTERNAL_SIZE];
-      };
+      StringsEntry first;
+      StringsEntry second;
+      StringsEntry third;
+      Cardinal     strLength;
     } s;
     struct                  // TextType
     {
       TextsEntry start;
       TextsEntry last;
+      Cardinal   length;
     } t;
   };
 };
 typedef NodeRecord* Node;
-
-typedef unsigned char nlbyte;
 
 /*
 A ~NodeRecord~ represents all node types of a nested list.
@@ -436,107 +302,6 @@ text atom.
 
 */
 
-
-/*
-Sometimes float values need not to be equal but approximately equal. The type
-below can be used to specify an relative or absolute tolerance.
-
-*/
-
-
-struct Tolerance
-{
-  double value;
-  bool isRelative;
-  bool trace;
-
-
-  Tolerance(double d = 0.0, bool b = false) :
-    value(d), isRelative(b), trace(false) {}
-
-  void relative(double v = MINERR ) {
-    isRelative = true;
-    value = v;
-  }
-
-  void absolute(double v = 0.0) {
-
-    isRelative = false;
-    value = v;
-  }
-
-  // 4 byte double values have only 16 correct decimal digits thus their
-  // ~natural~ relative error is about 1e-15  = 2^(-50)
-  inline static double minErr() { return MINERR; }
-  static const double MINERR;
-
-/*
-The function below returns true if ~d1~ and ~d2~ differ only by a 
-specified tolerance.
-
-If the tolerance is relative it will be ~err/100 * d1~. Hence
-~d1~ has the role of an expected value and ~d2~ will be the tested value.
-
-If it is not relative, the difference $|d1 - d2|$ must be smaller than err.
-
-Note: computing the difference of two floating point values which are almost
-the same produces a high error and should be avoided. Hence we test
-$d1 - err < d2  or d2 - err < d1$
-
-
-*/
-
-  inline bool approxEqual(const double& d1, const double& d2) const
-  {
-    if (d1 == d2)
-      return true;
-
-    double err = value;
-    if (!isRelative) {
-      if (d1 > d2)
-        return ((d1 - err) < d2);
-      else
-        return ((d2 - err) < d1);
-    }
-
-    // test the relative error
-
-
-    err = std::max( err, MINERR ) * fabs(d1);
-
-    if (trace) {
-      std::cout << "d1: " << d1 << std::endl;
-      std::cout << "d2: " << d2 << std::endl;
-      std::cout << "err: " << err << std::endl;
-    }
-
-    if (d1 > d2)
-      return ((d1 - err) < d2);
-    else
-      return ((d2 - err) < d1);
-  }
-};
-
-
-
-/*
-1.4 class TextScanInfo
-
-*/
-class TextScanInfo{
-  public:
-     TextScanInfo(): first(true), last(false), textLength(0), 
-                    textScan(), textFragmentLength(0), atom(0) {}
-  bool first;
-  bool last;
-  Cardinal textLength;
-  TextScan textScan;
-  Cardinal textFragmentLength;
-  ListExpr atom;
-};
-
-
-
 /*
 1.4 Class "NestedList"[2]
 
@@ -545,481 +310,240 @@ class TextScanInfo{
 class NestedList
 {
  public:
-  NestedList(std::string dir="",
-              const uint32_t nodeMem = 1024, 
-              const uint32_t strMem = 512,
-              const uint32_t textMem = 512);
+  NestedList( int initialEntries = INITIAL_ENTRIES );
 /*
-Creates an instance of a nested list container.
+creates an instance of a nested list container. The compact tables which
+store the nodes of nested lists reserve initially memory for holding at
+least ~initialEntries~ nodes.
 
 */
-
   virtual ~NestedList();
-
 /*
-Destroys a nested list container.
+destroys a nested list container.
 
 */
 /*
 1.3.2 Construction Operations
 
 */
-  inline ListExpr TheEmptyList() const { return (0); }
-  inline ListExpr Empty()        const { return (0); }
+  ListExpr TheEmptyList();
 /*
-Returns a pointer to an empty list (a ``nil'' pointer).
+returns a pointer to an empty list (a ``nil'' pointer).
 
 */
-  ListExpr Cons( const ListExpr left, const ListExpr right, 
-                 bool incRefs=true );
+  ListExpr Cons( const ListExpr left, const ListExpr right );
 /*
-Creates a new node and makes ~left~ its left and ~right~ its right son.
+creates a new node and makes ~left~ its left and ~right~ its right son.
 Returns a pointer to the new node.
 
 *Precondition*: ~right~ is no atom.
 
 */
   ListExpr Append( const ListExpr lastElem,
-                   const ListExpr newSon,
-                   bool inRef=true );
+                   const ListExpr newSon );
 /*
-Creates a new node ~p~ and makes ~newSon~ its left son. Sets the right son of
-~p~ to the empty list. Makes ~p~ the right son of ~lastElem~ and returns a
-pointer to ~p~. That means that now ~p~ is the last element of the list and
-~lastElem~ the second last.... ~Append~ can now be called with ~p~ as the
-first argument. In this way one can build a list by a sequence of ~Append~
+creates a new node ~p~ and makes ~newSon~ its left son. Sets the right son of 
+~p~ to the empty list. Makes ~p~ the right son of ~lastElem~ and returns a 
+pointer to ~p~. That means that now ~p~ is the last element of the list and 
+~lastElem~ the second last.... ~Append~ can now be called with ~p~ as the 
+first argument. In this way one can build a list by a sequence of ~Append~ 
 calls.
 
 *Precondition*: ~lastElem~ is not the empty list and no atom, but is the last
-element of a list. That is: "EndOfList( lastElem ) == true"[4],
-"IsEmpty( lastElem ) == false"[4], "IsAtom( lastElem ) = false"[4].
+element of a list. That is: ~EndOfList~(~lastElem~) = ~true~,
+~IsEmpty~(~lastElem~) = ~false~, ~IsAtom~(~lastElem~) = ~false~.
 
-Note that there are no restrictions on the element ~newSon~ that is appended;
+Note that there are no restrictions on the element ~newSon~ that is appended; 
 it may also be the empty list.
 
 */
-  void Destroy(ListExpr& list );
+  void Destroy( const ListExpr list );
 /*
-Destroys the complete subtree (including all atoms) below the root ~list~.
+destroys the complete subtree (including all atoms) below the root ~list~.
 
-*Precondition*: ~list~ must be the root of a list binary tree. That means, it
-must not have been used as an argument to ~Cons~ or as a  second argument
-(~newSon~) to ~Append~. This also implies that ~list~ is no atom and is not
-empty. Note that a list structure can have several roots. In such a case one
-has to call ~Destroy~ for each of the roots (and that is permitted). If
-~Destroy~ is called only for some of the roots, an incorrect structure will
+*Precondition*: ~list~ must be the root of a list binary tree. That means, it 
+must not have been used as an argument to ~Cons~ or as a  second argument 
+(~newSon~) to ~Append~. This also implies that ~list~ is no atom and is not 
+empty. Note that a list structure can have several roots. In such a case one 
+has to call ~Destroy~ for each of the roots (and that is permitted). If 
+~Destroy~ is called only for some of the roots, an incorrect structure will 
 result.
 
 1.3.3 Test Operations
 
 */
-  inline bool IsEmpty( const ListExpr list ) const { return (list == 0); }
+  bool IsEmpty( const ListExpr list );
 /*
-Returns "true"[4] if ~list~ is the empty list.
+returns ~true~ if ~list~ is the empty list.
 
 */
-  inline bool IsAtom( const ListExpr list ) const
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
-
-    if ( IsEmpty( list ) )
-    {
-       return (false);
-    }
-    else
-    {
-      return ((*nodeTable)[list].nodeType != NoAtom);
-    }
-  };
+  bool IsAtom( const ListExpr list );
 /*
-Returns "true"[4] if ~list~ is an atom.
+returns ~true~ if ~list~ is an atom.
 
 */
-  inline bool IsNodeType( const NodeType n, const ListExpr list ) const
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    if ( IsEmpty( list ) )
-    {
-       return (false);
-    }
-    else
-    {
-      return ((*nodeTable)[list].nodeType == n);
-    }
-  };
-
-
-  inline bool EndOfList( ListExpr list ) const
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    if ( IsEmpty( list ) )
-    {
-      return (false);
-    }
-    else if ( IsAtom( list ) )
-    {
-      return (false);
-    }
-    else
-    {
-      return (Rest( list ) == 0);
-    }
-  };
-
+  bool EndOfList( ListExpr list );
 /*
-Returns "true"[4] if ~Right~(~list~) is the empty list. Returns "false"[4]
+Returns ~true~ if ~Right~(~list~) is the empty list. Returns ~false~ 
 otherwise and if ~list~ is empty or an atom.
 
 */
-  int ListLength( ListExpr list) const;
+  int ListLength( ListExpr list );
 /*
-~list~ may be any list expression. Returns the number of elements, if it is
-a list, and -1, if it is an atom. *Be warned:* unlike most others, this is
-not a constant time operation; it requires a list traversal and therefore
-time proportional to the length that it returns. The variant ~HasLength~
-may be used to assert a requested length of ~n~, this avoids a long running
- traversal.
+~list~ may be any list expression. Returns the number of elements, if it is 
+a list, and -1, if it is an atom. *Be warned:* unlike most others, this is 
+not a constant time operation; it requires a list traversal and therefore 
+time proportional to the length that it returns.
 
 */
-  bool HasLength( ListExpr list, const int n ) const;
-
-/*
-Checks whether the Listexpr has exactly the length n.
-
-*/
-
-  bool HasMinLength(ListExpr list, const int n) const;
-
-/*
-Checks whether the ListExpr list contains at least n elements.
-
-*/
-
- std::string getAtomTypeString(NodeType t){
-      switch(t){
-         case NoAtom: return "list";
-         case IntType: return "int";
-         case RealType: return "real";
-         case BoolType: return "bool";
-         case StringType : return "string";
-         case SymbolType: return "symbol";
-         case TextType: return "text";
-      }
-      return "unknown";
- }
-
-
-
-
-  int ExprLength( ListExpr expr ) const;
-/*
+  int ExprLength( ListExpr expr );
+/* 
 Reads a list expression ~expr~ and counts the number ~length~ of
 subexpressions.
 
 */
-  bool Equal( const ListExpr list1, const ListExpr list2 ) const
-  {
-    static Tolerance t;
-    equalErr = "";
-    return EqualTemp<true>(list1, list2, t);
-  }
-  bool Equal( const ListExpr list1, const ListExpr list2, const Tolerance& t )
-  {
-    equalErr = "";
-    return EqualTemp<false>(list1, list2, t);
-  }
-
-  const std::string& EqualErr() { return equalErr; }
-
+  bool Equal( const ListExpr list1, const ListExpr list2 );
 /*
-Tests for deep equality of two nested lists. Returns "true"[4] if ~list1~ is
-equivalent to ~list2~, otherwise "false"[4].
+tests for deep equality of two nested lists. Returns ~true~ if ~list1~ is
+equivalent to ~list2~, otherwise ~false~.
 
 */
-  bool IsEqual( const ListExpr atom, const std::string& str,
-                const bool caseSensitive = true         ) const;
-/*
-Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
+  bool IsEqual( const ListExpr atom, const string& str );
+/* 
+returns ~true~ if ~atom~ is a symbol atom and has the same value as ~str~.
 
-*/
+*/ 
 
 /*
 1.3.4 Traversal
 
 */
-  ListExpr First( const ListExpr list ) const;
+  ListExpr First( const ListExpr list );
 /*
-Returns (a pointer to) the left son of ~list~. Result can be the empty list.
+returns (a pointer to) the left son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
 */
-  ListExpr Rest( const ListExpr list ) const;
-
+  ListExpr Rest( const ListExpr list );
 /*
-Returns (a pointer to) the right son of ~list~. Result can be the empty list.
+returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
-
-*/
-  ListExpr End( const ListExpr list) const;
-
-
-  inline void Replace( ListExpr oldList, ListExpr newList )
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-     NodeRecord tmpNode;
-     nodeTable->Get(oldList, tmpNode);
-     tmpNode = (*nodeTable)[newList];
-     nodeTable->Put(oldList, tmpNode);
-  };
-
-
-/*
-
 
 1.3.5 Input/Output
 
 */
-  bool ReadFromFile( const std::string& fileName,
-                     ListExpr& list          );
+  bool ReadFromFile( const string& fileName,
+                     ListExpr& list );
 /*
-Reads a nested list from file ~filename~ and assigns it to ~list~.
-The format of the file must be as explained above. Returns "true"[4] if reading
-was successful; otherwise "false"[4], if the file could not be accessed, or the
+reads a nested list from file ~filename~ and assigns it to ~list~. 
+The format of the file must be as explained above. Returns ~true~ if reading 
+was successful; otherwise ~false~, if the file could not be accessed, or the 
 line number in the file where an error occurred.
 
 */
-  bool WriteToFile( const std::string& fileName,
-                    const ListExpr list     ) const;
+  bool WriteToFile( const string& fileName,
+                    const ListExpr list );
 /*
-Writes the nested list ~list~ to file ~filename~.
-The format of the file will be as explained above. The previous contents
-of the file will be lost. Returns "true"[4] if writing was successful,
- "false"[4] if the file could not be written properly.
+Writes the nested list ~list~ to file ~filename~. 
+The format of the file will be as explained above. The previous contents 
+of the file will be lost. Returns ~true~ if writing was successful, ~false~
+if the file could not be written properly.
 
 *Precondition*: ~list~ must not be an atom.
 
 */
-  bool ReadFromString( const std::string& nlChars,
-                       ListExpr& list              );
-  bool ReadBinaryFrom( std::istream& in, ListExpr& list );
+  bool ReadFromString( const string& nlChars,
+                       ListExpr& List );
 /*
-Like ~ReadFromFile~, but reads a nested list from string ~nlChars~ or 
-istream ~in~.  Returns "true"[4] if reading was successful.
+Like ~ReadFromFile~, but reads a nested list from array ~nlChars~. 
+Returns ~true~ if reading was successful.
 
 */
-  bool WriteToString( std::string& nlChars,
-                      const ListExpr list ) const;
+  bool WriteToString( string& nlChars,
+                      const ListExpr list );
 /*
-Like ~WriteToFile~, but writes to the string ~nlChars~. Returns "true"[4]
-if writing was successful, "false"[4] if the string could not be written
- properly.
+Like ~WriteToFile~, but writes to the string ~nlChars~. Returns ~true~
+if writing was successful, ~false~ if the string could not be written properly.
 
 *Precondition*: ~list~ must not be an atom.
 
 */
-  bool WriteStringTo( const ListExpr list, std::ostream& os ) const;
-  bool WriteBinaryTo( const ListExpr list, std::ostream& os ) const;
+
+  void WriteListExpr( ListExpr list );
 /*
-Writes the list in a binary coded or textual format into the referenced stream.
-
-Note: When using an fstream with WriteBinaryTo initialize it as ios::binary
-otherwise the output of bytes will be influenced by platform specific
-implementations
-
-*/
-
-  std::string ToString( const ListExpr list ) const;
-
-/*
-A wrapper for ~WriteToString~ which directly returns a string object.
-
-*/
-
-  void WriteListExpr( const ListExpr list,
-                      std::ostream& ostr = cout,
-                      const bool toScreen = true,
-                      const int offset=4 );
-
-/*
-Writes a ~list~ indented by level to standard output or another ostream.
+write ~list~ indented by level to standard output.
 
 1.3.5 Auxiliary Operations for Construction
 
 A number of procedures is offered to construct lists with one, two, three,
-etc. up to six elements.
+etc. up to six elements. 
 
 */
-  inline ListExpr OneElemList( const ListExpr elem1, bool incRef=true )
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    return (Cons( elem1, TheEmptyList(), incRef )); };
-
-  inline ListExpr TwoElemList( const ListExpr elem1,
-                               const ListExpr elem2,
-                               bool incRefs = true )
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    return (Cons( elem1, OneElemList(elem2,incRefs),incRefs )); };
-
-  inline ListExpr ThreeElemList( const ListExpr elem1,
-                                 const ListExpr elem2,
-                                 const ListExpr elem3,
-                                 bool incRefs = true )
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    return (Cons( elem1, TwoElemList(elem2, elem3,incRefs),incRefs )); };
-
-
-  inline ListExpr FourElemList( const ListExpr elem1,
-                                const ListExpr elem2,
-                                const ListExpr elem3,
-                                const ListExpr elem4,
-                                bool incRefs = true )
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    return (Cons( elem1, ThreeElemList(elem2, elem3, elem4,incRefs),
-                  incRefs )); };
-
-  inline ListExpr FiveElemList( const ListExpr elem1,
-                                const ListExpr elem2,
-                                const ListExpr elem3,
-                                const ListExpr elem4,
-                                const ListExpr elem5,
-                                bool incRefs = true )
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    return (Cons( elem1, FourElemList(elem2, elem3, elem4, 
-                  elem5, incRefs),incRefs )); };
-
-  inline ListExpr SixElemList( const ListExpr elem1,
-                               const ListExpr elem2,
-                               const ListExpr elem3,
-                               const ListExpr elem4,
-                               const ListExpr elem5,
-                               const ListExpr elem6,
-                               bool incRefs = true )
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    return (Cons( elem1, FiveElemList(elem2, elem3, elem4, elem5, elem6,
-                                      incRefs)
-                  ,incRefs )); };
-
+  ListExpr OneElemList( const ListExpr elem1 );
+  ListExpr TwoElemList( const ListExpr elem1,
+                        const ListExpr elem2 );
+  ListExpr ThreeElemList( const ListExpr elem1,
+                          const ListExpr elem2,
+                          const ListExpr elem3 );
+  ListExpr FourElemList( const ListExpr elem1,
+                         const ListExpr elem2,
+                         const ListExpr elem3,
+                         const ListExpr elem4 );
+  ListExpr FiveElemList( const ListExpr elem1,
+                         const ListExpr elem2,
+                         const ListExpr elem3,
+                         const ListExpr elem4,
+                         const ListExpr elem5 );
+  ListExpr SixElemList( const ListExpr elem1,
+                        const ListExpr elem2,
+                        const ListExpr elem3,
+                        const ListExpr elem4,
+                        const ListExpr elem5,
+                        const ListExpr elem6 );
 /*
 A pointer to the new list is returned.
 
 1.3.6 Auxiliary Operations for Traversal
 
-Similarly, there are procedures to access the second, ..., sixth element.
+Similarly, there are procedures to access the second, ..., sixth element. 
 Acessing the first element is a basic operation defined above.
 
 */
-  inline ListExpr Second( const ListExpr list )
-    { return (NthElement( 2, 2, list )); };
-
-  inline ListExpr  Third( const ListExpr list )
-    { return (NthElement( 3, 3, list )); };
-
-  inline ListExpr Fourth( const ListExpr list )
-    { return (NthElement( 4, 4, list )); };
-
-  inline ListExpr  Fifth( const ListExpr list )
-    { return (NthElement( 5, 5, list )); };
-
-  inline ListExpr  Sixth( const ListExpr list )
-    { return (NthElement( 6, 6, list )); };
-
-  inline ListExpr Seventh( const ListExpr list)
-    { return (NthElement( 7, 7, list )); };
-
-  inline ListExpr Eigth( const ListExpr list)
-    { return (NthElement( 8, 8, list )); };
-
-  inline ListExpr Ninth( const ListExpr list)
-    { return (NthElement( 9, 9, list )); };
-
-  inline ListExpr Tenth( const ListExpr list)
-    { return (NthElement( 10, 10, list )); };
-
-  inline ListExpr Eleventh( const ListExpr list)
-    { return (NthElement( 11, 11, list )); };
-
-  inline ListExpr Twelfth( const ListExpr list)
-    { return (NthElement( 12, 12, list )); };
-
-  inline ListExpr  Nth( int n, const ListExpr list )
-    { return (NthElement( n, n, list )); };
-
+  ListExpr Second( const ListExpr list );
+  ListExpr Third( const ListExpr list );
+  ListExpr Fourth( const ListExpr list );
+  ListExpr Fifth( const ListExpr list );
+  ListExpr Sixth( const ListExpr list );
 /*
-A pointer to the respective element is returned. Result may be the empty list,
+A pointer to the respective element is returned. Result may be the empty list, 
 of course.
 
-*Precondition*: ~list~ must not be an atom and must have at least as many
+*Precondition*: ~list~ must not be an atom and must have at least as many 
 elements.
 
 1.3.7 Construction of Atoms
 
-There is a set of operations to transform each of the basic types into a
+There is a set of operations to transform each of the basic types into a 
 corresponding atom:
 
 */
   ListExpr IntAtom( const long value );
   ListExpr RealAtom( const double value );
   ListExpr BoolAtom( const bool value );
-  ListExpr StringAtom( const std::string& value, bool isString=true );
-  ListExpr SymbolAtom( const std::string& value );
-
-  ListExpr inline SetStringAtom( const StringAtomCharVec& value) {
-    return StringAtom( std::string(value) );
-  };
-  ListExpr inline SetSymbolAtom( const StringAtomCharVec& value) {
-    return SymbolAtom( std::string(value) );
-  };
-
+  ListExpr StringAtom( const string& value );
+  ListExpr SymbolAtom( const string& value );
 /*
-Note: ~Symbols~ and ~Strings~ are character sequences up to 3[star]STRINGSIZE.
-SymbolAtom is only a wrapper which calls Stringatom(value,false) to avoid
-duplicated code.
-
-Values of type ~Text~ may have arbitrary length. To construct ~Text~ atoms,
+Values of type ~Text~ may have arbitrary length. To construct ~Text~ atoms, 
 two operations are offered:
 
 */
   ListExpr TextAtom();
-  inline ListExpr TextAtom(const std::string& value)
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-    ListExpr l = TextAtom();
-    AppendText(l,value);
-    return l;
-  }
   void AppendText( const ListExpr atom,
-                   const std::string&  textBuffer );
+                   const string&  textBuffer );
 /*
-The first operation ~TextAtom~ creates the atom. Calls of  ~AppendText~ add
+The first operation ~TextAtom~ creates the atom. Calls of  ~AppendText~ add 
 pieces of text stored in ~textBuffer~ at the end.
 
 *Precondition*: ~atom~ must be of type ~Text~.
@@ -1029,415 +553,100 @@ pieces of text stored in ~textBuffer~ at the end.
 There are corresponding procedures to get typed values from atoms:
 
 */
-  long IntValue( const ListExpr atom ) const;
+  long IntValue( const ListExpr atom );
 /*
-*Precondition*: ~atom~ must be of type ~Int~.
+*Precondition*: ~atom~ must be of type ~Int~. 
 
 */
-  double RealValue( const ListExpr atom ) const;
+  double RealValue( const ListExpr atom );
 /*
-*Precondition*: ~atom~ must be of type ~Real~.
+*Precondition*: ~atom~ must be of type ~Real~. 
 
 */
-  bool BoolValue( const ListExpr atom) const;
+  bool BoolValue( const ListExpr atom);
 /*
-*Precondition*: ~atom~ must be of type ~Bool~.
+*Precondition*: ~atom~ must be of type ~Bool~. 
 
 */
-  std::string StringValue( const ListExpr atom ) const;
+  string StringValue( const ListExpr atom );
 /*
-*Precondition*: ~atom~ must be of type ~String~.
+*Precondition*: ~atom~ must be of type ~String~. 
 
 */
-  std::string SymbolValue( const ListExpr atom) const;
+  string SymbolValue( const ListExpr atom);
 /*
-*Precondition*: ~atom~ must be of type ~Symbol~.
+*Precondition*: ~atom~ must be of type ~Symbol~. 
 
 */
 
- ListExpr TypeError() const { return typeError; }
- ListExpr& GetErrorList() { return errorList; }
-
 /*
-Again, the treatment of ~Text~ values is a little more difficult.
+Again, the treatment of ~Text~ values is a little more difficult. 
 To read from a ~Text~ atom, a ~TextScan~ is opened.
 
 */
-  TextScan CreateTextScan( const ListExpr atom ) const;
+  TextScan CreateTextScan( const ListExpr atom );
 /*
-Creates a text scan. Current position is 0 (the first character in the ~atom~).
+creates a text scan. Current position is 0 (the first character in the ~atom~).
 
 *Precondition*: ~atom~ must be of type ~Text~.
 
 */
-  void GetText( TextScan textScan,
-                const Cardinal noChars, std::string& textBuffer ) const;
-  bool GetNextText( const ListExpr textAtom,
-                    std::string& textFragment, Cardinal size,
-                    TextScanInfo& info) const;
-
-
+  void GetText( TextScan textScan, const Cardinal noChars,
+                string& textBuffer );
 /*
-Copies ~noChars~ characters, starting from the current position in the ~scan~
+Copies ~noChars~ characters, starting from the current position in the ~scan~ 
 and appends them to the string ~textBuffer~.
 
-The text behind the current position of the ~scan~ may be shorter than
- ~noChars~.  In this case, all characters behind the current ~scan~ position
- are copied.
-
-The second alternative of iteration returns true while ~size~ characters are
-in the text. The size can not be changed during subseqent calls. The function
-returns false when the text ends and the next call of the function will 
-restart the iteration.
+The text behind the current position of the ~scan~ may be shorter than ~noChars~.
+In this case, all characters behind the current ~scan~ position are copied.
 
 */
-  bool EndOfText( const TextScan textScan ) const;
+  bool EndOfText( const TextScan textScan );
 /*
-Returns "true"[4], if the current position of the ~TextScan~ is behind the last
+Returns ~true~, if the current position of the ~TextScan~ is behind the last 
 character of the text.
 
 */
-  void DestroyTextScan( TextScan& textScan ) const;
+  void DestroyTextScan( TextScan& textScan );
 /*
-Destroys the text scan ~textScan~ by deallocating the corresponding memory.
+destroys the text scan ~textScan~ by deallocating the corresponding memory. 
 
 */
-  Cardinal TextLength( const ListExpr textAtom ) const;
+  Cardinal TextLength( const ListExpr textAtom );
 /*
-Returns the number of characters of ~textAtom~.
+returns the number of characters of ~textAtom~.
 
 *Precondition*: ~atom~ must be of type ~Text~.
-
-*/
-
-void Text2String( const ListExpr& textAtom, std::string& resultStr ) const;
-std::string Text2String( const ListExpr& textAtom) const;
-
-inline
-std::string TextValue( const ListExpr& textAtom) const {
-   return Text2String(textAtom);
-}
-
-/*
-Transforms the text atom into C++ string object
 
 1.3.10 Atom Test
 
 */
-  NodeType AtomType( const ListExpr atom ) const;
-  void ExtractAtoms( const ListExpr list, std::vector<ListExpr>& atomVec) const
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-
-    if ( IsEmpty(list) )
-       return;
-
-    if ( IsAtom(list) ) {
-       atomVec.push_back(list);
-       return;
-
-    } else {
-
-       ExtractAtoms( First(list), atomVec );
-       ExtractAtoms( Rest(list), atomVec );
-    }
-  }
-
-
+  NodeType AtomType( const ListExpr atom );
 /*
-1.3.12 ~setMem~
-
-Changes the buffer sizes for the different used arrays. This will take 
-effect only after calling ~initializeListMemory~.
+determines the type of list expression ~atom~ according to the enumeration 
+type ~NodeType~. If the parameter is not an atom, the function returns the 
+value 'NoAtom'.
 
 */
-
-  void setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem);
-
-/*
-1.3.12 ~initializeListMemory~
-
-This function removes all existing ListExpr from the NestedList storage
-and creates new arrays for storing new lists. 
-
-*/
-
-  void initializeListMemory( ); 
-
-
-/*
-
-The first reserves memory for three different kinds of data structures which
-hold the data of a nested list atom. The sizes are interpreted as kilobytes.
-The compact tables which store the nodes of nested lists reserve initially a
-number of slots corresponding to the given memory sizes.
-
-The second creates new ~CTable~ objects with the given size and deletes the old
-ones.
-
-
-1.3.13 Copying of Lists
-
-*/
-
-  ListExpr CopyList( const ListExpr list, NestedList* target )
-  {
-    return SimpleCopy(list, target);
-  }
-
-
-/*
-1.3.14 IncReferences
-
-This will increase the number of references for a given 
-list node. Note that linked nodes are not affected by this 
-operation. Thus destroying sublists is possible.
-
-*/
-  void IncReferences(ListExpr& list);
-
-
-  static std::string SizeOfStructs(); 
-
-  Cardinal getNodeEntries() const{
-    return nodeEntries;
-  }
-
-  Cardinal getStringEntries() const{
-    return stringEntries;
-  }
-
-  Cardinal getTextEntries() const{
-    return textEntries;
-  }
-
-  Cardinal  sizeOfNodeTable() const{
-    return nodeTable?nodeTable->NoEntries():0;
-  }
-
-  Cardinal  sizeOfStringTable() const{
-    return stringTable?stringTable->NoEntries():0;
-  }
-  
-  Cardinal  sizeOftextTable() const{
-    return textTable?textTable->NoEntries():0;
-  }
-
-  Cardinal freeNodes() const{
-    return freeNodeSlots.size();
-  }
-
-  Cardinal freeStrings() const{
-    return freeStringSlots.size();
-  }
-
-  Cardinal freeTexts() const{
-    return freeTextSlots.size();
-  }
-
-
-  std::ostream& printTables(std::ostream& out)const;
-
-  static std::string NodeType2Text( NodeType type );
-  void PrintTableTexts() const;
-
- private:
-#ifdef THREAD_SAFE
-   mutable boost::recursive_mutex mtx;
-#endif
-   NestedList(const NestedList& ); 
-   NestedList& operator=(const NestedList&);
-
-
-
-
-   std::string basename;
-
-   
-
-
-  void DestroyRec( ListExpr& list );
-
-  void DeleteListMemory(); 
-
-
-  inline std::string BoolToStr( const bool boolValue ) const
-  {
-    return (boolValue ? "TRUE" : "FALSE");
-  }
-
+ protected:
+  void DestroyRecursive ( const ListExpr list );
+  void PrintTableTexts();
+  string NodeType2Text( NodeType type );
+  string BoolToStr( const bool boolValue );
   ListExpr NthElement( const Cardinal n,
                        const Cardinal initialN,
-                       const ListExpr list      ) const;
-
-  bool WriteList( const ListExpr list,
-                  const int level,
-                  const bool afterList,
-                  const bool toScreen,
-                  std::ostream& os,
-                  const int offset=4    ) const;
-
-  void WriteAtom( const ListExpr atom, bool toScreen, std::ostream& os ) const;
-
-  bool WriteToStringLocal( std::ostream& nlChars, ListExpr list ) const;
-
-/*
-Approximate or exact comparison of lists. This is implemented by using
-template functions
-
-*/
-  mutable std::string equalErr;
-
-  template<bool EXACT>
-  bool EqualTemp( const ListExpr list1,
-                  const ListExpr list2,
-                  const Tolerance& t    ) const
-  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
-   if ( IsEmpty( list1 ) && IsEmpty( list2 ) )
-   {
-     return true;
-   }
-   else if ( IsEmpty( list1 ) || IsEmpty( list2 ) )
-   {
-     return false;
-   }
-   else if ( IsAtom( list1 ) && IsAtom( list2 ) )
-   {
-     if ( AtomType( list1 ) == AtomType( list2 ) )
-     {
-       switch ( AtomType( list1 ) )
-       {
-         case IntType:
-           return (IntValue( list1 ) == IntValue( list2 ));
-         case BoolType:
-           return (BoolValue( list1 ) == BoolValue( list2 ));
-         case RealType:
-         {
-           double r1 = RealValue( list1 );
-           double r2 = RealValue( list2 );
-           if (EXACT)
-           {
-             return (r1 == r2);
-           }
-           else
-           {
-             bool eq = t.approxEqual( r1, r2 );
-            if (!eq) {
-              std::stringstream errMsg;
-              errMsg << "Tolerance::approxEqual failed: "
-                     << r1 << " <> " << r2;
-                     equalErr = errMsg.str();
-            }
-            return eq;
-           }
-         }
-         case SymbolType:
-           return (SymbolValue( list1 ) == SymbolValue( list2 ));
-         case StringType:
-           return (StringValue( list1 ) == StringValue( list2 ));
-         case TextType:
-           return (ToString( list1 ) == ToString( list2));
-         default:
-           return false;
-       }
-     }
-     else
-     {
-       return false;
-     }
-   }
-   else if ( !IsAtom( list1 ) && !IsAtom( list2 ) )
-   {
-     ListExpr rest1 = list1;
-     ListExpr rest2 = list2;
-     while(!IsEmpty(rest1) && !IsEmpty(rest2)){
-         if(!EqualTemp<EXACT>( First( rest1 ), First( rest2 ), t )){
-           return false;
-         }
-         rest1 = Rest(rest1);
-         rest2 = Rest(rest2);
-     }
-     if(!IsEmpty(rest1) || !IsEmpty(rest2)){
-        // different lengths
-       return false;
-     }
-     return true;
-   }
-   else
-   {
-     return false;
-   }
-  }
-
-  // list copying methods
-  ListExpr SimpleCopy( const ListExpr list, NestedList* target ) const;
-  ListExpr SophisticatedCopy( const ListExpr list,
-                                    const NestedList* target ) const;
-  ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
-
-/*
-prototypes for functions used for the binary encoding/decoding of lists
-
-*/
-  bool  WriteBinaryRec( ListExpr list, std::ostream& os ) const;
-  bool  ReadBinaryRec( ListExpr& result, std::istream& in, unsigned long& pos );
-  bool  ReadBinarySubLists( ListExpr& LE, std::istream& in, 
-                            unsigned long length,
-                            unsigned long& pos );
-  int32_t  ReadShort( std::istream& in ) const;
-  int32_t  ReadInt( std::istream& in, const int len = 4) const;
-  void  ReadString( std::istream& in, std::string& outStr, 
-                    unsigned long length ) const;
-
-  nlbyte  GetBinaryType(const ListExpr list) const;
-  void hton(long value, char* buffer) const;
-  inline void swap(char* buffer,int size) const;
-
-  std::string StringSymbolValue( const ListExpr atom ) const;
-
-  // the internal representation of lists
-
-  BigArray<StringRecord> *stringTable; // storage for strings
-
-  BigArray<NodeRecord>   *nodeTable;   // storage for nodes
-
-  BigArray<TextRecord>   *textTable  ; // storage for text atoms
-
-  // management of free slots
-  std::set<Cardinal> freeNodeSlots;
-  std::set<Cardinal> freeStringSlots;
-  std::set<Cardinal> freeTextSlots;
-
-
-  ListExpr typeError;
-  ListExpr errorList;
-  static size_t NLinstance; // number of nested list instances
-  size_t instanceNo;        // number of this instance
-
-  // stores how much slots can be hold in memory  for each nodetype
-   Cardinal nodeEntries;
-   Cardinal stringEntries;
-   Cardinal textEntries;
-
-
+                       const ListExpr list );
+  bool WriteList( ListExpr list, const int level,
+                  const bool afterList, const bool toScreen );
+  void WriteAtom( const ListExpr atom, bool toScreen );
+  bool WriteToStringLocal( string& nlChars, ListExpr list );
+ private:
+  CTable<NodeRecord>   nodeTable;   // nodes
+  CTable<Constant>     intTable;    // ints;
+  CTable<StringRecord> stringTable; // strings
+  CTable<TextRecord>   textTable  ; // texts
+  ostream*             outStream;
 };
 
-/*
-Replace some critical symbols within strings representing text atoms.
-Replace critical character sequences:
-
-----
-    The backslash:              \ --> \\
-    The single quote:           ' --> \'
-----
-
-*/
-
-std::string transformText2Outtext(const std::string& value);
-
 #endif
+

@@ -1,98 +1,28 @@
-/*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-Dec. 2004, M. Spiekermann. YYERROR\_VERBOSE defined. Implementation of
-yyerror need to be moved to SecParser.cpp.
-
-July 15, 2010 Christian Duentgen added conditionalcommand
-
-*/
-
 %{
 #include <cstdio>
 #include <string>
 #include <string.h>
-#include <stack>
-#include <utility>
-
 #include "NestedText.h"
 
-#define YYERROR_VERBOSE
 #define YYDEBUG 1
-
-bool USE_AUTO_BUFFER = false;
 
 extern int yylex();
 
 string* yacc_outtext;
+char*   yacc_error;
 
 typedef char cstring[50];
+cstring param, param2, paramname, paramtype, paramtype2;
+int paramno, depth;
+cstring paramstack[20];
 
-cstring paramname; // temporarly variable
-
-#define maxparams 10
-
-cstring params[maxparams];
-
-int paramno;
-stack<pair<int,string> > paramstack;
-
-extern void yyerror( const char* s );
-
-void cleanVariables(int max){
-  if(maxparams<max) max = maxparams;
-  for(int i=0;i<max;i++){
-     strcpy(params[i],"");
-  }
+void yyerror( char* s )
+{
+  yacc_error = s;
+  cerr << "Syntax error in textual command: " << s << endl;
 }
 
-void emptystack(){
-   while(!paramstack.empty())
-        paramstack.pop();
-   cleanVariables(maxparams);
-}
-
-
-void restoreVariables(){
-   stack<pair<int,string> > tmpstack;
-   while(!paramstack.empty()){
-      pair<int,string> t = paramstack.top();
-      tmpstack.push(t);
-      paramstack.pop();
-   } 
-   while(!tmpstack.empty()){
-     pair<int,string> t = tmpstack.top();
-     paramstack.push(t);
-     tmpstack.pop();
-     strcpy(params[t.first], t.second.c_str());
-   }
-}
-
-
-
-
-
-
-void PRINTF (const char *s)
+void PRINTF (char *s)
 {
   (*yacc_outtext).append( s );
 }
@@ -103,29 +33,12 @@ void PRINT (int i)
   NestedText::CopyOut( i, temp );
   *yacc_outtext += temp;
 }
-
-void CLEAR(){
-  *yacc_outtext="";
-}
-
 %}
 
-%verbose
-%locations
+%token 	IDENTIFIER, FUN, INTEGER, REAL, STRING, BOOLEAN, CONST, TUPLE, GROUP,
 
-%token  ZZATTRABBR ZZATTRABBR2 ZZIDENTIFIER ZZFUN ZZINTEGER ZZREAL 
-        ZZSTRING ZZBOOLEAN ZZCONST
-        ZZTUPLE ZZGROUP ZZTYPE ZZDELETE ZZCREATE ZZUPDATE ZZKILL ZZQUERY 
-        ZZQUERYNT ZZPQUERY ZZPCOMPILE ZZLET ZZDERIVE ZZPERSISTENT ZZBEGIN1 ZZTRANSACTION ZZCOMMIT
-        ZZABORT ZZDATABASE ZZOPEN ZZCLOSE ZZSAVE ZZTO ZZRESTORE ZZFROM
-        ZZLIST ZZDATABASES ZZCONSTRUCTORS ZZOPERATORS ZZTYPES ZZOBJECTS
-        ZZASSIGN ZZDOUBLE ZZVALUE ZZPOINTER ZZCOUNTERS ZZALGEBRAS ZZALGEBRA ZZTEXT
-        ZZFILE ZZINFIXOP ZZPREFIXOP ZZINFIXOP_BUF ZZPREFIXOP_BUF ZZIF ZZTHEN
-        ZZELSE ZZENDIF ZZWHILE ZZDO ZZENDWHILE ZZNAMING ZZMEMORY ZZDEFAULTSEP
-        OPENDOUBLEBRACE CLOSEDOUBLEBRACE ZZSINGLE ZZARG3 ZZARG4 ZZARG5 ZZARG6 ZZARG7
-        ZZARG8 ZZARG9 ZZATTRABBR3 ZZATTRABBR4 ZZATTRABBR5 ZZATTRABBR6 ZZATTRABBR7 ZZATTRABBR8 ZZATTRABBR9 
-        ZZCHANGENAME ZZTYPEOF
-
-
-
+	TYPE, DELETE, CREATE, UPDATE, QUERY, MODEL, LET, PERSISTENT,
+	BEGIN1, TRANSACTION, COMMIT, ABORT, DATABASE, OPEN, CLOSE, SAVE, TO,
+	RESTORE, FROM, LIST, DATABASES, CONSTRUCTORS, OPERATORS, TYPES,
+	OBJECTS, ASSIGN, DOUBLE
 

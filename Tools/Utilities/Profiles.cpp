@@ -1,71 +1,24 @@
-/*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-Jan 2005, M. Spiekermann. Changes in getParameter.
-
-*/
-
+// --- profiles.cpp  --- 
 
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
-#include <cstring>
-
 #include <stdio.h>
-#include <unistd.h>
 #include "Profiles.h"
-#include "CharTransform.h"
-
-
-#ifdef SECONDO_WIN32
-#include <windows.h>
-#endif
 
 using namespace std;
+
 static bool              CmpSec( const string& line, const string& appName );
 static string::size_type CmpKey( const string& line, const string& keyName );
 
-
 // --- GetParameter : Gets a string parameter from a profile
 
-string SmiProfile::GetParameter( const string& sectionName,
+string SmiProfile::GetParameter( const string& sectionName, 
                                  const string& keyName,
                                  const string& defaultValue,
-                                 const string& fileName,
-                                 const bool expand /*=false*/ )
+                                 const string& fileName )
 {
-  // overrule parameter if environment variable is set
   string resultString( "" );
-  char* envStr = 0;
-  envStr= getenv( ("SECONDO_PARAM_"+keyName).c_str() );
-  if (envStr) {
-      resultString = string(envStr);
-      if(expand){
-        expandVarRef(resultString); 
-      }
-      return resultString;
-  }
-
   string line;
   ifstream inf( fileName.c_str() );
 
@@ -83,15 +36,12 @@ string SmiProfile::GetParameter( const string& sectionName,
           valuePos = CmpKey( line, keyName );
           if ( valuePos != string::npos )
           {
-            if ( line.find("+=") != string::npos ) {
-              resultString += ',';
-            }
-            resultString +=
-              line.substr( valuePos,
-                           line.find_last_not_of( " \t\r\n" )-valuePos+1 );
+            resultString = 
+              line.substr( valuePos, line.find_last_not_of( " \t\r\n" )-valuePos+1 );
+            break;
           }
         }
-        if (sectionName!="") { break; }
+        break;
       }
     }
   }
@@ -104,10 +54,6 @@ string SmiProfile::GetParameter( const string& sectionName,
     resultString = defaultValue;
   }
 
-  if(expand){
-     expandVarRef(resultString); 
-  }
-
   return resultString;
 }
 
@@ -117,21 +63,14 @@ long SmiProfile::GetParameter ( const string& sectionName,
                                 const string& keyName, long defaultValue,
                                 const string& fileName )
 {
+  string txt;
   long value = defaultValue;
-  string txt = GetParameter( sectionName, keyName, "", fileName );
 
-  if (txt.length() > 0)
+  txt = GetParameter( sectionName, keyName, "", fileName );
+  if (txt.length() > 0 )
   {
     value = atol( txt.c_str() );
   }
-
-  // overrule parameter if environment variable is set
-  char* envStr = 0;
-  envStr= getenv( ("SECONDO_PARAM"+keyName).c_str() );
-  if (envStr) {
-      value = atol(envStr);
-  }
-
   return value;
 }
 
@@ -176,9 +115,9 @@ bool SmiProfile::SetParameter ( const string& sectionName,
       return false;
     }
     tmp = tmpFile;
-    ofstream outf( tmp.c_str() );
+    ofstream outf( tmpFd );
 #endif
-//    outf.open( tmp.c_str() );
+    outf.open( tmp.c_str() );
     if ( outf )
     {
       while( getline( inf, line ) )
@@ -200,7 +139,7 @@ bool SmiProfile::SetParameter ( const string& sectionName,
       else  // section found
       {
         if ( keyName.length() == 0 )
-        {
+        { 
           // remove section but keep comments
           while(getline(inf, line) )
           {
@@ -249,10 +188,6 @@ bool SmiProfile::SetParameter ( const string& sectionName,
       outf.close();
       remove( tmp.c_str() );
     }
-
-#ifndef SECONDO_WIN32
-    close(tmpFd);
-#endif
     outf.close();
   }
   else if ( sectionName.length() > 0 && keyName.length() > 0 )
@@ -282,9 +217,6 @@ static bool CmpSec( const string& line, const string& name )
   int i = 0;
   int n = 0;
   bool ok = false;
-
-  if (name=="")
-    { return true; }
 
   if (line[i++] == '[')
   {
@@ -323,8 +255,8 @@ static string::size_type CmpKey( const string& line, const string& keyName )
       {
         if ( n >= nameLen )
         {
-          string::size_type operatorPos=line.find_first_not_of( " \t", i );
-          if (  line[operatorPos] == '+' || line[operatorPos] == '=') {
+          if ( line[line.find_first_not_of( " \t", i )] == '=' )
+          {
             outPos = line.find_first_not_of( " \t\r\n", argPos+1 );
           }
           break;
@@ -337,27 +269,6 @@ static string::size_type CmpKey( const string& line, const string& keyName )
   }
   return outPos;
 }
-
-
-  string SmiProfile::GetUniqueSocketName(const std::string& fileName,
-                                         const std::string& port)
-  {
-    std::stringstream sname;
-    sname << GetParameter("Environment", "RegistrarSocketNamePrefix", 
-			  "SECREGIS", fileName); 
-    sname << "_port";
-    if(port.empty()){
-       sname << GetParameter("Environment", "SecondoPort",
-		          "SECREGIS", fileName);
-    } else {
-       sname << port;
-    }
-
-
-    string res =  sname.str();
-    return res;
-  }	  
-
 
 // --- end of profiles.cpp ---
 

@@ -1,24 +1,4 @@
 /*
----- 
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
 1 SocketRuleSet
 
@@ -30,13 +10,10 @@ This class implements a set of access rules based on IP adresses and IP masks.
 
 */
 
-
 #include "SecondoConfig.h"
 #include "SocketIO.h"
 #include <iostream>
 #include <fstream>
-
-using namespace std;
 
 char SocketRule::delimiter = '/';
 
@@ -48,18 +25,17 @@ SocketRule::SocketRule()
 
 SocketRule::SocketRule( const string& strIpAddr,
                         const string& strIpMask,
-                        const Policy setAllowDeny /* = ALLOW */ )
+                        const Policy setAllowDeny = ALLOW )
    : allowDeny( setAllowDeny) 
 {
   ipMask.s_addr = inet_addr( strIpMask.c_str() );
   ipAddr.s_addr = inet_addr( strIpAddr.c_str() ) & ipMask.s_addr;
-}
+} 
 
 bool
 SocketRule::Match( const SocketAddress& host )
 {
-  return ((inet_addr( host.GetIPAddress().c_str() ) & ipMask.s_addr)
-           == ipAddr.s_addr);
+  return ((inet_addr( host.GetIPAddress().c_str() ) & ipMask.s_addr) == ipAddr.s_addr);
 }
 
 bool
@@ -75,7 +51,7 @@ SocketRule::Denied( const SocketAddress& host )
 }
    
 void
-SocketRule::SetDelimiter( const char newDelimiter /* = '/' */ )
+SocketRule::SetDelimiter( const char newDelimiter = '/' )
 {
   delimiter = newDelimiter;
 }
@@ -94,7 +70,7 @@ operator <<( ostream& os, SocketRule& r )
   return (os);
 }
 
-SocketRuleSet::SocketRuleSet( SocketRule::Policy initDefaultPolicy )
+SocketRuleSet::SocketRuleSet( SocketRule::Policy initDefaultPolicy = SocketRule::DENY )
   : defaultPolicy( initDefaultPolicy )
 {
 }
@@ -102,7 +78,7 @@ SocketRuleSet::SocketRuleSet( SocketRule::Policy initDefaultPolicy )
 void
 SocketRuleSet::AddRule( const string& strIpAddr,
                         const string& strIpMask,
-                        SocketRule::Policy allowDeny /* = SocketRule::ALLOW */ )
+                        SocketRule::Policy allowDeny = SocketRule::ALLOW )
 {
   SocketRule rule( strIpAddr, strIpMask, allowDeny );
   rules.insert( rules.end(), rule);

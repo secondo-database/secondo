@@ -1,24 +1,4 @@
 /*
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
 1 Win32Socket -- Socket implementation for Microsoft Windows
 
@@ -37,19 +17,10 @@ For a description of the public interface see the ~SocketIO~ header file.
 
 #include "Win32Socket.h"
 #include <cstdio>
-#include <string.h>
 #include <string>
-#include <assert.h>
 
-#define MAX_HOST_NAME  256
-#define MILLISECOND   1000
-
-
-using std::string;
-using std::ios;
-using std::iostream;
-using std::cerr;
-using std::endl;
+#define MAX_HOST_NAME         256
+#define MILLISECOND           1000
 
 static HANDLE watchDogMutex;
 
@@ -89,38 +60,26 @@ Socket::IsLibraryInitialized()
 1.1 Global Windows Sockets
 
 */
-Win32Socket::Win32Socket( const string& addr, const string& port,
-	                  std::ostream* _traceInStream, 
-			  std::ostream* _traceOutStream,
-			  bool _destroyTrace)
-{
+Win32Socket::Win32Socket( const string& addr, const string& port )
+{ 
   hostAddress = addr;
-  hostPort = port;
+  hostPort = port; 
   lastError = EC_OK;
   s = INVALID_SOCKET;
   ioSocketBuffer = 0;
   ioSocketStream = 0;
-  traceInStream = _traceInStream;
-  traceOutStream = _traceOutStream;
-  destroyTrace = _destroyTrace;
 }
 
-Win32Socket::Win32Socket( SOCKET newSock, 
-		          std::ostream* _traceInStream,
-	                  std::ostream* _traceOutStream,
-	                  bool _destroyTrace)
-{
-  s = newSock;
+Win32Socket::Win32Socket( SOCKET newSock )
+{ 
+  s = newSock; 
   hostAddress = "";
-  hostPort    = "";
+  hostPort    = ""; 
   state = SS_OPEN;
   lastError = EC_OK;
   ioSocketBuffer = new SocketBuffer( *this );
   ioSocketStream = new iostream( ioSocketBuffer );
   ioSocketStream->clear();
-  traceInStream = _traceInStream;
-  traceOutStream = _traceOutStream;
-  destroyTrace = _destroyTrace;
 }
 
 Win32Socket::~Win32Socket()
@@ -129,20 +88,15 @@ Win32Socket::~Win32Socket()
   if ( ioSocketStream != 0 )
   {
     delete ioSocketStream;
-    ioSocketStream = 0;
   }
   if ( ioSocketBuffer != 0 )
   {
     delete ioSocketBuffer;
-    ioSocketBuffer = 0;
   }
-  removeTraces();
 }
 
 bool
-Win32Socket::Open( const int listenQueueSize,
-                   const int sockType,
-                   const int flags )
+Win32Socket::Open( const int listenQueueSize, const int sockType, const int flags )
 {
   unsigned short port = 0;
 
@@ -183,13 +137,13 @@ Win32Socket::Open( const int listenQueueSize,
       lastError = WSAGetLastError();
       closesocket( s );
       return (false);
-    }
+    } 
   }
   else if ( flags & ENABLE_BROADCAST )
   {
     int enabled = 1;
-    setsockopt( s, SOL_SOCKET, SO_BROADCAST, (char*)&enabled, sizeof(enabled) );
-  }
+    setsockopt( s, SOL_SOCKET, SO_BROADCAST, (char*) &enabled, sizeof(enabled) );
+  }	
   lastError = EC_OK;
   state = SS_OPEN;
   return (true);
@@ -209,7 +163,7 @@ Win32Socket::Connect( int maxAttempts, const time_t timeout )
 
   struct sockaddr_in insock;  // inet socket address
   struct hostent*    hp;      // entry in hosts table
-
+	
   if ( (hp = gethostbyname( hostAddress.c_str() )) == NULL ||
         hp->h_addrtype != AF_INET )
   {
@@ -219,7 +173,7 @@ Win32Socket::Connect( int maxAttempts, const time_t timeout )
   insock.sin_family = AF_INET;
   insock.sin_port = htons( port );
   memcpy( &insock.sin_addr, hp->h_addr, sizeof(insock.sin_addr) );
-
+    
   while (true)
   {
     if ( (s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET )
@@ -254,7 +208,7 @@ Win32Socket::Connect( int maxAttempts, const time_t timeout )
                        (char*) &enabled, sizeof(enabled) ) != 0 )
       {
         lastError = WSAGetLastError();
-        closesocket( s );
+        closesocket( s );	
         return (false);
       }
       ioSocketBuffer = new SocketBuffer( *this );
@@ -271,7 +225,7 @@ Win32Socket::Connect( int maxAttempts, const time_t timeout )
 
 int
 Win32Socket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
-{
+{ 
   size_t size = 0;
   time_t start = 0;
   if ( state != SS_OPEN )
@@ -286,7 +240,7 @@ Win32Socket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
   }
 
   do
-  {
+  { 
     int rc;
     if ( timeout != WAIT_FOREVER )
     {
@@ -308,11 +262,11 @@ Win32Socket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
         return (size);
       }
       time_t now = time( NULL );
-      timeout = start + timeout >= now ? timeout + start - now : 0;
+      timeout = start + timeout >= now ? timeout + start - now : 0;  
     }
     rc = recv( s, (char*) buf + size, maxSize - size, 0 );
     if ( rc < 0 )
-    {
+    { 
       SetStreamState( ios::failbit );
       lastError = WSAGetLastError();
       return (-1);
@@ -325,17 +279,17 @@ Win32Socket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
     }
     else
     {
-      size += rc;
+      size += rc; 
     }
   }
-  while (size < minSize);
+  while (size < minSize); 
 
   return ((int) size);
 }
 
 bool
 Win32Socket::Read( void* buf, size_t size )
-{
+{ 
   if ( state != SS_OPEN )
   {
     SetStreamState( ios::failbit );
@@ -359,26 +313,26 @@ Win32Socket::Read( void* buf, size_t size )
       return (false);
     }
     else
-    {
-      buf = (char*) buf + rc;
-      size -= rc;
+    { 
+      buf = (char*) buf + rc; 
+      size -= rc; 
     }
   }
-  while (size != 0);
+  while (size != 0); 
 
   return (true);
 }
-
+    
 bool
 Win32Socket::Write( void const* buf, size_t size )
-{
+{ 
   if ( state != SS_OPEN )
   {
     SetStreamState( ios::failbit );
     lastError = EC_NOT_OPENED;
     return (false);
   }
-
+  
   do
   {
     int rc = send( s, (char*) buf, size, 0 );
@@ -395,16 +349,16 @@ Win32Socket::Write( void const* buf, size_t size )
       return (false);
     }
     else
-    {
-      buf = (char*) buf + rc;
-      size -= rc;
+    { 
+      buf = (char*) buf + rc; 
+      size -= rc; 
     }
   }
-  while (size != 0);
+  while (size != 0); 
 
   return (true);
 }
-
+    
 bool
 Win32Socket::IsOk()
 {
@@ -414,7 +368,7 @@ Win32Socket::IsOk()
 string
 Win32Socket::GetErrorText()
 {
-  string msg;
+  string msg; 
   int    len;
   char   msgbuf[256];
 
@@ -426,25 +380,25 @@ Win32Socket::GetErrorText()
     case EC_NOT_OPENED:
       msg = "Socket not opened";
       break;
-    case EC_BAD_ADDRESS:
+    case EC_BAD_ADDRESS: 
       msg = "Bad address";
       break;
-    case EC_CONNECTION_FAILED:
+    case EC_CONNECTION_FAILED: 
       msg = "Connection failed";
       break;
     case EC_BROKEN_PIPE:
       msg = "Connection broken";
-      break;
+      break; 
     case EC_INVALID_ACCESS_MODE:
       msg = "Invalid access mode";
       break;
     case EC_MESSAGE_TRUNCATED:
       msg = "Sent message truncated";
       break;
-    default:
+    default: 
       len = FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL,
                            lastError, 0, msgbuf, 256, NULL);
-      if ( len == 0 )
+      if ( len == 0 ) 
       {
         sprintf( msgbuf, "Unknown error code %u", lastError );
       }
@@ -487,9 +441,7 @@ Win32Socket::GetPeerAddress() const
 }
 
 Socket*
-Win32Socket::Accept( std::ostream* traceInStream,
-		     std::ostream* traceOutStream,
-		     bool destroyTrace)
+Win32Socket::Accept()
 {
   if ( state != SS_OPEN )
   {
@@ -507,11 +459,11 @@ Win32Socket::Accept( std::ostream* traceInStream,
   else
   {
     static struct linger l = { 1, LINGER_TIME };
-    if ( setsockopt(newSock,SOL_SOCKET,SO_LINGER, (char*)&l, sizeof(l) ) != 0 )
+    if ( setsockopt( newSock, SOL_SOCKET, SO_LINGER, (char*) &l, sizeof(l) ) != 0 )
     {
       lastError = EC_INVALID_ACCESS_MODE;
       closesocket( newSock );
-      return (NULL);
+      return (NULL); 
     }
     int enabled = 1;
     if ( setsockopt( newSock, IPPROTO_TCP, TCP_NODELAY,
@@ -522,13 +474,12 @@ Win32Socket::Accept( std::ostream* traceInStream,
       return (NULL);
     }
     lastError = EC_OK;
-    return (new Win32Socket( newSock, traceInStream, 
-			    traceOutStream, destroyTrace ));
+    return (new Win32Socket( newSock ));
   }
 }
 
 bool
-Win32Socket::CancelAccept()
+Win32Socket::CancelAccept() 
 {
   bool result = Close();
   // Wakeup listener
@@ -570,8 +521,8 @@ Win32Socket::ShutDown()
       SetStreamState( ios::failbit );
       lastError = WSAGetLastError();
       return (false);
-    }
-  }
+    } 
+  } 
   SetStreamState( ios::eofbit );
   lastError = EC_OK;
   return (true);
@@ -598,13 +549,9 @@ Win32Socket::GetDescriptor()
 }
 
 Socket*
-Socket::CreateClient( const SocketDescriptor sd,
-	              std::ostream* traceInStream,
-	              std::ostream* traceOutStream,
-	              bool destroyTrace)
+Socket::CreateClient( const SocketDescriptor sd )
 {
-  Win32Socket* sock = new Win32Socket( sd, traceInStream, 
-		                       traceOutStream, destroyTrace );
+  Win32Socket* sock = new Win32Socket( sd );
   return (sock);
 }
 
@@ -648,29 +595,17 @@ Socket::GetHostname( const string& ipAddress )
 }
 
 Socket*
-Socket::CreateLocal( const string& address, const int listenQueueSize,
-	             std::ostream* traceInStream,
-	             std::ostream* traceOutStream,
-	             bool destroyTrace)
+Socket::CreateLocal( const string& address, const int listenQueueSize )
 {
-  LocalWin32Socket* sock = new LocalWin32Socket( address, traceInStream, 
-		                          traceOutStream, destroyTrace );
+  LocalWin32Socket* sock = new LocalWin32Socket( address );
   sock->Open( listenQueueSize );
   return (sock);
 }
 
 Socket*
-Socket::CreateGlobal( const string& address,
-                      const string& port,
-                      const int listenQueueSize,
-	              std::ostream* traceInStream,
-	              std::ostream* traceOutStream,
-	              bool destroyTrace)
+Socket::CreateGlobal( const string& address, const string& port, const int listenQueueSize )
 {
-  Win32Socket* sock = new Win32Socket( address, port,
-		        traceInStream,
-		        traceOutStream, 
-		        destroyTrace);
+  Win32Socket* sock = new Win32Socket( address, port );
   sock->Open( listenQueueSize, SOCK_STREAM );
   return (sock);
 }
@@ -678,32 +613,27 @@ Socket::CreateGlobal( const string& address,
 Socket*
 Socket::Connect( const string& address, const string& port,
                  const SocketDomain domain,
-                 const int maxAttempts, const time_t timeout,
-	         std::ostream* traceInStream,
-	         std::ostream* traceOutStream,
-	         bool destroyTrace )
+                 const int maxAttempts, const time_t timeout )
 {
   if ( domain == SockLocalDomain ||
       (domain == SockAnyDomain   &&
        (port.length() == 0 || address == "localhost")) )
   {
-    LocalWin32Socket* s = new LocalWin32Socket( address, traceInStream,
-		                                traceOutStream, destroyTrace );
+    LocalWin32Socket* s = new LocalWin32Socket( address );
     s->Connect( maxAttempts, timeout );
     return (s);
   }
   else
   {
-    Win32Socket* s = new Win32Socket( address, port, traceInStream,
-		                      traceOutStream, destroyTrace );
-    s->Connect( maxAttempts, timeout );
+    Win32Socket* s = new Win32Socket( address, port );
+    s->Connect( maxAttempts, timeout ); 
     return (s);
-  }
+  }  
 }
 
 string
 GetProcessName()
-{
+{ 
   static char name[MAX_HOST_NAME+8];
   gethostname( name, MAX_HOST_NAME );
   sprintf( name + strlen( name ), ":%x", (unsigned int) GetCurrentProcessId() );
@@ -742,8 +672,7 @@ LocalWin32Socket::Read( void* buf, size_t minSize, size_t maxSize,
     recvBuffer->recvWaitFlag = true;
     size_t begin = recvBuffer->dataBeg;
     size_t end = recvBuffer->dataEnd;
-    size_t recvSize =
-        (begin <= end) ? end - begin : sizeof(recvBuffer->dataBuf) - begin;
+    size_t recvSize = (begin <= end) ? end - begin : sizeof(recvBuffer->dataBuf) - begin;
     if (recvSize > 0)
     {
       recvBuffer->recvWaitFlag = false;
@@ -760,12 +689,12 @@ LocalWin32Socket::Read( void* buf, size_t minSize, size_t maxSize,
         dst += recvSize;
         size += recvSize;
         maxSize -= recvSize;
-      }
+      } 
       recvBuffer->dataBeg = (begin == sizeof(recvBuffer->dataBuf)) ? 0 : begin;
       if (recvBuffer->sendWaitFlag)
       {
         SetEvent(signalHandle[RTR]);
-      }
+      }        
     }
     else
     {
@@ -796,11 +725,10 @@ LocalWin32Socket::Read( void* buf, size_t minSize, size_t maxSize,
       if ( timeout != WAIT_FOREVER )
       {
         time_t now = time( NULL );
-        timeout = timeout >=
-                (now - start)*1000 ? timeout - (now - start)*1000 : 0;
+        timeout = timeout >= (now - start)*1000 ? timeout - (now - start)*1000 : 0;
       }
     }
-  }
+  }            
   return (size < minSize ? -1 : (int) size);
 }
 
@@ -814,8 +742,7 @@ LocalWin32Socket::Read( void* buf, size_t size )
     recvBuffer->recvWaitFlag = true;
     size_t begin = recvBuffer->dataBeg;
     size_t end = recvBuffer->dataEnd;
-    size_t recvSize =
-            (begin <= end) ? end - begin : sizeof(recvBuffer->dataBuf) - begin;
+    size_t recvSize = (begin <= end) ? end - begin : sizeof(recvBuffer->dataBuf) - begin;
     if (recvSize > 0)
     {
       recvBuffer->recvWaitFlag = false;
@@ -831,7 +758,7 @@ LocalWin32Socket::Read( void* buf, size_t size )
         begin += recvSize;
         dst += recvSize;
         size -= recvSize;
-      }
+      } 
       recvBuffer->dataBeg = (begin == sizeof(recvBuffer->dataBuf)) ? 0 : begin;
       if ( recvBuffer->sendWaitFlag )
       {
@@ -861,7 +788,7 @@ LocalWin32Socket::Read( void* buf, size_t size )
         return (false);
       }
     }
-  }
+  }            
   return (size == 0);
 }
 
@@ -875,9 +802,8 @@ LocalWin32Socket::Write( const void* buf, size_t size )
     sendBuffer->sendWaitFlag = true;
     size_t begin = sendBuffer->dataBeg;
     size_t end = sendBuffer->dataEnd;
-    size_t snd_size = (begin <= end) ?
-                      sizeof(sendBuffer->dataBuf) - end - (begin == 0) :
-                      begin - end - 1;
+    size_t snd_size = (begin <= end) ? 
+                      sizeof(sendBuffer->dataBuf) - end - (begin == 0) : begin - end - 1;
     if ( snd_size > 0 )
     {
       sendBuffer->sendWaitFlag = false;
@@ -893,7 +819,7 @@ LocalWin32Socket::Write( const void* buf, size_t size )
         end += snd_size;
         src += snd_size;
         size -= snd_size;
-      }
+      } 
       sendBuffer->dataEnd = (end == sizeof(sendBuffer->dataBuf)) ? 0 : end;
       if ( sendBuffer->recvWaitFlag )
       {
@@ -919,39 +845,31 @@ LocalWin32Socket::Write( const void* buf, size_t size )
         {
           SetStreamState( ios::failbit );
           lastError = GetLastError();
-        }
+        }    
         return (false);
       }
     }
-  }
+  }                
   return (size == 0);
 }
 
 #define MAX_ADDRESS_LEN 64
 
-LocalWin32Socket::LocalWin32Socket( const string& address,
-	                   std::ostream* _traceInStream,
-	                   std::ostream* _traceOutStream,
-	                   bool _destroyTrace)
+LocalWin32Socket::LocalWin32Socket( const string& address )
 {
   localName = address;
   lastError = EC_NOT_OPENED;
   mutexHandle = NULL;
-  ioSocketBuffer = 0;
-  ioSocketStream = 0;
-  traceInStream = _traceInStream;
-  traceOutStream = _traceOutStream,
-  destroyTrace = _destroyTrace;
 }
-
+ 
 bool
 LocalWin32Socket::Open( int )
 {
-  char buf[MAX_ADDRESS_LEN];
+  char buf[MAX_ADDRESS_LEN];    
   int  i;
 
   for ( i = RD; i <= RTT; i++ )
-  {
+  {  
     sprintf( buf, "%s.%c", localName.c_str(), i + '0' );
     signalHandle[i] = CreateEvent( NULL, false, false, buf );
     if ( GetLastError() == ERROR_ALREADY_EXISTS )
@@ -966,7 +884,7 @@ LocalWin32Socket::Open( int )
         CloseHandle( signalHandle[i] );
       }
       return (false);
-    }
+    }    
   }
   sprintf( buf, "%s.shr", localName.c_str() );
   bufferHandle = CreateFileMapping( INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
@@ -975,14 +893,12 @@ LocalWin32Socket::Open( int )
   {
     lastError = GetLastError();
     for ( i = RD; i <= RTT; i++ )
-    {
+    {  
       CloseHandle( signalHandle[i] );
     }
     return (false);
   }
-  recvBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle,
-                                                   FILE_MAP_ALL_ACCESS,
-                                                   0, 0, 0 );
+  recvBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle, FILE_MAP_ALL_ACCESS, 0, 0, 0 );
   if ( !recvBuffer )
   {
     lastError = GetLastError();
@@ -992,27 +908,21 @@ LocalWin32Socket::Open( int )
       CloseHandle( signalHandle[i] );
     }
     return (false);
-  }
+  }    
   sendBuffer = recvBuffer+1;
   recvBuffer->dataBeg = recvBuffer->dataEnd = 0;
-  sendBuffer->dataBeg = sendBuffer->dataEnd = 0;
+  sendBuffer->dataBeg = sendBuffer->dataEnd = 0;     
   lastError = EC_OK;
   state = SS_OPEN;
   return (true);
 }
 
-LocalWin32Socket::LocalWin32Socket( std::ostream* _traceInStream,
-		                    std::ostream* _traceOutStream,
-				    bool _destroyTrace)
+LocalWin32Socket::LocalWin32Socket()
 {
   int i;
   bufferHandle = NULL;
-  mutexHandle = NULL;
+  mutexHandle = NULL; 
   localName = "";
-  traceInStream = _traceInStream;
-  traceOutStream = _traceOutStream;
-  destroyTrace = _destroyTrace;
-
 
   for ( i = RD; i <= RTT; i++ )
   {
@@ -1025,7 +935,7 @@ LocalWin32Socket::LocalWin32Socket( std::ostream* _traceInStream,
         CloseHandle( signalHandle[i] );
       }
       return;
-    }
+    }    
   }
   // create anonymous shared memory section
   bufferHandle = CreateFileMapping( INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
@@ -1039,9 +949,7 @@ LocalWin32Socket::LocalWin32Socket( std::ostream* _traceInStream,
     }
     return;
   }
-  recvBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle,
-                                                   FILE_MAP_ALL_ACCESS,
-                                                   0, 0, 0 );
+  recvBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle, FILE_MAP_ALL_ACCESS, 0, 0, 0 );
   if ( !recvBuffer )
   {
     lastError = GetLastError();
@@ -1052,10 +960,10 @@ LocalWin32Socket::LocalWin32Socket( std::ostream* _traceInStream,
     }
     bufferHandle = NULL;
     return;
-  }
+  }    
   sendBuffer = recvBuffer+1;
   recvBuffer->dataBeg = recvBuffer->dataEnd = 0;
-  sendBuffer->dataBeg = sendBuffer->dataEnd = 0;
+  sendBuffer->dataBeg = sendBuffer->dataEnd = 0;     
   ioSocketBuffer = new SocketBuffer( *this );
   ioSocketStream = new iostream( ioSocketBuffer );
   ioSocketStream->clear();
@@ -1069,27 +977,23 @@ LocalWin32Socket::~LocalWin32Socket()
   if ( ioSocketStream != 0 )
   {
     delete ioSocketStream;
-    ioSocketStream = 0;
   }
   if ( ioSocketBuffer != 0 )
   {
     delete ioSocketBuffer;
-    ioSocketBuffer = 0;
   }
-}
+}    
 
 Socket*
-LocalWin32Socket::Accept( std::ostream* traceInStream,
-		          std::ostream* traceOutStream,
-			  bool destroyStreams)
-{
+LocalWin32Socket::Accept()
+{   
   HANDLE h[2];
 
   if ( state != SS_OPEN )
   {
     return (NULL);
   }
-
+          
   ConnectData* cdp = (ConnectData*) sendBuffer->dataBuf;
   cdp->processId = GetCurrentProcessId();
   cdp->mutexHandle = watchDogMutex;
@@ -1113,8 +1017,7 @@ LocalWin32Socket::Accept( std::ostream* traceInStream,
       return (NULL);
     }
   }
-  LocalWin32Socket* sock = new LocalWin32Socket(traceInStream, 
-		                             traceOutStream, destroyTrace);
+  LocalWin32Socket* sock = new LocalWin32Socket();
   sock->mutexHandle = ((ConnectData*) recvBuffer->dataBuf)->mutexHandle;
   AcceptData* adp = (AcceptData*) sendBuffer->dataBuf;
   adp->bufferHandle = sock->bufferHandle;
@@ -1136,10 +1039,10 @@ LocalWin32Socket::Accept( std::ostream* traceInStream,
     else
     {
       lastError = GetLastError();
-    }
+    }    
     delete sock;
     return (NULL);
-  }
+  }  
   return (sock);
 }
 
@@ -1157,7 +1060,7 @@ LocalWin32Socket::CancelAccept()
   SetEvent( signalHandle[RD] );
   SetEvent( signalHandle[RTT] );
   return (true);
-}
+}  
 
 bool
 LocalWin32Socket::IsOk()
@@ -1176,7 +1079,7 @@ LocalWin32Socket::Close()
       CloseHandle( mutexHandle );
     }
     for ( int i = RD; i <= RTT; i++ )
-    {
+    { 
       CloseHandle( signalHandle[i] );
     }
     UnmapViewOfFile( recvBuffer < sendBuffer ? recvBuffer : sendBuffer );
@@ -1223,10 +1126,10 @@ LocalWin32Socket::GetErrorText()
     case EC_INVALID_ACCESS_MODE:
       msg = "Invalid access mode";
       break;
-    default:
+    default:     
       len = FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL,
                            lastError, 0, msgbuf, 256, NULL);
-      if ( len == 0 )
+      if ( len == 0 ) 
       {
         sprintf( msgbuf, "Unknown error code %u", lastError );
       }
@@ -1268,7 +1171,7 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
         CloseHandle( signalHandle[i] );
       }
       return (false);
-    }
+    }    
   }
   sprintf( buf, "%s.shr", localName.c_str() );
   bufferHandle = CreateFileMapping( INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
@@ -1282,14 +1185,12 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
     }
     return (false);
   }
-  sendBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle,
-                                                   FILE_MAP_ALL_ACCESS,
-                                                   0, 0, 0 );
+  sendBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle, FILE_MAP_ALL_ACCESS, 0, 0, 0 );
   if ( !sendBuffer )
   {
     lastError = GetLastError();
     for (i = RD; i <= RTT; i++)
-    {
+    {  
       CloseHandle( signalHandle[i] );
     }
     CloseHandle( bufferHandle );
@@ -1299,10 +1200,10 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
   state = SS_SHUTDOWN;
   mutexHandle = NULL;
 
-  rc = WaitForSingleObject( signalHandle[RTT],timeout*maxAttempts*MILLISECOND );
+  rc = WaitForSingleObject( signalHandle[RTT], timeout*maxAttempts*MILLISECOND );
   if ( rc != WAIT_OBJECT_0 )
   {
-    error_code = (rc == WAIT_TIMEOUT) ? EC_TIMEOUT_EXPIRED : GetLastError();
+    error_code = rc == WAIT_TIMEOUT ? EC_TIMEOUT_EXPIRED : GetLastError();
     Close();
     lastError = error_code;
     return (false);
@@ -1318,10 +1219,10 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
     return (false);
   }
   HANDLE hSelf = GetCurrentProcess();
-  if ( !DuplicateHandle( hServer, cdp->mutexHandle, hSelf, &mutexHandle,
+  if ( !DuplicateHandle( hServer, cdp->mutexHandle, hSelf, &mutexHandle, 
                          0, FALSE, DUPLICATE_SAME_ACCESS ) ||
-       !DuplicateHandle( hSelf, watchDogMutex, hServer,
-                         &((ConnectData*) sendBuffer->dataBuf)->mutexHandle,
+       !DuplicateHandle( hSelf, watchDogMutex, hServer, 
+                         &((ConnectData*) sendBuffer->dataBuf)->mutexHandle, 
                          0, FALSE, DUPLICATE_SAME_ACCESS ) )
   {
     error_code = GetLastError();
@@ -1362,20 +1263,20 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
   CloseHandle( bufferHandle );
   bufferHandle = NULL;
 
-  if ( !DuplicateHandle( hServer, ad.bufferHandle, hSelf, &bufferHandle,
+  if ( !DuplicateHandle( hServer, ad.bufferHandle, hSelf, &bufferHandle, 
                          0, FALSE, DUPLICATE_SAME_ACCESS ) )
   {
     lastError = GetLastError();
     CloseHandle( hServer );
-    CloseHandle( mutexHandle );
+    CloseHandle( mutexHandle ); 
     return (false);
   }
   else
   {
     for (i = RD; i <= RTT; i++)
     {
-      if (!DuplicateHandle( hServer, ad.signalHandle[i],
-                            hSelf, &signalHandle[i],
+      if (!DuplicateHandle( hServer, ad.signalHandle[i], 
+                            hSelf, &signalHandle[i], 
                             0, FALSE, DUPLICATE_SAME_ACCESS ) )
       {
         lastError = GetLastError();
@@ -1392,9 +1293,7 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
   }
   CloseHandle( hServer );
 
-  sendBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle,
-                                                   FILE_MAP_ALL_ACCESS,
-                                                   0, 0, 0 );
+  sendBuffer = (LocalSocketBuffer*) MapViewOfFile( bufferHandle, FILE_MAP_ALL_ACCESS, 0, 0, 0 );
   if ( !sendBuffer )
   {
     lastError = GetLastError();
@@ -1411,7 +1310,7 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
   ioSocketStream = new iostream( ioSocketBuffer );
   ioSocketStream->clear();
   lastError = EC_OK;
-  state = SS_OPEN;
+  state = SS_OPEN; 
   return (true);
 }
 

@@ -1,49 +1,139 @@
-#This file is part of SECONDO.
-#
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-#Database Systems for New Applications.
-#
-#SECONDO is free software; you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2 of the License, or
-#(at your option) any later version.
-#
-#SECONDO is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with SECONDO; if not, write to the Free Software
-#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 ########################################################################
 #
 # SECONDO makefile for the Storage Management Interface
 #
 ########################################################################
 
-include ../makefile.env
+include ../makefile.config
+ifdef platform
+include ../makefile.$(platform)
+
+BDBOBJECTS=\
+	smiEnvironment.$(OBJEXT) \
+	smiKey.$(OBJEXT) \
+	bdbKeyedFile.$(OBJEXT) \
+	bdbRecordFile.$(OBJEXT) \
+	bdbFile.$(OBJEXT) \
+	bdbRecord.$(OBJEXT) \
+	bdbEnvironment.$(OBJEXT)
+
+ORAOBJECTS=\
+	smiEnvironment.$(OBJEXT) \
+	smiKey.$(OBJEXT) \
+	oraKeyedFile.$(OBJEXT) \
+	oraRecordFile.$(OBJEXT) \
+	oraFile.$(OBJEXT) \
+	oraRecord.$(OBJEXT) \
+	oraEnvironment.$(OBJEXT)
+
+SMIHDR = SmiORA.h ../include/SecondoConfig.h ../include/SecondoSMI.h ../include/SmiCodes.h
+ORASMIHDR = SmiORA.h $(SMIHDR)
+BDBSMIHDR = SmiBDB.h $(SMIHDR)
 
 .PHONY: all
-all: $(OBJECTS)
+ifeq ($(smitype),ora)
+CCFLAGS= $(PICFLAG) $(OCICPPINCLUDE) $(DEFAULTCCFLAGS)
 
-LIBNAME = libsmi$(SMILOW)
-.PHONY: buildlibs
-buildlibs: $(LIBNAME).$(LIBEXT)
+all: libsmiora.$(LIBEXT)
+else
+CCFLAGS= $(PICFLAG) $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
-#CCFLAGS += -DTRACE_ON
+all: libsmibdb.$(LIBEXT)
+endif
+
 
 # --- Storage Management Interface library ---
 
-$(LIBDIR)/libsmibdb.$(LIBEXT): $(OBJECTS)
-	$(create-lib)
-
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
+ifeq ($(shared),yes)
+# ... as shared object
+ifeq ($(platform),win32)
+ifeq ($(smitype),ora)
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,libsmiora.$(LIBEXT).a
+else
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,libsmibdb.$(LIBEXT).a
 endif
+endif
+endif
+
+libsmibdb.$(LIBEXT): $(BDBOBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o libsmibdb.$(LIBEXT) $(LDOPT) $(BDBOBJECTS) $(BDBLIBDIR) $(BDBLIB) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(CP) libsmibdb.$(LIBEXT) ../lib/libsmibdb.$(LIBEXT)
+ifeq ($(platform),win32)
+	$(CP) libsmibdb.$(LIBEXT) ../bin/libsmibdb.$(LIBEXT)
+	$(CP) libsmibdb.$(LIBEXT).a ../lib/libsmibdb.$(LIBEXT).a
+endif
+else
+# ... as static library
+	$(AR) -r libsmibdb.$(LIBEXT) $(BDBOBJECTS)
+	$(CP) libsmibdb.$(LIBEXT) ../lib/libsmibdb.$(LIBEXT)
+endif
+
+libsmiora.$(LIBEXT): $(ORAOBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o libsmiora.$(LIBEXT) $(LDOPT) $(ORAOBJECTS) $(OCICPPLIBDIR) $(OCICPPLIB) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(CP) libsmiora.$(LIBEXT) ../lib/libsmiora.$(LIBEXT)
+ifeq ($(platform),win32)
+	$(CP) libsmiora.$(LIBEXT) ../bin/libsmiora.$(LIBEXT)
+	$(CP) libsmiora.$(LIBEXT).a ../lib/libsmiora.$(LIBEXT).a
+endif
+else
+# ... as static library
+	$(AR) -r libsmiora.$(LIBEXT) $(ORAOBJECTS)
+	$(CP) libsmiora.$(LIBEXT) ../lib/libsmiora.$(LIBEXT)
+endif
+
+# --- Storage Management Interface modules ---
+
+smiEnvironment.$(OBJEXT): smiEnvironment.cpp $(SMIHDR)
+	$(CC) -c -o smiEnvironment.$(OBJEXT) smiEnvironment.cpp $(CCFLAGS)
+
+smiKey.$(OBJEXT): smiKey.cpp $(SMIHDR)
+	$(CC) -c -o smiKey.$(OBJEXT) smiKey.cpp $(CCFLAGS)
+
+bdbEnvironment.$(OBJEXT): bdbEnvironment.cpp $(BDBSMIHDR)
+	$(CC) -c -o bdbEnvironment.$(OBJEXT) bdbEnvironment.cpp $(CCFLAGS)
+
+bdbFile.$(OBJEXT): bdbFile.cpp $(BDBSMIHDR)
+	$(CC) -c -o bdbFile.$(OBJEXT) bdbFile.cpp $(CCFLAGS)
+
+bdbRecordFile.$(OBJEXT): bdbRecordFile.cpp $(BDBSMIHDR)
+	$(CC) -c -o bdbRecordFile.$(OBJEXT) bdbRecordFile.cpp $(CCFLAGS)
+
+bdbKeyedFile.$(OBJEXT): bdbKeyedFile.cpp $(BDBSMIHDR)
+	$(CC) -c -o bdbKeyedFile.$(OBJEXT) bdbKeyedFile.cpp $(CCFLAGS)
+
+bdbRecord.$(OBJEXT): bdbRecord.cpp $(BDBSMIHDR)
+	$(CC) -c -o bdbRecord.$(OBJEXT) bdbRecord.cpp $(CCFLAGS)
+
+oraEnvironment.$(OBJEXT): oraEnvironment.cpp $(ORASMIHDR)
+	$(CC) -c -o oraEnvironment.$(OBJEXT) oraEnvironment.cpp $(CCFLAGS)
+
+oraFile.$(OBJEXT): oraFile.cpp $(ORASMIHDR)
+	$(CC) -c -o oraFile.$(OBJEXT) oraFile.cpp $(CCFLAGS)
+
+oraRecordFile.$(OBJEXT): oraRecordFile.cpp $(ORASMIHDR)
+	$(CC) -c -o oraRecordFile.$(OBJEXT) oraRecordFile.cpp $(CCFLAGS)
+
+oraKeyedFile.$(OBJEXT): oraKeyedFile.cpp $(ORASMIHDR)
+	$(CC) -c -o oraKeyedFile.$(OBJEXT) oraKeyedFile.cpp $(CCFLAGS)
+
+oraRecord.$(OBJEXT): oraRecord.cpp $(ORASMIHDR)
+	$(CC) -c -o oraRecord.$(OBJEXT) oraRecord.cpp $(CCFLAGS)
 
 .PHONY: clean
 clean:
-	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+	$(RM) -f *.o
+	$(RM) -f *.lo
+	$(RM) -f *.a
+	$(RM) -f *.so
+	$(RM) -f *.dll
+
+else
+# Platform not specified
+.DEFAULT:
+	@echo *** Platform not specified in makefile.config
+endif
+
