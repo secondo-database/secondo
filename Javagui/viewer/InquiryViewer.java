@@ -123,13 +123,35 @@ public class InquiryViewer extends SecondoViewer{
       case ListExpr.SYMBOL_ATOM: res = atom.symbolValue();break;
       default : return "";
    }
-   // handle non standard characters
-   res = res.replaceAll("&","&amp;").replaceAll(
-                        "<","&lt;").replaceAll(">","&gt;");
+ 
+   res = replaceAll("&",res,"&amp");
+   res = replaceAll("<",res,"&lt;");
+   res = replaceAll(">",res,"&gt;");
    return res;
  }
 
 
+ /** include for using older Java-versions */
+ private static String replaceAll(String what, String where, String ByWhat){
+   StringBuffer res = new StringBuffer();
+   int lastpos = 0;
+   int len = what.length();
+   int index = where.indexOf(what,lastpos);
+   while(index>=0){
+       if(index>0)
+          res.append(where.substring(lastpos,index));
+       res.append(ByWhat);   
+       lastpos = index+len;
+       index = where.indexOf(what,lastpos);
+   }
+   res.append(where.substring(lastpos));
+   return res.toString();
+ }
+
+
+/** searchs the text in the textfield in the document and
+  * marks its if found 
+  */
 private void searchText(){
   String Text = SearchField.getText();
   if(Text.length()==0){
