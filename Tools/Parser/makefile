@@ -35,9 +35,9 @@ SecParser.tab.hpp SecParser.tab.cpp: SecParser.y
 NestedText.$(OBJEXT): NestedText.cpp NestedText.h
 	$(CC) -c -o NestedText.$(OBJEXT) NestedText.cpp $(CCFLAGS)
 
-NestedText.h: $(INCLUDEDIR)/CTable.h
+NestedText.h: CTable.h
 
-SecParser.$(OBJEXT): SecParser.cpp NestedText.h $(INCLUDEDIR)/SecParser.h
+SecParser.$(OBJEXT): SecParser.cpp NestedText.h SecParser.h
 	$(CC) -c -o SecParser.$(OBJEXT) SecParser.cpp $(CCFLAGS)
 
 SecLex.l: SecLex.l.1 lexrules SecLex.l.2

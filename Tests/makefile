@@ -6,8 +6,6 @@
 
 include ../makefile.env
 
-VPATH = $(INCLUDEDIR):$(LIBDIR)
-
 CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
 TESTRULES := tctable tfilesystem tprofiles tsmi tsock1 tsock2 tsock3 TupleTestBDB tdlmain # tnl
@@ -20,6 +18,12 @@ all:  copy
 .PHONY: copy
 copy: $(TESTFILES)
 	$(CP) $(TESTFILES) $(BINDIR) 
+
+.PHONY: file
+file: $(file)$(EXEEXT)
+	
+$(file)$(EXEEXT) : $(file).cpp
+	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) $(DEFAULTLIB)
 
 # --- Storage Management Interface library ---
 

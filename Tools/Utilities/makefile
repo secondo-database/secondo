@@ -15,8 +15,6 @@ OBJECTS=\
 	FileSystem.$(OBJEXT) \
 	UtilFunctions.$(OBJEXT)
 
-VPATH = $(INCLUDEDIR)
-
 .PHONY: all
 all: $(OBJECTS)
 

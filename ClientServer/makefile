@@ -6,8 +6,6 @@
 
 include ../makefile.env
 
-VPATH = $(INCLUDEDIR):$(LIBDIR):$(BINDIR)
-
 OBJECTS=\
 	SocketIO.$(OBJEXT) \
 	SocketAddress.$(OBJEXT) \

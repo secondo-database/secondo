@@ -6,7 +6,6 @@
 
 include ../makefile.env
 
-
 INCFILES=\
 	$(INCLUDEDIR)/AlgebraManager.h \
 	$(INCLUDEDIR)/Algebra.h \
@@ -16,34 +15,31 @@ OBJECTS=\
 	QueryProcessor.$(OBJEXT) \
 	SecondoCatalog.$(OBJEXT) \
 	SecondoSystem.$(OBJEXT) \
-	SecondoInterface.o \
-	SecondoInterfaceGeneral.o
+	$(LIBDIR)/SecondoInterface.$(OBJEXT) \
+	$(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT)
 
 .PHONY: all
 all: $(OBJECTS)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-QueryProcessor.$(OBJEXT): QueryProcessor.cpp $(INCLUDEDIR)/CTable.h $(INCLUDEDIR)/NameIndex.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/QueryProcessor.h $(INCLUDEDIR)/AlgebraManager.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoSystem.h
-	$(CC) -c -o QueryProcessor.$(OBJEXT) QueryProcessor.cpp $(CCFLAGS)
+QueryProcessor.$(OBJEXT): QueryProcessor.cpp CTable.h NameIndex.h NestedList.h QueryProcessor.h AlgebraManager.h SecondoCatalog.h SecondoSystem.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-SecondoCatalog.$(OBJEXT): SecondoCatalog.cpp $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoSystem.h
-	$(CC) -c -o SecondoCatalog.$(OBJEXT) SecondoCatalog.cpp $(CCFLAGS)
+SecondoCatalog.$(OBJEXT): SecondoCatalog.cpp SecondoCatalog.h SecondoSystem.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-SecondoSystem.$(OBJEXT): SecondoSystem.cpp $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/QueryProcessor.h
-	$(CC) -c -o SecondoSystem.$(OBJEXT) SecondoSystem.cpp $(CCFLAGS)
+SecondoSystem.$(OBJEXT): SecondoSystem.cpp SecondoSystem.h QueryProcessor.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-SecondoInterface.o: SecondoInterface.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/QueryProcessor.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/SecParser.h
-	$(CC) -c -o SecondoInterface.o SecondoInterface.cpp $(CCFLAGS)
-	$(CP) SecondoInterface.o $(LIBDIR)/SecondoInterface.o
+$(LIBDIR)/SecondoInterface.$(OBJEXT): SecondoInterface.cpp SecondoInterface.h SecondoSystem.h SecondoCatalog.h QueryProcessor.h Profiles.h FileSystem.h SecondoSMI.h SecParser.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-SecondoInterfaceGeneral.o: SecondoInterfaceGeneral.cpp $(INCLUDEDIR)/SecondoInterface.h
-	$(CC) -c -o SecondoInterfaceGeneral.o SecondoInterfaceGeneral.cpp $(CCFLAGS)
-	$(CP) SecondoInterfaceGeneral.o $(LIBDIR)/SecondoInterfaceGeneral.o
+$(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT): SecondoInterfaceGeneral.cpp SecondoInterface.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 include ../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) *.o *.lo
-
+	$(RM) $(OBJECTS)

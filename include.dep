@@ -8,7 +8,6 @@ $(INCLUDEDIR)/Application.h: $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SocketI
 
 $(INCLUDEDIR)/Attribute.h: $(INCLUDEDIR)/TupleElement.h
 
-$(INCLUDEDIR)/CTable.h: $(INCLUDEDIR)/CTable.cpp
 
 $(INCLUDEDIR)/DisplayTTY.h: $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/NestedList.h
 
@@ -20,7 +19,10 @@ $(INCLUDEDIR)/Messenger.h:
 
 $(INCLUDEDIR)/NameIndex.h:
 
-$(INCLUDEDIR)/NestedList.h: $(INCLUDEDIR)/CTable.h
+$(INCLUDEDIR)/NestedList.h: CTable.h
+
+$(BUILDDIR)/Tools/ListsAndTables/CTable.h: CTable.cpp
+	touch $@
 
 $(INCLUDEDIR)/Processes.h: $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SocketIO.h
 

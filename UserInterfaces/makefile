@@ -6,8 +6,6 @@
 
 include ../makefile.env
 
-VPATH = $(LIBDIR):$(INCLUDEDIR)
-
 APPLOBJECTS=\
 	SecondoTTY.o \
 	DisplayTTY.o 

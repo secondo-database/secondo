@@ -6,8 +6,6 @@
 
 include ../makefile.env
 
-VPATH = $(INCLUDEDIR):$(LIBDIR)
-
 BDBOBJECTSBASENAMES :=\
 	smiEnvironment \
 	smiKey \
