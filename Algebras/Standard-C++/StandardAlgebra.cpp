@@ -1018,6 +1018,9 @@ The next function defines the type property of type constructor ~CcString~.
 static ListExpr
 CcStringProperty()
 {
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist, "\"A piece of text up to 48 "
+		 "characters\"");
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"), 
 	                     nl->StringAtom("Example Type List"), 
@@ -1026,8 +1029,7 @@ CcStringProperty()
             nl->FourElemList(nl->StringAtom("-> DATA"), 
 	                     nl->StringAtom("string"), 
 			     nl->StringAtom("(<stringvalue>)"), 
-			     nl->StringAtom("\"A piece of text up to 48 "
-			     "characters\""))));
+			     examplelist)));
 }
 
 int CcString::Adjacent( Attribute* arg )
