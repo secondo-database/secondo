@@ -263,7 +263,14 @@ respective attribute values.
 static ListExpr
 OutCcInt( ListExpr typeinfo, Word value )
 {
-  return (nl->IntAtom( ((CcInt*)value.addr)->GetIntval() ));
+  if( ((CcInt*)value.addr)->IsDefined() )
+  { 
+    return (nl->IntAtom( ((CcInt*)value.addr)->GetIntval() ));
+  }
+  else
+  {
+    return (nl->SymbolAtom("undef"));
+  }
 }
 
 /*
@@ -282,6 +289,11 @@ InCcInt( ListExpr typeInfo, ListExpr value,
   {
     correct = true;
     return (SetWord( new CcInt( true, nl->IntValue( value ) ) ));
+  }
+  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  {
+    correct = true;
+    return (SetWord( new CcInt( false, 0) ));
   }
   else
   {
@@ -537,7 +549,14 @@ int     CcReal::Compare( Attribute * arg )
 static ListExpr
 OutCcReal( ListExpr typeinfo, Word value )
 {
-  return (nl->RealAtom( ((CcReal*)value.addr)->GetRealval() ));
+  if( ((CcReal*)value.addr)->IsDefined() )
+  { 
+    return (nl->RealAtom( ((CcReal*)value.addr)->GetRealval() ));
+  }
+  else
+  {
+    return (nl->SymbolAtom("undef"));
+  }
 }
 
 static Word
@@ -549,8 +568,13 @@ InCcReal( ListExpr typeInfo, ListExpr value,
     correct = true;
     return (SetWord( new CcReal( true, nl->RealValue( value )) ));
   }
-  else
+  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
+    correct = true;
+    return (SetWord( new CcReal( false, 0.0) ));
+  }
+  else  
+  {  
     correct = false;
     return (SetWord( Address( 0 ) ));
   }
@@ -662,7 +686,14 @@ nested list format is returned.
 static ListExpr
 OutCcBool( ListExpr typeinfo, Word value )
 {
-  return (nl->BoolAtom( ((CcBool*)value.addr)->GetBoolval() ));
+  if( ((CcBool*)value.addr)->IsDefined() )
+  { 
+    return (nl->BoolAtom( ((CcBool*)value.addr)->GetBoolval() ));
+  }
+  else
+  {
+    return (nl->SymbolAtom("undef"));
+  }
 }
 
 /*
@@ -684,6 +715,11 @@ InCcBool( ListExpr typeInfo, ListExpr value,
   {
     correct = true;
     return (SetWord( new CcBool( true, nl->BoolValue( value ) ) ));
+  }
+  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  {
+    correct = true;
+    return (SetWord( new CcBool( false, false) ));
   }
   else
   {
@@ -815,7 +851,8 @@ void*     CcString::GetValue() { return ((void*) &stringval); };
 int       CcString::Sizeof() { return (sizeof(CcString)); };
 CcString* CcString::Clone() { return (new CcString( *this )); };
 
-size_t CcString::HashValue()
+size_t 
+CcString::HashValue()
 {
   if(!defined)
   {
@@ -869,7 +906,14 @@ int       CcString::Compare( Attribute* arg )
 static ListExpr
 OutCcString( ListExpr typeinfo, Word value )
 {
-  return (nl->StringAtom( *((CcString*)value.addr)->GetStringval() ));
+  if( ((CcString*)value.addr)->IsDefined() )
+  {
+    return (nl->StringAtom( *((CcString*)value.addr)->GetStringval() ));
+  }
+  else
+  {
+    return (nl->SymbolAtom("undef"));
+  }
 }
 
 /*
@@ -885,6 +929,11 @@ InCcString( ListExpr typeInfo, ListExpr value,
     correct = true;
     string s = nl->StringValue( value );
     return (SetWord( new CcString( true, (STRING*)s.c_str() ) ));
+  }
+  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  {
+    correct = true;
+    return (SetWord( new CcString( false, (STRING*)"" ) ));
   }
   else
   {
@@ -1157,6 +1206,32 @@ CcMathTypeMapBool3( ListExpr args )
 }
 
 /*
+4.2.8 Type mapping function CcMathTypeMapBool4
+
+It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string~ as input and ~bool~ resulttype.
+
+*/
+
+static ListExpr
+CcMathTypeMapBool4( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( TypeOfSymbol( arg1 ) == ccbool )
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == ccint )
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == ccreal )
+      return (nl->SymbolAtom( "bool" ));
+    if ( TypeOfSymbol( arg1 ) == ccstring )
+      return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 4.3 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -1230,6 +1305,26 @@ CcMathSelectCompare( ListExpr args )
   return (-1); // This point should never be reached
 }
 
+/*
+4.3.3 Selection function  CcMathSelectIsEmpty
+
+It is used for the ~isempty~ operator.
+
+*/
+static int
+CcMathSelectIsEmpty( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  if ( TypeOfSymbol( arg1 ) == ccbool )
+    return (0);
+  if ( TypeOfSymbol( arg1 ) == ccint )
+    return (1);
+  if ( TypeOfSymbol( arg1 ) == ccreal )
+    return (2);
+  if ( TypeOfSymbol( arg1 ) == ccstring )
+    return (3);
+  return (-1); // This point should never be reached
+}
 
 /*
 4.4 Value mapping functions of operator ~+~
@@ -2445,29 +2540,17 @@ AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( (((CcBool*)args[0].addr)->IsDefined() &&
-      (!((CcBool*)args[0].addr)->GetBoolval())) ||
-        ((CcBool*)args[1].addr)->IsDefined() &&
-      (!((CcBool*)args[1].addr)->GetBoolval()) )
+        ((CcBool*)args[1].addr)->IsDefined()) ) 
   {
-    ((CcBool *)result.addr)->Set( true, false );
+    ((CcBool*)result.addr)->Set( true, ((CcBool*)args[0].addr)->GetBoolval() && 
+                                       ((CcBool*)args[1].addr)->GetBoolval() );
   }
   else
   {
-    if ( ((CcBool*)args[0].addr)->IsDefined() &&
-         ((CcBool*)args[1].addr)->IsDefined() )
-    {
-      ((CcBool *)result.addr)->Set( true, true );
-    }
-    else
-    {
-      ((CcBool *)result.addr)->Set( false, false );
-    }
+    ((CcBool *)result.addr)->Set( false, false );
   }
   return (0);
 }
-//if(((CcBool*)args[0])->IsDefined() && ((CcBool*)args[1])->IsDefined())
-//  ((CcBool *)*result)->Set(1, ((CcBool*)args[0])->GetBoolval() &&
-//                          ((CcBool*)args[1])->GetBoolval());
 
 /*
 4.17 Value mapping functions of operator ~or~
@@ -2478,30 +2561,83 @@ static int
 OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( (((CcBool*)args[0].addr)->IsDefined() &&
-        ((CcBool*)args[0].addr)->GetBoolval()) ||
-        ((CcBool*)args[1].addr)->IsDefined() &&
-        ((CcBool*)args[1].addr)->GetBoolval() )
+  if( ((CcBool*)args[0].addr)->IsDefined() && 
+      ((CcBool*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->Set( true, true );
+    ((CcBool*)result.addr)->Set( true, ((CcBool*)args[0].addr)->GetBoolval() ||
+                                       ((CcBool*)args[1].addr)->GetBoolval() );
   }
   else
   {
-    if ( ((CcBool*)args[0].addr)->IsDefined() &&
-         ((CcBool*)args[1].addr)->IsDefined() )
-    {
-      ((CcBool *)result.addr)->Set( true, false );
-    }
-    else
-    {
-      ((CcBool *)result.addr)->Set( false, false );
-    }
+    ((CcBool *)result.addr)->Set( false, false );
   }
   return (0);
 }
-// if(((CcBool*)args[0])->IsDefined() && ((CcBool*)args[1])->IsDefined())
-//  ((CcBool *)*result)->Set(1, ((CcBool*)args[0])->GetBoolval() ||
-//                          ((CcBool*)args[1])->GetBoolval());
+
+/*
+4.17 Value mapping functions of operator ~isempty~
+
+*/
+
+static int
+IsEmpty_b( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcBool*)args[0].addr)->IsDefined() )
+  {
+    ((CcBool*)result.addr)->Set( true, false );
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( true, true );
+  }
+  return (0);
+}
+
+static int
+IsEmpty_i( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcInt*)args[0].addr)->IsDefined() )
+  {
+    ((CcBool*)result.addr)->Set( true, false );
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( true, true );
+  }
+  return (0);
+}
+
+static int
+IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcReal*)args[0].addr)->IsDefined() )
+  {
+    ((CcBool*)result.addr)->Set( true, false );
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( true, true );
+  }
+  return (0);
+}
+
+static int
+IsEmpty_s( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcString*)args[0].addr)->IsDefined() )
+  {
+    ((CcBool*)result.addr)->Set( true, false );
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( true, true );
+  }
+  return (0);
+}
 
 /*
 1.10 Operator Model Mappings
@@ -2623,6 +2759,7 @@ ValueMapping cccontainsmap[] = { ContainsFun };
 ValueMapping ccandmap[] = { AndFun };
 ValueMapping ccormap[] = { OrFun };
 ValueMapping ccnotmap[] = { NotFun };
+ValueMapping ccisemptymap[] = { IsEmpty_b, IsEmpty_i, IsEmpty_r, IsEmpty_s };
 
 ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
@@ -2645,9 +2782,10 @@ const string CCSpecEQ   = "(<text> (int int) -> bool, (int real) -> bool, (real 
 const string CCSpecNE   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Not equal. </text--->)";
 const string CCSpecBeg  = "(<text> (string string) -> bool</text---><text> Starts. </text--->)";
 const string CCSpecCon  = "(<text> (string string) -> bool</text---><text> Contains. </text--->)";
-const string CCSpecNot  = "(<text> (bool bool) -> bool</text---><text> Logical Not. </text--->)";
+const string CCSpecNot  = "(<text> bool -> bool</text---><text> Logical Not. </text--->)";
 const string CCSpecAnd  = "(<text> (bool bool) -> bool</text---><text> Logical And. </text--->)";
 const string CCSpecOr   = "(<text> (bool bool) -> bool</text---><text> Logical Or. </text--->)";
+const string CCSpecIsEmpty   = "(<text> bool -> bool, int -> bool, real -> bool, string -> bool</text---><text> Returns whether the value is defined or not. </text--->)";
 
 Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
@@ -2668,6 +2806,7 @@ Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, Simp
 Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool1 );
 Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
 Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
+Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, CcMathSelectIsEmpty, CcMathTypeMapBool4 );
 
 /*
 6 Class ~CcAlgebra~
@@ -2721,6 +2860,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccnot );
     AddOperator( &ccand );
     AddOperator( &ccor );
+    AddOperator( &ccisempty );
   }
   ~CcAlgebra1() {};
 };

@@ -183,10 +183,10 @@ DisplayTTY::DisplayTuples( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
 {
-  if ( nl->IsEqual( value, "bot" ) )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  }
+  } 
   else
   {
     cout << nl->IntValue( value );
@@ -196,10 +196,10 @@ DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
 {
-  if ( nl->IsEqual( value, "bot" ) )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  }
+  } 
   else
   {
     cout << nl->RealValue( value );
@@ -209,10 +209,10 @@ DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
 {
-  if ( nl->IsEqual( value, "bot" ) )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  }
+  } 
   else
   {
     if ( nl->BoolValue( value ) )
@@ -229,12 +229,12 @@ DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
 {
-  if ( nl->IsEqual( value, "bot" ) )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  }
+  } 
   else
-  {
+  { 
     cout << nl->StringValue( value );
   }
 }
