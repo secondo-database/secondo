@@ -13,7 +13,7 @@ public class PriorityDialog extends JDialog{
 public PriorityDialog(Frame F){
   super(F,true);
   setTitle("Viewer Priorities");
-  Model = new ViewerListModel();  
+  Model = new ViewerListModel();
   ViewerList = new JList(Model);
   ScrollPane = new JScrollPane(ViewerList);
   ObjectDepending = new JCheckBox("depending from object");
@@ -22,7 +22,8 @@ public PriorityDialog(Frame F){
   P.add(ObjectDepending);
   P.add(KeepCurrentViewer);
   P.setLayout(new GridLayout(2,1));
-  KeepCurrentViewer.setSelected(true);
+  KeepCurrentViewer.setSelected(false);
+  ObjectDepending.setSelected(true);
   UpBtn = new JButton("up");
   DownBtn = new JButton("down");
   ReadyBtn = new JButton("ok");
