@@ -4,6 +4,16 @@
 
 include ./makefile.inc
 
+.PHONY: all #creates the gui and all know viewers
+all:
+	(cd ../Javainterface;make all)
+	(cd extern;make all)
+	(cd components;make all)
+	(cd viewer;make all)
+	(cd project;make all);
+	(cd gui;make all)
+	(cd viewer;make viewers)
+
 
 .PHONY: help
 help:
@@ -17,16 +27,6 @@ help:
 doc:
 	$(shell mkdir $(DOCPATH))
 	$(JAVADOC) -d $(DOCPATH) -classpath "$(CLASSPATH)" $(GUIPACKAGE) $(VIEWERPACKAGES)
-
-.PHONY: all #creates the gui and all know viewers
-all:
-	(cd ../Javainterface;make all)
-	(cd extern;make all)
-	(cd components;make all)
-	(cd viewer;make all)
-	(cd project;make all);
-	(cd gui;make all)
-	(cd viewer;make viewers)
 
 
 
