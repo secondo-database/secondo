@@ -2875,7 +2875,7 @@ int themonthfun( Word* args, Word& result, int message, Word& local, Supplier s 
   
   CcIntmonth=((CcInt*)args[1].addr);
   intmonth=CcIntmonth->GetIntval();
-  cout<<"year: "<<intyear<<"month:"<<intmonth<<endl;
+  //cout<<"year: "<<intyear<<"month:"<<intmonth<<endl;
   Range<Instant> *defrange = new Range<Instant>( 0 );
   
   //2.get the timeintervals and add them to the result
@@ -2901,6 +2901,233 @@ int themonthfun( Word* args, Word& result, int message, Word& local, Supplier s 
   return (0);
 }
 
+/*
+16.3.27 Value mapping functions of operator ~theday~
+
+(int x int x int) ---- (periods)
+
+*/
+
+int thedayfun( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
+  
+  //1.get the input and out put objects
+  CcInt *CcIntyear;
+  CcInt *CcIntmonth;
+  CcInt *CcIntday;
+  int intyear, intmonth, intday;
+  
+  CcIntyear=((CcInt*)args[0].addr);
+  intyear=CcIntyear->GetIntval();
+  
+  CcIntmonth=((CcInt*)args[1].addr);
+  intmonth=CcIntmonth->GetIntval();
+  
+  CcIntday=((CcInt*)args[2].addr);
+  intday=CcIntday->GetIntval();
+  
+  //cout<<"year: "<<intyear<<"month:"<<intmonth<<endl;
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  
+  //2.get the timeintervals and add them to the result
+  defrange->StartBulkLoad();
+  Instant inst1, inst2, oneday(1,0,durationtype);
+  
+  inst1.SetType(instanttype);
+  inst1.Set(intyear, intmonth, intday, 0, 0, 0, 0);
+  
+  inst2 .SetType(instanttype);
+  inst2 = inst1 + oneday;
+  
+  Interval<Instant> timeInterval(inst1, inst2, true, false);
+  	  
+  defrange->Add( timeInterval ); 
+      
+  defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
+  
+  return (0);
+}
+
+/*
+16.3.28 Value mapping functions of operator ~thehour~
+
+(int x int x int x int) ---- (periods)
+
+*/
+
+int thehourfun( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
+  
+  //1.get the input and out put objects
+  CcInt *CcIntyear;
+  CcInt *CcIntmonth;
+  CcInt *CcIntday;
+  CcInt *CcInthour;
+  int intyear, intmonth, intday, inthour;
+  
+  CcIntyear=((CcInt*)args[0].addr);
+  intyear=CcIntyear->GetIntval();
+  
+  CcIntmonth=((CcInt*)args[1].addr);
+  intmonth=CcIntmonth->GetIntval();
+  
+  CcIntday=((CcInt*)args[2].addr);
+  intday=CcIntday->GetIntval();
+  
+  CcInthour=((CcInt*)args[3].addr);
+  inthour=CcInthour->GetIntval();
+  
+  //cout<<"year: "<<intyear<<"month:"<<intmonth<<endl;
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  
+  //2.get the timeintervals and add them to the result
+  defrange->StartBulkLoad();
+  Instant inst1, inst2, onehour(0, 1*60*60*1000, durationtype);
+  
+  inst1.SetType(instanttype);
+  inst1.Set(intyear, intmonth, intday, inthour, 0, 0, 0);
+  
+  inst2 .SetType(instanttype);
+  inst2 = inst1 + onehour;
+  
+  Interval<Instant> timeInterval(inst1, inst2, true, false);
+  	  
+  defrange->Add( timeInterval ); 
+      
+  defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
+  
+  return (0);
+}
+
+/*
+16.3.28 Value mapping functions of operator ~theminute~
+
+(int x int x int x int x int) ---- (periods)
+
+*/
+
+int theminutefun( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
+  
+  //1.get the input and out put objects
+  CcInt *CcIntyear;
+  CcInt *CcIntmonth;
+  CcInt *CcIntday;
+  CcInt *CcInthour;
+  CcInt *CcIntminute;
+  int intyear, intmonth, intday, inthour, intminute;
+  
+  CcIntyear=((CcInt*)args[0].addr);
+  intyear=CcIntyear->GetIntval();
+  
+  CcIntmonth=((CcInt*)args[1].addr);
+  intmonth=CcIntmonth->GetIntval();
+  
+  CcIntday=((CcInt*)args[2].addr);
+  intday=CcIntday->GetIntval();
+  
+  CcInthour=((CcInt*)args[3].addr);
+  inthour=CcInthour->GetIntval();
+  
+  CcIntminute=((CcInt*)args[4].addr);
+  intminute=CcIntminute->GetIntval();
+  
+  //cout<<"year: "<<intyear<<"month:"<<intmonth<<endl;
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  
+  //2.get the timeintervals and add them to the result
+  defrange->StartBulkLoad();
+  Instant inst1, inst2, oneminute(0, 1*60*1000, durationtype);
+  
+  inst1.SetType(instanttype);
+  inst1.Set(intyear, intmonth, intday, inthour, intminute, 0, 0);
+  
+  inst2 .SetType(instanttype);
+  inst2 = inst1 + oneminute;
+  
+  Interval<Instant> timeInterval(inst1, inst2, true, false);
+  	  
+  defrange->Add( timeInterval ); 
+      
+  defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
+  
+  return (0);
+}
+
+/*
+16.3.28 Value mapping functions of operator ~thesecond~
+
+(int x int x int x int x int x int) ---- (periods)
+
+*/
+
+int thesecondfun( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
+  
+  //1.get the input and out put objects
+  CcInt *CcIntyear;
+  CcInt *CcIntmonth;
+  CcInt *CcIntday;
+  CcInt *CcInthour;
+  CcInt *CcIntminute;
+  CcInt *CcIntsecond;
+  int intyear, intmonth, intday, inthour, intminute, intsecond;
+  
+  CcIntyear=((CcInt*)args[0].addr);
+  intyear=CcIntyear->GetIntval();
+  
+  CcIntmonth=((CcInt*)args[1].addr);
+  intmonth=CcIntmonth->GetIntval();
+  
+  CcIntday=((CcInt*)args[2].addr);
+  intday=CcIntday->GetIntval();
+  
+  CcInthour=((CcInt*)args[3].addr);
+  inthour=CcInthour->GetIntval();
+  
+  CcIntminute=((CcInt*)args[4].addr);
+  intminute=CcIntminute->GetIntval();
+  
+  CcIntsecond=((CcInt*)args[5].addr);
+  intsecond=CcIntsecond->GetIntval();
+  
+  //cout<<"year: "<<intyear<<"month:"<<intmonth<<endl;
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  
+  //2.get the timeintervals and add them to the result
+  defrange->StartBulkLoad();
+  Instant inst1, inst2, onesecond(0, 1000, durationtype);
+  
+  inst1.SetType(instanttype);
+  inst1.Set(intyear, intmonth, intday, inthour, intminute, intsecond, 0);
+  
+  inst2 .SetType(instanttype);
+  inst2 = inst1 + onesecond;
+  
+  Interval<Instant> timeInterval(inst1, inst2, true, false);
+  	  
+  defrange->Add( timeInterval ); 
+      
+  defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
+  
+  return (0);
+}
 
 /*
 16.4 Definition of operators
@@ -2997,10 +3224,10 @@ ValueMapping unitsmap[] =   {  units_mp,
 
 ValueMapping intperiodsmap[] =   {      theyearfun,
 				    themonthfun,
-				    theyearfun,
-				    theyearfun,
-				    theyearfun,
-				    theyearfun,
+				    thedayfun,
+				    thehourfun,
+				    theminutefun,
+				    thesecondfun,
 				    theyearfun
 				};
 
@@ -3612,6 +3839,38 @@ Operator themonth( "themonth",
                         TemporalSelectIntPeriods,
                         MappingTypeMapIntPeriods);
 
+Operator theday( "theday",
+                        TemporalSpecIntPeriods,
+                        7,
+                        intperiodsmap,
+                        temporalnomodelmap,
+                        TemporalSelectIntPeriods,
+                        MappingTypeMapIntPeriods);
+
+Operator thehour( "thehour",
+                        TemporalSpecIntPeriods,
+                        7,
+                        intperiodsmap,
+                        temporalnomodelmap,
+                        TemporalSelectIntPeriods,
+                        MappingTypeMapIntPeriods);
+
+Operator theminute( "theminute",
+                        TemporalSpecIntPeriods,
+                        7,
+                        intperiodsmap,
+                        temporalnomodelmap,
+                        TemporalSelectIntPeriods,
+                        MappingTypeMapIntPeriods);
+
+Operator thesecond( "thesecond",
+                        TemporalSpecIntPeriods,
+                        7,
+                        intperiodsmap,
+                        temporalnomodelmap,
+                        TemporalSelectIntPeriods,
+                        MappingTypeMapIntPeriods);
+
 /*
 6 Creating the Algebra
 
@@ -3704,6 +3963,10 @@ class TemporalAlgebra : public Algebra
     AddOperator( &units);
     AddOperator( &theyear);
     AddOperator( &themonth);
+    AddOperator( &theday);
+    AddOperator( &thehour);
+    AddOperator( &theminute);
+    AddOperator( &thesecond);
   }
   ~TemporalAlgebra() {};
 };

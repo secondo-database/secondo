@@ -17,5 +17,8 @@ operator final alias FINAL pattern op ( _ )
 operator units alias UNITS pattern op ( _ )
 operator theyear alias THEYEAR pattern op ( _ )
 operator themonth alias THEMONTH pattern op ( _, _ )
-
+operator theday alias THEDAY pattern op ( _, _, _ )
+operator thehour alias THEHOUR pattern op ( _, _, _ ,_ )
+operator theminute alias THEMINUTE pattern op ( _, _, _ ,_ , _ )
+operator thesecond alias THESECOND pattern op ( _, _, _ ,_ , _, _ )
 
