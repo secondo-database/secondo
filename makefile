@@ -3,6 +3,10 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.14  2003/01/24 11:56:07  spieker
+# Some modifications on setting environments. If the prolog related
+# environment variables are set SecondoPL will be compiled automatically.
+#
 # Revision 1.13  2003/01/23 18:12:09  spieker
 # Makefiles revised for compiling the secondoPL userinterface.
 #
@@ -144,15 +148,20 @@ ifndef tag
 tag=HEAD
 endif
 
-.PHONY: save_sources
+ifeq($(platform), win32)
+  NETDEV = /cvs-projects/SECONDO_CD/Windows
+else
+  NETDEV = /cvs-projects/SECONDO_CD/Unix
+endif
+
+.PHONY: dist
 save_sources: secondo.tgz
 
 secondo.tgz:
 	cvs export -r$(tag) secondo
-	tar -cvf secondo.tar secondo/*
+	tar -cvzf  secondo.tgz secondo/*
+	cp secondo.tgz $(NETDEV)
 	rm -r secondo
-	mv secondo.tar secondo
-	gzip -S .tgz secondo
 
 
 .PHONY: clean
