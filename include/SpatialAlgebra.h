@@ -1038,9 +1038,30 @@ Marks the end of a bulk load and sorts the half segments.
 7.4 Validity Checking Function
 
 */    
-//    const bool IsValid() const;
-    
+    const bool insertOK(const CHalfSegment& chs);
 /*
+This function check whether a region value is valid after the insertion of a new half segment.
+Whenever a half segment is about to be inserted, the state of the region is checked. 
+A valid region must satisfy the following conditions:
+
+1)  any two cycles of the same region must be disconnect, which means that no edges 
+of different cycles can intersect each other;
+
+2) edges of the same cycle can only intersect with their endpoints, but no their middle points;
+
+3)  For a certain face, the holes must be inside the outer cycle;
+
+4)  For a certain face, any two holes can not contain each other;
+
+5)  Faces must have the outer cycle, but they can have no holes;
+
+6)  for a certain cycle, any two vertex can not be the same;
+
+7)  any cycle must be made up of at least 3 edges;
+
+8)  It is allowed that one face is inside another provided that their edges do not intersect.
+
+
 7.5 Overloaded Class Operators
 
 7.5.1 Operation $=$ (~assignment~)
@@ -1133,28 +1154,7 @@ update the ~attr~ value of the current half segment from the region value.The cu
 half segment is indicated by ~pos~
 
 */     
-    
-    const bool insertOK(const CHalfSegment& chs);
-/*
-this function check whether a half segment is valid. Whenever a half segment is inserted,
-the state of the region is checked. A valid region must satisfy the following conditions:
-
-1)  any two cycles of the same region must be disconnect;
-
-2)  for a certain cycle, each vertex can only appear once;
-
-3)  holes must be inside the outer cycle;
-
-4)  any cycle must be made up of at least 3 edges;
-
-5)  faces must have the outer cycle, but they can have no holes;
-
-6)  any two edges of the same cycle can not intersect each with their middle points. They
-can only intersect with their endpoints;
-
-7)  any hole can not be inside another hole of the same face;
-
-*/
+   
     void logicsort();
     void logicQuickSortRecursive( const int low, const int high );
 /*
@@ -1182,7 +1182,7 @@ returns its position. Returns -1 if the half segment is not found.
 
 */    
     PArray<CHalfSegment>* region;
-//    PArray<vertex>* regionvertex;
+    
 /*
 The persisten array of half segments.
 
