@@ -636,7 +636,7 @@ The second constructor.
 
 int NumOfFLOBs()
 {
-  return 1;
+  return 0;
 }
 
 FLOB * GetFLOB(const int i)
@@ -879,7 +879,7 @@ class ConstTemporalUnit : public StandardAttribute, public TemporalUnit<Alpha>
 
   int NumOfFLOBs()
   {
-      return 1;
+      return 0;
   }
 
   FLOB * GetFLOB(const int i)
@@ -997,7 +997,7 @@ class UReal : public StandardAttribute,  public TemporalUnit<CcReal>
 
   int NumOfFLOBs()
   {
-      return 1;
+      return 0;
   }
 
   FLOB * GetFLOB(const int i)
@@ -1113,7 +1113,7 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
 
   int NumOfFLOBs()
   {
-      return 1;
+      return 0;
   }
 
   FLOB * GetFLOB(const int i)
