@@ -754,7 +754,9 @@ public:
     AddOperator( &containsString );
     AddOperator( &containsText );
     AddOperator( &length );
-    cout <<"End FTextAlgebra() : Algebra()"<<'\n';
+    LOGMSG( "FText:Trace",
+      cout <<"End FTextAlgebra() : Algebra()"<<'\n';
+    )
   }
 
   ~FTextAlgebra() {};
