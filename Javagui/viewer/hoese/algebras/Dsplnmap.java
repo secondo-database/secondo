@@ -8,7 +8,6 @@ import  java.util.*;
 import  viewer.*;
 import viewer.hoese.*;
 
-
 /**
  * The displayclass of the NauticalMap algebras nmap datatype.
  */
@@ -25,18 +24,78 @@ public class Dsplnmap extends DisplayGraph {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplnmapsrc.html#init">Source</a>
    */
+   public ListExpr CreateObjectsTypeInfo()
+   {
+     return
+       ListExpr.twoElemList( ListExpr.symbolAtom( "rel" ),
+         ListExpr.twoElemList( ListExpr.symbolAtom( "tuple" ),
+           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "name" ),
+                                                       ListExpr.symbolAtom( "string" ) ),
+                                 ListExpr.twoElemList( ListExpr.symbolAtom( "object" ),
+                                                       ListExpr.symbolAtom( "point" ) ) ) ) );
+   }
+
+   public ListExpr CreateLinesTypeInfo()
+   {
+     return
+       ListExpr.twoElemList( ListExpr.symbolAtom( "rel" ),
+         ListExpr.twoElemList( ListExpr.symbolAtom( "tuple" ),
+           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "name" ),
+                                                       ListExpr.symbolAtom( "string" ) ),
+                                 ListExpr.twoElemList( ListExpr.symbolAtom( "sline" ),
+                                                       ListExpr.symbolAtom( "line" ) ) ) ) );
+   }
+
+   public ListExpr CreateRegionsTypeInfo()
+   {
+     return
+       ListExpr.twoElemList( ListExpr.symbolAtom( "rel" ),
+         ListExpr.twoElemList( ListExpr.symbolAtom( "tuple" ),
+           ListExpr.twoElemList( ListExpr.twoElemList( ListExpr.symbolAtom( "name" ),
+                                                       ListExpr.symbolAtom( "string" ) ),
+                                 ListExpr.twoElemList( ListExpr.symbolAtom( "area" ),
+                                                       ListExpr.symbolAtom( "region" ) ) ) ) );
+   }
+
+
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    type.writeListExpr();
-    // value.writeListExpr();
+    //value.writeListExpr();
     AttrName = type.first().symbolValue();
     ListExpr nmap;
-    ListExpr rel1, rel2, rel3;
+    //ListExpr rel1, rel2, rel3;
     nmap= type.rest();
+   // nmap.writeListExpr();
+    //System.out.println("type.listLength"+ type.listLength());
 
-    if (nmap.listLength() == 3)
+    if (type.listLength() == 2)
+    {
+       if (!value.fifth().isEmpty())
+       {
+          ListExpr rel3 = CreateRegionsTypeInfo();
+        //  rel3.writeListExpr();
+          LEUtils.analyse(rel3, value.fifth(), qr);
+          qr.addEntry("---------");
+       }
+       if (!value.fourth().isEmpty())
+       {
+          ListExpr rel2 = CreateLinesTypeInfo();
+        //  rel2.writeListExpr();
+          LEUtils.analyse(rel2, value.fourth(), qr);
+          qr.addEntry("---------");
+       }
+       if (!value.third().isEmpty())
+       {
+          ListExpr rel1 = CreateObjectsTypeInfo();
+       //   rel1.writeListExpr();
+          LEUtils.analyse(rel1, value.third(), qr);
+          qr.addEntry("---------");
+       }
+    }
+/*
+    if (nmap.listLength() == 2)
     {
        rel1= nmap.third();
-//       rel1.writeListExpr();
+       rel1.writeListExpr();
        LEUtils.analyse(rel1, value.third(), qr);
        qr.addEntry("---------");
     }
@@ -66,6 +125,7 @@ public class Dsplnmap extends DisplayGraph {
        LEUtils.analyse(rel1, value.third(), qr);
        qr.addEntry("---------");
     }
+*/
     else
     {
        System.out.println("Error in ListExpr :parsing aborted");

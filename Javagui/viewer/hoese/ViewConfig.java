@@ -75,7 +75,7 @@ public class ViewConfig extends javax.swing.JDialog {
        TypeList = TypeList.first();
     String MainType = TypeList.symbolValue();
 
-    if(MainType.equals("rel")){
+    if(MainType.equals("rel") ){
 	v.add("Tupel-No.");
 	LabelAList.add("no Label");
 	TupelCount = Query.LEResult.second().listLength();
@@ -92,29 +92,19 @@ public class ViewConfig extends javax.swing.JDialog {
     }
 
     if(MainType.equals("nmap")){
-       v.add("Tupel-No.");
+       //v.add("Tupel-No.");
        TupelCount = 0;
        LabelAList.add("no Label");
-       ListExpr TYPE = Query.LEResult.first();
-       ListExpr SpatialRelations = TYPE.rest().rest().rest(); // read over nmap,name and scale
-       int RelNo = 0;
-       while(!SpatialRelations.isEmpty()){
-           ListExpr CurrentRel = SpatialRelations.first();
-           SpatialRelations=SpatialRelations.rest();
-           ListExpr attrlist = CurrentRel.second().second(); // ignore (rel(tuple; take only the tuplelist
-       while (!attrlist.isEmpty()) {
-           String type = attrlist.first().second().symbolValue(); // get the type of the attribute
-           if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
-                || (type.equals("bool"))){
-                LabelAList.add(RelNo+"::"+attrlist.first().first().symbolValue());
-                v.add(RelNo+"::"+attrlist.first().first().symbolValue());
-           }
-           AttrCount++;
-           attrlist = attrlist.rest();
-        }
-        RelNo++;
-       }
+       /* 
+         A nautical map consist of a name a scale and a maximum of three relations.
+         The realations contains a name and a graphica object describing a point, a line
+         or a region value. For this reason, the Reference-Attribute as well as the
+         possible Label is 'name'.
+       */
+       LabelAList.add("name"); 
+       v.add("name");
     }
+
     return  v;
   }
 
@@ -893,34 +883,22 @@ public class ViewConfig extends javax.swing.JDialog {
           TypeList=TypeList.first();
       if(TypeList.atomType()!=ListExpr.SYMBOL_ATOM)
          return Query.LEResult.second();
+      
       String TypeName = TypeList.symbolValue();
       
       if(TypeName.equals("nmap")){
-         String as = (String) RefAttrCB.getSelectedItem();
-         int RelNumber=0;
-         try{
-            as = as.substring(0,as.indexOf(":"));
-            RelNumber = Integer.parseInt(as);
-         }catch(Exception e){
-           if (Environment.DEBUG_MODE){
-             System.err.println("Cannot determine the number of relation in nmap");
-	     return Query.LEResult.second();
-	   }
-         }
-         //force to read over name and scale
-         RelNumber = RelNumber +2; 
-	 ListExpr value = Query.LEResult.second();
-         while(RelNumber>0){
-           value=value.rest();
-	   if(value.isEmpty()){
-             if(Environment.DEBUG_MODE){
-               System.err.println("wrong relation number in nmap");
-	       return Query.LEResult.second();
-	     }
-	   }
-	   RelNumber--;
-         }
-	 value = value.first();
+         ListExpr Relations=Query.LEResult.second().rest().rest(); // take the value and read over name and scale
+         ListExpr value;
+         if(AttrName.equals("object")) 
+           value=Relations.first();
+         else if(AttrName.equals("sline"))
+           value=Relations.second();
+         else if(AttrName.equals("area"))
+           value=Relations.third();
+         else{
+            value = new ListExpr();
+            System.err.println("Unknow AttrName for nmap detected");
+         }   
 	 TupelCount = value.listLength();
 	 return value;
       } else{
@@ -1008,8 +986,10 @@ public class ViewConfig extends javax.swing.JDialog {
       ListExpr Last=null,Next;
       while(!AllValues.isEmpty()){
          CurrentTuple = AllValues.first();
-         if(index>CurrentTuple.listLength())
+         if(index>CurrentTuple.listLength()){
+             System.err.println("The selected Reference is outside the tuple");
              return null;
+         }
          // search the attribute
          for(int i=1; i<index;i++)
             CurrentTuple = CurrentTuple.rest();
@@ -1034,10 +1014,10 @@ public class ViewConfig extends javax.swing.JDialog {
    * Moves to the previous or the last tuple
    * @param evt
    */
-  private void PrTuBActionPerformed (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_PrTuBActionPerformed
+  private void PrTuBActionPerformed (java.awt.event.ActionEvent evt) {    
     AktTupNr = (AktTupNr > 1) ? AktTupNr - 1 : TupelCount;
     updateFields();
-  }             //GEN-LAST:event_PrTuBActionPerformed
+  }            
 
 
   /**
