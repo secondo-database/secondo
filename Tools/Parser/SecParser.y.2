@@ -15,6 +15,9 @@ for example,
 
 March 2002 Ulrich Telle Port to C++
 
+November 5, 2002 RHG Added the cases "function" and "IDENTIFIER '(' elems ')' " to
+~valueexpr~ to support function definitions and function calls.
+
 */
 
 %%
@@ -236,6 +239,13 @@ naming		: IDENTIFIER ':'	{$$ = $1;}
 		
 valueexpr	: IDENTIFIER				{$$ = $1;}
 		| constant				{$$ = $1;}
+		| function				{$$ = $1;}
+		| IDENTIFIER '(' elems ')'
+			{$$ = NestedText::Concat(NestedText::AtomC("("),
+				NestedText::Concat($1,
+				NestedText::Concat(NestedText::AtomC(" "),
+				NestedText::Concat($3,				
+					NestedText::AtomC(")")	))));}
 		| attribute				{$$ = $1;}
 		| attribute2				{$$ = $1;}
 		| '(' valueexpr ')'			{$$ = $2;}
