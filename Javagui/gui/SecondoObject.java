@@ -1,19 +1,40 @@
 package gui;
 
 import sj.lang.ListExpr;
+import gui.idmanager.*;
 
-/** this class provied a named listExpr **/
+/** this class provided a named listExpr **/
 
 public class SecondoObject{
 
 private String Name="";
 private ListExpr value=null;
+private ID myID= IDManager.getNextID();
+
+public SecondoObject(ID aID){
+   myID.equalize(aID);
+}
+
+public void setID(ID aID){
+   myID.equalize(aID);
+}
+
+
+public ID getID(){
+   return myID;
+}
 
 /** returns the name of the object
   **/
 public String getName(){
   return Name;
 }
+
+/** return the name of this object */
+public String toString(){
+   return Name;
+}
+
 
 /** sets the objectname
   **/

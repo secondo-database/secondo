@@ -8,6 +8,7 @@ import javax.swing.plaf.basic.*;
 import java.io.*;
 import sj.lang.ListExpr;
 import sj.lang.ServerErrorCodes;
+import gui.idmanager.*;
 
 public class ObjectList extends JPanel{
 
@@ -334,7 +335,7 @@ public boolean loadObject(){
            if (LE.readFromFile(FullFileName)!=0)
                showMessage("cannot load this file (not an SecondoObject ?");
            else{
-               SecondoObject SO = new SecondoObject();
+               SecondoObject SO = new SecondoObject(IDManager.getNextID());
                SO.setName("File :"+F.getName());
                SO.fromList(LE); 
                addEntry(SO);
