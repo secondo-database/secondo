@@ -19,7 +19,7 @@
 
 /* for debugging purposes. */
 void dbg(char *message) {
-	cout << message << endl;
+	//cout << message << endl;
 }
 
 /* constructor. Sets all member variables, including size. */
@@ -48,9 +48,7 @@ void Tuple::Init(const TupleAttributes *attributes) {
 	extensionSize = 0;
 	
 	// get Reference of AlgebraManager
-	dbg("###### SecondoSystem::GetAlgebraManager() call begin.");  
   	algM = SecondoSystem::GetAlgebraManager();
-	dbg("###### SecondoSystem::GetAlgebraManager() call finished.");
 
   	// allocate memory for tuple representation
  	memoryTuple = (char *)malloc(attributes->totalSize);
@@ -111,18 +109,14 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
   		free(buf);
 		
 		if (ok) {
-		
-			// HIER IST EIN BUG BEI HERRN TELLE.
 			/*
 			lobFile = new SmiRecordFile(false);
 			lobFileOpened = lobFile->Open(th.lobFileId);
 			ok = lobFileOpened;
+			cout << "&&&&&&&&&&&&&OPENED:" << ok << endl;
+			cout << "&&&&&&&&&&&&&id: " << th.lobFileId << endl;
+			cout << "&&&&&&&&&&&&&id:" << lobFile->GetFileId() << endl;
 			*/
-			// HIER IST EIN BUG BEI HERRN TELLE.
-			
-			lobFile = new SmiRecordFile(false);
-			lobFileOpened = lobFile->Open("LOBFILE");
-			
 		}
 
 		state = SolidRead;
