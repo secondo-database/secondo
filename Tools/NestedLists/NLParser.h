@@ -2,6 +2,8 @@
 #define NL_PARSER_H
 
 #include "NestedList.h"
+#include <stack>
+#include <vector>
 
 #define YYSTYPE ListExpr
 
@@ -16,6 +18,7 @@ class NLParser
   ListExpr    GetNestedList() { return listExpression; }
  protected:
   ListExpr    listExpression;
+  stack<ListExpr> lists;
   int         yylex(); //inline int NLParser::yylex() { return (GetLexer()->yylex()); }
   void        yyerror( char* );
   istream*    isp;  // istream being parsed

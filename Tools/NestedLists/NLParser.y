@@ -13,6 +13,9 @@ February 2002 Ulrich Telle Port to C++
 September 26, 2002 RHG Grammar rewritten to be left-recursive so that the parser
 stack depth remains bounded for lists of arbitrary length.
 
+December 6, 2002 M. Spiekermann Construction of the list revised. Usage of a stack data
+structure avoids to create nodes which were only used in the construction process.
+
 */
 %{
 #include <stdio.h>
@@ -38,12 +41,11 @@ list	: OPEN rest 	{$$ = $2;}
 	;
 
 rest	: CLOSE		{$$ = nl->TheEmptyList();}
-	| seq CLOSE	{$$ = nl->First($1);}
+	| seq CLOSE	{$$ = lists.top(); lists.pop();}
 	;
 
-seq	: first		{$$ = nl->TwoElemList($1, $1);}
-	| seq elem	{$$ = nl->TwoElemList(nl->First($1), 
-			  	nl->Append(nl->Second($1), $2));}
+seq	: first		{$$ = $1; lists.push($1);}
+	| seq elem	{$$ = nl->Append($1, $2);}
 	;
 
 first	: atom		{$$ = nl->OneElemList($1);}
@@ -55,7 +57,7 @@ elem	: atom		{$$ = $1;}
 	; 
 
 
-atom : INTEGER     {$$ = $1; /* printf("Index of Nodes: %d\n",$1); */}
+atom : INTEGER     {$$ = $1;}
      | REAL        {$$ = $1; /* printf("Index of Nodes: %d\n",$1); */}
      | BOOLEAN     {$$ = $1;}
      | SYMBOL      {$$ = $1;}

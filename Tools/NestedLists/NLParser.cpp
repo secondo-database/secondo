@@ -7,6 +7,7 @@ using namespace std;
 NLParser::NLParser( NestedList* nestedList, istream* ip, ostream* op )
   : isp( ip ), osp( op ), nl( nestedList )
 {
+  listExpression = 0;
   lex = new NLScanner( nestedList, isp, osp );
 }
 
