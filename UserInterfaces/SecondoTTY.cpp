@@ -822,17 +822,10 @@ SecondoTTY::CheckConfiguration()
     user = "SECONDO";
     pswd = "SECONDO";
   }
-  if ( ok )
+  if ( !ok )
   {
-    // config file or (host and port) must be specified
-    ok = parmFile.length() > 0 || (host.length() > 0 && port.length() > 0);
-    if ( !ok )
-    {
-      cout << "Error: Neither config file nor host and"
-           << " port of Secondo server specified." << endl;
-      cout << "Use option -? or --help to get information about"
-           << " available options." << endl;
-    }
+    cout << "Use option -? or --help to get information about"
+         << " available options." << endl;
   }
   return (ok);
 }

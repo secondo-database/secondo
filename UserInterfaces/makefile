@@ -54,6 +54,9 @@ TTYCS: $(BINDIR)/SecondoTTYCS$(EXEEXT)
 .PHONY: TTY
 TTY: $(BINDIR)/SecondoTTY$(SMIUP)$(EXEEXT)
 
+.PHONY: TTYDemo
+TTYDemo: ../$(SECONDO_DEMO)/SecondoTTY$(SMIUP)$(EXEEXT)
+
 .PHONY: optimizer
 optimizer: $(OPTDIR)/SecondoPL$(EXEEXT) $(OPTDIR)/SecondoPLCS$(EXEEXT)
 
@@ -84,6 +87,11 @@ $(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 
+
+../$(SECONDO_DEMO)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
+../$(SECONDO_DEMO)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
+	$(LD) $(EXEFLAGS) -static $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
+	strip $@
 
 $(BINDIR)/SecondoTTYORA$(EXEEXT):  $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
