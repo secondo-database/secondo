@@ -445,6 +445,9 @@ public PDFPanel(){
      CommandPanel.add(PrevBtn);
      CommandPanel.add(NextBtn);
      CommandPanel.add(LastBtn);
+     CommandPanel.add(new JLabel("    "));
+     CommandPanel.add(GBtn);
+     CommandPanel.add(LBtn);
      ScrollPane = new JScrollPane(CurrentPage);
      add(ScrollPane,BorderLayout.CENTER);
      add(CommandPanel,BorderLayout.SOUTH);
@@ -480,7 +483,31 @@ public PDFPanel(){
      PrevBtn.addActionListener(Control);
      NextBtn.addActionListener(Control);
      LastBtn.addActionListener(Control);
-     pdf_decoder.setExtractionMode(0,300,2);
+     pdf_decoder.setExtractionMode(0,300,scale);
+     ActionListener Magnifier = new ActionListener(){
+         public void actionPerformed(ActionEvent evt){
+            Object src = evt.getSource();
+            if(src.equals(GBtn))
+               scale=scale*SCALEFACTOR;
+            if(src.equals(LBtn))
+               scale=Math.max(0.01F,scale/SCALEFACTOR);
+            pdf_decoder.setExtractionMode(0,300,scale);
+            if(!dataAvailable){ 
+               return;
+            }
+            try{
+              CurrentPage.setImage(pdf_decoder.getPageAsImage(page));
+              TextViewerFrame.this.invalidate();
+              TextViewerFrame.this.validate();
+              TextViewerFrame.this.repaint(); 
+            }catch(Exception e){
+               e.printStackTrace();
+               CurrentPage.setImage(null);
+               PDFPanel.this.repaint();
+            }
+         }};
+     GBtn.addActionListener(Magnifier);
+     LBtn.addActionListener(Magnifier);
 }
 
 
@@ -530,10 +557,14 @@ private JButton FirstBtn = new JButton("|<");
 private JButton PrevBtn = new JButton("<");
 private JButton NextBtn = new JButton(">");
 private JButton LastBtn = new JButton(">|");
+private JButton GBtn = new JButton("(+)");
+private JButton LBtn = new JButton("(-)"); 
 private JLabel  Pages  = new JLabel("# pages ");
 private int NumberOfPages=-1;
 private boolean dataAvailable = false;
 private int page; // the number of the current page
+private float scale=1.0F;
+static final float SCALEFACTOR=1.2F;
 
 }
 
