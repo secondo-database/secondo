@@ -1,4 +1,25 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
@@ -30,8 +51,6 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
-#include "SpatialAlgebraTest.h"
-#include <vector>
 #include <iostream>
 #include <string>
 #include <cmath>
@@ -40,30 +59,8 @@ using namespace std;
 const double M_PI = acos( -1.0 );
 #endif
 
-extern NestedList* nl;
-extern QueryProcessor* qp;
-
-/*
-3 Auxiliary Functions
-
-*/
-bool AlmostEqual( const double d1, const double d2 )
-{
-  double factor=FACTOR;
-  if ( (d1 + d2) < 1)
-   factor = abs( d1 + d2 ) * FACTOR;
-  if( abs(d1 - d2) <= factor )
-    return true;
-  return false;
-}
-
-bool AlmostEqual( const Point& p1, const Point& p2 )
-{
-  if( AlmostEqual( p1.GetX(), p2.GetX() ) &&
-      AlmostEqual( p1.GetY(), p2.GetY() ) )
-    return true;
-  return false;
-}
+static NestedList* nl;
+static QueryProcessor* qp;
 
 /*
 3 Type investigation auxiliaries
@@ -76,19 +73,15 @@ examine nested list type descriptions. In particular, we
 are going to check whether they describe one of the four types just introduced.
 In order to simplify dealing with list expressions describing these types, we
 declare an enumeration, ~SpatialType~, containing the four types, and a function,
-~SpatialTypeOfSymbol~, taking a nested list as argument and returning the
+~TypeOfSymbol~, taking a nested list as argument and returning the
 corresponding ~SpatialType~ type name.
 
 */
 
-//type necessary for CohenStutherlandLineClipAndDraw ("lineclipping") algorithm
-typedef unsigned int outcode;
-enum { TOP = 0x1, BOTTOM = 0x2, RIGHT = 0x4, LEFT = 0x8 };
-
 enum SpatialType { stpoint, stpoints, stline, stregion, sterror };
 
-SpatialType
-SpatialTypeOfSymbol( ListExpr symbol )
+static SpatialType
+TypeOfSymbol( ListExpr symbol )
 {
   if ( nl->AtomType( symbol ) == SymbolType )
   {
@@ -128,82 +121,95 @@ Point::Point( const Point& p ) :
 Point::~Point()
 {}
 
-const Coord& Point::GetX() const
+inline const Coord& Point::GetX() const
 {
-  assert( IsDefined() );
+  assert( defined );
   return x;
 }
 
-const Coord& Point::GetY() const
+inline const Coord& Point::GetY() const
 {
-  assert( IsDefined() );
+  assert( defined );
   return y;
 }
 
-const Rectangle Point::BoundingBox() const
+inline const Rectangle Point::BoundingBox() const
 {
-  return Rectangle( true, this->x, this->x, this->y, this->y );
+  return Rectangle( true, x, x, y, y );
 }
 
-Point& Point::operator=( const Point& p )
+inline void Point::Set( const Coord& x, const Coord& y )
 {
-  defined = p.IsDefined();
+  defined = true;
+  this->x = x;
+  this->y = y;
+}
+
+inline void Point::Translate( const Coord& x, const Coord& y )
+{
+  this->x += x;
+  this->y += y;
+}
+
+inline Point& Point::operator=( const Point& p )
+{
+  defined = p.defined;
   if( defined )
   {
-    x = p.GetX();
-    y = p.GetY();
+    x = p.x;
+    y = p.y;
   }
   return *this;
 }
 
-bool Point::operator==( const Point& p ) const
+inline bool Point::operator==( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  return x == p.GetX() && y == p.GetY();
+  assert( defined && p.defined );
+  return x == p.x && y == p.y;
 }
 
-bool Point::operator!=( const Point& p ) const
+inline bool Point::operator!=( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  return x != p.GetX() || y != p.GetY();
+  assert( defined && p.defined );
+  return x != p.x || y != p.y;
 }
 
-bool Point::operator<=( const Point& p ) const
+inline bool Point::operator<=( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x < p.GetX() )
+  assert( defined && p.defined );
+  if( x < p.x )
     return 1;
-  else if( x == p.GetX() && y <= p.GetY() )
+  else if( x == p.x && y <= p.y )
     return 1;
   return 0;
 }
 
-bool Point::operator<( const Point& p ) const
+inline bool Point::operator<( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x < p.GetX() )
+  assert( defined && p.defined );
+  if( x < p.x )
     return 1;
-  else if( x == p.GetX() && y < p.GetY() )
+  else if( x == p.x && y < p.y )
     return 1;
   return 0;
 }
 
-bool Point::operator>=( const Point& p ) const
+inline bool Point::operator>=( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x > p.GetX() )
+  assert( defined && p.defined );
+  if( x > p.x )
     return 1;
-  else if( x == p.GetX() && y >= p.GetY() )
+  else if( x == p.x && y >= p.y )
     return 1;
   return 0;
 }
 
-bool Point::operator>( const Point& p ) const
+inline bool Point::operator>( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x > p.GetX() )
+  assert( defined && p.defined );
+  if( x > p.x )
     return 1;
-  else if( x == p.GetX() && y > p.GetY() )
+  else if( x == p.x && y > p.y )
     return 1;
   return 0;
 }
@@ -217,110 +223,98 @@ ostream& operator<<( ostream& o, const Point& p )
 
   return o;
 }
-/*
-  ************************************************************************
-  The following 10 functions are used for porting point to Tuple.
-  ************************************************************************
 
-*/
-bool Point::IsDefined() const
+inline bool Point::IsDefined() const
 {
   return defined;
 }
 
-void Point::SetDefined( bool Defined )
+inline void Point::SetDefined( bool defined )
 {
-  defined = Defined;
+  this->defined = defined;
 }
 
-size_t   Point::HashValue()
+size_t Point::HashValue()
 {
-    if(!defined)  return (0);
-    unsigned long h;
-    Coord x=GetX();
-    Coord y=GetY();
+  if( !defined )
+    return 0;
+
+  size_t h;
 #ifdef RATIONAL_COORDINATES
-    h=(unsigned long)
+    h=(size_t)
         (5*(x.IsInteger()? x.IntValue():x.Value())
           + (y.IsInteger()? y.IntValue():y.Value()));
 #else
-    h=(unsigned long)(5*x + y);
+    h=(size_t)(5*x + y);
 #endif
-    return size_t(h);
+    return h;
 }
 
-void  Point::CopyFrom(StandardAttribute* right)
+void Point::CopyFrom( StandardAttribute* right )
 {
-//  cout<<"classcopy ////////////////////"<<endl;
-
   Point* p = (Point*)right;
-  defined = p->IsDefined();
-  if (defined)
+  defined = p->defined;
+  if( defined )
   {
-      Set( p->GetX(), p->GetY());
+    Set( p->x, p->y );
   }
-  //cout<<*this<<" .vs. "<<*p<<endl;
 }
 
-int   Point::Compare(Attribute * arg)
+int Point::Compare( Attribute *arg )
 {
-    int res=0;
-    Point* p = (Point* )(arg);
-    if ( !p ) return (-2);
+  Point* p = (Point*)arg;
 
-    if (!IsDefined() && !(arg->IsDefined()))  res=0;
-    else if (!IsDefined())  res=-1;
-    else  if (!(arg->IsDefined())) res=1;
-    else
-    {
-      if (*this > *p) res=1;
-      else
-        if (*this < *p) res=-1;
-        else res=0;
-    }
-    return (res);
-}
+  if( !p )
+    return -2;
 
-bool   Point::Adjacent(Attribute * arg)
-{
+  if( !defined && !p->defined )
     return 0;
-    //for points which takes double values, we can not decides whether they are
-    //adjacent or not.
+
+  if( !defined )
+    return -1;
+
+  if( !p->defined )
+    return 1;
+
+  if( *this > *p )
+    return 1;
+
+  if( *this < *p )
+    return -1;
+
+  return 0;
 }
 
-int  Point::Sizeof() const
+bool Point::Adjacent( Attribute * arg )
 {
-    return sizeof(Point);
+  return false;
+}
+
+int Point::Sizeof() const
+{
+  return sizeof(Point);
 }
 
 Point*  Point::Clone()
 {
-  // cout<<"classclone ////////////////////"<<endl;
-    return (new Point( *this));
+  return new Point( *this );
 }
 
 ostream& Point::Print( ostream &os )
 {
-    if (defined)
-  return (os << GetX() << ","<<GetY());
-    else    return (os << "undefined");
+  return os << *this;
 }
-/*
-  ***************************************************
-   End of the definition of the virtual functions.
-  ***************************************************
 
-*/
 bool Point::Inside( Points& ps ) const
 {
-  assert( IsDefined() && ps.IsOrdered() );
+  assert( defined && ps.IsOrdered() );
 
   return ps.Contains( *this );
 }
 
 void Point::Intersection( const Point& p, Point& result ) const
 {
-  assert( IsDefined() && p.IsDefined() );
+  assert( defined && p.defined );
 
   if( *this == p )
     result = *this;
@@ -330,7 +324,7 @@ void Point::Intersection( const Point& p, Point& result ) const
 
 void Point::Intersection( Points& ps, Point& result ) const
 {
-  assert( IsDefined() );
+  assert( defined && ps.IsOrdered() );
 
   if( this->Inside( ps ) )
     result = *this;
@@ -340,7 +334,7 @@ void Point::Intersection( Points& ps, Point& result ) const
 
 void Point::Minus( const Point& p, Point& result ) const
 {
-  assert( IsDefined() && p.IsDefined() );
+  assert( defined && p.defined );
 
   if( *this == p )
     result.SetDefined( false );
@@ -350,7 +344,7 @@ void Point::Minus( const Point& p, Point& result ) const
 
 void Point::Minus( Points& ps, Point& result ) const
 {
-  assert( IsDefined() );
+  assert( defined && ps.IsOrdered() );
 
   if( this->Inside( ps ) )
     result.SetDefined( false );
@@ -358,28 +352,21 @@ void Point::Minus( Points& ps, Point& result ) const
     result = *this;
 }
 
-double Point::distance( const Point& p ) const
+double Point::Distance( const Point& p ) const
 {
-    assert( IsDefined() && p.IsDefined() );
+  assert( defined && p.defined );
 
-    double result;
-
-    Coord x1=this->GetX();
-    Coord y1=this->GetY();
-    Coord x2=p.GetX();
-    Coord y2=p.GetY();
 #ifdef RATIONAL_COORDINATES
-    double dx = (x2.IsInteger()? x2.IntValue():x2.Value()) -
-            (x1.IsInteger()? x1.IntValue():x1.Value());
-    double dy = (y2.IsInteger()? y2.IntValue():y2.Value()) -
-            (y1.IsInteger()? y1.IntValue():y1.Value());
+  double dx = (p.x.IsInteger()? p.x.IntValue():p.x.Value()) -
+              (x.IsInteger()? x.IntValue():x.Value());
+  double dy = (p.y.IsInteger()? p.y.IntValue():p.y.Value()) -
+              (y.IsInteger()? y.IntValue():y.Value());
 #else
-    double dx = x2 - x1;
-    double dy = y2 - y1;
+  double dx = p.x - x;
+  double dy = p.y - y;
 #endif
 
-    result=sqrt(dx*dx + dy*dy);
-    return (result);
+  return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
 }
 
 /*
@@ -653,7 +640,7 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 4.5 ~Create~-function
 
 */
-Word
+static Word
 CreatePoint( const ListExpr typeInfo )
 {
     //cout<<"create point2"<<endl;
@@ -664,7 +651,7 @@ CreatePoint( const ListExpr typeInfo )
 4.6 ~Delete~-function
 
 */
-void
+static void
 DeletePoint( Word& w )
 {
   delete (Point *)w.addr;
@@ -675,7 +662,7 @@ DeletePoint( Word& w )
 4.7 ~Close~-function
 
 */
-void
+static void
 ClosePoint( Word& w )
 {
   delete (Point *)w.addr;
@@ -686,7 +673,7 @@ ClosePoint( Word& w )
 4.8 ~Clone~-function
 
 */
-Word
+static Word
 ClonePoint( const Word& w )
 {
   // cout<<"typeclone ////////////////////"<<endl;
@@ -708,7 +695,7 @@ SizeOfPoint()
 4.9 Function describing the signature of the type constructor
 
 */
-ListExpr
+static ListExpr
 PointProperty()
 {
   return (nl->TwoElemList(
@@ -729,7 +716,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~point~ does not have arguments, this is trivial.
 
 */
-bool
+static bool
 CheckPoint( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "point" ));
@@ -982,16 +969,16 @@ Points& Points::operator+=(const Point& p)
 
   if( !IsOrdered() )
   {
-    bool found=false;
-    Point auxp;
+      bool found=false;
+      Point auxp;
 
-    for( int i = 0; ((i < points.Size())&&(!found)); i++ )
-    {
-      points.Get( i, auxp );
-      if (auxp==p) found=true;
-    }
+      for( int i = 0; ((i < points.Size())&&(!found)); i++ )
+      {
+    points.Get( i, auxp );
+    if (auxp==p) found=true;
+      }
 
-    if (!found)
+      if (!found)
     points.Put( points.Size(), p );
   }
   else
@@ -1364,7 +1351,7 @@ The list representation of a point is
 5.3 ~Out~-function
 
 */
-ListExpr
+static ListExpr
 OutPoints( ListExpr typeInfo, Word value )
 {
   //cout << "OutPoints" << endl;
@@ -1396,7 +1383,7 @@ OutPoints( ListExpr typeInfo, Word value )
 5.4 ~In~-function
 
 */
-Word
+static Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -1431,7 +1418,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
 5.5 ~Create~-function
 
 */
-Word
+static Word
 CreatePoints( const ListExpr typeInfo )
 {
 //  cout << "CreatePoints" << endl;
@@ -1443,7 +1430,7 @@ CreatePoints( const ListExpr typeInfo )
 5.6 ~Delete~-function
 
 */
-void
+static void
 DeletePoints( Word& w )
 {
 //  cout << "DeletePoints" << endl;
@@ -1458,7 +1445,7 @@ DeletePoints( Word& w )
 5.7 ~Close~-function
 
 */
-void
+static void
 ClosePoints( Word& w )
 {
 //  cout << "ClosePoints" << endl;
@@ -1471,7 +1458,7 @@ ClosePoints( Word& w )
 5.8 ~Clone~-function
 
 */
-Word
+static Word
 ClonePoints( const Word& w )
 {
 //  cout << "ClonePoints" << endl;
@@ -1484,7 +1471,7 @@ ClonePoints( const Word& w )
 5.8 ~SizeOf~-function
 
 */
-int
+static int
 SizeOfPoints()
 {
   return sizeof(Points);
@@ -1494,7 +1481,7 @@ SizeOfPoints()
 5.11 Function describing the signature of the type constructor
 
 */
-ListExpr
+static ListExpr
 PointsProperty()
 {
   return (nl->TwoElemList(
@@ -1515,7 +1502,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~point~ does not have arguments, this is trivial.
 
 */
-bool
+static bool
 CheckPoints( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "points" ));
@@ -1652,11 +1639,11 @@ void     CHalfSegment::SetLDP(bool LDP)
     ldp=LDP;
 }
 
-void    CHalfSegment::translate(double xx, double yy)
+void CHalfSegment::Translate( const Coord& x, const Coord& y )
 {
-    assert(IsDefined());
-    lp.translate(xx,yy);
-    rp.translate(xx,yy);
+  assert( defined );
+  lp.Translate( x, y );
+  rp.Translate( x, y );
 }
 
 const Rectangle CHalfSegment::BoundingBox() const
@@ -1721,17 +1708,14 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
     else  if (!(chs.IsDefined())) return 1;
     else
     {
-    Point dp, sp, DP, SP;
-    dp=GetDPoint(); sp=GetSPoint();
-    DP=chs.GetDPoint(); SP=chs.GetSPoint();
+  Point dp, sp, DP, SP;
+  dp=GetDPoint(); sp=GetSPoint();
+  DP=chs.GetDPoint(); SP=chs.GetSPoint();
 
-      if (dp < DP)
-      return -1;
-    else
-      if (dp > DP)
-        return 1;
-    else
-    {
+  if (dp < DP) return -1;
+  else if (dp > DP) return 1;
+  else
+  {
       if (ldp!=chs.GetLDP())
       {
     if (ldp==false) return -1;
@@ -1844,7 +1828,7 @@ bool CHalfSegment::operator==(const CHalfSegment& chs) const
 
 bool CHalfSegment::operator!=(const CHalfSegment& chs) const
 {
-    return (!(*this == chs));
+    return (!(*this==chs));
 }
 
 bool CHalfSegment::operator<(const CHalfSegment& chs) const
@@ -1891,17 +1875,6 @@ int CHalfSegment::logicgreater(const CHalfSegment& chs) const
     }
 }
 
-
-bool CHalfSegment::LogicEqual(const CHalfSegment& chs) const
-{
-  if ( (attr.faceno  == chs.attr.faceno) &&
-       (attr.cycleno == chs.attr.cycleno) &&
-       (attr.edgeno  == chs.attr.edgeno) )
-    return true;
-  return false;
-}
-
-
 int HalfSegmentCompare(const void *a, const void *b)
 {
   CHalfSegment *chsa = new ((void*)a) CHalfSegment,
@@ -1937,16 +1910,9 @@ int HalfSegmentLogCompare(const void *a, const void *b)
 ostream& operator<<(ostream &os, const CHalfSegment& chs)
 {
     if( chs.IsDefined())
-  return (os << "("
-             <<"F("<< chs.attr.faceno
-             <<") C("<<  chs.attr.cycleno
-             <<") E(" << chs.attr.edgeno<<") DP("<<  (chs.GetLDP()? "L":"R")
-             <<") IA("<< (chs.attr.insideAbove? "A":"U")
-
-             <<") Co("<<chs.attr.coverageno
-             <<") PNo("<<chs.attr.partnerno
-             <<") Def("<<chs.IsDefined()
-             <<") ("<< chs.GetLP() << " "<< chs.GetRP() <<") ");
+  return (os << "(" << (chs.GetLDP()? "L":"R") <<
+              " ("<< chs.GetLP() << " "<< chs.GetRP() <<") "<<  chs.attr.faceno<<" "
+        <<  chs.attr.cycleno<<" "<< chs.attr.edgeno<<" "<<chs.attr.coverageno<<")");
     else
          return (os << "undef");
 }
@@ -2979,10 +2945,10 @@ bool CHalfSegment::Contains( const Point& p ) const
   }
 }
 /*
-6.1.15 distance Function
+6.1.15 Distance Function
 
 */
-double CHalfSegment::distance( const Point& p ) const
+double CHalfSegment::Distance( const Point& p ) const
 {
     //this function computes the distance of a line segment and a point
     assert (( p.IsDefined())&&(this->IsDefined()));
@@ -3014,8 +2980,8 @@ double CHalfSegment::distance( const Point& p ) const
       }
       else
       {
-    result=p.distance(this->GetLP());
-    auxresult=p.distance(this->GetRP());
+    result=p.Distance(this->GetLP());
+    auxresult=p.Distance(this->GetRP());
     if (result > auxresult) result=auxresult;
       }
   }
@@ -3033,8 +2999,8 @@ double CHalfSegment::distance( const Point& p ) const
       }
       else
       {
-    result=p.distance(this->GetLP());
-    auxresult=p.distance(this->GetRP());
+    result=p.Distance(this->GetLP());
+    auxresult=p.Distance(this->GetRP());
     if (result > auxresult) result=auxresult;
       }
   }
@@ -3063,18 +3029,17 @@ double CHalfSegment::distance( const Point& p ) const
   Point PP(true, XX, YY);
   if ((xl<=XX)&&(XX<=xr))
   {
-      result=p.distance(PP);
+      result=p.Distance(PP);
   }
   else
   {
-      result=p.distance(this->GetLP());
+      result=p.Distance(this->GetLP());
 
-      auxresult=p.distance(this->GetRP());
+      auxresult=p.Distance(this->GetRP());
       if (result > auxresult)
     result=auxresult;
   }
     }
-    //cout<<"the distance "<<*this<<" and "<<p <<" is: "<<result<<endl;
     return (result);
 }
 /*
@@ -3140,163 +3105,6 @@ bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
     return res;
 }
 
-/*
-6.1.16 Cohen-Sutherland Function
-
-   Cohen-Sutherland clipping algorithm for line P0 = (x0, y0) to P1 = (x1, y1) and
-   clip rectangle with diagonal from (xmin, ymin) to (xmax, ymax)
-
-*/
-
-outcode CompOutCode( double x, double y, double xmin, double xmax, double ymin, double ymax)
-{
-  outcode code = 0;
-  if (y > ymax)
-    code |=TOP;
-  else
-    if (y < ymin)
-      code |= BOTTOM;
-  if ( x > xmax)
-    code |= RIGHT;
-  else
-    if ( x < xmin)
-      code |= LEFT;
-  return code;
-
-}
-
-
-void CHalfSegment::CohenSutherlandLineClipping(const Rectangle &window,
-                            double &x0, double &y0, double &x1, double &y1,
-                            bool &accept)
-{
-  // Outcodes for P0, P1, and whatever point lies outside the clip rectangle*/
-  outcode outcode0, outcode1, outcodeOut;
-  double xmin = window.Left()  , xmax = window.Right(),
-         ymin = window.Bottom(), ymax = window.Top();
-  bool done = false;
-  accept = false;
-  //cout<<"-------------------CohenSutherlandLineClipping-----------------";
-  /*
-
-  cout<<"xmin: "<<xmin<<endl;
-  cout<<"xmax: "<<xmax<<endl;
-  cout<<"ymin: "<<ymin<<endl;
-  cout<<"ymax: "<<ymax<<endl;
-  cout<<"x0: "<<x0<<endl;
-  cout<<"y0: "<<y0<<endl;
-  cout<<"x1: "<<x1<<endl;
-  cout<<"y1: "<<y1<<endl;
-  */
-  outcode0 = CompOutCode( x0, y0, xmin, xmax, ymin, ymax);
-  outcode1 = CompOutCode( x1, y1, xmin, xmax, ymin, ymax);
-
-  do
-  {
-    if ( !(outcode0 | outcode1) )
-    {
-      //cout<<"Trivial accept and exit"<<endl;
-      accept = true;
-      done = true;
-    }
-    else
-      if (outcode0 & outcode1)
-      {
-        done = true;
-        //cout<<"Logical and is true, so trivial reject and exit"<<endl;
-      }
-      else
-      {
-      //Failed both tests, so calculate the line segment to clip:
-      //from an outside point to an instersection with clip edge.
-      double x,y;
-      // At least one endpoint is outside the clip rectangle; pick it.
-      outcodeOut = outcode0 ? outcode0 : outcode1;
-      //Now finde intersection point;
-      //use formulas y = y0 + slope * (x - x0), x = x0 + (1 /slope) * (y-y0).
-      //cout<<"clipping line: ("<<x0<<", "<<y0<<") ( "<<x1<< ", "<<y1<<" )"<<endl;
-
-      if (outcodeOut & TOP) //Divide the line at top of clip rectangle
-      {
-        x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
-        y = ymax;
-        //cout<<"TOP: "<<endl;
-      }
-      else
-        if (outcodeOut & BOTTOM)  //Divide line at bottom edge of clip rectangle
-        {
-          x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
-          y = ymin;
-          //cout<<"BOTTOM: "<<endl;
-        }
-        else
-          if (outcodeOut & RIGHT) //Divide line at right edge of clip rectangle
-          {
-          y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
-          x = xmax;
-          //cout<<"RIGHT: "<<endl;
-        }
-        else // divide lene at left edge of clip rectangle
-        {
-          y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0);
-          x = xmin;
-          //cout<<"LEFT: "<<endl;
-        }
-      //cout<<"clipped line: ("<<x0<<", "<<y0<<") ( "<<x1<< ", "<<y1<<" )"<<endl;
-        //cout<<endl<<"Now we move outside point to intersection point to clip ";
-        //cout<<"and get ready for next pass"<<endl;
-        if (outcodeOut == outcode0)
-        {
-        x0 = x;
-        y0 = y;
-        outcode0 = CompOutCode(x0, y0, xmin, xmax, ymin, ymax);
-      }
-      else
-      {
-        x1 = x;
-        y1 = y;
-        outcode1 = CompOutCode(x1, y1, xmin, xmax, ymin, ymax);
-
-      }
-
-      }
-  }
-  while ( done == false);
-
-  //cout<<"-------------------end algorithm-----------------";
-
-}
-
-void CHalfSegment::WindowClippingIn(const Rectangle &window,
-     CHalfSegment &chsInside,bool &inside, bool &isIntersectionPoint)
-{
-  double x0=this->GetLP().GetX(),
-       y0=this->GetLP().GetY(),
-       x1=this->GetRP().GetX(),
-       y1=this->GetRP().GetY();
-  CohenSutherlandLineClipping(window, x0, y0, x1, y1, inside);
-  isIntersectionPoint=false;
-  if (inside)
-  {
-    Point lp, rp;
-    lp.Set(x0,y0);
-    rp.Set(x1,y1);
-    if (lp==rp)
-      isIntersectionPoint = true;
-    else
-    {
-      AttrType attr=this->GetAttr();
-      //cout<<endl<<"lp: "<<lp<<endl;
-      //cout<<"rp: "<<rp<<endl;
-      chsInside.Set(true, rp, lp);
-      chsInside.SetAttr(attr);
-      //cout<<"line: ("<<x0<<", "<<y0<<") ( "<<x1<< ", "<<y1<<" )"<<endl;
-      //cout<<"Result: "<<chsInside<<endl;
-    }
-  }
-}
-
-
 
 /*
 
@@ -3313,7 +3121,7 @@ where the bool value indicate whether the dominating point is the left point.
 
 */
 
-ListExpr
+static ListExpr
 OutHalfSegment( ListExpr typeInfo, Word value )
 {
   CHalfSegment* chs;
@@ -3334,7 +3142,7 @@ OutHalfSegment( ListExpr typeInfo, Word value )
   }
 }
 
-Word
+static Word
 InHalfSegment( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
     CHalfSegment* chs;
@@ -3419,7 +3227,7 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance, const int error
 
 */
 
-Word
+static Word
 CreateHalfSegment( const ListExpr typeInfo )
 {
     CHalfSegment* chs = new CHalfSegment( false );
@@ -3431,7 +3239,7 @@ CreateHalfSegment( const ListExpr typeInfo )
 
 */
 
-void
+static void
 DeleteHalfSegment( Word& w )
 {
   delete (CHalfSegment*) w.addr;
@@ -3443,7 +3251,7 @@ DeleteHalfSegment( Word& w )
 
 */
 
-void
+static void
 CloseHalfSegment( Word& w )
 {
   delete (CHalfSegment*) w.addr;
@@ -3455,7 +3263,7 @@ CloseHalfSegment( Word& w )
 
 */
 
-Word
+static Word
 CloneHalfSegment( const Word& w )
 {
   return SetWord( ((CHalfSegment*)w.addr)->Clone());
@@ -3476,7 +3284,7 @@ SizeOfHalfSegment()
 
 */
 
-void*
+static void*
 CastHalfSegment( void* addr )
 {
   return (new (addr) CHalfSegment);
@@ -3488,7 +3296,7 @@ CastHalfSegment( void* addr )
 
 */
 
-ListExpr
+static ListExpr
 HalfSegmentProperty()
 {
   return (nl->TwoElemList(nl->TheEmptyList(), nl->SymbolAtom("SPATIAL")));
@@ -3500,7 +3308,7 @@ HalfSegmentProperty()
 
 */
 
-bool
+static bool
 CheckHalfSegment( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual(type, "halfsegment" ));
@@ -3539,15 +3347,15 @@ as a set of sorted halfsegments, which are stored as a PArray.
 
 */
 CLine::CLine(const int initsize) :
-        line( initsize ),
-        bbox( false ),
-        ordered( true )
+line( initsize ),
+bbox( false ),
+ordered( true )
 {}
 
 CLine::CLine(CLine& cl ) :
-        line( cl.Size() ),
-        bbox( cl.BoundingBox() ),
-        ordered( true )
+line( cl.Size() ),
+bbox( cl.bbox ),
+ordered( true )
 {
   assert( cl.IsOrdered());
 
@@ -3592,9 +3400,7 @@ void CLine::StartBulkLoad()
 void CLine::EndBulkLoad()
 {
   assert( !IsOrdered());
-  //  cout << "Before sorting: " << *this << endl;
   Sort();
-  //  cout << "After sorting: " << *this << endl;
   ordered = true;
 }
 
@@ -3626,7 +3432,7 @@ CLine& CLine::operator=(CLine& cl)
     cl.Get( i, chs );
     line.Put( i, chs );
   }
-  bbox = cl.BoundingBox();
+  bbox = cl.bbox;
   ordered = true;
   return *this;
 }
@@ -3635,9 +3441,11 @@ bool CLine::operator==(CLine& cl)
 {
   assert( IsOrdered() && cl.IsOrdered() );
 
-  if( Size() != cl.Size() )    return 0;
+  if( Size() != cl.Size() )
+    return false;
 
-  if ( bbox != cl.BoundingBox() )   return 0;
+  if( bbox != cl.bbox )
+    return false;
 
   for( int i = 0; i < Size(); i++ )
   {
@@ -3645,14 +3453,9 @@ bool CLine::operator==(CLine& cl)
     line.Get( i, chs1 );
     cl.Get( i, chs2 );
     if( chs1 != chs2 )
-      return 0;
+      return false;
   }
-  return 1;
-}
-
-bool CLine::operator!=(CLine& cl)
-{
-  return (!( *this == cl));
+  return true;
 }
 
 CLine& CLine::operator+=(const CHalfSegment& chs)
@@ -3793,86 +3596,6 @@ void CLine::Sort()
 
   ordered = true;
 }
-
-void CLine::WindowClippingIn(Rectangle &window,CLine &clippedLine,bool &inside)
-{
-  inside = false;
-  clippedLine.StartBulkLoad();
-  for (int i=0; i < Size();i++)
-  {
-  CHalfSegment chs,chsInside;
-    bool insidechs=false,isIntersectionPoint=false;
-  Get(i,chs);
-
-  if (chs.GetLDP())
-  {
-    chs.WindowClippingIn(window,chsInside, insidechs,isIntersectionPoint);
-    if (insidechs && !isIntersectionPoint)
-    {
-      clippedLine +=chsInside;
-      chsInside.SetLDP(false);
-      clippedLine +=chsInside;
-      inside = true;
-      }
-    }
-
-  }
-  clippedLine.EndBulkLoad();
-
-}
-
-void CLine::WindowClippingOut(Rectangle &window,CLine &clippedLine,bool &outside)
-{
-  outside = false;
-  clippedLine.StartBulkLoad();
-  for (int i=0; i < Size();i++)
-  {
-    CHalfSegment chs,chsInside;
-    bool outsidechs=false,isIntersectionPoint=false;
-    Get(i,chs);
-
-    if (chs.GetLDP())
-    {
-      chs.WindowClippingIn(window,chsInside, outsidechs, isIntersectionPoint);
-      if (outsidechs && !isIntersectionPoint)
-      {
-        if (chs.GetLP()!=chsInside.GetLP())
-        {//Add the part of the half segment composed by the left point of chs and
-         // the left point of chsInside.
-          CHalfSegment chsLeft(true,true,chs.GetLP(),chsInside.GetLP()) ;
-          AttrType attr=chs.GetAttr();
-          chsLeft.SetAttr(attr);
-          clippedLine += chsLeft;
-          chsLeft.SetLDP(false);
-          clippedLine += chsLeft;
-          outside = true;
-        }
-        if (chs.GetRP()!=chsInside.GetRP())
-        {//Add the part of the half segment composed by the left point of chs and
-         // the left point of chsInside.
-          CHalfSegment chsRight(true,true,chs.GetRP(),chsInside.GetRP()) ;
-          AttrType attr=chs.GetAttr();
-          //cout<<endl<<"lp: "<<lp<<endl;
-          //cout<<"rp: "<<rp<<endl;
-          chsRight.SetAttr(attr);
-          clippedLine += chsRight;
-          chsRight.SetLDP(false);
-          clippedLine += chsRight;
-          outside = true;
-        }
-      }
-      else
-      {
-        clippedLine +=chs;
-        chs.SetLDP(false);
-        clippedLine +=chs;
-        outside = true;
-      }
-    }
-  }
-  clippedLine.EndBulkLoad();
-}
-
 
 ostream& operator<<( ostream& os, CLine& cl )
 {
@@ -4048,7 +3771,7 @@ The list representation of a line is
 
 */
 
-ListExpr
+static ListExpr
 OutLine( ListExpr typeInfo, Word value )
 {
 //    cout<<"OUTLINE##################"<<endl;
@@ -4099,7 +3822,7 @@ OutLine( ListExpr typeInfo, Word value )
 7.4 ~In~-function
 
 */
-Word
+static Word
 InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
 //    cout<<"Inline###########"<<endl;
@@ -4159,7 +3882,7 @@ InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
 7.5 ~Create~-function
 
 */
-Word
+static Word
 CreateLine( const ListExpr typeInfo )
 {
   //  cout << "CreateLine" << endl;
@@ -4170,7 +3893,7 @@ CreateLine( const ListExpr typeInfo )
 7.6 ~Delete~-function
 
 */
-void
+static void
 DeleteLine( Word& w )
 {
   //  cout << "DeleteLine" << endl;
@@ -4185,7 +3908,7 @@ DeleteLine( Word& w )
 7.7 ~Close~-function
 
 */
-void
+static void
 CloseLine( Word& w )
 {
   //  cout << "CloseLine" << endl;
@@ -4197,7 +3920,7 @@ CloseLine( Word& w )
 7.8 ~Clone~-function
 
 */
-Word
+static Word
 CloneLine( const Word& w )
 {
   //  cout << "CloneLine" << endl;
@@ -4218,7 +3941,7 @@ int SizeOfLine()
 7.11 Function describing the signature of the type constructor
 
 */
-ListExpr
+static ListExpr
 LineProperty()
 {
   return (nl->TwoElemList(
@@ -4242,7 +3965,7 @@ type constructor ~line~ does not have arguments, this is trivial.
 
 */
 
-bool
+static bool
 CheckLine( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "line" ));
@@ -4368,20 +4091,19 @@ void CRegion::EndBulkLoad()
 
     for (int i=0; i<this->Size(); i++)
     {
-      this->Get(i, chs);
+  this->Get(i, chs);
 
-      if  (chs.GetLDP())
-        currCoverageNo++;
-      else  currCoverageNo--;
+  if  (chs.GetLDP())
+           currCoverageNo++;
+  else  currCoverageNo--;
 
-      chs.attr.coverageno=currCoverageNo;
+  chs.attr.coverageno=currCoverageNo;
 
   //cout<<chs<<endl;
 
   //The following line must be added in order for coverageno to carry value
-      region.Put( i, chs );
+  region.Put( i, chs );
     }
-
 }
 
 void  CRegion::setOrdered(bool isordered)
@@ -4457,7 +4179,7 @@ bool CRegion::contain( const Point& p )
     int lastfaceno=-1;
     for (int i=0; i<100; i++)
     {
-      faceISN[i]=0;
+  faceISN[i]=0;
     }
 
     CHalfSegment chs;
@@ -4497,11 +4219,11 @@ bool CRegion::contain( const Point& p )
     int chsVisiteds=0;
 
     if ( startpos == -1 )   //p is smallest
-       return false;
+  return false;
     else if ( startpos == -2 )  //p is largest
-       return false;
+  return false;
     else if ( startpos == -3 )  //p is a vertex
-       return true;
+  return true;
 
     //2. deal with equal-x chs's
     bool continuemv=true;
@@ -4509,27 +4231,27 @@ bool CRegion::contain( const Point& p )
 
     while ((continuemv) && (i>=0))
     {
-      region.Get( i, chs );
-      chsVisiteds++;
+  region.Get( i, chs );
+  chsVisiteds++;
 
-      if (chs.GetDPoint().GetX() == p.GetX())
+  if (chs.GetDPoint().GetX() == p.GetX())
+  {
+      if  (chs.Contains(p))  return true;
+
+      if (chs.GetLDP())
       {
-        if  (chs.Contains(p))  return true;
-
-        if (chs.GetLDP())
-        {
-          //cout<<"ELIGABLE**: "<<chs<<endl;
-          if (chs.rayAbove(p, y0))
-          {
-            faceISN[chs.attr.faceno]++;
-            if (lastfaceno < chs.attr.faceno)
-              lastfaceno=chs.attr.faceno;
-          }
-       }
-
-       i--;
+    //cout<<"ELIGABLE**: "<<chs<<endl;
+    if (chs.rayAbove(p, y0))
+    {
+        faceISN[chs.attr.faceno]++;
+        if (lastfaceno < chs.attr.faceno)
+      lastfaceno=chs.attr.faceno;
+    }
       }
-      else continuemv=false;
+
+  i--;
+  }
+  else continuemv=false;
     }       //now i is pointing to the last chs whose DP.X != p.x
 
 
@@ -4550,40 +4272,40 @@ bool CRegion::contain( const Point& p )
 
     while (( i>=0)&&(touchedNo<coverno))
     {
-      this->Get(i, chs);
-      chsVisiteds++;
+  this->Get(i, chs);
+  chsVisiteds++;
 
-      if  (chs.Contains(p))  return true;
+  if  (chs.Contains(p))  return true;
 
-      if ((chs.GetLDP())&&((chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
-      {
+  if ((chs.GetLDP())&&((chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
+  {
         //cout<<"ELIGABLE: "<<chs<<endl;
         touchedNo++;
-      }
+  }
 
-      if (chs.GetLDP())
+  if (chs.GetLDP())
+  {
+      if (chs.rayAbove(p, y0))
       {
-        if (chs.rayAbove(p, y0))
-        {
-          faceISN[chs.attr.faceno]++;
-          if (lastfaceno < chs.attr.faceno)
-            lastfaceno=chs.attr.faceno;
-        }
+    faceISN[chs.attr.faceno]++;
+    if (lastfaceno < chs.attr.faceno)
+        lastfaceno=chs.attr.faceno;
       }
+  }
 
-      i--;  //the iterator
-   }
-  } //$$$$$$$$$added by DZM to avoid abnormal access
+  i--;  //the iterator
+    }
+    } //$$$$$$$$$added by DZM to avoid abnormal access
 
     //cout<<"number of chs actually checked: "<<chsVisited2<<" + "<<chsVisiteds<<endl;
     // ================= End of the new method ================= */
 
     for (int j=0; j<=lastfaceno; j++)
     {
-      if (faceISN[j] %2 !=0 )
-      {
-        return true;
-      }
+  if (faceISN[j] %2 !=0 )
+  {
+      return true;
+  }
     }
     return false;
 }
@@ -4793,14 +4515,14 @@ bool CRegion::contain( const CHalfSegment& chs )
 
     if ((!(this->contain(chs.GetLP())))||(!(this->contain(chs.GetRP()))))
     {
-      return false;
+  return false;
     }
 
     CHalfSegment auxchs;
     struct {
-      int faceno;
-      int cycleno;
-      int edgeno;
+  int faceno;
+  int cycleno;
+  int edgeno;
     } touchset[10];
     int touchnum=0;
 
@@ -4923,10 +4645,6 @@ bool CRegion::operator==(CRegion& cr)
   }
   return 1;
 }
-bool CRegion::operator!=(CRegion &cr)
-{
-  return !(*this==cr);
-}
 
 CRegion& CRegion::operator+=(const CHalfSegment& chs)
 {
@@ -5040,34 +4758,15 @@ const AttrType& CRegion::GetAttr()
     return chs.GetAttr();
 }
 
-const AttrType& CRegion::GetAttr(int position)
-{
-    assert(( position>=0) && (position<=Size()-1));
-    CHalfSegment chs;
-    region.Get( position, chs);
-    return chs.GetAttr();
-}
-
 void CRegion::UpdateAttr( AttrType& ATTR )
 {
-  if (( pos>=0) && (pos<=Size()-1))
-  {
-    CHalfSegment chs;
-    region.Get( pos, chs);
-    chs.SetAttr(ATTR);
-    region.Put( pos, chs);
-  }
-}
-
-void CRegion::UpdateAttr( int position, AttrType& ATTR )
-{
-  if (( position>=0) && (position<=Size()-1))
-  {
-    CHalfSegment chs;
-    region.Get( position, chs);
-    chs.SetAttr(ATTR);
-    region.Put( position, chs);
-  }
+    if (( pos>=0) && (pos<=Size()-1))
+    {
+  CHalfSegment chs;
+  region.Get( pos, chs);
+  chs.SetAttr(ATTR);
+  region.Put( pos, chs);
+    }
 }
 
 int CRegion::Position( const CHalfSegment& chs)
@@ -5183,866 +4882,6 @@ ostream& operator<<( ostream& os, CRegion& cr )
   return os;
 }
 
-void CRegion::SetPartnerNo()
-{
-  assert( IsOrdered() );
-
-  CHalfSegment chs;
-  int *pa = new int[Size()/2];
-  SelectFirst();
-  int i=0;
-  while (1)
-  {
-    GetHs( chs );
-    if (chs.GetLDP())
-    {
-      //store at position partno of the partner array the position of the left half segment
-      //in the half segment array
-      pa[chs.attr.partnerno]=i;
-    }
-    i++;
-    if (i == Size()) break;
-    SelectNext();
-  }
-
-  for( i = 0; i < Size(); i++)
-  {
-    Get(i, chs );
-    pos = i;
-    if (!chs.GetLDP())
-    {
-      CHalfSegment chsLeft;
-      //assign the position of the right dominating half segment as the partner number of the right half segment
-      chs.attr.partnerno = pa[chs.attr.partnerno];
-      UpdateAttr(chs.attr);
-      Get( chs.attr.partnerno, chsLeft );
-      //update the partner number of the left dominating half segment to the position of the right half segment
-      //in the half segment array.
-      pos = chs.attr.partnerno;
-      chsLeft.attr.partnerno = i;
-      UpdateAttr(chsLeft.attr);
-    }
-  }
-
-}
-
-/*
-8 Class DPoint
-
-This class implements the memory representation of the ~dpoint~ type constructor. This class
-will be used only on the algorithms to compute the clipping of a region to the clipping window.
-
-*/
-double VectorSize(const Point &p1, const Point &p2)
-{
-  double size = pow( (p1.GetX() - p2.GetX()),2) + pow( (p1.GetY() - p2.GetY()),2);
-  size = sqrt(size);
-  return size;
-}
-//The angle function returns the angle of VP1P2
-// P1 is the point on the window's edge
-double Angle(const Point &v, const Point &p1,const Point &p2)
-{
-  double coss;
-
-  //If P1P2 is vertical and the window's edge been tested is horizontal , then
-  //the angle VP1P2 is equal to 90 degrees. On the other hand, if P1P2 is vertical
-  //and the window's edge been tested is vertical, then thte angle is 90 degrees.
-  //Similar tests are applied when P1P2 is horizontal.
-
-  if (p1.GetX() == p2.GetX()) //the segment is vertical
-    if (v.GetY()==p1.GetY()) return PI/2; //horizontal edge
-    else return 0;
-  if (p1.GetY() == p2.GetY()) //the segment is horizontal
-    if (v.GetY()==p1.GetY()) return 0; //horizontal edge
-    else return PI/2;
-
-  coss = double( ( (v.GetX() - p1.GetX()) * (p2.GetX() - p1.GetX()) ) +
-                 ( (v.GetY() - p1.GetY()) * (p2.GetY() - p1.GetY()) ) ) /
-                 (VectorSize(v,p1) * VectorSize(p2,p1));
-  //cout<<endl<<"Coss"<<coss;
-  //coss = abs(coss);
-  //cout<<endl<<"Coss"<<coss;
-  return acos(coss);
-}
-
-
-ostream& operator<<( ostream& o, const DPoint & p )
-{
-  if( p.IsDefined() )
-    o << "(" << p.GetX() << ", " << p.GetY() << ")"
-      <<" D ("<<(p.direction ? "<==^" : "v==>")<<")";
-  else
-    o << "undef";
-
-  return o;
-}
-
-DPoint* DPoint::GetDPoint(const Point &p,const Point &p2,bool insideAbove,const Point &v)
-{
-  //The point p2 must be outside the window
-  bool direction;
-
-  //window's vertical edge
-  if (v.GetX()==p.GetX())
-  {
-    if (insideAbove)
-      direction =  false; //UP
-    else
-      direction =  true; //DOWN
-  }
-  else  //Horizontal edge
-  {
-    if (insideAbove)
-    {
-      if ( (p.GetX()-p2.GetX())>0 ) //p2.x is located to left of p.x
-        direction =  false; //RIGHT
-      else
-        direction =  true; //LEFT
-    }
-    else
-    {
-      if ( (p.GetX()-p2.GetX())>0 )//p2.x is located to left of p.x
-        direction =  true; //LEFT
-      else
-        direction =  false; //RIGHT
-    }
-  }
-  return new DPoint(p,direction);
-
-}
-
-void AddPointsToEdgeArray(const Point &p,const CHalfSegment &chs,
-                       const Rectangle &window,vector<DPoint> pointsOnEdge[4])
-{
-  DPoint *dp;
-  Point v;
-  AttrType attr;
-  attr = chs.GetAttr();
-  Point p2;
-  //If the left and right edges are been tested then it is not need to check the angle
-  //between the half segment and the edge. If the attribute inside above is true, then
-  //the direction is up, otherwise it is down.
-  if (p.GetX() == window.Left())
-  {
-    dp = new DPoint(p,attr.insideAbove);
-    pointsOnEdge[WLEFT].push_back(*dp);
-  }
-  else
-    if (p.GetX() == window.Right())
-    {
-      dp = new DPoint(p,attr.insideAbove);
-      pointsOnEdge[WRIGHT].push_back(*dp);
-    }
-  if (p.GetY() == window.Bottom())
-  {
-    v.Set(window.Left(), window.Bottom());
-    //In this case we don't know which point is outside the window,
-    //so it is need to test both half segment's poinst. Moreover,
-    //in order to use the same comparisson that is used for
-    //Top edge, it is need to choose the half segment point that
-    //is over the bottom edge.
-    if (chs.GetLP().GetY()>window.Bottom())
-      dp = DPoint::GetDPoint(p,chs.GetLP(),attr.insideAbove,v);
-    else
-      dp = DPoint::GetDPoint(p,chs.GetRP(),attr.insideAbove,v);
-    pointsOnEdge[WBOTTOM].push_back(*dp);
-  }
-  else
-    if (p.GetY() == window.Top())
-    {
-      v.Set(window.Left(), window.Top());
-    //In this case we don't know which point is outside the window,
-    //so it is need to test
-    if (chs.GetLP().GetY()>window.Top())
-      dp = DPoint::GetDPoint(p,chs.GetLP(),attr.insideAbove,v);
-    else
-      dp = DPoint::GetDPoint(p,chs.GetRP(),attr.insideAbove,v);
-      pointsOnEdge[WTOP].push_back(*dp);
-    }
-}
-
-void CRegion::CreateNewSegments(vector <DPoint>pointsOnEdge, CRegion &cr,
-                                const Point &bPoint,const Point &ePoint,
-                               WindowEdge edge,int &partnerno,
-                               bool inside)
-//The inside attribute indicates if the points on edge will originate
-//segments that are inside the window (its values is true), or outside
-//the window (its value is false)
-{
-  int begin = 0, end = pointsOnEdge.size(), i;
-  CHalfSegment *chs;
-  AttrType attr;
-  DPoint dp,dp2;
-
-  if (pointsOnEdge.size()==0) return;
-
-  sort(pointsOnEdge.begin(),pointsOnEdge.end());
-
-  dp = pointsOnEdge[0];
-
-  if ( ( (edge == WTOP  || edge == WBOTTOM) && dp.direction) ||
-       ( (edge == WLEFT || edge == WRIGHT) && !dp.direction) )
-  {
-
-    chs = new CHalfSegment(true,true, bPoint, dp);
-
-    attr.partnerno = partnerno;
-    partnerno++;
-    if ( (edge == WTOP) || (edge == WLEFT) )
-      attr.insideAbove = !inside;
-      //If inside == true, then insideAbove attribute of the top and left
-      //half segments must be set to false, otherwise its value must be true.
-      //In other words, the insideAbove atribute value is the opposite of the
-      //parameter inside's value.
-    else
-      if ( (edge == WRIGHT) || (edge == WBOTTOM))
-        attr.insideAbove = inside;
-      //If inside == true, then insideAbove attribute of the right and bottom
-      //half segments must be set to true, otherwise its value must be false.
-      //In other words, the insideAbove atribute value is the same of the
-      //parameter inside's value.
-    chs->SetAttr(attr);
-    cr+=(*chs);
-    chs->SetLDP(false);
-    cr+=(*chs);
-    begin=1;
-    delete chs;
-  }
-
-  dp = pointsOnEdge[pointsOnEdge.size()-1];
-  if ( ( (edge == WTOP  || edge == WBOTTOM) && !dp.direction) ||
-       ( (edge == WLEFT || edge == WRIGHT) && dp.direction) )
-  {
-    chs = new CHalfSegment(true,true, dp, ePoint);
-    attr.partnerno = partnerno;
-    if ( (edge == WTOP) || (edge == WLEFT) )
-      attr.insideAbove = !inside;
-    else
-      if ( (edge == WRIGHT) || (edge == WBOTTOM))
-        attr.insideAbove = inside;
-    partnerno++;
-    chs->SetAttr(attr);
-    cr+=(*chs);
-    chs->SetLDP(false);
-    cr+=(*chs);
-    end = end-1;
-    delete chs;
-  }
-
-  i = begin;
-  while (i < (end-1))
-  {
-    dp = pointsOnEdge[i];
-    dp2 = pointsOnEdge[i+1];
-    chs = new CHalfSegment(true,true, dp, dp2);
-    attr.partnerno = partnerno;
-    partnerno++;
-    if ( (edge == WTOP) || (edge == WLEFT) )
-      attr.insideAbove = !inside;
-    else
-      if ( (edge == WRIGHT) || (edge == WBOTTOM))
-        attr.insideAbove = inside;
-    chs->SetAttr(attr);
-    cr+=(*chs);
-    chs->SetLDP(false);
-    cr+=(*chs);
-    i=i+2;
-    delete chs;
-  }
-}
-
-void CRegion::CreateNewSegmentsWindowVertices(const Rectangle &window,
-                                vector<DPoint> pointsOnEdge[4],CRegion &cr,
-                                int &partnerno,bool inside)
-//The inside attribute indicates if the points on edge will originate
-//segments that are inside the window (its values is true), or outside
-//the window (its value is false)
-{
-  Point tlPoint(true,window.Left(),window.Top()),
-        trPoint(true,window.Right(),window.Top()),
-        blPoint(true,window.Left(),window.Bottom()),
-        brPoint(true,window.Right(),window.Bottom());
-  bool tl=false,tr=false,bl=false,br=false;
-  /*
-  cout<<endl<<"interno"<<endl;
-  cout<<"Left   :"<<window.Left()<<endl;
-  cout<<"Top    :"<<window.Top()<<endl;
-  cout<<"Right  :"<<window.Right()<<endl;
-  cout<<"Bottom :"<<window.Bottom()<<endl;
-
-  cout<<"Points"<<endl;
-  cout<<"tlPoint: "<<tlPoint<<endl;
-  cout<<"trPoint: "<<trPoint<<endl;
-  cout<<"blPoint: "<<blPoint<<endl;
-  cout<<"brPoint: "<<brPoint<<endl;
-  */
-
-  AttrType attr;
-
-  if ( ( (pointsOnEdge[WTOP].size()==0) || (pointsOnEdge[WLEFT].size()==0) )
-     && ( this->contain(tlPoint) ) )
-      tl = true;
-
-  if ( ( (pointsOnEdge[WTOP].size()==0) || (pointsOnEdge[WRIGHT].size()==0)  )
-       && ( this->contain(trPoint) ) )
-      tr = true;
-
-  if ( ( (pointsOnEdge[WBOTTOM].size()==0) || (pointsOnEdge[WLEFT].size()==0)  )
-       && ( this->contain(blPoint) ) )
-      bl = true;
-  if ( ( (pointsOnEdge[WBOTTOM].size()==0) || (pointsOnEdge[WRIGHT].size()==0)  )
-         && ( this->contain(brPoint) ) )
-      br = true;
-
-
-  //Create top edge
-  if (tl && tr && (pointsOnEdge[WTOP].size()==0))
-  {
-    CHalfSegment *chs;
-    chs = new CHalfSegment(true,true, tlPoint, trPoint);
-    //If inside == true, then insideAbove attribute of the top and left
-    //half segments must be set to false, otherwise its value must be true.
-    //In other words, the insideAbove atribute value is the opposite of the
-    //inside function's parameter value.
-    attr.insideAbove = !inside;
-    attr.partnerno = partnerno;
-    partnerno++;
-
-    chs->SetAttr(attr);
-    cr+=(*chs);
-    chs->SetLDP(false);
-    cr+=(*chs);
-    delete chs;
-  }
-  //Create left edge
-  if (tl && bl && (pointsOnEdge[WLEFT].size()==0))
-  {
-    CHalfSegment *chs;
-    chs = new CHalfSegment(true,true, tlPoint, blPoint);
-    //If inside == true, then insideAbove attribute of the top and left
-    //half segments must be set to false, otherwise its value must be true.
-    //In other words, the insideAbove atribute value is the opposite of the
-    //parameter inside's value.
-    attr.insideAbove = !inside;
-    attr.partnerno = partnerno;
-    partnerno++;
-
-    chs->SetAttr(attr);
-    cr+=(*chs);
-    chs->SetLDP(false);
-    cr+=(*chs);
-    delete chs;
-  }
-  //Create right edge
-  if (tr && br && (pointsOnEdge[WRIGHT].size()==0))
-  {
-    CHalfSegment *chs;
-    chs = new CHalfSegment(true,true, trPoint, brPoint);
-    //If inside == true, then insideAbove attribute of the right and bottom
-    //half segments must be set to true, otherwise its value must be false.
-    //In other words, the insideAbove atribute value is the same of the
-    //parameter inside's value.
-    attr.insideAbove = inside;
-    attr.partnerno = partnerno;
-    partnerno++;
-
-    chs->SetAttr(attr);
-    cr+=(*chs);
-    chs->SetLDP(false);
-    cr+=(*chs);
-    delete chs;
-  }
-  //Create bottom edge
-  if (bl && br && (pointsOnEdge[WBOTTOM].size()==0))
-  {
-    CHalfSegment *chs;
-    chs = new CHalfSegment(true,true, blPoint, brPoint);
-    //If inside == true, then insideAbove attribute of the right and bottom
-    //half segments must be set to true, otherwise its value must be false.
-    //In other words, the insideAbove atribute value is the same of the
-    //parameter inside's value.
-    attr.insideAbove = inside;
-    attr.partnerno = partnerno;
-    partnerno++;
-
-    chs->SetAttr(attr);
-    cr+=(*chs);
-    chs->SetLDP(false);
-    cr+=(*chs);
-    delete chs;
-  }
-}
-void CRegion::GetClippedHSIn(const Rectangle &window,CRegion &clippedRegion,
-                             vector<DPoint> pointsOnEdge[4],int &partnerno)
-{
-  CHalfSegment chs, chsInside;
-  bool inside, isIntersectionPoint;
-
-  SelectFirst();
-  for(int i=0; i < Size(); i++)
-  {
-    GetHs( chs );
-    if (chs.GetLDP())
-    {
-      chs.WindowClippingIn(window, chsInside, inside, isIntersectionPoint);
-      if (inside && !isIntersectionPoint)
-      {
-        //Add the clipped segment to the new region
-        chsInside.attr.partnerno=partnerno;
-        partnerno++;
-        chsInside.SetAttr(chsInside.attr);
-        clippedRegion += chsInside;
-        chsInside.SetLDP(false);
-        clippedRegion += chsInside;
-        //Add the points to the array of the points that lie on some of the window's edges
-        Point lp=chsInside.GetLP(),rp = chsInside.GetRP();
-
-        if ( (lp!=chs.GetLP()) && (lp!=chs.GetRP()) )
-          AddPointsToEdgeArray(lp,chs,window, pointsOnEdge);
-        if ( (rp!=chs.GetLP()) && (rp!=chs.GetRP()) )
-          AddPointsToEdgeArray(rp, chs,window, pointsOnEdge);
-      }
-    }
-    SelectNext();
-  }
-}
-
-void CRegion::GetClippedHSOut(const Rectangle &window,CRegion &clippedRegion,
-                             vector<DPoint> pointsOnEdge[4],int &partnerno)
-{
-  AttrType attr;
-  SelectFirst();
-  for (int i=0; i < Size();i++)
-  {
-    CHalfSegment chs,chsInside;
-    bool inside=false,isIntersectionPoint=false;
-    GetHs(chs);
-
-    if (chs.GetLDP())
-    {
-      chs.WindowClippingIn(window,chsInside, inside, isIntersectionPoint);
-      if (inside && !isIntersectionPoint)
-      {
-        if (chs.GetLP()!=chsInside.GetLP())
-        {//Add the part of the half segment composed by the left point of chs and
-         // the left point of chsInside.
-          CHalfSegment chsLeft(true,true,chs.GetLP(),chsInside.GetLP()) ;
-          attr=chs.GetAttr();
-          attr.partnerno = partnerno;
-          partnerno++;
-          chsLeft.SetAttr(attr);
-          clippedRegion += chsLeft;
-          chsLeft.SetLDP(false);
-          clippedRegion += chsLeft;
-          AddPointsToEdgeArray(chsInside.GetLP(),chs,window, pointsOnEdge);
-        }
-        if (chs.GetRP()!=chsInside.GetRP())
-        {//Add the part of the half segment composed by the right point of chs and
-         // the right point of chsInside.
-          CHalfSegment chsRight(true,true,chs.GetRP(),chsInside.GetRP()) ;
-          attr=chs.GetAttr();
-          attr.partnerno = partnerno;
-          partnerno++;
-          //cout<<endl<<"lp: "<<lp<<endl;
-          //cout<<"rp: "<<rp<<endl;
-          chsRight.SetAttr(attr);
-          clippedRegion += chsRight;
-          chsRight.SetLDP(false);
-          clippedRegion += chsRight;
-          AddPointsToEdgeArray(chsInside.GetRP(),chs,window, pointsOnEdge);
-        }
-      }
-      else
-      {
-        attr=chs.GetAttr();
-        attr.partnerno = partnerno;
-        partnerno++;
-        chs.SetAttr(attr);
-        clippedRegion +=chs;
-        chs.SetLDP(false);
-        clippedRegion +=chs;
-      }
-    }
-    SelectNext();
-  }
-}
-void CRegion::GetClippedHS(const Rectangle &window,CRegion &clippedRegion,bool inside)
-{
-  vector<DPoint> pointsOnEdge[4];//upper edge, right edge, bottom, left
-  int partnerno=0;
-  clippedRegion.StartBulkLoad();
-
-  if (inside)
-    GetClippedHSIn(window,clippedRegion,pointsOnEdge,partnerno);
-  else
-    GetClippedHSOut(window,clippedRegion,pointsOnEdge,partnerno);
-
-  Point bPoint,ePoint;
-
-  bPoint.Set(window.Left() ,window.Top());
-  ePoint.Set(window.Right(),window.Top());
-  CreateNewSegments(pointsOnEdge[WTOP],clippedRegion,bPoint,ePoint, WTOP,partnerno,inside);
-  bPoint.Set(window.Left() ,window.Bottom());
-  ePoint.Set(window.Right(),window.Bottom());
-  CreateNewSegments(pointsOnEdge[WBOTTOM],clippedRegion,bPoint,ePoint, WBOTTOM,partnerno,inside);
-  bPoint.Set(window.Left(),window.Bottom());
-  ePoint.Set(window.Left(),window.Top());
-  CreateNewSegments(pointsOnEdge[WLEFT],clippedRegion,bPoint,ePoint, WLEFT,partnerno,inside);
-  bPoint.Set(window.Right(),window.Bottom());
-  ePoint.Set(window.Right(),window.Top());
-  CreateNewSegments(pointsOnEdge[WRIGHT],clippedRegion,bPoint,ePoint, WRIGHT,partnerno,inside);
-
-  CreateNewSegmentsWindowVertices(window, pointsOnEdge,clippedRegion, partnerno,inside);
-
-  clippedRegion.EndBulkLoad();
-  clippedRegion.SetPartnerNo();
-}
-
-void CRegion::ComputeCycle(int position, int faceno,
-                  int cycleno,int &edgeno, bool *cycle)
-{
-  CHalfSegment chs,chsPartner,chsAux;
-  AttrType attr, attrP;
-//  bool connectionFound=false;
-
-  //set attributes
-  Get(position,chs);
-  attr = chs.GetAttr();
-  attr.faceno=faceno;
-  attr.cycleno=cycleno;
-  attr.edgeno=edgeno;
-
-  UpdateAttr(position,attr);
-
-  //set attributes
-  Get(attr.partnerno,chsPartner);
-  attrP = GetAttr(attr.partnerno);
-  attrP.faceno=faceno;
-  attrP.cycleno=cycleno;
-  attrP.edgeno=edgeno;
-  UpdateAttr(attr.partnerno,attrP);
-
-  edgeno++;
-
-  cycle[attr.partnerno]=true;
-  cycle[attrP.partnerno]=true;
-  //Look for connected segment to the partner of chs
-//  if (connectionFound) return;
-  position = attr.partnerno-1;
-  if ( (position>=0) && (!cycle[position]) )
-  {
-    Get(attr.partnerno-1,chsAux);
-    if (chsPartner.GetLP()==chsAux.GetLP() || chsPartner.GetLP()==chsAux.GetRP())
-    {
-      ComputeCycle(position,faceno,cycleno,edgeno,cycle);
- //     connectionFound=true;
-    }
-    else
-      if (chsPartner.GetRP()==chsAux.GetLP() || chsPartner.GetRP()==chsAux.GetRP())
-      {
-        ComputeCycle(position,faceno,cycleno,edgeno,cycle);
-   //     connectionFound=true;
-      }
-  }
-//  if (connectionFound) return;
-  position = attr.partnerno+1;
-  if ( ( position<Size()) && (!cycle[position]) )
-  {
-    Get(position,chsAux);
-    if (chsPartner.GetLP()==chsAux.GetLP() || chsPartner.GetLP()==chsAux.GetRP())
-    {
-      ComputeCycle(position,faceno,cycleno,edgeno,cycle);
-  //    connectionFound=true;
-    }
-    else
-      if (chsPartner.GetRP()==chsAux.GetLP() || chsPartner.GetRP()==chsAux.GetRP())
-      {
-        ComputeCycle(position,faceno,cycleno,edgeno,cycle);
- //       connectionFound=true;
-      }
-  }
-
-  //Look for connected segment to the chs.
-  position = attrP.partnerno-1;
-  if ( (position>=0) && (!cycle[position]) )
-  {
-    Get(attrP.partnerno-1,chsAux);
-    if (chs.GetLP()==chsAux.GetLP() || chs.GetLP()==chsAux.GetRP())
-    {
-      ComputeCycle(position,faceno,cycleno,edgeno,cycle);
-//      connectionFound=true;
-    }
-    else
-      if (chs.GetRP()==chsAux.GetLP() || chs.GetRP()==chsAux.GetRP())
-      {
-        ComputeCycle(position,faceno,cycleno,edgeno,cycle);
-//        connectionFound=true;
-      }
-  }
-//  if (connectionFound) return;
-  position = attrP.partnerno+1;
-  if ( (position<Size()) && (!cycle[position]) )
-  {
-    Get(position,chsAux);
-    if (chs.GetLP()==chsAux.GetLP() || chs.GetLP()==chsAux.GetRP())
-    {
-      ComputeCycle(position,faceno,cycleno,edgeno,cycle);
-//      connectionFound=true;
-    }
-    else
-      if (chs.GetRP()==chsAux.GetLP() || chs.GetRP()==chsAux.GetRP())
-      {
-        ComputeCycle(position,faceno,cycleno,edgeno,cycle);
- //       connectionFound=true;
-      }
-  }
-
-}
-//This function returns the value of the atribute inside above of
-//the first half segment above on point.
-int CRegion::GetNewFaceNo(CHalfSegment &chsS, bool *cycle)
-{
-  int coverno=0;
-  int startpos=0;
-  double y0;
-  AttrType attr;
-  vector<CHalfSegment> v;
-
-  //1. find the right place by binary search
-  startpos = Position( chsS );
-
-  int chsVisiteds=0;
-
-  //2. deal with equal-x chs's
-  //To verify if it is need to deal with this
-
-  attr = chsS.GetAttr();
-  coverno = attr.coverageno;
-
-  //search the region value for coverageno steps
-  int touchedNo=0;
-  CHalfSegment chs;
-  Point p=chsS.GetLP();
-
-  int i=startpos;
-  while (( i>=0)&&(touchedNo<coverno))
-  {
-    this->Get(i, chs);
-    chsVisiteds++;
-
-    if ( (cycle[i]) && (chs.GetLDP()) &&
-         ( (chs.GetLP().GetX() <= p.GetX()) &&
-         (p.GetX() <= chs.GetRP().GetX()) ))
-    {
-      touchedNo++;
-      if (!chs.rayAbove(p, y0))
-        v.push_back(chs);
-    }
-    i--;  //the iterator
-  }
-  if (v.size()==0)
-    return -1; //the new face number will be the last face number +1
-  else
-  {
-    sort(v.begin(),v.end());
-    //The first half segment is the next half segment above chsS
-    chs = v[v.size()-1];
-    attr = chs.GetAttr();
-    if (attr.insideAbove)
-      return attr.faceno; //the new cycle is a cycle of the face ~attr.faceno~
-    else
-      return -1; //new face
-  }
-
-}
-
-void CRegion::ComputeRegion()
-{
-  //array that stores in position i the last cycle number of the face i
-  vector<int> face;
-  //array that stores in the position ~i~ if the half segment hi had already the face
-  //number, the cycle number and the edge number attributes set properly, in other words,
-  //it means that hi is already part of a cycle
-  bool *cycle;
-  int lastfaceno=0,
-      faceno=0,
-      cycleno = 0,
-      edgeno = 0;
-  bool isFirstCHS=true;
-  CHalfSegment chs;
-
-  if (Size()==0)
-    return;
-  face.push_back(0); //Insert in the vector the first cycle of the first face
-  cycle = new bool[Size()];
-  memset( cycle, false, Size() );
-  for ( int i=0; i<Size(); i++)
-  {
-    Get(i,chs);
-    if ( chs.GetLDP() && !cycle[i])
-    {
-      if(!isFirstCHS)
-      {
-        int facenoAux = GetNewFaceNo(chs,cycle);
-        if (facenoAux==-1)
-        {/*The lchs half segment will start a new face*/
-          lastfaceno++;
-          faceno = lastfaceno;
-          face.push_back(0); /*to store the first cycle number of the face lastFace*/
-          cycleno = 0;
-          edgeno = 0;
-        }
-        else
-        { /*The half segment ~chs~ belongs to an existing face*/
-          faceno = facenoAux;
-          face[faceno]++;
-          cycleno = face[faceno];
-          edgeno = 0;
-        }
-      }
-      else
-        isFirstCHS = false;
-      ComputeCycle(i, faceno, cycleno, edgeno, cycle);
-
-    }
-  }
-  delete cycle;
-
-}
-
-void CRegion::WindowClippingIn(const Rectangle &window,CRegion &clippedRegion)
-{
-  if (!this->bbox.Intersects(window))
-    return;
-  //If the bounding box of the region is inside the window, then the clippedRegion
-  //is equal to the region been clipped.
-  if (window.Contains(this->bbox))
-    clippedRegion = *this;
-  else
-  {
-    this->GetClippedHS(window,clippedRegion,true);
-    clippedRegion.ComputeRegion();
-  }
-}
-void CRegion::WindowClippingOut(const Rectangle &window,CRegion &clippedRegion)
-{
-  //If the bounding box of the region is inside the window, then the clipped region is empty
-  if (window.Contains(this->bbox))
-    return;
-  if (!window.Intersects(this->bbox))
-    clippedRegion = *this;
-  else
-  {
-    this->GetClippedHS(window,clippedRegion,false);
-    clippedRegion.ComputeRegion();
-  }
-}
-void CRegion::SetInsideAboveAttr()
-{
-/*
-The lowest segment obtains the attribute InsideAbove,
-the following does not, the third again obtains it, etc.
-Whether the attribute InsideAbove is associated with a segment
-depends on the assignment of the attribute to the immediate
-preceding segment in the sweep line status.
-
-*/
-
-  vector<CHalfSegment> sweep;
-  CHalfSegment chs;
-  AttrType attr;
-
-  SelectFirst();
-  GetHs( chs );
-  chs.attr.insideAbove = true;
-  UpdateAttr(chs.attr);
-
-
-  sweep.push_back(chs);
-
-  for( int i = 1; i < Size(); i++ )
-  {
-    SelectNext();
-    GetHs( chs );
-    if (!chs.GetLDP())
-    {
-      //When a right dominating point half segment is found,
-      //the corresponding left dominating point half segment
-      //must be removed from the sweep structure, and the
-      //attributes of the right dominating point half segment
-      //must be updated.
-      for(int j=0; j<Size();j++)
-      {
-        CHalfSegment chs_aux;
-        Get(j,chs_aux);
-
-        if (chs_aux.LogicEqual (chs) )
-        {
-          attr = chs.GetAttr();
-          attr.insideAbove = chs_aux.attr.insideAbove;
-          UpdateAttr(attr);
-          sweep.erase(sweep.begin()+j);
-          break;
-        }
-      }
-
-      /*
-      vector<CHalfSegment>::iterator chs_aux = find_if(sweep.begin(),sweep.end(),HalfSegmentLogCompare);
-          attr = chs.GetAttr();
-      //attr.insideAbove = chs_aux.attr.insideAbove;
-      UpdateAttr(attr);
-      sweep.erase(chs_aux);
-      */
-     }
-     else
-     {
-      //Whether the attribute InsideAbove is associated with a segment
-      //depends on the assignment of the attribute to the immediate preceding
-      //segment in the sweep line status. As we don't have this information
-      //we will discover the attribute's value counting the number of segments
-      //that are under the current half segment. If this number is odd, then
-      //the region's area is below the current half segment, and the attribute
-      //is set to false. Otherwise, the region is above, and the attribute
-      //is set to true.
-      if (!sweep.empty())
-      {
-        int counter=0;
-        Point dp=chs.GetDPoint();
-        double y0;
-        for(unsigned int j=0; j<sweep.size();j++)
-        {
-          CHalfSegment chs_aux=sweep[j];
-          if (!chs_aux.rayAbove(dp, y0))
-          counter++;
-        }
-        if ( (counter % 2)!=0) //region's area is below the current half segment
-          chs.attr.insideAbove = false;
-        else //region's area is above the current half segment
-          chs.attr.insideAbove = true;
-
-        //Implementacao anterior
-        /*
-        CHalfSegment chs_back;
-        chs_back = sweep.back();
-        chs.attr.insideAbove = !chs_back.attr.insideAbove;
-        attr = chs.GetAttr();
-        UpdateAttr(attr);
-        cout<<i<<" back "<<chs_back<<endl;
-        cout<<i<<" (!e) -"<<chs<<endl;
-        */
-      }
-      else
-      {
-        cout<<"sweep empty"<<endl;
-        chs.attr.insideAbove = true;
-      }
-      attr = chs.GetAttr();
-      UpdateAttr(attr);
-      sweep.push_back(chs);
-    }
-  }
-}
 /*
   ************************************************************************
   The following 10 functions are used for porting region to Tuple.
@@ -6398,7 +5237,7 @@ The list representation of a region is
 
 */
 
-ListExpr
+static ListExpr
 SaveToListRegion( ListExpr typeInfo, Word value )
 {
     //cout<<"SaveToListRegion########"<<endl;
@@ -6471,7 +5310,7 @@ SaveToListRegion( ListExpr typeInfo, Word value )
     }
 }
 
-ListExpr
+static ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
     //cout<<"OutRegion#############"<<endl;
@@ -6715,7 +5554,7 @@ OutRegion( ListExpr typeInfo, Word value )
 
 */
 
-Word
+static Word
 RestoreFromListRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
     //cout<<"RestoreFromListRegion###########"<<endl;
@@ -6768,7 +5607,7 @@ RestoreFromListRegion( const ListExpr typeInfo, const ListExpr instance, const i
     return SetWord( cr );
 }
 
-Word
+static Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   //cout<<"InRegion#############"<<endl;
@@ -6781,26 +5620,27 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
   int fcno=-1;
   int ccno=-1;
   int edno=-1;
-  int partnerno = 0;
 
   if (!nl->IsAtom(instance))
   {
-    while( !nl->IsEmpty( RegionNL ) )
-    {
-      FaceNL = nl->First( RegionNL );
-      RegionNL = nl->Rest( RegionNL);
-      fcno++;
-      ccno=-1;
-      edno=-1;
 
-      if (nl->IsAtom( FaceNL ))
+
+      while( !nl->IsEmpty( RegionNL ) )
       {
+    FaceNL = nl->First( RegionNL );
+    RegionNL = nl->Rest( RegionNL);
+    fcno++;
+    ccno=-1;
+    edno=-1;
+
+    if (nl->IsAtom( FaceNL ))
+    {
         correct=false;
         return SetWord( Address(0) );
-      }
+    }
 
-      while (!nl->IsEmpty( FaceNL) )
-      {
+    while (!nl->IsEmpty( FaceNL) )
+    {
         CycleNL = nl->First( FaceNL );
         FaceNL = nl->Rest( FaceNL );
         ccno++;
@@ -6808,146 +5648,129 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 
         if (nl->IsAtom( CycleNL ))
         {
-          correct=false;
-          return SetWord( Address(0) );
+      correct=false;
+      return SetWord( Address(0) );
         }
 
-        if (nl->ListLength( CycleNL) <3)
-        {
-          cout<<"a cycle must have at least 3 edges!"<<endl;
-          correct=false;
-          return SetWord( Address(0) );
-        }
-        else
-        {
-          ListExpr firstPoint = nl->First( CycleNL );
-          ListExpr prevPoint = nl->First( CycleNL );
-          ListExpr flagedSeg, currPoint;
-          CycleNL = nl->Rest( CycleNL );
-
-          Points *cyclepoints= new Points( 0 ); // in memory
-
-          Point *currvertex;
-
-
-          currvertex = (Point*) InPoint ( nl->TheEmptyList(),
-              firstPoint, 0, errorInfo, correct ).addr;
-          if (!correct) return SetWord( Address(0) );
-          cyclepoints->StartBulkLoad();
-          (*cyclepoints) += (*currvertex);
-          cyclepoints->EndBulkLoad();
-          delete currvertex;
-
-          while ( !nl->IsEmpty( CycleNL) )
-          {
-            currPoint = nl->First( CycleNL );
-            CycleNL = nl->Rest( CycleNL );
-
-            currvertex = (Point*) InPoint( nl->TheEmptyList(),
-                  currPoint, 0, errorInfo, correct ).addr;
-            if (!correct) return SetWord( Address(0) );
-
-            if (cyclepoints->Contains(*currvertex))
-            {
-              cout<<"the same vertex: "<<(*currvertex)
-              <<" repeated in the cycle!"<<endl;
-              correct=false;
-              return SetWord( Address(0) );
-            }
-            else
-            {
-              cyclepoints->StartBulkLoad();
-              (*cyclepoints) += (*currvertex);
-              cyclepoints->EndBulkLoad();
-            }
-            delete currvertex;
-
-            flagedSeg = nl->TwoElemList
-            (nl-> BoolAtom(true),
-             nl->TwoElemList(prevPoint, currPoint));
-            prevPoint=currPoint;
-            edno++;
-            //Create left dominating half segment
-            CHalfSegment * chs = (CHalfSegment*)InHalfSegment
-                      ( nl->TheEmptyList(), flagedSeg,
-                       0, errorInfo, correct ).addr;
-            chs->attr.faceno=fcno;
-            chs->attr.cycleno=ccno;
-            chs->attr.edgeno=edno;
-            chs->attr.partnerno=partnerno;
-            partnerno++;
-
-
-
-            if (( correct )&&( cr->insertOK(*chs) ))
-            {
-              //Add left dominating half segment
-              (*cr) += (*chs);
-              //Add right dominating half segment
-              chs->SetLDP(false);
-              (*cr) += (*chs);
-              delete chs;
-            }
-            else
-            {
-              correct=false;
-              return SetWord( Address(0) );
-            }
-
-         }
-         delete cyclepoints;
-
-         edno++;
-         flagedSeg= nl->TwoElemList
-            (nl-> BoolAtom(true),
-             nl->TwoElemList(firstPoint, currPoint));
-         CHalfSegment * chs = (CHalfSegment*)InHalfSegment
-                  ( nl->TheEmptyList(), flagedSeg,
-                    0, errorInfo, correct ).addr;
-         chs->attr.faceno=fcno;
-         chs->attr.cycleno=ccno;
-         chs->attr.edgeno=edno;
-         chs->attr.partnerno=partnerno;
-         partnerno++;
-
-         if (( correct )&&( cr->insertOK(*chs) ))
+         if (nl->ListLength( CycleNL) <3)
          {
-           (*cr) += (*chs);
-           chs->SetLDP(false);
-           (*cr) += (*chs);
-           delete chs;
+      cout<<"a cycle must have at least 3 edges!"<<endl;
+      correct=false;
+      return SetWord( Address(0) );
          }
          else
          {
-           correct=false;
-           return SetWord( Address(0) );
+      ListExpr firstPoint = nl->First( CycleNL );
+      ListExpr prevPoint = nl->First( CycleNL );
+      ListExpr flagedSeg, currPoint;
+      CycleNL = nl->Rest( CycleNL );
+
+      Points *cyclepoints= new Points( 0 ); // in memory
+
+      Point *currvertex;
+
+
+      currvertex = (Point*) InPoint ( nl->TheEmptyList(),
+              firstPoint, 0, errorInfo, correct ).addr;
+      if (!correct) return SetWord( Address(0) );
+      cyclepoints->StartBulkLoad();
+      (*cyclepoints) += (*currvertex);
+      cyclepoints->EndBulkLoad();
+      delete currvertex;
+
+      while ( !nl->IsEmpty( CycleNL) )
+      {
+          currPoint = nl->First( CycleNL );
+          CycleNL = nl->Rest( CycleNL );
+
+          currvertex = (Point*) InPoint( nl->TheEmptyList(),
+                  currPoint, 0, errorInfo, correct ).addr;
+          if (!correct) return SetWord( Address(0) );
+
+          if (cyclepoints->Contains(*currvertex))
+          {
+        cout<<"the same vertex: "<<(*currvertex)
+         <<" repeated in the cycle!"<<endl;
+        correct=false;
+        return SetWord( Address(0) );
           }
-        }
+          else
+          {
+        cyclepoints->StartBulkLoad();
+        (*cyclepoints) += (*currvertex);
+         cyclepoints->EndBulkLoad();
+          }
+          delete currvertex;
+
+          flagedSeg = nl->TwoElemList
+          (nl-> BoolAtom(true),
+           nl->TwoElemList(prevPoint, currPoint));
+          prevPoint=currPoint;
+          edno++;
+          CHalfSegment * chs = (CHalfSegment*)InHalfSegment
+                      ( nl->TheEmptyList(), flagedSeg,
+          0, errorInfo, correct ).addr;
+          chs->attr.faceno=fcno;
+          chs->attr.cycleno=ccno;
+          chs->attr.edgeno=edno;
+
+          if (( correct )&&( cr->insertOK(*chs) ))
+          {
+        (*cr) += (*chs);
+        chs->SetLDP(false);
+        (*cr) += (*chs);
+        delete chs;
+          }
+          else
+          {
+        correct=false;
+        return SetWord( Address(0) );
+          }
       }
-    }
+      delete cyclepoints;
 
-    CHalfSegment * chs=new CHalfSegment ( false );
-    if (!( cr->insertOK(*chs) ))
-    {
-      correct=false;
-      return SetWord( Address(0) );
-    }
+      edno++;
+      flagedSeg= nl->TwoElemList
+            (nl-> BoolAtom(true),
+             nl->TwoElemList(firstPoint, currPoint));
+      CHalfSegment * chs = (CHalfSegment*)InHalfSegment
+                  ( nl->TheEmptyList(), flagedSeg,
+                    0, errorInfo, correct ).addr;
+      chs->attr.faceno=fcno;
+      chs->attr.cycleno=ccno;
+      chs->attr.edgeno=edno;
 
-    cr->EndBulkLoad();
+      if (( correct )&&( cr->insertOK(*chs) ))
+      {
+          (*cr) += (*chs);
+          chs->SetLDP(false);
+          (*cr) += (*chs);
+          delete chs;
+      }
+      else
+      {
+          correct=false;
+          return SetWord( Address(0) );
+      }
+        }
+     }
+      }
 
+      CHalfSegment * chs=new CHalfSegment ( false );
+      if (!( cr->insertOK(*chs) ))
+      {
+    correct=false;
+    return SetWord( Address(0) );
+      }
 
-    cr->SetInsideAboveAttr();
-
-    cr->SetPartnerNo();
-
-
-    correct = true;
-    return SetWord( cr );
+      cr->EndBulkLoad();
+      correct = true;
+      return SetWord( cr );
   }
   else
   {
-    correct=false;
-    return SetWord( Address(0) );
+      correct=false;
+      return SetWord( Address(0) );
   }
 }
 
@@ -6955,7 +5778,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 8.5 ~Create~-function
 
 */
-Word
+static Word
 CreateRegion( const ListExpr typeInfo )
 {
   //cout << "CreateRegion" << endl;
@@ -6967,7 +5790,7 @@ CreateRegion( const ListExpr typeInfo )
 8.6 ~Delete~-function
 
 */
-void
+static void
 DeleteRegion( Word& w )
 {
   //cout << "DeleteRegion" << endl;
@@ -6982,7 +5805,7 @@ DeleteRegion( Word& w )
 8.7 ~Close~-function
 
 */
-void
+static void
 CloseRegion( Word& w )
 {
   //cout << "CloseRegion" << endl;
@@ -6995,7 +5818,7 @@ CloseRegion( Word& w )
 8.8 ~Clone~-function
 
 */
-Word
+static Word
 CloneRegion( const Word& w )
 {
   //cout << "CloneRegion" << endl;
@@ -7017,7 +5840,7 @@ int SizeOfRegion()
 8.11 Function describing the signature of the type constructor
 
 */
-ListExpr
+static ListExpr
 RegionProperty()
 {
   ListExpr listreplist = nl->TextAtom();
@@ -7050,7 +5873,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~point~ does not have arguments, this is trivial.
 
 */
-bool
+static bool
 CheckRegion( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "region" ));
@@ -7602,7 +6425,7 @@ It is for the compare operators which have ~bool~ as resulttype, like =, !=, <,
 <=, >, >=.
 
 */
-ListExpr
+static ListExpr
 SpatialTypeMapBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -7610,21 +6433,21 @@ SpatialTypeMapBool( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && SpatialTypeOfSymbol( arg2 ) == stpoint)
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoint)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints && SpatialTypeOfSymbol( arg2 ) == stpoints)
+    if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoints)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stline && SpatialTypeOfSymbol( arg2 ) == stline)
+    if ( TypeOfSymbol( arg1 ) == stline && TypeOfSymbol( arg2 ) == stline)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion && SpatialTypeOfSymbol( arg2 ) == stregion)
+    if ( TypeOfSymbol( arg1 ) == stregion && TypeOfSymbol( arg2 ) == stregion)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && SpatialTypeOfSymbol( arg2 ) == stpoints)
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoints)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints && SpatialTypeOfSymbol( arg2 ) == stpoint)
+    if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoint)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && SpatialTypeOfSymbol( arg2 ) == stline)
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stline)
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint && SpatialTypeOfSymbol( arg2 ) == stregion)
+    if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stregion)
       return (nl->SymbolAtom( "bool" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -7639,7 +6462,7 @@ inside, onborder, ininterior, etc.
 
 */
 
-ListExpr
+static ListExpr
 GeoGeoMapBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -7647,14 +6470,14 @@ GeoGeoMapBool( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if (((SpatialTypeOfSymbol( arg1 ) == stpoint)  ||
-         (SpatialTypeOfSymbol( arg1 ) == stpoints) ||
-         (SpatialTypeOfSymbol( arg1 ) == stline)     ||
-         (SpatialTypeOfSymbol( arg1 ) == stregion)) &&
-        ((SpatialTypeOfSymbol( arg2 ) == stpoint)  ||
-         (SpatialTypeOfSymbol( arg2 ) == stpoints) ||
-         (SpatialTypeOfSymbol( arg2 ) == stline)     ||
-         (SpatialTypeOfSymbol( arg2 ) == stregion)))
+    if (((TypeOfSymbol( arg1 ) == stpoint)  ||
+         (TypeOfSymbol( arg1 ) == stpoints) ||
+         (TypeOfSymbol( arg1 ) == stline)     ||
+         (TypeOfSymbol( arg1 ) == stregion)) &&
+        ((TypeOfSymbol( arg2 ) == stpoint)  ||
+         (TypeOfSymbol( arg2 ) == stpoints) ||
+         (TypeOfSymbol( arg2 ) == stline)     ||
+         (TypeOfSymbol( arg2 ) == stregion)))
       return (nl->SymbolAtom( "bool" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -7667,20 +6490,20 @@ It is for the operator ~isempty~ which have ~point~, ~points~, ~line~, and ~regi
 
 */
 
-ListExpr
+static ListExpr
 SpatialTypeMapBool1( ListExpr args )
 {
   ListExpr arg1;
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint )
+    if ( TypeOfSymbol( arg1 ) == stpoint )
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints )
+    if ( TypeOfSymbol( arg1 ) == stpoints )
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stline )
+    if ( TypeOfSymbol( arg1 ) == stline )
       return (nl->SymbolAtom( "bool" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion )
+    if ( TypeOfSymbol( arg1 ) == stregion )
       return (nl->SymbolAtom( "bool" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -7703,68 +6526,68 @@ intersectionMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "line" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "line" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "line" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "region" ));
 
     }
@@ -7779,7 +6602,7 @@ so that the result type is a set such as points, line, or region.
 
 */
 
- ListExpr
+static ListExpr
 minusMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -7788,44 +6611,44 @@ minusMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "point" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "line" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "region" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "line" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "region" ));
 
-//  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-//       SpatialTypeOfSymbol( arg2 ) == stline )
+//  if ( TypeOfSymbol( arg1 ) == stline &&
+//       TypeOfSymbol( arg2 ) == stline )
 //      return (nl->SymbolAtom( "line" ));
 
-//  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-//       SpatialTypeOfSymbol( arg2 ) == stline )
+//  if ( TypeOfSymbol( arg1 ) == stregion &&
+//       TypeOfSymbol( arg2 ) == stline )
 //      return (nl->SymbolAtom( "region" ));
 
-//  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-//       SpatialTypeOfSymbol( arg2 ) == stregion )
+//  if ( TypeOfSymbol( arg1 ) == stregion &&
+//       TypeOfSymbol( arg2 ) == stregion )
 //      return (nl->SymbolAtom( "region" ));
 
     }
@@ -7840,7 +6663,7 @@ so that the result type is a set such as points, line, or region.
 
 */
 
- ListExpr
+static ListExpr
 unionMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -7849,20 +6672,20 @@ unionMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "line" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
@@ -7876,7 +6699,7 @@ compute the crossing point of two lines so that the result type is a set of poin
 
 */
 
-ListExpr
+static ListExpr
 crossingsMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -7885,8 +6708,8 @@ crossingsMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "points" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
@@ -7900,7 +6723,7 @@ This type mapping function is used for the ~single~ operator. This
 operator transform a single-element points value to a point.
 
 */
-ListExpr
+static ListExpr
 singleMap( ListExpr args )
 {
     ListExpr arg1;
@@ -7908,7 +6731,7 @@ singleMap( ListExpr args )
     {
   arg1 = nl->First( args );
 
-  if (SpatialTypeOfSymbol( arg1 ) == stpoints)
+  if (TypeOfSymbol( arg1 ) == stpoints)
       return (nl->SymbolAtom( "point" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
@@ -7921,7 +6744,7 @@ This type mapping function is used for the ~distance~ operator. This
 operator computes the distance between two spatial objects.
 
 */
-ListExpr
+static ListExpr
 distanceMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -7930,56 +6753,56 @@ distanceMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (nl->SymbolAtom( "real" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "real" ));
     }
 
@@ -7993,7 +6816,7 @@ This type mapping function is used for the ~direction~ operator. This
 operator computes the direction from the first point to the second point.
 
 */
-ListExpr
+static ListExpr
 directionMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -8002,8 +6825,8 @@ directionMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (nl->SymbolAtom( "real" ));
     }
 
@@ -8011,15 +6834,15 @@ directionMap( ListExpr args )
 }
 
 /*
-10.1.11 Type mapping function for operator ~nocompoents~
+10.1.11 Type mapping function for operator ~no\_compoents~
 
-This type mapping function is used for the ~nocomponents~ operator. This
-operator computes the number of components of a spatial object. For poins
-and lines, this function returns the number of points and line segments
-contained. For regions this function returns the faces of the region.
+This type mapping function is used for the ~no\_components~ operator. This
+operator computes the number of components of a spatial object. For poins,
+this function returns the number of points contained in the point set.
+For regions, this function returns the faces of the region.
 
 */
-ListExpr
+static ListExpr
 nocomponentsMap( ListExpr args )
 {
     ListExpr arg1;
@@ -8027,12 +6850,34 @@ nocomponentsMap( ListExpr args )
     {
   arg1 = nl->First( args );
 
-  if ((SpatialTypeOfSymbol( arg1 ) == stpoints)||
-      (SpatialTypeOfSymbol( arg1 ) == stline)||
-      (SpatialTypeOfSymbol( arg1 ) == stregion))
+  if ((TypeOfSymbol( arg1 ) == stpoints)||
+      (TypeOfSymbol( arg1 ) == stregion))
       return (nl->SymbolAtom( "int" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.11 Type mapping function for operator ~no\_segments~
+
+This type mapping function is used for the ~no\_segments~ operator. This
+operator computes the number of segments of a spatial object (lines and
+regions only).
+
+*/
+static ListExpr
+nosegmentsMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if ((TypeOfSymbol( arg1 ) == stline)||
+        (TypeOfSymbol( arg1 ) == stregion))
+        return (nl->SymbolAtom( "int" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
 }
 
 /*
@@ -8043,7 +6888,7 @@ computes the size of the spatial object. For line, the size is the totle length
 of the line segments.
 
 */
-ListExpr
+static ListExpr
 sizeMap( ListExpr args )
 {
     ListExpr arg1;
@@ -8051,7 +6896,7 @@ sizeMap( ListExpr args )
     {
   arg1 = nl->First( args );
 
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
+  if (TypeOfSymbol( arg1 ) == stline)
       return (nl->SymbolAtom( "real" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
@@ -8064,7 +6909,7 @@ This type mapping function is used for the ~touchpoints~ operator. This operator
 computes the touchpoints of a region and another region or a line.
 
 */
-ListExpr
+static ListExpr
 touchpointsMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -8073,16 +6918,16 @@ touchpointsMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stline )
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "points" ));
     }
 
@@ -8096,7 +6941,7 @@ This type mapping function is used for the ~commonborder~ operator. This operato
 computes the commonborder of two regions.
 
 */
-ListExpr
+static ListExpr
 commonborderMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -8105,8 +6950,8 @@ commonborderMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "line" ));
     }
 
@@ -8120,7 +6965,7 @@ This type mapping function is used for the ~bbox~ operator. This operator
 computes the bbox of a region, which is a ~rect~ (see RectangleAlgebra).
 
 */
-ListExpr
+static ListExpr
 bboxMap( ListExpr args )
 {
     ListExpr arg1;
@@ -8128,10 +6973,10 @@ bboxMap( ListExpr args )
     {
   arg1 = nl->First( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion ||
-             SpatialTypeOfSymbol( arg1 ) == stpoint ||
-             SpatialTypeOfSymbol( arg1 ) == stline ||
-             SpatialTypeOfSymbol( arg1 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion ||
+             TypeOfSymbol( arg1 ) == stpoint ||
+             TypeOfSymbol( arg1 ) == stline ||
+             TypeOfSymbol( arg1 ) == stpoints )
       return (nl->SymbolAtom( "rect" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
@@ -8143,7 +6988,7 @@ bboxMap( ListExpr args )
 This type mapping function is used for the ~insidepathlength~ and  ~insidescanned~ operators.
 
 */
-ListExpr
+static ListExpr
 insidepsMap( ListExpr args )
 {
     ListExpr arg1, arg2;
@@ -8152,8 +6997,8 @@ insidepsMap( ListExpr args )
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (nl->SymbolAtom( "int" ));
     }
 
@@ -8167,7 +7012,7 @@ This type mapping function is used for the ~translate~ operator. This operator
 moves a region parallelly to another place and gets another region.
 
 */
-ListExpr
+static ListExpr
 translateMap( ListExpr args )
 {
     ListExpr arg1, arg2, arg3;
@@ -8177,24 +7022,24 @@ translateMap( ListExpr args )
   arg2 = nl->Second( args );
   arg3 = nl->Third( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
+  if ( TypeOfSymbol( arg1 ) == stregion &&
        nl->IsEqual(arg2, "real") &&
        nl->IsEqual(arg3, "real"))
         //((nl->IsEqual(arg2, "real"))||(nl->IsEqual(arg2, "int")))  &&
         //((nl->IsEqual(arg3, "real"))||(nl->IsEqual(arg3, "int"))))
       return (nl->SymbolAtom( "region" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
+  if ( TypeOfSymbol( arg1 ) == stline &&
        nl->IsEqual(arg2, "real") &&
        nl->IsEqual(arg3, "real"))
       return (nl->SymbolAtom( "line" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
        nl->IsEqual(arg2, "real") &&
        nl->IsEqual(arg3, "real"))
       return (nl->SymbolAtom( "points" ));
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
        nl->IsEqual(arg2, "real") &&
        nl->IsEqual(arg3, "real"))
       return (nl->SymbolAtom( "point" ));
@@ -8202,39 +7047,12 @@ translateMap( ListExpr args )
 
     return (nl->SymbolAtom( "typeerror" ));
 }
-/*
-10.1.17 Type mapping function for operator ~windowclipping~
-
-This type mapping function is used for the ~windowclipping~ operators. There are
-two kind of operators, one that computes the part of the object that is inside
-the window (windowclippingin), and another one that computes the part that is
-outside of it (windowclippingout).
-
-*/
-ListExpr
-windowclippingMap( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline)
-        return (nl->SymbolAtom( "line" ));
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion )
-        return (nl->SymbolAtom( "region" ));
-
-  }
-
-  return (nl->SymbolAtom( "typeerror" ));
-}
 
 /*
 10.2 The dummy model mapping:
 
 */
-Word
+static Word
 SpatialNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));
@@ -8257,7 +7075,7 @@ is applied to correct arguments.
 Is used for all non-overloaded operators.
 
 */
-int
+static int
 SimpleSelect( ListExpr args )
 {
   return (0);
@@ -8269,17 +7087,17 @@ SimpleSelect( ListExpr args )
 It is used for the ~isempty~ operator
 
 */
-int
+static int
 SpatialSelectIsEmpty( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint )
     return (0);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints )
     return (1);
-  if ( SpatialTypeOfSymbol( arg1 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline )
     return (2);
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion )
     return (3);
   return (-1); // This point should never be reached
 }
@@ -8290,26 +7108,26 @@ SpatialSelectIsEmpty( ListExpr args )
 It is used for compare operators ($=$, $\neq$, $<$, $>$, $\geq$, $\leq$)
 
 */
-int
+static int
 SpatialSelectCompare( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
     return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
     return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
     return (2);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
     return (3);
 
   return (-1); // This point should never be reached
@@ -8322,46 +7140,46 @@ It is used for the operator ~intersects~
 
 */
 
-int
+static int
 intersectSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
       return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (2);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (3);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (4);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (5);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (6);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stline )
       return (7);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (8);
 
   return (-1); // This point should never be reached
@@ -8374,46 +7192,46 @@ This select function is used for the ~inside~ operator.
 
 */
 
-int
+static int
 insideSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stline )
       return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (2);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (3);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
       return (4);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (5);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (6);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (7);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (8);
 
   return (-1); // This point should never be reached
@@ -8426,46 +7244,46 @@ This select function is used for the ~touches~ , ~attached~ , and ~overlaps~  op
 
 */
 
-int
+static int
 touches_attached_overlapsSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
       return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (2);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (3);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (4);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (5);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (6);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stline )
       return (7);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (8);
 
   return (-1); // This point should never be reached
@@ -8478,17 +7296,17 @@ This select function is used for the ~onborder~ operator and the ~ininterior~ op
 
 */
 
-int
+static int
 onBorder_inInteriorSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stline )
       return (0);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (1);
 
   return (-1); // This point should never be reached
@@ -8501,59 +7319,59 @@ This select function is used for the ~intersection~ operator.
 
 */
 
-int
+static int
 intersectionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (0);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (1);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (2);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stline )
       return (3);
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (4);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (5);
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (6);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (7);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
       return (8);
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (9);
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (10);
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (11);
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (12);
-//  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-//       SpatialTypeOfSymbol( arg2 ) == stregion )
+//  if ( TypeOfSymbol( arg1 ) == stline &&
+//       TypeOfSymbol( arg2 ) == stregion )
 //      return (13);
-//  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-//       SpatialTypeOfSymbol( arg2 ) == stline )
+//  if ( TypeOfSymbol( arg1 ) == stregion &&
+//       TypeOfSymbol( arg2 ) == stline )
 //      return (14);
-//  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-//       SpatialTypeOfSymbol( arg2 ) == stregion )
+//  if ( TypeOfSymbol( arg1 ) == stregion &&
+//       TypeOfSymbol( arg2 ) == stregion )
 //      return (15);
 
   return (-1); // This point should never be reached
@@ -8566,38 +7384,38 @@ This select function is used for the ~minus~ operator.
 
 */
 
-int
+static int
 minusSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (2);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (3);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (4);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (5);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (6);
 
   return (-1); // This point should never be reached
@@ -8610,26 +7428,26 @@ This select function is used for the ~union~ operator.
 
 */
 
-int
+static int
 unionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (2);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (3);
 
   return (-1); // This point should never be reached
@@ -8642,14 +7460,14 @@ This select function is used for the ~crossings~ operator.
 
 */
 
-int
+static int
 crossingsSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (0);
 
   return (-1); // This point should never be reached
@@ -8662,12 +7480,12 @@ This select function is used for the ~single~ operator.
 
 */
 
-int
+static int
 singleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints)
+  if ( TypeOfSymbol( arg1 ) == stpoints)
       return (0);
 
   return (-1); // This point should never be reached
@@ -8680,62 +7498,62 @@ This select function is used for the ~distance~ operator.
 
 */
 
-int
+static int
 distanceSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (2);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stline )
       return (3);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (4);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (5);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (6);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (7);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
       return (8);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (9);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (10);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
       return (11);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
       return (12);
 
   return (-1); // This point should never be reached
@@ -8748,14 +7566,14 @@ This select function is used for the ~direction~ operator.
 
 */
 
-int
+static int
 directionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint &&
+       TypeOfSymbol( arg2 ) == stpoint )
       return (0);
 
   return (-1); // This point should never be reached
@@ -8768,37 +7586,37 @@ This select function is used for the ~nocomponents~ operator.
 
 */
 
-int
+static int
 nocomponentsSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if (SpatialTypeOfSymbol( arg1 ) == stpoints)
+  if (TypeOfSymbol( arg1 ) == stpoints)
       return (0);
 
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
+  if (TypeOfSymbol( arg1 ) == stregion)
       return (1);
-
-  if (SpatialTypeOfSymbol( arg1 ) == stregion)
-      return (2);
 
   return (-1); // This point should never be reached
 }
 
 /*
-10.3.16 Selection function ~nohalfsegSelect~
+10.3.16 Selection function ~nosegmentsSelect~
 
-This select function is used for the ~nocomponents~ operator.
+This select function is used for the ~no\_segments~ operator.
 
 */
 
-int
-nohalfsegSelect( ListExpr args )
+static int
+nosegmentsSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if (SpatialTypeOfSymbol( arg1 ) == stregion)
+  if (TypeOfSymbol( arg1 ) == stline)
       return (0);
+
+  if (TypeOfSymbol( arg1 ) == stregion)
+      return (1);
 
   return (-1); // This point should never be reached
 }
@@ -8810,18 +7628,18 @@ This select function is used for the ~bbox~ operator.
 
 */
 
-int
+static int
 bboxSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if (SpatialTypeOfSymbol( arg1 ) == stpoint)
+  if (TypeOfSymbol( arg1 ) == stpoint)
       return (0);
-  if (SpatialTypeOfSymbol( arg1 ) == stpoints)
+  if (TypeOfSymbol( arg1 ) == stpoints)
       return (1);
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
+  if (TypeOfSymbol( arg1 ) == stline)
       return (2);
-  if (SpatialTypeOfSymbol( arg1 ) == stregion)
+  if (TypeOfSymbol( arg1 ) == stregion)
       return (3);
 
   return (-1); // This point should never be reached
@@ -8834,12 +7652,12 @@ This select function is used for the ~size~ operator.
 
 */
 
-int
+static int
 sizeSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
+  if (TypeOfSymbol( arg1 ) == stline)
       return (0);
 
   return (-1); // This point should never be reached
@@ -8852,22 +7670,22 @@ This select function is used for the ~touchpoints~ operator.
 
 */
 
-int
+static int
 touchpointsSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (0);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stline )
       return (1);
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (2);
 
   return (-1); // This point should never be reached
@@ -8880,14 +7698,14 @@ This select function is used for the ~commonborder~ operator.
 
 */
 
-int
+static int
 commonborderSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
       return (0);
 
   return (-1); // This point should never be reached
@@ -8900,47 +7718,25 @@ This select function is used for the ~translate~ operator.
 
 */
 
-int
+static int
 translateSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
-  if (SpatialTypeOfSymbol( arg1 ) == stpoint)
+  if (TypeOfSymbol( arg1 ) == stpoint)
       return (0);
 
-  if (SpatialTypeOfSymbol( arg1 ) == stpoints)
+  if (TypeOfSymbol( arg1 ) == stpoints)
       return (1);
 
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
+  if (TypeOfSymbol( arg1 ) == stline)
       return (2);
 
-  if (SpatialTypeOfSymbol( arg1 ) == stregion)
+  if (TypeOfSymbol( arg1 ) == stregion)
       return (3);
 
   return (-1); // This point should never be reached
 }
-
-/*
-10.3.19 Selection function ~windowclippingSelect~
-
-This select function is used for the ~windowclipping(in)(out)~ operator.
-
-*/
-
-int
-windowclippingSelect( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
-      return (0);
-
-  if (SpatialTypeOfSymbol( arg1 ) == stregion)
-      return (1);
-
-  return (-1); // This point should never be reached
-}
-
 
 /*
 10.4 Value mapping functions
@@ -8954,8 +7750,8 @@ parameter types.
 10.4.1 Value mapping functions of operator ~isempty~
 
 */
-int
-SpatialIsEmpty_p( Word* args, Word& result, int message, Word& local, Supplier s )
+static int
+IsEmpty_p( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Point*)args[0].addr)->IsDefined() )
@@ -8969,8 +7765,8 @@ SpatialIsEmpty_p( Word* args, Word& result, int message, Word& local, Supplier s
   return (0);
 }
 
-int
-SpatialIsEmpty_ps( Word* args, Word& result, int message, Word& local, Supplier s )
+static int
+IsEmpty_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Points*)args[0].addr)->IsEmpty() )
@@ -8984,8 +7780,8 @@ SpatialIsEmpty_ps( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
 
-int
-SpatialIsEmpty_l( Word* args, Word& result, int message, Word& local, Supplier s )
+static int
+IsEmpty_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {  //To Judge whether a line value is empty
     result = qp->ResultStorage( s );
 
@@ -9000,8 +7796,8 @@ SpatialIsEmpty_l( Word* args, Word& result, int message, Word& local, Supplier s
     return (0);
 }
 
-int
-SpatialIsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
+static int
+IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -9020,7 +7816,7 @@ SpatialIsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s
 10.4.2 Value mapping functions of operator ~$=$~
 
 */
-int
+static int
 SpatialEqual_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9037,7 +7833,7 @@ SpatialEqual_pp( Word* args, Word& result, int message, Word& local, Supplier s 
   return (0);
 }
 
-int
+static int
 SpatialEqual_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9045,7 +7841,7 @@ SpatialEqual_psps( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
 
-int
+static int
 SpatialEqual_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //to judge whether two line values are equal
     result = qp->ResultStorage( s );
@@ -9054,7 +7850,7 @@ SpatialEqual_ll( Word* args, Word& result, int message, Word& local, Supplier s 
 
 }
 
-int
+static int
 SpatialEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9066,7 +7862,7 @@ SpatialEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 10.4.3 Value mapping functions of operator ~$\neq$~
 
 */
-int
+static int
 SpatialNotEqual_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9083,7 +7879,7 @@ SpatialNotEqual_pp( Word* args, Word& result, int message, Word& local, Supplier
   return (0);
 }
 
-int
+static int
 SpatialNotEqual_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9091,7 +7887,7 @@ SpatialNotEqual_psps( Word* args, Word& result, int message, Word& local, Suppli
   return (0);
 }
 
-int
+static int
 SpatialNotEqual_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {  //to judge whether two line values are not equal
     result = qp->ResultStorage( s );
@@ -9099,7 +7895,7 @@ SpatialNotEqual_ll( Word* args, Word& result, int message, Word& local, Supplier
     return (0);
 }
 
-int
+static int
 SpatialNotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9111,7 +7907,7 @@ SpatialNotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier
 10.4.4 Value mapping functions of operator ~$<$~
 
 */
-int
+static int
 SpatialLess_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9132,7 +7928,7 @@ SpatialLess_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 10.4.5 Value mapping functions of operator ~$\leq$~
 
 */
-int
+static int
 SpatialLessEqual_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9153,7 +7949,7 @@ SpatialLessEqual_pp( Word* args, Word& result, int message, Word& local, Supplie
 10.4.6 Value mapping functions of operator ~$>$~
 
 */
-int
+static int
 SpatialGreater_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9174,7 +7970,7 @@ SpatialGreater_pp( Word* args, Word& result, int message, Word& local, Supplier 
 10.4.7 Value mapping functions of operator ~$\geq$~
 
 */
-int
+static int
 SpatialGreaterEqual_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9195,7 +7991,7 @@ SpatialGreaterEqual_pp( Word* args, Word& result, int message, Word& local, Supp
 10.4.8 Value mapping functions of operator ~intersects~
 
 */
-int
+static int
 SpatialIntersects_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9206,7 +8002,7 @@ SpatialIntersects_psps( Word* args, Word& result, int message, Word& local, Supp
   return (0);
 }
 
-int
+static int
 SpatialIntersects_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9243,7 +8039,7 @@ SpatialIntersects_psl( Word* args, Word& result, int message, Word& local, Suppl
     return (0);
 }
 
-int
+static int
 SpatialIntersects_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9280,7 +8076,7 @@ SpatialIntersects_lps( Word* args, Word& result, int message, Word& local, Suppl
     return (0);
 }
 
-int
+static int
 SpatialIntersects_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9314,7 +8110,7 @@ SpatialIntersects_psr( Word* args, Word& result, int message, Word& local, Suppl
     return (0);
 }
 
-int
+static int
 SpatialIntersects_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9348,7 +8144,7 @@ SpatialIntersects_rps( Word* args, Word& result, int message, Word& local, Suppl
     return (0);
 }
 
-int
+static int
 SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //to judge whether two lines intersect each other.
     result = qp->ResultStorage( s );
@@ -9387,7 +8183,7 @@ SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Suppli
     return (0);
 }
 
-int
+static int
 SpatialIntersects_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //to judge whether line intersects with region.
@@ -9434,7 +8230,7 @@ SpatialIntersects_lr( Word* args, Word& result, int message, Word& local, Suppli
     return (0);
 }
 
-int
+static int
 SpatialIntersects_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //to judge whether line intersects with region.
@@ -9481,7 +8277,7 @@ SpatialIntersects_rl( Word* args, Word& result, int message, Word& local, Suppli
     return (0);
 }
 
-int
+static int
 SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9569,7 +8365,7 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 
 */
 
-int
+static int
 SpatialInside_pps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9585,7 +8381,7 @@ SpatialInside_pps( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
 
-int
+static int
 SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9615,7 +8411,7 @@ SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s
 
 }
 
-int
+static int
 SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9643,7 +8439,7 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
     }
  }
 
-int
+static int
 SpatialInside_pr_old( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9671,7 +8467,7 @@ SpatialInside_pr_old( Word* args, Word& result, int message, Word& local, Suppli
     }
  }
 
-int
+static int
 SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //point + region --> int
@@ -9698,7 +8494,7 @@ SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local,
     return (0);
 }
 
-int
+static int
 SpatialInside_scanned_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //point + region --> int
@@ -9725,7 +8521,7 @@ SpatialInside_scanned_pr( Word* args, Word& result, int message, Word& local, Su
     return (0);
 }
 
-int
+static int
 SpatialInside_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9734,7 +8530,7 @@ SpatialInside_psps( Word* args, Word& result, int message, Word& local, Supplier
   return (0);
 }
 
-int
+static int
 SpatialInside_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9775,7 +8571,7 @@ SpatialInside_psl( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
 
-int
+static int
 SpatialInside_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -9806,7 +8602,7 @@ SpatialInside_psr( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
 
-int
+static int
 SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //to decide whether one line value is inside another
@@ -9851,7 +8647,7 @@ SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s
     return (0);
 }
 
-int
+static int
 SpatialInside_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //to decide whether one line value is inside another
@@ -9885,7 +8681,7 @@ SpatialInside_lr( Word* args, Word& result, int message, Word& local, Supplier s
     return (0);
 }
 
-int
+static int
 SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //for this algorithm, I need to reimplement it by using Realizator/Derealmizator.
@@ -9953,7 +8749,7 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
 
 */
 
-int
+static int
 touches_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -9964,7 +8760,7 @@ touches_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is endpoint of line
@@ -10003,7 +8799,7 @@ touches_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is endpoint of line
@@ -10042,7 +8838,7 @@ touches_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is on the edge of the region
@@ -10078,7 +8874,7 @@ touches_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is on the edge of the region
@@ -10114,7 +8910,7 @@ touches_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //at least two segment intersect and the intersection is the endpoint
     result = qp->ResultStorage( s );
@@ -10156,7 +8952,7 @@ touches_ll( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //the endpoint of a line segment is on the edge of a region
     result = qp->ResultStorage( s );
@@ -10197,7 +8993,7 @@ touches_lr( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10238,7 +9034,7 @@ touches_rl( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touches_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10283,7 +9079,7 @@ touches_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 attached_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10293,7 +9089,7 @@ attached_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is endpoint of line
@@ -10332,7 +9128,7 @@ attached_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is endpoint of line
@@ -10343,7 +9139,7 @@ attached_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is on the edge of the region
@@ -10375,7 +9171,7 @@ attached_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //at least one of the points is on the edge of the region
@@ -10386,7 +9182,7 @@ attached_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //at least two segment intersect and the intersection is the endpoint
     result = qp->ResultStorage( s );
@@ -10428,7 +9224,7 @@ attached_ll( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //the endpoint of a line segment is on the edge of a region
     result = qp->ResultStorage( s );
@@ -10463,7 +9259,7 @@ attached_lr( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10505,7 +9301,7 @@ attached_rl( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 attached_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10557,7 +9353,7 @@ attached_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 overlaps_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10567,7 +9363,7 @@ overlaps_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10577,7 +9373,7 @@ overlaps_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
      result = qp->ResultStorage( s );
@@ -10587,7 +9383,7 @@ overlaps_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
      result = qp->ResultStorage( s );
@@ -10597,7 +9393,7 @@ overlaps_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10607,7 +9403,7 @@ overlaps_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10646,7 +9442,7 @@ overlaps_ll( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10681,7 +9477,7 @@ overlaps_lr( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10716,7 +9512,7 @@ overlaps_rl( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -10850,7 +9646,7 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 SpatialOnBorder_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //point is endpoint of line
@@ -10891,7 +9687,7 @@ SpatialOnBorder_pl( Word* args, Word& result, int message, Word& local, Supplier
     }
 }
 
-int
+static int
 SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //point is on the edge of region
@@ -10934,7 +9730,7 @@ SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier
 
 */
 
-int
+static int
 SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //inside but not onborder
@@ -10978,7 +9774,7 @@ SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Suppli
     }
 }
 
-int
+static int
 SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //inside but not onborder
@@ -11029,7 +9825,7 @@ SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Suppli
 
 */
 
-int
+static int
 intersection_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11057,7 +9853,7 @@ intersection_pp( Word* args, Word& result, int message, Word& local, Supplier s 
     }
 }
 
-int
+static int
 intersection_pps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11085,7 +9881,7 @@ intersection_pps( Word* args, Word& result, int message, Word& local, Supplier s
     }
 }
 
-int
+static int
 intersection_psp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11113,7 +9909,7 @@ intersection_psp( Word* args, Word& result, int message, Word& local, Supplier s
     }
 }
 
-int
+static int
 intersection_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11144,7 +9940,7 @@ intersection_pl( Word* args, Word& result, int message, Word& local, Supplier s 
     }
 }
 
-int
+static int
 intersection_lp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11175,7 +9971,7 @@ intersection_lp( Word* args, Word& result, int message, Word& local, Supplier s 
     }
 }
 
-int
+static int
 intersection_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11203,7 +9999,7 @@ intersection_pr( Word* args, Word& result, int message, Word& local, Supplier s 
     }
 }
 
-int
+static int
 intersection_rp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11231,7 +10027,7 @@ intersection_rp( Word* args, Word& result, int message, Word& local, Supplier s 
     }
 }
 
-int
+static int
 intersection_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11279,7 +10075,7 @@ intersection_psps( Word* args, Word& result, int message, Word& local, Supplier 
     return (0);
 }
 
-int
+static int
 intersection_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11316,7 +10112,7 @@ intersection_psl( Word* args, Word& result, int message, Word& local, Supplier s
     return (0);
 }
 
-int
+static int
 intersection_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11353,7 +10149,7 @@ intersection_lps( Word* args, Word& result, int message, Word& local, Supplier s
     return (0);
 }
 
-int
+static int
 intersection_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11383,7 +10179,7 @@ intersection_psr( Word* args, Word& result, int message, Word& local, Supplier s
     return (0);
 }
 
-int
+static int
 intersection_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11414,7 +10210,7 @@ intersection_rps( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 
-int
+static int
 intersection_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //this function computes the intersection of two lines. However, since line's intersecion can
     //contain both points and lines, I will simply ignore the points and just keep line segments
@@ -11467,7 +10263,7 @@ intersection_ll( Word* args, Word& result, int message, Word& local, Supplier s 
 
 */
 
-int
+static int
 minus_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11503,7 +10299,7 @@ minus_pp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 minus_psp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11532,7 +10328,7 @@ minus_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 minus_lp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11559,7 +10355,7 @@ minus_lp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 minus_rp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11586,7 +10382,7 @@ minus_rp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 minus_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11615,7 +10411,7 @@ minus_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 minus_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11642,7 +10438,7 @@ minus_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 minus_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11674,7 +10470,7 @@ minus_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11702,7 +10498,7 @@ union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11730,7 +10526,7 @@ union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 union_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11761,7 +10557,7 @@ union_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 union_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11815,7 +10611,7 @@ union_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 crossings_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11854,7 +10650,7 @@ crossings_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 single_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11880,7 +10676,7 @@ single_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 distance_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11890,7 +10686,7 @@ distance_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 
     if (( p1->IsDefined())&&(p2->IsDefined()))
     {
-  ((CcReal *)result.addr)->Set( true, p1->distance(*p2));
+  ((CcReal *)result.addr)->Set( true, p1->Distance(*p2));
   return (0);
     }
     else
@@ -11900,7 +10696,7 @@ distance_pp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_pps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11909,22 +10705,22 @@ distance_pps( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[1].addr);
     Point auxp;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(ps->IsEmpty())))
     {
   for (int i=0; i<ps->Size(); i++)
   {
       ps->Get(i, auxp);
-      currdistance=p->distance(auxp);
+      currDistance=p->Distance(auxp);
 
-      if (mindistance==-1)
-    mindistance=currdistance;
-      else if (mindistance>currdistance)
-    mindistance=currdistance;
+      if (minDistance==-1)
+    minDistance=currDistance;
+      else if (minDistance>currDistance)
+    minDistance=currDistance;
   }
 
-  ((CcReal *)result.addr)->Set( true,mindistance);
+  ((CcReal *)result.addr)->Set( true,minDistance);
   return (0);
     }
     else
@@ -11934,7 +10730,7 @@ distance_pps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_psp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11943,22 +10739,22 @@ distance_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[0].addr);
     Point auxp;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(ps->IsEmpty())))
     {
   for (int i=0; i<ps->Size(); i++)
   {
       ps->Get(i, auxp);
-      currdistance=p->distance(auxp);
+      currDistance=p->Distance(auxp);
 
-      if (mindistance==-1)
-    mindistance=currdistance;
-      else if (mindistance>currdistance)
-    mindistance=currdistance;
+      if (minDistance==-1)
+    minDistance=currDistance;
+      else if (minDistance>currDistance)
+    minDistance=currDistance;
   }
 
-  ((CcReal *)result.addr)->Set( true,mindistance);
+  ((CcReal *)result.addr)->Set( true,minDistance);
   return (0);
     }
     else
@@ -11968,7 +10764,7 @@ distance_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -11978,7 +10774,7 @@ distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cl->IsEmpty())))
     {
@@ -11987,16 +10783,16 @@ distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
       cl->Get(i, chs);
       if (chs.GetLDP())
       {
-    currdistance=chs.distance(*p);
+    currDistance=chs.Distance(*p);
 
-    if (mindistance==-1)
-        mindistance=currdistance;
-    else if (mindistance>currdistance)
-        mindistance=currdistance;
+    if (minDistance==-1)
+        minDistance=currDistance;
+    else if (minDistance>currDistance)
+        minDistance=currDistance;
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12006,7 +10802,7 @@ distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12016,7 +10812,7 @@ distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cl->IsEmpty())))
     {
@@ -12025,16 +10821,16 @@ distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
       cl->Get(i, chs);
       if (chs.GetLDP())
       {
-    currdistance=chs.distance(*p);
+    currDistance=chs.Distance(*p);
 
-    if (mindistance==-1)
-        mindistance=currdistance;
-    else if (mindistance>currdistance)
-        mindistance=currdistance;
+    if (minDistance==-1)
+        minDistance=currDistance;
+    else if (minDistance>currDistance)
+        minDistance=currDistance;
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12044,7 +10840,7 @@ distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12054,7 +10850,7 @@ distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cr->IsEmpty())))
     {
@@ -12069,16 +10865,16 @@ distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
       cr->Get(i, chs);
       if (chs.GetLDP())
       {
-    currdistance=chs.distance(*p);
+    currDistance=chs.Distance(*p);
 
-    if (mindistance==-1)
-        mindistance=currdistance;
-    else if (mindistance>currdistance)
-        mindistance=currdistance;
+    if (minDistance==-1)
+        minDistance=currDistance;
+    else if (minDistance>currDistance)
+        minDistance=currDistance;
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12088,7 +10884,7 @@ distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12098,7 +10894,7 @@ distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cr->IsEmpty())))
     {
@@ -12113,16 +10909,16 @@ distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
       cr->Get(i, chs);
       if (chs.GetLDP())
       {
-    currdistance=chs.distance(*p);
+    currDistance=chs.Distance(*p);
 
-    if (mindistance==-1)
-        mindistance=currdistance;
-    else if (mindistance>currdistance)
-        mindistance=currdistance;
+    if (minDistance==-1)
+        minDistance=currDistance;
+    else if (minDistance>currDistance)
+        minDistance=currDistance;
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12132,7 +10928,7 @@ distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12141,7 +10937,7 @@ distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps2=((Points*)args[1].addr);
     Point p1, p2;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (!( ps1->IsEmpty())&&(!(ps2->IsEmpty())))
     {
@@ -12153,16 +10949,16 @@ distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
       {
     ps2->Get(j, p2);
 
-    currdistance=p1.distance(p2);
+    currDistance=p1.Distance(p2);
 
-    if (mindistance==-1)
-        mindistance=currdistance;
-    else if (mindistance>currdistance)
-        mindistance=currdistance;
+    if (minDistance==-1)
+        minDistance=currDistance;
+    else if (minDistance>currDistance)
+        minDistance=currDistance;
       }
   }
 
-  ((CcReal *)result.addr)->Set( true,mindistance);
+  ((CcReal *)result.addr)->Set( true,minDistance);
   return (0);
     }
     else
@@ -12172,7 +10968,7 @@ distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12183,7 +10979,7 @@ distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cl->IsEmpty())))
     {
@@ -12196,17 +10992,17 @@ distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     cl->Get(i, chs);
     if (chs.GetLDP())
     {
-        currdistance=chs.distance(p);
+        currDistance=chs.Distance(p);
 
-        if (mindistance==-1)
-      mindistance=currdistance;
-        else if (mindistance>currdistance)
-      mindistance=currdistance;
+        if (minDistance==-1)
+      minDistance=currDistance;
+        else if (minDistance>currDistance)
+      minDistance=currDistance;
     }
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12216,7 +11012,7 @@ distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12227,7 +11023,7 @@ distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cl->IsEmpty())))
     {
@@ -12240,17 +11036,17 @@ distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     cl->Get(i, chs);
     if (chs.GetLDP())
     {
-        currdistance=chs.distance(p);
+        currDistance=chs.Distance(p);
 
-        if (mindistance==-1)
-      mindistance=currdistance;
-        else if (mindistance>currdistance)
-      mindistance=currdistance;
+        if (minDistance==-1)
+      minDistance=currDistance;
+        else if (minDistance>currDistance)
+      minDistance=currDistance;
     }
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12260,7 +11056,7 @@ distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12271,7 +11067,7 @@ distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cr->IsEmpty())))
     {
@@ -12290,17 +11086,17 @@ distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     cr->Get(j, chs);
     if (chs.GetLDP())
     {
-        currdistance=chs.distance(p);
+        currDistance=chs.Distance(p);
 
-        if (mindistance==-1)
-      mindistance=currdistance;
-        else if (mindistance>currdistance)
-      mindistance=currdistance;
+        if (minDistance==-1)
+      minDistance=currDistance;
+        else if (minDistance>currDistance)
+      minDistance=currDistance;
     }
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12310,7 +11106,7 @@ distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12321,7 +11117,7 @@ distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cr->IsEmpty())))
     {
@@ -12340,17 +11136,17 @@ distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     cr->Get(j, chs);
     if (chs.GetLDP())
     {
-        currdistance=chs.distance(p);
+        currDistance=chs.Distance(p);
 
-        if (mindistance==-1)
-      mindistance=currdistance;
-        else if (mindistance>currdistance)
-      mindistance=currdistance;
+        if (minDistance==-1)
+      minDistance=currDistance;
+        else if (minDistance>currDistance)
+      minDistance=currDistance;
     }
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12360,7 +11156,7 @@ distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12370,7 +11166,7 @@ distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs1, chs2;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(cl1->IsEmpty()))&&(!(cl2->IsEmpty())))
     {
@@ -12384,35 +11180,35 @@ distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
         cl2->Get(j, chs2);
         if (chs2.GetLDP())
         {
-      currdistance=chs1.distance(chs2.GetLP());
-      if (mindistance==-1)
-          mindistance=currdistance;
-      else if (mindistance>currdistance)
-          mindistance=currdistance;
+      currDistance=chs1.Distance(chs2.GetLP());
+      if (minDistance==-1)
+          minDistance=currDistance;
+      else if (minDistance>currDistance)
+          minDistance=currDistance;
 
-      currdistance=chs1.distance(chs2.GetRP());
-      if (mindistance==-1)
-          mindistance=currdistance;
-      else if (mindistance>currdistance)
-          mindistance=currdistance;
+      currDistance=chs1.Distance(chs2.GetRP());
+      if (minDistance==-1)
+          minDistance=currDistance;
+      else if (minDistance>currDistance)
+          minDistance=currDistance;
 
-      currdistance=chs2.distance(chs1.GetLP());
-      if (mindistance==-1)
-          mindistance=currdistance;
-      else if (mindistance>currdistance)
-          mindistance=currdistance;
+      currDistance=chs2.Distance(chs1.GetLP());
+      if (minDistance==-1)
+          minDistance=currDistance;
+      else if (minDistance>currDistance)
+          minDistance=currDistance;
 
-      currdistance=chs2.distance(chs1.GetRP());
-      if (mindistance==-1)
-          mindistance=currdistance;
-      else if (mindistance>currdistance)
-          mindistance=currdistance;
+      currDistance=chs2.Distance(chs1.GetRP());
+      if (minDistance==-1)
+          minDistance=currDistance;
+      else if (minDistance>currDistance)
+          minDistance=currDistance;
         }
     }
       }
   }
 
-  ((CcReal *)result.addr)->Set( true, mindistance );
+  ((CcReal *)result.addr)->Set( true, minDistance );
   return (0);
     }
     else
@@ -12427,7 +11223,7 @@ distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12518,7 +11314,7 @@ direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 nocomponents_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12529,18 +11325,7 @@ nocomponents_ps( Word* args, Word& result, int message, Word& local, Supplier s 
     return (0);
 }
 
-int
-nocomponents_l( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-    result = qp->ResultStorage( s );
-
-    CLine *cl=((CLine*)args[0].addr);
-
-    ((CcInt *)result.addr)->Set( true, (int) (cl->Size() / 2));
-    return (0);
-}
-
-int
+static int
 nocomponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12563,11 +11348,22 @@ nocomponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.4.22 Value mapping functions of operator ~nohalfseg~
+10.4.22 Value mapping functions of operator ~no\_segments~
 
 */
-int
-nohalfseg_r( Word* args, Word& result, int message, Word& local, Supplier s )
+static int
+nosegments_l( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    CLine *cl=((CLine*)args[0].addr);
+
+    ((CcInt *)result.addr)->Set( true, (int) (cl->Size()));
+    return (0);
+}
+
+static int
+nosegments_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -12581,7 +11377,7 @@ nohalfseg_r( Word* args, Word& result, int message, Word& local, Supplier s )
 10.4.22 Value mapping functions of operator ~bbox~
 
 */
-int
+static int
 bbox_p( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12589,7 +11385,7 @@ bbox_p( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 bbox_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12597,7 +11393,7 @@ bbox_ps( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 bbox_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12605,7 +11401,7 @@ bbox_l( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 bbox_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12619,7 +11415,7 @@ bbox_r( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 size_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -12635,7 +11431,7 @@ size_l( Word* args, Word& result, int message, Word& local, Supplier s )
   cl->Get(i, chs);
   if (chs.GetLDP())
   {
-      res += chs.GetLP().distance(chs.GetRP());
+      res += chs.GetLP().Distance(chs.GetRP());
   }
     }
 
@@ -12648,7 +11444,7 @@ size_l( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 touchpoints_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12688,7 +11484,7 @@ touchpoints_lr( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touchpoints_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12728,7 +11524,7 @@ touchpoints_rl( Word* args, Word& result, int message, Word& local, Supplier s )
     return (0);
 }
 
-int
+static int
 touchpoints_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //need to improve this func- endpoints of edges should be considered specially.
     result = qp->ResultStorage( s );
@@ -12768,7 +11564,7 @@ touchpoints_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-int
+static int
 commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12819,7 +11615,7 @@ Implementation with Spatial Scan
 
 */
 
-int
+static int
 commonborder_Scan_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //void rrSelectFirst(CRegion& R1, CRegion& R2, object& obj, status& stat)
@@ -12875,7 +11671,7 @@ commonborder_Scan_rr( Word* args, Word& result, int message, Word& local, Suppli
 
 */
 
-int
+static int
 translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12888,7 +11684,6 @@ translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
     {
   Point resP(true, p->GetX()+xx->GetRealval(), p->GetY()+yy->GetRealval());
   *((Point *)result.addr)=resP;
-  //((Point *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
   return (0);
     }
     else
@@ -12898,7 +11693,7 @@ translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12917,12 +11712,11 @@ translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
   for (int i=0; i<ps->Size(); i++)
   {
       ps->Get(i, auxp);
-      auxp.translate(xx->GetRealval(), yy->GetRealval());
+      auxp.Translate(xx->GetRealval(), yy->GetRealval());
       *((Points *)result.addr) += auxp;
   }
 
   ((Points *)result.addr)->setOrdered(true);
-  //((Points *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
   return (0);
     }
     else
@@ -12931,7 +11725,7 @@ translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12951,12 +11745,11 @@ translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
   for (int i=0; i<cl->Size(); i++)
   {
       cl->Get(i, chs);
-      chs.translate(xx->GetRealval(), yy->GetRealval());
+      chs.Translate(xx->GetRealval(), yy->GetRealval());
       *((CLine *)result.addr) += chs;
   }
 
   ((CLine *)result.addr)->setOrdered(true);
-  //((CLine *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
   return (0);
     }
     else
@@ -12965,7 +11758,7 @@ translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
     }
 }
 
-int
+static int
 translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
@@ -12980,91 +11773,22 @@ translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
 
     if (!( cr->IsEmpty()))
     {
-    ((CRegion *)result.addr)->StartBulkLoad();
+  ((CRegion *)result.addr)->StartBulkLoad();
 
-    for (int i=0; i<cr->Size(); i++)
-    {
+  for (int i=0; i<cr->Size(); i++)
+  {
       cr->Get(i, chs);
-      chs.translate(xx->GetRealval(), yy->GetRealval());
+      chs.Translate(xx->GetRealval(), yy->GetRealval());
       *((CRegion *)result.addr) += chs;
-    }
+  }
 
-    ((CRegion *)result.addr)->setOrdered(true);
-    //((CRegion *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
-    return (0);
+  ((CRegion *)result.addr)->setOrdered(true);
+  return (0);
     }
     else
     {
-    return (0);
+  return (0);
     }
-}
-
-int
-windowclippingin_l( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-    result = qp->ResultStorage( s );
-
-    CLine *l = ((CLine *)args[0].addr);
-    CLine *clippedLine = (CLine*)result.addr;
-    clippedLine->Clear();
-    bool inside;
-    Rectangle *window = ((Rectangle*)args[1].addr);
-
-    l->WindowClippingIn(*window,*clippedLine,inside);
-
-    return 0;
-
-}
-int
-windowclippingin_r( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  CRegion *r = ((CRegion *)args[0].addr);
-  CRegion *clippedRegion=(CRegion*)result.addr;
-  clippedRegion->Clear();
-
-  Rectangle *window = ((Rectangle*)args[1].addr);
-
-  r->WindowClippingIn(*window,*clippedRegion);
-
-  return 0;
-
-}
-
-int
-windowclippingout_l( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-    result = qp->ResultStorage( s );
-
-
-
-    CLine *l = ((CLine *)args[0].addr);
-    CLine *clippedLine = (CLine*)result.addr;
-    clippedLine->Clear();
-    bool outside;
-    Rectangle *window = ((Rectangle*)args[1].addr);
-
-    l->WindowClippingOut(*window,*clippedLine,outside);
-    return 0;
-
-}
-
-int
-windowclippingout_r( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  CRegion *r = ((CRegion *)args[0].addr);
-  CRegion *clippedRegion=(CRegion*)result.addr;
-  clippedRegion->Clear();
-
-  Rectangle *window = ((Rectangle*)args[1].addr);
-
-  r->WindowClippingOut(*window,*clippedRegion);
-
-  return 0;
-
 }
 
 /*
@@ -13080,10 +11804,10 @@ defined, so it easier to make them overloaded.
 10.5.1 Definition of value mapping vectors
 
 */
-ValueMapping spatialisemptymap[] = { SpatialIsEmpty_p,
-             SpatialIsEmpty_ps,
-             SpatialIsEmpty_l,
-             SpatialIsEmpty_r };
+ValueMapping spatialisemptymap[] = { IsEmpty_p,
+             IsEmpty_ps,
+             IsEmpty_l,
+             IsEmpty_r };
 
 ValueMapping spatialequalmap[] =  {   SpatialEqual_pp,
              SpatialEqual_psps,
@@ -13219,11 +11943,11 @@ ValueMapping directionmap[] =         { direction_pp
               };
 
 ValueMapping nocomponentsmap[] =   { nocomponents_ps,
-               nocomponents_l,
                nocomponents_r,
               };
 
-ValueMapping nohalfsegmap[] =      {     nohalfseg_r
+ValueMapping nosegmentsmap[] =      {     nosegments_l,
+               nosegments_r
         };
 
 ValueMapping bboxmap[] =      { bbox_p, bbox_ps, bbox_l, bbox_r
@@ -13252,16 +11976,6 @@ ValueMapping translatemap[] = { translate_p,
                 translate_ps,
                 translate_l,
                 translate_r
-              };
-
-ValueMapping windowclippinginmap[] = {
-                  windowclippingin_l,
-                  windowclippingin_r
-              };
-
-ValueMapping windowclippingoutmap[] = {
-                  windowclippingout_l,
-                  windowclippingout_r
               };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
@@ -13467,17 +12181,17 @@ const string SpatialSpecDirection  =
 const string SpatialSpecNocomponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(points||line||region) -> int</text--->"
-  "<text> nocomponents( _ )</text--->"
+  "<text> no_components( _ )</text--->"
   "<text>return the number of components of a spatial object.</text--->"
-  "<text>query nocomponents(region)</text--->"
+  "<text>query no_components(region)</text--->"
   ") )";
 
-const string SpatialSpecNohalfseg  =
+const string SpatialSpecNoSegments  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(region) -> int</text--->"
-  "<text> nohalfseg( _ )</text--->"
+  "<text> no_segments( _ )</text--->"
   "<text>return the number of half segments of a region.</text--->"
-  "<text>query nohalfseg(region)</text--->"
+  "<text>query no_segments(region)</text--->"
   ") )";
 
 const string SpatialSpecBbox  =
@@ -13543,23 +12257,6 @@ const string SpatialSpecTranslate  =
   "<text> move the object parallely for some distance.</text--->"
   "<text> query translate(region1, 3.5, 15.1)</text--->"
   ") )";
-
-const string SpatialSpecWindowClippingIn  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(line x rect) -> line, (region x rect) --> region</text--->"
-  "<text> windowclippingin( _, _ ) </text--->"
-  "<text> computes the part of the object that is inside the window.</text--->"
-  "<text> query windowclippingin(line1, window)</text--->"
-  ") )";
-
-const string SpatialSpecWindowClippingOut  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(line x rect) -> line, (region x rect) --> region</text--->"
-  "<text> windowclippingout( _, _ ) </text--->"
-  "<text> computes the part of the object that is outside the window.</text--->"
-  "<text> query windowclippingout(line1, rect)</text--->"
-  ") )";
-
 /*
 10.5.3 Definition of the operators
 
@@ -13653,12 +12350,12 @@ Operator spatialdirection
     directionSelect, directionMap );
 
 Operator spatialnocomponents
-  ( "nocomponents", SpatialSpecNocomponents, 3, nocomponentsmap, spatialnomodelmap,
+  ( "no_components", SpatialSpecNocomponents, 3, nocomponentsmap, spatialnomodelmap,
     nocomponentsSelect, nocomponentsMap );
 
-Operator spatialnohalfseg
-  ( "nohalfseg", SpatialSpecNohalfseg, 1, nohalfsegmap, spatialnomodelmap,
-    nohalfsegSelect,  nocomponentsMap);
+Operator spatialnosegments
+  ( "no_segments", SpatialSpecNoSegments, 2, nosegmentsmap, spatialnomodelmap,
+    nosegmentsSelect,  nosegmentsMap);
 
 Operator spatialinsidepathlength
   ( "insidepathlength", SpatialSpecInsidepathlength, 1, insidepathlengthmap, spatialnomodelmap,
@@ -13692,84 +12389,6 @@ Operator spatialtranslate
   ( "translate", SpatialSpecTranslate, 4, translatemap, spatialnomodelmap,
     translateSelect, translateMap );
 
-Operator spatialwindowclippingin
-  ( "windowclippingin", SpatialSpecWindowClippingIn, 4, windowclippinginmap, spatialnomodelmap,
-    windowclippingSelect, windowclippingMap );
-
-
-Operator spatialwindowclippingout
-  ( "windowclippingout", SpatialSpecWindowClippingOut, 4, windowclippingoutmap, spatialnomodelmap,
-    windowclippingSelect, windowclippingMap );
-
-//__________________________________________________________________________________________________
-//                            Test Functions
-//__________________________________________________________________________________________________
-
-// Value mapping function
-int spatialAlgebraTestFun(Word * args, Word& result, int message, Word& local, Supplier s)
-{
-  ostringstream test;
-  char testR[49];
-  bool finalResult=false;
-
-  result = qp->ResultStorage(s);
-  if ( !PartnerNoTest::MainPartnerNoTest( test ) )
-    cout<<endl<<"Erro: MainPartnerNoTest";
-  else
-    if ( !InsideAboveTest::InsideAboveTest1( test ) )
-      cout<<endl<<"Erro:InsideAboveTest1";
-  else
-    if (!WindowClippingIn::ChsClippingInTest(test) )
-      cout<<endl<<"Erro: ChsClippingInTest";
-  else
-    if (!LineClippingTest::LineClippingInTest(test) )
-      cout<<endl<<"Erro: LineClippingInTest";
-  else
-    if (!LineClippingTest::LineClippingOutTest(test) )
-      cout<<endl<<"Erro: LineClippingOutTest";
-  else
-    if (!RegionClippingTest::MainRegionClippingInTest(test) )
-      cout<<endl<<"Erro: MainRegionClippingInTest";
-  else
-  {
-    finalResult = true;
-    test <<"All tests' results are OK.";
-  }
-
-  cout<<endl;
-  //cout <<finalResult;
-  //if (!finalResult)
-  //  test <<"Problem in some function.";
-
-  strcpy(testR, test.str().c_str());
-  ((CcString*)result.addr)->Set(true,&testR);
-
-    return 0;
-}
-
-const string spatialAlgebraTestSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" )"
-                          "( <text> -> bool </text--->"
-             "<text>spatialAlgebraTest</text--->"
-             "<text>Test predicate</text--->"
-             "<text>query spatialalgebratest</text--->"
-            ") )";
-
-ListExpr testTypeMapFun( ListExpr args)
-{
-  return nl->SymbolAtom("string");
-}
-
-
-Operator spatialAlgebraTest (
-  "spatialalgebratest",
-  spatialAlgebraTestSpec,
-  spatialAlgebraTestFun,
-  Operator::DummyModel,
-    Operator::SimpleSelect,
-    testTypeMapFun);
-
-//__________________________________________________________________________________________________
 /*
 11 Creating the Algebra
 
@@ -13821,15 +12440,12 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialdistance );
     AddOperator( &spatialdirection );
     AddOperator( &spatialnocomponents );
-    AddOperator( &spatialnohalfseg );
+    AddOperator( &spatialnosegments );
     AddOperator( &spatialsize );
     AddOperator( &spatialbbox);
     AddOperator( &spatialinsidepathlength );
     AddOperator( &spatialinsidescanned );
     AddOperator( &spatialtranslate );
-    AddOperator( &spatialAlgebraTest );
-    AddOperator( &spatialwindowclippingin );
-    AddOperator( &spatialwindowclippingout );
   }
   ~SpatialAlgebra() {};
 };
@@ -13861,11 +12477,6 @@ InitializeSpatialAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (&spatialAlgebra);
 }
-
-
-
-///////////////////
-
 
 
 
