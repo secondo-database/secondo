@@ -10,10 +10,8 @@ all: MenuVector.class SecondoViewer.class
 
 
 # compile all viewers
-# if a new viewer inserted then
-# extend this call
 .PHONY: viewers 
-viewers: hoese RelViewer.class StandardViewer.class
+viewers : StandardViewer.class RelViewer.class relsplit hoese viewer3d QueryViewer.class
 
 #
 # the viewer from Thomas Hoese (a gui in the past)
@@ -24,25 +22,48 @@ hoese: subhoese HoeseViewer.class
 subhoese:
 	(cd hoese;make all)
 
-HoeseViewer.class: HoeseViewer.java
-	$(JAVAC) -classpath $(CLASSPATH) HoeseViewer.java
-	
-	
-RelViewer.class:RelViewer.java
-	$(JAVAC) -classpath $(CLASSPATH) RelViewer.java
 
-StandardViewer.class: StandardViewer.java
-	$(JAVAC) -classpath $(CLASSPATH) StandardViewer.java
+# ----- hoese end --------
 
 
+#### the 3D-Viewer for fuzzy objects
+.PHONY: viewer3d
+viewer3d: subviewer3d viewer3dhere
 
-MenuVector.class: MenuVector.java
-	$(JAVAC) -classpath $(CLASSPATH) MenuVector.java
+.PHONY: subviewer3d
+subviewer3d:
+	(cd viewer3d;make all);
 
-SecondoViewer.class: SecondoViewer.java 
-	$(JAVAC) -classpath $(CLASSPATH) SecondoViewer.java
+.PHONY: viewer3dhere
+viewer3dhere: Viewer3D.java
+	$(JAVAC) -classpath $(CLASSPATH) Viewer3D.java
+
+
+# ----- viewer3d end --------
+
+
+###### a viewer to split relations #######
+.PHONY: relsplit
+relsplit: RelSub RelSplit.class
+
+RelSplit.class: RelSplit.java
+	$(JAVAC) -classpath $(CLASSPATH) RelSplit.java
+
+RelSub:
+	(cd relsplit; make all);
+
+#  ---- end relsplit ----
+
+
+
 
 .PHONY: clean
 clean: 
 	(cd hoese;make clean)
+	(cd relsplit;make clean)
+	(cd viewer3d;make clean)
 	rm -f *.class
+
+
+%.class: %.java
+	$(JAVAC) -classpath $(CLASSPATH) $<
