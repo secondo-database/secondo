@@ -11520,6 +11520,13 @@ commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s 
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
 
+    if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) )
+    {
+	//cout<<"not intersect by MBR"<<endl;
+	((CLine *)result.addr)->Clear();
+	return (0);
+    }
+    
     ((CLine *)result.addr)->StartBulkLoad();
     for (int i=0; i<cr1->Size(); i++)
     {
