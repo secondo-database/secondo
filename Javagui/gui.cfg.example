@@ -1,0 +1,13 @@
+SERVERNAME localhost
+SERVERPORT 1234
+
+KNOWN_VIEWERS StandardViewer RelViewer HoeseViewer  
+
+START_CONNECTION true 
+
+
+OBJECT_DIRECTORY /home/behr/SecondoObjects
+
+HISTORY_DIRECTORY /home/behr/histories
+
+
