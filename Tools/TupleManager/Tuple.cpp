@@ -8,6 +8,8 @@
   //[oe] [\"o]
 
   1 Implementation of Module TupleManager
+  
+  Mirco G[ue]nster, 10/02/02 finish of porting.
 
   Markus Spiekermann, 06/14/02 port to new secondo core System
 
@@ -130,7 +132,8 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 		
 		for (int i = 0; i < attrNum; i++) {
 			for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-				tmpFLOB = attribInfo[i].value->GetFLOB(j);
+				TupleElement *tupleelem = attribInfo[i].value;
+				tmpFLOB = tupleelem->GetFLOB(j);
 				extensionSize = extensionSize + tmpFLOB->size;
 			}
 		}
@@ -179,6 +182,7 @@ Tuple::~Tuple() {
   	if (attribInfo != 0) {
     	delete[] attribInfo;
   	}
+	
 }
 
 /* Determine the size of FLOB data stored in lobFile. */
@@ -235,6 +239,7 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   
   	lobFile = lobfile;
   	recFile = tuplefile;
+	lobFileOpened = false;
 	extensionSize = CalcSizeOfFLOBData();
 
 
@@ -373,7 +378,6 @@ to be changed as the close operation is now the destructor !!!!
 1.5.7 DelPut
 
 */
-
 bool Tuple::DelPut(int attrno, TupleElement *value) {
 	if (error == true) return false;
 	bool succ = false;
@@ -401,7 +405,6 @@ bool Tuple::DelPut(int attrno, TupleElement *value) {
 1.5.8 AttrPut
 
 */
-
 bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 	if (error == true) return false;
   	bool succ = false;
@@ -417,7 +420,6 @@ bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 				// the old value of this tuple was put by DelPut before,
 				// therefore delete this value
 				attribInfo[attrno_to].deleteValue();
-		
 		}
     	attribInfo[attrno_to].value = tup->attribInfo[attrno_from].value;
     	attribInfo[attrno_to].destruct = true;
@@ -435,7 +437,6 @@ bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 1.5.8 Get
 
 */
-
 TupleElement* Tuple::Get(int attrno) {
 	return ((attrno >= 0 && attrno < attrNum && error == false) ? attribInfo[attrno].value : 0);
 }
@@ -454,7 +455,6 @@ bool Tuple::destruct(int attrno) {
 1.5.9 GetAttrNum
 
 */
-
 int Tuple::GetAttrNum(){ 
 	return attrNum;
 }
@@ -464,7 +464,6 @@ int Tuple::GetAttrNum(){
 1.5.9 GetSize
 
 */
-
 int Tuple::GetSize() {
 	return memorySize; 
 };
