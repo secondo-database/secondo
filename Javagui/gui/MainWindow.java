@@ -366,6 +366,7 @@ public MainWindow(String Title){
          DEBUG_MODE=true;
       }
    }
+   Environment.DEBUG_MODE = DEBUG_MODE;
 
 
    String FS = System.getProperty("file.separator");
