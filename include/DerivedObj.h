@@ -339,7 +339,8 @@ private:
   // build a nested list from the memory structure
   ListExpr DerivedObjList() {
 
-    ListExpr result = nl.TheEmptyList(), last;
+    ListExpr result = nl.TheEmptyList();
+    ListExpr last = nl.TheEmptyList();
 
     for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
           it != derivedObjRecords.end();
