@@ -47,6 +47,7 @@ using namespace std;
 
 #include "SecondoSMI.h"
 #include "SecParser.h"
+#include "TimeTest.h"
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -937,8 +938,10 @@ If value 0 is returned, the command was executed without error.
         else
         {
           StartCommand();
-
-	  cout << "Analyze query ..." << endl;
+          
+	  
+	  cout << "Analyze query ..." << endl
+	       << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
 
           SecondoSystem::GetQueryProcessor()->
             Construct( level, nl->Second( list ), correct, evaluable, defined, 
@@ -951,7 +954,8 @@ If value 0 is returned, the command was executed without error.
           {
             if ( evaluable )
             {
-              cout << "Execute ..." << endl;
+              cout << "Execute ..." << endl
+	           << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
 
 	      SecondoSystem::GetQueryProcessor()->
                 Eval( tree, result, 1 );
@@ -960,6 +964,10 @@ If value 0 is returned, the command was executed without error.
               resultList = nl->TwoElemList( resultType, valueList );
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
+		
+	     cout << "Result ..." << endl
+	          << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+
             }
             else if ( isFunction ) // abstraction or function object
             {
