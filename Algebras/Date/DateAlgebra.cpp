@@ -772,7 +772,7 @@ const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>day_of ( _ )</text--->"
 			       "<text>extract the day info. from a date."
 			       "</text--->"
-			       "<text>query day ( date1 )</text--->"
+			       "<text>query day_of ( date1 )</text--->"
 			       ") )";
 
 const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -781,7 +781,7 @@ const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>month_of ( _ )</text--->"
 			       "<text>extract the month info. from a date."
 			       "</text--->"
-			       "<text>query month ( date1 )</text--->"
+			       "<text>query month_of ( date1 )</text--->"
 			       ") )";
 
 const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -790,7 +790,7 @@ const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>year_of ( _ )</text--->"
 			       "<text>extract the year info. from a date."
 			       "</text--->"
-			       "<text>query year ( date1 )</text--->"
+			       "<text>query year_of ( date1 )</text--->"
 			       ") )";
 
 const string EarlierSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
