@@ -159,7 +159,7 @@ secondo(X) :-
 
 /*
 
-1.3 Operators ~query~, ~update~, ~let~, ~create~, and ~delete~
+1.3 Operators ~query~, ~update~, ~let~, ~create~, ~open~, and ~delete~
 
 The purpose of these operators is to make using the PROLOG interface
 similar to using SecondoTTY. A SecondoTTY query
@@ -173,7 +173,7 @@ can be issued as
 ----
 
 in the PROLOG interface via the ~query~ operator. The operators
-~delete~, ~let~, ~create~, and ~update~ work the same way.
+~delete~, ~let~, ~create~, ~open~, and ~update~ work the same way.
 
 */
 
@@ -202,9 +202,16 @@ delete(Query) :-
   atom_concat('delete ', Query, QueryText),
   secondo(QueryText).
 
+open(Query) :-
+  atom(Query),
+  atom_concat('open ', Query, QueryText),
+  secondo(QueryText).
+
 :-
   op(800, fx, query),
   op(800, fx, delete),
   op(800, fx, let),
   op(800, fx, create),
-  op(800, fx, update).
+  op(800, fx, update),
+  op(800, fx, open).
+
