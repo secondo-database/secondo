@@ -54,9 +54,8 @@ else
    pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
    pathList=${pathList}:${SECONDO_SDK}/lib
    pathList=${pathList}:${SECONDO_SDK}/pl/bin
-   pathList=${pathList}:${PATH}
 
-   PATH=.:${PATH}:${pathList}
+   PATH=${PATH}:${pathList}
 fi
 
 # Some general extensions

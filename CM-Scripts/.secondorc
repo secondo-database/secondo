@@ -33,6 +33,12 @@ if [ "$1" != "" ]; then
 buildDir=$1
 fi
 
+# test if $buildDir seems to be a SECONDO source tree 
+if ! [ -d ${buildDir}/Algebras/Standard-C++ ]; then
+  buildDir=${HOME}/secondo
+fi
+
+
 sdkDir=${prefix}/secondo-sdk
 if [ "$2" != "" ]; then
 sdkDir=$2
@@ -69,7 +75,7 @@ source ${sdkDir}/bin/aliaslist.sh
 source ${HOME}/.secondo.sdkrc
 
 # set common variables
-${sdkDir}/bin/setvar.bash ${buildDir}
+source ${sdkDir}/bin/setvar.bash ${buildDir}
 
 # Berkeley-DB Library
 #
