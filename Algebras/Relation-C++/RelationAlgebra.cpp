@@ -2860,7 +2860,6 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
 	//cout << "head REQUEST" << endl;
 
       qp->Request(args[1].addr, maxTuplesWord);
-
       maxTuples = (int)((StandardAttribute*)maxTuplesWord.addr)->GetValue();
       if(local.ival >= maxTuples)
       {
@@ -3412,6 +3411,8 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   SortByLocalInfo* localInfo;
   SortOrderSpecification spec;
   int i;
+  Word intWord;
+  Word boolWord;
   size_t j;
   int sortAttrIndex;
   int nSortAttrs;
@@ -3439,13 +3440,17 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-        nSortAttrs = (int)((StandardAttribute*)args[2].addr)->GetValue();
+        qp->Request(args[2].addr, intWord);
+        nSortAttrs = (int)((StandardAttribute*)intWord.addr)->GetValue();
         for(i = 1; i <= nSortAttrs; i++)
         {
+          qp->Request(args[2 * i + 1].addr, intWord);
           sortAttrIndex =
-            (int)((StandardAttribute*)args[2 * i + 1].addr)->GetValue();
+            (int)((StandardAttribute*)intWord.addr)->GetValue();
+
+          qp->Request(args[2 * i + 2].addr, boolWord);
           sortOrderIsAscending =
-            (bool*)((StandardAttribute*)args[2 * i + 2].addr)->GetValue();
+            (bool*)((StandardAttribute*)boolWord.addr)->GetValue();
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
         };
         ccCmp.spec = spec;
@@ -4169,7 +4174,7 @@ private:
     }
     else
     {
-      int errorCode = SortBy<false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+      int errorCode = SortBy<true>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -4194,7 +4199,7 @@ private:
     }
     else
     {
-      int errorCode = SortBy<false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+      int errorCode = SortBy<true>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -4349,8 +4354,8 @@ public:
     {
       SetArgs(aArgs, streamA, attrIndexA);
       SetArgs(bArgs, streamB, attrIndexB);
-      SortBy<false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
-      SortBy<false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+      SortBy<true>(aArgs, aResult, OPEN, streamALocalInfo, 0);
+      SortBy<true>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     }
 
     nextATuple();
@@ -4366,8 +4371,8 @@ public:
     }
     else
     {
-      SortBy<false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
-      SortBy<false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+      SortBy<true>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
+      SortBy<true>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
     };
   }
 
@@ -4400,12 +4405,16 @@ template<bool expectSorted> int
 MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   MergeJoinLocalInfo* localInfo;
+  Word attrIndexA;
+  Word attrIndexB;
 
   switch(message)
   {
     case OPEN:
+      qp->Request(args[4].addr, attrIndexA);
+      qp->Request(args[5].addr, attrIndexB);
       localInfo = new MergeJoinLocalInfo
-        (args[0], args[4], args[1], args[5], expectSorted);
+        (args[0], attrIndexA, args[1], attrIndexB, expectSorted);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
@@ -4538,7 +4547,7 @@ private:
       qp->Request(stream.addr, tupleWord);
     }
   }
-  
+
   void ClearBucket(vector<CcTuple*>& bucket)
   {
     vector<CcTuple*>::iterator iter = bucket.begin();
@@ -4633,12 +4642,18 @@ static int
 HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   HashJoinLocalInfo* localInfo;
+  Word attrIndexA;
+  Word attrIndexB;
+  Word nHashBuckets;
 
   switch(message)
   {
     case OPEN:
-      localInfo = new HashJoinLocalInfo(args[0], args[5],
-        args[1], args[6], args[4]);
+      qp->Request(args[5].addr, attrIndexA);
+      qp->Request(args[6].addr, attrIndexB);
+      qp->Request(args[4].addr, nHashBuckets);
+      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
+        args[1], attrIndexB, nHashBuckets);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
@@ -5118,6 +5133,8 @@ int GroupByValueMapping
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx;
+  Word nAttributesWord;
+  Word attribIdxWord;
 
   switch(message)
   {
@@ -5148,7 +5165,8 @@ int GroupByValueMapping
         t->SetFree(false);
         tp->AppendTuple(t);
       }
-      numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
+      qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
+      numberatt = ((CcInt*)nAttributesWord.addr)->GetIntval();
 
       ifequal = true;
       qp->Request(args[0].addr, sWord);
@@ -5157,7 +5175,8 @@ int GroupByValueMapping
         s = (CcTuple*)sWord.addr;
         for (k = 0; k < numberatt; k++)
         {
-          attribIdx = ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
+          qp->Request(args[startIndexOfExtraArguments+k].addr, attribIdxWord);
+          attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
           j = attribIdx - 1;
           if (((Attribute*)t->Get(j))->Compare((Attribute *)s->Get(j)))
             ifequal = false;
@@ -5184,7 +5203,8 @@ int GroupByValueMapping
 
       for(i = 0; i < numberatt; i++)
       {
-        attribIdx = ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
+        qp->Request(args[startIndexOfExtraArguments+i].addr, attribIdxWord);
+        attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
         t->Put(i, ((Attribute*)s->Get(attribIdx - 1))->Clone());
       }
       value2 = (Supplier)args[2].addr;
