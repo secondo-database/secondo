@@ -369,7 +369,6 @@ The list representation of a point is
 static ListExpr
 OutPoint( ListExpr typeInfo, Word value )
 {
-  //  cout <<"OutPoint ##############"<<endl;
   Point* point = (Point*)(value.addr);
   if( point->IsDefined() )
   {
@@ -555,7 +554,6 @@ static Word
 InPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 { 
-    //cout <<"InPoint ##############"<<endl;
     Point* newpoint;
     
     if ( nl->ListLength( instance ) == 2 )
