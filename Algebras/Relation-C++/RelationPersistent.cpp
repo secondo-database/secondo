@@ -1063,15 +1063,19 @@ ListExpr Relation::SaveToList( ListExpr typeInfo )
                            nl->IntAtom( privateRelation->lobFile.GetFileId() ) );
 }
 
-bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value )
+bool Relation::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Relation*& value )
 {
   SmiFileId tupleId, lobId;
   int noTuples;
   double totalSize;
-  valueRecord.Read( &tupleId, sizeof( SmiFileId ), 0 );
-  valueRecord.Read( &lobId, sizeof( SmiFileId ), sizeof( SmiFileId ) );
-  valueRecord.Read( &noTuples, sizeof( int ), 2 * sizeof( SmiFileId ) );
-  valueRecord.Read( &totalSize, sizeof( double ), 2 * sizeof( SmiFileId ) + sizeof(int) );
+  valueRecord.Read( &tupleId, sizeof( SmiFileId ), offset );
+  offset += sizeof( SmiFileId );
+  valueRecord.Read( &lobId, sizeof( SmiFileId ), offset );
+  offset += sizeof( SmiFileId );
+  valueRecord.Read( &noTuples, sizeof( int ), offset );
+  offset += sizeof( int );
+  valueRecord.Read( &totalSize, sizeof( double ), offset );
+  offset += sizeof( double );
 
   RelationDescriptor relDesc( noTuples, totalSize, tupleId, lobId );
   value = new Relation( typeInfo, relDesc );
@@ -1079,14 +1083,18 @@ bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*&
   return true;
 }
 
-bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
+bool Relation::Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
 {
   SmiFileId tupleId = privateRelation->tupleFile.GetFileId(),
             lobId = privateRelation->lobFile.GetFileId();
-  valueRecord.Write( &tupleId, sizeof( SmiFileId ), 0 );
-  valueRecord.Write( &lobId, sizeof( SmiFileId ), sizeof( SmiFileId ) );
-  valueRecord.Write( &(privateRelation->noTuples), sizeof( int ), 2 * sizeof( SmiFileId ) );
-  valueRecord.Write( &(privateRelation->totalSize), sizeof( double ), 2 * sizeof( SmiFileId ) + sizeof(int) );
+  valueRecord.Write( &tupleId, sizeof( SmiFileId ), offset );
+  offset += sizeof( SmiFileId );
+  valueRecord.Write( &lobId, sizeof( SmiFileId ), offset );
+  offset += sizeof( SmiFileId );
+  valueRecord.Write( &(privateRelation->noTuples), sizeof( int ), offset );
+  offset += sizeof( int );
+  valueRecord.Write( &(privateRelation->totalSize), sizeof( double ), offset );
+  offset += sizeof( double );
 
   return true;
 }

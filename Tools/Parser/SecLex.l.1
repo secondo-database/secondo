@@ -59,6 +59,7 @@ type		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPE;}
 delete		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDELETE;}
 create		{yylval = NestedText::Atom( yytext, yyleng ); return ZZCREATE;}
 update		{yylval = NestedText::Atom( yytext, yyleng ); return ZZUPDATE;}
+kill		{yylval = NestedText::Atom( yytext, yyleng ); return ZZKILL;}
 ":="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZASSIGN;}
 query		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERY;}
 model           {yylval = NestedText::Atom( yytext, yyleng ); return ZZMODEL;}

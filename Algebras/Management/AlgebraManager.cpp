@@ -401,20 +401,20 @@ AlgebraManager::DeleteObj( int algebraId, int typeId )
 
 bool
 AlgebraManager::OpenObj( const int algebraId, const int typeId,
-                         SmiRecord& valueRecord,
+                         SmiRecord& valueRecord, size_t& offset,
                          const ListExpr typeInfo, Word& value )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )->
-    Open( valueRecord, typeInfo, value ));
+    Open( valueRecord, offset, typeInfo, value ));
 }
 
 bool
 AlgebraManager::SaveObj( const int algebraId, const int typeId,
-                         SmiRecord& valueRecord,
+                         SmiRecord& valueRecord, size_t& offset,
                          const ListExpr typeInfo, Word& value )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )->
-    Save( valueRecord, typeInfo, value ));
+    Save( valueRecord, offset, typeInfo, value ));
 }
 
 ObjectClose

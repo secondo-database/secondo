@@ -375,7 +375,8 @@ If value 0 is returned, the command was executed without error.
 
   // copy command list to internal NL memory
   ListExpr commandLE2 = nl->TheEmptyList();
-  if (commandLE) {
+  if (commandLE) 
+  {
      commandLE2 = al->CopyList(commandLE, nl);
   }
 
@@ -463,9 +464,10 @@ If value 0 is returned, the command was executed without error.
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
   SecondoSystem& sys = *SecondoSystem::GetInstance();
+  AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
 
-
-  if (!RTFlag::isActive("SI:NoCommandEcho")) {
+  if (!RTFlag::isActive("SI:NoCommandEcho")) 
+  {
      nl->WriteListExpr(list, cerr);
      cerr << endl;
   }
@@ -588,11 +590,11 @@ If value 0 is returned, the command was executed without error.
           if ( !sys.OpenDatabase( dbName ) )
           {
             errorCode = ERR_IDENT_UNKNOWN_DB_NAME;  // identifier not a known database name
-      
-          } else {
-      if ( !derivedObjPtr )
-         derivedObjPtr = new DerivedObj(); // create new instance if necessary
-    }
+          } 
+          else if ( !derivedObjPtr )
+          {
+            derivedObjPtr = new DerivedObj(); // create new instance if necessary
+          }
         }
       }
       else if ( nl->IsEqual( first, "close" ) )
@@ -609,9 +611,9 @@ If value 0 is returned, the command was executed without error.
             activeTransaction = false;
           }
           sys.CloseDatabase();
-    if ( derivedObjPtr );
-      delete derivedObjPtr;
-    derivedObjPtr = 0;
+      
+          delete derivedObjPtr;
+          derivedObjPtr = 0;
         }
       }
       else if ( nl->IsEqual( first, "save" ) && (length == 4) &&
@@ -641,7 +643,6 @@ If value 0 is returned, the command was executed without error.
                 nl->IsAtom( nl->Fifth( list )) &&
                (nl->AtomType( nl->Fifth( list )) == SymbolType) )
       {
-      
         if ( sys.IsDatabaseOpen() )
         {
           errorCode = ERR_DATABASE_OPEN;  // database open
@@ -654,7 +655,6 @@ If value 0 is returned, the command was executed without error.
           errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
         }
 
-                    
         switch ( errorCode ) // error handling
         {
           case ERR_NO_ERROR:
@@ -672,27 +672,27 @@ If value 0 is returned, the command was executed without error.
 
           default: 
           {       
-      cmsg.error() << endl << "Error during restore detected. Closing database " << dbName;
+            cmsg.error() << endl << "Error during restore detected. Closing database " << dbName;
         
-            if ( !sys.CloseDatabase() ) {
-    cmsg.error() << " failed!" << endl;
-      } else {
-        cmsg.error() << " finished!" << endl;
+            if ( !sys.CloseDatabase() ) 
+            {
+              cmsg.error() << " failed!" << endl;
+            } 
+            else 
+            {
+              cmsg.error() << " finished!" << endl;
             }
             cmsg.send();
             break;
           }
         } 
           
-        if ( !errorCode ) { // rebuild derived objects if present
-              
-          if ( derivedObjPtr ) {
-      delete derivedObjPtr;            
-    }    
+        if ( !errorCode ) 
+        { // rebuild derived objects if present
+          delete derivedObjPtr;            
           derivedObjPtr = new DerivedObj();
-    derivedObjPtr->rebuildObjs(); 
+          derivedObjPtr->rebuildObjs(); 
         }
-
       }
       else
       {
@@ -707,7 +707,7 @@ If value 0 is returned, the command was executed without error.
               nl->IsEqual( nl->Third( list ), "to" ) && (length == 4) &&
               nl->IsAtom( nl->Second( list )) &&
               nl->AtomType( nl->Second( list )) == SymbolType &&
-        nl->IsAtom( nl->Fourth( list )) &&
+              nl->IsAtom( nl->Fourth( list )) &&
               nl->AtomType( nl->Fourth( list )) == SymbolType )
     {
       filename = nl->SymbolValue( nl->Fourth( list ) );
@@ -720,14 +720,13 @@ If value 0 is returned, the command was executed without error.
       else
       {
         if ( !sys.IsDatabaseObject( objectname ) )
-  {
-    errorCode = ERR_IDENT_UNKNOWN_DB_OBJECT; // object is not known in the database
-  }
+        {
+          errorCode = ERR_IDENT_UNKNOWN_DB_OBJECT; // object is not known in the database
+        }
         else
         {
           StartCommand();
-          if ( !sys.SaveObject( objectname,
-      filename ) )
+          if ( !sys.SaveObject( objectname, filename ) )
           {
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE;  // Problem in writing to file
           }
@@ -755,12 +754,11 @@ If value 0 is returned, the command was executed without error.
         filename = nl->SymbolValue( nl->Fourth( list ) );
 
         if ( sys.IsDatabaseObject( objName ) )
-  {
-    errorCode = ERR_IDENT_ALREADY_KNOWN_IN_DB; // object is already known in the database
-  }
-  else
-  {
-
+        {
+          errorCode = ERR_IDENT_ALREADY_KNOWN_IN_DB; // object is already known in the database
+        }
+        else
+        {
           message = sys.RestoreObjectFromFile( objName, filename, errorInfo );
           switch (message)
           {
@@ -783,7 +781,7 @@ If value 0 is returned, the command was executed without error.
               errorCode = ERR_CMD_NOT_RECOGNIZED;   // Should never occur
               break;
           }
-  }
+        }
       }
     }
 
@@ -793,53 +791,49 @@ If value 0 is returned, the command was executed without error.
     {
       if ( nl->IsEqual( nl->Second( list ), "algebras" ) && (length == 2) )
       {
-          resultList =
-      nl->TwoElemList(nl->SymbolAtom("inquiry"),
-          nl->TwoElemList(nl->SymbolAtom("algebras"),
-            SecondoSystem::GetAlgebraManager( )->ListAlgebras() ));
+        resultList = nl->TwoElemList(nl->SymbolAtom("inquiry"),
+                                     nl->TwoElemList(nl->SymbolAtom("algebras"),
+                                                     am.ListAlgebras() ));
       }
-
-      else if (     nl->IsEqual( nl->Second( list ), "algebra" ) 
-          && (length == 3) 
+      else if ( nl->IsEqual( nl->Second( list ), "algebra" ) 
+                && (length == 3) 
                 &&  nl->IsAtom(nl->Third(list)) 
                 &&  nl->AtomType( nl->Second( list ) ) == SymbolType )
       {
-          if ( SecondoSystem::GetAlgebraManager( )->GetAlgebraId(
-         nl->SymbolValue( nl->Third(list) )))
-    {
-      int aid = SecondoSystem::GetAlgebraManager( )->GetAlgebraId(
-         nl->SymbolValue( nl->Third(list) ));
+        if ( am.GetAlgebraId( nl->SymbolValue( nl->Third(list) )))
+        {
+          int aid = am.GetAlgebraId( nl->SymbolValue( nl->Third(list) ));
          
-      ListExpr constOp =  nl->TwoElemList( ctlg.ListTypeConstructors( aid ),
-             ctlg.ListOperators( aid ));
-      resultList =
-      nl->TwoElemList( nl->SymbolAtom("inquiry"),
-           nl->TwoElemList( nl->SymbolAtom("algebra"),
-                nl->TwoElemList( nl->Third(list), constOp )));
-    }
-    else errorCode = ERR_ALGEBRA_UNKNOWN;
+          ListExpr constOp =  nl->TwoElemList( ctlg.ListTypeConstructors( aid ),
+                                               ctlg.ListOperators( aid ));
+
+          resultList =
+            nl->TwoElemList( nl->SymbolAtom("inquiry"),
+                             nl->TwoElemList( nl->SymbolAtom("algebra"),
+                                              nl->TwoElemList( nl->Third(list), 
+                                                               constOp )));
+        }
+        else errorCode = ERR_ALGEBRA_UNKNOWN;
       }
-
-
-      else if (     nl->IsEqual( nl->Second( list ), "type" ) 
+      else if ( nl->IsEqual( nl->Second( list ), "type" ) 
                 && (length == 3) 
-          &&  nl->IsEqual( nl->Third( list ), "constructors" ) )
+                &&  nl->IsEqual( nl->Third( list ), "constructors" ) )
       {
         resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-               nl->TwoElemList( nl->SymbolAtom("constructors"),
-                   ctlg.ListTypeConstructors() ));
+                                      nl->TwoElemList( nl->SymbolAtom("constructors"),
+                                                       ctlg.ListTypeConstructors() ));
       }
       else if ( nl->IsEqual( nl->Second(list), "operators" ) )
       {
         resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-              nl->TwoElemList( nl->SymbolAtom("operators"),
+                                      nl->TwoElemList( nl->SymbolAtom("operators"),
                                                        ctlg.ListOperators() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "databases" ) )
       {
         resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-              nl->TwoElemList( nl->SymbolAtom("databases"),
-                   sys.ListDatabaseNames() ));
+                                      nl->TwoElemList( nl->SymbolAtom("databases"),
+                                      sys.ListDatabaseNames() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "types") )
       {
@@ -852,7 +846,7 @@ If value 0 is returned, the command was executed without error.
           StartCommand();
           resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
           nl->TwoElemList( nl->SymbolAtom("types"),
-                                                         ctlg.ListTypes() ));
+                           ctlg.ListTypes() ));
           FinishCommand( errorCode );
         }
       }
@@ -867,7 +861,7 @@ If value 0 is returned, the command was executed without error.
           StartCommand();
           resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
           nl->TwoElemList( nl->SymbolAtom("objects"),
-                                                         ctlg.ListObjects() ));
+                           ctlg.ListObjects() ));
           FinishCommand( errorCode );
         }
       }
@@ -961,29 +955,66 @@ If value 0 is returned, the command was executed without error.
         objName = nl->SymbolValue( nl->Second( list ) );
   
         if ( !sys.IsDatabaseOpen() )
-     errorCode = ERR_NO_DATABASE_OPEN;  // no database open
-
-        if ( !errorCode && ctlg.IsSystemObject(objName) )
+        {
+          errorCode = ERR_NO_DATABASE_OPEN;  // no database open
+        }
+        else if ( !errorCode && ctlg.IsSystemObject(objName) )
+        {
            errorCode = ERR_IDENT_RESERVED;
+        }
 
         StartCommand();  
         if ( !errorCode ) 
         {
-           message = ctlg.DeleteObject( objName );
-           
-           if ( message > 0 ) {
+           if( !ctlg.DeleteObject( objName ) )
+           {
              errorCode = ERR_IDENT_UNKNOWN_OBJ;   // identifier not a known object name          
-             
-     } else {
-       derivedObjPtr->deleteObj( objName ); // delete from derived objects table if necessary
+           } 
+           else 
+           {
+             derivedObjPtr->deleteObj( objName ); // delete from derived objects table if necessary
            }
          }
-        FinishCommand( errorCode );
+         FinishCommand( errorCode );
   
-     } else { // no correct delete syntax
-     
-       errorCode = ERR_CMD_NOT_RECOGNIZED;  // Command not recognized
-     }
+      } 
+      else 
+      { // no correct delete syntax
+        errorCode = ERR_CMD_NOT_RECOGNIZED;  // Command not recognized
+      }
+    }
+
+    // kill object
+
+    else if ( length == 2 &&
+              nl->IsEqual( first, "kill" ) &&
+              nl->IsAtom( nl->Second( list )) &&
+              nl->AtomType( nl->Second( list ) ) == SymbolType )
+    {
+      objName = nl->SymbolValue( nl->Second( list ) );
+
+      if ( !sys.IsDatabaseOpen() )
+      {
+        errorCode = ERR_NO_DATABASE_OPEN;  // no database open
+      }
+      else if ( !errorCode && ctlg.IsSystemObject(objName) )
+      {
+         errorCode = ERR_IDENT_RESERVED;
+      }
+
+      StartCommand();
+      if ( !errorCode )
+      {
+         if( !ctlg.KillObject( objName ) )
+         {
+           errorCode = ERR_IDENT_UNKNOWN_OBJ;   // identifier not a known object name
+         }
+         else
+         {
+           derivedObjPtr->deleteObj( objName ); // delete from derived objects table if necessary
+         }
+       }
+       FinishCommand( errorCode );
     }
 
     // --- Create object command
@@ -1003,7 +1034,7 @@ If value 0 is returned, the command was executed without error.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":=" ) )
     {
-          errorCode = Command_Update( level, list );    
+      errorCode = Command_Update( level, list );    
     }
 
     // --- Let command
@@ -1084,7 +1115,8 @@ If value 0 is returned, the command was executed without error.
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
 
 
-  if (RTFlag::isActive("SI:PrintCounters")) {
+  if (RTFlag::isActive("SI:PrintCounters")) 
+  {
     Counter::reportValues();
     Counter::resetAll();
   }
@@ -1118,14 +1150,15 @@ If value 0 is returned, the command was executed without error.
   )
   nl->initializeListMemory();
   
-  if ( RTFlag::isActive("SI:CommandTime") ){
-   
+  if ( RTFlag::isActive("SI:CommandTime") )
+  {
     static int nr = 0;
     static bool writeHeadLine = true;
     const string logFile="cmd-times.csv"; 
     const string sep="|";
    
-    if ( writeHeadLine ) {
+    if ( writeHeadLine ) 
+    {
       cmsg.file(logFile) << "#nr" << sep
                          << "command" << sep
                          << "realtime" << sep
@@ -1142,7 +1175,6 @@ If value 0 is returned, the command was executed without error.
     cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
     cmsg.send();
  } 
-  
 }
 
 

@@ -374,23 +374,6 @@ bool BTree::IsInitialized()
   return file != 0 && keyType != SmiKey::Unknown;
 }
 
-bool BTree::WriteTo(SmiRecord& record)
-{
-  assert(file != 0);
-  assert(this->keyType != SmiKey::Unknown);
-
-  SmiSize bytesWritten;
-  SmiSize fileIdLength = sizeof(SmiFileId);
-
-  bytesWritten = record.Write(&fileId, fileIdLength);
-  if(bytesWritten == fileIdLength)
-  {
-    isTemporary = false;
-    return true;
-  }
-  return false;
-}
-
 void BTree::SetPermanent()
 {
   isTemporary = false;
@@ -833,11 +816,19 @@ int SizeOfBTree()
 */
 bool
 OpenBTree( SmiRecord& valueRecord,
+           size_t& offset,
            const ListExpr typeInfo,
            Word& value )
 {
+  return BTree::Open( valueRecord, offset, typeInfo, (BTree*)value.addr );
+}
+
+bool BTree::Open( SmiRecord& valueRecord,
+                  size_t& offset,
+                  const ListExpr typeInfo,
+                  BTree *&btree )
+{
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
-  BTree* btree;
 
   ListExpr first;
   SmiKey::KeyDataType keyType;
@@ -891,24 +882,18 @@ OpenBTree( SmiRecord& valueRecord,
   SmiSize bytesRead;
   SmiFileId fileId;
 
-  bytesRead = valueRecord.Read(&fileId, sizeof(SmiFileId));
+  bytesRead = valueRecord.Read(&fileId, sizeof(SmiFileId), offset);
+  offset += sizeof(SmiFileId);
   if(bytesRead == sizeof(SmiFileId))
   {
     btree = new BTree(fileId, keyType);
+    if(btree->IsInitialized())
+    {
+      return true;
+    }
   }
-  else
-    return false;
-
-  if(btree->IsInitialized())
-  {
-    value = SetWord(btree);
-    return true;
-  }
-  else
-  {
-    delete btree;
-    return false;
-  }
+  delete btree; btree = 0;
+  return false;
 }
 
 /*
@@ -918,11 +903,30 @@ OpenBTree( SmiRecord& valueRecord,
 */
 bool
 SaveBTree( SmiRecord& valueRecord,
+           size_t& offset, 
            const ListExpr typeInfo,
            Word& value )
 {
   BTree *btree = (BTree*)value.addr;
-  return btree->WriteTo(valueRecord);
+  return btree->Save(valueRecord, offset, typeInfo);
+}
+
+bool BTree::Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo)
+{
+  assert(file != 0);
+  assert(this->keyType != SmiKey::Unknown);
+
+  SmiSize bytesWritten;
+  SmiSize fileIdLength = sizeof(SmiFileId);
+
+  bytesWritten = record.Write(&fileId, fileIdLength, offset);
+  offset += fileIdLength;
+  if(bytesWritten == fileIdLength)
+  {
+    isTemporary = false;
+    return true;
+  }
+  return false;
 }
 
 /*

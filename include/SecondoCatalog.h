@@ -56,6 +56,7 @@ The class ~SecondoCatalog~ provides the following methods:
         Open                  & CreateObject             & GetTypeId            \\
         Close                 & InsertObject             & GetTypeName          \\
         CleanUp               & DeleteObject             & GetTypeDS            \\
+                              & KillObject               &   \\  
                               & InObject                 &   \\
                               & GetObjectValue           &   \\
                               & OutObject                &   \\
@@ -305,6 +306,16 @@ Deletes an object with identifier ~objectName~ in the database. Returns
 "false"[4] if the object does not exist. 
 
 */
+  bool KillObject( const string& objectName );
+/*
+Kills an object with identifier ~objectName~ in the database. Returns
+"false"[4] if the object does not exist. This function differs from
+~DeleteObject~ because it is more drastic, i.e., it only deletes the
+entry for the object in the Secondo catalog. It can be used for 
+objects in corrupted states that cannot be opened for destruction. 
+
+*/
+
   Word InObject( const ListExpr typeExpr,
                  const ListExpr valueList,
                  const int errorPos,

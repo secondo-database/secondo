@@ -84,6 +84,9 @@ ALGEBRAS     +=	TemporalAlgebra
 ALGEBRA_DIRS +=	DateTime
 ALGEBRAS     +=	DateTimeAlgebra
 
+ALGEBRA_DIRS +=	Network
+ALGEBRAS     +=	NetworkAlgebra
+
 
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra

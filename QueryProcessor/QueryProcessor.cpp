@@ -394,6 +394,7 @@ one of these symbols, then the value ~error~ is returned.
     else if ( s == "undefined"   ) return (QP_UNDEFINED);
     else if ( s == "counter"     ) return (QP_COUNTER);
     else if ( s == "counterdef"  ) return (QP_COUNTERDEF);
+    else if ( s == "pointer"     ) return (QP_POINTER);
     else                           return (QP_ERROR);
   }
   else
@@ -410,7 +411,7 @@ of the form shown here.
 
 */
 
-enum OpNodeType { Object, IndirectObject, Operator };
+enum OpNodeType { Pointer, Object, IndirectObject, Operator };
 struct OpNode
 {
   bool         evaluable;
@@ -462,6 +463,7 @@ struct OpNode
     switch ( nodetype )
     {
       case Object :
+      case Pointer :
       {
         u.dobj.value = SetWord(Address(0));
         u.dobj.valNo = 0;        
@@ -649,6 +651,17 @@ Represents an operator tree through a list expression. Used for testing.
   {
     switch (tree->nodetype)
     {
+      case Pointer:
+      {
+        return (nl->Cons( nl->SymbolAtom( "Pointer" ),
+                          nl->SixElemList(
+                            nl->SymbolAtom( "type" ),
+                            tree->typeExpr,
+                            nl->SymbolAtom( "evaluable" ),
+                            nl->BoolAtom( tree->evaluable ),
+                            nl->SymbolAtom( "valNo" ),
+                            nl->IntAtom( tree->u.dobj.valNo ) ) ));
+      }
       case Object:
       {
         return (nl->Cons( nl->SymbolAtom( "Object" ),
@@ -725,7 +738,7 @@ by an object which is certainly the root node.
 */
 bool IsRootObject( OpTree tree )
 {
-  if( tree->nodetype == Object )
+  if( tree->nodetype == Object || tree->nodetype == Pointer )
   {
     assert( tree->isRoot == true );
     return true;
@@ -1446,13 +1459,17 @@ function index.
       }
       else /* level = executable */
       {
+        bool isPointer = false;
         if( nl->ListLength( nl->Second( expr ) ) == 2 &&
-            nl->IsAtom( nl->First( nl->Second( expr ) ) ) && 
+            nl->IsAtom( nl->First( nl->Second( expr ) ) ) &&
             nl->AtomType( nl->First( nl->Second( expr ) ) ) == SymbolType &&
             nl->SymbolValue( nl->First( nl->Second( expr ) ) ) == "ptr" &&
             nl->IsAtom( nl->Second( nl->Second( expr ) ) ) &&
             nl->AtomType( nl->Second( nl->Second( expr ) ) ) == IntType )
+        {
           value = SetWord( (void*)nl->IntValue( nl->Second( nl->Second( expr ) ) ) );
+          isPointer = true;
+        }
         else
           value = GetCatalog( level )->InObject( nl->First( expr ), nl->Second( expr ),
                               errorPos, errorInfo, correct );
@@ -1468,12 +1485,21 @@ function index.
           values[valueno].value = value;
           models[valueno] = SetWord( Address( 0 ) );
           valueno++;
-          return (nl->TwoElemList(
-                    nl->ThreeElemList(
-                      expr,
-                      nl->SymbolAtom( "constant" ),
-                      nl->IntAtom( valueno-1 ) ),
-                    nl->First( expr ) ));
+
+          if( isPointer )
+            return (nl->TwoElemList(
+                      nl->ThreeElemList(
+                        expr,
+                        nl->SymbolAtom( "pointer" ),
+                        nl->IntAtom( valueno-1 ) ),
+                      nl->First( expr ) ));
+          else
+            return (nl->TwoElemList(
+                      nl->ThreeElemList(
+                        expr,
+                        nl->SymbolAtom( "constant" ),
+                        nl->IntAtom( valueno-1 ) ),
+                      nl->First( expr ) ));
         }
         else
         {
@@ -2145,8 +2171,24 @@ QueryProcessor::Subtree( const AlgebraLevel level,
          constant	object		operator
          variable	applyop		abstraction
          identifier	arglist		function
-         applyabs	applyfun	counterdef	*/
+         applyabs	applyfun	counterdef	
+         pointer
+    */
 
+    case QP_POINTER:
+    {
+      node = new OpNode;
+      node->evaluable = true;
+      node->typeExpr = nl->Second( expr );
+      node->nodeLevel = level;
+      node->nodetype = Pointer;
+      node->isRoot = oldfirst;
+      node->u.dobj.isConstant = true;
+      node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
+      node->u.dobj.value = values[node->u.dobj.valNo].value;
+      node->u.dobj.model = models[node->u.dobj.valNo];
+      return (node);
+    }
     case QP_CONSTANT:
     {
       node = new OpNode;
@@ -2573,6 +2615,7 @@ the moment.
     switch (tree->nodetype)
     {
       case Object:
+      case Pointer:
       {
         result = tree->u.dobj.value;
         return;
@@ -2673,6 +2716,7 @@ handle stream evaluation.
     switch (tree->nodetype)
     {
       case Object:
+      case Pointer:
       {
         result = tree->u.dobj.model;
         return;
@@ -2838,6 +2882,20 @@ passed to the evaluation function in parameter ~opTreeNode~.
 */
   OpTree tree = (OpTree) s;
   return (tree->u.op.resultWord);
+}
+
+void
+QueryProcessor::ResultStorage( const Supplier s, const Word w )
+{
+/*
+Some operators do not use the result storage and create their own
+storage for the result. This function is used for this case. They
+must call the first function ~ResultStorage~ and free it, and then 
+set the new one passed in ~w~.
+
+*/
+  OpTree tree = (OpTree) s;
+  tree->u.op.resultWord = w;
 }
 
 int

@@ -19,7 +19,7 @@ November 30, 2002 RHG Introduced a function ~RelPersistValue~ instead of
 ~DefaultPersistValue~ which keeps relations that have been built in memory in a
 small cache, so that they need not be rebuilt from then on.
 
-TOC]
+[TOC]
 
 1 Includes, Constants, Globals, Enumerations
 
@@ -1154,6 +1154,7 @@ value is returned instead of building a new one.
 */
 bool
 OpenCcRel( SmiRecord& valueRecord,
+           size_t& offset,
            const ListExpr typeInfo,
            Word& value )
 {
@@ -1162,15 +1163,10 @@ OpenCcRel( SmiRecord& valueRecord,
   string valueString;
   int valueLength;
 
-  //cerr << "RelPersistValue "  << (dir == ReadFrom ? "R" : "W") << endl;
-
   SmiKey mykey;
   SmiRecordId recId;
   mykey = valueRecord.GetKey();
-  if ( ! mykey.GetKey(recId) )
-  {
-    cout << "\tRelPersistValue: Couldn't get the key!" << endl;
-  }
+  assert( mykey.GetKey(recId) );
 
   static bool firsttime = true;
   const int cachesize = 20;
@@ -1179,7 +1175,6 @@ OpenCcRel( SmiRecord& valueRecord,
   static Word cache[cachesize];
 
   // initialize
-
   if ( firsttime ) {
     for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
     firsttime = false;
@@ -1199,9 +1194,7 @@ OpenCcRel( SmiRecord& valueRecord,
   if ( found ) {value = cache[pos]; return true;}
 
   // prepare to cache the value constructed from the list
-
   if ( key[current] != 0 ) {
-    // cout << "I do delete!" << endl;
     DeleteCcRel(cache[current]);
   }
 
@@ -1209,9 +1202,11 @@ OpenCcRel( SmiRecord& valueRecord,
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   bool correct;
-  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+  valueRecord.Read( &valueLength, sizeof( valueLength ), offset );
+  offset += sizeof( valueLength );
   char* buffer = new char[valueLength];
-  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+  valueRecord.Read( buffer, valueLength, offset );
+  offset += valueLength;
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
@@ -1229,6 +1224,7 @@ OpenCcRel( SmiRecord& valueRecord,
 
 bool
 SaveCcRel( SmiRecord& valueRecord,
+           size_t& offset,
            const ListExpr typeInfo,
            Word& value )
 {
@@ -1241,8 +1237,10 @@ SaveCcRel( SmiRecord& valueRecord,
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();
-  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+  valueRecord.Write( &valueLength, sizeof( valueLength ), offset );
+  offset += sizeof( valueLength );
+  valueRecord.Write( valueString.data(), valueString.length(), offset );
+  offset += valueString.length();
 
   value = SetWord(Address(0));
 

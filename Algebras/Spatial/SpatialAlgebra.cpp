@@ -100,82 +100,95 @@ Point::Point( const Point& p ) :
 Point::~Point()
 {}
 
-const Coord& Point::GetX() const
+inline const Coord& Point::GetX() const
 {
-  assert( IsDefined() );
+  assert( defined );
   return x;
 }
 
-const Coord& Point::GetY() const
+inline const Coord& Point::GetY() const
 {
-  assert( IsDefined() );
+  assert( defined );
   return y;
 }
 
-const Rectangle Point::BoundingBox() const
+inline const Rectangle Point::BoundingBox() const
 {
-  return Rectangle( true, this->x, this->x, this->y, this->y );
+  return Rectangle( true, x, x, y, y );
 }
 
-Point& Point::operator=( const Point& p )
+inline void Point::Set( const Coord& x, const Coord& y )
 {
-  defined = p.IsDefined();
+  defined = true;
+  this->x = x;
+  this->y = y;
+}
+
+inline void Point::Translate( const Coord& x, const Coord& y )
+{
+  this->x += x;
+  this->y += y;
+}
+
+inline Point& Point::operator=( const Point& p )
+{
+  defined = p.defined;
   if( defined )
   {
-    x = p.GetX();
-    y = p.GetY();
+    x = p.x;
+    y = p.y;
   }
   return *this;
 }
 
-bool Point::operator==( const Point& p ) const
+inline bool Point::operator==( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  return x == p.GetX() && y == p.GetY();
+  assert( defined && p.defined );
+  return x == p.x && y == p.y;
 }
 
-bool Point::operator!=( const Point& p ) const
+inline bool Point::operator!=( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  return x != p.GetX() || y != p.GetY();
+  assert( defined && p.defined );
+  return x != p.x || y != p.y;
 }
 
-bool Point::operator<=( const Point& p ) const
+inline bool Point::operator<=( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x < p.GetX() )
+  assert( defined && p.defined );
+  if( x < p.x )
     return 1;
-  else if( x == p.GetX() && y <= p.GetY() )
+  else if( x == p.x && y <= p.y )
     return 1;
   return 0;
 }
 
-bool Point::operator<( const Point& p ) const
+inline bool Point::operator<( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x < p.GetX() )
+  assert( defined && p.defined );
+  if( x < p.x )
     return 1;
-  else if( x == p.GetX() && y < p.GetY() )
+  else if( x == p.x && y < p.y )
     return 1;
   return 0;
 }
 
-bool Point::operator>=( const Point& p ) const
+inline bool Point::operator>=( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x > p.GetX() )
+  assert( defined && p.defined );
+  if( x > p.x )
     return 1;
-  else if( x == p.GetX() && y >= p.GetY() )
+  else if( x == p.x && y >= p.y )
     return 1;
   return 0;
 }
 
-bool Point::operator>( const Point& p ) const
+inline bool Point::operator>( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() );
-  if( x > p.GetX() )
+  assert( defined && p.defined );
+  if( x > p.x )
     return 1;
-  else if( x == p.GetX() && y > p.GetY() )
+  else if( x == p.x && y > p.y )
     return 1;
   return 0;
 }
@@ -189,109 +202,98 @@ ostream& operator<<( ostream& o, const Point& p )
 
   return o;
 }
-/*
-  ************************************************************************
-  The following 10 functions are used for porting point to Tuple.
-  ************************************************************************
 
-*/
-bool Point::IsDefined() const
+inline bool Point::IsDefined() const
 {
   return defined;
 }
 
-void Point::SetDefined( bool Defined )
+inline void Point::SetDefined( bool defined )
 {
-  defined = Defined;
+  this->defined = defined;
 }
 
-size_t   Point::HashValue()
+size_t Point::HashValue()
 {
-    if(!defined)  return (0);
-    unsigned long h;
-    Coord x=GetX();
-    Coord y=GetY();
+  if( !defined )  
+    return 0;
+
+  size_t h;
 #ifdef RATIONAL_COORDINATES
-    h=(unsigned long)
+    h=(size_t)
         (5*(x.IsInteger()? x.IntValue():x.Value())
           + (y.IsInteger()? y.IntValue():y.Value()));
 #else
-    h=(unsigned long)(5*x + y);
+    h=(size_t)(5*x + y);
 #endif
-    return size_t(h);
+    return h;
 }
 
-void  Point::CopyFrom(StandardAttribute* right)
+void Point::CopyFrom( StandardAttribute* right ) 
 {
-//  cout<<"classcopy ////////////////////"<<endl;
-
   Point* p = (Point*)right;
-  defined = p->IsDefined();
-  if (defined)
+  defined = p->defined;
+  if( defined )
   {
-      Set( p->GetX(), p->GetY());
+    Set( p->x, p->y );
   }
-  //cout<<*this<<" .vs. "<<*p<<endl;
 }
 
-int   Point::Compare(Attribute * arg)
+int Point::Compare( Attribute *arg )
 {
-    int res=0;
-    Point* p = (Point* )(arg);
-    if ( !p ) return (-2);
+  Point* p = (Point*)arg;
 
-    if (!IsDefined() && !(arg->IsDefined()))  res=0;
-    else if (!IsDefined())  res=-1;
-    else  if (!(arg->IsDefined())) res=1;
-    else
-    {
-	if (*this > *p) res=1;
-	else if (*this < *p) res=-1;
-	else res=0;
-    }
-    return (res);
-}
+  if( !p ) 
+    return -2;
 
-bool   Point::Adjacent(Attribute * arg)
-{
+  if( !defined && !p->defined )  
     return 0;
-    //for points which takes double values, we can not decides whether they are
-    //adjacent or not.
+
+  if( !defined )
+    return -1;
+
+  if( !p->defined ) 
+    return 1;
+
+  if( *this > *p ) 
+    return 1;
+
+  if( *this < *p ) 
+    return -1;
+
+  return 0;
 }
 
-int  Point::Sizeof() const
+bool Point::Adjacent( Attribute * arg )
 {
-    return sizeof(Point);
+  return false;
+}
+
+int Point::Sizeof() const
+{
+  return sizeof(Point);
 }
 
 Point*  Point::Clone()
 {
-  // cout<<"classclone ////////////////////"<<endl;
-    return (new Point( *this));
+  return new Point( *this );
 }
 
 ostream& Point::Print( ostream &os )
 {
-    if (defined)
-	return (os << GetX() << ","<<GetY());
-    else    return (os << "undefined");
+  return os << *this;
 }
-/*
-  ***************************************************
-   End of the definition of the virtual functions.
-  ***************************************************
 
-*/
 bool Point::Inside( Points& ps ) const
 {
-  assert( IsDefined() && ps.IsOrdered() );
+  assert( defined && ps.IsOrdered() );
 
   return ps.Contains( *this );
 }
 
 void Point::Intersection( const Point& p, Point& result ) const
 {
-  assert( IsDefined() && p.IsDefined() );
+  assert( defined && p.defined );
 
   if( *this == p )
     result = *this;
@@ -301,7 +303,7 @@ void Point::Intersection( const Point& p, Point& result ) const
 
 void Point::Intersection( Points& ps, Point& result ) const
 {
-  assert( IsDefined() );
+  assert( defined && ps.IsOrdered() );
 
   if( this->Inside( ps ) )
     result = *this;
@@ -311,7 +313,7 @@ void Point::Intersection( Points& ps, Point& result ) const
 
 void Point::Minus( const Point& p, Point& result ) const
 {
-  assert( IsDefined() && p.IsDefined() );
+  assert( defined && p.defined );
 
   if( *this == p )
     result.SetDefined( false );
@@ -321,7 +323,7 @@ void Point::Minus( const Point& p, Point& result ) const
 
 void Point::Minus( Points& ps, Point& result ) const
 {
-  assert( IsDefined() );
+  assert( defined && ps.IsOrdered() );
 
   if( this->Inside( ps ) )
     result.SetDefined( false );
@@ -329,28 +331,21 @@ void Point::Minus( Points& ps, Point& result ) const
     result = *this;
 }
 
-double Point::distance( const Point& p ) const
+double Point::Distance( const Point& p ) const
 {
-    assert( IsDefined() && p.IsDefined() );
+  assert( defined && p.defined );
 
-    double result;
-
-    Coord x1=this->GetX();
-    Coord y1=this->GetY();
-    Coord x2=p.GetX();
-    Coord y2=p.GetY();
 #ifdef RATIONAL_COORDINATES
-    double dx = (x2.IsInteger()? x2.IntValue():x2.Value()) -
-	          (x1.IsInteger()? x1.IntValue():x1.Value());
-    double dy = (y2.IsInteger()? y2.IntValue():y2.Value()) -
-	          (y1.IsInteger()? y1.IntValue():y1.Value());
+  double dx = (p.x.IsInteger()? p.x.IntValue():p.x.Value()) -
+              (x.IsInteger()? x.IntValue():x.Value());
+  double dy = (p.y.IsInteger()? p.y.IntValue():p.y.Value()) -
+              (y.IsInteger()? y.IntValue():y.Value());
 #else
-    double dx = x2 - x1;
-    double dy = y2 - y1;
+  double dx = p.x - x;
+  double dy = p.y - y;
 #endif
 
-    result=sqrt(dx*dx + dy*dy);
-    return (result);
+  return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
 }
 
 /*
@@ -1623,11 +1618,11 @@ void     CHalfSegment::SetLDP(bool LDP)
     ldp=LDP;
 }
 
-void    CHalfSegment::translate(double xx, double yy)
+void CHalfSegment::Translate( const Coord& x, const Coord& y )
 {
-    assert(IsDefined());
-    lp.translate(xx,yy);
-    rp.translate(xx,yy);
+  assert( defined );
+  lp.Translate( x, y );
+  rp.Translate( x, y );
 }
 
 const Rectangle CHalfSegment::BoundingBox() const
@@ -2929,10 +2924,10 @@ bool CHalfSegment::Contains( const Point& p ) const
   }
 }
 /*
-6.1.15 distance Function
+6.1.15 Distance Function
 
 */
-double CHalfSegment::distance( const Point& p ) const
+double CHalfSegment::Distance( const Point& p ) const
 {
     //this function computes the distance of a line segment and a point
     assert (( p.IsDefined())&&(this->IsDefined()));
@@ -2964,8 +2959,8 @@ double CHalfSegment::distance( const Point& p ) const
 	    }
 	    else
 	    {
-		result=p.distance(this->GetLP());
-		auxresult=p.distance(this->GetRP());
+		result=p.Distance(this->GetLP());
+		auxresult=p.Distance(this->GetRP());
 		if (result > auxresult) result=auxresult;
 	    }
 	}
@@ -2983,8 +2978,8 @@ double CHalfSegment::distance( const Point& p ) const
 	    }
 	    else
 	    {
-		result=p.distance(this->GetLP());
-		auxresult=p.distance(this->GetRP());
+		result=p.Distance(this->GetLP());
+		auxresult=p.Distance(this->GetRP());
 		if (result > auxresult) result=auxresult;
 	    }
 	}
@@ -3013,18 +3008,17 @@ double CHalfSegment::distance( const Point& p ) const
 	Point PP(true, XX, YY);
 	if ((xl<=XX)&&(XX<=xr))
 	{
-	    result=p.distance(PP);
+	    result=p.Distance(PP);
 	}
 	else
 	{
-	    result=p.distance(this->GetLP());
+	    result=p.Distance(this->GetLP());
 
-	    auxresult=p.distance(this->GetRP());
+	    auxresult=p.Distance(this->GetRP());
 	    if (result > auxresult)
 		result=auxresult;
 	}
     }
-    //cout<<"the distance "<<*this<<" and "<<p <<" is: "<<result<<endl;
     return (result);
 }
 /*
@@ -3332,15 +3326,15 @@ as a set of sorted halfsegments, which are stored as a PArray.
 
 */
 CLine::CLine(const int initsize) :
-        line( initsize ),
-        bbox( false ),
-        ordered( true )
+line( initsize ),
+bbox( false ),
+ordered( true )
 {}
 
 CLine::CLine(CLine& cl ) :
-        line( cl.Size() ),
-        bbox( cl.BoundingBox() ),
-        ordered( true )
+line( cl.Size() ),
+bbox( cl.bbox ),
+ordered( true )
 {
   assert( cl.IsOrdered());
 
@@ -3385,9 +3379,7 @@ void CLine::StartBulkLoad()
 void CLine::EndBulkLoad()
 {
   assert( !IsOrdered());
-  //  cout << "Before sorting: " << *this << endl;
   Sort();
-  //  cout << "After sorting: " << *this << endl;
   ordered = true;
 }
 
@@ -3419,7 +3411,7 @@ CLine& CLine::operator=(CLine& cl)
     cl.Get( i, chs );
     line.Put( i, chs );
   }
-  bbox = cl.BoundingBox();
+  bbox = cl.bbox;
   ordered = true;
   return *this;
 }
@@ -3428,9 +3420,11 @@ bool CLine::operator==(CLine& cl)
 {
   assert( IsOrdered() && cl.IsOrdered() );
 
-  if( Size() != cl.Size() )    return 0;
+  if( Size() != cl.Size() )
+    return false;
 
-  if ( bbox != cl.BoundingBox() )   return 0;
+  if( bbox != cl.bbox )
+    return false;
 
   for( int i = 0; i < Size(); i++ )
   {
@@ -3438,9 +3432,9 @@ bool CLine::operator==(CLine& cl)
     line.Get( i, chs1 );
     cl.Get( i, chs2 );
     if( chs1 != chs2 )
-      return 0;
+      return false;
   }
-  return 1;
+  return true;
 }
 
 CLine& CLine::operator+=(const CHalfSegment& chs)
@@ -10649,7 +10643,7 @@ distance_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 
     if (( p1->IsDefined())&&(p2->IsDefined()))
     {
-	((CcReal *)result.addr)->Set( true, p1->distance(*p2));
+	((CcReal *)result.addr)->Set( true, p1->Distance(*p2));
 	return (0);
     }
     else
@@ -10668,22 +10662,22 @@ distance_pps( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[1].addr);
     Point auxp;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(ps->IsEmpty())))
     {
 	for (int i=0; i<ps->Size(); i++)
 	{
 	    ps->Get(i, auxp);
-	    currdistance=p->distance(auxp);
+	    currDistance=p->Distance(auxp);
 
-	    if (mindistance==-1)
-		mindistance=currdistance;
-	    else if (mindistance>currdistance)
-		mindistance=currdistance;
+	    if (minDistance==-1)
+		minDistance=currDistance;
+	    else if (minDistance>currDistance)
+		minDistance=currDistance;
 	}
 
-	((CcReal *)result.addr)->Set( true,mindistance);
+	((CcReal *)result.addr)->Set( true,minDistance);
 	return (0);
     }
     else
@@ -10702,22 +10696,22 @@ distance_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps=((Points*)args[0].addr);
     Point auxp;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(ps->IsEmpty())))
     {
 	for (int i=0; i<ps->Size(); i++)
 	{
 	    ps->Get(i, auxp);
-	    currdistance=p->distance(auxp);
+	    currDistance=p->Distance(auxp);
 
-	    if (mindistance==-1)
-		mindistance=currdistance;
-	    else if (mindistance>currdistance)
-		mindistance=currdistance;
+	    if (minDistance==-1)
+		minDistance=currDistance;
+	    else if (minDistance>currDistance)
+		minDistance=currDistance;
 	}
 
-	((CcReal *)result.addr)->Set( true,mindistance);
+	((CcReal *)result.addr)->Set( true,minDistance);
 	return (0);
     }
     else
@@ -10737,7 +10731,7 @@ distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cl->IsEmpty())))
     {
@@ -10746,16 +10740,16 @@ distance_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 	    cl->Get(i, chs);
 	    if (chs.GetLDP())
 	    {
-		currdistance=chs.distance(*p);
+		currDistance=chs.Distance(*p);
 
-		if (mindistance==-1)
-		    mindistance=currdistance;
-		else if (mindistance>currdistance)
-		    mindistance=currdistance;
+		if (minDistance==-1)
+		    minDistance=currDistance;
+		else if (minDistance>currDistance)
+		    minDistance=currDistance;
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -10775,7 +10769,7 @@ distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cl->IsEmpty())))
     {
@@ -10784,16 +10778,16 @@ distance_lp( Word* args, Word& result, int message, Word& local, Supplier s )
 	    cl->Get(i, chs);
 	    if (chs.GetLDP())
 	    {
-		currdistance=chs.distance(*p);
+		currDistance=chs.Distance(*p);
 
-		if (mindistance==-1)
-		    mindistance=currdistance;
-		else if (mindistance>currdistance)
-		    mindistance=currdistance;
+		if (minDistance==-1)
+		    minDistance=currDistance;
+		else if (minDistance>currDistance)
+		    minDistance=currDistance;
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -10813,7 +10807,7 @@ distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cr->IsEmpty())))
     {
@@ -10828,16 +10822,16 @@ distance_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 	    cr->Get(i, chs);
 	    if (chs.GetLDP())
 	    {
-		currdistance=chs.distance(*p);
+		currDistance=chs.Distance(*p);
 
-		if (mindistance==-1)
-		    mindistance=currdistance;
-		else if (mindistance>currdistance)
-		    mindistance=currdistance;
+		if (minDistance==-1)
+		    minDistance=currDistance;
+		else if (minDistance>currDistance)
+		    minDistance=currDistance;
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -10857,7 +10851,7 @@ distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (( p->IsDefined())&&(!(cr->IsEmpty())))
     {
@@ -10872,16 +10866,16 @@ distance_rp( Word* args, Word& result, int message, Word& local, Supplier s )
 	    cr->Get(i, chs);
 	    if (chs.GetLDP())
 	    {
-		currdistance=chs.distance(*p);
+		currDistance=chs.Distance(*p);
 
-		if (mindistance==-1)
-		    mindistance=currdistance;
-		else if (mindistance>currdistance)
-		    mindistance=currdistance;
+		if (minDistance==-1)
+		    minDistance=currDistance;
+		else if (minDistance>currDistance)
+		    minDistance=currDistance;
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -10900,7 +10894,7 @@ distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
     Points *ps2=((Points*)args[1].addr);
     Point p1, p2;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if (!( ps1->IsEmpty())&&(!(ps2->IsEmpty())))
     {
@@ -10912,16 +10906,16 @@ distance_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 	    {
 		ps2->Get(j, p2);
 
-		currdistance=p1.distance(p2);
+		currDistance=p1.Distance(p2);
 
-		if (mindistance==-1)
-		    mindistance=currdistance;
-		else if (mindistance>currdistance)
-		    mindistance=currdistance;
+		if (minDistance==-1)
+		    minDistance=currDistance;
+		else if (minDistance>currDistance)
+		    minDistance=currDistance;
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true,mindistance);
+	((CcReal *)result.addr)->Set( true,minDistance);
 	return (0);
     }
     else
@@ -10942,7 +10936,7 @@ distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cl->IsEmpty())))
     {
@@ -10955,17 +10949,17 @@ distance_psl( Word* args, Word& result, int message, Word& local, Supplier s )
 		cl->Get(i, chs);
 		if (chs.GetLDP())
 		{
-		    currdistance=chs.distance(p);
+		    currDistance=chs.Distance(p);
 
-		    if (mindistance==-1)
-			mindistance=currdistance;
-		    else if (mindistance>currdistance)
-			mindistance=currdistance;
+		    if (minDistance==-1)
+			minDistance=currDistance;
+		    else if (minDistance>currDistance)
+			minDistance=currDistance;
 		}
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -10986,7 +10980,7 @@ distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cl->IsEmpty())))
     {
@@ -10999,17 +10993,17 @@ distance_lps( Word* args, Word& result, int message, Word& local, Supplier s )
 		cl->Get(i, chs);
 		if (chs.GetLDP())
 		{
-		    currdistance=chs.distance(p);
+		    currDistance=chs.Distance(p);
 
-		    if (mindistance==-1)
-			mindistance=currdistance;
-		    else if (mindistance>currdistance)
-			mindistance=currdistance;
+		    if (minDistance==-1)
+			minDistance=currDistance;
+		    else if (minDistance>currDistance)
+			minDistance=currDistance;
 		}
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -11030,7 +11024,7 @@ distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cr->IsEmpty())))
     {
@@ -11049,17 +11043,17 @@ distance_psr( Word* args, Word& result, int message, Word& local, Supplier s )
 		cr->Get(j, chs);
 		if (chs.GetLDP())
 		{
-		    currdistance=chs.distance(p);
+		    currDistance=chs.Distance(p);
 
-		    if (mindistance==-1)
-			mindistance=currdistance;
-		    else if (mindistance>currdistance)
-			mindistance=currdistance;
+		    if (minDistance==-1)
+			minDistance=currDistance;
+		    else if (minDistance>currDistance)
+			minDistance=currDistance;
 		}
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -11080,7 +11074,7 @@ distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
     Point p;
     CHalfSegment chs;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(ps->IsEmpty()))&&(!(cr->IsEmpty())))
     {
@@ -11099,17 +11093,17 @@ distance_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 		cr->Get(j, chs);
 		if (chs.GetLDP())
 		{
-		    currdistance=chs.distance(p);
+		    currDistance=chs.Distance(p);
 
-		    if (mindistance==-1)
-			mindistance=currdistance;
-		    else if (mindistance>currdistance)
-			mindistance=currdistance;
+		    if (minDistance==-1)
+			minDistance=currDistance;
+		    else if (minDistance>currDistance)
+			minDistance=currDistance;
 		}
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -11129,7 +11123,7 @@ distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 
     CHalfSegment chs1, chs2;
 
-    float currdistance, mindistance=-1;
+    float currDistance, minDistance=-1;
 
     if ((!(cl1->IsEmpty()))&&(!(cl2->IsEmpty())))
     {
@@ -11143,35 +11137,35 @@ distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 		    cl2->Get(j, chs2);
 		    if (chs2.GetLDP())
 		    {
-			currdistance=chs1.distance(chs2.GetLP());
-			if (mindistance==-1)
-			    mindistance=currdistance;
-			else if (mindistance>currdistance)
-			    mindistance=currdistance;
+			currDistance=chs1.Distance(chs2.GetLP());
+			if (minDistance==-1)
+			    minDistance=currDistance;
+			else if (minDistance>currDistance)
+			    minDistance=currDistance;
 
-			currdistance=chs1.distance(chs2.GetRP());
-			if (mindistance==-1)
-			    mindistance=currdistance;
-			else if (mindistance>currdistance)
-			    mindistance=currdistance;
+			currDistance=chs1.Distance(chs2.GetRP());
+			if (minDistance==-1)
+			    minDistance=currDistance;
+			else if (minDistance>currDistance)
+			    minDistance=currDistance;
 
-			currdistance=chs2.distance(chs1.GetLP());
-			if (mindistance==-1)
-			    mindistance=currdistance;
-			else if (mindistance>currdistance)
-			    mindistance=currdistance;
+			currDistance=chs2.Distance(chs1.GetLP());
+			if (minDistance==-1)
+			    minDistance=currDistance;
+			else if (minDistance>currDistance)
+			    minDistance=currDistance;
 
-			currdistance=chs2.distance(chs1.GetRP());
-			if (mindistance==-1)
-			    mindistance=currdistance;
-			else if (mindistance>currdistance)
-			    mindistance=currdistance;
+			currDistance=chs2.Distance(chs1.GetRP());
+			if (minDistance==-1)
+			    minDistance=currDistance;
+			else if (minDistance>currDistance)
+			    minDistance=currDistance;
 		    }
 		}
 	    }
 	}
 
-	((CcReal *)result.addr)->Set( true, mindistance );
+	((CcReal *)result.addr)->Set( true, minDistance );
 	return (0);
     }
     else
@@ -11394,7 +11388,7 @@ size_l( Word* args, Word& result, int message, Word& local, Supplier s )
 	cl->Get(i, chs);
 	if (chs.GetLDP())
 	{
-	    res += chs.GetLP().distance(chs.GetRP());
+	    res += chs.GetLP().Distance(chs.GetRP());
 	}
     }
 
@@ -11647,7 +11641,6 @@ translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
     {
 	Point resP(true, p->GetX()+xx->GetRealval(), p->GetY()+yy->GetRealval());
 	*((Point *)result.addr)=resP;
-	//((Point *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
 	return (0);
     }
     else
@@ -11676,12 +11669,11 @@ translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 	for (int i=0; i<ps->Size(); i++)
 	{
 	    ps->Get(i, auxp);
-	    auxp.translate(xx->GetRealval(), yy->GetRealval());
+	    auxp.Translate(xx->GetRealval(), yy->GetRealval());
 	    *((Points *)result.addr) += auxp;
 	}
 
 	((Points *)result.addr)->setOrdered(true);
-	//((Points *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
 	return (0);
     }
     else
@@ -11710,12 +11702,11 @@ translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
 	for (int i=0; i<cl->Size(); i++)
 	{
 	    cl->Get(i, chs);
-	    chs.translate(xx->GetRealval(), yy->GetRealval());
+	    chs.Translate(xx->GetRealval(), yy->GetRealval());
 	    *((CLine *)result.addr) += chs;
 	}
 
 	((CLine *)result.addr)->setOrdered(true);
-	//((CLine *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
 	return (0);
     }
     else
@@ -11744,12 +11735,11 @@ translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
 	for (int i=0; i<cr->Size(); i++)
 	{
 	    cr->Get(i, chs);
-	    chs.translate(xx->GetRealval(), yy->GetRealval());
+	    chs.Translate(xx->GetRealval(), yy->GetRealval());
 	    *((CRegion *)result.addr) += chs;
 	}
 
 	((CRegion *)result.addr)->setOrdered(true);
-	//((CRegion *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
 	return (0);
     }
     else

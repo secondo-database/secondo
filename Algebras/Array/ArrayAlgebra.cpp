@@ -488,7 +488,8 @@ have a list representation (for input and output), but which do have an
 
 */
 bool
-OpenArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
+OpenArray( SmiRecord& valueRecord, size_t& offset,  
+           const ListExpr typeInfo, Word& value )
 {
   ListExpr valueList = 0;
   string valueString;
@@ -496,9 +497,11 @@ OpenArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   bool correct;
-  valueRecord.Read( &valueLength, sizeof(valueLength), 0 );
+  valueRecord.Read( &valueLength, sizeof(valueLength), offset );
+  offset += sizeof(valueLength);
   char* buffer = new char[valueLength];
-  valueRecord.Read( buffer, valueLength, sizeof(valueLength) );
+  valueRecord.Read( buffer, valueLength, offset );
+  offset += valueLength;
   valueString.assign( buffer, valueLength );
 
   delete []buffer;
@@ -515,7 +518,8 @@ OpenArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 }
 
 bool
-SaveArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
+SaveArray( SmiRecord& valueRecord, size_t& offset,
+           const ListExpr typeInfo, Word& value)
 {
   ListExpr valueList;
   string valueString;
@@ -525,9 +529,10 @@ SaveArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();
-  valueRecord.Write( &valueLength, sizeof(valueLength), 0 );
-  valueRecord.Write( valueString.data(), valueString.length(),
-                     sizeof(valueLength) );
+  valueRecord.Write( &valueLength, sizeof(valueLength), offset );
+  offset += sizeof(valueLength);
+  valueRecord.Write( valueString.data(), valueString.length(), offset );
+  offset += valueString.length();
 
   nl->Destroy( valueList );
   return (true);

@@ -144,6 +144,7 @@ Operator::CallCostMapping( ListExpr argList )
 
 bool
 TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
+                              size_t& offset,
                               const ListExpr typeInfo,
                               Word& value )
 {
@@ -153,9 +154,11 @@ TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   bool correct;
-  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+  valueRecord.Read( &valueLength, sizeof( valueLength ), offset );
+  offset += sizeof( valueLength );
   char* buffer = new char[valueLength];
-  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+  valueRecord.Read( buffer, valueLength, offset );
+  offset += valueLength;
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
@@ -170,6 +173,7 @@ TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
 
 bool
 TypeConstructor::DefaultSave( SmiRecord& valueRecord,
+                              size_t& offset,
                               const ListExpr typeInfo,
                               Word& value )
 {
@@ -181,8 +185,10 @@ TypeConstructor::DefaultSave( SmiRecord& valueRecord,
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();
-  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+  valueRecord.Write( &valueLength, sizeof( valueLength ), offset );
+  offset += sizeof( valueLength );
+  valueRecord.Write( valueString.data(), valueString.length(), offset );
+  offset += valueString.length();
 
   nl->Destroy( valueList );
   return (true);
@@ -403,31 +409,33 @@ TypeConstructor::Delete( Word& w )
 
 bool
 TypeConstructor::Open( SmiRecord& valueRecord,
+                       size_t& offset,
                        const ListExpr typeInfo,
                        Word& value )
 {
   if ( openFunc != 0 )
   {
-    return ((*openFunc)( valueRecord, typeInfo, value ));
+    return ((*openFunc)( valueRecord, offset, typeInfo, value ));
   }
   else
   {
-    return (DefaultOpen( valueRecord, typeInfo, value ));
+    return (DefaultOpen( valueRecord, offset, typeInfo, value ));
   }
 }
 
 bool
 TypeConstructor::Save( SmiRecord& valueRecord,
+                       size_t& offset,
                        const ListExpr typeInfo,
                        Word& value )
 {
   if ( saveFunc != 0 )
   {
-    return ((*saveFunc)( valueRecord, typeInfo, value ));
+    return ((*saveFunc)( valueRecord, offset, typeInfo, value ));
   }
   else
   {
-    return (DefaultSave( valueRecord, typeInfo, value ));
+    return (DefaultSave( valueRecord, offset, typeInfo, value ));
   }
 }
 

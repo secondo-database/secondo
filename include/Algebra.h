@@ -315,9 +315,11 @@ Returns the properties of the type constructor as a nested list.
   Word     Create( const ListExpr typeInfo );
   void     Delete( Word& w );
   bool     Open( SmiRecord& valueRecord,
+                 size_t& offset,
                  const ListExpr typeInfo,
                  Word& value );
-  bool     Save( SmiRecord& valueRecord,
+  bool     Save( SmiRecord& valueRecord, 
+                 size_t& offset, 
                  const ListExpr typeInfo,
                  Word& value );
   void     Close( Word& w );
@@ -346,9 +348,11 @@ constructor.
                                 const ListExpr typeExpr,
                                 Word& model );
   bool     DefaultOpen( SmiRecord& valueRecord,
+                        size_t& offset,
                         const ListExpr typeInfo,
                         Word& value );
   bool     DefaultSave( SmiRecord& valueRecord,
+                        size_t& offset,
                         const ListExpr typeInfo,
                         Word& value );
 /*

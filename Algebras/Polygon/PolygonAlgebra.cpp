@@ -555,11 +555,11 @@ void DeletePolygon(Word& w)
 */
 bool
 OpenPolygon( SmiRecord& valueRecord,
+             size_t& offset,
              const ListExpr typeInfo,
              Word& value )
 {
-  Polygon *p = new Polygon( 0 );
-  p->Open( valueRecord, typeInfo );
+  Polygon *p = (Polygon*)TupleElement::Open( valueRecord, offset, typeInfo );
   value = SetWord( p );
   return true;
 }
@@ -570,11 +570,12 @@ OpenPolygon( SmiRecord& valueRecord,
 */
 bool
 SavePolygon( SmiRecord& valueRecord,
+             size_t& offset,
              const ListExpr typeInfo,
              Word& value )
 {
   Polygon *p = (Polygon *)value.addr;
-  p->Save( valueRecord, typeInfo );
+  TupleElement::Save( valueRecord, offset, typeInfo, p );
   return true;
 }
 

@@ -1,3 +1,15 @@
+/*
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
+
+[1] Header file  of the Old Relational Algebra
+
+March 2003 Victor Almeida created the new Relational Algebra organization
+
+1 Defines, includes, and constants
+
+*/
 #ifndef OLD_RELATION_ALGEBRA__H
 #define OLD_RELATION_ALGEBRA_H
 
@@ -181,13 +193,11 @@ bool CheckCcRel(ListExpr, ListExpr&);
 
 void* CastCcRel(void*);
 
-bool OpenCcRel( SmiRecord&,
-              const ListExpr,
-              Word& );
+bool OpenCcRel( SmiRecord&, size_t&,
+                const ListExpr, Word& );
 
-bool SaveCcRel( SmiRecord&,
-              const ListExpr,
-              Word& );
+bool SaveCcRel( SmiRecord&, size_t&,
+                const ListExpr, Word& );
     
 Word CcRelInModel( ListExpr, ListExpr, int );
 

@@ -793,13 +793,13 @@ Corresponds to the ~Out~-function of type constructor ~rel~.
 Acts as the ~Out~ function, but uses internal representation for the objects.
 
 */
-    static bool Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value );
+    static bool Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Relation*& value );
 /*
 Opens a relation.
 Corresponds to the ~Open~-function of type constructor ~rel~.
 
 */
-    bool Save( SmiRecord& valueRecord, const ListExpr typeInfo );
+    bool Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
 /*
 Saves a relation.
 Corresponds to the ~Save~-function of type constructor ~rel~.

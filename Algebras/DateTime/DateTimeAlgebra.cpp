@@ -867,7 +867,7 @@ This function reads the value of this DateTime instance from the
 givem SmiRecord beginning from the given offset.
 
 */
-void DateTime::ReadFromSmiRecord(SmiRecord& valueRecord,int& offset){
+void DateTime::ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset){
    valueRecord.Read(&day,sizeof(long),offset);
    offset += sizeof(long);
    valueRecord.Read(&milliseconds,sizeof(long),offset);
@@ -889,8 +889,7 @@ The ~Open~ function reads the DateTime value from the argument
 this is very simple.
 
 */
-void DateTime::Open(SmiRecord& valueRecord, const ListExpr typeinfo){
-   int offset = 0;
+void DateTime::Open(SmiRecord& valueRecord, size_t& offset, const ListExpr typeinfo){
    ReadFromSmiRecord(valueRecord,offset);
 }
 
@@ -902,7 +901,7 @@ This function write the data part of this DateTime instance to
 this function the offset will be behind the written data part.
 
 */
-void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,int& offset)const{
+void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,size_t& offset)const{
    valueRecord.Write(&day,sizeof(long),offset);
    offset += sizeof(long);
    valueRecord.Write(&milliseconds,sizeof(long),offset);
@@ -922,8 +921,7 @@ The ~Save~ functions saves the data of the DateTime value to
 *valueRecord*.
 
 */
-void DateTime::Save(SmiRecord& valueRecord, const ListExpr typeinfo){
-   int offset = 0;
+void DateTime::Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeinfo){
    WriteToSmiRecord(valueRecord,offset);
 }
 
@@ -1477,11 +1475,12 @@ void DeleteDateTime(Word &w){
 
 */
 bool OpenDateTime( SmiRecord& valueRecord,
-                const ListExpr typeInfo,
-                Word& value ){
+                   size_t& offset,
+                   const ListExpr typeInfo,
+                   Word& value ){
   DateTime* T = new DateTime(instanttype);
   // the type will be overwritten when opened
-  T->Open(valueRecord,typeInfo);
+  T->Open(valueRecord,offset,typeInfo);
   value = SetWord(T);
   return true;
 }
@@ -1491,10 +1490,11 @@ bool OpenDateTime( SmiRecord& valueRecord,
 
 */
 bool SaveDateTime( SmiRecord& valueRecord,
-                const ListExpr typeInfo,
-                Word& value ){
+                   size_t& offset,
+                   const ListExpr typeInfo,
+                   Word& value ){
   DateTime* T = (DateTime *)value.addr;
-  T->Save( valueRecord, typeInfo );
+  T->Save( valueRecord, offset, typeInfo );
   return true;
 }
 

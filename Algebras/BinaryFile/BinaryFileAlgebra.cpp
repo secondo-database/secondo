@@ -289,15 +289,13 @@ DeleteBinaryFile( Word& w )
 */
 bool
 OpenBinaryFile( SmiRecord& valueRecord,
+                size_t& offset,
                 const ListExpr typeInfo,
                 Word& value )
 {
-  BinaryFile *bf = new BinaryFile( 0 );
-
   // This Open function is implemented in the TupleElement class
   // and uses the same method of the Tuple manager to open objects
-  bf->Open( valueRecord, typeInfo );
-
+  BinaryFile *bf = (BinaryFile*)TupleElement::Open( valueRecord, offset, typeInfo );
   value = SetWord( bf );
   return true;
 }
@@ -308,6 +306,7 @@ OpenBinaryFile( SmiRecord& valueRecord,
 */
 bool
 SaveBinaryFile( SmiRecord& valueRecord,
+                size_t& offset,
                 const ListExpr typeInfo,
                 Word& value )
 {
@@ -315,8 +314,7 @@ SaveBinaryFile( SmiRecord& valueRecord,
 
   // This Save function is implemented in the TupleElement class
   // and uses the same method of the Tuple manager to save objects
-  bf->Save( valueRecord, typeInfo );
-
+  TupleElement::Save( valueRecord, offset, typeInfo, bf );
   return true;
 }
 

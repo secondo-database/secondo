@@ -534,7 +534,8 @@ ListExpr Relation::SaveToList( ListExpr typeInfo )
   return l;
 }
 
-bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value )
+bool Relation::Open( SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo, Relation*& value )
 {
   ListExpr valueList;
   string valueString;
@@ -543,13 +544,11 @@ bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*&
   SmiKey mykey;
   SmiRecordId recId;
   mykey = valueRecord.GetKey();
-  if ( !mykey.GetKey(recId) )
-  {
-    cout << "\tRelOpen: Couldn't get the key!" << endl;
-  }
+  assert( mykey.GetKey(recId) );
 
   // initialize
-  if ( firsttime ) {
+  if ( firsttime ) 
+  {
     for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
     firsttime = false;
   }
@@ -563,16 +562,17 @@ bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*&
     }
 
   // prepare to cache the value constructed from the list
-  if ( key[current] != 0 ) {
+  if ( key[current] != 0 ) 
     delete (Relation *)cache[current].addr;
-  }
   key[current] = recId;
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   bool correct;
-  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+  valueRecord.Read( &valueLength, sizeof( valueLength ), offset );
+  offset += sizeof( valueLength );
   char* buffer = new char[valueLength];
-  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+  valueRecord.Read( buffer, valueLength, offset );
+  offset += valueLength;
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
@@ -581,14 +581,13 @@ bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*&
   cache[current++] = SetWord(value);
   if ( current == cachesize ) current = 0;
 
-  if ( errorInfo != 0 )     {
+  if ( errorInfo != 0 )     
     nl->Destroy( errorInfo );
-  }
   nl->Destroy( valueList );
   return (true);
 }
 
-bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
+bool Relation::Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
 {
   ListExpr valueList;
   string valueString;
@@ -598,8 +597,10 @@ bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();
-  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+  valueRecord.Write( &valueLength, sizeof( valueLength ), offset );
+  offset += sizeof( valueLength );
+  valueRecord.Write( valueString.data(), valueString.length(), offset );
+  offset += valueString.length();
 
   nl->Destroy( valueList );
   return (true);

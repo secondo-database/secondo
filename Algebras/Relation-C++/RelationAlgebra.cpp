@@ -636,10 +636,11 @@ the cached relation value is returned instead of building a new one.
 */
 bool
 OpenRel( SmiRecord& valueRecord,
+         size_t& offset,
          const ListExpr typeInfo,
          Word& value )
 {
-  return Relation::Open( valueRecord, typeInfo, (Relation *)value.addr );
+  return Relation::Open( valueRecord, offset, typeInfo, (Relation *)value.addr );
 }
 
 /*
@@ -648,10 +649,11 @@ OpenRel( SmiRecord& valueRecord,
 */
 bool
 SaveRel( SmiRecord& valueRecord,
+         size_t& offset, 
          const ListExpr typeInfo,
          Word& value )
 {
-  return ((Relation *)value.addr)->Save( valueRecord, typeInfo );
+  return ((Relation *)value.addr)->Save( valueRecord, offset, typeInfo );
 }
 
 /*

@@ -281,6 +281,15 @@ As a parameter ~s~, the operator's node address has to be given which is
 passed to the evaluation function in parameter ~opTreeNode~. 
 
 */
+  void ResultStorage( const Supplier s, const Word w );
+/*
+Some operators do not use the result storage and create their own
+storage for the result. This function is used for this case. They
+must call the first function ~ResultStorage~ and free it, and then 
+set the new one passed in ~w~.
+
+*/
+
   int GetNoSons( const Supplier s );
 /*
 Returns the number of sons of the operator node ~s~ of the operator
@@ -407,7 +416,8 @@ enum QueryProcessorType
          QP_ABSTRACTION, QP_APPLYOP,
          QP_ARGLIST, QP_APPLYABS, QP_APPLYFUN,
          QP_TYPEERROR, QP_ERROR, QP_APPEND,
-         QP_UNDEFINED, QP_COUNTER, QP_COUNTERDEF };
+         QP_UNDEFINED, QP_COUNTER, QP_COUNTERDEF,
+         QP_POINTER };
 /*
 enumerates the types a symbol may have while annotating an expression.
 

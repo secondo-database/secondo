@@ -73,7 +73,9 @@ class BTree
     ~BTree();
 
     bool IsInitialized();
-    bool WriteTo(SmiRecord& record);
+    static bool Open( SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, BTree *&value );
+    bool Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo);
     void SetPermanent();
     void SetTemporary();
     bool SetTypeAndCreate(SmiKey::KeyDataType keyType);

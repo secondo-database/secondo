@@ -167,7 +167,7 @@ This function overwrites the inherited ~Open~ function for the reason
 of resistency against recompiling.
 
 */
-     virtual void Open(SmiRecord& valueRecord, const ListExpr typeInfo);
+     virtual void Open(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
 /*
 ~Save~
@@ -175,7 +175,7 @@ of resistency against recompiling.
 The ~Save~ function is the counterpart of the ~Open~ function.
 
 */
-     virtual void Save(SmiRecord& valueRecord, const ListExpr typeInfo);
+     virtual void Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
 /*
 ~Conversion from and into other formats~
@@ -447,7 +447,7 @@ After calling this function, {\tt offset} will holds the position
 behind the written data.
 
 */
-     void WriteToSmiRecord(SmiRecord& valueRecord, int& offset)const;
+     void WriteToSmiRecord(SmiRecord& valueRecord, size_t& offset)const;
 /*
 ~ReadFromSmiRecord~
 
@@ -455,7 +455,7 @@ This function reads the value of this DateTime instance. The offset
 is adjusted.
 
 */
-     void ReadFromSmiRecord(SmiRecord& valueRecord, int& offset);
+     void ReadFromSmiRecord(SmiRecord& valueRecord, size_t& offset);
 
 
 /*

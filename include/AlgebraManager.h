@@ -314,10 +314,12 @@ typedef Word (*ObjectCreation)( const ListExpr typeInfo );
 typedef void (*ObjectDeletion)( Word& object );
 
 typedef bool (*ObjectOpen)( SmiRecord& valueRecord,
+                            size_t& offset,
                             const ListExpr typeExpr,
                             Word& value );
 
 typedef bool (*ObjectSave)( SmiRecord& valueRecord,
+                            size_t& offset,
                             const ListExpr typeExpr,
                             Word& value );
 
@@ -729,7 +731,7 @@ Returns the address of the object deletion function of type constructor
 
 */
   bool OpenObj( const int algebraId, const int typeId,
-                SmiRecord& valueRecord,
+                SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo, Word& value );
 /*
 Open objects of type as constructed by type constructor
@@ -738,7 +740,7 @@ Return "true"[4], if the operation was successful.
 
 */
   bool SaveObj( const int algebraId, const int typeId,
-                SmiRecord& valueRecord,
+                SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo, Word& value );
 /*
 Save objects of type as constructed by type constructor

@@ -2140,12 +2140,14 @@ void* CastRTree(void* addr)
 */
 bool
 OpenRTree( SmiRecord& valueRecord,
+           size_t& offset,
            const ListExpr typeInfo,
            Word& value )
 {
 //  cout << "Open RTree" << endl;
   SmiFileId fileid;
-  valueRecord.Read( &fileid, sizeof( SmiFileId ), 0 );
+  valueRecord.Read( &fileid, sizeof( SmiFileId ), offset );
+  offset += sizeof( SmiFileId );
   R_Tree *rtree = new R_Tree( fileid );
   value = SetWord( rtree );
   return true;
@@ -2157,13 +2159,15 @@ OpenRTree( SmiRecord& valueRecord,
 */
 bool
 SaveRTree( SmiRecord& valueRecord,
+           size_t& offset,
            const ListExpr typeInfo,
            Word& value )
 {
 //  cout << "Save RTree" << endl;
   R_Tree *rtree = (R_Tree *)value.addr;
   SmiFileId fileid = rtree->FileId();
-  valueRecord.Write( &fileid, sizeof( SmiFileId ), 0 );
+  valueRecord.Write( &fileid, sizeof( SmiFileId ), offset );
+  offset += sizeof( SmiFileId );
   return true;
 }
 

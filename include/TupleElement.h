@@ -86,21 +86,20 @@ class TupleElement // renamed, previous name: TupleElem
     virtual ostream& Print( ostream& os )
       { assert( false ); }
 
-    virtual void Save( SmiRecord& valueRecord, const ListExpr typeInfo )
+    static void Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, TupleElement *elem )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
 
       int algId = nl->IntValue( nl->First( typeInfo ) ),
           typeId = nl->IntValue( nl->Second( typeInfo ) ),
-          size = (algMgr->SizeOfObj(algId, typeId))(),
-          offset = 0;
+          size = (algMgr->SizeOfObj(algId, typeId))();
 
       // Calculate the extension size
       int extensionSize = 0;
-      for( int i = 0; i < NumOfFLOBs(); i++ )
+      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
-        FLOB *tmpFLOB = GetFLOB(i);
+        FLOB *tmpFLOB = elem->GetFLOB(i);
         if( tmpFLOB->IsLob() )
           tmpFLOB->SaveToLob( *SecondoSystem::GetFlobFile() );
         else
@@ -113,9 +112,9 @@ class TupleElement // renamed, previous name: TupleElem
       {
         extensionElement = (char *)malloc( extensionSize );
         char *extensionPtr = extensionElement;
-        for( int i = 0; i < NumOfFLOBs(); i++ )
+        for( int i = 0; i < elem->NumOfFLOBs(); i++ )
         {
-          FLOB *tmpFLOB = GetFLOB(i);
+          FLOB *tmpFLOB = elem->GetFLOB(i);
           if( !tmpFLOB->IsLob() )
           {
             tmpFLOB->SaveToExtensionTuple( extensionPtr );
@@ -125,7 +124,7 @@ class TupleElement // renamed, previous name: TupleElem
       }
 
       // Write the element
-      valueRecord.Write( this, size, offset );
+      valueRecord.Write( elem, size, offset );
       offset += size;
 
       // Write the extension element
@@ -136,24 +135,25 @@ class TupleElement // renamed, previous name: TupleElem
       }
     }
 
-    virtual void Open( SmiRecord& valueRecord, const ListExpr typeInfo )
+    static TupleElement *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
       int algId = nl->IntValue( nl->First( typeInfo ) ),
           typeId = nl->IntValue( nl->Second( typeInfo ) ),
-          size = (algMgr->SizeOfObj(algId, typeId))(),
-          offset = 0;
+          size = (algMgr->SizeOfObj(algId, typeId))();
 
+      TupleElement *elem = (TupleElement*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
       // Read the element
-      valueRecord.Read( this, size, offset );
+      valueRecord.Read( elem, size, offset );
+      elem = (TupleElement*)(algMgr->Cast(algId, typeId))( elem );
       offset += size;
 
       // Calculate the extension size
       int extensionSize = 0;
-      for( int i = 0; i < NumOfFLOBs(); i++ )
+      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
-        FLOB *tmpFLOB = GetFLOB(i);
+        FLOB *tmpFLOB = elem->GetFLOB(i);
         if( tmpFLOB->IsLob() )
           tmpFLOB->SetLobFile( SecondoSystem::GetFlobFile() );
         else
@@ -170,15 +170,16 @@ class TupleElement // renamed, previous name: TupleElem
 
       // Restore the FLOB data
       char *extensionPtr = extensionElement;
-      for( int i = 0; i < NumOfFLOBs(); i++ )
+      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
-        FLOB* tmpFLOB = GetFLOB(i);
+        FLOB* tmpFLOB = elem->GetFLOB(i);
         if( !tmpFLOB->IsLob() )
         {
           tmpFLOB->Restore( extensionPtr );
           extensionPtr = extensionPtr + tmpFLOB->Size();
         }
       }
+      return elem;
     }
 
 };

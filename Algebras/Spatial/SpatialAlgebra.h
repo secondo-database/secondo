@@ -29,22 +29,19 @@ shows examples of these spatial data types.
 #define DOUBLE_COORDINATES
 
 #ifdef DOUBLE_COORDINATES
-typedef double Coord;
+  typedef double Coord;
 #else
-
-#ifdef RATIONAL_COORDINATES
-#ifdef WITH_ARBITRARY_PRECISION
-
-#include "Rational.h"
-
-typedef Rational Coord;
-#else
-typedef Rational Coord;
-#endif
-#else
-typedef long Coord;
-#endif
-
+  #ifdef RATIONAL_COORDINATES
+    #ifdef WITH_ARBITRARY_PRECISION
+      #include "Rational.h"
+      typedef Rational Coord;
+    #else
+      #include "Rational.h"
+      typedef Rational Coord;
+    #endif
+  #else
+    typedef long Coord;
+  #endif
 #endif
 
 /*
@@ -86,19 +83,18 @@ class Point: public StandardSpatialAttribute
 /*
 3.1. Constructors and Destructor
 
-There are two ways of constructing a point:
-
 */
     Point() {};
 /*
 This constructor should not be used. 
 
+There are two ways of constructing a point:
+
 */
     Point( const bool d, const Coord& x = Coord(), const Coord& y = Coord() );
 /*
 The first one receives a boolean value ~d~ indicating if the point is defined
-and two coordinate ~x~ and ~y~ values. Note that this constructor can be
-called without arguments because all of them have default values.
+and two coordinate ~x~ and ~y~ values. 
 
 */
     Point( const Point& p );
@@ -114,54 +110,39 @@ The destructor.
 3.2 Member functions
 
 */
-    const Coord& GetX() const;
+    inline const Coord& GetX() const;
 /*
 Returns the ~x~ coordinate of the point.
 
 *Precondition:* ~IsDefined()~
 
 */
-    const Coord& GetY() const;
+    inline const Coord& GetY() const;
 /*
 Returns the ~y~ coordinate of the point.
 
 *Precondition:* ~IsDefined()~
 
 */
-    const Rectangle BoundingBox() const;
+    inline const Rectangle BoundingBox() const;
 /*
 Returns the point bounding box which is also a point.
 
 */
 
-    void  Set( const Coord& X, const Coord& Y)
-    {
-	defined=true;
-	x=X;
-	y=Y;
-    }
+    inline void Set( const Coord& x, const Coord& y );
 /*
-
-This function set the value of the point object.
+Sets the value of the point object.
 
 */
-    void  translate( double xx, double yy)
-    {
-	x=x+xx;
-	y=y+yy;
-    }
+    inline void Translate( const Coord& x, const Coord& y );
+/*
+Translates a point position by adding values ~x~ and ~y~.
 
-    Point& operator=(const Point& p);
+*/
+    inline Point& operator=(const Point& p);
 /*
 Assignement operator redefinition.
-
-*Precondition:* ~p.IsDefined()~
-
-*/
-    void SetDefined( const bool d = true );
-
-/*
-Sets the point to defined or undefined depending on the value of ~d~.
 
 3.3 Operations
 
@@ -174,7 +155,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    bool operator==(const Point& p) const;
+    inline bool operator==( const Point& p ) const;
 /*
 3.3.2 Operation $\neq$ (~not equal~)
 
@@ -185,7 +166,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    bool operator!=(const Point& p) const;
+    inline bool operator!=( const Point& p ) const;
 /*
 3.3.3 Operation $\leq$ (~less or equal~)
 
@@ -196,7 +177,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    bool operator<=(const Point& p) const;
+    inline bool operator<=( const Point& p ) const;
 /*
 3.3.4 Operation $<$ (~less than~)
 
@@ -207,7 +188,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    bool operator<(const Point& p) const;
+    inline bool operator<( const Point& p ) const;
 /*
 3.3.5 Operation $\geq$ (~greater or equal~)
 
@@ -218,7 +199,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    bool operator>=(const Point& p) const;
+    inline bool operator>=( const Point& p ) const;
 /*
 3.3.6 Operation $>$ (~greater than~)
 
@@ -229,11 +210,11 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    bool operator>(const Point& p) const;
+    inline bool operator>( const Point& p ) const;
 /*
 3.3.7 Operation ~inside~
 
-*Precondition:* ~u.IsDefined()~
+*Precondition:* ~u.IsDefined() $\&\&$ V.IsOrdered()~
 
 *Semantics:* $u \in V$
 
@@ -255,7 +236,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 /*
 3.3.9 Operation ~intersection~ (with ~points~)
 
-*Precondition:* ~u.IsDefined()~
+*Precondition:* ~u.IsDefined() $\&\&$ V.IsOrdered()~
 
 *Semantics:* if $u \in V$ then $u$ else $\perp$
 
@@ -277,7 +258,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 /*
 3.3.9 Operation ~minus~ (with ~points~)
 
-*Precondition:* ~u.IsDefined()~
+*Precondition:* ~u.IsDefined() $\&\&$ V.IsOrdered()~
 
 *Semantics:* if $u \in V$ then $\perp$ else $u$
 
@@ -295,7 +276,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    double distance( const Point& p ) const;
+    double Distance( const Point& p ) const;
 /*
 3.3.11 Functions needed to import the the ~Point~ data type to tuple
 
@@ -304,21 +285,21 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    bool     IsDefined() const;
-    //void     SetDefined(bool Defined);
-    size_t   HashValue();
-    void	   CopyFrom(StandardAttribute* right);
-    int      Compare(Attribute * arg);
-    bool     Adjacent(Attribute * arg);
-    int      Sizeof() const;
-    Point*    Clone();
+    inline bool IsDefined() const;
+    inline void SetDefined(bool Defined);
+    size_t HashValue();
+    void CopyFrom(StandardAttribute* right);
+    int Compare(Attribute * arg);
+    bool Adjacent(Attribute * arg);
+    int Sizeof() const;
+    Point* Clone();
     ostream& Print( ostream &os );
 
 /*
 3.4 Attributes
 
 */
-    private:
+  private:
 
     Coord x;
 /*
@@ -756,7 +737,7 @@ This function sets the value of a half segment. The parameter LP and RP can igno
 function will compare the parameter points and put the smaller one to LP and larger one to RP.
 
 */
-    void     translate(double xx, double yy);
+    void Translate( const Coord& x, const Coord& y );
 
     void     SetDefined(bool Defined);
 /*
@@ -919,16 +900,16 @@ useful when we want to decide whether a point is inside a region.
     bool rayAbove( const Point& p, double &abovey0 ) const;
 
 /*
-5.10 Operation ~distance~ (with ~point~)
+5.10 Operation ~Distance~ (with ~point~)
 
 *Precondition:* ~u.IsDefined()~
 
-*Semantics:*  To compute the distance between a line segment and a given point
+*Semantics:*  To compute the Distance between a line segment and a given point
 
 *Complexity:* $O(1)$
 
 */
-    double distance( const Point& p ) const;
+    double Distance( const Point& p ) const;
 
 /*
 5.11 attribute comparison Functions
@@ -1175,7 +1156,10 @@ The persisten array of half segments.
 
 */
     Rectangle bbox;
+/*
+The bounding box that fully encloses all half segments of the line.
 
+*/
     int pos;
 /*
 The pointer to the current half segments. The pointer is important in object traversal algorithms.

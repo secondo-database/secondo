@@ -3996,13 +3996,11 @@ Word InRange( const ListExpr typeInfo, const ListExpr instance,
 */
 template <class Alpha>
 bool OpenRange( SmiRecord& valueRecord,
+                size_t& offset,
                 const ListExpr typeInfo,
                 Word& value )
 {
-  Range<Alpha> *range = new Range<Alpha>( 0 );
-
-  range->Open( valueRecord, typeInfo );
-
+  Range<Alpha> *range = (Range<Alpha>*)TupleElement::Open( valueRecord, offset, typeInfo );
   value = SetWord( range );
   return true;
 }
@@ -4013,12 +4011,12 @@ bool OpenRange( SmiRecord& valueRecord,
 */
 template <class Alpha>
 bool SaveRange( SmiRecord& valueRecord,
+                size_t& offset,
                 const ListExpr typeInfo,
                 Word& value )
 {
   Range<Alpha> *range = (Range<Alpha> *)value.addr;
-
-  range->Save( valueRecord, typeInfo );
+  TupleElement::Save( valueRecord, offset, typeInfo, range );
 
   return true;
 }
