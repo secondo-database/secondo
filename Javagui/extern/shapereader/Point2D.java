@@ -22,7 +22,7 @@ public boolean equals(Object P){
   if(!(P instanceof Point2D))
      return false;
   Point2D  PP = (Point2D)P;
-  return x ==PP.x && y==PP.y;
+  return (float)x==(float)PP.x && (float)y==(float)PP.y;
 }
 
 /** move this Point to the given position */
