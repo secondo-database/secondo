@@ -36,9 +36,6 @@ correct compiling and execution of this class.
 
 */
 
-/*  From the java.util package */
-import java.util.Vector;
-
 
 /*
 
@@ -69,12 +66,12 @@ The following public fields are defined in the ServerErrorCodes class.
     public static final int NETWORK_ERROR_CODE = 98;
     public static final int INTERNAL_ERROR_CODE = 99;
 
-    // size set in the next line for the errors vector must be bigger
+    // size set in the next line for the errors array  must be bigger
     // than the highest error code (this is, if the highest error code is 99,
-    // the errors vector capacity must be at least 100), because each error
-    // message will be stored in the possition inside the vector according
+    // the errors array capacity must be at least 100), because each error
+    // message will be stored in the position inside the array according
     // with its error code.
-    private static Vector errors = new Vector(100);
+    private static String[] errors = new String[100];
 
 /*
 
@@ -101,56 +98,57 @@ None private fields are defined in the ServerErrorCodes class.
 
 */
     static{
-      // Ensures the errors vector will have enough space.
-      errors.setSize(errors.capacity());
+      String unknow = "Unknown error code.";
+      for(int i=0;i<errors.length;i++)
+         errors[i] = unknow;
       // The error messages related to each error code are defined.
-      errors.setElementAt("Command not recognized. ",1);
-      errors.setElementAt("Error in (query) expression. ",2);
-      errors.setElementAt("Expression not evaluable. (Operator not recognized or stream?)",3);
-      errors.setElementAt("Error in type expression. No object created. ",4);
-      errors.setElementAt( "Error in type expression. No type defined. ",5);
-      errors.setElementAt("No database open. ",6);
-      errors.setElementAt("A database is open. ",7);
-      errors.setElementAt("Undefined object value in (query) expression",8);
-      errors.setElementAt("Syntax error in command/expression",9);
-      errors.setElementAt("Identifier already used. ",10);
-      errors.setElementAt("Identifier is not a known type name. ",11);
-      errors.setElementAt("Identifier is not a known object name. ",12);
-      errors.setElementAt("Type of expression is different from type of object. ",13);
-      errors.setElementAt("Type name is used by an object. Type not deleted. ",14);
-      errors.setElementAt("Transaction already active. ",20);
-      errors.setElementAt("No transaction active. ",21);
-      errors.setElementAt("Error in type or object definitions in file. ",24);
-      errors.setElementAt("Identifier is not a known database name. ",25);
-      errors.setElementAt("Problem in writing to file. ",26);
-      errors.setElementAt("Database name in file different from identifier. ",27);
-      errors.setElementAt("Problem in reading from file. ",28);
-      errors.setElementAt("Error in the list structure in the file. ",29);
-      errors.setElementAt("Command not yet implemented. ",30);
-      errors.setElementAt("Command level not yet implemented. ",31);
-      errors.setElementAt( "Error in type definition. ",40);  // (40 i)
-      errors.setElementAt( "Type name doubly defined. ",41);   // 	(41 i n)
-      errors.setElementAt("Error in type expression. ",42);   // 	(42 i n)
-      errors.setElementAt("Error in object definition. ",50);   //	(50 i)
-      errors.setElementAt( "Object name doubly defined. ",51);   //	(51 i n)
-      errors.setElementAt("Wrong type expression for object. ",52);   //	(52 i n)
-      errors.setElementAt("Wrong list representation for object. ",53);   // (53 i n)
-      errors.setElementAt("Kind does not match type expression. ", 60);   //	(60 k t)
-      errors.setElementAt("Specific kind checking error for kind. ",61);   //	(61 k j ...)
-      errors.setElementAt("Value list is not a representation for type constructor. ",70);   //	(70 tc v)
-      errors.setElementAt("Specific error for type constructor in value list. ",71);   //	(71 tc j ...)
-      errors.setElementAt("Value list is not a representation for type constructor. ", 72);   //	(72 tc)
-      errors.setElementAt("Error at a position within value list for type constructor. ", 73);   //	(73 pos)
+      errors[1]="Command not recognized. ";
+      errors[2]="Error in (query) expression. ";
+      errors[3]="Expression not evaluable. (Operator not recognized or stream?)";
+      errors[4]="Error in type expression. No object created. ";
+      errors[5]="Error in type expression. No type defined. ";
+      errors[6]="No database open. ";
+      errors[7]="A database is open. ";
+      errors[8]="Undefined object value in (query) expression";
+      errors[9]="Syntax error in command/expression";
+      errors[10]="Identifier already used. ";
+      errors[11]="Identifier is not a known type name. ";
+      errors[12]="Identifier is not a known object name. ";
+      errors[13]="Type of expression is different from type of object. ";
+      errors[14]="Type name is used by an object. Type not deleted. ";
+      errors[20]="Transaction already active. ";
+      errors[21]="No transaction active. ";
+      errors[24]="Error in type or object definitions in file. ";
+      errors[25]="Identifier is not a known database name. ";
+      errors[26]="Problem in writing to file. ";
+      errors[27]="Database name in file different from identifier. ";
+      errors[28]="Problem in reading from file. ";
+      errors[29]="Error in the list structure in the file. ";
+      errors[30]="Command not yet implemented. ";
+      errors[31]="Command level not yet implemented. ";
+      errors[40]="Error in type definition. ";
+      errors[41]="Type name doubly defined. ";
+      errors[42]="Error in type expression. ";
+      errors[50]="Error in object definition. ";
+      errors[51]="Object name doubly defined. ";
+      errors[52]="Wrong type expression for object. ";
+      errors[53]="Wrong list representation for object. ";
+      errors[60]="Kind does not match type expression. ";
+      errors[61]="Specific kind checking error for kind. ";
+      errors[70]="Value list is not a representation for type constructor. ";
+      errors[71]="Specific error for type constructor in value list. ";
+      errors[72]="Value list is not a representation for type constructor. ";
+      errors[73]="Error at a position within value list for type constructor. ";
 
       // This two error codes were defined in addition to the error codes
       // returned by the Secondo Server.
-      errors.setElementAt("Network error in SecondoInterface. ", 98);
-      errors.setElementAt("Internal error in SecondoInterface.", 99);
-      errors.setElementAt("Secondo protocol error.",80);
-      errors.setElementAt("Connection to Secondo server lost.",81);
-      
+      errors[98]="Network error in SecondoInterface. ";
+      errors[99]="Internal error in SecondoInterface.";
+      errors[80]="Secondo protocol error.";
+      errors[81]="Connection to Secondo server lost.";
+
       // error code for the list algebra xxx operator
-      errors.setElementAt("Algebra not know or currently not included",85);
+      errors[85]="Algebra not know or currently not included";
 
     }
 
@@ -165,17 +163,17 @@ None private fields are defined in the ServerErrorCodes class.
 /*
 3.5.1 The ~getErrorMessageText~ method.
 
-This public method gets as parameter an error code, ands returns the error 
-message related with it. If no error message is related to this error code, a 
+This public method gets as parameter an error code, ands returns the error
+message related with it. If no error message is related to this error code, a
 generic error message is returned.
 
 */
     public static String getErrorMessageText(int errno){
       String errorMessage;
       try {
-	errorMessage = (String)errors.elementAt(errno);
+	errorMessage = errors[errno];
       }
-      catch (ArrayIndexOutOfBoundsException except){
+      catch (Exception except){
 	errorMessage = "System error: Unknown error code. ErrorCode: "+ String.valueOf(errno);
       }
       return errorMessage;
