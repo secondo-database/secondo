@@ -23,6 +23,7 @@ all:
 	(cd components;make all)
 	(cd ../Javainterface;make all)
 	(cd viewer;make all)
+	(cd project;make all);
 	(cd gui;make all)
 	(cd viewer;make viewers)
 
@@ -33,6 +34,7 @@ clean:
 	rm -f  *.class
 	(cd viewer; make clean)
 	(cd gui; make clean)
+	(cd project; make clean)	
 	(cd components;make clean)
 	(rm -f ./doc/* -r)
 	(rm -fr doc)

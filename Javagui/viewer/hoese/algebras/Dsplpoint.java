@@ -50,7 +50,7 @@ public class Dsplpoint extends DisplayGraph {
     double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
     double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
     if (Cat.getPointasRect())
-      RenderObject = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy); 
+      RenderObject = new Rectangle2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
     else {
       RenderObject = new Ellipse2D.Double(r.getX()- pix/2, r.getY() - pixy/2, pix, pixy);
     }
@@ -58,7 +58,7 @@ public class Dsplpoint extends DisplayGraph {
   }
 
   /**
-   * Scans the numeric representation of a point datatype 
+   * Scans the numeric representation of a point datatype
    * @param v the numeric value of the x- and y-coordinate
    * @see sj.lang.ListExpr
    * @see <a href="Dsplpointsrc.html#ScanValue">Source</a>
@@ -80,9 +80,12 @@ public class Dsplpoint extends DisplayGraph {
       koord[koordindex] = d.doubleValue();
       v = v.rest();
     }
-    if (!err) {
-      point = new Point2D.Double(koord[0], koord[1]);
-    }
+
+    try{
+       double x = ProjectionManager.getPrjX(koord[0],koord[1]);
+       double y = ProjectionManager.getPrjY(koord[0],koord[1]);
+       point = new Point2D.Double(x,y);
+    }catch(Exception e){err=true;}
   }
 
   /**

@@ -17,7 +17,7 @@ public class Dsplregion extends DisplayGraph {
   Area areas;
 
   /**
-   * Scans the representation of the region datatype and build up the areas by adding or 
+   * Scans the representation of the region datatype and build up the areas by adding or
    * subtracting(hole) single polygons.
    * @param v A list of polygons/holepolygons
    * @see sj.lang.ListExpr
@@ -31,15 +31,16 @@ public class Dsplregion extends DisplayGraph {
     double koord[] = new double[2];
     //System.out.println(value.writeListExprToString());
     areas = new Area();
+    double x,y;
     while (!value.isEmpty()) {                  // value while
       ListExpr face = value.first();
       ////System.out.println(v.writeListExprToString());
       boolean isHole = false;
-      //Vector polygons= new Vector(10,10);        
+      //Vector polygons= new Vector(10,10);
       Area area = new Area();
       while (!face.isEmpty()) {                 // face while
         ListExpr poly = face.first();
-        //Vector vertices= new Vector(10,10);        
+        //Vector vertices= new Vector(10,10);
         GeneralPath path = new GeneralPath();
         boolean firstpoint = true;
         while (!poly.isEmpty()) {               //poly while
@@ -58,10 +59,19 @@ public class Dsplregion extends DisplayGraph {
             koord[koordindex] = d.doubleValue();
             v = v.rest();
           }                     //end for
-          if (firstpoint)
-            path.moveTo((float)koord[0], (float)koord[1]); 
-          else 
-            path.lineTo((float)koord[0], (float)koord[1]);
+          try{
+	    x = ProjectionManager.getPrjX(koord[0],koord[1]);
+	    y = ProjectionManager.getPrjY(koord[0],koord[1]);
+	    if (firstpoint)
+               path.moveTo((float)x, (float)y);
+            else
+               path.lineTo((float)x, (float)y);
+	  } catch(Exception e){
+	     System.out.println("error in projection: values ("+koord[0]+","+koord[1]+")");
+	     err = true;
+	     return;
+
+	  }
           //vertices.add(point);
           firstpoint = false;
           poly = poly.rest();
@@ -74,7 +84,7 @@ public class Dsplregion extends DisplayGraph {
           area.add(a);
         isHole = true;
         face = face.rest();
-      }         //end face while	 
+      }         //end face while
       areas.add(area);
       value = value.rest();
     }           //end value while

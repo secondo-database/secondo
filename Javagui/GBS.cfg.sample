@@ -19,7 +19,8 @@ STD_REFERENCE = /home/behr/SecondoObjects/hoese/References/Osnabrueck.ref
 #you can enter more then one CategorieFiles separated by space 
 StandardCats= /home/behr/SecondoObjects/hoese/Categories/Osnabrueck.cat
 
-
+#define available projections
+PROJECTIONS Mercator Sinusoidal Miller_Cylindrical
 
 #Icons
 ImportIcon=res/Import.gif

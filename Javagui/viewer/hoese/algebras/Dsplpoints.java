@@ -18,13 +18,14 @@ public class Dsplpoints extends DisplayGraph {
   Rectangle2D.Double bounds;
 
   /**
-   * Scans the representation of the points datatype and constructs the points Vector. 
+   * Scans the representation of the points datatype and constructs the points Vector.
    * @param v the numeric value of a list of x- and y-coordinate
    * @see sj.lang.ListExpr
    * @see <a href="Dsplpointssrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr value) {
     double koord[] = new double[2];
+    double x,y;
     points = new Vector(20, 20);
     while (!value.isEmpty()) {
       ListExpr v = value.first();
@@ -44,8 +45,14 @@ public class Dsplpoints extends DisplayGraph {
         v = v.rest();
       }
       if (!err) {
-        Point2D.Double point = new Point2D.Double(koord[0], koord[1]);
-        points.add(point);
+        try{
+          x = ProjectionManager.getPrjX(koord[0],koord[1]);
+	  y = ProjectionManager.getPrjY(koord[0],koord[1]); 
+          Point2D.Double point = new Point2D.Double(x, y);
+          points.add(point);
+	} catch(Exception e){
+          System.out.println("error in project : ("+koord[0]+","+koord[1]+")");
+	}
       }
       value = value.rest();
     }
@@ -67,24 +74,24 @@ public class Dsplpoints extends DisplayGraph {
       System.out.println("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(points))"));
       return;
-    } 
-    else 
+    }
+    else
       qr.addEntry(this);
     ListIterator li = points.listIterator();
     bounds = null;
     while (li.hasNext()) {
       Point2D.Double p = ((Point2D.Double)li.next());
       if (bounds == null)
-        bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0); 
-      else 
-        bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(p.getX(), 
+        bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
+      else
+        bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(p.getX(),
             p.getY(), 0, 0));
     }
     //System.out.println("Pointsb:"+bounds);
     RenderObject = bounds;
   }
 
-  /** 
+  /**
    * @return The boundingbox of all the points
    * @see <a href="Dsplpointssrc.html#getBounds">Source</a>
    */
@@ -97,7 +104,7 @@ public class Dsplpoints extends DisplayGraph {
    * Tests if a given position is contained in any of the points.
    * @param xpos The x-Position to test.
    * @param ypos The y-Position to test.
-   * @param scalex The actual x-zoomfactor 
+   * @param scalex The actual x-zoomfactor
    * @param scaley The actual y-zoomfactor
    * @return true if x-, ypos is contained in this points type
    * @see <a href="Dsplpointssrc.html#contains">Source</a>

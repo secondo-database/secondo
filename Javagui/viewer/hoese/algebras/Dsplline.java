@@ -13,17 +13,17 @@ import viewer.hoese.*;
  * The displayclass of the line datatype (Rose algebra).
  */
 public class Dsplline extends DisplayGraph {
-/** 
+/**
  * The segments of the line datatype are stored in this vector.
  * A single segment ist represented by a Line2D.Double object.
  * @see java.awt.geom.Line2D.Double
- */ 
+ */
   Vector lines;
 /** The bounding-box rectangle */
   Rectangle2D.Double bounds;
 
   /**
-   * Scans the representation of the line datatype and constucts the lines Vector. 
+   * Scans the representation of the line datatype and constucts the lines Vector.
    * @param v A list of segments
    * @see sj.lang.ListExpr
    * @see <a href="Dspllinesrc.html#ScanValue">Source</a>
@@ -31,6 +31,7 @@ public class Dsplline extends DisplayGraph {
   public void ScanValue (ListExpr value) {
     double koord[] = new double[4];
     lines = new Vector(20, 10);
+    double x1,y1,x2,y2;
     while (!value.isEmpty()) {
       ListExpr v = value.first();
       //System.out.println(v.writeListExprToString());
@@ -50,9 +51,16 @@ public class Dsplline extends DisplayGraph {
         v = v.rest();
       }
       if (!err) {
-        Line2D.Double line = new Line2D.Double(koord[0], koord[1], koord[2], 
-            koord[3]);
-        lines.add(line);
+        try{
+	   x1 = ProjectionManager.getPrjX(koord[0],koord[1]);
+	   y1 = ProjectionManager.getPrjY(koord[0],koord[1]);
+	   x2 = ProjectionManager.getPrjX(koord[2],koord[3]);
+           y2 = ProjectionManager.getPrjY(koord[2],koord[3]);
+           Line2D.Double line = new Line2D.Double(x1,y1,x2,y2);
+           lines.add(line);
+	} catch(Exception e){
+	   System.out.println("error in project segment ("+koord[0]+","+koord[1]+")->"+koord[2]+","+koord[3]+")");
+	}
       }
       value = value.rest();
     }
@@ -74,22 +82,22 @@ public class Dsplline extends DisplayGraph {
       System.out.println("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(line))"));
       return;
-    } 
-    else 
+    }
+    else
       qr.addEntry(this);
     ListIterator li = lines.listIterator();
     bounds = null;
     while (li.hasNext())
       if (bounds == null)
-        bounds = (Rectangle2D.Double)((Line2D.Double)li.next()).getBounds2D(); 
-      else 
+        bounds = (Rectangle2D.Double)((Line2D.Double)li.next()).getBounds2D();
+      else
         bounds = (Rectangle2D.Double)bounds.createUnion(((Line2D.Double)li.next()).getBounds2D());
     RenderObject = bounds;
     // System.out.println(value.writeListExprToString());
   }
 
 
-  /** 
+  /**
    * @return The boundingbox of this line-object
    * @see <a href="Dspllinesrc.html#getBounds">Source</a>
    */
@@ -101,16 +109,16 @@ public class Dsplline extends DisplayGraph {
    * Tests if a given position is near (10pxs) of this line, by iterating over all segments.
    * @param xpos The x-Position to test.
    * @param ypos The y-Position to test.
-   * @param scalex The actual x-zoomfactor 
+   * @param scalex The actual x-zoomfactor
    * @param scaley The actual y-zoomfactor
    * @return true if x-, ypos is contained in this points type
    * @see <a href="Dspllinesrc.html#contains">Source</a>
    */
   public boolean contains (double xpos, double ypos, double scalex, double scaley) {
-    if ((bounds.getWidth()*bounds.getHeight()!=0) && (!bounds.intersects(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex, 
+    if ((bounds.getWidth()*bounds.getHeight()!=0) && (!bounds.intersects(xpos - 5.0*scalex, ypos - 5.0*scaley, 10.0*scalex,
         10.0*scaley)))
       return  false;
-    Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos - 
+    Rectangle2D.Double r = new Rectangle2D.Double(xpos - 5.0*scalex, ypos -
         5.0*scaley, 10.0*scalex, 10.0*scaley);
     //System.out.println(scalex +" " + scaley);
     boolean hit = false;

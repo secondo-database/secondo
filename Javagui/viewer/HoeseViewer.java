@@ -18,6 +18,7 @@ import  javax.swing.border.*;
 import  viewer.hoese.*;
 import  gui.SecondoObject;
 import  gui.idmanager.*;
+import  project.*;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -104,9 +105,13 @@ public class HoeseViewer extends SecondoViewer {
   private javax.swing.JMenuItem MI_AppendAttrCatLink;
 
 
- /* gui-menu */
+ /* settings-menu */
   private javax.swing.JMenu jMenuGui;
   private javax.swing.JMenuItem MINewCat;
+
+  private JMenu Menu_Prj;
+  private JMenuItem MI_PrjSettings;
+  private ProjectionSelector PrjSelector;
 
   /** True if menu-entry 'automatic category' is selected */
   public javax.swing.JCheckBoxMenuItem isAutoCatMI;
@@ -173,6 +178,7 @@ public class HoeseViewer extends SecondoViewer {
      }
      TexturePath = FileSeparator;
 
+    initComponents();
     init();
     Cats = new Vector(30, 10);
     context = new ContextPanel(this);
@@ -192,7 +198,7 @@ public class HoeseViewer extends SecondoViewer {
         }
       }
     }
-    initComponents();
+
 
     MouseKoordLabel = new JLabel("-------/-------");
     MouseKoordLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
@@ -395,6 +401,13 @@ public class HoeseViewer extends SecondoViewer {
     jSeparator5 = new javax.swing.JSeparator();
     MIsetKontext = new javax.swing.JCheckBoxMenuItem();
     MILayerMgmt = new javax.swing.JMenuItem();
+    Menu_Prj = new JMenu("Projections");
+    MI_PrjSettings = Menu_Prj.add("Settings");
+    Menu_Prj.addSeparator();
+    PrjSelector = new ProjectionSelector(Menu_Prj);
+    PrjSelector.addProjection(ProjectionManager.getVoidProjection());
+
+
 
 /** Menu object */
     MenuObject = new javax.swing.JMenu();
@@ -494,7 +507,7 @@ public class HoeseViewer extends SecondoViewer {
 	           showMessage("save references successful");
 	   }
        }});
-    
+
     MI_LoadAttrCatLink.setText("Load  Attribute -> Category");
     MI_LoadAttrCatLink.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -528,6 +541,14 @@ public class HoeseViewer extends SecondoViewer {
     MenuExtension.addMenu(jMenu1);
 
     jMenuGui.setText("Settings");
+    
+    jMenuGui.add(Menu_Prj);
+    MI_PrjSettings.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          ProjectionManager.showSettings();
+       }});
+
+
     isAutoCatMI.setText("Auto category");
     jMenuGui.add(isAutoCatMI);
 
@@ -736,7 +757,7 @@ public class HoeseViewer extends SecondoViewer {
           else 
             showMessage("No DsplBase object selected!");
         } 
-        else 
+        else
           showMessage("No query selected!");
       }
     });
@@ -887,7 +908,7 @@ public class HoeseViewer extends SecondoViewer {
     });
     MenuObject.add(MIMoveBottom);
     MenuExtension.addMenu(MenuObject);
-  }            
+  }
 
 
 /** returns the index of qr in TextDisplay-ComboBox, 
@@ -961,6 +982,24 @@ public void removeObject(SecondoObject o){
         updateViewParameter();
     }
 
+}
+
+
+/** add a Projection with given ClassName */
+public boolean addProjection(String Name){
+
+ Name ="project."+Name.trim();
+ Class cls;
+ try{
+     cls = Class.forName(Name);
+     Object P;
+     P = cls.newInstance();
+     if(! (P instanceof Projection))
+        return false;
+     PrjSelector.addProjection((Projection)P);
+     return true;
+    }
+ catch(Exception e){ System.out.println(e); e.printStackTrace(); return false;}
 }
 
 
@@ -1061,7 +1100,7 @@ public boolean canDisplay(SecondoObject o){
   public boolean addObject(SecondoObject o){
 
     QueryResult qr= new QueryResult(o.getName(),o.toListExpr()); 
-    if(getQueryIndex(qr)>=0) 
+    if(getQueryIndex(qr)>=0)
       return false;
     else {
       if (addQueryResult(qr)) {
@@ -1207,7 +1246,7 @@ public boolean canDisplay(SecondoObject o){
    */
 
   private void on_jMenu_NewSession (java.awt.event.ActionEvent evt) {                     //GEN-FIRST:event_on_jMenu_NewSession
- 
+
  // remove querys
    JComboBox CB = TextDisplay.getQueryCombo();
    int count = CB.getItemCount();
@@ -1259,7 +1298,7 @@ public boolean canDisplay(SecondoObject o){
   /**
   Adds the scale of the ZoomFactor to the matrix of th e at transform
 
-   * @see <a href="MainWindowsrc.html#addScaling">Source</a> 
+   * @see <a href="MainWindowsrc.html#addScaling">Source</a>
    */
   public AffineTransform addScaling (AffineTransform at) {
     //at.scale(ZoomFactor,ZoomFactor);
@@ -1321,7 +1360,7 @@ public boolean canDisplay(SecondoObject o){
   /**
    * When new objects are added or old areremoved or the context has change this
    * method must be called to calc. Layersize and transformation again.
-   * @see <a href="MainWindowsrc.html#updateViewParameter">Source</a> 
+   * @see <a href="MainWindowsrc.html#updateViewParameter">Source</a>
    */
   public void updateViewParameter () {
     //ClipRect=context.getClip();
@@ -1477,7 +1516,7 @@ public boolean canDisplay(SecondoObject o){
 
 /** Manages mouseclicks in the GraphWindow. It is placed here for textual-interaction 
 
-   * @see <a href="MainWindowsrc.html#SelMouseAdapter">Source</a> 
+   * @see <a href="MainWindowsrc.html#SelMouseAdapter">Source</a>
    */ 
   class SelMouseAdapter extends MouseAdapter
       implements MouseMotionListener {
@@ -1713,6 +1752,28 @@ public boolean canDisplay(SecondoObject o){
 	   if(!loadReferences(F))
 	     System.out.println("i can't load the reference file :"+StdRef);
        }
+
+       String Prjs = configuration.getProperty("PROJECTIONS");
+       if(Prjs==null)
+          System.out.println("PROJECTIONS not found in " +CONFIGURATION_FILE);
+       else{
+          boolean ok = true;
+	  String Errors ="";
+          StringTokenizer ST = new StringTokenizer(Prjs.trim());
+	  while(ST.hasMoreTokens()){
+	     String name = ST.nextToken();
+             if(!addProjection(name)){
+	        ok = false;
+		Errors +="  "+name;
+	     }
+	  }
+	  if(!ok){
+	    MessageBox.showMessage("not all projections loaded \n erroprs in \n"+Errors);
+	  }
+
+
+       }
+
     }
 
 
@@ -1796,10 +1857,57 @@ public boolean canDisplay(SecondoObject o){
         case 5:                 //stop
           AnimTimer.stop();
           break;
-          //StartButton.setSelected(!StartButton.isSelected());	
+          //StartButton.setSelected(!StartButton.isSelected());
       }
   }
     }
+
+
+
+  private class ProjectionSelector implements ActionListener{
+
+     public ProjectionSelector(JMenu M){
+        Menu=M;
+     }
+
+     public boolean addProjection(Projection P){
+        if(P==null) return false;
+        if(Projections.contains(P)) return false;
+	String Name = P.getName();
+	JCheckBoxMenuItem MI = new JCheckBoxMenuItem(Name);
+	Menu.add(MI);
+	if(Projections.size()==0){
+	    MI.setState(true);
+	    selectedIndex = 0;
+	}
+
+	MI.addActionListener(this);
+	MenuItems.add(MI);
+	Projections.add(P);
+	return true;
+     }
+
+     public void actionPerformed(ActionEvent evt){
+        Object source = evt.getSource();
+	int index = MenuItems.indexOf(source);
+	if(index<0) return;
+	if(index==selectedIndex) return;
+        
+
+	ProjectionManager.setProjection((Projection)Projections.get(index));
+	if(selectedIndex>=0)
+	  ((JCheckBoxMenuItem)MenuItems.get(selectedIndex)).setState(false);
+        selectedIndex=index;
+	((JCheckBoxMenuItem)source).setState(true);
+     }
+
+     private Vector Projections = new Vector();
+     private Vector MenuItems = new Vector();
+     private JMenu Menu;
+     private int selectedIndex = -1;
+  }
+
+
 }
 
 
