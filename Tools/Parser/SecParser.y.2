@@ -41,6 +41,8 @@ a ``list counters'' command.
 
 May 19, 2003 RHG Added missing syntax '..' to refer to the second implicit argument.
 
+October 14, 2004 RHG Added text atoms and file atoms for nested lists.
+
 */
 
 %%
@@ -257,6 +259,8 @@ rest		: ')'			{$$ = $1;}
 
 atom		: constant		{$$ = $1;}
 		| ZZIDENTIFIER		{$$ = $1;}
+		| ZZTEXT		{$$ = $1;}
+		| ZZFILE		{$$ = $1;}
 		;
 
 list		: elems			{$$ = NestedText::Concat(NestedText::AtomC("("), 

@@ -1,15 +1,19 @@
 /*
+//[%]	[\%]
+
 May 15, 1998 RHG. Added ~model~ token.
 
-August 8, 2000 RHG. Changed %p (the number of positions for Lex) to 5000.
+August 8, 2000 RHG. Changed [%]p (the number of positions for Lex) to 5000.
 
-August 10, 2000 RHG. Changed %e (the number of parse tree nodes) to 2000.
+August 10, 2000 RHG. Changed [%]e (the number of parse tree nodes) to 2000.
 
 March 2002 Ulrich Telle Port to C++, using ~flex~ and ~bison~ instead of ~lex~ and ~yacc~.
 The pattern for floating point numbers is adjusted so that numbers produced by
 C/C++ programs are interpreted correctly.
 
-January 29, 2004 RHG. Increased numbers %n to 2000 and %e to 4000.
+January 29, 2004 RHG. Increased numbers [%]n to 2000 and [%]e to 4000.
+
+October 14, 2004 RHG Added text and file tokens.
 
 */
 			
@@ -27,13 +31,15 @@ int yywrap();
 #define YY_NO_UNPUT
 %}
 
-letter         [a-zA-Z]
-digit          [0-9]
-ident          {letter}({letter}|{digit}|_)*  
-num1	       [-+]?{digit}+\.?([eE][-+]?{digit}+)?
-num2	       [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
-number	       {num1}|{num2}
-string         \"[^\"]*\"         
+letter         	[a-zA-Z]
+digit          	[0-9]
+ident          	{letter}({letter}|{digit}|_)*  
+num1	       	[-+]?{digit}+\.?([eE][-+]?{digit}+)?
+num2	       	[-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
+number	       	{num1}|{num2}
+string         	\"[^\"]*\"   
+text	  	"<text>"[^<\n]+"</text--->"
+file	  	"<file>"[^<\n]+"</file--->"
 
 %%
 
@@ -82,4 +88,5 @@ counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZEQ;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
-
+{text}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTEXT;}
+{file}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFILE;}
