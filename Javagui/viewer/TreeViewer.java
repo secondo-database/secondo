@@ -5,7 +5,7 @@ import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
 import sj.lang.ListExpr;
-import java.util.Vector;
+import java.util.*;
 import gui.SecondoObject;
 import gui.Environment;
 
@@ -143,7 +143,25 @@ class Node{
    **/ 
  public void computeBounds(Graphics2D g){
        // the initial is the bounding box of the label
-       Rectangle2D nodebounds = g.getFontMetrics().getStringBounds(Label,g);
+       StringTokenizer ST = new StringTokenizer(Label,"\n");
+       Rectangle2D nodebounds = new Rectangle2D.Double();
+       int lineno = 0;
+       while(ST.hasMoreTokens()){
+         String Line = ST.nextToken();
+         Rectangle2D currentBounds = g.getFontMetrics().getStringBounds(Line,g);
+         currentBounds.setRect(0,0,-currentBounds.getX()+currentBounds.getWidth(),
+                                   -currentBounds.getY()+currentBounds.getHeight());
+         if(lineno==0)
+           nodebounds=currentBounds;
+         else{
+             nodebounds.setRect(0,0,Math.max(nodebounds.getWidth(),currentBounds.getWidth()),
+                                    nodebounds.getHeight()+currentBounds.getHeight());   
+
+         }
+         lineno++;
+
+       }
+    
        // we add a border of 5 pixels
        nodebounds.setRect(0,0,-nodebounds.getX()+nodebounds.getWidth()+10,
                               -nodebounds.getY()+nodebounds.getHeight());
@@ -195,9 +213,30 @@ class Node{
         Graphics2D g = (Graphics2D) g1;
         computeBounds( g);
         // compute the bounds for this node and move it to (0,0)
-        Rectangle2D nodeBounds = g.getFontMetrics().getStringBounds(Label,g);
-        nodeBounds.setRect(0,0,-nodeBounds.getX()+nodeBounds.getWidth()+10,
-                               -nodeBounds.getY()+nodeBounds.getHeight());
+       StringTokenizer ST = new StringTokenizer(Label,"\n");
+       Rectangle2D nodeBounds = new Rectangle2D.Double();
+       int lineno = 0;
+       while(ST.hasMoreTokens()){
+         String Line = ST.nextToken();
+         Rectangle2D currentBounds = g.getFontMetrics().getStringBounds(Line,g);
+         currentBounds.setRect(0,0,-currentBounds.getX()+currentBounds.getWidth(),
+                                   -currentBounds.getY()+currentBounds.getHeight());
+         if(lineno==0)
+           nodeBounds=currentBounds;
+         else{
+             nodeBounds.setRect(0,0,Math.max(nodeBounds.getWidth(),currentBounds.getWidth()),
+                                    nodeBounds.getHeight()+currentBounds.getHeight());   
+
+         }
+         lineno++;
+
+       }
+    
+       // we add a border of 5 pixels
+       nodeBounds.setRect(0,0,-nodeBounds.getX()+nodeBounds.getWidth()+10,
+                              -nodeBounds.getY()+nodeBounds.getHeight());
+        
+
         // first paint the subtrees
         double sdx=deltax;
         double nextLevel = deltay + levelsep+nodeBounds.getHeight();
@@ -211,7 +250,22 @@ class Node{
 
         g.draw(nodeBounds);
         // draw the label
-        g.drawString(Label,(int)xpos+5,(int)(ypos-7+nodeBounds.getHeight()));
+       ST = new StringTokenizer(Label,"\n");
+       double lypos = ypos;
+       double lxpos;
+       while(ST.hasMoreTokens()){
+         String Line = ST.nextToken();
+         Rectangle2D currentBounds = g.getFontMetrics().getStringBounds(Line,g);
+         currentBounds.setRect(0,0,-currentBounds.getX()+currentBounds.getWidth(),
+                                   -currentBounds.getY()+currentBounds.getHeight());
+         lxpos = (nodeBounds.getWidth()-currentBounds.getWidth())/2+xpos;
+         g.drawString(Line,(int)lxpos,(int)(lypos-7+currentBounds.getHeight()));
+         lypos = lypos+currentBounds.getHeight();
+       }
+
+
+        
+        //g.drawString(Label,(int)xpos+5,(int)(ypos-7+nodeBounds.getHeight()));
         // compute the position for connections
         xpos = bounds.getWidth()/2;
         ypos = deltay+nodeBounds.getHeight();
@@ -384,8 +438,8 @@ class TreePainterPanel extends JPanel{
           TreeBounds=Tree.getBounds();
           if(D!=null){
              if(fit){ // move to center and fit to window
-               double sc = Math.min((D.getWidth()-10)/TreeBounds.getWidth(),
-                                    (D.getHeight()-10)/TreeBounds.getHeight());
+               double sc = Math.min((D.getWidth()-30)/TreeBounds.getWidth(),
+                                    (D.getHeight()-20)/TreeBounds.getHeight());
                double x = TreeBounds.getWidth()/2;
                double y = TreeBounds.getHeight()/2;              
                AT.setTransform(sc,0,0,sc,
