@@ -20,8 +20,8 @@ APPLICATIONS += $(BINDIR)/TestRunner
 endif
 
 ifeq ($(optimizer),"true")
-APPLICATIONS += $(OPTDIR)/SecondoPL$(EXEEXT)
-APPLICATIONS += $(OPTDIR)/SecondoPLCS$(EXEEXT)
+APPLICATIONS += $(OPTDIR)/SecondoPL
+APPLICATIONS += $(OPTDIR)/SecondoPLCS
 APPLOBJECTS += SecondoPL.$(OBJEXT)
 CCFLAGS += $(PLINCLUDEFLAGS)
 endif
