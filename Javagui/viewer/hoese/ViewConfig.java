@@ -11,7 +11,7 @@ import  java.awt.image.*;
 import  java.awt.event.*;
 import  viewer.HoeseViewer;
 import  viewer.MessageBox;
-
+import gui.Environment;
 
 /**
  * The objects in a query result had no category in the beginning. This dialog offers the
@@ -70,34 +70,30 @@ public class ViewConfig extends javax.swing.JDialog {
   private Vector getRefAttrList () {
     Vector v = new Vector(5, 1);
     LabelAList = new Vector(10, 5);
-    if (Query.LEResult.first().isAtom())
-      return  v;
+    ListExpr TypeList = Query.LEResult;
+    while(TypeList.atomType()==ListExpr.NO_ATOM && !TypeList.isEmpty())
+       TypeList = TypeList.first();
+    String MainType = TypeList.symbolValue();
 
-    if(Query.LEResult.first().isEmpty())
-       return v;
-    // Query.LEResult.first() contains the type of the result
-    // the getRefAttrList is only defined for relations at this moment
-    if(Query.LEResult.first().first().atomType()!=ListExpr.SYMBOL_ATOM)
-      return v;
-    if(Query.LEResult.first().first().symbolValue().equals("rel")){
-        v.add("Tupel-No.");
-        LabelAList.add("no Label");
-        TupelCount = Query.LEResult.second().listLength();
-        ListExpr attrlist = Query.LEResult.first().second().second();
-        while (!attrlist.isEmpty()) {
-          String type = attrlist.first().second().symbolValue();
-          LabelAList.add(attrlist.first().first().symbolValue());
-          if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
-              || (type.equals("bool")))
-             v.add(attrlist.first().first().symbolValue());
-          AttrCount++;
-          attrlist = attrlist.rest();
-        }
+    if(MainType.equals("rel")){
+	v.add("Tupel-No.");
+	LabelAList.add("no Label");
+	TupelCount = Query.LEResult.second().listLength();
+	ListExpr attrlist = Query.LEResult.first().second().second();
+	while (!attrlist.isEmpty()) {
+	  String type = attrlist.first().second().symbolValue();
+	  LabelAList.add(attrlist.first().first().symbolValue());
+	  if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
+	      || (type.equals("bool")))
+	     v.add(attrlist.first().first().symbolValue());
+	  AttrCount++;
+	  attrlist = attrlist.rest();
+	}
     }
 
-    if(Query.LEResult.first().first().symbolValue().equals("nmap")){
-     /*
+    if(MainType.equals("nmap")){
        v.add("Tupel-No.");
+       TupelCount = 0;
        LabelAList.add("no Label");
        ListExpr TYPE = Query.LEResult.first();
        ListExpr SpatialRelations = TYPE.rest().rest().rest(); // read over nmap,name and scale
@@ -106,7 +102,7 @@ public class ViewConfig extends javax.swing.JDialog {
            ListExpr CurrentRel = SpatialRelations.first();
            SpatialRelations=SpatialRelations.rest();
            ListExpr attrlist = CurrentRel.second().second(); // ignore (rel(tuple; take only the tuplelist
-        while (!attrlist.isEmpty()) {
+       while (!attrlist.isEmpty()) {
            String type = attrlist.first().second().symbolValue(); // get the type of the attribute
            if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
                 || (type.equals("bool"))){
@@ -118,7 +114,6 @@ public class ViewConfig extends javax.swing.JDialog {
         }
         RelNo++;
        }
-     */  
     }
     return  v;
   }
@@ -578,7 +573,7 @@ public class ViewConfig extends javax.swing.JDialog {
    *    category and rendering type.
    * @param evt
    */
-  private void OKBActionPerformed () {            //GEN-FIRST:event_OKBActionPerformed
+  private void OKBActionPerformed () {          
     if (!SingleTupelCBo.isSelected()) {
       Category cat = (Category)CatCB.getSelectedItem();
       int LabIndex = LabelAttrCB.getSelectedIndex();
@@ -613,11 +608,11 @@ public class ViewConfig extends javax.swing.JDialog {
       }
     }
 
+    String as = (String)RefAttrCB.getSelectedItem();
 
     if (RefDepCBo.isSelected()) {
       if(!LinkCheckBox.isSelected()){
-         String as = (String)RefAttrCB.getSelectedItem();
-         int RefAttrIndex = LabelAList.indexOf(as);
+         int RefAttrIndex = LabelAList.indexOf(as)-1;
          //int RendTypeIndex=RendTypeCB.getSelectedIndex());
          Point2D.Double p = calcMinMax(RefAttrIndex);
          double min = p.getX();
@@ -626,12 +621,18 @@ public class ViewConfig extends javax.swing.JDialog {
          int nr = 8;
          try {
            nr = Integer.parseInt(NoText.getText());
-         } catch (NumberFormatException n) {}
-         if (max != min) {         // no cat need to be created if =
+         } catch (NumberFormatException n) {
+	   MessageBox.showMessage("Invalid number of groups");
+	   return;
+	 }
+         if (max != min) {         // no cat need to be created if <=
            Category GroupCats[] = new Category[nr];
-           for (int i = 0; i < nr; GroupCats[i] = calcCategory(i++, nr, (Category)CatCB.getSelectedItem()));
+           for (int i = 0; i < nr;i++)
+	      GroupCats[i] = calcCategory(i, nr, (Category)CatCB.getSelectedItem());
+
+           ListExpr   tl = extractRelation();
+
            ListIterator li = Query.getGraphObjects().listIterator();
-           ListExpr tl = Query.LEResult.second();
            nr -= 1;
            int val = 0;
            double value;
@@ -642,12 +643,15 @@ public class ViewConfig extends javax.swing.JDialog {
                ListExpr le = tl.first();
                for (int i = 1; i <= RefAttrIndex; i++)
                  le = le.rest();
-               if (RefAttrIndex == -1)
+               if (RefAttrIndex < 0 )
                  value = (double)val;
                else
                  value = convertLEtoDouble(le.first());
-               int chg = (int)((value - min)/(max - min)*nr);
-               mw.Cats.add(GroupCats[chg]);
+
+               int chg = (int)(nr*((value - min)/(max - min)));
+	       if(mw.Cats.indexOf(GroupCats[chg])<0){
+                  mw.Cats.add(GroupCats[chg]);
+	       }
                dg.setCategory(GroupCats[chg]);
                tl = tl.rest();
                val++;
@@ -662,8 +666,6 @@ public class ViewConfig extends javax.swing.JDialog {
 	 }
 
          ListIterator li = Query.getGraphObjects().listIterator();
-         ListExpr res = Query.LEResult.second();
-         String as = (String)RefAttrCB.getSelectedItem();
          int RefAttrIndex = LabelAList.indexOf(as);
          ListExpr AttrValues = getAttrValues(RefAttrIndex);
 	  if(AttrValues==null){
@@ -717,6 +719,7 @@ public class ViewConfig extends javax.swing.JDialog {
 
 	 String CatName;
 	 Category Cat=null;
+	 ListExpr res = extractRelation();
          while(li.hasNext()){
             DsplGraph dg = (DsplGraph)li.next();
             if(dg.getAttrName().equals(AttrName)){
@@ -746,12 +749,18 @@ public class ViewConfig extends javax.swing.JDialog {
     Category NewCat = null;
     try {
       NewCat = (Category)templCat.clone();
-    } catch (Exception e) {}
+    } catch (Exception e) {
+       if(Environment.DEBUG_MODE){
+          System.err.println("Error in cloning of category");
+       }
+       return null;
+    }
     NewCat.setName(NewCat.getName() + "V" + VariantNr);
     VariantNr++;
     Object o = RendTypeCB.getSelectedItem();
     if (o instanceof CalcCategory)
       return  ((CalcCategory)o).calcCategory(chg, nr, templCat);
+
     String RendType = (String)o;
     if (RendType.equals("Solid Gray Values")) {
       int inc = 255/nr;
@@ -759,19 +768,19 @@ public class ViewConfig extends javax.swing.JDialog {
       NewCat.setFillStyle(new Color(cv, cv, cv));
     }
     if (RendType.equals("Solid Blue Values")) {
-      int dec = 240/nr;
-      int cv = 240 - chg*dec;
+      int inc = 255/nr;
+      int cv = chg*inc;
       NewCat.setFillStyle(new Color(cv, cv, 255));
     }
     if (RendType.equals("Solid Red Values")) {
-      int dec = 240/nr;
-      int cv = 240 - chg*dec;
-      NewCat.setFillStyle(new Color(240, cv, cv));
+      int inc = 255/nr;
+      int cv =  chg*inc;
+      NewCat.setFillStyle(new Color(255, cv, cv));
     }
     if (RendType.equals("Solid Green Values")) {
-      int dec = 240/nr;
-      int cv = 240 - chg*dec;
-      NewCat.setFillStyle(new Color(cv, 240, cv));
+      int inc = 255/nr;
+      int cv =  chg*inc;
+      NewCat.setFillStyle(new Color(cv, 255, cv));
     }
     if (RendType.startsWith("Images in ")) {
       FileFilter ImageFilter = new FileFilter() {
@@ -783,7 +792,7 @@ public class ViewConfig extends javax.swing.JDialog {
           return  "Hintergrundkarten (*.gif , *.jpg)";
         }       //end getDescription
       };        // end newFileFilter
-      File f = new File("images/" + RendType.substring(10));
+      File f = new File("res/" + RendType.substring(10));
       File[] fileList = f.listFiles(ImageFilter);
       if (fileList.length != 0) {
         chg = chg%fileList.length;
@@ -800,7 +809,7 @@ public class ViewConfig extends javax.swing.JDialog {
     }
     if (RendType.equals("Point Size <32Px")) {
       double inc = 32.0/(double)nr;
-      double cv = 4 + (double)chg*inc;
+      double cv = 4 + chg*inc;
       NewCat.setPointSize(cv);
     }
     if (RendType.equals("Standard Palette")) {
@@ -843,7 +852,7 @@ public class ViewConfig extends javax.swing.JDialog {
         return  "Directories";
       }         //end getDescription
     };          // end newFileFilter
-    File f = new File("images/");
+    File f = new File("res/");
     File[] fileList = f.listFiles(DirFilter);
     for (int i = 0; i < fileList.length; i++)
       RendTypeCB.addItem(new String("Images in " + fileList[i].getName()));
@@ -855,17 +864,18 @@ public class ViewConfig extends javax.swing.JDialog {
    * @return Min. and max. as Point2D.double
    */
   private Point2D.Double calcMinMax (int ind) {
-    if (ind == -1)
+    if (ind < 0) {// tuplenumber
       return  new Point2D.Double(0, (double)(TupelCount - 1));
-    ListExpr tl = Query.LEResult.second();
+    }  
+    ListExpr tl = extractRelation();
     double min = Double.MAX_VALUE;
     double max = Double.MIN_VALUE;
     while (!tl.isEmpty()) {
-      ListExpr le = tl.first();
-      for (int i = 1; i <= ind; i++)
+      ListExpr le = tl.first(); // get the first tuple
+      for (int i = 0; i < ind; i++) // read over attributes
         le = le.rest();
-      double w = convertLEtoDouble(le.first());
-      if (min > w)
+      double w = convertLEtoDouble(le.first()); // get value for desired attribute
+      if (min >  w)
         min = w;
       if (max < w)
         max = w;
@@ -874,14 +884,61 @@ public class ViewConfig extends javax.swing.JDialog {
     return  new Point2D.Double(min, max);
   }
 
+   /**
+     * extracts the relation from a nautical map or from a relation 
+     */
+   private ListExpr extractRelation(){
+      ListExpr TypeList = Query.LEResult.first();
+      while(TypeList.atomType()==ListExpr.NO_ATOM && !TypeList.isEmpty())
+          TypeList=TypeList.first();
+      if(TypeList.atomType()!=ListExpr.SYMBOL_ATOM)
+         return Query.LEResult.second();
+      String TypeName = TypeList.symbolValue();
+      
+      if(TypeName.equals("nmap")){
+         String as = (String) RefAttrCB.getSelectedItem();
+         int RelNumber=0;
+         try{
+            as = as.substring(0,as.indexOf(":"));
+            RelNumber = Integer.parseInt(as);
+         }catch(Exception e){
+           if (Environment.DEBUG_MODE){
+             System.err.println("Cannot determine the number of relation in nmap");
+	     return Query.LEResult.second();
+	   }
+         }
+         //force to read over name and scale
+         RelNumber = RelNumber +2; 
+	 ListExpr value = Query.LEResult.second();
+         while(RelNumber>0){
+           value=value.rest();
+	   if(value.isEmpty()){
+             if(Environment.DEBUG_MODE){
+               System.err.println("wrong relation number in nmap");
+	       return Query.LEResult.second();
+	     }
+	   }
+	   RelNumber--;
+         }
+	 value = value.first();
+	 TupelCount = value.listLength();
+	 return value;
+      } else{
+         return Query.LEResult.second();
+      }
+   }
+
+
+
   /**
    * Makes a double-value out of a special atom-type
    * @param le
    * @return double value
    */
   private double convertLEtoDouble (ListExpr le) {
-    if (le.atomType() == ListExpr.STRING_ATOM)
-      return  (double)le.stringValue().hashCode();
+   if (le.atomType() == ListExpr.STRING_ATOM){
+      return le.stringValue().hashCode();
+    }  
     if (le.atomType() == ListExpr.BOOL_ATOM)
       if (le.boolValue())
         return  1;
@@ -934,13 +991,17 @@ public class ViewConfig extends javax.swing.JDialog {
      return null;
   }
 
-
+  private ListExpr getAttrValues(int index){
+    if(index < 0)
+       return null;
+    return getAttrValues(index,extractRelation());
+  }
 
   /* get a List of Values for specific index */
-  private ListExpr getAttrValues(int index){
-     if(index < 0)
+  private ListExpr getAttrValues(int index,ListExpr relation){
+      if(index < 0)
         return null;
-      ListExpr AllValues = Query.LEResult.second();
+      ListExpr AllValues = relation;
       ListExpr Values=null;
       ListExpr CurrentTuple;
       ListExpr CurrentAttr;
@@ -1001,7 +1062,7 @@ public class ViewConfig extends javax.swing.JDialog {
 
 
 
-  /** check for new categories in HoeseViewer an show then */
+  /** check for new categories in HoeseViewer an show them */
   public void setVisible(boolean on){
     if(on){ // check for new Categorys
       if(CatCB.getItemCount()!=mw.Cats.size()){ // there are new Categories
@@ -1063,11 +1124,4 @@ public class ViewConfig extends javax.swing.JDialog {
   private static int VariantNr = 0;
   // End of variables declaration//GEN-END:variables
 }
-
-
-
-
-
-
-
 

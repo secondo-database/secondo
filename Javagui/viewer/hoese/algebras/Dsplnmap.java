@@ -26,7 +26,8 @@ public class Dsplnmap extends DisplayGraph {
    * @see <a href="Dsplnmapsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    value.writeListExpr();
+    type.writeListExpr();
+    // value.writeListExpr();
     AttrName = type.first().symbolValue();
     ListExpr nmap;
     ListExpr rel1, rel2, rel3;
