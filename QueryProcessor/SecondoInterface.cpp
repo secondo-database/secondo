@@ -1090,7 +1090,7 @@ If value 0 is returned, the command was executed without error.
                        isFunction, tree, resultType );
 
 	   cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-	   cerr << nl->reportVectorSizes() << endl;
+	   //cerr << nl->reportVectorSizes() << endl;
 
           if ( !defined )
           {
@@ -1112,7 +1112,7 @@ If value 0 is returned, the command was executed without error.
 
 	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
                cerr << ReportTupleStatistics();
-	       cerr << nl->reportVectorSizes() << endl;
+	       //cerr << nl->reportVectorSizes() << endl;
                //cerr << ReportRelStatistics();
                //cerr << ReportRelITStatistics();
 	       //cerr << ReportTupleAttributesInfoStatistics();
@@ -1212,6 +1212,7 @@ If value 0 is returned, the command was executed without error.
   if (resultList) {
      resultList = nl->CopyList(resultList, al);
   }
+  cerr << nl->reportVectorSizes() << endl;
   nl->initializeListMemory();
   
 }
