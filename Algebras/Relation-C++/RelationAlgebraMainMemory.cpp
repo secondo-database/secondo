@@ -117,9 +117,17 @@ CcTuple::~CcTuple ()
 
 Attribute* CcTuple::Get (int index) {return AttrList[index];};
 
-void  CcTuple::Put (int index, Attribute* attr) {AttrList[index] = attr;};
+void  CcTuple::Put (int index, Attribute* attr) 
+{
+  assert(index < MaxSizeOfAttr);
+  AttrList[index] = attr;
+};
 
-void  CcTuple::SetNoAttrs (int noattr) {NoOfAttr = noattr;};
+void  CcTuple::SetNoAttrs (int noattr)
+{
+  assert(noattr <= MaxSizeOfAttr);
+  NoOfAttr = noattr;
+};
 
 int   CcTuple::GetNoAttrs () {return NoOfAttr;};
 

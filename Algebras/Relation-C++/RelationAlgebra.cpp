@@ -35,8 +35,6 @@ of these symbols, then the value ~error~ is returned.
 NestedList* nl = 0;
 QueryProcessor* qp = 0;
 
-const int MaxSizeOfAttrOLD = 10;
-
 static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
 
   string s;
@@ -1155,17 +1153,10 @@ Remove(Word* args, Word& result, int message, Word& local, Supplier s)
   switch (message)
   {
     case OPEN :
-
-	//cout << "project OPEN" << endl;
-
-
       qp->Open(args[0].addr);
       return 0;
 
     case REQUEST :
-
-	//cout << "project REQUEST" << endl;
-
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
@@ -1190,9 +1181,6 @@ Remove(Word* args, Word& result, int message, Word& local, Supplier s)
       else return CANCEL;
 
     case CLOSE :
-
-	//cout << "project CLOSE" << endl;
-
       qp->Close(args[0].addr);
       return 0;
   }
@@ -1237,9 +1225,9 @@ void Concat (Word r, Word s, Word& t)
 
   rnoattrs = ((CcTuple*)r.addr)->GetNoAttrs();
   snoattrs = ((CcTuple*)s.addr)->GetNoAttrs();
-  if ((rnoattrs + snoattrs) > MaxSizeOfAttrOLD)
+  if ((rnoattrs + snoattrs) > MaxSizeOfAttr)
   {
-    tnoattrs = MaxSizeOfAttrOLD;
+    tnoattrs = MaxSizeOfAttr;
   }
   else
   {

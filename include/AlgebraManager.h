@@ -173,7 +173,7 @@ If there are no models, it returns some constant cost.
 #include "NestedList.h"
 #include "SecondoSMI.h"
 
-const int MAXARG = 10;
+const int MAXARG = 20;
 /*
 Is the maximal number of arguments for one operator
 
