@@ -101,7 +101,12 @@ countType( ListExpr args )
 
     if ( nl->ListLength(arg1) == 2 )
       if ( nl->IsEqual(nl->First(arg1), "stream")
-	   && nl->IsEqual(nl->Second(arg1), "int") )
+	   //&& nl->IsEqual(nl->Second(arg1), "int") )
+	  && ((nl->IsEqual(nl->Second(arg1), "int") )||
+	          (nl->IsEqual(nl->Second(arg1), "upoint") )||
+	          (nl->IsEqual(nl->Second(arg1), "ureal") )||
+	          (nl->IsEqual(nl->Second(arg1), "constint") ))
+	  )
       return nl->SymbolAtom("int");
   }
   return nl->SymbolAtom("typeerror");

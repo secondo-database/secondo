@@ -1086,7 +1086,7 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
 
   ostream& Print( ostream &os )
   {
-      return os << "Temporal Algebra---upoint" << endl;
+      return os << "Temporal Algebra --- UPoint"<< endl;      
   }
 
   size_t HashValue()
@@ -1130,6 +1130,13 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
     //private:  (parameters in computing the value inside the time interval)
     double x0, y0, x1, y1;
 };
+
+ostream& operator<<(ostream &os, const UPoint& up)
+{
+    //return os << "((" <<up.timeInterval.start<<", "<<up.timeInterval.end<<", "
+    //<<up.timeInterval.lc<<", "<<up.timeInterval.rc<<") ("<<up.x0<<", "<<up.y0<<", "<<up.x1<<", "<<up.y1<<", "<<"))"<< endl;
+     return os << "((" <<up.timeInterval.lc<<", "<<up.timeInterval.rc<<") ("<<up.x0<<", "<<up.y0<<", "<<up.x1<<", "<<up.y1<<", "<<"))"<< endl;      
+}
 
 /*
 3.9 Mapping
