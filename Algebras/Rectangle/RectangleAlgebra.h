@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -64,10 +64,10 @@ Do not use this constructor.
 
 */
 
-    Rectangle( const bool defined, 
-               const double bottom = 0, 
-               const double top = 0, 
-               const double left = 0, 
+    Rectangle( const bool defined,
+               const double bottom = 0,
+               const double top = 0,
+               const double left = 0,
                const double right = 0 );
 /*
 The constructor. First one can set if the rectangle is defined, and if it is,
@@ -158,6 +158,12 @@ Returns the max coord value for the given dimension ~dim~.
 Returns the four coordinates of the rectangle.
 
 */
+    Rectangle& Translate( const double x, const double y );
+/*
+Translates the rectangle given ~x~ and ~y~ which can be negative values.
+
+*/
+
     Rectangle Union( const Rectangle& b ) const;
 /*
 Returns the bounding box that contains both this and the rectangle ~r~.

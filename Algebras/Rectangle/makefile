@@ -26,7 +26,7 @@
 include ../../makefile.env
 
 MODNAME = RectangleAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) -I../Spatial
+CCFLAGS = $(DEFAULTCCFLAGS) -I../Spatial -I../Relation-C++
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
