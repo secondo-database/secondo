@@ -1246,46 +1246,74 @@ template<bool isAvg> ListExpr
 AvgSumTypeMap( ListExpr args )
 {
   ListExpr first, second, attrtype;
-  string  attrname;
+  string  attrname, argstr;
   int j;
-  const char* errorMessage =
-    isAvg ?
-      "Incorrect input for operator avg."
-      : "Incorrect input for operator sum.";
-
-
-  if(nl->ListLength(args) == 2)
+  
+  const char* errorMessage1 =
+  isAvg ?
+    "Operator avg expects a list of length two."
+  : "Operator sum expects a list of length two.";    
+  CHECK_COND(nl->ListLength(args) == 2,
+    errorMessage1);
+      
+  first = nl->First(args);
+  second = nl->Second(args);
+  
+  nl->WriteToString(argstr, first);
+  string errorMessage2 =
+  isAvg ?
+    "Operator avg expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator avg gets as first argument '" + argstr + "'."
+  : "Operator sum expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator sum gets as first argument '" + argstr + "'.";
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (IsTupleDescription(nl->Second(nl->Second(first)))),
+	     errorMessage2);    
+	       
+  nl->WriteToString(argstr, second);
+  string errorMessage3 =
+  isAvg ?
+    "Operator max expects as second argument an atom (attributename).\n" 
+    "Operator max gets '" + argstr + "'.\n"
+    "Atrributename may not be the name of a Secondo object!"
+  : "Operator min expects as second argument an atom (attributename).\n" 
+    "Operator min gets '" + argstr + "'.\n"
+    "Atrributename may not be the name of a Secondo object!";    
+  CHECK_COND((nl->IsAtom(second)) &&
+             (nl->AtomType(second) == SymbolType),
+	     errorMessage3);
+	     
+  attrname = nl->SymbolValue(second);
+  nl->WriteToString(argstr, nl->Second(nl->Second(first)));  
+  j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+  string errorMessage4 =
+    "Attributename '" + attrname + "' is not known.\n"
+    "Known Attribute(s): " + argstr;
+  string errorMessage5 =
+    "Attribute type is not of type real or int.";
+  if ( j )  
   {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
-      && (nl->IsAtom(second))
-      && (nl->AtomType(second) == SymbolType))
-    {
-      attrname = nl->SymbolValue(second);
-      j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-
-      if (j > 0
-        && (nl->SymbolValue(attrtype) == "real"
-          || nl->SymbolValue(attrtype) == "int"))
-      {
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->TwoElemList(nl->IntAtom(j),
-            nl->StringAtom(nl->SymbolValue(attrtype))),
-            isAvg ? nl->SymbolAtom("real") : attrtype);
-      }
-    }
-    ErrorReporter::ReportError(errorMessage);
+    CHECK_COND( (nl->SymbolValue(attrtype) == "real"
+          || nl->SymbolValue(attrtype) == "int"),
+	  errorMessage5);
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->TwoElemList(nl->IntAtom(j),
+             nl->StringAtom(nl->SymbolValue(attrtype))),
+             isAvg ? nl->SymbolAtom("real") : attrtype);
+  }
+  else
+  {
+    nl->WriteToString( argstr, nl->Second(nl->Second(first)) );
+    ErrorReporter::ReportError(errorMessage4);
     return nl->SymbolAtom("typeerror");
   }
-  ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
 }
-
 /*
 
 2.10.2 Value mapping function of operators ~avg~ and ~sum~
