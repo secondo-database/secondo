@@ -1,5 +1,3 @@
-using namespace std;
-
 #include <string>
 #include <algorithm>
 #include <map>
@@ -10,6 +8,8 @@ using namespace std;
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CharTransform.h"
+
+using namespace std;
 
 const int EXIT_REGISTRAR_OK       = 0;
 const int EXIT_REGISTRAR_NOQUEUE  = 1;
@@ -44,7 +44,7 @@ class SecondoRegistrar : public Application
   multimap<string,ProcessId> dbUsers;
   multimap<string,string>    dbRegister;
   map<string,string>         dbLocks;
-  queue<string>              logMsgs;
+  std::queue<string>              logMsgs;
 };
 
 bool
