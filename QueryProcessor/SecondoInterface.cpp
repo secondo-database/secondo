@@ -30,6 +30,8 @@ November 7, 2002 RHG Implemented the ~let~ command.
 
 December 2002 M. Spiekermann Changes in Secondo(...) and NumTypeExpr(...). 
 
+February 3, 2003 RHG Added a ~list counters~ command.
+
 \tableofcontents
 
 */
@@ -626,6 +628,20 @@ If value 0 is returned, the command was executed without error.
           FinishCommand( errorCode );
         }                    
       }
+      else if ( nl->IsEqual( nl->Second( list ), "counters" ) )
+      {
+        if ( !SecondoSystem::GetInstance()->IsDatabaseOpen() )
+        {
+          errorCode = 6;  // no database open
+        }
+        else
+        {
+          StartCommand();
+          resultList =
+            SecondoSystem::GetQueryProcessor()->GetCounters();
+          FinishCommand( errorCode );
+        }
+      }                    
       else
       {
         errorCode = 1;  // Command not recognized.

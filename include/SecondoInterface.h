@@ -512,6 +512,7 @@ in ~resultList~.
       list operators
       list types
       list objects
+      list counters
 ----
 
 The last two commands are only valid when a database is open.
@@ -563,6 +564,16 @@ This is the same format as the one used in saving and restoring the
 database except that the ~value~ component is missing. The type name is
 written within a sublist since an object need not have a type name.
 Possible errors: 
+
+  * 6: no database open
+
+----	list counters
+----
+
+Returns a nested list containing pairs of the form (<counter number> <counter
+value>). Counters can be associated with operators within a query. The list
+contains the counter values from the last query.
+Possible errors:
 
   * 6: no database open
 
