@@ -4,6 +4,9 @@
 
 January 2002 Ulrich Telle
 
+Nov. 2004 M. Spiekermann. Some functions implementations moved to the
+header file in order to declare them as inline functions.
+
 */
 
 using namespace std;
@@ -77,19 +80,6 @@ SmiEnvironment::GetLastErrorCode( string& errorMessage )
   return smiErr;
 }
 
-void
-SmiEnvironment::SetError( const SmiError smiErr, const string& errMsg )
-{
-  lastError   = smiErr;
-  lastMessage = "SecondoSMI: " + errMsg;
-}
-
-void
-SmiEnvironment::SetError( const SmiError smiErr, const char* errMsg )
-{
-  lastError   = smiErr;
-  lastMessage = string("SecondoSMI: ") + errMsg;
-}
 
 bool
 SmiEnvironment::SetDatabaseName( const string& dbname )

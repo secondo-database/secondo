@@ -23,13 +23,16 @@ April 2002 Ulrich Telle
 
 November 30, 2002 RHG Added function ~GetKey~.
 
-April, 2004. F.Hoffmann changed implementation details of static method 'ListDatabases'.
+April, 2004. F.Hoffmann changed implementation details of static method
+'ListDatabases'.
 
-Aug 18, 2004. M. Spiekermann added ~Setflag\_NOSYNC~ to speed up closing files 
+Aug 18, 2004. M. Spiekermann added ~Setflag\_NOSYNC~ to speed up closing files
 at the end of a query. Since queries does not modify the data synchronisation is
 not necessary.
 
 Sept 15, 2004. M. Spiekermann. Declaration of SmiError moved to ErrorCodes.h. 
+
+Nov 2004. M. Spiekermann. Some functions were implemented as inline functions.
 
 1.1 Overview
 
@@ -197,6 +200,7 @@ using namespace std;
 
 
 #include <string>
+#include <db_cxx.h>
 
 #include "ErrorCodes.h"
 #include "SecondoConfig.h"
@@ -212,6 +216,7 @@ Specifies the maximum length of a context or file name.
 
 const string::size_type SMI_MAX_DBNAMELEN    =   15;
 /*
+
 Specifies the maximum length of a database name.
 
 */
@@ -682,12 +687,25 @@ error code while the other functions reset the internal error code.
 Optionally the accompanying error message is returned.
 
 */
+
+  inline static void SetError( const SmiError smiErr ) {
+    lastMessage = "";
+  }
+
   static void SetError( const SmiError smiErr,
-                        const int sysErr = 0 );
-  static void SetError( const SmiError smiErr,
-                        const string& errMsg );
-  static void SetError( const SmiError smiErr,
-                        const char* errMsg );
+                        const int sysErr ); 
+                        
+  inline static void SetError( const SmiError smiErr,
+                               const string& errMsg ) {
+    lastError   = smiErr;
+    lastMessage = "SecondoSMI: " + errMsg;
+               
+  }                      
+  inline static void SetError( const SmiError smiErr,
+                               const char* errMsg ) {
+     lastError   = smiErr;
+     lastMessage = string("SecondoSMI: ") + errMsg;                       
+  }                      
 /*
 Allows to set an SmiError code and a system error code or an error message.
 (maybe these functions should not be public. Currently messages are
@@ -768,7 +786,9 @@ or if the application runs in single user mode.
   static bool           smiStarted;  // Flag SMI initialized
   static bool           singleUserMode;
   static bool           useTransactions;
-	static bool						dontSyncDiskCache; // used in the Berkeley-DB Implementation
+ 
+  // the next member is used in the Berkeley-DB Implementation
+  static bool	          dontSyncDiskCache;
 		
   static string         configFile;  // Name of config file
   static string         uid;         // ID of Secondo user
@@ -779,6 +799,7 @@ or if the application runs in single user mode.
 
   class Implementation;
   Implementation* impl;
+
   friend class Implementation;
   friend class SmiFile;
   friend class SmiFile::Implementation;

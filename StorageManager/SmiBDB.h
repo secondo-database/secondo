@@ -310,6 +310,7 @@ Deletes the name ~dbname~ of an existing "Secondo"[3] database from the database
 catalog. The function returns "true"[4] if the deletion was successful.
 
 */
+
  protected:
   Implementation();
   ~Implementation();
