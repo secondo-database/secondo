@@ -1,3 +1,39 @@
+%
+% November 2004, M. Spiekermann
+%
+% Some TPC-H queries in Secondo SQL syntax
+
+
+tpc5 :-
+  sql
+select
+       [
+	n_name,
+	sum(l_extendedprice * (1 - l_discount)) as revenue
+       ]
+from
+       [
+	customer,
+	orders,
+	lineitem,
+	supplier,
+	nation,
+	region
+       ]
+where
+       [
+	c_custkey = o_custkey,
+	l_orderkey = o_orderkey,
+	l_suppkey = s_suppkey,
+	c_nationkey = s_nationkey,
+	s_nationkey = n_nationkey,
+	n_regionkey = r_regionkey,
+        r_name = "ASIA", 
+	not(o_orderdate < cmpdate5_1), 
+	o_orderdate < cmpdate5_2 
+       ]
+groupby [ n_name asc ]
+orderby [ revenue desc ].
 
 
 tpc3 :- 
@@ -5,7 +41,7 @@ tpc3 :-
 select
 	[ 
           l_orderkey,
-%	sum(l_extendedprice * (1 - l_discount)) as revenue,
+          sum(l_extendedprice * (1 - l_discount)) as revenue,
 	  o_orderdate,
 	  o_shippriority 
         ]
@@ -21,13 +57,15 @@ where
           c_custkey = o_custkey,
 	  l_orderkey = o_orderkey 
         ]
-%groupby
-%	[ l_orderkey,
-%	  o_orderdate,
-%	  o_shippriority ]
+groupby
+	[ 
+          l_orderkey,
+	  o_orderdate,
+	  o_shippriority 
+        ]
 orderby
 	[ 
-%          revenue desc,
+          revenue desc,
 	  o_orderdate asc 
         ].
 
@@ -37,21 +75,21 @@ tpc1 :-
   sql 
 select
 	[ 
-%          count(*) as count_order,
+          count(*) as count_order,
           l_returnflag,
           l_linestatus,
           sum(l_quantity) as sum_qty,
-          sum(l_extendedprice) as sum_base_price
-%          sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
-%          sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
-%          avg(l_quantity) as avg_qty,
-%	  avg(l_extendedprice) as avg_price,
-%	  avg(l_discount) as avg_disc,
+          sum(l_extendedprice) as sum_base_price,
+          sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
+          sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
+          avg(l_quantity) as avg_qty,
+	  avg(l_extendedprice) as avg_price,
+	  avg(l_discount) as avg_disc
         ]
 from
 	  lineitem 
 where
-	  l_shipdate < cmpdate 
+	  l_shipdate < cmpdate1 
 groupby [
 	  l_returnflag,
 	  l_linestatus
@@ -61,4 +99,5 @@ orderby
           l_returnflag asc,
 	  l_linestatus asc 
         ].
+
 
