@@ -1,1 +1,9 @@
-java -classpath ../Jpl/lib/classes/:. OptimizerServer 1235
+if [ -z $1 ]; then
+  PORT=1235
+else
+  PORT=$1
+fi
+
+echo "Start optimizer server on port $PORT"
+
+java -classpath ../Jpl/lib/classes/:. OptimizerServer $PORT
