@@ -76,13 +76,11 @@ public:
     // TupleCompareBy and an appropriate sort order specification, 
     Counter::getRef("TupleAndRelPos::less")++;
     if (!this->tuple || !ref.tuple) {
-      assert(false);
       return true;
     }
     if ( cmpPtr ) {
       return !(*(TupleCompareBy*)cmpPtr)( this->tuple, ref.tuple );
     } else {
-      assert( false );
       return !lexCmp( this->tuple, ref.tuple );
     }
   }
