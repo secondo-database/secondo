@@ -140,7 +140,8 @@ public class HoeseViewer extends SecondoViewer {
 
   /** a FileChooser for Sessions */
   private JFileChooser FC_Session=new JFileChooser();
-
+  /** a FileChooser for Categories*/
+  private JFileChooser FC_Category=new JFileChooser();
 
 
   /**
@@ -406,13 +407,12 @@ public class HoeseViewer extends SecondoViewer {
     jMenu1.add(jMenu_SaveSession);
     jMenu1.add(jSeparator1);
 
-    JMenuItem MIloadCat = new JMenuItem("Load category");
+    JMenuItem MIloadCat = new JMenuItem("Load categories");
     MIloadCat.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        final JFileChooser fc = new JFileChooser(configuration.getProperty("WorkingDir","/"));
-        int returnVal = fc.showOpenDialog(HoeseViewer.this);
+        int returnVal = FC_Category.showOpenDialog(HoeseViewer.this);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-          File file = fc.getSelectedFile();
+          File file = FC_Category.getSelectedFile();
           ListExpr le = new ListExpr();
           String suc;
           if (le.readFromFile(file.getPath()) == 0) {
@@ -429,13 +429,12 @@ public class HoeseViewer extends SecondoViewer {
 
     jMenu1.add(MIloadCat);
 
-    JMenuItem MISaveCat = new JMenuItem("Save category");
+    JMenuItem MISaveCat = new JMenuItem("Save categories");
     MISaveCat.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        final JFileChooser fc = new JFileChooser(configuration.getProperty("WorkingDir","/"));
-        int returnVal = fc.showSaveDialog(HoeseViewer.this);
+        int returnVal = FC_Category.showSaveDialog(HoeseViewer.this);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-          File file = fc.getSelectedFile();
+          File file = FC_Category.getSelectedFile();
           ListExpr le = writeAllCats();
           String suc;
           if (le.writeToFile(file.getPath())!= 0) 
@@ -1514,57 +1513,30 @@ public boolean canDisplay(SecondoObject o){
 
 
   private void init() {
-    InputStreamReader configReader = null;
-    InputStream configStream = null;
-    URL configURL = null;
-    String configFileName = null;
-    configFileName = "file:" + System.getProperty("user.dir") + "/" + this.CONFIGURATION_FILE;
     // Once the address of the configuration file is known, it tries to
+    boolean success=true;
+    configuration = new Properties();
     try {
-      // Stores the configuration information.
-      this.configuration = new Properties();
-      configStream = (new URL(configFileName)).openStream();
-      this.configuration.load(configStream);
-      // Initializes the ~secondoInterface~ object that will be used for
-      // any connection with the Secondo server.
-      configURL = new URL(configFileName);
-      configReader = new InputStreamReader(configURL.openStream());
-    } catch (FileNotFoundException except) {
-      // If an error happened when trying to open the file.
-      if (DEBUG_MODE) {         //Only if debug mode.
-        System.err.println("DEBUG MODE: configuration file '" + CONFIGURATION_FILE
-            + "` not found when executing in SecondoJava() class.");
-        except.printStackTrace();
+      FileInputStream Cfg = new FileInputStream(CONFIGURATION_FILE); 
+      configuration.load(Cfg);
+      Cfg.close();
       }
-      System.err.println("Error: configuration file '" + CONFIGURATION_FILE
-          + "` not found.");
-    } catch (SecurityException except) {
-      // If it throws a security exception.
-      if (DEBUG_MODE) {         //Only if debug mode.
-        System.err.println("DEBUG MODE: Security exception when reading the configuration file '"
-            + CONFIGURATION_FILE + "` in SecondoJava() class.");
-        except.printStackTrace();
-      }
-      System.err.println("Security Error: security exception when reading the configuration file '"
-          + CONFIGURATION_FILE + "`.");
-    } catch (IOException except) {
-      // If an error happened when reading the file.
-      if (DEBUG_MODE) {         //Only if debug mode.
-        System.err.println("DEBUG MODE: configuration file '" + CONFIGURATION_FILE
-            + "` not found when executing in SecondoJava() class.");
-        except.printStackTrace();
-      }
-      System.err.println("Error: configuration file '" + CONFIGURATION_FILE
-          + "` not found.");
-    } finally {
-      try {
-        configStream.close();
-        configReader.close();
-      } catch (IOException except) {
-      // Does not matter.
-      }
+    catch(Exception e){
+       MessageBox.showMessage("HoeseViewer : i can't read the configuration file");
+       success=false;
     }
-  }
+    if(success){
+       String CatPath = configuration.getProperty("CATEGORY_PATH");
+       if(CatPath!=null)
+          FC_Category.setCurrentDirectory(new File(CatPath));
+          
+       String SessionPath = configuration.getProperty("SESSION_PATH");
+       if(SessionPath!=null)
+          FC_Session.setCurrentDirectory(new File(SessionPath));
+    }
+    
+
+ }
 
 
   
@@ -1649,6 +1621,7 @@ public boolean canDisplay(SecondoObject o){
   }
     }
 }
+
 
 
 
