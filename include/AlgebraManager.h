@@ -56,6 +56,8 @@ February 2003 Ulrich Telle Introduced new mode ~DeleteFrom~ for the
 
 August 2003 VTA Added the ~SaveToList~ and ~RestoreFromList~ functions
 
+September 2003 Frank Hoffmann Added ~ListAlgebras~ and ~GetAlgebraId~
+
 1.1 Overview
  
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -513,6 +515,22 @@ Destroys an algebra manager.
 
 */
 
+  ListExpr ListAlgebras();
+/*
+Lists all algebras, which are currently included within the "Secondo"[3] system.
+The list format is :
+
+---- (<algebra name 1>..<algebra name n>)
+----
+
+*/
+
+  int GetAlgebraId( const string algName);
+/* 
+Returns the id of the algebra with name algName, if this algebra is currently
+included, otherwise 0.
+  
+*/  
   void LoadAlgebras();
 /*
 All existing algebras are loaded into the "Secondo"[3] programming interface.

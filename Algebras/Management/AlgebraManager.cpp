@@ -37,13 +37,61 @@ AlgebraManager::~AlgebraManager()
 {
 }
 
+ListExpr
+AlgebraManager::ListAlgebras()
+{
+  int j;
+  ListExpr list, lastElem = 0;
+    
+  list = nl->TheEmptyList();
+ 
+  for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
+  {
+    if ( (*getAlgebraEntry)( j ).useAlgebra )
+    {
+      if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
+      {
+        if ( list == nl->TheEmptyList() )
+        {
+          list = nl->OneElemList( nl->SymbolAtom( (*getAlgebraEntry)( j ).algebraName ) ); 
+          lastElem = list;
+        }
+        else
+        {
+          lastElem = nl->Append( lastElem, nl->SymbolAtom( (*getAlgebraEntry)( j ).algebraName ) );
+        }
+      }
+    }
+  } 
+  return (list);
+}
+
+int
+AlgebraManager::GetAlgebraId(const string algName)
+{
+  int j;
+  
+  for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
+  {
+    if ( (*getAlgebraEntry)( j ).useAlgebra )
+    {
+      if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
+      {
+        if ( !(algName.compare( (*getAlgebraEntry)( j ).algebraName )) )
+	  return (*getAlgebraEntry)( j ).algebraId;
+      }
+    }
+  }
+  return 0;
+}
+
 void
 AlgebraManager::LoadAlgebras()
 {
   QueryProcessor* qp = SecondoSystem::GetQueryProcessor();
   TypeConstructor* tc;
   int j, k;
-
+  
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
     if ( (*getAlgebraEntry)( j ).useAlgebra )
