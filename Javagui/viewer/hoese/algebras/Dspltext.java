@@ -24,14 +24,26 @@ public class Dspltext extends DsplGeneric implements DsplSimple{
    * @see <a href="Dsplstringsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     qr.addEntry(new String(type.symbolValue() + ":" + value.first().textValue()));
+     if (value.listLength()==1)
+     value = value.first();
+     if(value.atomType()!=ListExpr.TEXT_ATOM)
+        qr.addEntry(new String(type.symbolValue()) + ": error in value ");
+     else
+        qr.addEntry(new String(type.symbolValue() + ":" + value.textValue()));
      return;
   }
 
   public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
      String T = new String(type.symbolValue());
-     String V = new String(value.first().textValue());
+     String V;
+
+     if (value.listLength()==1)
+     value = value.first();
+     if(value.atomType()!=ListExpr.TEXT_ATOM)
+        V =  "error in value ";
+     else
+        V =  value.textValue();
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
      qr.addEntry(T + " : " + V);
