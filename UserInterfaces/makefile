@@ -15,7 +15,7 @@ APPLOBJECTS := \
 ifeq ($(smitype),ora)
 APPLICATIONS = $(BINDIR)/SecondoTTYORA
 else
-APPLICATIONS = $(BINDIR)/SecondoTTYBDB $(BINDIR)/TestRunner
+APPLICATIONS = $(BINDIR)/SecondoTTYBDB
 APPLOBJECTS += TestRunner.o
 endif
 
@@ -31,7 +31,10 @@ APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 all: $(APPLOBJECTS)
 
 .PHONY: buildapp
-buildapp: $(APPLICATIONS)
+buildapp: $(APPLICATIONS) testrunner
+
+.PHONY: testrunner
+testrunner: $(BINDIR)/TestRunner$(EXEEXT)
 
 .PHONY: client
 client: $(BINDIR)/SecondoTTYCS$(EXEEXT)
@@ -55,19 +58,19 @@ SecondoPL.o: SecondoPL.cpp Application.h Profiles.h FileSystem.h SecondoSystem.h
 
 # --- Link applications
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
 
 $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB) $(JNILINKOPTS) $(JNIINCLUDE)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB) $(JNILINKOPTS) $(JNIINCLUDE)
 
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
 
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
 
 $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) $(PLLDFLAGS) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(PLLDFLAGS) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
 
 include ../include.dep
 

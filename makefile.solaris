@@ -5,7 +5,7 @@
 ########################################################################
 
 # System dependent default libraries
-DEFAULTLIB = -lsocket -lnsl -lm -ldl -lstdc++
+DEFAULTLIB = -lsocket -lnsl -lm -ldl -lstdc++ #-lc
 
 # Berkeley DB library
 BDBINCLUDE = -I$(BDBDIR)/include
@@ -19,11 +19,11 @@ BDBLIB = -ldb_cxx -ldb
 #OCICPPLIB = -locicpp
 
 # Uncomment next line to compile with debugging information:
-DEBUG = -ggdb
+DEBUG = -g -pg
 
 PLATFORM = solaris
 CC = gcc
-LD = gcc
+LD = gcc -v
 AR = ar
 RANLIB = ranlib
 CP = cp
@@ -44,7 +44,7 @@ else
 PICFLAG =
 OBJEXT = o
 LIBEXT = a
-LDFLAGS = -L$(LEXPREFIX)/lib
+LDFLAGS = -L$(LEXPREFIX)/lib   /opt/pdsoft/testdir/lib/gcc-lib/sparc-sun-solaris2.6/2.95.3/gmon.o 
 #EXEFLAGS = -static
 EXEFLAGS =
 endif
@@ -54,4 +54,4 @@ DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I$(LEXPREFIX)/include -I/opt/pdsoft/include -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED -B/opt/pdsoft/binutils/bin/
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I$(LEXPREFIX)/include -I/opt/pdsoft/include -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED -B/opt/pdsoft/binutils/bin/ 
