@@ -75,7 +75,7 @@ declare -i errors=0
 cd $buildDir
 checkCmd "make > ../make-all.log 2>&1" 
 
-if [ $rc -ne 0 ]; then
+if let $rc!=0; then
 
   printf "%s\n" "Problems during build, sending a mail to:"
   printf "%s\n" "$recipients"
@@ -95,7 +95,7 @@ fi
 
 ## run tests
 
-if [ $errors -ne 0 ]; then
+if let $errors==0; then
 
 printSep "Running automatic tests"
 if ! ( ${scriptDir}/run-tests.sh )
