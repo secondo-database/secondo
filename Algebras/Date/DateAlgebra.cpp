@@ -6,9 +6,9 @@
 December 11-16, 2002 DZM
 ***************************************************************************************************
 This little example algebra provides one type constructor ~date~  and 7 operators:
-date -> int                      year, month, day
-date x date -> bool       <,  =, >
-ini x int x int->date       opdate
+date -> int 		year, month, day
+date x date -> bool	<,  =, >
+ini x int x int->date 	thedate
 
 The algerbra provides basic checking on the validity of data. For instance, Fabruary in
 leap years (every 4 years except 100th year, and every 400th year) has 29 days, and 
@@ -175,9 +175,9 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
 	}
 	  else
                {
-	    cout <<"---------------------------------------------------------------" << endl;	    
+	    cout <<"---------------------------------------------------" << endl;	    
 	    cout <<"   >>>invalid date, ignored by the system!<<<" << endl;
-	    cout <<"---------------------------------------------------------------" << endl;	    	   
+	    cout <<"---------------------------------------------------" << endl;	    	   
  
                }
     }
@@ -464,9 +464,9 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 	  
             if (Day<1) Day=1;
             if (Day>daysinmonth) Day=daysinmonth; 
-           cout <<"------------------------------------------------------------------------------------" << endl;	    
+           cout <<"--------------------------------------------------------------------------" << endl;	    
            cout <<"   >>>invalid date! It will be replaced by the closest valid date.<<<" << endl;
-           cout <<"------------------------------------------------------------------------------------" << endl;	    	   
+           cout <<"--------------------------------------------------------------------------" << endl;	    	   
            delem=new Date (Day, Month, Year); 
            result.addr=delem;
     } 
@@ -557,8 +557,8 @@ Operator later (
 	DateDateBool		//type mapping 
 );	
 
-Operator opdate (
-	"opdate", 		//name
+Operator thedate (
+	"thedate", 		//name
 	DateSpec,		//specification
 	dateFun,			//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
@@ -585,7 +585,7 @@ class DateAlgebra : public Algebra
     AddOperator( &earlier );
     AddOperator( &opequal);
     AddOperator( &later );
-    AddOperator( &opdate );
+    AddOperator( &thedate );
   }
   ~DateAlgebra() {};
 };
