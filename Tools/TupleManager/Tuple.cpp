@@ -19,7 +19,7 @@
 
 /* for debugging purposes. */
 void dbg(char *message) {
-	//cout << message << endl;
+	cout << message << endl;
 }
 
 /* constructor. Sets all member variables, including size. */
@@ -47,14 +47,17 @@ void Tuple::Init(const TupleAttributes *attributes) {
 	memorySize = attributes->totalSize;
 	extensionSize = 0;
 	
-	// get Reference of AlgebraManager  
+	// get Reference of AlgebraManager
+	dbg("###### SecondoSystem::GetAlgebraManager() call begin.");  
   	algM = SecondoSystem::GetAlgebraManager();
+	dbg("###### SecondoSystem::GetAlgebraManager() call finished.");
 
   	// allocate memory for tuple representation
  	memoryTuple = (char *)malloc(attributes->totalSize);
 	extensionTuple = 0;
 	
 	// copy attribute info
+	dbg("###### copy attribute info begin");
   	attribInfo = new AttributeInfo[attrNum];
   	for (int i = 0; i < attrNum; i++) {
 		int actSize = attributes->type[i].size;
@@ -67,6 +70,7 @@ void Tuple::Init(const TupleAttributes *attributes) {
 		attribInfo[i].destruct = false;
 		attribInfo[i].incRefCount();
   	} 
+	dbg("###### copy attribute info finished.");
 	
 	dbg("### Tuple::Init() finished.");
 }
