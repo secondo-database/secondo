@@ -762,6 +762,21 @@ Transforms the text atom into C++ string object
 
 */
   NodeType AtomType( const ListExpr atom );
+  void ExtractAtoms( const ListExpr list, vector<ListExpr>& atomVec) {
+    
+    if ( IsEmpty(list) )
+       return;
+
+    if ( IsAtom(list) ) { 
+       atomVec.push_back(list);
+       return; 
+
+    } else {
+
+       ExtractAtoms( First(list), atomVec );
+       ExtractAtoms( Rest(list), atomVec );
+    }
+  }
 /*
 Determines the type of list expression ~atom~ according to the enumeration
 type ~NodeType~. If the parameter is not an atom, the function returns the
