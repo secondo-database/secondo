@@ -5,7 +5,7 @@
 
 February, 2003. Victor Teixeira de Almeida
 
-March-June, 2003. Zhiming Ding
+March-July, 2003. Zhiming Ding
 
 1 Overview
 
@@ -4219,7 +4219,7 @@ const SmiRecordId CRegion::GetRegionRecordId() const
 bool CRegion::contain( const Point& p ) const
 {
     //here: if the point is on the border, it is also counted.
-    //§§§ I should optimize this part §§§
+
     if (!bbox.Contains(p)) return false;
     
     int faceISN[100];
@@ -5123,7 +5123,7 @@ The list representation of a region is
 static ListExpr
 SaveToListRegion( ListExpr typeInfo, Word value )
 {
-    //cout<<"SaveToListRegion§§§§§§§§§§§§§"<<endl;
+    //cout<<"SaveToListRegion########"<<endl;
     // Put the Class Object to Direct NL. Analogious to: OUT_Region
     CRegion* cr = (CRegion*)(value.addr);
     if( cr->IsEmpty() )
@@ -5440,7 +5440,7 @@ OutRegion( ListExpr typeInfo, Word value )
 static Word
 RestoreFromListRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {  
-    //cout<<"RestoreFromListRegion§§§§§§§§§§§"<<endl;
+    //cout<<"RestoreFromListRegion###########"<<endl;
     //Fron NL DIRECTLY to Class Objects. Analogious to IN_Region
     CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
     
