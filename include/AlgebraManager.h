@@ -45,18 +45,16 @@ April 2002 Ulrich Telle Port to C++, complete revision
 August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
-<<<<<<< AlgebraManager.h
 January, 2003 VTA Changed ~PersistValue~ interface and created three
 new functions ~Open~, ~Save~, ~Close~, and ~Clone~ that join the ~Create~ 
 and ~Delete~ to form the object state diagram in the Figure 1.
 
 Figure 1: Object state diagram [objstatediagram.eps]
 
-=======
 February 2003 Ulrich Telle Introduced new mode ~DeleteFrom~ for the
 ~PersistValue~ and ~PersistModel~ interface
 
->>>>>>> 1.9
+
 1.1 Overview
  
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -182,6 +180,7 @@ If there are no models, it returns some constant cost.
 #define ALGEBRA_MANAGER_H
 
 #include <map>
+#include <vector>
 #include "AlgebraTypes.h"
 #include "NestedList.h"
 #include "SecondoSMI.h"
