@@ -7,13 +7,13 @@ open database tpc_s05;
 query
   LINEITEM  feed 
   project[L_ORDERKEY, L_EXTENDEDPRICE, L_DISCOUNT]
-    CUSTOMER  feed project[C_CUSTKEY, C_MKTSEGMENT] filter[(.C_MKTSEGMENT = "BUILDING")] 
     ORDERS    feed project[O_ORDERDATE, O_SHIPPRIORITY, O_CUSTKEY, O_ORDERKEY]  
-    sortmergejoin[C_CUSTKEY, O_CUSTKEY] 
-  sortmergejoin[L_ORDERKEY, O_ORDERKEY]  
+    CUSTOMER  feed project[C_CUSTKEY, C_MKTSEGMENT] filter[(.C_MKTSEGMENT = "BUILDING")] 
+    hashjoin[O_CUSTKEY, C_CUSTKEY, 997] 
+  hashjoin[L_ORDERKEY, O_ORDERKEY, 997]  
   sortby[L_ORDERKEY asc, O_ORDERDATE asc, O_SHIPPRIORITY asc] 
   groupby[L_ORDERKEY, O_ORDERDATE, O_SHIPPRIORITY; Revenue: group feed 
                 extend[xxxExprField: (.L_EXTENDEDPRICE * (1 - .L_DISCOUNT))] sum[xxxExprField] ] 
   sortby[Revenue desc, O_ORDERDATE asc]  
 #  project[L_ORDERKEY, Revenue, O_ORDERDATE, O_SHIPPRIORITY] 
-  count;
+  head[10] consume;
