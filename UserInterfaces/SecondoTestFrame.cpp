@@ -366,12 +366,17 @@ int SecondoTestFrame::Execute() {
 			cout << ((trans == true) ? " OK" : " failed.") << endl;
 			
 			Tuple* myTuple;
+			Tuple* myTuple2;
 			CcReal *real1;
 			CcInt *int1;
 			CcBool *bool1;
+			CcInt *int2;
+			CcBool *bool2;
 			SmiRecordId recId;
+			SmiRecordId recId2;
 			int choice;
 			int i;
+			int j;
 			 		
 			do {
 				cout << "* Test menu: " << endl << endl;
@@ -381,6 +386,7 @@ int SecondoTestFrame::Execute() {
 				cout << "4) create lots of tuples and save to file" << endl;
 				cout << "5) show all tuples in the file. " << endl;
 				cout << "6) create fresh tuple, destroy it and '(re-)SaveTo' it" << endl;
+				cout << "7) create two new tuples with one shared float component, save both to file." << endl;
 				cout << endl;
 				cout << "9) end." << endl;
 			
@@ -391,6 +397,9 @@ int SecondoTestFrame::Execute() {
 				int intv;
 				char boolv;
 				bool bboolv;
+				int intv2;
+				char boolv2;
+				bool bboolv2;
 				int numberOfTuples;						
 				//SmiRecordFileIterator *it;
 				//bool more;
@@ -565,6 +574,64 @@ int SecondoTestFrame::Execute() {
 						cout << "\t" << recId << endl;
 
 						break;
+						
+					case 7:
+						myTuple = new Tuple(&tupleType1);
+						myTuple2 = new Tuple(&tupleType1);
+						cout << "\ta float value for both tuples, please: "; cin >> realv;
+						
+						cout << "\tan int value for the first tuple, please: "; cin >> intv;
+						cout << "\tt = true, f = false" << endl;
+						cout << "\ta boolean value for the first tuple, please: "; cin >> boolv;
+						
+						cout << "\tan int value for the second tuple, please: "; cin >> intv2;
+						cout << "\tt = true, f = false" << endl;
+						cout << "\ta boolean value for the second tuple, please: "; cin >> boolv2;
+						bboolv = ((boolv == 't') ? true : false);
+						bboolv2 = ((boolv2 == 't') ? true : false);
+						
+						real1 = new CcReal(true, realv);
+            			int1 = new CcInt(true, intv);
+	    				bool1 = new CcBool(true, bboolv);
+						int2 = new CcInt(true, intv2);
+						bool2 = new CcBool(true, bboolv2);
+	    
+	    				myTuple->DelPut(0, int1);
+	    				myTuple->DelPut(1, bool1);
+	    				myTuple->DelPut(2, real1);
+					
+						myTuple2->DelPut(0, int2);
+						myTuple2->DelPut(1, bool2);
+						myTuple2->AttrPut(2, myTuple, 2);
+					
+						cout << "\ttest tuple values (first tuple)" << endl;
+	    				cout << "\t" << *myTuple << endl;
+						cout << "\tSize: " << myTuple->GetSize() << endl;
+						cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+						for (j = 0; j < myTuple->GetAttrNum(); j++) {
+							cout << "\t\t" << *(myTuple->Get(j)) << endl;
+						}
+						
+						cout << "\ttest tuple values (second tuple)" << endl;
+	    				cout << "\t" << *myTuple2 << endl;
+						cout << "\tSize: " << myTuple2->GetSize() << endl;
+						cout << "\tAttributes: " << myTuple2->GetAttrNum() << endl;
+						for (j = 0; j < myTuple2->GetAttrNum(); j++) {
+							cout << "\t\t" << *(myTuple2->Get(j)) << endl;
+						}
+
+						cout << "\tSave tuples into recFile. \n\tPersistent id = ";
+						myTuple->SaveTo(recFile, lobFile);
+						recId = myTuple->GetPersistentId();
+						cout << recId << endl;
+						cout << "\tPersistent id = ";
+						myTuple2->SaveTo(recFile, lobFile);
+						recId2 = myTuple2->GetPersistentId();
+						cout << recId2 << endl;
+						
+						delete(myTuple);
+						delete(myTuple2);
+
 
 					case 9:
 						break;
