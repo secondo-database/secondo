@@ -70,6 +70,7 @@ using namespace std;
 #include "CharTransform.h"
 #include "NLParser.h"
 #include "WinUnix.h"
+#include "LogMsg.h"
 
 
 // used in PagedArray.h
@@ -151,10 +152,15 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
 
      if (!recFilePtr) {
 
-       int pageSize = WinUnix::getPageSize() - 100;
-       assert( pageSize > 100 );       
+       const int fragSize = 100;
+       int pageSize = WinUnix::getPageSize();
+       if ( !((pageSize - fragSize) > sizeof(NodeRecord)) ) {
+         cerr << "NestedList Error: The systems pagesize ( " 
+              << pageSize << " Bytes ) is to small!" << endl; 
+         exit(1);
+       }
 
-       recFilePtr = new SmiRecordFile(true, pageSize, true);
+       recFilePtr = new SmiRecordFile(true, pageSize-fragSize, true);
        
        if ( !(recFilePtr->Create()) ) {
          string errMsg;
@@ -1027,8 +1033,30 @@ bool
 NestedList::WriteToString( string& nlChars, const ListExpr list )
 {
   bool ok =false;
-  nlChars = "";
-  return (ok=WriteToStringLocal( nlChars, list ));
+  ostringstream nlos;
+  
+  if ( ok=WriteToStringLocal( nlos, list  )) {
+    nlChars = nlos.str();
+  } else {
+    nlChars = "";
+  }
+  return ok;
+}
+
+
+/*
+6.4.2 WritStringTo
+
+Write a list in its textual representation into an ostream object
+
+*/
+
+bool
+NestedList::WriteStringTo(  const ListExpr list, ostream& os )
+{
+  bool ok =false;
+  ok=WriteToStringLocal( os, list  );
+  return ok;
 }
 
 /*
@@ -1037,7 +1065,7 @@ Internal procedure *WriteToStringLocal*
 */
 
 bool
-NestedList::WriteToStringLocal( string& nlChars, ListExpr list )
+NestedList::WriteToStringLocal( ostream& nlChars, ListExpr list )
 {
 /*
 Error Handling in this procedure: If anything goes wrong, the execution of the
@@ -1049,7 +1077,7 @@ within the structure of the list, otherwise, the function result is ~true~.
   ostringstream os;
   if ( IsEmpty( list ) )
   {
-    nlChars += "()";
+    nlChars << "()";
   }
   else if ( IsAtom ( list ) )
   {
@@ -1057,7 +1085,7 @@ within the structure of the list, otherwise, the function result is ~true~.
     {
       case IntType:
         os << IntValue( list );
-        nlChars += os.str();
+        nlChars << os.str();
         break;
       case RealType:
         os << setprecision(16) << RealValue( list );
@@ -1065,32 +1093,29 @@ within the structure of the list, otherwise, the function result is ~true~.
         {
           os << ".0";
         }
-        nlChars += os.str();
+        nlChars << os.str();
         break;
       case BoolType:
-        nlChars += BoolToStr( BoolValue( list ) );
+        nlChars << BoolToStr( BoolValue( list ) );
         break;
       case StringType:
-        nlChars += "\"" + StringValue( list ) + "\"";
+        nlChars << ("\"" + StringValue( list ) + "\"");
         break;
       case SymbolType:
-        nlChars += SymbolValue( list );
+        nlChars << SymbolValue( list );
         break;
-      case TextType:
+      case TextType: // ToDo replace tempText with a loop which writes small fragments into nlChars
         {
           TextScan textScan = CreateTextScan( list );
           string tempText = "";
 
-#if NL_DEBUG	  
-	  cerr << "list, TextLength( list ): "
-	       << list << "," 
-	       << TextLength( list )
-	       << endl;
-#endif	
+          if ( RTFlag::isActive("NL:TextLength") ) {
+	     cerr << "list, TextLength( list ): " << list << "," << TextLength( list ) << endl;
+          }
 	  
           GetText( textScan, TextLength( list ), tempText ); 
           DestroyTextScan( textScan );
-          nlChars += "<text>" + tempText + "</text--->";
+          nlChars << ("<text>" + tempText + "</text--->");
         }
         break;
       default:
@@ -1099,28 +1124,30 @@ within the structure of the list, otherwise, the function result is ~true~.
   }
   else
   { /* List is neither empty nor an atom */
-    nlChars += "(";
+    nlChars << "(";
     bool ok = WriteToStringLocal( nlChars, First( list ) );
-    if ( !ok )
-    {
+
+    if ( !ok ) {
       return (ok);
     }
+
     while ( !IsEmpty( Rest( list ) ) )
     {
-      nlChars += " ";
+      nlChars << " ";
       list = Rest( list );
       ok = WriteToStringLocal( nlChars, First( list ) );
-      if ( !ok )
-      {
+
+      if ( !ok ) {
         return (ok);
       }
     }
-    nlChars += ")";
+    nlChars << ")";
   }
 
   /* This point in the function is only reached if no error occurred before. */
   return (true);
 }
+
 
 /*
 6.4 WriteBinaryTo
@@ -1133,8 +1160,10 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
   
   assert( os.good() );
 
-  const byte val[7] = {'b','n','l',0,1,0,0};
-  os.write( (const char*)val,7 ); 
+  const byte v[7] = {'b','n','l',0,1,0,0};
+  //os.write( (const char*)v,7 ); 
+  os << (byte) v[0] << (byte) v[1] << (byte) v[2]
+     << (byte) v[3] << (byte) v[4] << (byte) v[5] << (byte) v[6]; 
   bool ok = WriteBinaryRec(list, os);
   os.flush();
   return ok;
@@ -1169,8 +1198,12 @@ bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 
   int strlen = 0;
+  char* pv = 0;
   NodeRecord nodeRec1;
   NodeType NT = NoAtom;
+
+  os.flush();
+  assert( os.good() );
 
   if ( list != TheEmptyList() ) {
 
@@ -1190,7 +1223,9 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 	  case IntType:    {
                            os << (byte) 1; 
 	                   long value = IntValue(list);
-			   os.write( Int2CharArray(value),4 ); 
+                           pv = Int2CharArray(value);
+                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+			   //os.write( Int2CharArray(value),4 ); 
 			   return true;
 	  }
 	  case RealType:   {
@@ -1205,37 +1240,49 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 			     pval = bigEndianVal;
 			   }
 
-			   os.write( (const char*)pval,4 ); 
+                           os << (byte) pval[0] << (byte) pval[1] << (byte) pval[2] << (byte) pval[3];
+			   //os.write( (const char*)pval,4 ); 
 			   return true;
 	  }
 	  case StringType: {
                            os << (byte) 4;
 	                   string value = StringValue(list);
 			   strlen = value.length();
-			   os.write( Int2CharArray(strlen),4 );
-                           os.write( value.data(),strlen );
+                           pv = Int2CharArray(strlen);
+                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+			   os << value;
+			   //os.write( Int2CharArray(strlen),4 );
+                           //os.write( value.data(),strlen );
 			   return true;
           }
 	  case SymbolType: {
 			   os << (byte) 5;
 	                   string value = SymbolValue(list);
 			   strlen = value.length();
-			   os.write( Int2CharArray(strlen),4 );
-                           os.write( value.data(),strlen );
+                           pv = Int2CharArray(strlen);
+                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+			   os << value;
+			   //os.write( Int2CharArray(strlen),4 );
+                           //os.write( value.data(),strlen );
 			   return true;
 	  }
 	  case TextType:   {
                            os << (byte) 6;
 	                   string value = Text2String(list); // to do: stream based processing of texts
 			   strlen = value.length();
-			   os.write( Int2CharArray(strlen),4 );
-                           os.write( value.data(),strlen );
+                           pv = Int2CharArray(strlen);
+                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+			   os << value;
+			   //os.write( Int2CharArray(strlen),4 );
+                           //os.write( value.data(),strlen );
 			   return true;
           }
 
 	  case NoAtom: { 
                            os << (byte) 0;
-	                   os.write( Int2CharArray(ListLength(list)),4 );
+                           pv = Int2CharArray(ListLength(list));
+                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+	                   //os.write( Int2CharArray(ListLength(list)),4 );
                            while( !IsEmpty(list) ){
                              if( !WriteBinaryRec( First(list), os ) ) // error in writing sublist
 			         return false;

@@ -534,11 +534,12 @@ if writing was successful, "false"[4] if the string could not be written properl
 *Precondition*: ~list~ must not be an atom.
 
 */
-  bool WriteBinaryTo(ListExpr list, ostream& os);
+  bool WriteStringTo( const ListExpr list, ostream& os );
+  bool WriteBinaryTo( const ListExpr list, ostream& os );
 /*
-Writes the list in a binary coded format into the referenced stream.
+Writes the list in a binary coded or textual format into the referenced stream.
 
-Note: When using an fstream initialise it as ios::binary otherwise the
+Note: When using an fstream with WriteBinaryTo initialize it as ios::binary otherwise the
 output of bytes will be influenced by platform specific implementations
 */
 
@@ -814,7 +815,7 @@ Copies a nested list from this instance to the target instance.
   
   void WriteAtom( const ListExpr atom, bool toScreen );
   
-  bool WriteToStringLocal( string& nlChars, ListExpr list );
+  bool WriteToStringLocal( ostream& nlChars, ListExpr list );
 
  private:
  
