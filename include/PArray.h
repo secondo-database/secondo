@@ -58,6 +58,7 @@ elements of type ~T~.
 
 #include <iostream> 
 #include <cassert>
+#include <vector>
 #include "SecondoSMI.h"
 
 template<class T>
@@ -66,16 +67,20 @@ class PArray
  public:
 
   PArray( SmiRecordFile *parrays, const int initsize = 0 );
-
 /*
-Creates creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
+Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
 persistent array. One can define an initial size of the persistent
 array with the argument ~initsize~. 
 
 */
+
+  PArray( const int initsize = 0 );
+/*
+Create a new memory version of the PArray. It is used for temporary arrays.
+
+*/
   
   PArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update = true );
-
 /*
 Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
 value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-only.
@@ -83,7 +88,6 @@ value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-on
 */
 
   ~PArray();
-
 /*
 Destroys the handle. If the array is marked for deletion, then it also destroys the
 persistent array.
@@ -140,6 +144,7 @@ Returns the identifier of this array.
   int size;
   bool canDelete;
   SmiRecordFile *parrays;
+  vector<T> *marray;
 
 };
 
@@ -161,9 +166,11 @@ SecondoSMI interface.
 template<class T>
 PArray<T>::PArray( SmiRecordFile *parrays, const int initsize ) :
 writeable( true ),
+recid( 0 ),
 size( 0 ),
 canDelete( false ),
-parrays( parrays )
+parrays( parrays ),
+marray( 0 )
 {
   parrays->AppendRecord( recid, record );
   record.Write( &size, sizeof(int) );
@@ -173,10 +180,21 @@ parrays( parrays )
 }
 
 template<class T>
+PArray<T>::PArray( const int initsize ) :
+writeable( true ),
+size( 0 ),
+canDelete( false ),
+parrays( 0 ),
+marray( new vector<T>( initsize ) )
+{
+}
+
+template<class T>
 PArray<T>::PArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update ) :
 writeable( update ),
 canDelete( false ),
-parrays( parrays )
+parrays( parrays ),
+marray( 0 )
 {
   SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
   assert( parrays->SelectRecord( id, record, at ) );
@@ -187,25 +205,40 @@ parrays( parrays )
 template<class T>
 PArray<T>::~PArray()
 {
-  if ( canDelete ) 
+  if( marray )
   {
-    parrays->DeleteRecord( recid );
+    delete marray;  
+  }  
+  else
+  {
+    if ( canDelete ) 
+    {
+      parrays->DeleteRecord( recid );
+    }
+    else if ( writeable )
+    {
+      record.Write( &size, sizeof( int ) );
+    }
   }
-  else if ( writeable )
-  {
-    record.Write( &size, sizeof( int ) );
-  } 
 }
 
 template<class T>
 void PArray<T>::Put(const int index, const T& elem)
 {
   assert ( writeable );
-  	
-  record.Write(&elem, sizeof(T), sizeof(int) + index * sizeof(T));
-
+  
   if ( size <= index ) 
     size = index + 1;
+
+  if( marray )
+  {
+    marray->resize( size );
+    (*marray)[index] = elem;
+  }
+  else
+  {	
+    record.Write(&elem, sizeof(T), sizeof(int) + index * sizeof(T));
+  }
 }
 
 
@@ -214,7 +247,14 @@ void PArray<T>::Get(int const index, T& elem)
 {
   assert ( 0 <= index && index < size );
 
-  record.Read(&elem, sizeof(T), sizeof(int) + index * sizeof(T));
+  if( marray )
+  {
+    elem = (*marray)[index];
+  }
+  else
+  {
+    record.Read(&elem, sizeof(T), sizeof(int) + index * sizeof(T));
+  }
 }
 
 template<class T>
