@@ -133,8 +133,7 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 		
 		for (int i = 0; i < attrNum; i++) {
 			for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-				TupleElement *tupleelem = attribInfo[i].value;
-				tmpFLOB = tupleelem->GetFLOB(j);
+				tmpFLOB = attribInfo[i].value->GetFLOB(j);
 				extensionSize = extensionSize + tmpFLOB->size;
 			}
 		}
