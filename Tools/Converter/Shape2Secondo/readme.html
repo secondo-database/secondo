@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+
+<HEAD>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<META NAME="GENERATOR" Content="Visual Page 2.0 for Windows">
+	<META NAME="Author" Content="James Macgill">
+	<TITLE>GeoTools 0.8.0 ReadMe</TITLE>
+</HEAD>
+
+<BODY>
+
+<H1>GeoTools 0.8.0</H1>
+<H2>What is GeoTools?</H2>
+<P>GeoTools is a Java library for manipulating and displaying geographic maps. Predominantly, it is used for displaying
+interactive maps within web browsers without the need for any server-side support. However, the library can also
+be used to develop client-server based solutions, applications and command line utilities. GeoTools is supported
+by a wide and diverse developer and user community and it is continuing to grow in new directions.</P>
+<P>
+<H2>License</H2>
+<P>The GeoTools library is covered by the GNU Lesser General Public License (LGPL). In essence, this declares that
+GeoTools is an open source library which can freely be used and modified in conjunction with any other code (open
+or proprietary), provided the source for all modifications is made freely available. However, for the full legal
+position and implications of the license, please refer to the full text which can be found in the <A HREF="license.txt">License</A>
+file.</P>
+<P>
+<P>Thank you for downloading this release. We hope that this is the most stable relase of GeoTools to date, though inevitably there may still be problems.
+Please report any problems, crashes, bugs, etc. using the <A HREF="http://sourceforge.net/tracker/?func=add&group_id=4091&atid=104091">'Submit
+a bug'</A> link which can be found on the <A HREF="http://geotools.org">geotools.org </A>homepage.</P>
+<P>
+<H2>Getting started</H2>
+<P>Three guides to getting started with GeoTools can be found in the Getting Started folder.</P>
+<P>
+<TABLE BORDER="1" WIDTH="100%">
+	<TR>
+		<TD WIDTH="33%"><B>English</B></TD>
+		<TD WIDTH="33%"><B>Espa&ntilde;ol</B></TD>
+		<TD WIDTH="34%">&nbsp;</TD>
+	</TR>
+	<TR>
+		<TD WIDTH="33%">Getting started as an end user</TD>
+		<TD WIDTH="33%">Gu&iacute;a de introducci&oacute;n para usuarios finales</TD>
+		<TD WIDTH="34%">&nbsp;</TD>
+	</TR>
+	<TR>
+		<TD WIDTH="33%">Getting started as a solution builder</TD>
+		<TD WIDTH="33%">Gu&iacute;a de introducci&oacute;n para creadores de soluciones&nbsp;</TD>
+		<TD WIDTH="34%">&nbsp;</TD>
+	</TR>
+	<TR>
+		<TD WIDTH="33%">Getting started as a developer</TD>
+		<TD WIDTH="33%">&nbsp;</TD>
+		<TD WIDTH="34%">&nbsp;</TD>
+	</TR>
+</TABLE>
+</P>
+<P>The demonstrations package included in this release can be found in the Demonstrations folder. Please refer
+to the <A HREF="demonstrations/readme.html">readme</A> file in that directory for more details and links to the
+individual examples.
+<H2>What's <B>not</B> in this release?</H2>
+<P>The creation of this (0.8.0) release of GeoTools involved more the removal of code than the addition of anything
+new. GeoTools has undergone continuous active development since its last official release over a year ago: much
+of it, however, experimental. In order to provide a stable release, it was therefore decided to package together
+all of the most important code, whilst excluding the newer, experimental code. Therefore, this release does not
+include any of the following features:</P>
+<P><BR>
+Simple Feature SQL (SFSQL): Database communication standard, set out by Open GIS Consortium (OGC).</P>
+<P>Geographical Markup Language (GML): The XML-based standard from the OGC for the exchange of geographic data.</P>
+<P>MapInfo Interchange Format (MIF): File format used by MapInfo.</P>
+<P>Web Map Server support (WMS): Easy connection to OGC-compliant web map servers.</P>
+<P>Threaded loading: Improved multi-threaded loading system.</P>
+<P>Data entry: Tools for creating and editing maps.</P>
+<P>Demonstrations: Demonstrations which relied on any of the above features have been removed.</P>
+<P><BR>
+If you would like to help develop any of the above features, or are not afraid to work with experimental code,
+then you can look at downloading the latest nightly builds from: <A HREF="http://www.geotools.org/dload.php">http://www.geotools.org/dload.php</A>.
+We hope to have many, if not all, of the above features in a suitable state to include in the 0.9.x release of
+GeoTools.</P>
+
+<P></P>
+<H2>Changes</H2>
+<P>There have clearly been a lot of changes since the last release of GeoTools (0.7.9dev1) in January of 2001.
+In addition to general bug fixes and improved stability, the following is an overview of the most important changes.  A full list of all changes can be seen by going to the automatic
+<A HREF="http://www.geotools.org/cvs.php">change log</A>.<BR>
+<BR>
+ScaleBar widget added - Ian Turton<BR>
+MarkerLayers improved, new marker types added<BR>
+ImageMarker added - Peter.Pan@comsat.com <BR>
+Many enhancements to geometry operations in Polygon, Line, Point layers - Mathieu van Loon<BR>
+Ability to create point maps from columns in dbf file - Mathieu van Loon<BR>
+ShapefileWriter now creates dbf file - Ian Turton<BR>
+Classification system revamped - James Macgill, Andy Turner<BR>
+Now using ant as the build system - James Macgill, Ian Turton<BR>
+Theme organisation now handled for views by external ThemeStack object - James Macgill<BR>
+Memory usage of key geometry objects reduced - Michael Becke <BR>
+Added support for PNG images - Ian Turton<BR>
+New one click/drag tools added - Cameron Shorter<BR>
+Implementation of Jenks' classification method - Hisaji ONO<BR>
+Support for multi-line tooltips - Kjetil Thuen<BR>
+Added VersionInfo dialog, accessible by running java -jar geotool.jar - James Macgill<BR>
+Licence changed to LGPL</P>
+
+<P><BR>
+Bugfixes - important bug fixes.  For full list see <A HREF="http://sourceforge.net/tracker/index.php?group_id=4091&atid=104091">bug
+manager</A></P>
+
+<P>ThemePanel resizes properly -  John Fereira<BR>
+Fixed problem with Highlights not clearing when the mouse exited a viewer. <BR>
+Multiple fixes to shading system and dialogs - Liu Zehua<BR>
+#132380 - A click after a zoom and reset no longer jumps back to previous zoom<BR>
+#412501 - Transparent gifs overpaint other images<BR>
+#426590 - DBF file should not be required<BR>
+#449511 - Selection Manager not working with Point Shapefiles<BR>
+</P>
+
+<P><BR>
+It should be remembered that a lot of changes related to features in development, but not included in this release,
+are not given, so apologies for the lack of credit to all of those who have been putting hard work into those features,
+epsecially those related to OGC compliance.</P>
+
+<br>Since 0.8.0 Release Candidate 2</br>
+Fixed resize bug in Viewer - Joachim Bröckl (saltag)
+Re-fixed remove theme (this had been patched in the CVS release)
+Modified behaviour of Bin to resolve case where lowerInclusion = upperExclusion - Joachim Bröckl (saltag)
+<br>Since 0.8.0 Release Candidate 1</br>
+Small but important bug in ImageLayer fixed
+<P>   <BR>
+
+
+</BODY>
+
+</HTML>
