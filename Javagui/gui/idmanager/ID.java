@@ -39,5 +39,11 @@ public class ID implements Serializable {
     /** returns a readable representation of this */
     public String toString() { return "" + value; }
 
+    //sw 2004-01-07
+    /** The integer 'value' provides a good hashCode.
+     *  @return the <code>value</code> of the ID.
+     */
+    public int hashCode() { return value; }
+    
  } // class ID
 

@@ -3,6 +3,7 @@
 # last change 05-2003; Thomas Behr
 #
 #             10-2003; M. Spiekermann, automatic creation of configuration files added.
+# 2004-01 stefan.wich@fernuni-hagen.de: doc sj.lang added
 
 include ./makefile.inc
 
@@ -29,7 +30,6 @@ doc: removedoc
 .PHONY: removedoc # removes the documentation
 removedoc:
 	(rm -fr $(DOCPATH))
-
 
 
 .PHONY: makedirs

@@ -5,7 +5,7 @@
 JAVAC = javac
 JAVA = java
 JAVADOC = javadoc
-
+MAKE = make
 
 # SECONDOPATH should be a shell-variable
 ifndef SECONDO_BUILD_DIR

@@ -6,25 +6,29 @@ import javax.swing.JComponent;
 
 public abstract class SecondoViewer extends JComponent{
 
- /** get the name of this viewer
-   * this name is used in the menu of MainWindow
-   **/
+ /** Get the name of this viewer.
+   * The name is used in the menu of MainWindow.
+   * @return the name of this viewer, used by MainWindow's title bar and menu.
+   */
  public abstract String getName();
 
- /** adds a SecondoObject to the viewer
-   * @param o the object to be added
-   * @return true if this viewer can display o otherwise false
-   **/ 
+ /** Adds a <code>SecondoObject</code> to the viewer.
+   * @param o the object to be added.
+   * @return <code>true</code> if this viewer can display o otherwise <code>false</code>.
+   */ 
  public abstract boolean addObject(SecondoObject o);
 
- /** removes o from viewer if displayed **/
+ /** Removes o from viewer if displayed. 
+   * @param o the object to be removed.
+  **/
  public abstract void removeObject(SecondoObject o);
 
-/** remove all containing objects */
+/** Remove all objects from viewer.*/
 public abstract void removeAll();
 
- /** check if this viewer can display o
-   **/
+/** Check if this viewer can display o.
+  *
+  */
 public abstract boolean canDisplay(SecondoObject o);
 
  /** check if o displayed in the moment **/
@@ -33,10 +37,13 @@ public abstract boolean isDisplayed(SecondoObject o);
 /** hightlighting of o **/
  public abstract boolean selectObject(SecondoObject O);
 
- /** get the MenuExtension for MainWindow
-   *
-   **/
- public abstract MenuVector getMenuVector();
+ /** Get the MenuExtension for MainWindow.
+  *  This method should be overwritten if there is need for an own menu.
+  *  @return The menu vector; we return null as we don't have one here.
+  */
+ public MenuVector getMenuVector(){
+     return null;
+ }
 
 
  /** set the Control for this viewer **/

@@ -1,7 +1,9 @@
 # file viewer/makefile
 #
-# last change 05-2003; Thomas Behr
-
+# changes:
+# 05-2003; Thomas Behr
+# 01-2004: stefan.wich@fernuni-hagen.de: jpeg added, sorted viewers alnum, one line per subtask
+# 02-2004: Markus Spiekermann: The makfile was revised to make it more generic.
 include ../makefile.inc
 
 
@@ -9,73 +11,46 @@ include ../makefile.inc
 all: MenuVector.class SecondoViewer.class MessageBox.class
 
 
+# add belo new Viewer classes or subdirectoies to compile
+VIEWER_CLASSES := \
+		FormattedViewer.class \
+		InquiryViewer.class \
+		QueryViewer.class \
+		RelViewer.class \
+		StandardViewer.class \
+		Viewer3D.class \
+		Fuzzy2D.class \
+		RelSplit.class \
+		HoeseViewer.class \
+		MP3V.class
+
+VIEWER_DIRS := fuzzy2d jpeg relsplit viewer3d
+
+
 # compile all viewers
-
 .PHONY: viewers
-viewers : StandardViewer.class RelViewer.class  InquiryViewer.class FormattedViewer.class relsplit hoese viewer3d QueryViewer.class fuzzy2d MP3V.class
-
-#
-# the viewer from Thomas Hoese (a gui in the past)
-#
-.PHONY: hoese
-hoese: subhoese HoeseViewer.class
-.PHONY: subhoese
-subhoese:
-	(cd hoese;make all)
+viewers: $(VIEWER_CLASSES) makedirs 
 
 
-# ----- hoese end --------
-
-
-#### the 3D-Viewer for fuzzy objects
-.PHONY: viewer3d
-viewer3d: subviewer3d Viewer3D.class
-
-.PHONY: subviewer3d
-subviewer3d:
-	(cd viewer3d;make all);
-
-# ----- viewer3d end --------
-
-
-
-#### the 2D-Viewer for fuzzy objects
-.PHONY: fuzzy2d
-fuzzy2d: subfuzzy2d Fuzzy2D.class
-
-.PHONY: subfuzzy2d
-subfuzzy2d:
-	(cd fuzzy2d;make all);
-
-# ----- fuzzy2d end --------
-
-
-
-
-###### a viewer to split relations #######
-.PHONY: relsplit
-relsplit: RelSub RelSplit.class
-
-RelSplit.class: RelSplit.java
-	$(JAVAC) -classpath $(CLASSPATH) RelSplit.java
-
-RelSub:
-	(cd relsplit; make all);
-
-#  ---- end relsplit ----
-
-
+.PHONY: makedirs
+makedirs:
+	for dir in $(VIEWER_DIRS); do \
+          if !($(MAKE) -C $$dir) then \
+            exit 1; \
+          fi \
+        done
 
 
 .PHONY: clean
-clean: 
-	(cd hoese;make clean)
-	(cd relsplit;make clean)
-	(cd viewer3d;make clean)
-	(cd fuzzy2d;make clean)
-	rm -f *.class
+clean:
+	rm -f $(VIEWER_CLASSES) 
+	for dir in $(VIEWER_DIRS); do \
+          if !($(MAKE) -C $$dir clean) then \
+            exit 1; \
+          fi \
+        done
 
-
+# default rule for creating java classes
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
