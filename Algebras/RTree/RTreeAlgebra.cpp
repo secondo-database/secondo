@@ -300,8 +300,8 @@ of the desired R-Tree is defind in RTreeAlgebra.h. The variables ~do\_linear\_sp
 a R[*]-Tree is generated.
 
 The following operator ~creatertree~ accepts relations with tuples of (at least) one
-attribute of kind ~SPATIAL2D~, ~SPATIAL3D~ or ~SPATIAL4D~. The attribute name is specified
-as argument of the operator.
+attribute of kind ~SPATIAL2D~, ~SPATIAL3D~ or ~SPATIAL4D~ or ~rect~, ~rect3~, and ~rect4~. 
+The attribute name is specified as argument of the operator.
 
 7.1.1 Type Mapping of operator ~creatertree~
 
@@ -362,19 +362,26 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
     "Operator creatertree expects an attributename "+attrName+" in first list\n"
     "but gets a first list with structure '"+relDescriptionStr+"'.");
 
-  CHECK_COND ((algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
-               algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
-               algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)),
+  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
+             algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
+             algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)||
+             nl->IsEqual(attrType, "rect")||
+             nl->IsEqual(attrType, "rect3")||
+             nl->IsEqual(attrType, "rect4"),
     "Operator creatertree expects that attribute "+attrName+"\n"
-    "belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D.");
+    "belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D\n"
+    "or rect, rect3, and rect4.");
 
   string rtreetype;
 
-  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
+  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) ||
+       nl->IsEqual( attrType, "rect" ) )
     rtreetype = "rtree";
-  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) ||
+            nl->IsEqual( attrType, "rect3" ) )
     rtreetype = "rtree3";
-  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
+  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) ||
+       nl->IsEqual( attrType, "rect4" ) )
     rtreetype = "rtree4";
   else
     assert (false); /* should not happen */
@@ -418,6 +425,12 @@ CreateRTreeSelect (ListExpr args)
     return 1;
   else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
     return 2;
+  else if( nl->SymbolValue(attrType) == "rect" )
+    return 3;
+  else if( nl->SymbolValue(attrType) == "rect3" )
+    return 4;
+  else if( nl->SymbolValue(attrType) == "rect4" )
+    return 5;
   else
     return -1; /* should not happen */
 }
@@ -427,7 +440,7 @@ CreateRTreeSelect (ListExpr args)
 
 */
 template<unsigned dim>
-int CreateRTreeValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+int CreateRTreeValueMapping_spatial(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Relation* relation;
   CcInt* attrIndexCcInt;
@@ -465,6 +478,45 @@ int CreateRTreeValueMapping(Word* args, Word& result, int message, Word& local, 
   return 0;
 }
 
+template<unsigned dim>
+int CreateRTreeValueMapping_rect(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Relation* relation;
+  CcInt* attrIndexCcInt;
+  int attrIndex;
+  CcString* attrTypeStr;
+  RelationIterator* iter;
+  Tuple* tuple;
+
+  R_Tree<dim> *rtree = (R_Tree<dim>*)qp->ResultStorage(s).addr;
+  result = SetWord( rtree );
+
+  relation = (Relation*)args[0].addr;
+  attrIndexCcInt = (CcInt*)args[2].addr;
+  attrTypeStr = (CcString*)args[3].addr;
+
+  assert(rtree != 0);
+  assert(relation != 0);
+  assert(attrIndexCcInt != 0);
+  assert(attrTypeStr != 0);
+
+  attrIndex = attrIndexCcInt->GetIntval() - 1;
+
+  iter = relation->MakeScan();
+
+  while( (tuple = iter->GetNextTuple()) != 0 )
+  {
+    BBox<dim> *box = (BBox<dim>*)tuple->GetAttribute(attrIndex);
+    R_TreeEntry<dim> e( *box, tuple->GetTupleId() );
+    rtree->Insert( e );
+
+    tuple->DeleteIfAllowed();
+  }
+
+  delete iter;
+  return 0;
+}
+
 /*
 4.1.4 The dummy model mapping
 
@@ -479,9 +531,12 @@ RTreeNoModelMapping( ArgVector arg, Supplier opTreeNode )
 4.1.5 Definition of value mapping vectors
 
 */
-ValueMapping rtreecreatertreemap [] = { CreateRTreeValueMapping<2>,
-                                        CreateRTreeValueMapping<3>,
-                                        CreateRTreeValueMapping<4> };
+ValueMapping rtreecreatertreemap [] = { CreateRTreeValueMapping_spatial<2>,
+                                        CreateRTreeValueMapping_spatial<3>,
+                                        CreateRTreeValueMapping_spatial<4>,
+                                        CreateRTreeValueMapping_rect<2>,
+                                        CreateRTreeValueMapping_rect<3>,
+                                        CreateRTreeValueMapping_rect<4> };
 
 ModelMapping rtreenomodelmap[] = { RTreeNoModelMapping,
                                    RTreeNoModelMapping,
@@ -511,7 +566,7 @@ const string CreateRTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator creatertree (
           "creatertree",                   // name
           CreateRTreeSpec,                 // specification
-          3,                               //Number of overloaded functions
+          6,                               //Number of overloaded functions
           rtreecreatertreemap,             // value mapping
           rtreenomodelmap,                 // dummy model mapping, defines in Algebra.h
           CreateRTreeSelect,               // trivial selection function
@@ -568,9 +623,13 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
              nl->AtomType(rtreeKeyType) == SymbolType &&
              (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
               algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-              algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)),
+              algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
+              nl->IsEqual(rtreeKeyType, "rect")||
+              nl->IsEqual(rtreeKeyType, "rect3")||
+              nl->IsEqual(rtreeKeyType, "rect4")),
    "Operator windowintersects expects a R-Tree with key type\n"
-   "of kind SPATIAL2D, SPATIAL3D, SPATIAL4D.");
+   "of kind SPATIAL2D, SPATIAL3D, and SPATIAL4D\n"
+   "or rect, rect3, and rect4.");
 
   /* handle rtree type constructor */
   CHECK_COND(nl->IsAtom(rtreeSymbol) &&
@@ -644,9 +703,15 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
 
   CHECK_COND( ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
                 nl->IsEqual(searchWindow, "rect") ) ||
+              ( nl->IsEqual(rtreeKeyType, "rect") &&
+                nl->IsEqual(searchWindow, "rect") ) ||
               ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
                 nl->IsEqual(searchWindow, "rect3") ) ||
+              ( nl->IsEqual(rtreeKeyType, "rect3") &&
+                nl->IsEqual(searchWindow, "rect3") ) ||
               ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
+                nl->IsEqual(searchWindow, "rect4") ) ||
+              ( nl->IsEqual(rtreeKeyType, "rect4") &&
                 nl->IsEqual(searchWindow, "rect4") ),
     "Operator windowintersects expects joining attributes of same dimension.\n"
     "But gets "+attrTypeRtree_str+" as left type and "+attrTypeWindow_str+" as right type.\n");
