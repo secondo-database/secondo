@@ -232,12 +232,11 @@ pog(Rels, Preds, Nodes, Edges) :-
   pog2(Partition0, M, Preds2, Nodes, Edges),
   deleteNodes, storeNodes(Nodes),
   deleteEdges, storeEdges(Edges),
-  deletePlanEdges, createPlanEdges,
+  deletePlanEdges, deleteVariables, createPlanEdges,
   HighNode is 2**M -1,
   retract(highNode(_)), assert(highNode(HighNode)),
   deleteSizes,
   deleteCostEdges.
-
 /*
 
 3.2 partition
@@ -326,7 +325,7 @@ two relations and to merge them into a single arp; the remaining
 arps are copied unchanged.
 
 Or a join predicate may find its two relations in the same arp which means
-another join on the same two relations has already been preformed.
+another join on the same two relations has already been performed.
 
 */
 
@@ -746,7 +745,7 @@ notation.
 
 Parameter functions are written as
 
-----	fun([param(Var, Type)], Expr)
+----	fun([param(Var1, Type1), ..., paran(VarN, TypeN)], Expr)
 ----
 	
 
@@ -787,16 +786,24 @@ abstractions in the Secondo system.
   dynamic(varDefined/1).
 
 newVariable(Var) :-
-  (
-    varDefined(N),
-    N1 is N + 1,
-    retract(varDefined(N)),
-    assert(varDefined(N1)),
-    atom_concat('var', N1, Var)
-  );(
-    assert(varDefined(1)),
-    Var = 'var1'
-  ).
+  varDefined(N),
+  !,
+  N1 is N + 1,
+  retract(varDefined(N)),
+  assert(varDefined(N1)),
+  atom_concat('var', N1, Var).
+
+newVariable(Var) :- 
+  assert(varDefined(1)),
+  Var = 'var1'.
+
+deleteVariable :- retract(varDefined(_)), fail.
+
+deleteVariables :- not(deleteVariable).
+
+
+
+
 
 /*
 Arguments:
@@ -898,6 +905,7 @@ plan_to_atom(fun(Params, Expr), Result) :-
   plan_to_atom(Expr, ExprAtom),
   concat_atom(['fun ', ParamAtom, ExprAtom], '', Result),
   !.
+
 
 
 /*
@@ -1169,6 +1177,7 @@ A join can always be translated to filtering the Cartesian product.
 join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
+
 
 /*
 
@@ -1550,7 +1559,7 @@ cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
 cost(loopjoin(X, Y), Sel, S, Cost) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, Sel, SizeY, CostY),
-  S is SizeX * SizeY * Sel,
+  S is SizeX * SizeY,
   loopjoinTC(C),
   Cost is C * SizeX + CostX + SizeX * CostY.
 
