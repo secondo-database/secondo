@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Jan 2005, M. Spiekermann
 #
@@ -36,16 +36,12 @@ else
 
 fi
 
-niceCmd="$(which nice)"
-if [ "$niceCmd" != "" ]; then
-  niceCmd="nice -20"
-fi
 
 for testName in $testSuites
 do 
   file="${inputDir}/${testName}"
   printf "\n%s\n" "Running ${testName} ..."
-  checkCmd "${niceCmd} time TestRunner -i  ${file} > ${file}.log 2>&1"
+  checkCmd "$time TestRunner -i  ${file} > ${file}.log 2>&1"
 done
 
 #clean up
