@@ -22,12 +22,18 @@ public boolean readFromSecondoObject(SecondoObject SO){
    Name = SO.getName();
    initialized = false;
    ListExpr LE = SO.toListExpr();
-   if(LE.listLength()!=2)
+   if(LE.listLength()!=2){
+      System.out.println("relplit.Relation.readFromSecondoObject : wrong list length");
       return false;
-   if(!head.readFromRelTypeLE(LE.first()))
+   }
+   if(!head.readFromRelTypeLE(LE.first())){
+      System.out.println("relplit.Relation.readFromSecondoObject : wrong type list");
       return false;
-   if(!readValue(head,LE.second()))
+   }
+   if(!readValue(head,LE.second())){
+      System.out.println("relplit.Relation.readFromSecondoObject : wrong value list");
       return false;
+   }
 
    WholeRelation = SO;
    TupleType = SO.toListExpr().first().second();
@@ -106,8 +112,11 @@ private boolean readValue(Head H,ListExpr ValueList){
 /** computes a short Name for a object */
 private String computeObjectName(String name,String type,ListExpr value){
   int len = head.getMaxNameLength();
-  String Name = ("                  "+name+" ");
-  Name = Name.substring(Name.length()-(len+1),Name.length());
+  String Name="";
+  for(int i=0;i<len+1;i++)
+     Name = Name+" ";
+  Name += name+" ";
+
   String ValueString;
   if (!value.isAtom())
        ValueString = type;

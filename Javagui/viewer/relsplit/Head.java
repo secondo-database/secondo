@@ -26,7 +26,7 @@ public static boolean isRelation(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr Type = LE.first();
-  if(Type.listLength()!=2) 
+  if(Type.listLength()!=2)
     return false;
   ListExpr R = Type.first();
   return (R.isAtom() && (R.atomType()==ListExpr.SYMBOL_ATOM) &&
@@ -39,15 +39,20 @@ public boolean readFromRelTypeLE(ListExpr LE){
   V.clear();
   MaxTypeLength = 0;
   MaxNameLength = 0;
-  if(LE.listLength()!=2)
+  if(LE.listLength()!=2) // (rel (tuple ... ))
+    return false;
+  ListExpr TName = LE.first();
+  if(TName.atomType()!=ListExpr.SYMBOL_ATOM)
      return false;
-  ListExpr R = LE.first();
-  if(!isRelation(R))
+  String Name = TName.symbolValue();
+  if( ! (Name.equals("rel") | Name.equals("mrel")))
      return false;
 
   ListExpr Tuple = LE.second();
-  if(Tuple.listLength()!=2)
+  if(Tuple.listLength()!=2){
+     System.out.println("wrong tuple listlength");
      return false;
+  }
 
 
   ListExpr TupleType = Tuple.first();
