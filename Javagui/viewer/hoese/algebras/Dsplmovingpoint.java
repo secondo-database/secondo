@@ -7,6 +7,7 @@ import  viewer.*;
 import  viewer.hoese.*;
 import  sj.lang.ListExpr;
 import  java.util.*;
+import  gui.Environment;
 
 
 /**
@@ -27,7 +28,6 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
    */
   public Shape getRenderObject (AffineTransform at) {
     double t = RefLayer.getActualTime();
-
     int index = getTimeIndex(t,Intervals);
     if(index<0){
       RenderObject = null;
@@ -93,6 +93,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
       return;
     while (!v.isEmpty()) {      // unit While maybe empty
       ListExpr aunit = v.first();
+      ListExpr tmp = aunit;
       int L = aunit.listLength();
       if(L!=2 && L!=8)
          return;
@@ -113,8 +114,19 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
          pm = readPointMap(aunit.second());
       }
 
-      if ((in == null) || (pm == null))
+      if ((in == null) || (pm == null)){
+        if(Environment.DEBUG_MODE){
+           System.err.println("Error in reading Unit");
+           System.err.println(tmp.writeListExprToString());
+           if(in==null){
+              System.err.println("Error in reading interval");
+           }
+           if(pm==null){
+              System.err.println("Error in reading Start and EndPoint");
+           }
+        }
         return;
+      }
       Intervals.add(in);
       PointMaps.add(pm);
       v = v.rest();
