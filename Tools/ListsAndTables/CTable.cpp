@@ -326,7 +326,7 @@ CTable<T>::Remove( Cardinal const index )
 
 template<typename T>
 
-CTable<T>::Iterator
+typename CTable<T>::Iterator
 
 CTable<T>::Begin()
 
@@ -348,7 +348,7 @@ CTable<T>::Begin()
 
 template<typename T>
 
-CTable<T>::Iterator
+typename CTable<T>::Iterator
 
 CTable<T>::End()
 
@@ -480,7 +480,7 @@ CTable<T>::Iterator::operator*() const
 
 template<typename T>
 
-CTable<T>::Iterator& 
+typename CTable<T>::Iterator&
 
 CTable<T>::Iterator::operator=( CTable<T>::Iterator const &other )
 
@@ -506,7 +506,7 @@ CTable<T>::Iterator::operator=( CTable<T>::Iterator const &other )
 
 template<typename T>
 
-CTable<T>::Iterator&
+typename CTable<T>::Iterator&
 
 CTable<T>::Iterator::operator++()
 
@@ -524,7 +524,7 @@ CTable<T>::Iterator::operator++()
 
 template<typename T>
 
-const CTable<T>::Iterator
+const typename CTable<T>::Iterator
 
 CTable<T>::Iterator::operator++( int )
 
