@@ -635,15 +635,15 @@ Acessing the first element is a basic operation defined above.
   inline ListExpr  Sixth( const ListExpr list ) { return (NthElement( 6, 6, list )); };
 
 /*
-A pointer to the respective element is returned. Result may be the empty list, 
+A pointer to the respective element is returned. Result may be the empty list,
 of course.
 
-*Precondition*: ~list~ must not be an atom and must have at least as many 
+*Precondition*: ~list~ must not be an atom and must have at least as many
 elements.
 
 1.3.7 Construction of Atoms
 
-There is a set of operations to transform each of the basic types into a 
+There is a set of operations to transform each of the basic types into a
 corresponding atom:
 
 */
@@ -657,7 +657,7 @@ Note: ~Symbols~ and ~Strings~ are character sequences up to 3[star]STRINGSIZE.
 SymbolAtom is only a wrapper which calls Stringatom(value,false) to avoid
 duplicated code.
 
-Values of type ~Text~ may have arbitrary length. To construct ~Text~ atoms, 
+Values of type ~Text~ may have arbitrary length. To construct ~Text~ atoms,
 two operations are offered:
 
 */
@@ -665,7 +665,7 @@ two operations are offered:
   void AppendText( const ListExpr atom,
                    const string&  textBuffer );
 /*
-The first operation ~TextAtom~ creates the atom. Calls of  ~AppendText~ add 
+The first operation ~TextAtom~ creates the atom. Calls of  ~AppendText~ add
 pieces of text stored in ~textBuffer~ at the end.
 
 *Precondition*: ~atom~ must be of type ~Text~.
@@ -677,32 +677,32 @@ There are corresponding procedures to get typed values from atoms:
 */
   long IntValue( const ListExpr atom );
 /*
-*Precondition*: ~atom~ must be of type ~Int~. 
+*Precondition*: ~atom~ must be of type ~Int~.
 
 */
   double RealValue( const ListExpr atom );
 /*
-*Precondition*: ~atom~ must be of type ~Real~. 
+*Precondition*: ~atom~ must be of type ~Real~.
 
 */
   bool BoolValue( const ListExpr atom);
 /*
-*Precondition*: ~atom~ must be of type ~Bool~. 
+*Precondition*: ~atom~ must be of type ~Bool~.
 
 */
   string StringValue( const ListExpr atom );
 /*
-*Precondition*: ~atom~ must be of type ~String~. 
+*Precondition*: ~atom~ must be of type ~String~.
 
 */
   string SymbolValue( const ListExpr atom);
 /*
-*Precondition*: ~atom~ must be of type ~Symbol~. 
+*Precondition*: ~atom~ must be of type ~Symbol~.
 
 */
 
 /*
-Again, the treatment of ~Text~ values is a little more difficult. 
+Again, the treatment of ~Text~ values is a little more difficult.
 To read from a ~Text~ atom, a ~TextScan~ is opened.
 
 */
@@ -716,7 +716,7 @@ Creates a text scan. Current position is 0 (the first character in the ~atom~).
   void GetText( TextScan textScan, const Cardinal noChars,
                 string& textBuffer );
 /*
-Copies ~noChars~ characters, starting from the current position in the ~scan~ 
+Copies ~noChars~ characters, starting from the current position in the ~scan~
 and appends them to the string ~textBuffer~.
 
 The text behind the current position of the ~scan~ may be shorter than ~noChars~.
@@ -725,13 +725,13 @@ In this case, all characters behind the current ~scan~ position are copied.
 */
   bool EndOfText( const TextScan textScan );
 /*
-Returns "true"[4], if the current position of the ~TextScan~ is behind the last 
+Returns "true"[4], if the current position of the ~TextScan~ is behind the last
 character of the text.
 
 */
   void DestroyTextScan( TextScan& textScan );
 /*
-Destroys the text scan ~textScan~ by deallocating the corresponding memory. 
+Destroys the text scan ~textScan~ by deallocating the corresponding memory.
 
 */
   Cardinal TextLength( const ListExpr textAtom );
@@ -752,8 +752,8 @@ Returns the text as a C++ string object
 */
   NodeType AtomType( const ListExpr atom );
 /*
-Determines the type of list expression ~atom~ according to the enumeration 
-type ~NodeType~. If the parameter is not an atom, the function returns the 
+Determines the type of list expression ~atom~ according to the enumeration
+type ~NodeType~. If the parameter is not an atom, the function returns the
 value 'NoAtom'.
 
 1.3.11 Size Info
@@ -769,23 +769,23 @@ private CTable members and the underlying vector classes.
 
 */
 
-  void initializeListMemory( 
+  void initializeListMemory(
 			     Cardinal NodeEntries = 2*INITIAL_ENTRIES,
-		             Cardinal ConstEntries = INITIAL_ENTRIES, 
+		             Cardinal ConstEntries = INITIAL_ENTRIES,
 		             Cardinal StringEntries = INITIAL_ENTRIES,
 			     Cardinal TextEntries = 50 );
 
 /*
 Creates new ~CTable~ objects with the given size and deletes the old ones.
 The default values are tuning parameters and reflect values which are
-useful in the present development state of SECONDO.  
+useful in the present development state of SECONDO.
 
 1.3.13 Copying of Lists
 
 */
-  
+
   const ListExpr CopyList( const ListExpr list, const NestedList* target );
-  
+
 /*
 Copies a nested list from ~this~ instance to the target instance.
 
@@ -797,25 +797,25 @@ Copies a nested list from ~this~ instance to the target instance.
   void DestroyRecursive ( const ListExpr list );
   void DeleteListMemory();                            // delete CTable pointers
   void PrintTableTexts();
-  
+
   char* Int2CharArray(long value);
-  
+
   string NodeType2Text( NodeType type );
   string BoolToStr( const bool boolValue );
-  
+
   ListExpr NthElement( const Cardinal n,
                        const Cardinal initialN,
                        const ListExpr list );
-  
+
   bool WriteList( ListExpr list, const int level,
                   const bool afterList, const bool toScreen );
-  
+
   void WriteAtom( const ListExpr atom, bool toScreen );
-  
+
   bool WriteToStringLocal( ostream& nlChars, ListExpr list );
 
  private:
- 
+
   SmiRecordFile *recFilePtr;
   bool delRecFile;
 
@@ -823,11 +823,14 @@ Copies a nested list from ~this~ instance to the target instance.
   CTable<Constant>     *intTable;    // ints;
   CTable<StringRecord> *stringTable; // strings
   CTable<TextRecord>   *textTable  ; // texts
-  
+
   ostream*             outStream;
-  
+
   static bool          doDestroy;
   const static bool    isPersistent;
+  void AppendShortText( const ListExpr atom,
+                   const string&  textBuffer );
+
 
 /*
 The class member ~doDestroy~ defines whether the ~Destroy~ method really

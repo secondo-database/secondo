@@ -1579,7 +1579,7 @@ NestedList::TextAtom()
 */
 
 void
-NestedList::AppendText( const ListExpr atom,
+NestedList::AppendShortText( const ListExpr atom,
                         const string& textBuffer )
 {
   assert( AtomType( atom ) == TextType );
@@ -1672,6 +1672,35 @@ empty or it is filled with up to MaxFragmentLength-1 characters.
     (*nodeTable).Put(atom, atomContentRec);
   }
 }
+
+
+void
+NestedList::AppendText( const ListExpr atom,
+                        const string& textBuffer ){
+
+  unsigned int length = textBuffer.length();
+  
+  if(length<=50){
+     AppendShortText(atom,textBuffer);
+  } else{
+     char buffer[50];
+     unsigned int pos =0;
+     int i;
+     while(pos<length){
+         for(i=0;i<49 && pos<length;i++){
+            buffer[i]=textBuffer[pos];
+	    pos++;
+         }
+         buffer[i]=0;
+         AppendShortText(atom,string(buffer));
+     }
+  }
+}
+
+
+
+
+
 
 /*
 9 Reading Atoms
