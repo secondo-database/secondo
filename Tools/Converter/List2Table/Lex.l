@@ -6,6 +6,7 @@
 %{
    int i;
 %}
+
 otherChar      [^\(\)\"A-Za-z0-9_ \t\n]
 letter         [a-zA-Z]
 digit          [0-9]
@@ -57,10 +58,23 @@ char** argv;
     }
 
     ifile = fopen(argv[1], "r");
+    if (ifile == NULL)
+    {
+      printf("ERROR: cannot open file ");
+      printf(argv[1]);
+      printf("\n");
+      return 0;
+    } 
     yyin = ifile;
     yylex();
     fclose(ifile);
     return 0;    
+  }
+  else
+  {
+    printf("ERROR: wrong number of parameters\n");
+    printf("Try ListToTable h or ListToTable help for more information\n");
+    return 0;
   }
 }
 

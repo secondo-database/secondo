@@ -543,7 +543,7 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
 
-#line 21 "Lex.l"
+#line 22 "Lex.l"
 
 
 #line 550 "lex.yy.c"
@@ -631,47 +631,47 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 23 "Lex.l"
+#line 24 "Lex.l"
 ;
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 25 "Lex.l"
+#line 26 "Lex.l"
 {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 27 "Lex.l"
+#line 28 "Lex.l"
 {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 29 "Lex.l"
+#line 30 "Lex.l"
 {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 31 "Lex.l"
+#line 32 "Lex.l"
 {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 33 "Lex.l"
+#line 34 "Lex.l"
 {for (i=0; i<yyleng; i++) putchar(yytext[i]); putchar('\t');}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 35 "Lex.l"
+#line 36 "Lex.l"
 {for (i=1; i<(yyleng-1); i++) putchar(yytext[i]); putchar('\t');}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 37 "Lex.l"
+#line 38 "Lex.l"
 {putchar('\n');}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 39 "Lex.l"
+#line 40 "Lex.l"
 ECHO;
 	YY_BREAK
 #line 678 "lex.yy.c"
@@ -1560,7 +1560,7 @@ int main()
 	return 0;
 	}
 #endif
-#line 39 "Lex.l"
+#line 40 "Lex.l"
 
 
 main (argc, argv)
@@ -1582,10 +1582,23 @@ char** argv;
     }
 
     ifile = fopen(argv[1], "r");
+    if (ifile == NULL)
+    {
+      printf("ERROR: cannot open file ");
+      printf(argv[1]);
+      printf("\n");
+      return 0;
+    } 
     yyin = ifile;
     yylex();
     fclose(ifile);
     return 0;    
+  }
+  else
+  {
+    printf("ERROR: wrong number of parameters\n");
+    printf("Try ListToTable h or ListToTable help for more information\n");
+    return 0;
   }
 }
 
