@@ -13,6 +13,9 @@ import gui.idmanager.*;
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
 public final String CONFIGURATION_FILE="gui.cfg";
+public final String AUTO_HISTORY_FILE=".gui_history";
+// the last ... entries of the history are stored
+public final int AUTO_HISTORY_LENGTH=100;
 public final int MIN_FONTSIZE = 6;
 public final int MAX_FONTSIZE = 24;
 
@@ -193,6 +196,7 @@ public MainWindow(String Title){
        public void windowClosing(WindowEvent evt){
           ComPanel.disableOptimizer();
 	  ComPanel.disconnect();
+	  saveHistory(new File(AUTO_HISTORY_FILE),false,AUTO_HISTORY_LENGTH);
 	  System.exit(0);
        }
   });
@@ -503,6 +507,9 @@ public MainWindow(String Title){
    if(fs>=MAX_FONTSIZE)
       MI_FontSize_Console_Bigger.setEnabled(false);
 
+    // load the last history
+    loadHistory(new File(AUTO_HISTORY_FILE),false,false);
+
 
 }
 
@@ -777,6 +784,7 @@ public boolean execGuiCommand(String command){
      setVisible(false);
      ComPanel.disconnect();
      ComPanel.disableOptimizer();
+     saveHistory(new File(AUTO_HISTORY_FILE),false,AUTO_HISTORY_LENGTH);
      System.exit(0);
   } else
   if(command.startsWith("addViewer")){
@@ -1387,6 +1395,7 @@ private void createMenuBar(){
      public void actionPerformed(ActionEvent E){
         ComPanel.disconnect();
 	ComPanel.disableOptimizer();
+	saveHistory(new File(AUTO_HISTORY_FILE),false,AUTO_HISTORY_LENGTH);
         System.exit(0);
      }});
 
@@ -1697,20 +1706,36 @@ public void loadHistory(boolean replace){
 
   if(FC_History.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
       // first try to load the file content
+      loadHistory( FC_History.getSelectedFile(),replace,true);
+   }
+}
+
+
+/** loads the history from the specified file,
+  * if the replace flag is true, tho current history is
+  * replaced by the lines from the file, otherwise the
+  * file-content is appended to the current history
+  * if showMessage is false, no error messages are printed out,
+  * this is needed for an automatically loading of the history
+  */
+private void loadHistory(File F,boolean replace,boolean showMessage){
       boolean ok = true;
       Vector TMP=new Vector();
       BufferedReader BR=null;
       try{
-        BR = new BufferedReader(new FileReader(FC_History.getSelectedFile()));
+        BR = new BufferedReader(new FileReader(F));
         String Line = BR.readLine();
         while(Line!=null){
            TMP.add(Line);
            Line = BR.readLine();
         }
       } catch(Exception e){
-        ComPanel.appendText("load history failed \n");
-        if(DEBUG_MODE)
-           e.printStackTrace();
+        if(showMessage){
+	   ComPanel.appendText("load history failed \n");
+	   ComPanel.showPrompt();
+	   if(DEBUG_MODE)
+              e.printStackTrace();
+	}
         ok = false;
       }
       finally{
@@ -1725,10 +1750,7 @@ public void loadHistory(boolean replace){
         for(int i=0;i<TMP.size();i++)
            ComPanel.addToHistory((String)TMP.get(i));
       }
-  }
 }
-
-
 
 
 /** switch to display
@@ -1790,16 +1812,30 @@ private void showServerSettings(){
 private void saveHistory(){
     if(FC_History.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
        File F = FC_History.getSelectedFile();
-       FileWriter FW =null;
+       saveHistory(F,true,-1);
+    }
+}
+
+
+/** save the history in the specified file 
+  * if the showMessage-flag is true error messages are printed out
+  * if the length less the zero, all entries in the history are saved
+  * the last length ones otherwise
+  */
+private void saveHistory(File F,boolean showMessage,int length){
+      FileWriter FW =null;
        try{
           FW = new FileWriter(F);
-          for(int i=0;i<ComPanel.getHistorySize();i++)
+          int start = length<0? 0 : Math.max(ComPanel.getHistorySize()-length,0);
+	  for(int i=start;i<ComPanel.getHistorySize();i++)
               FW.write(ComPanel.getHistoryEntryAt(i)+"\n");
        }
        catch(Exception e){
-          if(DEBUG_MODE)
-            e.printStackTrace();
-          ComPanel.appendText("IO error");
+         if(showMessage){
+            if(DEBUG_MODE)
+              e.printStackTrace();
+            ComPanel.appendText("IO error");
+	 }
        }
        finally{
          try{
@@ -1808,11 +1844,7 @@ private void saveHistory(){
          }
          catch(Exception e2){}
        }
-
-    }
 }
-
-
 
 /* cleans the MenuBar (MenuBar without Viewer-Extension */
 private void cleanMenu(){
