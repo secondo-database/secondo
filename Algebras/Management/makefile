@@ -7,34 +7,33 @@
 include ../../makefile.env
 
 INCFILES=\
-	$(INCLUDEDIR)/AlgebraManager.h \
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/SecondoSystem.h
+	AlgebraManager.h \
+	Algebra.h \
+	NestedList.h \
+	SecondoSystem.h
 
 OBJECTS=\
 	Algebra.$(OBJEXT) \
-	AlgebraList.o \
-	AlgebraManager.$(OBJEXT)
+	AlgebraManager.$(OBJEXT) \
+	$(LIBDIR)/AlgebraList.$(OBJEXT)
+
+CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 
 .PHONY: all
-all: $(OBJECTS)
-
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+all: $(OBJECTS) 
 
 Algebra.$(OBJEXT): Algebra.cpp $(INCFILES)
-	$(CC) -c -o Algebra.$(OBJEXT) Algebra.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-AlgebraList.o: AlgebraList.cpp $(INCFILES)
-	$(CC) -c -o AlgebraList.o AlgebraList.cpp $(CCFLAGS)
-	$(CP) AlgebraList.o $(LIBDIR)/AlgebraList.o
+$(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i $(INCFILES)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 AlgebraManager.$(OBJEXT): AlgebraManager.cpp AlgebraList.i $(INCFILES)
-	$(CC) -c -o AlgebraManager.$(OBJEXT) AlgebraManager.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 include ../../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) *.o *.lo
+	$(RM) $(OBJECTS)
 
