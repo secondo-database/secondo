@@ -12,6 +12,7 @@ import  java.io.*;
 import  java.awt.image.*;
 import  java.awt.event.*;
 import  viewer.HoeseViewer;
+import  viewer.MessageBox;
 
 
 /** 
@@ -43,6 +44,9 @@ public class ViewConfig extends javax.swing.JDialog {
   /**  /** The actual graph. object in single tupel modus */
   DsplGraph AktGO;
 
+  ListExpr AttrValues;
+  LinkAttrCat LAC;
+  
   /** Creates new JDialog ViewConfig with the attribute-name an
    */
   public ViewConfig (HoeseViewer parent, String an) {
@@ -88,7 +92,6 @@ public class ViewConfig extends javax.swing.JDialog {
    * initialize the dialog.
    */
   private void initComponents () {              //GEN-BEGIN:initComponents
-
     GALabel = new javax.swing.JLabel();
     VCLabel = new javax.swing.JLabel();
     CatCB = new javax.swing.JComboBox(mw.Cats);
@@ -115,7 +118,7 @@ public class ViewConfig extends javax.swing.JDialog {
     LabYOffText = new JTextField(6);
     LabelAttrCB = new javax.swing.JComboBox(LabelAList);
     LabelAttrCB.setSelectedIndex(-1);
-    RendPosCB = new javax.swing.JComboBox();
+//    RendPosCB = new javax.swing.JComboBox();
     getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
     InfoPanel = new JPanel();
     InfoPanel.setBorder(LineBorder.createGrayLineBorder());
@@ -174,6 +177,31 @@ public class ViewConfig extends javax.swing.JDialog {
       }
     });
     FourthRow.add(RefDepCBo);
+    
+    LinkBtn = new JButton("Link Attr to Category");
+    
+    
+    LAC = new LinkAttrCat(mw);
+    LinkBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+            String as = (String)RefAttrCB.getSelectedItem();
+            int index = LabelAList.indexOf(as);
+            AttrValues =  getAttrValues(index);
+            if(AttrValues==null) {
+               MessageBox.showMessage("no Reference attribute selected");
+               return;
+            }
+            if(!as.equals(LAC.getRefName())){
+              LAC.setAttributes(AttrValues);
+            }  
+            LAC.setCategories(mw.Cats);
+   
+              
+            LAC.setVisible(true);
+       
+       }});
+    
+    
     InfoPanel.add(FourthRow);
 
 
@@ -263,14 +291,17 @@ public class ViewConfig extends javax.swing.JDialog {
     // RefDepCBo.setText ("jCheckBox1");
     RALabel.setText("Reference attribute");
     
+
+    
     JPanel P = new JPanel();
-    P.setLayout(new GridLayout(3,2));
-    P.add(RALabel);
+    P.setLayout(new GridLayout(4,2));
+
     //P.add(Box.createHorizontalStrut(40));
     RTLabel.setText("Rendering Type");
-    P.add(RTLabel);
+    NoText.setColumns(4);
+    NoText.setText("16");
+    
     //P.add(Box.createHorizontalStrut(60));
-    P.add(RefAttrCB);
     RendTypeCB.addItem(new String("Solid Gray Values"));
     RendTypeCB.addItem(new String("Solid Red Values"));
     RendTypeCB.addItem(new String("Solid Green Values"));
@@ -279,13 +310,42 @@ public class ViewConfig extends javax.swing.JDialog {
     RendTypeCB.addItem(new String("Standard Palette"));
     searchForCalcCats();
     searchForImageDirs();
-    P.add(RendTypeCB);
     //P.add(Box.createHorizontalStrut(60));
     NGLabel.setText("No. of different groups");
+    LinkCheckBox = new JCheckBox("manual link");
+    LinkCheckBox.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          boolean s = LinkCheckBox.isSelected();
+          if(s){
+            LinkBtn.setEnabled(true);
+            RendTypeCB.setEnabled(false);
+            NoText.setEnabled(false);
+          
+          } else{
+            LinkBtn.setEnabled(false);
+            RendTypeCB.setEnabled(true);
+            NoText.setEnabled(true);
+          }
+       }
+    });
+    
+    LinkCheckBox.setSelected(false);
+    LinkBtn.setEnabled(false);
+    
+    
+    P.add(RALabel);
+    P.add(RefAttrCB);    
+
+    P.add(RTLabel);    
+    P.add(RendTypeCB);    
+    
     P.add(NGLabel);
-    NoText.setColumns(4);
-    NoText.setText("16");
-    P.add(NoText);
+    P.add(NoText);    
+    
+    P.add(LinkCheckBox);
+    P.add(LinkBtn);
+    
+    
     OKB.setText("OK");
     OKB.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
@@ -341,7 +401,6 @@ public class ViewConfig extends javax.swing.JDialog {
    *    calculates a category for each value of the ref. attr. ,based upon the selected 
    *    category and rendering type.
    * @param evt
-   * @see <a href="ViewConfigsrc.html#OKBActionPerformed">Source</a>
    */
   private void OKBActionPerformed (java.awt.event.ActionEvent evt) {            //GEN-FIRST:event_OKBActionPerformed
     if (!SingleTupelCBo.isSelected()) {
@@ -377,52 +436,73 @@ public class ViewConfig extends javax.swing.JDialog {
         }
       }
     }
+
+    
     if (RefDepCBo.isSelected()) {
-      String as = (String)RefAttrCB.getSelectedItem();
-      int RefAttrIndex = LabelAList.indexOf(as);
-      //int RendTypeIndex=RendTypeCB.getSelectedIndex());
-      Point2D.Double p = calcMinMax(RefAttrIndex);
-      double min = p.getX();
-      double max = p.getY();
-      //create number of groups cats
-      int nr = 8;
-      try {
-        nr = Integer.parseInt(NoText.getText());
-      } catch (NumberFormatException n) {}
-      if (max != min) {         // no cat need to be created if =
-        Category GroupCats[] = new Category[nr];
-        for (int i = 0; i < nr; GroupCats[i] = calcCategory(i++, nr, (Category)CatCB.getSelectedItem()));
-        ListIterator li = Query.getGraphObjects().listIterator();
-        ListExpr tl = Query.LEResult.second();
-        nr -= 1;
-        int val = 0;
-        double value;
-        //create new Cat for every GO with Attribute AttrName according to its ref. Tupel-Value
-        while (li.hasNext()) {
-          DsplGraph dg = (DsplGraph)li.next();
-          if (dg.getAttrName().equals(AttrName)) {              //create Cat. only for recent GAttribute
-            ListExpr le = tl.first();
-            for (int i = 1; i <= RefAttrIndex; i++)
-              le = le.rest();
-            if (RefAttrIndex == -1)
-              value = (double)val; 
-            else 
-              value = convertLEtoDouble(le.first());
-            int chg = (int)((value - min)/(max - min)*nr);
-            mw.Cats.add(GroupCats[chg]);
-            dg.setCategory(GroupCats[chg]);
-            tl = tl.rest();
-            val++;
-          }
-        }
+      if(!LinkCheckBox.isSelected()){
+         String as = (String)RefAttrCB.getSelectedItem();
+         int RefAttrIndex = LabelAList.indexOf(as);
+         //int RendTypeIndex=RendTypeCB.getSelectedIndex());
+         Point2D.Double p = calcMinMax(RefAttrIndex);
+         double min = p.getX();
+         double max = p.getY();
+         //create number of groups cats
+         int nr = 8;
+         try {
+           nr = Integer.parseInt(NoText.getText());
+         } catch (NumberFormatException n) {}
+         if (max != min) {         // no cat need to be created if =
+           Category GroupCats[] = new Category[nr];
+           for (int i = 0; i < nr; GroupCats[i] = calcCategory(i++, nr, (Category)CatCB.getSelectedItem()));
+           ListIterator li = Query.getGraphObjects().listIterator();
+           ListExpr tl = Query.LEResult.second();
+           nr -= 1;
+           int val = 0;
+           double value;
+           //create new Cat for every GO with Attribute AttrName according to its ref. Tupel-Value
+           while (li.hasNext()) {
+             DsplGraph dg = (DsplGraph)li.next();
+             if (dg.getAttrName().equals(AttrName)) {              //create Cat. only for recent GAttribute
+               ListExpr le = tl.first();
+               for (int i = 1; i <= RefAttrIndex; i++)
+                 le = le.rest();
+               if (RefAttrIndex == -1)
+                 value = (double)val; 
+               else 
+                 value = convertLEtoDouble(le.first());
+               int chg = (int)((value - min)/(max - min)*nr);
+               mw.Cats.add(GroupCats[chg]);
+               dg.setCategory(GroupCats[chg]);
+               tl = tl.rest();
+               val++;
+             }
+           }
+         }
+      } else{
+         // take the categories for the object from LinkAttrCat LAC
+         ListIterator li = Query.getGraphObjects().listIterator();
+         ListExpr res = Query.LEResult.second();
+         String as = (String)RefAttrCB.getSelectedItem();
+         int RefAttrIndex = LabelAList.indexOf(as);
+         while(li.hasNext()){
+            DsplGraph dg = (DsplGraph)li.next();
+            if(dg.getAttrName().equals(AttrName)){
+               ListExpr le = res.first();
+               for(int i=1;i<RefAttrIndex;i++)  // read over non interesting attribute values
+                  le = le.rest();
+               Category Cat = LAC.getCategory(le.first());
+               dg.setCategory(Cat);
+               res = res.rest();
+            }
+         }
       }
+      
     }
     setVisible(false);
     dispose();
   }             //GEN-LAST:event_OKBActionPerformed
 
   /**create new Cat for every GO with Attribute AttrName according to its ref. Tupel-Value
-  * @see <a href="ViewConfigsrc.html#calcCategory">Source</a>
    */
   private Category calcCategory (int chg, int nr, Category templCat) {
     Category NewCat = null;
@@ -498,7 +578,6 @@ public class ViewConfig extends javax.swing.JDialog {
 
   /**
    * Searches for registered (Config-file)classes of new rendering types that calc. categories
-   * @see <a href="ViewConfigsrc.html#searchForCalcCats">Source</a>
    */
   private void searchForCalcCats () {
     StringTokenizer ccc = new StringTokenizer(HoeseViewer.configuration.getProperty("CalcCats"), 
@@ -536,7 +615,6 @@ public class ViewConfig extends javax.swing.JDialog {
    * Calculates the minimum and maximum of an attribute over all tuples
    * @param ind The ind's attribute in a tuple
    * @return Min. and max. as Point2D.double
-   * @see <a href="ViewConfigsrc.html#calcMinMax">Source</a>
    */
   private Point2D.Double calcMinMax (int ind) {
     if (ind == -1)
@@ -578,6 +656,79 @@ public class ViewConfig extends javax.swing.JDialog {
     else 
       return  0;
   }
+
+
+  /* returns a clone of a ListExpr */
+  private static  ListExpr CloneListExpr(ListExpr Original){
+
+     int AtomType = Original.atomType();
+     if(Original.isEmpty())
+        return ListExpr.theEmptyList();
+
+     switch(AtomType){
+       case ListExpr.INT_ATOM : return ListExpr.intAtom(Original.intValue());
+       case ListExpr.REAL_ATOM : return ListExpr.realAtom(Original.realValue());
+       case ListExpr.BOOL_ATOM : return ListExpr.boolAtom(Original.boolValue());
+       case ListExpr.STRING_ATOM : return ListExpr.stringAtom(Original.stringValue());
+       case ListExpr.SYMBOL_ATOM : return ListExpr.symbolAtom(Original.symbolValue());
+       case ListExpr.TEXT_ATOM : return ListExpr.textAtom(Original.textValue());
+       case ListExpr.NO_ATOM : { if(Original.listLength()<1){
+                            System.out.println("viewer.hoese.ViewConfig.CloneListExpr :: error in ListExpr");
+                            return null;
+                         }
+                         ListExpr First,Last;
+                         First = CloneListExpr(Original.first());
+                         Last = First;
+                         ListExpr Next;
+                         ListExpr Orig2 = Original.rest();
+                         while(!Orig2.isEmpty()){
+                            Next = CloneListExpr(Orig2.first());
+                            Last = ListExpr.append(Last,Next);
+                            Orig2 = Orig2.rest();
+                         }
+                         
+                         return First; 
+       
+                       }
+     }
+
+     System.out.println("viewer.hoese.ViewConfig.ClonListExpr : unknow AtomType");
+     return null;
+  }
+  
+  
+  
+  /* get a List of Values for specific index */
+  private ListExpr getAttrValues(int index){
+     if(index < 0)
+        return null;
+      ListExpr AllValues = Query.LEResult.second();
+      ListExpr Values=null;
+      ListExpr CurrentTuple;
+      ListExpr CurrentAttr;
+      ListExpr Last=null,Next;
+      while(!AllValues.isEmpty()){
+         CurrentTuple = AllValues.first();
+         if(index>CurrentTuple.listLength()) 
+             return null;      
+         // search the attribute
+         for(int i=1; i<index;i++)
+            CurrentTuple = CurrentTuple.rest(); 
+         CurrentAttr =  CurrentTuple.first();
+         if(Values==null){
+            Values = ListExpr.oneElemList(CloneListExpr(CurrentAttr));
+            Last = Values;
+         }else{
+             Next = CloneListExpr(CurrentAttr);
+             Last = ListExpr.append(Last,Next);
+         }
+         AllValues = AllValues.rest();
+      }
+      if(Values==null)
+         Values = ListExpr.theEmptyList();
+      return Values;    
+  }
+
 
 
   /**
@@ -664,11 +815,16 @@ public class ViewConfig extends javax.swing.JDialog {
   private JLabel LALabel;
   private JLabel LTLabel;
   private JComboBox LabelAttrCB;
-  private JComboBox RendPosCB;
+//  private JComboBox RendPosCB;
   private JLabel GAAttrName, TupNrLabel;
+  private JButton LinkBtn;
+  private JCheckBox LinkCheckBox;
+  
+  
   private static int VariantNr = 0;
   // End of variables declaration//GEN-END:variables
 }
+
 
 
 
