@@ -10,4 +10,7 @@ OBJECT_DIRECTORY /home/behr/SecondoObjects
 
 HISTORY_DIRECTORY /home/behr/histories
 
+# STARTSCRIPT <file> [-i] 
+# -i stand for ignore errors
+#STARTSCRIPT = /home/behr/testHistory -i
 
