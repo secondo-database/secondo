@@ -26,6 +26,19 @@ int main()
   ct.Add( "Gerda" );
   ct.Add( "Hugo" );
   cout << "Size=" << ct.Size() << endl;
+  
+  // test Get and Put 
+  cout << endl << "###### test Get and Put #######" << endl;
+  string s1;
+  ct.Get(5, s1);
+  cout << "5: " << s1 << endl;
+  string s2 = "Felix";
+  ct.Put(5, s2);
+  ct.Put(6, s2);
+  
+  // test iterators
+  cout << endl << "###### test iterators #######" << endl;
+  
   CTable<string>::Iterator it, it2;
   it2 = ct.Begin();
   it = it2++;

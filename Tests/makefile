@@ -11,6 +11,7 @@ CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 TESTRULES := \
 	tprefetch\
 	tctable\
+	tpctable\
 	tfilesystem\
 	tprofiles\
 	tsmi\
@@ -19,6 +20,10 @@ TESTRULES := \
 	tsock3\
 	TupleTestBDB\
 	tdlmain\
+	tnlcopy\
+	tnestedlist\
+	tnestedlist_persistent\
+	pnltest\
 	tnlcopy\
 	tparray
 
@@ -38,9 +43,6 @@ all:  $(OBJECTS)
 copy: $(OBJECTS)
 	$(CP) $(OBJECTS) $(BINDIR) 
 
-	
-$(file)$(EXEEXT) : $(file).cpp libsdbtool.$(LIBEXT)
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB) 
 
 # --- Storage Management Interface library ---
 
@@ -63,10 +65,17 @@ TupleTestBDB$(EXEEXT): SecondoTestFrame.o ../UserInterfaces/DisplayTTY.o Secondo
 tctable$(EXEEXT): tctable.cpp CTable.h CTable.cpp
 	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) $(DEFAULTLIB)
 
+tpctable$(EXEEXT): tpctable.cpp CTable.h PCTable.cpp
+	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) -L$(LIBDIR) $(SDBLIB) -lsdbtool $(BDBSMILIB) -lsdbutils $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
 # Test Nested List module
 
 tnestedlist$(EXEEXT): tnestedlist.cpp NestedList.h CTable.h CTable.cpp
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(CC) -o $@ $<  $(DEFAULTCCFLAGS)  -L$(LIBDIR) $(SDBLIB) -lsdbtool $(BDBSMILIB) -lsdbutils $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
+tnestedlist_persistent$(EXEEXT): tnestedlist_persistent.cpp NestedList.h CTable.h CTable.cpp 
+	$(CC) -o $@ $<  $(DEFAULTCCFLAGS)  -L$(LIBDIR) $(SDBLIB) -lsdbtool $(BDBSMILIB) -lsdbutils $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
 
 # Test filesystem module
 
@@ -150,6 +159,11 @@ tsock3$(EXEEXT): tsock3.o libsdbtool.$(LIBEXT)
 
 tsock3.o: tsock3.cpp SecondoConfig.h SocketIO.h
 	$(CC) -c -o $@ $<  $(CCFLAGS)
+
+
+# default rule
+%$(EXEEXT) : %.cpp libsdbtool.$(LIBEXT)
+	$(CC) -o $@ $<  $(DEFAULTCCFLAGS)  -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 # Test Persistent Array Module
 
