@@ -20,7 +20,7 @@ JLEXCLASSESPATH := $(GUIPATH)/lib/JLex_v1.2.3.zip
 CUPCLASSESPATH := $(GUIPATH)/lib/java_cup_v10i.zip
 CUPCLASSESRUNTIME := $(GUIPATH)/lib/java_cup/v10i_runtime.jar
 
-MP3CLASSESPATH := $(GUIPATH)/lib/javalayer0.4.zip
+MP3CLASSESPATH := $(GUIPATH)/lib/jl0.4.jar
 
 CLASSPATH := $(GUIPATH)
 
