@@ -1619,7 +1619,18 @@ catch(Exception e){
     }
     return  ((String)this.value).length();
   }
+  
 
+ /*
+   3.4.0 The decodeText() method.
+   This method returns an inputstream from which can readed the
+   decoded datas in a text atom. The List must be a text atom and
+   must contain base64 coded content
+ */
+  public InputStream decodeText(){
+      Base64Decoder BD = new Base64Decoder(new StringReader((String)this.value));
+      return BD.getInputStream();
+  }
   /*
    3.4.34 The atomType() method.
    This method returns an int value representing what kind of atom is this
