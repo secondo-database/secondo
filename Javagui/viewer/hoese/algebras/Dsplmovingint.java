@@ -8,6 +8,7 @@ import  java.util.*;
 import  javax.swing.*;
 import  java.awt.*;
 import  javax.swing.border.*;
+import  gui.Environment;
 
 
 /**
@@ -44,9 +45,9 @@ public class Dsplmovingint extends Dsplinstant {
           2 : 0, Color.black));
       Dimension d = jc.getPreferredSize();
       jc.setBounds(start, (int)d.getHeight()*0 + 7, end - start, (int)d.getHeight());
-      jc.setToolTipText(LEUtils.convertTimeToString(in.getStart()) + "..." + 
+      jc.setToolTipText(LEUtils.convertTimeToString(in.getStart()) + "..." +
           LEUtils.convertTimeToString(in.getEnd()) + "=" + bs);
-      jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime), 
+      jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime),
           25));
       jp.add(jc);
     }
@@ -54,7 +55,7 @@ public class Dsplmovingint extends Dsplinstant {
   }
 
   /**
-   * Scans the representation of a movingint datatype 
+   * Scans the representation of a movingint datatype
    * @param v A list of time-intervals with an int value
    * @see sj.lang.ListExpr
    * @see <a href="Dsplmovingintsrc.html#ScanValue">Source</a>
@@ -64,16 +65,25 @@ public class Dsplmovingint extends Dsplinstant {
     while (!v.isEmpty()) {
       ListExpr le = v.first();
       //System.out.println(le.writeListExprToString());
-      if (le.listLength() != 5)
-        return;
-      Interval in = LEUtils.readInterval(ListExpr.fourElemList(le.first(), 
-          le.second(), le.third(), le.fourth()));
-      if (in == null)
+      Interval in = null;
+      ListExpr value=null;
+      if (le.listLength() == 5){
+         if(Environment.DEBUG_MODE)
+            System.err.println("Warning deprecated list representation of moving int");
+            in = LEUtils.readInterval(ListExpr.fourElemList(le.first(),
+                  le.second(), le.third(), le.fourth()));
+            value = le.fifth();
+      }
+      if(le.listLength()==2){ // (interval int)
+         in = LEUtils.readInterval(le.first());
+         value = le.second();
+      }
+      if (in == null) // error in reading interval
         return;
       Intervals.add(in);
-      if (le.fifth().atomType() != ListExpr.INT_ATOM)
+      if (value.atomType() != ListExpr.INT_ATOM)
         return;
-      int i = le.fifth().intValue();
+      int i = value.intValue();
       Ints.add(new Integer(i));
       v = v.rest();
     }

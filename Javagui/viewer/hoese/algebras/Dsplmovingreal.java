@@ -10,6 +10,7 @@ import  java.awt.*;
 import  javax.swing.border.*;
 import  java.awt.event.*;
 import  java.awt.geom.*;
+import gui.Environment;
 
 
 /**
@@ -26,7 +27,6 @@ public class Dsplmovingreal extends Dsplinstant {
    * A method of the Timed-Interface to render the content of the TimePanel
    * @param PixelTime pixel per hour
    * @return A JPanel component with the renderer
-   * @see <a href="Dsplmovingrealsrc.html#getTimeRenderer">Source</a>
    */
   public JPanel getTimeRenderer (double PixTime) {
     PixelTime = PixTime;
@@ -53,13 +53,13 @@ public class Dsplmovingreal extends Dsplinstant {
       	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
       	 double mv;
          if (mr.f)
-           mv = Math.sqrt(mr.a*actTime*actTime + mr.b*actTime + mr.c); 
-         else 
+           mv = Math.sqrt(mr.a*actTime*actTime + mr.b*actTime + mr.c);
+         else
            mv = mr.a*actTime*actTime + mr.b*actTime + mr.c;
        //  System.out.println(mv);
          max=Math.max(max,mv);
          min=Math.min(min,mv);
-       }	 
+       }
       //Dimension d = jc.getPreferredSize();
       jc.setBounds(start, 0, end - start, PSIZE);
       //   System.out.println(max +" "+min);
@@ -68,13 +68,13 @@ public class Dsplmovingreal extends Dsplinstant {
     }
       //jc.setBorder(new MatteBorder(2, (in.isLeftclosed()) ? 2 : 0, 2, (in.isRightclosed()) ?
       //    2 : 0, Color.black));
-    jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime), 
+    jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime),
           PSIZE));
     return  jp;
   }
 
   /**
-   * Scans the representation of a movingreal datatype 
+   * Scans the representation of a movingreal datatype
    * @param v A list of time-intervals with the parameter for a quadratic or squareroot formula
    * @see sj.lang.ListExpr
    * @see <a href="Dsplmovingrealsrc.html#ScanValue">Source</a>
@@ -86,14 +86,25 @@ public class Dsplmovingreal extends Dsplinstant {
     while (!v.isEmpty()) {
       ListExpr le = v.first();
       //System.out.println(le.writeListExprToString());
-      if (le.listLength() != 8)
-        return;
-      Interval in = LEUtils.readInterval(ListExpr.fourElemList(le.first(), 
-          le.second(), le.third(), le.fourth()));
-      le = le.rest().rest().rest().rest();
-      //      System.out.println(aunit.writeListExprToString());
-      MRealMap rm = readMRealMap(ListExpr.fourElemList(le.first(), le.second(), 
-          le.third(), le.fourth()));
+      Interval in=null;
+      ListExpr map=null;
+      int len = le.listLength();
+      if(len!=2 && len !=8)
+         return;
+      if (len == 8){
+         if(Environment.DEBUG_MODE)
+            System.err.println("Warning: deprecated listt represenation for moving real");
+         in = LEUtils.readInterval(ListExpr.fourElemList(le.first(),
+                       le.second(), le.third(), le.fourth()));
+         map = le.rest().rest().rest().rest();
+      }
+      if(len == 2){
+         in = LEUtils.readInterval(le.first());
+         map = le.second();
+      }
+
+      MRealMap rm = readMRealMap(map);
+
       if ((in == null) || (rm == null))
         return;
       Intervals.add(in);
