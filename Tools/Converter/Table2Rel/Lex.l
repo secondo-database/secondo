@@ -43,12 +43,12 @@ main (argc, argv)
 int argc;
 char** argv;
 {
-  if (argc >= 1)
-  {
-    FILE *ofile, *ifile;
-    char c;
-    int k, cmp1, cmp2;
+FILE *ofile, *ifile;
+char c;
+int k, cmp1, cmp2;
 
+  if (argc == 2)
+  {
     cmp1 = strcmp(argv[1],"help");
     cmp2 = strcmp(argv[1],"h");
     if ( (cmp1 == 0) || (cmp2 == 0) )
@@ -59,7 +59,24 @@ char** argv;
       printf("\tattibutelist: [attrname attrtype]+\n\n");
       return 0;
     }
-    
+    else
+    {
+      printf("ERROR: wrong number of parameters\n");
+      printf("Try TableToRel h or TableToRel help for more information\n");
+      return 0;
+    }
+  }
+  
+  if ((argc >= 5) && ((argc % 2) != 0))
+  {
+    ifile = fopen(argv[1], "r");
+    if (ifile == NULL)
+    {
+      printf("ERROR: cannot open file ");
+      printf(argv[1]);
+      printf("\n");
+      return 0;
+    }  
     printf("(create ");
     printf(argv[2]);
     printf(" :");
@@ -97,7 +114,7 @@ char** argv;
     putc('\n', ofile);
     fclose(ofile);
     ofile = fopen("TTL", "a");
-    ifile = fopen(argv[1], "r");
+
     while ((c = getc(ifile)) != EOF)
       putc(c, ofile);
     putc('\n', ofile);
@@ -112,5 +129,11 @@ char** argv;
     fclose(ofile);
     remove("TTL");
     return 0; 
+  }
+  else
+  {
+    printf("ERROR: wrong number of parameters\n");
+    printf("Try TableToRel h or TableToRel help for more information\n");
+    return 0;
   }
 }
