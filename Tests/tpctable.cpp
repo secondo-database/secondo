@@ -1,3 +1,8 @@
+/*
+Last change: Nov. 2004, M. Spiekermann
+
+*/
+
 #include <string>
 #include <iostream>
 #include "SecondoSMI.h"
@@ -6,10 +11,12 @@
 #include "CTable.h"
 
 
-/*   Important Note: Currently the CTable is implemented as a temporary datastructure 
- *   which uses main memory and Berkeley-DB records as disk memory. Functions for
- *   storing (and restoring) a CTable completley on disk are not implemented yet.
- */
+/*   
+Important Note: Currently the CTable is implemented as a temporary datastructure 
+which uses main memory and Berkeley-DB records as disk memory. Functions for
+storing (and restoring) a CTable completley on disk are not implemented yet.
+
+*/
 
 SmiRecordFile* rf = 0;
 
@@ -123,11 +130,11 @@ PCTableTest() {
   
   cout << "1: " << ct.IsValid( 1 ) << endl;
   cout << "2: " << ct.IsValid( 2 ) << endl;
-  ct.Add( 10 );
-  ct.Add( 11 );
-  ct.Add( 12 );
-  ct.Add( 13 );
-  ct.Add( 14 );
+  ct.Add( *new int(10) );
+  ct.Add( *new int(11) );
+  ct.Add( *new int(12) );
+  ct.Add( *new int(13) );
+  ct.Add( *new int(14) );
 
   // show values
   cout << "values : (1,40,10,11,12,13,14,) --> (";

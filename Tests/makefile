@@ -57,7 +57,7 @@ OBJECTS += libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 endif
 
 
-CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS) $(myflags)
+CCFLAGS := -I../StorageManager $(DEFAULTCCFLAGS) $(myflags)
 
 .PHONY: all 
 all:  $(OBJECTS)

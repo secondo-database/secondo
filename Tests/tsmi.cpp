@@ -1,3 +1,8 @@
+/*
+Last change: Nov. 2004, M. Spiekermann 
+
+*/
+
 #include <iostream>
 #include <string>
 #include "SecondoSMI.h"
@@ -505,6 +510,7 @@ void EasyMapping( const void*    inKey,
 
 void TestCompKeyedFiles( bool makeUnique )
 {
+#ifdef COMPILE_THIS_CODE
   Component comp1 = { 47.11 };
   Component comp2 = { -12.48 };
   Component comp3 = { 35.05 };
@@ -647,6 +653,7 @@ void TestCompKeyedFiles( bool makeUnique )
   {
     cout << "KeyedFile create failed:" << SmiEnvironment::GetLastErrorCode() << endl;
   }
+#endif
 }
 
 // --- Main

@@ -1,3 +1,8 @@
+/*
+Last change: Nov. 2004, M. Spiekermann 
+
+*/
+
 #include <string>
 #include <iostream>
 
@@ -22,11 +27,11 @@ int main()
   cout << "3: " << ct.IsValid( 3 ) << endl;
   cout << "4: " << ct.IsValid( 4 ) << endl;
   cout << "5: " << ct.IsValid( 5 ) << endl;
-  ct.Add( "Dora" );
-  ct.Add( "Emil" );
-  ct.Add( "Floriane" );
-  ct.Add( "Gerda" );
-  ct.Add( "Hugo" );
+  ct.Add( *new string("Dora") );
+  ct.Add( *new string("Emil") );
+  ct.Add( *new string("Floriane") );
+  ct.Add( *new string("Gerda") );
+  ct.Add( *new string("Hugo") );
   cout << "Size=" << ct.Size() << endl;
   
   // test Get and Put 
