@@ -59,8 +59,7 @@ clean:
 #
 # create dependencies from include directives
 
-
-CCFLAGS = $(DEFAULTCCFLAGS) 
+CCFLAGS += $(DEFAULTCCFLAGS) 
 
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
