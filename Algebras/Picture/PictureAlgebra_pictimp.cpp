@@ -133,7 +133,7 @@ Picture::Picture(string imgdataB64,
     ImageType imgType;
 
     strcpy(name, filename);
-    strupr(name);
+    xstrupr(name);
 
     if (PA_DEBUG) cerr << "Picture::Picture() upper value " << name << endl;
 
@@ -502,9 +502,10 @@ bool Picture::Display(void) {
 
     stringstream fileStr;
     fileStr << "/tmp/SECONDO.PictureAlgebra.";
-    filestr << ++fileCtr;
+    fileStr << ++fileCtr;
 
-    int fd = mkstemp(fileStr.str().c_str());
+    char* filename = strdup(fileStr.str().c_str());
+    int fd = mkstemp(filename);
     if (fd < 0) {
 	cerr << "could not create temporary file '" 
 	     << filename 
