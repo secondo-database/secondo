@@ -810,12 +810,15 @@ Transforms the text atom into C++ string object
        ExtractAtoms( Rest(list), atomVec );
     }
   }
+	
 /*
-Determines the type of list expression ~atom~ according to the enumeration
-type ~NodeType~. If the parameter is not an atom, the function returns the
-value 'NoAtom'.
 
-1.3.11 Size and Implementaion Info
+~AtomType~ determines the type of list expression ~atom~ according to the enumeration
+type ~NodeType~. If the parameter is not an atom, the function returns the
+value 'NoAtom'. ~ExtractAtoms~ returns a flat list of atoms stored in a vector. 
+Afterwards you can easily iterate over the atoms.
+
+1.3.11 Size and Implementation Info
 
 */
   const string ReportTableSizes();
