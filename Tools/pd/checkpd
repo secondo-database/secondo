@@ -3,6 +3,7 @@
 #
 #
 MAXLINES=80
+IGNORE_INCLUDES="true"
 
 ARGS=$*
 if [ -z "$ARGS" ]
@@ -44,7 +45,7 @@ for F in $MYFILES
 do
    if [ ! -e "$F" ]; then
       NOTFOUND=$(expr "$NOTFOUND" + 1)
-   else   
+   else
       PROCESSED=$(expr "$PROCESSED" + 1)
       S=$((pdtabs <"$F" | maketex >/dev/null) 2>&1)
       if [ $? -ne 0 ]
@@ -60,8 +61,17 @@ do
         } >"$TEMPDIR"/tmp.tex
         latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
         if [ $? -ne 0 ]; then
-           echo -e "LaTeX Error in \"$F\" (If the file contains figures we can't avoid this) \n"
-           LATEXFAILED=$(expr "$LATEXFAILED" + 1)
+           if [ -n "$IGNORE_INCLUDES" ]; then
+              TEXLOG="$TEMPDIR"/tmp.log
+              LE=$(cat "$TEXLOG" | grep -i "^\!" | grep -vi "File .* not found" | grep -vi "cannot determine size of" | wc -l)
+              if [ "$LE" -gt 0 ]; then
+                 echo -e "LaTeX Error in \"$F\" \n"
+                 LATEXFAILED=$(expr "$LATEXFAILED" + 1)
+              fi
+           else
+             echo -e "LaTeX Error in \"$F\" (If the file contains figures we can't avoid this) \n"
+             LATEXFAILED=$(expr "$LATEXFAILED" + 1)
+           fi
         else
            linecheck "$MAXLINES" $F >/dev/null
            CL="$?"
@@ -94,8 +104,8 @@ else
       echo "checkpd: files not found : $NOTFOUND "
    fi
    echo "checkpd: no file to check"
-fi      
+fi
 
-#FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
-FAILED="$PDFAILED"
+FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
+#FAILED="$PDFAILED"
 exit "$FAILED"
