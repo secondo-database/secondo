@@ -1413,13 +1413,11 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
     if (Xl==Xr)    //only L is vertical
     {
 	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a; 
+	Coord yy(y0);
 	//(Xl, y0) is the intersection of l and L
 	if    ((Xl>=xl) &&(Xl<=xr))
 	{
-	    if (((y0>=(Yl.IsInteger()? Yl.IntValue():Yl.Value())) && 
-	         (y0<=(Yr.IsInteger()? Yr.IntValue():Yr.Value()))) || 
-	        ((y0>=(Yr.IsInteger()? Yr.IntValue():Yr.Value())) && 
-	         (y0<=(Yl.IsInteger()? Yl.IntValue():Yl.Value()))))
+	    if (((yy>=Yl) && (yy<=Yr)) || ((yy>=Yr) && (yy<=Yl)))
 	            return true;
 	    else return false;
 	}
@@ -1429,13 +1427,11 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
     if (xl==xr)    //only l is vertical
     {
 	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A; 
+	Coord YY(Y0);
 	//(xl, Y0) is the intersection of l and L
 	if ((xl>=Xl) && (xl<=Xr))
 	{
-	    if (((Y0>=(yl.IsInteger()? yl.IntValue():yl.Value())) && 
-	          (Y0<=(yr.IsInteger()? yr.IntValue():yr.Value()))) || 
-	         ((Y0>=(yr.IsInteger()? yr.IntValue():yr.Value())) && 
-	          (Y0<=(yl.IsInteger()? yl.IntValue():yl.Value())))) 
+	    if (((YY>=yl) && (YY<=yr)) || ((YY>=yr) && (YY<=yl))) 
 	            return true;
 	    else return false;
 	}
@@ -1456,12 +1452,103 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
       else
       {
 	  x0=(A-a) / (k-K);	 // y0=x0*k+a;
-	  if ((x0>=(xl.IsInteger()?xl.IntValue():xl.Value())) && 
-	      (x0<=(xr.IsInteger()?xr.IntValue():xr.Value())) && 
-	      (x0>=(Xl.IsInteger()?Xl.IntValue():Xl.Value())) &&
-	      (x0 <=(Xr.IsInteger()?Xr.IntValue():Xr.Value())))
+	  Coord xx(x0);
+	  if ((xx>=xl) && (xx<=xr) && (xx>=Xl) && (xx <=Xr))
 	      return true;
 	  else return false;
+      }
+}
+
+const bool CHalfSegment::cross( const CHalfSegment& chs ) const
+{   
+    Coord xl,yl,xr,yr;
+    Coord Xl,Yl,Xr,Yr;
+    double k, a, K, A; 
+    double x0; //, y0;  (x0, y0) is the intersection
+
+    xl=lp.GetX();  yl=lp.GetY();
+    xr=rp.GetX();  yr=rp.GetY();
+    if (xl!=xr) 
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+	      (yl.IsInteger()? yl.IntValue():yl.Value())) / 
+	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+	      (xl.IsInteger()? xl.IntValue():xl.Value())); 
+	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+    }
+    
+    Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
+    Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
+    if (Xl!=Xr)
+    {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
+	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) / 
+ 	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
+	        (Xl.IsInteger()? Xl.IntValue():Xl.Value())); 
+	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
+	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+    }
+
+    if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
+      {
+	return false;
+      }
+    
+    if (Xl==Xr)    //only L is vertical
+    {
+	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a; 
+	//(Xl, y0) is the intersection of l and L
+	Coord yy(y0);
+	if    ((Xl>xl) &&(Xl<xr))
+	{
+	    //if (((y0>(Yl.IsInteger()? Yl.IntValue():Yl.Value())) && 
+	    //     (y0<(Yr.IsInteger()? Yr.IntValue():Yr.Value()))) || 
+	    //     ((y0>(Yr.IsInteger()? Yr.IntValue():Yr.Value())) && 
+	    //      (y0<(Yl.IsInteger()? Yl.IntValue():Yl.Value()))))
+	    if (((yy>Yl) && (yy<Yr)) || ((yy>Yr) && (yy<Yl)))
+	            return true;
+	    else return false;
+	}
+	else return false;
+    }
+
+    if (xl==xr)    //only l is vertical
+    {
+	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A; 
+	Coord YY(Y0);
+	//(xl, Y0) is the intersection of l and L
+	if ((xl>Xl) && (xl<Xr))
+	{
+	    //if (((Y0>(yl.IsInteger()? yl.IntValue():yl.Value())) && 
+	    //      (Y0<(yr.IsInteger()? yr.IntValue():yr.Value()))) || 
+	    //     ((Y0>(yr.IsInteger()? yr.IntValue():yr.Value())) && 
+	    //      (Y0<(yl.IsInteger()? yl.IntValue():yl.Value())))) 
+	    if (((YY>yl) && (YY<yr)) || ((YY>yr) && (YY<yl))) 
+	            return true;
+	    else return false;
+	}
+	else return false;
+    }
+    
+    //otherwise: both *this and *arg are non-vertical lines
+
+    if (k==K) 
+      {
+	return false;
+      }
+      else
+      {
+	x0=(A-a) / (k-K);	 // y0=x0*k+a;
+	Coord xx(x0);
+	
+	//if ((x0>(xl.IsInteger()?xl.IntValue():xl.Value())) && 
+	//    (x0<(xr.IsInteger()?xr.IntValue():xr.Value())) && 
+	//    (x0>(Xl.IsInteger()?Xl.IntValue():Xl.Value())) &&
+	//    (x0<(Xr.IsInteger()?Xr.IntValue():Xr.Value())))
+	if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx<Xr))
+	        return true;
+	else return false;
       }
 }
 
@@ -1534,7 +1621,7 @@ const bool CHalfSegment::Contains( const Point& p ) const
   else    return false;
 }
 
-const bool CHalfSegment::rayAbove( const Point& p ) const
+const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
 {   //this function is useful for deciding whether a point is inside a cycle
     //so the semantics is decided according to this purpose
     Coord x, y, xl, yl,xr, yr;
@@ -1546,13 +1633,14 @@ const bool CHalfSegment::rayAbove( const Point& p ) const
     yr= this->GetRP().GetY();
     
     bool res=false;
-    
+       
     if (xl!=xr) 
     {           // not vertical. vertical lines will not affect the result
 	
 	if ((x==xl) && (yl>y)) 
 	{   //only the left endpoint is checked. in a cycle, if the common point of
 	    //two consecutive edges is above p, then they are counted once.
+	    abovey0=(yl.IsInteger()? yl.IntValue():yl.Value());
 	    res=true;
 	}
 	else if ((xl < x) && (x < xr))
@@ -1569,8 +1657,10 @@ const bool CHalfSegment::rayAbove( const Point& p ) const
 	    double y0=
 		    k*(x.IsInteger()? x.IntValue():x.Value())+a; 
 	    
-	    if (y0>(y.IsInteger()?y.IntValue():y.Value()))  
+	    Coord yy(y0);
+	    if (yy>y)
 	    {
+		abovey0=y0;
 		res=true;
 	    }
 	}
@@ -2383,7 +2473,7 @@ CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
 CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) : 
 	  region( new PArray<CHalfSegment>(recordFile) ), ordered( false )
 {
-//  assert( cr.IsOrdered());
+    //  assert( cr.IsOrdered());
     int j=0;
     for( int i = 0; i < cr.Size(); i++ )
     {
@@ -2451,6 +2541,123 @@ void CRegion::Get( const int i, CHalfSegment& chs ) const
 const SmiRecordId CRegion::GetRegionRecordId() const
 {
   return region->Id();
+}
+
+bool CRegion::contain( const Point& p ) const
+{
+   int faceISN[100];
+    
+    int lastfaceno=-1;
+    for (int i=0; i<100; i++)
+    {
+	faceISN[i]=0;
+    }
+    
+    CHalfSegment chs;
+  
+    for (int i=0; i<this->Size(); i++)
+    {
+	this->Get(i, chs);
+	double y0;
+	    
+	if  ((chs.GetLDP()) &&(chs.Contains(p)))
+	    return true;
+		    
+	if ((chs.GetLDP()) &&(chs.rayAbove(p, y0)))
+	{   
+	    faceISN[chs.attr.faceno]++;
+	    if (lastfaceno < chs.attr.faceno) 
+		lastfaceno=chs.attr.faceno;
+	}
+    }
+ 
+    for (int j=0; j<=lastfaceno; j++)
+    {	
+	if (faceISN[j] %2 !=0 )
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
+bool CRegion::contain( const CHalfSegment& chs ) const
+{
+    if ((!(this->contain(chs.GetLP())))||(!(this->contain(chs.GetRP()))))
+    {
+	return false;
+    }
+	    
+    CHalfSegment auxchs;
+    struct {
+	int faceno;
+	int cycleno;
+	int edgeno;
+    } touchset[10];
+    int touchnum=0;
+    
+    //now we know that both endpoints of chs is inside region
+     for (int i=0; i<this->Size(); i++)
+    {
+	this->Get(i, auxchs);
+	if (auxchs.GetLDP())
+	{
+	    if (chs.cross(auxchs)) 
+	    {          
+		return false;
+	    }
+	    else //two cases: not intersect or intersect
+	    {
+		if (chs.Intersects(auxchs))
+		{  
+		    if ((auxchs.Contains(chs.GetLP()))||
+		        (auxchs.Contains(chs.GetRP())))
+		    {
+			bool found=false;
+			for (int k=0; k<touchnum;k++)
+			{
+			    if ((touchset[k].faceno==auxchs.attr.faceno)&&
+			        (touchset[k].cycleno==auxchs.attr.cycleno)&&
+			        (touchset[k].edgeno==auxchs.attr.edgeno))
+				found=true;
+			}
+			if (found==false)
+			{
+			    touchset[touchnum].faceno=auxchs.attr.faceno;
+			    touchset[touchnum].cycleno=auxchs.attr.cycleno;
+			    touchset[touchnum].edgeno=auxchs.attr.edgeno;
+			    touchnum++;
+			}
+		    }
+		}
+	    }
+	}
+    }
+    
+    if (touchnum > 1)
+    {
+	//it is safe to do so since in the middle chs1 intersect with nothing
+	Coord midx=chs.GetLP().GetX();
+	midx += chs.GetRP().GetX();
+	midx /= (long)2 ;
+	Coord midy=chs.GetLP().GetY();
+	midy += chs.GetRP().GetY();
+	midy /= (long)2 ;
+	
+	Point midp(true, midx, midy);
+	if (this->contain(midp))
+	{
+	    return true;
+	}
+	else
+	{
+	    return false;
+	}
+    }
+    else
+    {
+	return true;
+    }
 }
 
 CRegion& CRegion::operator=(const CRegion& cr)
@@ -2718,7 +2925,9 @@ ostream& operator<<( ostream& os, const CRegion& cr )
 
 const bool CRegion::insertOK(const CHalfSegment& chs)
 { 
-    //assert(chs.IsDefined());
+    CHalfSegment auxchs;
+    double dummyy0;
+    	
     if (chs.IsDefined())
     {
 	int prevcycleMeet[50];
@@ -2728,56 +2937,61 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 	{
 	    prevcycleMeet[i]=0;
 	}
-    
+  
 	for( int i = 0; i<= region->Size()-1; i++ )
 	{           
-	    CHalfSegment auxchs;
 	    region->Get( i, auxchs );
-
+	    
 	    if (auxchs.GetLDP())
 	    {
-		if (chs.Intersects(auxchs))
+		//  to detect whether two cycles intersect each other
+		if (chs.IsDefined())
 		{
-		    if ((chs.attr.faceno!=auxchs.attr.faceno)||
-			(chs.attr.cycleno!=auxchs.attr.cycleno)) 
+		    if (chs.Intersects(auxchs))
 		    {
-			cout<<"two cycles intersect with the following edges:";
-			cout<<auxchs<<" :: "<<chs<<endl;
-			return false;
-		    }
-		    else
-		    {  
-			if ((auxchs.GetLP()!=chs.GetLP()) && 
-			    (auxchs.GetLP()!=chs.GetRP()) &&
-			    (auxchs.GetRP()!=chs.GetLP()) &&
-			    (auxchs.GetRP()!=chs.GetRP())) 
+			if ((chs.attr.faceno!=auxchs.attr.faceno)||
+			    (chs.attr.cycleno!=auxchs.attr.cycleno)) 
 			{
-			    cout<<"two edges: " <<auxchs<<" :: "<< chs
-				    <<" of the same cycle intersect in middle!"
-				    <<endl;
+			    cout<<"two cycles intersect with the ";
+			    cout<<"following edges:";
+			    cout<<auxchs<<" :: "<<chs<<endl;
 			    return false;
 			}
+			else
+			{  
+			    if ((auxchs.GetLP()!=chs.GetLP()) && 
+			        (auxchs.GetLP()!=chs.GetRP()) &&
+			        (auxchs.GetRP()!=chs.GetLP()) &&
+			        (auxchs.GetRP()!=chs.GetRP())) 
+			    {
+				cout<<"two edges: " <<auxchs<<" :: "<< chs
+				<<" of the same cycle intersect in middle!"
+					<<endl;
+				return false;
+			    }
+			}
 		    }
-		}
-		else 
-		{
-		    if ((chs.attr.cycleno>0) &&    //it is a hole
-			(auxchs.attr.faceno==chs.attr.faceno) && 
-			(auxchs.attr.cycleno!=chs.attr.cycleno))
-		    {  
-			//here: compare whether chs is below auxchs
-			if (auxchs.rayAbove(chs.GetLP()))
-			{
-			    prevcycleMeet[auxchs.attr.cycleno]++; 
-			    if (prevcyclenum < auxchs.attr.cycleno)
-				prevcyclenum=auxchs.attr.cycleno;
+		    else 
+		    {
+			if ((chs.attr.cycleno>0) &&    //it is a hole
+			    (auxchs.attr.faceno==chs.attr.faceno) && 
+			    (auxchs.attr.cycleno!=chs.attr.cycleno))
+			{  
+			    //here: compare whether chs is below auxchs
+			    if (auxchs.rayAbove(chs.GetLP(), dummyy0))
+			    {
+				prevcycleMeet[auxchs.attr.cycleno]++; 
+				if (prevcyclenum < auxchs.attr.cycleno)
+				    prevcyclenum=auxchs.attr.cycleno;
+			    }
 			}
 		    }
 		}
 	    }
 	}
-	
-	if (chs.attr.cycleno>0)
+			
+	//  to check relationships between cycles of the SAME face.
+	if ((chs.IsDefined()) && (chs.attr.cycleno>0))
 	{
 	    if  (prevcycleMeet[0] % 2 ==0)
 	    {
@@ -2800,6 +3014,7 @@ same face. However, whether this new hole contains any previous hole of the same
 face is not clear. In the following we do this kind of check.
 	
 */
+
     if ((!chs.IsDefined())||((chs.attr.faceno>0) || (chs.attr.cycleno>2)))
     {          
 	CHalfSegment chsHoleNEnd, chsHoleNStart;
@@ -2814,8 +3029,6 @@ face is not clear. In the following we do this kind of check.
 	    (chs.attr.faceno!=chsHoleNEnd.attr.faceno)||
 	    (chs.attr.cycleno!=chsHoleNEnd.attr.cycleno)))
 	{    //chs start another face or cycle
-	    
-	    //cout<<"trigger the test!"<<endl;
 	    
 	    if (chsHoleNEnd.attr.cycleno>1)
 	    {  	// if the cycle just finished is the second hole or later. 
@@ -2856,7 +3069,7 @@ face is not clear. In the following we do this kind of check.
 			{
 			    region->Get(i, chsLastHole );
 			    if ((chsLastHole.GetLDP())&&
-			        (chsLastHole.rayAbove(chsPrevHole.GetLP())))
+			        (chsLastHole.rayAbove(chsPrevHole.GetLP(), dummyy0)))
 				holeNMeent++;
 			}
 			if  (holeNMeent % 2 !=0)
@@ -4453,24 +4666,37 @@ SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Suppli
 
 static int
 SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{   //this algorithm is not right. I will modify it soon. DZM
+{   
     result = qp->ResultStorage( s );
     CRegion *cr1, *cr2;
     CHalfSegment chs1, chs2;
-  
+      
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
   
     for (int i=0; i<cr1->Size(); i++)
     {
 	cr1->Get(i, chs1);
-	for (int j=0; j<cr2->Size(); j++)
-	{    
-	    cr2->Get(j, chs2);
-	    if (chs1.Intersects(chs2)) 
-	    {
-		((CcBool *)result.addr)->Set( true, true );
-		return (0);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cr2->Size(); j++)
+	    {    
+		cr2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if (chs1.Intersects(chs2)) 
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		
+		    //since no edges intersects, then we can do the following checking
+		    if ((cr2->contain(chs1.GetLP())) || (cr1->contain(chs2.GetLP()))) 
+		    {   
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
 	    }
 	}
     }
@@ -4531,10 +4757,58 @@ SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s
 
 static int
 SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->Set( false, false );
-  return (0);
+{	
+    //for this algorithm, I need to use Realizator and Derealmizator. DZM
+    result = qp->ResultStorage( s );
+    CRegion *cr1, *cr2;
+    CHalfSegment chs1, chs2;
+      
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+   
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	
+	if (chs1.GetLDP())
+	{
+	    if ((!(cr2->contain(chs1))))
+	    {	
+		((CcBool *)result.addr)->Set( true, false );
+		return (0);
+	    }
+	}
+    }
+    
+    bool existhole=false;
+    bool allholeedgeinside=true;
+    
+    for (int j=0; j<cr2->Size(); j++)
+    {
+	cr2->Get(j, chs2);
+	
+	if ((chs2.GetLDP()) && (chs2.attr.cycleno>0) ) 
+	    //&& (chs2 is not masked by another face of region2)
+	{   
+	    existhole=true;
+	    if ((!(cr1->contain(chs2))))
+	    {
+		allholeedgeinside=false;
+	    }
+	    // some other adjustment is needed.
+	}
+    }
+    
+    if ((existhole) && (allholeedgeinside))
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    
+    
+    
+    ((CcBool *)result.addr)->Set( true, true);
+    return (0);
 }
 
 static int
@@ -4577,11 +4851,24 @@ SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s
 
 static int
 SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->Set( false, false );
-  return (0);
-}
+{ 	
+    // this algorithm is easy, and no realm based method is needed.
+    result = qp->ResultStorage( s );
+    
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    
+    if (cr->contain(*p))
+    {
+	((CcBool *)result.addr)->Set( true, true);
+	return (0);
+    }
+    else 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+ }
 
 /*
 9.5 Definition of operators

@@ -707,6 +707,7 @@ there is no Realm here as a precondition, two half segments may intersect each o
 
 */
     const bool Intersects( const CHalfSegment& chs ) const;
+    const bool cross( const CHalfSegment& chs ) const;
 /*
 5.7 Inside Function
 
@@ -727,7 +728,7 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 
 */
     const bool Contains( const Point& p ) const;
-    const bool rayAbove( const Point& p ) const;
+    const bool rayAbove( const Point& p, double &abovey0 ) const;
 /*
 5.9 attribute comparison Functions
 
@@ -1154,7 +1155,13 @@ update the ~attr~ value of the current half segment from the region value.The cu
 half segment is indicated by ~pos~
 
 */     
-   
+    bool contain( const Point& p ) const;
+    bool contain( const CHalfSegment& chs ) const;
+/*
+to decide whether a point or a half segment is inside the region.
+
+*/     
+    
     void logicsort();
     void logicQuickSortRecursive( const int low, const int high );
 /*
