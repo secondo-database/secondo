@@ -6,7 +6,7 @@
 #
 #    alias setvar  source <newpath>/setvar.bash
 #
-# Adjust the directory entries in the configurable
+# Adjust only the directory entries in the configurable
 # part.
 #
 # if you want this script executed at startup of the shell
@@ -42,7 +42,7 @@ export SECONDO_BUILD_DIR=$1
 if [ "$OSTYPE" = "msys" ]; then
    export SECONDO_PLATFORM="win32"
 else 
-   export SECONDO_PLATFORM="win32"
+   export SECONDO_PLATFORM="linux"
 fi
 
 #########################################################
@@ -65,8 +65,9 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
 else 
 
    # windows 
-   # for the next variable use \ as separator	
-   export SWI_HOME_DIR=""
+   # It is important to use / as separator
+   export SWI_HOME_DIR="C:/Programme/pl"
+   export J2SDK_ROOT="C:/Local/j2sdk1.4.0"
 fi
 
 
@@ -85,7 +86,7 @@ else
    export PD_HEADER="/usr/local/pd/pd.header"
    export DVI_VIEWER=yap
    export BERKELEY_DB_DIR="/usr/local"
-   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$Berkeley_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR\\bin"
+   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR\\bin"
   
    # gcc on windows needs special treatment
    export CPLUS_INCLUDE_PATH="/usr/local/include"
