@@ -363,6 +363,40 @@ ostream& operator<<(ostream& os, CcTuple t)
   os << ")";
   return os;
 }
+
+/*
+
+The lexicographical order on CcTuple. To be used in conjunction with
+STL algorithms.
+
+*/
+class LexicographicalCcTupleCmp
+{
+public:
+  bool operator()(const CcTuple* aConst, const CcTuple* bConst) const
+  {
+    CcTuple* a = (CcTuple*)aConst;
+    CcTuple* b = (CcTuple*)bConst;
+
+
+    for(int i = 0; i < a->GetNoAttrs(); i++)
+    {
+      if(((Attribute*)a->Get(i))->Compare(((Attribute*)b->Get(i))) < 0)
+      {
+        return true;
+      }
+      else
+      {
+        if(((Attribute*)a->Get(i))->Compare(((Attribute*)b->Get(i))) > 0)
+        {
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+};
+
 /*
 
 1.3.2 ~Out~-function of type constructor ~tuple~
@@ -1910,7 +1944,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       
     case CLOSE :
 
-      qp->Close(args[0].addr); 
+      qp->Close(args[0].addr);
       qp->Close(args[1].addr);
       return 0;
   }   
@@ -2039,7 +2073,7 @@ ListExpr TCountTypeMap(ListExpr args)
     first = nl->First(args);
     if(nl->ListLength(first) == 2)
     {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == stream) 
+      if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
         return nl->SymbolAtom("int");
     }
   }
@@ -2743,7 +2777,7 @@ const string SumOpSpec =
 */
 Operator cppsum (
          "sum",             // name
-         AvgOpSpec,           // specification
+         SumOpSpec,           // specification
          AvgSumValueMapping<false>,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
@@ -2887,7 +2921,7 @@ struct SortByLocalInfo
   size_t currentIndex;
 };
 
-static int
+template<bool lexicographically> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word tuple;
@@ -2899,6 +2933,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   int nSortAttrs;
   bool sortOrderIsAscending;
   CcTupleCmp ccCmp;
+  LexicographicalCcTupleCmp lCcCmp;
 
   switch(message)
   {
@@ -2912,17 +2947,24 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         qp->Request(args[0].addr,tuple);
       }
 
-      nSortAttrs = (int)((StandardAttribute*)args[2].addr)->GetValue();
-      for(i = 1; i <= nSortAttrs; i++)
+      if(lexicographically)
       {
-        sortAttrIndex =
-          (int)((StandardAttribute*)args[2 * i + 1].addr)->GetValue();
-        sortOrderIsAscending =
-          (bool*)((StandardAttribute*)args[2 * i + 2].addr)->GetValue();
-        spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
-      };
-      ccCmp.spec = spec;
-      sort(tuples->begin(), tuples->end(), ccCmp);
+        sort(tuples->begin(), tuples->end(), lCcCmp);
+      }
+      else
+      {
+        nSortAttrs = (int)((StandardAttribute*)args[2].addr)->GetValue();
+        for(i = 1; i <= nSortAttrs; i++)
+        {
+          sortAttrIndex =
+            (int)((StandardAttribute*)args[2 * i + 1].addr)->GetValue();
+          sortOrderIsAscending =
+            (bool*)((StandardAttribute*)args[2 * i + 2].addr)->GetValue();
+          spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
+        };
+        ccCmp.spec = spec;
+        sort(tuples->begin(), tuples->end(), ccCmp);
+      }
 
       localInfo = new SortByLocalInfo;
       localInfo->tuples = tuples;
@@ -2965,11 +3007,173 @@ const string SortBySpec =
 Operator sortBy (
          "sortby",             // name
          SortBySpec,           // specification
-         SortBy,               // value mapping
+         SortBy<false>,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
          SortByTypeMap         // type mapping
 );
+
+/*
+
+7.3 Operator ~sort~
+
+This operator sorts a stream of tuples lexicographically.
+
+7.3.1 Type mapping function of operator ~sort~
+
+Type mapping for ~sort~ is
+
+----	((stream (tuple ((x1 t1)...(xn tn)))) 	-> (stream (tuple ((x1 t1)...(xn tn)))
+
+----
+
+*/
+static ListExpr
+IdenticalTypeMap( ListExpr args )
+{
+  ListExpr first;
+
+  if(nl->ListLength(args) == 1)
+  {
+    first = nl->First(args);
+
+    if((nl->ListLength(first) == 2  )
+      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+      && IsTupleDescription(nl->Second(nl->Second(first))))
+    {
+      return first;
+    }
+    return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+
+4.1.3 Specification of operator ~sort~
+
+*/
+const string SortSpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input stream lexicographically.</text--->)";
+/*
+
+4.1.3 Definition of operator ~sort~
+
+*/
+Operator cppsort (
+         "sort",             // name
+         SortSpec,           // specification
+         SortBy<true>,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         IdenticalTypeMap         // type mapping
+);
+
+/*
+
+7.3 Operator ~rdup~
+
+This operator removes duplicates from a sorted stream.
+
+4.1.2 Value mapping function of operator ~rdup~
+
+*/
+
+static int
+RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word tuple;
+  LexicographicalCcTupleCmp cmp;
+  CcTuple* currentTuple;
+  CcTuple* lastOutputTuple;
+
+  switch(message)
+  {
+    case OPEN:
+      qp->Open(args[0].addr);
+      local = SetWord(0);
+      return 0;
+    case REQUEST:
+      while(true)
+      {
+        qp->Request(args[0].addr, tuple);
+        if(qp->Received(args[0].addr))
+        {
+          if(local.addr != 0)
+          {
+            currentTuple = (CcTuple*)tuple.addr;
+            lastOutputTuple = (CcTuple*)local.addr;
+            if(cmp(currentTuple, lastOutputTuple)
+              || cmp(lastOutputTuple, currentTuple))
+            {
+              local = SetWord(tuple.addr);
+              result = SetWord(tuple.addr);
+              return YIELD;
+            }
+          }
+          else
+          {
+            local = SetWord(tuple.addr);
+            result = SetWord(tuple.addr);
+            return YIELD;
+          }
+        }
+        else
+        {
+          return CANCEL;
+        }
+      }
+    case CLOSE:
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  return 0;
+}
+/*
+
+4.1.3 Specification of operator ~rdup~
+
+*/
+const string RdupSpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Removes duplicates from a sorted stream.</text--->)";
+/*
+
+4.1.3 Definition of operator ~rdup~
+
+*/
+Operator cpprdup (
+         "rdup",             // name
+         RdupSpec,           // specification
+         RdupValueMapping,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         IdenticalTypeMap         // type mapping
+);
+
+static ListExpr
+SetOpTypeMap( ListExpr args )
+{
+  ListExpr first, second;
+
+  if(nl->ListLength(args) == 2)
+  {
+    first = nl->First(args);
+    second = nl->Second(args);
+
+    if((nl->ListLength(first) == 2  )
+      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && (nl->Equal(first, second)))
+    {
+      return first;
+    }
+    return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
 
 /*
 
@@ -3114,7 +3318,7 @@ private:
 
   CcTuple* nextATuple()
   {
-    int errorCode = SortBy(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+    int errorCode = SortBy<false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
     if(errorCode == YIELD)
     {
       return (CcTuple*)aResult.addr;
@@ -3128,7 +3332,7 @@ private:
 
   CcTuple* nextBTuple()
   {
-    int errorCode = SortBy(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+    int errorCode = SortBy<false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
     if(errorCode == YIELD)
     {
       return (CcTuple*)bResult.addr;
@@ -3239,16 +3443,16 @@ public:
     this->attrIndexB = (int)((StandardAttribute*)attrIndexB.addr)->GetValue() - 1;
     SetArgs(aArgs, streamA, attrIndexA);
     SetArgs(bArgs, streamB, attrIndexB);
-    SortBy(aArgs, aResult, OPEN, streamALocalInfo, 0);
-    SortBy(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+    SortBy<false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
+    SortBy<false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     nextATuple();
     nextBTuple();
   }
 
   ~EquiMergeJoinLocalInfo()
   {
-    SortBy(aArgs, aResult, CLOSE, streamALocalInfo, 0);
-    SortBy(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+    SortBy<false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
+    SortBy<false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
   }
 
   CcTuple* NextResultTuple()
@@ -3851,6 +4055,8 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppsum);
     AddOperator(&cpphead);
     AddOperator(&sortBy);
+    AddOperator(&cppsort);
+    AddOperator(&cpprdup);
     AddOperator(&equiMergeJoinOperator);
     AddOperator(&equiHashJoinOperator);
 
