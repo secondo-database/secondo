@@ -45,6 +45,8 @@ this modifications gain a speed up of the client-server communication.
 
 February 2004, M. Spiekermann. Reading of binary encoded lists was implemented.
 
+June 2004, M. Spiekermann. The persistent implementation of this module was finished.
+
 
 1.1 Overview
 
@@ -174,16 +176,28 @@ The operations are defined below.
 #include <iostream>
 #include <assert.h>
 
-/* define switch NL_PERSISTENT with the -D option of gcc in order to use persistent memory representation */
+/* 
+
+The implementation of the nested list structure is based on the CTABLE
+structure which has a memory and a SMI based implementation. In order to manage
+lists of arbitary size you should switch on the persistent implementation.
+define switch NL_PERSISTENT with the -D option of gcc in order to use
+persistent memory representation. This should be configured in the file
+makefile.env at the top level of SECONDOs directory structure. But be careful,
+the interfaces are not exactly the same. The restrictions are explained in the
+file CTable.h. If you change code in the nested list module take care that it
+works with both implementaions.
+
+*/
 #ifdef NL_PERSISTENT
 #define CTABLE_PERSISTENT
 #endif
 
 #include "CTable.h"
-
 #include "SecondoSMI.h"
 
 /*
+
 Nested lists are represented by four compact tables called
 ~nodeTable~, ~intTable~, ~stringTable~, and ~textTable~, which are private
 member variables of the nested list container class ~NestedList~.
@@ -191,8 +205,8 @@ member variables of the nested list container class ~NestedList~.
 */
 const int INITIAL_ENTRIES = 10000;
 /*
-The first specifies the default size of the compact tables. This value can be overwritten
-in the constructor. 
+The first specifies the default size of the compact tables. This value can be
+overwritten in the constructor. 
 
 */
 
@@ -260,16 +274,12 @@ such a scan. ~currentFragment~ is a pointer to a (valid) entry in the table
 
 */
 
-const unsigned int STRINGSIZE = 32;
-typedef char StringArray [STRINGSIZE];
-struct StringRecord
-{
-  StringArray field;
-};
+const unsigned int STRINGSIZE = 32; typedef char StringArray [STRINGSIZE];
+struct StringRecord { StringArray field; };
 /*
-Symbols and strings with a maximum size of "3\times STRINGSIZE"[2] characters are represented as
-at most "3"[2] chunks of "STRINGSIZE"[2] characters. This approach was chosen to minimize memory
-consumption.
+Symbols and strings with a maximum size of "3\times STRINGSIZE"[2] characters
+are represented as at most "3"[2] chunks of "STRINGSIZE"[2] characters. This
+approach was chosen to minimize memory consumption.
 
 *NOTE*: The struct type ~StringRecord~ is introduced only because the vector
 templates used in the implementation of compact tables don't allow character
@@ -350,7 +360,7 @@ class NestedList
 	      Cardinal NodeEntries = 2*INITIAL_ENTRIES,
 	      Cardinal ConstEntries = INITIAL_ENTRIES, 
 	      Cardinal StringEntries = INITIAL_ENTRIES,
-	      Cardinal TextEntries = 50 );
+	      Cardinal TextEntries = INITIAL_ENTRIES / 10 );
 /*
 Creates an instance of a nested list container. The compact tables which
 store the nodes of nested lists reserve initially memory for holding at
@@ -559,8 +569,9 @@ if writing was successful, "false"[4] if the string could not be written properl
 /*
 Writes the list in a binary coded or textual format into the referenced stream.
 
-Note: When using an fstream with WriteBinaryTo initialize it as ios::binary otherwise the
-output of bytes will be influenced by platform specific implementations
+Note: When using an fstream with WriteBinaryTo initialize it as ios::binary
+otherwise the output of bytes will be influenced by platform specific
+implementations
 
 */
 
@@ -799,7 +810,7 @@ private CTable members and the underlying vector classes.
 			     Cardinal NodeEntries = 2*INITIAL_ENTRIES,
 		             Cardinal ConstEntries = INITIAL_ENTRIES,
 		             Cardinal StringEntries = INITIAL_ENTRIES,
-			     Cardinal TextEntries = 50 );
+			     Cardinal TextEntries = INITIAL_ENTRIES / 10 );
 
 /*
 Creates new ~CTable~ objects with the given size and deletes the old ones.

@@ -122,7 +122,7 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardin
    // values assume the sizes below. These sizes are
    // widley used on 32bit INTEL/AMD architectures.
    // Currently, no time will be invested to make the code
-   // machine independent. 
+   // more machine independent. 
    assert( sizeof(float) == 4 );
    assert( sizeof(long) == 4  );
    assert( sizeof(short) == 2 ); 
@@ -189,10 +189,10 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
        delRecFile = true;
      }
 
-      nodeTable   = new CTable<NodeRecord>(NodeEntries, recFilePtr);
-      intTable    = new CTable<Constant>(ConstEntries, recFilePtr);
-      stringTable = new CTable<StringRecord>(StringEntries, recFilePtr);
-      textTable   = new CTable<TextRecord>(TextEntries, recFilePtr);
+      nodeTable   = new CTable<NodeRecord>(NodeEntries / 10, recFilePtr);
+      intTable    = new CTable<Constant>(ConstEntries / 10, recFilePtr);
+      stringTable = new CTable<StringRecord>(StringEntries / 10, recFilePtr);
+      textTable   = new CTable<TextRecord>(TextEntries / 10, recFilePtr);
 #else
       DeleteListMemory();
 

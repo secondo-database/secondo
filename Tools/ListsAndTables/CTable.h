@@ -140,7 +140,6 @@ contains code for the PArray version.
 
 
 #ifndef CTABLE_H
-
 #define CTABLE_H
 
 #include <assert.h>
@@ -185,7 +184,6 @@ public:
   CTable( Cardinal const count );
 #else
   CTable( Cardinal const count, SmiRecordFile* ptr2RecFile = 0);
-  //CTable( SmiRecordId id, bool update);
 #endif
 
    string MemoryModel();
@@ -199,19 +197,6 @@ possible to declare it as default argument, because SmiRecordId and
 Cardinal have the same typdefs.
 
 MemoryModel returns the values "PERSISTENT" or "NON-PERSISTENT".
-
-*/
-
-#ifdef CTABLE_PERSISTENT
-  //SmiRecordId GetId();
-  //void MarkDelete();
-#endif
-
-/*
- 
-The first method returns the identifier of the persistent representation of the CTable
-and the second sets a flag for deletion of the persistent CTable, it will be deleted
-when the CTable object is destructed.
 
 */
 
@@ -575,11 +560,6 @@ private:
    Cardinal highestValid;	
   };
  
-  ObjectState oState;              
-  //PArray<ObjectState> *oStateRec; // PArray which holds only 1 item.
-  //SmiRecordId oStateRecId;
-  
-
   SmiRecordFile* ptr2RecFile;  // Create anonymous SmiFile if needed.
   bool doRecFilePtrDelete;
 
@@ -590,9 +570,9 @@ private:
   PagedArray<T>* table;        // Array of table elements
   PagedArray<bool>* valid;     // Array of table element states
 
-  Cardinal& elemCount;      // Size of compact table
-  Cardinal& leastFree;      // Position of free slot
-  Cardinal& highestValid;   // Position of highest valid slot
+  Cardinal elemCount;      // Size of compact table
+  Cardinal leastFree;      // Position of free slot
+  Cardinal highestValid;   // Position of highest valid slot
  
 #else
 

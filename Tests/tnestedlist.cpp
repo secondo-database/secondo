@@ -32,6 +32,7 @@ In this module the nested list functions from the module NestedList are called t
 
 #include "NestedList.h"
 #include "SecondoSMI.h"
+#include "WinUnix.h"
 
 namespace {
 
@@ -659,7 +660,7 @@ TestRun_Persistent() {
    //cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
    
    
-   rf = new SmiRecordFile(true, 512, true);
+   rf = new SmiRecordFile(true, WinUnix::getPageSize()-100, true);
    if ( !(rf->Create()) ) {
    string errMsg;
    SmiError errCode = SmiEnvironment::GetLastErrorCode(errMsg);

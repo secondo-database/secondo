@@ -66,7 +66,6 @@ elements of type ~T~.
 #include <typeinfo>
 
 #include "SecondoSMI.h"
-//#include "NestedList.h"
 
 typedef unsigned long Cardinal;
 
@@ -108,6 +107,7 @@ public:
   void* GetBufPtr(const Cardinal& pageNr, bool &pageChange) {
    
      if (trace) {
+       cout << "==========================" << endl;
        cout << "pageNr: " << pageNr << endl; 
        int k=0;
        for (vector<BufInfoRec>::iterator it = BufInfo.begin(); it != BufInfo.end(); it++ ) {
@@ -115,7 +115,7 @@ public:
           it->print(cout);
           k++;
        }
-       cout << "===========================" << endl;
+       cout << "--------------------------" << endl;
        k=0;
        for (vector<RecordInfo>::iterator it = recidVec.begin(); it != recidVec.end(); it++ ) {
           cout << k << ": ";
@@ -140,8 +140,8 @@ public:
 
      }
     
-     if ( bufNr >= 0 && bufNr < MAX_BUFFERS ) {
-       cout << "bufNr: " << bufNr << endl;
+     if ( !(bufNr >= 0 && bufNr < MAX_BUFFERS) ) {
+       cout << "bufNr: " << bufNr << " out of range!" << endl;
        assert( bufNr >= 0 && bufNr < MAX_BUFFERS );
      }
 
@@ -263,7 +263,7 @@ class PagedArray
 {
  public:
 
-  PagedArray( SmiRecordFile *parrays, bool logon=false, const int buffers=4 );
+  PagedArray( SmiRecordFile *parrays, const int buffers=4, bool logon=false );
 
 /*
 Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
@@ -272,18 +272,6 @@ array with the argument ~initsize~.
 
 */
   
-  //PagedArray( SmiRecordFile *parrays, const SmiRecordId id, 
-  //            const bool update = true );
-
-/*
-Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The
-boolean value ~update~ indicates if open mode: ~true~ for update and ~false~
-for read-only.
-
-Note: Currently not implemented.
-
-*/
-
   ~PagedArray();
 
 /*
@@ -415,18 +403,17 @@ top of the SecondoSMI interface.
 
 
 template<class T>
-PagedArray<T>::PagedArray( SmiRecordFile *parrays, bool logOn /*=false*/, const int buffers /*=4*/ ) :
+PagedArray<T>::PagedArray( SmiRecordFile *parrays, const int buffers /*=4*/,  bool logOn /*=false*/) :
 writeable( true ),
 canDelete( false ),
 size( 0 ),
 pageRecord( parrays->GetRecordLength() ),
-recordBuf( parrays, pageRecord.size, buffers, true ),
+recordBuf( parrays, pageRecord.size, buffers ),
 bufPtr(0)
 {
   log.switchedOn = logOn;
   log.pageChangeCounter = 0;
   log.slotAccessCounter = 0;
-
 
   size = buffers * pageRecord.slots;
 

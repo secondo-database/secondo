@@ -9,7 +9,7 @@ August 2003 M. Spiekermann, Constructor changed.
 June 2004 M. Spiekermann, Operator [] changed.
 
 
-Note: Since debugging of template classes does not work properly, many instructions for
+Note: Since debugging of template classes is complicated, many instructions for
 printing information at the display are included in this code. Comment it out if you need
 this for bug-fixing. There is also some code which may be used for constructing a CTable
 object from a stored Record on disk. Currently there is no need for this, but the code
@@ -43,9 +43,6 @@ template<typename T>
 void
 CTable<T>::initialize() {
 
-  oState.elemCount = 0;
-  oState.leastFree = 0;
-  oState. highestValid = 0;
   setTRUE = true;
   setFALSE = false;
   doRecFilePtrDelete = false;
@@ -57,9 +54,9 @@ template<typename T>
 
 CTable<T>::CTable(  Cardinal const count, SmiRecordFile* _ptr2RecFile /* = 0 */) : 
  dummyElem(new T()),
- elemCount(oState.elemCount), 
- leastFree(oState.leastFree),  
- highestValid(oState.highestValid)
+ elemCount(0), 
+ leastFree(1),  
+ highestValid(0)
 {
 
  initialize(); 
@@ -67,7 +64,7 @@ CTable<T>::CTable(  Cardinal const count, SmiRecordFile* _ptr2RecFile /* = 0 */)
 
  if (ptr2RecFile == 0) {
      bool ok = false;
-     ptr2RecFile = new SmiRecordFile(false,0,true);
+     ptr2RecFile = new SmiRecordFile(true,1024,true);
      ok = ptr2RecFile->Create();
      doRecFilePtrDelete = true;
      assert( ok == true ); 
@@ -76,25 +73,17 @@ CTable<T>::CTable(  Cardinal const count, SmiRecordFile* _ptr2RecFile /* = 0 */)
   //cout << endl << "### CTable<T>::CTable(" << endl 
   //             << "ptr2RecFile: " << (void*) ptr2RecFile << endl;
 
-  table = new PagedArray<T>(ptr2RecFile, true);
-  valid = new PagedArray<bool>(ptr2RecFile);
+  // In this implementation of CTable the total slot size grows one by
+  // one, hence count is used to define the initial buffer size.
+  table = new PagedArray<T>(ptr2RecFile, count, true);
+  valid = new PagedArray<bool>(ptr2RecFile, count, true);
 
-  //cout << endl << "### PArrays created" << endl
-  //	         << "### count: " << count << endl;
-
-  // Initialization of count times slots is not necessary, since the PArray grows one by one.
-  elemCount = 0;
-  leastFree = 1;
-  highestValid = 0;
-  
 }
 
 template<typename T>
 
 CTable<T>::~CTable() {
 
-  //oStateRec.Put(0, oState);
-  
   delete dummyElem;
   delete table;
   delete valid;
