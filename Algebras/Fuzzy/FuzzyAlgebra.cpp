@@ -308,8 +308,9 @@ void CcFPoint::RestoreJavaObjectFromFLOB(){
   }
   obj = jres;
   defined = true;
-  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
-  //delete [] bytes;   // already done by RealeaseByteArrayElements
+  jbyte* elems = env->GetByteArrayElements(jbytes,0);
+  env->ReleaseByteArrayElements(jbytes,elems,0);
+  delete [] bytes;   // already done by RealeaseByteArrayElements
  }
 
 
@@ -635,7 +636,8 @@ void CcFLine::RestoreJavaObjectFromFLOB(){
    if(jres==0) error(__LINE__);
    obj = jres;
    defined = true;
-   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+   env->ReleaseByteArrayElements(jbytes,env->GetByteArrayElements(jbytes,0),0);
+   delete [] bytes;
 }
 
 
@@ -1125,7 +1127,8 @@ void CcFRegion::RestoreFLOBFromJavaObject(){
      if(jres==0) error(__LINE__);
      obj = jres;
      defined=true;
-     env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+     env->ReleaseByteArrayElements(jbytes,env->GetByteArrayElements(jbytes,0),0);
+     delete [] bytes;
  }
 
 
