@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 February, 2003 Victor Teixeira de Almeida
 
 March-July, 2003 Zhiming DING
-      
+
 1 Overview
 
 This header file essentially contains the definition of the classes ~Point~,
@@ -74,12 +74,22 @@ coordinates are being used and defines if the system will use rational
 numbers with arbitrary precision (~not implemented yet~) instead of fixed
 precision (~Rational~).
 
+3 Auxiliary Functions
+
+*/
+const double FACTOR = 0.0000001;
+
+class Point;
+
+bool AlmostEqual( const double d1, const double d2 );
+bool AlmostEqual( const Point& p1, const Point& p2 );
+
+/*
 3 Class StandardSpatialAttribute
 
 Now implemented in RectangleAlgebra.
 
 */
-
 
 
 
@@ -107,7 +117,7 @@ class Point: public StandardSpatialAttribute<2>
 */
     Point() {};
 /*
-This constructor should not be used. 
+This constructor should not be used.
 
 There are two ways of constructing a point:
 
@@ -115,7 +125,7 @@ There are two ways of constructing a point:
     Point( const bool d, const Coord& x = Coord(), const Coord& y = Coord() );
 /*
 The first one receives a boolean value ~d~ indicating if the point is defined
-and two coordinate ~x~ and ~y~ values. 
+and two coordinate ~x~ and ~y~ values.
 
 */
     Point( const Point& p );
@@ -386,7 +396,7 @@ The first one constructs an empty point set but open space for ~initsize~ points
     Points( Points& ps);
 /*
 The second one receives another point set ~ps~ as argument and constructs a point
-set which is a copy of ~ps~. 
+set which is a copy of ~ps~.
 
 */
     void Destroy();
@@ -1105,7 +1115,7 @@ This function marks the end of a bulk load and sorts the half segments.
 /*
 6.4.5 Operation ~Clip~
 
-*Semantics:* This operation receives a rectangle and clips the line to the parts that are 
+*Semantics:* This operation receives a rectangle and clips the line to the parts that are
 inside the rectangle.
 
 *Complexity:* $O(n)$.

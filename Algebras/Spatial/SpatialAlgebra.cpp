@@ -63,6 +63,26 @@ static NestedList* nl;
 static QueryProcessor* qp;
 
 /*
+3 Auxiliary Functions
+
+*/
+bool AlmostEqual( const double d1, const double d2 )
+{
+  double factor = abs( d1 + d2 ) * FACTOR;
+  if( abs(d1 - d2) <= factor )
+    return true;
+  return false;
+}
+
+bool AlmostEqual( const Point& p1, const Point& p2 )
+{
+  if( AlmostEqual( p1.GetX(), p2.GetX() ) &&
+      AlmostEqual( p1.GetY(), p2.GetY() ) )
+    return true;
+  return false;
+}
+
+/*
 3 Type investigation auxiliaries
 
 Within this algebra module, we have to handle with values of four different
