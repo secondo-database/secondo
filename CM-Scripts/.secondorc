@@ -1,25 +1,99 @@
-# secondorc executed at startup of a bash
+# SECONDO ENVIRONMENT CONFIGURATION
 #
-# Copy this file into your $HOME directory and add
-# the line 
+# Feb 2005. Markus Spiekermann
 #
-# source ./secondorc
+# The file ".secondorc" must be executed at startup of a bash.
+# Copy this file into your $HOME directory and add the line 
 #
-# at the end of file $HOME/.bashrc
+#   source $HOME/.secondorc
+#
+# at the end of file $HOME/.bashrc.
+#
+# The dafault parameters should work gently.
 #
 # DO NOT CHANGE THIS FILE unless you know what you are doing!
+# Look in the files .secondorc and .secondo.win32rc or .secondo.linuxrc 
+# for setting platform specific parameters.
 
-if [ "$OSTYPE" = "msys" ]; then
-   SECONDO_PREFIX="/c"
+if [ "$OSTYPE" == "msys" ]; then
+   prefix=/c
+   platform="win32"
 else 
-   SECONDO_PREFIX="$HOME"
+   prefix=$HOME
+   platform="linux"
 fi
 
-export SECONDO_SDK="$SECONDO_PREFIX/secondo-sdk"
+# define important base directories
+sdkDir=${prefix}/secondo-sdk
+buildDir=${HOME}/secondo
 
-alias setvar='source $SECONDO_SDK/bin/setvar.bash' 
-alias catvar='$SECONDO_SDK/bin/catvar.sh' 
-alias jcvs='java -jar $SECONDO_SDK/jCVS-5.2.2/jars/jcvsii.jar'
-alias cvs-info='cvs -nq update | grep "^[A-Z]"'
+ok="true"
+if ! [ -d $buildDir ]; then
+  printf "%s"   "Error: I assume the SECONDO sources are in \"${buildDir}\" but this "
+  printf "%s\n" "directory is not present!"
+  ok="false" 
+fi
 
-source $SECONDO_SDK/bin/setvar.bash $HOME/secondo
+if ! [ -d $sdkDir ]; then
+  printf "%s"   "Error: I assume the SECONDO development tools are in \"${buildDir}\" "
+  printf "%s\n" "but this directory is not present!"
+  ok="false" 
+fi
+
+if [ "$ok" == "true" ]; then
+
+#export variables to the environment
+export SECONDO_SDK=$sdkDir
+export SECONDO_BUILD_DIR=$buildDir
+export SECONDO_PLATFORM=$platform
+
+#include platform specific definitions
+source ${HOME}/.secondo.${platform}rc
+
+#include command aliases
+source ${buildDir}/CM-Scripts/aliaslist.sh
+
+#include common definitions
+source ${HOME}/.secondo.sdkrc
+
+#set common variables
+source ${sdkDir}/bin/setvar.bash ${buildDir}
+
+#check variables
+if [ -d $BERKELEY_DB_DIR ]; then
+  libStr=$( find ${BERKELEY_DB_DIR} \
+                 -regex ".*libdb_cxx-[0-9\.]*\.a" \
+                 -printf "%f %p\n" | sort | tail -n1 )
+
+# the printf returns "name dir/filename" the important information
+# needs to be extracted by the following commands
+
+if [ "$libStr" != "" ]; then
+
+  libDirName=${libStr#* } # remove shortest leading pattern "* "
+  libDir=${libDirName%/*/*} # remove shortest trailing pattern "/*/*"
+
+  BERKELEY_DB_DIR=$libDir
+  BERKELEY_DB_LIB="db_cxx"
+else
+  BERKELEY_DB_DIR="$SECONDO_SDK"
+  # In old windows installtion of SECONDO the library has another
+  # name as in the distribution
+  if [ $SECONDO_PLATFORM == "win32" ]; then
+    BERKELEY_DB_LIB=db32
+  else
+    printf "\n%s" "Warning: I could not find a Berkeley-DB library "
+    printf "%s\n" "libdb_cxx* inside \"${BERKELEY_DB_DIR}\"."
+  fi 
+fi
+export BERKELEY_DB_LIB
+
+else
+  printf "%s"   "Error during SECONDO environment setup: Berkeley-DB "
+  printf "%s"   "directory \"${BERKELEY_DB_DIR}\" not present! Please "
+  printf "%s"   " install Berkeley-DB into this directory or "
+  printf "%s\n" "edit file ~/.secondo.sdkrc"
+fi
+
+
+fi

@@ -76,12 +76,36 @@ function showGPL() {
   printf "%s\n"   "FOR A PARTICULAR PURPOSE."
 }
 
+# runTTYBDB
+#
+# $1 SECONDO command
+#
+# Starts SecondoTTYBDB runs command $1
+
+declare -i rc_ttybdb=0
+function runTTYBDB() {
+
+SecondoTTYBDB <<< "$1"
+
+let rc_ttybdb=$?
+
+}
+
+# define some environment variables
 TEMP="/tmp"
 if [ ! -d $TEMP ]; then
-  printf "%s\n" "creating directory $TEMP"
+  printf "%s\n" "creating directory ${TEMP}"
 fi 
 
 buildDir=${SECONDO_BUILD_DIR}
+scriptDir=${buildDir}/CM-Scripts
+binDir=${buildDir}/bin
+optDir=${buildDir}/Optimizer
+
+
+PATH="${PATH}:${binDir}:${optDir}:${scriptDir}"
+LD_LIBRARY_PATH="/lib:${LD_LIBRARY_PATH}"
+
 
 ####################################################################################
 #
@@ -108,5 +132,12 @@ XmailBody="This is a generated message!
   Please fix the problem as soon as possible."
 
 sendMail "Test Mail!" "spieker root" "$XmailBody" "test.txt"
+
+fi
+
+if [ "$1" == "tty" ]; then
+
+runTTYBDB "list algebras;
+q;"
 
 fi

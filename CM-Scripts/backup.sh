@@ -6,8 +6,8 @@
 
 
 # include function definitions
-# libutil.sh must be in the same directory as this file
-source  ${0%/*}/libutil.sh
+# libutil.sh must be in a directory specified in $PATH 
+source libutil.sh
 
 cmd_rm="rm"
 cmd_cp="cp -v"
@@ -28,6 +28,9 @@ LastName=${2##*/}
 
 printf "%s\n" "Backing up $SourceDir -> ${BackupDir}/$LastName ..."
 
+printSep "Changing permissons in the repository directory ..."
+find ${BackupDir}/$LastName ! -perm "+u=w" -print -exec chmod u+w '{}' ';'
+
 if [ $1 == "-f" ]; then
 
   printSep "Starting full backup of $SourceDir ..."
@@ -36,8 +39,6 @@ if [ $1 == "-f" ]; then
     $cmd_rm -rf ${BackupDir}/$LastName
   fi
   
-  printSep "Changing permissons in the repository directory ..."
-  find $SourceDir ! -perm "+u=w" -print -exec chmod u+w '{}' ';'
 
 else
 
@@ -45,7 +46,7 @@ else
 
 fi
 
-printSep "Copying new files ..."
+printSep "Copying new or modified files ..."
 
 $cmd_cp -ru $SourceDir $BackupDir;
 
