@@ -20,7 +20,7 @@ support for calling Secondo from PROLOG.
 #include <iostream>
 #include <list>
 
-#include <SWI-Prolog.h>
+#include "SWI-Prolog.h"
 
 using namespace std;
 
@@ -491,8 +491,12 @@ main(int argc, char **argv)
   {
     PL_halt(1);
   }
-
+  
+// readline support is only needed on unix systems.
+#ifndef SECONDO_WIN32
   PL_install_readline();
+#endif
+  
   success = PL_toplevel();
 
   /* PROLOG interpreter has terminated, shutdown Secondo */
