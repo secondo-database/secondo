@@ -629,8 +629,9 @@ UnixSocket::Write( void const* buf, size_t size )
       return (false);
     }
     else
-    {
-      if ( rc < size ) { writeAttempts++; } 
+    { // the cast below is necessary to avoid a warning of 
+      // comparison of signed and unsigned values. 
+      if ( ((size_t) rc) < size ) { writeAttempts++; } 
       buf = (char*) buf + rc; 
       size -= rc; 
     }
