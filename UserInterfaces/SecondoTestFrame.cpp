@@ -435,7 +435,7 @@ void SecondoTestFrame::Test03(const TupleAttributes *attributes, SmiRecordFile *
 					
 	delete bool1;
 	delete int1;
-	delete real1;	
+	delete real1;
 	delete(myTuple);
 }
 
@@ -512,8 +512,8 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *
 		delete int1;
 		delete bool1;
 		delete lobFile;
-		delete(myTuple);
-		delete(polygon1);
+		delete polygon1;
+		delete myTuple;
 	}
 	
 	delete[] X;
@@ -525,25 +525,22 @@ Test 05: show all tuples in the file.
 
 */
 void SecondoTestFrame::Test05(const TupleAttributes *attributes, SmiRecordFile *recFile) {
-	cout << "\tnot yet implemented." << endl;
-	SmiRecordFileIterator *it = new SmiRecordFileIterator();
-	bool rc = recFile->SelectAll(*it, SmiFile::ReadOnly); 
-	cout << "recFile->SelectAll(+it, SmiFile::ReadOnly) " << ((rc == true) ? "OK" : "FAILED") << endl;
+	SmiRecordFileIterator it;
+	bool rc = recFile->SelectAll(it, SmiFile::ReadOnly); 
+	cout << "recFile->SelectAll(it, SmiFile::ReadOnly) " << ((rc == true) ? "OK" : "FAILED") << endl;
 	bool hasMore = true;
-	SmiRecordId recId = 2;
-	SmiRecord *rec;
+	SmiRecordId recId;
+	SmiRecord rec;
 	//Tuple *tuple;
 	
 	
 	do {
-		hasMore = it->Next(recId, *rec);
-		cout << "record number:" << recId << endl;
+		hasMore = it.Next(recId, rec);
+		cout << "record number:" << recId << ", hasMore = " << hasMore << endl;
 		//tuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
 		//cout << "Contents of tuple: " << *tuple << endl;
 		//delete tuple;
 	} while (hasMore == true);
-	
-	delete it;
 }
 
 /*
