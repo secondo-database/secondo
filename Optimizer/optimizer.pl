@@ -573,7 +573,7 @@ written in upper case whereas
 ----	rel(plz, *, l)
 ----
 
-denotes the ~plz~ relation to be written in lower case. The second argument 
+denotes the ~plz~ relation to be written in lower case. The second argument
 ~Var~ contains an explicit variable if it has been assigned, otherwise the 
 symbol [*]. If an explicit variable has been used in the query, we need to 
 perfom renaming in the plan. For example, in the second query above, the 
@@ -609,7 +609,7 @@ Hence for the two queries above, the translation would be
 	)
 ----
 
-Note that the upper or lower case distinction refers only to the first letter 
+Note that the upper or lower case distinction refers only to the first letter
 of a relation or attribute name. Other letters are written on the PROLOG side 
 in the same way as in Secondo.
 
@@ -617,7 +617,7 @@ Note further that if explicit variables are used, the attribute name will
 include them, e.g. s:sName.
 
 The projection occurring in the select-from-where statement is for the moment 
-not passed to the optimizer; it is treated outside. 
+not passed to the optimizer; it is treated outside.
 
 So example 2 is rewritten as:
 
@@ -642,7 +642,7 @@ example4 :- pog(
 
 example5 :- pog(
   [rel(staedte, s, u), rel(plz, p, l)],
-  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s, u), rel(plz, p, 
+  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s, u), rel(plz, p,
 l)),
    pr(attr(p:pLZ, 1, u) > 40000, rel(plz, p, l))],
   _, _).
@@ -661,7 +661,7 @@ In the target language, we use the following operators:
 
 				where Tuple3 = Tuple1 o Tuple2
 
-	hashjoin:	stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2 
+	hashjoin:	stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2
 				x nbuckets -> stream(Tuple3)
 
 				where 	Tuple3 = Tuple1 o Tuple2
@@ -670,7 +670,7 @@ In the target language, we use the following operators:
 					nbuckets is the number of hash buckets
 						to be used
 
-	sortmergejoin:	stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2 
+	sortmergejoin:	stream(Tuple1) x stream(Tuple2) x attrname1 x attrname2
 				-> stream(Tuple3)
 
 				where 	Tuple3 = Tuple1 o Tuple2
@@ -690,16 +690,16 @@ In the target language, we use the following operators:
 
 	rename		stream(Tuple1) x NewName -> stream(Tuple2)
 
-				where 	Tuple2 is Tuple1 modified by appending 
+				where 	Tuple2 is Tuple1 modified by appending
 					"_newname" to each attribute name
 ----
 
-In PROLOG, all expressions involving such operators are written in prefix 
+In PROLOG, all expressions involving such operators are written in prefix
 notation.
 
 5.1.3 Writing PROLOG Plans as Secondo Plans.
 
-Predicate ~wp~ means ``write plan''. Here basically we have to define the text 
+Predicate ~wp~ means ``write plan''. Here basically we have to define the text
 syntax for each operator, as in the Secondo parser. For attributes we have to
 distinguish whether a leading ``.'' needs to be written (if the attribute occurs
 within a parameter function) or whether just the attribute name is needed as in
@@ -719,12 +719,12 @@ wp(filter(X, Pred)) :- wp(X), write('filter['), wp(Pred), write('] '), !.
 
 wp(product(X, Y)) :- wp(X), wp(Y), write('product '), !.
 
-wp(hashjoin(X, Y, A, B, C)) :- 
-  wp(X), wp(Y), write('hashjoin['), wp(A), write(', '), wp(B), 
+wp(hashjoin(X, Y, A, B, C)) :-
+  wp(X), wp(Y), write('hashjoin['), wp(A), write(', '), wp(B),
   write(', '),   write(C), write('] '), !.
 
-wp(sortmergejoin(X, Y, A, B)) :- 
-  wp(X), wp(Y), write('sortmergejoin['), wp(A), write(', '), wp(B), 
+wp(sortmergejoin(X, Y, A, B)) :-
+  wp(X), wp(Y), write('sortmergejoin['), wp(A), write(', '), wp(B),
   write('] '), !.
 
 wp(rename(X, Y)) :- wp(X), write('{'), write(Y), write('} '), !.
@@ -764,6 +764,148 @@ writeString(String) :- put(34), writeChars(String), put(34).
 writeChars([]).
 writeChars([Char | Chars]) :- put(Char), writeChars(Chars).
 
+plan_to_atom(rel(Name, _, l), Result) :-
+  atom_concat(Name, ' ', Result),
+  !.
+
+plan_to_atom(rel(Name, _, u), Result) :-
+  upper(Name, Name2),
+  atom_concat(Name2, ' ', Result),
+  !.
+
+plan_to_atom(res(N), Result) :-
+  atom_concat('res(', N, Res1),
+  atom_concat(Res1, ') ', Result),
+  !.
+
+plan_to_atom(feed(X), Result) :-
+  plan_to_atom(X, ResX),
+  atom_concat(ResX, 'feed ', Result),
+  !.
+
+plan_to_atom(consume(X), Result) :-
+  plan_to_atom(X, ResX),
+  atom_concat(ResX, 'consume ', Result),
+  !.
+
+plan_to_atom(filter(X, Pred), Result) :-
+  plan_to_atom(X, XAtom),
+  atom_concat(XAtom, 'filter[', Res1),
+  plan_to_atom(Pred, PredAtom),
+  atom_concat(PredAtom, '] ', Res2),
+  atom_concat(Res1, Res2, Result),
+  !.
+
+plan_to_atom(product(X, Y), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  concat_atom([XAtom, YAtom, 'product '], '', Result),
+  !.
+
+plan_to_atom(hashjoin(X, Y, A, B, C), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, YAtom, 'hashjoin[',
+    AAtom, ', ', BAtom, ', ', C, '] '], '', Result),
+  !.
+
+plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, YAtom, 'sortmergejoin[',
+    AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(rename(X, Y), Result) :-
+  plan_to_atom(X, XAtom),
+  concat_atom([XAtom, '{', Y, '} '], '', Result),
+  !.
+
+plan_to_atom(X = Y, Result) :-
+  plan_to_atom(X, XRes),
+  plan_to_atom(Y, YRes),
+  concat_atom([XRes, ' = ', YRes], '', Result),
+  !.
+
+plan_to_atom(X <= Y, Result) :-
+  plan_to_atom(X, XRes),
+  plan_to_atom(Y, YRes),
+  concat_atom([XRes, ' <= ', YRes], '', Result),
+  !.
+
+plan_to_atom(X >= Y, Result) :-
+  plan_to_atom(X, XRes),
+  plan_to_atom(Y, YRes),
+  concat_atom([XRes, ' >= ', YRes], '', Result),
+  !.
+
+plan_to_atom(X < Y, Result) :-
+  plan_to_atom(X, XRes),
+  plan_to_atom(Y, YRes),
+  concat_atom([XRes, ' < ', YRes], '', Result),
+  !.
+
+plan_to_atom(X > Y, Result) :-
+  plan_to_atom(X, XRes),
+  plan_to_atom(Y, YRes),
+  concat_atom([XRes, ' > ', YRes], '', Result),
+  !.
+
+plan_to_atom(X # Y, Result) :-
+  plan_to_atom(X, XRes),
+  plan_to_atom(Y, YRes),
+  concat_atom([XRes, ' # ', YRes], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+    is_list(Term),
+    atom_codes(TermRes, Term),
+    concat_atom(['"', TermRes, '"'], '', Result).
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 2),
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg1, Res1),
+  plan_to_atom(Arg2, Res2),
+  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
+
+plan_to_atom(attr(Name, Arg, Case), Result) :-
+  plan_to_atom(a(Name, Arg, Case), ResA),
+  atom_concat('.', ResA, Result).
+
+plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
+  plan_to_atom(a(Name, Arg, Case), Result).
+
+plan_to_atom(a(A:B, _, l), Result) :-
+  concat_atom([B, '_', A], '', Result),
+  !.
+
+plan_to_atom(a(A:B, _, u), Result) :-
+  upper(B, B2),
+  concat_atom([B2, '_', A], Result),
+  !.
+
+plan_to_atom(a(X, _, l), X) :-
+  !.
+
+plan_to_atom(a(X, _, u), X2) :-
+  upper(X, X2),
+  !.
+
+plan_to_atom(X, Result) :-
+  atomic(X),
+  term_to_atom(X, Result),
+  !.
+  
+plan_to_atom(X, _) :-
+  write('Error while converting term: '),
+  write(X),
+  nl.
 
 /*
 
@@ -773,18 +915,18 @@ We introduce a predicate [=>] which can be read as ``translates into''.
 
 5.2.1 Translation of the Arguments of an Edge of the POG
 
-If the argument is of the form res(N), then it is a stream already and can be 
-used unchanged. If it is of the form arg(N), then it is a base relation; a 
+If the argument is of the form res(N), then it is a stream already and can be
+used unchanged. If it is of the form arg(N), then it is a base relation; a
 ~feed~ must be applied and possibly a ~rename~.
 
 */
 
 res(N) => res(N).
 
-arg(N) => feed(rel(Name, *, Case)) :- 
+arg(N) => feed(rel(Name, *, Case)) :-
   argument(N, rel(Name, *, Case)), !.
 
-arg(N) => rename(feed(rel(Name, Var, Case)), Var) :- 
+arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
   argument(N, rel(Name, Var, Case)).
 
 /*
@@ -804,7 +946,7 @@ A join can always be translated to filtering the Cartesian product.
 
 */
 
-join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :- 
+join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
@@ -990,7 +1132,7 @@ assignSizes1 :-
   fail.
 
 assignSize(Source, Target, select(Arg, Pred), Result) :-
-  resSize(Arg, Card), 
+  resSize(Arg, Card),
   selectivity(Pred, Sel),
   Size is Card * Sel,
   setNodeSize(Result, Size),
@@ -1225,7 +1367,7 @@ relevant sets of nodes:
  
   * center: the nodes for which shortest paths have already been  
 computed 
- 
+
   * boundary: the nodes that have been seen, but that have not yet been  
 expanded. These need to be kept in a priority queue. 
  
@@ -1266,13 +1408,13 @@ successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
   append(Path, [costEdge(Source, Target, Term, Result, Size, Cost)], Path2).
 
 /*
- 
+
 ----	dijkstra(Source, Dest, Path, Length) :- 
 ----
 
 The shortest path from ~Source~ to ~Dest~ is ~Path~ of length ~Length~.
 
-*/ 
+*/
  
 dijkstra(Source, Dest, Path, Length) :- 
   emptyCenter,
@@ -1390,7 +1532,7 @@ putsucc1(Boundary, [node(N, D, _) | Successors], BNew) :-
   DistOld =< D, !, 
   putsucc1(Boundary, Successors, BNew). 
 
-putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-  
+putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-
   b_memberByName(Boundary, N, node(N, DistOld, _)), 
   D < DistOld, !, 
   b_deleteByName(Boundary, N, Bound2), 
@@ -1400,7 +1542,7 @@ putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-
 putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-  
   b_insert(Boundary, node(N, D, P), Bound2), 
   putsucc1(Bound2, Successors, BNew). 
-	 
+
   
 /* 
 
@@ -1508,8 +1650,16 @@ bestPlan :-
   dijkstra(0, N, Path, Cost),
   plan(Path, Plan),
   write('The best plan is:'), nl, nl,
-  wp(consume(Plan)), nl, nl,
+  wp(consume(Plan)),
+  nl, nl,
   write('The cost is: '), write(Cost), nl.
+
+bestPlan(Query, Cost) :-
+  assignCosts,
+  highNode(N),
+  dijkstra(0, N, Path, Cost),
+  plan(Path, Plan),
+  plan_to_atom(consume(Plan), Query).
 
 /*
 10 A Larger Example
@@ -1646,7 +1796,7 @@ The second query can be written as:
 ----
 
 Note that all relation names and attribute names are written just in lower
-case; the system will lookup the spelling in a table. 
+case; the system will lookup the spelling in a table.
 
 Furthermore, it will be possible to add a groupby- and an orderby-clause:
 
@@ -1656,7 +1806,7 @@ Furthermore, it will be possible to add a groupby- and an orderby-clause:
 	from <rel-list>
 	where <pred-list>
 	groupby <group-attr-list>
----- 
+----
 
 Example:
 
@@ -1672,7 +1822,7 @@ Example:
 	from <rel-list>
 	where <pred-list>
 	orderby <order-attr-list>
----- 
+----
 
 Example:
 
@@ -1714,13 +1864,13 @@ structure:
 
 That this works, can be tested with:
 
-----	P = (select s:sname from staedte as s where s:bev > 500000), 
+----	P = (select s:sname from staedte as s where s:bev > 500000),
 	P = (X from Y), X = (select AttrList), Y = (RelList where PredList),
 	RelList = (Rel as Var).
----- 
+----
 
 The result is:
- 
+
 ----	P = select s:sname from staedte as s where s:bev>500000
 	X = select s:sname
 	Y = staedte as s where s:bev>500000
@@ -1783,16 +1933,16 @@ attribute names have the form as required in [Section Translation].
 
 */
 
-lookup(select Attrs from Rels where Preds, 
+lookup(select Attrs from Rels where Preds,
 	select Attrs2List from Rels2List where Preds2List) :-
   lookupRels(Rels, Rels2),
   lookupAttrs(Attrs, Attrs2),
   lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
   makeList(Attrs2, Attrs2List),
-  makeList(Preds2, Preds2List).   
+  makeList(Preds2, Preds2List).
 
-lookup(select Attrs from Rels, 
+lookup(select Attrs from Rels,
 	select Attrs2 from Rels2) :-
   lookupRels(Rels, Rels2),
   lookupAttrs(Attrs, Attrs2).
@@ -1836,20 +1986,20 @@ Translate and store a single relation definition.
   variable/2,
   queryRel/2.
 
-lookupRel(Rel as Var, rel(Rel2, Var, Case)) :- 
+lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
   relation(Rel, _), !,
   spelled(Rel, Rel2, Case),
   not(defined(Var)),
-  assert(variable(Var, rel(Rel2, Var, Case))). 
+  assert(variable(Var, rel(Rel2, Var, Case))).
 
 lookupRel(Rel, rel(Rel2, *, Case)) :-
-  relation(Rel, _), !, 
+  relation(Rel, _), !,
   spelled(Rel, Rel2, Case),
   not(duplicateAttrs(Rel)),
   assert(queryRel(Rel, rel(Rel2, *, Case))).
 
 lookupRel(Term, Term) :-
-  write('Error in query: relation '), write(Term), write(' not known'), 
+  write('Error in query: relation '), write(Term), write(' not known'),
   nl, fail.
 
 defined(Var) :-
@@ -1865,7 +2015,7 @@ occurring in ~Rel~.
 
 */
 
-duplicateAttrs(Rel) :- 
+duplicateAttrs(Rel) :-
   queryRel(Rel2, _),
   relation(Rel2, Attrs2),
   member(Attr, Attrs2),
@@ -1888,9 +2038,9 @@ lookupAttrs([A | As], [A2 | A2s]) :-
 lookupAttrs(Attr, Attr2) :-
   not(is_list(Attr)),
   lookupAttr(Attr, Attr2).
- 
+
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
-  variable(Var, Rel2), 
+  variable(Var, Rel2),
   Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, _, Case)).
 
@@ -1900,7 +2050,7 @@ lookupAttr(Attr, Attr2) :-
 
 lookupAttr(*, *).
 
-lookupAttr(Name, Name) :- 
+lookupAttr(Name, Name) :-
   write('Error in attribute list: could not recognize '), write(Name), nl, fail.
 
 isAttribute(Name, Rel) :-
@@ -1953,13 +2103,13 @@ found.
 */
 
 lookupPred1(Var:Attr, attr(Var:Attr2, N1, Case), N, RelsBefore, N1, RelsAfter)
-  :-    
+  :-
   variable(Var, Rel2), !,   Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, _, Case)),
   N1 is N + 1,
   append(RelsBefore, [Rel2], RelsAfter).
 
-lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :- 
+lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   isAttribute(Attr, Rel), !,
   spelled(Rel:Attr, attr(Attr2, _, Case)),
   queryRel(Rel, Rel2),
@@ -1967,7 +2117,7 @@ lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   append(RelsBefore, [Rel2], RelsAfter).
 
 lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
-  compound(Term), 
+  compound(Term),
   functor(Term, F, 1), !,
   arg(1, Term, Arg1),
   lookupPred1(Arg1, Arg1Out, N, RelsBefore, M, RelsAfter),
@@ -2026,7 +2176,7 @@ We can now formulate several of the previous queries at the user level.
 
 example11 :- showTranslate(select [sname, bev] from staedte where bev > 500000).
 
-showTranslate(Query) :- 
+showTranslate(Query) :-
   translate(Query, Query2),
   write(Query), nl,
   write(Query2), nl.
@@ -2064,10 +2214,19 @@ Optimize ~Query~ and print the best ~Plan~.
 optimize(Query) :-
   write(Query), nl, nl,
   Query = (select _ from _ where _),
-  translate(Query, 
+  translate(Query,
     select _ from Rels2 where Preds2),
   pog(Rels2, Preds2, _, _),
   bestPlan.
+
+optimize(Query, QueryOut, CostOut) :-
+  write(Query), nl, nl,
+  Query = (select _ from _ where _),
+  translate(Query,
+    select _ from Rels2 where Preds2),
+  pog(Rels2, Preds2, _, _),
+  bestPlan(QueryOut, CostOut).
+
 
 /*
 11.3.8 Examples
@@ -2083,12 +2242,23 @@ example14 :- optimize(
   select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
 
+example14(Query, Cost) :- optimize(
+  select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0],
+  Query, Cost
+  ).
+
+
 /*
 Example4:
 
 */
 example15 :- optimize(
   select * from staedte where bev > 500000
+  ).
+
+example15(Query, Cost) :- optimize(
+  select * from staedte where bev > 500000,
+  Query, Cost
   ).
 
 /*
@@ -2098,6 +2268,12 @@ Example5:
 example16 :-  optimize(
   select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000]
   ).
+
+example16(Query, Cost) :-  optimize(
+  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000],
+  Query, Cost
+  ).
+
 
 /*
 Example6. This may need a larger local stack size. Start Prolog as
@@ -2124,8 +2300,26 @@ example17 :- optimize(
     p3:ort starts "M"]
   ).
 
+example17(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1, plz as p2, plz as p3]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    p2:plz = p3:plz * 5,
+    bev > 300000,
+    bev < 500000,
+    p2:plz > 50000,
+    p2:plz < 60000,
+    kennzeichen starts "W",
+    p3:ort contains "burg",
+    p3:ort starts "M"],
+  Query, Cost
+  ).
+
+
 /*
-Example7:
+Example 18:
 
 */
 example18 :- optimize(
@@ -2142,8 +2336,23 @@ example18 :- optimize(
     p1:ort starts "M"]
   ).
 
+example18(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1]
+  where [
+    sname = p1:ort,
+    bev > 300000,
+    bev < 500000,
+    p1:plz > 50000,
+    p1:plz < 60000,
+    kennzeichen starts "W",
+    p1:ort contains "burg",
+    p1:ort starts "M"],
+  Query, Cost
+  ).
+
 /*
-Example8:
+Example 19:
 
 */
 example19 :- optimize(
@@ -2161,8 +2370,25 @@ example19 :- optimize(
     p1:ort starts "M"]
   ).
 
+example19(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1, plz as p2]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    bev > 300000,
+    bev < 500000,
+    p1:plz > 50000,
+    p1:plz < 60000,
+    kennzeichen starts "W",
+    p1:ort contains "burg",
+    p1:ort starts "M"],
+  Query, Cost
+  ).
+
+
 /*
-Example9:
+Example 20:
 
 */
 example20 :- optimize(
@@ -2174,8 +2400,18 @@ example20 :- optimize(
     s:bev > 300000]
   ).
 
+example20(Query, Cost) :- optimize(
+  select *
+  from [staedte as s, plz as p]
+  where [
+    p:ort = s:sname,
+    p:plz > 40000,
+    s:bev > 300000],
+  Query, Cost
+  ).
+
 /*
-Example10:
+Example 21:
 
 */
 example21 :- optimize(
@@ -2187,15 +2423,13 @@ example21 :- optimize(
     p2:plz = p3:plz * 5]
   ).
 
-
-
-
-
-
-
-    
-	
-
-
-    
+example21(Query, Cost) :- optimize(
+  select *
+  from [staedte, plz as p1, plz as p2, plz as p3]
+  where [
+    sname = p1:ort,
+    p1:plz = p2:plz + 1,
+    p2:plz = p3:plz * 5],
+  Query, Cost
+  ).
 
