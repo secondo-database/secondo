@@ -912,8 +912,10 @@ RelPersistValue( const PersistDirection dir,
     SmiKey mykey;
     SmiRecordId recId;
     mykey = valueRecord.GetKey();
-    if ( ! mykey.GetKey(recId) ) cout << "
-	RelPersistValue: Couldn't get the key!" << endl;
+    if ( ! mykey.GetKey(recId) )
+    { 
+      cout << "\tRelPersistValue: Couldn't get the key!" << endl;
+    }
 
     static bool firsttime = true;
     const int cachesize = 20;
@@ -938,7 +940,7 @@ RelPersistValue( const PersistDirection dir,
 	pos = j;
         break;
       }
-    
+
     if ( found ) {value = cache[pos]; return true;}
 
     // prepare to cache the value constructed from the list
