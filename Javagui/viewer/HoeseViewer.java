@@ -343,20 +343,28 @@ public class HoeseViewer extends SecondoViewer {
    * @param le a ListExpr containing Categories
    */
   public boolean readAllCats (ListExpr le) {
-    if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
-      return false;
-    if (!le.first().symbolValue().equals("Categories"))
-      return false;
-    le = le.second();
-    ListExpr aCat;
-    while (!le.isEmpty()) {
-      aCat = le.first();
-      Category cat = Category.ConvertLEtoCat(aCat);
-      if (cat != null && Cats.indexOf(cat)<0 )  // only new categories
-          Cats.add(cat);
-      le = le.rest();
-    }
-    return true;
+    try{
+      if(le.listLength()!=2)
+         return false;
+      if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
+         return false;
+      if (!le.first().symbolValue().equals("Categories"))
+         return false;
+      le = le.second();
+      if(le.atomType()!=ListExpr.NO_ATOM)
+         return false;
+      ListExpr aCat;
+      while (!le.isEmpty()) {
+         aCat = le.first();
+         Category cat = Category.ConvertLEtoCat(aCat);
+         if (cat != null && Cats.indexOf(cat)<0 )  // only new categories
+             Cats.add(cat);
+         le = le.rest();
+       }
+       return true;
+     } catch(Exception e){
+       return false;
+     }  
   }
 
 
