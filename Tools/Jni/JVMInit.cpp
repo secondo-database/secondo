@@ -18,9 +18,6 @@ using namespace std;
 #include <fstream>
 #include <string>
 
-
-const int PATHLENGTH = 1024;
-
 bool JVMInitializer::initialized=false;
 JNIEnv* JVMInitializer::env=0;
 JavaVM* JVMInitializer::jvm=0;
@@ -47,8 +44,11 @@ string getIniFile(){
    $SECONDO_BUILD_DIR/String is returned.
 */
 string getAbsolutePath(string Path){
-  if(Path[0]=='/')
+  if(Path[0]=='/' | Path[0]=='.')
      return Path;
+  if(PATH_SEPARATOR==';' && Path.size()>1 && Path[1]==':'){ // an absolutte windows path
+         return Path;
+  }      
   string SecondoHome = getenv("SECONDO_BUILD_DIR");
   return SecondoHome+"/"+Path;
 }
@@ -87,7 +87,7 @@ void processLine(const string& inputLine,string& classpath, string& libdir, stri
 
  if(line[1]=='P'){
    if(classpath.size()>0)
-      classpath +=":";
+      classpath += PATH_SEPARATOR;
    classpath += getAbsolutePath(line3);
  }
  if(line[1]=='L')
