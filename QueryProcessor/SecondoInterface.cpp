@@ -1223,13 +1223,16 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 		 
 		 StopWatch destroyTime;
 		 qp.Destroy( tree, true );
+		 if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
+		   cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
+		   cmsg.send();
+		 }
 
 		 if (!RTFlag::isActive("SI:NoQueryAnalysis")) 
 		 {
-		   cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
-			 cmsg.info() << "Execute " << queryTime.diffTimes() << endl;
-			 cmsg.info() << nl.ReportTableSizes() << endl;
-			 cmsg.send();
+	           cmsg.info() << "Execute " << queryTime.diffTimes() << endl;
+	           cmsg.info() << nl.ReportTableSizes() << endl;
+	           cmsg.send();
 		 }
 
 	}
