@@ -55,7 +55,7 @@ main(int argc, char *argv[]) {
  string fileName(argv[optind]);
  string extension="";
  cout << "file: " << fileName << ", size: " << size << endl;
- decode ?  extension=".text" : extension=".base64"; 
+ decode ?  extension=".bin" : extension=".base64"; 
 
  ifstream inFile(fileName.c_str(), ios::binary);
  ofstream outFile((fileName+extension).c_str(), ios::binary);
