@@ -113,7 +113,12 @@ public class Base64Decoder{
     }
 
     public void close() throws IOException{
-      in.close();
+      if(in!=null)
+         in.close();
+    }
+
+    public InputStream getInputStream(){
+       return new Base64InputStream(this);
     }
 
 
@@ -124,6 +129,22 @@ public class Base64Decoder{
     private int filled;
     private InputStream in;
     private Reader rin;
+
+
+    private class Base64InputStream extends InputStream{
+        public Base64InputStream(Base64Decoder Dec){
+	   this.Decoder = Dec;
+	}
+	public int read() throws IOException{ return Decoder.getNext();}
+	public void close() throws IOException{ Decoder.close();}
+	public int available() throws IOException{
+            int sav = Decoder.in.available();
+	    int nls = sav /72;
+	    return sav*3/4-nls;
+	}
+        Base64Decoder Decoder;
+    }
+
 
 }
 
