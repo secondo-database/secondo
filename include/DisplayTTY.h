@@ -179,6 +179,10 @@ Are display functions for tuples.
                              ListExpr numType,
                              ListExpr value );
 
+  static void DisplayBinfile( ListExpr type,
+                             ListExpr numType,
+                             ListExpr value );
+
  static void DisplayArray( ListExpr type,
                              ListExpr numType,
                              ListExpr value );

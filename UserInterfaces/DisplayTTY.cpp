@@ -352,6 +352,14 @@ DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
 }
 
 
+void
+DisplayTTY::DisplayBinfile( ListExpr type, ListExpr numType, ListExpr value)
+{
+   cout <<"binary file";
+}
+
+
+
 double DisplayTTY::getNumeric(ListExpr value, bool &err){
    if(nl->AtomType(value)==IntType){
       err=false;
@@ -824,5 +832,6 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "rect",    &DisplayRect);
   InsertDisplayFunction( "array",   &DisplayArray);
   InsertDisplayFunction( "point",   &DisplayPoint);
+  InsertDisplayFunction( "binfile", &DisplayBinfile);
 }
 
