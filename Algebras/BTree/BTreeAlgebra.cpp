@@ -404,7 +404,7 @@ public:
     SmiKey key;
     bool success;
 
-    if(!attr->Defined())
+    if(!attr->IsDefined())
     {
       return false;
     }
