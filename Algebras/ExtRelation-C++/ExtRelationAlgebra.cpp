@@ -2953,7 +2953,7 @@ ListExpr ExtendstreamTypeMap(ListExpr args)
         (nl->ListLength(nl->Second(first)) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) 
        )   //check the first NL
-	correct=true; else correct=false;
+	correct=true; else {correct=false; goto typeerror;}
     //cout<<"first NL correct!"<<endl;
     
     if( (nl->ListLength(second) == 2) &&
@@ -2962,13 +2962,13 @@ ListExpr ExtendstreamTypeMap(ListExpr args)
         (nl->ListLength(nl->Third(nl->Second(second))) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(second)))) == stream)
       )  //check the second NL Basic
-	correct=true; else correct=false;
+	correct=true; else {correct=false; goto typeerror;}
     //cout<<"second NL basic correct!"<<endl;
 
     if ((nl->IsAtom(nl->Second(nl->Third(nl->Second(second)))))  &&
         (algMgr->CheckKind("DATA", nl->Second(nl->Third(nl->Second(second))), errorInfo)) 
        )
-	correct=true; else correct=false;
+	correct=true; else {correct=false; goto typeerror;}
      //   cout<<"second NL ALL correct!"<<endl;
 	
     if (correct)
