@@ -4352,7 +4352,6 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
         tup->SetNoAttrs(noofoldattrs + nooffun);
         result = SetWord(tup);
-        ((CcTuple*)t.addr)->DeleteIfAllowed();
         return YIELD;
       }
       else
