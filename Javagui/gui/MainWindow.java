@@ -221,6 +221,14 @@ public MainWindow(String Title){
    if(ObjectDirectory!=null){
       OList.setObjectDirectory(new  File(ObjectDirectory));
    }
+   else
+      ObjectDirectory=".";
+   
+   String HistoryDirectory= Config.getProperty("HISTORY_DIRECTORY");
+   if(HistoryDirectory!=null)      
+      FC_History.setCurrentDirectory(new File(HistoryDirectory));
+      
+   
  
   } catch(Exception e){
     System.out.println("I can't read the configuration-file: "+CONFIGURATION_FILE);
