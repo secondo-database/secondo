@@ -407,7 +407,7 @@ public:
 1.3.2 ~Out~-function of type constructor ~tuple~
 
 The ~out~-function of type constructor ~tuple~ takes as inputs a type 
-description (~typeInfo~) of the tuples attribute structure in nested list 
+description (~typeInfo~) of the tuples attribute structure in nested list
 format and a pointer to a tuple value, stored in main memory. 
 The function returns the tuple value from main memory storage 
 in nested list format.
@@ -450,10 +450,10 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
 The ~in~-function of type constructor ~tuple~ takes as inputs a type 
 description (~typeInfo~) of the tuples attribute structure in nested 
 list format and the tuple value in nested list format. The function 
-returns a pointer to atuple value, stored in main memory in accordance to 
+returns a pointer to atuple value, stored in main memory in accordance to
 the tuple value in nested list format.
 
-Error handling in ~InTuple~: ~Correct~ is only true if there is the right 
+Error handling in ~InTuple~: ~Correct~ is only true if there is the right
 number of attribute values and all values have correct list representations. 
 Otherwise the following error messages are added to ~errorInfo~:
 
@@ -2103,7 +2103,8 @@ ListExpr TCountTypeMap(ListExpr args)
     first = nl->First(args);
     if(nl->ListLength(first) == 2)
     {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+      if (TypeOfRelAlgSymbol(nl->First(first)) == stream
+          || TypeOfRelAlgSymbol(nl->First(first)) == rel)
         return nl->SymbolAtom("int");
     }
   }
@@ -2113,11 +2114,11 @@ ListExpr TCountTypeMap(ListExpr args)
 
 /*
 
-4.1.2 Value mapping function of operator ~tcount~
+4.1.2 Value mapping functions of operator ~tcount~
 
 */
 static int
-TCount(Word* args, Word& result, int message, Word& local, Supplier s)
+TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word elem;
   int count = 0;
@@ -2134,26 +2135,81 @@ TCount(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Close(args[0].addr);
   return 0;
 }
+
+static int
+TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  CcRel* rel = (CcRel*)args[0].addr;
+  /*result = qp->ResultStorage(s);*/
+  result = SetWord(new CcInt);
+  ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
+  return 0;
+}
+
+
 /*
 
 4.1.3 Specification of operator ~tcount~
 
 */
 const string TCountSpec =
-  "(<text>((stream (tuple x))) -> int</text---><text>Count number of tuples "
-  "within a stream of tuples.</text--->)";
+  "(<text>((stream/rel (tuple x))) -> int</text---><text>Count number of tuples "
+  "within a stream or a relation of tuples.</text--->)";
+
+/*
+
+4.3.1 Selection function of operator ~tcount~
+
+*/
+
+static int
+TCountSelect( ListExpr args )
+{
+  ListExpr first ;
+
+  if(nl->ListLength(args) == 1)
+  {
+    first = nl->First(args);
+    if(nl->ListLength(first) == 2)
+    {
+      if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+      {
+        return 0;
+      }
+      else
+      {
+        if(TypeOfRelAlgSymbol(nl->First(first)) == rel)
+        {
+          return 1;
+        }
+      }
+    }
+  }
+  return -1;
+}
+
 /*
 
 4.1.3 Definition of operator ~tcount~
 
 */
+static Word
+RelNoModelMapping( ArgVector arg, Supplier opTreeNode )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+ValueMapping tcountmap[] = {TCountStream, TCountRel };
+ModelMapping nomodelmap[] = {RelNoModelMapping, RelNoModelMapping};
+
 Operator tcount (
-         "tcount",             // name
-         TCountSpec,           // specification
-         TCount,               // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
-         TCountTypeMap         // type mapping
+         "tcount",           // name
+         TCountSpec,         // specification
+         2,                  // number of value mapping functions
+         tcountmap,          // value mapping functions
+         nomodelmap,         // dummy model mapping functions
+         TCountSelect,       // trivial selection function
+         TCountTypeMap       // type mapping
 );
 /*
 
