@@ -8,7 +8,8 @@ import java.awt.event.*;
 import gui.SecondoObject;
 import sj.lang.*;
 
-/* this viewer shows all SecondoObjects as Lists */
+/* this viewer displays the results all inquiries, except list types
+and list objects, in a formatted manner*/
 public class FormattedViewer extends SecondoViewer {
 
  private static int LINELENGTH=80;
@@ -182,7 +183,6 @@ public class FormattedViewer extends SecondoViewer {
     return false;
  }
 
-
  /* returns the Menuextension of this viewer */
  public MenuVector getMenuVector(){
     return MV;
@@ -199,9 +199,6 @@ public class FormattedViewer extends SecondoViewer {
     else
        return 0;
  }
-
-
-
 
  /* select O */
  public boolean selectObject(SecondoObject O){
@@ -336,9 +333,9 @@ public class FormattedViewer extends SecondoViewer {
    String res = "\n--------------------\n";
    res += "Database";
    res += Databases.listLength()>1?"s\n":"\n";
-   res += "--------------------\n\n";
+   res += "--------------------\n";
    while(!Databases.isEmpty()){
-      res+= "* "+Databases.first().symbolValue()+"\n";
+      res+= "  * "+Databases.first().symbolValue()+"\n";
       Databases = Databases.rest();
    }
    return res;
@@ -349,9 +346,9 @@ public class FormattedViewer extends SecondoViewer {
    String res = "\n--------------------\n";
    res += "Algebra";
    res += Algebras.listLength()>1?"s\n":"\n";
-   res += "--------------------\n\n";
+   res += "--------------------\n";
    while(!Algebras.isEmpty()){
-      res+= "* "+Algebras.first().symbolValue()+"\n";
+      res+= "  * "+Algebras.first().symbolValue()+"\n";
       Algebras = Algebras.rest();
    }
    return res;
@@ -363,7 +360,7 @@ public class FormattedViewer extends SecondoViewer {
    String  Text = "\n--------------------\n";
    Text += "Object";
    Text += objects.listLength()>1?"s\n":"\n";
-   Text += "--------------------\n\n";
+   Text += "--------------------\n";
    if(objects.isEmpty())
       Text +="none";
    else
@@ -377,7 +374,7 @@ private String getTypesText(ListExpr types){
    String  Text = "\n--------------------\n";
    Text += "Type";
    Text += types.listLength()>1?"s\n":"\n";
-   Text += "--------------------\n\n";
+   Text += "--------------------\n";
    if(types.isEmpty())
       Text += "none";
    else
@@ -390,7 +387,7 @@ private String getOperatorsText(ListExpr operators){
    String Text = "\n--------------------\n";
    Text += "Operator";
    Text += operators.listLength()>1?"s\n":"\n";
-   Text += "--------------------\n\n";
+   Text += "--------------------\n";
    ListExpr LE = operators;
    ListExpr headerlist = operators;
    //ListExpr concatenatedlist = nl.theEmptyList();
@@ -414,7 +411,7 @@ private String getConstructorsText(ListExpr constructors){
    String Text = "\n--------------------\n";
    Text += "Type Constructor";
    Text += constructors.listLength()>1?"s\n":"\n";
-   Text += "--------------------\n\n";
+   Text += "--------------------\n";
    ListExpr LE = constructors;
    ListExpr headerlist = constructors;
    ListExpr concatenatedlist = headerlist.first().second();
@@ -434,21 +431,25 @@ private String getConstructorsText(ListExpr constructors){
 
 /** returns the display text for algebra xxx inquiry */
 private String getAlgebraText(ListExpr algebra){
+   ListExpr concatenatedlist;
    String AlgebraName = algebra.first().symbolValue();
 
-   String Text = "\n--------------------\n";
-   Text += "Algebra "+AlgebraName+"\n";
-   Text += "--------------------\n\n";
+   String Text = "\n------------------------------\n";
+   Text += "Algebra "+ ": " + AlgebraName+"\n";
+   Text += "------------------------------\n";
 
    ListExpr Constructors = algebra.second().first();
    ListExpr Operators = algebra.second().second();
 
    ListExpr headerlist = Constructors;
-   ListExpr concatenatedlist = headerlist.first().second();
-   while (!headerlist.isEmpty()) {
-       concatenatedlist =
-	   concatLists(concatenatedlist, headerlist.first().second());
-            headerlist = headerlist.rest();
+   if ( headerlist.isEmpty() ) concatenatedlist = ListExpr.theEmptyList();
+   else {
+     concatenatedlist = headerlist.first().second();
+     while (!headerlist.isEmpty()) {
+         concatenatedlist =
+	     concatLists(concatenatedlist, headerlist.first().second());
+              headerlist = headerlist.rest();
+     }
    }
    headerlist = Operators;
    while (!headerlist.isEmpty()) {
@@ -457,12 +458,13 @@ private String getAlgebraText(ListExpr algebra){
             headerlist = headerlist.rest();
    }
    int maxHeadNameLen = maxHeaderLength( concatenatedlist );
+   //int maxHeadNameLen = 20;
 
    Text += "\n--------------------\n";
-   Text += "Constructor";
+   Text += "  Type Constructor";
    Text += Constructors.listLength()>1?"s\n":"\n";
-   Text += "--------------------\n\n";
-   if(Constructors.isEmpty())
+   Text += "--------------------\n";
+   if( Constructors.isEmpty() )
        Text+="   none   \n";
    else
       while ( !Constructors.isEmpty() ) {
@@ -470,10 +472,10 @@ private String getAlgebraText(ListExpr algebra){
            Constructors = Constructors.rest();
       }
 
-   Text += "\n\n\n--------------------\n";
-   Text += "Operator";
+   Text += "\n--------------------\n";
+   Text += "  Operator";
    Text += Operators.listLength()>1?"s\n":"\n";
-   Text += "--------------------\n\n";
+   Text += "--------------------\n";
    if(Operators.isEmpty())
        Text+="   none   \n";
    else
@@ -504,7 +506,7 @@ private String getAlgebraText(ListExpr algebra){
 
     try{
        CurrentObject = (SecondoObject) ItemObjects.get(index);
-       ListExpr LEx = CurrentObject.toListExpr().second(); // ignory "inquiry"-entry
+       ListExpr LEx = CurrentObject.toListExpr().second(); // ignore "inquiry"-entry
        String type = LEx.first().symbolValue();
        ListExpr value = LEx.second();
        if(type.equals("databases")){
