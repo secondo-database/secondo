@@ -739,6 +739,12 @@ In the target language, we use the following operators:
 In PROLOG, all expressions involving such operators are written in prefix
 notation.
 
+Parameter functions are written as
+
+----	fun([param(Var, Type)], Expr)
+----
+	
+
 5.1.3 Converting Plans to Atoms and Writing them.
 
 Predicate ~plan\_to\_atom~ converts a plan to a string atom, which represents
@@ -973,6 +979,12 @@ plan_to_atom(X # Y, Result) :-
   !.
 
 
+plan_to_atom(fun(Params, Expr), Result) :-
+  params_to_atom(Params, ParamAtom),
+  plan_to_atom(Expr, ExprAtom),
+  concat_atom(['fun ', ParamAtom, ExprAtom], '', Result),
+  !.
+
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
   arg(1, Term, Arg1),
@@ -1013,6 +1025,20 @@ plan_to_atom(X, _) :-
   write('Error while converting term: '),
   write(X),
   nl.
+
+
+params_to_atom([], ' ').
+
+params_to_atom([param(Var, Type) | Params], Result) :-
+  type_to_atom(Type, TypeAtom),
+  params_to_atom(Params, ParamsAtom),
+  concat_atom(['(', Var, ': ', TypeAtom, ') ', ParamsAtom], '', Result),
+  !.
+
+type_to_atom(tuple, 'TUPLE').       	
+type_to_atom(tuple2, 'TUPLE2').
+type_to_atom(group, 'GROUP').
+
 
 /*
 
