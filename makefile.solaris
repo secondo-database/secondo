@@ -1,6 +1,6 @@
 ########################################################################
 #
-# SECONDO makefile definitions for Sun/Solaris and gcc 2.95.3
+# SECONDO makefile definitions for Sun/Solaris
 #
 ########################################################################
 
@@ -19,7 +19,7 @@ BDBLIB = -ldb_cxx -ldb
 #OCICPPLIB = -locicpp
 
 # Uncomment next line to compile with debugging information:
-DEBUG = -g -pg
+DEBUG = -ggdb #-pg
 
 PLATFORM = solaris
 CC = gcc
@@ -28,8 +28,7 @@ AR = ar
 RANLIB = ranlib
 CP = cp
 RM = rm -f
-LEXPREFIX = /opt/local_install
-LEX = $(LEXPREFIX)/bin/flex
+LEX = flex
 YACC = bison
 
 EXEEXT =
@@ -44,7 +43,7 @@ else
 PICFLAG =
 OBJEXT = o
 LIBEXT = a
-LDFLAGS = -L$(LEXPREFIX)/lib   /opt/pdsoft/testdir/lib/gcc-lib/sparc-sun-solaris2.6/2.95.3/gmon.o 
+LDFLAGS = #/opt/pdsoft/testdir/lib/gcc-lib/sparc-sun-solaris2.6/2.95.3/gmon.o 
 #EXEFLAGS = -static
 EXEFLAGS =
 endif
@@ -54,4 +53,4 @@ DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I$(LEXPREFIX)/include -I/opt/pdsoft/include -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED -B/opt/pdsoft/binutils/bin/ 
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I/opt/pdsoft/include -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED 
