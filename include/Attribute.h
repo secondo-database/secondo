@@ -97,7 +97,7 @@ Below theres a proposal for a simple redesign concerning the defined status of
 an attribute:
 
 */
-#ifdef COMPILE_NEW_IDEAS
+#ifdef COMPILE_NEW_ATTRIBUTE_INTERFACE
 
   inline const bool& IsDefined() const { return &defined };
   inline void SetDefined(){ defined = true; };
@@ -109,6 +109,82 @@ private:
 #endif
 
 };
+
+/* 
+The next class defines some default functions which can be passed to the constructor of class
+~TypeConstructor~. Whenever these defaults are not sufficient you must inherhit from this base
+class and overwrite (hide) the default implementation.
+
+*/
+
+template<class T>
+  void* Cast( void* addr ) 
+  { 
+    return (new (addr)T ); 
+  }
+
+template<class T>
+  Word Create( const ListExpr typeInfo )
+  {
+    return (SetWord( new T() ));
+  }
+
+template<class T>
+  void Delete( Word& w )
+  {
+    delete (T *)w.addr;
+    w.addr = 0;
+  }
+
+template<class T>
+  void Close( Word& w )
+  {
+    delete (T *)w.addr;
+    w.addr = 0;
+  }
+
+template<class T>
+  Word Clone( const Word& w )
+  {
+    return SetWord( ((T *)w.addr)->Clone() );
+  }
+
+template<class T>
+  int SizeOf()
+  {
+    return sizeof(T);
+  }
+
+template<class T>
+  bool Open( SmiRecord& valueRecord,
+             const ListExpr typeInfo,
+             Word& value )
+  {
+    T *p = new T;
+    p->Open( valueRecord, typeInfo );
+    value = SetWord( p );
+    return true;
+  }
+
+template<class T>
+  bool Save( SmiRecord& valueRecord,
+             const ListExpr typeInfo,
+             Word& value )
+  {
+    T *p = (T *)value.addr;
+    p->Save( valueRecord, typeInfo );
+    return true;
+  }
+
+
+template<class T>
+bool
+SimpleCheck( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, T::Name() ));
+}
+
+
 
 #endif
 

@@ -24,6 +24,7 @@ are the data types which are provided by the Standardalgebra.
 
 #include <string>
 #include "StandardAttribute.h"
+#include "NestedList.h"
 
 /*
 2.1 CcInt
@@ -218,7 +219,7 @@ class CcBool : public StandardAttribute
 
 */
 
-typedef char STRING[49];
+typedef char STRING[MAX_STRINGSIZE+1];
 
 class CcString : public StandardAttribute
 {
