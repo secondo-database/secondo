@@ -7,7 +7,7 @@ import java.awt.geom.*;
 public class PMPLinear extends LinearMove{
 
   public PMPLinear(){
-    x1=x1=y1=y2=0.0;
+    x1=x2=y1=y2=0.0;
     interval = new RelInterval();
     defined = false;
   }
