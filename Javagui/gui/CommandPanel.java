@@ -494,6 +494,16 @@ public class CommandPanel extends JScrollPane {
 	 OpenedDatabase=DBName;
       }
       else
+      if(cmd.startsWith("restore") && cmd.indexOf(" database ")>0){
+         int index1 = cmd.indexOf("database")+9;
+         int index2 = cmd.indexOf("from")-1;
+	 if(index1<0 | index2<0)
+	    return;
+	 String DBName = cmd.substring(index1,index2).trim();
+	SCL.databaseOpened(DBName);
+	OpenedDatabase=DBName;
+      }
+      else
       if(cmd.endsWith(" database") && cmd.startsWith("close")){
          OpenedDatabase="";
          SCL.databaseClosed();
