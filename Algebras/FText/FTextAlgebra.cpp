@@ -444,7 +444,7 @@ FTextProperty()
       (
         nl->StringAtom("-> DATA"),
         nl->StringAtom("text"),
-        nl->StringAtom("(<text>)"),
+        nl->StringAtom("<text>writtentext</text--->"),
         nl->StringAtom("<text>This is an example.</text--->")
       )
     )
