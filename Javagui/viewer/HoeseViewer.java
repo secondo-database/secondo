@@ -1163,11 +1163,15 @@ public boolean canDisplay(SecondoObject o){
       GraphDisplay.add(l, new Integer(20000));
       GraphDisplay.removeMouseListener(SelectionControl);
      // GraphDisplay.removeMouseMotionListener(SelectionControl);
+     // ensure to have the MouseListener only one time registered
+      GraphDisplay.removeMouseListener(context.getProjectionControl());
       GraphDisplay.addMouseListener(context.getProjectionControl());
       VisualPanel.setLeftComponent(context);
     }
     else {
       GraphDisplay.removeMouseListener(context.getProjectionControl());
+      // ensure to register SelectionControl at most one time
+      GraphDisplay.removeMouseListener(SelectionControl);
       GraphDisplay.addMouseListener(SelectionControl);
      // GraphDisplay.addMouseMotionListener(SelectionControl);
       GraphDisplay.remove(context.getProjectionLabel());
@@ -1383,7 +1387,7 @@ public boolean canDisplay(SecondoObject o){
    if(qr!=null)
       qr.setListData(new Vector());
    CB.removeAllItems();
-   TextDisplay.clearComboBox(); 
+   TextDisplay.clearComboBox();
 
    // remove the categorys
     Cats = new  Vector(30,10);
@@ -1398,7 +1402,7 @@ public boolean canDisplay(SecondoObject o){
       le.readFromFile(Catfile);
       readAllCats(le);
     }
-    on_Set_Kontext(); 
+    on_Set_Kontext();
 
  }             //GEN-LAST:event_on_jMenu_NewSession
 

@@ -263,7 +263,17 @@ public class GraphWindow extends JLayeredPane
 	}
   }
 
-/** A Scalable JLabel for the background image 
+  public void addMouseListener(MouseListener ML){
+     MouseListener[] MLs = getMouseListeners();
+     boolean found = false;
+     for(int i=0;i<MLs.length && ! found ; i++)
+         found = ML.equals(MLs[i]);
+     if(!found)
+       super.addMouseListener(ML);
+  }
+
+
+/** A Scalable JLabel for the background image
   */
   class ScaledLabel extends JLabel {
     public ScaledLabel (Icon image, int h) {
