@@ -3,6 +3,8 @@
 
 April 2002 Ulrich Telle
 
+August 2002 Ulrich Telle Bug fix for uninitialized variables
+
 */
 
 #include <cstdio>
@@ -58,6 +60,11 @@ Application::Application( int argc, const char** argv )
     is >> sd;
     clientSocket = Socket::CreateClient( sd );
   }
+  else
+  {
+    hasSocket = false;
+    clientSocket = 0;
+  }
   if ( strncmp( argv[argc-1], "--ppid=", 7 ) == 0 )
   {
     argCount--;
@@ -75,6 +82,7 @@ Application::Application( int argc, const char** argv )
   appName = strdup( basename( pgmName ) );
   appPath = strdup( dirname( pgmName ) );
 #else
+  rshSocket = 0;
   ownpid = ::GetCurrentProcessId();
   char fileName[MAX_PATH];
   if ( GetModuleFileName( NULL, fileName, MAX_PATH ) != 0 )
