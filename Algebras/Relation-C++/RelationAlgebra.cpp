@@ -754,7 +754,6 @@ ListExpr TUPLETypeMap(ListExpr args)
 {
   ListExpr first;
   string argstr;
-  cout << "was in TUPLE 1" << endl;
 
   CHECK_COND(nl->ListLength(args) == 1,
   "Type operator TUPLE expects a list of length one.");
@@ -764,22 +763,12 @@ ListExpr TUPLETypeMap(ListExpr args)
   CHECK_COND( nl->ListLength(first) == 2 &&
               (TypeOfRelAlgSymbol(nl->First(first)) == rel ||
 	       TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+	       nl->ListLength(nl->Second(first)) == 2 &&
 	       TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple, 
   "Type operator TUPLE expects as argument a list with structure, "
   "(rel(tuple((a1 t1)...(an tn)))) or (stream(tuple((a1 t1)...(an tn)))).\n"
   "Type operator TUPLE gets an argument '" + argstr + "'." );
 
-  /*if(nl->ListLength(args) >= 1)
-  {
-    first = nl->First(args);
-    if(nl->ListLength(first) == 2  )
-    {
-      if ((TypeOfRelAlgSymbol(nl->First(first)) == stream)  ||
-          (TypeOfRelAlgSymbol(nl->First(first)) == rel))
-        return nl->Second(first);
-    }
-  }*/
-  cout << "was in TUPLE" << endl;
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -1015,26 +1004,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
   "((a1 t1)...(an tn)))).\n"
   "Operator consume gets an argument of type '" + argstr + "'.");
   
-  /*CHECK_COND( (!(nl->IsAtom(nl->Second(first)) ||
-                 nl->IsEmpty(nl->Second(first))) &&
-              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),     
-    "Operator consume expects an argument of type (stream(tuple"
-    "((a1 t1)...(an tn)))).\n"
-    "Operator consume gets an argument of type '" + argstr + "'.");*/
   return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
-	
-
-  /*if(nl->ListLength(args) == 1)
-  {
-    first = nl->First(args);
-    if ((nl->ListLength(first) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-        (nl->ListLength(nl->Second(first)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
-      return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
-  }
-  ErrorReporter::ReportError("Incorrect input for operator consume.");
-  return nl->SymbolAtom("typeerror");*/
 }
 /*
 
@@ -1140,21 +1110,12 @@ ListExpr AttrTypeMap(ListExpr args)
   string  attrname, argstr;
   int j;
   
-   nl->WriteToString(argstr, args); 
-   cout << argstr << endl;
-
-    CHECK_COND(nl->ListLength(args) == 2,
+  nl->WriteToString(argstr, args); 
+  CHECK_COND(nl->ListLength(args) == 2,
   "Operator attr expects a list of length two.");
   
   first = nl->First(args);  
-  nl->WriteToString(argstr, first);
-  cout << nl->ListLength(first) << endl;
-  bool test = (nl->ListLength(first) == 2);
-  cout << test << endl;
-  //CHECK_COND( test, "ausstieg" );
-  //if (!test) return nl->SymbolAtom("typeerror");   
-  cerr << "attr here" << endl;
-  
+  nl->WriteToString(argstr, first);  
   CHECK_COND( (nl->ListLength(first) == 2) &&
               (TypeOfRelAlgSymbol(nl->First(first)) == tuple) ,
   "Operator attr expects as first argument a list with structure " 
@@ -1167,16 +1128,6 @@ ListExpr AttrTypeMap(ListExpr args)
   "Operator attr expects as second argument a symbol atom (attributename)\n" 
   "Operator rename gets '" + argstr + "'.");
 
-  /*if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  ) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == tuple)  &&
-        (nl->IsAtom(second)) &&
-        (nl->AtomType(second) == SymbolType))
-    {*/
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(first), attrname, attrtype);
   if (j)
@@ -1188,12 +1139,6 @@ ListExpr AttrTypeMap(ListExpr args)
     "Known Attribute(s): " + argstr);
     return nl->SymbolAtom("typeerror");
   }   
-   /* }
-    ErrorReporter::ReportError("Incorrect input for operator attr.");
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError("Incorrect input for operator attr.");
-  return nl->SymbolAtom("typeerror");*/
 }
 /*
 
@@ -1266,15 +1211,10 @@ ListExpr FilterTypeMap(ListExpr args)
   ListExpr first, second;
   string argstr;
   
-//((stream (tuple ((no int)))) (map (tuple ((no int))) bool))
   nl->WriteToString(argstr, args);
-  cout << argstr << endl;  
-  cout << "filter1" << endl;
   CHECK_COND(nl->ListLength(args) == 2,
-    "Operator filter expects a list of length two.");
-  cout << "filter2" << endl;
+  "Operator filter expects a list of length two.");
   first = nl->First(args);
-  cout << "filter3" << endl;
   second  = nl->Second(args);
     
   nl->WriteToString(argstr, first);    
@@ -1615,7 +1555,7 @@ ListExpr ProductTypeMap(ListExpr args)
     
   list1 = nl->Second(nl->Second(first));
 
-    nl->WriteToString(argstr, second);  
+  nl->WriteToString(argstr, second);  
   CHECK_COND(nl->ListLength(second) == 2 &&
              TypeOfRelAlgSymbol(nl->First(second)) == stream &&
 	     nl->ListLength(nl->Second(second)) == 2 &&
@@ -1861,20 +1801,6 @@ TCountTypeMap(ListExpr args)
   "Operator count gets a list with structure '" + argstr + "'.");
   
   return nl->SymbolAtom("int");
-
-  /*if( nl->ListLength(args) == 1 )
-  {
-    first = nl->First(args);
-    if ( (nl->ListLength(first) == 2) && nl->ListLength(nl->Second(first)) == 2  )
-    {
-      if ( ( TypeOfRelAlgSymbol(nl->First(first)) == stream
-             || TypeOfRelAlgSymbol(nl->First(first)) == rel )
-	   && TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple   )
-      return nl->SymbolAtom("int");
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator count.");
-  return nl->SymbolAtom("typeerror");*/
 }
 
 
@@ -2022,20 +1948,6 @@ TupleSizeTypeMap(ListExpr args)
   "Operator tuplesize gets a list with structure '" + argstr + "'.");
   
   return nl->SymbolAtom("real");
-
-  /*if( nl->ListLength(args) == 1 )
-  {
-    first = nl->First(args);
-    if ( (nl->ListLength(first) == 2) && nl->ListLength(nl->Second(first)) == 2  )
-    {
-      if ( ( TypeOfRelAlgSymbol(nl->First(first)) == stream
-             || TypeOfRelAlgSymbol(nl->First(first)) == rel ) &&
-           TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple )
-        return nl->SymbolAtom("real");
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator tuplesize.");
-  return nl->SymbolAtom("typeerror");*/
 }
 
 /*
@@ -2294,23 +2206,9 @@ ListExpr MConsumeTypeMap(ListExpr args)
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator mconsume gets a list with structure '" + argstr + "'.");
 
-
-
-  /*if(nl->ListLength(args) == 1)
-  {
-    first = nl->First(args);
-    if ((nl->ListLength(first) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-        (nl->ListLength(nl->Second(first)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
-    {*/
   return nl->TwoElemList(nl->SymbolAtom("mrel"),
          nl->TwoElemList(nl->SymbolAtom("mtuple"),
          nl->Second(nl->Second(first))));
-   /* }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator consume.");
-  return nl->SymbolAtom("typeerror");*/
 }
 /*
 
