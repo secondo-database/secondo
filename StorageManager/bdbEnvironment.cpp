@@ -10,6 +10,9 @@ February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
+October 2003 M. Spiekermann Startup modified. SecondoHome directory will be created if the
+configuration file contains no or a non-existent directory.
+
 */
 
 using namespace std;
@@ -795,7 +798,29 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   if ( rc == 0 )
   {
-    instance.impl->bdbHome = SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile.c_str() );
+
+    string parentDir = FileSystem::GetParentFolder(FileSystem::GetCurrentFolder(), 2);
+    FileSystem::AppendSlash(parentDir);
+    string defaultHome = parentDir + "secondo-databases";
+    string secondoHome = SmiProfile::GetParameter( "Environment", "SecondoHome", 
+                                                   "", parmFile.c_str() );
+
+    if (!FileSystem::FileOrFolderExists(secondoHome)) {
+      cerr << "Warning: The folder '" << secondoHome << "' does not exist!" << endl;
+      cerr << "The default directory '" << defaultHome << "' will be used instead." << endl;
+      secondoHome = defaultHome;
+
+      if (!FileSystem::FileOrFolderExists(secondoHome)) {
+        cerr << "Creating default directory ..." << endl; 
+        if (!FileSystem::CreateFolder(secondoHome)) {
+          cerr << "Error: Could not create folder '" << secondoHome 
+               <<"'.  SmiEnvironment startup failed!" << endl;
+          return false;
+        }
+      }
+    }
+    instance.impl->bdbHome = secondoHome;
+    
     u_int32_t flags = 0;
     switch ( mode )
     {
