@@ -1,4 +1,6 @@
 #
+# Dec. 2004. M. Spiekermann. TPC-H Runtimes 
+#
 # Computer: Athlon-XP / 256MB-RAM
 #
 
@@ -16,6 +18,14 @@ sys     0m1.474s
 real	3m18.612s  % run using SecondoPL
 user	1m12.437s
 sys	0m6.557s
+
+real    0m50.564s  % non optimized compilation of secondo
+user    0m36.925s
+sys     0m1.535s
+
+real    1m5.960s   % Array(32) of relations
+user    0m16.474s
+sys     0m0.861s
 
 
 PG-1: RSS=5, VSZ=10
@@ -43,6 +53,9 @@ real	3m18.612s
 user	1m12.437s
 sys	0m6.557s
 
+real    0m38.494s
+user    0m17.806s
+sys     0m0.890s
 
 
 PG-3: RSS=5, VSZ=11
@@ -70,6 +83,11 @@ real	1m25.426s
 user	0m14.399s
 sys	0m4.147s
 
+real    0m26.798s
+user    0m6.583s
+sys     0m0.778s
+
+
 PG-5: RSS=7, VSZ=14
 
 real    0m10.073s
@@ -94,6 +112,10 @@ sys     0m0.782s
 real	0m52.111s
 user	0m24.735s
 sys	0m1.263s
+
+real    0m30.636s
+user    0m7.498s
+sys     0m0.756s
 
 PG-10: RSS=5, VSZ=10
 real    0m7.781s
