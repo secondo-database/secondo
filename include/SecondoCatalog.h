@@ -582,6 +582,7 @@ following format:
 ----
 
 The function below test if a name is reserved for system use.
+
 */
   
   inline bool IsSystemObject(const string& s) {
@@ -652,7 +653,8 @@ an error it should always be reported to the client.
 
 A set of reserved object identifiers for the SECONDO System can be added
 in the Constructor of the class Catalog. All system reserverd identifiers
-are prefixed with "SEC_".
+are prefixed with "SEC\_".
+
 */
   set<string> sysObjNames;  
   inline void AddSystemObjName(const string& s) {
