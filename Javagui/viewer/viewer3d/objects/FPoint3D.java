@@ -96,7 +96,7 @@ private void computePoints3D(){
          BB.extend(BB2);
       } 
 
-      P3D = new IDPoint3D(P.x*ScaleFactor,P.y*ScaleFactor,
+      P3D = new IDPoint3D(P.x,P.y,
                           P.z*ScaleFactor,
                           getRed(P.z),getGreen(P.z),getBlue(P.z));
       P3D.setID(myID); // each member of this FPoint has the same ID
@@ -171,6 +171,7 @@ private ID myID= IDManager.getNextID();
 private String Name;
 private BoundingBox3D BB= new BoundingBox3D();;
 }
+
 
 
 

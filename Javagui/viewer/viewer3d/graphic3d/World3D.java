@@ -262,9 +262,9 @@ public void removeAll() {
 
 /** removes all figures with given ID */
 public void removeID(ID RID) {
+  W2D.deleteFiguresWithID(RID);
   int i=0;
   int max = FV.getSize();
-  W2D.deleteFiguresWithID(RID);
   while (i<max) {
     if ( FV.getTriangle3DAt(i).getID().equals(RID)  ) {
        FV.remove(i);
@@ -272,7 +272,26 @@ public void removeID(ID RID) {
     }else
       i++;
   }
-  System.out.println("graphic3d.World3d.removeID erweitern auf Linen und Punkte ");
+ 
+  i=0;
+  max = LV.getSize();
+  while (i<max) {
+    if ( LV.getLine3DAt(i).getID().equals(RID)  ) {
+       LV.remove(i);
+       max--;
+    }else
+      i++;
+  }
+ 
+  i=0;
+  max = PV.getSize();
+  while (i<max) {
+    if ( PV.getIDPoint3DAt(i).getID().equals(RID)  ) {
+       PV.remove(i);
+       max--;
+    }else
+      i++;
+  }
 
   imageChanged=true;
 }
@@ -366,3 +385,4 @@ private int width;
 private int height;
 
 }
+

@@ -35,15 +35,20 @@ public ViewConfig(Frame F){
   BBPanel.add(KeepProportions);
   JPanel BBContainer = new JPanel();
   BBContainer.add(BBPanel);
+  
+  JPanel PSPanel = new JPanel();
+  PSPanel.add(new JLabel("PointSize"));
+  PSPanel.add(PointSizeText);
   JPanel ControlPanel = new JPanel();
   ControlPanel.add(OkBtn);
   ControlPanel.add(CancelBtn);
   ControlPanel.add(ResetBtn);
   ControlPanel.add(ApplyBtn);
-  setSize(500,300);
+  setSize(550,300);
   getContentPane().setLayout(new FlowLayout());
   getContentPane().add(BBContainer);
   getContentPane().add(BorderPaint);
+  getContentPane().add(PSPanel);
   getContentPane().add(ControlPanel);
   BorderSize.setEnabled(false);
   addListeners();
@@ -57,13 +62,11 @@ public void addApplyListener(ApplyListener AL){
 }
 
 
-
 /** add the Listeners */
 private void addListeners(){
    ActionListener AL = new ActionListener(){
       public void actionPerformed(ActionEvent evt){
         Object Source = evt.getSource();
-
         if(Source.equals(OkBtn)){
            if(processInputs()){
               for(int i=0;i<MyApplyListeners.size();i++)
@@ -82,14 +85,12 @@ private void addListeners(){
         }
       
         if(Source.equals(ApplyBtn)){
-           System.out.println("Apply-Btn gedrückt");
           if(processInputs()){
-             System.out.println("neue BaouningBox ="+BB);
              for(int i=0;i<MyApplyListeners.size();i++)
                 ((ApplyListener) MyApplyListeners.get(i)).apply(ViewConfig.this);
-             System.out.println("nach apply="+BB);   
-          }      
+          } 
         }
+              
       }
    };
    
@@ -126,50 +127,67 @@ private void addListeners(){
 
 }
 
-
+ 
 /** check the vadility of inputs;
   * if all inputs are valid then variables
   * BoundingBox and Bordersize are set
   */
 private boolean processInputs(){
  boolean ok = true;
- if(AutoBoundingBox.isSelected()){
-     try{
-        double BSTMP = Double.parseDouble(BorderSize.getText());
-        if(BSTMP<0){
-           MessageBox.showMessage("the border must be greater then zero");
-           ok = false;
-        }   
-        else
-           BorderSizeValue = BSTMP;
-     }
-     catch(Exception e){
-         MessageBox.showMessage("the border size field contains not a double");
-         ok = false;
-     }
- }else{ // no AutoBoundingBox
-    try{
-      double TMPX = Double.parseDouble(ZeroX.getText());
-      double TMPY = Double.parseDouble(ZeroY.getText());
-      double TMPW = Double.parseDouble(DimX.getText());
-      double TMPH = Double.parseDouble(DimY.getText());
-      
-      if(TMPW<MINWIDTH || TMPH<MINHEIGHT){
-         MessageBox.showMessage("the dimension must be greater then ("+MINWIDTH+","+MINHEIGHT+")");
-         ok =false;
-      } else{
-        BB.setTo(TMPX,TMPY,TMPX+TMPW,TMPY+TMPH);
-      }
-    
-    }
-    catch(Exception e){
-       MessageBox.showMessage("a field of the bounding box contains not a double");
+ int TMPPointSize=1;
+ try{
+    TMPPointSize = Integer.parseInt(PointSizeText.getText());
+    if (TMPPointSize<1 || TMPPointSize>250){
+       MessageBox.showMessage("the PointSize must be in range [1..250]");
        ok = false;
-    }
+    }   
  }
+ catch(Exception e){
+   MessageBox.showMessage("the PointSize Field contains not an integer");
+   ok = false;
+ }
+
+ if(ok)
+   if(AutoBoundingBox.isSelected()){
+       try{
+          double BSTMP = Double.parseDouble(BorderSize.getText());
+          if(BSTMP<0){
+             MessageBox.showMessage("the border must be greater then zero");
+             ok = false;
+          }   
+          else
+             BorderSizeValue = BSTMP;
+       }
+       catch(Exception e){
+           MessageBox.showMessage("the border size field contains not a double");
+           ok = false;
+       }
+   }else{ // no AutoBoundingBox
+      try{
+        double TMPX = Double.parseDouble(ZeroX.getText());
+        double TMPY = Double.parseDouble(ZeroY.getText());
+        double TMPW = Double.parseDouble(DimX.getText());
+        double TMPH = Double.parseDouble(DimY.getText());
+        
+        if(TMPW<MINWIDTH || TMPH<MINHEIGHT){
+           MessageBox.showMessage("the dimension must be greater then ("+MINWIDTH+","+MINHEIGHT+")");
+           ok =false;
+        } else{
+          BB.setTo(TMPX,TMPY,TMPX+TMPW,TMPY+TMPH);
+        }
+      
+      }
+      catch(Exception e){
+         MessageBox.showMessage("a field of the bounding box contains not a double");
+         ok = false;
+      }
+   }
+   
+   
  if(ok){
    OrigAuto = AutoBoundingBox.isSelected();
    OrigProportion = KeepProportions.isSelected();
+   PointSize = TMPPointSize;
  }
 
 return ok;
@@ -249,6 +267,25 @@ public void setBorderPaint(boolean on){
   BorderPaint.setSelected(on);
 }
 
+
+
+/** get the current PointSize */
+public int getPointSize(){
+   return PointSize;
+}
+
+/** set the PointSize 
+  * if size<1 then the PointSize is setted to 1
+  * if size>250 then the PointSize is setted to 250
+  */
+public void setPointSize(int size){
+  if(size<1) size =1;
+  if(size>250) size=250;
+  PointSize = size;
+  PointSizeText.setText(""+PointSize);
+}
+
+
 private JButton OkBtn = new JButton("ok");
 private JButton CancelBtn = new JButton("cancel");
 private JButton ResetBtn = new JButton("reset");
@@ -262,18 +299,22 @@ private JTextField DimY = new JTextField(8);
 private JTextField PSX = new JTextField(8);
 private JTextField PSY = new JTextField(8);
 private JTextField BorderSize = new JTextField(8);
+private JTextField PointSizeText = new JTextField(8);
 private Vector MyApplyListeners = new Vector();
 private BoundingBox2D BB= new BoundingBox2D();
 
 private double BorderSizeValue = 0.0;
 private boolean OrigAuto = false;
 private boolean OrigProportion = false;
+private int PointSize = 15;
 private final double MINWIDTH = 10;
 private final double MINHEIGHT = 10;
 
 private JCheckBox BorderPaint = new JCheckBox("paint border of triangles");
 
 }
+
+
 
 
 

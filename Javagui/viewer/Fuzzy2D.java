@@ -10,6 +10,7 @@ import viewer.viewer3d.objects.*;
 import java.beans.*;
 import gui.idmanager.*;
 import viewer.fuzzy2d.*;
+import javax.swing.event.*;
 
 /** this class provioded a viewer for fuzzy spatial objects
   * the objects are displayed with 2 dimensions
@@ -75,11 +76,22 @@ public Fuzzy2D(){
       }
    });
    
-   
+  
+  
+   JMenuItem MI_AutoBB = ViewMenu.add("automatic bounding box");
+   MI_AutoBB.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+      if(!AutoBoundingBox){
+         AutoBoundingBox=true;
+         update();
+      
+      }
+   }});
+      
    MenuExtension.addMenu(ObjectMenu);
    MenuExtension.addMenu(ViewMenu);
    
-   ImgPanel.addMouseMotionListener(new MouseMotionAdapter(){
+   MouseInputListener MIL=new MouseInputAdapter(){
        public void mouseMoved(MouseEvent evt){
           double[] wc = Img.getWorld(evt.getX(),evt.getY());
           // round to 3 positions after comma
@@ -88,13 +100,67 @@ public Fuzzy2D(){
           CoordLabel.setText("("+wc[0]+"  ,  "+wc[1]+")");
  
        }
-   });
+       
+       public void mousePressed(MouseEvent evt){
+          startX = evt.getX();
+          startY = evt.getY();
+       }
+       
+       public void mouseDragged(MouseEvent evt){
+          double[] wc = Img.getWorld(evt.getX(),evt.getY());
+          // round to 3 positions after comma
+          wc[0] = ((int)(wc[0]*1000))/1000.0;
+          wc[1] = ((int)(wc[1]*1000))/1000.0;
+          CoordLabel.setText("("+wc[0]+"  ,  "+wc[1]+")");
+          if(isPainting)
+            drawRectangle(startX,startY,oldX,oldY);
+          oldX = evt.getX();
+          oldY = evt.getY();
+          drawRectangle(startX,startY,oldX,oldY);
+          isPainting=true;
+       }
+       
+       public void mouseReleased(MouseEvent evt){
+          if(isPainting)
+             drawRectangle(startX,startY,oldX,oldY);
+          isPainting=false;   
+          // set the new BoundingBox
+          AutoBoundingBox = false;
+          double[] P1 = Img.getWorld(startX,startY);
+          double[] P2 = Img.getWorld(oldX,oldY);
+          BB2.setTo(P1[0],P1[1],P2[0],P2[1]);
+          Img.setBoundingBox(BB2);
+          BB2.equalize(Img.getBoundingBox());
+          update();
+       }
+       
+       
+       public void mouseClicked(MouseEvent evt){
+          selectNextAt(evt.getX(),evt.getY());     
+       }
+      
+      
+       public void drawRectangle(int x1,int y1,int x2,int y2){
+         Graphics2D G = (Graphics2D) ImgPanel.getGraphics();
+         G.setColor(Color.green);
+         G.setXORMode(Color.white);
+         int x = Math.min(x1,x2);
+         int w = Math.abs(x1-x2);
+         int y = Math.min(y1,y2);
+         int h= Math.abs(y1-y2);
+         G.drawRect(x,y,w,h);
+       }
+       
+       private int startX;
+       private int startY;
+       private int oldX;
+       private int oldY;
+       private boolean isPainting = false;
+   };
    
-   ImgPanel.addMouseListener(new MouseAdapter(){
-      public void mouseClicked(MouseEvent evt){
-         selectNextAt(evt.getX(),evt.getY());     
-      }
-   });
+   ImgPanel.addMouseListener(MIL);
+   ImgPanel.addMouseMotionListener(MIL);
+      
   update();
 }
 
@@ -106,7 +172,7 @@ private void selectNextAt(int x, int y){
      return;
   
   double[] Pos =   Img.getWorld(x,y);
-  double exactness = Img.getWorldAccuracy(PixelSize);
+  double exactness = Img.getWorldAccuracy(Math.max(Img.getPointSize()/2,2));
   int index = ComboBox.getSelectedIndex();
   if(index<0)
      index=0;
@@ -162,10 +228,12 @@ public void apply(Object source){
         BoundingBox2D B = View.getBoundingBox();
         BB2.equalize(B);
         Img.setBoundingBox(BB2);
+        BB2.equalize(Img.getBoundingBox());
         View.setBoundingBox(BB2);
      }
      Img.setProportional(Proportional);
      Img.paintBorders(View.getBorderPaint());
+     Img.setPointSize(View.getPointSize());
      update();
   }   
 }
@@ -244,6 +312,7 @@ private void showViewSettings(){
   View.setProportional(Proportional);
   View.setBorderSize(BorderSize);
   View.setAutoBoundingBox(AutoBoundingBox);
+  View.setPointSize(Img.getPointSize());
   View.setVisible(true);
 }
 
@@ -427,9 +496,10 @@ private double BorderSize = 0.0;
 private BoundingBox2D BB2 = new BoundingBox2D();
 private BoundingBox2D AutoBB2 = new BoundingBox2D();
 private boolean Proportional = true;
-private int PixelSize = 5;                // determines the accuracy for "ClickEvents"
 
 }
+
+
 
 
 

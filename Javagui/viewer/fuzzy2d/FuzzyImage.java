@@ -144,17 +144,32 @@ private void set(int x, int y ,double z,int Colorvalue){
 
 
 /** paint all containing points 
-  * this method is to extend to paint
-  * points bigger !!
   */
 private void paintPoints(){
   IDPoint3D P;
   for(int i=0;i<TransformedPoints.getSize();i++){
       P = TransformedPoints.get(i);
-      set( (int)P.getX(),(int)P.getY(),P.getZ(),P.getColor().getRGB());
+      paintSinglePoint( (int)P.getX(),(int)P.getY(),P.getZ(),P.getColor().getRGB());
   }
 }
 
+
+
+/** paint a single Point
+  * if you want to paint a point i another form then
+  * change this method
+  */
+private void paintSinglePoint(int x, int y,double z,int color){
+   // first set the Point self
+   set(x,y,z,color);
+   boolean RectanglePoint = false;
+   int P2 = PointSize/2;
+   int P2_2 = P2*P2;
+   for(int i=x-P2;i<=x+P2;i++)
+     for(int j=y-P2;j<=y+P2;j++)
+        if(RectanglePoint || ((i-x)*(i-x)+(j-y)*(j-y))<P2_2)
+           set(i,j,z,color);
+}
 
 
 /** computes a linear approximation between 2 color values
@@ -489,10 +504,28 @@ public void setBoundingBox(BoundingBox2D BB2){
  // ensure a minimum size (avoid division by zero)
  if(maxX-minX<10) maxX+=10;
  if(maxY-minY<10) maxY+=10;
+ 
+ if(proportional){ // we must enlarge WorldWidth or Worldheight
+    double ScreenRatio = (double)width / height;
+    double WorldWidth = maxX-minX;
+    double WorldHeight = maxY-minY;
+    double WorldRatio = WorldWidth/WorldHeight;
+    if(ScreenRatio<WorldRatio)
+        WorldHeight = WorldWidth / ScreenRatio;
+    if(ScreenRatio>WorldRatio)
+        WorldWidth = WorldHeight*ScreenRatio;
+    maxY = minY + WorldHeight;
+    maxX = minX + WorldWidth;
+ }
  BB.setTo(minX,minY,maxX,maxY);
  transformObjects();
 }
 
+
+/** returns the current bounding box */
+public BoundingBox2D getBoundingBox(){
+  return BB;
+}
 
 /** set the BoundingBox of the World ingnoring the z-values */
 public void setBoundingBox(BoundingBox3D BB3){
@@ -679,6 +712,18 @@ public boolean isPaintingBorders(){
   return border;
 }
 
+
+/** return the current diameter for painting points (in pixels) */
+public int getPointSize(){
+  return PointSize;
+}
+
+/** set the size for painting points */
+public void setPointSize(int Size){
+  PointSize = Math.max(1,Size);
+}
+
+
 /** contains the Points in world coordinates */
 private IDPoint3DVector Points=new IDPoint3DVector();
 /** contains all Lines in world coordinates */
@@ -707,7 +752,14 @@ private boolean proportional = true;
 /**this is to avoid to create/destroy many BoundingBoxes */
 private static BoundingBox2D TMPBB = new BoundingBox2D(); 
 
+
+private int PointSize = 15;
+
 }
+
+
+
+
 
 
 

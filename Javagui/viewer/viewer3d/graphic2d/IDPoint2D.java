@@ -64,11 +64,12 @@ public void paint(BufferedImage img,
     
 
 /** the diameter for painting */
-private int dia=3;         // diameter for paint this Point
+private int dia=13;         // diameter for paint this Point
 /** the ID o fthis point */
 private ID MyID = IDManager.getNextID();
 
 
 
 }
+
 

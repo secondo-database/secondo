@@ -50,6 +50,17 @@ public void setTo(double minx,double miny,double maxx,double maxy){
 }
 
 
+/** extends this Bounding Box so that (x,y) in inside from this Bounding Box */
+public void include(double x , double y){
+  minx = min(x,minx);
+  maxx = max(x,maxx);
+  miny = min(y,miny);
+  maxy = max(y,maxy);
+
+
+}
+
+
 /** set the values frtom this to the values from BB2 */
 public void equalize(BoundingBox2D BB2){
   minx = BB2.minx;
@@ -93,6 +104,7 @@ private double minx,miny;
 private double maxx,maxy;
 
 }
+
 
 
 
