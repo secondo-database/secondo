@@ -17,6 +17,8 @@ using namespace std;
 #include "SecondoInterface.h"
 #include "FileSystem.h"
 #include "Profiles.h"
+#include "LogMsg.h"
+#include "TimeTest.h"
 
 static istream&
 skipline( istream&  strm )
@@ -72,13 +74,49 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
                     nl->IntAtom( errorPos ),
                     msg,
                     resultList );
-  string resultStr;
-  nl->WriteToString( resultStr, list );
-  
+
   iostream& iosock = client->GetSocketStream();
-  iosock << "<SecondoResponse>" << endl
-         << resultStr << endl
-         << "</SecondoResponse>" << endl;
+  
+  iosock << "<SecondoResponse>" << endl;
+
+  if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
+  
+    LOGMSG( "Server:SendTimeMsg",
+      TimeTest::diffReal(); TimeTest::diffCPU();
+      cerr << "Sending list as textual representation ... ";
+    )
+
+    //string resultStr;
+    //nl->WriteToString( resultStr, list );
+    //iosock << resultStr << endl;
+    nl->WriteStringTo(list,iosock);  
+    iosock << endl;
+
+    LOGMSG( "Server:SendTimeMsg",
+      cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;;
+    ) 
+
+  } else {
+
+    if ( RTFlag::isActive("Server:ResultFile") ) {
+      ofstream file("result.bnl", ios::out|ios::trunc|ios::binary);
+      nl->WriteBinaryTo(list,file);
+      file.close();
+    }
+    LOGMSG( "Server:SendTimeMsg",
+      TimeTest::diffReal(); TimeTest::diffCPU();
+      cerr << "Sending list as binary representation ... ";
+    )
+
+    nl->WriteBinaryTo(list,iosock);
+    
+    LOGMSG( "Server:SendTimeMsg",
+      cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;;
+    ) 
+
+  }
+  iosock << "</SecondoResponse>" << endl;
+
 }
 
 void
@@ -452,15 +490,23 @@ SecondoServer::Execute()
     commandTable["<Connect>"]     = &SecondoServer::Connect;
     commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
 
+
+    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );
+    RTFlag::initByString(logMsgList);
+
     nl = si->GetNestedList();
     client = GetSocket();
     if ( client != 0 )
     {
       quit = false;
+
       iostream& iosock = client->GetSocketStream();
+      iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
       iosock << "<SecondoOk/>" << endl;
-      do
-      {
+
+      do {
+      try {
+
         string cmd;
         getline( iosock, cmd );
         cmdPos = commandTable.find( cmd );
@@ -481,8 +527,17 @@ SecondoServer::Execute()
                  << "</SecondoError>" << endl;
           quit = true;
         }
+    
+      } catch (ios_base::failure) {
+        cerr << endl << "I/O error on socket stream object while sending response!" << endl;
+        if ( !client->IsOk() ) {
+           cerr << "Socket Error: " << client->GetErrorText() << endl;  
+         }
+       quit = true; 
       }
-      while (!iosock.fail() && !quit);
+
+      } while (!iosock.fail() && !quit);
+      
       client->Close();
       delete client;
       Messenger messenger( registrar );
