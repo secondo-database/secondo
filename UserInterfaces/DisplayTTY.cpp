@@ -37,11 +37,10 @@ using namespace std;
 #include "NestedList.h"
 #include "SecondoInterface.h"
 #include "AlgebraTypes.h"
+#include "Base64.h"
 
 #define LINELENGTH 80
-
-/*
-1.3 Managing display functions
+/*1.3 Managing display functions
 
 The map *displayFunctions* holds all existing display functions. It
 is indexed by a string created from the algebraId and the typeId of
@@ -557,6 +556,16 @@ DisplayTTY::DisplayLyrics( ListExpr type, ListExpr numType, ListExpr value)
 }
 
 void
+DisplayTTY::DisplayMidi (ListExpr type, ListExpr numType, ListExpr value)
+{
+  int size = nl->IntValue(nl->Second(value));
+  int noOfTracks = nl->IntValue(nl->Third(value));
+  cout << "Midi: " << size << "bytes, ";
+  cout << noOfTracks << " tracks";
+}
+
+
+void
 DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
 {
 
@@ -883,5 +892,6 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "mp3",     &DisplayMP3);
   InsertDisplayFunction( "id3",     &DisplayID3);
   InsertDisplayFunction( "lyrics",  &DisplayLyrics);
+  InsertDisplayFunction( "midi",    &DisplayMidi);
 }
 

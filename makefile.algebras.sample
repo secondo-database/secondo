@@ -3,7 +3,7 @@
 # Algebra Configuration File
 #
 ################################
-
+ 
 # never change this
 ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
@@ -87,6 +87,9 @@ ALGEBRAS     +=	TemporalAlgebra
 #ALGEBRA_DIRS += JPEG	
 #ALGEBRAS     += JPEGAlgebra
 #ALGEBRA_DEPS += jpeg           # libjpeg is used and must be installed
+
+#ALGEBRA_DIRS  += Midi
+#ALGEBRAS      += MidiAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 

@@ -197,6 +197,11 @@ Are display functions for tuples.
  static void DisplayLyrics( ListExpr type,
                              ListExpr numType,
                              ListExpr value );
+
+ static void DisplayMidi( ListExpr type,
+			  ListExpr numType,
+			  ListExpr value );
+ 
 /* Returns the numeric value of a ListExpr containing a IntAtom, a RealAtom
    or a list representing a rational number */
    static double getNumeric(ListExpr value, bool &err);
