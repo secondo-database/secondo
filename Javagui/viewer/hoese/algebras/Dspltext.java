@@ -133,6 +133,7 @@ public void setSource(Dspltext S){
     Source = S;
     Display.setEditable(false); 
     Display.setText(S.Text);
+    Display.setCaretPosition(0);
 }
 
 public Dspltext getSource(){
