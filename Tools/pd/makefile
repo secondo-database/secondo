@@ -58,7 +58,7 @@ OBJECTS = pdtabs \
 
 DOCU = docu docuhtml
 
-SCRIPTS = pd2ascii pd2html pd2tex pd2dvi pd2ps pd2pdf pdshow pdview checkpd
+SCRIPTS = pd2ascii pd2html pd2tex pd2dvi pd2ps pd2pdf pdshow pdview checkpd pdpreview
 
 TEMPORARYS = lex.yy.c \
 	     y.tab.c \
