@@ -76,6 +76,22 @@ static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
   }
   return error;
 }
+
+/*
+
+1.3 Macro CHECK_COND
+
+This macro makes reporting errors in type mapping functions more convenient.
+
+*/
+
+#define CHECK_COND(cond, msg) \
+  if(!(cond)) \
+  {\
+    ErrorReporter::ReportError(msg);\
+    return nl->SymbolAtom("typeerror");\
+  };
+
 /*
 
 5.6 Function ~findattr~
@@ -1447,16 +1463,14 @@ static ListExpr FeedTypeMap(ListExpr args)
 {
   ListExpr first ;
 
-  if(nl->ListLength(args) == 1)
-  {
-    first = nl->First(args);
-    if(nl->ListLength(first) == 2)
-    {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == rel)
-        return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
-    }
-  }
-  return nl->SymbolAtom("typeerror");
+  CHECK_COND(nl->ListLength(args) == 1, 
+    "Operator feed expects a list of length one.");
+  first = nl->First(args);
+  CHECK_COND(nl->ListLength(first) == 2,
+    "Operator feed expects an argument of type relation.");
+  CHECK_COND(TypeOfRelAlgSymbol(nl->First(first)) == rel,
+    "Operator feed expects an argument of type relation.");
+  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 /*
 

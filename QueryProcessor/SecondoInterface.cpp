@@ -253,7 +253,7 @@ SecondoInterface::Secondo( const string& commandText,
 {
 /*
 ~Secondo~ reads a command and executes it; it possibly returns a result.
-The command is one of a set of SECONDO commands. 
+The command is one of a set of SECONDO commands.
 
 Error Codes: see definition module.
 
@@ -273,7 +273,7 @@ If value 0 is returned, the command was executed without error.
   bool defined      = false;
   bool isFunction   = false;
   bool hasNamedType = false;
-  int message;                /* error code from called procedures */ 
+  int message;                /* error code from called procedures */
   string listCommand;         /* buffer for command in list form */
   AlgebraLevel level;
 
@@ -499,7 +499,7 @@ If value 0 is returned, the command was executed without error.
           SecondoSystem::GetInstance()->CloseDatabase();
         }                    
       }
-      else if ( nl->IsEqual( first, "save" ) && (length == 4) && 
+      else if ( nl->IsEqual( first, "save" ) && (length == 4) &&
                 nl->IsEqual( nl->Third( list ), "to" ) &&
                 nl->IsAtom( nl->Fourth( list )) && 
                (nl->AtomType( nl->Fourth( list )) == SymbolType) )
@@ -511,7 +511,7 @@ If value 0 is returned, the command was executed without error.
         else
         {
           StartCommand();
-          filename = nl->SymbolValue( nl->Fourth( list ) ); 
+          filename = nl->SymbolValue( nl->Fourth( list ) );
           if ( !SecondoSystem::GetInstance()->SaveDatabase( filename ) )
           {
             errorCode = 26;  // Problem in writing to file
@@ -559,7 +559,7 @@ If value 0 is returned, the command was executed without error.
               errorCode = 1;   // Should never occur
               break;
           }
-        }            
+        }
       }
       else
       {
@@ -653,7 +653,7 @@ If value 0 is returned, the command was executed without error.
       else
       {
         errorCode = 6;       // no database open
-      } 
+      }
     }
     else if ( nl->IsEqual( first, "delete" ) )
     {
@@ -922,7 +922,7 @@ If value 0 is returned, the command was executed without error.
       else
       {
         errorCode = 6;        // no database open
-      } 
+      }
     }
 
 
@@ -939,12 +939,12 @@ If value 0 is returned, the command was executed without error.
         else
         {
           StartCommand();
-          
+
 	   TimeTest::diffReal(); TimeTest::diffCPU();
 	   cout << "Analyze query ..." << endl;
 
           SecondoSystem::GetQueryProcessor()->
-            Construct( level, nl->Second( list ), correct, evaluable, defined, 
+            Construct( level, nl->Second( list ), correct, evaluable, defined,
                        isFunction, tree, resultType );
 
 	   cout << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
@@ -987,11 +987,13 @@ If value 0 is returned, the command was executed without error.
             }
             else
             {
+              ErrorReporter::GetErrorMessage(errorMessage);
               errorCode = 3;  // Query not evaluable
             }
           }
           else
           {
+            ErrorReporter::GetErrorMessage(errorMessage);
             errorCode = 2;    // Error in query
           }
           FinishCommand( errorCode );
@@ -1000,7 +1002,7 @@ If value 0 is returned, the command was executed without error.
       else
       {
         errorCode = 6;        // no database open
-      } 
+      }
     }
 
     // --- Model command
@@ -1011,7 +1013,7 @@ If value 0 is returned, the command was executed without error.
       {
         StartCommand();
         SecondoSystem::GetQueryProcessor()->
-          Construct( level, nl->Second( list ), correct, evaluable, defined, 
+          Construct( level, nl->Second( list ), correct, evaluable, defined,
                      isFunction, tree, resultType );
         if ( !defined )
         {
@@ -1025,7 +1027,7 @@ If value 0 is returned, the command was executed without error.
               EvalModel( tree, result );
             modelList = SecondoSystem::GetCatalog( level )->
                           OutObjectModel( resultType, result );
-            resultList = nl->TwoElemList( resultType, modelList ); 
+            resultList = nl->TwoElemList( resultType, modelList );
             SecondoSystem::GetQueryProcessor()->
               Destroy( tree, true );
           }
@@ -1043,7 +1045,7 @@ If value 0 is returned, the command was executed without error.
       else
       {
         errorCode = 6;       // no database open
-      } 
+      }
     }
     else
     {

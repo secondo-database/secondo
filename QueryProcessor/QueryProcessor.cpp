@@ -92,7 +92,7 @@ January 26, 2001 RHG Added an ~isFunction~ parameter to procedure
 ~construct~. 
 
 February 2, 2001 RHG Changes to support abstraction application and
-function objects. 
+function objects.
 
 March 2002 Ulrich Telle. Port to C++
 
@@ -2323,3 +2323,25 @@ QueryProcessor::SetDebugLevel( const int level )
   }
 }
 
+bool ErrorReporter::receivedMessage = false;
+string ErrorReporter::message = "";
+
+void ErrorReporter::ReportError(string msg)
+{
+  receivedMessage = true;
+  message = msg;
+};
+
+
+void ErrorReporter::ReportError(char* msg)
+{
+  receivedMessage = true;
+  message = msg;
+};
+
+void ErrorReporter::GetErrorMessage(string& msg)
+{
+  receivedMessage = false;
+  msg = message;
+  message = "";
+};
