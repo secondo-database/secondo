@@ -62,10 +62,7 @@ today               & $\rightarrow$ instant
 
 */
 
-#ifndef __DATE_TIME_H__
 #include "DateTime.h"
-#endif
-
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -79,7 +76,7 @@ today               & $\rightarrow$ instant
 #include <math.h>
 #include <time.h>
 #include <sys/timeb.h>
-
+#define POS "DateTimeAlgebra.cpp:" << __LINE__
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -648,10 +645,12 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
      }
      ListExpr TypeList = nl->First(LE);
      if(!nl->IsEqual(TypeList,"datetime")){
-       if( (type==instanttype) && !nl->IsEqual(TypeList,"instant"))
+       if( (type==instanttype) && !nl->IsEqual(TypeList,"instant")){
+            return false;
+       }
+       if( (type==durationtype) && !nl->IsEqual(TypeList,"duration")){
           return false;
-       if( (type==durationtype) && !nl->IsEqual(TypeList,"duration"))
-          return false;
+       }
      }
      ValueList = nl->Second(LE);
   }else{
@@ -685,8 +684,10 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
   }
   // real representation
   if(nl->AtomType(ValueList)==RealType ){
-     if(type==instanttype)
-        return ReadFrom(nl->RealValue(ValueList));
+     if(type==instanttype){
+        bool res = ReadFrom(nl->RealValue(ValueList));
+	return res;
+     }
      else
         return false;
   }
@@ -1201,6 +1202,25 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct ){
 
   DateTime* T = new DateTime(instanttype);
+  ListExpr value = instance;
+  if(nl->ListLength(instance)==2){
+     if(nl->IsEqual(nl->First(instance),"instant"))
+        value = nl->Second(instance);
+  }
+
+  if(T->ReadFrom(value,false)){
+    correct=true;
+    return SetWord(T);
+  }
+  correct = false;
+  delete(T);
+  return SetWord(Address(0));
+}
+
+Word InInstantValueOnly( const ListExpr typeInfo, const ListExpr instance,
+              const int errorPos, ListExpr& errorInfo, bool& correct ){
+
+  DateTime* T = new DateTime(instanttype);
   if(T->ReadFrom(instance,false)){
     correct=true;
     return SetWord(T);
@@ -1209,6 +1229,8 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
   delete(T);
   return SetWord(Address(0));
 }
+
+
 
 Word InDuration( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct ){
@@ -1373,7 +1395,7 @@ bool CheckDuration(ListExpr type, ListExpr& errorInfo){
 TypeConstructor instant(
         "instant",                     //name
         InstantProperty,              //property function describing signature
-        OutDateTime, InInstant,       //Out and In functions
+        OutDateTime, InInstantValueOnly,       //Out and In functions
         0,                            //SaveToList and
         0,                            // RestoreFromList functions
         CreateInstant, DeleteDateTime,//object creation and deletion

@@ -30,8 +30,11 @@ file.
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-#include "TemporalAlgebra.h"
 
+#include "DateTime.h"
+using namespace datetime;
+
+#include "TemporalAlgebra.h"
 /*
 3 Type Constructor ~instant~
 
@@ -53,6 +56,11 @@ For example:
 3.2 function Describing the Signature of the Type Constructor
 
 */
+
+/* 
+  
+========THIS PART IS REPLACED BY THOMAS'S DATA TYPE (DZM 18.05.04)========
+   
 ListExpr
 InstantProperty()
 {
@@ -67,22 +75,22 @@ InstantProperty()
                              nl->StringAtom("12.0 or 14e-3 or .23"))));
 }
 
-/*
+/ *
 3.3 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. 
 
-*/
+* /
 bool
 CheckInstant( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "instant" ));
 }
 
-/*
+/ *
 3.4 ~Out~-function ( object -> NL )
 
-*/
+* / 
 ListExpr
 OutInstant( ListExpr typeinfo, Word value )
 {
@@ -97,10 +105,10 @@ OutInstant( ListExpr typeinfo, Word value )
     }
 }
  
-/*
+/ *
 3.5 ~In~-function ( NL -> object )
 
-*/
+* /
 Word
 InInstant( ListExpr typeInfo, ListExpr value,
 	   int errorPos, ListExpr& errorInfo, bool& correct )
@@ -144,20 +152,20 @@ InInstant( ListExpr typeInfo, ListExpr value,
     }
 }
 
-/*
+/ *
 3.6 ~Create~-function
 
-*/
+* /
 Word
 CreateInstant( const ListExpr typeInfo )
 {
   return (SetWord( new Instant( false, 0.0 ) ));
 }
 
-/*
+/ *
 3.7 ~Delete~-function
 
-*/
+* /
 void
 DeleteInstant( Word& w )
 {
@@ -165,10 +173,10 @@ DeleteInstant( Word& w )
   w.addr = 0;
 }
 
-/*
+/ *
 3.8 ~Close~-function
 
-*/
+* /
 void
 CloseInstant( Word& w )
 {
@@ -176,30 +184,30 @@ CloseInstant( Word& w )
   w.addr = 0;
 }
 
-/*
+/ *
 3.9 ~Clone~-function
 
-*/
+* /
 Word
 CloneInstant( const Word& w )
 {
   return SetWord( ((Instant*)w.addr)->Clone() );
 }
 
-/*
+/ *
 3.10 ~Sizeof~-function
 
-*/
+* /
 int
 SizeOfInstant()
 {
   return sizeof(Instant);
 }
 
-/*
+/ *
 3.11 ~Cast~-function
 
-*/
+* /
 void*
 CastInstant( void* addr )
 {
@@ -207,10 +215,10 @@ CastInstant( void* addr )
   return new (addr) Instant;
 }
 
-/*
+/ *
 3.12 Creation of the type constructor ~instant~
 
-*/
+* /
 TypeConstructor instant( "instant",	InstantProperty,
                          OutInstant,    InInstant,
                          0,             0,
@@ -219,6 +227,9 @@ TypeConstructor instant( "instant",	InstantProperty,
                          CloseInstant,  CloneInstant,
                          CastInstant,   SizeOfInstant, 
                          CheckInstant );
+======THIS PART OF INSTANT DATA TYPE IS REPLACED BY THOMAS'S DATA TYPE======
+
+*/
 
 /*
 4 Type Constructor ~rangeint~
@@ -440,7 +451,7 @@ CheckPeriods( ListExpr type, ListExpr& errorInfo )
 TypeConstructor periods(
         "periods",            		                        //name
         PeriodsProperty,        		                        //property function describing signature
-        OutRange<Instant, OutInstant>,
+        OutRange<Instant, OutDateTime>,
         InRange<Instant, InInstant>, 		        //Out and In functions
         0,                      0,     			        //SaveToList and RestoreFromList functions
         CreateRange<Instant>, DeleteRange<Instant>,  //object creation and deletion
@@ -1735,8 +1746,8 @@ InstantEqual( Word* args, Word& result, int message, Word& local, Supplier s )
        ((Instant*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->GetRealval() ==
-                 ((Instant*)args[1].addr)->GetRealval() );
+      Set( true, ((Instant*)args[0].addr)->ToDouble() ==
+                 ((Instant*)args[1].addr)->ToDouble() );
   }
   else
   {
@@ -1774,8 +1785,8 @@ InstantNotEqual( Word* args, Word& result, int message, Word& local, Supplier s 
        ((Instant*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->GetRealval() !=
-                 ((Instant*)args[1].addr)->GetRealval() );
+      Set( true, ((Instant*)args[0].addr)->ToDouble() !=
+                 ((Instant*)args[1].addr)->ToDouble() );
   }
   else
   {
@@ -1812,8 +1823,8 @@ InstantLess( Word* args, Word& result, int message, Word& local, Supplier s )
        ((Instant*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->GetRealval() <
-                 ((Instant*)args[1].addr)->GetRealval() );
+      Set( true, ((Instant*)args[0].addr)->ToDouble() <
+                 ((Instant*)args[1].addr)->ToDouble() );
   }
   else
   {
@@ -1835,8 +1846,8 @@ InstantLessEqual( Word* args, Word& result, int message, Word& local, Supplier s
        ((Instant*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->GetRealval() <=
-                 ((Instant*)args[1].addr)->GetRealval() );
+      Set( true, ((Instant*)args[0].addr)->ToDouble() <=
+                 ((Instant*)args[1].addr)->ToDouble() );
   }
   else
   {
@@ -1858,8 +1869,8 @@ InstantGreater( Word* args, Word& result, int message, Word& local, Supplier s )
        ((Instant*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->GetRealval() >
-                 ((Instant*)args[1].addr)->GetRealval() );
+      Set( true, ((Instant*)args[0].addr)->ToDouble() >
+                 ((Instant*)args[1].addr)->ToDouble() );
   }
   else
   {
@@ -1881,8 +1892,8 @@ InstantGreaterEqual( Word* args, Word& result, int message, Word& local, Supplie
        ((Instant*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, ((Instant*)args[0].addr)->GetRealval() >=
-                 ((Instant*)args[1].addr)->GetRealval() );
+      Set( true, ((Instant*)args[0].addr)->ToDouble() >=
+                 ((Instant*)args[1].addr)->ToDouble() );
   }
   else
   {
@@ -2089,7 +2100,7 @@ template <class Alpha>
 int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((Instant*)result.addr)->Set( true, ((Intime<Alpha>*)args[0].addr)->instant.GetRealval() );
+  ((Instant*)result.addr)->ReadFrom( ((Intime<Alpha>*)args[0].addr)->instant.ToDouble() );
   return (0);
 }
 
@@ -3331,7 +3342,6 @@ class TemporalAlgebra : public Algebra
  public:
   TemporalAlgebra() : Algebra()
   {
-    AddTypeConstructor( &instant );
     AddTypeConstructor( &rangeint );
     AddTypeConstructor( &rangereal );
     AddTypeConstructor( &periods );
@@ -3347,7 +3357,6 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &mint );
     AddTypeConstructor( &mreal );
 	    
-    instant.AssociateKind( "TIME" );
     rangeint.AssociateKind( "RANGE" );
     rangereal.AssociateKind( "RANGE" );
     periods.AssociateKind( "RANGE" );
@@ -3361,7 +3370,6 @@ class TemporalAlgebra : public Algebra
     mreal.AssociateKind( "TEMPORAL" );
     mpoint.AssociateKind( "TEMPORAL" );
     
-    instant.AssociateKind( "DATA" );
     rangeint.AssociateKind( "DATA" );
     rangereal.AssociateKind( "DATA" );
     periods.AssociateKind( "DATA" );
@@ -3375,14 +3383,6 @@ class TemporalAlgebra : public Algebra
     intimereal.AssociateKind( "DATA" );
     intimepoint.AssociateKind( "DATA" );
     
-
-    AddOperator( &instantisempty );
-    AddOperator( &instantequal );
-    AddOperator( &instantnotequal );
-    AddOperator( &instantless );
-    AddOperator( &instantlessequal );
-    AddOperator( &instantgreater );
-    AddOperator( &instantgreaterqual );
 
     AddOperator( &rangeintisempty );
     AddOperator( &rangeintequal );

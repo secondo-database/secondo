@@ -11,6 +11,13 @@ include ../../makefile.env
 MODNAME=TemporalAlgebra
 LIBNAME=lib$(MODNAME)
 
+INCFILES=\
+        $(INCLUDEDIR)/Algebra.h \
+        $(INCLUDEDIR)/NestedList.h \
+        $(INCLUDEDIR)/QueryProcessor.h \
+        $(INCLUDEDIR)/StandardTypes.h \
+        TemporalAlgebra.h
+
 OBJECTS=\
 	$(MODNAME).$(OBJEXT)
 
@@ -26,7 +33,7 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../Rectangle
 $(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) -lStandardAlgebra $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) -lStandardAlgebra -lDateTime $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
 	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)

@@ -44,8 +44,10 @@ The type system of the Temporal Algebra can be seen below.
 #include "NestedList.h"
 #include "DBArray.h"
 
-ListExpr OutInstant( ListExpr typeinfo, Word value );
-Word InInstant( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
+#include "DateTime.h"
+
+//ListExpr OutInstant( ListExpr typeinfo, Word value );
+//Word InInstant( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
 /*
 3 C++ Classes (Defintion)
 
@@ -58,7 +60,8 @@ This class represents a time instant, or a point in time. It will be
 used in the ~instant~ type constructor.
 
 */
-typedef CcReal Instant;
+//typedef CcReal Instant;
+typedef DateTime Instant;
 
 /*
 3.2 Interval
@@ -558,7 +561,7 @@ template <class Alpha>
 struct Intime: public StandardAttribute
 {
   Intime() :
-    instant( false, 0 )
+    instant( )
     {}
 /*
 The simple constructor.
@@ -566,7 +569,7 @@ The simple constructor.
 */
 
   Intime( Instant& instant, Alpha& alpha ):
-    instant( instant.IsDefined(), instant.GetRealval() ),
+    instant( instant ),
     value()
   {
     value.CopyFrom( &alpha ); 
@@ -577,7 +580,7 @@ The first constructor.
 */
 
   Intime( Intime& intime ):
-    instant( intime.instant.IsDefined(), intime.instant.GetRealval() ),
+    instant( intime.instant ),
     value()
   {
     value.CopyFrom( &intime.value );
@@ -626,7 +629,7 @@ The second constructor.
   {
       Intime<Alpha>* i = (Intime<Alpha>*)right;
       
-      instant.Set(i->instant.IsDefined(), i->instant.GetRealval() );
+      instant.ReadFrom(i->instant.ToDouble() );  //????????
       
       value.CopyFrom( &i->value ); 
   }
@@ -936,7 +939,7 @@ class UReal : public StandardAttribute,  public TemporalUnit<CcReal>
       if( !timeInterval.Contains( t ) )
         return false;
 
-      double res = a * t.GetRealval() * t.GetRealval() + b * t.GetRealval() + c;
+      double res = a * t.ToDouble() * t.ToDouble() + b * t.ToDouble() + c;
       if( r ) res = sqrt( res );
 
       result.Set( true, res );
@@ -1051,8 +1054,8 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
       Instant t0=timeInterval.start;
       Instant t1=timeInterval.end;
       
-      double x = ((x1 - x0) * (t.GetRealval() - t0.GetRealval())) / (t1.GetRealval() - t0.GetRealval()) + x0;
-      double y = ((y1 - y0) * (t.GetRealval() - t0.GetRealval())) / (t1.GetRealval() - t0.GetRealval()) + y0;
+      double x = ((x1 - x0) * (t.ToDouble() - t0.ToDouble())) / (t1.ToDouble() - t0.ToDouble()) + x0;
+      double y = ((y1 - y0) * (t.ToDouble() - t0.ToDouble())) / (t1.ToDouble() - t0.ToDouble()) + y0;
       
       result.Set( x, y );
       return true;
@@ -3630,9 +3633,9 @@ int MPoint::Position( const Instant& t )
 	if (midUPoint.timeInterval.Contains(t1)) 
 	    return mid;
 	else  //not contained 
-	    if( t1.GetRealval() >= midUPoint.timeInterval.end.GetRealval() )
+	    if( t1.ToDouble() >= midUPoint.timeInterval.end.ToDouble() )
 		first = mid + 1;
-	else if( t1.GetRealval() <= midUPoint.timeInterval.start.GetRealval() )
+	else if( t1.ToDouble() <= midUPoint.timeInterval.start.ToDouble() )
 	    last = mid - 1;
 	else  return -1; //should never reached.
     }
@@ -3837,9 +3840,9 @@ int MInt::Position( const Instant& t )
     
     ConstTemporalUnit<CcInt> midUInt;
     units.Get( mid, midUInt );
-    if( t1.GetRealval() > midUInt.timeInterval.end.GetRealval() )
+    if( t1.ToDouble() > midUInt.timeInterval.end.ToDouble() )
       first = mid + 1;
-    else if( t1.GetRealval() < midUInt.timeInterval.start.GetRealval() )
+    else if( t1.ToDouble() < midUInt.timeInterval.start.ToDouble() )
       last = mid - 1;
     else  // (midUPoint.begin <= t <= midUPoint.end)
     {
@@ -4222,9 +4225,9 @@ int MReal::Position( const Instant& t )
     
     UReal midUReal;
     units.Get( mid, midUReal );
-    if( t1.GetRealval() > midUReal.timeInterval.end.GetRealval() )
+    if( t1.ToDouble() > midUReal.timeInterval.end.ToDouble() )
       first = mid + 1;
-    else if( t1.GetRealval() < midUReal.timeInterval.start.GetRealval() )
+    else if( t1.ToDouble() < midUReal.timeInterval.start.ToDouble() )
       last = mid - 1;
     else  // midUPoint.begin <= t <= midUPoint.end
     {
@@ -4468,7 +4471,7 @@ ListExpr OutIntime( ListExpr typeInfo, Word value )
 
   return nl->TwoElemList( 
 	  //nl->RealAtom( intime->instant.GetRealval() ),
-	  OutInstant( nl->TheEmptyList(), SetWord(&intime->instant) ),
+	  OutDateTime( nl->TheEmptyList(), SetWord(&intime->instant) ),
 	  OutFun( nl->TheEmptyList(), SetWord( &intime->value ) ) );
 }
 
@@ -4586,8 +4589,8 @@ ListExpr OutConstTemporalUnit( ListExpr typeInfo, Word value )
 
     //2.get the time interval NL
     ListExpr intervalList = nl->FourElemList(
-	    OutInstant( nl->TheEmptyList(), SetWord(&constunit->timeInterval.start) ),
-	    OutInstant( nl->TheEmptyList(), SetWord(&constunit->timeInterval.end) ),
+	    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.start) ),
+	    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.end) ),
 	    nl->BoolAtom( constunit->timeInterval.lc ), 
 	    nl->BoolAtom( constunit->timeInterval.rc));
     
@@ -4750,9 +4753,9 @@ ListExpr OutUreal( ListExpr typeInfo, Word value )
   
   //2.output the time interval -> NL
   ListExpr timeintervalList = nl->FourElemList(
-	  OutInstant( nl->TheEmptyList(), SetWord(&ureal->timeInterval.start) ),
+	  OutDateTime( nl->TheEmptyList(), SetWord(&ureal->timeInterval.start) ),
 	  //nl->RealAtom( ureal->timeInterval.start.GetRealval()),
-	  OutInstant( nl->TheEmptyList(), SetWord(&ureal->timeInterval.end) ),
+	  OutDateTime( nl->TheEmptyList(), SetWord(&ureal->timeInterval.end) ),
 	  //nl->RealAtom( ureal->timeInterval.end.GetRealval()),
 	  nl->BoolAtom( ureal->timeInterval.lc ), 
 	  nl->BoolAtom( ureal->timeInterval.rc));
@@ -4929,9 +4932,9 @@ ListExpr OutUPoint( ListExpr typeInfo, Word value )
   
   //2.output the time interval -> NL
   ListExpr timeintervalList = nl->FourElemList( 
-	  OutInstant( nl->TheEmptyList(), SetWord(&upoint->timeInterval.start) ),
+	  OutDateTime( nl->TheEmptyList(), SetWord(&upoint->timeInterval.start) ),
 	  //nl->RealAtom( upoint->timeInterval.start.GetRealval()),
-	  OutInstant( nl->TheEmptyList(), SetWord(&upoint->timeInterval.end) ),
+	  OutDateTime( nl->TheEmptyList(), SetWord(&upoint->timeInterval.end) ),
 	  //nl->RealAtom( upoint->timeInterval.end.GetRealval()),
 	  nl->BoolAtom( upoint->timeInterval.lc ), 
 	  nl->BoolAtom( upoint->timeInterval.rc));

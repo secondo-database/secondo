@@ -24,7 +24,7 @@ will change the type of the this object to a {\tt duration}.
 
 #ifndef __DATE_TIME_H__
 #define __DATE_TIME_H__
-#endif
+
 
 #include <string>
 #include "NestedList.h"
@@ -423,4 +423,12 @@ is adjusted.
     void ToGregorian(long Julian, int &year, int &month, int &day);
 };
 
+namespace datetime{
+Word InInstant( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutDateTime( ListExpr typeInfo, Word value );
+}
 
+
+
+
+#endif
