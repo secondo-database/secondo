@@ -3,6 +3,7 @@
 # various software packages
 #
 # 04/19/05 M. Spiekermann
+# 04/22/09 M. Spiekermann, error handling for starting xterm &
 
 if [ "x$1" == "xtestmode" ]; then
    HOME="$HOME/DUMMY-HOME"
@@ -22,14 +23,17 @@ printf "\n* Installing Java SDK ... this needs some user interaction"
 printf "\n* all other tools will be compiled and installed silently"
 printf "\n* "
 printf "\n* Installation starts in 5 seconds. Press CTRL-C to abort. \n"
-sleep 5
+sleep 5 
 
 install -d $sdk
 install -d $temp
 
 cp $cdpath/../java/j2sdk*.bin $temp
 cd $temp && chmod u+x j2sdk*.bin
-cd $sdk && xterm -T "JAVA 2 Installer" -e $temp/j2sdk*.bin &
+cd $sdk
+if { ! xterm -T "JAVA 2 Installer" -e $temp/j2sdk*.bin & }; then 
+  printf "\n Error: Could not start xterm, maybe you ar not allowed to connect to the xhost! \n"
+fi
 
 cd "$temp"
 printf "\n* Uncompressing 3d-party tools ... \n"
@@ -64,11 +68,17 @@ fi
 
 logfile="$HOME/secondo-install.log"
 touch $logfile
-xterm -T "Installation Protocol" -e "tail -f $logfile" &
+if { ! xterm -T "Installation Protocol" -e "tail -f $logfile" & }; then
+  exit 5
+fi
 
 printf "\n* Compiling GCC ... this will take the most time ... \n"
 cd $temp/gcc-* && ./configure --prefix=$sdk >> $logfile 2>&1
-make bootstrap >> $logfile 2>&1 && make install >> $logfile 2>&1
+if { ! make bootstrap >> $logfile 2>&1; }; then
+  printf "\n Error: Compiling GCC failed! \n"
+  exit 6
+fi
+make install >> $logfile 2>&1
 export PATH=".:$sdk/bin:$PATH"
 printf "\n <PATH: $PATH> \n" >> $logfile
 gcc --version >> $logfile
@@ -77,8 +87,12 @@ printf "\n* Compiling Berkeley-DB ... \n"
 cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
 
+printf "\n* Compiling libncurses ... \n"
+cd $temp/ncurses-* && ./configure --prefix=$sdk >> $logfile 2>&1
+make >> $logfile 2>&1 && make install >> $logfile 2>&1 
+
 printf "\n* Compiling SWI-Prolog ... \n"
-cd $temp/readline-* && ./configure --prefix=$sdk >> $logfile 2>&1
+cd $temp/readline-* && ./configure --prefix=$sdk --with-curses >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
 cd $temp/pl-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1
@@ -95,10 +109,6 @@ make >> $logfile 2>&1 && make install >> $logfile 2>&1 && make install-lib >> $l
 
 printf "\n* Compiling the make tool ... \n"
 cd $temp/make-* && ./configure --prefix=$sdk >> $logfile 2>&1
-make >> $logfile 2>&1 && make install >> $logfile 2>&1 
-
-printf "\n* Compiling libncurses ... \n"
-cd $temp/ncurses-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1 
 
 printf  "\n* Copying configuration files ... \n"
