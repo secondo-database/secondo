@@ -1,8 +1,8 @@
-########################################################################
+#############################################
 #
-# SECONDO makefile definitions for Linux and gcc 2.95.3
+# SECONDO makefile definitions for Linux
 #
-########################################################################
+#############################################
 
 # System dependent default libraries
 DEFAULTLIB = -lm -ldl -lstdc++
@@ -11,12 +11,6 @@ DEFAULTLIB = -lm -ldl -lstdc++
 BDBINCLUDE = -I$(BDBDIR)/include
 BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb
-
-# Oracle OCI C++ library
-#OCICPPDIR = ocicpplib
-#OCICPPINCLUDE = -I$(OCICPPDIR)/ocicpp
-#OCICPPLIBPATH = -L$(BUILDDIR)/lib
-#OCICPPLIB = -locicpp
 
 # Uncomment next line to compile with debugging information:
 DEBUG = -ggdb

@@ -16,6 +16,7 @@ specs:  $(SPECFILES)
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
+
 .PHONY: makedirs
 makedirs: makedirsnormal makedirsjni
 

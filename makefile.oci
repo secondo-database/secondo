@@ -1,0 +1,25 @@
+# makefile.oci - Directories for the Oracle Call Interface 
+#
+# Nov. 2003 M. Spiekermann
+#
+# These macros are needed if the SMI schoul be built on top
+# of the Oracle-RDBMS. Unfortunateley this was not tested for
+# a long period since nobody was interested in using Oracle.
+# 
+
+ifeq ($(platform),win32)
+# Windows
+ORACLEHOME = /oracle/ora81
+ORACLEINCLUDE = $(ORACLEHOME)/oci/include
+OCICPPDIR = /Diplom/Libraries/ocicpplib56
+OCICPPINCLUDE = -I$(OCICPPDIR)/ocicpp -I$(ORACLEINCLUDE)
+OCICPPLIBPATH = -L$(BUILDDIR)/lib
+OCICPPLIB = -locicpp -loci
+
+else
+# Linux
+OCICPPDIR = ocicpplib
+OCICPPINCLUDE = -I$(OCICPPDIR)/ocicpp
+OCICPPLIBPATH = -L$(BUILDDIR)/lib
+OCICPPLIB = -locicpp
+endif

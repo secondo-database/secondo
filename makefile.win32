@@ -13,14 +13,6 @@ DEFAULTLIB = -lws2_32 -lm -lstdc++
 #BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb32
 
-# Oracle OCI C++ library
-ORACLEHOME = /oracle/ora81
-ORACLEINCLUDE = $(ORACLEHOME)/oci/include
-OCICPPDIR = /Diplom/Libraries/ocicpplib56
-OCICPPINCLUDE = -I$(OCICPPDIR)/ocicpp -I$(ORACLEINCLUDE)
-OCICPPLIBPATH = -L$(BUILDDIR)/lib
-OCICPPLIB = -locicpp -loci
-
 # Uncomment next line to compile with debugging information:
 DEBUG = -ggdb
 

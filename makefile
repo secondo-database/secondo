@@ -107,8 +107,9 @@ secondo.tgz:
 .PHONY: clean
 clean:
 	$(MAKE) -C ClientServer clean
-	$(MAKE) -C StorageManager clean
 	$(MAKE) -C Tools clean
+	$(MAKE) -C StorageManager clean
+	$(MAKE) -C Algebras/Management clean
 	$(MAKE) -C Algebras clean
 	$(MAKE) -C QueryProcessor clean
 	$(MAKE) -C UserInterfaces clean
