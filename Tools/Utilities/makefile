@@ -12,30 +12,37 @@ OBJECTS=\
 	Messenger.$(OBJEXT) \
 	DynamicLibrary.$(OBJEXT) \
 	Profiles.$(OBJEXT) \
-	FileSystem.$(OBJEXT)
+	FileSystem.$(OBJEXT) \
+	UtilFunctions.$(OBJEXT)
+
+VPATH = $(INCLUDEDIR)
 
 .PHONY: all
 all: $(OBJECTS)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-DynamicLibrary.$(OBJEXT): DynamicLibrary.cpp $(INCLUDEDIR)/DynamicLibrary.h $(INCLUDEDIR)/SecondoConfig.h
-	$(CC) -c -o DynamicLibrary.$(OBJEXT) DynamicLibrary.cpp $(CCFLAGS)
+DynamicLibrary.$(OBJEXT): DynamicLibrary.cpp DynamicLibrary.h SecondoConfig.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-Profiles.$(OBJEXT): Profiles.cpp $(INCLUDEDIR)/Profiles.h
-	$(CC) -c -o Profiles.$(OBJEXT) Profiles.cpp $(CCFLAGS)
+Profiles.$(OBJEXT): Profiles.cpp Profiles.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-FileSystem.$(OBJEXT): FileSystem.cpp $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoConfig.h
-	$(CC) -c -o FileSystem.$(OBJEXT) FileSystem.cpp $(CCFLAGS)
+FileSystem.$(OBJEXT): FileSystem.cpp FileSystem.h SecondoConfig.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-Processes.$(OBJEXT): Processes.cpp $(INCLUDEDIR)/Processes.h
-	$(CC) -c -o Processes.$(OBJEXT) Processes.cpp $(CCFLAGS)
+Processes.$(OBJEXT): Processes.cpp Processes.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-Application.$(OBJEXT): Application.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/SecondoConfig.h
-	$(CC) -c -o Application.$(OBJEXT) Application.cpp $(CCFLAGS)
+Application.$(OBJEXT): Application.cpp Application.h SecondoConfig.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
-Messenger.$(OBJEXT): Messenger.cpp $(INCLUDEDIR)/Messenger.h $(INCLUDEDIR)/SocketIO.h
-	$(CC) -c -o Messenger.$(OBJEXT) Messenger.cpp $(CCFLAGS)
+Messenger.$(OBJEXT): Messenger.cpp Messenger.h SocketIO.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
+
+UtilFunctions.$(OBJEXT): UtilFunctions.cpp TimeTest.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
+
 
 include ../../include.dep
 
