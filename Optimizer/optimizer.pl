@@ -891,6 +891,12 @@ plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   concat_atom([SAtom, 'groupby[', GAtom, '; ', FAtom, ']'], '', Result),
   !.
 
+plan_to_atom(extend(Stream, Fields), Result) :-
+  plan_to_atom(Stream, SAtom),
+  plan_to_atom(Fields, FAtom),
+  concat_atom([SAtom, 'extend[', FAtom, ']'], '', Result),
+  !.
+
 plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(attrname(NewAttr), NAtom),
   plan_to_atom(Expr, EAtom),
@@ -2448,12 +2454,31 @@ lookupAttr(Term, Term2) :-
   functor(Term2, Op, 1),
   arg(1, Term2, Res1).
 
+lookupAttr(Term, Term2) :-
+  compound(Term),
+  functor(Term, Op, 2),
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  lookupAttr(Arg1, Res1),
+  lookupAttr(Arg2, Res2),
+  functor(Term2, Op, 2),
+  arg(1, Term2, Res1),
+  arg(2, Term2, Res2).
+
+% may need to be extended to more than two arguments in a term.
+
+
 lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
 
-lookupAttr(Name, Name) :-
-  write('Error in attribute list: could not recognize '), write(Name), nl, fail.
+lookupAttr(Term, Term) :-
+  atom(Term),
+  write('Symbol '),
+  write(Term),
+  write(' in attribute list not recognized. Supposed to be a Secondo object ').
+
+lookupAttr(Term, Term).
 
 isAttribute(Name, Rel) :-
   queryRel(Rel, _),
@@ -2630,12 +2655,7 @@ only the cost for evaluating the essential part, the conjunctive query.
 
 */
 
-translate(Query orderby Attrs, sortby(Stream, AttrNames), Select, 0) :- 
-  !,
-  translate(Query, Stream, Select, _),
-  attrnamesSort(Attrs, AttrNames).
-
-translate(Query groupby Attrs, 
+translate(Query groupby Attrs,
 	groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
 	select Select2, Cost) :-
   translate(Query, Stream, SelectClause, Cost),
@@ -2753,67 +2773,115 @@ names have been looked up already.
 
 */
 
+queryToPlan(Query, Stream, Cost) :-
+  countQuery(Query),
+  queryToStream(Query, Stream, Cost),
+  !.
+
 queryToPlan(Query, consume(Stream), Cost) :-
-  selectClause(Query, *),
-  !,
-  translate(Query, Stream, select *, Cost).
-
-queryToPlan(Query, count(Stream), Cost) :-
-  selectClause(Query, count(*)),
-  !,
-  translate(Query, Stream, select count(*), Cost).
-
-queryToPlan(Query, consume(project(Stream, AttrNames)), Cost) :-
-  translate(Query, Stream, select Attrs, Cost), !,
-  makeList(Attrs, Attrs2),
-  attrnames(Attrs2, AttrNames).
+  queryToStream(Query, Stream, Cost).
 
 
+/*
+----	countQuery(Query) :-
+----
+
+Check whether ~Query~ is a counting query.
+
+*/
+
+
+countQuery(select count(*) from _) :- !.
+
+countQuery(Query groupby _) :-
+  countQuery(Query).
+
+countQuery(Query orderby _) :-
+  countQuery(Query).
 
 /*
 
 ----	queryToStream(Query, Plan, Cost) :-
 ----
 
-Same as ~queryToPlan~, but returns a stream plan, if possible. To be used for 
-``mixed queries'' that add Secondo operators to the plan built by the optimizer.
+Same as ~queryToPlan~, but returns a stream plan, if possible.
 
 */
 
-queryToStream(Query,  Stream, Cost) :-
-  selectClause(Query, *),
-  translate(Query, Stream, select *, Cost), !.
+queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
+  translate(Query, Stream, Select, Cost),
+  finish(Stream, Select, SortAttrs, Stream2),
+  !.
 
-queryToStream(Query, count(Stream), Cost) :-
-  selectClause(Query, count(*)),
-  translate(Query, Stream, select count(*), Cost), !.
-
-queryToStream(Query,  project(Stream, AttrNames), Cost) :-
-  translate(Query, Stream, select Attrs, Cost), !,
-  makeList(Attrs, Attrs2),
-  attrnames(Attrs2, AttrNames).
-
-
+queryToStream(Query, Stream2, Cost) :-
+  translate(Query, Stream, Select, Cost),
+  finish(Stream, Select, [], Stream2).
 
 /*
-----	selectClause(Query, C) :-
+----	finish(Stream, Select, Sort, Stream2) :-
 ----
 
-The select-clause of the ~Query~ is ~C~.
+Given a ~Stream~, a ~Select~ clause, and a set of attributes for sorting,
+apply the final tranformations (extend, sort, project) to obtain ~Stream2~.
 
 */
-selectClause(select * from _, *) :- !.
 
-selectClause(select count(*) from _, count(*)) :- !.
+finish(Stream, Select, Sort, Stream2) :-
+  selectClause(Select, Extend, Project),
+  finish2(Stream, Extend, Sort, Project, Stream2).
 
-selectClause(select Attrs from _, Attrs) :- !.
 
-selectClause(Query groupby _, C) :- !,
-  selectClause(Query, C).
 
-selectClause(Query orderby _, C) :- !,
-  selectClause(Query, C).
+selectClause(select *, [], *).
 
+selectClause(select count(*), [], count(*)).
+
+selectClause(select Attrs, Extend, Project) :-
+  makeList(Attrs, Attrs2),
+  extendProject(Attrs2, Extend, Project).
+
+
+
+finish2(Stream, Extend, Sort, Project, Stream4) :-
+  fExtend(Stream, Extend, Stream2),
+  fSort(Stream2, Sort, Stream3),
+  fProject(Stream3, Project, Stream4).
+
+
+
+fExtend(Stream, [], Stream).
+
+fExtend(Stream, Extend, extend(Stream, Extend)).
+
+
+
+fSort(Stream, [], Stream).
+
+fSort(Stream, SortAttrs, sortby(Stream, AttrNames)) :-
+  attrnamesSort(SortAttrs, AttrNames).
+
+
+
+fProject(Stream, *, Stream).
+
+fProject(Stream, count(*), count(Stream)).
+
+fProject(Stream, Project, project(Stream, AttrNames)) :-
+  attrnames(Project, AttrNames).
+
+
+
+
+extendProject([], [], []).
+
+extendProject([Expr as Name | Attrs], [field(Name, Expr) | Extend],
+	[Name | Project]) :-
+  !,
+  extendProject(Attrs, Extend, Project).
+
+extendProject([attr(Name, Var, Case) | Attrs], Extend,
+	[attr(Name, Var, Case) | Project]) :-
+  extendProject(Attrs, Extend, Project).
 
 
 /*
