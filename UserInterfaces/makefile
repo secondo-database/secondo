@@ -76,12 +76,12 @@ APP_OBJECTS :=  DisplayTTY.o SecondoInterfaceGeneral.o AlgebraList.o
 
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 
 $(BINDIR)/SecondoTTYORA$(EXEEXT):  $(SECLIBSFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 $(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
@@ -89,12 +89,12 @@ $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o 
 
 $(BINDIR)/TestRunner$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES)
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 
 $(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES)
 $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS)  -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
 
 $(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES)
 $(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o

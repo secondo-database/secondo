@@ -7,10 +7,10 @@ JAR = $(J2SDK_ROOT)/bin/jar
 JVMINIT_H_DIR = $(SECONDO_BUILD_DIR)/include
 JVMINIT_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JVMInit.o
 JNIINCLUDE = -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/win32  -I$(JVMINIT_H_DIR)
-LDFLAGS = -mno-cygwin -L$(MINGW_EXTRA)/lib
+LDJNIFLAGS = -mno-cygwin -L$(MINGW_EXTRA)/lib
 JARDIR = .
 DLLTOOL = dlltool
-AS = /mingw/as
+AS = as
 # use this for java sdk 1.2/1.3
 #JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/classic  -ljvm $(JVMINIT_O_FILE)
 # and this for java-sdk 1.4.1

@@ -5,7 +5,6 @@
 ########################################################################
 
 include ../makefile.env
-include ../makefile.jni
 
 OBJECTS=\
 	SocketIO \
@@ -78,7 +77,7 @@ $(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o
 
 $(BINDIR)/SecondoServerBDB$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) 
 $(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
 
 # Oracle SMI
 $(BINDIR)/SecondoMonitorORA$(EXEEXT): $(SECLIBFILES) 
@@ -88,7 +87,7 @@ $(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o
 
 $(BINDIR)/SecondoServerORA$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) 
 $(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS) 
-	$(LD) $(EXEFLAGS) $(LDLFAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDLFAGS) $(LDJNIFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
 
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)
