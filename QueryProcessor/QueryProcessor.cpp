@@ -869,13 +869,23 @@ vector of this function.
   * ~s~ is a nonempty list: the first element is a type expression.
 
         Then the list is a pair describing a constant of the type given
-as the first element. The type specific ~In~ function is called to
-convert the value given as a second element into a word which is entered
-into the array ~values~. Hence the annotation is as for constants: 
+as the first element. Here we have two possibilities depending on the
+second element. The second element can be a value of the type given by
+the first element or a direct pointer to a previously opened object
+of the first element type. The query processor differentiates these
+two possibilities by the reserved word ~ptr~ which means that it is a 
+pointer. For the first possibility, the type specific ~In~ function 
+is called to convert the value given as a second element into a word 
+which is entered into the array ~values~. For the second, the pointer
+is directly copied as a word into the array ~values~. 
 
-----	(ccint 7) 	->        (((ccint 7) constant 1) ccint)
+Hence the annotation is as for constants: 
 
-        <value>		->        ((<value> constant <index>) <type>)
+----	(ccint 7) 		-> (((ccint 7) constant 1) ccint)
+
+        (ccint (ptr 72638362))	-> (((ccint (ptr 72638362)) constant 1) ccint)
+
+        <value>			-> ((<value> constant <index>) <type>)
 ----
 
   * ~s~ is a nonempty list: first element is neither the symbol ~fun~,
@@ -1375,7 +1385,15 @@ function index.
       }
       else /* level = executable */
       {
-        value = GetCatalog( level )->InObject( nl->First( expr ), nl->Second( expr ),
+        if( nl->ListLength( nl->Second( expr ) ) == 2 &&
+            nl->IsAtom( nl->First( nl->Second( expr ) ) ) && 
+            nl->AtomType( nl->First( nl->Second( expr ) ) ) == SymbolType &&
+            nl->SymbolValue( nl->First( nl->Second( expr ) ) ) == "ptr" &&
+            nl->IsAtom( nl->Second( nl->Second( expr ) ) ) &&
+            nl->AtomType( nl->Second( nl->Second( expr ) ) ) == IntType )
+          value = SetWord( (void*)nl->IntValue( nl->Second( nl->Second( expr ) ) ) );
+        else
+          value = GetCatalog( level )->InObject( nl->First( expr ), nl->Second( expr ),
                               errorPos, errorInfo, correct );
         if ( correct )
         {
