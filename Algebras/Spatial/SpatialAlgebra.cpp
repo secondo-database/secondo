@@ -7736,16 +7736,11 @@ SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Suppli
 	    {
 		if (chs.Contains(*p))
 		{
-		    if (((*p)==chs.GetLP())||((*p)==chs.GetRP()))
+		    if (((*p)!=chs.GetLP())&&((*p)!=chs.GetRP()))
 		    {
-			((CcBool *)result.addr)->Set( true, false );
+			((CcBool *)result.addr)->Set( true, true );
 			return (0);
 		    }
-		}
-		else
-		{
-		    ((CcBool *)result.addr)->Set( true, true );
-		    return (0);
 		}
 	    }
 	}
