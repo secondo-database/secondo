@@ -147,8 +147,8 @@ relation(Rel, AttrList) :-
   createAttrSpelledAndIndexLookUp(Rel, AttrList3),
   card(Rel, _),
   tuplesize(Rel, _),
-  createSampleRelation(Rel, ObjList),
-  retract(storedSecondoList(ObjList)).
+  createSampleRelation(Rel, ObjList).
+  %retract(storedSecondoList(ObjList)).
 
 /*
 1.1.3 Storing And Loading Relation Schemas
@@ -615,6 +615,8 @@ updateRel(Rel) :-
   sampleName(Rel2, Sample),
   concat_atom(['delete ', Sample], '', QueryAtom),
   secondo(QueryAtom),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
   lowerfl(Sample, LSample),
   downcase_atom(Sample, DCSample),
   retractall(storedCard(Rel2, _)),
@@ -634,6 +636,8 @@ updateRel(Rel) :-
   sampleName(URel, Sample),
   concat_atom(['delete ', Sample], '', QueryAtom),
   secondo(QueryAtom),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
   lowerfl(Sample, LSample),
   downcase_atom(Sample, DCSample),
   retractall(storedCard(Rel2, _)),
