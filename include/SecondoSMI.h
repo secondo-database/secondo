@@ -265,14 +265,257 @@ vice versa.
 */
 
 /**************************************************************************
+1.3 Class "SmiKey"[1]
+
+The class ~SmiKey~ is used to store key values of different types in a
+consistent manner. Key values are restricted in length to at most
+"SMI\_MAX\_KEYLEN"[4] bytes. If the length of the key value is less than
+"SMI\_MAX\_KEYLEN\_LOCAL"[4] the key value ist stored within the class instance,
+otherwise memory is allocated.
+
+*/
+
+class SMI_EXPORT SmiKey
+{
+ public:
+  enum KeyDataType
+    { Unknown, RecNo, Integer, Float, String, Composite };
+/*
+Lists the types of key values supported by the ~SmiFiles~ for keyed access:
+
+  * *Unknown* -- not a true type, designates an uninitialized key instance
+
+  * *RecNo* -- a record number of a ~SmiRecordFile~
+
+  * *Integer* -- signed integer number (base type ~long~)
+
+  * *Float* -- floating point number (base type ~double~)
+
+  * *String* -- character string (base type ~string~)
+
+  * *Composite* -- user-defined key structure, the user has to provide a mapping
+function which is called to map the key structure to a byte string which can
+be sorted like a usual string in lexical order. On key retrieval the function
+is called to unmap the byte string to the user-defined key structure.
+
+*/
+  SmiKey( MapKeyFunc mapKey = 0 );
+  SmiKey( const SmiRecordId key );
+  SmiKey( const long key );
+  SmiKey( const double key );
+  SmiKey( const string& key );
+  SmiKey( const void* key, const SmiSize keyLen,
+          MapKeyFunc mapKey );
+  SmiKey( SmiKey& other );
+/*
+Creates a key with a type according to the constructor argument.
+
+*/
+  ~SmiKey();
+/*
+Destroys a key.
+
+*/
+  SmiKey& operator=( const SmiKey& other );
+  const bool operator>( const SmiKey& other );
+  const KeyDataType GetType() const;
+/*
+Returns the type of the key.
+
+*/
+  bool GetKey( SmiRecordId& key );
+  bool GetKey( long& key );
+  bool GetKey( double& key );
+  bool GetKey( string& key );
+  bool GetKey( void* key, const SmiSize maxKeyLen,
+               SmiSize& keyLen );
+/*
+Returns the value of the key. The argument type must match the type of the key!
+
+*/
+  static void Map( const long   inData, void* outData );
+  static void Map( const double inData, void* outData );
+  static void Unmap( const void* inData, long&   outData );
+  static void Unmap( const void* inData, double& outData );
+/*
+These functions are provided for convenience. They may be used in user-defined
+mapping functions to map integer and floating-point numbers to lexical byte
+strings and vice versa.
+
+*/
+ protected:
+ private:
+  void  FreeData();
+/*
+Frees the memory allocated for a key, if memory was previously allocated.
+The function is called internally when a new key value is assigned.
+
+*/
+  const void* GetAddr() const;
+/*
+Returns the memory address of the key value.
+
+*/
+  void  SetKey( const SmiRecordId key );
+  void  SetKey( const long key );
+  void  SetKey( const double key );
+  void  SetKey( const string& key );
+  void  SetKey( const void* key, const SmiSize keyLen,
+                MapKeyFunc mapKey );
+  void  SetKey( const KeyDataType kdt,
+                const void* key, const SmiSize keyLen,
+                MapKeyFunc mapKey = 0 );
+/*
+Sets the internal key value to the passed key value, setting also the key type.
+
+*/
+
+  KeyDataType keyType;   // Type of the key value
+  SmiSize     keyLength; // Size of the key value in bytes
+  MapKeyFunc  mapFunc;   // Address of a mapping function
+  union                  // Structure for storing the key
+  {
+    SmiRecordId recnoKey;
+    long        integerKey;
+    double      floatKey;
+    char        shortKeyData[SMI_MAX_KEYLEN_LOCAL+1];
+    char*       longKeyData;
+  };
+
+  friend class SmiFile;
+  friend class SmiFileIterator;
+  friend class SmiRecordFile;
+  friend class SmiKeyedFile;
+  friend class SmiKeyedFileIterator;
+  friend class SmiRecord;
+};
+
+/**************************************************************************
+1.3 Class "SmiFile"[1]
+
+This class provides the methods common to both ~SmiRecordFiles~ and
+~SmiKeyedFiles~.
+
+*/
+
+class SMI_EXPORT SmiFile
+{
+ public:
+  enum FileType   { FixedLength, VariableLength, Keyed };
+/*
+Is an enumeration of possible file types:
+
+  * *FixedLength* -- Files of this type consist of a set of records all having a
+fixed size which cannot be changed.
+A record is filled with binary null characters if not the whole record is written.
+Depending on the implementation this file type allows for better locking characteristics
+in multi-user environments. Records are identified by record numbers.
+
+  * *VariableLength* -- Files of this type consist of a set of records of potentially
+varying size. Records are identified by record numbers.
+
+  * *Keyed* -- Files of this type consist of key/data pairs.
+
+*/
+  enum AccessType { ReadOnly,    Update         };
+/*
+Is an enumeration of possible access types:
+
+  * *ReadOnly* -- Records are selected for read access only. Operations which change
+the contents or the size of a record are not permitted.
+
+  * *Update* -- Records are selected for read and/or write access.
+
+*/
+  bool Create( const string& context = "Default" );
+/*
+Creates a new anonymous ~SmiFile~.
+Optionally a ~context~ can be specified.
+
+*/
+  bool Open( const SmiFileId id,
+             const string& context = "Default" );
+/*
+Opens an existing anonymous ~SmiFile~ using its file identifier ~id~.
+Optionally a ~context~ can be specified.
+
+*/
+  bool Open( const string& name,
+             const string& context = "Default" );
+/*
+Opens an existing named ~SmiFile~ or creates a new named ~SmiFile~ if it does not
+exist. Optionally a ~context~ can be specified.
+
+*/
+  bool Close();
+/*
+Closes an open ~SmiFile~.
+
+*/
+  bool Drop();
+/*
+Erases a ~SmiFile~. It is necessary to close any record iterators or record
+handles before dropping a ~SmiFile~.
+
+*/
+  string GetContext();
+/*
+Returns the context of the ~SmiFile~.
+
+*/
+  string GetName();
+/*
+Returns the name of a named ~SmiFile~ or an empty string for an anonymous ~SmiFile~.
+
+*/
+  SmiFileId GetFileId();
+/*
+Returns the unique ~SmiFile~ identifier.
+
+*/
+  bool   IsOpen();
+/*
+Returns whether the ~SmiFile~ handle is open and can be used to access the
+records of the ~SmiFile~.
+
+*/
+ protected:
+  SmiFile();
+  SmiFile( SmiFile &smiFile );
+  ~SmiFile();
+  bool CheckName( const string& name );
+/*
+Checks whether the given name ~name~ is valid.
+
+*/
+
+  bool        opened;               // Open state of SmiFile
+  string      fileContext;          // Name of file context
+  string      fileName;             // Name of named SmiFile
+  SmiFileId   fileId;               // Unique file identifier
+
+  FileType    fileType;             // Type of SmiFile records
+  SmiSize     fixedRecordLength;    // Length of records with
+                                    //   fixed length
+  bool        uniqueKeys;           // Uniqueness of keys
+  SmiKey::KeyDataType keyDataType;  // Data type of keys
+
+  class Implementation;
+  Implementation* impl;
+ private:
+
+  friend class SmiEnvironment;
+  friend class SmiFileIterator;
+  friend class SmiRecord;
+};
+
+/**************************************************************************
 1.3 Class "SmiEnvironment"[1]
 
 This class handles all aspects of the environment of the storage environment
 including the basics of transactions.
 
 */
-
-class SmiFile;  // Forward declaration of SmiFile class
 
 class SMI_EXPORT SmiEnvironment
 {
@@ -524,135 +767,10 @@ or if the application runs in single user mode.
   Implementation* impl;
   friend class Implementation;
   friend class SmiFile;
+  friend class SmiFile::Implementation;
   friend class SmiFileIterator;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;
-  friend class SmiRecord;
-};
-
-/**************************************************************************
-1.3 Class "SmiKey"[1]
-
-The class ~SmiKey~ is used to store key values of different types in a
-consistent manner. Key values are restricted in length to at most
-"SMI\_MAX\_KEYLEN"[4] bytes. If the length of the key value is less than
-"SMI\_MAX\_KEYLEN\_LOCAL"[4] the key value ist stored within the class instance,
-otherwise memory is allocated.
-
-*/
-
-class SMI_EXPORT SmiKey
-{
- public:
-  enum KeyDataType
-    { Unknown, RecNo, Integer, Float, String, Composite };
-/*
-Lists the types of key values supported by the ~SmiFiles~ for keyed access:
-
-  * *Unknown* -- not a true type, designates an uninitialized key instance
-
-  * *RecNo* -- a record number of a ~SmiRecordFile~
-
-  * *Integer* -- signed integer number (base type ~long~)
-
-  * *Float* -- floating point number (base type ~double~)
-
-  * *String* -- character string (base type ~string~)
-
-  * *Composite* -- user-defined key structure, the user has to provide a mapping
-function which is called to map the key structure to a byte string which can
-be sorted like a usual string in lexical order. On key retrieval the function
-is called to unmap the byte string to the user-defined key structure.
-
-*/
-  SmiKey( MapKeyFunc mapKey = 0 );
-  SmiKey( const SmiRecordId key );
-  SmiKey( const long key );
-  SmiKey( const double key );
-  SmiKey( const string& key );
-  SmiKey( const void* key, const SmiSize keyLen,
-          MapKeyFunc mapKey );
-  SmiKey( SmiKey& other );
-/*
-Creates a key with a type according to the constructor argument.
-
-*/
-  ~SmiKey();
-/*
-Destroys a key.
-
-*/
-  SmiKey& operator=( const SmiKey& other );
-  const bool operator>( const SmiKey& other );
-  const KeyDataType GetType() const;
-/*
-Returns the type of the key.
-
-*/
-  bool GetKey( SmiRecordId& key );
-  bool GetKey( long& key );
-  bool GetKey( double& key );
-  bool GetKey( string& key );
-  bool GetKey( void* key, const SmiSize maxKeyLen,
-               SmiSize& keyLen );
-/*
-Returns the value of the key. The argument type must match the type of the key!
-
-*/
-  static void Map( const long   inData, void* outData );
-  static void Map( const double inData, void* outData );
-  static void Unmap( const void* inData, long&   outData );
-  static void Unmap( const void* inData, double& outData );
-/*
-These functions are provided for convenience. They may be used in user-defined
-mapping functions to map integer and floating-point numbers to lexical byte
-strings and vice versa.
-
-*/
- protected:
- private:
-  void  FreeData();
-/*
-Frees the memory allocated for a key, if memory was previously allocated.
-The function is called internally when a new key value is assigned.
-
-*/
-  const void* GetAddr() const;
-/*
-Returns the memory address of the key value.
-
-*/
-  void  SetKey( const SmiRecordId key );
-  void  SetKey( const long key );
-  void  SetKey( const double key );
-  void  SetKey( const string& key );
-  void  SetKey( const void* key, const SmiSize keyLen,
-                MapKeyFunc mapKey );
-  void  SetKey( const KeyDataType kdt, 
-                const void* key, const SmiSize keyLen,
-                MapKeyFunc mapKey = 0 );
-/*
-Sets the internal key value to the passed key value, setting also the key type.
-
-*/
-
-  KeyDataType keyType;   // Type of the key value
-  SmiSize     keyLength; // Size of the key value in bytes
-  MapKeyFunc  mapFunc;   // Address of a mapping function
-  union                  // Structure for storing the key
-  {
-    SmiRecordId recnoKey;
-    long        integerKey;
-    double      floatKey;
-    char        shortKeyData[SMI_MAX_KEYLEN_LOCAL+1];
-    char*       longKeyData;
-  };
-
-  friend class SmiFile;
-  friend class SmiFileIterator;
-  friend class SmiRecordFile;
-  friend class SmiKeyedFile;
-  friend class SmiKeyedFileIterator;
   friend class SmiRecord;
 };
 
@@ -748,129 +866,11 @@ essential to explicitly call this method.
 };
 
 /**************************************************************************
-1.3 Class "SmiFile"[1]
-
-This class provides the methods common to both ~SmiRecordFiles~ and
-~SmiKeyedFiles~.
-
-*/
-
-class SMI_EXPORT SmiFile
-{
- public:
-  enum FileType   { FixedLength, VariableLength, Keyed };
-/*
-Is an enumeration of possible file types:
-
-  * *FixedLength* -- Files of this type consist of a set of records all having a
-fixed size which cannot be changed.
-A record is filled with binary null characters if not the whole record is written.
-Depending on the implementation this file type allows for better locking characteristics
-in multi-user environments. Records are identified by record numbers.
-
-  * *VariableLength* -- Files of this type consist of a set of records of potentially
-varying size. Records are identified by record numbers.
-
-  * *Keyed* -- Files of this type consist of key/data pairs.
-
-*/
-  enum AccessType { ReadOnly,    Update         };
-/*
-Is an enumeration of possible access types:
-
-  * *ReadOnly* -- Records are selected for read access only. Operations which change
-the contents or the size of a record are not permitted.
-
-  * *Update* -- Records are selected for read and/or write access.
-
-*/
-  bool Create( const string& context = "Default" );
-/*
-Creates a new anonymous ~SmiFile~.
-Optionally a ~context~ can be specified.
-
-*/
-  bool Open( const SmiFileId id,
-             const string& context = "Default" );
-/*
-Opens an existing anonymous ~SmiFile~ using its file identifier ~id~.
-Optionally a ~context~ can be specified.
-
-*/
-  bool Open( const string& name,
-             const string& context = "Default" );
-/*
-Opens an existing named ~SmiFile~ or creates a new named ~SmiFile~ if it does not
-exist. Optionally a ~context~ can be specified. 
-
-*/
-  bool Close();
-/*
-Closes an open ~SmiFile~.
-
-*/
-  bool Drop();
-/*
-Erases a ~SmiFile~. It is necessary to close any record iterators or record 
-handles before dropping a ~SmiFile~.
-
-*/
-  string GetContext();
-/*
-Returns the context of the ~SmiFile~.
-
-*/
-  string GetName();
-/*
-Returns the name of a named ~SmiFile~ or an empty string for an anonymous ~SmiFile~.
-
-*/
-  SmiFileId GetFileId();
-/*
-Returns the unique ~SmiFile~ identifier.
-
-*/
-  bool   IsOpen();
-/*
-Returns whether the ~SmiFile~ handle is open and can be used to access the
-records of the ~SmiFile~.
-
-*/
- protected:
-  SmiFile();
-  SmiFile( SmiFile &smiFile );
-  ~SmiFile();
-  bool CheckName( const string& name );
-/*
-Checks whether the given name ~name~ is valid.
-
-*/
-
-  bool        opened;               // Open state of SmiFile
-  string      fileContext;          // Name of file context
-  string      fileName;             // Name of named SmiFile
-  SmiFileId   fileId;               // Unique file identifier
-
-  FileType    fileType;             // Type of SmiFile records
-  SmiSize     fixedRecordLength;    // Length of records with
-                                    //   fixed length
-  bool        uniqueKeys;           // Uniqueness of keys
-  SmiKey::KeyDataType keyDataType;  // Data type of keys
-
-  class Implementation;
-  Implementation* impl;
- private:
-
-  friend class SmiFileIterator;
-  friend class SmiRecord;
-};
-
-/**************************************************************************
 1.3 Class "SmiRecordFile"[1]
 
 The class ~SmiRecordFile~ allows record oriented access to persistent objects.
 New records can only be appended to a ~SmiRecordFile~, but existing records can
-be processed in random order using their record numbers. 
+be processed in random order using their record numbers.
 
 By means of an iterator it is possible to scan through all records of a ~SmiFile~.
 The records are obtained in the order they were appended to the file.
