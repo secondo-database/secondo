@@ -33,6 +33,8 @@ highestValid(0)
 {
   assert( count > 0 );
 
+  CalcSlotSize();
+
   // initialize vectors
   table.resize( count );
   valid.resize( count );
@@ -52,18 +54,13 @@ CTable<T>::~CTable() {}
 template<typename T>
 
 void
-CTable<T>::totalMemory(Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAccess) {
- 
- T* ptrT = 0;
- bool* ptrb = 0;
- 
- // calculation of allocated memory	 
- long dT = ((long)++ptrT); 
- long db = ((long)++ptrb);
-  
- mem = (Cardinal)(dT * table.capacity()) + (db * valid.capacity());
- pageChanges = 0;
- slotAccess = 0;
+CTable<T>::TotalMemory( Cardinal &mem, 
+                        Cardinal &pageChanges, 
+			Cardinal &slotAccess  ) 
+{ 
+  mem = (Cardinal)(slotSize * elemCount);
+  pageChanges = 0;
+  slotAccess = 0;
 }
 
 
@@ -75,15 +72,10 @@ CTable<T>::totalMemory(Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAcces
 
 template<typename T>
 
-T&
-CTable<T>::operator[]( Cardinal n ) {
+void
+CTable<T>::UpdateSlotCounters(Cardinal const n) {
 
-  if ( !((n>0) && (n <= elemCount)) ) {
-    cerr << "CTable slot " << n << " out of Range! " << endl;
-    assert( n > 0 && n <= elemCount );
-  }
-
-  if ( n == leastFree ) {
+  if ( n == leastFree ) { // find the next free slot
 
     do {
       ++leastFree;
@@ -91,12 +83,26 @@ CTable<T>::operator[]( Cardinal n ) {
     while ( leastFree <= elemCount && valid[leastFree-1] );
   }
 
-  valid[n-1] = true;
-
-  if (highestValid < n) {
+  if (highestValid < n) { // set the highest used slot number
     highestValid = n;
   }
+}
 
+
+template<typename T>
+
+T&
+CTable<T>::operator[]( Cardinal n ) {
+
+  if ( !((n>0) && (n <= elemCount)) ) {
+     cerr << "CTable<" << typeid(T).name() << ">"
+          << "slot n=" << n << " is out of range." << endl;
+     assert( n > 0 && n <= elemCount );
+  }
+
+  UpdateSlotCounters(n);
+
+  valid[n-1] = true;
   return table[n-1];
 }
 
@@ -158,6 +164,7 @@ template<typename T>
 const Cardinal
 CTable<T>::EmptySlot()
 {
+  //static Cardinal last = 0;
   if ( leastFree > elemCount )
   {
     Cardinal newElemCount = 2 * elemCount;
@@ -169,8 +176,11 @@ CTable<T>::EmptySlot()
       valid[j] = false;
     }
     elemCount = newElemCount;
+    //leastFree++;
   }
-
+  
+  //assert( leastFree-1 != last );
+  //last = leastFree-1;
   return leastFree;
 }
 
@@ -179,26 +189,11 @@ CTable<T>::EmptySlot()
 template<typename T>
 
 const Cardinal
-CTable<T>::Add( const T& element )
+CTable<T>::Add( T& element )
 {
-
   Cardinal index = EmptySlot();
-  valid[index-1] = true;
-  table[index-1] = element;
-
-  if ( index == leastFree )
-  {
-    do
-    {
-      ++leastFree;
-    }
-    while ( leastFree <= elemCount && valid[leastFree-1] );
-  }
-
-  if (highestValid < index)  {
-    highestValid = index;
-  }
-
+  (*this)[index] = element;
+   
   return index;
 }
 

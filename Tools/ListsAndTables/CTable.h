@@ -51,9 +51,17 @@ January 2002 Ulrich Telle, Port to C++.
 
 November 2002 M. Spiekermann, method reportVectorSizes added.
 
-Jan - May 2003 M. Spiekermann, CTable implemented on top of the PArray template. 
+Jan - May 2003 M. Spiekermann, ~CTable~ alternative implemented on top of 
+the ~PArray~ template. 
 
-June 2004 M. Spiekermann, 
+July 2004 M. Spiekermann. Some simple functions implemented inside the class
+declaration.  There is also an alternative header file called MemCTable.h which
+includes this file and renames the class into MemCTable. This is useful to have
+a class which is based on a implementation using class vector ignoring the
+macro CTABLE\_PERSITENT. This is useful because only the code in nested list
+module has been revised to guarantee that it runs with both ~CTable~
+implementations.
+
 
 1.1 Concept
 
@@ -78,61 +86,59 @@ is also able to extend its size automatically when all slots are filled. The
 third way is writing and reading it sequentially, like a list.
 
 [24]	Creation/Removal & Size info & Element access & Managing a set	\\ 
-
 	[--------]
-
 	CTable		 & Size	     & [cppref] const & IsValid		\\
-
 	[tilde]CTable	 & NoEntries & [cppref]	      & EmptySlot	\\
-
-			 &	     &  	      & Add		\\
-
+	                 &	     &                & Add		\\
 			 &	     &  	      & Remove		\\
 
 
 
 [23]	Iterator   & Scanning	    & Persistence	\\
-
 	[--------]
-
 	Iterator   & ++	            & Load (not implemented yet) \\
-
 	Begin      & EndOfScan	    & Save (not implemented yet) \\
-
 	End	   & GetIndex       &	\\
-
 	operator== & operator[star] &	\\
-
 	operator!= & operator=	    &	\\	
 
 
-The CTable has two implementations. The first is on top of the standard vector template and
-the second is build up with the PArray template class, an array implementation which uses
-a variable length SmiRecord to store the elements. 
+The CTable has two implementations. The first is on top of the standard vector
+template and the second is build up with the PArray template class, an array
+implementation which uses a variable length SmiRecord to store the elements. 
 
 You can request the persistence version with use of the preprocessor directive
-#define CTABLE_PERSISTENT before #include "CTable.h". But there are some inevitable limitations:
+\#define CTABLE\_PERSISTENT before \#include "CTable.h". But there are some
+inevitable limitations:
 
   * operator[star] can be used only in an rvalue.
 
   * [cppref] can also be used only in an rvalue.
 
-For example if 'it' is an iterator for an CTable<int> object, then [star]it = 5 will cause a compiler
-error message. The same holds for [cppref] at the left side of an assignment. You have to substitute
-those expressions by code fragments like this:
+For example if 'it' is an iterator for an CTable<int> object, then [star]it = 5
+will cause a compiler error message. The same holds for [cppref] at the left
+side of an assignment. You have to substitute those expressions by code
+fragments like this:
 
 ----   int elem = Expression; myTable.Put(pos, elem);
 
 ----
        
-In order to write code that is independent from the CTABLE_PERSISTENT switch don't use
-the [star] and [cppref] operations as lvalue.
+In order to write code that is independent from the CTABLE\_PERSISTENT switch
+don't use the [star] and [cppref] operations as lvalue.
 
-The in-memory version will have some dummy functions, because some methods only make sense
-for the persistence version. The Code is organized in three files. This file contains all
-declarations and the implementation of code which is independent from the vector or PArray
-classes. The file CTable.cpp is included for the vector based implementation and the file PCTable.cpp
-contains code for the PArray version. 
+The in-memory version will have some dummy functions, because some methods only
+make sense for the persistence version. The Code is organized in three files.
+This file contains all declarations and the implementation of code which is
+independent from the vector or PArray classes. The file CTable.cpp is included
+for the vector based implementation and the file PCTable.cpp contains code for
+the PArray version. 
+
+Open Problems: The ~put~ and ~add~ methods should use a const T parameter, but
+this is only possible if we make a copy of the paramater inside the functions
+since other interfaces used below this are not suitable for passing a const
+parameter. 
+
 
 1.2 Imports, Types
 
@@ -147,7 +153,7 @@ contains code for the PArray version.
 #include <sstream>
 #include <iostream>
 #include <string>
-
+#include <typeinfo>
 
 #ifdef CTABLE_PERSISTENT
 #include "PagedArray.h"
@@ -203,7 +209,7 @@ MemoryModel returns the values "PERSISTENT" or "NON-PERSISTENT".
 */
 
   Cardinal Size();
-  void totalMemory(Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAccess );
+  void TotalMemory(Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAccess );
 
 /* 
 
@@ -315,7 +321,7 @@ earlier definitions of compact tables!).
 
 */
 
-  const Cardinal Add( const T& element );
+  const Cardinal Add( T& element );
 
 /* 
 
@@ -359,7 +365,6 @@ only the valid slots in increasing order.
 */
 
   class Iterator;            // Declaration required
-
   friend class Iterator;     // Make it a friend
 
   class Iterator             // Definition
@@ -471,9 +476,7 @@ highest valid slot. Such an iterator can be used to mark the end of a scan.
 */
 
     CTable<T>* ct;          // referenced Compact Table
-
     Cardinal current;       // current iterator position
-
     friend class CTable<T>;
 
   };
@@ -502,6 +505,7 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 */
 
   const string StateToStr(); 
+  long GetSlotSize() { return slotSize; }
 
 /* 
 
@@ -512,6 +516,30 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 
 
 private:
+
+  inline bool OutOfRange(Cardinal const n) { // check if a valid slot is used
+   
+    if ( !(n > 0 && n <= elemCount) ) {
+       cerr << "CTable<" << typeid(T).name() << "> "
+            << "slot n=" << n << " is out of range." << endl;
+       return true;
+    }
+    return false;
+  }
+  
+  void CalcSlotSize() { // Calculate the slot size
+    
+    T* ptrT = 0;
+    bool* ptrb = 0; // vector<bool> may have a special implementation
+                    // which uses memory more efficiently
+ 
+    // calculation of allocated memory	 
+    long dT = ((long)++ptrT); 
+    long db = ((long)++ptrb);
+    slotSize = dT + db; 
+  }
+  
+  void UpdateSlotCounters(Cardinal const n); // used by Add and 
 
 #ifdef CTABLE_PERSISTENT
 
@@ -527,9 +555,11 @@ private:
   std::vector<T> table;       // Array of table elements
   std::vector<bool> valid;    // Array of table element states
 
-#endif
 
-  bool isPersistent; // Flag indicating the implemented model
+#endif // common member variables
+
+  long slotSize;
+  bool isPersistent;       // Flag indicating the implemented model
   Cardinal elemCount;      // Size of compact table
   Cardinal leastFree;      // Position of free slot
   Cardinal highestValid;   // Position of highest valid slot
@@ -730,7 +760,7 @@ CTable<T>::Iterator::EndOfScan() const {
 
 /*
 
-1.1.1 Inclusion of the implementation dependent parts
+1.1 Inclusion of variant implementations 
 
 */
 
