@@ -113,15 +113,34 @@ ifndef tag
 tag=HEAD
 endif
 
-.PHONY: dist
-dist:	secondo.tgz
-	$(MAKE) -C Win32/MSYS dist
 
-secondo.tgz:
-	cvs export -r$(tag) secondo
-	tar -czf  secondo.tgz secondo/*
-	cp secondo.tgz $(NETDEV)
+.PHONY: dist
+dist:   $(net)/windows/secondo-win32.tgz $(net)/linux/secondo-linux.tgz
+ifeq ($(platform),win32)
+	$(MAKE) -C Win32/MSYS dist
+endif
+
+$(net)/windows/secondo-win32.tgz: secondo-win32.tgz
+	cp $< $@ 
+
+$(net)/linux/secondo-linux.tgz: secondo-linux.tgz
+	cp $< $@ 
+
+secondo-win32.tgz secondo-linux.tgz:
+	cvs export -d secondo -r$(tag) secondo
+ifneq ($(platform),win32)
+	tar -czf secondo-linux.tgz secondo/*
+	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.fig" -or -name "*.canvas" \) -exec recode lat1..cp1252 {} \;
+	tar -czf secondo-win32.tgz secondo/*
+else
+	tar -czf secondo-win32.tgz secondo/*
+	@echo "To do: recode windows to unix codepage..."
+	tar -czf secondo-linux.tgz secondo/*
+endif
 	rm -r secondo
+
+
+
 
 .PHONY: clean
 clean:
