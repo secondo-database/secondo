@@ -1,0 +1,1 @@
+pdtabs < $1 | makeascii | linebreaks > $1.ascii

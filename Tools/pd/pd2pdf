@@ -1,0 +1,6 @@
+cat $PD_HEADER > $1.tex
+pdtabs < $1 | maketex | linebreaks >> $1.tex
+latex $1.tex
+dvips -o $1.ps $1.dvi
+$PDF_CONVERTER $1.ps
+rm -f $1.ps $1.dvi $1.tex

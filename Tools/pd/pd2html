@@ -1,0 +1,1 @@
+pdtabs < $1 | makehtml > $1.html

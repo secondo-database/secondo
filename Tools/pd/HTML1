@@ -1,0 +1,31 @@
+/*
+//paragraph [1] Title: [{\Large \bf] [}]
+//[ue] [\"{u}]
+
+
+[1] An Extension of the PD System: Compiling into HTML 
+
+Ralf Hartmut G[ue]ting
+
+November 1995
+
+
+
+1 Overview
+
+A version of the ~PDSystem~ has been constructed which transforms PD files into HTML instead of LaTeX source files. This document describes the changes relative to the previous PDSystem, as described in [G[ue]95a, G[ue]95b].
+
+Basically only the parser component (~Parser.y~) had to be changed and only in a rather trivial way by letting the statements generating LaTeX code produce corresponding HTML code. The result is a new version of the parser called ~ParserHTML.y~.
+
+A second small change concerns the main program ~Maketex.c~ which produces an
+
+----	\end{document}
+----
+
+tail for the output text. This was removed; the changed version is called ~MakeHTML.c~.
+
+A simple command procedure ~pd2html~ was introduced (analogous to the procedure ~pd2tex~) which produces a HTML file from a PD file.
+
+The remainder of this document contains the revised parser ~ParserHTML.y~, the main program ~MakeHTML.c~, the command procedure ~pd2html~, and the revised ~makefile~.
+
+*/

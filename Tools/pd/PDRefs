@@ -1,0 +1,21 @@
+/*
+//[ae]	[\"{a}]
+//[oe]	[\"{o}]
+//[ue]	[\"{u}]
+//[ss]	[\ss]
+
+
+\begin{thebibliography}{ABCD99}
+
+\bibitem[ASU86]{ASU86} 
+Aho, A.V., R. Sethi, and J.D. Ullman, Compilers: Principles, Techniques, and Tools. Addison-Wesley, 1986.
+
+\bibitem[G[ue]95]{Gue95} G[ue]ting, R.H., Integrating Programs and Documentation. FernUniversit[ae]t Hagen, Informatik-Report 182, May 1995.
+
+\bibitem[La86]{La86} Lamport, L., \LaTeX : A Document Preparation System. User's Guide \& Reference Manual. Addison-Wesley, 1986.
+
+\bibitem[SUN88]{SUN88} Sun Microsystems, Programming Utilities and Libraries. User Manual. Sun Microsystems, 1988.
+
+\end{thebibliography}
+
+*/

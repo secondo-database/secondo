@@ -1,0 +1,2 @@
+cat $PD_HEADER > $1.tex
+pdtabs < $1 | maketex | linebreaks >> $1.tex
