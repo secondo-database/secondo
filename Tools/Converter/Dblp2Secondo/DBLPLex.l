@@ -37,9 +37,9 @@ int i;
 
 startarticle           <article.*>
 endarticle             <\/article>
-startinproceedings     <inproceedings.*> 
+startinproceedings     <inproceedings.*>
 endinproceedings       <\/inproceedings>
-startproceedings       <proceedings.*> 
+startproceedings       <proceedings.*>
 endproceedings         <\/proceedings>
 startbook              <book[ ].*>
 endbook                <\/book>
@@ -51,7 +51,7 @@ startmasterthesis      <mastersthesis.*>
 endmasterthesis        <\/mastersthesis>
 startwww               <www.*>
 endwww                 <\/www>
-author                 <author>.*<\/author>
+author                 <author>[^(<\/)]*<\/author>
 editor                 <editor>.*<\/editor>
 address                <address>.*<\/address>
 title                  <title>.*<\/title>
