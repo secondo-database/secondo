@@ -12189,6 +12189,14 @@ const string SpatialSpecCommonborder  =
 	"<text> query commonborder(region1, region2)</text--->"
 	") )";
 
+const string SpatialSpecCommonborderscan  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(region x region) -> line</text--->"
+	"<text> commonborderscan(_, _ )</text--->"
+	"<text> return the common border of two regions through spatial scan.</text--->"
+	"<text> query commonborderscan(region1, region2)</text--->"
+	") )";
+
 const string SpatialSpecTranslate  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(point||points||line||region x real x real) -> point||points||line||region</text--->"
@@ -12321,7 +12329,7 @@ Operator spatialcommonborder
 	  commonborderSelect, commonborderMap );
 
 Operator spatialcommonborderscan
-	( "commonborderscan", SpatialSpecCommonborder, 1, commonborderscanmap, spatialnomodelmap,
+	( "commonborderscan", SpatialSpecCommonborderscan, 1, commonborderscanmap, spatialnomodelmap,
 	  commonborderSelect, commonborderMap );
 
 Operator spatialtranslate
