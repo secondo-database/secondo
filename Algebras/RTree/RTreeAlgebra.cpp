@@ -300,7 +300,7 @@ of the desired R-Tree is defind in RTreeAlgebra.h. The variables ~do\_linear\_sp
 a R[*]-Tree is generated.
 
 The following operator ~creatertree~ accepts relations with tuples of (at least) one
-attribute of kind ~SPATIAL2D~, ~SPATIAL3D~ or ~SPATIAL4D~ or ~rect~, ~rect3~, and ~rect4~. 
+attribute of kind ~SPATIAL2D~, ~SPATIAL3D~ or ~SPATIAL4D~ or ~rect~, ~rect3~, and ~rect4~.
 The attribute name is specified as argument of the operator.
 
 7.1.1 Type Mapping of operator ~creatertree~
@@ -309,7 +309,7 @@ The attribute name is specified as argument of the operator.
 ListExpr CreateRTreeTypeMap(ListExpr args)
 {
   string attrName, relDescriptionStr;
-  char* errmsg = "Incorrect input for operator creatertree.";
+  string errmsg = "Incorrect input for operator creatertree.";
   int attrIndex;
   ListExpr attrType;
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -317,50 +317,42 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
 
   CHECK_COND(!nl->IsEmpty(args) &&
               nl->ListLength(args) == 2,
-   "Operator creatertree expects two arguments.");
-
+              errmsg + "\nOperator creatertree expects two arguments.");
 
   ListExpr relDescription = nl->First(args);
   ListExpr attrNameLE = nl->Second(args);
 
-  CHECK_COND(nl->IsAtom(attrNameLE), errmsg);
-  CHECK_COND(nl->AtomType(attrNameLE) == SymbolType, errmsg);
-
+  CHECK_COND(nl->IsAtom(attrNameLE) &&
+             nl->AtomType(attrNameLE) == SymbolType,
+             errmsg + "\nThe second argument must be the name of the attribute to index.");
   attrName = nl->SymbolValue(attrNameLE);
 
-  nl->WriteToString (relDescriptionStr, relDescription); //for error message
+  nl->WriteToString (relDescriptionStr, relDescription);
   CHECK_COND(!nl->IsEmpty(relDescription) &&
              nl->ListLength(relDescription) == 2,
-    "Operator creatertree expects a first list with structure "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with structure '"+relDescriptionStr+"'.");
+             errmsg + "\nOperator creatertree expects a first argument with structure "
+             "(rel (tuple ((a1 t1)...(an tn))))\n"
+             "but gets it with structure '" + relDescriptionStr + "'.");
 
-  ListExpr relSymbol = nl->First(relDescription);;
   ListExpr tupleDescription = nl->Second(relDescription);
 
-  CHECK_COND(nl->IsAtom(relSymbol) &&
-             nl->AtomType(relSymbol) == SymbolType &&
-             nl->SymbolValue(relSymbol) == "rel" &&
+  CHECK_COND(nl->IsEqual(nl->First(relDescription), "rel") &&
              nl->ListLength(tupleDescription) == 2,
-    "Operator creatertree expects a first list with structure "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with structure '"+relDescriptionStr+"'.");
+             errmsg + "\nOperator creatertree expects a first argument with structure "
+             "(rel (tuple ((a1 t1)...(an tn))))\n"
+             "but gets it with structure '" + relDescriptionStr + "'.");
 
-  ListExpr tupleSymbol = nl->First(tupleDescription);
   ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol) &&
-             nl->AtomType(tupleSymbol) == SymbolType &&
-             nl->SymbolValue(tupleSymbol) == "tuple" &&
+  CHECK_COND(nl->IsEqual(nl->First(tupleDescription), "tuple") &&
              IsTupleDescription(attrList),
-    "Operator creatertree expects a first list with structure "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with structure '"+relDescriptionStr+"'.");
-
+             errmsg + "\nOperator creatertree expects a first argument with structure "
+             "(rel (tuple ((a1 t1)...(an tn))))\n"
+             "but gets it with structure '" + relDescriptionStr + "'.");
 
   CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
-    "Operator creatertree expects an attributename "+attrName+" in first list\n"
-    "but gets a first list with structure '"+relDescriptionStr+"'.");
+             errmsg + "\nOperator creatertree expects that the attribute " + attrName +
+             "\npassed as second argument to be part of the relation description\n'"
+             + relDescriptionStr + "'.");
 
   CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
              algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
@@ -368,9 +360,9 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
              nl->IsEqual(attrType, "rect")||
              nl->IsEqual(attrType, "rect3")||
              nl->IsEqual(attrType, "rect4"),
-    "Operator creatertree expects that attribute "+attrName+"\n"
-    "belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D\n"
-    "or rect, rect3, and rect4.");
+             errmsg + "\nOperator creatertree expects that attribute "+attrName+"\n"
+             "belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D\n"
+             "or rect, rect3, and rect4.");
 
   string rtreetype;
 
