@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/sh 
 #
 # pd2dvi <file> - Converts a PD file to a TEX file
 #

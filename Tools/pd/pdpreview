@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # pdpreview <file> <suffix> <program> - previews the given file with the given program.  
 #

@@ -1,6 +1,6 @@
-#!/bin/bash 
+#!/bin/sh 
 #
-# pd2dvi - Converts a PD file to a TEX file
+# pd2tex - Converts a PD file to a TEX file
 #
 # May 2004, M. Spiekermann
 

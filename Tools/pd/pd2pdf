@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/sh 
 #
 # pd2pdf <file> - Converts a PD file to a PDF file
 #

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # pdshow <file> - previews an PD file using a Postscript previewer
 #

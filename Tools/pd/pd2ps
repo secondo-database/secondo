@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/sh 
 #
 # pd2ps <file> - Converts a PD file to a postscript file
 #

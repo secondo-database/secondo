@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # pdview <file> - previews an PD file with LaTeX's DVI previewer
 #
