@@ -5,6 +5,8 @@
 
 1 Header File of Module TupleManager
 
+Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
+
 Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
 
 Stefan Dieker, 03/05/98
@@ -201,7 +203,7 @@ private:
     SmiRecordId diskTupleId; 		// Record that persistently holds the tuple value.
     SmiRecordFile* lobFile;     	// Reference to a File which contains LOBs.
     SmiRecordFile* recFile;			// Reference to a File which contains tuples.  
-    bool lobFileOpened;				// ... 
+    bool lobFileOpened;				// Is the lobfile open?
     int attrNum;                	// Number of attribs. 
     AttributeInfo *attribInfo;  	// Sizes of attrib values. 
     AlgebraManager* algM;       	// Reference to Algebramanagers. 
@@ -212,27 +214,17 @@ private:
 	char *extensionTuple;			// Used to load temporarily the extension 
 									// of a disk tuple into memory.
 
-	/* for debug purposes. */
-	void printBuffer(char *buf, int len);
-	
-	/* for debug purposes. */
-	void printTupleHeader(TupleHeader th);
-
-	/* for debug purposes. */
-	void Tuple::printMemoryTuple();
-
    	/* initialisation of member variables */
     void Init(const TupleAttributes *attributes);
 
 	/* Determine the size of FLOB data stored in lobFile. */
-	int Tuple::CalcSizeOfFLOBData();
+	int CalcSizeOfFLOBData();
 
 	/* move FLOB data to extension tuple. */
-	char *Tuple::moveFLOBDataToExtensionTuple();
-
+	char *moveFLOBDataToExtensionTuple();
 
 	/* move external attribue values to memory tuple */
-	void Tuple::MoveExternalAttributeToMemoryTuple();
+	void MoveExternalAttributeToMemoryTuple();
 
 public:
 	/* true if a tuple could not read from SmiFile. */
