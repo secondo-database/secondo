@@ -24,7 +24,7 @@ private JList Content;
 private JScrollPane ScrollPane;
 
 private Vector Objects;
-private ResultProcessor RP;  
+private ResultProcessor RP;
 private ViewerControl VC;
 private JButton ShowBtn;     // show the selected Object if possible
 private JButton HideBtn;     // hide selected Object
@@ -104,6 +104,12 @@ public void setFontSize(int size){
    if(size<6) size=6;
    if(size>50) size=50;
    Content.setFont(new Font("MonoSpaced",Font.PLAIN,size));
+}
+
+
+/** get the actual used fontsize */
+public int getFontSize(){
+  return Content.getFont().getSize();
 }
 
 
@@ -596,11 +602,13 @@ private void setRenameMode(boolean mode){
      if (index>=0){
          SecondoObject SO = (SecondoObject) Objects.get(index);
          remove(ScrollPane);
-         aRenamePanel.setObject(SO); 
+         aRenamePanel.setObject(SO);
          add(aRenamePanel,BorderLayout.CENTER);
          isRenameMode=true;
          aRenamePanel.revalidate();
-         // disable all Buttons
+	 revalidate();
+	 repaint();
+	 // disable all Buttons
          on = false;
          ShowBtn.setEnabled(on);
          HideBtn.setEnabled(on);
@@ -612,7 +620,7 @@ private void setRenameMode(boolean mode){
      }
      else
        showMessage("no item selected");
-  } 
+  }
   if(!mode && isRenameMode){
     remove(aRenamePanel);
     add(ScrollPane,BorderLayout.CENTER);
@@ -625,7 +633,7 @@ private void setRenameMode(boolean mode){
     LoadBtn.setEnabled(on);
     StoreBtn.setEnabled(on);
     RenameBtn.setEnabled(on);
-
+    ScrollPane.revalidate();
   }
 }
 
@@ -637,7 +645,7 @@ private void updateList(){
     SO= (SecondoObject) Objects.get(i);
     myListModel.add(SO.getName());
   }
-  updateMarks(); 
+  updateMarks();
 }
 
 
@@ -651,9 +659,9 @@ private class RenamePanel extends JPanel{
   private JPanel innerPanel;
   RenamePanel(){
      super();
-     innerPanel = new JPanel(new GridLayout(4,1)); 
+     innerPanel = new JPanel(new GridLayout(4,1));
      OldName = new JTextField();
-     OldName.setEditable(false); 
+     OldName.setEditable(false);
      NewName = new JTextField();
      SO=null;
      innerPanel.add(new JLabel("old name"));
@@ -668,32 +676,30 @@ private class RenamePanel extends JPanel{
 
      OkBtn.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent evt){
-              Vector UsedNames = new Vector(myListModel.getSize()); 
-              for(int i=0;i<myListModel.getSize();i++)
-                 UsedNames.add(((String)myListModel.getElementAt(i)).substring(DisplayMark.length()).trim());
-             
-             String Name = NewName.getText();    
-             if (UsedNames.contains(Name)) {
-                 ObjectList.this.showMessage("Name allready used\n please choose another one");
-              } 
-              else{
-                 if(!Name.equals("")){
-                      ObjectList.this.VC.hideObject(ObjectList.this,SO);
-                      SO.setName(Name);
-                      ObjectList.this.updateList();
-                 }
-                 ObjectList.this.setRenameMode(false);
-              }
-         }     
+	    accept();
+         }
      });
+
      CancelBtn.addActionListener(new ActionListener(){
           public void actionPerformed(ActionEvent evt){
-              ObjectList.this.setRenameMode(false);
-     }});  
+             cancel();
+	  }
+       });
 
-  }
-  
-  void setObject(SecondoObject SO){
+
+     NewName.addKeyListener(new KeyAdapter(){
+      public void keyPressed(KeyEvent evt){
+         int k = evt.getKeyCode();
+	 if (k==evt.VK_ENTER)
+	    accept();
+	 if(k==evt.VK_ESCAPE)
+	    cancel();
+       }
+     });
+
+  } // constructor
+
+   void setObject(SecondoObject SO){
      OldName.setText("");
      NewName.setText("");
      this.SO = SO;
@@ -701,8 +707,36 @@ private class RenamePanel extends JPanel{
 	   OldName.setText(SO.getName());
          NewName.setText(SO.getName());
      }
-  } 
-}
+   } // setObject
+
+  private void cancel(){
+      ObjectList.this.setRenameMode(false);
+  }
+
+  private void accept(){
+       Vector UsedNames = new Vector(myListModel.getSize());
+       for(int i=0;i<myListModel.getSize();i++)
+           UsedNames.add(((String)myListModel.getElementAt(i)).substring(DisplayMark.length()).trim());
+
+        String Name = NewName.getText();
+
+	if (UsedNames.contains(Name)) {
+            ObjectList.this.showMessage("Name allready used\n please choose another one");
+        }
+        else{
+           if(!Name.equals("")){
+               ObjectList.this.VC.hideObject(ObjectList.this,SO);
+               SO.setName(Name);
+               ObjectList.this.updateList();
+               ObjectList.this.setRenameMode(false);
+	       ObjectList.this.revalidate();
+	       ObjectList.this.repaint();
+           } else
+	      ObjectList.this.showMessage("not a valid object name");
+       }
+ } // accept
+
+} // renamePanel
 
 
 private class ObjectListModel implements ListModel{
@@ -743,7 +777,7 @@ public boolean removeIndex(int index){
   Content.remove(index);
   if(ok)
      informListeners(index);
-  return ok;   
+  return ok;
 }
 
 public boolean remove(int index){

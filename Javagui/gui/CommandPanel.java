@@ -11,10 +11,10 @@ import  sj.lang.*;
 
 /**
  * The command area is a component of the GUI. Here the user
- * can input his database commands and read the status messages of the 
- * program. This class is based upon the JFC JScrollPane so that it may 
+ * can input his database commands and read the status messages of the
+ * program. This class is based upon the JFC JScrollPane so that it may
  * be scrolled. It offers copy'n'paste ability with Ctrl-C, Ctrl-V.
- * Mouse selection is possible too.When releasing the button the 
+ * Mouse selection is possible too.When releasing the button the
  * selected text will be copied. Enter finishes the input.
  * @author  Thomas Höse
  * @version 0.99 1.1.02
@@ -65,6 +65,11 @@ public class CommandPanel extends JScrollPane {
    if(Size>50) Size=50;
    SystemArea.setFont(new Font("Monospaced",Font.PLAIN,Size));
    SystemArea.repaint();
+  }
+  
+  /* get the actual Fontsize */
+  public int getFontSize(){
+    return SystemArea.getFont().getSize();
   }
 
 

@@ -13,6 +13,8 @@ import gui.idmanager.*;
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl{
 
 public final String CONFIGURATION_FILE="gui.cfg";
+public final int MIN_FONTSIZE = 6;
+public final int MAX_FONTSIZE = 24;
 
 private JPanel PanelTop;        // change to the desired components
 private CommandPanel ComPanel;
@@ -34,14 +36,20 @@ private MenuVector CurrentMenuVector;
 
 /* the Menubar with Menuitems */
 private JMenuBar MainMenu;
+
 private JMenu ProgramMenu;
+private JMenuItem MI_FontSize_Console_Bigger;
+private JMenuItem MI_FontSize_Console_Smaller;
+private JMenuItem MI_FontSize_List_Bigger;
+private JMenuItem MI_FontSize_List_Smaller;
+
 private JMenuItem MI_ExecuteFile_HaltOnError;
 private JMenuItem MI_ExecuteFile_IgnoreErrors;
 private JMenuItem MI_SaveHistory;
 private JMenuItem MI_ClearHistory;
 private JMenuItem MI_ExtendHistory;
 private JMenuItem MI_ReplaceHistory;
-private JMenuItem MI_Close;  
+private JMenuItem MI_Close;
 
 private JMenu ServerMenu;
 private JMenuItem MI_Connect;
@@ -115,7 +123,7 @@ public MainWindow(String Title){
 
 
   ViewerFileChooser = new JFileChooser("."+File.separatorChar+"viewer");
-  VSplitPane.setPreferredSize(new Dimension(600,400));   
+  VSplitPane.setPreferredSize(new Dimension(600,400));
   VSplitPane.setDividerLocation(200);
   VSplitPane.setDividerSize(4);
   HSplitPane.setDividerLocation(500);
@@ -133,13 +141,13 @@ public MainWindow(String Title){
   createMenuBar();
   CurrentViewer = null;
   ViewerMenuItems = new Vector(10);
-  AllViewers = new Vector(10); 
+  AllViewers = new Vector(10);
   DefaultContentPane = getContentPane();
 
   String UserName="";
   String PassWd="";
   String ServerName = "localhost";
-  int ServerPort = 2550;  
+  int ServerPort = 2550;
   boolean StartConnection = false;
 
   // try to read a configuration-File
@@ -286,6 +294,21 @@ public MainWindow(String Title){
       else
          executeFile(StartScript,false);
    }
+   
+
+
+   int fs = OList.getFontSize();
+   if(fs<=MIN_FONTSIZE)
+      MI_FontSize_List_Smaller.setEnabled(false);
+   if(fs>=MAX_FONTSIZE)
+      MI_FontSize_List_Bigger.setEnabled(false);
+
+   fs = ComPanel.getFontSize();
+   if(fs<=MIN_FONTSIZE)
+      MI_FontSize_Console_Smaller.setEnabled(false);
+   if(fs>=MAX_FONTSIZE)
+      MI_FontSize_Console_Bigger.setEnabled(false);
+
 
 }
 
@@ -350,7 +373,7 @@ public SecondoViewer[] getViewers(){
 private void removeCurrentViewer(){
       cleanMenu();
       CurrentMenuVector = null;
-      MainMenu.revalidate(); 
+      MainMenu.revalidate();
       if(onlyViewerShow)
         getContentPane().removeAll();
       else 
@@ -744,7 +767,7 @@ public static void main(String[] args){
 }
 
 
-/* show the result of a command */ 
+/* show the result of a command */
 public void processResult(String command,ListExpr ResultList,IntByReference ErrorCode,
                         IntByReference ErrorPos,StringBuffer ErrorMessage){
   if (ErrorCode.value!=0){
@@ -846,7 +869,7 @@ public boolean showObject(SecondoObject SO){
           if(TheBest==null){
              showMessage("no Viewer found to display this object");
              return false;
-          }   
+          }
           else{
              setViewer(TheBest);
              return CurrentViewer.addObject(SO);
@@ -919,6 +942,67 @@ private void createMenuBar(){
           clearAll();
       }
    });
+
+
+   // create MenuItem for fontsize of console and object list
+   JMenu MI_FontSize = new JMenu("FontSize");
+   ProgramMenu.add(MI_FontSize);
+   JMenu MI_FontSize_Console = new JMenu("Console");
+   MI_FontSize_Console_Bigger = new JMenuItem("Bigger");
+   MI_FontSize_Console_Smaller = new JMenuItem("Smaller");
+   JMenu MI_FontSize_List = new JMenu("Object list");
+   MI_FontSize_List_Bigger = new JMenuItem("Bigger");
+   MI_FontSize_List_Smaller = new JMenuItem("Smaller");
+   // create the hierarchy of this menuitems
+   MI_FontSize.add(MI_FontSize_Console);
+   MI_FontSize.add(MI_FontSize_List);
+   MI_FontSize_List.add(MI_FontSize_List_Bigger);
+   MI_FontSize_List.add(MI_FontSize_List_Smaller);
+   MI_FontSize_Console.add(MI_FontSize_Console_Bigger);
+   MI_FontSize_Console.add(MI_FontSize_Console_Smaller);
+   // enable - disable Items
+
+   ActionListener FontSizeAL = new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+         Object src = evt.getSource();
+	 int fs;
+	 if(src.equals(MI_FontSize_Console_Bigger)){
+	   fs = ComPanel.getFontSize()+2;
+           ComPanel.setFontSize(fs);
+	   if (fs>=MAX_FONTSIZE)
+	       MI_FontSize_Console_Bigger.setEnabled(false);
+	   MI_FontSize_Console_Smaller.setEnabled(true);
+	 }
+
+	 if(src.equals(MI_FontSize_Console_Smaller)){
+             fs = ComPanel.getFontSize()-2;
+	     ComPanel.setFontSize(fs);
+	     if(fs<=MIN_FONTSIZE)
+	        MI_FontSize_Console_Smaller.setEnabled(false);
+	     MI_FontSize_Console_Bigger.setEnabled(true);
+	 }
+
+	 if(src.equals(MI_FontSize_List_Bigger)){
+	    fs = OList.getFontSize()+2;
+            OList.setFontSize(fs);
+	    if (fs>=MAX_FONTSIZE)
+	       MI_FontSize_List_Bigger.setEnabled(false);
+	     MI_FontSize_List_Smaller.setEnabled(true);
+          }
+
+	 if(src.equals(MI_FontSize_List_Smaller)){
+	     fs = OList.getFontSize()-2;
+	     OList.setFontSize(fs);
+	     if(fs<=MIN_FONTSIZE)
+	        MI_FontSize_List_Smaller.setEnabled(false);
+	     MI_FontSize_List_Bigger.setEnabled(true);
+	 }
+      }};
+      
+    MI_FontSize_Console_Bigger.addActionListener(FontSizeAL);
+    MI_FontSize_Console_Smaller.addActionListener(FontSizeAL);
+    MI_FontSize_List_Bigger.addActionListener(FontSizeAL);
+    MI_FontSize_List_Smaller.addActionListener(FontSizeAL);
 
 
    JMenu MI_ExecuteFile = new JMenu("Execute file");
