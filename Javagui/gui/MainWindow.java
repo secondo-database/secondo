@@ -17,7 +17,7 @@ public final int MIN_FONTSIZE = 6;
 public final int MAX_FONTSIZE = 24;
 
 // shows additional informations if an error is occured
-private boolean DEBUG_MODE = false;
+private boolean DEBUG_MODE = true;
 
 private JPanel PanelTop;        // change to the desired components
 private CommandPanel ComPanel;
@@ -160,11 +160,25 @@ public MainWindow(String Title){
 
   // try to read a configuration-File
   Properties Config = new Properties();
+  File CF = new File(CONFIGURATION_FILE);
+  boolean config_file_ok =true;
+  if(!CF.exists()){
+     System.err.println("Javagui: configuration file not found");
+     config_file_ok = false;
+  }
+
   try{
-    FileInputStream CFG = new FileInputStream(CONFIGURATION_FILE);
+    FileInputStream CFG = new FileInputStream(CF);
     Config.load(CFG);
     CFG.close();
-
+  } catch(Exception e){
+    config_file_ok = false;
+    if(DEBUG_MODE){
+      System.err.println(e);
+      e.printStackTrace();
+    }
+  }
+ if(config_file_ok){
     String TMPServerName = Config.getProperty("SERVERNAME");
     if (TMPServerName==null)
       System.out.println("Servername not found in "+CONFIGURATION_FILE);
@@ -335,10 +349,10 @@ public MainWindow(String Title){
 
 
    StartScript = Config.getProperty("STARTSCRIPT");
+  } // config -file readed
 
-  } catch(Exception e){
-    System.out.println("I can't read the configuration-file: "+CONFIGURATION_FILE);
-  }
+
+
 
   ComPanel.setConnection(UserName,PassWd,ServerName,ServerPort);
   if (StartConnection){
@@ -408,16 +422,17 @@ private void addViewer(SecondoViewer NewViewer){
       ViewerMenuItems.add(MI_Viewer);
       Viewers.insert(MI_Viewer,AllViewers.size()-1);
       NewViewer.setViewerControl(this);
+      NewViewer.setDebugMode(DEBUG_MODE);
       MI_Viewer.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent e){
             int index = ViewerMenuItems.indexOf(e.getSource());
             if (index>=0)
                 MainWindow.this.setViewerindex(index);
-         }}); 
-      PriorityDlg.addViewer(NewViewer);   
+         }});
+      PriorityDlg.addViewer(NewViewer);
       viewersChanged();
    }
-   setViewer(NewViewer); 
+   setViewer(NewViewer);
 }
 
 
@@ -644,9 +659,9 @@ public boolean execGuiCommand(String command){
        else{
           ComPanel.appendText("i can't connect to secondo server (are the settings correct?)");
           success=false;
-       }   
+       }
     ComPanel.showPrompt();
-  }  
+  }
   else if(command.startsWith("disconnect")){
       ComPanel.disconnect();
       ComPanel.appendText("you are disconnected from secondo server");
@@ -669,7 +684,7 @@ public boolean execGuiCommand(String command){
        if(oldName.equals("") || newName.equals("")){
           ComPanel.appendText("usage:  \"gui rename <oldname> -> <newName>\"");
           success=false;
-       }   
+       }
        else{
          int EC = OList.renameObject(oldName,newName);
          ComPanel.appendText(OList.getErrorText(EC));
@@ -680,10 +695,10 @@ public boolean execGuiCommand(String command){
      onlyViewerSwitch();
      ComPanel.showPrompt();
   } else if(command.startsWith("hideAll")){
-    OList.hideAll(); 
+    OList.hideAll();
     ComPanel.showPrompt();
   } else if(command.startsWith("showAll")){
-    OList.showAll(); 
+    OList.showAll();
     ComPanel.showPrompt();
   } else if(command.startsWith("executeFile")){
     String crest = command.substring(11).trim();
@@ -695,11 +710,11 @@ public boolean execGuiCommand(String command){
     if(errors>0){
        ComPanel.appendText("there are "+errors+" errors");
        success=false;
-    }   
+    }
     else
        ComPanel.appendText("executeFile successful");
-       
-    ComPanel.showPrompt();   
+
+    ComPanel.showPrompt();
   } else if(command.startsWith("setObjectDirectory")){
      String dir = command.substring(18).trim();
      String sep = System.getProperties().getProperty("file.separator");
@@ -906,7 +921,7 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
          ComPanel.appendText("see result in object list");
      }
   }
-  ComPanel.showPrompt(); 
+  ComPanel.showPrompt();
 }
 
 
@@ -1453,13 +1468,14 @@ private void cleanMenu(){
 
 
 /* get infos from server
-   - known algebras
+   - known algebras, databases
  */
 private void getServerInfos(){
 
   ListExpr Algebras = ComPanel.getCommandResult("list algebras");
+  AlgebraMenu.removeAll();
   if (Algebras==null){
-     AlgebraMenu.removeAll();
+     updateDatabases();
      return;
   }
   JMenuItem[] MI_Algebras= new JMenuItem[Algebras.listLength()];
@@ -1469,13 +1485,14 @@ private void getServerInfos(){
     MI_Algebras[index] = new JMenuItem(Name);
     MI_Algebras[index].addActionListener(new ActionListener(){
                       public void actionPerformed(ActionEvent evt){
-		         MainWindow.this.ComPanel.execUserCommand("list algebra "+
-			                         ((JMenuItem)evt.getSource()).getText());
+		         String cmd = "list algebra "+((JMenuItem)evt.getSource()).getText();
+			 MainWindow.this.ComPanel.appendText(cmd+"\n");
+			 MainWindow.this.ComPanel.addToHistory(cmd);
+		         MainWindow.this.ComPanel.execUserCommand(cmd);
 		      }});
     Algebras=Algebras.rest();
     index++;
   }
-  AlgebraMenu.removeAll();
   for(int i=0;i<MI_Algebras.length;i++)
      AlgebraMenu.add(MI_Algebras[i]);
 
@@ -1496,8 +1513,10 @@ private boolean updateDatabases(){
     MI_Databases[index] = new JMenuItem(Name);
     MI_Databases[index].addActionListener(new ActionListener(){
                            public void actionPerformed(ActionEvent evt){
-			      MainWindow.this.ComPanel.execUserCommand("open database "+
-			                        ((JMenuItem)evt.getSource()).getText());
+			      String cmd = "open database "+((JMenuItem)evt.getSource()).getText();
+			      MainWindow.this.ComPanel.appendText(cmd+"\n");
+			      MainWindow.this.ComPanel.addToHistory(cmd);
+			      MainWindow.this.ComPanel.execUserCommand(cmd);
 			   }});
     Databases = Databases.rest();
     index++;
@@ -1560,7 +1579,8 @@ class Command_Listener implements ActionListener{
 		}
 
 		if (ok) {
-                    //MainWindow.this.ComPanel.appendText(cmd+"\n");
+                    MainWindow.this.ComPanel.appendText(cmd+"\n");
+		    MainWindow.this.ComPanel.addToHistory(cmd);
                     MainWindow.this.ComPanel.execUserCommand(cmd);
                 }
              }
