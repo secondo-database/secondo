@@ -8,15 +8,6 @@ include ../../makefile.env
 
 # --- List of all needed header files (including indirect dependencies)
 
-INCFILES=\
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h \
-	$(INCLUDEDIR)/StandardTypes.h \
-	$(INCLUDEDIR)/StandardAttribute.h \
-	$(INCLUDEDIR)/DBArray.h \
-        ./TemporalAlgebra.h
-
 MODNAME=TemporalAlgebra
 LIBNAME=lib$(MODNAME)
 
@@ -28,7 +19,7 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Spatial -I../Rectangle
 
 # --- PointRectangle Algebra C++ library ---
 
