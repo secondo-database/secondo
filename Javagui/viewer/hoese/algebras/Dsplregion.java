@@ -62,6 +62,8 @@ public class Dsplregion extends DisplayGraph {
           try{
 	    x = ProjectionManager.getPrjX(koord[0],koord[1]);
 	    y = ProjectionManager.getPrjY(koord[0],koord[1]);
+	   x = koord[0];
+	   y = koord[1];
 	    if (firstpoint)
                path.moveTo((float)x, (float)y);
             else
@@ -79,8 +81,8 @@ public class Dsplregion extends DisplayGraph {
         //polygons.add(vertices);
         Area a = new Area(path);
         if (isHole)
-          area.subtract(a); 
-        else 
+          area.subtract(a);
+        else
           area.add(a);
         isHole = true;
         face = face.rest();

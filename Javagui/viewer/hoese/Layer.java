@@ -12,7 +12,7 @@ import viewer.HoeseViewer;
 
 
 /**
- * A Swing JComponent that represent a Layer in the layerstack 
+ * A Swing JComponent that represent a Layer in the layerstack
  */
 public class Layer extends JComponent {
   /** All the graph. objects that are accociated with this Layer */
@@ -29,13 +29,15 @@ public class Layer extends JComponent {
   boolean Selected = false;
   /** the internal no. of this layer */
   int LayerNo;
+  Category LastCat = null;
+  DsplGraph LastDisplayGraph = null;
 
   /**
    * Default Construktor
    * @see <a href="Layersrc.html#Layer1">Source</a>
    */
   public Layer () {
-    GeoObjects = new Vector(20, 10);
+    GeoObjects = new Vector(20);
   }
 
   /**
@@ -199,28 +201,70 @@ public class Layer extends JComponent {
     return  TimeBounds;
   }
 
+
+  /** set a new Category to paint the next object */
+  private void setCategory(DsplGraph dg,Graphics2D g2){
+    if(dg==null) {return;}
+    Category Cat = dg.getCategory();
+
+    if(Cat==null){return;}
+
+   /* if(LastCat==Cat && LastDisplayGraph!=null  &&
+       LastDisplayGraph.isPointType()==dg.isPointType() &&
+       LastDisplayGraph.getSelected()==dg.getSelected()){
+       return;
+    }*/
+
+
+    LastCat=Cat;
+    LastDisplayGraph = dg;
+    Shape sh = dg.getRenderObject(getProjection());
+
+    g2.setComposite(Cat.getAlphaStyle());
+    g2.setStroke(Cat.getLineStroke());
+    g2.setPaint(Cat.getFillStyle());
+    if (dg.isPointType()) {
+      if (Cat.getFillStyle() instanceof TexturePaint)
+        g2.setPaint(new TexturePaint(((TexturePaint)Cat.getFillStyle()).getImage(),
+            sh.getBounds2D()));
+      else if (Cat.getFillStyle() instanceof GradientPaint)
+        g2.setPaint(new GradientPaint((float)sh.getBounds().getX(),(float)sh.getBounds().getY(),
+          ((GradientPaint)Cat.getFillStyle()).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
+          (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)Cat.getFillStyle()).getColor2(),false));
+    }
+
+
+
+  }
+
+
   /**
    * Paints the layer with its graph. object. The selected object is not drawn here.
    * @param g The graphic context
    * @see <a href="Layersrc.html#paintComponent">Source</a>
    */
   public void paintComponent (Graphics g) {
-    ListIterator li = GeoObjects.listIterator();
+    //ListIterator li = GeoObjects.listIterator();
     Graphics2D g2 = (Graphics2D)g;
     //g2.transform(owner.getProjection());
     //g2.setFont (font.deriveFont((float)(12.0/owner.getProjection().getScaleX())));
     try{
+      LastDisplayGraph = null;
       if (Selected)
-        while (li.hasNext()) {
-          DsplGraph dg = (DsplGraph)li.next();
-          if ((dg.getVisible()) && (!dg.getSelected()))
+        for(int i=0;i<GeoObjects.size();i++){
+	  DsplGraph dg = (DsplGraph)GeoObjects.get(i);
+          if ((dg.getVisible()) && (!dg.getSelected())){
+	    setCategory(dg,g2);
             dg.draw(g2);
+	  }
         }
       else
-        while (li.hasNext()) {
-          DsplGraph dg = (DsplGraph)li.next();
-          if (dg.getVisible())
+        for(int i=0;i<GeoObjects.size();i++){
+          DsplGraph dg = (DsplGraph)GeoObjects.get(i);
+          if (dg.getVisible()){
+	    setCategory(dg,g2);
             dg.draw(g2);
+	  }
         }
      } catch(Exception e){
        System.out.println("Exception "+e);

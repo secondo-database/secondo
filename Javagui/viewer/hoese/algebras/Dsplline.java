@@ -134,15 +134,26 @@ public class Dsplline extends DisplayGraph {
    * @see <a href="Dspllinesrc.html#draw">Source</a>
    */
   public void draw (Graphics g) {
-    ListIterator li = lines.listIterator();
-    while (li.hasNext()) {
-      Line2D.Double l = (Line2D.Double)li.next();
-      new SingleLine(l, this).draw(g);
+    Shape sh;
+    Graphics2D g2 = (Graphics2D)g;
+    AffineTransform af2 = RefLayer.getProjection();
+    //Shape render = getRenderObject(af2);
+    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
+    Color aktLineColor = Cat.getLineColor();
+    if (selected){
+       aktLineColor = new Color(Color.white.getRGB() ^ Cat.getLineColor().getRGB());
+    }
+    g2.setColor(aktLineColor);
+    for(int i=0;i<lines.size();i++){
+      Line2D.Double l = (Line2D.Double)lines.get(i);
+     // new SingleLine(l, this).draw(g);
+     sh = af2.createTransformedShape(l);
+        g2.draw(sh);
     }
     drawLabel(g, bounds);
   }
 
-/** Helperclass to construct a single segment */ 
+/** Helperclass to construct a single segment */
   private class SingleLine extends DisplayGraph {
 
     /**

@@ -110,23 +110,11 @@ public class DisplayGraph extends DsplGeneric
       return;
     sh = af2.createTransformedShape(render);
     //	if (!selected)
-    g2.setComposite(Cat.getAlphaStyle());
-    g2.setStroke(Cat.getLineStroke());
-    g2.setPaint(Cat.getFillStyle());
-    //the anchor of the texture has to do with Position of renderObject
-    if (ispointType) {
-      if (Cat.getFillStyle() instanceof TexturePaint)           // that indicates PointStyle
-        g2.setPaint(new TexturePaint(((TexturePaint)Cat.getFillStyle()).getImage(), 
-            sh.getBounds2D()));
-      else if (Cat.getFillStyle() instanceof GradientPaint)           // that indicates PointStyle
-        g2.setPaint(new GradientPaint((float)sh.getBounds().getX(),(float)sh.getBounds().getY(),
-          ((GradientPaint)Cat.getFillStyle()).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
-          (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)Cat.getFillStyle()).getColor2(),false)); 
-    }
+
     if (Cat.getFillStyle() != null)
       g2.fill(sh);
     //if (selected) g2.setColor(new Color(Cat.LineColor.getRGB() ^ Color.white.getRGB() ));
-    //else 
+    //else
     g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
     Color aktLineColor = Cat.getLineColor();
     if (selected){

@@ -1507,28 +1507,74 @@ public boolean canDisplay(SecondoObject o){
           selBaseObj.getFrame().select(o);
           //selBaseObj.getFrame().show(true);
         }
-      } 
-      else 
+      }
+      else
         GraphDisplay.repaint();
     }
-  
+
   }
 
-/** Manages mouseclicks in the GraphWindow. It is placed here for textual-interaction 
+/** Manages mouseclicks in the GraphWindow. It is placed here for textual-interaction
 
    * @see <a href="MainWindowsrc.html#SelMouseAdapter">Source</a>
-   */ 
+   */
   class SelMouseAdapter extends MouseAdapter
       implements MouseMotionListener {
-    JLabel selLabel = null;
+  //  JLabel selLabel = null;
+
+    private int startX;
+    private int startY;
+    private int oldX;
+    private int oldY;
+    private boolean isPainting = false;
+
+
+    public void drawRectangle(int x1,int y1,int x2,int y2){
+         Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
+	 G.setXORMode(Color.white);
+         int x = Math.min(x1,x2);
+         int w = Math.abs(x1-x2);
+         int y = Math.min(y1,y2);
+         int h= Math.abs(y1-y2);
+         G.drawRect(x,y,w,h);
+	}
+
+
 
     public void mouseReleased (MouseEvent e) {
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
-        if (selLabel != null) {
+      { /*
           GraphDisplay.remove(selLabel);
           GraphDisplay.repaint();
           Rectangle2D r = selLabel.getBounds().getBounds2D();
-          selLabel = null;
+          selLabel = null; */
+
+	  if(isPainting)
+             drawRectangle(startX,startY,oldX,oldY);
+          isPainting=false;
+
+	  int x1,y1,x2,y2;
+	  if(startX<oldX){
+	      x1 = startX;
+	      x2 = oldX;
+	  } else{
+	      x2 = startX;
+	      x1 = oldX;
+	  }
+          if(startY<oldY){
+	     y1=startY;
+	     y2 = oldY;
+	  } else{
+	     y2 = startY;
+	     y1 = oldY;
+	  }
+
+
+	  Rectangle2D r = new Rectangle2D.Double(x1,y1,x2-x1,y2-y1);
+
+
+
+
           if ((r.getHeight() < 1) || (r.getWidth() < 1))
             return;
           double w = (double)GeoScrollPane.getViewport().getWidth();
@@ -1550,12 +1596,12 @@ public boolean canDisplay(SecondoObject o){
             if (hasBackImage)
               LayerSwitchBar.remove(0);
             if (context.ImagePath != null)
-              addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf, 
-                  context.getMapOfs().getY()*zf), 0); 
-            else 
+              addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf,
+                  context.getMapOfs().getY()*zf), 0);
+            else
               GraphDisplay.createBackLayer(null, 0, 0);
           }
-          GraphDisplay.scrollRectToVisible(new Rectangle((int)(r.getX()*zf), 
+          GraphDisplay.scrollRectToVisible(new Rectangle((int)(r.getX()*zf),
               (int)(r.getY()*zf), (int)w, (int)h));
           //GeoScrollPane.getViewport().setViewPosition(new Point((int)(r.getX()*zf),(int)(r.getY()*zf)));
           GraphDisplay.repaint();
@@ -1566,20 +1612,30 @@ public boolean canDisplay(SecondoObject o){
     public void mousePressed (MouseEvent e) {
       //Koordinaten in Weltkoordinaten umwandeln
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
-        Rectangle r = new Rectangle(e.getX(), e.getY(), 0, 0);
+        /*Rectangle r = new Rectangle(e.getX(), e.getY(), 0, 0);
         selLabel = new JLabel();
         selLabel.setBounds(r);
         selLabel.setBorder(new LineBorder(Color.black, 1));
         //selLabel.setOpaque(true);
         //selLabel.setBackground(new Color(230,30,0,50));
         GraphDisplay.add(selLabel, new Integer(20000));
-        //GraphDisplay.removeMouseListener(SelectionControl);
-        GraphDisplay.addMouseMotionListener(this);
+        //GraphDisplay.removeMouseListener(SelectionControl); */
+         startX = e.getX();
+         startY = e.getY();
+         GraphDisplay.addMouseMotionListener(this);
       }
     }
     public void mouseDragged (MouseEvent e) {
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
-        Point p = selLabel.getLocation();
+          if(isPainting)
+            drawRectangle(startX,startY,oldX,oldY);
+          oldX = e.getX();
+          oldY = e.getY();
+          drawRectangle(startX,startY,oldX,oldY);
+          isPainting=true;
+
+/*
+	Point p = selLabel.getLocation();
         int x = (int)p.getX();
         int y = (int)p.getY();
         int w = e.getX() - x;
@@ -1592,7 +1648,7 @@ public boolean canDisplay(SecondoObject o){
           h = -h;               //+selLabel.getHeight();
           y = y - h + 1;
         }
-        selLabel.setBounds(x, y, w, h);
+        selLabel.setBounds(x, y, w, h);    */
       }
     }
 
@@ -1611,7 +1667,7 @@ public boolean canDisplay(SecondoObject o){
       double scalex = 1/Math.abs(allProjection.getScaleX());
       double scaley = 1/Math.abs(allProjection.getScaleY());
       //ListIterator li=QueryResultList.listIterator();
-      if ((selGraphObj != null) && (selGraphObj.contains(p.getX(), p.getY(), 
+      if ((selGraphObj != null) && (selGraphObj.contains(p.getX(), p.getY(),
           scalex, scaley)))
         SelIndex = selGraphObj.getLayer().getObjIndex(selGraphObj);
       JComboBox cb = TextDisplay.getQueryCombo();
@@ -1649,7 +1705,7 @@ public boolean canDisplay(SecondoObject o){
         qr = (QueryResult)cb.getSelectedItem();
         if (qr != null)
           qr.clearSelection();
-      } 
+      }
       else {
         if (Obj2sel.getSelected())
           return;
@@ -1661,6 +1717,8 @@ public boolean canDisplay(SecondoObject o){
         TextDisplay.ensureSelectedIndexIsVisible();
       }
     }
+
+
   }
 /** This class controls movement of the timeslider
 
