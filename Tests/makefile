@@ -20,9 +20,7 @@ TESTRULES := \
 	tsock3\
 	TupleTestBDB\
 	tdlmain\
-	tnlcopy\
 	tnestedlist\
-	tnestedlist_persistent\
 	pnltest\
 	tnlcopy\
 	tparray
@@ -70,16 +68,13 @@ tpctable$(EXEEXT): tpctable.cpp CTable.h PCTable.cpp
 
 # Test Nested List module
 
-tnestedlist$(EXEEXT): tnestedlist.cpp NestedList.h CTable.h CTable.cpp
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS)  -L$(LIBDIR) $(SDBLIB) -lsdbtool $(BDBSMILIB) -lsdbutils $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
-
-tnestedlist_persistent$(EXEEXT): tnestedlist_persistent.cpp NestedList.h CTable.h CTable.cpp 
+tnestedlist$(EXEEXT): tnestedlist.cpp NestedList.h 
 	$(CC) -o $@ $<  $(DEFAULTCCFLAGS)  -L$(LIBDIR) $(SDBLIB) -lsdbtool $(BDBSMILIB) -lsdbutils $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
 
 # Test filesystem module
 
-tfilesystem$(EXEEXT): tfilesystem.o libsdbtool.$(LIBEXT)
+tfilesystem$(EXEEXT): tfilesystem.o ../lib/libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 tfilesystem.o: tfilesystem.cpp SecondoConfig.h FileSystem.h
@@ -87,7 +82,7 @@ tfilesystem.o: tfilesystem.cpp SecondoConfig.h FileSystem.h
 
 # Test profiles module
 
-tprofiles$(EXEEXT): tprofiles.o libsdbtool.$(LIBEXT)
+tprofiles$(EXEEXT): tprofiles.o ../lib/libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 tprofiles.o: tprofiles.cpp Profiles.h
