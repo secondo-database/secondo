@@ -86,8 +86,10 @@ public class DisplayGraph extends DsplGeneric
   public Rectangle2D.Double getBounds () {
     if (RenderObject == null)
       return  null;
-    else
-      return  (Rectangle2D.Double)RenderObject.getBounds2D();
+    else{
+      Rectangle2D r = RenderObject.getBounds2D();
+      return new Rectangle2D.Double(r.getX(),r.getY(),r.getWidth(),r.getHeight());
+    }
   }
 
   /**
