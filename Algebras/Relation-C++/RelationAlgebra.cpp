@@ -385,6 +385,19 @@ class CcTuple
     int   GetNoAttrs () {return NoOfAttr;};
     bool IsFree() { return isFree; }
     void SetFree(bool b) { isFree = b; }
+    
+    CcTuple* Clone()
+    {
+      CcTuple* result = new CcTuple();
+      result->SetFree(true);
+      result->SetNoAttrs(GetNoAttrs());
+      for(int i = 0; i < GetNoAttrs(); i++)
+      {
+        Attribute* attr = ((Attribute*)Get(i))->Clone();
+        result->Put(i, attr);
+      }
+      return result;
+    }
 
     CcTuple* CloneIfNecessary()
     {
@@ -394,15 +407,7 @@ class CcTuple
       }
       else
       {
-        CcTuple* result = new CcTuple();
-        result->SetFree(true);
-        result->SetNoAttrs(GetNoAttrs());
-        for(int i = 0; i < GetNoAttrs(); i++)
-        {
-          Attribute* attr = ((Attribute*)Get(i))->Clone();
-          result->Put(i, attr);
-        }
-        return result;
+        return Clone();
       }
     }
 
@@ -3665,7 +3670,8 @@ RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
             if(cmp(currentTuple, lastOutputTuple)
               || cmp(lastOutputTuple, currentTuple))
             {
-              local = SetWord(currentTuple);
+              lastOutputTuple->DeleteIfAllowed();
+              local = SetWord(currentTuple->Clone());
               result = SetWord(currentTuple);
               return YIELD;
             }
@@ -3677,13 +3683,18 @@ RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
           else
           {
             currentTuple = (CcTuple*)tuple.addr;
-            local = SetWord(currentTuple);
+            local = SetWord(currentTuple->Clone());
             result = SetWord(currentTuple);
             return YIELD;
           }
         }
         else
         {
+          lastOutputTuple = (CcTuple*)local.addr;
+          if(lastOutputTuple != 0)
+          {
+            lastOutputTuple->DeleteIfAllowed();
+          }
           return CANCEL;
         }
       }
