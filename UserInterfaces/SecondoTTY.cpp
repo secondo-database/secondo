@@ -43,6 +43,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "NestedList.h"
 #include "DisplayTTY.h"
+#include "CharTransform.h"
 
 static const bool needIdent = false;
 
@@ -160,7 +161,7 @@ SecondoTTY::ProcessCommand()
   string cmdWord;
   istringstream is( cmd );
   is >> cmdWord;
-  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), toupper );
+  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
 
   if ( cmdWord == "?" || cmdWord == "HELP" )
   {
@@ -184,7 +185,7 @@ SecondoTTY::ProcessCommand()
   else if ( cmdWord == "SHOW" )
   {
     is >> cmdWord;
-    transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), toupper );
+    transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
     if ( cmdWord == "LEVEL" )
     {
       switch (currentLevel)
@@ -288,7 +289,7 @@ SecondoTTY::IsInternalCommand( const string& line )
   string cmdWord;
   istringstream is( line );
   is >> cmdWord;
-  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), toupper );
+  transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), ToUpperProperFunction );
 
   return ( cmdWord == "?" || cmdWord == "HELP"        ||
            cmdWord == "D" || cmdWord == "DESCRIPTIVE" ||

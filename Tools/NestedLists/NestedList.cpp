@@ -61,6 +61,7 @@ using namespace std;
 #include <iomanip>
 #include <algorithm>
 
+#include "CharTransform.h"
 #include "NestedList.h"
 #include "NLParser.h"
 
@@ -81,7 +82,7 @@ nested list. Only if ~doDestroy~ is ~true~, nested lists are destroyed.
 */
 
 NestedList::NestedList( Cardinal NodeEntries, Cardinal ConstEntries,
-		        Cardinal StringEntries, Cardinal TextEntries )  
+		        Cardinal StringEntries, Cardinal TextEntries )
 {
    intTable = 0;
    stringTable = 0;
@@ -173,7 +174,7 @@ NestedList::NodeType2Text( NodeType type )
   }
 }
 
-/* 
+/*
 4 Construction
 
 4.1 TheEmptyList
@@ -213,7 +214,7 @@ NestedList::Cons( const ListExpr left, const ListExpr right )
   return (newNode);
 }
 
-/* 
+/*
 4.3 Append
 
 */
@@ -541,7 +542,7 @@ NestedList::CopyRecursive(const ListExpr list, const NestedList* target)
 { 
    ListExpr newnode = 0; 
    CTable<NodeRecord> *pnT_target = target->nodeTable; 
-     
+
    if (list == 0) {
      return 0;
    }
@@ -580,51 +581,51 @@ NestedList::CopyRecursive(const ListExpr list, const NestedList* target)
           break;
         case StringType:
         case SymbolType: {
-          CTable<StringRecord>  *psT_target = target->stringTable;				 
+          CTable<StringRecord>  *psT_target = target->stringTable;
 	  ListExpr newstr = 0;
 	  StringRecord sRec;
-	  
+
 	  newnode = pnT_target->Add(listRef);
 	  if (listRef.s.third) {
 	    sRec = (*stringTable)[listRef.s.third];
 	    newstr = psT_target->Add(sRec);
-	    (*pnT_target)[newnode].s.third = newstr;	    
+	    (*pnT_target)[newnode].s.third = newstr;
 	  }
 	  if (listRef.s.second) {
 	    sRec = (*stringTable)[listRef.s.second];
 	    newstr = psT_target->Add(sRec);
-	    (*pnT_target)[newnode].s.second = newstr;	  
+	    (*pnT_target)[newnode].s.second = newstr;
 	  }
 	  if (listRef.s.first) {
 	    sRec = (*stringTable)[listRef.s.first];
 	    newstr = psT_target->Add(sRec);
-	    (*pnT_target)[newnode].s.first = newstr;	
+	    (*pnT_target)[newnode].s.first = newstr;
 	  }
-			           
+
           break; }
         case TextType: {
-          
+
 	  ListExpr newtext=0, newstart=0, tnext=0, tlast=0;
 	  TextRecord tRec;
-	  
+
 	  newnode = pnT_target->Add(listRef);
 	  tRec = (*textTable)[listRef.t.start];
 	  newstart = target->textTable->Add(tRec);
 	  (*pnT_target)[newnode].t.start = newstart;
 	  (*pnT_target)[newnode].t.last = newstart;
-	  	  
+
 	  ListExpr tCurrent = listRef.t.start;
-          while ( (tnext = (*textTable)[tCurrent].next) != 0 ) 
+          while ( (tnext = (*textTable)[tCurrent].next) != 0 )
 	  {
-	    tRec = (*textTable)[tnext];	  
-	    newtext = target->textTable->Add(tRec);	    
+	    tRec = (*textTable)[tnext];
+	    newtext = target->textTable->Add(tRec);
 	    (*target->textTable)[newtext].next = 0;
 	    tlast = (*pnT_target)[newnode].t.last;
-	    (*target->textTable)[tlast].next = newtext; 
-	    (*pnT_target)[newnode].t.last = newtext;  
+	    (*target->textTable)[tlast].next = newtext;
+	    (*pnT_target)[newnode].t.last = newtext;
 	    tCurrent = tnext;
           }
-	  
+
           break; }
 	default:
 	  break;
@@ -636,12 +637,12 @@ bool
 NestedList::IsEqual( const ListExpr atom, const string& str,
                      const bool caseSensitive )
 {
-/* 
+/*
 returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
 
-*/ 
+*/
   if ( IsAtom( atom ) && (AtomType( atom ) == SymbolType) )
-  { 
+  {
     if ( caseSensitive )
     {
       return (SymbolValue( atom ) == str);
@@ -650,8 +651,8 @@ returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
     {
       string aStr = SymbolValue( atom );
       string bStr = str;
-      transform( aStr.begin(), aStr.end(), aStr.begin(), toupper );
-      transform( bStr.begin(), bStr.end(), bStr.begin(), toupper );
+      transform( aStr.begin(), aStr.end(), aStr.begin(), ToUpperProperFunction );
+      transform( bStr.begin(), bStr.end(), bStr.begin(), ToUpperProperFunction );
       return (aStr == bStr);
     }
   }
@@ -662,7 +663,7 @@ returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
 }
 
 /*
-6 Scanning and Parsing 
+6 Scanning and Parsing
 
 6.1 ReadFromFile
 
@@ -688,7 +689,7 @@ NestedList::ReadFromFile ( const string& fileName, ListExpr& list )
   return (success);
 }
 
-/* 
+/*
 Internal procedure *BoolToStr*
 
 */

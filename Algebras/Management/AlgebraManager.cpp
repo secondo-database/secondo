@@ -4,6 +4,7 @@ using namespace std;
 
 #include "AlgebraManager.h"
 #include "Algebra.h"
+#include "CharTransform.h"
 #include "SecondoSystem.h"
 #include "DynamicLibrary.h"
 
@@ -58,7 +59,7 @@ AlgebraManager::LoadAlgebras()
         string libraryName  = string( "lib" ) + (*getAlgebraEntry)( j ).algebraName;
         string initFuncName = string( "Initialize" ) + (*getAlgebraEntry)( j ).algebraName;
         (*getAlgebraEntry)( j ).dynlib = new DynamicLibrary();
-        transform( libraryName.begin(), libraryName.end(), libraryName.begin(), tolower );
+        transform( libraryName.begin(), libraryName.end(), libraryName.begin(), ToLowerProperFunction );
         if ( (*getAlgebraEntry)( j ).dynlib->Load( libraryName ) )
         {
           AlgebraInitFunction initFunc =

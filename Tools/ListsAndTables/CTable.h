@@ -182,7 +182,7 @@ needs to grow it does so automatically.
 
 /* 
 
-Destroys ~CTable~, releasing its storage. 
+Destroys ~CTable~, releasing its storage.
 
 
 
@@ -578,9 +578,9 @@ Saves the ~Compact Table~ to file ~fileName~.
 
 private:
 
-  vector<T>    table;     // Array of table elements
+  std::vector<T>    table;     // Array of table elements
 
-  vector<bool> valid;     // Array of table element states
+  std::vector<bool> valid;     // Array of table element states
 
   Cardinal elemCount;     // Size of compact table
 

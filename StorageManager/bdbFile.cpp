@@ -20,6 +20,7 @@ using namespace std;
 #include "SmiBDB.h"
 #include "SmiCodes.h"
 #include "Profiles.h"
+#include "CharTransform.h"
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
@@ -72,7 +73,7 @@ SmiFile::CheckName( const string& name )
 
   if ( temp.length() > 0 )
   {
-    transform( temp.begin(), temp.end(), temp.begin(), tolower );
+    transform( temp.begin(), temp.end(), temp.begin(), ToLowerProperFunction );
     string::size_type pos = temp.find_first_not_of( alnum );
     ok = pos == string::npos &&
          name[0] != '_' &&

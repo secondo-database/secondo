@@ -4,7 +4,7 @@ using namespace std;
 #include "NLParser.h"
 #include "NLScanner.h"
 
-NLParser::NLParser( NestedList* nestedList, istream* ip = 0, ostream* op = 0 )
+NLParser::NLParser( NestedList* nestedList, istream* ip, ostream* op )
   : isp( ip ), osp( op ), nl( nestedList )
 {
   lex = new NLScanner( nestedList, isp, osp );

@@ -16,6 +16,8 @@ November 2002 M. Spiekermann, Implementation of TimeTest.
 
 #define BUFSIZE 20
 
+using namespace std;
+
 const string
 TimeTest::diffReal() {
 
@@ -59,7 +61,7 @@ TimeTest::diffReal() {
 const string
 TimeTest::diffCPU() {
 
-   static bool firstcall = true;	
+   static bool firstcall = true;
    static clock_t lasttime = 0;
    clock_t currenttime = 0;
    double cputime = 0;

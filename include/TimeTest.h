@@ -11,6 +11,8 @@ November 2002 M. Spiekermann
 #ifndef TIMETEST_H
 #define TIMETEST_H
 
+#include <string>
+
 class TimeTest {
 
    private:
@@ -19,10 +21,10 @@ class TimeTest {
      
    public:
      // return difference in real time since last call 
-     static const string diffReal();
-     
+     static const std::string diffReal();
+
      //  return difference in CPU time since last call
-     static const string diffCPU();
+     static const std::string diffCPU();
 
 };
 

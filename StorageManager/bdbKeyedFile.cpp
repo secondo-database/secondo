@@ -347,7 +347,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key )
   int rc = 0;
   Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
   DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
-  
+
   rc = impl->bdbFile->del( tid, &bdbKey, 0 );
   if ( rc == 0 )
   {
@@ -357,21 +357,21 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key )
   {
     SmiEnvironment::SetError( E_SMI_RECORD_DELETE, rc );
   }
-  
-  return (rc == 0);  
+
+  return (rc == 0);
 }
 
 /* --- Implementation of class  --- */
 
-SmiKeyedFileIterator::SmiKeyedFileIterator( bool reportDuplicates = false )
+SmiKeyedFileIterator::SmiKeyedFileIterator( bool reportDuplicates )
   : firstKey(), lastKey()
 {
 }
-  
+
 SmiKeyedFileIterator::~SmiKeyedFileIterator()
 {
 }
-  
+
 bool
 SmiKeyedFileIterator::Next( SmiKey& key, SmiRecord& record )
 {
@@ -409,6 +409,6 @@ SmiKeyedFileIterator::Next( SmiRecord& record )
   }
   return (ok);
 }
-  
+
 /* --- bdbKeyedFile.cpp --- */
 

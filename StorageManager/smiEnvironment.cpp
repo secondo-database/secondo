@@ -19,6 +19,7 @@ using namespace std;
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "Messenger.h"
+#include "CharTransform.h"
 
 SmiEnvironment::SmiType
 SmiEnvironment::GetImplementationType()
@@ -99,7 +100,7 @@ SmiEnvironment::SetDatabaseName( const string& dbname )
   database = dbname;
   if ( database.length() > 0 )
   {
-    transform( database.begin(), database.end(), database.begin(), toupper );
+    transform( database.begin(), database.end(), database.begin(), ToUpperProperFunction );
     string::size_type pos = database.find_first_not_of( alnum );
     ok = (pos == string::npos) &&
          (dbname[0] != '_') &&
@@ -113,9 +114,9 @@ SmiEnvironment::SetUser( const string& userId )
 {
   static string alpha( "abcdefghijklmnopqrstuvwxyz" );
   static string alnum( alpha + "0123456789_" );
-  
+
   uid = userId;
-  transform( uid.begin(), uid.end(), uid.begin(), tolower );
+  transform( uid.begin(), uid.end(), uid.begin(), ToLowerProperFunction );
   string::size_type pos = uid.find_first_not_of( alnum );
 
   return (pos == string::npos);

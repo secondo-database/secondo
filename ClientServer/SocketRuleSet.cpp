@@ -32,7 +32,7 @@ SocketRule::SocketRule( const string& strIpAddr,
 {
   ipMask.s_addr = inet_addr( strIpMask.c_str() );
   ipAddr.s_addr = inet_addr( strIpAddr.c_str() ) & ipMask.s_addr;
-} 
+}
 
 bool
 SocketRule::Match( const SocketAddress& host )
@@ -72,7 +72,7 @@ operator <<( ostream& os, SocketRule& r )
   return (os);
 }
 
-SocketRuleSet::SocketRuleSet( SocketRule::Policy initDefaultPolicy = SocketRule::DENY )
+SocketRuleSet::SocketRuleSet( SocketRule::Policy initDefaultPolicy )
   : defaultPolicy( initDefaultPolicy )
 {
 }

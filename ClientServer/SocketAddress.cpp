@@ -26,7 +26,7 @@ SocketAddress::SocketAddress( const SocketAddress& sockAddr )
   SocketAddress::operator=( sockAddr );
 }
 
-SocketAddress::SocketAddress( const string& ipAddr, uint16_t portNo = 0 )
+SocketAddress::SocketAddress( const string& ipAddr, uint16_t portNo )
 {
   SetAddress( ipAddr, portNo );
 }

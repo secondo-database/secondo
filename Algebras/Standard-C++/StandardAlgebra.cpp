@@ -2378,7 +2378,7 @@ CcDiff_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDiff_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2414,7 +2414,7 @@ CcDiff_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDiff_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2467,13 +2467,10 @@ StartsFun( Word* args, Word& result, int message, Word& local, Supplier s )
   {
     string str1 = (string)(char*)((CcString*)args[0].addr)->GetStringval();
     string str2 = (string)(char*)((CcString*)args[1].addr)->GetStringval();
+    char* cstr1 = (char*)((CcString*)args[0].addr)->GetStringval();
+    char* cstr2 = (char*)((CcString*)args[1].addr)->GetStringval();
     ((CcBool *)result.addr)->
-    Set (true, str1.compare(str2, 0, str2.length()) == 0 );
-    //((CcBool *)result.addr)->
-      //Set( true, ( ((CcString*)args[0].addr)->GetStringval()->compare( 
-                  //*((CcString*)args[1].addr)->GetStringval(), 0,
-                   //((string)((CcString*)args[1].addr)->GetStringval()).length() ) == 0) );
-		   //teststr.length() ) == 0 );
+    Set (true, strncmp(cstr1, cstr2, str2.length()) == 0 );
   }
   else
   {

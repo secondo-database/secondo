@@ -370,7 +370,7 @@ Operator intstream (
 	intstreamType		//type mapping
 );
 
-Operator count (
+Operator cppcount (
 	"count", 		//name
 	countSpec,         	//specification
 	countFun,		//value mapping
@@ -410,7 +410,7 @@ class StreamExampleAlgebra : public Algebra
   StreamExampleAlgebra() : Algebra()
   {
     AddOperator( &intstream );
-    AddOperator( &count );
+    AddOperator( &cppcount );
     AddOperator( &printintstream );
     AddOperator( &filter );
   }
