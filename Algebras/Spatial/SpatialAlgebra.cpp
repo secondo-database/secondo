@@ -1931,7 +1931,12 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
     Coord Xl,Yl,Xr,Yr;
     double k, a, K, A;
     double x0; //, y0;  (x0, y0) is the intersection
-
+    
+    BBox bbox1=BBox( GetLP().GetX(), GetLP().GetY(), GetRP().GetX(), GetRP().GetY() );
+    BBox bbox2=BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() );
+        
+    if (!bbox1.Intersects(bbox2)) return false;
+    
     xl=lp.GetX();  yl=lp.GetY();
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
@@ -7706,30 +7711,38 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
     cr1=((CRegion*)args[0].addr);
     cr2=((CRegion*)args[1].addr);
 
+    //cout<<endl<<"============================================="<<endl;
+    //cout<<endl<<*cr1<<endl<<"and"<<endl<<*cr2<<endl;
+    
     if(! cr1->BoundingBox().Intersects( cr2->BoundingBox() ) ) 
     {
+	//cout<<"not intersect by MBR"<<endl;
 	((CcBool *)result.addr)->Set( true, false);
 	return (0);
     }
     
+    //cout<<"computing..."<<endl;
+    //cout <<"cr1 size: "<<cr1->Size()<<endl;
+    
+    //1. decide the intersection of edges
     for (int i=0; i<cr1->Size(); i++)
     {
 	cr1->Get(i, chs1);
 	if (chs1.GetLDP())
 	{
+	    
+	    //cout<<endl<<"===================="<<endl;
+	    //cout<<"chs1"<<chs1;  ////////////////////7
+	    //cout <<"cr2 size: "<<cr2->Size()<<endl;
+	    
 	    for (int j=0; j<cr2->Size(); j++)
 	    {
 		cr2->Get(j, chs2);
 		if (chs2.GetLDP())
 		{
+		    //cout<<"chs2: "<<chs2<<endl;  ////////////////////7
+		    
 		    if (chs1.Intersects(chs2))
-		    {
-			((CcBool *)result.addr)->Set( true, true );
-			return (0);
-		    }
-
-		    if ((cr2->contain(chs1.GetLP())) ||
-		         (cr1->contain(chs2.GetLP())))
 		    {
 			((CcBool *)result.addr)->Set( true, true );
 			return (0);
@@ -7738,6 +7751,35 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 	    }
 	}
     }
+    
+    //2. decide the case of Tong-Xin-Yuan
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    if (cr2->contain(chs1.GetLP()))
+	    {
+		((CcBool *)result.addr)->Set( true, true );
+		return (0);
+	    }
+	}
+    }
+    
+    for (int j=0; j<cr2->Size(); j++)
+    {
+	cr2->Get(j, chs2);
+	if (chs2.GetLDP())
+	{
+	    if (cr1->contain(chs2.GetLP()))
+	    {
+		((CcBool *)result.addr)->Set( true, true );
+		return (0);
+	    }
+	}
+    }
+	
+    //3. else: not intersect
     ((CcBool *)result.addr)->Set( true, false);
     return (0);
 }
@@ -8814,7 +8856,7 @@ overlaps_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 
 static int
 overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{  
+{  //Should be modified...............
     result = qp->ResultStorage( s );
     CRegion *cr1, *cr2;
     CHalfSegment chs1, chs2;
