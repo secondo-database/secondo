@@ -36,7 +36,7 @@ demo: Javagui.jar
 	@cp GBS.cfg Demo
 	@echo -e "java -Xmx80M -cp "$(CUPRUNTIME)":"$(MP3)":Javagui.jar gui.MainWindow\n" >Demo/start
 	@chmod +x Demo/start
-	@echo -e "java -Xmx80M -cp "$(CUPRUNTIME)";"$(MP3)";Javagui.jar gui.MainWindow\n" >Demo/start.bat
+	@echo -e "java -Xmx80M -cp "$(CUPRUNTIME)";"$(MP3)";Javagui.jar gui.MainWindow\r\n" >Demo/start.bat
 
 Javagui.jar:
 	@make -s all
