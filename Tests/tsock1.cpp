@@ -1,3 +1,4 @@
+using namespace std;
 #include "SocketIO.h"
 #include <time.h>
 #include <string>

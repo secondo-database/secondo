@@ -385,7 +385,7 @@ If value 0 is returned, the command was executed without error.
         getline( iosock, line );
         if ( line != "</SecondoResponse>" )
         {
-          result += line;
+          result += line + "\n";
         }
       }
       while (line != "</SecondoResponse>" && !iosock.fail());
