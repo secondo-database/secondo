@@ -2583,6 +2583,12 @@ ListExpr EquiMergeJoinTypeMap(ListExpr args)
   else return nl->SymbolAtom("typeerror");
 }
 
+/*
+
+4.1.2 Auxiliary definitions for value mapping function of operator ~equimergejoin~
+
+*/
+
 static CcInt oneCcInt(true, 1);
 static CcBool trueCcBool(true, true);
 
