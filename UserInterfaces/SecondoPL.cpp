@@ -305,7 +305,8 @@ static foreign_t
 pl_get_error_info(term_t errorCode, term_t errorMessage)
 {
   if(PL_unify_integer(errorCode, lastErrorCode) != 0
-     && PL_unify_atom_chars(errorMessage, lastErrorMessage.c_str()) != 0)
+     && PL_unify_atom_chars(errorMessage, 
+	           (SecondoInterface::GetErrorMessage(lastErrorCode) + "\n" + lastErrorMessage).c_str()) != 0)
   {
     PL_succeed;
   }
