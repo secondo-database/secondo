@@ -3,9 +3,11 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Module Temporal Algebra
+[1] Implementation of Module
 
 January 2004 Victor Almeida
+
+March - April 2004 Zhiming Ding
 
 [TOC]
 
@@ -23,10 +25,12 @@ file.
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
-#include "TemporalAlgebra.h"
+#include "SpatialAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+#include "TemporalAlgebra.h"
 
 /*
 3 Type Constructor ~instant~
@@ -91,7 +95,7 @@ OutInstant( ListExpr typeinfo, Word value )
     return (nl->SymbolAtom("undef"));
   }
 }
-
+ 
 /*
 3.5 ~In~-function
 
@@ -253,18 +257,18 @@ CheckRangeInt( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangeint(
-        "rangeint",                                     //name
-        RangeIntProperty,                               //property function describing signature
+        "rangeint",                 	                    //name
+        RangeIntProperty,            	    //property function describing signature
         OutRange<CcInt, OutCcInt>,
-        InRange<CcInt, InCcInt>,                        //Out and In functions
-        0,                      0,                      //SaveToList and RestoreFromList functions
-        CreateRange<CcInt>,     DeleteRange<CcInt>,     //object creation and deletion
-        OpenRange<CcInt>,       SaveRange<CcInt>,       // object open and save
-        CloseRange<CcInt>,      CloneRange<CcInt>,      //object close and clone
-        CastRange<CcInt>,                               //cast function
-        SizeOfRange<CcInt>,                             //sizeof function
-        CheckRangeInt,                                  //kind checking function
-        0,                                              //predef. pers. function for model
+        InRange<CcInt, InCcInt>,               //Out and In functions
+        0,                      0,       	                   //SaveToList and RestoreFromList functions
+        CreateRange<CcInt>,DeleteRange<CcInt>,     //object creation and deletion
+        OpenRange<CcInt>,  SaveRange<CcInt>,       // object open and save
+        CloseRange<CcInt>, CloneRange<CcInt>,      //object close and clone
+        CastRange<CcInt>,                        //cast function
+        SizeOfRange<CcInt>,                    //sizeof function
+        CheckRangeInt,                              //kind checking function
+        0,                                    		   //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
@@ -331,18 +335,18 @@ CheckRangeReal( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor rangereal(
-        "rangereal",                        		//name
-        RangeRealProperty,                  		//property function describing signature
+        "rangereal",                  				//name
+        RangeRealProperty,   				//property function describing signature
         OutRange<CcReal, OutCcReal>,
-	InRange<CcReal, InCcReal>, 		     	//Out and In functions
-        0,              	0,              	//SaveToList and RestoreFromList functions
-        CreateRange<CcReal>,	DeleteRange<CcReal>,   	//object creation and deletion
-        OpenRange<CcReal>,	SaveRange<CcReal>,	// object open and save
-        CloseRange<CcReal>,	CloneRange<CcReal>,	//object close and clone
+        InRange<CcReal, InCcReal>, 		     	//Out and In functions
+        0,              	0,            			 	//SaveToList and RestoreFromList functions
+        CreateRange<CcReal>,DeleteRange<CcReal>,  	//object creation and deletion
+        OpenRange<CcReal>,SaveRange<CcReal>,	// object open and save
+        CloseRange<CcReal>,CloneRange<CcReal>,	//object close and clone
         CastRange<CcReal>,				//cast function
-        SizeOfRange<CcReal>,                   		//sizeof function
-        CheckRangeReal,                     		//kind checking function
-        0,                              		//predef. pers. function for model
+        SizeOfRange<CcReal>,                  		//sizeof function
+        CheckRangeReal,      		              		//kind checking function
+        0,                    			        		//predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
@@ -354,7 +358,7 @@ TypeConstructor rangereal(
 This type constructor implements the carrier set for ~range(instant)~, which is
 called ~periods~.
 
-5.1 List Representation
+6.1 List Representation
 
 The list representation of a ~periods~ is
 
@@ -368,7 +372,7 @@ For example:
           ( (instant 11.93) (instant 11.99) TRUE  TRUE) )
 ----
 
-5.2 function Describing the Signature of the Type Constructor
+6.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -394,7 +398,7 @@ PeriodsProperty()
 }
 
 /*
-5.3 Kind Checking Function
+6.3 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. It
 checks if the argument $\alpha$ of the range belongs to the ~BASE~ kind.
@@ -407,33 +411,33 @@ CheckPeriods( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-5.4 Creation of the type constructor ~periods~
+6.4 Creation of the type constructor ~periods~
 
 */
 TypeConstructor periods(
-        "periods",                                      //name
-        PeriodsProperty,                                //property function describing signature
+        "periods",            		                        //name
+        PeriodsProperty,        		                        //property function describing signature
         OutRange<Instant, OutInstant>,
-        InRange<Instant, InInstant>,                    //Out and In functions
-        0,                      0,                      //SaveToList and RestoreFromList functions
-        CreateRange<Instant>,   DeleteRange<Instant>,   //object creation and deletion
-        OpenRange<Instant>,      SaveRange<Instant>,    // object open and save
-        CloseRange<Instant>,     CloneRange<Instant>,   //object close and clone
-        CastRange<Instant>,                             //cast function
-        SizeOfRange<Instant>,                           //sizeof function
-        CheckPeriods,                                   //kind checking function
-        0,                                              //predef. pers. function for model
+        InRange<Instant, InInstant>, 		        //Out and In functions
+        0,                      0,     			        //SaveToList and RestoreFromList functions
+        CreateRange<Instant>, DeleteRange<Instant>,  //object creation and deletion
+        OpenRange<Instant>,   SaveRange<Instant>,     // object open and save
+        CloseRange<Instant>,  CloneRange<Instant>,    //object close and clone
+        CastRange<Instant>,                          	   //cast function
+        SizeOfRange<Instant>,                         	   //sizeof function
+        CheckPeriods,                                  	   //kind checking function
+        0,                                             		   //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
 
 /*
-6 Type Constructor ~intimeint~
+7 Type Constructor ~intimeint~
 
 Type ~intimeint~ represents an (instant, value)-pair of integers.
 
-6.1 List Representation
+7.1 List Representation
 
 The list representation of an ~intimeint~ is
 
@@ -445,7 +449,7 @@ For example:
 ----    ( 1.0 5 )
 ----
 
-6.2 function Describing the Signature of the Type Constructor
+7.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -463,7 +467,7 @@ IntimeIntProperty()
 }
 
 /*
-6.3 Kind Checking Function
+7.3 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. 
 
@@ -475,33 +479,33 @@ CheckIntimeInt( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-5.4 Creation of the type constructor ~intimeint~
+7.4 Creation of the type constructor ~intimeint~
 
 */
 TypeConstructor intimeint(
-        "intimeint",                                  //name
-        IntimeIntProperty,                            //property function describing signature
+        "intimeint",                             	    //name
+        IntimeIntProperty,                        	    //property function describing signature
         OutIntime<CcInt, OutCcInt>,
-        InIntime<CcInt, InCcInt>,                     //Out and In functions
-        0,                      0,                    //SaveToList and RestoreFromList functions
+        InIntime<CcInt, InCcInt>,                 //Out and In functions
+        0,                      0,                	    //SaveToList and RestoreFromList functions
         CreateIntime<CcInt>,    DeleteIntime<CcInt>,  //object creation and deletion
-        0,                      0,                    // object open and save
+        0,                      0,                 	   // object open and save
         CloseIntime<CcInt>,     CloneIntime<CcInt>,   //object close and clone
-        CastIntime<CcInt>,                            //cast function
-        SizeOfIntime<CcInt>,                          //sizeof function
-        CheckIntimeInt,                               //kind checking function
-        0,                                            //predef. pers. function for model
+        CastIntime<CcInt>,                          //cast function
+        SizeOfIntime<CcInt>,                      //sizeof function
+        CheckIntimeInt,                                //kind checking function
+        0,                                           	   //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
 
 /*
-6 Type Constructor ~intimereal~
+8 Type Constructor ~intimereal~
 
 Type ~intimereal~ represents an (instant, value)-pair of reals.
 
-6.1 List Representation
+8.1 List Representation
 
 The list representation of an ~intimereal~ is
 
@@ -513,7 +517,7 @@ For example:
 ----    ( 1.0 5.0 )
 ----
 
-6.2 function Describing the Signature of the Type Constructor
+8.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr
@@ -531,7 +535,7 @@ IntimeRealProperty()
 }
 
 /*
-6.3 Kind Checking Function
+8.3 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly.
 
@@ -543,43 +547,518 @@ CheckIntimeReal( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-5.4 Creation of the type constructor ~intimeint~
+8.4 Creation of the type constructor ~intimeint~
 
 */
 TypeConstructor intimereal(
-        "intimereal",                                  //name
-        IntimeRealProperty,                            //property function describing signature
+        "intimereal",                        	          //name
+        IntimeRealProperty,                   	         //property function describing signature
         OutIntime<CcReal, OutCcReal>,
-        InIntime<CcReal, InCcReal>,                     //Out and In functions
-        0,                      0,                    //SaveToList and RestoreFromList functions
+        InIntime<CcReal, InCcReal>,             //Out and In functions
+        0,                      0,            	        //SaveToList and RestoreFromList functions
         CreateIntime<CcReal>,    DeleteIntime<CcReal>,  //object creation and deletion
-        0,                      0,                    // object open and save
+        0,                      0,             	        // object open and save
         CloseIntime<CcReal>,     CloneIntime<CcReal>,   //object close and clone
-        CastIntime<CcReal>,                            //cast function
-        SizeOfIntime<CcReal>,                          //sizeof function
-        CheckIntimeReal,                               //kind checking function
-        0,                                            //predef. pers. function for model
+        CastIntime<CcReal>,                          //cast function
+        SizeOfIntime<CcReal>,                      //sizeof function
+        CheckIntimeReal,                                //kind checking function
+        0,                                        	        //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
 
+/*
+9 Type Constructor ~intimepoint~
+
+Type ~intimereal~ represents an (instant, value)-pair of reals.
+
+9.1 List Representation
+
+The list representation of an ~intimereal~ is
+
+----    ( t real-value )
+----
+
+For example:
+
+----    ( 1.0 5.0 )
+----
+
+9.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+IntimePointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("point -> TEMPORAL"),
+                             nl->StringAtom("(intimepoint) "),
+                             nl->StringAtom("(instant point) "),
+                             nl->StringAtom("( 0.5 (1.0 2.0) )"))));
+}
 
 /*
-6 Operators
+9.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly.
+
+*/
+bool
+CheckIntimePoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "intimepoint" ));
+}
+
+/*
+9.4 Creation of the type constructor ~intimepoint~
+
+*/
+TypeConstructor intimepoint(
+        "intimepoint",                                	     //name
+        IntimePointProperty,                         //property function describing signature
+        OutIntime<Point, OutPoint>,
+        InIntime<Point, InPoint>,                 //Out and In functions
+        0,                      0,                	    //SaveToList and RestoreFromList functions
+        CreateIntime<Point>,    DeleteIntime<Point>,  //object creation and deletion
+        0,                      0,                 	   // object open and save
+        CloseIntime<Point>,     CloneIntime<Point>,   //object close and clone
+        CastIntime<Point>,                            //cast function
+        SizeOfIntime<Point>,                        //sizeof function
+        CheckIntimePoint,                             //kind checking function
+        0,                                          	     //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+/*
+10 Type Constructor ~constint~
+
+Type ~constint~ represents an (tinterval, intvalue)-pair.
+
+10.1 List Representation
+
+The list representation of an ~constint~ is
+
+----    ( timeinterval int-value )
+----
+
+For example:
+
+----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   5 )
+----
+
+10.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+ConstIntProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("int -> UNIT"),
+                             nl->StringAtom("(constint) "),
+                             nl->StringAtom("(timeInterval int) "),
+                             nl->StringAtom("( (6.37 9.9 FALSE FALSE) 1 )"))));
+}
+
+/*
+10.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. 
+
+*/
+bool
+CheckConstInt( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "constint" ));
+}
+
+/*
+10.4 Creation of the type constructor ~constint~
+
+*/
+TypeConstructor constint(
+        "constint",                   	  	      	       //name
+        ConstIntProperty,                 	     	      //property function describing signature
+        OutConstTemporalUnit<CcInt, OutCcInt>,
+        InConstTemporalUnit<CcInt, InCcInt>,	     //Out and In functions
+        0,                      0,           	     	    	     //SaveToList and RestoreFromList functions
+        CreateConstTemporalUnit<CcInt>,
+        DeleteConstTemporalUnit<CcInt>,  	    //object creation and deletion
+        0,                      0,            	        	    // object open and save
+        CloseConstTemporalUnit<CcInt>,     
+        CloneConstTemporalUnit<CcInt>,   	    //object close and clone
+        CastConstTemporalUnit<CcInt>,       	    //cast function
+        SizeOfConstTemporalUnit<CcInt>, 	    //sizeof function
+        CheckConstInt,                        	  	    //kind checking function
+        0,                                           	      	   //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+/*
+11 Type Constructor ~ureal~
+
+Type ~ureal~ represents an (tinterval, (a, b, c, r))-pair. a, b, c are real numbers, r is a boolean flag
+
+11.1 List Representation
+
+The list representation of an ~ureal~ is
+
+----    ( timeinterval (a b c r)) where a, b, c are real numbers, and r is a boolean flag
+----
+
+For example:
+
+----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   (1.0 2.3 4.1 TRUE) )
+----
+
+11.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+UrealProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom(" real -> UNIT"),
+                             nl->StringAtom("(ureal) "),
+                             nl->StringAtom("( timeInterval (real1 real2 real3 bool)) "),
+                             nl->StringAtom("( (6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 TRUE) )"))));
+}
+
+/*
+11.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. 
+
+*/
+bool
+CheckUreal( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "ureal" ));
+}
+
+/*
+11.4 Creation of the type constructor ~constint~
+
+*/
+TypeConstructor ureal(
+        "ureal",                   	  	    	       //name
+        UrealProperty,                 	     	      //property function describing signature
+        OutUreal, InUreal,			     //Out and In functions
+        0,                      0,           	     	    	     //SaveToList and RestoreFromList functions
+        CreateUreal,
+        DeleteUreal,			  	    //object creation and deletion
+        0,                      0,            	        	    // object open and save
+        CloseUreal,   CloneUreal,	   	    //object close and clone
+        CastUreal,			       	    //cast function
+        SizeOfUreal,			 	    //sizeof function
+        CheckUreal,                        	  	    //kind checking function
+        0,                                           	      	   //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+/*
+12 Type Constructor ~upoint~
+
+Type ~upoint~ represents an (tinterval, (x0, x1, y0, y1))-pair. 
+
+12.1 List Representation
+
+The list representation of an ~upoint~ is
+
+----    ( timeinterval (x0 x1 y0 y1)) where x0, x1, y0, y1 are real numbers
+----
+
+For example:
+
+----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   (1.0 2.3 4.1 2.1) )
+----
+
+12.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+UPointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom(" point -> UNIT"),
+                             nl->StringAtom("(upoint) "),
+                             nl->StringAtom("( timeInterval (real1 real2 real3 real4) ) "),
+                             nl->StringAtom("( (6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 2.1) )"))));
+}
+
+/*
+12.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. 
+
+*/
+bool
+CheckUPoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "upoint" ));
+}
+
+/*
+12.4 Creation of the type constructor ~constint~
+
+*/
+TypeConstructor upoint(
+        "upoint",                   	  	      	       //name
+        UPointProperty,                 	     	      //property function describing signature
+        OutUPoint, InUPoint,			     //Out and In functions
+        0,                      0,           	     	    	     //SaveToList and RestoreFromList functions
+        CreateUPoint,
+        DeleteUPoint,		  	    //object creation and deletion
+        0,                      0,            	        	    // object open and save
+        CloseUPoint,   CloneUPoint,	   	    //object close and clone
+        CastUPoint,			       	    //cast function
+        SizeOfUPoint,			    //sizeof function
+        CheckUPoint,                        	  	    //kind checking function
+        0,                                           	      	   //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+/*
+13 Type Constructor ~mpoint~
+
+Type ~upoint~ represents an (tinterval, (x0, x1, y0, y1))-pair. 
+
+13.1 List Representation
+
+The list representation of an ~upoint~ is
+
+----    ( timeinterval (x0 x1 y0 y1)) where x0, x1, y0, y1 are real numbers
+----
+
+For example:
+
+----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   (1.0 2.3 4.1 2.1) )
+----
+
+13.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+MPointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom(" upoint -> MAPPING"),
+                             nl->StringAtom("(mpoint) "),
+                             nl->StringAtom("( upoint1 upoint2 ... upointn) "),
+                             nl->StringAtom("( ((6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
+}
+
+/*
+13.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. 
+
+*/
+bool
+CheckMPoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "mpoint" ));
+}
+
+/*
+13.4 Creation of the type constructor ~constint~
+
+*/
+TypeConstructor mpoint(
+        "mpoint",                   	  	      	       //name
+        MPointProperty,                 	     	      //property function describing signature
+        OutMPoint, InMPoint,			     //Out and In functions
+        0,                      0,           	     	    	     //SaveToList and RestoreFromList functions
+        CreateMPoint,
+        DeleteMPoint,		  	    //object creation and deletion
+        0,                      0,            	        	    // object open and save
+        CloseMPoint,   CloneMPoint,	   	    //object close and clone
+        CastMPoint,			       	    //cast function
+        SizeOfMPoint,			 	    //sizeof function
+        CheckMPoint,                        	  	    //kind checking function
+        0,                                           	      	   //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+/*
+14 Type Constructor ~mint~
+
+14.1 List Representation
+
+The list representation of an ~upoint~ is
+
+----    ( timeinterval (x0 x1 y0 y1)) where x0, x1, y0, y1 are real numbers
+----
+
+For example:
+
+----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   (1.0 2.3 4.1 2.1) )
+----
+
+14.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+MIntProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("constint -> MAPPING"),
+                             nl->StringAtom("(mint) "),
+                             nl->StringAtom("( constTempUnitInt1 constTempUnitInt2 ... constTempUnitIntn) "),
+                             nl->StringAtom("( ( (6.37 9.9 FALSE FALSE) 1)  ((9.9 19.9 FALSE FALSE) 2)...)"))));
+}
+
+/*
+14.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. 
+
+*/
+bool
+CheckMInt( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "mint" ));
+}
+
+/*
+14.4 Creation of the type constructor ~constint~
+
+*/
+TypeConstructor mint(
+        "mint",                   	  	      	       //name
+        MIntProperty,                 	     	      //property function describing signature
+        OutMInt, InMInt,			     //Out and In functions
+        0,                      0,           	     	    	     //SaveToList and RestoreFromList functions
+        CreateMInt,
+        DeleteMInt,		  	    	    //object creation and deletion
+        0,                      0,            	        	    // object open and save
+        CloseMInt,   CloneMInt,	   	    //object close and clone
+        CastMInt,			       	    //cast function
+        SizeOfMInt,			 	    //sizeof function
+        CheckMInt,                        	  	    //kind checking function
+        0,                                           	      	   //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+/*
+15 Type Constructor ~mreal~
+
+Type ~upoint~ represents an (tinterval, (x0, x1, y0, y1))-pair. 
+
+15.1 List Representation
+
+The list representation of an ~upoint~ is
+
+----    ( timeinterval (x0 x1 y0 y1)) where x0, x1, y0, y1 are real numbers
+----
+
+For example:
+
+----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   (1.0 2.3 4.1 2.1) )
+----
+
+15.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr
+MRealProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom(" ureal -> MAPPING"),
+                             nl->StringAtom("(mreal) "),
+                             nl->StringAtom("( ureal1 ureal2 ... urealn) "),
+                             nl->StringAtom("( ((6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 FALSE)) ...)"))));
+}
+
+/*
+15.3 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. 
+
+*/
+bool
+CheckMReal( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "mreal" ));
+}
+
+/*
+15.4 Creation of the type constructor ~constint~
+
+*/
+TypeConstructor mreal(
+        "mreal",                   	  	      	       //name
+        MRealProperty,                 	     	      //property function describing signature
+        OutMReal, InMReal,			     //Out and In functions
+        0,                      0,           	     	    	     //SaveToList and RestoreFromList functions
+        CreateMReal,
+        DeleteMReal,		  	    //object creation and deletion
+        0,                      0,            	        	    // object open and save
+        CloseMReal,   CloneMReal,	   	    //object close and clone
+        CastMReal,			       	    //cast function
+        SizeOfMReal,			 	    //sizeof function
+        CheckMReal,                        	  	    //kind checking function
+        0,                                           	      	   //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+/*
+16 Operators
 
 Definition of operators is similar to definition of type constructors. An
 operator is defined by creating an instance of class ~Operator~. Again we
 have to define some functions before we are able to create an ~Operator~
 instance.
 
-6.1 Type mapping function
+16.1 Type mapping function
 
 A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
-6.1.1 Typa mapping function InstantTypeMapBool
+16.1.1 Typa mapping function InstantTypeMapBool
 
 */
 ListExpr
@@ -599,30 +1078,30 @@ InstantTypeMapBool( ListExpr args )
 }
 
 /*
-6.1.1 Typa mapping function InstantInstantTypeMapBool
+16.1.1 Typa mapping function InstantInstantTypeMapBool
 
 */
 ListExpr
 InstantInstantTypeMapBool( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if( nl->IsAtom( arg1 ) &&
-        nl->AtomType( arg1 ) == SymbolType &&
-        nl->SymbolValue( arg1 ) == "instant" &&
-        nl->IsAtom( arg2 ) &&
-        nl->AtomType( arg2 ) == SymbolType &&
-        nl->SymbolValue( arg2 ) == "instant" )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+	if( nl->IsAtom( arg1 ) &&
+	    nl->AtomType( arg1 ) == SymbolType &&
+	    nl->SymbolValue( arg1 ) == "instant" &&
+	    nl->IsAtom( arg2 ) &&
+	    nl->AtomType( arg2 ) == SymbolType &&
+	    nl->SymbolValue( arg2 ) == "instant" )
+	    return (nl->SymbolAtom( "bool" ));
+    }
+    return (nl->SymbolAtom( "typeerror" ));
 }
 
 /*
-6.1.1 Type mapping function RangeTypeMapBool1
+16.1.1 Type mapping function RangeTypeMapBool1
 
 It is for the operator ~isempty~ which have a ~range~ as input and ~bool~ result type.
 
@@ -676,7 +1155,7 @@ RangeTypeMapBool1( ListExpr args )
 }
 
 /*
-6.1.2 Type mapping function RangeRangeTypeMapBool
+16.1.2 Type mapping function RangeRangeTypeMapBool
 
 It is for the operators $=$, $\neq$, and ~intersects~ which have two
 ~ranges~ as input and ~bool~ result type.
@@ -699,7 +1178,7 @@ RangeRangeTypeMapBool( ListExpr args )
 }
 
 /*
-6.1.3 Type mapping function RangeBaseTypeMapBool1
+16.1.3 Type mapping function RangeBaseTypeMapBool1
 
 It is for the operator ~inside~ which have two ~ranges~ as input or a
 ~BASE~ and a ~range~ in this order as arguments and ~bool~ as the result type.
@@ -724,7 +1203,7 @@ RangeBaseTypeMapBool1( ListExpr args )
 }
 
 /*
-6.1.4 Type mapping function RangeBaseTypeMapBool2
+16.1.4 Type mapping function RangeBaseTypeMapBool2
 
 It is for the operator ~before~ which have two ~ranges~ as input or a
 ~BASE~ and a ~range~ in any order as arguments and ~bool~ as the result type.
@@ -752,7 +1231,7 @@ RangeBaseTypeMapBool2( ListExpr args )
 }
 
 /*
-6.1.5 Type mapping function RangeRangeTypeMapRange
+16.1.5 Type mapping function RangeRangeTypeMapRange
 
 It is for the operators ~intersection~, ~union~, and ~minus~ which have two
 ~ranges~ as input and a ~range~ as result type.
@@ -775,7 +1254,7 @@ RangeRangeTypeMapRange( ListExpr args )
 }
 
 /*
-6.1.6 Type mapping function RangeTypeMapBase
+16.1.6 Type mapping function RangeTypeMapBase
 
 It is for the aggregate operators ~min~, ~max~, and ~avg~ which have one
 ~range~ as input and a ~BASE~ as result type.
@@ -795,7 +1274,7 @@ RangeTypeMapBase( ListExpr args )
 }
 
 /*
-6.1.7 Type mapping function RangeTypeMapInt
+16.1.7 Type mapping function RangeTypeMapInt
 
 It is for the ~no\_components~ operator which have one
 ~range~ as input and a ~int~ as result type.
@@ -815,7 +1294,7 @@ RangeTypeMapInt( ListExpr args )
 }
 
 /*
-6.1.6 Type mapping function IntimeTypeMapBase
+16.1.6 Type mapping function IntimeTypeMapBase
 
 It is for the operator ~val~.
 
@@ -855,7 +1334,7 @@ IntimeTypeMapBase( ListExpr args )
 }
 
 /*
-6.1.6 Type mapping function IntimeTypeMapInstant
+16.1.6 Type mapping function IntimeTypeMapInstant
 
 It is for the operator ~inst~.
 
@@ -874,7 +1353,37 @@ IntimeTypeMapInstant( ListExpr args )
 }
 
 /*
-6.2 Selection function
+16.1.7 Type mapping function Mapping x Instant -->Intime
+
+It is for the operator ~atinstant~.
+
+*/
+ListExpr
+MappingInstantTypeMapIntime( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+	return (nl->SymbolAtom( "intimeint" ));
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+	return (nl->SymbolAtom( "intimereal" ));
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+	return (nl->SymbolAtom( "intimepoint" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -885,7 +1394,7 @@ Note that a selection function does not need to check the correctness of
 argument types; it has already been checked by the type mapping function that it
 is applied to correct arguments.
 
-6.2.1 Selection function ~RangeSelectPredicates~
+16.2.1 Selection function ~RangeSelectPredicates~
 
 Is used for the ~inside~ and ~before~ operations.
 
@@ -913,8 +1422,29 @@ RangeSelectPredicates( ListExpr args )
   return (-1); // This point should never be reached
 }
 
+int
+TemporalSelectAtInstant( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if( nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+  {
+      if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )
+	  return (0);
+  
+      if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" )
+	  return (1);
+  
+      if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
+	  return (2);
+  }
+  assert( false );
+  return (-1); // This point should never be reached
+}
+
 /*
-6.3 Value mapping functions
+16.3 Value mapping functions
 
 A value mapping function implements an operator's main functionality: it takes
 input arguments and computes the result. Each operator consists of at least
@@ -955,7 +1485,7 @@ int RangeIsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-6.3.2 Value mapping functions of operator $=$ (~equal~)
+16.3.2 Value mapping functions of operator $=$ (~equal~)
 
 */
 int
@@ -994,7 +1524,7 @@ int RangeEqual_rr( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-6.3.3 Value mapping functions of operator $\#$ (~not equal~)
+16.3.3 Value mapping functions of operator $\#$ (~not equal~)
 
 */
 int
@@ -1032,7 +1562,7 @@ int RangeNotEqual_rr( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-6.3.3 Value mapping functions of operator $<$
+16.3.3 Value mapping functions of operator $<$
 
 */
 int
@@ -1055,7 +1585,7 @@ InstantLess( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-6.3.3 Value mapping functions of operator $<=$
+16.3.3 Value mapping functions of operator $<=$
 
 */
 int
@@ -1078,7 +1608,7 @@ InstantLessEqual( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
-6.3.3 Value mapping functions of operator $>$
+16.3.3 Value mapping functions of operator $>$
 
 */
 int
@@ -1101,7 +1631,7 @@ InstantGreater( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-6.3.3 Value mapping functions of operator $>=$
+16.3.3 Value mapping functions of operator $>=$
 
 */
 int
@@ -1124,7 +1654,7 @@ InstantGreaterEqual( Word* args, Word& result, int message, Word& local, Supplie
 }
 
 /*
-6.3.4 Value mapping functions of operator ~intersects~
+16.3.4 Value mapping functions of operator ~intersects~
 
 */
 template <class Alpha>
@@ -1143,7 +1673,7 @@ int RangeIntersects_rr( Word* args, Word& result, int message, Word& local, Supp
 }
 
 /*
-6.3.5 Value mapping functions of operator ~inside~
+16.3.5 Value mapping functions of operator ~inside~
 
 */
 template <class Alpha>
@@ -1177,7 +1707,7 @@ int RangeInside_ar( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-6.3.6 Value mapping functions of operator ~before~
+16.3.6 Value mapping functions of operator ~before~
 
 */
 template <class Alpha>
@@ -1226,7 +1756,7 @@ int RangeBefore_ra( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-6.3.7 Value mapping functions of operator ~intersection~
+16.3.7 Value mapping functions of operator ~intersection~
 
 */
 template <class Alpha>
@@ -1238,7 +1768,7 @@ int RangeIntersection_rr( Word* args, Word& result, int message, Word& local, Su
 }
 
 /*
-6.3.8 Value mapping functions of operator ~union~
+16.3.8 Value mapping functions of operator ~union~
 
 */
 template <class Alpha>
@@ -1250,7 +1780,7 @@ int RangeUnion_rr( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-6.3.9 Value mapping functions of operator ~minus~
+16.3.9 Value mapping functions of operator ~minus~
 
 */
 template <class Alpha>
@@ -1262,7 +1792,7 @@ int RangeMinus_rr( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-6.3.10 Value mapping functions of operator ~min~
+16.3.10 Value mapping functions of operator ~min~
 
 */
 template <class Alpha>
@@ -1282,7 +1812,7 @@ int RangeMinimum_r( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-6.3.11 Value mapping functions of operator ~max~
+16.3.11 Value mapping functions of operator ~max~
 
 */
 template <class Alpha>
@@ -1302,7 +1832,7 @@ int RangeMaximum_r( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-6.3.12 Value mapping functions of operator ~no\_components~
+16.3.12 Value mapping functions of operator ~no\_components~
 
 */
 template <class Alpha>
@@ -1314,7 +1844,7 @@ int RangeNoComponents_r( Word* args, Word& result, int message, Word& local, Sup
 }
 
 /*
-6.3.11 Value mapping functions of operator ~inst~
+16.3.11 Value mapping functions of operator ~inst~
 
 */
 template <class Alpha>
@@ -1326,7 +1856,7 @@ int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-6.3.11 Value mapping functions of operator ~val~
+16.3.11 Value mapping functions of operator ~val~
 
 */
 template <class Alpha>
@@ -1338,7 +1868,71 @@ int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-6.4 Definition of operators
+16.3.11 Value mapping functions of operator ~atinstant~
+
+*/
+int atinstant_mint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x instant  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MInt *mint;
+  Instant* inst;
+  
+  mint=((MInt*)args[0].addr);
+  inst=((Instant*)args[1].addr);
+  
+  CcInt resInt;
+  if (mint->TemporalFunction( *inst, resInt ))
+  {
+      ((Intime<CcInt>*)result.addr)->instant = *inst;
+      ((Intime<CcInt>*)result.addr)->value = resInt;
+      return (0);
+  }
+  else return (0);
+}
+
+int atinstant_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x instant  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MReal *mreal;
+  Instant* inst;
+  
+  mreal=((MReal*)args[0].addr);
+  inst=((Instant*)args[1].addr);
+  
+  CcReal resReal;
+  if (mreal->TemporalFunction( *inst, resReal ))
+  {
+      ((Intime<CcReal>*)result.addr)->instant = *inst;
+      ((Intime<CcReal>*)result.addr)->value = resReal;
+      return (0);
+  }
+  else return (0);
+}
+
+int atinstant_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x instant  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MPoint *mpoint;
+  Instant* inst;
+  
+  mpoint=((MPoint*)args[0].addr);
+  inst=((Instant*)args[1].addr);
+  
+  Point resPoint;
+  if (mpoint->TemporalFunction( *inst, resPoint ))
+  {
+      ((Intime<Point>*)result.addr)->instant = *inst;
+      ((Intime<Point>*)result.addr)->value = resPoint;
+      return (0);
+  }
+  else return (0);
+}
+
+/*
+16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
@@ -1347,7 +1941,7 @@ Because almost all operators are overloaded, we have first do define an array of
 mapping functions for each operator. For nonoverloaded operators there is also such and array
 defined, so it easier to make them overloaded.
 
-6.4.1 ValueMapping arrays
+16.4.1 ValueMapping arrays
 
 */
 ValueMapping instantisemptymap[] = { InstantIsEmpty };
@@ -1401,7 +1995,7 @@ ModelMapping rangenomodelmap[] = { TemporalNoModelMapping, TemporalNoModelMappin
                                    TemporalNoModelMapping, TemporalNoModelMapping };
 
 /*
-6.4.2 Specification strings
+16.4.2 Specification strings
 
 */
 const string TemporalSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -1553,7 +2147,7 @@ const string TemporalSpecVal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 ") )";
 
 /*
-6.4.3 Operators
+16.4.3 Operators
 
 */
 Operator instantisempty( "isempty",
@@ -1851,7 +2445,16 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &rangereal );
     AddTypeConstructor( &intimeint );
     AddTypeConstructor( &intimereal );
-
+    AddTypeConstructor( &intimepoint );
+    
+    AddTypeConstructor( &constint );
+    AddTypeConstructor( &ureal );
+    AddTypeConstructor( &upoint );
+    
+    AddTypeConstructor( &mpoint );
+    AddTypeConstructor( &mint );
+    AddTypeConstructor( &mreal );
+	    
     instant.AssociateKind( "TIME" );
     rangeint.AssociateKind( "RANGE" );
     rangereal.AssociateKind( "RANGE" );
