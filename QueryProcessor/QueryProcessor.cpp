@@ -2308,16 +2308,6 @@ Deletes an operator tree object.
         }
         break;
       }
-      case IndirectObject:
-      {
-        string typeName;
-        int algebraId, typeId;
-        if( GetCatalog( tree->nodeLevel )->LookUpTypeExpr( tree->typeExpr, typeName, algebraId, typeId ) )
-        {
-          (algebraManager->CloseObj( algebraId, typeId )) ( (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1] );
-        }
-        break;
-      }
       default:
         break;
     } /* case */ 
