@@ -41,7 +41,6 @@ all: $(ALL_OBJECTS) $(LIBDIROBJECTS)
 
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
-	echo $(APPLICATIONS) 
 
 # create dependencies from include directives
 %.dep: %.cpp
