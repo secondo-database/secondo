@@ -12,8 +12,7 @@ import viewer.HoeseViewer;
  * @author  Thomas Höse
  * @version 0.99 1.1.02
  */
-public class DsplGeneric
-    implements DsplBase {
+public class DsplGeneric implements DsplBase,DsplSimple {
   protected String AttrName;
   protected boolean selected;
   private boolean visible = true;
@@ -22,7 +21,7 @@ public class DsplGeneric
    * In relations it is neccessary to get the name of the attribute of this datatype instance in
    * a tuple.
    * @return attribute name
-   * @see <a href="DsplGenericsrc.html#getAttrName">Source</a> 
+   * @see <a href="DsplGenericsrc.html#getAttrName">Source</a>
    */
   public String getAttrName () {
     return  AttrName;
@@ -41,11 +40,11 @@ public class DsplGeneric
   }
   /**
    * This method is used to analyse the type and value in NestedList format and build
-   * up the intern datastructures for this type. An alphanumeric representation is 
+   * up the intern datastructures for this type. An alphanumeric representation is
    * neccessary for the displaying this type in the queryresultlist.
    * This class is used if datatype is unknown.
    * @param type A symbolatom with the datatype
-   * @param value The value of this object 
+   * @param value The value of this object
    * @param qr The queryresultlist to add alphanumeric representation
    * @see generic.QueryResult
    * @see sj.lang.ListExpr
@@ -55,15 +54,47 @@ public class DsplGeneric
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     String ts;
     if (type.isAtom())
-      ts = type.writeListExprToString(); 
-    else 
+      ts = type.writeListExprToString();
+    else
       ts = type.first().writeListExprToString();
     qr.addEntry(new String("Unknown Type: " + ts));
    // HoeseViewer.("ListExpr for unknown type " + ts + value.writeListExprToString());
     return;
   }
+
+
+ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  {
+    if(!this.getClass().equals(theClass)) {
+       init(type,value,qr);
+       return;
+    }
+
+    String ts;
+    if (type.isAtom())
+      ts = type.writeListExprToString();
+    else
+     ts = type.first().writeListExprToString();
+     String T = "Unknown Type";
+     String N = extendString(ts,typewidth);
+     qr.addEntry(N + " : " + T);
+     return;
+
+  }
+
+ protected String extendString(String S ,int MinWidth){
+   String R = new String(S);
+   int NoSpaces=MinWidth-R.length();
+   for(int i=0;i<NoSpaces;i++)
+      R = ' '+R;
+   R=R.replaceAll("\n", " ");
+   return R;
+  }
+
+
+
   /**
-   * Sets the visibility of an object 
+   * Sets the visibility of an object
    * @param b true=show false=hide
    * @see <a href="DsplGenericsrc.html#setVisible">Source</a>
    */
@@ -97,6 +128,9 @@ public class DsplGeneric
   public boolean getSelected () {
     return  selected;
   }
+
+  private static Class theClass = new DsplGeneric().getClass();
+
 }
 
 
