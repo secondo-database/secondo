@@ -490,9 +490,9 @@ TestRunner::CallSecondo()
   switch(state)
   {
     case START:
-      if(errorCode != 0)
+      if( (errorCode != 0) || (errorMessage.length() > 0) )
       {
-        /* should we report errors in the intial section?
+        /* should we report errors in the intial section? */
         cout
           << "Encountered error in initial section." << endl;
         cout << "    error code : " << errorCode << endl;
@@ -503,7 +503,7 @@ TestRunner::CallSecondo()
         }
         WriteErrorList(outList);
         cout << "while processing command " << endl << cmd << endl;
-        cout << endl; */
+        cout << endl;
       }
       break;
     case SETUP:
