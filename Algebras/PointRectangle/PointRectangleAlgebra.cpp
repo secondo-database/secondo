@@ -492,18 +492,29 @@ Inside predicate for point and rectangle.
 }
 
 /*
-4.4 Definition of Operators
+4.4 Specification of Operators
 
 */
 
-const string intersectsSpec =
-  "(<text>(rectangle rectangle) -> bool</text---><text>Intersection predicate for two rectangles.</text--->)";
+const string intersectsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>(rectangle rectangle) -> bool</text--->"
+			 "<text>_ intersects _</text--->"
+			 "<text>Intersection predicate for two"
+                         "rectangles.</text--->"
+			 "<text>r1 intersects r2</text--->"
+			 ") )";
 
-const string insideSpec =
-  "(<text>(point rectangle) -> bool</text---><text>Inside predicate.</text--->)";
+const string insideSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>(point rectangle) -> bool</text--->"
+			 "<text>_ inside _</text--->"
+			 "<text>Inside predicate.</text--->"
+			 "<text>p inside r</text--->"
+			 ") )";
 
 /*
-Used to explain the signature and the meaning of the ~intersects~ and ~inside~ operators.
+4.5 Definition of Operators
 
 */
 
@@ -523,7 +534,8 @@ Operator inside (
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	simpleSelect,		//trivial selection function 
 	PointRectBool		//type mapping 
-);	
+);
+	
 /*
 5 Creating the Algebra
 
