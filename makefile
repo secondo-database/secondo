@@ -9,14 +9,29 @@ include ./makefile.env
 .PHONY: all
 all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
 
+# Rules for copying configuration scripts
+SCRIPT_DIR = ./CM-Scripts
+SCRIPT_FILES = $(SECONDO_SDK)/bin/setvar.bash $(SECONDO_SDK)/bin/catvar.sh $(HOME)/.secondorc
 
 .PHONY: update-environment 
-update-environment:
+update-environment: $(SCRIPT_FILES)
 ifeq ($(platform),win32)
-	$(MAKE) -C Win32/MSYS config-msys
-else
-	$(MAKE) -C Win32/MSYS config-all
+	$(MAKE) -C Win32/MSYS config
 endif
+	
+$(SECONDO_SDK)/bin/setvar.bash: $(SCRIPT_DIR)/setvar.bash
+	cp --backup $< $@
+
+$(SECONDO_SDK)/bin/catvar.sh: $(SCRIPT_DIR)/catvar.sh
+	cp --backup $< $@
+
+$(HOME)/.secondorc: $(SCRIPT_DIR)/.secondorc
+	cp --backup $< $@
+
+$(HOME)/.bashrc-sample: $(SCRIPT_DIR)/.bashrc-sample
+	cp --backup $< $@
+
+
 
 .PHONY: javagui
 javagui: java2
@@ -114,11 +129,10 @@ tag=HEAD
 endif
 
 
+DIST_FILES = $(net)/windows/secondo-win32.tgz $(net)/linux/secondo-linux.tgz $(net)/linux/install-linux.bash $(net)/windows/install-msys.bash
+ 
 .PHONY: dist
-dist:   $(net)/windows/secondo-win32.tgz $(net)/linux/secondo-linux.tgz
-ifeq ($(platform),win32)
-	$(MAKE) -C Win32/MSYS dist
-endif
+dist: $(DIST_FILES)   
 
 $(net)/windows/secondo-win32.tgz: secondo-win32.tgz
 	cp $< $@ 
@@ -128,18 +142,21 @@ $(net)/linux/secondo-linux.tgz: secondo-linux.tgz
 
 secondo-win32.tgz secondo-linux.tgz:
 	cvs export -d secondo -r$(tag) secondo
-ifneq ($(platform),win32)
+ifeq ($(platform),win32)
+	$(error Target dist not supported on windows!)
+else	
 	tar -czf secondo-linux.tgz secondo/*
 	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.sda" -or -name "*.fig" -or -name "*.canvas" -or -name "*.fm" -or -name "*.book" -or -name "*.pdf" \) -exec recode lat1..cp1252 {} \;
 	tar -czf secondo-win32.tgz secondo/*
-else
-	tar -czf secondo-win32.tgz secondo/*
-	@echo "To do: recode windows to unix codepage..."
-	tar -czf secondo-linux.tgz secondo/*
 endif
 	rm -r secondo
 
+$(net)/windows/install-msys.bash: $(SCRIPT_DIR)/install-msys.bash
+	cp $< $@
+	recode lat1..cp1252 $@
 
+$(net)/linux/install-linux.bash: $(SCRIPT_DIR)/install-linux.bash
+	cp $< $@
 
 
 .PHONY: clean
