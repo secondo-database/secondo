@@ -145,16 +145,20 @@ Base64::decodeStream(istream& in, ostream& out) {
 void
 Base64::encode2(char* buffer, string& text, int length) {
 
-  assert (length <= 54 ); 
+  assert (length <= 54 );
   // 54 bytes of binary data are expanded to 54 * 4/3 = 72 letters of the base64 alphabet.
 
+  if(length==0){
+     text = "";
+     return;
+  }
+
   static char resultbuffer[73];
-  
+
   char* result =0;
   unsigned char *data = 0;
   int pos = 0, outPos = 0;
-
-  while (length > 0) {
+   while (length > 0) {
      data = (unsigned char*) &(buffer[pos]);
      // set all undefined byte to zero
      for(int i=length;i<3;i++) {
@@ -163,7 +167,7 @@ Base64::encode2(char* buffer, string& text, int length) {
      // code all given bytes in a single integer
      // this code must be modified for windows, since endianess is important.
      int all = 65536*data[0]+ 256*data[1]+ data[2];
-     
+
      result = &(resultbuffer[outPos]);
      // extract the 6 bit values
      for(int i=3;i>=0;i--){
@@ -180,21 +184,19 @@ Base64::encode2(char* buffer, string& text, int length) {
      pos += 3;
      outPos += 4;
   }
-  
   result[4] = 0;
   string resultStr(&(resultbuffer[0]));
-  text = resultStr + "\n";    
-
+  text = resultStr + "\n";
 }
 
 void
 Base64::encodeStream(istream& in, ostream& out) {
 
   string textFragment="";
-  const int inLength = 54; 
-  char buf[inLength+1]; 
+  const int inLength = 54;
+  char buf[inLength+1];
   buf[inLength] = 0;
-  int readFaults = 0;                 
+  int readFaults = 0;
 
   do {
 
@@ -205,11 +207,9 @@ Base64::encodeStream(istream& in, ostream& out) {
     }
     assert( readFaults <= 1 );
     encode2(&(buf[0]), textFragment, noBytes);
-    
     out << textFragment;
 
  } while (in.good());
-
 
 }
 
