@@ -100,8 +100,7 @@ Destroys a Secondo parser.
 
 */
   int Text2List( const string& inputString,
-                 string& outputString,
-                 string& errors );
+                 string& outputString );
 /*
 Parses the Secondo command in ~inputString~ and returns a nested list
 representation of the command in ~outputString~. 

@@ -20,6 +20,9 @@ October 14, 2004 RHG Added text and file tokens.
 %p 8000
 %n 2000
 %e 4000
+
+%option yylineno
+
 %{
 #include "SecParser.tab.hpp"
 #include "NestedText.h"
@@ -43,7 +46,7 @@ file	  	"<file>"[^<\n]+"</file--->"
 
 %%
 
-[ \t\n]+  	;
+[ \t\n\r\v\f\b\a]+  	;
 
 -?[0-9]+  	{yylval = NestedText::Atom( yytext, yyleng ); return ZZINTEGER;}
 {number}	{yylval = NestedText::Atom( yytext, yyleng ); return ZZREAL;}

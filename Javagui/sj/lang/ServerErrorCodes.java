@@ -169,6 +169,8 @@ generic error message is returned.
 
 */
     public static String getErrorMessageText(int errno){
+      if(errno<0) // EMPTY ERROR CODE
+         return "";
       String errorMessage;
       try {
 	errorMessage = errors[errno];

@@ -1,26 +1,29 @@
+/*
+Dec. 2004, M. Spiekermann. YYERROR\_VERBOSE defined. Implementation of
+yyerror need to be moved to SecParser.cpp. 
+
+*/
+
 %{
 #include <cstdio>
 #include <string>
 #include <string.h>
+
 #include "NestedText.h"
 
+#define YYERROR_VERBOSE
 #define YYDEBUG 1
 
 extern int yylex();
 
 string* yacc_outtext;
-char*   yacc_error;
 
 typedef char cstring[50];
 cstring param, param2, paramname, paramtype, paramtype2;
 int paramno, depth;
 cstring paramstack[20];
 
-void yyerror( char* s )
-{
-  yacc_error = s;
-  cerr << "Syntax error in textual command: " << s << endl;
-}
+extern void yyerror( char* s );
 
 void PRINTF (char *s)
 {
@@ -34,6 +37,9 @@ void PRINT (int i)
   *yacc_outtext += temp;
 }
 %}
+
+%verbose
+%locations
 
 %token 	ZZIDENTIFIER, ZZFUN, ZZINTEGER, ZZREAL, ZZSTRING, ZZBOOLEAN, ZZCONST, ZZTUPLE, ZZGROUP,
 	ZZTYPE, ZZDELETE, ZZCREATE, ZZUPDATE, ZZKILL, ZZQUERY, ZZMODEL, ZZLET, ZZDERIVE, ZZPERSISTENT,

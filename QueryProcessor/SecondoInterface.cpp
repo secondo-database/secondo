@@ -344,15 +344,33 @@ The command is one of a set of SECONDO commands.
 
 Error Codes: see definition module.
 
-If value 0 is returned, the command was executed without error.
+If value 0 is returned, the command was executed without error. 
+
+To avoid redundant maintainance of error messages in the C++ code and in the
+Java-GUI, the errorcode will not longer be used and code -1 will be returned
+in case of an error. All error messages shoold be stored in the ErrorReporter
+as a formatted string with linebreaks and this string will be returned.
+
+Messages send to ~cerr~ or ~cout~ should be avoided, since they can not be
+transferred to the client. If necessary please use the ~cmsg~ object explained
+in the file "include/LogMsg.h"
+
+Please create new functions for implementation of new commands, since this function
+conatins already many lines of code. Some commands have been moved to separate functions
+which should be named Command\_<name>.
+ 
 
 */
 
-  ListExpr first, list, typeExpr, resultType, modelList, valueExpr;
-  first = list = typeExpr = resultType = modelList = valueExpr = nl->TheEmptyList();
-  
-  ListExpr typeExpr2, errorList,  errorInfo, functionList;
-  typeExpr2 = errorList = errorInfo = functionList = nl->TheEmptyList();         
+  const ListExpr emp = nl->TheEmptyList();
+  ListExpr first = emp, 
+           list = emp, 
+           typeExpr = emp, 
+           resultType = emp, 
+           modelList = emp, 
+           typeExpr2 = emp, 
+           errorList = emp,  
+           errorInfo = emp; 
          
   string filename = "", dbName = "", objName = "", typeName = "";
 
@@ -364,7 +382,7 @@ If value 0 is returned, the command was executed without error.
   bool evaluable    = false;
   bool defined      = false;
   bool isFunction   = false;
-  int message = 0;                /* error code from called procedures */
+  int message = 0;                 /* error code from called procedures */
   string listCommand = "";         /* buffer for command in list form */
   AlgebraLevel level = ExecutableLevel;
 
@@ -411,7 +429,7 @@ If value 0 is returned, the command was executed without error.
     case 1:  // executable, text form
     {
       level = ExecutableLevel;
-      if ( sp.Text2List( commandText, listCommand, errorMessage ) != 0 )
+      if ( sp.Text2List( commandText, listCommand ) != 0 )
       {
         errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
       }
@@ -440,7 +458,7 @@ If value 0 is returned, the command was executed without error.
     case 3:
     {
       level = DescriptiveLevel;
-      if ( sp.Text2List( commandText, listCommand, errorMessage ) != 0 )
+      if ( sp.Text2List( commandText, listCommand ) != 0 )
       {
         errorCode = ERR_SYNTAX_ERROR;  // syntax error in command/expression
       }
@@ -453,11 +471,14 @@ If value 0 is returned, the command was executed without error.
     default:
     {
       errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;  // Command level not implemented
-      return;
+      break;
     }
   } // switch
   if ( errorCode != 0 )
   {
+    cmsg.send();
+    errorMessage += cmsg.getErrorMsg();
+    errorMessage += GetErrorMessage( errorCode );
     return;
   }
   SecondoSystem::SetAlgebraLevel( level );
@@ -651,7 +672,6 @@ If value 0 is returned, the command was executed without error.
         }
         else
         {
-          cout << endl;
           dbName = nl->SymbolValue( nl->Third( list ) );
           filename = nl->SymbolValue( nl->Fifth( list ) );
           errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
@@ -674,15 +694,18 @@ If value 0 is returned, the command was executed without error.
 
           default: 
           {       
-            cmsg.error() << endl << "Error during restore detected. Closing database " << dbName;
+            cmsg.info() << endl 
+                         << "Error during restore detected. Closing database " 
+                         << dbName;
+            cmsg.send();
         
             if ( !sys.CloseDatabase() ) 
             {
-              cmsg.error() << " failed!" << endl;
+              cmsg.info() << " failed!" << endl;
             } 
             else 
             {
-              cmsg.error() << " finished!" << endl;
+              cmsg.info() << " finished!" << endl;
             }
             cmsg.send();
             break;
@@ -762,7 +785,7 @@ If value 0 is returned, the command was executed without error.
         else
         {
           message = sys.RestoreObjectFromFile( objName, filename, errorInfo );
-          switch (message)
+          switch (message) // the command above should return these values directly!
           {
             case 0:
               break;
@@ -1188,6 +1211,14 @@ If value 0 is returned, the command was executed without error.
     cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
     cmsg.send();
  } 
+ 
+ if ( errorCode > 0) { // translate error code into text
+
+   cmsg.send();
+   errorMessage += cmsg.getErrorMsg();
+   errorMessage += GetErrorMessage(errorCode);
+ }
+ return;
 }
 
 
@@ -1256,6 +1287,7 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
   {
     ErrorReporter::GetErrorMessage(errorMessage); 
     ErrorReporter::Reset();
+    cmsg.error() << errorMessage << endl;
     return ERR_IN_QUERY_EXPR; 
   }
 
@@ -1301,6 +1333,7 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
   {
     ErrorReporter::GetErrorMessage(errorMessage);
     ErrorReporter::Reset();
+    cmsg.error() << errorMessage << endl;
     errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable   
   }
   
@@ -1722,18 +1755,13 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
   name = "";
   algebraId = 0;
   typeId = 0;
-  //cout << al->reportTableStates() << endl;
-  //cout << "typeExpr: " << 
-  al->ToString(type); // without this an assertion in CTable fails ????
+  al->ToString(type); 
 
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
     // use application specific list memory
     ok = SecondoSystem::GetCatalog( level )->
            LookUpTypeExpr( al->CopyList(type,nl), name, algebraId, typeId );
-
-  //cout << al->reportTableStates() << endl;
-
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (ok);
@@ -1764,7 +1792,8 @@ SecondoInterface::FinishCommand( SI_Error& errorCode )
     {
       if ( !SecondoSystem::AbortTransaction() )
       {
-        cerr << "Error: " << GetErrorMessage(errorCode) << endl;          
+        // store previous error which causes the abort.
+        cmsg.error() << "Error: " << GetErrorMessage(errorCode) << endl;
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
       }
     }

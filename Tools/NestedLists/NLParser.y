@@ -31,10 +31,10 @@ Dec 2004, M. Spiekermann. Macr YYERROR\_VERBOSE defined.
 
 %}
 
+%verbose
+
 %token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZNOFILE ZZERROR
 
-%verbose
-%locations
 
 %%
 

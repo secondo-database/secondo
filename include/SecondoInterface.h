@@ -757,7 +757,7 @@ the second initializes the RTFlags found in the configuration file.
 2.2 Error Messages
 
 */
-  static string GetErrorMessage( const int errorCode );
+  static string GetErrorMessage( int& errorCode );
 /*
 Error messages 1 through 30 are generated within ~SecondoInterface~ and
 directly returned in procedure ~Secondo~. Error messages larger than 40

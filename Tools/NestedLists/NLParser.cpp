@@ -11,7 +11,9 @@ using namespace std;
 #include "NLScanner.h"
 #include <iomanip>
 
+
 extern NestedList* nl;
+extern CMsg cmsg;
 
 NLParser::NLParser( NestedList* nestedList, istream* ip, ostream* op )
   : isp( ip ), osp( op ), nl( nestedList )
@@ -47,7 +49,7 @@ NLParser::yylex()
 void
 NLParser::yyerror( char* s )
 {
-  cerr << "Nested-List Parser: " << endl << s 
+  cmsg.error() << "Nested-List Parser: " << endl << "  " << s 
        << " processing character '" << lex->YYText() 
        << "' (= " 
        << setiosflags(ios::hex|ios::showbase) 
@@ -55,4 +57,5 @@ NLParser::yyerror( char* s )
        << resetiosflags(ios::hex|ios::showbase) 
        << ") at line " << lex->lines <<" and col " << lex->cols << "!"
        << endl;
+  cmsg.send();
 }

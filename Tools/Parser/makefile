@@ -24,7 +24,7 @@ SecLex.$(OBJEXT): SecLex.cpp SecParser.tab.hpp NestedText.h
 	$(CC) -c -o SecLex.$(OBJEXT) SecLex.cpp $(CCFLAGS)
 
 SecLex.cpp: SecLex.l
-	$(LEX) -+ -oSecLex.cpp -Pxx SecLex.l
+	$(LEX) -d -+ -oSecLex.cpp -Pxx SecLex.l
 
 SecParser.tab.$(OBJEXT): SecParser.tab.cpp NestedText.h
 	$(CC) -c -o SecParser.tab.$(OBJEXT) SecParser.tab.cpp $(CCFLAGS)

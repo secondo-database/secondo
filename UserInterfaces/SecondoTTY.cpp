@@ -13,7 +13,7 @@ Changes:
 July 1999: Jose Antonio Cotelo Lema: changes in the code and interface of the
 Gettext() and getline() functions, to allow input commands of arbitrary size.
 
-Dec 2004, M. Spiekermann. The read in command lines will be separated by a "\\r"
+Dec 2004, M. Spiekermann. The read in command lines will be separated by a "\\n"
 symbol, otherwise the parser can't calculate a position in terms of lines and cols. 
 
 \begin{center}
@@ -378,7 +378,7 @@ SecondoTTY::GetCommand()
         }
         else
         {
-          cmd = cmd + "\r" + line + " ";
+          cmd = cmd + "\n" + line + " ";
         }
       }
     }
@@ -547,11 +547,11 @@ SecondoTTY::CallSecondo()
   }
   else
   {
-    cout << endl << "*** Level problem in SecondoTTY::CallSecondo" << endl;;
+    cerr << endl << "*** Level problem in SecondoTTY::CallSecondo" << endl;
     return (nl->TheEmptyList());
   }
 
-  if ( cmd[0] == '(' )
+  if ( cmd[cmd.find_first_not_of(" \n\r\t\v\b\a\f")] == '(' )
   {
     if ( nl->ReadFromString( cmd, cmdList ) )
     {
@@ -560,7 +560,8 @@ SecondoTTY::CallSecondo()
     }
     else
     {
-      cout << endl << "*** Error: list expression expected!" << endl;
+      cmsg.error() << endl << "*** Error: list expression expected!" << endl;
+      cmsg.send();
     }
   }
   else
@@ -568,16 +569,9 @@ SecondoTTY::CallSecondo()
     si->Secondo( cmd, cmdList, levelOffset+1, false, false,
                  outList, errorCode, errorPos, errorMessage );
   }
-  if ( errorCode > 0 )
+  if ( errorCode != 0 )
   {
-    cout << "*** Error in Secondo command: " << errorCode << endl;
-    cout << SecondoInterface::GetErrorMessage( errorCode ) << endl;
-    if ( errorMessage.length() > 0 )
-    {
-      cout << errorMessage << endl;
-    }
     WriteErrorList( outList );
-    cout << endl;
     nl->Destroy( outList );
     outList = nl->TheEmptyList();
   }
@@ -585,13 +579,19 @@ SecondoTTY::CallSecondo()
   {
     nl->Destroy( cmdList );
   }
+
+  // printing out error messages
+  cerr << endl;
+  cerr << errorMessage << endl;
+  cerr << cmsg.getErrorMsg() << endl;
+
   return (outList);
 }
 
 /*
 12 Secondo2
 
-This would normally be  the  mainfunction of SecondoTTY.
+This would normally be  the  main function of SecondoTTY.
 
 */
 

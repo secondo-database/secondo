@@ -143,6 +143,8 @@ public:
   {
     files[logFileStr] = fp;
     fp->open(logFileStr.c_str()); 
+    buffer.str("");
+    allErrors.str("");
   }
   ~CMsg() // close open files
   {
@@ -161,6 +163,7 @@ public:
     stdOutput = 3;  
     return buffer; 
   }
+
   inline ostream& file(const string& fileName) 
   { 
     map<string,ofstream*>::iterator it = files.find(fileName);
@@ -178,11 +181,14 @@ public:
     stdOutput = 3;    
     return buffer; 
   }
+
   inline ostream& info()    { stdOutput = 1; return buffer; }
   inline ostream& warning() { stdOutput = 1; return buffer; }
   inline ostream& error()   { stdOutput = 2; return buffer; }  
+
   inline void send() {
   
+    buffer << ends;
     if ( stdOutput == 3 ) {
       (*fp) << buffer.str();
     }
@@ -192,11 +198,20 @@ public:
        cout << buffer.str();
       } 
       else {
-       cerr << buffer.str();
+       allErrors << buffer.str();
       }
     }
     buffer.str("");
     buffer.clear();
+  }
+
+  inline string getErrorMsg() {
+
+    allErrors << ends;
+    string result = allErrors.str();
+    allErrors.str("");
+    allErrors.clear(); 
+    return result;
   }
 
 private:
@@ -204,6 +219,7 @@ private:
   int stdOutput;
   ofstream* fp;
   stringstream buffer;
+  stringstream allErrors;
   const string logFileStr;
   map<string,ofstream*> files;
 
