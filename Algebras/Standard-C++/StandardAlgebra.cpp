@@ -1577,6 +1577,32 @@ keywordsType( ListExpr args ){
 }
 
 /*
+4.2.13 Type mapping function for the ~ifthenelse~ operator:
+
+Type mapping for ~ifthenelse~ is
+
+----	(bool x T x T)) -> T
+----
+
+*/
+ListExpr ifthenelseType(ListExpr args)
+{
+  ListExpr arg1, arg2, arg3;
+  if ( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+    if (nl->Equal(arg2, arg3) and ( nl->SymbolValue(arg1) == "bool" ))
+        {    
+      return arg2;
+    }  
+  }
+  ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 4.3 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -3435,6 +3461,27 @@ are separated by a space character.
   return -1;
 }
 
+int
+ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+    for(int i=0;i<3;i++)
+        if (!((StandardAttribute*)args[i].addr)->IsDefined() )
+            return -1;
+        
+    result = qp->ResultStorage( s );    
+    
+    if(((CcBool*)args[0].addr)->GetBoolval())
+    {
+        result.addr=args[1].addr;   
+    }
+    else    
+    {
+        result.addr=args[2].addr;   
+    }
+    
+  return 0;
+}
+
 /*
 1.10 Operator Model Mappings
 
@@ -3561,6 +3608,7 @@ ValueMapping ccsetminusmap[] = { CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, Cc
 ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 ValueMapping cckeywordsmap[] = { keywordsFun };
+ValueMapping ccifthenelsemap[] = { ifthenelseFun };
 
 ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
@@ -3832,8 +3880,18 @@ const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              " of the origin string, on the assumption, that words in a string"
              " are separated by a space character.</text--->"
              "<text>query ten feed extendstream(name: mystring keywords) consume</text--->"
-             ") )"; 
+             ") )";
 
+const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(bool x T x T) ->  T</text--->"
+             "<text>ifthenelse(_, _, _)</text--->"
+             "<text>Returns the second argument, if the boolean value expression, given"
+             " as a first argument, can be evaluated to true."
+             " If not, the operator returns the third argument.</text--->"
+             "<text>query ifthenelse(3 < 5,[const string value \"less\"],[const string value \"greater\"])</text--->"
+             ") )";
+   
 Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccproduct( "*", CCSpecMul, 4,ccproductmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
@@ -3863,7 +3921,7 @@ Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, Cc
 Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
 Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
 Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap, ccnomodelmap, Operator::SimpleSelect, keywordsType );
-
+Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 1, ccifthenelsemap, ccnomodelmap, Operator::SimpleSelect, ifthenelseType );
 /*
 6 Class ~CcAlgebra~
 
@@ -3931,6 +3989,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccoprelcount );
     AddOperator( &ccoprelcount2 );
     AddOperator( &ccopkeywords );
+    AddOperator( &ccopifthenelse );
   }
   ~CcAlgebra1() {};
 };
