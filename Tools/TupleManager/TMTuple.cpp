@@ -178,6 +178,7 @@ It initializes all members of a tuple.
 void TMTuple::Init(const TupleType& tupleType) 
 {
   diskTupleId = 0;
+  diskTuple = 0;
   lobFile = 0;
   recFile = 0;
   attribInfo = 0;
@@ -239,15 +240,16 @@ TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile
   lobFile = lobfile;
   
   // read tuple header and memory tuple from disk
-  bool ok = recFile->SelectRecord(diskTupleId, diskTuple, mode);
+  diskTuple = new SmiRecord();
+  bool ok = recFile->SelectRecord(diskTupleId, *diskTuple, mode);
   if (ok == false) {
     error = true;
     return;
   }
   TupleHeader th = {0};
   char *buf = (char *)malloc(sizeof(TupleHeader));
-  ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
-  ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
+  ok = diskTuple->Read(buf, sizeof(TupleHeader), 0);
+  ok = diskTuple->Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
   memcpy(&(th.size), buf, sizeof(int));
   free(buf);
   
@@ -283,7 +285,7 @@ TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile
     // move FLOB data to extension tuple if exists.
     if (extensionSize > 0) {
       extensionTuple = (char *)malloc(extensionSize);
-      ok = diskTuple.Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
+      ok = diskTuple->Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
       
       char *extensionPtr = extensionTuple;
       for (int i = 0; i < attrNum; i++) {
@@ -307,14 +309,14 @@ TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile
 Creates a solid tuple and reads its data into memory.
 
 */
-TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord& record, 
+TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord *record, 
                  SmiRecordFile *lobfile, const TupleType& tupleType)
 {
   // initialize member attributes.
   Init(tupleType);
 
   SmiKey key;
-  key = record.GetKey();
+  key = record->GetKey();
   key.GetKey( diskTupleId );
   recFile = recfile;
   lobFile = lobfile;
@@ -324,8 +326,8 @@ TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord& record,
   bool ok = true; 
   TupleHeader th = {0};
   char *buf = (char *)malloc(sizeof(TupleHeader));
-  ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
-  ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
+  ok = diskTuple->Read(buf, sizeof(TupleHeader), 0);
+  ok = diskTuple->Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
   memcpy(&(th.size), buf, sizeof(int));
   free(buf);
 
@@ -361,7 +363,7 @@ TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord& record,
     // move FLOB data to extension tuple if exists.
     if (extensionSize > 0) {
       extensionTuple = (char *)malloc(extensionSize);
-      ok = diskTuple.Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
+      ok = diskTuple->Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
 
       char *extensionPtr = extensionTuple;
       for (int i = 0; i < attrNum; i++) {
@@ -435,7 +437,7 @@ TMTuple::TMTuple(SmiRecordFile* recfile, PrefetchingIterator* iter,
     // move FLOB data to extension tuple if exists.
     if (extensionSize > 0) {
       extensionTuple = (char *)malloc(extensionSize);
-      ok = diskTuple.Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
+      ok = diskTuple->Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
 
       char *extensionPtr = extensionTuple;
       for (int i = 0; i < attrNum; i++) {
@@ -461,6 +463,7 @@ previously called Close.
 */
 TMTuple::~TMTuple() {
   if (memoryTuple != 0) free(memoryTuple);
+  if (extensionTuple != 0) free(extensionTuple);
   
   // delete attributes
   for (int i = 0; i < attrNum; i++) {
@@ -498,7 +501,8 @@ TMTuple::~TMTuple() {
     attribInfo[i].value = 0;
   }
   
-  if (attribInfo != 0) delete[] attribInfo;	
+  delete []attribInfo; 	
+  delete diskTuple;
 }
 
 /*
@@ -593,14 +597,14 @@ bool TMTuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   
   memcpy(buf, &(th.size), sizeof(int));
   
-  SmiRecord newTuple;
-  bool rc = tuplefile->AppendRecord(diskTupleId, newTuple);
-  rc = newTuple.Write(buf, sizeof(TupleHeader), 0) && rc;
-  rc = newTuple.Write(memoryTuple, memorySize, sizeof(TupleHeader)) && rc;
+  assert( state == Fresh && diskTuple == 0 );
+  diskTuple = new SmiRecord();
+  bool rc = tuplefile->AppendRecord(diskTupleId, *diskTuple);
+  rc = diskTuple->Write(buf, sizeof(TupleHeader), 0) && rc;
+  rc = diskTuple->Write(memoryTuple, memorySize, sizeof(TupleHeader)) && rc;
   if (extensionTuple != 0) {
-    rc = newTuple.Write(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && rc;
+    rc = diskTuple->Write(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && rc;
   }	
-  diskTuple = newTuple;
   state = SolidWrite;
   free(buf);
   
@@ -643,12 +647,12 @@ bool TMTuple::Save() {
   bool res = true;
   if (hasChanged == true) {
     /* Store memory tuple to disk tuple. */
-    res = recFile->SelectRecord(diskTupleId, diskTuple, SmiFile::Update);
+    res = recFile->SelectRecord(diskTupleId, *diskTuple, SmiFile::Update);
     
     /* Write the tuple header and proper data. */
-    res = diskTuple.Write(memoryTuple, memorySize, sizeof(TupleHeader)) && res;
+    res = diskTuple->Write(memoryTuple, memorySize, sizeof(TupleHeader)) && res;
     if (extensionTuple != 0) {
-      res = diskTuple.Write(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && res;
+      res = diskTuple->Write(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && res;
     }
   }
   return res;
@@ -666,6 +670,8 @@ that tuple record.
 */
 bool TMTuple::Destroy() {
   if (error == true) return false;
+  delete diskTuple;
+  diskTuple = 0;
   bool rc = recFile->DeleteRecord(diskTupleId);
   diskTupleId = 0;
   state = Fresh;

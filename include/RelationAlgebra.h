@@ -214,6 +214,11 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class Tuple
 {
   public:
+    static long tuplesCreated;
+    static long tuplesDeleted;
+    static long tuplesInMemory;
+    static long maximumTuples;
+
     Tuple( const TupleType& tupleType, const bool isFree = false );
 /*
 The constructor. It contructs a tuple with the metadata passed in the ~tupleType~
@@ -348,12 +353,17 @@ class Relation
   public:
     Relation( const ListExpr typeInfo );
 /*
-The first constructor. It creates an empty relation.
+The first constructor. It creates an empty relation from a ~typeInfo~.
+
+*/
+    Relation( const TupleType& tupleType );
+/*
+The second constructor. It creates an empty relation from a ~tupleType~.
 
 */
     Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc );
 /*
-The second constructor. It opens a previously created relation.
+The third constructor. It opens a previously created relation.
 
 */
     static Relation *In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
@@ -558,11 +568,10 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b);
 /*
 3.6 Function ~Concat~
 
-Copies the attribute values of two tuples
-(words) ~r~ and ~s~ into tuple (word) ~t~.
+Copies the attribute values of two tuples ~r~ and ~s~ into tuple ~t~.
 
 */
-void Concat (Word r, Word s, Word& t);
+void Concat (Tuple *r, Tuple *s, Tuple *t);
 
 /*
 3.7 Function ~CompareNames~

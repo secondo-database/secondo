@@ -141,8 +141,8 @@ The constructor.
 */
   ~PrivateTuple()
   {
-    delete tmTuple;
     delete tupleType;
+    delete tmTuple;
   }
 /*
 The destructor.
@@ -179,16 +179,33 @@ A tuple contains a pointer to a ~TMTuple~ from the Tuple Manager. For more infor
 about tuples in the TupleManager see the file TMTuple.h.
 
 */
+long Tuple::tuplesCreated = 0;
+long Tuple::tuplesDeleted = 0;
+long Tuple::maximumTuples = 0;
+long Tuple::tuplesInMemory = 0;
+
 Tuple::Tuple( const TupleType& tupleType, const bool isFree ):
   privateTuple( new PrivateTuple( tupleType, isFree ) )
-  {}
+  {
+    tuplesCreated++;
+    tuplesInMemory++;
+    if( tuplesInMemory > maximumTuples )
+      maximumTuples = tuplesInMemory;
+  }
 
 Tuple::Tuple( const ListExpr typeInfo, const bool isFree ):
   privateTuple( new PrivateTuple( typeInfo, isFree ) )
-  {}
+  {
+    tuplesCreated++;
+    tuplesInMemory++;
+    if( tuplesInMemory > maximumTuples )
+      maximumTuples = tuplesInMemory;
+  }
 
 Tuple::~Tuple()
 {
+  tuplesDeleted++;
+  tuplesInMemory--;
   delete privateTuple;
 }
 
@@ -241,16 +258,12 @@ Tuple *Tuple::Clone( const bool isFree ) const
 
 Tuple *Tuple::CloneIfNecessary()
 {
-  if( IsFree() )
-    return this;
-  else
-    return this->Clone( false );
+  return this->Clone( false );
 }
 
 void Tuple::DeleteIfAllowed()
 {
-  if( IsFree() )
-    delete this;
+  delete this;
 }
 
 /*
@@ -307,7 +320,20 @@ struct PrivateRelation
       assert( lobFile.Create() );
     }
 /*
-The first constructor. Creates an empty relation.
+The first constructor. Creates an empty relation from a ~typeInfo~.
+
+*/
+  PrivateRelation( const TupleType& tupleType ):
+    noTuples( 0 ),
+    tupleType( tupleType ),
+    tupleFile( false, 0 ),
+    lobFile( false, 0 )
+    {
+      assert( tupleFile.Create() );
+      assert( lobFile.Create() );
+    }
+/*
+The second constructor. Creates an empty relation from a ~tupleType~.
 
 */
   PrivateRelation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
@@ -320,7 +346,7 @@ The first constructor. Creates an empty relation.
       assert( lobFile.Open( relDesc.lobFileId ) );
     }
 /*
-The second constructor. Opens a previously created relation.
+The third constructor. Opens a previously created relation.
 
 */
   ~PrivateRelation()
@@ -364,6 +390,10 @@ objects (FLOBs) of the tuples.
 */
 Relation::Relation( const ListExpr typeInfo ):
   privateRelation( new PrivateRelation( typeInfo ) )
+  {}
+
+Relation::Relation( const TupleType& tupleType ):
+  privateRelation( new PrivateRelation( tupleType ) )
   {}
 
 Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
@@ -439,7 +469,7 @@ RelationIterator *Relation::MakeScan() const
 
 #ifdef _PREFETCHING_
 /*
-4.3 Struct ~PrivateRelationIterator~
+4.3 Struct ~PrivateRelationIterator~ (using ~PrefetchingIterator~)
 
 This struct contains the private attributes of the class ~RelationIterator~.
 
@@ -449,8 +479,7 @@ struct PrivateRelationIterator
   PrivateRelationIterator( const Relation& rel ):
     iterator( rel.privateRelation->tupleFile.SelectAllPrefetched() ),
     relation( rel ),
-    endOfScan( false ),
-    lastTuple( 0 )
+    endOfScan( false )
     {
     }
 /*
@@ -460,7 +489,6 @@ The constructor.
   ~PrivateRelationIterator()
   {
     delete iterator;
-    delete lastTuple;
   }
 /*
 The destructor.
@@ -481,15 +509,10 @@ A reference to the relation.
 Stores the state of the iterator.
 
 */
-  Tuple *lastTuple;
-/*
-Stores the last tuple of the iteration for deletion purposes.
-
-*/
 };
 
 /*
-4.4 Implementation of the class ~RelationIterator~
+4.4 Implementation of the class ~RelationIterator~ (using ~PrefetchingIterator~)
 
 This class is used for scanning (iterating through) relations.
 
@@ -505,12 +528,6 @@ RelationIterator::~RelationIterator()
 
 Tuple* RelationIterator::GetNextTuple() 
 {
-  if( privateRelationIterator->lastTuple != 0 )
-  {
-    delete privateRelationIterator->lastTuple;
-    privateRelationIterator->lastTuple = 0;
-  }
-
   if( !privateRelationIterator->iterator->Next() )
   {
     privateRelationIterator->endOfScan = true;
@@ -524,7 +541,7 @@ Tuple* RelationIterator::GetNextTuple()
                  privateRelationIterator->iterator,
                  &privateRelationIterator->relation.privateRelation->lobFile,
                  privateRelationIterator->relation.privateRelation->tupleType );
-  privateRelationIterator->lastTuple = result;
+  result->SetTupleId( result->GetPrivateTuple()->tmTuple->GetPersistentId() );
   return result;
 }
 
@@ -534,7 +551,7 @@ const bool RelationIterator::EndOfScan()
 }
 #else
 /*
-4.3 Struct ~PrivateRelationIterator~
+4.5 Struct ~PrivateRelationIterator~ (using ~SmiRecordFileIterator~)
 
 This struct contains the private attributes of the class ~RelationIterator~.
 
@@ -570,7 +587,7 @@ A reference to the relation.
 };
 
 /*
-4.4 Implementation of the class ~RelationIterator~
+4.6 Implementation of the class ~RelationIterator~ (using ~SmiRecordFileIterator~)
 
 This class is used for scanning (iterating through) relations.
 
@@ -586,8 +603,8 @@ RelationIterator::~RelationIterator()
 
 Tuple* RelationIterator::GetNextTuple()
 {
-  SmiRecord record;
-  privateRelationIterator->iterator.Next( record );
+  SmiRecord *record = new SmiRecord();
+  privateRelationIterator->iterator.Next( *record );
 
   if( EndOfScan() )
     return 0;
@@ -599,6 +616,7 @@ Tuple* RelationIterator::GetNextTuple()
                  record,
                  &privateRelationIterator->relation.privateRelation->lobFile,
                  privateRelationIterator->relation.privateRelation->tupleType );
+  result->SetTupleId( result->GetPrivateTuple()->tmTuple->GetPersistentId() );
   return result;
 }
 
@@ -608,5 +626,37 @@ const bool RelationIterator::EndOfScan()
 }
 
 #endif // _PREFETCHING_
+
+/*
+5 Auxiliary functions
+
+5.1 Function ~Concat~
+
+Copies the attribute values of two tuples
+(words) ~r~ and ~s~ into tuple (word) ~t~.
+
+*/
+void Concat( Tuple *r, Tuple *s, Tuple *t )
+{
+  int rnoattrs, snoattrs, tnoattrs;
+  Attribute* attr;
+
+  rnoattrs = r->GetNoAttributes();
+  snoattrs = s->GetNoAttributes();
+  tnoattrs = rnoattrs + snoattrs;
+
+  assert( t->GetNoAttributes() == tnoattrs );
+
+  for( int i = 0; i < rnoattrs; i++)
+  {
+    attr = r->GetAttribute( i );
+    t->PutAttribute( i, attr );
+  }
+  for (int j = rnoattrs; j < tnoattrs; j++)
+  {
+    attr = s->GetAttribute( j - rnoattrs );
+    t->PutAttribute( j, attr );
+  }
+}
 
 #endif // RELALG_PERSISTENT

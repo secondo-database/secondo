@@ -346,7 +346,7 @@ The list representation of a date is
 */
 
 /*
-static ListExpr
+ListExpr
 OutDate( ListExpr typeInfo, Word value ) 
 {
   Date* date;
@@ -367,7 +367,7 @@ OutDate( ListExpr typeInfo, Word value )
 
 //The above ~out~ function is replaced by the following function which takes string as output
 //=======================================================================
-static  ListExpr
+ListExpr
 OutDate( ListExpr typeInfo, Word value )
 {
   Date* date;
@@ -388,7 +388,7 @@ OutDate( ListExpr typeInfo, Word value )
 }
 
 /*
-static Word
+Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Date* newdate;
@@ -438,7 +438,7 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
 
 //The above ~in~ function is replaced by the following function which takes string as input
 //=====================================================================
-static Word
+Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 { 
   Date* newdate;
@@ -519,39 +519,39 @@ The following 5 functions must be defined if we want to use ~date~ as an attribu
 
 ************************************************************************/
 
-static Word
+Word
 CreateDate( const ListExpr typeInfo )
 {
   return (SetWord( new Date( false, 0, 0, 0 )));
 }
 
-static void
+void
 DeleteDate( Word& w )
 {
   delete (Date*) w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseDate( Word& w )
 {
   delete (Date*) w.addr;
   w.addr = 0;
 }
 
-static Word
+Word
 CloneDate( const Word& w )
 {
   return SetWord( ((Date *)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfDate()
 {
   return sizeof(Date);
 }
 
-static void*
+void*
 CastDate( void* addr, SmiRecordFile* )
 {
   return (new (addr) Date);
@@ -565,7 +565,7 @@ This one works for type constructor ~date~ , which is an ``atomic'' type.
 
 */
 
-static ListExpr
+ListExpr
 DateProperty()
 {
   return (nl->TwoElemList(nl->TheEmptyList(), nl->SymbolAtom("DATA")));
@@ -580,7 +580,7 @@ the type constructor ~date~ does not have arguments, this is trivial.
 
 */
 
-static bool
+bool
 CheckDate( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual(type, "date" ));
@@ -619,7 +619,7 @@ returns a list expression for the result type, otherwise the symbol
 
 */
 
-static ListExpr
+ListExpr
 DateInt( ListExpr args )
 {
   ListExpr arg1;
@@ -633,7 +633,7 @@ DateInt( ListExpr args )
 }
 
 
-static ListExpr
+ListExpr
 DateDateBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -648,7 +648,7 @@ DateDateBool( ListExpr args )
 }
 
 
-static ListExpr
+ListExpr
 IntIntIntDate( ListExpr args )
 {
   ListExpr arg1, arg2, arg3;
@@ -680,7 +680,7 @@ operators, therefore we only need to return 0.
 */
 
 
-static int
+int
 simpleSelect (ListExpr args ) {return 0;}
 
 
@@ -690,7 +690,7 @@ simpleSelect (ListExpr args ) {return 0;}
 
 */
 
-static int
+int
 dayFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d;
@@ -705,7 +705,7 @@ dayFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 monthFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d;
@@ -720,7 +720,7 @@ monthFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 yearFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d;
@@ -735,7 +735,7 @@ yearFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 earlierFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d1;
@@ -764,7 +764,7 @@ earlierFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 equalFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d1;
@@ -786,7 +786,7 @@ equalFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 laterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d1;
@@ -816,7 +816,7 @@ laterFun (Word* args, Word& result, int message, Word& local, Supplier s)
    return 0;
 }
 
-static int
+int
 dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcInt *dd;

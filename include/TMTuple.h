@@ -136,7 +136,7 @@ private:
   };
   
   // Record that persistently holds the tuple value.
-  SmiRecord diskTuple;
+  SmiRecord *diskTuple;
   // The ID of above record according to the underlying DB.
   SmiRecordId diskTupleId;
   // Reference to an SMIRecordFile which contains LOBs. 
@@ -199,7 +199,7 @@ The result of this constructor is a fresh tuple.
   TMTuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecordFile *lobfile, 
 	const TupleType& attributes, SmiFile::AccessType mode);
 
-  TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord& record,
+  TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord *record,
                    SmiRecordFile *lobfile, const TupleType& tupleType);
  
   TMTuple(SmiRecordFile* recfile, PrefetchingIterator* iter, SmiRecordFile *lobfile,

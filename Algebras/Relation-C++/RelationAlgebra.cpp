@@ -925,9 +925,14 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    Tuple* tuple = (Tuple*)actual.addr;
-    tuple = tuple->CloneIfNecessary();
+    Tuple* tuple;
+    tuple = ((Tuple*)actual.addr)->CloneIfNecessary();
     rel->AppendTuple(tuple);
+
+    assert( tuple->IsFree() == false );
+    tuple->DeleteIfAllowed();
+    ((Tuple*)actual.addr)->DeleteIfAllowed();
+
     qp->Request(args[0].addr, actual);
   }
 
@@ -1471,10 +1476,10 @@ CPUTimeMeasurer productMeasurer;
 
 struct ProductLocalInfo
 {
-  TupleType *tupleType;
+  TupleType *resultTupleType;
   Tuple* currentTuple;
-  vector<Tuple*> rightRel;
-  vector<Tuple*>::iterator iter;
+  Relation *rightRel;
+  RelationIterator *iter;
 };
 
 static int
@@ -1495,23 +1500,36 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       /* materialize right stream */
       qp->Open(args[1].addr);
       qp->Request(args[1].addr, u);
+      
+      if(qp->Received(args[1].addr))
+      {
+        pli->rightRel = new Relation( ((Tuple*)u.addr)->GetTupleType() );
+      }
+      else
+      {
+        pli->rightRel = 0;
+        pli->iter = 0;
+      }
+
       while(qp->Received(args[1].addr))
       {
-        pli->rightRel.push_back((Tuple*)u.addr);
+        Tuple *t = ((Tuple*)u.addr)->CloneIfNecessary();
+        pli->rightRel->AppendTuple( t );
+        t->DeleteIfAllowed();
+        ((Tuple*)u.addr)->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
       }
 
-      pli->iter = pli->rightRel.begin();
+      pli->iter = pli->rightRel->MakeScan();
       ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
-      pli->tupleType = new TupleType( nl->Second( resultType ) );
+      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
 
       local = SetWord(pli);
       return 0;
     }
     case REQUEST :
     {
-      Tuple* tuple;
-      Word t;
+      Tuple *resultTuple, *rightTuple;
       pli = (ProductLocalInfo*)local.addr;
 
       productMeasurer.Enter();
@@ -1523,14 +1541,19 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-        if(pli->iter != pli->rightRel.end())
+        if( pli->rightRel == 0 ) // second stream is empty
         {
-          tuple = new Tuple( *(pli->tupleType), true );
-          assert( tuple->IsFree() );
-          t = SetWord(tuple);
-          Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
-          result = t;
-          ++(pli->iter);
+          productMeasurer.Exit();
+          return CANCEL;
+        }
+        else if( (rightTuple = pli->iter->GetNextTuple()) != 0 )
+        {
+          resultTuple = new Tuple( *(pli->resultTupleType), true );
+          assert( resultTuple->IsFree() );
+
+          Concat(pli->currentTuple, rightTuple, resultTuple);
+          rightTuple->DeleteIfAllowed();
+          result = SetWord(resultTuple);
 
           productMeasurer.Exit();
           return YIELD;
@@ -1541,29 +1564,24 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
              fetch a new tuple from left stream */
           pli->currentTuple->DeleteIfAllowed();
           pli->currentTuple = 0;
+          delete pli->iter;
+          pli->iter = 0;
           qp->Request(args[0].addr, r);
           if (qp->Received(args[0].addr))
           {
             pli->currentTuple = (Tuple*)r.addr;
-            pli->iter = pli->rightRel.begin();
-            if(pli->iter == pli->rightRel.end()) // second stream is empty
-            {
-              productMeasurer.Exit();
-              return CANCEL;
-            }
-            else
-            {
-              tuple = new Tuple( *(pli->tupleType), true );
-              assert( tuple->IsFree() );
+            pli->iter = pli->rightRel->MakeScan();
+            assert( (rightTuple = pli->iter->GetNextTuple()) != 0 ); 
 
-              t = SetWord(tuple);
-              Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
-              result = t;
-              ++(pli->iter);
+            resultTuple = new Tuple( *(pli->resultTupleType), true );
+            assert( resultTuple->IsFree() );
 
-              productMeasurer.Exit();
-              return YIELD;
-            }
+            Concat(pli->currentTuple, rightTuple, resultTuple);
+            rightTuple->DeleteIfAllowed();
+            result = SetWord(resultTuple);
+
+            productMeasurer.Exit();
+            return YIELD;
           }
           else
           {
@@ -1577,17 +1595,11 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       pli = (ProductLocalInfo*)local.addr;
       if(pli->currentTuple != 0)
-      {
         pli->currentTuple->DeleteIfAllowed();
-      }
-
-      for(pli->iter = pli->rightRel.begin();
-        pli->iter != pli->rightRel.end();
-        ++(pli->iter))
-      {
-        (*(pli->iter))->DeleteIfAllowed();
-      }
-      delete pli->tupleType;
+      if( pli->iter != 0 )
+        delete pli->iter;
+      delete pli->resultTupleType;
+      pli->rightRel->Delete();
       delete pli;
 
       qp->Close(args[0].addr);

@@ -49,7 +49,7 @@ using namespace std;
 #include "Profiles.h"
 #include "FileSystem.h"
 
-#include "RelationAlgebraInfo.h"
+#include "RelationAlgebra.h"
 #include "SecondoSMI.h"
 #include "SecParser.h"
 #include "TimeTest.h"
@@ -1007,8 +1007,14 @@ If value 0 is returned, the command was executed without error.
             {
               cerr << "Execute ..." << endl;
 
+               cerr << "Tuples created: " << Tuple::tuplesCreated << endl;
+               cerr << "Tuples deleted: " << Tuple::tuplesDeleted << endl;
+               cerr << "Maximum no of Tuples: " << Tuple::maximumTuples << endl;
 	       SecondoSystem::GetQueryProcessor()->
                 Eval( tree, result, 1 );
+               cerr << "Tuples created: " << Tuple::tuplesCreated << endl;
+               cerr << "Tuples deleted: " << Tuple::tuplesDeleted << endl;
+               cerr << "Maximum no of Tuples: " << Tuple::maximumTuples << endl;
               valueList = SecondoSystem::GetCatalog( level )->
                             OutObject( resultType, result );
               resultList = nl->TwoElemList( resultType, valueList );
@@ -1016,6 +1022,9 @@ If value 0 is returned, the command was executed without error.
                 Destroy( tree, true );
 
 	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+               cerr << "Tuples created: " << Tuple::tuplesCreated << endl;
+               cerr << "Tuples deleted: " << Tuple::tuplesDeleted << endl;
+               cerr << "Maximum no of Tuples: " << Tuple::maximumTuples << endl;
             }
             else if ( isFunction ) // abstraction or function object
             {

@@ -155,7 +155,7 @@ corresponding ~CcType~ type name.
 enum CcType { ccint, ccreal, ccerror, ccbool, ccstring, ccconst, ccset };
 
 
-static CcType
+CcType
 TypeOfSymbol( ListExpr symbol )
 {
   if ( nl->AtomType( symbol ) == SymbolType ) 
@@ -183,7 +183,7 @@ during ~TypeConstructor~ instantiation.
 
 */
 
-static ListExpr
+ListExpr
 CcProperty()
 {
   return (nl->TwoElemList(
@@ -267,7 +267,7 @@ respective attribute values.
 
 */
 
-static ListExpr
+ListExpr
 OutCcInt( ListExpr typeinfo, Word value )
 {
   if( ((CcInt*)value.addr)->IsDefined() )
@@ -288,7 +288,7 @@ input parameters.
 
 */
 
-static Word
+Word
 InCcInt( ListExpr typeInfo, ListExpr value,
          int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -313,33 +313,33 @@ InCcInt( ListExpr typeInfo, ListExpr value,
 
 */
 
-static Word
+Word
 CreateCcInt( const ListExpr typeInfo )
 {
   return (SetWord( new CcInt( false, 0 ) ));
 }
 
-static void
+void
 DeleteCcInt( Word& w )
 {
   delete (CcInt*) w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseCcInt( Word& w )
 {
   delete (CcInt*) w.addr;
   w.addr = 0;
 }
 
-static Word 
+Word 
 CloneCcInt( const Word& w )
 {
   return SetWord( ((CcInt*)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfCcInt()
 {
   return sizeof(CcInt);
@@ -350,7 +350,7 @@ SizeOfCcInt()
 
 */
 
-static void*
+void*
 CastInt( void* addr, SmiRecordFile* )
 {
   return (new (addr) CcInt);
@@ -361,7 +361,7 @@ CastInt( void* addr, SmiRecordFile* )
 
 */
 
-static bool
+bool
 CheckInt( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "int" ));
@@ -417,7 +417,7 @@ We need conversion functions to be able to store this in list format:
 
 */
 
-static ListExpr
+ListExpr
 OutIntSetModel( ListExpr typeExpr, Word inModel )
 {
   IntSetModel* model = (IntSetModel*) inModel.addr;
@@ -449,7 +449,7 @@ OutIntSetModel( ListExpr typeExpr, Word inModel )
   return (nl->TheEmptyList());
 }
 
-static Word
+Word
 InIntSetModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
   if ( nl->IsEmpty( list ) )
@@ -475,7 +475,7 @@ InIntSetModel( ListExpr typeExpr, ListExpr list, int objNo )
   }
 }
 
-static Word
+Word
 IntToIntSetModel( ListExpr typeExpr, Word value )
 {
   IntSetModel* model = new IntSetModel;
@@ -484,7 +484,7 @@ IntToIntSetModel( ListExpr typeExpr, Word value )
   return (SetWord( model ));
 }
 
-static Word
+Word
 IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
                       const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -578,7 +578,7 @@ int CcReal::Adjacent( Attribute *arg )
   return( GetRealval() == ((CcReal *)arg)->GetRealval() );
 }
 
-static ListExpr
+ListExpr
 OutCcReal( ListExpr typeinfo, Word value )
 {
   if( ((CcReal*)value.addr)->IsDefined() )
@@ -591,7 +591,7 @@ OutCcReal( ListExpr typeinfo, Word value )
   }
 }
 
-static Word
+Word
 InCcReal( ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -612,33 +612,33 @@ InCcReal( ListExpr typeInfo, ListExpr value,
   }
 }
 
-static Word
+Word
 CreateCcReal( const ListExpr typeInfo )
 {
   return (SetWord( new CcReal( false, 0 ) ));
 }
 
-static void
+void
 DeleteCcReal( Word& w )
 {
   delete (CcReal*)w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseCcReal( Word& w )
 {
   delete (CcReal*)w.addr;
   w.addr = 0;
 }
 
-static Word 
+Word 
 CloneCcReal( const Word& w )
 {
   return SetWord( ((CcReal*)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfCcReal()
 {
   return sizeof(CcReal);
@@ -649,7 +649,7 @@ SizeOfCcReal()
  
 */
 
-static void*
+void*
 CastReal( void* addr, SmiRecordFile* )
 {
   return new (addr) CcReal;
@@ -661,7 +661,7 @@ CastReal( void* addr, SmiRecordFile* )
 
 */
 
-static bool
+bool
 CheckReal( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "real" ));
@@ -739,7 +739,7 @@ nested list format is returned.
 
 */
 
-static ListExpr
+ListExpr
 OutCcBool( ListExpr typeinfo, Word value )
 {
   if( ((CcBool*)value.addr)->IsDefined() )
@@ -763,7 +763,7 @@ The next three parameters are used to return error information.
 
 */
 
-static Word
+Word
 InCcBool( ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -784,33 +784,33 @@ InCcBool( ListExpr typeInfo, ListExpr value,
   }
 }
 
-static Word
+Word
 CreateCcBool( const ListExpr typeInfo )
 {
   return (SetWord( new CcBool( false, 0 ) ));
 }
 
-static void
+void
 DeleteCcBool( Word& w )
 {
   delete (CcBool*)w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseCcBool( Word& w )
 {
   delete (CcBool*)w.addr;
   w.addr = 0;
 }
 
-static Word 
+Word 
 CloneCcBool( const Word& w )
 {
   return SetWord( ((CcBool*)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfCcBool()
 {
   return sizeof(CcBool);
@@ -821,7 +821,7 @@ SizeOfCcBool()
 
 */
 
-static void*
+void*
 CastBool( void* addr, SmiRecordFile* )
 {
   return (new (addr) CcBool);
@@ -832,7 +832,7 @@ CastBool( void* addr, SmiRecordFile* )
 
 */
 
-static bool
+bool
 CheckBool( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "bool" ));
@@ -853,7 +853,7 @@ model is represented by a negative number such as -1.0.
 
 */
 
-static ListExpr
+ListExpr
 OutBoolSetModel( ListExpr typeExpr, Word model )
 {
   BoolSetModel modelValue = *((BoolSetModel*)model.addr);
@@ -867,7 +867,7 @@ OutBoolSetModel( ListExpr typeExpr, Word model )
   }
 }
 
-static Word
+Word
 InBoolSetModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
   BoolSetModel* result = new BoolSetModel;
@@ -882,7 +882,7 @@ InBoolSetModel( ListExpr typeExpr, ListExpr list, int objNo )
   return (SetWord( result ));
 }
 
-static Word
+Word
 BoolToBoolSetModel( ListExpr typeExpr, Word value )
 {
   BoolSetModel* result = new BoolSetModel;
@@ -890,7 +890,7 @@ BoolToBoolSetModel( ListExpr typeExpr, Word value )
   return (SetWord( result ));
 }
 
-static Word
+Word
 BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
                         const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -924,7 +924,7 @@ bool      CcString::IsDefined() { return (defined); };
 void      CcString::SetDefined(bool defined) { this->defined = defined; };
 STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
-CcString* CcString::Clone() { return (new CcString( *this )); };
+CcString* CcString::Clone() { return (new CcString( this->IsDefined(), GetStringval() )); };
 void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 
 size_t 
@@ -1010,7 +1010,7 @@ int CcString::Adjacent( Attribute* arg )
 
 */
 
-static ListExpr
+ListExpr
 OutCcString( ListExpr typeinfo, Word value )
 {
   if( ((CcString*)value.addr)->IsDefined() )
@@ -1027,7 +1027,7 @@ OutCcString( ListExpr typeinfo, Word value )
 
 */
 
-static Word
+Word
 InCcString( ListExpr typeInfo, ListExpr value,
             int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -1053,34 +1053,34 @@ InCcString( ListExpr typeInfo, ListExpr value,
 
 */
 
-static Word
+Word
 CreateCcString( const ListExpr typeInfo )
 {
   char p[49] = "";
   return (SetWord( new CcString( false, (STRING*)&p ) ));
 }
 
-static void
+void
 DeleteCcString( Word& w )
 {
   delete (CcString*)w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseCcString( Word& w )
 {
   delete (CcString*)w.addr;
   w.addr = 0;
 }
 
-static Word 
+Word 
 CloneCcString( const Word& w )
 {
   return SetWord( ((CcString*)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfCcString()
 {
   return sizeof(CcString);
@@ -1091,7 +1091,7 @@ SizeOfCcString()
 
 */
 
-static void*
+void*
 CastString( void* addr, SmiRecordFile* )
 {
   return (new (addr) CcString);
@@ -1102,7 +1102,7 @@ CastString( void* addr, SmiRecordFile* )
  
 */
  
-static bool
+bool
 CheckString( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "string" ));
@@ -1133,7 +1133,7 @@ It is for the operators +, - and [*].
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMap( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -1171,7 +1171,7 @@ of int is called div in this program).
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMapdiv( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -1198,7 +1198,7 @@ It is for the operators mod and div which have ~int~ as input and ~int~ as resul
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMap1( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -1218,7 +1218,7 @@ CcMathTypeMap1( ListExpr args )
 It is for the operators ~intersection~ and ~minus~.
 
 */
-static ListExpr
+ListExpr
 CcMathTypeMap2( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -1245,7 +1245,7 @@ Used for operators ~randint~ and ~log~.
 
 */
 
-static ListExpr
+ListExpr
 IntInt( ListExpr args )
 {
   ListExpr arg1;
@@ -1267,7 +1267,7 @@ It is for the Compare operators which have ~bool~ as resulttype.
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMapBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -1298,7 +1298,7 @@ It is for the  operator ~not~ which have ~bool~ as input and resulttype.
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMapBool1( ListExpr args )
 {
   ListExpr arg1;
@@ -1318,7 +1318,7 @@ It is for the  operators and and or  which have bool as input and resulttype.
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMapBool2( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -1339,7 +1339,7 @@ It is for the  operators ~starts~ and ~contains~  which have ~string~ as input a
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMapBool3( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -1360,7 +1360,7 @@ It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string
 
 */
 
-static ListExpr
+ListExpr
 CcMathTypeMapBool4( ListExpr args )
 {
   ListExpr arg1;
@@ -1386,7 +1386,7 @@ string ---> string.
 
 */
 
-static ListExpr
+ListExpr
 CcStringMapCcString( ListExpr args )
 {
   ListExpr arg1;
@@ -1420,7 +1420,7 @@ It is used for the  operators +, - [*] and / .
 
 */
 
-static int
+int
 CcMathSelectCompute( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
@@ -1443,7 +1443,7 @@ Is used for all non-overloaded operators.
 
 */
 
-static int
+int
 SimpleSelect( ListExpr args ) {return (0);}
 
 /*
@@ -1453,7 +1453,7 @@ It is used for the  all compare operators .
 
 */
 
-static int
+int
 CcMathSelectCompare( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
@@ -1480,7 +1480,7 @@ It is used for the set operators ~intersection~ and ~minus~.
 
 */
 
-static int
+int
 CcMathSelectSet( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
@@ -1503,7 +1503,7 @@ CcMathSelectSet( ListExpr args )
 It is used for the ~isempty~ operator.
 
 */
-static int
+int
 CcMathSelectIsEmpty( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
@@ -1533,7 +1533,7 @@ each of them accepts four input parameter combinations: ~ccint~ $\times$
 
 */
 
-static int
+int
 CcPlus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1550,7 +1550,7 @@ CcPlus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcPlus_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1568,7 +1568,7 @@ CcPlus_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcPlus_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1586,7 +1586,7 @@ CcPlus_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcPlus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1609,7 +1609,7 @@ CcPlus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1627,7 +1627,7 @@ CcMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcMinus_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1645,7 +1645,7 @@ CcMinus_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcMinus_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1663,7 +1663,7 @@ CcMinus_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1689,7 +1689,7 @@ value mapping functions of operator ~+~.
 
 */
 
-static int
+int
 CcProduct_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1707,7 +1707,7 @@ CcProduct_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcProduct_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1725,7 +1725,7 @@ CcProduct_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcProduct_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1743,7 +1743,7 @@ CcProduct_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcProduct_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1766,7 +1766,7 @@ CcProduct_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcDivision_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1785,7 +1785,7 @@ CcDivision_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcDivision_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1804,7 +1804,7 @@ CcDivision_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcDivision_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1823,7 +1823,7 @@ CcDivision_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcDivision_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1847,7 +1847,7 @@ CcDivision_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcMod( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1870,7 +1870,7 @@ CcMod( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcDiv( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1906,7 +1906,7 @@ int randint(int u)    	//Computes a random integer in the range 0..u-1,
 }
 
 
-static int
+int
 RandInt( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1936,7 +1936,7 @@ int intlog(int n)
 }
 
 
-static int
+int
 LogFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1959,7 +1959,7 @@ LogFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcLess_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1977,7 +1977,7 @@ CcLess_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLess_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1995,7 +1995,7 @@ CcLess_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLess_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2013,7 +2013,7 @@ CcLess_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLess_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2031,7 +2031,7 @@ CcLess_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLess_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2049,7 +2049,7 @@ CcLess_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLess_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2074,7 +2074,7 @@ CcLess_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcLessEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2092,7 +2092,7 @@ CcLessEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLessEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2110,7 +2110,7 @@ CcLessEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLessEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2128,7 +2128,7 @@ CcLessEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLessEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2146,7 +2146,7 @@ CcLessEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLessEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2164,7 +2164,7 @@ CcLessEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcLessEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2189,7 +2189,7 @@ CcLessEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcGreater_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2207,7 +2207,7 @@ CcGreater_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcGreater_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2225,7 +2225,7 @@ CcGreater_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcGreater_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2243,7 +2243,7 @@ CcGreater_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcGreater_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2261,7 +2261,7 @@ CcGreater_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcGreater_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2279,7 +2279,7 @@ CcGreater_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcGreater_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2305,7 +2305,7 @@ CcGreater_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcGreaterEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2323,7 +2323,7 @@ CcGreaterEqual_ii( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
  
-static int
+int
 CcGreaterEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2341,7 +2341,7 @@ CcGreaterEqual_ir( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
  
-static int
+int
 CcGreaterEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2359,7 +2359,7 @@ CcGreaterEqual_ri( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
  
-static int
+int
 CcGreaterEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2377,7 +2377,7 @@ CcGreaterEqual_rr( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
  
-static int
+int
 CcGreaterEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2395,7 +2395,7 @@ CcGreaterEqual_bb( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
  
-static int
+int
 CcGreaterEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2420,7 +2420,7 @@ CcGreaterEqual_ss( Word* args, Word& result, int message, Word& local, Supplier 
 
 */
 
-static int
+int
 CcEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2438,7 +2438,7 @@ CcEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2456,7 +2456,7 @@ CcEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2474,7 +2474,7 @@ CcEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2492,7 +2492,7 @@ CcEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2510,7 +2510,7 @@ CcEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2535,7 +2535,7 @@ CcEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcDiff_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2553,7 +2553,7 @@ CcDiff_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcDiff_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2571,7 +2571,7 @@ CcDiff_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcDiff_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2589,7 +2589,7 @@ CcDiff_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcDiff_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2607,7 +2607,7 @@ CcDiff_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcDiff_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2625,7 +2625,7 @@ CcDiff_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
  
-static int
+int
 CcDiff_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2650,7 +2650,7 @@ CcDiff_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 StartsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2676,7 +2676,7 @@ StartsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 ContainsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2704,7 +2704,7 @@ ContainsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 NotFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2724,7 +2724,7 @@ NotFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2746,7 +2746,7 @@ AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2768,7 +2768,7 @@ OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 IsEmpty_b( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2783,7 +2783,7 @@ IsEmpty_b( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 IsEmpty_i( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2798,7 +2798,7 @@ IsEmpty_i( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2813,7 +2813,7 @@ IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 IsEmpty_s( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2833,7 +2833,7 @@ IsEmpty_s( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 Upper( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2863,7 +2863,7 @@ Upper( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
+int
 CcSetIntersection_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2880,7 +2880,7 @@ CcSetIntersection_ii( Word* args, Word& result, int message, Word& local, Suppli
   return (0);
 }
 
-static int
+int
 CcSetIntersection_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2897,7 +2897,7 @@ CcSetIntersection_rr( Word* args, Word& result, int message, Word& local, Suppli
   return (0);
 }
 
-static int
+int
 CcSetIntersection_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2914,7 +2914,7 @@ CcSetIntersection_bb( Word* args, Word& result, int message, Word& local, Suppli
   return (0);
 }
 
-static int
+int
 CcSetIntersection_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2937,7 +2937,7 @@ CcSetIntersection_ss( Word* args, Word& result, int message, Word& local, Suppli
 
 */
 
-static int
+int
 CcSetMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2954,7 +2954,7 @@ CcSetMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcSetMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2971,7 +2971,7 @@ CcSetMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcSetMinus_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -2988,7 +2988,7 @@ CcSetMinus_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
+int
 CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -3012,7 +3012,7 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static Word
+Word
 IiGreaterModel( ArgVector arg, Supplier opTreeNode )
 {
   Word modelWord1, modelWord2;
@@ -3082,7 +3082,7 @@ The dummy model mapping:
 
 */
 
-static Word
+Word
 CcNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));

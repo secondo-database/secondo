@@ -1992,8 +1992,8 @@ Operator rangebefore( "before", RangeSpecBefore, 3, rangebeforemap, rangenomodel
 Operator rangeintersection( "intersection", RangeSpecIntersection, 1, rangeintersectionmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
 Operator rangeunion( "union", RangeSpecUnion, 1, rangeunionmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
 Operator rangeminus( "minus", RangeSpecMinus, 1, rangeminusmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
-Operator rangemin( "min", RangeSpecMinimum, 1, rangeminmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
-Operator rangemax( "max", RangeSpecMaximum, 1, rangemaxmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
+Operator rangemin( "minimum", RangeSpecMinimum, 1, rangeminmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
+Operator rangemax( "maximum", RangeSpecMaximum, 1, rangemaxmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
 Operator rangenocomponents( "no_components", RangeSpecNoComponents, 1, rangenocomponentsmap, rangenomodelmap, SimpleSelect, RangeTypeMapInt );
 
 /*

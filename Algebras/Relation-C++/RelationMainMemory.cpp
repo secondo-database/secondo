@@ -113,7 +113,7 @@ struct PrivateTuple
   PrivateTuple( const TupleType& tupleType, const bool isFree ):
     tupleId( 0 ),
     tupleType( new TupleType( tupleType ) ),
-    attrArray( new Attribute*[tupleType.GetNoAttributes()] ),
+    attrArray( new (Attribute*)[tupleType.GetNoAttributes()] ),
     isFree( isFree )
     {
       
@@ -174,16 +174,33 @@ This class implements the memory representation of the type constructor ~tuple~.
 an array of attributes, as it can be seen in the definition of the ~PrivateTuple~ class.
 
 */
+long Tuple::tuplesCreated = 0;
+long Tuple::tuplesDeleted = 0;
+long Tuple::maximumTuples = 0;
+long Tuple::tuplesInMemory = 0;
+
 Tuple::Tuple( const TupleType& tupleType, const bool isFree ):
   privateTuple( new PrivateTuple( tupleType, isFree ) )
-  {}
+  {
+    tuplesCreated++;
+    tuplesInMemory++;
+    if( tuplesInMemory > maximumTuples )
+      maximumTuples = tuplesInMemory;
+  }
     
 Tuple::Tuple( const ListExpr typeInfo, const bool isFree ):
   privateTuple( new PrivateTuple( typeInfo, isFree ) )
-  {}
+  {
+    tuplesCreated++;
+    tuplesInMemory++;
+    if( tuplesInMemory > maximumTuples )
+      maximumTuples = tuplesInMemory;
+  }
 
 Tuple::~Tuple()
 {
+  tuplesDeleted++;
+  tuplesInMemory--;
   delete privateTuple;
 }
 
@@ -266,7 +283,18 @@ struct PrivateRelation
     {
     }
 /*
-The constructor. 
+The first constructor. Creates an empty relation from a ~typeInfo~.
+
+*/
+  PrivateRelation( const TupleType& tupleType ):
+    noTuples( 0 ),
+    tupleType( tupleType ),
+    tupleArray( new CTable<Tuple*>( 100 ) ),
+    currentId( 1 )
+    {
+    }
+/*
+The second constructor. Creates an empty relation from a ~tupleType~.
 
 */
   ~PrivateRelation()
@@ -306,6 +334,10 @@ It is simply an array of tuples.
 */
 Relation::Relation( const ListExpr typeInfo ):
   privateRelation( new PrivateRelation( typeInfo ) )
+  {}
+
+Relation::Relation( const TupleType& tupleType ):
+  privateRelation( new PrivateRelation( tupleType ) )
   {}
 
 Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
@@ -503,15 +535,6 @@ RelationIterator::~RelationIterator()
   delete privateRelationIterator;
 }
 
-//Tuple* RelationIterator::GetTuple()  
-//{
-//  if( EndOfScan() )
-//    return NULL;
-//
-//  Tuple *result = *privateRelationIterator->iterator;
-//  return result; 
-//}
-
 Tuple* RelationIterator::GetNextTuple()  
 {
   if( EndOfScan() )
@@ -522,14 +545,41 @@ Tuple* RelationIterator::GetNextTuple()
   return result; 
 }
 
-//void RelationIterator::Next() 
-//{
-//  privateRelationIterator->iterator++;
-//}
-
 const bool RelationIterator::EndOfScan() 
 {
   return privateRelationIterator->iterator.EndOfScan();
+}
+
+/*
+5 Auxiliary functions
+
+5.1 Function ~Concat~
+
+Copies the attribute values of two tuples
+(words) ~r~ and ~s~ into tuple (word) ~t~.
+
+*/
+void Concat( Tuple *r, Tuple *s, Tuple *t )
+{
+  int rnoattrs, snoattrs, tnoattrs;
+  Attribute* attr;
+
+  rnoattrs = r->GetNoAttributes();
+  snoattrs = s->GetNoAttributes();
+  tnoattrs = rnoattrs + snoattrs;
+
+  assert( t->GetNoAttributes() == tnoattrs );
+
+  for( int i = 0; i < rnoattrs; i++)
+  {
+    attr = r->GetAttribute( i );
+    t->PutAttribute( i, ((StandardAttribute*)attr)->Clone() );
+  }
+  for (int j = rnoattrs; j < tnoattrs; j++)
+  {
+    attr = s->GetAttribute( j - rnoattrs );
+    t->PutAttribute( j, ((StandardAttribute*)attr)->Clone() );
+  }
 }
 
 #endif

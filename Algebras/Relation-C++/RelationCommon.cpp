@@ -291,6 +291,10 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExp
         assert( tupleaddr->IsFree() == false );
 
         rel->AppendTuple(tupleaddr);
+
+        assert( tupleaddr->IsFree() == false );
+        tupleaddr->DeleteIfAllowed();
+
         count++;
       }
       else
@@ -322,6 +326,7 @@ ListExpr Relation::Out( ListExpr typeInfo )
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
           nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = t->Out(TupleTypeInfo);
+    t->DeleteIfAllowed();
     if (l == nl->TheEmptyList())
     {
       l = nl->Cons(tlist, nl->TheEmptyList());
@@ -472,38 +477,6 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
     }
   }
   return true;
-}
-
-/*
-6.5 Function ~Concat~
-
-Copies the attribute values of two tuples
-(words) ~r~ and ~s~ into tuple (word) ~t~.
-
-*/
-void Concat (Word r, Word s, Word& t)
-{
-  int rnoattrs, snoattrs, tnoattrs;
-  Attribute* attr;
-
-  rnoattrs = ((Tuple*)r.addr)->GetNoAttributes();
-  snoattrs = ((Tuple*)s.addr)->GetNoAttributes();
-  tnoattrs = rnoattrs + snoattrs;
-
-//VTA
-  assert( ((Tuple*)t.addr)->GetNoAttributes() == tnoattrs );
-//  ((Tuple*)t.addr)->SetNoAttributes(tnoattrs);
-
-  for( int i = 0; i < rnoattrs; i++)
-  {
-    attr = ((Tuple*)r.addr)->GetAttribute(i);
-    ((Tuple*)t.addr)->PutAttribute((i), ((StandardAttribute*)attr)->Clone());
-  }
-  for (int j = rnoattrs; j < tnoattrs; j++)
-  {
-    attr = ((Tuple*)s.addr)->GetAttribute(j - rnoattrs);
-    ((Tuple*)t.addr)->PutAttribute((j), ((StandardAttribute*)attr)->Clone());
-  }
 }
 
 /*
