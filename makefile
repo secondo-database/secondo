@@ -4,6 +4,8 @@
 #
 #########################################################################
 
+$(shell rm -f .show-update-msg)
+
 include ./makefile.env
 
 ifneq ($(PWD),$(BUILDDIR))
@@ -22,12 +24,24 @@ CONFIG_FILES = bin/SecondoConfig.ini \
 	Javagui/GBS.cfg
 
 
+ALL_TARGETS = makedirs \
+	buildlibs \
+	buildalg \
+	buildapps \
+	$(OPTIMIZER_SERVER) \
+	java2 \
+	update-environment \
+	update-config
+
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
+all: $(ALL_TARGETS) 
 
 # Rules for copying configuration scripts
 SCRIPT_DIR := ./CM-Scripts
-SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash
+SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash \
+		$(SECONDO_SDK)/bin/libutil.sh \
+		$(SECONDO_SDK)/bin/catvar.sh \
+		$(SECONDO_SDK)/bin/aliaslist.sh \
 
 RC_FILES := $(HOME)/.secondorc \
 	    $(HOME)/.secondo.sdkrc \
@@ -35,18 +49,42 @@ RC_FILES := $(HOME)/.secondorc \
 
 
 .PHONY: update-environment 
-update-environment: $(SCRIPT_FILES) $(RC_FILES)
+update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) show-update-msg
 ifeq ($(platform),win32)
 	$(MAKE) -C Win32/MSYS config
 endif
+
+UPDATE_MSG := "\n\
+  Configuration Setup has been changed. If you have made changes\n\
+  in one of the files above please transfer them into the new versions.\n\
+  A backup copy ending with ~ will be kept.\n\n\
+  Afterwards please execute the command\n\
+  source ~/.secondorc or close this shell \n\
+  and start a new one.\n\n\
+  Make can't do this for you since all commands started within\n\
+  make are processed in a new subshell, hence the environment\n\
+  of your current running shell will not be modified.\n"
+
+
 	
-$(SECONDO_SDK)/bin/setvar.bash: $(SCRIPT_DIR)/setvar.bash
-	cp --backup $< $@
+$(SCRIPT_FILES): $(SECONDO_SDK)/bin/%sh: $(SCRIPT_DIR)/%sh
+	@touch .show-update-msg
+	@cp --backup $< $@
+	@echo " updating" $@
 
 $(RC_FILES): $(HOME)/.sec%rc: $(SCRIPT_DIR)/.sec%rc
-	cp --backup $< $@
+	@touch .show-update-msg
+	@cp --backup $< $@
+	@echo " updating " $@
 
+.PHONY: show-update-msg
+show-update-msg:
+	@if [ -f .show-update-msg ]; then echo -e $(UPDATE_MSG); \
+	else echo -e " ... are up to date.\n"; fi
 
+.PHONY: show-separator
+show-separator:
+	@echo -e "\n *** Bash environment setup files *** \n"
 
 .PHONY: javagui
 javagui: java2
@@ -159,18 +197,21 @@ DIST_FILES := $(net)/windows/secondo-win32.tgz \
 dist: tag-version $(DIST_FILES)
 
 SECONDO_DEMO = secondo-demo
+BIN_FILES := bin/SecondoTTYBDB \
+	bin/SecondoListener \
+	bin/SecondoMonitorBDB \
+	bin/SecondoRegistrar \
+	bin/SecondoCheckpoint \
+	bin/SecondoServerBDB \
+
 .PHONY: demo
-demo: 
+demo: $(BIN_FILES) 
 	mkdir $(SECONDO_DEMO)
 	mkdir $(SECONDO_DEMO)/bin
-	cp bin/SecondoTTYBDB bin/SecondoConfig.ini bin/testqueries $(SECONDO_DEMO)/bin
-	strip $(SECONDO_DEMO)/bin/SecondoTTYBDB
+	cp $< $(SECONDO_DEMO)/bin
+	strip $(SECONDO_DEMO)/bin/*
+	cp bin/testqueries $(SECONDO_DEMO)/bin
 	cp Documents/SecondoManual.pdf $(SECONDO_DEMO)
-ifeq ($(platform),win32)
-	cp $(BERKELEY_DB_DIR)/lib/db*.dll $(SECONDO_DEMO)/bin
-else	
-	cp $(BERKELEY_DB_DIR)/lib/libdb*4.1.so $(SECONDO_DEMO)/bin
-endif
 	tar -cvzf secondo-demo.tar.gz $(SECONDO_DEMO)/*
 	rm -rf $(SECONDO_DEMO)
 
@@ -233,19 +274,18 @@ runtests:
 
 .PHONY: cvstest
 cvstest:
-	CM-Scripts/cvs-make.sh
+	CM-Scripts/cvs-make.sh -r$(HOME)
 
 ###
 ### Some special rules
 ### Automatic creation of configuration files
 
-.PHONY: checkup
-checkup: config showjni
+.PHONY: update-config 
+update-config: config showjni
 
 .PHONY: showjni
 showjni:
 	@echo -e $(JNITEXT)
-	
 
 .PHONY: config
 config: $(CONFIG_FILES) 
