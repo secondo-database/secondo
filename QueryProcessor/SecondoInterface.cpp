@@ -55,6 +55,8 @@ August 2004, M. Spiekermann. The complex nesting of function ~Secondo~ has been 
 
 Sept 2004, M. Spiekermann. A bug in the error handling of restore databases has been fixed. 
 
+Dec 2004, M. Spiekermann. The new command ~set~ was implemented to support interactive changes of runtime parameters. 
+
 \tableofcontents
 
 */
@@ -1064,6 +1066,17 @@ If value 0 is returned, the command was executed without error.
       errorCode = Command_Query( level, list, resultList, errorMessage );   
     }
 
+    // --- Set command
+    else if ( nl->IsEqual( first, "set" ) && (length == 4) &&
+              nl->IsAtom( nl->Second( list )) &&
+             (nl->AtomType( nl->Second( list ) ) == StringType) &&
+              nl->IsEqual( nl->Third( list ), "=" ) &&
+              nl->AtomType( nl->Fourth(list) ) == BoolType )
+    {
+      errorCode = Command_Set( level, list );   
+    }
+
+
     // --- Model command
 
     else if ( nl->IsEqual( first, "model" ) && (length == 2) )
@@ -1641,6 +1654,28 @@ SecondoInterface::Command_Create( const AlgebraLevel level,
   {
     errorCode = ERR_NO_DATABASE_OPEN;       
   }
+
+  return errorCode;
+}
+
+/*
+
+1.2.4 the set command 
+
+*/
+
+SI_Error 
+SecondoInterface::Command_Set( const AlgebraLevel level,
+                               const ListExpr list )
+{
+  NestedList& nl = *SecondoSystem::GetNestedList();
+  
+  SI_Error errorCode = ERR_NO_ERROR;
+  
+  string paramStr = nl.StringValue(nl.Second(list));
+  bool value = nl.BoolValue(nl.Fourth(list));
+  
+  RTFlag::setFlag(paramStr, value);
 
   return errorCode;
 }

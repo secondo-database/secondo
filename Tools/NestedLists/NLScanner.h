@@ -1,3 +1,9 @@
+/*
+December 2004, M. Spiekermann. A debug mode, and variables for the position were 
+introduced.
+
+*/
+
 #ifndef NL_SCANNER_H
 #define NL_SCANNER_H
 
@@ -19,18 +25,23 @@ class NLScanner: public yyFlexLexer
     cantRead,
   };
                 
-  NLScanner( NestedList* nestedList, std::istream* yyin = 0, std::ostream* yyout = 0 );
-/*
-  string const &lastFile()
-  {
-    return fileName.back();
-  }
-  void stackTrace();  // dumps filename stack to cerr
-*/
-  int yylex();        // overruling yyFlexLexer's yylex()
+  NLScanner( NestedList* nestedList, 
+             std::istream* yyin = 0, std::ostream* yyout = 0 );
+
+  int yylex();  // overruling yyFlexLexer's yylex()
+
+  int lines;    // position in the input
+  int cols;
+
+  // toggle debug mode
+  void SetDebug(const int value);
+
  private:
-  NLScanner( NLScanner const &other );      // no Scanner copy-initialization
-  NLScanner &operator=( NLScanner const &other );   // no assignment either
+  // no Scanner copy-initialization
+  NLScanner( NLScanner const &other ); 
+
+  // no assignment either
+  NLScanner &operator=( NLScanner const &other );   
 
   NestedList* nl;
 };

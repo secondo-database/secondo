@@ -19,6 +19,8 @@ August 2004 M. Spiekermann. Implemented class ~CMsg~
 Nov 2004 M. Spiekermann. Tabstops were replaced by spaces since different
 setting of tabstops in editors will mess the code formatting.
 
+Dec 2004, M. Spiekermann. New function ~setFlag~ implemented.
+
 1.1 Overview
 
 This file declares a class ~RTFlag~ (Runtime Flag) and a preprocessor Macro
@@ -95,7 +97,28 @@ public:
 
   inline static bool isActive( const string& key ) { 
     
-    if ( (it=flagMap.find( key )) != flagMap.end() ) { return it->second;  } else { return false; }
+    if ( (it=flagMap.find( key )) != flagMap.end() ) { 
+
+      return it->second;  
+    } 
+    else { 
+
+      return false; 
+    }
+  }
+
+  inline static void setFlag( const string& key, const bool value ) {
+
+    if ( (it=flagMap.find( key )) != flagMap.end() ) { 
+
+      it->second = value;
+    } 
+    else { 
+
+      flagMap[key] = value;
+      cerr << "New Flag added!" << endl;
+      showActiveFlags(cout);
+    }
   }
 
 private:

@@ -10,6 +10,8 @@ Februar 1996 Holger Schenk
 
 December 2003 Markus Spiekermann, A new {file} pattern and Scanner states have been introduced.
 
+December 2004 M. Spiekermann. The pattern otherchar was redefined Ansi-C backslash codes are
+removed. Morevocer, a calculation of the input position has been implemented.
 
 The {file} pattern can be used in lists for reading in (binary) data from a file. Since the 
 lists are designed as textual representation of data, the content of these files will be encoded
@@ -41,7 +43,7 @@ int yywrap();
 
 char buffer[MAX_STRINGSIZE+1];
 char *s = buffer;
-ostringstream* text=0;
+ostringstream* text = 0;
 
 double f;
 
@@ -61,7 +63,7 @@ int yyFlexLexer::yylex()
 }
 
 %}
-otherChar      [^\(\)\"A-Za-z0-9_ \t\n]
+otherChar      [^\(\)\"A-Za-z0-9_ \a\b\f\n\r\t\v]
 letter         [a-zA-Z]
 digit          [0-9]
 ident          {letter}({letter}|{digit}|_)*
@@ -78,35 +80,33 @@ file		"<file>"[^<\n]+"</file--->"
 %x TEXT
 %%
 
-<INITIAL>[ \t\n]+       ;
+<INITIAL>\n|\r            { lines++; cols=0; }
 
-<INITIAL>-?[0-9]+       {
-                        /* ECHO; printf(" : is an integer\n"); */
+<INITIAL>[ \a\b\f\t\v]+   { cols += yyleng; }
+
+<INITIAL>-?[0-9]+       { cols += yyleng; 
                         yylval = nl->IntAtom( atoi( yytext ) );
                         return (ZZINTEGER);
                         }
 
-<INITIAL>{number}       {
-                        /* ECHO; printf(" : is a real\n"); */
+<INITIAL>{number}       { cols += yyleng; 
                         f = atof( yytext );
                         yylval = nl->RealAtom( f );
-			/* printf("\n Parser reals: %10.3f \n", f); */
 			return (ZZREAL);
 		        }
 
-<INITIAL>"TRUE"         {
-			/* ECHO; printf(" : is a boolean\n"); */
+<INITIAL>"TRUE"         { cols += yyleng; 
 			yylval = nl->BoolAtom( true );
 			return (ZZBOOLEAN);
 		        }
 
-<INITIAL>"FALSE"        {
-			/* ECHO; printf(" : is a boolean\n"); */
+<INITIAL>"FALSE"        { cols += yyleng; 
 			yylval = nl->BoolAtom( false );
 			return (ZZBOOLEAN);
 		        }
 
-<INITIAL>"<text>"       {  // change to state TEXT
+<INITIAL>"<text>"       { cols += yyleng;
+                        // change to state TEXT
                         BEGIN(TEXT);
                         text = new ostringstream();
 		        }
@@ -118,12 +118,12 @@ file		"<file>"[^<\n]+"</file--->"
                         }
  */
 
-<TEXT>.|\n              { 
+<TEXT>.|\n              { cols += yyleng;
                         text->put( yytext[0] );
                         }
 
 
-<TEXT>"</text--->"      {   
+<TEXT>"</text--->"      { cols += yyleng;  
                         BEGIN(INITIAL);
                         ListExpr newText = nl->TextAtom();
                         nl->AppendText( newText, text->str() );
@@ -134,8 +134,7 @@ file		"<file>"[^<\n]+"</file--->"
                         }
 
 
-<INITIAL>{string}       {
-			/* ECHO; printf(" : is a string\n"); */
+<INITIAL>{string}       { cols += yyleng;
 			if ( yyleng - 2 > MAX_STRINGSIZE )
 			{
 			  yyleng = MAX_STRINGSIZE + 2;
@@ -148,14 +147,13 @@ file		"<file>"[^<\n]+"</file--->"
 			return (ZZSTRING);
 		        }
 
-<INITIAL>{symbol}  {
-                   /* ECHO; printf(" : is a symbol\n"); */
+<INITIAL>{symbol}  { cols += yyleng;
                    yylval = nl->SymbolAtom( yytext );
                    return (ZZSYMBOL);
                    }
 
 <INITIAL>{file}  { /* files are expanded to base64 encoded text atoms */
-
+                 cols += yyleng;
                  ListExpr newText = nl->TextAtom();
 
                  string fileNameStr(yytext);
@@ -187,18 +185,16 @@ file		"<file>"[^<\n]+"</file--->"
 		 }
 
 
-<INITIAL>"("   {
-                 /* ECHO; printf("\n"); */
+<INITIAL>"("   { cols += yyleng;
                  return (ZZOPEN);
                }
 
-<INITIAL>")"   {
-                 /* ECHO; printf("\n"); */
+<INITIAL>")"   { cols += yyleng;
                  return (ZZCLOSE);
                }
 
-.              { 
-                 /* ECHO; printf("Fail in scanner\n"); */ 
+.              { cols += yyleng;
+                 return (ZZERROR); 
                }
 %%
 int yywrap() { return 1; }

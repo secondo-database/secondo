@@ -60,6 +60,7 @@ Sept 2004, M. Spiekermann. A bug in the error handling of restore database has b
 Error code definitions have been moved to ErrorCodes.h. in order to make them available also 
 in other modules like SecondoSystem. 
 
+Dec 2004, M. Spiekermann. A new function implementing the ~set~ command was added.
 
 1.1 Overview
 
@@ -993,18 +994,21 @@ Sets the debug level of the query processor.
   void StartCommand();
   void FinishCommand( SI_Error& errorCode );
 	
-	// implementation of SECONDO commands
-	SI_Error Command_Query( const AlgebraLevel level, const ListExpr list, 
-	                        ListExpr& result, string& errorMessage );
-									
-	SI_Error Command_Let( const AlgebraLevel level, const ListExpr list );
-									 	 
-	SI_Error Command_Derive( const AlgebraLevel level, const ListExpr list );
-	
-	SI_Error Command_Update( const AlgebraLevel level, const ListExpr list );
+  // implementation of SECONDO commands
+  SI_Error Command_Query( const AlgebraLevel level, const ListExpr list, 
+                          ListExpr& result, string& errorMessage );
 
-	SI_Error Command_Create( const AlgebraLevel level, const ListExpr list,
-	                         ListExpr& result, ListExpr& error );
+  SI_Error Command_Create( const AlgebraLevel level, const ListExpr list,
+                           ListExpr& result, ListExpr& error );
+
+  SI_Error Command_Let( const AlgebraLevel level, const ListExpr list );
+  
+  SI_Error Command_Set( const AlgebraLevel level, const ListExpr list );
+									 	 
+  SI_Error Command_Derive( const AlgebraLevel level, const ListExpr list );
+	
+  SI_Error Command_Update( const AlgebraLevel level, const ListExpr list );
+
 
   bool        initialized;       // state of interface
   bool        activeTransaction; // state of transaction block

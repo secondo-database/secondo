@@ -127,7 +127,7 @@ class NLToken extends Symbol implements NLSymbol{
 
 
 
-otherChar   =   [^\(\)\"A-Za-z0-9_" "\t\n\r]
+otherChar   =   [^\(\)\"A-Za-z0-9_" "\a\b\f\n\r\t\v]
 letter      =   [a-zA-Z]
 digit       =   [0-9]
 ident       =   {letter}({letter}|{digit}|_)*
@@ -142,7 +142,7 @@ filename    =   "<file>".*"</file--->"
 
 
 
-<YYINITIAL> [" "\t\n\r]       {}
+<YYINITIAL> [" "\a\b\f\n\r\t\v]+       {}
 
 <YYINITIAL> -?[0-9]+       {
                   // The token is an ~intAtom~.

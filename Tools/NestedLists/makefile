@@ -43,7 +43,7 @@ endif
 
 
 NLLex.cpp: NLLex.l
-	$(LEX) -+ -Pnl -oNLLex.cpp NLLex.l
+	$(LEX) -d -+ -Pnl -oNLLex.cpp NLLex.l
 
 
 include $(DEP_FILES)

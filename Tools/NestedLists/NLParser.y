@@ -16,6 +16,8 @@ stack depth remains bounded for lists of arbitrary length.
 December 6, 2002 M. Spiekermann Construction of the list revised. Usage of a stack data
 structure avoids to create nodes which were only used in the construction process.
 
+Dec 2004, M. Spiekermann. Macr YYERROR\_VERBOSE defined.
+
 */
 %{
 #include <stdio.h>
@@ -24,10 +26,16 @@ structure avoids to create nodes which were only used in the construction proces
  
 // Stack Size for the Parser - by default 200.
 //#define YYINITDEPTH 10000
+#define YYERROR_VERBOSE
+#define YYDEBUG 1
 
 %}
 
-%token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZNOFILE
+%token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZNOFILE ZZERROR
+
+%verbose
+%locations
+
 %%
 
 ok : list { 

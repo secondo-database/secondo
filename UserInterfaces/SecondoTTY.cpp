@@ -13,6 +13,9 @@ Changes:
 July 1999: Jose Antonio Cotelo Lema: changes in the code and interface of the
 Gettext() and getline() functions, to allow input commands of arbitrary size.
 
+Dec 2004, M. Spiekermann. The read in command lines will be separated by a "\\r"
+symbol, otherwise the parser can't calculate a position in terms of lines and cols. 
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -375,7 +378,7 @@ SecondoTTY::GetCommand()
         }
         else
         {
-          cmd = cmd + line + " ";
+          cmd = cmd + "\r" + line + " ";
         }
       }
     }

@@ -286,6 +286,7 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
+  Counter::reportValues();
   cout << endl << " ***************************************";
   cout << endl << " **";
   cout << endl << " ** Signal #" << signalStr[sig] << " caught! ";

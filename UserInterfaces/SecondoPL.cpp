@@ -539,7 +539,7 @@ main(int argc, char **argv)
   configFile = GetConfigFileNameFromArgV(argc, argv);
   if(configFile == 0 || !StartSecondoC(configFile))
   {
-    cout << "Usage : SecondoPL -c ConfigFileName" << endl;
+    cout << "Usage : SecondoPL [-c ConfigFileName] [prolog engine options]" << endl;
     exit(1);
   }
 

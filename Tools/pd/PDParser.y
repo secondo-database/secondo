@@ -63,7 +63,10 @@ followed by an empty line is written to the output file. To understand the outpu
 #include <stdlib.h>
 #include "PDNestedText.h"
 #include "PDParserDS.c"
+
+#define YYERROR_VERBOSE
 %}
+
 
 %token OPEN, CLOSE, EPAR, DEFLINE, LETTER, DIGIT, OTHER, TILDE, STAR,
 	QUOTE, BLANKTILDE, BLANKSTAR, BLANKQUOTE,
