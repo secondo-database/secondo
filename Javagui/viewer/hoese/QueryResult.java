@@ -22,11 +22,16 @@ public class QueryResult extends JList {
 /** No. of tuples, no. of attributes of a tuple   */
   private int TupelCount, AttrCount;
 
+
+/** the QueryRepresentations for this QueryResult */
+  // private ViewConfig myViewConfig = null; 
+  // for each DsplGraph we need a separate ViewConfig
+  private Vector ViewConfigs= new Vector(2);
+
   /**
    * Creates a QueryResult with a command and a result of a query 
    * @param   String acommand
    * @param   ListExpr aLEResult
-   * @see <a href="QueryResultsrc.html#QueryResult">Source</a>
    */
   public QueryResult (String acommand, ListExpr aLEResult) {
     super();
@@ -57,10 +62,47 @@ public class QueryResult extends JList {
     GraphObjects = new Vector(50, 50);
   }
 
+
+  /** get the ViewConfigs for this query */
+  public ViewConfig[] getViewConfigs(){
+     ViewConfig[] Cfgs = new ViewConfig[ViewConfigs.size()];
+     for(int i=0;i<Cfgs.length;i++)
+         Cfgs[i] = (ViewConfig) ViewConfigs.get(i);
+     return Cfgs;
+  }
+
+
+  /** get the ViewConfig with specific index */
+  public ViewConfig getViewConfigAt(int index){
+    if(index<0 || index>=ViewConfigs.size())
+       return null;
+    else
+       return (ViewConfig) ViewConfigs.get(index);
+  } 
+
+  /** set the ViewConfig for this query */
+  public void addViewConfig(ViewConfig VCfg){
+     ViewConfigs.add(VCfg);
+  }
+
+  /** get the Pos of the ViewConfig with specific AttrName 
+    * if not exists a ViewConfig with AttrName -1 is returned
+    */
+  public int getViewConfigIndex(String AttrName){
+    int pos = -1;
+    boolean found = false;
+    for(int i=0;i<ViewConfigs.size()&&!found;i++)
+         if( ((ViewConfig)ViewConfigs.get(i)).AttrName.equals(AttrName)){
+               pos=i;
+               found = true;
+         }
+    return pos; 
+  }
+
+
   /**
    * 
    * @return The ListExpr of the picked (selected) list-entry
-   * @see <a href="QueryResultsrc.html#getPick">Source</a>
    */
   public ListExpr getPick () {
     if (AttrCount == 0){
@@ -86,7 +128,6 @@ public class QueryResult extends JList {
   /**
    * 
    * @return graphical objects of this query-result
-   * @see <a href="QueryResultsrc.html#getGraphObjects">Source</a>
    */
   public Vector getGraphObjects () {
     return  GraphObjects;
@@ -133,7 +174,6 @@ public class QueryResult extends JList {
     return  command;
   }
   /** A class for special rendering of datatypes in the list
-  * @see <a href="QueryResultsrc.html#QueryRenderer">Source</a>
    */
   private class QueryRenderer extends DefaultListCellRenderer {
     public Component getListCellRendererComponent (JList list, Object value, 

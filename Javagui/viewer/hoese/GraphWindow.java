@@ -126,7 +126,6 @@ public class GraphWindow extends JLayeredPane
    * Adds the graph. objects in Vector grob to a new layer on the top
    * @param grob
    * @return The layertoggle of this layer
-   * @see <a href="Categorysrc.html#addLayerObjects">Source</a> 
    */
   public JToggleButton addLayerObjects (Vector grob) {
     Category acat;
@@ -167,7 +166,6 @@ public class GraphWindow extends JLayeredPane
   /**
    * This method makes it possible to add categories to each graph. attribute of a query
    * @param go A Vector with graphical objects of a query
-   * @see <a href="Categorysrc.html#newQueryRepresentation">Source</a> 
    */
   public void newQueryRepresentation (Vector go) {
     //acat=Category.getDefaultCat();
@@ -177,7 +175,14 @@ public class GraphWindow extends JLayeredPane
       String aname = ((DsplGraph)li.next()).getAttrName();
       if (!v.contains(aname)) {
         v.add(aname);
-        new ViewConfig(mw, aname).show();
+        JComboBox cb = mw.TextDisplay.getQueryCombo();
+        QueryResult Query = (QueryResult)cb.getSelectedItem();
+        ViewConfig VCfg = Query.getViewConfigAt(Query.getViewConfigIndex(aname));
+        if (VCfg==null){
+            VCfg = new ViewConfig(mw,aname);
+            Query.addViewConfig(VCfg);
+        }   
+        VCfg.show();
       }
     }
   }
@@ -185,7 +190,6 @@ public class GraphWindow extends JLayeredPane
   /**
    * Gets the internal no. of the highest layer
    * @return No. as int
-   * @see <a href="Categorysrc.html#getTop">Source</a> 
    */
   public int getTop () {
     return  highest;

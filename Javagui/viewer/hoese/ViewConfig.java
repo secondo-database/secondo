@@ -44,7 +44,6 @@ public class ViewConfig extends javax.swing.JDialog {
   DsplGraph AktGO;
 
   /** Creates new JDialog ViewConfig with the attribute-name an
-   * @see <a href="ViewConfigsrc.html#ViewConfig">Source</a>
    */
   public ViewConfig (HoeseViewer parent, String an) {
     super(parent.getMainFrame(), true);
@@ -58,12 +57,11 @@ public class ViewConfig extends javax.swing.JDialog {
     pack();
     setResizable(false);
   }
+
   /**
    * Searches the attributes for possible reference attributes (int,real,string,bool)
    * @return A Vector with aatrributes been found
-   * @see <a href="ViewConfigsrc.html#ViewConfig">Source</a>
    */
-
   private Vector getRefAttrList () {
     Vector v = new Vector(5, 1);
     LabelAList = new Vector(10, 5);
@@ -86,7 +84,6 @@ public class ViewConfig extends javax.swing.JDialog {
 
   /** This method is called from within the constructor to
    * initialize the dialog.
-   * @see <a href="ViewConfigsrc.html#initComponents">Source</a>
    */
   private void initComponents () {              //GEN-BEGIN:initComponents
     GALabel = new javax.swing.JLabel();

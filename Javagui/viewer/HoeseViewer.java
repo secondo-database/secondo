@@ -918,13 +918,15 @@ public boolean canDisplay(SecondoObject o){
     QueryResult qr= new QueryResult(o.getName(),o.toListExpr()); 
     if(getQueryIndex(qr)>=0) 
       return false;
-    else 
+    else {
       if (addQueryResult(qr)) {
-        if (!CurrentQueryResult.getGraphObjects().isEmpty())
+        if (!CurrentQueryResult.getGraphObjects().isEmpty()){
           addSwitch(GraphDisplay.addLayerObjects(CurrentQueryResult.getGraphObjects()),-1);
+        }
         CurrentQueryResult.setSelectedIndex(0);
       }
       return true;
+    }
   } 
 
 
