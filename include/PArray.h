@@ -100,7 +100,7 @@ destruction of the object.
 
 */
 
-  void Put(int index, T& elem);
+  void Put(int const index, T& elem);
 
 /*
 Copies element ~elem~ into the persistent array at index ~index~.
@@ -109,7 +109,7 @@ Copies element ~elem~ into the persistent array at index ~index~.
 
 */
 
-  void Get(int index, T& elem);
+  void Get(int const index, T& elem);
 
 /*
 Returns the element ~index~ of the array.
@@ -143,8 +143,6 @@ Returns the identifier of this array.
 
 };
 
-
-#endif
 
 /*
 2 Implementation of PArray
@@ -180,7 +178,7 @@ canDelete( false )
 {
   parrays.Open( "parrayfile" );
   SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  parrays.SelectRecord( id, record, at );
+  assert( parrays.SelectRecord( id, record, at ) );
   recid = id;
   record.Read( &size, sizeof( int ) );
 }
@@ -201,7 +199,7 @@ PArray<T>::~PArray()
 }
 
 template<class T>
-void PArray<T>::Put(int index, T& elem)
+void PArray<T>::Put(int const index, T& elem)
 {
   assert ( writeable );
   	
@@ -213,7 +211,7 @@ void PArray<T>::Put(int index, T& elem)
 
 
 template<class T>
-void PArray<T>::Get(int index, T& elem)
+void PArray<T>::Get(int const index, T& elem)
 {
   assert ( 0 <= index && index < size );
 
@@ -240,5 +238,5 @@ SmiRecordId PArray<T>::Id()
 { 
   return recid;
 }
-
+#endif
 
