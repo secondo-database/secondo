@@ -25,4 +25,8 @@ fi
 
 echo "Start optimizer server on port $PORT"
 
+if [ "$SECONDO_PLATFORM" != win32 ]; then
+   unset SWI_HOME_DIR
+fi
+
 java -classpath ../Jpl/lib/classes/:. OptimizerServer $PORT
