@@ -968,7 +968,6 @@ If value 0 is returned, the command was executed without error.
                 Destroy( tree, true );
 
 	       cout << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-	       cout << nl->reportVectorSizes() << endl;
 
             }
             else if ( isFunction ) // abstraction or function object
