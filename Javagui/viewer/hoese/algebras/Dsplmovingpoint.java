@@ -18,16 +18,6 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
   Vector PointMaps;
   Rectangle2D.Double bounds;
 
-  /** returns the first index in Intervals containing t
-    * if not an intervals containing t exists -1 is returned
-    */
-  private int getTimeIndex(double t,Vector Intervals){
-     for(int i=0;i<Intervals.size();i++)
-        if( ((Interval) Intervals.get(i)).isDefinedAt(t))
-	    return i;
-     return -1;
-  }
-
 
   /**
    * Gets the shape of this instance at the ActualTime
