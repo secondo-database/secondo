@@ -1,0 +1,5 @@
+operator createbtree alias CREATEBTREE pattern _ op [ _ ]
+operator leftrange alias LEFTRANGE pattern _ _ op [ _ ]
+operator rightrange alias RIGHTRANGE pattern _ _ op [ _ ]
+operator range alias RANGE pattern _ _ op [ _, _ ]
+operator exactmatch alias EXACTMATCH pattern _ _ op [ _ ]

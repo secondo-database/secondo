@@ -1,6 +1,6 @@
 ########################################################################
 #
-# SECONDO makefile for Relation Algebra C++
+# SECONDO makefile for BTree Algebra
 #
 ########################################################################
 
@@ -13,15 +13,13 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-	RelationAlgebra.h
+	../Relation-C++/RelationAlgebra.h
 
-MODNAME=RelationAlgebra
+MODNAME=BTreeAlgebra
 LIBNAME=lib$(MODNAME)
 
 OBJECTS=\
-	$(MODNAME).$(OBJEXT) \
-	RelationAlgebraPersistence.$(OBJEXT) \
-	RelationAlgebraMainMemory.$(OBJEXT)
+	$(MODNAME).$(OBJEXT)
 
 .PHONY: all
 all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
@@ -29,9 +27,9 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I.
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I. -I../Relation-C++
 
-# --- Relation Algebra C++ library ---
+# --- BTree Algebra library ---
 
 $(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
@@ -42,16 +40,10 @@ else
 	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 endif
 
-# --- Relation Algebra C++ library modules ---
+# --- BTree Algebra library modules ---
 
 $(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
 	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
-
-RelationAlgebraPersistence.$(OBJEXT): RelationAlgebraPersistence.cpp  $(INCFILES)
-	$(CC) -c -o RelationAlgebraPersistence.$(OBJEXT) RelationAlgebraPersistence.cpp $(CCFLAGS)
-
-RelationAlgebraMainMemory.$(OBJEXT): RelationAlgebraMainMemory.cpp  $(INCFILES)
-	$(CC) -c -o RelationAlgebraMainMemory.$(OBJEXT) RelationAlgebraMainMemory.cpp $(CCFLAGS)
 
 include ../../include.dep
 
