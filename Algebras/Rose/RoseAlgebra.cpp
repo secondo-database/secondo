@@ -242,15 +242,15 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
   if (cls == 0) error(__FILE__,__LINE__);
 
   /* Get the field ID of pointlist */
-  jfieldID fid = env->GetFieldID(cls, "pointlist", "LPointList;");
+  jfieldID fid = env->GetFieldID(cls, "pointset", "LPointMultiSet;");
   if (fid == 0) error(__FILE__,__LINE__);
   
   /* Get the field itself */
   jobject jpointlist = env->GetObjectField(jPoints, fid);
   if (jpointlist == 0) error(__FILE__,__LINE__);
 
-  /* Get the class LinkedList */
-  jclass clsLL = env->FindClass("java/util/LinkedList");
+  /* Get the class PointMultiSet */
+  jclass clsLL = env->FindClass("PointMultiSet");
   if (clsLL == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of toArrray */
@@ -379,15 +379,15 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the field ID of seglist */
-  jfieldID fid = env->GetFieldID(cls, "seglist", "LSegList;");
+  jfieldID fid = env->GetFieldID(cls, "segset", "LSegMultiSet;");
   if (fid == 0) error(__FILE__,__LINE__);
 
   /* Get the field itself */
   jobject jseglist = env->GetObjectField(jLines, fid);
   if (jseglist == 0) error(__FILE__,__LINE__);
 
-  /* Get the class LinkedList */
-  jclass clsLL = env->FindClass("java/util/LinkedList");
+  /* Get the class SegMultiSet */
+  jclass clsLL = env->FindClass("SegMultiSet");
   if (clsLL == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of toArrray */
@@ -426,9 +426,9 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
    and returns a suitable ListExpr. 
 
 */
-static ListExpr Convert_JavaToC_ElemList(jobject jElemList) {
+static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
   /* Get the class */
-  jclass cls = env->FindClass("ElemList");
+  jclass cls = env->FindClass("java/util/LinkedList");
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the method ID of toArrray */
@@ -436,7 +436,7 @@ static ListExpr Convert_JavaToC_ElemList(jobject jElemList) {
   if (midToArray == 0) error(__FILE__,__LINE__);
 
   /* Call the method itself */ 
-  jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jElemList, midToArray);
+  jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jpointList, midToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
   /* Determine the length of the result array. */
@@ -467,9 +467,9 @@ static ListExpr Convert_JavaToC_ElemList(jobject jElemList) {
    and returns a suitable ListExpr. 
 
 */
-static ListExpr Convert_JavaToC_ElemListList(jobject jElemListList) {
+static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
   /* Get the class */
-  jclass cls = env->FindClass("ElemListList");
+  jclass cls = env->FindClass("CycleList");
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the method ID of toArrray */
@@ -477,7 +477,7 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jElemListList) {
   if (midToArray == 0) error(__FILE__,__LINE__);
 
   /* Call the method itself */ 
-  jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jElemListList, midToArray);
+  jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jCycleList, midToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
   /* Determine the length of the result array. */
@@ -510,9 +510,9 @@ The following function takes a java object of type ElemListListList
    and returns a suitable ListExpr. 
 
 */
-static ListExpr Convert_JavaToC_ElemListListList(jobject jElemListListList) {
+static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
   /* Get the class */
-  jclass cls = env->FindClass("ElemListListList");
+  jclass cls = env->FindClass("CycleListListPoints");
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the method ID of toArrray */
@@ -520,7 +520,7 @@ static ListExpr Convert_JavaToC_ElemListListList(jobject jElemListListList) {
   if (midToArray == 0) error(__FILE__,__LINE__);
 
   /* Call the method itself */ 
-  jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jElemListListList, midToArray);
+  jobjectArray oarr = (jobjectArray)env->CallObjectMethod(jCycleListListPoints, midToArray);
   if (oarr == 0) error(__FILE__,__LINE__);
 
   /* Determine the length of the result array. */
@@ -557,7 +557,7 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the method ID of cyclesPoints */
-  jmethodID midCycles = env->GetMethodID(cls, "cyclesPoints", "()LElemListListList;");
+  jmethodID midCycles = env->GetMethodID(cls, "cyclesPoints", "()LCycleListListPoints;");
   if (midCycles == 0) error(__FILE__,__LINE__);
 
   /* Call the method itself */ 
@@ -899,22 +899,33 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
 static jobject Convert_CToJava_Regions(const ListExpr &le) {
   /* We have to collect all segments into a segment list first */
 
-  /* Get the class SegList */
-  jclass clsSegList = env->FindClass("SegList");
-  if (clsSegList == 0) error(__FILE__,__LINE__);
+  /* Construct a SegmentComparator */
+  jclass clsSegComparator = env->FindClass("SegmentComparator");
+  if (clsSegComparator == 0) error(__FILE__,__LINE__);
+  
+  /* get method ID of constructor */
+  jmethodID midSC = env->GetMethodID(clsSegComparator, "<init>", "()V");
+  if (midSC == 0) error(__FILE__,__LINE__);
+
+  /* Get the class SegMultiSet */
+  jclass clsSMS = env->FindClass("SegMultiSet");
+  if (clsSMS == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of the constructor */
-  jmethodID midSegList = env->GetMethodID(clsSegList, "<init>", "()V");
-  if (midSegList == 0) error(__FILE__,__LINE__);
+  jmethodID midSMS = env->GetMethodID(clsSMS, "<init>", "(LSegmentComparator;)V");
+  if (midSMS == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of add */
-  jmethodID midSegListAdd = env->GetMethodID
-    (clsSegList, "add", "(Ljava/lang/Object;)Z");
-  if (midSegListAdd == 0) error(__FILE__,__LINE__);
+  jmethodID midSMSAdd = env->GetMethodID(clsSMS, "add", "(LSegment;)V");
+  if (midSMSAdd == 0) error(__FILE__,__LINE__);
 
-  /* Create a SegList object. */
-  jobject segList = env->NewObject(clsSegList, midSegList);
-  if (segList == 0) error(__FILE__,__LINE__);
+  /* Create a new SegmentComparator */
+  jobject jSC = env->NewObject(clsSegComparator, midSC);
+  if (jSC == 0) error(__FILE__,__LINE__);
+
+  /* Create a SMS object. */
+  jobject segMS = env->NewObject(clsSMS, midSMS, jSC);
+  if (segMS == 0) error(__FILE__,__LINE__);
 
   /* Get the class Segment */
   jclass clsSegment = env->FindClass("Segment");
@@ -960,17 +971,15 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
       /* Connect the kth and the (k+1)th Point to a segment. */
       jobject segment[nllvertex];
       for (int k = 0; k < nllvertex - 1; k++) {
-	segment[k] = env->NewObject
-	  (clsSegment, midSegment, vertex[k], vertex[k+1]);
-	if (segment[i] == 0) error(__FILE__,__LINE__);
+	segment[k] = env->NewObject(clsSegment, midSegment, vertex[k], vertex[k+1]);
+	if (segment[k] == 0) error(__FILE__,__LINE__);
       }
-      segment[nllvertex-1] = env->NewObject
-	(clsSegment, midSegment, vertex[nllvertex-1], vertex[0]);
+      segment[nllvertex-1] = env->NewObject(clsSegment, midSegment, vertex[nllvertex-1], vertex[0]);
       if (segment[nllvertex-1] == 0) error(__FILE__,__LINE__);
 
-      /* Now add all segments to the SegList */
+      /* Now add all segments to the SegMultiSet */
       for (int k = 0; k < nllvertex; k++) {
-	env->CallVoidMethod(segList, midSegListAdd, segment[k]);
+	env->CallVoidMethod(segMS, midSMSAdd, segment[k]);
       }
     }
   }
@@ -981,10 +990,10 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
 
   /* Get the methodID of the constructor. */
   jmethodID midRegions = env->GetMethodID(clsRegions, "<init>", 
-					  "(LSegList;)V");
+					  "(LSegMultiSet;)V");
   if (midRegions == 0) error(__FILE__,__LINE__);
   
-  jobject result = env->NewObject(clsRegions, midRegions, segList);
+  jobject result = env->NewObject(clsRegions, midRegions, segMS);
   if (result == 0) error(__FILE__,__LINE__);
 
   return result;
@@ -2364,15 +2373,13 @@ restores the java object from FLOB
 
 */
 void CcRegions::RestoreFLOBFromJavaObject(){
-  cout << "RestoreFLOBFromJavaObject called" << endl;
+  //cout << "RestoreFLOBFromJavaObject called" << endl;
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
-  if(mid == 0){
-     error(__FILE__,__LINE__);
-  }
+  if(mid == 0) error(__FILE__,__LINE__);
+  
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,mid);
-  if(jbytes == 0){
-       error(__FILE__,__LINE__);
-  }
+  if(jbytes == 0) error(__FILE__,__LINE__);
+  
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
   objectData.Resize(size);
