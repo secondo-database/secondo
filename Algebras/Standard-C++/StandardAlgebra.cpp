@@ -831,12 +831,8 @@ InCcString( ListExpr typeInfo, ListExpr value,
   if ( nl->IsAtom( value ) && nl->AtomType( value ) == StringType )
   {
     correct = true;
-    char* p = new STRING;
     string s = nl->StringValue( value );
-    s.copy(p,string::npos);
-    p[s.length()] = 0;
-    return (SetWord( new CcString( true, (STRING*)p ) ));
-    // return (SetWord( new CcString( true, nl->StringValue( value ) ) ));
+    return (SetWord( new CcString( true, (STRING*)s.c_str() ) ));
   }
   else
   {
@@ -865,9 +861,9 @@ DeleteCcString( Word& w )
 
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
- 
+
 */
- 
+
 static void*
 CastString( void* addr )
 {
