@@ -893,7 +893,8 @@ ListExpr FeedTypeMap(ListExpr args)
               (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),	 
   "Operator feed expects an argument of type relation, "
   "(rel(tuple((a1 t1)...(an tn)))).\n"
-  "Operator feed gets an argument of type '" + argstr + "'.");
+  "Operator feed gets an argument of type '" + argstr + "'."
+  " Relation name not known in the database ?");
   	    	
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
