@@ -182,7 +182,7 @@ private class ViewerListModel implements ListModel{
   
   /** decrement the priority of the viewer at index */
   public boolean down(int index){
-     if(index>= Viewers.size()-1) // invalid or lowest priority
+     if(index>= Viewers.size()-1 || index<0) // invalid or lowest priority
         return false;
      else{
          Object TMP = Viewers.get(index);    
