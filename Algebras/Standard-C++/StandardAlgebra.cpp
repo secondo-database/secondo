@@ -706,10 +706,10 @@ TypeConstructor ccBool( "bool",             CcProperty,
 */
 
 CcString::CcString() {};
-CcString::CcString( bool d, const string& v ) { defined = d; stringval = v; };
+CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 CcString::~CcString() {};
 bool      CcString::IsDefined() { return (defined); };
-string*   CcString::GetStringval() { return (&stringval); };
+STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
 int       CcString::Sizeof() { return (sizeof(CcString)); };
 CcString* CcString::Clone() { return (new CcString( *this )); };
@@ -718,8 +718,10 @@ int       CcString::Compare( Attribute* arg )
    //     CcString* p = dynamic_cast< CcString* >(arg);
   CcString* p = (CcString*)(arg);
   if ( !p ) return (-2);
-  
-  return (stringval.compare( p->stringval ));
+  if ( strcmp(stringval , p->stringval) < 0) return (-1);
+  if ( !strcmp(stringval , p->stringval)) return (0);
+  return (1);
+  // return (stringval.compare( p->stringval ));
 };
 
 /*
@@ -743,9 +745,12 @@ InCcString( ListExpr typeInfo, ListExpr value,
   if ( nl->IsAtom( value ) && nl->AtomType( value ) == StringType )
   {
     correct = true;
-//    STRING p;
-//    StringValue( value, p );
-    return (SetWord( new CcString( true, nl->StringValue( value ) ) ));
+    char* p = new STRING;
+    string s = nl->StringValue( value );
+    s.copy(p,string::npos);
+    p[s.length()] = 0;
+    return (SetWord( new CcString( true, (STRING*)p ) ));
+    // return (SetWord( new CcString( true, nl->StringValue( value ) ) ));
   }
   else
   {
@@ -761,7 +766,8 @@ InCcString( ListExpr typeInfo, ListExpr value,
 static Word
 CreateCcString( int size )
 {
-  return (SetWord( new CcString( true, "" ) ));
+  char p[49] = "";
+  return (SetWord( new CcString( true, (STRING*)&p ) ));
 }
 
 static void
@@ -2189,10 +2195,18 @@ CcStarts( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
+    string str1 = (string)(char*)((CcString*)args[0].addr)->GetStringval();
+    cout << str1 << endl;
+    string str2 = (string)(char*)((CcString*)args[1].addr)->GetStringval();
+    cout << str1 << endl;
+    cout << str1.compare(str2, 0, str2.length()) << endl;
     ((CcBool *)result.addr)->
-      Set( true, ( ((CcString*)args[0].addr)->GetStringval()->compare( 
-                  *((CcString*)args[1].addr)->GetStringval(), 0,
-                   ((CcString*)args[1].addr)->GetStringval()->length() ) == 0) );
+    Set (true, str1.compare(str2, 0, str2.length()) == 0 );
+    //((CcBool *)result.addr)->
+      //Set( true, ( ((CcString*)args[0].addr)->GetStringval()->compare( 
+                  //*((CcString*)args[1].addr)->GetStringval(), 0,
+                   //((string)((CcString*)args[1].addr)->GetStringval()).length() ) == 0) );
+		   //teststr.length() ) == 0 );
   }
   else
   {
@@ -2213,9 +2227,9 @@ CcContains( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcString*)args[0].addr)->GetStringval()->find(
-                *((CcString*)args[1].addr)->GetStringval() ) != string::npos );
+    //((CcBool *)result.addr)->
+      //Set( true, ((CcString*)args[0].addr)->GetStringval()->find(
+                //*((CcString*)args[1].addr)->GetStringval() ) != string::npos );
   }
   else
   {
