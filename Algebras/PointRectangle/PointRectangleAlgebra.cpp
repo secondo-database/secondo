@@ -6,8 +6,8 @@
 
 July 2002 RHG
 
-The little example algebra provides two type constructors ~point~ and
-~rectangle~ and two operators: (i) ~inside~, which checks whether a point is
+The little example algebra provides two type constructors ~xpoint~ and
+~xrectangle~ and two operators: (i) ~inside~, which checks whether a point is
 within a rectangle, and (ii) ~intersects~ which checks two rectangles for
 intersection.
 
@@ -25,16 +25,6 @@ using namespace std;
 #include "StandardTypes.h"	//needed because we return a CcBool in an op.
 #include <string>
 
-/*
-GNU gcc 3.2 includes the header 'windows.h' from standard headers.
-Therefore we need to change internally the name of the Rectangle
-class since Windows defines an API function 'Rectangle'.
-
-*/
-#ifdef SECONDO_WIN32
-#define Rectangle SecondoRectangle
-#endif
-
 static NestedList* nl;
 static QueryProcessor* qp;
 
@@ -46,44 +36,44 @@ Not interesting, but needed in the definition of a type constructor.
 */
 static void* DummyCast( void* addr ) {return (0);}
 /*
-2 Type Constructor ~point~
+2 Type Constructor ~xpoint~
 
-2.1 Data Structure - Class ~Point~
+2.1 Data Structure - Class ~XPoint~
 
 */
-class Point	
+class XPoint	
 {
  public:
-  Point( int x, int y );
-  ~Point();
+  XPoint( int x, int y );
+  ~XPoint();
   int      GetX();
   int	   GetY();
   void     SetX( int x );
   void     SetY( int y );
-  Point*   Clone();
+  XPoint*   Clone();
  private:
   int x;
   int y;
 };
 
-Point::Point(int X, int Y) {x = X; y = Y;}
+XPoint::XPoint(int X, int Y) {x = X; y = Y;}
 
-Point::~Point() {}
+XPoint::~XPoint() {}
 
-int Point::GetX() {return x;}
+int XPoint::GetX() {return x;}
 
-int Point::GetY() {return y;}
+int XPoint::GetY() {return y;}
 
-void Point::SetX(int X) {x = X;}
+void XPoint::SetX(int X) {x = X;}
 
-void Point::SetY(int Y) {y = Y;}
+void XPoint::SetY(int Y) {y = Y;}
 
-Point* Point::Clone() { return new Point( *this ); }
+XPoint* XPoint::Clone() { return new XPoint( *this ); }
 
 /*
 2.2 List Representation
 
-The list representation of a point is
+The list representation of a xpoint is
 
 ----	(x y)
 ----
@@ -93,18 +83,18 @@ The list representation of a point is
 */
 
 static ListExpr
-OutPoint( ListExpr typeInfo, Word value )
+OutXPoint( ListExpr typeInfo, Word value )
 {
-  Point* point;
-  point = (Point*)(value.addr);
+  XPoint* point;
+  point = (XPoint*)(value.addr);
   return nl->TwoElemList(nl->IntAtom(point->GetX()), nl->IntAtom(point->GetY()));
 }
 
 static Word
-InPoint( const ListExpr typeInfo, const ListExpr instance,
+InXPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Point* newpoint;
+  XPoint* newpoint;
 
   if ( nl->ListLength( instance ) == 2 )
   { 
@@ -115,7 +105,7 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
       && nl->IsAtom(Second) && nl->AtomType(Second) == IntType )
     {
       correct = true;
-      newpoint = new Point(nl->IntValue(First), nl->IntValue(Second));
+      newpoint = new XPoint(nl->IntValue(First), nl->IntValue(Second));
       return SetWord(newpoint);
     }
   }
@@ -126,11 +116,11 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 /*
 2.4 Functions Describing the Signature of the Type Constructors
 
-This one works for type constructors ~point~.
+This one works for type constructors ~xpoint~.
 
 */
 static ListExpr
-PointProperty()
+XPointProperty()
 {
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"), 
@@ -139,45 +129,45 @@ PointProperty()
 			     nl->StringAtom("Example List"),
 			     nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("point"), 
+	                     nl->StringAtom("xpoint"), 
 			     nl->StringAtom("(<x> <y>)"), 
 			     nl->StringAtom("(-3 15)"),
 			     nl->StringAtom("x- and y-coordinates must be "
 			     "of type int."))));
 }
 static Word
-CreatePoint( const ListExpr typeInfo ) 
+CreateXPoint( const ListExpr typeInfo ) 
 {
-  return (SetWord( new Point( 0, 0 ) ));
+  return (SetWord( new XPoint( 0, 0 ) ));
 }
 
 static void
-DeletePoint( Word& w ) 
+DeleteXPoint( Word& w ) 
 {
-  delete (Point *)w.addr;
+  delete (XPoint *)w.addr;
   w.addr = 0;
 }
  
 static void
-ClosePoint( Word& w ) 
+CloseXPoint( Word& w ) 
 {
-  delete (Point *)w.addr;
+  delete (XPoint *)w.addr;
   w.addr = 0;
 }
  
 static Word
-ClonePoint( const Word& w ) 
+CloneXPoint( const Word& w ) 
 {
-  return SetWord( ((Point *)w.addr)->Clone() );
+  return SetWord( ((XPoint *)w.addr)->Clone() );
 }
  
 /*
-Function describing type property of type constructor ~rectangle~
+Function describing type property of type constructor ~xrectangle~
 
 */
 
 static ListExpr
-RectangleProperty()
+XRectangleProperty()
 {
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"), 
@@ -186,7 +176,7 @@ RectangleProperty()
 			     nl->StringAtom("Example List"),
 			     nl->StringAtom("Remarks")),
             nl->FiveElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("rectangle"), 
+	                     nl->StringAtom("xrectangle"), 
 			     nl->StringAtom("(<xleft> <xright> <ybottom> <ytop>)"), 
 			     nl->StringAtom("(4 12 8 2)"),
 			     nl->StringAtom("all coordinates must be of "
@@ -197,36 +187,36 @@ RectangleProperty()
 2.5 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
-type constructor ~point~ does not have arguments, this is trivial.
+type constructor ~xpoint~ does not have arguments, this is trivial.
 
 */
 static bool
-CheckPoint( ListExpr type, ListExpr& errorInfo )
+CheckXPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "point" ));
+  return (nl->IsEqual( type, "xpoint" ));
 }
 /*
 2.6 Creation of the Type Constructor Instance
 
 */
-TypeConstructor point(
-	"point",			//name		
-	PointProperty, 	                //property function describing signature
-        OutPoint,   	  InPoint,	//Out and In functions
+TypeConstructor xpoint(
+	"xpoint",			//name		
+	XPointProperty, 	                //property function describing signature
+        OutXPoint,   	  InXPoint,	//Out and In functions
         0,                0,	        //SaveToList and RestoreFromList functions
-	CreatePoint,	  DeletePoint,	//object creation and deletion
-        0, 0, ClosePoint, ClonePoint,    //object open, save, close, and clone
+	CreateXPoint,	  DeleteXPoint,	//object creation and deletion
+        0, 0, CloseXPoint, CloneXPoint,    //object open, save, close, and clone
 	DummyCast,			//cast function
-	CheckPoint,	                //kind checking function
+	CheckXPoint,	                //kind checking function
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel, 	
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
 /*
-3 Class ~Rectangle~
+3 Class ~XRectangle~
 
-To define the Secondo type ~rectangle~, we need to (i) define a data structure,
+To define the Secondo type ~xrectangle~, we need to (i) define a data structure,
 that is, a class, (ii) to decide about a nested list representation, and (iii)
 write conversion functions from and to nested list representation.
 
@@ -237,18 +227,18 @@ Later we need (iv) a property function, (v) a kind checking function. Finally
 the type constructor instance can be created.
 
 */
-class Rectangle	
+class XRectangle	
 {
  public:
-  Rectangle( int XLeft, int XRight, int YBottom, int YTop )
+  XRectangle( int XLeft, int XRight, int YBottom, int YTop )
 	{xl = XLeft; xr = XRight; yb = YBottom; yt = YTop;}
-  ~Rectangle() {}
+  ~XRectangle() {}
   int GetXLeft() {return xl;}
   int GetXRight() {return xr;}
   int GetYBottom() {return yb;}
   int GetYTop() {return yt;}
-  Rectangle* Clone() { return new Rectangle( *this ); }
-  bool intersects( Rectangle r);
+  XRectangle* Clone() { return new XRectangle( *this ); }
+  bool intersects( XRectangle r);
 
  private:
   int xl;
@@ -273,7 +263,7 @@ int overlap ( int low1, int high1, int low2, int high2 )
 }
 
 bool
-Rectangle::intersects( Rectangle r )
+XRectangle::intersects( XRectangle r )
 {
   return ( overlap(xl, xr, r.GetXLeft(), r.GetXRight())
     && overlap(yb, yt, r.GetYBottom(), r.GetYTop()) );
@@ -283,17 +273,17 @@ Rectangle::intersects( Rectangle r )
 /*
 3.3 List Representation and ~In~/~Out~ Functions
 
-The list representation of a rectangle is
+The list representation of a xrectangle is
 
 ----	(XLeft XRight YBottom YTop)
 ----
 
 */
 static ListExpr
-OutRectangle( ListExpr typeInfo, Word value )
+OutXRectangle( ListExpr typeInfo, Word value )
 {
-  Rectangle* rectangle;
-  rectangle = (Rectangle*)(value.addr);
+  XRectangle* rectangle;
+  rectangle = (XRectangle*)(value.addr);
   return nl->FourElemList(
     nl->IntAtom(rectangle->GetXLeft()), 
     nl->IntAtom(rectangle->GetXRight()),
@@ -302,10 +292,10 @@ OutRectangle( ListExpr typeInfo, Word value )
 }
 
 static Word
-InRectangle( const ListExpr typeInfo, const ListExpr instance,
+InXRectangle( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Rectangle* newrectangle;
+  XRectangle* newrectangle;
 
   if ( nl->ListLength( instance ) == 4 )
   { 
@@ -327,7 +317,7 @@ InRectangle( const ListExpr typeInfo, const ListExpr instance,
       if ( xl < xr && yb < yt )
       {
 	correct = true;
-	newrectangle = new Rectangle(xl, xr, yb, yt);
+	newrectangle = new XRectangle(xl, xr, yb, yt);
 	return SetWord(newrectangle);
       }
     }
@@ -337,58 +327,58 @@ InRectangle( const ListExpr typeInfo, const ListExpr instance,
 }
 
 static Word
-CreateRectangle( const ListExpr typeInfo )
+CreateXRectangle( const ListExpr typeInfo )
 {
-  return (SetWord( new Rectangle( 0, 0, 0, 0 ) ));
+  return (SetWord( new XRectangle( 0, 0, 0, 0 ) ));
 }
 
 static void
-DeleteRectangle( Word& w )
+DeleteXRectangle( Word& w )
 {
-  delete (Rectangle *)w.addr;
+  delete (XRectangle *)w.addr;
   w.addr = 0;
 }
 
 static void
-CloseRectangle( Word& w )
+CloseXRectangle( Word& w )
 {
-  delete (Rectangle *)w.addr;
+  delete (XRectangle *)w.addr;
   w.addr = 0;
 }
 
 static Word
-CloneRectangle( const Word& w ) 
+CloneXRectangle( const Word& w ) 
 {
-  return SetWord( ((Rectangle *)w.addr)->Clone() );
+  return SetWord( ((XRectangle *)w.addr)->Clone() );
 }
 
 /*
 3.4 Property Function - Signature of the Type Constructor
 
-We can reuse the one written for ~point~.
+We can reuse the one written for ~xpoint~.
 
 3.5 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
-type constructor ~rectangle~ does not have arguments, this is trivial.
+type constructor ~xrectangle~ does not have arguments, this is trivial.
 
 */
 static bool
-CheckRectangle( ListExpr type, ListExpr& errorInfo )
+CheckXRectangle( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rectangle" ));
+  return (nl->IsEqual( type, "xrectangle" ));
 }
 /*
 3.6 Creation of the Type Constructor Instance
 
 */
-TypeConstructor rectangle( "rectangle",	    RectangleProperty,
-                           OutRectangle,    InRectangle,         
+TypeConstructor xrectangle( "xrectangle",	    XRectangleProperty,
+                           OutXRectangle,    InXRectangle,         
                            0,               0,
-			   CreateRectangle, DeleteRectangle,
+			   CreateXRectangle, DeleteXRectangle,
         		   0,               0, 			
-                           CloseRectangle,  CloneRectangle,
-                           DummyCast,       CheckRectangle,	
+                           CloseXRectangle,  CloneXRectangle,
+                           DummyCast,       CheckXRectangle,	
                            0);
 /*
 4 Creating Operators
@@ -409,21 +399,21 @@ RectRectBool( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "rectangle") && nl->IsEqual(arg2, "rectangle") )  
+    if ( nl->IsEqual(arg1, "xrectangle") && nl->IsEqual(arg2, "xrectangle") )  
     return nl->SymbolAtom("bool");
   }
   return nl->SymbolAtom("typeerror");
 }
 
 static ListExpr
-PointRectBool( ListExpr args )
+XPointRectBool( ListExpr args )
 {
   ListExpr arg1, arg2;
   if ( nl->ListLength(args) == 2 )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "point") && nl->IsEqual(arg2, "rectangle") )  
+    if ( nl->IsEqual(arg1, "xpoint") && nl->IsEqual(arg2, "xrectangle") )  
     return nl->SymbolAtom("bool");
   }
   return nl->SymbolAtom("typeerror");
@@ -452,10 +442,10 @@ Intersects predicate for two rectangles.
 
 */
 {
-  Rectangle* r1;
-  Rectangle* r2;
-  r1 = ((Rectangle*)args[0].addr);
-  r2 = ((Rectangle*)args[1].addr);
+  XRectangle* r1;
+  XRectangle* r2;
+  r1 = ((XRectangle*)args[0].addr);
+  r2 = ((XRectangle*)args[1].addr);
 
   result = qp->ResultStorage(s);	//query processor has provided
   					//a CcBool instance to take the result
@@ -469,14 +459,14 @@ Intersects predicate for two rectangles.
 static int
 insideFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
-Inside predicate for point and rectangle.
+Inside predicate for xpoint and xrectangle.
 
 */
 {
-  Point* p;
-  Rectangle* r;
-  p = ((Point*)args[0].addr);
-  r = ((Rectangle*)args[1].addr);
+  XPoint* p;
+  XRectangle* r;
+  p = ((XPoint*)args[0].addr);
+  r = ((XRectangle*)args[1].addr);
 
   result = qp->ResultStorage(s);	//query processor has provided
   					//a CcBool instance to take the result
@@ -492,18 +482,29 @@ Inside predicate for point and rectangle.
 }
 
 /*
-4.4 Definition of Operators
+4.4 Specification of Operators
 
 */
 
-const string intersectsSpec =
-  "(<text>(rectangle rectangle) -> bool</text---><text>Intersection predicate for two rectangles.</text--->)";
+const string intersectsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>(xrectangle xrectangle) -> bool</text--->"
+			 "<text>_ intersects _</text--->"
+			 "<text>Intersection predicate for two"
+                         " xrectangles.</text--->"
+			 "<text>r1 intersects r2</text--->"
+			 ") )";
 
-const string insideSpec =
-  "(<text>(point rectangle) -> bool</text---><text>Inside predicate.</text--->)";
+const string insideSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>(xpoint xrectangle) -> bool</text--->"
+			 "<text>_ inside _</text--->"
+			 "<text>Inside predicate.</text--->"
+			 "<text>p inside r</text--->"
+			 ") )";
 
 /*
-Used to explain the signature and the meaning of the ~intersects~ and ~inside~ operators.
+4.5 Definition of Operators
 
 */
 
@@ -522,8 +523,9 @@ Operator inside (
 	insideFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
 	simpleSelect,		//trivial selection function 
-	PointRectBool		//type mapping 
+	XPointRectBool		//type mapping 
 );	
+
 /*
 5 Creating the Algebra
 
@@ -534,13 +536,12 @@ class PointRectangleAlgebra : public Algebra
  public:
   PointRectangleAlgebra() : Algebra()
   {
-    AddTypeConstructor( &point );
-    AddTypeConstructor( &rectangle );
+    AddTypeConstructor( &xpoint );
+    AddTypeConstructor( &xrectangle );
 
-    point.AssociateKind("DATA");   	//this means that point and rectangle
-    rectangle.AssociateKind("DATA");    //can be used in places where types
-    					//of kind DATA are expected, e.g. in
-    					//tuples.
+    xpoint.AssociateKind("SIMPLE");   	  //this means that xpoint and xrectangle
+    xrectangle.AssociateKind("SIMPLE");   //can be used in places where types
+    					  //of kind SIMPLE are expected
     AddOperator( &intersects );
     AddOperator( &inside );
   }

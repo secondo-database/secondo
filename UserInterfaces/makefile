@@ -11,14 +11,13 @@ APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
 	DisplayTTY.$(OBJEXT)
 
+APPLICATIONS := $(BINDIR)/SecondoTTY$(SMIUP) \
+		$(BINDIR)/SecondoTTYCS
 
-APPLICATIONS = $(BINDIR)/SecondoTTY$(SMIUP)
+# some optional objects and applications
 ifneq ($(smitype),ora)
 APPLOBJECTS += TestRunner.$(OBJEXT)
 endif
-
-
-CCFLAGS= $(DEFAULTCCFLAGS) 
 
 ifeq ($(optimizer),"true")
 APPLICATIONS += $(OPTDIR)/SecondoPL
@@ -26,10 +25,12 @@ APPLOBJECTS += SecondoPL.$(OBJEXT)
 CCFLAGS += $(PLINCLUDEFLAGS)
 endif
 
-
-CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
-
+CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
+
+#
+# TARGET SECTION
+#
 
 .PHONY: all
 all: $(CODE_DEPENDENCIES) $(APPLOBJECTS)
@@ -49,8 +50,17 @@ TTY: $(BINDIR)/SecondoTTY$(SMIUP)$(EXEEXT)
 .PHONY: optimizer 
 optimizer: $(OPTDIR)/SecondoPL$(EXEEXT)
 
+.PHONY: clean
+clean:
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS)
 
+#
+# RULES SECTION
+#
 # create dependencies from include directives
+
+CCFLAGS += $(DEFAULTCCFLAGS) 
+
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
 
@@ -86,10 +96,3 @@ $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS)  -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)
-
-.PHONY: clean
-clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS)
-
-.PHONY: clean_cs
-	$(RM) $(BINDIR)/SecondoTTYCS$(EXEEXT)
