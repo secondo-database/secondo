@@ -4,16 +4,16 @@
 #    compatible. Automatic enumeration of pd files is now done by a
 #    lex generated scanner, this is a replacement for the perl solution.
 #
-# 10/03 Markus Spiekermann. Target install introduced. 
-# 
+# 10/03 Markus Spiekermann. Target install introduced.
+#
 # 05/04 Markus Spiekermann. Changes in documentation and script files.
 
-# Uncomment next line to switch on debug mode 
-#OPTIONS = -g 
+# Uncomment next line to switch on debug mode
+#OPTIONS = -g
 
 # The first line is used when compiling with FLEX (2.5.4a) and BISON (1.35)
 # The second line when compiling with LEX and YACC
-LINKLIBS = -L /usr/local/lib  -lfl 
+LINKLIBS = -L /usr/local/lib  -lfl
 #LINKLIBS = -ll -ly
 
 # The first line is used when compiling with FLEX and BISON
@@ -52,11 +52,12 @@ OBJECTS = pdtabs \
 	  makehtml \
 	  makeascii \
 	  enumerate \
-	  maketex
+	  maketex \
+          linecheck
 
 DOCU = docu docuhtml
 
-SCRIPTS = pd2ascii pd2html pd2tex pd2dvi pd2ps pd2pdf pdshow pdview
+SCRIPTS = pd2ascii pd2html pd2tex pd2dvi pd2ps pd2pdf pdshow pdview checkpd
 
 TEMPORARYS = lex.yy.c \
 	     y.tab.c \
@@ -64,15 +65,15 @@ TEMPORARYS = lex.yy.c \
 	     PDNestedText.o
 
 
-.PHONY all:	 
+.PHONY all:
 all: $(OBJECTS) $(DOCU)
 	@chmod ugo+x $(SCRIPTS)
 
-maketex: PDMaketex.c PDParser.y lex.yy.c PDNestedText.h PDParserDS.c PDNestedText.o   
+maketex: PDMaketex.c PDParser.y lex.yy.c PDNestedText.h PDParserDS.c PDNestedText.o
 	$(YACC) PDParser.y
 	$(CC) $(OPTIONS) -o $@ $< y.tab.c PDNestedText.o $(LINKLIBS)
 
-makehtml: PDMakeHTML.c PDNestedText.o PDParserHTML.y lex.yy.c PDNestedText.h PDParserDS.c 
+makehtml: PDMakeHTML.c PDNestedText.o PDParserHTML.y lex.yy.c PDNestedText.h PDParserDS.c
 	$(YACC) PDParserHTML.y
 	$(CC) $(OPTIONS) -o $@ $< y.tab.c PDNestedText.o $(LINKLIBS)
 
@@ -83,7 +84,7 @@ makeascii: PDMakeASCII.c PDNestedText.o PDParserASCII.y lex.yy.c PDNestedText.h 
 enumerate: enumerate.l
 	$(LEX) -o $@.yy.c $<
 	$(CC) -o $@ $@.yy.c $(LINKLIBS)
-	
+
 
 lex.yy.c: PDLex.l PDNestedText.h
 	$(LEX) $<
@@ -97,19 +98,25 @@ pdtabs:	pdtabs.c
 linebreaks: linebreaks.c
 	$(CC) -o $@ $<
 
-docu: $(DOCU_FILES)	
+docu: $(DOCU_FILES)
 	cat $^ > $@
 
 docuhtml: $(DOCU_HTML_FILES)
 	cat $^ > $@
 
+linecheck: linecheck.c
+	$(CC) -o $@ $< $(LINKLIBS)
+
+linecheck.c: linecheck.l
+	$(LEX) -olinecheck.c $<
+
 .PHONY dist:
-dist: pd.tar.gz	
+dist: pd.tar.gz
 
 pd.tar.gz:
 	cvs export -r$(tag) pd
 	tar -czf  pd.tgz pd/*
-	rm -r pd 
+	rm -r pd
 
 INST_DIR = $(prefix)/pd
 EPS_FILES = $(shell find ./Figures -name "*.eps")
@@ -117,13 +124,13 @@ EPS_FILES = $(shell find ./Figures -name "*.eps")
 install: $(OBJECTS) $(SCRIPTS)
 	install -d $(INST_DIR)
 	install -m744 -d $(INST_DIR)/Figures
-	install $(OBJECTS) $(INST_DIR) 
-	install -m444 $(DOCU) $(INST_DIR) 
+	install $(OBJECTS) $(INST_DIR)
+	install -m444 $(DOCU) $(INST_DIR)
 	install -m444 $(EPS_FILES) $(INST_DIR)/Figures
 	install $(SCRIPTS) $(INST_DIR)
 	install pd.header $(INST_DIR)
 
 .PHONY clean:
 clean:
-	rm -f $(OBJECTS) $(DOCU) $(TEMPORARYS) *.exe
+	rm -f $(OBJECTS) $(DOCU) $(TEMPORARYS) *.exe linecheck.c
 
