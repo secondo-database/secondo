@@ -1,0 +1,10 @@
+operator weekday alias WEEKDAY pattern _ op
+operator toString alias TOSTRING pattern _ op
+operator leapyear alias LEAPYEAR pattern _ op
+#operator year alias YEAR pattern _ op
+#operator month alias MONTH pattern _ op
+#operator day alias DAY pattern _ op
+operator hour alias HOUR pattern _ op
+operator minute alias MINUTE pattern _ op
+operator second alias SECOND pattern _ op
+operator millisecond alias MILLISECOND pattern _ op
