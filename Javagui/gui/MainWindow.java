@@ -8,6 +8,7 @@ import sj.lang.*;
 import viewer.*;
 import java.util.*;
 import java.io.*;
+import gui.idmanager.*;
 
 public class MainWindow extends JFrame implements ResultProcessor,ViewerControl{
 
@@ -21,6 +22,7 @@ private JSplitPane HSplitPane;
 private JSplitPane VSplitPane;
 private JOptionPane OptionPane;  // to Display Messages
 private ServerDialog ServerDlg;
+private Vector VCLs;
 
 
 /* the current Viewer and all possible Viewers */
@@ -85,6 +87,7 @@ public MainWindow(String Title){
   OList = new ObjectList(this,this);
   PanelTopRight = new JPanel();
   CurrentMenuVector = null;
+  VCLs = new Vector(10);  // ViewerChangeListeners
   VSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,true,
                               PanelTop,PanelTopRight);
   HSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,false,
@@ -133,6 +136,8 @@ public MainWindow(String Title){
   String PassWd="";
   String ServerName = "localhost";
   int ServerPort = 2550;  
+  boolean StartConnection = false;
+
   // try to read a configuration-File
   Properties Config = new Properties();
   try{
@@ -164,6 +169,22 @@ public MainWindow(String Title){
         catch(Exception wrongport){
           System.out.println("error in ServerPort (not an Integer)");
         }
+    }
+
+    
+    String Connection = Config.getProperty("START_CONNECTION");
+    if(Connection==null)
+       System.out.println("START_CONNECTION not found in "+CONFIGURATION_FILE);
+    else{
+       Connection=Connection.trim().toLowerCase();
+       if(Connection.equals("true"))
+           StartConnection = true;
+       else if(Connection.equals("false"))
+           StartConnection = false;
+       else{
+           System.out.println("START_CONNECTION has unknow value in "+CONFIGURATION_FILE);
+           System.out.println("allowed values are  true  and false");
+       }
     }
 
     String KnownViewers = Config.getProperty("KNOWN_VIEWERS");
@@ -200,12 +221,36 @@ public MainWindow(String Title){
     System.out.println("I can't read the configuration-file: "+CONFIGURATION_FILE);
   }
 
-
   ComPanel.setConnection(UserName,PassWd,ServerName,ServerPort);
-  if (!ComPanel.connect()) 
-        showMessage("I can't find a Secondo-server");
+  if (StartConnection){
+      if (!ComPanel.connect()) 
+         showMessage("I can't find a Secondo-server");
+  }
 }
 
+
+
+public void addViewerChangeListener(ViewerChangeListener VCL){
+  if(VCLs.indexOf(VCL)<0)
+     VCLs.add(VCL);
+}
+
+public void removeViewerChangeListener(ViewerChangeListener VCL){
+  VCLs.remove(VCL);
+}
+
+
+/** send a viewerChanged Message to all 
+  * registred ViewerChangeListener
+  */
+private void viewersChanged(){
+  Object o;
+  for(int i=0;i<VCLs.size();i++){
+    o = VCLs.get(i);
+    if(o!=null)
+       ((ViewerChangeListener) o).viewerChanged();
+  }
+}
 
 /** add a new Viewer*/
 private void addViewer(SecondoViewer NewViewer){
@@ -221,22 +266,26 @@ private void addViewer(SecondoViewer NewViewer){
             if (index>=0)
                 MainWindow.this.setViewerindex(index);
          }}); 
+      viewersChanged();
    }
    setViewer(NewViewer); 
 }
+
+
+public SecondoViewer[] getViewers(){
+   SecondoViewer[] Viewers = new SecondoViewer[AllViewers.size()];
+   for(int i=0;i<AllViewers.size();i++)
+      Viewers[i] = (SecondoViewer) AllViewers.get(i);
+   return Viewers;
+}
+
 
 
 /** removes the current Viewer and shows nothing 
   * use it with setViewer
  **/
 private void removeCurrentViewer(){
-   if (CurrentViewer!=null){
-      MenuVector Victims = CurrentMenuVector;
-      if (Victims!=null){ 
-         for(int i=0;i<Victims.getSize();i++){
-             MainMenu.remove(Victims.get(i));
-         }
-      }
+      cleanMenu();
       CurrentMenuVector = null;
       MainMenu.revalidate(); 
       if(onlyViewerShow)
@@ -244,7 +293,7 @@ private void removeCurrentViewer(){
       else 
         VSplitPane.setRightComponent(PanelTopRight); 
       
-   }
+   
 }
 
 
@@ -282,6 +331,7 @@ private void setViewer(SecondoViewer SV){
     validate();
     repaint();
     CurrentViewer = SV;
+    SV.setViewerControl(this);
     CurrentViewer.revalidate();  
     MainMenu.revalidate();
     OList.updateMarks();
@@ -487,10 +537,7 @@ public void execGuiCommand(String command){
 
 /** make Menu appropriate to MenuVector from CurrentViewer */
 public void updateMenu(){
-   // remove the old Menu
-   if (CurrentMenuVector!=null)
-      for (int i=0;i<CurrentMenuVector.getSize();i++)
-        MainMenu.remove(CurrentMenuVector.get(i));
+   cleanMenu();
    CurrentMenuVector = null;
    // add the new Menu
    if (CurrentViewer!=null){  
@@ -516,8 +563,9 @@ public void updateObject(SecondoObject SO){
 
 
 /** adds a new Object to the ObjectList */
-public void addObject(SecondoObject SO){
+public boolean addObject(SecondoObject SO){
    OList.addEntry(SO);
+   return true;
 }
 
 /* the main function to start program */
@@ -546,7 +594,7 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
         ComPanel.appendText("no result");
      }
      else{
-         SecondoObject o = new SecondoObject();
+         SecondoObject o = new SecondoObject(IDManager.getNextID());
          o.setName(command);
          o.fromList(ResultList);
          OList.addEntry(o);
@@ -826,6 +874,16 @@ private void showServerSettings(){
              showMessage("I can't find a SecondoServer ");
           }
        } 
+}
+
+
+/* cleans the MenuBar (MenuBar without Viewer-Extension */
+private void cleanMenu(){
+   MainMenu.removeAll();
+   MainMenu.add(ProgramMenu);
+   MainMenu.add(ServerMenu);
+   MainMenu.add(HelpMenu);
+   MainMenu.add(Viewers);
 }
 
 
