@@ -1265,16 +1265,29 @@ cost(product(X, Y), _, S, C) :-
   S is SizeX * SizeY,
   C is CostX + SizeX * CostY + S * A.
 
+
+/*
+
+Previously the cost function for ~hashjoin~ contained a term
+----    A * SizeX + A * SizeY
+----
+which should account for the cost of distributing tuples
+into the buckets. However in experiments the cost of
+hashing was always ten or more times smaller than the cost
+of computing products of buckets. Therefore that term
+was considered unnecessary.
+
+*/
 cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
   hashjoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +        			% producing the arguments
-    A * SizeX + A * SizeY +  			% distributing into buckets
-    B * NBuckets * (SizeX/NBuckets + 1) *
-	(SizeY/NBuckets +1).			% computing the product for each
-						% pair of buckets
+    A * NBuckets * (SizeX/NBuckets + 1) *       % computing the product for each
+      (SizeY/NBuckets +1) +                     % pair of buckets
+    B * S.                                      % producing the result tuples
+
 
 cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
   cost(X, 1, SizeX, CostX),
@@ -1284,7 +1297,7 @@ cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
   C is CostX + CostY +				% producing the arguments
     A * SizeX * log(SizeX + 1) +
     A * SizeY * log(SizeY + 1) +		% sorting the arguments
-    B * (SizeX + SizeY).			% parallel scan of sorted relations
+    B * S.               			% parallel scan of sorted relations
 
 
 cost(extend(X, _), Sel, S, C) :-

@@ -1421,7 +1421,7 @@ ListExpr RemoveTypeMap(ListExpr args)
 	
 	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
 	if (j)  removeSet.insert(j);
-	else 
+	else
 	{
 	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
 	  return nl->SymbolAtom("typeerror");
@@ -4101,8 +4101,10 @@ The user can specify the number of hash buckets.
 
 */
 
-CPUTimeMeasurer hashMeasurer;
-CPUTimeMeasurer bucketMeasurer;
+CPUTimeMeasurer hashMeasurer;  // measures cost of distributing into buckets and
+                               // of computing products of buckets
+CPUTimeMeasurer bucketMeasurer;// measures the cost of producing the tuples in
+                               // the result set
 
 class HashJoinLocalInfo
 {
@@ -4177,6 +4179,8 @@ private:
 
   bool FillResultBucket()
   {
+    hashMeasurer.Enter();
+
     while(resultBucket.empty() && currentBucket < nBuckets)
     {
       vector<CcTuple*>& a = bucketsA[currentBucket];
@@ -4190,6 +4194,9 @@ private:
         {
           if(CompareCcTuples(*iterA, *iterB) == 0)
           {
+            hashMeasurer.Exit();
+            bucketMeasurer.Enter();
+
             CcTuple* resultTuple = new CcTuple;
             resultTuple->SetFree(true);
             Word resultWord = SetWord(resultTuple);
@@ -4197,6 +4204,9 @@ private:
             Word bWord = SetWord(*iterB);
             Concat(aWord, bWord, resultWord);
             resultBucket.push_back(resultTuple);
+
+            bucketMeasurer.Exit();
+            hashMeasurer.Enter();
           };
         }
       }
@@ -4205,6 +4215,8 @@ private:
       ClearBucket(b);
       currentBucket++;
     }
+
+    hashMeasurer.Exit();
     return !resultBucket.empty();
   };
 
@@ -4228,8 +4240,12 @@ public:
       nBuckets = MAX_BUCKETS;
     }
 
+    hashMeasurer.Enter();
+
     bucketsA.resize(nBuckets);
     bucketsB.resize(nBuckets);
+
+    hashMeasurer.Exit();
 
     FillHashBuckets(streamA, attrIndexA, bucketsA);
     FillHashBuckets(streamB, attrIndexB, bucketsB);
@@ -4279,12 +4295,8 @@ HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
-      bucketMeasurer.Enter();
-
       localInfo = (HashJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
-
-      bucketMeasurer.Exit();
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
       hashMeasurer.PrintCPUTimeAndReset("CPU Time for Hashing Tuples : ");
