@@ -14,6 +14,8 @@
 
 \maketitle
 
+[12] October 30th, Mirco G[ue]nster. Port to new Secondo SMI.
+
 [12] April 15th, 1999. MRL. First Version.
 
 [12] May 28th, 1999. MRL. Comments.
@@ -36,172 +38,58 @@ element.
 ******************************************************************************/
 #include "DBArray.h"
 
-/******************************************************************************
-*Constructors:*
-
-******************************************************************************/
 
 DBArray::DBArray(SmiRecordFile *inlobFile) : FLOB(inlobFile) {
+	mHigh = -1;
+	mSlotSize = 0;
+	mSize = 0;
+	mSizeOfMetaInfo  = 0;			
 }
 
 DBArray::DBArray(SmiRecordFile *inlobFile, int SlotSize, int SizeClue) : 
 						FLOB(inlobFile, SlotSize*SizeClue + 3*sizeof(int)) {
-  int High;
-  int Size;
-  size_t SizeOfMetaInfo;
-
-  Size = SizeClue;
-  High = -1;
-  SizeOfMetaInfo = 3 * sizeof(int);
-
-  WriteMetaInfo(SlotSize, Size, High);
+						
+	mHigh = -1; 			// there is no valid element yet.
+	mSlotSize = SlotSize; 	// size of each slot.
+	mSize = SizeClue;		// initial size (number of slots)
+	mSizeOfMetaInfo = 3 * sizeof(int);
 }
 
-/******************************************************************************
- *Destructor:*
-
-*******************************************************************************/
 DBArray::~DBArray() {
 }
 
-/******************************************************************************
- *WriteMetaInfo:* Writes the information about the DBArray to the FLOB.
-
-******************************************************************************/
-void DBArray::WriteMetaInfo(int SlotSize, int Size, int High) {
-  Write(0*sizeof(int), sizeof(int), (char *)&SlotSize);
-  Write(1*sizeof(int), sizeof(int), (char *)&Size);
-  Write(2*sizeof(int), sizeof(int), (char *)&High);  
-}
-
-/******************************************************************************
- *ReadMetaInfo:* Reads from the FLOB the information about the DBArray.
-
-******************************************************************************/
-void DBArray::ReadMetaInfo(int *SlotSize, int *Size, int *High) {
-  FLOB::Get(0*sizeof(int), sizeof(int), (char *)SlotSize);
-  FLOB::Get(1*sizeof(int), sizeof(int), (char *)Size);
-  FLOB::Get(2*sizeof(int), sizeof(int), (char *)High);
-}
-
-/******************************************************************************
- *Destroy:*
-
-******************************************************************************/
 void DBArray::Destroy() {
   FLOB::Destroy();
 }
 
-/******************************************************************************
- *Shrink:*
 
-******************************************************************************/
 void DBArray::Shrink(int NewSize) {
-  int High;
-  int SlotSize;
-  int Size;
-  //size_t SizeOfMetaInfo = 3 * sizeof(int); /////////// unused???!!!
-
-  ReadMetaInfo(&SlotSize, &Size, &High);
-  if ((NewSize < High) && (NewSize > 0)) {
-    High = (NewSize-1);
-    Size = NewSize;
-    //Resize(Size*SlotSize + SizeOfMetaInfo); ///////////////////////////////////
-    WriteMetaInfo(SlotSize, Size, High);
-  }
+	if (NewSize < mHigh) {
+		Resize(NewSize);
+	}
 }
 
-/******************************************************************************
- *Get:*
 
-******************************************************************************/
 void DBArray::Get(int Index, char *Dest) {
-  int High;
-  int SlotSize;
-  int Size;
-  size_t SizeOfMetaInfo = 3 * sizeof(int);
-
-  ReadMetaInfo(&SlotSize, &Size, &High);
   if (Index >= 0) {
-    FLOB::Get(SizeOfMetaInfo + Index*SlotSize, SlotSize, Dest);
+    FLOB::Get(Index*mSlotSize, mSlotSize, Dest);
   }
 }
 
-/******************************************************************************
- *Put:*
 
-******************************************************************************/
 void DBArray::Put(int Index, char *Source) {
-  int High;
-  int SlotSize;
-  int Size;
-  size_t SizeOfMetaInfo = 3 * sizeof(int);
-
-  ReadMetaInfo(&SlotSize, &Size, &High);
-  if (Index >= 0) {
-    if ((Index+1) > Size) {
-      Size = (Index+1);
-      //Resize(Size*SlotSize + SizeOfMetaInfo); ///////////////////////////////////
-    }
-    if (Index > High) {
-      High = Index;
-    }
-    WriteMetaInfo(SlotSize, Size, High);
-    Write(SizeOfMetaInfo + Index*SlotSize, SlotSize, Source);
-  }
+	if (Index >= 0) {
+		if ((Index + 1) > mSize) {
+			Resize(Index + 1);
+		}
+		if (Index > mHigh) {
+			mHigh = Index;
+		}
+		Write(Index * mSlotSize, mSlotSize, Source);
+	}
 }
 
-/******************************************************************************
- *High:*
-
-******************************************************************************/
 int DBArray::High() {
-  int High;
-  int SlotSize;
-  int Size;
-  //size_t SizeOfMetaInfo = 3 * sizeof(int); //////// unused ???!!!
-
-  ReadMetaInfo(&SlotSize, &Size, &High);
-  return High;
+  return mHigh;
 }
 
-/******************************************************************************
-The following functions are not implemented.
-
-Well, they are implemented but I do not like how. Do not use them yet.
-
-*Select:*
-
-******************************************************************************/
-char *DBArray::Select(int Index) {
-  //int ActualLenght; ///////////////// unused ????!!!!
-  int High;
-  int SlotSize;
-  int Size;
-  //size_t SizeOfMetaInfo = 3 * sizeof(int);  ////////  unused ????!!!!
-
-  ReadMetaInfo(&SlotSize, &Size, &High);
-  if ((Index >= 0) && (Index <= High)) {
-    /* TODO: Check this, how will I do with long elements */
-    //return Pin(Index*SlotSize, SlotSize, ActualLenght); /////////// !!!!!!!???
-  }
-  return 0;
-}
-
-/******************************************************************************
- *EndSelect:*
-
-******************************************************************************/
-void DBArray::EndSelect(int Index) {
-  //Unpin();
-}
-
-/******************************************************************************
- *EndSelectGet:*
-
-******************************************************************************/
-void DBArray::EndSelectGet(int Index, char *Dest) {
-
-  EndSelect(Index);
-  Get(Index, Dest);
-}
