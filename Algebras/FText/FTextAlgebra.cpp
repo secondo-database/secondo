@@ -54,9 +54,10 @@ public:
 
   bool  SearchString(STRING* subString);
   bool  SearchText(textType subString);
-  void  SetFText(textType inString);
+  void  Set(textType newString);
+  void  Set(bool newDefined, textType newString);
   int   TextLength();
-  textType GetFText();
+  textType Get();
 
 /*************************************************************************
 
@@ -119,15 +120,29 @@ bool  FText::SearchText(textType subString)
 }
 
 
-void FText::SetFText(textType newString)
+void FText::Set(textType newString)
 {
   if(traces)
-    cout << '\n' << "Start SetFText with *newString='"<<*newString<<"'\n";
-    *theText=*newString;
+    cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n";
+    
+  *theText=*newString;
+  defined=true;
+  
   if(traces)
-    cout <<"End SetFText"<<'\n';
+    cout <<"End Set"<<'\n';
 }
 
+void FText::Set(bool newDefined, textType newString)
+{
+  if(traces)
+    cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n";
+    
+  *theText=*newString;
+  defined=newDefined;
+  
+  if(traces)
+    cout <<"End Set"<<'\n';
+}
 
 int FText::TextLength()
 {
@@ -135,7 +150,7 @@ int FText::TextLength()
 }
 
 
-textType FText::GetFText()
+textType FText::Get()
 {
   return theText;
 }
@@ -204,7 +219,7 @@ void FText::CopyFrom(StandardAttribute* right)
     cout << '\n' << "Start CopyFrom" << '\n';
   FText* r = (FText*)right;
   defined = r->defined;
-  SetFText(r->GetFText());
+  Set(r->Get());
 }
 
 
@@ -225,7 +240,7 @@ int FText::Compare(Attribute * arg)
   if ( !f )
     return -2;
 
-  textType pstr=f->GetFText();
+  textType pstr=f->Get();
   if ( *theText<*pstr)
     return -1;
     
@@ -362,8 +377,8 @@ OutFText( ListExpr typeInfo, Word value )
   ListExpr TextAtomVar=nl->TextAtom();
 
   if(traces)
-    cout <<"pftext->GetFText()='"<<*pftext->GetFText()<<"'\n";
-  nl->AppendText(TextAtomVar, *pftext->GetFText());
+    cout <<"pftext->Get()='"<<*pftext->Get()<<"'\n";
+  nl->AppendText(TextAtomVar, *pftext->Get());
 
   if(traces)
     cout <<"End OutFText" << '\n';
@@ -392,7 +407,7 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
     FText* newftext;
     newftext = new FText();
     buffer=buffer;
-    newftext->SetFText(&buffer);
+    newftext->Set(&buffer);
     correct = true;
 
     if(traces)
@@ -629,7 +644,7 @@ Value Mapping for the ~contains~ operator with two text operands.
 
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->SearchText(ftext2->GetFText()));
+  ((CcBool*)result.addr)->Set(true, ftext1->SearchText(ftext2->Get()));
           //the first argument says the boolean
           //value is defined, the second is the
           //real boolean value)
@@ -675,31 +690,31 @@ Used to explain signature, syntax and meaning of the operators of the type ~text
 */
 
 const string containsStringSpec =
-  "( (\"Signature\" \"Syntax\" \"Meaning\" )
-    (
-    <text>("+typeName+" string) -> bool</text--->
-    <text>_ contains _</text--->
-    <text>Search string in "+typeName+".</text--->
-    )
-  )";
+  "( (\"Signature\" \"Syntax\" \"Meaning\" )"
+    "("
+    "<text>("+typeName+" string) -> bool</text--->"
+    "<text>_ contains _</text--->"
+    "<text>Search string in "+typeName+".</text--->"
+    ")"
+  ")";
 
 const string containsTextSpec =
-  "( (\"Signature\" \"Syntax\" \"Meaning\" )
-    (
-    <text>("+typeName+" "+typeName+") -> bool</text--->
-    <text>_ contains _</text--->
-    <text>Search second "+typeName+" in first "+typeName+".</text--->
-    )
-  )";
+  "( (\"Signature\" \"Syntax\" \"Meaning\" )"
+    "("
+    "<text>("+typeName+" "+typeName+") -> bool</text--->"
+    "<text>_ contains _</text--->"
+    "<text>Search second "+typeName+" in first "+typeName+".</text--->"
+    ")"
+  ")";
 
 const string lengthSpec =
-  "( (\"Signature\" \"Syntax\" \"Meaning\" )
-    (
-    <text>("+typeName+" ) -> int</text--->
-    <text>length ( _ )</text--->
-    <text>("+typeName+") -> int</text---><text>length returns the length of "+typeName+".</text--->
-    )
-  )";
+  "( (\"Signature\" \"Syntax\" \"Meaning\" )"
+    "("
+    "<text>("+typeName+" ) -> int</text--->"
+    "<text>length ( _ )</text--->"
+    "<text>("+typeName+") -> int</text---><text>length returns the length of "+typeName+".</text--->"
+    ")"
+  ")";
 
 /*
 The Definition of the operators of the type ~text~.
