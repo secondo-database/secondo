@@ -7,23 +7,58 @@
 
 December 2003 Oliver L[ue]ck
 
-This algebra provides a type constructor ~array~, which defines a ["]generic["] array. The elements of the array must have an internal list representation. The definition of arrays has been tested for arrays of relations (type constructor ~rel~, only in the main memory version!), b-trees (~btree~) and the standard types ~int~, ~real~, ~bool~ and ~string~.
+This algebra provides a type constructor ~array~, which defines a ["]generic["]
+array. The elements of the array must have an internal list representation. The
+definition of arrays has been tested for arrays of relations (type constructor
+~rel~, only in the main memory version!), b-trees (~btree~) and the standard
+types ~int~, ~real~, ~bool~ and ~string~.
 
-The four basic operators ~size~, ~get~, ~put~ and ~makearray~ are used to get the size of an array, to retrieve an element with a given index, to set a value to an element with a given index or to construct an array from a given list of elements.
+The four basic operators ~size~, ~get~, ~put~ and ~makearray~ are used to get
+the size of an array, to retrieve an element with a given index, to set a value
+to an element with a given index or to construct an array from a given list of
+elements.
 
-Note that the first element has the index 0. A precondition for the operators ~get~ and ~put~ is a valid index between 0 and the size of the array minus 1.
+Note that the first element has the index 0. A precondition for the operators
+~get~ and ~put~ is a valid index between 0 and the size of the array minus 1.
 
-The operator ~sortarray~ arranges the elements of an array according to their integer values of a given functon.
+The operator ~sortarray~ arranges the elements of an array according to their
+integer values of a given functon.
 
-The operator ~tie~ concatenates all elements of an array with a given function, e.g. it sums up all elements of an integer array. The operator ~cumulate~ calculates the ["]cumulative["] values for each position of the array (see detailed operator specification).
+The operator ~tie~ concatenates all elements of an array with a given function,
+e.g. it sums up all elements of an integer array. The operator ~cumulate~
+calculates the ["]cumulative["] values for each position of the array (see
+detailed operator specification).
 
-The operator ~distribute~ creates an array of relations from a tuple stream (by ["]distributing["] the tuples into the relations of the array). The operator ~summarize~ provides a tuple stream containing all tuples stored in an array of relations (similar to the operator ~feed~ of the relational algebra for a single relation).
+The operator ~distribute~ creates an array of relations from a tuple stream (by
+["]distributing["] the tuples into the relations of the array). The operator
+~summarize~ provides a tuple stream containing all tuples stored in an array of
+relations (similar to the operator ~feed~ of the relational algebra for a
+single relation).
 
-The operator ~loop~ evaluates each element of an array with a given function and returns an array which contains the resulting values. Based upon this elementary operator a ["]family["] of more complex ~loop~ operators is defined, which are capable to work with two arrays or with more than one function. The aim is to achieve optimization through switching between these functions or the selection of a function (at best of the most efficient function). Therefore, as a precondition, all functions have to be equivalent (with regard to the calculated values).
+The operator ~loop~ evaluates each element of an array with a given function
+and returns an array which contains the resulting values. Based upon this
+elementary operator a ["]family["] of more complex ~loop~ operators is defined,
+which are capable to work with two arrays or with more than one function. The
+aim is to achieve optimization through switching between these functions or the
+selection of a function (at best of the most efficient function). Therefore, as
+a precondition, all functions have to be equivalent (with regard to the
+calculated values).
 
-The operator ~partjoin~ (and its extensions ~partjoinswitch~ and ~partjoinselect~) realizes a special way to calculate ["]joins["] between two arrays of relations. Nevertheless, the result of this operator is also an ~array~ (see detailed operator specification).
+The operator ~partjoin~ (and its extensions ~partjoinswitch~ and
+~partjoinselect~) realizes a special way to calculate ["]joins["] between two
+arrays of relations. Nevertheless, the result of this operator is also an
+~array~ (see detailed operator specification).
 
-Two additional type operators called ~ELEMENT~ and ~ELEMENT2~ support the technique of implicit parameter types (for the declaration of parameter functions). These operators are used by the parser and are not for use with sos-syntax.
+Two additional type operators called ~ELEMENT~ and ~ELEMENT2~ support the
+technique of implicit parameter types (for the declaration of parameter
+functions). These operators are used by the parser and are not for use with
+sos-syntax.
+
+August 2004, M. Spiekermann. Function ~distributeFun~ has been modified. Due to the
+fact that a relation creates two files the size of the array is limited by the operatings
+systems capability of open files per process. Currently it is possible to create approximately
+400 relations. 
+
 
 1 Preliminaries
 
@@ -48,7 +83,9 @@ QueryProcessor* qp;
 /*
 1.2 Dummy Functions
 
-These functions are needed for the definition of a type constructor (function ~DummyCast~) or for the definition of a non-overloaded operator (function ~simpleSelect~).
+These functions are needed for the definition of a type constructor (function
+~DummyCast~) or for the definition of a non-overloaded operator (function
+~simpleSelect~).
 
 */
 static void*
@@ -68,7 +105,9 @@ simpleSelect( ListExpr args )
 
 The function ~toString~ just converts an integer value to a string.
 
-The function ~extractIds~ ["]extracts["] the id-numbers of the algebra and the type from a given type expression (nested list). This type expression must already be in the numeric format.
+The function ~extractIds~ ["]extracts["] the id-numbers of the algebra and the
+type from a given type expression (nested list). This type expression must
+already be in the numeric format.
 
 */
 string toString( int number )
@@ -95,7 +134,10 @@ void extractIds( const ListExpr numType, int& algebraId, int& typeId )
 }
 
 /*
-The following ["]generic["] clone function is used by several operators in order to clone objects. Some types may provide just a dummy clone function. In this case the list representation for input and output of objects (if defined) may be used for cloning.
+The following ["]generic["] clone function is used by several operators in
+order to clone objects. Some types may provide just a dummy clone function. In
+this case the list representation for input and output of objects (if defined)
+may be used for cloning.
 
 */
 static Word
@@ -135,7 +177,9 @@ genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
 
 2.1 Data Structure - Class ~Array~
 
-At first a data structure for storing an ~array~ in the main memory is defined. Since an object is represented as a storage Word (which is often a pointer to the actual object), the data structure of an ~array~ is an array of Word.
+At first a data structure for storing an ~array~ in the main memory is defined.
+Since an object is represented as a storage Word (which is often a pointer to
+the actual object), the data structure of an ~array~ is an array of Word.
 
 */
 class Array
@@ -265,7 +309,8 @@ The list representation of an array is:
 
 ---- (a1 a2 ... an)
 ----
-The representation of the elements of the array depends from their type. So a1 ... an may be nested lists themselves.
+The representation of the elements of the array depends from their type. 
+So a1 ... an may be nested lists themselves.
 
 2.3 Object ~In~ and ~Out~ Functions
 
@@ -433,9 +478,12 @@ SaveToListArray( ListExpr typeInfo, Word value )
 /*
 2.5 Object ~Open~ and ~Save~ Functions
 
-These functions are similar to the default ~Open~ and ~Save~ functions, but they are based on the *internal* list representation.
+These functions are similar to the default ~Open~ and ~Save~ functions, but
+they are based on the *internal* list representation.
 
-The original aim of this change was to handle arrays of ~btrees~, which do not have a list representation (for input and output), but which do have an *internal* list representation (namely a ["]list["] containing a file-id).
+The original aim of this change was to handle arrays of ~btrees~, which do not
+have a list representation (for input and output), but which do have an
+*internal* list representation (namely a ["]list["] containing a file-id).
 
 */
 bool
@@ -487,7 +535,8 @@ SaveArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
 /*
 2.6 Object ~Creation~, ~Deletion~, ~Close~, ~Clone~ and ~SizeOf~ Functions
 
-The ~Clone~ and the ~Close~ functions use the appropriate functions of the elements of the array. Additional details are explained within these function.
+The ~Clone~ and the ~Close~ functions use the appropriate functions of the
+elements of the array. Additional details are explained within these function.
 
 */
 Word
@@ -573,7 +622,8 @@ SizeOfArray()
 /*
 2.7 Function Describing the Signature of the Type Constructor
 
-The type of the elements of the array may be described by any valid type constructor, but the elements must have an internal list representation.
+The type of the elements of the array may be described by any valid type
+constructor, but the elements must have an internal list representation.
 
 */
 static ListExpr
@@ -600,11 +650,17 @@ ArrayProperty()
 /*
 2.8 Kind Checking Function
 
-The type constructor of an array is a list (array type). The first element of that list is the symbol atom "array" and the second element has to be a valid type constructor for the elements of the array.
+The type constructor of an array is a list (array type). The first element of
+that list is the symbol atom "array" and the second element has to be a valid
+type constructor for the elements of the array.
 
-So the second element can be an atom (e.g. int) or - in case of a more complex type - a nested list itself.
+So the second element can be an atom (e.g. int) or - in case of a more complex
+type - a nested list itself.
 
-In order to achieve great flexibility, the element's type is not restricted to the tested types (see introduction). The user of an array has to make sure that the elements have an internal list representation, because this is not checked here.
+In order to achieve great flexibility, the element's type is not restricted to
+the tested types (see introduction). The user of an array has to make sure that
+the elements have an internal list representation, because this is not checked
+here.
 
 */
 static bool
@@ -633,7 +689,10 @@ CheckArray( ListExpr type, ListExpr& errorInfo )
 /*
 2.9 Creation of the Type Constructor Instance
 
-Here an object of the class TypeConstructor is created. The constructor for an instance of the class TypeConstructor is called with the properties and functions for the array as parameters. The name of the type constructor is ~array~.
+Here an object of the class TypeConstructor is created. The constructor for an
+instance of the class TypeConstructor is called with the properties and
+functions for the array as parameters. The name of the type constructor is
+~array~.
 
 */
 TypeConstructor array (
@@ -659,9 +718,13 @@ TypeConstructor array (
 3.1 Class ~FunInfo~
 
 
-Each object of this class contains a function (given by a Supplier object) together with some additional information, e.g. an assigned number (["]function-id["]) and an assigned name.
+Each object of this class contains a function (given by a Supplier object)
+together with some additional information, e.g. an assigned number
+(["]function-id["]) and an assigned name.
 
-A function can be requested with given parameters. The system measures, sums up and prints out the used CPU time of the function. The total number of function requests is also available.
+A function can be requested with given parameters. The system measures, sums up
+and prints out the used CPU time of the function. The total number of function
+requests is also available.
 
 */
 class FunInfo {
@@ -761,9 +824,14 @@ operator<<( ostream& stream, const FunInfo& f )
 /*
 3.2 Class ~FunVector~
 
-This class uses the class template ["]vector["]. Each object of the class ~FunVector~ contains a vector of ~FunInfo~ objects. The vector is initialized with a set of functions (given by a Supplier object) and an array of function names. After initializing the vector, a single function or all functions stored in the vector may be requested.
+This class uses the class template ["]vector["]. Each object of the class
+~FunVector~ contains a vector of ~FunInfo~ objects. The vector is initialized
+with a set of functions (given by a Supplier object) and an array of function
+names. After initializing the vector, a single function or all functions stored
+in the vector may be requested.
 
-The class also provides some useful methods for the implementation of the switch- and the select algorithm.
+The class also provides some useful methods for the implementation of the
+switch- and the select algorithm.
 
 */
 class FunVector {
@@ -914,7 +982,9 @@ FunVector::writeSummary()
 
 The switch algorithm is implemented as a sub-class of the class ~FunVector~.
 
-An object of the class ~SwitchAlgorithm~ is initialized like an object of the class ~FunInfo~. For each requests, the switch algorithm chooses the function with the (so far) lowest total used CPU time.
+An object of the class ~SwitchAlgorithm~ is initialized like an object of the
+class ~FunInfo~. For each requests, the switch algorithm chooses the function
+with the (so far) lowest total used CPU time.
 
 */
 class SwitchAlgorithm : public FunVector {
@@ -945,7 +1015,12 @@ SwitchAlgorithm::request( Word firstArgument, Word secondArgument,
 
 The select algorithm is implemented as a sub-class of the class ~FunVector~.
 
-An object of the class ~SelectAlgorithm~ is initialized analogous to an object of the class ~FunInfo~. In addition to a set of functions, the parameter ~testSize~ has to be set to a number greater than zero. For the first ~testSize~ requests, all functions are used for evaluation. After that, the function with the (so far) lowest total used CPU time is selected for all further requests. However, this selection will not be changed later on.
+An object of the class ~SelectAlgorithm~ is initialized analogous to an object
+of the class ~FunInfo~. In addition to a set of functions, the parameter
+~testSize~ has to be set to a number greater than zero. For the first
+~testSize~ requests, all functions are used for evaluation. After that, the
+function with the (so far) lowest total used CPU time is selected for all
+further requests. However, this selection will not be changed later on.
 
 */
 class SelectAlgorithm : public FunVector {
@@ -1062,14 +1137,17 @@ Operator size (
 /*
 4.2 Operator ~get~
 
-The operator ~get~ returns an element at a given index. So the result type of the operator is the type of the array's elements.
+The operator ~get~ returns an element at a given index. So the result type of
+the operator is the type of the array's elements.
 
 The type mapping is:
 
 ---- ((array t) int) -> t
 ----
 
-Precondition of the value mapping function is a valid index. This means an index between 0 and the size of the array minus 1. An element is cloned before returning.
+Precondition of the value mapping function is a valid index. This means an
+index between 0 and the size of the array minus 1. An element is cloned before
+returning.
 
 */
 static ListExpr
@@ -1182,7 +1260,9 @@ The type mapping is:
 ---- ((array t) t int) -> (array t)
 ----
 
-Precondition of the value mapping function is a valid index. This means an index between 0 and the size of the array minus 1. The function returns a new array.
+Precondition of the value mapping function is a valid index. This means an
+index between 0 and the size of the array minus 1. The function returns a new
+array.
 
 */
 static ListExpr
@@ -1286,7 +1366,9 @@ Operator put (
 /*
 4.4 Operator ~makearray~
 
-This operator creates an array containing the elements of a given list. Note that all elements must have the same type. The elements are cloned before creating the array.
+This operator creates an array containing the elements of a given list. Note
+that all elements must have the same type. The elements are cloned before
+creating the array.
 
 The type mapping is:
 
@@ -1364,14 +1446,16 @@ Operator makearray(
 /*
 4.5 Operator ~sortarray~
 
-The operator ~sortarray~ arranges the elements of an array according to their integer values of a given function.
+The operator ~sortarray~ arranges the elements of an array according to their
+integer values of a given function.
 
 The formal specification of type mapping is:
 
 ---- ((array t) (map t int)) -> (array t)
 ----
 
-First an auxiliary class ~IntPair~ is defined. The aim of this class is to use the standard sort algorithm in the value mapping function.
+First an auxiliary class ~IntPair~ is defined. The aim of this class is to use
+the standard sort algorithm in the value mapping function.
 
 */
 class IntPair {
@@ -1486,7 +1570,8 @@ Operator sortarray(
 /*
 4.6 Operator ~tie~
 
-The operator calculates a single "value" of an array by evaluating the elements of an array with a given function from left to right, e.g.
+The operator calculates a single "value" of an array by evaluating the elements
+of an array with a given function from left to right, e.g.
 
 tie ( (a1, a2, ... , an), + ) = a1 + a2 + ... + an
 
@@ -1592,7 +1677,10 @@ Operator tie(
 /*
 4.7 Operator ~cumulate~
 
-This operator ["]cumulates["] the values of the array under a given function. The i-th element of the resulting array is the concatenation from the first to the i-th element of the input array under a given function evaluated from left to right (compare operator ~tie~), e.g.
+This operator ["]cumulates["] the values of the array under a given function.
+The i-th element of the resulting array is the concatenation from the first to
+the i-th element of the input array under a given function evaluated from left
+to right (compare operator ~tie~), e.g.
 
 cumulate ( (a1, a2, ... , an), + ) = (a1, a1 + a2, ... , a1 + a2 + ... + an)
 
@@ -1699,9 +1787,12 @@ Operator cumulate (
 /*
 4.8 Operator ~distribute~
 
-The operator ~distribute~ creates an array of relations from a stream of tuples. The index of the appropriate relation has to be given by an integer attribute of the tuple.
+The operator ~distribute~ creates an array of relations from a stream of
+tuples. The index of the appropriate relation has to be given by an integer
+attribute of the tuple.
 
-This integer attribute is removed from the tuples in the resulting relations. So the incoming tuples have to consist of at least two attributes.
+This integer attribute is removed from the tuples in the resulting relations.
+So the incoming tuples have to consist of at least two attributes.
 
 The formal specification of type mapping is:
 
@@ -1711,9 +1802,14 @@ The formal specification of type mapping is:
      at which n>=2, 1<=i<=n and ti (the type of xi) = int
 ----
 
-The index of the attribute ai is appended to the result type by the type mapping function, because this information is needed by the value mapping function.
+The index of the attribute ai is appended to the result type by the type
+mapping function, because this information is needed by the value mapping
+function.
 
-Within the value mapping function, an integer constant defines the maximum number of relations in the resulting array. Tuples with an index smaller than 0 or an index greater than the maximum number of relations are distributed into the first respectively the last relation.
+Within the value mapping function, an integer constant defines the maximum
+number of relations in the resulting array. Tuples with an index smaller than 0
+or an index greater than the maximum number of relations are distributed into
+the first respectively the last relation.
 
 */
 static ListExpr
@@ -1783,37 +1879,53 @@ distributeTypeMap( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
+
+/*
+
+17.08.04 M. Spiekermann
+
+The operating system has an limitation of simultaneously
+opend files per process (Linux 1024). Currently each created relation will
+open two SMI-Files.
+
+Creating an array containing 512 relations will break these limits. 
+However, this limitation can only be removed with a redesign of the relation
+class and/or SmiFile. It should be changed to allow multiple relations stored 
+in one file. 
+
+*/
+
 static int
 distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  const int MAX_OPEN_RELATIONS = 400; // not the absolute possible maximum
 
-  const int MAX_PKG = 256;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
   CcInt* indexAttrCcInt = (CcInt*)args[2].addr;
   int pkgAttr = (indexAttrCcInt->GetIntval()) - 1;
 
-  Relation* relPkg[MAX_PKG] = { 0 };
-
-  ListExpr relType;
-  relType = nl->Second(qp->GetType(s));
+  vector<Relation*> relPkg;
+	
+  ListExpr relType = nl->Second(qp->GetType(s));
   relType = sc->NumericType(relType);
 
-  ListExpr tupleType;
-  tupleType = nl->Second(relType);
+  ListExpr tupleType = nl->Second(relType);
 
   int n = 0;
-  relPkg[0] = new Relation(relType);
-  relPkg[0]->Clear();
+  relPkg.push_back( new Relation(relType) );
 
-  CcInt* pkgNrCcInt;
-  int pkgNr;
-
+  CcInt* pkgNrCcInt = 0;
+  int pkgNr = 0;
+	int outOfRangePkgNr = 0;
+	
   Word actual;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
 
+  bool msgPrinted = false;
+	
   while(qp->Received(args[0].addr))
   {
     Tuple* tuple = (Tuple*)actual.addr;
@@ -1840,16 +1952,31 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     pkgNr = pkgNrCcInt->GetIntval();
 
     tuple->DeleteIfAllowed();
+		
+		if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) {
 
-    if (pkgNr < 0) { pkgNr = 0; }
-    if (pkgNr > MAX_PKG - 1) { pkgNr = MAX_PKG - 1; }
+      if ( !msgPrinted ) {
+		    cerr << "Warning: Package number out of Range. "
+			       << "Open files per process are limited! "
+			       << "Since every open relation needs to open files "
+					   << "it is only possible to create at most an array "
+					   << "with " << MAX_OPEN_RELATIONS << " relations." << endl;
+			  msgPrinted = true;	
+			}	 
+			
+			pkgNr = outOfRangePkgNr % MAX_OPEN_RELATIONS;
+			outOfRangePkgNr++;
 
-    while (n < pkgNr) {
-      relPkg[++n] = new Relation(relType);
-      relPkg[n]->Clear();
-    }
+		}
+
+    while ( n < pkgNr ) {
+      
+      relPkg.push_back( new Relation(relType) );
+			n++;
+			
+    } 
+		
     relPkg[pkgNr]->AppendTuple(tuple2);
-
     qp->Request(args[0].addr, actual);
   }
   qp->Close(args[0].addr);
@@ -1859,18 +1986,20 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   Word a[++n];
 
   for (int i=0; i<n; i++) {
+	
     a[i] = SetWord(relPkg[i]);
   }
 
-  int algebraId;
-  int typeId;
+  int algebraId = 0;
+  int typeId = 0;
 
   if (sc->GetTypeId("rel", algebraId, typeId)) {
+	
     ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
     return 0;
-  }
-  else {
+		
+  } else {
+	
     return 1;
   }
 }
@@ -1897,7 +2026,9 @@ Operator distribute (
 /*
 4.9 Operator ~summarize~
 
-The operator ~summarize~ provides a stream of tuples from an array of relations. For this purpose, the operator scans all relations beginning with the first relation of the array.
+The operator ~summarize~ provides a stream of tuples from an array of
+relations. For this purpose, the operator scans all relations beginning with
+the first relation of the array.
 
 The formal specification of type mapping is:
 
@@ -1906,7 +2037,11 @@ The formal specification of type mapping is:
      at which t is of the type tuple
 ----
 
-Note that the operator ~summarize~ is not exactly inverse to the operator ~distribute~ because the index of the relation is not appended to the attributes of the outgoing tuples. If the array has been constructed by the operator ~distribute~ the order of the resulting stream in most cases does not correspond to the order of the input stream of the operator ~distribute~.
+Note that the operator ~summarize~ is not exactly inverse to the operator
+~distribute~ because the index of the relation is not appended to the
+attributes of the outgoing tuples. If the array has been constructed by the
+operator ~distribute~ the order of the resulting stream in most cases does not
+correspond to the order of the input stream of the operator ~distribute~.
 
 */
 static ListExpr
@@ -1934,6 +2069,7 @@ summarizeTypeMap( ListExpr args )
     }
   }
 
+  ErrorReporter::ReportError("summarize: Input type array( rel( tuple(...))) expected!");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1941,10 +2077,10 @@ static int
 summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   struct ArrayIterator{int current; Array* array;
-                       GenericRelationIterator* rit;}* ait;
+                       GenericRelationIterator* rit;}* ait = 0;
 
-  GenericRelation* r;
-  Tuple* t;
+  GenericRelation* r = 0;
+  Tuple* t = 0;
   Word argArray;
   Word element;
 
@@ -1952,6 +2088,7 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
     case OPEN :
       ait = new ArrayIterator;
       ait->current = -1;
+			ait->rit = 0;
       qp->Request(args[0].addr, argArray);
       ait->array = (Array*)argArray.addr;
 
