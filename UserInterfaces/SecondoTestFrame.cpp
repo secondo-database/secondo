@@ -1,3 +1,11 @@
+/* 
+
+Test program for the tuple manager.
+Demonstrates how to create, save and 
+reload tuples to the Berkeley DB system.
+
+*/
+	
 using namespace std;
 
 #include <string>
@@ -7,7 +15,6 @@ using namespace std;
 #include <algorithm>
 
 #include "Application.h"
-//#include "Processes.h"
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "SecondoSystem.h"
@@ -42,11 +49,7 @@ class SecondoTestFrame : public Application
   string            iFileName;
   string            oFileName;
   string            cmd;
-//  bool              isStdInput;
   bool              quit;
-//  NestedList*       nl;
-//  AlgebraLevel      currentLevel;
-//  bool              isQuery;
   SecondoInterface* si;
   
   /* Test methods for the tuple manager. */
@@ -71,10 +74,7 @@ SecondoTestFrame::SecondoTestFrame( const int argc, const char** argv )
   iFileName     = "";
   oFileName     = "";
   string cmd    = "";
-//  isStdInput    = true;
   quit          = false;
-//  nl            = 0;
-//  currentLevel  = DescriptiveLevel;
   si            = 0;
 }
 
@@ -362,14 +362,26 @@ void SecondoTestFrame::Test02(const TupleAttributes *attributes, SmiRecordFile *
 	cout << "\treading tuple." << endl;
 						
 	myTuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
-						
-	cout << "\ttest tuple values" << endl;
-	cout << "\t" << *myTuple << endl;
-	cout << "\tSize: " << myTuple->GetSize() << endl;
-	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	
+	if (myTuple->error == false) {												
+		cout << "\ttest tuple values" << endl;
+		cout << "\t" << *myTuple << endl;
+
+		cout << "\t\tint-Attribute:\t\t" << *myTuple->Get(0) << endl;
+		cout << "\t\tbool-Attribute:\t\t" << *myTuple->Get(1) << endl;
+		cout << "\t\treal-Attribute:\t\t" << *myTuple->Get(2) << endl;
+		cout << "\t\tCcPolygon-Attribute:\t" << *myTuple->Get(3) << endl;
+
+		cout << "\tSize: " << myTuple->GetSize() << endl;
+		cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	}
+	else {
+		cout << "Tuple could not be read from SmiFile." << endl;
+	}
 						
 	delete(myTuple);
 }
+
 
 /*
 
@@ -386,6 +398,7 @@ void SecondoTestFrame::Test03(const TupleAttributes *attributes, SmiRecordFile *
 	CcInt *int1;
 	CcBool *bool1;
 	SmiRecordId recId;
+	
 	
 	cout << "\tID:";
 	cin >> recId;
@@ -538,6 +551,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
+	CcString *string1;
 	SmiRecordFile *lobFile;
 	bool lobFileOpen;
 	CcPolygon* polygon1;
@@ -590,6 +604,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
 	cout << "\tnew Persistent id = " << recId << endl;
 	lobFile->Close();
 	
+	delete string1;
 	delete polygon1;
 	delete lobFile;
 	delete real1;
@@ -624,6 +639,7 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	CcInt *int2;
 	CcBool *bool1;
 	CcBool *bool2;
+	CcBool *bool2a;
 	SmiRecordFile *lobFile;
 	bool lobFileOpen;
 	CcPolygon* polygon1;
@@ -633,8 +649,7 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	myTuple = new Tuple(attributes);
 	myTuple2 = new Tuple(attributes);
 	
-	cout << "\ta float value for both tuples, please: "; cin >> realv;
-						
+	cout << "\ta float value for both tuples, please: "; cin >> realv;						
 	cout << "\tan int value for the first tuple, please: "; cin >> intv;
 	cout << "\tt = true, f = false" << endl;
 	cout << "\ta boolean value for the first tuple, please: "; cin >> boolv;
@@ -663,7 +678,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	bool1 = new CcBool(true, bboolv);
 	int2 = new CcInt(true, intv2);
 	bool2 = new CcBool(true, bboolv2);
-
+	bool2a = new CcBool(true, bboolv2);
+	
 	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 	polygon2 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 	
@@ -671,8 +687,10 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	myTuple->DelPut(1, bool1);
 	myTuple->DelPut(2, real1);
 	myTuple->Put(3, polygon1);
+
 	myTuple2->DelPut(0, int2);
 	myTuple2->DelPut(1, bool2);
+	myTuple2->AttrPut(1, myTuple, 1);
 	myTuple2->AttrPut(2, myTuple, 2);
 	myTuple2->Put(3, polygon2);
 					
@@ -680,6 +698,12 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	cout << "\t" << *myTuple << endl;
 	cout << "\tSize: " << myTuple->GetSize() << endl;
 	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	cout << endl;
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple2 << endl;
+	cout << "\tSize: " << myTuple2->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple2->GetAttrNum() << endl;
+
 	cout << "\tSave tuple into recFile. Persistent id = ";
 
 	myTuple->SaveTo(recFile, lobFile);
@@ -690,18 +714,18 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	recId = myTuple2->GetPersistentId();
 	cout << ", Persistent id = " << recId << endl;
 	
-	lobFile->Close();
 	
 	delete polygon1;
 	delete polygon2;
-	delete lobFile;
-	delete real1;
-	delete int1;
-	delete bool1;
+
 	delete[] X;
 	delete[] Y;
+	
 	delete myTuple2;
 	delete myTuple;
+	
+	lobFile->Close();
+	delete lobFile;
 }
 
 
@@ -749,15 +773,15 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 					
 	lobFile = new SmiRecordFile(false);
 	lobFileOpen = lobFile->Open("LOBFILE");
-
+	
 	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
 	myTuple->Put(3, polygon1);
 					
-	cout << "\ttest tuple values" << endl;
-	cout << "\t" << *myTuple << endl;
+	//cout << "\ttest tuple values" << endl;
+	//cout << "\t" << *myTuple << endl;
 	cout << "\tSize: " << myTuple->GetSize() << endl;
 	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
 	cout << "\tSave tuple into recFile. Persistent id = ";
@@ -765,8 +789,9 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 	myTuple->SaveTo(recFile, lobFile);
 	recId = myTuple->GetPersistentId();
 	cout << recId << endl;
-	lobFile->Close();
-	
+	bool lfc = lobFile->Close();
+	cout << "&&&&&&&&&&&&& lobFile closed:      " << lfc << endl;
+
 	delete polygon1;
 	delete lobFile;
 	delete real1;
@@ -937,11 +962,14 @@ int SecondoTestFrame::Execute() {
 			
 			delete recFile;
     	}
+		cout << "si->Terminate() wird aufgerufen..." << endl;
     	si->Terminate();
 		
+		cout << "delete si wird aufgerufen..." << endl;
     	delete si;
     	cout << "*** SecondoTestFrame terminated. ***" << endl;
   	}
+	
   	else {
     	rc = 1;
 	}
