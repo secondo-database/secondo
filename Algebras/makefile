@@ -14,7 +14,11 @@ specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExam
 	cat $^ | ./rm_comment_spec.awk > specs
 
 .PHONY: makedirs
-makedirs:
+makedirs: makedirsnormal makedirsjni
+
+# include here algebras without using jni
+.PHONY: makedirsnormal
+makedirsnormal:
 	$(MAKE) -C Standard-C++
 	$(MAKE) -C Function-C++
 	$(MAKE) -C PointRectangle
@@ -28,7 +32,18 @@ makedirs:
 	$(MAKE) -C FText
 	$(MAKE) -C Array
 
-buildlibs:
+# here include algebras using jni
+.PHONY: makedirsjni
+makedirsjni:
+ifeq ($(USE_JNI),true)
+	$(MAKE) -C Fuzzy all
+endif
+
+.PHONY buildlibs:
+buildlibs: buildlibsnormal buildlibsjni
+
+.PHONY:buildlibsnormal
+buildlibsnormal:
 	$(MAKE) -C Standard-C++   buildlibs
 	$(MAKE) -C Function-C++   buildlibs
 	$(MAKE) -C PointRectangle buildlibs
@@ -41,6 +56,14 @@ buildlibs:
 	$(MAKE) -C Spatial        buildlibs
 	$(MAKE) -C FText 	  buildlibs
 	$(MAKE) -C Array 	  buildlibs
+
+
+.PHONY:buildlibsjni
+buildlibsjni:
+ifeq ($(USE_JNI),true)
+	$(MAKE) -C Fuzzy 	  buildlibs
+endif
+
 
 .PHONY: clean
 clean:
@@ -58,4 +81,5 @@ clean:
 	$(MAKE) -C Spatial        clean
 	$(MAKE) -C FText          clean
 	$(MAKE) -C Array	  clean
+	$(MAKE) -C Fuzzy	  clean
 
