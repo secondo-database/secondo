@@ -942,7 +942,7 @@ private:
     if(qp->Received(streamB.addr))
     {
       Tuple *tupleB = (Tuple*)tupleWord.addr;
-      MAX_TUPLES_IN_BUCKET = MAX_MEMORY_SIZE / ( nBuckets   * tupleB->GetMemorySize() );
+      MAX_TUPLES_IN_BUCKET = MAX_MEMORY_SIZE / ( nBuckets * tupleB->GetMemorySize() );
       cout << "HashJoin.MAX_TUPLES_IN_BUCKET: " << MAX_TUPLES_IN_BUCKET << endl;
     }
 
@@ -1082,6 +1082,7 @@ public:
 
       if( ReadFrom( iterTuplesRelBucketB, bucketsB[hashA] ) == 0 )
       {
+        delete iterTuplesRelBucketB;
         iterTuplesRelBucketB = 0;
         return 0;
       }
@@ -1101,7 +1102,7 @@ public:
 
     while( tupleA.addr != 0 )
     {
-          Tuple *tupleB;
+      Tuple *tupleB;
       while( (tupleB = NextTupleB( hashA )) != 0 )
       {
         if( CompareTuples( (Tuple *)tupleA.addr, tupleB ) == 0 )
