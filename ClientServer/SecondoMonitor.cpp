@@ -55,7 +55,7 @@ class SecondoMonitor : public Application
   bool Initialize();
   void ProcessCommands();
   void Terminate();
-  int  Execute();
+  int  Execute(bool autostartup);
  private:
   SmiEnvironment::SmiType smiType;
   string parmFile;
@@ -65,6 +65,10 @@ class SecondoMonitor : public Application
   bool running;
   bool quit;
 };
+
+
+// string defining the version of the SecondoMonitor
+static string VersionInfo ="0.9";
 
 SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
   : Application( argc, argv )
@@ -496,7 +500,7 @@ SecondoMonitor::Terminate()
 }
 
 int
-SecondoMonitor::Execute()
+SecondoMonitor::Execute(bool autostartup)
 {
   cout << endl
        << "*** Secondo Monitor ***"
@@ -507,6 +511,9 @@ SecondoMonitor::Execute()
     {
       cout << endl << "Secondo Monitor ready for operation." << endl
            << "Type 'HELP' to get a list of available commands." << endl;
+      if(autostartup){
+         ExecStartUp();
+      } 
       ProcessCommands();
     }
     Terminate();
@@ -516,9 +523,44 @@ SecondoMonitor::Execute()
 
 int main( const int argc, const char* argv[] )
 {
-  SecondoMonitor* appPointer = new SecondoMonitor( argc, argv );
-  int rc = appPointer->Execute();
-  delete appPointer;
-  return (rc);
+  bool execute = true;
+  bool done = false;
+  bool autostartup = false;
+
+  for(int i=1; i<argc && !done ;i++){ // start at 1, 0 is the program name
+     string arg;
+     arg = argv[i];
+     if( (arg=="-s") || (arg=="-startup") ){
+        done = true;
+        execute = true;
+        autostartup = true;
+     }else if(arg=="--help"){
+        // list allowed arguments
+        cout << "Usage: " << argv[0] << " [options]" << endl;
+        cout << "Options:" << endl;
+        cout << "    --help          Display this information and exit" << endl;
+        cout << "   -S <startup>    Startup automatically" << endl;
+        cout << "   -V <version>    Display version information and exit" << endl;
+        done = true;
+        execute = false;
+     } else if((arg=="-V") || (arg=="-version")){
+       cout << argv[0] << " version " << VersionInfo << endl;
+       execute = false;;
+     } else { // unknow command
+        cout << "unknow command line argument" << endl;
+        cout << "try " << argv[0] << " --help" << endl;
+        execute = false;
+        return -1;
+     }
+  }
+
+  if(execute){
+     SecondoMonitor* appPointer = new SecondoMonitor( argc, argv );
+     int rc = appPointer->Execute(autostartup);
+     delete appPointer;
+     return (rc);
+  }else{
+     return 0;
+  }
 }
 
