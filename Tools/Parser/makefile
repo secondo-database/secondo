@@ -50,7 +50,7 @@ SecParser.y: SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.
 
 lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(EXEEXT)
 
-SpecParser/Parser < ../../Algebras/specs
+	SpecParser/Parser < ../../Algebras/specs
 
 include ../../include.dep
 
