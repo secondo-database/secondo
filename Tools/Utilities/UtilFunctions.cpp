@@ -3,18 +3,24 @@ Implementention of some useful helper funtions.
 
 November 2002 M. Spiekermann, Implementation of TimeTest.
 
+September 2003 M. Spiekermann, Implementation of LogMsg.
 
 */
 
-#include <string>
 #include <string.h>
-#include <sstream>
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
-#include "TimeTest.h"
+#include <unistd.h>
 
-#define BUFSIZE 20
+#include <map>
+#include <sstream>
+#include <string>
+
+#include "TimeTest.h"
+#include "LogMsg.h"
+
+static const int BUFSIZE=20;
 
 using namespace std;
 
@@ -83,3 +89,48 @@ TimeTest::diffCPU() {
    
 }
 
+
+map<string,bool>
+LogMsg::logMap;
+
+void
+LogMsg::initByString( const string &keyList ) {
+
+   /*  The string contains a comma separated list of keywords which is inserted 
+    *  into a map. 
+    */
+
+   int n = keyList.length();
+   char* pbuf = new char[n+1];
+   keyList.copy(pbuf,n);
+   const char* sep = ",";
+   char* pkey = 0;  
+
+   pkey=strtok(pbuf,sep);
+   string key = string(pkey);
+   logMap[key] = true;
+    
+   while ( (pkey=strtok(0,sep)) != NULL ) {
+
+     key = string(pkey);
+     logMap[key] = true;
+   }
+
+   delete pbuf;
+}
+
+
+bool
+LogMsg::isActive( const string &key ) {
+
+   logMapIter it=logMap.find( key );
+
+   if ( it != logMap.end() ) {
+    
+     return it->second;  
+ 
+   } else {
+   
+     return false;
+   }
+}

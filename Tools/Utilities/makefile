@@ -13,39 +13,29 @@ OBJECTS=\
 	DynamicLibrary.$(OBJEXT) \
 	Profiles.$(OBJEXT) \
 	FileSystem.$(OBJEXT) \
-	UtilFunctions.$(OBJEXT)
+	UtilFunctions.$(OBJEXT) \
+	WinUnix.$(OBJEXT)
 
-.PHONY: all
-all: $(OBJECTS)
+
+CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-DynamicLibrary.$(OBJEXT): DynamicLibrary.cpp DynamicLibrary.h SecondoConfig.h
+
+.PHONY: all
+all: $(CODE_DEPENDENCIES) $(OBJECTS)
+
+# create dependencies from include directives
+%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< > $@
+
+%.$(OBJEXT): %.cpp 
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
-Profiles.$(OBJEXT): Profiles.cpp Profiles.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
+include $(CODE_DEPENDENCIES:.cpp=.dep)
 
-FileSystem.$(OBJEXT): FileSystem.cpp FileSystem.h SecondoConfig.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-Processes.$(OBJEXT): Processes.cpp Processes.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-Application.$(OBJEXT): Application.cpp Application.h SecondoConfig.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-Messenger.$(OBJEXT): Messenger.cpp Messenger.h SocketIO.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-UtilFunctions.$(OBJEXT): UtilFunctions.cpp TimeTest.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-
-include ../../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) *.o
-	$(RM) *.lo
+	$(RM) $(OBJECTS) $(CODE_DEPENDENCIES)
 
