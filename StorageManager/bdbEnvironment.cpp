@@ -35,18 +35,13 @@ using namespace std;
 #include "SmiCodes.h"
 #include "Profiles.h"
 #include "FileSystem.h"
+#include "LogMsg.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
 #include <unistd.h>
 #else
 #include <windows.h>
-#endif
-
-#ifndef NL_PERSISTENT
-static u_int32_t AutoCommitFlag = DB_AUTO_COMMIT; 
-#else
-static u_int32_t AutoCommitFlag = 0; 
 #endif
 
 /* --- Prototypes of internal functions --- */
@@ -68,6 +63,9 @@ string         SmiEnvironment::database;
 string         SmiEnvironment::registrar;
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
+u_int32_t      
+SmiEnvironment::Implementation::AutoCommitFlag = DB_AUTO_COMMIT;
+
 SmiEnvironment::Implementation::Implementation()
   : bdbHome( "" ), tmpHome( "" ), tmpId( 0 ), envClosed( false ),
     usrTxn( 0 ), txnStarted( false ), txnMustAbort( false ),
@@ -79,6 +77,7 @@ SmiEnvironment::Implementation::Implementation()
   SmiDbHandleEntry dummy = { 0, false, 0 };
   dbHandles.push_back( dummy );
   firstFreeDbHandle = 0;
+  
 }
 
 SmiEnvironment::Implementation::~Implementation()
@@ -710,10 +709,16 @@ bool
 SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
                          ostream& errStream)
 {
+
   if ( smiStarted )
   {
     return (true);
   }
+
+  if ( RTFlag::isActive("SMI:NoTransactions") ) {
+    SmiEnvironment::Implementation::AutoCommitFlag = 0;
+    cout << endl << "AutoCommitFlag set to 0" << endl;
+  } 
 
   int rc = 0;
   DbEnv* dbenv = instance.impl->bdbEnv;
@@ -870,7 +875,7 @@ Transactions, logging and locking are enabled.
     // --- Open Database Catalog
 
     Db* dbctlg = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-    rc = dbctlg->open( 0, "databases", 0, DB_BTREE, DB_CREATE | AutoCommitFlag, 0 );
+    rc = dbctlg->open( 0, "databases", 0, DB_BTREE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbDatabases = dbctlg;
@@ -1265,7 +1270,7 @@ SmiEnvironment::CommitTransaction()
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;
-    if ( singleUserMode )
+    if ( singleUserMode && useTransactions )
     {
       instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
     }
@@ -1304,7 +1309,7 @@ SmiEnvironment::AbortTransaction()
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;
-    if ( singleUserMode )
+    if ( singleUserMode && useTransactions )
     {
       instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
     }
@@ -1331,7 +1336,7 @@ SmiEnvironment::InitializeDatabase()
   Db* dbseq = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
   dbseq->set_re_len( sizeof( SmiFileId ) );
   fileName = database+PATH_SLASH+"sequences";
-  rc = dbseq->open( 0, fileName.c_str(), 0, DB_QUEUE, DB_CREATE | AutoCommitFlag, 0 );
+  rc = dbseq->open( 0, fileName.c_str(), 0, DB_QUEUE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
   if ( rc == 0 )
   {
     instance.impl->bdbSeq = dbseq;
@@ -1349,7 +1354,7 @@ SmiEnvironment::InitializeDatabase()
     dbidx = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 
     fileName = database+PATH_SLASH+"filecatalog";
-    rc = dbctl->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | AutoCommitFlag, 0 );
+    rc = dbctl->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalog = dbctl;
@@ -1360,7 +1365,7 @@ SmiEnvironment::InitializeDatabase()
     }
 
     fileName = database+PATH_SLASH+"fileindex";
-    rc = dbidx->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | AutoCommitFlag, 0 );
+    rc = dbidx->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalogIndex = dbidx;
@@ -1373,7 +1378,7 @@ SmiEnvironment::InitializeDatabase()
     // --- Associate the secondary key with the primary key
     if ( rc == 0 )
     {
-      rc = dbctl->associate( 0, dbidx, getfilename, AutoCommitFlag );
+      rc = dbctl->associate( 0, dbidx, getfilename, Implementation::AutoCommitFlag );
     }
   }
 

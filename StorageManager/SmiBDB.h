@@ -331,6 +331,8 @@ catalog. The function returns "true"[4] if the deletion was successful.
 
   bool      listStarted;
   Dbc*      listCursor;
+  
+  static u_int32_t AutoCommitFlag; // Influences the initialitation of Berkeley-DB
 /*
 Are needed to support listing the names of all existing "Secondo"[3] databases.
 

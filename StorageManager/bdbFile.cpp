@@ -31,12 +31,6 @@ static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
 
-#ifndef NL_PERSISTENT
-static u_int32_t AutoCommitFlag = DB_AUTO_COMMIT; 
-#else
-static u_int32_t AutoCommitFlag = 0; 
-#endif
-
 
 /* --- Implementation of class SmiFile --- */
 
@@ -180,7 +174,8 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      u_int32_t flags = (!impl->isTemporaryFile) ? DB_CREATE | DB_DIRTY_READ | AutoCommitFlag : DB_CREATE;
+      u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      u_int32_t flags = (!impl->isTemporaryFile) ? DB_CREATE | DB_DIRTY_READ | commitFlag : DB_CREATE;
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
       {
@@ -301,7 +296,8 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_CREATE | DB_DIRTY_READ | AutoCommitFlag, 0 );
+      u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_CREATE | DB_DIRTY_READ | commitFlag, 0 );
       if ( rc == 0 )
       {
         if ( !existing )
@@ -426,7 +422,8 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ | AutoCommitFlag : 0;
+      u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ | commitFlag : 0;
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
       {
