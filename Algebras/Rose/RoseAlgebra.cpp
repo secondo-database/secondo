@@ -455,7 +455,7 @@ type constructor ~ccpoints~ does not have arguments, this is trivial.
 */
 
 bool CheckCcPoints( ListExpr type, ListExpr& errorInfo ) {
-  return (nl->IsEqual(type, "ccpoints"));
+  return (nl->IsEqual(type, "point"));
 }
 
 /*
@@ -858,7 +858,7 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 */
 
 bool CheckCcLines(ListExpr type, ListExpr& errorInfo ) {
-  return (nl->IsEqual(type, "cclines"));
+  return (nl->IsEqual(type, "line"));
 }
 
 /*
@@ -1267,7 +1267,7 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 */
 
 bool CheckCcRegions(ListExpr type, ListExpr& errorInfo ) {
-  return (nl->IsEqual(type, "ccregions"));
+  return (nl->IsEqual(type, "region"));
 }
 
 /*
