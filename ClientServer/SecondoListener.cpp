@@ -51,6 +51,9 @@ SecondoListener::Execute()
   int rc = EXIT_LISTENER_OK;
   SetAbortMode( true );
 
+  // --- Get configuration file
+  parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
+
   // --- Load ruleSet
   string rulePolicy = SmiProfile::GetParameter( "Environment", "RulePolicy", "ALLOW", parmFile );
   transform( rulePolicy.begin(), rulePolicy.end(), rulePolicy.begin(), toupper );
@@ -61,9 +64,6 @@ SecondoListener::Execute()
   {
     ipRules.LoadFromFile( ruleSetFile );
   }
-
-  // --- Get configuration file
-  parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
 
   // --- Get host and port of Secondo server
   string host = SmiProfile::GetParameter( "Environment", "SecondoHost", "", parmFile );
@@ -104,7 +104,7 @@ SecondoListener::Execute()
           int pidServer;
           string pgmArgs = string( "\"" ) + parmFile + "\""; 
           if ( !ProcessFactory::SpawnProcess( server, pgmArgs,
-                                              pidServer, true, client ) )
+                                              pidServer, false, client ) )
           {
             // --- Start of server failed
             iostream& ss = client->GetSocketStream();

@@ -120,6 +120,7 @@ ProcessFactory::SpawnProcess( const string& programpath,
     // no filename extension supplied; .exe is assumed
     pathbuf += ".exe";
   }
+  localArgs = "\"" + pathbuf + "\" " + arguments;
 
   createFlags = CREATE_NEW_CONSOLE | NORMAL_PRIORITY_CLASS;
   if ( !hidden )

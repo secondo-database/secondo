@@ -360,9 +360,7 @@ int
 SecondoServer::Execute()
 {
   int rc = 0;
-  for ( int jj = 0; jj < GetArgCount(); jj++ )
-    cout << GetArgValues()[jj] << endl;
-  parmFile = (GetArgCount() > 1) ? GetArgValues()[0] : "SecondoConfig.ini";
+  parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
   registrar = SmiProfile::GetParameter( "Environment", "RegistrarName", "SECONDO_REGISTRAR", parmFile );
   si = new SecondoInterface();
   if ( si->Initialize( "", "", "", "", parmFile, true ) )
