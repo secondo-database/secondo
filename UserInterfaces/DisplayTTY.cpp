@@ -34,8 +34,11 @@ using namespace std;
 #include <sstream>
 
 #include "DisplayTTY.h"
+#include "NestedList.h"
 #include "SecondoInterface.h"
 #include "AlgebraTypes.h"
+
+#define LINELENGTH 80
 
 /*
 1.3 Managing display functions
@@ -126,6 +129,26 @@ DisplayTTY::DisplayRelation( ListExpr type, ListExpr numType, ListExpr value )
   numType = nl->Second( numType );
   CallDisplayFunction( nl->First( numType ), type, numType, value );
 }
+
+int
+DisplayTTY::MaxHeaderLength( ListExpr type )
+{
+  int max, len;
+  string s;
+  max = 0;
+  while (!nl->IsEmpty( type ))
+  {
+    s = nl->StringValue( nl->First( type ) );
+    len = s.length();
+    if ( len > max )
+    {
+      max = len;
+    }
+    type = nl->Rest( type );
+  }
+  return (max);
+}
+
 
 int
 DisplayTTY::MaxAttributLength( ListExpr type )
@@ -292,6 +315,162 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
   }
   nl->Destroy( numType );
   cout << endl;         
+}
+
+void
+DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
+{
+  string s, blanks, printstr, line, restline, descrstr;
+  int position, lastblank;
+  ListExpr valueheader, valuedescr;
+  bool firstline, lastline;
+  
+  valueheader = nl->Second(value);
+  valuedescr  = nl->Third(value);
+  
+  cout << endl;
+  
+  blanks.assign( maxNameLen-4 , ' ' );
+  cout << blanks << "Name: " << nl->SymbolValue(nl->First(value)) << endl;
+    
+  while (!nl->IsEmpty( valueheader ))
+  {  
+    s = nl->StringValue( nl->First( valueheader ));
+    blanks.assign( maxNameLen-s.length() , ' ' );
+    //cout << blanks << s << ": ";
+    printstr = blanks + s + ": ";
+    
+    if( nl->IsAtom(nl->First( valuedescr ))) //&& 
+      //nl->AtomType(nl->First(valuedescr))==StringType)
+    {
+      if ( nl->AtomType(nl->First(valuedescr))==StringType )
+      //DisplayString(nl->TheEmptyList(), nl->TheEmptyList(), 
+        //nl->First(valuedescr));
+      printstr += nl->StringValue( nl->First(valuedescr) );
+      else
+      {
+        if ( nl->AtomType(nl->First(valuedescr))==TextType )
+	{
+	  TextScan txtscan = nl->CreateTextScan(nl->First(valuedescr));
+	  descrstr = "";
+	  nl->GetText(txtscan, nl->TextLength(nl->First(valuedescr)),descrstr);
+	  printstr += descrstr;
+	  //cout << printstr << endl;
+	  nl->DestroyTextScan(txtscan);
+	}
+      }
+      //check whether line break is necessary
+      if (printstr.length() <= LINELENGTH) cout << printstr << endl; 
+      //cout << endl;
+      else
+      {
+        firstline = true;
+        position = 0;
+	lastblank = -1;
+	line = "";
+        for (unsigned i = 1; i <= printstr.length(); i++)
+        {
+	  line += printstr[i-1];
+	  //cout << line << endl;
+	  if (printstr[i-1] == ' ') lastblank = position;
+	  position++;
+	  lastline = (i == printstr.length());
+	  if ( (firstline && (position == LINELENGTH)) || (!firstline &&
+	  (position == (LINELENGTH-maxNameLen-2))) || lastline )
+	  //if ((position == LINELENGTH) || lastline)
+	  {
+	    if (lastblank > 0)
+	    {
+	      if (firstline)
+	      {
+	        if (lastline && (line.length() <= LINELENGTH))
+		{
+		  cout << line << endl;
+		}
+	        else cout << line.substr(0, lastblank) << endl;
+		firstline = false;
+	      }
+	      else
+	      {
+	        blanks.assign( maxNameLen+2 , ' ' );
+		if (lastline && (line.length() <= LINELENGTH))
+		{
+		  cout << blanks << line << endl;
+		}
+	        else cout << blanks << line.substr(0, lastblank) << endl;
+	      }
+	      restline = line.substr(lastblank+1, position);
+	      line = "";
+	      line += restline;
+	      lastblank = -1;
+	      position = line.length();
+	    }
+	    else 
+	    {
+	      if (firstline)
+	      {
+	        cout << line << endl;
+		firstline = false;
+	      }
+	      else
+	      {
+	        blanks.assign( maxNameLen+2 , ' ' );
+	        cout << blanks << line << endl;
+	      }
+	      line = "";
+	      lastblank = -1;
+	      position = 0;
+	    }	      
+	  }
+	}
+      }
+    }	  
+    valueheader   = nl->Rest( valueheader ); 
+    valuedescr    = nl->Rest( valuedescr ); 
+  }
+  nl->Destroy( valueheader );
+  nl->Destroy( valuedescr );  
+}
+
+ListExpr
+DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
+{
+  if (nl->IsEmpty(list1))
+  {
+    return list2;
+  }
+  else
+  {
+    return nl->Cons(nl->First(list1), ConcatLists(nl->Rest(list1), list2));
+  }
+}
+
+void
+DisplayTTY::DisplayResult2( ListExpr value )
+{
+  ListExpr headerlist, concatenatedlist;
+  
+  headerlist = value;
+  concatenatedlist = nl->TheEmptyList();
+  concatenatedlist = nl->Second(nl->First(headerlist));
+  headerlist = nl->Rest(headerlist);
+  while (!nl->IsEmpty( headerlist ))
+  {
+    concatenatedlist = 
+      ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
+    headerlist = nl->Rest(headerlist);
+  }
+  
+  int maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
+  //int  maxHeadNameLen = 17; 
+  //int  maxHeadNameLen = 9; 
+  while (!nl->IsEmpty( value ))
+  {   
+    DisplayDescriptionLines( nl->First(value), maxHeadNameLen );
+    value   = nl->Rest( value );
+  }
+  nl->Destroy( headerlist );
+  nl->Destroy( concatenatedlist );  
 }
 
 void
