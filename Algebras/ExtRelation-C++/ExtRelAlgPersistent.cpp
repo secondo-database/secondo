@@ -3,6 +3,10 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
+Oct 2004. M. Spiekermann. The SortByLocalInfo was revised, since it doesn't
+work for relations not fitting into memory. Moreover some minor performance tuning 
+was made (fixed size for the vector of tuples).
+
 [1] Implementation of the Module Extended Relation Algebra for Persistent storage
 
 [TOC]
@@ -95,22 +99,28 @@ class SortByLocalInfo
 //          MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ((Tuple*)wTuple.addr)->GetMemorySize();
           MAX_TUPLES_IN_MEMORY = 16 * 1024 * 1024 / ((Tuple*)wTuple.addr)->GetMemorySize();
           cout << "Sort.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
+
+          // assign a proper size to avoid dynamic resizing 
+          //tuples.reserve(MAX_TUPLES_IN_MEMORY); 
         }
 
-        while(qp->Received(stream.addr))
+        while(qp->Received(stream.addr)) // consume the stream completely
         {
           Tuple *t = ((Tuple*)wTuple.addr)->CloneIfNecessary();
-          if( t != wTuple.addr )
+          if( t != wTuple.addr ) {
             ((Tuple*)wTuple.addr)->DeleteIfAllowed();
+          }
 
           t->SetFree( false );
-          tuples.push_back( t );
-          if( ++i == MAX_TUPLES_IN_MEMORY )
+          tuples.push_back(t);
+          if( ++i == MAX_TUPLES_IN_MEMORY ) // split stream into sorted partitions
           {
-            if( lexicographic )
+            //cout << i << ": sort partition" << endl;
+            if( lexicographic ) {
               sort(tuples.begin(), tuples.end(), *lexiTupleCmp );
-            else
+            } else {
               sort(tuples.begin(), tuples.end(), *tupleCmpBy );
+            }
 
             Relation *rel = new Relation( *tupleType, true );
             SaveTo( *rel );
@@ -123,12 +133,16 @@ class SortByLocalInfo
         }
         qp->Close(stream.addr);
 
-        if( lexicographic )
+        // the last (or only) partition having less than MAX_TUPLES
+        //tuples.resize(i-1);
+        if( lexicographic ) { 
+          //cout << "sort last partition" << endl;
           sort(tuples.begin(), tuples.end(), *lexiTupleCmp );
-        else
+        } else {
           sort(tuples.begin(), tuples.end(), *tupleCmpBy );
+        }
 
-        if( relations.size() > 0 )
+        if( relations.size() > 0 ) // are there any other partitions?
         {
           Relation *rel = new Relation( *tupleType, true );
           SaveTo( *rel );
@@ -158,8 +172,9 @@ class SortByLocalInfo
       if( !tuples.empty() )
       {
         assert( relations.empty() );
-        for( size_t i = 0; i < tuples.size(); i++ )
+        for( size_t i = 0; i < tuples.size(); i++ ) {
           delete tuples[i];
+        }
       }
 
       for( size_t i = 0; i < relations.size(); i++ )
@@ -218,12 +233,14 @@ class SortByLocalInfo
       while( iter != tuples.end() )
       {
         Tuple *t = (*iter)->CloneIfNecessary();
-        if( t != *iter )
+        if( t != *iter ) {
           (*iter)->DeleteIfAllowed();
+        }
         rel.AppendTuple( t );
         t->DeleteIfAllowed();
         iter++;
       }
+      tuples.clear(); // remove tuple pointers from the vector
     }
 
     size_t MAX_TUPLES_IN_MEMORY;
