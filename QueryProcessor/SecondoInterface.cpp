@@ -62,7 +62,6 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SecParser.h"
 #include "TimeTest.h"
-#include "LogMsg.h"
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -684,7 +683,9 @@ If value 0 is returned, the command was executed without error.
       if ( nl->IsEqual( nl->Second( list ), "algebras" ) && (length == 2) )
       {
           resultList =
-	  SecondoSystem::GetAlgebraManager( )->ListAlgebras();
+	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
+			    nl->TwoElemList(nl->SymbolAtom("algebras"),
+			      SecondoSystem::GetAlgebraManager( )->ListAlgebras() ));
       }
       
       else if ( nl->IsEqual( nl->Second( list ), "algebra" ) && (length == 3) &&
@@ -696,10 +697,12 @@ If value 0 is returned, the command was executed without error.
 	  {
 	    int aid = SecondoSystem::GetAlgebraManager( )->GetAlgebraId( 
 	       nl->SymbolValue( nl->Third(list) ));
-	    resultList = 
-	    nl->TwoElemList( nl->SymbolAtom("formatted"),
+	    resultList =
+	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
+			    nl->TwoElemList(nl->SymbolAtom("algebra"), 
+					    nl->TwoElemList( nl->Third(list),
 	    nl->TwoElemList(SecondoSystem::GetCatalog( level )->ListTypeConstructors( aid ), 
-	    SecondoSystem::GetCatalog( level )->ListOperators( aid )) ); 
+	    SecondoSystem::GetCatalog( level )->ListOperators( aid )) ))); 
 	  }
 	  else errorCode = 85;
       }
@@ -709,18 +712,23 @@ If value 0 is returned, the command was executed without error.
            nl->IsEqual( nl->Third( list ), "constructors" ) )
       {
         resultList =
-	  nl->TwoElemList( nl->SymbolAtom("formatted"),
-	  SecondoSystem::GetCatalog( level )->ListTypeConstructors() ); 
+	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
+			    nl->TwoElemList(nl->SymbolAtom("constructors"), 
+	  SecondoSystem::GetCatalog( level )->ListTypeConstructors() )); 
       }
       else if ( nl->IsEqual( nl->Second(list), "operators" ) )
       {
         resultList =
-	  nl->TwoElemList( nl->SymbolAtom("formatted"),
-          SecondoSystem::GetCatalog( level )->ListOperators() );
+	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
+			    nl->TwoElemList(nl->SymbolAtom("operators"), 
+          SecondoSystem::GetCatalog( level )->ListOperators() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "databases" ) )
       {
-        resultList = SecondoSystem::GetInstance()->ListDatabaseNames();
+        resultList =
+	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
+			    nl->TwoElemList(nl->SymbolAtom("databases"), 
+			      SecondoSystem::GetInstance()->ListDatabaseNames() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "types") )
       {
@@ -732,7 +740,9 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
           resultList =
-            SecondoSystem::GetCatalog( level )->ListTypes();
+	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
+			    nl->TwoElemList(nl->SymbolAtom("types"), 
+            SecondoSystem::GetCatalog( level )->ListTypes() ));
           FinishCommand( errorCode );
         }
       }
@@ -746,7 +756,9 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
           resultList =
-            SecondoSystem::GetCatalog( level )->ListObjects();
+	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
+			    nl->TwoElemList(nl->SymbolAtom("objects"), 
+            SecondoSystem::GetCatalog( level )->ListObjects() ));
           FinishCommand( errorCode );
         }                    
       }
@@ -1110,16 +1122,15 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
 
-	  TimeTest::diffReal(); TimeTest::diffCPU();
-	  cerr << "Analyze query ..." << endl;
+	   TimeTest::diffReal(); TimeTest::diffCPU();
+	   cerr << "Analyze query ..." << endl;
 
           SecondoSystem::GetQueryProcessor()->
             Construct( level, nl->Second( list ), correct, evaluable, defined,
                        isFunction, tree, resultType );
 
-           LOGMSG("SI:QueryTime", 
-	     cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-           )
+	   cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+	   //cerr << nl->reportVectorSizes() << endl;
 
           if ( !defined )
           {
@@ -1139,18 +1150,12 @@ If value 0 is returned, the command was executed without error.
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
 
-             LOGMSG("SI:QueryTime", 
 	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-             )
-             LOGMSG("SI:ListMemory",
-	       cerr << nl->reportVectorSizes() << endl;
-             )
-             LOGMSG("SI:RelStatistics",
                cerr << ReportTupleStatistics();
+	       //cerr << nl->reportVectorSizes() << endl;
                //cerr << ReportRelStatistics();
                //cerr << ReportRelITStatistics();
 	       //cerr << ReportTupleAttributesInfoStatistics();
-             )
 
             }
             else if ( isFunction ) // abstraction or function object
@@ -1238,10 +1243,10 @@ If value 0 is returned, the command was executed without error.
     nl->WriteToFile( resultFileName, resultList );
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
-
-  LOGMSG( "SI:ResultList",
-    cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
-  )
+ 
+#if NL_DEBUG
+  cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
+#endif 
 
   // copy result into application specific list container.
   if (resultList) {

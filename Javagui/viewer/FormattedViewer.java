@@ -8,7 +8,7 @@ import java.awt.event.*;
 import gui.SecondoObject;
 import sj.lang.*;
 
-/* this viewer shows inquiries in a formatted manner */
+/* this viewer shows all SecondoObjects as Lists */
 public class FormattedViewer extends SecondoViewer {
 
  private static int LINELENGTH=80;
@@ -38,6 +38,7 @@ public class FormattedViewer extends SecondoViewer {
    TopPanel.add(new JPanel());
    add(Panel,BorderLayout.SOUTH);
    add(BorderLayout.NORTH, TopPanel);
+   //add(BorderLayout.NORTH,ComboBox);
    add(BorderLayout.CENTER,ScrollPane);
    ScrollPane.setViewportView(TextArea);
    TextField.setFont( new Font ("Monospaced", Font.PLAIN, 14));
@@ -160,8 +161,23 @@ public class FormattedViewer extends SecondoViewer {
  /* returns allways true (this viewer can display all SecondoObjects) */
  public boolean canDisplay(SecondoObject o){
     ListExpr LE = o.toListExpr();
-    if(LE.listLength()>0 && LE.first().atomType()==ListExpr.SYMBOL_ATOM &&
-       LE.first().symbolValue().equals("formatted"))
+    if(LE.listLength()!=2)
+       return false;
+
+    if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM  || !LE.first().symbolValue().equals("inquiry"))
+       return false;
+
+    ListExpr V = LE.second();
+    if(V.listLength()!=2)
+       return false;
+
+    ListExpr T = V.first();
+    if(T.atomType()!=ListExpr.SYMBOL_ATOM)
+       return false;
+    String Name = T.symbolValue();
+    if(Name.equals("constructors") || Name.equals("operators") || Name.equals("algebra") ||
+       Name.equals("algebras") || Name.equals("databases") || Name.equals("types") ||
+       Name.equals("objects"))
        return true;
     return false;
  }
@@ -214,7 +230,7 @@ public class FormattedViewer extends SecondoViewer {
      return max;
  }
 
- private static ListExpr concatLists(ListExpr le1, ListExpr le2) { 
+ private static ListExpr concatLists(ListExpr le1, ListExpr le2) {
      if ( le1.isEmpty() ) return le2;
      else {
 	 ListExpr first = le1.first();
@@ -225,7 +241,6 @@ public class FormattedViewer extends SecondoViewer {
      }
  }
 
- /* formatted display of a single type constructor or operator */
  private String displayDescriptionLines( ListExpr value, int maxNameLen) {
      ListExpr valueheader, valuedescr;
      String outstr, s, blanks, line, restline, printstr;
@@ -250,7 +265,7 @@ public class FormattedViewer extends SecondoViewer {
 		 printstr += valuedescr.first().stringValue();
 	     else
 		 if( valuedescr.first().atomType() == ListExpr.TEXT_ATOM )
-		     for (i = 0; i < 1 ; i++)  
+		     for (i = 0; i < 1 ; i++)
 			 printstr += valuedescr.first().textValue();
 	 }
 
@@ -312,8 +327,166 @@ public class FormattedViewer extends SecondoViewer {
      valueheader = valueheader.rest();
      valuedescr = valuedescr.rest();
      }
-     return outstr; 
+     return outstr;
  }
+
+ 
+ /** returns the display text for a list of database names */
+ private String getDatabasesText(ListExpr Databases){
+   String res = "\n--------------------\n";
+   res += "Database";
+   res += Databases.listLength()>1?"s\n":"\n";
+   res += "--------------------\n\n";
+   while(!Databases.isEmpty()){
+      res+= "* "+Databases.first().symbolValue()+"\n";
+      Databases = Databases.rest();
+   }
+   return res;
+ }
+
+ /** returns the display text for a list of algebra names */
+ private String getAlgebrasText(ListExpr Algebras){
+   String res = "\n--------------------\n";
+   res += "Algebra";
+   res += Algebras.listLength()>1?"s\n":"\n";
+   res += "--------------------\n\n";
+   while(!Algebras.isEmpty()){
+      res+= "* "+Algebras.first().symbolValue()+"\n";
+      Algebras = Algebras.rest();
+   }
+   return res;
+ }
+
+ /** return the displayText for object inquiry - just the nested list format */
+ private String getObjectsText(ListExpr objects){
+   objects = objects.rest(); // ignore symbol OBJECTS
+   String  Text = "\n--------------------\n";
+   Text += "Object";
+   Text += objects.listLength()>1?"s\n":"\n";
+   Text += "--------------------\n\n";
+   if(objects.isEmpty())
+      Text +="none";
+   else
+      Text += objects.writeListExprToString();
+   return Text;
+ }
+
+ /** return the display text for a types inquiry as nested list */
+private String getTypesText(ListExpr types){
+   types = types.rest(); // ignore symbol TYPES
+   String  Text = "\n--------------------\n";
+   Text += "Type";
+   Text += types.listLength()>1?"s\n":"\n";
+   Text += "--------------------\n\n";
+   if(types.isEmpty())
+      Text += "none";
+   else
+      Text += types.writeListExprToString();
+   return Text;
+ }
+
+/** returns the display text for operators inquiry */
+private String getOperatorsText(ListExpr operators){
+   String Text = "\n--------------------\n";
+   Text += "Operator";
+   Text += operators.listLength()>1?"s\n":"\n";
+   Text += "--------------------\n\n";
+   ListExpr LE = operators;
+   ListExpr headerlist = operators;
+   //ListExpr concatenatedlist = nl.theEmptyList();
+   ListExpr concatenatedlist = headerlist.first().second();
+   while (!headerlist.isEmpty()) {
+       concatenatedlist =
+	   concatLists(concatenatedlist, headerlist.first().second());
+            headerlist = headerlist.rest();
+   }
+   int maxHeadNameLen = maxHeaderLength( concatenatedlist );
+
+   while ( !LE.isEmpty() ) {
+       Text += this.displayDescriptionLines( LE.first(), maxHeadNameLen );
+       LE = LE.rest();
+   }
+   return Text;
+}
+
+/** returns the display text for constructors inquiry */
+private String getConstructorsText(ListExpr constructors){
+   String Text = "\n--------------------\n";
+   Text += "Type Constructor";
+   Text += constructors.listLength()>1?"s\n":"\n";
+   Text += "--------------------\n\n";
+   ListExpr LE = constructors;
+   ListExpr headerlist = constructors;
+   ListExpr concatenatedlist = headerlist.first().second();
+   while (!headerlist.isEmpty()) {
+       concatenatedlist =
+	   concatLists(concatenatedlist, headerlist.first().second());
+            headerlist = headerlist.rest();
+   }
+   int maxHeadNameLen = maxHeaderLength( concatenatedlist );
+   while ( !LE.isEmpty() ) {
+       Text += this.displayDescriptionLines( LE.first(), maxHeadNameLen );
+       LE = LE.rest();
+   }
+   return Text;
+}
+
+
+/** returns the display text for algebra xxx inquiry */
+private String getAlgebraText(ListExpr algebra){
+   String AlgebraName = algebra.first().symbolValue();
+
+   String Text = "\n--------------------\n";
+   Text += "Algebra "+AlgebraName+"\n";
+   Text += "--------------------\n\n";
+
+   ListExpr Constructors = algebra.second().first();
+   ListExpr Operators = algebra.second().second();
+
+   ListExpr headerlist = Constructors;
+   ListExpr concatenatedlist = headerlist.first().second();
+   while (!headerlist.isEmpty()) {
+       concatenatedlist =
+	   concatLists(concatenatedlist, headerlist.first().second());
+            headerlist = headerlist.rest();
+   }
+   headerlist = Operators;
+   while (!headerlist.isEmpty()) {
+       concatenatedlist =
+	   concatLists(concatenatedlist, headerlist.first().second());
+            headerlist = headerlist.rest();
+   }
+   int maxHeadNameLen = maxHeaderLength( concatenatedlist );
+
+   Text += "\n--------------------\n";
+   Text += "Constructor";
+   Text += Constructors.listLength()>1?"s\n":"\n";
+   Text += "--------------------\n\n";
+   if(Constructors.isEmpty())
+       Text+="   none   \n";
+   else
+      while ( !Constructors.isEmpty() ) {
+           Text += this.displayDescriptionLines( Constructors.first(), maxHeadNameLen );
+           Constructors = Constructors.rest();
+      }
+
+   Text += "\n\n\n--------------------\n";
+   Text += "Operator";
+   Text += Operators.listLength()>1?"s\n":"\n";
+   Text += "--------------------\n\n";
+   if(Operators.isEmpty())
+       Text+="   none   \n";
+   else
+      while ( !Operators.isEmpty() ) {
+           Text += this.displayDescriptionLines( Operators.first(), maxHeadNameLen );
+           Operators = Operators.rest();
+      }
+
+
+   return Text;
+}
+
+
 
  private void showObject(){
 
@@ -322,75 +495,45 @@ public class FormattedViewer extends SecondoViewer {
     String Text;
 
     Text = "";
+    //TextArea.setText(Text);
     int index = ComboBox.getSelectedIndex();
-    if (index>=0){
+    if(index<0){
+       TextArea.setText("");
+       return;
+    }
+
     try{
        CurrentObject = (SecondoObject) ItemObjects.get(index);
-       ListExpr LE = CurrentObject.toListExpr().second();
-
-       headerlist = ListExpr.theEmptyList();
-       concatenatedlist = ListExpr.theEmptyList();
-
-       if (LE.listLength() == 2) {
-	   Text = "\n--------------------\n";
-	   Text += "Type Constructor(s)\n";
-	   Text += "--------------------\n";
-	   temp1 = LE.first();
-	   if (temp1.isEmpty()) Text += "none\n";
-	   else {
-	       headerlist = temp1;
-	       concatenatedlist = headerlist.first().second();
-	       while (!headerlist.isEmpty()) {
-		   concatenatedlist =
-		       concatLists(concatenatedlist, headerlist.first().second());
-		   headerlist = headerlist.rest();
-	       }
-	       maxHeadNameLen = maxHeaderLength( concatenatedlist );
-	       while ( !temp1.isEmpty() ) {
-		   Text += this.displayDescriptionLines( temp1.first(), maxHeadNameLen );
-		   temp1 = temp1.rest();
-	       }
-	   }
-	   Text += "\n--------------------\n";
-	   Text += "Operator(s)\n";
-	   Text += "--------------------\n";
-	   temp2 = LE.second();
-	   if (temp2.isEmpty()) Text += "none\n";
-	   else {
-	       headerlist = temp2;
-	       concatenatedlist = headerlist.first().second();
-	       while (!headerlist.isEmpty()) {
-		   concatenatedlist =
-		       concatLists(concatenatedlist, headerlist.first().second());
-		   headerlist = headerlist.rest();
-	       }
-	       maxHeadNameLen = maxHeaderLength( concatenatedlist );
-	       while ( !temp2.isEmpty() ) {
-		   Text += this.displayDescriptionLines( temp2.first(), maxHeadNameLen );
-		   temp2 = temp2.rest();
-	       }
-	   }
+       ListExpr LEx = CurrentObject.toListExpr().second(); // ignory "inquiry"-entry
+       String type = LEx.first().symbolValue();
+       ListExpr value = LEx.second();
+       if(type.equals("databases")){
+          Text += getDatabasesText(value);
+       } else if(type.equals("algebras")){
+           Text += getAlgebrasText(value);
+       } else if(type.equals("objects")){
+           Text += getObjectsText(value);
+       } else if(type.equals("types")){
+           Text += getTypesText(value);
+       } else if(type.equals("operators")){
+           Text += getOperatorsText(value);
        }
-       else {
-	   headerlist = LE;
-	   concatenatedlist = headerlist.first().second();
-	   while (!headerlist.isEmpty()) {
-	       concatenatedlist =
-		   concatLists(concatenatedlist, headerlist.first().second());
-	       headerlist = headerlist.rest();
-	   }
-	   maxHeadNameLen = maxHeaderLength( concatenatedlist );
-	   while ( !LE.isEmpty() ) {
-	       Text += this.displayDescriptionLines( LE.first(), maxHeadNameLen );
-	       LE = LE.rest();
-	   }
+       else if(type.equals("constructors")){
+           Text += getConstructorsText(value);
+       } else if(type.equals("algebra")){
+           Text += getAlgebraText(value);
        }
-       headerlist.destroy();
-       concatenatedlist.destroy();
+       else{
+           Text = "unknow inquiry type";
+       }
+
        TextArea.setText(Text);
+
     }
     catch(Exception e){}
     }
- }
+
+
+
 }
 

@@ -195,7 +195,7 @@ DisplayTTY::DisplayTuples( ListExpr type, ListExpr numType, ListExpr value )
 {
   int maxAttribNameLen = MaxAttributLength( nl->Second( numType ) );
   while (!nl->IsEmpty( value ))
-  {  
+  {
     DisplayTuple( nl->Second( type ), nl->Second( numType ),
                   nl->First( value ), maxAttribNameLen );
     value = nl->Rest( value );
@@ -209,7 +209,7 @@ DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  } 
+  }
   else
   {
     cout << nl->IntValue( value );
@@ -222,13 +222,13 @@ DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
-  } 
+  }
   else
   {
     cout << nl->RealValue( value );
   }
 }
- 
+
 void
 DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
 {
@@ -514,86 +514,123 @@ DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
 void
 DisplayTTY::DisplayResult2( ListExpr value )
 {
+  ListExpr InquiryType = nl->First(value);
+  string TypeName = nl->SymbolValue(InquiryType);
+  ListExpr v = nl->Second(value);
+  if(TypeName=="databases"){
+      cout << endl << "-------------------" << endl;
+      cout << "Databases" << endl;
+      cout << "-------------------" << endl;
+      if(nl->ListLength(v)==0)
+         cout << "none" << endl;
+      while(!nl->IsEmpty(v)){
+        cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
+	v = nl->Rest(v);
+      }
+      return;
+  }else if(TypeName=="algebras"){
+   cout << endl << "-------------------" << endl;
+      cout << "Algebras " << endl;
+      cout << "-------------------" << endl;
+      if(nl->ListLength(v)==0)
+         cout << "none" << endl;
+      while(!nl->IsEmpty(v)){
+        cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
+	v = nl->Rest(v);
+      }
+      return;
+  }else if(TypeName=="types"){
+      nl->WriteListExpr(v,cout);
+      return;
+  }else if(TypeName=="objects"){
+      nl->WriteListExpr(v,cout);
+      return;
+  } else if(TypeName=="constructors" || TypeName=="operators"){
+      cout << endl << "--------------------" << endl;
+      cout << "   ";
+      if(TypeName=="constructors")
+         cout <<"type ";
+      cout << TypeName << endl;
+      cout << "-------------------" << endl;
+      if(nl->IsEmpty(v)){
+         cout <<"  none " << endl;
+      } else{
+         ListExpr headerlist = v;
+	 int MaxLength = 0;
+	 int currentlength;
+	 while(!nl->IsEmpty(headerlist)){
+            ListExpr tmp = (nl->Second(nl->First(headerlist)));
+	    while(!nl->IsEmpty(tmp)){
+	       currentlength = (nl->StringValue(nl->First(tmp))).length();
+	       tmp = nl->Rest(tmp);
+ 	       if(currentlength>MaxLength)
+	          MaxLength = currentlength;
+	    }
+	    headerlist = nl->Rest(headerlist);
+	 }
 
-  ListExpr headerlist, concatenatedlist, temp1, temp2;
-  int maxHeadNameLen;
-
-  if ( nl->ListLength( value ) == 2 )
-  {
-    cout << endl << "-------------------" << endl;
-    cout << "Type Constructor(s)" << endl;
-    cout << "-------------------" << endl;
-
-    temp1 = nl->First( value );
-    if ( nl->IsEmpty( temp1 )) cout << "none" << endl;
-    else {      
-      headerlist = temp1;
-      concatenatedlist = nl->TheEmptyList();
-      concatenatedlist = nl->Second(nl->First(headerlist));
-      headerlist = nl->Rest(headerlist);
-      while (!nl->IsEmpty( headerlist ))
-      {
-        concatenatedlist = 
-          ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
-        headerlist = nl->Rest(headerlist);
+         while (!nl->IsEmpty( v ))
+         {
+            DisplayDescriptionLines( nl->First(v), MaxLength );
+            v   = nl->Rest( v );
+         }
+     }
+  }else if(TypeName=="algebra"){
+      string AlgebraName = nl->SymbolValue(nl->First(v));
+      cout << endl << "-------------------------" << endl;
+      cout << "   " << "Algebra : " << AlgebraName << endl;
+      cout << "-------------------------" << endl;
+      ListExpr Cs = nl->First(nl->Second(v));
+      ListExpr Ops = nl->Second(nl->Second(v));
+      // determine the headerlength
+      ListExpr tmp1 = Cs;
+      int maxLength=0;
+      int len;
+      while(!nl->IsEmpty(tmp1)){
+        ListExpr tmp2 = nl->Second(nl->First(tmp1));
+	while(!nl->IsEmpty(tmp2)){
+          len = (nl->StringValue(nl->First(tmp2))).length();
+	  if(len>maxLength)
+	     maxLength=len;
+	  tmp2 = nl->Rest(tmp2);
+	}
+        tmp1 = nl->Rest(tmp1);
+      }
+      tmp1 = Ops;
+      while(!nl->IsEmpty(tmp1)){
+        ListExpr tmp2 = nl->Second(nl->First(tmp1));
+	while(!nl->IsEmpty(tmp2)){
+          len = (nl->StringValue(nl->First(tmp2))).length();
+	  if(len>maxLength)
+	     maxLength=len;
+	  tmp2 = nl->Rest(tmp2);
+	}
+        tmp1 = nl->Rest(tmp1);
       }
 
-      maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
-      while (!nl->IsEmpty( temp1 ))
-      {   
-        DisplayDescriptionLines( nl->First( temp1 ), maxHeadNameLen );
-        temp1 = nl->Rest( temp1 );
-      } 
-    } 
-    cout << endl << "-------------------" << endl;
-    cout << "Operator(s)" << endl;
-    cout << "-------------------" << endl;  
-    temp2 = nl->Second( value );
-    if ( nl->IsEmpty( temp2 )) cout << "none" << endl;
-    else {
-      headerlist = temp2;
-      concatenatedlist = nl->TheEmptyList();
-      concatenatedlist = nl->Second(nl->First(headerlist));
-      headerlist = nl->Rest(headerlist);
-      while (!nl->IsEmpty( headerlist ))
-      {
-        concatenatedlist = 
-          ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
-        headerlist = nl->Rest(headerlist);
+      cout << endl << "-------------------------" << endl;
+      cout << "   " << "Type Constructors of Algebra : " << AlgebraName << endl;
+      cout << "-------------------------" << endl;
+      if(nl->ListLength(v)==0)
+         cout << "none" << endl;
+      while(!nl->IsEmpty(Cs)){
+         DisplayDescriptionLines(nl->First(Cs),maxLength);
+	 Cs = nl->Rest(Cs);
       }
-    
-      maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
-      while (!nl->IsEmpty( temp2 ))
-      {   
-        DisplayDescriptionLines( nl->First( temp2 ), maxHeadNameLen );
-        temp2 = nl->Rest( temp2 );
+
+      cout << endl << "-------------------------" << endl;
+      cout << "   " << "Operators of Algebra : " << AlgebraName << endl;
+      cout << "-------------------------" << endl;
+      if(nl->ListLength(v)==0)
+         cout << "none" << endl;
+      while(!nl->IsEmpty(Ops)){
+         DisplayDescriptionLines(nl->First(Ops),maxLength);
+	 Ops = nl->Rest(Ops);
       }
-    }
-    nl->Destroy( temp1 );
-    nl->Destroy( temp2 );  
+  }else{
+    cout << "unknow inquiry type" << endl;
+    nl->WriteListExpr(value,cout);
   }
-
-  else {
-    headerlist = value;
-    concatenatedlist = nl->TheEmptyList();
-    concatenatedlist = nl->Second( nl->First(headerlist) );
-    headerlist = nl->Rest(headerlist);
-    while (!nl->IsEmpty( headerlist ))
-    {
-      concatenatedlist = 
-        ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
-      headerlist = nl->Rest(headerlist);
-    }
-
-    maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
-    while (!nl->IsEmpty( value ))
-    {   
-      DisplayDescriptionLines( nl->First(value), maxHeadNameLen );
-      value   = nl->Rest( value );
-    }
-  }
-  nl->Destroy( headerlist );
-  nl->Destroy( concatenatedlist );  
 }
 
 void

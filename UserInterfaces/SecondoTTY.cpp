@@ -542,7 +542,7 @@ SecondoTTY::CallSecondo2()
 #ifdef NL_DEBUG
   cerr << endl << "### ResultStr: " << nl->ToString(result) << endl;
 #endif
-	  
+
   if ( isQuery )
   {
     ShowQueryResult( result );
@@ -551,9 +551,9 @@ SecondoTTY::CallSecondo2()
   {
     if (!nl->IsEmpty( result ))
     {
-      if ( nl->IsAtom(nl->First(result)) && 
+      if ( nl->IsAtom(nl->First(result)) &&
            nl->AtomType(nl->First(result)) == SymbolType &&
-           nl->SymbolValue(nl->First(result)) == "formatted" ) 
+           nl->SymbolValue(nl->First(result)) == "inquiry"  )
       {
         TypeOutputListFormatted( nl->Second( result ));
 	//TypeOutputList( result );
