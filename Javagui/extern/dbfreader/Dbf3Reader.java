@@ -9,9 +9,8 @@ import extern.*;
 
 
 // todo-list
-// strings longer then 48 characters output as text
 // process memofields
-
+// string larger then MAX_STRING_LENGTH characters as text
 
 
 public class Dbf3Reader implements SecondoImporter{
@@ -89,6 +88,11 @@ public  ListExpr getList(String FileName){
      return null;
   }
 
+}
+
+public void setMaxStringLength(int len){
+ if(len>0)
+    MAX_STRING_LENGTH = len;
 }
 
 
@@ -257,8 +261,8 @@ public boolean readFrom(byte[] Buffer,DB3RecordHeader RH){
 	for(int k=0;k<length;k++)
 	   S += (char)Buffer[CurrentPos+k];
         S = S.trim();
-	if(S.length()>48)
-	   S = S.substring(0,48);
+	if(S.length()>MAX_STRING_LENGTH)
+	   S = S.substring(0,MAX_STRING_LENGTH);
 	Next = ListExpr.stringAtom(correctString(S));
       }
 
@@ -324,10 +328,13 @@ public boolean isDeleted(){
    return isDeleted;
 }
 
+
+
 private ListExpr LE=null;
 private boolean isDeleted=false;
 
 }
 
+private static int MAX_STRING_LENGTH = 48;
 
 }

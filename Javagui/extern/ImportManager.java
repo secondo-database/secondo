@@ -96,6 +96,13 @@ private ListExpr extractFromObject(ListExpr LE){
 
 }
 
+/** set the maximal string length in all
+  * importers which handle with strings
+  */
+public void setMaxStringLength(int len){
+  if(len>0)
+    dbf3Reader.setMaxStringLength(len);
+}
 
 
 private String ErrorText="";

@@ -392,6 +392,9 @@ public int loadObject(){
 }
 
 
+/** reads a Secondo object from file
+  * returns true if successful
+  */
 public boolean loadObject(File ObjectFile){
   ListExpr LE = importmanager.importFile(ObjectFile.getPath());
   if(LE==null)
@@ -403,6 +406,11 @@ public boolean loadObject(File ObjectFile){
      addEntry(SO);
      return true;
   }
+}
+
+/** set the maximal String length for import files */
+public void setMaxStringLength(int len){
+  importmanager.setMaxStringLength(len);
 }
 
 

@@ -114,7 +114,7 @@ public class ListExpr extends Object {
   public final static int BIN_SHORTSYMBOL = 17;
   public final static int BIN_TEXT = 18;
   public final static int BIN_SHORTTEXT=19;
-    
+
     /*
    3.2 Private fields.
    The following private fields are defined, and hence they can be accessed only
@@ -124,6 +124,8 @@ public class ListExpr extends Object {
   private static boolean DEBUG_MODE = true;
   // Defines if the class must check the preconditions and shows extra information when an input that does not fulfil the preconditions is detected.
   private static final boolean CHECK_PRECONDITIONS = true;
+  // defines the maximal length for string atoms
+  private static int MAX_STRING_LENGTH = 48;
   // The ~emptyList~ object.
   private final static ListExpr emptyList = new ListExpr();
   // some error codes returned by readFromString, etc...
@@ -164,6 +166,16 @@ public class ListExpr extends Object {
   public static void setDebugMode(boolean enabled){
     DEBUG_MODE = enabled;
   }
+  
+  /*
+    3.4.0 The ~setMaxStringLength~ method.
+    set the maximal length for strings in string atoms
+    */
+  public static void setMaxStringLength(int len){
+    if(len>0)
+       MAX_STRING_LENGTH=len;
+  }
+
 
   /*
    3.4.1 The ~setValueTo~ method.
@@ -1369,8 +1381,9 @@ catch(Exception e){
   public static ListExpr stringAtom (String value) {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
     if (ListExpr.CHECK_PRECONDITIONS) {
-      if (value.length() > 48) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the stringAtom() method: the input string is larger than 48 characters.");
+      if (value.length() > MAX_STRING_LENGTH) {
+        System.err.println("CHECK PRECONDITIONS: Error when calling the stringAtom() method: the input string is larger than "+
+	                    MAX_STRING_LENGTH+" characters.");
       }
     }
     ListExpr result = new ListExpr();
@@ -1387,8 +1400,9 @@ catch(Exception e){
   public static ListExpr symbolAtom (String value) {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
     if (ListExpr.CHECK_PRECONDITIONS) {
-      if (value.length() > 48) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the symbolAtom() method: the input string is larger than 48 characters.");
+      if (value.length() > MAX_STRING_LENGTH) {
+        System.err.println("CHECK PRECONDITIONS: Error when calling the symbolAtom() method: the input string is larger than "+
+	                    MAX_STRING_LENGTH+" characters.");
       }
     }
     ListExpr result = new ListExpr();
