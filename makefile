@@ -3,6 +3,13 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.17  2003/04/17 21:04:16  telle
+# Fixed makefile problems when building shared library version. (LIBNAME needs to be a target specific variable if there are more than one library to be built within one makefile.)
+# Definition of variable SMILIB moved from main makefile to makefile.env.
+# Changed references to variable BDBSMILIB to SMILIB in several algebra modul makefiles to make them independent of the used SMI implementation.
+# FTextAlgebra.cpp: include <iostream> instead of <iostream.h> (which is deprecated)
+# SpatialAlgebra.cpp: changed long string constants to avoid warnings.
+#
 # Revision 1.16  2003/04/09 12:49:53  spieker
 # Rule dist modified.
 #
@@ -71,7 +78,11 @@ TOOLOBJECTS = $(addsuffix .$(OBJEXT), $(TOOLOBJECTBASENAMES))
 SDBSYSOBJECTS = $(addsuffix .$(OBJEXT), $(SDBSYSOBJECTBASENAMES))
 
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps
+all: showjni makedirs buildlibs buildalg buildapps
+
+.PHONY: showjni
+showjni: 
+	@echo $(JNITEXT)
 
 .PHONY: clientserver
 clientserver:
