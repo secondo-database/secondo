@@ -63,8 +63,8 @@ The class ~SecondoCatalog~ provides the following methods:
         LookUpTypeExpr        & GetObjectTypeExpr        &   \\
         GetTypeExpr           & InObjectModel            &   \\
         NumericType           & OutObjectModel           &   \\
-        ExpandedType          & ValueToObjectModel       &   \\
-        KindCorrect           &                          &   \\
+        ExpandedType          & CloseObject              &   \\
+        KindCorrect           & ValueToObjectMode        &   \\
                               & ValueListToObjectModel   &   \\
 
 1.4 Imports
@@ -326,6 +326,12 @@ Returns for a given ~object~ of type ~type~ its value in nested list
 representation. 
 
 *NOTE*: Works only at the executable level.
+
+*/
+  void CloseObject( const ListExpr type,
+                    const Word object );
+/*
+Closes a given ~object~ of type ~type~.
 
 */
   bool IsObjectName( const string& objectName );

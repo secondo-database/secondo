@@ -1164,6 +1164,37 @@ Returns for a given ~object~ of type ~type~ its value in nested list representat
   }
 }
 
+void
+SecondoCatalog::CloseObject( const ListExpr type, Word object )
+{
+/*
+Closes a given ~object~ of type ~type~.
+
+*/
+  ListExpr pair, numtype;
+  int alId, typeId;
+
+  numtype = NumericType( type );
+  if ( nl->IsEmpty( numtype ) )
+  { // do nothing
+    ;
+  }
+  else
+  {
+    if ( nl->IsAtom( nl->First( numtype ) ) )
+    {
+      pair = numtype;
+    }
+    else
+    {
+      pair = nl->First( numtype );
+    }
+    alId = nl->IntValue( nl->First( pair ) );
+    typeId = nl->IntValue( nl->Second( pair ) );
+    ( am->CloseObj( alId, typeId ))( object );
+  }
+}
+
 Word
 SecondoCatalog::InObjectModel( const ListExpr typeExpr,
                                const ListExpr modelList,
