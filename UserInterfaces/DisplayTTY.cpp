@@ -518,9 +518,9 @@ DisplayTTY::DisplayResult2( ListExpr value )
   string TypeName = nl->SymbolValue(InquiryType);
   ListExpr v = nl->Second(value);
   if(TypeName=="databases"){
-      cout << endl << "-------------------" << endl;
-      cout << "Databases" << endl;
-      cout << "-------------------" << endl;
+      cout << endl << "--------------------" << endl;
+      cout << "Database(s)" << endl;
+      cout << "--------------------" << endl;
       if(nl->ListLength(v)==0)
          cout << "none" << endl;
       while(!nl->IsEmpty(v)){
@@ -529,9 +529,9 @@ DisplayTTY::DisplayResult2( ListExpr value )
       }
       return;
   }else if(TypeName=="algebras"){
-   cout << endl << "-------------------" << endl;
-      cout << "Algebras " << endl;
-      cout << "-------------------" << endl;
+   cout << endl << "--------------------" << endl;
+      cout << "Algebra(s) " << endl;
+      cout << "--------------------" << endl;
       if(nl->ListLength(v)==0)
          cout << "none" << endl;
       while(!nl->IsEmpty(v)){
@@ -547,11 +547,10 @@ DisplayTTY::DisplayResult2( ListExpr value )
       return;
   } else if(TypeName=="constructors" || TypeName=="operators"){
       cout << endl << "--------------------" << endl;
-      cout << "   ";
       if(TypeName=="constructors")
-         cout <<"type ";
-      cout << TypeName << endl;
-      cout << "-------------------" << endl;
+         cout <<"Type Constructor(s)\n";
+      else cout << "Operator(s)" << endl;
+      cout << "--------------------" << endl;
       if(nl->IsEmpty(v)){
          cout <<"  none " << endl;
       } else{
@@ -577,9 +576,9 @@ DisplayTTY::DisplayResult2( ListExpr value )
      }
   }else if(TypeName=="algebra"){
       string AlgebraName = nl->SymbolValue(nl->First(v));
-      cout << endl << "-------------------------" << endl;
-      cout << "   " << "Algebra : " << AlgebraName << endl;
-      cout << "-------------------------" << endl;
+      cout << endl << "-----------------------------------" << endl;
+      cout << "Algebra : " << AlgebraName << endl;
+      cout << "-----------------------------------" << endl;
       ListExpr Cs = nl->First(nl->Second(v));
       ListExpr Ops = nl->Second(nl->Second(v));
       // determine the headerlength
@@ -609,20 +608,20 @@ DisplayTTY::DisplayResult2( ListExpr value )
       }
 
       cout << endl << "-------------------------" << endl;
-      cout << "   " << "Type Constructors of Algebra : " << AlgebraName << endl;
+      cout << "  "<< "Type Constructor(s)" << endl;
       cout << "-------------------------" << endl;
-      if(nl->ListLength(v)==0)
-         cout << "none" << endl;
+      if(nl->ListLength(Cs)==0)
+         cout << "  none" << endl;
       while(!nl->IsEmpty(Cs)){
          DisplayDescriptionLines(nl->First(Cs),maxLength);
 	 Cs = nl->Rest(Cs);
       }
 
       cout << endl << "-------------------------" << endl;
-      cout << "   " << "Operators of Algebra : " << AlgebraName << endl;
+      cout << "  " << "Operator(s)" << endl;
       cout << "-------------------------" << endl;
-      if(nl->ListLength(v)==0)
-         cout << "none" << endl;
+      if(nl->ListLength(Ops)==0)
+         cout << "  none" << endl;
       while(!nl->IsEmpty(Ops)){
          DisplayDescriptionLines(nl->First(Ops),maxLength);
 	 Ops = nl->Rest(Ops);
