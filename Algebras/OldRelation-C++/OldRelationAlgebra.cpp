@@ -56,7 +56,7 @@ static CcRelationType CcTypeOfRelAlgSymbol (ListExpr symbol)
     s = nl->SymbolValue(symbol);
     if (s == "mrel"   ) return mrel;
     if (s == "mtuple" ) return mtuple;
-    if (s == "stream" ) return mstream;
+    if (s == "mstream" ) return mstream;
     if (s == "map"    ) return mmap;
     if (s == "bool"   ) return mbool;
   }
