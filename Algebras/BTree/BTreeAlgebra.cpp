@@ -87,7 +87,8 @@ void AttrToKey(
   float floatval;
   int intval;
   string strval;
-
+  
+  assert(attr->IsDefined());
   switch(keyType)
   {
     case SmiKey::Integer:
@@ -287,19 +288,26 @@ public:
       {
         isTemporary = true;
         file = new SmiKeyedFile(keyType, false);
-        file->Create();
+        if(!file->Create())
+        {
+          delete file;
+          this->file = 0;
+          this->keyType = SmiKey::Unknown;
+        }
       }
       else
       {
         isTemporary = false;
         this->file = file;
+        this->keyType = keyType;
       }
     }
     else
     {
       this->file = 0;
+      this->keyType = keyType;
     }
-    this->keyType = keyType;
+    
   }
 
   ~BTree()
@@ -331,8 +339,17 @@ public:
     {
       file = new SmiKeyedFile(keyType);
       success = file->Open(fileId[0]);
-      this->file = file;
-      this->keyType = keyType;
+      if(success)
+      {
+        this->file = file;
+        this->keyType = keyType;
+      }
+      else
+      {
+        delete file;
+        this->file = 0;
+        this->keyType = SmiKey::Unknown;
+      }
     }
     else
     {
@@ -341,9 +358,15 @@ public:
     }
   }
 
+  bool IsInitialized()
+  {
+    return file != 0 && keyType != SmiKey::Unknown;
+  }
+  
   bool WriteTo(SmiRecord& record, SmiKey::KeyDataType keyType)
   {
     assert(file != 0);
+    assert(this->keyType != SmiKey::Unknown);
 
     SmiSize bytesWritten;
     SmiFileId id;
@@ -371,21 +394,34 @@ public:
     this->keyType = keyType;
     isTemporary = true;
     file = new SmiKeyedFile(keyType, false);
-    file->Create();
+    if(!file->Create())
+    {
+      delete file;
+      file = 0;
+      this->keyType = SmiKey::Unknown;
+      return false;
+    }
     return true;
   }
 
-  void Truncate()
+  bool Truncate()
   {
     assert(file != 0);
     SmiKeyedFileIterator iter;
     SmiRecord record;
 
-    file->SelectAll(iter, SmiFile::Update, true);
-    while(iter.Next(record))
+    if(!file->SelectAll(iter, SmiFile::Update, true))
     {
-      file->DeleteRecord(record.GetKey());
+      return false;
     }
+    while(iter.Next(record))
+    { 
+      if(!file->DeleteRecord(record.GetKey()))
+      {
+        return false;
+      }
+    }
+    return true;
   }
 
   void DeleteDeep()
@@ -570,13 +606,16 @@ void DeleteBTree(Word& w)
 */
 bool CheckBTree(ListExpr type, ListExpr& errorInfo)
 {
-  /*
   AlgebraManager* algMgr;
 
-  if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "rel"))
+  if((!nl->IsAtom(type))
+    && (nl->ListLength(type) == 3)
+    && nl->Equal(nl->First(type), nl->SymbolAtom("rel")))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
-    return (algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo));
+    return
+      algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
+      && algMgr->CheckKind("DATA", nl->Third(type), errorInfo);
   }
   else
   {
@@ -584,7 +623,6 @@ bool CheckBTree(ListExpr type, ListExpr& errorInfo)
       nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("REL"), type));
     return false;
   }
-  */
   return true;
 }
 
@@ -667,8 +705,16 @@ BTreePersistValue( const PersistDirection dir,
   if(dir == ReadFrom)
   {
     btree = new BTree(valueRecord, keyType);
-    value = SetWord(btree);
-    return btree != 0;
+    if(btree->IsInitialized())
+    {
+      value = SetWord(btree);
+      return true;
+    }
+    else
+    {
+      delete btree;
+      return false;
+    }
   }
   else
   {
@@ -801,6 +847,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   CcRelIT* iter;
   CcTuple* tuple;
   SmiKey::KeyDataType dataType;
+  bool appendHasNotWorked = false;
 
   btree = (BTree*)qp->ResultStorage(s).addr;
   relation = (CcRel*)args[0].addr;
@@ -831,16 +878,27 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
     assert(false /* this should not happen */);
   }
   btree->SetTypeAndCreate(dataType);
+  if(!btree->IsInitialized())
+  {
+    return -1;
+  }
+  
   iter = relation->MakeNewScan();
   while(!iter->EndOfScan())
   {
     tuple = iter->GetTuple();
     iter->Next();
 
-    btree->Append((StandardAttribute*)tuple->Get(attrIndex), tuple->GetId());
+    appendHasNotWorked = appendHasNotWorked ||
+      !btree->Append((StandardAttribute*)tuple->Get(attrIndex), tuple->GetId());
     tuple->DeleteIfAllowed();
   }
 
+  if(appendHasNotWorked)
+  {
+    cerr << "Warning, not all tuples could be inserted into btree." << endl;
+  }
+  
   delete iter;
   return 0;
 }
@@ -1062,6 +1120,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if(localInfo->iter == 0)
       {
+        delete localInfo;
         return -1;
       }
 
@@ -1076,6 +1135,14 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         id = localInfo->iter->GetId();
         tuple = localInfo->relation->GetTupleById(id);
+        if(tuple == 0)
+        {
+          cerr << "Could not find tuple for the given tuple id. "
+               << "Maybe the given btree and the given relation "
+               << "do not match." << endl;
+          assert(false);
+        }
+        
         result = SetWord(tuple);
         return YIELD;
       }
