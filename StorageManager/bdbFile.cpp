@@ -8,6 +8,8 @@ September 2002 Ulrich Telle, missing fileId in Open method fixed
 
 February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
 
+April 2003 Ulrich Telle, implemented temporary SmiFiles
+
 */
 
 using namespace std;
@@ -42,23 +44,52 @@ the handle must be capable to survive this SmiFile instance.
 
 */
   isSystemCatalogFile = false;
+  isTemporaryFile = false;
+}
+
+SmiFile::Implementation::Implementation( bool isTemp )
+{
+  bdbHandle = 0;
+  bdbFile   = new Db( SmiEnvironment::Implementation::GetTempEnvironment(), DB_CXX_NO_EXCEPTIONS );
+/*
+The constructor cannot allocate a Berkeley DB handle by itself since handles
+must stay open until the enclosing transaction has been terminated, that is
+the handle must be capable to survive this SmiFile instance.
+
+*/
+  isSystemCatalogFile = false;
+  isTemporaryFile = true;
 }
 
 SmiFile::Implementation::~Implementation()
 {
-  SmiEnvironment::Implementation::FreeDbHandle( bdbHandle );
+  if ( !isTemporaryFile )
+  {
+    SmiEnvironment::Implementation::FreeDbHandle( bdbHandle );
 /*
 The destructor flags the handle as not used any more. After the termination
 of the enclosing transaction the handle will be closed.
 
 */
+  }
+  else
+  {
+    bdbFile->close( 0 );
+  }
 }
 
-SmiFile::SmiFile()
+SmiFile::SmiFile( const bool isTemporary )
   : opened( false ), fileContext( "" ), fileName( "" ), fileId( 0 ),
     fixedRecordLength( 0 ), uniqueKeys( true ), keyDataType( SmiKey::Unknown )
 {
-  impl = new Implementation();
+  if ( !isTemporary )
+  {
+    impl = new Implementation();
+  }
+  else
+  {
+    impl = new Implementation( true );
+  }
 }
 
 SmiFile::~SmiFile()
@@ -93,11 +124,11 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
   if ( CheckName( context ) )
   {
-    fileId = SmiEnvironment::Implementation::GetFileId();
+    fileId = SmiEnvironment::Implementation::GetFileId( impl->isTemporaryFile );
     if ( fileId != 0 )
     {
       string bdbName =
-        SmiEnvironment::Implementation::ConstructFileName( fileId );
+        SmiEnvironment::Implementation::ConstructFileName( fileId, impl->isTemporaryFile );
 
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
@@ -142,7 +173,8 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_CREATE | DB_DIRTY_READ | DB_AUTO_COMMIT, 0 );
+      u_int32_t flags = (!impl->isTemporaryFile) ? DB_CREATE | DB_DIRTY_READ | DB_AUTO_COMMIT : DB_CREATE;
+      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
       {
         SmiDropFilesEntry entry;
@@ -181,7 +213,12 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
   int rc = 0;
   bool existing = false;
 
-  if ( CheckName( context ) && CheckName( name ) )
+  if ( impl->isTemporaryFile )
+  {
+    rc = E_SMI_FILE_ISTEMP;
+    SmiEnvironment::SetError( E_SMI_FILE_ISTEMP );
+  }
+  else if ( CheckName( context ) && CheckName( name ) )
   {
     SmiCatalogEntry entry;
     string newName = context + '.' + name;
@@ -311,7 +348,16 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
   if ( CheckName( context ) )
   {
     SmiCatalogEntry entry;
-    if ( SmiEnvironment::Implementation::LookUpCatalog( fileId, entry ) )
+    if ( impl->isTemporaryFile )
+    {
+      fileContext = context;
+      fileName    = "";
+      if ( fileId != 0 )
+      {
+        this->fileId = fileId;
+      }
+    }
+    else if ( SmiEnvironment::Implementation::LookUpCatalog( fileId, entry ) )
     {
       // --- File found in permanent file catalog
       char* point = strchr( entry.fileName, '.' );
@@ -328,7 +374,7 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
     if ( fileId != 0 && fileContext == context )
     {
       string bdbName =
-        SmiEnvironment::Implementation::ConstructFileName( fileId );
+        SmiEnvironment::Implementation::ConstructFileName( fileId, impl->isTemporaryFile );
 
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
@@ -373,7 +419,8 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_DIRTY_READ | DB_AUTO_COMMIT, 0 );
+      u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ | DB_AUTO_COMMIT : 0;
+      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if ( rc == 0 )
       {
         SmiEnvironment::SetError( E_SMI_OK );
@@ -410,9 +457,17 @@ SmiFile::Close()
     // --- The current Berkeley DB handle is freed, but a new one is
     // --- allocated for possible reuse of this SmiFile instance
     opened = false;
-    SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
-    impl->bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
-    impl->bdbFile   = SmiEnvironment::Implementation::GetDbHandle( impl->bdbHandle );
+    if ( !impl->isTemporaryFile )
+    {
+      SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
+      impl->bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
+      impl->bdbFile   = SmiEnvironment::Implementation::GetDbHandle( impl->bdbHandle );
+    }
+    else
+    {
+      impl->bdbFile->close( 0 );
+      impl->bdbFile = new Db( SmiEnvironment::instance.impl->tmpEnv, DB_CXX_NO_EXCEPTIONS );
+    }
     impl->isSystemCatalogFile = false;
     SmiEnvironment::SetError( E_SMI_OK );
   }
@@ -428,7 +483,7 @@ bool
 SmiFile::Drop()
 {
   bool ok = Close();
-  if ( ok )
+  if ( ok && !impl->isTemporaryFile )
   {
     // --- Register SmiFile for real dropping after 
     // --- successfully committing the enclosing transaction
@@ -436,12 +491,12 @@ SmiFile::Drop()
     dropEntry.fileId = fileId;
     dropEntry.dropOnCommit = true;
     SmiEnvironment::instance.impl->bdbFilesToDrop.push( dropEntry );
-    SmiCatalogFilesEntry catalogEntry;
     
     /* FIXME : commented out because the persistent version 
                does not work otherwise    
     if ( fileName.length() > 0 )
     {
+      SmiCatalogFilesEntry catalogEntry;
       string newName = fileContext + '.' + fileName;
       BdbInitCatalogEntry( catalogEntry.entry );
       catalogEntry.entry.fileId = fileId;

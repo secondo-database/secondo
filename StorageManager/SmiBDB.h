@@ -23,6 +23,8 @@ January 2002 Ulrich Telle
 
 September 2002 Ulrich Telle, introduced flag for abort transaction after deadlock
 
+April 2003 Ulrich Telle, implemented temporary SmiFiles
+
 1.1 Overview
 
 The *Storage Management Interface* provides all types and classes needed
@@ -217,6 +219,7 @@ hiding the implementation from the user of the ~SmiEnvironment~ class.
 class SmiEnvironment::Implementation
 {
  public:
+  static DbEnv* GetTempEnvironment() { return instance.impl->tmpEnv; };
   static DbHandleIndex AllocateDbHandle();
 /*
 Allocates a new "Berkeley DB"[3] handle and returns the index within the handle array.
@@ -237,7 +240,7 @@ Marks the "Berkeley DB"[3] handle at position ~idx~ as *not in use*.
 Closes all handles in the handle array which are not in use anymore.
 
 */
-  static SmiFileId GetFileId();
+  static SmiFileId GetFileId( const bool isTemporary = false );
 /*
 Returns a unique file identifier.
 
@@ -284,7 +287,7 @@ collected during the transaction. The flag ~onCommit~ tells the function
 whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
-  static string ConstructFileName( SmiFileId fileId );
+  static string ConstructFileName( SmiFileId fileId, const bool isTemporary = false );
 /*
 Constructs a valid file name using the file identifier ~fileId~.
 
@@ -311,20 +314,23 @@ catalog. The function returns "true"[4] if the deletion was successful.
   Implementation();
   ~Implementation();
  private:
-  string  bdbHome;         // Home directory
-  u_int32_t minutes;       // Time between checkpoints 
-  DbEnv*  bdbEnv;          // Berkeley DB environment handle
-  bool    envClosed;       // Flag if environment is closed
-  DbTxn*  usrTxn;          // User transaction handle
-  bool    txnStarted;      // User transaction started
-  bool    txnMustAbort;    // Abort transaction after deadlock
-  Db*     bdbDatabases;    // Database Catalog handle
-  Db*     bdbSeq;          // Sequence handle
-  Db*     bdbCatalog;      // Database File Catalog handle
-  Db*     bdbCatalogIndex; // Database Catalog Index handle
+  string    bdbHome;         // Home directory
+  string    tmpHome;         // Temporary environment subdirectory
+  u_int32_t minutes;         // Time between checkpoints 
+  DbEnv*    bdbEnv;          // Berkeley DB environment handle
+  DbEnv*    tmpEnv;          // Temporary environment handle
+  SmiFileId tmpId;           // Temporary file ID
+  bool      envClosed;       // Flag if environment is closed
+  DbTxn*    usrTxn;          // User transaction handle
+  bool      txnStarted;      // User transaction started
+  bool      txnMustAbort;    // Abort transaction after deadlock
+  Db*       bdbDatabases;    // Database Catalog handle
+  Db*       bdbSeq;          // Sequence handle
+  Db*       bdbCatalog;      // Database File Catalog handle
+  Db*       bdbCatalogIndex; // Database Catalog Index handle
 
-  bool    listStarted;
-  Dbc*    listCursor;
+  bool      listStarted;
+  Dbc*      listCursor;
 /*
 Are needed to support listing the names of all existing "Secondo"[3] databases.
 
@@ -355,11 +361,13 @@ class SmiFile::Implementation
   public:
   protected:
     Implementation();
+    Implementation( bool isTemp );
     ~Implementation();
   private:
     DbHandleIndex bdbHandle; // Index in handle array
     Db*           bdbFile;   // Berkeley DB handle
     bool          isSystemCatalogFile;
+    bool          isTemporaryFile;
 /*
 Flags an ~SmiFile~ as a system catalog file. This distinction is needed,
 since transactional read operations on system catalog files could lead 

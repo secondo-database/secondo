@@ -8,6 +8,8 @@ September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for
 
 October 2002 Ulrich Telle, fixed bug causing problems with iterators returning record ids (keyDataType was not set appropriately)
 
+April 2003 Ulrich Telle, implemented temporary SmiFiles
+
 */
 
 using namespace std;
@@ -25,7 +27,9 @@ using namespace std;
 /* --- Implementation of class SmiRecordFile --- */
 
 SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
-                              SmiSize recordLength /* = 0 */ )
+                              SmiSize recordLength /* = 0 */,
+                              const bool isTemporary /* = false */ )
+  : SmiFile( isTemporary )
 {
   opened = false;
   if ( hasFixedLengthRecords )
@@ -58,12 +62,13 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   key.set_data( (void*) &recno );
   key.set_size( sizeof( SmiRecordId ) );
   if ( accessType == SmiFile::Update )
   {
-    rc = impl->bdbFile->get( tid, &key, &data, DB_RMW );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_RMW : 0;
+    rc = impl->bdbFile->get( tid, &key, &data, flags );
   }
   else if ( !impl->isSystemCatalogFile )
   {
@@ -71,7 +76,8 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
   else
   {
-    rc = impl->bdbFile->get( 0, &key, &data, DB_DIRTY_READ );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->get( 0, &key, &data, flags );
   }
   if ( rc == ENOMEM )
   {
@@ -105,7 +111,7 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
                             /* = SmiFile::ReadOnly */ )
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   rc = impl->bdbFile->cursor( tid, &dbc, 0 );
   if ( rc == 0 )
@@ -131,7 +137,7 @@ PrefetchingIterator*
 SmiRecordFile::SelectAllPrefetched()
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
@@ -156,7 +162,7 @@ SmiRecordFile::AppendRecord( SmiRecordId& recno, SmiRecord& record )
   Dbt data( &buffer, 0 );
   data.set_flags( DB_DBT_PARTIAL );
   data.set_dlen( 0 );
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   rc = impl->bdbFile->put( tid, &key, &data, DB_APPEND );
   if ( rc == 0 )
   {
@@ -189,7 +195,7 @@ bool SmiRecordFile::DeleteRecord( SmiRecordId recno )
 {
   int rc = 0;
   Dbt key( &recno, sizeof( recno ) );
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   
   rc = impl->bdbFile->del( tid, &key, 0 );
   if ( rc == 0 )

@@ -478,6 +478,12 @@ Returns the name of a named ~SmiFile~ or an empty string for an anonymous ~SmiFi
 Returns the unique ~SmiFile~ identifier.
 
 */
+  SmiSize GetRecordLength() { return fixedRecordLength; }
+
+/*
+Returns the length of fixed Records. In the case of variable record length 0 is returned.
+*/
+
   bool   IsOpen();
 /*
 Returns whether the ~SmiFile~ handle is open and can be used to access the
@@ -486,6 +492,7 @@ records of the ~SmiFile~.
 */
  protected:
   SmiFile();
+  SmiFile( const bool isTemporary );
   SmiFile( SmiFile &smiFile );
   ~SmiFile();
   bool CheckName( const string& name );
@@ -888,7 +895,8 @@ class SMI_EXPORT SmiRecordFile : public SmiFile
 {
  public:
   SmiRecordFile( const bool hasFixedLengthRecords,
-                 const SmiSize recordLength = 0 );
+                 const SmiSize recordLength = 0,
+                 const bool isTemporary = false );
 /*
 Creates a handle for an ~SmiRecordFile~. The handle is associated with an
 ~SmiFile~ by means of the ~Create~ or ~Open~ method.
@@ -961,7 +969,8 @@ class SMI_EXPORT SmiKeyedFile : public SmiFile
 {
  public:
   SmiKeyedFile( const SmiKey::KeyDataType keyType,
-                const bool hasUniqueKeys = true );
+                const bool hasUniqueKeys = true,
+                const bool isTemporary = false );
 /*
 Creates a ~SmiFile~ handle for keyed access. The keys have to be of the
 specified type ~keyType~. If ~hasUniqueKeys~ is true, then for each key

@@ -8,6 +8,8 @@ September 2002 Ulrich Telle, abort transaction after deadlock
 
 February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
 
+April 2003 Ulrich Telle, implemented temporary SmiFiles
+
 */
 
 using namespace std;
@@ -27,6 +29,13 @@ using namespace std;
 #include "SmiCodes.h"
 #include "Profiles.h"
 #include "FileSystem.h"
+
+#ifndef SECONDO_WIN32
+#include <libgen.h>
+#include <unistd.h>
+#else
+#include <windows.h>
+#endif
 
 /* --- Prototypes of internal functions --- */
 
@@ -48,11 +57,12 @@ string         SmiEnvironment::registrar;
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
 SmiEnvironment::Implementation::Implementation()
-  : bdbHome( "" ), envClosed( false ),
+  : bdbHome( "" ), tmpHome( "" ), tmpId( 0 ), envClosed( false ),
     usrTxn( 0 ), txnStarted( false ), txnMustAbort( false ),
     bdbDatabases( 0 ), bdbSeq( 0 ), bdbCatalog( 0 ), bdbCatalogIndex( 0 )
 {
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
+  tmpEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
   dbHandles.reserve( DEFAULT_DBHANDLE_ALLOCATION_COUNT );
   SmiDbHandleEntry dummy = { 0, false, 0 };
   dbHandles.push_back( dummy );
@@ -65,8 +75,10 @@ SmiEnvironment::Implementation::~Implementation()
   {
     CloseDbHandles();
     bdbEnv->close( 0 );
+    tmpEnv->close( 0 );
   }
   delete bdbEnv;
+  delete tmpEnv;
 }
 
 DbHandleIndex
@@ -130,9 +142,15 @@ SmiEnvironment::Implementation::CloseDbHandles()
 }
 
 SmiFileId 
-SmiEnvironment::Implementation::GetFileId()
+SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 {
   SmiFileId newFileId = 0;
+
+  if ( isTemporary )
+  {
+    return (newFileId = ++instance.impl->tmpId);
+  }
+
 
   if ( !dbOpened )
   {
@@ -591,11 +609,18 @@ SmiEnvironment::ListDatabases( string& dbname )
 }
 
 string
-SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId )
+SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId, const bool isTemporary )
 {
   ostringstream os;
 //  os << database << PATH_SLASH << "d" << setw(10) << setfill('_') << fileId << ".sdb";
-  os << database << PATH_SLASH << "d" << fileId << ".sdb";
+  if ( !isTemporary )
+  {
+    os << database << PATH_SLASH << "d" << fileId << ".sdb";
+  }
+  else
+  {
+    os << "t" << fileId << ".sdb";
+  }
   return (os.str());
 }
 
@@ -697,6 +722,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   int rc = 0;
   DbEnv* dbenv = instance.impl->bdbEnv;
+  DbEnv* dbtmp = instance.impl->tmpEnv;
 
   configFile = parmFile;
 
@@ -709,6 +735,8 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   dbenv->set_error_stream( &errStream );
   dbenv->set_errpfx( "SecondoSMI" );
+  dbtmp->set_error_stream( &errStream );
+  dbtmp->set_errpfx( "TemporarySMI" );
 
   // --- Set time between checkpoints
 
@@ -838,6 +866,26 @@ Transactions, logging and locking are enabled.
     }
   }
 
+  // --- Create temporary Berkeley DB environment
+
+  if ( rc == 0 )
+  {
+    string oldHome = FileSystem::GetCurrentFolder();
+    FileSystem::SetCurrentFolder( instance.impl->bdbHome );
+    ostringstream tmpHome;
+#ifndef SECONDO_WIN32
+    tmpHome << "0tmp" << getpid();
+#else
+    tmpHome << "0tmp" << ::GetCurrentProcessId();
+#endif
+    instance.impl->tmpHome = tmpHome.str();
+    FileSystem::CreateFolder( tmpHome.str() );
+    string bdbTmpHome = instance.impl->bdbHome + PATH_SLASH + tmpHome.str();
+    rc = dbtmp->open( bdbTmpHome.c_str(),
+                      DB_PRIVATE | DB_INIT_MPOOL | DB_CREATE, 0 );
+    FileSystem::SetCurrentFolder( oldHome );
+  }
+
   // --- Check error condition
 
   if ( rc == 0 )
@@ -864,6 +912,7 @@ SmiEnvironment::ShutDown()
 
   int rc = 0;
   DbEnv* dbenv  = instance.impl->bdbEnv;
+  DbEnv* dbtmp  = instance.impl->tmpEnv;
   Db*    dbctlg = instance.impl->bdbDatabases;
 
   // --- Close current database, if opened
@@ -882,6 +931,17 @@ SmiEnvironment::ShutDown()
     delete dbctlg;
     instance.impl->bdbDatabases = 0;
   }
+
+  // --- Close and destroy temporary environment
+
+  rc = dbtmp->close( 0 );
+  string oldHome = FileSystem::GetCurrentFolder();
+  FileSystem::SetCurrentFolder( instance.impl->bdbHome );
+  FileSystem::EraseFolder( instance.impl->tmpHome );
+  FileSystem::SetCurrentFolder( oldHome );
+
+  // --- Close Berkeley DB environment
+
   rc = dbenv->close( 0 );
   instance.impl->envClosed = true;
   smiStarted = false;

@@ -6,6 +6,8 @@ April 2002 Ulrich Telle
 
 September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for system catalog files
 
+April 2003 Ulrich Telle, implemented temporary SmiFiles
+
 */
 
 using namespace std;
@@ -23,7 +25,9 @@ using namespace std;
 /* --- Implementation of class SmiKeyedFile --- */
 
 SmiKeyedFile::SmiKeyedFile( const SmiKey::KeyDataType keyType,
-                            const bool hasUniqueKeys /* = true */ )
+                            const bool hasUniqueKeys /* = true */,
+                            const bool isTemporary /* = false */ )
+  : SmiFile( isTemporary )
 {
   fileType    = Keyed;
   keyDataType = keyType;
@@ -41,7 +45,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
                               /* = SmiFile::ReadOnly */ )
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -49,7 +53,8 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
   {
@@ -83,10 +88,11 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   if ( uniqueKeys && accessType == SmiFile::Update )
   {
-    rc = impl->bdbFile->get( tid, &bdbKey, &data, DB_RMW );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_RMW : 0;
+    rc = impl->bdbFile->get( tid, &bdbKey, &data, flags );
   }
   else if ( !impl->isSystemCatalogFile )
   {
@@ -94,7 +100,8 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    rc = impl->bdbFile->get( 0, &bdbKey, &data, DB_DIRTY_READ );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->get( 0, &bdbKey, &data, flags );
   }
   if ( rc == ENOMEM )
   {
@@ -131,7 +138,7 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
                            const bool reportDuplicates /* = false */ )
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -139,6 +146,7 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
   }
   else
   {
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
   }
   if ( rc == 0 )
@@ -165,7 +173,7 @@ PrefetchingIterator*
 SmiKeyedFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
@@ -191,7 +199,7 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
                                const bool reportDuplicates /* = false */ )
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -199,7 +207,8 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
   {
@@ -226,7 +235,7 @@ PrefetchingIterator*
 SmiKeyedFile::SelectLeftRangePrefetched(const SmiKey& toKey)
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
@@ -252,7 +261,7 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
                                 const bool reportDuplicates /* = false */ )
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -260,7 +269,8 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
   {
@@ -287,7 +297,7 @@ PrefetchingIterator*
 SmiKeyedFile::SelectRightRangePrefetched(const SmiKey& fromKey)
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
@@ -311,7 +321,7 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
                          const bool reportDuplicates /* = false */ )
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -319,7 +329,8 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
+    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
   {
@@ -345,7 +356,7 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
 PrefetchingIterator* SmiKeyedFile::SelectAllPrefetched()
 {
   int rc;
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
@@ -369,7 +380,7 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   Dbt bdbKey( (void*) key.GetAddr(), key.keyLength );
   Dbt data( &buffer, 0 );
   data.set_dlen( 0 );
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
   Dbc* dbc;
 
   if ( uniqueKeys )
@@ -430,7 +441,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key )
 {
   int rc = 0;
   Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
-  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
 
   rc = impl->bdbFile->del( tid, &bdbKey, 0 );
   if ( rc == 0 )
