@@ -8,6 +8,9 @@ August 2003 M. Spiekermann, Constructor changed.
 
 June 2004 M. Spiekermann, Operator [] changed.
 
+August 2004 M. Spiekermann. Static variables in Operator [] caused a strange bug 
+since its not possible to reinitialize them new private class members have been
+introduced.
 
 Note: Since debugging of template classes is complicated, many instructions for
 printing information at the display are included in this code. Comment it out if you need
@@ -23,6 +26,12 @@ this for bug-fixing.
 
 */
 
+#include <assert.h>
+#include <sstream>
+#include <iostream>
+#include <string>
+#include <typeinfo>
+
 #include "WinUnix.h"
 
 
@@ -32,6 +41,8 @@ CTable<T>::CTable(  Cardinal const count ) :
  setFALSE(false),
  setTRUE(true),
  dummyElem(new T()),
+ lastAccessedElem(*dummyElem),
+ lastAccessedIndex(0),
  isPersistent(true),
  elemCount(0), 
  leastFree(1),  
@@ -65,7 +76,7 @@ template<typename T>
 void
 CTable<T>::TotalMemory( Cardinal &mem, 
                         Cardinal &pageChanges, 
-			Cardinal &slotAccess  ) 
+			                  Cardinal &slotAccess  ) 
 {  
   mem = (Cardinal)(slotSize * elemCount);
   pageChanges = table->PageChanges(); 
@@ -145,17 +156,14 @@ template<typename T>
 const T&
 CTable<T>::operator[]( Cardinal n ) {
 
-  static Cardinal lastIndex = 0;
-  static T elem;
-
   if ( OutOfRange(n) ) { assert( 0 ); }
 
-  if ( lastIndex != n ) { // check if call of Get() is necessary
-    table->Get(n-1, elem);
-    lastIndex = n;
+  if ( lastAccessedIndex != n ) { // check if call of Get() is necessary
+    table->Get(n-1, lastAccessedElem);
+    lastAccessedIndex = n;
   }
 
-  return elem;
+  return lastAccessedElem;
 }
 
 
@@ -203,6 +211,8 @@ CTable<T>::EmptySlot() {
   }
   
   last = leastFree;
+	//cout << "CTable<" << typeid(T).name() << ">::EmptySlot last=" << last << endl;
+	
   return last;
 }
 
@@ -224,6 +234,8 @@ template<typename T>
 
 void
 CTable<T>::Remove( Cardinal const index ) {
+
+  cerr << "CTable::Remove called!" << endl;
 
   if ( OutOfRange(index) ) { assert( 0 ); }
  

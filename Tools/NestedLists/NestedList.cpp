@@ -58,6 +58,7 @@ only 48 bytes of text atoms are displayed on screen now.
 
 July 2004, M. Spiekermann. A big constant was replaced by UINT\_MAX and PD syntax corrected.
 
+August 2004, M. Spiekermann. A char pointer in ~StringSymbolValue~ has been changed to an array of char.
 
 1 Introduction
 
@@ -130,7 +131,6 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardin
    assert( sizeof(long) == 4  );
    assert( sizeof(short) == 2 ); 
    
-//   intTable = 0;
    stringTable = 0;
    nodeTable = 0;
    textTable = 0;
@@ -148,10 +148,12 @@ NestedList::DeleteListMemory()
 {
    if (stringTable && nodeTable && textTable) {
 
-//     delete intTable; intTable = 0;
-     delete stringTable; stringTable = 0;
-     delete nodeTable; nodeTable = 0;
-     delete textTable; textTable = 0;
+     delete stringTable; 
+		 stringTable = 0;
+     delete nodeTable; 
+		 nodeTable = 0;
+     delete textTable; 
+		 textTable = 0;
    }
 }
 
@@ -164,7 +166,6 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
    DeleteListMemory();
 
    nodeTable   = new CTable<NodeRecord>(NodeEntries);
-   //intTable    = new CTable<Constant>(ConstEntries);
    stringTable = new CTable<StringRecord>(StringEntries);
    textTable   = new CTable<TextRecord>(TextEntries);
 }
@@ -1929,8 +1930,10 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
   while ( strLen > appendedChars ) {
   
     unsigned char n = strLen - appendedChars;
-    if (n >  StringFragmentSize)
+		
+    if ( n >  StringFragmentSize ) {
       n = StringFragmentSize;
+		}	
 
     value.copy( strRec.field, n, appendedChars );
     appendedChars += n;
@@ -1943,7 +1946,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
       strRec.next = index;
       stringTable->Put(pred, strRec);     
       stringTable->Get(index, strRec);
-     
+			     
     } else { // last fragment
     
       strRec.next = 0;
@@ -2170,7 +2173,6 @@ NestedList::StringSymbolValue( const ListExpr atom )
 
   const NodeRecord& atomRef = (*nodeTable)[atom];
   static char buffer[MAX_STRINGSIZE + 1];
-  char* bufPtr = buffer;
 
   const unsigned char strLen = atomRef.strLength;
   assert( strLen <= MAX_STRINGSIZE );
@@ -2178,7 +2180,7 @@ NestedList::StringSymbolValue( const ListExpr atom )
   if ( atomRef.inLine == 1 ) { // copy chars out of node record
   
     assert(strLen <= STRING_INTERNAL_SIZE);
-    memcpy( bufPtr, atomRef.s.field, strLen );
+    memcpy( buffer, atomRef.s.field, strLen );
 
   } else { // copy chars from string table
   
@@ -2188,14 +2190,17 @@ NestedList::StringSymbolValue( const ListExpr atom )
     
       unsigned char n = strLen - appendedChars;
       if (n >  StringFragmentSize)
-	n = StringFragmentSize;
+      n = StringFragmentSize;
       
-      memcpy( bufPtr, (*stringTable)[index].field, n );
-      bufPtr += n;   
+      memcpy( &(buffer[appendedChars]), (*stringTable)[index].field, n );
       appendedChars += n;
       index = (*stringTable)[index].next;  
     }
-    assert( strLen == appendedChars );
+    if( strLen != appendedChars ) {
+		  cerr << "strlen: " << (unsigned int) strLen 
+			     << ", appendedChars: " << (unsigned int) appendedChars << endl;
+			assert( false );
+		};
   }
   
   buffer[strLen]='\0';

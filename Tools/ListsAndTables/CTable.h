@@ -546,6 +546,8 @@ private:
   bool setFALSE;     // Reference Values needed for the 
   bool setTRUE;      // PArray.Put(int index, T& elem) method
   T* dummyElem;
+	T lastAccessedElem;          // For speed up of []operator implementation
+	Cardinal lastAccessedIndex;
 
   PagedArray<T>* table;        // Array of table elements
   PagedArray<bool>* valid;     // Array of table element states
