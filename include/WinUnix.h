@@ -8,6 +8,7 @@ calls to different Win32 or Unix/Linux libraries, thus all system
 dependent code should be isolated in this class.
 
 */
+
 #ifndef CLASS_WINUNIX_H
 #define CLASS_WINUNIX_H
 
