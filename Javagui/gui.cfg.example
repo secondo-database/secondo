@@ -47,3 +47,7 @@ LIST_FONTSIZE 12
 # client server communication
 # ensure to have the same setting in SecondoConfig.ini
 USE_BINARY_LISTS false
+
+# the maximal string length for string atoms in nested lists
+# ensure to have the value used in SECONDO
+MAX_STRING_LENGTH 48
