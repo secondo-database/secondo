@@ -356,7 +356,7 @@ operator and also for one calling a parameter function.
 const string intstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" ) "
                              "( <text>(int int) -> (stream int)</text--->"
-			    "<text>intstream ( _ , _ ) [ fun ]</text--->"
+			    "<text>intstream ( _ , _ )</text--->"
 			    "<text>Creates a stream of integers containing "
 			    "the numbers between the first and the second "
 			    "argument.</text--->"
