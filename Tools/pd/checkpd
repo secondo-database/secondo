@@ -1,5 +1,9 @@
 # !/bin/sh
 # Script for checking of correctness with respect to pd and latex
+#
+#
+MAXLINES=80
+
 ARGS=$*
 if [ -z "$ARGS" ]
 then
@@ -21,7 +25,7 @@ if [ ! -d "$TEMPDIR"  ]; then
    mkdir "$TEMPDIR"
    if [ $? -ne 0 ]; then
      echo "cannot create temp directory"
-     exit 2
+     exit -1
    fi
    EXIST=FALSE
 else
@@ -32,6 +36,7 @@ cd "$TEMPDIR"
 
 PROCESSED=0
 FAILED=0
+WARNINGS=0
 
 for F in $MYFILES
 do
@@ -52,6 +57,13 @@ do
      if [ $? -ne 0 ]; then
         echo -e "LaTex Error in \"$F\"\n"
         FAILED=$(expr "$FAILED" + 1)
+     else
+        linecheck "$MAXLINES" $F >/dev/null
+        CL="$?"
+        if [ "$CL" -ne 0 ]; then
+           echo -e "Warning: $CL lines too long in \"$F\""
+           WARNINGS=$(expr "$WARNINGS" + 1)
+        fi
      fi
      rm -f $TEMPDIR/*.dvi $TEMPDIR/*.log $TEMPDIR/*.aux $TEMPDIR/*.tmp $TEMPDIR/*.toc $TEMPDIR/tmp.tex
    fi
@@ -62,8 +74,11 @@ if [ "$EXIST" = "FALSE" ]; then
   rmdir  --ignore-fail-on-non-empty "$TEMPDIR"
 fi
 
-SUCCESS=$(expr "$PROCESSED" - "$FAILED")
+SUCCESS=$(expr "$PROCESSED" - "$FAILED" - "$WARNINGS")
 echo "Statistic:"
 echo "processed files : $PROCESSED"
 echo "files ok        : $SUCCESS"
+echo "warnings        : $WARNINGS"
 echo "files failed    : $FAILED"
+
+exit "$FAILED"
