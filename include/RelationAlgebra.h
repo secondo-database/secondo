@@ -18,17 +18,17 @@ The type system of the Relational Algebra can be seen below.
 
 \begin{displaymath}
 \begin{array}{lll}
-& \to \textrm{DATA} & {\underline{\smash{\mathit{int}}}}, {\underline{\smash{\mathit{real}}}}, 
+& \to \textrm{DATA} & {\underline{\smash{\mathit{int}}}}, {\underline{\smash{\mathit{real}}}},
 	{\underline{\smash{\mathit{bool}}}}, {\underline{\smash{\mathit{string}}}} \\
-({\underline{\smash{\mathit{ident}}}} \times \textrm{DATA})^{+} & \to \textrm{TUPLE} & 
+({\underline{\smash{\mathit{ident}}}} \times \textrm{DATA})^{+} & \to \textrm{TUPLE} &
 	{\underline{\smash{\mathit{tuple}}}} \\
 \textrm{TUPLE} & \to \textrm{REL} & {\underline{\smash{\mathit{rel}}}}
 \end{array}
 \end{displaymath}
 
-The DATA kind should be incremented with more complex data types such as, for example, 
-${\underline{\smash{\mathit{point}}}}$, ${\underline{\smash{\mathit{points}}}}$, 
-${\underline{\smash{\mathit{line}}}}$, and ${\underline{\smash{\mathit{region}}}}$ 
+The DATA kind should be incremented with more complex data types such as, for example,
+${\underline{\smash{\mathit{point}}}}$, ${\underline{\smash{\mathit{points}}}}$,
+${\underline{\smash{\mathit{line}}}}$, and ${\underline{\smash{\mathit{region}}}}$
 of the ROSE Algebra.
 
 As an example, a relation cities should be described as
@@ -37,7 +37,7 @@ As an example, a relation cities should be described as
 {\underline{\smash{\mathit{rel}}}}
   ({\underline{\smash{\mathit{tuple}}}}
     (<
-      (\textrm{name}, {\underline{\smash{\mathit{string}}}}), 
+      (\textrm{name}, {\underline{\smash{\mathit{string}}}}),
       (\textrm{country}, {\underline{\smash{\mathit{string}}}}),
       (\textrm{pop}, {\underline{\smash{\mathit{int}}}}),
       (\textrm{pos}, {\underline{\smash{\mathit{point}}}})
@@ -45,9 +45,9 @@ As an example, a relation cities should be described as
   )
 \end{displaymath}
 
-This file will contain an interface of the memory representation structures (~classes~) for these 
+This file will contain an interface of the memory representation structures (~classes~) for these
 two type constructors, namely ~Tuple~ and ~Relation~, and some additional ones that will be needed
-for the Relational Algebra, namely ~TupleId~, ~RelationIterator~, ~TupleType~, ~Attribute~ 
+for the Relational Algebra, namely ~TupleId~, ~RelationIterator~, ~TupleType~, ~Attribute~
 (which is defined inside the file Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 It is intended to have two implementation of these classes, one with a persistent representation and
@@ -55,7 +55,7 @@ another with a main memory representation. We will call these two Persistent Rel
 Main Memory Relational Algebra, respectively. This can be seen in the architecture of the Relational
 Algebra implementation figure below.
 
-                Figure 1: Relational Algebra implementation architecture. [RelationAlgebraArchitecture.eps] 
+                Figure 1: Relational Algebra implementation architecture. [RelationAlgebraArchitecture.eps]
 
 2 Defines, includes, and constants
 
@@ -73,7 +73,7 @@ Algebra implementation figure below.
 
 3.1 Struct ~TupleId~
 
-This class will implement the unique identification for tuples inside a relation. 
+This class will implement the unique identification for tuples inside a relation.
 
 */
 struct TupleId;
@@ -82,18 +82,18 @@ struct TupleId;
 3.2 Class ~Attribute~
 
 This abstract class ~Attribute~ is inside the file Attribute.h and contains a set
-of functions necessary to the management of attributes. All type constructors of the 
+of functions necessary to the management of attributes. All type constructors of the
 kind DATA must be a sub-class of ~Attribute~.
 
 3.3 Struct ~AttributeType~
 
-This ~AttributeType~ struct implements the type of each attribute inside a tuple. 
-To identify a data type in the Secondo system the ~algebraId~ and the ~typeId~ 
-are necessary. The size of the attribute is also necessary to previously know 
+This ~AttributeType~ struct implements the type of each attribute inside a tuple.
+To identify a data type in the Secondo system the ~algebraId~ and the ~typeId~
+are necessary. The size of the attribute is also necessary to previously know
 how much space will be necessary to store an instance of such attribute's data type.
 
 */
-struct AttributeType 
+struct AttributeType
 {
   AttributeType()
     {}
@@ -134,18 +134,18 @@ A ~TupleType~ is a collection (an array) of all attribute types (~AttributeType~
 of the tuple. This structure contains the metadata of a tuple attributes.
 
 */
-class TupleType 
+class TupleType
 {
   public:
     TupleType( const ListExpr typeInfo );
 /*
-The first constructor. Creates a tuple type from a ~typeInfo~ list expression. It sets 
+The first constructor. Creates a tuple type from a ~typeInfo~ list expression. It sets
 all member variables, including the total size.
 
 */
     TupleType( const TupleType& tupleType );
 /*
-The second constructor. Creates a tuple type which is a copy of ~tupleType~. 
+The second constructor. Creates a tuple type which is a copy of ~tupleType~.
 
 */
     ~TupleType();
@@ -179,7 +179,7 @@ Puts the attribute type ~attrType~ in the position ~index~.
 /*
 A private constructor that receives directly the array of tuple attributes. It
 needs to set the ~totalSize~ attribute.
-   
+
 */
     int noAttributes;
 /*
@@ -207,7 +207,7 @@ This class implements the memory representation of the type constructor ~tuple~.
 struct PrivateTuple;
 /*
 Forward declaration of the struct ~PrivateTuple~. This struct will contain the
-private attributes of the class ~Tuple~ and will be defined later differently 
+private attributes of the class ~Tuple~ and will be defined later differently
 for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
 
 */
@@ -224,7 +224,7 @@ as argument.
 */
     Tuple( const ListExpr typeInfo, const bool isFree = false );
 /*
-A similar constructor as the above, unless that it takes a list expression ~typeInfo~ 
+A similar constructor as the above, unless that it takes a list expression ~typeInfo~
 and first convert it to a ~TupleType~.
 
 */
@@ -258,7 +258,7 @@ Returns the unique ~id~ of the tuple.
 */
     void SetTupleId( const TupleId& tupleId );
 /*
-Sets the tuple unique ~id~ of the tuple. This function is necessary because at the 
+Sets the tuple unique ~id~ of the tuple. This function is necessary because at the
 construction time, the tuple does not know its id.
 
 */
@@ -295,7 +295,7 @@ Create a new tuple which is a clone of this tuple.
 */
     Tuple *CloneIfNecessary();
 /*
-Calls the ~Clone~ function if the flag if it is necessary. 
+Calls the ~Clone~ function if the flag if it is necessary.
 *Need some more explanations about whether it is necessary or not.*
 
 */
@@ -358,7 +358,7 @@ This operator compares two tuples ~a~ and ~b~.
 /*
 3.7 Class ~LexicographicalTupleCompare~
 
-This is a specialization of the abstract class ~TupleCompare~ which 
+This is a specialization of the abstract class ~TupleCompare~ which
 compares tuples by their lexicographical order.
 
 */
@@ -366,6 +366,29 @@ class LexicographicalTupleCompare : public TupleCompare
 {
   public:
     bool operator()(const Tuple* aConst, const Tuple* bConst) const;
+};
+
+/*
+3.8 Class ~TupleCompareBy~
+
+This is a specialization of the abstract class ~TupleCompare~ which
+compares tuples by attributes passed in the ~SortOrderSpecification~,
+which is a vector of pairs containing the index of the attribute and
+a bool flag telling if the ordering is ascendant or not (descendant).
+
+*/
+typedef vector< pair<int, bool> > SortOrderSpecification;
+
+class TupleCompareBy : public TupleCompare
+{
+  public:
+    TupleCompareBy( const SortOrderSpecification &spec ):
+      spec( spec )
+      {}
+
+    bool operator()(const Tuple* aConst, const Tuple* bConst) const;
+  private:
+    SortOrderSpecification spec;
 };
 
 /*
@@ -387,7 +410,7 @@ the necessary information for opening a relation.
 struct PrivateRelation;
 /*
 Forward declaration of the struct ~PrivateRelation~. This struct will contain the
-private attributes of the class ~Relation~ and will be defined later differently 
+private attributes of the class ~Relation~ and will be defined later differently
 for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
 
 */
@@ -414,9 +437,16 @@ The second constructor. It creates an empty relation from a ~tupleType~. The fla
 can be used to create temporary relations.
 
 */
-    Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc );
+    Relation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary = false );
 /*
-The third constructor. It opens a previously created relation.
+The third constructor. It opens a previously created relation. The flag ~isTemporary~
+can be used to open temporary created relations.
+
+*/
+    Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary = false );
+/*
+The fourth constructor. It opens a previously created relation using the ~typeInfo~ instead of
+the ~tupleType~. The flag ~isTemporary~ can be used to open temporary created relations.
 
 */
     static Relation *In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
@@ -519,7 +549,7 @@ This class is used for scanning (iterating through) relations.
 struct PrivateRelationIterator;
 /*
 Forward declaration of the struct ~PrivateRelationIterator~. This struct will contain the
-private attributes of the class ~RelationIterator~ and will be defined later differently 
+private attributes of the class ~RelationIterator~ and will be defined later differently
 for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
 
 */
@@ -541,19 +571,19 @@ The destructor.
 */
 //    Tuple *GetTuple();
 /*
-Retrieves the tuple in the current position of the iterator. Returns NULL if the cursor 
+Retrieves the tuple in the current position of the iterator. Returns NULL if the cursor
 is in the end of a relation.
 
 */
     Tuple *GetNextTuple();
 /*
-Retrieves the tuple in the current position of the iterator and moves the cursor forward 
+Retrieves the tuple in the current position of the iterator and moves the cursor forward
 to the next tuple. Returns NULL if the cursor is in the end of a relation.
 
 */
 //    void Next();
 /*
-Moves the cursor forward to the next tuple. 
+Moves the cursor forward to the next tuple.
 
 */
     const bool EndOfScan();

@@ -31,44 +31,7 @@ This operator sorts a stream of tuples by a given list of attributes.
 For each attribute it must be specified wether the list should be sorted
 in ascending (asc) or descending (desc) order with regard to that attribute.
 
-2.1.1 Auxiliary definitions for value mapping function of operators ~sort~ and ~sortby~
-
-*/
-typedef vector< pair<int, bool> > SortOrderSpecification;
-
-class TupleCmp : public TupleCompare
-{
-public:
-  SortOrderSpecification spec;
-  bool operator()(const Tuple* aConst, const Tuple* bConst) const
-  {
-    Tuple* a = (Tuple*)aConst;
-    Tuple* b = (Tuple*)bConst;
-
-    SortOrderSpecification::const_iterator iter = spec.begin();
-    while(iter != spec.end())
-    {
-      if(((Attribute*)a->GetAttribute(iter->first - 1))->
-        Compare(((Attribute*)b->GetAttribute(iter->first - 1))) < 0)
-      {
-        return iter->second;
-      }
-      else
-      {
-        if(((Attribute*)a->GetAttribute(iter->first - 1))->
-          Compare(((Attribute*)b->GetAttribute(iter->first - 1))) > 0)
-        {
-          return !(iter->second);
-        }
-      }
-      iter++;
-    }
-    return false;
-  }
-};
-
-/*
-2.1.2 Value mapping function of operator ~sortBy~
+2.1.1 Value mapping function of operator ~sortBy~
 
 The argument vector ~args~ contains in the first slot ~args[0]~ the stream and
 in ~args[2]~ the number of sort attributes. ~args[3]~ contains the index of the first
@@ -126,7 +89,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-	if(requestArgs)
+	    if(requestArgs)
         {
           qp->Request(args[2].addr, intWord);
         }
@@ -137,7 +100,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         nSortAttrs = (int)((StandardAttribute*)intWord.addr)->GetValue();
         for(i = 1; i <= nSortAttrs; i++)
         {
-	  if(requestArgs)
+	      if(requestArgs)
           {
             qp->Request(args[2 * i + 1].addr, intWord);
           }
@@ -619,7 +582,7 @@ private:
   void ClearBucketsB()
   {
     vector< vector<Tuple*> >::iterator iterBuckets = bucketsB.begin();
- 
+
     while(iterBuckets != bucketsB.end() )
     {
       vector<Tuple*>::iterator iter = (*iterBuckets).begin();
@@ -634,7 +597,7 @@ private:
 
 public:
   HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
-    Word streamB, Word attrIndexBWord, Word nBucketsWord, 
+    Word streamB, Word attrIndexBWord, Word nBucketsWord,
     Supplier s)
   {
     this->streamA = streamA;
@@ -687,7 +650,7 @@ public:
     assert( tupleA.addr != 0 );
     Tuple *result;
 
-    while( !endquery ) 
+    while( !endquery )
     {
       while( iterTuplesBucketB != bucketsB[hashA].end() )
       {

@@ -56,7 +56,7 @@ extern NestedList *nl;
 3.1 Class ~TupleId~
 
 This class implements the unique identification for tuples inside a relation. Once a relation
-is persistent in an ~SmiFile~ and each tuple is stored in a different ~SmiRecord~ of this file, 
+is persistent in an ~SmiFile~ and each tuple is stored in a different ~SmiRecord~ of this file,
 the ~SmiRecordId~ will be this identification.
 
 */
@@ -171,7 +171,7 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
       for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
         delete attributes[i];
     }
-    else 
+    else
     {
       free( memoryTuple );
       if( extensionTuple != 0 )
@@ -186,7 +186,7 @@ The destructor.
 */
   const bool Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile );
 /*
-Saves a fresh tuple into ~tuplefile~ and ~lobfile~. 
+Saves a fresh tuple into ~tuplefile~ and ~lobfile~.
 
 */
   const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
@@ -198,13 +198,13 @@ Opens a solid tuple from ~tuplefile~(~rid~) and ~lobfile~.
   const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
                    PrefetchingIterator *iter );
 /*
-Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading the current record of ~iter~. 
+Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading the current record of ~iter~.
 
 */
   const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
                    SmiRecord *record );
 /*
-Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading from ~record~. 
+Opens a solid tuple from ~tuplefile~ and ~lobfile~ reading from ~record~.
 
 */
 
@@ -263,7 +263,7 @@ Stores the extension (small FLOBs) in memory.
 
 const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
 {
-  assert( state == Fresh && 
+  assert( state == Fresh &&
           lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
           memoryTuple == 0 && extensionTuple == 0 );
 
@@ -273,28 +273,28 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
 
   // Calculate the size of FLOB data
   int extensionSize = 0;
-  for( int i = 0; i < tupleType.GetNoAttributes(); i++) 
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++)
   {
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) 
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
       attributes[i]->SaveFLOB(j, lobFile);
-      if( !tmpFLOB->IsLob() ) 
+      if( !tmpFLOB->IsLob() )
         extensionSize += tmpFLOB->GetSize();
     }
   }
 
   // Move FLOB data to extension tuple
-  if( extensionSize > 0 ) 
+  if( extensionSize > 0 )
   {
     extensionTuple = (char *)malloc(extensionSize);
     char *extensionPtr = extensionTuple;
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++) 
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
     {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) 
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
         FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        if( !tmpFLOB->IsLob() ) 
+        if( !tmpFLOB->IsLob() )
         {
           tmpFLOB->Get(0, tmpFLOB->GetSize(), extensionPtr);
           extensionPtr += tmpFLOB->GetSize();
@@ -306,7 +306,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   // Move external attributes to memory tuple
   memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
   int offset = 0;
-  for( int i = 0; i < tupleType.GetNoAttributes(); i++) 
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++)
   {
     memcpy( &memoryTuple[offset], attributes[i]->GetRootRecord(), tupleType.GetAttributeType(i).size );
     offset += tupleType.GetAttributeType(i).size;
@@ -315,7 +315,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   bool rc = tupleFile->AppendRecord( tupleId.value, *tupleRecord );
   rc = tupleRecord->Write( &extensionSize, sizeof(int), 0) && rc;
   rc = tupleRecord->Write( memoryTuple, tupleType.GetTotalSize(), sizeof(int)) && rc;
-  if( extensionSize > 0 ) 
+  if( extensionSize > 0 )
     rc = tupleRecord->Write( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && rc;
 
   state = Solid;
@@ -323,7 +323,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   if( extensionSize > 0 )
   {
     free( extensionTuple ); extensionTuple = 0;
-  }  
+  }
   free( memoryTuple ); memoryTuple = 0;
 
   return rc;
@@ -331,7 +331,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
 
 const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile, SmiRecordId rid )
 {
-  assert( state == Fresh && 
+  assert( state == Fresh &&
           lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
           memoryTuple == 0 && extensionTuple == 0 );
 
@@ -344,7 +344,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
 
   // read tuple header and memory tuple from disk
   bool ok = tupleFile->SelectRecord( tupleId.value, *tupleRecord );
-  if( !ok ) 
+  if( !ok )
   {
     tupleId = 0;
     delete tupleRecord;
@@ -359,7 +359,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
   ok = tupleRecord->Read( memoryTuple, tupleType.GetTotalSize(), sizeof(int) ) && ok;
 
-  if( !ok ) 
+  if( !ok )
   {
     tupleId = 0;
     delete tupleRecord;
@@ -372,7 +372,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
 
   // Read attribute values from memoryTuple.
   char *valuePtr = memoryTuple;
-  for( int i = 0; i < tupleType.GetNoAttributes(); i++ ) 
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
   {
     int algId = tupleType.GetAttributeType(i).algId;
     int typeId = tupleType.GetAttributeType(i).typeId;
@@ -381,11 +381,11 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   }
 
   // move FLOB data to extension tuple if exists.
-  if( extensionSize > 0 ) 
+  if( extensionSize > 0 )
   {
     extensionTuple = (char *)malloc( extensionSize );
     ok = tupleRecord->Read( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && ok;
-    if( !ok ) 
+    if( !ok )
     {
       tupleId = 0;
       delete tupleRecord;
@@ -397,12 +397,12 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
     }
 
     char *extensionPtr = extensionTuple;
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++ ) 
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
     {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ ) 
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
       {
         FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-        if( !tmpFLOB->IsLob() ) 
+        if( !tmpFLOB->IsLob() )
           extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
       }
     }
@@ -428,7 +428,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
   ok = iter->ReadCurrentData( memoryTuple, tupleType.GetTotalSize(), sizeof(int) ) && ok;
 
-  if( !ok ) 
+  if( !ok )
   {
     tupleId = 0;
     tupleFile = 0;
@@ -569,7 +569,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
 /*
 3.3 Implementation of the class ~Tuple~
 
-This class implements the persistent representation of the type constructor ~tuple~. 
+This class implements the persistent representation of the type constructor ~tuple~.
 A tuple contains a pointer to a ~TMTuple~ from the Tuple Manager. For more information
 about tuples in the TupleManager see the file TMTuple.h.
 
@@ -620,10 +620,10 @@ Attribute* Tuple::GetAttribute( const int index ) const
 void Tuple::PutAttribute( const int index, Attribute* attr )
 {
   assert( index >= 0 && index < GetNoAttributes() );
-    
+
   if( privateTuple->attributes[index] != 0 )
     delete privateTuple->attributes[index];
-  attr->SetInsideTuple();  
+  attr->SetInsideTuple();
   privateTuple->attributes[index] = attr;
 }
 
@@ -674,16 +674,16 @@ void Tuple::Delete()
 ostream& operator <<( ostream& o, Tuple& t )
 {
   o << "<";
-  for( int i = 0; i < t.GetNoAttributes(); i++) 
+  for( int i = 0; i < t.GetNoAttributes(); i++)
   {
     o << *t.GetAttribute(i);
-    if (i < t.GetNoAttributes() - 1) 
+    if (i < t.GetNoAttributes() - 1)
       o << ", ";
   }
   return o << ">";
 }
 
-ostream &operator<< (ostream &os, TupleElement &attrib) 
+ostream &operator<< (ostream &os, TupleElement &attrib)
 {
   return attrib.Print(os);
 }
@@ -704,9 +704,19 @@ struct RelationDescriptor
     lobFileId( lId )
     {}
 /*
-The constructor.
+The first constructor.
 
 */
+  RelationDescriptor( const RelationDescriptor& desc ):
+    noTuples( desc.noTuples ),
+    tupleFileId( desc.tupleFileId ),
+    lobFileId( desc.lobFileId )
+    {}
+/*
+The copy constructor.
+
+*/
+
   int noTuples;
 /*
 The quantity of tuples inside the relation.
@@ -736,7 +746,7 @@ struct PrivateRelation
     noTuples( 0 ),
     tupleType( nl->Second( typeInfo ) ),
     tupleFile( false, 0, isTemporary ),
-    lobFile( false, 0, isTemporary ) 
+    lobFile( false, 0, isTemporary )
     {
       assert( tupleFile.Create() );
       assert( lobFile.Create() );
@@ -758,17 +768,31 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
 The second constructor. Creates an empty relation from a ~tupleType~.
 
 */
-  PrivateRelation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
+  PrivateRelation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary ):
     noTuples( relDesc.noTuples ),
-    tupleType( nl->Second( nl->First( typeInfo ) ) ),
-    tupleFile( false, 0 ),
-    lobFile( false, 0 ) 
+    tupleType( tupleType ),
+    tupleFile( false, 0, isTemporary ),
+    lobFile( false, 0, isTemporary )
     {
       assert( tupleFile.Open( relDesc.tupleFileId ) );
       assert( lobFile.Open( relDesc.lobFileId ) );
     }
 /*
 The third constructor. Opens a previously created relation.
+
+*/
+  PrivateRelation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
+    noTuples( relDesc.noTuples ),
+    tupleType( nl->Second( nl->First( typeInfo ) ) ),
+    tupleFile( false, 0 ),
+    lobFile( false, 0 )
+    {
+      assert( tupleFile.Open( relDesc.tupleFileId ) );
+      assert( lobFile.Open( relDesc.lobFileId ) );
+    }
+/*
+The fourth constructor. It opens a previously created relation using the ~typeInfo~ instead of
+the ~tupleType~.
 
 */
   ~PrivateRelation()
@@ -818,8 +842,12 @@ Relation::Relation( const TupleType& tupleType, const bool isTemporary ):
   privateRelation( new PrivateRelation( tupleType, isTemporary ) )
   {}
 
-Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
-  privateRelation( new PrivateRelation( typeInfo, relDesc ) )
+Relation::Relation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary ):
+  privateRelation( new PrivateRelation( tupleType, relDesc, isTemporary ) )
+  {}
+
+Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
+  privateRelation( new PrivateRelation( typeInfo, relDesc, isTemporary ) )
   {}
 
 Relation::~Relation()
@@ -843,7 +871,7 @@ bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*&
 
 bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
 {
-  SmiFileId tupleId = privateRelation->tupleFile.GetFileId(), 
+  SmiFileId tupleId = privateRelation->tupleFile.GetFileId(),
             lobId = privateRelation->lobFile.GetFileId();
   valueRecord.Write( &tupleId, sizeof( SmiFileId ), 0 );
   valueRecord.Write( &lobId, sizeof( SmiFileId ), sizeof( SmiFileId ) );
@@ -913,7 +941,7 @@ struct PrivateRelationIterator
     {
       if( tupleCompare != 0 )
       {
-        while( iterator->Next() )      
+        while( iterator->Next() )
         {
           TupleId id;
           iterator->ReadCurrentRecordNumber( id.value );
@@ -931,7 +959,7 @@ The constructor.
   {
     if( tupleCompare )
       delete order;
-    else 
+    else
       delete iterator;
   }
 /*
@@ -992,14 +1020,14 @@ RelationIterator::~RelationIterator()
   delete privateRelationIterator;
 }
 
-Tuple* RelationIterator::GetNextTuple() 
+Tuple* RelationIterator::GetNextTuple()
 {
   if( privateRelationIterator->tupleCompare == 0 )
   {
     if( !privateRelationIterator->iterator->Next() )
     {
       privateRelationIterator->endOfScan = true;
-      return 0; 
+      return 0;
     }
 
     Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
@@ -1014,8 +1042,8 @@ Tuple* RelationIterator::GetNextTuple()
     {
       privateRelationIterator->endOfScan = true;
       return 0;
-    }  
-   
+    }
+
     Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
     result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
                                      &privateRelationIterator->relation.privateRelation->lobFile,
@@ -1025,7 +1053,7 @@ Tuple* RelationIterator::GetNextTuple()
   }
 }
 
-const bool RelationIterator::EndOfScan() 
+const bool RelationIterator::EndOfScan()
 {
   return privateRelationIterator->endOfScan;
 }

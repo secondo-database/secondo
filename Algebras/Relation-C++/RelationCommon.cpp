@@ -141,10 +141,40 @@ bool LexicographicalTupleCompare::operator()(const Tuple* aConst, const Tuple* b
 }
 
 /*
+4 Implementation of the class ~TupleCompareBy~
+
+*/
+bool TupleCompareBy::operator()(const Tuple* aConst, const Tuple* bConst) const
+{
+  Tuple* a = (Tuple*)aConst;
+  Tuple* b = (Tuple*)bConst;
+
+  SortOrderSpecification::const_iterator iter = spec.begin();
+  while(iter != spec.end())
+  {
+    if(((Attribute*)a->GetAttribute(iter->first - 1))->
+      Compare(((Attribute*)b->GetAttribute(iter->first - 1))) < 0)
+    {
+      return iter->second;
+    }
+    else
+    {
+      if(((Attribute*)a->GetAttribute(iter->first - 1))->
+        Compare(((Attribute*)b->GetAttribute(iter->first - 1))) > 0)
+      {
+        return !(iter->second);
+      }
+    }
+    iter++;
+  }
+  return false;
+}
+
+/*
 4 Implementation of the class ~Tuple~
 
 */
-ostream& Tuple::ShowTupleStatistics( const bool reset, ostream& o ) 
+ostream& Tuple::ShowTupleStatistics( const bool reset, ostream& o )
 {
   o << "Tuples created: " << Tuple::tuplesCreated << endl
     << "Tuples deleted: " << Tuple::tuplesDeleted << endl
@@ -430,7 +460,7 @@ int FindAttribute( ListExpr list, string attrname, ListExpr& attrtype)
   ListExpr first, rest;
   int j;
   string  name;
- 
+
   if (nl->IsAtom(list))
     return 0;
   rest = list;
