@@ -3,6 +3,11 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.11  2002/11/27 20:31:04  spieker
+# Rules for generation of libraries were revised. Many rules are written
+# in a short manner by use of VPATH and automatic variables $@ and $<.
+# Hopefully the makefiles are now easier to read and to maintain.
+#
 # Revision 1.10  2002/11/26 16:12:16  spieker
 # Dependency of static libraries simplified.
 #
@@ -96,7 +101,7 @@ LIBNAME=libsdbtool
 $(LIBDIR)/libsdbtool.$(LIBEXT): $(TOOLOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPTTOOL) $(TOOLOBJECTS) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(TOOLOBJECTS) $(DEFAULTLIB)
 else
 # ... as static library
 	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
@@ -108,7 +113,7 @@ LIBNAME=libsdbsys
 $(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) -L$(LIBDIR) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(SDBSYSOBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
 #$(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
