@@ -734,120 +734,156 @@ int trimstr (char s[])
 int
 ValMapkeywords (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
-Creates a stream of strings containing the single words
-of the origin text, on the assumption, that words in the text
-are separated by a space character.
+Creates a stream of strings of a text given as input parameter,
+Recognized strings contains letters, digits and the '-' character.
+The length of a string is three characters or more.
 
 */
 {
-  struct Subword {int start, nochr, strlength; char* subw;}* subword;
+  struct TheText {int start, nochr, strlength; const char* subw;}* thetext;
 
-  CcString* elem;
-  const char* cpystr;
-  int i;
+  int textcursor, stringcursor, state;
   string tmpstr;
   STRING outstr;
   Word arg0;
+  char c;
+  CcString* mystring;
 
   switch( message )
   {
     case OPEN:
-      //cout << "open" << endl;     
-      qp->Request(args[0].addr, arg0);
-     
-      subword = new Subword;
-      subword->start = 0;
-      subword->nochr = 0;
-      cpystr = ((FText*)arg0.addr)->Get();
-      subword->subw = (char*)malloc(strlen(cpystr) + 1);
-      strcpy(subword->subw, cpystr);
-      delete (FText*)arg0.addr;
-      subword->subw[strlen(cpystr)] = '\0';
-      trimstr(subword->subw); //remove spaces from the end of the string
-      
-      subword->strlength = strlen(subword->subw);
-      // get the necessary values to determine the first single word in the 
-      // string, if it is not empty or contains only space characters. 
-      if ( subword->strlength > 0) {     
-        i=0;
-        do {
-	  while ( isspace(subword->subw[i]) ) i++;     
-          subword->start = i;    
-          i = subword->start;
-          while ( (!(isspace(((subword->subw)[i]))) && 
-	          ((subword->subw)[i]) != '\0') ) i++;
-          subword->nochr = i - subword->start;
-          if (subword->nochr > 48) {
-	    // text is a single word with more than 48 characters
-	    if (subword->nochr == subword->strlength) {
-	      subword->strlength = 0;
-	      break;
-	    }
-            i = subword->nochr;
-          }
-	  if (subword->nochr > 48 ) {
-            i = subword->nochr;
-          }
-        }while ( subword->nochr > 48);
-      }      
-      local.addr = subword;
+      //cout << "open ValMapkeywords" << endl;     
+      qp->Request(args[0].addr, arg0);     
+      thetext = new TheText;
+      thetext->start = 0;
+      thetext->nochr = 0;
+      thetext->subw = ((FText*)arg0.addr)->Get();
+      thetext->strlength = ((FText*)arg0.addr)->TextLength();
+      local.addr = thetext;
       return 0;
 
-    case REQUEST:
-    
-      subword = ((Subword*) local.addr);
-      // cout << "request" << endl;
-      // another single word in the string still exists
-      if ( (subword->strlength > 0) && (subword->start < subword->strlength) )
-      {
-        tmpstr = (((string)(subword->subw)).substr(subword->start,subword->nochr));
-	strcpy(outstr, (char*)tmpstr.c_str());
-        elem = new CcString(true, &outstr);
-	result.addr = elem;
-
-	subword->start += subword->nochr;	
-        i = subword->start;
-	do {
-	  if (i < subword->strlength ) {
-            while ( isspace((subword->subw)[i]) ) i++; 
-            subword->start = i;
-            while ( (!isspace((subword->subw)[i])) && 
-	            (((subword->subw)[i]) != '\0') )  i++;
-	    subword->nochr = i - subword->start;
-	    if ( (subword->subw[i] == '\0') && (subword->nochr > 48) ) {
-	      subword->start = subword->strlength;
-	      return YIELD;
-	    }
-            subword->nochr++;
-	    if (subword->nochr > 48) {
-	      i = subword->nochr + subword->start;
-	    }
-	  }
-	}while ( subword->nochr > 48 && subword->subw[i] != '\0');		
-        local.addr = subword;
+    case REQUEST:   
+      //cout << "request ValMapkeywords" << endl;
+      thetext = ((TheText*) local.addr);
+      textcursor = thetext->start;
+      stringcursor = 0;
+      state = 0;
       
-        return YIELD;
+      while (true) {
+        switch ( state ) {
+          case 0 : c = thetext->subw[textcursor];
+	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+		   {
+		     outstr[stringcursor] = c;
+		     stringcursor++;
+		     state = 1;
+		   }
+		   else {
+		     state = 2;
+		     stringcursor = 0;
+		   }
+		   if ( c == '\0' ) { return CANCEL; }
+		   textcursor++;
+		   break;
+          case 1 : c = thetext->subw[textcursor];
+	           //cout << c << " state 1 " << endl;
+	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+		   {
+		     outstr[stringcursor] = c;
+		     stringcursor++;
+		     state = 3;
+		   }
+		   else {
+		     state = 2;
+		     stringcursor = 0;
+		   }
+		   if ( c == '\0' ) { return CANCEL; }
+		   textcursor++;
+		   break;
+          case 2 : c = thetext->subw[textcursor];
+	           //cout << c << " state 2 " << endl;
+	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+		   {
+		     outstr[stringcursor] = c;
+	             stringcursor++;
+		     state = 1;
+		   }
+		   else {
+		     state = 2;
+		     stringcursor = 0;
+		   }
+		   if ( c == '\0' ) { return CANCEL; }
+		   textcursor++;
+		   break;
+          case 3 : c = thetext->subw[textcursor];
+	           //cout << c << " state 3 " << endl;
+	           if ( isalnum(c) || c == '-' || c == 'ä' || c =='ö' || c =='ü'
+		                   || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+		   {
+		     outstr[stringcursor] = c;
+		     stringcursor++;
+		     state = 4;
+		   }
+		   else {
+		     state = 2;
+		     stringcursor = 0;
+		   }
+		   if ( c == '\0' ) { return CANCEL; }
+		   textcursor++;
+		   break;
+        case 4 : c = thetext->subw[textcursor];
+	         //cout << c << " state 4 " << endl;
+	         if ( (isalnum(c) || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
+		                 || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+		                 && (stringcursor == 48) ) {
+	         state = 5;
+		 stringcursor = 0;
+		 }	         
+	         else if ( (isalnum(c) || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
+		                 || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+				 && (stringcursor < 48) ) {
+		   outstr[stringcursor] = c;
+		   stringcursor++;
+		   state = 4;
+		 }
+		 else {
+		   //if ( c == '\0' ) { outstr[stringcursor] = c; stringcursor ++; }
+		   if ( textcursor == thetext->strlength ) { outstr[stringcursor] = c; stringcursor++; };
+		   outstr[stringcursor] = '\0';
+		   stringcursor = 0;		   
+		   mystring = new CcString();
+                   mystring->Set(true, &outstr);
+		   result = SetWord(mystring);		   
+	           thetext->start = ++textcursor;
+	           local.addr = thetext;   
+                   return YIELD;
+		 }
+		 textcursor++;
+		 break;
+        case 5 : c = thetext->subw[textcursor];
+	         //cout << c << " state 5 " << endl;
+	         if ( isalnum(c) || c == '-' ) {
+		   state = 5;
+		   stringcursor = 0;
+		 }
+		 else {
+		   state = 0;
+		   stringcursor = 0;
+		 }
+		 if ( textcursor == thetext->strlength ) { return CANCEL; }
+		 textcursor++;
+		 break;
+	
       }
-      // no more single words in the string
-      else
-      {
-        // string is empty or contains only space characters
-        if ( subword->strlength == 0 ) {
-	  outstr[0] = '\0';
-          elem = new CcString(true, &outstr);
-	  result.addr = elem;
-	  subword->start = subword->strlength = 1;
-	  local.addr = subword;
-	  return YIELD;
-        }	  
-      return CANCEL;
-      }
+    }       
        
     case CLOSE:
-      //cout << "close" << endl;
-      subword = ((Subword*) local.addr);
-      free(subword->subw);
-      delete subword;
+      //cout << "close ValMapkeywords" << endl;
+      thetext = ((TheText*) local.addr);
+      delete thetext;
       return 0;
   }
   /* should not happen */
