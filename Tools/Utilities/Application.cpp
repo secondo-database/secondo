@@ -45,6 +45,7 @@ using namespace std;
 #include "Application.h"
 #include "Counter.h"
 #include "LogMsg.h"
+#include "License.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
@@ -77,8 +78,11 @@ Class constructors/destructors
 
 */
 
-Application::Application( int argc, const char** argv )
+Application::Application( int argc, const char** argv, const bool showLicense /* =true */ )
 {
+  if ( showLicense ) {
+    cout << License::getStr() << endl;
+  }
 
   if ( appPointer )
   {
