@@ -23,35 +23,54 @@ package  viewer.hoese.algebras;
 import  sj.lang.ListExpr;
 import  viewer.*;
 import viewer.hoese.*;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
 
 
 /**
- * A displayclass for the string-type, alphanumeric only
+ * A displayclass for the display texts 
  */
-public class Dspltext extends DsplGeneric implements DsplSimple{
+public class Dspltext extends DsplGeneric implements ExternDisplay{
 
-  /**
-   * This method is used to analyse the type and value in NestedList format and build
-   * up the intern datastructures for this type. An alphanumeric representation is
-   * neccessary for the displaying this type in the queryresultlist.
-   * @param type A ListExpr of the datatype string
-   * @param value A string in a listexpr
-   * @param qr The queryresultlist to add alphanumeric representation
-   * @see QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplstringsrc.html#init">Source</a>
-   */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     if (value.listLength()==1)
-     value = value.first();
+ /** Creates a new Instance of this.
+   */ 
+public  Dspltext(){
+   Text = "";
+   if(Display==null){
+      Display = new TextViewerFrame();
+   }
+}
+
+
+/** Adds a button to the query which on a Click would be 
+  * pop up a window
+  **/
+ public void init (ListExpr type, ListExpr value, QueryResult qr) {
+     if (value.listLength()==1)// Textatom within a list
+         value = value.first();
      if(value.atomType()!=ListExpr.TEXT_ATOM)
         qr.addEntry(new String(type.symbolValue()) + ": error in value ");
-     else
-        qr.addEntry(new String(type.symbolValue() + ":" + value.textValue()));
+     else{
+        Text = value.textValue();
+        if(Text.length()<MAX_DIRECT_DISPLAY_LENGTH){
+          Entry = type.symbolValue()+" : "+Text;
+          qr.addEntry(Entry); // because we add an string the extern display fucntions are
+                         // not called
+        } else{ // big text atom -> enable external view
+           Entry = type.symbolValue()+" : double click to display";
+           qr.addEntry(this);
+        }
+     }
      return;
   }
+  
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+public String toString(){
+   return Entry;
+}
+
+public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
      String T = new String(type.symbolValue());
      String V;
@@ -64,12 +83,69 @@ public class Dspltext extends DsplGeneric implements DsplSimple{
         V =  value.textValue();
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
-     qr.addEntry(T + " : " + V);
+     Text = value.textValue();
+     if(Text.length()<MAX_DIRECT_DISPLAY_LENGTH){
+        Entry = T + " : "+ V ;
+        qr.addEntry(Entry);
+     } else{
+         Entry = T+" : double click to display";
+         qr.addEntry(this);
+     }
      return;
 
   }
 
 
+public void displayExtern(){
+    Display.setSource(this);
+    Display.setVisible(true);    
+}
+
+public boolean isExternDisplayed(){
+   return Display.isVisible() && this.equals(Display.getSource());
+}
+
+
+private static TextViewerFrame Display=null; 
+private String Text;
+private String Entry;
+
+
+private static class TextViewerFrame extends JFrame{
+
+public TextViewerFrame(){
+  getContentPane().setLayout(new BorderLayout());
+  Display = new JEditorPane();
+  JScrollPane ScrollPane = new JScrollPane(Display);
+  getContentPane().add(ScrollPane,BorderLayout.CENTER);
+  CloseBtn = new JButton("Close");
+  CloseBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+            TextViewerFrame.this.setVisible(false);
+       }
+  } );
+  getContentPane().add(CloseBtn,BorderLayout.SOUTH);
+  setSize(640,480); 
+}
+
+
+public void setSource(Dspltext S){
+    Source = S;
+    Display.setEditable(false); 
+    Display.setText(S.Text);
+}
+
+public Dspltext getSource(){
+     return Source;
+}
+
+private JEditorPane Display;
+private JButton CloseBtn;
+private Dspltext Source;
+
+}
+
+private final int MAX_DIRECT_DISPLAY_LENGTH=20;
 
 }
 
