@@ -39,7 +39,9 @@ class SecondoServer : public Application
   void CallGetTypeId();
   void CallLookUpType();
   void CallDbSave();
+  void CallObjectSave();
   void CallDbRestore();
+  void CallObjectRestore();
   void Connect();
   void Disconnect();
   void WriteResponse( const int errorCode, const int errorPos,
@@ -64,6 +66,7 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
 {
   ListExpr msg = nl->TextAtom();
   nl->AppendText( msg, errorMessage );
+  
   ListExpr list = nl->FourElemList(
                     nl->IntAtom( errorCode ),
                     nl->IntAtom( errorPos ),
@@ -71,6 +74,16 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
                     resultList );
   string resultStr;
   nl->WriteToString( resultStr, list );
+  
+  // Encode 'n'-character in text atoms for transmission via TCP/IP
+  //if ( resultStr.find("<text>") )
+  //{
+    //for (unsigned int i = 0; i <= resultStr.length(); i++)
+    //{
+      //if (resultStr[i] == '\n') resultStr[i] = line_feed;
+    //}
+  //}
+
   iostream& iosock = client->GetSocketStream();
   iosock << "<SecondoResponse>" << endl
          << resultStr << endl
@@ -224,6 +237,40 @@ SecondoServer::SendFile( const string& clientFileName,
 }
 
 void
+SecondoServer::CallObjectSave()
+{
+  string clientFileName, serverFileName, objName, cmdEnd;
+  iostream& iosock = client->GetSocketStream();
+  iosock >> clientFileName >> skipline;
+  iosock >> objName >> skipline;
+  getline( iosock, cmdEnd );
+  if ( cmdEnd == "</ObjectSave>" )
+  {
+    // serverFileName erzeugen
+    ostringstream os;
+    os << "SObjectSave" << GetOwnProcessId();
+    serverFileName = os.str();
+    string cmdText = "(save " + objName + " to " + serverFileName + ")";
+    ListExpr commandLE = nl->TheEmptyList();
+    ListExpr resultList = nl->TheEmptyList();
+    int errorCode, errorPos;
+    string errorMessage;
+    si->Secondo( cmdText, commandLE, 0, true, false, 
+                 resultList, errorCode, errorPos, errorMessage );
+    if ( errorCode == 0 )
+    {
+      SendFile( clientFileName, serverFileName );
+    }
+    WriteResponse( errorCode, errorPos, errorMessage, resultList );
+    FileSystem::DeleteFileOrFolder( serverFileName );
+  }
+  else
+  {
+    WriteResponse( 80, 0, "Protocol error: </ObjectSave> expected.", nl->TheEmptyList() );
+  }
+}
+
+void
 SecondoServer::CallDbSave()
 {
   string clientFileName, serverFileName, cmdEnd;
@@ -284,6 +331,42 @@ SecondoServer::ReceiveFile( const string& clientFileName,
     ok = true;
   }
   return (ok);
+}
+
+void
+SecondoServer::CallObjectRestore()
+{
+  string objName, clientFileName, serverFileName, cmdEnd;
+  iostream& iosock = client->GetSocketStream();
+  iosock >> objName >> clientFileName >> skipline;
+  getline( iosock, cmdEnd );
+  if ( cmdEnd == "</ObjectRes>" )
+  {
+    ostringstream os;
+    os << "SObjectRest" << GetOwnProcessId();
+    serverFileName = os.str();
+    if ( ReceiveFile( clientFileName, serverFileName ) )
+    {
+      string cmdText = "(restore object " + objName +
+                       " from " + serverFileName + ")";
+      ListExpr commandLE = nl->TheEmptyList();
+      ListExpr resultList = nl->TheEmptyList();
+      int errorCode, errorPos;
+      string errorMessage;
+      si->Secondo( cmdText, commandLE, 0, true, false, 
+                   resultList, errorCode, errorPos, errorMessage );
+      WriteResponse( errorCode, errorPos, errorMessage, resultList );
+    }
+    else
+    {
+      WriteResponse( 80, 0, "Protocol error: File not received correctly.", nl->TheEmptyList() );
+    }
+    FileSystem::DeleteFileOrFolder( serverFileName );
+  }
+  else
+  {
+    WriteResponse( 80, 0, "Protocol error: </ObjectRes> expected.", nl->TheEmptyList() );
+  }
 }
 
 void
@@ -372,6 +455,8 @@ SecondoServer::Execute()
     commandTable["<GetTypeId>"]   = &SecondoServer::CallGetTypeId;
     commandTable["<LookUpType>"]  = &SecondoServer::CallLookUpType;
     commandTable["<DbSave>"]      = &SecondoServer::CallDbSave;
+    commandTable["<ObjectSave>"]  = &SecondoServer::CallObjectSave;
+    commandTable["<ObjectRes>"]   = &SecondoServer::CallObjectRestore;
     commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
     commandTable["<Connect>"]     = &SecondoServer::Connect;
     commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;

@@ -3,6 +3,9 @@
 
 April 2002 Ulrich Telle Client/Server version of the SecondoInterface
 
+April 29 2003 Hoffmann Client/Server adaption for single objects save and 
+restore commands.
+
 \tableofcontents
 
 */
@@ -232,6 +235,7 @@ If value 0 is returned, the command was executed without error.
   }
 
   string::size_type posDatabase = cmdText.find( "database" );
+  string::size_type posObject   = cmdText.find( "object" );
   string::size_type posSave     = cmdText.find( "save" );
   string::size_type posRestore  = cmdText.find( "restore" );
   string::size_type posTo       = cmdText.find( "to" );
@@ -302,6 +306,138 @@ If value 0 is returned, the command was executed without error.
       errorCode = 9;
     }
   }
+  else if ( posSave != string::npos && // save object to filename
+            posTo   != string::npos &&
+	    posDatabase == string::npos &&                        
+	    posSave < posTo )
+  {
+    if ( commandLevel == 1 || commandLevel == 3 )
+    {
+      cmdText = string( "(" ) + commandText + ")";
+    }
+    if ( nl->ReadFromString( cmdText, list ) )
+    {
+      if ( nl->ListLength( list ) == 4 &&
+           nl->IsEqual( nl->First( list ), "save" ) &&
+           nl->IsAtom( nl->Second( list )) &&
+	  (nl->AtomType( nl->Fourth( list )) == SymbolType) &&
+           nl->IsEqual( nl->Third( list ), "to" ) &&
+           nl->IsAtom( nl->Fourth( list )) && 
+          (nl->AtomType( nl->Fourth( list )) == SymbolType) )
+      {
+        filename = nl->SymbolValue( nl->Fourth( list ) );
+	objName = nl->SymbolValue( nl->Second( list ) );
+        iosock << "<ObjectSave>" << endl
+               << filename << endl
+	       << objName << endl
+               << "</ObjectSave>" << endl;
+        getline( iosock, line );
+        if ( line == "<ReceiveFile>" )
+        {
+          getline( iosock, filename );
+          getline( iosock, line );          // Hope it is '</ReceiveFile>'
+          ofstream restoreFile( filename.c_str() );
+          if ( restoreFile )
+          {
+            iosock << "<ReceiveFileReady/>" << endl;
+            getline( iosock, line );
+            if ( line == "<ReceiveFileData>" )
+            {
+              while (line != "</ReceiveFileData>" && !iosock.fail())
+              {
+                getline( iosock, line );
+                if ( line != "</ReceiveFileData>" )
+                {
+                  restoreFile << line << endl;
+                }
+              }
+            }
+            restoreFile.close();
+          }
+          else
+          {
+            iosock << "<ReceiveFileError/>" << endl;
+          }
+        }
+        getline( iosock, line );
+        readResponse = true;
+      }
+      else
+      {
+        // Not a valid 'save database' command
+        errorCode = 1;
+      }
+    }
+    else
+    {
+      // Syntax error in list
+      errorCode = 9;
+    }
+  }
+  
+  else if ( posObject   != string::npos &&
+            posRestore  != string::npos &&
+            posFrom     != string::npos &&
+            posRestore < posObject && posObject < posFrom )
+  {
+    if ( commandLevel == 1 || commandLevel == 3 )
+    {
+      cmdText = string( "(" ) + commandText + ")";
+    }
+    if ( nl->ReadFromString( cmdText, list ) )
+    {
+      if ( nl->ListLength( list ) == 5 &&
+           nl->IsEqual( nl->First( list ), "restore" ) && 
+           nl->IsEqual( nl->Second( list ), "object" ) &&
+           nl->IsAtom( nl->Third( list )) && 
+          (nl->AtomType( nl->Third( list )) == SymbolType) &&
+           nl->IsEqual( nl->Fourth( list ), "from" ) &&
+           nl->IsAtom( nl->Fifth( list )) && 
+          (nl->AtomType( nl->Fifth( list )) == SymbolType) )
+      {
+        filename = nl->SymbolValue( nl->Fifth( list ) ); 
+        iosock << "<ObjectRes>" << endl
+               << nl->SymbolValue( nl->Third( list ) )
+               << " " << filename << endl
+               << "</ObjectRes>" << endl;
+        getline( iosock, line );
+        if ( line == "<SendFile>" )
+        {
+          getline( iosock, filename );
+          getline( iosock, line );          // Hope it is '</SendFile>'
+          ifstream restoreFile( filename.c_str() );
+          if ( restoreFile )
+          {
+            iosock << "<SendFileData>" << endl;
+            while (!restoreFile.eof() && !iosock.fail())
+            {
+              getline( restoreFile, line );
+              iosock << line << endl;
+            }
+            iosock << "</SendFileData>" << endl;
+            restoreFile.close();
+          }
+          else
+          {
+            iosock << "<SendFileError/>" << endl;
+          }
+        }
+        getline( iosock, line );
+        readResponse = true;
+      }
+      else
+      {
+        // Not a valid 'restore database' command
+        errorCode = 1;
+      }
+    }
+    else
+    {
+      // Syntax error in list
+      errorCode = 9;
+    }
+  }
+  
   else if ( posDatabase != string::npos &&
             posRestore  != string::npos &&
             posFrom     != string::npos &&
@@ -389,6 +525,16 @@ If value 0 is returned, the command was executed without error.
         }
       }
       while (line != "</SecondoResponse>" && !iosock.fail());
+      
+      // Decode 'n'-character in text atoms from transmission via TCP/IP
+      //if ( result.find("<text>") )
+      //{
+        //for (unsigned int i = 0; i <= result.length(); i++)
+        //{
+          //if ( result[i] == line_feed ) result[i] = '\n';
+        //}
+       //}
+      
       nl->ReadFromString( result, resultList );
       errorCode = nl->IntValue( nl->First( resultList ) );
       errorPos  = nl->IntValue( nl->Second( resultList ) );
