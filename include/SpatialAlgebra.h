@@ -62,12 +62,12 @@ precision (~Rational~).
 3 Class StandardSpatialAttribute
 
 */
-struct Rectangle;
+struct BBox;
 
 class StandardSpatialAttribute : public StandardAttribute
 {
   public:
-    virtual const Rectangle BoundingBox() const = 0;
+    virtual const BBox BoundingBox() const = 0;
 };
 
 /*
@@ -133,7 +133,7 @@ Returns the ~y~ coordinate of the point.
 *Precondition:* ~IsDefined()~
 
 */
-    const Rectangle BoundingBox() const;
+    const BBox BoundingBox() const;
 /*
 Returns the point bounding box which is also a point.
 
@@ -340,12 +340,12 @@ A flag that tells if the point is defined or not.
 typedef Point CPoint;
 
 /*
-2 Struct ~Rectangle~
+2 Struct ~BBox~
 
 This structure will represent rectangles aligned with the axes ~x~ and ~y~.
 
 */
-struct Rectangle
+struct BBox
 {
   Point min;
 /*
@@ -358,7 +358,7 @@ The top right point of the rectangle.
 
 */
 
-  Rectangle() :
+  BBox() :
     min(), max()
     {}
 /*
@@ -366,7 +366,7 @@ The simple constructor. Create two undefined points.
 
 */
 
-  Rectangle( const Point& min, const Point& max ) :
+  BBox( const Point& min, const Point& max ) :
     min( min ), max( max )
     {}
 /*
@@ -374,7 +374,7 @@ The secondo constructor. Receives two points and stores them into ~min~ and ~max
 
 */
 
-  Rectangle( const Coord& p1x, const Coord& p1y, const Coord& p2x, const Coord& p2y ) :
+  BBox( const Coord& p1x, const Coord& p1y, const Coord& p2x, const Coord& p2y ) :
     min( true, MIN( p1x, p2x ), MIN( p1y, p2y ) ),
     max( true, MAX( p1x, p2x ), MAX( p1y, p2y ) )
     {}
@@ -383,7 +383,7 @@ The third constructor. Receives four coordinates.
 
 */
 
-  Rectangle( const Rectangle& r ) :
+  BBox( const BBox& r ) :
     min( r.min ), max( r.max )
     {}
 /*
@@ -397,7 +397,7 @@ The copy constructor.
 Checks if the rectangle is defined, i.e, if its points are defined.
 
 */
-  inline Rectangle& operator = ( const Rectangle& r )
+  inline BBox& operator = ( const BBox& r )
     { this->min = r.min; this->max = r.max; return *this; }
 /*
 Redefinition of operator ~=~.
@@ -409,19 +409,19 @@ Redefinition of operator ~=~.
 Checks if the rectangle contains the point ~p~.
 
 */
-  inline bool Contains( const Rectangle& r ) const;
+  inline bool Contains( const BBox& r ) const;
 /*
 Checks if the rectangle contains the rectangle ~r~.
 
 */
 
-  inline int Intersects( const Rectangle& r ) const;
+  inline int Intersects( const BBox& r ) const;
 /*
 Checks if the rectangle intersects with rectangle ~r~.
 
 */
 
-  inline int operator == ( const Rectangle& r ) const
+  inline int operator == ( const BBox& r ) const
     { assert( Proper() && r.Proper() ); 
       return (this->min == r.min) && (this->max == r.max); }
 /*
@@ -429,7 +429,7 @@ Redefinition of operator ~==~.
 
 */
 
-  inline int operator != ( const Rectangle& r ) const
+  inline int operator != ( const BBox& r ) const
     { return !(*this == r); }
 /*
 Redefinition of operator ~!=~.
@@ -467,13 +467,13 @@ Returns the max coord value for the given dimension ~dim~.
 
 */
 
-  inline Rectangle Union( const Rectangle& b ) const;
+  inline BBox Union( const BBox& b ) const;
 /*
 Returns the bounding box that contains both this and ~b~.
 
 */
 
-  inline Rectangle Intersection( const Rectangle& b ) const;
+  inline BBox Intersection( const BBox& b ) const;
 /*
 Returns the intersection between this and ~b~.
 
@@ -488,7 +488,7 @@ represent an empty set.
 */
 };
 
-inline bool Rectangle::Contains( const Point& p ) const
+inline bool BBox::Contains( const Point& p ) const
 {
   assert( p.IsDefined() );
 
@@ -503,7 +503,7 @@ inline bool Rectangle::Contains( const Point& p ) const
     return true;
 }
 
-inline bool Rectangle::Contains( const Rectangle& r ) const
+inline bool BBox::Contains( const BBox& r ) const
 {
   if( !Proper() || !r.Proper() )
     return false;
@@ -517,7 +517,7 @@ inline bool Rectangle::Contains( const Rectangle& r ) const
     return false;
 }
 
-inline int Rectangle::Intersects( const Rectangle& r ) const
+inline int BBox::Intersects( const BBox& r ) const
 {
   if( !Proper() || !r.Proper() )
     return 0;
@@ -536,28 +536,25 @@ inline int Rectangle::Intersects( const Rectangle& r ) const
   return 1;
 }
 
-inline Rectangle Rectangle::Union( const Rectangle& b ) const
+inline BBox BBox::Union( const BBox& b ) const
 {
   if( !Proper() ) return b;
   if( !b.Proper() ) return *this;
  
-  return Rectangle( Point( true, MIN( this->min.GetX(), b.min.GetX() ), MIN( this->min.GetY(), b.min.GetY() ) ),
+  return BBox( Point( true, MIN( this->min.GetX(), b.min.GetX() ), MIN( this->min.GetY(), b.min.GetY() ) ),
                     Point( true, MAX( this->max.GetX(), b.max.GetX() ), MAX( this->max.GetY(), b.max.GetY() ) ) );
 }
 
-inline Rectangle Rectangle::Intersection( const Rectangle& b ) const
+inline BBox BBox::Intersection( const BBox& b ) const
 {
   if( !Proper() ) return *this;
   if( !b.Proper() ) return b;
 
   if( this->Intersects( b ) )
-    return Rectangle( Point( true, MAX( this->min.GetX(), b.min.GetX() ), MAX( this->min.GetY(), b.min.GetY() ) ),
+    return BBox( Point( true, MAX( this->min.GetX(), b.min.GetX() ), MAX( this->min.GetY(), b.min.GetY() ) ),
                       Point( true, MIN( this->max.GetX(), b.max.GetX() ), MIN( this->max.GetY(), b.max.GetY() ) ) );
-  else return Rectangle();
+  else return BBox();
 }
-
-typedef Rectangle BBox;
-
 
 /*
 4 Class Points
@@ -647,7 +644,7 @@ Marks the end of a bulk load and sorts the point set.
 4.3 Member functions
 
 */
-    const Rectangle BoundingBox() const;
+    const BBox BoundingBox() const;
 /*
 Returns the bounding box that spatially contains all points.
 

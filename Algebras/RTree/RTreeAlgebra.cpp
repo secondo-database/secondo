@@ -42,7 +42,7 @@ extern QueryProcessor* qp;
 
 */
 
-const int MAX_PATH = 50;
+const int MAX_PATH_SIZE = 50;
 /*
 The maximum height of the R-Tree.
 
@@ -1158,19 +1158,19 @@ The header of the R-Tree which will be written (read) to (from) the file.
 */
 
 
-    SmiRecordId path[ MAX_PATH ];        
+    SmiRecordId path[ MAX_PATH_SIZE ];        
 /*
 Addresses of all nodes in the current path.
 
 */
 
-    int pathEntry[ MAX_PATH ];    
+    int pathEntry[ MAX_PATH_SIZE ];    
 /*
 Indices of entries down the current path.
 
 */
 
-    int overflowFlag[ MAX_PATH ]; 
+    int overflowFlag[ MAX_PATH_SIZE ]; 
 /*
 Flags used in Insert which control the forced reinsertion process.
 
@@ -1312,7 +1312,7 @@ scanFlag( false )
 
 
   // initialize overflowflag array
-  for( int i = 0; i < MAX_PATH; i++ )
+  for( int i = 0; i < MAX_PATH_SIZE; i++ )
     overflowFlag[ i ] = 0;
 
   nodePtr = new R_TreeNode( true, MinEntries(), MaxEntries() );
@@ -1347,7 +1347,7 @@ scanFlag( false )
   file.Open( fileid );
 
   // initialize overflowflag array
-  for( int i = 0; i < MAX_PATH; i++ )
+  for( int i = 0; i < MAX_PATH_SIZE; i++ )
     overflowFlag[ i ] = 0;
 
   ReadHeader();
