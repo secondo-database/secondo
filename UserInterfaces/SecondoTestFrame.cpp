@@ -55,14 +55,14 @@ class SecondoTestFrame : public Application
   SecondoInterface* si;
   
   /* Test methods for the tuple manager. */
-  void Test01(const TupleAttributes *attributes, SmiRecordFile *recFile);
-  void Test02(const TupleAttributes *attributes, SmiRecordFile *recFile);
-  void Test03(const TupleAttributes *attributes, SmiRecordFile *recFile);
-  void Test04(const TupleAttributes *attributes, SmiRecordFile *recFile, bool &trans);
-  void Test05(const TupleAttributes *attributes, SmiRecordFile *recFile);
-  void Test06(const TupleAttributes *attributes, SmiRecordFile *recFile);
-  void Test07(const TupleAttributes *attributes, SmiRecordFile *recFile);
-  void Test08(const TupleAttributes *attributes, SmiRecordFile *recFile);
+  void Test01(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
+  void Test02(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
+  void Test03(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
+  void Test04(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
+  void Test05(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
+  void Test06(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
+  void Test07(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
+  void Test08(const TupleAttributes *attributes, SmiRecordFile *recFile, SmiRecordFile *lobFile);
 };
 
 SecondoTestFrame::SecondoTestFrame( const int argc, const char** argv )
@@ -281,7 +281,8 @@ SecondoTestFrame::CheckConfiguration()
 Test 01: create new tuple and save to file
 
 */
-void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+void SecondoTestFrame::Test01(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	Tuple* myTuple;	
 	float realv;
 	int intv;
@@ -294,8 +295,6 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	SmiRecordFile *lobFile;
-	bool lobFileOpen;
 	CcPolygon* polygon1;
 	SmiRecordId recId;
 
@@ -319,10 +318,7 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *
     int1 = new CcInt(true, intv);
 	bool1 = new CcBool(true, bboolv);
 					
-	lobFile = new SmiRecordFile(false);
-	lobFileOpen = lobFile->Open("LOBFILE");
-
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -337,10 +333,8 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *
 	myTuple->SaveTo(recFile, lobFile);
 	recId = myTuple->GetPersistentId();
 	cout << recId << endl;
-	lobFile->Close();
 	
 	delete polygon1;
-	delete lobFile;
 	delete real1;
 	delete int1;
 	delete bool1;
@@ -354,7 +348,8 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *
 Test 02: read tuple from file
 
 */
-void SecondoTestFrame::Test02(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+void SecondoTestFrame::Test02(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	Tuple* myTuple;	
 	SmiRecordId recId;
 
@@ -363,7 +358,7 @@ void SecondoTestFrame::Test02(const TupleAttributes *attributes, SmiRecordFile *
 	cout << "\trecId = " << recId << endl;
 	cout << "\treading tuple." << endl;
 						
-	myTuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
+	myTuple = new Tuple(recFile, recId, lobFile, attributes, SmiFile::ReadOnly);
 	
 	if (myTuple->error == false) {												
 		cout << "\ttest tuple values" << endl;
@@ -390,7 +385,8 @@ void SecondoTestFrame::Test02(const TupleAttributes *attributes, SmiRecordFile *
 Test 03: read tuple, change core attributes and resave to file." << endl;
 
 */
-void SecondoTestFrame::Test03(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+void SecondoTestFrame::Test03(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	Tuple* myTuple;	
 	float realv;
 	int intv;
@@ -407,7 +403,7 @@ void SecondoTestFrame::Test03(const TupleAttributes *attributes, SmiRecordFile *
 	cout << "\trecId = " << recId << endl;
 						
 	cout << "\treading tuple." << endl;
-	myTuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
+	myTuple = new Tuple(recFile, recId, lobFile, attributes, SmiFile::ReadOnly);
 
 	cout << "\ttest tuple values" << endl;
 	cout << "\t" << *myTuple << endl;
@@ -441,10 +437,16 @@ void SecondoTestFrame::Test03(const TupleAttributes *attributes, SmiRecordFile *
 
 /*
 
-Test 04: create lots of tuples and save to file
+Test 04: create lots of tuples and save to file.
+			The number of tuples which can created
+			and inserted during a single transaction
+			is limited by Berkeley DB. Therefore for
+			each 1000th tuple the transaction will 
+			be closed and reopened.
 
 */
-void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *recFile, bool& trans) {
+void SecondoTestFrame::Test04(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	Tuple* myTuple;	
 	float realv;
 	int intv;
@@ -459,8 +461,6 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	SmiRecordFile *lobFile;
-	bool lobFileOpen;
 	CcPolygon* polygon1;
 	SmiRecordId recId;
 	
@@ -481,40 +481,43 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *
 		cout << "\t\tX: "; cin >> X[i];
 		cout << "\t\tY: "; cin >> Y[i];
 	}
-
+	
+	cout << "creating ";
 	for (j = 0; j < numberOfTuples; j++) {
 		myTuple = new Tuple(attributes);					
 		real1 = new CcReal(true, realv + j);
     	int1 = new CcInt(true, intv + j);
-		bool1 = new CcBool(true, bboolv);
-					
-		lobFile = new SmiRecordFile(false);
-		lobFileOpen = lobFile->Open("LOBFILE");
-
-		polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+		bool1 = new CcBool(true, bboolv);				
+		
+		polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
 		myTuple->Put(0, int1);
 		myTuple->Put(1, bool1);
 		myTuple->Put(2, real1);
 		myTuple->Put(3, polygon1);
 					
-		cout << "\ttest tuple values" << endl;
-		cout << "\t" << *myTuple << endl;
-		cout << "\tSize: " << myTuple->GetSize() << endl;
-		cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
-		cout << "\tSave tuple into recFile. Persistent id = ";
+		//cout << *myTuple << ", ";
 
 		myTuple->SaveTo(recFile, lobFile);
 		recId = myTuple->GetPersistentId();
-		cout << recId << endl;
-		lobFile->Close();
+		//cout << recId;
+		
+		if (j % 100 == 0) cout << "created: " << j << endl;
 		
 		delete real1;
 		delete int1;
 		delete bool1;
-		delete lobFile;
 		delete polygon1;
 		delete myTuple;
+		
+		if ((j > 0) && (j % 1000 == 0)) {
+			cout << "\t\t\tCommit Transaction..." << endl;
+			SecondoSystem::GetInstance()->CommitTransaction();
+			cout << "\t\t\tBegin Transaction..." << endl;
+			SecondoSystem::GetInstance()->BeginTransaction();
+		}
 	}
+	
+	cout << endl;
 	
 	delete[] X;
 	delete[] Y;
@@ -524,22 +527,22 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *
 Test 05: show all tuples in the file. 
 
 */
-void SecondoTestFrame::Test05(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+void SecondoTestFrame::Test05(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	SmiRecordFileIterator it;
 	bool rc = recFile->SelectAll(it, SmiFile::ReadOnly); 
 	cout << "recFile->SelectAll(it, SmiFile::ReadOnly) " << ((rc == true) ? "OK" : "FAILED") << endl;
 	bool hasMore = true;
 	SmiRecordId recId;
 	SmiRecord rec;
-	//Tuple *tuple;
+	Tuple *tuple;
 	
 	
 	do {
 		hasMore = it.Next(recId, rec);
-		cout << "record number:" << recId << ", hasMore = " << hasMore << endl;
-		//tuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
-		//cout << "Contents of tuple: " << *tuple << endl;
-		//delete tuple;
+		tuple = new Tuple(recFile, recId, lobFile, attributes, SmiFile::ReadOnly);
+		cout << "Contents of tuple: " << *tuple << endl;
+		delete tuple;
 	} while (hasMore == true);
 }
 
@@ -548,7 +551,8 @@ void SecondoTestFrame::Test05(const TupleAttributes *attributes, SmiRecordFile *
 Test 06: create fresh tuple, destroy it and '(re-)SaveTo' it
 
 */
-void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+void SecondoTestFrame::Test06(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	Tuple* myTuple;	
 	float realv;
 	int intv;
@@ -562,8 +566,6 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
 	CcInt *int1;
 	CcBool *bool1;
 	CcString *string1;
-	SmiRecordFile *lobFile;
-	bool lobFileOpen;
 	CcPolygon* polygon1;
 	SmiRecordId recId;
 
@@ -587,10 +589,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
     int1 = new CcInt(true, intv);
 	bool1 = new CcBool(true, bboolv);
 					
-	lobFile = new SmiRecordFile(false);
-	lobFileOpen = lobFile->Open("LOBFILE");
-
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -616,7 +615,6 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
 	
 	delete string1;
 	delete polygon1;
-	delete lobFile;
 	delete real1;
 	delete int1;
 	delete bool1;
@@ -630,7 +628,8 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
 Test 07: create two new tuples with one shared float component, save both to file.
 
 */
-void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+void SecondoTestFrame::Test07(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	Tuple* myTuple;
 	Tuple* myTuple2;
 	float realv;
@@ -650,8 +649,6 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	CcBool *bool1;
 	CcBool *bool2;
 	CcBool *bool2a;
-	SmiRecordFile *lobFile;
-	bool lobFileOpen;
 	CcPolygon* polygon1;
 	CcPolygon* polygon2;
 	SmiRecordId recId;
@@ -680,9 +677,6 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 		cout << "\t\tY: "; cin >> Y[i];
 	}
 
-	lobFile = new SmiRecordFile(false);
-	lobFileOpen = lobFile->Open("LOBFILE");
-	
 	real1 = new CcReal(true, realv);
     int1 = new CcInt(true, intv);
 	bool1 = new CcBool(true, bboolv);
@@ -690,8 +684,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	bool2 = new CcBool(true, bboolv2);
 	bool2a = new CcBool(true, bboolv2);
 	
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
-	polygon2 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
+	polygon2 = new CcPolygon(lobFile, numberOfPoints, X, Y);
 	
 	myTuple->DelPut(0, int1);
 	myTuple->DelPut(1, bool1);
@@ -733,9 +727,6 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	
 	delete myTuple2;
 	delete myTuple;
-	
-	lobFile->Close();
-	delete lobFile;
 }
 
 
@@ -744,7 +735,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 Test 08: create new tuple with lots of points and save to file
 
 */
-void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+void SecondoTestFrame::Test08(const TupleAttributes *attributes, 
+		SmiRecordFile *recFile, SmiRecordFile *lobFile) {
 	Tuple* myTuple;	
 	float realv;
 	int intv;
@@ -757,8 +749,6 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	SmiRecordFile *lobFile;
-	bool lobFileOpen;
 	CcPolygon* polygon1;
 	SmiRecordId recId;
 
@@ -781,10 +771,7 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
     int1 = new CcInt(true, intv);
 	bool1 = new CcBool(true, bboolv);
 					
-	lobFile = new SmiRecordFile(false);
-	lobFileOpen = lobFile->Open("LOBFILE");
-	
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -799,10 +786,8 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 	myTuple->SaveTo(recFile, lobFile);
 	recId = myTuple->GetPersistentId();
 	cout << recId << endl;
-	lobFile->Close();
 
 	delete polygon1;
-	delete lobFile;
 	delete real1;
 	delete int1;
 	delete bool1;
@@ -902,13 +887,9 @@ int SecondoTestFrame::Execute() {
 	   
 	    	cout << "* create tuple" << endl;
 		
-			//// HIER ////
-			//bool cdb = SmiEnvironment::OpenDatabase("LOBDB");
 			bool cdb = SecondoSystem::GetInstance()->OpenDatabase("LOBDB");
 			if (cdb == false) {
 				cout << "* Database opened: NO!!" << endl;
-				//// HIER ////
-				//cdb = SmiEnvironment::CreateDatabase("LOBDB");
 				cdb = SecondoSystem::GetInstance()->CreateDatabase("LOBDB");
 				cout << "* Database created:";
 				if (cdb == true) {
@@ -924,16 +905,17 @@ int SecondoTestFrame::Execute() {
 			
 			cout << "* Database opened/created: " << (cdb ? "yes" : 		"NO!!!!!!") << endl;
 								
-			//// HIER ////
-			//bool trans = SmiEnvironment::BeginTransaction();
 			bool trans = SecondoSystem::GetInstance()->BeginTransaction();
 			cout << "* begin of transactions: ";
 			cout << ((trans == true) ? " OK" : " failed.") << endl;
 			
 			SmiRecordFile *recFile = new SmiRecordFile(false);
 			bool recFileOpen = recFile->Open("RECFILE");
-			int recFileId = recFile->GetFileId();
+			//int recFileId = recFile->GetFileId();
+			SmiRecordFile *lobFile = new SmiRecordFile(false);
+			bool lobFileOpen = lobFile->Open("LOBFILE");
 			cout << "* File for record opened:  " << ((recFileOpen == true) ? "yes" : "NO!!!!!!") << endl;
+			cout << "* File for lobs opened: " << ((lobFileOpen == true) ? "yes" : "NO!!!!!!!") << endl;
 
 			int choice;
 			 		
@@ -955,26 +937,25 @@ int SecondoTestFrame::Execute() {
 				cin >> choice;
 				
 				switch (choice) {
-					case 1: Test01(&tupleType1, recFile); break;
-					case 2: Test02(&tupleType1, recFile); break;
-					case 3: Test03(&tupleType1, recFile); break;
-					case 4: Test04(&tupleType1, recFile, trans); break;
-					case 5: Test05(&tupleType1, recFile); break;
-					case 6: Test06(&tupleType1, recFile); break;
-					case 7: Test07(&tupleType1, recFile); break;
-					case 8: Test08(&tupleType1, recFile); break;
+					case 1: Test01(&tupleType1, recFile, lobFile); break;
+					case 2: Test02(&tupleType1, recFile, lobFile); break;
+					case 3: Test03(&tupleType1, recFile, lobFile); break;
+					case 4: Test04(&tupleType1, recFile, lobFile); break;
+					case 5: Test05(&tupleType1, recFile, lobFile); break;
+					case 6: Test06(&tupleType1, recFile, lobFile); break;
+					case 7: Test07(&tupleType1, recFile, lobFile); break;
+					case 8: Test08(&tupleType1, recFile, lobFile); break;
 					case 9: break;
 				}
 			} while (choice != 9);
 			
 
-			recFileId = recFile->GetFileId();
 			recFile->Close();
-			
+			lobFile->Close();
+						
 			delete recFile;
-
-			//// HIER ////		
-			//trans = SmiEnvironment::CommitTransaction();
+			delete lobFile;
+				
 			trans = SecondoSystem::GetInstance()->CommitTransaction();
 			
 			cout << "* end (commit) of transactions: ";
@@ -984,10 +965,8 @@ int SecondoTestFrame::Execute() {
 			cout << "* Database closed: " << ((closed == true) ? "yes" : "NO" ) << endl;
 
     	}
-		cout << "si->Terminate() wird aufgerufen..." << endl;
     	si->Terminate();
 		
-		cout << "delete si wird aufgerufen..." << endl;
     	delete si;
     	cout << "*** SecondoTestFrame terminated. ***" << endl;
   	}
