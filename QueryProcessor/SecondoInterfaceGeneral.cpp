@@ -10,6 +10,13 @@ using namespace std;
 #include "LogMsg.h"
 #include "Profiles.h"
 
+
+// global instance of a Message object. All messages should be reported
+// using this object to have a flexible mechanism for message handling.
+// The class is dclared in the file LogMsg.h.
+CMsg cmsg;
+
+
 NestedList*
 SecondoInterface::GetNestedList()
 {

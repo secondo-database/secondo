@@ -1094,11 +1094,16 @@ If value 0 is returned, the command was executed without error.
   }
 
   // Creation and deletion of Objects
-  LOGMSG( "SI:RelStatistics", Tuple::ShowTupleStatistics( true, cout ); )
-	LOGMSG( "SI:RelStatistics", ShowStandardTypesStatistics( true, cout ); )
+  LOGMSG( "SI:RelStatistics", 
+	  Tuple::ShowTupleStatistics( true, cmsg.info() ); 
+	  ShowStandardTypesStatistics( true, cmsg.info() ); 
+		cmsg.send();
+	)	
 
   LOGMSG( "SI:ResultList",
-    cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
+    cmsg.info() << endl << "### Result List before copying: " 
+		            << nl->ToString(resultList) << endl;
+		cmsg.send();
   )
 
   // copy result into application specific list container.
@@ -1106,16 +1111,28 @@ If value 0 is returned, the command was executed without error.
   if (resultList) {
      resultList = nl->CopyList(resultList, al);
      LOGMSG( "SI:CopyListTime",
-        cerr << "CopyList " << copyTime.diffTimes() << endl;
+        cmsg.info() << "CopyList " << copyTime.diffTimes() << endl;
+				cmsg.send();
      )
   }
   LOGMSG( "SI:ResultList",
-    cerr << endl << "### Result after copying: " << al->ToString(resultList) << endl;
+    cmsg.info() << endl << "### Result after copying: " 
+		           << al->ToString(resultList) << endl;
+		cmsg.send();					 
   )
   nl->initializeListMemory();
   
   LOGMSG( "SI:CommandTime",
-    cerr << endl << "Command " << cmdTime.diffTimes() << endl;
+	
+	  int nr = Counter::getRef("CmdNr")++;
+		cmsg.file("cmd-idx.log") << nr << ": " << commandText << endl;
+		cmsg.send();
+	  cmsg.file("cmd-real.log") << nr << " " << cmdTime.diffSecondsReal() << endl;
+		cmsg.send();						
+	  cmsg.file("cmd-cpu.log") << nr << " " << cmdTime.diffSecondsCPU() << endl;
+		cmsg.send();								
+    cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
+		cmsg.send();
   )
   
 }
@@ -1163,14 +1180,16 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 	StartCommand();
 
 	StopWatch queryTime;
-	cerr << "Analyze query ..." << endl;;
+	cmsg.info() << "Analyze query ..." << endl;
+	cmsg.send();
 
 	qp.Construct( level, nl.Second( list ), correct, evaluable, defined,
 								isFunction, tree, resultType );
 
 
 	if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-		cerr << "Analyze " << queryTime.diffTimes() << endl;
+		cmsg.info() << "Analyze " << queryTime.diffTimes() << endl;
+		cmsg.send();
 		queryTime.start();
 		//cerr << nl->ReportTableSizes() << endl;
 	}
@@ -1189,7 +1208,8 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 
 	if ( evaluable )
 	{
-		 cerr << "Execute ..." << endl;
+		 cmsg.info() << "Execute ..." << endl;
+		 cmsg.send();
 
 		 qp.Eval( tree, result, 1 );
 		 
@@ -1198,9 +1218,11 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 		 
 		 qp.Destroy( tree, true );
 
-		 if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-			 cerr << "Execute "<< queryTime.diffTimes() << endl;
-			 cerr << nl.ReportTableSizes() << endl;
+		 if (!RTFlag::isActive("SI:NoQueryAnalysis")) 
+		 {
+			 cmsg.info() << "Execute "<< queryTime.diffTimes() << endl
+			             << nl.ReportTableSizes() << endl;
+			 cmsg.send();
 		 }
 
 	}
