@@ -54,7 +54,8 @@ Where:
         <otherChar> =	<any character which is neither a <letter> nor a
                          <digit> nor a '"', '(' or ')'>
 
- */
+*/
+
 package sj.lang.JavaListExpr;
 import java_cup.runtime.*;
 import sj.lang.ListExpr;
@@ -83,36 +84,25 @@ class NLToken extends Symbol implements NLSymbol{
   }
 }
 
-%%
 
-// Sets the name of the tokenizer class;
+
+
+
+
+%%
 %class NLTokenizer
 
-// Defines the tokenizer class as a public class.
-// %public
-
-// Sets the name of the tokenizer function.
 %function nextToken
 
-// Sets the name of the return type (of the token type).
+
 %type NLToken
 
-// Configures the scaner to consider both '\n' and '\r' as "newline"
-// characters.
 %notunix
 
-// Configures the scaner to support alphabet characters between 0 and 255 (by
-// defect it would be configured to accept only values between 0 and 127).
 %full
 
-// Configures the scaner to count the number of characters readed. The count
-// is zero-based ( the first character is the character 0).
-// It returns the count in an integer variable ~yychar~
 %char
 
-// Configures the scaner to count the number of lines readed.The count is
-// zero-based ( the first line is the character 0).
-// It returns the count in an integer variable ~yyline~
 %line
 
 
@@ -137,14 +127,14 @@ class NLToken extends Symbol implements NLSymbol{
 
 
 
-otherChar      [^\(\)\"A-Za-z0-9_" "\t\n\r]
-letter         [a-zA-Z]
-digit          [0-9]
-ident          {letter}({letter}|{digit}|_)*
-math           {otherChar}{otherChar}*
-symbol         {math}|{ident}
-string         \"[^\"]*\"
-filename       "<file>".*"</file--->"
+otherChar   =   [^\(\)\"A-Za-z0-9_" "\t\n\r]
+letter      =   [a-zA-Z]
+digit       =   [0-9]
+ident       =   {letter}({letter}|{digit}|_)*
+math        =   {otherChar}{otherChar}*
+symbol      =   {math}|{ident}
+string      =   \"[^\"]*\"
+filename    =   "<file>".*"</file--->"
 
 
 

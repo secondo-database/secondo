@@ -54,7 +54,6 @@ clean:
 	make -C project clean
 	make -C tools clean
 	make -C viewer clean
-	make -C java_cup clean
 	(rm -f ./doc/* -r)
 	(rm -fr doc)
 
