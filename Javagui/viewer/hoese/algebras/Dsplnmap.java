@@ -59,38 +59,31 @@ public class Dsplnmap extends DisplayGraph {
 
 
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    //value.writeListExpr();
-    AttrName = type.first().symbolValue();
+    value.writeListExpr();
+    AttrName = type.symbolValue();
     ListExpr nmap;
-    //ListExpr rel1, rel2, rel3;
-    nmap= type.rest();
-   // nmap.writeListExpr();
-    //System.out.println("type.listLength"+ type.listLength());
 
-    if (type.listLength() == 2)
-    {
        if (!value.fifth().isEmpty())
        {
           ListExpr rel3 = CreateRegionsTypeInfo();
-        //  rel3.writeListExpr();
+          rel3.writeListExpr();
           LEUtils.analyse(rel3, value.fifth(), qr);
           qr.addEntry("---------");
        }
        if (!value.fourth().isEmpty())
        {
           ListExpr rel2 = CreateLinesTypeInfo();
-        //  rel2.writeListExpr();
+          rel2.writeListExpr();
           LEUtils.analyse(rel2, value.fourth(), qr);
           qr.addEntry("---------");
        }
        if (!value.third().isEmpty())
        {
           ListExpr rel1 = CreateObjectsTypeInfo();
-       //   rel1.writeListExpr();
+          rel1.writeListExpr();
           LEUtils.analyse(rel1, value.third(), qr);
           qr.addEntry("---------");
        }
-    }
 /*
     if (nmap.listLength() == 2)
     {
