@@ -45,6 +45,8 @@ else
    export SECONDO_PLATFORM="linux"
 fi
 
+SECONDO_SDK="$HOME/secondo-sdk"
+
 #########################################################
 ##
 ## start configurable part
@@ -60,9 +62,9 @@ export CVSROOT=":pserver:$CVSUSER@robinson.fernuni-hagen.de:2401/cvs-projects/CV
 if [ $SECONDO_PLATFORM != "win32" ]; then 
    
    # unix
-   export PL_INCLUDE_DIR="$HOME/secondo-sdk/include"
-   export PL_LIB_DIR="$HOME/secondo-sdk/lib/pl-5.0.10/runtime/i686-linux"
-   export J2SDK_ROOT="$HOME/secondo-sdk/j2sdk1.4.2_01"
+   export PL_INCLUDE_DIR="$SECONDO_SDK/include"
+   export PL_LIB_DIR="$SECONDO_SDK/lib/pl-5.0.10/runtime/i686-linux"
+   export J2SDK_ROOT="$SECONDO_SDK/j2sdk1.4.2_01"
 else 
 
    # windows 
@@ -79,10 +81,11 @@ fi
 #########################################################
 
 if [ $SECONDO_PLATFORM != "win32" ]; then
-   export PD_HEADER="$HOME/secondo-sdk/pd/pd.header"
+   export BISON_SIMPLE="$SECONDO_SDK/share/bison/bison.simple"
+   export PD_HEADER="$SECONDO_SDK/pd/pd.header"
    export DVI_VIEWER=kdvi
-   export BERKELEY_DB_DIR="$HOME/secondo-sdk"
-   export PATH=".:$J2SDK_ROOT/bin:$PATH"
+   export BERKELEY_DB_DIR="$SECONDO_SDK"
+   export PATH=".:$J2SDK_ROOT/bin:$SECONDO_SDK/bin:$SECONDO_SDK/pd:$COPY_OF_PATH"
    export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR:$JNIDIR" 
 else
    export PD_HEADER="/usr/local/pd/pd.header"
