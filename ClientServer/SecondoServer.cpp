@@ -75,15 +75,6 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
   string resultStr;
   nl->WriteToString( resultStr, list );
   
-  // Encode 'n'-character in text atoms for transmission via TCP/IP
-  //if ( resultStr.find("<text>") )
-  //{
-    //for (unsigned int i = 0; i <= resultStr.length(); i++)
-    //{
-      //if (resultStr[i] == '\n') resultStr[i] = line_feed;
-    //}
-  //}
-
   iostream& iosock = client->GetSocketStream();
   iosock << "<SecondoResponse>" << endl
          << resultStr << endl

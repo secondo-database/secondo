@@ -522,17 +522,7 @@ If value 0 is returned, the command was executed without error.
           result += line + "\n";
         }
       }
-      while (line != "</SecondoResponse>" && !iosock.fail());
-      
-      // Decode 'n'-character in text atoms from transmission via TCP/IP
-      //if ( result.find("<text>") )
-      //{
-        //for (unsigned int i = 0; i <= result.length(); i++)
-        //{
-          //if ( result[i] == line_feed ) result[i] = '\n';
-        //}
-       //}
-      
+      while (line != "</SecondoResponse>" && !iosock.fail());      
       nl->ReadFromString( result, resultList );
       errorCode = nl->IntValue( nl->First( resultList ) );
       errorPos  = nl->IntValue( nl->Second( resultList ) );
