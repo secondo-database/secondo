@@ -329,7 +329,7 @@ Max # of entries per node.
 
 */
 
-      int count;
+    int count;
 /*
 Number of entries in this node.
 
@@ -925,17 +925,21 @@ void R_TreeNode::Read( SmiRecordFile& file, const SmiRecordId pointer )
 void R_TreeNode::Read( SmiRecord& record )
 {
   int offset = 0;
+  char buffer[Size() + 1];
+  memset( buffer, 0, Size() + 1 );
+
+  assert( record.Read( buffer, Size(), offset ) );
 
   // Reads leaf, count
-  assert( record.Read( &leaf, sizeof( leaf ), offset ) == sizeof( leaf ) );
+  memcpy( &leaf, buffer + offset, sizeof( leaf ) );
   offset += sizeof( leaf );
-  assert( record.Read( &count, sizeof( count ), offset ) == sizeof( count ) );
+  memcpy( &count, buffer + offset, sizeof( count ) );
   offset += sizeof( count );
 
   assert( count <= maxEntries );
 
   // Now read the entry array.
-  assert( record.Read( entry, count * sizeof( R_TreeEntry ), offset ) == count * sizeof( R_TreeEntry ) );
+  memcpy( entry, buffer + offset, count * sizeof( R_TreeEntry ) );
 
   modified = false;
 }
@@ -955,18 +959,21 @@ void R_TreeNode::Write( SmiRecord& record )
   if( modified )
   {
     int offset = 0;
+    char buffer[Size() + 1];
+    memset( buffer, 0, Size() + 1 );
 
     // Writes leaf, count
-    assert( record.Write( &leaf, sizeof( leaf ), offset ) == sizeof( leaf ) );
+    memcpy( buffer + offset, &leaf, sizeof( leaf ) );
     offset += sizeof( leaf );
-    assert( record.Write( &count, sizeof( count ), offset ) == sizeof( count ) );
+    memcpy( buffer + offset, &count, sizeof( count ) );
     offset += sizeof( count );
 
     assert( count <= maxEntries );
 
     // Now read the entry array.
-    assert( record.Write( entry, count * sizeof( R_TreeEntry ), offset ) == count * sizeof( R_TreeEntry ) );
+    memcpy( buffer + offset, entry, count * sizeof( R_TreeEntry ) );
 
+    assert( record.Write( buffer, Size(), 0 ) );
     modified = false;
   }
 }
