@@ -53,7 +53,11 @@ Installation
   (MinGW). Additionally some source files need changes to be compilable.
   The Secondo build process performs these changes automatically and
   builds the OCI C++ Library, too. You only need to configure the
-  MAKE configuration file appropriately.
+  MAKE configuration file appropriately:
+
+  - Adjust path information in 'makefile.win32'
+  - Adjust path information in 'Win32/ocicpplib/makefile'
+    (i.e. DEFAULTLIBS and OCIORACLEINCLUDE)
 
 * Unzip the Secondo archive into a directory of your choice
   then change to this directory
@@ -64,6 +68,12 @@ Installation
   - 'makefile.win32' for Windows
   - 'makefile.linux' for Linux
   - 'makefile.solaris' for Sun/Solaris
+
+* (Windows only) To build the storage management support library
+  (Berkeley DB or OCI C++) change to the subdirectory Win32 and
+  run 'make' (Berkeley DB) or 'make smitype=ora' (OCI C++).
+  This performs the needed changes to the source files and compiles
+  the library.
 
 * Run 'make' and/or 'make shared=yes'
   - libraries are created and copied to the 'lib' directory

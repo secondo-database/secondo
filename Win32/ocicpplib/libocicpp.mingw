@@ -10,7 +10,7 @@ CC=gcc
 LD=gcc
 AR=ar
 
-DEFAULTLIBS= -L/tools/impdef/test/ -loci -lstdc++
+DEFAULTLIBS= -L/Secondo/lib/ -loci -lstdc++
 
 OCIORACLEINCLUDE=/oracle/ora81/oci/include
 

@@ -10,7 +10,7 @@ include ../makefile.$(platform)
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 
 OCIDLLHOME=$(ORACLEHOME)/bin
-BDBDIR1=$(BDBDIR)-test
+BDBDIR1=$(BDBDIR)
 
 .PHONY: all
 ifeq ($(smitype),ora) 
@@ -30,6 +30,7 @@ $(LIBDIR)/libdb32.a:
 	make -C $(BDBDIR1)/build_win32 -f libdb32.mingw
 	$(CP) $(BDBDIR1)/build_win32/libdb32.a $(LIBDIR)/libdb32.a
 	$(CP) $(BDBDIR1)/build_win32/libdb32.dll $(LIBDIR)/libdb32.dll
+	$(CP) $(BDBDIR1)/build_win32/libdb32.dll $(BINDIR)/libdb32.dll
 	$(CP) $(BDBDIR1)/build_win32/libdb32.dll.a $(LIBDIR)/libdb32.dll.a
 
 # --- Oracle OCI
@@ -40,7 +41,8 @@ $(LIBDIR)/libocicpp.a: $(LIBDIR)/liboci.dll.a
 	$(CP) ocicpplib/demo-mingw.cpp $(OCICPPDIR)/demo/demo-mingw.cpp
 	make -C $(OCICPPDIR)/ocicpp -f libocicpp.mingw
 	$(CP) $(OCICPPDIR)/ocicpp/libocicpp.a $(LIBDIR)/libocicpp.a
-	$(CP) $(OCICPPDIR)/ocicpp/libocicpp.dll.a $(LIBDIR)/libocicpp.dll.a
+#	$(CP) $(OCICPPDIR)/ocicpp/libocicpp.dll $(LIBDIR)/libocicpp.dll
+#	$(CP) $(OCICPPDIR)/ocicpp/libocicpp.dll.a $(LIBDIR)/libocicpp.dll.a
 
 $(LIBDIR)/liboci.dll.a: oci.def
 	dlltool -D oci.dll -d oci.def -l liboci.dll.a

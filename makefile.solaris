@@ -4,13 +4,8 @@
 #
 ########################################################################
 
-# These are the directories where the library is installed by default:
-#INSTALL_PREFIX = /usr/local
-#LIB_INSTALL = $(INSTALL_PREFIX)/lib
-#INCLUDE_INSTALL = $(INSTALL_PREFIX)/include
-
 # Secondo build directory
-BUILDDIR = /export/home/telle/Secondo-Neu
+BUILDDIR = /change/me/Secondo
 INCLUDEDIR = $(BUILDDIR)/include
 LIBDIR = $(BUILDDIR)/lib
 BINDIR = $(BUILDDIR)/bin
@@ -22,7 +17,7 @@ ALGLIB     = -lfunctionalgebra -lstandardalgebra
 DEFAULTLIB = -lsocket -lnsl -ldl -lstdc++
 
 # Berkeley DB library
-BDBDIR = /export/home/telle/berkeley-db
+BDBDIR = /change/me/berkeley-db
 BDBINCLUDE = -I$(BDBDIR)/include
 BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb

@@ -84,7 +84,7 @@ SecondoMonitor::ExecStartUp()
     cout << "Startup in progress ... ";
     string pgmListener = SmiProfile::GetParameter( "Environment", "ListenerProgram", "", parmFile );
     string pgmArgs = string( "\"" ) + parmFile + "\"";
-    if ( ProcessFactory::SpawnProcess( pgmListener, pgmArgs, pidListener, false ) )
+    if ( ProcessFactory::SpawnProcess( pgmListener, pgmArgs, pidListener, true ) )
     {
       cout << "completed." << endl;
       running = true;
@@ -389,7 +389,7 @@ SecondoMonitor::Initialize()
       cout << "Launching Checkpoint service ... ";
       string pgmCheckpoint = SmiProfile::GetParameter( "BerkeleyDB", "CheckpointProgram", "", parmFile );
       string pgmArgs = string( "\"" ) + parmFile + "\"";
-      if ( ProcessFactory::SpawnProcess( pgmCheckpoint, pgmArgs, pidCheckpoint, false ) )
+      if ( ProcessFactory::SpawnProcess( pgmCheckpoint, pgmArgs, pidCheckpoint, true ) )
       {
         cout << "completed." << endl;
       }
@@ -419,7 +419,7 @@ SecondoMonitor::Initialize()
     cout << "Launching Secondo Registrar ... ";
     string pgmRegistrar = SmiProfile::GetParameter( "Environment", "RegistrarProgram", "", parmFile );
     string pgmArgs = string( "\"" ) + parmFile + "\"";
-    if ( ProcessFactory::SpawnProcess( pgmRegistrar, pgmArgs, pidRegistrar, false ) )
+    if ( ProcessFactory::SpawnProcess( pgmRegistrar, pgmArgs, pidRegistrar, true ) )
     {
       cout << "completed." << endl;
       ProcessFactory::Sleep( 0 );

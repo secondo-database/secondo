@@ -16,14 +16,14 @@ lex.yy.cpp: SpecLex.l
 SpecParser.tab.hpp SpecParser.tab.cpp: SpecParser.y
 	$(YACC) -d -o SpecParser.tab.cpp SpecParser.y
 
-Lexer$(EXEEXT): LexTest.cpp lex.yy.cpp ../NestedText.h ../NestedText.$(OBJEXT) SpecParser.tab.hpp
-	$(CC) -o Lexer$(EXEEXT) LexTest.cpp lex.yy.cpp ../NestedText.$(OBJEXT) -I.. $(DEFAULTCCFLAGS) -lstdc++
+Lexer$(EXEEXT): LexTest.cpp lex.yy.cpp ../NestedText.h ../NestedText.o SpecParser.tab.hpp
+	$(CC) -o Lexer$(EXEEXT) LexTest.cpp lex.yy.cpp ../NestedText.o -I.. $(DEFAULTCCFLAGS) -lstdc++
 
-Parser$(EXEEXT): Translate.cpp SpecParser.tab.cpp lex.yy.cpp ../NestedText.h ../NestedText.$(OBJEXT)
-	$(CC) -o Parser$(EXEEXT) Translate.cpp SpecParser.tab.cpp lex.yy.cpp ../NestedText.$(OBJEXT) -I.. $(DEFAULTCCFLAGS) -lstdc++
+Parser$(EXEEXT): Translate.cpp SpecParser.tab.cpp lex.yy.cpp ../NestedText.h ../NestedText.o
+	$(CC) -o Parser$(EXEEXT) Translate.cpp SpecParser.tab.cpp lex.yy.cpp ../NestedText.o -I.. $(DEFAULTCCFLAGS) -lstdc++
 
-../NestedText.$(OBJEXT): ../NestedText.cpp ../NestedText.h
-	$(CC) -c -o ../NestedText.$(OBJEXT) ../NestedText.cpp -I.. $(DEFAULTCCFLAGS)
+../NestedText.o: ../NestedText.cpp ../NestedText.h
+	$(CC) -c -o ../NestedText.o ../NestedText.cpp -I.. $(DEFAULTCCFLAGS)
 
 clean:
 	$(RM) *.o

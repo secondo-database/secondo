@@ -5,7 +5,7 @@
 ########################################################################
 
 # Secondo build directory
-BUILDDIR = /Diplom/Redesign/Secondo-Neu
+BUILDDIR = /change/me/Secondo
 INCLUDEDIR = $(BUILDDIR)/include
 LIBDIR = $(BUILDDIR)/lib
 BINDIR = $(BUILDDIR)/bin
@@ -17,9 +17,9 @@ ALGLIB    = -lfunctionalgebra -lstandardalgebra
 DEFAULTLIB = -lws2_32 -lstdc++
 
 # Berkeley DB library
-BDBDIR = /Diplom/Libraries/Berkeley-DB/db-4.0.14
-BDBINCLUDE = -I$(BDBDIR)/include -I$(BDBDIR)/build_mingw
-BDBLIBDIR = -L$(BDBDIR)/build_mingw
+BDBDIR = /change/me/db-4.0.14
+BDBINCLUDE = -I$(BDBDIR)/include -I$(BDBDIR)/build_win32
+BDBLIBDIR = -L$(BDBDIR)/build_win32
 BDBLIB = -ldb32
 
 # Oracle OCI C++ library
