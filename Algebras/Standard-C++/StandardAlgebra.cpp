@@ -51,7 +51,7 @@ Following operators are defined:
         real x real --> real
 ----
 
-  * / (divide) 
+  * / (divide)
 
 ----    int x int --> real
         int x real --> real
@@ -476,8 +476,10 @@ size_t CcReal::HashValue()
   unsigned long h = 0;
   char* s = (char*)&realval;
   for(unsigned int i = 1; i <= sizeof(float) / sizeof(char); i++)
+  {
     h = 5 * h + *s;
     s++;
+  }
   return size_t(h);
 }
 
@@ -852,22 +854,22 @@ CheckString( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "string" ));
 }
- 
+
 TypeConstructor ccString( "string",       CcProperty,
                           OutCcString,    InCcString, CreateCcString,
                           DeleteCcString, CastString, CheckString );
 
-/* 
+/*
 4 Operators
 
 Definition of operators is similar to definition of type constructors. An
 operator is defined by creating an instance of class ~Operator~. Again we
-have to define some functions before we are able to create an ~Operator~ 
-instance. 
+have to define some functions before we are able to create an ~Operator~
+instance.
 
 4.2 Type mapping function
 
-A type mapping function takes a nested list as argument. Its contents are 
+A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
@@ -908,7 +910,7 @@ CcMathTypeMap( ListExpr args )
 /*
 4.2.2 Type mapping function CcMathTypeMapdiv
 
-It is for the operators /. the only difference between CCMathTypeMap and 
+It is for the operators /. the only difference between CCMathTypeMap and
 CcMathTypeMapdiv is that the latter give as resulttype ccreal if the input type
 is ccint ("normal division of int with result real", the other division
 of int is called div in this program).
