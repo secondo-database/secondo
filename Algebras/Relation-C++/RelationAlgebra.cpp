@@ -176,47 +176,56 @@ Each instance of the class defined below will be the main memory representation 
 */
 class TupleAttributesInfo
 {
-  private:
    
     TupleAttributes* tupleType;
-    static TupleAttributesInfo tupleTypeInfo;
+    AttributeType* attrTypes;
     
   public:
   
-    TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
-    {
-      ListExpr attrlist, valuelist,first,firstvalue, errorInfo;
-      Word attr;
-      int algebraId, typeId, noofattrs;
-      AttributeType attrTypes[nl->ListLength(value)];
-      AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-      bool valueCorrect;
-      
-      attrlist = typeInfo;
-      valuelist = value;
-      noofattrs = 0;
-      
-      while (!nl->IsEmpty(attrlist))
-      {
-        first = nl->First(attrlist);
-        attrlist = nl->Rest(attrlist);
+    //static TupleAttributesInfo tupleTypeInfo;
 
-        algebraId = nl->IntValue(nl->First(nl->Second(first)));
-        typeId = nl->IntValue(nl->Second(nl->Second(first)));
+    TupleAttributesInfo (ListExpr typeInfo, ListExpr value);
+  
+    //Destructor
+};
+
+TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
+{
+  ListExpr attrlist, valuelist,first,firstvalue, errorInfo;
+  Word attr;
+  int algebraId, typeId, noofattrs;
+  attrTypes = new AttributeType[nl->ListLength(value)];
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+  bool valueCorrect;
+  
+  nl->WriteToFile("/dev/tty",typeInfo);
+  if (nl->IsAtom(typeInfo)) cout << "Is Atom" << endl;     
+  attrlist = nl->Second(typeInfo);
+  valuelist = value;
+  nl->WriteToFile("/dev/tty",attrlist);
+  nl->WriteToFile("/dev/tty",valuelist);
+  noofattrs = 0;
       
- 	firstvalue = nl->First(valuelist);
-	valuelist = nl->Rest(valuelist);
-        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first), 
-                 firstvalue, 0, errorInfo, valueCorrect);
-	if (valueCorrect)
-	{
-	  AttributeType attrtype = { algebraId, 0, ((Attribute*)attr.addr)->Sizeof() }; 
-	  attrTypes[noofattrs] = attrtype;
-	  noofattrs++;
-	}
-      }
-      tupleType = new TupleAttributes(noofattrs, attrTypes);	  
+  while (!nl->IsEmpty(attrlist))
+  {
+    first = nl->First(attrlist);
+    attrlist = nl->Rest(attrlist);
+
+    algebraId = nl->IntValue(nl->First(nl->Second(first)));
+    typeId = nl->IntValue(nl->Second(nl->Second(first)));
+      
+    firstvalue = nl->First(valuelist);
+    valuelist = nl->Rest(valuelist);
+    attr = (algM->InObj(algebraId, typeId))(nl->Second(first), 
+              firstvalue, 0, errorInfo, valueCorrect);
+    if (valueCorrect)
+    {
+      AttributeType attrtype = { algebraId, typeId, ((Attribute*)attr.addr)->Sizeof() }; 
+      attrTypes[noofattrs] = attrtype;
+      noofattrs++;
     }
+  }
+  tupleType = new TupleAttributes(noofattrs, attrTypes);
 };
 
 class CcTuple 
@@ -323,7 +332,14 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
   Word attr;
   CcTuple* tupleaddr;
   bool valueCorrect;
-  ListExpr first, firstvalue, valuelist, attrlist;
+  ListExpr first, firstvalue, valuelist, attrlist, typeInfo99;
+  
+  //nl->WriteToFile("/dev/tty",typeInfo);
+ // nl->WriteToFile("/dev/tty",nl->First(typeInfo));  
+  //nl->WriteToFile("/dev/tty",value);
+  //typeInfo99 = nl->First(typeInfo);
+  //nl->WriteToFile("/dev/tty",typeInfo99);
+  //TupleAttributesInfo* tai = new TupleAttributesInfo(typeInfo99, value);
 
   attrno = 0;
   noOfAttrs = 0;
@@ -735,6 +751,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
     r->NextScan();
   }
   // cout << nl->WriteToFile("/dev/tty",l);
+  //TupleAttributesInfo* tai = new TupleAttributesInfo(nl->Second(typeInfo), nl->First(l));
   return l;
   
 }
@@ -2202,26 +2219,54 @@ Extends each input tuple by new attributes as specified in the parameter list.
 
 7.3.1 Type mapping function of operator ~extend~
 
-Type mapping for ~extract~ is
+Type mapping for ~extend~ is
 
-----	 ((stream (tuple (x1 ... xn))) ((fun x y1) ... (fun x ym))
+----     ((stream x) ((b1 (map x y1)) ... (bm (map x ym))))  
  
-        -> (stream (tuple (x1 ... xn y1 ... ym)))
+        -> (stream (tuple ((a1 x1) ... (an xn) (b1 y1 ... bm ym))))
+
+        wobei x = (tuple ((a1 x1) ... (an xn)))
 ----
 
 */
+
+bool comparenames(ListExpr list)
+{
+  vector<string> attrnamestrlist;
+  vector<string>::iterator it;
+  ListExpr attrnamelist;
+  int unique;
+  string attrname;
+
+  attrnamelist = list;
+  attrnamestrlist.resize(nl->ListLength(list));
+  it = attrnamestrlist.begin();
+  //nl->WriteToFile("/dev/tty",attrnamelist);
+  while (!nl->IsEmpty(attrnamelist))
+  {
+    attrname = nl->SymbolValue(nl->First(nl->First(attrnamelist)));
+    //cout << attrname << endl;
+    attrnamelist = nl->Rest(attrnamelist);
+    unique = std::count(attrnamestrlist.begin(), attrnamestrlist.end(),
+	                       attrname);
+    *it =  attrname;
+    //cout << unique << endl;
+    if (unique) return false;
+    it++;
+  }
+  return true;
+}
+
 static ListExpr
 ExtendTypeMap( ListExpr args )
 {
   ListExpr first, second, third, rest, listn, errorInfo, 
            lastlistn, first2, second2, firstr, outlist;
-  bool loopok;
+  bool loopok, ckd;
   AlgebraManager* algMgr;
-
-  algMgr = SecondoSystem::GetAlgebraManager();
   
-  nl->WriteToFile("/dev/tty", args);
-  
+  algMgr = SecondoSystem::GetAlgebraManager(); 
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));  
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
@@ -2262,14 +2307,17 @@ ExtendTypeMap( ListExpr args )
 	  loopok = false;
 	}
       }
-      //if ((loopok) && (comparenames(listn))){	
-      if ( loopok ){
+      if ((loopok) && (comparenames(listn)))	
+      //if ( loopok )
+      {
         outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
 			nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
-	nl->WriteToFile("/dev/tty", outlist);	
+	//nl->WriteToFile("/dev/tty", outlist);	
         return outlist;
       }
+      else return nl->SymbolAtom("typeerror");
     }
+    else return nl->SymbolAtom("typeerror");
   }
    return nl->SymbolAtom("typeerror");
 }
@@ -2333,10 +2381,10 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ExtendSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the value of attribute ai of the first tuple in the input stream.</text--->)";
+  "(<text>(stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))</text---><text>Extends each input tuple by new attributes as specified in the parameter list.</text--->)";
 /*
 
-4.1.3 Definition of operator ~extract~
+4.1.3 Definition of operator ~extend~
 
 */
 Operator cppextend (
@@ -2347,7 +2395,137 @@ Operator cppextend (
          simpleSelect,          // trivial selection function
          ExtendTypeMap          // type mapping
 );
+/*
 
+7.3 Operator ~concat~
+
+7.3.1 Type mapping function of operator ~concat~
+
+Type mapping for ~concat~ is
+
+----    ((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn))))
+ 
+        -> (stream (tuple (a1:d1 ... an:dn)))
+----
+
+*/
+ListExpr GetAttrTypeList (ListExpr l)
+{
+  ListExpr first, rest, olist, lastolist, attrlist;
+  
+  olist = nl->TheEmptyList();
+  attrlist = l;
+  while (!nl->IsEmpty(attrlist))
+  {
+    first = nl->First(attrlist);
+    attrlist = nl->Rest(attrlist);
+    if (olist == nl->TheEmptyList())
+    {
+      olist = nl->Cons(nl->Second(first), nl->TheEmptyList());
+      lastolist = olist;
+    }
+    else
+    {
+      lastolist = nl->Append(lastolist, nl->Second(first));
+    }
+  }
+  return olist;
+}
+
+static ListExpr
+ConcatTypeMap( ListExpr args )
+{
+  ListExpr first, second;
+  if(nl->ListLength(args)  == 2)
+  {
+    first = nl->First(args);
+    second = nl->Second(args);
+
+    if((nl->ListLength(first) == 2) &&
+       (TypeOfRelAlgSymbol(nl->First(first)) == stream) && 
+       (nl->ListLength(nl->Second(first)) == 2) &&
+       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+       (nl->ListLength(second) == 2) &&
+       (TypeOfRelAlgSymbol(nl->First(second)) == stream) &&
+       (nl->ListLength(nl->Second(second)) == 2) &&
+       (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
+       (nl->Equal(GetAttrTypeList(nl->Second(nl->Second(first))),
+	          GetAttrTypeList(nl->Second(nl->Second(second))))))
+       return first;
+    else
+      return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+/*
+
+4.1.2 Value mapping function of operator ~concat~
+
+*/
+static int
+Concat(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word t;
+  
+  switch (message)
+  {
+    case OPEN :
+
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+      local = SetWord(new CcInt(true, 0));
+      return 0;
+      
+    case REQUEST :
+      if ( (((CcInt*)local.addr)->GetIntval()) == 0)
+      {
+	qp->Request(args[0].addr, t);
+	if (qp->Received(args[0].addr))
+	{
+	  result = t;
+	  return YIELD;
+	}
+	else
+	{
+          ((CcInt*)local.addr)->Set(1);
+	}
+      }
+      qp->Request(args[1].addr, t);
+      if (qp->Received(args[1].addr))
+      {
+        result = t;
+	return YIELD;
+      }
+      else return CANCEL;
+
+    case CLOSE :
+    
+      qp->Close(args[0].addr); 
+      qp->Close(args[1].addr);
+      delete (CcInt*)local.addr;
+      return 0;
+  }   
+}
+/*
+
+4.1.3 Specification of operator ~concat~
+
+*/
+const string ConcatSpec =
+  "(<text>((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))</text---><text>Union (without duplicate removal.</text--->)";
+/*
+
+4.1.3 Definition of operator ~concat~
+
+*/
+Operator cppconcat (
+         "concat",              // name
+         ConcatSpec,            // specification
+         Concat,                // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         ConcatTypeMap          // type mapping
+);
 /*
 
 6 Class ~RelationAlgebra~
@@ -2381,9 +2559,10 @@ class RelationAlgebra : public Algebra
     AddOperator(&cpprename);
     AddOperator(&cppextract);
     AddOperator(&cppextend);
+    AddOperator(&cppconcat);
 
     cpptuple.AssociateKind( "TUPLE" );
-    cpptuple.AssociateKind( "REL" );
+    cpprel.AssociateKind( "REL" );
 
   }
   ~RelationAlgebra() {};
