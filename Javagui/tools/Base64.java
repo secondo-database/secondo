@@ -2,6 +2,11 @@ package tools;
 
 import java.io.*;
 
+/*
+  a simple program which encoded a binary file into the base64 format
+  and vice versa.
+*/
+
 public class Base64{
 
 
@@ -37,7 +42,7 @@ public static void main(String[] args){
        Base64Encoder Enc = new Base64Encoder(in);
        while((next=Enc.getNext())>=0)
            out.write((byte)next);
-       out.write('\n');	   
+       out.write('\n');
      }
      in.close();
      out.close();
