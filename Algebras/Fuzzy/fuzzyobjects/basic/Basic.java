@@ -188,7 +188,7 @@ Ldist[4] =  4*qarea/qdiaglen;
 int min=0;
 double mindist = Ldist[0];
 
-for(int i=1;i<5;i++){           // gengt von 1
+for(int i=1;i<5;i++){           // genuegt von 1
   if (Ldist[i]<mindist){
      min=i;
      mindist=Ldist[i];

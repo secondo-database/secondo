@@ -454,7 +454,7 @@ private void  computeNormalMatrix() {
   Point3D vzStrich,vxStrich, vyStrich;
   Matrix  Translat,Rotat,Norma;
 
-  // (* fÅr die Berechnungen siehe Musterlîsung zu Graphische
+  // (* fuer die Berechnungen siehe Musterloesung zu Graphische
   //    Datenverarbeitung I KE3 , Aufgabe 4 *)
 
 
@@ -632,7 +632,7 @@ private Matrix PointRotationMatrix(Point3D Pt,double Angle) {
   Mat  = new Matrix(4,4); 
   Help = new Point3D(0,0,0,0,0,0);
  
-  B = Help.distance(Pt);  // (* LÑnge des Ortsvektors Pkt *)
+  B = Help.distance(Pt);  // (* Laenge des Ortsvektors Pkt *)
 
   x = Pt.getX()/B;
   y = Pt.getY()/B;
