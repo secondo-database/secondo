@@ -61,33 +61,33 @@ SERVER_OBJECTS = SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o
 
 $(BINDIR)/SecondoMonitorBDB$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
 $(BINDIR)/SecondoRegistrar$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
 $(BINDIR)/SecondoCheckpoint$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
 $(BINDIR)/SecondoListener$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
 $(BINDIR)/SecondoServerBDB$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) 
 $(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
 
 # Oracle SMI
 $(BINDIR)/SecondoMonitorORA$(EXEEXT): $(SECLIBFILES) 
 $(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
 
 $(BINDIR)/SecondoServerORA$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) 
 $(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS) 
-	$(LD) $(EXEFLAGS) $(LDLFAGS) $(LDJNIFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDLFAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
 
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)
