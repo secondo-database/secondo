@@ -171,6 +171,11 @@ display(string, N) :-
   term_to_atom(String, N), 
   displayString(String).
   
+display(instant, N) :-
+  !,
+  term_to_atom(String, N), 
+  displayString(String).
+  
 display(text, N) :-
   !,
   is_list(N),
