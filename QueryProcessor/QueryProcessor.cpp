@@ -1180,29 +1180,29 @@ function index.
       case IntType:
       {
         AllocateValuesAndModels( valueno );
-	if ( level == DescriptiveLevel )
+	      if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
-		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
-	  /* special treatment of integers at descriptive level; these can
-	  be attribute numbers and must be treated as values in that case. */
+          models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+          nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
+          /* special treatment of integers at descriptive level; these can
+             be attribute numbers and must be treated as values in that case. */
           values[valueno].isConstant = true;
           values[valueno].isList = true;
-	  values[valueno].value.list = nl->IntValue( expr );
+          values[valueno].value.list = nl->IntValue( expr );
         }
-	else
+        else
         {
           int algId, typeId;
           GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "int" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "int" ), expr,
-		errorPos, errorInfo, correct );
+                                                 errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
           values[valueno].typeId = typeId;
           values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
-		nl->SymbolAtom( "int" ), value );
+                              nl->SymbolAtom( "int" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1215,24 +1215,24 @@ function index.
       case RealType:
       {
         AllocateValuesAndModels( valueno );
-	if ( level == DescriptiveLevel )
+        if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
-		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
+          models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+          nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
         }
-	else
+        else
         {
           int algId, typeId;
           GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "real" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "real" ), expr,
-		errorPos, errorInfo, correct );
+                                                 errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
           values[valueno].typeId = typeId;
           values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
-		nl->SymbolAtom( "real" ), value );
+                              nl->SymbolAtom( "real" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1245,24 +1245,24 @@ function index.
       case BoolType:
       {
         AllocateValuesAndModels( valueno );
-	if ( level == DescriptiveLevel )
+        if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
-		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
+          models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+          nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
         }
-	else
+        else
         {
           int algId, typeId;
           GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "bool" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "bool" ), expr,
-		errorPos, errorInfo, correct );
+                                                 errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
           values[valueno].typeId = typeId;
           values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
-		nl->SymbolAtom( "bool" ), value );
+                              nl->SymbolAtom( "bool" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1275,24 +1275,24 @@ function index.
       case StringType:
       {
         AllocateValuesAndModels( valueno );
-	if ( level == DescriptiveLevel )
+        if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
-		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
+          models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+          nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
         }
-	else
+        else
         {
           int algId, typeId;
           GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "string" ), typeName, algId, typeId );
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "string" ), expr,
-		errorPos, errorInfo, correct );
+                                                 errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
           values[valueno].typeId = typeId;
           values[valueno].value = value;
           models[valueno] = GetCatalog( level )->ValueToObjectModel(
-		nl->SymbolAtom( "string" ), value );
+                              nl->SymbolAtom( "string" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1316,7 +1316,7 @@ function index.
 
           GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "text" ), typeName, algId, typeId ); //???
           value = GetCatalog( level )->InObject( nl->SymbolAtom( "text" ), expr, //???
-            errorPos, errorInfo, correct );
+                                                 errorPos, errorInfo, correct );
           values[valueno].isConstant = true;
           values[valueno].isList = false;
           values[valueno].algId = algId;
@@ -1360,12 +1360,12 @@ function index.
 
               NameIndex newvarnames;
               VarEntryTable newvartable(20); 
-	      functionList = values[valueno-1].value.list;
+              functionList = values[valueno-1].value.list;
               values[valueno-1].isList = true;
 
-	      list = Annotate( level, functionList, newvarnames, newvartable,
+              list = Annotate( level, functionList, newvarnames, newvartable,
                                defined, nl->TheEmptyList() );
-	      return (nl->TwoElemList(
+              return (nl->TwoElemList(
                         nl->ThreeElemList(
                           expr,
                           nl->SymbolAtom( "function" ),
@@ -1419,14 +1419,14 @@ function index.
                       nl->IntAtom( funindex ) ),
                     typeExpr ));
         }
-	else if ( TypeOfSymbol( expr ) == QP_COUNTER )
+        else if ( TypeOfSymbol( expr ) == QP_COUNTER )
         {
-	  return nl->TwoElemList(
-		    nl->TwoElemList(
-		      expr,
-		      nl->SymbolAtom( "counter" ) ),
-		    nl->SymbolAtom( "typeerror" ) );
-	}
+          return nl->TwoElemList(
+                   nl->TwoElemList(
+                     expr,
+                     nl->SymbolAtom( "counter" ) ),
+                   nl->SymbolAtom( "typeerror" ) );
+        }
         else
         {
           return (nl->TwoElemList(
@@ -1453,14 +1453,14 @@ function index.
     { /* treatment of user-defined constant */
       if ( level == DescriptiveLevel )
       {
-	model = GetCatalog( level )->ValueListToObjectModel( nl->First( expr ),
-		nl->Second( expr ), errorPos, errorInfo, correct );
+        model = GetCatalog( level )->ValueListToObjectModel( nl->First( expr ),
+        nl->Second( expr ), errorPos, errorInfo, correct );
         if ( correct )
         { 
           AllocateValuesAndModels( valueno );
           models[valueno] = value;
           valueno++;
-	  return (nl->TwoElemList(
+          return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
                       nl->SymbolAtom( "constant" ),
@@ -1469,7 +1469,7 @@ function index.
         }
         else
         {
-	  return (nl->TwoElemList(
+          return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
                       nl->SymbolAtom( "constant" ),
@@ -1492,7 +1492,7 @@ function index.
         }
         else
           value = GetCatalog( level )->InObject( nl->First( expr ), nl->Second( expr ),
-                              errorPos, errorInfo, correct );
+                                                 errorPos, errorInfo, correct );
         if ( correct )
         {
           AllocateValuesAndModels( valueno );
@@ -1561,7 +1561,7 @@ function index.
         else
         { /* just pass down the inherited list of args */
           pair = Annotate( level, nl->First( rest ), varnames, vartable, defined,
-		fatherargtypes );
+                           fatherargtypes );
         }
         if( !nl->IsEmpty( pair ) && 
             nl->IsAtom( pair ) && 
@@ -1604,7 +1604,7 @@ for a given ~expr~ (+ 3 10).
               typeList = nl->Rest( typeList );
 							
               resultType = TestOverloadedOperators( operatorStr, opList, typeList, 
-							                                      alId, opId, opFunId, true, traceMode ); 
+                                                    alId, opId, opFunId, true, traceMode ); 
 		
               /* check whether the type mapping has requested to append
                  further arguments: */
@@ -1612,7 +1612,6 @@ for a given ~expr~ (+ 3 10).
               if ( (nl->ListLength( resultType ) == 3) &&
                    (TypeOfSymbol( nl->First( resultType ) ) == QP_APPEND) )
               {
-	      	     
                 lastElem = last;
                 rest = nl->Second( resultType );		
 		
@@ -1756,51 +1755,50 @@ for a given ~expr~ (+ 3 10).
               }
             }
 
-	    case QP_COUNTER:
-	    {
+            case QP_COUNTER:
+            {
+              // cout << "The list expression is:" << endl;
+              // nl->WriteListExpr( list, cout );
+              // cout << endl;
+  
+	            int counterNo = 
+                nl->IntValue(nl->First( nl->First( nl->Second( list ))));
 
-		// cout << "The list expression is:" << endl;
-                //   nl->WriteListExpr( list, cout );
-		// cout << endl;
-
-	      int counterNo = 
-		nl->IntValue(nl->First( nl->First( nl->Second( list ))));
-
-	      if ( counterNo > 0 && counterNo <= NO_COUNTERS )
-	      {
-	        return nl->TwoElemList(
-		  nl->FourElemList(
-		    nl->SymbolAtom("none"),
-		    nl->SymbolAtom("counterdef"),
-		    nl->First( nl->First( nl->Second( list ))), 
-		    nl->Third(list) ),
-		  nl->Second( nl->Third( list ))  );
-	      }
-	      else
-	      {
-		cout << "counter number " << counterNo << 
-			" is out of the range of counters." << endl; 
-	        return nl->TwoElemList(
-		  nl->FourElemList(
-		    nl->SymbolAtom("none"),
-		    nl->SymbolAtom("counterdef"),
-		    nl->First( nl->First( nl->Second( list ))), 
-		    nl->Third(list) ),
-		  nl->SymbolAtom("typeerror") );		 
-	      }
-	    }
+              if ( counterNo > 0 && counterNo <= NO_COUNTERS )
+              {
+	              return nl->TwoElemList(
+                         nl->FourElemList(
+                           nl->SymbolAtom("none"),
+                           nl->SymbolAtom("counterdef"),
+                           nl->First( nl->First( nl->Second( list ))), 
+                           nl->Third(list) ),
+                         nl->Second( nl->Third( list ))  );
+              }
+              else
+              {
+                cout << "counter number " << counterNo << 
+                        " is out of the range of counters." << endl; 
+                return nl->TwoElemList(
+                         nl->FourElemList(
+                           nl->SymbolAtom("none"),
+                           nl->SymbolAtom("counterdef"),
+                           nl->First( nl->First( nl->Second( list ))), 
+                           nl->Third(list) ),
+                         nl->SymbolAtom("typeerror") );		 
+              }
+            }
 
             default:
             {  /* we have a list of terms, case (5) above) */
                /* Again extract the list of types. We know the list "list"
-                                                            is not empty */
+                  is not empty */
               rest = list;
               return (nl->TwoElemList(
                         nl->ThreeElemList(
                           nl->SymbolAtom( "none" ),
                           nl->SymbolAtom( "arglist" ),
-                          list ),
-                        typeList ));
+                        list ),
+                      typeList ));
             }
           } /* CASE */
         }
@@ -1818,117 +1816,103 @@ for a given ~expr~ (+ 3 10).
   return (nl->SymbolAtom( "exprerror" ));
 } // annotate;
 
-
 ListExpr 
 QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr, 
                                          ListExpr opList, 
-																		     ListExpr typeList,
-																				 int& alId,
-																				 int& opId,
-																				 int& opFunId,
-																				 const bool checkFunId,
-																		     const bool traceMode     ) 
+                                         ListExpr typeList,
+                                         int& alId,
+                                         int& opId,
+                                         int& opFunId,
+                                         const bool checkFunId,
+                                         const bool traceMode ) 
 {
-
   ListExpr resultType = nl->TheEmptyList();
 
-	if ( traceMode ) {
-		cout << "Type mapping for operator " << operatorSymbolStr << ":" << endl;
-	}								
-	string typeErrorMsg = "Possible type mapping errors for operator " 
+  if ( traceMode ) 
+    cout << "Type mapping for operator " << operatorSymbolStr << ":" << endl;
+
+  string typeErrorMsg = "Possible type mapping errors for operator " 
                         + operatorSymbolStr + ":\n";
-	do // Overloading: test operator candidates 
-	{
-		alId = nl->IntValue( nl->First( nl->First( opList ) ) );
-		opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
-	
 
-		/* apply the operator's type mapping: */
-		resultType = algebraManager->TransformType( alId, opId, typeList );
-		string algName = algebraManager->GetAlgebraName(alId);	
+  do // Overloading: test operator candidates 
+  {
+    alId = nl->IntValue( nl->First( nl->First( opList ) ) );
+    opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
 
-		if ( traceMode ) {
+    /* apply the operator's type mapping: */
+    resultType = algebraManager->TransformType( alId, opId, typeList );
+    string algName = algebraManager->GetAlgebraName(alId);	
 
-			stringstream traceMsg;
-						traceMsg << algName << ": " << operatorSymbolStr << " (algId=" 
-							<< alId << ", opId=" << opId << ") "<< ends;
-					 
-			if (    nl->IsAtom( resultType ) 
-					&& nl->AtomType( resultType ) == SymbolType 
-					&& nl->SymbolValue( resultType ) == "typeerror" ) 
-			{			 
-				cout  << traceMsg.str() << "rejected!" << endl;			 
-			} else {		  		       
-				cout << traceMsg.str() << "accepted!" << endl;
-			}
-		} 
+    if( traceMode ) 
+    {
+      stringstream traceMsg;
+      traceMsg << algName << ": " << operatorSymbolStr << " (algId=" 
+               << alId << ", opId=" << opId << ") "<< ends;
 
-		if ( !ErrorReporter::TypeMapError ) {
-			string msg = "";
-			ErrorReporter::GetErrorMessage(msg); // remove errors produced by testing operators
-      if ( msg == "" ) {
+      if( nl->IsEqual( resultType, "typeerror" ) )
+        cout  << traceMsg.str() << "rejected!" << endl;			 
+      else 
+        cout << traceMsg.str() << "accepted!" << endl;
+    } 
+
+    if ( !ErrorReporter::TypeMapError ) 
+    {
+      string msg = "";
+      ErrorReporter::GetErrorMessage(msg); // remove errors produced by testing operators
+      if ( msg == "" ) 
         msg = "<No error message specified>";
-      }
-			typeErrorMsg += "\n-- " + algName + ": " + msg + "\n";
-		}
+      typeErrorMsg += "\n-- " + algName + ": " + msg + "\n";
+    }
 
-		opList = nl->Rest( opList );
-	}
-	while ( !nl->IsEmpty( opList ) && 
-					( nl->IsAtom( resultType ) && 
-					nl->AtomType( resultType ) == SymbolType && 
-					nl->SymbolValue( resultType ) == "typeerror" ) );
+    opList = nl->Rest( opList );
+  }
+  while ( !nl->IsEmpty( opList ) && 
+          nl->IsEqual( resultType, "typeerror" ) );
 
+  /*  check if the final result of testing is still a typeerror.
+   *  If so save the messages in the error reporter. Errors detected
+   *  afterwards will not be reported any more.
+  */
+  if ( !ErrorReporter::TypeMapError && 
+       nl->IsEqual( resultType, "typeerror" ) )
+  {
+    ErrorReporter::TypeMapError = true; 
+    ErrorReporter::ReportError(typeErrorMsg);	
+  }
+  else
+  {	
+    /*   use the operator's selection function to get the index 
+     *  (opFunId) of the evaluation function for this operator: 
+     */
+    if ( checkFunId ) 
+    {
+      opFunId = algebraManager->Select( alId, opId, typeList );
+      opFunId = opFunId * 65536 + opId;
 
-	/*  check if the final result of testing is still a typeerror.
-	 *  If so save the messages in the error reporter. Errors detected
-	 *  afterwards will not be reported any more.
-	 */
-	if ( !ErrorReporter::TypeMapError 
-				&& nl->IsAtom( resultType ) 
-				&& nl->AtomType( resultType ) == SymbolType 
-				&& nl->SymbolValue( resultType ) == "typeerror" ) 
-	{
-		ErrorReporter::TypeMapError = true; 
-		ErrorReporter::ReportError(typeErrorMsg);	
-	}
-	
-	/*   use the operator's selection function to get the index 
-	 *  (opFunId) of the evaluation function for this operator: 
-	 */
+      /*  Check whether this is a type operator; in that case
+       *  opFunId will be negative. A type operator does only a type
+       *  mapping, nothig else; hence it is wrong here and we return
+       *  type error. 
+      */
+      if ( opFunId < 0 )
+        resultType = nl->SymbolAtom( "typeerror" );
+    }
+  }
 
-  if ( checkFunId ) {
-	
-		opFunId = algebraManager->Select( alId, opId, typeList );
-		opFunId = opFunId * 65536 + opId;
+  if ( traceMode ) 
+  {
+    cout << endl;		
+    cout << "Result of type mapping for operator " << operatorSymbolStr
+         << " >>>>>>>>" << endl;
+    cout << "IN: " << endl;
+    nl->WriteListExpr(typeList);
+    cout << endl;
+    cout << "OUT: " << endl;
+    nl->WriteListExpr(resultType);
+    cout << " <<<<<<<<" << endl;
+  }
 
-		/*  Check whether this is a type operator; in that case
-		*  opFunId will be negative. A type operator does only a type
-		*  mapping, nothig else; hence it is wrong here and we return
-		*  type error. 
-		*/
-
-		if ( opFunId < 0 )
-		{
-			resultType = nl->SymbolAtom( "typeerror" );
-		}
-	}
-
-	if ( traceMode ) {
-
-		cout << endl;		
-		cout << "Result of type mapping for operator " << operatorSymbolStr
-				<< " >>>>>>>>" << endl;
-		cout << "IN: " << endl;
-		nl->WriteListExpr(typeList);
-		cout << endl;
-		cout << "OUT: " << endl;
-		nl->WriteListExpr(resultType);
-		cout << " <<<<<<<<" << endl;
-
-	}
-	
-	return resultType;
+  return resultType;
 }
 
 
@@ -1994,8 +1978,8 @@ arguments preceding this function argument in an operator application.
   else if ( nl->ListLength(expr) == 1 )		/* e reached */
   {
     annexpr = Annotate( level, nl->First( expr ), varnames, vartable, 
-	defined, fatherargtypes );
-                /* "e" reached */
+                        defined, fatherargtypes );
+    /* "e" reached */
   }
   else if ( nl->IsAtom( nl->First( expr ) ) )
   {
@@ -2009,8 +1993,8 @@ arguments preceding this function argument in an operator application.
     else
     {
       annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, 
-		fatherargtypes );
-                /* "e" reached */
+                          fatherargtypes );
+      /* "e" reached */
     }
   }
   else if ( nl->ListLength( nl->First( expr )) == 2 )
@@ -2028,15 +2012,14 @@ arguments preceding this function argument in an operator application.
         }
         else if ( GetCatalog( level )->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
-				
           ListExpr opList = GetCatalog( level )->GetOperatorIds( name2 );
 					ListExpr typeList = nl->Rest( fatherargtypes );
 					
-					int alId = 0;
-					int opId = 0;
-					int opFunId = 0;
-					paramtype = TestOverloadedOperators( name2, opList, typeList, 
-							                                  alId, opId, opFunId, false, traceMode ); 
+          int alId = 0;
+          int opId = 0;
+          int opFunId = 0;
+          paramtype = TestOverloadedOperators( name2, opList, typeList, 
+                                               alId, opId, opFunId, false, traceMode ); 
         }
         else
         { 
@@ -2047,7 +2030,7 @@ arguments preceding this function argument in an operator application.
       {
         paramtype = nl->Second( nl->First( expr ) );
       }
-			if ( IsCorrectTypeExpr( level, paramtype ) )
+      if ( IsCorrectTypeExpr( level, paramtype ) )
       {
         name = nl->SymbolValue( nl->First( nl->First( expr ) ) );
         /* IsIdentifier has checked that name is not a variable yet,
@@ -2069,18 +2052,18 @@ arguments preceding this function argument in an operator application.
     }
     else
     {
-        cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
-        return (nl->TwoElemList(
-                  nl->SymbolAtom( "functionerror" ),
-                  nl->SymbolAtom( "typeerror" ) ));
+      cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
+      return (nl->TwoElemList(
+                nl->SymbolAtom( "functionerror" ),
+                nl->SymbolAtom( "typeerror" ) ));
     }
   }
   else
   {
-        cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
-        return (nl->TwoElemList(
-                  nl->SymbolAtom( "functionerror" ),
-                  nl->SymbolAtom( "typeerror" ) ));
+    cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
+    return (nl->TwoElemList(
+              nl->SymbolAtom( "functionerror" ),
+              nl->SymbolAtom( "typeerror" ) ));
   }
   list = nl->Append( lastElem, nl->Second( annexpr ) );
   return (nl->TwoElemList(
@@ -2128,7 +2111,6 @@ QueryProcessor::DestroyValuesArray( const AlgebraLevel level )
 ~subtree~, ~subtreeX~ 
 
 */
-
 OpTree
 QueryProcessor::SubtreeX( const AlgebraLevel level,
                           const ListExpr expr )
@@ -2301,13 +2283,13 @@ QueryProcessor::Subtree( const AlgebraLevel level,
         if ( !node->u.op.isStream )
         { 
           GetCatalog( level )->LookUpTypeExpr( typeExpr, 
-	                                       typeName,
+                                               typeName,
                                                node->u.op.resultAlgId,
                                                node->u.op.resultTypeId );
         }
         else
         {
-	  typeExpr = nl->Second( typeExpr );
+          typeExpr = nl->Second( typeExpr );
           GetCatalog( level )->LookUpTypeExpr( typeExpr,
                                                typeName,
                                                node->u.op.resultAlgId,
@@ -2385,10 +2367,10 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
       node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ), first );
-								/* the abstraction */							
+				/* the abstraction */							
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
-      {                        /* the arguments */
+      { /* the arguments */
         node->u.op.sons[node->u.op.noSons] = Subtree( level, nl->First( list ), first );
         node->u.op.noSons++;
         list = nl->Rest( list );
@@ -2402,9 +2384,9 @@ QueryProcessor::Subtree( const AlgebraLevel level,
     }
     case QP_COUNTERDEF:
     {
-	// cout << "Yes, we get into the counter definition." << endl;
-        // nl->WriteListExpr( expr, cout );
-	// cout << endl; 
+      // cout << "Yes, we get into the counter definition." << endl;
+      // nl->WriteListExpr( expr, cout );
+      // cout << endl; 
 
       node = Subtree( level, nl->Fourth( nl->First( expr )), first);
       
@@ -2472,29 +2454,30 @@ the function in a database object.
     bool listOk = true;
     resultType = nl->Second( list );
     
-    if ( TypeOfSymbol(resultType) == QP_TYPEERROR ) { // check if a type error was detected
-    
+    if ( TypeOfSymbol(resultType) == QP_TYPEERROR ) 
+    { // check if a type error was detected
       listOk = false;
-      
-    } else {
-    
-    // Make a consistency check of the annotated list structure.
-    // There should be no typeerror symbol in the list. This may be helpful
-    // to detect bugs in the annotate function.
+    } 
+    else 
+    {
+      // Make a consistency check of the annotated list structure.
+      // There should be no typeerror symbol in the list. This may be helpful
+      // to detect bugs in the annotate function.
     
       vector<ListExpr> allAtoms;
       nl->ExtractAtoms( resultType, allAtoms );
     
       for ( vector<ListExpr>::const_iterator it = allAtoms.begin();
             it != allAtoms.end();
-	    it++ )
+	          it++ )
       {
-        if ( nl->AtomType(*it) == SymbolType && TypeOfSymbol(*it) == QP_TYPEERROR ) {
+        if ( nl->AtomType(*it) == SymbolType && TypeOfSymbol(*it) == QP_TYPEERROR ) 
+        {
           listOk = false;
-	  cerr << endl << "Annotated list contains a \"typeerror\" symbol, hence the "
-	       << "result type should be \"typeerror\" Maybe there is a bug in some operators "
-	       << "type map function or in the annotate function of the query processor." << endl;
-	  break;
+          cerr << endl << "Annotated list contains a \"typeerror\" symbol, hence the "
+	             << "result type should be \"typeerror\" Maybe there is a bug in some operators "
+	             << "type map function or in the annotate function of the query processor." << endl;
+          break;
         }
       }
     }
@@ -2567,7 +2550,7 @@ Deletes an operator tree object.
         {
           /* space was allocated for result */
           (algebraManager->DeleteObj( tree->u.op.resultAlgId, tree->u.op.resultTypeId ))
-		( tree->u.op.resultWord );
+            ( tree->u.op.resultWord );
         }
         break;
       }
@@ -2645,11 +2628,12 @@ the moment.
         result = (*tree->u.iobj.vector)[tree->u.iobj.argIndex-1]; // *** -1 added
         return;
       }
-      case Operator:         /* If this operator is not itself a stream
-				operator, then evaluate all subtrees that are not
-				functions or streams. Other subtrees are not evaluated,
-				just copied to the argument vector. Then call this
-				operator's implementation procedure. */
+      case Operator:         
+      /* If this operator is not itself a stream
+			   operator, then evaluate all subtrees that are not
+			   functions or streams. Other subtrees are not evaluated,
+			   just copied to the argument vector. Then call this
+			   operator's implementation procedure. */
       {
         for ( i = 0; i < tree->u.op.noSons; i++ )
         {
@@ -2957,7 +2941,8 @@ Returns the type expression of the node ~s~ of the operator tree.
 void
 QueryProcessor::ResetCounters() 
 {
-  for (int i = 1; i < NO_COUNTERS; i++) counter[i] = 0;
+  for (int i = 1; i < NO_COUNTERS; i++) 
+    counter[i] = 0;
 }
 
 ListExpr
@@ -3015,40 +3000,40 @@ QueryProcessor::ExecuteQuery( const string& queryListStr, Word& queryResult )
 
   nli->ReadFromString( queryListStr, queryList );
 
-    QueryProcessor* qpp = new QueryProcessor( nli, SecondoSystem::GetAlgebraManager() );
+  QueryProcessor* qpp = new QueryProcessor( nli, SecondoSystem::GetAlgebraManager() );
     
-    AlgebraLevel level = SecondoSystem::GetAlgebraLevel();
-    qpp->Construct( level, queryList, correct, 
-      evaluable, defined, isFunction, tree, resultType );
-      if ( !defined )
+  AlgebraLevel level = SecondoSystem::GetAlgebraLevel();
+  qpp->Construct( level, queryList, correct, 
+                  evaluable, defined, isFunction, tree, resultType );
+  if ( !defined )
+  {
+    cout << "object value is undefined" << endl;
+    delete qpp;
+    return ( false );         
+  }
+  else if ( correct )
+  {
+    if ( evaluable )
     {
-      cout << "object value is undefined" << endl;
-      delete qpp;
-      return ( false );         
+      // evaluate the operator tree
+      qpp->Eval( tree, queryResult, 1 );
+      qpp->Destroy( tree, false );
     }
-    else if ( correct )
+    else 
     {
-      if ( evaluable )
-      {
-	// evaluate the operator tree
-        qpp->Eval( tree, queryResult, 1 );
-	qpp->Destroy( tree, false );
-      }
-      else 
-      {
-	cout << "Operator query not evaluable" << endl;
-	delete qpp;
-        return ( false );  
-      }
-    }
-    else
-    { 
-      cout << "Error in operator query" << endl;
+      cout << "Operator query not evaluable" << endl;
       delete qpp;
       return ( false );  
     }
+  }
+  else
+  { 
+    cout << "Error in operator query" << endl;
     delete qpp;
-    return ( true );
+    return ( false );  
+  }
+  delete qpp;
+  return ( true );
 }
 
 
