@@ -20,13 +20,10 @@ and ~moving~(~gline~).
 */
 #include <sstream>
 
-#include "NestedList.h"
-#include "QueryProcessor.h"
 #include "Algebra.h"
 #include "StandardTypes.h"
-#include "RelationAlgebra.h"
-#include "BTreeAlgebra.h"
 #include "SpatialAlgebra.h"
+#include "NetworkAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -34,66 +31,9 @@ extern QueryProcessor* qp;
 /*
 3 Type Constructor ~network~
 
-3.1 Class ~Network~
+3.1 Implementation of the class ~Network~
 
 */
-class Network
-{
-  public:
-
-    Network(); 
-    Network( Relation *routes, Relation *junctions, Relation *sections, BTree *routesBTree );
-    ~Network();
-    void Destroy();
-
-    void Load( const Relation *routes, const Relation *junctions );
-    ListExpr Out( ListExpr typeInfo );
-    ListExpr Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
-    static bool Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Network *&n );
-
-    Relation *GetRoutes();
-    Relation *GetJunctions();
-    Relation *GetJunctionsInternal();
-    Relation *GetSections();
-    Relation *GetSectionsInternal();
-
-    static ListExpr GetRoutesTypeInfo();
-    static ListExpr GetRoutesBTreeTypeInfo();
-    static ListExpr GetJunctionsTypeInfo();
-    static ListExpr GetJunctionsInternalTypeInfo();
-    static ListExpr GetJunctionsAppendTypeInfo();
-    static ListExpr GetSectionsTypeInfo();
-    static ListExpr GetSectionsInternalTypeInfo();
-    static ListExpr GetSectionsAppendTypeInfo();
-
-    static string routesTypeInfo; 
-    static string routesBTreeTypeInfo;
-    static string junctionsTypeInfo;
-    static string junctionsInternalTypeInfo;
-    static string junctionsAppendTypeInfo;
-    static string sectionsTypeInfo;
-    static string sectionsInternalTypeInfo;
-    static string sectionsAppendTypeInfo;
-
-  private:
-   
-    enum PositionRoutesRelation { POS_RID = 0, POS_RLENGTH, POS_RCURVE, POS_RDUAL, POS_RSTARTSSMALLER };          
-    enum PositionJunctionsRelation { POS_JR1ID = 0, POS_JMEAS1, POS_JR2ID, POS_JMEAS2, POS_JCC, POS_JPOS, POS_JR1RC, POS_JR2RC };
-    enum PositionSectionsRelation { POS_SRID = 0, POS_SMEAS1, POS_SMEAS2, POS_SDUAL, POS_SCURVE, POS_SRRC };          
-    enum PositionAppendJunctionsRelation { POS_APPJPOS = 0, POS_APPJR1RC, POS_APPJR2RC };
-    enum PositionAppendSectionsRelation { POS_APPSRRC = 0 };
-
-    void FillRoutes( const Relation *routes );
-    void FillJunctions( const Relation *junctions );
-    void FillSections();
-
-    Relation *routes;
-    Relation *junctions;
-    Relation *sections;
-
-    BTree *routesBTree;
-};
-
 string Network::routesTypeInfo =
       "(rel (tuple ((id int) (length real) (curve line) (dual bool) (startsSmaller bool))))";
 string Network::routesBTreeTypeInfo =
@@ -171,6 +111,11 @@ void Network::FillRoutes( const Relation *routes )
 }
 
 Relation *Network::GetRoutes()
+{
+  return routes->Clone();
+}
+
+Relation *Network::GetRoutesInternal()
 {
   return routes;
 }
@@ -412,7 +357,7 @@ ListExpr Network::GetSectionsAppendTypeInfo()
 }
 
 /*
-6.1 Type property of type constructor ~network~
+3.2 Type property of type constructor ~network~
 
 */
 ListExpr NetworkProp()
@@ -428,7 +373,7 @@ ListExpr NetworkProp()
 }
 
 /*
-6.2 ~Out~-function of type constructor ~network~
+3.3 ~Out~-function of type constructor ~network~
 
 */
 ListExpr Network::Out( ListExpr typeInfo )
@@ -448,7 +393,7 @@ ListExpr OutNetwork(ListExpr typeInfo, Word value)
 }
 
 /*
-6.3 ~In~-function of type constructor ~network~
+3.4 ~In~-function of type constructor ~network~
 
 */
 Word InNetwork(ListExpr typeInfo, ListExpr value,
@@ -458,7 +403,7 @@ Word InNetwork(ListExpr typeInfo, ListExpr value,
 }
 
 /*
-6.4 ~Create~-function of type constructor ~network~
+3.5 ~Create~-function of type constructor ~network~
 
 */
 Word CreateNetwork(const ListExpr typeInfo)
@@ -467,7 +412,7 @@ Word CreateNetwork(const ListExpr typeInfo)
 }
 
 /*
-6.5 ~Close~-function of type constructor ~network~
+3.6 ~Close~-function of type constructor ~network~
 
 */
 void CloseNetwork(Word& w)
@@ -476,7 +421,7 @@ void CloseNetwork(Word& w)
 }
 
 /*
-6.6 ~Clone~-function of type constructor ~network~
+3.7 ~Clone~-function of type constructor ~network~
 
 Not implemented yet.
 
@@ -487,7 +432,7 @@ Word CloneNetwork(const Word& w)
 }
 
 /*
-6.7 ~Delete~-function of type constructor ~network~
+3.8 ~Delete~-function of type constructor ~network~
 
 */
 void DeleteNetwork(Word& w)
@@ -498,7 +443,7 @@ void DeleteNetwork(Word& w)
 }
 
 /*
-6.8 ~Check~-function of type constructor ~network~
+3.9 ~Check~-function of type constructor ~network~
 
 */
 bool CheckNetwork(ListExpr type, ListExpr& errorInfo)
@@ -507,7 +452,7 @@ bool CheckNetwork(ListExpr type, ListExpr& errorInfo)
 }
 
 /*
-6.9 ~Cast~-function of type constructor ~network~
+3.10 ~Cast~-function of type constructor ~network~
 
 */
 void* CastNetwork(void* addr)
@@ -516,7 +461,7 @@ void* CastNetwork(void* addr)
 }
 
 /*
-6.10 ~Save~-function of type constructor ~network~
+3.11 ~Save~-function of type constructor ~network~
 
 */
 ListExpr Network::Save( SmiRecord& valueRecord, 
@@ -552,7 +497,7 @@ bool SaveNetwork( SmiRecord& valueRecord,
 }
 
 /*
-6.10 ~RestoreFromList~-function of type constructor ~network~
+3.12 ~Open~-function of type constructor ~network~
 
 */
 bool Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Network *&n )
@@ -606,7 +551,7 @@ bool OpenNetwork( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInf
 }
 
 /*
-6.11 ~SizeOf~-function of type constructor ~network~
+3.13 ~SizeOf~-function of type constructor ~network~
 
 */
 int SizeOfNetwork()
@@ -615,7 +560,7 @@ int SizeOfNetwork()
 }
 
 /*
-6.12 Type Constructor object for type constructor ~network~
+3.14 Type Constructor object for type constructor ~network~
 
 */
 TypeConstructor network( "network",            NetworkProp,
@@ -633,16 +578,16 @@ TypeConstructor network( "network",            NetworkProp,
                          TypeConstructor::DummyValueListToModel );
 
 /*
-6 Operators
+4 Operators
 
 Definition of operators is similar to definition of type constructors. An
 operator is defined by creating an instance of class ~Operator~. Again we
 have to define some functions before we are able to create an ~Operator~
 instance.
 
-7.1 Operator ~thenetwork~
+4.1 Operator ~thenetwork~
 
-7.1.1 Type Mapping of operator ~thenetwork~
+4.1.1 Type Mapping of operator ~thenetwork~
 
 */
 ListExpr NetworkTheNetworkTypeMap(ListExpr args)
@@ -667,7 +612,7 @@ ListExpr NetworkTheNetworkTypeMap(ListExpr args)
 }
 
 /*
-7.1.2 Value mapping function of operator ~thenetwork~
+4.1.2 Value mapping function of operator ~thenetwork~
 
 */
 int
@@ -685,7 +630,7 @@ NetworkTheNetworkValueMapping(Word* args, Word& result, int message, Word& local
 }
 
 /*
-7.1.3 Specification of operator ~thenetwork~
+4.1.3 Specification of operator ~thenetwork~
 
 */
 const string NetworkTheNetworkSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -697,7 +642,7 @@ const string NetworkTheNetworkSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" 
                                       ") )";
 
 /*
-7.1.4 Definition of operator ~thenetwork~
+4.1.4 Definition of operator ~thenetwork~
 
 */
 Operator networkthenetwork (
@@ -710,9 +655,9 @@ Operator networkthenetwork (
 );
 
 /*
-7.2 Operator ~routes~
+4.2 Operator ~routes~
 
-7.2.1 Type Mapping of operator ~routes~
+4.2.1 Type Mapping of operator ~routes~
 
 */
 ListExpr NetworkRoutesTypeMap(ListExpr args)
@@ -730,14 +675,14 @@ ListExpr NetworkRoutesTypeMap(ListExpr args)
 }
 
 /*
-7.2.2 Value mapping function of operator ~routes~
+4.2.2 Value mapping function of operator ~routes~
 
 */
 int
 NetworkRoutesValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Network *network = (Network*)args[0].addr;
-  result = SetWord( network->GetRoutes()->Clone() );
+  result = SetWord( network->GetRoutes() );
 
   Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
@@ -747,7 +692,7 @@ NetworkRoutesValueMapping(Word* args, Word& result, int message, Word& local, Su
 }
 
 /*
-7.2.3 Specification of operator ~routes~
+4.2.3 Specification of operator ~routes~
 
 */
 const string NetworkRoutesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -759,7 +704,7 @@ const string NetworkRoutesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                   ") )";
 
 /*
-7.2.4 Definition of operator ~routes~
+4.2.4 Definition of operator ~routes~
 
 */
 Operator networkroutes (
@@ -772,9 +717,9 @@ Operator networkroutes (
 );
 
 /*
-7.2 Operator ~junctions~
+4.3 Operator ~junctions~
 
-7.2.1 Type Mapping of operator ~junctions~
+4.3.1 Type Mapping of operator ~junctions~
 
 */
 ListExpr NetworkJunctionsTypeMap(ListExpr args)
@@ -792,7 +737,7 @@ ListExpr NetworkJunctionsTypeMap(ListExpr args)
 }
 
 /*
-7.2.2 Value mapping function of operator ~junctions~
+4.3.2 Value mapping function of operator ~junctions~
 
 */
 int
@@ -809,7 +754,7 @@ NetworkJunctionsValueMapping(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-7.2.3 Specification of operator ~junctions~
+4.3.3 Specification of operator ~junctions~
 
 */
 const string NetworkJunctionsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -821,7 +766,7 @@ const string NetworkJunctionsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                   ") )";
 
 /*
-7.2.4 Definition of operator ~junctions~
+4.3.4 Definition of operator ~junctions~
 
 */
 Operator networkjunctions (
@@ -834,9 +779,9 @@ Operator networkjunctions (
 );
 
 /*
-7.2 Operator ~sections~
+4.4 Operator ~sections~
 
-7.2.1 Type Mapping of operator ~sections~
+4.4.1 Type Mapping of operator ~sections~
 
 */
 ListExpr NetworkSectionsTypeMap(ListExpr args)
@@ -854,7 +799,7 @@ ListExpr NetworkSectionsTypeMap(ListExpr args)
 }
 
 /*
-7.2.2 Value mapping function of operator ~sections~
+4.4.2 Value mapping function of operator ~sections~
 
 */
 int
@@ -871,7 +816,7 @@ NetworkSectionsValueMapping(Word* args, Word& result, int message, Word& local, 
 }
 
 /*
-7.2.3 Specification of operator ~sections~
+4.4.3 Specification of operator ~sections~
 
 */
 const string NetworkSectionsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -883,7 +828,7 @@ const string NetworkSectionsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                   ") )";
 
 /*
-7.2.4 Definition of operator ~sections~
+4.4.4 Definition of operator ~sections~
 
 */
 Operator networksections (
@@ -896,7 +841,7 @@ Operator networksections (
 );
 
 /*
-6 Creating the Algebra
+5 Creating the Algebra
 
 */
 
@@ -918,7 +863,7 @@ class NetworkAlgebra : public Algebra
 NetworkAlgebra networkAlgebra;
 
 /*
-7 Initialization
+6 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list
