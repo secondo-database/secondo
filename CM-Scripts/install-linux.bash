@@ -112,12 +112,6 @@ cd $temp/make-* && ./configure --prefix=$sdk >> $logfile 2>&1
 make >> $logfile 2>&1 && make install >> $logfile 2>&1 
 
 printf  "\n* Copying configuration files ... \n"
-cd "$HOME/secondo/CM-Scripts"
-cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
-cp --backup .secondorc .bashrc-sample "$HOME"
-cd "$instpath/secondo-sdk/bin"
-chmod u+x setvar.bash catvar.sh 
-cd "$HOME"
-chmod u+x .secondorc .bashrc-sample
+make SECONDO_SDK=$sdk -f makefile.cm update-environment
 
 printf  "\n\n* Proceed with the installation guide ... \n\n"

@@ -151,19 +151,11 @@ cd $HOME/secondo/Win32
 logfile="$HOME/secondo-install.log"
 touch $logfile
 rxvt -sl 5000 -title "Berkeley-DB Compilation" -e tail -f $logfile &
+cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx --enable-mingw >> $logfile 2>&1
 make > $logfile 2>&1 && make install >> $logfile 2>&1
 
 printf  "\n* MSYS and MinGW Configuration ... \n"
-cd "$HOME/secondo/CM-Scripts"
-cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
-cp --backup .profile .secondorc .bashrc-sample "$HOME"
-cp --backup .bashrc-sample "$HOME/.bashrc"
-cd "$instpath/secondo-sdk/bin"
-chmod u+x setvar.bash catvar.sh 
-cd "$HOME"
-chmod u+x .secondorc .bashrc .profile
-cd "$HOME/secondo/Win32/MSYS"
-cp --backup fstab "$msysdir/etc"
+make SECONDO_SDK=$sdk -f makefile.cm update-environment
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"

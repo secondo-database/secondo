@@ -1,0 +1,128 @@
+########################################################################
+#
+# makefile.cm - rules for CM and deploament related tasks
+#
+#########################################################################
+
+$(shell rm -f .show-update-msg)
+
+# Rules for copying configuration scripts
+SCRIPT_DIR := ./CM-Scripts
+SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash \
+		$(SECONDO_SDK)/bin/libutil.sh \
+		$(SECONDO_SDK)/bin/catvar.sh \
+		$(SECONDO_SDK)/bin/aliaslist.sh \
+
+RC_FILES := $(HOME)/.secondorc \
+	    $(HOME)/.secondo.sdkrc \
+            $(HOME)/.secondo.$(platform)rc
+
+
+.PHONY: update-environment 
+update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) show-update-msg
+ifeq ($(platform),win32)
+	@echo "-e Creating mount point /mingw if necessary. \n"	
+endif
+
+UPDATE_MSG := "\n\
+  Configuration Setup has been changed. If you have made changes\n\
+  in one of the files above please transfer them into the new versions.\n\
+  A backup copy ending with ~ will be kept.\n\n\
+  Afterwards please execute the command\n\
+  source ~/.secondorc or close this shell \n\
+  and start a new one.\n\n\
+  Make can't do this for you since all commands started within\n\
+  make are processed in a new subshell, hence the environment\n\
+  of your current running shell will not be modified.\n"
+
+
+	
+$(SCRIPT_FILES): $(SECONDO_SDK)/bin/%sh: $(SCRIPT_DIR)/%sh
+	@touch .show-update-msg
+	@cp --backup $< $@
+	@echo " updating" $@
+
+$(RC_FILES): $(HOME)/.sec%rc: $(SCRIPT_DIR)/.sec%rc
+	@touch .show-update-msg
+	@cp --backup $< $@
+	@echo " updating " $@
+
+.PHONY: show-update-msg
+show-update-msg:
+	@if [ -f .show-update-msg ]; then echo -e $(UPDATE_MSG); \
+	else echo -e " ... are up to date.\n"; fi
+
+.PHONY: show-separator
+show-separator:
+	@echo -e "\n *** Bash environment setup files *** \n"
+
+
+# rules for deployment of source files
+# default value for cvs tag 
+ifndef tag
+tag=HEAD
+endif
+
+
+DIST_FILES := $(net)/windows/secondo-win32.tgz \
+	      $(net)/windows/install-msys.bash \
+	      $(net)/linux/secondo-linux.tgz \
+	      $(net)/linux/install-linux.bash \
+	      $(net)/Linux-Installation-Guide.pdf \
+	      $(net)/Windows-Installation-Guide.pdf
+ 
+.PHONY: dist
+dist: tag-version $(DIST_FILES)
+
+SECONDO_DEMO = secondo-demo
+BIN_FILES := bin/SecondoTTYBDB \
+	bin/SecondoListener \
+	bin/SecondoMonitorBDB \
+	bin/SecondoRegistrar \
+	bin/SecondoCheckpoint \
+	bin/SecondoServerBDB \
+
+.PHONY: demo
+demo: $(BIN_FILES) 
+	mkdir $(SECONDO_DEMO)
+	mkdir $(SECONDO_DEMO)/bin
+	cp $< $(SECONDO_DEMO)/bin
+	strip $(SECONDO_DEMO)/bin/*
+	cp bin/testqueries $(SECONDO_DEMO)/bin
+	cp Documents/SecondoManual.pdf $(SECONDO_DEMO)
+	tar -cvzf secondo-demo.tar.gz $(SECONDO_DEMO)/*
+	rm -rf $(SECONDO_DEMO)
+
+
+tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
+.PHONY: tag-version
+tag-version:
+	cvs tag $(tag) 
+
+$(net)/windows/secondo-win32.tgz: secondo-win32.tgz
+	cp $< $@ 
+
+$(net)/linux/secondo-linux.tgz: secondo-linux.tgz
+	cp $< $@ 
+
+secondo-win32.tgz secondo-linux.tgz:
+	cvs export -d secondo -r$(tag) secondo
+ifeq ($(platform),win32)
+	$(error Target dist not supported on windows!)
+else	
+	tar -czf secondo-linux.tgz secondo/*
+	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.sda" -or -name "*.fig" -or -name "*.canvas" -or -name "*.fm" -or -name "*.book" -or -name "*.pdf" \) -exec recode lat1..cp1252 {} \;
+	tar -czf secondo-win32.tgz secondo/*
+endif
+	rm -r secondo
+
+$(net)/windows/install-msys.bash: $(SCRIPT_DIR)/install-msys.bash
+	cp $< $@
+	recode lat1..cp1252 $@
+
+$(net)/linux/install-linux.bash: $(SCRIPT_DIR)/install-linux.bash
+	cp $< $@
+
+$(net)/%.pdf: Documents/Installation/%.ps
+	ps2pdf $< $@
+
