@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.9  2002/11/26 09:31:23  spieker
+# new object UtilFunctions in tools library added
+#
 # Revision 1.8  2002/09/26 17:11:32  spieker
 # New rule save_sources which creates a gzipped tar file of the sources. The CVS keyword Log was added in the file header.
 #
@@ -58,9 +61,11 @@ makedirs:
 	$(MAKE) -C QueryProcessor
 	$(MAKE) -C UserInterfaces
 
+.PHONY: buildlibs
 buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) buildsmi $(LIBDIR)/libsdbsys.$(LIBEXT)
 	$(MAKE) -C Algebras buildlibs
 
+.PHONY: buildsmi
 buildsmi:
 	$(MAKE) -C StorageManager buildlibs
 
@@ -73,8 +78,8 @@ LDOPTTOOL = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsdbtool.$(LIBEXT)
 endif
 endif
 
-$(LIBDIR)/libsdbtool.$(LIBEXT): makedirs $(TOOLOBJECTS)
 ifeq ($(shared),yes)
+$(LIBDIR)/libsdbtool.$(LIBEXT): makedirs $(TOOLOBJECTS)
 # ... as shared object
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPTTOOL) $(TOOLOBJECTS) $(DEFAULTLIB)
 ifeq ($(platform),win32)
@@ -82,6 +87,7 @@ ifeq ($(platform),win32)
 endif
 else
 # ... as static library
+$(LIBDIR)/libsdbtool.$(LIBEXT): $(TOOLOBJECTS)
 	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
 endif
 
@@ -94,8 +100,9 @@ LDOPTSYS = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsdbsys.$(LIBEXT).a
 endif
 endif
 
-$(LIBDIR)/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
+
 ifeq ($(shared),yes)
+$(LIBDIR)/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
 # ... as shared object
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) -L$(LIBDIR) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
@@ -103,6 +110,7 @@ ifeq ($(platform),win32)
 endif
 else
 # ... as static library
+$(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
 	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $(SDBSYSOBJECTS)
 endif
 
