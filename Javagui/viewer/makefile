@@ -23,7 +23,8 @@ VIEWER_CLASSES := \
 		RelSplit.class \
 		HoeseViewer.class \
 		MP3V.class \
-		MidiViewer.class
+		MidiViewer.class \
+                TreeViewer.class
 
 VIEWER_DIRS := fuzzy2d jpeg midi relsplit viewer3d hoese
 
