@@ -74,7 +74,7 @@ using namespace std;
 
 #include "SecondoSMI.h"
 #include "SecParser.h"
-#include "TimeTest.h"
+#include "StopWatch.h"
 #include "LogMsg.h"
 #include "Counter.h"
 #include "DerivedObj.h"
@@ -367,9 +367,12 @@ If value 0 is returned, the command was executed without error.
   string listCommand;         /* buffer for command in list form */
   AlgebraLevel level;
 
+  StopWatch cmdTime;  // measure the time used for executing the command.
+
   SecParser sp;
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
+
 
   // copy command list to internal NL memory
   ListExpr commandLE2 = nl->TheEmptyList();
@@ -1260,16 +1263,17 @@ If value 0 is returned, the command was executed without error.
           
           StartCommand();
 
-	  TimeTest::diffReal(); TimeTest::diffCPU();
-	  cerr << "Analyze query ..." << endl;
+	  StopWatch queryTime;
+	  cerr << "Analyze query ..." << endl;;
 
           qp.Construct( level, nl->Second( list ), correct, evaluable, defined,
                         isFunction, tree, resultType );
 
 
 	  if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-	    cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-	    //cerr << nl->reportVectorSizes() << endl;
+	    cerr << "Analyze " << queryTime.diffTimes() << endl;
+	    queryTime.start();
+	    //cerr << nl->ReportTableSizes() << endl;
           }
 
           if ( !defined )
@@ -1288,8 +1292,8 @@ If value 0 is returned, the command was executed without error.
               qp.Destroy( tree, true );
 
 	       if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-	         cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-	         cerr << nl->reportVectorSizes() << endl;
+	         cerr << "Execute "<< queryTime.diffTimes() << endl;
+	         cerr << nl->ReportTableSizes() << endl;
 	       }
                if (RTFlag::isActive("SI:PrintCounters")) {
                  Counter::reportValues();
@@ -1385,19 +1389,22 @@ If value 0 is returned, the command was executed without error.
   )
 
   // copy result into application specific list container.
+  StopWatch copyTime;
   if (resultList) {
-     TimeTest::diffReal(); TimeTest::diffCPU();
      resultList = nl->CopyList(resultList, al);
      LOGMSG( "SI:CopyListTime",
-        cerr << "Time for calling CopyList: "
-	     << TimeTest::diffReal() << ", " << TimeTest::diffCPU() << endl;
+        cerr << "CopyList " << copyTime.diffTimes() << endl;
      )
   }
   LOGMSG( "SI:ResultList",
     cerr << endl << "### Result after copying: " << al->ToString(resultList) << endl;
   )
   nl->initializeListMemory();
-
+  
+  LOGMSG( "SI:CommandTime",
+    cerr << endl << "Command " << cmdTime.diffTimes() << endl;
+  )
+  
 }
 
 /*

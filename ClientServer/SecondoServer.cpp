@@ -1,3 +1,13 @@
+/*    
+Implementation of the Secondo Server Module
+
+2002 U. Telle. 
+ 
+2003-2004 M. Spiekermann. Minor modifications for messages,
+binary encoded list transfer and error handling of socket streams.
+
+*/
+
 #include <cstdlib>
 #include <string>
 #include <algorithm>
@@ -18,7 +28,7 @@ using namespace std;
 #include "FileSystem.h"
 #include "Profiles.h"
 #include "LogMsg.h"
-#include "TimeTest.h"
+#include "StopWatch.h"
 
 static istream&
 skipline( istream&  strm )
@@ -81,8 +91,9 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
 
   if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
   
+    StopWatch* sendTime = 0;
     LOGMSG( "Server:SendTimeMsg",
-      TimeTest::diffReal(); TimeTest::diffCPU();
+      sendTime = new StopWatch();
       cerr << "Sending list as textual representation ... ";
     )
 
@@ -93,8 +104,9 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
     iosock << endl;
 
     LOGMSG( "Server:SendTimeMsg",
-      cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;;
-    ) 
+      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;
+    )
+    if ( sendTime ) { delete sendTime; } 
 
   } else {
 
@@ -103,16 +115,19 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
       nl->WriteBinaryTo(list,file);
       file.close();
     }
+    
+    StopWatch* sendTime = 0;
     LOGMSG( "Server:SendTimeMsg",
-      TimeTest::diffReal(); TimeTest::diffCPU();
+      sendTime = new StopWatch();
       cerr << "Sending list as binary representation ... ";
     )
 
     nl->WriteBinaryTo(list,iosock);
     
     LOGMSG( "Server:SendTimeMsg",
-      cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;;
+      cerr << sendTime->diffReal() << " " << sendTime->diffCPU() << endl;;
     ) 
+    if ( sendTime ) { delete sendTime; } 
 
   }
   iosock << "</SecondoResponse>" << endl;

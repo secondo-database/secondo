@@ -21,82 +21,123 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 #include <sstream>
 #include <string>
 
-#include "TimeTest.h"
+#include "StopWatch.h"
 #include "LogMsg.h"
 #include "Counter.h"
 
 using namespace std;
 
 /*
-1 Implementation of Class TimeTest
+1 Implementation of Class StopWatch
 
 */
 
+
+StopWatch::StopWatch() :
+startReal(0),
+stopReal(0),
+startCPU(0),
+stopCPU(0)
+{
+  start();
+}
+
+
+void
+StopWatch::start() {
+
+  time(&startReal);
+  startCPU=clock();
+}
+
+
+const double
+StopWatch::diffSecondsReal() {
+
+  time(&stopReal);
+  return difftime(stopReal, startReal);
+}
+
+
+const double
+StopWatch::diffSecondsCPU() {
+
+  stopCPU = clock();
+  return ((double) (stopCPU - startCPU)) / CLOCKS_PER_SEC;
+}
+
+
 const string
-TimeTest::diffReal() {
-
-   static bool firstcall = true;
-   static time_t lasttime = 0;
-   time_t currenttime = 0;
-   ostringstream buffer;
-   
-   if (time(&currenttime) == (-1)) {
-        buffer << "Error when calling time()!" << endl;
-	return buffer.str();
-   }
-   
-   double diffseconds = 0, full =0, frac = 0, sec =0, min = 0;
-   if (firstcall) {
-     diffseconds = 0;
-     firstcall = false;
-     time(&lasttime);
-   } else {
-     diffseconds = difftime(currenttime, lasttime); 
-     // save time for next function call!
-     lasttime = currenttime;     
-   }	   
-    
-
-  frac = modf(diffseconds/60, &full);
-  min = full;
-  sec = diffseconds - (60 * min);
+StopWatch::minutesAndSeconds(const double seconds) {
   
-  const int BUFSIZE=20;
-  char sbuf1[BUFSIZE+1];
-  char sbuf2[BUFSIZE+1];
-  const tm *ltime = localtime(&currenttime);
-  strftime(&sbuf1[0], BUFSIZE, "%H:%M:%S", ltime);
-  sprintf(&sbuf2[0], "%.0f:%02.0f", min, sec);
-  buffer << sbuf1 << " -> elapsed time " << sbuf2  << " minutes."; 
+  static char sbuf[20+1];
+  static double frac = 0, sec = 0, min = 0;
+  
+  frac = modf(seconds/60, &min);
+  sec = seconds - (60 * min);
+  sprintf(&sbuf[0], "%.0f:%02.0f", min, sec);
+  
+  return string((const char*) sbuf);
+}
+
+
+const string
+StopWatch::timeStr(const time_t& inTime /* = 0*/) {
+
+  static char sbuf[20+1];
+  
+  time_t usedTime = 0;
+  if ( inTime == 0 ) {
+    time(&usedTime);
+  } else {
+    usedTime = inTime;
+  }
+  
+  const tm *ltime = localtime(&usedTime);
+  strftime(&sbuf[0], 20, "%H:%M:%S", ltime);
+  
+  return string((const char*) sbuf);
+}
+
+
+const string
+StopWatch::diffReal() {
+
+  ostringstream buffer;
+  
+  double seconds = diffSecondsReal();		   
+				            	   
+  buffer << "Elapsed time: " << minutesAndSeconds( seconds ) << " minutes."; 
   
   return buffer.str(); 
 }
 
 
 const string
-TimeTest::diffCPU() {
+StopWatch::diffCPU() {
 
-   static bool firstcall = true;
-   static clock_t lasttime = 0;
-   clock_t currenttime = 0;
-   double cputime = 0;
    ostringstream buffer;
+      
+   buffer << "Used CPU time: " << diffSecondsCPU() << " seconds."; 
    
-   if (firstcall) {
-     cputime = 0;
-     lasttime = clock();
-     firstcall = false;
-   } else {   
-     currenttime = clock();
-     cputime = ((double) (currenttime - lasttime)) / CLOCKS_PER_SEC;
-     lasttime = currenttime;
-   }
-   
-   buffer << "Used CPU Time: " << cputime << " seconds."; 
-   
-   return buffer.str();
-   
+   return buffer.str();   
 }
+
+
+const string
+StopWatch::diffTimes() {
+
+   ostringstream buffer;
+   double sReal = diffSecondsReal();
+   double sCPU = diffSecondsCPU();
+   
+   buffer << "Times (real/cpu): " 
+          << minutesAndSeconds(sReal)  
+          << "min / " << sCPU << "sec = " << sReal/sCPU;
+	  
+   return buffer.str();  
+}
+
 
 /*
 2 Implementation of Class RTFlag
