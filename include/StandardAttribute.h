@@ -46,6 +46,16 @@ class StandardAttribute : public Attribute
  public:
   virtual void* GetValue() = 0;
   virtual size_t HashValue() = 0;
+/*
+
+1.2 Function ~CopyFrom~
+
+Copies the contents of ~right~ into ~this~. Assumes that ~this~ and
+~right~ are of the same type. This can be ensured by the type checking functions
+in the algebras.
+
+*/
+  virtual void CopyFrom(StandardAttribute* right) = 0;
 };
 
 #endif

@@ -335,15 +335,38 @@ class CcTuple
 
   public:
 
-    CcTuple () { NoOfAttr = 0;
-                 for (int i=0; i < MaxSizeOfAttr; i++)
-		   AttrList[i] = 0;
-               };
-    ~CcTuple () {};
+    CcTuple () 
+    { 
+      NoOfAttr = 0;
+      for (int i=0; i < MaxSizeOfAttr; i++)
+        AttrList[i] = 0;
+    };
+
+    virtual ~CcTuple () {};
     void* Get (int index) {return AttrList[index];};
     void  Put (int index, void* attr) {AttrList[index] = attr;};
     void  SetNoAttrs (int noattr) {NoOfAttr = noattr;};
     int   GetNoAttrs () {return NoOfAttr;};
+
+/*
+
+Function ~CopyFrom~ copies the contents of ~right~ into
+~this~. In doing so it assumes that the first ~right->GetNoAttrs()~
+attributes of ~right~ and ~this~ are of the same type and are instances of
+StandardAttribute. No memory is allocated for copying.
+
+*/
+    void CopyFrom(CcTuple* right)
+    {
+      int i;
+
+      for(i = 0; i < right->GetNoAttrs(); i++)
+      {
+        StandardAttribute* rattr = (StandardAttribute*)right->Get(i);
+        StandardAttribute* attr = (StandardAttribute*)Get(i);
+        attr->CopyFrom(rattr);
+      }
+    }
 
     friend
     ostream& operator<<(ostream& s, CcTuple t);
@@ -2808,7 +2831,14 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
       else
       {
         definedValueFound = true;
-        accumulated = currentAttr->Clone();
+        if(isAvg)
+        {
+          accumulated = currentAttr->Clone();
+        }
+        else
+        {
+          accumulated = (Attribute*)qp->ResultStorage(s).addr;
+        }
       }
     }
     qp->Request(args[0].addr, currentTupleWord);
@@ -2819,7 +2849,7 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   {
     if(isAvg)
     {
-      CcReal* resultAttr = new CcReal(true, 0.0);
+      CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
       float nItems = (float)nProcessedItems;
 
       if(strcmp(attributeType, "real") == 0)

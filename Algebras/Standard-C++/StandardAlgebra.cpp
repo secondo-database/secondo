@@ -216,6 +216,14 @@ bool   CcInt::IsDefined() { return (defined); };
 int    CcInt::Sizeof() { return (sizeof(CcInt)); };
 CcInt* CcInt::Clone() { return (new CcInt( *this )); };
 size_t CcInt::HashValue() { return (defined ? intval : 0); };
+
+void CcInt::CopyFrom(StandardAttribute* right)
+{
+  CcInt* r = (CcInt*)right;
+  defined = r->defined;
+  intval = r->intval;
+}
+
 int    CcInt::Compare( Attribute* arg )
 {
 //        CcInt* p = dynamic_cast< CcInt* >(arg);
@@ -483,6 +491,13 @@ size_t CcReal::HashValue()
   return size_t(h);
 }
 
+void CcReal::CopyFrom(StandardAttribute* right)
+{
+  CcReal* r = (CcReal*)right;
+  defined = r->defined;
+  realval = r->realval;
+}
+
 int     CcReal::Compare( Attribute * arg )
 {
    //     CcReal* p = dynamic_cast< CcReal* >(arg);
@@ -580,6 +595,14 @@ void*   CcBool::GetValue() { return (void *)boolval; };
 int     CcBool::Sizeof() { return sizeof(CcBool); };
 CcBool* CcBool::Clone() { return new CcBool(*this); };
 size_t CcBool::HashValue() { return (defined ? boolval : false); };
+
+void CcBool::CopyFrom(StandardAttribute* right)
+{
+  CcBool* r = (CcBool*)right;
+  defined = r->defined;
+  boolval = r->boolval;
+}
+
 int     CcBool::Compare(Attribute* arg)
 {
    //     CcBool* p = dynamic_cast< CcBool* >(arg);
@@ -647,7 +670,7 @@ DeleteCcBool( Word& w )
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
 
 */
- 
+
 static void*
 CastBool( void* addr )
 {
@@ -656,9 +679,9 @@ CastBool( void* addr )
 
 /*
 3.2.5 {\em Type check} function of type constructor {\tt ccreal}
- 
+
 */
- 
+
 static bool
 CheckBool( ListExpr type, ListExpr& errorInfo )
 {
@@ -767,6 +790,13 @@ size_t CcString::HashValue()
     s++;
   }
   return size_t(h);
+}
+
+void CcString::CopyFrom(StandardAttribute* right)
+{
+  CcString* r = (CcString*)right;
+  defined = r->defined;
+  strcpy(stringval, r->stringval);
 }
 
 int       CcString::Compare( Attribute* arg )
