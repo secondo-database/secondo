@@ -24,7 +24,10 @@ April 2002 Ulrich Telle
 November 30, 2002 RHG Added function ~GetKey~.
 
 Aug 18, 2004. M. Spiekermann added ~Setflag\_NOSYNC~ to speed up closing files 
-at the end of a query. 
+at the end of a query. Since queries does not modify the data synchronisation is
+not necessary.
+
+Sept 15, 2004. M. Spiekermann. Declaration of SmiError moved to ErrorCodes.h. 
 
 1.1 Overview
 
@@ -190,8 +193,13 @@ The class ~SmiKey~ provides the following methods:
 
 using namespace std;
 
-#include "SecondoConfig.h"
+
 #include <string>
+
+#include "ErrorCodes.h"
+#include "SecondoConfig.h"
+
+
 class IndexableStandardAttribute;
 
 const string::size_type SMI_MAX_NAMELEN      =   31;
@@ -232,11 +240,6 @@ instance of the ~SmiKey~ class. Extra memory is allocated for longer keys.
 
 */
 
-typedef long          SmiError;
-/*
-Is the type for error codes of the storage management interface.
-
-*/
 
 typedef unsigned long SmiFileId;
 /*

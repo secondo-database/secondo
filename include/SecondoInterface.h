@@ -56,6 +56,10 @@ the header file to facalitate maintenance. Moreover, new private methods for som
 Secondo commands have been declared to reduce the complex nesting in the 
 implementation of the ~Secondo~ function.
 
+Sept 2004, M. Spiekermann. A bug in the error handling of restore database has been fixed. 
+Error code definitions have been moved to ErrorCodes.h. in order to make them available also 
+in other modules like SecondoSystem. 
+
 
 1.1 Overview
 
@@ -97,67 +101,6 @@ in the treatment of the database state in database commands.
 
 // forward declaration to avoid cyclic includes
 class DerivedObj;
-
-// global constants for error messages.
-typedef int SI_Error;
-
-const SI_Error ERR_NO_ERROR = 0;
-const SI_Error ERR_CMD_NOT_RECOGNIZED = 1;
-const SI_Error ERR_IN_QUERY_EXPR = 2;
-const SI_Error ERR_EXPR_NOT_EVALUABLE = 3;
-const SI_Error ERR_NO_OBJ_CREATED = 4;
-const SI_Error ERR_NO_TYPE_DEFINED = 5;
-const SI_Error ERR_NO_DATABASE_OPEN = 6;
-const SI_Error ERR_DATABASE_OPEN = 7;
-const SI_Error ERR_UNDEF_OBJ_VALUE = 8;
-const SI_Error ERR_SYNTAX_ERROR = 9;
-
-const SI_Error ERR_IDENT_USED = 10;
-const SI_Error ERR_IDENT_UNKNOWN_TYPE = 11;
-const SI_Error ERR_IDENT_UNKNOWN_OBJ = 12;
-const SI_Error ERR_EXPR_TYPE_NEQ_OBJ_TYPE = 13;
-const SI_Error ERR_TYPE_NAME_USED_BY_OBJ = 14;
-const SI_Error ERR_IDENT_RESERVED = 15;
-const SI_Error ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED = 16;
-
-const SI_Error ERR_TRANSACTION_ACTIVE = 20; 
-const SI_Error ERR_NO_TRANSACTION_ACTIVE = 21; 
-const SI_Error ERR_BEGIN_TRANSACTION_FAILED = 22; 
-const SI_Error ERR_COMMIT_OR_ABORT_FAILED = 23;
-const SI_Error ERR_IN_DEFINITIONS_FILE = 24;
-const SI_Error ERR_IDENT_UNKNOWN_DB_NAME = 25;
-const SI_Error ERR_PROBLEM_IN_WRITING_TO_FILE = 26;
-const SI_Error ERR_DB_NAME_NEQ_IDENT = 27;
-const SI_Error ERR_PROBLEM_IN_READING_FILE = 28;
-const SI_Error ERR_IN_LIST_STRUCTURE_IN_FILE = 29;
-
-const SI_Error ERR_CMD_NOT_YET_IMPL = 30;
-const SI_Error ERR_CMD_LEVEL_NOT_YET_IMPL = 31;
-const SI_Error ERR_CMD_NOT_IMPL_AT_THIS_LEVEL = 32;
-
-const SI_Error ERR_IN_TYPE_DEFINITION = 40;  
-const SI_Error ERR_NAME_DOUBLY_DEFINED = 41;
-const SI_Error ERR_IN_TYPE_EXPRESSION = 42;
- 
-const SI_Error ERR_IN_OBJ_DEFINITION = 50;
-const SI_Error ERR_OBJ_NAME_DOUBLY_DEFINED = 51;
-const SI_Error ERR_WRONG_TYPE_EXPR_FOR_OBJ = 52;
-const SI_Error ERR_WRONG_LIST_REP_FOR_OBJ = 53;
-
-const SI_Error ERR_KIND_DOES_NOT_MATCH_TYPE_EXPR = 60;
-const SI_Error ERR_SPECIFIC_KIND_CHECKING_ERROR = 61;
-
-const SI_Error ERR_IN_VALUELIST_TC_V = 70;
-const SI_Error ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR = 71;
-const SI_Error ERR_IN_VALUELIST_TC = 72;
-const SI_Error ERR_AT_POS_IN_VALUELIST = 73;
-
-const SI_Error ERR_IN_SECONDO_PROTOCOL = 80;
-const SI_Error ERR_CONNECTION_TO_SERVER_LOST = 81;
-const SI_Error ERR_IDENT_UNKNOWN_DB_OBJECT = 82;
-const SI_Error ERR_OBJ_NAME_IN_FILE_NEQ_IDENT = 83;
-const SI_Error ERR_IDENT_ALREADY_KNOWN_IN_DB = 84;
-const SI_Error ERR_ALGEBRA_UNKNOWN = 85;
 
 
 /************************************************************************** 
@@ -268,8 +211,8 @@ error code numbers:
 
   * 1: command not recognized
 
-  * 9: syntax error in command/expression (found by "Secondo"[3] Parser)
-
+  * 9: syntax error in command or expression  (detected by the parser)
+	
   * 30: command not yet implemented
 
   * 31: command level not yet implemented
@@ -1020,6 +963,9 @@ after the error number have the following meaning:
 				 
 	errors[ERR_ALGEBRA_UNKNOWN] 
 				 = "Algebra not known or currently not included.";
+				 
+	errors[ERR_UNKNOWN_RETURN_CODE]
+	       = "A function call returned with an unknown message. ";			 
 
 }
 

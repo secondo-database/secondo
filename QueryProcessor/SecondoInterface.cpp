@@ -51,7 +51,9 @@ objects via a more or less complex value expression. The information about depen
 system tables (relation objects). The save database command omits to save list expressions for those objects.
 After restoring all saved objects the derived objects are rebuild in the restore database command.
 
-August 2004, M. Spiekermann. The complex nesting of function ~Secondo~ has been reduced. 
+August 2004, M. Spiekermann. The complex nesting of function ~Secondo~ has been reduced.
+
+Sept 2004, M. Spiekermann. A bug in the error handling of restore databases has been fixed. 
 
 \tableofcontents
 
@@ -654,48 +656,49 @@ If value 0 is returned, the command was executed without error.
         }
         else
         {
-	  cout << endl;
+          cout << endl;
           dbName = nl->SymbolValue( nl->Third( list ) );
           filename = nl->SymbolValue( nl->Fifth( list ) );
-          message = sys.RestoreDatabase( dbName, filename, errorInfo );
-          
-	  if ( derivedObjPtr )
-	     delete derivedObjPtr;           // create a new instance of DerivedObj and rebuild
-	  derivedObjPtr = new DerivedObj();  // derived objects if they are stored in the system
-	  derivedObjPtr->rebuildObjs();      // table SEC_DERIVED_OBJ
-
-          switch (message)
-          {
-            case 0:
-              break;
-            case 1:
-              errorCode = ERR_IDENT_UNKNOWN_DB_NAME;  // identifier not a known database name
-              break;
-            case 2:
-              errorCode = ERR_DB_NAME_NEQ_IDENT;  // database name in file different from identifier
-              break;
-            case 3:
-              errorCode = ERR_PROBLEM_IN_READING_FILE;  // problem in reading the file
-              break;
-            case 4:
-              errorCode = ERR_IN_LIST_STRUCTURE_IN_FILE;  // error in list structure in file
-              break;
-            case 5:
-              errorCode = ERR_IN_DEFINITIONS_FILE;  // error in type or object definitions in file
-              resultList = errorList;
-              break;
-            default:
-              errorCode = ERR_CMD_NOT_RECOGNIZED;   // Should never occur
-              break;
-          }
+          errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
         }
-		      
-        if ( message > 0 ) {        
-	 cerr << endl << "Error during restore detected. Closing database " << dbName;
-	 if ( !sys.CloseDatabase() ) {
-    	    cerr << " failed";
-	 }
-	 cerr << "!" << endl << endl;
+
+							      
+        switch ( errorCode ) // error handling
+				{
+				  case ERR_NO_ERROR:
+					case ERR_IDENT_UNKNOWN_DB_NAME: 
+					{
+					  break;
+					}					
+					case ERR_IN_DEFINITIONS_FILE:
+					{
+					  resultList = errorList;
+					}
+				  case ERR_DB_NAME_NEQ_IDENT:
+					case ERR_PROBLEM_IN_READING_FILE:
+					case ERR_IN_LIST_STRUCTURE_IN_FILE:
+
+					default: 
+					{       
+	          cmsg.error() << endl << "Error during restore detected. Closing database " << dbName;
+	      
+				    if ( !sys.CloseDatabase() ) {
+    	        cmsg.error() << " failed!" << endl;
+	          } else {
+	            cmsg.error() << " finished!" << endl;
+            }
+				    cmsg.send();
+					  break;
+					}
+				}	
+					
+			  if ( !errorCode ) { // rebuild derived objects if present
+				 			
+			    if ( derivedObjPtr ) {
+	          delete derivedObjPtr;            
+	        }    
+		      derivedObjPtr = new DerivedObj();
+	        derivedObjPtr->rebuildObjs(); 
         }
 
       }
@@ -703,6 +706,7 @@ If value 0 is returned, the command was executed without error.
       {
         errorCode = ERR_CMD_NOT_RECOGNIZED;  // Command not recognized.
       }
+					
     }
 
     // --- Writing command for objects

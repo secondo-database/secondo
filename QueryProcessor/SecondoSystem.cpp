@@ -55,6 +55,7 @@ The names of existing databases are stored in a list ~DBTable~.
 
 using namespace std;
 
+#include "ErrorCodes.h"
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
 
@@ -226,7 +227,7 @@ Precondition: dbState = dbOpen.
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " CloseDatabase: database is already closed!" << endl;
-    exit( 0 );
+    assert( false );
   }
   scExecutable->Close();
   scDescriptive->Close();
@@ -423,6 +424,7 @@ Returns
   Furthermore, any errors found by kind checking and by ~In~ procedures are added to the list ~errorInfo~.
 
 Precondition: dbState = dbOpen.
+
 */
   ListExpr list;
   int rc = 0;
@@ -475,7 +477,7 @@ Precondition: dbState = dbOpen.
   return ( rc );
 }
 
-int
+SI_Error
 SecondoSystem::RestoreDatabase( const string& dbname,
                                 const string& filename,
                                 ListExpr& errorInfo )
@@ -484,17 +486,17 @@ SecondoSystem::RestoreDatabase( const string& dbname,
 Reads a database from a file named ~filename~ that has the same nested
 list format as in the procedure ~SaveDatabase~ and fills the catalogs
 for database types and objects. The database state changes to ~dbOpen~.
-Returns
+Returns an error if
 
-  * error 1 if ~dbname~ is not a known database name,
+  * ~dbname~ is not a known database name,
 
-  * error 2, if the database name in the file is different from ~dbname~ here,
+  * the database name in the file is different from ~dbname~ here,
 
-  * error 3, if there was a problem in reading the file,
+  * there was a problem in reading the file,
 
-  * error 4, if the list structure in the file was not correct,
+  * the list structure in the file was not correct,
 
-  * error 5 if there are errors in type definitions and/or object list expressions.
+  * there are errors in type definitions and/or object list expressions.
 
     Furthermore, any errors found by kind checking and by ~In~ procedures are added to the list ~errorInfo~.
 
@@ -504,21 +506,21 @@ Precondition: dbState = dbClosed.
   ListExpr list,        listFile;
   ListExpr typesDesc,   typesExec;
   ListExpr objectsDesc, objectsExec;
-  int rc = 0;
+  SI_Error rc = ERR_NO_ERROR;
 
   if ( testMode && SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " RestoreDatabase: database is not closed!" << endl;
-    exit( 0 );
+    assert( false );
   }
 
   if ( !OpenDatabase( dbname ) )
   {
-    rc = 1; // Database unknown
+    rc = ERR_IDENT_UNKNOWN_DB_NAME; // Database unknown
   }
   else if ( !nl->ReadFromFile( filename, list ) )
   {
-    rc = 3; // Error reading file
+    rc = ERR_PROBLEM_IN_READING_FILE; // Error reading file
   }
   else
   {
@@ -531,7 +533,7 @@ Tests the syntax of the database file named ~filename~.
     {
       if ( !nl->IsEqual( nl->Second( list ), dbname, false ) )
       {
-        rc = 2; // Database name in file different
+        rc = ERR_DB_NAME_NEQ_IDENT; // Database name in file different
       }
       else if ( nl->IsEqual( nl->First( list ), "DATABASE" ) )
       {
@@ -550,14 +552,14 @@ Tests the syntax of the database file named ~filename~.
              !nl->IsEqual( nl->First( nl->Fourth( list ) ), "EXECUTABLE" ) ||
              !nl->IsEqual( nl->Second( nl->Fourth( list ) ), "ALGEBRA" ) )
         {
-          rc = 4; // List structure invalid
+          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid
         }
         else if ( nl->IsEmpty( typesDesc ) ||
                   nl->IsEmpty( typesExec ) ||
                   nl->IsEmpty( objectsDesc ) ||
                   nl->IsEmpty( objectsExec ) )
         {
-          rc = 4; // List structure invalid
+          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid
         }
         else if ( nl->IsEqual( nl->First( typesDesc ), "TYPES" ) &&
                   nl->IsEqual( nl->First( typesExec ), "TYPES" ) &&
@@ -581,39 +583,41 @@ Load database types and objects from file named ~filename~.
           if ( RestoreCatalog( scDescriptive, typesDesc, objectsDesc, errorInfo ) &&
                RestoreCatalog( scExecutable, typesExec, objectsExec, errorInfo ) )
           {
-            rc = 0; // Database successfully restored
+            rc = ERR_NO_ERROR; // Database successfully restored
 
-/*
+            /*
             if ( !SecondoSystem::CommitTransaction() )
             {
               rc = 23;
             }
-*/
+						*/
+
           }
           else
           {
-            rc = 5; // Error in types or objects
-/*
+            rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
+            
+						/*
             if ( !SecondoSystem::AbortTransaction() )
             {
               rc = 23;
             }
-*/
+            */
           }
         }
         else
         {
-          rc = 4; // List structure invalid (Types or objects missing)
+          rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Types or objects missing)
         }
       }
       else
       {
-        rc = 4; // List structure invalid (Database info missing)
+        rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (Database info missing)
       }
     }
     else
     {
-      rc = 4; // List structure invalid (List too short)
+      rc = ERR_IN_LIST_STRUCTURE_IN_FILE; // List structure invalid (List too short)
     }
     nl->Destroy( listFile );
     //if ( rc != 0 )
@@ -837,7 +841,7 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   scExecutable   = 0;
   currentLevel   = UndefinedLevel;
   initialized    = false;
-  testMode       = true; // At least during the programming and test phase
+  testMode       = false; // Todo: Should be configurable in SecondoConfig.ini
   secondoSystem  = this;
 }
 

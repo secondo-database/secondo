@@ -31,6 +31,9 @@ command is available under Windows XP.
 
 May 2004, M. Spiekermann. Function ~SaveDatabase~ was modified to left out derived objects.
 
+Sept 15 2004, M. Spiekermann. Restore database returns now a value of type SI\_Error 
+instead of an integer.
+
 1.1 Overview
 
 This module implements those parts of the "Secondo"[3] catalog which
@@ -67,6 +70,7 @@ The class ~SecondoSystem~ provides the following methods:
 #ifndef SECONDO_SYSTEM_H
 #define SECONDO_SYSTEM_H
 
+#include "ErrorCodes.h"
 #include "NestedList.h"
 #include "AlgebraManager.h"
 #include "SecondoCatalog.h"
@@ -205,20 +209,21 @@ Furthermore, any errors found by kind checking and by ~In~ procedures are added 
 the list ~errorInfo~.
 
 *Precondition*: Database is open and object is not known in the currently opened database.
+
 */
 
-  int RestoreDatabase( const string& dbname,
-                       const string& filename,
-                       ListExpr& errorInfo );
+  SI_Error RestoreDatabase( const string& dbname,
+                            const string& filename,
+                            ListExpr& errorInfo );
 /*
 Reads a database from a file named ~filename~ that has the same nested
 list format as described in the method ~SaveDatabase~ and fills the catalogs
 for database types and objects. The database is in open state after
 successful completion.
-Returns error 1 if ~dbname~ is not a known database name, error 2, if
-the database name in the file is different from ~dbname~ here, error 3,
-if there was a problem in reading the file, and error 4, if the list
-structure in the file was not correct. Returns error 5 if there are
+Returns an error if ~dbname~ is not a known database name, or
+the database name in the file is different from ~dbname~ here, or
+there was a problem in reading the file, or the list
+structure in the file was not correct, or if there are
 errors in type definitions and/or object list expressions.
 
 Furthermore, any errors found by kind checking and by ~In~ procedures
