@@ -17,6 +17,7 @@ import  java.awt.geom.*;
 import  javax.swing.border.*;
 import  viewer.hoese.*;
 import  gui.SecondoObject;
+import  gui.idmanager.*;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -137,10 +138,14 @@ public class HoeseViewer extends SecondoViewer {
   private String tok, PickTok;
 
 
+  /** a FileChooser for Sessions */
+  private JFileChooser FC_Session=new JFileChooser();
+
+
+
   /**
    * Creates a MainWindow with all its components, initializes Secondo-Server, loads the
    * standard-categories, etc.
-   * @see <a href="MainWindowsrc.html#MainWindow">Source</a> 
    */
   public HoeseViewer() {
     try {
@@ -299,8 +304,10 @@ public class HoeseViewer extends SecondoViewer {
     if (!le.first().symbolValue().equals("Categories"))
       return;
     le = le.second();
+    ListExpr aCat;
     while (!le.isEmpty()) {
-      Category cat = Category.ConvertLEtoCat(le.first());
+      aCat = le.first();
+      Category cat = Category.ConvertLEtoCat(aCat);
       if (cat != null)
         Cats.add(cat);
       le = le.rest();
@@ -986,27 +993,49 @@ public boolean canDisplay(SecondoObject o){
   }             
 
 /** Loads session from a file
- * @see <a href="MainWindowsrc.html#on_jMenu_OpenSession">Source</a> 
-   */  
+  */  
   private void on_jMenu_OpenSession (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_on_jMenu_OpenSession
-    final JFileChooser fc = new JFileChooser(configuration.getProperty("WorkingDir", 
-        "/"));
-    fc.setDialogTitle("Open Session");
-    int returnVal = fc.showOpenDialog(HoeseViewer.this);
+    FC_Session.setDialogTitle("Open Session");
+    int returnVal = FC_Session.showOpenDialog(HoeseViewer.this);
     if (returnVal == JFileChooser.APPROVE_OPTION) {
-      File file = fc.getSelectedFile();
+      File file = FC_Session.getSelectedFile();
       ListExpr le = new ListExpr();
-      String suc = ((le.readFromFile(file.getPath()) == 0) && (le.listLength()
-          == 4) && (le.first().atomType() == ListExpr.SYMBOL_ATOM) && (le.first().symbolValue().equals("session"))) ?
-          "OK" : "FAILED";
-      if (suc.equals("FAILED"))
-        return;
+      boolean ok = true;
+      // try to load the ListExpr
+      try{
+        if(le.readFromFile(file.getPath())!=0)
+           ok = false;
+        }
+        catch(Exception e){
+          ok=false;
+        }
+      if(!ok){
+         showMessage("i can't load the file");
+         return;
+      }
+      
+      // check ListExprFormat
+      if (le.listLength()!=4){
+         showMessage(" the file contains not a session ");
+         return;
+      }
+         
+      ListExpr type = le.first();
+
+      if (!type.isAtom() || !(type.atomType()==ListExpr.SYMBOL_ATOM) || !type.symbolValue().equals("session")){
+         showMessage(" the file contains no session ");
+         return;
+      }
+
       le = le.rest();
       Cats = new Vector(10, 5);
-      Cats.add(Category.getDefaultCat());
       context.setContextLE(le.first());
       readAllCats(le.second());
+      if(!Cats.contains(Category.getDefaultCat()))
+         Cats.add(Category.getDefaultCat());
+
       TextDisplay.readAllQueryResults(le.third());
+
       // inform the ViewerControl over the new Objects
       if(VC!=null){
          JComboBox CB = TextDisplay.getQueryCombo();
@@ -1015,7 +1044,7 @@ public boolean canDisplay(SecondoObject o){
          QueryResult QR;
          for(int i=0;i<count;i++){
             QR = (QueryResult)CB.getItemAt(i);
-            SO = new SecondoObject();
+            SO = new SecondoObject(IDManager.getNextID());
             SO.setName(QR.getCommand());
             SO.fromList(QR.getListExpr());
             VC.addObject(SO);
