@@ -87,10 +87,10 @@ Single
 4 0 0 50 0 0 14 0.0000 4 195 2400 3510 45 ExtRelAlgMainMemory.cpp\001
 4 0 0 50 0 0 10 0.0000 4 150 2625 3510 765 sofisticated operations such as sort, hashjoin,\001
 4 0 0 50 0 0 10 0.0000 4 150 1080 3510 945 sortmergejoin, etc.\001
-4 0 0 50 0 0 14 0.0000 4 195 2400 7425 45 ExtRelAlgMainMemory.cpp\001
 4 0 0 50 0 0 10 0.0000 4 150 2625 7380 765 sofisticated operations such as sort, hashjoin,\001
 4 0 0 50 0 0 10 0.0000 4 150 1080 7380 945 sortmergejoin, etc.\001
 4 0 0 50 0 0 10 0.0000 4 135 2895 3465 405 - Implementation of the value mapping functions,\001
 4 0 0 50 0 0 10 0.0000 4 135 2580 3510 585 using main memory algorithms, of the most\001
 4 0 0 50 0 0 10 0.0000 4 135 2895 7380 405 - Implementation of the value mapping functions,\001
 4 0 0 50 0 0 10 0.0000 4 135 2970 7380 585 using algorithms for persistent storage, of the most\001
+4 0 0 50 0 0 14 0.0000 4 195 2055 7425 45 ExtRelAlgPersistent.cpp\001
