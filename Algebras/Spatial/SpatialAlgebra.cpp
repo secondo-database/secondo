@@ -31,7 +31,6 @@ using namespace std;
 #include <string>
 #include <cmath>
 
-
 #ifdef SECONDO_WIN32
 const double M_PI = acos( -1.0 );
 #endif
@@ -3722,7 +3721,6 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 	   }
       }
 
-
       CHalfSegment * chs=new CHalfSegment ();
       chs->SetDefined(false);
       if (!( cr->insertOK(*chs) ))
@@ -4817,7 +4815,54 @@ directionMap( ListExpr args )
 	     TypeOfSymbol( arg2 ) == stpoint )
 	    return (nl->SymbolAtom( "real" ));
     }
+    
+    return (nl->SymbolAtom( "typeerror" ));    
+}
 
+/*
+10.1.8 Type mapping function for operator ~nocompoents~
+
+This type mapping function is used for the ~nocomponents~ operator. This
+operator computes the number of components of a spatial object. For poins 
+and lines, this function returns the number of points and line segments 
+contained. For regions this function returns the faces of the region.
+
+*/
+static ListExpr
+nocomponentsMap( ListExpr args )
+{  
+    ListExpr arg1;
+    if ( nl->ListLength( args ) == 1 )
+    {
+	arg1 = nl->First( args );
+  
+	if ((TypeOfSymbol( arg1 ) == stpoints)||
+	    (TypeOfSymbol( arg1 ) == stline)||
+	    (TypeOfSymbol( arg1 ) == stregion))
+	    return (nl->SymbolAtom( "int" ));
+    }
+    return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+10.1.9 Type mapping function for operator ~size~
+
+This type mapping function is used for the ~size~ operator. This operator 
+computes the size of the spatial object. For line, the size is the totle length 
+of the line segments.
+
+*/
+static ListExpr
+sizeMap( ListExpr args )
+{  
+    ListExpr arg1;
+    if ( nl->ListLength( args ) == 1 )
+    {
+	arg1 = nl->First( args );
+  
+	if (TypeOfSymbol( arg1 ) == stline)
+	    return (nl->SymbolAtom( "real" ));
+    }
     return (nl->SymbolAtom( "typeerror" ));
 }
 
@@ -5281,9 +5326,9 @@ distanceSelect( ListExpr args )
 }
 
 /*
-10.3.12 Selection function ~distanceSelect~
+10.3.12 Selection function ~directionSelect~
 
-This select function is used for the ~distance~ operator.
+This select function is used for the ~direction~ operator.
 
 */
 
@@ -5292,11 +5337,53 @@ directionSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
-
-  if ( TypeOfSymbol( arg1 ) == stpoint &&
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
        TypeOfSymbol( arg2 ) == stpoint )
-      return (0);
+      return (0);   
+ 
+  return (-1); // This point should never be reached
+}
 
+/*
+10.3.13 Selection function ~nocomponentsSelect~
+
+This select function is used for the ~nocomponents~ operator.
+
+*/
+
+static int
+nocomponentsSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if (TypeOfSymbol( arg1 ) == stpoints)
+      return (0);
+ 
+  if (TypeOfSymbol( arg1 ) == stline)
+      return (1);   
+  
+  if (TypeOfSymbol( arg1 ) == stregion)
+      return (2);   
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.14 Selection function ~sizeSelect~
+
+This select function is used for the ~size~ operator.
+
+*/
+
+static int
+sizeSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if (TypeOfSymbol( arg1 ) == stline)
+      return (0);
+ 
   return (-1); // This point should never be reached
 }
 
@@ -7725,6 +7812,82 @@ direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.3.19 Value mapping functions of operator ~nocomponents~
+
+*/
+
+static int
+nocomponents_ps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+     
+    ((CcInt *)result.addr)->Set( true, ps->Size());
+    return (0);
+}
+
+static int
+nocomponents_l( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CLine *cl=((CLine*)args[0].addr);
+     
+    ((CcInt *)result.addr)->Set( true, (int) (cl->Size() / 2));
+    return (0);
+}
+
+static int
+nocomponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+    
+    CRegion *cr=((CRegion*)args[0].addr);
+    CHalfSegment chs;
+    int res=-1;
+    
+    for (int i=0; i<cr->Size(); i++)
+    {
+	cr->Get(i, chs);
+	if (chs.GetLDP())
+	{
+	    if (res<chs.attr.faceno) res=chs.attr.faceno;
+	}
+    }
+    
+    ((CcInt *)result.addr)->Set( true, res+1);
+    return (0);
+}
+
+/*
+10.3.20 Value mapping functions of operator ~size~
+
+*/
+
+static int
+size_l( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    CLine *cl=((CLine*)args[0].addr);
+    CHalfSegment chs;
+    
+    double res=0;
+    
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chs);
+	if (chs.GetLDP())
+	{
+	    res += chs.GetLP().distance(chs.GetRP());
+	}
+    }
+	    
+    ((CcReal *)result.addr)->Set( true, res);
+    return (0);
+}
+/*
 10.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -7835,6 +7998,14 @@ ValueMapping distancemap[] = 	      { distance_pp,
 				      };
 
 ValueMapping directionmap[] = 	      { direction_pp
+				      };
+
+ValueMapping nocomponentsmap[] =   { nocomponents_ps,
+				       nocomponents_l,
+				       nocomponents_r,
+				      };
+
+ValueMapping sizemap[] = 	      { size_l
 				      };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
@@ -8002,6 +8173,22 @@ const string SpatialSpecDirection  =
 	"<text>query direction(p1, p2)</text--->"
 	") )";
 
+const string SpatialSpecNocomponents  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(points||line||region) -> int</text--->"
+	"<text> nocomponents( _ )</text--->"
+	"<text>return the number of components of a spatial object.</text--->"
+	"<text>query nocomponents(region)</text--->"
+	") )";
+
+const string SpatialSpecSize  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(line) -> real</text--->"
+	"<text> size( _ )</text--->"
+	"<text> return the size (length, area) of a spatial object.</text--->"
+	"<text>query size(line)</text--->"
+	") )";
+
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap,
 	  spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
@@ -8074,6 +8261,14 @@ Operator spatialdirection
 	( "direction", SpatialSpecDirection, 1, directionmap, spatialnomodelmap,
 	  directionSelect, directionMap );
 
+Operator spatialnocomponents
+	( "nocomponents", SpatialSpecNocomponents, 3, nocomponentsmap, spatialnomodelmap,
+	  nocomponentsSelect, nocomponentsMap );
+
+Operator spatialsize
+	( "size", SpatialSpecSize, 1, sizemap, spatialnomodelmap,
+	  sizeSelect, sizeMap );
+
 /*
 11 Creating the Algebra
 
@@ -8112,6 +8307,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialsingle );
     AddOperator( &spatialdistance );
     AddOperator( &spatialdirection );
+    AddOperator( &spatialnocomponents );
+    AddOperator( &spatialsize );
   }
   ~SpatialAlgebra() {};
 };
