@@ -234,11 +234,11 @@ If value 0 is returned, the command was executed without error.
     return;
   }
 
-  string::size_type posDatabase = cmdText.find( "database" );
-  string::size_type posSave     = cmdText.find( "save" );
-  string::size_type posRestore  = cmdText.find( "restore" );
-  string::size_type posTo       = cmdText.find( "to" );
-  string::size_type posFrom     = cmdText.find( "from" );
+  string::size_type posDatabase = cmdText.find( "database " );
+  string::size_type posSave     = cmdText.find( "save " );
+  string::size_type posRestore  = cmdText.find( "restore " );
+  string::size_type posTo       = cmdText.find( "to " );
+  string::size_type posFrom     = cmdText.find( "from " );
 
   if ( posDatabase != string::npos &&
        posSave     != string::npos &&
