@@ -57,17 +57,19 @@ class RTFlag {
 
 public:
 
-  RTFlag(){};
-  ~RTFlag(){};
-
   static void initByString( const string& keyList );
+
+  static void showActiveFlags(ostream& os);
 
   inline static bool isActive( const string& key ) { 
     
-    if ( (it=flagMap.find( key )) != flagMap.end() ) { return it->second;  } else { return false; };
-  };
+    if ( (it=flagMap.find( key )) != flagMap.end() ) { return it->second;  } else { return false; }
+  }
 
 private:
+
+  RTFlag(){}
+  ~RTFlag(){}
 
   static map<string,bool> flagMap;
   

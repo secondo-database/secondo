@@ -1,24 +1,24 @@
 /*
-//characters    [1]    verbatim:       [\verb@]                                [@]
+//characters    [1]    verbatim:       [\verb@] [@]
 
-1 DerivedObj, a class for maintaining objects created by the user command derive 
+1 DerivedObj, a class for objects created by the user command derive 
 
 May 06, 2004. M. Spiekermann: Initial Version
 
-May 20, 2004. M. Spiekermann: A bug during Berkeley-DB environment close has been fixed. 
-Now the relation object will be closed properly in the destructor
+May 20, 2004. M. Spiekermann: A bug during Berkeley-DB environment close has
+been fixed.  Now the relation object will be closed properly in the destructor
 
 This class creates and maintains the system table 
 
-SEC_DERIVED_OBJ(name: string, value: text, usedObj: text)
+SEC\_DERIVED\_OBJ(name: string, value: text, usedObj: text)
 
-which will be created in a database when a user decides to
-create an object via the derive command. The derive command has the same
-syntax as the let command but the created objects are not saved in a textual
-nested list representation when a database is saved. When a database contains
-derived objects these are recreated after all non-derived objects are restored.
+which will be created in a database when a user decides to create an object via
+the derive command. The derive command has the same syntax as the let command
+but the created objects are not saved in a textual nested list representation
+when a database is saved. When a database contains derived objects these are
+recreated after all non-derived objects are restored.
 
-This allows to restore btree objects which have no nested list representation or 
+This allows to restore btree objects which have no nested list representation or
 to keep experimental results created from querys without storing them explicitly
 in files. Since the objects are created by user interaction in the correct order
 it is not necessary to do topological sorting at the dependency graph. 
