@@ -9,7 +9,7 @@ import  java.awt.geom.*;
 import  java.util.*;
 import  javax.swing.border.*;
 import viewer.HoeseViewer;
-
+import java.awt.image.*;
 
 /**
  * A Swing JComponent that represent a Layer in the layerstack
@@ -204,36 +204,36 @@ public class Layer extends JComponent {
 
   /** set a new Category to paint the next object */
   private void setCategory(DsplGraph dg,Graphics2D g2){
-    if(dg==null) {return;}
+    if(dg==null) return;
+    if(g2==null) return;
     Category Cat = dg.getCategory();
-
-    if(Cat==null){return;}
-
-   /* if(LastCat==Cat && LastDisplayGraph!=null  &&
-       LastDisplayGraph.isPointType()==dg.isPointType() &&
-       LastDisplayGraph.getSelected()==dg.getSelected()){
-       return;
-    }*/
-
+    if(Cat==null) return;
 
     LastCat=Cat;
     LastDisplayGraph = dg;
-    Shape sh = dg.getRenderObject(getProjection());
+    AffineTransform af2 = getProjection();
+    Shape render = dg.getRenderObject(af2);
+    if(render==null)
+       return;
+    Shape sh = af2.createTransformedShape(render);
+    if(sh==null) return;
 
     g2.setComposite(Cat.getAlphaStyle());
     g2.setStroke(Cat.getLineStroke());
     g2.setPaint(Cat.getFillStyle());
+    Paint P = Cat.getFillStyle();
+    if(P==null) return;
     if (dg.isPointType()) {
-      if (Cat.getFillStyle() instanceof TexturePaint)
-        g2.setPaint(new TexturePaint(((TexturePaint)Cat.getFillStyle()).getImage(),
-            sh.getBounds2D()));
-      else if (Cat.getFillStyle() instanceof GradientPaint)
+      if (P instanceof TexturePaint){
+        BufferedImage bi = ((TexturePaint)P).getImage();
+	if(bi==null) return;
+        g2.setPaint(new TexturePaint(bi,sh.getBounds2D()));
+      }
+      else if (P instanceof GradientPaint)
         g2.setPaint(new GradientPaint((float)sh.getBounds().getX(),(float)sh.getBounds().getY(),
           ((GradientPaint)Cat.getFillStyle()).getColor1(),(float)(sh.getBounds().getX()+sh.getBounds().getWidth()),
           (float)(sh.getBounds().getY()+sh.getBounds().getHeight()),((GradientPaint)Cat.getFillStyle()).getColor2(),false));
     }
-
-
 
   }
 

@@ -1094,7 +1094,6 @@ public boolean canDisplay(SecondoObject o){
       GraphDisplay.removeMouseListener(context.getProjectionControl());
       GraphDisplay.addMouseListener(SelectionControl);
      // GraphDisplay.addMouseMotionListener(SelectionControl);
-      System.out.println("addMouseMotionListener");
       GraphDisplay.remove(context.getProjectionLabel());
       VisualPanel.setLeftComponent(TextDisplay);
     }
