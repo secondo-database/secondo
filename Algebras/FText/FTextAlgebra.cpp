@@ -18,7 +18,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 */
 
 
-#include <string>
+#include <cstring>
 #include <iostream>
 
 #include "StandardAttribute.h"
@@ -42,7 +42,6 @@ extern QueryProcessor* qp;
 
 const string typeName="text";
 const bool traces=false;
-typedef string* textType;
 
 
 class FText: public StandardAttribute
@@ -50,14 +49,16 @@ class FText: public StandardAttribute
 public:
 
   FText();
+  FText(bool newDefined, const char *newText = NULL);
+  FText(FText&);
   ~FText();
+  void Destroy();
 
-  bool  SearchString(STRING* subString);
-  bool  SearchText(textType subString);
-  void  Set(textType newString);
-  void  Set(bool newDefined, textType newString);
-  int   TextLength() const;
-  textType Get();
+  bool  SearchString( const char* subString );
+  void  Set( const char *newString );
+  void  Set( bool newDefined, const char *newString );
+  int TextLength() const;
+  string Get();
 
 /*************************************************************************
 
@@ -67,7 +68,6 @@ public:
 
 *************************************************************************/
 
-  FText(bool newDefined, textType newText);
   bool     IsDefined() const;
   void     SetDefined(bool newDefined);
   size_t   HashValue();
@@ -78,8 +78,11 @@ public:
   ostream& Print(ostream &os);
   bool     Adjacent(Attribute * arg);
 
+  int NumOfFLOBs();
+  FLOB* GetFLOB( const int );
+
 private:
-  textType theText;
+  FLOB theText;
   bool defined;
 };
 
@@ -87,63 +90,75 @@ private:
 FText::FText()
 {
   LOGMSG( "FText:Trace", cout << '\n' <<"Start FText()"<<'\n'; )
-  theText= new string;
   LOGMSG( "FText:Trace",  cout <<"End FText()"<<'\n'; )
 }
 
+FText::FText( bool newDefined, const char *newText ) :
+theText( 0 )
+{
+  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n'; )
+  Set( newDefined, newText );
+  LOGMSG( "FText:Trace",  cout <<"End FText(bool newDefined, textType newText)"<<'\n'; )
+}
+
+FText::FText( FText& f ) :
+theText( 0 )
+{
+  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
+  Set( f.defined, f.theText.BringToMemory() );
+  LOGMSG( "FText:Trace",  cout <<"End FText(FText& f)"<<'\n'; )
+}
 
 FText::~FText()
 {
   LOGMSG( "FText:Trace",  cout << '\n' <<"Start ~FText()"<<'\n'; )
-  delete theText;
   LOGMSG( "FText:Trace",  cout <<"End ~FText()"<<'\n'; )
 }
 
-
-bool  FText::SearchString(STRING* subString)
+void FText::Destroy()
 {
-  string str=*subString;
-  int ipos=theText->find(str);
-  return (ipos>-1);
+  theText.Destroy();
+  defined = false;
 }
 
-
-bool  FText::SearchText(textType subString)
+bool FText::SearchString( const char* subString )
 {
-  int ipos=theText->find(*subString);
-  return (ipos>-1);
+  char *text = theText.BringToMemory();
+  return strstr( text, subString ) != NULL;
 }
 
-
-void FText::Set(textType newString)
+void FText::Set( const char *newString )
 {
-  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n"; )
+  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
 
-  *theText=*newString;
-  defined=true;
+  Set( true, newString );
 
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
-void FText::Set(bool newDefined, textType newString)
+void FText::Set( bool newDefined, const char *newString )
 {
-  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n"; )
+  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<< newString << endl; )
 
-  *theText=*newString;
-  defined=newDefined;
+  if( newString != NULL )
+  {
+    theText.Resize( strlen( newString ) + 1 );
+    theText.Put( 0, strlen( newString ) + 1, newString );
+  }
+  defined = newDefined;
 
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
 int FText::TextLength() const
 {
-  return theText->length();
+  return theText.Size() - 1;
 }
 
-
-textType FText::Get()
+string FText::Get()
 {
-  return theText;
+  string result = theText.BringToMemory();
+  return result;
 }
 
 /*
@@ -155,38 +170,28 @@ if we want to use ~text~ as an attribute type in tuple definitions.
 
 */
 
-FText::FText(bool newDefined, textType newText)
-{
-  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n'; )
-  defined=newDefined;
-  theText= new string;
-  theText=newText;
-  LOGMSG( "FText:Trace",  cout <<"End FText(bool newDefined, textType newText)"<<'\n'; )
-}
-
-
 bool FText::IsDefined() const
 {
-  return (defined);
+  return defined;
 }
 
-void FText::SetDefined(bool newDefined)
+void FText::SetDefined( bool newDefined )
 {
   if(traces)
     cout << '\n' << "Start SetDefined" << '\n';
   defined = newDefined;
 }
 
-
 size_t FText::HashValue()
 {
   if(traces)
     cout << '\n' << "Start HashValue" << '\n';
+
   if(!defined)
     return 0;
 
   unsigned long h = 0;
-  char* s = (char*)theText->c_str();
+  char* s = theText.BringToMemory();
   while(*s != 0)
   {
     h = 5 * h + *s;
@@ -195,20 +200,21 @@ size_t FText::HashValue()
   return size_t(h);
 }
 
-void FText::CopyFrom(StandardAttribute* right)
+void FText::CopyFrom( StandardAttribute* right )
 {
   if(traces)
     cout << '\n' << "Start CopyFrom" << '\n';
+
   FText* r = (FText*)right;
-  defined = r->defined;
-  Set(r->Get());
+  char *s = r->theText.BringToMemory();
+  Set( r->defined, s );
 }
 
-
-int FText::Compare(Attribute * arg)
+int FText::Compare( Attribute *arg )
 {
   if(traces)
     cout << '\n' << "Start Compare" << '\n';
+
   if(!IsDefined() && !arg->IsDefined())
     return 0;
 
@@ -219,37 +225,35 @@ int FText::Compare(Attribute * arg)
     return 1;
 
   FText* f = (FText* )(arg);
+
   if ( !f )
     return -2;
 
-  textType pstr=f->Get();
-  if ( *theText<*pstr)
-    return -1;
+  char *s1 = f->theText.BringToMemory(),
+       *s2 = this->theText.BringToMemory();
 
-  if ( *theText>*pstr)
-  	return 1;
-
-  return 0;
+  return strcmp( s2, s1 );
 }
 
 
-int  FText::Sizeof() const
+int FText::Sizeof() const
 {
   if(traces)
     cout << '\n' << "Start Sizeof" << '\n';
+
   return this->TextLength();
 }
 
 
-FText*  FText::Clone()
+FText* FText::Clone()
 {
-  return (new FText(*this));
+  return new FText( *this );
 }
 
 
 ostream& FText::Print(ostream &os)
 {
-  return (os << theText);
+  return (os << theText.BringToMemory());
 }
 
 
@@ -258,11 +262,8 @@ bool FText::Adjacent(Attribute *arg)
   if(traces)
     cout << '\n' << "Start Adjacent" << '\n';
 
-  textType atT = Get(),
-           btT = ((FText *)arg)->Get();
-
-  const char *a = atT->c_str(),
-    *b = btT->c_str();
+  char *a = theText.BringToMemory(),
+       *b = ((FText *)arg)->theText.BringToMemory();
 
 
   if( strcmp( a, b ) == 0 )
@@ -291,6 +292,17 @@ bool FText::Adjacent(Attribute *arg)
   return 0;
 }
 
+int FText::NumOfFLOBs()
+{
+  return 1;
+}
+
+FLOB* FText::GetFLOB( const int i )
+{
+  assert( i == 0 );
+  return &theText;
+}
+
 
 /*
 
@@ -305,7 +317,7 @@ CreateFText( const ListExpr typeInfo )
 {
   if(traces)
     cout << '\n' << "Start CreateFText" << '\n';
-  return (SetWord( new FText()));
+  return (SetWord(new FText( false )));
 }
 
 static void
@@ -313,7 +325,10 @@ DeleteFText( Word& w )
 {
   if(traces)
     cout << '\n' << "Start DeleteFText" << '\n';
-  delete (FText*) w.addr;
+  FText *f = (FText *)w.addr;
+
+  f->Destroy();
+  delete f;
   w.addr = 0;
 }
 
@@ -337,7 +352,7 @@ CloneFText( const Word& w )
 static int
 SizeOfFText()
 {
-  return 0;
+  return sizeof( FText );
 }
 
 static void*
@@ -365,8 +380,8 @@ OutFText( ListExpr typeInfo, Word value )
   ListExpr TextAtomVar=nl->TextAtom();
 
   if(traces)
-    cout <<"pftext->Get()='"<<*pftext->Get()<<"'\n";
-  nl->AppendText(TextAtomVar, *pftext->Get());
+    cout <<"pftext->Get()='"<< pftext->Get() <<"'\n";
+  nl->AppendText( TextAtomVar, pftext->Get() );
 
   if(traces)
     cout <<"End OutFText" << '\n';
@@ -392,10 +407,7 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
     nl->GetText (textScan, nl->TextLength( First ), buffer);
     nl->DestroyTextScan (textScan);
 
-    FText* newftext;
-    newftext = new FText();
-    buffer=buffer;
-    newftext->Set(&buffer);
+    FText* newftext = new FText( true, buffer.c_str() );
     correct = true;
 
     if(traces)
@@ -608,7 +620,7 @@ Value Mapping for the ~contains~ operator with the operands text and string.
 
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->SearchString(string1->GetStringval()));
+  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( *string1->GetStringval() ));
           //the first argument says the boolean
           //value is defined, the second is the
           //real boolean value)
@@ -634,7 +646,7 @@ Value Mapping for the ~contains~ operator with two text operands.
 
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->SearchText(ftext2->Get()));
+  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( ftext2->Get().c_str() ));
           //the first argument says the boolean
           //value is defined, the second is the
           //real boolean value)
@@ -682,7 +694,7 @@ Used to explain signature, syntax and meaning of the operators of the type ~text
 const string containsStringSpec =
   "( (\"Signature\" \"Syntax\" \"Meaning\" )"
     "("
-    "<text>("+typeName+" string) -> bool</text--->"
+    "<text>(" +typeName+" string) -> bool</text--->"
     "<text>_ contains _</text--->"
     "<text>Search string in "+typeName+".</text--->"
     ")"

@@ -86,7 +86,7 @@ Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */
-void FLOB::BringToMemory()
+char *FLOB::BringToMemory()
 {
 #ifdef PERSISTENT_FLOB
 
@@ -101,16 +101,23 @@ void FLOB::BringToMemory()
 
 #else
 
-    char *buffer = (char*) malloc( size );
-    SmiRecord lobRecord;
-    assert( fd.inDiskLarge.lobFile->SelectRecord( fd.inDiskLarge.lobId, lobRecord ) );
-    lobRecord.Read( buffer, size, 0 );
+    if( type != InMemory )
+    {
+      assert( type == InDiskLarge );
+      char *buffer = (char*) malloc( size );
+      SmiRecord lobRecord;
+      assert( fd.inDiskLarge.lobFile->SelectRecord( fd.inDiskLarge.lobId, lobRecord ) );
+      lobRecord.Read( buffer, size, 0 );
 
-    type = InMemory;
-    fd.inMemory.buffer = buffer;
-    fd.inMemory.freeBuffer = true;
+      type = InMemory;
+      fd.inMemory.buffer = buffer;
+      fd.inMemory.freeBuffer = true;
+    }
 
 #endif
+
+    assert( type == InMemory );
+    return fd.inMemory.buffer;
 }
 
 /*

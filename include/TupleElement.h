@@ -95,12 +95,10 @@ class TupleElement // renamed, previous name: TupleElem
       for( int i = 0; i < NumOfFLOBs(); i++ )
       {
         FLOB *tmpFLOB = GetFLOB(i);
-#ifdef PERSISTENT_FLOB
         if( tmpFLOB->IsLob() )
           tmpFLOB->SaveToLob( *SecondoSystem::GetFlobFile() );
         else
-#endif
-        extensionSize += tmpFLOB->Size();
+          extensionSize += tmpFLOB->Size();
       }
   
       // Move FLOB data to extension tuple
@@ -112,15 +110,11 @@ class TupleElement // renamed, previous name: TupleElem
         for( int i = 0; i < NumOfFLOBs(); i++ )
         {
           FLOB *tmpFLOB = GetFLOB(i);
-#ifdef PERSISTENT_FLOB
-        if( !tmpFLOB->IsLob() )
-        {
-#endif
-          tmpFLOB->SaveToExtensionTuple( extensionPtr );
-          extensionPtr += tmpFLOB->Size();
-#ifdef PERSISTENT_FLOB
-        }
-#endif
+          if( !tmpFLOB->IsLob() )
+          {
+            tmpFLOB->SaveToExtensionTuple( extensionPtr );
+            extensionPtr += tmpFLOB->Size();
+          }
         }
       }
       
@@ -154,14 +148,10 @@ class TupleElement // renamed, previous name: TupleElem
       for( int i = 0; i < NumOfFLOBs(); i++ )
       {
         FLOB *tmpFLOB = GetFLOB(i);
-#ifdef PERSISTENT_FLOB
         if( tmpFLOB->IsLob() )
-        {
           tmpFLOB->SetLobFile( SecondoSystem::GetFlobFile() );
-        }
         else
-#endif
-        extensionSize += tmpFLOB->Size();
+          extensionSize += tmpFLOB->Size();
       }
 
       // Read the extension size
@@ -177,15 +167,11 @@ class TupleElement // renamed, previous name: TupleElem
       for( int i = 0; i < NumOfFLOBs(); i++ )
       {
         FLOB* tmpFLOB = GetFLOB(i);
-#ifdef PERSISTENT_FLOB
         if( !tmpFLOB->IsLob() )
         {
-#endif
-        tmpFLOB->Restore( extensionPtr );
-        extensionPtr = extensionPtr + tmpFLOB->Size();
-#ifdef PERSISTENT_FLOB
+          tmpFLOB->Restore( extensionPtr );
+          extensionPtr = extensionPtr + tmpFLOB->Size();
         }
-#endif
       }
     }
 
