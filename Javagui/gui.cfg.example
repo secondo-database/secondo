@@ -42,3 +42,8 @@ COMMAND_FONTSIZE 14
 
 # set font size for ObjectList
 LIST_FONTSIZE 12
+
+# set to true if you want to use binary nested lists in
+# client server communication
+# ensure to have the same setting in SecondoConfig.ini
+USE_BINARY_LISTS false
