@@ -24,6 +24,8 @@
 [Environment]
 ;;; Home directory of Secondo database, in fact the place where the Berkeley DB will
 ;;; store all record files used by Secondo.
+;;; Note: On windows you need absolute path names, e.g.
+;;; C:\msys\1.0\home\user\secondo-dbtest 
 SecondoHome=/home/databases1
 
 ;;; Algebralevel after startup (Executable|Descriptive|Hybrid). 
