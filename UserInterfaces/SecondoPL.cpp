@@ -40,7 +40,7 @@ int success = 0;
 
 /*
 
-3 Function handle_exit   
+3 Function handle\_exit   
 
 This function is registerd as exit handler in the main function.
 
@@ -294,7 +294,7 @@ TermToListExpr(term_t t, NestedList* nl, bool& error)
 
 /*
 
-4 Function pl_print_term_le
+4 Function pl\_print\_term\_le
 
 Converts a PROLOG term to a ListExpr and then prints
 that ListExpr using the routines from NestedList.
@@ -320,7 +320,7 @@ pl_print_term_le(term_t term)
 
 /*
 
-4 Function pl_get_error_info
+4 Function pl\_get\_error\_info
 
 Get error code (an integer) and error message (a string)
 of the last issued Secondo command.
@@ -343,14 +343,14 @@ pl_get_error_info(term_t errorCode, term_t errorMessage)
 
 /*
 
-4 Function pl_call_secondo
+4 Function pl\_call\_secondo
 
 Call Secondo. The first argument must either be an atom
 representing a query in text format or it must be
 a PROLOG list. The result is a PROLOG nested list
 which is unified with the second argument. The command level is
 set to executable. If something goes wrong, the predicate fails and
-error information can be obtained via predicate secondo_error_info.
+error information can be obtained via predicate secondo\_error\_info.
 
 */
 static foreign_t
@@ -477,15 +477,10 @@ StartSecondoC(char* configFileName)
   string port = "";
   string configFile = configFileName;
 
-
-
   si = new SecondoInterface();
 
   if(si->Initialize(user, pswd, host, port, configFile))
   {
-    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", configFile );
-    RTFlag::initByString(logMsgList);
-
     plnl = si->GetNestedList();
     return true;
   }
@@ -501,8 +496,12 @@ StartSecondoC(char* configFileName)
 }
 
 
-/* 9. registerSecondo
-   This function registers the secondo predicate at the prolog engine.
+/* 
+
+9. registerSecondo
+
+This function registers the secondo predicate at the prolog engine.
+	 
 */
 
 int registerSecondo(){

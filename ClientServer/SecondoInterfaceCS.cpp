@@ -57,6 +57,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   {
     cout << "Initializing the Secondo system ..." << endl;
 
+    // initialize runtime flags
+		InitRTFlags(parmFile);
+
     // Connect with server, needed host and port
     if ( secHost.length() == 0 || secPort.length() == 0 )
     {

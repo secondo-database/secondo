@@ -650,7 +650,7 @@ SecondoMain will be "called back"
 This function checks the Secondo configuration. First it looks for the name
 of the configuration file on the command line. If no file name was given on
 the command line or a file with the given name does not exist, the environment
-variable SECONDO\_HOME is checked. If this variable is defined it should point
+variable SECONDO\_CONFIG is checked. If this variable is defined it should point
 to a directory where the configuration file can be found. If the configuration
 file is not found there, the current directory will be checked. If no configuration
 file can be found the program terminates.

@@ -1,7 +1,14 @@
+/*
+
+August 2004, M. Spiekermann. InitRTFlags introduced. This removes some code redundancies. 
+
+*/
+
 using namespace std;
 
 #include "SecondoInterface.h"
-
+#include "LogMsg.h"
+#include "Profiles.h"
 
 NestedList*
 SecondoInterface::GetNestedList()
@@ -10,11 +17,21 @@ SecondoInterface::GetNestedList()
 }
 
 
+void
+SecondoInterface::InitRTFlags(const string& configFile) {
+
+  // initialize runtime flags
+  string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", configFile );    
+  RTFlag::initByString(logMsgList);
+  RTFlag::showActiveFlags(cout);
+	
+}
+
+
 /*
 3.2 Error Messages
 
 For a description of error handling see the definition module. 
-
 Procedure ~InitErrorMessages~ should be copied after any changes into the definition module.
 
 */

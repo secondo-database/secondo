@@ -189,9 +189,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     }
 
     // initialize runtime flags
-    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );    
-    RTFlag::initByString(logMsgList);
-    RTFlag::showActiveFlags(cout);
+    InitRTFlags(parmFile);
 
     string value, foundValue;
     if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")

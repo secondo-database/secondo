@@ -516,6 +516,7 @@ SecondoServer::Execute()
       quit = false;
 
       iostream& iosock = client->GetSocketStream();
+			ios_base::iostate s = iosock.exceptions();
       iosock.exceptions(ios_base::failbit|ios_base::badbit|ios_base::eofbit);
       iosock << "<SecondoOk/>" << endl;
 
@@ -553,6 +554,8 @@ SecondoServer::Execute()
 
       } while (!iosock.fail() && !quit);
       
+			iosock.exceptions(s);
+			
       client->Close();
       delete client;
       Messenger messenger( registrar );

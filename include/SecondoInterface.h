@@ -777,8 +777,10 @@ executable) is used to resolve the type name.
 
 */
   NestedList* GetNestedList();
+	void InitRTFlags(const string& configFile);
 /*
-Returns a reference to the application specific nested list container. 
+The first returns a reference to the application specific nested list container and
+the second initializes the RTFlags found in the configuration file.
 
 2.2 Error Messages
 
