@@ -435,33 +435,48 @@ public class CommandPanel extends JScrollPane {
         HistoryPos=History.size();
         execUserCommand(com);
 	  }
-     
-      
+
+
       Caret C = SystemArea.getCaret();
       int p1 = C.getDot();
       int p2 = C.getMark();
+      int pos = SystemArea.getCaretPosition();
       if(p1<aktPos | p2<aktPos){
-         if( (mod&e.CTRL_DOWN_MASK)==0 ){ //ctrl not down => allow Cursor-keys and control
-           if(keyCode!=e.VK_DOWN & keyCode!=e.VK_UP & keyCode!=e.VK_LEFT &
-              keyCode!=e.VK_RIGHT & keyCode!=e.VK_CONTROL){
+         if( (mod&e.CTRL_DOWN_MASK)==0 ){ // no key allowed
               C.moveDot(aktPos);
               C.setDot(aktPos);
          }
-         } else {  // ctrl is pressed
+         else {  // ctrl is pressed allow C and Control
             if(keyCode!=e.VK_C & keyCode!=e.VK_CONTROL){
               C.moveDot(aktPos);
               C.setDot(aktPos);
-            } 
+            }
          }
       }
       if( ( ( (mod&e.CTRL_DOWN_MASK)!=0 & keyCode==e.VK_H ) |
-            ( (mod&e.CTRL_DOWN_MASK)==0 & keyCode==e.VK_BACK_SPACE))
+            ( keyCode==e.VK_BACK_SPACE))
           && SystemArea.getCaretPosition()==aktPos){
         SystemArea.insert(" ",aktPos);
-      
+
       }
-      
-            
+      // avoid selection using keyboard
+      if(((mod&e.SHIFT_DOWN_MASK)!=0) & (keyCode==e.VK_LEFT | keyCode==e.VK_UP)){
+         if(pos==aktPos){
+             e.setKeyCode(0);
+	     return;
+	 }
+      }
+      if(keyCode==e.VK_HOME | keyCode==e.VK_PAGE_UP){
+         if((mod&e.SHIFT_DOWN_MASK)!=0)
+	    C.moveDot(aktPos);
+	 else{
+	    C.setDot(aktPos);
+	 }
+         e.setKeyCode(0);
+	 return;
+      }
+
+
       int qrs=History.size();
       if((mod&e.SHIFT_DOWN_MASK)!=0)
          return;
