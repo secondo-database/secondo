@@ -61,6 +61,7 @@ class SecondoTTY : public Application
   int  Execute();
   void ShowPrompt( const bool first );
   void TypeOutputList ( ListExpr list );
+  void TypeOutputListFormatted ( ListExpr list );
   bool IsInternalCommand( const string& line );
   bool GetCommand();
   void ShowQueryResult( ListExpr list );
@@ -383,6 +384,28 @@ SecondoTTY::TypeOutputList ( ListExpr list )
 }
 
 /*
+8 TypeOutputListFormatted
+
+TypeOutputList prints the result of a nonquery input (e. g. list) in formatted manner.
+
+*/
+
+void
+SecondoTTY::TypeOutputListFormatted ( ListExpr list )
+{
+  if ( nl->IsEmpty( list ) )
+  {
+    cout << "=> []" << endl;
+  }
+  else
+  {
+    cout << "=> Result:" << endl;
+    DisplayTTY::DisplayResult2( list );
+    cout << endl;
+  }
+}    
+
+/*
 9 ShowQueryResult
 
 This function prints the result of a query by calling DisplayTTY,
@@ -521,7 +544,25 @@ SecondoTTY::CallSecondo2()
   }
   else
   {
-    TypeOutputList( result );
+    if (!nl->IsEmpty( result ))
+    {
+      if ( nl->IsAtom(nl->First(result)) && 
+           nl->AtomType(nl->First(result)) == SymbolType &&
+           nl->SymbolValue(nl->First(result)) == "formatted" ) 
+      {
+        TypeOutputListFormatted( nl->Second( result ));
+	//TypeOutputList( result );
+      }
+      else
+      {
+        TypeOutputList( result );
+      }
+
+    }
+    else
+    {
+      TypeOutputList( result );
+    }
   }
   nl->initializeListMemory();
 }
