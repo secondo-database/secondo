@@ -1,0 +1,629 @@
+/*******************************************************************************
+//[newpage] [\newpage]
+//[Appendix] [\appendix]
+
+
+[newpage]
+
+1 Appendix
+
+[Appendix]
+
+Please look at the actual versions of these example and test files in
+directory \/TestJPEG\/
+
+1 testfile1
+
+[FILE ~testfile1~]
+
+*/
+
+# $HOME/secondo-jpeg/TestJPEG/testfile1
+
+create database j;
+
+open database j;
+
+## vereinbarte Std-Bilder
+
+(let testGray = (jpeg <file>girlsh.jpg</file--->));
+
+(let testRGB = (jpeg <file>girlsrgb.jpg</file--->));
+
+(let testCMYK = (jpeg <file>girlscmyk.jpg</file--->));
+
+## Bilder < SWITCH_THRESHOLD
+# gray
+
+(let smallestG = (jpeg <file>stopAdobegray.jpg</file--->));
+
+(let smallG1 = (jpeg <file>blobgray.jpg</file--->));
+
+(let smallG2 = (jpeg <file>firegray.jpg</file--->));
+
+
+# rgb
+
+(let small1 = (jpeg <file>blobMini.jpg</file--->));
+
+(let small2 = (jpeg <file>firergbMini.jpg</file--->));
+
+(let small3 = (jpeg <file>strandMini.jpg</file--->));
+
+
+## andere
+
+(let testGraySharp = (jpeg <file>girlsh_sharp.jpg</file--->));
+
+(let pi4 = (jpeg <file>pi4.jpg</file--->));
+
+(let pi4gray = (jpeg <file>pi4sh.jpg</file--->));
+
+(let firergb = (jpeg <file>firergb.jpg</file--->));
+
+(let firegray = (jpeg <file>firegray.jpg</file--->));
+
+(let blue = (jpeg <file>blau.jpg</file--->));
+
+(let holz = (jpeg <file>wood.jpg</file--->));
+
+(let sued = (jpeg <file>strand.jpg</file--->));
+
+(let strand = (jpeg <file>strand.jpg</file--->));
+
+(let wall_gray = (jpeg <file>wall_gray.jpg</file--->));
+
+(let XV_gray = (jpeg <file>fromPNG_gray.jpg</file--->));
+
+
+## binfile
+
+(let bintest = (binfile <file>girlsh.jpg</file--->));
+
+let bintest2 = bintest;
+
+
+(let binMini = (binfile <file>strandMini.jpg</file--->));
+
+let binMini2 = bintest;
+
+## Relationen
+
+# wahrscheinlich gleiche reljpeg2 wie herbert
+
+(let reljpeg2 = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("girlsgray" <file>girlsh.jpg</file--->) ("girlsrgb" <file>girlsrgb.jpg</file--->)
+("girlsgray" <file>girlsh.jpg</file--->) )));
+
+#
+
+(let reljpeg = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("firegray" <file>firegray.jpg</file--->) ("firergb" <file>firergb.jpg</file--->) ("firegray" <file>firegray.jpg</file--->) )));
+
+# mixed grau/rgb, normal/klein
+(let relj = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("bounty" <file>strand.jpg</file--->) ("XVGray" <file>fromPNG_gray.jpg</file--->) ("feuergray" <file>firegray.jpg</file--->) )));
+
+# mittelgross  rgb  + einmal 'written with Adobe Photoshop 5.0'
+
+(let relj1 = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("water" <file>blau.jpg</file--->) ("wood" <file>wood.jpg</file--->) ("adobe" <file>stopAdobe.jpg</file--->) )));
+
+# rgb only
+
+(let reljRGB = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("blobRGB" <file>blob.jpg</file--->) ("Strand" <file>strand.jpg</file--->) ("fireRGB" <file>firergb.jpg</file--->) )));
+
+
+# gray only
+
+(let relj2 = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("stopAdobesh" <file>stopAdobegray.jpg</file--->) ("pi4sh" <file>pi4sh.jpg</file--->) ("strandsh" <file>strandgray.jpg</file--->) )));
+
+
+
+# smaller SWITCH_THRESHOLD
+
+(let reljpegRGBklein = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("blobRGB" <file>blobMini.jpg</file--->) ("Strand" <file>strandMini.jpg</file--->) ("fireRGB" <file>firergbMini.jpg</file--->) )));
+
+
+################################ QUERIES
+
+################
+#compbrightdist#
+################
+
+# alte Version
+#query firergb reljpeg feed compbrightdist [0.05] consume;
+
+query firergb reljpeg feed compbrightdist [0.05, pict] consume;
+
+       # alte Version
+       #query testRGB reljpeg2 feed compbrightdist [0.05] consume;
+
+
+# ergibt (natuerlich) leere Relation
+
+query testRGB reljpeg2 feed compbrightdist [0.05, pict] consume;
+
+# liefert ebenfalls leere Relation
+
+query testGray reljpeg feed compbrightdist [0.05, pict] consume;
+
+# alte version
+#query testGray reljpeg2 feed compbrightdist [0.05] consume;
+#query testGray reljpeg feed compbrightdist [0.05] consume;
+
+
+# Ergebnis:  2
+query testGray reljpeg2 feed compbrightdist [0.05, pict] count;
+
+query testGray reljpeg2 feed compbrightdist [0.05, pict] consume;
+
+# Ergebnis:  2
+query testGray reljpeg2 feed compbrightdist [0.0001, pict] count;
+
+# Ergebnis:  2
+query testGray reljpeg2 feed compbrightdist [0.00000000000000001, pict] count;
+
+# Ergebnis:  2
+query testGray reljpeg2 feed compbrightdist [0.0, pict] count;
+
+# Ergebnis:  0
+query testGraySharp reljpeg2 feed compbrightdist [0.0, pict] count;
+
+# Ergebnis:  0
+query testGraySharp reljpeg2 feed compbrightdist [0.5, pict] count;
+
+# Ergebnis:  2
+query testGraySharp reljpeg2 feed compbrightdist [0.9, pict] count;
+
+# todo: testen mit Bild sehr kleinen Unterschiedes
+
+# Ergebnis: 0
+query testRGB reljpeg2 feed compbrightdist [0.9, pict] count;
+
+# Ergebnis: 0
+query testRGB reljpeg2 feed compbrightdist [1.0, pict] count;
+
+# Ergebnis: 0
+query testGray reljpeg feed compbrightdist [1.0, pict] count;
+
+# Ergebnis: 2
+query firegray reljpeg feed compbrightdist [0.05, pict] count;
+
+query firegray reljpeg feed compbrightdist [0.05, pict] consume;
+
+query firegray reljpeg feed compbrightdist [0.05, pict] consume;
+
+query firergb reljpeg feed compbrightdist [0.05, pict] consume;
+
+query testRGB reljpeg2 feed compbrightdist [0.05, pict] consume;
+
+query testGray testGray compbrightdist [0.2, dummy];
+
+query testGray wall_gray compbrightdist [0.2, dummy];
+
+###########
+#jreadinfo#
+###########
+
+query jpegObject jreadinfo;
+
+query reljpeg2 feed jreadinfo [pict] consume;
+
+query reljpeg feed jreadinfo [pict] consume;
+
+query relj1 feed jreadinfo [pict] consume;
+
+query reljpeg2 feed jreadinfo [pict] count;
+
+query reljpeg feed jreadinfo [pict] count;
+
+query relj1 feed jreadinfo [pict] count;
+
+
+###########################
+#combrightdist + jreadinfo#
+###########################
+
+#query jpegObject reljpeg2 feed compbrightdist [0.001, pict] jreadinfo [pict] consume;
+
+query firegray reljpeg feed compbrightdist [0.001, pict] jreadinfo [pict] consume;
+
+query testGray reljpeg2 feed compbrightdist [0.001, pict] jreadinfo [pict] consume;
+
+query testGray reljpeg feed compbrightdist [0.001, pict] jreadinfo [pict] consume;
+
+query testGray reljpeg2 feed compbrightdist [0.05, pict] jreadinfo [pict] consume;
+
+query testRGB reljpeg2 feed compbrightdist [0.05, pict] jreadinfo [pict] consume;
+
+
+close database;
+
+#delete database j;
+
+q
+
+
+/**
+2 jpegtest
+
+[FILE ~jpegtest~]
+
+this can be executed with the TestRunner utility.
+
+*/
+
+
+# a test for the jpeg algebra
+# run with : TestRunner -c MyConfig.config < jpegtest
+# run in the TestJPEG directory
+# (Runner can be found in directory UserInterfaces)
+
+# February 07    Schoenhammer (first release; 30 testcases)
+
+# clean up what may be left over from e.g. a segfault
+delete database jpegtest;
+
+#setup
+create database jpegtest;
+open database jpegtest;
+e
+
+
+############################################
+# ObjectCreation                           #
+############################################
+
+#testcase ================================================ CreateJpegObject RGB
+#yields success
+(let firergb = (jpeg <file>firergb.jpg</file--->));
+
+#testcase CreateJpegObject RGB
+#yields success
+(let girlsrgb = (jpeg <file>girlsrgb.jpg</file--->));
+
+#testcase CreateJpegObject GrayScale
+#yields success
+(let firegray = (jpeg <file>firegray.jpg</file--->));
+
+#testcase CreateJpegObject GrayScale
+#yields success
+(let girlsgray = (jpeg <file>girlsh.jpg</file--->));
+
+#testcase CreateRelation_TowAttributs_OneObject;
+#yields success
+(let reljpeg1 = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("girlsgray" <file>girlsh.jpg</file--->) )));
+
+#testcase CreateRelation_TwoAttributs_ThreeObjects;
+#yields success
+(let reljpeg2 = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("girlsgray" <file>girlsh.jpg</file--->) ("girlsrgb" <file>girlsrgb.jpg</file--->) ("girlsgray" <file>girlsh.jpg</file--->) )));
+
+#testcase mixed gray/rgb, normal/small
+(let relj = ( (rel (tuple ( (name string) (pict jpeg)))) ( ("bounty" <file>strand.jpg</file--->) ("XVGray" <file>fromPNG_gray.jpg</file--->) ("feuergray" <file>firegray.jpg</file--->) )));
+
+#testcase Relation_Feed_and_Count;
+#yields (int 3)
+query reljpeg2 feed count;
+
+# testcase pictures < SWITCH_THRESHOLD Gray
+#yields success
+(let smallestG = (jpeg <file>stopAdobegray.jpg</file--->));
+
+#testcase pictures < SWITCH_THRESHOLD RGB
+#yields success
+(let small1 = (jpeg <file>blobMini.jpg</file--->));
+
+################
+#compbrightdist#
+################
+
+#testcase ====== compbrightdist with single jpeg-object: first gray second gray
+#yields (bool TRUE)
+query firegray firegray compbrightdist [0.0001, dummy];
+
+#testcase compbrightdist with single jpeg-object: first rgb
+#yields (bool FALSE)
+query firergb firegray compbrightdist [0.0001, dummy];
+
+#testcase compbrightdist with single jpeg-object: first gray second rgb
+#yields (bool FALSE)
+query firegray firergb compbrightdist [0.0001, dummy];
+
+#testcase compbrightdist with stream: no result
+#yields (int 0)
+query firegray reljpeg2 feed compbrightdist [0.1, pict] count;
+
+#testcase compbrightdist with stream: 2 identic pictures count
+#yields (int 2)
+query girlsgray reljpeg2 feed compbrightdist [0.01, pict] count;
+
+#testcase compbrightdist with stream: 2 identic pictures consume
+#yields success
+query girlsgray reljpeg2 feed compbrightdist [0.01, pict] consume;
+
+################
+#comprgbdist#
+################
+
+#testcase =========== comprgbdist with single jpeg-object: first rgb second rgb
+#yields (bool TRUE)
+query firergb firergb comprgbdist [0.0001, 0.0001, 0.0001, dummy];
+
+#testcase comprgbdist with single jpeg-object: first rgb second gray
+#yields (bool FALSE)
+query firergb firegray comprgbdist [0.000001, 0.0001, 0.0001,dummy];
+
+#testcase comprgbdist with single jpeg-object: first gray second rgb
+#yields (bool FALSE)
+query firegray firergb comprgbdist [0.000001, 0.0001, 0.0001,dummy];
+
+
+#########################
+#comprgbdist + jreadinfo#
+#########################
+
+### To do: tests with streams: actual result = crash
+
+
+
+###########
+#jreadinfo#
+###########
+
+#testcase ======== jreadinfo with single jpeg-object: gray
+#yields success
+query girlsgray jreadinfo [dummy];
+
+#testcase jreadinfo with single jpeg-object: rgb
+#yields success
+query girlsrgb jreadinfo [dummy];
+
+#testcase jreadinfo with stream of tuples
+#yields success
+query reljpeg2 feed jreadinfo [pict] consume;
+
+#testcase jreadinfo with stream of tuples
+#yields (int 3)
+query reljpeg2 feed jreadinfo [pict] count;
+
+###########################
+#combrightdist + jreadinfo#
+###########################
+
+#testcase compbrightdist single jpeg-Object + jreadinfo
+#yields success
+query girlsrgb jreadinfo [dummy];
+
+#testcase compbrightdist stream-Object + jreadinfo
+#yields (int 1)
+query firegray relj feed compbrightdist [0.001, pict] jreadinfo [pict] count;
+
+#testcase compbrightdist first = rgb
+#yields (int 0)
+query firergb relj feed compbrightdist [0.001, pict] jreadinfo [pict] count;
+
+#########################################
+# jinfo                                 #
+#########################################
+
+#testcase jinfo object creation
+#yields success
+let ji1 = girlsgray jreadinfo [dummy];
+
+#testcase query jinfo
+#yields success
+query ji1;
+
+#testcase jinfo - relation
+#yields success
+let reljinfo = reljpeg2 feed jreadinfo [pict] consume;
+
+#testcase jinfo - relationb query and count
+#yields (int 3)
+query reljinfo feed count;
+
+#teardown
+close database;
+delete database jpegtest;
+
+
+/**
+3 testCUTDOWNSIZE
+
+[FILE ~testCUTDOWNSIZE~]
+
+*/
+
+open database j;
+
+query testGray cut [0, 0, 100, 100];
+
+query testRGB cut [0, 0, 100, 100] show;
+
+let testGraycut1 = testGray cut[0,0,279,215];
+
+#true
+query testGray testGraycut1 compbrightdist [0.3125, pict];
+
+#false
+query testGray testGraycut1 compbrightdist [0.1, pict];
+
+let testRGBcut11 = testRGB cut[0,0,279,215];
+
+# true
+query testRGB testRGBcut1 comprgbdist [0.1, 0.1, 0.1, pict];
+
+#(false)
+query testRGB testRGBcut1 comprgbdist [0.001, 0.001, 0.001, pict];
+
+query testRGB testRGB comprgbdist [0.001, 0.001, 0.001, pict];
+
+query testGray cut [0, 0, 100, 100] show;
+
+query testGray cut [0, 0, 100, 100];
+
+query testGray cut [0, 0, 279, 215];
+
+query testGray cut [0, 0, 279, 215] show;
+
+query testGray cut [0, 0, 140, 108] show;
+
+query testGray cut [0, 0, 140, 215] show;
+
+query testGray cut [0, 0, 279, 108] show;
+
+
+query testRGB cut [0, 0, 100, 100] show;
+
+query testRGB cut [0, 0, 100, 100];
+
+query testRGB cut [0, 0, 279, 215];
+
+query testRGB cut [0, 0, 279, 215] show;
+
+query testRGB cut [0, 0, 140, 108] show;
+
+query testRGB cut [0, 0, 140, 215] show;
+
+query testRGB cut [0, 0, 279, 108] show;
+
+query testRGB cut [0, 0, 100, 100] show;
+
+
+
+
+query testCMYK cut [0, 0, 100, 100];
+
+query testCMYK cut [0, 0, 279, 215];
+
+query testCMYK cut [0, 0, 279, 215] show;
+
+query testCMYK cut [0, 0, 140, 108] show;
+
+query testCMYK cut [0, 0, 140, 215] show;
+
+query testCMYK cut [0, 0, 279, 108] show;
+
+
+
+#ok
+query firergb cut [2,2,10,10];
+
+#ok
+query firergb cut [2,2,10,10] show;
+
+# user error: "Can't cut: Coordinates are not within source-jpeg."
+query firergb cut [22,22,10,10];
+
+# FALSE  error messages:
+#       Can't cut: Coordinates are not within source-jpeg.
+#       error: ShowJpegFun() received 0x00 as arg for jpeg.
+query firergb cut [22,22,10,10] show;
+
+#ok
+query firergb cut [20,20,100,8];
+
+# ok
+query firergb cut [20,20,100,8] show;
+
+# TRUE
+query firergb cut [22,20,100,8] show;
+
+#ok
+query firergb cut [0,0,10,10];
+
+#ok
+query firergb cut [0,0,10,10] show;
+
+# ok. error messages:
+#  Can't cut: Coordinates are not within source-jpeg.
+#  error: OutJPEG received 0x00 instead of jpeg-address.
+query firergb cut [0,0,100,310];
+
+#ok
+query testRGB downsize 50;
+
+#ok
+query testRGB downsize 20;
+
+#ok
+query testGray downsize 50;
+
+#ok
+query testGray downsize 20;
+
+#ok
+let testRGB50 = testRGB downsize 50;
+
+#ok
+query testRGB50 show;
+
+#ok
+let testRGB20 = testRGB downsize 20;
+
+#ok (in Wasserglas)
+query testRGB20 show;
+
+#ok
+query testRGB50 savejpegto "downRGB50.jpg" ;
+
+#ok
+query testRGB20 savejpegto "downRGB20.jpg" ;
+
+#ok
+let testRGB5 = testRGB downsize 5;
+
+#ok  nearly tiles
+query testRGB5 show;
+
+#ok
+query testRGB5 savejpegto "downRGB5.jpg" ;
+
+# ok: overwrites
+query testRGB5 savejpegto "downRGB5.jpg" ;
+
+#ok
+let testGray50 = testGray downsize 50;
+
+#ok
+query testGray50 show;
+
+#ok
+query testGray50 savejpegto "downG50.jpg";
+
+#ok
+let testGray1percent = testGray downsize 1;
+
+#ok
+query testGray1percent show;
+
+#ok
+query testGray1percent savejpegto "downG1.jpg";
+
+query (testGray downsize 0);
+
+#ok
+query testGray downsize 0;
+
+# Incorrect input types for operator downsize:Quality-value is not an int.
+query testGray downsize 0 show;
+
+# Incorrect input types for operator downsize:Quality-value is not an int.
+query testGray downsize 70 show;
+
+#ok
+query (testGray downsize 70) show;
+
+query (testGray downsize 0) show;
+
+query (testGray downsize 0) demo;
+
+# TRUE  user error message:
+#       Quality Range must be 0 to 100 (meaning per cent), corrected to 0.
+query (testGray downsize -2) demo;
+
+# ok  user error message:
+#     Quality Range must be 0 to 100 (meaning per cent), corrected to 0.
+query (testGray downsize -2) show;
+
+# ok  user error message:
+#     Quality Range must be 0 to 100 (meaning per cent), corrected to 100.
+query (testGray downsize 200) show;
+

@@ -1,0 +1,27 @@
+these files are included and/or helpfull, IF debugging
+using the switch in JPEGSourceMgr.h   and  GNU-debug
+together with kdevelop.
+
+'debugging' is called here examining the step-wise processing
+of interesting or problematic input, such as to know why exactly
+certain CMYK-jpegs are rejected (are there any?).
+
+only files for analysing decompression by now.
+Jan 08 2004
+
+for helping kdevelops class view (+= functions and structs- view)
+be able to show these data structures and fn()s  (and for better
+readability)  most 'template typedefs' ( I mean JMETHOD ... and the
+like) had to be replaced by their instances for gcc on linux.
+
+( class view is very helpful for fast access to determined
+  code-part w/o knowing file and line no.   also for yielding
+  overview: tree-view. and in C++: faster writing of methods ... )
+
+The replacement of the 'template typedefs' applies *not only* to
+jpeglib.h and jpegint.h, whose original versions are placed here
+(for comparison, if needed).
+
+but debugging should also work with the original files. (???)
+
+uli

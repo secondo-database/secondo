@@ -1,0 +1,135 @@
+/*******************************************************************************
+//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [2] subtitle: [{\bf ]	[}]
+//[->] [$\rightarrow $]
+//[=>] [$=> $]
+//[TOC] [\tableofcontents]
+//[newpage] [\newpage]
+//[ae] [\"{a}]
+//[oe] [\"{o}]
+//[ue] [\"{u}]
+//[ss] [{\ss}]
+//[Ae] [\"{A}]
+//[Oe] [\"{O}]
+//[Ue] [\"{U}]
+//[**] [$**$]
+
+
+[1] JPEGAlgebra - Secondo-Plugin Module for Basic Support of the Jpeg-Format,
+Corresponding Viewer for this Algebra
+
+*/
+
+
+/**
+Ulrich Neumann, Herbert Schoenhammer, Stefan Wich (Viewer) December 2003 to
+February 2004
+
+*/
+
+
+/**
+[TOC]
+
+\rule {100 pt}{1 pt} \linebreak
+
+[newpage]
+
+*/
+
+/**
+1 Introduction
+
+*/
+
+/**
+1.1 Overview
+
+This document is the complete documented source code for the JPEGAlgebra module.
+
+The JPEGAlgebra is one of several allready existing modules which can be easily
+plugged in (at compile time) to the ~Secondo~ extensible Database System.
+[cf. G[ue]ting and others, 2003, 'Secondo User Guide' and 'Secondo Programmers
+Guide' and related documents, available as PDF].
+
+Just one word: The thrilling point about these modules is that nearly every
+kind of data for which such a module can be provided can be integrated into the
+database. There are no essential limitations from the part of the 'kernel'
+Secondo System to the content and capabilities of the modules, called
+'Algebras'. The Algebra module determines what to do with the data and how.
+On the other hand this all happens under ~one~ consistent interface, so you can
+avoid worrying about the (often not trivial) integration of ~different~
+interfaces to the different kind of data you are working with.
+
+JPEGAlgebra provides support for dealing with pictures in the well-known Jpeg
+file format in the Secondo extensible database system. Especially the de-facto
+standard of the ~Independent Software Groups~ 'JFIF'-format is adressed, so that
+only very unusual and seldom used JPEG-derivates, which deviate from the
+official Jpeg standard, are supposed not to work in all aspects. See the IJG s
+documentation for this point.
+
+From the rich set of Jpeg support given in the IJG s ~'libjpeg'~ we could only
+implement a very small part for use in Secondo, as a matter of time. If you
+want to extend it, you can take our operators and other code as an example for
+integration into Secondo / as an algebra part, and you can then look at the
+services of libjpeg which will do a lot of work for you.
+
+Our own code uses libjpeg to ~read~ in Jpeg images from files (supported by the
+Secondo System (kernel)), ~save~ and retrieve them from the database ( and also
+save then to files again).
+
+Moreover (and not provided by libjpeg) we compute the ~distribution of color-
+component-values~ or, for grayscale images, the ~distribution of brightness
+values~ for one image.
+
+A bit more application oriented is the ~comparison~ of these color or brightness
+distributions for two jpeg-pictures or for one jpeg picture and a stream of
+other jpeg pictures. Clearly, this serves for retrieval purposes, if for
+example the database object name is not known and/or you have a relation or if
+the database object name is not speaking enough for the pattern you are looking
+for. See RelationAlgebra for query possibilities. Certainly, these comparison
+facilities regarding jpeg color distributions are offered to you as operators.
+
+From the vaste pool of possible operations on jpegs we also provide support for
+~cutting~ a part of a jpeg image loaded, or, derived from this to cut the whole
+image into a sequence of image-part-rectangles (technically: a stream). We call
+this ~'tiles'~. For the cut operator you can specify the origin coordinates in
+the source image and dimension of the cut. The 'tiles' are of equal size in
+pixels, which you can specify for the x- and y-direction. If there results a
+rest on the right and/or bottom edges, it is thrown away instead of refusing
+your wish for the tiles size.
+
+A third operator yielding a modified jpeg image is a very simple implementation
+of reducing image quality in favour of small, network-friendly size. We called
+this ~'downsize'~. It simply uses a libjpeg service: jpeg\_set\_quality. The
+interesting point here is an the programming side: it reuses the architecture
+and service-methods allready defined in class JPEGSourceMgr for the cut-support.
+One of the main purposes of this class is code reuse. This is also interesting
+for you as a pure user: if you wish further features they promise to be
+impemented faster.
+
+Throughout the the documented code and especially for class JPEGSourceMgr you
+can find more considerations on code architecture and reuse.
+
+If you just want to know how to use it see the example files in the appendix
+and tho following subsections 'SOS-Signature', 'Usage'.
+
+Besides our main operators mentioned above there are some others whoose main
+purpose was to help us in the development process. They are left here because
+you might them find useful in some situations. These are:
+
+~savejpegto~, ~show~, ~demo~, ~col\_d\_test~, where the ~demo~ operator was
+also meant to demonstrate usage and advantages of JPEGSourceMgr for infos not
+contained per default in our JPEG datastructure. For examples see the respective
+comments in the code subsections or online with 'list operators'.
+
+There is also an operator ~jreadinfo~. But this is not provided primarily for
+direct usage. It is used togehter with the data structure ~jinfo~ for the viewer
+who needs the images to be associated with additional info. Our standard
+attributes of JPEG are included there. Perhaps you find it useful for other
+purposes as for the viewer, so we didn't hide it. For more about jinfo and
+jreadinfo, see the respective code subsections.
+
+*/
+
+
