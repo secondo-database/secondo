@@ -99,7 +99,7 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
             qr.addEntry(Entry); // avoid the possibility to pop up a window
             return; 
          } else{  // long plain text
-               Entry = T+" : "+ Text.substring(0,MAX_DIRECT_DISPLAY_LENGTH-4)+" ...";
+               Entry = T+" : "+ Text.substring(0,MAX_DIRECT_DISPLAY_LENGTH-4).replace('\n',' ')+" ...";
          }
      }else if(Type==HTML_TYPE){
            Entry = T + " : <html> ...";
