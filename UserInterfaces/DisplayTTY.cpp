@@ -728,18 +728,8 @@ DisplayTTY::DisplayResult2( ListExpr value )
 	 int MaxLength = 0;
 	 int currentlength;
 	 while(!nl->IsEmpty(headerlist)){
-            ListExpr tmp = (nl->Second(nl->First(headerlist)));
-
-            cout << "Outer tmp" << endl;
-            nl->WriteListExpr( tmp );
-            cout << endl;
-
+        ListExpr tmp = (nl->Second(nl->First(headerlist)));
 	    while(!nl->IsEmpty(tmp)){
-            
-               cout << "Inner tmp" << endl;
-               nl->WriteListExpr( tmp );
-               cout << endl;
-
 	       currentlength = (nl->StringValue(nl->First(tmp))).length();
 	       tmp = nl->Rest(tmp);
  	       if(currentlength>MaxLength)
