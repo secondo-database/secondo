@@ -22,6 +22,7 @@ Algebra. These common functionalities belongs to this implementation file.
 
 */
 #include "RelationAlgebra.h"
+#include "OldRelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "QueryProcessor.h"
 #include "NestedList.h"
@@ -186,6 +187,30 @@ bool TupleCompareBy::operator()(const Tuple* aConst, const Tuple* bConst) const
 4 Implementation of the class ~Tuple~
 
 */
+Tuple *Tuple::Clone( const bool isFree ) const
+{
+  Tuple *result = new Tuple( this->GetTupleType(), isFree );
+  for( int i = 0; i < this->GetNoAttributes(); i++ )
+  {
+    Attribute *attr = GetAttribute( i )->Clone();
+    result->PutAttribute( i, attr );
+  }
+  return result;
+}
+
+CcTuple *Tuple::CloneToMemoryTuple( const bool isFree ) const
+{
+  CcTuple *result = new CcTuple();
+  result->SetFree( isFree );
+
+  for( int i = 0; i < this->GetNoAttributes(); i++ )
+  {
+    Attribute *attr = GetAttribute( i )->Clone();
+    result->Put( i, attr );
+  }
+  return result;
+}
+
 ostream& Tuple::ShowTupleStatistics( const bool reset, ostream& o )
 {
   o << "Tuples created: " << Tuple::tuplesCreated << endl

@@ -53,11 +53,11 @@ static CcRelationType CcTypeOfRelAlgSymbol (ListExpr symbol)
     s = nl->SymbolValue(symbol);
     if (s == "mrel"   ) return mrel;
     if (s == "mtuple" ) return mtuple;
-    if (s == "stream" ) return stream;
-    if (s == "map"    ) return ccmap;
-    if (s == "bool"   ) return ccbool;
+    if (s == "stream" ) return mstream;
+    if (s == "map"    ) return mmap;
+    if (s == "bool"   ) return mbool;
   }
-  return error;
+  return merror;
 }
 /*
 
@@ -260,7 +260,7 @@ ListExpr CcTUPLETypeMap(ListExpr args)
     first = nl->First(args);
     if(nl->ListLength(first) == 2  )
     {
-      if ((CcTypeOfRelAlgSymbol(nl->First(first)) == stream)  ||
+      if ((CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)  ||
           (CcTypeOfRelAlgSymbol(nl->First(first)) == mrel))
         return nl->Second(first);
     }
@@ -316,7 +316,7 @@ ListExpr CcTUPLE2TypeMap(ListExpr args)
     second = nl->Second(args);
     if(nl->ListLength(second) == 2  )
     {
-      if ((CcTypeOfRelAlgSymbol(nl->First(second)) == stream)  ||
+      if ((CcTypeOfRelAlgSymbol(nl->First(second)) == mstream)  ||
           (CcTypeOfRelAlgSymbol(nl->First(second)) == mrel))
         return nl->Second(second);
     }
@@ -376,7 +376,7 @@ ListExpr CcGroupTypeMap(ListExpr args)
     if(!nl->IsAtom(first) && nl->ListLength(first) == 2  )
     {
       tupleDesc = nl->Second(first);
-      if(CcTypeOfRelAlgSymbol(nl->First(first)) == stream
+      if(CcTypeOfRelAlgSymbol(nl->First(first)) == mstream
         && (!nl->IsAtom(tupleDesc))
         && (nl->ListLength(tupleDesc) == 2)
         && CcTypeOfRelAlgSymbol(nl->First(tupleDesc)) == mtuple
@@ -841,7 +841,7 @@ ListExpr CcConsumeTypeMap(ListExpr args)
   {
     first = nl->First(args);
     if ((nl->ListLength(first) == 2) &&
-        (CcTypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+        (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
         (nl->ListLength(nl->Second(first)) == 2) &&
         (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple))
       return nl->Cons(nl->SymbolAtom("mrel"), nl->Rest(first));
@@ -1046,9 +1046,9 @@ CcFilterTypeMap(ListExpr args)
 	&& (nl->ListLength(second) == 3)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == ccmap)
-	&& (CcTypeOfRelAlgSymbol(nl->Third(second)) == ccbool)
+	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
+	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
+	&& (CcTypeOfRelAlgSymbol(nl->Third(second)) == mbool)
 	&& (nl->Equal(nl->Second(first),nl->Second(second)))	)
     return first;
   }
@@ -1188,7 +1188,7 @@ CcProjectTypeMap(ListExpr args)
     second = nl->Second(args);
 
     if ((nl->ListLength(first) == 2) &&
-        (CcTypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+        (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
 	(nl->ListLength(nl->Second(first)) == 2) &&
 	(CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
 	(!nl->IsAtom(second)) &&
@@ -1379,7 +1379,7 @@ CcRemoveTypeMap(ListExpr args)
     second = nl->Second(args);
 
     if ((nl->ListLength(first) == 2) &&
-        (CcTypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+        (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
 	(nl->ListLength(nl->Second(first)) == 2) &&
 	(CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
 	(!nl->IsAtom(second)) &&
@@ -1635,7 +1635,7 @@ CcProductTypeMap(ListExpr args)
     // Check first argument and extract list1
     if (nl->ListLength(first) == 2)
     {
-      if (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+      if (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
       {
         if (nl->ListLength(nl->Second(first)) == 2)
         {
@@ -1654,7 +1654,7 @@ CcProductTypeMap(ListExpr args)
     // Check second argument and extract list2
     if (nl->ListLength(second) == 2)
     {
-      if (CcTypeOfRelAlgSymbol(nl->First(second)) == stream)
+      if (CcTypeOfRelAlgSymbol(nl->First(second)) == mstream)
       {
         if (nl->ListLength(nl->Second(second)) == 2)
         {
@@ -1965,7 +1965,7 @@ CcCountTypeMap(ListExpr args)
     first = nl->First(args);
     if ( (nl->ListLength(first) == 2) && nl->ListLength(nl->Second(first)) == 2  )
     {
-      if ( ( CcTypeOfRelAlgSymbol(nl->First(first)) == stream
+      if ( ( CcTypeOfRelAlgSymbol(nl->First(first)) == mstream
              || CcTypeOfRelAlgSymbol(nl->First(first)) == mrel )
 	   && CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple )
       return nl->SymbolAtom("int");
@@ -2044,7 +2044,7 @@ CcCountSelect( ListExpr args )
     first = nl->First(args);
     if(nl->ListLength(first) == 2)
     {
-      if (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+      if (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
       {
         return 0;
       }
@@ -2111,7 +2111,7 @@ CcRenameTypeMap( ListExpr args )
     second  = nl->Second(args);
 
     if((nl->ListLength(first) == 2  ) &&
-    	(CcTypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+    	(CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
 	(CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
        	nl->IsAtom(second) &&
 	(nl->AtomType(second) == SymbolType))
@@ -2253,7 +2253,7 @@ CcExtractTypeMap( ListExpr args )
     second  = nl->Second(args);
 
     if((nl->ListLength(first) == 2  ) &&
-       (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)  &&
+       (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)  &&
        (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)  &&
        (nl->IsAtom(second)) &&
        (nl->AtomType(second) == SymbolType))
@@ -2364,7 +2364,7 @@ CcHeadTypeMap( ListExpr args )
     second  = nl->Second(args);
 
     if((nl->ListLength(first) == 2  )
-      && (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
       && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
       && CcIsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->IsAtom(second))
@@ -2495,7 +2495,7 @@ CcMaxMinTypeMap( ListExpr args )
     second  = nl->Second(args);
 
     if((nl->ListLength(first) == 2  )
-      && (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
       && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
       && CcIsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->IsAtom(second))
@@ -2674,7 +2674,7 @@ CcAvgSumTypeMap( ListExpr args )
     second  = nl->Second(args);
 
     if((nl->ListLength(first) == 2  )
-      && (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
       && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
       && CcIsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->IsAtom(second))
@@ -2898,7 +2898,7 @@ CcSortByTypeMap( ListExpr args )
     ListExpr sortSpecification  = nl->Second(args);
 
     if((nl->ListLength(streamDescription) == 2  ) &&
-      (CcTypeOfRelAlgSymbol(nl->First(streamDescription)) == stream)  &&
+      (CcTypeOfRelAlgSymbol(nl->First(streamDescription)) == mstream)  &&
       (CcTypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == mtuple))
     {
       int numberOfSortAttrs = nl->ListLength(sortSpecification);
@@ -3182,7 +3182,7 @@ CcIdenticalTypeMap( ListExpr args )
     first = nl->First(args);
 
     if((nl->ListLength(first) == 2  )
-      && (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
       && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
       && CcIsTupleDescription(nl->Second(nl->Second(first)), nl))
     {
@@ -3352,7 +3352,7 @@ CcSetOpTypeMap( ListExpr args )
     second = nl->Second(args);
 
     if((nl->ListLength(first) == 2  )
-      && (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
       && (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
       && CcIsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->Equal(first, second)))
@@ -3743,7 +3743,7 @@ CcJoinTypeMap(ListExpr args)
     streamA = nl->First(args); streamB = nl->Second(args);
     if (nl->ListLength(streamA) == 2)
     {
-      if (CcTypeOfRelAlgSymbol(nl->First(streamA)) == stream)
+      if (CcTypeOfRelAlgSymbol(nl->First(streamA)) == mstream)
       {
         if (nl->ListLength(nl->Second(streamA)) == 2)
         {
@@ -3761,7 +3761,7 @@ CcJoinTypeMap(ListExpr args)
 
     if (nl->ListLength(streamB) == 2)
     {
-      if (CcTypeOfRelAlgSymbol(nl->First(streamB)) == stream)
+      if (CcTypeOfRelAlgSymbol(nl->First(streamB)) == mstream)
       {
         if (nl->ListLength(nl->Second(streamB)) == 2)
         {
@@ -4511,7 +4511,7 @@ CcExtendTypeMap( ListExpr args )
     first = nl->First(args);
     second  = nl->Second(args);
     if((nl->ListLength(first) == 2)  &&
-      (CcTypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+      (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
       (!nl->IsAtom(second)) &&
       (nl->ListLength(second) > 0))
     {
@@ -4535,7 +4535,7 @@ CcExtendTypeMap( ListExpr args )
         if ((nl->IsAtom(first2)) &&
             (nl->ListLength(second2) == 3) &&
             (nl->AtomType(first2) == SymbolType) &&
-            (CcTypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
+            (CcTypeOfRelAlgSymbol(nl->First(second2)) == mmap) &&
             (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)) &&
                   (nl->Equal(nl->Second(first),nl->Second(second2))))
         {
@@ -4695,14 +4695,14 @@ CcLoopjoinTypeMap(ListExpr args)
     second  = nl->Second(args);
 
     if 	    ( (nl->ListLength(first) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
 	&& (nl->ListLength(second) == 3)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == ccmap)
+	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
 	&& (nl->Equal(nl->Second(first), nl->Second(second)))
 	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream)
+	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mstream)
 	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
 	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == mtuple) )
 	{
@@ -4896,14 +4896,14 @@ CcLoopselectTypeMap(ListExpr args)
     second  = nl->Second(args);
 
     if 	    ( (nl->ListLength(first) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
 	&& (nl->ListLength(second) == 3)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == ccmap)
+	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
 	&& (nl->Equal(nl->Second(first), nl->Second(second)))
 	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream)
+	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mstream)
 	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
 	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == mtuple) )
 	{
@@ -5097,11 +5097,11 @@ CcLoopjoinrelTypeMap(ListExpr args)
     second  = nl->Second(args);
 
     if 	    ( (nl->ListLength(first) == 2)
-	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == stream)
+	&& (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple)
 	&& (nl->ListLength(second) == 3)
-	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == ccmap)
+	&& (CcTypeOfRelAlgSymbol(nl->First(second)) == mmap)
 	&& (nl->Equal(nl->Second(first), nl->Second(second)))
 	&& (nl->ListLength(nl->Third(second)) == 2)
 	&& (CcTypeOfRelAlgSymbol(nl->First(nl->Third(second))) == mrel)
@@ -5323,11 +5323,11 @@ CcConcatTypeMap( ListExpr args )
     second = nl->Second(args);
 
     if((nl->ListLength(first) == 2) &&
-       (CcTypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+       (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
        (nl->ListLength(nl->Second(first)) == 2) &&
        (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
        (nl->ListLength(second) == 2) &&
-       (CcTypeOfRelAlgSymbol(nl->First(second)) == stream) &&
+       (CcTypeOfRelAlgSymbol(nl->First(second)) == mstream) &&
        (nl->ListLength(nl->Second(second)) == 2) &&
        (CcTypeOfRelAlgSymbol(nl->First(nl->Second(second))) == mtuple) &&
        (nl->Equal(CcGetAttrTypeList(nl->Second(nl->Second(first))),
@@ -5461,7 +5461,7 @@ CcGroupByTypeMap(ListExpr args)
     third  = nl->Third(args);
 
     if(nl->ListLength(first) == 2  &&
-      (CcTypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+      (CcTypeOfRelAlgSymbol(nl->First(first)) == mstream) &&
       (CcTypeOfRelAlgSymbol(nl->First(nl->Second(first))) == mtuple) &&
       (!nl->IsAtom(second)) &&
       (nl->ListLength(second) > 0))
@@ -5516,7 +5516,7 @@ CcGroupByTypeMap(ListExpr args)
         if((nl->IsAtom(first2)) &&
           (nl->ListLength(second2) == 3) &&
           (nl->AtomType(first2) == SymbolType) &&
-          (CcTypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
+          (CcTypeOfRelAlgSymbol(nl->First(second2)) == mmap) &&
           (nl->Equal(groupType, nl->Second(second2))))
         {
           lastlistn = nl->Append(lastlistn,

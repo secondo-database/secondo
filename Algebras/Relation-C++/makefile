@@ -15,6 +15,7 @@ INCFILES=\
 	$(INCLUDEDIR)/StandardTypes.h \
 	$(INCLUDEDIR)/FLOB.h \
 	$(INCLUDEDIR)/DBArray.h \
+        ../OldRelation-C++/OldRelationAlgebra.h \
 	RelationAlgebra.h
 
 MODNAME=RelationAlgebra
@@ -33,7 +34,7 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I.
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../OldRelation-C++
 
 #This define RELALG_PERSISTENT is used to compile the Persistent Relational Algebra.
 #comment this line below to change it to the Main Memory Relational Algebra.

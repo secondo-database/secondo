@@ -29,6 +29,7 @@ file.
 
 */
 #include "RelationAlgebra.h"
+#include "OldRelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -829,7 +830,7 @@ ListExpr TUPLE2TypeMap(ListExpr args)
 const string TUPLE2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Remarks\" ) "
                            "( <text><text>((stream x) (stream y) ...) -> y, "
-                           "((mrel x) (mrel y) ...) -> y</text--->"
+                           "((rel x) (rel y) ...) -> y</text--->"
                            "<text>type operator</text--->"
                            "<text>Extract tuple type from a stream or "
                            "relation"
@@ -932,7 +933,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string FeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
-                         "( <text>(mrel x) -> (stream x)</text--->"
+                         "( <text>(rel x) -> (stream x)</text--->"
                          "<text>_ feed</text--->"
                          "<text>Produces a stream from a relation by "
                          "scanning the relation tuple by tuple.</text--->"
@@ -1029,7 +1030,7 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string ConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
-                            "( <text>(stream x) -> (mrel x)</text--->"
+                            "( <text>(stream x) -> (rel x)</text--->"
                             "<text>_ consume</text--->"
                             "<text>Collects objects from a stream."
                             "</text--->"
@@ -1151,7 +1152,7 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string AttrSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Remarks\" ) "
-                         "( <text>((mtuple ((x1 t1)...(xn tn))) xi)  -> "
+                         "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
                          "ti)</text--->"
                          "<text>attr ( _ , _ )</text--->"
                          "<text>Returns the value of an attribute at a "
@@ -1457,8 +1458,8 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string ProjectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
-                            "( <text>((stream (mtuple ((x1 T1) ... "
-                            "(xn Tn)))) (ai1 ... aik)) -> (stream (mtuple"
+                            "( <text>((stream (tuple ((x1 T1) ... "
+                            "(xn Tn)))) (ai1 ... aik)) -> (stream (tuple"
                             " ((ai1 Ti1) ... (aik Tik))))</text--->"
                             "<text>_ project [ list ]</text--->"
                             "<text>Produces a projection tuple for each "
@@ -1719,8 +1720,8 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string ProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
-                            "( <text>((stream (mtuple (x1 ... xn))) (stream "
-                            "(mtuple (y1 ... ym)))) -> (stream (mtuple (x1 "
+                            "( <text>((stream (tuple (x1 ... xn))) (stream "
+                            "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
                             "... xn y1 ... ym)))</text--->"
                             "<text>_ _ product</text--->"
                             "<text>Computes a Cartesian product stream from "
@@ -1820,7 +1821,7 @@ TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string TCountSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
-                           "( <text>((stream/mrel (mtuple x))) -> int"
+                           "( <text>((stream/rel (tuple x))) -> int"
                            "</text--->"
                            "<text>_ count</text--->"
                            "<text>Count number of tuples within a stream "
@@ -1996,8 +1997,8 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string RenameSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
-                           "( <text>((stream (mtuple([a1:d1, ... ,"
-                           "an:dn)))ar) -> (stream (mtuple([a1ar:d1, "
+                           "( <text>((stream (tuple([a1:d1, ... ,"
+                           "an:dn)))ar) -> (stream (tuple([a1ar:d1, "
                            "... ,anar:dn)))</text--->"
                            "<text>_ rename [ _ ] or just _ { _ }"
                            "</text--->"
@@ -2022,6 +2023,109 @@ Operator relalgrename (
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
          RenameTypeMap         // type mapping
+);
+
+
+/*
+5.13 Operator ~mconsume~
+
+Collects objects from a stream of tuples into a 
+main memory relation using the ~mrel~ type constructor
+of the old relational algebra.
+
+This operator is used to convert from a relation in
+the new relational algebra to the old one.
+
+5.6.1 Type mapping function of operator ~mconsume~
+
+Operator ~mconsume~ accepts a stream of tuples and returns a 
+main memory relation.
+
+
+----    (stream tuple(x))             -> ( mrel mtuple(x) )
+----
+
+*/
+ListExpr MConsumeTypeMap(ListExpr args)
+{
+  ListExpr first ;
+
+  if(nl->ListLength(args) == 1)
+  {
+    first = nl->First(args);
+    if ((nl->ListLength(first) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+        (nl->ListLength(nl->Second(first)) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
+    {
+      return nl->TwoElemList(nl->SymbolAtom("mrel"), 
+                             nl->TwoElemList(nl->SymbolAtom("mtuple"),
+                                             nl->Second(nl->Second(first))));
+    }
+  }
+  ErrorReporter::ReportError("Incorrect input for operator consume.");
+  return nl->SymbolAtom("typeerror");
+}
+/*
+
+5.6.2 Value mapping function of operator ~mconsume~
+
+*/
+int
+MConsume(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word actual;
+  CcRel* rel;
+
+  rel = (CcRel*)((qp->ResultStorage(s)).addr);
+  if(rel->GetNoTuples() > 0)
+  {
+    rel->Empty();
+  }
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, actual);
+  while (qp->Received(args[0].addr))
+  {
+    CcTuple* tuple = ((Tuple*)actual.addr)->CloneToMemoryTuple( false );
+    rel->AppendTuple(tuple);
+    ((Tuple*)actual.addr)->DeleteIfAllowed();
+
+    qp->Request(args[0].addr, actual);
+  }
+
+  result = SetWord((void*) rel);
+
+  qp->Close(args[0].addr);
+
+  return 0;
+}
+/*
+
+5.6.3 Specification of operator ~mconsume~
+
+*/
+const string MConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                             "\"Example\" ) "
+                             "( <text>(stream tuple(x)) -> (mrel mtuple(x))</text--->"
+                             "<text>_ mconsume</text--->"
+                             "<text>Collects objects from a stream into an mrel."
+                             "</text--->"
+                             "<text>query cities feed mconsume</text--->"
+                             ") )";
+
+/*
+
+5.6.4 Definition of operator ~mconsume~
+
+*/
+Operator relalgmconsume (
+         "mconsume",            // name
+	 MConsumeSpec,          // specification
+	 MConsume,              // value mapping
+	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
+	 Operator::SimpleSelect,         // trivial selection function
+	 MConsumeTypeMap        // type mapping
 );
 
 /*
@@ -2054,6 +2158,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgproduct);
     AddOperator(&relalgcount);
     AddOperator(&relalgrename);
+    AddOperator(&relalgmconsume);
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );

@@ -68,6 +68,8 @@ Algebra implementation figure below.
 #include "StandardAttribute.h"
 #include "NestedList.h"
 
+class CcTuple;
+
 /*
 3 Type Constructor ~tuple~
 
@@ -311,6 +313,11 @@ Turns the tuple free (or not) for deletion.
     Tuple *Clone( const bool isFree = true ) const;
 /*
 Create a new tuple which is a clone of this tuple.
+
+*/
+    CcTuple* CloneToMemoryTuple( const bool isFree = true ) const;
+/*
+Creates a new memory tuple which is a clone of this tuple.
 
 */
     Tuple *CloneIfNecessary();

@@ -1166,11 +1166,10 @@ If value 0 is returned, the command was executed without error.
 
 	       if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
 	         cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-                 //cerr << ReportTupleStatistics();
 	         cerr << nl->reportVectorSizes() << endl;
 	       }
-               LOGMSG( "SI:RelStatistics", Tuple::ShowTupleStatistics( true, cerr ); )
-               LOGMSG( "SI:StandardTypesStatistics", ShowStandardTypesStatistics( true, cerr ); )
+               LOGMSG( "SI:Statistics", Tuple::ShowTupleStatistics( true, cout ); )
+               LOGMSG( "SI:Statistics", ShowStandardTypesStatistics( true, cout ); )
             }
             else if ( isFunction ) // abstraction or function object
             {

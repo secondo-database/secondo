@@ -1966,7 +1966,7 @@ It is for the aggregate operators ~min~, ~max~, and ~avg~ which have one
 ListExpr
 RangeTypeMapBase( ListExpr args )
 {
-  ListExpr errorInfo;
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
 
   if ( nl->ListLength( args ) == 1 )
@@ -1994,7 +1994,7 @@ It is for the ~no_components~ operator which have one
 ListExpr
 RangeTypeMapInt( ListExpr args )
 {
-  ListExpr errorInfo;
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
 
   if ( nl->ListLength( args ) == 1 )

@@ -881,26 +881,37 @@ ListExpr HeadTypeMap( ListExpr args )
 2.8.3 Value mapping function of operator ~head~
 
 */
+struct HeadLocalInfo
+{
+  HeadLocalInfo( const int maxTuples = 0 ):
+    numTuples( 0 ),
+    maxTuples( maxTuples )
+    {}
+
+  int numTuples;
+  int maxTuples;
+};
+
 int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  int maxTuples;
+  HeadLocalInfo *localInfo;
   Word maxTuplesWord;
   Word tupleWord;
-  Tuple* tuple;
 
   switch(message)
   {
     case OPEN:
 
       qp->Open(args[0].addr);
-      local.ival = 0;
+      qp->Request(args[1].addr, maxTuplesWord);
+      localInfo = new HeadLocalInfo( ((CcInt*)maxTuplesWord.addr)->GetIntval() );
+      local = SetWord( localInfo );
       return 0;
 
     case REQUEST:
 
-      qp->Request(args[1].addr, maxTuplesWord);
-      maxTuples = ((CcInt*)maxTuplesWord.addr)->GetIntval();
-      if(local.ival >= maxTuples)
+      localInfo = (HeadLocalInfo*)local.addr;
+      if(localInfo->numTuples >= localInfo->maxTuples)
       {
         return CANCEL;
       }
@@ -908,9 +919,8 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr, tupleWord);
       if(qp->Received(args[0].addr))
       {
-        tuple = (Tuple*)tupleWord.addr;
-        result = SetWord(tuple);
-        local.ival++;
+        result = tupleWord;
+        localInfo->numTuples++;
         return YIELD;
       }
       else
@@ -919,6 +929,8 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       }
     case CLOSE:
 
+      localInfo = (HeadLocalInfo*)local.addr;
+      delete localInfo;
       qp->Close(args[0].addr);
       return 0;
   }
@@ -2594,7 +2606,12 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
             localinfo->streamy=streamy;
             local =  SetWord(localinfo);
           }
-          else return CANCEL;
+          else
+          {
+            localinfo->streamy = SetWord(0);
+            localinfo->tuplex = SetWord(0);
+            return CANCEL;
+          }
         }
         else
         {
@@ -2610,13 +2627,20 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return YIELD;
 
     case CLOSE:
-      qp->Close(args[0].addr);
       if( local.addr != 0 )
       {
         localinfo=(LoopjoinLocalInfo *) local.addr;
+
+        if( localinfo->streamy.addr != 0 )
+          qp->Close( localinfo->streamy.addr );
+
+        if( localinfo->tuplex.addr != 0 )
+          ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
+
         delete localinfo->resultTupleType;
         delete localinfo;
       }
+      qp->Close(args[0].addr);
       return 0;
   }
 
@@ -2796,7 +2820,12 @@ Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
             localinfo->streamy=streamy;
             local = SetWord(localinfo);
           }
-          else return CANCEL;
+          else
+          {
+            localinfo->streamy = SetWord(0);
+            localinfo->tuplex = SetWord(0);
+            return CANCEL;
+          }
         }
         else
         {
@@ -2808,9 +2837,20 @@ Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
       return YIELD;
 
     case CLOSE:
+      if( local.addr != 0 )
+      {
+        localinfo=(LoopselectLocalInfo *) local.addr;
+
+        if( localinfo->streamy.addr != 0 )
+          qp->Close( localinfo->streamy.addr );
+
+        if( localinfo->tuplex.addr != 0 )
+          ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
+
+        delete localinfo->resultTupleType;
+        delete localinfo;
+      }
       qp->Close(args[0].addr);
-      localinfo = (LoopselectLocalInfo *) local.addr;
-      delete localinfo;
       return 0;
   }
 

@@ -21,7 +21,7 @@
 #include <typeinfo>
 #include "OldRelationAlgebraInfo.h"
 
-enum CcRelationType { mrel, mtuple, stream, ccmap, ccbool, error };
+enum CcRelationType { mrel, mtuple, mstream, mmap, mbool, merror };
 
 const int MaxSizeOfAttr = 35;  //changed by DZM, original value: 20
 
@@ -116,7 +116,7 @@ ListExpr CcRelProp ();
 Figure 2: Main memory representation of a relation (~Compact Table~) [relation.eps]
 
 */
-typedef CTable<CcTuple*>* Relation;
+typedef CTable<CcTuple*>* CcRelation;
 
 class CcRel;
 
@@ -144,7 +144,7 @@ class CcRel
   private:
 
     int NoOfTuples;
-    Relation TupleList;
+    CcRelation TupleList;
     SmiRecordId currentId;
 
   public:

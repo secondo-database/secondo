@@ -2242,7 +2242,7 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
   CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0, errmsg);
 
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo;
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   CHECK_COND(algMgr->CheckKind("SPATIAL", attrType, errorInfo), errmsg);
 
   ListExpr resultType =
@@ -2391,7 +2391,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   CHECK_COND(nl->IsAtom(rtreeKeyType), errmsg);
   CHECK_COND(nl->AtomType(rtreeKeyType) == SymbolType, errmsg);
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo;
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   CHECK_COND(algMgr->CheckKind("SPATIAL", rtreeKeyType, errorInfo), errmsg);
 
   /* handle rtree type constructor */

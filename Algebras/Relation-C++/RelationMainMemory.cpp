@@ -257,17 +257,6 @@ void Tuple::SetFree( const bool onoff )
   privateTuple->isFree = onoff;
 }
 
-Tuple *Tuple::Clone( const bool isFree ) const
-{
-  Tuple *result = new Tuple( this->GetTupleType(), isFree );
-  for( int i = 0; i < this->GetNoAttributes(); i++ )
-  {
-    Attribute *attr = GetAttribute( i )->Clone();
-    result->PutAttribute( i, attr );
-  }
-  return result;
-}
-
 Tuple *Tuple::CloneIfNecessary() 
 {
   if( IsFree() )
