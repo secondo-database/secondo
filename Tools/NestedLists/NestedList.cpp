@@ -1494,10 +1494,13 @@ NestedList::reportVectorSizes() {
 
   ostringstream report;
  
-  report << intTable.reportVectorSizes("  int") << endl
-         << nodeTable.reportVectorSizes("nodes") << endl
-         << stringTable.reportVectorSizes("  str") << endl
-         << textTable.reportVectorSizes(" text") << endl;
+  report << "List memory (slots/used):" 
+	 << "nodes " << nodeTable.Size() << "/" << nodeTable.NoEntries() << "," 
+	 << "int " << intTable.Size() << "/" << intTable.NoEntries() << "," 
+	 << "str " << stringTable.Size() << "/" <<  stringTable.NoEntries() << "."
+         << " Total " 
+	 << nodeTable.totalMemory() + intTable.totalMemory() + stringTable.totalMemory()
+         << " Bytes." << endl;
 	 
   return report.str();
 
