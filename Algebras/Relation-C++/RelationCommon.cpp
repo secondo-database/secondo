@@ -27,7 +27,13 @@ Algebra. These common functionalities belongs to this implementation file.
 
 extern NestedList *nl;
 
+long Tuple::tuplesCreated = 0;
+long Tuple::tuplesDeleted = 0;
+long Tuple::maximumTuples = 0;
+long Tuple::tuplesInMemory = 0;
 /*
+These variables are used for tuple statistics.
+
 3 Implementation of the class ~TupleType~
 
 A ~TupleType~ is a collection (an array) of all attribute types (~AttributeType~)
@@ -112,6 +118,23 @@ void TupleType::PutAttributeType( const int index, const AttributeType& attrType
 4 Implementation of the class ~Tuple~
 
 */
+ostream& Tuple::ShowTupleStatistics( const bool reset, ostream& o ) 
+{
+  o << "Tuples created: " << Tuple::tuplesCreated << endl
+    << "Tuples deleted: " << Tuple::tuplesDeleted << endl
+    << "Maximum # of tuples in memory: " << Tuple::maximumTuples << endl;
+
+  if( reset )
+  {
+    tuplesCreated = 0;
+    tuplesDeleted = 0;
+    maximumTuples = 0;
+    tuplesInMemory = 0;
+  }
+
+  return o;
+}
+
 Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
 {
   int  attrno, algebraId, typeId, noOfAttrs;

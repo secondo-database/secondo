@@ -174,11 +174,6 @@ This class implements the memory representation of the type constructor ~tuple~.
 an array of attributes, as it can be seen in the definition of the ~PrivateTuple~ class.
 
 */
-long Tuple::tuplesCreated = 0;
-long Tuple::tuplesDeleted = 0;
-long Tuple::maximumTuples = 0;
-long Tuple::tuplesInMemory = 0;
-
 Tuple::Tuple( const TupleType& tupleType, const bool isFree ):
   privateTuple( new PrivateTuple( tupleType, isFree ) )
   {

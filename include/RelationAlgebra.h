@@ -63,6 +63,7 @@ Algebra implementation figure below.
 #ifndef _RELATION_ALGEBRA_H_
 #define _RELATION_ALGEBRA_H_
 
+#include <iostream>
 #include "Algebra.h"
 #include "StandardAttribute.h"
 #include "NestedList.h"
@@ -214,10 +215,6 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class Tuple
 {
   public:
-    static long tuplesCreated;
-    static long tuplesDeleted;
-    static long tuplesInMemory;
-    static long maximumTuples;
 
     Tuple( const TupleType& tupleType, const bool isFree = false );
 /*
@@ -246,6 +243,12 @@ Corresponds to the ~Out~-function of type constructor ~tuple~.
     ~Tuple();
 /*
 The destructor.
+
+*/
+    static ostream& ShowTupleStatistics( const bool reset = false, ostream& o = cout );
+/*
+Shows tuple statistics. If ~reset~ is set to true, the values of the tuple statistics are
+set to zero.
 
 */
     const TupleId& GetTupleId() const;
@@ -309,6 +312,14 @@ Function to give outside access to the private part of the tuple class.
 
 */
   private:
+    static long tuplesCreated;
+    static long tuplesDeleted;
+    static long tuplesInMemory;
+    static long maximumTuples;
+/*
+Variables used for tuple statistics.
+
+*/
 
     PrivateTuple *privateTuple;
 /*

@@ -295,8 +295,9 @@ of ~tuple~.
 static Word 
 CreateTuple(const ListExpr typeInfo)
 {
-  Tuple *tup = new Tuple( nl->Second( typeInfo ) );
-  return (SetWord(tup));
+//  Tuple *tup = new Tuple( nl->Second( typeInfo ) );
+//  return (SetWord(tup));
+  return (SetWord(Address(0)));
 }
 
 /*
@@ -926,9 +927,8 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   while (qp->Received(args[0].addr))
   {
     Tuple* tuple;
-    tuple = ((Tuple*)actual.addr)->CloneIfNecessary();
+    tuple = ((Tuple*)actual.addr)->Clone( false );
     rel->AppendTuple(tuple);
-
     assert( tuple->IsFree() == false );
     tuple->DeleteIfAllowed();
     ((Tuple*)actual.addr)->DeleteIfAllowed();

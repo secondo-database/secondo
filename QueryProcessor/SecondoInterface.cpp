@@ -1005,26 +1005,22 @@ If value 0 is returned, the command was executed without error.
           {
             if ( evaluable )
             {
+              Tuple::ShowTupleStatistics( false, cerr );
               cerr << "Execute ..." << endl;
 
-               cerr << "Tuples created: " << Tuple::tuplesCreated << endl;
-               cerr << "Tuples deleted: " << Tuple::tuplesDeleted << endl;
-               cerr << "Maximum no of Tuples: " << Tuple::maximumTuples << endl;
-	       SecondoSystem::GetQueryProcessor()->
+	      SecondoSystem::GetQueryProcessor()->
                 Eval( tree, result, 1 );
-               cerr << "Tuples created: " << Tuple::tuplesCreated << endl;
-               cerr << "Tuples deleted: " << Tuple::tuplesDeleted << endl;
-               cerr << "Maximum no of Tuples: " << Tuple::maximumTuples << endl;
+
+              Tuple::ShowTupleStatistics( false, cerr );
+
               valueList = SecondoSystem::GetCatalog( level )->
                             OutObject( resultType, result );
               resultList = nl->TwoElemList( resultType, valueList );
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
 
-	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-               cerr << "Tuples created: " << Tuple::tuplesCreated << endl;
-               cerr << "Tuples deleted: " << Tuple::tuplesDeleted << endl;
-               cerr << "Maximum no of Tuples: " << Tuple::maximumTuples << endl;
+              cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+              Tuple::ShowTupleStatistics( true, cerr );
             }
             else if ( isFunction ) // abstraction or function object
             {
