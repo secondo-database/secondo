@@ -20,9 +20,16 @@ help:
 
 
 .PHONY: doc # creates the documentation
-doc:
-	$(shell mkdir $(DOCPATH))
-	$(JAVADOC) -d $(DOCPATH) -classpath "$(CLASSPATH)" $(GUIPACKAGE) $(VIEWERPACKAGES)
+doc: removedoc 
+	$(JAVADOC) -d $(DOCPATH) -classpath $(CLASSPATH) $(shell find -name "*.class"  | sed "s#/[^/]*\.class##g"  | sed "s#/[^/]*\.class##g" | sed "s#^\./##g"  | sed "s#/#.#g" | java tools.DupRemover)
+
+
+
+
+.PHONY: removedoc # removes the documentation
+removedoc:
+	(rm -fr $(DOCPATH))
+
 
 
 .PHONY: makedirs
