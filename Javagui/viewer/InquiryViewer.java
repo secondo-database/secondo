@@ -123,7 +123,7 @@ public class InquiryViewer extends SecondoViewer{
       case ListExpr.SYMBOL_ATOM: res = atom.symbolValue();break;
       default : return "";
    }
- 
+
    res = replaceAll("&",res,"&amp");
    res = replaceAll("<",res,"&lt;");
    res = replaceAll(">",res,"&gt;");
@@ -265,6 +265,8 @@ private void searchText(){
    */
  private String getHTMLCode_Constructors(ListExpr ValueList){
     StringBuffer res = new StringBuffer();
+    if(ValueList.isEmpty())
+       return "no type constructors are defined <br>";
     res.append("<table border=\"2\">\n");
      while(!ValueList.isEmpty() ){
        res.append(formatEntry(ValueList.first()));
@@ -276,6 +278,8 @@ private void searchText(){
 
  /** returns the html-code for  operators */
  private String getHTMLCode_Operators(ListExpr ValueList){
+   if(ValueList.isEmpty())
+       return "no operators are defined <br>";
    // the format is the same like for constructors
    return getHTMLCode_Constructors(ValueList);
  }
@@ -285,6 +289,8 @@ private void searchText(){
  private String getHTMLCode_Databases(ListExpr Value){
    // the valuelist for algebras is just a list containing
    // symbols representing the database names
+   if(Value.isEmpty())
+      return "no database exists <br>";
    StringBuffer res = new StringBuffer();
    res.append("<ul>\n");
    while (!Value.isEmpty()){
@@ -298,6 +304,8 @@ private void searchText(){
  /** returns a html formatted list for algebras */
  private String getHTMLCode_Algebras(ListExpr Value){
    // use the same format like databases
+   if(Value.isEmpty())
+      return "no algebra is included <br> please check your Secondo installation <br>";
    return getHTMLCode_Databases(Value);
  }
 
@@ -309,10 +317,10 @@ private void searchText(){
     // non algebra version
     StringBuffer res = new StringBuffer();
     res.append("<h1> Algebra "+Value.first().symbolValue()+" </h1>\n");
-    res.append("<h2> type constructors for algebra: "+
+    res.append("<h2> type constructors of algebra: "+
 		Value.first().symbolValue()+" </h2>\n");
     res.append( getHTMLCode_Constructors(Value.second().first()));
-    res.append("<br>\n<h2> operators for algebra: "+
+    res.append("<br>\n<h2> operators of algebra: "+
 	        Value.first().symbolValue()+"</h2>\n");
     res.append( getHTMLCode_Operators(Value.second().second()));
     return res.toString();
