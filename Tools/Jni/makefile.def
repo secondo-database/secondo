@@ -1,0 +1,26 @@
+########################################################################
+#
+# SECONDO makefile for the Java Virtual Machine Interface.
+#
+########################################################################
+
+include ../../makefile.env
+include ../../makefile.jni
+
+APPLOBJECTS=\
+	SecondoTTY.o \
+	DisplayTTY.o \
+	libjvm.a
+
+.PHONY: all
+all: libjvm.a
+
+
+CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
+CCXFLAGS= $(DEFAULTCCFLAGS)
+
+libjvm.a: jvm.def
+	$(DLLTOOL) --as=$(AS) -k --def jvm.def --dllname jvm.dll --output-lib $(LIBDIR)/libjvm.a
+
+clean:
+	$(RM) $(LIBDIR)/libjvm.a
