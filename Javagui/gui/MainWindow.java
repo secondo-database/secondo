@@ -166,9 +166,9 @@ public MainWindow(String Title){
         }
     }
 
-    String KnowViewer = Config.getProperty("KNOWVIEWER");
-    if(KnowViewer!=null){
-        StringTokenizer View = new StringTokenizer(KnowViewer," ");
+    String KnownViewers = Config.getProperty("KNOWN_VIEWERS");
+    if(KnownViewers!=null){
+        StringTokenizer View = new StringTokenizer(KnownViewers," ");
         Vector ViewerVector = new Vector(10);
         while(View.hasMoreTokens()){
             ViewerVector.add(View.nextToken());
