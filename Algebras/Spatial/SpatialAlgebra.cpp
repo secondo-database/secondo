@@ -90,7 +90,7 @@ TypeOfSymbol( ListExpr symbol )
     if ( s == "points" ) return (stpoints);
     if ( s == "line"   ) return (stline);
     if ( s == "region" ) return (stregion);
-    if ( s == "rect2"   ) return (stbox);
+    if ( s == "rect"   ) return (stbox);
   }
   return (sterror);
 }
@@ -7112,7 +7112,7 @@ commonborderMap( ListExpr args )
 10.1.15 Type mapping function for operator ~bbox~
 
 This type mapping function is used for the ~bbox~ operator. This operator
-computes the bbox of a region, which is a ~rect2~ (see RectangleAlgebra).
+computes the bbox of a region, which is a ~rect~ (see RectangleAlgebra).
 
 */
 static ListExpr
@@ -7127,7 +7127,7 @@ bboxMap( ListExpr args )
              TypeOfSymbol( arg1 ) == stpoint ||
              TypeOfSymbol( arg1 ) == stline ||
              TypeOfSymbol( arg1 ) == stpoints )
-      return (nl->SymbolAtom( "rect2" ));
+      return (nl->SymbolAtom( "rect" ));
     }
     return (nl->SymbolAtom( "typeerror" ));
 }
@@ -12397,7 +12397,7 @@ const string SpatialSpecNoSegments  =
 
 const string SpatialSpecBbox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region) -> rect2</text--->"
+  "( <text>(point||points||line||region) -> rect</text--->"
   "<text> bbox( _ )</text--->"
   "<text>return the bounding box of a spatial type.</text--->"
   "<text>query bbox(region)</text--->"

@@ -224,9 +224,10 @@ ListExpr spatialjoinTypeMap(ListExpr args)
 CAUTION: Adjust the following check, if new types are introduced to join.
 
 */
-  CHECK_COND(algMgr->CheckKind("SPATIAL", attrTypeS, errorInfo) ||
-             algMgr->CheckKind("RECT34", attrTypeS, errorInfo) ||
-             nl->IsEqual(attrTypeS, "rect"),
+  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo) ||
+             nl->IsEqual(attrTypeS, "rect")||
+             nl->IsEqual(attrTypeS, "rect3")||
+             nl->IsEqual(attrTypeS, "rect4"),
     "Operator spatialjoin expects that attribute "+attrNameS+"\n"
     "is of TYPE rect, rect3, rect4, point, points, line or region.");
 
@@ -277,11 +278,12 @@ CAUTION: Adjust the following check, if new types are introduced to join.
 CAUTION: Adjust the following check, if new types are introduced to join.
 
 */
-  CHECK_COND(algMgr->CheckKind("SPATIAL", attrTypeR, errorInfo) ||
-             algMgr->CheckKind("RECT34", attrTypeR, errorInfo) ||
-             nl->IsEqual(attrTypeR, "rect"),
+  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrTypeR, errorInfo) ||
+             nl->IsEqual(attrTypeR, "rect")||
+             nl->IsEqual(attrTypeR, "rect3")||
+             nl->IsEqual(attrTypeR, "rect4"),
     "Operator spatialjoin expects that attribute "+attrNameR+"\n"
-    "is of TYPE rect, rect3, rect4, point, points, line or region.\n");
+    "is of TYPE rect, rect3, rect4, point, points, line or region.");
 
 /*
 Check, if the joining attributes are of the same dimension. At this time the
@@ -301,11 +303,11 @@ adjusting this typemapping-method at this point.
   nl->WriteToString (attrTypeS_str, attrTypeS); //left stream
   nl->WriteToString (attrTypeR_str, attrTypeR); //right stream
 
-  CHECK_COND( ( algMgr->CheckKind("SPATIAL", attrTypeR, errorInfo) &&
-                algMgr->CheckKind("SPATIAL", attrTypeS, errorInfo) ) ||
-              ( algMgr->CheckKind("SPATIAL", attrTypeR, errorInfo ) &&
+  CHECK_COND( ( algMgr->CheckKind("SPATIAL2D", attrTypeR, errorInfo) &&
+                algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo) ) ||
+              ( algMgr->CheckKind("SPATIAL2D", attrTypeR, errorInfo ) &&
                 nl->IsEqual(attrTypeS, "rect") ) ||
-              ( algMgr->CheckKind("SPATIAL", attrTypeS, errorInfo ) &&
+              ( algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo ) &&
                 nl->IsEqual(attrTypeR, "rect") ) ||
               ( nl->IsEqual(attrTypeR, "rect") &&
                 nl->IsEqual(attrTypeS, "rect") ) ||
@@ -355,14 +357,7 @@ adjusting this typemapping-method at this point.
 int
 spatialjoinSelection (ListExpr args)
 {
-  char* errmsg = "Incorrect input for operator spatialjoin.";
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 4, errmsg);
-
   /* find out type of key; similar to typemapping function */
-
   /* Split argument in four parts */
   ListExpr relDescriptionS = nl->First(args);      //outerRelation
   ListExpr attrNameS_LE = nl->Third(args);         //attrName of outerRel
@@ -373,12 +368,12 @@ spatialjoinSelection (ListExpr args)
   int attrIndexS;
   ListExpr attrTypeS;
   string attrNameS = nl->SymbolValue(attrNameS_LE);
-  CHECK_COND((attrIndexS = FindAttribute(attrListS, attrNameS, attrTypeS)) > 0, errmsg);
+  attrIndexS = FindAttribute(attrListS, attrNameS, attrTypeS);
 
   /* selection function */
   ListExpr errorInfo = nl->OneElemList ( nl->SymbolAtom ("ERRORS"));
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  if ( (algMgr->CheckKind("SPATIAL", attrTypeS, errorInfo)) ||
+  if ( (algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo)) ||
        ( nl->SymbolValue (attrTypeS) == "rect") )
   return 0;  //two-dimensional objects to join
   else if ( nl->SymbolValue (attrTypeS) == "rect3")
@@ -476,7 +471,7 @@ Algorithm.
 
   struct Header
   {
-    R_TreePnJ<dim>* rtree;	//pointer to the R-Tree
+    R_TreePnJ<dim>* rtree;  //pointer to the R-Tree
 
     ArrayIndex outerAttrIndex;  //outerRelation: # of joining attribute
 
@@ -1144,7 +1139,7 @@ Building S.Part of outerRelation.
       }  //if ( localInfo->firstSearchForTuple )
     }  //while ( !nextResultTupleFound )
   }
-  else  
+  else
   {
 /*
 Computing the recursive instances of Plug\_Join getting the entries from Stack
@@ -1317,7 +1312,7 @@ are inserted in the Tree.
 
 #ifdef PLUGJOIN_VERBOSE_MODE
       rtreeCounter++;
-#endif                                      
+#endif
 
       R_TreeEntryPnJ<dim>* entry;
       ArrayIndex nodeNoOverflow;

@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 July 2003, Victor Almeida
 
-October 2004, Herbert Schoenhammer, tested and divided in Header-File 
+October 2004, Herbert Schoenhammer, tested and divided in Header-File
 and Implementation-File. Also R-Trees with three and four dimensions
 are created.
-        
+
 [TOC]
 
 0 Overview
@@ -39,16 +39,16 @@ are created.
 This Algebra implements the creation of two-, three- and four-dimensional
 R-Trees.
 
-First the the type constructors ~rtree2~, ~rtree3~ and ~rtree4~ are defined.
+First the the type constructors ~rtree~, ~rtree3~ and ~rtree4~ are defined.
 
 Second the operator ~creatertree~ to build the trees is defined. This operator
 expects an attribute in the relation that implements the kind ~SPATIAL2D~,
-~SPATIAL3D~, or ~SPATIAL4D~. Only the bounding boxes of the values of this 
+~SPATIAL3D~, or ~SPATIAL4D~. Only the bounding boxes of the values of this
 attribute are indexed in the R-Tree.
 
-Finally, the operator ~windowintersects~ retrieves the tuples of the original 
+Finally, the operator ~windowintersects~ retrieves the tuples of the original
 relation which bounding boxes of the indexed attribute intersect the window
-(of type ~rect2~, ~rect3~, or ~rect4~) given as argument to the operator.
+(of type ~rect~, ~rect3~, or ~rect4~) given as argument to the operator.
 
 1 Defines and Includes
 
@@ -95,9 +95,9 @@ int myCompare( const void* a, const void* b )
 }
 
 /*
-1 Type constructor ~rtree2~
+1 Type constructor ~rtree~
 
-1.1 Type property of type constructor ~rtree2~
+1.1 Type property of type constructor ~rtree~
 
 */
 ListExpr RTree2Prop()
@@ -116,7 +116,7 @@ ListExpr RTree2Prop()
 }
 
 /*
-1.8 ~Check~-function of type constructor ~rtree2~
+1.8 ~Check~-function of type constructor ~rtree~
 
 */
 bool CheckRTree2(ListExpr type, ListExpr& errorInfo)
@@ -125,7 +125,7 @@ bool CheckRTree2(ListExpr type, ListExpr& errorInfo)
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree2")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree")))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
@@ -145,7 +145,7 @@ bool CheckRTree2(ListExpr type, ListExpr& errorInfo)
 1.12 Type Constructor object for type constructor ~rtree3~
 
 */
-TypeConstructor rtree2( "rtree2",              RTree2Prop,
+TypeConstructor rtree( "rtree",              RTree2Prop,
                         OutRTree<2>,           InRTree<2>,
                         0,                     0,
                         CreateRTree<2>,        DeleteRTree<2>,
@@ -371,7 +371,7 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
   string rtreetype;
 
   if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) )
-    rtreetype = "rtree2";
+    rtreetype = "rtree";
   else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) )
     rtreetype = "rtree3";
   else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) )
@@ -545,11 +545,11 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   /* Query window: find out type of key */
   CHECK_COND(nl->IsAtom(searchWindow) &&
              nl->AtomType(searchWindow) == SymbolType &&
-             ((nl->SymbolValue(searchWindow) == "rect2")  ||
+             ((nl->SymbolValue(searchWindow) == "rect")  ||
               (nl->SymbolValue(searchWindow) == "rect3") ||
               (nl->SymbolValue(searchWindow) == "rect4") ),
     "Operator windowintersects expects that the search window\n"
-    "is of TYPE rect2, rect3, rect4 or of Spatial-Kind.");
+    "is of TYPE rect, rect3, rect4 or of Spatial-Kind.");
 
   /* handle rtree part of argument */
   nl->WriteToString (rtreeDescriptionStr, rtreeDescription); //for error message
@@ -557,7 +557,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
              !nl->IsAtom(rtreeDescription) &&
              nl->ListLength(rtreeDescription) == 3,
     "Operator windowintersects expects a R-Tree with structure "
-    "(rtree2||rtree3||rtree4 (tuple ((a1 t1)...(an tn))))\n"
+    "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))))\n"
     "but gets a R-Tree list with structure '"+rtreeDescriptionStr+"'.");
 
   ListExpr rtreeSymbol = nl->First(rtreeDescription);;
@@ -575,17 +575,17 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   /* handle rtree type constructor */
   CHECK_COND(nl->IsAtom(rtreeSymbol) &&
              nl->AtomType(rtreeSymbol) == SymbolType &&
-             (nl->SymbolValue(rtreeSymbol) == "rtree2"  ||
+             (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
               nl->SymbolValue(rtreeSymbol) == "rtree3" ||
               nl->SymbolValue(rtreeSymbol) == "rtree4") ,
    "Operator windowintersects expects a R-Tree \n"
-   "of type rtree2, rtree3 or rtree4.");
+   "of type rtree, rtree3 or rtree4.");
 
   CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
              !nl->IsAtom(rtreeTupleDescription) &&
              nl->ListLength(rtreeTupleDescription) == 2,
     "Operator windowintersects expects a R-Tree with structure "
-    "(rtree2||rtree3||rtree4 (tuple ((a1 t1)...(an tn))))\n"
+    "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))))\n"
     "but gets a first list with wrong tuple description in structure \n"
     "'"+rtreeDescriptionStr+"'.");
 
@@ -597,7 +597,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
              nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
              IsTupleDescription(rtreeAttrList),
     "Operator windowintersects expects a R-Tree with structure "
-    "(rtree2||rtree3||rtree4 (tuple ((a1 t1)...(an tn))))\n"
+    "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))))\n"
     "but gets a first list with wrong tuple description in structure \n"
     "'"+rtreeDescriptionStr+"'.");
 
@@ -643,7 +643,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   nl->WriteToString (attrTypeWindow_str, searchWindow);
 
   CHECK_COND( ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-                nl->IsEqual(searchWindow, "rect2") ) ||
+                nl->IsEqual(searchWindow, "rect") ) ||
               ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
                 nl->IsEqual(searchWindow, "rect3") ) ||
               ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
@@ -671,7 +671,7 @@ WindowIntersectsSelection( ListExpr args )
   ListExpr searchWindow = nl->Third(args);
 
   /* find out type of key */
-  if (nl->SymbolValue(searchWindow) == "rect2") 
+  if (nl->SymbolValue(searchWindow) == "rect")
     return 0;
   else if (nl->SymbolValue(searchWindow) == "rect3")
     return 1;
@@ -779,7 +779,7 @@ ValueMapping rtreewindowintersectsmap [] = { WindowIntersectsValueMapping<2>,
 const string windowintersectsSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>((rtree (tuple ((x1 t1)...(xn tn)))"
-      " ti)(rel (tuple ((x1 t1)...(xn tn)))) rect2||rect3||rect4) ->"
+      " ti)(rel (tuple ((x1 t1)...(xn tn)))) rect||rect3||rect4) ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
       "<text>_ _ windowintersects [ _ ]</text--->"
@@ -815,7 +815,7 @@ class RTreeAlgebra : public Algebra
  public:
   RTreeAlgebra() : Algebra()
   {
-    AddTypeConstructor( &rtree2 );
+    AddTypeConstructor( &rtree );
     AddTypeConstructor( &rtree3 );
     AddTypeConstructor( &rtree4 );
 

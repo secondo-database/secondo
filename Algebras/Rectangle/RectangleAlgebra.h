@@ -37,7 +37,7 @@ October, 2004 Schoenhammer Herbert, (virtual) method BoundingBox() added
 
 This header file essentially contains the definition of the struct ~Rectangle~.
 This class corresponds to the memory representation for the type constructor
-~rect2~, ~rect3~ and ~rect4~ which are 2-dimensional, 3-dimensional or 4-dimensional
+~rect~, ~rect3~ and ~rect4~ which are 2-dimensional, 3-dimensional or 4-dimensional
 rectangles alligned with the axes of each dimension. A rectangle in such a way
 can be represented by four, six or eight numbers (two for each dimension).
 
@@ -355,7 +355,7 @@ bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
 
   for( unsigned i = 0; i < dim; i++ )
   {
-    if( max[i] < r.min[i] || r.max[i] < min[i] ) 
+    if( max[i] < r.min[i] || r.max[i] < min[i] )
       return false;
   }
   return true;
@@ -369,7 +369,7 @@ template <unsigned dim>
 bool Rectangle<dim>::operator == ( const Rectangle<dim>& r ) const
 {
   assert( IsDefined() && r.IsDefined() );
- 
+
   for( unsigned i = 0; i < dim; i++ )
     if( min[i] != r.min[i] || max[i] != r.max[i] )
       return false;

@@ -30,7 +30,7 @@ October, 2003. Victor Teixeira de Almeida
 
 This implementation file essentially contains the implementation of the
 struct ~Rectangle~, and the definitions of the type constructur
-~rect2~, ~rect3~, and ~rect4~ with its associated operations.
+~rect~, ~rect3~, and ~rect4~ with its associated operations.
 
 2 Defines and Includes
 
@@ -49,9 +49,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 /*
-3 Type Constructor ~rect2~
+3 Type Constructor ~rect~
 
-A value of type ~rect2~ represents a 2-dimensional rectangle alligned with
+A value of type ~rect~ represents a 2-dimensional rectangle alligned with
 the axes x and y. A rectangle in such a way can be represented by four
 numbers, the upper and lower values for the two dimensions.
 
@@ -82,7 +82,7 @@ Rectangle2Property()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("rect2"),
+                             nl->StringAtom("rect"),
                              nl->StringAtom("(<left> <right> <bottom> <top>)"),
                              nl->StringAtom("(0 1 0 1)"))));
 }
@@ -91,21 +91,21 @@ Rectangle2Property()
 3.10 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
-type constructor ~rect2~ does not have arguments, this is trivial.
+type constructor ~rect~ does not have arguments, this is trivial.
 
 */
 bool
 CheckRectangle2( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "rect2" ));
+  return (nl->IsEqual( type, "rect" ));
 }
 
 /*
 3.12 Creation of the type constructor instance
 
 */
-TypeConstructor rect2(
-        "rect2",                                 //name
+TypeConstructor rect(
+        "rect",                                 //name
         Rectangle2Property,                      //property function describing signature
         OutRectangle<2>,     InRectangle<2>,     //Out and In functions
         0,                   0,                  //SaveToList and RestoreFromList functions
@@ -113,7 +113,7 @@ TypeConstructor rect2(
         0,               0,                      //open and save functions
         CloseRectangle<2>,   CloneRectangle<2>,  //object close, and clone
         CastRectangle<2>,                        //cast function
-        SizeOfRectangle<2>,			 //sizeof function
+        SizeOfRectangle<2>,      //sizeof function
         CheckRectangle2,                         //kind checking function
         0,                                       //predef. pers. function for model
         TypeConstructor::DummyInModel,
@@ -294,9 +294,9 @@ RectangleTypeMapBool( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if( nl->IsEqual( arg1, "rect2" ) && nl->IsEqual( arg2, "rect2" ) ||
+    if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) ||
         nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) ||
-        nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) ) 
+        nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
       return (nl->SymbolAtom( "bool" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -305,7 +305,7 @@ RectangleTypeMapBool( ListExpr args )
 /*
 4.1.3 Type mapping function ~RectangleTypeMapBool1~
 
-It is for the operator ~isempty~ which have ~rect2~, ~rect3~, or ~rect4~ 
+It is for the operator ~isempty~ which have ~rect~, ~rect3~, or ~rect4~
 as input and ~bool~ as result type.
 
 */
@@ -316,7 +316,7 @@ RectangleTypeMapBool1( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-    if( nl->IsEqual( arg1, "rect2" ) ||
+    if( nl->IsEqual( arg1, "rect" ) ||
         nl->IsEqual( arg1, "rect3" ) ||
         nl->IsEqual( arg1, "rect4" ) )
       return (nl->SymbolAtom( "bool" ));
@@ -400,12 +400,12 @@ cout << endl;
     "Attributename '" + attrname + "' is not known.\n"
     "Known Attribute(s): " + argstr;
   string errorMessage5 =
-    "Attribute type is not of type rect2||rect3||rect4.";
+    "Attribute type is not of type rect||rect3||rect4.";
   if ( j )
   {
     cout << "passed " << errorMessage4 << endl;
 
-    CHECK_COND( (nl->SymbolValue(attrtype) == "rect2" ||
+    CHECK_COND( (nl->SymbolValue(attrtype) == "rect" ||
                  nl->SymbolValue(attrtype) == "rect3" ||
                  nl->SymbolValue(attrtype) == "rect4"),
     errorMessage5);
@@ -456,9 +456,9 @@ int
 RectangleUnarySelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
-  if( nl->IsEqual( arg1, "rect2" ) )
+  if( nl->IsEqual( arg1, "rect" ) )
     return 0;
-  
+
   if( nl->IsEqual( arg1, "rect3" ) )
     return 1;
 
@@ -480,9 +480,9 @@ RectangleBinarySelect( ListExpr args )
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
-  if( nl->IsEqual( arg1, "rect2" ) && nl->IsEqual( arg2, "rect2" ) )
+  if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) )
     return 0;
-  
+
   if( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) )
     return 1;
 
@@ -510,8 +510,8 @@ cout << endl;
 
   string attrname = nl->SymbolValue(second);
   FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-  
-  if( nl->SymbolValue(attrtype) == "rect2" )
+
+  if( nl->SymbolValue(attrtype) == "rect" )
     return 0;
 
   if( nl->SymbolValue(attrtype) == "rect3" )
@@ -676,7 +676,7 @@ int RectangleUnionIntersectionBBox( Word* args, Word& result, int message, Word&
 //  Rectangle *pResult = (Rectangle *)result.addr;
 //
 //  Rectangle<dim> *r = ((Rectangle<dim>*)args[0].addr);
-//  
+//
 //  CcReal *x = (CcReal *)args[1].addr;
 //  CcReal *y = (CcReal *)args[2].addr;
 //
@@ -728,11 +728,11 @@ ValueMapping rectangleinsidemap[] = { RectangleInside<2>,
 
 ValueMapping rectangleunionbboxmap[] = { RectangleUnionIntersectionBBox<2, true>,
                                          RectangleUnionIntersectionBBox<3, true>,
-                                         RectangleUnionIntersectionBBox<4, true> }; 
+                                         RectangleUnionIntersectionBBox<4, true> };
 
 ValueMapping rectangleintersectionbboxmap[] = { RectangleUnionIntersectionBBox<2, false>,
                                                 RectangleUnionIntersectionBBox<3, false>,
-                                                RectangleUnionIntersectionBBox<4, false> }; 
+                                                RectangleUnionIntersectionBBox<4, false> };
 
 ModelMapping rectanglenomodelmap[] = { RectangleNoModelMapping,
                                        RectangleNoModelMapping,
@@ -754,7 +754,7 @@ const string RectangleSpecEqual  =
         "( <text>(rect<d> x rect<d>) -> bool</text--->"
         "<text>_ = _</text--->"
         "<text>Equal.</text--->"
-        "<text>query rect1 = rect2</text--->"
+        "<text>query rect1 = rect</text--->"
         ") )";
 
 const string RectangleSpecNotEqual  =
@@ -762,7 +762,7 @@ const string RectangleSpecNotEqual  =
         "( <text>(rect<d> x rect<d>) -> bool</text--->"
         "<text>_ # _</text--->"
         "<text>Not equal.</text--->"
-        "<text>query rect1 # rect2</text--->"
+        "<text>query rect1 # rect</text--->"
         ") )";
 
 const string RectangleSpecIntersects  =
@@ -770,7 +770,7 @@ const string RectangleSpecIntersects  =
         "( <text>(rect<d> x rect<d>) -> bool </text--->"
         "<text>_ intersects _</text--->"
         "<text>Intersects.</text--->"
-        "<text>query rect1 intersects rect2</text--->"
+        "<text>query rect1 intersects rect</text--->"
         ") )";
 
 const string RectangleSpecInside  =
@@ -778,7 +778,7 @@ const string RectangleSpecInside  =
         "( <text>(rect<d> x rect<d>) -> bool</text--->"
         "<text>_ inside _</text--->"
         "<text>Inside.</text--->"
-        "<text>query rect1 inside rect2</text--->"
+        "<text>query rect1 inside rect</text--->"
         ") )";
 
 const string RectangleSpecUnionBBox  =
@@ -813,44 +813,44 @@ const string RectangleSpecIntersectionBBox  =
 4.5.3 Definition of the operators
 
 */
-Operator rectangleisempty( "isempty", 
-                           RectangleSpecIsEmpty, 
-                           3, 
+Operator rectangleisempty( "isempty",
+                           RectangleSpecIsEmpty,
+                           3,
                            rectangleisemptymap,
-                           rectanglenomodelmap, 
-                           RectangleUnarySelect, 
+                           rectanglenomodelmap,
+                           RectangleUnarySelect,
                            RectangleTypeMapBool1 );
 
-Operator rectangleequal( "=", 
-                         RectangleSpecEqual, 
-                         3, 
+Operator rectangleequal( "=",
+                         RectangleSpecEqual,
+                         3,
                          rectangleequalmap,
-                         rectanglenomodelmap, 
-                         RectangleBinarySelect, 
+                         rectanglenomodelmap,
+                         RectangleBinarySelect,
                          RectangleTypeMapBool );
 
-Operator rectanglenotequal( "#", 
-                            RectangleSpecNotEqual, 
-                            3, 
+Operator rectanglenotequal( "#",
+                            RectangleSpecNotEqual,
+                            3,
                             rectanglenotequalmap,
-                            rectanglenomodelmap, 
-                            RectangleBinarySelect, 
+                            rectanglenomodelmap,
+                            RectangleBinarySelect,
                             RectangleTypeMapBool );
 
-Operator rectangleintersects( "intersects", 
-                              RectangleSpecIntersects, 
-                              3, 
+Operator rectangleintersects( "intersects",
+                              RectangleSpecIntersects,
+                              3,
                               rectangleintersectsmap,
-                              rectanglenomodelmap, 
-                              RectangleBinarySelect, 
+                              rectanglenomodelmap,
+                              RectangleBinarySelect,
                               RectangleTypeMapBool );
 
-Operator rectangleinside( "inside", 
-                          RectangleSpecInside, 
-                          3, 
+Operator rectangleinside( "inside",
+                          RectangleSpecInside,
+                          3,
                           rectangleinsidemap,
-                          rectanglenomodelmap, 
-                          RectangleBinarySelect, 
+                          rectanglenomodelmap,
+                          RectangleBinarySelect,
                           RectangleTypeMapBool );
 
 Operator rectangleunionbbox( "unionbbox",
@@ -887,11 +887,11 @@ class RectangleAlgebra : public Algebra
  public:
   RectangleAlgebra() : Algebra()
   {
-    AddTypeConstructor( &rect2 );
+    AddTypeConstructor( &rect );
     AddTypeConstructor( &rect3 );
     AddTypeConstructor( &rect4 );
 
-    rect2.AssociateKind("DATA");
+    rect.AssociateKind("DATA");
     rect3.AssociateKind("DATA");
     rect4.AssociateKind("DATA");
 
