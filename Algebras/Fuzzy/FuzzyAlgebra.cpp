@@ -1469,17 +1469,12 @@ static Word InFPoint (const ListExpr typeInfo,
   if(mid==0) error(__LINE__);
   bool ok = env->CallBooleanMethod(FP,mid,z);
    
-   cout<<"scalefactor is set to "<<z<<endl;
-   
-
-   mid = env->GetMethodID(PointCls,"add","(Lfuzzyobjects/simple/fEPoint;)Z");
+      mid = env->GetMethodID(PointCls,"add","(Lfuzzyobjects/simple/fEPoint;)Z");
    if(mid==0) error(__LINE__);
-
-   cout<<"add methodid "<<mid<<endl;
 
    jobject NextPoint;
    ListExpr PL;  // list for a singe point
-   cout<<"start conversion of points "<<endl;
+   
    int count =0;
    while(ok & !nl->IsEmpty(Points)){
         PL = nl->First(Points);
@@ -1487,12 +1482,12 @@ static Word InFPoint (const ListExpr typeInfo,
 	count++;
 	if(NextPoint==0){
 	    ok = false;
-	    cout <<"error in ListExprTofEPoint in object number :"<<count<<endl;
+	    cerr <<"error in ListExprTofEPoint in object number :"<<count<<endl;
 	}
 	else{
 	   ok = env->CallBooleanMethod(FP,mid,NextPoint);
 	   if(!ok)
-	       cout<<"error in converting point no "<<count<<endl;
+	       cerr<<"error in converting point no "<<count<<endl;
 	}
 	Points = nl->Rest(Points);
     }
@@ -1503,7 +1498,6 @@ static Word InFPoint (const ListExpr typeInfo,
        correct=false;
        return SetWord(Address(0));
     } else{
-      cout<<"conversion successful"<<endl;
       correct=true;
       CcFPoint* newFPoint = new CcFPoint(FP);
       return SetWord(newFPoint);
