@@ -395,7 +395,7 @@ Word InRel(ListExpr typeInfo, ListExpr value,
       {
         tupleaddr->SetFree(false);
         rel->AppendTuple(tupleaddr);
-        //delete tupleaddr;
+        delete tupleaddr;
 	//tupleaddr = 0;
 	
 	//Tuple* mytuple = new Tuple(rel->GetRecFile(),rel->GetRecFileId(),
