@@ -1,0 +1,16 @@
+NAME: 
+	TableToList (Solaris), TableToList.exe (Win32)
+
+DESCRIPTION: 
+	Converts a formatted table, where fields are separated by a tabular character and rows are separated by a newline character to a nested list. The result is written to standard output, if no specific output file is defined in the command line.
+
+USAGE: 
+	TableToList inputfilename [ > outputfilename ]
+
+EXAMPLE: 
+	TableToList Staedte.table (writes to standard output)
+	TableToList Staedte.table > Staedte.list (writes to file Staedte.table)
+	TableToList help | h (displays help message)
+
+SEE ALSO:
+	ListToTable
