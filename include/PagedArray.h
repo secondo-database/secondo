@@ -404,12 +404,20 @@ reflects the total number of the called ~Get~ operations.
 
     bool switchedOn;
     ofstream *filePtr;
-    stringstream fileName;
     unsigned long pageChangeCounter; 
     unsigned long slotAccessCounter;
+    LogInfo( const bool swOn ) : 
+      switchedOn(swOn),
+      filePtr( new ofstream(("PagedArray_" + string( typeid(T).name() ) + ".log").c_str(), ios_base::app) ),
+      pageChangeCounter(0),
+      slotAccessCounter(0)
+    {}
 
   };
   LogInfo log;
+
+  static int InstCtr; // Instance Counter
+  int ThisInstNr;
 
 };
 
@@ -428,31 +436,28 @@ top of the SecondoSMI interface.
 
 
 template<class T>
+int PagedArray<T>::InstCtr = 0;
+
+template<class T>
 PagedArray<T>::PagedArray( const int recSize, const int buffers /*=4*/,  const bool logOn /*=false*/) :
 writeable( true ),
 canDelete( false ),
 size( 0 ),
 pageRecord( recSize ),
 recordBuf( recSize, recSize, (2*buffers)/pageRecord.slots + 1 ),
-bufPtr(0)
+bufPtr(0),
+log( logOn )
 {
-  log.switchedOn = logOn;
-  log.pageChangeCounter = 0;
-  log.slotAccessCounter = 0;
-
   size = buffers * pageRecord.slots;
 
   if ( log.switchedOn ) {
 
-    FileCtr++;
-    log.fileName << "PagedArray_" << typeid(T).name() << "_" << FileCtr << "_" << pageRecord.slots << ".log" << ends; 
-    log.filePtr = new ofstream( log.fileName.str().c_str() );  
-    (*log.filePtr) << "# file " << log.fileName.str() << endl
-                   << "# " << endl
-                   << "# slotsize:   " << pageRecord.slotSize << endl
-                   << "# slots   :   " << pageRecord.slots << endl
-                   << "# pagesize:   " << pageRecord.size << endl
-                   << "#             " << endl;
+    ThisInstNr = ++InstCtr;
+    (*log.filePtr) << ThisInstNr <<  "c: " 
+                   << "( slotsize=" << pageRecord.slotSize
+                   << ", slots=" << pageRecord.slots
+                   << ", pagesize=" << pageRecord.size 
+                   << " )" << endl;
   }
 
 }
@@ -463,9 +468,9 @@ PagedArray<T>::~PagedArray()
 {
 
   if ( log.switchedOn ) { // Write global Ctrs for page changes
-    (*log.filePtr) << endl 
-                   << "# Total page changes: " << log.pageChangeCounter << endl
-                   << "# Total slot accesses: " << log.slotAccessCounter << endl;
+    (*log.filePtr) << ThisInstNr << "d: ( pageChanges=" <<  log.pageChangeCounter 
+                   << ", slotAccesses: " << log.slotAccessCounter
+                   << " )" << endl;
   delete log.filePtr;
   }
 }

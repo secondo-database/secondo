@@ -797,6 +797,10 @@ value 'NoAtom'.
 
 */
   const string reportVectorSizes();
+  const string reportTableStates() { 
+    return (   "Nodes: " + nodeTable->StateToStr() + "\n" 
+             + "Const: " + intTable->StateToStr() );
+  }
 
 /*
 Reports the slot numbers and allocated memory of all

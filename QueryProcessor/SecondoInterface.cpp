@@ -188,7 +188,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     // --- Check storage management interface
     cout << "Initializing storage management interface ... ";
     if ( SmiEnvironment::StartUp( (multiUser) ? SmiEnvironment::MultiUser
+#ifdef NL_PERSISTENT
+                                              : SmiEnvironment::SingleUserSimple,
+#else
                                               : SmiEnvironment::SingleUser,
+#endif					      
                                   parmFile, cout ) )
     {
       SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
@@ -1342,6 +1346,9 @@ If value 0 is returned, the command was executed without error.
 	     << TimeTest::diffReal() << ", " << TimeTest::diffCPU() << endl;
      )
   }
+  LOGMSG( "SI:ResultList",
+    cerr << endl << "### Result after copying: " << al->ToString(resultList) << endl;
+  )
   nl->initializeListMemory();
 
 }
@@ -1387,11 +1394,17 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
   name = "";
   algebraId = 0;
   typeId = 0;
+  //cout << al->reportTableStates() << endl;
+  //cout << "typeExpr: " << 
+  al->ToString(type); // without this an assertion in CTable fails ????
+
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
     // use application specific list memory
     ok = SecondoSystem::GetCatalog( level )->
            LookUpTypeExpr( al->CopyList(type,nl), name, algebraId, typeId );
+
+  //cout << al->reportTableStates() << endl;
 
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );

@@ -501,7 +501,7 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 
 */
 
-  const string& StateToStr(); 
+  const string StateToStr(); 
 
 /* 
 
@@ -582,11 +582,11 @@ CTable<T>::MemoryModel() {
 
 template<typename T>
 
-const string&
-StateToStr() {
+const string
+CTable<T>::StateToStr() {
 
   stringstream st;
-  st << "( elemCount=" << ElemCount 
+  st << "( elemCount=" << elemCount 
      << ", leastFree=" << leastFree
      << ", highestValid= " << highestValid << ends;
   

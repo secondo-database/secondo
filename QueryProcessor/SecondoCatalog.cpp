@@ -442,7 +442,8 @@ Precondition: dbState = dbOpen.
     cerr << " LookUpTypeExpr: database is closed!" << endl;
     return (false);
   }
-
+  
+  //cout << nl->reportTableStates() << endl;
   if ( nl->IsAtom( typeExpr ) )
   {
     first = typeExpr;

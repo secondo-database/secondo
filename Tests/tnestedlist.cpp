@@ -547,38 +547,38 @@ File [->] ListExpr [->] String [->] File
 
 */
 
+bool 
+TestFile(const string& fileBaseName, NestedList& nl) {
+
+   string fileIn = fileBaseName + ".nl";
+   string fileOut = filePrefix + fileBaseName + ".nl";
+   string fileBinOut = filePrefix + fileBaseName + ".bnl";
+
+   ListExpr list = nl.TheEmptyList();
+
+   cout << endl << "Reading " << fileIn << " ..." << endl;
+   nl.ReadFromFile( fileIn, list );
+   cout << endl << "Writing " << fileOut << " ..." << endl;
+   nl.WriteToFile( fileOut, list );
+
+   cout << endl << "Writing " << fileBinOut << " ..." << endl;
+ 
+   ofstream outFile2(fileBinOut.c_str(), ios::out|ios::trunc|ios::binary); 
+   nl.WriteBinaryTo(list, outFile2);   
+
+   outFile2.close();
+
+   return true;
+}
+
+
 void
 TestInputOutput() {
 
-
    NestedList nl(rf,1000,1000,1000,1000);
 
-   cout << endl << "Reading file geo ..." << endl;
-
-   ListExpr geoList = nl.TheEmptyList();
-   nl.ReadFromFile("geo.nl", geoList);
-
-   string fileBaseName = "";
-   string fileIn = ""; 
-   string fileOut = "";
-   string outname = "";
-
-   ListExpr list = 0;
-
-   fileIn = fileBaseName ="simpleList";
-   fileOut = filePrefix + fileBaseName;
-
-   cout << endl << "Reading " + fileIn+".nl" << endl;
-   nl.ReadFromFile( fileIn+".nl", list );
-   cout << endl << "Writing " + fileOut+".nl" << endl;
-   nl.WriteToFile( fileOut+".nl", list );
-
-   cout << endl << "Writing " + fileOut+".bnl" << endl;
-   outname = fileOut+".bnl";
-   ofstream outFile2(outname.c_str(), ios::out|ios::trunc|ios::binary); 
-   nl.WriteBinaryTo(list, outFile2);   
-
-   outFile2.close();  
+   TestFile("simpleList", nl); 
+   TestFile("geo", nl);
 
 }
 
