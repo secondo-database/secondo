@@ -1173,8 +1173,16 @@ Deletes all records having the given key.
 The function returns "true"[4] when the records were successfully deleted.
 
 */
+  bool DeleteRecord( PrefetchingIterator& iter );
+/*
+Deletes the record pointed to by the iterator ~iter~.
+
+The function returns "true"[4] when the record is successfully deleted.
+
+*/
  protected:
  private:
+  friend class PrefetchingIterator;
 };
 
 /**************************************************************************

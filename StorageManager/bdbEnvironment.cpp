@@ -59,6 +59,7 @@ using namespace std;
 #include <map>
 #include <sstream>
 #include <iomanip>
+#include <cassert>
 
 #include <db_cxx.h>
 #include "SecondoSMI.h"

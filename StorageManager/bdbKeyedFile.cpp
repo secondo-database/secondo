@@ -453,7 +453,19 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   }
   return (record.initialized);
 }
-  
+ 
+bool
+SmiKeyedFile::DeleteRecord( PrefetchingIterator& iter )
+{
+  int rc = ((PrefetchingIteratorImpl&)iter).GetCursor()->del( 0 );
+  if( rc == 0 )
+    SmiEnvironment::SetError( E_SMI_OK );
+  else
+    SmiEnvironment::SetError( E_SMI_RECORD_DELETE, rc );
+
+  return rc == 0;
+}
+ 
 bool
 SmiKeyedFile::DeleteRecord( const SmiKey& key )
 {

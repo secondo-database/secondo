@@ -49,6 +49,7 @@ using namespace std;
 #include <cctype>
 #include <cstring>
 #include <sstream>
+#include <cassert>
 
 #include <db_cxx.h>
 #include "SecondoSMI.h"
@@ -1327,6 +1328,11 @@ PrefetchingIteratorImpl::ReadCurrentRecordNumber(SmiRecordId& recordNumber)
 int PrefetchingIteratorImpl::ErrorCode()
 {
   return errorCode;
+}
+
+Dbc *PrefetchingIteratorImpl::GetCursor()
+{
+  return dbc;
 }
 
 /* --- bdbFile.cpp --- */
