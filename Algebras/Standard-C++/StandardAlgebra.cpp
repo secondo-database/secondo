@@ -1233,6 +1233,26 @@ CcMathTypeMapBool4( ListExpr args )
 }
 
 /*
+4.2.9 Type mapping function for the ~upper~ operator:
+
+string ---> string.
+
+*/
+
+static ListExpr
+CcStringMapCcString( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( TypeOfSymbol( arg1 ) == ccstring )
+      return (nl->SymbolAtom( "string" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 4.3 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -2638,6 +2658,36 @@ IsEmpty_s( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+4.18 Value mapping functions of operator ~upper~ 
+
+*/
+
+static int
+Upper( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  char * orgStr = (char*)((CcString*)args[0].addr)->GetStringval();
+  char newStr[256];
+  char *lastChar;  
+  
+  if( ((CcString*)args[0].addr)->IsDefined() )
+  {
+      strcpy(newStr, orgStr);
+      if (strlen(newStr)>0)
+      {
+           lastChar= newStr + strlen(newStr) -1;
+           *lastChar=*lastChar+1;
+       }
+      ((CcString *)result.addr)->Set( true, (STRING *)&newStr );
+  }
+  else
+  {
+      ((CcString *)result.addr)->Set( false, ((CcString*)args[0].addr)->GetStringval());
+  }
+  return (0);
+}
+
+/*
 1.10 Operator Model Mappings
 
 */
@@ -2784,6 +2834,7 @@ const string CCSpecNot  = "(<text> bool -> bool</text---><text> Logical Not. </t
 const string CCSpecAnd  = "(<text> (bool bool) -> bool</text---><text> Logical And. </text--->)";
 const string CCSpecOr   = "(<text> (bool bool) -> bool</text---><text> Logical Or. </text--->)";
 const string CCSpecIsEmpty   = "(<text> bool -> bool, int -> bool, real -> bool, string -> bool</text---><text> Returns whether the value is defined or not. </text--->)";
+const string CCSpecUpper   = "(<text> (string) -> string</text---><text> Returns a string immediately upper to the original one. </text--->)";
 
 Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
@@ -2805,6 +2856,14 @@ Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, SimpleSelect, CcMat
 Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
 Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
 Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, CcMathSelectIsEmpty, CcMathTypeMapBool4 );
+Operator ccuper(
+	"upper", 		//name
+	CCSpecUpper,         //specification
+	Upper,		//value mapping
+	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
+	SimpleSelect,		//trivial selection function 
+	CcStringMapCcString	//type mapping 
+);
 
 /*
 6 Class ~CcAlgebra~
@@ -2859,6 +2918,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccand );
     AddOperator( &ccor );
     AddOperator( &ccisempty );
+    AddOperator( &ccuper );
   }
   ~CcAlgebra1() {};
 };
