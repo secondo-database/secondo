@@ -7909,7 +7909,7 @@ const string SpatialSpecGreaterEqual  =
 
 const string SpatialSpecIntersects  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	"( <text>(geo x geo) -> bool </text--->"
+	"( <text>(point||points||line||region x point||points||line||region) -> bool </text--->"
 	"<text>_ intersects _</text--->"
 	"<text>Intersects.</text--->"
 	"<text>query region1 intersects region2</text--->"
@@ -7917,7 +7917,7 @@ const string SpatialSpecIntersects  =
 
 const string SpatialSpecInside  = 	
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-	"( <text>(geo x geoset) -> bool</text--->"
+	"( <text>(point||points||line||region x points||line||region) -> bool</text--->"
 	"<text>_ inside _</text--->"
 	"<text>Inside.</text--->"
 	"<text>query point1 inside line1</text--->"
@@ -7925,7 +7925,7 @@ const string SpatialSpecInside  =
 
 const string SpatialSpecOnBorder  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	"( <text>(point line or region) -> bool</text--->"
+	"( <text>(point x line||region) -> bool</text--->"
 	"<text>_ onborder _</text--->"
 	"<text>on endpoints or on border edges.</text--->"
 	"<text>query point onborder line</text--->"
@@ -7933,67 +7933,67 @@ const string SpatialSpecOnBorder  =
 			      
 const string SpatialSpecInInterior  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	   "( <text>(point line or region) -> bool</text--->"
-	     "<text>_ ininterior _</text--->"
-	     "<text>in interior of a line or region.</text--->"
-	     "<text>query point ininterior region</text--->"
-	     ") )";
+	"( <text>(point x line||region) -> bool</text--->"
+	"<text>_ ininterior _</text--->"
+	"<text>in interior of a line or region.</text--->"
+	"<text>query point ininterior region</text--->"
+	") )";
 
 const string SpatialSpecIntersection  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	   "( <text> (a b) -> a </text--->"
-	     "<text>_ intersection _</text--->"
-	     "<text>intersection of two sets.</text--->"
-	     "<text>query point intersection region</text--->"
-	     ") )";
+	"( <text> (point||points||line||region x point||points||line||region)"
+	"-> points||line||region</text--->"
+	"<text>_ intersection _</text--->"
+	"<text>intersection of two sets.</text--->"
+	"<text>query point intersection region</text--->"
+	") )";
 
 const string SpatialSpecMinus  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	   "( <text>(a b) ->a</text--->"
-	     "<text>_ minus _</text--->"
-	     "<text>minus of two sets.</text--->"
-	     "<text>query points minus point</text--->"
-	     ") )";
+	"( <text>(point||points||line||region x point||points||line||region)"
+	" -> point||points||line||region</text--->"
+	"<text>_ minus _</text--->"
+	"<text>minus of two sets.</text--->"
+	"<text>query points minus point</text--->"
+	") )";
 
 const string SpatialSpecUnion  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	   "( <text>(a b) ->c</text--->"
-	     "<text>_ union _</text--->"
-	     "<text>union of two sets.</text--->"
-	     "<text>query points union point</text--->"
-	     ") )";
+	"( <text>(point||points||line x point||points||line) -> points||line</text--->"
+	"<text>_ union _</text--->"
+	"<text>union of two sets.</text--->"
+	"<text>query points union point</text--->"
+	") )";
 
 const string SpatialSpecCrossings  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	   "( <text>(line line) ->points</text--->"
-	     "<text>_ crossings _</text--->"
-	     "<text>crossing points of two line.</text--->"
-	     "<text>query line1 crossings line2</text--->"
-	     ") )";
+	"( <text>(line x line) -> points</text--->"
+	"<text>_ crossings _</text--->"
+	"<text>crossing points of two line.</text--->"
+	"<text>query line1 crossings line2</text--->"
+	") )";
 
 const string SpatialSpecSingle  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	   "( <text>(points) ->point</text--->"
-	     "<text> single _</text--->"
-	     "<text>transform a single-element points value to "
-	     "point value.</text--->"
-	     "<text>query single points</text--->"
-	     ") )";
+	"( <text>(points) -> point</text--->"
+	"<text> single _</text--->"
+	"<text>transform a single-element points value to point value.</text--->"
+	"<text>query single points</text--->"
+	") )";
 
 const string SpatialSpecDistance  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	"( <text>(point x point) ->real</text--->"
+	"( <text>(point||points||line x point||points||line) -> real</text--->"
 	"<text> _distance _</text--->"
-	"<text>get the distance from a point to a spatial object."
-	"</text--->"
-	"<text>query distance(p, l)</text--->"
+	"<text>compute distance between two spatial objects.</text--->"
+	"<text>query distance(point, line)</text--->"
 	") )";
 
 const string SpatialSpecDirection  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	"( <text>(point x point) ->real</text--->"
+	"( <text>(point x point) -> real</text--->"
 	"<text> _direction _</text--->"
-	"<text>get the direction from a point to another point.</text--->"
+	"<text>compute the direction (0 - 360 degree) from one point to another point.</text--->"
 	"<text>query direction(p1, p2)</text--->"
 	") )";
 
@@ -8092,10 +8092,10 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
     AddOperator( &spatialnotequal );
-    AddOperator( &spatialless );
-    AddOperator( &spatiallessequal );
-    AddOperator( &spatialgreater );
-    AddOperator( &spatialgreaterequal );
+    //AddOperator( &spatialless );
+    //AddOperator( &spatiallessequal );
+    //AddOperator( &spatialgreater );
+    //AddOperator( &spatialgreaterequal );
     AddOperator( &spatialintersects );
     AddOperator( &spatialinside );
     AddOperator( &spatialonborder );
