@@ -16,12 +16,14 @@ makedirs:
 	$(MAKE) -C NestedLists
 	$(MAKE) -C Parser
 	$(MAKE) -C Utilities
+	$(MAKE) -C TupleManager
 
 .PHONY: clean
 clean:
 	$(MAKE) -C NestedLists clean
 	$(MAKE) -C Parser clean
 	$(MAKE) -C Utilities clean
+	$(MAKE) -C TupleManager clean
 
 else
 # Platform not specified
