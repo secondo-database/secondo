@@ -180,10 +180,11 @@ public MainWindow(String Title){
   HSplitPane.setDividerLocation(500);
   HSplitPane.setDividerSize(4);
 
-  addWindowListener(new WindowAdapter(){
+  this.addWindowListener(new WindowAdapter(){
        public void windowClosing(WindowEvent evt){
-        ComPanel.disconnect();
-        System.exit(0);
+          ComPanel.disableOptimizer();
+	  ComPanel.disconnect();
+	  System.exit(0);
        }
   });
 
@@ -650,6 +651,7 @@ public boolean execGuiCommand(String command){
   if(command.startsWith("exit")){
      setVisible(false);
      ComPanel.disconnect();
+     ComPanel.disableOptimizer();
      System.exit(0);
   } else
   if(command.startsWith("addViewer")){
@@ -1259,6 +1261,7 @@ private void createMenuBar(){
    MI_Close.addActionListener( new ActionListener(){
      public void actionPerformed(ActionEvent E){
         ComPanel.disconnect();
+	ComPanel.disableOptimizer();
         System.exit(0);
      }});
 
