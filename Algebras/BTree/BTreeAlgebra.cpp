@@ -35,7 +35,7 @@ namespace {
 
 static NestedList* nl;
 
-/* 
+/*
 
 Commenting out the following line prevents the usage
 of prefetching iterators in the btree algebra.
@@ -79,11 +79,11 @@ BTreeProp()
   "<attrname> is the key");
 
   return (nl->TwoElemList(
-            nl->TwoElemList(nl->StringAtom("Creation"), 
-			     nl->StringAtom("Example Creation")),    
-            nl->TwoElemList(examplelist, 
+            nl->TwoElemList(nl->StringAtom("Creation"),
+			     nl->StringAtom("Example Creation")),
+            nl->TwoElemList(examplelist,
 			     nl->StringAtom("(let mybtree = ten "
-			     "createbtree [no])"))));      
+			     "createbtree [no])"))));
 }
 
 /*
@@ -101,7 +101,7 @@ void AttrToKey(
   float floatval;
   int intval;
   string strval;
-  
+
   assert(attr->IsDefined());
   switch(keyType)
   {
@@ -288,7 +288,7 @@ public:
 
     if(received)
     {
-    
+
 #ifdef BTREE_PREFETCH
       fileIter->CurrentKey(smiKey);
 #endif /* BTREE_PREFETCH */
@@ -366,7 +366,7 @@ public:
       this->fileId = 0;
       this->keyType = keyType;
     }
-    
+
   }
 
   ~BTree()
@@ -443,7 +443,7 @@ public:
   {
     return file != 0 && keyType != SmiKey::Unknown;
   }
-  
+
   bool WriteTo(SmiRecord& record)
   {
     assert(file != 0);
@@ -461,38 +461,49 @@ public:
     return false;
   }
 
-  void SetPermanent() 
+  void SetPermanent()
   {
     isTemporary = false;
   }
 
-  void SetTemporary() 
+  void SetTemporary()
   {
     isTemporary = true;
   }
 
   bool SetTypeAndCreate(SmiKey::KeyDataType keyType)
   {
+
     assert(
       keyType == SmiKey::Integer
       || keyType == SmiKey::String
       || keyType == SmiKey::Float);
-    assert(this->keyType == SmiKey::Unknown);
-    assert(file == 0);
 
-    this->keyType = keyType;
-    isTemporary = true;
-    file = new SmiKeyedFile(keyType, false);
-    if(!file->Create())
+    if (file == 0)
     {
-      delete file;
-      file = 0;
-      fileId = 0;
-      this->keyType = SmiKey::Unknown;
-      return false;
+      assert(this->keyType == SmiKey::Unknown);
+
+      this->keyType = keyType;
+      isTemporary = true;
+      file = new SmiKeyedFile(keyType, false);
+      if(!file->Create())
+      {
+        delete file;
+        file = 0;
+        fileId = 0;
+        this->keyType = SmiKey::Unknown;
+        return false;
+      }
+      fileId = file->GetFileId();
+      return true;
     }
-    fileId = file->GetFileId();
-    return true;
+    else
+    {
+      this->keyType = keyType;
+      isTemporary = true;
+      Truncate();
+      return true;
+    }
   }
 
   bool Truncate()
@@ -506,7 +517,7 @@ public:
       return false;
     }
     while(iter.Next(record))
-    { 
+    {
       if(!file->DeleteRecord(record.GetKey()))
       {
         return false;
@@ -669,7 +680,7 @@ public:
     }
 #else
     iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectRange(leftSmiKey, rightSmiKey, 
+    if(!file->SelectRange(leftSmiKey, rightSmiKey,
       *iter, SmiFile::ReadOnly, true))
     {
       delete iter;
@@ -749,7 +760,7 @@ to program abort.
 Word InBTree(ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  assert(false);
+  correct = false;
   return SetWord(0);
 }
 
@@ -848,6 +859,7 @@ Word CloneBTree(const Word& w)
   }
   delete iter;
 
+  clone->SetPermanent();
   return SetWord( clone );
 }
 
@@ -874,7 +886,7 @@ bool CheckBTree(ListExpr type, ListExpr& errorInfo)
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rel")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom("btree")))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
@@ -884,7 +896,7 @@ bool CheckBTree(ListExpr type, ListExpr& errorInfo)
   else
   {
     errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("REL"), type));
+      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("BTREE"), type));
     return false;
   }
   return true;
@@ -970,7 +982,7 @@ OpenBTree( SmiRecord& valueRecord,
   {
     btree = new BTree(fileId, keyType);
   }
-  else 
+  else
     return false;
 
   if(btree->IsInitialized())
@@ -1032,7 +1044,7 @@ Word BTreeValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
 
 */
 TypeConstructor cppbtree( "btree",		BTreeProp,
-                          OutBTree,		InBTree,   
+                          OutBTree,		InBTree,
                           SaveToListBTree,      RestoreFromListBTree,
                           CreateBTree,		DeleteBTree,
 			  OpenBTree,		SaveBTree,
@@ -1161,7 +1173,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   {
     return -1;
   }
-  
+
   iter = relation->MakeNewScan();
   while(!iter->EndOfScan())
   {
@@ -1177,7 +1189,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   {
     cerr << "Warning, not all tuples could be inserted into btree." << endl;
   }
-  
+
   delete iter;
   btree->SetPermanent();
   return 0;
@@ -1427,7 +1439,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
                << "do not match." << endl;
           assert(false);
         }
-        
+
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1520,7 +1532,7 @@ Operator cpprange (
 const string LeftRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" ) "
                               "( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
-			      "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> " 
+			      "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
 			      "(stream"
 			      " (tuple ((x1 t1)...(xn tn))))</text--->"
 			      "<text>_ _ leftrange [ _ ]</text--->"

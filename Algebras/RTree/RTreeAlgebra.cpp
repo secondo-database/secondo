@@ -2049,7 +2049,7 @@ to program abort.
 Word InRTree(ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  assert(false);
+  correct = false;
   return SetWord(0);
 }
 
@@ -2107,7 +2107,7 @@ bool CheckRTree(ListExpr type, ListExpr& errorInfo)
 
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
-    && nl->Equal(nl->First(type), nl->SymbolAtom("rel")))
+    && nl->Equal(nl->First(type), nl->SymbolAtom("rtree")))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
@@ -2117,7 +2117,7 @@ bool CheckRTree(ListExpr type, ListExpr& errorInfo)
   else
   {
     errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("REL"), type));
+      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("RTREE"), type));
     return false;
   }
   return true;
