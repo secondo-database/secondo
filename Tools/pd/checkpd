@@ -18,7 +18,7 @@ else
    done
 fi
 
-TEMPDIR="$HOME/.checkpd"
+TEMPDIR="$PWD/.checkpd"
 HERE="$PWD"
 
 if [ ! -d "$TEMPDIR"  ]; then
@@ -71,9 +71,7 @@ do
 done
 
 cd "$HERE"
-if [ "$EXIST" = "FALSE" ]; then
-  rmdir  --ignore-fail-on-non-empty "$TEMPDIR"
-fi
+rm -rf "$TEMPDIR"
 
 SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$WARNINGS" - "$LATEXFAILED" )
 echo "Statistic:"
