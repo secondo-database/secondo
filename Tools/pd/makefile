@@ -13,7 +13,7 @@
 
 # The first line is used when compiling with FLEX and BISON
 # The second line when compiling with LEX and YACC
-LINKLIBS = -L /usr/local/lib -lfl 
+LINKLIBS = -L /usr/local/lib  -lfl 
 #LINKLIBS = -ll -ly
 
 # The first line is used when compiling with FLEX and BISON
@@ -65,7 +65,7 @@ TEMPORARYS = lex.yy.c \
 
 .PHONY all:	 
 all: $(OBJECTS) $(DOCU)
-	chmod ugo+x $(SCRIPTS)
+	@chmod ugo+x $(SCRIPTS)
 
 maketex: PDMaketex.c PDParser.y lex.yy.c PDNestedText.h PDParserDS.c PDNestedText.o   
 	$(YACC) PDParser.y
