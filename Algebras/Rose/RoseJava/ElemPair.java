@@ -4,7 +4,10 @@ class ElemPair {
   public Element second;
 
   //constructors
-  ElemPair(){};
+  ElemPair(){
+      first = null;
+      second = null;
+  };
 
   ElemPair(Element e1, Element e2) {
     first = (Element)e1.copy();
@@ -86,5 +89,12 @@ class ElemPair {
 	if (res == 0) res = this.second.compare(inPair.second);
 	return res;
     }//end method compare
+
+    public void twist () {
+	//twists first and second of this
+	Element swap = this.first;
+	this.first = this.second;
+	this.second = swap;
+    }//end method twist
 
 }//end class ElemPair

@@ -16,9 +16,6 @@ public class PointTri_Ops {
 	//System.out.println();
 	//System.out.println("\nentering PTO.inside...");
 	//p.print();
-
-	//Rational hxv = new Rational(t.vertices[0].x);
-	//Rational lxv = new Rational(t.vertices[0].x);
 	
 	
 	//does p lie on the border of t?
@@ -30,15 +27,15 @@ public class PointTri_Ops {
 	//find the highest x-value of t
 	//and find the lowest x-value of t
 	
-	Rational hxv = new Rational(t.rect().lr.x);
-	Rational lxv = new Rational(t.rect().ll.x);
+	Rational hxv = RationalFactory.constRational(t.rect().lr.x);
+	Rational lxv = RationalFactory.constRational(t.rect().ll.x);
 	
 	//build cutting segment
-	Rational help = new Rational(1);
+	Rational help = RationalFactory.constRational(1);
 	if ((hxv.plus(help)).equal(p.x)) { help = help.plus(1); }
 	Segment cut = new Segment(p,new Point(hxv.plus(help),p.y));
 	SegList sl = t.segments();
-	help = new Rational(1);
+	help = RationalFactory.constRational(1);
 	if ((lxv.minus(help)).equal(p.x)) { help = help.plus(1); }
 	Segment cut2 = new Segment(p,new Point(lxv.minus(help),p.y));
 	
@@ -93,11 +90,12 @@ public class PointTri_Ops {
   public static boolean liesOnBorder (Point p, Triangle t) {
     //returns true if p lies on one of t's segments or is equal to
     //one of t's vertices
-   
+      //System.out.println("entering PTO.liesOnBorder...");
+
       if (t.vertices[0].equal(p) ||
 	  t.vertices[1].equal(p) ||
 	  t.vertices[2].equal(p)) {
-	  //System.out.println("case1");
+	  //System.out.println("PTO.lOB: case1");
 	  return true;
       }//if
       
@@ -105,10 +103,11 @@ public class PointTri_Ops {
     if (PointSeg_Ops.liesOn(p,(Segment)sl.get(0)) ||
 	PointSeg_Ops.liesOn(p,(Segment)sl.get(1)) ||
 	PointSeg_Ops.liesOn(p,(Segment)sl.get(2))) {
-	//System.out.println("case2");
+	//System.out.println("PTO.lOB: case2");
       return true;
     }//if
     
+    //System.out.println("PTO.lOB: case 3");
     return false;
   }//end method liesOnBorder
 
@@ -127,7 +126,7 @@ public class PointTri_Ops {
 	//returns the distance between p and t
 	LinkedList distList = new LinkedList();
 	
-	if (inside(p,t)) return (new Rational(0));
+	if (inside(p,t)) return (RationalFactory.constRational(0));
 	for (int i = 0; i < 3; i++) { distList.add(PointSeg_Ops.dist(p,(Segment)t.segments().get(i))); }
 	Rational min = (Rational)distList.getFirst();
 	for (int i = 1; i < 3; i++) {

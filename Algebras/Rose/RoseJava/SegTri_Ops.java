@@ -196,8 +196,9 @@ class SegTri_Ops {
     public static boolean pintersects (Segment s, Triangle t) {
 	//returns true if the intersection is a line segment
 	//this is NOT true if s lies on the border of t
-	//CAUTION: untested method
-
+	//CAUTION: barely tested!
+	
+	//does any of the segment's endpoints lie inside of triangle?
 	boolean ssInsideT = PointTri_Ops.inside(s.startpoint,t);
 	boolean seInsideT = PointTri_Ops.inside(s.endpoint,t);
 
@@ -205,28 +206,21 @@ class SegTri_Ops {
 	    return true;
 	}//if
 
-	//boolean ssOnBorderT = PointTri_Ops.liesOnBorder(s.startpoint,t);
-	//boolean seOnBorderT = PointTri_Ops.liesOnBorder(s.endpoint,t);
-
-	if (overlapsBorder(s,t)) { return false; }
-
+	//no endpoint of segment lies inside of triangle
+	//check for intersection with trianlge's border
 	SegList sl = t.segments();
 	ListIterator lit = sl.listIterator(0);
 	Segment actSeg;
 	while (lit.hasNext()) {
 	    actSeg = (Segment)lit.next();
-	    if (s.pintersects(actSeg)) { return true; }
-	    /*
-	    if (s.intersects(actSeg) &&
-		!SegSeg_Ops.formALine(s,actSeg) &&
-		!PointSeg_Ops.liesOn(s.startpoint,actSeg) &&
-		!PointSeg_Ops.liesOn(s.endpoint,actSeg)) {
-		return true;
-	    }//if
-	    */	
+	    if (s.pintersects(actSeg)) { return true; }	
 	}//while
-	//last case: s lies fully inside of t and both endpoints are on
-	//t's borders
+
+	//does segment overlap triangle's border?
+	if (overlapsBorder(s,t)) { return false; }
+
+	//segment lies fully inside of t and both endpoints are on
+	//triangle's border
 	int count = 0;
 	lit = sl.listIterator(0);
 	while (lit.hasNext()) {
@@ -385,7 +379,7 @@ class SegTri_Ops {
 
     public static Rational dist (Segment s, Triangle t) {
 	//returns the distance between s and t
-	if (intersects(s,t)) { return (new Rational(0)); }
+	if (intersects(s,t)) { return (RationalFactory.constRational(0)); }
 	else {
 	    LinkedList distlist = new LinkedList();
 	    

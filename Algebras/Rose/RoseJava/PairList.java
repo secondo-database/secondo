@@ -18,9 +18,11 @@ class PairList extends LinkedList {
     public void print() {
 	if (this.isEmpty()) { System.out.println("list is empty"); }
 	for (int i = 0; i < this.size(); i++) {
-	    System.out.println("Element"+i);
-	    ((ElemPair)this.get(i)).first.print();
-	    ((ElemPair)this.get(i)).second.print();
+	    System.out.println("Element "+i);
+	    if (((ElemPair)this.get(i)).first != null) ((ElemPair)this.get(i)).first.print();
+	    else System.out.println("element is NULL");
+	    if (((ElemPair)this.get(i)).second != null)((ElemPair)this.get(i)).second.print();
+	    else System.out.println("element is NULL");
 	}//for i
     }//end method print
 

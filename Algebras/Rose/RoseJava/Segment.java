@@ -360,14 +360,14 @@ class Segment extends Element {
 	if (e instanceof Segment) {
 	    //Segment s = new Segment();
 	    Segment s = (Segment)e;
-	    if (SegSeg_Ops.formALine(this,s) || SegSeg_Ops.formASegment(this,s)) { return false; }
-	    
 	    if (PointSeg_Ops.liesOn(this.startpoint,s) ||
 		PointSeg_Ops.liesOn(this.endpoint,s) ||
 		PointSeg_Ops.liesOn(s.startpoint,this) ||
 		PointSeg_Ops.liesOn(s.endpoint,this)) {
 		return false;
 	    }//if
+
+	    if (SegSeg_Ops.formALine(this,s) || SegSeg_Ops.formASegment(this,s)) { return false; }
 	    
 	    //if this.object's endpoints lie on different sides of s and
 	    //s's endpoints lie on different sides of this.object then return true
@@ -402,8 +402,8 @@ class Segment extends Element {
     }//end method pintersects
     
 
-    public Point intersection(Segment inseg) {
-	//returns the intersection point of this.object and inseg
+    public Point intersection(Segment inseg) throws SegmentsDontIntersectException {
+	//returns the intersection point of this and inseg 
 	Point retPoint = new Point();
 	
 	if (this.intersects(inseg)) {
@@ -425,30 +425,45 @@ class Segment extends Element {
 	    p2 = inseg.startpoint;
 	    t2 = Mathset.diff(inseg.endpoint,inseg.startpoint); //System.out.print("t2: ");t2.print();
 	    
-	    if ((t2.y.equal(0) && t1.y.equal(0)) ||
-		((!(t2.y.equal(0)) && (t1.x.minus(t1.y.times(t2.x.dividedby(t2.y)))).equal(0)) &&
-		 (!(t1.y.equal(0)) && (t2.x.times(-1)).minus(t2.y.times(t1.x.dividedby(t1.y))).equal(0))))
+	    //System.out.println("p1: "); p1.print();
+	    //System.out.println("t1: "); t1.print();
+	    //System.out.println("p2: "); p2.print();
+	    //System.out.println("t2: "); t2.print();
+
+	    boolean t1yEQ0 = t1.y.equal(0);
+	    boolean t2yEQ0 = t2.y.equal(0);
+
+	    if ((t1yEQ0 && t2yEQ0) ||
+		((!(t2yEQ0) && (t1.x.minus(t1.y.times(t2.x.dividedby(t2.y)))).equal(0)) &&
+		 (!(t1yEQ0) && (t2.x.times(-1)).minus(t2.y.times(t1.x.dividedby(t1.y))).equal(0))))
 		{
-		    System.out.println("ERROR! Can't deny division by zero! (Segment.class)");
+		    System.out.println("Segment.intersection: Can't deny division by zero!");
+		    System.out.println("Segments:");
+		    this.print();
+		    inseg.print();
+		    System.out.println("intersects(s1,s2) = "+this.pintersects(inseg));
 		    System.exit(0);
 		}//if
 	    
 	    //compute r
-	    if (!(t2.y.equal(0)) && !(t1.x.minus(t1.y.times(t2.x.dividedby(t2.y))).equal(0))) {
-		r = ((p2.x.minus(p1.x)).minus((p2.y.minus(p1.y)).times(t2.x.dividedby(t2.y)))).dividedby(t1.x.minus(t1.y.times(t2.x.dividedby(t2.y)))); //System.out.println("r: "+r);
+	    if (!(t2yEQ0) && !(t1.x.minus(t1.y.times(t2.x.dividedby(t2.y))).equal(0))) {
+		r = ((p2.x.minus(p1.x)).minus((p2.y.minus(p1.y)).times(t2.x.dividedby(t2.y)))).dividedby(t1.x.minus(t1.y.times(t2.x.dividedby(t2.y))));
+		//System.out.println("r: "+r);
 		retPoint.x = p1.x.plus(r.times(t1.x));
 		retPoint.y = p1.y.plus(r.times(t1.y));
 	    }//if
 	    else {
 		//compute s
-		s = ((p2.x.minus(p1.x)).minus((p2.y.minus(p1.y)).times(t1.x.dividedby(t1.y)))).dividedby(((t2.x.times(-1)).minus(t2.y.times(t1.x.dividedby(t1.y))))); //System.out.println("s: "+s);
+		s = ((p2.x.minus(p1.x)).minus((p2.y.minus(p1.y)).times(t1.x.dividedby(t1.y)))).dividedby(((t2.x.times(-1)).minus(t2.y.times(t1.x.dividedby(t1.y)))));
+		//System.out.println("s: "+s);
 		retPoint.x = p2.x.plus(s.times(t2.x));
 		retPoint.y = p2.y.plus(s.times(t2.y));
 	    }//else   
 	}//if
 	else {
-	    System.out.println("ERROR (Segment.intersection())! Segments don't intersect.");
-	    System.exit(0);
+	    this.print();
+	    inseg.print();
+	    throw new SegmentsDontIntersectException("Segment.intersection: Segments don't intersect.");
 	}//else
 	return retPoint;
     }//end method intersection
@@ -478,7 +493,7 @@ class Segment extends Element {
 	if (e instanceof Segment) {
 	    Segment s = (Segment)e;
 	    LinkedList distlist = new LinkedList();
-	    Rational min = new Rational(0);//must be initialized
+	    Rational min = RationalFactory.constRational(0);//must be initialized
 	    if ((!s.intersects(this)) &&
 		(!s.equal(this)) &&
 		(!SegSeg_Ops.formALine(s,this))) {

@@ -32,132 +32,231 @@ public class GFXout extends JApplet {
     f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
   }//end method init
   
-  public static void showIt(){
-    //shows the main window and draws all segments
+    public static void showIt(){
+	//shows the main window and draws all segments
+	
+	/* new implementation of showIt */
+	/* relative to the screen's resolution */
+	
+	if (elemList.isEmpty()) {
+	    System.out.println("GFXout.showIt: No elements to show.");
+	    return;
+	}//if
 
-      if (elemList.isEmpty()) {
-	  System.out.println("GFXout.showIt: No elements to show.");
-	  System.exit(0);
-      }//if
+	elemList = elemList.copy();
 
-      //add point (0,0)
-      elemList.addFirst(new Segment(-10,0,10,0));
-      elemList.addFirst(new Segment(0,-10,0,10));
-      //elemList.addFirst(new Point(0,0));
-      
-    //find max x/y-values
+	//add cross for origin at (0,0)
+	elemList.addFirst(new Segment(-10,0,10,0));
+	elemList.addFirst(new Segment(0,-10,0,10));
 
-      Rational maxX = new Rational(0);
-      Rational maxY = new Rational(0);
-      Rational minX = new Rational(0);
-      Rational minY = new Rational(0);
-      
-      maxX = ((Element)(elemList.getFirst())).rect().lr.x;
-      maxY = ((Element)(elemList).getFirst()).rect().ul.y;
-      minX = ((Element)(elemList).getFirst()).rect().ll.x;
-      minY = ((Element)(elemList).getFirst()).rect().ll.y;
-      for (int i = 0; i < (elemList).size(); i++) {
-	  Element e = (Element)(elemList).get(i);
-	  if (e.rect().lr.x.greater(maxX)) { maxX = e.rect().lr.x.copy(); }
-	  if (e.rect().ul.y.greater(maxY)) { maxY = e.rect().ul.y.copy(); }
-	  if (e.rect().ll.x.less(minX)) { minX = e.rect().ll.x.copy(); }
-	  if (e.rect().ll.x.less(minY)) { minY = e.rect().ll.x.copy(); }
-      }//for i
-      Point trans = new Point((new Rational(100)).plus(minX.abs()),(new Rational(-100)).plus(minY.abs()));
-      //System.out.println("trans:"); trans.print();
-      //trans.set(trans.x.plus(trans.x.times(new Rational(0.25))),trans.y.plus(trans.y.times(new Rational(0.25))));
+	//find maxX,maxY values
+	Rational maxX = ((Element)(elemList.getFirst())).rect().lr.x;
+	Rational maxY = ((Element)(elemList.getFirst())).rect().ul.y;
+	Rational minX = ((Element)(elemList.getFirst())).rect().ll.x;
+	Rational minY = ((Element)(elemList.getFirst())).rect().ll.y;
+	
+	ListIterator lit = elemList.listIterator(0);
+	while (lit.hasNext()) {
+	    Element e = (Element)lit.next();
+	    if (e.rect().lr.x.greater(maxX)) maxX = e.rect().lr.x.copy();
+	    if (e.rect().ul.y.greater(maxY)) maxY = e.rect().ul.y.copy();
+	    if (e.rect().ll.x.less(minX)) minX = e.rect().ll.x.copy();
+	    if (e.rect().ll.y.less(minY)) minY = e.rect().ll.y.copy();
+	}//while
 
-      System.out.println("maxX/maxY: "+maxX.toString()+"/"+maxY.toString());
-      System.out.println("minX/minY: "+minX.toString()+"/"+minY.toString());
-      System.out.println("elemList has "+(((LinkedList)elemList).size()-2)+" elements");
-    //put the drawings in the middle
-	  
-    //maxX = maxX.plus(maxX.times(new Rational(0.25)));
-    //maxY = maxY.plus(maxY.times(new Rational(0.25)));
-    //minX = minX.minus(minX.times(new Rational(0.25)));
-    //minY = minY.minus(minY.times(new Rational(0.25)));
-      //Rational mod = new Rational(100);
-      //maxX = maxX.plus(mod);
-      //maxY = maxY.plus(mod);
-      //minX = minX.minus(mod);
-      //minY = minY.minus(mod);
-      //System.out.println("new maxX/maxY: "+maxX.toString()+"/"+maxY.toString());
-      //System.out.println("new minX/minY: "+minX.toString()+"/"+minY.toString());
-      //System.out.println("maxY: "+maxY);
-      maxY = maxY.abs();
-      //System.out.println("maxY(abs): "+maxY);
-      maxY = maxY.plus(trans.y); //System.out.println("maxY(trans): "+maxY);
-      maxY = maxX.plus(trans.x); //System.out.println("maxX(trans): "+maxX);
-    //convert segmentlist
-      for (int i = 0; i < elemList.size(); i++) {
-	  Element e = (Element)elemList.get(i);
-	  if (e instanceof Point) {
-	      elemList.set(i,Mathset.sum((Point)e,trans));
-	      ((Point)(elemList).get(i)).y =
-		  maxY.minus(((Point)(elemList).get(i)).y);
-	      //elemList.set(i,Mathset.sum((Point)e,trans));
-	  }//if
-	  if (e instanceof Segment) {
-	      //((Segment)(elemList).get(i)).print();
-	      elemList.set(i,((Segment)e).set(Mathset.sum(((Segment)e).startpoint,trans),Mathset.sum(((Segment)e).endpoint,trans)));
-	      //((Segment)(elemList).get(i)).print();
-	      //System.out.println("maxY: "+maxY);
-	      ((Segment)(elemList).get(i)).startpoint.y =
-		  maxY.minus(((Segment)(elemList).get(i)).startpoint.y);
-	      ((Segment)(elemList).get(i)).endpoint.y =
-		  maxY.minus(((Segment)(elemList).get(i)).endpoint.y);
-	      //((Segment)elemList.get(i)).print();
-	      //elemList.set(i,((Segment)e).set(Mathset.sum(((Segment)e).startpoint,trans),Mathset.sum(((Segment)e).endpoint,trans)));
-	      //((Segment)elemList.get(i)).print();
-	  }//if
-	  if (e instanceof Triangle) {
-	      Triangle t = (Triangle)(elemList).get(i);
-	      elemList.set(i,((Triangle)e).set(Mathset.sum(((Triangle)e).vertices[0],trans),
-					       Mathset.sum(((Triangle)e).vertices[1],trans),
-					       Mathset.sum(((Triangle)e).vertices[2],trans)));
-	      Triangle nt = new Triangle(new Point(t.vertices()[0].x,maxY.minus(t.vertices()[0].y)),
-					 new Point(t.vertices()[1].x,maxY.minus(t.vertices()[1].y)),
-					 new Point(t.vertices()[2].x,maxY.minus(t.vertices()[2].y)));
-	      ((LinkedList)elemList).set(i,nt);
-	      //elemList.set(i,((Triangle)e).set(Mathset.sum(((Triangle)e).vertices[0],trans),
-	      //		     Mathset.sum(((Triangle)e).vertices[1],trans),
-	      //		     Mathset.sum(((Triangle)e).vertices[2],trans)));
-	  }//if
-	  if (e instanceof Polygons) {
-	      Polygons p = (Polygons)(elemList).get(i);
-	      TriList tl = p.triangles();
-	      for (int j = 0; j < tl.size(); j++) {
-		  Triangle t = (Triangle)tl.get(j);
-		  t.set(Mathset.sum(t.vertices[0],trans),Mathset.sum(t.vertices[1],trans),Mathset.sum(t.vertices[2],trans));
-		  Triangle tn = new Triangle(new Point(t.vertices()[0].x,maxY.minus(t.vertices()[0].y)),
-					     new Point(t.vertices()[1].x,maxY.minus(t.vertices()[1].y)),
-					     new Point(t.vertices()[2].x,maxY.minus(t.vertices()[2].y)));
-		  tl.set(j,tn);
-	      }//for j
-	      Polygons np = new Polygons(tl);
-	      ((LinkedList)elemList).set(i,np);
-	  }//if
-      }//for i
+	//must objects be moved?
+	boolean move = false;
+	Rational moveX = null;
+	Rational moveY = null;
+	Rational borderMove = RationalFactory.constRational(10); //10 pixels as a border
+	if (minX.less(0)) {
+	    move = true;
+	    moveX = minX.copy().abs();
+	}//if
+	else moveX = RationalFactory.constRational(0);
+	if (minY.less(0)) {
+	    move = true;
+	    moveY = minY.copy().abs();
+	}//if
+	else moveY = RationalFactory.constRational(0);
+	moveX = moveX.plus(borderMove);
+	moveY = moveY.plus(borderMove);
+	
+	System.out.println("move: "+move+", moveX: "+moveX+", moveY: "+moveY);
+
+	System.out.println("maxX/maxY: "+maxX.toString()+"/"+maxY.toString());
+	System.out.println("minX/minY: "+minX.toString()+"/"+minY.toString());
+	System.out.println("elemList.size(): "+elemList.size());
+	System.out.println(elemList.size()-2+" element(s) to show.");
+
+	//compute transX, transY, trans
+	
+	//get resolution
+	Toolkit tk = Toolkit.getDefaultToolkit();
+	Dimension dim = tk.getScreenSize();
+	Rational dimX = RationalFactory.constRational(dim.getWidth());
+	Rational dimY = RationalFactory.constRational(dim.getHeight());
+	
+	Rational transX;
+	Rational transY;
+	Rational trans;
+	Rational tenPercentX = dimX.times(10).dividedby(100);
+	Rational tenPercentY = dimY.times(10).dividedby(100);
+	Rational borderX = RationalFactory.constRational(dimX.minus(tenPercentX));
+	Rational borderY = RationalFactory.constRational(dimY.minus(tenPercentY));
+
+	System.out.println("borderX: "+borderX+", borderY: "+borderY);
+
+	transX = borderX.dividedby(maxX.minus(minX));
+	System.out.println("transX = "+borderX+" / ("+maxX+" - "+minX+") = "+transX);
+	transY = borderY.dividedby(maxY.minus(minY));
+	//transX = (dimX.minus(borderX)).dividedby(maxX.minus(minX));
+	//transY = (dimY.minus(borderY)).dividedby(maxY.minus(minY));
+
+	if (transX.comp(transY) == -1) trans = transX;
+	else trans = transY;
+	trans = trans.times(90).dividedby(100);
+	trans.round(0);
+	
+	//trans = RationalFactory.constRational(1);
+
+	System.out.println("transX: "+transX+", transY: "+transY+", trans: "+trans);
+
+	//transpose the elements
+	lit = elemList.listIterator(0);
+	Element e = null;
+	if (move) {
+	    maxX = maxX.plus(moveX).plus(10);
+	    maxY = maxY.plus(moveY).plus(10);
+	}//if
+	System.out.println("new maxX: "+maxX+" new maxY: "+maxY);
+	//System.out.println("+++++ transposition +++++");
+	while (lit.hasNext()) {
+	    e = (Element)lit.next();
+	    
+	    if (e instanceof Point) {
+		//System.out.println("Point(I): "); e.print();
+		//move point
+		if (move) ((Point)e).set(((Point)e).x.plus(moveX),((Point)e).y.plus(moveY));
+		//System.out.println("Point(II): "); e.print();
+		//invert y-value
+		((Point)e).set(((Point)e).x,maxY.minus(((Point)e).y));
+		//transpose point
+		//System.out.println("Point(III): "); e.print();
+		((Point)e).set(((Point)e).x.times(trans),((Point)e).y.times(trans));
+		//System.out.println("Point(IV): "); e.print();		
+	    }
+
+	    if (e instanceof Segment) {
+		//System.out.println("Segment(I): "); e.print();
+		//move segment
+		if (move) ((Segment)e).set(((Segment)e).startpoint.set(((Segment)e).startpoint.x.plus(moveX),
+								       ((Segment)e).startpoint.y.plus(moveY)),
+					   ((Segment)e).endpoint.set(((Segment)e).endpoint.x.plus(moveX),
+								     ((Segment)e).endpoint.y.plus(moveY)));
+		//System.out.println("Segment(II): "); e.print();
+		//invert y-value
+		((Segment)e).set(((Segment)e).startpoint.set(((Segment)e).startpoint.x,
+							     maxY.minus(((Segment)e).startpoint.y)),
+				 ((Segment)e).endpoint.set(((Segment)e).endpoint.x,
+							   maxY.minus(((Segment)e).endpoint.y)));
+		//System.out.println("Segment(III): "); e.print();
+		//transpose segment
+		((Segment)e).set(((Segment)e).startpoint.set(((Segment)e).startpoint.x.times(trans),
+							     ((Segment)e).startpoint.y.times(trans)),
+				 ((Segment)e).endpoint.set(((Segment)e).endpoint.x.times(trans),
+							   ((Segment)e).endpoint.y.times(trans)));
+		//System.out.println("Segment(IV): "); e.print();
+	    }//if
+	    
+	    if (e instanceof Triangle) {
+		//System.out.println("Triangle(I): "); e.print();
+		//move triangle
+		((Triangle)e).set(((Triangle)e).vertices[0].set(((Triangle)e).vertices[0].x.plus(moveX),
+								((Triangle)e).vertices[0].y.plus(moveY)),
+				  ((Triangle)e).vertices[1].set(((Triangle)e).vertices[1].x.plus(moveX),
+								((Triangle)e).vertices[1].y.plus(moveY)),
+				  ((Triangle)e).vertices[2].set(((Triangle)e).vertices[2].x.plus(moveX),
+								((Triangle)e).vertices[2].y.plus(moveY)));
+		//System.out.println("Triangle(II): "); e.print();
+		//invert y-value
+		((Triangle)e).set(((Triangle)e).vertices[0].set(((Triangle)e).vertices[0].x,
+								maxY.minus(((Triangle)e).vertices[0].y)),
+				  ((Triangle)e).vertices[1].set(((Triangle)e).vertices[1].x,
+								maxY.minus(((Triangle)e).vertices[1].y)),
+				  ((Triangle)e).vertices[2].set(((Triangle)e).vertices[2].x,
+								maxY.minus(((Triangle)e).vertices[2].y)));
+		//System.out.println("Triangle(III): "); e.print();
+		//transpose triangle
+		((Triangle)e).set(((Triangle)e).vertices[0].set(((Triangle)e).vertices[0].x.times(trans),
+								((Triangle)e).vertices[0].y.times(trans)),
+				  ((Triangle)e).vertices[1].set(((Triangle)e).vertices[1].x.times(trans),
+								((Triangle)e).vertices[1].y.times(trans)),
+				  ((Triangle)e).vertices[2].set(((Triangle)e).vertices[2].x.times(trans),
+								((Triangle)e).vertices[2].y.times(trans)));
+		//System.out.println("Triangle(IV): "); e.print();
+	    }//if
+
+	    if (e instanceof Polygons) {
+		ListIterator lit2 = ((Polygons)e).trilist.listIterator(0);
+		Triangle t;
+		while (lit2.hasNext()) {
+		    t = (Triangle)lit2.next();
+		    //move polygons
+		    t.set(t.vertices[0].set(t.vertices[0].x.plus(moveX),
+					    t.vertices[0].y.plus(moveY)),
+			  t.vertices[1].set(t.vertices[1].x.plus(moveX),
+					    t.vertices[1].y.plus(moveY)),
+			  t.vertices[2].set(t.vertices[2].x.plus(moveX),
+					    t.vertices[2].y.plus(moveY)));
+		    //invert y-value
+		    t.set(t.vertices[0].set(t.vertices[0].x,
+					    maxY.minus(t.vertices[0].y)),
+			  t.vertices[1].set(t.vertices[1].x,
+					    maxY.minus(t.vertices[1].y)),
+			  t.vertices[2].set(t.vertices[2].x,
+					    maxY.minus(t.vertices[2].y)));
+		}//while
+	    }//if
+	}//while
+
+		//find maxX,maxY values
+	Rational newMaxX = ((Element)(elemList.getFirst())).rect().lr.x;
+	Rational newMaxY = ((Element)(elemList.getFirst())).rect().ul.y;
+	Rational newMinX = ((Element)(elemList.getFirst())).rect().ll.x;
+	Rational newMinY = ((Element)(elemList.getFirst())).rect().ll.y;
+	
+	lit = elemList.listIterator(0);
+	while (lit.hasNext()) {
+	    e = (Element)lit.next();
+	    if (e.rect().lr.x.greater(newMaxX)) newMaxX = e.rect().lr.x.copy();
+	    if (e.rect().ul.y.greater(newMaxY)) newMaxY = e.rect().ul.y.copy();
+	    if (e.rect().ll.x.less(newMinX)) newMinX = e.rect().ll.x.copy();
+	    if (e.rect().ll.y.less(newMinY)) newMinY = e.rect().ll.y.copy();
+	}//while
+	    
+	ShapeSeg shapeSeg = new ShapeSeg(elemList);
+	shapeSeg.init();
+	f.getContentPane().add(shapeSeg, BorderLayout.CENTER);
+	//f.setSize(new Dimension(borderX.getInt(), borderY.getInt()));
+	f.setSize(new Dimension(newMaxX.plus(newMaxX.times(10).dividedby(100)).getInt(),
+				newMaxY.plus(newMaxY.times(10).dividedby(100)).getInt()));
+	System.out.println("frameSize: "+borderX.getInt()+" * "+borderY.getInt());
+	//System.out.println("\nelementlist:"); elemList.print();
+	f.setVisible(true);
+	
+    }//end method showIt
     
-    ShapeSeg shapeSeg = new ShapeSeg(elemList);
-    shapeSeg.init();
-    f.getContentPane().add(shapeSeg, BorderLayout.CENTER);
-    maxX = maxX.plus(trans.x).plus(new Rational(200));
-    maxY = maxY.plus(trans.y).plus(new Rational(400));
-    f.setSize(new Dimension(maxX.getInt(), maxY.getInt()));
-    f.setVisible(true);
-  }//end method show
-
 
     public static void kill(){
 	f.dispose();
     }
-
-  private static void initList(){
-    //initiates the segment list
-      LinkedList elemList = new ElemList();
-  }//end method initList
-
+    
+    private static void initList(){
+	//initiates the segment list
+	LinkedList elemList = new ElemList();
+    }//end method initList
+    
 
   public static void add(Element e){
     //accepts Element as input and decides which method to call

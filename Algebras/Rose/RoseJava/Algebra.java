@@ -4,7 +4,7 @@ import java.lang.reflect.*;
 public class Algebra {
 
   //variables
-    static final Rational deriv = new Rational(0.00000000001); //allowed derivation for comparisons to be equal
+    //static final Rational deriv = new Rational(0.00000000001); //allowed derivation for comparisons to be equal
     //this is used in: Rational,...
     //static final Rational deriv2 = new Rational(0.000000000005); //used in Mathset...
 
@@ -969,7 +969,7 @@ public class Algebra {
     public static Rational pp_dist (PointList pl1, PointList pl2) {
 	//comment missing
 
-	Rational retVal = new Rational(0);
+	Rational retVal = RationalFactory.constRational(0);
 	Class c = pointClass;
 	Class[] paramList = new Class[1];
 
@@ -990,7 +990,7 @@ public class Algebra {
     public static Rational pl_dist (PointList pl, SegList sl) {
 	//comment missing
 
-	Rational retVal = new Rational(0);
+	Rational retVal = RationalFactory.constRational(0);
 	Class c = psOpsClass;
 
 	try {
@@ -1009,7 +1009,7 @@ public class Algebra {
     public static Rational pr_dist (PointList pl, TriList tl) {
 	//comment missing
 
-	Rational retVal = new Rational(0);
+	Rational retVal = RationalFactory.constRational(0);
 	Class c = ptOpsClass;
 
 	try {
@@ -1035,7 +1035,7 @@ public class Algebra {
     public static Rational ll_dist (SegList sl1, SegList sl2) {
 	//comment missing
 
-	Rational retVal = new Rational(0);
+	Rational retVal = RationalFactory.constRational(0);
 	Class c = segClass;
 	Class[] paramList = new Class[1];
 
@@ -1056,7 +1056,7 @@ public class Algebra {
     public static Rational lr_dist (SegList sl, TriList tl) {
 	//comment missing
 
-	Rational retVal = new Rational(0);
+	Rational retVal = RationalFactory.constRational(0);
 	Class c = stOpsClass;
 
 	try {
@@ -1089,7 +1089,7 @@ public class Algebra {
     public static Rational rr_dist (TriList tl1, TriList tl2) {
 	//comment missing
 
-	Rational retVal = new Rational(0);
+	Rational retVal = RationalFactory.constRational(0);
 	Class c = triClass;
 	Class[] paramList = new Class[1];
 	
@@ -1110,7 +1110,7 @@ public class Algebra {
     public static Rational p_diameter (PointList pl) {
 	//comment missing
 
-	Rational retVal = new Rational(0);
+	Rational retVal = RationalFactory.constRational(0);
 	Class c = pointClass;
 	Class[] paramList = new Class[1];
 

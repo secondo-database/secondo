@@ -1,22 +1,74 @@
+import java.util.LinkedList;
+import java.util.ListIterator;
+
 class ConnectedComponentsPair {
+    //This data structure represents the connected components of a graph.
+    //It consists of two lists. The first list is an LinkedList named compVertices, 
+    //which has a lists of vertices belonging to one connected component (cc) as elements.
+    //The second list is a LinkedList named compEdges, which consists of lists of
+    //edges belonging to the cc's.
+    //
+    //actually, the data structures look as follows:
+    //compVertice:
+    //ListOfVertices-ListOfVertices-ListOfVertices, so we have three cc's here
+    //compEdges:
+    //ListOfEdges-ListOfEdges-ListOfEdges, and we have also three cc's here
 
     //members
-    ElemListList compVertices;
-    PairListList compEdges;
+    LinkedList compVertices;
+    LinkedList compEdges;
 
     //constructors
     ConnectedComponentsPair() {
-	this.compVertices = new ElemListList();
-	this.compEdges = new PairListList();
+	this.compVertices = new LinkedList();
+	this.compEdges = new LinkedList();
     }
 
-    ConnectedComponentsPair(ElemListList v, PairListList e) {
+    ConnectedComponentsPair(LinkedList v, LinkedList e) {
 	this.compVertices = v;
 	this.compEdges = e;
     }
 
     //methods
+    public void print() {
+	System.out.println("\nconnected components");
+	System.out.println("vertices:");
+	for (int i = 0; i < compVertices.size(); i++) {
+	    System.out.println("component "+i);
+	    LinkedList actComp = (LinkedList)compVertices.get(i);
+	    for (int j = 0; j < actComp.size(); j++) {
+		((Vertex)actComp.get(j)).print();
+	    }
+	}//for i
+	System.out.println("\nedges:");
+	for (int i = 0; i < compEdges.size(); i++) {
+	    System.out.println("component "+i);
+	    LinkedList actComp = (LinkedList)compEdges.get(i);
+	    for (int j = 0; j < actComp.size(); j++)
+		((Edge)actComp.get(j)).print();
+	}//for i
+    }//print
 
+    
+    public ElemListList verticesToElemListList() {
+	//extracts the data from LinkedList and returns it as ElemListList
+	ListIterator lit1 = compVertices.listIterator(0);
+	ListIterator lit2;
+	LinkedList actCC;
+	//Vertex actV;
+	ElemList actEL;
+	ElemListList retList = new ElemListList();
+	
+	while (lit1.hasNext()) {
+	    actCC = (LinkedList)lit1.next();
+	    lit2 = actCC.listIterator(0);
+	    actEL = new ElemList();
+	    while (lit2.hasNext()) actEL.add(((Vertex)lit2.next()).value);
+	    retList.add(actEL);
+	}//while
+
+	return retList;
+    }//end method verticesToElemListList
 
 
 }//end class ConnectedComponentsPair

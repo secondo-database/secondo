@@ -12,7 +12,10 @@ class SetOps {
     
     //methods
     public static ElemList subtractRemove (ElemList el1, ElemList el2, Method predicate, Method  method) {
-	//...
+	//For the (initially only) element in el1 and an elemlist el2 it is checked for all pairs of el1/elx(of el2),
+	//whether predicate holds. If true, method is applied on both. This method is used to
+	//remove overlapping elements (in el2) from el1
+	//The method exits, when no more pair el1/elx(of el2) with predicate = true exists.
 
 	//System.out.println("\nentering SO.subtractRemove...");
 	//System.out.println("el1: "); el1.print();
@@ -30,10 +33,10 @@ class SetOps {
 	ListIterator lit2;
 	Element actEl1;
 	Element actEl2;
-
+	/* old implementation
 	do {
 	    stillExist = false;
-	    //System.out.println("\nsize retList:"+retList.size()+", size el2:"+el2.size());
+	    System.out.println("\nsize retList:"+retList.size()+", size el2:"+el2.size());
 	    lit1 = retList.listIterator(0); 
 	    //for (int i = 0; i < retList.size(); i++) {
 	    while (lit1.hasNext()) {
@@ -54,15 +57,7 @@ class SetOps {
 			paramListP[1] = actEl2;
 		    }//else
 		    try {
-			isTrue = ((Boolean)predicate.invoke(actEl1,paramListP)).booleanValue();
-			/*
-			  if (!isTrue) {
-			  System.out.println("\n+++++\nchecked for predicate..."+isTrue);
-			  if (!isTrue) { System.out.println("linDep:"+Mathset.linearly_dependent((Segment)actEl1,(Segment)actEl2)+", formALin:"+SegSeg_Ops.formALine((Segment)actEl1,(Segment)actEl2)); }
-			  actEl1.print();
-			  actEl2.print();System.out.println("+++++\n");
-			  }//if
-			*/
+			isTrue = ((Boolean)predicate.invoke(actEl1,paramListP)).booleanValue();	
 		    }//try
 		    catch (Exception e) {
 			System.out.println("Exception: "+e.getClass()+" ---"+e.getMessage());
@@ -109,13 +104,91 @@ class SetOps {
 	    }//for i
 	}//do
 	while (stillExist);
-	/*
-	if (!retList.isEmpty()) {
-	    System.out.println("retList is not empty:");
-	    retList.print();
-	    System.exit(0); }
-	*/
 	//System.out.println("leaving SO.subtractRemove.");
+	return retList;
+*/
+
+	/* new implementation of subtractRemove:
+	   the outer loop now controls the traversal of el2
+	*/
+	do {
+	    //System.out.println("\nsize retList:"+retList.size()+", size el2:"+el2.size());
+	    //System.out.println("remaining elements in el2:"); el2.print();
+	    stillExist = false;
+	    lit2 = el2.listIterator(0);
+	    while (lit2.hasNext()) {
+		//get first element of el2
+		actEl2 = (Element)lit2.next();
+		isTrue = false;
+		lit1 = retList.listIterator(0);
+		//now check all elements of retList for
+		//predicate(actEl2,actEl1)=true
+		while (lit1.hasNext()) {
+		    actEl1 = (Element)lit1.next();
+		    //if predicate has one argument
+		    if (paramTypeCountPred == 1) {
+			paramListP[0] = actEl2; }
+		    //if predicate has two arguments
+		    else {
+			paramListP[0] = actEl1;
+			paramListP[1] = actEl2;
+		    }//else
+
+		    //compute boolean value for predicate
+		    try {
+			//System.out.println("--->check for predicate:");
+			//actEl1.print(); actEl2.print();
+			isTrue = ((Boolean)predicate.invoke(actEl1,paramListP)).booleanValue();
+			//System.out.println("result of predicate: "+isTrue);
+		    }//try
+		    catch (Exception e) {
+			System.out.println("Exception in SetOps.subtractRemove when computing boolean value:");
+			System.out.println("Exception type: "+e.getClass()+" --- "+e.getMessage());
+			System.exit(0);
+		    }//catch
+
+		    if (isTrue) {
+			//if method has one argument
+			if (paramTypeCountMet == 1) {
+			    paramListM[0] = actEl2; }
+			//if method has two arguments
+			else {
+			    paramListM[0] = actEl1;
+			    paramListM[1] = actEl2;
+			}//else
+			
+			//compute resulting list
+			//System.out.println("--> method is invoked on:");
+			//actEl1.print(); actEl2.print();
+			try {
+			    mreturn = (ElemList)(method.invoke(actEl1,paramListM));
+			}//try
+			catch (Exception e) {
+			    System.out.println("Exception in SetOps.subtractRemove when computing mreturn");
+			    System.out.println("Exception type: "+e.getClass()+" --- "+e.getMessage());
+			    System.exit(0);
+			}//catch
+			
+			//System.out.println("--> result of method is:");
+			//mreturn.print();
+
+			if (isTrue) {
+			    //int index = lit1.nextIndex()-1;
+			    lit1.remove();
+			    lit2.remove();
+			    retList.addAll(mreturn);
+			    stillExist = true;
+			    //lit1 = retList.listIterator(index);
+			    //lit2 = el2.listIterator(0);
+			    break;
+			}//if
+			if (retList.isEmpty()) { break; }
+		    }//if
+		}//while
+		if (retList.isEmpty()) { break; }
+	    }//while
+	}//do
+	while (stillExist);
 	return retList;
     }//end method subtractRemove
 
@@ -185,6 +258,8 @@ class SetOps {
     
     public static LeftJoinPairList subtractSets (LeftJoinPairList ljpl, Method method) {
 	//computes subtractSets
+	//for every Elem in every LeftJoinPair (Elem,ElemList) using passed method
+	//a resultlist is computed by applying method on every pair of (Elem/ElemOfElemList)
 
 	ListIterator lit1 = ljpl.listIterator(0);
 	ListIterator lit2;
@@ -197,7 +272,8 @@ class SetOps {
 	Element[] paramList = new Element[paramTypeCount];
 	boolean metTypeElement = false;
 	boolean metTypeElemList = false;
-	//System.out.println("check1");
+
+	//examine passed method
 	try {
 	    if (method.getReturnType().isInstance(Class.forName("Element")) ||
 		method.getReturnType().getSuperclass().isAssignableFrom(Class.forName("Element"))) {
@@ -212,8 +288,7 @@ class SetOps {
 	    System.exit(0);
 	}//catch
 
-	//System.out.println("check2");
-	
+	//traverse element lists
 	while (lit1.hasNext()) {
 	    actLjp = (LeftJoinPair)lit1.next();
 	    actElem1 = actLjp.element;
@@ -256,7 +331,7 @@ class SetOps {
     public static ElemList subtract (LeftJoinPairList ljpl, Method method) {
 	//subtracts the elements in elemList of every ljpl from the elem in ljpl
 
-	System.out.println("entering SO.subtract...");
+	System.out.println("entering SO.subtract(ljpl,m)...");
 	
 	ElemList retList = new ElemList();
 	ListIterator lit1 = ljpl.listIterator(0);
@@ -344,6 +419,7 @@ class SetOps {
 	//System.out.println("predicate:"+predicate);
 	//System.out.println("method:"+method);
 	//System.out.println("set of elements:"); el.print();
+	//long time1 = System.currentTimeMillis();
 	ElemList retList = new ElemList();
 	PairList pl = overlappingPairs(el,el,true,ovLapPairsMeet);
 
@@ -397,7 +473,8 @@ class SetOps {
 	    //ml = disjointUnion(ml,actEL);
 	    retList.addAll(overlapReduce(disjointUnion(ml,actEL),predicate,method,ovLapPairsMeet));
 	}//for i
-	    
+	//long time2 = System.currentTimeMillis();
+	//System.out.println("-->elapsed time for overlapReduce("+ovLapPairsMeet+"): "+(time2-time1)+"ms");
 	//System.out.println("leaving SO.overlapReduce.");
 	return rdup(retList);
     }//end method overlapReduce
@@ -408,6 +485,9 @@ class SetOps {
 	//if keep is true, pairs (x,y) with predicate(x,y)=true are kept
 	//else they are deleted
 	
+	//System.out.println("entering SO.filter... ("+plIn.size()+" elements)");
+
+	//long time1 = System.currentTimeMillis();
 	/* use this for a clean version 
 	   PairList pl = plIn.copy();
 	*/
@@ -436,13 +516,19 @@ class SetOps {
 		predHolds = (((Boolean)predicate.invoke(actElem.first,paramList)).booleanValue());
 	    }//try
 	    catch (Exception e) {
-		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		System.out.println("Exception: "+e.getClass()+" in SetOps.filter(PairList,Method,boolean). Can't invoke method '"+predicate+"' on");
+		actElem.first.print();
+		actElem.second.print();
+		System.out.println("Cause: "+e.getCause());
 		System.exit(0);
 	    }//catch
 	    if ((predHolds && !keep) ||
 		(!predHolds && keep)) {	it.remove(); }
 	    
 	}//while
+	//long time2 = System.currentTimeMillis();
+	//System.out.println("-->elapsed time for filter: "+(time2-time1)+"ms --- pred:"+predicate);
+	//System.out.println("leaving SO.filter. ("+pl.size()+" elements)");
 	return pl;
     }//end method filter
 
@@ -463,7 +549,7 @@ class SetOps {
 	Graph g = new Graph(el,pl);
 	//compute the connected components
 	ConnectedComponentsPair ccp = g.connectedComponents();
-	ElemListList retList = ccp.compVertices;
+	ElemListList retList = ccp.verticesToElemListList();
 	
 	return retList;
     }//end method overlapGroup
@@ -501,12 +587,9 @@ class SetOps {
 
 	//long time3 = System.currentTimeMillis();
 	retList = filter(retList,predicate,true);
-	System.out.println("SO.ovJoin: Look here! There are too many doubles in the result list of overlappingPairs!!!");
+	//System.out.println("SO.ovJoin: Look here! There are too many doubles in the result list of overlappingPairs!!!");
 	//System.out.println("SO.ovJoin...2");
-	//Segment sss = new Segment(681.03,91.875,681.436,108.213);
-	//proj1(retList).print();
-	//ElemList elll = proj1(retList);
-	//elll.add(sss);
+
 	/*
 	  GFXout zzy = new GFXout();
 	  zzy.initWindow();
@@ -522,7 +605,6 @@ class SetOps {
 	//System.out.println("after filter retList has "+retList.size()+" elements");
 	//System.exit(0);
 	//System.out.println("retlist:");
-	//quicksort(retList); //this may be removed
 	//retList.print();
 	//System.exit(0);
 	//System.out.println("leaving SO.overlapJoin...");
@@ -577,6 +659,7 @@ class SetOps {
 			    }//try
 			    catch (Exception e) {
 				System.out.println("Exception: "+e.getClass()+" ---"+e.getMessage());
+				System.out.println("Error in SetOps.group. Can't invoke predicate.");
 				System.exit(0);
 			    }//catch
 			    if (belongsToGroup) {
@@ -636,11 +719,24 @@ class SetOps {
 	//Element[] paramListSM = new Element[2];
 	ElemList paramList1 = new ElemList();
 
-	//System.out.println("\nentering SO.map(ljpl,m,m,m)...");
+	System.out.println("\nentering SO.map(ljpl,m,m,m)...");
 
 	//System.out.println("LeftJoinPairList:");
 	//ljpl.print();
 	//System.exit(0);
+
+	/*
+	//remove this!!!
+	//only for testing
+	// --->>>
+	System.out.println("\n!!!!! CAUTION: SOME ELEMENTS ARE REMOVED in SO.map !!!!!\n");
+	for (int i = 0; i < 749; i++) {
+	    ljpl.removeFirst(); }
+	for (int i = 0; i < 0; i++) {
+	    ljpl.removeLast(); }
+	//System.out.println("remaining elements:"); ljpl.print();
+	// <<<---
+	*/
 
 	//paramListMM[2] = predicate;
 	//paramListMM[3] = secMethod;
@@ -653,8 +749,8 @@ class SetOps {
 	    actLjp = (LeftJoinPair)lit.next();
 	    //if second list is not empty do the computation
 	    if (!actLjp.elemList.isEmpty()) {
-		//System.out.println("\n++++++++++++++++++++++++++++++++++");
-		//System.out.println("processing "+(lit.nextIndex()-1)+" of "+ljpl.size());
+		System.out.println("\n++++++++++++++++++++++++++++++++++");
+		System.out.println("processing "+lit.nextIndex()+" of "+ljpl.size());
 		try {
 		    paramList1.clear();
 		    paramList1.add(actLjp.element);
@@ -672,13 +768,14 @@ class SetOps {
 		}//try
 		catch (Exception e) {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		    System.out.println("Error in SetOps.map(ljpl,m,m,m). Can't invoke method "+mainMethod);
 		    System.exit(0);
 		}//catch
 	    }//if
 	    else { retList.add(actLjp.element); }
 	}//for i
 	
-	//System.out.println("leaving map.");
+	System.out.println("leaving map(ljpl,m,m,m).");
 	return retList;
     }//end method map
 
@@ -734,6 +831,7 @@ class SetOps {
 	}//try
 	catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.out.println("Error in SetOps.equal. Can't get Method intersects");
 	    System.exit(0);
 	}//catch
 	if (retList.isEmpty()) { return true; }
@@ -828,6 +926,7 @@ class SetOps {
 		}//try
 		catch (Exception e) {
 		    System.out.println("Exception: "+e.getClass()+" ---"+e.getMessage());
+		    System.out.println("Error in subtract. Can't invoke predicate "+predicate);
 		    System.exit(0);
 		}//catch
 		if (isTrue) {
@@ -850,11 +949,12 @@ class SetOps {
 	//predicate may be static or non-static
 	//method must be a method Element x Element --> Element (of same type)
 
-	//System.out.println("entering SO.subtract...");
+	//System.out.println("entering SO.subtract(el,el,pr,m)...");
 
 	int paramTypeCountPred = Array.getLength(predicate.getParameterTypes());
 	int paramTypeCountMet = Array.getLength(method.getParameterTypes());
 	ElemList retList = (ElemList)el1.clone();
+	ElemList paramList = (ElemList)el2.clone();
 	boolean stillExist = false;
 	boolean isTrue = false;
 	Element[] paramListP = new Element[paramTypeCountPred];
@@ -862,7 +962,7 @@ class SetOps {
 	//Element[] paramList = new Element[2];
 	//SegList helpList = new SegList();
 	ElemList mreturn = new ElemList();
-	int count = 0;//DELETE THIS
+	//int count = 0;//DELETE THIS
 	ListIterator lit1;
 	ListIterator lit2;
 	Element actEl1;
@@ -870,17 +970,31 @@ class SetOps {
 
 	do {
 	    stillExist = false;
-	    //System.out.println("\nsize retList:"+retList.size()+", size el2:"+el2.size());
+	    //System.out.println("\nsize retList:"+retList.size()+", size el2:"+paramList.size());
+	    //System.out.println("retList: "); retList.print();
+	    //System.out.println("el2: "); paramList.print();
+	    //System.out.println("\n");
 	    lit1 = retList.listIterator(0); 
-	    //for (int i = 0; i < retList.size(); i++) {
 	    while (lit1.hasNext()) {
 		actEl1 = (Element)lit1.next();
 		isTrue = false;
-		lit2 = el2.listIterator(0);
+		lit2 = paramList.listIterator(0);
 		while (lit2.hasNext()) {
-		    //for (int j = 0; j < el2.size(); j++) {
 		    actEl2 = (Element)lit2.next();
-		    System.out.println("i:"+(lit1.nextIndex()-1)+", j:"+(lit2.nextIndex()-1));
+		    //System.out.println("----------------------------");
+		    //System.out.println("i("+retList.size()+"):"+(lit1.nextIndex()-1)+", j("+paramList.size()+"):"+(lit2.nextIndex()-1));
+		    /*
+		    GFXout gff = new GFXout();
+		    gff.initWindow();
+		    gff.addList(paramList.copy());
+		    gff.addList(((Triangle)actEl1).segments().copy());
+		    //gff.addList(paramList.copy());
+		    gff.addList(((Triangle)actEl2).segments().copy());
+		    gff.showIt();
+		    try { int data = System.in.read(); }
+		    catch (Exception e) { System.exit(0); }
+		    gff.kill();
+		    */
 		    //if predicate has one argument
 		    if (paramTypeCountPred == 1) {
 			paramListP[0] = actEl2;
@@ -892,19 +1006,18 @@ class SetOps {
 		    }//else
 		    try {
 			isTrue = ((Boolean)predicate.invoke(actEl1,paramListP)).booleanValue();
-			System.out.println("checked for predicate..."+isTrue);
-			actEl1.print();
-			actEl2.print();
+			//System.out.println("checked for predicate (el1,el2)..."+isTrue);
+			//actEl1.print();
+			//actEl2.print();
 		    }//try
 		    catch (Exception e) {
-			System.out.println("Exception: "+e.getClass()+" ---"+e.getMessage());
+			System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+			System.out.println("Error in SetOps.subtract(el,el,pr,m).");
+			System.out.println("Cause for Exception: "+e.getCause());
+			System.out.println("Exception String: "+e.toString());
 			System.exit(0);
 		    }//catch
 		    if (isTrue) {
-			//System.out.println("try to invoke method...");
-			//System.out.println("...on following elements:");
-			//((Element)retList.get(i)).print();
-			//((Element)el2.get(j)).print();
 			//if method has one argument
 			if (paramTypeCountMet == 1) {
 			    paramListM[0] = actEl2;
@@ -915,22 +1028,32 @@ class SetOps {
 			    paramListM[1] = actEl2;
 			}//else
 			try {
+			    //System.out.println(" try to invoke method on following elements:");
+			    //actEl1.print(); actEl2.print();
 			    mreturn = (ElemList)(method.invoke(actEl1,paramListM));
 			    //retList.addAll((ElemList)(method.invoke((Element)retList.get(i),paramListM)));
 			    //System.out.println("invoking successful.");
 			}//try
 			catch (Exception e) {
 			    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+			    System.out.println("Error in SetOps.subtract(el,el,pr,m). Can't invoke method "+method);
+			    System.out.println("Cause for Exception: "+e.getCause());
+			    System.out.println("Exception String: "+e.toString());
+			    //System.out.println("\nprint stack trace");
+			    //e.printStackTrace();
 			    System.exit(0);
 			}//catch
 			//System.out.println("method was invoked");
 			if (isTrue) {
-			    System.out.println("*****mreturn:");
-			    mreturn.print();
-			    System.out.println("*****mreturn-end\n");
+			    //System.out.println("size of result: "+mreturn.size());
+			    //System.out.println("*****mreturn:");
+			    //mreturn.print();
+			    //System.out.println("*****mreturn-end\n");
 			    int index = lit1.nextIndex()-1;
 			    lit1.remove();
 			    retList.addAll(mreturn);
+			    //System.out.println("COMPLETE retList:"); retList.print(); System.out.println();
+			    mreturn = null;
 			    //retList.remove(i);
 			    stillExist = true;
 			    //i = -1;
@@ -953,17 +1076,8 @@ class SetOps {
 		    //System.out.println("retList is empty ----> break;");
 		    break; }
 	    }//for i
-	    /*
-	    System.exit(0);
-	    count++;
-	    if (count == 4) {
-		System.out.println("\n***emergency exit***");
-		System.exit(0);
-	    }//if
-	    */
 	}//do
 	while (stillExist);
-	//while (stillExist && (retList.size() > 0));
 
 	//System.out.println("leaving SO.subtract.");
 	return retList;
@@ -977,8 +1091,8 @@ class SetOps {
 
 	Element elem1 = ((Element)el1.getFirst()).copy();
 	Element elem2 = ((Element)el2.getFirst()).copy();
-	Rational maximum = new Rational(0); // just for initialization
-	Rational value = new Rational(0); //dto.
+	Rational maximum = RationalFactory.constRational(0); // just for initialization
+	Rational value = RationalFactory.constRational(0); //dto.
 	//Element[] paramList = new Element[1];
 	int paramTypeCount = Array.getLength(method.getParameterTypes());
 	Element[] paramList = new Element[paramTypeCount];
@@ -999,6 +1113,7 @@ class SetOps {
 	}//try
 	catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.out.println("Error in SetOps.max. Can't invoke method "+method);
 	    System.exit(0);
 	}//catch
 
@@ -1018,6 +1133,7 @@ class SetOps {
 		}//try
 		catch (Exception e) {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		    System.out.println("Error in SetOps.minus. Can't invoke method "+method);
 		    System.exit(0);
 		}//catch
 
@@ -1041,8 +1157,8 @@ class SetOps {
 	
 	Element elem1 = ((Element)el1.getFirst()).copy();
 	Element elem2 = ((Element)el2.getFirst()).copy();
-	Rational minimum = new Rational(100000); //just for initialization
-	Rational value = new Rational(100000); //dto.
+	Rational minimum = RationalFactory.constRational(100000); //just for initialization
+	Rational value = RationalFactory.constRational(100000); //dto.
 	//Element[] paramList = new Element[1];
 	int paramTypeCount = Array.getLength(method.getParameterTypes());
 	Element[] paramList = new Element[paramTypeCount];
@@ -1062,6 +1178,7 @@ class SetOps {
 	}//try
 	catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.out.println("Error in SetOps.min. Can't invoke method "+method);
 	    System.exit(0);
 	}//catch
 	
@@ -1081,6 +1198,7 @@ class SetOps {
 		}//try
 		catch (Exception e) {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		    System.out.println("Error in SetOps.reduce. Can't invoke method "+method);
 		    System.exit(0);
 		}//catch
 		
@@ -1333,6 +1451,7 @@ class SetOps {
 		}//try
 		catch (Exception e) {
 		    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		    System.out.println("Error in SetOps.minus. Can't invoke predicate "+predicate);
 		    System.exit(0);
 		}//catch
 	    }//while
@@ -1437,6 +1556,7 @@ class SetOps {
 	    }//try
 	    catch (Exception e) {
 		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		System.out.println("Error in SetOps.map(pl,m). Can't invoke method "+method);
 		System.exit(0);
 	    }//catch
 	    
@@ -1458,6 +1578,7 @@ class SetOps {
 	//m can also be a method: Element -> ElemList
 	//m can also be a method: Element -> Segment/Triangle/Point/etc
 	//m can also be a method: Element -> SegList/TriList/PointList/etc
+	
 	//System.out.println("entering SO.map(el,m)...");
 	//System.out.println("method: "+m);
 	ElemList retList = new ElemList();
@@ -1500,6 +1621,7 @@ class SetOps {
 	    }//try
 	    catch (Exception e) {
 		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		System.out.println("Error in SetOps.intersection. Can't invoke method "+m);
 		System.exit(0);
 	    }//catch
 	}//while
@@ -1783,6 +1905,7 @@ class SetOps {
 	}// try
 	catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.out.println("Error in SetOps.overlappingPairs. Can't invoke method "+m);
 	    System.exit(0);
 	}//catch
 	return retSum;
@@ -1800,16 +1923,8 @@ class SetOps {
       //meeting bounding boxes
  
       //System.out.println("entering overlappingPairs...");
-      /*
-      if (el1.size()== 480) {
-	  System.out.println("SO.ovP:reducing number of segments... pre: "+el1.size()+"/"+el2.size());
-	  for (int i = 0; i < 200; i++) {
-	      el1.removeFirst();
-	      el2.removeFirst();
-	  }//for i
-	  System.out.println("SO.ovP: ...post: "+el1.size()+"/"+el2.size());
-      }//if
-      */
+      
+      //long time1 = System.currentTimeMillis();
     PairList pairs = new PairList();
 
     if (el1.isEmpty() || el2.isEmpty()) return pairs;
@@ -2068,6 +2183,8 @@ class SetOps {
     //long time11 = System.currentTimeMillis();
     //System.out.println("elapsed time (computeOverlaps): "+(time11-time10)+"ms");
     
+    //long time2 = System.currentTimeMillis();
+    //System.out.println("-->elapsed time for overlappingPairs("+sameSet+","+meet+"): "+(time2-time1)+"ms");
     //System.out.println("leaving SO.overlappingPairs.");
   return rl.pairs;
 }//end method overlappingPairs
@@ -2434,6 +2551,8 @@ class SetOps {
 	//there seems to be an error in findX - it's patched by changing
 	//!(k == 0) to !(k == -1) in quickX...
 	//array version
+	//this algorithm first sorts in respect to x dimension and
+	//second in respect to y dimension
 	Object[] elArr = new Element[el.size()];
 	elArr = el.toArray();
 	quickX(elArr,0,elArr.length-1);
@@ -2467,7 +2586,7 @@ class SetOps {
 
     private static Object[] findPivotX (Object[] elArr, int i, int j) {
 	//find index of not minimal element in array i,j
-	//if exists
+	//if it exists return it
 	//0 otherwise
 	Object[] retArr = new Object[2];
 	byte res;

@@ -16,7 +16,7 @@ class Circle extends Element {
     public Circle() {
 	//fill in dummy values
 	this.centre = new Point(0,0);
-	this.radius = new Rational(1);
+	this.radius = RationalFactory.constRational(1);
 	this.triList = new TriList();
 	this.fineness = 10;
 	computeTriList();
@@ -124,7 +124,7 @@ class Circle extends Element {
     public Rational dist (Element inElement) throws WrongTypeException {
 	if (inElement instanceof Circle) {
 	    Circle inCircle = (Circle)inElement;
-	    Rational retVal = new Rational(0);
+	    Rational retVal = RationalFactory.constRational(0);
 	    Class c = (new Triangle()).getClass();
 	    Class[] paramList = new Class[1];
 	    
@@ -202,7 +202,7 @@ class Circle extends Element {
 	//compute number of points defined by fineness
 	param = 2*Math.PI / fineness;
 	for (int i = 0; i < fineness; i++) {
-	    pointlist.add(new Point(new Rational(radius.getDouble() * Math.sin(i*param)), new Rational(radius.getDouble() * Math.cos(i*param))));
+	    pointlist.add(new Point(RationalFactory.constRational(radius.getDouble() * Math.sin(i*param)), RationalFactory.constRational(radius.getDouble() * Math.cos(i*param))));
 	}//for i
 	
 	for (int i = 0; i < pointlist.size(); i++) {

@@ -9,14 +9,14 @@ class Point extends Element{
     //constructors
     public Point() {
 	//fill in dummy values
-	this.x = new Rational(0);
-	this.y = new Rational(0);
+	this.x = RationalFactory.constRational(0);
+	this.y = RationalFactory.constRational(0);
 	//update();
     }
     
     public Point(double x, double y) {
-	this.x = new Rational(x);
-	this.y = new Rational(y);
+	this.x = RationalFactory.constRational(x);
+	this.y = RationalFactory.constRational(y);
 	//update();
     }
     
@@ -29,8 +29,8 @@ class Point extends Element{
     //methods
     public Point set(double x, double y) {
 	//sets coordinates to x,y
-	this.x = new Rational(x);
-	this.y = new Rational(y);
+	this.x = RationalFactory.constRational(x);
+	this.y = RationalFactory.constRational(y);
 	//update();
 	return this;
     }//end method set
@@ -145,7 +145,7 @@ class Point extends Element{
 	//instead which uses Doubles
 	if (e instanceof Point) {
 	    Point p = (Point)e;
-	    return new Rational(Mathset.lengthD(Mathset.diff(this,p)));
+	    return RationalFactory.constRational(Mathset.lengthD(Mathset.diff(this,p)));
 	}//if
 	else { throw new WrongTypeException("Expected: "+this.getClass()+" - Found: "+e.getClass()); }
     }//end method dist

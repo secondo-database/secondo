@@ -15,10 +15,10 @@ class Interval {
   
   //constructors
   Interval() {
-    this.left = new Rational(0);
-    this.right = new Rational(0);
+    this.left = RationalFactory.constRational(0);
+    this.right = RationalFactory.constRational(0);
     this.mark = "";
-    this.x = new Rational(0);
+    this.x = RationalFactory.constRational(0);
     this.number = -1;
     //this.reftri = new Triangle();
   }

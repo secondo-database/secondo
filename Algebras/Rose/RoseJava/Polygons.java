@@ -108,7 +108,12 @@ class Polygons extends Element {
 	//computes the triangulation of the polygons using a sweep line algo
 	//caution: it is not checked wether the border of the polygons
 	//builds cycles!!!
-	//System.out.println("...compute polygons");
+	//BUT: this now can be done and removed(!) by the new GRAPH method
+	//for finding BCC!!! Try it!
+	//
+	//CAUTION: A method named sortBorder is used in here. It is probably O(n²) and should
+	//be replaced.
+	
 	//System.out.println("\nentering Pol.computeTriangles...");
 	
 	TriList l = new TriList();
@@ -143,32 +148,9 @@ class Polygons extends Element {
 
 	//borderVerts.print();
 	//System.exit(0);
-	
-    
-    //compute sorted border list
-    SegList sortedBorder = sortBorder(border,(Point)xstruct.getFirst());
-    
-    /*
-    //extract points
-    Iterator lit = sortedBorder.listIterator(0);
-    PointList sortedBorderVerts = new PointList();
-    while (lit.hasNext()) {
-	sortedBorderVerts.add(((Segment)lit.next()).startpoint);
-    }//while
-    sortedBorderVerts.print();
-    */
-    /*
-      System.out.print("\nxstruct: ");
-      for (int i = 0; i < xstruct.size(); i++) {
-      System.out.print("("+((Point)xstruct.get(i)).x+","+((Point)xstruct.get(i)).y+") ");
-      }//for i
-      System.out.print("\nxstruct2: ");
-      for (int i = 0; i < borderVertsCOP.size(); i++) {
-	  System.out.print("("+((Point)borderVertsCOP.get(i)).x+","+((Point)borderVertsCOP.get(i)).y+") ");
-      }//for i
-      System.out.println();
-      System.out.println();
-    */
+
+	//compute sorted border list
+	SegList sortedBorder = sortBorder(border,(Point)xstruct.getFirst());
 
     //
     //DO THE SWEEP!!!
@@ -183,8 +165,9 @@ class Polygons extends Element {
     int pCDown = 0;
     int yElemPos = 0;
     SweepStElem newElem = new SweepStElem();
-    Rational angle = new Rational(0);
+    Rational angle = RationalFactory.constRational(0);
     PointList delList = new PointList();
+    LinkedList delListInt = new LinkedList();
     String attribute = "";
 
     //init y-structure
@@ -204,13 +187,11 @@ class Polygons extends Element {
       attribute = attribute(x,sortedBorder);
       //System.out.println("\n*****************************************************");
       //System.out.println("process ("+x.x+","+x.y+") --> attribute: "+attribute+", i:"+i);
-      //if (i > 870) {
-      //System.out.println("ystruct before anything is done:");
-      //for (int ys = 0; ys < ystruct.size(); ys++) {
-      //  ((SweepStElem)ystruct.get(ys)).pointChain.print(); }}
-      //if (i == 20) {
-      //	  System.out.println("emergency exit...") ; System.exit(0);}
-
+      /*
+      System.out.println("ystruct:");
+      for (int ys = 0; ys < ystruct.size(); ys++) ((SweepStElem)ystruct.get(ys)).pointChain.print();
+      System.out.println();
+      */
       if (attribute == "start") {
 	  
 	  //find the corresponding segments seg1, seg2
@@ -305,11 +286,7 @@ class Polygons extends Element {
 	    start.pointChain.add(x);
 	    start.pointChain.add(pd1);
 	}//else
-	/*
-	start.pointChain.add(seg1.startpoint);
-	start.pointChain.add(seg1.endpoint);
-	start.pointChain.add(seg2.endpoint);//the startpoint of seg2 is the same as the endpoint of seg1 and therefor must not be added
-	*/
+
 	start.rimoEl = (Point)x.copy();
 	start.in = true;
 	SweepStElem mt = new SweepStElem();
@@ -322,13 +299,30 @@ class Polygons extends Element {
 	  ystruct.add(top);
 	}//if
 	else {
-	  yElemPos = interval(x, ystruct);
-	  //System.out.println("comp: interval:"+yElemPos+" - interval2:"+interval2(x,ystruct));
+	    //yElemPos = interval(x, ystruct);
+	    yElemPos = interval3(x, ystruct);
+	    //System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
+	    /*
+	    if (yElemPos != interval3(x,ystruct)) {
+		System.out.println("P.interval3 doesn't work properly:");
+		System.out.println("x:"); x.print();
+		System.out.println("attribute: "+attribute);
+		System.out.println("ystruct:");
+		for (int ys = 0; ys < ystruct.size(); ys++) ((SweepStElem)ystruct.get(ys)).pointChain.print();
+		System.out.println();
+		System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
+		System.exit(0);
+	    }//if
+	    */
 	  SweepStElem yElem = (SweepStElem)ystruct.get(yElemPos);
 	  if (yElem.pointChain.isEmpty()) {
 	    //x lies in an "out" interval of ystruct
 	    //insert the elements
 	    //System.out.println(" yElem.pointChain is empty, so insert new elements and finish");
+	      /*
+	      //check and resort pointChain if necessary
+	      checkAndResortPointChain(start.pointChain);
+	      */
 	    ystruct.add(yElemPos, mt);
 	    ystruct.add(yElemPos+1, start);
 	    ystruct.add(yElemPos+2, mt);
@@ -368,7 +362,7 @@ class Polygons extends Element {
 					     (Point)yElem.pointChain.get(j-1),
 					     (Point)yElem.pointChain.get(j));
 		  tl.add(nt);
-		  //System.out.println("generated triangle:");
+		  //System.out.println("generated triangle:"); nt.print();
 		  //nt.print();
 		pCDown = j-1;//memorize the last valid position
 	      }//if
@@ -383,7 +377,7 @@ class Polygons extends Element {
 					     (Point)yElem.pointChain.get(j+1),
 					     (Point)yElem.pointChain.get(j));
 		  tl.add(nt);
-		  //System.out.println("generated triangle:");
+		  //System.out.println("generated triangle:"); nt.print();
 		  //nt.print();
 		pCUp = j+1;//memorize the last valid position
 	      }//if
@@ -471,7 +465,11 @@ class Polygons extends Element {
 	    upper.pointChain.addFirst((Point)x.copy());
 	    upper.pointChain.addFirst((Point)nb1.copy());
 	    upper.rimoEl = (Point)x.copy();
-
+	    /*
+	    //check and resort elements if necessary
+	    checkAndResortPointChain(upper.pointChain);
+	    checkAndResortPointChain(lower.pointChain);
+	    */
 	    //insert elements in ystruct
 	    ystruct.set(yElemPos, lower);//replace "in"-element
 	    ystruct.add(yElemPos+1, mt);
@@ -483,10 +481,25 @@ class Polygons extends Element {
       //now all operations for attribute=="start" are done
 	
       else {
+
 	if (attribute == "bend") {
 	  //find corresponding SweepStElem
 	  yElemPos = interval(x, ystruct);
-	  //System.out.println("comp: interval:"+yElemPos+" - interval2:"+interval2(x,ystruct));
+	  //System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval(x,ystruct)+" --> "+yElemPos);
+	  
+	  if (yElemPos != interval3(x,ystruct)) {
+	      System.out.println("Warning: P.interval3 might not work properly:");
+	      System.out.println("x: "); x.print();
+	      System.out.println("attribute: "+attribute);
+	      
+		System.out.println("ystruct:");
+		for (int ys = 0; ys < ystruct.size(); ys++) ((SweepStElem)ystruct.get(ys)).pointChain.print();
+		System.out.println();
+		System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
+	      //System.exit(0);
+	      
+	  }//if
+	  
 	  //System.out.println("yElemPos:"+yElemPos);
 	  SweepStElem yElem = (SweepStElem)ystruct.get(yElemPos);
 
@@ -581,6 +594,8 @@ class Polygons extends Element {
 	  int down = 0;
 
 	  if (yElem.pointChain.size() > 4) {
+
+	      //find out, on which end of pointChain x lies
 	      if (x.equal((Point)yElem.pointChain.get(yElem.pointChain.size()-2))){
 		  up = yElem.pointChain.size()-3;
 		  down = 1;
@@ -593,56 +608,97 @@ class Polygons extends Element {
 		  xposup = false;//x is at the lower end of the pointChain(beginning)
 		  //System.out.println(" x is at the lower end of the pointChain(beginning)");
 	      }//else
+
+	      //find out whether x is (in respect to the y value) on the upper side or 
+	      //the lower side of the interval
+	      //this must be done using the sweepline
+	      
+	      boolean xIsUpper = false;
+	      Segment intSeg;
 	      if (xposup) {
-	      for (int j = up; j > down; j--) {
-		  //System.out.println(" entered for-loop; j:"+j);
-		boolean compute = false;
-		if (Mathset.pointPosition(x,(Point)yElem.pointChain.get(j-1),(Point)yElem.pointChain.get(j)) == 1) { compute = true; }
-		if (compute) {
-		    Triangle nt = new Triangle(x,
-					       (Point)yElem.pointChain.get(j-1),
-					       (Point)yElem.pointChain.get(j));
-		    tl.add(nt);
-		    //System.out.println("generated triangle:");
-		    //nt.print();
-		  //now add points to delList
-		  if (!(((Point)yElem.pointChain.get(j)).equal((Point)yElem.pointChain.get(yElem.pointChain.size()-2)))) { delList.add(yElem.pointChain.get(j)); }
-		}//if
-		else { break; }
+		  intSeg = new Segment((Point)yElem.pointChain.get(1),
+					       (Point)yElem.pointChain.get(0));
+	      }//if
+	      else {
+		  intSeg = new Segment((Point)yElem.pointChain.getLast(),
+					       (Point)yElem.pointChain.get(yElem.pointChain.size()-2));
+	      }//else
+	      Rational minY,maxY;
+	      if (intSeg.startpoint.compY(intSeg.endpoint) == -1) {
+		  minY = intSeg.startpoint.y;
+		  maxY = intSeg.endpoint.y;
+	      }//if
+	      else {
+		  minY = intSeg.endpoint.y;
+		  maxY = intSeg.startpoint.y;
+	      }//if
+	      Segment sweepline = new Segment(x.x,minY.minus(1),x.x,maxY.plus(1));
+	      //System.out.println("sweepline construction[1]");
+	      Point intPoint = sweepline.intersection(intSeg);
+	      if (intPoint.compY(x) == -1) xIsUpper = true;
+	      else xIsUpper = false;
+	      
+	      //System.out.println("xposup: "+xposup+", xIsUpper: "+xIsUpper);
+	      
+	      if (xposup) {
+		  for (int j = up; j > down; j--) {
+		      //System.out.println(" entered for-loop; j:"+j);
+		      boolean compute = false;
+		      //System.out.println(" check the triangle(1): ");
+		      //(new Triangle(x,(Point)yElem.pointChain.get(j-1),(Point)yElem.pointChain.get(j))).print();
+		      if (xIsUpper) {
+			  if (Mathset.pointPosition(x,(Point)yElem.pointChain.get(j-1),(Point)yElem.pointChain.get(j)) == 1) compute = true; }
+		      else {
+			  if (Mathset.pointPosition(x,(Point)yElem.pointChain.get(j-1),(Point)yElem.pointChain.get(j)) == -1) compute = true; }
+		      if (compute) {
+			  Triangle nt = new Triangle(x,
+						     (Point)yElem.pointChain.get(j-1),
+						     (Point)yElem.pointChain.get(j));
+			  tl.add(nt);
+			  //System.out.println("generated triangle(1):"); nt.print();
+			  //nt.print();
+			  //now add points to delList
+			  delList.add(yElem.pointChain.get(j));
+			  delListInt.add(new Integer(j));
+			  //if (!(((Point)yElem.pointChain.get(j)).equal((Point)yElem.pointChain.get(yElem.pointChain.size()-2)))) { delList.add(yElem.pointChain.get(j)); }
+		      }//if
+		      else { break; }
 	      }//for j
 	    }// if
 	    else {
-	      for (int j = down; j < up; j++) {
-		  //System.out.println(" entered for-loop; j: "+j);
-		boolean compute = false;
-		if (Mathset.pointPosition(x,(Point)yElem.pointChain.get(j+1),(Point)yElem.pointChain.get(j)) == -1) { compute = true; }
-		//System.out.println(" compute: "+compute);
-		if (compute) {
-		    Triangle nt = new Triangle(x,
-					       (Point)yElem.pointChain.get(j+1),
-					       (Point)yElem.pointChain.get(j));
-		    tl.add(nt);
-		    //System.out.println("generated triangle:");
-		    //nt.print();
-		  //now add points to delList
-		  //delList.add(yElem.pointChain.get(j));
-		  if (!(((Point)yElem.pointChain.get(j)).equal((Point)yElem.pointChain.get(yElem.pointChain.size()-2)))) { delList.add(yElem.pointChain.get(j)); }
-		  //if (!(((Point)yElem.pointChain.get(j-1)).equal((Point)yElem.pointChain.get(1)))) { delList.add(yElem.pointChain.get(j-1)); }
-		  //if ((j == (up-1)) &&
-		  //  !((j > (yElem.pointChain.size()-3)))) { delList.add(yElem.pointChain.get(j+1)); }
-		  //System.out.println(" j: "+j);
-		}//if
-		else { break; }
-	      }//for
+		for (int j = down; j < up; j++) {
+		    //System.out.println(" entered for-loop; j: "+j);
+		    boolean compute = false;
+		    //System.out.println(" check the triangle(2): ");
+		    //(new Triangle(x,(Point)yElem.pointChain.get(j+1),(Point)yElem.pointChain.get(j))).print();
+		    if (xIsUpper) {
+			if (Mathset.pointPosition(x,(Point)yElem.pointChain.get(j+1),(Point)yElem.pointChain.get(j)) == 1) compute = true; }
+		    else {
+			if (Mathset.pointPosition(x,(Point)yElem.pointChain.get(j+1),(Point)yElem.pointChain.get(j)) == -1) compute = true; }
+		    //System.out.println(" compute: "+compute);
+		    if (compute) {
+			Triangle nt = new Triangle(x,
+						   (Point)yElem.pointChain.get(j+1),
+						   (Point)yElem.pointChain.get(j));
+			tl.add(nt);
+			//System.out.println("generated triangle(2):"); nt.print();
+			//nt.print();
+			//now add points to delList
+			delListInt.add(new Integer(j));
+			delList.add(yElem.pointChain.get(j));
+			//if (!(((Point)yElem.pointChain.get(j)).equal((Point)yElem.pointChain.get(yElem.pointChain.size()-2)))) { delList.add(yElem.pointChain.get(j)); }
+			//System.out.println(" j: "+j);
+		    }//if
+		    else { break; }
+		}//for
 	    }//else
 
 	  }//if	     
-	  //else { System.out.println(" no triangles (pointChain.size(): "+yElem.pointChain.size()+")"); }
-	   
 
 	  //finally remove the points in delList from yElem
-	  //System.out.println(" delete "+delList.size()+" points from pointChain");
-
+	  //System.out.println(" delete "+delList.size()+" point(s) from pointChain");
+	  //System.out.println(" delList:"); delList.print();
+	  /*
 	  //bugfix: there is an error with one of the points is in delList that
 	  //mustn't be there. We'll remove it at this point from delList
 	  if (xposup) {
@@ -659,8 +715,36 @@ class Polygons extends Element {
 		  delList.remove(dpos);
 	      }//if
 	  }//else
-
-
+	  */
+	  
+	  //sort delListInt
+	  for (int si = 0; si < delListInt.size()-1; si++) {
+	      Integer actIntI = (Integer)delListInt.get(si);
+	      for (int sj = si; sj < delListInt.size(); sj++) {
+		  Integer actIntJ = (Integer)delListInt.get(sj);
+		  if (actIntI.compareTo(actIntJ) < 0) {
+		      Integer swap = actIntI;
+		      delListInt.set(si,actIntJ);
+		      delListInt.set(sj,swap);
+		  }//if
+	      }//for sj
+	  }//for si
+	  
+	  /*
+	  System.out.println("delListInt:");
+	  for (int j = 0; j < delListInt.size(); j++) {
+	      System.out.print("["+((Integer)delListInt.get(j)).intValue()+"] "); }
+	  System.out.println();
+	  */
+	  
+	  //now delete elements
+	  for (int j = 0; j < delListInt.size(); j++) {
+	      yElem.pointChain.remove(((Integer)delListInt.get(j)).intValue());
+	  }//for j
+	  delListInt.clear();
+	  delList.clear();
+	  
+	  /*
 	  //System.out.println("\ndeletelist:"); delList.print();
 	  for (int j = 0; j < delList.size(); j++) {
 	    found = false;
@@ -678,9 +762,10 @@ class Polygons extends Element {
 	    }
 	  }//for j
 	  delList = new PointList();
-
+	  */
+	  
 	  //It may happen that a point with attribute "bend" is part
-	  //of two yElems. Here usually the first one is taken an the
+	  //of two yElems. Here usually the first one is taken and the
 	  //triangles are computed. We need to check wether we have that
 	  //case here and combine both pointChains of that two yElems.
 	  //Up to now we observed only one case in which this should
@@ -711,6 +796,7 @@ class Polygons extends Element {
 		  ystruct.remove(yElemPos+1); //remove mt element
 	      }//if
 	  }//if
+	  
 	}//if			
 	
 
@@ -718,6 +804,7 @@ class Polygons extends Element {
 
 
 	else {
+
 	  if (attribute == "end") {
 	    //find the corresponding segments seg1, seg2
 	    first = false;
@@ -734,40 +821,26 @@ class Polygons extends Element {
 		    break;
 		}//else
 	    }//while
-	    /*
-	    //build seg1,seg2 from found1,found2
-	    //such that seg1 is the "lower element" and x is its endpoint
-	    //and seg2 is the "higher element" and x is its startpoint
-
-	    //what are the two points which are different from x?
-	    Point pd1 = new Point();
-	    Point pd2 = new Point();
-	    
-	    if (found1.getStartpoint().equal(x)) {
-		pd1 = (Point)found1.getEndpoint().copy(); }//if
-	    else { pd1 = (Point)found1.getStartpoint().copy(); }//else
-	    if (found2.getStartpoint().equal(x)) {
-		pd2 = (Point)found2.getEndpoint().copy(); }//if
-	    else { pd2 = (Point)found2.getStartpoint().copy(); }//else
-	    
-	    //now build the segments
-	    if (pd1.y.less(pd2.y)) {
-	      seg1 = new Segment(pd1, x);
-	      seg2 = new Segment(x, pd2);
-	    }//if
-	    else {
-	      seg1 = new Segment(pd2, x);
-	      seg2 = new Segment(x, pd1);
-	    }//else
-	    */
-	    //boolean leftright = false;
 
 	    //find the proper position in ystruct
 	    yElemPos = interval(x, ystruct);
-	    //System.out.println("comp: interval:"+yElemPos+" - interval2:"+interval2(x,ystruct));
+	    //yElemPos = interval2(x, ystruct);
+	    //System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
+	    /*
+	    if (yElemPos != interval3(x,ystruct)) {
+		System.out.println("P.interval3 doesn't work properly:");
+		System.out.println("x:"); x.print();
+		System.out.println("attribute: "+attribute);
+		System.out.println("ystruct:");
+		for (int ys = 0; ys < ystruct.size(); ys++) ((SweepStElem)ystruct.get(ys)).pointChain.print();
+		System.out.println();
+		System.out.println("comp: interval:"+interval(x,ystruct)+" - interval2:"+interval2(x,ystruct)+" - interval3:"+interval3(x,ystruct)+" --> "+yElemPos);
+		System.exit(0);
+	    }//if
+	    */
 	    SweepStElem yElem = (SweepStElem)ystruct.get(yElemPos);
 	    //determine whether x really lies in the interval and not only on the border
-	    
+
 	    if (!yElem.pointChain.isEmpty()) {
 		if (x.equal((Point)yElem.pointChain.getFirst()) &&
 		    x.equal((Point)yElem.pointChain.getLast())) {
@@ -791,6 +864,7 @@ class Polygons extends Element {
 		    }//else
 		}//else
 	    }//if
+	    
 	    //System.out.println("\nyElemPos:"+yElemPos);
 	    if (yElem.pointChain.isEmpty()) {
 	      //x lies in an "out" interval of ystruct
@@ -816,8 +890,6 @@ class Polygons extends Element {
 		//depending on prevLiesTop,follLiesTop the pointChains are
 		//parsed from beginning to end or reverse
 
-		//TriList newTris = new TriList(); //DELETE THIS!!!
-
 		int pCprev = -1;
 		int pCfoll = -1;
 		if (prevLiesTop) { pCprev = 1; }
@@ -827,14 +899,21 @@ class Polygons extends Element {
 		
 		//compute triangles for prev
 		if (prevLiesTop) {
+		    //Trying to handle a special case by substituting this:
+		    //for (int j = 1; j < prev.pointChain.size()-2; j++) {
+		    //by this:
 		    for (int j = 1; j < prev.pointChain.size()-2; j++) {
+		   
 			boolean compute = false;
+			//System.out.println(" checking triangle:");
+			//(new Triangle(x,(Point)prev.pointChain.get(j+1),(Point)prev.pointChain.get(j))).print();
 			if (Mathset.pointPosition(x,(Point)prev.pointChain.get(j+1),(Point)prev.pointChain.get(j)) == -1) { compute = true; }
 			if (compute) {
 			    Triangle nt = new Triangle(x,
 						       (Point)prev.pointChain.get(j+1),
 						       (Point)prev.pointChain.get(j));
 			    tl.add(nt);
+			    //System.out.println("generated triangle(1)"); nt.print();
 			    //newTris.add(nt);
 			    pCprev = j+1;
 			    computedAnyPrev = true;
@@ -843,14 +922,20 @@ class Polygons extends Element {
 		    }//for j
 		}//if
 		else {
+		    //trying to handle a special case by substituting this:
+		    //for (int j = prev.pointChain.size()-2; j > 1; j--) {
+		    //by this:
 		    for (int j = prev.pointChain.size()-2; j > 1; j--) {
 			boolean compute = false;
+			//System.out.println(" j: "+j+" - checking triangle:");
+			//(new Triangle(x,(Point)prev.pointChain.get(j-1),(Point)prev.pointChain.get(j))).print();
 			if (Mathset.pointPosition(x,(Point)prev.pointChain.get(j-1),(Point)prev.pointChain.get(j)) == 1) { compute = true; }
 			if (compute) {
 			    Triangle nt = new Triangle(x,
 						       (Point)prev.pointChain.get(j-1),
 						       (Point)prev.pointChain.get(j));
 			    tl.add(nt);
+			    //System.out.println("generated triangle(2)"); nt.print();
 			    //newTris.add(nt);
 			    pCprev = j-1;
 			    computedAnyPrev = true;
@@ -862,19 +947,9 @@ class Polygons extends Element {
 
 		//compute triangles for foll
 		if (!follLiesTop) {
-		    /*
-		    for (int j = 1; j < foll.pointChain.size()-2; j++) {
-			boolean compute = false;
-			if (Mathset.pointPosition(x,(Point)foll.pointChain.get(j+1),(Point)foll.pointChain.get(j)) == -1) { compute = true; }
-			if (compute) {
-			    tl.add(new Triangle(x,
-						(Point)prev.pointChain.get(j+1),
-						(Point)prev.pointChain.get(j)));
-			    pCfoll = j+1;
-			    computedAnyFoll = true;
-			}//if
-		    }//for j
-		    */
+		    //trying to handle a special case by substituting this:
+		    //for (int j = foll.pointChain.size()-2; j > 1; j--) {
+		    //by this:
 		    for (int j = foll.pointChain.size()-2; j > 1; j--) {
 			boolean compute = false;
 			if (Mathset.pointPosition(x,(Point)foll.pointChain.get(j-1),(Point)foll.pointChain.get(j)) == 1) { compute = true; }
@@ -883,6 +958,7 @@ class Polygons extends Element {
 						       (Point)foll.pointChain.get(j-1),
 						       (Point)foll.pointChain.get(j));
 			    tl.add(nt);
+			    //System.out.println("generated triangle(3)"); nt.print();
 			    //newTris.add(nt);
 			    pCfoll = j-1;
 			    computedAnyFoll = true;
@@ -891,7 +967,9 @@ class Polygons extends Element {
 		    }//for j
 		}//if
 		else {
-		    
+		    //trying to handle a special case by substituting this:
+		    //for (int j = 1; j < foll.pointChain.size()-2; j++) {
+		    //by this:
 		    for (int j = 1; j < foll.pointChain.size()-2; j++) {
 			boolean compute = false;
 			if (Mathset.pointPosition(x,(Point)foll.pointChain.get(j+1),(Point)foll.pointChain.get(j)) == -1) { compute = true; }
@@ -901,25 +979,13 @@ class Polygons extends Element {
 						       (Point)foll.pointChain.get(j));
 			    tl.add(nt);
 			    //newTris.add(nt);
+			    //System.out.println("generated triangle(4)"); nt.print();
 			    pCfoll = j+1;
 			    computedAnyFoll = true;
 			}//if
 			else { break; }
 		    }//for j
 		    
-		    /*
-		    for (int j = foll.pointChain.size()-2; j > 1; j--) {
-			boolean compute = false;
-			if (Mathset.pointPosition(x,(Point)foll.pointChain.get(j-1),(Point)foll.pointChain.get(j)) == 1) { compute = true; }
-			if (compute) {
-			    tl.add(new Triangle(x,
-						(Point)foll.pointChain.get(j-1),
-						(Point)foll.pointChain.get(j)));
-			    pCfoll = j-1;
-			    computedAnyFoll = true;
-			}//if
-		    }//for j
-		    */
 		}//else
 		    
 
@@ -930,9 +996,12 @@ class Polygons extends Element {
 		//and substitute it with the old three elements
 		//new = n
 		//(mt a mt b mt) -> (mt n mt)
-		//System.out.println("pCprev:"+pCprev+", pCfoll:"+pCfoll+", prevLiesTop:"+prevLiesTop+", follLiesTop:"+follLiesTop+", computedAnyPrev:"+computedAnyPrev+", computedAnyFoll:"+computedAnyFoll);
+		//System.out.println("pCprev:"+pCprev+", pCfoll:"+pCfoll+", prevLiesTop:"+prevLiesTop+", follLiesTop:"+follLiesTop+", computedAnyPrev:"+computedAnyPrev+", computedAnyFoll:"+computedAnyFoll);	
+		//System.out.println("\nprev.pointchain:"); prev.pointChain.print();
+		//System.out.println("\nfoll.pointchain:"); foll.pointChain.print();
 		newElem = new SweepStElem();
 		newElem.rimoEl = (Point)x.copy();
+		//first add all remaining elements of prev
 		if (!computedAnyPrev) {
 		    if (prevLiesTop) {
 			for (int j = prev.pointChain.size()-1; j > 0; j--) {
@@ -959,8 +1028,10 @@ class Polygons extends Element {
 		    }//else
 		}//else
 
+		//now add x
 		newElem.pointChain.add((Point)x.copy());
 
+		//finally add all remaining elements of foll
 		if (!computedAnyFoll) {
 		    if (follLiesTop) {
 			for (int j = 1; j < foll.pointChain.size(); j++) {
@@ -987,60 +1058,187 @@ class Polygons extends Element {
 			}//for j
 		    }//else
 		}//else
+		
+		//SPECIAL CASE: A certain case is not included in the algorithm described
+		//by Mehlhorn. A point with attribute 'end' may be found as lying in an 
+		//'out'-interval (as it is implemented now) but in fact is lying in an 'in'-
+		//interval. This is correctly found when using the interval2-method and 
+		//checking, whether both endpoints of the interval have the same endpoint.
+		//If not, we found the special case. This is implemented in the following.
+		
+		//find x in pointChain
+		int xPos = -1;
+		for (int pc = 1; pc < newElem.pointChain.size()-2; pc++) {
+		    if (x.equal((Point)newElem.pointChain.get(pc))) {
+			xPos = pc;
+			break;
+		    }//if
+		}//for pc
+	
+		//generate all possible triangles for special case.
+		//The special case can be detected, when examining the intersection points
+		//of the outermost segments of the interval with the sweep-line. If x lies
+		//in the middle of the other points, it lies in an "out"-interval. Thus
+		//the special case occurs in the other case.
+		if (newElem.pointChain.size() > 4) {
+		    //constructing intersection points
+		    //find max/min y values
 
+		    Point p01 = (Point)newElem.pointChain.getFirst();
+		    Point p02 = (Point)newElem.pointChain.get(1);
+		    Point p03 = (Point)newElem.pointChain.get(newElem.pointChain.size()-2);
+		    Point p04 = (Point)newElem.pointChain.getLast();
+		    PointList pl = new PointList();
+		    pl.add(p01);
+		    pl.add(p02);
+		    pl.add(p03);
+		    pl.add(p04);
+		    //sort in respect to y value
+		    Point actPoint = null;
+		    for (int m = 0; m < pl.size()-1; m++) {
+			actPoint = (Point)pl.get(m);
+			for (int n = m; n < pl.size(); n++) {
+			    if (actPoint.compY((Point)pl.get(n)) == 1) {
+				Point swap = actPoint;
+				pl.set(m,pl.get(n));
+				pl.set(n,swap);
+				actPoint = (Point)pl.get(m);
+			    }//if
+			}//for n
+		    }//for m
+
+		    Rational minY,maxY;
+		    minY = ((Point)pl.getFirst()).y.minus(1);
+		    maxY = ((Point)pl.getLast()).y.plus(1);
+		    
+		    //constructing sweepline
+		    Segment sweepline = new Segment(x.x,minY,x.x,maxY);
+		    /* 
+		       GFXout zzz = new GFXout();
+		       zzz.initWindow();
+		       zzz.add(sweepline.copy());
+		       zzz.add(new Segment(p01,p02));
+		       zzz.add(new Segment(p03,p04));
+		       zzz.showIt();
+		       try { int data = System.in.read(); }
+		       catch (Exception e) { System.exit(0); }
+		       zzz.kill();
+		    */
+
+		    //constructing intersection points
+		    //System.out.println("sweepline construction[2]");
+		    Point int1 = sweepline.intersection(new Segment(p01,p02));
+		    //System.out.println("sweepline construction[3]");
+		    Point int2 = sweepline.intersection(new Segment(p03,p04));
+
+		    //now determine, whether we have a special case
+
+		    if ((x.y.less(int1.y) && x.y.less(int2.y)) ||
+			(x.y.greater(int1.y) && x.y.greater(int2.y))) {
+			//System.out.println("##### SPECIAL CASE #####");
+			
+			
+			boolean topdown = false;
+			if (((Point)newElem.pointChain.get(1)).compY((Point)newElem.pointChain.get(newElem.pointChain.size()-2)) == 1) {
+			    topdown = true;
+			}//if
+			
+			//System.out.println("**pointChain: "); newElem.pointChain.print();
+			//System.out.println("topdown: "+topdown);
+			
+			
+			//for the pointPosition test we have to find out, 
+			//whether we are going top-down or vice-versa
+			//use topdown for this
+			delList = new PointList();
+			if (topdown) {
+			    for (int k = 1; k < newElem.pointChain.size()-3; k++) {
+				Point p1 = (Point)newElem.pointChain.get(k);
+				Point p2 = (Point)newElem.pointChain.get(k+1);
+				Point p3 = (Point)newElem.pointChain.get(k+2);
+				//System.out.println(" checking triangle (special case1):");
+				//(new Triangle(p1,p2,p3)).print();
+				if (Mathset.pointPosition(p2,p1,p3) == 1) {
+				    Triangle nt = new Triangle(p1,p2,p3);
+				    tl.add(nt);
+				    //System.out.println("generated triangle(special case1)"); nt.print();
+				    delList.add(p2);
+				}//if
+			    }//for k
+			    //deleting points using delList
+			    boolean found = false;
+			    for (int k = 0; k < delList.size(); k++) {
+				Point delPoint = (Point)delList.get(k);
+				found = false;
+				for (int lc = 1; lc < newElem.pointChain.size()-2; lc++) {
+				    if (((Point)newElem.pointChain.get(lc)).equal(delPoint)) {
+					found = true;
+					newElem.pointChain.remove(lc);
+					break;
+				    }//if
+				}//for lc
+				if (found) delList.remove(k);
+				
+				else {
+				    System.out.println("Error in P.computeTriangles: Didn't find point (to remove) in pointChain.");
+				    System.exit(0);
+				}//else
+			    }//for k
+			}//if
+			else {
+			    for (int k = newElem.pointChain.size()-3; k > 1; k--) {
+				Point p1 = (Point)newElem.pointChain.get(k);
+				Point p2 = (Point)newElem.pointChain.get(k-1);
+				Point p3 = (Point)newElem.pointChain.get(k-2);
+				//System.out.println(" checking triangle (special case2):");
+				//(new Triangle(p1,p2,p3)).print();
+				if (Mathset.pointPosition(p2,p1,p3) == -1) {
+				    Triangle nt = new Triangle(p1,p2,p3);
+				    tl.add(nt);
+				    //System.out.println("generated triangle(special case2)"); nt.print();
+				    delList.add(p2);
+				}//if
+			    }//for k
+			}//else
+			
+			//deleting points using delList
+			boolean found = false;
+			for (int k = 0; k < delList.size(); k++) {
+			    Point delPoint = (Point)delList.get(k);
+			    found = false;
+			    for (int lc = 1; lc < newElem.pointChain.size()-2; lc++) {
+				if (((Point)newElem.pointChain.get(lc)).equal(delPoint)) {
+				    found = true;
+				    newElem.pointChain.remove(lc);
+				    break;
+				}//if
+			    }//for lc
+			    if (found) delList.remove(k);
+			    else {
+				System.out.println("Error in P.computeTriangles: Didn't find point (to remove) in pointChain.");
+				System.exit(0);
+			    }//else
+			}//for k
+			
+			//System.out.println("pointChain after deletion: "); newElem.pointChain.print();
+
+			//set new rimoEl
+			//find rimoEl
+			Point rmL = (Point)newElem.pointChain.get(1);;
+			for (int pc = 1; pc < newElem.pointChain.size()-2; pc++) {
+			    if (rmL.compX((Point)newElem.pointChain.get(pc)) == -1) {
+				rmL = (Point)newElem.pointChain.get(pc); }
+			}//for pc
+			newElem.rimoEl = rmL;
+		    }//if
+		}//if	   
+		/*
+		//check and resort pointChain if necessary
+		checkAndResortPointChain(newElem.pointChain);
+		*/
 		ystruct.set(yElemPos,newElem);
 		ystruct.remove(yElemPos+1);
 		ystruct.remove(yElemPos-1);
-
-
-		/*
-	      pCDown = prev.pointChain.size()-2;//these have to be set since it is
-	      pCUp = 1;//possible that the for-loops aren't entered
-	      for (int j = prev.pointChain.size()-2; j > 1; j--) {
-		boolean compute = false;
-		if (Mathset.pointPosition(x,(Point)prev.pointChain.get(j-1),(Point)prev.pointChain.get(j)) == 1) { compute = true; }
-		if (compute) {
-		  tl.add(new Triangle(x,
-				      (Point)prev.pointChain.get(j-1),
-				      (Point)prev.pointChain.get(j)));//add triangle
-		  pCDown = j-1;//memorize the last valid position
-		}//if
-	      }//for j
-	      for (int j = 1; j < foll.pointChain.size()-2; j++) {
-		boolean compute = false;
-		if (Mathset.pointPosition(x,(Point)foll.pointChain.get(j+1),(Point)foll.pointChain.get(j)) == -1) { compute = true; }
-		if (compute) {
-		    //System.out.println(" call add.triangle  with ("+x.x+","+x.y+") ("+((Point)foll.pointChain.get(j+1)).x+","+((Point)foll.pointChain.get(j+1)).y+") ("+((Point)foll.pointChain.get(j)).x+","+((Point)foll.pointChain.get(j)).y+")");
-		  tl.add(new Triangle(x,
-				      (Point)foll.pointChain.get(j+1),
-				      (Point)foll.pointChain.get(j)));//add triangle
-		  pCUp = j+1;//memorize the last valid position
-		}//if
-	      }//for j
-		
-
-	      //update ystruct
-	      //build new SweepStElem with the remaining points and 
-	      //substitute it with the old three elements
-	      System.out.println(" pCUp: "+pCUp+"  pCDown: "+pCDown);
-	      newElem = new SweepStElem();
-	      newElem.rimoEl = (Point)x.copy();
-	      for (int j = 0; j < pCDown+1; j++) {
-		newElem.pointChain.add(((Point)prev.pointChain.get(j)).copy());
-	      }//for j
-
-	      newElem.pointChain.add((Point)x.copy());
-
-	      for (int j = pCUp; j < foll.pointChain.size(); j++) {
-		newElem.pointChain.add(((Point)foll.pointChain.get(j)).copy());
-	      }//for j
-
-	      ystruct.set(yElemPos,newElem);
-	      //System.out.println(" generated new yElem");
-	      ystruct.remove(yElemPos+1);
-	      ystruct.remove(yElemPos-1);
-	      //System.out.println(" removed 2 yElems");
-	      */
 	    }//if
 	      
 	    else {
@@ -1104,7 +1302,7 @@ class Polygons extends Element {
   
 
     protected static int interval(Point p, LinkedList ystruct) {
-	//supportive method vor computeTriangles
+	//supportive method for computeTriangles
 	//returns the position of the interval in ystruct which
 	//includes p
 	//note that the first and last element of intervals are
@@ -1126,7 +1324,10 @@ class Polygons extends Element {
 	    return 0;
 	}//if
 
-	//search the intervals exclusive borders for the element
+	//Search the intervals borders for the element
+	//One element may occur two times on the borders, which means
+	//it is the connecting element. Hence we search for the element
+	//two times.
 	for (int i = 0; i < ystruct.size(); i++) {
 	    SweepStElem actSSE = (SweepStElem)ystruct.get(i);
 	    if (!actSSE.pointChain.isEmpty()) {
@@ -1180,11 +1381,15 @@ class Polygons extends Element {
 
 	if (foundOne || foundTwo) {
 	    if (foundOne && foundTwo) {
+		//we found the element two times
 		if (marker == marker2) {
+		    //both indices are equal, so everythings allright
 		    return marker;
 		}//if
 		if (marker2 != (marker+2)) {
-		    System.out.println("P.interval: 1+1=3?");
+		    //indices should be equal or have a difference of 2
+		    //if not, there is a serious error
+		    System.out.println("P.interval: 1+1=3? While searching for the proper interval to insert a new SweepStElem, two intervals were found, but they are too far away from eachother!");
 		    System.out.println("marker:"+marker+", marker2:"+marker2);
 		    System.exit(0);
 		}//if
@@ -1196,7 +1401,7 @@ class Polygons extends Element {
 	}//if
 
 	//so p is not lying on the boundary of one of the intervals
-	//now it is checked wether its y-coordinate is lying inside of
+	//now it is checked whether its y-coordinate is lying inside of
 	//the boundaries
 	else {
 	    boolean inside = false;
@@ -1217,7 +1422,7 @@ class Polygons extends Element {
 			 (Mathset.pointPosition(g21,g22,p) == -1))) {
 			marker = i;
 			inside = true;
-			//System.out.println("P.interval-case2");
+			System.out.println("P.interval-case2");
 			break;
 		    }//if
 		    //ypos is smaller than the next not mt interval,
@@ -1227,7 +1432,7 @@ class Polygons extends Element {
 			if (i > 0) {
 			    marker = i-1;
 			    outside = true;
-			    //System.out.println("P.interval-case3");
+			    System.out.println("P.interval-case3");
 			    break;
 			}//if
 		    }//if
@@ -1238,7 +1443,7 @@ class Polygons extends Element {
 	    }//if
 	    
 	}//else
-	//System.out.println("P.interval-case4");
+	System.out.println("P.interval-case4");
 	return ystruct.size()-1;
     }//end method interval
 		    
@@ -1250,7 +1455,11 @@ class Polygons extends Element {
     //attention: p does not lie in an interval,
     //if it is the first or last element of it!
     //returns the position of the suitable SweepStElem (element of ll)
-    Rational ypos = new Rational(p.y);
+      //
+      //CAUTION: this is currently only used for one case with attribute = start
+      //It is not clear whether it should be used also in the other cases and
+      //whether it works properly.
+    Rational ypos = RationalFactory.constRational(p.y);
 
     if (ll.isEmpty()) {
       //ll is empty, so add an empty element to ll and return it
@@ -1337,13 +1546,141 @@ class Polygons extends Element {
       return (ll.size()-1);
     }//else
   }//end method interval
+
+
+    protected static int interval3(Point p, LinkedList ll) {
+	//supportive method for compute_triangles
+	//determines whether p lies in an "in" or an "out" interval of ll
+	//returns the proper position of the suitable SweepStElem (element of ll)
+	//THIS method uses a sweepline to find out the proper interval
+	//BOTH other interval methods (1,2) don't work properly
+	
+	//compute a list of pairs which are the _real_ borders of the intervals
+	//this means the intersection points of the sweep line and the 'border' segments
+
+	PairList realInts = new PairList();
+	ListIterator lit = ll.listIterator(0);
+	SweepStElem actSSE = null;
+	while (lit.hasNext()) {
+	    actSSE = (SweepStElem)lit.next();
+	    if (actSSE.pointChain.isEmpty()) {
+		realInts.add(new ElemPair());
+	    }//if
+	    else {
+		//compute sweepline
+		PointList pll = new PointList();
+		pll.add(actSSE.pointChain.getFirst());
+		pll.add(actSSE.pointChain.get(1));
+		pll.add(actSSE.pointChain.get(actSSE.pointChain.size()-1));
+		pll.add(actSSE.pointChain.get(actSSE.pointChain.size()-2));
+		//find min,max in respect to y coordinate
+		Point max = (Point)pll.getFirst();
+		Point min = (Point)pll.getFirst();
+		for (int i = 1; i < pll.size(); i++) {
+		    if (((Point)pll.get(i)).compY(min) == -1) min = (Point)pll.get(i);
+		    else if (((Point)pll.get(i)).compY(max) == 1) max = (Point)pll.get(i);
+		}//for i
+		Segment sweepline = new Segment(p.x,min.y.minus(1),p.x,max.y.plus(1));
+
+		//compute both intersection points
+
+		//CAUTION: The computation of intersection points using the sweepline
+		//doesn't work if the segments are vertical! This must be checked first.
+
+		Point int1 = null;
+		if (((Point)actSSE.pointChain.getFirst()).compX((Point)actSSE.pointChain.get(1)) == 0) {
+		    int1 = (Point)actSSE.pointChain.getFirst();
+		    System.out.println("Pol.iv3: vertical element!");
+		}//if
+		else {
+		    //System.out.println("Pol.iv3: sweepline construction[1]");
+		    int1 = sweepline.intersection(new Segment((Point)actSSE.pointChain.getFirst(),
+								    (Point)actSSE.pointChain.get(1)));
+		    //System.out.println("Pol.iv3: sweepline construction[2], point:"); p.print();
+		}//else
+		Point int2 = null;
+		if (((Point)actSSE.pointChain.get(actSSE.pointChain.size()-1)).compX((Point)actSSE.pointChain.get(actSSE.pointChain.size()-2)) == 0) {
+		    int2 = (Point)actSSE.pointChain.get(actSSE.pointChain.size()-1);
+		    System.out.println("Pol.iv3: vertical element!");
+		}//if
+		else {
+		    //--->>>
+		    //remove this
+		    if (!sweepline.intersects(new Segment((Point)actSSE.pointChain.get(actSSE.pointChain.size()-1),
+							   (Point)actSSE.pointChain.get(actSSE.pointChain.size()-2)))) {
+			System.out.println("Pol.interval3: sweepline doesn't intersect segment!");
+			System.out.println("pointChain:");
+			((PointList)actSSE.pointChain).print();
+			System.out.println("\npoint:");
+			p.print();
+			System.exit(0);
+		    }//if
+		    //<<<---
+		    
+		    int2 = sweepline.intersection(new Segment((Point)actSSE.pointChain.get(actSSE.pointChain.size()-1),
+								    (Point)actSSE.pointChain.get(actSSE.pointChain.size()-2)));
+		}//else
+		
+		//construct elemPair and add it to realInts
+		if (int1.compY(int2) == -1) realInts.add(new ElemPair(int1,int2));
+		else realInts.add(new ElemPair(int2,int1));
+	    }//else
+	}//while lit
+
+	//now check, whether p _really_ lies in an interval or not and return the proper value
+	//It is assumed, that the intervals are sorted correctly!
+	lit = realInts.listIterator(0);
+	while (lit.hasNext()) {
+	    //get actual interval:
+	    ElemPair actPair = (ElemPair)lit.next();
+	    if (actPair.first != null) {
+		//if interval is not mt read borders
+		Point first = (Point)actPair.first;
+		Point second = (Point)actPair.second;
+
+		//compute compare values
+		int pCompY1st = p.compY(first);
+		int pCompY2nd = p.compY(second);
+
+		//point p lies in between the borders, return interval index:
+		if ((pCompY1st == 1) && (pCompY2nd == -1)) return lit.nextIndex()-1;
+
+		//point p is found as first and last point of actual interval AND
+		//it is first and last point of the previous non-mt interval
+		//then return index of the previous mt interval
+		else if (((pCompY1st == 0) || (pCompY2nd == 0)) &&
+			 (lit.nextIndex()-3 > 0) &&
+			 ((p.compY(((ElemPair)realInts.get(lit.nextIndex()-3)).first) == 0) ||
+			  (p.compY(((ElemPair)realInts.get(lit.nextIndex()-3)).second) == 0))) return lit.nextIndex()-2;
+		
+		//point p is found as first and last point of actual interval
+		//return interval index:
+		else if ((pCompY1st == 0) && (pCompY2nd == 0)) return lit.nextIndex()-1;
+
+		//p is found as first
+		else if (((pCompY1st == 0) && (pCompY2nd != 0)) ||
+			 ((pCompY1st != 0) && (pCompY2nd == 0))) return lit.nextIndex()-1;
+
+		//y coordinate of p is smaller than interval borders
+		//return index of previous mt interval: 
+		else if ((pCompY1st < 0) && (pCompY2nd < 0)) return lit.nextIndex()-2;
+		
+	    }//if
+	}//while lit
+
+	//no proper interval was found, so return last index
+	return realInts.size()-1;
+    }//end method interval3
+	    
+						 
+
     
 
     protected static String attribute(Point x, SegList sortedBorder) {
 	//supportive method for 'triangles'
 	//determines whether a Point has attribute start, end or bend
 	//returns "start","end" or "bend"
-	//caution: this method is used in Triangle.java
+	//caution: this method is used in Triangle.java - SURE???
 	//System.out.println("entering Pol.attribute...");
 	
 	//compute sorted border
@@ -1437,6 +1774,14 @@ class Polygons extends Element {
 	Point upP = ((Segment)borderCycle.getFirst()).endpoint;
 	Point downP = ((Segment)borderCycle.getLast()).startpoint;
 	//if (upP.y.less(downP.y)) {
+	if (borderCycle.size()<3) {
+	    System.out.println("Pol.attribute: borderCycle is smaller than 3!");
+	    System.out.println("x:");
+	    x.print();
+	    System.out.println();
+	    borderCycle.print();
+	    System.exit(0);
+	}//if
 	if (!isUpperSegment((Segment)borderCycle.getFirst(),(Segment)borderCycle.getLast())) {
 	    //System.out.println("***swap***");
 	    //swap up and down
@@ -1485,7 +1830,6 @@ class Polygons extends Element {
 
   }//end method attribute
   
-    
 
     public double area(){
 	//returns the area of the polygons
@@ -1551,7 +1895,7 @@ class Polygons extends Element {
 	//comment missing
 	if (inElement instanceof Polygons) {
 	    Polygons inPol = (Polygons)inElement;
-	    Rational retVal = new Rational(0);
+	    Rational retVal = RationalFactory.constRational(0);
 	    Class c = (new Triangle()).getClass();
 	    Class[] paramList = new Class[1];
 
@@ -1617,6 +1961,7 @@ class Polygons extends Element {
 
     public byte compare (Element inElement) throws WrongTypeException {
 	//...
+	System.out.println("CAUTION: Polygons.compare is currently not implemented.");
 	return 0;
     }//end method compare
 
@@ -1772,6 +2117,8 @@ class Polygons extends Element {
 	//so only these four cases are examined
 	if (!SegSeg_Ops.formALine(seg1,seg2)) {
 	    System.out.println("SSO.isUpperSegment: segments don't form a line");
+	    System.out.println("segment1: "); seg1.print();
+	    System.out.println("segment2: "); seg2.print();
 	    System.exit(0);
 	}//if
 	//find common point
@@ -1840,6 +2187,8 @@ class Polygons extends Element {
 	//For every component there is a single list.
 	//The first element is the outer cycle and the 
 	//following elements represent the hole cycles.
+
+	System.out.print("-->computing segments for NestedList conversion...");
 
 	if (this.border.isEmpty()) return new ElemListListList();
 
@@ -1958,6 +2307,8 @@ class Polygons extends Element {
 	    }//while
 	}//while
 
+	System.out.println("done.");
+
 	return resList;
     }//end method cyclesSegments
 	
@@ -1965,6 +2316,8 @@ class Polygons extends Element {
     public ElemListListList cyclesPoints () {
 	//returns the cycles of this as a ElemListListList
 	//which has points as elements
+	System.out.print("-->computing cycles for NestedList conversion...");
+
 	ElemListListList retList = new ElemListListList();
 	ElemListListList cyc = this.cyclesSegments();
 	ListIterator lit1 = cyc.listIterator(0);
@@ -1982,6 +2335,7 @@ class Polygons extends Element {
 	    }//while
 	    retList.add(actCompPL);
 	}//while
+	System.out.println("done.");
 	return retList;
     }//end method cyclesPoints
 

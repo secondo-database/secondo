@@ -11,8 +11,8 @@ class SPoint {
     //constructors
     public SPoint() {
 	//fill in dummy values
-	this.x = new Rational(0);
-	this.y = new Rational(0);
+	this.x = RationalFactory.constRational(0);
+	this.y = RationalFactory.constRational(0);
 	//update();
     }
     

@@ -452,9 +452,6 @@ class Triangle extends Element{
 
     public boolean pintersects(Triangle tin){
 	//returns true if this and tin have a common area
-	if (this.equal(tin)) { return true; }
-	if (TriTri_Ops.inside(this,tin) ||
-		TriTri_Ops.inside(tin,this)) { return true; }
 	SegList thisSegs = this.segments();
 	SegList tinSegs = tin.segments();
 	Iterator it1 = thisSegs.listIterator(0);
@@ -467,7 +464,9 @@ class Triangle extends Element{
 		if (actSeg.pintersects((Segment)it2.next())) { return true; }
 	    }//while
 	}//while
-
+	if (this.equal(tin)) { return true; }
+	if (TriTri_Ops.inside(this,tin) ||
+		TriTri_Ops.inside(tin,this)) { return true; }
 	return false;
     }//end method pintersects
 
@@ -760,8 +759,31 @@ class Triangle extends Element{
 
 
     public TriList minus (Triangle tin) {
-	//retuns the set of triangles resulting from subtracting tin from this
-	//System.out.println("entering T.minus...");
+	//returns the set of triangles resulting from subtracting tin from this
+	//System.out.println("\nentering T.minus...");
+	//System.out.println("triangles:"); this.print(); tin.print();
+	//System.out.println("this.area: "+this.area());
+	//System.out.println("tin.area: "+tin.area());
+	//System.out.println("this.segments.lengths:");
+	//for (int i = 0; i < 3; i++) {
+	//    System.out.println("this.segment["+i+"].length: "+((Segment)this.segments().get(i)).length()); }
+
+	//garbage collection...
+	//remove triangles, if they have a side length shorter than 
+	//critical value 0.001
+	if (this.garbageTest() == true) return new TriList();
+
+	/*
+	GFXout g1 = new GFXout();
+	g1.initWindow();
+	g1.add(tin.copy());
+	g1.add(this.copy());
+	g1.showIt();
+	try { int data = System.in.read(); }
+	catch (Exception e) { System.exit(0); }
+	g1.kill();
+	*/
+
 	TriList retList = new TriList();
 	if (TriTri_Ops.inside(this,tin)) {
 	    //System.out.println("T.minus: t1 lies fully inside of t2");
@@ -773,12 +795,14 @@ class Triangle extends Element{
 	    return retList;
 	}//if
 	
+	//System.out.println("T.minus: first checks passed");
 	PointList thisPoints = this.vertexlist();
 	PointList tinPoints = tin.vertexlist();
 	SegList segs = computeSegList(this,tin);
 	PointList intPoints = new PointList();
 	PointList allPoints = new PointList();
 	SegList chosenSegs = new SegList();
+	//System.out.println("T.minus: generated basic data lists");
 	//compute intPoints
 	Class c = (new Segment()).getClass();
 	try {
@@ -816,7 +840,7 @@ class Triangle extends Element{
 	//intPoints.print();
 
 	//System.out.println("segs:"); segs.print();
-	//check the points of all segments wether their vertices are
+	//check the points of all segments whether their vertices are
 	//of this, tin or intPoints
 	for (int i = 0; i < segs.size(); i++) {
 
@@ -892,13 +916,89 @@ class Triangle extends Element{
 	    }//else
 	}//for i
 
+	//System.out.println("T.minus: computed chosenSegs");
 	//System.out.println("chosenSegs:"); chosenSegs.print();
 	//System.out.println(); System.out.println();
 
-	if (!chosenSegs.isEmpty()) {
-	    retList = (new Polygons(chosenSegs)).triangles();
-	}//if
+	//Compute valid partitions of the region.
+	//This is necessary because the triangulation algorithm
+	//cannot compute a triangulation for a region with articulation points.
+	//Hence partitions are computed and afterwards for each partition the
+	//triangulation computed.
+	//BUT: if this.inside(tin)=true, don't do this
+	//In this case the result is directly passed to the triangulation algorithm.
+	ElemListList ell = null;
+	//System.out.println("T.minus: TT.inside:"+TriTri_Ops.inside(tin,this));
+	if (!(TriTri_Ops.inside(tin,this))) ell = partitionSegLists(chosenSegs);
+	else {
+	    ell = new ElemListList();
+	    ell.add(chosenSegs);
+	}//else
+	//System.out.println("T.minus: # of partitions: "+ell.size());
 
+	/*
+	//CAUTION: it is assumed that as result of partitionSeglists()
+	//we get ElemList which can be triangulated, i.e. they form
+	//simple polygons.
+	//A simple test is inlcuded here.
+	for (int i = 0; i < ell.size(); i++) {
+	    ElemList actList = (ElemList)ell.get(i);
+	    if (actList.size() <= 2) {
+		System.out.println("Unrecoverable error in Triangle.minus(). Constructed bad partitions.");
+		System.exit(0);
+	    }//if
+	}//for i
+	System.out.println("T.minus: simple partitions test completed");
+	*/
+
+	//System.out.println("T.minus: ell.size() = "+ell.size());
+	if (!chosenSegs.isEmpty()) {
+	    for (int i = 0; i < ell.size(); i++) {
+		ElemList actList = (ElemList)(ell.get(i));
+		retList.addAll(new Polygons(SegList.convert(actList)).triangles());
+		//retList = (new Polygons(chosenSegs)).triangles();
+	    }//for i
+	}//if
+	//System.out.println("T.minus: constructed retList");
+
+	/*
+	//remove this test!!!
+	//System.out.println("Triangle: Test for wrong retList. Error must lie in Graph.bcc. We currently don't search for it but implement a PATCH.");
+	for (int i = 0; i < retList.size(); i++) {
+	    //System.out.print("...testing for wrong retList...");
+	    Triangle act = (Triangle)retList.get(i);
+	    if (act.equal(this) || act.equal(tin)) {
+	    //if ((act.equal(this) && !TriTri_Ops.inside(tin,this)) || 
+	    //(act.equal(tin) && !TriTri_Ops.inside(tin,this))) {
+		System.out.println("found wrong retList!!! Have a look:");
+		
+		retList.print();
+		System.out.println("chosenSegs:"); chosenSegs.print();
+		GFXout got = new GFXout();
+		got.initWindow();
+		got.addList(chosenSegs);
+		got.showIt();
+		try { int data = System.in.read(); } 
+		catch (Exception e) { System.exit(0); }
+		got.kill();
+		GFXout got2 = new GFXout();
+		got2.initWindow();
+		got2.addList(retList);
+		got2.showIt();
+		try { int data = System.in.read(); }
+		catch (Exception e) { System.exit(0); }
+		got2.kill();
+		System.exit(0);
+		
+		retList.remove(i);
+		i--;
+	    }//if
+	    //System.out.println("done");
+	}//for i
+	*/
+	
+	//System.out.println("T.minus: retList.size() = "+retList.size());
+	//System.out.println("leaving Triangle.minus\n");
 	return retList;
     }//end method minus
 
@@ -924,7 +1024,7 @@ class Triangle extends Element{
 		}//for j
 	    }//for i
 	    
-	    Rational min = new Rational(0);
+	    Rational min = RationalFactory.constRational(0);
 	    min = (Rational)distlist.getFirst();
 	    for (int i = 0; i < distlist.size(); i++) {
 		if (((Rational)distlist.get(i)).less(min)) {
@@ -940,7 +1040,7 @@ class Triangle extends Element{
 
     private static SegList computeSegList (Triangle t1, Triangle t2) {
 	//computes a set of segments which is generated from intersecting t1,t2
-	//if two segments of t1,t2 intersect, they are splitted
+	//if two segments of t1,t2 intersect, they are split
 	//double segments are removed
 	//System.out.println("entering T.computeSegList");
 	SegList t1segs = new SegList();
@@ -948,7 +1048,7 @@ class Triangle extends Element{
 	t1segs = t1.segments();
 	t2segs = t2.segments();
 
-	//System.out.println("split triangles");
+	//System.out.println("T.cSL: split triangles");
 
 	//split the triangles in sets of segments
 	//compute these sets
@@ -978,16 +1078,16 @@ class Triangle extends Element{
 	    System.exit(0);
 	    */
 	    paramList2[0] = Class.forName("Element");
-	    //System.out.println("doing first reduce...");
+	    //System.out.println("doing first reduce...(split/overlap)");
 	    Method meth = c.getMethod("split",paramList);
 	    Method pred1 = c.getMethod("overlap",paramList);
 	    //long time1 = System.currentTimeMillis();
 	    //segs = (SegList)SetOps.reduce(segs,pred1,meth);
-	    segs = (SegList)SetOps.overlapReduce(segs,pred1,meth,false);
+	    segs = SegList.convert(SetOps.overlapReduce(segs,pred1,meth,false));
 	    //long time2 = System.currentTimeMillis();
 	    //segs.print();
 	    //System.out.println("first reduce done");
-	    //System.out.println("doing second reduce");
+	    //System.out.println("doing second reduce...(pintersects)");
 	    Method pred2 = c2.getMethod("pintersects",paramList2);
 	    //segs = (SegList)SetOps.reduce(segs,pred2,meth);
 	    segs = SegList.convert(SetOps.overlapReduce(segs,pred2,meth,false));
@@ -998,9 +1098,13 @@ class Triangle extends Element{
 	    //segs.print();
 	    //System.exit(0);
 	    Method pred3 = c.getMethod("pmeet",paramList);
-	    //System.out.println("doing third reduce");
-	    //segs = (SegList)SetOps.reduce(segs,pred3,meth);
-	    segs = (SegList)SetOps.overlapReduce(segs,pred3,meth,true);
+	    //System.out.println("doing third reduce...(pmeet)");
+	    /*
+	      overlapReduce mustn't me used here, because it works only for
+	      elements which overlap!
+	    */
+	    //segs = SegList.convert(SetOps.overlapReduce(segs,pred3,meth,true));
+	    segs = SegList.convert(SetOps.reduce(segs,pred3,meth));
 	    //long time4 = System.currentTimeMillis();
 	    //System.out.println("reduce1: "+(time2-time1)+"ms, reduce2: "+(time3-time2)+"ms, reduce3: "+(time4-time3)+"ms");
 	    //segs.print();
@@ -1027,6 +1131,105 @@ class Triangle extends Element{
 	this.update();
     }//end method zoom
 
-  
+
+    public static ElemListList partitionSegLists (SegList sl) {
+	//from the passed seglist sl compute strongly connected
+	//components using depth first search of class Graph
+
+	//System.out.println("entering T.partitionSegLists...");
+	ElemListList retList = new ElemListList();
+	
+	//get all vertices
+	PointList allPoints = null;
+	Class c = (new Segment()).getClass();
+	try {
+	    Method m = c.getMethod("endpoints",null);
+	    allPoints = PointList.convert(SetOps.map(sl,m));
+	}//try
+	catch (Exception e) {
+	    System.out.println("Error in Triangle.partitionSegLists - can't apply Segment.enpoints()");
+	    System.exit(0);
+	}//catch
+
+	
+	//generate graph
+	//generate vertices for graph
+	PointList vertices = PointList.convert(SetOps.rdup(allPoints));
+	//generate edges for graph
+	PairList edges = new PairList();
+	Segment actSeg;
+	for (int i = 0; i < sl.size(); i++) {
+	    actSeg = (Segment)sl.get(i);
+	    edges.add(new ElemPair(actSeg.startpoint,actSeg.endpoint));
+	}//for i
+	
+	//System.out.println("vertices:"); vertices.print();
+	//System.out.println("edges:"); edges.print();
+	
+	Graph g = new Graph(vertices,edges);
+	//System.out.println("T.partitionSegLists: generated graph");
+	//System.out.println("\nGraph:"); g.printSuccLists();
+	ElemListList pointList = g.computeBCCs();
+	//System.out.println("T.partitionSegLists: computed BCCs");
+
+	//System.out.println("\npointlist (result of computeBCC):"); pointList.print();
+
+	//convert the PointLists to SegLists
+	for (int i = 0; i < pointList.size(); i++) {
+	    PointList actList = PointList.convert((ElemList)pointList.get(i));
+	    SegList convList = new SegList();
+	    for (int j = 1; j < actList.size(); j++) {
+		convList.add(new Segment((Point)(actList.get(j-1)),
+					 (Point)(actList.get(j))));
+	    }//for j
+	    convList.add(new Segment((Point)(actList.getFirst()),
+				     (Point)(actList.getLast())));
+	    retList.add(convList);
+	}//for i
+
+	//System.out.println("\nretList (result of partitionSegLists):"); retList.print();
+	return retList;
+    }//end method partitionSegLists
+
+    
+    public boolean garbageTest() {
+	//Tests .this whether it is a triangle with a side which
+	//has a length shorter than defined. If yes return true.
+
+	double CRITICAL_VALUE = 0.005;
+	
+	SegList segs = this.segments();
+	for (int i = 0; i < 3; i++) {
+	    //System.out.println("length("+i+"): "+((Segment)segs.get(i)).length());
+	    if (((Segment)segs.get(i)).length() < CRITICAL_VALUE) {
+		System.out.println("...trashed triangle (in Triangle.minus()) because of too small border length (<0.005)");
+		return true;
+	    }//if
+	}//for i
+	
+	Point sideA = Mathset.diff(this.vertices[2],this.vertices[0]);
+	Point sideB = Mathset.diff(this.vertices[1],this.vertices[0]);
+	Point sideC = Mathset.diff(this.vertices[2],this.vertices[1]);
+	Point sideC2 = Mathset.diff(this.vertices[1],this.vertices[2]);
+
+	Rational angle1 = Mathset.angle(sideA,sideB);
+	Rational angle2 = Mathset.angle(sideA,sideC);
+	Rational angle3 = Mathset.angle(sideB,sideC2);
+	//Rational angleSum = angle1.plus(angle2.plus(angle3));
+	//System.out.println("angles:");
+	//System.out.println("angle1: "+angle1);
+	//System.out.println("angle2: "+angle2);
+	//System.out.println("angle3: "+angle3);
+	//System.out.println("angleSum: "+angleSum);
+	if ((angle1.less(1) || angle2.less(1) || angle3.less(1)) &&
+	    this.area() < 0.25) {
+	    System.out.println("...trashed triangle (in Triangle.minus()) because of too small angles (< 1°) and too small area ("+this.area()+" < 0.25)");
+	    return true;
+	}//if
+
+	return false;
+    }//end method garbageTest
+
+
 } //end class Triangle
   

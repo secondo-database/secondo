@@ -33,5 +33,4 @@ public class ElemList extends LinkedList{
 	}//if
     }//end method print
 
-
 }//end class ElemList

@@ -32,14 +32,25 @@ import java.util.*;
 
 public class RoseImExport {
     /* just for testing. */
-    private static final int MAX = 2;
+    private static final int MAX = 5;
 
     /* 
     This method transforms an object (currently of type 
     Rational, Point, Points, Segment, Lines and Regions)
     to a nested list
     */
+    public static void debugM(String message) {
+	System.out.println("\t\t" + message);
+    }
+
     public static ListExpr exprt_nl(Object o) {
+	debugM("Calculating ListExpr from java object...");
+	ListExpr result = exprt_nl_(o);
+	debugM("Calculating finished.");
+	return result;
+    }
+    
+    public static ListExpr exprt_nl_(Object o) {
 	if (o instanceof Rational) {
 	    int Rat_n = (int)((Rational)o).getNumerator();
 	    int Rat_d = (int)((Rational)o).getDenominator();
@@ -65,9 +76,9 @@ public class RoseImExport {
 	    
 	    return 
 		ListExpr.cons
-		(exprt_nl(Point_x),
+		(exprt_nl_(Point_x),
 		 ListExpr.cons
-		 (exprt_nl(Point_y),
+		 (exprt_nl_(Point_y),
 		  ListExpr.theEmptyList()));
 	}
 	else if (o instanceof Points) {
@@ -77,7 +88,7 @@ public class RoseImExport {
 
 	    for (int i = Points_array.length - 1; i >= 0; i--) {
 		Points_result = ListExpr.cons
-		    (exprt_nl(Points_array[i]), Points_result);
+		    (exprt_nl_(Points_array[i]), Points_result);
 	    }
 
 	    return Points_result;
@@ -85,13 +96,13 @@ public class RoseImExport {
 	else if (o instanceof Segment) {
 	    return
 		(ListExpr.cons
-		 (exprt_nl(((Segment)o).getStartpoint().x),
+		 (exprt_nl_(((Segment)o).getStartpoint().x),
 		  ListExpr.cons
-		  (exprt_nl(((Segment)o).getStartpoint().y),
+		  (exprt_nl_(((Segment)o).getStartpoint().y),
 		   ListExpr.cons
-		   (exprt_nl(((Segment)o).getEndpoint().x),
+		   (exprt_nl_(((Segment)o).getEndpoint().x),
 		    ListExpr.cons
-		    (exprt_nl(((Segment)o).getEndpoint().y),
+		    (exprt_nl_(((Segment)o).getEndpoint().y),
 		     ListExpr.theEmptyList())))));
 	}
 	else if (o instanceof Lines) {
@@ -101,13 +112,17 @@ public class RoseImExport {
 	    
 	    for (int i = Lines_array.length - 1; i >= 0; i--) {
 		Lines_result = ListExpr.cons
-		    (exprt_nl(Lines_array[i]), Lines_result);
+		    (exprt_nl_(Lines_array[i]), Lines_result);
 	    }
 	    
 	    return Lines_result;
 	}
 	else if (o instanceof Regions){
-	    return exprt_nl(((Regions)o).cyclesPoints());
+	    debugM("cyclesPoints() started.");
+	    ElemListListList elll = ((Regions)o).cyclesPoints();
+	    debugM("cyclesPoints() finished.");
+
+	    return exprt_nl_(elll);
 	}
 	else if (o instanceof ElemListListList) {
 	    ElemListListList elll = (ElemListListList)o;
@@ -117,7 +132,7 @@ public class RoseImExport {
 
 	    for (int i = ell.length - 1; i >= 0; i--) {
 		ElemListListList_result = ListExpr.cons
-		    (exprt_nl(ell[i]), ElemListListList_result);
+		    (exprt_nl_(ell[i]), ElemListListList_result);
 	    }
 	    return ElemListListList_result;
 	}
@@ -129,7 +144,7 @@ public class RoseImExport {
 
 	    for (int i = el.length - 1; i >= 0; i--) {
 		ElemListList_result = ListExpr.cons
-		    (exprt_nl(el[i]), ElemListList_result);
+		    (exprt_nl_(el[i]), ElemListList_result);
 	    }
 	    return ElemListList_result;
 	}
@@ -141,7 +156,7 @@ public class RoseImExport {
 	    
 	    for (int i = e.length - 1; i >= 0; i--) {
 		ElemList_result = ListExpr.cons
-		    (exprt_nl(e[i]), ElemList_result);
+		    (exprt_nl_(e[i]), ElemList_result);
 	    }
 	    return ElemList_result;
 	}
@@ -201,26 +216,61 @@ public class RoseImExport {
     }
 
     /* recover an instance of Rational */
+    /* changed by DA: changed constructor for Rationals from
+       'Rational' to 'RationalFactory' */
     private static Rational imprt_Rational(ListExpr nl) {
-	int Rat_sign 
-	    = nl.second() .symbolValue().equals("-") ? -1 : 1;
+	RationalFactory.setClass(RationalBigInteger.class);
+	int Rat_sign
+	    = nl.second().symbolValue().equals("-") ? -1 : 1;
 	int Rat_intPart = nl.third().intValue() * Rat_sign;
 	int Rat_numDec 
 	    = nl.fourth().intValue() * Rat_sign;
 	int Rat_dnmDec 
 	    = nl.sixth().intValue();
-	return new Rational
-	    (Rat_intPart * Rat_dnmDec + Rat_numDec, Rat_dnmDec);
+	Rational result = null;
+	try {
+	    result = RationalFactory.constRational(Rat_intPart * Rat_dnmDec + Rat_numDec, Rat_dnmDec);
+	}
+	catch (Exception ex) {
+	    ex.printStackTrace();
+	}
+	return result;
     }
 
     /* recover an instance of Point */
+    /* changed by DA: now accepts also instances of Point with Point(int,int)
+       and Point(double,double). */
     private static Point imprt_Point(ListExpr nl) {
-	return new Point(imprt_Rational(nl.first()), 
-			 imprt_Rational(nl.second()));
+	ListExpr first = nl.first();
+	ListExpr second = nl.second();
+	if (first.isAtom()) {
+	    if ((first.atomType() == ListExpr.INT_ATOM) &&
+		(second.atomType() == ListExpr.INT_ATOM)) {
+		return new Point(first.intValue(),second.intValue());
+	    }//if
+	    else if ((first.atomType() == ListExpr.REAL_ATOM) &&
+		     (second.atomType() == ListExpr.REAL_ATOM)) {
+		return new Point(first.realValue(),second.realValue());
+	    }//else if
+	    else {
+		System.err.println("Check Point coordinates (imprt_Point): coordinates are not valid.");
+		return new Point();
+	    }//else
+	}//if
+	else {
+	    return new Point(imprt_Rational(nl.first()), imprt_Rational(nl.second()) );
+	}//else
     }
 
     /* recover an instance of Points */
     public static Points imprt_Points(ListExpr nl) {
+	debugM("Importing Points...");
+	Points result = imprt_Points_(nl);
+	debugM("Importing finished.");
+	return result;
+    }
+
+    public static Points imprt_Points_(ListExpr nl) {
 	int nll = nl.listLength();
 	if (nll > 0) {
 	    ListExpr restList = nl;
@@ -229,23 +279,61 @@ public class RoseImExport {
 		pl.add(imprt_Point(restList.first()));
 		restList = restList.rest();
 	    }
-	    Points result = new Points(pl);
 	    return new Points(pl);
 	}
 	else return new Points();
     }
 
     /* recover an instance of Segment */
+    /* changed by DA: now accepts also instances of Segments with Segment(int,int,int,int) and
+       Segment(double,double,double,double). */
     private static Segment imprt_Segment(ListExpr nl) {
-	return new Segment
-	    (imprt_Rational(nl.first()),
-	     imprt_Rational(nl.second()),
-	     imprt_Rational(nl.third()),
-	     imprt_Rational(nl.fourth()));
+	ListExpr first = nl.first();
+	ListExpr second = nl.second();
+	ListExpr third = nl.third();
+	ListExpr fourth = nl.fourth();
+	if (first.isAtom()) {
+	    if ((first.atomType() == ListExpr.INT_ATOM) &&
+		(second.atomType() == ListExpr.INT_ATOM) &&
+		(third.atomType() == ListExpr.INT_ATOM) &&
+		(fourth.atomType() == ListExpr.INT_ATOM)) {
+		return new Segment(first.intValue(),
+				   second.intValue(),
+				   third.intValue(),
+				   fourth.intValue());
+	    }//if
+	    else if ((first.atomType() == ListExpr.REAL_ATOM) &&
+		     (second.atomType() == ListExpr.REAL_ATOM) &&
+		     (third.atomType() == ListExpr.REAL_ATOM) &&
+		     (fourth.atomType() == ListExpr.REAL_ATOM)) {
+		return new Segment(first.realValue(),
+				   second.realValue(),
+				   third.realValue(),
+				   fourth.realValue());
+	    }//else if
+	    else {
+		System.err.println("Check Segment coordinates (impr_Segment): coordinastes are not valid.");
+		return new Segment();
+	    }//else
+	}//if
+	else {
+	    return new Segment
+		(imprt_Rational(nl.first()),
+		 imprt_Rational(nl.second()),
+		 imprt_Rational(nl.third()),
+		 imprt_Rational(nl.fourth()));
+	}//else
     }
 
     /* recover an instance of Lines */
     public static Lines imprt_Lines(ListExpr nl) {
+	debugM("Importing Lines...");
+	Lines result = imprt_Lines_(nl);
+	debugM("Importing finished.");
+	return result;
+    }
+
+    public static Lines imprt_Lines_(ListExpr nl) {
 	int nll = nl.listLength();
 	if (nll > 0) {
 	    ListExpr restList = nl;
@@ -287,6 +375,13 @@ public class RoseImExport {
     
     /* recover an instance of Regions */
     public static Regions imprt_Regions(ListExpr nl) {
+	debugM("Importing Regions...");
+	Regions result = imprt_Regions_(nl);
+	debugM("Importing finished.");
+	return result;
+    }
+
+    public static Regions imprt_Regions_(ListExpr nl) {
 	// we have to collet all segments to recreate a
 	// Regions object.
 	SegList sl = new SegList();
@@ -299,27 +394,14 @@ public class RoseImExport {
 	return new Regions(sl);
     }
  
-    /* returns a string representation of a nested list. */
-    public static String ListExprToString(ListExpr nl) {
-	return nl.writeListExprToString();
-    }
-
-    /* returns a nested list from its string representation */
-    public static ListExpr StringToListExpr(String s) {
-	ListExpr le = new ListExpr();
-	le.readFromString(s);
-	return le;
-    } 
-	
     /*
-
-    The following methods test the import and export mechanism of
-    different rose objects.
+      The following methods test the import and export mechanism of
+      different rose objects.
     */
 
     /* test import and export of a rational object. */
     private static void rationalTest() {
-	Rational rat1 = new Rational(-5, 3);
+	Rational rat1 = RationalFactory.constRational(-5, 3);
 	StringBuffer result = new StringBuffer();
 	ListExpr le = exprt_nl(rat1);
 	le.writeToString(result);
@@ -338,8 +420,8 @@ public class RoseImExport {
 
     /* test import and export mechanism for a point object. */
     private static void pointTest() {
-	Rational rat1 = new Rational(-5, 3);
-	Rational rat2 = new Rational(11, 5);
+	Rational rat1 = RationalFactory.constRational(-5, 3);
+	Rational rat2 = RationalFactory.constRational(11, 5);
 	Point p1 = new Point(rat1, rat2);
 	StringBuffer sb = new StringBuffer();
 	ListExpr le = exprt_nl(p1);
@@ -366,8 +448,8 @@ public class RoseImExport {
 	PointList pl = new PointList();
 
 	for (int i = 0; i < MAX; i++) {
-	    rat1[i] = new Rational(i+1, i+2);
-	    rat2[i] = new Rational(i+3, i+4);
+	    rat1[i] = RationalFactory.constRational(i+1, i+2);
+	    rat2[i] = RationalFactory.constRational(i+3, i+4);
 	    p[i] = new Point(rat1[i], rat2[i]);
 	    pl.add(p[i]);   
 	}
@@ -397,10 +479,10 @@ public class RoseImExport {
 	for (int i = 0; i < MAX; i++) {
 	    sl.add
 		(new Segment
-		 (new Rational(i+1, i+2),
-		  new Rational(i+3, i+4), 
-		  new Rational(i+5, i+6), 
-		  new Rational(i+7, i+8))); 
+		 (RationalFactory.constRational(i+1, i+2),
+		  RationalFactory.constRational(i+3, i+4), 
+		  RationalFactory.constRational(i+5, i+6), 
+		  RationalFactory.constRational(i+7, i+8))); 
 	}
 	
 	Lines ls = new Lines(sl);
@@ -423,66 +505,66 @@ public class RoseImExport {
     }
 
     /* test import and export mechanism for a regions object. */
-    private static void regionsTest() {
-	Rational rx01 = new Rational(1, 1);
-	Rational ry01 = new Rational(1, 1);
+    private static void regionsTestOld() {
+	Rational rx01 = RationalFactory.constRational(1, 1);
+	Rational ry01 = RationalFactory.constRational(1, 1);
 
-	Rational rx02 = new Rational(6, 1);
-	Rational ry02 = new Rational(1, 1);
+	Rational rx02 = RationalFactory.constRational(6, 1);
+	Rational ry02 = RationalFactory.constRational(1, 1);
 
-	Rational rx03 = new Rational(6, 1);
-	Rational ry03 = new Rational(6, 1);
+	Rational rx03 = RationalFactory.constRational(6, 1);
+	Rational ry03 = RationalFactory.constRational(6, 1);
 
-	Rational rx04 = new Rational(1, 1);
-	Rational ry04 = new Rational(6, 1);
+	Rational rx04 = RationalFactory.constRational(1, 1);
+	Rational ry04 = RationalFactory.constRational(6, 1);
 
-	Rational rx05 = new Rational(2, 1);
-	Rational ry05 = new Rational(2, 1);
+	Rational rx05 = RationalFactory.constRational(2, 1);
+	Rational ry05 = RationalFactory.constRational(2, 1);
 
-	Rational rx06 = new Rational(3, 1);
-	Rational ry06 = new Rational(2, 1);
+	Rational rx06 = RationalFactory.constRational(3, 1);
+	Rational ry06 = RationalFactory.constRational(2, 1);
 
-	Rational rx07 = new Rational(3, 1);
-	Rational ry07 = new Rational(3, 1);
+	Rational rx07 = RationalFactory.constRational(3, 1);
+	Rational ry07 = RationalFactory.constRational(3, 1);
 
-	Rational rx08 = new Rational(2, 1);
-	Rational ry08 = new Rational(3, 1);
+	Rational rx08 = RationalFactory.constRational(2, 1);
+	Rational ry08 = RationalFactory.constRational(3, 1);
 
-	Rational rx09 = new Rational(4, 1);
-	Rational ry09 = new Rational(2, 1);
+	Rational rx09 = RationalFactory.constRational(4, 1);
+	Rational ry09 = RationalFactory.constRational(2, 1);
 
-	Rational rx10 = new Rational(5, 1);
-	Rational ry10 = new Rational(2, 1);
+	Rational rx10 = RationalFactory.constRational(5, 1);
+	Rational ry10 = RationalFactory.constRational(2, 1);
 
-	Rational rx11 = new Rational(5, 1);
-	Rational ry11 = new Rational(3, 1);
+	Rational rx11 = RationalFactory.constRational(5, 1);
+	Rational ry11 = RationalFactory.constRational(3, 1);
 
-	Rational rx12 = new Rational(4, 1);
-	Rational ry12 = new Rational(3, 1);
+	Rational rx12 = RationalFactory.constRational(4, 1);
+	Rational ry12 = RationalFactory.constRational(3, 1);
 
-	Rational rx13 = new Rational(4, 1);
-	Rational ry13 = new Rational(4, 1);
+	Rational rx13 = RationalFactory.constRational(4, 1);
+	Rational ry13 = RationalFactory.constRational(4, 1);
 
-	Rational rx14 = new Rational(5, 1);
-	Rational ry14 = new Rational(4, 1);
+	Rational rx14 = RationalFactory.constRational(5, 1);
+	Rational ry14 = RationalFactory.constRational(4, 1);
 
-	Rational rx15 = new Rational(5, 1);
-	Rational ry15 = new Rational(5, 1);
+	Rational rx15 = RationalFactory.constRational(5, 1);
+	Rational ry15 = RationalFactory.constRational(5, 1);
 
-	Rational rx16 = new Rational(4, 1);
-	Rational ry16 = new Rational(5, 1);
+	Rational rx16 = RationalFactory.constRational(4, 1);
+	Rational ry16 = RationalFactory.constRational(5, 1);
 
-	Rational rx17 = new Rational(2, 1);
-	Rational ry17 = new Rational(4, 1);
+	Rational rx17 = RationalFactory.constRational(2, 1);
+	Rational ry17 = RationalFactory.constRational(4, 1);
 
-	Rational rx18 = new Rational(3, 1);
-	Rational ry18 = new Rational(4, 1);
+	Rational rx18 = RationalFactory.constRational(3, 1);
+	Rational ry18 = RationalFactory.constRational(4, 1);
 
-	Rational rx19 = new Rational(3, 1);
-	Rational ry19 = new Rational(5, 1);
+	Rational rx19 = RationalFactory.constRational(3, 1);
+	Rational ry19 = RationalFactory.constRational(5, 1);
 
-	Rational rx20 = new Rational(2, 1);
-	Rational ry20 = new Rational(5, 1);
+	Rational rx20 = RationalFactory.constRational(2, 1);
+	Rational ry20 = RationalFactory.constRational(5, 1);
 
  
 	Point p01 = new Point(rx01, ry01);
@@ -558,6 +640,9 @@ public class RoseImExport {
 	sl.add(s19);
 	sl.add(s20);
 
+	System.out.println("check1");
+	System.out.println("sl:"); sl.print();
+
 	Regions r = new Regions(sl);
 	r.trilist.print();
 	System.out.println("-----");
@@ -579,20 +664,233 @@ public class RoseImExport {
 	r3.trilist.print();
     }
 
-    public static void main (String args[]) {
-	System.out.println("---Test Rational---");
-	rationalTest();
-	
-	System.out.println("\n\n\n\n\n---Test Point------");
-	pointTest();
-	
-	System.out.println("\n\n\n\n\n---Test Points-----");
-	pointsTest();
-	
-	System.out.println("\n\n\n\n\n---Test Lines------");
-	linesTest();
+    /* test import and export mechanism for a regions object. */
+    private static void regionsTest() {
+	// build segments of outer cycle.
+	Rational x1 = RationalFactory.constRational(1, 1);
+	Rational y1 = RationalFactory.constRational(1, 1);
 
-	System.out.println("\n\n\n\n\n---Test Regions----");
-	regionsTest();
+	Rational x2 = RationalFactory.constRational(2 * MAX + 1, 1);
+	Rational y2 = RationalFactory.constRational(1, 1);
+
+	Rational x3 = RationalFactory.constRational(2 * MAX + 1, 1);
+	Rational y3 = RationalFactory.constRational(4, 1);
+
+	Rational x4 = RationalFactory.constRational(1, 1);
+	Rational y4 = RationalFactory.constRational(4, 1);
+
+	Point p1 = new Point(x1, y1);
+	Point p2 = new Point(x2, y2);
+	Point p3 = new Point(x3, y3);
+	Point p4 = new Point(x4, y4);
+
+	Segment s1 = new Segment(p1, p2);
+	Segment s2 = new Segment(p2, p3);
+	Segment s3 = new Segment(p3, p4);
+	Segment s4 = new Segment(p4, p1);
+
+	SegList sl = new SegList();
+	sl.add(s1);
+	sl.add(s2);
+	sl.add(s3);
+	sl.add(s4);
+
+	// build segments of hole cycles.
+	for (int i = 0; i < MAX; i++) {
+	    x1 = RationalFactory.constRational(2 + i * 2, 1);
+	    y1 = RationalFactory.constRational(2, 1);
+	
+	    x2 = RationalFactory.constRational(3 + i * 2, 1);
+	    y2 = RationalFactory.constRational(2, 1);
+	    
+	    x3 = RationalFactory.constRational(3 + i * 2, 1);
+	    y3 = RationalFactory.constRational(3, 1);
+
+	    x4 = RationalFactory.constRational(2 + i * 2, 1);
+	    y4 = RationalFactory.constRational(3, 1);
+
+	    p1 = new Point(x1, y1);
+	    p2 = new Point(x2, y2);
+	    p3 = new Point(x3, y3);
+	    p4 = new Point(x4, y4);
+
+	    s1 = new Segment(p1, p2);
+	    s2 = new Segment(p2, p3);
+	    s3 = new Segment(p3, p4);
+	    s4 = new Segment(p4, p1);
+	    
+	    sl.add(s1);
+	    sl.add(s2);
+	    sl.add(s3);
+	    sl.add(s4);
+	}
+
+	System.out.println("check1");
+	System.out.println("sl:"); sl.print();
+
+	Regions r = new Regions(sl);
+	r.trilist.print();
+	System.out.println("-----");
+
+	StringBuffer sb = new StringBuffer();
+	ListExpr le = exprt_nl(r);
+	le.writeToString(sb);
+	System.out.println(sb.toString());
+
+	Regions r2 = imprt_Regions(le);
+	r2.trilist.print();
+
+	byte[] strexprt = exprt_arr(r2);
+	System.out.println("Export byte array:");
+	printByteArray(strexprt);
+
+	Regions r3 = (Regions)imprt_arr(strexprt);
+	System.out.print("Reimported Regions: ");
+	r3.trilist.print();
+    }
+
+    /* help method for Relations test. */
+    public static String createPoints(int n) {
+	Rational[] rat1 = new Rational[MAX];
+	Rational[] rat2 = new Rational[MAX];
+	Point[] p = new Point[MAX];
+	PointList pl = new PointList();
+
+	for (int i = 0; i < MAX; i++) {
+	    rat1[i] = RationalFactory.constRational(i+1+n, i+2+n);
+	    rat2[i] = RationalFactory.constRational(i+3+n, i+4+n);
+	    p[i] = new Point(rat1[i], rat2[i]);
+	    pl.add(p[i]);   
+	}
+
+	Points ps = new Points(pl);
+	StringBuffer sb = new StringBuffer();
+	ListExpr le = exprt_nl(ps);
+	le.writeToString(sb);
+	return sb.toString();
+    }
+
+    /* help method for Relations test. */
+    public static String createLines(int n) {
+	SegList sl = new SegList();
+
+	for (int i = 0; i < MAX; i++) {
+	    sl.add
+		(new Segment
+		 (RationalFactory.constRational(i+1+n, i+2+n),
+		  RationalFactory.constRational(i+3+n, i+4+n), 
+		  RationalFactory.constRational(i+5+n, i+6+n), 
+		  RationalFactory.constRational(i+7+n, i+8+n))); 
+	}
+	
+	Lines ls = new Lines(sl);
+	
+	StringBuffer sb = new StringBuffer();
+	ListExpr le = exprt_nl(ls);
+	le.writeToString(sb);
+	return sb.toString();
+    }
+
+ /* help method for Relations test. */
+    public static String createRegions(int n) {
+	// build segments of outer cycle.
+	Rational x1 = RationalFactory.constRational(1 + n, 1 + n);
+	Rational y1 = RationalFactory.constRational(1 + n, 1 + n);
+
+	Rational x2 = RationalFactory.constRational(2 * MAX + 1 + n, 1 + n);
+	Rational y2 = RationalFactory.constRational(1 + n, 1);
+
+	Rational x3 = RationalFactory.constRational(2 * MAX + 1 + n, 1 + n);
+	Rational y3 = RationalFactory.constRational(4 + n, 1 + n);
+
+	Rational x4 = RationalFactory.constRational(1 + n, 1 + n);
+	Rational y4 = RationalFactory.constRational(4 + n, 1 + n);
+
+	Point p1 = new Point(x1, y1);
+	Point p2 = new Point(x2, y2);
+	Point p3 = new Point(x3, y3);
+	Point p4 = new Point(x4, y4);
+
+	Segment s1 = new Segment(p1, p2);
+	Segment s2 = new Segment(p2, p3);
+	Segment s3 = new Segment(p3, p4);
+	Segment s4 = new Segment(p4, p1);
+
+	SegList sl = new SegList();
+	sl.add(s1);
+	sl.add(s2);
+	sl.add(s3);
+	sl.add(s4);
+
+	// build segments of hole cycles.
+	for (int i = 0; i < MAX; i++) {
+	    x1 = RationalFactory.constRational(2 + i * 2+n, 1+n);
+	    y1 = RationalFactory.constRational(2+n, 1+n);
+	
+	    x2 = RationalFactory.constRational(3 + i * 2+n, 1+n);
+	    y2 = RationalFactory.constRational(2+n, 1+n);
+	    
+	    x3 = RationalFactory.constRational(3+n + i * 2, 1+n);
+	    y3 = RationalFactory.constRational(3+n, 1+n);
+
+	    x4 = RationalFactory.constRational(2+n + i * 2, 1+n);
+	    y4 = RationalFactory.constRational(3+n, 1+n);
+
+	    p1 = new Point(x1, y1);
+	    p2 = new Point(x2, y2);
+	    p3 = new Point(x3, y3);
+	    p4 = new Point(x4, y4);
+
+	    s1 = new Segment(p1, p2);
+	    s2 = new Segment(p2, p3);
+	    s3 = new Segment(p3, p4);
+	    s4 = new Segment(p4, p1);
+	    
+	    sl.add(s1);
+	    sl.add(s2);
+	    sl.add(s3);
+	    sl.add(s4);
+	}
+
+	Regions r = new Regions(sl);
+
+	StringBuffer sb = new StringBuffer();
+	ListExpr le = exprt_nl(r);
+	le.writeToString(sb);
+	return sb.toString();
+    }
+
+    /* Relations test */
+    public static void relationsTest() {
+	String result = "(create RoseRel : (rel(tuple((punkte ccpoints) (linien cclines) (regionen ccregions)))));";
+	result = result + "\n(update RoseRel : ((rel(tuple((punkte ccpoints) (linien cclines) (regionen ccregions))))(";
+	for (int i = 0; i < 3; i++) {
+	    result = result + createPoints(i);
+	    result = result + createLines(i);
+	    result = result + createRegions(0);
+	}
+	result = result + ")));";
+	System.out.println(result);
+    }
+
+    public static void main (String args[]) {
+	RationalFactory.setClass(RationalBigInteger.class);
+	//System.out.println("---Test Rational---");
+	//rationalTest();
+	
+	//System.out.println("\n\n\n\n\n---Test Point------");
+	//pointTest();
+	
+	//System.out.println("\n\n\n\n\n---Test Points-----");
+	//pointsTest();
+	
+	//System.out.println("\n\n\n\n\n---Test Lines------");
+	//linesTest();
+
+	//System.out.println("\n\n\n\n\n---Test Regions----");
+	//regionsTest();
+
+	System.out.println("\n\n\n\n\n---Test Relations---");
+	relationsTest();
     }
 }

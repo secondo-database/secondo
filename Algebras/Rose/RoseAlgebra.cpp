@@ -80,6 +80,32 @@ void error(char *filename, char *classname, int line) {
 }
 
 /*
+1.3 Dummy Functions
+
+Not interesting, but needed in the definition of a type constructor.
+
+*/
+
+static void* DummyCast( void* addr ) {
+  return (0);
+}
+
+
+/*
+3.2 Selection Function
+  
+Is used to select one of several evaluation functions for an overloaded
+operator, based on the types of the arguments. In case of a non-overloaded
+operator, we just have to return 0.
+
+*/
+
+static int simpleSelect (ListExpr args ){
+  return 0; 
+}
+
+
+/*
 2 Type Constructor ~Points~
 
 2.1 Data Structure - Class ~CcPoints~
@@ -391,6 +417,12 @@ Word CloneCcPoints(const Word &w) {
   return SetWord(((CcPoints *)w.addr)->Clone());
 }
 
+int
+SizeOfPoints()
+{
+  return sizeof(CcPoints);
+}
+
 /*
 2.4 Function Describing the Signature of the Type Constructor
 
@@ -441,6 +473,7 @@ TypeConstructor ccpoints
  // out function
  InCcPoints,
  // in function
+ 0,0, //SaveToList and RestoreFromList functions
  CreateCcPoints,
  // object creation
  DeleteCcPoints,
@@ -455,6 +488,8 @@ TypeConstructor ccpoints
  // object clone
  DummyCast,
  // cast function
+ SizeOfPoints,
+ //sizeof function
  CheckCcPoints,
  // kind checking function
  0,
@@ -785,7 +820,11 @@ Word CloneCcLines(const Word &w) {
   return SetWord(((CcLines *)w.addr)->Clone());
 }
 
-
+int
+SizeOfLines()
+{
+  return sizeof(CcLines);
+}
 
 /*
 3.4 Function Describing the Signature of the Type Constructor
@@ -836,6 +875,7 @@ TypeConstructor cclines (
  // out function
  InCcLines,
  // in function
+ 0,0, //SaveToList and RestoreFromList functions
  CreateCcLines,
  // object creation
  DeleteCcLines,
@@ -850,6 +890,8 @@ TypeConstructor cclines (
  // object clone
  DummyCast,
  // cast function
+ SizeOfLines,
+ //sizeof function
  CheckCcLines,
  // kind checking function
  0,
@@ -1185,6 +1227,12 @@ Word CloneCcRegions(const Word &w) {
   return SetWord(((CcRegions *)w.addr)->Clone());
 }
 
+int
+SizeOfRegions()
+{
+  return sizeof(CcRegions);
+}
+
 /*
 4.4 Function Describing the Signature of the Type Constructor
 
@@ -1236,6 +1284,7 @@ TypeConstructor ccregions (
  // out function
  InCcRegions,
  // in function
+ 0,0, //SaveToList and RestoreFromList functions
  CreateCcRegions,
  // object creation
  DeleteCcRegions,
@@ -1250,6 +1299,8 @@ TypeConstructor ccregions (
  // object clone
  DummyCast,
  // cast function
+ SizeOfRegions,
+ //sizeof function
  CheckCcRegions,
  // kind checking function
  0,

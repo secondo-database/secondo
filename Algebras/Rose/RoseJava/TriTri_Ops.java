@@ -15,9 +15,11 @@ class TriTri_Ops {
 	for (int i = 0; i < t1verts.size(); i++) {
 	    if (!(PointTri_Ops.inside((Point)t1verts.get(i),t2) ||
 		  PointTri_Ops.liesOnBorder((Point)t1verts.get(i),t2))) {
+		//System.out.println("TTO.i: return false");
 		return false;
 	    }//if
 	}//for i
+	//System.out.println("TTO.i: return true");
 	return true;
     }//end method inside
 

@@ -26,15 +26,18 @@ class SegSeg_Ops {
     public static boolean pmeet (Segment s1, Segment s2) {
 	//returns true if an endpoint of one segment lies on the other one
 	//but is NOT an endpoint of the other one
+	//System.out.println("entering SSO.pmeet...");
 
 	if ((PointSeg_Ops.liesOn(s1.startpoint,s2) ||
 	     PointSeg_Ops.liesOn(s1.endpoint,s2) ||
 	     PointSeg_Ops.liesOn(s2.startpoint,s1) ||
 	     PointSeg_Ops.liesOn(s2.endpoint,s1)) &&
 	    !(formALine(s1,s2)) || overlap(s1,s2)) {
-	    //System.out.println("***pmeet holds");
+	    //System.out.println("leaving SSO.pmeet (true)");
 	    return true; }
-	else { return false; }
+	else {
+	    //System.out.println("leaving SSO.pmeet (false)");
+	    return false; }
     }//end method pmeet
 
 
@@ -93,15 +96,20 @@ class SegSeg_Ops {
 
     public static boolean overlap(Segment s1, Segment s2){
 	//true if s1,s2 overlap but don't only meet, false else
+	
 	//System.out.println("entering SSO.overlap..."); 
 	
 	if (s1.equal(s2))
 	    { return true; }
 	else {
 	    boolean linDep = Mathset.linearly_dependent(s1,s2);
-	    boolean formALin = formALine(s1,s2);
+	    //System.out.println("lindep passed...");
+	    //boolean formALin = formALine(s1,s2);
+	    boolean poton = pointOnTheOtherOne(s1,s2);
 	    //System.out.println("SSO.overlap: linDep:"+linDep+", formALin: "+formALin);
-	    if (linDep && !formALin) {
+	    //System.out.println("SSO.overlap: linDep: "+linDep+", poton: "+poton);
+	    //if (linDep && !formALin) {
+	    if (linDep && poton) {
 		if (PointSeg_Ops.isEndpoint(s1.startpoint,s2) ||
 		    PointSeg_Ops.isEndpoint(s1.endpoint,s2) ||
 		    PointSeg_Ops.isEndpoint(s2.startpoint,s1) ||
@@ -118,6 +126,7 @@ class SegSeg_Ops {
 		    return true; }
 	    }//if
 	}//else
+	//System.out.println("SSO.overlap: false (case4)");
 	return false;
     }//end method overlap
 
@@ -392,21 +401,23 @@ class SegSeg_Ops {
 	
 	//segments are equal
 	if (s1.equal(s2)) {
-	    //System.out.println("case1");
+	    //System.out.println("SSO.split: case1:segments are equal");
 	    retList.add(s1);
 	    return retList;
 	}//if
 
 	//segments properly intersect
 	if (s1.pintersects(s2)) {
-	    //System.out.println("case2");
+	    //System.out.println("SSO.split: case2: segments properly intersect");
 	    //System.out.println("pintersects:"+s1.pintersects(s2));
 	    intPoint = s1.intersection(s2);
-	    //System.out.println("intPoint:"); intPoint.print();
+	    //System.out.println("SSO.split: intPoint:"); intPoint.print();
 	    retList.add(new Segment(s1.startpoint,intPoint));
 	    retList.add(new Segment(s1.endpoint,intPoint));
 	    retList.add(new Segment(s2.startpoint,intPoint));
 	    retList.add(new Segment(s2.endpoint,intPoint));
+	    //System.out.println("\nSSO.split: generated the following segments:");retList.print();
+	    //System.out.println();
 	    return retList;
 	}//if
 	
@@ -416,24 +427,24 @@ class SegSeg_Ops {
 	     PointSeg_Ops.isEndpoint(s2.endpoint,s1) ||
 	     PointSeg_Ops.isEndpoint(s1.startpoint,s2) ||
 	     PointSeg_Ops.isEndpoint(s1.endpoint,s2))) {
-	    //System.out.println("case3");
+	    //System.out.println("SSO.split: case3: segments overlap and form two segments");
 	    try {
 		Segment ovLap = theOverlap(s1,s2);
 		retList.add(ovLap);
 		if (ovLap.equal(s1)) {
-		    //System.out.println("case3.1");
+		    //System.out.println("SSO.split: case3.1");
 		    retList.addAll(symDiff(s2,ovLap));
 		}//if
 		else if (ovLap.equal(s2)) {
-		    //System.out.println("case3.2");
+		    //System.out.println("SSO.split: case3.2");
 		    retList.addAll(symDiff(s1,ovLap));
 		}//if
 		else if (overlap(s1,ovLap)) {
-		    //System.out.println("case3.3");
+		    //System.out.println("SSO.split: case3.3");
 		    retList.addAll(symDiff(s1,ovLap));
 		}//if
 		else {
-		    //System.out.println("case3.4");
+		    //System.out.println("SSO.split: case3.4");
 		    retList.add(symDiff(s2,ovLap));
 		}//else
 		return retList;
@@ -453,6 +464,7 @@ class SegSeg_Ops {
 	    (PointSeg_Ops.liesOn(s2.startpoint,s1) &&
 	     PointSeg_Ops.liesOn(s2.endpoint,s1))) {
 	    try {
+		//System.out.println("SSO.split: case 4: segments overlap and form three segments");
 		Segment ov = theOverlap(s1,s2);
 		retList.add(ov);
 		if (PointSeg_Ops.liesOn(s1.startpoint,s2)) {
@@ -464,7 +476,7 @@ class SegSeg_Ops {
 
 	//segments overlap and form three segments
 	if (overlap(s1,s2)) {
-	    //System.out.println("case4");
+	    //System.out.println("SSO.split: case5: segments overlap and form two segments");
 	    if (PointSeg_Ops.liesOn(s1.startpoint,s2)) { intPoint1 = s1.startpoint; }
 	    else { intPoint1 = s1.endpoint; }
 	    if (PointSeg_Ops.liesOn(s2.startpoint,s1)) { intPoint2 = s2.startpoint; }
@@ -479,7 +491,7 @@ class SegSeg_Ops {
 
 	//segments form a line
 	if (formALine(s1,s2)) {
-	    //System.out.println("case5");
+	    //System.out.println("SSO.split: case6: segments form a line");
 	    retList.add(s1);
 	    retList.add(s2);
 	    return retList;
@@ -487,7 +499,7 @@ class SegSeg_Ops {
 
 	//one endpoint lies on the other segment
 	if (PointSeg_Ops.liesOn(s1.startpoint,s2)) {
-	    //System.out.println("case6");
+	    //System.out.println("SSO.split: case6: one endpoint lies on the other segment");
 	    intPoint = s1.startpoint;
 	    retList.add(s1);
 	    retList.add(new Segment(s2.startpoint,intPoint));
@@ -510,7 +522,7 @@ class SegSeg_Ops {
 	}//if
 	
 	//so both segments don't even have common points
-	//System.out.println("case8");
+	//System.out.println("SSO.split: case9: both segments don't have common points");
 	retList.add(s1);
 	retList.add(s2);
 		
@@ -522,14 +534,19 @@ class SegSeg_Ops {
 	//subtracts seg2 from seg1 if they overlap
 	//return set of segments that don't overlap
 	//full seg1 else
+
+	//System.out.println("entering SSO.minus...");
+
 	SegList retList = new SegList();
-	if (!overlap(seg1,seg2)) { 
+	if (!overlap(seg1,seg2)) {
+	    //System.out.println("SSO.minus: Segments don't overlap!"); seg1.print(); seg2.print();
 	    retList.add(seg1);
 	    return retList;
 	}//if
 
 	//segments are equal
 	if (seg1.equal(seg2)) {
+	    //System.out.println("SSO.minus: segments are equal");
 	    return retList; }
 	
 	//one point is equal
@@ -547,6 +564,7 @@ class SegSeg_Ops {
 		retList.add(new Segment(seg1.startpoint,seg2.endpoint)); }
 	    else {
 		retList.add(new Segment(seg1.startpoint,seg2.startpoint)); }
+	    //System.out.println("SSO.minus: one point is equal");
 	    return retList;
 	}//if
 
@@ -554,10 +572,12 @@ class SegSeg_Ops {
 	//seg1 lies fully on seg2
 	if (PointSeg_Ops.liesOn(seg1.startpoint,seg2) &&
 	    PointSeg_Ops.liesOn(seg1.endpoint,seg2)) {
+	    //System.out.println("SSO.minus: seg1 lies fully on seg2");
 	    return retList; }
 	//seg2 lies fully on seg1
 	if (PointSeg_Ops.liesOn(seg2.startpoint,seg1) &&
 	    PointSeg_Ops.liesOn(seg2.endpoint,seg1)) {
+	    //System.out.println("SSO.minus: seg2 lies fully on seg1");
 	    if (seg1.startpoint.dist(seg2.startpoint).less
 		(seg1.startpoint.dist(seg2.endpoint))) {
 		retList.add(new Segment(seg1.startpoint,seg2.startpoint));
@@ -574,6 +594,19 @@ class SegSeg_Ops {
 	return retList;
     }//end method minus
 
-							 
+			
+    public static boolean pointOnTheOtherOne (Segment s1, Segment s2) {
+	//returns true, if one Segment has a point on the other Segment
+	//Having the same endpoints is NOT enough.
+	if (PointSeg_Ops.liesOn(s1.startpoint,s2) &&
+	    !(PointSeg_Ops.isEndpoint(s1.startpoint,s2))) return true;
+	if (PointSeg_Ops.liesOn(s1.endpoint,s2) &&
+	    !(PointSeg_Ops.isEndpoint(s1.endpoint,s2))) return true;
+	if (PointSeg_Ops.liesOn(s2.startpoint,s1) &&
+	    !(PointSeg_Ops.isEndpoint(s2.startpoint,s1))) return true;
+	if (PointSeg_Ops.liesOn(s2.endpoint,s1) &&
+	    !(PointSeg_Ops.isEndpoint(s2.endpoint,s1))) return true;
+	return false;
+    }//end method pointOnTheOtherOne
 
 } //end class SegSeg_Ops

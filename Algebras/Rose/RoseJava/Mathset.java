@@ -4,7 +4,10 @@ class Mathset {
   //provides some mathematical methodes for Points(interpreted as vectors)
 
   //variables
-    //static final Rational deriv = Algebra.deriv;
+    //Caution: Use the same values as in PointSeg_Ops!!!
+    static final double DERIV_DOUBLE = 0.00001;
+    static final double DERIV_DOUBLE_NEG = -0.00001;
+    //these values are used for linearly_dependent and pointPosition
 
   //constructors
 
@@ -12,7 +15,7 @@ class Mathset {
   public static Rational length(Point v) {
     //computes the length of a vector
       //caution: this is not precisely computed!!!
-    Rational l = new Rational(Math.sqrt((v.x.times(v.x).plus(v.y.times(v.y))).getDouble()));
+    Rational l = RationalFactory.constRational(Math.sqrt((v.x.times(v.x).plus(v.y.times(v.y))).getDouble()));
     return l;
   }//end method length
 
@@ -37,7 +40,7 @@ class Mathset {
 
   public static Rational prod(Point v1, Point v2) {
     //returns the product of the vectors v1, v2
-    Rational e = new Rational((v1.x.times(v2.x)).plus(v1.y.times(v2.y)));
+    Rational e = RationalFactory.constRational((v1.x.times(v2.x)).plus(v1.y.times(v2.y)));
     return e;
   }//end method prod
 
@@ -50,61 +53,108 @@ class Mathset {
 
     public static Point addfac(Point p, double fac) {
 	//add fac to p
-	return new Point(p.x.plus(new Rational(fac)),p.y.plus(new Rational(fac)));
+	return new Point(p.x.plus(RationalFactory.constRational(fac)),p.y.plus(RationalFactory.constRational(fac)));
     }//end method addfac
 
 
     public static Point subfac(Point p, double fac) {
 	//subtracts fac from p
-	return new Point(p.x.minus(new Rational(fac)),p.y.minus(new Rational(fac)));
+	return new Point(p.x.minus(RationalFactory.constRational(fac)),p.y.minus(RationalFactory.constRational(fac)));
     }//end method subfac
 
 
     public static boolean linearly_dependent(Segment s1, Segment s2) {
 	//true, if the vectors given by s1,s2 are linear dependant, false else
 	//caution: division by zero may occur!!!
+	//newest version: computation depends on RationalFactory.PRECISE
+	//if true, DERIV is used.
+	//otherwise doubles are used
 	
-	//System.out.println("MS.lindep");
-	
-	//new implementation
-	Point sv1 = new Point(s1.endpoint.x.minus(s1.startpoint.x),
-			      s1.endpoint.y.minus(s1.startpoint.y));
-	Point sv2 = new Point(s2.endpoint.x.minus(s2.startpoint.x),
-			      s2.endpoint.y.minus(s2.startpoint.y));
-	
-	//System.out.println("MS.sv1:"); sv1.print();
-	//System.out.println("MS.sv2:"); sv2.print();
-	
-	//int count = 0;
-	boolean sv2X0 = sv2.x.equal(0);
-	boolean sv2Y0 = sv2.y.equal(0);
-	
-	if (sv2X0 && sv2Y0) return true;
-	
-	//frome here: changed double back to Rational (15-07-03)
-	Rational t1 = new Rational(0);
-	//double t1 = 0;
-	Rational t2 = new Rational(0);
-	//double t2 = 0;
-	
-	if (!sv2X0) t1 = sv1.x.dividedby(sv2.x);
-	//if (!sv2X0) t1 = sv1.x.getDouble() / sv2.x.getDouble();
-	if (!sv2Y0) t2 = sv1.y.dividedby(sv2.y);
-	//if (!sv2Y0) t2 = sv1.y.getDouble() / sv2.y.getDouble();
-	
-	//old:
-	//boolean t1t2equal = (((t1 - t2) < Algebra.deriv.getDouble()) &&
-	//			   ((t1 - t2) > Algebra.deriv.getDouble()));
-	//new:
-	boolean t1t2equal = false;
-	if (t1.minus(t2).equal(0)) t1t2equal = true;
-	//if ((t1 - t2) == 0) t1t2equal = true;
+	//System.out.println("entering MS.lindep...");
+	//s1.print(); s2.print();
+
+	if (RationalFactory.readPrecise()) {
+	    //PRECISE == true, use Deriv
+	    Point sv1 = new Point(s1.endpoint.x.minus(s1.startpoint.x),
+				  s1.endpoint.y.minus(s1.startpoint.y));
+	    Point sv2 = new Point(s2.endpoint.x.minus(s2.startpoint.x),
+				  s2.endpoint.y.minus(s2.startpoint.y));
+	    boolean sv2X0 = sv2.x.equal(0);
+	    boolean sv2Y0 = sv2.y.equal(0);
+
+	    if (sv2X0 && sv2Y0) return true;
+
+	    Rational t1 = RationalFactory.constRational(0);
+	    Rational t2 = RationalFactory.constRational(0);
+
+	    if (!sv2X0) t1 = sv1.x.dividedby(sv2.x);
+	    if (!sv2Y0) t2 = sv1.y.dividedby(sv2.y);
+
+	    boolean t1t2equal = false;
+	    if (t1.minus(t2).equal(0)) t1t2equal = true;
+	    else {
+		Rational zwires = (t1.minus(t2)).abs();
+		if (zwires.less(RationalFactory.readDeriv())) t1t2equal = true;
+		else t1t2equal = false;
+	    }//else
+
+	    if (t1t2equal && !(t1.equal(0) && t2.equal(0))) return true;
+
+	    boolean compsv1x = (sv2.x.times(t1).minus(sv1.x)).abs().lessOrEqual(RationalFactory.readDeriv());
+	    boolean compsv1y = (sv2.y.times(t2).minus(sv1.y)).abs().lessOrEqual(RationalFactory.readDeriv());
+
+	    if (compsv1x && compsv1y) return true;
+
+	    return false;
+	}//if
+
 	else {
-	    Rational zwires = (t1.minus(t2)).abs();
-	    //double zwires = Math.abs(t1-t2);
+	    //PRECISE == false, use double constants as derivation value
+	    //DERIV_DOUBLE and DERIV_DOUBLE_NEG
+	
+	    //new implementation
+	    Point sv1 = new Point(s1.endpoint.x.minus(s1.startpoint.x),
+				  s1.endpoint.y.minus(s1.startpoint.y));
+	    Point sv2 = new Point(s2.endpoint.x.minus(s2.startpoint.x),
+				  s2.endpoint.y.minus(s2.startpoint.y));
+	    
+	    //System.out.println("MS.sv1:"); sv1.print();
+	    //System.out.println("MS.sv2:"); sv2.print();
+	    
+	    //int count = 0;
+	    boolean sv2X0 = sv2.x.equal(0);
+	    boolean sv2Y0 = sv2.y.equal(0);
+	
+	    if (sv2X0 && sv2Y0) return true;
+	    
+	    //frome here: changed double back to Rational (15-07-03)
+	    //changed back on (18-10-03)
+	    //Rational t1 = RationalFactory.constRational(0);
+	    double t1 = 0;
+	    //Rational t2 = RationalFactory.constRational(0);
+	    double t2 = 0;
+	
+	    //if (!sv2X0) t1 = sv1.x.dividedby(sv2.x);
+	    if (!sv2X0) t1 = sv1.x.getDouble() / sv2.x.getDouble();
+	    //if (!sv2Y0) t2 = sv1.y.dividedby(sv2.y);
+	    if (!sv2Y0) t2 = sv1.y.getDouble() / sv2.y.getDouble();
+	
+	    //old:
+	    //boolean t1t2equal = (((t1 - t2) < Algebra.deriv.getDouble()) &&
+	    //		 ((t1 - t2) > Algebra.deriv.getDouble()));
+	    double t1MINt2 = t1 - t2;
+	    boolean t1t2equal = ((t1MINt2 < DERIV_DOUBLE) &&
+				 (t1MINt2 > DERIV_DOUBLE_NEG));
+	//new:
+	//boolean t1t2equal = false;
+	//if (t1.minus(t2).equal(0)) t1t2equal = true;
+	if ((t1 - t2) == 0) t1t2equal = true;
+	else {
+	    //Rational zwires = (t1.minus(t2)).abs();
+	    double zwires = Math.abs(t1-t2);
 	    //System.out.println("t1 - t2 = "+zwires);
-	    if (zwires.less(Algebra.deriv)) t1t2equal = true;
-	    //if (zwires < Algebra.deriv.getDouble()) t1t2equal = true;
+	    //if (zwires.less(RationalFactory.readDeriv())) t1t2equal = true;
+	    if (zwires < DERIV_DOUBLE) t1t2equal = true;
 	    else t1t2equal = false;
 	}//else
 	
@@ -116,16 +166,15 @@ class Mathset {
 	    //System.out.println("false case2");
 	    return false; }
 
-	//if (t1.equal(t2)) return true;
-	if (t1t2equal && !(t1.equal(0) && t2.equal(0))) return true;
-	//if (t1t2equal && !(t1 == 0 && t2 == 0)) return true;
+	//if (t1t2equal && !(t1.equal(0) && t2.equal(0))) return true;
+	if (t1t2equal && !(t1 == 0 && t2 == 0)) return true;
 	
-	boolean compsv1x = (sv2.x.times(t1).minus(sv1.x)).abs().lessOrEqual(Algebra.deriv);
-	//boolean compsv1x = (((sv2.x.getDouble() * t1 - sv1.x.getDouble()) < Algebra.deriv.getDouble()) &&
-	//		  ((sv2.x.getDouble() * t1 - sv1.x.getDouble()) > (Algebra.deriv.times(-1)).getDouble()));
-	boolean compsv1y = (sv2.y.times(t2).minus(sv1.y)).abs().lessOrEqual(Algebra.deriv);
-	//boolean compsv1y = (((sv2.y.getDouble() * t2 - sv1.y.getDouble()) < Algebra.deriv.getDouble()) &&
-	//		  ((sv2.y.getDouble() * t2 - sv1.y.getDouble()) > (Algebra.deriv.times(-1)).getDouble()));
+	//boolean compsv1x = (sv2.x.times(t1).minus(sv1.x)).abs().lessOrEqual(RationalFactory.readDeriv());
+	boolean compsv1x = (((sv2.x.getDouble() * t1 - sv1.x.getDouble()) < DERIV_DOUBLE) &&
+			    ((sv2.x.getDouble() * t1 - sv1.x.getDouble()) > DERIV_DOUBLE_NEG));
+	//boolean compsv1y = (sv2.y.times(t2).minus(sv1.y)).abs().lessOrEqual(RationalFactory.readDeriv());
+	boolean compsv1y = (((sv2.y.getDouble() * t2 - sv1.y.getDouble()) < DERIV_DOUBLE) &&
+			    ((sv2.y.getDouble() * t2 - sv1.y.getDouble()) > DERIV_DOUBLE_NEG));
 
 	
 	/*
@@ -136,7 +185,7 @@ class Mathset {
 
 	if (compsv1x && compsv1y) return true;
 	//if (sv2.x.times(t1).equal(sv1.x) &&
-	//	  sv2.y.times(t2).equal(sv1.y)) { return true; }
+	//   sv2.y.times(t2).equal(sv1.y)) { return true; }
 	//System.out.println("false case3");
 	return false;
 	/*
@@ -170,17 +219,18 @@ class Mathset {
       else { if (num == 2) { return true; } }
       return false;
       */
+	}//else
   }//end method linear_dependant
 
 
   public static Rational angle(Point p1, Point p2) {
     //computes the angle between two vectors using the scalar product
       //caution: this is not computed precisely
-    Rational e = new Rational(prod(p1,p2).dividedby(length(p1).times(length(p2))));
+    Rational e = RationalFactory.constRational(prod(p1,p2).dividedby(length(p1).times(length(p2))));
     //System.out.println("e: "+e);
-    e = new Rational(Math.acos(e.getDouble()));
+    e = RationalFactory.constRational(Math.acos(e.getDouble()));
     //System.out.println("acos(e):"+e);
-    e = new Rational(Math.toDegrees(e.getDouble()));
+    e = RationalFactory.constRational(Math.toDegrees(e.getDouble()));
     //System.out.println("toDegrees(e):"+e);
     return e;
   }//end method angle
@@ -241,60 +291,48 @@ class Mathset {
     */
 
   public static byte pointPosition(Point g1, Point g2, Point p) {
-    //returns 0 if p lies on the line formed by g1,g2
-    //returns 1 if p lies on the right side of the line
-    //returns -1 if p lies on the left side of the line
+      //returns 0 if p lies on the line formed by g1,g2
+      //returns 1 if p lies on the right side of the line
+      //returns -1 if p lies on the left side of the line
       //CAUTION: here an overflow may happen!
       //patched with doubles used in computation
       //CAUTION: this method is called MUCH too often:
       //e.g.: 60 times for SegTri_Ops.pintersects!!! check this
       //System.out.println("MS.pp");
-
-    //Rational t1 = new Rational(0);
-    Point s1;
-    Point s2;
-    s1 = diff(g2,g1); //System.out.println("s1: "); s1.print();
-    s2 = diff(p,g1); //System.out.println("s2: "); s2.print();
       
-    // new code
-    //PATCH: because we don't need to know the exact
-    //value of t0, we don't compute it with Rationals,
-    //but with doubles. We produce a warning, if the 
-    //resulting value is near to 0.
-    //System.out.println("s1.x:"+s1.x+", s1.double: "+s1.x.getDouble());
-    double s1x = s1.x.getDouble(); //System.out.println("s1x: "+s1x);
-    double s1y = s1.y.getDouble(); //System.out.println("s1y: "+s1y);
-    double s2x = s2.x.getDouble(); //System.out.println("s2x: "+s2x);
-    double s2y = s2.y.getDouble(); //System.out.println("s2y: "+s2y);
-    double t0 = s1x*s2y - s1y*s2x;
-    //double t0 = (s1.x.getDouble()*s2.y.getDouble())-(s1.y.getDouble()*s2.y.getDouble());
-    //System.out.println("t0: "+t0);
-    
-    /*
-    if ((t0 > -0.00001) && (t0 < 0.00001) && 
-	!((s1x == 0) || (s2x == 0) || (s1y == 0) || (s2y == 0) ||
-	((s1x == s1y) && (s2x == s2y)))) {
-	System.out.println("Mathset:Warning. Possible error because of loss of precision. t0: "+t0+", g1: ("+g1.x+","+g1.y+"), g2: ("+g2.x+","+g2.y+"), p: ("+p.x+","+p.y+")");
-	System.out.println("(cont...): s1: ("+s1x+","+s1y+"), s2: ("+s2x+","+s2y+")");
-    }//if
-    */
-    
-    if (t0 < 0) return 1;
-    else if (t0 > 0) return -1;
-    else return 0;
-    
-    /*
-    // old but exact code
-	Rational t0 = new Rational((s1.x.times(s2.y)).minus((s1.y.times(s2.x))));
-	//System.out.println(" t0: "+t0);
-
-	if (t0.less(0)) { return 1; }
-	else {
-	if (t0.greater(0)) { return -1; }
-	}//else
-	
-	return 0;
-	*/
+      //Rational t1 = new Rational(0);
+      Point s1;
+      Point s2;
+      s1 = diff(g2,g1); //System.out.println("s1: "); s1.print();
+      s2 = diff(p,g1); //System.out.println("s2: "); s2.print();
+      
+      // new code
+      //PATCH: because we don't need to know the exact
+      //value of t0, we don't compute it with Rationals,
+      //but with doubles. We produce a warning, if the 
+      //resulting value is near to 0.
+      //System.out.println("s1.x:"+s1.x+", s1.double: "+s1.x.getDouble());
+      double s1x = s1.x.getDouble(); //System.out.println("s1x: "+s1x);
+      double s1y = s1.y.getDouble(); //System.out.println("s1y: "+s1y);
+      double s2x = s2.x.getDouble(); //System.out.println("s2x: "+s2x);
+      double s2y = s2.y.getDouble(); //System.out.println("s2y: "+s2y);
+      double t0 = s1x*s2y - s1y*s2x;
+      //double t0 = (s1.x.getDouble()*s2.y.getDouble())-(s1.y.getDouble()*s2.y.getDouble());
+      //System.out.println("t0: "+t0);
+      
+      /*
+	if (t0 < 0) return 1;
+	else if (t0 > 0) return -1;
+	else return 0;
+      */
+      /*
+      if (t0 < DERIV_DOUBLE_NEG) System.out.println("pointPos.return 1");
+      else if (t0 > DERIV_DOUBLE) System.out.println("pointPos.return -1");
+      else System.out.println("pointPos.return 0");
+      */
+      if (t0 < DERIV_DOUBLE_NEG) return 1;
+      else if (t0 > DERIV_DOUBLE) return -1;
+      else return 0;
   }//end method pointPosition
 
     public static Point projectionPointLine(Point p, Point a, Point b) {
