@@ -171,11 +171,9 @@ member variables of the nested list container class ~NestedList~.
 
 */
 const int INITIAL_ENTRIES = 10000;
-const int PAGED_ARRAY_RECSIZE = 4000;
 /*
 The first specifies the default size of the compact tables. This value can be overwritten
-in the constructor. The second defines the record length of the record-file in the persistent
-implementation.
+in the constructor. 
 
 */
 
@@ -306,6 +304,7 @@ struct NodeRecord
 };
 typedef NodeRecord* Node;
 
+typedef unsigned char byte;
 /*
 A ~NodeRecord~ represents all node types of a nested list.
 
@@ -501,6 +500,10 @@ if writing was successful, "false"[4] if the string could not be written properl
 *Precondition*: ~list~ must not be an atom.
 
 */
+  bool WriteBinaryTo(ListExpr list, ostream& os);
+/*
+Writes the list in a binary coded format into the referenced stream.
+*/
 
   string ToString( const ListExpr list );
 
@@ -510,6 +513,7 @@ A wrapper for ~WriteToString~ which directly returns a string object.
 
   void WriteListExpr( ListExpr list, ostream& ostr );
   void WriteListExpr( ListExpr list );
+
 /*
 Write ~list~ indented by level to standard output.
 
@@ -660,6 +664,13 @@ Returns the number of characters of ~textAtom~.
 
 *Precondition*: ~atom~ must be of type ~Text~.
 
+*/
+
+string Text2String( const ListExpr& textAtom );
+
+/*
+Returns the text as a C++ string object
+
 1.3.10 Atom Test
 
 */
@@ -702,25 +713,29 @@ useful in the present development state of SECONDO.
 /*
 Copies a nested list from this instance to the target instance.
 
-1.3.14 Distinction between main memory and persistent implementation
 */
-
-  const static bool isPersistent;
- 
 
  protected:
   const ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
+  bool WriteBinaryRec( ListExpr list, ostream& os );
   void DestroyRecursive ( const ListExpr list );
-  void deleteListMemory(); // delete CTable pointers
+  void DeleteListMemory();                            // delete CTable pointers
   void PrintTableTexts();
+  
+  byte* Int2CharArray(long value);
+  
   string NodeType2Text( NodeType type );
   string BoolToStr( const bool boolValue );
+  
   ListExpr NthElement( const Cardinal n,
                        const Cardinal initialN,
                        const ListExpr list );
+  
   bool WriteList( ListExpr list, const int level,
                   const bool afterList, const bool toScreen );
+  
   void WriteAtom( const ListExpr atom, bool toScreen );
+  
   bool WriteToStringLocal( string& nlChars, ListExpr list );
 
  private:
@@ -732,8 +747,11 @@ Copies a nested list from this instance to the target instance.
   CTable<Constant>     *intTable;    // ints;
   CTable<StringRecord> *stringTable; // strings
   CTable<TextRecord>   *textTable  ; // texts
+  
   ostream*             outStream;
+  
   static bool          doDestroy;
+  const static bool    isPersistent;
 
 /*
 The class member ~doDestroy~ defines whether the ~Destroy~ method really
