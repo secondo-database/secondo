@@ -37,6 +37,8 @@ makedirsnormal:
 makedirsjni:
 ifeq ($(USE_JNI),true)
 	$(MAKE) -C Fuzzy all
+	$(MAKE) -C JNIExample all
+	$(MAKE) -C Rose all
 endif
 
 .PHONY buildlibs:
@@ -62,6 +64,8 @@ buildlibsnormal:
 buildlibsjni:
 ifeq ($(USE_JNI),true)
 	$(MAKE) -C Fuzzy 	  buildlibs
+	$(MAKE) -C JNIExample     buildlibs
+	$(MAKE) -C Rose           buildlibs
 endif
 
 
@@ -82,4 +86,6 @@ clean:
 	$(MAKE) -C FText          clean
 	$(MAKE) -C Array	  clean
 	$(MAKE) -C Fuzzy	  clean
+	$(MAKE) -C JNIExample     clean
+	$(MAKE) -C Rose           clean
 
