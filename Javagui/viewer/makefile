@@ -43,9 +43,10 @@ VIEWER_CLASSES := \
 		HoeseViewer.class \
 		MP3V.class \
 		MidiViewer.class \
-                TreeViewer.class
+                TreeViewer.class \
+                PictureViewer.class
 
-VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese
+VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer
 
 
 # compile all viewers
