@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.12  2003/01/22 21:32:55  spieker
+# Problems with shared=yes. Variable LDOPTOOL was not defined.
+#
 # Revision 1.11  2002/11/27 20:31:04  spieker
 # Rules for generation of libraries were revised. Many rules are written
 # in a short manner by use of VPATH and automatic variables $@ and $<.
@@ -173,6 +176,7 @@ clean_tests:
 
 .PHONY: clean_all
 clean_all: clean clean_tests clean_cs
+	$(MAKE) -C UserInterfaces clean_secondopl
 
 .PHONY: distclean
 distclean:

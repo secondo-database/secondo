@@ -8,8 +8,19 @@ include ../makefile.env
 
 APPLOBJECTS=\
 	SecondoTTY.o \
-	DisplayTTY.o
-
+	DisplayTTY.o \
+	TestRunner.o
+	
+# this list is used for cleaning applications.
+# Add new applications here which have not a
+# cleaning rule of their own.
+ALLAPPLICATIONS := \
+	$(BINDIR)/SecondoTTYORA\
+	$(BINDIR)/SecondoTTYBDB\
+	$(BINDIR)/TestRunner\
+	
+	
+ALLAPPLICATIONS := $(addsuffix $(EXEEXT), $(ALLAPPLICATIONS))
 
 ifeq ($(smitype),ora)
 APPLICATION = $(BINDIR)/SecondoTTYORA$(EXEEXT)
@@ -47,7 +58,7 @@ TestRunner.o: TestRunner.cpp Application.h Profiles.h FileSystem.h SecondoSystem
 	$(CC) -c -o $@ $< $(CCXFLAGS)
 
 SecondoPL.o: SecondoPL.cpp Application.h Profiles.h FileSystem.h SecondoSystem.h SecondoInterface.h SecondoSMI.h NestedList.h DisplayTTY.h
-	$(CC) -c -o $@ $< $(CCXFLAGS) $(PLINCLUDEFLAGS)
+	$(CC) -c -o $@ $< $(PLINCLUDEFLAGS) $(CCXFLAGS) 
 
 
 # --- Link applications
@@ -70,9 +81,12 @@ include ../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) $(APPLOBJECTS) $(APPLICATION)
+	$(RM) $(APPLOBJECTS) $(ALLAPPLICATIONS)
 
 .PHONY: clean_client
 clean_client:
 	$(RM) $(BINDIR)/SecondoTTYCS$(EXEEXT)
 
+.PHONY: clean_secondopl
+clean_secondopl:
+	$(RM) $(OPTDIR)/SecondoPL$(EXEEXT) SecondoPL.o

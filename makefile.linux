@@ -48,13 +48,12 @@ LDFLAGS =
 EXEFLAGS =
 endif
 
+# compilation options for the PROLOG shell
+PLLDFLAGS= $(PL_LIB_DIR) -lpl -lreadline -lncurses -lm 
+
 DLLPICFLAG = -fPIC
 DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
-
-# compilation options for the PROLOG shell
-PLINCLUDEFLAGS= -I$(PL_INCLUDE_DIR)
-PLLDFLAGS= -L$(PL_LIBRARY_DIR) -lpl -lreadline -lm -lncurses
 
 DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED
