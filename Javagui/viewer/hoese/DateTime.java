@@ -48,8 +48,7 @@ public static String getString(int Days,int msecs){
   res+=Greg[1]+"-";
   if(Greg[2]<10)
      res+="0";
-  res+=Greg[2]+"  ";
-  String TimeRes = "";
+  res+=Greg[2]+"-";
   int rest = msecs;
   int ms = rest%1000;
   rest = rest/1000;
@@ -92,7 +91,7 @@ public static String getListString(int Days,int msecs){
    if(Days<0 && msecs>0)
       Days--;
   int[] Greg = JulianDate.fromJulian(Days);
-  String res = "(datetime "+Greg[2]+" "+Greg[1]+" "+Greg[0]+"  ";
+  String res = "(datetime ("+Greg[2]+" "+Greg[1]+" "+Greg[0]+"  ";
   int rest = msecs;
   int ms = rest%1000;
   rest = rest/1000;
@@ -104,7 +103,7 @@ public static String getListString(int Days,int msecs){
   res = res+hour+" ";
   res=res+min+" ";
   res=res+sec+" ";
-  res = res+ms +")";
+  res = res+ms +"))";
   return res;
 }
 
@@ -117,11 +116,10 @@ public static String getListString(double time){
 }
 
 
-/** return the datevalue for DT,
-  * return 0 if format ist not correct
-  * required format  YYYY-MM-DD-HH:mm:ss.mmm
+/** returns an array containing the day and the milliseconds of this day
+  * if the Format is not correct null will be returned
   */
-public static Double getDateTime(String DT){
+public static long[] getDayMillis(String DT){
   char[] D = DT.toCharArray();
   int len = D.length;
   int i = 0;
@@ -154,7 +152,12 @@ public static Double getDateTime(String DT){
     day = day*10+digit;
     i++;
   }
-  if(i>=len) return null;
+  if(i>=len){  // only date is allowed
+     long[] res = new long[2];
+     res[0] = (JulianDate.toJulian(year,month,day));
+     res[1] = 0;
+     return res;
+   }
   // read hour
   int hour = 0;
   i++;
@@ -193,9 +196,23 @@ public static Double getDateTime(String DT){
      msec = msec*10+digit;
     i++;
   }
-  
-  double date = convertToDouble(year,month,day,hour,min,sec,msec);
-  return new Double(date);
+  long[] res = new long[2];
+  res[0] = (JulianDate.toJulian(year,month,day));
+  res[1] = getMilliSecs(hour,min,sec,msec);
+  return res;
+
+}
+
+
+
+/** return the datevalue for DT,
+  * return 0 if format ist not correct
+  * required format  YYYY-MM-DD-HH:mm:ss.mmm
+  */
+public static Double getDateTime(String DT){
+  long[] tmp = getDayMillis(DT);
+  if(tmp==null) return null;
+  return new Double(getTime((int)tmp[0],(int)tmp[1]));
 
 }
 
