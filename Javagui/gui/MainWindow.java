@@ -159,7 +159,7 @@ public MainWindow(String Title){
 
     String TMPServerPort = Config.getProperty("SERVERPORT");
     if(TMPServerPort==null)
-       System.out.println("Serverport not found in "+CONFIGURATION_FILE); 
+       System.out.println("Serverport not found in "+CONFIGURATION_FILE);
     else{
        try{
           int PortInt = (new Integer(TMPServerPort)).intValue();
@@ -167,7 +167,7 @@ public MainWindow(String Title){
             System.out.println("ServerPort in "+CONFIGURATION_FILE+" less than 0");
           else{
             System.out.println("set port to "+PortInt);
-            ServerPort = PortInt;  
+            ServerPort = PortInt;
           }
        }
         catch(Exception wrongport){
@@ -175,7 +175,7 @@ public MainWindow(String Title){
         }
     }
 
-    
+
     String Connection = Config.getProperty("START_CONNECTION");
     if(Connection==null)
        System.out.println("START_CONNECTION not found in "+CONFIGURATION_FILE);
@@ -191,18 +191,49 @@ public MainWindow(String Title){
        }
     }
 
+    
+    String FontSize = Config.getProperty("COMMAND_FONTSIZE");
+    if(FontSize==null)
+       System.out.println("COMMAND_FONTSIZE NOT found in "+CONFIGURATION_FILE);
+    else{
+       try{
+           int size = Integer.parseInt(FontSize.trim());
+	   ComPanel.setFontSize(size);
+       }
+       catch(Exception e){
+           System.out.println("COMMAND_FONTSIZE has no valid value (not an integer)");
+       }
+
+    }
+
+    FontSize = Config.getProperty("LIST_FONTSIZE");
+    if(FontSize==null)
+        System.out.println("LIST_FONTSIZE not found in "+CONFIGURATION_FILE);
+    else{
+      try{
+         int size = Integer.parseInt(FontSize.trim());
+	 OList.setFontSize(size);
+      }
+      catch(Exception e){
+         System.out.println("LIST_FONTSIZE has no valid value (not an integer)");
+      }
+
+    }
+
+
+
     String KnownViewers = Config.getProperty("KNOWN_VIEWERS");
     if(KnownViewers!=null){
         StringTokenizer View = new StringTokenizer(KnownViewers," ");
         Vector ViewerVector = new Vector(10);
         while(View.hasMoreTokens()){
             ViewerVector.add(View.nextToken());
-        } 
-       String ViewerName;  
+        }
+       String ViewerName;
         for(int i=0;i<ViewerVector.size();i++){
-          ViewerName=(String) ViewerVector.get(i); 
+          ViewerName=(String) ViewerVector.get(i);
           String ClassName;
-          try{      
+          try{
              if (ViewerName.startsWith("."))
                 ClassName=ViewerName.substring(1);
              else
@@ -219,32 +250,32 @@ public MainWindow(String Title){
            System.out.println("cannot load viewer:"+ViewerName+"\n");
            }
         }
-   } 
-   
+   }
+
    ObjectDirectory= Config.getProperty("OBJECT_DIRECTORY");
    if(ObjectDirectory!=null){
       OList.setObjectDirectory(new  File(ObjectDirectory));
    }
    else
       ObjectDirectory=".";
-   
+
    String HistoryDirectory= Config.getProperty("HISTORY_DIRECTORY");
-   if(HistoryDirectory!=null)      
+   if(HistoryDirectory!=null)
       FC_History.setCurrentDirectory(new File(HistoryDirectory));
-      
+
 
    StartScript = Config.getProperty("STARTSCRIPT");
-    
+
   } catch(Exception e){
     System.out.println("I can't read the configuration-file: "+CONFIGURATION_FILE);
   }
 
   ComPanel.setConnection(UserName,PassWd,ServerName,ServerPort);
   if (StartConnection){
-      if (!ComPanel.connect()) 
+      if (!ComPanel.connect())
          showMessage("I can't find a Secondo-server");
   }
-  
+
   if(StartScript!=null){
       StartScript = StartScript.trim();
       System.out.println("execute "+StartScript);
@@ -255,7 +286,7 @@ public MainWindow(String Title){
       else
          executeFile(StartScript,false);
    }
-  
+
 }
 
 
@@ -874,29 +905,29 @@ public void selectObject(Object Sender,SecondoObject SO){
 }
 
 
-/** creates the standardmenubar   this means a 
+/** creates the standardmenubar   this means a
   * menubar without extensions by a viewer
   */
 private void createMenuBar(){
    MainMenu = new JMenuBar();
    ProgramMenu = new JMenu("Program");
    MainMenu.add(ProgramMenu);
-   
-   JMenuItem MI_Clear = ProgramMenu.add("new ");
+
+   JMenuItem MI_Clear = ProgramMenu.add("New ");
    MI_Clear.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
           clearAll();
       }
    });
-   
 
-   JMenu MI_ExecuteFile = new JMenu("execute file");
+
+   JMenu MI_ExecuteFile = new JMenu("Execute file");
    ProgramMenu.add(MI_ExecuteFile);
-   MI_ExecuteFile_HaltOnError = new JMenuItem("halt on error");
-   MI_ExecuteFile_IgnoreErrors = new JMenuItem("ignore errors");
+   MI_ExecuteFile_HaltOnError = new JMenuItem("Halt on error");
+   MI_ExecuteFile_IgnoreErrors = new JMenuItem("Ignore errors");
    MI_ExecuteFile.add(MI_ExecuteFile_HaltOnError);
    MI_ExecuteFile.add(MI_ExecuteFile_IgnoreErrors);
-   
+
    ActionListener ExecuteListener= new ActionListener(){
       public void actionPerformed(ActionEvent evt){
          if(FC_ExecuteFile.showSaveDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
@@ -911,17 +942,17 @@ private void createMenuBar(){
 
    MI_ExecuteFile_HaltOnError.addActionListener(ExecuteListener);
    MI_ExecuteFile_IgnoreErrors.addActionListener(ExecuteListener);
-   
 
-   JMenu HistoryMenu = new JMenu("history");
+
+   JMenu HistoryMenu = new JMenu("History");
    ProgramMenu.add(HistoryMenu);
-   MI_SaveHistory=HistoryMenu.add("save history");
-   MI_ClearHistory=HistoryMenu.add("clear history");
-   JMenu LoadHistoryMenu = new JMenu("load");
+   MI_SaveHistory=HistoryMenu.add("Save history");
+   MI_ClearHistory=HistoryMenu.add("Clear history");
+   JMenu LoadHistoryMenu = new JMenu("Load");
    HistoryMenu.add(LoadHistoryMenu);
-   MI_ExtendHistory = LoadHistoryMenu.add("append");
-   MI_ReplaceHistory = LoadHistoryMenu.add("replace");
-   
+   MI_ExtendHistory = LoadHistoryMenu.add("Append");
+   MI_ReplaceHistory = LoadHistoryMenu.add("Replace");
+
 
    ActionListener HistoryListener = new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -933,23 +964,23 @@ private void createMenuBar(){
           else if(Source.equals(MI_ExtendHistory))
              loadHistory(false);
           else if(Source.equals(MI_ReplaceHistory))
-             loadHistory(true);             
+             loadHistory(true);
        }
-   };    
-   
+   };
+
    MI_SaveHistory.addActionListener(HistoryListener);
    MI_ClearHistory.addActionListener(HistoryListener);
    MI_ExtendHistory.addActionListener(HistoryListener);
    MI_ReplaceHistory.addActionListener(HistoryListener);
-       
-   
+
+
    MI_Close = ProgramMenu.add("Exit");
    MI_Close.addActionListener( new ActionListener(){
      public void actionPerformed(ActionEvent E){
         ComPanel.disconnect();
         System.exit(0);
      }});
-     
+
 
    ServerMenu = new JMenu("Server");
    ServerMenu.addMenuListener(new MenuListener(){
@@ -969,11 +1000,11 @@ private void createMenuBar(){
 
 
 
-   MainMenu.add(ServerMenu); 
+   MainMenu.add(ServerMenu);
    MI_Connect = ServerMenu.add("Connect");
    MI_Disconnect = ServerMenu.add("Disconnect");
-   MI_Settings = ServerMenu.add("Settings"); 
-   
+   MI_Settings = ServerMenu.add("Settings");
+
    MI_Connect.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
           ComPanel.connect();
@@ -984,9 +1015,9 @@ private void createMenuBar(){
        }});
 
    MI_Settings.addActionListener(new ActionListener(){
-     public void actionPerformed(ActionEvent evt){ 
+     public void actionPerformed(ActionEvent evt){
        showServerSettings();
-    }}); 
+    }});
 
    ServerCommand = new JMenu("Command");
    ServerMenu.add(ServerCommand);
@@ -1021,19 +1052,19 @@ private void createMenuBar(){
            }
         });
 
-   MainMenu.add(HelpMenu); 
+   MainMenu.add(HelpMenu);
 
    Viewers = new JMenu("Viewers");
    Viewers.addSeparator();
 
-   JMenuItem ViewerPriorities = Viewers.add("set priorities");
+   JMenuItem ViewerPriorities = Viewers.add("Set priorities");
    ViewerPriorities.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
          PriorityDlg.setVisible(true);
       }
-   });   
-   
-   
+   });
+
+
    MI_ShowOnlyViewer = Viewers.add("Show only viewer");
    MI_ShowOnlyViewer.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -1041,7 +1072,7 @@ private void createMenuBar(){
        }
    });
 
-    
+
    MI_AddViewer = Viewers.add("Add Viewer");
    MI_AddViewer.addActionListener(new ActionListener(){
      public void actionPerformed(ActionEvent evt){
@@ -1069,7 +1100,7 @@ private void createMenuBar(){
                         }
                         else{  // is allright
                            addViewer((SecondoViewer)O);
-                        } 
+                        }
                    }
                    catch(Exception e){
                         ComPanel.appendText(""+e);
@@ -1077,7 +1108,7 @@ private void createMenuBar(){
      				showMessage("cannot load the given Viewer\n see commandPanel for details");
                         e.printStackTrace();
 
-                   } 
+                   }
                 }
            }
          }
@@ -1085,7 +1116,7 @@ private void createMenuBar(){
    });
 
    MainMenu.add(Viewers);
-   setJMenuBar(MainMenu); 
+   setJMenuBar(MainMenu);
 }
 
 
@@ -1106,7 +1137,7 @@ public void clearAll(){
 public void loadHistory(boolean replace){
 
   if(FC_History.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
-      // first try to load the file content  
+      // first try to load the file content
       boolean ok = true;
       Vector TMP=new Vector();
       BufferedReader BR=null;
@@ -1115,7 +1146,7 @@ public void loadHistory(boolean replace){
         String Line = BR.readLine();
         while(Line!=null){
            TMP.add(Line);
-           Line = BR.readLine(); 
+           Line = BR.readLine();
         }
       } catch(Exception e){
         ComPanel.appendText("load history failed \n");
@@ -1125,7 +1156,7 @@ public void loadHistory(boolean replace){
         try{
           if(BR!=null)
              BR.close();
-         }catch(Exception e){}    
+         }catch(Exception e){}
       }
       if(ok){
         if(replace)
@@ -1139,22 +1170,22 @@ public void loadHistory(boolean replace){
 
 
 
-/** switch to display 
+/** switch to display
   * only the viewer or viewer commandpanel and objectlist */
 public void onlyViewerSwitch(){
   if(onlyViewerShow){
-     MI_ShowOnlyViewer.setText("Show only viewer"); 
+     MI_ShowOnlyViewer.setText("Show only viewer");
      DefaultContentPane.removeAll();
      DefaultContentPane.add(VSplitPane);
      onlyViewerShow = false;
      setViewer(CurrentViewer);
      DefaultContentPane.validate();
-   } 
+   }
    else{
      if(CurrentViewer==null)
         showMessage("there is no viewer to show");
      else{
-        MI_ShowOnlyViewer.setText("Show all"); 
+        MI_ShowOnlyViewer.setText("Show all");
         DefaultContentPane.removeAll();
         DefaultContentPane.add(CurrentViewer);
         DefaultContentPane.validate();
@@ -1185,7 +1216,7 @@ private void showServerSettings(){
           if (!ComPanel.connect()){
              showMessage("I can't find a SecondoServer ");
           }
-       } 
+       }
 }
 
 
@@ -1200,7 +1231,7 @@ private void saveHistory(){
           FW = new FileWriter(F);
           for(int i=0;i<ComPanel.getHistorySize();i++)
               FW.write(ComPanel.getHistoryEntryAt(i)+"\n");
-       }       
+       }
        catch(Exception e){
           ComPanel.appendText("IO error");
        }
@@ -1211,7 +1242,7 @@ private void saveHistory(){
          }
          catch(Exception e2){}
        }
-           
+
     }
 }
 
@@ -1238,7 +1269,7 @@ class Command_Listener implements ActionListener{
                 if (Source.equals(MainWindow.this.MI_ListDatabases)){
                     ok = true;
                     cmd = "list databases";
-                } 
+                }
                 if (Source.equals(MainWindow.this.MI_ListTypes)){
                     ok = true;
                     cmd ="list types";
@@ -1251,19 +1282,19 @@ class Command_Listener implements ActionListener{
                 if (Source.equals(MainWindow.this.MI_ListObjects)){
                     ok = true;
 			  cmd ="list objects";
-                } 
+                }
                 if(Source.equals(MainWindow.this.MI_ListOperators)){
                     ok = true;
 			  cmd="list operators";
                 }
-     
+
                 if (ok) {
                     //MainWindow.this.ComPanel.appendText(cmd+"\n");
                     MainWindow.this.ComPanel.execUserCommand(cmd);
                 }
              }
-        } 
-       }  
+        }
+       }
 
 
 }

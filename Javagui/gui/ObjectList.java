@@ -28,15 +28,15 @@ private ResultProcessor RP;
 private ViewerControl VC;
 private JButton ShowBtn;     // show the selected Object if possible
 private JButton HideBtn;     // hide selected Object
-private JButton SaveBtn;     // save Selected Object to file 
+private JButton SaveBtn;     // save Selected Object to file
 private JButton LoadBtn;     // load a new Object from File
 private JButton RemoveBtn;   // remove selected Object from List and invoke hide
-private JButton ClearBtn; 
+private JButton ClearBtn;
 private JButton StoreBtn;    // save the selected Object into database
 private JButton RenameBtn;   // set a new name for this object
 private boolean isRenameMode;
 
-private JFileChooser FileChooser;  
+private JFileChooser FileChooser;
 private RenamePanel aRenamePanel;
 
 private ObjectListModel myListModel;
@@ -63,7 +63,7 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   ControlPanel = new JPanel();
   OptionPane = new JOptionPane();
   add(ControlPanel,BorderLayout.NORTH);
-  Content=new JList(); 
+  Content=new JList();
   myListModel = new ObjectListModel();
   Content.setModel(myListModel);
   aRenamePanel = new RenamePanel();
@@ -75,16 +75,16 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   RP = aRP;
   VC = aVC;
   ShowBtn = new JButton("show");
-  HideBtn = new JButton("hide");  
+  HideBtn = new JButton("hide");
   RemoveBtn = new JButton("remove");
   ClearBtn = new JButton("clear");
   SaveBtn = new JButton("save");
-  LoadBtn = new JButton("load"); 
+  LoadBtn = new JButton("load");
   StoreBtn = new JButton("store");
   RenameBtn = new JButton("rename");
   ControlPanel.setLayout(new GridLayout(2,4));
   ControlPanel.add(ShowBtn);
-  ControlPanel.add(HideBtn); 
+  ControlPanel.add(HideBtn);
   ControlPanel.add(RemoveBtn);
   ControlPanel.add(ClearBtn);
   ControlPanel.add(SaveBtn);
@@ -93,6 +93,17 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   ControlPanel.add(RenameBtn);
   FileChooser = new JFileChooser();
   addAllListeners();
+}
+
+
+
+/** set the FontSize for this list
+  * if size is not in [6,50] then size is changed
+  * to the next value in this interval */
+public void setFontSize(int size){
+   if(size<6) size=6;
+   if(size>50) size=50;
+   Content.setFont(new Font("MonoSpaced",Font.PLAIN,size));
 }
 
 

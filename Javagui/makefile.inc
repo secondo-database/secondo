@@ -6,10 +6,13 @@ JAVAC = javac
 JAVA = java
 JAVADOC = javadoc
 
+
 # SECONDOPATH should be a shell-variable
-ifndef SECONDOPATH
-$(error Variable SECONDOPATH is not defined. This variable must hold the directory of Secondo)
+ifndef SECONDO_BUILD_DIR
+$(error Variable SECONDO_BUILD_DIR is not defined. This variable must hold the directory of Secondo)
 endif
+
+SECONDOPATH = $(SECONDO_BUILD_DIR)
 
 JAVAINTERFACEPATH = $(SECONDOPATH)/Javainterface
 GUIPATH = $(SECONDOPATH)/Javagui

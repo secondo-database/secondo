@@ -55,6 +55,19 @@ public class CommandPanel extends JScrollPane {
   }
 
 
+  /** set a new FontSize for this CommanPanel;
+    * the Size should be in [6,50]
+    * if the Size is not in this invervall then Size is
+    * fir to this inteval
+    */
+  public void setFontSize(int Size){
+   if(Size<6) Size=6;
+   if(Size>50) Size=50;
+   SystemArea.setFont(new Font("Monospaced",Font.PLAIN,Size));
+   SystemArea.repaint();
+  }
+
+
   /** returns the preferredSize of this Component as
     * 3/4 width and 1/3 height of Parent
     */
