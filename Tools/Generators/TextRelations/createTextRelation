@@ -101,11 +101,11 @@ if [ "$#" -gt "1" ]; then
    do
      if [ "$C" -gt 1 ]; then
         echo -e "( <text>$F</text---> "
-        echo -e " $CONTENTSTART"
+        echo -n -e " $CONTENTSTART"
         if [ "$CONTENT" = "text" ]; then  
            cat "$F"  
         else
-           echo -e "$F"
+           echo -n -e "$F"
         fi
         echo -e "$CONTENTEND"")\n"
      fi
@@ -115,13 +115,13 @@ else  # no file specified, read from standardinput e.g. a pipe (use for long arg
    read F
    while [ "$F" ]; do
       echo -e "(<text>$F</text---> "
-      echo -e "$CONTENTSTART"
+      echo -n -e "$CONTENTSTART"
       if [ "$CONTENT" = "text" ]; then
          cat "$F"
       else
-         echo -e "$F"
+         echo -n -e "$F"
       fi
-      echo -e "$CONTENTEND"")\n"
+      echo -n -e "$CONTENTEND"")\n"
       read F
    done     
 fi
