@@ -399,6 +399,7 @@ struct OpNode
   ListExpr     typeExpr;
   AlgebraLevel nodeLevel;
   OpNodeType   nodetype;
+  bool isRoot;
   union OpNodeUnion
   {
     struct OpNodeDirectObject
@@ -406,7 +407,6 @@ struct OpNode
       Word value;
       int  valNo;        /* needed for testing only */
       Word model;
-      bool isRoot;
       bool isConstant;
     } dobj;
     struct OpNodeIndirectObject
@@ -662,7 +662,7 @@ bool IsRootObject( OpTree tree )
 {
   if( tree->nodetype == Object )
   {
-    assert( tree->u.dobj.isRoot == true );
+    assert( tree->isRoot == true );
     return true;
   }
   return false;
@@ -681,7 +681,7 @@ bool IsConstantObject( OpTree tree )
 {
   assert( IsRootObject( tree ) == true );
   assert( tree->nodetype == Object );
-  assert( tree->u.dobj.isRoot == true );
+  assert( tree->isRoot == true );
 
   return( tree->u.dobj.isConstant );
 }
@@ -1981,7 +1981,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Object;
-      node->u.dobj.isRoot = oldfirst;  
+      node->isRoot = oldfirst;  
       node->u.dobj.isConstant = true;
       node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
       node->u.dobj.value = values[node->u.dobj.valNo].value;
@@ -1995,7 +1995,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Object;
-      node->u.dobj.isRoot = oldfirst;  
+      node->isRoot = oldfirst;  
       node->u.dobj.isConstant = false;
       node->u.dobj.valNo = nl->IntValue( nl->Third( nl->First( expr ) ) );
       node->u.dobj.value = values[node->u.dobj.valNo].value;
@@ -2009,6 +2009,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Operator;
+      node->isRoot = oldfirst;  
       node->u.op.algebraId = nl->IntValue( nl->Third( nl->First( expr ) ) );
       node->u.op.opFunId = nl->IntValue( nl->Fourth( nl->First( expr ) ) );
         /* next fields may be overwritten later */
@@ -2027,6 +2028,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = IndirectObject;
+      node->isRoot = oldfirst;  
       node->u.iobj.funNumber = nl->IntValue( nl->Fourth( nl->First( expr ) ) );
       node->u.iobj.vector = argVectors[node->u.iobj.funNumber-1]; // *** -1 added
       node->u.iobj.argIndex = nl->IntValue( nl->Third( nl->First( expr ) ) );
@@ -2038,6 +2040,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ), first );
       node->evaluable = true;
       node->typeExpr = nl->Second( expr );
+      node->isRoot = oldfirst;  
       node->u.op.opFunId = nl->IntValue( nl->Third( expr ));
       node->u.op.noSons = 0;
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
@@ -2083,6 +2086,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node = Subtree( level, nl->Third( nl->First( expr ) ), first );
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
+      node->isRoot = oldfirst;  
       node->u.op.isFun = true;
       node->u.op.funNo = nl->IntValue( nl->Fourth( nl->First( expr ) ) );
       node->u.op.funArgs = argVectors[node->u.op.funNo-1]; // *** -1 added
@@ -2095,6 +2099,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Object;
+      node->isRoot = oldfirst;  
       node->u.dobj.value = SetWord( Address( 0 ) );
       node->u.dobj.valNo = 0;
       node->u.dobj.isConstant = false;
@@ -2107,6 +2112,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Operator;
+      node->isRoot = oldfirst;  
       node->u.op.algebraId = 0;                /* special operator [0, 1] means arglist */
       node->u.op.opFunId = 1;
       node->u.op.noSons = 0;
@@ -2135,6 +2141,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->typeExpr = nl->Second( expr );
       node->nodeLevel = level;
       node->nodetype = Operator;
+      node->isRoot = oldfirst;  
       node->u.op.algebraId = 0;   /* special operator [0, 0] means application
                                 of an abstraction */
       node->u.op.opFunId = 0;
@@ -2275,13 +2282,18 @@ Deletes an operator tree object.
       {
         for ( int i = 0; i < tree->u.op.noSons; i++ )
         {
-          Destroy( tree->u.op.sons[i], true );
+          if( tree->u.op.resultAlgId == 0 )
+            Destroy( tree->u.op.sons[i], destroyRootValue );
+          else
+            Destroy( tree->u.op.sons[i], true );
         } /* for */
         if ( tree->u.op.isFun )
         {
           delete tree->u.op.funArgs;
         }
-        if ( (tree->u.op.resultAlgId != 0) && destroyRootValue )
+        if ( (tree->u.op.resultAlgId != 0) &&
+             ( (tree->u.op.isFun && destroyRootValue) ||
+               (!tree->u.op.isFun && (!tree->isRoot || destroyRootValue) ) ) )
         {
           /* space was allocated for result */
           (algebraManager->DeleteObj( tree->u.op.resultAlgId, tree->u.op.resultTypeId ))
@@ -2291,7 +2303,7 @@ Deletes an operator tree object.
       }
       case Object:
       {
-        if( !tree->u.dobj.isRoot || destroyRootValue )
+        if( !tree->isRoot || destroyRootValue )
           // will delete the object if it is not the root of the tree or
           // if it is the root of the tree and the flag ~destroyRootValue~ is true
         {

@@ -2822,14 +2822,7 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
       else
       {
         definedValueFound = true;
-        if(isAvg)
-        {
-          accumulated = currentAttr->Clone();
-        }
-        else
-        {
-          accumulated = (Attribute*)qp->ResultStorage(s).addr;
-        }
+        accumulated = currentAttr->Clone();
       }
     }
     currentTuple->DeleteIfAllowed();
@@ -2859,7 +2852,21 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
     }
     else
     {
-      result = SetWord(accumulated);
+      if(strcmp(attributeType, "real") == 0)
+      {
+        CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
+        CcReal* accumulatedReal = (CcReal*)accumulated;
+        resultAttr->Set(accumulatedReal->GetRealval());
+        result = SetWord(resultAttr);
+      }
+      else
+      {
+        CcInt* resultAttr = (CcInt*)(qp->ResultStorage(s).addr);
+        CcInt* accumulatedInt = (CcInt*)accumulated;
+        resultAttr->Set(accumulatedInt->GetIntval());
+        result = SetWord(resultAttr);
+      }
+      delete accumulated;
     }
     return 0;
   }
