@@ -1,0 +1,59 @@
+#
+#
+#
+#select
+#
+#	l_orderkey,
+#	sum(l_extendedprice * (1 - l_discount)) as revenue,
+#	o_orderdate,
+#	o_shippriority
+#from
+#	customer,
+#	orders,
+#	lineitem
+#where
+#	c_mktsegment = 'SEGMENT'
+#	and c_custkey = o_custkey
+#	and l_orderkey = o_orderkey
+#	and o_orderdate < date 'DATE'
+#	and l_shipdate > date 'DATE'
+#group by
+#	l_orderkey,
+#	o_orderdate,
+#	o_shippriority
+#order by
+#	revenue desc,
+#	o_orderdate;
+#
+# Remark: SEGMENT is randomly selected within
+#         DATE is randomly selected within [1995-03.01 .. 1995-03-31].
+#         For query validation set SEGMENT='BUILDING' and DATE=1995-03-15
+
+query ORDERS feed project[ O_ORDERDATE, O_SHIPPRIORITY, O_CUSTKEY, O_OERDERKEY ] filter[ .O_ORDERDATE < [const instant value "1995-03-15"] ] {J}
+      CUSTOMER feed project[ C_CUSTKEY, C_MKTSEGMENT ] filter[ .C_MKTSEGMENT = "BUILDING" ] 
+        hashjoin[ O_CUSTKEY_J, C_CUSTKEY, 991 ] 
+      LINEITEM feed project[ L_SHIPDATE, L_OERDERKEY, L_EXTENDENPRICE, L_DISCOUNT ] filter[ .L_SHIPDATE > [const instant value "1995-03-15"] ] {K}
+        sortmergejoin[ O_OERDERKEY_J, L_OERDERKEY_K ]
+        sortby[ L_OERDERKEY_K asc, O_ORDERDATE_J asc, O_SHIPPRIORITY_J asc ]
+        groupby[ L_OERDERKEY_K, O_ORDERDATE_J, O_SHIPPRIORITY_J; REVENUE : group feed extend[ REV_PROD : .L_EXTENDENPRICE_K * (1-.L_DISCOUNT_K)] sum[REV_PROD] ]
+        sortby[ REVENUE desc, O_ORDERDATE_J asc ] 
+        head[10]
+      consume
+
+
+# A manually optimized variant
+
+query ORDERS feed project[ O_ORDERDATE, O_SHIPPRIORITY, O_CUSTKEY, O_OERDERKEY ] filter[ .O_ORDERDATE < [const instant value "1995-03-15"] ] {J}
+      CUSTOMER feed project[ C_CUSTKEY, C_MKTSEGMENT ] filter[ .C_MKTSEGMENT = "BUILDING" ] 
+        hashjoin[ O_CUSTKEY_J, C_CUSTKEY, 991 ] 
+        sortby[ O_OERDERKEY_J asc, O_ORDERDATE_J asc, O_SHIPPRIORITY_J asc ]
+      LINEITEM feed project[ L_SHIPDATE, L_OERDERKEY, L_EXTENDENPRICE, L_DISCOUNT ] filter[ .L_SHIPDATE > [const instant value "1995-03-15"] ] {K}
+        sortby[ L_OERDERKEY_K asc ]
+        mergejoin[ O_OERDERKEY_J, L_OERDERKEY_K ]
+        groupby[ L_OERDERKEY_K, O_ORDERDATE_J, O_SHIPPRIORITY_J; REVENUE : group feed extend[ REV_PROD : .L_EXTENDENPRICE_K * (1-.L_DISCOUNT_K)] sum[REV_PROD] ]
+        sortby[ REVENUE desc, O_ORDERDATE_J asc ] 
+        head[10]
+      consume
+
+
+
