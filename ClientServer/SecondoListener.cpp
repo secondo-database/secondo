@@ -7,6 +7,7 @@ using namespace std;
 #include "Processes.h"
 #include "SocketIO.h"
 #include "Profiles.h"
+#include "CharTransform.h"
 
 const int EXIT_LISTENER_OK       = 0;
 const int EXIT_LISTENER_NOPF     = 1;
@@ -56,7 +57,7 @@ SecondoListener::Execute()
 
   // --- Load ruleSet
   string rulePolicy = SmiProfile::GetParameter( "Environment", "RulePolicy", "ALLOW", parmFile );
-  transform( rulePolicy.begin(), rulePolicy.end(), rulePolicy.begin(), toupper );
+  transform( rulePolicy.begin(), rulePolicy.end(), rulePolicy.begin(), ToUpperProperFunction );
   SocketRule::Policy policy = (rulePolicy == "ALLOW") ? SocketRule::ALLOW : SocketRule::DENY;
   SocketRuleSet ipRules( policy );
   string ruleSetFile = SmiProfile::GetParameter( "Environment", "RuleSetFile", "", parmFile );

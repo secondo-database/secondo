@@ -12,6 +12,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "Profiles.h"
 #include "FileSystem.h"
+#include "CharTransform.h"
 
 class SecondoMonitor;
 typedef void (SecondoMonitor::*ExecCommand)();
@@ -126,7 +127,7 @@ SecondoMonitor::ExecShow()
   string cmd, cmdword, cmdrest, answer;
   cin >> cmdword;
   getline( cin, cmdrest );
-  transform( cmdword.begin(), cmdword.end(), cmdword.begin(), toupper );
+  transform( cmdword.begin(), cmdword.end(), cmdword.begin(), ToUpperProperFunction );
   if ( cmdword != "USERS"     && cmdword != "LOCKS" &&
        cmdword != "DATABASES" && cmdword != "LOG" )
   {
@@ -229,7 +230,7 @@ SecondoMonitor::ProcessCommands()
   {
     cout << "Monitor> ";
     cin >> cmd;
-    transform( cmd.begin(), cmd.end(), cmd.begin(), toupper );
+    transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
     cmdPos = commandTable.find( cmd );
     if ( cmdPos != commandTable.end() )
     {

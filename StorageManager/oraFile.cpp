@@ -18,6 +18,7 @@ using namespace std;
 #include "SmiORA.h"
 #include "SmiCodes.h"
 #include "Profiles.h"
+#include "CharTransform.h"
 using namespace OCICPP;
 
 /* --- Implementation of class SmiFile --- */
@@ -112,7 +113,7 @@ SmiFile::CheckName( const string& name )
 
   if ( temp.length() > 0 )
   {
-    transform( temp.begin(), temp.end(), temp.begin(), tolower );
+    transform( temp.begin(), temp.end(), temp.begin(), ToLowerProperFunction );
     string::size_type pos = temp.find_first_not_of( alnum );
     ok = pos == string::npos &&
          name[0] != '_' &&

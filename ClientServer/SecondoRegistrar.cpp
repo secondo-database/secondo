@@ -9,6 +9,7 @@ using namespace std;
 #include "Processes.h"
 #include "SocketIO.h"
 #include "Profiles.h"
+#include "CharTransform.h"
 
 const int EXIT_REGISTRAR_OK       = 0;
 const int EXIT_REGISTRAR_NOQUEUE  = 1;
@@ -284,7 +285,7 @@ SecondoRegistrar::ProcessCommands()
       iostream& ss = request->GetSocketStream();
       string cmd;
       ss >> cmd;
-      transform( cmd.begin(), cmd.end(), cmd.begin(), toupper );
+      transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
       cmdPos = commandTable.find( cmd );
       if ( cmdPos != commandTable.end() )
       {
