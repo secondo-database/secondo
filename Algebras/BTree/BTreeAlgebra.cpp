@@ -36,7 +36,7 @@ namespace {
 
 static NestedList* nl;
 
-/* 
+/*
 
 Commenting out the following line prevents the usage
 of prefetching iterators in the btree algebra.
@@ -80,11 +80,11 @@ BTreeProp()
   "<attrname> is the key");
 
   return (nl->TwoElemList(
-            nl->TwoElemList(nl->StringAtom("Creation"), 
-			     nl->StringAtom("Example Creation")),    
-            nl->TwoElemList(examplelist, 
+            nl->TwoElemList(nl->StringAtom("Creation"),
+			     nl->StringAtom("Example Creation")),
+            nl->TwoElemList(examplelist,
 			     nl->StringAtom("(let mybtree = ten "
-			     "createbtree [no])"))));      
+			     "createbtree [no])"))));
 }
 
 /*
@@ -102,7 +102,7 @@ void AttrToKey(
   float floatval;
   int intval;
   string strval;
-  
+
   assert(attr->IsDefined());
   switch(keyType)
   {
@@ -289,7 +289,7 @@ public:
 
     if(received)
     {
-    
+
 #ifdef BTREE_PREFETCH
       fileIter->CurrentKey(smiKey);
 #endif /* BTREE_PREFETCH */
@@ -363,7 +363,7 @@ public:
       this->file = 0;
       this->keyType = keyType;
     }
-    
+
   }
 
   ~BTree()
@@ -418,7 +418,7 @@ public:
   {
     return file != 0 && keyType != SmiKey::Unknown;
   }
-  
+
   bool WriteTo(SmiRecord& record, SmiKey::KeyDataType keyType)
   {
     assert(file != 0);
@@ -471,7 +471,7 @@ public:
       return false;
     }
     while(iter.Next(record))
-    { 
+    {
       if(!file->DeleteRecord(record.GetKey()))
       {
         return false;
@@ -528,6 +528,11 @@ public:
   SmiKeyedFile* GetFile()
   {
     return this->file;
+  }
+
+  SmiKey::KeyDataType GetKeyType()
+  {
+    return this->keyType;
   }
 
   BTreeIterator* ExactMatch(StandardAttribute* key)
@@ -622,7 +627,7 @@ public:
     }
 #else
     iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectRange(leftSmiKey, rightSmiKey, 
+    if(!file->SelectRange(leftSmiKey, rightSmiKey,
       *iter, SmiFile::ReadOnly, true))
     {
       delete iter;
@@ -706,6 +711,8 @@ Word InBTree(ListExpr typeInfo, ListExpr value,
 */
 void CloseBTree(Word& w)
 {
+  cout << "Close BTree" << endl;
+
   BTree* btree = (BTree*)w.addr;
   delete btree;
 }
@@ -716,7 +723,24 @@ void CloseBTree(Word& w)
 */
 Word CloneBTree(const Word& w)
 {
-  return SetWord( Address(0) );
+  cout << "Clone BTree" << endl;
+
+  BTree *btree = (BTree *)w.addr,
+        *clone = new BTree();
+
+  clone->SetTypeAndCreate( btree->GetKeyType() );
+  if( !clone->IsInitialized() )
+    return SetWord( Address(0) );
+
+  BTreeIterator *iter = btree->SelectAll();
+  while( iter->Next())
+  {
+    if( !clone->Append( iter->GetKey(), iter->GetId() ) )
+      return SetWord( Address( 0 ) );
+  }
+  delete iter;
+
+  return SetWord( clone );
 }
 /*
 
@@ -725,6 +749,8 @@ Word CloneBTree(const Word& w)
 */
 void DeleteBTree(Word& w)
 {
+  cout << "Delete BTree" << endl;
+
   BTree* btree = (BTree*)w.addr;
   btree->DeleteFile();
   delete btree;
@@ -772,6 +798,8 @@ OpenBTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
+  cout << "Open BTree" << endl;
+
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
   BTree* btree;
 
@@ -852,6 +880,8 @@ SaveBTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
+  cout << "Save BTree" << endl;
+
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
 
   bool success;
@@ -949,7 +979,7 @@ Word BTreeValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
 
 */
 TypeConstructor cppbtree( "btree",		BTreeProp,
-                          OutBTree,		InBTree,   
+                          OutBTree,		InBTree,
                           CreateBTree,		DeleteBTree,
 			  OpenBTree,		SaveBTree,
 			  CloseBTree,		CloneBTree,
@@ -1077,7 +1107,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   {
     return -1;
   }
-  
+
   iter = relation->MakeNewScan();
   while(!iter->EndOfScan())
   {
@@ -1093,7 +1123,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   {
     cerr << "Warning, not all tuples could be inserted into btree." << endl;
   }
-  
+
   delete iter;
   return 0;
 }
@@ -1342,7 +1372,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
                << "do not match." << endl;
           assert(false);
         }
-        
+
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1435,7 +1465,7 @@ Operator cpprange (
 const string LeftRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" ) "
                               "( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
-			      "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> " 
+			      "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
 			      "(stream"
 			      " (tuple ((x1 t1)...(xn tn))))</text--->"
 			      "<text>_ _ leftrange [ _ ]</text--->"
