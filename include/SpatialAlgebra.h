@@ -333,18 +333,20 @@ class Points: public StandardAttribute
 There are three ways of constructing a point set:
 
 */
-    Points( SmiRecordFile *recordFile, const int initsize = 0, const bool isTemporary = false );
+    Points( SmiRecordFile *recordFile, const int initsize = 0 );
 /*
-The first one receives no arguments and constructs an empty point set.
+The first one constructs an empty point set but open space for ~initsize~ points. 
+If ~recordFile~ is 0 then the point set will be stored in memory.
 
 */
-    Points( SmiRecordFile *recordFile, const Points& ps, const int initsize = 0, const bool isTemporary = false);
+    Points( SmiRecordFile *recordFile, const Points& ps);
 /*
 The second one receives another point set ~ps~ as argument and constructs a point
-set which is a copy of ~ps~.
+set which is a copy of ~ps~.  If ~recordFile~ is 0 then the point set will be stored 
+in memory.
 
 */
-    Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true, const int initsize = 0, const bool isTemporary = false);
+    Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true);
 /* 
 The third and the last one receives a ~recordId~ and a flag ~update~ as arguments.
 This constructor is applied not to create a new point set, but to read it from
@@ -947,7 +949,7 @@ expressed as a set of segments. However, in the internal (class) representation,
 as a set of sorted halfsegments, which are stored as a PArray.
 
 */    
-    CLine(SmiRecordFile *recordFile);
+    CLine(SmiRecordFile *recordFile, const int initsize = 0);
     CLine(SmiRecordFile *recordFile, const CLine& cl );
     CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, 
 	 bool update = true );
@@ -1162,10 +1164,11 @@ insertOK() function).
 
 */    
     
-    CRegion(SmiRecordFile *recordFile, const int initsize = 0, const bool isTemporary = false );
-    CRegion(SmiRecordFile *recordFile, const CRegion& cr, const int initsize = 0, const bool isTemporary = false);
-    CRegion(const CRegion& cr, SmiRecordFile *recordFile , const int initsize = 0, const bool isTemporary = false );
-    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true, const int initsize = 0, const bool isTemporary = false);
+    CRegion(SmiRecordFile *recordFile, const int initsize = 0);
+    CRegion(SmiRecordFile *recordFile, const CRegion& cr );
+    CRegion(const CRegion& cr, SmiRecordFile *recordFile );
+    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, 
+	     bool update = true );
     void Destroy();
     ~CRegion();
     

@@ -677,13 +677,13 @@ A ~points~ value is a finite set of points.
 5.1 Implementation of the class ~Points~
 
 */
-Points::Points( SmiRecordFile *recordFile, const int initsize, const bool isTemporary ) :
-	points( isTemporary ? new PArray<Point>( initsize ) : new PArray<Point>( recordFile ) ),
+Points::Points( SmiRecordFile *recordFile, const int initsize ) :
+  points( recordFile ? new PArray<Point>( recordFile, initsize ) : new PArray<Point>( initsize ) ),
   ordered( true )
 {}
 
-Points::Points( SmiRecordFile *recordFile, const Points& ps , const int initsize, const bool isTemporary) :
-  points( isTemporary ? new PArray<Point>( initsize ) : new PArray<Point>( recordFile ) ),
+Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
+  points( recordFile ? new PArray<Point>( recordFile, ps.Size() ) : new PArray<Point>( ps.Size() ) ),
   ordered( true )
 {
   assert( ps.IsOrdered() );
@@ -696,8 +696,8 @@ Points::Points( SmiRecordFile *recordFile, const Points& ps , const int initsize
   }
 }
 
-Points::Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update, const int initsize, const bool isTemporary):
-  points( isTemporary ? new PArray<Point>( initsize ) : new PArray<Point>( recordFile, recordId, update ) ),
+Points::Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update):
+  points( new PArray<Point>( recordFile, recordId, update ) ),
   ordered( true )
   {}
 
@@ -1262,7 +1262,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
 {
   //cout << "InPoints" << endl;
 
-  Points* points = new Points( SecondoSystem::GetLobFile() );
+  Points* points = new Points( SecondoSystem::GetLobFile(), nl->ListLength( instance ) );
   points->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -1474,13 +1474,22 @@ CHalfSegment::CHalfSegment(bool Defined, bool LDP, Point& P1, Point& P2)
 CHalfSegment::CHalfSegment( const CHalfSegment& chs )
 {
    defined = chs.IsDefined();
-   ldp = chs.GetLDP();
-   lp = chs.GetLP();
-   rp = chs.GetRP();
-   attr=chs.GetAttr();
+   if( defined )
+   {
+     ldp = chs.GetLDP();
+     lp = chs.GetLP();
+     rp = chs.GetRP();
+     attr=chs.GetAttr();
+   }
+   else 
+   {
+     ldp = false;
+   }
 }
 
-CHalfSegment::CHalfSegment()
+CHalfSegment::CHalfSegment():
+  defined( false ),
+  ldp( false )
 {
 }
 
@@ -3193,12 +3202,14 @@ as a set of sorted halfsegments, which are stored as a PArray.
 */
 
 
-CLine::CLine(SmiRecordFile *recordFile) :
-	line( new PArray<CHalfSegment>(recordFile) ), ordered( true )
+CLine::CLine(SmiRecordFile *recordFile, const int initsize) :
+	line( recordFile ? new PArray<CHalfSegment>(recordFile, initsize) : new PArray<CHalfSegment>(initsize) ), 
+        ordered( true )
 {}
 
 CLine::CLine(SmiRecordFile *recordFile, const CLine& cl ) :
-	line( new PArray<CHalfSegment>(recordFile) ), ordered( true )
+	line( recordFile ? new PArray<CHalfSegment>(recordFile, cl.Size()) : new PArray<CHalfSegment>(cl.Size()) ), 
+        ordered( true )
 {
   assert( cl.IsOrdered());
 
@@ -3884,14 +3895,14 @@ insertOK() function).
 
 */
 
-CRegion::CRegion(SmiRecordFile *recordFile, const int initsize, const bool isTemporary) :
-	region( isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>(recordFile) ),
+CRegion::CRegion(SmiRecordFile *recordFile, const int initsize) :
+	region( recordFile ? new PArray<CHalfSegment>(recordFile, initsize) : new PArray<CHalfSegment>(initsize) ),
 	ordered( true )
 {}
 
-CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr, const int initsize, const bool isTemporary) :
-	region( isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>(recordFile) ), 
-	ordered( true )
+CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
+	region( recordFile ? new PArray<CHalfSegment>(recordFile, cr.Size()) : new PArray<CHalfSegment>(cr.Size()) ), 
+        ordered( true )
 {
   assert( cr.IsOrdered());
 
@@ -3903,9 +3914,9 @@ CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr, const int initsiz
   }
 }
 
-CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile, const int initsize, const bool isTemporary ) :
-	  region( isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>(recordFile) ), 
-	  ordered( false )
+CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
+	  region( recordFile ? new PArray<CHalfSegment>(recordFile, cr.Size()) : new PArray<CHalfSegment>(cr.Size()) ), 
+          ordered( false )
 {
     //  assert( cr.IsOrdered());
     int j=0;
@@ -3921,9 +3932,8 @@ CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile, const int initsiz
     }
 }
 
-CRegion::CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update, 
-	  const int initsize, const bool isTemporary ): 
-	  region(isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>( recordFile, recordId, update ) ),
+CRegion::CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update ): 
+	  region(new PArray<CHalfSegment>( recordFile, recordId, update ) ),
 	  ordered(true)
 {}
 
@@ -4755,10 +4765,8 @@ OutRegion( ListExpr typeInfo, Word value )
     }
     else
     {
-	//CRegion *RCopy=new CRegion(*cr, SecondoSystem::GetLobFile());
-	//*******************************************************************************
-	CRegion *RCopy=new CRegion(*cr, SecondoSystem::GetLobFile(), 0, false);
-	
+	CRegion *RCopy=new CRegion(*cr, 0); // in memory
+
 	RCopy->logicsort();
 
 	CHalfSegment chs, chsnext;
@@ -5048,9 +5056,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		  ListExpr flagedSeg, currPoint;
 		  CycleNL = nl->Rest( CycleNL );
 
-		  //Points *cyclepoints= new Points(SecondoSystem::GetLobFile());
-		  //***************************************************************************
-		  Points *cyclepoints= new Points(SecondoSystem::GetLobFile(), 0, false);
+		  Points *cyclepoints= new Points(0); // in memory
 		  
 		  Point *currvertex;
 
