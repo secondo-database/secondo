@@ -67,8 +67,9 @@ int atom(char *string, int length)
     /* create new node */
 
     	newnode = first_free_node++;
+	
     	if (first_free_node > NODESMAX)
-	    {fprintf(stderr, "Error: too many nodes.\n"); exit(1);}
+	    {fprintf(stderr, "Error: too many nodes!!!!.\n");show_storage(); exit(1);}
 
    	nodespace[newnode].left = NULL;
   	nodespace[newnode].right = NULL;
@@ -194,10 +195,13 @@ Function ~show-storage~ writes the contents of the text and node buffers to stan
 
 show_storage()
 {   int i;
+    fprintf(stderr,"first_free_char %d\n",first_free_char); 	
     for (i = 0; i < first_free_char; i++) putchar(text[i]);
+    
+    fprintf(stderr,"first_free_node %d\n",first_free_node); 	
 
     for (i = 0; i < first_free_node; i++)
-	 printf("node: %d, left: %d, right: %d, atomstring: %d, length: %d\n",
+	 fprintf(stderr,"node: %d, left: %d, right: %d, atomstring: %d, length: %d\n",
 		i, nodespace[i].left, nodespace[i].right, 
 		nodespace[i].atomstring, nodespace[i].length);
 }
