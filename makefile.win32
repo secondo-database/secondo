@@ -4,19 +4,18 @@
 #
 ############################################################
 
+PLATFORM = win32
 
 # System dependent default libraries
 DEFAULTLIB = -lws2_32 -lm -lstdc++
 
 # Berkeley DB library
-#BDBINCLUDE = -I$(BDBDIR)/include 
-#BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb32
 
 # Uncomment next line to compile with debugging information:
 DEBUG = -ggdb
 
-PLATFORM = win32
+# macros for some frequently used commands
 CC = gcc
 LD = gcc
 AR = ar
@@ -50,4 +49,5 @@ DLLOBJEXT = o
 DLLEXT = dll
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -mconsole -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED
+# Set up default flags for the compiler
+DEFAULTCCFLAGS = -mconsole

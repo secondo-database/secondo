@@ -11,12 +11,7 @@ DEFAULTLIB = -lws2_32 -lm -lstdc++
 BDBDIR = /home/spieker/Windows-Wine-Root/usr/local
 
 # Berkeley DB library
-BDBINCLUDE = -I$(BDBDIR)/include
-BDBLIBDIR = -L$(BDBDIR)/lib
-BDBLIB = $(BDBLIBDIR) -ldb32
-
-# Uncomment next line to compile with debugging information:
-DEBUG = -ggdb
+BDBLIB = -ldb32
 
 PLATFORM = win32
 CC = wine -- gcc
@@ -53,4 +48,3 @@ DLLOBJEXT = o
 DLLEXT = dll
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(BDBDIR)/include -I$(INCLUDEDIR) -mconsole -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED

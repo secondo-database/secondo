@@ -32,7 +32,7 @@ ifeq ($(smitype),ora)
 CCFLAGS := $(PICFLAG) $(OCICPPINCLUDE) $(DEFAULTCCFLAGS)
 ALLOBJ := $(ORAOBJECTS)
 else
-CCFLAGS := $(PICFLAG) $(BDBINCLUDE) $(DEFAULTCCFLAGS)
+CCFLAGS := $(PICFLAG) $(DEFAULTCCFLAGS)
 ALLOBJ := $(BDBOBJECTS)
 endif
 
@@ -55,7 +55,7 @@ buildlibs: $(LIBNAME).$(LIBEXT)
 $(LIBDIR)/libsmibdb.$(LIBEXT): $(BDBOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(BDBOBJECTS) $(BDBLIBDIR) $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(BDBOBJECTS) -L$(BDBDIR)/lib $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
 	$(AR) -r $@ $(BDBOBJECTS)

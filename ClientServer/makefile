@@ -47,7 +47,7 @@ buildapp: $(APPLICATIONS)
 	$(CC) -MM $(CCFLAGS) $< -o $@
 
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCFLAGS) $(JNIINCLUDE)
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE)
 
 $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 	$(CP) $< $@

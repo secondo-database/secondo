@@ -4,6 +4,8 @@
 #
 #############################################
 
+PLATFORM = linux
+
 # System dependent default libraries
 DEFAULTLIB = -lpthread -lm -ldl -lstdc++
 # NOTE: -lpthread is neccessary on SuSe Linux 9.1. But there are two versions, one is 
@@ -12,11 +14,7 @@ DEFAULTLIB = -lpthread -lm -ldl -lstdc++
 # and there is a dependency to the pthread library which doesn't appear on older
 # Linux Systems. Maybe the reason is the change from Linux Kernel 2.4 to 2.6. 
 
-PLATFORM = linux
-
 # Berkeley DB library
-BDBINCLUDE = -I$(BDBDIR)/include
-BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb
 
 # macros for some frequently used commands
@@ -46,14 +44,3 @@ DLLPICFLAG := -fPIC
 DLLOBJEXT := lo
 DLLEXT := so
 DLLFLAGS := -s -shared
-
-# Uncomment next line to compile with debugging information:
-DEBUG = -ggdb
-#OPTIMIZE = -finline-functions -O2
-
-# Uncomment next lines to generate profiling data used by gprof
-#DEBUG += -pg
-#LDFLAGS += -pg
-
-# Set up default flags for the compiler
-DEFAULTCCFLAGS = $(DEBUG) $(OPTIMIZE) -I. -I$(INCLUDEDIR) -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED 
