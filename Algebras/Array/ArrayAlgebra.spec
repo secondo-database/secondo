@@ -1,4 +1,6 @@
-operator distribute alias DISTRIBUTE pattern  _ op [ _ ]
+operator mdistribute alias MDISTRIBUTE pattern  _ op [ _ ]
+operator distribute alias DISTRIBUTE pattern _ op [ _ ]
+operator msummarize alias MSUMMARIZE pattern _ op
 operator summarize alias SUMMARIZE pattern _ op
 operator loop alias LOOP pattern _ op [ fun ] implicit parameter element type ELEMENT
 operator loopa alias LOOPA pattern _ _ op [ fun ] implicit parameters first, second types ELEMENT, ELEMENT2
@@ -10,8 +12,11 @@ operator loopselect alias LOOPSELECT pattern _ op [ funlist; _, _ ] implicit par
 operator loopselecta alias LOOPSELECTA pattern _ _ op [ funlist; _, _ ]
 operator loopselectb alias LOOPSELECTB pattern _ _ op [ funlist; _, _ ]
 operator partjoin alias PARTJOIN pattern _ _ op [ fun ] implicit parameters first, second types ELEMENT, ELEMENT2
+operator mpartjoin alias MPARTJOIN pattern _ _ op [ fun ] implicit parameters first, second types ELEMENT, ELEMENT2
 operator partjoinswitch alias PARTJOINSWITCH pattern _ _ op [ funlist ]
+operator mpartjoinswitch alias MPARTJOINSWITCH pattern _ _ op [ funlist ]
 operator partjoinselect alias PARTJOINSELECT pattern _ _ op [ funlist; _, _ ]
+operator mpartjoinselect alias MPARTJOINSELECT pattern _ _ op [ funlist; _, _ ]
 operator sortarray alias SORTARRAY pattern _ op [ fun ] implicit parameter element type ELEMENT
 operator get alias GET pattern op ( _, _ )
 operator getref alias GETREF pattern op ( _, _ )
