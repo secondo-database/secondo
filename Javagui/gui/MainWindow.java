@@ -1466,7 +1466,7 @@ private void createMenuBar(){
         else{
            MI_OptimizerEnable.setEnabled(true);
            MI_OptimizerDisable.setEnabled(false);
-	   OptimizerCommandMenu.setEnabled(true);
+	   OptimizerCommandMenu.setEnabled(false);
 	}
      }
      public void menuDeselected(MenuEvent evt){}
