@@ -3172,13 +3172,11 @@ const string ExtendstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                              "stream(type))) -> (stream tuple1*tuple2)"
                              "</text--->"
                              "<text>_ extendstream [ fun ]</text--->"
-                             "<text>Only tuples in the cartesian product "
-                             "which satisfy certain conditions are passed on"
-                             " to the output stream. Note: The input tuples must"
-                             " have different attribute names, hence renaming may be applied"
-                             " to one of the input streams.</text--->"
-                             "<text>query Staedte feed {s1} loopjoin[ fun(t1: TUPLE) plz feed"
-                             " filter [ attr(t1, SName_s1) = .Ort]] count</text--->"
+                             "<text>This operator do the loopjoin between"
+                             "a stream of tuples and a stream of objects of a certain type."
+                             " the result is a stream of tuples.</text--->"
+	             "<text>query UBahn feed extendstream"
+	             "[ newattr:  units(.Trajectory)] consume</text--->"
                              ") )";
 
 /*
