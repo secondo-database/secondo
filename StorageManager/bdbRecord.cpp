@@ -4,7 +4,10 @@
 
 April 2002 Ulrich Telle
 
-September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for system catalog files
+September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls
+for system catalog files
+
+November 30, 2002 RHG Added function ~GetKey~
 
 */
 
@@ -164,6 +167,12 @@ SmiSize
 SmiRecord::Size()
 {
   return (recordSize);
+}
+
+SmiKey
+SmiRecord::GetKey()
+{
+  return recordKey;
 }
   
 bool
