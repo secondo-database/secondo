@@ -19,7 +19,8 @@ BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb
 
 # Uncomment next line to compile with debugging information:
-DEBUG = -ggdb
+DEBUG = -ggdb #-pg
+OPTIMIZE = -finline-functions
 
 PLATFORM = linux
 CC = gcc
@@ -43,7 +44,7 @@ else
 PICFLAG =
 OBJEXT = o
 LIBEXT = a
-LDFLAGS = -rdynamic
+LDFLAGS = -rdynamic #-pg
 #EXEFLAGS = -static
 EXEFLAGS =
 endif
@@ -53,4 +54,4 @@ DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED 
+DEFAULTCCFLAGS = $(DEBUG) $(OPTIMIZE) -I. -I$(INCLUDEDIR) -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED 
