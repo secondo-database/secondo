@@ -35,7 +35,7 @@ blank line.
 
 If you want to use this tools frequently, add the path to this script 
 into your PATH variable or create an alias for this script:
-alias createTextRelation="$SECONDO_BUILD_DIR/Tools/Generators/TextRelation/createTextRelation"
+alias createTextRelation="$SECONDO_BUILD_DIR/Tools/Generators/TextRelations/createTextRelation"
 
 
 Combined with the standard tools, you can use this script to collect 
