@@ -199,16 +199,12 @@ Destroys ~CTable~, releasing its storage.
 */
 
   Cardinal Size();
-  const string reportVectorSizes(const string& tabName);
+  Cardinal totalMemory();
 
 /* 
 
 Size() returns the size (number of slots) of the table. The method
-reportVectorSizes(...) requests the capacity of the underlying vector
-Classes and calculates the allocated memory. The number of slots and 
-the highest valid slot are also reported.  
-
-
+totalMemory() calculates the allocated memory via pointer arithmetic. 
 
 */
 

@@ -74,12 +74,8 @@ CTable<T>::Size()
 
 template<typename T>
 
-const string
-CTable<T>::reportVectorSizes(const string& tabName) {
-
- ostringstream sizes; 
- Cardinal t = (Cardinal) table.capacity();
- Cardinal v = (Cardinal) valid.capacity();
+Cardinal
+CTable<T>::totalMemory() {
  
  T* ptrT = 0;
  bool* ptrb = 0;
@@ -87,17 +83,8 @@ CTable<T>::reportVectorSizes(const string& tabName) {
  // calculation of allocated memory	 
  long dT = ((long)++ptrT); 
  long db = ((long)++ptrb);
- Cardinal mem = (dT * t) + (db * v); 
- 
- sizes << tabName << ": " 
-       << "capacities (table,valid): " << t << "," << v    
-       << " - memory: " << mem 
-       << " - counter (elem, highest valid): " 
-       << elemCount << "," << highestValid;
-
-
- return sizes.str();
-
+  
+ return (Cardinal)(dT * table.capacity()) + (db * valid.capacity());
 }
 
 
