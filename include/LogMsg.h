@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 
+using namespace std;
 
 #ifndef LOGMSG_OFF
 #define LOGMSG(a, b) if ( LogMsg::isActive(a) ) { b }
@@ -16,9 +17,9 @@ public:
   LogMsg(){};
   ~LogMsg(){};
 
-  static void initByString( const string &keyList );
+  static void initByString( const string& keyList );
 
-  static bool isActive( const string &key ); 
+  static bool isActive( const string& key ); 
 
 private:
 

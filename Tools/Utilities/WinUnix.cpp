@@ -21,7 +21,7 @@ WinUnix::getPageSize( void ) {
 #else
    LPSYSTEM_INFO lpSysInf;
    GetSystemInfo( lpSysInf );
-   return ( lpSysInfo->dwPageSize );
+   return ( lpSysInf->dwPageSize );
 #endif
 
 }

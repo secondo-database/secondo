@@ -101,6 +101,8 @@ system specific mechanisms to load libraries at runtime.
 #include <windows.h>
 #endif
 
+using namespace std;
+
 class SDB_EXPORT DynamicLibrary
 {
  public:

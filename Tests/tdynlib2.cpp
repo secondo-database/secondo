@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 
+using namespace std;
+
 static long ival = 0;
 
 extern "C" long dlcall1();

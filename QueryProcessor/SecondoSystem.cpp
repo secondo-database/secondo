@@ -402,7 +402,7 @@ Returns
 
 Precondition: dbState = dbOpen.
 */
-  ListExpr list, listFile;
+  ListExpr list;
   int rc = 0;
   
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )

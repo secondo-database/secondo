@@ -69,7 +69,7 @@ using namespace std;
 
 #include "CharTransform.h"
 #include "NLParser.h"
-#include "string.h"
+//#include "string.h"
 #include "WinUnix.h"
 
 
@@ -1245,9 +1245,9 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
   
   assert( os.good() );
 
-  byte val[4] = {0,1,0,0};
+  const byte val[4] = {0,1,0,0};
   os << "bnl";
-  os.write( val,4 ); 
+  os.write( (const char*)val,4 ); 
   bool ok = WriteBinaryRec(list, os);
   os.flush();
   return ok;
@@ -1260,7 +1260,7 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
 
 */
 
-byte* 
+char* 
 NestedList::Int2CharArray(long value) {
    
    static byte val[4] = {0,0,0,0};
@@ -1269,7 +1269,7 @@ NestedList::Int2CharArray(long value) {
      value = value >> 8;
    }
    
-   return val;
+   return (char*) val;
 }
 
 bool
@@ -1301,7 +1301,7 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 	                   float value = RealValue(list);
                            byte val[4] = {0,0,0,0};
                            memcpy((void*) val, (void*) &value,4);
-			   os.write(val,4); 
+			   os.write((const char*)val,4); 
 			   return true;
 	  }
 	  case StringType: {

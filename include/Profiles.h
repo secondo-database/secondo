@@ -68,6 +68,8 @@ stored in a text file:
 #include "SecondoConfig.h"
 #include <string>
 
+using namespace std;
+
 class SMI_EXPORT SmiProfile
 {
  public:

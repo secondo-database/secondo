@@ -722,7 +722,7 @@ Copies a nested list from this instance to the target instance.
   void DeleteListMemory();                            // delete CTable pointers
   void PrintTableTexts();
   
-  byte* Int2CharArray(long value);
+  char* Int2CharArray(long value);
   
   string NodeType2Text( NodeType type );
   string BoolToStr( const bool boolValue );

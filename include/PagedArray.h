@@ -65,7 +65,7 @@ elements of type ~T~.
 #define PAGED_ARRAY_H
 
 #include <iostream> 
-#include <strstream> 
+#include <sstream> 
 #include <fstream> 
 #include <cassert>
 #include <vector>
@@ -183,8 +183,10 @@ Returns the identifier of this array.
   Cardinal size;
   Cardinal maxPageNo;
   
-  map<int, T*> pageTable;
-  map<int, T*>::iterator it, frameChangeIter; 
+  typedef map<int, T*> PageMapType;
+  PageMapType pageTable;
+  typedef typename PageMapType::iterator PageMapIter;
+  PageMapIter it, frameChangeIter; 
 
   Cardinal frameTable[MAX_PAGE_FRAMES];
 
@@ -212,7 +214,7 @@ Returns the identifier of this array.
 
     bool switchedOn;
     ofstream *filePtr;
-    strstream fileName;
+    stringstream fileName;
     unsigned long pageChangeCounter; 
     unsigned long slotAccessCounter;
 
@@ -275,7 +277,7 @@ size( 0 )
 
     FileCtr++;
     log.fileName << "PagedArray_" << FileCtr << "_" << pageRecord.slots << ".log" << ends; 
-    log.filePtr = new ofstream( log.fileName.str() );  
+    log.filePtr = new ofstream( log.fileName.str().c_str() );  
   }
 
 }
