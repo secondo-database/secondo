@@ -130,17 +130,32 @@ not accessible by the user code.
         if ( serverSocket != null ) {
           try {
             line = inSocketStream.readLine();
+	    if(line==null){
+	       System.out.println("failed");
+	       initialized = false;
+	       return false;
+	    }
             if ( line.equals( "<SecondoOk/>" ) ) {
               outSocketStream.write( "<Connect>\n" +
                                     "((" + user + ") (" + pswd + "))\n" +
                                     "</Connect>\n" );
               outSocketStream.flush();
               line = inSocketStream.readLine();
+              if(line==null){
+	        initialized = false;
+		System.out.println("failed");
+		return false;
+	      }
               if ( line.equals( "<SecondoIntro>" ) )
               {
                 do
                 {
-                  line = inSocketStream.readLine();
+		  line = inSocketStream.readLine();
+		  if(line==null){
+		     initialized = false;
+		     System.out.println("failed");
+		     return false;
+		  }
                   if ( !line.equals( "</SecondoIntro>" ) )
                   {
                     System.out.println( line );
@@ -152,6 +167,11 @@ not accessible by the user code.
               else if ( line.equals( "<SecondoError>" ) )
               {
                 line = inSocketStream.readLine();
+		if(line==null){
+		  initialized = false;
+		  System.out.println("SecondoError");
+		  return false;
+		}
                 System.out.println( "Server-Error: " + line );
                 line = inSocketStream.readLine();
               }
@@ -325,9 +345,11 @@ If value 0 is returned, the command was executed without error.
             outSocketStream.write( "<DbSave>\n" + filename + "\n</DbSave>\n" );
             outSocketStream.flush();
             line = inSocketStream.readLine();
+	    if(line==null) throw new IOException();
             if ( line.compareTo( "<ReceiveFile>" ) == 0 )
             {
               filename = inSocketStream.readLine();
+	      if(filename==null) throw new IOException();
               line = inSocketStream.readLine();  // Hope it is '</ReceiveFile>'
               BufferedWriter restoreFile = null;
               try {
@@ -339,11 +361,13 @@ If value 0 is returned, the command was executed without error.
                 outSocketStream.write( "<ReceiveFileReady/>\n" );
                 outSocketStream.flush();
                 line = inSocketStream.readLine();
+		if(line==null) throw new IOException();
                 if ( line.compareTo( "<ReceiveFileData>" ) == 0 )
                 {
                   while ( line.compareTo( "</ReceiveFileData>" ) != 0 )
                   {
                     line = inSocketStream.readLine();
+		    if(line==null) throw new IOException();
                     if ( line.compareTo( "</ReceiveFileData>" ) != 0 )
                     {
                       restoreFile.write( line );
@@ -402,9 +426,11 @@ If value 0 is returned, the command was executed without error.
                                    "\n</DbRestore>\n" );
             outSocketStream.flush();
             line = inSocketStream.readLine();
+	    if(line==null) throw new IOException();
             if ( line.compareTo( "<SendFile>" ) == 0 )
             {
               filename = inSocketStream.readLine();
+	      if(filename==null) throw new IOException();
               line = inSocketStream.readLine();  // Hope it is '</SendFile>'
               BufferedReader restoreFile = null;
               try {
@@ -417,6 +443,7 @@ If value 0 is returned, the command was executed without error.
                 while (restoreFile.ready())
                 {
                   line = restoreFile.readLine();
+		  if(line==null) throw new IOException();
                   outSocketStream.write( line );
                   outSocketStream.write( "\n" );
                 }
@@ -542,6 +569,7 @@ If value 0 is returned, the command was executed without error.
                                  "</NumericType>\n" );
           outSocketStream.flush();
           line = inSocketStream.readLine();
+	  if (line==null) throw new IOException();
           if ( line.equals( "<NumericTypeResponse>" ) ) {
             line = inSocketStream.readLine();
             list.readFromString( line );
@@ -550,6 +578,7 @@ If value 0 is returned, the command was executed without error.
             // Ignore error response
             do {
               line = inSocketStream.readLine();
+	      if(line==null) throw new IOException();
             } while ( line.compareTo( "</SecondoError>" ) != 0 );
           }
         } catch (IOException e) {
@@ -575,8 +604,10 @@ If value 0 is returned, the command was executed without error.
                                "</GetTypeId>\n" );
         outSocketStream.flush();
         line = inSocketStream.readLine();
+	if(line==null) throw new IOException();
         if ( line.compareTo( "<GetTypeIdResponse>" ) == 0 ) {
           line = inSocketStream.readLine();
+          if(line==null) throw new IOException();
           StringTokenizer tokenizer = new StringTokenizer( line );
           if ( tokenizer.countTokens() >= 2 ) {
             algebraId.value = Integer.parseInt( tokenizer.nextToken() );
@@ -588,6 +619,7 @@ If value 0 is returned, the command was executed without error.
           // Ignore error response
           do {
             line = inSocketStream.readLine();
+	    if(line==null) throw new IOException();
           } while ( line.compareTo( "</SecondoError>" ) != 0 );
           ok = false;
         }
@@ -613,9 +645,11 @@ If value 0 is returned, the command was executed without error.
                                  "</LookUpType>\n" );
           outSocketStream.flush();
           line = inSocketStream.readLine();
-          if ( line == "<LookUpTypeResponse>" ) {
+	  if(line==null) throw new IOException();
+          if ( line.equals("<LookUpTypeResponse>") ) {
             ListExpr list = new ListExpr();
             line = inSocketStream.readLine();
+	    if(line==null) throw new IOException();
             list.readFromString( line );
             name.setLength( 0 );
             if ( !list.first().isEmpty() ) {
@@ -630,6 +664,7 @@ If value 0 is returned, the command was executed without error.
             // Ignore error response
             do {
               line = inSocketStream.readLine();
+	      if(line==null) throw new IOException();
             } while ( line.compareTo( "</SecondoError>" ) != 0 );
           }
         } catch (IOException e) {
