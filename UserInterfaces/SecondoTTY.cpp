@@ -33,9 +33,9 @@ using namespace std;
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <ctype.h>
 
 #include "Application.h"
-//#include "Processes.h"
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "SecondoSystem.h"
@@ -44,6 +44,7 @@ using namespace std;
 #include "NestedList.h"
 #include "DisplayTTY.h"
 #include "CharTransform.h"
+#include "LogMsg.h"
 
 static const bool needIdent = false;
 
@@ -790,6 +791,23 @@ SecondoTTY::Execute()
     streambuf* oldOutputBuffer = 0;
     ifstream fileInput;
     ofstream fileOutput;
+    
+    //set AlgebraLevel and LogMsg prefixes
+    string algLevelStr = SmiProfile::GetParameter( "Environment", "AlgebraLevel", "Descriptive", parmFile );
+    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );
+    
+    RTFlag::initByString(logMsgList);
+    
+    char chLevel = toupper( (algLevelStr.data())[0] );
+    switch (chLevel) {
+       case 'E': currentLevel = ExecutableLevel; break;
+       case 'D': currentLevel = DescriptiveLevel; break;
+       case 'H': currentLevel = HybridLevel; break;
+       default:  currentLevel = DescriptiveLevel; 
+    }
+    
+
+ 
     si = new SecondoInterface();
     if ( si->Initialize( user, pswd, host, port, parmFile ) )
     {
