@@ -139,13 +139,10 @@ void DateTime::Now(){
   time_t now;
   int ms;
 
-  if(ftime(&tb)==-1){ // if not success, use a resolution in seconds
-      now = time(0);
-      ms = 0;
-  }else{ // resolution in milliseconds is available
-      now = tb.time;
-      ms = tb.millitm;
-  }
+  ftime(&tb);
+  now = tb.time;
+  ms = tb.millitm;
+
   tm* time = localtime(&now);
   day = ToJulian(time->tm_year+1900,time->tm_mon+1,time->tm_mday);
   milliseconds = ((((time->tm_hour)*60)+time->tm_min)*60+time->tm_sec)*1000+ms;
