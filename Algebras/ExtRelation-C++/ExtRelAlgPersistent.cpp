@@ -75,7 +75,7 @@ class PairTupleCompareBy
 class SortByLocalInfo
 {
   public:
-    static const size_t MAX_MEMORY_SIZE;
+    static const size_t MAX_MEMORY_SIZE = 33554432;
 
     SortByLocalInfo( Word stream, const bool lexicographic, TupleCompare *tupleCmp ):
       stream( stream ),
@@ -245,8 +245,6 @@ class SortByLocalInfo
     TupleType *tupleType;
     vector< pair<Relation*, RelationIterator*> > relations;
 };
-
-const size_t SortByLocalInfo::MAX_MEMORY_SIZE = 2097152;
 
 /*
 2.1.1 Value mapping function of operator ~sortBy~
@@ -501,7 +499,7 @@ private:
 
   size_t MAX_TUPLES_IN_MEMORY;
 public:
-  static const size_t MAX_MEMORY_SIZE;
+  static const size_t MAX_MEMORY_SIZE = 33554432;
 
   MergeJoinLocalInfo(Word streamA, Word attrIndexA,
     Word streamB, Word attrIndexB, bool expectSorted,
@@ -796,8 +794,6 @@ public:
   }
 };
 
-const size_t MergeJoinLocalInfo::MAX_MEMORY_SIZE = 2097152;
-
 /*
 2.2.2 Value mapping function of operator ~mergejoin~
 
@@ -1008,7 +1004,7 @@ public:
   static const size_t MIN_BUCKETS = 1;
   static const size_t DEFAULT_BUCKETS = 97;
 
-  static const size_t MAX_MEMORY_SIZE = 2097152;
+  static const size_t MAX_MEMORY_SIZE = 33554432;
 
   HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
     Word streamB, Word attrIndexBWord, Word nBucketsWord,
