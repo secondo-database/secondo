@@ -197,6 +197,8 @@ If there are no models, it returns some constant cost.
 #include "NestedList.h"
 #include "SecondoSMI.h"
 
+//class Algebra;
+
 const int MAXARG = 20;
 /*
 Is the maximal number of arguments for one operator
@@ -355,8 +357,10 @@ Is the type of property functions, one for each type constructor.
 
 */
 
-struct AlgebraListEntry;
-class Algebra;
+//struct AlgebraListEntry;
+//class Algebra;
+#include "Algebra.h"
+
 class QueryProcessor;
 /*
 Are ~forward declarations~ of used data structures and classes.
@@ -607,15 +611,27 @@ Returns the specification of operator ~operatorId~ of algebra ~algebraId~
 as a nested list expression.
 
 */
-  SelectFunction
-    Select( const int algebraId, const int operatorId );
+  inline int Select( const int algebraId, const int operatorId, const ListExpr typeList )
+  {
+    return getOperator(algebraId, operatorId)->selectFunc(typeList);
+  }
+
 /*
 Returns the address of the select function of operator ~operatorId~ of
 algebra ~algebraId~.
 
 */
-  ValueMapping
-    Execute( const int algebraId, const int opFunId );
+  
+  inline int Execute( const int algebraId, const int opFunId, 
+                      ArgVector args, Word& result, int msg, 
+	              Word& local, Supplier tree ) 
+  {	       
+    int opId  = opFunId % 65536;
+    int funId = opFunId / 65536;
+      
+    return getOperator(algebraId, opId)->valueMap[funId](args, result, msg, local, tree);	       	       
+  }	       
+
 /*
 Returns the address of the evaluation function of the - possibly
 overloaded - operator ~opFunId~ of algebra ~algebraId~.
@@ -837,6 +853,28 @@ algebra modules.
 */
   multimap<string,TypeCheckFunction> kindTable;
   GetAlgebraEntryFunction getAlgebraEntry;
+  
+  static const int MAX_ALG=50;
+  static const int MAX_OP=30;
+  Operator* opPtrField[MAX_ALG][MAX_OP];
+
+  void InitOpPtrField();
+  inline Operator* getOperator(const int algebraId, const int opId) {
+  
+    assert( algebraId < MAX_ALG );
+    assert( (opId < MAX_OP) );
+  
+    Operator* op = opPtrField[algebraId][opId];
+  
+    if ( op == 0 ) {
+  
+      op = algebra[algebraId]->GetOperator( opId );
+      opPtrField[algebraId][opId] = op;
+    }  
+  
+    return op;
+  }
+
 };
 
 #endif

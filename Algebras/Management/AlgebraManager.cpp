@@ -38,6 +38,7 @@ AlgebraManager::AlgebraManager( NestedList& nlRef, GetAlgebraEntryFunction getAl
     algebra[j] = 0;
     algType[j] = UndefinedLevel;
   }
+  InitOpPtrField();
 }
 
 AlgebraManager::~AlgebraManager()
@@ -314,25 +315,17 @@ AlgebraManager::Specs( int algebraId, int operatorId )
   return (spec);
 }
 
-SelectFunction
-AlgebraManager::Select( int algebraId, int operatorId )
-{
-  return (algebra[algebraId]->GetOperator( operatorId )->selectFunc);
+
+
+void
+AlgebraManager::InitOpPtrField() {
+
+  for ( int alg = 0; alg < MAX_ALG; alg++ ) {
+    for ( int op = 0; op < MAX_OP; op++ ) {      
+        opPtrField[alg][op] = 0;
+      }}
 }
 
-ValueMapping
-AlgebraManager::Execute( int algebraId, int opFunId )
-{
-/*
-Parameter ~opFunId~ holds the operator id as well as the function id.
-The operator id is stored in the lower 2 bytes, the function id is stored
-in the upper 2 bytes.
-
-*/
-  int opId  = opFunId % 65536;
-  int funId = opFunId / 65536;
-  return (algebra[algebraId]->GetOperator( opId )->valueMap[funId]);
-}
 
 ModelMapping
 AlgebraManager::TransformModel( int algebraId, int opFunId )

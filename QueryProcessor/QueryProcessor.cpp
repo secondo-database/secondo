@@ -1803,7 +1803,7 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
 
   if ( checkFunId ) {
 	
-		opFunId = (algebraManager->Select( alId, opId ))( typeList );
+		opFunId = algebraManager->Select( alId, opId, typeList );
 		opFunId = opFunId * 65536 + opId;
 
 		/*  Check whether this is a type operator; in that case
@@ -2576,8 +2576,8 @@ the moment.
         else 
         { /* normal operator */
           status =
-            (algebraManager->Execute( tree->u.op.algebraId, tree->u.op.opFunId ))
-                               ( arg, result, message, tree->u.op.local, tree );
+            algebraManager->Execute( tree->u.op.algebraId, tree->u.op.opFunId,
+                                     arg, result, message, tree->u.op.local, tree );
 
           if ( tree->u.op.isStream )
           {
