@@ -570,6 +570,8 @@ private:
 
   TupleType *resultTupleType;
 
+  const string traceFlag; 
+
   int CompareTuples(Tuple* a, Tuple* b)
   {
     /* tuples with NULL-Values in the join attributes
@@ -609,10 +611,8 @@ private:
       yield = (errorCode == YIELD);
     }
 
-    cout << "NextATuple::yield = " << yield << endl;
     if(yield)
     {
-      cout << "ATuple: " << *(Tuple*)(aResult.addr) << endl;
       return (Tuple*)aResult.addr;
     }
     else
@@ -639,7 +639,6 @@ private:
 
     if(yield)
     {
-      cout << "BTuple: " << *(Tuple*)(bResult.addr) << endl;
       return (Tuple*)bResult.addr;
     }
     else
@@ -692,9 +691,10 @@ private:
 public:
   MergeJoinLocalInfo(Word streamA, Word attrIndexA,
     Word streamB, Word attrIndexB, bool expectSorted,
-    Supplier s)
+    Supplier s) :
+    traceFlag("Merge:Trace")
   {
-    assert(streamA.addr != 0);
+     assert(streamA.addr != 0);
     assert(streamB.addr != 0);
     assert(attrIndexA.addr != 0);
     assert(attrIndexB.addr != 0);
@@ -870,8 +870,12 @@ public:
       }
 
       int cmp = CompareTuples( tupleA, tupleB );
-      cout << "Comp A: " << *tupleA << " - B: " << *tupleB 
-           << " = " << cmp << endl; 
+      
+      if ( RTFlag::isActive( traceFlag ) ) {
+
+        cout << "Comp A: " << *tupleA << " - B: " << *tupleB 
+             << " = " << cmp << endl; 
+      }
 
       if( cmp == 0 )
       // The tuples are equal. We must store them in a buffer if it fits or in
@@ -884,7 +888,7 @@ public:
         bucketB.push_back( tupleB );
 
         tupleA = NextATuple();
-        if ( tupleA ) {
+        if ( tupleA && RTFlag::isActive( traceFlag ) ) {
           cout << "    A: " << *(tupleA) << endl;
           cout << "  eqB: " << *(equalTupleB ) << endl;
         }
@@ -907,8 +911,9 @@ public:
             t->DeleteIfAllowed();
           }
           tupleA = NextATuple();
-          if ( tupleA )
+          if ( tupleA && RTFlag::isActive( traceFlag ) ) {
             cout << "    joined A: " << *(tupleA) << endl;
+          }
         }
         equalTupleB->DeleteIfAllowed();
         indexA = 0;
@@ -921,7 +926,7 @@ public:
         }
 
         tupleB = NextBTuple();
-        if ( tupleB ) { 
+        if ( tupleB && RTFlag::isActive( traceFlag ) ) { 
           cout << "    B: " << *(tupleB) << endl;
           cout << "  eqA: " << *(equalTupleA) << endl;
         }
@@ -944,8 +949,9 @@ public:
             t->DeleteIfAllowed();
           }
           tupleB = NextBTuple();
-          if ( tupleB )
+          if ( tupleB && RTFlag::isActive( traceFlag )) {
             cout << "    joined B: " << *(tupleB) << endl;
+          }
         }
         equalTupleA->DeleteIfAllowed();
         indexB = 0;
