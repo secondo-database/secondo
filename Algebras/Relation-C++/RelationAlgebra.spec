@@ -8,11 +8,11 @@ operator count alias COUNT pattern _ op
 
 operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
-operator tcount alias TCOUNT pattern _ op
+operator count alias COUNT pattern _ op
 operator concat alias CONCAT pattern _ _ op
 operator attr alias ATTR pattern op (_, _)
 operator project alias PROJECT pattern _ op [list]
-operator tfilter alias TFILTER pattern _ op [ fun ] implicit parameter tuple type TUPLE
+operator filter alias FILTER pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator rdup alias RDUP pattern _ op
 operator sort alias SORT pattern _ op

@@ -71,6 +71,8 @@ The class ~SecondoCatalog~ provides the following methods:
 #ifndef SECONDO_CATALOG_H
 #define SECONDO_CATALOG_H
 
+#include <set>
+#include <vector>
 #include "AlgebraManager.h"
 #include "NestedList.h"
 #include "NameIndex.h"
@@ -484,8 +486,8 @@ specifications from [BeG95b, Section3.1].
 Checks whether ~opName~ is a valid operator name.
 
 */
-  void GetOperatorId( const string& opName,
-                      int& algebraId, int& opId );
+  void GetFirstOperatorId( const string& opName, int& algebraId, int& opId );
+  bool GetNextOperatorId( int& algebraId, int& opId );
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
 ~opId~ of an existing ~opName~. 
@@ -530,9 +532,11 @@ following format:
     int      algebraId;
     int      entryId;
   };
-  typedef map<string,CatalogEntry> LocalCatalog;
-  LocalCatalog constructors;
-  LocalCatalog operators;
+  typedef vector<CatalogEntry> CatalogEntrySet;
+  typedef map<string,CatalogEntry> LocalConstructorCatalog;
+  typedef map<string,CatalogEntrySet*> LocalOperatorCatalog;
+  LocalConstructorCatalog constructors;
+  LocalOperatorCatalog operators;
 
   enum EntryState { EntryInsert, EntryUpdate, EntryDelete };
 
@@ -565,6 +569,12 @@ following format:
   SmiKeyedFile   objCatalogFile;
   SmiRecordFile  objValueFile;
   SmiRecordFile  objModelFile;
+
+
+  bool canGetNextOperator;
+  CatalogEntrySet* operatorSet;
+  CatalogEntrySet::iterator operatorSetIterator;
+
 
   bool testMode;
 /*

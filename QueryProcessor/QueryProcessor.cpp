@@ -657,6 +657,7 @@ expression have defined values.
   valueno = 0;
   functionno = 0;
   list = Annotate( level, expr, varnames, vartable, defined, nl->TheEmptyList() );
+
   if ( debugMode )
   {
     cout << endl << "*** AnnotateX Begin ***" << endl;
@@ -713,6 +714,21 @@ constants in the form of words. ~Annotate~ enters the value into that
 array. 
 
   * ~s~ is a symbol atom: an operator
+
+----        add        ->        ((add operator 1 4) typeerror)
+
+        <op>        ->        ((<op> operator <algebraId> <operatorId>) typeerror)
+----
+	Here, once the operators can be overloaded between different algebras, 
+the construction of the operator list inside the ~Annotate~ function need to
+have more than one entry to the tuple (algebraId, operatorId). In this way, its
+representation internally in the function is done with a sublist of this tuples.
+
+        <op>        ->        ((<op> operator ((<alId1> <opId1>) ... (<alIdN> <opIdN>)) ) typeerror)
+
+	After the decision of which operator is suitable for the argument types,
+using the ~TranformType~ function, it comes back to the representation with only
+one pair (algebraId, operatorId) repeated below.
 
 ----	add	->        ((add operator 1 4) typeerror)
 
@@ -1080,6 +1096,7 @@ function index.
         {
           GetCatalog( level )->GetObjectExpr( name, typeName, typeExpr, values[valueno], 
                              definedValue, models[valueno], hasNamedType );
+
           if ( !definedValue )
           {
             defined = false;
@@ -1093,6 +1110,7 @@ function index.
               NameIndex newvarnames;
               VarEntryCTable newvartable(20); 
 	      functionList = values[valueno-1].list;
+
 	      list = Annotate( level, functionList, newvarnames, newvartable,
                                defined, nl->TheEmptyList() );
 	      return (nl->TwoElemList(
@@ -1130,13 +1148,21 @@ function index.
         }
         else if ( GetCatalog( level )->IsOperatorName( name ) )
         {
-          GetCatalog( level )->GetOperatorId( name, alId, opId );
+          GetCatalog( level )->GetFirstOperatorId( name, alId, opId );
+          ListExpr opList = nl->OneElemList(
+                              nl->TwoElemList( nl->IntAtom( alId ), nl->IntAtom( opId ) ) );
+
+          while ( GetCatalog( level )->GetNextOperatorId( alId, opId ) )
+          {
+            nl->Append( opList, 
+                        nl->TwoElemList( nl->IntAtom( alId ), nl->IntAtom( opId ) ) );
+          }
+
           return (nl->TwoElemList(
-                    nl->FourElemList(
+                    nl->ThreeElemList(
                       expr,
                       nl->SymbolAtom( "operator" ),
-                      nl->IntAtom( alId ),
-                      nl->IntAtom( opId ) ),
+                      opList ),
                     nl->SymbolAtom( "typeerror" ) ));
         }
         else if ( IsVariable( name, varnames ) )
@@ -1233,6 +1259,7 @@ function index.
         all elements of this list: */
       first = nl->First( expr );
       rest = nl->Rest( expr );
+
       pair = Annotate( level, first, varnames, vartable, defined, fatherargtypes );
 
       /* Check whether the first element is a new operator. In that case
@@ -1240,7 +1267,7 @@ function index.
          to be passed down in 'fatherargtypes' in calls of 'annotate'. */
 
       newOperator = ((nl->ListLength( pair ) == 2) &&
-                     (nl->ListLength( nl->First( pair )) == 4) &&
+                     (nl->ListLength( nl->First( pair )) == 3) &&
                      (TypeOfSymbol( nl->Second( nl->First( pair ) ) ) == QP_OPERATOR));
       list = nl->OneElemList( pair );
       lastElem = list;
@@ -1268,30 +1295,40 @@ function index.
 At this point, we may have a list ~list~ such as
 
 ----
-        (((+ operator 1 6) ()) ((3 ...) int) ((10 ...) int))
+        (((+ operator ((1 6) (7 0))) ()) ((3 ...) int) ((10 ...) int))
 ----
 
 for a given ~expr~ (+ 3 10).
 
 */
-      first = nl->First( list );                /* first = ((+ operator 1 6) ()) */
+      first = nl->First( list );                /* first = ((+ operator ((1 6) (7 0))) ()) */
       if ( nl->ListLength( first ) > 0 )
       {
-        first = nl->First( first );             /* first = (+ operator 1 6) */
+        first = nl->First( first );             /* first = (+ operator ((1 6) (7 0))) */
         if ( nl->ListLength( first ) >= 2 )
         {
           switch (TypeOfSymbol( nl->Second( first ) ))
           {
             case QP_OPERATOR:
             {
-              alId = nl->IntValue( nl->Third( first ) );
-              opId = nl->IntValue( nl->Fourth( first ) );
+              ListExpr opList = nl->Third( first );
+              assert( nl->ListLength( opList ) > 0 );
+
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
 
-              /* apply the operator's type mapping: */
-
-              resultType = (algebraManager->TransformType( alId, opId ))( typeList );
+              do
+              {
+                alId = nl->IntValue( nl->First( nl->First( opList ) ) );
+                opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
+                
+                /* apply the operator's type mapping: */
+                resultType = (algebraManager->TransformType( alId, opId ))( typeList );
+ 
+                opList = nl->Rest( opList );
+              }
+              while ( !nl->IsEmpty( opList ) && 
+                      ( nl->IsAtom( resultType ) && nl->AtomType( resultType ) == SymbolType && nl->SymbolValue( resultType ) == "typeerror" ) );
 
               /* use the operator's selection function to get the index 
                  (opFunId) of the evaluation function for this operator: */
@@ -1328,11 +1365,20 @@ for a given ~expr~ (+ 3 10).
                 resultType = nl->Third( resultType );
               }
 
+
+              ListExpr newList = nl->Cons( nl->TwoElemList(
+                                             nl->FourElemList( nl->First( first ),
+                                               nl->Second( first ),
+                                               nl->IntAtom( alId ),
+                                               nl->IntAtom( opId ) ),
+                                             nl->Second( nl->First( list ) ) ),
+                                           nl->Rest( list ) );          
+
               return (nl->ThreeElemList(
                         nl->ThreeElemList(
                           nl->SymbolAtom( "none" ),
                           nl->SymbolAtom( "applyop" ),
-                          list ),
+                          newList ),
                         resultType,
                         nl->IntAtom( opFunId ) ));
             }
@@ -1568,9 +1614,15 @@ string xxx;
         }
         else if ( GetCatalog( level )->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
-          GetCatalog( level )->GetOperatorId( name2, alId, opId );
-          paramtype = (algebraManager->TransformType( alId, opId ))( 
-		nl->Rest( fatherargtypes ) );
+          GetCatalog( level )->GetFirstOperatorId( name2, alId, opId );
+
+          paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
+
+          while ( ( nl->IsAtom( paramtype ) && nl->AtomType( paramtype ) == SymbolType && nl->SymbolValue( paramtype ) == "typeerror" ) &&
+                  ( GetCatalog( level )->GetNextOperatorId( alId, opId ) ) ) 
+          {
+            paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
+          }
         }
         else
         { 
@@ -1653,6 +1705,7 @@ QueryProcessor::SubtreeX( const AlgebraLevel level,
       (*argVectors[i])[j].addr = 0;
     }
   }
+  
   OpTree resultTree = Subtree( level, expr );
   if ( debugMode )
   {
@@ -1925,7 +1978,9 @@ the function in a database object.
     else
     {
       correct = true;
+
       tree = SubtreeX( level, list );
+
       evaluable = tree->evaluable;
       if ( level == DescriptiveLevel )
       {

@@ -1621,7 +1621,7 @@ Returns a list of type constructors ~typecons~ of the actually load algebras in 
 ----
 
 */
-  LocalCatalog::iterator pos;
+  LocalConstructorCatalog::iterator pos;
   ListExpr last = 0, list;
   ListExpr tcList = nl->TheEmptyList();
 
@@ -1675,7 +1675,7 @@ Precondition: ~IsTypeName(typeName)~ delivers TRUE.
     exit( 0 );
   }
 
-  LocalCatalog::iterator pos = constructors.find( typeName );
+  LocalConstructorCatalog::iterator pos = constructors.find( typeName );
   if ( pos != constructors.end() )
   {
     algebraId = pos->second.algebraId;
@@ -1758,7 +1758,7 @@ Checks whether ~opName~ is a valid operator name.
 }
 
 void
-SecondoCatalog::GetOperatorId( const string& opName, int& algebraId, int& opId )
+SecondoCatalog::GetFirstOperatorId( const string& opName, int& algebraId, int& opId )
 {
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
@@ -1768,20 +1768,56 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
 
 */
 
-  LocalCatalog::iterator pos = operators.find( opName );
+  LocalOperatorCatalog::iterator pos = operators.find( opName );
  
   if (  pos != operators.end() )
   {
-    algebraId = pos->second.algebraId;
-    opId      = pos->second.entryId;
+    operatorSet = pos->second;
+    operatorSetIterator = operatorSet->begin();
+
+    algebraId = operatorSetIterator->algebraId;
+    opId      = operatorSetIterator->entryId;
+
+    operatorSetIterator++;
+    canGetNextOperator = true;
   }
   else
   { 
-    cerr << "  GetOperatorId: " << opName << " is not a valid operator name!" << endl;
+    cerr << "  GetFirstOperatorId: " << opName << " is not a valid operator name!" << endl;
     exit( 0 );
   }
 }
 
+bool
+SecondoCatalog::GetNextOperatorId( int& algebraId, int& opId )
+{
+/*
+Returns the algebra identifier ~algebraId~ and the operator identifier
+~opId~ of an existing ~opName~. 
+
+Precondition: ~GetFirstOperatorId( opName )~ executed before.  
+*/
+
+  if( !canGetNextOperator )
+  { 
+    cerr << "  GetNextOperatorId: " << " Try to run first GetFirstOperatorId!" << endl;
+    exit( 0 );
+  }
+ 
+  if ( operatorSetIterator != operatorSet->end() )
+  {
+    algebraId = operatorSetIterator->algebraId;
+    opId      = operatorSetIterator->entryId;
+
+    operatorSetIterator++;
+    return true;
+  }
+  else
+  {
+    canGetNextOperator = false;
+    return false;
+  }
+}
 string
 SecondoCatalog::GetOperatorName( const int algebraId, const int opId )
 {
@@ -1855,23 +1891,29 @@ This format is based on the formal definition of the syntax of operator
 specifications from [BeG95b, Section3.1]. 
 
 */
-  LocalCatalog::iterator pos;
+  LocalOperatorCatalog::iterator pos;
   ListExpr last = 0, list;
   ListExpr opList = nl->TheEmptyList();
 
   for ( pos = operators.begin(); pos != operators.end(); pos++ )
   {
-    list = am->Specs( pos->second.algebraId, pos->second.entryId );
-    if ( opList == nl->TheEmptyList() )
+    CatalogEntrySet* entrySet = pos->second;
+    CatalogEntrySet::iterator i;
+
+    for( i = entrySet->begin(); i != entrySet->end(); i++ )
     {
-      opList = nl->Cons( nl->Cons( nl->SymbolAtom( pos->first ), list ),
-                         nl->TheEmptyList() );
-      last = opList;
-    }
-    else
-    {
-      last = nl->Append( last,
-                         nl->Cons( nl->SymbolAtom( pos->first ), list ) );
+      list = am->Specs( i->algebraId, i->entryId );
+      if ( opList == nl->TheEmptyList() )
+      {
+        opList = nl->Cons( nl->Cons( nl->SymbolAtom( pos->first ), list ),
+                           nl->TheEmptyList() );
+        last = opList;
+      }
+      else
+      {
+        last = nl->Append( last,
+                           nl->Cons( nl->SymbolAtom( pos->first ), list ) );
+      }
     }
   }
   return (opList);
@@ -1915,9 +1957,24 @@ Defines a dictionary for algebra operators.
     for ( j = 0; j < am->OperatorNumber( algebraId ); j++ )
     {
       newEntry.entryId = j;
-      operators.insert( make_pair( am->Ops( algebraId, j ), newEntry ) );
+      LocalOperatorCatalog::iterator pos = operators.find( am->Ops( algebraId, j ) );
+      CatalogEntrySet* entrySet;
+
+      if (  pos != operators.end() )
+      {
+        entrySet = pos->second;
+        entrySet->push_back( newEntry );
+      }
+      else
+      {
+        entrySet = new CatalogEntrySet();
+        entrySet->push_back( newEntry );
+        operators.insert( make_pair( am->Ops( algebraId, j ), entrySet ) );
+      }
     }
   }
+
+  canGetNextOperator = false;
 }
 
 SecondoCatalog::~SecondoCatalog()

@@ -9,7 +9,8 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec 	
+specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec MovingObjectsInNetworks/*.spec 	
+	cat $^ | sort -b -u | ./specs.awk 
 	cat $^ > specs
 
 .PHONY: makedirs

@@ -1918,7 +1918,7 @@ const string FilterSpec =
 
 */
 Operator tfilter (
-         "tfilter",            // name
+         "filter",            // name
          FilterSpec,           // specification
          Filter,               // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
@@ -2548,7 +2548,7 @@ ValueMapping tcountmap[] = {TCountStream, TCountRel };
 ModelMapping nomodelmap[] = {RelNoModelMapping, RelNoModelMapping};
 
 Operator tcount (
-         "tcount",           // name
+         "count",           // name
          TCountSpec,         // specification
          2,                  // number of value mapping functions
          tcountmap,          // value mapping functions
