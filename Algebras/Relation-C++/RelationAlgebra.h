@@ -19,7 +19,6 @@
 #include <sstream>
 #include <typeinfo>
 #include "RelationAlgebraInfo.h"
-#include "Tuple.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;

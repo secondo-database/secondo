@@ -44,7 +44,7 @@ TestRunner: $(BINDIR)/TestRunner$(EXEEXT)
 TTYCS: $(BINDIR)/SecondoTTYCS$(EXEEXT)
 
 .PHONY: TTY 
-TTY: $(BINDIR)/SecondoTTY$(SMIUP)
+TTY: $(BINDIR)/SecondoTTY$(SMIUP)$(EXEEXT)
 
 .PHONY: optimizer 
 optimizer: $(OPTDIR)/SecondoPL$(EXEEXT)
@@ -63,7 +63,7 @@ optimizer: $(OPTDIR)/SecondoPL$(EXEEXT)
 APP_OBJECTS :=  DisplayTTY.o SecondoInterfaceGeneral.o AlgebraList.o
 
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
-$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS) $(TUPLEMANAGER) 
+$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 
@@ -77,12 +77,12 @@ $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o 
 
  
 $(BINDIR)/TestRunner$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES) 
-$(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS) $(TUPLEMANAGER)
+$(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 
 $(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES) 
-$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS) $(TUPLEMANAGER) 
+$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS)  -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)

@@ -19,7 +19,6 @@
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
-#include "Tuple.h"
 
 #include <iostream>
 #include <string>

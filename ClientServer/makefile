@@ -41,6 +41,7 @@ all: $(ALL_OBJECTS)
 
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
+	echo $(APPLICATIONS) 
 
 # create dependencies from include directives
 %.dep: %.cpp
@@ -57,7 +58,7 @@ $(LIBDIR)/%.$(OBJEXT): %.cpp
 
 
 # --- Link applications
-SERVER_OBJECTS = SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) 
+SERVER_OBJECTS = SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o
 
 $(BINDIR)/SecondoMonitorBDB$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o
