@@ -7,103 +7,125 @@
 #
 # 03/02/28 M. Spiekermann
 # 04/01/27 M. Spiekermann, port from csh to bash 
+# 05/01/27 M. Spiekermann, major revision, automatic test runs
+
 
 # recognize aliases also in an non interactive shell
 shopt -s expand_aliases
 source $HOME/.bashrc
 
-secondoRoot=$HOME/SecBase
 
-# check argument
+
+# check arguments and initialize variables
 if [ $# -eq 0 ]
 then
 
-  echo "Usage: $0 dir-name"
-  exit
-
-else
-
-  buildDir=$secondoRoot/$1
+  printf "%s\n" "Usage: $0 <build-dir> [<checkout-dir>]"
+  exit 1
 fi
 
 
-## report file systems sizes
-echo ""
-echo "File systems :"
-echo "--"
-df -k
+rootDir=$1
+if [ "$2" != "" ]; then 
+  coDir=$2
+else
+  coDir="tmp-secondo-build"
+fi
+buildDir=${rootDir}/${coDir}
+scriptDir=${buildDir}/CM-Scripts
 
-echo ""
-echo "- Step 1: Checking out work copy -"
-echo "----------------------------------"
-echo ""
+# include function definitions
+# libutil.sh must be in the same directory as this file
+source  ${0%/*}/libutil.sh
+
+## report host status 
+printSep "host status"
+uptime
+df -k
+free -m
+
 
 ## checkout work copy
+printSep "Checking out work copy"
 setvar $buildDir
 catvar
-recipients=$(cvs history -c -a -D yesterday | awk '/./ { print $5 }' | sort | uniq)
 
-echo ""
-echo "cvs user who commited or added files yesterday:"
-echo "--"
-echo "$recipients"
+printf "cvs user who commited or added files yesterday:\n"
 
+recipients=$( cvs history -c -a -D yesterday | 
+              awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
 
-cd $secondoRoot
-cvs -Q checkout -d $1 secondo
-cd $buildDir
+printf "${recipients}\n"
 
-echo ""
-echo "Step 2: Compiling SECONDO"
-echo "--"
-echo ""
+cd $rootDir
+checkCmd "cvs -Q checkout -d $coDir secondo"
 
 ## run make
-if !( make > ../make-all.log 2>&1 ) 
-then
+printSep "Compiling SECONDO"
 
-  echo ""
-  echo "Problems during build, sending a mail to:"
-  echo "--"
-  echo "$recipients"
+cd $buildDir
+checkCmd "make > ../make-all.log 2>&1" 
 
-  mail -s"Building secondo on zeppelin failed!" -a ../make-all.log spieker <<- EOFM
-	This is a generated message! 
-	
-	Users who comitted yesterday: 
-	$recipients
-	
-	You will find the output of make in the attached file.
-	Please fix the problem as soon as possible.
-EOFM
-  exit
+if [ "$rc" != "0" ]; then
+
+  printf "%s\n" "Problems during build, sending a mail to:"
+  printf "%s\n" "$recipients"
+
+mailBody="This is a generated message!  
+
+  Users who comitted to CVS yesterday:
+  $recipients
+
+  You will find the output of make in the attached file.
+  Please fix the problem as soon as possible."
+
+  sendMail "Building SECONDO failed!" "$recipients" "$mailBody" "../make-all.log"
+  proceed="false"
 
 fi
 
-echo ""
-echo "Step 3: Cleaning SECONDO -"
-echo "--"
-echo ""
+## run tests
+
+if [ "$proceed" != "false" ]; then
+
+printSep "Running automatic tests"
+if ! ( ${scriptDir}/run-tests.sh )
+then
+  
+  printf "%s\n" "Problems during test, sending a mail to:"
+  printf "%s\n" "$recipients"
+  cat ${buildDir}/Tests/Testspecs/*.log > run-tests.log
+
+mailBody="This is a generated message!  
+
+  Users who comitted to CVS yesterday:
+  $recipients
+
+  You will find the output of run-tests in the attached file.
+  Please fix the problem as soon as possible."
+
+  sendMail "Automatic tests failed!" "$recipients" "$mailBody" "./run-tests.log"
+
+fi
+
+fi
+
+
 ## run make clean
-if !( make clean > ../make-clean.log 2>&1 ) 
-then
-  echo ""
-  echo "Problems with make clean!"
-  exit
-fi
+printSep "Cleaning SECONDO"
+checkCmd "make realclean > ../make-clean.log 2>&1" 
 
-echo ""
-echo "Step 4: Check for undeleted files -"
-echo "--"
-echo ""
-find . -name "*.o"
-find . -name "*.so"
-find . -name "*.a"
-find . -name "*.dll"
-find . -name "*.class"
+printSep "Check for undeleted files ( *.{o,a,so,dll,class} )"
+find . -iregex ".*\.\([oa]\|so\|dll\|class\)"
+
+printf "%s\n" "files in SECONDO's /lib and /bin directory"
 find ./lib ! -path "*CVS*" 
 find ./bin ! -path "*CVS*"
 
+printf "%s\n" "files unkown to CVS"
+cvs -nQ update
+
 ## clean up
-cd ..
-rm -rf $buildDir
+##printSep "Cleaning up"
+##cd ..
+##echo "rm -rf ${buildDir}/${coDir}"
