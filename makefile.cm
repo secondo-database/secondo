@@ -75,6 +75,7 @@ DIST_FILES := $(net)/windows/secondo-win32.tgz \
 dist: tag-version $(DIST_FILES)
 
 SECONDO_DEMO = secondo-demo
+
 BIN_FILES := bin/SecondoTTYBDB \
 	bin/SecondoListener \
 	bin/SecondoMonitorBDB \
@@ -97,7 +98,7 @@ demo: $(BIN_FILES)
 tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
 .PHONY: tag-version
 tag-version:
-	cvs tag $(tag) 
+	cvs tag -F $(tag) 
 
 $(net)/windows/secondo-win32.tgz: secondo-win32.tgz
 	cp $< $@ 
@@ -116,11 +117,11 @@ else
 endif
 	rm -r secondo
 
-$(net)/windows/install-msys.bash: $(SCRIPT_DIR)/install-msys.bash
+$(net)/windows/install.sh: $(SCRIPT_DIR)/install-msys.bash
 	cp $< $@
 	recode lat1..cp1252 $@
 
-$(net)/linux/install-linux.bash: $(SCRIPT_DIR)/install-linux.bash
+$(net)/linux/install.sh: $(SCRIPT_DIR)/install-linux.bash
 	cp $< $@
 
 $(net)/%.pdf: Documents/Installation/%.ps
