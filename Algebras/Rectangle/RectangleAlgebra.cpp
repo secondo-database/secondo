@@ -179,7 +179,7 @@ double Rectangle::Area() const
   if( !IsDefined() )
     return 0.0;
 
-  return (this->left - this->right) *
+  return (this->right - this->left) *
          (this->top - this->bottom);
 }
 
