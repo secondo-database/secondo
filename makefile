@@ -218,18 +218,6 @@ clean:
 	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.lo
 	$(RM) $(LIBDIR)/AlgebraList.o $(LIBDIR)/AlgebraList.lo
 
-.PHONY: clean_cs
-clean_cs:
-	$(MAKE) -C ClientServer clean
-	$(MAKE) -C UserInterfaces clean_cs	
-
-.PHONY: clean_tests
-clean_tests:
-	$(MAKE) -C Tests clean
-
-.PHONY: clean_all
-clean_all: clean clean_tests clean_cs
-
 
 .PHONY: help
 help:
