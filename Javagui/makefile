@@ -6,6 +6,10 @@
 
 include ./makefile.inc
 
+.PHONY: all #creates the gui and all known viewers
+all: makedirs
+	chmod ugo+x sgui
+
 
 .PHONY: help
 help:
@@ -20,9 +24,6 @@ doc:
 	$(shell mkdir $(DOCPATH))
 	$(JAVADOC) -d $(DOCPATH) -classpath "$(CLASSPATH)" $(GUIPACKAGE) $(VIEWERPACKAGES)
 
-.PHONY: all #creates the gui and all known viewers
-all: makedirs
-	chmod ugo+x sgui	
 
 .PHONY: makedirs
 makedirs:
