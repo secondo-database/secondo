@@ -88,10 +88,12 @@ Win32Socket::~Win32Socket()
   if ( ioSocketStream != 0 )
   {
     delete ioSocketStream;
+    ioSocketStream = 0;
   }
   if ( ioSocketBuffer != 0 )
   {
     delete ioSocketBuffer;
+    ioSocketBuffer = 0;
   }
 }
 
@@ -860,6 +862,8 @@ LocalWin32Socket::LocalWin32Socket( const string& address )
   localName = address;
   lastError = EC_NOT_OPENED;
   mutexHandle = NULL;
+  ioSocketBuffer = 0;
+  ioSocketStream = 0;
 }
  
 bool
@@ -977,10 +981,12 @@ LocalWin32Socket::~LocalWin32Socket()
   if ( ioSocketStream != 0 )
   {
     delete ioSocketStream;
+    ioSocketStream = 0;
   }
   if ( ioSocketBuffer != 0 )
   {
     delete ioSocketBuffer;
+    ioSocketBuffer = 0;
   }
 }    
 

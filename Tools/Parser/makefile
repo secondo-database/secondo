@@ -22,22 +22,24 @@ useddirectories:
 	$(MAKE) -C ../../Algebras specs
 	$(MAKE) -C SpecParser
 
-SecLex.$(OBJEXT): SecLex.cpp
+SecLex.$(OBJEXT): SecLex.cpp SecParser.tab.hpp NestedText.h
 	$(CC) -c -o SecLex.$(OBJEXT) SecLex.cpp $(DEFAULTCCFLAGS)
 
-SecLex.cpp: SecLex.l SecParser.tab.hpp
+SecLex.cpp: SecLex.l
 	$(LEX) -+ -oSecLex.cpp -Pxx SecLex.l
 
-SecParser.tab.$(OBJEXT): SecParser.tab.cpp
+SecParser.tab.$(OBJEXT): SecParser.tab.cpp NestedText.h
 	$(CC) -c -o SecParser.tab.$(OBJEXT) SecParser.tab.cpp $(CCFLAGS)
 
-SecParser.tab.hpp SecParser.tab.cpp: SecParser.y NestedText.h
+SecParser.tab.hpp SecParser.tab.cpp: SecParser.y
 	$(YACC) -d -p xx -o SecParser.tab.cpp SecParser.y
 
 NestedText.$(OBJEXT): NestedText.cpp NestedText.h
 	$(CC) -c -o NestedText.$(OBJEXT) NestedText.cpp $(CCFLAGS)
 
-SecParser.$(OBJEXT): SecParser.cpp
+NestedText.h: $(INCLUDEDIR)/CTable.h
+
+SecParser.$(OBJEXT): SecParser.cpp NestedText.h $(INCLUDEDIR)/SecParser.h
 	$(CC) -c -o SecParser.$(OBJEXT) SecParser.cpp $(CCFLAGS)
 
 SecLex.l: SecLex.l.1 lexrules SecLex.l.2
@@ -53,6 +55,9 @@ else
 	SpecParser/Parser < ../../Algebras/specs
 endif
 
+include ../../include.dep
+
+.PHONY: clean
 clean:
 	$(MAKE) -C SpecParser clean
 	$(RM) $(OBJECTS) SecLex.cpp SecParser.tab.cpp SecParser.tab.hpp

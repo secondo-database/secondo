@@ -5,14 +5,13 @@ April 2002 Ulrich Telle
 
 */
 
-using namespace std;
-
 #include <cstdio>
 #include <iostream>
 #include <sstream>
 #include <signal.h>
 #include <string>
 #include <sys/stat.h>
+using namespace std;
 
 #include "SecondoConfig.h"
 #include "Application.h"
@@ -71,10 +70,12 @@ Application::Application( int argc, const char** argv )
   }
 	
 #ifndef SECONDO_WIN32
+  ownpid = getpid();
   char* pgmName = strdup( programName.c_str() );
   appName = strdup( basename( pgmName ) );
   appPath = strdup( dirname( pgmName ) );
 #else
+  ownpid = ::GetCurrentProcessId();
   char fileName[MAX_PATH];
   if ( GetModuleFileName( NULL, fileName, MAX_PATH ) != 0 )
   {

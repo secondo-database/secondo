@@ -95,7 +95,7 @@ destroys a "Secondo"[3] interface.
 */
   bool Initialize( const string& user, const string& pswd,
                    const string& host, const string& port,
-                   string& profile );
+                   string& profile, const bool multiUser = false );
 /*
 ~Initialize~ starts up the "Secondo"[3] interface. Depending on the implementation
 not all parameters are required for the interface to be operational.
@@ -667,66 +667,69 @@ after the error number have the following meaning:
   * ~v~: value list, list structure representing a value for a given type constructor.
 
 ----
-    errors[1] := "Command not recognized.";
-    errors[2] := "Error in (query) expression.";
-    errors[3] := "Expression not evaluable. "
+    errors[1]  = "Command not recognized.";
+    errors[2]  = "Error in (query) expression.";
+    errors[3]  = "Expression not evaluable. "
                  "(Operator not recognized or stream?)";
-    errors[4] := "Error in type expression. No object created.";
-    errors[5] := "Error in type expression. No type defined.";
-    errors[6] := "No database open.";
-    errors[7] := "A database is open.";
-    errors[8] := "Undefined object value in (query) expression";
-    errors[9] := "Syntax error in command/expression";
+    errors[4]  = "Error in type expression. No object created.";
+    errors[5]  = "Error in type expression. No type defined.";
+    errors[6]  = "No database open.";
+    errors[7]  = "A database is open.";
+    errors[8]  = "Undefined object value in (query) expression";
+    errors[9]  = "Syntax error in command/expression";
 
-    errors[10] := "Identifier already used.";
-    errors[11] := "Identifier is not a known type name.";
-    errors[12] := "Identifier is not a known object name.";
-    errors[13] := "Type of expression is different from type of "
-                  "object.";
-    errors[14] := "Type name is used by an object. Type not deleted.";
+    errors[10] = "Identifier already used.";
+    errors[11] = "Identifier is not a known type name.";
+    errors[12] = "Identifier is not a known object name.";
+    errors[13] = "Type of expression is different from type of "
+                 "object.";
+    errors[14] = "Type name is used by an object. Type not deleted.";
 
-    errors[20] := "Transaction already active.";
-    errors[21] := "No transaction active.";
+    errors[20] = "Transaction already active.";
+    errors[21] = "No transaction active.";
 
-    errors[24] := "Error in type or object definitions in file.";
-    errors[25] := "Identifier is not a known database name.";
-    errors[26] := "Problem in writing to file.";
-    errors[27] := "Database name in file different from identifier.";
-    errors[28] := "Problem in reading from file.";
-    errors[29] := "Error in the list structure in the file.";
-    errors[30] := "Command not yet implemented.";
-    errors[31] := "Command level not yet implemented.";
-    errors[32] := "Command not yet implemented at this level.";
+    errors[24] = "Error in type or object definitions in file.";
+    errors[25] = "Identifier is not a known database name.";
+    errors[26] = "Problem in writing to file.";
+    errors[27] = "Database name in file different from identifier.";
+    errors[28] = "Problem in reading from file.";
+    errors[29] = "Error in the list structure in the file.";
+    errors[30] = "Command not yet implemented.";
+    errors[31] = "Command level not yet implemented.";
+    errors[32] = "Command not yet implemented at this level.";
 
-    errors[40] := "Error in type definition.";
-                                  // (40 i)
-    errors[41] := "Type name doubly defined.";
-                                  // (41 i n)
-    errors[42] := "Error in type expression.";
-                                  // (42 i n)
+    errors[40] = "Error in type definition.";
+                                 // (40 i)
+    errors[41] = "Type name doubly defined.";
+                                 // (41 i n)
+    errors[42] = "Error in type expression.";
+                                 // (42 i n)
 
-    errors[50] := "Error in object definition.";
-                                  // (50 i)
-    errors[51] := "Object name doubly defined.";
-                                  // (51 i n)
-    errors[52] := "Wrong type expression for object.";
-                                  // (52 i n)
-    errors[53] := "Wrong list representation for object.";
-                                  // (53 i n) 
+    errors[50] = "Error in object definition.";
+                                 // (50 i)
+    errors[51] = "Object name doubly defined.";
+                                 // (51 i n)
+    errors[52] = "Wrong type expression for object.";
+                                 // (52 i n)
+    errors[53] = "Wrong list representation for object.";
+                                 // (53 i n)
 
-    errors[60] := "Kind does not match type expression.";
-                                  // (60 k t)
-    errors[61] := "Specific kind checking error for kind.";
-                                  // (61 k j ...)
+    errors[60] = "Kind does not match type expression.";
+                                 // (60 k t)
+    errors[61] = "Specific kind checking error for kind.";
+                                 // (61 k j ...)
 
-    errors[70] := "Value list is not a representation for type "
-                  "constructor."; // (70 tc v)     
-    errors[71] := "Specific error for type constructor in "
-                  "value list.";  // (71 tc j ...) 
-    errors[72] := "Value list is not a representation for type "
-                  "constructor."; // (72 tc)       
-    errors[73] := "Error at a position within value list for type "
-                  "constructor."; // (73 pos)      
+    errors[70] = "Value list is not a representation for type "
+                 "constructor."; // (70 tc v)
+    errors[71] = "Specific error for type constructor in "
+                 "value list.";  // (71 tc j ...)
+    errors[72] = "Value list is not a representation for type "
+                 "constructor."; // (72 tc)
+    errors[73] = "Error at a position within value list for type "
+                 "constructor."; // (73 pos)
+
+    errors[80] = "Secondo protocol error.";
+    errors[81] = "Connection to Secondo server lost.";
 ----
 
 The error messages 61 and 71 allow a kind checking procedure or an ~In~
@@ -735,6 +738,11 @@ procedure to introduce its own specific error codes (just numbered 1, 2,
 interpret such error messages (and return information to the user) one
 needs to add code branching on these specific error code numbers. Such
 code may or may not be supplied with an algebra. 
+
+*/
+  void SetDebugLevel( const int level );
+/*
+Sets the debug level of the query processor.
 
 */
  protected:

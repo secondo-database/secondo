@@ -120,6 +120,10 @@ SecondoTTY::Usage()
        << "  SHOW {OPTION}   - show system status information" << endl
        << "                    OPTION = { LEVEL }" << endl
        << "                      LEVEL      - current level" << endl
+       << "  DEBUG {0|1|2}   - set debug level:" << endl
+       << "                      0   - debug mode turned off" << endl
+       << "                      1   - debug mode turned on" << endl
+       << "                      2   - debug and trace mode turned on" << endl
        << "  Q, QUIT         - exit the program" << endl << endl
        << "  # ...           - comment line (first character on line has to be '#')" << endl << endl
        << "Additionally you may enter any valid Secondo command." << endl
@@ -212,6 +216,13 @@ SecondoTTY::ProcessCommand()
       cout << "*** Invalid SHOW option '" << cmdWord << "'." << endl;
     }
   }
+  else if ( cmdWord == "DEBUG" )
+  {
+    int debugLevel;
+    is >> debugLevel;
+    si->SetDebugLevel( debugLevel );
+    cout << "*** Debug level set to " << debugLevel << "." << endl;
+  }
   else if ( cmdWord == "Q" || cmdWord == "QUIT" )
   {
     cout << "*** Thank you for using SECONDO!" << endl;
@@ -223,11 +234,11 @@ SecondoTTY::ProcessCommand()
   }
   else
   {
-    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY");
+    isQuery = (cmdWord == "QUERY" || cmdWord == "(QUERY" || cmdWord == "( QUERY");
     if ( currentLevel == HybridLevel )
     {
-      if ( cmdWord == "QUERY" || cmdWord == "(QUERY" ||
-           cmdWord == "UPDATE" || cmdWord == "(UPDATE" )
+      if ( cmdWord == "QUERY"  || cmdWord == "(QUERY"  || cmdWord == "( QUERY" ||
+           cmdWord == "UPDATE" || cmdWord == "(UPDATE" || cmdWord == "( UPDATE" )
       {
         cout << "*** Hey, don't do that in 'HYBRID' mode!" << endl;
       }
@@ -276,7 +287,7 @@ SecondoTTY::IsInternalCommand( const string& line )
            cmdWord == "E" || cmdWord == "EXECUTABLE"  ||
            cmdWord == "H" || cmdWord == "HYBRID"      ||
            cmdWord == "Q" || cmdWord == "QUIT"        ||
-           cmdWord == "SHOW" || cmdWord[0] == '@' );
+           cmdWord == "DEBUG" || cmdWord == "SHOW" || cmdWord[0] == '@' );
 }
 
 bool
@@ -494,12 +505,10 @@ SecondoTTY::CallSecondo2()
   result = CallSecondo();
   if ( isQuery )
   {
-cout << "Query-Result" << endl;
     ShowQueryResult( result );
   }
   else
   {
-cout << "Type-Output" << endl;
     TypeOutputList( result );
   }
   if ( result != nl->TheEmptyList() )

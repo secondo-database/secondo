@@ -10,11 +10,10 @@ include ../../makefile.$(platform)
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 
 INCFILES=\
-	../../include/AlgebraManager.h \
-	../../include/Algebra.h \
-	../../include/NestedList.h \
-	../../include/CTable.h \
-	../../include/CTable.cpp
+	$(INCLUDEDIR)/AlgebraManager.h \
+	$(INCLUDEDIR)/Algebra.h \
+	$(INCLUDEDIR)/NestedList.h \
+	$(INCLUDEDIR)/SecondoSystem.h
 
 OBJECTS=\
 	Algebra.$(OBJEXT) \
@@ -28,8 +27,10 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 Algebra.$(OBJEXT): Algebra.cpp $(INCFILES)
 	$(CC) -c -o Algebra.$(OBJEXT) Algebra.cpp $(CCFLAGS)
 
-AlgebraManager.$(OBJEXT): AlgebraManager.cpp AlgebraList.i $(INCFILES) ../../include/SecondoSystem.h
+AlgebraManager.$(OBJEXT): AlgebraManager.cpp AlgebraList.i $(INCFILES)
 	$(CC) -c -o AlgebraManager.$(OBJEXT) AlgebraManager.cpp $(CCFLAGS)
+
+include ../../include.dep
 
 .PHONY: clean
 clean:

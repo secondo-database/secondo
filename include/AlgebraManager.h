@@ -540,13 +540,6 @@ algebra modules.
 
 */
   multimap<string,TypeCheckFunction> kindTable;
-/*
-*/
-  static AlgebraListEntry  algebraList[];
-/*
-is the static list of all available algebra modules.
-
-*/
 };
 
 typedef Algebra*
@@ -560,23 +553,27 @@ to the global nested list container and the query processor.
 
 */
 
+class DynamicLibrary;
+
 struct AlgebraListEntry
 {
   AlgebraListEntry()
     : algebraId( 0 ), algebraName( "" ),
       level( UndefinedLevel ),
-      algebraInit( 0 ), useAlgebra( false ) {}
+      algebraInit( 0 ), dynlib( 0 ), useAlgebra( false ) {}
   AlgebraListEntry( const int algId, const string& algName,
                     const AlgebraLevel algLevel,
                     const AlgebraInitFunction algInit,
+                    DynamicLibrary* const dynlibInit,
                     const bool algUse )
-    : algebraId( algId ), algebraName( algName ),
-      level( algLevel ), algebraInit( algInit ),
-      useAlgebra( algUse ) {}
+    : algebraId( algId ),   algebraName( algName ),
+      level( algLevel ),    algebraInit( algInit ),
+      dynlib( dynlibInit ), useAlgebra( algUse ) {}
   int                  algebraId;
   string               algebraName;
   AlgebraLevel         level;
   AlgebraInitFunction  algebraInit;
+  DynamicLibrary*      dynlib;
   bool                 useAlgebra;
 };
 /*
@@ -600,19 +597,23 @@ initialization process or not.
 */
 
 #define ALGEBRA_LIST_START \
-AlgebraListEntry AlgebraManager::algebraList[] = {
+static AlgebraListEntry algebraList[] = {
 
 #define ALGEBRA_LIST_END \
-  AlgebraListEntry( -1, "", UndefinedLevel, 0, false ) };
+  AlgebraListEntry( -1, "", UndefinedLevel, 0, 0, false ) };
 
 #define ALGEBRA_LIST_INCLUDE(ALGNO,ALGNAME,ALGTYPE) \
  AlgebraListEntry( ALGNO, #ALGNAME,\
                    ALGTYPE##Level,\
-                   &Initialize##ALGNAME, true ),
+                   &Initialize##ALGNAME, 0, true ),
 
 #define ALGEBRA_LIST_EXCLUDE(ALGNO,ALGNAME,ALGTYPE) \
  AlgebraListEntry( ALGNO, #ALGNAME,\
-                   ALGTYPE##Level, 0, false ),
+                   ALGTYPE##Level, 0, 0, false ),
+
+#define ALGEBRA_LIST_DYNAMIC(ALGNO,ALGNAME,ALGTYPE) \
+ AlgebraListEntry( ALGNO, #ALGNAME,\
+                   ALGTYPE##Level, 0, 0, true ),
 
 #define ALGEBRA_PROTO_INCLUDE(ALGNO,ALGNAME,ALGTYPE) \
 extern "C" Algebra* \
@@ -620,6 +621,8 @@ Initialize##ALGNAME( NestedList* nlRef,\
                      QueryProcessor* qpRef );
 
 #define ALGEBRA_PROTO_EXCLUDE(ALGNO,ALGNAME,ALGTYPE)
+
+#define ALGEBRA_PROTO_DYNAMIC(ALGNO,ALGNAME,ALGTYPE)
 
 /*
 These preprocessor macros allow to easily define all available algebras.

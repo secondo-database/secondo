@@ -17,24 +17,20 @@ OBJECTS=\
 	NestedList.$(OBJEXT)
 
 .PHONY: all
-all: $(OBJECTS) ../../include/CTable.h
+all: $(OBJECTS)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-../../include/CTable.h: ../ListsAndTables/CTable.h ../ListsAndTables/CTable.cpp
-	$(CP) ../ListsAndTables/CTable.h ../../include
-	$(CP) ../ListsAndTables/CTable.cpp ../../include
-
-NestedList.$(OBJEXT): NestedList.cpp ../../include/NestedList.h NLParser.h
+NestedList.$(OBJEXT): NestedList.cpp $(INCLUDEDIR)/NestedList.h NLParser.h
 	$(CC) -c -o NestedList.$(OBJEXT) NestedList.cpp $(CCFLAGS)
 
-NLParser.$(OBJEXT):	NLParser.cpp NLParser.h NLScanner.h ../../include/NestedList.h
+NLParser.$(OBJEXT):	NLParser.cpp NLParser.h NLScanner.h $(INCLUDEDIR)/NestedList.h
 	$(CC) -c -o NLParser.$(OBJEXT) NLParser.cpp $(CCFLAGS)
 
-NLParser.tab.$(OBJEXT):	NLParser.tab.cpp NLParser.h ../../include/NestedList.h
+NLParser.tab.$(OBJEXT):	NLParser.tab.cpp NLParser.h $(INCLUDEDIR)/NestedList.h
 	$(CC) -DYYDEBUG -c -o NLParser.tab.$(OBJEXT) NLParser.tab.cpp $(CCFLAGS)
 
-NLParser.tab.cpp NLParser.tab.hpp:	NLParser.y
+NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
 	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
 	sed \
 	   -e "/^int yyparse (void[ *]*);$$/d" \
@@ -52,14 +48,16 @@ NLParser.tab.cpp NLParser.tab.hpp:	NLParser.y
 	   < NLParser.tab.h > NLParser.tab.hpp
 	$(RM) NLParser.tab.h
 
-NLScanner.$(OBJEXT):	NLScanner.cpp NLScanner.h
+NLScanner.$(OBJEXT): NLScanner.cpp NLScanner.h
 	$(CC) -c -o NLScanner.$(OBJEXT) NLScanner.cpp $(CCFLAGS)
 
-NLLex.$(OBJEXT):	NLLex.cpp NLScanner.h NLParser.h NLParser.tab.hpp
+NLLex.$(OBJEXT): NLLex.cpp $(INCLUDEDIR)/NestedList.h NLScanner.h NLParser.h NLParser.tab.hpp
 	$(CC) $(CCFLAGS) -c -o NLLex.$(OBJEXT) NLLex.cpp
 
-NLLex.cpp:	NLLex.l ../../include/NestedList.h NLParser.tab.hpp
+NLLex.cpp: NLLex.l
 	$(LEX) -+ -Pnl -oNLLex.cpp NLLex.l
+
+include ../../include.dep
 
 .PHONY: clean
 clean:

@@ -12,9 +12,7 @@ include ../makefile.$(platform)
 INCFILES=\
 	../include/AlgebraManager.h \
 	../include/Algebra.h \
-	../include/NestedList.h \
-	../include/CTable.h \
-	../include/CTable.cpp
+	../include/NestedList.h
 
 OBJECTS=\
 	QueryProcessor.$(OBJEXT) \
@@ -28,21 +26,24 @@ all: $(OBJECTS)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-QueryProcessor.$(OBJEXT): QueryProcessor.cpp $(INCFILES)
+QueryProcessor.$(OBJEXT): QueryProcessor.cpp $(INCLUDEDIR)/CTable.h $(INCLUDEDIR)/NameIndex.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/QueryProcessor.h $(INCLUDEDIR)/AlgebraManager.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoSystem.h
 	$(CC) -c -o QueryProcessor.$(OBJEXT) QueryProcessor.cpp $(CCFLAGS)
 
-SecondoCatalog.$(OBJEXT): SecondoCatalog.cpp $(INCFILES)
+SecondoCatalog.$(OBJEXT): SecondoCatalog.cpp $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoSystem.h
 	$(CC) -c -o SecondoCatalog.$(OBJEXT) SecondoCatalog.cpp $(CCFLAGS)
 
-SecondoSystem.$(OBJEXT): SecondoSystem.cpp $(INCFILES)
+SecondoSystem.$(OBJEXT): SecondoSystem.cpp $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/QueryProcessor.h
 	$(CC) -c -o SecondoSystem.$(OBJEXT) SecondoSystem.cpp $(CCFLAGS)
 
-SecondoInterface.$(OBJEXT): SecondoInterface.cpp $(INCFILES)
+SecondoInterface.$(OBJEXT): SecondoInterface.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/QueryProcessor.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/SecParser.h
 	$(CC) -c -o SecondoInterface.$(OBJEXT) SecondoInterface.cpp $(CCFLAGS)
 	$(CP) SecondoInterface.$(OBJEXT) ../lib/SecondoInterface.$(OBJEXT)
 
-SecondoInterfaceGeneral.$(OBJEXT): SecondoInterfaceGeneral.cpp $(INCFILES)
+SecondoInterfaceGeneral.$(OBJEXT): SecondoInterfaceGeneral.cpp $(INCLUDEDIR)/SecondoInterface.h
 	$(CC) -c -o SecondoInterfaceGeneral.$(OBJEXT) SecondoInterfaceGeneral.cpp $(CCFLAGS)
+	$(CP) SecondoInterfaceGeneral.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT)
+
+include ../include.dep
 
 .PHONY: clean
 clean:

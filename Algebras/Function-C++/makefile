@@ -12,13 +12,9 @@ include ../../makefile.$(platform)
 # --- List of all needed header files (including indirect dependencies)
 
 INCFILES=\
-	../../include/Algebra.h \
-	../../include/AlgebraManager.h \
-	../../include/NestedList.h \
-	../../include/CTable.h \
-	../../include/CTable.cpp \
-	../../include/QueryProcessor.h \
-	../../include/SecondoCatalog.h
+	$(INCLUDEDIR)/Algebra.h \
+	$(INCLUDEDIR)/NestedList.h \
+	$(INCLUDEDIR)/QueryProcessor.h
 
 LIBNAME=libfunctionalgebra
 MODNAME=FunctionAlgebra
@@ -27,7 +23,9 @@ OBJECTS=\
 	$(MODNAME).$(OBJEXT)
 
 .PHONY: all
-all: $(LIBNAME).$(LIBEXT)
+all: $(OBJECTS)
+
+buildlibs: ../../lib/$(LIBNAME).$(LIBEXT)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
@@ -36,29 +34,28 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 # ... Windows needs special treatment when creating DLLs
 ifeq ($(shared),yes)
 ifeq ($(platform),win32)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBNAME).$(LIBEXT).a
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,../../lib/$(LIBNAME).$(LIBEXT).a
 endif
 endif
 
-$(LIBNAME).$(LIBEXT): $(OBJECTS)
+../../lib/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(DEFAULTLIB)
-	$(CP) $(LIBNAME).$(LIBEXT) ../../lib/$(LIBNAME).$(LIBEXT)
+	$(LD) $(LDFLAGS) -o ../../lib/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(LIBDIR) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) $(LIBNAME).$(LIBEXT) ../../bin/$(LIBNAME).$(LIBEXT)
-	$(CP) $(LIBNAME).$(LIBEXT).a ../../lib/$(LIBNAME).$(LIBEXT).a
+	$(CP) ../../lib/$(LIBNAME).$(LIBEXT) ../../bin/$(LIBNAME).$(LIBEXT)
 endif
 else
 # ... as static library
-	$(AR) -r $(LIBNAME).$(LIBEXT) $(OBJECTS)
-	$(CP) $(LIBNAME).$(LIBEXT) ../../lib/$(LIBNAME).$(LIBEXT)
+	$(AR) -r ../../lib/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 endif
 
 # --- Function Algebra C++ library modules ---
 
 $(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
 	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
+
+include ../../include.dep
 
 .PHONY: clean
 clean:

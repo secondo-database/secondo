@@ -205,7 +205,8 @@ variables is described in the introduction of procedure ~annotate~.
 */ 
 
 QueryProcessor::QueryProcessor( NestedList* newNestedList, AlgebraManager* newAlgebraManager )
-  : nl( newNestedList ), algebraManager( newAlgebraManager )
+  : nl( newNestedList ), algebraManager( newAlgebraManager ),
+    testMode( false ), debugMode( false ), traceMode( false )
 {
   values.resize( MAXVALUES );
   models.resize( MAXVALUES );
@@ -651,6 +652,12 @@ expression have defined values.
   valueno = 0;
   functionno = 0;
   list = Annotate( level, expr, varnames, vartable, defined, nl->TheEmptyList() );
+  if ( debugMode )
+  {
+    cout << endl << "*** AnnotateX Begin ***" << endl;
+    nl->WriteListExpr( list );
+    cout << endl << "*** AnnotateX End ***" << endl;
+  }
   return (list);
 }
 
@@ -935,7 +942,6 @@ function index.
   string name, typeName; 
   bool definedValue, hasNamedType, correct, newOperator;
   Word value, model;
-  bool traceMode = false;
 
   errorPos = 0;
   errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
@@ -1236,7 +1242,7 @@ function index.
       lastType = typeList;
  
       while (!nl->IsEmpty( rest ))
-     {
+      {
         if ( newOperator )
         { /* current list of arg types to be used */
           pair = Annotate( level, nl->First( rest ), varnames, vartable, defined, typeList );
@@ -1478,7 +1484,6 @@ arguments preceding this function argument in an operator application.
   string name, name2;
   ListExpr annexpr, list, paramtype;
   int alId, opId, localfunctionno;
-  bool traceMode = false;
 
   localfunctionno = functionno;
   if ( traceMode )
@@ -1600,7 +1605,16 @@ QueryProcessor::SubtreeX( const AlgebraLevel level,
   {
     argVectors[i] = (ArgVectorPointer) new ArgVector;
   }
-  return (Subtree( level, expr ));
+  OpTree resultTree = Subtree( level, expr );
+  if ( debugMode )
+  {
+    cout << endl << "*** SubtreeX Begin ***" << endl;
+    ListExpr treeList = ListOfTree( resultTree );
+    nl->WriteListExpr( treeList );
+    nl->Destroy( treeList );
+    cout << endl << "*** SubtreeX End ***" << endl;
+  }
+  return (resultTree);
 }
 
 OpTree
@@ -1610,7 +1624,6 @@ QueryProcessor::Subtree( const AlgebraLevel level,
   OpTree node;
   ListExpr list;
   string typeName;
-  bool traceMode = false;
 
   if ( testMode )
   {
@@ -1856,6 +1869,7 @@ the function in a database object.
     {
       correct = false;
       evaluable = false;
+      isFunction = false;
     }
     else
     {
@@ -1866,13 +1880,14 @@ the function in a database object.
       {
         EvalModel( tree, resultModel );
       }
-      isFunction = tree->u.op.isFun;
+      isFunction = (tree->nodetype == Operator) ? tree->u.op.isFun : false;
     }
   }
   else
   {
     correct = false;
     evaluable = false;
+    isFunction = false;
   }
 }
 
@@ -2221,5 +2236,25 @@ Returns the type expression of the node ~s~ of the operator tree.
 */
   OpTree tree = (OpTree) s;
   return (tree->typeExpr);
+}
+
+void
+QueryProcessor::SetDebugLevel( const int level )
+{
+  if ( level <= 0 )
+  {
+    debugMode = false;
+    traceMode = false;
+  }
+  else if ( level == 1 )
+  {
+    debugMode = true;
+    traceMode = false;
+  }
+  else
+  {
+    debugMode = true;
+    traceMode = true;
+  }
 }
 

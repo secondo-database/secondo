@@ -1095,11 +1095,11 @@ NestedList::StringAtom( const string& value )
 ListExpr
 NestedList::SymbolAtom( const string& value )
 {
-  assert( value.length() <= STRINGSIZE );
+//  assert( value.length() <= 3*STRINGSIZE );
   Cardinal newNode       = nodeTable.EmptySlot();
   NodeRecord& newNodeRef = nodeTable[newNode];
   newNodeRef.nodeType    = SymbolType;
-  newNodeRef.s.strLength = ((value.length() <= STRINGSIZE) ? value.length() : STRINGSIZE);
+  newNodeRef.s.strLength = ((value.length() <= 3*STRINGSIZE) ? value.length() : 3*STRINGSIZE);
 
   if ( value.length() <= STRINGSIZE )
   {

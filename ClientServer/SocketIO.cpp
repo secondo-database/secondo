@@ -1,8 +1,9 @@
 /*
-
 1 SocketIO
 
 February 2002 Ulrich Telle
+
+June 2002 Ulrich Telle Corrected error in ~SocketBuffer::underflow~
 
 1.1 Overview
 
@@ -119,7 +120,7 @@ SocketBuffer::underflow()
     return ((unsigned char) *gptr());
   }
   int rlen = socketHandle->Read( inBuffer, 1, bufferSize );
-  if ( rlen == 0 )
+  if ( rlen <= 0 )
   {
     return (EOF);
   }

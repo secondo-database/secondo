@@ -104,11 +104,13 @@ SecondoListener::Execute()
           int pidServer;
           string pgmArgs = string( "\"" ) + parmFile + "\""; 
           if ( !ProcessFactory::SpawnProcess( server, pgmArgs,
-                                              pidServer, false, client ) )
+                                              pidServer, true, client ) )
           {
             // --- Start of server failed
             iostream& ss = client->GetSocketStream();
-            ss << "<ERROR> -1 Server not available. Try again later." << endl;
+            ss << "<SecondoError>" << endl
+               << "SECONDO-0002: Server not available. Try again later." << endl
+               << "</SecondoError>" << endl;
             client->Close();
             delete client;
             LogMessage( "Start of client server failed" );
@@ -119,7 +121,9 @@ SecondoListener::Execute()
         {
           // --- Reject client
           iostream& ss = client->GetSocketStream();
-          ss << "<ERROR> -2 Connection rejected." << endl;
+          ss << "<SecondoError>" << endl
+             << "SECONDO-0001: Connection rejected." << endl
+             << "</SecondoError>" << endl;
           client->Close();
           delete client;
           string errmsg = string( "Client '" ) + client->GetPeerAddress() + "' not allowed.";

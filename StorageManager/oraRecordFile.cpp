@@ -6,17 +6,16 @@ April 2002 Ulrich Telle
 
 */
 
-using namespace std;
-using namespace OCICPP;
-
 #include <string>
 #include <algorithm>
 #include <cctype>
 #include <errno.h>
+using namespace std;
 
 #include "SecondoSMI.h"
 #include "SmiORA.h"
 #include "SmiCodes.h"
+using namespace OCICPP;
 
 /* --- Implementation of class SmiRecordFile --- */
 

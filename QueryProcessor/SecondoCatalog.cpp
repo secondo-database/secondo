@@ -164,6 +164,7 @@ Precondition: dbState = dbOpen.
       typeExprString.assign( typeBuffer, exprSize );
       delete []typeBuffer;
       nl->ReadFromString( typeExprString, typeExpr ); 
+      typeExpr = nl->First( typeExpr );
       if ( typesList == nl->TheEmptyList() )
       {
         typesList = nl->Cons(
@@ -192,6 +193,7 @@ Precondition: dbState = dbOpen.
          tPos->second.state == EntryUpdate )
     {
       nl->ReadFromString( tPos->second.typeExpr, typeExpr ); 
+      typeExpr = nl->First( typeExpr );
       if ( typesList == nl->TheEmptyList() )
       {
         typesList = nl->Cons(
@@ -246,7 +248,7 @@ Precondition: dbState = dbOpen.
       tPos->second.state = EntryUpdate;
       LookUpTypeExpr( typeExpr, name,
                       tPos->second.algebraId, tPos->second.typeId );
-      nl->WriteToString( tPos->second.typeExpr, typeExpr );
+      nl->WriteToString( tPos->second.typeExpr, nl->OneElemList( typeExpr ) );
       ok = true;
     }
   }
@@ -483,6 +485,7 @@ Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
     if ( tPos->second.state != EntryDelete )
     {
       nl->ReadFromString( tPos->second.typeExpr, typeExpr ); 
+      typeExpr = nl->First( typeExpr );
     }
   }
   else

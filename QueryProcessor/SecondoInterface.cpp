@@ -28,6 +28,9 @@ April 2002 Ulrich Telle Port to C++
 
 using namespace std;
 
+#include <iostream>
+#include <fstream>
+
 #include "SecondoInterface.h"
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
@@ -59,7 +62,7 @@ SecondoInterface::~SecondoInterface()
 bool
 SecondoInterface::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
-                              string& parmFile )
+                              string& parmFile, const bool multiUser )
 {
   bool ok = false;
   cout << "Checking configuration ..." << endl;
@@ -139,7 +142,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   {
     // --- Check storage management interface
     cout << "Initializing storage management interface ... ";
-    if ( SmiEnvironment::StartUp( SmiEnvironment::SingleUser, parmFile, cout ) )
+    if ( SmiEnvironment::StartUp( (multiUser) ? SmiEnvironment::MultiUser
+                                              : SmiEnvironment::SingleUser,
+                                  parmFile, cout ) )
     {
       cout << "completed." << endl;
       ok = true;
@@ -217,12 +222,6 @@ SecondoInterface::Secondo( const string& commandText,
                            string& errorMessage,
                            const string& resultFileName /* = "SecondoResult" */ )
 {
-cout << "Interface Secondo Entry" << endl;
-cout << "commandText  : " << commandText << endl;
-cout << "commandLE    : " << commandLE << endl;
-cout << "commandLevel : " << commandLevel << endl;
-cout << "commandAsText: " << commandAsText << endl;
-cout << "resultAsText : " << resultAsText << endl;
 /*
 ~Secondo~ reads a command and executes it; it possibly returns a result.
 The command is one of a set of SECONDO commands. 
@@ -240,7 +239,11 @@ If value 0 is returned, the command was executed without error.
   Word result, word, model;
   OpTree tree;
   int length;
-  bool correct, evaluable, defined, isFunction, hasNamedType;
+  bool correct      = false;
+  bool evaluable    = false;
+  bool defined      = false;
+  bool isFunction   = false;
+  bool hasNamedType = false;
   int message;                /* error code from called procedures */ 
   string listCommand;         /* buffer for command in list form */
   AlgebraLevel level;
@@ -250,6 +253,7 @@ If value 0 is returned, the command was executed without error.
 
   errorMessage = "";
   errorCode    = 0;
+  errorPos     = 0;
   errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   errorInfo    = errorList;
 
@@ -319,13 +323,11 @@ If value 0 is returned, the command was executed without error.
       return;
     }
   } // switch
-cout << "errorCode=" << errorCode << endl;
   if ( errorCode != 0 )
   {
     return;
   }
   length = nl->ListLength( list );
-cout << "length=" << length << endl;
   if ( length > 1 )
   {
     first = nl->First( list ); 
@@ -492,8 +494,8 @@ cout << "length=" << length << endl;
         }
         else
         {
-          dbName = nl->SymbolValue( nl->Third( list ) ); 
-          filename = nl->SymbolValue( nl->Fifth( list ) ); 
+          dbName = nl->SymbolValue( nl->Third( list ) );
+          filename = nl->SymbolValue( nl->Fifth( list ) );
           message = SecondoSystem::GetInstance()->RestoreDatabase( dbName, filename, errorInfo );
           switch (message)
           {
@@ -983,3 +985,10 @@ SecondoInterface::FinishCommand( int& errorCode )
     }
   }
 }
+
+void
+SecondoInterface::SetDebugLevel( const int level )
+{
+  SecondoSystem::GetQueryProcessor()->SetDebugLevel( level );
+}
+

@@ -26,7 +26,7 @@ ORAOBJECTS=\
 	oraRecord.$(OBJEXT) \
 	oraEnvironment.$(OBJEXT)
 
-SMIHDR = SmiORA.h ../include/SecondoConfig.h ../include/SecondoSMI.h ../include/SmiCodes.h
+SMIHDR = $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/SmiCodes.h $(INCLUDEDIR)/Profiles.h
 ORASMIHDR = SmiORA.h $(SMIHDR)
 BDBSMIHDR = SmiBDB.h $(SMIHDR)
 
@@ -87,13 +87,13 @@ endif
 
 # --- Storage Management Interface modules ---
 
-smiEnvironment.$(OBJEXT): smiEnvironment.cpp $(SMIHDR)
+smiEnvironment.$(OBJEXT): smiEnvironment.cpp $(SMIHDR) $(INCLUDEDIR)/Messenger.h $(INCLUDEDIR)/FileSystem.h
 	$(CC) -c -o smiEnvironment.$(OBJEXT) smiEnvironment.cpp $(CCFLAGS)
 
 smiKey.$(OBJEXT): smiKey.cpp $(SMIHDR)
 	$(CC) -c -o smiKey.$(OBJEXT) smiKey.cpp $(CCFLAGS)
 
-bdbEnvironment.$(OBJEXT): bdbEnvironment.cpp $(BDBSMIHDR)
+bdbEnvironment.$(OBJEXT): bdbEnvironment.cpp $(BDBSMIHDR)  $(INCLUDEDIR)/FileSystem.h
 	$(CC) -c -o bdbEnvironment.$(OBJEXT) bdbEnvironment.cpp $(CCFLAGS)
 
 bdbFile.$(OBJEXT): bdbFile.cpp $(BDBSMIHDR)
@@ -122,6 +122,8 @@ oraKeyedFile.$(OBJEXT): oraKeyedFile.cpp $(ORASMIHDR)
 
 oraRecord.$(OBJEXT): oraRecord.cpp $(ORASMIHDR)
 	$(CC) -c -o oraRecord.$(OBJEXT) oraRecord.cpp $(CCFLAGS)
+
+include ../include.dep
 
 .PHONY: clean
 clean:

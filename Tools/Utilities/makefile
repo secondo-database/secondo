@@ -22,23 +22,25 @@ all: $(OBJECTS)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
-DynamicLibrary.$(OBJEXT): DynamicLibrary.cpp ../../include/DynamicLibrary.h
+DynamicLibrary.$(OBJEXT): DynamicLibrary.cpp $(INCLUDEDIR)/DynamicLibrary.h $(INCLUDEDIR)/SecondoConfig.h
 	$(CC) -c -o DynamicLibrary.$(OBJEXT) DynamicLibrary.cpp $(CCFLAGS)
 
-Profiles.$(OBJEXT): Profiles.cpp ../../include/Profiles.h
+Profiles.$(OBJEXT): Profiles.cpp $(INCLUDEDIR)/Profiles.h
 	$(CC) -c -o Profiles.$(OBJEXT) Profiles.cpp $(CCFLAGS)
 
-FileSystem.$(OBJEXT): FileSystem.cpp ../../include/FileSystem.h
+FileSystem.$(OBJEXT): FileSystem.cpp $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoConfig.h
 	$(CC) -c -o FileSystem.$(OBJEXT) FileSystem.cpp $(CCFLAGS)
 
-Processes.$(OBJEXT): Processes.cpp ../../include/Processes.h ../../include/SocketIO.h ../../include/SecondoConfig.h
+Processes.$(OBJEXT): Processes.cpp $(INCLUDEDIR)/Processes.h
 	$(CC) -c -o Processes.$(OBJEXT) Processes.cpp $(CCFLAGS)
 
-Application.$(OBJEXT): Application.cpp ../../include/Application.h ../../include/SocketIO.h ../../include/SecondoConfig.h
+Application.$(OBJEXT): Application.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/SecondoConfig.h
 	$(CC) -c -o Application.$(OBJEXT) Application.cpp $(CCFLAGS)
 
-Messenger.$(OBJEXT): Messenger.cpp ../../include/Messenger.h
+Messenger.$(OBJEXT): Messenger.cpp $(INCLUDEDIR)/Messenger.h $(INCLUDEDIR)/SocketIO.h
 	$(CC) -c -o Messenger.$(OBJEXT) Messenger.cpp $(CCFLAGS)
+
+include ../../include.dep
 
 .PHONY: clean
 clean:

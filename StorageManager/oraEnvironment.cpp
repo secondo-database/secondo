@@ -6,9 +6,6 @@ April 2002 Ulrich Telle
 
 */
 
-using namespace std;
-using namespace OCICPP;
-
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -17,11 +14,13 @@ using namespace OCICPP;
 #include <map>
 #include <sstream>
 #include <iomanip>
+using namespace std;
 
 #include "SecondoSMI.h"
 #include "SmiORA.h"
 #include "SmiCodes.h"
 #include "Profiles.h"
+using namespace OCICPP;
 
 /* --- Implementation of class SmiEnvironment --- */
 

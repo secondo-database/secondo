@@ -219,6 +219,17 @@ functions and then call ~subtree~ to do the job.
 Represents an operator tree through a list expression. Used for testing.
 
 */
+  void SetDebugLevel( const int level );
+/*
+Sets the debug level for the query processor. The following levels are defined:
+
+  * *0* -- Debug mode is turned off
+
+  * *1* -- Debug mode is turned on (i.e. results of methods ~AnnotateX~ and ~SubtreeX~ are displayed)
+
+  * *2* -- Debug *and* trace mode are turned on
+
+*/
  private:
   void GetVariable( const string& name, NameIndex& varnames,
                     const VarEntryCTable& vartable,
@@ -340,9 +351,11 @@ Construct operator tree recursively for a given annotated ~expr~. See
   NestedList*     nl;
   AlgebraManager* algebraManager;
   
-  int valueno;
-  int functionno;
+  int  valueno;
+  int  functionno;
   bool testMode;
+  bool debugMode;
+  bool traceMode;
 
   vector<Word> values; // MAXVALUE = 200
   vector<Word> models;

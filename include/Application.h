@@ -63,7 +63,7 @@ This module offers the following routines:
                            & GetApplicationName & GetSocket     \\
                            & GetApplicationPath & ShouldAbort   \\
                            & Instance           & GetUser1Flag  \\
-                           &                    & GetUser2Flag  \\
+                           & GetOwnProcessId    & GetUser2Flag  \\
                            &                    & ResetUser1Flag  \\
                            & Sleep              & ResetUser2Flag  \\
 
@@ -134,6 +134,9 @@ returns the name of the executable file.
 /*
 returns the path name where the application was started from.
 
+*/
+  const ProcessId GetOwnProcessId() { return (ownpid); };
+/*
 */
   const ProcessId GetParent() { return (parent); };
 /*
@@ -233,6 +236,7 @@ such circumstances.
   const char** argValues;     // array of arguments
   string       appName;       // name of application
   string       appPath;       // path of application
+  ProcessId    ownpid;        // own process id
   ProcessId    parent;        // parent process id
   bool         hasSocket;     // flag 
   Socket*      clientSocket;  // reference to client socket

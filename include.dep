@@ -1,0 +1,52 @@
+$(INCLUDEDIR)/Algebra.h: $(INCLUDEDIR)/AlgebraManager.h
+
+$(INCLUDEDIR)/AlgebraManager.h: $(INCLUDEDIR)/AlgebraTypes.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/SecondoSMI.h
+
+$(INCLUDEDIR)/AlgebraTypes.h: $(INCLUDEDIR)/NestedList.h
+
+$(INCLUDEDIR)/Application.h: $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SocketIO.h
+
+$(INCLUDEDIR)/Attribute.h: $(INCLUDEDIR)/TupleElement.h
+
+$(INCLUDEDIR)/CTable.h: $(INCLUDEDIR)/CTable.cpp
+
+$(INCLUDEDIR)/DisplayTTY.h: $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/NestedList.h
+
+$(INCLUDEDIR)/DynamicLibrary.h: $(INCLUDEDIR)/SecondoConfig.h
+
+$(INCLUDEDIR)/FileSystem.h: $(INCLUDEDIR)/SecondoConfig.h
+
+$(INCLUDEDIR)/Messenger.h:
+
+$(INCLUDEDIR)/NameIndex.h:
+
+$(INCLUDEDIR)/NestedList.h: $(INCLUDEDIR)/CTable.h
+
+$(INCLUDEDIR)/Processes.h: $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SocketIO.h
+
+$(INCLUDEDIR)/Profiles.h: $(INCLUDEDIR)/SecondoConfig.h
+
+$(INCLUDEDIR)/QueryProcessor.h: $(INCLUDEDIR)/AlgebraManager.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoSystem.h
+
+$(INCLUDEDIR)/SecondoCatalog.h: $(INCLUDEDIR)/AlgebraManager.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/NameIndex.h $(INCLUDEDIR)/SecondoSMI.h
+
+$(INCLUDEDIR)/SecondoConfig.h:
+
+$(INCLUDEDIR)/SecondoInterface.h: $(INCLUDEDIR)/AlgebraTypes.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/SocketIO.h
+
+$(INCLUDEDIR)/SecondoSMI.h: $(INCLUDEDIR)/SecondoConfig.h
+
+$(INCLUDEDIR)/SecondoSystem.h: $(INCLUDEDIR)/AlgebraManager.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/SecondoCatalog.h
+
+$(INCLUDEDIR)/SecParser.h:
+
+$(INCLUDEDIR)/SmiCodes.h:
+
+$(INCLUDEDIR)/SocketIO.h: $(INCLUDEDIR)/SecondoConfig.h
+
+$(INCLUDEDIR)/StandardAttribute.h: $(INCLUDEDIR)/Attribute.h
+
+$(INCLUDEDIR)/StandardTypes.h: $(INCLUDEDIR)/StandardAttribute.h
+
+$(INCLUDEDIR)/TupleElement.h:
+

@@ -23,6 +23,12 @@ makedirs:
 #	$(MAKE) -C Relation-C++
 #	$(MAKE) -C StDb
 
+buildlibs:
+	$(MAKE) -C Standard-C++ buildlibs
+	$(MAKE) -C Function-C++ buildlibs
+#	$(MAKE) -C Relation-C++ buildlibs
+#	$(MAKE) -C StDb         buildlibs
+
 .PHONY: clean
 clean:
 	$(RM) specs

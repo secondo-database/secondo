@@ -225,15 +225,15 @@ such a scan. ~currentFragment~ is a pointer to a (valid) entry in the table
 
 */
 
-const unsigned int STRINGSIZE = 16;
+const unsigned int STRINGSIZE = 32;
 typedef char StringArray [STRINGSIZE];
 struct StringRecord
 {
   StringArray field;
 };
 /*
-Symbols and strings with a maximum size of 48 characters are represented as
-at most 3 chunks of 16 characters. This approach was chosen to minimize memory
+Symbols and strings with a maximum size of $3*STRINGSIZE$ characters are represented as
+at most $3$ chunks of $STRINGSIZE$ characters. This approach was chosen to minimize memory
 consumption.
 
 *NOTE*: The struct type ~StringRecord~ is introduced only because the vector

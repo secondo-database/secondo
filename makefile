@@ -36,8 +36,13 @@ SDBSYSOBJECTS=\
 	Algebras/Management/AlgebraManager.$(OBJEXT) \
 	QueryProcessor/QueryProcessor.$(OBJEXT) \
 	QueryProcessor/SecondoSystem.$(OBJEXT) \
-	QueryProcessor/SecondoCatalog.$(OBJEXT) \
-	QueryProcessor/SecondoInterfaceGeneral.$(OBJEXT)
+	QueryProcessor/SecondoCatalog.$(OBJEXT)
+
+ifeq ($(smitype),ora)
+SMILIB=$(ORASMILIB)
+else
+SMILIB=$(BDBSMILIB)
+endif
 
 .PHONY: all
 all: makedirs buildlibs buildapps
@@ -52,22 +57,23 @@ makedirs:
 	$(MAKE) -C UserInterfaces
 
 buildlibs: lib/libsdbtool.$(LIBEXT) lib/libsdbsys.$(LIBEXT)
+	$(MAKE) -C Algebras buildlibs
 
 # --- Secondo Database Tools library ---
 
 # ... Windows needs special treatment when creating DLLs
 ifeq ($(shared),yes)
 ifeq ($(platform),win32)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbtool.$(LIBEXT).a
+LDOPTTOOL = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbtool.$(LIBEXT).a
 endif
 endif
 
 lib/libsdbtool.$(LIBEXT): makedirs $(TOOLOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o lib/libsdbtool.$(LIBEXT) $(LDOPT) $(TOOLOBJECTS) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o lib/libsdbtool.$(LIBEXT) $(LDOPTTOOL) $(TOOLOBJECTS) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) libsdbtool.$(LIBEXT) bin/libsdbtool.$(LIBEXT)
+	$(CP) lib/libsdbtool.$(LIBEXT) bin/libsdbtool.$(LIBEXT)
 endif
 else
 # ... as static library
@@ -79,16 +85,16 @@ endif
 # ... Windows needs special treatment when creating DLLs
 ifeq ($(shared),yes)
 ifeq ($(platform),win32)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbsys.$(LIBEXT).a
+LDOPTSYS = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbsys.$(LIBEXT).a
 endif
 endif
 
 lib/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o lib/libsdbsys.$(LIBEXT) $(LDOPT) $(SDBSYSOBJECTS) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o lib/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) $(LIBDIR) $(ALGLIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) libsdbtool.$(LIBEXT) bin/libsdbsys.$(LIBEXT)
+	$(CP) lib/libsdbsys.$(LIBEXT) bin/libsdbsys.$(LIBEXT)
 endif
 else
 # ... as static library

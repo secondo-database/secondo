@@ -75,6 +75,9 @@ SecondoInterface::InitErrorMessages()
                                                             // (72 tc)
   errors[73] = "Error at a position within value list for type constructor. ";
                                                             // (73 pos)
+
+  errors[80] = "Secondo protocol error.";
+  errors[81] = "Connection to Secondo server lost.";
 }
 
 /*

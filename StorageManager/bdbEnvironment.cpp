@@ -350,7 +350,6 @@ SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
 bool
 SmiEnvironment::Implementation::InsertIntoCatalog( const SmiCatalogEntry& entry, DbTxn* tid )
 {
-cout << "InsertIntoCatalog: " << entry.fileId << ":" << entry.fileName << endl;
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
