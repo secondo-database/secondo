@@ -428,6 +428,9 @@ ReportTupleStatistics()
   buf << ccTuplesCreated << " tuples created, "
       << ccTuplesDeleted << " tuples deleted, difference is "
       << (ccTuplesCreated - ccTuplesDeleted) << "." << endl;
+      
+  ccTuplesCreated = 0;
+  ccTuplesDeleted = 0;
   return buf.str();
 }
 
@@ -1099,6 +1102,10 @@ The corresponding function of type constructor ~rel~ is called ~DeleteRel~.
 */
 void DeleteRel(Word& w)
 {
+  if(w.addr == 0)
+  {
+    return;
+  }
 
   CcTuple* t;
   CcRel* r;
