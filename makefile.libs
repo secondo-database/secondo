@@ -27,6 +27,7 @@ LIB_SDBUTILS_BASENAMES=\
 	Tools/Utilities/Profiles \
 	Tools/Utilities/UtilFunctions \
 	Tools/Utilities/WinUnix \
+	Tools/Utilities/Base64 \
 
 #libsdbsocket
 LIB_SDBSOCKET_BASENAMES=\
