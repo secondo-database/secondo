@@ -16,7 +16,7 @@ APPLOBJECTS=\
 
 APPLICATIONS=\
 	$(BINDIR)/SecondoTTYCS$(EXEEXT) \
-	$(BINDIR)/SecondoTestBDB
+	$(BINDIR)/TupleTestBDB$(EXEEXT)
 
 TUPLEMANDIR = $(BUILDDIR)/Tools/TupleManager
 
@@ -35,28 +35,28 @@ CCXFLAGS= $(DEFAULTCCFLAGS)
 
 # --- User Interface Applications
 SecondoTestFrame.o: SecondoTestFrame.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/DisplayTTY.h
-		$(CC) -c -o SecondoTestFrame.o SecondoTestFrame.cpp $(CCXFLAGS)
+		$(CC) -c -o $@ SecondoTestFrame.cpp $(CCXFLAGS)
 
 SecondoTTY.o: SecondoTTY.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/DisplayTTY.h
-	$(CC) -c -o SecondoTTY.o SecondoTTY.cpp $(CCXFLAGS)
+	$(CC) -c -o $@ SecondoTTY.cpp $(CCXFLAGS)
 
 DisplayTTY.o: DisplayTTY.cpp $(INCLUDEDIR)/DisplayTTY.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/AlgebraTypes.h
-	$(CC) -c -o DisplayTTY.o DisplayTTY.cpp $(CCXFLAGS)
+	$(CC) -c -o $@ DisplayTTY.cpp $(CCXFLAGS)
 
 # --- Link applications
 
-$(BINDIR)/SecondoTestBDB$(EXEEXT): SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT) SecondoTestFrame.o $(TUPLEMANDIR)/Tuple.o
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTestBDB$(EXEEXT) SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(TUPLEMANDIR)/FLOB.o $(TUPLEMANDIR)/Tuple.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/TupleTestBDB$(EXEEXT): SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT) SecondoTestFrame.o $(TUPLEMANDIR)/Tuple.o
+	$(LD) $(EXEFLAGS) -o $@ SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(TUPLEMANDIR)/FLOB.o $(TUPLEMANDIR)/Tuple.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTTYBDB$(EXEEXT) SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) -o $@ SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTTYORA$(EXEEXT) SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) -o $@ SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTTYCS$(EXEEXT) SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) -o $@ SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 
