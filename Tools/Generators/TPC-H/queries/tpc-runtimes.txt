@@ -1,0 +1,89 @@
+#
+# Computer: Athlon-XP / 256MB-RAM
+#
+
+
+SEC-1: RSS=104, VSZ=218
+
+real    0m41.123s
+user    0m24.664s
+sys     0m1.568s
+
+real    0m41.726s
+user    0m24.544s
+sys     0m1.474s
+
+PG-1: RSS=5, VSZ=10
+
+real    0m18.501s
+user    0m0.001s
+sys     0m0.011s
+
+real    0m18.335s
+user    0m0.001s
+sys     0m0.007s
+
+
+SEC-3: RSS=73, VSZ=186
+
+real    0m25.359s
+user    0m10.334s
+sys     0m0.726s
+
+real    0m35.342s
+user    0m10.630s
+sys     0m0.833s
+
+
+PG-3: RSS=5, VSZ=11
+
+real    0m7.445s
+user    0m0.004s
+sys     0m0.004s
+
+real    0m7.319s
+user    0m0.002s
+sys     0m0.002s
+
+
+SEC-5: RSS=15, VSZ=127
+
+real    0m21.312s
+user    0m4.168s
+sys     0m0.670s
+
+real    0m29.784s
+user    0m4.207s
+sys     0m0.747s
+
+
+PG-5: RSS=7, VSZ=14
+
+real    0m10.073s
+user    0m0.003s
+sys     0m0.002s
+
+real    0m7.410s
+user    0m0.003s
+sys     0m0.005s
+
+
+SEC-10: RSS=19, VSZ=131
+
+real    0m23.657s
+user    0m4.405s
+sys     0m0.716s
+
+real    0m30.095s
+user    0m4.496s
+sys     0m0.782s
+
+PG-10: RSS=5, VSZ=10
+real    0m7.781s
+user    0m0.003s
+sys     0m0.004s
+
+real    0m7.511s
+user    0m0.003s
+sys     0m0.002s
+
