@@ -20,6 +20,7 @@ doc:
 
 .PHONY: all #creates the gui and all know viewers
 all:
+	(cd extern;make all)
 	(cd components;make all)
 	(cd ../Javainterface;make all)
 	(cd viewer;make all)
@@ -32,6 +33,7 @@ all:
 .PHONY: clean # removes the documentation and all .class files
 clean:
 	rm -f  *.class
+	(cd extern; make clean)
 	(cd viewer; make clean)
 	(cd gui; make clean)
 	(cd project; make clean)	

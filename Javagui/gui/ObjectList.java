@@ -11,6 +11,7 @@ import sj.lang.ServerErrorCodes;
 import gui.idmanager.*;
 import java.io.File;
 import javax.swing.event.*;
+import extern.*;
 
 public class ObjectList extends JPanel{
 
@@ -40,6 +41,7 @@ private JFileChooser FileChooser;
 private RenamePanel aRenamePanel;
 
 private ObjectListModel myListModel;
+private ImportManager importmanager = new ImportManager();
 
 private final String DisplayMark ="** ";    // ensure thas Displaymark and NoDisplayMark have the same length
 private final String NoDisplayMark ="   ";
@@ -364,8 +366,8 @@ public void showAll(){
 
 
 
-/** load a new Object from a file into Objectlist 
-  * @return number of loaded Objects 
+/** load a new Object from a file into Objectlist
+  * @return number of loaded Objects
   */
 public int loadObject(){
        int number = 0;
@@ -390,18 +392,12 @@ public int loadObject(){
 
 
 public boolean loadObject(File ObjectFile){
-  ListExpr LE = new ListExpr();
-  if(LE.readFromFile(ObjectFile.getPath())!=0)
+  ListExpr LE = importmanager.importFile(ObjectFile.getPath());
+  if(LE==null)
      return false;
   else{
      SecondoObject SO = new SecondoObject(IDManager.getNextID());
      SO.setName("File :"+ObjectFile.getName());
-     // if a LE is a OBJECT-List then extract the Type and Value */
-     if(LE.listLength()==6){
-        ListExpr Obj = LE.first();
-	if(Obj.atomType()==ListExpr.SYMBOL_ATOM && Obj.symbolValue().equals("OBJECT"))
-	   LE = ListExpr.twoElemList(LE.fourth(),LE.fifth());
-     }
      SO.fromList(LE);
      addEntry(SO);
      return true;
@@ -416,21 +412,33 @@ public boolean saveSelectedObject(){
  int index =Content.getSelectedIndex();
   if (index<0){
       showMessage("no item selected");
-  } 
+  }
   else{
-File CurrentDir = FileChooser.getCurrentDirectory();
-
+       File CurrentDir = FileChooser.getCurrentDirectory();
        FileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
        FileChooser.setSelectedFile(CurrentDir);
        FileChooser.setCurrentDirectory(CurrentDir);
        FileChooser.setMultiSelectionEnabled(false);
        FileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
- 
+
       if (FileChooser.showSaveDialog(ObjectList.this)==JFileChooser.APPROVE_OPTION){
           File F = FileChooser.getSelectedFile();
           String FullFileName=F.getPath();
           SecondoObject SO = (SecondoObject) Objects.get(index);
-          ListExpr LE = SO.toListExpr();
+	  ListExpr LE = SO.toListExpr();
+	  // convert to SecondoObject ready for a restore
+	  if(FullFileName.endsWith("obj") && LE.listLength()==2){
+	      String name = SO.getName().trim();
+	      name.replace(' ','_');
+	      if(name.length()>48)
+	         name = name.substring(0,48);
+	      LE = ListExpr.sixElemList( ListExpr.symbolAtom("OBJECT"),
+	                                 ListExpr.symbolAtom(name),
+	                                 ListExpr.theEmptyList(),
+					 LE.first(),
+					 LE.second(),
+           				 ListExpr.theEmptyList());
+	  }
           saved = LE.writeToFile(FullFileName)==0; 
        }
   }
