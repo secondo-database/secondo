@@ -1366,6 +1366,78 @@ MappingTypeMapUnits( ListExpr args ){
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+16.1.13 Type Mapping Function for the Operstor ~theyear~, ~themonth~,
+~theday~,~thehour~,~theminute~,~thesecond~,~theperiod~
+
+Checks whether the correct argument types are supplied for an operator; if so,
+returns a list expression for the result type, otherwise the symbol
+~typeerror~.
+
+*/
+ListExpr
+MappingTypeMapIntPeriods( ListExpr args ){
+  ListExpr argi;
+  bool correct=true;
+  
+  if (( nl->ListLength(args) < 1 )|| ( nl->ListLength(args) > 6))  
+      return nl->SymbolAtom("typeerror");
+  
+  if ( nl->ListLength(args) >= 1 )
+  {
+      argi = nl->First(args);
+      if (!( nl->IsEqual(argi, "int")) ) correct=false;
+  }
+    
+  if ( nl->ListLength(args) >= 2 )
+  {
+      argi = nl->Second(args);
+      if (!( nl->IsEqual(argi, "int")) ) correct=false;
+  }
+  
+  if ( nl->ListLength(args) >= 3 )
+  {
+      argi = nl->Third(args);
+      if (!( nl->IsEqual(argi, "int")) ) correct=false;
+  }
+    
+  if ( nl->ListLength(args) >= 4 )
+  {
+      argi = nl->Fourth(args);
+      if (!( nl->IsEqual(argi, "int")) ) correct=false;
+  }
+  
+  if ( nl->ListLength(args) >= 5 )
+  {
+      argi = nl->Fifth(args);
+      if (!( nl->IsEqual(argi, "int")) ) correct=false;
+  }
+  
+  if ( nl->ListLength(args) >= 6 )
+  {
+      argi = nl->Sixth(args);
+      if (!( nl->IsEqual(argi, "int")) ) correct=false;
+  }
+  
+  if (correct) return (nl->SymbolAtom( "periods" ));
+    
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr
+MappingTypeMapPeriodsPeriods( ListExpr args ){
+  ListExpr arg1, arg2;
+  
+  if ( nl->ListLength(args) ==2 )
+  {
+      arg1 = nl->First(args);
+      arg2 = nl->Second(args);
+      if (( nl->IsEqual(arg1, "periods")) &&( nl->IsEqual(arg2, "periods"))) 
+	  return (nl->SymbolAtom( "periods" ));
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 16.2 Selection function
@@ -1530,6 +1602,27 @@ TemporalSelectUnits( ListExpr args )
   
     if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" )
 	return (2);	
+  
+    return (-1); // This point should never be reached
+}
+
+/*
+16.2.6 Selection function for int-to-periods operations
+
+Is used for the ~theyear~, ~themonth~, ... operations.
+
+*/
+
+int
+TemporalSelectIntPeriods( ListExpr args )
+{
+    ListExpr arg1 = nl->First( args );
+    
+    int noArg = nl->ListLength(args);
+	    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "int" )
+	return (noArg-1);
+    else return (6);  //for the theperiod operation
   
     return (-1); // This point should never be reached
 }
@@ -2722,6 +2815,45 @@ units_mr (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
+16.3.26 Value mapping functions of operator ~theyear~
+
+(int) ---- (periods)
+
+*/
+
+int theyearfun( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // int --> periods (=range(instant))
+  result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
+  
+  //1.get the input and out put objects
+  CcInt *CcIntyear;
+  int intyear;
+  
+  CcIntyear=((CcInt*)args[0].addr);
+  intyear=CcIntyear->GetIntval();
+  
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  
+  //2.get the timeintervals and add them to the result
+  defrange->StartBulkLoad();
+  Instant inst1, inst2;
+  inst1.SetType(instanttype);
+  inst1.Set(intyear, 1, 1, 0, 0, 0, 0);
+  inst2.SetType(instanttype);
+  inst2.Set(intyear, 12, 31, 23, 59, 59, 999);
+  Interval<Instant> timeInterval(inst1, inst2, true, true);
+  	  
+  defrange->Add( timeInterval ); 
+      
+  defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
+  
+  return (0);
+}
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -2813,6 +2945,15 @@ ValueMapping unitsmap[] =   {  units_mp,
 			     units_mi,
 			     units_mr
 			   };
+
+ValueMapping intperiodsmap[] =   {      theyearfun,
+				    theyearfun,
+				    theyearfun,
+				    theyearfun,
+				    theyearfun,
+				    theyearfun,
+				    theyearfun
+				};
 
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
@@ -3047,6 +3188,14 @@ const string TemporalSpecUnits  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "<text> units( _ )</text--->"
                                 "<text>get the stream of units of the moving value.</text--->"
                                 "<text>units(mpoint1)</text--->"
+                                ") )";
+
+const string TemporalSpecIntPeriods  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+		"( <text>{int} -> periods</text--->"
+                                "<text> theyear( _ )</text--->"
+                                "<text>get the periods value of the year.</text--->"
+                                "<text>theyear(2002)</text--->"
                                 ") )";
 
 /*
@@ -3398,6 +3547,14 @@ Operator units( "units",
                         TemporalSelectUnits,
                         MappingTypeMapUnits);
 
+Operator theyear( "theyear",
+                        TemporalSpecIntPeriods,
+                        7,
+                        intperiodsmap,
+                        temporalnomodelmap,
+                        TemporalSelectIntPeriods,
+                        MappingTypeMapIntPeriods);
+
 /*
 6 Creating the Algebra
 
@@ -3488,6 +3645,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &initial);
     AddOperator( &final);
     AddOperator( &units);
+    AddOperator( &theyear);
   }
   ~TemporalAlgebra() {};
 };
