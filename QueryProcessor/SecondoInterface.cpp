@@ -62,6 +62,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SecParser.h"
 #include "TimeTest.h"
+#include "LogMsg.h"
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -1109,15 +1110,16 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
 
-	   TimeTest::diffReal(); TimeTest::diffCPU();
-	   cerr << "Analyze query ..." << endl;
+	  TimeTest::diffReal(); TimeTest::diffCPU();
+	  cerr << "Analyze query ..." << endl;
 
           SecondoSystem::GetQueryProcessor()->
             Construct( level, nl->Second( list ), correct, evaluable, defined,
                        isFunction, tree, resultType );
 
-	   cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-	   //cerr << nl->reportVectorSizes() << endl;
+           LOGMSG("SI:QueryTime", 
+	     cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+           )
 
           if ( !defined )
           {
@@ -1137,12 +1139,18 @@ If value 0 is returned, the command was executed without error.
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
 
+             LOGMSG("SI:QueryTime", 
 	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+             )
+             LOGMSG("SI:ListMemory",
+	       cerr << nl->reportVectorSizes() << endl;
+             )
+             LOGMSG("SI:RelStatistics",
                cerr << ReportTupleStatistics();
-	       //cerr << nl->reportVectorSizes() << endl;
                //cerr << ReportRelStatistics();
                //cerr << ReportRelITStatistics();
 	       //cerr << ReportTupleAttributesInfoStatistics();
+             )
 
             }
             else if ( isFunction ) // abstraction or function object
@@ -1230,10 +1238,10 @@ If value 0 is returned, the command was executed without error.
     nl->WriteToFile( resultFileName, resultList );
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
- 
-#if NL_DEBUG
-  cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
-#endif 
+
+  LOGMSG( "SI:ResultList",
+    cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
+  )
 
   // copy result into application specific list container.
   if (resultList) {
