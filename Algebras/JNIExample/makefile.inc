@@ -13,18 +13,14 @@ JAVADOC = javadoc
 # set the DOCPATH
 DOCPATH = ./doc
 
-PACKAGES = 
+PACKAGES =
 
 
 FUZZYOBJECT_PATH = $(SECONDO_BUILD_DIR)/Algebras/JNIExample
 
+JAVAINTERFACE_PATH = $(SECONDO_BUILD_DIR)/Javainterface
 
 
-
-
-ifndef JAVAINTERFACE_PATH
-$(error JAVAINTERFACE_PATH not defined)
-endif
 
 CLASSPATH=".:$(JAVAINTERFACE_PATH)"
 
