@@ -1,0 +1,59 @@
+The dblp2secondo Converter
+
+1 What this is
+==============
+
+This set of tools converts the dblp XML database
+into a set of relations which can be restored
+in SECONDO. The dblp database contains a lot of
+information about computer scientific documents
+(like a BibTex Database).
+
+2 The Files
+===========
+
+dblp2secondo.......... main script
+DBLPLex.l............. scanner for dblp.xml
+DBLPParser.y.......... parser for dblp.xml
+DoubleTitle.l......... scanner removing double titles from dblp.xml
+Exclusions............ file with words not to use as keywords
+FilterHTML.l.......... tool converting html-specials
+KeyWordCreator.java... tool extracting keywords from a file
+makefile.............. makefile for compiling and building tools
+progress.cpp.......... tool for progress display
+READ.ME .............. this file
+
+3 Requirements
+==============
+
+You need an installed SECONDO system with properly settings of the system
+variables (SECONDO_PLATFORM and BERKELEY_DB_DIR).
+
+You can download the newest version of the dblp database from
+        http://dblp.uni-trier.de/xml/
+You need only the file dblp.xml.
+
+If you work with linux, you have to make the dblp2secondo script
+executable :    chmod +x dblp2secondo
+
+4 How to use the script
+=======================
+
+To convert the database just enter:
+   dblp2secondo  [<dir>dblp.xml]
+Without any argument specification, the script uses ./dblp.xml as default.
+
+The execution of the script will take a few minutes.
+After that, you will find some new files in the directory of the script.
+
+Move the following files into your $SECONDO_BUILD_DIR/bin directory:
+   authors authordoc documents keyword
+The files can be restored via
+     restore xxx from xxx;
+(Don't forget to open a database before.)
+
+5 Cleanup
+=========
+
+To remove all created files in the dblp2secondo directory just enter
+   dblp2secondo clean
