@@ -402,7 +402,27 @@ comparison function between two tuples.
 class LexicographicalTupleCompare : public TupleCompare
 {
   public:
-    bool operator()(const Tuple* aConst, const Tuple* bConst) const;
+    inline bool operator()(const Tuple* aConst, const Tuple* bConst) const
+    {
+      Tuple* a = (Tuple*)aConst;
+      Tuple* b = (Tuple*)bConst;
+
+      for(int i = 0; i < a->GetNoAttributes(); i++)
+      {
+        if(((Attribute*)a->GetAttribute(i))->Compare(((Attribute*)b->GetAttribute(i))) < 0)
+        {
+          return true;
+        }
+        else
+        {
+          if(((Attribute*)a->GetAttribute(i))->Compare(((Attribute*)b->GetAttribute(i))) > 0)
+          {
+            return false;
+          }
+        }
+      }
+      return false;
+    }
 };
 
 /*
@@ -424,7 +444,32 @@ class TupleCompareBy : public TupleCompare
       spec( spec )
       {}
 
-    bool operator()(const Tuple* aConst, const Tuple* bConst) const;
+    inline bool operator()(const Tuple* aConst, const Tuple* bConst) const
+    {
+      Tuple* a = (Tuple*)aConst;
+      Tuple* b = (Tuple*)bConst;
+
+      SortOrderSpecification::const_iterator iter = spec.begin();
+      while(iter != spec.end())
+      {
+        if(((Attribute*)a->GetAttribute(iter->first - 1))->
+          Compare(((Attribute*)b->GetAttribute(iter->first - 1))) < 0)
+        {
+          return iter->second;
+        }
+        else
+        {
+          if(((Attribute*)a->GetAttribute(iter->first - 1))->
+            Compare(((Attribute*)b->GetAttribute(iter->first - 1))) > 0)
+          {
+            return !(iter->second);
+          }
+        }
+        iter++;
+      }
+      return false;
+    }
+
   private:
     SortOrderSpecification spec;
 };

@@ -750,7 +750,6 @@ struct PrivateTupleBuffer
   PrivateTupleBuffer( const size_t maxMemorySize ):
     MAX_MEMORY_SIZE( maxMemorySize ),
     diskBuffer( 0 ),
-    MAX_TUPLES_IN_MEMORY( 0 ),
     inMemory( true ),
     totalSize( 0 )
     {}
@@ -774,7 +773,7 @@ The destructor.
 */
   const size_t MAX_MEMORY_SIZE;
 /*
-The maximum size of the memory in bytes. 2 MBytes being used.
+The maximum size of the memory in bytes. 32 MBytes being used.
 
 */
   vector<Tuple*> memoryBuffer;
@@ -785,11 +784,6 @@ The memory buffer which is a ~vector~ from STL.
   Relation* diskBuffer;
 /*
 The buffer stored on disk.
-
-*/
-  size_t MAX_TUPLES_IN_MEMORY;
-/*
-The number of tuples that should fit in memory.
 
 */
   bool inMemory;
@@ -849,6 +843,7 @@ void TupleBuffer::Clear()
     for( size_t i = 0; i < privateTupleBuffer->memoryBuffer.size(); i++ )
       delete privateTupleBuffer->memoryBuffer[i];
     privateTupleBuffer->memoryBuffer.clear();
+    privateTupleBuffer->totalSize = 0;
   }
   else
   {
@@ -859,15 +854,9 @@ void TupleBuffer::Clear()
 void TupleBuffer::AppendTuple( Tuple *t )
 {
   t->SetFree( true );
-  if( privateTupleBuffer->MAX_TUPLES_IN_MEMORY == 0 )
-  // first tuple being inserted in the buffer.
-  {
-    privateTupleBuffer->MAX_TUPLES_IN_MEMORY = privateTupleBuffer->MAX_MEMORY_SIZE / t->GetMemorySize();
-  }
-
   if( privateTupleBuffer->inMemory )
   {
-    if( privateTupleBuffer->memoryBuffer.size() < privateTupleBuffer->MAX_TUPLES_IN_MEMORY )
+    if( privateTupleBuffer->totalSize + t->GetTotalSize() <= privateTupleBuffer->MAX_MEMORY_SIZE )
     {
       t->SetFree( false );
       privateTupleBuffer->memoryBuffer.push_back( t );
