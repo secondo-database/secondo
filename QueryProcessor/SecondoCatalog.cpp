@@ -274,7 +274,9 @@ int
 SecondoCatalog::DeleteType( const string& typeName )
 {
 /*
-Deletes a type with name ~typeName~ in the database. This is only possible if the type with name ~typeName~ is not used by an object. Returns error 1 if type is used by an object, error 2, if type name is not known.
+Deletes a type with name ~typeName~ in the database. This is only possible if the type 
+with name ~typeName~ is not used by an object. Returns error 1 if type is used by an 
+object, error 2, if type name is not known.
 
 Precondition: dbState = dbOpen.
 
