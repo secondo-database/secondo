@@ -267,10 +267,7 @@ public class HoeseViewer extends SecondoViewer {
 
   /** shows a messagebox */
   public void showMessage(String message){
-    if (VC==null)
-      System.out.println(message);
-    else
-      MessageControl.showMessageDialog(VC.getMainFrame(),message);
+     MessageBox.showMessage(message);
   } 
 
 
@@ -1632,6 +1629,7 @@ public boolean canDisplay(SecondoObject o){
   }
     }
 }
+
 
 
 
