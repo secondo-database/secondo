@@ -1093,6 +1093,9 @@ If value 0 is returned, the command was executed without error.
 		Counter::resetAll();
   }
 
+  // Creation and deletion of Objects
+  LOGMSG( "SI:RelStatistics", Tuple::ShowTupleStatistics( true, cout ); )
+	LOGMSG( "SI:RelStatistics", ShowStandardTypesStatistics( true, cout ); )
 
   LOGMSG( "SI:ResultList",
     cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
@@ -1181,7 +1184,7 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 	{
 		ErrorReporter::GetErrorMessage(errorMessage); 
 		ErrorReporter::Reset();
-		errorCode = ERR_IN_QUERY_EXPR; 
+		return ERR_IN_QUERY_EXPR; 
 	}
 
 	if ( evaluable )
@@ -1200,8 +1203,6 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 			 cerr << nl.ReportTableSizes() << endl;
 		 }
 
-		 LOGMSG( "SI:Statistics", Tuple::ShowTupleStatistics( true, cout ); )
-		 LOGMSG( "SI:Statistics", ShowStandardTypesStatistics( true, cout ); )
 	}
 	else if ( isFunction ) // abstraction or function object
 	{
@@ -1659,11 +1660,9 @@ SecondoInterface::FinishCommand( SI_Error& errorCode )
     }
     else
     {
-		  cerr << "Error: " << GetErrorMessage(errorCode) 
-			     << "occured! Aborting transaction ..." << endl;
-					 
       if ( !SecondoSystem::AbortTransaction() )
       {
+				cerr << "Error: " << GetErrorMessage(errorCode) << endl;					
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
       }
     }
