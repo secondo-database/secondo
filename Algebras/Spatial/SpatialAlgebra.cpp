@@ -97,6 +97,11 @@ Point::Point( const Point& p ) :
 Point::~Point()
 {}
 
+const bool Point::IsDefined() const
+{
+  return defined;
+}
+
 const Coord& Point::GetX() const
 {
   assert( IsDefined() );
@@ -109,11 +114,6 @@ const Coord& Point::GetY() const
   return y;
 }
 
-const bool Point::IsDefined() const
-{
-  return defined;
-}
-
 Point& Point::operator=( const Point& p )
 {
   //assert( p.IsDefined() );
@@ -122,11 +122,6 @@ Point& Point::operator=( const Point& p )
   y = p.GetY();
 
   return *this;
-}
-
-void Point::SetDefined( const bool d )
-{
-  defined = d;
 }
 
 int Point::operator==( const Point& p ) const
@@ -190,7 +185,99 @@ ostream& operator<<( ostream& o, const Point& p )
 
   return o;
 }
+/*
+  ************************************************************************  
+  The following 10 functions are used for porting point to Tuple.
+  ************************************************************************  
+  
+*/
+bool Point::IsDefined()
+{
+  return defined;
+}
 
+void Point::SetDefined( bool Defined )
+{
+  defined = Defined;
+}
+
+void*  Point::GetValue()
+{ 
+    return ((void *)-1);
+    //the function getvalue doesn't make sense in this case, so we just return -1.
+}
+
+size_t   Point::HashValue()
+{
+    if(!defined)  return (0);
+    unsigned long h;
+    Coord x=GetX();
+    Coord y=GetY();
+    
+    h=(unsigned long)
+        (5*(x.IsInteger()? x.IntValue():x.Value())
+          + (y.IsInteger()? y.IntValue():y.Value()));
+    return size_t(h);
+}
+
+void  Point::CopyFrom(StandardAttribute* right)
+{
+  Point * p = (Point*)right;
+  defined = p->IsDefined();
+  if (defined)
+  {
+      Set( true, p->GetX(), p->GetY());
+  }
+}
+
+int   Point::Compare(Attribute * arg)
+{
+    int res=0;
+    Point* p = (Point* )(arg);
+    if ( !p ) return (-2);
+    
+    if (!IsDefined() && !(arg->IsDefined()))  res=0;
+    else if (!IsDefined())  res=-1;
+    else  if (!(arg->IsDefined())) res=1;
+    else
+    {
+	if (*this > *p) res=1;
+	else if (*this < *p) res=-1;
+	else res=0;
+    }
+    return (res);
+}
+
+int   Point::Adjacent(Attribute * arg)
+{
+    return 0;
+    //for points which takes double values, we can not decides whether they are
+    //adjacent or not.
+}
+
+int  Point::Sizeof() 
+{
+    return sizeof(Point);
+}
+
+Point*  Point::Clone()
+{
+    cout<<"***********************!"<<endl;
+    return (new Point( *this));
+}
+
+ostream& Point::Print( ostream &os )
+{
+    if (defined)     
+	return (os << GetX() << ","<<GetY());
+    else    return (os << "undefined");
+}
+/*
+  ***************************************************
+   End of the definition of the virtual functions.
+  ***************************************************
+  
+*/
 const bool Point::Inside( const Points& ps ) const
 {
   assert( IsDefined() && ps.IsOrdered() );
@@ -502,6 +589,7 @@ ClosePoint( Word& w )
 static Word
 ClonePoint( const Word& w )
 {
+  cout<<"******§§§§§§§§******!"<<endl;
   assert( ((Point *)w.addr)->IsDefined() );
   Point *p = new Point( *((Point *)w.addr) );
   return SetWord( p );
@@ -1004,6 +1092,134 @@ const bool Points::Intersects( const Points& ps ) const
   assert( false );
   return false;
 }
+
+/*
+  ************************************************************************  
+  The following 10 functions are used for porting points to Tuple.
+  ************************************************************************  
+  
+*/
+bool Points::IsDefined()
+{
+  return true;
+}
+
+void Points::SetDefined( bool Defined )
+{
+    //defined = Defined;
+    //since every points is defined, so the function does nothing.
+}
+
+void*  Points::GetValue()
+{ 
+    return ((void *)-1);
+    //the function getvalue doesn't make sense in this case, so we just return -1.
+}
+
+size_t   Points::HashValue()
+{
+    if(IsEmpty())  return (0);
+    unsigned long h=0;
+    
+    Point p;
+    Coord x;
+    Coord y;
+    
+    for( int i = 0; ((i < Size())&&(i<5)); i++ )
+    {
+	Get( i, p );
+	x=p.GetX();
+	y=p.GetY();
+	
+	h=h+(unsigned long)
+	  (5*(x.IsInteger()? x.IntValue():x.Value())
+	   + (y.IsInteger()? y.IntValue():y.Value()));
+    }
+    return size_t(h);
+}
+
+void  Points::CopyFrom(StandardAttribute* right)
+{
+    Points * ps = (Points*)right;
+    ordered = true;
+    assert( ps->IsOrdered());
+
+    for( int i = 0; i < ps->Size(); i++ )
+    {
+	Point p;
+	ps->Get( i, p );
+	points->Put( i, p );
+    }
+}
+
+int   Points::Compare(Attribute * arg)
+{
+    int res=0;
+    Points* ps = (Points* )(arg);
+    if ( !ps ) return (-2);
+    
+    if (IsEmpty() && (ps->IsEmpty()))  res=0;
+    else if (IsEmpty())  res=-1;
+    else  if ((ps->IsEmpty())) res=1;
+    else
+    {
+	if (Size() > ps->Size()) res=1;
+	else if (Size() < ps->Size()) res=-1;
+	else  //their sizes are equal
+	{
+	    bool decided;
+	    for( int i = 0; ((i < Size())&&(!decided)); i++ )
+	    {
+		Point p1, p2;
+		Get( i, p1);
+		ps->Get( i, p2 );
+		
+		if (p1 > p2) {res=1;decided=true;}
+		else if (p1 < p2) {res=-1;decided=true;}
+	    }
+	    if (!decided) res=0;
+	}
+    }
+    return (res);
+}
+
+int   Points::Adjacent(Attribute * arg)
+{
+    return 0;
+    //for points which takes double values, we can not decides whether they are
+    //adjacent or not.
+}
+
+int  Points::Sizeof() 
+{
+    return sizeof(Points);
+}
+
+Points*  Points::Clone()
+{
+    cout<<"***********************!"<<endl;
+    return (new Points(SecondoSystem::GetLobFile(),  *this));
+}
+
+ostream& Points::Print( ostream &os )
+{
+    os << "(" << GetPointsRecordId() << ") <";
+    for( int i = 0; i < Size(); i++ )
+    {
+	Point p;
+	Get( i, p );
+	os << " " << p;
+    }
+    os << " >";
+
+    return os;
+}
+/*
+  ***************************************************
+   End of the definition of the virtual functions.
+  ***************************************************
+  
+*/
 
 /*
 5.2 List Representation
@@ -2371,20 +2587,44 @@ const bool CHalfSegment::Contains( const Point& p ) const
   xr=rp.GetX();  yr=rp.GetY();
 
   X=p.GetX(); Y=p.GetY();
-
-  if ((Y-yl)*(xr-xl) == (yr-yl)*(X-xl))
+  
+  if ((xr!=xl)&&(X!=xl))
   {
-      if ((xl!=xr)&&(X>=xl) && (X <=xr))
+      double k1, k2;
+      k1=  ( (Y.IsInteger()? Y.IntValue():Y.Value())-
+	 (yl.IsInteger()? yl.IntValue():yl.Value())) / 
+	((X.IsInteger()? X.IntValue():X.Value())-
+	 (xl.IsInteger()? xl.IntValue():xl.Value()));
+
+      k2=  ( (yr.IsInteger()? yr.IntValue():yr.Value())-
+	 (yl.IsInteger()? yl.IntValue():yl.Value())) / 
+	((xr.IsInteger()? xr.IntValue():xr.Value())-
+	 (xl.IsInteger()? xl.IntValue():xl.Value()));
+	    
+      if (k1== k2)
       {
+	  if ((xl!=xr)&&(X>=xl) && (X <=xr))
+	  {
+	      return true;
+	  }
+	  else if ((xl==xr)&&((yl<=Y)&&(Y<=yr)||(yl>=Y)&&(Y>=yr)))
+	  {
+	      return true;
+	  }
+	  else return false;
+      } 
+      else    return false;
+  }
+  else if ((xr==xl)&&(X==xl))
+  {
+      if ((yl<=Y)&&(Y<=yr)||(yl>=Y)&&(Y>=yr))
 	  return true;
-      }
-      else if ((xl==xr)&&((yl<=Y)&&(Y<=yr)||(yl>=Y)&&(Y>=yr)))
-      {
-	  return true;
-      }
       else return false;
   }
-  else    return false;
+  else
+  {
+      return false;
+  }
 }
 /*
 6.1.15 distance Function
@@ -3033,6 +3273,138 @@ ostream& operator<<( ostream& os, const CLine& cl )
   os << " >";
   return os;
 }
+
+/*
+  ************************************************************************  
+  The following 10 functions are used for porting line to Tuple.
+  ************************************************************************  
+  
+*/
+bool CLine::IsDefined()
+{
+  return true;
+}
+
+void CLine::SetDefined( bool Defined )
+{
+    //defined = Defined;
+    //since every line is defined, so the function does nothing.
+}
+
+void*  CLine::GetValue()
+{ 
+    return ((void *)-1);
+    //the function getvalue doesn't make sense in this case, so we just return -1.
+}
+
+size_t   CLine::HashValue()
+{
+    if(IsEmpty())  return (0);
+    unsigned long h=0;
+    
+    CHalfSegment chs;
+    Coord x1, y1;
+    Coord x2, y2;
+    
+    for( int i = 0; ((i < Size())&&(i<5)); i++ )
+    {
+	Get( i, chs );
+	x1=chs.GetLP().GetX();
+	y1=chs.GetLP().GetY();
+	
+	x2=chs.GetRP().GetX();
+	y2=chs.GetRP().GetY();
+	
+	h=h+(unsigned long)
+	 ((5*(x1.IsInteger()? x1.IntValue():x1.Value())
+	   + (y1.IsInteger()? y1.IntValue():y1.Value()))+
+	  (5*(x2.IsInteger()? x2.IntValue():x2.Value())
+	   + (y2.IsInteger()? y2.IntValue():y2.Value())));
+    }
+    return size_t(h);
+}
+
+void  CLine::CopyFrom(StandardAttribute* right)
+{
+    CLine * cl = (CLine*)right;
+    ordered = true;
+    assert( cl->IsOrdered());
+
+    for( int i = 0; i < cl->Size(); i++ )
+    {
+	CHalfSegment chs;
+	cl->Get( i, chs );
+	line->Put( i, chs );
+    }
+}
+
+int   CLine::Compare(Attribute * arg)
+{
+    int res=0;
+    CLine* cl = (CLine* )(arg);
+    if ( !cl ) return (-2);
+    
+    if (IsEmpty() && (cl->IsEmpty()))  res=0;
+    else if (IsEmpty())  res=-1;
+    else  if ((cl->IsEmpty())) res=1;
+    else
+    {
+	if (Size() > cl->Size()) res=1;
+	else if (Size() < cl->Size()) res=-1;
+	else  //their sizes are equal
+	{
+	    bool decided;
+	    for( int i = 0; ((i < Size())&&(!decided)); i++ )
+	    {
+		CHalfSegment chs1, chs2;
+		Get( i, chs1);
+		cl->Get( i, chs2 );
+		
+		if (chs1 >chs2) {res=1;decided=true;}
+		else if (chs1 < chs2) {res=-1;decided=true;}
+	    }
+	    if (!decided) res=0;
+	}
+    }
+    return (res);
+}
+
+int   CLine::Adjacent(Attribute * arg)
+{
+    return 0;
+    //for points which takes double values, we can not decides whether they are
+    //adjacent or not.
+}
+
+int  CLine::Sizeof() 
+{
+    return sizeof(CLine);
+}
+
+CLine*  CLine::Clone()
+{
+    cout<<"***********************!"<<endl;
+    return (new CLine(SecondoSystem::GetLobFile(),  *this));
+}
+
+ostream& CLine::Print( ostream &os )
+{
+    os << "(" << GetLineRecordId() << ") <";
+    for( int i = 0; i < Size(); i++ )
+    {
+	CHalfSegment chs;
+	Get( i, chs );
+	os << " " << chs;
+    }
+    os << " >";
+    return os;
+}
+/*
+  ***************************************************
+   End of the definition of the virtual functions.
+  ***************************************************
+  
+*/
 
 /*
 7.2 List Representation
@@ -3833,6 +4205,138 @@ ostream& operator<<( ostream& os, const CRegion& cr )
   os << " >";
   return os;
 }
+
+/*
+  ************************************************************************  
+  The following 10 functions are used for porting region to Tuple.
+  ************************************************************************  
+  
+*/
+bool CRegion::IsDefined()
+{
+  return true;
+}
+
+void CRegion::SetDefined( bool Defined )
+{
+    //defined = Defined;
+    //since every line is defined, so the function does nothing.
+}
+
+void*  CRegion::GetValue()
+{ 
+    return ((void *)-1);
+    //the function getvalue doesn't make sense in this case, so we just return -1.
+}
+
+size_t   CRegion::HashValue()
+{
+    if(IsEmpty())  return (0);
+    unsigned long h=0;
+    
+    CHalfSegment chs;
+    Coord x1, y1;
+    Coord x2, y2;
+    
+    for( int i = 0; ((i < Size())&&(i<5)); i++ )
+    {
+	Get( i, chs );
+	x1=chs.GetLP().GetX();
+	y1=chs.GetLP().GetY();
+	
+	x2=chs.GetRP().GetX();
+	y2=chs.GetRP().GetY();
+	
+	h=h+(unsigned long)
+	 ((5*(x1.IsInteger()? x1.IntValue():x1.Value())
+	   + (y1.IsInteger()? y1.IntValue():y1.Value()))+
+	  (5*(x2.IsInteger()? x2.IntValue():x2.Value())
+	   + (y2.IsInteger()? y2.IntValue():y2.Value())));
+    }
+    return size_t(h);
+}
+
+void  CRegion::CopyFrom(StandardAttribute* right)
+{
+    CRegion * cr = (CRegion*)right;
+    ordered = true;
+    assert( cr->IsOrdered());
+
+    for( int i = 0; i < cr->Size(); i++ )
+    {
+	CHalfSegment chs;
+	cr->Get( i, chs );
+	region->Put( i, chs );
+    }
+}
+
+int   CRegion::Compare(Attribute * arg)
+{
+    int res=0;
+    CRegion* cr = (CRegion* )(arg);
+    if ( !cr ) return (-2);
+    
+    if (IsEmpty() && (cr->IsEmpty()))  res=0;
+    else if (IsEmpty())  res=-1;
+    else  if ((cr->IsEmpty())) res=1;
+    else
+    {
+	if (Size() > cr->Size()) res=1;
+	else if (Size() < cr->Size()) res=-1;
+	else  //their sizes are equal
+	{
+	    bool decided;
+	    for( int i = 0; ((i < Size())&&(!decided)); i++ )
+	    {
+		CHalfSegment chs1, chs2;
+		Get( i, chs1);
+		cr->Get( i, chs2 );
+		
+		if (chs1 >chs2) {res=1;decided=true;}
+		else if (chs1 < chs2) {res=-1;decided=true;}
+	    }
+	    if (!decided) res=0;
+	}
+    }
+    return (res);
+}
+
+int   CRegion::Adjacent(Attribute * arg)
+{
+    return 0;
+    //for points which takes double values, we can not decides whether they are
+    //adjacent or not.
+}
+
+int  CRegion::Sizeof() 
+{
+    return sizeof(CRegion);
+}
+
+CRegion*  CRegion::Clone()
+{
+    cout<<"***********************!"<<endl;
+    return (new CRegion(SecondoSystem::GetLobFile(),  *this));
+}
+
+ostream& CRegion::Print( ostream &os )
+{
+    os << "(" << GetRegionRecordId() << ") <";
+    for( int i = 0; i < Size(); i++ )
+    {
+	CHalfSegment chs;
+	Get( i, chs );
+	os << " " << chs;
+    }
+    os << " >";
+    return os;    
+}
+/*
+  ***************************************************
+   End of the definition of the virtual functions.
+  ***************************************************
+  
+*/
 
 const bool CRegion::insertOK(const CHalfSegment& chs)
 {

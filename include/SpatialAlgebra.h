@@ -262,12 +262,31 @@ Sets the point to defined or undefined depending on the value of ~d~.
 
 */
     double distance( const Point& p ) const;
+/*
+3.3.11 Functions needed to import the the ~Point~ data type to tuple 
+
+There are totally 10 functions which are defined as virtual functions. They need 
+to be defined here in order for the Point data type to be used in Tuple definition 
+as an attribute.
+
+*/
+    bool     IsDefined();
+    //void     SetDefined(bool Defined);
+    void*	   GetValue();
+    size_t   HashValue();
+    void	   CopyFrom(StandardAttribute* right);
+    int      Compare(Attribute * arg);
+    int      Adjacent(Attribute * arg);
+    int      Sizeof() ;
+    Point*    Clone() ;
+    ostream& Print( ostream &os );
     
-  private:
 /*
 3.4 Attributes
 
 */
+    private:
+    
     Coord x;
 /*
 The ~x~ coordinate.
@@ -522,8 +541,24 @@ Sorts (quick-sort algorithm) the persistent array of points.
 Searches (binary search algorithm) for a point in the point set and
 returns its position. Returns -1 if the point is not found.
 
+4.6 Functions needed to import the the ~Points~ data type to tuple 
+
+There are totally 10 functions which are defined as virtual functions. They need 
+to be defined here in order for the Point data type to be used in Tuple definition 
+as an attribute.
+
 */
-  
+    bool     IsDefined();
+    void     SetDefined(bool Defined);
+    void*	   GetValue();
+    size_t   HashValue();
+    void	   CopyFrom(StandardAttribute* right);
+    int      Compare(Attribute * arg);
+    int      Adjacent(Attribute * arg);
+    int      Sizeof() ;
+    Points*    Clone() ;
+    ostream& Print( ostream &os );
+    
 /*
 4.6 Atrtibutes
 
@@ -1036,7 +1071,23 @@ get the current half segment from the line value according to the ~pos~ pointer.
 insert a half segment into the line value, and put the ~pos~ pointer to this newly inserted 
 half segment.
 
+6.7 Functions needed to import the the ~Line~ data type to tuple 
+
+There are totally 10 functions which are defined as virtual functions. They need 
+to be defined here in order for the Point data type to be used in Tuple definition 
+as an attribute.
+
 */
+    bool     IsDefined();
+    void     SetDefined(bool Defined);
+    void*	   GetValue();
+    size_t   HashValue();
+    void	   CopyFrom(StandardAttribute* right);
+    int      Compare(Attribute * arg);
+    int      Adjacent(Attribute * arg);
+    int      Sizeof() ;
+    //CLine*    Clone() ;
+    ostream& Print( ostream &os );
     
   private:
 /*
@@ -1316,9 +1367,28 @@ The following two functions are used to sort the half segments according to thei
     void logicsort();
     void logicQuickSortRecursive( const int low, const int high );
     
+/*
+7.12 Functions needed to import the the ~Region~ data type to tuple 
+
+There are totally 10 functions which are defined as virtual functions. They need 
+to be defined here in order for the Point data type to be used in Tuple definition 
+as an attribute.
+
+*/
+    bool     IsDefined();
+    void     SetDefined(bool Defined);
+    void*	   GetValue();
+    size_t   HashValue();
+    void	   CopyFrom(StandardAttribute* right);
+    int      Compare(Attribute * arg);
+    int      Adjacent(Attribute * arg);
+    int      Sizeof() ;
+    //CRegion*    Clone() ;
+    ostream& Print( ostream &os );
+    
   private:
 /*
-7.8 Private member functions
+7.13 Private member functions
 
 */    
     void Sort();
@@ -1332,7 +1402,7 @@ sorts (quick-sort algorithm) the persistent array of half segments in the region
 searches (binary search algorithm) for a half segment in the region value and
 returns its position. Returns -1 if the half segment is not found.
 
-7.9 Atrtibutes
+7.14 Atrtibutes
 
 */    
     PArray<CHalfSegment>* region;
@@ -1355,7 +1425,7 @@ Whether the half segments in the region value are sorted.
 };
 
 /*
-7.10 overloaded output operator
+7.15 overloaded output operator
 
 */
 ostream& operator<<( ostream& o, const CRegion& cr );
