@@ -139,8 +139,9 @@ public class Base64Decoder{
 	}
 	public int read() throws IOException{ return Decoder.getNext();}
 	public void close() throws IOException{ Decoder.close();}
+	
 	public int available() throws IOException{
-            int sav = Decoder.in.available();
+            int sav = in!=null ? Decoder.in.available(): 1;
 	    int nls = sav /72;
 	    return sav*3/4-nls;
 	}
