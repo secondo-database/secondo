@@ -30,14 +30,14 @@ ALGEBRAS     := StandardAlgebra
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     +=	FunctionAlgebra
 
-ALGEBRA_DIRS += PointRectangle
-ALGEBRAS     += PointRectangleAlgebra
+#ALGEBRA_DIRS += PointRectangle
+#ALGEBRAS     += PointRectangleAlgebra
 
 ALGEBRA_DIRS +=	Array
 ALGEBRAS     +=	ArrayAlgebra
 
-ALGEBRA_DIRS += StreamExample
-ALGEBRAS     +=	StreamExampleAlgebra
+#ALGEBRA_DIRS += StreamExample
+#ALGEBRAS     +=	StreamExampleAlgebra
 
 ALGEBRA_DIRS += OldRelation-C++
 ALGEBRAS     +=	OldRelationAlgebra
@@ -48,37 +48,37 @@ ALGEBRAS     +=	RelationAlgebra
 ALGEBRA_DIRS += ExtRelation-C++
 ALGEBRAS     +=	ExtRelationAlgebra
 
-ALGEBRA_DIRS +=	Date
-ALGEBRAS     +=	DateAlgebra
+#ALGEBRA_DIRS +=	Date
+#ALGEBRAS     +=	DateAlgebra
 
-ALGEBRA_DIRS += Polygon
-ALGEBRAS     +=	PolygonAlgebra
+#ALGEBRA_DIRS += Polygon
+#ALGEBRAS     +=	PolygonAlgebra
 
 ALGEBRA_DIRS +=	BTree
 ALGEBRAS     +=	BTreeAlgebra
 
-ALGEBRA_DIRS +=	RTree
-ALGEBRAS     +=	RTreeAlgebra
+#ALGEBRA_DIRS +=	RTree
+#ALGEBRAS     +=	RTreeAlgebra
 
-ALGEBRA_DIRS +=	Range
-ALGEBRAS     +=	RangeAlgebra
+#ALGEBRA_DIRS +=	Range
+#ALGEBRAS     +=	RangeAlgebra
 
-ALGEBRA_DIRS +=	Rectangle
-ALGEBRAS     +=	RectangleAlgebra
+#ALGEBRA_DIRS +=	Rectangle
+#ALGEBRAS     +=	RectangleAlgebra
 
-ALGEBRA_DIRS +=	Spatial
-ALGEBRAS     +=	SpatialAlgebra
+#ALGEBRA_DIRS +=	Spatial
+#ALGEBRAS     +=	SpatialAlgebra
 
-ALGEBRA_DIRS +=	FText
-ALGEBRAS     +=	FTextAlgebra
+#ALGEBRA_DIRS +=	FText
+#ALGEBRAS     +=	FTextAlgebra
 
 
 # JNI Algebras
 # These Algebras are only used when 
 # make jni=true is called.
 
-#JNI_ALGEBRA_DIRS := Fuzzy
-#JNIALGEBRAS      := FuzzyAlgebra
+JNI_ALGEBRA_DIRS := Fuzzy
+JNIALGEBRAS      := FuzzyAlgebra
 
 #JNI_ALGEBRA_DIRS += JNIExample
 #JNIALGEBRAS      += JNIExampleAlgebra

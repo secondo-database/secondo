@@ -1,3 +1,6 @@
+
+JVMINIT_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JVMInit.o
+
 ifeq ($(platform),win32)
 # MinGW definitions.
 MINGW_EXTRA = C:/msys/1.0/mingw
@@ -5,12 +8,11 @@ JAVACLASSPATHS = -classpath .:$(JARDIR)/sj.jar
 JAVAC = $(J2SDK_ROOT)/bin/javac $(JAVACLASSPATHS) -verbose
 JAR = $(J2SDK_ROOT)/bin/jar
 JVMINIT_H_DIR = $(SECONDO_BUILD_DIR)/include
-JVMINIT_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JVMInit.o
 JNIINCLUDE = -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/win32  -I$(JVMINIT_H_DIR)
 LDJNIFLAGS = -mno-cygwin -L$(MINGW_EXTRA)/lib
 JARDIR = .
 DLLTOOL = dlltool
-JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client  $(JVMINIT_O_FILE) -ljvm
+JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client -ljvm
 
 else
 # Linux definitions
@@ -39,11 +41,12 @@ OS_DIR=linux
 
 JNIINCLUDE =  -I$(JNI_H_DIR) -I$(JNI_H_DIR)/$(OS_DIR)  -I$(INCLUDEDIR)
 
-JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify $(JVMINIT_DIR)/JVMInit.o
+JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify 
+
+endif
 
 JNITEXT=" you try to use jni --- please check the settings in makefile.jni --- \
           and the setting in  bin/JNI.ini --- \
           if you work under Linux ensure to add the path of libjava.so \
-	  and ??? to be in LD_LIBRARY_PATH"
+	  and libjvm.so to be in LD_LIBRARY_PATH"
 
-endif
