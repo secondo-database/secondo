@@ -102,87 +102,60 @@ const int PrivateTuple::Save( ostream& *tempFile ) {
 
 const int PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
 {
-  int tupleSize = tupleType.GetTotalSize(),
-      extensionSize = 0;
-
-  if( state == Solid )
-  {
-    assert( lobFile != 0 && tupleFile != 0 && memoryTuple != 0 );
-    if( tupleRecord != 0 )
-      delete tupleRecord;
-
-    // Calculate the size of the small FLOB data which will be saved together
-    // with the tuple attributes and save the LOBs in the lobFile.
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
-    {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-      {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        tupleSize += tmpFLOB->Size();
-        if( !tmpFLOB->IsLob() )
-          extensionSize += tmpFLOB->Size();
-        else
-          tmpFLOB->SaveToLob( *lobFile );
-      }
-      attributes[i] = 0;
-    }
-    assert( ( extensionSize == 0 && extensionTuple == 0 ) ||
-            ( extensionSize > 0 && extensionTuple != 0 ) );
-  }
-  else
-  {
-    assert( lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
-            memoryTuple == 0 && extensionTuple == 0 );
-
-    // Calculate the size of the small FLOB data which will be saved together
-    // with the tuple attributes and save the LOBs in the lobFile.
-    int extensionSize = 0;
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
-    {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-      {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        tupleSize += tmpFLOB->Size();
-        if( !tmpFLOB->IsLob() )
-          extensionSize += tmpFLOB->Size();
-        else
-          tmpFLOB->SaveToLob( *lobFile );
-      }
-    }
-
-    // Move FLOB data to extension tuple.
-    if( extensionSize > 0 )
-    {
-      extensionTuple = (char *)malloc(extensionSize);
-      char *extensionPtr = extensionTuple;
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++)
-      {
-        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-        {
-          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-          if( !tmpFLOB->IsLob() )
-          {
-            tmpFLOB->SaveToExtensionTuple( extensionPtr );
-            extensionPtr += tmpFLOB->Size();
-          }
-        }
-      }
-    }
-
-    // Move external attributes to memory tuple
-    memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
-    int offset = 0;
-    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
-    {
-      memcpy( &memoryTuple[offset], attributes[i], tupleType.GetAttributeType(i).size );
-      offset += tupleType.GetAttributeType(i).size;
-    }
-  }
+  assert( state == Fresh &&
+          lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
+          memoryTuple == 0 && extensionTuple == 0 );
 
   lobFile = lobfile;
   tupleFile = tuplefile;
   tupleRecord = new SmiRecord();
-  tupleId = 0;
+  int tupleSize = 0;
+
+  // Calculate the size of the small FLOB data which will be saved together
+  // with the tuple attributes and save the LOBs in the lobFile.
+  int extensionSize = 0;
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+  {
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+    {
+      FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+      tupleSize += tmpFLOB->Size();
+      if( !tmpFLOB->IsLob() )
+        extensionSize += tmpFLOB->Size();
+      else
+        tmpFLOB->SaveToLob( *lobFile );
+    }
+  }
+
+  // Move FLOB data to extension tuple.
+  if( extensionSize > 0 )
+  {
+    extensionTuple = (char *)malloc(extensionSize);
+    char *extensionPtr = extensionTuple;
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+    {
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+      {
+        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+        if( !tmpFLOB->IsLob() )
+        {
+          tmpFLOB->SaveToExtensionTuple( extensionPtr );
+          extensionPtr += tmpFLOB->Size();
+        }
+      }
+    }
+  }
+
+  // Move external attributes to memory tuple
+  tupleSize += tupleType.GetTotalSize();
+  memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
+  int offset = 0;
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+  {
+    memcpy( &memoryTuple[offset], attributes[i], tupleType.GetAttributeType(i).size );
+    offset += tupleType.GetAttributeType(i).size;
+  }
+
   bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
   rc = tupleRecord->Write( &extensionSize, sizeof(int), 0) && rc;
   rc = tupleRecord->Write( memoryTuple, tupleType.GetTotalSize(), sizeof(int)) && rc;
@@ -199,7 +172,6 @@ const int PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
 
   if( !rc )
     return 0;
-
   return tupleSize;
 }
 

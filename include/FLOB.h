@@ -166,7 +166,7 @@ Restore from byte string.
 3.11 SaveToTupleRecord
 
 */
-    void SaveToExtensionTuple( void *extensionTuple );
+    void SaveToExtensionTuple( void *extensionTuple = 0 );
 
 /*
 3.10 IsLob
@@ -200,15 +200,6 @@ Returns true, if value stored in underlying LOB, otherwise false.
     	SmiRecordFile *lobFile;
         SmiRecordId lobId;
       } inDiskLarge;
-#ifdef PERSISTENT_FLOB
-      struct InDiskMemory
-      {
-        SmiRecordFile *lobFile;
-        SmiRecordId lobId;
-        char *pageBuffer;
-        int pageId;
-      } inDiskMemory;
-#endif
     } fd;
 };
 

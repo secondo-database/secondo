@@ -317,16 +317,24 @@ void FLOB::SaveToExtensionTuple( void *extensionTuple )
 {
   assert( type == InMemory && size <= SWITCH_THRESHOLD );
 
-  Get( 0, size, extensionTuple );
-
-  if( fd.inMemory.freeBuffer )
+  if( size > 0 )
   {
-    free( fd.inMemory.buffer );
-    fd.inMemory.buffer = 0;
-    fd.inMemory.freeBuffer = false;
-  }
+    if( extensionTuple != 0 )
+      Get( 0, size, extensionTuple );
 
-  type = InDiskSmall;
+    if( fd.inMemory.freeBuffer )
+    {
+      free( fd.inMemory.buffer );
+      fd.inMemory.buffer = 0;
+      fd.inMemory.freeBuffer = false;
+    }
+
+    type = InDiskSmall;
+  }
+  else
+  {
+    assert( fd.inMemory.buffer == 0 );
+  }
 }
 
 /*
