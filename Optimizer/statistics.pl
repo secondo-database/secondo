@@ -45,7 +45,7 @@ sel(staedte:kennzeichen starts "W", 0.068).
 
 1.3 Determine the Simple Form of Predicates
 
-Simple forms of predicates are stored in predicate ~sel~ or 
+Simple forms of predicates are stored in predicate ~sel~ or
 in predicate ~storedSel~.
 
 
@@ -133,8 +133,6 @@ cardQuery(Pred, Rel1, Rel2, Query) :-
   possiblyRename(Rel1S, Rel1Query),
   possiblyRename(Rel2S, Rel2Query),
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
-
-:- dynamic(storedSel/2).
 
 sels(Pred, Sel) :-
   sel(Pred, Sel),
@@ -239,6 +237,12 @@ writeStoredSel(Stream) :-
   storedSel(X, Y),
   write(Stream, storedSel(X, Y)),
   write(Stream, '.\n').
+
+:- 
+  dynamic(storedSel/2),
+  at_halt(writeStoredSels),
+  readStoredSels.
+
 
 /*
 1.5 Examples
