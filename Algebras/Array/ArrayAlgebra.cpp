@@ -59,6 +59,7 @@ fact that a relation creates two files the size of the array is limited by the o
 systems capability of open files per process. Currently it is possible to create approximately
 400 relations. 
 
+August 24, 2004. M. Spiekermann removed a memory leak in the function ~distributeFun~
 
 1 Preliminaries
 
@@ -1919,7 +1920,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int pkgNr = 0;
 	int outOfRangePkgNr = 0;
 	
-  Word actual;
+  Word actual = SetWord( Address(0) );
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
@@ -1929,13 +1930,9 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   while(qp->Received(args[0].addr))
   {
     Tuple* tuple = (Tuple*)actual.addr;
-    tuple = tuple->CloneIfNecessary();
-    tuple->SetFree(true);
-
     Tuple* tuple2 = new Tuple(tupleType);
-
-    // Copy all attributes except the package number from tuple to tuple2.
-
+ 
+		// Copy all attributes except the package number from tuple to tuple2.
     int j = 0;
     for (int i=0; i<tuple->GetNoAttributes(); i++) {
       if (i!=pkgAttr) {
@@ -1944,16 +1941,13 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
     }
 
-    tuple2->SetFree(false);
-
     // Determine package and distribute tuple2 into that package.
-
     pkgNrCcInt = (CcInt*)(tuple->GetAttribute(pkgAttr));
     pkgNr = pkgNrCcInt->GetIntval();
 
-    tuple->DeleteIfAllowed();
-		
-		if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) {
+		tuple->DeleteIfAllowed();
+		 
+		if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) { // check if pckNr is valid
 
       if ( !msgPrinted ) {
 		    cerr << "Warning: Package number out of Range. "
@@ -1966,17 +1960,18 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 			
 			pkgNr = outOfRangePkgNr % MAX_OPEN_RELATIONS;
 			outOfRangePkgNr++;
-
 		}
 
-    while ( n < pkgNr ) {
+    while ( n < pkgNr ) { // enlarge the array if necessary
       
       relPkg.push_back( new Relation(relType) );
-			n++;
-			
+			n++;	
     } 
 		
     relPkg[pkgNr]->AppendTuple(tuple2);
+		
+    tuple2->Delete(); // free memory
+	
     qp->Request(args[0].addr, actual);
   }
   qp->Close(args[0].addr);
