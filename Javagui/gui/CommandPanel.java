@@ -216,6 +216,9 @@ public class CommandPanel extends JScrollPane {
          boolean success = errorCode.value==0;
 	 if(success)
 	   informListeners(command);
+	 else if(!Secondointerface.isConnected()){ // connection lost
+           informListeners("disconnect");
+	 }
 	 return success;
     }
     else{
@@ -261,6 +264,8 @@ public class CommandPanel extends JScrollPane {
     int res = errorCode.value;
     if(res==0)
        informListeners(command);
+    else if(!Secondointerface.isConnected()) // connection lost
+       informListeners("disconnect");
     return res;
   }
 
@@ -296,8 +301,11 @@ public class CommandPanel extends JScrollPane {
                       commandLevel, true,         // command as text.
                       false,      // result as ListExpr.
                       resultList, errorCode, errorPos, errorMessage);
-    if(errorCode.value!=0)
+    if(errorCode.value!=0){
+       if(!Secondointerface.isConnected())
+          informListeners("disconnect");
        return  null;
+    }
     else{
        informListeners(command);
        return resultList;
@@ -330,11 +338,15 @@ public class CommandPanel extends JScrollPane {
   }
 
   public boolean connect(){
-    return Secondointerface.connect();
+    boolean ok = Secondointerface.connect();
+    if(ok)
+       informListeners("connect");
+    return ok;
   }
 
   public void disconnect(){
      Secondointerface.terminate();
+     informListeners("disconnect");
   }
 
 
@@ -379,8 +391,11 @@ public class CommandPanel extends JScrollPane {
       if(cmd.indexOf(" database ")>=0 && (cmd.startsWith("create") || cmd.startsWith("delete")))
          SCL.databasesChanged();
       else
-      if(cmd.indexOf(" database ")>=0 && cmd.startsWith("open"))
-         SCL.databaseOpened();
+      if(cmd.indexOf(" database ")>=0 && cmd.startsWith("open")){
+         int index = cmd.lastIndexOf(" ");
+	 String DBName = cmd.substring(index+1);
+         SCL.databaseOpened(DBName);
+      }
       else
       if(cmd.endsWith(" database") && cmd.startsWith("close"))
          SCL.databaseClosed();
@@ -388,6 +403,11 @@ public class CommandPanel extends JScrollPane {
       if(cmd.startsWith("create ") || cmd.startsWith("delete ") || cmd.startsWith("let ") ||
          cmd.startsWith("update "))
 	 SCL.objectsChanged();
+      else
+      if(cmd.equals("connect"))
+          SCL.connectionOpened();
+      if(cmd.equals("disconnect"))
+          SCL.connectionClosed();
     }
   }
 
@@ -418,6 +438,9 @@ public class CommandPanel extends JScrollPane {
       }
       int keyCode = e.getKeyCode();
       int qrs=History.size();
+      int mod = e.getModifiersEx();
+      if((mod&e.SHIFT_DOWN_MASK)!=0)
+         return;
       if (qrs==0) return;
 	if ((keyCode==KeyEvent.VK_DOWN) &&(HistoryPos <qrs)) HistoryPos++;
 	else if ((keyCode==KeyEvent.VK_UP) &&(HistoryPos >0))	HistoryPos--;
@@ -445,6 +468,14 @@ public class CommandPanel extends JScrollPane {
       //Get the location in the text.
       int dot = e.getDot();
       int mark = e.getMark();
+      int CPos = Math.min(Math.min(SystemArea.getCaretPosition(),dot),mark);
+      if( CPos<aktPos){
+         int p1 =(Math.max(Math.max(dot,mark),aktPos));
+	 SystemArea.setCaretPosition(aktPos);
+	 SystemArea.moveCaretPosition(p1);
+	 SystemArea.repaint();
+         return;
+      }
       if (dot == mark) {        // no selection
         if (dot < aktPos)
           SystemArea.setCaretPosition(aktPos);

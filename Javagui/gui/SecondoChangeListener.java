@@ -9,9 +9,13 @@ public interface SecondoChangeListener{
  // deleted or create type
  void typesChanged();
  // a database is opened
- void databaseOpened();
+ void databaseOpened(String DBName);
  // a database is closed
  void databaseClosed();
+ // the connection is opened
+ void connectionOpened();
+ // the connection is closed
+ void connectionClosed();
 
 
 }
