@@ -6,8 +6,6 @@
 
 include ../makefile.env
 
-
-
 # Add the base name of your .cpp file here. The deafult rules should
 # compile and link it, otherwise add special rules
 
@@ -35,14 +33,12 @@ TESTNAMES += itlogmsg
 # Prefetch Iterator
 #TESTNAMES += tprefetch
 
-# Tuple Manager
-#TESTNAMES += TupleTestBDB
-
-
 TESTFILES := $(addsuffix $(EXEEXT), $(TESTNAMES)) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 
 CODE_FILES =$(shell echo *.cpp)
 CODE_DEPENDENCIES = $(patsubst %.cpp, %.dep, $(CODE_FILES))
+
+
 
 ifndef file
 OBJECTS = $(TESTFILES)
@@ -63,19 +59,13 @@ CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS) $(myflags)
 
 # some default rules
 %$(EXEEXT): %.cpp libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT) libsdbutils.$(LIBEXT)
-	g++ -o $@ $< $(CCFLAGS) -L$(LIBDIR) $(BDBLIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(TOOLLIB) $(BDBSMILIB) $(BDBLIB) $(DEFAULTLIB)
+	g++ -o $@ $< $(CCFLAGS) $(LD_LINK_LIBS_ALG) 
 
 %$(EXEEXT): %.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBLIBDIR) $(BDBSMILIB) $(TOOLLIB)  $(BDBLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
-
-
-# TupleManager
-
-TupleTestBDB$(EXEEXT): SecondoTestFrame.o ../UserInterfaces/DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT)  
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 
 # Test Dynamic Library module
