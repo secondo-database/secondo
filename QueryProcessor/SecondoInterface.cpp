@@ -284,6 +284,13 @@ If value 0 is returned, the command was executed without error.
   NestedList* nl = SecondoSystem::GetNestedList();
   NestedList* al = SecondoSystem::GetAppNestedList();
 
+  // copy command list to internal NL memory
+  ListExpr commandLE2 = nl->TheEmptyList();
+  if (commandLE) {
+     commandLE2 = al->CopyList(commandLE, nl);
+  }
+  
+  
   errorMessage = "";
   errorCode    = 0;
   errorPos     = 0;
@@ -305,7 +312,7 @@ If value 0 is returned, the command was executed without error.
       }
       else
       {
-        list = commandLE;
+        list = commandLE2;
       }
       break;
     }
@@ -334,7 +341,7 @@ If value 0 is returned, the command was executed without error.
       }
       else
       {
-        list = commandLE;
+        list = commandLE2;
       }
       break;
     }
