@@ -5,7 +5,7 @@
 ########################################################################
 
 # System dependent default libraries
-DEFAULTLIB = -lsocket -lnsl -ldl -lstdc++
+DEFAULTLIB = -lsocket -lnsl -lm -ldl -lstdc++
 
 # Berkeley DB library
 BDBINCLUDE = -I$(BDBDIR)/include

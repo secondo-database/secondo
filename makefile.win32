@@ -6,7 +6,7 @@
 
 
 # System dependent default libraries
-DEFAULTLIB = -lws2_32 -lstdc++
+DEFAULTLIB = -lws2_32 -lm -lstdc++
 
 # Berkeley DB library
 BDBINCLUDE = -I$(BDBDIR)/dbinc -I$(BDBDIR)/build_win32

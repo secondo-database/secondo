@@ -5,7 +5,7 @@
 ########################################################################
 
 # System dependent default libraries
-DEFAULTLIB = -ldl -lstdc++
+DEFAULTLIB = -lm -ldl -lstdc++
 
 # Berkeley DB library
 BDBINCLUDE = -I$(BDBDIR)/include
