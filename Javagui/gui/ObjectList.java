@@ -9,6 +9,7 @@ import java.io.*;
 import sj.lang.ListExpr;
 import sj.lang.ServerErrorCodes;
 import gui.idmanager.*;
+import java.io.File;
 
 public class ObjectList extends JPanel{
 
@@ -87,6 +88,16 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   addAllListeners();
   dummy = new JPanel();
 }
+
+
+/** set the directory to load and save objects */
+public void setObjectDirectory(File dir){
+  if(dir!=null)
+     FileChooser.setCurrentDirectory(dir);
+}
+
+
+
 
 /** returns the index of object with Name Objectname */
 private int getIndexOf(String ObjectName){
@@ -669,3 +680,4 @@ private class RenamePanel extends JPanel{
 
 
 }
+
