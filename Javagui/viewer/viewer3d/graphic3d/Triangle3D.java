@@ -4,6 +4,7 @@ import java.awt.Color;
 import gui.idmanager.*;
 import viewer.viewer3d.graphic2d.Point2D;
 import viewer.viewer3d.graphic2d.Triangle2D;
+import viewer.viewer3d.objects.BoundingBox3D;
 
 /***********************************
 *
@@ -49,7 +50,33 @@ public Triangle3D(Point3D P1,Point3D P2, Point3D P3,ID aID){
 /** returns a copy of this triangle */
 public Triangle3D duplicate() {
   return new Triangle3D(Points[0].duplicate(),Points[1].duplicate(),
-                        Points[2].duplicate());
+                        Points[2].duplicate(),MyID);
+}
+
+
+/** returns the BoundingBox of this Triangle*/
+public BoundingBox3D getBoundingBox(){
+  BoundingBox3D BB3 = new BoundingBox3D();
+  double xmin,xmax,ymin,ymax,zmin,zmax;
+  xmin=xmax=Points[0].getX();
+  ymin=ymax=Points[0].getY();
+  zmin=zmax=Points[0].getZ();
+  for(int i=1;i<3;i++){
+      if(xmin>Points[i].getX())
+         xmin=Points[i].getX();
+      if(xmax<Points[i].getX())
+         xmax=Points[i].getX();
+      if(ymin>Points[i].getY())
+         ymin=Points[i].getY();
+      if(ymax<Points[i].getY())
+         ymax=Points[i].getY();
+      if(zmin>Points[i].getZ())
+         zmin=Points[i].getZ();
+      if(zmax<Points[i].getZ())
+         zmax=Points[i].getZ();
+  }
+  BB3.set(xmin,ymin,zmin,xmax,ymax,zmax);
+  return BB3;
 }
 
 /** equalize this to Source */
@@ -125,6 +152,9 @@ public void setCP3(Point3D P){Points[2] = P; }
 
 
 } // class Triangle3D
+
+
+
 
 
 

@@ -197,9 +197,82 @@ public RelSplit(){
              CurrentRelation.setModel(LM);
           }
       }
-   }); 
+   });
+
+   // add a Panel to Search Strings in the ListExpr
+   JPanel SearchPanel = new JPanel(); //new GridLayout(1,3));
+   GoBtn = new JButton("go");
+   SearchText = new JTextField(6);
+   JLabel SearchLabel = new JLabel("search:");
+   SearchPanel.add(SearchLabel);
+   SearchPanel.add(SearchText);
+   SearchPanel.add(GoBtn);    
+   add(SearchPanel,BorderLayout.SOUTH);
+   GoBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           search();
+       }
+   });
 }
 
+
+/** search the Text in the TextField and select the next line*/
+private void search(){
+  String What = SearchText.getText();
+  if (What.trim().equals(""))
+      showMessage("no text to search");
+  else
+      search(What);
+}
+
+
+/** select the next line containing S in the list */
+
+private void search(String S){
+  if(CurrentRelation==null){
+    showMessage("no relation");
+    return;
+  }
+  ListModel LM = CurrentRelation.getModel();
+  if(LM==null || !(LM instanceof RelationListModel)){
+    showMessage("no relation");
+    return;
+  }
+  
+  RelationListModel RLM= (RelationListModel) CurrentRelation.getModel();
+  int SelIndex = CurrentRelation.getSelectedIndex();
+  int Start = SelIndex<0?1:SelIndex+1;
+  int next = RLM.find(S,false,Start);
+  if(next<0) 
+     next = RLM.find(S,false,1);
+  if(next<0)
+      showMessage("text not found");
+  else{
+      int H = ScrollPane.getSize().height;
+      int FH = CurrentRelation.getFont().getSize();
+      int rows= H/((FH+4)*2);        // the half of all visible rows
+      if(next<rows)
+        CurrentRelation.ensureIndexIsVisible(0);
+      else if((next+rows)>RLM.getSize())
+        CurrentRelation.ensureIndexIsVisible(RLM.getSize());
+      else{
+        CurrentRelation.ensureIndexIsVisible(next-rows);
+        CurrentRelation.ensureIndexIsVisible(next+rows);
+      }
+      CurrentRelation.setSelectedIndex(next);
+  }
+}
+
+
+/** return the MinimumSize of this Component */
+public Dimension getMinimumSize(){
+  return new Dimension(200,300);
+}
+
+
+public Dimension getPreferredSize(){
+   return getMinimumSize();
+}
 
 public boolean addRelation(SecondoObject SO){
   Relation R=new Relation();
@@ -219,12 +292,18 @@ public boolean addRelation(SecondoObject SO){
 }
 
 
+private void showMessage(String S){
+   OptionPane.showMessageDialog(this,S);
+}
+
 private JComboBox AllRelations;
 private JList CurrentRelation;
 private JScrollPane ScrollPane;
 private Vector SecondoObjectVector;
 private DefaultComboBoxModel dummy= new DefaultComboBoxModel(); // to show nothing
-
+private JTextField SearchText;
+private JButton    GoBtn;
+private JOptionPane OptionPane = new JOptionPane();
 
 
 }

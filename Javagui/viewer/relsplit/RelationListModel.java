@@ -42,6 +42,27 @@ public Object getElementAt(int index){
 }
 
 
+
+/** returns the index of the line containing S 
+  * returns -1 if not found 
+  */
+public int find(String S,boolean CaseSensitiv,int Offset){
+
+  String US = S.toUpperCase();
+  if( Offset % (TupleSize+1)==0)
+     Offset++;
+  // transform to the Offset in the Relation
+  int seps = Offset / (TupleSize+1);
+  int indexRel = Rel.find(S,CaseSensitiv,Offset-seps);
+  seps = indexRel/TupleSize;
+  if(indexRel<0)
+    return -1;
+  else
+    return indexRel+seps+1; 
+}
+
+
+
 /* returns the secondoobject at index,
  * if not exists the index or at index  is a separator
  * null is returned 

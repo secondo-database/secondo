@@ -29,9 +29,10 @@ VIEWER3DPACKAGE = components viewer.viewer3d viewer.viewer3d.mathe \
                   viewer.viewer3d.graphic2d viewer.viewer3d.graphic3d \
                   viewer.viewer3d.objects
 RELSPLITPACKAGE = viewer.relsplit
+FUZZY2D = viewer.fuzzy2d  # and classes from the viewer3d
 
 VIEWERPACKAGES = $(VIEWERMAINPACKAGE) $(HOESEVIEWERPACKAGE) $(VIEWER3DPACKAGE) \
-                 $(RELSPLITPACKAGE)
+                 $(RELSPLITPACKAGE) $(FUZZY2D)
 
 RUNCALL="java gui.MainWindow"
 RUNSCRIPTNAME = sgui

@@ -188,9 +188,9 @@ public void makeProposal(){
   }
   
 
-  int xdim = BB.getMaxX()-BB.getMinX();
-  int ydim = BB.getMaxY()-BB.getMinY();
-  int zdim = BB.getMaxZ()-BB.getMinZ();
+  double xdim = BB.getMaxX()-BB.getMinX();
+  double ydim = BB.getMaxY()-BB.getMinY();
+  double zdim = BB.getMaxZ()-BB.getMinZ();
 
   // show to center-bottom
   VRPXText.setText(""+BB.getCenterX());
@@ -240,3 +240,4 @@ private int ResultValue;
 private JOptionPane OptionPane = new JOptionPane(); // to show Messages
 private BoundingBox3D BB = null;
 }
+

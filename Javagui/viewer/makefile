@@ -6,12 +6,12 @@ include ../makefile.inc
 
 
 .PHONY: all  # compile Menuvector and SecondoViewer
-all: MenuVector.class SecondoViewer.class
+all: MenuVector.class SecondoViewer.class MessageBox.class
 
 
 # compile all viewers
 .PHONY: viewers 
-viewers : StandardViewer.class RelViewer.class relsplit hoese viewer3d QueryViewer.class
+viewers : StandardViewer.class RelViewer.class relsplit hoese viewer3d QueryViewer.class fuzzy2d
 
 #
 # the viewer from Thomas Hoese (a gui in the past)
@@ -37,6 +37,20 @@ subviewer3d:
 # ----- viewer3d end --------
 
 
+
+#### the 2D-Viewer for fuzzy objects
+.PHONY: fuzzy2d
+fuzzy2d: subfuzzy2d Fuzzy2D.class
+
+.PHONY: subfuzzy2d
+subfuzzy2d:
+	(cd fuzzy2d;make all);
+
+# ----- fuzzy2d end --------
+
+
+
+
 ###### a viewer to split relations #######
 .PHONY: relsplit
 relsplit: RelSub RelSplit.class
@@ -57,8 +71,10 @@ clean:
 	(cd hoese;make clean)
 	(cd relsplit;make clean)
 	(cd viewer3d;make clean)
+	(cd fuzzy2d;make clean)
 	rm -f *.class
 
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
+

@@ -156,6 +156,56 @@ public void showSettings(Frame F){
 
 
 
+public boolean nearByXY(double x, double y,double exactness){
+  boolean found = false;
+  Line3D L;
+  double e2 = exactness*exactness;
+  for(int i=0;i<Lines.getSize()&&!found;i++){
+     L = Lines.get(i);
+     if (nearByXY(L.getEP1(),L.getEP2(),x,y,e2))
+        found = true;
+   }      
+   return found;
+}
+
+
+/** returns true if the vertical line in xy is in the near of the
+  * segment defined by P1,P2
+  */
+static boolean nearByXY(Point3D P1, Point3D P2,double x, double y,double square_exactness){
+
+double P1x = P1.getX(),
+       P1y = P1.getY(),
+       P2x = P2.getX(),
+       P2y = P2.getY();
+     
+double d2 = (P1x-x)*(P1x-x) + (P1y-y)*(P1y-y); 
+if(d2<square_exactness)
+   return true; // near of P1
+d2 = (P2x-x)*(P2x-x) + (P2y-y)*(P2y-y);
+if(d2<square_exactness)
+   return true;  // near of P2
+
+if( (P1x<x & P2x<x)  || (P1x>x & P2x>x) )  // left or right from (xy)
+  return false;
+
+if( (P1y<y & P2y<y)  || (P1y>y & P2y>y) )  // above or under (xy)
+   return false;
+   
+// algorithm from http://astronomy.swin.edu.au/~pbourke/geometry/pointline
+d2 = (P2x-P1x)*(P2x-P1x) + (P2y-P1y)*(P2y-P1y); // distance between P1 and P1
+double u = ((x-P1x)*(P2x-P1x) + (y-P1y)*(P2y-P1y))/d2;
+// compute the point of intersection
+double x4 = P1x+u*(P2x-P1x);
+double y4 = P1y+u*(P2y-P1y);
+
+double dist2 = (x4-x)*(x4-x) + (y4-y)*(y4-y);
+if (dist2<square_exactness)
+   return true;
+else
+   return false;
+}
+
 
 private class SingleSegment{
 
@@ -176,3 +226,4 @@ public boolean readFromListExpr(ListExpr LE){
 
 }
 }
+

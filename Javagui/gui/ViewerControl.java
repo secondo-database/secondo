@@ -50,3 +50,4 @@ public void addViewerChangeListener(ViewerChangeListener VCL);
 public void removeViewerChangeListener(ViewerChangeListener VCL);
 
 }
+

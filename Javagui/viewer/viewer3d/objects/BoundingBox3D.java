@@ -13,8 +13,8 @@ public String toString(){
   return "("+minx+","+miny+","+minz+")  --> ("+maxx+","+maxy+","+maxz+")";
 }
 
-public boolean set(int minx,int miny,int minz,
-           int maxx,int maxy,int maxz){
+public boolean set(double minx,double miny,double minz,
+           double maxx,double maxy,double maxz){
   if(minx<=maxx && miny<=maxy && minz<=maxz){
     this.minx = minx;
     this.miny = miny;
@@ -29,26 +29,26 @@ public boolean set(int minx,int miny,int minz,
 }
 
 
-public int getCenterX(){
+public double getCenterX(){
    return (maxx+minx)/2;
 }
 
-public int getCenterY(){
+public double getCenterY(){
    return (maxy+miny)/2;
 }
 
-public int getCenterZ(){
+public double getCenterZ(){
    return (maxz+minz)/2;
 }
 
 
-public int getMinX(){ return minx;}
-public int getMinY(){ return miny;}
-public int getMinZ(){ return minz;}
+public double getMinX(){ return minx;}
+public double getMinY(){ return miny;}
+public double getMinZ(){ return minz;}
 
-public int getMaxX(){ return maxx;}
-public int getMaxY(){ return maxy;}
-public int getMaxZ(){ return maxz;}
+public double getMaxX(){ return maxx;}
+public double getMaxY(){ return maxy;}
+public double getMaxZ(){ return maxz;}
 
 
 
@@ -77,7 +77,8 @@ public void reset(){
   maxx=maxy=maxz=0;
 }
 
-private int minx,miny,minz;
-private int maxx,maxy,maxz;
+private double minx,miny,minz;
+private double maxx,maxy,maxz;
 
 }
+

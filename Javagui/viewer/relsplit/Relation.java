@@ -41,6 +41,29 @@ public String toString(){
 }
 
 
+public int find(String S,boolean CaseSensitiv,int OffSet){
+  boolean found =false;
+  int pos = -1;
+  String US = S.toUpperCase();
+  for(int i=OffSet;i<SecondoObjects.size()&&!found;i++){
+     String Name = get(i).getName();
+     if(CaseSensitiv){
+          if (Name.indexOf(S)>=0){
+               found=true;
+               pos=i;
+           }
+     } else{
+          if (Name.toUpperCase().indexOf(US)>=0){
+               found=true;
+               pos=i;
+           }
+        
+     }    
+  }
+  return pos;
+}
+
+
 /** read the Value of this Relation */
 private boolean readValue(Head H,ListExpr ValueList){
   ListExpr NextTuple; 

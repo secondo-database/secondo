@@ -3,6 +3,7 @@ package viewer.viewer3d.graphic3d;
 import gui.idmanager.*;
 import java.awt.Color;
 import viewer.viewer3d.graphic2d.*;
+import viewer.viewer3d.objects.BoundingBox3D;
 
 /** this class provides a 3dim point with a own ID */
 public class IDPoint3D extends Point3D{
@@ -18,6 +19,15 @@ public IDPoint3D(double x,double y, double z, Color C){
   super(x,y,z,C);
   MyID = IDManager.getNextID();
 }
+
+
+public BoundingBox3D getBoundingBox(){
+  BoundingBox3D BB3 = new BoundingBox3D();
+  BB3.set(x,y,z,x,y,z);
+  return BB3;
+}
+
+
 
 /** creates a new point */
 public IDPoint3D(double x, double y, double z,int r, int g, int b, ID aID){
@@ -59,4 +69,6 @@ private ID MyID;
 
 
 }
+
+
 

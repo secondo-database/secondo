@@ -682,7 +682,8 @@ public void hideObject(Object Sender,SecondoObject SO){
 
 /** send the remove Command to ObjectList */
 public void removeObject(SecondoObject SO){
-  OList.removeObject(SO);
+  if(SO!=null)
+    OList.removeObject(SO);
   OList.updateMarks(); 
 }
 
@@ -948,4 +949,5 @@ class Command_Listener implements ActionListener{
 
 
 }
+
 

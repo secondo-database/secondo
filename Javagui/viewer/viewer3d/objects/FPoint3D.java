@@ -145,6 +145,24 @@ public ID getID(){return myID;};
 
 public BoundingBox3D getBoundingBox(){ return BB;};
 
+
+public boolean nearByXY(double x, double y,double exactness){
+  Point3D P;
+  boolean found = false;
+  double d2;
+  double e2 = exactness*exactness; // the square of exactness
+  for(int i=0;i<Points.getSize()&&!found;i++){
+     P = Points.get(i);
+     d2=(P.getX()-x)*(P.getX()-x) + (P.getY()-y)*(P.getY()-y); // the square of distance
+     if(d2<e2)
+       found=true;
+  }
+  return found;
+}
+
+
+
+
 private IDPoint3DVector Points = new IDPoint3DVector();
 private Vector SingleFPoints = new Vector();
 private double ScaleFactor;
@@ -153,5 +171,6 @@ private ID myID= IDManager.getNextID();
 private String Name;
 private BoundingBox3D BB= new BoundingBox3D();;
 }
+
 
 

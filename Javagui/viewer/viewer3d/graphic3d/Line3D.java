@@ -4,6 +4,7 @@ import java.awt.Color;
 import gui.idmanager.*;
 import viewer.viewer3d.graphic2d.Point2D;
 import viewer.viewer3d.graphic2d.Line2D;
+import viewer.viewer3d.objects.BoundingBox3D;
 
 /***********************************
 *
@@ -47,7 +48,7 @@ public Line3D(Point3D P1, Point3D P2,ID aID){
 
 /** returns a copy of this */
 public Line3D duplicate() {
-  return new Line3D(EP1,EP2);
+  return new Line3D(EP1,EP2,MyID);
 }
 
 /** equalize this to Source */
@@ -60,6 +61,20 @@ public void equalize(Line3D Source) {
 /** check for equal position and color (not needed ID) */
 public boolean equalValues(Line3D D2) {
  return EP1.equals(D2.EP1) && EP2.equals(D2.EP2) && empty==D2.empty;
+}
+
+/** returns the Bounding Box of this Line */
+public BoundingBox3D getBoundingBox(){
+  BoundingBox3D BB3 = new BoundingBox3D();
+  double x1 = EP1.getX(),
+         x2 = EP2.getX(),
+         y1 = EP1.getY(),
+         y2 = EP2.getY(),
+         z1 = EP1.getZ(),
+         z2 = EP2.getZ();
+  BB3.set(Math.min(x1,x2),Math.min(y1,y2),Math.min(z1,z2),
+          Math.max(x1,x2),Math.max(y1,y2),Math.max(z1,z2));
+  return BB3;
 }
 
 
@@ -121,6 +136,8 @@ public void setEP1(Point3D P) { EP1.equalize(P); }
 public void setEP2(Point3D P) { EP2.equalize(P); }
 
 } // class Line3D
+
+
 
 
 

@@ -163,6 +163,40 @@ public void showSettings(Frame F){
 }
 
 
+public boolean nearByXY(double x, double y, double exactness){
+  double e2 = exactness*exactness;
+  boolean found=false;
+  Triangle3D T;
+  for(int i=0;i<Triangles.getSize()&&!found;i++){
+     T=Triangles.get(i);
+     if(nearByXY(T,x,y,e2))
+        found=true;
+  }   
+  return found;   
+}
+
+
+private static boolean nearByXY(Triangle3D T,double x, double y, double square_exactness){
+  Point3D P1 = T.getCP1(),
+          P2 = T.getCP2(),
+          P3 = T.getCP3();
+  if( FLine3D.nearByXY(P1,P2,x,y,square_exactness) || FLine3D.nearByXY(P1,P3,x,y,square_exactness) || 
+      FLine3D.nearByXY(P2,P3,x,y,square_exactness))
+     return true;
+
+  double x1 = P1.getX(), y1=P1.getY(),
+         x2 = P2.getX(), y2=P2.getY(),
+         x3 = P3.getX(), y3=P3.getY();
+     
+  // check if P in T     
+  // algorithm see: http://mcraefamily.com/MathHelp/GeometryPointAndTriangle3.htm
+  double AB = (y-y1)*(x2-x1)-(x-x1)*(y2-y1);
+  double CA = (y-y3)*(x1-x3)-(x-x3)*(y1-y3);
+  double BC = (y-y2)*(x3-x2)-(x-x2)*(y3-y2);
+  return (AB*BC>0) && (BC*CA)>0;
+}
+
+
 
 private class SingleTriangle{
 
@@ -186,3 +220,4 @@ public boolean readFromListExpr(ListExpr LE){
 
 }
 }
+
