@@ -100,6 +100,9 @@ ALGEBRAS     +=	DateTimeAlgebra
 #JNI_ALGEBRA_DIRS := Fuzzy
 #JNIALGEBRAS      := FuzzyAlgebra
 
+#JNI_ALGEBRA_DIRS := JBBox
+#JNIALGEBRAS      := JBBoxAlgebra
+
 #JNI_ALGEBRA_DIRS += JNIExample
 #JNIALGEBRAS      += JNIExampleAlgebra
 
