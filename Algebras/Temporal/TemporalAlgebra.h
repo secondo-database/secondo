@@ -3607,7 +3607,7 @@ int MPoint::Position( const Instant& t )
 {
     assert( IsOrdered() && t.IsDefined() );
   
-    int first = 0, last = units.Size();
+    int first = 0, last = units.Size() - 1;
     Instant t1=t;
   
     while (first <= last)
@@ -3617,16 +3617,15 @@ int MPoint::Position( const Instant& t )
 	    
 	UPoint midUPoint;
 	units.Get( mid, midUPoint );
-	if( t1.GetRealval() > midUPoint.timeInterval.end.GetRealval() )
-	    first = mid + 1;
-	else if( t1.GetRealval() < midUPoint.timeInterval.start.GetRealval() )
+	
+	if (midUPoint.timeInterval.Contains(t1)) 
+	    return mid;
+	else  //not contained 
+	    if( t1.GetRealval() >= midUPoint.timeInterval.end.GetRealval() )
+		first = mid + 1;
+	else if( t1.GetRealval() <= midUPoint.timeInterval.start.GetRealval() )
 	    last = mid - 1;
-	else  // (midUPoint.begin <= t <= midUPoint.end)
-	{
-		if (midUPoint.timeInterval.Contains(t1)) 
-		    return mid;
-		else return -1;
-	}
+	else  return -1; //should never reached.
     }
     return -1;
 }
