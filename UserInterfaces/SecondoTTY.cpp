@@ -239,7 +239,7 @@ SecondoTTY::ProcessCommand()
   }
   else if ( cmdWord[0] == '@' )
   {
-    ProcessFile( cmd.substr( 1, ( cmd.length() - 2 ) ) ); // Delete blank char at the end
+    ProcessFile( cmd.substr( 1, ( cmd.length() - 1 ) ) );
   }
   else
   {
@@ -372,7 +372,7 @@ SecondoTTY::GetCommand()
   int end = cmd.find_last_not_of(" \t")+1;
   cmd = cmd.substr(0,end);
   #ifdef READLINE
-     if(complete && (cmd.length()>0)){
+     if(complete && (cmd.length()>0) && isStdInput){
         // get the last entry from the history if avaiable
         int noe = where_history();
 	string last = "";
