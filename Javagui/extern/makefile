@@ -32,5 +32,5 @@ clean:
 	(make -C dbfreader clean)
 	(make -C shapedbf clean)
 	(make -C fileio clean)
-	(make -C binarylist all)
+	(make -C binarylist clean)
 	rm -f *.class
