@@ -184,32 +184,407 @@ public class CommandPanel extends JScrollPane {
   }
 
 
+  /** finds a select clause within command
+    * the search starts at position first
+    * returns the interval of command containing the clause or
+    * null if not found one
+    */
+  private Interval findSelectClause(String command,int first){
+
+      int state=0;
+      int minpos=-1;
+      int maxpos=-1;
+      int length = command.length();
+      int curpos = first;
+      if(length-first <7) // no chance to find a select clause ( too little characters)
+          return null;
+
+      command = command.toLowerCase();
+
+      int selectPos = command.indexOf("select",first);
+      if(selectPos < first) // no select contained
+         return null;
+      int sqlPos = command.indexOf("sql ",first);
+      if(selectPos==first | sqlPos==first){ // the whole command is a select clause
+          return new Interval(first,length);
+      }
+
+
+      /*
+       A select clause is searched with help of a (extended) finite automate.
+       description of the used states:
+       state 0: is the start-state,
+       state 1: filters strings before a selects clause
+       state 2: a potential begin of a select clause which is not enclosed in brackets
+       state 3: a potential begin of a select clause whithin brackets
+       states 4-9: check for character-sequence "select" without brackets
+                   the string for the optimization is given from begin of "select" to the
+		   end of command
+	states 11-16: check for character-sequence "select within brackets
+	              the string for the optimization is given from begin of "select" to the
+		      appropriate closing bracket
+        state 19 : ignore closing brackets in quotes within a select-clause
+	state 17 : count the opened brackets within a select clause, so it's possible to have
+	           (select * from ....() (()) () (()) )
+		   as valid select-clause
+	state 18: characters within a select-clause
+      */
+
+      char c;
+      int noOfBraces = 0;
+      while(curpos<length){
+         if(curpos>length){
+	     return null;
+	 }
+	 c = command.charAt(curpos);
+	 if(state==0){
+	   switch(c){
+	      case '\"' : { curpos++;
+	                    state=1;
+			    break;
+			   }
+	      case ' '  : { curpos++;
+	                    state=2;
+			    break;
+			  }
+	      case '('  : { minpos=curpos; // a potentially start of a select clause
+	                    state=3;
+			    curpos++;
+			    break;
+			  }
+              default : curpos++;
+            }
+	 }else if(state==1){
+            if(c=='\"')
+	       state=0;
+	    curpos++;
+	 }else if(state==2){
+	    switch(c) {
+              case ' ' : curpos++;
+	                 break;
+              case '(' : state=3;
+	                 minpos=curpos;
+	                 curpos++;
+                         break;
+	      case 's' : minpos=curpos;
+	                 state=4;
+			 curpos++;
+			 break;
+	      case '\"' : state=1;
+	                  curpos++;
+                          break;
+	      default : state=0;
+	                  curpos++;
+	    }
+	 }else if(state==3){
+	      switch(c){
+                case ' ' : curpos++;
+		           break;
+		case '(' : minpos=curpos;
+		           curpos++;
+			   break;
+	        case '\"': state=1;
+		           curpos++;
+			   break;
+                case 's' : state=11;
+		           curpos++;
+			   break;
+	        default  : state=0;
+		           curpos++;
+	      }
+	 } else if(state==4){
+	     switch(c){
+	        case 'e' : curpos++;
+		           state=5;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	 } else if(state==5){
+	     switch(c){
+	        case 'l' : curpos++;
+		           state=6;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	 } else if(state==6){
+	      switch(c){
+	        case 'e' : curpos++;
+		           state=7;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	 } else if(state==7){
+	     switch(c){
+	        case 'c' : curpos++;
+		           state=8;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	 } else if(state==8){
+             switch(c){
+	        case 't' : curpos++;
+		           state=9;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	 } else if(state==9){
+	     if(c==' ' | c=='('  | c=='\"')
+	        return new Interval(minpos,length);
+	     else{
+	        state=0;
+             }
+	 } else if(state==11){
+	    switch(c){
+	        case 'e' : curpos++;
+		           state=12;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	 } else if(state==12){
+	     switch(c){
+	        case 'l' : curpos++;
+		           state=13;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+
+	 } else if(state==13){
+	     switch(c){
+	        case 'e' : curpos++;
+		           state=14;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	 } else if(state==14){
+	    switch(c){
+	        case 'c' : curpos++;
+		           state=15;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+          } else if(state==15){
+	      switch(c){
+	        case 't' : curpos++;
+		           state=16;
+			   break;
+                case '(' : minpos=curpos;
+		           curpos++;
+			   state=3;
+			   break;
+		case ' ' : state=2;
+		           curpos++;
+			   break;
+                case '\"': state=1;
+		           curpos++;
+			   break;
+                default   : state=0;
+		            curpos++;
+	     }
+	  } else if(state==16){
+	      switch(c){
+	        case ' ' : curpos++;
+		           state=18;
+			   break;
+                case '\"': curpos++;
+		           state=19;
+			   break;
+                case '(' : curpos++;
+		           noOfBraces++;
+			   state=17;
+			   break;
+		default  : curpos++;
+                           state=0;
+	       }
+	  } else if(state==19){
+	      if(c=='\"'){
+	         state=18;
+	      }
+	      curpos++;
+	  } else if(state==18){
+	     switch(c){
+                case '(' : state=17;
+		           curpos++;
+			   noOfBraces++;
+                           break;
+		case '\"': state=19;
+		           curpos++;
+			   break;
+		case ')' : return new Interval(minpos+1,curpos); // remove braces
+		default  : curpos++;
+	     }
+	  } else if(state==17){
+	     switch(c){
+                case '(' : curpos++;
+			   noOfBraces++;
+			   break;
+		case '\"' : curpos++;
+		            state=20;
+			    break;
+		case ')'  : noOfBraces--;
+		            if(noOfBraces==0)
+			        state=18;
+			    curpos++;
+                default : curpos++;
+	     }
+	  } else if(state==20){
+	      if(c=='\"')
+	          state=17;
+	      curpos++;
+
+	  }
+
+      } // while
+      return null; // no select found
+
+  } // findSelectClause
+
+
   /** optimizes a command if optimizer is enabled */
   private String optimize(String command){
-  if(command.length()<6)
-    return command; 
-  String CMD = command.substring(0,6).toUpperCase();
-  if(!CMD.startsWith("SQL") & !CMD.startsWith("SELECT") ){ // command not to optimize
-     return command;
-  }
+  if(command.length()<6) // command can't contain a select clause
+    return command;
 
-  if(!useOptimizer()){
-    appendText("optimizer not available");
-    showPrompt();
-    return "";
-  }
-
+  String TmpCommand = "";
+  int First = 0;
+  Interval SelectClauseInterval=null;
   IntObj Err = new IntObj();
-  String opt = OptInt.optimize(command,OpenedDatabase,Err);
-  if(Err.value!=ErrorCodes.NO_ERROR){
+  String SelectClause="";
+  boolean isQuery = false;
+  int length = command.length();
+  while((SelectClauseInterval=findSelectClause(command,First))!=null){
+     if(!useOptimizer()){ // error select clause found but no optimizer enabled
+        appendText("optimizer not available");
+	showPrompt();
+	return "";
+     }
+
+     if(SelectClauseInterval.min==0 && SelectClauseInterval.max==length)
+         isQuery = true;
+
+     //  the text before the select clause
+     if(SelectClauseInterval.min>First)
+        TmpCommand = TmpCommand + command.substring(First,SelectClauseInterval.min-1);
+     // extract the select-clause
+     SelectClause = command.substring(SelectClauseInterval.min,SelectClauseInterval.max);
+
+     // optimize the select-clause
+     String opt = OptInt.optimize(SelectClause,OpenedDatabase,Err);
+     if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
         appendText("error in optimization of this query");
         showPrompt();
 	return "";
-  }else{
-       return "query "+opt;
-  }
-  
-}
+      }else{
+        TmpCommand += isQuery ?  "query "+ opt : opt;
+        First = SelectClauseInterval.max+1;
+      }
+   }// while
+
+   // append the rest of the command
+   if(First<command.length())
+      command = TmpCommand + command.substring(First,command.length());
+   else
+      command = TmpCommand;
+   return  command;
+ }
 
 
 
@@ -238,8 +613,6 @@ public class CommandPanel extends JScrollPane {
     IntByReference errorCode = new IntByReference(0);
     IntByReference errorPos = new IntByReference(0);
     StringBuffer errorMessage = new StringBuffer();
-    // First send an "echo" to the system panel with the received command.
-    appendText("\n" + command + "...");
     // Builds the data to send to the server.
 
     if (command.startsWith("(")) {
@@ -256,6 +629,7 @@ public class CommandPanel extends JScrollPane {
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
          command = optimize(command);
+	 appendText("\n" + command + "...");
 	 if(command.equals("")) return false;
 
          Secondointerface.secondo(command,           //Command to execute.
@@ -624,6 +998,17 @@ public class CommandPanel extends JScrollPane {
       }
     }
   }
+  
+  class Interval{
+     public Interval(int x, int y){
+        min=x;
+	max = y;
+     }
+
+     int min=0;
+     int max=0;
+  }
+
 
 }
 
