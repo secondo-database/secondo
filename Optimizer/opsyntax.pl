@@ -43,6 +43,8 @@ For all other forms, a plan_to_atom rule has to be programmed explicitly.
 
 */
 
+secondoOp(distance, prefix, 2).
+
 
 secondoOp(feed, postfix, 1).
 secondoOp(consume, postfix, 1).
