@@ -123,6 +123,26 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
+/*
+2.4 Functions Describing the Signature of the Type Constructors
+
+This one works for type constructors ~point~.
+*/
+static ListExpr
+PointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List"),
+			     nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("point"), 
+			     nl->StringAtom("(<x> <y>)"), 
+			     nl->StringAtom("(-3 15)"),
+			     nl->StringAtom("x- and y-coordinates must be of type int."))));
+}
 static Word
 CreatePoint( const ListExpr typeInfo ) 
 {
@@ -150,19 +170,23 @@ ClonePoint( const Word& w )
 }
  
 /*
-2.4 Function Describing the Signature of the Type Constructor
-
-This one works for both type constructors ~point~ and ~rectangle~, in fact,
-for all ``atomic'' types.
-
+Function describing type property of type constructor ~rectangle~
 */
 
 static ListExpr
-PointRectangleProperty()
+RectangleProperty()
 {
   return (nl->TwoElemList(
-		nl->TheEmptyList(),
-		nl->SymbolAtom("DATA") ));
+            nl->FiveElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List"),
+			     nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("rectangle"), 
+			     nl->StringAtom("(<xleft> <xright> <ybottom> <ytop>)"), 
+			     nl->StringAtom("(4 12 8 2)"),
+			     nl->StringAtom("all coordinates must be of type int."))));
 }
 
 /*
@@ -183,7 +207,7 @@ CheckPoint( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor point(
 	"point",			//name		
-	PointRectangleProperty, 	//property function describing signature
+	PointProperty, 	                //property function describing signature
         OutPoint,   	InPoint,	//Out and In functions
 	CreatePoint,	DeletePoint,	//object creation and deletion
         0, 0, ClosePoint, ClonePoint,    //object open, save, and close
@@ -353,7 +377,7 @@ CheckRectangle( ListExpr type, ListExpr& errorInfo )
 3.6 Creation of the Type Constructor Instance
 
 */
-TypeConstructor rectangle( "rectangle",	PointRectangleProperty,
+TypeConstructor rectangle( "rectangle",	RectangleProperty,
         		OutRectangle, 		InRectangle,         
 			CreateRectangle,	DeleteRectangle, 	
         		0, 0, 			CloseRectangle,     CloneRectangle,

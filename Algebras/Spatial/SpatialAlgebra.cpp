@@ -356,8 +356,14 @@ static ListExpr
 PointProperty()
 {
   return (nl->TwoElemList(
-		nl->TheEmptyList(),
-		nl->SymbolAtom("SPATIAL") ));
+            nl->FourElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("point"), 
+			     nl->StringAtom("(<x><y>)"), 
+			     nl->StringAtom("(10 5)"))));
 }
 
 /*
@@ -1008,8 +1014,14 @@ static ListExpr
 PointsProperty()
 {
   return (nl->TwoElemList(
-		nl->TheEmptyList(),
-		nl->SymbolAtom("SPATIAL") ));
+            nl->FourElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("points"), 
+			     nl->StringAtom("(<point>*) where point is (<x><y>)"), 
+			     nl->StringAtom("( (10 1)(4 5) )"))));
 }
 
 /*
@@ -2270,8 +2282,14 @@ static ListExpr
 LineProperty()
 {
   return (nl->TwoElemList(
-		nl->TheEmptyList(),
-		nl->SymbolAtom("SPATIAL") ));
+            nl->FourElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("line"), 
+			     nl->StringAtom("(<segment>*) where segment is (<x1><y1><x2><y2>)"), 
+			     nl->StringAtom("( (1 1 2 2)(3 3 4 4) )"))));
 }
 
 /*
@@ -2320,11 +2338,25 @@ TypeConstructor line(
 8 Type Constructor ~region~
 
 A ~region~ value is a set of halfsegments. In the external (nestlist) representation, a region value is 
+<<<<<<< SpatialAlgebra.cpp
+expressed as a set of segments. However, in the internal (class) representation, it is expressed
+as a set of sorted halfsegments, which are stored as a PArray.
+
+The system will do the basic check on the validity of the region data. For instance, the region should have 
+at least 3 edges, and every vertex should have even-numbered edges associated.
+=======
 expressed as a set of faces, and each face is composed of a set of cycles.  However, in the internal 
 (class) representation, it is expressed as a set of sorted halfsegments, which are stored as a PArray.
+>>>>>>> 1.6
 
+<<<<<<< SpatialAlgebra.cpp
+In the following step, I will change the design of the region data type. The internal representation of a region
+is still a set of  sorted halfsegments, but the external representation (nestedlist) will be changed. It will use
+the concept of cycles and faces.
+=======
 The system will do the basic check on the validity of the region data (see the explaination of the 
 insertOK() function). 
+>>>>>>> 1.6
 
 8.1 Implementation of the class ~region~
 
@@ -3381,8 +3413,16 @@ static ListExpr
 RegionProperty()
 {
   return (nl->TwoElemList(
-		nl->TheEmptyList(),
-		nl->SymbolAtom("SPATIAL") ));
+            nl->FiveElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List"),
+			     nl->StringAtom("Remarks")),			     
+            nl->FiveElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("region"), 
+			     nl->StringAtom("(<face>*) where face is (<outercycle><holecycle>*); <outercycle> and <holecycle> are <points>*"), 
+			     nl->StringAtom("( ((3 0)(10 1)(3 1))((3.1 0.1)(3.1 0.9)(6 0.8)) )"),
+			     nl->StringAtom("all <holecycle> must be completely within <outercycle>."))));			     
 }
 
 /*
@@ -4568,16 +4608,71 @@ ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping, SpatialNoModelMappin
                                      SpatialNoModelMapping, SpatialNoModelMapping,
                                      SpatialNoModelMapping, SpatialNoModelMapping };
 
-const string SpatialSpecIsEmpty = "(<text> point -> bool, points -> bool, line -> bool, region -> bool</text---><text> Returns whether the value is defined or not. </text--->)";
-const string SpatialSpecEqual = "(<text> (point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool</text---><text> Equal. </text--->)";
-const string SpatialSpecNotEqual = "(<text> (point point) -> bool</text---><text> Not equal. </text--->)";
-const string SpatialSpecLess = "(<text> (point point) -> bool</text---><text> Less than. </text--->)";
-const string SpatialSpecLessEqual   = "(<text> (point point) -> bool</text---><text> Equal or less than. </text--->)";
-const string SpatialSpecGreater = "(<text> (point point) -> bool</text---><text> Greater than. </text--->)";
-const string SpatialSpecGreaterEqual = "(<text> (point point) -> bool</text---><text> Equal or greater than. </text--->)";
-const string SpatialSpecIntersects = "(<text> (points points) -> bool, (line line) -> bool, (region region) -> bool</text---><text> Intersects. </text--->)";
-const string SpatialSpecInside = "(<text> (points points) -> bool, (line line) -> bool, (region region) -> bool, (point points) -> bool, (point line) -> bool, (point region) -> bool</text---><text> Inside. </text--->)";
+//const string SpatialSpecIsEmpty = "(<text> point -> bool, points -> bool, line -> bool, region -> bool</text---><text> Returns whether the value is defined or not. </text--->)";
+const string SpatialSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>point -> bool, points -> bool, line -> bool, region -> bool</text--->
+			       <text>isempty ( _ )</text--->
+			       <text>Returns whether the value is defined or not.</text--->
+			       <text>query isempty ( line1 )</text--->
+			      ) )";
+//const string SpatialSpecEqual = "(<text> (point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool</text---><text> Equal. </text--->)";
+const string SpatialSpecEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool</text--->
+			       <text>_ = _</text--->
+			       <text>Equal.</text--->
+			       <text>query point1 = point2</text--->
+			      ) )";
+//const string SpatialSpecNotEqual = "(<text> (point point) -> bool</text---><text> Not equal. </text--->)";
+const string SpatialSpecNotEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(point point) -> bool</text--->
+			       <text>_ # _</text--->
+			       <text>Not equal.</text--->
+			       <text>query point1 # point2</text--->
+			      ) )";
+//const string SpatialSpecLess = "(<text> (point point) -> bool</text---><text> Less than. </text--->)";
+const string SpatialSpecLess  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(point point) -> bool</text--->
+			       <text>_ < _</text--->
+			       <text>Less than.</text--->
+			       <text>query point1 < point2</text--->
+			      ) )";
+//const string SpatialSpecLessEqual   = "(<text> (point point) -> bool</text---><text> Equal or less than. </text--->)";
+const string SpatialSpecLessEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(point point) -> bool</text--->
+			       <text>_ <= _</text--->
+			       <text>Equal or less than.</text--->
+			       <text>query point1 <= point2</text--->
+			      ) )";
+//const string SpatialSpecGreater = "(<text> (point point) -> bool</text---><text> Greater than. </text--->)";
+const string SpatialSpecGreater  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(point point) -> bool</text--->
+			       <text>_ > _</text--->
+			       <text>Greater than.</text--->
+			       <text>query point1 > point2</text--->
+			      ) )";
 
+//const string SpatialSpecGreaterEqual = "(<text> (point point) -> bool</text---><text> Equal or greater than. </text--->)";
+const string SpatialSpecGreaterEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(point point) -> bool</text--->
+			       <text>_ >= _</text--->
+			       <text>Equal or greater than.</text--->
+			       <text>query point1 >= point2</text--->
+			      ) )";
+//const string SpatialSpecIntersects = "(<text> (points points) -> bool, (line line) -> bool, (region region) -> bool</text---><text> Intersects. </text--->)";
+const string SpatialSpecIntersects  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(points points) -> bool, (line line) -> bool, (region region) -> bool</text--->
+			       <text>_ intersects _</text--->
+			       <text>Intersects.</text--->
+			       <text>query point1 intersects point2</text--->
+			      ) )";
+//const string SpatialSpecInside = "(<text> (points points) -> bool, (line line) -> bool, (region region) -> bool, (point points) -> bool, (point line) -> bool, (point region) -> bool</text---><text> Inside. </text--->)";
+const string SpatialSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(points points) -> bool, (line line) -> bool, (region region) -> bool, (point points) -> bool, (point line) -> bool, (point region) -> bool</text--->
+			       <text>_ inside _</text--->
+			       <text>Inside.</text--->
+			       <text>query point1 inside line1</text--->
+			      ) )";
+			      
 Operator spatialisempty( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
 Operator spatialequal( "=", SpatialSpecEqual, 4, spatialequalmap, spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
 Operator spatialnotequal( "#", SpatialSpecNotEqual, 4, spatialnotequalmap, spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
@@ -4600,6 +4695,7 @@ class SpatialAlgebra : public Algebra
   {
     AddTypeConstructor( &point );
     AddTypeConstructor( &points );
+    //AddTypeConstructor( &halfsegment );
     AddTypeConstructor( &line );
     AddTypeConstructor( &region );
 
@@ -4607,6 +4703,7 @@ class SpatialAlgebra : public Algebra
     points.AssociateKind("DATA");   	//can be used in places where types
     line.AssociateKind("DATA");      	//of kind DATA are expected, e.g. in
     region.AssociateKind("DATA");	//tuples.
+    //halfsegment.AssociateKind("DATA");
 	
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );

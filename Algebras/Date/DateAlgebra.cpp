@@ -565,7 +565,15 @@ This one works for type constructor ~date~ , which is an ``atomic'' type.
 static ListExpr
 DateProperty()
 {
-  return (nl->TwoElemList(nl->TheEmptyList(), nl->SymbolAtom("DATA")));
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("date"), 
+			     nl->StringAtom("\"<year>-<month>-<day>\""), 
+			     nl->StringAtom("\"2003-09-05\""))));
 }
 
 /*
@@ -851,26 +859,67 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 
-const string DaySpec =
-  "(<text>(date) -> int</text---><text>extract the day info. from a date.</text--->)";
+//const string DaySpec =
+  //"(<text>(date) -> int</text---><text>extract the day info. from a date.</text--->)";
+const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(date) -> int</text--->
+			       <text>day ( _ )</text--->
+			       <text>extract the day info. from a date.</text--->
+			       <text>query day ( date1 )</text--->
+			      ) )";
 
-const string MonthSpec =
-  "(<text>(date) -> int</text---><text>extract the month info. from a date.</text--->)";
+//const string MonthSpec =
+  //"(<text>(date) -> int</text---><text>extract the month info. from a date.</text--->)";
+const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(date) -> int</text--->
+			       <text>month ( _ )</text--->
+			       <text>extract the month info. from a date.</text--->
+			       <text>query month ( date1 )</text--->
+			      ) )";
 
-const string YearSpec =
-  "(<text>(date) -> int</text---><text>extract the year info. from a date.</text--->)";
+//const string YearSpec =
+  //"(<text>(date) -> int</text---><text>extract the year info. from a date.</text--->)";
+const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+                             ( <text>(date) -> int</text--->
+			       <text>year ( _ )</text--->
+			       <text>extract the year info. from a date.</text--->
+			       <text>query year ( date1 )</text--->
+			      ) )";
 
-const string EarlierSpec =
-  "(<text>(date date) -> bool</text---><text>earlier predicate.</text--->)";
+//con//st string EarlierSpec =
+  //"//(<text>(date date) -> bool</text---><text>earlier predicate.</text--->)";
+const string EarlierSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
+                             ( <text>(date date) -> bool</text--->
+			       <text>_ < _</text--->
+			       <text>Earlier predicate.</text--->
+			       <text>query date1 < date2</text--->
+			      ) )";
+//const string EqualSpec =
+  //"(<text>(date date) -> bool</text---><text>equal predicate.</text--->)";
+const string EqualSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
+                             ( <text>(date date) -> bool</text--->
+			       <text>_ = _</text--->
+			       <text>Equal predicate.</text--->
+			       <text>query date1 = date2</text--->
+			      ) )";
 
-const string EqualSpec =
-  "(<text>(date date) -> bool</text---><text>equal predicate.</text--->)";
+//const string LaterSpec =
+  //"(<text>(date date) -> bool</text---><text>later predicate.</text--->)";
+const string LaterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
+                             ( <text>(date date) -> bool</text--->
+			       <text>_ > _</text--->
+			       <text>Later predicate.</text--->
+			       <text>query date1 > date2</text--->
+			      ) )";
 
-const string LaterSpec =
-  "(<text>(date date) -> bool</text---><text>later predicate.</text--->)";
-
-const string DateSpec =
-  "(<text>(int int int) -> date</text---><text>to generate a date. </text--->)";
+//const string DateSpec =
+  //("(<text>(int int int) -> date</text---><text>to generate a date. </text--->)";
+const string DateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
+                             ( <text>(int int int) -> date</text--->
+			       <text>thedate ( <day>, <month>, <year> ) where <day>, <month> and <year> are of type int</text--->
+			       <text>to generate a date.</text--->
+			       <text>let date1 = thedate(5,4,2003)</text--->
+			      ) )";
 
 /*
 The above strings are used to explain the signature and the meaning of operators.
