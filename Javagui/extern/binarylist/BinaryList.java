@@ -94,7 +94,7 @@ public ListExpr getList(String FileName){
   }
   LastError="no error";   
   try{
-     BufferedInputStream FIS = new BufferedInputStream(new FileInputStream(F));
+     BufferedInputStream FIS = new BufferedInputStream(new FileInputStream(F),4096);
      if(FIS==null)
         LastError = "error in reading file";
      return readBinaryFrom(FIS);
