@@ -4,19 +4,18 @@
 This little program checks a file for too long lines.
 The maximal number of characters in a singe line is readed
 as first argument. If the first argument is less than zero
-(or not a number), the default value defined as 
+(or not a number), the default value defined as
 DEFAULT\_MAX\_LENGTH is taken. The Program prints out the
 line numbers of too long lines. The return value is
 the number of too long lines in the file.
 If no file specified, this tool reads from stdin. So it can be
-used within a pipe. 
+used within a pipe.
 
 The programm is called via\\
   {\tt linecheck [maxlines] [file]}
 
 */
-
-
+%x comment
 %{
 
 #define TABSIZE 8
@@ -29,10 +28,18 @@ int errors;
 
 %}
 
+
 /* regular definitions */
 %%
 
 \t  {length += TABSIZE; }
+^"/*"  {BEGIN(comment);}
+<comment>"*/" {BEGIN(INITIAL);}
+<comment>.  ;
+<comment>\n { line++; }
+
+
+
 .   {length += 1;}
 \n  { line++;
       if(length > maxlength){
