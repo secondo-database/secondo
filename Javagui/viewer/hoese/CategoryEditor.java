@@ -207,7 +207,7 @@ public class CategoryEditor extends javax.swing.JDialog {
     gridBagConstraints3.gridy = 1;
     gridBagConstraints3.anchor = java.awt.GridBagConstraints.WEST;
     FillStyleP.add(TextureRB, gridBagConstraints3);
-    Iconfile = new File("images/duke.gif");
+    Iconfile = new File("res/duke.gif");
     TextureIconB.setIcon(new javax.swing.ImageIcon(Iconfile.getPath()));
     TextureIconB.setPreferredSize(new java.awt.Dimension(40, 40));
     TextureIconB.setMaximumSize(new java.awt.Dimension(50, 75));
