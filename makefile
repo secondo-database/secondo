@@ -128,9 +128,9 @@ clean:
 	$(MAKE) -C Algebras clean
 	$(MAKE) -C QueryProcessor clean
 	$(MAKE) -C UserInterfaces clean
-	$(RM) *.a
-	$(RM) *.so
-	$(RM) *.dll
+	$(RM) $(LIBDIR)/libsdb*.a $(LIBDIR)/libsdb*.so $(LIBDIR)/libsdb*.dll $(LIBDIR)/libsdb*.dll.a
+	$(RM) $(LIBDIR)/libsmi*.a $(LIBDIR)/libsmi*.so $(LIBDIR)/libsmi*.dll $(LIBDIR)/libsmi*.dll.a
+	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.so
 
 .PHONY: clean_tests
 clean_tests:

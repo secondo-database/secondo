@@ -9,7 +9,7 @@
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
-//characters	[3]	teletype:	[\texttt{]	[}]
+//characters	[4]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -76,7 +76,7 @@ class SMI_EXPORT SmiProfile
                               const string& defaultValue,
                               const string& fileName );
 /*
-searches the profile ~fileName~ for the key ~keyName~ under the section heading
+Searches the profile ~fileName~ for the key ~keyName~ under the section heading
 ~sectionName~. If found, the associated string is returned, else the 
 default value is returned.
 
@@ -87,14 +87,14 @@ default value is returned.
                               long          defaultValue,
                               const string& fileName );
 /*
-searches the profile ~fileName~ for the key ~keyName~ under the section heading
+Searches the profile ~fileName~ for the key ~keyName~ under the section heading
 ~sectionName~. The function returns
 
   * ~zero~ -- if the key value is not an integer,
 
   * ~actual value~ -- if it is possible to interpret the key value as an 
 integer (Note that only the beginning of the key value is interpreted, i.e.
-"key=345abc"[3] returns "345"[3])
+"key=345abc"[4] returns "345"[4])
 
   * ~default value~ -- if key or section not found
 
@@ -104,7 +104,7 @@ integer (Note that only the beginning of the key value is interpreted, i.e.
                               const string& keyValue,
                               const string& fileName );
 /*
-searches the profile ~fileName~ for the section heading ~sectionName~ and
+Searches the profile ~fileName~ for the section heading ~sectionName~ and
 the key ~keyName~. If found the value is changed to ~keyValue~, otherwise
 it will be added.
 

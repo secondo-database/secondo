@@ -8,6 +8,7 @@
 //characters    [1]     verbatim:       [$]         [$]
 //characters    [2]     formula:        [$]         [$]
 //characters    [3]     capital:        [\textsc{]  [}]
+//characters    [4]     teletype:       [\texttt{]  [}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -44,7 +45,7 @@ dependent macros are defined.
 
 #define SECONDO_LITTLE_ENDIAN
 /*
-Define the preprocessor symbol *SECONDO\_LITTLE\_ENDIAN* if your machine has a little
+Define the preprocessor symbol "SECONDO\_LITTLE\_ENDIAN"[4] if your machine has a little
 endian byte order architecture. Otherwise ~\#undef~ this symbol.
 
 *TODO*: Detection of endianess should be done automatically.
@@ -73,17 +74,17 @@ on Windows platforms it is necessary to specify for C++ classes whether they
 are imported from a DLL (when using a DLL) or exported from a DLL (when
 creating a DLL).
 
-Since the Secondo system has separate components, namely the database kernel
-and the storage management interface one must be able to differntiate between
+Since the "Secondo"[3] system has separate components, namely the database kernel
+and the storage management interface one must be able to differentiate between
 these components.
 
 Currently there are two components:
 
-  * SDB  -- the Secondo DataBase kernel.
+  * SDB  -- the "Secondo"[3] DataBase kernel.
 Define SDB\_USE\_DLL if compiling modules which want to use a DLL for this component.
 Define SDB\_CREATE\_DLL if compiling this component as a DLL.
 
-  * SMI  -- the Storage Management Interface
+  * SMI  -- the Storage Management Interface.
 Define SMI\_USE\_DLL if compiling modules which want to use a DLL for this component.
 Define SMI\_CREATE\_DLL if compiling this component as a DLL.
 
@@ -138,7 +139,7 @@ Creating shared libraries requires no special measures.
 #endif
 
 /*
-The following symbol must be defined in order to use the latest POSIX APIs.
+The following symbol must be defined in order to use the latest POSIX APIs:
 
 */
 #ifdef __GNUC__
@@ -146,7 +147,7 @@ The following symbol must be defined in order to use the latest POSIX APIs.
 #endif
 
 /*
-Define separator character for pathnames an PATH environment variable
+Define separator character for pathnames in PATH environment variable:
 
 */
 #ifdef SECONDO_WIN32
@@ -162,13 +163,13 @@ Define separator character for pathnames an PATH environment variable
 #endif
 
 /*
-Number of elements in a static array.
+Number of elements in a static array:
 
 */
 #define nelems(x) (sizeof((x))/sizeof(*(x)))
 
 /*
-Size of a structure member.
+Size of a structure member:
 
 */
 #define sizeofm(struct_t,member) \

@@ -60,11 +60,9 @@ include ../../include.dep
 
 .PHONY: clean
 clean:
+	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
 	$(RM) *.o
 	$(RM) *.lo
-	$(RM) *.a
-	$(RM) *.so
-	$(RM) *.dll
 
 else
 # Platform not specified

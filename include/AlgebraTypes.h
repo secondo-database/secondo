@@ -1,14 +1,32 @@
 /*
-//[ue] [\"{u}]
+//paragraph    [10]    title:           [{\Large \bf ] [}]
+//paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     [\end{tabular}\end{quote}]
+//paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    [\end{tabular}\end{quote}]
+//paragraph    [23]    table3columns:   [\begin{quote}\begin{tabular}{lll}]   [\end{tabular}\end{quote}]
+//paragraph    [24]    table4columns:   [\begin{quote}\begin{tabular}{llll}]  [\end{tabular}\end{quote}]
+//[--------]    [\hline]
+//characters    [1]    verbatim:   [$]    [$]
+//characters    [2]    formula:    [$]    [$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
+//[ae] [\"a]
+//[oe] [\"o]
+//[ue] [\"u]
+//[ss] [{\ss}]
+//[<=] [\leq]
+//[#]  [\neq]
+//[tilde] [\verb|~|]
 
-1 Header File: AlgebraTypes
+1 Header File: Algebra Types
 
 May 2002 Ulrich Telle
 
 1.1 Overview
 
 This module defines several types which are important not only to algebra
-modules but also throughout the whole ~Secondo~ system.
+modules but also throughout the whole "Secondo"[3] system.
+
+1.1 Imports, Types and Defines
 
 */
 
@@ -22,7 +40,7 @@ modules but also throughout the whole ~Secondo~ system.
 typedef void* Address;
 #endif
 /*
-is the type for generic references. To use such references one need to
+Is the type for generic references. To use such references one need to
 apply an appropriate type cast.
 
 */
@@ -36,7 +54,7 @@ union Word
 //  Word( float    newrval ) : rval( newrval ) {};
 /*
 Unfortunately C++ does not allow members with constructors in unions.
-Therefore some inline initialization functions (SetWord) are defined below.
+Therefore some inline initialization functions ("SetWord"[4]) are defined below.
 
 */
   Address  addr; // generic reference
@@ -45,9 +63,9 @@ Therefore some inline initialization functions (SetWord) are defined below.
   float    rval; // floating point value with single precision
 };
 /*
-specifies a generic variant type for a ~Word~ of memory used for ~Secondo~
+Specifies a generic variant type for a "Word"[4] of memory used for "Secondo"[3]
 objects. To be independent of the underlying processor architecture no
-assumptions about the size of a ~Word~ should be made but all required
+assumptions about the size of a "Word"[4] should be made but all required
 variants should be defined as a separate variant. For each variant a
 constructor must be added to the list of constructors.
 
@@ -62,7 +80,7 @@ static inline Word SetWord( int      newival )
 static inline Word SetWord( float    newrval )
                      { Word w; w.rval = newrval; return w; };
 /*
-are several inline initialization functions for ~Word~ instances.
+Are several inline initialization functions for ~Word~ instances.
 
 */
 
@@ -71,7 +89,7 @@ enum AlgebraLevel { UndefinedLevel   = 0,
                     ExecutableLevel  = 2,
                     HybridLevel      = 3 };
 /*
-is an enumeration of the algebra levels.
+Is an enumeration of the algebra levels.
 
 */
 

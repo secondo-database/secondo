@@ -266,6 +266,7 @@ If value 0 is returned, the command was executed without error.
   errorPos     = 0;
   errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   errorInfo    = errorList;
+  resultList   = nl->TheEmptyList();
 
   switch (commandLevel)
   {
@@ -921,6 +922,10 @@ If value 0 is returned, the command was executed without error.
     {
       errorCode = 1;         // Command not recognized
     }
+  }
+  if ( resultAsText )
+  {
+    nl->WriteToFile( resultFileName, resultList );
   }
 }
 

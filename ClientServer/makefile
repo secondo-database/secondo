@@ -68,12 +68,12 @@ SecondoCheckpoint.o: SecondoCheckpoint.cpp $(INCLUDEDIR)/Application.h $(INCLUDE
 SecondoListener.o: SecondoListener.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Processes.h $(INCLUDEDIR)/SocketIO.h $(INCLUDEDIR)/Profiles.h
 	$(CC) -c -o SecondoListener.o SecondoListener.cpp $(CCXFLAGS)
 
-SecondoServer.o: SecondoServer.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/SocketIO.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/AlgebraTypes.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoInterface.h
+SecondoServer.o: SecondoServer.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/SocketIO.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/AlgebraTypes.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/Messenger.h $(INCLUDEDIR)/Profiles.h
 	$(CC) -c -o SecondoServer.o SecondoServer.cpp $(CCXFLAGS)
 
 SecondoInterfaceCS.o: SecondoInterfaceCS.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/Profiles.h
 	$(CC) -c -o SecondoInterfaceCS.o SecondoInterfaceCS.cpp $(CCXFLAGS)
-	$(CP) SecondoInterfaceCS.$(OBJEXT) $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT)
+	$(CP) SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceCS.o
 
 # --- Link applications
 
@@ -92,11 +92,11 @@ $(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o $(LIBDIR)/libsdbtool.$
 $(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o $(LIBDIR)/libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoListener$(EXEEXT) SecondoListener.o -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerBDB$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerBDB$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerORA$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerORA$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 

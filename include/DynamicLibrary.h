@@ -9,7 +9,7 @@
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
-//characters	[3]	teletype:	[\texttt{]	[}]
+//characters	[4]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -58,10 +58,10 @@ the same. Using C++ things get more complicated since due to the name
 mangling the C++ compiler performs to make calling functions type-safe
 and to allow overloading of functions.
 For example the function name ~init~ might look like
-~init\_int23\@myclass\@qbe\_ev\_abc~ or something similar strange. So
+"init\_int23\@myclass\@qbe\_ev\_abc"[4] or something similar strange. So
 finding the function isn't an easy task, but there is a way out of the
 problem when there exists at least *one* C call protected from name
-mangling with ~extern C~ in the dynamic library that returns a pointer
+mangling with "extern C"[4] in the dynamic library that returns a pointer
 to a class instance. Clever as it is this ~trick~ solves only part of
 the problem since the calling program wont actually have any knowledge
 about the object, unless there is a common parent class from which the
@@ -103,54 +103,54 @@ class SDB_EXPORT DynamicLibrary
  public:
   DynamicLibrary();
 /*
-initializes the ~DynamicLibrary~ object.
+Initializes the ~DynamicLibrary~ object.
 Once the object is constructed, use the method ~Load~
 to dynamically link to a dynamic library while the process is running.
 
 */
   virtual ~DynamicLibrary();
 /*
-destroys an instance of ~DynamicLibrary~
+Destroys an instance of ~DynamicLibrary~
 The method ~Unload~ is call implicitly.
 
 */
   bool Load( const string& libraryName );
 /*
-loads a dynamic library ~libraryName~ into a process while it is
+Loads a dynamic library ~libraryName~ into a process while it is
 running (dynamic linking).
-The method returns ~true~ on success, otherwise ~false~.
+The method returns "true"[4] on success, otherwise "false"[4].
 On failure use method ~GetLastErrorMessage~ to get an error
 message.
 
 */
   bool Unload();
 /*
-unloads a dynamic library from a process while it is running.
-The method returns ~true~ on success, otherwise ~false~.
+Unloads a dynamic library from a process while it is running.
+The method returns "true"[4] on success, otherwise "false"[4].
 On failure use method ~GetLastErrorMessage~ to get an error
 message.
 
 */
   bool IsLoaded() const;
 /*
-returns true if a dynamic library is currently loaded into the process.
+Returns "true"[4] if a dynamic library is currently loaded into the process.
 
 */
   string GetLibraryName() const;
 /*
-returns the name of the currently loaded dynamic library.
+Returns the name of the currently loaded dynamic library.
 An empty string is returned when no library is loaded.
 
 */
   void* GetFunctionAddress( const string& functionName );
 /*
-finds the function named ~functionName~ and returns a function pointer to it.
+Finds the function named ~functionName~ and returns a function pointer to it.
 If the function cannot be found, a null pointer is returned.
 
 */
   string GetLastErrorMessage();
 /*
-returns the error message text of the last failed class method.
+Returns the error message text of the last failed class method.
 An empty string is returned when no error occurred.
 The internal message buffer is emptied.
 
@@ -166,7 +166,7 @@ The internal message buffer is emptied.
  private:
   void SetErrorMessage();
 /*
-is used to create an error message when one of dynamic library system calls failed.
+Is used to create an error message when one of dynamic library system calls failed.
 The method ~GetLastErrorMessage~ returns this message to the user on request.
 
 */

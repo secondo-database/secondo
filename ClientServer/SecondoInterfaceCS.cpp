@@ -179,6 +179,7 @@ If value 0 is returned, the command was executed without error.
   errorCode    = 0;
   errorList    = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   errorInfo    = errorList;
+  resultList   = nl->TheEmptyList();
 
   if ( server == 0 )
   {
@@ -403,6 +404,10 @@ If value 0 is returned, the command was executed without error.
     {
       errorCode = 80;
     }
+  }
+  if ( resultAsText )
+  {
+    nl->WriteToFile( resultFileName, resultList );
   }
 }
 

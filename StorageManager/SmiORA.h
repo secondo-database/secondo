@@ -8,6 +8,7 @@
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
 //characters	[3]	capital:	[\textsc{]	[}]
+//characters	[4]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -16,7 +17,7 @@
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: Storage Management Interface (Oracle DB)
+1 Header File: Storage Management Interface\\(Oracle DB)
 
 April 2002 Ulrich Telle
 
@@ -28,25 +29,25 @@ itself is completely independent of the implementation. To hide the
 implementation from the user of the interface, the interface objects use
 implementation objects for representing the implementation specific parts.
 
-The Oracle implementation of the interface uses several concepts to
+The "Oracle"[3] implementation of the interface uses several concepts to
 keep track of the "Secondo"[3] databases and their ~SmiFiles~.
 Named ~SmiFiles~ within each "Secondo"[3] database are managed in a simple
 file catalog. 
 
 1.1.1  "Secondo"[3] databases
 
-All "Secondo"[3] databases belong to one Oracle user, the "Secondo"[3]
+All "Secondo"[3] databases belong to one "Oracle"[3] user, the "Secondo"[3]
 manager. The connect information for this user is kept in the "Secondo"[3]
 configuration file. Since the password is stored therein in plain text
 the configuration file should be protected appropriately. The names of
-the Oracle database tables storing ~SmiFiles~ always have the name of
+the "Oracle"[3] database tables storing ~SmiFiles~ always have the name of
 the "Secondo"[3] database name as a prefix. For each "Secondo"[3] database
-two Oracle objects hold the information about the ~SmiFile~ objects:
+two "Oracle"[3] objects hold the information about the ~SmiFile~ objects:
 
-  *  *SEQUENCES* -- is an Oracle sequence providing unique identifiers
+  *  *SEQUENCES* -- is an "Oracle"[3] sequence providing unique identifiers
 for ~SmiFile~ objects within a Secondo database.
 
-  *  *TABLES* -- is an Oracle table used as a ~file catalog~ keeping track
+  *  *TABLES* -- is an "Oracle"[3] table used as a ~file catalog~ keeping track
 of all *named* ~SmiFile~ objects. The unique identifier is used as the
 primary key for the entries. The name of a ~SmiFile~ object combined with
 the context name is used as a secondary unique key for the entries.
@@ -110,7 +111,7 @@ struct SmiCatalogEntry
   bool      isFixed;
 };
 /*
-defines the structure of the entries in the file catalog.
+Defines the structure of the entries in the file catalog.
 The identifier ~fileId~, the name ~fileName~ and the type is stored for each
 named ~SmiFile~.
 
@@ -122,7 +123,7 @@ struct SmiDropFilesEntry
   bool      dropOnCommit;   
 };
 /*
-defines the structure of the elements in the queue for file drop requests.
+Defines the structure of the elements in the queue for file drop requests.
 Drop requests are fulfilled on successful completion of a transaction if
 the flag ~dropOnCommit~ is set or on abortion of a transaction if this
 flag is *not* set. In all other cases an entry is ignored.
@@ -135,7 +136,7 @@ struct SmiCatalogFilesEntry
   bool            updateOnCommit;
 };
 /*
-defines the structure of the elements in the map for file catalog requests.
+Defines the structure of the elements in the map for file catalog requests.
 Catalog requests are fulfilled on successful completion of a transaction if
 the flag ~updateOnCommit~ is set or on abortion of a transaction if this
 flag is *not* set. In all other cases an entry is ignored.
@@ -155,66 +156,66 @@ class SmiEnvironment::Implementation
  public:
   static SmiFileId GetFileId();
 /*
-returns a unique file identifier.
+Returns a unique file identifier.
 
 */
   static bool LookUpCatalog( const string& fileName,
                              SmiCatalogEntry& entry );
 /*
-looks up a file named ~fileName~ in the file catalog. If the file was found, the
-function returns ~true~ and the catalog entry ~entry~ contains information about
+Looks up a file named ~fileName~ in the file catalog. If the file was found, the
+function returns "true"[4] and the catalog entry ~entry~ contains information about
 the file like the file identifier.
 
 */
   static bool LookUpCatalog( const SmiFileId fileId,
                              SmiCatalogEntry& entry );
 /*
-looks up a file identified by ~fileId~ in the file catalog. If the file was found,
-the function returns ~true~ and the catalog entry ~entry~ contains information about
+Looks up a file identified by ~fileId~ in the file catalog. If the file was found,
+the function returns "true"[4] and the catalog entry ~entry~ contains information about
 the file like the file name.
 
 */
   static bool InsertIntoCatalog( const SmiCatalogEntry& entry );
 /*
-inserts the catalog entry ~entry~ into the file catalog.
+Inserts the catalog entry ~entry~ into the file catalog.
 
 */
   static bool DeleteFromCatalog( const string& fileName );
 /*
-deletes the catalog entry ~entry~ from the file catalog.
+Deletes the catalog entry ~entry~ from the file catalog.
 
 */
   static bool UpdateCatalog( bool onCommit );
 /*
-updates the file catalog on completion of a transaction by inserting or deleting
+Updates the file catalog on completion of a transaction by inserting or deleting
 entries collected during the transaction. The flag ~onCommit~ tells the function
-whether the transaction is committed (~true~) or aborted (~false~).
+whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
   static bool EraseFiles( bool onCommit );
 /*
-erases all files on completion of a transaction for which drop requests were
+Erases all files on completion of a transaction for which drop requests were
 collected during the transaction. The flag ~onCommit~ tells the function
-whether the transaction is committed (~true~) or aborted (~false~).
+whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
   static string ConstructTableName( SmiFileId fileId );
   static string ConstructSeqName( SmiFileId fileId );
   static string ConstructIndexName( SmiFileId fileId );
 /*
-construct a valid table, sequence or index name using the file identifier ~fileId~.
+Construct a valid table, sequence or index name using the file identifier ~fileId~.
 
 */
   static bool LookUpDatabase( const string& dbname );
 /*
-looks up the Secondo database ~dbname~ in the database catalog.
-The function returns ~true~ if a database with the given name exists.
+Looks up the "Secondo"[3] database ~dbname~ in the database catalog.
+The function returns "true"[4] if a database with the given name exists.
 
 */
   static bool DeleteDatabase( const string& dbname );
 /*
-deletes the name ~dbname~ of an existing Secondo database from the database
-catalog. The function returns ~true~ if the deletion was successful.
+Deletes the name ~dbname~ of an existing "Secondo"[3] database from the database
+catalog. The function returns "true"[4] if the deletion was successful.
 
 */
  protected:
@@ -223,31 +224,31 @@ catalog. The function returns ~true~ if the deletion was successful.
  private:
   OCICPP::Connection usrConnection;
 /*
-is the connection for user commands. All data manipulation commands are
+Is the connection for user commands. All data manipulation commands are
 executed using this connection.
 
 */
   OCICPP::Connection sysConnection;
 /*
-is the connection for system commands. All data definition commands are
-executed using this connection since Oracle issues implicitly a ~commit
+Is the connection for system commands. All data definition commands are
+executed using this connection since "Oracle"[3] issues implicitly a ~commit
 transaction~ immediately before and after data definition commands.
 
 */
   ostream* msgStream;
 /*
-is the output stream for error messages.
+Is the output stream for error messages.
 
 */
   bool     txnStarted;
 /*
-User transaction started
+Is a flag indicating whether a user transaction has been started.
 
 */
   bool           listStarted;
   OCICPP::Cursor listCursor;
 /*
-are needed to support listing the names of all existing "Secondo"[3] databases.
+Are needed to support listing the names of all existing "Secondo"[3] databases.
 
 */
 
@@ -265,7 +266,7 @@ are needed to support listing the names of all existing "Secondo"[3] databases.
 /**************************************************************************
 1.3 Class "SmiFile::Implementation"[1]
 
-This class handles all implementation specific aspects of an SmiFile
+This class handles all implementation specific aspects of an ~SmiFile~
 hiding the implementation from the user of the ~SmiFile~ class.
 
 */
@@ -283,18 +284,18 @@ class SmiFile::Implementation
                 const string& bindname,
                 OCICPP::Cursor& csr );
 /*
-binds the key values according to the key datatype to placeholders
+Binds the key values according to the key datatype to placeholders
 in an SQL command for a given database cursor.
 
 */
 
   int GetSeqId( OCICPP::Connection& con );
 /*
-returns a unique record sequence number for ~SmiFiles~ with duplicate keys.
+Returns a unique record sequence number for ~SmiFiles~ with duplicate keys.
 Since the current version of the OCI C++ library does not support the
-~RETURNING~ clause, explicit sequence numbers are the only way to identify
+"RETURNING"[4] clause, explicit sequence numbers are the only way to identify
 newly inserted records with duplicate keys. Otherwise it would be possible
-to return the internal row identification of Oracle for this purpose.
+to return the internal row identification of "Oracle"[3] for this purpose.
 
 */
  private:
@@ -311,7 +312,7 @@ to return the internal row identification of Oracle for this purpose.
 /**************************************************************************
 1.3 Class "SmiFileIterator::Implementation"[1]
 
-This class handles all implementation specific aspects of an SmiFileIterator
+This class handles all implementation specific aspects of an ~SmiFileIterator~
 hiding the implementation from the user of the ~SmiFileIterator~ class.
 
 */
@@ -336,7 +337,7 @@ class SmiFileIterator::Implementation
 /**************************************************************************
 1.3 Class "SmiRecord::Implementation"[1]
 
-This class handles all implementation specific aspects of an SmiRecord
+This class handles all implementation specific aspects of an ~SmiRecord~
 hiding the implementation from the user of the ~SmiRecord~ class.
 
 */

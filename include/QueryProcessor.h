@@ -20,12 +20,86 @@
 
 1 Header File: Query Processor
 
-August 16 RHG Changed includes to remove indirection.
+September 1996 Claudia Freundorfer
+
+December 23, 1996 RHG Changed procedure ~construct~ to include checks for correctness of query and evaluability of the operator tree.
+
+January 3, 1997 RHG Added parameter ~defined~ to procedures ~construct~ and ~annotateX~ to allow checking whether all objects have defined values.
+
+May 4, 1998 RHG Added procedure ~resultStorage~.
+
+May 4, 1998 RHG Added procedure ~getSupplier~.
+
+May 15, 1998 RHG Added procedures ~evalModel~ and ~requestModel~.
+
+June 18, 1998 RHG Added procedures ~getNoSons~ and ~getType~.
+
+January 24, 2001 RHG Change of procedure ~Destroy~ taken from SecondoReference.
+
+January 26, 2001 RHG Added an ~isFunction~ parameter to procedure ~construct~.
 
 May 2002 Ulrich Telle Port to C++, integrated descriptive algebra level
 and function mapping.
 
 1.1 Overview
+
+This module describes the interface of module ~QueryProcessor~.
+The modules offers all the basic operations for executing an executable
+command in nested list format. The module ~QueryProcessor~ offers a data
+structure to store an operator tree, procedures to build an operator tree
+from an access plan given by the optimizer and procedures to execute it by
+quasi-coroutines. 
+
+The task of the query processor is to evaluate queries given as nested
+list expressions. It divides the task into three steps:
+
+  1 The given query is ~annotated~ which means all the symbols occurring
+in the query are analyzed (e.g. objects or operators are looked up in
+the system catalog) and the found information is attached to the symbol.
+The result is an ~annotated query~, again a nested list. This is done by
+method ~Annotate~. 
+
+    This step includes calling ~type mapping functions~ for each
+operator of the query. The type mapping function gets a list of argument
+types (associated with the arguments of the operator in the query). It
+then checks whether argument types are correct. If so, it returns a
+result type, otherwise a special symbol ~typeerror~. The result type is
+used to annotate the operator application in the query. 
+
+    This step also includes calling a ~selection function~ which maps
+an operator into an evaluation procedure. This is used for overloaded
+operators, for example + (with four evaluation functions for the
+possible combinations of int and real arguments). All operators have
+such a selection function, even if they are not overloaded; in that case
+the selection function is simple (e.g. identity for the operator number
+to function number mapping) and it may be the same for all operators of
+an algebra. 
+
+  2 An annotated query is taken and transformed into an ~operator tree~.
+Method ~Subtree~ constructs the tree from the annotated query.
+
+  3 Finally, an evaluation method called ~Eval~ traverses the tree,
+calling ~evaluation functions~ for the operators there. The evaluation
+functions can call (their) parameter functions through special interface
+procedures to the query processor. They can also produce or consume
+streams in cooperation with the query processor (that is, ~Eval~). 
+
+1.3 Interface methods
+
+The class ~QueryProcessor~ provides the following methods:
+
+[23]    Creation/Deletion/Test & Operator tree & Operator handling     \\
+        [--------]
+        QueryProcessor          & Construct & Argument \\
+        [tilde]QueryProcessor   & Eval      & Request \\
+                                & EvalModel & Received \\
+                                & Destroy   & Open \\
+                                &           & Close \\
+                                &           & RequestModel \\
+        AnnotateX               &           & GetSupplier \\
+        SubtreeX                &           & ResultStorage \\
+        ListOfTree              &           & GetNoSons \\
+        SetDebugLevel           &           & GetType \\
 
 1.2 Imports and Types
 
@@ -37,7 +111,7 @@ and function mapping.
 #include "AlgebraManager.h"
 /*
 defines the basic types of the query processor
-such as ArgVectorPointer, Supplier, Word, Address, etc.
+such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 
 */
 #include "SecondoCatalog.h"
@@ -55,20 +129,31 @@ struct VarEntry
 
 typedef CTable<VarEntry>  VarEntryCTable;
 
+/************************************************************************** 
+3.2 Class "QueryProcessor"[1]
+
+This class implements all methods for the "Secondo"[3] query processor.
+
+*/
 class QueryProcessor
 {
  public:
   QueryProcessor( NestedList* newNestedList,
                   AlgebraManager* newAlgebraManager );
+/*
+Creates a query processor instances using the provided nested list container
+and algebra manager.
+
+*/
   virtual ~QueryProcessor();
+/*
+Destroys a query processor instance.
 
+*/
 /************************************************************************** 
-3.2 Exported Functions and Procedures 
-
 3.2.1 Construction and Execution of an Operator Tree
 
 */
-
   void Construct( const AlgebraLevel level,
                   const ListExpr expr, bool& correct,
                   bool& evaluable, bool& defined,
@@ -81,11 +166,11 @@ constructed if ~annotateX~ does not find a type error. If there is no
 error, then ~correct~ is TRUE, the tree is returned in ~tree~ and the
 result type of the expression in ~resultType~. In addition, for a
 descriptive query (~level = descriptive~), models are evaluated and
-stored in the tree. If there is a type error, ~correct~ is set to FALSE
+stored in the tree. If there is a type error, ~correct~ is set to "false"[4]
 and ~resultType~ contains a symbol ~typeerror~. 
 
 If there is an  object with undefined value mentioned in the query, then
-~defined~ is FALSE.
+~defined~ is "false"[4].
 
 Even if there is no type error, a query may not be evaluable, for example,
 if the outermost operator produces a stream, or the query is just an
@@ -103,8 +188,8 @@ the function in a database object.
              const int message );
 /*
 Traverses the operator tree ~tree~ calling operator implementations for
-each node, and returns the result in ~result~. The ~message~ is OPEN,
-REQUEST, or CLOSE and is used only if the root node produces a stream.
+each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
+"REQUEST"[4], or "CLOSE"[4] and is used only if the root node produces a stream.
 
 */
   void EvalModel( const OpTree tree, Word& result );
@@ -115,10 +200,9 @@ in ~subtreeModel~. This is similar to ~eval~, but we do not need to
 handle stream evaluation. 
 
 */
-
   void Destroy( OpTree& tree, const bool destroyRootValue );  
 /*
-Deletes an operator tree object. If ~DestroyRootValue~ is ~FALSE~, the
+Deletes an operator tree object. If ~DestroyRootValue~ is "false"[4], the
 result value stored in the root node is not deleted.
 
 */
@@ -141,8 +225,8 @@ Calls the parameter function (to which the arguments must have been supplied bef
 */
   bool Received( const Supplier s );
 /*
-Returns ~true~ if the supplier responded to the previous ~request~ by a
-~yield~ message; ~false~ if it responded with ~cancel~.
+Returns "true"[4] if the supplier responded to the previous ~request~ by a
+"YIELD"[4] message; "false"[4] if it responded with "CANCEL"[4].
 
 */
   void Open( const Supplier s );
@@ -240,7 +324,7 @@ Get for variable ~name~ its ~position~ (number of parameter in the list of
 parameters) and the number of the abstraction (function definition) ~funindex~
 defining it, as well as the associated ~typeexpr~.
 
-*Precondition*: ~IsVariable(name, varnames)~.
+*Precondition*: "IsVariable( name, varnames ) == true"[4].
 
 */
   void EnterVariable( const string& name,
@@ -253,7 +337,7 @@ defining it, as well as the associated ~typeexpr~.
 Enter ~position~ (number of parameter), ~funindex~ (number of abstraction definition)
 and ~typeexpr~ for the variable ~name~ into tables ~varnames~ and ~vartable~.
 
-*Precondition*: NOT ~IsVariable(name, varnames)~.
+*Precondition*: "IsVariable( name, varnames ) == false"[4].
 
 */
   bool IsVariable( const string& name,
@@ -278,6 +362,10 @@ enum QueryProcessorType
          QP_ARGLIST, QP_APPLYABS, QP_APPLYFUN,
          QP_TYPEERROR, QP_ERROR, QP_APPEND,
          QP_UNDEFINED };
+/*
+enumerates the types a symbol may have while annotating an expression.
+
+*/
   QueryProcessorType TypeOfSymbol( const ListExpr symbol );
 /*
 Transforms a list expression ~symbol~ into one of the values of type
@@ -298,7 +386,7 @@ variables occurring in abstractions (function definitions) and to
 retrieve them in the function's expression. Return the annotated
 expression. 
 
-Parameter ~defined~ is set to FALSE if any object mentioned in the
+Parameter ~defined~ is set to "false"[4] if any object mentioned in the
 expression has an undefined value. Parameter ~fatherargtypes~ is used to
 implement inference of parameter types in abstractions. When a function
 is analyzed by ~annotate-function~, then this list contains the argument
@@ -363,3 +451,4 @@ Construct operator tree recursively for a given annotated ~expr~. See
 };
 
 #endif
+

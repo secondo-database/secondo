@@ -10,11 +10,13 @@ using namespace std;
 
 #include "Application.h"
 #include "SocketIO.h"
+#include "Messenger.h"
 #include "AlgebraTypes.h"
 #include "SecondoSystem.h"
 #include "SecondoCatalog.h"
 #include "SecondoInterface.h"
 #include "FileSystem.h"
+#include "Profiles.h"
 
 static istream&
 skipline( istream&  strm )
@@ -52,6 +54,8 @@ class SecondoServer : public Application
   NestedList*       nl;
   string            parmFile;
   bool              quit;
+  string            registrar;
+  string            user;
 };
 
 void
@@ -324,10 +328,26 @@ SecondoServer::Connect()
   iostream& iosock = client->GetSocketStream();
   string line;
   getline( iosock, line );
+  ListExpr userinfo;
+  user = "-UNKNOWN-";
+  if ( nl->ReadFromString( line, userinfo ) )
+  {
+    if ( nl->First( userinfo ) != nl->TheEmptyList() )
+    {
+      user = nl->SymbolValue( nl->First( nl->First( userinfo ) ) );
+    }
+  }
+  nl->Destroy( userinfo );
   getline( iosock, line );
   iosock << "<SecondoIntro>" << endl
          << "You are connected with a Secondo server." << endl
          << "</SecondoIntro>" << endl;
+  Messenger messenger( registrar );
+  string answer;
+  ostringstream os;
+  os << "LOGIN " << user << " " << GetOwnProcessId();
+  messenger.Send( os.str(), answer );
+  SmiEnvironment::SetUser( user );
 }
 
 void
@@ -343,6 +363,7 @@ SecondoServer::Execute()
   for ( int jj = 0; jj < GetArgCount(); jj++ )
     cout << GetArgValues()[jj] << endl;
   parmFile = (GetArgCount() > 1) ? GetArgValues()[0] : "SecondoConfig.ini";
+  registrar = SmiProfile::GetParameter( "Environment", "RegistrarName", "SECONDO_REGISTRAR", parmFile );
   si = new SecondoInterface();
   if ( si->Initialize( "", "", "", "", parmFile, true ) )
   {
@@ -390,6 +411,11 @@ SecondoServer::Execute()
       while (!iosock.fail() && !quit);
       client->Close();
       delete client;
+      Messenger messenger( registrar );
+      string answer;
+      ostringstream os;
+      os << "LOGOUT " << user << " " << GetOwnProcessId();
+      messenger.Send( os.str(), answer );
     }
     else
     {

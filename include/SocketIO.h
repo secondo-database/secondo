@@ -7,11 +7,14 @@
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
+//characters	[4]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
 //[ss] [{\ss}]
 //[<=] [\leq]
+//[<] [\lt ]
+//[>] [\gt ]
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
@@ -140,35 +143,35 @@ internally only, the class interface is not described here.
 
 #define DEFAULT_CONNECT_MAX_ATTEMPTS 100
 /*
-defines the default for how many attempts are made at most to connect
+Defines the default for how many attempts are made at most to connect
 a client socket to a server socket.
 
 */
 #define DEFAULT_RECONNECT_TIMEOUT    1  // seconds
 /*
-defines the default time interval between two connect attempts.
+Defines the default time interval between two connect attempts.
 
 */
 #define DEFAULT_LISTEN_QUEUE_SIZE    5
 /*
-defines the default capacity of the listener queue.
+Defines the default capacity of the listener queue.
 
 */
 #define LINGER_TIME                  10 // seconds
 /*
-defines how long the kernel should try to send data still waiting in
+Defines how long the kernel should try to send data still waiting in
 the socket buffer after the socket was closed.
 
 */
 #define WAIT_FOREVER                 ((time_t)-1)
 /*
-specifies an indefinite time period. Specifying this value for a time out
+Specifies an indefinite time period. Specifying this value for a time out
 period is identical to blocking I/O mode.
 
 */
 #define ENABLE_BROADCAST             1
 /*
-defines the flag for enabling broadcast messages on UDP sockets.
+Defines the flag for enabling broadcast messages on UDP sockets.
 
 */
 
@@ -180,8 +183,8 @@ typedef int    SocketDescriptor;
 #define INVALID_SOCKET (-1)
 #endif
 /*
-is a type definition for a socket handle.
-If a socket is not valid, the handle value equals ~INVALID\_SOCKET~.
+Is a type definition for a socket handle.
+If a socket is not valid, the handle value equals "INVALID\_SOCKET"[4].
 
 */
 
@@ -202,7 +205,7 @@ to the ~fcntl~ function.
 */
 class SocketBuffer;
 /*
-is a forward declaration of the stream buffer class for socket stream support.
+Is a forward declaration of the stream buffer class for socket stream support.
 
 */
 class SDB_EXPORT Socket { 
@@ -214,28 +217,28 @@ class SDB_EXPORT Socket {
     SockGlobalDomain
   };
 /*
-is an enumeration of domain types:
+Is an enumeration of domain types:
 
-  * SockAnyDomain -- the domain type is chosen automatically
+  * ~SockAnyDomain~ -- the domain type is chosen automatically
 
-  * SockLocalDomain -- the domain type is local (i.e. Unix domain sockets)
+  * ~SockLocalDomain~ -- the domain type is local (i.e. Unix domain sockets)
 
-  * SockGlobalDomain -- the domain type is global (i.e. INET sockets)
+  * ~SockGlobalDomain~ -- the domain type is global (i.e. INET sockets)
 
 */
   static bool IsLibraryInitialized();
 /*
-checks whether the operating socket interface was successfully initialized.
+Checks whether the operating socket interface was successfully initialized.
 
 */
   Socket() { state = SS_CLOSE; }
 /*
-initializes a ~Socket~ instance as an invalid socket in closed state.
+Initializes a ~Socket~ instance as an invalid socket in closed state.
 
 */
   virtual ~Socket() {} 
 /*
-destroys a socket.
+Destroys a socket.
 
 */
   static Socket*  Connect( const string& address,
@@ -248,7 +251,7 @@ destroys a socket.
                              DEFAULT_RECONNECT_TIMEOUT );
 
 /*
-establishes a connection to a server. This method will do at most
+Establishes a connection to a server. This method will do at most
 ~maxAttempts~ attempts to connect to the server, with an interval of
 ~timeout~ seconds between the attempts. The address of the server is
 specified by ~address~ and ~port~, both as strings. The type of the
@@ -275,7 +278,7 @@ first checked by its ~IsOk~ method.
                                const int listenQueueSize =
                                  DEFAULT_LISTEN_QUEUE_SIZE);
 /*
-creates and opens a socket in the local domain at the server side. 
+Creates and opens a socket in the local domain at the server side. 
 The parameter ~address~ specifies the name to be assigned to the socket.
 The parameter ~listenQueueSize~ specifies the size of the listen queue.
 
@@ -290,7 +293,7 @@ first checked by its ~IsOk~ method.
                                 const int listenQueueSize =
                                   DEFAULT_LISTEN_QUEUE_SIZE );
 /*
-creates and opens a socket in the global (internet) domain at the server side. 
+Creates and opens a socket in the global (internet) domain at the server side. 
 The parameter ~address~ specifies the name to be assigned to the socket.
 The parameter ~listenQueueSize~ specifies the size of the listen queue.
 
@@ -302,13 +305,13 @@ first checked by its ~IsOk~ method.
 */
   virtual SocketDescriptor GetDescriptor() = 0;
 /*
-returns the socket descriptor of the socket. This socket descriptor may be
+Returns the socket descriptor of the socket. This socket descriptor may be
 inherited by a child process later on.
 
 */
   static Socket*  CreateClient( const SocketDescriptor sd );
 /*
-(re)creates a socket instance for the socket descriptor ~sd~, created by 
+(Re)creates a socket instance for the socket descriptor ~sd~, created by 
 the ~Accept~ method.
 
 This method is provided to allow passing socket descriptors to child
@@ -325,7 +328,7 @@ the socket before the child process has finished using the socket.
                         size_t minSize, size_t maxSize,
                         time_t timeout = WAIT_FOREVER ) = 0;
 /*
-receives incoming data, transferring it from the socket into the buffer
+Receives incoming data, transferring it from the socket into the buffer
 ~buf~. The maximal size of the buffer is given by ~maxSize~.
 The function returns the number of bytes actually read from the socket,
 which ranges from ~minSize~ to ~maxSize~. The function does not return
@@ -337,44 +340,44 @@ means that the socket has disconnected.
 */
   virtual bool    Read( void* buf, size_t size ) = 0;
 /*
-receives incoming data, transferring it from the socket into the buffer
+Receives incoming data, transferring it from the socket into the buffer
 ~buf~. The function does not return to the caller before exactly ~size~
-bytes were received or an error occurred. The function returns ~true~ when
+bytes were received or an error occurred. The function returns "true"[4] when
 the transfer was successful.
 
 */
   virtual bool    Write( void const* buf, size_t size ) = 0;
 /*
-sends the data contained in buffer ~buf~ over the socket. The buffer is
-assumed to contain ~size~ bytes. The function returns ~true~ when all
-bytes could be transferred successfully. In case of an error ~false~ is
+Sends the data contained in buffer ~buf~ over the socket. The buffer is
+assumed to contain ~size~ bytes. The function returns "true"[4] when all
+bytes could be transferred successfully. In case of an error "false"[4] is
 returned.
 
 */
   virtual bool    IsOk() = 0;
 /*
-checks whether the socket is correctly initialized and ready for operation.
+Checks whether the socket is correctly initialized and ready for operation.
 
 */
   virtual string  GetErrorText() = 0;
 /*
-returns an error message text for the last error occurred.
+Returns an error message text for the last error occurred.
 
 */
   virtual string  GetSocketAddress() const = 0;
 /*
-returns the IP address of the socket in string representation.
+Returns the IP address of the socket in string representation.
 
 */
   virtual string  GetPeerAddress() const = 0;
 /*
-returns the IP address of the socket to which this socket is connected
+Returns the IP address of the socket to which this socket is connected
 in string representation.
 
 */
   virtual Socket* Accept() = 0;
 /*
-is called by a server to establish a pending client connection.
+Is called by a server to establish a pending client connection.
 When the client executes the ~Connect~ method and accesses the server's
 accept port, this method will create a new socket, which can be used for
 communication with the client.
@@ -382,7 +385,7 @@ communication with the client.
 The function returns a pointer to a new socket that controls the
 communication between client and server. The new socket must be released
 by the server once it has finished using it. If the operation failed a
-NULL pointer is returned.
+"NULL"[4] pointer is returned.
 
 The function ~Accept~ blocks until a connection will be established and
 therefore cannot be used to detect activity on multiple sockets.
@@ -390,12 +393,12 @@ therefore cannot be used to detect activity on multiple sockets.
 */
   virtual bool    CancelAccept() = 0;
 /*
-cancels an accept operation and closes the socket.
+Cancels an accept operation and closes the socket.
 
 */
   virtual bool    Close() = 0;
 /*
-closes the socket.
+Closes the socket.
 
 *NOTE*: The operating system decrements the associated reference counter
 of the socket by one. The TCP/IP connection is closed when the reference
@@ -404,30 +407,30 @@ counter reaches zero.
 */
   virtual bool    ShutDown() = 0;
 /*
-shuts down the socket. Thereafter read and write operations on the
+Shuts down the socket. Thereafter read and write operations on the
 socket are prohibited. All future attempts to read or write data
 from/to the socket will be refused. But all previously initiated
 operations are guaranteed to be completed. The function returns
-~true~ if the operation was successfully completed, ~false~ otherwise.
+"true"[4] if the operation was successfully completed, "false"[4] otherwise.
 
 */
   static string GetHostname( const string& ipAddress );
 /*
-tries to get the fully qualified host name corresponding to the IP address
+Tries to get the fully qualified host name corresponding to the IP address
 ~ipAddress~ which is given in string representation. If the method fails
-the string ~<unknown>~ will be returned.
+the string "<unknown>"[2] will be returned.
 
 */
   static int GetIP( const string& address );
 /*
-gets the IP address of the host. "address" parameter should contain either
+Gets the IP address of the host. "address" parameter should contain either
 symbolic host name (for example "robinson"), or a string with IP address
 (for example "195.239.208.225")
 
 */
   iostream& GetSocketStream();
 /*
-returns a reference to the I/O stream associated with the socket.
+Returns a reference to the I/O stream associated with the socket.
 
 An I/O stream is available only for sockets created by the methods
 ~Connect~ and ~Accept~.
@@ -436,7 +439,7 @@ An I/O stream is available only for sockets created by the methods
  protected:
   enum { SS_OPEN, SS_SHUTDOWN, SS_CLOSE } state;
 /*
-defines the socket state.
+Defines the socket state.
 
 */
    SocketBuffer* ioSocketBuffer; // Socket stream buffer
@@ -445,7 +448,7 @@ defines the socket state.
 
 extern string GetProcessName();
 /*
-returns the current host name combined with an identifier of the current process.
+Returns the current host name combined with an identifier of the current process.
 
 */
 
@@ -464,47 +467,47 @@ class SDB_EXPORT SocketAddress
  public:
   SocketAddress();
 /*
-initializes a socket address, which consists of
+Initializes a socket address, which consists of
 an IP address and a port number.
 
-The IP address is set to the wildcard address (INADDR\_ANY).
+The IP address is set to the wildcard address ("INADDR\_ANY"[4]).
 The port number is set to zero.
 
 */
   SocketAddress( const SocketAddress& sockAddr );
 /*
-creates a socket address that is an identical copy of ~sockAddr~.
+Creates a socket address that is an identical copy of ~sockAddr~.
 
 */
   SocketAddress( const string& ipAddr, uint16_t portNo = 0 );
 /*
-initializes a socket address converting the string representation of
+Initializes a socket address converting the string representation of
 an IP address ~ipAddr~ into the internal binary representation. The
 port number is set to ~portNo~.
 
 */
   virtual ~SocketAddress();
 /*
-destroys a socket address.
+Destroys a socket address.
 
 */
   SocketAddress& operator=( const SocketAddress& sockAddr );
 /*
-changes ~self~ into an identical copy of the socket address referenced
+Changes ~self~ into an identical copy of the socket address referenced
 by ~sockAddr~.
 
 */
   bool operator==( const SocketAddress& sockAddr ) const;
 /*
-compares ~self~ with socket address ~sockAddr~.
-The method returns ~true~ if both objects are equal, otherwise it
-returns ~false~.
+Compares ~self~ with socket address ~sockAddr~.
+The method returns "true"[4] if both objects are equal, otherwise it
+returns "false"[4].
 
 */
   void SetAddress( const string& ipAddr,
                    uint16_t portNo = 0 );
 /*
-sets the socket address converting the string representation of
+Sets the socket address converting the string representation of
 an IP address ~ipAddr~ into the internal binary representation. The
 port number is set to ~portNo~.
 
@@ -512,26 +515,26 @@ port number is set to ~portNo~.
   void SetAddress( const string& ipAddr,
                    const string& portNo );
 /*
-sets the socket address converting the string representation of
+Sets the socket address converting the string representation of
 an IP address ~ipAddr~ into the internal binary representation. The
 string representation ~portNo~ of the port number is also converted.
 
 */
   string GetSocketString() const;
 /*
-returns the IP address of the socket including the port number as
+Returns the IP address of the socket including the port number as
 a string. The port number is appended to the IP address after
 inserting a colon as a delimiter, i.e. ~132.176.69.10:1234~.
 
 */
   string GetIPAddress() const;
 /*
-returns the IP address portion of the socket address in string format.
+Returns the IP address portion of the socket address in string format.
 
 */
   uint16_t GetPort() const;
 /*
-returns the port number portion of the socket address in host byte order.
+Returns the port number portion of the socket address in host byte order.
 
 */
  protected:
@@ -553,7 +556,7 @@ class SDB_EXPORT SocketRule
  public:
   enum Policy { DENY, ALLOW };
 /*
-is an enumeration of access policies:
+Is an enumeration of access policies:
 
   *  ~ALLOW~ -- specifies that access should be granted when a host address
 matches the rule.
@@ -564,53 +567,53 @@ matches the rule.
 */
   SocketRule();
 /*
-creates an empty rule.
+Creates an empty rule.
 
 */
   SocketRule( const string& strIpAddr,
               const string& strIpMask,
               const Policy setAllowDeny = ALLOW );
 /*
-creates a rule initialized by the given IP address ~strIpAddr~ and IP
+Creates a rule initialized by the given IP address ~strIpAddr~ and IP
 address mask ~strIpMask~ and the access policy ~setAllowDeny~.
 
 */
   virtual ~SocketRule() {};
 /*
-destroys a rule.
+Destroys a rule.
 
 */
   bool Match( const SocketAddress& host );
 /*
-checks whether the IP address ~host~ matches the rule. The access policy
+Checks whether the IP address ~host~ matches the rule. The access policy
 is ignored.
 
 */
   bool Allowed( const SocketAddress& host );
 /*
-checks whether access should be allowed for the IP address ~host~.
+Checks whether access should be allowed for the IP address ~host~.
 
 */
   bool Denied( const SocketAddress& host );
 /*
-checks whether access should be denied for the IP address ~host~.
+Checks whether access should be denied for the IP address ~host~.
 
 */
   static void SetDelimiter( const char newDelimiter = '/' );
 /*
-sets the delimiter used between IP address, IP address mask and access
+Sets the delimiter used between IP address, IP address mask and access
 policy when a rule is sent onto an output stream.
 
 */
   static char GetDelimiter();
 /*
-returns the current delimiter used between IP address, IP address mask
+Returns the current delimiter used between IP address, IP address mask
 and access policy when a rule is sent onto an output stream.
 
 */
   friend ostream& operator <<( ostream& os, SocketRule& r );
 /*
-allows to send a rule to an output stream.
+Allows to send a rule to an output stream.
 
 */
  protected:
@@ -631,12 +634,12 @@ class SDB_EXPORT SocketRuleSet
   SocketRuleSet( SocketRule::Policy initDefaultPolicy =
                    SocketRule::DENY );
 /*
-creates an empty rule set with a default access policy ~initDefaultPolicy~.
+Creates an empty rule set with a default access policy ~initDefaultPolicy~.
 
 */
   virtual ~SocketRuleSet() {};
 /*
-destroys a rule set.
+Destroys a rule set.
 
 */
   void AddRule( const string& strIpAddr,
@@ -644,30 +647,30 @@ destroys a rule set.
                 SocketRule::Policy allowDeny =
                   SocketRule::ALLOW );
 /*
-adds a rule consisting of the IP address ~strIpAddr~, the IP address mask
+Adds a rule consisting of the IP address ~strIpAddr~, the IP address mask
 ~strIpMask~ and the access policy ~allowDeny~ to the rule set.
 
 */
   bool Ok( const SocketAddress& host );
 /*
-checks whether access should be granted for the IP address ~host~.
+Checks whether access should be granted for the IP address ~host~.
 
 */
   bool LoadFromFile( const string& ruleFileName );
 /*
-loads a set of rules from the file with name ~ruleFileName~.
-The method returns ~true~ when the file could be read successfully.
+Loads a set of rules from the file with name ~ruleFileName~.
+The method returns "true"[4] when the file could be read successfully.
 
 */
   bool StoreToFile( const string& ruleFileName );
 /*
-stores a set of rules into the file with name ~ruleFileName~.
-The method returns ~true~ when the file could be written successfully.
+Stores a set of rules into the file with name ~ruleFileName~.
+The method returns "true"[4] when the file could be written successfully.
 
 */
   friend ostream& operator <<(ostream& os, SocketRuleSet& r);
 /*
-allows to send a set of rules to an output stream.
+Allows to send a set of rules to an output stream.
 
 */
  protected:
@@ -688,61 +691,61 @@ class SDB_EXPORT SocketBuffer : public std::streambuf
  public:
   SocketBuffer( Socket& socket );
 /*
-creates a socket buffer associated with the socket ~socket~.
+Creates a socket buffer associated with the socket ~socket~.
 
 */
   ~SocketBuffer();
 /*
-destroys a socket buffer.
+Destroys a socket buffer.
 
 */
   bool is_open() const { return socketHandle != 0; }
 /*
-checks whether the stream buffer is ready for operation.
+Checks whether the stream buffer is ready for operation.
 
 */
   SocketBuffer* close();
 /*
-closes the stream buffer.
+Closes the stream buffer.
 
 */
   streampos seekoff( streamoff, ios::seek_dir, int )
     { return EOF; }
 /*
-disallows seeking in the stream buffer since a TCP stream is strictly
+Disallows seeking in the stream buffer since a TCP stream is strictly
 sequential.
 
 */
   int xsputn( const char* s, const int n );
 /*
-allows faster writing onto the socket of a string consisting on ~n~ characters.
+Allows faster writing onto the socket of a string consisting on ~n~ characters.
 
 */
   int xsgetn( char* s, const int n );
 /*
-allows faster reading from the socket of a string consisting on ~n~ characters.
+Allows faster reading from the socket of a string consisting on ~n~ characters.
 
 */
  protected:
   virtual int overflow( int ch = EOF );
 /*
-writes the data in the output buffer to the associated socket.
+Writes the data in the output buffer to the associated socket.
 
 */
   virtual int uflow();
   virtual int underflow();
 /*
-tries to read data from the associated socket, when the input buffer is empty.
+Tries to read data from the associated socket, when the input buffer is empty.
 
 */
   virtual int sync();
 /*
-flushes all output data from the buffer to the associated socket.
+Flushes all output data from the buffer to the associated socket.
 
 */
   virtual int pbackfail( int ch = EOF );
 /*
-disallows to unget a character.
+Disallows to unget a character.
 
 */
  private:

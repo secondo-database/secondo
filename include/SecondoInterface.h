@@ -53,12 +53,14 @@ may occur for each of them.
 The third subsection describes error handling and the specific error
 codes; it makes error messages available in an array ~errors~. 
 
-The fourth subsection makes a procedure ~NumericTypeExpr~ available wich
-transforms type expressions into a numeric form suitable for writing
-application programs treating types in a generic way (e.g.
-representation of values at the user interface). 
+The fourth subsection makes some procedures for type transformation and
+information available, namely ~NumericTypeExpr~, ~GetTypeId~ and ~LookUpTypeExpr~.
+~NumericTypeExpr~ transforms type expressions into a numeric form suitable
+for writing application programs treating types in a generic way (e.g.
+representation of values at the user interface). ~GetTypeId~ returns the
+algebra and type identifier for a type.
 
-Note that there have been some slight changes with repect to [G[ue]95]
+Note that there have been some slight changes in respect to [G[ue]95]
 in the treatment of the database state in database commands. 
 
 */
@@ -73,7 +75,7 @@ in the treatment of the database state in database commands.
 #include "AlgebraTypes.h"
 
 /************************************************************************** 
-2.1 Class SecondoInterface
+2.1 Class "SecondoInterface"[1]
 
 2.1.1 Creation, Deletion, Initialization and Termination
 
@@ -84,20 +86,21 @@ class SecondoInterface
  public:
   SecondoInterface();
 /*
-constructs a "Secondo"[3] interface. Depending on the implementation of
+Constructs a "Secondo"[3] interface. Depending on the implementation of
 the interface different member variables are initialized.
 
 */
   virtual ~SecondoInterface();
 /*
-destroys a "Secondo"[3] interface.
+Destroys a "Secondo"[3] interface.
 
 */
   bool Initialize( const string& user, const string& pswd,
                    const string& host, const string& port,
-                   string& profile, const bool multiUser = false );
+                   string& profile,
+                   const bool multiUser = false );
 /*
-~Initialize~ starts up the "Secondo"[3] interface. Depending on the implementation
+Starts up the "Secondo"[3] interface. Depending on the implementation
 not all parameters are required for the interface to be operational.
 
 The current implementation of the "Secondo"[3] system does not support user
@@ -110,19 +113,19 @@ server are needed to establish a connection to the server, but these parameters
 may be specified via the configuration file ~profile~. The method arguments
 ~host~ and ~port~ take precedence over specifications in the configuration file.
 
-In the single user version only the the name of the configuration file
+In the single user version only the name of the configuration file
 ~profile~ must be specified. Values for ~host~ and ~port~ are ignored.
 
 */
   void Terminate();
 /*
-~Terminate~ shuts down the "Secondo"[3] interface. In the client/server version
+Shuts down the "Secondo"[3] interface. In the client/server version
 the connection to the "Secondo"[3] server is closed; in the single user version
 the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
 
 */
 /*
-2.1.2 The Secondo main interface method
+2.1.2 The "Secondo"[3] main interface method
 
 */
   void Secondo( const string& commandText,
@@ -137,7 +140,7 @@ the "Secondo"[3] system and the ~SmiEnvironment~ are shut down.
                 const string& resultFileName =
                                 "SecondoResult" );
 /*
-~Secondo~ reads a command and executes it; it possibly returns a result.
+Reads a command and executes it; it possibly returns a result.
 The command is one of a set of "Secondo"[3] commands described below. The
 parameters have the following meaning. 
 
@@ -145,30 +148,30 @@ A "Secondo"[3] command can be given at various ~levels~; parameter
 ~commandLevel~ indicates the level of the current command. The levels
 are defined as follows: 
 
-  * 0 -- Secondo executable command in nested list syntax (~list~)
+  * 0 -- "Secondo"[3] executable command in nested list syntax (~list~)
 
-  * 1 -- Secondo executable command in SOS syntax (~text~)
+  * 1 -- "Secondo"[3] executable command in SOS syntax (~text~)
 
-  * 2 -- Secondo descriptive command after, or without, algebraic optimization (list)
+  * 2 -- "Secondo"[3] descriptive command after, or without, algebraic optimization (~list~)
 
-  * 3 -- Secondo descriptive command after, or without, algebraic optimization (text)
+  * 3 -- "Secondo"[3] descriptive command after, or without, algebraic optimization (~text~)
 
-  * 4 -- Secondo descriptive command before algebraic optimization (list)
+  * 4 -- "Secondo"[3] descriptive command before algebraic optimization (~list~)
 
-  * 5 -- Secondo descriptive command before algebraic optimization (text)
+  * 5 -- "Secondo"[3] descriptive command before algebraic optimization (~text~)
 
   * 7 -- Command in some specific query language (e.g. SQL, GraphDB, etc.)
 
 If the command is given in ~text~ syntax (command levels 1, 3, or 5),
 then the text string must be placed in ~commandText~. If the command is
 given in ~list~ syntax, it can be passed either as a text string in
-~commandText~, in which case ~commandAsText~ must be true, or as a list
+~commandText~, in which case ~commandAsText~ must be "true"[4], or as a list
 expression in ~commandLE~; in the latter case, ~commandAsText~ must be
-false. 
+"false"[4]. 
 
 If the command produces a result (e.g. a query), then the result can be
 requested to be returned either as a list expression (~resultAsText~ is
-false) in the parameter ~resultList~, or (~resultAsText~ is true) in a
+"false"[4]) in the parameter ~resultList~, or (~resultAsText~ is "true"[4]) in a
 text file whose name is set to *SecondoResult* by default, but may be
 overwritten. 
 
@@ -179,7 +182,7 @@ error code numbers:
 
   * 1: command not recognized
 
-  * 9: syntax error in command/expression (found by Secondo Parser)
+  * 9: syntax error in command/expression (found by "Secondo"[3] Parser)
 
   * 30: command not yet implemented
 
@@ -266,7 +269,7 @@ Assign the value computed by ~value expression~ to the object
 
   * 3: ~value expression~ is correct, but not evaluable (e.g. a stream)
 
-  * 8 undefined object value in ~value expression~
+  * 8: undefined object value in ~value expression~
 
   * 13: type of value is different from type of object
 
@@ -291,7 +294,7 @@ Possible errors:
 
   * 3: ~value expression~ is correct, but not evaluable (e.g. a stream)
 
-  * 8 undefined object value in ~value expression~
+  * 8: undefined object value in ~value expression~
 
   * 6: no database open
 
@@ -315,9 +318,6 @@ destroyed at the end of a session. Possible errors:
 
   * 6: no database open
 
-
-*Not yet implemented:*
-
 ----  persistent <identifier>
 ----
 
@@ -330,7 +330,7 @@ but has no effect. Possible errors:
 
   * 6: no database open
 
-*NOTE*: Beginning with version 2 of the "Second"[3] system all objects are
+*NOTE*: Beginning with version 2 of the "Secondo"[3] system all objects are
 persistent by default. That is the ~persistent~ command is obsolete.
 
 2.1.2 Transaction Commands
@@ -390,17 +390,17 @@ transaction.
 *NOTE*: All database commands can not be enclosed in a transaction.
 
 The commands ~create database~ and ~delete database~ are only valid when
-currently there is no open database (IsDatabaseOpen() = ~false~). They leave
-this state unchanged. 
+currently there is no open database ("IsDatabaseOpen() == false"[4]).
+They leave this state unchanged. 
 
 The commands ~open database~ and ~restore database~ are only valid when
-currently there is no open database (IsDatabaseOpen() = ~false~), the
+currently there is no open database ("IsDatabaseOpen() == false"[4]), the
 database is open after successful completion.
 
-The command ~close database~ is only valid if IsDatabaseOpen() = ~true~.
+The command ~close database~ is only valid if "IsDatabaseOpen() == true"[4].
 No database is open after successful completion.
 
-The command ~save database~ is only valid if IsDatabaseOpen() = ~true~,
+The command ~save database~ is only valid if "IsDatabaseOpen() == true"[4],
 it leaves the state of the database unchanged. 
 
 ----  create database <identifier>
@@ -445,12 +445,22 @@ format to the file ~filename~. The structure of the file is the
 following: 
 
 ----  (DATABASE <database name>
-        (TYPES
-          (TYPE <type name> <type expression>)*    
-        )
-        (OBJECTS
-          (OBJECT <object name> (<type name>) <type expression> <value>)*
-        )
+        (DESCRIPTIVE ALGEBRA) 
+          (TYPES
+            (TYPE <type name> <type expression>)*    
+          )
+          (OBJECTS
+            (OBJECT <object name> (<type name>) <type expression>
+                                                <value>)*
+          )
+        (EXECUTABLE ALGEBRA) 
+          (TYPES
+            (TYPE <type name> <type expression>)*    
+          )
+          (OBJECTS
+            (OBJECT <object name> (<type name>) <type expression>
+                                                <value>)*
+          )
       )
 ----
 
@@ -576,7 +586,7 @@ For example,
 
 Identifiers such as ~name~, ~age~ are moved unchanged into the result
 list. If a type expression contains other constants that are not
-symbols, e.g. integer constants as in (array 10 real), they are also
+symbols, e.g. integer constants as in "(array 10 real)"[4], they are also
 moved unchanged into the result list. 
 
 The resulting form of the type expression is useful for calling the type
@@ -587,7 +597,7 @@ specific ~In~ and ~Out~ procedures.
                   const string& name,
                   int& algebraId, int& typeId );
 /*
-finds the ~algebraId~ and ~typeId~ of a named type.
+Finds the ~algebraId~ and ~typeId~ of a named type.
 The catalog corresponding to the current ~level~ (descriptive or
 executable) is used to resolve the type name.
 
@@ -596,14 +606,14 @@ executable) is used to resolve the type name.
                        ListExpr type, string& name,
                        int& algebraId, int& typeId );
 /*
-finds the ~name~, ~algebraId~ and ~typeId~ of a type given by the type expression
+Finds the ~name~, ~algebraId~ and ~typeId~ of a type given by the type expression
 ~type~. The catalog corresponding to the current ~level~ (descriptive or
 executable) is used to resolve the type name.
 
 */
   NestedList* GetNestedList();
 /*
-returns a reference to the nested list container used by the "Secondo"[3] system.
+Returns a reference to the nested list container used by the "Secondo"[3] system.
 
 */
 /*
@@ -632,10 +642,10 @@ parameter ~errorInfo~ containing a pointer to the current last element
 of ~errorList~. It appends the error message as a list with a command of
 the form 
 
-----  errorInfo := Append(errorInfo, <message list>)
+----  errorInfo = Append(errorInfo, <message list>)
 ----
 
-If errors are appended to the list within the execution of a Secondo
+If errors are appended to the list within the execution of a "Secondo"[3]
 command, then the list ~errorList~ is returned in parameter ~resultList~
 of procedure ~Secondo~. This currently happens for the commands 
 
@@ -687,6 +697,8 @@ after the error number have the following meaning:
 
     errors[20] = "Transaction already active.";
     errors[21] = "No transaction active.";
+    errors[22] = "Begin transaction failed.";
+    errors[23] = "Commit/Abort transaction failed.";
 
     errors[24] = "Error in type or object definitions in file.";
     errors[25] = "Identifier is not a known database name.";
@@ -698,24 +710,16 @@ after the error number have the following meaning:
     errors[31] = "Command level not yet implemented.";
     errors[32] = "Command not yet implemented at this level.";
 
-    errors[40] = "Error in type definition.";
-                                 // (40 i)
-    errors[41] = "Type name doubly defined.";
-                                 // (41 i n)
-    errors[42] = "Error in type expression.";
-                                 // (42 i n)
+    errors[40] = "Error in type definition.";             // (40 i)
+    errors[41] = "Type name doubly defined.";             // (41 i n)
+    errors[42] = "Error in type expression.";             // (42 i n)
 
-    errors[50] = "Error in object definition.";
-                                 // (50 i)
-    errors[51] = "Object name doubly defined.";
-                                 // (51 i n)
-    errors[52] = "Wrong type expression for object.";
-                                 // (52 i n)
-    errors[53] = "Wrong list representation for object.";
-                                 // (53 i n)
+    errors[50] = "Error in object definition.";           // (50 i)
+    errors[51] = "Object name doubly defined.";           // (51 i n)
+    errors[52] = "Wrong type expression for object.";     // (52 i n)
+    errors[53] = "Wrong list representation for object."; // (53 i n)
 
-    errors[60] = "Kind does not match type expression.";
-                                 // (60 k t)
+    errors[60] = "Kind does not match type expression.";  // (60 k t)
     errors[61] = "Specific kind checking error for kind.";
                                  // (61 k j ...)
 
@@ -768,6 +772,5 @@ Sets the debug level of the query processor.
 IV, Fernuniversit[ae]t Hagen, working paper, November 1995. 
 
 */
-
 #endif
 

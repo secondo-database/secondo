@@ -5,7 +5,9 @@
 //paragraph    [23]    table3columns:  [\begin{quote}\begin{tabular}{lll}]     [\end{tabular}\end{quote}]
 //paragraph    [24]    table4columns:  [\begin{quote}\begin{tabular}{llll}]    [\end{tabular}\end{quote}]
 //characters    [1]    verbatim:       [\verb@]                                [@]
-//characters	[2]    verbatim:       [$]                                     [$]
+//characters	[2]    formula:       [$]                                     [$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
 //[--------]    [\hline]
 //[ae] [\"a]
 //[oe] [\"o]
@@ -157,14 +159,14 @@ member variables of the nested list container class ~NestedList~.
 */
 const int INITIAL_ENTRIES = 50;
 /*
-specifies the default size of the compact tables. This value can be overwritten
+Specifies the default size of the compact tables. This value can be overwritten
 in the constructor.
 
 */
 
 typedef unsigned long ListExpr;
 /*
-is the type to represent nested lists.
+Is the type to represent nested lists.
 
 */
 
@@ -179,7 +181,7 @@ enum NodeType
   TextType
 };
 /*
-is an enumeration of the different node types of a nested list.
+Is an enumeration of the different node types of a nested list.
 
 */
 
@@ -233,8 +235,8 @@ struct StringRecord
   StringArray field;
 };
 /*
-Symbols and strings with a maximum size of $3*STRINGSIZE$ characters are represented as
-at most $3$ chunks of $STRINGSIZE$ characters. This approach was chosen to minimize memory
+Symbols and strings with a maximum size of "3\times STRINGSIZE"[2] characters are represented as
+at most "3"[2] chunks of "STRINGSIZE"[2] characters. This approach was chosen to minimize memory
 consumption.
 
 *NOTE*: The struct type ~StringRecord~ is introduced only because the vector
@@ -313,14 +315,14 @@ class NestedList
  public:
   NestedList( int initialEntries = INITIAL_ENTRIES );
 /*
-creates an instance of a nested list container. The compact tables which
+Creates an instance of a nested list container. The compact tables which
 store the nodes of nested lists reserve initially memory for holding at
 least ~initialEntries~ nodes.
 
 */
   virtual ~NestedList();
 /*
-destroys a nested list container.
+Destroys a nested list container.
 
 */
 /*
@@ -329,12 +331,12 @@ destroys a nested list container.
 */
   ListExpr TheEmptyList();
 /*
-returns a pointer to an empty list (a ``nil'' pointer).
+Returns a pointer to an empty list (a ``nil'' pointer).
 
 */
   ListExpr Cons( const ListExpr left, const ListExpr right );
 /*
-creates a new node and makes ~left~ its left and ~right~ its right son.
+Creates a new node and makes ~left~ its left and ~right~ its right son.
 Returns a pointer to the new node.
 
 *Precondition*: ~right~ is no atom.
@@ -343,7 +345,7 @@ Returns a pointer to the new node.
   ListExpr Append( const ListExpr lastElem,
                    const ListExpr newSon );
 /*
-creates a new node ~p~ and makes ~newSon~ its left son. Sets the right son of 
+Creates a new node ~p~ and makes ~newSon~ its left son. Sets the right son of 
 ~p~ to the empty list. Makes ~p~ the right son of ~lastElem~ and returns a 
 pointer to ~p~. That means that now ~p~ is the last element of the list and 
 ~lastElem~ the second last.... ~Append~ can now be called with ~p~ as the 
@@ -351,8 +353,8 @@ first argument. In this way one can build a list by a sequence of ~Append~
 calls.
 
 *Precondition*: ~lastElem~ is not the empty list and no atom, but is the last
-element of a list. That is: ~EndOfList~(~lastElem~) = ~true~,
-~IsEmpty~(~lastElem~) = ~false~, ~IsAtom~(~lastElem~) = ~false~.
+element of a list. That is: "EndOfList( lastElem ) == true"[4],
+"IsEmpty( lastElem ) == false"[4], "IsAtom( lastElem ) = false"[4].
 
 Note that there are no restrictions on the element ~newSon~ that is appended; 
 it may also be the empty list.
@@ -360,7 +362,7 @@ it may also be the empty list.
 */
   void Destroy( const ListExpr list );
 /*
-destroys the complete subtree (including all atoms) below the root ~list~.
+Destroys the complete subtree (including all atoms) below the root ~list~.
 
 *Precondition*: ~list~ must be the root of a list binary tree. That means, it 
 must not have been used as an argument to ~Cons~ or as a  second argument 
@@ -375,17 +377,17 @@ result.
 */
   bool IsEmpty( const ListExpr list );
 /*
-returns ~true~ if ~list~ is the empty list.
+Returns "true"[4] if ~list~ is the empty list.
 
 */
   bool IsAtom( const ListExpr list );
 /*
-returns ~true~ if ~list~ is an atom.
+Returns "true"[4] if ~list~ is an atom.
 
 */
   bool EndOfList( ListExpr list );
 /*
-Returns ~true~ if ~Right~(~list~) is the empty list. Returns ~false~ 
+Returns "true"[4] if ~Right~(~list~) is the empty list. Returns "false"[4] 
 otherwise and if ~list~ is empty or an atom.
 
 */
@@ -405,14 +407,14 @@ subexpressions.
 */
   bool Equal( const ListExpr list1, const ListExpr list2 );
 /*
-tests for deep equality of two nested lists. Returns ~true~ if ~list1~ is
-equivalent to ~list2~, otherwise ~false~.
+Tests for deep equality of two nested lists. Returns "true"[4] if ~list1~ is
+equivalent to ~list2~, otherwise "false"[4].
 
 */
   bool IsEqual( const ListExpr atom, const string& str,
                 const bool caseSensitive = true );
 /* 
-returns ~true~ if ~atom~ is a symbol atom and has the same value as ~str~.
+Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
 
 */ 
 
@@ -422,14 +424,14 @@ returns ~true~ if ~atom~ is a symbol atom and has the same value as ~str~.
 */
   ListExpr First( const ListExpr list );
 /*
-returns (a pointer to) the left son of ~list~. Result can be the empty list.
+Returns (a pointer to) the left son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
 */
   ListExpr Rest( const ListExpr list );
 /*
-returns (a pointer to) the right son of ~list~. Result can be the empty list.
+Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
@@ -439,9 +441,9 @@ returns (a pointer to) the right son of ~list~. Result can be the empty list.
   bool ReadFromFile( const string& fileName,
                      ListExpr& list );
 /*
-reads a nested list from file ~filename~ and assigns it to ~list~. 
-The format of the file must be as explained above. Returns ~true~ if reading 
-was successful; otherwise ~false~, if the file could not be accessed, or the 
+Reads a nested list from file ~filename~ and assigns it to ~list~. 
+The format of the file must be as explained above. Returns "true"[4] if reading 
+was successful; otherwise "false"[4], if the file could not be accessed, or the 
 line number in the file where an error occurred.
 
 */
@@ -450,7 +452,7 @@ line number in the file where an error occurred.
 /*
 Writes the nested list ~list~ to file ~filename~. 
 The format of the file will be as explained above. The previous contents 
-of the file will be lost. Returns ~true~ if writing was successful, ~false~
+of the file will be lost. Returns "true"[4] if writing was successful, "false"[4]
 if the file could not be written properly.
 
 *Precondition*: ~list~ must not be an atom.
@@ -460,14 +462,14 @@ if the file could not be written properly.
                        ListExpr& List );
 /*
 Like ~ReadFromFile~, but reads a nested list from array ~nlChars~. 
-Returns ~true~ if reading was successful.
+Returns "true"[4] if reading was successful.
 
 */
   bool WriteToString( string& nlChars,
                       const ListExpr list );
 /*
-Like ~WriteToFile~, but writes to the string ~nlChars~. Returns ~true~
-if writing was successful, ~false~ if the string could not be written properly.
+Like ~WriteToFile~, but writes to the string ~nlChars~. Returns "true"[4]
+if writing was successful, "false"[4] if the string could not be written properly.
 
 *Precondition*: ~list~ must not be an atom.
 
@@ -476,7 +478,7 @@ if writing was successful, ~false~ if the string could not be written properly.
   void WriteListExpr( ListExpr list, ostream& ostr );
   void WriteListExpr( ListExpr list );
 /*
-write ~list~ indented by level to standard output.
+Write ~list~ indented by level to standard output.
 
 1.3.5 Auxiliary Operations for Construction
 
@@ -589,7 +591,7 @@ To read from a ~Text~ atom, a ~TextScan~ is opened.
 */
   TextScan CreateTextScan( const ListExpr atom );
 /*
-creates a text scan. Current position is 0 (the first character in the ~atom~).
+Creates a text scan. Current position is 0 (the first character in the ~atom~).
 
 *Precondition*: ~atom~ must be of type ~Text~.
 
@@ -606,18 +608,18 @@ In this case, all characters behind the current ~scan~ position are copied.
 */
   bool EndOfText( const TextScan textScan );
 /*
-Returns ~true~, if the current position of the ~TextScan~ is behind the last 
+Returns "true"[4], if the current position of the ~TextScan~ is behind the last 
 character of the text.
 
 */
   void DestroyTextScan( TextScan& textScan );
 /*
-destroys the text scan ~textScan~ by deallocating the corresponding memory. 
+Destroys the text scan ~textScan~ by deallocating the corresponding memory. 
 
 */
   Cardinal TextLength( const ListExpr textAtom );
 /*
-returns the number of characters of ~textAtom~.
+Returns the number of characters of ~textAtom~.
 
 *Precondition*: ~atom~ must be of type ~Text~.
 
@@ -626,7 +628,7 @@ returns the number of characters of ~textAtom~.
 */
   NodeType AtomType( const ListExpr atom );
 /*
-determines the type of list expression ~atom~ according to the enumeration 
+Determines the type of list expression ~atom~ according to the enumeration 
 type ~NodeType~. If the parameter is not an atom, the function returns the 
 value 'NoAtom'.
 
@@ -652,11 +654,11 @@ value 'NoAtom'.
   static bool          doDestroy;
 /*
 The class member ~doDestroy~ defines whether the ~Destroy~ method really
-destroys a nested list. Only if ~doDestroy~ is ~true~, nested lists are
+destroys a nested list. Only if ~doDestroy~ is "true"[4], nested lists are
 destroyed.
 
-As long as the "Nested List"[1] class does not support reference counting
-it might be necessary to set ~doDestroy~ to ~false~ to avoid problems due
+As long as the ~Nested List~ class does not support reference counting
+it might be necessary to set ~doDestroy~ to "false"[4] to avoid problems due
 to deleting parts of nested lists which are still in use elsewhere.
 
 */

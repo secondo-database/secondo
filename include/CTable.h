@@ -7,6 +7,8 @@
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
+//characters    [3]    capital:    [\textsc{]    [}]
+//characters    [4]    teletype:   [\texttt{]    [}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -23,7 +25,7 @@ February 1994 Gerd Westerman
 
 November 1996 RHG Revision
 
-November 2001 Ulrich Telle Port to C++
+January 2002 Ulrich Telle Port to C++
 
 1.1 Concept
 
@@ -121,17 +123,17 @@ valid.
 */
   const T& operator[]( Cardinal n ) const;
 /* 
-*Precondition*: "1 [<=] index [<=] Size(Table)"[1] and slot ~index~ must be valid.
-
 ``Select for reading''. Returns the address of the slot with index ~index~. 
+
+*Precondition*: "1 [<=] index [<=] Size(Table)"[1] and slot ~index~ must be valid.
 
 */
   T& operator[]( Cardinal n );
 /* 
-*Precondition*: "1 [<=] Index [<=] Size (Table)".
-
 ``Select for writing''. Returns the address of the slot with index ~index~.
 Makes slot ~index~ valid and marks it as changed. 
+
+*Precondition*: "1 [<=] Index [<=] Size (Table)".
 
 */
 /************************************
@@ -140,9 +142,9 @@ Makes slot ~index~ valid and marks it as changed.
 */
   bool IsValid( Cardinal const index ) const;
 /* 
-*Precondition*: "1 [<=] index [<=] Size(CTable)".
-   
 Determines whether slot ~index~ is valid. 
+
+*Precondition*: "1 [<=] index [<=] Size(CTable)".
 
 */
   const Cardinal EmptySlot();
@@ -150,7 +152,7 @@ Determines whether slot ~index~ is valid.
 Returns the index of an empty slot. If necessary (because the table is
 full) the table is made larger before returning the index. 
    
-Note: An initial sequence of ~EmptySlot~ operations (before any ~Remove~
+*NOTE*: An initial sequence of ~EmptySlot~ operations (before any ~Remove~
 operations) returns always the empty slot with the lowest index. Hence,
 one can fill a table sequentially by a sequence of operations of the form
    
@@ -177,9 +179,9 @@ An initial sequence of ~Add~ operations (before any ~Remove~ operations and with
 */
   void Remove( Cardinal const index );
 /* 
-*Precondition*: "1 [<=] Index [<=] Size (Table)".
-
 Makes slot ~Index~ empty (no more valid). 
+
+*Precondition*: "1 [<=] Index [<=] Size (Table)".
 
 */
 /***************
@@ -267,11 +269,17 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 /*********************************************************************
 1.7.1 Persistence
 
+*NOTE*: The methods ~Load~ and ~Save~ for support of persistence are currently
+not implemented. Since the class ~CTable~ is based on the C++ template mechanism
+the type of the slots of compact table could be any C++ class. To support
+persistency it would be necessary to have a common base class to all classes
+used as template types. This would be quite limiting.
+
 */
 //  bool Load( string const fileName );
 /*
 Loads a table from file ~fileName~. 
-   If the return value is 'false' something went wrong.
+   If the return value is "false"[4] something went wrong.
 
 */
 //  bool Save( string const fileName );

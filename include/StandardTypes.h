@@ -3,13 +3,11 @@
 //[ue] [\"u]
 //[oe] [\"o]
  
-1 Header File for  Standard Data Types 
+1 Header File: Standard Data Types 
  
-Friedhelm Becker , Dec 98
+December 1998 Friedhelm Becker
  
-\tableofcontents
- 
-1 Overview
+1.1 Overview
  
 This file defines four classes: CcInt, CcReal, CcBool and CcString. They
 are the data types which are provided by the Standardalgebra.
@@ -23,7 +21,7 @@ are the data types which are provided by the Standardalgebra.
 #include "StandardAttribute.h"
 
 /*
-2 CcInt
+2.1 CcInt
 
 */
 
@@ -49,7 +47,7 @@ class CcInt : public StandardAttribute
 };
 
 /*
-3 CcReal
+3.1 CcReal
 
 */
 
@@ -74,7 +72,7 @@ class CcReal : public StandardAttribute
 };
 
 /*
-4 CcBool
+4.1 CcBool
 
 */
 
@@ -98,7 +96,7 @@ class CcBool : public StandardAttribute
 };
 
 /*
-5 CcString
+5.1 CcString
 
 */
 

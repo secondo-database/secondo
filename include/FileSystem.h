@@ -8,6 +8,7 @@
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
 //characters	[3]	capital:	[\textsc{]	[}]
+//characters	[4]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -23,7 +24,7 @@ May 2002 Ulrich Telle
 
 1.1 Overview
 
-The *File System Management* provides several services for handling files and
+The ~File System Management~ provides several services for handling files and
 folders (directories) in an operating system independent manner. There are
 functions for inspecting and manipulating the folder (directory) tree. No
 functions for file access are provided.
@@ -56,7 +57,7 @@ typedef DWORD FileAttributes;
 typedef uint32_t FileAttributes;
 #endif
 /*
-is the type for the file attributes for a specific file.
+Is the type for the file attributes for a specific file.
 
 *NOTE*: The values of the file attributes are operating system dependent.
 One has to keep this in mind when implementing portable applications.
@@ -64,7 +65,7 @@ One has to keep this in mind when implementing portable applications.
 */
 typedef vector<string> FilenameList;
 /*
-is the type for a collection of filenames found by a File Search.
+Is the type for a collection of filenames found by a File Search.
 
 */
 typedef bool (*FileSearchCallbackFunc)
@@ -72,7 +73,7 @@ typedef bool (*FileSearchCallbackFunc)
             const string& fileName,
             FileAttributes attribs );
 /*
-is the type of user-supplied functions for filename filtering. The
+Is the type of user-supplied functions for filename filtering. The
 function arguments are:
 
   * ~absolutePath~ -- Directory where file resides.
@@ -95,25 +96,25 @@ class FileSystem
  public:
   static string GetCurrentFolder();
 /*
-returns the current folder (directory).
+Returns the current folder (directory).
 
 */
   static bool SetCurrentFolder( const string& folder );
 /*
-sets the current folder (directory) to ~folder~.
-The function returns ~true~, if the current folder could be set.
+Sets the current folder (directory) to ~folder~.
+The function returns "true"[4], if the current folder could be set.
 
 */
   static bool CreateFolder( const string& folder );
 /*
-creates the folder (directory) located at ~folder~.
-The function returns ~true~, if the folder could be created.
+Creates the folder (directory) located at ~folder~.
+The function returns "true"[4], if the folder could be created.
 
 */
   static bool DeleteFileOrFolder( const string& fileName );
 /*
-deletes the file or folder (directory) specified in ~fileName~.
-The function returns ~true~, if the file or folder could be deleted.
+Deletes the file or folder (directory) specified in ~fileName~.
+The function returns "true"[4], if the file or folder could be deleted.
 
 The function fails if the file is protected by file attributes or
 if the folder to be removed contains one or more files.
@@ -122,8 +123,8 @@ if the folder to be removed contains one or more files.
   static bool EraseFolder( const string& folder,
                            uint16_t maxLevels = 16 );
 /*
-removes the folder (directory) specified in ~folder~.
-The function returns ~true~, if the remove operation succeeded.
+Removes the folder (directory) specified in ~folder~.
+The function returns "true"[4], if the remove operation succeeded.
 
 This function makes every attempt to delete the folder (directory), such as
 removing file protection attributes and files contained within folders
@@ -141,15 +142,15 @@ the user does not have permission to remove a file.
   static bool RenameFileOrFolder( const string& currentName,
                                   const string& newName );
 /*
-renames (moves) a file or folder (directory) from ~currentName~ to ~newName~.
-The function returns ~true~, if the copy operation succeeded.
+Renames (moves) a file or folder (directory) from ~currentName~ to ~newName~.
+The function returns "true"[4], if the copy operation succeeded.
 
 */
   static bool CopyFile( const string& source,
                                 const string& dest );
 /*
-copies a file from ~source~ to ~dest~.
-The function returns ~true~, if the copy operation succeeded.
+Copies a file from ~source~ to ~dest~.
+The function returns "true"[4], if the copy operation succeeded.
 
 *NOTE*: On Unix systems this function may be used to copy folders (directories)
 as well. Keep in mind that this property is not portable.
@@ -157,22 +158,22 @@ as well. Keep in mind that this property is not portable.
 */
   static bool FileOrFolderExists( const string& fileName );
 /*
-checks for the existence of the file indicated by ~fileName~.
-The function returns ~true~, if the file exists.
+Checks for the existence of the file indicated by ~fileName~.
+The function returns "true"[4], if the file exists.
 
 */
   static FileAttributes GetFileAttributes( const string&
                                              fileName );
 /*
-returns the file attributes for the file ~fileName~.
+Returns the file attributes for the file ~fileName~.
 In case of an error the function returns 0.
 
 */
   static bool SetFileAttributes( const string& fileName,
                                  FileAttributes attribs );
 /*
-sets the file attributes for a file to the values specified in ~attribs~ .
-The function returns ~true~, if the attributes could be set.
+Sets the file attributes for a file to the values specified in ~attribs~ .
+The function returns "true"[4], if the attributes could be set.
 
 */
   static bool FileSearch( const string& folder,
@@ -184,7 +185,7 @@ The function returns ~true~, if the attributes could be set.
                           FileSearchCallbackFunc
                             fileSearchCallback = 0 );
 /*
-returns a list of filenames which meet the search criteria in ~filenameList~.
+Returns a list of filenames which meet the search criteria in ~filenameList~.
 ~folder~ indicates the folder (directory) where the search begins.
 
 If ~searchName~ is specified, the list will only contain the
@@ -197,19 +198,19 @@ filenames.
 ~includeFolders~ specifies whether subfolder names are to be included in the
 list of filenames.
 
-If ~fullPath~ is true, the complete pathname of each file will be returned.
+If ~fullPath~ is "true"[4], the complete pathname of each file will be returned.
 
 */
   static bool SearchPath( const string& fileName, string& foundFile );
 /*
-searches the file ~fileName~ on the path and returns ~true~ if the file was
-found, otherweise ~false~. If the file was found the complete pathname of
+Searches the file ~fileName~ on the path and returns "true"[4] if the file was
+found, otherweise "false"[4]. If the file was found the complete pathname of
 the file is returned in ~foundFile~.
 
 */
   static void AppendSlash( string& pathName );
 /*
-appends the proper slash character to a pathname.
+Appends the proper slash character to a pathname.
 This character will either be a forward or backward
 slash, depending on the operating system used.
 
@@ -219,7 +220,7 @@ slash, depending on the operating system used.
 #ifdef SECONDO_WIN32
   static void UnprotectFile( const string& fileName );
 /*
-removes file protection attributes from a file, so that
+Removes file protection attributes from a file, so that
 it may be modified or deleted.
 
 *NOTE*: This function is available in Windows only.

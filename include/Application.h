@@ -9,7 +9,7 @@
 //[--------]	[\hline]
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
-//characters	[3]	teletype:	[\texttt{]	[}]
+//characters	[4]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -99,7 +99,7 @@ class SDB_EXPORT Application
  public:
   Application( int argc, const char **argv );
 /*
-creates and initializes the ~Application~ object.
+Creates and initializes the ~Application~ object.
 
 *NOTE*: The constructor is usually called directly from the program's main()
 routine. The parameters ~argc~ and ~argv~ are usually those passed to the
@@ -110,38 +110,40 @@ main() function.
 */
   virtual ~Application();
 /*
-destroys the ~Application~ object.
+Destroys the ~Application~ object.
 
 */
   int GetArgCount() const { return (argCount); };
 /*
-returns the number of command line arguments.
+Returns the number of command line arguments.
 
 */
   const char** GetArgValues() const { return (argValues); };
 /*
-returns the pointer to the array of command line arguments.
+Returns the pointer to the array of command line arguments.
 
 */
   const string GetApplicationName() const
   { return (appName); };
 /*
-returns the name of the executable file.
+Returns the name of the executable file.
 
 */
   const string GetApplicationPath() const
   { return (appPath); };
 /*
-returns the path name where the application was started from.
+Returns the path name where the application was started from.
 
 */
   const ProcessId GetOwnProcessId() { return (ownpid); };
 /*
+Returns the real process identification of the process itself.
+
 */
   const ProcessId GetParent() { return (parent); };
 /*
-returns the real process identification of the parent process, if available.
-If it is not available INVALID\_PID is returned.
+Returns the real process identification of the parent process, if available.
+If it is not available "INVALID\_PID"[4] is returned.
 
 *NOTE*: Unfortunately this information is not available on all platforms.
 For example the operating system ~Microsoft Windows~ does not provide it
@@ -151,33 +153,33 @@ on its own, but for child processes which are created using the
 */
   static Application* Instance();
 /*
-returns a reference to the single ~Application~ instance.
+Returns a reference to the single ~Application~ instance.
 
 */
   bool ShouldAbort() const { return (abortFlag); };
 /*
-checks whether the abort flag was set by a signal handler.
-If this method returns ~true~, the application should terminate as soon as
+Checks whether the abort flag was set by a signal handler.
+If this method returns "true"[4], the application should terminate as soon as
 possible.
 
 */
   bool GetUser1Flag() { return (user1Flag); };
   bool GetUser2Flag() { return (user2Flag); };
 /*
-check whether one of the user flags has been set by a remote signal.
+Check whether one of the user flags has been set by a remote signal.
 
 */
   void ResetUser1Flag() { user1Flag = false; };
   void ResetUser2Flag() { user2Flag = false; };
 /*
-reset the user flags to unsignaled state, thus allowing to receive
+Reset the user flags to unsignaled state, thus allowing to receive
 further user signals. The meaning of these signals is not defined by
 the ~Application~ class.
 
 */
   bool HasSocket() { return (hasSocket); };
 /*
-returns ~true~ if a socket handle was passed to the application through the
+Returns "true"[4] if a socket handle was passed to the application through the
 argument list.
 
 *NOTE*: This is useful for communication server processes where a listener
@@ -186,13 +188,13 @@ process starts a child process for servicing client requests.
 */
   Socket* GetSocket() { return (clientSocket); };
 /*
-returns a reference to the socket, which might be passed to the application
+Returns a reference to the socket, which might be passed to the application
 through the argument list.
 
 */
   static void Sleep( const int seconds );
 /*
-causes the application to enter a wait state until a time interval of ~seconds~
+Causes the application to enter a wait state until a time interval of ~seconds~
 seconds has expired.
 
 */
@@ -203,7 +205,7 @@ The following methodes are only available to derived application classes:
  protected:
   void SetAbortMode( bool activate ) { abortMode = activate; };
 /*
-activates or deactivates the abortion mode of the application.
+Activates or deactivates the abortion mode of the application.
 
 When the abortion mode is *activated*, the method ~AbortOnSignal~ is
 invoked, when the application receives a signal on which the application
@@ -218,15 +220,15 @@ regularly in the event loop of the application.
 */
   bool GetAbortMode() { return (abortMode); };
 /*
-returns the current state of the abort mode. If the abort mode is
-activated ~true~ is returned, otherwise ~false~.
+Returns the current state of the abort mode. If the abort mode is
+activated "true"[4] is returned, otherwise "false"[4].
 
 */
   virtual bool AbortOnSignal ( int sig ) { return (true); };
 /*
-is called by the application's default signal handler whenever
+Is called by the application's default signal handler whenever
 a signal is caught that would have aborted the process anyway. This
-is the case for most signals like SIGTERM, SIGQUIT and so on. The
+is the case for most signals like "SIGTERM"[4], "SIGQUIT"[4] and so on. The
 pre-installed signal handler ensures proper application shutdown in
 such circumstances.
 
@@ -249,13 +251,13 @@ such circumstances.
 #ifndef SECONDO_WIN32
   static void AbortOnSignalHandler( int sig );
 /*
-is the default signal handler for handling signals which usually would terminate
+Is the default signal handler for handling signals which usually would terminate
 the process.
 
 */
   static void UserSignalHandler( int sig );
 /*
-is the default signal handler for handling user signals (SIGUSR1 and SIGUSR2).
+Is the default signal handler for handling user signals (SIGUSR1 and SIGUSR2).
 
 */
 #else

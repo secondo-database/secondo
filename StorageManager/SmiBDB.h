@@ -8,6 +8,7 @@
 //characters	[1]	verbatim:	[$]	[$]
 //characters	[2]	formula:	[$]	[$]
 //characters	[3]	capital:	[\textsc{]	[}]
+//characters	[4]	teletype:	[\texttt{]	[}]
 //[ae] [\"a]
 //[oe] [\"o]
 //[ue] [\"u]
@@ -16,7 +17,7 @@
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: Storage Management Interface (Berkeley DB)
+1 Header File: Storage Management Interface\\(Berkeley DB)
 
 January 2002 Ulrich Telle
 
@@ -28,22 +29,22 @@ itself is completely independent of the implementation. To hide the
 implementation from the user of the interface, the interface objects use
 implementation objects for representing the implementation specific parts.
 
-The Berkeley DB implementation of the interface uses several concepts to
+The "Berkeley DB"[3] implementation of the interface uses several concepts to
 keep track of the "Secondo"[3] databases and their ~SmiFiles~.
 
-Since each Berkeley DB environment needs several control processes (deadlock
-detection, logging, recovery) the decision was taken to use only one Berkeley
-DB environment for managing an arbitrary number of "Secondo"[3] databases.
+Since each "Berkeley DB"[3] environment needs several control processes (deadlock
+detection, logging, recovery) the decision was taken to use only one "Berkeley
+DB"[3] environment for managing an arbitrary number of "Secondo"[3] databases.
 
 Named ~SmiFiles~ within each "Secondo"[3] database are managed in a simple
 file catalog. 
 
 1.1.1  "Secondo"[3] databases
 
-In the root data directory resides a Berkeley DB file named ~databases~
+In the root data directory resides a "Berkeley DB"[3] file named ~databases~
 which contains entries for each "Secondo"[3] database. All files of a
-"Secondo"[3] database are stored in a subdirectory of the Berkeley DB
-data directory. For each "Secondo"[3] database three Berkeley DB files
+"Secondo"[3] database are stored in a subdirectory of the "Berkeley DB"[3]
+data directory. For each "Secondo"[3] database three "Berkeley DB"[3] files
 hold the information about the ~SmiFile~ objects:
 
   *  *sequences* -- provides unique identifiers for ~SmiFile~ objects.
@@ -71,18 +72,18 @@ deletions are performed as requested by the user, in case of an abort
 only those files which where created during the transaction are deleted,
 not catalog update is performed.
 
-1.1.3 Berkeley DB handles
+1.1.3 "Berkeley DB"[3] handles
 
-Each ~SmiFile~ object has an associated Berkeley DB handle. Unfortunately
-the Berkeley DB requires that handles are kept open until after the
+Each ~SmiFile~ object has an associated "Berkeley DB"[3] handle. Unfortunately
+the "Berkeley DB"[3] requires that handles are kept open until after the
 enclosing transaction completes. Since an ~SmiFile~ object may go out of
 scope before, the destructor of the object must not close the handle. To
 solve the problem the storage management environment provides a container
-for Berkeley DB handles. The constructor of an ~SmiFile~ object allocates
+for "Berkeley DB"[3] handles. The constructor of an ~SmiFile~ object allocates
 a handle by means of the environment methods ~AllocateDbHandle~ and
 ~GetDbHandle~, the destructor returns the handle by means of the environment
 method ~FreeDbHandle~. After completion of the enclosing transaction the
-environment method ~CloseDbHandles~ closes and deallocates all Berkeley DB
+environment method ~CloseDbHandles~ closes and deallocates all "Berkeley DB"[3]
 handles no longer in use.
 
 1.3 Implementation methods
@@ -127,26 +128,26 @@ Maximum cache size is   1 GB
 */
 /*
 These are constants which define the default and maximum cache
-size for the Berkeley DB environment.
+size for the "Berkeley DB"[3] environment.
 
 */
 
 typedef size_t DbHandleIndex;
 /*
-is the type definition for indices of the Berkeley DB handle array.
+Is the type definition for indices of the "Berkeley DB"[3] handle array.
 
 */
 
 const DbHandleIndex DEFAULT_DBHANDLE_ALLOCATION_COUNT = 10;
 /*
-Space for Berkeley DB handles is reserved in chunks of ~DEFAULT\_\-DBHANDLE\_\-ALLO\-CATION\_\-COUNT~
+Space for "Berkeley DB"[3] handles is reserved in chunks of "DEFAULT\_\-DBHANDLE\_\-ALLO\-CATION\_\-COUNT"[4]
 elements to avoid frequent memory reallocation.
 
 */
 
 const db_recno_t SMI_SEQUENCE_FILEID = 1;
 /*
-identifies the record number of the ~FileId~ sequence.
+Identifies the record number of the ~FileId~ sequence.
 
 */
 
@@ -157,7 +158,7 @@ struct SmiDbHandleEntry
   DbHandleIndex nextFree;
 };
 /*
-defines the structure of the elements of the Berkeley DB handle array.
+Defines the structure of the elements of the "Berkeley DB"[3] handle array.
 Handles which are not ~inUse~ anymore are closed and freed after the completion
 of a transaction. The free element is put on a free list for later reuse.
 
@@ -171,7 +172,7 @@ struct SmiCatalogEntry
   bool      isFixed;
 };
 /*
-defines the structure of the entries in the file catalog.
+Defines the structure of the entries in the file catalog.
 The identifier ~fileId~, the name ~fileName~ and the type is stored for each
 named ~SmiFile~.
 
@@ -183,7 +184,7 @@ struct SmiDropFilesEntry
   bool      dropOnCommit;   
 };
 /*
-defines the structure of the elements in the queue for file drop requests.
+Defines the structure of the elements in the queue for file drop requests.
 Drop requests are fulfilled on successful completion of a transaction if
 the flag ~dropOnCommit~ is set or on abortion of a transaction if this
 flag is *not* set. In all other cases an entry is ignored.
@@ -196,7 +197,7 @@ struct SmiCatalogFilesEntry
   bool            updateOnCommit;
 };
 /*
-defines the structure of the elements in the map for file catalog requests.
+Defines the structure of the elements in the map for file catalog requests.
 Catalog requests are fulfilled on successful completion of a transaction if
 the flag ~updateOnCommit~ is set or on abortion of a transaction if this
 flag is *not* set. In all other cases an entry is ignored.
@@ -216,92 +217,92 @@ class SmiEnvironment::Implementation
  public:
   static DbHandleIndex AllocateDbHandle();
 /*
-allocates a new Berkeley DB handle and returns the index within the handle array.
+Allocates a new "Berkeley DB"[3] handle and returns the index within the handle array.
 
 */
   static Db*  GetDbHandle( DbHandleIndex idx );
 /*
-returns the Berkeley DB handle at the position ~idx~ of the handle array.
+Returns the "Berkeley DB"[3] handle at the position ~idx~ of the handle array.
 
 */
   static void FreeDbHandle( DbHandleIndex idx );
 /*
-marks the Berkeley DB handle at position ~idx~ as *not in use*.
+Marks the "Berkeley DB"[3] handle at position ~idx~ as *not in use*.
 
 */
   static void CloseDbHandles();
 /*
-closes all handles in the handle array which are not in use anymore.
+Closes all handles in the handle array which are not in use anymore.
 
 */
   static SmiFileId GetFileId();
 /*
-returns a unique file identifier.
+Returns a unique file identifier.
 
 */
   static bool LookUpCatalog( const string& fileName,
                              SmiCatalogEntry& entry );
 /*
-looks up a file named ~fileName~ in the file catalog. If the file was found, the
-function returns ~true~ and the catalog entry ~entry~ contains information about
+Looks up a file named ~fileName~ in the file catalog. If the file was found, the
+function returns "true"[4] and the catalog entry ~entry~ contains information about
 the file like the file identifier.
 
 */
   static bool LookUpCatalog( const SmiFileId fileId,
                              SmiCatalogEntry& entry );
 /*
-looks up a file identified by ~fileId~ in the file catalog. If the file was found,
-the function returns ~true~ and the catalog entry ~entry~ contains information about
+Looks up a file identified by ~fileId~ in the file catalog. If the file was found,
+the function returns "true"[4] and the catalog entry ~entry~ contains information about
 the file like the file name.
 
 */
   static bool InsertIntoCatalog( const SmiCatalogEntry& entry,
                                  DbTxn* tid );
 /*
-inserts the catalog entry ~entry~ into the file catalog.
+Inserts the catalog entry ~entry~ into the file catalog.
 
 */
   static bool DeleteFromCatalog( const string& fileName,
                                  DbTxn* tid );
 /*
-deletes the catalog entry ~entry~ from the file catalog.
+Deletes the catalog entry ~entry~ from the file catalog.
 
 */
   static bool UpdateCatalog( bool onCommit );
 /*
-updates the file catalog on completion of a transaction by inserting or deleting
+Updates the file catalog on completion of a transaction by inserting or deleting
 entries collected during the transaction. The flag ~onCommit~ tells the function
-whether the transaction is committed (~true~) or aborted (~false~).
+whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
   static bool EraseFiles( bool onCommit );
 /*
-erases all files on completion of a transaction for which drop requests were
+Erases all files on completion of a transaction for which drop requests were
 collected during the transaction. The flag ~onCommit~ tells the function
-whether the transaction is committed (~true~) or aborted (~false~).
+whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
   static string ConstructFileName( SmiFileId fileId );
 /*
-constructs a valid file name using the file identifier ~fileId~.
+Constructs a valid file name using the file identifier ~fileId~.
 
 */
   static bool LookUpDatabase( const string& dbname );
 /*
-looks up the Secondo database ~dbname~ in the database catalog.
-The function returns ~true~ if a database with the given name exists.
+Looks up the Secondo database ~dbname~ in the database catalog.
+The function returns "true"[4] if a database with the given name exists.
 
 */
   static bool InsertDatabase( const string& dbname );
 /*
-inserts the name ~dbname~ of a new Secondo database into the database catalog.
-The function returns ~true~ if the insert was successful.
+Inserts the name ~dbname~ of a new "Secondo"[3] database into the database catalog.
+The function returns "true"[4] if the insert was successful.
 
 */
   static bool DeleteDatabase( const string& dbname );
 /*
-deletes the name ~dbname~ of an existing Secondo database from the database
-catalog. The function returns ~true~ if the deletion was successful.
+Deletes the name ~dbname~ of an existing "Secondo"[3] database from the database
+catalog. The function returns "true"[4] if the deletion was successful.
 
 */
  protected:
@@ -322,7 +323,7 @@ catalog. The function returns ~true~ if the deletion was successful.
   bool    listStarted;
   Dbc*    listCursor;
 /*
-are needed to support listing the names of all existing "Secondo"[3] databases.
+Are needed to support listing the names of all existing "Secondo"[3] databases.
 
 */
 
@@ -341,7 +342,7 @@ are needed to support listing the names of all existing "Secondo"[3] databases.
 /**************************************************************************
 1.3 Class "SmiFile::Implementation"[1]
 
-This class handles all implementation specific aspects of an SmiFile
+This class handles all implementation specific aspects of an ~SmiFile~
 hiding the implementation from the user of the ~SmiFile~ class.
 
 */
@@ -357,10 +358,10 @@ class SmiFile::Implementation
     Db*           bdbFile;   // Berkeley DB handle
     bool          isSystemCatalogFile;
 /*
-flags an ~SmiFile~ as a system catalog file. This distinction is needed,
+Flags an ~SmiFile~ as a system catalog file. This distinction is needed,
 since transactional read operations on system catalog files could lead 
 easily to deadlock situations by the way the transaction and locking
-mechanism of the Berkeley DB works. Therefore read operation on system
+mechanism of the "Berkeley DB"[3] works. Therefore read operation on system
 catalog files should not be protected by transactions.
 
 */
@@ -374,7 +375,7 @@ catalog files should not be protected by transactions.
 /**************************************************************************
 1.3 Class "SmiFileIterator::Implementation"[1]
 
-This class handles all implementation specific aspects of an SmiFileIterator
+This class handles all implementation specific aspects of an ~SmiFileIterator~
 hiding the implementation from the user of the ~SmiFileIterator~ class.
 
 */
@@ -399,7 +400,7 @@ class SmiFileIterator::Implementation
 /**************************************************************************
 1.3 Class "SmiRecord::Implementation"[1]
 
-This class handles all implementation specific aspects of an SmiRecord
+This class handles all implementation specific aspects of an ~SmiRecord~
 hiding the implementation from the user of the ~SmiRecord~ class.
 
 */

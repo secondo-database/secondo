@@ -4,6 +4,8 @@ using namespace std;
 #include <string>
 #include <algorithm>
 #include <map>
+#include <iostream>
+#include <sstream>
 
 #include "Application.h"
 #include "Processes.h"
@@ -82,7 +84,7 @@ SecondoMonitor::ExecStartUp()
     cout << "Startup in progress ... ";
     string pgmListener = SmiProfile::GetParameter( "Environment", "ListenerProgram", "", parmFile );
     string pgmArgs = string( "\"" ) + parmFile + "\"";
-    if ( ProcessFactory::SpawnProcess( pgmListener, pgmArgs, pidListener, true ) )
+    if ( ProcessFactory::SpawnProcess( pgmListener, pgmArgs, pidListener, false ) )
     {
       cout << "completed." << endl;
       running = true;
@@ -144,12 +146,34 @@ SecondoMonitor::ExecShow()
   {
     iostream& ss = msgClient->GetSocketStream();
     ss << cmd << endl;
+    bool first = true;
     do
     {
       getline( ss, answer );
-      cout << answer << endl;
+      if ( first )
+      {
+        first = false;
+        istringstream is( answer );
+        int rc, count;
+        string dummy, header;
+        is >> rc >> dummy >> count;
+        if      ( cmdword == "LOG"       ) header = " log messages.";
+        else if ( cmdword == "USERS"     ) header = " users logged in.";
+        else if ( cmdword == "DATABASES" ) header = " databases in use.";
+        else if ( cmdword == "LOCKS"     ) header = " database locks active.";
+        cout << count << header << endl;
+        cout << "------------------------------" << endl;
+      }
+      else
+      {
+        if ( answer[0] != '0' && answer[0] != '-' && !ss.fail() )
+        {
+          cout << answer << endl;
+        }
+      }
     }
     while (answer[0] != '0' && answer[0] != '-' && !ss.fail());
+    cout << "------------------------------" << endl;
   }
   else
   {
@@ -367,7 +391,7 @@ SecondoMonitor::Initialize()
       cout << "Launching Checkpoint service ... ";
       string pgmCheckpoint = SmiProfile::GetParameter( "BerkeleyDB", "CheckpointProgram", "", parmFile );
       string pgmArgs = string( "\"" ) + parmFile + "\"";
-      if ( ProcessFactory::SpawnProcess( pgmCheckpoint, pgmArgs, pidCheckpoint, true ) )
+      if ( ProcessFactory::SpawnProcess( pgmCheckpoint, pgmArgs, pidCheckpoint, false ) )
       {
         cout << "completed." << endl;
       }
@@ -397,7 +421,7 @@ SecondoMonitor::Initialize()
     cout << "Launching Secondo Registrar ... ";
     string pgmRegistrar = SmiProfile::GetParameter( "Environment", "RegistrarProgram", "", parmFile );
     string pgmArgs = string( "\"" ) + parmFile + "\"";
-    if ( ProcessFactory::SpawnProcess( pgmRegistrar, pgmArgs, pidRegistrar, true ) )
+    if ( ProcessFactory::SpawnProcess( pgmRegistrar, pgmArgs, pidRegistrar, false ) )
     {
       cout << "completed." << endl;
       ProcessFactory::Sleep( 0 );

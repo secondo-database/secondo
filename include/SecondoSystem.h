@@ -18,7 +18,7 @@
 //[tilde] [\verb|~|]
 //[Contents] [\tableofcontents]
 
-1 Header File: SecondoSystem
+1 Header File: Secondo System
 
 May 2002 Ulrich Telle Port to C++
 
@@ -93,38 +93,38 @@ Simply returns the names of existing databases in a list:
 /*
 Creates a new database named ~dbname~ and loads the algebraic operators
 and type constructors for each algebra level into the "Secondo"[3]
-programming interface. Returns ~false~ if a database under
+programming interface. Returns "false"[4] if a database under
 this name already exists.
 
-Precondition: No database is open.
+*Precondition*: No database is open.
 
 */
   bool DestroyDatabase( const string& dbname );
 /*
 Deletes a database named ~dbname~ and all data files belonging to it.
-Returns ~false~ if the database ~dbname~ is not known. 
+Returns "false"[4] if the database ~dbname~ is not known. 
 
-Precondition: No database is open.
+*Precondition*: No database is open.
 
 */
   bool OpenDatabase( const string& dbname );
 /*
 Opens a database with name ~dbname~.
-Returns ~false~ if database ~dbname~ is unknown. 
+Returns "false"[4] if database ~dbname~ is unknown. 
 
-Precondition: No database is open.
+*Precondition*: No database is open.
 
 */
   bool CloseDatabase();
 /*
-Closes the actually opened database.
+Closes the currently opened database.
 
-Precondition: A database is open.
+*Precondition*: A database is open.
 
 */
   bool IsDatabaseOpen();
 /* 
-Returns ~true~ if a database is in open state, otherwise ~false~.
+Returns "true"[4] if a database is in open state, otherwise "false"[4].
 
 */
   bool SaveDatabase( const string& filename );
@@ -133,18 +133,28 @@ Writes the currently open database called ~dbname~ to a file with name
 ~filename~ in nested list format. The format is as follows: 
 
 ---- (DATABASE <database name>
-       (TYPES 
-         (TYPE <type name> <type expression>)*  
-       )
-       (OBJECTS 
-         (OBJECT <object name> (<type name>) <type expression> <value>)*
-       )
-     ) 
+       (DESCRIPTIVE ALGEBRA)
+         (TYPES
+           (TYPE <type name> <type expression>)*
+         )
+         (OBJECTS
+           (OBJECT <object name> (<type name>) <type expression>
+                                               <value> <model>)*
+         )
+       (EXECUTABLE ALGEBRA)
+         (TYPES
+           (TYPE <type name> <type expression>)*
+         )
+         (OBJECTS
+           (OBJECT <object name> (<type name>) <type expression>
+                                               <value> <model>)*
+         )
+     )
 ----   
 
-Returns ~false~ if there was a problem in writing the file.
+Returns "false"[4] if there was a problem in writing the file.
 
-Precondition: A database is open.
+*Precondition*: A database is open.
 
 */
   int RestoreDatabase( const string& dbname,
@@ -164,7 +174,7 @@ errors in type definitions and/or object list expressions.
 Furthermore, any errors found by kind checking and by ~In~ procedures
 are returned in the list ~errorInfo~. 
 
-Precondition: No database is open.
+*Precondition*: No database is open.
 
 */
   string                 GetDatabaseName();
@@ -213,17 +223,17 @@ Returns a reference to the associated nested list container.
 */
   static bool BeginTransaction();
 /*
-begins a transaction.
+Begins a transaction.
 
 */
   static bool CommitTransaction();
 /*
-commits a transaction.
+Commits a transaction.
 
 */
   static bool AbortTransaction();
 /*
-aborts a transaction.
+Aborts a transaction.
 
 */
  protected:
@@ -239,7 +249,10 @@ aborts a transaction.
                      ListExpr types, ListExpr& errorInfo );
   bool RestoreObjects( SecondoCatalog* sc,
                        ListExpr objects, ListExpr& errorInfo );
+/*
+Are internal methods for restoring a database.
 
+*/
   static SecondoSystem secondoSystem;
 
   NestedList*     nl;

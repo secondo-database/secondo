@@ -34,8 +34,11 @@ May 2002 Ulrich Telle Port to C++
 This module defines the module ~SecondoCatalog~. It manages a set of
 named types, a set of objects with given type name or type expressions
 and a set of models for objects for a database at a specific algebra
-level. Objects can be persistent or not. Persistent objects are
-implemented by the ~Storage Management Interface~.
+level. Persistency is implemented by the ~Storage Management Interface~.
+
+Modifications to the catalog by the methods of this module are registered
+in temporary data structures in memory and written to disk on completion
+of the enclosing transaction.
 
 1.2 Interface methods
     
@@ -101,18 +104,21 @@ Destroys a catalog.
 */
   bool Open();
 /*
-Opens the catalog for operation.
+Opens the catalog for operation. Returns "true"[4] if the catalog could be
+opened successfully, otherwise "false"[4].
 
 */
   bool Close();
 /*
-Closes the catalog.
+Closes the catalog. Returns "true"[4] if the catalog could be
+closed successfully, otherwise "false"[4].
 
 */
   bool CleanUp( const bool revert );
 /*
 Cleans up the memory representation when a transaction is completed.
-The switch ~revert~ is ~true~ if the transaction is aborted.
+The switch ~revert~ has to be set to "true"[4] if the enclosing transaction
+is aborted.
 
 */
 
@@ -134,7 +140,7 @@ Returns a list of types of the whole database in the following format:
                    ListExpr typeExpr );
 /*
 Inserts a new type with identifier ~typeName~ defined by a list
-~typeExpr~ of already existing types in the database. Returns ~false~,
+~typeExpr~ of already existing types in the database. Returns "false"[4],
 if the name was already defined. 
 
 */
@@ -146,7 +152,7 @@ Deletes a type with identifier ~typename~ in the database. Returns error
 */
   bool MemberType( const string& typeName );
 /*                  
-Returns ~true~, if type with name ~typename~ is member of the actually
+Returns "true"[4], if type with name ~typename~ is member of the actually
 open database. 
 
 */                          
@@ -155,9 +161,10 @@ open database.
                        int& algebraId, int& typeId );
 /*                        
 Returns the algebra identifier ~algebraId~ and the type identifier
-~opId~ and the name ~typecon~ of the outermost type constructor for a
+~opId~ and the name ~typeName~ of the outermost type constructor for a
 given type expression ~typeExpr~, if it exists, otherwise an empty
-string as ~typeName~ and value 0 for the identifiers. 
+string as ~typeName~ and value 0 for the identifiers, and the methods
+return value is set to "false"[4].
 
 */
   ListExpr GetTypeExpr( const string& typeName );
@@ -165,7 +172,7 @@ string as ~typeName~ and value 0 for the identifiers.
 Returns a type expression for a given type name ~typename~,
 if exists. 
 
-Precondition: ~MemberType(typeName)~ delivers ~true~.
+*Precondition*: "MemberType( typeName ) == true"[4].
 
 */
   ListExpr NumericType( const ListExpr type );
@@ -206,7 +213,7 @@ their defining expressions.
 /*
 Here ~type~ is a type expression. ~KindCorrect~ does the kind checking;
 if there are errors, they are reported in the list ~errorInfo~, and
-~false~ is returned. ~errorInfo~ is a list whose entries are again
+"false"[4] is returned. ~errorInfo~ is a list whose entries are again
 lists, the first element of an entry is an error code number. For
 example, an entry 
 
@@ -232,7 +239,8 @@ Returns a list of ~objects~ of the whole database in the same format that is use
       )
 ----
 
-For each object the *value* component is missing, otherwise the whole database will be returned.
+For each object the *value* and *model* component is missing, otherwise
+the whole database would be returned.
 
 */
   ListExpr ListObjectsFull();
@@ -253,7 +261,7 @@ Returns a list of ~objects~ of the whole database in the following format:
 /*
 Creates a new object with identifier ~objectName~ defined with type name
 ~typeName~ (can be empty) and type ~typeExpr~. The value is not yet
-defined, and no memory is allocated. Returns error 1, if the object name
+defined, and no memory is allocated. Returns "false"[4], if the object name
 is defined already. 
 
 */
@@ -270,7 +278,7 @@ existing types (which always exists) into the database catalog.
 Parameter ~defined~ tells, whether ~valueWord~ actually contains a defined
 value. Further, ~modelWord~ contains a model for this value, possibly 0,
 the undefined model. If the object name already exists, the procedure
-has no effect. Returns ~false~ if the ~objectName~ is already in use.
+has no effect. Returns "false"[4] if the ~objectName~ is already in use.
 
 When the given object has no type name, it is mandatory, that ~typeName~
 is an empty string.
@@ -279,7 +287,7 @@ is an empty string.
   bool DeleteObject( const string& objectName );
 /*
 Deletes an object with identifier ~objectName~ in the database. Returns
-~false~ if the object does not exist. 
+"false"[4] if the object does not exist. 
 
 */
   Word InObject( const ListExpr typeExpr,
@@ -291,10 +299,10 @@ Deletes an object with identifier ~objectName~ in the database. Returns
 Converts an object of the type given by ~typeExpr~ and the value given
 as a nested list into a ~Word~ representation which is returned. Any
 errors found are returned together with the given ~errorPos~ in the list
-~errorInfo~. ~Correct~ is set to ~true~ if a value was created (which
+~errorInfo~. ~correct~ is set to "true"[4] if a value was created (which
 means that the input was at least partially correct). 
 
-Works only at the executable level.
+*NOTE*: Works only at the executable level.
 
 */
   ListExpr GetObjectValue( const string& objectName );
@@ -303,7 +311,7 @@ Returns the value of a locally stored database object with identifier
 ~objectName~ as list expression to show the value to the database
 user. If the value is undefined, an empty list is returned. 
 
-Works only at the executable level.
+*NOTE*: Works only at the executable level.
 
 */
   ListExpr OutObject( const ListExpr type,
@@ -312,7 +320,7 @@ Works only at the executable level.
 Returns for a given ~object~ of type ~type~ its value in nested list
 representation. 
 
-Works only at the executable level.
+*NOTE*: Works only at the executable level.
 
 */
   bool IsObjectName( const string& objectName );
@@ -326,9 +334,9 @@ Checks whether ~objectName~ is a valid object name.
 Returns the value ~word~ of an object with identifier ~objectName~.
 ~defined~ tells whether the word contains a meaningful value. 
 
-Works only at the executable level.
+*NOTE*: Works only at the executable level.
 
-Precondition: ~IsObjectName(objectName)~ delivers ~true~.
+*Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
   bool GetObjectExpr( const string& objectName,
@@ -342,10 +350,10 @@ Precondition: ~IsObjectName(objectName)~ delivers ~true~.
 Returns the value ~value~, the type name ~typeName~, the type expression
 ~typeExpr~, and the ~model~ of an object with identifier ~objectName~.
 ~defined~ tells whether ~value~ contains a defined value. If object has
-no type name the variable ~hasTypeName~ is set to ~false~ and the
+no type name the variable ~hasTypeName~ is set to "false"[4] and the
 procedure returns an empty string as ~typeName~.
 
-Precondition: ~IsObjectName(objectName)~ delivers ~true~.
+*Precondition*: "IsObjectName(objectName) == true"[4].
 
 */
   bool GetObjectType( const string& objectName,
@@ -354,16 +362,16 @@ Precondition: ~IsObjectName(objectName)~ delivers ~true~.
 Returns the type name ~typeName~ of an object with identifier
 ~objectName~, if the type name exists and an empty string otherwise. 
 
-Precondition: ~IsObjectName(objectName)~ delivers ~true~.
+*Precondition*: "IsObjectName( objectName ) == true"[4].
 
 */
   bool UpdateObject( const string& objectName,
                      const Word word );
 /*
 Overwrites the value of the object with identifier ~objectName~ with a
-new value ~word~. Returns error 1 if object does not exist. 
+new value ~word~. Returns "false"[4] if object does not exist. 
 
-Works only at the executable level.
+*NOTE*: Works only at the executable level.
 
 */
   Word InObjectModel( const ListExpr typeExpr,
@@ -371,7 +379,7 @@ Works only at the executable level.
                       const int objNo );
 /*
 Converts a model of the type given by ~typeExpr~ and the value given as
-a nested list into a WORD representation which is returned. 
+a nested list into a "Word"[4] representation which is returned. 
 
 */
   ListExpr OutObjectModel( const ListExpr typeExpr,
@@ -386,7 +394,7 @@ list representation.
 /*
 Returns for a given ~value~ of type ~typeExpr~ its model.
 
-Works only at the executable level.
+*NOTE*: Works only at the executable level.
 
 */
   Word ValueListToObjectModel( const ListExpr typeExpr,
@@ -397,9 +405,9 @@ Works only at the executable level.
 /*
 Returns for a given ~valueList~ of type ~typeExpr~ its model. Any errors
 found are returned together with the given ~errorPos~ in the list
-~errorInfo~. ~Correct~ is set to TRUE if a model was created . 
+~errorInfo~. ~correct~ is set to "true"[4] if a model was created . 
 
-Works only at the descriptive level.
+*NOTE*: Works only at the descriptive level.
 
 */
 
@@ -431,8 +439,8 @@ Returns the algebra identifier ~algebraId~ and the type identifier
 ~opId~ of an existing type constructor or database type with name
 ~typeName~. 
 
-Precondition: ~IsTypeName(typeName)~ delivers ~true~.
-  
+*Precondition*: "IsTypeName( typeName ) == true"[4].
+
 */
   string GetTypeName( const int algebraId, const int typeId );
 /*
@@ -482,7 +490,7 @@ Checks whether ~opName~ is a valid operator name.
 Returns the algebra identifier ~algebraId~ and the operator identifier
 ~opId~ of an existing ~opName~. 
 
-Precondition: ~IsOperatorName(opName)~ delivers ~true~.  
+*Precondition*: "IsOperatorName( opName ) == true"[4].
 
 */
   string GetOperatorName( const int algebraId,
@@ -562,7 +570,10 @@ following format:
   bool testMode;
 /*
 If ~testMode~ is set some preconditions are tested. If an error occurs,
-HALT is called.
+"exit"[4] is called.
+
+*TODO*: "exit"[4] should never be called in the server version. In case of
+an error it should always be reported to the client.
 
 */
   friend class SecondoSystem;
