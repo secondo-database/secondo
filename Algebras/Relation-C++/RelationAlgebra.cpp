@@ -351,7 +351,6 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
 static int ccTuplesCreated = 0;
 static int ccTuplesDeleted = 0;
 
-
 class CcTuple
 {
   private:
@@ -1793,7 +1792,9 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
         (*funargs)[0] = elem;
         qp->Request(args[1].addr, funresult);
         if (((StandardAttribute*)funresult.addr)->IsDefined())
+        {
           found = (bool)((StandardAttribute*)funresult.addr)->GetValue();
+        }
         if (!found)
         {
           tuple->DeleteIfAllowed();
@@ -2123,7 +2124,7 @@ ListExpr ProductTypeMap(ListExpr args)
     list = ConcatLists(list1, list2);
     // Check whether all new attribute names are distinct
     // - not yet implemented
-    
+
     if ( comparenames(list) )
     {
       outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -2281,7 +2282,9 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
         vector = qp->Argument(args[1].addr);
         (*vector)[0] = t;
         qp->Request(args[1].addr, value);
-        found = ((CcBool*)value.addr)->GetBoolval();
+        found = 
+          ((CcBool*)value.addr)->IsDefined()
+          && ((CcBool*)value.addr)->GetBoolval();
         if (found)
         {
           qp->Close(args[0].addr);
@@ -3035,12 +3038,12 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   qp->Request(args[0].addr, currentTupleWord);
   while(qp->Received(args[0].addr))
   {
-    nProcessedItems++;
-
     CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
     Attribute* currentAttr = (Attribute*)currentTuple->Get(attributeIndex);
     if(currentAttr->IsDefined())
     {
+      nProcessedItems++;
+
       if(definedValueFound)
       {
         if(strcmp(attributeType, "real") == 0)
@@ -3168,7 +3171,7 @@ in ascending (asc) or descending (desc) order with regard to that attribute.
 
 Type mapping for ~sortBy~ is
 
-----	((stream (tuple ((x1 t1)...(xn tn))) ((xi1 asc/desc) ... (xij asc/desc))) 	
+----	((stream (tuple ((x1 t1)...(xn tn))) ((xi1 asc/desc) ... (xij asc/desc)))
               -> (stream (tuple ((x1 t1)...(xn tn)))
                   APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc)
 ----
@@ -4032,6 +4035,17 @@ private:
 
   int CompareCcTuples(CcTuple* a, CcTuple* b)
   {
+    /* tuples with NULL-Values in the join attributes
+       are never matched with other tuples. */
+    if(!((Attribute*)a->Get(attrIndexA))->IsDefined())
+    {
+      return -1;
+    }
+    if(!((Attribute*)b->Get(attrIndexB))->IsDefined())
+    {
+      return 1;
+    }
+
     return ((Attribute*)a->Get(attrIndexA))->Compare((Attribute*)b->Get(attrIndexB));
   }
 
@@ -4391,6 +4405,17 @@ private:
 
   int CompareCcTuples(CcTuple* a, CcTuple* b)
   {
+    /* tuples with NULL-Values in the join attributes
+       are never matched with other tuples. */
+    if(!((Attribute*)a->Get(attrIndexA))->IsDefined())
+    {
+      return -1;
+    }
+    if(!((Attribute*)b->Get(attrIndexB))->IsDefined())
+    {
+      return 1;
+    }
+
     return ((Attribute*)a->Get(attrIndexA))->
       Compare((Attribute*)b->Get(attrIndexB));
   }
