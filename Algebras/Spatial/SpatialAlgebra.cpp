@@ -2428,25 +2428,11 @@ TypeConstructor line(
 8 Type Constructor ~region~
 
 A ~region~ value is a set of halfsegments. In the external (nestlist) representation, a region value is 
-<<<<<<< SpatialAlgebra.cpp
-expressed as a set of segments. However, in the internal (class) representation, it is expressed
-as a set of sorted halfsegments, which are stored as a PArray.
-
-The system will do the basic check on the validity of the region data. For instance, the region should have 
-at least 3 edges, and every vertex should have even-numbered edges associated.
-=======
 expressed as a set of faces, and each face is composed of a set of cycles.  However, in the internal 
 (class) representation, it is expressed as a set of sorted halfsegments, which are stored as a PArray.
->>>>>>> 1.6
 
-<<<<<<< SpatialAlgebra.cpp
-In the following step, I will change the design of the region data type. The internal representation of a region
-is still a set of  sorted halfsegments, but the external representation (nestedlist) will be changed. It will use
-the concept of cycles and faces.
-=======
 The system will do the basic check on the validity of the region data (see the explaination of the 
 insertOK() function). 
->>>>>>> 1.6
 
 8.1 Implementation of the class ~region~
 
@@ -4899,94 +4885,159 @@ mapping functions for each operator. For nonoverloaded operators there is also s
 defined, so it easier to make them overloaded.
 
 */
-ValueMapping spatialisemptymap[] = { IsEmpty_p, IsEmpty_ps, IsEmpty_l, IsEmpty_r };
-ValueMapping spatialequalmap[] = { SpatialEqual_pp, SpatialEqual_psps, SpatialEqual_ll, SpatialEqual_rr };
-ValueMapping spatialnotequalmap[] = { SpatialNotEqual_pp, SpatialNotEqual_psps, SpatialNotEqual_ll, SpatialNotEqual_rr };
-ValueMapping spatiallessmap[] = { SpatialLess_pp };
+ValueMapping spatialisemptymap[] = { IsEmpty_p, 
+				     IsEmpty_ps, 
+				     IsEmpty_l, 
+				     IsEmpty_r };
+
+ValueMapping spatialequalmap[] = 	{   SpatialEqual_pp, 
+				     SpatialEqual_psps, 
+				     SpatialEqual_ll, 
+				     SpatialEqual_rr };
+
+ValueMapping spatialnotequalmap[] = { SpatialNotEqual_pp, 
+				      SpatialNotEqual_psps, 
+				      SpatialNotEqual_ll, 
+				      SpatialNotEqual_rr };
+
+ValueMapping spatiallessmap[] = 	{ SpatialLess_pp };
+
 ValueMapping spatiallessequalmap[] = { SpatialLessEqual_pp };
+
 ValueMapping spatialgreatermap[] = { SpatialGreater_pp };
+
 ValueMapping spatialgreaterequalmap[] = { SpatialGreaterEqual_pp };
-ValueMapping spatialintersectsmap[] = { SpatialIntersects_psps, SpatialIntersects_ll, SpatialIntersects_rr };
-ValueMapping spatialinsidemap[] = { SpatialInside_psps, SpatialInside_ll, SpatialInside_rr, SpatialInside_pps, SpatialInside_pl, SpatialInside_pr };
 
-ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping, SpatialNoModelMapping, 
-                                     SpatialNoModelMapping, SpatialNoModelMapping,
-                                     SpatialNoModelMapping, SpatialNoModelMapping };
+ValueMapping spatialintersectsmap[] = { SpatialIntersects_psps, 
+				        SpatialIntersects_ll, 
+				        SpatialIntersects_rr };
 
-//const string SpatialSpecIsEmpty = "(<text> point -> bool, points -> bool, line -> bool, region -> bool</text---><text> Returns whether the value is defined or not. </text--->)";
-const string SpatialSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>point -> bool, points -> bool, line -> bool, region -> bool</text--->
-			       <text>isempty ( _ )</text--->
-			       <text>Returns whether the value is defined or not.</text--->
-			       <text>query isempty ( line1 )</text--->
-			      ) )";
-//const string SpatialSpecEqual = "(<text> (point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool</text---><text> Equal. </text--->)";
-const string SpatialSpecEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool</text--->
-			       <text>_ = _</text--->
-			       <text>Equal.</text--->
-			       <text>query point1 = point2</text--->
-			      ) )";
-//const string SpatialSpecNotEqual = "(<text> (point point) -> bool</text---><text> Not equal. </text--->)";
-const string SpatialSpecNotEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(point point) -> bool</text--->
-			       <text>_ # _</text--->
-			       <text>Not equal.</text--->
-			       <text>query point1 # point2</text--->
-			      ) )";
-//const string SpatialSpecLess = "(<text> (point point) -> bool</text---><text> Less than. </text--->)";
-const string SpatialSpecLess  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(point point) -> bool</text--->
-			       <text>_ < _</text--->
-			       <text>Less than.</text--->
-			       <text>query point1 < point2</text--->
-			      ) )";
-//const string SpatialSpecLessEqual   = "(<text> (point point) -> bool</text---><text> Equal or less than. </text--->)";
-const string SpatialSpecLessEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(point point) -> bool</text--->
-			       <text>_ <= _</text--->
-			       <text>Equal or less than.</text--->
-			       <text>query point1 <= point2</text--->
-			      ) )";
-//const string SpatialSpecGreater = "(<text> (point point) -> bool</text---><text> Greater than. </text--->)";
-const string SpatialSpecGreater  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(point point) -> bool</text--->
-			       <text>_ > _</text--->
-			       <text>Greater than.</text--->
-			       <text>query point1 > point2</text--->
-			      ) )";
+ValueMapping spatialinsidemap[] = 	      { SpatialInside_psps, 
+				        SpatialInside_ll, 
+				        SpatialInside_rr, 
+				        SpatialInside_pps, 
+				        SpatialInside_pl, 
+				        SpatialInside_pr };
 
-//const string SpatialSpecGreaterEqual = "(<text> (point point) -> bool</text---><text> Equal or greater than. </text--->)";
-const string SpatialSpecGreaterEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(point point) -> bool</text--->
-			       <text>_ >= _</text--->
-			       <text>Equal or greater than.</text--->
-			       <text>query point1 >= point2</text--->
-			      ) )";
-//const string SpatialSpecIntersects = "(<text> (points points) -> bool, (line line) -> bool, (region region) -> bool</text---><text> Intersects. </text--->)";
-const string SpatialSpecIntersects  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(points points) -> bool, (line line) -> bool, (region region) -> bool</text--->
-			       <text>_ intersects _</text--->
-			       <text>Intersects.</text--->
-			       <text>query point1 intersects point2</text--->
-			      ) )";
-//const string SpatialSpecInside = "(<text> (points points) -> bool, (line line) -> bool, (region region) -> bool, (point points) -> bool, (point line) -> bool, (point region) -> bool</text---><text> Inside. </text--->)";
-const string SpatialSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(points points) -> bool, (line line) -> bool, (region region) -> bool, (point points) -> bool, (point line) -> bool, (point region) -> bool</text--->
-			       <text>_ inside _</text--->
-			       <text>Inside.</text--->
-			       <text>query point1 inside line1</text--->
-			      ) )";
+ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping,
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping };
+
+const string SpatialSpecIsEmpty  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>point -> bool, points -> bool, line -> bool, 
+	     region -> bool</text---> <text>isempty ( _ )</text--->
+	     <text>Returns whether the value is defined or not.</text--->
+	     <text>query isempty ( line1 )</text--->
+	     ) )";
+
+const string SpatialSpecEqual  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point point) -> bool, (points points) -> bool, 
+	     (line line) -> bool, (region region) -> bool</text--->
+	     <text>_ = _</text--->
+	     <text>Equal.</text--->
+	     <text>query point1 = point2</text--->
+	     ) )";
+
+const string SpatialSpecNotEqual  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point point) -> bool</text--->
+	     <text>_ # _</text--->
+	     <text>Not equal.</text--->
+	     <text>query point1 # point2</text--->
+	     ) )";
+
+const string SpatialSpecLess  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point point) -> bool</text--->
+	     <text>_ < _</text--->
+	     <text>Less than.</text--->
+	     <text>query point1 < point2</text--->
+	     ) )";
+
+const string SpatialSpecLessEqual  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point point) -> bool</text--->
+	     <text>_ <= _</text--->
+	     <text>Equal or less than.</text--->
+	     <text>query point1 <= point2</text--->
+	     ) )";
+
+const string SpatialSpecGreater  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point point) -> bool</text--->
+	     <text>_ > _</text--->
+	     <text>Greater than.</text--->
+	     <text>query point1 > point2</text--->
+	     ) )";
+
+
+const string SpatialSpecGreaterEqual  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point point) -> bool</text--->
+	     <text>_ >= _</text--->
+	     <text>Equal or greater than.</text--->
+	     <text>query point1 >= point2</text--->
+	     ) )";
+
+const string SpatialSpecIntersects  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(points points) -> bool, (line line) -> bool, 
+	     (region region) -> bool</text--->
+	     <text>_ intersects _</text--->
+	     <text>Intersects.</text--->
+	     <text>query point1 intersects point2</text--->
+	     ) )";
+
+const string SpatialSpecInside  = 	
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(points points) -> bool, (line line) -> bool, 
+	     (region region) -> bool, (point points) -> bool, 
+	     (point line) -> bool, (point region) -> bool</text--->
+	     <text>_ inside _</text--->
+	     <text>Inside.</text--->
+	     <text>query point1 inside line1</text--->
+	     ) )";
 			      
-Operator spatialisempty( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
-Operator spatialequal( "=", SpatialSpecEqual, 4, spatialequalmap, spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
-Operator spatialnotequal( "#", SpatialSpecNotEqual, 4, spatialnotequalmap, spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
-Operator spatialless( "<", SpatialSpecLess, 1, spatiallessmap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
-Operator spatiallessequal( "<=", SpatialSpecLessEqual, 1, spatiallessequalmap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
-Operator spatialgreater( ">", SpatialSpecGreater, 1, spatialgreatermap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
-Operator spatialgreaterequal( ">=", SpatialSpecGreaterEqual, 1, spatialgreaterequalmap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
-Operator spatialintersects( "intersects", SpatialSpecIntersects, 3, spatialintersectsmap, spatialnomodelmap, SpatialSelectSets1, SpatialTypeMapBool );
-Operator spatialinside( "inside", SpatialSpecInside, 6, spatialinsidemap, spatialnomodelmap, SpatialSelectSets2, SpatialTypeMapBool );
+Operator spatialisempty
+	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, 
+	  spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
+
+Operator spatialequal
+	( "=", SpatialSpecEqual, 4, spatialequalmap, 
+	  spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
+
+Operator spatialnotequal
+	( "#", SpatialSpecNotEqual, 4, spatialnotequalmap, 
+	  spatialnomodelmap,  SpatialSelectCompare, SpatialTypeMapBool );
+
+Operator spatialless
+	( "<", SpatialSpecLess, 1, spatiallessmap, spatialnomodelmap, 
+	  SimpleSelect, SpatialTypeMapBool );
+
+Operator spatiallessequal
+	( "<=", SpatialSpecLessEqual, 1, spatiallessequalmap, 
+	  spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
+
+Operator spatialgreater
+	( ">", SpatialSpecGreater, 1, spatialgreatermap, 
+	  spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
+
+Operator spatialgreaterequal
+	( ">=", SpatialSpecGreaterEqual, 1, spatialgreaterequalmap, 
+	  spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
+
+Operator spatialintersects
+	( "intersects", SpatialSpecIntersects, 3, spatialintersectsmap,
+	  spatialnomodelmap, SpatialSelectSets1, SpatialTypeMapBool );
+
+Operator spatialinside
+	( "inside", SpatialSpecInside, 6, spatialinsidemap, spatialnomodelmap, 
+	  SpatialSelectSets2, SpatialTypeMapBool );
 
 /*
 10 Creating the Algebra
@@ -5000,7 +5051,6 @@ class SpatialAlgebra : public Algebra
   {
     AddTypeConstructor( &point );
     AddTypeConstructor( &points );
-    //AddTypeConstructor( &halfsegment );
     AddTypeConstructor( &line );
     AddTypeConstructor( &region );
 
@@ -5008,7 +5058,6 @@ class SpatialAlgebra : public Algebra
     points.AssociateKind("DATA");   	//can be used in places where types
     line.AssociateKind("DATA");      	//of kind DATA are expected, e.g. in
     region.AssociateKind("DATA");	//tuples.
-    //halfsegment.AssociateKind("DATA");
 	
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
