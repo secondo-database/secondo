@@ -801,6 +801,7 @@ after the error number have the following meaning:
     errors[82] = "Identifier of object is not a known database object. ";
     errors[83] = "Object name in file different from indentifier for object. ";
     errors[84] = "Identifier of object already known in the database. ";
+    errors[85] = "Algebra not known or currently not included."
 
 ----
 

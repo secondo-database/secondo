@@ -38,6 +38,9 @@ April 29, 2003 M. Spiekermann bug fix in LookUpTypeExpr(...).
 
 April 30 2003 Hoffmann Changes syntax for the restore objects command.
 
+September 2003 Hoffmann Extended section List-Commands for Secondo-Commands
+~list algebras~ and ~list algebra <algebra name>~.
+
 \tableofcontents
 
 */
@@ -677,7 +680,31 @@ If value 0 is returned, the command was executed without error.
 
     else if ( nl->IsEqual( first, "list" ) )
     {
-      if ( nl->IsEqual( nl->Second( list ), "type" ) && (length == 3) &&
+      if ( nl->IsEqual( nl->Second( list ), "algebras" ) && (length == 2) )
+      {
+          resultList =
+	  SecondoSystem::GetAlgebraManager( )->ListAlgebras();
+      }
+      
+      else if ( nl->IsEqual( nl->Second( list ), "algebra" ) && (length == 3) &&
+                nl->IsAtom(nl->Third(list)) && nl->AtomType( nl->Second( list ) ) 
+		== SymbolType )
+      {
+          if ( SecondoSystem::GetAlgebraManager( )->GetAlgebraId( 
+	       nl->SymbolValue( nl->Third(list) )))
+	  {
+	    int aid = SecondoSystem::GetAlgebraManager( )->GetAlgebraId( 
+	       nl->SymbolValue( nl->Third(list) ));
+	    resultList = 
+	    nl->TwoElemList( nl->SymbolAtom("formatted"),
+	    nl->TwoElemList(SecondoSystem::GetCatalog( level )->ListTypeConstructors( aid ), 
+	    SecondoSystem::GetCatalog( level )->ListOperators( aid )) ); 
+	  }
+	  else errorCode = 85;
+      }
+
+
+      else if ( nl->IsEqual( nl->Second( list ), "type" ) && (length == 3) &&
            nl->IsEqual( nl->Third( list ), "constructors" ) )
       {
         resultList =
