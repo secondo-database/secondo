@@ -21,7 +21,6 @@
 
 1 Header File: PagedArray
 
-
 August 2003 M. Spiekermann 
 
 1.1 Overview
@@ -29,16 +28,13 @@ August 2003 M. Spiekermann
 This module offers a generic persistent array implemented as a template class on top of the
 SecondoSMI interface. Many slots of the array are stored inside a fixed sized Berkeley-DB
 record which is a multiple of the operating systems pagesize. All records IDs which contain
-array slots are hold in a vector in main memory. The currently used record is bufferd in a memory
-array reducing SMI calls.
+array slots are hold in a vector in main memory. The currently used record is bufferd in a memory array reducing SMI calls. This ~cache~ or in other words the frame-buffer of the page oriented memory organisation of the array is variable and can be defined in the configuration file by setting NL:MaxFrames.
 
-Currently this tool can not be used for saving and reconstructing large arrays, but it is
-useful to use it temporary instead of main memory.  Therefore some code snipets are
-commented out and hav to be revised for usage as persistent array. 
+Restrictions: Currently this tool can not be used for saving and reconstructing large arrays, but it is useful to use it temporary instead of main memory. Therefore some code snipets are commented out and have to be revised for usage as persistent array. 
 
-Since the record-size is an attribute of the record-file, this size is defined 
-at construction time of the file and therefore a parameter for the constructor of this class.
-
+Note: Since the record-size is an attribute of the record-file, this size is defined 
+at construction time of the file and hence a parameter for the constructor of this class.
+The maximium record-size is limited by the operating systems page size
 
 1.2 Interface methods
 
@@ -50,9 +46,6 @@ This module offers the following methods:
 	[tilde]PagedArray		& Put		& Id		\\
 	MarkDelete		&		& 		\\
 
-Operations have to follow the protocol shown below:
-
-		Figure 1: Protocol [Protocol.eps]
 
 1.3 Class ~PagedArray~
 
@@ -85,17 +78,19 @@ class PagedArray
   PagedArray( SmiRecordFile *parrays, bool logon=false );
 
 /*
-Creates creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
+Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
 persistent array. One can define an initial size of the persistent
 array with the argument ~initsize~. 
 
 */
   
-  PagedArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update = true );
+  //PagedArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update = true );
 
 /*
 Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
 value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-only.
+
+Note: Currently not implemented.
 
 */
 
@@ -161,14 +156,13 @@ Returns the identifier of this array.
      return swap; 
  }
 
-
-
  private:
 
-  
+  // Number of pages which are hold in memory
   static const int MAX_PAGE_FRAMES = 4;
 
-  // the next method loads another record if neccessary and calculates a slot number inside a record
+  // the next method loads another record if neccessary 
+  // and calculates a slot number inside a record
   inline void GetSlot( Cardinal const index, int &slot );
 
   bool writeable;
@@ -188,28 +182,34 @@ Returns the identifier of this array.
   typedef typename PageMapType::iterator PageMapIter;
   PageMapIter it, frameChangeIter; 
 
-  Cardinal frameTable[MAX_PAGE_FRAMES];
+  // Table for the record ids of the currently loaded records
+  Cardinal frameTable[MAX_PAGE_FRAMES];  
 
   typedef struct {
     
-    int size;
-    int slotSize;
-    int slots;
+    int size;      // size of the record
+    int slotSize;  // size of the objects stored in the array
+    int slots;     // number of slots per record
 
   } PageRecordInfo;
 
   typedef struct {
 
-    int no;
-    int nextFrame; 
-    T *bufPtr; 
+    int no;          // frame number of the currently used page
+    int nextFrame;   // frame number which will be substituted next
+    T *bufPtr;       // pointer to the Framebuffer
   
   } PageInfo;
  
   PageInfo currentPage;
   PageRecordInfo pageRecord;
   
-
+/*
+ The structure below groups all information used for
+ creating trace files.
+ 
+*/   
+  
   typedef struct {
 
     bool switchedOn;
@@ -228,13 +228,11 @@ Returns the identifier of this array.
 /*
 2 Implementation of PagedArray
 
-Version: 0.7
-
 August 2003 M. Spiekermann 
 
 2.1 Overview
 
-This module offers a generic persistent array implemented on top of the
+This module offers a generic persistent array implemented as template class on top of the
 SecondoSMI interface.
 
 */
@@ -282,19 +280,20 @@ size( 0 )
 
 }
 
-/*
-template<class T>
-PagedArray<T>::PagedArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update ) :
-writeable( update ),
-canDelete( false ),
-parrays( parrays )
-{
-  SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  assert( parrays->SelectRecord( id, record, at ) );
-  recid = id;
-  record.Read( &size, sizeof( int ) );
-}
-*/
+ /*
+  * template<class T>
+  * PagedArray<T>::PagedArray( SmiRecordFile *parrays, 
+  *                            const SmiRecordId id, const bool update ) :
+  * writeable( update ),
+  * canDelete( false ),
+  * parrays( parrays )
+  * {
+  *  SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
+  *  assert( parrays->SelectRecord( id, record, at ) );
+  *  recid = id;
+  *  record.Read( &size, sizeof( int ) );
+  * }
+  */
 
 template<class T>
 PagedArray<T>::~PagedArray()
@@ -312,22 +311,24 @@ PagedArray<T>::~PagedArray()
   if ( log.switchedOn ) {
     delete log.filePtr;
   }
-/*
-  if ( canDelete ) 
-  {
-    parrays->DeleteRecord( recid );
-  }
-  else if ( writeable )
-  {
-    record.Write( &size, sizeof( int ) );
-  } 
-*/
+
+ /*
+  * if ( canDelete ) 
+  * {
+  *  parrays->DeleteRecord( recid );
+  * }
+  * else if ( writeable )
+  * {
+  * record.Write( &size, sizeof( int ) );
+  * } 
+  */
 }
 
 /*
 The function below calculates the page number which holds a specific array
 index and determines if this page is still in the memory buffer or if one
 of the pages in memory has to be substituted by a page on disk.
+
 */
 
 template< class T>
@@ -337,7 +338,7 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
   bool pageChange = false;
  
 
-  /* enlarge the array if necessary */ 
+  // enlarge the array if necessary 
   if (index >= size) {
     
      assert( parrays->AppendRecord( recid, record ) );
@@ -346,14 +347,14 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
      size = size + pageRecord.slots;
   } 
 
-  /* calculate page number */
+  // calculate page number
   pageNo = index / pageRecord.slots;
   
   if (currentPage.no != pageNo ) {
 
-  it = pageTable.find( pageNo );
+  it = pageTable.find( pageNo ); // check if page number is in the cache
 
-  if ( it == pageTable.end() ) { /* substitute memory buffer */
+  if ( it == pageTable.end() ) { // substitute memory buffer
 
      frameChangeIter = pageTable.find( frameTable[ currentPage.nextFrame ] );
 
@@ -388,11 +389,12 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
      if (  currentPage.nextFrame == MAX_PAGE_FRAMES ) {
         currentPage.nextFrame = 0;
      }
-     /*  Note: A cyclic move inside the buffers cannot be implemented with an iterator for
-      *  the map elements since the insert and erase method will corrupt this iterator       
+     /*  Note: A cyclic move inside the buffers cannot be implemented with 
+      *  an iterator for the map elements since the insert and erase method
+      *  will corrupt this iterator.       
       */
  
-  } else { /* update page number and page frame address */
+  } else { // update page number and page frame address
 
      currentPage.no = pageNo;
      currentPage.bufPtr = it->second; 

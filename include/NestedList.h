@@ -13,6 +13,7 @@
 //[oe] [\"o]
 //[ue] [\"u]
 //[ss] [{\ss}]
+//[star] [{\*}]
 
 1 Header File: Nested List
 
@@ -30,9 +31,11 @@ October 22, 1996 RHG Made operations ~ListLength~ and ~WriteListExpr~ available.
 
 February 2002 Ulrich Telle Port to C++
 
-November 28, 2002 M. Spiekermann method reportVectorSizes() added. 
+November 28, 2002 M. Spiekermann; method reportVectorSizes() added. 
 
-December 05, 2002 M. Spiekermann methods InitializeListMemory() and CopyList() supplemented.
+December 05, 2002 M. Spiekermann; methods InitializeListMemory() and CopyList() supplemented.
+
+Aug/Sept 2003 M. Spiekermann; Some methods are declarated as inline. Producing a nested list in textual format is now done by an ostream object to avoid creating big string objects when it is possible to write to a stream (e.g. cout, file or a TCP/IP socket). Moreover a new method WriteBinaryTo() creates a byte sequence representing a nested list which is much smaller than the textual format. All this modifications gain a speed up of the client-server communication. 
 
 1.1 Overview
 
@@ -346,8 +349,9 @@ least ~initialEntries~ nodes.
 Returns the Memory-Model of the underlying CTable data structures. Possible values
 are PERSISTENT and NON-PERSISTENT. The PERSISTENT variant uses Berkeley-DB Records
 for its nodes instead of the NON-PERSISTENT version which uses heap memory.
+
 */
-  virtual ~NestedList();
+   virtual ~NestedList();
 /*
 Destroys a nested list container.
 
@@ -541,12 +545,14 @@ Writes the list in a binary coded or textual format into the referenced stream.
 
 Note: When using an fstream with WriteBinaryTo initialize it as ios::binary otherwise the
 output of bytes will be influenced by platform specific implementations
+
 */
 
   string ToString( const ListExpr list );
 
 /*
 A wrapper for ~WriteToString~ which directly returns a string object. 
+
 */
 
   void WriteListExpr( ListExpr list, ostream& ostr );
@@ -563,24 +569,18 @@ etc. up to six elements.
 */
   inline ListExpr OneElemList( const ListExpr elem1 )
   {
-    return (Cons( elem1, TheEmptyList() ));
-  };
+    return (Cons( elem1, TheEmptyList() )); };
 
   inline ListExpr TwoElemList( const ListExpr elem1,
                         const ListExpr elem2 )
   {
-    return (Cons( elem1,
-                Cons( elem2, TheEmptyList () ) ));
-  };
+    return (Cons( elem1, OneElemList(elem2) )); };
 
   inline ListExpr ThreeElemList( const ListExpr elem1,
                           const ListExpr elem2,
                           const ListExpr elem3 )
   {
-    return (Cons( elem1,
-                  Cons( elem2,
-                        Cons( elem3, TheEmptyList () ) ) ));
-  };
+    return (Cons( elem1, TwoElemList(elem2, elem3) )); };
 
 
   inline ListExpr FourElemList( const ListExpr elem1,
@@ -588,11 +588,7 @@ etc. up to six elements.
                          const ListExpr elem3,
                          const ListExpr elem4 )
   {
-    return (Cons( elem1,
-                  Cons( elem2,
-                        Cons( elem3,
-                              Cons( elem4, TheEmptyList () ) ) ) ));
-  };
+    return (Cons( elem1, ThreeElemList(elem2, elem3, elem4) )); };
 
   inline ListExpr FiveElemList( const ListExpr elem1,
                          const ListExpr elem2,
@@ -600,13 +596,7 @@ etc. up to six elements.
                          const ListExpr elem4,
                          const ListExpr elem5 )
   {
-    return (Cons( elem1,
-                  Cons( elem2,
-                        Cons( elem3,
-                              Cons( elem4,
-                                    Cons( elem5, TheEmptyList () ) ) ) ) ));
-  };
-
+    return (Cons( elem1, FourElemList(elem2, elem3, elem4, elem5) )); };
 
   inline ListExpr SixElemList( const ListExpr elem1,
                         const ListExpr elem2,
@@ -615,13 +605,8 @@ etc. up to six elements.
                         const ListExpr elem5,
                         const ListExpr elem6 )
   {
-    return (Cons( elem1,
-                  Cons( elem2,
-                        Cons( elem3,
-                              Cons( elem4,
-                                    Cons( elem5,
-                                         Cons( elem6, TheEmptyList () ) ) ) ) ) ));
-  };
+    return (Cons( elem1, FiveElemList(elem2, elem3, elem4, elem5, elem6) )); };
+    
 /*
 A pointer to the new list is returned.
 
@@ -656,7 +641,7 @@ corresponding atom:
   ListExpr StringAtom( const string& value, bool isString=true );
   ListExpr SymbolAtom( const string& value );
 /*
-Note: ~Symbols~ and ~Strings~ are character sequences up to 3*STRINGSIZE.
+Note: ~Symbols~ and ~Strings~ are character sequences up to 3[star]STRINGSIZE.
 SymbolAtom is only a wrapper which calls Stringatom(value,false) to avoid
 duplicated code.
 
@@ -784,10 +769,10 @@ The default values are tuning parameters and reflect values which are
 useful in the present development state of SECONDO.  
 
 1.3.13 Copying of Lists
+
 */
   
   const ListExpr CopyList( const ListExpr list, const NestedList* target );
-
   
 /*
 Copies a nested list from this instance to the target instance.
