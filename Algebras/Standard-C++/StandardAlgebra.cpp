@@ -720,6 +720,7 @@ int       CcString::Compare( Attribute* arg )
    //     CcString* p = dynamic_cast< CcString* >(arg);
   CcString* p = (CcString*)(arg);
   if ( !p ) return (-2);
+  
   return (stringval.compare( p->stringval ));
 };
 
@@ -1589,9 +1590,11 @@ CcLess_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->
-      Set( true, ((CcString*)args[0].addr)->GetStringval() <
-                 ((CcString*)args[1].addr)->GetStringval() );
+    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
+    if (cmp < 0) 
+      ((CcBool *)result.addr)->Set( true, true );
+    else
+      ((CcBool *)result.addr)->Set( true, false );
   }
   else
   {
@@ -1702,9 +1705,11 @@ CcLessEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->
-      Set( true, (((CcString*)args[0].addr)->GetStringval() <=
-                  ((CcString*)args[1].addr)->GetStringval()) );
+    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
+    if (cmp <= 0) 
+      ((CcBool *)result.addr)->Set( true, true );
+    else
+      ((CcBool *)result.addr)->Set( true, false );
   }
   else
   {
@@ -1815,9 +1820,12 @@ CcGreater_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->
-      Set( true, (((CcString*)args[0].addr)->GetStringval() >
-                  ((CcString*)args[1].addr)->GetStringval()) );
+    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
+    if (cmp > 0) 
+      ((CcBool *)result.addr)->Set( true, true );
+    else
+      ((CcBool *)result.addr)->Set( true, false );
+
   }
   else
   {
@@ -1928,9 +1936,11 @@ CcGreaterEqual_ss( Word* args, Word& result, int message, Word& local, Supplier 
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->
-      Set( true, (((CcString*)args[0].addr)->GetStringval() >=
-                  ((CcString*)args[1].addr)->GetStringval()) );
+    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
+    if (cmp >= 0) 
+      ((CcBool *)result.addr)->Set( true, true );
+    else
+      ((CcBool *)result.addr)->Set( true, false );
   }
   else
   {
@@ -2041,9 +2051,11 @@ CcEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->
-      Set( true, (((CcString*)args[0].addr)->GetStringval() ==
-                  ((CcString*)args[1].addr)->GetStringval()) );
+    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
+    if (cmp == 0) 
+      ((CcBool *)result.addr)->Set( true, true );
+    else
+      ((CcBool *)result.addr)->Set( true, false );
   }
   else
   {
@@ -2154,9 +2166,11 @@ CcDiff_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
-    ((CcBool *)result.addr)->
-      Set( true, (((CcString*)args[0].addr)->GetStringval() !=
-                  ((CcString*)args[1].addr)->GetStringval()) );
+    int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
+    if (cmp != 0) 
+      ((CcBool *)result.addr)->Set( true, true );
+    else
+      ((CcBool *)result.addr)->Set( true, false );
   }
   else
   {
