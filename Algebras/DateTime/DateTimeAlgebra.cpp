@@ -1389,8 +1389,7 @@ ListExpr DurationProperty(){
                 nl->StringAtom("instant"),
                 nl->StringAtom("(int int)"),
                 nl->StringAtom("(12 273673)"),
-                nl->StringAtom("The first argument is day,"
-                               " the second one milliseconds")
+                nl->StringAtom("the arguments are days and milliseconds")
          )));
 }
 

@@ -2147,8 +2147,7 @@ static ListExpr FLineProperty(){
         nl->StringAtom("->DATA"),
         nl->StringAtom("fline"),
         nl->StringAtom("(scale <fuzzy segment list>)"),
-        nl->StringAtom("(100.0 (((0 0 1.0) (20 30 0.5))((0 0 0.8)"
-                       "(-20 -30 0.0))))")
+        nl->StringAtom("(100.0 ( ( (0 0 1.0)(20 30 0.5))))")
       )
     )
   );
