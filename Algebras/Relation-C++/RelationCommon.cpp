@@ -201,13 +201,16 @@ Tuple *Tuple::Clone( const bool isFree ) const
 CcTuple *Tuple::CloneToMemoryTuple( const bool isFree ) const
 {
   CcTuple *result = new CcTuple();
+
   result->SetFree( isFree );
+  result->SetNoAttrs( this->GetNoAttributes() );
 
   for( int i = 0; i < this->GetNoAttributes(); i++ )
   {
     Attribute *attr = GetAttribute( i )->Clone();
     result->Put( i, attr );
   }
+  
   return result;
 }
 
