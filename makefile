@@ -129,11 +129,10 @@ showjni:
 	@echo $(JNITEXT)
 	
 .PHONY: config
-config: bin/SecondoConfig.ini Optimizer/SecondoConfig.ini
+config: bin/SecondoConfig.ini Optimizer/SecondoConfig.ini bin/JNI.ini
 
 BIN_INI := $(shell ls bin/SecondoConfig.ini)
 bin/SecondoConfig.ini: bin/SecondoConfig.example
-#	echo -$(BIN_INI)-
 ifdef BIN_INI
 	@echo "Warning: Configuration file $< is newer than $@!"
 else
@@ -142,14 +141,19 @@ endif
 	
 OPT_INI := $(shell ls Optimizer/SecondoConfig.ini)
 Optimizer/SecondoConfig.ini: bin/SecondoConfig.example
-#	echo -$(OPT_INI)-
 ifdef OPT_INI
 	@echo "Warning: Configuration file $< is newer than $@!"
 else
 	cp $< $@
 endif
 
-
+JNI_INI := $(shell ls bin/JNI.ini)
+bin/JNI.ini: bin/JNI.ini.sample
+ifdef JNI_INI
+	@echo "Warning: Configuration file $< is newer than $@!"
+else
+	cp $< $@
+endif
 
 .PHONY: help
 help:
