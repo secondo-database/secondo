@@ -48,6 +48,8 @@ April 22, 2003 V. Almeida changed the methods CopyList and Destroy to use iterat
 Jan - May 2003, M. Spiekermann, the Get() and Put() Methods of CTable.h were used to allow switching between
 persistent and in memory implementations of NL without writing special code for both implementations. Uncomment the precompiler directive #define CTABLE_PERSISTENT for support of big nested lists. Currently it is not possible to mix both variants.
 
+December 2003, M. Spiekermann: A new method GetNextText has been introduced and and the
+implementation of Text2String was changed in order to use stringstreams. 
 
 1 Introduction
 
