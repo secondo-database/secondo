@@ -96,6 +96,12 @@ series                 <series>.*<\/series>
                            //printf("\n");
                          yytext[yyleng-9]='\0';
                          yylval.string = strdup(yytext+8);
+                         // remove " by '
+                         i=0;
+                         while (yylval.string[i] != '\0') {
+                           if (yylval.string[i] == '\"') yylval.string[i]='\'';
+                           i++;
+                         }
                          //yylvaltmp[10] = "\0";
                          //printf("AUTHOR");
                          return(AUTHOR);
