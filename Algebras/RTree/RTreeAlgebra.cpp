@@ -108,7 +108,6 @@ Used in standard R-trees
 
 */
 const int do_quadratic_split = 0;
-
 /*
 If set, Guttman's quadratic split algorithm is performed.
 Used in standard R-trees
@@ -168,7 +167,7 @@ ostream& operator<< ( ostream& o, const R_TreeEntry& e )
 }
 
 /*
-4 Class R\_TreeNode
+4 Class ~R\_TreeNode~
 
 This is a node in the R-Tree.
 
@@ -468,7 +467,7 @@ void R_TreeNode::LinearPickSeeds( int& seed1, int& seed2 ) const
 
   for( int i = 0; i < count; i++ )
   {
-    for( int d = 0; d < nDim; d++ )
+    for( int d = 0; d < 2; d++ )
     {
       if( entry[ i ].box.MinD( d ) > maxMinVal[ d ] )
       {
@@ -490,7 +489,7 @@ void R_TreeNode::LinearPickSeeds( int& seed1, int& seed2 ) const
     }
   }
 
-  for( int d = 0; d < nDim; d++ )
+  for( int d = 0; d < 2; d++ )
   {
     assert( maxMinNode[ d ] != -1 && minMaxNode[ d ] != -1 );
     assert( maxVal[ d ] > minVal[ d ] );
@@ -505,15 +504,6 @@ void R_TreeNode::LinearPickSeeds( int& seed1, int& seed2 ) const
   assert( bestD != -1 );
   seed1 = maxMinNode[ bestD ];
   seed2 = minMaxNode[ bestD ];
-
-  if( seed1 == seed2)
-  {
-    if( seed2 == 0 ) 
-      seed2++;
-    else 
-      seed2--;
-  }
-
   assert( seed1 != seed2 );
 }
 
@@ -544,7 +534,6 @@ void R_TreeNode::QuadraticPickSeeds( int& seed1, int& seed2 ) const
     }
   }
 
-  assert( seed1 != seed2 );
   delete [] area;
 }
 
@@ -1007,7 +996,7 @@ ostream& operator<<( ostream& o, const R_TreeNode& nod )
 }
 
 /*
-5 Class R\_Tree
+5 Class ~R\_Tree~
 
 This class implements the R-Tree.
 
@@ -1459,7 +1448,7 @@ void R_Tree::LocateBestNode( const R_TreeEntry& entry, int level )
     { // Best node is the one that gives minimum overlap. However,
       // we should only take into consideration the k nodes that
       // result in least enlargement, where k is given by
-      // leafnode\_subset\_max.
+      // leafnode_subset_max.
       SortedArray enlargeList( MaxEntries() + 1 );
       int i, j, k;
 
@@ -1851,7 +1840,7 @@ bool R_Tree::Next( R_TreeEntry& result )
 }
 
 ostream& operator<<( ostream& o, R_Tree& rt )
-// Dump R\_Tree onto a text stream( for debugging)
+// Dump R_Tree onto a text stream( for debugging)
 {
   rt.GotoLevel( 0 );
   rt.currEntry = 0;
@@ -2326,7 +2315,7 @@ CreateRTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   while( (tuple = iter->GetNextTuple()) != 0 )
   {
     BBox box = ((StandardSpatialAttribute*)tuple->GetAttribute(attrIndex))->BoundingBox();
-    R_TreeEntry e( box, tuple->GetTupleId() );
+    R_TreeEntry e( box, iter->GetTupleId() );
     rtree->Insert( e );
 
     tuple->DeleteIfAllowed();

@@ -65,7 +65,7 @@ Converts a ~StandardAttribute~ to a ~SmiKey~.
 */
 void AttrToKey(
   StandardAttribute* attr,
-  SmiKey& key, 
+  SmiKey& key,
   SmiKey::KeyDataType keyType)
 {
   float floatval;
@@ -724,7 +724,7 @@ Word RestoreFromListBTree(ListExpr typeInfo, ListExpr value,
   {
     keyType = SmiKey::Float;
   }
-  else 
+  else
   {
     keyType = SmiKey::Composite;
   }
@@ -883,7 +883,7 @@ OpenBTree( SmiRecord& valueRecord,
   {
     keyType = SmiKey::Float;
   }
-  else 
+  else
   {
     keyType = SmiKey::Composite;
   }
@@ -990,8 +990,8 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
 
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
-  CHECK_COND(nl->SymbolValue(attrType) == "string" || 
-             nl->SymbolValue(attrType) == "int" || 
+  CHECK_COND(nl->SymbolValue(attrType) == "string" ||
+             nl->SymbolValue(attrType) == "int" ||
              nl->SymbolValue(attrType) == "real" ||
              alg->CheckKind("INDEXABLE", attrType, errorInfo), errmsg);
 
@@ -1054,7 +1054,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   {
     dataType = SmiKey::Float;
   }
-  else 
+  else
   {
     dataType = SmiKey::Composite;
   }
@@ -1072,7 +1072,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
     if((StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined())
     {
       AttrToKey((StandardAttribute *)tuple->GetAttribute(attrIndex), key, dataType);
-      appendHasNotWorked = appendHasNotWorked || !btree->Append( key, tuple->GetTupleId() );
+      appendHasNotWorked = appendHasNotWorked || !btree->Append( key, iter->GetTupleId() );
       tuple->DeleteIfAllowed();
     }
   }

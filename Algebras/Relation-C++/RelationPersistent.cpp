@@ -895,6 +895,17 @@ void TupleBuffer::AppendTuple( Tuple *t )
   }
 }
 
+Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
+{
+  if( privateTupleBuffer->inMemory )
+  {
+	assert( id >= 0 && id < (TupleId)privateTupleBuffer->memoryBuffer.size() );
+	return privateTupleBuffer->memoryBuffer[id];
+  }
+  else
+    return privateTupleBuffer->diskBuffer->GetTuple( id );
+}
+
 TupleBufferIterator *TupleBuffer::MakeScan() const
 {
   return new TupleBufferIterator( *this );
@@ -969,6 +980,18 @@ Tuple *TupleBufferIterator::GetNextTuple()
     privateTupleBufferIterator->currentTuple++;
 
     return result;
+  }
+}
+
+TupleId TupleBufferIterator::GetTupleId() const
+{
+  if( privateTupleBufferIterator->diskIterator )
+  {
+    return privateTupleBufferIterator->diskIterator->GetTupleId();
+  }
+  else
+  {
+	return privateTupleBufferIterator->currentTuple;
   }
 }
 
@@ -1282,7 +1305,8 @@ struct PrivateRelationIterator
   PrivateRelationIterator( const Relation& rel ):
     iterator( rel.privateRelation->tupleFile.SelectAllPrefetched() ),
     relation( rel ),
-    endOfScan( false )
+    endOfScan( false ),
+    currentTupleId( -1 )
     {
     }
 /*
@@ -1312,6 +1336,11 @@ A reference to the relation.
 Stores the state of the iterator.
 
 */
+  TupleId currentTupleId;
+/*
+Stores the identification of the current tuple.
+
+*/
 };
 
 /*
@@ -1334,6 +1363,7 @@ Tuple* RelationIterator::GetNextTuple()
   if( !privateRelationIterator->iterator->Next() )
   {
     privateRelationIterator->endOfScan = true;
+    privateRelationIterator->currentTupleId = -1;
     return 0;
   }
 
@@ -1341,7 +1371,14 @@ Tuple* RelationIterator::GetNextTuple()
   result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
                                    &privateRelationIterator->relation.privateRelation->lobFile,
                                    privateRelationIterator->iterator );
+  privateRelationIterator->currentTupleId = result->GetTupleId();
   return result;
+}
+
+TupleId RelationIterator::GetTupleId() const
+{
+  assert( privateRelationIterator->currentTupleId != -1 );
+  return privateRelationIterator->currentTupleId;
 }
 
 const bool RelationIterator::EndOfScan()

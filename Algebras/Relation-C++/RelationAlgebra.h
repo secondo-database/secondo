@@ -434,6 +434,7 @@ class GenericRelationIterator
   public:
     virtual ~GenericRelationIterator() {};
     virtual Tuple *GetNextTuple() = 0;
+    virtual TupleId GetTupleId() const = 0;
 };
 
 /*
@@ -448,6 +449,7 @@ class GenericRelation
     virtual const double GetTotalSize() const = 0;
     virtual void Clear() = 0;
     virtual void AppendTuple( Tuple *t ) = 0;
+    virtual Tuple *GetTuple( const TupleId& id ) const = 0;
     virtual GenericRelationIterator *MakeScan() const = 0;
 };
 
@@ -490,6 +492,12 @@ The destructor.
 Returns the next tuple of the buffer. Returns 0 if the end of the buffer is reached.
 
 */
+    TupleId GetTupleId() const;
+/*
+Returns the tuple identification of the current tuple.
+
+*/
+
   private:
     PrivateTupleBufferIterator *privateTupleBufferIterator;
 };
@@ -547,6 +555,11 @@ Deletes (if allowed) all tuples and also clears the buffer.
 Appends a tuple to the buffer. Returns the size in bytes occupied by the tuple.
 
 */
+    Tuple* GetTuple( const TupleId& tupleId ) const;
+/*
+Returns the tuple identified by ~tupleId~.
+
+*/
     TupleBufferIterator *MakeScan() const;
 /*
 Returns a ~TupleBufferIterator~ for a new scan.
@@ -597,21 +610,15 @@ cursor in the first tuple, if exists.
 The destructor.
 
 */
-//    Tuple *GetTuple();
-/*
-Retrieves the tuple in the current position of the iterator. Returns NULL if the cursor
-is in the end of a relation.
-
-*/
     Tuple *GetNextTuple();
 /*
 Retrieves the tuple in the current position of the iterator and moves the cursor forward
 to the next tuple. Returns NULL if the cursor is in the end of a relation.
 
 */
-//    void Next();
+    TupleId GetTupleId() const;
 /*
-Moves the cursor forward to the next tuple.
+Returns the tuple identification of the current tuple.
 
 */
     const bool EndOfScan();

@@ -381,6 +381,12 @@ void TupleBuffer::AppendTuple( Tuple *t )
   privateTupleBuffer->totalSize += t->GetTotalSize();
 }
 
+Tuple* TupleBuffer::GetTuple( const TupleId& tupleId ) const
+{
+  assert( tupleId >= 0 && tupleId < (TupleId)privateTupleBuffer->buffer.size() );
+  return privateTupleBuffer->buffer[tupleId];
+}
+
 TupleBufferIterator *TupleBuffer::MakeScan() const
 {
   return new TupleBufferIterator( *this );
@@ -435,6 +441,12 @@ Tuple *TupleBufferIterator::GetNextTuple()
   privateTupleBufferIterator->currentTuple++;
 
   return result;
+}
+
+TupleId TupleBufferIterator::GetTupleId() const
+{
+  assert( privateTupleBufferIterator->currentTuple > 0 );
+  return privateTupleBufferIterator->currentTuple - 1;
 }
 
 /*
@@ -758,7 +770,8 @@ struct PrivateRelationIterator
 {
   PrivateRelationIterator( const Relation& rel ):
     iterator( rel.privateRelation->tupleArray->Begin() ),
-    relation( rel )
+    relation( rel ),
+    currentTupleId( -1 )
     {
     }
 /*
@@ -773,6 +786,11 @@ The iterator.
   const Relation& relation;
 /*
 A reference to the relation.
+
+*/
+  TupleId currentTupleId;
+/*
+The identification of the current tuple.
 
 */
 };
@@ -798,8 +816,15 @@ Tuple* RelationIterator::GetNextTuple()
     return NULL;
 
   Tuple *result = *privateRelationIterator->iterator;
+  privateRelationIterator->currentTupleId = result->GetTupleId();
   privateRelationIterator->iterator++;
   return result;
+}
+
+TupleId RelationIterator::GetTupleId() const
+{
+  assert( privateRelationIterator->currentTupleId != -1 );
+  return privateRelationIterator->currentTupleId;
 }
 
 const bool RelationIterator::EndOfScan()
