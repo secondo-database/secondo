@@ -6,6 +6,8 @@ operator avg alias AVG pattern _ op [ _ ]
 operator sum alias SUM pattern _ op [ _ ]
 operator count alias COUNT pattern _ op
 
+operator feed alias FEED pattern _ op
+operator consume alias CONSUME pattern _ op
 operator concat alias CONCAT pattern _ _ op
 operator attr alias ATTR pattern op (_, _)
 operator project alias PROJECT pattern _ op [list]
