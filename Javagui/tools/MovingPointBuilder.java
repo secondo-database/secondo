@@ -70,7 +70,7 @@ public MovingPointBuilder(String FileName,Time StartTime,boolean reverse,int rep
 
      // output the result
      System.out.println("(");  // open object
-     System.out.println("   (rel (tuple ( (zug movingpoint))))"); // type description
+     System.out.println("   (rel (tuple ( (zug mpoint))))"); // type description
      System.out.println("(");  // open value list
 
 
