@@ -37,7 +37,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
     double pix = Math.abs(Cat.getPointSize()/at.getScaleX());
     //Point2D p=at.transform(point,p);
     if (Cat.getPointasRect())
-      RenderObject = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy); 
+      RenderObject = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     else {
       RenderObject = new Ellipse2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     }
@@ -62,12 +62,12 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
         return  null;
       le = le.rest();
     }
-    return  new PointMap(value[0].doubleValue(), value[2].doubleValue(), value[1].doubleValue(), 
+    return  new PointMap(value[0].doubleValue(), value[2].doubleValue(), value[1].doubleValue(),
         value[3].doubleValue());
   }
 
   /**
-   * Scans the representation of a movingpoint datatype 
+   * Scans the representation of a movingpoint datatype
    * @param v A list of start and end intervals with ax,bx,ay,by values
    * @see sj.lang.ListExpr
    * @see <a href="Dsplmovingpointsrc.html#ScanValue">Source</a>
@@ -78,15 +78,26 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
       return;
     while (!v.isEmpty()) {      // unit While maybe empty
       ListExpr aunit = v.first();
-      //     System.out.println(aunit.writeListExprToString());
-      if (aunit.listLength() != 8)
-        return;
-      Interval in = LEUtils.readInterval(ListExpr.fourElemList(aunit.first(), 
-          aunit.second(), aunit.third(), aunit.fourth()));
-      aunit = aunit.rest().rest().rest().rest();
-      //      System.out.println(aunit.writeListExprToString());
-      PointMap pm = readPointMap(ListExpr.fourElemList(aunit.first(), aunit.second(), 
-          aunit.third(), aunit.fourth()));
+      int L = aunit.listLength();
+      if(L!=2 && L!=8)
+         return;
+      // deprecated version of external representation
+      Interval in=null;
+      PointMap pm=null;
+      if (L == 8){
+         System.out.println("Warning: using deprecated external representation of a moving point !");
+         in = LEUtils.readInterval(ListExpr.fourElemList(aunit.first(),
+                                   aunit.second(), aunit.third(), aunit.fourth()));
+         aunit = aunit.rest().rest().rest().rest();
+         pm = readPointMap(ListExpr.fourElemList(aunit.first(), aunit.second(),
+                           aunit.third(), aunit.fourth()));
+      }
+      // the corrected version of external representation
+      if(L==2){
+         in = LEUtils.readInterval(aunit.first());
+         pm = readPointMap(aunit.second());
+      }
+
       if ((in == null) || (pm == null))
         return;
       Intervals.add(in);
@@ -112,7 +123,7 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
     PointMaps = new Vector(10, 5);
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      System.out.println("Dsplmovingpoint Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mpoint))"));
       return;
     } 

@@ -62,8 +62,6 @@ public class Dsplregion extends DisplayGraph {
           try{
 	    x = ProjectionManager.getPrjX(koord[0],koord[1]);
 	    y = ProjectionManager.getPrjY(koord[0],koord[1]);
-	   x = koord[0];
-	   y = koord[1];
 	    if (firstpoint)
                path.moveTo((float)x, (float)y);
             else

@@ -56,8 +56,8 @@ public class Dsplmovingregion extends DisplayTimeGraph {
         if (path == null) {
           path = new GeneralPath();
           path.moveTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
-        } 
-        else 
+        }
+        else
           path.lineTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
       }
       //create area a from Path
@@ -73,8 +73,8 @@ public class Dsplmovingregion extends DisplayTimeGraph {
           if (path == null) {
             path = new GeneralPath();
             path.moveTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
-          } 
-          else 
+          }
+          else
             path.lineTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
         }
         Area b = new Area(path);
@@ -82,7 +82,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
       }
       //add a to area
       area.add(a);
-    }           //end for	
+    }           //end for
     //	ListIterator li=rm.holes.listIterator();
     //	while (li.hasNext(){
     //		RegionMap rm=(RegionMap) li.next();
@@ -90,7 +90,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
   }
 
   /**
-   * 
+   *
    * @param le
    * @return a single EdgeMap consisting of ax,bx,ay,by coefficiants
    * @see <a href="Dsplmovingregionsrc.html#readEdgeMap">Source</a>
@@ -107,7 +107,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
         return  null;
       le = le.rest();
     }
-    return  new EdgeMap(value[0].doubleValue(), value[2].doubleValue(), value[1].doubleValue(), 
+    return  new EdgeMap(value[0].doubleValue(), value[2].doubleValue(), value[1].doubleValue(),
         value[3].doubleValue());
   }
 
@@ -163,22 +163,34 @@ public class Dsplmovingregion extends DisplayTimeGraph {
   }
 
   /**
-   * Scans the representation of a movingregion datatype 
+   * Scans the representation of a movingregion datatype
    * @param v A list of start and end intervals with regionmap value
    * @see sj.lang.ListExpr
    * @see <a href="Dsplmovingregionsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr value) {
     err = true;
-    System.out.println(value.writeListExprToString());
+    //System.out.println(value.writeListExprToString());
     // 	 areas = new Area();
     while (!value.isEmpty()) {                  // value while
       ListExpr face = value.first();
-      if (face.listLength() != 5)
+      int L = face.listLength();
+      if (L != 5 & L!=2)
         return;
-      Interval in = LEUtils.readInterval(ListExpr.fourElemList(face.first(), 
-          face.second(), face.third(), face.fourth()));
-      RegionMap rm = readRegionMap(face.fifth());
+      Interval in = null;
+      RegionMap rm = null;
+
+      if(L==5){
+         System.out.println("Warning: use a deprecated version of external representation of a moving region!");
+         in = LEUtils.readInterval(ListExpr.fourElemList(face.first(),
+                                   face.second(), face.third(), face.fourth()));
+         rm = readRegionMap(face.fifth());
+      }
+      if(L==2){
+          in = LEUtils.readInterval(face.first());
+          rm = readRegionMap(face.second());
+      }
+
       if ((in == null) || (rm == null))
         return;
       Intervals.add(in);
@@ -203,7 +215,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
     RegionMaps = new Vector(5, 1);
     ScanValue(value);
     if (err) {
-      System.out.println("Error in ListExpr :parsing aborted");
+      System.out.println("Dsplmovingregion Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mregion))"));
       return;
     } 
