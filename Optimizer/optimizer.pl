@@ -2703,8 +2703,19 @@ translateFields([count(*) as NewAttr | Select], GroupAttrs,
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-translateFields([sum(Attr) as NewAttr | Select], GroupAttrs, 
-	[field(NewAttr, sum(feed(group), attrname(Attr))) | Fields], 
+translateFields([sum(attr(Name, Var, Case)) as NewAttr | Select], GroupAttrs,
+	[field(NewAttr, sum(feed(group), attrname(attr(Name, Var, Case)))) | Fields],
+	[NewAttr| Select2]) :-
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+  
+translateFields([sum(Expr) as NewAttr | Select], GroupAttrs,
+	[field(NewAttr, 
+	  sum(
+	    extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
+	    attrname(attr(xxxExprField, 0, l))
+	    ))
+	| Fields],
 	[NewAttr| Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
@@ -2720,20 +2731,34 @@ Generic rule for aggregate functions, similar to sum.
 
 */
 
-translateFields([Term as NewAttr | Select], GroupAttrs, 
-	[field(NewAttr, Term2) | Fields], 
+translateFields([Term as NewAttr | Select], GroupAttrs,
+	[field(NewAttr, Term2) | Fields],
 	[NewAttr| Select2]) :-
   compound(Term),
   functor(Term, AggrOp, 1),
-  arg(1, Term, Attr),
+  arg(1, Term, attr(Name, Var, Case)),
   member(AggrOp, [min, max, avg]),
   functor(Term2, AggrOp, 2),
   arg(1, Term2, feed(group)),
-  arg(2, Term2, attrname(Attr)),
+  arg(2, Term2, attrname(attr(Name, Var, Case))),
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
 
-translateFields([Term | Select], GroupAttrs, 
+translateFields([Term as NewAttr | Select], GroupAttrs,
+	[field(NewAttr, Term2) | Fields],
+	[NewAttr| Select2]) :-
+  compound(Term),
+  functor(Term, AggrOp, 1),
+  arg(1, Term, Expr),
+  member(AggrOp, [min, max, avg]),
+  functor(Term2, AggrOp, 2),
+  arg(1, Term2, extend(feed(group), field(attr(xxxExprField, 0, l), Expr))),
+  arg(2, Term2, attrname(attr(xxxExprField, 0, l))),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+
+translateFields([Term | Select], GroupAttrs,
 	Fields, 
 	Select2) :-
   compound(Term),
