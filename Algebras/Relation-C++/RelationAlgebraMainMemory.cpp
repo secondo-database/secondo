@@ -329,6 +329,12 @@ Word InTuple(ListExpr typeInfo, ListExpr value,
   if (nl->IsAtom(valuelist))
   {
     correct = false;
+
+    cout << "Error in reading tuple: an atom instead of a list of values." << endl;
+    cout << "Tuple no." << errorPos << endl;
+    cout << "The tuple is: " << endl;
+    nl->WriteListExpr(value);
+
     errorInfo = nl->Append(errorInfo,
       nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(1),
       nl->IntAtom(errorPos)));
@@ -349,6 +355,12 @@ Word InTuple(ListExpr typeInfo, ListExpr value,
       if (nl->IsEmpty(valuelist))
       {
         correct = false;
+
+        cout << "Error in reading tuple: list of values is empty." << endl;
+        cout << "Tuple no." << errorPos << endl;
+        cout << "The tuple is: " << endl;
+        nl->WriteListExpr(value);
+
         errorInfo = nl->Append(errorInfo,
           nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
             nl->IntAtom(errorPos)));
@@ -371,6 +383,15 @@ Word InTuple(ListExpr typeInfo, ListExpr value,
         else
         {
           correct = false;
+
+	  cout << "Error in reading tuple: wrong attribute value representation." << endl;
+	  cout << "Tuple no." << errorPos << endl;
+	  cout << "The tuple is: " << endl;
+	  nl->WriteListExpr(value);
+	  cout << endl << "The attribute is: " << endl;
+	  nl->WriteListExpr(firstvalue);
+	  cout << endl;
+
           errorInfo = nl->Append(errorInfo,
             nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
           nl->IntAtom(errorPos), nl->IntAtom(attrno)));
@@ -382,6 +403,12 @@ Word InTuple(ListExpr typeInfo, ListExpr value,
     if (!nl->IsEmpty(valuelist))
     {
       correct = false;
+
+      cout << "Error in reading tuple: too many attribute values." << endl;
+      cout << "Tuple no." << errorPos << endl;
+      cout << "The tuple is: " << endl;
+      nl->WriteListExpr(value);
+
       errorInfo = nl->Append(errorInfo,
       nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(4),
       nl->IntAtom(errorPos)));
