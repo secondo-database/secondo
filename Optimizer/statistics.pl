@@ -186,7 +186,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel2 = rel(BaseName2, _, _),
   sampleName(BaseName2, SampleName2),
   card(SampleName2, SampleCard2),
-  Sel is ResCard / (SampleCard1 * SampleCard2),
+  Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
   write(Sel),
   nl,
@@ -204,7 +204,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   Rel = rel(BaseName, _, _),
   sampleName(BaseName, SampleName),
   card(SampleName, SampleCard),
-  Sel is ResCard / SampleCard,
+  Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('selectivity : '),
   write(Sel),
   nl,
