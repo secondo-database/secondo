@@ -35,7 +35,7 @@ clean:
 	(cd gui; make clean)
 	(cd components;make clean)
 	(rm -f ./doc/* -r)
-	(rm -fd doc)
+	(rm -fr doc)
 
 .PHONY: mrproper
 mrproper: clean
