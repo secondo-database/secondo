@@ -82,22 +82,20 @@ fi
 
 if [ $SECONDO_PLATFORM != "win32" ]; then
    export BISON_SIMPLE="$SECONDO_SDK/share/bison/bison.simple"
-   export PD_HEADER="$SECONDO_SDK/pd/pd.header"
    export DVI_VIEWER=kdvi
    export BERKELEY_DB_DIR="$SECONDO_SDK"
-   export PATH=".:$J2SDK_ROOT/bin:$SECONDO_SDK/bin:$SECONDO_SDK/pd:$COPY_OF_PATH"
+   export PATH=".:$J2SDK_ROOT/bin:$SECONDO_SDK/bin:$COPY_OF_PATH"
    export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR:$JNIDIR" 
 else
-   export PD_HEADER="/usr/local/pd/pd.header"
    export DVI_VIEWER=yap
    export BERKELEY_DB_DIR="/usr/local"
    SWI_HOME_DIR2=$(echo $SWI_HOME_DIR | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
    J2SDK_ROOT2=$(echo $J2SDK_ROOT | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
-   export PATH=".:$J2SDK_ROOT2/bin:$J2SDK_ROOT2/jre/bin/client:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR2/bin"
+   export PATH=".:$J2SDK_ROOT2/bin:$J2SDK_ROOT2/jre/bin/client:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$SWI_HOME_DIR2/bin"
   
    # gcc on windows needs special treatment
    export CPLUS_INCLUDE_PATH="/usr/local/include"
 fi
 
-
-
+export PD_HEADER="$SECONDO_BUILD_DIR/Tools/pd/pd.header"
+export PATH=$PATH:"$SECONDO_BUILD_DIR/Tools/pd"
