@@ -23,12 +23,12 @@ import  gui.SecondoObject;
  * but this viewer can display other query results
  */
 public class HoeseViewer extends SecondoViewer {
+  private JOptionPane MessageControl = new JOptionPane();
   private MenuVector MenuExtension = new MenuVector();
-  private boolean inAnApplet = false;
   private QueryListSelectionListener DoQuerySelection;
   private JSplitPane VisualPanel;
   private JSplitPane VisComPanel;
-  private JPanel dummy = new JPanel();  // a place holder for temporal objects
+  private JPanel dummy = new JPanel();  // a place holder for timepanel
 
   /** The top-right component for graph. objects in layer */
   public GraphWindow GraphDisplay;
@@ -88,7 +88,6 @@ public class HoeseViewer extends SecondoViewer {
   /** The main configuration parameter hash-table */
   public static Properties configuration;
 
-  private javax.swing.JMenuBar jMenuBar1;
  /* File-Menu */
   private javax.swing.JMenu jMenu1;
   private javax.swing.JMenuItem jMenu_NewSession;
@@ -98,14 +97,11 @@ public class HoeseViewer extends SecondoViewer {
   private javax.swing.JMenuItem jMenu_SaveSessionAs;
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JMenuItem jMenu_Browse;
-  private javax.swing.JMenuItem jMenu_Import;
-  private javax.swing.JMenuItem jMenu_Export;
   private javax.swing.JSeparator jSeparator2;
-  private javax.swing.JMenuItem jMenu_Exit;
+
 
  /* gui-menu */
   private javax.swing.JMenu jMenuGui;
-  private javax.swing.JMenuItem delQueryMenu;
   private javax.swing.JMenuItem MINewCat;
 
   /** True if menu-entry 'automatic category' is selected */
@@ -117,6 +113,8 @@ public class HoeseViewer extends SecondoViewer {
   /** context menu item */
   public javax.swing.JMenuItem MIsetKontext;
   private javax.swing.JMenuItem MILayerMgmt;
+
+  /** Object Menu */
   private javax.swing.JMenu MenuObject;
   private javax.swing.JMenuItem MIHideObject;
   private javax.swing.JMenuItem MIShowObject;
@@ -142,7 +140,6 @@ public class HoeseViewer extends SecondoViewer {
   /**
    * Creates a MainWindow with all its components, initializes Secondo-Server, loads the
    * standard-categories, etc.
-   * @param   boolean inAnApplet optional for creating out of an applet 
    * @see <a href="MainWindowsrc.html#MainWindow">Source</a> 
    */
   public HoeseViewer() {
@@ -151,6 +148,7 @@ public class HoeseViewer extends SecondoViewer {
     } catch (Exception exc) {
       System.err.println("Error loading L&F: " + exc);
     }
+
     init(); 
     Cats = new Vector(30, 10);
     context = new ContextPanel(this);
@@ -170,10 +168,7 @@ public class HoeseViewer extends SecondoViewer {
     actTimeLabel = new JLabel("No Time");
     actTimeLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
     actTimeLabel.setForeground(Color.black);
-    jMenuBar1.add(Box.createHorizontalGlue());
-    jMenuBar1.add(actTimeLabel);
-    jMenuBar1.add(Box.createHorizontalStrut(30));
-    jMenuBar1.add(MouseKoordLabel);
+   
     JToolBar jtb = new JToolBar();
     jtb.putClientProperty("JToolBar.isRollover", Boolean.TRUE);
     jtb.setFloatable(false);
@@ -187,6 +182,7 @@ public class HoeseViewer extends SecondoViewer {
     ctrls[3] = new JButton(new ImageIcon(configuration.getProperty("ToendIcon")));
     ctrls[4] = new JButton(new ImageIcon(configuration.getProperty("TostartIcon")));
     ctrls[5] = new JButton(new ImageIcon(configuration.getProperty("StopIcon")));
+
     ActionListener al = new AnimCtrlListener();
     for (int i = 0; i < ctrls.length; i++) {
       ctrls[i].setActionCommand(Integer.toString(i));
@@ -195,6 +191,7 @@ public class HoeseViewer extends SecondoViewer {
       ctrls[i].setMargin(new Insets(0, 0, 0, 0));
       jtb.add(ctrls[i]);
     }
+
     TimeSlider = new JScrollBar(JScrollBar.HORIZONTAL, 0, 0, 0, 0);
     //JSlider(0,300,0);
     TimeSlider.addAdjustmentListener(new TimeAdjustmentListener());
@@ -203,30 +200,26 @@ public class HoeseViewer extends SecondoViewer {
     TimeSlider.setBlockIncrement(60);
     jtb.add(TimeSlider);
     jtb.add(MouseKoordLabel);
+
     TextDisplay = new TextWindow(this);
     DoQuerySelection = new QueryListSelectionListener();
     allProjection = new AffineTransform();
     allProjection.scale(ZoomFactor, ZoomFactor);
     GraphDisplay = new GraphWindow(this);
     GraphDisplay.addMouseMotionListener(new MouseMotionAdapter() {
-
-      /**
-       * 
-       * @param e
-       * @see <a href="MainWindowsrc.html#mouseMoved">Source</a> 
-   */
       public void mouseMoved (MouseEvent e) {
         //Koordinaten in Weltkoordinaten umwandeln
         Point2D.Double p = new Point2D.Double();
         try {
-          p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(), 
-              p);
+          p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(),p);
         } catch (Exception ex) {}
+
         MouseKoordLabel.setText(Double.toString(p.getX()).concat("       ").substring(0, 
             7) + "/" + Double.toString(p.getY()).concat("       ").substring(0, 
             7));
       }
     });
+
     SelectionControl = new SelMouseAdapter();
     GraphDisplay.addMouseListener(SelectionControl);
     SpatioTempPanel = new JPanel(new BorderLayout());
@@ -245,6 +238,7 @@ public class HoeseViewer extends SecondoViewer {
     VisualPanel.setOneTouchExpandable(true);
     VisualPanel.setPreferredSize(new Dimension(800, 600));
     VisualPanel.setResizeWeight(0);
+
     JPanel pane = new JPanel();
     pane.setLayout(new BorderLayout());
     pane.add(jtb, BorderLayout.NORTH);
@@ -255,6 +249,18 @@ public class HoeseViewer extends SecondoViewer {
     setDivider();
   }
 
+
+  /** shows a messagebox */
+  public void showMessage(String message){
+    if (VC==null)
+      System.out.println(message);
+    else
+      MessageControl.showMessageDialog(VC.getMainFrame(),message);
+  } 
+
+
+
+
   /**
    * Sets the divider between split-components
    * @see <a href="MainWindowsrc.html#setdivider>Source</a> 
@@ -263,6 +269,7 @@ public class HoeseViewer extends SecondoViewer {
     VisComPanel.setDividerLocation(0.75);
     VisualPanel.setDividerLocation(200);
   }
+
 
   /**
    * 
@@ -284,8 +291,7 @@ public class HoeseViewer extends SecondoViewer {
 
   /**
    * Reads all categories out of the Listexpr le
-   * @param le 
-   * @see <a href="MainWindowsrc.html#readAllCats">Source</a> 
+   * @param le a ListExpr containing Categories
    */
   public void readAllCats (ListExpr le) {
     if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
@@ -301,10 +307,10 @@ public class HoeseViewer extends SecondoViewer {
     }
   }
 
+
   /**
    * 
    * @return A listExpr of all the categories in Cats
-   * @see <a href="MainWindowsrc.html#writeAllCats">Source</a> 
    */
   public ListExpr writeAllCats () {
     ListExpr le = ListExpr.theEmptyList();
@@ -321,7 +327,9 @@ public class HoeseViewer extends SecondoViewer {
   }
 
 
-
+  /** returns the MainFrame of application
+    * needed for showing dialogs
+    */
   public Frame getMainFrame(){
     if (VC!=null) 
        return VC.getMainFrame();
@@ -333,10 +341,9 @@ public class HoeseViewer extends SecondoViewer {
 
   /**
    * Init. the menu entries.
-   * @see <a href="MainWindowsrc.html#initComponents">Source</a> 
    */
-  private void initComponents () {              //GEN-BEGIN:initComponents
-    jMenuBar1 = new javax.swing.JMenuBar();
+  private void initComponents () {            
+
    /** file-menu */
     jMenu1 = new javax.swing.JMenu();
     jMenu_NewSession = new javax.swing.JMenuItem();
@@ -344,20 +351,17 @@ public class HoeseViewer extends SecondoViewer {
     jMenu_SaveSession = new javax.swing.JMenuItem();
     jSeparator1 = new javax.swing.JSeparator();
     jMenu_Browse = new javax.swing.JMenuItem();
-    jMenu_Import = new javax.swing.JMenuItem();
-    jMenu_Export = new javax.swing.JMenuItem();
-    jSeparator2 = new javax.swing.JSeparator();
-    jMenu_Exit = new javax.swing.JMenuItem();
 
 
- /** Menu gui */
+ /** Menu Settings */
     jMenuGui = new javax.swing.JMenu();
     MINewCat = new javax.swing.JMenuItem();
-    delQueryMenu = new javax.swing.JMenuItem();
     isAutoCatMI = new javax.swing.JCheckBoxMenuItem();
     jSeparator5 = new javax.swing.JSeparator();
     MIsetKontext = new javax.swing.JCheckBoxMenuItem();
     MILayerMgmt = new javax.swing.JMenuItem();
+
+/** Menu object */
     MenuObject = new javax.swing.JMenu();
     MIHideObject = new javax.swing.JMenuItem();
     MIShowObject = new javax.swing.JMenuItem();
@@ -366,20 +370,19 @@ public class HoeseViewer extends SecondoViewer {
     MIMoveUp = new javax.swing.JMenuItem();
     MIMoveDown = new javax.swing.JMenuItem();
     MIMoveBottom = new javax.swing.JMenuItem();
-    jMenuBar1.setFont(new java.awt.Font("Dialog", 0, 10));
     RBMICustTI = new JRadioButtonMenuItem();
 
 
     /** File -Menu **/
     jMenu1.setText("File");
-    jMenu_NewSession.setText("new Session");
+    jMenu_NewSession.setText("New session");
     jMenu_NewSession.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
          on_jMenu_NewSession(evt);
       }
     });
     jMenu1.add(jMenu_NewSession);
-    jMenu_OpenSession.setText("open Session");
+    jMenu_OpenSession.setText("Open session");
     jMenu_OpenSession.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         on_jMenu_OpenSession(evt);
@@ -387,7 +390,7 @@ public class HoeseViewer extends SecondoViewer {
     });
     jMenu1.add(jMenu_OpenSession);
 
-    jMenu_SaveSession.setText("save Session");
+    jMenu_SaveSession.setText("Save session");
     jMenu_SaveSession.addActionListener(new java.awt.event.ActionListener() {
        public void actionPerformed (java.awt.event.ActionEvent evt) {
           on_jMenu_SaveSession(evt);
@@ -396,7 +399,7 @@ public class HoeseViewer extends SecondoViewer {
     jMenu1.add(jMenu_SaveSession);
     jMenu1.add(jSeparator1);
 
-    JMenuItem MIloadCat = new JMenuItem("load Category");
+    JMenuItem MIloadCat = new JMenuItem("Load category");
     MIloadCat.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         final JFileChooser fc = new JFileChooser(configuration.getProperty("WorkingDir","/"));
@@ -404,7 +407,6 @@ public class HoeseViewer extends SecondoViewer {
         if (returnVal == JFileChooser.APPROVE_OPTION) {
           File file = fc.getSelectedFile();
           ListExpr le = new ListExpr();
-          //CommandDisplay.appendText("Adding categories from " + file.getPath()+ "...");
           String suc;
           if (le.readFromFile(file.getPath()) == 0) {
             Cats = new Vector(30, 10);
@@ -420,7 +422,7 @@ public class HoeseViewer extends SecondoViewer {
 
     jMenu1.add(MIloadCat);
 
-    JMenuItem MISaveCat = new JMenuItem("save Category");
+    JMenuItem MISaveCat = new JMenuItem("Save category");
     MISaveCat.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         final JFileChooser fc = new JFileChooser(configuration.getProperty("WorkingDir","/"));
@@ -428,26 +430,25 @@ public class HoeseViewer extends SecondoViewer {
         if (returnVal == JFileChooser.APPROVE_OPTION) {
           File file = fc.getSelectedFile();
           ListExpr le = writeAllCats();
-          //CommandDisplay.appendText("Writing Categories to " + file.getPath()+ "...");
           String suc;
-          suc = (le.writeToFile(file.getPath()) == 0) ? "OK" : "Failed";
-          //CommandDisplay.appendText(suc + "\n");
-          //CommandDisplay.showPrompt();
+          if (le.writeToFile(file.getPath())!= 0) 
+             showMessage("save category failed");
+          else
+             showMessage("success");
         }
       }
     });
 
+
     jMenu1.add(MISaveCat);
 
     MenuExtension.addMenu(jMenu1); 
-    jMenuBar1.add(jMenu1);
 
-
-    jMenuGui.setText("gui");
-    isAutoCatMI.setText("auto Category");
+    jMenuGui.setText("Settings");
+    isAutoCatMI.setText("Auto category");
     jMenuGui.add(isAutoCatMI);
 
-    MIQueryRep = new JMenuItem("query representation");
+    MIQueryRep = new JMenuItem("Query representation");
     MIQueryRep.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         QueryResult qr = (QueryResult)TextDisplay.getQueryCombo().getSelectedItem();
@@ -460,7 +461,7 @@ public class HoeseViewer extends SecondoViewer {
 
     jMenuGui.add(MIQueryRep);
     jMenuGui.add(jSeparator5);
-    AACatEdit = new AbstractAction("CategoryEditor"){ 
+    AACatEdit = new AbstractAction("Category editor"){ 
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         new CategoryEditor(HoeseViewer.this, true).show();
         GraphDisplay.repaint();
@@ -469,7 +470,7 @@ public class HoeseViewer extends SecondoViewer {
 
     jMIShowCE = jMenuGui.add(AACatEdit);
 
-    AAContext = new AbstractAction("set Context") {
+    AAContext = new AbstractAction("Set context") {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         MIsetKontext.setSelected(!MIsetKontext.isSelected());
         on_Set_Kontext();
@@ -478,7 +479,7 @@ public class HoeseViewer extends SecondoViewer {
 
     MIsetKontext = jMenuGui.add(AAContext);
 
-    AAZoomOut = new AbstractAction("Zoom Out"){ 
+    AAZoomOut = new AbstractAction("Zoom out"){ 
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         double zf = 1/ZoomFactor;
         ZoomFactor = 1;
@@ -532,7 +533,8 @@ public class HoeseViewer extends SecondoViewer {
     });
     jMenuGui.add(MIZoomMinus);
 
-    MILayerMgmt.setText("LayerManagement");
+
+    MILayerMgmt.setText("Layer management");
     jMenuGui.add(MILayerMgmt);
     MILayerMgmt.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
@@ -545,6 +547,7 @@ public class HoeseViewer extends SecondoViewer {
     String TextPar[] =  {
       "m/h", "h/d", "d/w", "w/M", "M/Y"
     };
+
     JRadioButtonMenuItem RBMITimeFrame[] = new JRadioButtonMenuItem[TextPar.length];
     ButtonGroup bg = new ButtonGroup();
     final int SliderPar[] =  {
@@ -557,6 +560,7 @@ public class HoeseViewer extends SecondoViewer {
         TimeSlider.setBlockIncrement(SliderPar[index + 1]);
       }
     };
+
     tok = "time";
     for (int i = 0; i < RBMITimeFrame.length; i++) {
       RBMITimeFrame[i] = new JRadioButtonMenuItem(tok + " " + TextPar[i]);
@@ -582,11 +586,10 @@ public class HoeseViewer extends SecondoViewer {
       }
     });
     //RBMITimeFrame		
-    jMenuBar1.add(jMenuGui);
     MenuExtension.addMenu(jMenuGui);
 
     MenuObject.setText("Object");
-    MIHideObject.setText("hide");
+    MIHideObject.setText("Hide");
     MIHideObject.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         QueryResult qr = null;
@@ -599,15 +602,16 @@ public class HoeseViewer extends SecondoViewer {
             GraphDisplay.repaint();
           } 
           else 
-            statusBeep("No DsplBase object selected!");
+            showMessage("No DsplBase object selected!");
         } 
         else 
-          statusBeep("No query selected!");
+          showMessage("No query selected!");
       }
     });
 
     MenuObject.add(MIHideObject);
-    MIShowObject.setText("show");
+
+    MIShowObject.setText("Show");
     MIShowObject.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         QueryResult qr = null;
@@ -620,18 +624,18 @@ public class HoeseViewer extends SecondoViewer {
             TextDisplay.repaint();
           } 
           else 
-            statusBeep("No DsplBase object selected!");
+            showMessage("No DsplBase object selected!");
         } 
         else 
-          statusBeep("No query selected!");
+          showMessage("No query selected!");
       }
     });
-    MenuObject.add(MIShowObject);
 
-    AAViewCat = new AbstractAction("change Category"){
+    MenuObject.add(MIShowObject);
+    AAViewCat = new AbstractAction("Change category"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          statusBeep("No DsplGraph object selected!");
+          showMessage("No DsplGraph object selected!");
           return;
         }
         CategoryEditor ce = new CategoryEditor(HoeseViewer.this, true, selGraphObj.getCategory());
@@ -642,17 +646,12 @@ public class HoeseViewer extends SecondoViewer {
         }
       }
     };
-    MINewCat = MenuObject.add(AAViewCat);
-    AALabelAttr = new AbstractAction("Label Attributes"){
 
-      /**
-       * 
-       * @param evt
-       * @see <a href="MainWindowsrc.html#MainWindow">Source</a> 
-   */
+    MINewCat = MenuObject.add(AAViewCat);
+    AALabelAttr = new AbstractAction("Label attributes"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          statusBeep("No DsplGraph object selected!");
+          showMessage("No DsplGraph object selected!");
           return;
         }
         new LabelAttrDlg(HoeseViewer.this, selGraphObj).show();
@@ -661,11 +660,12 @@ public class HoeseViewer extends SecondoViewer {
     };
     MILabelAttr = MenuObject.add(AALabelAttr);
     MenuObject.add(new JSeparator());
-    MIMoveTop.setText("Move To Top");
+
+    MIMoveTop.setText("Move to top");
     MIMoveTop.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          statusBeep("No DsplGraph object selected!");
+          showMessage("No DsplGraph object selected!");
           return;
         }
         //oldLayer.getGeoObjects().remove(selGraphObj);
@@ -684,11 +684,11 @@ public class HoeseViewer extends SecondoViewer {
     });
     MenuObject.add(MIMoveTop);
 
-    MIMoveUp.setText("Move Layer Up");
+    MIMoveUp.setText("Move layer up");
     MIMoveUp.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          statusBeep("No DsplGraph object selected!");
+          showMessage("No DsplGraph object selected!");
           return;
         }
         //oldLayer.getGeoObjects().remove(selGraphObj);
@@ -696,9 +696,6 @@ public class HoeseViewer extends SecondoViewer {
         int aktno = GraphDisplay.getIndexOf(oldLayer);
         if (aktno > 0)
           aktno--;
-        // Component [] Comps =
-        //         GraphDisplay.getComponentsInLayer(
-        //         aktno);
         oldLayer.setSelectedButton(false);
         oldLayer.removeGO(selGraphObj);
         Layer newLayer = (Layer)GraphDisplay.getComponent(aktno);
@@ -710,11 +707,12 @@ public class HoeseViewer extends SecondoViewer {
       }
     });
     MenuObject.add(MIMoveUp);
-    MIMoveDown.setText("Move layer Down");
+
+    MIMoveDown.setText("Move layer down");
     MIMoveDown.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          statusBeep("No DsplGraph object selected!");
+          showMessage("No DsplGraph object selected!");
           return;
         }
         //oldLayer.getGeoObjects().remove(selGraphObj);
@@ -723,9 +721,6 @@ public class HoeseViewer extends SecondoViewer {
         int aktno = GraphDisplay.getIndexOf(oldLayer);
         if (aktno < GraphDisplay.getComponentCount() - min)
           aktno++;
-        // Component [] Comps =
-        //         GraphDisplay.getComponentsInLayer(
-        //         aktno);
         oldLayer.setSelectedButton(false);
         oldLayer.removeGO(selGraphObj);
         Layer newLayer = (Layer)GraphDisplay.getComponent(aktno);
@@ -738,11 +733,11 @@ public class HoeseViewer extends SecondoViewer {
     });
     MenuObject.add(MIMoveDown);
 
-    MIMoveBottom.setText("Move To Bottom");
+    MIMoveBottom.setText("Move to bottom");
     MIMoveBottom.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         if (selGraphObj == null) {
-          statusBeep("No DsplGraph object selected!");
+          showMessage("No DsplGraph object selected!");
           return;
         }
         int min = hasBackImage ? 2 : 1;
@@ -759,41 +754,8 @@ public class HoeseViewer extends SecondoViewer {
       }
     });
     MenuObject.add(MIMoveBottom);
-    jMenuBar1.add(MenuObject);
     MenuExtension.addMenu(MenuObject);
-   // setJMenuBar(jMenuBar1);
-  }             //GEN-END:initComponents
-
-
-
-
-/** remove selected query **/
-private boolean removeSelectedQuery(){
-   QueryResult qr = (QueryResult)TextDisplay.getQueryCombo().getSelectedItem();
-   if (qr == null) {
-      statusBeep("No query present!");
-      return false;
-   }
-   qr.clearSelection();
-   ListIterator li = qr.getGraphObjects().listIterator();
-   while (li.hasNext()) {
-      DsplGraph dg = (DsplGraph)li.next();
-      Layer l = dg.getLayer();
-      Vector go = l.getGeoObjects();
-      go.remove(dg);
-      if (go.isEmpty()) {
-          LayerSwitchBar.remove(l.button);
-          GraphDisplay.remove(l);
-      }
-   }
-   qr.getGraphObjects().clear();
-   qr.setListData(new Vector(1));
-   VisComPanel.setBottomComponent(dummy); 
-   TextDisplay.getQueryCombo().removeItem(qr);
-   updateViewParameter();
-   return true;
-}
-
+  }            
 
 
 /** returns the index of qr in TextDisplay-ComboBox, 
@@ -803,8 +765,9 @@ private int getQueryIndex(QueryResult qr){
    JComboBox CB = TextDisplay.getQueryCombo();
    int count = CB.getItemCount();
    int pos = -1; 
-   for(int i=0;i<count;i++)
-      if (qr.equals(CB.getItemAt(i))) pos = i;
+   boolean found =false;
+   for(int i=0;i<count&&!found;i++)
+      if (qr.equals(CB.getItemAt(i))) {pos = i;found=true;}
    return pos;
 }
 
@@ -817,18 +780,49 @@ public MenuVector getMenuVector(){
 public void removeObject(SecondoObject o){
    QueryResult qr = new QueryResult(o.getName(),o.toListExpr());
    int index = getQueryIndex(qr);
-   if(index>=0){
-      JComboBox CB = TextDisplay.getQueryCombo();
-      CB.setSelectedIndex(index);
-      removeSelectedQuery();
-   }
+   if (index>=0){
+       JComboBox CB = TextDisplay.getQueryCombo();
+       qr = (QueryResult) CB.getItemAt(index);  // we need the original
+
+       qr.clearSelection(); 
+
+       // clear graphicDisplay
+       ListIterator li = qr.getGraphObjects().listIterator();
+       while (li.hasNext()) {
+           DsplGraph dg = (DsplGraph)li.next();
+           Layer l = dg.getLayer();
+           Vector go = l.getGeoObjects();
+           go.remove(dg);
+           if (go.isEmpty()) {
+              LayerSwitchBar.remove(l.button);
+              GraphDisplay.remove(l);
+           }
+        }
+        qr.getGraphObjects().clear();
+        VisComPanel.setBottomComponent(dummy); 
+       
+       qr.setListData(new Vector());
+       qr.revalidate();
+       qr.repaint();
+
+       // remove from ComboBox
+       CB.removeItemAt(index);            
+       if (CB.getItemCount()==0)
+           TextDisplay.clearComboBox();
+       CB = TextDisplay.getQueryCombo();
+       CB.setSelectedIndex(-1);
+
+        updateViewParameter();
+    }
+
 }
 
 
 /** return true if o is displayed false otherwise */
 public boolean isDisplayed(SecondoObject o){
    QueryResult q = new QueryResult(o.getName(),o.toListExpr());
-   return getQueryIndex(q) >=0;
+   int index = getQueryIndex(q);
+   return index>=0;
 }
 
 
@@ -896,14 +890,10 @@ public boolean canDisplay(SecondoObject o){
     // If an error happened when showing the query result, shows the error
     // message.
     if (displayErrorCode != NOT_ERROR_CODE) {
-      // CommandDisplay.appendErr("Error:\n");
-      // CommandDisplay.showPrompt();
+      showMessage("add queryresult failed");
       return  false;
-      //this.sysPanel.addErrorList(displayErrorList.second());
     } 
     else {
-      // CommandDisplay.appendText("OK\n");
-      // CommandDisplay.showPrompt();
       return  true;
       //QueryResultList.add (CurrentQueryResult);
     }
@@ -917,7 +907,12 @@ public boolean canDisplay(SecondoObject o){
   
  /** adds a new SecondoObject to this Viewer **/
   public boolean addObject(SecondoObject o){
-      if (addQueryResult(new QueryResult(o.getName(), o.toListExpr() ))) {
+
+    QueryResult qr= new QueryResult(o.getName(),o.toListExpr()); 
+    if(getQueryIndex(qr)>=0) 
+      return false;
+    else 
+      if (addQueryResult(qr)) {
         if (!CurrentQueryResult.getGraphObjects().isEmpty())
           addSwitch(GraphDisplay.addLayerObjects(CurrentQueryResult.getGraphObjects()),-1);
         CurrentQueryResult.setSelectedIndex(0);
@@ -982,13 +977,14 @@ public boolean canDisplay(SecondoObject o){
       //					File file=new File("Session");
       ListExpr le = ListExpr.fourElemList(ListExpr.symbolAtom("session"), context.getContextLE(), 
           writeAllCats(), TextDisplay.convertAllQueryResults());
-      // CommandDisplay.appendText("Writing Session to " + file.getPath() + "...");
       String suc;
-      suc = (le.writeToFile(file.getPath()) == 0) ? "OK" : "Failed";
-      // CommandDisplay.appendText(suc + "\n");
-      // CommandDisplay.showPrompt();
+      if(le.writeToFile(file.getPath()) == 0)
+         showMessage("session written");
+      else
+         showMessage("save session failed");
     }
   }             
+
 /** Loads session from a file
  * @see <a href="MainWindowsrc.html#on_jMenu_OpenSession">Source</a> 
    */  
@@ -1034,14 +1030,16 @@ public boolean canDisplay(SecondoObject o){
    * Creates new session by constructing a new instance of mainWindow
    * @param evt
    * @return A new MainWindow
-   * @see <a href="MainWindowsrc.html#on_jMenu_NewSession">Source</a> 
    */
 
   private void on_jMenu_NewSession (java.awt.event.ActionEvent evt) {                     //GEN-FIRST:event_on_jMenu_NewSession
+ 
+ // remove querys
    JComboBox CB = TextDisplay.getQueryCombo();
    int count = CB.getItemCount();
+   QueryResult qr=null;
    while (count!=0) {
-      QueryResult qr = (QueryResult) CB.getItemAt(0);
+      qr = (QueryResult) CB.getItemAt(0);
       qr.clearSelection();
       ListIterator li = qr.getGraphObjects().listIterator();
       while (li.hasNext()) {
@@ -1060,6 +1058,11 @@ public boolean canDisplay(SecondoObject o){
       CB = TextDisplay.getQueryCombo();
       count = CB.getItemCount();
    }
+   if(qr!=null)
+      qr.setListData(new Vector());
+   CB.removeAllItems();
+   TextDisplay.clearComboBox(); 
+
    // remove the categorys
     Cats = new  Vector(30,10);
     context = new ContextPanel(this);
@@ -1105,7 +1108,7 @@ public boolean canDisplay(SecondoObject o){
   private AffineTransform calcProjection () {
     double extra = context.getBordSpc();        //extra portion at every border of 30 pix
     Rectangle2D.Double BBWC = context.getWBB();
-    System.out.println("bbwc:" + BBWC.toString());
+   // System.out.println("bbwc:" + BBWC.toString());
     double wp1x = BBWC.getX();
     double wp1y = BBWC.getY();
     double wpw = BBWC.getWidth();
@@ -1113,7 +1116,7 @@ public boolean canDisplay(SecondoObject o){
     double w = ClipRect.getWidth();             //(double) GeoScrollPane.getViewport().getWidth();
     double h = ClipRect.getHeight();            //(double) GeoScrollPane.getViewport().getHeight();
     //ClipRect.setSize((int)w,(int)h);
-    System.out.println("ClipRect:" + ClipRect.toString());
+    //System.out.println("ClipRect:" + ClipRect.toString());
     // if no objects or only a single point,line is visible
     if ((wpw == 0) && (wph == 0)) {
       return  new AffineTransform(1, 0, 0, 1, -wp1x + extra, -wp1y + extra);
@@ -1193,128 +1196,9 @@ public boolean canDisplay(SecondoObject o){
     GraphDisplay.repaint();
   }
 
-  /**
-   * Writes s to the CommandPanel
-   * @param s
-   * @see <a href="MainWindowsrc.html#writeCommand">Source</a> 
-   */
-  public static void writeCommand (String s) {
-    //frame.CommandDisplay.appendText(s + "\n");
-    //frame.CommandDisplay.showPrompt();
-  }
-
-  /**
-   * This method allows to any class to command to this SecondoJava object to
-   * execute a Secondo command, and this object will execute the Secondo command
-   * and show the result in its result windows (this is, TextWindow for a query
-   * result, CommandPanel for result from another command, GraphWindow for graph.
-   * objects) and writes the error
-   * messages in the command-panel.
-   * 
-   * @param command The user command
-   * @see <a href="MainWindowsrc.html#execUserCommand">Source</a> 
-   */
-  public void execUserCommand (String command) {
-    System.out.println(command);
-    ListExpr displayErrorList;
-    int displayErrorCode;
-    ListExpr resultList = new ListExpr();
-    int commandLevel = 0;
-    IntByReference errorCode = new IntByReference(0);
-    IntByReference errorPos = new IntByReference(0);
-    StringBuffer errorMessage = new StringBuffer();
-    // First send an "echo" to the system panel with the received command.
-    //CommandDisplay.appendText("\n" + command + "...");
-    // Builds the data to send to the server.
-    if (command.startsWith("(")) {
-      // if command is a list representation, then the command level to use
-      // is EXEC_COMMAND_LISTEXPR_SYNTAX.
-     // commandLevel = secondoInterface.EXEC_COMMAND_LISTEXPR_SYNTAX;
-    } 
-    else {
-      // if command is not a list representation, then the command level to
-      // use is EXEC_COMMAND_SOS_SYNTAX.
-      // commandLevel = secondoInterface.EXEC_COMMAND_SOS_SYNTAX;
-    }
-    // Executes the remote command.
-    /*secondoInterface.Secondo(command,           //Command to execute.
-    ListExpr.theEmptyList(),                    // we don't use it here.
-    commandLevel, true,         // command as text.
-    false,      // result as ListExpr.
-    resultList, errorCode, errorPos, errorMessage); */
-    // If any error had happened, send it to the sysPanel and execUserCommand
-    // finish.
-    if (errorCode.value != 0) {
-      //CommandDisplay.appendText("\n");
-      // Sends the system messages to the sysPannel.
-      // Shows the error message.
-      //CommandDisplay.appendErr("Error in Secondo command:\n");
-      //CommandDisplay.appendErr(ServerErrorCodes.getErrorMessageText(errorCode.value)+ "\n");
-      //The ErrorPos is not writed because it is not used by Secondo yet.
-      if (errorMessage.length() > 0) {          // If the errorMessage is not empty.
-        //CommandDisplay.appendErr(errorMessage.toString() + "\n");
-      }
-      //this.sysPanel.addErrorList(resultList);
-      // and shows again the prompt.
-      //CommandDisplay.showPrompt();
-      return;
-    }
-    // If the code reach this point, no error was returned by the server, and
-    // resultList contains the answer to the command.
-    // It shows the result.
-    if (command.startsWith("query") || command.startsWith("(query")) {
-      // If the command was a query.
-      // Prints the query result in the textWindow.
-      CurrentQueryResult = new QueryResult(command, resultList);
-      CurrentQueryResult.addListSelectionListener(DoQuerySelection);
-      displayErrorList = TextDisplay.newQueryResult(CurrentQueryResult);
-      displayErrorCode = displayErrorList.first().intValue();
-      // If an error happened when showing the query result, shows the error
-      // message.
-      if (displayErrorCode != NOT_ERROR_CODE) {
-        //CommandDisplay.appendText("\n");
-        //CommandDisplay.appendErr("Error:\n" + ServerErrorCodes.getErrorMessageText(displayErrorCode));
-        //this.sysPanel.addErrorList(displayErrorList.second());
-      } 
-      else {
-        //CommandDisplay.appendText("OK\n");
-        //QueryResultList.add (CurrentQueryResult);
-        if (!CurrentQueryResult.getGraphObjects().isEmpty())
-          addSwitch(GraphDisplay.addLayerObjects(CurrentQueryResult.getGraphObjects()), 
-              -1);
-        CurrentQueryResult.setSelectedIndex(0);
-        //	System.out.println(LayerSwitchBar.isValid());
-        // It puts in the top the textWindow where the result is shown.
-        //((TextFrame)textWindow.elementAt(0)).toFront();
-      }
-    } 
-    else {
-      // If it is not a query.
-      if (resultList.isEmpty()) {               //If resultList is empty.
-        //CommandDisplay.appendText("OK\n");
-      } 
-      else {
-        //CommandDisplay.appendText("Result:" + resultList.writeListExprToString() + "\n");
-      }
-    }
-    // and shows again the prompt.
-    //CommandDisplay.showPrompt();
-  }
-
-  /**
-   * Writes txt to commandPanel and beep, for user information,errors ...
-   * @param txt
-   * @see <a href="MainWindowsrc.html#statusBeep">Source</a> 
-   */
-  public void statusBeep (String txt) {
-    //CommandDisplay.appendErr(txt + "\n");
-    Toolkit.getDefaultToolkit().beep();
-    //CommandDisplay.showPrompt();
-  }
 
   /**
    * The selected object should be visible even when it moves. This method keeps GO visible
-   * @see <a href="MainWindowsrc.html#makeSelectionVisible">Source</a> 
    */
   public void makeSelectionVisible () {
     if (selGraphObj == null)
@@ -1342,11 +1226,11 @@ public boolean canDisplay(SecondoObject o){
     GraphDisplay.repaint();
   }
 
+
   /**
    * Adds a layer-switch to LayerSwitchbar
    * @param tb The button
    * @param index The position
-   * @see <a href="MainWindowsrc.html#addSwitch">Source</a> 
    */
   public void addSwitch (JToggleButton tb, int index) {
     if (index < 0)
@@ -1364,7 +1248,6 @@ public boolean canDisplay(SecondoObject o){
 
   class QueryListSelectionListener
       implements ListSelectionListener {
-
     public void valueChanged (ListSelectionEvent e) {
       Object o;
       if (e.getValueIsAdjusting())
@@ -1417,6 +1300,7 @@ public boolean canDisplay(SecondoObject o){
     }
   
   }
+
 /** Manages mouseclicks in the GraphWindow. It is placed here for textual-interaction 
 
    * @see <a href="MainWindowsrc.html#SelMouseAdapter">Source</a> 
@@ -1603,12 +1487,7 @@ public boolean canDisplay(SecondoObject o){
     InputStream configStream = null;
     URL configURL = null;
     String configFileName = null;
-    if (inAnApplet) {
-    } 
-    else {
-      // If executed as standalone application.
-      configFileName = "file:" + System.getProperty("user.dir") + "/" + this.CONFIGURATION_FILE;
-    }
+    configFileName = "file:" + System.getProperty("user.dir") + "/" + this.CONFIGURATION_FILE;
     // Once the address of the configuration file is known, it tries to
     try {
       // Stores the configuration information.

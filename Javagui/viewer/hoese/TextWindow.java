@@ -9,7 +9,7 @@ import  sj.lang.ListExpr;
 import  java.util.Properties;
 import  java.util.*;
 import  javax.swing.event.*;
-import viewer.HoeseViewer;
+import  viewer.HoeseViewer;
 
 
 /**
@@ -19,13 +19,18 @@ public class TextWindow extends JPanel {
 /** Allows scrolling over the query result */
   private JScrollPane QueryScrollPane;
 /** A ComboBox of all query or import results */ 
-  private QueryComboBox QueryCombo;
+  private JComboBox QueryCombo;
 /** The main app. */
   private HoeseViewer parent;
 /** The Code for no error */
   private static final int NOT_ERROR_CODE = ServerErrorCodes.NOT_ERROR_CODE;
 
-  /**
+/** a dummy for empty display */
+  private JPanel   dummy = new JPanel();
+
+ 
+
+ /**
    * Construktor 
    * @param   MainWindow aparent
    * @see <a href="TextWindowsrc.html#TextWindow">Source</a> 
@@ -33,8 +38,10 @@ public class TextWindow extends JPanel {
   public TextWindow (HoeseViewer aparent) {
     super();
     setLayout(new BorderLayout());
-    //setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-    QueryCombo = new QueryComboBox();
+
+    QueryCombo = new JComboBox(new DefaultComboBoxModel());
+
+
     QueryCombo.setMaximumSize(new Dimension(200, 300));
     setMinimumSize(new Dimension(100, 100));
     QueryScrollPane = new JScrollPane();
@@ -44,20 +51,47 @@ public class TextWindow extends JPanel {
       public void actionPerformed (ActionEvent evt) {
         QueryResult qr = null;
         qr = (QueryResult)QueryCombo.getSelectedItem();
-        if (qr != null)
+        if (qr != null){
           qr.clearSelection();
-        QueryScrollPane.setViewportView(qr);
+          QueryScrollPane.setViewportView(qr);
+        }
+        else
+          QueryScrollPane.setViewportView(dummy);
       }
-    });
+    }); 
+
     parent = aparent;
   }
+
+
+
+ /* set a new ComboBox()  */
+  public void clearComboBox(){
+    remove(QueryCombo);
+    QueryCombo = new JComboBox();
+    QueryCombo.addActionListener(new ActionListener() {
+      public void actionPerformed (ActionEvent evt) {
+        QueryResult qr = null;
+        qr = (QueryResult)QueryCombo.getSelectedItem();
+        if (qr != null){
+          qr.clearSelection();
+          QueryScrollPane.setViewportView(qr);
+        }
+        else
+          QueryScrollPane.setViewportView(dummy);
+      }
+    }); 
+    add(QueryCombo, BorderLayout.NORTH);
+  }  
+
+
+
   /**
    * Converts a QueryResult to a listexpr. Used in session-saving
    * @param qr The queryresult to convert
    * @return The result as a ListExpr
    * @see <a href="TextWindowsrc.html#convertQueryResulttoLE">Source</a> 
    */
-
   private ListExpr convertQueryResulttoLE (QueryResult qr) {
     ListExpr catl = ListExpr.theEmptyList();
     ListExpr left = catl;
@@ -227,7 +261,6 @@ public class TextWindow extends JPanel {
   /**
    * Adds qr to the Combo-Box of queries
    * @param qr
-   * @see <a href="TextWindowsrc.html#addQueryResult">Source</a> 
    */
   public void addQueryResult (QueryResult qr) {
     QueryResult q = (QueryResult)QueryCombo.getSelectedItem();
@@ -238,24 +271,12 @@ public class TextWindow extends JPanel {
   }
 
 /** Starts scanning of the query result qr for datatypes
- * @see <a href="TextWindowsrc.html#processQuery">Source</a> 
-   */
+  */
   private void processQuery (QueryResult qr) {
     LEUtils.analyse(qr.LEResult.first(), qr.LEResult.second(), qr);  
-    }
-/** A special JComboBox with adopted list-size
-* @see <a href="TextWindowsrc.html#QueryComboBox">Source</a> 
-   */
-  class QueryComboBox extends JComboBox {
-
-    public Dimension getMinimumSize () {
-      return  new Dimension(100, 20);
-    }
-
-    public Dimension getSize () {
-      return  getPreferredSize();
-    }
   }
+
+
 }
 
 

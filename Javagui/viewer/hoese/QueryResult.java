@@ -128,7 +128,6 @@ public class QueryResult extends JList {
   /**
    * 
    * @return The command of the query as string representation for the query combobox  
-   * @see <a href="QueryResultsrc.html#toString">Source</a>
    */
   public String toString () {
     return  command;
