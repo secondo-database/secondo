@@ -14,12 +14,10 @@ INCFILES=\
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
 	$(INCLUDEDIR)/StandardAttribute.h \
-	$(INCLUDEDIR)/SecondoSMI.h \
-	./RangeAlgebra.h
- 
+	$(INCLUDEDIR)/DBArray.h \
+        ./TemporalAlgebra.h
 
-
-MODNAME=RangeAlgebra
+MODNAME=TemporalAlgebra
 LIBNAME=lib$(MODNAME)
 
 OBJECTS=\

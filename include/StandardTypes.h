@@ -176,5 +176,14 @@ class CcString : public StandardAttribute
 
 ostream& ShowStandardTypesStatistics( const bool reset, ostream& o );
 
+/*
+6 Some Functions Prototypes
+
+*/
+Word InCcInt( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutCcInt( ListExpr typeinfo, Word value );
+Word InCcReal( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutCcReal( ListExpr typeinfo, Word value );
+
 #endif
 

@@ -187,24 +187,14 @@ Returns the number of components of this array.
 
 */
 
-    void Sort( bool (*cmp)(const DBArrayElement&, const DBArrayElement&) )
+    void Sort( int (*cmp)( const void *a, const void *b) )
     {
       if( nElements <= 1 )
         return;
 
-      vector<DBArrayElement> elements;
+      char *buf = FLOB::BringToMemory();
 
-      for( int i = 0; i < nElements; i++ )
-      {
-        DBArrayElement elem;
-        Get( i, elem );
-        elements.push_back( elem );
-      }
-
-      sort( elements.begin(), elements.end(), cmp );
-
-      for( size_t i = 0; i < elements.size(); i++ )
-        Put( i, elements[i] );
+      qsort( buf, nElements, sizeof( DBArrayElement ), cmp );
     }
 /*
 Sorts the database array given the ~cmp~ comparison criteria. The

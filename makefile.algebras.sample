@@ -60,9 +60,6 @@ ALGEBRAS     +=	BTreeAlgebra
 ALGEBRA_DIRS +=	RTree
 ALGEBRAS     +=	RTreeAlgebra
 
-ALGEBRA_DIRS +=	Range
-ALGEBRAS     +=	RangeAlgebra
-
 ALGEBRA_DIRS +=	Rectangle
 ALGEBRAS     +=	RectangleAlgebra
 
@@ -74,6 +71,9 @@ ALGEBRAS     +=	FTextAlgebra
 
 ALGEBRA_DIRS +=	BinaryFile
 ALGEBRAS     +=	BinaryFileAlgebra
+
+ALGEBRA_DIRS +=	Temporal
+ALGEBRAS     +=	TemporalAlgebra
 
 
 # JNI Algebras - Java code will be called from C++ code.

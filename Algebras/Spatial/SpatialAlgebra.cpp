@@ -1042,12 +1042,18 @@ ostream& operator<<( ostream& o, Points& ps )
   return o;
 }
 
-bool PointCompare(const Point& a, const Point& b)
+int PointCompare(const void *a, const void *b)
 {
-  if( a < b )
-    return true;
-  else
-    return false;
+  Point *pa = new ((void*)a) Point,
+        *pb = new ((void*)b) Point;
+
+  if( *pa == *pb )
+    return 0;
+
+  if( *pa < *pb )
+    return -1;
+
+  return 1;
 }
 
 void Points::Sort()
@@ -1853,20 +1859,32 @@ int CHalfSegment::logicgreater(const CHalfSegment& chs) const
     }
 }
 
-bool HalfSegmentCompare(const CHalfSegment& a, const CHalfSegment& b)
+int HalfSegmentCompare(const void *a, const void *b)
 {
-  if( a < b )
-    return true;
-  else
-    return false;
+  CHalfSegment *chsa = new ((void*)a) CHalfSegment,
+               *chsb = new ((void*)b) CHalfSegment;
+
+  if( *chsa == *chsb )
+    return 0;
+
+  if( *chsa < *chsb )
+    return -1;
+
+  return 1;
 }
 
-bool HalfSegmentLogCompare(const CHalfSegment& a, const CHalfSegment& b)
+int HalfSegmentLogCompare(const void *a, const void *b)
 {
-  if( a.logicless(b))
-    return true;
-  else
-    return false;
+  CHalfSegment *chsa = new ((void*)a) CHalfSegment,
+               *chsb = new ((void*)b) CHalfSegment;
+
+  if( chsa->logicless(*chsb))
+    return -1;
+
+  if( chsa->logicgreater(*chsb))
+    return 1;
+
+  return 0;
 }
 
 /*

@@ -90,7 +90,7 @@ Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */ 
-    const char *BringToMemory();
+    char *BringToMemory();
 
 /*
 3.5 Get
