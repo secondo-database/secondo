@@ -746,8 +746,9 @@ stored into a disk file.
 */
 struct PrivateTupleBuffer
 {
-  PrivateTupleBuffer():
-    diskBuffer( 0 ),
+  PrivateTupleBuffer( const size_t maxMemorySize ):
+		MAX_MEMORY_SIZE( maxMemorySize ),
+		diskBuffer( 0 ),
     MAX_TUPLES_IN_MEMORY( 0 ),
     inMemory( true ),
     totalSize( 0 )
@@ -770,7 +771,7 @@ The constructor.
 The destructor.
 
 */
-  static const size_t MAX_MEMORY_SIZE = 2097152;
+  const size_t MAX_MEMORY_SIZE;
 /*
 The maximum size of the memory in bytes. 2 MBytes being used.
 
@@ -806,8 +807,8 @@ The total size occupied by the tuples in the buffer.
 3.9.2 Implementation of the class ~TupleBuffer~
 
 */
-TupleBuffer::TupleBuffer():
-privateTupleBuffer( new PrivateTupleBuffer() )
+TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
+privateTupleBuffer( new PrivateTupleBuffer( maxMemorySize ) )
 {
 }
 
@@ -859,7 +860,8 @@ void TupleBuffer::AppendTuple( Tuple *t )
   if( privateTupleBuffer->MAX_TUPLES_IN_MEMORY == 0 )
   // first tuple being inserted in the buffer.
   {
-    privateTupleBuffer->MAX_TUPLES_IN_MEMORY = PrivateTupleBuffer::MAX_MEMORY_SIZE / t->GetMemorySize();
+    privateTupleBuffer->MAX_TUPLES_IN_MEMORY = 
+		  privateTupleBuffer->MAX_MEMORY_SIZE / t->GetMemorySize();
   }
 
   if( privateTupleBuffer->inMemory )

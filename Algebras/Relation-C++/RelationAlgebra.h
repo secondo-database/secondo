@@ -155,7 +155,9 @@ The second constructor. Creates a tuple type which is a copy of ~tupleType~.
 The destructor.
 
 */
-    const int GetNoAttributes() const;
+    inline const int GetNoAttributes() const { return noAttributes; }
+
+
 /*
 Returns the number of attributes of the tuple type.
 
@@ -165,7 +167,12 @@ Returns the number of attributes of the tuple type.
 Returns the total size of the tuple.
 
 */
-    const AttributeType& GetAttributeType( const int index ) const;
+    inline const AttributeType& GetAttributeType( const int index ) const
+		{
+      assert( index >= 0 && index < noAttributes );
+      return attrTypeArray[index];
+    }
+
 /*
 Returns the attribute type at ~index~ position.
 
@@ -519,9 +526,12 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class TupleBuffer : public GenericRelation
 {
   public:
-    TupleBuffer();
+    TupleBuffer( const size_t maxMemorySize = 2097152 );
 /*
-The constructor. Creates an empty tuple buffer.
+The constructor. Creates an empty tuple buffer. The variable ~maxMemorySize~ does
+not allocate memory, it serves only for the Persistent Relational Algebra to set
+the maximum memory used in the buffer. If more space is needed then the buffer will
+be written to disk.
 
 */
     ~TupleBuffer();

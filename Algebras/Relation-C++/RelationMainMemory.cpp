@@ -342,10 +342,15 @@ The total size of the buffer in bytes.
 3.9.2 Implementation of the class ~TupleBuffer~
 
 */
-TupleBuffer::TupleBuffer():
+TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
 privateTupleBuffer( new PrivateTupleBuffer() )
 {
 }
+/*
+The variable ~maxMemorySize~ is used only for the Persistent Relational
+Algebra. Here it is ignored. 
+
+*/
 
 TupleBuffer::~TupleBuffer()
 {
