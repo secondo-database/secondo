@@ -35,6 +35,11 @@ Since files are closed only when an enclosing transaction is finished, reallocat
 of DbHandles is only done when necessary, e.g. when an instance op SmiFile should be
 reused after ~close~ and ~create~ and ~open~ is called again.
 
+January 2005 M.Spiekermann. Changes in the Implementation of the PrefetchingIterator.
+Since Berkeley DB 4.2.52 does not support any longer the bulk retrieval macros with
+parameters of class ~Dbt~, a reference to the C-API struct ~DBT~ will be passed now.
+This code also compiles with version 4.1.25 of Berkeley-DB. 
+
 */
 
 using namespace std;
@@ -936,7 +941,7 @@ bool PrefetchingIteratorImpl::NewPrefetch()
   }
    
 
-  DB_MULTIPLE_INIT(p, &buffer);
+  DB_MULTIPLE_INIT( p, buffer.get_DBT() );
   state = BULK_RETRIEVAL; 
 
   return true;
@@ -1175,13 +1180,13 @@ bool PrefetchingIteratorImpl::Next()
   }
   
   if(isBTreeIterator)
-  {  
-    DB_MULTIPLE_KEY_NEXT(p, &buffer, retKey, 
+  { 
+    DB_MULTIPLE_KEY_NEXT(p, buffer.get_DBT(), retKey, 
       retKeyLength, retData, retDataLength);
   }
   else
   {
-    DB_MULTIPLE_RECNO_NEXT(p, &buffer, recordNumber, retData, retDataLength);
+    DB_MULTIPLE_RECNO_NEXT(p, buffer.get_DBT(), recordNumber, retData, retDataLength);
   }
      
   if(p == 0)
@@ -1200,12 +1205,12 @@ bool PrefetchingIteratorImpl::Next()
 
     if(isBTreeIterator)
     {   
-      DB_MULTIPLE_KEY_NEXT(p, &buffer, retKey, 
+      DB_MULTIPLE_KEY_NEXT(p, buffer.get_DBT(), retKey, 
         retKeyLength, retData, retDataLength);
     }
     else
     {
-      DB_MULTIPLE_RECNO_NEXT(p, &buffer, recordNumber, retData, retDataLength);
+      DB_MULTIPLE_RECNO_NEXT(p, buffer.get_DBT(), recordNumber, retData, retDataLength);
     }
     
     if(p != 0  && !RightBoundaryExceeded())
