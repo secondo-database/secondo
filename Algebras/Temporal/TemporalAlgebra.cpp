@@ -67,7 +67,9 @@ void UReal::TemporalFunction( Instant& t, CcReal& result )
 {
   assert( t.IsDefined() && timeInterval.Contains( t ) );
 
-  double res = a * t.ToDouble() * t.ToDouble() + b * t.ToDouble() + c;
+  double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) + 
+               b * ( t.ToDouble() - timeInterval.start.ToDouble() ) + 
+               c;
   if( r ) res = sqrt( res );
 
   result.Set( true, res );
@@ -287,6 +289,24 @@ void UPoint::AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result )
     TemporalFunction( result.timeInterval.end, pResult->p1 );
 }
 
+void UPoint::Distance( Point& p, UReal& result )
+{
+  result.timeInterval = timeInterval;
+
+  double x0 = p0.GetX(), y0 = p0.GetY(),
+         x1 = p1.GetX(), y1 = p1.GetY(),
+         x = p.GetX(), y = p.GetY(),
+         t0 = result.timeInterval.start.ToDouble(),
+         t1 = result.timeInterval.end.ToDouble();
+
+  result.a = pow( (x1 - x0) / (t1 - t0), 2 ) + 
+             pow( (y1 - y0) / (t1 - t0), 2 );
+  result.b = 2 * ( (x0 - x) * (x1 - x0) / (t1 - t0) + 
+                   (y0 - y) * (y1 - y0) / (t1 - t0) );
+  result.c = pow( x0 - x, 2 ) + pow( y0 - y, 2 );
+  result.r = true;
+}
+
 /*
 3.2 Class ~MPoint~
 
@@ -314,23 +334,18 @@ void MPoint::Trajectory( CLine& line )
 
 void MPoint::Distance( Point& p, MReal& result )
 {
-//  CHalfSegment chs;
-//
-//  UPoint unit;
-//
-//  line.Clear();
-//  line.StartBulkLoad();
-//  for( int i = 0; i < GetNoComponents(); i++ )
-//  {
-//    Get( i, unit );
-//
-//    CHalfSegment chs( true, true, unit.p0, unit.p1 );
-//    line += chs;
-//
-//    chs.SetLDP( false );
-//    line += chs;
-//  }
-//  line.EndBulkLoad();
+  UPoint uPoint;
+  UReal uReal;
+
+  result.Clear();
+  result.StartBulkLoad();
+  for( int i = 0; i < GetNoComponents(); i++ )
+  {
+    Get( i, uPoint );
+    uPoint.Distance( p, uReal );
+    result.Add( uReal );
+  }
+  result.EndBulkLoad( false );
 }
 
 /*

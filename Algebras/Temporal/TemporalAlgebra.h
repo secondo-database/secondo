@@ -1271,6 +1271,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual bool Passes( Point& val );
   virtual bool At( Point& val, TemporalUnit<Point>& result );
   virtual void AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result );
+  void Distance( Point& p, UReal& result );
 
 /*
 3.8.3 Functions to be part of relations
