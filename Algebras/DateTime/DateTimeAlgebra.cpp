@@ -1218,14 +1218,15 @@ void DateTime::Mul(const double factor){
 
 */
   void DateTime::Abs(){
-     assert(type=instanttype);
+     assert(type==instanttype);
      if(day<0){
-        day = day*-1;
+        day = -1 * day;
         if(milliseconds!=0){
            day--;
            milliseconds = MILLISECONDS-milliseconds;
         }
      }
+    
   }
 
 
