@@ -4424,7 +4424,7 @@ bool CRegion::containpr( const Point& p, int &pathlength, int & scanned ) const
     //1. find the right place by binary search
     startpos = Position( p );  
     
-    int chsVisited2 = int(((log (this->Size())) / (log (2))) + 0.5);
+    int chsVisited2 = (int)(((log ((double)this->Size())) / (log ((double)2))) + 0.5);
     
     int chsVisiteds=0;
     
