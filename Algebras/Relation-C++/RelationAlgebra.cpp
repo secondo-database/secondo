@@ -1075,10 +1075,10 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
       tupleno++;
       tupleaddr = (CcTuple*)(InTuple(TupleTypeInfo, first, tupleno,
         errorInfo, tupleCorrect).addr);
-      tupleaddr->SetFree(false);
 
       if (tupleCorrect)
       {
+        tupleaddr->SetFree(false);
         rel->AppendTuple(tupleaddr);
         count++;
       }
