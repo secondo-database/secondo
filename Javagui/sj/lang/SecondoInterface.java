@@ -503,7 +503,7 @@ If value 0 is returned, the command was executed without error.
     }
     if ( readResponse ) {
       if ( line.compareTo( "<SecondoResponse>" ) == 0 ) {
-        String result = "";
+        StringBuffer result = new StringBuffer();
 	boolean ok = true;
         try {
 	  if(!binaryLists){
@@ -512,7 +512,8 @@ If value 0 is returned, the command was executed without error.
                line = inSocketStream.readLine();
 	       if(line!=null){
                  if ( line.compareTo( "</SecondoResponse>" ) != 0 ) {
-                    result += line;
+                    result.append(line);
+		    result.append("\n");
                  }
 	       }
 	       else{
@@ -522,15 +523,14 @@ If value 0 is returned, the command was executed without error.
                }
              } while (ok && line.compareTo( "</SecondoResponse>" ) != 0);
 	     long t2 = System.currentTimeMillis();
-	     answerList.readFromString( result );
-	     /*
+	     answerList.readFromString( result.toString() );
 	     long t3 = System.currentTimeMillis();
 	     long parsetime = t3-t2;
 	     long receivetime = t2-t1;
 	     long alltime = t3-t1;
 	     System.out.println("receive a nested list (textual) : "+receivetime+" milliseconds");
 	     System.out.println("parsing                         : "+parsetime+" milliseconds");
-	     System.out.println("sum                             : "+alltime+" milliseconds"); */
+	     System.out.println("sum                             : "+alltime+" milliseconds"); 
 	  } else{ // read list binary
 	     long t1 = System.currentTimeMillis();
 	     answerList = ListExpr.readBinaryFrom(inSocketStream);
