@@ -22,9 +22,11 @@
 
 September 1996 Claudia Freundorfer
 
-December 23, 1996 RHG Changed procedure ~construct~ to include checks for correctness of query and evaluability of the operator tree.
+December 23, 1996 RHG Changed procedure  ~construct~ to include checks for
+correctness of query and evaluability of the operator tree.
 
-January 3, 1997 RHG Added parameter ~defined~ to procedures ~construct~ and ~annotateX~ to allow checking whether all objects have defined values.
+January 3, 1997 RHG Added parameter ~defined~ to procedures ~construct~ and
+~annotateX~ to allow checking whether all objects have defined values.
 
 May 4, 1998 RHG Added procedure ~resultStorage~.
 
@@ -40,6 +42,8 @@ January 26, 2001 RHG Added an ~isFunction~ parameter to procedure ~construct~.
 
 May 2002 Ulrich Telle Port to C++, integrated descriptive algebra level
 and function mapping.
+
+February 3, 2003 RHG Added QP_COUNTER and QP_COUNTERDEF.
 
 1.1 Overview
 
@@ -141,7 +145,7 @@ class QueryProcessor
   QueryProcessor( NestedList* newNestedList,
                   AlgebraManager* newAlgebraManager );
 /*
-Creates a query processor instances using the provided nested list container
+Creates a query processor instance using the provided nested list container
 and algebra manager.
 
 */
@@ -220,7 +224,8 @@ can be set by writing into the fields of this argument vector.
 
   void Request( const Supplier s, Word& word );
 /*
-Calls the parameter function (to which the arguments must have been supplied before). The result is returned in ~result~. 
+Calls the parameter function (to which the arguments must have been supplied
+before). The result is returned in ~result~. 
 
 */
   bool Received( const Supplier s );
@@ -249,7 +254,7 @@ arguments must have been supplied before). The result is returned in
 */
   Supplier GetSupplier( const Supplier s, const int no );
 /*
-From a given supplier ~s~ that must represent an argument list, get its son
+>From a given supplier ~s~ that must represent an argument list, get its son
 number ~no~. Can be used to traverse the operator tree in order to access
 arguments within (nested) argument lists. Values or function or stream
 evaluation can then be obtained from the returned supplier by the usual
@@ -276,7 +281,30 @@ tree.
 /*
 Returns the type expression of the node ~s~ of the operator tree.
 
+3.2.2 Dealing with Counters
+
+There is an array of ~NO-COUNTERS~ counters available which can be used during
+query processing to count the number of evaluation requests sent to an operator
+node (and hence the number of stream elements, e.g. tuples) passing through
+this node.
+
 */
+
+  void ResetCounters();
+
+/*
+Set all counters to 0.
+
+*/
+
+  ListExpr GetCounters();
+
+/*
+Get the values of all counters in the form of a nested list containing pairs of
+the form (counterno, value).
+
+*/
+
 
 /*
 3.2.3 Procedures Exported for Testing Only
@@ -361,7 +389,7 @@ enum QueryProcessorType
          QP_ABSTRACTION, QP_APPLYOP,
          QP_ARGLIST, QP_APPLYABS, QP_APPLYFUN,
          QP_TYPEERROR, QP_ERROR, QP_APPEND,
-         QP_UNDEFINED };
+         QP_UNDEFINED, QP_COUNTER, QP_COUNTERDEF };
 /*
 enumerates the types a symbol may have while annotating an expression.
 
@@ -448,6 +476,10 @@ Construct operator tree recursively for a given annotated ~expr~. See
   vector<Word> values; // MAXVALUE = 200
   vector<Word> models;
   vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
+
+  static const int NO_COUNTERS = 15;
+
+  int counter[NO_COUNTERS];	
 };
 
 /*
