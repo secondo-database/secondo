@@ -2314,19 +2314,6 @@ lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
   lookupAttrs(Attrs2, Attrs3).
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 makeList(L, L) :- is_list(L).
 
 makeList(L, [L]) :- not(is_list(L)).
@@ -2643,9 +2630,27 @@ only the cost for evaluating the essential part, the conjunctive query.
 
 */
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :- !,
+translate(Query orderby Attrs, sortby(Stream, AttrNames), Select, 0) :- 
+  !,
+  translate(Query, Stream, Select, _),
+  attrnamesSort(Attrs, AttrNames).
+
+translate(Query groupby Attrs, 
+	groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
+	select Select2, Cost) :-
+  translate(Query, Stream, SelectClause, Cost),
+  makeList(Attrs, Attrs2),
+  attrnames(Attrs2, AttrNamesGroup),
+  attrnamesSort(Attrs2, AttrNamesSort),
+  SelectClause = (select Select),
+  makeList(Select, SelAttrs),
+  translateFields(SelAttrs, Attrs2, Fields, Select2),
+  !.
+
+translate(Select from Rels where Preds, Stream, Select, Cost) :- 
   pog(Rels, Preds, _, _),
-  bestPlan(Stream, Cost).
+  bestPlan(Stream, Cost),
+  !.
 
 translate(Select from Rel, feed(Rel), Select, 0) :-
   not(is_list(Rel)),
@@ -2656,19 +2661,6 @@ translate(Select from [Rel], feed(Rel), Select, 0).
 translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
   translate(Select from Rels, Stream, Select, _).
 
-translate(Query orderby Attrs, sortby(Stream, AttrNames), Select, 0) :-
-  translate(Query, Stream, Select, _),
-  attrnamesSort(Attrs, AttrNames).
-
-translate(Query groupby Attrs, 
-	groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
-	select Select2, Cost) :-
-  translate(Query, Stream, select Select, Cost),
-  makeList(Attrs, Attrs2),
-  attrnames(Attrs2, AttrNamesGroup),
-  attrnamesSort(Attrs2, AttrNamesSort),
-  makeList(Select, SelAttrs),
-  translateFields(SelAttrs, Attrs2, Fields, Select2).
 
 
 
@@ -2696,6 +2688,12 @@ translateFields([sum(Attr) as NewAttr | Select], GroupAttrs,
 	[NewAttr| Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
+
+translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
+  member(Attr, GroupAttrs),
+  !,
+  translateFields(Select, GroupAttrs, Fields, Select2).
+
 
 /*
 Generic rule for aggregate functions, similar to sum.
@@ -2732,12 +2730,6 @@ translateFields([Term | Select], GroupAttrs,
   !.
 
 
-
-translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
-  member(Attr, GroupAttrs),
-  !,
-  translateFields(Select, GroupAttrs, Fields, Select2).
-
 translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   not(member(Attr, GroupAttrs)),
   !,
@@ -2748,7 +2740,6 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   write(' is neither a grouping attribute'), nl,
   write('      nor an aggregate expression.'), nl,
   write('*****'), nl.
-
 
 
 /*
@@ -2762,11 +2753,11 @@ names have been looked up already.
 
 */
 
-queryToPlan(Query, consume(Stream), Cost) :-
-  translate(Query, Stream, select *, Cost), !.
+queryToPlan(select * from Term, consume(Stream), Cost) :-
+  translate(select * from Term, Stream, select *, Cost), !.
 
-queryToPlan(Query, count(Stream), Cost) :-
-  translate(Query, Stream, select count(*), Cost), !.
+queryToPlan(select count(*) from Term, count(Stream), Cost) :-
+  translate(select count(*) from Term, Stream, select count(*), Cost), !.
 
 queryToPlan(Query, consume(project(Stream, AttrNames)), Cost) :-
   translate(Query, Stream, select Attrs, Cost), !,
@@ -2785,11 +2776,11 @@ Same as ~queryToPlan~, but returns a stream plan, if possible. To be used for
 
 */
 
-queryToStream(Query,  Stream, Cost) :-
-  translate(Query, Stream, select *, Cost), !.
+queryToStream(select * from Term,  Stream, Cost) :-
+  translate(select * from Term, Stream, select *, Cost), !.
 
-queryToStream(Query, count(Stream), Cost) :-
-  translate(Query, Stream, select count(*), Cost), !.
+queryToStream(select count(*) from Term, count(Stream), Cost) :-
+  translate(select count(*) from Term, Stream, select count(*), Cost), !.
 
 queryToStream(Query,  project(Stream, AttrNames), Cost) :-
   translate(Query, Stream, select Attrs, Cost), !,
