@@ -128,21 +128,6 @@ done
 
 }
 
-# runTTYBDB
-#
-# $1 SECONDO command
-#
-# Starts SecondoTTYBDB runs command $1
-
-declare -i rc_ttybdb=0
-function runTTYBDB() {
-
-SecondoTTYBDB <<< "$1"
-
-let rc_ttybdb=$?
-
-}
-
 # mapStr
 #
 # $1 file

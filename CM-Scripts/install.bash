@@ -73,18 +73,18 @@ showGPL
 if [ $platform != "linux" ]; then
 
   # set up $USER and $HOME
-  if [ "$LOGNAME" == "" ]; then
-    LOGNAME="nobody"
-    USER=$LOGNAME 
-  fi
-  HOME=/home/$USER
-  if [ ! -d $HOME ]; then
-    printf "\n%s\n" "You have no user name! Creating directory \"$HOME\"."
-    mkdir -p $HOME
+  USER=$LOGNAME 
+  if [ "$USER" == "" ]; then
+    USER="nobody"
+    HOME=/home/$USER
+    if [ ! -d $HOME ]; then
+      printf "\n%s\n" "You have no home dir! Creating directory \"$HOME\"."
+      mkdir -p $HOME
+    fi
   fi
 
   instpath=/c
-  if [ ! -d instpath ]; then instpath=$HOME; fi # useful for testing on linux
+  if [ ! -d $instpath ]; then instpath=$HOME; fi # useful for testing on linux
   msysdir="$instpath/msys/1.0"
   mingwdir="$instpath/mingw"
   if [ "$testMode" == "true" ]; then
