@@ -65,25 +65,60 @@ public class ViewConfig extends javax.swing.JDialog {
 
   /**
    * Searches the attributes for possible reference attributes (int,real,string,bool)
-   * @return A Vector with aatrributes been found
+   * @return A Vector with attributes been found
    */
   private Vector getRefAttrList () {
     Vector v = new Vector(5, 1);
     LabelAList = new Vector(10, 5);
     if (Query.LEResult.first().isAtom())
       return  v;
-    v.add("Tupel-No.");
-    LabelAList.add("no Label");
-    TupelCount = Query.LEResult.second().listLength();
-    ListExpr attrlist = Query.LEResult.first().second().second();
-    while (!attrlist.isEmpty()) {
-      String type = attrlist.first().second().symbolValue();
-      LabelAList.add(attrlist.first().first().symbolValue());
-      if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
-          || (type.equals("bool")))
-        v.add(attrlist.first().first().symbolValue());
-      AttrCount++;
-      attrlist = attrlist.rest();
+
+    if(Query.LEResult.first().isEmpty())
+       return v;
+    // Query.LEResult.first() contains the type of the result
+    // the getRefAttrList is only defined for relations at this moment
+    if(Query.LEResult.first().first().atomType()!=ListExpr.SYMBOL_ATOM)
+      return v;
+    if(Query.LEResult.first().first().symbolValue().equals("rel")){
+        v.add("Tupel-No.");
+        LabelAList.add("no Label");
+        TupelCount = Query.LEResult.second().listLength();
+        ListExpr attrlist = Query.LEResult.first().second().second();
+        while (!attrlist.isEmpty()) {
+          String type = attrlist.first().second().symbolValue();
+          LabelAList.add(attrlist.first().first().symbolValue());
+          if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
+              || (type.equals("bool")))
+             v.add(attrlist.first().first().symbolValue());
+          AttrCount++;
+          attrlist = attrlist.rest();
+        }
+    }
+
+    if(Query.LEResult.first().first().symbolValue().equals("nmap")){
+     /*
+       v.add("Tupel-No.");
+       LabelAList.add("no Label");
+       ListExpr TYPE = Query.LEResult.first();
+       ListExpr SpatialRelations = TYPE.rest().rest().rest(); // read over nmap,name and scale
+       int RelNo = 0;
+       while(!SpatialRelations.isEmpty()){
+           ListExpr CurrentRel = SpatialRelations.first();
+           SpatialRelations=SpatialRelations.rest();
+           ListExpr attrlist = CurrentRel.second().second(); // ignore (rel(tuple; take only the tuplelist
+        while (!attrlist.isEmpty()) {
+           String type = attrlist.first().second().symbolValue(); // get the type of the attribute
+           if ((type.equals("int")) || (type.equals("real")) || (type.equals("string"))
+                || (type.equals("bool"))){
+                LabelAList.add(RelNo+"::"+attrlist.first().first().symbolValue());
+                v.add(RelNo+"::"+attrlist.first().first().symbolValue());
+           }
+           AttrCount++;
+           attrlist = attrlist.rest();
+        }
+        RelNo++;
+       }
+     */  
     }
     return  v;
   }
