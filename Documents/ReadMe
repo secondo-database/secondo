@@ -1,9 +1,7 @@
-This directory contains some PDF and Postscript files.
-Unfortunately most of these documents are about the previous Secondo version.
 
-Overview.pdf/ps           - Overview of the Secondo system (old)
-UserManual.pdf/ps         - Secondo User Manual (old)
-AMIManual.obsolete.pdf/ps - Algebra Module Implementation Tutorial (old)
+This directory contains the latest documentation of SECONDO
+provided in PDF format. The Sources are maintained in the
+cvs module secondo-documents.
 
-Diplomarbeit-Telle.pdf    - Diploma Thesis about the new Secondo System (in German)
+06.10.2004, M. Spiekermann
 
