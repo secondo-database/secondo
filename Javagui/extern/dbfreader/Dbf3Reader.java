@@ -10,7 +10,6 @@ import extern.*;
 
 // todo-list
 // process memofields
-// string larger then MAX_STRING_LENGTH characters as text
 
 
 public class Dbf3Reader implements SecondoImporter{
@@ -185,6 +184,7 @@ public ListExpr getTupleList(){
 
 
 public String getName(){return Name;}
+public void setName(String newName){Name = newName;}
 public byte getType(){ return Type;}
 public int getFieldLength(){ return FieldLength;}
 public int getAfterComma(){ return AfterComma;}
@@ -212,6 +212,24 @@ public boolean readFrom(byte[] Buffer){
         FD[j] = Buffer[i*32+j];
      FDs[i] = new DB3FieldDescription();
      FDs[i].readFrom(FD);
+  }
+  // Because we have found some corupt data, i.e. data which have the 
+  // same name used for different attributes, we change the names existing
+  // more than one time
+  for(int i=1;i<FDs.length;i++){
+    String CurrentName = FDs[i].getName();
+    int Variant = 0;
+    int j=0;
+    while(j<i){
+       if(FDs[j].getName().equals(CurrentName)){ // name is used
+           CurrentName = FDs[i].getName()+"_"+(Variant++); // set new Name
+           j = 0; // search from the beginning
+       }else{
+          j++;
+       } 
+    }
+    // CurrentName now contains a unused name
+    FDs[i].setName(CurrentName);
   }
   return true;
 }
@@ -279,7 +297,7 @@ public boolean readFrom(byte[] Buffer,DB3RecordHeader RH){
 	   S += (char)Buffer[CurrentPos+k];
         S = S.trim();
 	if(length>MAX_STRING_LENGTH)
-	   Next = ListExpr.oneElemList(ListExpr.textAtom(S));
+	   Next = ListExpr.textAtom(S);
 	else
 	   Next = ListExpr.stringAtom(correctString(S));
       }
