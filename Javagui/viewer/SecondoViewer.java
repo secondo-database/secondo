@@ -45,9 +45,16 @@ public abstract boolean isDisplayed(SecondoObject o);
  }
 
  protected ViewerControl VC=null;  // inform this Control if select/remove a Object
+ 
+ protected boolean DEBUG_MODE=false;
+ 
+ // set the debug mode of this viewer
+ public void setDebugMode(boolean on){
+   DEBUG_MODE=on;
+ }
 
 
- /** check if O is a SecondoViewer 
+ /** check if O is a SecondoViewer
    * if not false is returned
    * otherwise the names from this and O are
    * checked for equality */
@@ -57,7 +64,7 @@ public abstract boolean isDisplayed(SecondoObject o);
    else
       return getName().equals( ((SecondoViewer)O).getName());
 
- } 
+ }
 
  /** returns the quality of view for a given object in range [0..1]
    * by this method it is possible to choose the best viewer for a given object
