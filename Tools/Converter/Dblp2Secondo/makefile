@@ -21,6 +21,7 @@ ifeq ($(platform),win32)
   BDB_LIB_FLAG := -ldb32
 else
   EXE_EXT :=
+  BDB_LIB_FLAG := $(BDB_LIB_FLAG) -lpthread
 endif
 
 BDB_INCLUDE_FLAG = -I$(BDBDIR)/include

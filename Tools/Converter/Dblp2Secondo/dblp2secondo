@@ -63,7 +63,7 @@ fi
 
 
 # compile and build all needed tools
-make -s
+make 
 
 if [ $? -ne 0 ]; then
    echo "Needed tools cannot be build"
