@@ -555,7 +555,7 @@ public class OptimizerServer extends Thread{
 	       trace=true;
 	       System.out.println("tracing is activated");
 	   } else if(command.equals("trace-off")){
-	       trace=true;
+	       trace=false;
 	       System.out.println("tracing is deactivated");
 	   } else if(command.equals("help") | command.equals("?") ){
 	        System.out.println("quit      : quits the server ");
