@@ -655,6 +655,26 @@
                 ("W" "Wuppertal" "0202" 388) 
                 ("ZW" "Zweibruecken" "06332" 36)) 
             ()) 
+        (OBJECT SEC_DERIVED_OBJ 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (name string) 
+                        (value text) 
+                        (usedObjs text)))) 
+            (
+                ("plz_Ort" 
+                    (
+                        <text>(createbtree plz Ort)</text--->) 
+                    (
+                        <text>( plz )</text--->)) 
+                ("plz_PLZ" 
+                    (
+                        <text>(createbtree plz PLZ)</text--->) 
+                    (
+                        <text>( plz )</text--->))) 
+            ()) 
         (OBJECT Staedte 
             (StaedteRel) 
             (rel 
@@ -42070,26 +42090,6 @@
                 (99998 "Bollstedt") 
                 (99998 "Grabe") 
                 (99998 "Koerner")) 
-            ()) 
-        (OBJECT plz_Ort 
-            () 
-            (btree 
-                (tuple 
-                    (
-                        (PLZ int) 
-                        (Ort string))) 
-                string) 
-            () 
-            ()) 
-        (OBJECT plz_PLZ 
-            () 
-            (btree 
-                (tuple 
-                    (
-                        (PLZ int) 
-                        (Ort string))) 
-                int) 
-            () 
             ()) 
         (OBJECT plz_sample 
             () 
