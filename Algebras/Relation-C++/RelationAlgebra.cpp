@@ -11,6 +11,8 @@ June 1996 Claudia Freundorfer
 
 May 2002 Frank Hoffmann port to C++
 
+November 7, 2002 RHG Corrected the type mapping of ~tcount~.
+
 [TOC]
 
 1 Includes, Constants, Globals, Enumerations
@@ -1927,29 +1929,32 @@ Operator cancel (
 
 Count the number of tuples within a stream of tuples.
 
+
 7.3.1 Type mapping function of operator ~tcount~
 
-Type mapping for ~tcount~ is
+Operator ~tcount~ accepts a stream of tuples and returns an integer.
 
-----	((stream (tuple x))) -> int
+----    (stream  x)                 -> int
 ----
 
 */
-static ListExpr
-TCountTypeMap( ListExpr args )
+ListExpr TCountTypeMap(ListExpr args)
 {
-  ListExpr arg11, arg12;
+  ListExpr first ;
   
-  if ( nl->ListLength(args) == 1 )
+  if(nl->ListLength(args) == 1)
   {
-    arg11 = nl->First(nl->First(args));
-    arg12 = nl->Second(nl->First(args));
-    if (nl->IsEqual(arg11, "stream") &&
-          nl->IsEqual(nl->First(arg12), "tuple"))
-      return nl->SymbolAtom("int");
-  }
+    first = nl->First(args);
+    if(nl->ListLength(first) == 2)
+    {
+      if (TypeOfRelAlgSymbol(nl->First(first)) == stream) 
+        return nl->SymbolAtom("int");
+    }
+  } 
   return nl->SymbolAtom("typeerror");
 }
+
+
 /*
 
 4.1.2 Value mapping function of operator ~tcount~
