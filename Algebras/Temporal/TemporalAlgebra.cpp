@@ -310,19 +310,33 @@ void UPoint::Distance( Point& p, UReal& result )
 */
 void MPoint::Trajectory( CLine& line )
 {
-  CHalfSegment chs;
-
-  UPoint unit;
-
   line.Clear();
   line.StartBulkLoad();
+
+  Point p( false );
+  CHalfSegment chs( false );
+  UPoint unit;
+
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
 
-    CHalfSegment chs( true, true, unit.p0, unit.p1 );
+    if( p.IsDefined() )
+    {
+      assert( AlmostEqual( unit.p0, p ) );
+      chs.Set( true, p, unit.p1 );
+      p.SetDefined( false );
+    } 
+    else if( !AlmostEqual( unit.p0, unit.p1 ) )
+      chs.Set( true, unit.p0, unit.p1 );
+    else
+    {
+      assert( unit.p0.IsDefined() );
+      p = unit.p0;
+      continue;
+    }
+    
     line += chs;
-
     chs.SetLDP( false );
     line += chs;
   }
@@ -1745,6 +1759,10 @@ TemporalTypeMapBool( ListExpr args )
         nl->IsEqual( arg1, "rint" ) ||
         nl->IsEqual( arg1, "rreal" ) ||
         nl->IsEqual( arg1, "periods" ) ||
+        nl->IsEqual( arg1, "ubool" ) ||
+        nl->IsEqual( arg1, "uint" ) ||
+        nl->IsEqual( arg1, "ureal" ) ||
+        nl->IsEqual( arg1, "upoint" ) ||
         nl->IsEqual( arg1, "mbool" ) ||
         nl->IsEqual( arg1, "mint" ) ||
         nl->IsEqual( arg1, "mreal" ) ||
@@ -2462,17 +2480,29 @@ TemporalSimpleSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "periods" )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "mbool" )
+  if( nl->SymbolValue( arg1 ) == "ubool" )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "mint" )
+  if( nl->SymbolValue( arg1 ) == "uint" )
     return 5;
 
-  if( nl->SymbolValue( arg1 ) == "mreal" )
+  if( nl->SymbolValue( arg1 ) == "ureal" )
     return 6;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == "upoint" )
     return 7;
+
+  if( nl->SymbolValue( arg1 ) == "mbool" )
+    return 8;
+
+  if( nl->SymbolValue( arg1 ) == "mint" )
+    return 9;
+
+  if( nl->SymbolValue( arg1 ) == "mreal" )
+    return 10;
+
+  if( nl->SymbolValue( arg1 ) == "mpoint" )
+    return 11;
 
   return (-1); // This point should never be reached
 }
@@ -2708,6 +2738,17 @@ int MappingIsEmpty( Word* args, Word& result, int message, Word& local, Supplier
 {
   result = qp->ResultStorage( s );
   if( ((Mapping*)args[0].addr)->IsEmpty() )
+    ((CcBool*)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+  return 0;
+}
+
+template <class Unit>
+int UnitIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( !((Unit*)args[0].addr)->IsDefined() )
     ((CcBool*)result.addr)->Set( true, true );
   else
     ((CcBool *)result.addr)->Set( true, false );
@@ -3573,7 +3614,11 @@ ValueMapping temporalisemptymap[] = { InstantIsEmpty,
                                       MappingIsEmpty<MBool>,
                                       MappingIsEmpty<MInt>,
                                       MappingIsEmpty<MReal>,
-                                      MappingIsEmpty<MPoint> };
+                                      MappingIsEmpty<MPoint>,
+                                      UnitIsEmpty<UBool>,
+                                      UnitIsEmpty<UInt>,
+                                      UnitIsEmpty<UReal>,
+                                      UnitIsEmpty<UPoint> };
 
 
 ValueMapping temporalequalmap[] = { InstantEqual,
@@ -3731,6 +3776,10 @@ ModelMapping temporalnomodelmap[] = { TemporalNoModelMapping,
 				      TemporalNoModelMapping,
 				      TemporalNoModelMapping,
 				      TemporalNoModelMapping,
+				      TemporalNoModelMapping,
+				      TemporalNoModelMapping,
+				      TemporalNoModelMapping,
+				      TemporalNoModelMapping,
 				      TemporalNoModelMapping };
 
 /*
@@ -3739,7 +3788,8 @@ ModelMapping temporalnomodelmap[] = { TemporalNoModelMapping,
 */
 const string TemporalSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                     "\"Example\" ) "
-                                    "( <text>instant -> bool, range(x) -> bool, moving(x) -> bool</text--->"
+                                    "( <text>instant -> bool, range(x) -> bool, moving(x) -> bool"
+                                    "unit(x) -> bool</text--->"
                                     "<text>isempty ( _ )</text--->"
                                     "<text>Returns whether the value is empty or not.</text--->"
                                     "<text>query isempty( mpoint1 )</text--->"
@@ -4036,7 +4086,7 @@ const string TemporalSpecThePeriod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" 
 */
 Operator temporalisempty( "isempty",
                           TemporalSpecIsEmpty,
-                          8,
+                          12,
                           temporalisemptymap,
                           temporalnomodelmap,
                           TemporalSimpleSelect,
