@@ -528,11 +528,11 @@ This function gives a query to secondo and receives the result from secondo.
 ListExpr
 SecondoTTY::CallSecondo()
 {
-  int errorCode = 0, errorPos, levelOffset;
+  int errorCode = 0, errorPos = 0, levelOffset = 0;
   ListExpr cmdList = nl->TheEmptyList();
   ListExpr outList = nl->TheEmptyList();
-  string errorMessage;
-  string errorText;
+  string errorMessage = "";
+  string errorText = "";
 
   if ( currentLevel == ExecutableLevel )
   {
