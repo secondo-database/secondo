@@ -36,7 +36,7 @@ demo:
 	@rm -rf Demotmp
 	@rm -rf Demo
 	@mkdir Demotmp
-	@echo "Javagui recomiled, extract the needed files for Demo"
+	@echo "Javagui recompiled, extract the files needed by Demo"
 	@find . -type d -printf "%P\n" | grep -v '^CVS' | grep -v '^Demotmp' | grep -v '^doc'| sed -e "s#.*#mkdir -p Demotmp/&#g " | sh
 	@find . -name "*.class" -printf "%P\n" | sed -e "s#.*#cp '&' 'Demotmp/&' #g" | sh
 	@echo "Main-Class: gui.MainWindow" > Manifest.txt
