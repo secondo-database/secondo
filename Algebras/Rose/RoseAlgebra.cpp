@@ -1,5 +1,18 @@
 /*
+
+
+//[_] [\_]
+//[TOC] [\tableofcontents]
+//[Title] [ \title{DateTime Algebra} \author{Thomas Behr} \maketitle]
+//[times] [\ensuremath{\times}]
+//[->] [\ensuremath{\rightarrow}]
+
+
+
 [1] Rose Algebra
+
+[TOC]
+
   
 January 3rd, 2003 Mirco G[ue]nster and Ismail Zerrad
 
@@ -41,9 +54,12 @@ static QueryProcessor* qp;
 #include <jni.h>
 #include <JVMInit.h>
 
-/* The JVMInitializer provides access to a pointer to
+/*
+ The JVMInitializer provides access to a pointer to
    the JNI Environment and to a pointer to the 
-   Java Virtual Machine. */
+   Java Virtual Machine. 
+
+*/
 static JVMInitializer *jvminit = 0;
 
 /* Pointer to the JVM Environment and JVM. */
@@ -66,8 +82,11 @@ c) Used JAR archives must also have an entry in that file.
 
 */
 
-/* this function prints an error message including the line 
-	where the error occured. Should never invoked normally. */
+/* 
+this function prints an error message including the line 
+	where the error occured. Should never invoked normally. 
+
+*/
 static void error(char *name, int line) {
   cerr << "Error in " << name << " in line: " << line << "." << endl;
   if(env->ExceptionOccurred())
@@ -75,10 +94,13 @@ static void error(char *name, int line) {
   exit(1);
 }
 
-/* this function prints an error message including the line
+/* 
+this function prints an error message including the line
    where the error occured. This method is used for calls
    to Java methods. The name of the Java method which 
-   should invoked is also printed. */
+   should invoked is also printed. 
+
+*/
 static void error(char *filename, char *classname, int line) {
   cerr << "Error in " << filename << " in line: " << line 
        << ". " << endl << "Requested Java method couldn't invoked: " 
@@ -88,8 +110,11 @@ static void error(char *filename, char *classname, int line) {
   exit(1);
 }
 
-/* these functions are used for debugging and could removed in the 
-   final version of this algebra. Just print a message to stdout. */
+/* 
+these functions are used for debugging and could removed in the 
+   final version of this algebra. Just print a message to stdout. 
+
+*/
 static void debug(int line) {
   /*
   FILE *debugFile = fopen("DEBUG.TXT", "a");
@@ -119,8 +144,11 @@ vice versa.
 */
 
 
-/* The following function takes a java object of type Rational
-   and returns a suitable ListExpr */
+/* 
+The following function takes a java object of type Rational
+   and returns a suitable ListExpr 
+
+*/
 static ListExpr Convert_JavaToC_Rational(jobject jRational) {
   /* Get the class */
   jclass cls = env->FindClass("Rational");
@@ -165,8 +193,11 @@ static ListExpr Convert_JavaToC_Rational(jobject jRational) {
      );
 }
 
-/* The following function takes a java object of type Point
-   and returns a suitable ListExpr */
+/* 
+The following function takes a java object of type Point
+   and returns a suitable ListExpr 
+
+*/
 static ListExpr Convert_JavaToC_Point(jobject jPoint) {
   /* Get the class */
   jclass cls = env->FindClass("Point");
@@ -200,8 +231,11 @@ static ListExpr Convert_JavaToC_Point(jobject jPoint) {
 }
 
 
-/* The following function takes a java object of type Points
-   and returns a suitable ListExpr */
+/*
+ The following function takes a java object of type Points
+   and returns a suitable ListExpr 
+
+*/
 static ListExpr Convert_JavaToC_Points(jobject jPoints) {
   /* Get the class */
   jclass cls = env->FindClass("Points");
@@ -250,8 +284,11 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
   return result;
 }
 
-/* The following function takes a java object of type Segment
-   and returns a suitable ListExpr */
+/*
+ The following function takes a java object of type Segment
+   and returns a suitable ListExpr 
+
+*/
 static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   /* Get the class */
   jclass cls = env->FindClass("Segment");
@@ -330,8 +367,12 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
 
 }
 
-/* The following function takes a java object of type Lines
-   and returns a suitable ListExpr. */
+/* 
+
+The following function takes a java object of type Lines
+   and returns a suitable ListExpr. 
+
+*/
 static ListExpr Convert_JavaToC_Lines(jobject jLines) {
   /* Get the class */
   jclass cls = env->FindClass("Lines");
@@ -380,8 +421,11 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
   return result;
 }
 
-/* The following function takes a java object of type ElemList
-   and returns a suitable ListExpr. */
+/*
+ The following function takes a java object of type ElemList
+   and returns a suitable ListExpr. 
+
+*/
 static ListExpr Convert_JavaToC_ElemList(jobject jElemList) {
   /* Get the class */
   jclass cls = env->FindClass("ElemList");
@@ -418,8 +462,11 @@ static ListExpr Convert_JavaToC_ElemList(jobject jElemList) {
   return result;
 }
 
-/* The following function takes a java object of type ElemListList
-   and returns a suitable ListExpr. */
+/*
+ The following function takes a java object of type ElemListList
+   and returns a suitable ListExpr. 
+
+*/
 static ListExpr Convert_JavaToC_ElemListList(jobject jElemListList) {
   /* Get the class */
   jclass cls = env->FindClass("ElemListList");
@@ -458,8 +505,11 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jElemListList) {
 
 
 
-/* The following function takes a java object of type ElemListListList
-   and returns a suitable ListExpr. */
+/* 
+The following function takes a java object of type ElemListListList
+   and returns a suitable ListExpr. 
+
+*/
 static ListExpr Convert_JavaToC_ElemListListList(jobject jElemListListList) {
   /* Get the class */
   jclass cls = env->FindClass("ElemListListList");
@@ -496,8 +546,11 @@ static ListExpr Convert_JavaToC_ElemListListList(jobject jElemListListList) {
   return result;
 }
 
-/* The following function takes a java object of type Regions
-   and returns a suitable ListExpr. */
+/* 
+The following function takes a java object of type Regions
+   and returns a suitable ListExpr. 
+
+*/
 static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
   /* Get the class */
   jclass cls = env->FindClass("Regions");
@@ -515,8 +568,11 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
 }
 
 
-/* The following function takes a ListExpr of an Rational object and creates
-   the suitable Java object from it. */
+/*
+ The following function takes a ListExpr of an Rational object and creates
+   the suitable Java object from it. 
+
+*/
 static jobject Convert_CToJava_Rational(const ListExpr &le) {
   /* Get the class RationalFactory */
   
@@ -569,8 +625,11 @@ static jobject Convert_CToJava_Rational(const ListExpr &le) {
   return result;
 }
 
-/* The following function takes a ListExpr of a Point object and creates
-   the suitable Java object from it. */
+/*
+ The following function takes a ListExpr of a Point object and creates
+   the suitable Java object from it. 
+
+*/
 static jobject Convert_CToJava_Point(const ListExpr &le) {
   /* Check wheather two elements are in le. */
   if (nl->ListLength(le) != 2) error(__FILE__,__LINE__);
@@ -641,8 +700,12 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
   }
 }
 
-/* The following function takes a ListExpr of a Points object and creates
-   the suitable Java object from it. */
+/*
+
+ The following function takes a ListExpr of a Points object and creates
+   the suitable Java object from it. 
+
+*/
 static jobject Convert_CToJava_Points(const ListExpr &le) {
   /* Get the class Points */
   jclass clsPoints = env->FindClass("Points");
@@ -694,8 +757,11 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
   return points;
 }
 
-/* The following function takes a ListExpr of a Segment object and creates
-   the suitable Java object from it. */
+/*
+ The following function takes a ListExpr of a Segment object and creates
+   the suitable Java object from it. 
+
+*/
 static jobject Convert_CToJava_Segment(const ListExpr &le) {
   /* Check wheather four elements are in le. */
   if (nl->ListLength(le) != 4) error(__FILE__,__LINE__);
@@ -787,8 +853,11 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
   }
 }
 
-/* The following function takes a ListExpr of a Lines object and creates
-   the suitable Java object from it. */
+/* 
+The following function takes a ListExpr of a Lines object and creates
+   the suitable Java object from it. 
+
+*/
 static jobject Convert_CToJava_Lines(const ListExpr &le) {
   /* Get the class Lines */
   jclass clsLines = env->FindClass("Lines");
@@ -822,8 +891,11 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
   return lines;
 }
 
-/* The following function takes a ListExpr of a Regions object and creates
-   the suitable Java object from it. */
+/*
+ The following function takes a ListExpr of a Regions object and creates
+   the suitable Java object from it. 
+
+*/
 static jobject Convert_CToJava_Regions(const ListExpr &le) {
   /* We have to collect all segments into a segment list first */
 
@@ -982,7 +1054,10 @@ public:
   
 };
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 int CcPoints::Compare(Attribute *attr) {
   jmethodID mid = env->GetMethodID(cls,"compare","(LPoints;)I");
   if (mid == 0) error(__FILE__,__LINE__);
@@ -991,7 +1066,10 @@ int CcPoints::Compare(Attribute *attr) {
   return env->CallByteMethod(obj,mid,P->obj);
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 Attribute *CcPoints::Clone() {
   jmethodID mid = env->GetMethodID(cls,"copy","()LPoints;");
   if (mid == 0) error(__FILE__,__LINE__);
@@ -1002,28 +1080,43 @@ Attribute *CcPoints::Clone() {
   return new CcPoints(jobj);
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 bool CcPoints::IsDefined() const {
   return true;
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 int CcPoints::Sizeof() {
   return sizeof(CcPoints);
 }
 
-/* Inherited method of StandardAttribute */
-/*
+/* 
+Inherited method of StandardAttribute 
+
+*/
+ /*
 void *CcPoints::GetValue() {
   return (void *)-1;
 }
-*/
+ */
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 void CcPoints::SetDefined(bool Defined) {
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 void CcPoints::CopyFrom(StandardAttribute* right) {
   CcPoints *P = (CcPoints *)right;
   cls = env->FindClass("Points");
@@ -1035,7 +1128,10 @@ void CcPoints::CopyFrom(StandardAttribute* right) {
   RestoreJavaObjectFromFLOB();
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 size_t CcPoints::HashValue() {
   return 0;
 }
@@ -1059,9 +1155,12 @@ void CcPoints::Initialize() {
 
 
 
-/* This contructor takes just one serial string 
-   of the underlying java object and its length. */
-/*
+/* 
+This contructor takes just one serial string 
+   of the underlying java object and its length. 
+
+*/
+ /*
 CcPoints::CcPoints(char *serial, int len) {
   debug(__LINE__);
   jbyteArray jbarr = 0;
@@ -1093,14 +1192,17 @@ CcPoints::CcPoints(char *serial, int len) {
   if (obj == 0) error(__FILE__, __LINE__);  
 
 }
-*/
+ */
 
 CcPoints::CcPoints(const int size):objectData(size),canDelete(false) {
 }
 
-/* This constructor takes the nested list representation
+/* 
+This constructor takes the nested list representation
    of CcPoints and recovers the underlying java object with
-   help of this data. */
+   help of this data. 
+
+*/
 CcPoints::CcPoints(const ListExpr &le):objectData(1) {
   /* Get the class Points. */
   cls = env->FindClass("Points");
@@ -1111,8 +1213,11 @@ CcPoints::CcPoints(const ListExpr &le):objectData(1) {
   RestoreFLOBFromJavaObject();
 }
 
-/* This constructor takes a pointer to a java object which is
-   already created. */
+/* 
+This constructor takes a pointer to a java object which is
+   already created. 
+
+*/
 CcPoints::CcPoints(const jobject jobj):objectData(1) {
   /* Get the Class Points */
   canDelete = false;
@@ -1122,7 +1227,10 @@ CcPoints::CcPoints(const jobject jobj):objectData(1) {
   RestoreFLOBFromJavaObject();
 }
 
-/* This constructor creates an empty CcPoints object. */	
+/* 
+This constructor creates an empty CcPoints object. 
+
+*/	
 CcPoints::CcPoints() {
   jmethodID mid;
 
@@ -1140,29 +1248,40 @@ CcPoints::CcPoints() {
 }
 
 
-/* retrieves the nested list representation of the underlying
-     java object. */
+/* 
+retrieves the nested list representation of the underlying
+     java object. 
+
+*/
 bool CcPoints::GetNL(ListExpr& le) {
   le = Convert_JavaToC_Points(obj);
 
   return true;
 }
 
-/* Destructor of CcPoints. This destructor destroys also the 
-     object inside the JVM. */
+/* 
+Destructor of CcPoints. This destructor destroys also the 
+     object inside the JVM. 
+
+*/
 CcPoints::~CcPoints() {
   //env->DeleteLocalRef(obj);
 }
 
-/* Returns the pointer to the proper java objet. */
+/* 
+Returns the pointer to the proper java objet. 
+
+*/
 jobject CcPoints::GetObj() {
   return obj;
 }
 
 
-/* restores the java object from FLOB
+/* 
+restores the java object from FLOB
    the FLOB must exists
- */
+
+*/
 void CcPoints::RestoreFLOBFromJavaObject(){
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
   if(mid == 0){
@@ -1180,8 +1299,10 @@ void CcPoints::RestoreFLOBFromJavaObject(){
  }
 
 
-/* creates the content of a FLOB from the given Java-Object
- */
+/* 
+creates the content of a FLOB from the given Java-Object
+
+*/
 void CcPoints::RestoreJavaObjectFromFLOB(){
   // read the data from flob
   cls = env->FindClass("Points");
@@ -1259,7 +1380,10 @@ static Word InCcPoints(const ListExpr typeInfo,
   return SetWord(newpoints);
 }
 
-/* Creation of a CcPoints object. */
+/* 
+Creation of a CcPoints object. 
+
+*/
 static Word CreateCcPoints(const ListExpr typeInfo) {
   jclass cls = env->FindClass("Points");
   jmethodID mid = env->GetMethodID(cls,"<init>","()V");
@@ -1269,19 +1393,28 @@ static Word CreateCcPoints(const ListExpr typeInfo) {
   return (SetWord(new CcPoints(P)));
 }
 
-/* Deletion of a CcPoints object. */
+/* 
+Deletion of a CcPoints object. 
+
+*/
 static void DeleteCcPoints(Word &w) {
   delete ((CcPoints *)w.addr);
   w.addr = 0;
 }
 
-/* Close a CcPoints object. */
+/* 
+Close a CcPoints object. 
+
+*/
 static void CloseCcPoints(Word & w) {
   delete (CcPoints *)w.addr;
   w.addr = 0;
 }
 
-/* Clone a CcPoints object. */
+/* 
+Clone a CcPoints object. 
+
+*/
 static Word CloneCcPoints(const Word &w) {
   debug(__LINE__);
   return SetWord(((CcPoints *)w.addr)->Clone());
@@ -1292,21 +1425,22 @@ static void* CastCcPoints( void* addr ) {
 }
 
 bool OpenCcPoints(SmiRecord& valueRecord,
+                  size_t& offset,
 		  const ListExpr typeInfo,
 		  Word& value){
-  CcPoints* P = new CcPoints(0);
-  P->Open(valueRecord, typeInfo);
+  CcPoints* P = (CcPoints*)TupleElement::Open(valueRecord,offset, typeInfo);
   P->RestoreJavaObjectFromFLOB();
   value = SetWord(P);
   return true;
 }
 
 bool SaveCcPoints( SmiRecord& valueRecord,
+                   size_t& offset,
 		   const ListExpr typeInfo,
 		   Word& value)
 { CcPoints* P = (CcPoints*) value.addr;
- P->Save(valueRecord,typeInfo);
- return true;
+  TupleElement::Save(valueRecord,offset,typeInfo,P);
+  return true;
 }
 
 /*
@@ -1330,7 +1464,7 @@ static ListExpr PointsProperty() {
        nl->StringAtom("ccpoints"),
        nl->StringAtom("(<p1> <p2> ... <pN>)"),
        nl->StringAtom("..."),
-       nl->StringAtom("a ccpoints is a set of points which coordinates are rational numbers."))));
+       nl->StringAtom("a set of points "))));
 }
 
 /*
@@ -1464,7 +1598,10 @@ public:
   jobject GetObj();
 };
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 int CcLines::Compare(Attribute *attr) {
   jmethodID mid = env->GetMethodID(cls,"compare","(LLines;)I");
   if (mid == 0) error(__FILE__,__LINE__);
@@ -1473,7 +1610,10 @@ int CcLines::Compare(Attribute *attr) {
   return env->CallByteMethod(obj,mid,L->obj);
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 Attribute *CcLines::Clone() {
   jmethodID mid = env->GetMethodID(cls,"copy","()LLines;");
   if (mid == 0) error(__FILE__,__LINE__);
@@ -1484,28 +1624,43 @@ Attribute *CcLines::Clone() {
   return new CcLines(jobj);
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 bool CcLines::IsDefined() const {
   return true;
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 int CcLines::Sizeof() {
   return sizeof(CcLines);
 }
 
-/* Inherited method of StandardAttribute */
-/*
+/* 
+Inherited method of StandardAttribute 
+
+*/
+ /*
 void *CcLines::GetValue() {
   return (void *)-1;
 }
-*/
+ */
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 void CcLines::SetDefined(bool Defined) {
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 void CcLines::CopyFrom(StandardAttribute* right) {
   CcLines *L = (CcLines *)right;
   cls = env->FindClass("Lines");
@@ -1517,7 +1672,10 @@ void CcLines::CopyFrom(StandardAttribute* right) {
   RestoreJavaObjectFromFLOB();
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 size_t CcLines::HashValue() {
   return 0;
 }
@@ -1539,9 +1697,14 @@ void CcLines::Initialize() {
   RestoreJavaObjectFromFLOB();
 }
 
-/* This contructor takes just one serial string 
-   of the underlying java object and its length. */
 /*
+
+ This contructor takes just one serial string 
+   of the underlying java object and its length. 
+
+*/
+
+ /*
 CcLines::CcLines(char *serial, int len) {
   debug(__LINE__);
   jbyteArray jbarr = 0;
@@ -1572,14 +1735,17 @@ CcLines::CcLines(char *serial, int len) {
   obj = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jbarr);
   if (obj == 0) error(__FILE__, __LINE__);
 }
-*/
+  */
 
 CcLines::CcLines(const int size):objectData(size),canDelete(false) {
 }
 
-/* This constructor takes the nested list representation
+/*
+This constructor takes the nested list representation
    of CcLines and recovers the underlying java object with
-   help of this data. */
+   help of this data. 
+
+*/
 
 CcLines::CcLines(const ListExpr &le):objectData(1) {
   /* Get the class Lines. */
@@ -1591,8 +1757,11 @@ CcLines::CcLines(const ListExpr &le):objectData(1) {
   RestoreFLOBFromJavaObject();
 }
 
-/* This constructor takes a pointer to a java object which is
-   already created. */
+/* 
+This constructor takes a pointer to a java object which is
+   already created. 
+
+*/
 CcLines::CcLines(const jobject jobj) {
   /* Get the Class Lines */
   canDelete = false;
@@ -1602,7 +1771,10 @@ CcLines::CcLines(const jobject jobj) {
   RestoreFLOBFromJavaObject();
 }
 
-/* This constructor creates an empty CcPoints object. */	
+/* 
+This constructor creates an empty CcPoints object. 
+
+*/	
 CcLines::CcLines() {
   jmethodID mid;
   /* Get the Class */
@@ -1618,27 +1790,38 @@ CcLines::CcLines() {
   if (obj == 0) error(__FILE__,__LINE__);
 }
 
-/* retrieves the nested list representation of the underlying
-     java object. */
+/* 
+retrieves the nested list representation of the underlying
+     java object. 
+
+*/
 bool CcLines::GetNL(ListExpr& le) {
   le = Convert_JavaToC_Lines(obj);
   return true;
 }
 
-/* Destructor of CcLines. This destructor destroys also the 
-     object inside the JVM. */
+/* 
+Destructor of CcLines. This destructor destroys also the 
+     object inside the JVM. 
+
+*/
 CcLines::~CcLines() {
   //env->DeleteLocalRef(obj);
 }
 
-/* Returns the pointer to the proper java objet. */
+/* 
+Returns the pointer to the proper java objet. 
+
+*/
 
 jobject CcLines::GetObj() {
   return obj;
 }
 
-/* restores the java object from FLOB
+/* 
+restores the java object from FLOB
    the FLOB must exist
+
 */
 void CcLines::RestoreFLOBFromJavaObject(){
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
@@ -1656,8 +1839,10 @@ void CcLines::RestoreFLOBFromJavaObject(){
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
  }
 
-/* creates the content of a FLOB from the given Java-Object
- */
+/* 
+creates the content of a FLOB from the given Java-Object
+
+*/
 void CcLines::RestoreJavaObjectFromFLOB(){
   // read the data from flob
   cls = env->FindClass("Lines");
@@ -1738,7 +1923,10 @@ static Word InCcLines(const ListExpr typeInfo,
   return SetWord(newlines);
 }
 
-/* Creation of a CcLines object. */
+/* 
+Creation of a CcLines object. 
+
+*/
 static Word CreateCcLines(const ListExpr typeInfo) {
   jclass cls = env->FindClass("Lines");
   jmethodID mid = env->GetMethodID(cls,"<init>","()V");
@@ -1748,19 +1936,28 @@ static Word CreateCcLines(const ListExpr typeInfo) {
   return (SetWord(new CcPoints(P)));
 }
 
-/* Deletion of a CcLines object. */
+/* 
+Deletion of a CcLines object. 
+
+*/
 static void DeleteCcLines(Word &w) {
   delete ((CcLines *)w.addr);
   w.addr = 0;
 }
 
-/* Close a CcLines object. */
+/* 
+Close a CcLines object. 
+
+*/
 static void CloseCcLines(Word & w) {
   delete (CcLines *)w.addr;
   w.addr = 0;
 }
 
-/* Clone a CcLines object. */
+/* 
+Clone a CcLines object. 
+
+*/
 static Word CloneCcLines(const Word &w) {
   debug(__LINE__);
   return SetWord(((CcLines *)w.addr)->Clone());
@@ -1771,20 +1968,21 @@ static void* CastCcLines( void* addr ) {
 }
 
 bool OpenCcLines(SmiRecord& valueRecord,
+                 size_t& offset,
 		 const ListExpr typeInfo,
 		 Word& value){
-  CcLines* L = new CcLines(0);
-  L->Open(valueRecord, typeInfo);
+  CcLines* L = (CcLines*) TupleElement::Open(valueRecord,offset, typeInfo);
   L->RestoreJavaObjectFromFLOB();
   value = SetWord(L);
   return true;
 }
 
-bool SaveCcLines( SmiRecord& valueRecord,
+bool SaveCcLines( SmiRecord& valueRecord ,
+                  size_t& offset,
 		  const ListExpr typeInfo,
 		  Word& value){
   CcLines* L = (CcLines*) value.addr;
-  L->Save(valueRecord,typeInfo);
+  TupleElement::Save(valueRecord,offset,typeInfo,L);
   return true;
 }
 
@@ -1940,7 +2138,10 @@ public:
   jobject GetObj();
 };
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 int CcRegions::Compare(Attribute *attr) {
   jmethodID mid = env->GetMethodID(cls,"compare","(LRegions;)I");
   if (mid == 0) error (__FILE__,__LINE__);
@@ -1949,7 +2150,10 @@ int CcRegions::Compare(Attribute *attr) {
   return env->CallByteMethod(obj,mid,R->obj);
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 Attribute *CcRegions::Clone() {
   jmethodID mid = env->GetMethodID(cls,"copy","()LRegions;");
   if (mid == 0) error(__FILE__,__LINE__);
@@ -1960,28 +2164,43 @@ Attribute *CcRegions::Clone() {
   return new CcRegions(jobj);
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 bool CcRegions::IsDefined() const {
   return true;
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 int CcRegions::Sizeof() {
   return sizeof(CcRegions);
 }
 
-/* Inherited method of StandardAttribute */
-/*
+/* 
+Inherited method of StandardAttribute 
+
+*/
+ /*
 void *CcRegions::GetValue() {
   return (void *)-1;
 }
-*/
+ */
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 void CcRegions::SetDefined(bool Defined) {
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 void CcRegions::CopyFrom(StandardAttribute* right) {
   CcRegions *R = (CcRegions *)right;
   cls = env->FindClass("Regions");
@@ -1993,7 +2212,10 @@ void CcRegions::CopyFrom(StandardAttribute* right) {
   RestoreJavaObjectFromFLOB();
 }
 
-/* Inherited method of StandardAttribute */
+/* 
+Inherited method of StandardAttribute 
+
+*/
 size_t CcRegions::HashValue() {
   return 0;
 }
@@ -2016,9 +2238,12 @@ void CcRegions::Initialize() {
 }
 
 
-/* This contructor takes just one serial string 
-   of the underlying java object and its length. */
-/*
+/* 
+This contructor takes just one serial string 
+   of the underlying java object and its length. 
+
+*/
+ /*
 CcRegions::CcRegions(char *serial, int len) {
   debug(__LINE__);
   jbyteArray jbarr = 0;
@@ -2049,14 +2274,17 @@ CcRegions::CcRegions(char *serial, int len) {
   obj = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jbarr);
   if (obj == 0) error(__FILE__, __LINE__);  
 }
-*/
+ */
 
 CcRegions::CcRegions(const int size):objectData(size),canDelete(false) {
 }
 
-/* This constructor takes the nested list representation
+/* 
+This constructor takes the nested list representation
    of CcRegions and recovers the underlying java object with
-   help of this data. */
+   help of this data. 
+
+*/
 
 CcRegions::CcRegions(const ListExpr &le):objectData(1) {
   /* Get the class Regions. */
@@ -2068,8 +2296,11 @@ CcRegions::CcRegions(const ListExpr &le):objectData(1) {
   RestoreFLOBFromJavaObject();
 }
 
-/* This constructor takes a pointer to a java object which is
-   already created. */
+/* 
+This constructor takes a pointer to a java object which is
+   already created. 
+
+*/
 CcRegions::CcRegions(const jobject jobj):objectData(1) {
   /* Get the Class RoseImExport */
   cout << "constructor(jobject) called" << endl;
@@ -2080,7 +2311,10 @@ CcRegions::CcRegions(const jobject jobj):objectData(1) {
   RestoreFLOBFromJavaObject();
 }
 
-/* This constructor creates an empty CcRegions object. */	
+/* 
+This constructor creates an empty CcRegions object.
+
+*/	
 CcRegions::CcRegions() {
   jmethodID mid;
 
@@ -2097,27 +2331,38 @@ CcRegions::CcRegions() {
   if (obj == 0) error(__FILE__,__LINE__);
 }
 
-/* retrieves the nested list representation of the underlying
-     java object. */
+/* 
+retrieves the nested list representation of the underlying
+     java object. 
+
+*/
 bool CcRegions::GetNL(ListExpr& le) {
   le = Convert_JavaToC_Regions(obj);
   return true;
 }
 
-/* Destructor of CcRegions. This destructor destroys also the 
-   object inside the JVM. */
+/* 
+Destructor of CcRegions. This destructor destroys also the 
+   object inside the JVM. 
+
+*/
 CcRegions::~CcRegions() {
   //env->DeleteLocalRef(obj);
 }
 
-/* Returns the pointer to the proper java object. */
+/* 
+Returns the pointer to the proper java object. 
+
+*/
 jobject CcRegions::GetObj() {
   return obj;
 }
 
-/* restores the java object from FLOB
+/* 
+restores the java object from FLOB
    the FLOB must exists
- */
+
+*/
 void CcRegions::RestoreFLOBFromJavaObject(){
   cout << "RestoreFLOBFromJavaObject called" << endl;
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
@@ -2135,8 +2380,10 @@ void CcRegions::RestoreFLOBFromJavaObject(){
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
  }
 
-/* creates the content of a FLOB from the given Java-Object
- */
+/* 
+creates the content of a FLOB from the given Java-Object
+
+*/
 void CcRegions::RestoreJavaObjectFromFLOB(){
   // read the data from flob
   cls = env->FindClass("Regions");
@@ -2176,11 +2423,11 @@ The list representation of a CcRegions object is
 
 whereas the (internal) list representation of a face is 
 
-----	(outer_cycle hole_cycle1 hole_cycle2 ... hole_cyclem)
+----	(outer[_]cycle hole[_]cycle1 hole[_]cycle2 ... hole[_]cyclem)
 ----
 
 whereas the (internal) list representation of a cycle 
-(outer_cycle or hole_cycle) is  
+(outer[_]cycle or hole[_]cycle) is  
 
 ----	(vertex1 vertex2 ... vertexk)
 ----
@@ -2223,7 +2470,10 @@ static Word InCcRegions(const ListExpr typeInfo,
   return SetWord(newregions);
 }
 
-/* Creation of a CcRegions object. */
+/* 
+Creation of a CcRegions object. 
+
+*/
 static Word CreateCcRegions(const ListExpr typeInfo) {
   jclass cls = env->FindClass("Regions");
   jmethodID mid = env->GetMethodID(cls,"<init>","()V");
@@ -2233,19 +2483,28 @@ static Word CreateCcRegions(const ListExpr typeInfo) {
   return (SetWord(new CcRegions(R)));
 }
 
-/* Deletion of a CcRegions object. */
+/* 
+Deletion of a CcRegions object. 
+
+*/
 static void DeleteCcRegions(Word &w) {
   delete ((CcRegions *)w.addr);
   w.addr = 0;
 }
 
-/* Close a CcRegions object. */
+/* 
+Close a CcRegions object. 
+
+*/
 static void CloseCcRegions(Word & w) {
   delete (CcRegions *)w.addr;
   w.addr = 0;
 }
 
-/* Clone a CcRegions object. */
+/* 
+Clone a CcRegions object. 
+
+*/
 static Word CloneCcRegions(const Word &w) {
   debug(__LINE__);
   return SetWord(((CcRegions *)w.addr)->Clone());
@@ -2256,20 +2515,21 @@ static void* CastCcRegions( void* addr ){
 }
 
 bool OpenCcRegions(SmiRecord& valueRecord,
+                   size_t& offset,
 		   const ListExpr typeInfo,
 		   Word& value){
-  CcRegions* R = new CcRegions(0);
-  R->Open(valueRecord, typeInfo);
+  CcRegions* R = (CcRegions*) TupleElement::Open(valueRecord,offset, typeInfo);
   R->RestoreJavaObjectFromFLOB();
   value = SetWord(R);
   return true;
 }
 
 bool SaveCcRegions( SmiRecord& valueRecord,
+                    size_t& offset,
 		    const ListExpr typeInfo,
 		    Word& value) {
   CcRegions* R = (CcRegions*) value.addr;
-  R->Save(valueRecord,typeInfo);
+  TupleElement::Save(valueRecord,offset,typeInfo,R);
   return true;
 }
 
@@ -2293,7 +2553,7 @@ static ListExpr RegionsProperty() {
       nl->FiveElemList
       (nl->StringAtom("-> DATA"),
        nl->StringAtom("ccregions"),
-       nl->StringAtom("(<outer_cycle> <hole_cycle1> <hole cycle2> ... <hole cycleN>)"),
+       nl->StringAtom("(<outer_cycle> <hole_cycle1>... <hole cycleN>)"),
        nl->StringAtom("..."),
        nl->StringAtom("missing."))));
 }
@@ -2376,8 +2636,11 @@ returns a list expression for the result type, otherwise the symbol
 
 */
 
-/* This is a general type mapping function for all Rose methods
-   which take two parameters. */
+/* 
+This is a general type mapping function for all Rose methods
+   which take two parameters. 
+
+*/
 static ListExpr typeMappingRose
 (ListExpr args, char *type1, char *type2, char *resulttype) {
   ListExpr arg1, arg2;
@@ -2392,8 +2655,11 @@ static ListExpr typeMappingRose
   return nl->SymbolAtom("typeerror");
 }
 
-/* This is a general type mapping function for all Rose methods
-   which take one parameter. */
+/* 
+This is a general type mapping function for all Rose methods
+   which take one parameter. 
+
+*/
 static ListExpr typeMappingRose
 (ListExpr args, char *type1, char *resulttype) {
   ListExpr arg1;
@@ -2406,181 +2672,286 @@ static ListExpr typeMappingRose
   return nl->SymbolAtom("typeerror");
 }
 
-/* type mapping function: ccpoints x ccpoints -> bool */
+/* 
+type mapping function: ccpoints x ccpoints -> bool 
+
+*/
 static ListExpr ccpointsccpointsBool(ListExpr args) {
   return typeMappingRose(args, "points", "points", "bool");
 }
 
-/* type mapping function: cclines x cclines -> bool */
+/* 
+type mapping function: cclines x cclines -> bool 
+
+*/
 static ListExpr cclinescclinesBool(ListExpr args) {
   return typeMappingRose(args, "line", "line", "bool");
 }
 
-/* type mapping function: ccregions x ccregions -> bool */
+/* 
+type mapping function: ccregions x ccregions -> bool 
+
+*/
 static ListExpr ccregionsccregionsBool(ListExpr args) {
   return typeMappingRose(args, "region", "region", "bool");
 }
 
-/* type mapping function: ccpoints x ccregions -> bool */
+/* 
+type mapping function: ccpoints x ccregions -> bool 
+
+*/
 static ListExpr ccpointsccregionsBool(ListExpr args) {
   return typeMappingRose(args, "points", "region", "bool");
 }
 
-/* type mapping function: cclines x ccregions -> bool */
+/* 
+type mapping function: cclines x ccregions -> bool 
+
+*/
 static ListExpr cclinesccregionsBool(ListExpr args) {
   return typeMappingRose(args, "line", "region", "bool");
 }
 
-/* type mapping function: ccregions x cclines -> bool */
+/* 
+type mapping function: ccregions x cclines -> bool 
+
+*/
 static ListExpr ccregionscclinesBool(ListExpr args) {
   return typeMappingRose(args, "region", "line", "bool");
 }
 
-/* type mapping function: ccregions x ccregions -> ccregions */
+/* 
+type mapping function: ccregions x ccregions -> ccregions 
+
+*/
 static ListExpr ccregionsccregionsccregions(ListExpr args) {
   return typeMappingRose(args, "region", "region", "region");
 }
 
-/* type mapping function: cclines x cclines -> cclines */
+/* 
+type mapping function: cclines x cclines -> cclines 
+
+*/
 static ListExpr ccregionscclinescclines(ListExpr args) {
   return typeMappingRose(args, "region", "line", "cclines");
 }
 
-/* type mapping function: ccregions x ccregions -> cclines */
+/* 
+type mapping function: ccregions x ccregions -> cclines 
+
+*/
 static ListExpr ccregionsccregionscclines(ListExpr args) {
   return typeMappingRose(args, "region", "region", "line");
 }
 
-/* type mapping function: cclines x cclines -> cclines */
+/* 
+type mapping function: cclines x cclines -> cclines 
+
+*/
 static ListExpr cclinescclinescclines(ListExpr args) {
   return typeMappingRose(args, "line", "line", "line");
 }
 
-/* type mapping function: cclines x ccregions -> cclines */
+/* 
+type mapping function: cclines x ccregions -> cclines 
+
+*/
 static ListExpr cclinesccregionscclines(ListExpr args) {
   return typeMappingRose(args, "line", "region", "line");
 }
 
-/* type mapping function: cclines x cclines -> ccpoints */
+/* 
+type mapping function: cclines x cclines -> ccpoints 
+
+*/
 static ListExpr cclinescclinesccpoints(ListExpr args) {
   return typeMappingRose(args, "line", "line", "points");
 }
 
-/* type mapping function: ccpoints x cclines -> bool */
+/* 
+type mapping function: ccpoints x cclines -> bool 
+
+*/
 static ListExpr ccpointscclinesBool(ListExpr args) {
   return typeMappingRose(args, "points", "line", "bool");
 }
 
-/* type mapping function: ccpoints x ccpoints -> ccpoints */
+/* 
+type mapping function: ccpoints x ccpoints -> ccpoints 
+
+*/
 static ListExpr ccpointsccpointsccpoints(ListExpr args) {
   return typeMappingRose(args, "points", "points", "points");
 }
 
-/* type mapping function: cclines -> ccpoints */
+/* 
+type mapping function: cclines -> ccpoints 
+
+*/
 static ListExpr cclinesccpoints(ListExpr args) {
   return typeMappingRose(args, "line", "points");
 }
 
-/* type mapping function: cclines -> ccregions */
+/* 
+type mapping function: cclines -> ccregions 
+
+*/
 static ListExpr cclinesccregions(ListExpr args) {
   return typeMappingRose(args, "line", "region");
 }
 
-/* type mapping function: ccregions -> ccpoints */
+/* 
+type mapping function: ccregions -> ccpoints 
+
+*/
 static ListExpr ccregionsccpoints(ListExpr args) {
   return typeMappingRose(args, "region", "points");
 }
 
-/* type mapping function: ccregions -> cclines */
+/* 
+type mapping function: ccregions -> cclines 
+
+*/
 static ListExpr ccregionscclines(ListExpr args) {
   return typeMappingRose(args, "region", "line");
 }
 
-/* type mapping function: ccpoints -> int */
+/* 
+type mapping function: ccpoints -> int 
+
+*/
 static ListExpr ccpointsInt(ListExpr args) {
   return typeMappingRose(args, "points", "int");
 }
 
-/* type mapping function: cclines -> int */
+/* 
+type mapping function: cclines -> int 
+
+*/
 static ListExpr cclinesInt(ListExpr args) { 
   return typeMappingRose(args, "line", "int");
 }
 
-/* type mapping function: ccregions -> int */
+/* 
+type mapping function: ccregions -> int 
+
+*/
 static ListExpr ccregionsInt(ListExpr args) { 
   return typeMappingRose(args, "region", "int");
 }
 
-/* type mapping function: ccpoints x ccpoints -> real */
+/* 
+type mapping function: ccpoints x ccpoints -> real 
+
+*/
 static ListExpr ccpointsccpointsReal(ListExpr args) { 
   return typeMappingRose(args, "points", "points", "real");
 }
 
-/* type mapping function: ccpoints x cclines -> real */
+/* 
+type mapping function: ccpoints x cclines -> real 
+
+*/
 static ListExpr ccpointscclinesReal(ListExpr args) { 
   return typeMappingRose(args, "points", "line", "real");
 }
 
-/* type mapping function: ccpoints x ccregions -> real */
+/* 
+type mapping function: ccpoints x ccregions -> real 
+
+*/
 static ListExpr ccpointsccregionsReal(ListExpr args) { 
   return typeMappingRose(args, "points", "region", "real");
 }
 
-/* type mapping function: cclines x ccpoints -> real */
+/* 
+type mapping function: cclines x ccpoints -> real 
+
+*/
 static ListExpr cclinesccpointsReal(ListExpr args) { 
   return typeMappingRose(args, "line", "points", "real");
 } 
-/* type mapping function: cclines x cclines -> real */
+/* 
+type mapping function: cclines x cclines -> real 
+
+*/
 static ListExpr cclinescclinesReal(ListExpr args) { 
   return typeMappingRose(args, "line", "line", "real");
 }
 
-/* type mapping function: cclines x ccregions -> real */
+/* 
+type mapping function: cclines x ccregions -> real 
+
+*/
 static ListExpr cclinesccregionsReal(ListExpr args) { 
   return typeMappingRose(args, "line", "region", "real");
 }
 
-/* type mapping function: ccregions x ccpoints -> real */
+/* 
+type mapping function: ccregions x ccpoints -> real 
+
+*/
 static ListExpr ccregionsccpointsReal(ListExpr args) { 
   return typeMappingRose(args, "region", "points", "real");
 }
 
-/* type mapping function: ccregions x cclines -> real */
+/* 
+type mapping function: ccregions x cclines -> real 
+
+*/
 static ListExpr ccregionscclinesReal(ListExpr args) { 
   return typeMappingRose(args, "region", "line", "real");
 }
 
-/* type mapping function: ccregions x ccregions -> real */
+/* 
+type mapping function: ccregions x ccregions -> real 
+
+*/
 static ListExpr ccregionsccregionsReal(ListExpr args) { 
   debug(__LINE__);
   return typeMappingRose(args, "region", "region", "real");
 }
 
-/* type mapping function: ccpoints -> real */
+/* 
+type mapping function: ccpoints -> real 
+
+*/
 static ListExpr ccpointsReal(ListExpr args) {
   debug(__LINE__);
   return typeMappingRose(args, "points", "real");
 }
 
-/* type mapping function: cclines -> real */
+/* 
+type mapping function: cclines -> real 
+
+*/
 static ListExpr cclinesReal(ListExpr args) {
   debug(__LINE__);
   return typeMappingRose(args, "line", "real");
 }
 
-/* type mapping function: ccregions -> real */
+/* 
+type mapping function: ccregions -> real 
+
+*/
 static ListExpr ccregionsReal(ListExpr args) {
   debug(__LINE__);
   return typeMappingRose(args, "region", "real");
 }
 
-/* type mapping function: ccregions -> real */
+/* 
+type mapping function: ccregions -> real 
+
+*/
 static ListExpr ccregionsDouble(ListExpr args) {
   debug(__LINE__);
   return typeMappingRose(args, "region", "real");
 }
 
-/* type mapping function: cclines -> real */
+/* 
+type mapping function: cclines -> real 
+
+*/
 static ListExpr cclinesDouble(ListExpr args) {
   debug(__LINE__);
   return typeMappingRose(args, "line", "real");
@@ -2615,10 +2986,12 @@ invoke specific Java methods with the given name and signature.
 
 */
 
-/* this is a template function which calls a method of the
+/* 
+this is a template function which calls a method of the
 Java class ROSEAlgebra with two parameters of type CcPoints,
 CcLines or CcRegions and returns a bool value. The signature
 must correspond to both types and return type.
+
 */
 template <class Type1, class Type2>
 static bool callBooleanJMethod(char *name, Type1 *t1, Type2 *t2, char *signature) {
@@ -2639,10 +3012,12 @@ static bool callBooleanJMethod(char *name, Type1 *t1, Type2 *t2, char *signature
   return result;
 }
 
-/* this is a template function which calls a method of the
+/* 
+this is a template function which calls a method of the
 Java class ROSEAlgebra with one parameter of type CcPoints,
 CcLines or CcRegions and returns an integer value. The signature
 must correspond to the type and return type.
+
 */
 template <class Type1>
 static int callIntegerJMethod(char *name, Type1 *t1, char *signature) {
@@ -2663,11 +3038,13 @@ static int callIntegerJMethod(char *name, Type1 *t1, char *signature) {
   return result;
 }
 
-/* this is a template function which calls a method of the
+/* 
+this is a template function which calls a method of the
 Java class ROSEAlgebra with two parameters of type CcPoints,
 CcLines or CcRegions and returns a Rational value. This value
 is transformed into a double value. The signature
 must correspond to the type and return type.
+
 */
 template <class Type1, class Type2>
 static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2, 
@@ -2720,11 +3097,13 @@ static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
   return (double)numerator / (double)denominator;
 }
 
-/* this is a template function which calls a method of the
+/* 
+this is a template function which calls a method of the
 Java class ROSEAlgebra with one parameter of type CcPoints,
 CcLines or CcRegions and returns a Rational value. This value
 is transformed into a double value. The signature
 must correspond to the type and return type.
+
 */
 template <class Type1>
 static double callRationalJMethod(char *name, Type1 *t1, char *signature) {
@@ -2769,10 +3148,12 @@ static double callRationalJMethod(char *name, Type1 *t1, char *signature) {
   return (double)numerator / (double)denominator;
 }
 
-/* this is a template function which calls a method of the
+/* 
+this is a template function which calls a method of the
 Java class ROSEAlgebra with a parameter of type CcPoints,
 CcLines or CcRegions and returns a double value. The signature
 must correspond to the type and return type.
+
 */
 template <class Type1>
 static double callDoubleJMethod(char *name, Type1 *t1, char *signature) {
@@ -2795,11 +3176,13 @@ static double callDoubleJMethod(char *name, Type1 *t1, char *signature) {
 }
 
 
-/* this is a template function which calls a method of the
+/*
+ this is a template function which calls a method of the
 Java class ROSEAlgebra with two parameters of type CcPoints,
 CcLines or CcRegions and returns another Rose type, like 
 CcPoints, CcLines or CcRegions. The signature
 must correspond two both types and return type.
+
 */
 template <class Type1, class Type2, class ReturnType>
 static ReturnType *callObjectJMethod
@@ -2824,11 +3207,13 @@ static ReturnType *callObjectJMethod
   return new ReturnType(result);
 }
 
-/* this is a template function which calls a method of the
+/* 
+this is a template function which calls a method of the
 Java class ROSEAlgebra with one parameter of type CcPoints,
 CcLines or CcRegions and returns another Rose type, like 
 CcPoints, CcLines or CcRegions. The signature
 must correspond two both types and return type.
+
 */
 template <class Type1, class ReturnType>
 static ReturnType *callObjectJMethod
@@ -2854,11 +3239,13 @@ static ReturnType *callObjectJMethod
 
 /*
 
-5.3.1.2 General Wrapper functions for the Java Methods. These methods 
+5.3.1.2 General Wrapper functions for the Java Methods. 
+
+These methods 
 invoke specific Java methods with the given name and signature with 
 help of above template functions. These functions are provided to make
 the algebra more clearly arranged.
-The names of these functions all begin with the prefix callJMethod_ 
+The names of these functions all begin with the prefix callJMethod[_] 
 followed by two or three letters in their suffix which stand for the
 types.
 If a suffix consists of three letters the according Java method
@@ -2883,8 +3270,10 @@ The letters have the following meaning:
 */
 
 
-/* Call a Java method with the given name which takes
+/* 
+Call a Java method with the given name which takes
    two CcPoints and returns a boolean value. 
+
 */
 static bool callJMethod_PPB
 (char *name, CcPoints *ccp1, CcPoints *ccp2) {
@@ -2892,8 +3281,10 @@ static bool callJMethod_PPB
     (name, ccp1, ccp2, "(LPoints;LPoints;)Z");
 }
 
-/* Call a Java method with the given name which takes
+/* 
+Call a Java method with the given name which takes
    two CcLines and returns a boolean value. 
+
 */
 static bool callJMethod_LLB
 (char *name, CcLines *ccl1, CcLines *ccl2) {
@@ -2901,8 +3292,10 @@ static bool callJMethod_LLB
     (name, ccl1, ccl2, "(LLines;LLines;)Z");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    two CcRegions and returns a boolean value. 
+
 */
 static bool callJMethod_RRB
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
@@ -2911,8 +3304,10 @@ static bool callJMethod_RRB
 }
 
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcPoints and a CcRegions object and returns a boolean value. 
+
 */
 static bool callJMethod_PRB
 (char *name, CcPoints *ccp, CcRegions *ccr) {
@@ -2920,16 +3315,20 @@ static bool callJMethod_PRB
     (name, ccp, ccr, "(LPoints;LRegions;)Z");
 }
 
-/* Call a Java method with the given name which takes
+/* 
+Call a Java method with the given name which takes
    a CcLines and a CcRegions object and returns a boolean value. 
+
 */
 static bool callJMethod_LRB
 (char *name, CcLines *ccl, CcRegions *ccr) {
   return callBooleanJMethod<CcLines, CcRegions>
     (name, ccl, ccr, "(LLines;LRegions;)Z");
 }
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    two CcRegions and returns a CcRegions value. 
+
 */
 static CcRegions *callJMethod_RRR
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
@@ -2938,8 +3337,10 @@ static CcRegions *callJMethod_RRR
    (name, ccr1, ccr2, "(LRegions;LRegions;)LRegions;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    two CcRegions and returns a CcLines value. 
+
 */
 static CcLines *callJMethod_RRL
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
@@ -2948,8 +3349,10 @@ static CcLines *callJMethod_RRL
     (name, ccr1, ccr2, "(LRegions;LRegions;)LLines;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcRegions and a CcLines object and returns a boolean value. 
+
 */
 static bool callJMethod_RLB
 (char *name, CcRegions *ccr, CcLines *ccl) {
@@ -2958,8 +3361,10 @@ static bool callJMethod_RLB
     (name, ccr, ccl, "(LRegions;LLines;)Z");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcPoints and a CcLines object and returns a boolean value. 
+
 */
 static bool callJMethod_PLB
 (char *name, CcPoints *ccp, CcLines *ccl) {
@@ -2967,8 +3372,10 @@ static bool callJMethod_PLB
     callBooleanJMethod<CcPoints, CcLines>
     (name, ccp, ccl, "(LPoints;LLines;)Z");
 }
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    two CcLines and returns a CcPoints value. 
+
 */
 
 static CcPoints *callJMethod_LLP
@@ -2978,8 +3385,10 @@ static CcPoints *callJMethod_LLP
     (name, ccl1, ccl2, "(LLines;LLines;)LPoints;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcRegions and a CcLines object and returns a CcLines value. 
+
 */
 static CcLines *callJMethod_RLL
 (char *name, CcRegions *ccr, CcLines *ccl) {
@@ -2988,8 +3397,10 @@ static CcLines *callJMethod_RLL
     (name, ccr, ccl, "(LRegions;LLines;)LLines;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    two CcPoints and returns a CcPoints value. 
+
 */
 static CcPoints *callJMethod_PPP
 (char *name, CcPoints *ccp1, CcPoints *ccp2) {
@@ -2998,8 +3409,10 @@ static CcPoints *callJMethod_PPP
     (name, ccp1, ccp2, "(LPoints;LPoints;)LPoints;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    two CcLines and returns a CcLines value. 
+
 */
 static CcLines *callJMethod_LLL
 (char *name, CcLines *ccl1, CcLines *ccl2) {
@@ -3008,8 +3421,10 @@ static CcLines *callJMethod_LLL
     (name, ccl1, ccl2, "(LLines;LLines;)LLines;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcLines and a CcRegions object and returns a CcLines value. 
+
 */
 static CcLines *callJMethod_LRL
 (char *name, CcLines *ccl, CcRegions *ccr) {
@@ -3018,8 +3433,10 @@ static CcLines *callJMethod_LRL
     (name, ccl, ccr, "(LLines;LRegions;)LLines;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcLines object and returns a CcLines value. 
+
 */
 static CcPoints *callJMethod_LP
 (char *name, CcLines *ccl) {
@@ -3028,8 +3445,10 @@ static CcPoints *callJMethod_LP
     (name, ccl, "(LLines;)LPoints;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcLines object and returns a CcRegions value. 
+
 */
 static CcRegions *callJMethod_LR
 (char *name, CcLines *ccl) {
@@ -3038,8 +3457,10 @@ static CcRegions *callJMethod_LR
     (name, ccl, "(LLines;)LRegions;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcRegions object and returns a CcPoints value. 
+
 */
 static CcPoints *callJMethod_RP
 (char *name, CcRegions *ccr) {
@@ -3048,8 +3469,10 @@ static CcPoints *callJMethod_RP
     (name, ccr, "(LRegions;)LPoints;");
 }
 
-/* Call a Java method with the given name which takes
+/*
+ Call a Java method with the given name which takes
    a CcRegions object and returns a CcLines value. 
+
 */
 static CcLines *callJMethod_RL
 (char *name, CcRegions *ccr) {
@@ -3058,8 +3481,10 @@ static CcLines *callJMethod_RL
     (name, ccr, "(LRegions;)LLines;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcPoints object and returns an Integer value.
+
 */
 static int callJMethod_PI
 (char *name, CcPoints *ccp) {
@@ -3067,8 +3492,10 @@ static int callJMethod_PI
     callIntegerJMethod<CcPoints>(name, ccp, "(LPoints;)I");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcLines object and returns an Integer value. 
+
 */
 static int callJMethod_LI
 (char *name, CcLines *ccl) {
@@ -3076,8 +3503,10 @@ static int callJMethod_LI
     callIntegerJMethod<CcLines>(name, ccl, "(LLines;)I");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcRegions object and returns an Integer value. 
+
 */
 static int callJMethod_RI
 (char *name, CcRegions *ccr) {
@@ -3085,8 +3514,10 @@ static int callJMethod_RI
     callIntegerJMethod<CcRegions>(name, ccr, "(LRegions;)I");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    two CcPoints and returns a double value. 
+
 */
 static double callJMethod_PPd
 (char *name, CcPoints *ccp1, CcPoints *ccp2) {
@@ -3095,8 +3526,10 @@ static double callJMethod_PPd
     (name, ccp1, ccp2, "(LPoints;LPoints;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcPoints and CcLines object and returns a double value. 
+
 */
 static double callJMethod_PLd
 (char *name, CcPoints *ccp, CcLines *ccl) {
@@ -3105,8 +3538,10 @@ static double callJMethod_PLd
     (name, ccp, ccl, "(LPoints;LLines;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcPoints and CcRegions object and returns a double value. 
+
 */
 static double callJMethod_PRd
 (char *name, CcPoints *ccp, CcRegions *ccr) {
@@ -3115,8 +3550,10 @@ static double callJMethod_PRd
     (name, ccp, ccr, "(LPoints;LRegions;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcLines and CcPoints object and returns a double value. 
+
 */
 static double callJMethod_LPd
 (char *name, CcLines *ccl, CcPoints *ccp) {
@@ -3125,8 +3562,10 @@ static double callJMethod_LPd
     (name, ccl, ccp, "(LLines;LPoints;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    two CcLines and returns a double value. 
+
 */
 static double callJMethod_LLd
 (char *name, CcLines *ccl1, CcLines *ccl2) {
@@ -3142,8 +3581,10 @@ static double callJMethod_LLd
   return result;
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcLines and CcRegions object and returns a double value. 
+
 */
 static double callJMethod_LRd
 (char *name, CcLines *ccl, CcRegions *ccr) {
@@ -3152,8 +3593,10 @@ static double callJMethod_LRd
     (name, ccl, ccr, "(LLines;LRegions;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcRegions and CcPoints object and returns a double value. 
+
 */
 static double callJMethod_RPd
 (char *name, CcRegions *ccr, CcPoints *ccp) {
@@ -3162,8 +3605,10 @@ static double callJMethod_RPd
     (name, ccr, ccp, "(LRegions;LPoints;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcRegions and CcLines object and returns a double value. 
+
 */
 static double callJMethod_RLd
 (char *name, CcRegions *ccr, CcLines *ccl) {
@@ -3172,8 +3617,10 @@ static double callJMethod_RLd
     (name, ccr, ccl, "(LRegions;LLines;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    two CcRegions and returns a double value. 
+
 */
 static double callJMethod_RRd
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
@@ -3182,8 +3629,10 @@ static double callJMethod_RRd
     (name, ccr1, ccr2, "(LRegions;LRegions;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    one CcPoints and returns a double value. 
+
 */
 static double callJMethod_Pd(char *name, CcPoints *ccp) {
   debug(__LINE__);
@@ -3192,8 +3641,10 @@ static double callJMethod_Pd(char *name, CcPoints *ccp) {
     (name, ccp, "(LPoints;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    one CcLines and returns a double value. 
+
 */
 static double callJMethod_Ld(char *name, CcLines *ccl) {
   debug(__LINE__);
@@ -3202,8 +3653,10 @@ static double callJMethod_Ld(char *name, CcLines *ccl) {
     (name, ccl, "(LLines;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    one CcRegions and returns a double value. 
+
 */
 static double callJMethod_Rd(char *name, CcRegions *ccr) {
   debug(__LINE__);
@@ -3212,8 +3665,10 @@ static double callJMethod_Rd(char *name, CcRegions *ccr) {
     (name, ccr, "(LRegions;)LRational;");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcLines and returns a double value. 
+
 */
 static double callJMethod_LD(char *name, CcLines *ccl) {
   debug(__LINE__);
@@ -3221,8 +3676,10 @@ static double callJMethod_LD(char *name, CcLines *ccl) {
     callDoubleJMethod<CcLines>(name, ccl, "(LLines;)D");
 }
 
-/* Call a Java method with given name which takes
+/*
+ Call a Java method with given name which takes
    a CcRegions and returns a double value. 
+
 */
 static double callJMethod_RD(char *name, CcRegions *ccr) {
   debug(__LINE__);
@@ -3235,7 +3692,10 @@ static double callJMethod_RD(char *name, CcRegions *ccr) {
 
 */
 
-/* Equals predicate for two ccpoints. */
+/* 
+Equals predicate for two ccpoints. 
+
+*/
 static int pp_equalFun(Word* args, Word& result, int message, 
 			       Word& local, Supplier s) {
   CcPoints* ccp1;
@@ -3259,7 +3719,10 @@ static int pp_equalFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* Equals predicate for two cclines. */
+/*
+ Equals predicate for two cclines. 
+
+*/
 static int ll_equalFun(Word* args, Word& result, int message, 
 				       Word& local, Supplier s) {
   CcLines* ls1;
@@ -3283,7 +3746,10 @@ static int ll_equalFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* Equal predicate for two ccregions. */
+/* 
+Equal predicate for two ccregions. 
+
+*/
 static int rr_equalFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s) {
   CcRegions* rs1;
@@ -3307,7 +3773,10 @@ static int rr_equalFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* pp_unequal predicate for two ccpoints. */
+/*
+ pp[_]unequal predicate for two ccpoints. 
+
+*/
 static int pp_unequalFun(Word* args, Word& result, int message, 
 			 Word& local, Supplier s)
 {
@@ -3331,7 +3800,10 @@ static int pp_unequalFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_unequal predicate for two cclines. */
+/* 
+ll[_]nequal predicate for two cclines. 
+
+*/
 static int ll_unequalFun(Word* args, Word& result, int message, 
 			 Word& local, Supplier s)
 {
@@ -3355,7 +3827,11 @@ static int ll_unequalFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_unequal predicate for two ccregions */
+/*
+
+ rr[_]unequal predicate for two ccregions 
+
+*/
 static int rr_unequalFun(Word* args, Word& result, int message, 
 				       Word& local, Supplier s)
 {
@@ -3380,7 +3856,10 @@ static int rr_unequalFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* pp_disjoint predicate for two CcPoints */
+/* 
+pp[_]disjoint predicate for two CcPoints 
+
+*/
 static int pp_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3405,7 +3884,10 @@ static int pp_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_disjoint predicate for two CcLines */
+/* 
+ll[_]disjoint predicate for two CcLines 
+
+*/
 static int ll_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3430,7 +3912,10 @@ static int ll_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_disjoint predicate for two CcRegions */
+/* 
+rr[_]disjoint predicate for two CcRegions 
+
+*/
 static int rr_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3455,7 +3940,10 @@ static int rr_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* pr_inside predicate for CcPoints and CcRegions */
+/* 
+pr[_]inside predicate for CcPoints and CcRegions 
+
+*/
 static int pr_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3480,7 +3968,10 @@ static int pr_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* lr_inside predicate for CcLines and CcRegions */
+/* 
+lr[_]inside predicate for CcLines and CcRegions 
+
+*/
 static int lr_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3504,7 +3995,10 @@ static int lr_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_inside predicate for two CcRegions */
+/* 
+rr[_]inside predicate for two CcRegions 
+
+*/
 static int rr_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3529,7 +4023,10 @@ static int rr_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_area_disjoint predicate for two CcRegions */
+/* 
+rr[_]area[_]disjoint predicate for two CcRegions 
+
+*/
 static int rr_area_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3554,7 +4051,10 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_edge_disjoint predicate for two CcRegions */
+/* 
+rr[_]edge[_]disjoint predicate for two CcRegions 
+
+*/
 static int rr_edge_disjointFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3579,7 +4079,10 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_edge_inside predicate for two CcRegions */
+/* 
+rr[_]edge[_]inside predicate for two CcRegions 
+
+*/
 static int rr_edge_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3604,7 +4107,10 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_vertex_inside predicate for two CcRegions */
+/* 
+rr[_]vertex[_]inside predicate for two CcRegions 
+
+*/
 static int rr_vertex_insideFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3629,7 +4135,10 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_intersects predicate for two CcRegions */
+/* 
+rr[_]intersects predicate for two CcRegions 
+
+*/
 static int rr_intersectsFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3654,7 +4163,10 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_meets predicate for two CcRegions */
+/* 
+rr[_]meets predicate for two CcRegions 
+
+*/
 static int rr_meetsFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3679,7 +4191,10 @@ static int rr_meetsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_border_in_common predicate for two CcRegions */
+/* 
+rr[_]border[_]in[_]common predicate for two CcRegions 
+
+*/
 static int rr_border_in_commonFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3704,7 +4219,10 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_adjacent predicate for two CcRegions */
+/* 
+rr[_]adjacent predicate for two CcRegions 
+
+*/
 static int rr_adjacentFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3729,7 +4247,10 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_encloses predicate for two CcRegions */
+/* 
+rr[_]encloses predicate for two CcRegions 
+
+*/
 static int rr_enclosesFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3754,7 +4275,10 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_intersection predicate for two CcRegions */
+/* 
+rr[_]intersection predicate for two CcRegions 
+
+*/
 static int rr_intersectionFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3779,7 +4303,10 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_plus predicate for two CcRegions */
+/* 
+rr[_]plus predicate for two CcRegions 
+
+*/
 static int rr_plusFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s) {
   CcRegions *ccr1;
@@ -3803,7 +4330,10 @@ static int rr_plusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_minus predicate for two CcRegions */
+/* 
+rr[_]minus predicate for two CcRegions 
+
+*/
 static int rr_minusFun(Word* args, Word& result, int message, 
 			  Word& local, Supplier s)
 {
@@ -3841,7 +4371,10 @@ static int rr_minusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rr_common_border predicate for two CcRegions */
+/* 
+rr[_]common[_]border predicate for two CcRegions 
+
+*/
 static int rr_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
   CcRegions *ccr1;
@@ -3865,7 +4398,10 @@ static int rr_common_borderFun(Word *args, Word& result,
   return 0;
 }
 
-/* ll_intersects predicate for two CcLines */
+/* 
+ll[_]intersects predicate for two CcLines 
+
+*/
 static int ll_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
 
@@ -3890,7 +4426,10 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* lr_intersects predicate for CcLines and CcRegions */ 
+/* 
+lr[_]intersects predicate for CcLines and CcRegions 
+
+*/ 
 static int lr_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
   CcLines *ccl;
@@ -3914,7 +4453,10 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rl_intersects predicate for CcRegions and CcLines */
+/* 
+rl[_]intersects predicate for CcRegions and CcLines 
+
+*/
 static int rl_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
   CcRegions *ccr;
@@ -3938,7 +4480,10 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_meets predicate for two cclines.*/
+/* 
+ll[_]meets predicate for two cclines.
+
+*/
 static int ll_meetsFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
@@ -3962,7 +4507,10 @@ static int ll_meetsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* lr_meets predicate for cclines and ccregions. */
+/* 
+lr[_]meets predicate for cclines and ccregions. 
+
+*/
 static int lr_meetsFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
@@ -3986,7 +4534,10 @@ static int lr_meetsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rl_meets predicate for ccregions and cclines */
+/* 
+rl[_]meets predicate for ccregions and cclines 
+
+*/
 static int rl_meetsFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
@@ -4010,7 +4561,10 @@ static int rl_meetsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_border_in_common predicate for two CcLines. */
+/* 
+ll[_]border[_]in[_]common predicate for two CcLines. 
+
+*/
 static int ll_border_in_commonFun(Word* args, Word& result, int message, 
 				  Word& local, Supplier s)
 {
@@ -4036,7 +4590,10 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* lr_border_in_common predicate for CcLines and CcRegions. */
+/* 
+lr[_]border[_]in[_]common predicate for CcLines and CcRegions. 
+
+*/
 static int lr_border_in_commonFun(Word* args, Word& result, int message, 
 				  Word& local, Supplier s)
 {
@@ -4061,7 +4618,10 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rl_border_in_common predicate for CcRegions and CcLines. */
+/* 
+rl[_]border[_]in[_]common predicate for CcRegions and CcLines. 
+
+*/
 static int rl_border_in_commonFun(Word* args, Word& result, int message, 
 				  Word& local, Supplier s)
 {
@@ -4087,7 +4647,10 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
 }
 
 
-/* pl_on_border_of predicate for CcPoints and CcLines */
+/* 
+pl[_]on[_]border[_]of predicate for CcPoints and CcLines 
+
+*/
 static int pl_on_border_ofFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
@@ -4112,7 +4675,10 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* pr_on_border_of predicate for CcPoints and CcRegions */
+/* 
+pr[_]on[_]border[_]of predicate for CcPoints and CcRegions 
+
+*/
 static int pr_on_border_ofFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
@@ -4137,7 +4703,10 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* pp_intersection predicate for two CcPoints. */
+/* 
+pp[_]intersection predicate for two CcPoints.
+
+*/
 static int pp_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
@@ -4162,7 +4731,10 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_intersection predicate for two CcLines. */
+/* 
+ll[_]intersection predicate for two CcLines. 
+
+*/
 static int ll_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
@@ -4187,7 +4759,10 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* rl_intersection predicate for CcRegions and CcLines */
+/* 
+rl[_]intersection predicate for CcRegions and CcLines 
+
+*/
 static int rl_intersectionFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
@@ -4212,7 +4787,10 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* pp_plus predicate for two CcPoints. */
+/*
+pp[_]plus predicate for two CcPoints. 
+
+*/
 static int pp_plusFun(Word* args, Word& result, int message, 
 			      Word& local, Supplier s)
 {
@@ -4237,7 +4815,10 @@ static int pp_plusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_plus predicate for two CcPoints. */
+/* 
+ll[_]plus predicate for two CcPoints. 
+
+*/
 static int ll_plusFun(Word* args, Word& result, int message, 
 		      Word& local, Supplier s)
 {
@@ -4262,7 +4843,10 @@ static int ll_plusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* pp_minus predicate for two CcPoints. */
+/* 
+pp[_]minus predicate for two CcPoints. 
+
+*/
 static int pp_minusFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
@@ -4287,7 +4871,10 @@ static int pp_minusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_minus predicate for two CcPoints. */
+/* 
+ll[_]minus predicate for two CcPoints. 
+
+*/
 static int ll_minusFun(Word* args, Word& result, int message, 
 		       Word& local, Supplier s)
 {
@@ -4312,7 +4899,10 @@ static int ll_minusFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* ll_common_border predicate for two CcLines. */
+/* 
+ll[_]common[_]border predicate for two CcLines. 
+
+*/
 static int ll_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
   CcLines *ccl1;
@@ -4336,7 +4926,10 @@ static int ll_common_borderFun(Word *args, Word& result,
   return 0;
 }
 
-/* lr_common_border predicate for CcLines and CcRegions. */
+/* 
+lr[_]common[_]border predicate for CcLines and CcRegions. 
+
+*/
 static int lr_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
   CcLines *ccl;
@@ -4360,7 +4953,10 @@ static int lr_common_borderFun(Word *args, Word& result,
   return 0;
 }
 
-/* rl_common_border predicate for CcLines and CcRegions. */
+/* 
+rl[_]common[_]border predicate for CcLines and CcRegions. 
+
+*/
 static int rl_common_borderFun(Word *args, Word& result, 
 			       int message, Word& local, Supplier s) {
   CcRegions *ccr;
@@ -4384,7 +4980,10 @@ static int rl_common_borderFun(Word *args, Word& result,
   return 0;
 }
 
-/* l_vertices predicate for CcLines. */
+/* 
+l[_]vertices predicate for CcLines. 
+
+*/
 static int l_verticesFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
   CcLines *ccl;
@@ -4406,7 +5005,10 @@ static int l_verticesFun(Word *args, Word& result,
   return 0;
 }
 
-/* r_vertices predicate for CcRegions. */
+/* 
+r[_]vertices predicate for CcRegions. 
+
+*/
 static int r_verticesFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
   CcRegions *ccr;
@@ -4428,7 +5030,10 @@ static int r_verticesFun(Word *args, Word& result,
   return 0;
 }
 
-/* l_interior predicate for CcLines. */
+/* 
+l[_]interior predicate for CcLines. 
+
+*/
 static int l_interiorFun(Word *args, Word& result, 
 			 int message, Word& local, Supplier s) {
   CcLines *ccl;
@@ -4450,7 +5055,10 @@ static int l_interiorFun(Word *args, Word& result,
   return 0;
 }
 
-/* r_contour predicate for CcRegions. */
+/* 
+r[_]contour predicate for CcRegions. 
+
+*/
 static int r_contourFun(Word *args, Word& result, 
 			int message, Word& local, Supplier s) {
   CcRegions *ccr;
@@ -4472,7 +5080,10 @@ static int r_contourFun(Word *args, Word& result,
   return 0;
 }
 
-/* p_no_of_components predicate for CcPoints. */
+/* 
+p[_]no[_]of[_]components predicate for CcPoints. 
+
+*/
 static int p_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
@@ -4493,7 +5104,10 @@ static int p_no_of_componentsFun(Word *args, Word &result,
   return 0;
 }
 
-/* l_no_of_components predicate for CcLines. */
+/* 
+l[_]no[_]of[_]components predicate for CcLines. 
+
+*/
 static int l_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
@@ -4514,7 +5128,10 @@ static int l_no_of_componentsFun(Word *args, Word &result,
   return 0;
 }
 
-/* r_no_of_components predicate for CcPoints. */
+/* 
+r[_]no[_]of[_]components predicate for CcPoints. 
+
+*/
 static int r_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
@@ -4535,7 +5152,10 @@ static int r_no_of_componentsFun(Word *args, Word &result,
   return 0;
 }
 
-/* pp_dist predicate for two CcPoints */
+/* 
+pp[_]dist predicate for two CcPoints 
+
+*/
 static int pp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4557,7 +5177,10 @@ static int pp_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* pl_dist predicate for CcPoints and CcLines */
+/* 
+pl[_]dist predicate for CcPoints and CcLines 
+
+*/
 static int pl_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4579,7 +5202,10 @@ static int pl_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* pr_dist predicate for CcPoints and CcRegions */
+/* 
+pr[_]dist predicate for CcPoints and CcRegions 
+
+*/
 static int pr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4601,7 +5227,10 @@ static int pr_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* lp_dist predicate for CcLines and CcPoints */
+/* 
+lp[_]dist predicate for CcLines and CcPoints 
+
+*/
 static int lp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4623,7 +5252,10 @@ static int lp_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* ll_dist predicate for two CcLines. */
+/* 
+ll[_]dist predicate for two CcLines. 
+
+*/
 static int ll_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
   clock_t time1 = clock();
@@ -4649,7 +5281,10 @@ static int ll_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* lr_dist predicate for CcLines and CcRegions. */
+/* 
+lr[_]dist predicate for CcLines and CcRegions. 
+
+*/
 static int lr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4671,7 +5306,10 @@ static int lr_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* rp_dist predicate for CcRegions and CcPoints. */
+/* 
+rp[_]dist predicate for CcRegions and CcPoints. 
+
+*/
 static int rp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4693,7 +5331,10 @@ static int rp_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* rl_dist predicate for CcRegions and CcLines. */
+/* 
+rl[_]dist predicate for CcRegions and CcLines. 
+
+*/
 static int rl_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4715,7 +5356,10 @@ static int rl_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* rr_dist predicate for two CcRegions. */
+/* 
+rr[_]dist predicate for two CcRegions. 
+
+*/
 static int rr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
@@ -4737,7 +5381,10 @@ static int rr_distFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* p_diameter predicate for a CcPoints. */
+/* 
+p[_]diameter predicate for a CcPoints. 
+
+*/
 static int p_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
@@ -4758,7 +5405,10 @@ static int p_diameterFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* l_diameter predicate for a CcLines. */
+/* 
+l[_]diameter predicate for a CcLines. 
+
+*/
 static int l_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
@@ -4779,7 +5429,10 @@ static int l_diameterFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* r_diameter predicate for a CcRegions. */
+/* 
+r[_]diameter predicate for a CcRegions. 
+
+*/
 static int r_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
@@ -4800,7 +5453,10 @@ static int r_diameterFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* l_length predicate for a CcLines. */
+/* 
+l[_]ength predicate for a CcLines. 
+
+*/
 static int l_lengthFun(Word *args, Word &result, int message,
 		       Word &local, Supplier s) {
 
@@ -4821,7 +5477,10 @@ static int l_lengthFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* r_aera predicate for a CcRegions. */
+/* 
+r[_]aera predicate for a CcRegions. 
+
+*/
 static int r_areaFun(Word *args, Word &result, int message,
 		     Word &local, Supplier s) {
 
@@ -4842,7 +5501,10 @@ static int r_areaFun(Word *args, Word &result, int message,
   return 0;
 }
 
-/* r_perimeter predicate for a CcRegions. */
+/* 
+r[_]perimeter predicate for a CcRegions. 
+
+*/
 static int r_perimeterFun(Word *args, Word &result, int message,
 			  Word &local, Supplier s) {
 
