@@ -3371,6 +3371,10 @@ class TemporalAlgebra : public Algebra
     mint.AssociateKind( "DATA" );
     mreal.AssociateKind( "DATA" );
     mpoint.AssociateKind( "DATA" );
+    intimeint.AssociateKind( "DATA" );
+    intimereal.AssociateKind( "DATA" );
+    intimepoint.AssociateKind( "DATA" );
+    
 
     AddOperator( &instantisempty );
     AddOperator( &instantequal );
