@@ -2687,6 +2687,21 @@ sqlToPlan(QueryText, Plan) :-
 
 
 /*
+----	sqlToPlan(QueryText, Plan)
+----
+
+Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
+~QueryText~ starts not with sql in this version.
+
+*/
+sqlToPlan(QueryText, Plan) :-
+  term_to_atom(Query, QueryText),
+  optimize(Query, Plan, _).
+
+
+
+
+/*
 11.3.8 Examples
 
 We can now formulate the previous example queries in the user level language.
