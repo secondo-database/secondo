@@ -5,6 +5,6 @@ operator union alias UNION pattern _ infixop _
 operator minimum alias MINIMUM pattern op ( _ )
 operator maximum alias MAXIMUM pattern op ( _ )
 operator no_components alias NO_COMPONENTS pattern op ( _ )
-operator inst alias INST patern op ( _ )
-operator val alias VAL patern op ( _ )
+operator inst alias INST pattern op ( _ )
+operator val alias VAL pattern op ( _ )
 
