@@ -498,6 +498,63 @@ DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+void
+DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
+{
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+	cout << "UNDEFINED";
+    else
+	cout << "mp3 file";
+}
+
+void
+DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
+{
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+    {
+	cout << "UNDEFINED";
+    }
+    else
+    {
+	cout << "ID3-Tag"<<endl << endl;
+	cout << "Title   : " << nl->StringValue (nl->First (value)) <<endl;
+	cout << "Author  : " << nl->StringValue (nl->Second (value)) << endl;
+	cout << "Album   : " << nl->StringValue (nl->Third (value)) << endl;
+	cout << "Year    : " << nl->IntValue (nl->Fourth (value)) << endl;
+	cout << "Comment : " << nl->StringValue (nl->Fifth (value)) << endl;
+
+	if (nl->ListLength(value) == 6)
+	{
+	    cout << "Genre   : " << nl->StringValue (nl->Sixth (value)) << endl;
+	}
+	else
+	{
+	    cout << "Track   : " << nl->IntValue (nl->Sixth (value)) << endl;
+	    cout << "Genre   : " << nl->StringValue (nl->Sixth (nl->Rest (value))) << endl;
+	}
+    }
+}
+
+void
+DisplayTTY::DisplayLyrics( ListExpr type, ListExpr numType, ListExpr value)
+{
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+    {
+	cout << "UNDEFINED";
+    }
+    else
+    {
+	cout << "Lyrics"<<endl<<endl;
+	int no = nl->ListLength (value) / 2;
+	for (int i=1; i<=no; i++)
+	{
+	    cout << "[" << nl->IntValue ( nl->First (value)) / 60 << ":";
+	    cout << nl->IntValue ( nl->First (value)) % 60 << "] ";
+	    cout << nl->StringValue (nl->Second (value));
+	    value = nl->Rest (nl->Rest (value));
+	}
+    }
+}
 
 void
 DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
@@ -823,5 +880,8 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "array",   &DisplayArray);
   InsertDisplayFunction( "point",   &DisplayPoint);
   InsertDisplayFunction( "binfile", &DisplayBinfile);
+  InsertDisplayFunction( "mp3",     &DisplayMP3);
+  InsertDisplayFunction( "id3",     &DisplayID3);
+  InsertDisplayFunction( "lyrics",  &DisplayLyrics);
 }
 
