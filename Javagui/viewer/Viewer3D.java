@@ -250,6 +250,13 @@ private void showPaintOptions(){
    return pos;
  } 
 
+ public double getDisplayQuality(SecondoObject o){
+   if(canDisplay(o))
+     return 0.95;
+   else
+     return 0;
+ 
+ }
  private MenuVector MenuExtension;
  private Options3D OptionsView; 
  private OptionDlg OptionsPaint; 
@@ -259,5 +266,6 @@ private void showPaintOptions(){
  private BoundingBox3D BoundingBox = new BoundingBox3D();
  private final String BBText = "BoundingBox =";
 }
+
 
 

@@ -25,10 +25,10 @@ public abstract void removeAll();
 
  /** check if this viewer can display o
    **/
- public abstract boolean canDisplay(SecondoObject o);
+public abstract boolean canDisplay(SecondoObject o);
 
  /** check if o displayed in the moment **/
- public abstract boolean isDisplayed(SecondoObject o);
+public abstract boolean isDisplayed(SecondoObject o);
 
 /** hightlighting of o **/
  public abstract boolean selectObject(SecondoObject O);
@@ -59,5 +59,19 @@ public abstract void removeAll();
 
  } 
 
+ /** returns the quality of view for a given object in range [0..1]
+   * by this method it is possible to choose the best viewer for a given object
+   * a viewer should overwrite this method
+   * returns 0 if this viewer can't display SO and 1 if this viewer is
+   * excellent appropriate to display this SecondoObject
+   */
+ public double getDisplayQuality(SecondoObject SO){
+    if(canDisplay(SO))
+       return 0.5;
+    else
+       return 0;
+ }
+
 
 }
+
