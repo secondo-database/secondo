@@ -162,7 +162,7 @@ TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = In( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
+  value = RestoreFromList( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
   if ( errorInfo != 0 )
   {
     nl->Destroy( errorInfo );
@@ -181,7 +181,7 @@ TypeConstructor::DefaultSave( SmiRecord& valueRecord,
   string valueString;
   int valueLength;
 
-  valueList = Out( nl->First(typeInfo), value );
+  valueList = SaveToList( nl->First(typeInfo), value );
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();
