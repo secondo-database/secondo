@@ -73,8 +73,7 @@ class BTree
     ~BTree();
 
     bool IsInitialized();
-    static bool Open( SmiRecord& valueRecord, size_t& offset,
-                      const ListExpr typeInfo, BTree *&value );
+    static BTree *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
     bool Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo);
     void SetPermanent();
     void SetTemporary();

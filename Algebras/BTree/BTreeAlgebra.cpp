@@ -841,13 +841,11 @@ OpenBTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
-  return BTree::Open( valueRecord, offset, typeInfo, (BTree*)value.addr );
+  value = SetWord( BTree::Open( valueRecord, offset, typeInfo ) );
+  return value.addr != 0;
 }
 
-bool BTree::Open( SmiRecord& valueRecord,
-                  size_t& offset,
-                  const ListExpr typeInfo,
-                  BTree *&btree )
+BTree *BTree::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
 {
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
 
@@ -905,16 +903,19 @@ bool BTree::Open( SmiRecord& valueRecord,
 
   bytesRead = valueRecord.Read(&fileId, sizeof(SmiFileId), offset);
   offset += sizeof(SmiFileId);
+  BTree *btree;
   if(bytesRead == sizeof(SmiFileId))
   {
     btree = new BTree(fileId, keyType);
     if(btree->IsInitialized())
     {
-      return true;
+      return btree;
     }
   }
-  delete btree; btree = 0;
-  return false;
+
+  delete btree; 
+  btree = 0;
+  return btree;
 }
 
 /*
