@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.8  2002/09/26 17:11:32  spieker
+# New rule save_sources which creates a gzipped tar file of the sources. The CVS keyword Log was added in the file header.
+#
 #
 ########################################################################
 
@@ -26,7 +29,8 @@ TOOLOBJECTS=\
 	Tools/Utilities/Messenger.$(OBJEXT) \
 	Tools/Utilities/DynamicLibrary.$(OBJEXT) \
 	Tools/Utilities/FileSystem.$(OBJEXT) \
-	Tools/Utilities/Profiles.$(OBJEXT)
+	Tools/Utilities/Profiles.$(OBJEXT) \
+	Tools/Utilities/UtilFunctions.$(OBJEXT)
 
 SDBSYSOBJECTS=\
 	Algebras/Management/Algebra.$(OBJEXT) \
