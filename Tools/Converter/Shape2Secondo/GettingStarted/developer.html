@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+
+<HEAD>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<META NAME="GENERATOR" Content="Visual Page 2.0 for Windows">
+	<META NAME="Author" Content="Linda Oxnard">
+	<TITLE>untitled</TITLE>
+</HEAD>
+
+<BODY>
+
+<H1>Getting Started as a Developer:</H1>
+<H2>Prerequisites:</H2>
+<P>This document is for users who want to fix, modify or extend the GeoTools library itself.&nbsp; Unlike the two
+sister guides for end users and solution builders this document assumes a fair knowledge of Java.&nbsp; You should
+have at least glanced through the other Getting Started guides and have managed to run, edit and recompile some
+of the example applets from the Examples and Demos package. <BR>
+&nbsp;
+<H2>Things to get and do:</H2>
+<P>If you are going to be working with the source code for GeoTools, then you want to be working with the most
+up-to-date version possible.&nbsp; Until now, you will probably have been using the most recent release or dev
+release of GeoTools.&nbsp; However, these can often be several months out of date whilst new features are developed
+and tested.  To make sure that all developers have access to up-to-date code, we use a system known as CVS.&nbsp;
+It is strongly recommended that you work out how to set up CVS on your machine, as this will allow you to track
+changes in the code base as they happen.</P>
+
+<P><A HREF="http://cvsbook.red-bean.com">http://cvsbook.red-bean.com</A> <BR>
+<A HREF="http://www.cvshome.org">http://www.cvshome.org</A></P>
+
+<P>Once you have it in place, then the following should provide you with an up-to-date version of the source code.</P>
+
+<P><TT>cvs -d:pserver:anonymous@cvs.geotools.sourceforge.net:/cvsroot/geotools login&nbsp;</TT> <BR>
+<TT>cvs -z3 -d:pserver:anonymous@cvs.geotools.sourceforge.net:/cvsroot/geotools co geotools</TT></P>
+
+<P>When it asks you for your password, just press enter.</P>
+
+<P>Once you have done that, you can get updates by running</P>
+
+<P><TT>cvs update</TT></P>
+
+<P>from the geotools/src directory.</P>
+
+<P>If you run into difficulty working out how to set up CVS, then feel free to submit a support request on the
+GeoTools project site on SourceForge.&nbsp; Pick the 'using cvs' category and provide as much detail as you can
+about the OS and platform you are running on.</P>
+
+<P>Get and install a copy of ant.  It's a build tool which simplifies the process of building code (much like Make
+does, only better).&nbsp;  For now, you can still get by without ant but, in the long run, having a copy will save
+you a lot of time.<BR>
+To get a copy, go to <BR>
+<A HREF="http://jakarta.apache.org/ant/index.html">http://jakarta.apache.org/ant/index.html</A></P>
+
+<P>GeoTools also uses some support libraries, most notably the collections package from Sun and an XML tool kit
+from IBM.  If you are happy just to use the binaries without their documentation, then they can be found in the
+src/demonstrations/jars folder.</P>
+
+<P>Finally, join both the <A HREF="http://lists.sourceforge.net/lists/listinfo/geotools-discussion">geotools-discussion</A>
+and the <A HREF="http://lists.sourceforge.net/lists/listinfo/geotools-devel">geotools-devel</A> mailing lists.
+ They are potentially your best resources for help and advice.
+<H2>The file&nbsp; structure</H2>
+<P>The checkout process should set up a directory structure as follows, don't worry about all the CVS folders that
+have been created, these are important for cvs record keeping but you don't and indeed shouldn't have anything
+to do with them. <BR>
+&nbsp;
+
+<UL>
+	<LI>geotools
+	<UL>
+		<LI>src - root direcotry for all source code, also contains the build script for ant and a readme file
+		<UL>
+			<LI>cmp - top package of a utility library for reading little endiean files. (not expanded here)
+			<LI>demonstrations - Contains the latest versions of all of the files found in the examples and demos package
+			<UL>
+				<LI>jars - Compiled versions of GeoTools and support libraries
+				<LI>maps - Sample maps and related data used in the demonstrations.
+			</UL>
+			<LI>demos - Please ignore this directory, it should have been removed from CVS but it is being stubborn (not expanded
+			here)
+			<LI>uk - top package of the main GeoTools source tree, based on our main URL.&nbsp; We are in the UK
+			<UL>
+				<LI>&nbsp;ac - and we are at a university
+				<UL>
+					<LI>leeds&nbsp; - Leeds university in fact
+					<UL>
+						<LI>&nbsp;ccg - name of our research group, the centre for computational geography
+						<UL>
+							<LI>geotools - the main package for all things geotoolsy
+							<UL>
+								<LI>misc - a small collection of utility classes
+								<LI>projections - experimental code for projection calculations
+							</UL>
+							<LI>shapefile - package dedicated to reading and writing .shp files
+							<LI>dbffile - package dedicated to reading and writing .dbf files
+							<LI>raster - support for rasters
+							<LI>widgets - gui widegets that have been built for geotools
+							<LI>gml - experimental GML reading code
+							<LI>sfsql - experimental sql interface that pulls OGC simple fieatures from databases
+							<LI>simplefeature - experimental representations of OGC simple feature geometries
+							<LI>mif - experimental mapinfo mif reader
+						</UL>
+					</UL>
+				</UL>
+			</UL>
+		</UL>
+	</UL>
+</UL>
+
+<H2>Compiling GeoTools</H2>
+<P>If all went well with the CVS&nbsp;check out and ant setup you should be able to go into the src directory and
+type</P>
+<P><TT>ant</TT></P>
+<P>At which point ant should do all of the hard work and build a fresh copy of everything for you.</P>
+<P><I>[This section needs more work, covering the output from ant, the new directories constructed and how to deal
+with error messages that ant might throw]</I> <BR>
+&nbsp;
+<H2>Tracking changes</H2>
+<P>Its all very well tracking changes, but how can you tell what has been added or modified each time you do a
+cvs update? <BR>
+One option is to use the cvs diff &lt;filename&gt; option to find out what exactly has changed, but perhaps more
+useful the following site provides a regularly updated change history of who has been changing things and what
+they have been doing. <BR>
+<A HREF="http://geotools.sourceforge.net/cvs.php">http://geotools.sourceforge.net/cvs.php</A> <BR>
+&nbsp;
+<H2>Submitting bugs</H2>
+<P>Probably one of the most important things you can do from day one is spot, document and report bugs.&nbsp; Even
+if you have no clue how to fix them a good bug report is a vital tool in increasing the stability of GeoTools as
+a whole.</P>
+<P>Once you feel particularly confident with a particular part of GeoTools then you can even volunteer to have
+bugs that others find assigned to you!
+<H2>Submitting changes</H2>
+<P>Initially you will only have anonymous access to cvs which means you can only read changes you can't submit
+your own.&nbsp; However once you have fixed a few bugs or added a natty feature or two and you seem to know your
+way around GeoTools then almost certainly one of the developers will offer you write access to the CVS repository
+along with instructions on how to change your CVS settings.</P>
+<P><I>[Add info here on using cvs to create patch files for trial submission until confident]</I> <BR>
+&nbsp;
+<H2>In depth discussion of the GeoTools architecture</H2>
+<P>Now that you are all set up and digging into the innards of GeoTools this would be the ideal point to go over
+some of the more complex design issues and reveal how most of the inner working actually work.&nbsp; Sadly that
+is the job of a whole set of additional documentation that has yet to be written.&nbsp; With luck additional info
+should not be long in arriving, feel free to send messages to the discussion list suggesting the areas you think
+are in most urgent need of documentaiont.
+<H2>Trouble shooting and getting help</H2>
+<P>If something isn't working the way you think it should, don't spend too long banging your head against the problem.&nbsp;
+There is a good chance you are dealing with a bug in geotools and nothing you do will make it go away.&nbsp; If
+you suspect at all that it might be a bug then submit a bug report and it will be investigated.</P>
+<P>For any further help at this level your best bet is to send a comment to the mailing list,&nbsp; their is a
+good pool of talent and a good chance that someone is upagains the same problem.</P>
+
+<P>For details on the mailing list archive and to sign up as a subscriber go to: <BR>
+<A HREF="http://lists.sourceforge.net/lists/listinfo/geotools-discussion">geotools-discussion</A> <BR>
+&nbsp; <BR>
+&nbsp;
+
+</BODY>
+
+</HTML>

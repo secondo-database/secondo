@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+
+<HEAD>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<META NAME="GENERATOR" Content="Visual Page 2.0 for Windows">
+	<META NAME="Author" Content="Linda Oxnard">
+	<TITLE>Getting Started as an End User</TITLE>
+</HEAD>
+
+<BODY>
+
+<H1>Getting Started as an End User (version 1.0)</H1>
+<H2>Prerequisites:</H2>
+<P>This document assumes no knowledge of Java or, for that matter, any GIS skills. <BR>
+You will, however, need at least some knowledge of HTML in order to put maps onto your web site. <BR>
+You will also need some map data of your own, preferably in ESRI(tm) Shapefile format.&nbsp; (Though you can get
+started with the data provided with the demos). <BR>
+&nbsp;
+<H2>Things to get:</H2>
+<P>You should download the latest copy of the GeoTools examples and demos package. This comes in a file named demos.zip
+which can be downloaded from the GeoTools <A HREF="http://geotools.org/dload.php">download site.</A></P>
+
+<P>Don't worry about all of the other files that are available there, for the moment. You will only really need
+them if you go on to become either a solution builder or a developer.</P>
+
+<P>You should also have a web browser which fully supports Java 1.1, for example Netscape 4.06 or later, and Internet
+Explorer 5 or later.&nbsp; (Make sure with both that, if you download it, you select the option to include Java,
+as many recent releases default to not including it) <BR>
+&nbsp; <BR>
+&nbsp;
+<H2>Trying the examples:</H2>
+<P>Hopefully, you now have a copy of demos.zip and a Java-enabled web browser. So let's run quickly through getting
+the demos running.</P>
+<P>First, unpack the zip archive using your favourite archive tool.&nbsp; If you have no access to any tool on
+your operating system for dealing with zip files, then submit a <A HREF="http://sourceforge.net/tracker/?group_id=4091">support
+request </A>and we will look at getting the files to you in another format.</P>
+<P>Once you have unpacked it, you should have a file called readme.html and a directory called 'demonstrations'.
+<BR>
+Open the readme.html file in your browser and click on 'view' under Example 1. This will open one of the pages
+in the demonstrations folder which, after a short pause, should display a fairly plain map of the US.</P>
+<P>If the map fails to appear, then take a look at the<A HREF="#trouble"> trouble shooting</A> section at the end
+of this page.</P>
+<P>Assuming that you have got a map on the screen, then try using the three buttons at the bottom of the map. Click
+on the 'zoom' button and then drag a box out on a part of the map. The map will zoom in to the area you selected.&nbsp;
+Click the 'pan' button and then click and hold the left mouse button over the map to drag the map around.&nbsp;
+Finally, click the 'reset' button to return the view to one showing the whole of the US.</P>
+<P>You can go back to the readme.html page and try some of the other examples if you want to see some more examples
+of GeoTools in action. <BR>
+&nbsp;
+<H2>Exploring the files:</H2>
+<P>OK, so how do the above demos work and what files are being used to get them working? <BR>
+Each demo needs 5 files:
+
+<UL>
+	<LI>an html file - This holds the content of the web page and provides some information to the applet which will
+	show the map.
+	<LI>a class file - This controls the layout of the map and its controls.
+	<UL>
+		<LI>geotools.jar - The main archive which provides all of the mapping capabilities
+		<LI>collections.jar - A support library written by Sun that GeoTools uses
+		<LI>a zip file - This holds the map information used by the map applet
+	</UL>
+</UL>
+
+<P>In the case of Example 1, the files that it needs are:</P>
+<P>demonstrations\Example1.html <BR>
+demonstrations\Example1.class <BR>
+demonstrations\jars\geotools.jar <BR>
+demonstrations\jars\collections.jar <BR>
+demonstrations\maps\statepop.zip</P>
+<P>Taking a look at each file in turn, the first is the web page itself.&nbsp; If you open it up in an editor you
+will see that, for the main part, it is just like any other html page. The interesting part is the section marked
+out in the applet tag:</P>
+<P>&lt;APPLET ARCHIVE=&quot;jars/geotools.jar,jars/collections.jar&quot; CODE=&quot;Example1.class&quot;&nbsp;
+WIDTH=&quot;430&quot; HEIGHT=&quot;270&quot; ALIGN=&quot;BOTTOM&quot;&gt; <BR>
+&lt;PARAM NAME=&quot;shapefile&quot; VALUE=&quot;maps/statepop&quot;&gt; <BR>
+&lt;/APPLET&gt;</P>
+<P>Pulling this apart, we see that it first states that an applet is to be used.&nbsp; The<B> archive</B> tag provides
+the location of the two support libraries - geotools.jar and collections.jar. <BR>
+The <B>code</B> tag gives the name of the class file to use, whilst the <B>width</B>, <B>height</B> and <B>align</B>
+tags say how big the applet should be.</P>
+<P>Next there is one <B>param</B> tag. This is a parameter used by the applet. In this case, it is named '<B>shapefile'</B>
+and takes the value of the location of the map file to use. Note that the '.zip' extension is not given.</P>
+<P>Finally, the applet tag is closed and the rest of the page is just standard html.</P>
+<P>The geotools.jar and collections.jar file are just library files and are required by every GeoTools applet.
+There is nothing you need to change with these files.</P>
+<P>If you open the statepop.zip file using an archive tool, you will see that it actually contains three files:
+.shp, .shx and .dbf.&nbsp; GeoTools only needs the .shp and .dbf files but most shapefiles have all three and later
+versions of GeoTools may make use of the .shx file (which is an index), so it's good to have it available. <BR>
+&nbsp;
+<H2>Putting your own map on the web</H2>
+<P>Assuming that you have a shapefile of your own that you want to put onto a web site, how do you go about it?</P>
+<P>Start with example 1, as this is the easiest to set up: <BR>
+Make a copy of Example1.html called, for example, MyMap.html <BR>
+Put your shapefile files into the maps directory (you can either put the three separate files there or archive
+them into a single .zip file). <BR>
+Change the <B>param</B> tag in MyMap.html so that the value is set to the name and location of your shapefile.</P>
+<P>Open the html page in your browser and your map should appear.</P>
+<P>GeoTools requires no server-side support so, provided all of the files needed are placed onto your web site,
+the map should be available for all to see. <BR>
+&nbsp;
+<H2>Modifying the more advanced demos</H2>
+<P>The next three demos, examples 2, 3 and 4, each introduce additional features to make the maps more interesting.
+<BR>
+Example 2 adds one more parameter which allows the map to show tooltips (these are small boxes which pop up to
+provide information about the feature under the mouse cursor).</P>
+<P>If you look at the applet tag for Example 2, you will see the following:</P>
+<P>&lt;APPLET ARCHIVE=&quot;jars/geotools.jar,jars/collections.jar&quot; CODE=&quot;Example2.class&quot;&nbsp;
+WIDTH=&quot;430&quot; HEIGHT=&quot;270&quot; ALIGN=&quot;BOTTOM&quot;&gt; <BR>
+&lt;PARAM NAME=&quot;shapefile&quot; VALUE=&quot;maps/statepop&quot;&gt; <BR>
+&lt;PARAM NAME=&quot;tooltip&quot; VALUE=&quot;STATE_NAME&quot;&gt; <BR>
+&lt;/APPLET&gt;</P>
+<P>The new parameter has the name <B>tooltip</B> and its value is set to the name of a column of data which can
+be found in the .dbf file, in this case <B>STATE_NAME</B>. <BR>
+If you know the names of any of the columns in your map's .dbf file, then try changing this parameter to show tooltips
+on your map.&nbsp; Note that the applet tag now has <B>CODE</B> set to <B>Example2.class</B>. You cannot just add
+a tooltip <B>param</B> tag to the Example1 html file, as that applet is not set up to display them.</P>
+<P>Example 3 extends the concept in a similar way. This time, the name of a numeric column is given and GeoTools
+uses this to shade the map in. In this case, the column <B>UNEMPLOY</B> is used which represents unemployment.</P>
+<P>&lt;APPLET ARCHIVE=&quot;jars/geotools.jar,jars/collections.jar&quot; CODE=&quot;Example3.class&quot;&nbsp;
+WIDTH=&quot;430&quot; HEIGHT=&quot;270&quot; ALIGN=&quot;BOTTOM&quot;&gt; <BR>
+&lt;PARAM NAME=&quot;shapefile&quot; VALUE=&quot;maps/statepop&quot;&gt; <BR>
+&lt;PARAM NAME=&quot;shadeby&quot; VALUE=&quot;UNEMPLOY&quot;&gt; <BR>
+&lt;PARAM NAME=&quot;tooltip&quot; VALUE=&quot;STATE_NAME&quot;&gt; <BR>
+&lt;/APPLET&gt;</P>
+<P>One interesting feature of this applet is that, if you double click on the key, you will be shown a box which
+allows you to change the way the shading is performed. <BR>
+Again, if you know the name of a numeric column in your shapefile then you can edit the <B>param</B> tags so that
+your map is shaded using that data.</P>
+<P>Example 4 doesn't add any new parameters, but instead includes an additional control widget which makes it possible
+to set zoom levels.</P>
+<P>The final demo in the package, at the time of writing, is the GraphApplet demo which shows some of the more
+interactive capabilities of GeoTools. Try taking a look at the <B>param</B> tags in that demo and see if you can
+work out how to use your own data in the applet. <BR>
+&nbsp;
+<H2>Creating custom applets</H2>
+<P>You may be happy with one of the applets provided as is in the demos package, in which case there is nothing
+more for you to do, just place the files on a web site and publish your maps.&nbsp; But what if none of the applets
+quite do what you are looking for?&nbsp; Perhaps you want to display more than one map layer in the viewer, or
+perhaps you want some other form of interactivity, perhaps linking to a different kind of graph.&nbsp; If so, then
+you have three options open to you: <BR>
+First, go to the applet listings page at: <BR>
+<A HREF="http://geotools.sourceforge.net/demos.php">http://geotools.sourceforge.net/demos.php</A> <BR>
+Many of these can be configured using <B>param</B> tags and may do what you need.</P>
+<P>If none of them are appropriate, then your second option is to get someone, possibly us, to put together a custom
+applet that does what you need.&nbsp; If you represent a wealthy corporation with a budget burning a hole in your
+pocket, then you can commision us to build a custom solution. If not, then one of us should be able to help you
+out in our spare time.</P>
+<P>Your final option is to take the plunge and learn some Java so that you can put custom solutions together yourself.
+If you want to do that, then you will need to read the next 'getting started' introduction, for <A HREF="solutionBuilder.html">solution
+builders.</A> <BR>
+&nbsp;
+<H2><A NAME="trouble"></A>Trouble shooting and getting help</H2>
+<P>If none of the applets seem to be working for you at all, then submit a support request to the Geotools SourceForge
+web site. Try to state what OS you are using and the version of the web browser you are using.&nbsp; If you know
+how, then it would also be helpful if you can send a copy of any messages which appear in your browser's Java console.</P>
+<P>To submit a support request, go the the projects development home page at: <BR>
+<A HREF="http://sourceforge.net/projects/geotools/">http://sourceforge.net/projects/geotools/</A></P>
+<P>Pick the 'support' option from the list across the top of the page. On the next page, choose 'submit'. <BR>
+You do not need to be a member on SourceForge to use this form. However, if you are then you will be able to use
+the SourceForge site to track your request more closely.</P>
+<P>Pick 'Getting Started' from the category list and then provide a summary and any other details you can think
+of.</P>
+<P>If you can get some of the applets to work but are having problems with some aspects of them, or with setting
+things up the way you want them, then you have two options. The first is to use the support request form as above,
+but giving details of what your problem is. The second is to look at the geotools-discussion archive to see if
+your problem has come up before. If not, then feel free to join the list and post your query for all to pick over.</P>
+
+<P>For details on the mailing list archive, and to sign up as a subscriber, go to <A HREF="http://lists.sourceforge.net/lists/listinfo/geotools-discussion">geotools-discussion</A>
+
+</BODY>
+
+</HTML>
