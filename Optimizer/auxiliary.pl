@@ -170,6 +170,11 @@ display(string, N) :-
   !,
   term_to_atom(String, N), 
   displayString(String).
+  
+display(text, N) :-
+  !,
+  is_list(N),
+  write_elements(N, 0).
 
 display(rect, [L, R, B, T]) :-
   !,
