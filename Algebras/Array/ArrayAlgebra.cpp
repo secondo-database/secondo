@@ -36,7 +36,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
-#include "TimeTest.h"
+#include "time.h"
 
 namespace {
 
@@ -874,8 +874,8 @@ of relations are distributed to the first respectively the last relation.
 
 */
 static int
-distributeFun (Word* args, Word& result, int message, Word& local, Supplier s) {
-
+distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
   const int MAX_PKG = 256;
 
   CcInt* indexAttrCcInt = (CcInt*)args[2].addr;
@@ -1021,8 +1021,8 @@ summarizeTypeMap( ListExpr args )
 }
 
 static int
-summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s) {
-
+summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
   struct ArrayIterator{int current; CcRelIT* rit;}* ait;
 
   Array* array;
@@ -1087,7 +1087,6 @@ Operator summarize (
 );
 
 /*
-
 3.7 Type Operator ~ELEMENT~
 
 Type operators are used only for inferring argument types of parameter
@@ -1133,7 +1132,6 @@ Operator ELEMENT (
 );
 
 /*
-
 3.8 Type Operator ~ELEMENT2~
 
 Type operators are used only for inferring argument types of parameter
@@ -1147,6 +1145,7 @@ array type within a list of argument types.
 
 (The first argument must not be an array. It may also be any other 
 type)
+
 */
 ListExpr ELEMENT2TypeMap(ListExpr args)
 {
@@ -1216,7 +1215,8 @@ loopTypeMap( ListExpr args )
 }
 
 static int
-loopFun (Word* args, Word& result, int message, Word& local, Supplier s) {
+loopFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
@@ -1246,7 +1246,14 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s) {
   for (int i=0; i<n; i++) {
     (*funargs)[0] = array->getElement(i);
 
+    cout << "Operator loop, element " << i ;
+    clock_t c1 = clock();
+
     qp->Request(args[1].addr, funresult);
+
+    clock_t c2 = clock();
+    cout << ", used CPU time: " << (c2 - c1) / CLOCKS_PER_SEC 
+         << " seconds." << endl;
 
     elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
     a[i] = (am->InObj(algebraId, typeId))
@@ -1316,8 +1323,8 @@ loop2TypeMap( ListExpr args )
 }
 
 static int
-loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s) {
-
+loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
@@ -1351,7 +1358,14 @@ loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s) {
       (*funargs)[0] = firstArray->getElement(i);
       (*funargs)[1] = secondArray->getElement(l);
 
+      cout << "Operator loop, elements (" << i << "," << l << ")";
+      clock_t c1 = clock();
+
       qp->Request(args[2].addr, funresult);
+
+      clock_t c2 = clock();
+      cout << ", used CPU time: " << (c2 - c1) / CLOCKS_PER_SEC 
+           << " seconds." << endl;
 
       elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
 
@@ -1438,8 +1452,8 @@ sortarrayTypeMap( ListExpr args )
 }
 
 static int
-sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s) {
-
+sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
@@ -1511,6 +1525,109 @@ Operator sortarray (
 );
 
 /*
+3.12 Operator ~tie~
+
+The operator calculates a single "value" of an array by evaluating the 
+elements of an array with a given function from left to right, e.g.
+
+tie ( (a1, a2, ... , an), + ) = a1 + a2 + ... + an
+
+The formal specification of type mapping is:
+
+---- ((array t) (map t t t)) -> t
+----
+
+*/
+static ListExpr
+tieTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) 
+  {
+    ListExpr arrayDesc = nl->First(args);
+    ListExpr elementDesc = nl->Second(arrayDesc);
+    ListExpr mapDesc = nl->Second(args); 
+
+    if (nl->IsEqual(nl->First(arrayDesc), "array") 
+        && nl->IsEqual(nl->First(mapDesc), "map")
+        && (nl->ListLength(mapDesc) == 4))
+    {
+      if (nl->Equal(elementDesc, nl->Second(mapDesc))
+          && nl->Equal(elementDesc, nl->Third(mapDesc))
+          && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
+      {
+        return elementDesc;
+      }
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Array* array = ((Array*)args[0].addr);
+
+  ArgVectorPointer funargs = qp->Argument(args[1].addr);
+  Word funresult;
+
+  ListExpr typeOfElement = sc->NumericType(qp->GetType(s));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = array->getSize();
+  Word partResult;
+
+  ListExpr partResLE;
+
+  int errorPos;
+  ListExpr errorInfo;
+  bool correct;
+
+  partResult = array->getElement(0);
+
+  for (int i=1; i<n; i++) {
+    (*funargs)[0] = partResult;
+    (*funargs)[1] = array->getElement(i);
+
+    qp->Request(args[1].addr, funresult);
+
+    partResLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
+
+    (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(partResult);
+    partResult = (am->InObj(algebraId, typeId))
+                      (typeOfElement, partResLE, errorPos, errorInfo, correct);
+  }
+
+  result.addr = partResult.addr;
+
+  return 0;
+}
+
+const string tieSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) (map t t t)) -> t</text--->"
+       "<text>_ tie [ fun ]</text--->"
+       "<text>Calculates the \"value\" of an array evaluating the elements of "
+       "the array with a given function from left to right.</text--->"
+       "<text>query ai tie[fun(i:int,l:int)(i+l)]</text---> ))";
+
+Operator tie (
+	"tie",
+	tieSpec,
+	tieFun,
+	Operator::DummyModel,
+	simpleSelect,
+	tieTypeMap
+);
+
+/*
 4 Creating the Algebra
 
 */
@@ -1538,6 +1655,8 @@ class ArrayAlgebra : public Algebra
     AddOperator( &loop2 );
 
     AddOperator( &sortarray );
+
+    AddOperator( &tie );
   }
   ~ArrayAlgebra() {};
 };
