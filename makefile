@@ -6,6 +6,16 @@
 
 include ./makefile.env
 
+# Configuration files which will be created as a copy of example files
+# The corresponding .example files are stored in the CVS
+
+CONFIG_FILES = bin/SecondoConfig.ini \
+	Optimizer/SecondoConfig.ini \
+	bin/JNI.ini \
+	Javagui/gui.cfg \
+	Javagui/GBS.cfg
+
+
 .PHONY: all
 all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
 
@@ -143,6 +153,15 @@ DIST_FILES := $(net)/windows/secondo-win32.tgz \
 .PHONY: dist
 dist: tag-version $(DIST_FILES)
 
+.PHONY: demo
+demo: TTY2 checkup 
+	mkdir $(SECONDO_DEMO)
+	make -C UserInterfaces TTYDemo
+	cp bin/SecondoConfig.ini bin/opt bin/testqueries $(SECONDO_DEMO)
+	cp Documents/SecondoManual.pdf $(SECONDO_DEMO)
+	tar -cvzf secondo-demo-$(platform).tar.gz $(SECONDO_DEMO)/*
+	rm -rf $(SECONDO_DEMO)
+
 tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
 .PHONY: tag-version
 tag-version:
@@ -188,6 +207,11 @@ clean:
 	$(MAKE) -C OptServer clean
 	$(MAKE) -f ./makefile.libs clean
 
+.PHONY: realclean
+realclean: clean
+	$(MAKE) -C Javagui clean
+	rm $(CONFIG_FILES) 
+
 ###
 ### Some special rules
 ### Automatic creation of configuration files
@@ -199,12 +223,9 @@ checkup: config showjni
 showjni:
 	@echo -e $(JNITEXT)
 	
+
 .PHONY: config
-config: bin/SecondoConfig.ini \
-	Optimizer/SecondoConfig.ini \
-	bin/JNI.ini \
-	Javagui/gui.cfg \
-	Javagui/GBS.cfg
+config: $(CONFIG_FILES) 
 
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)
