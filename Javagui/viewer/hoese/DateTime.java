@@ -88,6 +88,137 @@ private static int getMilliSecs(int hour,int minute,int second,int millisecond){
 }
 
 
+public static String getListString(int Days,int msecs){
+   if(Days<0 && msecs>0)
+      Days--;
+  int[] Greg = JulianDate.fromJulian(Days);
+  String res = "(datetime "+Greg[2]+" "+Greg[1]+" "+Greg[0]+"  ";
+  int rest = msecs;
+  int ms = rest%1000;
+  rest = rest/1000;
+  int sec = rest%60;
+  rest = rest /60;
+  int min = rest%60;
+  rest = rest/60;
+  int hour=rest;
+  res = res+hour+" ";
+  res=res+min+" ";
+  res=res+sec+" ";
+  res = res+ms +")";
+  return res;
+}
+
+
+/** returns a String representation for the given time */
+public static String getListString(double time){
+  int Days = (int)time;
+  int rest = getMilliSecs(time);
+  return getListString(Days,rest);
+}
+
+
+/** return the datevalue for DT,
+  * return 0 if format ist not correct
+  * required format  YYYY-MM-DD-HH:mm:ss.mmm
+  */
+public static Double getDateTime(String DT){
+  char[] D = DT.toCharArray();
+  int len = D.length;
+  int i = 0;
+  int year = 0;
+  int digit = 0;
+  //read year;
+  while(i<len && D[i]!='-'){
+    digit = getValue(D[i]);
+    if(digit<0) return null;
+    year = year*10+digit;
+    i++;
+  }
+  if(i>=len) return null;
+  // read month
+  int month = 0;
+  i++;
+  while(i<len && D[i]!='-'){
+    digit = getValue(D[i]);
+    if(digit<0) return null;
+    month = month*10+digit;
+    i++;
+  }
+  if(i>=len) return null;
+  // read day
+  int day = 0;
+  i++;
+  while(i<len && D[i]!='-'){
+    digit = getValue(D[i]);
+    if(digit<0) return null;
+    day = day*10+digit;
+    i++;
+  }
+  if(i>=len) return null;
+  // read hour
+  int hour = 0;
+  i++;
+  while(i<len && D[i]!=':'){
+    digit = getValue(D[i]);
+    if(digit<0) return null;
+    hour = hour*10+digit;
+    i++;
+  }
+  // read minute
+  int min=0;
+  int sec =0;
+  int msec =0;
+  if(i>=len) return null;
+  // read minute
+  i++;
+  while(i<len && D[i]!=':'){
+    digit = getValue(D[i]);
+    if(digit<0) return null;
+    min = min*10+digit;
+    i++;
+  }
+  // read second
+  i++;
+  while(i<len && D[i]!='.'){
+    digit = getValue(D[i]);
+    if(digit<0) return null;
+    sec = sec*10+digit;
+    i++;
+  }
+  // read millisecond
+  i++;
+  while(i<len){
+    digit = getValue(D[i]);
+    if(digit<0) return null;
+     msec = msec*10+digit;
+    i++;
+  }
+  
+  double date = convertToDouble(year,month,day,hour,min,sec,msec);
+  return new Double(date);
+
+}
+
+private static int getValue(char c){
+
+  switch(c){
+    case '0' : return 0;
+    case '1' : return 1;
+    case '2' : return 2;
+    case '3' : return 3;
+    case '4' : return 4;
+    case '5' : return 5;
+    case '6' : return 6;
+    case '7' : return 7;
+    case '8' : return 8;
+    case '9' : return 9;
+    case ' ' : return 0;
+    default  : return -1;
+  }
+
+}
+
+
 public static final long DAY_RESOLUTION = 86400000;  // 1 millisecond
 
 
