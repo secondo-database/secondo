@@ -1042,7 +1042,6 @@ main( const int argc, const char* argv[] )
     while(!hist_file.eof()){
        getline(hist_file,histline);
        if(histline.find_last_not_of(" \t\n")!=string::npos){
-          cout << "add \"" << histline << "\" to history" << endl;
           add_history(histline.c_str());
        }
     }
