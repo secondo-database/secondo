@@ -49,17 +49,19 @@ export SECONDO_PLATFORM="linux"
 
 export SECONDO_CONFIG=$1"/SecondoConfig.ini"
 
-export BERKELEY_DB_DIR="/usr/local/BerkeleyDB.4.1/"
+export BERKELEY_DB_DIR="$HOME/secondo-sdk"
 
-export CVSROOT=":pserver:behr@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
+export DVI_VIEWER=kdvi
 
+export PD_HEADER=$PREFIX/pd/pd.header
 
+export CVSROOT=":pserver:$CVSUSER@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
 
 if [ $SECONDO_PLATFORM != "win32" ]; then 
    
    # unix
-   export PL_INCLUDE_DIR=""
-   export PL_LIB_DIR=""
+   export PL_INCLUDE_DIR="$HOME/secondo-sdk/include"
+   export PL_LIB_DIR="$HOME/secondo-sdk/lib/pl-5.0.10/runtime/i686-linux"
 
 else 
 
