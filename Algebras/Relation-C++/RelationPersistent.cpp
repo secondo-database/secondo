@@ -130,7 +130,7 @@ struct PrivateTuple
     lobFile( 0 ),
     tupleFile( 0 ),
     state( Fresh ),
-    isFree( isFree ),
+    isFree( true ),
     memoryTuple( 0 ),
     extensionTuple( 0 )
     {
@@ -149,7 +149,7 @@ The first constructor. It creates a fresh tuple from a ~tupleType~.
     lobFile( 0 ),
     tupleFile( 0 ),
     state( Fresh ),
-    isFree( isFree ),
+    isFree( true ),
     memoryTuple( 0 ),
     extensionTuple( 0 )
     {
@@ -657,6 +657,11 @@ const bool Tuple::IsFree() const
   return privateTuple->isFree;
 }
 
+void Tuple::SetFree( const bool onoff )
+{
+  privateTuple->isFree = onoff;
+}
+
 Tuple *Tuple::Clone( const bool isFree ) const
 {
   Tuple *result = new Tuple( this->GetTupleType(), isFree );
@@ -670,7 +675,7 @@ Tuple *Tuple::Clone( const bool isFree ) const
 
 Tuple *Tuple::CloneIfNecessary()
 {
-  if( privateTuple->state == Fresh )
+  if( privateTuple->state == Fresh && privateTuple->isFree )
     return this;
   else
     return this->Clone( false );
@@ -678,7 +683,8 @@ Tuple *Tuple::CloneIfNecessary()
 
 void Tuple::DeleteIfAllowed()
 {
-  delete this;
+  if( privateTuple->isFree )
+    delete this;
 }
 
 void Tuple::Delete()
@@ -712,6 +718,11 @@ The constructor.
   {
     if( !inMemory ) 
       diskBuffer->Delete();
+    else
+    {
+      for( size_t i = 0; i < memoryBuffer.size(); i++ )
+        memoryBuffer[i]->Delete();
+    }
   }
 /*
 The destructor.
@@ -800,6 +811,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
   {
     if( privateTupleBuffer->memoryBuffer.size() < privateTupleBuffer->MAX_TUPLES_IN_MEMORY )
     {
+      t->SetFree( false );
       privateTupleBuffer->memoryBuffer.push_back( t );
     }
     else
@@ -1102,7 +1114,9 @@ void Relation::Close()
 
 void Relation::Delete()
 {
+  privateRelation->tupleFile.Close();
   privateRelation->tupleFile.Drop();
+  privateRelation->lobFile.Close();
   privateRelation->lobFile.Drop();
   delete this;
 }
@@ -1116,8 +1130,10 @@ void Relation::AppendTuple( Tuple *tuple )
 void Relation::Clear()
 {
   privateRelation->noTuples = 0;
+  privateRelation->tupleFile.Close();
   assert( privateRelation->tupleFile.Drop() );
   assert( privateRelation->tupleFile.Create() );
+  privateRelation->lobFile.Close();
   assert( privateRelation->lobFile.Drop() );
   assert( privateRelation->lobFile.Create() );
 }

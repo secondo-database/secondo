@@ -104,6 +104,7 @@ class SortByLocalInfo
           if( t != wTuple.addr )
             ((Tuple*)wTuple.addr)->Delete();
 
+          t->SetFree( false );
           tuples.push_back( t );
           if( ++i == MAX_TUPLES_IN_MEMORY )
           {
@@ -114,7 +115,7 @@ class SortByLocalInfo
 
             Relation *rel = new Relation( *tupleType, true );
             SaveTo( *rel );
-            tuples.clear();
+            ClearMemory();
             RelationIterator *iter = rel->MakeScan();
             relations.push_back( pair<Relation*, RelationIterator*>( rel, iter ) );
 
@@ -133,7 +134,7 @@ class SortByLocalInfo
         {
           Relation *rel = new Relation( *tupleType, true );
           SaveTo( *rel );
-          tuples.clear();
+          ClearMemory();
           RelationIterator *iter = rel->MakeScan();
           relations.push_back( pair<Relation*, RelationIterator*>( rel, iter ) );
 
@@ -157,6 +158,13 @@ class SortByLocalInfo
 
     ~SortByLocalInfo()
     {
+      if( !tuples.empty() )
+      {
+        assert( relations.empty() );
+        for( size_t i = 0; i < tuples.size(); i++ )
+          tuples[i]->Delete();
+      }
+
       for( size_t i = 0; i < relations.size(); i++ )
       {
         delete relations[i].second;
@@ -217,6 +225,13 @@ class SortByLocalInfo
         t->Delete();
         iter++;
       }
+    }
+
+    void ClearMemory()
+    {
+      for( size_t i = 0; i < tuples.size(); i++ )
+        tuples[i]->Delete();
+      tuples.clear();
     }
 
     size_t MAX_TUPLES_IN_MEMORY;
@@ -466,6 +481,7 @@ private:
 
     while( i < MAX_TUPLES_IN_MEMORY && (t = iter->GetNextTuple()) != 0 )
     {
+      t->SetFree( false );
       bucket.push_back( t );
       i++;
     }
@@ -477,7 +493,7 @@ private:
     while( i != bucket.end() )
     {
       Tuple *t = *i;
-      t->Delete();
+      t->DeleteIfAllowed();
       i++;
     }
     bucket.clear(); 

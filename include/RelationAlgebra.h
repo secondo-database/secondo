@@ -293,6 +293,11 @@ Returns if a tuple is free.
 *Need some more explanations about why it is used.*
 
 */
+    void SetFree( const bool onoff );
+/*
+Turns the tuple free (or not) for deletion.
+
+*/
     Tuple *Clone( const bool isFree = true ) const;
 /*
 Create a new tuple which is a clone of this tuple.

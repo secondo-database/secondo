@@ -2650,6 +2650,12 @@ ListExpr GroupByTypeMap(ListExpr args)
     second  = nl->Second(args);
     third  = nl->Third(args);
 
+    if( nl->IsEmpty( third ) )
+    {
+      ErrorReporter::ReportError("Incorrect input for operator groupby.");
+      return nl->SymbolAtom("typeerror");
+    }
+
     if(nl->ListLength(first) == 2  &&
       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
@@ -2796,9 +2802,9 @@ int GroupByValueMapping
         if( gbli->t == 0 )
           return CANCEL;
 
-        t = gbli->t;
-        t = t->CloneIfNecessary();
-        assert( t->IsFree() == false );
+        t = gbli->t->Clone( true );
+        gbli->t->DeleteIfAllowed();
+        gbli->t = 0;
         tp = new TupleBuffer();
         tp->AppendTuple(t);
       }
@@ -2820,9 +2826,10 @@ int GroupByValueMapping
         }
         if (ifequal)
         {
-          s = s->CloneIfNecessary();
-          assert( s->IsFree() == false );
-          tp->AppendTuple(s);
+          Tuple *auxS = s;
+          s = s->Clone( true );
+          auxS->DeleteIfAllowed();
+          tp->AppendTuple( s );
           qp->Request(args[0].addr, sWord);
         }
         else
@@ -2860,7 +2867,7 @@ int GroupByValueMapping
       }
       result = SetWord(t);
 //      tp->Clear();
-//      delete tp;
+      delete tp;
       return YIELD;
 
     case CLOSE:

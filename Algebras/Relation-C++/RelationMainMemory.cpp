@@ -239,6 +239,11 @@ const bool Tuple::IsFree() const
   return privateTuple->isFree;
 }
 
+void Tuple::SetFree( const bool onoff )
+{
+  privateTuple->isFree = onoff;
+}
+
 Tuple *Tuple::Clone( const bool isFree ) const
 {
   Tuple *result = new Tuple( this->GetTupleType(), isFree );

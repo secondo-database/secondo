@@ -1563,8 +1563,11 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       if( pli->iter != 0 )
         delete pli->iter;
       delete pli->resultTupleType;
-      pli->rightRel->Clear();
-      delete pli->rightRel;
+      if( pli->rightRel )
+      {
+        pli->rightRel->Clear();
+        delete pli->rightRel;
+      }
       delete pli;
 
       qp->Close(args[0].addr);

@@ -387,9 +387,7 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExp
 
       if (tupleCorrect)
       {
-        assert( tupleaddr->IsFree() == false );
         rel->AppendTuple(tupleaddr);
-        assert( tupleaddr->IsFree() == false );
         tupleaddr->DeleteIfAllowed();
 
         count++;

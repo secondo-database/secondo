@@ -1,3 +1,4 @@
+operator remove alias REMOVE pattern _ op [list]
 operator head alias HEAD pattern _ op [ _ ]
 
 operator max alias MAX pattern _ op [ _ ]
