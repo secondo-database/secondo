@@ -57,8 +57,8 @@ void yyerror( char* s )
 }
 %}
 
-%token 	ZZIDENTIFIER, ZZSYMBOL, ZZOPERATOR, ZZPATTERN, ZZFUN, ZZOP, ZZINFIXOP, ZZALIAS, ZZLIST,
-	ZZIMPLICIT, ZZPARAMETER, ZZPARAMETERS, ZZTYPE, ZZTYPES, ZZFUNLIST, ZZEMPTY, ZZCOMMENT
+%token 	ZZIDENTIFIER ZZSYMBOL ZZOPERATOR ZZPATTERN ZZFUN ZZOP ZZINFIXOP ZZALIAS ZZLIST
+	ZZIMPLICIT ZZPARAMETER ZZPARAMETERS ZZTYPE ZZTYPES ZZFUNLIST ZZEMPTY ZZCOMMENT
 	
 
 %%
@@ -95,7 +95,7 @@ spec		: ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN
 			  fprintf(lexrules, "%s\t\t{return %s;}\n", 
 			  operator1.c_str(), token.c_str());
 
-			fprintf(tokens, ", %s", token.c_str());
+			fprintf(tokens, " %s", token.c_str());
 
 			fprintf(yaccrules1, "\t\t| "); i=0; n=0;}
 		  pattern

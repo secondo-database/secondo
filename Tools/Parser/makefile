@@ -40,30 +40,30 @@ useddirectories:
 	$(MAKE) -C ../../Algebras specs
 
 SecLex.$(OBJEXT): SecLex.cpp SecParser.tab.hpp NestedText.h
-	$(CC) -c -o SecLex.$(OBJEXT) SecLex.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 SecLex.cpp: SecLex.l
-	$(LEX) -d -+ -oSecLex.cpp -Pxx SecLex.l
+	$(LEX) -d -+ -o$@ -Pxx $<
 
 SecParser.tab.$(OBJEXT): SecParser.tab.cpp NestedText.h
-	$(CC) -c -o SecParser.tab.$(OBJEXT) SecParser.tab.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 SecParser.tab.hpp SecParser.tab.cpp: SecParser.y
-	$(YACC) -d -p xx -o SecParser.tab.cpp SecParser.y
+	$(YACC) -d -p xx -o SecParser.tab.cpp $<
 
 NestedText.$(OBJEXT): NestedText.cpp NestedText.h
-	$(CC) -c -o NestedText.$(OBJEXT) NestedText.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 NestedText.h: CTable.h
 
 SecParser.$(OBJEXT): SecParser.cpp NestedText.h SecParser.h
-	$(CC) -c -o SecParser.$(OBJEXT) SecParser.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 SecLex.l: SecLex.l.1 lexrules SecLex.l.2
-	cat SecLex.l.1 lexrules SecLex.l.2 > SecLex.l
+	cat $^ > $@
 
 SecParser.y: SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.y.3
-	cat SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.y.3 > SecParser.y
+	cat $^ > $@
 
 ifdef WINE
 # wine has problem to execute the Specparser
@@ -76,8 +76,7 @@ PARSEREXT := $(EXEEXT)
 endif
 
 lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(PARSEREXT)
-
-	SpecParser/Parser$(PARSEREXT) < ../../Algebras/specs
+	SpecParser/Parser$(PARSEREXT) < $< 
 
 .PHONY: clean
 clean:
