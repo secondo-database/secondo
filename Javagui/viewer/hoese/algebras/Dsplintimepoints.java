@@ -1,0 +1,144 @@
+
+
+package  viewer.hoese.algebras;
+
+import  java.awt.geom.*;
+import  java.awt.*;
+import  viewer.*;
+import viewer.hoese.*;
+import  sj.lang.ListExpr;
+import  java.util.*;
+import  javax.swing.*;
+
+
+/**
+ * A displayclass for the intimepoints-type (spatiotemp algebra), 2D with TimePanel
+ */
+public class Dsplintimepoints extends Dsplpoints
+    implements Timed {
+  Interval TimeBounds;
+
+  /** A method of the Timed-Interface
+   * 
+   * @return the global time boundaries [min..max] this instance is defined at
+   * @see <a href="Dsplintimepointssrc.html#getTimebounds">Source</a>
+   */
+  public Interval getTimeBounds () {
+    return  TimeBounds;
+  }
+
+  /**
+   * A method of the Timed-Interface to render the content of the TimePanel
+   * @param PixelTime pixel per hour
+   * @return A JPanel component with the renderer
+   * @see <a href="Dsplintimepointssrc.html#getTimeRenderer">Source</a>
+   */
+  public JPanel getTimeRenderer (double PixelTime) {
+    int start = 0;              
+    JLabel label = new JLabel("|"+LEUtils.convertTimeToString(TimeBounds.getStart()).substring(11, 
+        16), JLabel.LEFT);
+    label.setBounds(start, 15, 100, 15);
+    label.setVerticalTextPosition(JLabel.CENTER);
+    label.setHorizontalTextPosition(JLabel.RIGHT);
+    JPanel jp = new JPanel(null);
+    jp.setPreferredSize(new Dimension(100, 25));
+    jp.add(label);
+    //Add labels to the JPanel. 
+    return  jp;
+  }
+
+  /**
+   * Draws the included points if ActualTime == defined time by calling its superclass draw-method.
+   * @param g The graphics context
+   * @see <a href="Dsplintimepointssrc.html#draw">Source</a>
+   */
+  public void draw (Graphics g) {
+    double t = RefLayer.getActualTime();
+    if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
+      super.draw(g);
+  }
+
+  /**
+   * Tests if a given position is contained in any of the points,but only if ActualTime == defined time
+   * @param xpos The x-Position to test.
+   * @param ypos The y-Position to test.
+   * @param scalex The actual x-zoomfactor 
+   * @param scaley The actual y-zoomfactor
+   * @return true if x-, ypos is contained in this points type
+   * @see <a href="Dsplintimepointssrc.html#contains">Source</a>
+   */
+  public boolean contains (double xpos, double ypos, double scalex, double scaley) {
+    double t = RefLayer.getActualTime();
+    if (Math.abs(t - TimeBounds.getStart()) < 0.000001)
+      return  super.contains(xpos, ypos, scalex, scaley); 
+    else 
+      return  false;
+  }
+
+  /**
+   * Scans the representation of an instant datatype 
+   * @param v An instant value
+   * @see sj.lang.ListExpr
+   * @see <a href="Dsplintimepointssrc.html#ScanValue">Source</a>
+   */
+  public void ScanValue (ListExpr v) {
+    Double d;
+    //System.out.println(v.writeListExprToString());
+    if (v.listLength() != 2) {                  //perhaps changes later
+      System.out.println("Error: No correct intimepoints expression: 2 elements needed");
+      err = true;
+      return;
+    }
+    d = LEUtils.readInstant(v.first());
+    if (d == null) {
+      err = true;
+      return;
+    }
+    TimeBounds = new Interval(d.doubleValue(), d.doubleValue(), true, true);
+    super.ScanValue(v.second());
+  }
+
+  /**
+   * Init. the Dsplintimepoints instance.
+   * @param type The symbol intimepoints
+   * @param value The value of an instant and a points-datatype
+   * @param qr queryresult to display output.
+   * @see generic.QueryResult
+   * @see sj.lang.ListExpr
+   * @see <a href="Dsplintimepointssrc.html#init">Source</a>
+   */
+  public void init (ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = type.symbolValue();
+    ScanValue(value);
+    if (err) {
+      System.out.println("Error in ListExpr :parsing aborted");
+      qr.addEntry(new String("(" + AttrName + ": GTA(IntimePoints))"));
+      return;
+    } 
+    else 
+      qr.addEntry(this);
+    ListIterator li = points.listIterator();
+    bounds = null;
+    while (li.hasNext()) {
+      Point2D.Double p = ((Point2D.Double)li.next());
+      if (bounds == null)
+        bounds = new Rectangle2D.Double(p.getX() - 2, p.getY() - 2, 4, 4); 
+      else 
+        bounds = (Rectangle2D.Double)bounds.createUnion(new Rectangle2D.Double(
+            p.getX() - 2, p.getY() - 2, 4, 4));
+    }
+  }
+  /** A method of the Timed-Interface
+   * @return The Vector representation of the time intervals this instance is defined at 
+   * @see <a href="Dsplintimepointssrc.html#getIntervals">Source</a>
+   */
+  public Vector getIntervals(){
+    Vector v=new Vector(1,0);
+    v.add(TimeBounds);
+    return v;
+    } 
+
+}
+
+
+
