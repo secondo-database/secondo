@@ -4,6 +4,16 @@
 
 include ./makefile.inc
 
+.PHONY: all #creates the gui and all know viewers
+all:
+	(cd ../Javainterface;make all)
+	(cd extern;make all)
+	(cd components;make all)
+	(cd viewer;make all)
+	(cd project;make all);
+	(cd gui;make all)
+	(cd viewer;make viewers)
+
 
 .PHONY: help
 help:
@@ -18,9 +28,12 @@ doc:
 	$(shell mkdir $(DOCPATH))
 	$(JAVADOC) -d $(DOCPATH) -classpath "$(CLASSPATH)" $(GUIPACKAGE) $(VIEWERPACKAGES)
 
-.PHONY: all #creates the gui and all know viewers
-all:
-	(cd ../Javainterface;make all)
+.PHONY: all #creates the gui and all known viewers
+all: makedirs config
+
+.PHONY: makedirs
+makedirs:
+	(cd ../Javainterface;make all)	
 	(cd extern;make all)
 	(cd components;make all)
 	(cd viewer;make all)
@@ -28,6 +41,18 @@ all:
 	(cd gui;make all)
 	(cd viewer;make viewers)
 
+.PHONY: config
+config: GBS.cfg gui.cfg
+	chmod ugo+x sgui
+	
+# Automatic creation of configuration files
+GBS.cfg: GBS.cfg.sample
+	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
+	|| test ! -e $@ && cp $< $@
+	
+gui.cfg: gui.cfg.example
+	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
+	|| test ! -e $@ && cp $< $@
 
 
 .PHONY: clean # removes the documentation and all .class files

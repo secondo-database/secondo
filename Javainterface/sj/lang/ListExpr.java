@@ -1084,8 +1084,6 @@ catch(Exception e){
       this.setValueTo((ListExpr)result.value);
     } catch (Exception except) {
       System.out.println("EXCEPTION in readFromString()");
-      if(DEBUG_MODE)
-         except.printStackTrace();
       return  INPUT_STRING_ERROR;
     } finally {
       inputReader.close();

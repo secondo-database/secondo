@@ -256,7 +256,7 @@ public MainWindow(String Title){
        else if(Connection.equals("false"))
            StartConnection = false;
        else{
-           System.out.println("START_CONNECTION has unknow value in "+CONFIGURATION_FILE);
+           System.out.println("START_CONNECTION has unknown value in "+CONFIGURATION_FILE);
            System.out.println("allowed values are  true  and false");
        }
     }
@@ -798,7 +798,7 @@ public boolean execGuiCommand(String command){
      else if(Param.equals("-r"))
          loadHistory(true);
      else
-         ComPanel.appendText("unknow parameter\n");
+         ComPanel.appendText("unknown parameter\n");
      ComPanel.showPrompt();
   } else if(command.startsWith("clearAll")){
      clearAll();
@@ -816,7 +816,7 @@ public boolean execGuiCommand(String command){
        ComPanel.showPrompt();
   }
   else {
-    ComPanel.appendText("unknow gui command \n show help to get a list of available commands");
+    ComPanel.appendText("unknown gui command \n show help to get a list of available commands");
     ComPanel.showPrompt();
     success=false;
   }
@@ -1688,6 +1688,7 @@ public void databaseOpened(String DBName){
   DeleteDatabaseMenu.setEnabled(false);
   Menu_RestoreDatabase.setEnabled(false);
   OpenedDatabase = DBName;
+  OList.enableStoring(true);
 }
 
 public void databaseClosed(){
@@ -1704,6 +1705,7 @@ public void databaseClosed(){
   DeleteDatabaseMenu.setEnabled(true);
   Menu_RestoreDatabase.setEnabled(true);
   OpenedDatabase ="";
+  OList.enableStoring(false);
 }
 
 public void connectionOpened(){
