@@ -19,13 +19,16 @@ printf "\n* '$cdpath' to '$instpath' \n"
 printf "\n* Installing Java SDK ... this needs some user interaction"
 printf" \n* all other tools will be compiled and installed silently"
 
-cd "sdk"
-"$cdpath/java/j2sdk*.bin"
+cp $cdpath/../java/j2sdk*.bin $temp
+cd $temp
+chmod u+x j2sdk*.bin
+cd $sdk
+xterm -T "JAVA 2 Installer" -e $temp/j2sdk*.bin &
 
 cd "$temp"
 printf "\n* Uncompressing 3d-party tools ... \n"
 
-for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
+for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/prolog; do
   zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
   gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
   for file in $zipFiles; do
@@ -48,34 +51,31 @@ if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
   exit 3
 fi
 
-cd "$HOME"
-tar -xzf "$cdpath/secondo.tgz"
-
 cd "$sdk"
-tar -xzf "$cdpath/../java/cvs/jcvs*.tgz"
+if { ! tar -xzf $cdpath/../java/cvs/jcvs*.tgz; }; then
+  exit 4
+fi
+
+logfile="$temp/secondo-install.log"
+touch $logfile
+xterm -T "Installation Protocol" -e "tail -f $temp/$logfile" &
 
 printf "\n* Compiling GCC ... this will take the most time ... \n"
-cd "$temp/gcc-*"
-./configure --prefix=$sdk
-"make bootstrap"
-"make install"
-export PATH=".:$sdk:$PATH"
+cd $temp/gcc-* && ./configure --prefix=$sdk >> $logfile
+make bootstrap >> $logfile && make install >> $logfile
+export PATH=".:$sdk/bin:$PATH"
+printf "\n <PATH: $PATH> \n"
+gcc --version
 
 printf "\n* Compiling Berkeley-DB ... \n"
-cd "$temp/db-*"
-./configure --prefix=$sdk --enable-cxx
-make
-"make install"
+cd $temp/db-*/build-unix && ./configure --prefix=$sdk --enable-cxx >> $logfile
+make >> $logfile && make install >> $logfile
 
 printf "\n* Compiling SWI-Prolog ... \n"
-cd "$temp/readline-*"
-./configure --prefix=$sdk
-make
-"make install"
-cd "$temp/db-*"
-./configure --prefix=$sdk
-make
-"make install"
+cd $temp/readline-* && ./configure --prefix=$sdk >> $logfile
+make >> $logfile && make install >> $logfile
+cd $temp/pl-* && ./configure --prefix=$sdk >> $logfile
+make >> $logfile && make install >> $logfile
 
 printf  "\n* Copying configuration files ... \n"
 cd "$HOME/secondo/CM-Scripts"
