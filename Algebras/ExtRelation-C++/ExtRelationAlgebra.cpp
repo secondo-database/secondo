@@ -141,7 +141,7 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
 {
   assert(subsetSize >= 1);
   assert(setSize >= 2);
-  assert(setSize <= RAND_MAX);
+  /* assert(setSize <= RAND_MAX); RHG 12.2.04 */ 
   assert(setSize > subsetSize);
 
   set<int> drawnNumbers;
