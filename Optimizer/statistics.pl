@@ -125,11 +125,11 @@ possiblyRename(Rel, Renamed) :-
 dynamicPossiblyRename(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
-  Renamed = sample(Rel, 100, 0.01).
+  Renamed = sample(Rel, 500, 0.00001).
 
 dynamicPossiblyRename(Rel, Renamed) :-
   Rel = rel(_, Name, _),
-  Renamed = rename(sample(Rel, 100, 0.01), Name).
+  Renamed = rename(sample(Rel, 500, 0.00001), Name).
 
 cardQuery(Pred, Rel, Query) :-
   sample(Rel, RelS),
