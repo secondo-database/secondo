@@ -10,10 +10,6 @@ JNIINCLUDE = -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/win32  -I$(JVMINIT_
 LDJNIFLAGS = -mno-cygwin -L$(MINGW_EXTRA)/lib
 JARDIR = .
 DLLTOOL = dlltool
-AS = as
-# use this for java sdk 1.2/1.3
-#JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/classic  -ljvm $(JVMINIT_O_FILE)
-# and this for java-sdk 1.4.1
 JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client  $(JVMINIT_O_FILE) -ljvm
 
 else
