@@ -241,68 +241,111 @@ A vertex is a \emph{Point} value.
 
 
 
-\section{Instant-Values}
+\section{Representation of Time}
 There are several representations for an \emph{instant} value.
 All Applications using instants must be able to read each of this.
+A \emph{DateTime} as an algebra type consist only of its value list. 
+If \emph{DateTime} is used as subtype, e.g. in an interval, the
+type-name has to be included. The typename can be {\tt datetime} or
+{\tt instant}. Summarized we have three possibilities for a \emph{DateTime}:
+\begin{tt}
+  \begin{small}
+     \begin{itemize}
+       \item (datetime $<$datetimevalue$>$) \\
+       \item (instant $<$datetimevalue$>$)  \\
+       \item $<$datetimevalue$>$
+      \end{itemize}
+  \end{small}
+\end{tt}
 
-\paragraph{Date}:
-A \emph{<Date>} value is represented as:
-\begin{quotation}
-  (date <day> <month> <year>)
-\end{quotation}
-where all values are of type integer. The three values must build a valid
-date. A \emph{<Date>} is a shortcut for a \emph{<DateTime>} where all
-non-date values are zero.
+The representations of {\tt $<$datetimevalue$>$} are described
+in the next subsections.
 
-\paragraph{DateTime}:
-A \emph{<DateTime>} value is represented as:
+\subsection{String Representation}
+\label{StringRepOfTime}
+A $<$datetimevalue$>$ can be represented as string in the following
+format: \\
+\begin{tt}
+  \begin{small}
+      year-month-day[-hour:minute[:second[.millisecond]]]
+  \end{small}
+\end{tt}\\
+The squared brackets indicate optionally parts. All contained values
+are integers which must be in the appropriate interval. 
+
+\subsection{Real Representation}
+A $<$datetimevalue$>$ can just be represented as an real value. 
+The conversion beween the formats is described in section 
+\ref{TimeConversions}.
+
+\subsection{Julian Representation}
+A $<$datetimevalue$>$ in the Julian representation is:\\
+\begin{tt}
+  \begin{small}
+      (day millisecond)
+  \end{small}
+\end{tt}\\
+{\tt day} can be any integer and millisecond is an integer in 
+the interval [0,86400000[. {\tt day} represents the difference
+to a fixed nulldate and {\tt milliseconds} represents the 
+time part of this day.
+
+\subsection{Gregorian Representation}
+In the Gregorian Representation a $<$datetimevalue$>$ is written 
+down as follow:\\
+\begin{tt}
+  \begin{small}
+      (day month year [ hour minute [ second [ millisecond]]])
+  \end{small}
+\end{tt}\\
+Like in the string representation (see section \ref{StringRepOfTime}),
+the squared brackets are not part of the representation but indicates
+optionally information. The values of the omitted parts are assumed to be zero.
+The triple (day, month, year) must be a valid date. The remaining
+values must be in the appropriate interval.
+
+
+\subsection{Conversions between Representations of Time}
+\label{TimeConversions}
+The conversion between {\tt real} value and Julian representation
+is straightforward:\\
+$ JulToReal : int \times int \rightarrow \R$ \\
+$ JulToReal(day,millisecond) = day + \frac{millisecond}{86400000}$ \\
+The used operators are working on real numbers.\\[1em]
+The another direction is computed as follow. Note a possible lost of 
+precision.\\
+$ RealToJul : \R \rightarrow (int,int)$ \\
+$ RealToJul(instant) = (day,milli) $ \\
+where:\\
+{\small
+$ day = \left\{ \begin{array}{ll}
+                    int(instant) & \mbox{if } instant > 0 
+                                   \mbox{ or } int(instant)=instant\\
+                    int(instant)-1 & otherwise
+                \end{array} \right. $\\[1em]
+$ milli = \left\{ \begin{array}{ll}
+                         tmp & \mbox{if } instant > 0 \mbox{ or } int(instant)=instant\\
+                         tmp + 86400000 & \mbox{otherwise}
+                      \end{array}\right. $ \\[1em]
+\hspace*{1cm}where : tmp = int ((instant-int(instant))*86400000+0.5)}\vspace{1cm}
+              
+
+A quadrupel $(hour, min , sec, millisec)$ can be converted into
+an single integer representing all milliseconds using the following formula:\\
+$ millis : int \times int \times int \times int \rightarrow int $\\
+$ millis(h,min,sec,msec) = (((h\cdot 60) + min)\cdot 60 + sec)\cdot 1000+ msec $
+\\[1em]
+The inverse direction can be computed as follow:\\
+$ splitmillis: int \rightarrow (int,int,int,int)$ \\
+$ splitmillis(ms) = (h,min,sec,msec)$ \\
+where:
 \begin{description}
-  \item (datetime <day> <month> <year> <hour> <minute> [ <second> [ <millisecond> ]])
+   \item[] $ h =   {ms}/{3600000} \mod 24 $
+   \item[] $ min = {ms}/{60000} \mod 60$
+   \item[] $ sec = {ms}/{1000} \mod 60$
+   \item[] $ msec = ms \mod 1000 $
 \end{description}
 
-All values are integers. The \emph{<second>} and \emph{<millisecond>} are
-optionally (indicated by [...]). If it is omitted, zero is assumed.
-\emph{<day>}, \emph{<month>}  and \emph{<year>} must build a
-valid date. The remaining values must be in the appropriate range.
-
-\paragraph{Instant}:
-A \emph{<Instant>} value is represented as a list containing the symbol {\tt instant}
-and a real value (see \ref{real_numbers}).
-\begin{description}
-  \item (instant <real number>)
-\end{description}
-
-
-\paragraph{Conversions between DateTime and Instant}:
-The representation as real value can be computed using the following
-mapping (the symbol "datetime" is omitted for a better readability):\\
- $ T : \mbox{\emph{<DateTime>}} \rightarrow \R  $\\
- $ T(d\: m\: y\: h\: {min}\: {sec}\: {msec}) :=
-      {ToJulian}(d\, m\, y) +
-      \frac{ (((h\cdot 60) + min)\cdot 60 + sec)\cdot 1000+ msec}
-           { 86400000 } $\\[1em]
-
-The inverse direction can also be computed.
-$ DT : \R \rightarrow \mbox{\emph{<DateTime>}}$\\
-The single fields of a \emph{<DateTime>} value can be computed by the following C function.
-Note that the granularity is restricted to milliseconds after this conversion.
-\begin{footnotesize}
-\begin{verbatim}
-   void toDateTime(const double instant, int& year, int& month, int& day,
-                   int& hour, int& minute, int& second, int& millisecond){
-      ToGregorian((long)instant, year,month,day);
-      double rest = instant - ((double)((long)instant));
-      long R = (long) 86400000*rest;
-      millisecond = R % 1000;
-      R = R  / 1000;
-      second = R % 60;
-      R = R / 60;
-      minute = R % 60;
-      R = R / 60;
-      hour = R;
-   }
-\end{verbatim}
-\end{footnotesize}
 
 The functions for converting a Julian Date into a Gregorian date and vice versa are
 given in the appendix.
