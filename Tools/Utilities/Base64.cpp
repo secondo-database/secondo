@@ -69,16 +69,17 @@ Base64::getNext(char& byte, istream& in) {
   for(int i=0;i<4;i++){ // get the next allowed input bytes
       in.get(ch);
 
-      while( !in.eof() && !isAllowed(ch) ) { // override not allowed bytes
+      bool endOfFile = false;
+      while( !(endOfFile=in.eof()) && !isAllowed(ch) ) { // override not allowed bytes
 	in.get(ch);
       }
-      if( in.eof() && (i>0) ) { // not a full quadrupel found
+      if( endOfFile && (i>0) ) { // not a full quadrupel found
 	  cerr << "Base64::decode - unexpected end of input!" << endl;
 	  exit(1);
       }
-      if( in.eof() ){ // end of input
+      if( endOfFile ){ // end of input
 	 endReached=true;
-	 return true;
+	 return false;
       }
      inbuffer[i] = ch;  //store value
   }
