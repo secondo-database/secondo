@@ -637,7 +637,7 @@ DisplayTTY::DisplayDuration( ListExpr type, ListExpr numType, ListExpr value )
 	 if( (dv==0) && (msv==0)){
               cout << "0ms";
 	 }else{
-	   if(dv>0){
+	   if(dv!=0){
 	       cout << dv << " days";
 	       if(msv>0)
 	           cout <<" + ";
