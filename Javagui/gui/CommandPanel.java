@@ -186,7 +186,8 @@ public class CommandPanel extends JScrollPane {
 
   /** optimizes a command if optimizer is enabled */
   private String optimize(String command){
-
+  if(command.length()<6)
+    return command; 
   String CMD = command.substring(0,6).toUpperCase();
   if(!CMD.startsWith("SQL") & !CMD.startsWith("SELECT") ){ // command not to optimize
      return command;
