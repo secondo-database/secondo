@@ -118,9 +118,8 @@ class NLToken extends Symbol implements NLSymbol{
 
 %type NLToken
 
-%notunix
 
-%full
+%unicode
 
 %char
 
@@ -301,7 +300,7 @@ filename    =   "<file>".*"</file--->"
                          yychar+1, yyline+1));
                 }
 
-<TEXTATOM_STATE> .|\n {
+<TEXTATOM_STATE> .|\n|\r {
                   // For any character, given that it has not detected the ~end
                   // of textatom~ label, the readed character belongs to the
                   // content of the textatom. So, it stores the character.
