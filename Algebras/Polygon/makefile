@@ -2,6 +2,8 @@
 #
 # SECONDO makefile for Polygon Algebra
 #
+# $Log$
+#
 ########################################################################
 
 include ../../makefile.env
@@ -14,6 +16,9 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h
+
+REFFILE=\
+
 
 LIBNAME=libpolygonalgebra
 MODNAME=PolygonAlgebra
@@ -37,10 +42,10 @@ LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
 endif
 endif
 
-$(LIBDIR)/libpolygonalgebra.$(LIBEXT): $(OBJECTS)
+$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
 	$(CP) $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(BINDIR)/$(LIBNAME).$(LIBEXT)
 endif
