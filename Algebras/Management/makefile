@@ -31,6 +31,13 @@ $(LIBDIR)/%.dep: %.cpp
 Algebra.$(OBJEXT): Algebra.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
+ifeq ($(alg),auto)
+$(shell [ ! -f AlgebraList.i.cfg ] && cp AlgebraList.i AlgebraList.i.cfg)
+AlgebraList.i: AlgebraList.i.cfg $(BUILDDIR)/makefile.algebras
+	rm -f $@
+	chmod 755 ./alg.bash && ./alg.bash $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
+endif
+
 $(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
