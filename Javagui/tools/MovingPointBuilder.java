@@ -236,7 +236,7 @@ private class pointlist{
 
       double L = length();
       String res ="";
-      Time currentTime=starttime;
+      Time currentTime=starttime.copy();
       double dist = 0;
       Time currentduration;
       double allLength=0;
@@ -247,8 +247,9 @@ private class pointlist{
             dist = p1.distance(p2);
 	    if(L==0)
 	       currentduration = duration;
-	    else
+	    else{
                currentduration  = duration.mul(dist/L);
+            }
 	    res +="( \n"; // open unit
             res += "( \n " + currentTime.getListExprString(true) +"\n"; // open interval
 	    currentTime.addInternal(currentduration);
