@@ -37,7 +37,7 @@ else
 PICFLAG =
 OBJEXT = o
 LIBEXT = a
-LDFLAGS =
+LDFLAGS = -rdynamic
 #EXEFLAGS = -static
 EXEFLAGS =
 endif

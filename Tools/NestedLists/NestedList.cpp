@@ -1787,16 +1787,19 @@ least ~N~ elements.
     cerr << endl << "NestedList-ERROR. *********" << endl
          << "Element " << initialN << " selected from a list with "
          << initialN - n << " elements!" << endl;
+    abort();
   }
   else if ( IsAtom( list ) )
   {
     cerr << endl << "NestedList-ERROR. *********" << endl
          << "Element " << initialN << " selected from an atom!" << endl;
+    abort();
   }
   else if ( n == 0 )
   {
     cerr << endl << "NestedList-ERROR. *********" << endl
          << "Function 'NthElement' called with Zero!" << endl;
+    abort();
   }
   else if ( n == 1)
   {

@@ -107,7 +107,7 @@ SecondoTTY::SecondoTTY( const int argc, const char** argv )
 bool
 SecondoTTY::AbortOnSignal( int sig )
 {
-  return (false);
+  return (true);
 }
 
 void

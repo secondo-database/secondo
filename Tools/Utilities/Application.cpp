@@ -104,7 +104,7 @@ Application::Application( int argc, const char** argv )
   }
 #endif
   lastSignal = 0;
-  abortMode = false;
+  abortMode = true;
   abortFlag = false;
   user1Flag = false;
   user2Flag = false;
@@ -113,13 +113,13 @@ Application::Application( int argc, const char** argv )
   // --- Trap all signals that would terminate the program by default anyway.
 //  signal( SIGHUP,    Application::AbortOnSignalHandler );
 //  /*signal( SIGINT,    Application::AbortOnSignalHandler );*/
-//  signal( SIGQUIT,   Application::AbortOnSignalHandler );
+  signal( SIGQUIT,   Application::AbortOnSignalHandler );
 //  signal( SIGILL,    Application::AbortOnSignalHandler );
-//  signal( SIGABRT,   Application::AbortOnSignalHandler );
+  signal( SIGABRT,   Application::AbortOnSignalHandler );
 //  signal( SIGFPE,    Application::AbortOnSignalHandler );
 //  signal( SIGPIPE,   Application::AbortOnSignalHandler );
 //  signal( SIGALRM,   Application::AbortOnSignalHandler );
-//  signal( SIGTERM,   Application::AbortOnSignalHandler );
+  signal( SIGTERM,   Application::AbortOnSignalHandler );
 //  signal( SIGUSR1,   Application::UserSignalHandler );
 //  signal( SIGUSR2,   Application::UserSignalHandler );
 //  signal( SIGTRAP,   Application::AbortOnSignalHandler );
@@ -178,6 +178,34 @@ Application::Sleep( const int seconds )
 
 #ifndef SECONDO_WIN32
 
+
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+/* Obtain a backtrace and print it to stdout. */
+void
+print_trace (void)
+{
+  void *array[50];
+  char **strings;
+
+  size_t size = backtrace (array, 50);
+  strings = backtrace_symbols (array, size);
+
+  cout << "***** Obtained " << size << " stack frames:" << endl;
+
+  for (size_t i = 0; i < size; i++) {
+     cout << strings[i] << endl;
+  }
+
+  cout << "*****" << endl;
+
+  free (strings);
+}
+
+
+
 void
 Application::AbortOnSignalHandler ( int sig )
 {
@@ -186,13 +214,15 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
-
+  cout << endl << "***** Signal #" << sig << " caught!" << endl;
+  print_trace();
   if ( Application::appPointer->abortMode )
   {
     if ( Application::appPointer->AbortOnSignal( sig ) )
     {
-      signal( sig, SIG_DFL );
-      kill( getpid(), sig );
+      //signal( sig, SIG_DFL );
+      //kill( getpid(), sig );
+      exit(1);
     }
     else
     {
