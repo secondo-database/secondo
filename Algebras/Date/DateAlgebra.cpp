@@ -465,7 +465,7 @@ CloneDate( const Word& w )
 int
 SizeOfDate()
 {
-  return sizeof(bool) + 3 * sizeof(int);
+  return sizeof(Date);
 }
 
 void*
