@@ -42,9 +42,9 @@ WinUnix::getPageSize( void ) {
 #ifndef SECONDO_WIN32
    return ( getpagesize() );
 #else
-   LPSYSTEM_INFO lpSysInf;
-   GetSystemInfo( lpSysInf );
-   return ( lpSysInf->dwPageSize );
+   SYSTEM_INFO SysInf;
+   GetSystemInfo( &SysInf );
+   return ( SysInf.dwPageSize );
 #endif
 
 }
