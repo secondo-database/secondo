@@ -95,7 +95,7 @@ number	       {num1}|{num2}
 
 string         \"[^\"]*\"
 
-file		"<file>"[^<\n]+"</file--->"
+file		"<file>"[^<]+"</file--->"
 
 %x TEXT
 %%
@@ -180,10 +180,11 @@ file		"<file>"[^<\n]+"</file--->"
                  cols += yyleng;
                  ListExpr newText = nl->TextAtom();
 
+                 const string ignoreChars=" \n\r\a\b\f\t\v";
                  string fileNameStr(yytext);
                  fileNameStr = fileNameStr.substr(6,yyleng-16);
-                 int start = fileNameStr.find_first_not_of(' ');
-                 int end = fileNameStr.find_last_not_of(' ');
+                 int start = fileNameStr.find_first_not_of(ignoreChars);
+                 int end = fileNameStr.find_last_not_of(ignoreChars);
                  fileNameStr = fileNameStr.substr(start,end-start+1);
                  ifstream inFile;
 		 stringstream textStream;
