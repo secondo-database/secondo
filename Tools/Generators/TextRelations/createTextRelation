@@ -1,0 +1,53 @@
+#!/bin/sh
+# script for creating a relation containing filenames and contents
+# call this script via:   createTextRel <objectname> <filename_1>..<filename_n>
+# example for storing all html in the home directory (incluve subfolders) into a relation:
+# createTextRelation  htmlfiles $(find $HOME -name "*.html") > htmlfilesobj
+# after that, you can restore the relation in Secondo with:   restore htmlfiles from htmlfilesobj
+#
+# for many files (more than the possible argumentlist of the current bash)
+# or for files with spaces in filenames use a pipe for creating the Relation
+#
+# example:   find $HOME -name "*.txt" | createTextRelation txtrelation >txtRelationObj
+#
+# written, 2005, January - Th. Behr
+
+USAGE="createTextRelation ObjectName [<file_1>..<file_n>] \n"
+
+HEADER="(OBJECT $1 ()  (rel (tuple ( (name text)(theText text) ))) ("
+END=")())"
+
+
+
+if [ "$#" = "0" ]; then
+    echo "$USAGE"
+    exit
+fi
+
+
+# case filenames specified
+echo -e  "$HEADER"
+if [ "$#" -gt "1" ]; then
+   C=1
+   for F in $*
+   do
+     if [ "$C" -gt 1 ]; then
+        echo -e "( <text>$F</text---> "
+        echo -e " <text>"
+        cat "$F"  
+        echo -e "</text--->)\n"
+     fi
+     C=$(expr "$C" + 1)
+   done
+else  # no file specified, read from standardinput e.g. a pipe (use for long argumentlists)
+   read F
+   while [ "$F" ]; do
+      echo -e "(<text>$F</text---> "
+      echo -e "<text>"
+      cat "$F"
+      echo -e "</text--->)\n"
+      read F
+   done     
+fi
+
+echo "$END"
