@@ -66,6 +66,7 @@ secondoOp(min, postfixbrackets, 2).
 secondoOp(max, postfixbrackets, 2).
 secondoOp(avg, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
+secondoOp(head, postfixbrackets, 2).
 
 
 
