@@ -56,7 +56,19 @@ SMILIB=$(BDBSMILIB)
 endif
 
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps java showjni
+all: makedirs buildlibs buildalg buildapps java config showjni 
+
+.PHONY: config
+config: bin/SecondoConfig.ini Optimizer/SecondoConfig.ini
+
+bin/SecondoConfig.ini: bin/SecondoConfig.example
+	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
+	|| test ! -e $@ && cp $< $@
+	
+Optimizer/SecondoConfig.ini: bin/SecondoConfig.example
+	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
+	|| test ! -e $@ && cp $< $@
+
 
 .PHONY: showjni
 showjni:
