@@ -1574,8 +1574,10 @@ cost(loopjoin(X, Y), Sel, S, Cost) :-
 /*
 
 Previously the cost function for ~hashjoin~ contained a term
+
 ----    A * SizeX + A * SizeY
 ----
+
 which should account for the cost of distributing tuples
 into the buckets. However in experiments the cost of
 hashing was always ten or more times smaller than the cost
@@ -2907,6 +2909,7 @@ bestPlanConsume :-
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
   query(Q).
+
 
 
 
