@@ -5,7 +5,7 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 */
 
 #include <unistd.h>
-#include <SecondoConfig.h>
+#include "SecondoConfig.h"
 
 #ifdef SECONDO_WIN32
 #include <winbase.h>
