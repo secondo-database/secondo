@@ -32,6 +32,8 @@ December 2002 M. Spiekermann Changes in Secondo(...) and NumTypeExpr(...).
 
 February 3, 2003 RHG Added a ~list counters~ command.
 
+April 29, 2003 M. Spiekermann bug fix in LookUpTypeExpr(...).
+
 \tableofcontents
 
 */
@@ -1110,7 +1112,7 @@ If value 0 is returned, the command was executed without error.
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   
-  // copy result int application specific list container.
+  // copy result into application specific list container.
   if (resultList) {
      resultList = nl->CopyList(resultList, al);
   }
@@ -1129,8 +1131,8 @@ SecondoInterface::NumericTypeExpr( const AlgebraLevel level, const ListExpr type
   ListExpr list = nl->TheEmptyList();
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
-    list = SecondoSystem::GetCatalog( level )->NumericType( al->CopyList(type,nl) );
     // use application specific list memory
+    list = SecondoSystem::GetCatalog( level )->NumericType( al->CopyList(type,nl) );
     list = nl->CopyList(list, al);
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
@@ -1161,8 +1163,10 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
   typeId = 0;
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
+    // use application specific list memory
     ok = SecondoSystem::GetCatalog( level )->
-           LookUpTypeExpr( type, name, algebraId, typeId );
+           LookUpTypeExpr( al->CopyList(type,nl), name, algebraId, typeId );
+    
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (ok);
