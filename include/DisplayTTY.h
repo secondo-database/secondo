@@ -159,7 +159,10 @@ Are display functions for the types of the standard algebra.
 Is a display function for functions.
 
 */
-
+  static void DisplayDate( ListExpr type,
+                          ListExpr numType,
+                          ListExpr value );
+  
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
   static map<string,DisplayFunction> displayFunctions;
