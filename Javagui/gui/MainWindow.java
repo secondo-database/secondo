@@ -363,6 +363,8 @@ private void setViewer(SecondoViewer SV){
   * clearObjectList
   * saveObject <ObjectName>
   * loadObject
+  * setObjectDirectory <directory>
+  * loadObjectFrom <FileName>
   * storeObject <ObjectName>
   * connect
   * disconnect
@@ -474,7 +476,7 @@ public boolean execGuiCommand(String command){
          success=false;
       }   
       ComPanel.showPrompt();
-  } else if(command.startsWith("loadObject")){
+  } else if(command.startsWith("loadObject") & !command.startsWith("loadObjectFrom")){
       OList.loadObject();
       ComPanel.showPrompt();
   } else if(command.startsWith("storeObject")){
@@ -571,6 +573,28 @@ public boolean execGuiCommand(String command){
        ComPanel.appendText("executeFile successful");
        
     ComPanel.showPrompt();   
+  } else if(command.startsWith("setObjectDirectory")){
+     String dir = command.substring(18).trim();
+     String sep = System.getProperties().getProperty("file.separator");
+     if(dir.endsWith(sep))
+        dir = dir.substring(1,dir.length()-1);  // remove a fileseparator
+     ObjectDirectory = dir;   
+     OList.setObjectDirectory(new File(dir));   
+     ComPanel.appendText("ObjectDirectory ="+dir);
+     ComPanel.showPrompt();
+  } else if(command.startsWith("loadObjectFrom")){
+     String sep = System.getProperties().getProperty("file.separator");
+     String Name = command.substring(14).trim();
+     if(!Name.startsWith(sep))
+        if(ObjectDirectory.endsWith(sep))
+          Name = ObjectDirectory+Name;
+        else
+          Name = ObjectDirectory+sep+Name;
+     if(OList.loadObject(new File(Name)))
+        ComPanel.appendText("Object loaded");
+     else
+        ComPanel.appendText("i can't load this object");
+     ComPanel.showPrompt();   
   }
   else {
     ComPanel.appendText("unknow gui command \n input \"gui listCommands\" to get a list of available commands");

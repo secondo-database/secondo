@@ -90,6 +90,9 @@ private void init(){
  GC.add("gui clearObjectList ");
  GC.add("gui saveObject <ObjectName> ");
  GC.add("gui loadObject ");
+ GC.add("gui setObjectDirectory <directory>");
+ GC.add("gui loadObjectFrom <FileName>");
+ GC.add("    the file should be inthe ObjectDirectory");
  GC.add("gui storeObject <ObjectName>");
  GC.add("gui connect ");
  GC.add("gui disconnect ");
@@ -104,4 +107,5 @@ private void init(){
 
 
 }
+
 
