@@ -1,5 +1,5 @@
-#ifndef CLASS_LOGMSG_H
-#define CLASS_LOGMSG_H
+#ifndef CLASS_RTFLAG_H
+#define CLASS_RTFLAG_H
 
 #include <map>
 #include <string>
@@ -7,25 +7,29 @@
 using namespace std;
 
 #ifndef LOGMSG_OFF
-#define LOGMSG(a, b) if ( LogMsg::isActive(a) ) { b }
+#define LOGMSG(a, b) if ( RTFlag::isActive(a) ) { b }
 #endif
 
-class LogMsg {
+class RTFlag {
 
 public:
 
-  LogMsg(){};
-  ~LogMsg(){};
+  RTFlag(){};
+  ~RTFlag(){};
 
   static void initByString( const string& keyList );
 
-  static bool isActive( const string& key ); 
+  inline static bool isActive( const string& key ) { 
+    
+    if ( (it=flagMap.find( key )) != flagMap.end() ) { return it->second;  } else { return false; };
+  };
 
 private:
 
-  static map<string,bool> logMap;
+  static map<string,bool> flagMap;
   
-  typedef map<string,bool>::iterator logMapIter;
+  typedef map<string,bool>::iterator FlagMapIter;
+  static FlagMapIter it;
 
 };
 

@@ -90,47 +90,39 @@ TimeTest::diffCPU() {
 }
 
 
+map<string,bool>::iterator
+RTFlag::it;
+
 map<string,bool>
-LogMsg::logMap;
+RTFlag::flagMap;
 
 void
-LogMsg::initByString( const string &keyList ) {
+RTFlag::initByString( const string &keyList ) {
 
    /*  The string contains a comma separated list of keywords which is inserted 
     *  into a map. 
     */
-
+   const char* sep = ",";
    int n = keyList.length();
+   
+   if (n == 0) return;
+
    char* pbuf = new char[n+1];
    keyList.copy(pbuf,n);
-   const char* sep = ",";
-   char* pkey = 0;  
+   pbuf[n] = *sep;
 
+   char* pkey = 0;  
    pkey=strtok(pbuf,sep);
+
    string key = string(pkey);
-   logMap[key] = true;
+   flagMap[key] = true;
     
    while ( (pkey=strtok(0,sep)) != NULL ) {
 
      key = string(pkey);
-     logMap[key] = true;
+     flagMap[key] = true;
    }
 
-   delete pbuf;
+   delete [] pbuf;
 }
 
-
-bool
-LogMsg::isActive( const string &key ) {
-
-   logMapIter it=logMap.find( key );
-
-   if ( it != logMap.end() ) {
-    
-     return it->second;  
- 
-   } else {
-   
-     return false;
-   }
-}
