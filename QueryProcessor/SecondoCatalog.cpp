@@ -2212,6 +2212,15 @@ SecondoCatalog::CleanUp( const bool revert )
   }
   ObjectsCatalog::iterator oPos;
   SmiRecord oRec;
+
+/*
+In this first iteration:
+
+* Objects are created and updated with undefined values.
+
+* In the deletion, only the catalog part of the object is deleted.
+
+*/
   for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
   {
     switch (oPos->second.state)
@@ -2222,25 +2231,9 @@ SecondoCatalog::CleanUp( const bool revert )
         {
           if ( objCatalogFile.InsertRecord( SmiKey( oPos->first ), oRec ) )
           {
+            bool f = false;
             oRec.Write( &oPos->second.value, sizeof( Word ), CE_OBJS_VALUE );
-            oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
-            if ( oPos->second.valueDefined )
-            {
-              SmiRecord vRec;
-              ok = objValueFile.AppendRecord( oPos->second.valueRecordId, vRec );
-              if ( ok )
-              {
-                ListExpr typeExpr, typeInfo;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
-                typeInfo = NumericType( typeExpr );
-                am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
-                             vRec, typeInfo, oPos->second.value );
-                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value ); 
-                nl->Destroy( typeInfo );
-                nl->Destroy( typeExpr );
-              }
-            }
-            oRec.Write( &oPos->second.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+            oRec.Write( &f, sizeof( bool ), CE_OBJS_VALUE_DEF );
             oRec.Write( &oPos->second.model, sizeof( Word ), CE_OBJS_MODEL );
             if ( oPos->second.model.addr != 0 )
             {
@@ -2265,6 +2258,7 @@ SecondoCatalog::CleanUp( const bool revert )
             oRec.Write( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
             oRec.Write( oPos->second.typeName.data(), nameSize, CE_OBJS_TYPEINFO_START );
             oRec.Write( oPos->second.typeExpr.data(), exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+            oRec.Finish();
           }
           else
           {
@@ -2279,33 +2273,10 @@ SecondoCatalog::CleanUp( const bool revert )
         {
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
           {
+            bool f = false;
             bool ok2;
             oRec.Write( &oPos->second.value, sizeof( int ), CE_OBJS_VALUE );
-            oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
-            if ( oPos->second.valueDefined )
-            {
-              SmiRecord vRec;
-              if ( oPos->second.valueRecordId == 0 )
-              {
-                ok2 = objValueFile.AppendRecord( oPos->second.valueRecordId, vRec );
-              }
-              else
-              {
-                ok2 = objValueFile.SelectRecord( oPos->second.valueRecordId, vRec, SmiFile::Update );
-              }
-              if ( ok2 )
-              {
-                ListExpr typeExpr, typeInfo;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
-                typeInfo = NumericType( typeExpr );
-                am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
-                             vRec, typeInfo, oPos->second.value );
-                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
-                nl->Destroy( typeInfo );
-                nl->Destroy( typeExpr );
-              }
-            }
-            oRec.Write( &oPos->second.valueRecordId, sizeof( int ), CE_OBJS_VALUE_RECID );
+            oRec.Write( &f, sizeof( bool ), CE_OBJS_VALUE_DEF );
             oRec.Write( &oPos->second.model, sizeof( int ), CE_OBJS_MODEL );
             if ( oPos->second.model.addr != 0 )
             {
@@ -2337,6 +2308,7 @@ SecondoCatalog::CleanUp( const bool revert )
             oRec.Write( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
             oRec.Write( oPos->second.typeName.data(), nameSize, CE_OBJS_TYPEINFO_START );
             oRec.Write( oPos->second.typeExpr.data(), exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+            oRec.Finish();
           }
           else
           {
@@ -2373,10 +2345,6 @@ SecondoCatalog::CleanUp( const bool revert )
             {
               objValueFile.DeleteRecord( oPos->second.valueRecordId );
             }
-            if ( oPos->second.valueDefined )
-            {
-              (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
-            }
           }
           else
           {
@@ -2387,6 +2355,113 @@ SecondoCatalog::CleanUp( const bool revert )
       }
     }
   }
+
+/*
+In this second iteration:
+
+* Objects previously created and updated with undefined values are
+updated to express their real value. Then they are saved and closed.
+
+* In the deletion, the object is now deleted.
+
+This two iteration process is used because some objects have big 
+representations and the database sometimes get out of locks in the
+save process. Then, if it occurs, the database state will be 
+preserved and the objects are created with undefined values.
+
+*/
+  for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
+  {
+    switch (oPos->second.state)
+    {
+      case EntryInsert:
+      {
+        if ( !revert )
+        {
+          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
+          {
+            if ( oPos->second.valueDefined )
+            {
+              oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
+              SmiRecord vRec;
+              ok = objValueFile.AppendRecord( oPos->second.valueRecordId, vRec );
+              if ( ok )
+              {
+                oRec.Write( &oPos->second.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+                ListExpr typeExpr, typeInfo;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+                typeInfo = NumericType( typeExpr );
+                am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
+                             vRec, typeInfo, oPos->second.value );
+                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+                nl->Destroy( typeInfo );
+                nl->Destroy( typeExpr );
+              }
+              oRec.Finish();
+            }
+          }
+          else
+          {
+            ok = false;
+          }
+        }
+        break;
+      }
+      case EntryUpdate:
+      {
+        if ( !revert )
+        {
+          if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), oRec, SmiFile::Update ) )
+          {
+            oRec.Write( &oPos->second.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
+            bool ok2;
+            if ( oPos->second.valueDefined )
+            {
+              SmiRecord vRec;
+              if ( oPos->second.valueRecordId == 0 )
+              {
+                ok2 = objValueFile.AppendRecord( oPos->second.valueRecordId, vRec );
+                oRec.Write( &oPos->second.valueRecordId, sizeof( int ), CE_OBJS_VALUE_RECID );
+              }
+              else
+              {
+                ok2 = objValueFile.SelectRecord( oPos->second.valueRecordId, vRec, SmiFile::Update );
+              }
+              if ( ok2 )
+              {
+                ListExpr typeExpr, typeInfo;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+                typeInfo = NumericType( typeExpr );
+                am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
+                             vRec, typeInfo, oPos->second.value );
+                (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+                nl->Destroy( typeInfo );
+                nl->Destroy( typeExpr );
+              }
+              oRec.Finish();
+            }
+          }
+          else
+          {
+            ok = false;
+          }
+        }
+        break;
+      }
+      case EntryDelete:
+      {
+        if ( !revert )
+        {
+          if ( oPos->second.valueDefined )
+          {
+            (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
+          }
+        }
+        break;
+      }
+    }
+  }
+
   types.clear();
   objects.clear();
   return (ok);
