@@ -488,7 +488,10 @@ public MainWindow(String Title){
 	     System.err.println("optimizer enabled");
    }
 
-
+   String ShowLicence = Config.getProperty("SHOW_LICENCE");
+   if(ShowLicence==null || !ShowLicence.toLowerCase().equals("false")){
+       showLicence();
+   } 
 
   } // config -file readed
 
@@ -2190,10 +2193,19 @@ class Command_Listener implements ActionListener{
        }
 
 
+
+private static void showLicence(){
+    JOptionPane.showMessageDialog(null,Licence,"Licence",JOptionPane.INFORMATION_MESSAGE);
 }
 
+private static final String Licence = 
+    " Copyright (C) 2004, University in Hagen, \n" +
+    " Department of Computer Science,  \n"+
+    " Database Systems for New Applications. \n\n"+
+    " This is free software; see the source for copying conditions.\n" +
+    " There is NO warranty; not even for MERCHANTABILITY or FITNESS \n" +
+    " FOR A PARTICULAR PURPOSE.";
 
 
-
-
+}
 
