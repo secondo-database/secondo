@@ -228,7 +228,12 @@ void
 SecondoInterface::Terminate()
 {
   if ( initialized )
-  {
+  {    
+    if ( derivedObjPtr != 0 ) { // The destructor closes a relation object 
+      delete derivedObjPtr;
+      derivedObjPtr = 0;
+    }    
+
     cout << "Terminating Secondo system ...";
     // --- Abort open transaction, if there is an open transaction
     if ( activeTransaction )
@@ -254,6 +259,7 @@ SecondoInterface::Terminate()
       delete ss;
       ss = 0;
     }
+
     if ( !SmiEnvironment::ShutDown() )
     {
       string errMsg;

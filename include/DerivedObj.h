@@ -5,6 +5,9 @@
 
 May 06, 2004. M. Spiekermann: Initial Version
 
+May 20, 2004. M. Spiekermann: A bug during Berkeley-DB environment close has been fixed. 
+Now the relation object will be closed properly in the destructor
+
 This class creates and maintains the system table 
 
 SEC_DERIVED_OBJ(name: string, value: text, usedObj: text)
@@ -56,15 +59,23 @@ public:
      // and read in the stored values
      if ( ctlg.IsObjectName(derivedObjRelName) ) {
      
-       derivedObjValueList = ctlg.GetObjectValue(derivedObjRelName);
+       bool defined = false;
+       bool ok = false; 
+       ok = ctlg.GetObject( derivedObjRelName, derivedObjWord, defined );
+       assert( ok && defined );
+       derivedObjValueList = ctlg.OutObject(typeExpr(), derivedObjWord);
        DerivedObjMemoryRep( derivedObjValueList );
        tableExists = true;
      }
    
    }
-   ~DerivedObj(){
-   
-     //cerr << "~DerivedObj() called" << endl;
+   ~DerivedObj(){ // close relation object
+  
+     if ( tableExists ) {
+        ctlg.CloseObject( typeExpr(), derivedObjWord );
+     }
+
+     // free allocated memory
      for ( vector<ObjRecord*>::const_iterator it = derivedObjRecords.begin();
            it != derivedObjRecords.end();
            it++ )
@@ -319,7 +330,7 @@ private:
 
   // the typeExpr needs to be stored in a string since ListExpr are only
   // valid inside a call of SecondoInterface::Secondo(...)
-  ListExpr typeExpr() {
+  ListExpr& typeExpr() {
   
      nl.ReadFromString( derivedObjTypeStr, derivedObjTypeList ); 
      return derivedObjTypeList;		
@@ -445,7 +456,7 @@ private:
   };
   
   bool tableExists;
-
+  Word derivedObjWord;
   string derivedObjRelName;
   string derivedObjTypeStr;
   
