@@ -430,7 +430,7 @@ ReportTupleStatistics()
   buf << ccTuplesCreated << " tuples created, "
       << ccTuplesDeleted << " tuples deleted, difference is "
       << (ccTuplesCreated - ccTuplesDeleted) << "." << endl;
-      
+
   ccTuplesCreated = 0;
   ccTuplesDeleted = 0;
   return buf.str();
@@ -1562,7 +1562,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       if (!(rit->EndOfScan()))
       {
         //cout << "Tuple: " << (CcTuple)(*(rit->GetTuple())) << endl;
-        result = SetWord(rit->GetTuple()->CloneIfNecessary());
+        result = SetWord(rit->GetTuple());
         rit->Next();
         return YIELD;
       }
@@ -1875,7 +1875,6 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       if (found)
       {
-        tuple = tuple->CloneIfNecessary();
         result = SetWord(tuple);
         return YIELD;
       }
@@ -2355,7 +2354,7 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
         vector = qp->Argument(args[1].addr);
         (*vector)[0] = t;
         qp->Request(args[1].addr, value);
-        found = 
+        found =
           ((CcBool*)value.addr)->IsDefined()
           && ((CcBool*)value.addr)->GetBoolval();
         if (found)
@@ -2365,7 +2364,6 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
         }
         else
         {
-          tuple = tuple->CloneIfNecessary();
           result = SetWord(tuple);
           return YIELD;
         }
@@ -2623,7 +2621,6 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         tuple = (CcTuple*)t.addr;
-        tuple = tuple->CloneIfNecessary();
         result = SetWord(tuple);
         return YIELD;
       }
@@ -2839,7 +2836,6 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
       if(qp->Received(args[0].addr))
       {
         tuple = (CcTuple*)tupleWord.addr;
-        tuple = tuple->CloneIfNecessary();
         result = SetWord(tuple);
         local.ival++;
         return YIELD;
@@ -3395,7 +3391,6 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       while(qp->Received(args[0].addr))
       {
         t =(CcTuple*)tuple.addr;
-        t = t->CloneIfNecessary();
         tuples->push_back(t);
         qp->Request(args[0].addr,tuple);
       }
@@ -3572,7 +3567,6 @@ RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
             if(cmp(currentTuple, lastOutputTuple)
               || cmp(lastOutputTuple, currentTuple))
             {
-              currentTuple = currentTuple->CloneIfNecessary();
               local = SetWord(currentTuple);
               result = SetWord(currentTuple);
               return YIELD;
@@ -3585,7 +3579,6 @@ RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
           else
           {
             currentTuple = (CcTuple*)tuple.addr;
-            currentTuple = currentTuple->CloneIfNecessary();
             local = SetWord(currentTuple);
             result = SetWord(currentTuple);
             return YIELD;
@@ -3691,7 +3684,6 @@ private:
     qp->Request(streamA.addr, tuple);
     if(qp->Received(streamA.addr))
     {
-      tuple = SetWord(((CcTuple*)tuple.addr)->CloneIfNecessary());
       currentATuple = (CcTuple*)tuple.addr;
       return currentATuple;
     }
@@ -3713,7 +3705,6 @@ private:
     qp->Request(streamB.addr, tuple);
     if(qp->Received(streamB.addr))
     {
-      tuple = SetWord(((CcTuple*)tuple.addr)->CloneIfNecessary());
       currentBTuple = (CcTuple*)tuple.addr;
       return currentBTuple;
     }
@@ -4146,7 +4137,6 @@ private:
 
     if(yield)
     {
-      aResult = SetWord(((CcTuple*)aResult.addr)->CloneIfNecessary());
       return (CcTuple*)aResult.addr;
     }
     else
@@ -4172,7 +4162,6 @@ private:
 
     if(yield)
     {
-      bResult = SetWord(((CcTuple*)bResult.addr)->CloneIfNecessary());
       return (CcTuple*)bResult.addr;
     }
     else
@@ -4507,7 +4496,6 @@ private:
     while(qp->Received(stream.addr))
     {
       CcTuple* tuple = (CcTuple*)tupleWord.addr;
-      tuple = tuple->CloneIfNecessary();
       buckets[HashTuple(tuple, attrIndex)].push_back(tuple);
       qp->Request(stream.addr, tupleWord);
     }
@@ -4773,9 +4761,10 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           qp->Request(supplier3,value);
           tup->Put(noofoldattrs+i,((StandardAttribute*)value.addr)->Clone());
         }
-        
+
         tup->SetNoAttrs(noofoldattrs + nooffun);
         result = SetWord(tup);
+        ((CcTuple*)t.addr)->DeleteIfAllowed();
         return YIELD;
       }
       else
@@ -4900,7 +4889,6 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
         if (qp->Received(args[0].addr))
         {
           tuple = (CcTuple*)t.addr;
-          tuple = tuple->CloneIfNecessary();
           result = SetWord(tuple);
           return YIELD;
         }
@@ -4913,7 +4901,6 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[1].addr))
       {
         tuple = (CcTuple*)t.addr;
-        tuple = tuple->CloneIfNecessary();
         result = SetWord(tuple);
         return YIELD;
       }
