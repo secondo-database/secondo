@@ -66,7 +66,7 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
 else 
 
    # windows 
-   # It is important to start with C:/ (uppercase) and to use / as separator!
+   # It is important to start with C:/ to use / as separator!
    export SWI_HOME_DIR="C:/Programme/pl"
    export J2SDK_ROOT="C:/j2sdk1.4.2"
 fi
@@ -82,12 +82,15 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
    export PD_HEADER="$HOME/secondo-sdk/pd/pd.header"
    export DVI_VIEWER=kdvi
    export BERKELEY_DB_DIR="$HOME/secondo-sdk"
-   export LD_LIBRARY_PATH=".:$J2SDKROOT/jre/lib/i386:$J2SDKROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR:$JNIDIR" 
+   export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR:$JNIDIR" 
 else
    export PD_HEADER="/usr/local/pd/pd.header"
    export DVI_VIEWER=yap
    export BERKELEY_DB_DIR="/usr/local"
-   TEMPPATH=".:$J2SDK_ROOT/bin:$J2SDK_ROOT/jre/bin/client:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR/bin"
+   SWI_HOME_DIR2 = $(echo $SWI_HOME_DIR | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
+   J2SDK_ROOT2 = $(echo $J2SDK_ROOT | awk 'BEGIN {FS=":"}; /:/ {print "/"tolower($1)$2}')
+
+   TEMPPATH=".:$J2SDK_ROOT2/bin:$J2SDK_ROOT2/jre/bin/client:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:/usr/local/pd:$SWI_HOME_DIR2/bin"
    export PATH=$(echo $TEMPPATH | sed 's#:C:#:/c#g' | sed 's#:D:#:/d#g')
   
    # gcc on windows needs special treatment
