@@ -77,7 +77,7 @@ public class ESInterface extends SecondoInterface{
     super();
   }
 
- 
+
   /**
    * connect to Secondo server with current settings
    * a old connection is terminated
@@ -85,8 +85,52 @@ public class ESInterface extends SecondoInterface{
    */
   public boolean connect() {
     terminate();   // terminate old connection
-    boolean conok=initialize(UserName,PassWd,databasesServerAddress,databasesServerPort);
-    return conok;
+    return initialize(UserName,PassWd,databasesServerAddress,databasesServerPort);
   }
+
+   public boolean isConnected(){
+     return connected;
+   } 
+   
+
+  /** calls super.terminate and set initialized to false */
+  public void terminate(){
+     super.terminate();
+     connected = false;
+     initialized = false; // allow a new connection
+  }
+
+ 
+  /** calls super.initialize and update connected state */
+  public boolean initialize( String user, String pswd,
+                             String host, int port ){
+    if(!initialized)
+       connected = super.initialize(user,pswd,host,port);
+    return connected;
+  }
+
+
+
+  /** calls super.secondo 
+    * if error points to lost connection then 
+    * connected  is set to false 
+    */
+  public void secondo( String commandText,
+                       ListExpr commandLE,
+                       int commandLevel,
+                       boolean commandAsText,
+                       boolean resultAsText,
+                       ListExpr resultList,
+                       IntByReference errorCode,
+                       IntByReference errorPos,
+                       StringBuffer errorMessage ){
+     super.secondo(commandText,commandLE,commandLevel,commandAsText,resultAsText,
+                   resultList,errorCode,errorPos,errorMessage);
+     if (errorCode.value==81)
+        terminate();
+  }  
+
+
+  protected boolean connected=false;
 
 }
