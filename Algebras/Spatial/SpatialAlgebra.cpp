@@ -447,7 +447,7 @@ double largeint_double(ListExpr NList, bool &correct)
 	    Fst = nl->First(Rst);//Size==2
 	    Rst = nl->Rest(Rst);//(206547878  79)
 	    if (nl->AtomType(Fst) == IntType)
-		value = value+nl->IntValue(Fst) * pow(2, 32*(size-1));
+		value = value+nl->IntValue(Fst) * pow(2, (double)32*(size-1));
 	    else  correct = false;
 	    size--;
 	}
