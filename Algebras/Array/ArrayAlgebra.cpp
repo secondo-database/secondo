@@ -313,9 +313,6 @@ void CloseArray( Word& w ) {
 
 void DeleteArray(Word& w) {
 
-  Array* array = (Array*)w.addr;
-
-  delete array;
   w.addr = 0;
 }
 
