@@ -68,6 +68,7 @@ using namespace std;
 
 #include "RelationAlgebra.h"
 #include "SecondoSystem.h"
+#include "SecondoSMI.h"
 #include "FLOB.h"
 
 extern NestedList *nl;
@@ -1040,8 +1041,20 @@ struct PrivateRelation
     tupleFile( false, 0, isTemporary ),
     lobFile( false, 0, isTemporary )
     {
-      assert( tupleFile.Create() );
-      assert( lobFile.Create() );
+      if( !tupleFile.Create() )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
+      if( !lobFile.Create() )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+        assert( false );
+      }
     }
 /*
 The first constructor. Creates an empty relation from a ~typeInfo~.
