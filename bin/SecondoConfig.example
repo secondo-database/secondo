@@ -49,6 +49,10 @@ SecondoPort=1234
 ;                       the applications list memory.
 ; SI:CopyListTime     : Measure the time for copying lists between NL-instances.
 ;
+;
+; SMI:NoTransactions  : Switch off the transaction and logging subsystem of Berkeley-DB
+;
+;
 ; FText:Trace      : Print out messages in methods of the FText algebra. 
 ;
 ; Socket:SendStat  : Show how often the requested buffersize could not be 
