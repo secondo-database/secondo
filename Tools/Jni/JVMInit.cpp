@@ -48,10 +48,23 @@ string getAbsolutePath(string Path){
      return Path;
   if(PATH_SEPARATOR==';' && Path.size()>1 && Path[1]==':'){ // an absolutte windows path
          return Path;
-  }      
+  }
   string SecondoHome = getenv("SECONDO_BUILD_DIR");
   return SecondoHome+"/"+Path;
 }
+
+/* 1.0 The trim() function
+   This function removes spaces at begin and end of the given string */
+string trim(const string& s){
+  if(s.length() == 0)
+       return s;
+  int start = s.find_first_not_of(" \t");
+  int end = s.find_last_not_of(" \t");
+  if(start == string::npos) // No non-spaces
+     return "";
+  return string(s, start, end - start + 1);
+}
+
 
 /* 1.0 The processLine function
   In this function a single line of the ini file is
@@ -68,24 +81,16 @@ void processLine(const string& inputLine,string& classpath, string& libdir, stri
 
  int len = line.size();
  // find the first not space character
- int i=0;
- while(line[i]==' ' && ++i < len);
- if(i>=len){
-   return;
- }
- if(line[0]!='%') // ignore lines without this switch
+ int i=line.find_first_not_of(" \t");
+ if(i==string::npos)
+    return;
+ if(line[i]!='%') // ignore lines without this switch
    return;
 
- string line2 = line.substr(2,line.size());
- // find the first not space character
- i=0;
- len = line2.size();
- while(line2[i]==' ' && ++i < len);
- int i2 = len;
- while(line2[i2]==' ' && --i2 > 0);
- string line3 = line2.substr(i,i2);
+ string line2 = line.substr(i,line.size());
+ string line3 = trim(line2.substr(2,line2.size()));
 
- if(line[1]=='P'){
+ if(line2[1]=='P'){
    if(classpath.size()>0)
       classpath += PATH_SEPARATOR;
    classpath += getAbsolutePath(line3);
