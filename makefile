@@ -10,6 +10,10 @@ include ./makefile.env
 all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup 
 
 
+.PHONY: msys-config
+msys-config:
+	$(MAKE) -C Win32/MSYS install
+
 .PHONY: javagui
 javagui:
 	$(MAKE) -C Javagui all
