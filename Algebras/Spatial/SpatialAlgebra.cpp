@@ -4593,6 +4593,28 @@ crossingsMap( ListExpr args )
     return (nl->SymbolAtom( "typeerror" ));
 }
 
+
+/*
+10.1.5 Type mapping function for operator ~single~
+
+This type mapping function is used for the ~single~ operator. This
+operator transform a single-element points value to a point.
+
+*/
+static ListExpr
+singleMap( ListExpr args )
+{  
+    ListExpr arg1;
+    if ( nl->ListLength( args ) == 1 )
+    {
+	arg1 = nl->First( args );
+  
+	if (TypeOfSymbol( arg1 ) == stpoints)
+	    return (nl->SymbolAtom( "point" ));
+    }
+    return (nl->SymbolAtom( "typeerror" ));
+}
+
 /*
 10.2 The dummy model mapping:
 
@@ -4963,6 +4985,24 @@ crossingsSelect( ListExpr args )
        TypeOfSymbol( arg2 ) == stline )
       return (0);   
   
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.11 Selection function ~singleSelect~
+
+This select function is used for the ~single~ operator.
+
+*/
+
+static int
+singleSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints) 
+      return (0);   
+    
   return (-1); // This point should never be reached
 }
 
@@ -6729,6 +6769,32 @@ crossings_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.3.16 Value mapping functions of operator ~single~
+
+*/
+
+static int
+single_ps( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    Point p;
+    
+    if (ps->Size()==1)
+    { 
+	ps->Get(0, p);
+	*((Point *)result.addr)=p;
+	return (0);
+    }
+    else
+    {
+	    cout<<"the poins value doesn't have exactly 1 element.";
+	    return (0);
+    }
+}
+
+/*
 10.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -6818,6 +6884,9 @@ ValueMapping unionmap[] = 	      { union_pps,
 				        };
 
 ValueMapping crossingsmap[] = 	      { crossings_ll
+				        };
+
+ValueMapping singlemap[] = 	      { single_ps
 				        };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping, 
@@ -6962,6 +7031,14 @@ const string SpatialSpecCrossings  =
 	     <text>query line1 crossings line2</text--->
 	     ) )";
 
+const string SpatialSpecSingle  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(points) ->point</text--->
+	     <text> single _</text--->
+	     <text>transform a single-element points value to point value.</text--->
+	     <text>query single points</text--->
+	     ) )";
+
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, 
 	  spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
@@ -7022,6 +7099,9 @@ Operator spatialcrossings
 	( "crossings", SpatialSpecCrossings, 1, crossingsmap, spatialnomodelmap, 
 	  crossingsSelect, crossingsMap );
 
+Operator spatialsingle
+	( "single", SpatialSpecSingle, 1, singlemap, spatialnomodelmap, 
+	  singleSelect, singleMap );
 /*
 11 Creating the Algebra
 
@@ -7057,6 +7137,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialminus );
     AddOperator( &spatialunion );
     AddOperator( &spatialcrossings );
+    AddOperator( &spatialsingle );
   }
   ~SpatialAlgebra() {};
 };
