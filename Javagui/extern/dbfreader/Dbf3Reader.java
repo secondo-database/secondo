@@ -38,6 +38,7 @@ public  ListExpr getList(String FileName){
         ErrorString="WRONG_DBASE_III_HEADER";
 	return null;
      }
+
      int FD_Length = MH.getHeaderLength()-32; // all Header-MainHeader
      Buffer = new byte[FD_Length];
      BR.read(Buffer);
@@ -84,7 +85,6 @@ public  ListExpr getList(String FileName){
      ErrorString ="ERROR_IN_READING_FILE";
      System.err.println(e);
      e.printStackTrace();
-
      return null;
   }
 
@@ -152,18 +152,19 @@ public boolean readFrom(byte[] Buffer){
   AfterComma =  NumericReader.getInt(Buffer[17]);
   if(Type=='M')
     FieldLength=10;
-  if(Type=='L')
-    FieldLength=1;
-  if(Type=='D')
+  else if(Type=='L')
+      FieldLength=1;
+  else if(Type=='D')
     FieldLength=8;
+
   Name = Name.trim();
   return true;
 }
 
 public ListExpr getTupleList(){
   if(Type=='C')
-     if(FieldLength>47)
-         return ListExpr.twoElemList(ListExpr.symbolAtom(Name), ListExpr.symbolAtom("string"));
+     if(FieldLength>MAX_STRING_LENGTH)
+	 return ListExpr.twoElemList(ListExpr.symbolAtom(Name), ListExpr.symbolAtom("text"));
      else
          return ListExpr.twoElemList(ListExpr.symbolAtom(Name),ListExpr.symbolAtom("string"));
   if(Type=='N')
@@ -177,6 +178,8 @@ public ListExpr getTupleList(){
      return ListExpr.twoElemList(ListExpr.symbolAtom(Name),ListExpr.symbolAtom("string"));
   if(Type=='M')
      return ListExpr.twoElemList(ListExpr.symbolAtom(Name),ListExpr.symbolAtom("string"));
+   if(Type=='F')
+     return ListExpr.twoElemList(ListExpr.symbolAtom(Name),ListExpr.symbolAtom("real"));
   return null;
 }
 
@@ -185,6 +188,9 @@ public String getName(){return Name;}
 public byte getType(){ return Type;}
 public int getFieldLength(){ return FieldLength;}
 public int getAfterComma(){ return AfterComma;}
+public String toString(){
+   return Name+" "+((char)Type)+" "+FieldLength+"."+AfterComma;
+}
 
 private String Name;
 private byte Type;
@@ -210,14 +216,25 @@ public boolean readFrom(byte[] Buffer){
   return true;
 }
 
+public String toString(){
+  StringBuffer res = new StringBuffer();
+  for(int i=0;i<FDs.length;i++)
+     res.append(i+": "+FDs[i]+"\n");
+  return res.toString();
+}
+
 
 public ListExpr getTypeList(){
-   if(FDs==null)
+   if(FDs==null){
       return null;
+   }
    ListExpr TupleList=ListExpr.oneElemList(FDs[0].getTupleList());
    ListExpr Last = TupleList;
-   for(int i=1;i<FDs.length;i++)
-      Last = ListExpr.append(Last,FDs[i].getTupleList());
+   ListExpr AttrList;
+   for(int i=1;i<FDs.length;i++){
+      AttrList = FDs[i].getTupleList();
+      Last = ListExpr.append(Last,AttrList);
+   }
    ListExpr RelList = ListExpr.twoElemList(ListExpr.symbolAtom("tuple"),TupleList);
    return ListExpr.twoElemList(ListExpr.symbolAtom("rel"),RelList);
 }
@@ -261,18 +278,19 @@ public boolean readFrom(byte[] Buffer,DB3RecordHeader RH){
 	for(int k=0;k<length;k++)
 	   S += (char)Buffer[CurrentPos+k];
         S = S.trim();
-	if(S.length()>MAX_STRING_LENGTH)
-	   S = S.substring(0,MAX_STRING_LENGTH);
-	Next = ListExpr.stringAtom(correctString(S));
+	if(length>MAX_STRING_LENGTH)
+	   Next = ListExpr.oneElemList(ListExpr.textAtom(S));
+	else
+	   Next = ListExpr.stringAtom(correctString(S));
       }
 
-    if(Type=='N'){
+    if(Type=='N' | Type=='F'){
         String S = "";
 	for(int k=0;k<length;k++)
 	      S += (char)Buffer[CurrentPos+k];
 
 	S = S.trim();
-	if(FD.getAfterComma()>0){
+	if(FD.getAfterComma()>0 | Type=='F'){
 	  try{
             Next = ListExpr.realAtom( Float.parseFloat(S));
 	  } catch(Exception e){
