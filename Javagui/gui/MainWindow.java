@@ -1740,8 +1740,8 @@ public boolean updateDatabases(){
 			      FC_Database.setDialogTitle(cmd_part1);
 			      if(FC_Database.showOpenDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
 			         String FName = FC_Database.getSelectedFile().getAbsolutePath();
-				 String cmd = FName.length()<48 ? cmd_part1 +"\""+FName+"\"" 
-				                                : cmd_part1+ "<text>"+FName+"</text--->";
+				 String cmd = cmd_part1+" "+FName;
+				 MainWindow.this.ComPanel.addToHistory(cmd);
 				 if(MainWindow.this.ComPanel.execUserCommand(cmd))
 				    MessageBox.showMessage("restoring database successful");
 				 else

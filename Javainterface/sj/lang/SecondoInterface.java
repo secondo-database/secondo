@@ -416,89 +416,72 @@ If value 0 is returned, the command was executed without error.
                 posFrom     >= 0 &&
                 posRestore < posDatabase && posDatabase < posFrom )
     {
-      if ( commandLevel == 1 || commandLevel == 3 ) {
-        cmdText = "(" + commandText + ")";
-      }
-      if ( list.readFromString( cmdText ) == 0 )
-      {
-        if ( list.listLength() == 5 &&
-             list.first().symbolValue().equals( "restore" ) &&
-             list.second().symbolValue().equals( "database" ) &&
-             list.third().isAtom() &&
-            (list.fourth().atomType() == ListExpr.SYMBOL_ATOM) &&
-             list.fourth().symbolValue().equals( "from" ) &&
-             list.fifth().isAtom() &&
-            ((list.fifth().atomType() == ListExpr.SYMBOL_ATOM) |
-	      (list.fifth().atomType() == ListExpr.STRING_ATOM)|
-	      (list.fifth().atomType() == ListExpr.TEXT_ATOM)) )
-        {
-          ListExpr FNameList = list.fifth();
-	  int FNameType = FNameList.atomType();
-
-	  switch(FNameType){
-	     case ListExpr.SYMBOL_ATOM : filename= FNameList.symbolValue();break;
-	     case ListExpr.STRING_ATOM : filename= FNameList.stringValue();break;
-	     default : filename = FNameList.textValue();
-	  }
-	  try {
-	    outSocketStream.write( "<DbRestore>\n" +
-                                   list.third().symbolValue() + " " + "Javagui" +
-                                   "\n</DbRestore>\n" );
-            outSocketStream.flush();
-            line = inSocketStream.readLine();
-	    if(line==null) throw new IOException();
-            if ( line.compareTo( "<SendFile>" ) == 0 )
-            {
-              String filename2 = inSocketStream.readLine();
-	      if(filename2==null) throw new IOException();
-              line = inSocketStream.readLine();  // Hope it is '</SendFile>'
-              BufferedReader restoreFile = null;
-              try {
-                restoreFile = new BufferedReader( new FileReader( filename ) );
-              } catch (FileNotFoundException e) {
-              }
-              if ( restoreFile != null )
-              {
-                outSocketStream.write( "<SendFileData>\n" );
-                while (restoreFile.ready())
-                {
-                  line = restoreFile.readLine();
-		  if(line==null) throw new IOException();
-                  outSocketStream.write( line );
-                  outSocketStream.write( "\n" );
-                }
-                outSocketStream.write( "</SendFileData>\n" );
-                outSocketStream.flush();
-                restoreFile.close();
-              } else {
-                outSocketStream.write( "<SendFileError/>\n" );
-                outSocketStream.flush();
-              }
-            }
-            line = inSocketStream.readLine();
-	    if(line!=null){
-               readResponse = true;
-	    } else{
-	       System.out.println( "SecondoInterface: Network Error in method secondo while sending file." );
-               errorCode.value = 81;
+      commandText = commandText.trim();
+      if(!commandText.startsWith("restore"))
+          errorCode.value = 1; // not a valid restore command
+      else{
+         commandText = commandText.substring(7).trim(); // remove "restore" from command
+	 if(!commandText.startsWith("database"))
+	     errorCode.value = 1; // not a valid command
+	 else{
+	    commandText = commandText.substring(8).trim(); // remove "database" from command
+	    int index = commandText.indexOf(" ");
+	    if(index<0){
+	       errorCode.value=1;
 	    }
-          } catch (IOException e) {
-            System.out.println( "SecondoInterface: Network Error in method secondo while sending file." );
-            errorCode.value = 81;
-          }
-        }
-        else
-        {
-          // Not a valid 'restore database' command
-          errorCode.value = 1;
-        }
+	    else{
+	       String DBName = commandText.substring(0,index).trim();
+	       commandText= commandText.substring(index).trim();
+	       if(!commandText.startsWith("from"))
+	          errorCode.value = 1;
+	       else{
+	          filename=commandText.substring(4).trim();
+	          try {
+   	             outSocketStream.write( "<DbRestore>\n" +DBName + " Javagui\n</DbRestore>\n" );
+                     outSocketStream.flush();
+                     line = inSocketStream.readLine();
+	             if(line==null) throw new IOException();
+                     if ( line.compareTo( "<SendFile>" ) == 0 ){
+                        String filename2 = inSocketStream.readLine();
+  	                if(filename2==null) throw new IOException();
+                        line = inSocketStream.readLine();  // Hope it is '</SendFile>'
+                        BufferedReader restoreFile = null;
+                        try {
+                           restoreFile = new BufferedReader( new FileReader( filename ) );
+                        } catch (FileNotFoundException e) {}
+                        if ( restoreFile != null ){
+                           outSocketStream.write( "<SendFileData>\n" );
+                           while (restoreFile.ready()){
+                             line = restoreFile.readLine();
+	             	     if(line==null) throw new IOException();
+                             outSocketStream.write( line );
+                             outSocketStream.write( "\n" );
+                           }
+                           outSocketStream.write( "</SendFileData>\n" );
+                           outSocketStream.flush();
+                           restoreFile.close();
+                        } else {
+                           outSocketStream.write( "<SendFileError/>\n" );
+                           outSocketStream.flush();
+                        }
+                     }
+                     line = inSocketStream.readLine();
+	             if(line!=null){
+                        readResponse = true;
+	             } else{
+	                 System.out.println( "SecondoInterface: Network Error in method secondo while sending file." );
+                         errorCode.value = 81;
+	             }
+                  } catch (IOException e) {
+                     System.out.println( "SecondoInterface: Network Error in method secondo while sending file." );
+                     errorCode.value = 81;
+                   }
+		}
+            }
+	}
       }
-      else
-      {
-        // Syntax error in list
-        errorCode.value = 9;
-      }
-    } else {
+    } // database restore
+    else {
       // Send Secondo command
       try {
         outSocketStream.write( "<Secondo>\n" +
