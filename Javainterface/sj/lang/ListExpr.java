@@ -58,9 +58,6 @@ import  sj.lang.JavaListExpr.NLParser;
  The following packages being part of the Java Development Kit are used.
  */
 
-/* From the java.util package */
-import  java.util.Vector;
-
 /* From the java.io package */
 import  java.io.FileOutputStream;
 import  java.io.OutputStreamWriter;
