@@ -4223,6 +4223,11 @@ bool CRegion::contain( const Point& p )
 
 
     //3. get the coverage value
+    
+    //cout<<"i= "<<i<<endl;  //************************
+    //if (i<0) cout<<"P= "<<p<<"R="<<*this<<endl;
+    if (i>0) { //$$$$$$$$$$$$$$this line is added to avoid abnormal access.
+    
     region.Get( i, chs );
     coverno=chs.attr.coverageno;
 
@@ -4257,6 +4262,8 @@ bool CRegion::contain( const Point& p )
 
 	i--;  //the iterator
     }
+    } //$$$$$$$$$added by DZM to avoid abnormal access
+    
     //cout<<"number of chs actually checked: "<<chsVisited2<<" + "<<chsVisiteds<<endl;
     // ================= End of the new method ================= */
 
