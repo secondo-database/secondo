@@ -99,6 +99,9 @@ public class HoeseViewer extends SecondoViewer {
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JMenuItem jMenu_Browse;
   private javax.swing.JSeparator jSeparator2;
+  private javax.swing.JMenuItem MI_SaveAttrCatLink;
+  private javax.swing.JMenuItem MI_LoadAttrCatLink;
+  private javax.swing.JMenuItem MI_AppendAttrCatLink;
 
 
  /* gui-menu */
@@ -143,6 +146,9 @@ public class HoeseViewer extends SecondoViewer {
   private JFileChooser FC_Session=new JFileChooser();
   /** a FileChooser for Categories*/
   private JFileChooser FC_Category=new JFileChooser();
+  /** a FileChooser for References Attribute value -> Category */
+  private JFileChooser FC_References = new JFileChooser();
+
 
   private String TexturePath;
   private String FileSeparator;
@@ -179,10 +185,10 @@ public class HoeseViewer extends SecondoViewer {
         String FileName = ST.nextToken().trim();
         ListExpr le = new ListExpr();
         if(le.readFromFile(Catfiles)!=0){
-          MessageBox.showMessage("i can't load the file "+FileName);
+           System.out.println("i can't load the file "+FileName);
         } else{
          if(!readAllCats(le))
-            MessageBox.showMessage("no categories in file "+FileName);
+           System.out.println("no categories in file "+FileName);
         }
       }
     }
@@ -279,14 +285,14 @@ public class HoeseViewer extends SecondoViewer {
   /** shows a messagebox */
   public void showMessage(String message){
      MessageBox.showMessage(message);
-  } 
+  }
 
 
 
 
   /**
    * Sets the divider between split-components
-   * @see <a href="MainWindowsrc.html#setdivider>Source</a> 
+   * @see <a href="MainWindowsrc.html#setdivider>Source</a>
    */
   public void setDivider () {
     VisComPanel.setDividerLocation(0.75);
@@ -295,9 +301,9 @@ public class HoeseViewer extends SecondoViewer {
 
 
   /**
-   * 
-   * @return The zoomfactor of the GraphWindow 
-   * @see <a href="MainWindowsrc.html#getZoomFactor">Source</a> 
+   *
+   * @return The zoomfactor of the GraphWindow
+   * @see <a href="MainWindowsrc.html#getZoomFactor">Source</a>
    */
   public double getZoomFactor () {
     return  ZoomFactor;
@@ -306,7 +312,7 @@ public class HoeseViewer extends SecondoViewer {
   /**
    * Sets the ZoomFactor to zf
    * @param zf
-   * @see <a href="MainWindowsrc.html#setZoomFactor">Source</a> 
+   * @see <a href="MainWindowsrc.html#setZoomFactor">Source</a>
    */
   public void setZoomFactor (double zf) {
     ZoomFactor = zf;
@@ -346,8 +352,8 @@ public class HoeseViewer extends SecondoViewer {
         left = ListExpr.cons(Category.ConvertCattoLE((Category)Cats.elementAt(i)),
             le);
         le = left;
-      } 
-      else 
+      }
+      else
         left = ListExpr.append(left, Category.ConvertCattoLE((Category)Cats.elementAt(i)));
     return  ListExpr.twoElemList(ListExpr.symbolAtom("Categories"), le);
   }
@@ -357,7 +363,7 @@ public class HoeseViewer extends SecondoViewer {
     * needed for showing dialogs
     */
   public Frame getMainFrame(){
-    if (VC!=null) 
+    if (VC!=null)
        return VC.getMainFrame();
     else
        return null;
@@ -368,7 +374,7 @@ public class HoeseViewer extends SecondoViewer {
   /**
    * Init. the menu entries.
    */
-  private void initComponents () {            
+  private void initComponents () {
 
    /** file-menu */
     jMenu1 = new javax.swing.JMenu();
@@ -377,6 +383,9 @@ public class HoeseViewer extends SecondoViewer {
     jMenu_SaveSession = new javax.swing.JMenuItem();
     jSeparator1 = new javax.swing.JSeparator();
     jMenu_Browse = new javax.swing.JMenuItem();
+    MI_SaveAttrCatLink = new JMenuItem();
+    MI_LoadAttrCatLink = new JMenuItem();
+    MI_AppendAttrCatLink = new JMenuItem();
 
 
  /** Menu Settings */
@@ -468,7 +477,55 @@ public class HoeseViewer extends SecondoViewer {
 
     jMenu1.add(MISaveCat);
 
-    MenuExtension.addMenu(jMenu1); 
+
+    MI_SaveAttrCatLink.setText("Save  Attribute -> Category");
+    MI_SaveAttrCatLink.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           if(ManualLinkPool.numberOfLinks()==0){
+	      showMessage("no references defined");
+	      return;
+	   }
+	   if(FC_References.showSaveDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION){
+              ListExpr LE = ManualLinkPool.toListExpr();
+	      File f = FC_References.getSelectedFile();
+	      if(LE.writeToFile(f.getPath())!=0)
+	           showMessage("saves references failed");
+	      else
+	           showMessage("save references successful");
+	   }
+       }});
+    
+    MI_LoadAttrCatLink.setText("Load  Attribute -> Category");
+    MI_LoadAttrCatLink.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          if(FC_References.showOpenDialog(HoeseViewer.this)==JFileChooser.APPROVE_OPTION)
+	     if (loadReferences(FC_References.getSelectedFile())){
+	         showMessage("load references successful");
+	     }else{
+                showMessage("load references failed");
+	     }
+    }});
+
+
+    MI_AppendAttrCatLink.setText("Append Attribute -> Category");
+    MI_AppendAttrCatLink.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+                showMessage("this function is not implemented");
+
+    }});
+
+
+
+
+    jMenu1.add(new JSeparator());
+    jMenu1.add(MI_SaveAttrCatLink);
+    jMenu1.add(MI_LoadAttrCatLink);
+    //jMenu1.add(MI_AppendAttrCatLink);
+
+
+
+
+    MenuExtension.addMenu(jMenu1);
 
     jMenuGui.setText("Settings");
     isAutoCatMI.setText("Auto category");
@@ -487,7 +544,7 @@ public class HoeseViewer extends SecondoViewer {
 
     jMenuGui.add(MIQueryRep);
     jMenuGui.add(jSeparator5);
-    AACatEdit = new AbstractAction("Category editor"){ 
+    AACatEdit = new AbstractAction("Category editor"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         new CategoryEditor(HoeseViewer.this, true).show();
         GraphDisplay.repaint();
@@ -700,7 +757,7 @@ public class HoeseViewer extends SecondoViewer {
           } 
           else 
             showMessage("No DsplBase object selected!");
-        } 
+        }
         else 
           showMessage("No query selected!");
       }
@@ -839,7 +896,7 @@ public class HoeseViewer extends SecondoViewer {
 private int getQueryIndex(QueryResult qr){
    JComboBox CB = TextDisplay.getQueryCombo();
    int count = CB.getItemCount();
-   int pos = -1; 
+   int pos = -1;
    boolean found =false;
    for(int i=0;i<count&&!found;i++)
       if (qr.equals(CB.getItemAt(i))) {pos = i;found=true;}
@@ -851,6 +908,20 @@ public MenuVector getMenuVector(){
     return MenuExtension;
 }
 
+
+private boolean loadReferences(File F){
+  if(!F.exists())
+     return false;
+  ListExpr LE= new ListExpr();
+  if (LE.readFromFile(F.getPath())!=0){
+     return false;
+  }
+  if(!ManualLinkPool.readFromListExpr(LE))
+     return false;
+  return true;
+}
+
+
 /** Removes a SecondoObject */
 public void removeObject(SecondoObject o){
    QueryResult qr = new QueryResult(o.getName(),o.toListExpr());
@@ -859,7 +930,7 @@ public void removeObject(SecondoObject o){
        JComboBox CB = TextDisplay.getQueryCombo();
        qr = (QueryResult) CB.getItemAt(index);  // we need the original
 
-       qr.clearSelection(); 
+       qr.clearSelection();
 
        // clear graphicDisplay
        ListIterator li = qr.getGraphObjects().listIterator();
@@ -874,14 +945,14 @@ public void removeObject(SecondoObject o){
            }
         }
         qr.getGraphObjects().clear();
-        VisComPanel.setBottomComponent(dummy); 
-       
+        VisComPanel.setBottomComponent(dummy);
+
        qr.setListData(new Vector());
        qr.revalidate();
        qr.repaint();
 
        // remove from ComboBox
-       CB.removeItemAt(index);            
+       CB.removeItemAt(index);
        if (CB.getItemCount()==0)
            TextDisplay.clearComboBox();
        CB = TextDisplay.getQueryCombo();
@@ -1627,6 +1698,21 @@ public boolean canDisplay(SecondoObject o){
 	  System.out.println("TEXTURE_PATH is not defined in "+CONFIGURATION_FILE);
 	  System.out.println("please set this variable to a existing non relative pathname");
 	}
+
+       String ReferencePath = configuration.getProperty("REFERENCE_PATH");
+       if(ReferencePath!=null){
+         FC_References.setCurrentDirectory(new File(ReferencePath));
+       }
+
+       String StdRef = configuration.getProperty("STD_REFERENCE");
+       if(StdRef!=null){
+         File F = new File(StdRef);
+	 if(!F.exists())
+	   System.out.println("the Reference-File "+StdRef+" not exists");
+	 else
+	   if(!loadReferences(F))
+	     System.out.println("i can't load the reference file :"+StdRef);
+       }
     }
 
 

@@ -8,6 +8,7 @@ import java.util.Vector;
 import java.awt.*;
 import javax.swing.event.*;
 import java.awt.event.*;
+import javax.swing.table.*;
 
 public class LinkAttrCat extends JDialog{
 
@@ -18,14 +19,11 @@ public LinkAttrCat(HoeseViewer HV){
    setTitle("link attributes to categorys");
    setSize(300,300);
    getContentPane().setLayout(new BorderLayout());
-   JPanel P = new JPanel(new GridLayout(1,2));
-   AListModel = new AttrListModel();
-   AttrList =  new JList(AListModel);
-   CListModel = new CatListModel();
-   CatList = new JList(CListModel);
-   P.add(AttrList);
-   P.add(CatList);
-   JScrollPane SP = new JScrollPane(P);
+
+   Tab = new JTable(TM);
+   JScrollPane SP = new JScrollPane(Tab);
+
+   // Control Panel <Cat-ComboBox> <Set-Button> <CatEdit-Button>
    JPanel P2 = new JPanel();
    P2.add(ComboBox);
    SetBtn = new JButton("set");
@@ -41,37 +39,62 @@ public LinkAttrCat(HoeseViewer HV){
        }});
 
    P2.add(CatEditBtn);
-   
+
+   // Close Btn
    JPanel P3 = new JPanel();
    CloseBtn = new JButton("OK");
+   CancelBtn = new JButton("Cancel");
    P3.add(CloseBtn);
+   P3.add(CancelBtn);
 
-   getContentPane().add(P2,BorderLayout.NORTH);
-   getContentPane().add(SP,BorderLayout.CENTER);
+   // Name Btn
+   JPanel P4 = new JPanel(new GridLayout(1,2));
+   P4.add(new JLabel("Name :"));
+   NameText = new JTextField(12);
+   P4.add(NameText);
+
+   JPanel P1 = new JPanel(new BorderLayout()); // combines P2 and SP
+   P1.add(P2,BorderLayout.NORTH);
+   P1.add(SP,BorderLayout.CENTER);
+
+   getContentPane().add(P4,BorderLayout.NORTH);
+   getContentPane().add(P1,BorderLayout.CENTER);
    getContentPane().add(P3,BorderLayout.SOUTH);
-   
+
    CloseBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent e){
-          LinkAttrCat.this.setVisible(false);
-      }});	  
+          if(NameText.getText().equals("")){
+	     MessageBox.showMessage("you must enter a Name ");
+	     return;
+	  }
+	  if(!UpdateMode){
+	     if(ManualLinkPool.exists(NameText.getText())){
+                MessageBox.showMessage("the name allready exists \n please chose another one ");
+	        return;
+	     }
+	     TM.getLinks().setName(NameText.getText());
+	     RetValue = OK;
+             LinkAttrCat.this.setVisible(false);
+	  } else{ // begin updateMode
+	    if(OldName.equals(NameText.getText())){ // no change
+	       RetValue=OK;
+               LinkAttrCat.this.setVisible(false);
+	    }else{ // Name is changed
+                if(ManualLinkPool.exists(NameText.getText())){
+                    MessageBox.showMessage("the name allready exists \n please chose another one ");
+	            return;
+	         }
+	         TM.getLinks().setName(NameText.getText());
+		 RetValue = OK;
+                 LinkAttrCat.this.setVisible(false);
+	     }
+	  }
+      }});
 
-   ListSelectionListener LSL = new ListSelectionListener(){
-     public void valueChanged(ListSelectionEvent evt){
-        int AttrIndex = AttrList.getSelectedIndex();
-        int CatIndex = CatList.getSelectedIndex();
-        if(AttrIndex!=CatIndex){
-          Object source = evt.getSource();
-          if(source.equals(AttrList))
-             CatList.setSelectedIndex(AttrIndex);
-          if(source.equals(CatList))
-             AttrList.setSelectedIndex(CatIndex);
-        }
-
-     }
-
-   };
-   CatList.addListSelectionListener(LSL);
-   AttrList.addListSelectionListener(LSL);
+   CancelBtn.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        LinkAttrCat.this.setVisible(false);
+     }});
 
    SetBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
@@ -80,6 +103,23 @@ public LinkAttrCat(HoeseViewer HV){
 
 }
 
+
+
+public void setName(String N){
+   NameText.setText(N);
+   TM.getLinks().setName(N);
+}
+
+
+public void setUpdateMode(boolean on,String OldName){
+  UpdateMode = on;
+  this.OldName = OldName;
+}
+
+
+public String getName(){
+  return TM.getLinks().getName();
+}
 
 /* set the available categories.
    all Categories in v are inserted other
@@ -92,13 +132,9 @@ public void setCategories(Vector v){
    Object o;
    for(int i=0;i<v.size();i++){
       o=v.get(i);
-      if(o instanceof Category)
+      if(o instanceof Category){
          ComboBox.addItem(o);
-   }
-   if(v.size()>0){
-     DefaultCategory = (Category) ComboBox.getItemAt(0);
-     if(!CListModel.isDefined())
-        CListModel.setStandard(DefaultCategory,AListModel.getSize());
+      }
    }
 }
 
@@ -117,18 +153,21 @@ private int getIndexOf(Category Cat){
 
 /* set the Attribute */
 public void setAttributes(ListExpr LE){
-   AListModel.setDatas(LE);
-   CListModel.setStandard(DefaultCategory,AListModel.getSize());
+   TM.setAttributes(LE,DefaultCategory);
 }
 
+/* add Attributes in LE, if an attribute allready exists
+ * then is this value ignored, thgis means the linked
+ * category name is not changed */
+public void addAttributes(ListExpr LE,Category DefaultCategory){
+  TM.addAttributes(LE,DefaultCategory);
+}
 
 /* set the Default Cat */
 public void setDefaultCat(Category Cat){
    if(Cat==null) return;
-   if(getIndexOf(Cat)>=0){
-      DefaultCategory = Cat;
-      CListModel.setStandard(Cat,AListModel.getSize());
-   }
+   DefaultCategory = Cat;
+   TM.setDefaultCat(Cat);
 }
 
 
@@ -139,21 +178,18 @@ private void setCat(){
      MessageBox.showMessage("no category selected");
      return;
   }
-  int index = AttrList.getSelectedIndex();
-  if(index <0){
-     MessageBox.showMessage("no attribute value selected");
-     return;
+  String CatName = TheCat.getName();
+  int index = Tab.getSelectedRow();
+  if(index<0) {
+      MessageBox.showMessage("no attribute selected");
+      return;
   }
-  CListModel.set(TheCat,index);
+  TM.setCatNameAt(index,CatName);
 }
 
 
 public Category getCategory(ListExpr LE){
-  int index = AListModel.getIndexOf(LE);
-  if(index<0)
-     return DefaultCategory;
-  else{
-    String CatName = (String)CListModel.getElementAt(index);
+    String CatName = TM.getCatName(LE);
     // search the category for this name
     boolean found =false;
     Category result= DefaultCategory;
@@ -163,195 +199,195 @@ public Category getCategory(ListExpr LE){
           result = (Category)ComboBox.getItemAt(i);
        }
     return result;
-  }
 }
 
 
 public void setRefName(String Name){
    RefName = Name;
 }
+
 public String getRefName(){
    return  RefName;
 }
 
 
+public AttrCatList getLinks(){
+   return TM.getLinks();
+}
+
+public void setLinks(AttrCatList ACL){
+   TM.setLinks(ACL);
+   NameText.setText(ACL.getName());
+}
+
+public void setVisible(boolean on){
+  if(on)
+     RetValue=CANCELED;
+
+  super.setVisible(on);
+}
+
+public int getRetValue(){
+  return RetValue;
+}
+
+
+
 private JComboBox ComboBox = new JComboBox();
-private JList AttrList;
-private JList CatList;
 private Category DefaultCategory;
-private AttrListModel AListModel;
-private CatListModel CListModel;
 private String RefName=""; // name of attribute
 private JButton SetBtn;
 private HoeseViewer HV; // needed to show a CategoryEditor
 private JButton CatEditBtn;
 private JButton CloseBtn;
+private JButton CancelBtn;
+private AttrCatTableModel TM = new AttrCatTableModel();
+private JTable Tab;
+private JTextField NameText;
+private boolean UpdateMode = false;
+private String OldName = "";
+private int RetValue=OK;
+public static final int OK = 0;
+public static final int CANCELED = 1;
 
 
+private class AttrCatTableModel implements TableModel{
+
+public void addTableModelListener(TableModelListener l){
+  if(!Listeners.contains(l))
+     Listeners.add(l);
+}
+
+public Class getColumnClass(int columnIndex){
+  return "".getClass();
+}
+
+public int getColumnCount(){
+  return 2;
+}
+
+public String getColumnName(int columnIndex){
+  if (columnIndex==0)
+     return "Value";
+  if (columnIndex==1)
+     return "Category";
+  return "";
+}
+
+public int getRowCount(){
+  if(Links==null) return 0;
+  return Links.getSize();
+}
+
+public Object getValueAt(int rowIndex,int ColumnIndex){
+  if(Links==null) return "";
+  if(ColumnIndex==0)
+     return Links.getValueStringAt(rowIndex);
+  if(ColumnIndex==1)
+     return Links.getCatNameAt(rowIndex);
+  return "";
+}
 
 
-/*      private classes for ListModels */
+public void setCatNameAt(int index,String Name){
+   if(Links==null) return;
+   Links.setCatNameAt(index,Name);
+   informListeners();
+}
 
+public boolean isCellEditable(int rowIndex, int ColumnIndex){
+  return false;
+}
 
-private class AttrListModel implements ListModel{
+public void removeTableModelListener(TableModelListener l){
+  Listeners.remove(l);
+}
 
-  public void addListDataListener(ListDataListener LDL){
-     if(LDL!=null && !LDLs.contains(LDL))
-        LDLs.add(LDL);
-  }
+public void setValueAt(Object aValue,int rowIndex,int ColumnIndex){
+  // we avoid extern changes
+}
 
-  public void removeListDataListener(ListDataListener LDL){
-    if(LDL!=null)
-       LDLs.remove(LDL);
-  }
-
-
-
-  public Object getElementAt(int index){
-     if(index<0 || index  > Datas.size())
-        return null;
-     else return Datas.get(index);
-  }
-
-  /* transform a ListExpr to a simple String */
-  private String getListString(ListExpr LE){
-     if(LE==null) return "";
-     if(LE.isEmpty()) return "";
+public String getCatName(ListExpr LE){
+     if(Links==null) return null;
+     if(LE==null) return null;
+     if(LE.isEmpty()) return null;
      int AtomType = LE.atomType();
      switch(AtomType){
-       case ListExpr.INT_ATOM : return ""+LE.intValue();
-       case ListExpr.REAL_ATOM : return ""+LE.realValue();
-       case ListExpr.BOOL_ATOM : return ""+LE.boolValue();
-       case ListExpr.STRING_ATOM : return LE.stringValue();
-       case ListExpr.SYMBOL_ATOM : return LE.symbolValue();
-       case ListExpr.TEXT_ATOM : return "komplex";
-       case ListExpr.NO_ATOM : return "komplex";
+       case ListExpr.INT_ATOM    : return Links.getCatName(LE.intValue());
+       case ListExpr.REAL_ATOM   : return Links.getCatName(LE.realValue());
+       case ListExpr.BOOL_ATOM   : return Links.getCatName(LE.boolValue());
+       case ListExpr.STRING_ATOM : return Links.getCatName(LE.stringValue());
+       case ListExpr.SYMBOL_ATOM : return Links.getCatName(LE.symbolValue());
+       case ListExpr.TEXT_ATOM : return null;
+       case ListExpr.NO_ATOM : return null;
      }
-     System.out.println("LinkAttrCat.AttrListModel.getListString : unknow atomtype ");
-     return "";
-  }
-
-
-  public int getIndexOf(ListExpr LE){
-    String SLE = getListString(LE);
-    return Datas.indexOf(SLE);
-  }
-
-
-  /* reads all entry for the List from given ListExpr */
-  public void setDatas(ListExpr LE){
-     Datas.clear();
-     if(LE==null) return;
-     boolean komplex = false;
-     ListExpr Rest=LE;
-     String entry;
-     if(Rest.atomType()!=ListExpr.NO_ATOM){
-          entry = getListString(Rest);
-          if(!entry.equals(""))
-             Datas.add(entry);
-     }
-
-
-     while(!Rest.isEmpty()){
-        entry =  getListString(Rest.first());
-        if(!entry.equals("") && !Datas.contains(entry))
-           Datas.add(entry);
-        Rest = Rest.rest();
-     }
-     informLDLs();
-  }
-
-  public int getSize(){
-     return  Datas.size();
-  }
-
-  private void informLDLs(){
-     for(int i=0;i<LDLs.size();i++){
-        Object o = LDLs.get(i);
-        ListDataListener LDL = (ListDataListener)o;
-        LDL.contentsChanged(new ListDataEvent(this,ListDataEvent.CONTENTS_CHANGED,0,0));
-    }
-  }
-
-
-  private Vector LDLs = new Vector();
-  private Vector Datas = new Vector();
-
+     return null;
 }
 
+/* set the attributes from given list, link all value to defaultcategory */
+public void setAttributes(ListExpr LE,Category DefaultCat){ // set all non komplex attribute
+   if(Links==null) return;
+   Links.clear(); // remove old attributes
+   addAttributes(LE,DefaultCat);
+}
 
-private class CatListModel implements ListModel{
-  
-  public void addListDataListener(ListDataListener LDL){
-     if(LDL!=null && !LDLs.contains(LDL))
-        LDLs.add(LDL);
-  }
-  
-  public void removeListDataListener(ListDataListener LDL){
-    if(LDL!=null)
-       LDLs.remove(LDL);
-  }
-
-  
-  
-  public Object getElementAt(int index){
-     if(index<0 || index  > Datas.size())
-        return null;
-     else return Datas.get(index);   
-  }
-  
-  
-  public void setStandard(Category Cat,int Size ){
-      Datas.clear();
-      if(Cat!=null){
-        for(int i=0;i<Size;i++)
-           Datas.add(Cat.toString());
-        defined=true;   
-      }     
-      else  {   
-        for(int i=0;i<Size;i++)
-           Datas.add("undefined");
-        defined=false;   
-      }
-      informLDLs();   
-  }
-
-  public void set(Category Cat,int index){
-    if(index<0 || index>Datas.size()) 
-       return;
-    Datas.setElementAt(Cat.toString(),index);
-    informLDLs();
-  }
-
-  public boolean isDefined(){
-     return defined;
-  }
-  
- 
- 
-  public int getSize(){
-     return  Datas.size();
-  }
-  
-
-  private void informLDLs(){
-     for(int i=0;i<LDLs.size();i++){
-        Object o = LDLs.get(i);
-        ListDataListener LDL = (ListDataListener)o;
-        LDL.contentsChanged(new ListDataEvent(this,ListDataEvent.CONTENTS_CHANGED,0,0));
-    }    
-  }
-  
-  
-  private Vector LDLs = new Vector();
-  private Vector Datas = new Vector();
-  private boolean defined = false;
-
+/* set the attributes from given list, link all value to defaultcategory */
+public void addAttributes(ListExpr LE,Category DefaultCat){ // set all non komplex attribute
+   if(Links==null) return;
+   if(LE==null) return;
+   String Name;
+   if (DefaultCat!=null)
+       Name = DefaultCat.getName();
+   else
+       Name ="unknow Category";
+   while (!LE.isEmpty()){
+     ListExpr Attr = LE.first();
+     LE = LE.rest();
+     int AtomType = Attr.atomType();
+     switch(AtomType){
+       case ListExpr.INT_ATOM    : Links.addLink(Attr.intValue(),Name);break;
+       case ListExpr.REAL_ATOM   : Links.addLink(Attr.realValue(),Name);break;
+       case ListExpr.BOOL_ATOM   : Links.addLink(Attr.boolValue(),Name);break;
+       case ListExpr.STRING_ATOM : Links.addLink(Attr.stringValue(),Name);break;
+       case ListExpr.SYMBOL_ATOM : Links.addLink(Attr.symbolValue(),Name);break;
+       case ListExpr.TEXT_ATOM : break;
+       case ListExpr.NO_ATOM : break;
+     }
+   }
+   informListeners();
 }
 
 
 
+public void readFrom(AttrCatList ACL){
+   Links = ACL;
+   informListeners();
+}
 
+public AttrCatList getLinks(){
+   return Links;
+}
+
+public void setLinks(AttrCatList ACL){
+   Links = ACL;
+   informListeners();
+}
+
+private void informListeners(){
+   TableModelEvent TME = new TableModelEvent(this);
+   for(int i=0;i<Listeners.size();i++)
+       ((TableModelListener)Listeners.get(i)).tableChanged(TME);
+}
+
+
+public void setDefaultCat(Category Cat){
+   if(Cat!=null && Links!=null )
+     Links.setDefaultCatName(Cat.getName());
+}
+
+private Vector Listeners = new Vector();
+private AttrCatList Links = new AttrCatList();
+}
 
 }
 

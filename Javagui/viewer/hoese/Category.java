@@ -360,7 +360,7 @@ public class Category
         || (v.second().atomType() != ListExpr.INT_ATOM) || (v.third().atomType()
         != ListExpr.INT_ATOM))
       return  null;
-    cat.setLineColor(new Color(v.first().intValue(), v.second().intValue(), 
+    cat.setLineColor(new Color(v.first().intValue(), v.second().intValue(),
         v.third().intValue()));
     le = le.rest();
     if (le.first().atomType() != ListExpr.INT_ATOM)
@@ -420,14 +420,19 @@ public class Category
       cat.setFillStyle(new GradientPaint(0.0f, 0.0f, Color1, 20.0f, 20.0f,
           Color2, true));
     else if (style.equals("texture")) {
-      BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
-          BufferedImage.TYPE_INT_ARGB);
-      Graphics2D big = bi.createGraphics();
-      big.drawImage(ii.getImage(), 0, 0, null);
-      Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
-      cat.setFillStyle(new TexturePaint(bi, r));
-    } 
-    else 
+      if (ii.getImageLoadStatus()==MediaTracker.ABORTED ||  ii.getImageLoadStatus()==MediaTracker.ERRORED){
+         style="solid";
+	 cat.setFillStyle(Color1);
+      } else{
+        BufferedImage bi = new BufferedImage(ii.getIconWidth(), ii.getIconHeight(),
+            BufferedImage.TYPE_INT_ARGB);
+        Graphics2D big = bi.createGraphics();
+        big.drawImage(ii.getImage(), 0, 0, null);
+        Rectangle r = new Rectangle(0, 0, ii.getIconWidth(), ii.getIconHeight());
+        cat.setFillStyle(new TexturePaint(bi, r));
+     }
+    }
+    else
       return  null;
     return  cat;
   }

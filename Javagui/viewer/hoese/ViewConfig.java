@@ -1,5 +1,3 @@
-
-
 package  viewer.hoese;
 
 import  java.util.*;
@@ -45,7 +43,7 @@ public class ViewConfig extends javax.swing.JDialog {
   DsplGraph AktGO;
 
   ListExpr AttrValues;
-  LinkAttrCat LAC;
+  static LinkAttrCat LAC=null;
 
   /** Creates new JDialog ViewConfig with the attribute-name an
    */
@@ -53,13 +51,15 @@ public class ViewConfig extends javax.swing.JDialog {
     super(parent.getMainFrame(), true);
     setTitle("Set Representation of GraphObjects");
     mw = parent;
+    if(LAC==null)
+        LAC = new LinkAttrCat(mw);
     AttrName = an;
     JComboBox cb = mw.TextDisplay.getQueryCombo();
     Query = (QueryResult)cb.getSelectedItem();
     RefAList = getRefAttrList();
     initComponents();
     pack();
-    setSize(500,400);
+    setSize(500,500);
     setResizable(true);
   }
 
@@ -146,7 +146,7 @@ public class ViewConfig extends javax.swing.JDialog {
         new CategoryEditor(mw, true).show();
         mw.GraphDisplay.repaint();
         CatCB.setSelectedIndex(CatCB.getItemCount() - 1);
-        //			((DsplBase)o).getFrame().select(o);	
+        //			((DsplBase)o).getFrame().select(o);
       }
     });
     FirstRow.add(CatCB);
@@ -170,38 +170,123 @@ public class ViewConfig extends javax.swing.JDialog {
     InfoPanel.add(ThirdRow);
 
     JPanel FourthRow = new JPanel();
-    RefDepCBo.setText("Reference dependant Rendering");
+    RefDepCBo.setText("Reference dependent Rendering");
     RefDepCBo.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         RefDepCBoActionPerformed(evt);
       }
     });
     FourthRow.add(RefDepCBo);
-    
-    LinkBtn = new JButton("Link Attr to Category");
-    
-    
-    LAC = new LinkAttrCat(mw);
-    LinkBtn.addActionListener(new ActionListener(){
+
+
+
+    // we need a Panel to Select, change,add and remove manual links
+    LinkComboBox = new JComboBox();
+
+    JPanel MLPanel2 = new JPanel();
+    MLChangeBtn = new JButton("Change");
+    MLNewBtn = new JButton("New");
+    MLRemoveBtn = new JButton("Remove");
+    MLPanel2.add(MLChangeBtn);
+    MLPanel2.add(MLNewBtn);
+    MLPanel2.add(MLRemoveBtn);
+
+
+    MLNewBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-            String as = (String)RefAttrCB.getSelectedItem();
-            int index = LabelAList.indexOf(as);
-            AttrValues =  getAttrValues(index);
-            if(AttrValues==null) {
-               MessageBox.showMessage("no Reference attribute selected");
-               return;
-            }
-            if(!as.equals(LAC.getRefName())){
-              LAC.setAttributes(AttrValues);
-            }  
-            LAC.setCategories(mw.Cats);
-   
-              
-            LAC.setVisible(true);
-       
+          // create a new AttrCatList from given values
+	  Category SelectedCat = (Category) CatCB.getSelectedItem();
+	  if (SelectedCat==null){
+	     MessageBox.showMessage("no Category selected");
+	     return;
+	  }
+	  String CatName = SelectedCat.getName();
+	  String as = (String)RefAttrCB.getSelectedItem();
+	  int index = LabelAList.indexOf(as);
+	  AttrValues = getAttrValues(index);
+	  if(AttrValues==null){
+	     MessageBox.showMessage("no reference attribute selected");
+	     return;
+	  }
+	  LAC.setLinks(new AttrCatList());
+	  LAC.setDefaultCat(SelectedCat);
+	  LAC.setAttributes(AttrValues);
+	  LAC.setCategories(mw.Cats);
+	  LAC.setName("");
+          LAC.setVisible(true);
+	  if(true) { // later depending from result from LAC
+             String Name = LAC.getName();
+             LinkComboBox.addItem(Name);
+	     LinkComboBox.setSelectedItem(Name);
+	     AttrCatList ACL = LAC.getLinks();
+	     if(!ManualLinkPool.add(ACL)){
+	       // should never be reached
+	       MessageBox.showMessage("i can't insert this new references to reference pool");
+	     }
+	  }
        }});
-    
-    
+
+
+    MLChangeBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          // create a new AttrCatList from given values
+	  Category SelectedCat = (Category) CatCB.getSelectedItem();
+	  if (SelectedCat==null){
+	     MessageBox.showMessage("no Category selected");
+	     return;
+	  }
+	  String CatName = SelectedCat.getName();
+	  String as = (String)RefAttrCB.getSelectedItem();
+	  int index = LabelAList.indexOf(as);
+	  AttrValues = getAttrValues(index);
+	  if(AttrValues==null){
+	     MessageBox.showMessage("no reference attribute selected");
+	     return;
+	  }
+	  String RefName = (String) LinkComboBox.getSelectedItem();
+	  if(RefName==null){
+	    MessageBox.showMessage("no Referenceclass selected");
+	    return;
+	  }
+
+	  AttrCatList ACL = ManualLinkPool.getLinkWithName(RefName);
+	  if(ACL==null){
+	     MessageBox.showMessage("i can't find the selected Referenceclass");
+	     return;
+	  }
+
+	  AttrCatList ACLClone = (AttrCatList) ACL.clone();
+          LAC.setLinks(ACLClone);
+	  LAC.addAttributes(AttrValues,SelectedCat);
+	  LAC.setCategories(mw.Cats);
+	  LAC.setUpdateMode(true,RefName);
+          LAC.setVisible(true);
+	  LAC.setUpdateMode(false,"");
+	  if(LAC.getRetValue()==LAC.OK) {
+             String Name = LAC.getName();
+             LinkComboBox.removeItem(RefName);
+	     LinkComboBox.addItem(Name);
+	     LinkComboBox.setSelectedItem(Name);
+	     ACL = LAC.getLinks();
+	     if(!ManualLinkPool.update(RefName,ACL)){
+	       // should never be reached
+	       MessageBox.showMessage("i can't update the references in reference pool");
+	     }
+	  }
+       }});
+
+
+    MLRemoveBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent e){
+         String Name = (String) LinkComboBox.getSelectedItem();
+	 if(Name==null){
+	   MessageBox.showMessage("no reference selected ");
+	   return;
+	 }
+	 LinkComboBox.removeItem(Name);
+	 ManualLinkPool.removeLinkWithName(Name);
+       }});
+
     InfoPanel.add(FourthRow);
 
 
@@ -215,7 +300,7 @@ public class ViewConfig extends javax.swing.JDialog {
         RefDepCBo.setEnabled(!SingleTupelCBo.isSelected());
         if (SingleTupelCBo.isSelected()) {
           updateFields();
-        } 
+        }
         else {
           TupNrLabel.setText("Tuples: " + TupelCount);
           LabelText.setText(null);
@@ -243,7 +328,7 @@ public class ViewConfig extends javax.swing.JDialog {
       }
     });
     NavRow1.add(PrTuB);
-    NavPanel.setLayout(new GridLayout(3,1));
+    NavPanel.setLayout(new GridLayout(4,1));
     NavRow1.add(NeTuB);
 
     NavPanel.add(NavRow1);
@@ -260,13 +345,13 @@ public class ViewConfig extends javax.swing.JDialog {
         int LabIndex = LabelAttrCB.getSelectedIndex();
         AktGO.setCategory(cat);
         if ((LabXOffText.getText().equals("")) || (LabYOffText.getText().equals("")))
-          ; 
-        else 
-          AktGO.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()), 
+          ;
+        else
+          AktGO.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()),
               Double.parseDouble(LabYOffText.getText()));
         if (LabelText.getText().equals(""))
-          AktGO.setLabelText(null); 
-        else 
+          AktGO.setLabelText(null);
+        else
           AktGO.setLabelText(LabelText.getText());
       }
     });
@@ -290,17 +375,17 @@ public class ViewConfig extends javax.swing.JDialog {
     NavPanel.add(NavRow3);
     // RefDepCBo.setText ("jCheckBox1");
     RALabel.setText("Reference attribute");
-    
 
-    
+
+
     JPanel P = new JPanel();
-    P.setLayout(new GridLayout(4,2));
+    P.setLayout(new GridLayout(5,2));
 
     //P.add(Box.createHorizontalStrut(40));
     RTLabel.setText("Rendering Type");
     NoText.setColumns(4);
     NoText.setText("16");
-    
+
     //P.add(Box.createHorizontalStrut(60));
     RendTypeCB.addItem(new String("Solid Gray Values"));
     RendTypeCB.addItem(new String("Solid Red Values"));
@@ -317,35 +402,47 @@ public class ViewConfig extends javax.swing.JDialog {
        public void actionPerformed(ActionEvent evt){
           boolean s = LinkCheckBox.isSelected();
           if(s){
-            LinkBtn.setEnabled(true);
+            LinkComboBox.setEnabled(true);
+            MLChangeBtn.setEnabled(true);
+	    MLNewBtn.setEnabled(true);
+	    MLRemoveBtn.setEnabled(true);
             RendTypeCB.setEnabled(false);
             NoText.setEnabled(false);
-          
+
           } else{
-            LinkBtn.setEnabled(false);
+            LinkComboBox.setEnabled(false);
+            MLChangeBtn.setEnabled(false);
+	    MLNewBtn.setEnabled(false);
+	    MLRemoveBtn.setEnabled(false);
             RendTypeCB.setEnabled(true);
             NoText.setEnabled(true);
           }
        }
     });
-    
-    LinkCheckBox.setSelected(false);
-    LinkBtn.setEnabled(false);
-    
-    
-    P.add(RALabel);
-    P.add(RefAttrCB);    
 
-    P.add(RTLabel);    
-    P.add(RendTypeCB);    
-    
+    LinkCheckBox.setSelected(false);
+    LinkComboBox.setEnabled(false);
+    MLChangeBtn.setEnabled(false);
+    MLNewBtn.setEnabled(false);
+    MLRemoveBtn.setEnabled(false);
+
+
+
+    P.add(RALabel);
+    P.add(RefAttrCB);
+
+    P.add(RTLabel);
+    P.add(RendTypeCB);
+
     P.add(NGLabel);
-    P.add(NoText);    
-    
+    P.add(NoText);
+
     P.add(LinkCheckBox);
-    P.add(LinkBtn);
-    
-    
+    P.add(LinkComboBox);
+    P.add(new JLabel("")); // a dummy
+    P.add(MLPanel2);
+
+
     OKB.setText("OK");
     OKB.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
@@ -353,7 +450,7 @@ public class ViewConfig extends javax.swing.JDialog {
       }
     });
     RefPanel.add(P);
-    
+
     ButPanel = new JPanel();
     ButPanel.add(OKB);
     CancelB.setText("Cancel");
@@ -392,13 +489,22 @@ public class ViewConfig extends javax.swing.JDialog {
   }
 
 
+  /** read a AttrCatLinks from pool and insert it in
+    * the appropriate ComboBox
+    */
+  public void readPool(){
+     LinkComboBox.removeAllItems();
+     for(int i=0;i<ManualLinkPool.numberOfLinks();i++)
+           LinkComboBox.addItem(ManualLinkPool.get(i).getName());
+  }
+
 
   /**
    * When 'OK' is pushed this method checks
    * 1. Not in single tuple mode:
    *    labeltext, labelpos, category is associated to all tupels of the graphic attribute
    * 2. Reference dependant rendering?
-   *    calculates a category for each value of the ref. attr. ,based upon the selected 
+   *    calculates a category for each value of the ref. attr. ,based upon the selected
    *    category and rendering type.
    * @param evt
    */
@@ -413,31 +519,31 @@ public class ViewConfig extends javax.swing.JDialog {
         if (dg.getAttrName().equals(AttrName)) {
           dg.setCategory(cat);
           if ((LabXOffText.getText().equals("")) || (LabYOffText.getText().equals("")))
-            ; 
-          else 
-            dg.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()), 
+            ;
+          else
+            dg.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()),
                 Double.parseDouble(LabYOffText.getText()));
           if ((LabIndex >= 0) && (LabelText.getText().equals(""))) {
             String text;
-            if(LabIndex==0)  // no Label 
+            if(LabIndex==0)  // no Label
                text ="";
-            else {  
+            else {
                text = Query.getModel().getElementAt(cnt*(AttrCount + 1)
                 + LabIndex-1).toString();
                text = text.substring(text.indexOf(":") + 1);
-            }   
+            }
             dg.setLabelText(text);
-          } 
+          }
           else if (LabelText.getText().equals(""))
-            dg.setLabelText(null); 
-          else 
+            dg.setLabelText(null);
+          else
             dg.setLabelText(LabelText.getText());
           cnt++;
         }
       }
     }
 
-    
+
     if (RefDepCBo.isSelected()) {
       if(!LinkCheckBox.isSelected()){
          String as = (String)RefAttrCB.getSelectedItem();
@@ -467,8 +573,8 @@ public class ViewConfig extends javax.swing.JDialog {
                for (int i = 1; i <= RefAttrIndex; i++)
                  le = le.rest();
                if (RefAttrIndex == -1)
-                 value = (double)val; 
-               else 
+                 value = (double)val;
+               else
                  value = convertLEtoDouble(le.first());
                int chg = (int)((value - min)/(max - min)*nr);
                mw.Cats.add(GroupCats[chg]);
@@ -480,23 +586,85 @@ public class ViewConfig extends javax.swing.JDialog {
          }
       } else{
          // take the categories for the object from LinkAttrCat LAC
+	 if(LinkComboBox.getSelectedIndex()<0){ // no references selected
+	    MessageBox.showMessage("you have selected to use a manual link \n but the choice for this link is empty !!");
+	    return;
+	 }
+
          ListIterator li = Query.getGraphObjects().listIterator();
          ListExpr res = Query.LEResult.second();
          String as = (String)RefAttrCB.getSelectedItem();
          int RefAttrIndex = LabelAList.indexOf(as);
+         ListExpr AttrValues = getAttrValues(RefAttrIndex);
+	  if(AttrValues==null){
+	     MessageBox.showMessage("no reference attribute selected");
+	     return;
+	  }
+	 // get the Manual Link from MLPool
+	 String LinkName = (String) LinkComboBox.getSelectedItem();
+	 AttrCatList ACL = ManualLinkPool.getLinkWithName(LinkName);
+	 if(ACL==null){
+	    MessageBox.showMessage("internal error: selected reference name not found");
+	    return;
+	 }
+	 boolean found =false;
+	 int number = ACL.numberOfLinksFor(AttrValues);
+	 if(number<1){
+	    MessageBox.showMessage("the selected reference contains no links for selected attribute");
+	    return;
+	 }
+	 if(number < AttrValues.listLength()){
+	    if (MessageBox.showQuestion("not all attribute values have a refered category \n "+
+	                                "you want to use the default category ?")==MessageBox.NO)
+
+                  return;
+	 }
+
+         // check for categories in selected references
+         Iterator it = ACL.getCatNames();
+	 int numberNames=0;
+	 int failed =0;
+	 while(it.hasNext()){
+	    String CN = (String) it.next();
+            numberNames++;
+	    found = false;
+            for (int i=0;i<mw.Cats.size() & ! found ;i++){
+               if(CN.equals(((Category)mw.Cats.get(i)).getName()))
+	         found = true;
+	    }
+	    if(!found) failed++;
+	 }
+	 if(numberNames==failed && numberNames>0){
+	    MessageBox.showMessage("no categorie in the selected references is loaded \n abort");
+	    return;
+	 }
+
+	 if(failed>0){
+	    if(MessageBox.showQuestion("not all categories in the seleced references are loaded \n"+
+	                                "you want to use the default category ?")==MessageBox.NO)
+		return;
+	 }
+
+	 String CatName;
+	 Category Cat=null;
          while(li.hasNext()){
             DsplGraph dg = (DsplGraph)li.next();
             if(dg.getAttrName().equals(AttrName)){
                ListExpr le = res.first();
                for(int i=1;i<RefAttrIndex;i++)  // read over non interesting attribute values
                   le = le.rest();
-               Category Cat = LAC.getCategory(le.first());
-               dg.setCategory(Cat);
+               CatName = ACL.getCatName(le.first());
+	       for(int i=0;i<mw.Cats.size();i++){
+	          if(((Category)mw.Cats.get(i)).getName().equals(CatName))
+	             Cat = (Category) mw.Cats.get(i);
+	       }
+	       if(Cat!=null)
+                  dg.setCategory(Cat);
                res = res.rest();
             }
          }
       }
-      
+
     }
     setVisible(false);
     dispose();
@@ -580,7 +748,7 @@ public class ViewConfig extends javax.swing.JDialog {
    * Searches for registered (Config-file)classes of new rendering types that calc. categories
    */
   private void searchForCalcCats () {
-    StringTokenizer ccc = new StringTokenizer(HoeseViewer.configuration.getProperty("CalcCats"), 
+    StringTokenizer ccc = new StringTokenizer(HoeseViewer.configuration.getProperty("CalcCats"),
         ",");
     while (ccc.hasMoreTokens())
       try {
@@ -591,8 +759,8 @@ public class ViewConfig extends javax.swing.JDialog {
   }
 
   /**
-   * Searches the images/ directory for subdirectories with images. They are listed as 
-   * rendering type 'Images in <directory>' 
+   * Searches the images/ directory for subdirectories with images. They are listed as
+   * rendering type 'Images in <directory>'
    * @see <a href="ViewConfigsrc.html#searchForImagedirs">Source</a>
    */
   private void searchForImageDirs () {
@@ -600,7 +768,7 @@ public class ViewConfig extends javax.swing.JDialog {
 
       public boolean accept (File f) {
         return  f.isDirectory();
-      } 
+      }
       public String getDescription () {
         return  "Directories";
       }         //end getDescription
@@ -646,14 +814,14 @@ public class ViewConfig extends javax.swing.JDialog {
       return  (double)le.stringValue().hashCode();
     if (le.atomType() == ListExpr.BOOL_ATOM)
       if (le.boolValue())
-        return  1; 
-      else 
+        return  1;
+      else
         return  0;
     if (le.atomType() == ListExpr.INT_ATOM)
       return  (double)le.intValue();
     if (le.atomType() == ListExpr.REAL_ATOM)
-      return  (double)le.realValue(); 
-    else 
+      return  (double)le.realValue();
+    else
       return  0;
   }
 
@@ -686,18 +854,18 @@ public class ViewConfig extends javax.swing.JDialog {
                             Last = ListExpr.append(Last,Next);
                             Orig2 = Orig2.rest();
                          }
-                         
-                         return First; 
-       
+
+                         return First;
+
                        }
      }
 
      System.out.println("viewer.hoese.ViewConfig.ClonListExpr : unknow AtomType");
      return null;
   }
-  
-  
-  
+
+
+
   /* get a List of Values for specific index */
   private ListExpr getAttrValues(int index){
      if(index < 0)
@@ -709,11 +877,11 @@ public class ViewConfig extends javax.swing.JDialog {
       ListExpr Last=null,Next;
       while(!AllValues.isEmpty()){
          CurrentTuple = AllValues.first();
-         if(index>CurrentTuple.listLength()) 
-             return null;      
+         if(index>CurrentTuple.listLength())
+             return null;
          // search the attribute
          for(int i=1; i<index;i++)
-            CurrentTuple = CurrentTuple.rest(); 
+            CurrentTuple = CurrentTuple.rest();
          CurrentAttr =  CurrentTuple.first();
          if(Values==null){
             Values = ListExpr.oneElemList(CloneListExpr(CurrentAttr));
@@ -726,7 +894,7 @@ public class ViewConfig extends javax.swing.JDialog {
       }
       if(Values==null)
          Values = ListExpr.theEmptyList();
-      return Values;    
+      return Values;
   }
 
 
@@ -774,15 +942,15 @@ public class ViewConfig extends javax.swing.JDialog {
         if(index<mw.Cats.size())
           CatCB.setSelectedIndex(index);
       }
-    
+
     }
     super.setVisible(on);
   }
-  
-  
-  
-  
-  /** Closes the dialog 
+
+
+
+
+  /** Closes the dialog
    */
   private void closeDialog (java.awt.event.WindowEvent evt) {                   //GEN-FIRST:event_closeDialog
     setVisible(false);
@@ -815,12 +983,13 @@ public class ViewConfig extends javax.swing.JDialog {
   private JLabel LALabel;
   private JLabel LTLabel;
   private JComboBox LabelAttrCB;
-//  private JComboBox RendPosCB;
   private JLabel GAAttrName, TupNrLabel;
-  private JButton LinkBtn;
+  private JButton MLChangeBtn;
+  private JButton MLNewBtn;
+  private JButton MLRemoveBtn;
   private JCheckBox LinkCheckBox;
-  
-  
+  private JComboBox LinkComboBox;
+
   private static int VariantNr = 0;
   // End of variables declaration//GEN-END:variables
 }
