@@ -7,8 +7,11 @@
 
 March 2003 Victor Almeida created the new Relational Algebra organization
 
-Oct 2004 M. Spiekermann changed some frequently called ~small~ functions into inline
-functions implemented in the header file.
+Oct 2004 M. Spiekermann changed some frequently called ~small~ functions into
+inline functions implemented in the header file. This reduced code redundance
+since the same code written in RelationMainMemory and RelationPersistent can be
+kept together here and may improve performance when the code is compiled with
+optimization flags.
 
 [TOC]
 
@@ -216,10 +219,16 @@ Sum of all attribute sizes.
 This class implements the memory representation of the type constructor ~tuple~.
 
 */
-struct PrivateTuple;
+
+#ifdef RELALG_PERSISTENT 
+#include "RelationPersistent.h"
+#else
+#include "RelationMainMemory.h"
+#endif
+
 /*
-Forward declaration of the struct ~PrivateTuple~. This struct will contain the
-private attributes of the class ~Tuple~ and will be defined later differently
+Declaration of the struct ~PrivateTuple~. This struct contains the
+private attributes of the class ~Tuple~ and is defined differently
 for the Main Memory Relational Algebra and for the Persistent Relational Algebra.
 
 */
@@ -284,7 +293,18 @@ Sets the tuple unique ~id~ of the tuple. This function is necessary because at t
 construction time, the tuple does not know its id.
 
 */
-    Attribute* GetAttribute( const int index ) const;
+    inline Attribute* GetAttribute( const int index ) const {
+
+#ifdef RELALG_PERSISTENT        
+      // asertions below removed for performance improvement 
+      //assert( index >= 0 && index < GetNoAttributes() );
+      //assert( privateTuple->attributes[index] != 0 );
+
+      return (Attribute *)privateTuple->attributes[index];
+#else
+      return privateTuple->attrArray[ index ];
+#endif
+    }
 /*
 Returns the attribute at position ~index~ inside the tuple.
 
@@ -305,23 +325,41 @@ Returns the total size of the tuple taking into consideration the tuple and the
 LOBs.
 
 */
-    const int GetNoAttributes() const;
+    inline const int GetNoAttributes() const 
+    {
+#ifdef RELALG_PERSISTENT 
+      return privateTuple->tupleType.GetNoAttributes();
+#else
+      return privateTuple->tupleType->GetNoAttributes();
+#endif
+    }
 /*
 Returns the number of attributes of the tuple.
 
 */
-    const TupleType& GetTupleType() const;
+    inline const TupleType& GetTupleType() const {
+#ifdef RELALG_PERSISTENT 
+      return privateTuple->tupleType;
+#else
+      return *(privateTuple->tupleType);
+#endif
+
+    }
 /*
 Returns the tuple type.
 
 */
-    const bool IsFree() const;
+    inline const bool IsFree() const {
+      return privateTuple->isFree;
+    }
 /*
 Returns if a tuple is free.
 *Need some more explanations about why it is used.*
 
 */
-    void SetFree( const bool onoff );
+    inline void SetFree( const bool onoff ) {
+      privateTuple->isFree = onoff;
+    }
 /*
 Turns the tuple free (or not) for deletion.
 
@@ -336,19 +374,29 @@ Create a new tuple which is a clone of this tuple.
 Creates a new memory tuple which is a clone of this tuple.
 
 */
-    Tuple *CloneIfNecessary();
+    inline Tuple *CloneIfNecessary() {
+
+      if( privateTuple->isFree )
+        return this;
+      else
+        return this->Clone( false );
+    }
 /*
 Calls the ~Clone~ function if the flag if it is necessary.
 *Need some more explanations about whether it is necessary or not.*
 
 */
-    void DeleteIfAllowed();
+    inline void DeleteIfAllowed() {
+      
+      if( privateTuple->isFree )
+        delete this;
+    }
 /*
 Deletes the tuple if it is allowed.
 *Need some more explanations about whether it is allowed or not.*
 
 */
-    PrivateTuple *GetPrivateTuple()
+    inline PrivateTuple *GetPrivateTuple()
       { return privateTuple; }
 /*
 Function to give outside access to the private part of the tuple class.
@@ -375,22 +423,7 @@ ostream& operator <<( ostream& o, Tuple& t );
 /*
 The print function for tuples. Used for debugging purposes
 
-3.6 Class ~TupleCompare~
-
-This abstract class is used for tuple comparisons, for example,
-for ordering a relation.
-
 */
-class TupleCompare
-{
-  public:
-    virtual ~TupleCompare() {};
-    virtual bool operator()(const Tuple* a, const Tuple* b) const = 0;
-/*
-This operator compares two tuples ~a~ and ~b~.
-
-*/
-};
 
 /*
 3.7 Class ~LexicographicalTupleCompare~
@@ -399,7 +432,8 @@ This is a class used in the sort algorithm that specify the lexicographical
 comparison function between two tuples.
 
 */
-class LexicographicalTupleCompare : public TupleCompare
+
+class LexicographicalTupleCompare
 {
   public:
     inline bool operator()(const Tuple* aConst, const Tuple* bConst) const
@@ -437,7 +471,7 @@ ascendant or not (descendant).
 */
 typedef vector< pair<int, bool> > SortOrderSpecification;
 
-class TupleCompareBy : public TupleCompare
+class TupleCompareBy
 {
   public:
     TupleCompareBy( const SortOrderSpecification &spec ):
@@ -452,23 +486,29 @@ class TupleCompareBy : public TupleCompare
       SortOrderSpecification::const_iterator iter = spec.begin();
       while(iter != spec.end())
       {
-        if(((Attribute*)a->GetAttribute(iter->first - 1))->
-          Compare(((Attribute*)b->GetAttribute(iter->first - 1))) < 0)
+        const int pos = iter->first-1;
+        Attribute* aAttr = (Attribute*) a->GetAttribute(pos);
+        Attribute* bAttr = (Attribute*) b->GetAttribute(pos);
+        int cmpValue = aAttr->Compare( bAttr );
+
+        if(  cmpValue < 0 ) // aAttr < bAttr ?
         {
           return iter->second;
         }
         else
         {
-          if(((Attribute*)a->GetAttribute(iter->first - 1))->
-            Compare(((Attribute*)b->GetAttribute(iter->first - 1))) > 0)
+          if( cmpValue > 0) // aAttr > bAttr ?
           {
             return !(iter->second);
           }
         }
+        // the current attribute is equal
         iter++;
+       
       }
+      // all attributes are equal  
       return false;
-    }
+  }
 
   private:
     SortOrderSpecification spec;

@@ -7,6 +7,13 @@
 
 March 2003 Victor Almeida created the new Relational Algebra organization
 
+November 2004 M. Spiekermann. The declarations of the PrivateRelation have been
+moved to the files RelationPersistent.h and RelationMainMemory.h. This was
+necessary to implement some little functions as inline functions. Moreover, the
+Constructor of the TupleBuffer has been modified since it was changed in
+RelationAlgebra.h to set the maximum amount of memory for the buffer.
+
+
 1 Overview
 
 The Relational Algebra basically implements two type constructors, namely ~tuple~ and ~rel~.
@@ -34,10 +41,13 @@ otherwise, the main memory version will be compiled.
 
 using namespace std;
 
+#include <vector>
+
 #include "RelationAlgebra.h"
 #include "CTable.h"
 #include "SecondoSystem.h"
-#include <vector>
+#include "RelationMainMemory.h"
+
 
 extern NestedList *nl;
 
@@ -51,74 +61,6 @@ These global variables are used for caching relations.
 
 3 Type constructor ~tuple~
 
-3.2 Struct ~PrivateTuple~
-
-This struct contains the private attributes of the class ~Tuple~.
-
-*/
-struct PrivateTuple
-{
-  PrivateTuple( const TupleType& tupleType, const bool isFree ):
-    tupleId( 0 ),
-    tupleType( new TupleType( tupleType ) ),
-    attrArray( new (Attribute*)[tupleType.GetNoAttributes()] ),
-    isFree( isFree )
-    {
-      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
-        attrArray[i] = 0;
-    }
-/*
-The constructor.
-
-*/
-  PrivateTuple( const ListExpr typeInfo, const bool isFree ):
-    tupleId( 0 ),
-    tupleType( new TupleType( typeInfo ) ),
-    attrArray( new (Attribute*)[tupleType->GetNoAttributes()] ),
-    isFree( isFree )
-    {
-      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-        attrArray[i] = 0;
-    }
-/*
-The constructor.
-
-*/
-  ~PrivateTuple()
-  {
-    for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-      delete attrArray[i];
-    delete []attrArray;
-    delete tupleType;
-  }
-/*
-The destructor.
-
-*/
-  TupleId tupleId;
-/*
-The unique identification of the tuple inside a relation.
-
-*/
-  TupleType *tupleType;
-/*
-Stores the tuple type.
-
-*/
-  Attribute** attrArray;
-/*
-The array of attribute pointers.
-
-*/
-  bool isFree;
-/*
-A flag that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
-the tuple can delete or reuse it
-
-*/
-};
-
-/*
 3.3 Implementation of the class ~Tuple~
 
 This class implements the memory representation of the type constructor ~tuple~. A tuple is simply
@@ -230,11 +172,6 @@ void Tuple::SetTupleId( const TupleId& tupleId )
   privateTuple->tupleId = tupleId;
 }
 
-Attribute* Tuple::GetAttribute( const int index ) const
-{
-  return privateTuple->attrArray[ index ];
-}
-
 void Tuple::PutAttribute( const int index, Attribute* attr )
 {
   assert( index >= 0 && index < privateTuple->tupleType->GetNoAttributes() );
@@ -271,39 +208,6 @@ const int Tuple::GetTotalSize() const
   return totalSize;
 }
 
-const int Tuple::GetNoAttributes() const
-{
-  return privateTuple->tupleType->GetNoAttributes();
-}
-
-const TupleType& Tuple::GetTupleType() const
-{
-  return *(privateTuple->tupleType);
-}
-
-const bool Tuple::IsFree() const
-{
-  return privateTuple->isFree;
-}
-
-void Tuple::SetFree( const bool onoff )
-{
-  privateTuple->isFree = onoff;
-}
-
-Tuple *Tuple::CloneIfNecessary()
-{
-  if( IsFree() )
-    return this;
-  else
-    return this->Clone( false );
-}
-
-void Tuple::DeleteIfAllowed()
-{
-  if( IsFree() )
-    delete this;
-}
 
 /*
 3.9 Class ~TupleBuffer~
@@ -319,13 +223,15 @@ struct PrivateTupleBuffer
 {
   PrivateTupleBuffer() :
     totalSize( 0 )
-    {}
+    {
+    }
 
   vector<Tuple*> buffer;
 /*
 The buffer which is a ~vector~ from STL.
 
 */
+
   double totalSize;
 /*
 The total size of the buffer in bytes.
@@ -338,7 +244,7 @@ The total size of the buffer in bytes.
 3.9.2 Implementation of the class ~TupleBuffer~
 
 */
-TupleBuffer::TupleBuffer():
+TupleBuffer::TupleBuffer( const size_t ):
 privateTupleBuffer( new PrivateTupleBuffer() )
 {
 }

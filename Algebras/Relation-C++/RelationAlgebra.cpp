@@ -1249,10 +1249,10 @@ ListExpr FilterTypeMap(ListExpr args)
 int
 Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool found;
+  bool found = false;
   Word elem, funresult;
   ArgVectorPointer funargs;
-  Tuple* tuple;
+  Tuple* tuple = 0;
 
   switch ( message )
   {
@@ -1350,13 +1350,15 @@ append it to the given arguments.
 */
 ListExpr ProjectTypeMap(ListExpr args)
 {
-  bool firstcall;
-  int noAttrs, j;
-  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
-           lastNumberList, numberList, outlist;
-  string attrname, argstr;
+  bool firstcall = true;
+  int noAttrs=0, j=0;
   
-  firstcall = true;
+  // initialize local ListExpr variables
+  ListExpr first=nl->TheEmptyList();
+  ListExpr second=first, first2=first, attrtype=first, newAttrList=first;
+  ListExpr lastNewAttrList=first, lastNumberList=first, numberList=first, outlist=first;
+  string attrname="", argstr="";
+  
   
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator project expects a list of length two.");
@@ -2052,9 +2054,10 @@ Type mapping for ~rename~ is
 ListExpr
 RenameTypeMap( ListExpr args )
 {
-  ListExpr first, first2, second, rest, listn, lastlistn;
-  string  attrname, argstr;
-  string  attrnamen;
+  ListExpr first=nl->TheEmptyList();
+  ListExpr first2=first, second=first, rest=first, listn=first, lastlistn=first;
+  string  attrname="", argstr="";
+  string  attrnamen="";
   bool firstcall = true;
   
   CHECK_COND(nl->ListLength(args) == 2,
