@@ -95,8 +95,11 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
       ListExpr aunit = v.first();
       ListExpr tmp = aunit;
       int L = aunit.listLength();
-      if(L!=2 && L!=8)
+      if(L!=2 && L!=8){
+         if(Environment.DEBUG_MODE)
+            System.err.println("wrong ListLength in reading moving point unit");
          return;
+      }
       // deprecated version of external representation
       Interval in=null;
       PointMap pm=null;
