@@ -510,29 +510,87 @@ DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
   }
 }
 
+
 void
 DisplayTTY::DisplayResult2( ListExpr value )
 {
-  int counter=0;
-  ListExpr headerlist, concatenatedlist;
-  
-  headerlist = value;
-  concatenatedlist = nl->TheEmptyList();
-  concatenatedlist = nl->Second( nl->First(headerlist) );
-  headerlist = nl->Rest(headerlist);
-  while (!nl->IsEmpty( headerlist ))
+
+  ListExpr headerlist, concatenatedlist, temp1, temp2;
+  int maxHeadNameLen;
+
+  if ( nl->ListLength( value ) == 2 )
   {
-    concatenatedlist = 
-      ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
-    headerlist = nl->Rest(headerlist);
-    counter++;
+    cout << endl << "-------------------" << endl;
+    cout << "Type Constructor(s)" << endl;
+    cout << "-------------------" << endl;
+
+    temp1 = nl->First( value );
+    if ( nl->IsEmpty( temp1 )) cout << "none" << endl;
+    else {      
+      headerlist = temp1;
+      concatenatedlist = nl->TheEmptyList();
+      concatenatedlist = nl->Second(nl->First(headerlist));
+      headerlist = nl->Rest(headerlist);
+      while (!nl->IsEmpty( headerlist ))
+      {
+        concatenatedlist = 
+          ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
+        headerlist = nl->Rest(headerlist);
+      }
+
+      maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
+      while (!nl->IsEmpty( temp1 ))
+      {   
+        DisplayDescriptionLines( nl->First( temp1 ), maxHeadNameLen );
+        temp1 = nl->Rest( temp1 );
+      } 
+    } 
+    cout << endl << "-------------------" << endl;
+    cout << "Operator(s)" << endl;
+    cout << "-------------------" << endl;  
+    temp2 = nl->Second( value );
+    if ( nl->IsEmpty( temp2 )) cout << "none" << endl;
+    else {
+      headerlist = temp2;
+      concatenatedlist = nl->TheEmptyList();
+      concatenatedlist = nl->Second(nl->First(headerlist));
+      headerlist = nl->Rest(headerlist);
+      while (!nl->IsEmpty( headerlist ))
+      {
+        concatenatedlist = 
+          ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
+        headerlist = nl->Rest(headerlist);
+      }
+    
+      maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
+      while (!nl->IsEmpty( temp2 ))
+      {   
+        DisplayDescriptionLines( nl->First( temp2 ), maxHeadNameLen );
+        temp2 = nl->Rest( temp2 );
+      }
+    }
+    nl->Destroy( temp1 );
+    nl->Destroy( temp2 );  
   }
-  
-  int maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
-  while (!nl->IsEmpty( value ))
-  {   
-    DisplayDescriptionLines( nl->First(value), maxHeadNameLen );
-    value   = nl->Rest( value );
+
+  else {
+    headerlist = value;
+    concatenatedlist = nl->TheEmptyList();
+    concatenatedlist = nl->Second( nl->First(headerlist) );
+    headerlist = nl->Rest(headerlist);
+    while (!nl->IsEmpty( headerlist ))
+    {
+      concatenatedlist = 
+        ConcatLists( concatenatedlist, nl->Second(nl->First(headerlist)) );
+      headerlist = nl->Rest(headerlist);
+    }
+
+    maxHeadNameLen = MaxHeaderLength( concatenatedlist ); 
+    while (!nl->IsEmpty( value ))
+    {   
+      DisplayDescriptionLines( nl->First(value), maxHeadNameLen );
+      value   = nl->Rest( value );
+    }
   }
   nl->Destroy( headerlist );
   nl->Destroy( concatenatedlist );  

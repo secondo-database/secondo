@@ -86,9 +86,12 @@ Displays a ~value~ of ~type~ using the defined display functions. Both
 paramaters are given as nested lists.
 
 */
+
 static void DisplayResult2( ListExpr value );
 /*
 Displays all type constructors and operators, currently registered, in formatted manner.
+Displays all type constructors and operators for a single, included algebra in 
+formatted manner.
 */
  protected:
  private:
