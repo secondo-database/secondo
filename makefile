@@ -130,7 +130,7 @@ secondo-win32.tgz secondo-linux.tgz:
 	cvs export -d secondo -r$(tag) secondo
 ifneq ($(platform),win32)
 	tar -czf secondo-linux.tgz secondo/*
-	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.fig" -or -name "*.canvas" -or -name "*.fm" -or -name "*.book" -or -name "*.pdf" \) -exec recode lat1..cp1252 {} \;
+	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.sda" -or -name "*.fig" -or -name "*.canvas" -or -name "*.fm" -or -name "*.book" -or -name "*.pdf" \) -exec recode lat1..cp1252 {} \;
 	tar -czf secondo-win32.tgz secondo/*
 else
 	tar -czf secondo-win32.tgz secondo/*
