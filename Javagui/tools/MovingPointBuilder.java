@@ -248,9 +248,9 @@ private class pointlist{
 	    else
                currentduration  = duration*dist/L;
 	    res +="( \n"; // open unit
-            res += "( \n   " + DateTime.getListString(currentTime)+"\n"; // open interval
+            res += "( \n   (datetime " + currentTime +")"+"\n"; // open interval
 	    currentTime += currentduration;
-            res += "  " + DateTime.getListString(currentTime)+"\n";
+            res += "   (datetime " + currentTime +")"+"\n";
 	    res += "   TRUE \n     FALSE )\n";  // close interval
             res += "  ( "+p1+" "+p2+"))\n\n";   // open points close points close unit
       }
