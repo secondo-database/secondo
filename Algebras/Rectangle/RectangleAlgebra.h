@@ -150,6 +150,7 @@ Returns the perimeter of a rectangle.
 */
 
     const double MinD( int d ) const;
+
 /*
 Returns the min coord value for the given dimension ~dim~.
 
@@ -212,7 +213,13 @@ of the rectangle.
 
     ostream& Print( ostream &os )
       { if( IsDefined() )
-          return os << "Rectangle";
+        {
+          os << "Rectangle: ( ";
+          for(unsigned int i=0; i < dim; i++)
+            os<<min[i]<<" "<<max[i]<<" ";
+          os<<")"<<endl;
+          return os;
+        }
         else
           return os << "undef";
       }
@@ -574,6 +581,7 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
 {
   ListExpr l = instance;
 
+
   if( nl->ListLength( instance ) == 2 * dim )
   {
     correct = true;
@@ -689,5 +697,6 @@ int SizeOfRectangle()
 Word
 InRectangle( const ListExpr typeInfo, const ListExpr instance,
              const int errorPos, ListExpr& errorInfo, bool& correct );
+
 #endif
 
