@@ -18,8 +18,10 @@ card(plz, 41267).
 
 sel(plz:ort = staedte:sName, 0.0031).
 sel(plz:pLZ = (plz:pLZ)+1, 0.00001644).
+sel((plz:pLZ)-1 = plz:pLZ, 0.00001644).
 sel(plz:pLZ = (plz:pLZ)*5, 0.0000022).
 sel(plz:pLZ = plz:pLZ, 0.000146).
+sel(plz:pLZ * 3 = plz:pLZ * 3, 0.000146).
 sel(plz:pLZ > 40000, 0.55).
 sel(plz:pLZ > 50000, 0.48).
 sel(plz:pLZ < 60000, 0.64).
