@@ -2903,6 +2903,295 @@ Operator extrelloopsel (
 );
 
 /*
+2.21 Operator ~extendstream~
+
+This operator is implimented by the idea of LOOPJOIN and EXTEND
+
+The type mapping function of the extendstream operation is as follows:
+
+----    ((stream (tuple x)) (map (tuple x) (stream (y))))  -> (stream (tuple x * y))
+  where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ... 
+----
+
+----    ((stream (tuple x)) ( (b1 (map (tuple x) (stream (y)))))  -> (stream (tuple x * y))
+  where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ... 
+----
+
+For instance, 
+
+----  query people feed extendstream [parts : components (.name) ] consume;
+                  ----------------                            --------------------------------------
+              [ (stream(tuple x))              (b1 (map (tuple x) (stream (y1)) ) ) ]    -->   (stream (tuple x + (b1 y)) )
+	                                                                                                                                          ------------
+      where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ... 
+----	   
+
+*/
+
+ListExpr ExtendstreamTypeMap(ListExpr args)
+{
+  //cout<<"ExtendstreamTypeMap CALLED!!! the input NL is:"<<endl;
+  //nl->WriteListExpr( args, cout );
+  //cout<<"--------------------------------------"<<endl;
+  //==========================================
+  
+  ListExpr first, second;
+  ListExpr listX, listY, list, outlist, errorInfo;
+  AlgebraManager* algMgr;
+  algMgr = SecondoSystem::GetAlgebraManager();
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  bool correct=true;
+	  
+  if(nl->ListLength(args) == 2)
+  {
+    first = nl->First(args);                          //(stream(tuple x))
+    second  = nl->Second(args);            //((b1 (map (tuple x) (stream (y1)) ) ) )
+    second  = nl->First(second);            //(b1 (map (tuple x) (stream (y1)) ) ) 
+
+    if( (nl->ListLength(first) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+        (nl->ListLength(nl->Second(first)) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) 
+       )   //check the first NL
+	correct=true; else correct=false;
+    //cout<<"first NL correct!"<<endl;
+    
+    if( (nl->ListLength(second) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == ccmap) &&
+        (nl->Equal(nl->Second(first), nl->Second(nl->Second(second)))) &&
+        (nl->ListLength(nl->Third(nl->Second(second))) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(second)))) == stream)
+      )  //check the second NL Basic
+	correct=true; else correct=false;
+    //cout<<"second NL basic correct!"<<endl;
+
+    if ((nl->IsAtom(nl->Second(nl->Third(nl->Second(second)))))  &&
+        (algMgr->CheckKind("DATA", nl->Second(nl->Third(nl->Second(second))), errorInfo)) 
+       )
+	correct=true; else correct=false;
+     //   cout<<"second NL ALL correct!"<<endl;
+	
+    if (correct)
+    {
+      listX = nl->Second(nl->Second(first));
+      
+      listY = nl->OneElemList(nl->TwoElemList(
+	      nl->First(second),                                                     //b1
+	      nl->Second(nl->Third(nl->Second(second)))));   //y1
+      
+      if(!AttributesAreDisjoint(listX, listY))
+      {
+        goto typeerror;
+      }
+      
+      list = ConcatLists(listX, listY);
+      outlist = nl->TwoElemList(
+	      nl->SymbolAtom("stream"),
+	      nl->TwoElemList(nl->SymbolAtom("tuple"), list));
+      //==========================================
+      //cout<<"ExtendstreamTypeMap FINISHED!!! the result NL is:"<<endl;
+      //nl->WriteListExpr( outlist, cout );
+      //cout<<"<<<<<<<<<<<<<<<<<<<<<<<"<<endl;
+      
+      return outlist;
+    }
+    else goto typeerror;
+  }
+  else goto typeerror;
+
+typeerror:
+  ErrorReporter::ReportError("Incorrect input for operator extendstream.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+2.19.2 Value mapping function of operator ~extendstream~
+
+*/
+
+struct ExtendstreamLocalInfo
+{
+  Word tuplex;
+  Word streamy;
+  TupleType *resultTupleType;
+};
+
+int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  //cout<<"ExtendstreamValueMap CALLED!!!"<<endl;
+  ArgVectorPointer funargs;
+  Word tuplex, valueY, tuplexy, streamy;
+  Tuple* ctuplex;
+  Tuple* ctuplexy;
+  ExtendstreamLocalInfo *localinfo;
+  
+  TupleType *resultTupleType;
+  ListExpr resultType;
+  
+  Supplier supplier, supplier2, supplier3;
+  
+  switch ( message )
+  {
+    case OPEN:
+      
+      //1. open the input stream and initiate the arguments
+      qp->Open (args[0].addr);
+      qp->Request(args[0].addr, tuplex);
+      if (qp->Received(args[0].addr))
+      {
+	  
+        //2. compute the result "stream y" from tuple x
+        //funargs = qp->Argument(args[1].addr);   //here should be changed to the following...
+        supplier = args[1].addr;
+        supplier2 = qp->GetSupplier(supplier, 0); 
+        supplier3 = qp->GetSupplier(supplier2, 1);
+        funargs = qp->Argument(supplier3);
+		  
+        (*funargs)[0] = tuplex; 
+ 
+       streamy = SetWord(supplier3);         //originally args[1];  should be changed...
+       //qp->Request(supplier3,streamy);  //this way only suits simply data types...not for streams...
+ 
+       qp->Open (streamy.addr);                 //streamY is directly the output of the mapping function
+	
+        //3. save the local information 
+        localinfo = new ExtendstreamLocalInfo;
+        resultType = GetTupleResultType( s );
+        localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+        localinfo->tuplex = tuplex;
+        localinfo->streamy = streamy;
+        local = SetWord(localinfo);
+      }
+      else
+      {
+        local = SetWord(Address(0));
+      }
+      return 0;
+
+    case REQUEST:
+      if (local.addr ==0) return CANCEL;
+      
+      //1. recover local information
+      localinfo=(ExtendstreamLocalInfo *) local.addr;
+      resultTupleType = (TupleType *)localinfo->resultTupleType; 
+      tuplex=localinfo->tuplex;
+      ctuplex=(Tuple*)tuplex.addr;
+      streamy=localinfo->streamy;
+      
+      //2. prepare tupleX and valueY. If valueY is empty, then get next tupleX
+      valueY=SetWord(Address(0));
+      while (valueY.addr==0)          
+      {
+        qp->Request(streamy.addr, valueY);
+        if (!(qp->Received(streamy.addr))) 
+        {
+          qp->Close(streamy.addr);
+          ((Tuple*)tuplex.addr)->DeleteIfAllowed();
+          qp->Request(args[0].addr, tuplex);
+          if (qp->Received(args[0].addr))
+          {
+            //funargs = qp->Argument(args[1].addr);   ///changed to the following lines
+           supplier = args[1].addr;
+           supplier2 = qp->GetSupplier(supplier, 0);
+           supplier3 = qp->GetSupplier(supplier2, 1);
+           funargs = qp->Argument(supplier3);
+	
+            ctuplex=(Tuple*)tuplex.addr;
+            (*funargs)[0] = tuplex;
+	    
+            //streamy=args[1]; //replaced by the following line.
+            streamy = SetWord(supplier3);
+	    
+            qp->Open (streamy.addr);
+            valueY=SetWord(Address(0));
+
+            localinfo->tuplex=tuplex;
+            localinfo->streamy=streamy;
+            resultType = GetTupleResultType( s );
+            localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
+            local =  SetWord(localinfo);
+          }
+          else  //streamx is exausted
+          {
+            localinfo->streamy = SetWord(0);
+            localinfo->tuplex = SetWord(0);
+            return CANCEL;
+          }
+        }
+        else
+        {
+          //ctupley=(Tuple*)tupley.addr;
+        }
+      }
+      
+      //3. compute tupleXY from tupleX and valueY
+      ctuplexy = new Tuple( *localinfo->resultTupleType, true );
+      assert( ctuplexy->IsFree() == true );
+      
+      for( int i = 0; i < ctuplex->GetNoAttributes(); i++ )
+	  ctuplexy->PutAttribute( i, ctuplex->GetAttribute( i )->Clone() );
+      
+      ctuplexy->PutAttribute( ctuplex->GetNoAttributes(), ((StandardAttribute*)valueY.addr)->Clone() );
+      //give valueY to the last attribute
+      
+      tuplexy = SetWord(ctuplexy);
+      result = tuplexy;
+      return YIELD;
+
+    case CLOSE:
+      if( local.addr != 0 )
+      {
+        localinfo=(ExtendstreamLocalInfo *) local.addr;
+
+        if( localinfo->streamy.addr != 0 )
+          qp->Close( localinfo->streamy.addr );
+
+        if( localinfo->tuplex.addr != 0 )
+          ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
+
+        delete localinfo->resultTupleType;
+        delete localinfo;
+      }
+      qp->Close(args[0].addr);
+      return 0;
+  }
+
+  return 0;
+}
+
+/*
+2.19.3 Specification of operator ~extendstream~
+
+*/
+const string ExtendstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                             "\"Example\" ) "
+                             "( <text>((stream tuple1) (map tuple1 "
+                             "stream(type))) -> (stream tuple1*tuple2)"
+                             "</text--->"
+                             "<text>_ extendstream [ fun ]</text--->"
+                             "<text>Only tuples in the cartesian product "
+                             "which satisfy certain conditions are passed on"
+                             " to the output stream. Note: The input tuples must"
+                             " have different attribute names, hence renaming may be applied"
+                             " to one of the input streams.</text--->"
+                             "<text>query Staedte feed {s1} loopjoin[ fun(t1: TUPLE) plz feed"
+                             " filter [ attr(t1, SName_s1) = .Ort]] count</text--->"
+                             ") )";
+
+/*
+2.19.4 Definition of operator ~extendstream~
+
+*/
+Operator extrelExtendstream (
+         "extendstream",                // name
+         ExtendstreamSpec,              // specification
+         Extendstream,                  // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,            // trivial selection function
+         ExtendstreamTypeMap            // type mapping
+);
+
+/*
 2.20 Operator ~concat~
 
 2.20.1 Type mapping function of operator ~concat~
@@ -3385,6 +3674,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelsortmergejoin);
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
+    AddOperator(&extrelExtendstream);
     AddOperator(&extrelloopsel);
     AddOperator(&extrelgroupby);
   }
