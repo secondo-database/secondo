@@ -59,6 +59,7 @@ public class Layer extends JComponent {
    * @see <a href="Layersrc.html#calcBounds">Source</a>
    */
   public void calcBounds () {
+    boundsWC=null;
     try{
       ListIterator li = GeoObjects.listIterator();
       while (li.hasNext()) {
@@ -71,10 +72,12 @@ public class Layer extends JComponent {
           else
             TimeBounds = TimeBounds.union(((Timed)dg).getTimeBounds());
         bds = dg.getBounds();
-        if (boundsWC == null)
-          boundsWC = bds;
-        else
-          boundsWC = (Rectangle2D.Double)boundsWC.createUnion(bds);
+	if(bds != null){ // not an empty line
+           if (boundsWC == null)
+             boundsWC = bds;
+           else
+             boundsWC = (Rectangle2D.Double)boundsWC.createUnion(bds);
+	}
     }
     }
     catch(Exception e){

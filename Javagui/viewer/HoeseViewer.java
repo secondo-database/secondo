@@ -1482,7 +1482,7 @@ public boolean canDisplay(SecondoObject o){
         ClipRect = new Rectangle(0, 0, (int)w, (int)h);
       }
       allProjection = calcProjection();         //addScaling(calcProjection());
-    } 
+    }
     else {
       allProjection.setTransform(addScaling(context.calcManProjection()));
     }
@@ -1528,8 +1528,8 @@ public boolean canDisplay(SecondoObject o){
     if (selGraphObj.getRenderObject(allProjection) == null)
       return;
     Rectangle2D r = selGraphObj.getRenderObject(allProjection).getBounds2D();
-    if (r == null)
-      return;                   //movingXXX may be undefined
+    if (r == null)            // an emtpy spatial object or an undefined timed object
+       return;
     //try{
     Shape s = allProjection.createTransformedShape(r);
     //System.out.println(s.getBounds());
@@ -1545,7 +1545,6 @@ public boolean canDisplay(SecondoObject o){
     isMouseSelected = false;
     // selGraphObj.getLayer().scrollRectToVisible(
     //         irect.createIntersection(s.getBounds()).getBounds());
-    GraphDisplay.repaint();
   }
 
 
@@ -1590,8 +1589,10 @@ public boolean canDisplay(SecondoObject o){
         selGraphObj = null;
         //selGraphObj.getLayer().repaint();
       }
-      if(theList.getModel().getSize()<1)// an empty list
-         return;
+      if(theList.getModel().getSize()<1){// an empty list
+         GraphDisplay.repaint(); // remove an old selection
+	 return;
+      }
       o = theList.getSelectedValue();
       if (o instanceof Timed) {
         TimeDisplay.setTimeObject((Timed)o);
@@ -1610,6 +1611,7 @@ public boolean canDisplay(SecondoObject o){
         if (!isMouseSelected && (selGraphObj instanceof Timed))
           TimeSlider.setValue((long)Math.round(((Timed)selGraphObj).getTimeBounds().getStart()*86400000));
         makeSelectionVisible();
+	GraphDisplay.repaint();
       }
       else if (o instanceof DsplBase) {
         selBaseObj = (DsplBase)o;

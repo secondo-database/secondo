@@ -9,13 +9,13 @@ import  viewer.HoeseViewer;
 
 
 /**
- * This class enhances JList. A list is generated dependant to the types given back and 
+ * This class enhances JList. A list is generated dependant to the types given back and
  * formatted by the query.
  */
 public class QueryResult extends JList {
 /** The query command */
   public String command;
-/** The result given back by the query command as a Listexpr */ 
+/** The result given back by the query command as a Listexpr */
   public ListExpr LEResult;
 /** A list of the ggraphic objects of this query */
   private Vector GraphObjects;
@@ -24,12 +24,12 @@ public class QueryResult extends JList {
 
 
 /** the QueryRepresentations for this QueryResult */
-  // private ViewConfig myViewConfig = null; 
+  // private ViewConfig myViewConfig = null;
   // for each DsplGraph we need a separate ViewConfig
   private Vector ViewConfigs= new Vector(2);
 
   /**
-   * Creates a QueryResult with a command and a result of a query 
+   * Creates a QueryResult with a command and a result of a query
    * @param   String acommand
    * @param   ListExpr aLEResult
    */
@@ -41,11 +41,11 @@ public class QueryResult extends JList {
         if (e.getClickCount() != 2)
           return;
         Object o = QueryResult.this.getSelectedValue();
-        if ((o instanceof DsplBase) && (((DsplBase)o).getFrame() != null)) {
-          ((DsplBase)o).getFrame().select(o);
+	if ((o instanceof DsplBase) && (((DsplBase)o).getFrame() != null)) {
+	  ((DsplBase)o).getFrame().select(o);
           ((DsplBase)o).getFrame().show(true);
         }
-        //			((DsplBase)o).getFrame().select(o);	
+        //			((DsplBase)o).getFrame().select(o);
       }
     });
     setModel(new DefaultListModel());
@@ -56,7 +56,7 @@ public class QueryResult extends JList {
     LEResult = aLEResult;
     TupelCount = LEResult.second().listLength();
     if (LEResult.first().isAtom())
-      AttrCount = 0; 
+      AttrCount = 0;
     else 
       AttrCount = LEResult.first().second().second().listLength();
     GraphObjects = new Vector(50, 50);
