@@ -164,11 +164,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       found = FileSystem::FileOrFolderExists( parmFile );
       if ( found )
       {
-	cout << "':" << endl;
+  cout << "':" << endl;
       }
       else
       {
-	cout << "' not found!" << endl;
+  cout << "' not found!" << endl;
       }
     }
     else
@@ -349,14 +349,14 @@ If value 0 is returned, the command was executed without error.
   ListExpr first, list, typeExpr, resultType, modelList, valueExpr;
   first = list = typeExpr = resultType = modelList = valueExpr = nl->TheEmptyList();
   
-	ListExpr typeExpr2, errorList,  errorInfo, functionList;
-	typeExpr2 = errorList = errorInfo = functionList = nl->TheEmptyList();				 
-				 
+  ListExpr typeExpr2, errorList,  errorInfo, functionList;
+  typeExpr2 = errorList = errorInfo = functionList = nl->TheEmptyList();         
+         
   string filename = "", dbName = "", objName = "", typeName = "";
 
-	Word result = SetWord( Address(0) );
+  Word result = SetWord( Address(0) );
   OpTree tree = 0;
-	
+  
   int length = 0;
   bool correct      = false;
   bool evaluable    = false;
@@ -588,11 +588,11 @@ If value 0 is returned, the command was executed without error.
           if ( !sys.OpenDatabase( dbName ) )
           {
             errorCode = ERR_IDENT_UNKNOWN_DB_NAME;  // identifier not a known database name
-	    
+      
           } else {
-	    if ( !derivedObjPtr )
-	       derivedObjPtr = new DerivedObj(); // create new instance if necessary
-	  }
+      if ( !derivedObjPtr )
+         derivedObjPtr = new DerivedObj(); // create new instance if necessary
+    }
         }
       }
       else if ( nl->IsEqual( first, "close" ) )
@@ -609,9 +609,9 @@ If value 0 is returned, the command was executed without error.
             activeTransaction = false;
           }
           sys.CloseDatabase();
-	  if ( derivedObjPtr );
-	    delete derivedObjPtr;
-	  derivedObjPtr = 0;
+    if ( derivedObjPtr );
+      delete derivedObjPtr;
+    derivedObjPtr = 0;
         }
       }
       else if ( nl->IsEqual( first, "save" ) && (length == 4) &&
@@ -654,43 +654,43 @@ If value 0 is returned, the command was executed without error.
           errorCode = sys.RestoreDatabase( dbName, filename, errorInfo );          
         }
 
-							      
+                    
         switch ( errorCode ) // error handling
-				{
-				  case ERR_NO_ERROR:
-					case ERR_IDENT_UNKNOWN_DB_NAME: 
-					{
-					  break;
-					}					
-					case ERR_IN_DEFINITIONS_FILE:
-					{
-					  resultList = errorList;
-					}
-				  case ERR_DB_NAME_NEQ_IDENT:
-					case ERR_PROBLEM_IN_READING_FILE:
-					case ERR_IN_LIST_STRUCTURE_IN_FILE:
+        {
+          case ERR_NO_ERROR:
+          case ERR_IDENT_UNKNOWN_DB_NAME: 
+          {
+            break;
+          }         
+          case ERR_IN_DEFINITIONS_FILE:
+          {
+            resultList = errorList;
+          }
+          case ERR_DB_NAME_NEQ_IDENT:
+          case ERR_PROBLEM_IN_READING_FILE:
+          case ERR_IN_LIST_STRUCTURE_IN_FILE:
 
-					default: 
-					{       
-	          cmsg.error() << endl << "Error during restore detected. Closing database " << dbName;
-	      
-				    if ( !sys.CloseDatabase() ) {
-    	        cmsg.error() << " failed!" << endl;
-	          } else {
-	            cmsg.error() << " finished!" << endl;
+          default: 
+          {       
+      cmsg.error() << endl << "Error during restore detected. Closing database " << dbName;
+        
+            if ( !sys.CloseDatabase() ) {
+    cmsg.error() << " failed!" << endl;
+      } else {
+        cmsg.error() << " finished!" << endl;
             }
-				    cmsg.send();
-					  break;
-					}
-				}	
-					
-			  if ( !errorCode ) { // rebuild derived objects if present
-				 			
-			    if ( derivedObjPtr ) {
-	          delete derivedObjPtr;            
-	        }    
-		      derivedObjPtr = new DerivedObj();
-	        derivedObjPtr->rebuildObjs(); 
+            cmsg.send();
+            break;
+          }
+        } 
+          
+        if ( !errorCode ) { // rebuild derived objects if present
+              
+          if ( derivedObjPtr ) {
+      delete derivedObjPtr;            
+    }    
+          derivedObjPtr = new DerivedObj();
+    derivedObjPtr->rebuildObjs(); 
         }
 
       }
@@ -698,7 +698,7 @@ If value 0 is returned, the command was executed without error.
       {
         errorCode = ERR_CMD_NOT_RECOGNIZED;  // Command not recognized.
       }
-					
+          
     }
 
     // --- Writing command for objects
@@ -707,7 +707,7 @@ If value 0 is returned, the command was executed without error.
               nl->IsEqual( nl->Third( list ), "to" ) && (length == 4) &&
               nl->IsAtom( nl->Second( list )) &&
               nl->AtomType( nl->Second( list )) == SymbolType &&
-	      nl->IsAtom( nl->Fourth( list )) &&
+        nl->IsAtom( nl->Fourth( list )) &&
               nl->AtomType( nl->Fourth( list )) == SymbolType )
     {
       filename = nl->SymbolValue( nl->Fourth( list ) );
@@ -720,14 +720,14 @@ If value 0 is returned, the command was executed without error.
       else
       {
         if ( !sys.IsDatabaseObject( objectname ) )
-	{
-	  errorCode = ERR_IDENT_UNKNOWN_DB_OBJECT; // object is not known in the database
-	}
+  {
+    errorCode = ERR_IDENT_UNKNOWN_DB_OBJECT; // object is not known in the database
+  }
         else
         {
           StartCommand();
           if ( !sys.SaveObject( objectname,
-	    filename ) )
+      filename ) )
           {
             errorCode = ERR_PROBLEM_IN_WRITING_TO_FILE;  // Problem in writing to file
           }
@@ -755,11 +755,11 @@ If value 0 is returned, the command was executed without error.
         filename = nl->SymbolValue( nl->Fourth( list ) );
 
         if ( sys.IsDatabaseObject( objName ) )
-	{
-	  errorCode = ERR_IDENT_ALREADY_KNOWN_IN_DB; // object is already known in the database
-	}
-	else
-	{
+  {
+    errorCode = ERR_IDENT_ALREADY_KNOWN_IN_DB; // object is already known in the database
+  }
+  else
+  {
 
           message = sys.RestoreObjectFromFile( objName, filename, errorInfo );
           switch (message)
@@ -783,7 +783,7 @@ If value 0 is returned, the command was executed without error.
               errorCode = ERR_CMD_NOT_RECOGNIZED;   // Should never occur
               break;
           }
-	}
+  }
       }
     }
 
@@ -794,52 +794,52 @@ If value 0 is returned, the command was executed without error.
       if ( nl->IsEqual( nl->Second( list ), "algebras" ) && (length == 2) )
       {
           resultList =
-	    nl->TwoElemList(nl->SymbolAtom("inquiry"),
-			    nl->TwoElemList(nl->SymbolAtom("algebras"),
-			      SecondoSystem::GetAlgebraManager( )->ListAlgebras() ));
+      nl->TwoElemList(nl->SymbolAtom("inquiry"),
+          nl->TwoElemList(nl->SymbolAtom("algebras"),
+            SecondoSystem::GetAlgebraManager( )->ListAlgebras() ));
       }
 
       else if (     nl->IsEqual( nl->Second( list ), "algebra" ) 
-			          && (length == 3) 
-								&&  nl->IsAtom(nl->Third(list)) 
-								&&  nl->AtomType( nl->Second( list ) ) == SymbolType )
+          && (length == 3) 
+                &&  nl->IsAtom(nl->Third(list)) 
+                &&  nl->AtomType( nl->Second( list ) ) == SymbolType )
       {
           if ( SecondoSystem::GetAlgebraManager( )->GetAlgebraId(
-	       nl->SymbolValue( nl->Third(list) )))
-	  {
-	    int aid = SecondoSystem::GetAlgebraManager( )->GetAlgebraId(
-	       nl->SymbolValue( nl->Third(list) ));
-	       
-	    ListExpr constOp =  nl->TwoElemList( ctlg.ListTypeConstructors( aid ),
-	                                         ctlg.ListOperators( aid ));
-	    resultList =
-	    nl->TwoElemList( nl->SymbolAtom("inquiry"),
-			     nl->TwoElemList( nl->SymbolAtom("algebra"),
-					      nl->TwoElemList( nl->Third(list), constOp )));
-	  }
-	  else errorCode = ERR_ALGEBRA_UNKNOWN;
+         nl->SymbolValue( nl->Third(list) )))
+    {
+      int aid = SecondoSystem::GetAlgebraManager( )->GetAlgebraId(
+         nl->SymbolValue( nl->Third(list) ));
+         
+      ListExpr constOp =  nl->TwoElemList( ctlg.ListTypeConstructors( aid ),
+             ctlg.ListOperators( aid ));
+      resultList =
+      nl->TwoElemList( nl->SymbolAtom("inquiry"),
+           nl->TwoElemList( nl->SymbolAtom("algebra"),
+                nl->TwoElemList( nl->Third(list), constOp )));
+    }
+    else errorCode = ERR_ALGEBRA_UNKNOWN;
       }
 
 
       else if (     nl->IsEqual( nl->Second( list ), "type" ) 
                 && (length == 3) 
-		            &&  nl->IsEqual( nl->Third( list ), "constructors" ) )
+          &&  nl->IsEqual( nl->Third( list ), "constructors" ) )
       {
         resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-			               nl->TwoElemList( nl->SymbolAtom("constructors"),
-	                                               ctlg.ListTypeConstructors() ));
+               nl->TwoElemList( nl->SymbolAtom("constructors"),
+                   ctlg.ListTypeConstructors() ));
       }
       else if ( nl->IsEqual( nl->Second(list), "operators" ) )
       {
         resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-			              nl->TwoElemList( nl->SymbolAtom("operators"),
+              nl->TwoElemList( nl->SymbolAtom("operators"),
                                                        ctlg.ListOperators() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "databases" ) )
       {
         resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-			              nl->TwoElemList( nl->SymbolAtom("databases"),
-			                               sys.ListDatabaseNames() ));
+              nl->TwoElemList( nl->SymbolAtom("databases"),
+                   sys.ListDatabaseNames() ));
       }
       else if ( nl->IsEqual( nl->Second( list ), "types") )
       {
@@ -851,7 +851,7 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
           resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-			                nl->TwoElemList( nl->SymbolAtom("types"),
+          nl->TwoElemList( nl->SymbolAtom("types"),
                                                          ctlg.ListTypes() ));
           FinishCommand( errorCode );
         }
@@ -866,7 +866,7 @@ If value 0 is returned, the command was executed without error.
         {
           StartCommand();
           resultList = nl->TwoElemList( nl->SymbolAtom("inquiry"),
-			                nl->TwoElemList( nl->SymbolAtom("objects"),
+          nl->TwoElemList( nl->SymbolAtom("objects"),
                                                          ctlg.ListObjects() ));
           FinishCommand( errorCode );
         }
@@ -903,7 +903,7 @@ If value 0 is returned, the command was executed without error.
         typeName = nl->SymbolValue( nl->Second( list ) );
         typeExpr = nl->Fourth( list );
         typeExpr2 = ctlg.ExpandedType( typeExpr );
-	
+  
         if ( ctlg.KindCorrect( typeExpr2, errorInfo ) )
         {
           if ( !ctlg.InsertType( typeName, typeExpr2 ) )
@@ -959,27 +959,27 @@ If value 0 is returned, the command was executed without error.
                 (nl->AtomType( nl->Second( list )) == SymbolType) )
       {
         objName = nl->SymbolValue( nl->Second( list ) );
-	
+  
         if ( !sys.IsDatabaseOpen() )
-	         errorCode = ERR_NO_DATABASE_OPEN;  // no database open
+     errorCode = ERR_NO_DATABASE_OPEN;  // no database open
 
         if ( !errorCode && ctlg.IsSystemObject(objName) )
            errorCode = ERR_IDENT_RESERVED;
 
         StartCommand();  
         if ( !errorCode ) 
-				{
+        {
            message = ctlg.DeleteObject( objName );
-					 
+           
            if ( message > 0 ) {
              errorCode = ERR_IDENT_UNKNOWN_OBJ;   // identifier not a known object name          
-						 
-	         } else {
-	           derivedObjPtr->deleteObj( objName ); // delete from derived objects table if necessary
+             
+     } else {
+       derivedObjPtr->deleteObj( objName ); // delete from derived objects table if necessary
            }
-	       }
-	      FinishCommand( errorCode );
-	
+         }
+        FinishCommand( errorCode );
+  
      } else { // no correct delete syntax
      
        errorCode = ERR_CMD_NOT_RECOGNIZED;  // Command not recognized
@@ -993,7 +993,7 @@ If value 0 is returned, the command was executed without error.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":" ) )
     {
-		  errorCode = Command_Create( level, list, resultList, errorList );		
+      errorCode = Command_Create( level, list, resultList, errorList );   
     }
 
     // --- Update object command
@@ -1003,7 +1003,7 @@ If value 0 is returned, the command was executed without error.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":=" ) )
     {
-				  errorCode = Command_Update( level, list );		
+          errorCode = Command_Update( level, list );    
     }
 
     // --- Let command
@@ -1013,7 +1013,7 @@ If value 0 is returned, the command was executed without error.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {
-		  errorCode = Command_Let( level, list );				
+      errorCode = Command_Let( level, list );       
     }
 
     // --- derive command
@@ -1022,15 +1022,15 @@ If value 0 is returned, the command was executed without error.
               nl->IsAtom( nl->Second( list )) &&
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
-    {		  
-			errorCode = Command_Derive( level, list );				 
+    {     
+      errorCode = Command_Derive( level, list );         
     }
  
     // --- Query command
 
     else if ( nl->IsEqual( first, "query" ) && (length == 2) )
     {
-		  errorCode = Command_Query( level, list, resultList, errorMessage );		
+      errorCode = Command_Query( level, list, resultList, errorMessage );   
     }
 
     // --- Model command
@@ -1042,7 +1042,7 @@ If value 0 is returned, the command was executed without error.
         StartCommand();
         qp.Construct( level, nl->Second( list ), correct, evaluable, defined,
                       isFunction, tree, resultType );
-		      
+          
         if ( !defined )
         {
           errorCode = ERR_UNDEF_OBJ_VALUE;         // Undefined object value
@@ -1086,20 +1086,20 @@ If value 0 is returned, the command was executed without error.
 
   if (RTFlag::isActive("SI:PrintCounters")) {
     Counter::reportValues();
-		Counter::resetAll();
+    Counter::resetAll();
   }
 
   // Creation and deletion of Objects
   LOGMSG( "SI:RelStatistics", 
-	  Tuple::ShowTupleStatistics( true, cmsg.info() ); 
-	  ShowStandardTypesStatistics( true, cmsg.info() ); 
-		cmsg.send();
-	)	
+    Tuple::ShowTupleStatistics( true, cmsg.info() ); 
+    ShowStandardTypesStatistics( true, cmsg.info() ); 
+    cmsg.send();
+  ) 
 
   LOGMSG( "SI:ResultList",
     cmsg.info() << endl << "### Result List before copying: " 
-		            << nl->ToString(resultList) << endl;
-		cmsg.send();
+          << nl->ToString(resultList) << endl;
+    cmsg.send();
   )
 
   // copy result into application specific list container.
@@ -1108,13 +1108,13 @@ If value 0 is returned, the command was executed without error.
      resultList = nl->CopyList(resultList, al);
      LOGMSG( "SI:CopyListTime",
         cmsg.info() << "CopyList " << copyTime.diffTimes() << endl;
-				cmsg.send();
+        cmsg.send();
      )
   }
   LOGMSG( "SI:ResultList",
     cmsg.info() << endl << "### Result after copying: " 
-		           << al->ToString(resultList) << endl;
-		cmsg.send();					 
+         << al->ToString(resultList) << endl;
+    cmsg.send();           
   )
   nl->initializeListMemory();
   
@@ -1122,7 +1122,7 @@ If value 0 is returned, the command was executed without error.
    
     static int nr = 0;
     static bool writeHeadLine = true;
-    const string logFile="cmd-times.csv";	
+    const string logFile="cmd-times.csv"; 
     const string sep="|";
    
     if ( writeHeadLine ) {
@@ -1138,7 +1138,7 @@ If value 0 is returned, the command was executed without error.
     cmsg.file(logFile) << nr << sep << commandText
                        << sep << cmdTime.diffSecondsReal()
                        << sep << cmdTime.diffSecondsCPU() << endl;
-    cmsg.send();								
+    cmsg.send();                
     cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
     cmsg.send();
  } 
@@ -1157,113 +1157,113 @@ SI_Error
 SecondoInterface::Command_Query( const AlgebraLevel level,
                                  const ListExpr list, 
                                  ListExpr& resultList,
-																 string& errorMessage )
+                                 string& errorMessage )
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
-	
+  
   SI_Error errorCode = ERR_NO_ERROR;
-	bool correct = false;
-	bool evaluable = false;
-	bool defined = false;
-	bool isFunction = false;
-	
-	Word result = SetWord( Address(0) );
-	OpTree tree = 0; 
+  bool correct = false;
+  bool evaluable = false;
+  bool defined = false;
+  bool isFunction = false;
+  
+  Word result = SetWord( Address(0) );
+  OpTree tree = 0; 
 
   ListExpr resultType = nl.TheEmptyList();
 
-	if ( !sys.IsDatabaseOpen() ) // no database open
-	{
+  if ( !sys.IsDatabaseOpen() ) // no database open
+  {
      return ERR_NO_DATABASE_OPEN;  
   }
   
-	if ( level == DescriptiveLevel ) // Command not yet implemented at this level
+  if ( level == DescriptiveLevel ) // Command not yet implemented at this level
   {
-		 return ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
-	} 
-							
-	StartCommand();
+     return ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
+  } 
+              
+  StartCommand();
 
-	StopWatch queryTime;
-	cmsg.info() << "Analyze query ..." << endl;
-	cmsg.send();
+  StopWatch queryTime;
+  cmsg.info() << "Analyze query ..." << endl;
+  cmsg.send();
 
-	qp.Construct( level, nl.Second( list ), correct, evaluable, defined,
-								isFunction, tree, resultType );
+  qp.Construct( level, nl.Second( list ), correct, evaluable, defined,
+                isFunction, tree, resultType );
 
 
-	if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-		cmsg.info() << "Analyze " << queryTime.diffTimes() << endl;
-		cmsg.send();
-		queryTime.start();
-		//cerr << nl->ReportTableSizes() << endl;
-	}
+  if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
+    cmsg.info() << "Analyze " << queryTime.diffTimes() << endl;
+    cmsg.send();
+    queryTime.start();
+    //cerr << nl->ReportTableSizes() << endl;
+  }
 
-	if ( !defined ) // Undefined object value
-	{
-		return ERR_UNDEF_OBJ_VALUE;  
-	}
-	
-	if ( !correct ) // Error in query
-	{
-		ErrorReporter::GetErrorMessage(errorMessage); 
-		ErrorReporter::Reset();
-		return ERR_IN_QUERY_EXPR; 
-	}
+  if ( !defined ) // Undefined object value
+  {
+    return ERR_UNDEF_OBJ_VALUE;  
+  }
+  
+  if ( !correct ) // Error in query
+  {
+    ErrorReporter::GetErrorMessage(errorMessage); 
+    ErrorReporter::Reset();
+    return ERR_IN_QUERY_EXPR; 
+  }
 
-	if ( evaluable )
-	{
-		 cmsg.info() << "Execute ..." << endl;
-		 cmsg.send();
+  if ( evaluable )
+  {
+     cmsg.info() << "Execute ..." << endl;
+     cmsg.send();
 
-		 qp.Eval( tree, result, 1 );
-		 
-		 ListExpr valueList = ctlg.OutObject( resultType, result );
-		 resultList = nl.TwoElemList( resultType, valueList );
-		 
-		 StopWatch destroyTime;
-		 qp.Destroy( tree, true );
-		 if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
-		   cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
-		   cmsg.send();
-		 }
+     qp.Eval( tree, result, 1 );
+     
+     ListExpr valueList = ctlg.OutObject( resultType, result );
+     resultList = nl.TwoElemList( resultType, valueList );
+     
+     StopWatch destroyTime;
+     qp.Destroy( tree, true );
+     if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
+       cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
+       cmsg.send();
+     }
 
-		 if (!RTFlag::isActive("SI:NoQueryAnalysis")) 
-		 {
-	           cmsg.info() << "Execute " << queryTime.diffTimes() << endl;
-	           cmsg.info() << nl.ReportTableSizes() << endl;
-	           cmsg.send();
-		 }
+     if (!RTFlag::isActive("SI:NoQueryAnalysis")) 
+     {
+       cmsg.info() << "Execute " << queryTime.diffTimes() << endl;
+       cmsg.info() << nl.ReportTableSizes() << endl;
+       cmsg.send();
+     }
 
-	}
-	else if ( isFunction ) // abstraction or function object
-	{
-	  ListExpr second = nl.Second( list );
-		if ( nl.IsAtom( second ) )  // function object
-		{
-			ListExpr valueList = ctlg.GetObjectValue( nl.SymbolValue( second ) );
-			resultList = nl.TwoElemList( resultType, valueList );
-		}
-		else
-		{
-			resultList = nl.TwoElemList( resultType, second );
-		}
-	}
-	else
-	{
-		ErrorReporter::GetErrorMessage(errorMessage);
-		ErrorReporter::Reset();
-		errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable		
-	}
-	
-	SmiEnvironment::SetFlag_NOSYNC(true);
-	FinishCommand( errorCode );
-	SmiEnvironment::SetFlag_NOSYNC(false);
-	
-	return errorCode;
+  }
+  else if ( isFunction ) // abstraction or function object
+  {
+    ListExpr second = nl.Second( list );
+    if ( nl.IsAtom( second ) )  // function object
+    {
+      ListExpr valueList = ctlg.GetObjectValue( nl.SymbolValue( second ) );
+      resultList = nl.TwoElemList( resultType, valueList );
+    }
+    else
+    {
+      resultList = nl.TwoElemList( resultType, second );
+    }
+  }
+  else
+  {
+    ErrorReporter::GetErrorMessage(errorMessage);
+    ErrorReporter::Reset();
+    errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable   
+  }
+  
+  SmiEnvironment::SetFlag_NOSYNC(true);
+  FinishCommand( errorCode );
+  SmiEnvironment::SetFlag_NOSYNC(false);
+  
+  return errorCode;
 }
 
 /*
@@ -1279,46 +1279,46 @@ SecondoInterface::Command_Derive( const AlgebraLevel level, const ListExpr list 
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
-	
+  
   SI_Error errorCode = ERR_NO_ERROR;
-	
-	if ( !sys.IsDatabaseOpen() )  // no database open
-	{
-		return ERR_NO_DATABASE_OPEN;        
-	}
+  
+  if ( !sys.IsDatabaseOpen() )  // no database open
+  {
+    return ERR_NO_DATABASE_OPEN;        
+  }
 
-	if ( !errorCode && (level == DescriptiveLevel) )  // Command not yet implemented at this level
-	{
-		return ERR_CMD_NOT_IMPL_AT_THIS_LEVEL; 
-	}
-	
-	if ( !errorCode ) { // if no errors ocurred continue
+  if ( !errorCode && (level == DescriptiveLevel) )  // Command not yet implemented at this level
+  {
+    return ERR_CMD_NOT_IMPL_AT_THIS_LEVEL; 
+  }
+  
+  if ( !errorCode ) { // if no errors ocurred continue
 
-		 StartCommand();
-		 string objName = nl.SymbolValue( nl.Second( list ) );
-		 ListExpr valueExpr = nl.Fourth( list );
+     StartCommand();
+     string objName = nl.SymbolValue( nl.Second( list ) );
+     ListExpr valueExpr = nl.Fourth( list );
 
     if ( ctlg.IsSystemObject(objName) ) // check if identifier is allowed
-		{
-		  errorCode = ERR_IDENT_RESERVED; 
+    {
+      errorCode = ERR_IDENT_RESERVED; 
     } 
-	  else if ( ctlg.IsObjectName(objName) )  // identifier is already used
-	  {
-		  errorCode = ERR_IDENT_USED;  
-	  } 
-	  else // try to create object
-		{
-	    errorCode = derivedObjPtr->createObj(objName, valueExpr); 
-			  
-	    if ( !errorCode ) {
-			  derivedObjPtr->addObj( objName, valueExpr );
-		  }	 
-	  }
-	}
+    else if ( ctlg.IsObjectName(objName) )  // identifier is already used
+    {
+      errorCode = ERR_IDENT_USED;  
+    } 
+    else // try to create object
+    {
+      errorCode = derivedObjPtr->createObj(objName, valueExpr); 
+        
+      if ( !errorCode ) {
+        derivedObjPtr->addObj( objName, valueExpr );
+      }  
+    }
+  }
 
-	FinishCommand( errorCode );
-	
-	return errorCode;
+  FinishCommand( errorCode );
+  
+  return errorCode;
 }
 
 /*
@@ -1336,99 +1336,99 @@ SecondoInterface::Command_Let( const AlgebraLevel level,
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
-	
+  
   SI_Error errorCode = ERR_NO_ERROR;
-	bool correct = false;
-	bool evaluable = false;
-	bool defined = false;
-	bool isFunction = false;
-	
-	Word result = SetWord( Address(0) );
-	OpTree tree = 0; 
+  bool correct = false;
+  bool evaluable = false;
+  bool defined = false;
+  bool isFunction = false;
+  
+  Word result = SetWord( Address(0) );
+  OpTree tree = 0; 
 
   ListExpr resultType = nl.TheEmptyList();
 
 
-	if ( sys.IsDatabaseOpen() )
-	{
-		if ( level == DescriptiveLevel ) // Command not yet implemented at this level
-		{
-			errorCode = ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
-		}
-		else
-		{
-			StartCommand();
-			string objName = nl.SymbolValue( nl.Second( list ) );
-			ListExpr valueExpr = nl.Fourth( list );
+  if ( sys.IsDatabaseOpen() )
+  {
+    if ( level == DescriptiveLevel ) // Command not yet implemented at this level
+    {
+      errorCode = ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
+    }
+    else
+    {
+      StartCommand();
+      string objName = nl.SymbolValue( nl.Second( list ) );
+      ListExpr valueExpr = nl.Fourth( list );
 
-			if ( ctlg.IsSystemObject(objName) ) {
-			errorCode = ERR_IDENT_RESERVED;
-	 
-			} 
-			else if ( ctlg.IsObjectName(objName) ) // identifier is already used
-			{
-				errorCode = ERR_IDENT_USED; 
-			}
-			else
-			{
-				qp.Construct( level, valueExpr, correct, evaluable, defined,
-											isFunction, tree, resultType );
-											
-				if ( !defined ) // Undefined object value in expression
-				{
-					errorCode = ERR_UNDEF_OBJ_VALUE;      
-				}
-				else if ( correct )
-				{
-					if ( evaluable || isFunction )
-					{
-						string typeName = "";
-						ctlg.CreateObject(objName, typeName, resultType, 0);
-					}
-					if ( evaluable )
-					{
-						qp.Eval( tree, result, 1 );
+      if ( ctlg.IsSystemObject(objName) ) {
+      errorCode = ERR_IDENT_RESERVED;
+   
+      } 
+      else if ( ctlg.IsObjectName(objName) ) // identifier is already used
+      {
+        errorCode = ERR_IDENT_USED; 
+      }
+      else
+      {
+        qp.Construct( level, valueExpr, correct, evaluable, defined,
+                      isFunction, tree, resultType );
+                      
+        if ( !defined ) // Undefined object value in expression
+        {
+          errorCode = ERR_UNDEF_OBJ_VALUE;      
+        }
+        else if ( correct )
+        {
+          if ( evaluable || isFunction )
+          {
+            string typeName = "";
+            ctlg.CreateObject(objName, typeName, resultType, 0);
+          }
+          if ( evaluable )
+          {
+            qp.Eval( tree, result, 1 );
 
-						if( IsRootObject( tree ) && !IsConstantObject( tree ) )
-						{
-							ctlg.CloneObject( objName, result );
-							qp.Destroy( tree, true );
-						}
-						else
-						{
-							ctlg.UpdateObject( objName, result );
-							qp.Destroy( tree, false );
-						}
-					}
-					else if ( isFunction ) // abstraction or function object
-					{
-						if ( nl.IsAtom( valueExpr ) )  // function object
-						{
-							 ListExpr functionList = ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
-							 ctlg.UpdateObject( objName, SetWord( functionList ) );
-						}
-						else
-						{
-							 ctlg.UpdateObject( objName, SetWord( valueExpr ) );
-						}
-					}
-					else // Expression not evaluable
-					{
-						errorCode = ERR_EXPR_NOT_EVALUABLE;   
-					}
-				}
-				else // Error in expression
-				{
-					errorCode = ERR_IN_QUERY_EXPR;    
-				}
-			}
-			FinishCommand( errorCode );
-		}
-	}
-	else // no database open
-	{
-		errorCode = ERR_NO_DATABASE_OPEN;        
-	}
+            if( IsRootObject( tree ) && !IsConstantObject( tree ) )
+            {
+              ctlg.CloneObject( objName, result );
+              qp.Destroy( tree, true );
+            }
+            else
+            {
+              ctlg.UpdateObject( objName, result );
+              qp.Destroy( tree, false );
+            }
+          }
+          else if ( isFunction ) // abstraction or function object
+          {
+            if ( nl.IsAtom( valueExpr ) )  // function object
+            {
+               ListExpr functionList = ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
+               ctlg.UpdateObject( objName, SetWord( functionList ) );
+            }
+            else
+            {
+               ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+            }
+          }
+          else // Expression not evaluable
+          {
+            errorCode = ERR_EXPR_NOT_EVALUABLE;   
+          }
+        }
+        else // Error in expression
+        {
+          errorCode = ERR_IN_QUERY_EXPR;    
+        }
+      }
+      FinishCommand( errorCode );
+    }
+  }
+  else // no database open
+  {
+    errorCode = ERR_NO_DATABASE_OPEN;        
+  }
 
   return errorCode;
 }
@@ -1448,104 +1448,104 @@ SecondoInterface::Command_Update( const AlgebraLevel level,
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
-	
+  
   SI_Error errorCode = ERR_NO_ERROR;
-	bool correct = false;
-	bool evaluable = false;
-	bool defined = false;
-	bool isFunction = false;
-	
-	Word result = SetWord( Address(0) );
-	OpTree tree = 0; 
+  bool correct = false;
+  bool evaluable = false;
+  bool defined = false;
+  bool isFunction = false;
+  
+  Word result = SetWord( Address(0) );
+  OpTree tree = 0; 
 
   ListExpr resultType = nl.TheEmptyList();
 
 
-	if ( sys.IsDatabaseOpen() )
-	{
-		if ( level == DescriptiveLevel ) // Command not implemented at this level
-		{
-			errorCode = ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
-		}
-		else
-		{
-			StartCommand();
-			string objName = nl.SymbolValue( nl.Second( list ) );
-			ListExpr valueExpr = nl.Fourth( list );
-			qp.Construct( level, valueExpr, correct, evaluable, defined,
-										 isFunction, tree, resultType );
-										 
-			if ( !defined ) // Undefined object value in expression
-			{
-				errorCode = ERR_UNDEF_OBJ_VALUE;      
-			}
-			else if ( correct )
-			{
-				if ( ctlg.IsSystemObject(objName) ) 
-				{
-					errorCode = ERR_IDENT_RESERVED;	     
-				} 
-				else if ( derivedObjPtr && derivedObjPtr->isDerived(objName) ) 
-				{
-					errorCode = ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED;
-				} 
-				else if ( !ctlg.IsObjectName( objName ) )
-				{
-					// identifier not a known object name
-					errorCode = ERR_IDENT_UNKNOWN_OBJ;   
-				}
-				else
-				{	     	    
-					ListExpr typeExpr = ctlg.GetObjectTypeExpr( objName );
+  if ( sys.IsDatabaseOpen() )
+  {
+    if ( level == DescriptiveLevel ) // Command not implemented at this level
+    {
+      errorCode = ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
+    }
+    else
+    {
+      StartCommand();
+      string objName = nl.SymbolValue( nl.Second( list ) );
+      ListExpr valueExpr = nl.Fourth( list );
+      qp.Construct( level, valueExpr, correct, evaluable, defined,
+                     isFunction, tree, resultType );
+                     
+      if ( !defined ) // Undefined object value in expression
+      {
+        errorCode = ERR_UNDEF_OBJ_VALUE;      
+      }
+      else if ( correct )
+      {
+        if ( ctlg.IsSystemObject(objName) ) 
+        {
+          errorCode = ERR_IDENT_RESERVED;      
+        } 
+        else if ( derivedObjPtr && derivedObjPtr->isDerived(objName) ) 
+        {
+          errorCode = ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED;
+        } 
+        else if ( !ctlg.IsObjectName( objName ) )
+        {
+          // identifier not a known object name
+          errorCode = ERR_IDENT_UNKNOWN_OBJ;   
+        }
+        else
+        {       
+          ListExpr typeExpr = ctlg.GetObjectTypeExpr( objName );
 
-					if ( !nl.Equal( typeExpr, resultType ) )
-					{
-						// types of object and expression do not agree
-						errorCode = ERR_EXPR_TYPE_NEQ_OBJ_TYPE;   
-					}
-					else if ( evaluable )
-					{
-						qp.Eval( tree, result, 1 );
-						if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
-						{
-							 ctlg.CloneObject( objName, result );
-							 qp.Destroy( tree, true );
-						}
-						else
-						{
-							 ctlg.UpdateObject( objName, result );
-							 qp.Destroy( tree, false );
-						}
-					}
-					else if ( isFunction )   // abstraction or function object
-					{
-						if ( nl.IsAtom( valueExpr ) )  // function object
-						{
-							ListExpr functionList = ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
-							ctlg.UpdateObject( objName, SetWord( functionList ) );
-						}
-						else
-						{
-							ctlg.UpdateObject( objName, SetWord( valueExpr ) );
-						}
-					}
-					else // Expression not evaluable
-					{
-						errorCode = ERR_EXPR_NOT_EVALUABLE;   
-					}
-				}
-			}
-			else // Error in expression
-			{
-				errorCode = ERR_IN_QUERY_EXPR;    
-			}
-			FinishCommand( errorCode );
-		}
-	}
-	else // no database open
-	{
-		errorCode = ERR_NO_DATABASE_OPEN;        
-	}
+          if ( !nl.Equal( typeExpr, resultType ) )
+          {
+            // types of object and expression do not agree
+            errorCode = ERR_EXPR_TYPE_NEQ_OBJ_TYPE;   
+          }
+          else if ( evaluable )
+          {
+            qp.Eval( tree, result, 1 );
+            if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
+            {
+               ctlg.CloneObject( objName, result );
+               qp.Destroy( tree, true );
+            }
+            else
+            {
+               ctlg.UpdateObject( objName, result );
+               qp.Destroy( tree, false );
+            }
+          }
+          else if ( isFunction )   // abstraction or function object
+          {
+            if ( nl.IsAtom( valueExpr ) )  // function object
+            {
+              ListExpr functionList = ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
+              ctlg.UpdateObject( objName, SetWord( functionList ) );
+            }
+            else
+            {
+              ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+            }
+          }
+          else // Expression not evaluable
+          {
+            errorCode = ERR_EXPR_NOT_EVALUABLE;   
+          }
+        }
+      }
+      else // Error in expression
+      {
+        errorCode = ERR_IN_QUERY_EXPR;    
+      }
+      FinishCommand( errorCode );
+    }
+  }
+  else // no database open
+  {
+    errorCode = ERR_NO_DATABASE_OPEN;        
+  }
 
   return errorCode;
 }
@@ -1560,55 +1560,55 @@ SecondoInterface::Command_Update( const AlgebraLevel level,
 SI_Error 
 SecondoInterface::Command_Create( const AlgebraLevel level,
                                   const ListExpr list, 
-																	ListExpr& resultList,
-																	ListExpr& errorList   )
+                                  ListExpr& resultList,
+                                  ListExpr& errorList   )
 {
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
   SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
-	
+  
   SI_Error errorCode = ERR_NO_ERROR;
-	
-	Word result = SetWord( Address(0) );
+  
+  Word result = SetWord( Address(0) );
 
-	if ( sys.IsDatabaseOpen() )
-	{
-		StartCommand();
-		string objName = nl.SymbolValue( nl.Second( list ) );
-		ListExpr typeExpr = nl.Fourth( list );
-		ListExpr typeExpr2 = ctlg.ExpandedType( typeExpr );
-		string typeName = "";
-		
-		if ( ctlg.KindCorrect( typeExpr2, errorList ) )
-		{
-			if ( nl.IsAtom( typeExpr ) &&
-					((nl.AtomType( typeExpr ) == SymbolType)) )
-			{
-				typeName = nl.SymbolValue( typeExpr );
-				if ( !ctlg.MemberType( typeName ) )
-				{
-					typeName = "";
-				}
-			}
-			if ( ctlg.IsSystemObject(objName) ) { // identifier not reserved?
-				errorCode = ERR_IDENT_RESERVED;
-	 
-			} else if ( !ctlg.CreateObject( objName, typeName, typeExpr2, 0 ) )
-			{
-				errorCode = ERR_IDENT_USED;  // identifier already used
-			}
-		}
-		else // Wrong type expression
-		{
-			errorCode = ERR_NO_OBJ_CREATED;     
-			resultList = errorList;
-		}
-		FinishCommand( errorCode );
-	}
-	else // no database open
-	{
-		errorCode = ERR_NO_DATABASE_OPEN;       
-	}
+  if ( sys.IsDatabaseOpen() )
+  {
+    StartCommand();
+    string objName = nl.SymbolValue( nl.Second( list ) );
+    ListExpr typeExpr = nl.Fourth( list );
+    ListExpr typeExpr2 = ctlg.ExpandedType( typeExpr );
+    string typeName = "";
+    
+    if ( ctlg.KindCorrect( typeExpr2, errorList ) )
+    {
+      if ( nl.IsAtom( typeExpr ) &&
+          ((nl.AtomType( typeExpr ) == SymbolType)) )
+      {
+        typeName = nl.SymbolValue( typeExpr );
+        if ( !ctlg.MemberType( typeName ) )
+        {
+          typeName = "";
+        }
+      }
+      if ( ctlg.IsSystemObject(objName) ) { // identifier not reserved?
+        errorCode = ERR_IDENT_RESERVED;
+   
+      } else if ( !ctlg.CreateObject( objName, typeName, typeExpr2, 0 ) )
+      {
+        errorCode = ERR_IDENT_USED;  // identifier already used
+      }
+    }
+    else // Wrong type expression
+    {
+      errorCode = ERR_NO_OBJ_CREATED;     
+      resultList = errorList;
+    }
+    FinishCommand( errorCode );
+  }
+  else // no database open
+  {
+    errorCode = ERR_NO_DATABASE_OPEN;       
+  }
 
   return errorCode;
 }
@@ -1697,7 +1697,7 @@ SecondoInterface::FinishCommand( SI_Error& errorCode )
     {
       if ( !SecondoSystem::AbortTransaction() )
       {
-				cerr << "Error: " << GetErrorMessage(errorCode) << endl;					
+        cerr << "Error: " << GetErrorMessage(errorCode) << endl;          
         errorCode = ERR_COMMIT_OR_ABORT_FAILED;
       }
     }
