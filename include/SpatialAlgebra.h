@@ -571,8 +571,6 @@ A Half Segment is composed of two points which are called ~left point~ LP and ~r
 the dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ value.
 
 */
-//    int cycleno;  // this is a temporary variable used for the infunction
-        
     CHalfSegment(bool Defined, bool LDP, Point& LP, Point& RP);
     CHalfSegment( const CHalfSegment& chs );
     CHalfSegment();
@@ -700,8 +698,9 @@ indicated in the ROSE paper.
 /*
 5.6 Intersects Function
 
-*Semantics:*  This function computes whether two half segments intersect with each other. Since 
-there is no Realm here as a precondition, two half segments may intersect each other in their middle.
+*Semantics:*  These two functions decide whether two half segments intersect with or cross each other. 
+Since there is no Realm here as a precondition, two half segments may intersect each other in their middle,
+which is decided by ~cross~. That is: cross=intersect with middle points. 
 
 *Complexity:* $O( 1 )$ 
 
@@ -728,9 +727,19 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 
 */
     const bool Contains( const Point& p ) const;
-    const bool rayAbove( const Point& p, double &abovey0 ) const;
 /*
-5.9 attribute comparison Functions
+5.9 rayAbove Function
+
+*Semantics:* This function decides whether a half segment is above a point. This is 
+useful when we want to decide whether a point is inside a face or region.
+
+*Complexity:* $O( 1 )$ 
+
+*/
+    const bool rayAbove( const Point& p, double &abovey0 ) const;
+    
+/*
+5.10 attribute comparison Functions
 
 *Semantics:* These two operations compare two half segments according to their attribute values. They are 
 used for the logicsort() function.
@@ -743,7 +752,7 @@ used for the logicsort() function.
     
   private:
 /*
-5.10 Properties
+5.11 Properties
 
 */
     bool defined;
@@ -772,7 +781,7 @@ paper. Currently the ~attribute~ value is composed of a set of int, but it will 
 */  
 };
 /*
-5.11 overloaded output operator
+5.12 overloaded output operator
 
 */
 ostream& operator<<( ostream& o, const CHalfSegment& chs );
@@ -797,7 +806,8 @@ as a set of sorted halfsegments, which are stored as a PArray.
 */    
     CLine(SmiRecordFile *recordFile);
     CLine(SmiRecordFile *recordFile, const CLine& cl );
-    CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true );
+    CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, 
+	 bool update = true );
     void Destroy();
     ~CLine();
     
@@ -991,7 +1001,8 @@ insertOK() function).
     CRegion(SmiRecordFile *recordFile);
     CRegion(SmiRecordFile *recordFile, const CRegion& cr );
     CRegion(const CRegion& cr, SmiRecordFile *recordFile );
-    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true );
+    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, 
+	     bool update = true );
     void Destroy();
     ~CRegion();
     
@@ -1156,13 +1167,20 @@ half segment is indicated by ~pos~
 
 */     
     bool contain( const Point& p ) const;
+/*
+decide whether a point is inside the region.
+
+*/ 
     bool contain( const CHalfSegment& chs ) const;
+/*
+decide whether a half segment is inside the region.
+
+*/ 
     bool holeedgecontain( const CHalfSegment& chs ) const;
 /*
-to decide whether a point or a half segment is inside the region.
+to decide whether a half segment is inside a hole edge of the region.
 
 */     
-    
     void logicsort();
     void logicQuickSortRecursive( const int low, const int high );
 /*
