@@ -20,6 +20,7 @@ using namespace std;
 // for testing the Tuple Manager
 #include "StandardTypes.h"
 #include "Tuple.h"
+#include "../Algebras/Polygon/PolygonAlgebra.cpp"
 
 
 static const bool needIdent = false;
@@ -47,6 +48,16 @@ class SecondoTestFrame : public Application
 //  AlgebraLevel      currentLevel;
 //  bool              isQuery;
   SecondoInterface* si;
+  
+  /* Test methods for the tuple manager. */
+  void Test01(const TupleAttributes *attributes, SmiRecordFile *recFile);
+  void Test02(const TupleAttributes *attributes, SmiRecordFile *recFile);
+  void Test03(const TupleAttributes *attributes, SmiRecordFile *recFile);
+  void Test04(const TupleAttributes *attributes, SmiRecordFile *recFile, bool &trans);
+  void Test05(const TupleAttributes *attributes, SmiRecordFile *recFile);
+  void Test06(const TupleAttributes *attributes, SmiRecordFile *recFile);
+  void Test07(const TupleAttributes *attributes, SmiRecordFile *recFile);
+  void Test08(const TupleAttributes *attributes, SmiRecordFile *recFile);
 };
 
 SecondoTestFrame::SecondoTestFrame( const int argc, const char** argv )
@@ -72,7 +83,7 @@ SecondoTestFrame::SecondoTestFrame( const int argc, const char** argv )
 13 SecondoMain
 
 This is the function where everything is done. If one wants to use the
-sotrage manager provided by SHORE, one should struture its program
+storage manager provided by SHORE, one should struture its program
 like this. Since using SHORE makes necessary to be on top of a thread, 
 we cannot just initiate the storage manager and then keep in the same
 function. Using SHORE we must use this workaround. Call the initiation 
@@ -264,6 +275,511 @@ SecondoTestFrame::CheckConfiguration()
 }
 
 /*
+
+Test 01: create new tuple and save to file
+
+*/
+void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+	Tuple* myTuple;	
+	float realv;
+	int intv;
+	char boolv;
+	bool bboolv;
+	int numberOfPoints;	
+	int *X;
+	int *Y;
+	int i;
+	CcReal *real1;
+	CcInt *int1;
+	CcBool *bool1;
+	SmiRecordFile *lobFile;
+	bool lobFileOpen;
+	Polygon* polygon1;
+	SmiRecordId recId;
+
+	myTuple = new Tuple(attributes);
+	cout << "\ta float value, please: "; cin >> realv;
+	cout << "\tan int value, please: "; cin >> intv;
+	cout << "\tt = true, f = false" << endl;
+	cout << "\ta boolean value, please: "; cin >> boolv;
+	bboolv = ((boolv == 't') ? true : false);
+	cout << "\thow many points, please: "; cin >> numberOfPoints;
+	X = new int[numberOfPoints];
+	Y = new int[numberOfPoints];
+						
+	for (i = 0; i < numberOfPoints; i++) {
+		cout << "\t" << (i+1) << ". Point:" << endl;
+		cout << "\t\tX: "; cin >> X[i];
+		cout << "\t\tY: "; cin >> Y[i];
+	}
+						
+	real1 = new CcReal(true, realv);
+    int1 = new CcInt(true, intv);
+	bool1 = new CcBool(true, bboolv);
+					
+	lobFile = new SmiRecordFile(false);
+	lobFileOpen = lobFile->Open("LOBFILE");
+
+	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	myTuple->Put(0, int1);
+	myTuple->Put(1, bool1);
+	myTuple->Put(2, real1);
+	myTuple->Put(3, polygon1);
+					
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
+	cout << "\tSize: " << myTuple->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	cout << "\tSave tuple into recFile. Persistent id = ";
+
+	myTuple->SaveTo(recFile, lobFile);
+	recId = myTuple->GetPersistentId();
+	cout << recId << endl;
+	lobFile->Close();
+	
+	delete polygon1;
+	delete lobFile;
+	delete real1;
+	delete int1;
+	delete bool1;
+	delete[] X;
+	delete[] Y;
+	delete myTuple;
+}
+
+/*
+
+Test 02: read tuple from file
+
+*/
+void SecondoTestFrame::Test02(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+	Tuple* myTuple;	
+	SmiRecordId recId;
+
+	cout << "\tID:";
+	cin >> recId;
+	cout << "\trecId = " << recId << endl;
+	cout << "\treading tuple." << endl;
+						
+	myTuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
+						
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
+	cout << "\tSize: " << myTuple->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+						
+	delete(myTuple);
+}
+
+/*
+
+Test 03: read tuple, change core attributes and resave to file." << endl;
+
+*/
+void SecondoTestFrame::Test03(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+	Tuple* myTuple;	
+	float realv;
+	int intv;
+	char boolv;
+	bool bboolv;
+	CcReal *real1;
+	CcInt *int1;
+	CcBool *bool1;
+	SmiRecordId recId;
+	
+	cout << "\tID:";
+	cin >> recId;
+	cout << "\trecId = " << recId << endl;
+						
+	cout << "\treading tuple." << endl;
+	myTuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
+
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
+	cout << "\tSize: " << myTuple->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+
+	cout << "\ta new float value, please: "; cin >> realv;
+	cout << "\ta new int value, please: "; cin >> intv;
+	cout << "\tt = true, f = false" << endl;
+	cout << "\ta new boolean value, please: "; cin >> boolv;
+	bboolv = ((boolv == 't') ? true : false);
+	real1 = new CcReal(true, realv);
+    int1 = new CcInt(true, intv);
+	bool1 = new CcBool(true, bboolv);
+					
+	myTuple->Put(0, int1);
+	myTuple->Put(1, bool1);
+	myTuple->Put(2, real1);
+						
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
+	cout << "\tSize: " << myTuple->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	myTuple->Save();
+					
+	delete bool1;
+	delete int1;
+	delete real1;	
+	delete(myTuple);
+}
+
+/*
+
+Test 04: create lots of tuples and save to file
+
+*/
+void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *recFile, bool& trans) {
+	Tuple* myTuple;	
+	float realv;
+	int intv;
+	char boolv;
+	bool bboolv;
+	int numberOfPoints;
+	int numberOfTuples;
+	int *X;
+	int *Y;
+	int i;
+	int j;
+	CcReal *real1;
+	CcInt *int1;
+	CcBool *bool1;
+	SmiRecordFile *lobFile;
+	bool lobFileOpen;
+	Polygon* polygon1;
+	SmiRecordId recId;
+	
+	cout << "\tnumber of tuples, please: "; cin >> numberOfTuples;
+	
+	cout << "\ta start float value, please: "; cin >> realv;
+	cout << "\tan start int value, please: "; cin >> intv;
+	cout << "\tt = true, f = false" << endl;
+	cout << "\ta boolean value, please: "; cin >> boolv;
+	bboolv = ((boolv == 't') ? true : false);
+	cout << "\thow many points, please: "; cin >> numberOfPoints;
+
+	X = new int[numberOfPoints];
+	Y = new int[numberOfPoints];
+		
+	for (i = 0; i < numberOfPoints; i++) {
+		cout << "\t" << (i+1) << ". Point." << endl;
+		cout << "\t\tX: "; cin >> X[i];
+		cout << "\t\tY: "; cin >> Y[i];
+	}
+
+	for (j = 0; j < numberOfTuples; j++) {
+		myTuple = new Tuple(attributes);					
+		real1 = new CcReal(true, realv + j);
+    	int1 = new CcInt(true, intv + j);
+		bool1 = new CcBool(true, bboolv);
+					
+		lobFile = new SmiRecordFile(false);
+		lobFileOpen = lobFile->Open("LOBFILE");
+
+		polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+		myTuple->Put(0, int1);
+		myTuple->Put(1, bool1);
+		myTuple->Put(2, real1);
+		myTuple->Put(3, polygon1);
+					
+		cout << "\ttest tuple values" << endl;
+		cout << "\t" << *myTuple << endl;
+		cout << "\tSize: " << myTuple->GetSize() << endl;
+		cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+		cout << "\tSave tuple into recFile. Persistent id = ";
+
+		myTuple->SaveTo(recFile, lobFile);
+		recId = myTuple->GetPersistentId();
+		cout << recId << endl;
+		lobFile->Close();
+		
+		delete real1;
+		delete int1;
+		delete bool1;
+		delete lobFile;
+		delete(myTuple);
+		delete(polygon1);
+	}
+	
+	delete[] X;
+	delete[] Y;
+}
+/*
+
+Test 05: show all tuples in the file. 
+
+*/
+void SecondoTestFrame::Test05(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+	cout << "\tnot yet implemented." << endl;
+	/*
+	it = new SmiRecordFileIterator();
+	myTuple = new Tuple(&tupleType1);
+	do {
+		more = it->Next(*myTuple);
+		cout << "\t" << *myTuple << endl;
+	} while (more); */
+}
+
+/*
+
+Test 06: create fresh tuple, destroy it and '(re-)SaveTo' it
+
+*/
+void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+	Tuple* myTuple;	
+	float realv;
+	int intv;
+	char boolv;
+	bool bboolv;
+	int numberOfPoints;	
+	int *X;
+	int *Y;
+	int i;
+	CcReal *real1;
+	CcInt *int1;
+	CcBool *bool1;
+	SmiRecordFile *lobFile;
+	bool lobFileOpen;
+	Polygon* polygon1;
+	SmiRecordId recId;
+
+	myTuple = new Tuple(attributes);
+	cout << "\ta float value, please: "; cin >> realv;
+	cout << "\tan int value, please: "; cin >> intv;
+	cout << "\tt = true, f = false" << endl;
+	cout << "\ta boolean value, please: "; cin >> boolv;
+	bboolv = ((boolv == 't') ? true : false);
+	cout << "\thow many points, please: "; cin >> numberOfPoints;
+	X = new int[numberOfPoints];
+	Y = new int[numberOfPoints];
+						
+	for (i = 0; i < numberOfPoints; i++) {
+		cout << "\t" << (i+1) << ". Point:" << endl;
+		cout << "\t\tX: "; cin >> X[i];
+		cout << "\t\tY: "; cin >> Y[i];
+	}
+						
+	real1 = new CcReal(true, realv);
+    int1 = new CcInt(true, intv);
+	bool1 = new CcBool(true, bboolv);
+					
+	lobFile = new SmiRecordFile(false);
+	lobFileOpen = lobFile->Open("LOBFILE");
+
+	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	myTuple->Put(0, int1);
+	myTuple->Put(1, bool1);
+	myTuple->Put(2, real1);
+	myTuple->Put(3, polygon1);
+					
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
+	cout << "\tSize: " << myTuple->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	cout << "\tSave tuple into recFile. Persistent id = ";
+
+	myTuple->SaveTo(recFile, lobFile);
+	recId = myTuple->GetPersistentId();
+	cout << recId << endl;
+	cout << "\tDestroying the tuple..." << endl;
+	myTuple->Destroy();
+	cout << "\tNow this tuple is a fresh one." << endl;	
+	cout << "\tResave this tuple..." << endl;
+	myTuple->SaveTo(recFile, lobFile);
+	recId = myTuple->GetPersistentId();
+	cout << "\tnew Persistent id = " << recId << endl;
+	lobFile->Close();
+	
+	delete polygon1;
+	delete lobFile;
+	delete real1;
+	delete int1;
+	delete bool1;
+	delete[] X;
+	delete[] Y;
+	delete myTuple;
+}
+
+/*
+
+Test 07: create two new tuples with one shared float component, save both to file.
+
+*/
+void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+	Tuple* myTuple;
+	Tuple* myTuple2;
+	float realv;
+	int intv;
+	int intv2;
+	char boolv;
+	char boolv2;
+	bool bboolv;
+	bool bboolv2;
+	int numberOfPoints;	
+	int *X;
+	int *Y;
+	int i;
+	CcReal *real1;
+	CcInt *int1;
+	CcInt *int2;
+	CcBool *bool1;
+	CcBool *bool2;
+	SmiRecordFile *lobFile;
+	bool lobFileOpen;
+	Polygon* polygon1;
+	Polygon* polygon2;
+	SmiRecordId recId;
+
+	myTuple = new Tuple(attributes);
+	myTuple2 = new Tuple(attributes);
+	
+	cout << "\ta float value for both tuples, please: "; cin >> realv;
+						
+	cout << "\tan int value for the first tuple, please: "; cin >> intv;
+	cout << "\tt = true, f = false" << endl;
+	cout << "\ta boolean value for the first tuple, please: "; cin >> boolv;
+						
+	cout << "\tan int value for the second tuple, please: "; cin >> intv2;
+	cout << "\tt = true, f = false" << endl;
+	cout << "\ta boolean value for the second tuple, please: "; cin >> boolv2;
+	bboolv = ((boolv == 't') ? true : false);
+	bboolv2 = ((boolv2 == 't') ? true : false);
+	
+	cout << "\thow many points, please: "; cin >> numberOfPoints;
+	X = new int[numberOfPoints];
+	Y = new int[numberOfPoints];
+						
+	for (i = 0; i < numberOfPoints; i++) {
+		cout << "\t" << (i+1) << ". Point:" << endl;
+		cout << "\t\tX: "; cin >> X[i];
+		cout << "\t\tY: "; cin >> Y[i];
+	}
+
+	lobFile = new SmiRecordFile(false);
+	lobFileOpen = lobFile->Open("LOBFILE");
+	
+	real1 = new CcReal(true, realv);
+    int1 = new CcInt(true, intv);
+	bool1 = new CcBool(true, bboolv);
+	int2 = new CcInt(true, intv2);
+	bool2 = new CcBool(true, bboolv2);
+
+	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon2 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	
+	myTuple->DelPut(0, int1);
+	myTuple->DelPut(1, bool1);
+	myTuple->DelPut(2, real1);
+	myTuple->Put(3, polygon1);
+	myTuple2->DelPut(0, int2);
+	myTuple2->DelPut(1, bool2);
+	myTuple2->AttrPut(2, myTuple, 2);
+	myTuple2->Put(3, polygon2);
+					
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
+	cout << "\tSize: " << myTuple->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	cout << "\tSave tuple into recFile. Persistent id = ";
+
+	myTuple->SaveTo(recFile, lobFile);
+	recId = myTuple->GetPersistentId();
+	cout << recId;
+	
+	myTuple2->SaveTo(recFile, lobFile);
+	recId = myTuple2->GetPersistentId();
+	cout << ", Persistent id = " << recId << endl;
+	
+	lobFile->Close();
+	
+	delete polygon1;
+	delete polygon2;
+	delete lobFile;
+	delete real1;
+	delete int1;
+	delete bool1;
+	delete[] X;
+	delete[] Y;
+	delete myTuple2;
+	delete myTuple;
+}
+
+
+/*
+
+Test 08: create new tuple with lots of points and save to file
+
+*/
+void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *recFile) {
+	Tuple* myTuple;	
+	float realv;
+	int intv;
+	char boolv;
+	bool bboolv;
+	int numberOfPoints;	
+	int *X;
+	int *Y;
+	int i;
+	CcReal *real1;
+	CcInt *int1;
+	CcBool *bool1;
+	SmiRecordFile *lobFile;
+	bool lobFileOpen;
+	Polygon* polygon1;
+	SmiRecordId recId;
+
+	myTuple = new Tuple(attributes);
+	cout << "\ta float value, please: "; cin >> realv;
+	cout << "\tan int value, please: "; cin >> intv;
+	cout << "\tt = true, f = false" << endl;
+	cout << "\ta boolean value, please: "; cin >> boolv;
+	bboolv = ((boolv == 't') ? true : false);
+	cout << "\thow many points, please: "; cin >> numberOfPoints;
+	X = new int[numberOfPoints];
+	Y = new int[numberOfPoints];
+						
+	for (i = 0; i < numberOfPoints; i++) {
+		X[i] = i;
+		Y[i] = i * i;
+	}
+						
+	real1 = new CcReal(true, realv);
+    int1 = new CcInt(true, intv);
+	bool1 = new CcBool(true, bboolv);
+					
+	lobFile = new SmiRecordFile(false);
+	lobFileOpen = lobFile->Open("LOBFILE");
+
+	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	myTuple->Put(0, int1);
+	myTuple->Put(1, bool1);
+	myTuple->Put(2, real1);
+	myTuple->Put(3, polygon1);
+					
+	//cout << "\ttest tuple values" << endl;
+	//cout << "\t" << *myTuple << endl;
+	cout << "\tSize: " << myTuple->GetSize() << endl;
+	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
+	cout << "\tSave tuple into recFile. Persistent id = ";
+
+	myTuple->SaveTo(recFile, lobFile);
+	recId = myTuple->GetPersistentId();
+	cout << recId << endl;
+	lobFile->Close();
+	
+	delete polygon1;
+	delete lobFile;
+	delete real1;
+	delete int1;
+	delete bool1;
+	delete[] X;
+	delete[] Y;
+	delete myTuple;
+}
+
+//
+
+/*
 1 Execute
 
 This function checks the configuration of the Secondo system. If the configuration
@@ -282,61 +798,75 @@ int SecondoTestFrame::Execute() {
 		if (si->Initialize(user, pswd, host, port, parmFile)) {
 			/* start of test code. */
             SecondoCatalog* exCatalog = 0;
-	    	int algId = 0;
+	    	int algIdStandard = 0;
 	    	int CcRealId = 0, CcIntId =0, CcStringId = 0, CcBoolId =0;
-	    
+
 	    	cout << "* Try to get catalog of exec. level. " << endl;
 	    	exCatalog = SecondoSystem::GetCatalog(ExecutableLevel);
+		
+			cout << "************************************************" << endl;
+			cout << "* Try to get algebra and type ids for polygon. *" << endl;
+			cout << "************************************************" << endl;
+			
+			int algIdPolygon = 0;
+			int CcPolygonId = 0;
 
-	    	cout << "* Try to get algebra and type ids. " << endl;
-	    	if ( (exCatalog->GetTypeId("int", algId, CcIntId) == true) ) {
-	      		cout << "* int --> algId: " << algId << ", typeId: " << CcIntId << endl;
+			if ((exCatalog->GetTypeId("polygon", algIdPolygon, CcPolygonId) == true)) {
+				cout << "* Polygon --> algId: " << algIdPolygon << ", typeid: " << CcPolygonId << endl;
+			}
+			else {
+				cout << "* failed." << endl;
+			}
+
+	    	cout << "*---------- Try to get algebra and type ids. " << endl;
+	    	if ( (exCatalog->GetTypeId("int", algIdStandard, CcIntId) == true) ) {
+	      		cout << "* int --> algId: " << algIdStandard << ", typeId: " << CcIntId << endl;
             } 
 	    	else {
 	      		cout << "* failed" << endl;
 	    	}
-	    	if ((exCatalog->GetTypeId("string", algId, CcStringId) == true)) {
-	      		cout << "* string --> algId: " << algId << ", typeId: " << CcStringId << endl;
+	    	if ((exCatalog->GetTypeId("string", algIdStandard, CcStringId) == true)) {
+	      		cout << "* string --> algId: " << algIdStandard << ", typeId: " << CcStringId << endl;
             }
 	    	else {
 	      		cout << "* failed" << endl;
 	    	}
-	   		if ( (exCatalog->GetTypeId("bool", algId, CcBoolId) == true) ) {
-	      		cout << "* bool --> algId: " << algId << ", typeId: " << CcBoolId << endl;
+	   		if ( (exCatalog->GetTypeId("bool", algIdStandard, CcBoolId) == true) ) {
+	      		cout << "* bool --> algId: " << algIdStandard << ", typeId: " << CcBoolId << endl;
             } 
 	    	else {
 	      		cout << "* failed" << endl;
 	    	}
-	    	if ((exCatalog->GetTypeId("real", algId, CcRealId) == true)) {
-	      		cout << "* real --> algId: " << algId << ", typeId: " << CcRealId << endl;
+	    	if ((exCatalog->GetTypeId("real", algIdStandard, CcRealId) == true)) {
+	      		cout << "* real --> algId: " << algIdStandard << ", typeId: " << CcRealId << endl;
             } 
 	    	else {
 	      		cout << "* failed" << endl;
 	    	}
-	    
+			cout << "*************************************************************************" << endl;
+		
 	    	cout << "* Get a reference of the Algebra Manager" << endl;
 	    	AlgebraManager* algM = 0;
 	    	algM = SecondoSystem::GetAlgebraManager();
 	    
 	    	cout << "* Get cast function for type real" << endl;
 	    	ObjectCast oca;
-	    	oca = algM->Cast(algId,CcRealId);
+	    	oca = algM->Cast(algIdStandard,CcRealId);
 	    
 	    	cout << "* assemble attribute types" << endl;
 	    
-	    	AttributeType realAttr = {algId, CcRealId, sizeof(CcReal)};
-	      	AttributeType intAttr = {algId, CcIntId, sizeof(CcInt)};
-	      	AttributeType boolAttr = {algId, CcBoolId, sizeof(CcBool)};
+	    	AttributeType realAttr = {algIdStandard, CcRealId, sizeof(CcReal)};
+	      	AttributeType intAttr = {algIdStandard, CcIntId, sizeof(CcInt)};
+	      	AttributeType boolAttr = {algIdStandard, CcBoolId, sizeof(CcBool)};
+			AttributeType polygonAttr = {algIdPolygon, CcPolygonId, sizeof(Polygon)};
 
-         	AttributeType attrTypes[] = { intAttr, boolAttr, realAttr };
+         	AttributeType attrTypes[] = {intAttr, boolAttr, realAttr, polygonAttr};
 
 	    	cout << "* create tuple attribute description" << endl;
 	    
-        	TupleAttributes tupleType1(3, attrTypes);
+        	TupleAttributes tupleType1(4, attrTypes);
 	   
 	    	cout << "* create tuple" << endl;
-	    	SmiRecordFile *recFile = new SmiRecordFile(false);
-			SmiRecordFile *lobFile = new SmiRecordFile(false);
 
 			bool cdb = SmiEnvironment::OpenDatabase("LOBDB");
 			if (cdb == false) {
@@ -354,287 +884,47 @@ int SecondoTestFrame::Execute() {
 				 cout << "* Database opened: yes" << endl;
 			}
 			
+			SmiRecordFile *recFile = new SmiRecordFile(false);
+
 			bool recFileOpen = recFile->Open("RECFILE");
-			bool lobFileOpen = lobFile->Open("LOBFILE");
+			int recFileId = recFile->GetFileId();
 
 			cout << "* Database opened/created: " << (cdb ? "yes" : 		"NO!!!!!!") << endl;
 			cout << "* File for record opened:  " << ((recFileOpen == true) ? "yes" : "NO!!!!!!") << endl;
-			cout << "* File for lobs opened:    " << ((lobFileOpen == true) ? "yes" : "NO!!!!!!") << endl;
 					
 			bool trans = SmiEnvironment::BeginTransaction();
 			cout << "* begin of transactions: ";
 			cout << ((trans == true) ? " OK" : " failed.") << endl;
 			
-			Tuple* myTuple;
-			Tuple* myTuple2;
-			CcReal *real1;
-			CcInt *int1;
-			CcBool *bool1;
-			CcInt *int2;
-			CcBool *bool2;
-			SmiRecordId recId;
-			SmiRecordId recId2;
 			int choice;
-			int i;
-			int j;
 			 		
 			do {
 				cout << "* Test menu: " << endl << endl;
 				cout << "1) create new tuple and save to file" << endl;
 				cout << "2) read tuple from file" << endl;
-				cout << "3) read tuple. change attributes and resave to file." << endl;
+				cout << "3) read tuple, change core attributes and resave to file." << endl;
 				cout << "4) create lots of tuples and save to file" << endl;
 				cout << "5) show all tuples in the file. " << endl;
 				cout << "6) create fresh tuple, destroy it and '(re-)SaveTo' it" << endl;
 				cout << "7) create two new tuples with one shared float component, save both to file." << endl;
+				cout << "8) create new tuple with lots of points and save to file" << endl;
+
 				cout << endl;
 				cout << "9) end." << endl;
 			
 				cout << "Your choice: ";
 				cin >> choice;
 				
-				float realv;
-				int intv;
-				char boolv;
-				bool bboolv;
-				int intv2;
-				char boolv2;
-				bool bboolv2;
-				int numberOfTuples;						
-				//SmiRecordFileIterator *it;
-				//bool more;
-
-
 				switch (choice) {
-					case 1:
-						myTuple = new Tuple(&tupleType1);
-						cout << "\ta float value, please: "; cin >> realv;
-						cout << "\tan int value, please: "; cin >> intv;
-						cout << "\tt = true, f = false" << endl;
-						cout << "\ta boolean value, please: "; cin >> boolv;
-						bboolv = ((boolv == 't') ? true : false);
-						real1 = new CcReal(true, realv);
-            			int1 = new CcInt(true, intv);
-	    				bool1 = new CcBool(true, bboolv);
-	    
-	    				myTuple->Put(0, int1);
-	    				myTuple->Put(1, bool1);
-	    				myTuple->Put(2, real1);
-					
-						cout << "\ttest tuple values" << endl;
-	    				cout << "\t" << *myTuple << endl;
-						cout << "\tSize: " << myTuple->GetSize() << endl;
-						cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
-						for (i = 0; i < myTuple->GetAttrNum(); i++) {
-							cout << "\t\t" << *(myTuple->Get(i)) << endl;
-						}
-						cout << "\tSave tuple into recFile. Persistent id = ";
-						myTuple->SaveTo(recFile, lobFile);
-						recId = myTuple->GetPersistentId();
-						cout << recId << endl;
-						
-						delete(myTuple);
-						
-						break;
-						
-					case 2:
-						cout << "\tID:";
-						cin >> recId;
-						cout << "\trecId = " << recId << endl;
-						
-						cout << "\treading tuple." << endl;
-						myTuple = new Tuple(recFile, recId, &tupleType1, SmiFile::ReadOnly);
-
-						cout << "\ttest tuple values" << endl;
-	    				cout << "\t" << *myTuple << endl;
-						cout << "\tSize: " << myTuple->GetSize() << endl;
-						cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
-
-					
-						delete(myTuple);
-
-						break;
-						
-					case 3:
-						cout << "\tID:";
-						cin >> recId;
-						cout << "\trecId = " << recId << endl;
-						
-						cout << "\treading tuple." << endl;
-						myTuple = new Tuple(recFile, recId, &tupleType1, SmiFile::ReadOnly);
-
-						cout << "\ttest tuple values" << endl;
-	    				cout << "\t" << *myTuple << endl;
-						cout << "\tSize: " << myTuple->GetSize() << endl;
-						cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
-
-					
-						cout << "\ta new float value, please: "; cin >> realv;
-						cout << "\ta new int value, please: "; cin >> intv;
-						cout << "\tt = true, f = false" << endl;
-						cout << "\ta new boolean value, please: "; cin >> boolv;
-						bboolv = ((boolv == 't') ? true : false);
-						real1 = new CcReal(true, realv);
-            			int1 = new CcInt(true, intv);
-	    				bool1 = new CcBool(true, bboolv);
-	    
-	    				myTuple->Put(0, int1);
-	    				myTuple->Put(1, bool1);
-	    				myTuple->Put(2, real1);
-					
-						cout << "\ttest tuple values" << endl;
-	    				cout << "\t" << *myTuple << endl;
-						cout << "\tSize: " << myTuple->GetSize() << endl;
-						cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
-
-					
-						myTuple->Save();
-						
-						delete(myTuple);
-						
-						break;
-						
-					case 4:
-						cout << "\tnumber of tuples, please: "; cin >> numberOfTuples;
-						
-						cout << "\ta start float value, please: "; cin >> realv;
-						cout << "\tan start int value, please: "; cin >> intv;
-						cout << "\tt = true, f = false" << endl;
-						cout << "\ta boolean value, please: "; cin >> boolv;
-						bboolv = ((boolv == 't') ? true : false);
-						cout << "\tcreating " << numberOfTuples << " tuples. Please be patient." << endl;
-						for (int i = 0; i < numberOfTuples; i++) {
-							myTuple = new Tuple(&tupleType1);
-
-							real1 = new CcReal(true, realv + i);
-            				int1 = new CcInt(true, intv + i);
-	    					bool1 = new CcBool(true, bboolv);
-	    
-	    					myTuple->Put(0, int1);
-	    					myTuple->Put(1, bool1);
-	    					myTuple->Put(2, real1);
-							myTuple->SaveTo(recFile, lobFile);
-							recId = myTuple->GetPersistentId();
-							
-							if ((i > 0) && (i % 10000 == 0)) {
-								trans = SmiEnvironment::CommitTransaction();
-								cout << "* end (commit) of transactions: ";
-								cout << ((trans == true) ? " OK" : " failed.") << endl;
-								trans = SmiEnvironment::BeginTransaction();
-								cout << "* begin of transactions: ";
-								cout << ((trans == true) ? " OK" : " failed.") << endl;
-							}
-							
-							delete(myTuple);
-						}
-						break;
-						
-					case 5:
-						cout << "\tnot yet implemented." << endl;
-						/*
-						it = new SmiRecordFileIterator();
-						myTuple = new Tuple(&tupleType1);
-						do {
-							more = it->Next(*myTuple);
-							cout << "\t" << *myTuple << endl;
-						} while (more); */
-						break;
-						
-					case 6:
-						myTuple = new Tuple(&tupleType1);
-						cout << "\ta float value, please: "; cin >> realv;
-						cout << "\tan int value, please: "; cin >> intv;
-						cout << "\tt = true, f = false" << endl;
-						cout << "\ta boolean value, please: "; cin >> boolv;
-						bboolv = ((boolv == 't') ? true : false);
-						real1 = new CcReal(true, realv);
-            			int1 = new CcInt(true, intv);
-	    				bool1 = new CcBool(true, bboolv);
-	    
-	    				myTuple->Put(0, int1);
-	    				myTuple->Put(1, bool1);
-	    				myTuple->Put(2, real1);
-					
-						cout << "\ttest tuple values" << endl;
-	    				cout << "\t" << *myTuple << endl;
-						cout << "\tSize: " << myTuple->GetSize() << endl;
-						cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
-						
-						cout << "\tSave tuple into recFile. Persistent id = ";
-						myTuple->SaveTo(recFile, lobFile);
-						recId = myTuple->GetPersistentId();
-						cout << recId << endl;
-						
-						cout << "\tDestroying the tuple..." << endl;
-						myTuple->Destroy();
-						cout << "\tNow this tuple is a fresh one." << endl;
-						cout << "\tResave this tuple..." << endl;
-						myTuple->SaveTo(recFile, lobFile);
-						recId = myTuple->GetPersistentId();
-						cout << "\t" << recId << endl;
-
-						break;
-						
-					case 7:
-						myTuple = new Tuple(&tupleType1);
-						myTuple2 = new Tuple(&tupleType1);
-						cout << "\ta float value for both tuples, please: "; cin >> realv;
-						
-						cout << "\tan int value for the first tuple, please: "; cin >> intv;
-						cout << "\tt = true, f = false" << endl;
-						cout << "\ta boolean value for the first tuple, please: "; cin >> boolv;
-						
-						cout << "\tan int value for the second tuple, please: "; cin >> intv2;
-						cout << "\tt = true, f = false" << endl;
-						cout << "\ta boolean value for the second tuple, please: "; cin >> boolv2;
-						bboolv = ((boolv == 't') ? true : false);
-						bboolv2 = ((boolv2 == 't') ? true : false);
-						
-						real1 = new CcReal(true, realv);
-            			int1 = new CcInt(true, intv);
-	    				bool1 = new CcBool(true, bboolv);
-						int2 = new CcInt(true, intv2);
-						bool2 = new CcBool(true, bboolv2);
-	    
-	    				myTuple->DelPut(0, int1);
-	    				myTuple->DelPut(1, bool1);
-	    				myTuple->DelPut(2, real1);
-					
-						myTuple2->DelPut(0, int2);
-						myTuple2->DelPut(1, bool2);
-						myTuple2->AttrPut(2, myTuple, 2);
-					
-						cout << "\ttest tuple values (first tuple)" << endl;
-	    				cout << "\t" << *myTuple << endl;
-						cout << "\tSize: " << myTuple->GetSize() << endl;
-						cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
-						for (j = 0; j < myTuple->GetAttrNum(); j++) {
-							cout << "\t\t" << *(myTuple->Get(j)) << endl;
-						}
-						
-						cout << "\ttest tuple values (second tuple)" << endl;
-	    				cout << "\t" << *myTuple2 << endl;
-						cout << "\tSize: " << myTuple2->GetSize() << endl;
-						cout << "\tAttributes: " << myTuple2->GetAttrNum() << endl;
-						for (j = 0; j < myTuple2->GetAttrNum(); j++) {
-							cout << "\t\t" << *(myTuple2->Get(j)) << endl;
-						}
-
-						cout << "\tSave tuples into recFile. \n\tPersistent id = ";
-						myTuple->SaveTo(recFile, lobFile);
-						recId = myTuple->GetPersistentId();
-						cout << recId << endl;
-						cout << "\tPersistent id = ";
-						myTuple2->SaveTo(recFile, lobFile);
-						recId2 = myTuple2->GetPersistentId();
-						cout << recId2 << endl;
-						
-						delete(myTuple);
-						delete(myTuple2);
-
-
-					case 9:
-						break;
+					case 1: Test01(&tupleType1, recFile); break;
+					case 2: Test02(&tupleType1, recFile); break;
+					case 3: Test03(&tupleType1, recFile); break;
+					case 4: Test04(&tupleType1, recFile, trans); break;
+					case 5: Test05(&tupleType1, recFile); break;
+					case 6: Test06(&tupleType1, recFile); break;
+					case 7: Test07(&tupleType1, recFile); break;
+					case 8: Test08(&tupleType1, recFile); break;
+					case 9: break;
 				}
 			} while (choice != 9);
 					
@@ -642,11 +932,10 @@ int SecondoTestFrame::Execute() {
 			cout << "* end (commit) of transactions: ";
 			cout << ((trans == true) ? " OK" : " failed.") << endl;
 		
+			recFileId = recFile->GetFileId();
 			recFile->Close();
-			lobFile->Close();
 			
 			delete recFile;
-			delete lobFile;
     	}
     	si->Terminate();
 		
@@ -658,6 +947,7 @@ int SecondoTestFrame::Execute() {
 	}
   return rc;
 }
+
 
 /*
 14 main
