@@ -15,14 +15,14 @@ INCFILES=\
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h
 
-LIBNAME=libstandardalgebra
 MODNAME=StandardAlgebra
+LIBNAME=lib$(MODNAME)
 
 OBJECTS=\
 	$(MODNAME).$(OBJEXT)
 
 .PHONY: all
-all: $(OBJECTS)
+all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
@@ -30,20 +30,10 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
 # --- Standard Algebra C++ library ---
 
-# ... Windows needs special treatment when creating DLLs
-ifeq ($(shared),yes)
-ifeq ($(platform),win32)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
-endif
-endif
-
-$(LIBDIR)/libstandardalgebra.$(LIBEXT): $(OBJECTS)
+$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-ifeq ($(platform),win32)
-	$(CP) $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(BINDIR)/$(LIBNAME).$(LIBEXT)
-endif
 else
 # ... as static library
 	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
@@ -59,6 +49,5 @@ include ../../include.dep
 .PHONY: clean
 clean:
 	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
-	$(RM) *.o
-	$(RM) *.lo
+	$(RM) *.o *.lo
 
