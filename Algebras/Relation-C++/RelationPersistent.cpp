@@ -587,14 +587,12 @@ Tuple::~Tuple()
 
 Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  // This function should never be called.
-  assert( false );
+  return 0;
 }
 
 ListExpr Tuple::SaveToList( ListExpr typeInfo )
 {
-  // This function should never be called.
-  assert( false );
+  return nl->TheEmptyList();
 }
 
 const TupleId& Tuple::GetTupleId() const
@@ -1070,14 +1068,17 @@ Relation::~Relation()
 
 Relation *Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  // This function should never be called.
-  assert( false );
+  RelationDescriptor relDesc( nl->IntValue( nl->First( value ) ),
+                              nl->IntValue( nl->Second( value ) ),
+                              nl->IntValue( nl->Third( value ) ) );
+  return new Relation( typeInfo, relDesc );
 }
 
 ListExpr Relation::SaveToList( ListExpr typeInfo )
 {
-  // This function should never be called.
-  assert( false );
+  return nl->ThreeElemList( nl->IntAtom( privateRelation->tupleFile.GetFileId() ),
+                            nl->IntAtom( privateRelation->lobFile.GetFileId() ),
+                            nl->IntAtom( privateRelation->noTuples ) );
 }
 
 bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value )
