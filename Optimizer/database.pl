@@ -22,6 +22,7 @@ relation(staedte, [sname, bev, plz, vorwahl, kennzeichen]).
 relation(plz, [plz, ort]).
 relation(ten, [no]).
 relation(thousand, [no]).
+relation(orte, [kennzeichen, ort, vorwahl, bevt]).
 
 spelling(staedte:plz, pLZ).
 spelling(staedte:sname, sName).
@@ -31,6 +32,7 @@ spelling(ten, lc(ten)).
 spelling(ten:no, lc(no)).
 spelling(thousand, lc(thousand)).
 spelling(thousand:no, lc(no)).
+spelling(orte:bevt, bevT).
 
 hasIndex(Rel, attr(_:A, _, _), IndexName) :-
   hasIndex(Rel, attr(A, _, _), IndexName).
