@@ -335,7 +335,11 @@ class CcTuple
   private:
 
     int NoOfAttr;
-    void* AttrList [MaxSizeOfAttr];
+    Attribute* AttrList [MaxSizeOfAttr];
+
+    /* if a tuple is free, then a stream receiving the tuple can delete or
+       reuse it */
+    bool isFree;
 
   public:
 
@@ -347,10 +351,45 @@ class CcTuple
     };
 
     virtual ~CcTuple () {};
-    void* Get (int index) {return AttrList[index];};
-    void  Put (int index, void* attr) {AttrList[index] = attr;};
+    Attribute* Get (int index) {return AttrList[index];};
+    void  Put (int index, Attribute* attr) {AttrList[index] = attr;};
     void  SetNoAttrs (int noattr) {NoOfAttr = noattr;};
     int   GetNoAttrs () {return NoOfAttr;};
+    bool IsFree() { return isFree; }
+    void SetFree(bool b) { isFree = b; }
+
+    CcTuple* CloneIfNecessary()
+    {
+      if(IsFree())
+      {
+        return this;
+      }
+      else
+      {
+        CcTuple* result = new CcTuple();
+        result->SetFree(true);
+        result->SetNoAttrs(GetNoAttrs());
+        for(int i = 0; i < GetNoAttrs(); i++)
+        {
+          Attribute* attr = ((Attribute*)Get(i))->Clone();
+          result->Put(i, attr);
+        }
+        return result;
+      }
+    }
+
+    void DeleteIfAllowed()
+    {
+      if(IsFree())
+      {
+        for(int i = 0; i < GetNoAttrs(); i++)
+        {
+          Attribute* attr = (Attribute*)Get(i);
+          delete attr;
+        }
+        delete this;
+      }
+    }
 
     friend
     ostream& operator<<(ostream& s, CcTuple t);
@@ -413,10 +452,10 @@ public:
 
 1.3.2 ~Out~-function of type constructor ~tuple~
 
-The ~out~-function of type constructor ~tuple~ takes as inputs a type 
+The ~out~-function of type constructor ~tuple~ takes as inputs a type
 description (~typeInfo~) of the tuples attribute structure in nested list
 format and a pointer to a tuple value, stored in main memory.
-The function returns the tuple value from main memory storage 
+The function returns the tuple value from main memory storage
 in nested list format.
 
 */
@@ -454,14 +493,14 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
 
 1.3.2 ~In~-function of type constructor ~tuple~
 
-The ~in~-function of type constructor ~tuple~ takes as inputs a type 
-description (~typeInfo~) of the tuples attribute structure in nested 
-list format and the tuple value in nested list format. The function 
+The ~in~-function of type constructor ~tuple~ takes as inputs a type
+description (~typeInfo~) of the tuples attribute structure in nested
+list format and the tuple value in nested list format. The function
 returns a pointer to atuple value, stored in main memory in accordance to
 the tuple value in nested list format.
 
 Error handling in ~InTuple~: ~Correct~ is only true if there is the right
-number of attribute values and all values have correct list representations. 
+number of attribute values and all values have correct list representations.
 Otherwise the following error messages are added to ~errorInfo~:
 
 ----	(71 tuple 1 <errorPos>)		        atom instead of value list
@@ -471,7 +510,7 @@ Otherwise the following error messages are added to ~errorInfo~:
 	(71 tuple 4 <errorPos>)		        too many values
 ----
 
-is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple in the 
+is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple in the
 relation list (passed by ~InRelation~).
 
 
@@ -488,6 +527,7 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
   attrno = 0;
   noOfAttrs = 0;
   tupleaddr = new CcTuple();
+
   attrlist =  nl->Second(nl->First(typeInfo));
   valuelist = value;
   correct = true;
@@ -513,35 +553,35 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
       typeId = nl->IntValue(nl->Second(nl->Second(first)));
       if (nl->IsEmpty(valuelist))
       {
-	correct = false;
-	errorInfo = nl->Append(errorInfo,
-	  nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
-	    nl->IntAtom(errorPos)));
+        correct = false;
+        errorInfo = nl->Append(errorInfo,
+          nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
+            nl->IntAtom(errorPos)));
         delete tupleaddr;
         return SetWord(Address(0));
 
       }
       else
       {
- 	firstvalue = nl->First(valuelist);
-	valuelist = nl->Rest(valuelist);
+        firstvalue = nl->First(valuelist);
+        valuelist = nl->Rest(valuelist);
         attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
                  firstvalue, attrno, errorInfo, valueCorrect);
-	if (valueCorrect)
-	{
-	  correct = true;
-          tupleaddr->Put(attrno - 1, attr.addr);
+        if (valueCorrect)
+        {
+          correct = true;
+          tupleaddr->Put(attrno - 1, (Attribute*)attr.addr);
           noOfAttrs++;
-	}
-	else
-	{
-	  correct = false;
-	  errorInfo = nl->Append(errorInfo,
-	    nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
-		nl->IntAtom(errorPos), nl->IntAtom(attrno)));
+        }
+        else
+        {
+          correct = false;
+          errorInfo = nl->Append(errorInfo,
+            nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
+          nl->IntAtom(errorPos), nl->IntAtom(attrno)));
           delete tupleaddr;
           return SetWord(Address(0));
-   	}
+        }
       }
     }
     if (!nl->IsEmpty(valuelist))
@@ -680,8 +720,8 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
         else
         {
           errorInfo = nl->Append(errorInfo,
-	    nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-	    nl->IntAtom(4),nl->First(pair)));
+          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->IntAtom(4),nl->First(pair)));
           correct = false;
         }
       }
@@ -689,7 +729,7 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
       {
         errorInfo = nl->Append(errorInfo,
           nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-	  nl->IntAtom(5),pair ));
+          nl->IntAtom(5),pair ));
         correct = false;
       }
       it++;
@@ -716,7 +756,7 @@ static void* CastTuple(void* addr)
 
 1.3.3 ~Create~-function of type constructor ~tuple~
 
-The function is used to allocate memory sufficient for keeping one instance 
+The function is used to allocate memory sufficient for keeping one instance
 of ~tuple~. The ~Size~-parameter is not evaluated.
 
 */
@@ -913,7 +953,7 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
   correct = true;
   count = 0;
   rel = new CcRel();
-  
+
   tuplelist = value;
   TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
 	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
@@ -922,7 +962,7 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
   {
     correct = false;
     errorInfo = nl->Append(errorInfo,
-	nl->ThreeElemList(nl->IntAtom(70), nl->SymbolAtom("rel"), tuplelist));
+    nl->ThreeElemList(nl->IntAtom(70), nl->SymbolAtom("rel"), tuplelist));
     return SetWord(rel);
   }
   else
@@ -934,21 +974,22 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
       tupleno++;
       tupleaddr = (CcTuple*)(InTuple(TupleTypeInfo, first, tupleno,
         errorInfo, tupleCorrect).addr);
+      tupleaddr->SetFree(false);
 
       if (tupleCorrect)
       {
-	rel->AppendTuple(tupleaddr);
-	count++;
+        rel->AppendTuple(tupleaddr);
+        count++;
       }
       else
       {
-	correct = false;
+        correct = false;
       }
     }
     if (!correct)
     {
       errorInfo = nl->Append(errorInfo,
-	nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
+      nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
     }
     else rel->SetNoTuples(count);
 
@@ -1085,7 +1126,7 @@ RelPersistValue( const PersistDirection dir,
     int pos;
     for ( int j = 0; j < cachesize; j++ )
       if ( key[j]  == recId ) {
-	found = true; 
+	found = true;
 	pos = j;
         break;
       }
@@ -1419,11 +1460,14 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       r = (CcRel*)local.addr;
       if (!(r->EndOfScan()))
       {
-	result = SetWord(r->GetTuple());
-	r->NextScan();
+        result = SetWord(r->GetTuple()->CloneIfNecessary());
+        r->NextScan();
         return YIELD;
       }
-      else return CANCEL;
+      else
+      {
+        return CANCEL;
+      }
 
     case CLOSE :
 
@@ -1448,12 +1492,12 @@ class ~Operator~, passing all operator functions as constructor arguments.
 
 */
 Operator feed (
-         "feed",                // name
-	 FeedSpec,              // specification
-	 Feed,                  // value mapping
-	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
-	 FeedTypeMap           // type mapping
+          "feed",                // name
+          FeedSpec,              // specification
+          Feed,                  // value mapping
+          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
+          simpleSelect,         // trivial selection function
+          FeedTypeMap           // type mapping
 );
 /*
 4.1 Operator ~consume~
@@ -1495,12 +1539,15 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   Word actual;
   CcRel* rel;
 
-  rel = new CcRel();
+  rel = (CcRel*)((qp->ResultStorage(s)).addr);
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    rel->AppendTuple(((CcTuple*)actual.addr));
+    CcTuple* tuple = (CcTuple*)actual.addr;
+    tuple = tuple->CloneIfNecessary();
+    tuple->SetFree(false);
+    rel->AppendTuple(tuple);
     qp->Request(args[0].addr, actual);
   }
 
@@ -1612,7 +1659,9 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
   index = (int)((StandardAttribute*)args[2].addr)->GetValue();
   if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))
   {
-    result = SetWord(tupleptr->Get(index - 1));
+    result = qp->ResultStorage(s);
+    ((StandardAttribute*)result.addr)->CopyFrom(
+      (StandardAttribute*)tupleptr->Get(index - 1));
     return 0;
   }
   else
@@ -1687,6 +1736,7 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
   bool found;
   Word elem, funresult;
   ArgVectorPointer funargs;
+  CcTuple* tuple;
 
   switch ( message )
   {
@@ -1703,18 +1753,21 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
       found = false;
       while (qp->Received(args[0].addr) && !found)
       {
+        tuple = (CcTuple*)elem.addr;
         (*funargs)[0] = elem;
         qp->Request(args[1].addr, funresult);
         if (((StandardAttribute*)funresult.addr)->IsDefined())
           found = (bool)((StandardAttribute*)funresult.addr)->GetValue();
         if (!found)
         {
-        qp->Request(args[0].addr, elem);
+          tuple->DeleteIfAllowed();
+          qp->Request(args[0].addr, elem);
         }
       }
       if (found)
       {
-        result = elem;
+        tuple = tuple->CloneIfNecessary();
+        result = SetWord(tuple);
         return YIELD;
       }
       else
@@ -1765,8 +1818,8 @@ Result type of project operation.
 		)
 ----
 
-The type mapping computes the number of attributes and the list of attribute 
-numbers for the given projection attributes and asks the query processor to 
+The type mapping computes the number of attributes and the list of attribute
+numbers for the given projection attributes and asks the query processor to
 append it to the given arguments.
 
 */
@@ -1847,7 +1900,7 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
   Word elem1, elem2;
   int noOfAttrs, index;
   Supplier son;
-  void* attr;
+  Attribute* attr;
   CcTuple* t;
 
 
@@ -1863,18 +1916,20 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
-	t = new CcTuple();
+        t = new CcTuple();
+        t->SetFree(true);
         noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-	t->SetNoAttrs(noOfAttrs);
+        t->SetNoAttrs(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
           son = qp->GetSupplier(args[3].addr, i-1);
           qp->Request(son, elem2);
           index = ((CcInt*)elem2.addr)->GetIntval();
-	  attr = ((CcTuple*)elem1.addr)->Get(index-1);
-	  t->Put(i-1, attr);
+          attr = ((CcTuple*)elem1.addr)->Get(index-1);
+          t->Put(i-1, ((StandardAttribute*)attr->Clone()));
         }
-	result = SetWord(t);
+        ((CcTuple*)elem1.addr)->DeleteIfAllowed();
+        result = SetWord(t);
         return YIELD;
       }
       else return CANCEL;
@@ -1921,7 +1976,7 @@ Copies the attribute values of two tuples
 void Concat (Word r, Word s, Word& t)
 {
   int rnoattrs, snoattrs, tnoattrs;
-  void* attr;
+  Attribute* attr;
 
   rnoattrs = ((CcTuple*)r.addr)->GetNoAttrs();
   snoattrs = ((CcTuple*)s.addr)->GetNoAttrs();
@@ -1933,16 +1988,17 @@ void Concat (Word r, Word s, Word& t)
   {
     tnoattrs = rnoattrs + snoattrs;
   }
+
   ((CcTuple*)t.addr)->SetNoAttrs(tnoattrs);
   for (int i = 1; i <= rnoattrs; i++)
   {
     attr = ((CcTuple*)r.addr)->Get(i - 1);
-    ((CcTuple*)t.addr)->Put((i - 1), attr);
+    ((CcTuple*)t.addr)->Put((i - 1), ((StandardAttribute*)attr)->Clone());
   }
   for (int j = (rnoattrs + 1); j <= tnoattrs; j++)
   {
     attr = ((CcTuple*)s.addr)->Get(j - rnoattrs - 1);
-    ((CcTuple*)t.addr)->Put((j - 1), attr);
+    ((CcTuple*)t.addr)->Put((j - 1), ((StandardAttribute*)attr)->Clone());
   }
 }
 /*
@@ -1971,13 +2027,13 @@ ListExpr ProductTypeMap(ListExpr args)
       if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
       {
         if (nl->ListLength(nl->Second(first)) == 2)
-	{
+        {
           if (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-	  {
+          {
             list1 = nl->Second(nl->Second(first));
-	  }
+          }
           else return nl->SymbolAtom("typeerror");
-	}
+        }
         else return nl->SymbolAtom("typeerror");
       }
       else return nl->SymbolAtom("typeerror");
@@ -1990,13 +2046,13 @@ ListExpr ProductTypeMap(ListExpr args)
       if (TypeOfRelAlgSymbol(nl->First(second)) == stream)
       {
         if (nl->ListLength(nl->Second(second)) == 2)
-	{
+        {
           if (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple)
-	  {
+          {
             list2 = nl->Second(nl->Second(second));
-	  }
+          }
           else return nl->SymbolAtom("typeerror");
-	}
+        }
         else return nl->SymbolAtom("typeerror");
       }
       else return nl->SymbolAtom("typeerror");
@@ -2022,6 +2078,7 @@ static int
 Product(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word r, u, t;
+  CcTuple* tuple;
 
   switch (message)
   {
@@ -2038,44 +2095,52 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       if (local.addr == 0)
       {
         qp->Close(args[1].addr);
-	return CANCEL;
+        return CANCEL;
       }
       else
       {
         r = local;
-	qp->Request(args[1].addr, u);
-	if (qp->Received(args[1].addr))
-	{
-	  t = SetWord(new CcTuple());
-	  Concat(r, u, t);
-	  result = t;
-	  return YIELD;
-	}
-	else
-	// second stream exhausted and closed now; must get a
-	// new tuple from the first stream and restart second stream
-	{
-	  qp->Request(args[0].addr, r);
+        qp->Request(args[1].addr, u);
+        if (qp->Received(args[1].addr))
+        {
+          tuple = new CcTuple();
+          tuple->SetFree(true);
+          t = SetWord(tuple);
+          Concat(r, u, t);
+          result = t;
+          ((CcTuple*)u.addr)->DeleteIfAllowed();
+
+          return YIELD;
+        }
+        else
+        // second stream exhausted and closed now; must get a
+        // new tuple from the first stream and restart second stream
+        {
+          ((CcTuple*)r.addr)->DeleteIfAllowed();
+          qp->Request(args[0].addr, r);
           if (qp->Received(args[0].addr))
-	  {
-	    local = r;
-	    qp->Open(args[1].addr);
-	    qp->Request(args[1].addr, u);
-	    if (!qp->Received(args[1].addr)) // second stream is empty
-	    {
-	      qp->Close(args[0].addr);
-	      return CANCEL;
-	    }
-	    else
-	    {
-	      t = SetWord(new CcTuple());
-	      Concat(r, u, t);
-	      result = t;
-	      return YIELD;
-	    }
-	  }
-	  else return CANCEL; // first stream exhausted
-	}
+          {
+            local = r;
+            qp->Open(args[1].addr);
+            qp->Request(args[1].addr, u);
+            if (!qp->Received(args[1].addr)) // second stream is empty
+            {
+              qp->Close(args[0].addr);
+              return CANCEL;
+            }
+            else
+            {
+              tuple = new CcTuple();
+              tuple->SetFree(true);
+              t = SetWord(tuple);
+              Concat(r, u, t);
+              ((CcTuple*)u.addr)->DeleteIfAllowed();
+              result = t;
+              return YIELD;
+            }
+          }
+          else return CANCEL; // first stream exhausted
+        }
       }
 
     case CLOSE :
@@ -2130,6 +2195,7 @@ static int
 Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t, value;
+  CcTuple* tuple;
   bool found;
   ArgVectorPointer vector;
 
@@ -2142,24 +2208,26 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST :
 
-      qp->Request(args[0].addr,t);
+      qp->Request(args[0].addr, t);
       found= false;
       if (qp->Received(args[0].addr))
       {
+        tuple = (CcTuple*)t.addr;
         vector = qp->Argument(args[1].addr);
-	(*vector)[0] = t;
-	qp->Request(args[1].addr, value);
-	found = ((CcBool*)value.addr)->GetBoolval();
-	if (found)
-	{
-	  qp->Close(args[0].addr);
-	  return CANCEL;
-	}
-	else
-	{
-	  result = t;
-	  return YIELD;
-	}
+        (*vector)[0] = t;
+        qp->Request(args[1].addr, value);
+        found = ((CcBool*)value.addr)->GetBoolval();
+        if (found)
+        {
+          qp->Close(args[0].addr);
+          return CANCEL;
+        }
+        else
+        {
+          tuple = tuple->CloneIfNecessary();
+          result = SetWord(tuple);
+          return YIELD;
+        }
       }
       else return CANCEL;
 
@@ -2240,6 +2308,7 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Request(args[0].addr, elem);
   while ( qp->Received(args[0].addr) )
   {
+    ((CcTuple*)elem.addr)->DeleteIfAllowed();
     count++;
     qp->Request(args[0].addr, elem);
   }
@@ -2398,6 +2467,7 @@ static int
 Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t;
+  CcTuple* tuple;
 
   switch (message)
   {
@@ -2411,8 +2481,10 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
-        result = t;
-	return YIELD;
+        tuple = (CcTuple*)t.addr;
+        tuple = tuple->CloneIfNecessary();
+        result = SetWord(tuple);
+        return YIELD;
       }
       else return CANCEL;
 
@@ -2508,6 +2580,8 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   Word t;
   CcTuple* tupleptr;
   int index;
+  StandardAttribute* res = (StandardAttribute*)((qp->ResultStorage(s)).addr);
+  result = SetWord(res);
 
   qp->Open(args[0].addr);
 
@@ -2519,11 +2593,13 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
     index = (int)((StandardAttribute*)args[2].addr)->GetValue();
     if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))
     {
-      result = SetWord(tupleptr->Get(index - 1));
+      res->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
+      tupleptr->DeleteIfAllowed();
       return 0;
     }
     else
     {
+      tupleptr->DeleteIfAllowed();
       cout << "extract: index out of range !";
       return -1;
     }
@@ -2602,6 +2678,8 @@ static int
 Head(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   int maxTuples;
+  Word tupleWord;
+  CcTuple* tuple;
 
   switch(message)
   {
@@ -2616,9 +2694,12 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
       }
 
-      qp->Request(args[0].addr, result);
+      qp->Request(args[0].addr, tupleWord);
       if(qp->Received(args[0].addr))
       {
+        tuple = (CcTuple*)tupleWord.addr;
+        tuple = tuple->CloneIfNecessary();
+        result = SetWord(tuple);
         local.ival++;
         return YIELD;
       }
@@ -2716,7 +2797,8 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
 {
   bool definedValueFound = false;
   Word currentTupleWord;
-  Attribute* extremum = 0;
+  StandardAttribute* extremum = (StandardAttribute*)(qp->ResultStorage(s)).addr;
+  result = SetWord(extremum);
 
   assert(args[2].addr != 0);
   int attributeIndex = (int)((StandardAttribute*)args[2].addr)->GetValue() - 1;
@@ -2726,7 +2808,8 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   while(qp->Received(args[0].addr))
   {
     CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
-    Attribute* currentAttr = (Attribute*)currentTuple->Get(attributeIndex);
+    StandardAttribute* currentAttr =
+      (StandardAttribute*)currentTuple->Get(attributeIndex);
     if(currentAttr->IsDefined())
     {
       if(definedValueFound)
@@ -2735,30 +2818,30 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
         {
           if(currentAttr->Compare(extremum) > 0)
           {
-            extremum = currentAttr;
+            extremum->CopyFrom(currentAttr);
           }
         }
         else
         {
           if(currentAttr->Compare(extremum) < 0)
           {
-            extremum = currentAttr;
+            extremum->CopyFrom(currentAttr);
           }
         }
       }
       else
       {
         definedValueFound = true;
-        extremum = currentAttr;
+        extremum->CopyFrom(currentAttr);
       }
     }
+    currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
   }
   qp->Close(args[0].addr);
 
   if(definedValueFound)
   {
-    result = SetWord(extremum->Clone());
     return 0;
   }
   else
@@ -2930,6 +3013,7 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
         }
       }
     }
+    currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
   }
   qp->Close(args[0].addr);
@@ -3159,11 +3243,13 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   SortByLocalInfo* localInfo;
   SortOrderSpecification spec;
   int i;
+  size_t j;
   int sortAttrIndex;
   int nSortAttrs;
   bool sortOrderIsAscending;
   CcTupleCmp ccCmp;
   LexicographicalCcTupleCmp lCcCmp;
+  CcTuple* t;
 
   switch(message)
   {
@@ -3173,7 +3259,9 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr,tuple);
       while(qp->Received(args[0].addr))
       {
-        tuples->push_back((CcTuple*)tuple.addr);
+        t =(CcTuple*)tuple.addr;
+        t = t->CloneIfNecessary();
+        tuples->push_back(t);
         qp->Request(args[0].addr,tuple);
       }
 
@@ -3216,6 +3304,13 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
     case CLOSE:
       localInfo = (SortByLocalInfo*)local.addr;
+
+      for(j = localInfo->currentIndex;
+        j <= localInfo->tuples->size() - 1; j++)
+      {
+        (*(localInfo->tuples))[j]->DeleteIfAllowed();
+      }
+
       delete localInfo->tuples;
       delete localInfo;
       return 0;
@@ -3342,15 +3437,22 @@ RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
             if(cmp(currentTuple, lastOutputTuple)
               || cmp(lastOutputTuple, currentTuple))
             {
-              local = SetWord(tuple.addr);
-              result = SetWord(tuple.addr);
+              currentTuple = currentTuple->CloneIfNecessary();
+              local = SetWord(currentTuple);
+              result = SetWord(currentTuple);
               return YIELD;
+            }
+            else
+            {
+              currentTuple->DeleteIfAllowed();
             }
           }
           else
           {
-            local = SetWord(tuple.addr);
-            result = SetWord(tuple.addr);
+            currentTuple = (CcTuple*)tuple.addr;
+            currentTuple = currentTuple->CloneIfNecessary();
+            local = SetWord(currentTuple);
+            result = SetWord(currentTuple);
             return YIELD;
           }
         }
@@ -3443,12 +3545,18 @@ private:
   CcTuple* currentATuple;
   CcTuple* currentBTuple;
 
-  CcTuple* NextATuple()
+  CcTuple* NextATuple(bool deleteOldTuple)
   {
     Word tuple;
+    if(deleteOldTuple && currentATuple != 0)
+    {
+      currentATuple->DeleteIfAllowed();
+    }
+
     qp->Request(streamA.addr, tuple);
     if(qp->Received(streamA.addr))
     {
+      tuple = SetWord(((CcTuple*)tuple.addr)->CloneIfNecessary());
       currentATuple = (CcTuple*)tuple.addr;
       return currentATuple;
     }
@@ -3459,12 +3567,18 @@ private:
     }
   }
 
-  CcTuple* NextBTuple()
+  CcTuple* NextBTuple(bool deleteOldTuple)
   {
     Word tuple;
+    if(deleteOldTuple && currentBTuple != 0)
+    {
+      currentBTuple->DeleteIfAllowed();
+    }
+
     qp->Request(streamB.addr, tuple);
     if(qp->Received(streamB.addr))
     {
+      tuple = SetWord(((CcTuple*)tuple.addr)->CloneIfNecessary());
       currentBTuple = (CcTuple*)tuple.addr;
       return currentBTuple;
     }
@@ -3493,8 +3607,8 @@ public:
     qp->Open(streamA.addr);
     qp->Open(streamB.addr);
 
-    NextATuple();
-    NextBTuple();
+    NextATuple(false);
+    NextBTuple(false);
   }
 
   virtual ~SetOperation()
@@ -3519,13 +3633,15 @@ public:
           if(outputBWithoutA)
           {
             result = currentBTuple;
+            NextBTuple(false);
             while(currentBTuple != 0 && TuplesEqual(result, currentBTuple))
             {
-              NextBTuple();
+              NextBTuple(true);
             }
           }
           else
           {
+            currentBTuple->DeleteIfAllowed();
             return 0;
           }
         }
@@ -3537,13 +3653,15 @@ public:
           if(outputAWithoutB)
           {
             result = currentATuple;
+            NextATuple(false);
             while(currentATuple != 0 && TuplesEqual(result, currentATuple))
             {
-              NextATuple();
+              NextATuple(true);
             }
           }
           else
           {
+            currentATuple->DeleteIfAllowed();
             return 0;
           }
         }
@@ -3558,9 +3676,14 @@ public:
             }
 
             CcTuple* tmp = currentATuple;
+            NextATuple(false);
             while(currentATuple != 0 && TuplesEqual(tmp, currentATuple))
             {
-              NextATuple();
+              NextATuple(true);
+            }
+            if(!outputAWithoutB)
+            {
+              tmp->DeleteIfAllowed();
             }
           }
           else if(smallerThan(currentBTuple, currentATuple))
@@ -3571,10 +3694,16 @@ public:
             }
 
             CcTuple* tmp = currentBTuple;
+            NextBTuple(false);
             while(currentBTuple != 0 && TuplesEqual(tmp, currentBTuple))
             {
-              NextBTuple();
+              NextBTuple(true);
             }
+            if(!outputBWithoutA)
+            {
+              tmp->DeleteIfAllowed();
+            }
+
           }
           else
           {
@@ -3586,13 +3715,18 @@ public:
               result = match;
             }
 
+            NextATuple(false);
             while(currentATuple != 0 && TuplesEqual(match, currentATuple))
             {
-              NextATuple();
+              NextATuple(true);
             }
             while(currentBTuple != 0 && TuplesEqual(match, currentBTuple))
             {
-              NextBTuple();
+              NextBTuple(true);
+            }
+            if(!outputMatches)
+            {
+              match->DeleteIfAllowed();
             }
           }
         }
@@ -3866,6 +4000,7 @@ private:
 
     if(yield)
     {
+      aResult = SetWord(((CcTuple*)aResult.addr)->CloneIfNecessary());
       return (CcTuple*)aResult.addr;
     }
     else
@@ -3891,6 +4026,7 @@ private:
 
     if(yield)
     {
+      bResult = SetWord(((CcTuple*)bResult.addr)->CloneIfNecessary());
       return (CcTuple*)bResult.addr;
     }
     else
@@ -3906,6 +4042,11 @@ private:
     CcTuple* bCcTuple = (CcTuple*)bResult.addr;
     if(aCcTuple == 0 || bCcTuple == 0)
     {
+      if(aCcTuple != 0)
+        aCcTuple->DeleteIfAllowed();
+      if(bCcTuple != 0)
+        bCcTuple->DeleteIfAllowed();
+
       return false;
     }
     else
@@ -3915,15 +4056,19 @@ private:
       {
         if(cmpResult < 0)
         {
+          ((CcTuple*)aResult.addr)->DeleteIfAllowed();
           if(nextATuple() == 0)
           {
+            ((CcTuple*)bResult.addr)->DeleteIfAllowed();
             return false;
           }
         }
         else
         {
+          ((CcTuple*)bResult.addr)->DeleteIfAllowed();
           if(nextBTuple() == 0)
           {
+            ((CcTuple*)aResult.addr)->DeleteIfAllowed();
             return false;
           }
         }
@@ -3945,6 +4090,7 @@ private:
       for(iterB = bucketB.begin(); iterB != bucketB.end(); iterB++)
       {
         CcTuple* resultTuple = new CcTuple;
+        resultTuple->SetFree(true);
         Word resultWord = SetWord(resultTuple);
         Word aWord = SetWord(*iterA);
         Word bWord = SetWord(*iterB);
@@ -3954,13 +4100,29 @@ private:
     }
   }
 
+  void ClearBuckets()
+  {
+    vector<CcTuple*>::iterator iterA = bucketA.begin();
+    vector<CcTuple*>::iterator iterB = bucketB.begin();
+
+    for(; iterA != bucketA.end(); iterA++)
+    {
+      (*iterA)->DeleteIfAllowed();
+    }
+
+    for(; iterB != bucketB.end(); iterB++)
+    {
+      (*iterB)->DeleteIfAllowed();
+    }
+
+    bucketA.clear();
+    bucketB.clear();
+  }
+
   void FillResultBucket()
   {
     assert((CcTuple*)aResult.addr != 0);
     assert((CcTuple*)bResult.addr != 0);
-
-    bucketA.clear();
-    bucketB.clear();
 
     CcTuple* aMatch = (CcTuple*)aResult.addr;
     CcTuple* bMatch = (CcTuple*)bResult.addr;
@@ -3982,6 +4144,7 @@ private:
     }
 
     ComputeProductOfBuckets();
+    ClearBuckets();
   }
 
 public:
@@ -3994,6 +4157,9 @@ public:
     assert(attrIndexB.addr != 0);
     assert((int)((StandardAttribute*)attrIndexA.addr)->GetValue() > 0);
     assert((int)((StandardAttribute*)attrIndexB.addr)->GetValue() > 0);
+
+    aResult = SetWord(0);
+    bResult = SetWord(0);
 
     this->expectSorted = expectSorted;
     this->streamA = streamA;
@@ -4184,8 +4350,19 @@ private:
     while(qp->Received(stream.addr))
     {
       CcTuple* tuple = (CcTuple*)tupleWord.addr;
+      tuple = tuple->CloneIfNecessary();
       buckets[HashTuple(tuple, attrIndex)].push_back(tuple);
       qp->Request(stream.addr, tupleWord);
+    }
+  }
+  
+  void ClearBucket(vector<CcTuple*>& bucket)
+  {
+    vector<CcTuple*>::iterator iter = bucket.begin();
+    while(iter != bucket.end())
+    {
+      (*iter)->DeleteIfAllowed();
+      iter++;
     }
   }
 
@@ -4205,6 +4382,7 @@ private:
           if(CompareCcTuples(*iterA, *iterB) == 0)
           {
             CcTuple* resultTuple = new CcTuple;
+            resultTuple->SetFree(true);
             Word resultWord = SetWord(resultTuple);
             Word aWord = SetWord(*iterA);
             Word bWord = SetWord(*iterB);
@@ -4213,6 +4391,9 @@ private:
           };
         }
       }
+
+      ClearBucket(a);
+      ClearBucket(b);
       currentBucket++;
     }
     return !resultBucket.empty();
@@ -4446,24 +4627,27 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[0].addr))
       {
         tup = (CcTuple*)t.addr;
-	noofoldattrs = tup->GetNoAttrs();
-	supplier = args[1].addr;
-	nooffun = qp->GetNoSons(supplier);
-	for (int i=0; i < nooffun;i++)
-	{
-	  supplier2 = qp->GetSupplier(supplier, i);
-	  noofsons = qp->GetNoSons(supplier2);
-	  supplier3 = qp->GetSupplier(supplier2, 1);
+        tup = tup->CloneIfNecessary();
+        noofoldattrs = tup->GetNoAttrs();
+        supplier = args[1].addr;
+        nooffun = qp->GetNoSons(supplier);
+        for (int i=0; i < nooffun;i++)
+        {
+          supplier2 = qp->GetSupplier(supplier, i);
+          noofsons = qp->GetNoSons(supplier2);
+          supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
           (*funargs)[0] = SetWord(tup);
           qp->Request(supplier3,value);
-	  tup->SetNoAttrs(noofoldattrs+i+1);
-	  tup->Put(noofoldattrs+i,((StandardAttribute*)value.addr)->Clone());
-	}
+          tup->Put(noofoldattrs+i,((StandardAttribute*)value.addr)->Clone());
+        }
+        
+        tup->SetNoAttrs(noofoldattrs + nooffun);
         result = SetWord(tup);
-	return YIELD;
+        return YIELD;
       }
-      else return CANCEL;
+      else
+        return CANCEL;
 
     case CLOSE :
 
@@ -4566,6 +4750,7 @@ static int
 Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t;
+  CcTuple* tuple;
 
   switch (message)
   {
@@ -4579,24 +4764,29 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST :
       if ( (((CcInt*)local.addr)->GetIntval()) == 0)
       {
-	qp->Request(args[0].addr, t);
-	if (qp->Received(args[0].addr))
-	{
-	  result = t;
-	  return YIELD;
-	}
-	else
-	{
+        qp->Request(args[0].addr, t);
+        if (qp->Received(args[0].addr))
+        {
+          tuple = (CcTuple*)t.addr;
+          tuple = tuple->CloneIfNecessary();
+          result = SetWord(tuple);
+          return YIELD;
+        }
+        else
+        {
           ((CcInt*)local.addr)->Set(1);
-	}
+        }
       }
       qp->Request(args[1].addr, t);
       if (qp->Received(args[1].addr))
       {
-        result = t;
-	return YIELD;
+        tuple = (CcTuple*)t.addr;
+        tuple = tuple->CloneIfNecessary();
+        result = SetWord(tuple);
+        return YIELD;
       }
-      else return CANCEL;
+      else
+        return CANCEL;
 
     case CLOSE :
 
@@ -4755,6 +4945,7 @@ int GroupByValueMapping
   CcTuple *t;
   CcTuple *s;
   Word sWord;
+  Word relWord;
   CcRel* tp;
   int i, j, k;
   int numberatt;
@@ -4794,8 +4985,10 @@ int GroupByValueMapping
       }
       else
       {
-        tp->AppendTuple((CcTuple*)local.addr);
         t = (CcTuple*)local.addr;
+        t = t->CloneIfNecessary();
+        t->SetFree(false);
+        tp->AppendTuple(t);
       }
       numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
 
@@ -4813,6 +5006,8 @@ int GroupByValueMapping
         }
         if (ifequal)
         {
+          s = s->CloneIfNecessary();
+          s->SetFree(false);
           tp->AppendTuple(s);
           qp->Request(args[0].addr, sWord);
         }
@@ -4825,6 +5020,7 @@ int GroupByValueMapping
       }
 
       t = new CcTuple;
+      t->SetFree(true);
       tp->NewScan();
       s = tp->GetTuple();
 
@@ -4848,7 +5044,8 @@ int GroupByValueMapping
         t->Put(numberatt + ind, ((Attribute*)value.addr)->Clone()) ;
       }
       result = SetWord(t);
-      delete tp;
+      relWord = SetWord(tp);
+      DeleteRel(relWord);
       return YIELD;
 
     case CLOSE:
