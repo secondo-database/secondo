@@ -89,6 +89,11 @@ string toString( int number )
 
 void extractIds( const ListExpr numType, int& algebraId, int& typeId )
 {
+
+    cout << "extractIds:" << endl;
+    nl->WriteListExpr(numType, cout);
+    cout << endl;
+
   ListExpr pair;
 
   if (nl->IsAtom(nl->First(numType))) {
@@ -99,8 +104,13 @@ void extractIds( const ListExpr numType, int& algebraId, int& typeId )
     pair = nl->First(numType);
   }
 
+    cout << "extractIds:" << endl;
+    nl->WriteListExpr(nl->First(pair), cout);
+    cout << endl;
   algebraId = nl->IntValue(nl->First(pair));
+  cout << "Algebra : " << algebraId << endl;
   typeId = nl->IntValue(nl->Second(pair));
+  cout << "Type : " << typeId << endl;
 }
 
 /*
@@ -140,9 +150,46 @@ genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
 }
 
 /*
+3 Auxiliary Functions
+
+*/
+ListExpr CreateObjectsTypeInfo()
+{
+  return
+    nl->TwoElemList( nl->SymbolAtom( "rel" ),
+      nl->TwoElemList( nl->SymbolAtom( "tuple" ),
+        nl->TwoElemList( nl->TwoElemList( nl->SymbolAtom( "name" ),
+                                          nl->SymbolAtom( "string" ) ),
+                         nl->TwoElemList( nl->SymbolAtom( "object" ),
+                                          nl->SymbolAtom( "point" ) ) ) ) );
+}
+
+ListExpr CreateLinesTypeInfo()
+{
+  return
+    nl->TwoElemList( nl->SymbolAtom( "rel" ),
+      nl->TwoElemList( nl->SymbolAtom( "tuple" ),
+        nl->TwoElemList( nl->TwoElemList( nl->SymbolAtom( "name" ),
+                                          nl->SymbolAtom( "string" ) ),
+                         nl->TwoElemList( nl->SymbolAtom( "data" ),
+                                          nl->SymbolAtom( "line" ) ) ) ) );
+}
+
+ListExpr CreateRegionsTypeInfo()
+{
+  return
+    nl->TwoElemList( nl->SymbolAtom( "rel" ),
+      nl->TwoElemList( nl->SymbolAtom( "tuple" ),
+        nl->TwoElemList( nl->TwoElemList( nl->SymbolAtom( "name" ),
+                                          nl->SymbolAtom( "string" ) ),
+                         nl->TwoElemList( nl->SymbolAtom( "area" ),
+                                          nl->SymbolAtom( "region" ) ) ) ) );
+}
+
+/*
 2 Type Constructor ~nauticalObject~
 
-A value of type ~nauticalOjbject~ represents an point-object in a seachart or is undefined.
+A value of type ~nauticalObject~ represents an point-object in a seachart or is undefined.
 
 2.1 Implementation of the class ~NauticalObject~
 
@@ -449,7 +496,7 @@ The list representation of a NauticalPoint is
 static ListExpr
 OutNauticalObject( ListExpr typeInfo, Word value )
 {
-//cout << "NauticalObject1" << endl;
+cout << "NauticalObject1" << endl;
   NauticalObject* object = (NauticalObject*)(value.addr);
   return nl->TwoElemList(nl->StringAtom(object->GetObjectName()),
                          nl->TwoElemList(
@@ -463,7 +510,7 @@ InNauticalObject( const ListExpr typeInfo, const ListExpr instance,
 {
   NauticalObject* newobject;
 
-//cout << "NauticalObject2" << endl;
+cout << "NauticalObject2" << endl;
   if ( nl->ListLength( instance ) == 2 )
   {
     ListExpr First = nl->First(instance);
@@ -502,7 +549,7 @@ Functions describing type property of type constructor ~nauticalobject~
 static ListExpr
 NauticalObjectProperty()
 {
-//cout << "NauticalObject3" << endl;
+cout << "NauticalObject3" << endl;
   ListExpr remarkslist = nl->TextAtom();
   nl->AppendText(remarkslist,"all coordinates must be "
   "of type real.");
@@ -523,7 +570,7 @@ NauticalObjectProperty()
 static Word
 CreateNauticalObject( const ListExpr typeInfo )
 {
-//cout << "NauticalObject4" << endl;
+cout << "NauticalObject4" << endl;
   Point rp;
   rp.Set(0.0, 0.0);
   //string name= "";
@@ -536,7 +583,7 @@ CreateNauticalObject( const ListExpr typeInfo )
 static void
 DeleteNauticalObject( Word& w )
 {
-//cout << "NauticalObject5" << endl;
+cout << "NauticalObject5" << endl;
   delete (NauticalObject *)w.addr;
   w.addr = 0;
 }
@@ -544,14 +591,14 @@ DeleteNauticalObject( Word& w )
 static void
 CloseNauticalObject( Word& w )
 {
-//cout << "NauticalObject6" << endl;
+cout << "NauticalObject6" << endl;
   delete (NauticalObject *)w.addr;
   w.addr = 0;
 }
 static Word
 CloneNauticalObject( const Word& w )
 {
-//cout << "NauticalObject7" << endl;
+cout << "NauticalObject7" << endl;
   return SetWord( ((NauticalObject *)w.addr)->Clone() );
 }
 /*
@@ -564,13 +611,13 @@ type constructor ~nauticalobject~ does not have arguments, this is trivial.
 static bool
 CheckNauticalObject( ListExpr type, ListExpr& errorInfo )
 {
-//cout << "NauticalObject8" << endl;
+cout << "NauticalObject8" << endl;
   return (nl->IsEqual( type, "nobject" ));
 }
 int
 SizeOfNauticalObject()
 {
-//cout << "NauticalObject9" << endl;
+cout << "NauticalObject9" << endl;
   return sizeof(NauticalObject);
 }
 
@@ -580,6 +627,7 @@ SizeOfNauticalObject()
 */
 void* CastNauticalObject(void* addr)
 {
+cout << "NauticalObject10" << endl;
   return (new (addr) NauticalObject);
 }
 
@@ -1408,69 +1456,96 @@ the type constructor instance can be created.
 */
 
 
-class NauticalMap
+ListExpr NauticalMap::objectsTypeInfo = 0;
+ListExpr NauticalMap::linesTypeInfo = 0;
+ListExpr NauticalMap::regionsTypeInfo = 0;
+
+NauticalMap::NauticalMap(const char *mName, int mScale, Relation *nobjects, Relation *nlines, Relation *nregions)
 {
-   public:
-     NauticalMap();
-     NauticalMap(Word rel, int relAlgebraId, int relTypeId);
-     NauticalMap(string mapName, vector<NauticalObject> nObjects);
-     ~NauticalMap();
-     string                 GetMapName();
-     vector<NauticalObject> GetObjects();
-     void                   SetMapName(string mname);
-     void                   SetObjects(vector<NauticalObject> nobjects);
-     Word                   GetRelation();
-     int                    GetRelAlgebraId();
-     int                    GetRelTypeId();
-     void                   SetRelation(Word rel);
-     void                   SetRelAlgebraId(int aId);
-     void                   SetRelTypeId(int tId);
-     NauticalMap* Clone() { return new NauticalMap( *this ); }
-
-
-   private:
-     vector<NauticalObject> objects;
-     string name; 
-     Word   relation;
-     int    relAlgebraId;
-     int    relTypeId;
-};
-
-NauticalMap::NauticalMap(string oName, vector<NauticalObject> nObjects)
+   cout << "Konstruktor 2" << endl;
+   strcpy(name, mName);
+   scale   = mScale;
+   objects = nobjects;
+   lines   =  nlines; 
+   regions = nregions;
+}
+NauticalMap::~NauticalMap()
 {
-   name = oName;
-   objects = nObjects;
+  delete objects;
+  delete lines;
+  delete regions;
 }
 
-NauticalMap::NauticalMap() 
+void NauticalMap::Destroy()
 {
-   objects.clear();
-   name = "";
+  if (objects != 0)
+     objects->Delete(); objects = 0;
+  if (lines != 0)
+     lines->Delete(); lines = 0;
+  if (regions != 0)
+     regions->Delete(); regions = 0;
 }
 
-NauticalMap::NauticalMap(Word rel, int aId, int tId) 
+const char* NauticalMap::GetMapName() const
 {
-   objects.clear();
-   name = "";
-   relation = rel;
-   relAlgebraId = aId;
-   relTypeId = tId;
+   return name;
 }
 
-NauticalMap::~NauticalMap() {}
+void NauticalMap::SetMapName(const char *mName)
+{
+   strcpy(name,mName);
+}
 
-string NauticalMap::GetMapName() {return name;}
-vector<NauticalObject> NauticalMap::GetObjects() {return objects;}
+const int NauticalMap::GetMapScale() const
+{
+   return scale;
+}
 
-void NauticalMap::SetMapName(string mname) {name = mname;}
-void NauticalMap::SetObjects(vector<NauticalObject> nobjects) {objects = nobjects;}
+void NauticalMap::SetMapScale(const int mScale)
+{
+   scale = mScale;
+}
 
-Word NauticalMap::GetRelation() {return relation;}
-int  NauticalMap::GetRelAlgebraId() {return relAlgebraId;}
-int  NauticalMap::GetRelTypeId() {return relTypeId;}
-void NauticalMap::SetRelation(Word rel) {relation = rel;}
-void NauticalMap::SetRelAlgebraId(int aId) {relAlgebraId = aId;}
-void NauticalMap::SetRelTypeId(int tId) {relTypeId = tId;}
+Word NauticalMap::GetObjects() {
+    return SetWord(objects);
+}
+Word NauticalMap::GetLines() {
+    return SetWord(lines);
+}
+Word NauticalMap::GetRegions() {
+    return SetWord(regions);
+}
+void NauticalMap::CreateAllTypeInfos()
+{
+  objectsTypeInfo = CreateObjectsTypeInfo();
+  linesTypeInfo = CreateLinesTypeInfo();
+  regionsTypeInfo = CreateRegionsTypeInfo();
+}
+
+ListExpr NauticalMap::GetObjectsTypeInfo()
+{
+  if( objectsTypeInfo == 0 )
+    CreateAllTypeInfos();
+
+  return objectsTypeInfo;
+}
+
+ListExpr NauticalMap::GetLinesTypeInfo()
+{
+  if( linesTypeInfo == 0 )
+    CreateAllTypeInfos();
+
+  return linesTypeInfo;
+}
+
+ListExpr NauticalMap::GetRegionsTypeInfo()
+{
+  if( regionsTypeInfo == 0 )
+    CreateAllTypeInfos();
+
+  return regionsTypeInfo;
+}
+
 /*
 4.2 List Representation
 
@@ -1489,129 +1564,286 @@ static Word
 InNauticalMap( const ListExpr typeInfo, const ListExpr instance,
          const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-cout << "NauticalMap A" << endl;
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+    cout << "InNauticalMap" << endl;
+    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+    SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
-  int relAlgebraId = am->GetAlgebraId("RelationAlgebra");
-  cout << "Nummer Rel:" << relAlgebraId << endl;
+    NauticalMap* newnauticalmap;
+    int algebraId;
+    int typeId;
 
-  NauticalMap* newnauticalmap;
-  Word relation;
-  int algebraId;
-  int typeId;
-  ListExpr pair;
+    // Variables to create the NauticalMapAlgebra (members)
+    Relation* nobjects=0;
+    Relation* nlines=0;
+    Relation* nregions=0;
+    string mapName;
+    int mapScale;
 
-  if (nl->ListLength(instance) > 0) {
+    // The nested list includes minimum one relation
+    if (nl->ListLength(instance) > 2) {
 
-    ListExpr typeOfElement = nl->Second(typeInfo);
-    ListExpr element = nl->First(instance);
-//    ListExpr tuple = nl->First(element);
+        ListExpr First = nl->First(instance);
+        ListExpr Second = nl->Second(instance);
 
-    if (nl->IsAtom(nl->First(typeOfElement))) {
-       correct = false;
-    }
-    else
-    {
-       pair = nl->First(typeOfElement);
-       algebraId = nl->IntValue(nl->First(pair));
-       typeId = nl->IntValue(nl->Second(pair));
+        if ( nl->IsAtom(First) && nl->AtomType(First) == StringType
+          && nl->IsAtom(Second) && nl->AtomType(Second) == IntType )
+        {
+            correct = true;
+            mapName = nl->StringValue(First);
+            mapScale = nl->IntValue(Second);
 
-cout << "AlgebraId: " << algebraId << "TypeId: " << typeId << endl;
-       if (algebraId == relAlgebraId) {
-           correct = true;
+            cout << "Name/ Scale: " << mapName << "/ " << mapScale << endl;
 
-           relation = ((am->InObj(algebraId, typeId))
-                    (typeOfElement, element, errorPos, errorInfo, correct));
+            ListExpr firstRelation = nl->Third(instance);
+            ListExpr pointRelInfo = sc->NumericType(CreateObjectsTypeInfo());
+            ListExpr lineRelInfo = sc->NumericType(CreateLinesTypeInfo());
+            ListExpr regionRelInfo = sc->NumericType(CreateRegionsTypeInfo());
+   
+            ListExpr pointTupleTypeInfo = nl->TwoElemList(nl->Second(pointRelInfo),
+                     nl->IntAtom(nl->ListLength(nl->Second(nl->Second(pointRelInfo)))));
+            ListExpr lineTupleTypeInfo = nl->TwoElemList(nl->Second(lineRelInfo),
+                     nl->IntAtom(nl->ListLength(nl->Second(nl->Second(lineRelInfo)))));
+            ListExpr regionTupleTypeInfo = nl->TwoElemList(nl->Second(regionRelInfo),
+                     nl->IntAtom(nl->ListLength(nl->Second(nl->Second(regionRelInfo)))));
+            Tuple* tupleaddr;
+            tupleaddr = new Tuple(nl->First(pointTupleTypeInfo));
+            int attrno = 1;
+            algebraId = tupleaddr->GetTupleType().GetAttributeType( attrno ).algId;
+            typeId = tupleaddr->GetTupleType().GetAttributeType( attrno ).typeId;
+            cout << "AID: " << algebraId << "TID: " << typeId << endl;
+    
+  
+            ListExpr valuelist = nl->First(firstRelation);
+            ListExpr firstvalue = nl->Second(valuelist);
+            nl->WriteListExpr(firstvalue, cout); 
+            cout << endl;
+            ListExpr attrlist =  nl->Second(nl->First(pointTupleTypeInfo));
+            ListExpr secondAttr = nl->Second(attrlist);
+       
+            bool valueCorrect1, valueCorrect2, valueCorrect3;
+     
+            Word attr = (am->InObj(algebraId, typeId))(nl->First( nl->Rest(secondAttr) ),
+                        firstvalue, 0, errorInfo, valueCorrect1);
+   
+            if (valueCorrect1 == true)
+            {
+                // nautical object relation
+                correct = true;
+                nobjects = Relation::In(pointRelInfo, firstRelation, errorPos, errorInfo, correct);
+                cout << "Hallo2" << endl;
+            }
+            else 
+            {
+                tupleaddr = new Tuple(nl->First(lineTupleTypeInfo));
+                algebraId = tupleaddr->GetTupleType().GetAttributeType( attrno ).algId;
+                typeId = tupleaddr->GetTupleType().GetAttributeType( attrno ).typeId;
+                cout << "AID: " << algebraId << "TID: " << typeId << endl;
+                attrlist =  nl->Second(nl->First(lineTupleTypeInfo));
+                secondAttr = nl->Second(attrlist);
+                attr = (am->InObj(algebraId, typeId))(nl->First( nl->Rest(secondAttr) ),
+                        firstvalue, 0, errorInfo, valueCorrect2);
+                if (valueCorrect2 == true)
+                {
+                    // nautical line relation
+                    correct = true;
+                    nlines = Relation::In(lineRelInfo, firstRelation, errorPos, errorInfo, correct);
+                    cout << "Hallo3" << endl;
+                }
+                else 
+                {
+                    tupleaddr = new Tuple(nl->First(regionTupleTypeInfo));
+                    algebraId = tupleaddr->GetTupleType().GetAttributeType( attrno ).algId;
+                    typeId = tupleaddr->GetTupleType().GetAttributeType( attrno ).typeId;
+                    cout << "AID: " << algebraId << "TID: " << typeId << endl;
+                    attrlist =  nl->Second(nl->First(regionTupleTypeInfo));
+                    secondAttr = nl->Second(attrlist);
+                    attr = (am->InObj(algebraId, typeId))(nl->First( nl->Rest(secondAttr) ),
+                           firstvalue, 0, errorInfo, valueCorrect3);
+                    if (valueCorrect3 == true)
+                    {
+                        // nautical area relation
+                        correct = true;
+                        nregions = Relation::In(regionRelInfo, firstRelation, errorPos, errorInfo, correct);
+                       cout << "Hallo4" << endl;
+                    }
+                    else
+                    {
+                        correct = false;
+                    }
+                }
+            }            
 
-int aId;
-int tId;
-ListExpr tupleTypeInfo = nl->Second(typeOfElement);
-extractIds(tupleTypeInfo, aId, tId);
+            // The nested list includes minimum two relations
+            if ((correct == true) && (nl->ListLength(instance) > 3))
+            {
+                ListExpr secondRelation = nl->Fourth(instance);
+                tupleaddr = new Tuple(nl->First(lineTupleTypeInfo));
+                int attrno = 1;
+                algebraId = tupleaddr->GetTupleType().GetAttributeType( attrno ).algId;
+                typeId = tupleaddr->GetTupleType().GetAttributeType( attrno ).typeId;
+                cout << "AID: " << algebraId << "TID: " << typeId << endl;
 
-extractIds(nl->First(tupleTypeInfo), aId, tId);
-
-Relation* rel;
-rel = Relation::In(typeOfElement, element, errorPos, errorInfo, correct);
-RelationIterator* relIt;
-relIt = rel->MakeScan();
-Tuple* tuple;
-tuple=relIt->GetNextTuple();
-
-ListExpr TupleTypeInfo = nl->TwoElemList(nl->Second(typeOfElement),
-          nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeOfElement)))));
-
-ListExpr valuelist;
-valuelist = tuple->Out(TupleTypeInfo);
-
-if (nl->ListLength(valuelist) == 2)
-{
-    ListExpr Second = nl->Second(valuelist);
-
-   cout <<  nl->IntValue(Second) <<  endl;
-}
-else
-{
-//       cout << "Halloabc" << endl;
-    ListExpr NOBJ = nl->First(valuelist);
-
-    if ( nl->IsAtom(nl->First(NOBJ)) && nl->AtomType(nl->First(NOBJ)) == StringType)
-    {
-       ListExpr position = nl->Second(NOBJ);
-
-    }
-}
-
-TupleType tupleType = tuple->GetTupleType();
-AttributeType attributeType = tupleType.GetAttributeType(0);
+                valuelist = nl->First(secondRelation);
+                firstvalue = nl->Second(valuelist);
+                attrlist =  nl->Second(nl->First(lineTupleTypeInfo));
+                secondAttr = nl->Second(attrlist);
 
 
-Attribute* attr;
-attr=tuple->GetAttribute(0);
-Word result = SetWord(attr);
+                attr = (am->InObj(algebraId, typeId))(nl->First( nl->Rest(secondAttr) ),
+                       firstvalue, 0, errorInfo, valueCorrect1);
+ 
+                if (valueCorrect1 == true)
+                {
+                    // nautical line relation
+                    correct = true;
+                    nlines = Relation::In(lineRelInfo, secondRelation, errorPos, errorInfo, correct);
+                    cout << "Hallo5" << endl;
+                }
+                else
+                {
+                    tupleaddr = new Tuple(nl->First(regionTupleTypeInfo));
+                    algebraId = tupleaddr->GetTupleType().GetAttributeType( attrno ).algId;
+                    typeId = tupleaddr->GetTupleType().GetAttributeType( attrno ).typeId;
+                    cout << "AID: " << algebraId << "TID: " << typeId << endl;
+                    attrlist =  nl->Second(nl->First(regionTupleTypeInfo));
+                    secondAttr = nl->Second(attrlist);
+                    attr = (am->InObj(algebraId, typeId))(nl->First( nl->Rest(secondAttr) ),
+                            firstvalue, 0, errorInfo, valueCorrect2);
+                    if (valueCorrect2 == true)
+                    {
+                        // nautical region relation
+                        correct = true;
+                        nregions = Relation::In(regionRelInfo, secondRelation, errorPos, errorInfo, correct);
+                        cout << "Hallo6" << endl;
+                    }
+                    else
+                    {
+                        correct = false;
+                    }
+                }
+                // The nested list includes three relations
+                if ((correct == true) && (nl->ListLength(instance) > 4))
+                {
+                    ListExpr thirdRelation = nl->Fifth(instance);
+                    tupleaddr = new Tuple(nl->First(regionTupleTypeInfo));
+                    int attrno = 1;
+                    algebraId = tupleaddr->GetTupleType().GetAttributeType( attrno ).algId;
+                    typeId = tupleaddr->GetTupleType().GetAttributeType( attrno ).typeId;
+                    cout << "AID: " << algebraId << "TID: " << typeId << endl;
+     
+                    valuelist = nl->First(thirdRelation);
+                    firstvalue = nl->Second(valuelist);
+                    attrlist =  nl->Second(nl->First(regionTupleTypeInfo));
+                    secondAttr = nl->Second(attrlist);
+     
+  
+                    attr = (am->InObj(algebraId, typeId))(nl->First( nl->Rest(secondAttr) ),
+                           firstvalue, 0, errorInfo, valueCorrect1);
+  
+                    if (valueCorrect1 == true)
+                    {
+                        // nautical region relation
+                        correct = true;
+                        nregions = Relation::In(regionRelInfo, thirdRelation, errorPos, errorInfo, correct);
+                        cout << "Hallo6" << endl;
+                    }
+                    else
+                    {
+                        correct = false;
+                    }
+                } // instance > 4
+            } // instance > 3
+        } // check the attributes from the nmap algebra
 
-SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+    } // instance > 2
 
-string attrName = sc->GetTypeName( attributeType.algId, attributeType.typeId );
-
-ListExpr attrType1 =  sc->GetTypeExpr(attrName);
-
-relIt->~RelationIterator();
-rel->Close();
-       }
-    }
     if (correct) {
-      newnauticalmap = new NauticalMap(relation, algebraId, typeId);
-      return SetWord(newnauticalmap);
+        // Create the nautical map
+        newnauticalmap = new NauticalMap(mapName.c_str(), mapScale, nobjects, nlines, nregions);
+        return SetWord(newnauticalmap);
     }
-  }
 
-  correct = false;
-  return SetWord(Address(0));
+    // return with error
+    correct = false;
+    return SetWord(Address(0));
 }
 
 static ListExpr
 OutNauticalMap( ListExpr typeInfo, Word value )
 {
-cout << "NauticalMap B" << endl;
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   //nl->WriteListExpr( typeInfo, cout );
+   cout << "OutNauticalMap" << endl;
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
-  NauticalMap* nauticalMap = (NauticalMap*)(value.addr);
+   NauticalMap* nauticalMap = (NauticalMap*)(value.addr);
 
-  ListExpr typeOfElement = nl->Second(typeInfo);
-  int pair = nl->First(typeOfElement);
-  int algebraId = nl->IntValue(nl->First(pair));
-  int typeId = nl->IntValue(nl->Second(pair));
+   // Lists to create the result list
+   ListExpr list = nl->TheEmptyList();
+   ListExpr firstRelation = nl->TheEmptyList();
+   ListExpr secondRelation = nl->TheEmptyList();
+   ListExpr thirdRelation = nl->TheEmptyList();
 
+   // Get kind of relation
 
-  ListExpr list;
-  ListExpr element;
+   if ((Relation *)nauticalMap->GetObjects().addr != 0)
+   {
+      // nautical object relation
+      firstRelation = ((Relation *)nauticalMap->GetObjects().addr)->Out( CreateObjectsTypeInfo());
+      if ((Relation *)nauticalMap->GetLines().addr != 0)
+      {
+         // nautical line relation
+         secondRelation = ((Relation *)nauticalMap->GetLines().addr)->Out( CreateLinesTypeInfo());
+         if ((Relation *)nauticalMap->GetRegions().addr != 0)
+         {
+            // nautical area relation
+            thirdRelation = ((Relation *)nauticalMap->GetRegions().addr)->Out( CreateRegionsTypeInfo());
+         }
+      }
+      else if ((Relation *)nauticalMap->GetRegions().addr != 0)
+      {
+         // nautical area relation
+         secondRelation = ((Relation *)nauticalMap->GetRegions().addr)->Out( CreateRegionsTypeInfo());
+      }
+   }
+   else if ((Relation *)nauticalMap->GetLines().addr != 0)
+   {
+      // nautical line relation
+      firstRelation = ((Relation *)nauticalMap->GetLines().addr)->Out( CreateLinesTypeInfo());
+      if ((Relation *)nauticalMap->GetRegions().addr != 0)
+      {
+         // nautical area relation
+         secondRelation = ((Relation *)nauticalMap->GetRegions().addr)->Out( CreateRegionsTypeInfo());
+      }
+   }
+   else if ((Relation *)nauticalMap->GetRegions().addr != 0)
+   {
+      // nautical area relation
+      firstRelation = ((Relation *)nauticalMap->GetRegions().addr)->Out( CreateRegionsTypeInfo());
+   }
 
-
-  element = (am->OutObj(algebraId, typeId))
-                             (typeOfElement, nauticalMap->GetRelation());
-  list = nl->OneElemList(element);
-
-  return list;
+   // Create the nested list structure and return it
+   if (!(nl->IsEmpty(firstRelation)) && (nl->IsEmpty(secondRelation)) && 
+        (nl->IsEmpty(thirdRelation)) ) 
+   {
+      list = nl->ThreeElemList(nl->StringAtom(nauticalMap->GetMapName()), 
+                               nl->IntAtom(nauticalMap->GetMapScale()),
+                                firstRelation);
+   }
+   else if (!(nl->IsEmpty(firstRelation)) && !(nl->IsEmpty(secondRelation)) && 
+             (nl->IsEmpty(thirdRelation)) ) 
+   {
+      list = nl->FourElemList(nl->StringAtom(nauticalMap->GetMapName()), 
+                              nl->IntAtom(nauticalMap->GetMapScale()),
+                              firstRelation, secondRelation);
+   }
+   else if (!(nl->IsEmpty(firstRelation)) && !(nl->IsEmpty(secondRelation)) && 
+            !(nl->IsEmpty(thirdRelation)) ) 
+   {
+      list = nl->FiveElemList(nl->StringAtom(nauticalMap->GetMapName()), 
+                              nl->IntAtom(nauticalMap->GetMapScale()),
+                              firstRelation, secondRelation, thirdRelation);
+   }
+   return list;
 }
 
 /*
@@ -1639,39 +1871,57 @@ The ~Clone~ and the ~Close~ functions use the appropriate functions of the eleme
 Word 
 CreateNauticalMap( const ListExpr typeInfo )
 {
-cout << "NauticalMap 0" << endl;
+cout << "NauticalMap0" << endl;
   return SetWord(new NauticalMap());
 }
 
+/*
 void 
 DeleteNauticalMap( Word& w ) 
 {
 cout << "NauticalMap 1" << endl;
   w.addr = 0;
 }
+*/
+
+/*
+6.7 ~Delete~-function of type constructor ~network~
+
+*/
+void DeleteNauticalMap(Word& w)
+{
+cout << "NauticalMap1" << endl;
+  NauticalMap* n = (NauticalMap*)w.addr;
+  n->Destroy();
+  delete n;
+}
 
 void CloseNauticalMap( Word& w ) 
 {
-cout << "NauticalMap 2" << endl;
-  NauticalMap* nauticalMap = (NauticalMap*)w.addr;
-  Word relation = nauticalMap->GetRelation();
-
-  ((Relation*)relation.addr)->Delete();
-  delete nauticalMap;
-  w.addr = 0;
+cout << "NauticalMap2" << endl;
+  NauticalMap* n = (NauticalMap*)w.addr;
+  n->Destroy();
+  delete n;
+cout << "NauticalMap2a" << endl;
 }
 
-Word 
-CloneNauticalMap( const Word& w )
+/*
+6.6 ~Clone~-function of type constructor ~network~
+
+Not implemented yet.
+
+*/
+Word CloneNauticalMap(const Word& w)
 {
-  return SetWord( ((NauticalMap *)w.addr)->Clone() );
+cout << "NauticalMap3" << endl;
+  return SetWord( Address(0) );
 }
 
 /*
 Word
 CloneNauticalMap( const Word& w )
 {
-cout << "NauticalMap 3" << endl;
+cout << "NauticalMap3" << endl;
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   NauticalMap* nauticalMap = (NauticalMap*)w.addr;
@@ -1711,7 +1961,7 @@ cout << "NauticalMap 3" << endl;
 int
 SizeOfNauticalMap()
 {
-cout << "NauticalMap 4" << endl;
+cout << "NauticalMap4" << endl;
   return sizeof(NauticalMap);
 }
 
@@ -1724,21 +1974,37 @@ The type of the elements of the array may be described by any valid type constru
 static ListExpr
 NauticalMapProperty()
 {
+
+  ListExpr exampletypelist = nl->TextAtom();
+  nl->AppendText(exampletypelist,"(nmap (name string) (scale int) "
+  "(rel(tuple((name string) (object point)))) "
+  "(rel(tuple((name string) (sline line)))) "
+  "(rel (tuple ((name string) (area region)))) ) ");
+  ListExpr listreplist = nl->TextAtom();
+  nl->AppendText(listreplist,"((name)(mapscale)(objects*)(lines*)(areas*)); "
+  "where name is a string, mapscale is an int," 
+  "objects is a relation (rel(tuple((name string)(object point)))),"
+  "lines is a relation (rel(tuple((name string)(sline line)))),"
+  "regions is a relation (rel(tuple((name string)(area region))))");
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,"( \"Seekarte1\" 10000 ( ((boje2 (1.0 2.0))) ))" );
   ListExpr remarkslist = nl->TextAtom();
-  nl->AppendText(remarkslist, "The elements of the array must have an "
-                              "internal list representation.");
+  nl->AppendText(remarkslist, "In the example only one nautical object is set. "
+                              "Also nauticalmap can exists only with lines "
+                              "or with regions");
   return (nl->TwoElemList(
-            nl->FiveElemList(
+            nl->FourElemList(
               nl->StringAtom("Signature"),
               nl->StringAtom("Example Type List"),
-              nl->StringAtom("List Rep"),
+              //nl->StringAtom("List Rep"),
               nl->StringAtom("Example List"),
               nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-              nl->StringAtom("typeconstructor -> NMAP"),
-              nl->StringAtom("(nmap)"),
-              nl->StringAtom("((rel(tuple((name string) (objects nobjects))))"),
-              nl->StringAtom("(Seekarte (Boje (1.0 2.0)))"),
+            nl->FourElemList(
+              nl->StringAtom("typeconstructor -> DATA"),
+              //nl->StringAtom("nmap"),
+              exampletypelist,
+              //listreplist,
+              examplelist,
               remarkslist)));
 }
 
@@ -1755,32 +2021,82 @@ In order to achieve great flexibility, the element's type is not restricted to t
 static bool
 CheckNauticalMap( ListExpr type, ListExpr& errorInfo )
 {
-cout << "NauticalMap 5" << endl;
-cout << nl->ListLength(type)  << endl;
-  if (nl->ListLength(type) == 2) {
+  int length = nl->ListLength(type);
+cout << "NauticalMap5" << endl;
+cout << "Check lenght" << length  << endl;
+   if (length >= 4) 
+   {
+      ListExpr First = nl->First(type);
+      ListExpr stringDesc = nl->Second(type);
+      ListExpr intDesc = nl->Third(type);
+      ListExpr relDesc1 = nl->Fourth(type);
 
-    ListExpr First = nl->First(type);
-    ListExpr relDesc = nl->Second(type);
-
-    if (nl->IsEqual(First, "nmap")) {
-
-      // Check whether Second is a valid type constructor
-
-      SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-
-      if (sc->KindCorrect(relDesc, errorInfo)) {
-         if (nl->IsEqual(nl->First(relDesc), "rel")) {
-            ListExpr tupleDesc = nl->Second(relDesc);
-            if (nl->IsEqual(nl->First(tupleDesc), "tuple"))
+      // Is the nested list a nautical map?
+      if (nl->IsEqual(First, "nmap")) 
+      {
+         // Is the first variable from type string and the second from type int?
+         if ((nl->IsEqual(nl->Second(stringDesc), "string")) &&
+             (nl->IsEqual(nl->Second(intDesc), "int"))) 
+         {
+            if (IsRelDescription(relDesc1))
             {
-               return true;
-            }
-         }
-      } 
-    }
-  }
+               // Is the first relation a nautical object relation?
+               if (CompareSchemas( relDesc1, CreateObjectsTypeInfo()))
+               {
+                  if (length >= 5) 
+                  {
+                     ListExpr relDesc2 = nl->Fifth(type);
+                     if (IsRelDescription(relDesc2))
+                     {
+                        // Is the second relation a nautical line relation?
+                        if (CompareSchemas( relDesc2, CreateLinesTypeInfo()))
+                        {
+                           if (length == 6)
+                           {
+                              ListExpr relDesc3 = nl->Sixth(type);
+                              if (IsRelDescription(relDesc3))
+                              {
+                                 // Is the second relation a nautical region relation?
+                                 if (CompareSchemas( relDesc3, CreateRegionsTypeInfo()))
+                                    return true;
+                              }
+                           }
+                           else if (length == 5)
+                              return true;
+                        }
+                        else if (CompareSchemas( relDesc2, CreateRegionsTypeInfo()))
+                           return true;
+                     }
+                  }
+                  else if (length == 4)
+                     return true;
+               }
+               // Is the first relation a nautical line relation?
+               else if (CompareSchemas( relDesc1, CreateLinesTypeInfo()))
+               {
+                  if (length == 5)
+                  {
+                     ListExpr relDesc2 = nl->Fifth(type);
+                     if (IsRelDescription(relDesc2))
+                     {
+                        // Is the second relation a nautical region relation?
+                        if (CompareSchemas( relDesc2, CreateRegionsTypeInfo()))
+                           return true;
+                     }
+                  }
+                  else if (length == 4)
+                     return true;
+               }
+               // Is the first relation a nautical region relation?
+               else if (CompareSchemas(relDesc1, CreateRegionsTypeInfo()) &&
+                       (length == 4))
+                  return true;
+            }  // Has the first realtion the right description?
+         }  // Are the first variables from type string and int?
+      } // Is nested list a nautical map?
+   } // length >= 4?
 
-  return false;
+   return false;
 }
 /*
 4.9 Creation of the Type Constructor Instance
@@ -1898,20 +2214,168 @@ It is for the operator ~isempty~ which have ~nobject~, ~nobjects~, ~line~, and ~
 */
 
 static ListExpr
-SpatialTypeMapBool1( ListExpr args )
+NauticalMapTypeMapObjectsRel( ListExpr args )
 {
   ListExpr arg1;
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-    if ( TypeOfSymbol( arg1 ) == stnobject )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stnobjects )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stnline )
-      return (nl->SymbolAtom( "bool" ));
-    if ( TypeOfSymbol( arg1 ) == stnregion )
-      return (nl->SymbolAtom( "bool" ));
+    cout << "NauticalMapTypeMapObjectsRel:" << endl;
+    nl->WriteListExpr(arg1, cout); 
+    cout << endl;
+    ListExpr First = nl->First(arg1);
+    ListExpr stringDesc = nl->Second(arg1);
+    ListExpr intDesc = nl->Third(arg1);
+    ListExpr relDesc = nl->Fourth(arg1);
+    cout << "Rel:" << endl;
+    nl->WriteListExpr(relDesc, cout); 
+    cout << endl;
+
+      // Is the nested list a nautical map?
+      if (nl->IsEqual(First, "nmap"))
+      {
+         // Is the first variable from type string and the second from type int?
+         if ((nl->IsEqual(nl->Second(stringDesc), "string")) &&
+             (nl->IsEqual(nl->Second(intDesc), "int")))
+         {
+            if (IsRelDescription(relDesc))
+            {
+               // Is the first relation a nautical object relation?
+               if (CompareSchemas( relDesc, CreateObjectsTypeInfo()))
+               {
+
+                  return nl->TwoElemList(nl->SymbolAtom("rel"),
+                                         nl->Second(relDesc));
+               }
+            }
+        }
+     }
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+static ListExpr
+NauticalMapTypeMapLinesRel( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    cout << "NauticalMapTypeMapLinesRel:" << endl;
+    nl->WriteListExpr(arg1, cout);
+    cout << endl;
+    ListExpr First = nl->First(arg1);
+    ListExpr stringDesc = nl->Second(arg1);
+    ListExpr intDesc = nl->Third(arg1);
+    ListExpr relDesc1 = nl->Fourth(arg1);
+    cout << "Rel:" << endl;
+    nl->WriteListExpr(relDesc1, cout);
+    cout << endl;
+
+      // Is the nested list a nautical map?
+      if (nl->IsEqual(First, "nmap"))
+      {
+         // Is the first variable from type string and the second from type int?
+         if ((nl->IsEqual(nl->Second(stringDesc), "string")) &&
+             (nl->IsEqual(nl->Second(intDesc), "int")))
+         {
+            if (IsRelDescription(relDesc1))
+            {
+               // Is the first relation a nautical lines relation?
+               if (CompareSchemas( relDesc1, CreateLinesTypeInfo()))
+               {
+cout << "HAALLOO" << endl;
+
+                  return nl->TwoElemList(nl->SymbolAtom("rel"),
+                                         nl->Second(relDesc1));
+               }
+               else
+               {
+                  if (nl->ListLength( arg1 ) > 4)
+                  {
+                     ListExpr relDesc2 = nl->Fifth(arg1);
+                     // Is the second relation a nautical lines relation?
+                     if (CompareSchemas( relDesc2, CreateLinesTypeInfo()))
+                     {
+      
+                        return nl->TwoElemList(nl->SymbolAtom("rel"),
+                                               nl->Second(relDesc2));
+                     }
+                  }
+
+               }
+            }
+        }
+     }
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+static ListExpr
+NauticalMapTypeMapRegionsRel( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    cout << "NauticalMapTypeMapObjectsRel:" << endl;
+    nl->WriteListExpr(arg1, cout);
+    cout << endl;
+    ListExpr First = nl->First(arg1);
+    ListExpr stringDesc = nl->Second(arg1);
+    ListExpr intDesc = nl->Third(arg1);
+    ListExpr relDesc1 = nl->Fourth(arg1);
+    cout << "Rel:" << endl;
+    nl->WriteListExpr(relDesc1, cout);
+    cout << endl;
+
+      // Is the nested list a nautical map?
+      if (nl->IsEqual(First, "nmap"))
+      {
+         // Is the first variable from type string and the second from type int?
+         if ((nl->IsEqual(nl->Second(stringDesc), "string")) &&
+             (nl->IsEqual(nl->Second(intDesc), "int")))
+         {
+            if (IsRelDescription(relDesc1))
+            {
+               // Is the first relation a nautical regions relation?
+               if (CompareSchemas( relDesc1, CreateRegionsTypeInfo()))
+               {
+
+                  return nl->TwoElemList(nl->SymbolAtom("rel"),
+                                         nl->Second(relDesc1));
+               }
+               else
+               {
+                  if (nl->ListLength( arg1 ) > 4)
+                  {
+                     ListExpr relDesc2 = nl->Fifth(arg1);
+                     // Is the second relation a nautical regions relation?
+                     if (CompareSchemas( relDesc2, CreateRegionsTypeInfo()))
+                     {
+                        return nl->TwoElemList(nl->SymbolAtom("rel"),
+                                               nl->Second(relDesc2));
+                     }
+                     else
+                     {
+                        if (nl->ListLength( arg1 ) > 5)
+                        {
+                              ListExpr relDesc3 = nl->Sixth(arg1);
+                              // Is the third relation a nautical regions relation?
+                              if (CompareSchemas( relDesc3, CreateRegionsTypeInfo()))
+                              {
+                                 return nl->TwoElemList(nl->SymbolAtom("rel"),
+                                                        nl->Second(relDesc3));
+                              }
+                        }
+                     }
+
+                  }
+               }
+            }
+        }
+     }
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -1999,55 +2463,32 @@ intersectionMap( ListExpr args )
     return (nl->SymbolAtom( "typeerror" ));
 }
 
-static ListExpr
-nmaptorelTypeMap( ListExpr args )
-{
-cout << "nmaptorelTypeMap" << endl;
-  if (nl->ListLength(args) == 1)
-  {
-    ListExpr nmapDesc = nl->First(args);
-
-    if (nl->ListLength(nmapDesc) == 2
-        && nl->IsEqual(nl->First(nmapDesc), "nmap"))
-    {
-      ListExpr relDesc = nl->Second(nmapDesc);
-
-      if (nl->ListLength(relDesc) == 2
-          && nl->IsEqual(nl->First(relDesc), "rel"))
-      {
-        ListExpr tupleDesc = nl->Second(relDesc);
-        if (nl->IsEqual(nl->First(tupleDesc), "tuple"))
-        {
-          return nl->TwoElemList(nl->SymbolAtom("rel"),
-                                 nl->Second(relDesc));
-        }
-      }
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-}
-
 static int
-nmaptorelFun( Word* args, Word& result, int message, Word& local, Supplier s )
+getNauticalObjectsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-cout << "nmaptorelFun" << endl;
+cout << "getNauticalObjects" << endl;
    NauticalMap* nauticalMap;
    nauticalMap= ((NauticalMap*)args[0].addr);
 
     SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
     ListExpr resultType = qp->GetType(s);
+    cout << "resultType:" << endl;
+    nl->WriteListExpr(resultType, cout);
+    cout << endl;
+
     resultType = sc->NumericType(resultType);
 
-    Word element = nauticalMap->GetRelation();
+    Word element = nauticalMap->GetObjects();
 
     Word clonedElement;
 
-    int algebraId = nauticalMap->GetRelAlgebraId();
-    int typeId = nauticalMap->GetRelTypeId();
+    int aId;
+    int tId;
 
-    clonedElement = genericClone(algebraId, typeId, resultType, element);
+    extractIds(sc->NumericType(CreateObjectsTypeInfo()), aId, tId);
+    cout << "AlgebraId: " << aId << "TypeId: " << tId << endl;
+    clonedElement = genericClone(aId, tId, resultType, element);
 
 
    // result = nauticalMap->GetRelation();
@@ -2057,20 +2498,122 @@ cout << "nmaptorelFun" << endl;
    return 0;
 }
 
-const string nmaptorelSpec =
+const string getNauticalObjectsSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>(nmap) -> (rel)</text--->"
-      "<text>_ nmaptorel</text--->"
+      "<text>_ getNauticalObjects</text--->"
       "<text> Translate nmap to rel.</text--->"
-      "<text>query seekarte nmaptorel consume</text---> ))";
+      "<text>query seekarte getNauticalObjects</text---> ))";
 
-Operator nmaptorel (
-      "nmaptorel",
-       nmaptorelSpec,
-       nmaptorelFun,
+Operator getNauticalObjects (
+      "getnauticalobjects",
+       getNauticalObjectsSpec,
+       getNauticalObjectsFun,
        Operator::DummyModel,
        simpleSelect,
-       nmaptorelTypeMap );
+       NauticalMapTypeMapObjectsRel );
+
+
+static int
+getNauticalLinesFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+cout << "getNauticalLines" << endl;
+   NauticalMap* nauticalMap;
+   nauticalMap= ((NauticalMap*)args[0].addr);
+
+    SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+
+    ListExpr resultType = qp->GetType(s);
+    cout << "resultType:" << endl;
+    nl->WriteListExpr(resultType, cout);
+    cout << endl;
+
+    resultType = sc->NumericType(resultType);
+
+    Word element = nauticalMap->GetLines();
+
+    Word clonedElement;
+
+    int aId;
+    int tId;
+
+    extractIds(sc->NumericType(CreateLinesTypeInfo()), aId, tId);
+    cout << "AlgebraId: " << aId << "TypeId: " << tId << endl;
+    clonedElement = genericClone(aId, tId, resultType, element);
+
+
+   // result = nauticalMap->GetRelation();
+
+    result.addr = clonedElement.addr;
+
+   return 0;
+}
+
+const string getNauticalLinesSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>(nmap) -> (rel)</text--->"
+      "<text>_ getnauticallines</text--->"
+      "<text> Translate nmap to rel.</text--->"
+      "<text>query seekarte getnauticallines</text---> ))";
+
+Operator getNauticalLines (
+      "getnauticallines",
+       getNauticalLinesSpec,
+       getNauticalLinesFun,
+       Operator::DummyModel,
+       simpleSelect,
+       NauticalMapTypeMapLinesRel );
+
+
+static int
+getNauticalRegionsFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+cout << "getNauticalRegionObjects" << endl;
+   NauticalMap* nauticalMap;
+   nauticalMap= ((NauticalMap*)args[0].addr);
+
+    SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+
+    ListExpr resultType = qp->GetType(s);
+    cout << "resultType:" << endl;
+    nl->WriteListExpr(resultType, cout);
+    cout << endl;
+
+    resultType = sc->NumericType(resultType);
+
+    Word element = nauticalMap->GetRegions();
+
+    Word clonedElement;
+
+    int aId;
+    int tId;
+
+    extractIds(sc->NumericType(CreateRegionsTypeInfo()), aId, tId);
+    cout << "AlgebraId: " << aId << "TypeId: " << tId << endl;
+    clonedElement = genericClone(aId, tId, resultType, element);
+
+
+   // result = nauticalMap->GetRelation();
+
+    result.addr = clonedElement.addr;
+
+   return 0;
+}
+
+const string getNauticalRegionsSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>(nmap) -> (rel)</text--->"
+      "<text>_ getnauticalregions</text--->"
+      "<text> Translate nmap to rel.</text--->"
+      "<text>query seekarte getnauticalregions</text---> ))";
+
+Operator getNauticalRegions (
+      "getnauticalregions",
+       getNauticalRegionsSpec,
+       getNauticalRegionsFun,
+       Operator::DummyModel,
+       simpleSelect,
+       NauticalMapTypeMapRegionsRel );
 
 
 
@@ -2087,7 +2630,9 @@ class NauticalMapAlgebra : public Algebra
     AddTypeConstructor( &nauticalobject );
     AddTypeConstructor( &nauticalobjects );
 
-    AddOperator( &nmaptorel );
+    AddOperator( &getNauticalObjects );
+    AddOperator( &getNauticalLines );
+    AddOperator( &getNauticalRegions );
 
     nauticalmap.AssociateKind("DATA");
     nauticalobject.AssociateKind("DATA");

@@ -650,6 +650,38 @@ Print the point set ~ns~ int the out stream ~o~.
 
 */
 
+class NauticalMap
+{
+   public:
+     NauticalMap(const char *mName = 0, int mScale =1, Relation *nobjects = 0, Relation *nlines = 0, Relation *nregions = 0);
+     ~NauticalMap();
+     void Destroy();
+     const char* GetMapName() const;
+     void        SetMapName(const char* oName);
+     const int GetMapScale() const;
+     void      SetMapScale(const int scale);
+     Word      GetObjects();
+     Word      GetLines();
+     Word      GetRegions();
+
+    static ListExpr GetObjectsTypeInfo();
+    static ListExpr GetLinesTypeInfo();
+    static ListExpr GetRegionsTypeInfo();
+
+
+    static ListExpr objectsTypeInfo;
+    static ListExpr linesTypeInfo;
+    static ListExpr regionsTypeInfo;
+
+   private:
+     static void CreateAllTypeInfos();
+     char     name[49];
+     int      scale;
+     Relation *objects;
+     Relation *lines;
+     Relation *regions;
+};
+
 
 
 /*
