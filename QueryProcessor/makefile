@@ -21,7 +21,7 @@ OBJECTS=\
 .PHONY: all
 all: $(OBJECTS)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Algebras/Relation-C++
 
 QueryProcessor.$(OBJEXT): QueryProcessor.cpp CTable.h NameIndex.h NestedList.h QueryProcessor.h AlgebraManager.h SecondoCatalog.h SecondoSystem.h
 	$(CC) -c -o $@ $< $(CCFLAGS)

@@ -44,20 +44,6 @@ of prefetching iterators in the btree algebra.
 #define BTREE_PREFETCH
 
 /*
-
-2.1 Macro CHECK\_COND
-
-This macro makes reporting errors in type mapping functions more convenient.
-
-*/
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
-
-/*
 2.2 Type property of type constructor ~btree~
 
 */

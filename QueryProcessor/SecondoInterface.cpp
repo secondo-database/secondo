@@ -28,7 +28,7 @@ September 2002 Ulrich Telle Close database after creation.
 
 November 7, 2002 RHG Implemented the ~let~ command.
 
-December 2002 M. Spiekermann Changes in Secondo(...) and NumTypeExpr(...). 
+December 2002 M. Spiekermann Changes in Secondo(...) and NumTypeExpr(...).
 
 February 3, 2003 RHG Added a ~list counters~ command.
 
@@ -293,8 +293,8 @@ If value 0 is returned, the command was executed without error.
   if (commandLE) {
      commandLE2 = al->CopyList(commandLE, nl);
   }
-  
-  
+
+
   errorMessage = "";
   errorCode    = 0;
   errorPos     = 0;
@@ -464,8 +464,8 @@ If value 0 is returned, the command was executed without error.
           }
         }
       }
-      else if ( nl->IsEqual( first, "delete" ) && 
-               (length == 3) && nl->IsAtom( nl->Third( list ) ) && 
+      else if ( nl->IsEqual( first, "delete" ) &&
+               (length == 3) && nl->IsAtom( nl->Third( list ) ) &&
                (nl->AtomType( nl->Third( list ) ) == SymbolType) )
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -474,15 +474,15 @@ If value 0 is returned, the command was executed without error.
         }
         else
         {
-          dbName = nl->SymbolValue( nl->Third( list ) ); 
+          dbName = nl->SymbolValue( nl->Third( list ) );
           if ( !SecondoSystem::GetInstance()->DestroyDatabase( dbName ) )
           {
             errorCode = 25;  // identifier not a known database name
           }
         }
       }
-      else if ( nl->IsEqual( first, "open" ) && 
-               (length == 3) && nl->IsAtom( nl->Third( list ) ) && 
+      else if ( nl->IsEqual( first, "open" ) &&
+               (length == 3) && nl->IsAtom( nl->Third( list ) ) &&
                (nl->AtomType( nl->Third( list ) ) == SymbolType) )
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -491,7 +491,7 @@ If value 0 is returned, the command was executed without error.
         }
         else
         {
-          dbName = nl->SymbolValue( nl->Third( list ) ); 
+          dbName = nl->SymbolValue( nl->Third( list ) );
           if ( !SecondoSystem::GetInstance()->OpenDatabase( dbName ) )
           {
             errorCode = 25;  // identifier not a known database name
@@ -512,11 +512,11 @@ If value 0 is returned, the command was executed without error.
             activeTransaction = false;
           }
           SecondoSystem::GetInstance()->CloseDatabase();
-        }                    
+        }
       }
       else if ( nl->IsEqual( first, "save" ) && (length == 4) &&
                 nl->IsEqual( nl->Third( list ), "to" ) &&
-                nl->IsAtom( nl->Fourth( list )) && 
+                nl->IsAtom( nl->Fourth( list )) &&
                (nl->AtomType( nl->Fourth( list )) == SymbolType) )
       {
         if ( !SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -532,13 +532,13 @@ If value 0 is returned, the command was executed without error.
             errorCode = 26;  // Problem in writing to file
           }
           FinishCommand( errorCode );
-        }                            
+        }
       }
-      else if ( nl->IsEqual( first, "restore" ) && 
+      else if ( nl->IsEqual( first, "restore" ) &&
                (length == 5) && nl->IsAtom( nl->Third( list )) &&
                (nl->AtomType( nl->Third( list )) == SymbolType) &&
                 nl->IsEqual( nl->Fourth( list ), "from" ) &&
-                nl->IsAtom( nl->Fifth( list )) && 
+                nl->IsAtom( nl->Fifth( list )) &&
                (nl->AtomType( nl->Fifth( list )) == SymbolType) )
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -627,7 +627,7 @@ If value 0 is returned, the command was executed without error.
           resultList =
             SecondoSystem::GetCatalog( level )->ListObjects();
           FinishCommand( errorCode );
-        }                    
+        }
       }
       else if ( nl->IsEqual( nl->Second( list ), "counters" ) )
       {
@@ -642,7 +642,7 @@ If value 0 is returned, the command was executed without error.
             SecondoSystem::GetQueryProcessor()->GetCounters();
           FinishCommand( errorCode );
         }
-      }                    
+      }
       else
       {
         errorCode = 1;  // Command not recognized.
@@ -652,8 +652,8 @@ If value 0 is returned, the command was executed without error.
     // --- Type definition
 
     else if ( nl->IsEqual( first, "type" ) &&
-             (length == 4) && nl->IsAtom( nl->Second( list ) ) && 
-             (nl->AtomType( nl->Second( list )) == SymbolType) && 
+             (length == 4) && nl->IsAtom( nl->Second( list ) ) &&
+             (nl->AtomType( nl->Second( list )) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {
       if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -686,14 +686,14 @@ If value 0 is returned, the command was executed without error.
     }
     else if ( nl->IsEqual( first, "delete" ) )
     {
-      if ( (length == 3) && nl->IsAtom( nl->Third( list ) ) && 
+      if ( (length == 3) && nl->IsAtom( nl->Third( list ) ) &&
            (nl->AtomType( nl->Third( list )) == SymbolType) &&
             nl->IsEqual( nl->Second( list ), "type" ) )
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
         {
           StartCommand();
-          typeName = nl->SymbolValue( nl->Third( list ) ); 
+          typeName = nl->SymbolValue( nl->Third( list ) );
           message =
             SecondoSystem::GetCatalog( level )->DeleteType( typeName );
           if ( message == 1 )
@@ -709,15 +709,15 @@ If value 0 is returned, the command was executed without error.
         else
         {
           errorCode = 6;      // no database open
-        } 
+        }
       }
-      else if ( (length == 2) && nl->IsAtom( nl->Second( list )) && 
+      else if ( (length == 2) && nl->IsAtom( nl->Second( list )) &&
                 (nl->AtomType( nl->Second( list )) == SymbolType) )
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
         {
           StartCommand();
-          objName = nl->SymbolValue( nl->Second( list ) ); 
+          objName = nl->SymbolValue( nl->Second( list ) );
           message =
             SecondoSystem::GetCatalog( level )->DeleteObject( objName );
           if ( message > 0 )
@@ -739,9 +739,9 @@ If value 0 is returned, the command was executed without error.
 
     // --- Create object command
 
-    else if ( nl->IsEqual( first, "create" ) && (length == 4) && 
+    else if ( nl->IsEqual( first, "create" ) && (length == 4) &&
               nl->IsAtom( nl->Second( list )) &&
-             (nl->AtomType( nl->Second( list ) ) == SymbolType) && 
+             (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":" ) )
     {
       if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -754,7 +754,7 @@ If value 0 is returned, the command was executed without error.
         typeName = "";
         if ( SecondoSystem::GetCatalog( level )->
                KindCorrect( typeExpr2, errorInfo ) )
-        { 
+        {
           if ( nl->IsAtom( typeExpr ) &&
               (nl->AtomType( typeExpr ) == SymbolType) )
           {
@@ -781,7 +781,7 @@ If value 0 is returned, the command was executed without error.
       else
       {
         errorCode = 6;       // no database open
-      } 
+      }
     }
 
     // --- Update object command
@@ -820,7 +820,7 @@ If value 0 is returned, the command was executed without error.
             {
               typeExpr = SecondoSystem::GetCatalog( level )->
                            GetObjectTypeExpr( objName );
-  
+
               if ( !nl->Equal( typeExpr, resultType ) )
               {
                 errorCode = 13;   // types of object and expression do not agree
@@ -848,7 +848,7 @@ If value 0 is returned, the command was executed without error.
               {
                 if ( nl->IsAtom( valueExpr ) )  // function object
                 {
-                  functionList = 
+                  functionList =
                     SecondoSystem::GetCatalog( level )->
                       GetObjectValue( nl->SymbolValue( valueExpr ) );
                   SecondoSystem::GetCatalog( level )->
@@ -882,7 +882,7 @@ If value 0 is returned, the command was executed without error.
 
     // --- Let command
 
-    else if ( nl->IsEqual( first, "let" ) && (length == 4) && 
+    else if ( nl->IsEqual( first, "let" ) && (length == 4) &&
               nl->IsAtom( nl->Second( list )) &&
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
@@ -943,7 +943,7 @@ If value 0 is returned, the command was executed without error.
               {
                 if ( nl->IsAtom( valueExpr ) )  // function object
                 {
-                  functionList = 
+                  functionList =
                     SecondoSystem::GetCatalog( level )->
                       GetObjectValue( nl->SymbolValue( valueExpr ) );
                   SecondoSystem::GetCatalog( level )->
@@ -1107,13 +1107,13 @@ If value 0 is returned, the command was executed without error.
     nl->WriteToFile( resultFileName, resultList );
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
-  
+
   // copy result int application specific list container.
   if (resultList) {
      resultList = nl->CopyList(resultList, al);
   }
   nl->initializeListMemory();
-  
+
 }
 
 /*

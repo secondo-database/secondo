@@ -13,8 +13,8 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-	$(INCLUDEDIR)/RelationAlgebra.h \
-	$(INCLUDEDIR)/CPUTimeMeasurer.h 
+	$(INCLUDEDIR)/CPUTimeMeasurer.h \
+	../Relation-C++/RelationAlgebra.h 
 
 MODNAME=ExtRelationAlgebra
 LIBNAME=lib$(MODNAME)
@@ -30,7 +30,7 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I.
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Relation-C++
 
 #This define RELALG_PERSISTENT is used to compile the Persistent Relational Algebra.
 #Uncomment this line below to change it to the Main Memory Relational Algebra.

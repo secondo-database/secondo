@@ -13,7 +13,7 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-	$(INCLUDEDIR)/RelationAlgebra.h
+	RelationAlgebra.h
 
 MODNAME=RelationAlgebra
 LIBNAME=lib$(MODNAME)
