@@ -1485,6 +1485,118 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
       }
 }
 
+const bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
+{
+    Coord xl,yl,xr,yr;
+    Coord Xl,Yl,Xr,Yr;
+    double k, a, K, A;
+    double x0; //, y0;  (x0, y0) is the intersection
+
+    xl=lp.GetX();  yl=lp.GetY();
+    xr=rp.GetX();  yr=rp.GetY();
+    if (xl!=xr)
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
+	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+	      (xl.IsInteger()? xl.IntValue():xl.Value()));
+	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+    }
+
+    Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
+    Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
+    if (Xl!=Xr)
+    {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
+	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
+ 	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
+	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
+	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
+	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+    }
+
+    if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
+      {
+	  if (xl!=Xl) return false;
+	  else
+	  {
+	      Coord ylow, yup, Ylow, Yup;
+	      if (yl<yr) 
+	      {
+		  ylow=yl;
+		  yup=yr;
+	      }
+	      else
+	      {		 
+		  ylow=yr;
+		  yup=yl;
+	      }
+	      if (Yl<Yr) 
+	      {
+		  Ylow=Yl;
+		  Yup=Yr;
+	      }
+	      else
+	      {		 
+		  Ylow=Yr;
+		  Yup=Yl;
+	      }
+	      if  ((ylow>=Yup) || (yup<=Ylow))
+		  return false;
+	      else return true;
+	  }
+      }
+
+    if (Xl==Xr)    //only L is vertical
+    {
+	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
+	Coord yy(y0);
+	//(Xl, y0) is the intersection of l and L
+	if    ((Xl>=xl) &&(Xl<=xr))
+	{
+	    if (((yy>Yl) && (yy<Yr)) || ((yy>Yr) && (yy<Yl)))
+	            return true;
+	    else return false;
+	}
+	else return false;
+    }
+
+    if (xl==xr)    //only l is vertical
+    {
+	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
+	Coord YY(Y0);
+	//(xl, Y0) is the intersection of l and L
+	if ((xl>Xl) && (xl<Xr))
+	{
+	    if (((YY>=yl) && (YY<=yr)) || ((YY>=yr) && (YY<=yl)))
+	            return true;
+	    else return false;
+	}
+	else return false;
+    }
+
+    //otherwise: both *this and *arg are non-vertical lines
+    if (k==K)
+      {
+	  if  (A!=a)  return false; //Parallel lines
+	  else //they are in the same straight line
+	  {
+	      if ((xr<=Xl) || (xl>=Xr))
+	              return false;
+	      else return true;
+	  }
+      }
+      else
+      {
+	  x0=(A-a) / (k-K);	 // y0=x0*k+a;
+	  Coord xx(x0);
+	  if ((xx>=xl) && (xx<=xr) && (xx>Xl) && (xx <Xr))
+	      return true;
+	  else return false;
+      }
+}
+
 const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
@@ -1660,6 +1772,120 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 	    return true;
 	}
 	else return false;
+      }
+}
+
+const bool CHalfSegment::overlap( const CHalfSegment& chs ) const
+{
+    Coord xl,yl,xr,yr;
+    Coord Xl,Yl,Xr,Yr;
+    double k, a, K, A;
+    double x0; //, y0;  (x0, y0) is the intersection
+
+    if (*this==chs) return true;
+    
+    xl=lp.GetX();  yl=lp.GetY();
+    xr=rp.GetX();  yr=rp.GetY();
+    if (xl!=xr)
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
+	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+	      (xl.IsInteger()? xl.IntValue():xl.Value()));
+	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+    }
+
+    Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
+    Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
+    if (Xl!=Xr)
+    {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
+	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
+ 	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
+	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
+	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
+	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+    }
+
+    if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
+    {
+	if (xl!=Xl) return false;
+	else 
+	{
+	    Coord ylow, yup, Ylow, Yup;
+	    if (yl<yr) 
+	    {
+		ylow=yl;
+		yup=yr;
+	    }
+	    else
+	    {		 
+		ylow=yr;
+		yup=yl;
+	    }
+	    if (Yl<Yr) 
+	    {
+		Ylow=Yl;
+		Yup=Yr;
+	    }
+	    else
+	    {		 
+		Ylow=Yr;
+		Yup=Yl;
+	    }
+	    if  (((ylow<Yup)&&(ylow>Ylow))||((yup<Yup)&&(yup>Ylow)))
+		return true;
+	    else return false;
+	}
+    }
+
+    if (Xl==Xr)    //only L is vertical
+    {
+	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
+	Coord yy(y0);
+	//(Xl, y0) is the intersection of l and L
+	if    ((Xl>xl) &&(Xl<xr))
+	{
+	    if (((yy>Yl) && (yy<Yr)) || ((yy>Yr) && (yy<Yl)))
+	            return true;
+	    else return false;
+	}
+	else return false;
+    }
+
+    if (xl==xr)    //only l is vertical
+    {
+	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
+	Coord YY(Y0);
+	//(xl, Y0) is the intersection of l and L
+	if ((xl>Xl) && (xl<Xr))
+	{
+	    if (((YY>yl) && (YY<yr)) || ((YY>yr) && (YY<yl)))
+	            return true;
+	    else return false;
+	}
+	else return false;
+    }
+
+    //otherwise: both *this and *arg are non-vertical lines
+    if (k==K)
+      {
+	  if  (A!=a)  return false; //Parallel lines
+	  else //they are in the same straight line
+	  {
+	      if (((xl>Xl)&&(xl<Xr)) || ((Xl>xl) && (Xl<xr)))
+	              return true;
+	      else return false;
+	  }
+      }
+      else
+      {
+	  x0=(A-a) / (k-K);	 // y0=x0*k+a;
+	  Coord xx(x0);
+	  if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx <Xr))
+	      return true;
+	  else return false;
       }
 }
 
@@ -2755,6 +2981,44 @@ bool CRegion::contain( const Point& p ) const
 
 	if  ((chs.GetLDP()) &&(chs.Contains(p)))
 	    return true;
+
+	if ((chs.GetLDP()) &&(chs.rayAbove(p, y0)))
+	{
+	    faceISN[chs.attr.faceno]++;
+	    if (lastfaceno < chs.attr.faceno)
+		lastfaceno=chs.attr.faceno;
+	}
+    }
+
+    for (int j=0; j<=lastfaceno; j++)
+    {
+	if (faceISN[j] %2 !=0 )
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
+bool CRegion::innercontain( const Point& p ) const
+{
+   int faceISN[100];
+
+    int lastfaceno=-1;
+    for (int i=0; i<100; i++)
+    {
+	faceISN[i]=0;
+    }
+
+    CHalfSegment chs;
+
+    for (int i=0; i<this->Size(); i++)
+    {
+	this->Get(i, chs);
+	double y0;
+
+	if  ((chs.GetLDP()) &&(chs.Contains(p)))
+	    return false;
 
 	if ((chs.GetLDP()) &&(chs.rayAbove(p, y0)))
 	{
@@ -4867,6 +5131,63 @@ sizeMap( ListExpr args )
 }
 
 /*
+10.1.10 Type mapping function for operator ~touchpoints~
+
+This type mapping function is used for the ~touchpoints~ operator. This operator 
+computes the touchpoints of a region and another region or a line.  
+
+*/
+static ListExpr
+touchpointsMap( ListExpr args )
+{  
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+
+	if ( TypeOfSymbol( arg1 ) == stregion &&
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stregion &&
+	     TypeOfSymbol( arg2 ) == stline )
+	    return (nl->SymbolAtom( "points" ));
+	
+	if ( TypeOfSymbol( arg1 ) == stline &&
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "points" ));
+    }
+    
+    return (nl->SymbolAtom( "typeerror" ));    
+}
+
+/*
+10.1.11 Type mapping function for operator ~commonborder~
+
+This type mapping function is used for the ~commonborder~ operator. This operator 
+computes the commonborder of two regions.  
+
+*/
+static ListExpr
+commonborderMap( ListExpr args )
+{  
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+
+	if ( TypeOfSymbol( arg1 ) == stregion &&
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "line" ));
+    }
+    
+    return (nl->SymbolAtom( "typeerror" ));    
+}
+
+
+/*
 10.2 The dummy model mapping:
 
 */
@@ -4952,9 +5273,9 @@ SpatialSelectCompare( ListExpr args )
 }
 
 /*
-10.3.4 Selection function ~SpatialSelectSets1~
+10.3.4 Selection function ~intersectSelect~
 
-It is used for set operators (~intersects~)
+It is used for the operator ~intersects~
 
 */
 
@@ -5056,7 +5377,59 @@ insideSelect( ListExpr args )
 }
 
 /*
-10.3.6 Selection function ~onBorder \& inInteriorSelect~
+10.3.6 Selection function ~touches-attached-overlapsSelect~
+
+This select function is used for the ~touches~ , ~attached~ , and ~overlaps~  operator.
+
+*/
+
+static int
+touches_attached_overlapsSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (0);
+
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stline )
+      return (1);
+
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (2);
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints &&
+       TypeOfSymbol( arg2 ) == stregion )
+      return (3);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (4);
+
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
+      return (5);
+
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
+      return (6);
+
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stline )
+      return (7);
+  
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
+      return (8);
+
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.7 Selection function ~onBorder \& inInteriorSelect~
 
 This select function is used for the ~onborder~ operator and the ~ininterior~ operator.
 
@@ -5079,7 +5452,7 @@ onBorder_inInteriorSelect( ListExpr args )
 }
 
 /*
-10.3.7 Selection function ~intersectionSelect~
+10.3.8 Selection function ~intersectionSelect~
 
 This select function is used for the ~intersection~ operator.
 
@@ -5144,7 +5517,7 @@ intersectionSelect( ListExpr args )
 }
 
 /*
-10.3.8 Selection function ~minusSelect~
+10.3.9 Selection function ~minusSelect~
 
 This select function is used for the ~minus~ operator.
 
@@ -5188,7 +5561,7 @@ minusSelect( ListExpr args )
 }
 
 /*
-10.3.9 Selection function ~unionSelect~
+10.3.10 Selection function ~unionSelect~
 
 This select function is used for the ~union~ operator.
 
@@ -5220,7 +5593,7 @@ unionSelect( ListExpr args )
 }
 
 /*
-10.3.10 Selection function ~crossingsSelect~
+10.3.11 Selection function ~crossingsSelect~
 
 This select function is used for the ~crossings~ operator.
 
@@ -5240,7 +5613,7 @@ crossingsSelect( ListExpr args )
 }
 
 /*
-10.3.11 Selection function ~singleSelect~
+10.3.12 Selection function ~singleSelect~
 
 This select function is used for the ~single~ operator.
 
@@ -5258,7 +5631,7 @@ singleSelect( ListExpr args )
 }
 
 /*
-10.3.12 Selection function ~distanceSelect~
+10.3.13 Selection function ~distanceSelect~
 
 This select function is used for the ~distance~ operator.
 
@@ -5326,7 +5699,7 @@ distanceSelect( ListExpr args )
 }
 
 /*
-10.3.12 Selection function ~directionSelect~
+10.3.14 Selection function ~directionSelect~
 
 This select function is used for the ~direction~ operator.
 
@@ -5346,7 +5719,7 @@ directionSelect( ListExpr args )
 }
 
 /*
-10.3.13 Selection function ~nocomponentsSelect~
+10.3.15 Selection function ~nocomponentsSelect~
 
 This select function is used for the ~nocomponents~ operator.
 
@@ -5370,7 +5743,7 @@ nocomponentsSelect( ListExpr args )
 }
 
 /*
-10.3.14 Selection function ~sizeSelect~
+10.3.16 Selection function ~sizeSelect~
 
 This select function is used for the ~size~ operator.
 
@@ -5384,6 +5757,54 @@ sizeSelect( ListExpr args )
   if (TypeOfSymbol( arg1 ) == stline)
       return (0);
  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.17 Selection function ~touchpointsSelect~
+
+This select function is used for the ~touchpoints~ operator.
+
+*/
+
+static int
+touchpointsSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stregion )
+      return (0);
+
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stline )
+      return (1);
+
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
+      return (2);
+
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.18 Selection function ~commonborderSelect~
+
+This select function is used for the ~commonborder~ operator.
+
+*/
+
+static int
+commonborderSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( TypeOfSymbol( arg1 ) == stregion &&
+       TypeOfSymbol( arg2 ) == stregion )
+      return (0);
+
   return (-1); // This point should never be reached
 }
 
@@ -6179,6 +6600,761 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
+10.3.23 Value mapping functions of operator ~touches~
+
+*/
+
+static int
+touches_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->
+    Set( true, ((Points*)args[0].addr)->Intersects( *((Points*)args[1].addr) ) );
+    
+    return (0);
+}
+
+static int
+touches_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is endpoint of line
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+
+    Point p;
+    CHalfSegment chs;
+
+    for (int i=0; i<ps->Size(); i++)
+    {	
+	ps->Get(i, p);
+	
+	for (int j=0; j<cl->Size(); j++)
+	{
+	    cl->Get(j, chs);
+	    if (chs.GetLDP())
+	    {
+		if (((p)==chs.GetLP())||((p)==chs.GetRP()))
+		{
+		    ((CcBool *)result.addr)->Set( true, true );
+		    return (0);
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false );
+    return (0);
+}
+
+static int
+touches_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is endpoint of line
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[1].addr);
+    CLine *cl=((CLine*)args[0].addr);
+
+    Point p;
+    CHalfSegment chs;
+
+    for (int i=0; i<ps->Size(); i++)
+    {	
+	ps->Get(i, p);
+	
+	for (int j=0; j<cl->Size(); j++)
+	{
+	    cl->Get(j, chs);
+	    if (chs.GetLDP())
+	    {
+		if (((p)==chs.GetLP())||((p)==chs.GetRP()))
+		{
+		    ((CcBool *)result.addr)->Set( true, true );
+		    return (0);
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false );
+    return (0);
+}
+
+static int
+touches_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is on the edge of the region
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+
+    Point p;
+    CHalfSegment chs;
+
+    for (int i=0; i<ps->Size(); i++)
+    {	
+	ps->Get(i, p);
+	
+	for (int j=0; j<cr->Size(); j++)
+	{
+	    cr->Get(j, chs);
+	    if (chs.Contains(p))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+touches_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is on the edge of the region
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[1].addr);
+    CRegion *cr=((CRegion*)args[0].addr);
+
+    Point p;
+    CHalfSegment chs;
+
+    for (int i=0; i<ps->Size(); i++)
+    {	
+	ps->Get(i, p);
+	
+	for (int j=0; j<cr->Size(); j++)
+	{
+	    cr->Get(j, chs);
+	    if (chs.Contains(p))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+touches_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+{   //at least two segment intersect and the intersection is the endpoint
+    result = qp->ResultStorage( s );
+    CLine *cl1, *cl2;
+    CHalfSegment chs1, chs2;
+
+    cl1=((CLine*)args[0].addr);
+    cl2=((CLine*)args[1].addr);
+
+    for (int i=0; i<cl1->Size(); i++)
+    {
+	cl1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cl2->Size(); j++)
+	    {
+		cl2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if ((chs1.GetLP()==chs2.GetLP())||
+		        (chs1.GetLP()==chs2.GetRP())||
+		        (chs1.GetRP()==chs2.GetLP())||
+ 		        (chs1.GetRP()==chs2.GetRP()))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+touches_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+{   //the endpoint of a line segment is on the edge of a region
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
+
+    cl=((CLine*)args[0].addr);
+    cr=((CRegion*)args[1].addr);
+
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);
+	if (chsl.GetLDP())
+	{
+	    for (int j=0; j<cr->Size(); j++)
+	    {
+		cr->Get(j, chsr);
+		if (chsr.GetLDP())
+		{
+		    if ((chsr.Contains(chsl.GetLP()))||(chsr.Contains(chsl.GetRP())))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+touches_rl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
+
+    cl=((CLine*)args[1].addr);
+    cr=((CRegion*)args[0].addr);
+
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);
+	if (chsl.GetLDP())
+	{
+	    for (int j=0; j<cr->Size(); j++)
+	    {
+		cr->Get(j, chsr);
+		if (chsr.GetLDP())
+		{
+		    if ((chsr.Contains(chsl.GetLP()))||(chsr.Contains(chsl.GetRP())))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+touches_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    CRegion *cr1, *cr2;
+    CHalfSegment chs1, chs2;
+
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cr2->Size(); j++)
+	    {
+		cr2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if (chs1.Intersects(chs2))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+/*
+10.3.24 Value mapping functions of operator ~attached~
+
+*/
+
+static int
+attached_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+attached_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is endpoint of line
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+
+    Point p;
+    CHalfSegment chs;
+
+    for (int i=0; i<ps->Size(); i++)
+    {	
+	ps->Get(i, p);
+	
+	for (int j=0; j<cl->Size(); j++)
+	{
+	    cl->Get(j, chs);
+	    if (chs.GetLDP())
+	    {
+		if ((chs.Contains(p))&&(chs.GetLP()!=p)&&(chs.GetRP()!=p))
+		{
+		    ((CcBool *)result.addr)->Set( true, true );
+		    return (0);
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false );
+    return (0);
+}
+
+static int
+attached_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is endpoint of line
+    result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+attached_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is on the edge of the region
+    result = qp->ResultStorage( s );
+
+    Points *ps=((Points*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+
+    Point p;
+    CHalfSegment chs;
+
+    for (int i=0; i<ps->Size(); i++)
+    {	
+	ps->Get(i, p);
+	
+	if (cr->innercontain(p)) 
+	{
+	    ((CcBool *)result.addr)->Set( true, true);
+	    return (0);
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+attached_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //at least one of the points is on the edge of the region
+    result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+attached_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+{   //at least two segment intersect and the intersection is the endpoint
+    result = qp->ResultStorage( s );
+    CLine *cl1, *cl2;
+    CHalfSegment chs1, chs2;
+
+    cl1=((CLine*)args[0].addr);
+    cl2=((CLine*)args[1].addr);
+
+    for (int i=0; i<cl1->Size(); i++)
+    {
+	cl1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cl2->Size(); j++)
+	    {
+		cl2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if (((chs2.Contains(chs1.GetLP()))||
+		           chs2.Contains(chs2.GetRP())) &&
+		        (!(chs1.Contains(chs2.GetLP()))&&
+		        (!(chs1.Contains(chs2.GetRP())))))
+		    {
+			((CcBool *)result.addr)->Set( true, true);
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+attached_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+{   //the endpoint of a line segment is on the edge of a region
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
+
+    cl=((CLine*)args[0].addr);
+    cr=((CRegion*)args[1].addr);
+
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);	
+	if (chsl.GetLDP())
+	{
+	    if ((cr->innercontain(chsl.GetLP()))||
+	        (cr->innercontain(chsl.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+attached_rl( Word* args, Word& result, int message, Word& local, Supplier s )
+{  
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
+
+    cr=((CRegion*)args[0].addr);
+    cl=((CLine*)args[1].addr);
+
+    for (int i=0; i<cr->Size(); i++)
+    {
+	cr->Get(i, chsr);
+	
+	if (chsr.GetLDP())
+	{
+	    for (int j=0; j<cl->Size(); j++)
+	    {
+		cl->Get(j, chsl);
+		if (chsl.GetLDP())
+		{   //chsr intersects (chsl-endpoints)
+		    if (chsr.innerIntersects(chsl))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+attached_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    CRegion *cr1, *cr2;
+    CHalfSegment chs1, chs2;
+
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{   //chs1 must intersect with (regeion2-edges)
+	    if ((cr2->innercontain(chs1.GetLP()))||
+	        (cr2->innercontain(chs1.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	    
+	    for (int j=0; j<cr2->Size(); j++)
+	    {
+		cr2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{   //chsr intersects (chsl-endpoints)
+		    if (chs1.cross(chs2))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+/*
+10.3.25 Value mapping functions of operator ~overlaps~
+
+*/
+
+static int
+overlaps_psps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+overlaps_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+overlaps_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+     result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+overlaps_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+     result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+overlaps_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    ((CcBool *)result.addr)->Set( true, false );
+    
+    return (0);
+}
+
+static int
+overlaps_ll( Word* args, Word& result, int message, Word& local, Supplier s )
+{  
+    result = qp->ResultStorage( s );
+    CLine *cl1, *cl2;
+    CHalfSegment chs1, chs2;
+
+    cl1=((CLine*)args[0].addr);
+    cl2=((CLine*)args[1].addr);
+
+    for (int i=0; i<cl1->Size(); i++)
+    {
+	cl1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cl2->Size(); j++)
+	    {
+		cl2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if (chs1.overlap(chs2)) 
+		    {
+			((CcBool *)result.addr)->Set( true, true);
+			return (0);
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+overlaps_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+{   
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
+
+    cl=((CLine*)args[0].addr);
+    cr=((CRegion*)args[1].addr);
+
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);	
+	if (chsl.GetLDP())
+	{
+	    if ((cr->innercontain(chsl.GetLP()))||
+	        (cr->innercontain(chsl.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+overlaps_rl( Word* args, Word& result, int message, Word& local, Supplier s )
+{  
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
+
+    cl=((CLine*)args[1].addr);
+    cr=((CRegion*)args[0].addr);
+
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);	
+	if (chsl.GetLDP())
+	{
+	    if ((cr->innercontain(chsl.GetLP()))||
+	        (cr->innercontain(chsl.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{  
+    result = qp->ResultStorage( s );
+    CRegion *cr1, *cr2;
+    CHalfSegment chs1, chs2;
+
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cr2->Size(); j++)
+	    {
+		cr2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if (chs1.cross(chs2))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+
+		    if ((cr2->innercontain(chs1.GetLP()))||
+		        (cr2->innercontain(chs1.GetRP()))||
+		        (cr1->innercontain(chs2.GetRP()))||
+		        (cr1->innercontain(chs2.GetRP())))
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		    
+		    if (chs1==chs2)
+		    {
+			Point tryp;
+			Coord midx, midy;
+			
+			midx=chs1.GetLP().GetX();
+			midx += chs1.GetRP().GetX();
+			midx /= (long)2 ;
+			
+			midy=chs1.GetLP().GetY();
+			midy += chs1.GetRP().GetY();
+			midy /= (long)2 ;
+			
+			midx += (double)0.01;
+			tryp.Set(true, midx, midy);
+			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
+			{
+			    ((CcBool *)result.addr)->Set( true, true );
+			    return (0);
+			}
+			
+			midx -=(double)0.02;
+			tryp.Set(true, midx, midy);
+			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
+			{
+			    ((CcBool *)result.addr)->Set( true, true );
+			    return (0);
+			}
+			
+			midx +=(double)0.01;
+			midy +=(double)0.01;
+			tryp.Set(true, midx, midy);
+			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
+			{
+			    ((CcBool *)result.addr)->Set( true, true );
+			    return (0);
+			}
+				
+			midy -=(double)0.02;
+			tryp.Set(true, midx, midy);
+			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
+			{
+			    ((CcBool *)result.addr)->Set( true, true );
+			    return (0);
+			}
+		    }
+		}
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);    
+}
+
+/*
 10.3.10 Value mapping functions of operator ~onborder~
 
 */
@@ -6727,9 +7903,12 @@ intersection_rps( Word* args, Word& result, int message, Word& local, Supplier s
     return (0);
 }
 
+
 static int
 intersection_ll( Word* args, Word& result, int message, Word& local, Supplier s )
-{
+{   //this function computes the intersection of two lines. However, since line's intersecion
+    //can contain both points and lines, we need to extend the definition of linesegment:
+    //they should allow two endpoints to be equal.
     result = qp->ResultStorage( s );
 
     CLine *cl1=((CLine*)args[0].addr);
@@ -7887,6 +9066,49 @@ size_l( Word* args, Word& result, int message, Word& local, Supplier s )
     ((CcReal *)result.addr)->Set( true, res);
     return (0);
 }
+
+/*
+10.3.21 Value mapping functions of operator ~touchpoints~
+
+*/
+
+static int
+touchpoints_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+        
+    return (0);
+}
+
+static int
+touchpoints_rl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    return (0);
+}
+
+static int
+touchpoints_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    return (0);
+}
+
+/*
+10.3.22 Value mapping functions of operator ~commomborder~
+
+*/
+
+static int
+commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+        
+    return (0);
+}
+
 /*
 10.4 Definition of operators
 
@@ -7940,6 +9162,39 @@ ValueMapping spatialinsidemap[] = 	      { SpatialInside_pps,
 				        SpatialInside_ll,
 				        SpatialInside_lr,
 				        SpatialInside_rr };
+
+ValueMapping spatialtouchesmap[] =    { touches_psps,
+				        touches_psl,
+				        touches_lps,
+				        touches_psr,
+				        touches_rps,
+				        touches_ll,
+				        touches_lr,
+				        touches_rl,
+				        touches_rr
+				      };
+
+ValueMapping spatialattachedmap[] =    { attached_psps,
+				        attached_psl,
+				        attached_lps,
+				        attached_psr,
+				        attached_rps,
+				        attached_ll,
+				        attached_lr,
+				        attached_rl,
+				        attached_rr
+				      };
+
+ValueMapping spatialoverlapsmap[] =    { overlaps_psps,
+				        overlaps_psl,
+				        overlaps_lps,
+				        overlaps_psr,
+				        overlaps_rps,
+				        overlaps_ll,
+				        overlaps_lr,
+				        overlaps_rl,
+				        overlaps_rr
+				      };
 
 ValueMapping onbordermap[] = 	      { SpatialOnBorder_pl,
 				        SpatialOnBorder_pr };
@@ -8006,6 +9261,14 @@ ValueMapping nocomponentsmap[] =   { nocomponents_ps,
 				      };
 
 ValueMapping sizemap[] = 	      { size_l
+				      };
+
+ValueMapping touchpointsmap[] =  	 { touchpoints_lr,
+				   touchpoints_rl,
+				   touchpoints_rr,
+			                 };
+
+ValueMapping commonbordermap[] = { commonborder_rr
 				      };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
@@ -8099,6 +9362,30 @@ const string SpatialSpecInside  =
 	"<text>query point1 inside line1</text--->"
 	") )";
 
+const string SpatialSpecTouches  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+	"( <text>(points||line||region x points||line||region) -> bool</text--->"
+	"<text>_ touches _</text--->"
+	"<text>two spatial objects touch each other.</text--->"
+	"<text>query points touches line</text--->"
+	") )";
+
+const string SpatialSpecAttached  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+	"( <text>(points||line||region x points||line||region) -> bool</text--->"
+	"<text>_ attached _</text--->"
+	"<text>two spatial objects attach each other.</text--->"
+	"<text>query line attached region</text--->"
+	") )";
+
+const string SpatialSpecOverlaps  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+	"( <text>(points||line||region x points||line||region) -> bool</text--->"
+	"<text>_ overlaps _</text--->"
+	"<text>two spatial objects overlap each other.</text--->"
+	"<text>query line overlap region</text--->"
+	") )";
+
 const string SpatialSpecOnBorder  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(point x line||region) -> bool</text--->"
@@ -8186,7 +9473,23 @@ const string SpatialSpecSize  =
 	"( <text>(line) -> real</text--->"
 	"<text> size( _ )</text--->"
 	"<text> return the size (length, area) of a spatial object.</text--->"
-	"<text>query size(line)</text--->"
+	"<text> query size(line)</text--->"
+	") )";
+
+const string SpatialSpecTouchpoints  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(line||region x region) -> points</text--->"
+	"<text> _touchpoints_ </text--->"
+	"<text> return the touch points of a region and another region or line.</text--->"
+	"<text> query line touchpoints region</text--->"
+	") )";
+
+const string SpatialSpecCommonborder  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(region x region) -> line</text--->"
+	"<text> _commonborder_ </text--->"
+	"<text> return the common border of two regions.</text--->"
+	"<text> query region1 commonborder region2</text--->"
 	") )";
 
 Operator spatialisempty
@@ -8224,6 +9527,18 @@ Operator spatialintersects
 Operator spatialinside
 	( "inside", SpatialSpecInside, 9, spatialinsidemap, spatialnomodelmap,
 	  insideSelect, GeoGeoMapBool );
+
+Operator spatialtouches
+	( "touches", SpatialSpecTouches, 9, spatialtouchesmap, spatialnomodelmap,
+	  touches_attached_overlapsSelect, GeoGeoMapBool );
+
+Operator spatialattached
+	( "attached", SpatialSpecAttached, 9, spatialattachedmap, spatialnomodelmap,
+	  touches_attached_overlapsSelect, GeoGeoMapBool );
+
+Operator spatialoverlaps
+	( "overlaps", SpatialSpecOverlaps, 9, spatialoverlapsmap, spatialnomodelmap,
+	  touches_attached_overlapsSelect, GeoGeoMapBool );
 
 Operator spatialonborder
 	( "onborder", SpatialSpecOnBorder, 2, onbordermap, spatialnomodelmap,
@@ -8269,6 +9584,15 @@ Operator spatialsize
 	( "size", SpatialSpecSize, 1, sizemap, spatialnomodelmap,
 	  sizeSelect, sizeMap );
 
+Operator spatialtouchpoints
+	( "touchpoints", SpatialSpecTouchpoints, 3, touchpointsmap, spatialnomodelmap,
+	  touchpointsSelect, touchpointsMap );
+
+Operator spatialcommonborder
+	( "commonborder", SpatialSpecCommonborder, 1, commonbordermap, spatialnomodelmap,
+	  commonborderSelect, commonborderMap );
+
+
 /*
 11 Creating the Algebra
 
@@ -8298,12 +9622,17 @@ class SpatialAlgebra : public Algebra
     //AddOperator( &spatialgreaterequal );
     AddOperator( &spatialintersects );
     AddOperator( &spatialinside );
+    AddOperator( &spatialtouches );  
+    AddOperator( &spatialattached );  
+    AddOperator( &spatialoverlaps );  
     AddOperator( &spatialonborder );
     AddOperator( &spatialininterior );
     AddOperator( &spatialintersection );
     AddOperator( &spatialminus );
     AddOperator( &spatialunion );
     AddOperator( &spatialcrossings );
+    AddOperator( &spatialtouchpoints);
+    AddOperator( &spatialcommonborder);
     AddOperator( &spatialsingle );
     AddOperator( &spatialdistance );
     AddOperator( &spatialdirection );

@@ -741,6 +741,12 @@ call can know where they intersect. The intersected part is a segment. If it is 
 the two endpoints of the segment will be the same.
 
 */
+    
+    const bool innerIntersects( const CHalfSegment& chs) const;    
+/*
+This first intersects function compute whether two half segments intersect each other. 
+
+*/
     const bool cross( const CHalfSegment& chs ) const;
 /*
 This third intersect function, named as ~cross~, compute whether two half segments intersect
@@ -750,9 +756,15 @@ This third intersect function, named as ~cross~, compute whether two half segmen
     
     const bool crossings( const CHalfSegment& chs, Point& p ) const;
 /*
-This last intersect function, named crossings, is ued for the ~crossings~ operator. It computes 
+This fourth intersect function, named crossings, is ued for the ~crossings~ operator. It computes 
 whether two half segments crossing each other. If they do not intersect, or they are parellel, 
 they are consider not crossing each other. 
+
+*/
+    const bool overlap( const CHalfSegment& chs) const;    
+/*
+This last intersect function, named overlap, computes whether  two half segments overlap each other. 
+If their inner part intersect, then the result is true. 
 
 */
     
@@ -1232,6 +1244,11 @@ half segment is indicated by ~pos~
 decide whether a point is inside the region.
 
 */ 
+    bool innercontain( const Point& p ) const;
+/*
+decide whether a point is inside the region and no on the border.
+
+*/   
     bool contain( const CHalfSegment& chs ) const;
 /*
 decide whether a half segment is inside the region.
