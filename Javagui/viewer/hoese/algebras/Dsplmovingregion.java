@@ -1,5 +1,3 @@
-
-
 package  viewer.hoese.algebras;
 
 import  java.awt.geom.*;
@@ -8,8 +6,6 @@ import  viewer.*;
 import viewer.hoese.*;
 import  sj.lang.ListExpr;
 import  java.util.*;
-
-
 
 /**
  * A displayclass for the movingregion-type (spatiotemp algebra), 2D with TimePanel
@@ -20,6 +16,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
   Vector RegionMaps;
   Rectangle2D.Double bounds;
   double bufferedTime;
+
   /**
    * Gets the shape of this instance at the ActualTime
    * @param at The actual transformation, used to calculate the correct size.
@@ -38,55 +35,45 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    * Creates an area out of the stored maps at the time t.
    * @param t A time double
    * @return A Shape representing this instance at time t.
-   * @see <a href="Dsplmovingregionsrc.html#getRenderObjectAtTime">Source</a>
    */
   private Shape getRenderObjectAtTime (double t) {
     bufferedTime = t;
-    RegionMap rm = (RegionMap)getMapAt(t, Intervals, RegionMaps);
-    if (rm == null)
-      return  null;
-    Area area = new Area();
-    for (int i = 0; i < rm.Regions.size(); i++) {
-      //create Path from EdgeMaps
-      GeneralPath path = null;
-      ListIterator li = ((Vector)rm.Regions.elementAt(i)).listIterator();
-      //System.out.println(rm.Regions.elementAt(i));
-      while (li.hasNext()) {
-        EdgeMap em = (EdgeMap)li.next();
-        if (path == null) {
-          path = new GeneralPath();
-          path.moveTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
-        }
-        else
-          path.lineTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
-      }
-      //create area a from Path
-      Area a = new Area(path);
-      //subtract holes from a
-      ListIterator li2 = ((Vector)rm.Holes.elementAt(i)).listIterator();
-      while (li2.hasNext()) {
-        Vector hole = (Vector)li2.next();
-        path = null;
-        li = hole.listIterator();
-        while (li.hasNext()) {
-          EdgeMap em = (EdgeMap)li.next();
-          if (path == null) {
-            path = new GeneralPath();
-            path.moveTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
-          }
-          else
-            path.lineTo((float)(em.ax*t + em.bx), (float)(em.ay*t + em.by));
-        }
-        Area b = new Area(path);
-        a.subtract(b);
-      }
-      //add a to area
-      area.add(a);
-    }           //end for
-    //	ListIterator li=rm.holes.listIterator();
-    //	while (li.hasNext(){
-    //		RegionMap rm=(RegionMap) li.next();
-    return  area;
+    int index = getTimeIndex(t,Intervals);
+    if(index<0){
+      return (RenderObject=null);
+    }
+
+   RegionMap rm = (RegionMap) RegionMaps.get(index);
+   Interval in = (Interval) Intervals.get(index);
+   double t1 = in.getStart();
+   double t2 = in.getEnd();
+   double delta = (t1==t2)?0 : (t-t1)/(t2-t1);
+   if(rm.numberOfPoints<3){
+      return (RenderObject=null);
+   }
+   Vector Cycles = rm.Cycles;
+   GeneralPath GP = new GeneralPath(GeneralPath.WIND_EVEN_ODD,rm.numberOfPoints);
+   try{
+     for(int i=0;i<Cycles.size();i++){
+         Vector SingleCycle = (Vector) Cycles.get(i);
+         for(int j=0;j<SingleCycle.size();j++){
+             EdgeMap em = (EdgeMap) SingleCycle.get(j);
+             double tmpx = em.x1+delta*(em.x2-em.x1);
+	     double tmpy = em.y1+delta*(em.y2-em.y1);
+	     float x = (float)ProjectionManager.getPrjX(tmpx,tmpy);
+	     float y = (float)ProjectionManager.getPrjY(tmpx,tmpy);
+             if(j==0)
+	        GP.moveTo(x,y);
+	     else
+	        GP.lineTo(x,y);
+         }
+     }
+   } catch(Exception e){
+     System.err.println("wrong parameter for choosed projection");
+     return (RenderObject=null);
+   }
+   GP.closePath();
+   return (RenderObject = new Area(GP));
   }
 
   /**
@@ -101,101 +88,81 @@ public class Dsplmovingregion extends DisplayTimeGraph {
     };
     if (le.listLength() != 4)
       return  null;
-    for (int i = 0; i < 4; i++) {
-      value[i] = LEUtils.readNumeric(le.first());
-      if (value[i] == null)
-        return  null;
-      le = le.rest();
-    }
-    return  new EdgeMap(value[0].doubleValue(), value[2].doubleValue(), value[1].doubleValue(),
-        value[3].doubleValue());
+    Double X1 = LEUtils.readNumeric(le.first());
+    Double Y1 = LEUtils.readNumeric(le.second());
+    Double X2 = LEUtils.readNumeric(le.third());
+    Double Y2 = LEUtils.readNumeric(le.fourth());
+    if(X1==null || X2==null || Y1==null || Y2 == null)
+      return null;
+    return new EdgeMap(X1.doubleValue(),Y1.doubleValue(),X2.doubleValue(),Y2.doubleValue());
   }
 
-  /**
-   * Reads the all the EdgeMaps out of a ListExpr.
-   * @param maps The ListExpr out of which the EdgeMaps are read
-   * @return A Vector of all EdgeMaps
-   * @see <a href="Dsplmovingregionsrc.html#readEdgeMaps">Source</a>
-   */
-  private Vector readEdgeMaps (ListExpr maps) {
-    Vector v = new Vector(5, 1);
-    while (!maps.isEmpty()) {
-      EdgeMap em = readEdgeMap(maps.first());
-      if (em == null)
-        return  null;
-      v.add(em);
-      maps = maps.rest();
-    }
-    return  v;
-  }
 
-  /**
-   * Reads the RegionMap i.e. all the regions and hole coefficients
-   * @param reg The ListExpr out of which the RegionMap is read
-   * @return The created regionMap
-   * @see <a href="Dsplmovingregionsrc.html#readRegionMap">Source</a>
-   */
-  private RegionMap readRegionMap (ListExpr reg) {
-    if (reg.isEmpty())
-      return  null;
-    Vector regions = new Vector(5, 1);
-    Vector HoleLists = new Vector(5, 1);
-    while (!reg.isEmpty()) {
-      //first entry is region the rest are holes
-      ListExpr face = reg.first();              // face
-      Vector em = readEdgeMaps(face.first());
-      if (em == null)
-        return  null;
-      Vector tempHoles = new Vector(5, 1);
-      face = face.rest();
-      while (!face.isEmpty()) {
-        Vector e = readEdgeMaps(face.first());
-        if (e == null)
-          return  null;
-        tempHoles.add(e);
-        face = face.rest();
-      }
-      regions.add(em);
-      HoleLists.add(tempHoles);
-      reg = reg.rest();
+  /** The method readUnit writes all cycles contained in a single Unit
+    * to a Vector and returns it.
+    **/
+  private RegionMap readRegionMap(ListExpr reg) {
+    Vector res = new Vector();
+    int numberOfPoints = 0;
+    while(!reg.isEmpty()){ // scan each face
+       ListExpr Face = reg.first();
+       reg = reg.rest();
+       while(!Face.isEmpty()){  // scan each cycle
+           ListExpr Cycle = Face.first();
+	   Face = Face.rest();
+	   Vector CycleV = new Vector(Cycle.listLength()+1);
+	   while(!Cycle.isEmpty()){
+               ListExpr Edge = Cycle.first();
+	       Cycle = Cycle.rest();
+               EdgeMap em = readEdgeMap(Edge);
+	       CycleV.add(em);
+	       numberOfPoints++;
+	   }
+	  numberOfPoints++; // close cycle
+          res.add(CycleV);
+       }
     }
-    return  new RegionMap(regions, HoleLists);
+    return new RegionMap(res,numberOfPoints);
   }
 
   /**
    * Scans the representation of a movingregion datatype
    * @param v A list of start and end intervals with regionmap value
    * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingregionsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr value) {
     err = true;
     //System.out.println(value.writeListExprToString());
     // 	 areas = new Area();
-    while (!value.isEmpty()) {                  // value while
-      ListExpr face = value.first();
-      int L = face.listLength();
+    RegionMaps = new Vector(value.listLength()+1);
+    Intervals = new Vector(value.listLength()+1);
+    while (!value.isEmpty()) {      // scan each unit
+      ListExpr unit = value.first();
+      value = value.rest();
+
+      int L = unit.listLength();
       if (L != 5 & L!=2)
         return;
+
       Interval in = null;
       RegionMap rm = null;
 
       if(L==5){
-         System.out.println("Warning: use a deprecated version of external representation of a moving region!");
-         in = LEUtils.readInterval(ListExpr.fourElemList(face.first(),
-                                   face.second(), face.third(), face.fourth()));
-         rm = readRegionMap(face.fifth());
+         System.out.println("Warning: use a deprecated version of"+
+	                    " external representation of a moving region!");
+         in = LEUtils.readInterval(ListExpr.fourElemList(unit.first(),
+                                   unit.second(), unit.third(), unit.fourth()));
+         rm = readRegionMap(unit.fifth());
       }
       if(L==2){
-          in = LEUtils.readInterval(face.first());
-          rm = readRegionMap(face.second());
+          in = LEUtils.readInterval(unit.first());
+          rm = readRegionMap(unit.second());
       }
 
       if ((in == null) || (rm == null))
         return;
       Intervals.add(in);
       RegionMaps.add(rm);
-      value = value.rest();
     }
     err = false;
   }
@@ -207,33 +174,30 @@ public class Dsplmovingregion extends DisplayTimeGraph {
    * @param qr queryresult to display output.
    * @see generic.QueryResult
    * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingregionsrc.html#init">Source</a>
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
-    Intervals = new Vector(5, 1);
-    RegionMaps = new Vector(5, 1);
     ScanValue(value);
     if (err) {
       System.out.println("Dsplmovingregion Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GTA(mregion))"));
       return;
-    } 
-    else 
+    }
+    else
       qr.addEntry(this);
     //ListIterator li=iv.listIterator();
     bounds = null;
     TimeBounds = null;
+    // compute bounding box for time and space
     for (int j = 0; j < Intervals.size(); j++) {
       Interval in = (Interval)Intervals.elementAt(j);
-      Interval i = new Interval(in.getStart() + 0.0001, in.getEnd() - 0.0001, 
-          true, true);
+      Interval i = new Interval(in.getStart()+0.0001,in.getEnd()-0.0001,true, true);
       Rectangle2D.Double r = (Rectangle2D.Double)getRenderObjectAtTime(i.getStart()).getBounds2D();
       r = (Rectangle2D.Double)r.createUnion(getRenderObjectAtTime(i.getEnd()).getBounds2D());
       if (bounds == null) {
         bounds = r;
         TimeBounds = in;
-      } 
+      }
       else {
         bounds = (Rectangle2D.Double)bounds.createUnion(r);
         TimeBounds = TimeBounds.union(in);
@@ -241,7 +205,7 @@ public class Dsplmovingregion extends DisplayTimeGraph {
     }
   }
 
-  /** 
+  /**
    * @return The overall boundingbox of the movingregion
    * @see <a href="Dsplmovingregionsrc.html#getBounds">Source</a>
    */
@@ -250,36 +214,27 @@ public class Dsplmovingregion extends DisplayTimeGraph {
   }
 
 
-  class RegionMap {
-    Vector Regions;             //list of list of EdgeMap
-    Vector Holes;               //list of Regions s.o.
+   class RegionMap{
+      Vector Cycles;
+      int numberOfPoints;
+      RegionMap(Vector V , int points){
+          Cycles = V;
+	  numberOfPoints = points;
+      }
+   }
 
-    /**
-     * Constructor
-     * @param     Vector v1 A list of regions
-     * @param     Vector v2 A list of holes
-     */
-    public RegionMap (Vector v1, Vector v2) {
-      Regions = v1;
-      Holes = v2;
-    }
-  }
 
   class EdgeMap {
-    double ax, bx, ay, by;
+    double x1, y1, x2, y2;
 
     /**
      * Constructor
-     * @param     double x1
-     * @param     double x2
-     * @param     double y1
-     * @param     double y2
      */
-    public EdgeMap (double x1, double x2, double y1, double y2) {
-      ax = x1;
-      bx = x2;
-      ay = y1;
-      by = y2;
+    public EdgeMap (double x1, double y1, double x2, double y2) {
+      this.x1 = x1;
+      this.y1 = y1;
+      this.x2 = x2;
+      this.y2 = y2;
     }
   }
 }
