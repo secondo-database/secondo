@@ -443,7 +443,6 @@ Precondition: dbState = dbOpen.
     return (false);
   }
   
-  //cout << nl->reportTableStates() << endl;
   if ( nl->IsAtom( typeExpr ) )
   {
     first = typeExpr;
@@ -2340,9 +2339,9 @@ SecondoCatalog::CleanUp( const bool revert )
 /*
 In this first iteration:
 
-* Objects are created and updated with undefined values.
+ * Objects are created and updated with undefined values.
 
-* In the deletion, only the catalog part of the object is deleted.
+ * In the deletion, only the catalog part of the object is deleted.
 
 */
   for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
@@ -2486,10 +2485,10 @@ In this first iteration:
 /*
 In this second iteration:
 
-* Objects previously created and updated with undefined values are
+ * Objects previously created and updated with undefined values are
 updated to express their real value. Then they are saved and closed.
 
-* In the deletion, the object is now deleted.
+ * In the deletion, the object is now deleted.
 
 This two iteration process is used because some objects have big
 representations and the database sometimes get out of locks in the

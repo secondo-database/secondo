@@ -104,6 +104,15 @@ February 2004, Hoffmann added static method ~ExecuteQuery~. This method
 executes Secondo queries, given in nested list syntax of C++-type ~string~,
 and returns a result of type ~Word~.
 
+July 2004, M. Spiekermann added a consistency check for the result type calculated
+by annotate. There should be no typeerror symbol in it. The groupby operators type
+mapping caused Secondo to crash since objects of type typeerror should be created
+due to a bug in the type mapping. Now a warning will appear and the operator tree
+is not constructed. Additonally the trace mode of annotated was extended. For every
+operator the input and output for the type mapping will be displayed. This may help
+to isolate type mapping errors.
+ 
+
 \tableofcontents
 
 1.1 Brief Overview
@@ -577,8 +586,9 @@ QueryProcessor::ListOfTree( OpTree tree )
 Represents an operator tree through a list expression. Used for testing.
 
 */
-  ListExpr list, last;
-  int i;
+  ListExpr list = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
+  int i = 0;
 
   if ( tree == 0 )
   {
@@ -707,7 +717,7 @@ expression have defined values.
 */
   NameIndex varnames;
   VarEntryTable vartable(20);
-  ListExpr list;
+  ListExpr list = nl->TheEmptyList();
 
   defined = true;
 
@@ -1070,7 +1080,7 @@ function index.
     nl->WriteListExpr( fatherargtypes, cout );
     cout << endl;
   }
-  if ( nl->IsEmpty( expr ) )
+  if ( nl->IsEmpty( expr ) )  // result list for annotating an empty list
   {
     return (nl->TwoElemList(
               nl->ThreeElemList(
@@ -1079,9 +1089,9 @@ function index.
                 nl->TheEmptyList() ), 
               nl->TheEmptyList() ));
   }
-  else if ( nl->IsAtom( expr ) )
+  else if ( nl->IsAtom( expr ) ) // handle atoms
   {
-    switch (nl->AtomType( expr ))
+    switch (nl->AtomType( expr )) 
     {
       case IntType:
       {
@@ -1482,31 +1492,74 @@ for a given ~expr~ (+ 3 10).
       if ( nl->ListLength( first ) > 0 )
       {
         first = nl->First( first );             /* first = (+ operator ((1 6) (7 0))) */
+
         if ( nl->ListLength( first ) >= 2 )
         {
           switch (TypeOfSymbol( nl->Second( first ) ))
           {
             case QP_OPERATOR:
-            {
+            {	
+	      string operatorSymbolStr = nl->SymbolValue( nl->First(first) );
               ListExpr opList = nl->Third( first );
               assert( nl->ListLength( opList ) > 0 );
 
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
 
-              do
+              if ( traceMode ) {
+                cout << "Type mapping for operator " << operatorSymbolStr << ":" << endl;
+              }								
+              string typeErrorMsg = "";
+              do // Overloading: test operator candidates 
               {
                 alId = nl->IntValue( nl->First( nl->First( opList ) ) );
                 opId = nl->IntValue( nl->Second( nl->First( opList ) ) );
                 
+		
                 /* apply the operator's type mapping: */
                 resultType = (algebraManager->TransformType( alId, opId ))( typeList );
- 
+		string algName = algebraManager->GetAlgebraName(alId);	
+							
+		if ( traceMode ) {
+		
+		  stringstream traceMsg;
+	          traceMsg << algName << ": " << operatorSymbolStr << " (algId=" 
+		           << alId << ", opId=" << opId << ") "<< ends;
+							 					 
+		  if (    nl->IsAtom( resultType ) 
+		       && nl->AtomType( resultType ) == SymbolType 
+		       && nl->SymbolValue( resultType ) == "typeerror" ) 
+		  {			 
+		    cout  << traceMsg.str() << "rejected!" << endl;			 
+		  } else {		  		       
+		    cout << traceMsg.str() << "accepted!" << endl;
+		  }
+		} 
+		
+		if ( !ErrorReporter::TypeMapError ) {
+ 		  string msg = "";
+		  ErrorReporter::GetErrorMessage(msg); // remove errors produced by testing operators
+                  typeErrorMsg += "\n-- " + algName + ": " + msg;
+		}
+
                 opList = nl->Rest( opList );
               }
               while ( !nl->IsEmpty( opList ) && 
                       ( nl->IsAtom( resultType ) && nl->AtomType( resultType ) == SymbolType && 
 nl->SymbolValue( resultType ) == "typeerror" ) );
+
+              
+              // check if the final result of testing is still a typeerror.
+	      // If so save the messages in the error reporter. Errors detected
+	      // afterwards will not be reported any more.
+	      if ( !ErrorReporter::TypeMapError 
+		   && nl->IsAtom( resultType ) 
+		   && nl->AtomType( resultType ) == SymbolType 
+		   && nl->SymbolValue( resultType ) == "typeerror" ) {
+		  ErrorReporter::TypeMapError = true; 
+		  ErrorReporter::ReportError("Possible type mapping Errors:\n" + typeErrorMsg);	
+	       }
+
 
               /* use the operator's selection function to get the index 
                  (opFunId) of the evaluation function for this operator: */
@@ -1524,14 +1577,31 @@ nl->SymbolValue( resultType ) == "typeerror" ) );
                 resultType = nl->SymbolAtom( "typeerror" );
               }
 
+
+	      if ( traceMode ) {
+			
+	          cout << endl;		
+		  cout << "Result of type mapping for operator " << operatorSymbolStr
+		       << " >>>>>>>>" << endl;
+		  cout << "IN: " << endl;
+		  nl->WriteListExpr(typeList);
+		  cout << endl;
+		  cout << "OUT: " << endl;
+		  nl->WriteListExpr(resultType);
+		  cout << " <<<<<<<<" << endl;
+		  
+	       }
+		
               /* check whether the type mapping has requested to append
                  further arguments: */
 
               if ( (nl->ListLength( resultType ) == 3) &&
                    (TypeOfSymbol( nl->First( resultType ) ) == QP_APPEND) )
               {
+	      	     
                 lastElem = last;
-                rest = nl->Second( resultType );
+                rest = nl->Second( resultType );		
+		
                 while (!nl->IsEmpty( rest ))
                 {
                   lastElem = 
@@ -1541,8 +1611,7 @@ nl->SymbolValue( resultType ) == "typeerror" ) );
                   rest = nl->Rest( rest );
                 }
                 resultType = nl->Third( resultType );
-              }
-
+              }              
 
               ListExpr newList = nl->Cons( nl->TwoElemList(
                                              nl->FourElemList( nl->First( first ),
@@ -1552,13 +1621,15 @@ nl->SymbolValue( resultType ) == "typeerror" ) );
                                              nl->Second( nl->First( list ) ) ),
                                            nl->Rest( list ) );          
 
-              return (nl->ThreeElemList(
-                        nl->ThreeElemList(
-                          nl->SymbolAtom( "none" ),
-                          nl->SymbolAtom( "applyop" ),
-                          newList ),
-                        resultType,
-                        nl->IntAtom( opFunId ) ));
+              ListExpr applyopList = nl->ThreeElemList(
+                                       nl->ThreeElemList(
+                                         nl->SymbolAtom( "none" ),
+                                         nl->SymbolAtom( "applyop" ),
+                                         newList ),
+                                       resultType,
+                                       nl->IntAtom( opFunId ) );
+				       
+              return (applyopList);
             }
             case QP_FUNCTION:
             {
@@ -1771,12 +1842,13 @@ the abstraction in ~typeList~, always appending the next type to
 arguments preceding this function argument in an operator application. 
 
 */
-  string name, name2;
-  ListExpr annexpr, list, paramtype;
-  int localfunctionno;
+  string name = "", name2 = "", xxx = "";
+  ListExpr annexpr = nl->TheEmptyList();
+  ListExpr list = nl->TheEmptyList();
+  ListExpr paramtype = nl->TheEmptyList();
 
-string xxx;
-  localfunctionno = functionno;
+  int localfunctionno = functionno;
+  
   if ( traceMode )
   {
     cout << "AnnotateFunction applied to: " << endl;
@@ -1969,22 +2041,23 @@ OpTree
 QueryProcessor::Subtree( const AlgebraLevel level,
                          const ListExpr expr, 
                          bool&  first )
-{
-  OpTree node;
-  ListExpr list;
-  string typeName;
-  string xxx, yyy, zzz;
-  bool oldfirst = first; first = false;
-
-  if ( testMode )
+{  
+  OpTree node = 0;
+  ListExpr list = nl->TheEmptyList();
+  string typeName = "";
+  string xxx = "", yyy = "", zzz = "";
+  
+  bool oldfirst = first; 
+  first = false;
+  
+  if ( !((nl->ListLength( expr ) >= 2) &&
+         (nl->ListLength( nl->First( expr )) >= 2)) )
   {
-    if ( !((nl->ListLength( expr ) >= 2) &&
-           (nl->ListLength( nl->First( expr )) >= 2)) )
-    {
-      cerr << "subtree: error in annotated expression" << endl;
-      exit( 0 );
-    }
+    cerr << "subtree: error in annotated expression \"" << nl->ToString(expr) << "\"" << endl;
+    cerr << "subtree: list structure incorrect!" << endl;
+    exit(1);
   }
+    
   if ( traceMode )
   {
     cout << "subtree applied to: " << endl;
@@ -2090,15 +2163,18 @@ QueryProcessor::Subtree( const AlgebraLevel level,
 
       if ( level == ExecutableLevel )
       {
+        ListExpr typeExpr = nl->Second( expr );
         if ( !node->u.op.isStream )
         { 
-          GetCatalog( level )->LookUpTypeExpr( nl->Second( expr ), typeName,
+          GetCatalog( level )->LookUpTypeExpr( typeExpr, 
+	                                       typeName,
                                                node->u.op.resultAlgId,
                                                node->u.op.resultTypeId );
         }
         else
         {
-          GetCatalog( level )->LookUpTypeExpr( nl->Second( nl->Second( expr )),
+	  typeExpr = nl->Second( typeExpr );
+          GetCatalog( level )->LookUpTypeExpr( typeExpr,
                                                typeName,
                                                node->u.op.resultAlgId,
                                                node->u.op.resultTypeId );
@@ -2111,7 +2187,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
     }
     case QP_ABSTRACTION:
     {
-      node = Subtree( level, nl->Third( nl->First( expr ) ), first );
+      node = Subtree( level, nl->Third( nl->First( expr ) ), first );      
       node->evaluable = false;
       node->typeExpr = nl->Second( expr );
       node->isRoot = oldfirst;  
@@ -2175,7 +2251,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
       node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ), first );
-								/* the abstraction */
+								/* the abstraction */							
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {                        /* the arguments */
@@ -2196,6 +2272,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
 	// cout << endl; 
 
       node = Subtree( level, nl->Fourth( nl->First( expr )), first);
+      
       if ( node->nodetype == Operator )
         node->u.op.counterNo = nl->IntValue( nl->Third( nl->First( expr )));
       return(node);
@@ -2207,9 +2284,10 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       cerr << "The expression is: " << endl;
       nl->WriteListExpr( expr, cout );
       cout << endl; 
-      exit( 0 );
+      exit(1);
     }
   }
+   
 }
 
 /*****************************************************************************
@@ -2251,14 +2329,42 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object. 
 
 */
-  ListExpr list;
-  Word resultModel;
+  ListExpr list = nl->TheEmptyList();
 
   list = AnnotateX( level, expr, defined );
   if ( nl->ListLength( list ) >= 2 )
   {
+    bool listOk = true;
     resultType = nl->Second( list );
-    if ( (TypeOfSymbol( resultType ) == QP_TYPEERROR) )
+    
+    if ( TypeOfSymbol(resultType) == QP_TYPEERROR ) { // check if a type error was detected
+    
+      listOk = false;
+      
+    } else {
+    
+    // Make a consistency check of the annotated list structure.
+    // There should be no typeerror symbol in the list. This may be helpful
+    // to detect bugs in the annotate function.
+    
+      vector<ListExpr> allAtoms;
+      nl->ExtractAtoms( resultType, allAtoms );
+    
+      for ( vector<ListExpr>::const_iterator it = allAtoms.begin();
+            it != allAtoms.end();
+	    it++ )
+      {
+        if ( nl->AtomType(*it) == SymbolType && TypeOfSymbol(*it) == QP_TYPEERROR ) {
+          listOk = false;
+	  cerr << endl << "Annotated list contains a \"typeerror\" symbol, hence the "
+	       << "result type should be \"typeerror\" Maybe there is a bug in some operators "
+	       << "type map function or in the annotate function of the query processor." << endl;
+	  break;
+        }
+      }
+    }
+	      
+    if ( !listOk )
     {
       correct = false;
       evaluable = false;
@@ -2282,6 +2388,7 @@ the function in a database object.
       evaluable = tree->evaluable;
       if ( level == DescriptiveLevel )
       {
+        Word resultModel;
         EvalModel( tree, resultModel );
       }
       isFunction = (tree->nodetype == Operator) ? tree->u.op.isFun : false;
@@ -2374,8 +2481,8 @@ Still needs to be adapted to handle the special operators [0, 1]
 the moment. 
 
 */
-  int i;
-  int status;
+  int i = 0;
+  int status = 0;
   ArgVector arg;
   for ( int j = 0; j < MAXARG; j++ )
   {
@@ -2480,7 +2587,7 @@ in ~subtreeModel~. This is similar to ~eval~, but we do not need to
 handle stream evaluation. 
 
 */
-  int i;
+  int i = 0;
   ArgVector arg;
 
   if ( tree == 0 )
@@ -2613,9 +2720,9 @@ stream evaluation can then be obtained from the returned supplier by the
 usual calls to ~request~ etc. 
 
 */
-  OpTree node;
-
-  node = (OpTree) s;
+  
+  OpTree node = (OpTree) s;
+  
   if ( (node->u.op.algebraId == 0) && (node->u.op.opFunId == 1) )
   {        /* is an arglist node*/
     if ( no < node->u.op.noSons )
@@ -2698,7 +2805,8 @@ QueryProcessor::ResetCounters()
 ListExpr
 QueryProcessor::GetCounters()
 {
-  ListExpr list, last;
+  ListExpr list = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
 
   list = nl->OneElemList( 
 	  nl->TwoElemList( nl->IntAtom(1), nl->IntAtom(counter[1]) ));
@@ -2736,21 +2844,22 @@ QueryProcessor::SetDebugLevel( const int level )
 bool
 QueryProcessor::ExecuteQuery( const string& queryListStr, Word& queryResult )
 {
-  ListExpr resultType, queryList;
-  QueryProcessor* qpp;
-  OpTree tree;
-  AlgebraLevel level;
+  OpTree tree = 0;
+  
   bool correct      = false;
   bool evaluable    = false;
   bool defined      = false;
   bool isFunction   = false;
+  
   NestedList* nli = SecondoSystem::GetNestedList();
-
+  ListExpr resultType = nli->TheEmptyList();
+  ListExpr queryList = nli->TheEmptyList();
 
   nli->ReadFromString( queryListStr, queryList );
 
-    qpp = new QueryProcessor( nli, SecondoSystem::GetAlgebraManager() );
-    level = SecondoSystem::GetAlgebraLevel();
+    QueryProcessor* qpp = new QueryProcessor( nli, SecondoSystem::GetAlgebraManager() );
+    
+    AlgebraLevel level = SecondoSystem::GetAlgebraLevel();
     qpp->Construct( level, queryList, correct, 
       evaluable, defined, isFunction, tree, resultType );
       if ( !defined )
@@ -2786,6 +2895,8 @@ QueryProcessor::ExecuteQuery( const string& queryListStr, Word& queryResult )
 
 
 bool ErrorReporter::receivedMessage = false;
+bool ErrorReporter::TypeMapError = false;
+
 string ErrorReporter::message = "";
 
 void ErrorReporter::ReportError(string msg)
@@ -2811,6 +2922,7 @@ void ErrorReporter::GetErrorMessage(string& msg)
 {
   receivedMessage = false;
   msg = message;
-  message = "";
+  message = "";		
 };
+
 

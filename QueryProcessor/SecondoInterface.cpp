@@ -1317,12 +1317,15 @@ If value 0 is returned, the command was executed without error.
             else
             {
               ErrorReporter::GetErrorMessage(errorMessage);
+							ErrorReporter::Reset();
               errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable
+							
             }
           }
           else
           {
             ErrorReporter::GetErrorMessage(errorMessage);
+						ErrorReporter::Reset();
             errorCode = ERR_IN_QUERY_EXPR;    // Error in query
           }
           FinishCommand( errorCode );
