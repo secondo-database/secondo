@@ -213,10 +213,13 @@ size_t   Point::HashValue()
     unsigned long h;
     Coord x=GetX();
     Coord y=GetY();
-    
+#ifdef RATIONAL_COORDINATES
     h=(unsigned long)
         (5*(x.IsInteger()? x.IntValue():x.Value())
           + (y.IsInteger()? y.IntValue():y.Value()));
+#else 
+    h=(unsigned long)(5*x + y);
+#endif
     return size_t(h);
 }
 
@@ -334,12 +337,16 @@ double Point::distance( const Point& p ) const
     Coord y1=this->GetY();
     Coord x2=p.GetX();
     Coord y2=p.GetY();
-
+#ifdef RATIONAL_COORDINATES
     double dx = (x2.IsInteger()? x2.IntValue():x2.Value()) -
 	          (x1.IsInteger()? x1.IntValue():x1.Value());
     double dy = (y2.IsInteger()? y2.IntValue():y2.Value()) -
 	          (y1.IsInteger()? y1.IntValue():y1.Value());
-
+#else 
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+#endif
+    
     result=sqrt(dx*dx + dy*dy);
     return (result);
 }
@@ -361,9 +368,15 @@ OutPoint( ListExpr typeInfo, Word value )
   Point* point = (Point*)(value.addr);
   if( point->IsDefined() )
   {
+#ifdef RATIONAL_COORDINATES
     return nl->TwoElemList(
              point->GetX().IsInteger() ? nl->IntAtom( point->GetX().IntValue() ) : nl->RealAtom( point->GetX().Value() ),
              point->GetY().IsInteger() ? nl->IntAtom( point->GetY().IntValue() ) : nl->RealAtom( point->GetY().Value() ) );
+#else 
+    return nl->TwoElemList(
+               nl->RealAtom( point->GetX()),
+               nl->RealAtom( point->GetY()));
+#endif 
   }
   else
   {
@@ -1128,10 +1141,13 @@ size_t   Points::HashValue()
 	Get( i, p );
 	x=p.GetX();
 	y=p.GetY();
-	
+#ifdef RATIONAL_COORDINATES
 	h=h+(unsigned long)
 	  (5*(x.IsInteger()? x.IntValue():x.Value())
 	   + (y.IsInteger()? y.IntValue():y.Value()));
+#else 
+	h=h+(unsigned long)(5*x + y);
+#endif
     }
     return size_t(h);
 }
@@ -1663,6 +1679,7 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
 		    xs=sp.GetX();  ys=sp.GetY();
 		    Xd=DP.GetX();  Yd=DP.GetY();
 		    Xs=SP.GetX();  Ys=SP.GetY();
+#ifdef RATIONAL_COORDINATES    
 		    double k=
 		    ((yd.IsInteger()? yd.IntValue():yd.Value()) -
 		     (ys.IsInteger()? ys.IntValue():ys.Value())) /
@@ -1673,6 +1690,10 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
 		     (Ys.IsInteger()? Ys.IntValue():Ys.Value())) /
 		    ((Xd.IsInteger()? Xd.IntValue():Xd.Value()) -
 		     (Xs.IsInteger()? Xs.IntValue():Xs.Value()));
+#else 
+		    double k = (yd - ys) / (xd - xs) ;
+		    double K= (Yd -Ys) / (Xd - Xs);
+#endif
 		if (k<K) return -1;
 		else if (k>K) return 1;
 		else
@@ -1783,24 +1804,34 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
     {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+#ifdef RATIONAL_COORDINATES
 	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
 	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 	      (xl.IsInteger()? xl.IntValue():xl.Value()));
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+	k=(yr - yl) / (xr - xl);
+	a=yl - k*xl;
+#endif
     }
 
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
     {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+#ifdef RATIONAL_COORDINATES
 	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
 	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
  	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
 	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
 	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
 	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+	K=  (Yr - Yl) / (Xr - Xl);
+	A = Yl - K*Xl;
+#endif
     }
 
     if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
@@ -1816,8 +1847,13 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
 
     if (Xl==Xr)    //only L is vertical
     {
-	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
-	Coord yy(y0);
+#ifdef RATIONAL_COORDINATES	     
+     double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
+     Coord yy(y0);
+#else 
+     double y0=k*Xl+a;
+     Coord yy=y0;
+#endif  
 	//(Xl, y0) is the intersection of l and L
 	if    ((Xl>=xl) &&(Xl<=xr))
 	{
@@ -1830,8 +1866,14 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
 
     if (xl==xr)    //only l is vertical
     {
+#ifdef RATIONAL_COORDINATES	     
 	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
 	Coord YY(Y0);
+#else 
+	double Y0=K*xl+A;
+	Coord YY=Y0;
+#endif  
+	
 	//(xl, Y0) is the intersection of l and L
 	if ((xl>=Xl) && (xl<=Xr))
 	{
@@ -1879,24 +1921,34 @@ const bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
     {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+#ifdef RATIONAL_COORDINATES
 	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
 	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 	      (xl.IsInteger()? xl.IntValue():xl.Value()));
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+	k=(yr - yl) / (xr - xl);
+	a=yl - k*xl;
+#endif
     }
 
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
     {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+#ifdef RATIONAL_COORDINATES
 	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
 	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
  	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
 	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
 	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
 	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+	K=  (Yr - Yl) / (Xr - Xl);
+	A = Yl - K*Xl;
+#endif
     }
 
     if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
@@ -1933,8 +1985,13 @@ const bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
 
     if (Xl==Xr)    //only L is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
 	Coord yy(y0);
+#else 
+	double y0=k*Xl+a;
+	Coord yy=y0;
+#endif
 	//(Xl, y0) is the intersection of l and L
 	if    ((Xl>=xl) &&(Xl<=xr))
 	{
@@ -1947,8 +2004,13 @@ const bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
 
     if (xl==xr)    //only l is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
 	Coord YY(Y0);
+#else 
+	double Y0=K*xl+A;
+	Coord YY=Y0;
+#endif
 	//(xl, Y0) is the intersection of l and L
 	if ((xl>Xl) && (xl<Xr))
 	{
@@ -1997,25 +2059,35 @@ const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) cons
     xl=lp.GetX();  yl=lp.GetY();
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
-    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*xl;
+#ifdef RATIONAL_COORDINATES
 	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
 	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 	      (xl.IsInteger()? xl.IntValue():xl.Value()));
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+	k=(yr-yl) / (xr-xl);  
+	a=yl - k*xl;
+#endif
     }
 
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
     {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+#ifdef RATIONAL_COORDINATES
 	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
 	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
  	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
 	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
 	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
 	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+	K=(Yr-Yl) / (Xr-Xl);  
+	A=Yl - K*Xl;
+#endif
     }
 
     if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
@@ -2025,8 +2097,13 @@ const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) cons
 
     if (Xl==Xr)    //only L is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
 	Coord yy(y0);
+#else 
+	double y0=k*Xl+a;
+	Coord yy=y0;
+#endif
 	//(Xl, y0) is the intersection of l and L
 	if    ((Xl>xl) &&(Xl<xr))
 	{
@@ -2042,8 +2119,13 @@ const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) cons
 
     if (xl==xr)    //only l is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
 	Coord YY(Y0);
+#else 
+	double Y0=K*xl+A;
+	Coord YY=Y0;
+#endif
 	//(xl, Y0) is the intersection of l and L
 	if ((xl>Xl) && (xl<Xr))
 	{
@@ -2067,8 +2149,13 @@ const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) cons
 	x0=(A-a) / (k-K);	 
 	y0=x0*k+a;
 	
+#ifdef RATIONAL_COORDINATES
 	Coord xx(x0);
 	Coord yy(y0);
+#else 
+	Coord xx=x0;
+	Coord yy=y0;
+#endif
 	
 	if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx <Xr))
 	{
@@ -2101,25 +2188,35 @@ const bool CHalfSegment::overlapintersect( const CHalfSegment& chs, CHalfSegment
     xl=lp.GetX();  yl=lp.GetY();
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
-    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*xl;
+#ifdef RATIONAL_COORDINATES
 	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
 	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 	      (xl.IsInteger()? xl.IntValue():xl.Value()));
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+	k=(yr-yl) / (xr-xl);  
+	a=yl - k*xl;
+#endif
     }
 
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
     {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+#ifdef RATIONAL_COORDINATES
 	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
 	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
  	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
 	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
 	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
 	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+	K=(Yr-Yl) / (Xr-Xl);  
+	A=Yl - K*Xl;
+#endif
     }
 
     if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
@@ -2216,25 +2313,35 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
     xl=lp.GetX();  yl=lp.GetY();
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
-    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*xl;
+#ifdef RATIONAL_COORDINATES
 	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
 	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 	      (xl.IsInteger()? xl.IntValue():xl.Value()));
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+	k=(yr-yl) / (xr-xl);  
+	a=yl - k*xl;
+#endif
     }
  
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
     {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+#ifdef RATIONAL_COORDINATES
 	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
 	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
  	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
 	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
 	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
 	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+	K=(Yr-Yl) / (Xr-Xl);  
+	A=Yl - K*Xl;
+#endif
     }
 
     if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
@@ -2244,9 +2351,14 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 
     if (Xl==Xr)    //only L is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
 	//(Xl, y0) is the intersection of l and L
 	Coord yy(y0);
+#else 
+	double y0=k*Xl+a;
+	Coord yy=y0;
+#endif
 	if    ((Xl>xl) &&(Xl<xr))
 	{
 	    if (((yy>Yl) && (yy<Yr)) || ((yy>Yr) && (yy<Yl)))
@@ -2258,8 +2370,13 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 
     if (xl==xr)    //only l is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
 	Coord YY(Y0);
+#else 
+	double Y0=K*xl+A;
+	Coord YY=Y0;
+#endif	
 	//(xl, Y0) is the intersection of l and L
 	if ((xl>Xl) && (xl<Xr))
 	{
@@ -2279,8 +2396,11 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
       else
       {
 	x0=(A-a) / (k-K);	 // y0=x0*k+a;
+#ifdef RATIONAL_COORDINATES
 	Coord xx(x0);
-
+#else 
+	Coord xx=x0;
+#endif	
 	if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx<Xr))
 	        return true;
 	else return false;
@@ -2303,25 +2423,35 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
     xl=lp.GetX();  yl=lp.GetY();
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
-    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*xl;
+#ifdef RATIONAL_COORDINATES
 	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
 	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 	      (xl.IsInteger()? xl.IntValue():xl.Value()));
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+	k=(yr-yl) / (xr-xl);
+	a=yl - k*xl;
+#endif
     }
 
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
     {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+#ifdef RATIONAL_COORDINATES
 	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
 	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
  	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
 	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
 	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
 	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+	K=(Yr-Yl) / (Xr-Xl);
+	A=Yl - K*Xl;
+#endif
     }
 
     if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
@@ -2331,10 +2461,15 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 
     if (Xl==Xr)    //only L is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
-	//(Xl, y0) is the intersection of l and L
 	Coord xx(Xl);
 	Coord yy(y0);
+#else 
+	double y0=k*Xl+a;
+	Coord xx=Xl;
+	Coord yy=y0;
+#endif
 
 	if    ((Xl>=xl) &&(Xl<=xr))
 	{
@@ -2350,10 +2485,15 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 
     if (xl==xr)    //only l is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
-	//(xl, Y0) is the intersection of l and L
 	Coord XX(xl);
 	Coord YY(Y0);
+#else 
+	double Y0=K*xl+A;
+	Coord XX=xl;
+	Coord YY=Y0;
+#endif
 
 	if ((xl>=Xl) && (xl<=Xr))
 	{
@@ -2408,25 +2548,35 @@ const bool CHalfSegment::overlap( const CHalfSegment& chs ) const
     xl=lp.GetX();  yl=lp.GetY();
     xr=rp.GetX();  yr=rp.GetY();
     if (xl!=xr)
-    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*xl;
+#ifdef RATIONAL_COORDINATES
 	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
 	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 	      (xl.IsInteger()? xl.IntValue():xl.Value()));
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+	k=(yr-yl) / (xr-xl);
+	a=yl - k*xl;
+#endif
     }
 
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
     {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+#ifdef RATIONAL_COORDINATES
 	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
 	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
  	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
 	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
 	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
 	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+	K=(Yr-Yl) / (Xr-Xl); 
+	A=Yl - K*Xl;
+#endif
     }
 
     if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
@@ -2463,8 +2613,13 @@ const bool CHalfSegment::overlap( const CHalfSegment& chs ) const
 
     if (Xl==Xr)    //only L is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
 	Coord yy(y0);
+#else 
+	double y0=k*Xl+a;
+	Coord yy=y0;
+#endif
 	//(Xl, y0) is the intersection of l and L
 	if    ((Xl>xl) &&(Xl<xr))
 	{
@@ -2477,8 +2632,13 @@ const bool CHalfSegment::overlap( const CHalfSegment& chs ) const
 
     if (xl==xr)    //only l is vertical
     {
+#ifdef RATIONAL_COORDINATES
 	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
 	Coord YY(Y0);
+#else 
+	double Y0=K*xl+A;
+	Coord YY=Y0;
+#endif
 	//(xl, Y0) is the intersection of l and L
 	if ((xl>Xl) && (xl<Xr))
 	{
@@ -2528,24 +2688,34 @@ const bool CHalfSegment::Inside(const CHalfSegment& chs) const
   xr=rp.GetX();  yr=rp.GetY();
   if (xl!=xr)
   {
+#ifdef RATIONAL_COORDINATES
       k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
            (yl.IsInteger()? yl.IntValue():yl.Value())) /
           ((xr.IsInteger()? xr.IntValue():xr.Value()) -
            (xl.IsInteger()? xl.IntValue():xl.Value()));
       a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
            k*(xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+      k=(yr - yl) / (xr - xl);
+      a=yl - k*xl;
+#endif
   }
 
   Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
   Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
   if (Xl!=Xr)
   {
+#ifdef RATIONAL_COORDINATES
       K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
               (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
              ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
               (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
       A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
               K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+#else 
+      K=  (Yr - Yl) / (Xr - Xl);
+      A = Yl - K*Xl;
+#endif
     }
 
   if ((Xl==Xr) && (xl==xr))  //1. both are vertical lines
@@ -2588,6 +2758,7 @@ const bool CHalfSegment::Contains( const Point& p ) const
   if ((xr!=xl)&&(X!=xl))
   {
       double k1, k2;
+#ifdef RATIONAL_COORDINATES
       k1=  ( (Y.IsInteger()? Y.IntValue():Y.Value())-
 	 (yl.IsInteger()? yl.IntValue():yl.Value())) / 
 	((X.IsInteger()? X.IntValue():X.Value())-
@@ -2597,7 +2768,11 @@ const bool CHalfSegment::Contains( const Point& p ) const
 	 (yl.IsInteger()? yl.IntValue():yl.Value())) / 
 	((xr.IsInteger()? xr.IntValue():xr.Value())-
 	 (xl.IsInteger()? xl.IntValue():xl.Value()));
-	    
+#else 
+      k1=  ( Y- yl) / (X- xl);
+      k2=  ( yr-yl) / (xr- xl);
+#endif
+      
       if (k1== k2)
       {
 	  if ((xl!=xr)&&(X>=xl) && (X <=xr))
@@ -2649,8 +2824,12 @@ double CHalfSegment::distance( const Point& p ) const
 	{
 	    if (((yl<=Y)&&(Y<=yr))|| ((yr<=Y)&&(Y<=yl)))
 	    {
+#ifdef RATIONAL_COORDINATES
 		result=(X.IsInteger()? X.IntValue():X.Value())-
 		            (xl.IsInteger()? xl.IntValue():xl.Value());
+#else 
+		result=X- xl;
+#endif		
 		if (result<0) result=result*(-1);
 	    }
 	    else
@@ -2664,8 +2843,12 @@ double CHalfSegment::distance( const Point& p ) const
 	{
 	    if ((xl<=X)&&(X<=xr))
 	    {
+#ifdef RATIONAL_COORDINATES
 		result=(Y.IsInteger()? Y.IntValue():Y.Value())-
 		            (yl.IsInteger()? yl.IntValue():yl.Value());
+#else 
+		result=Y- yl;
+#endif
 		if (result<0) result=result*(-1);
 	    }
 	    else
@@ -2678,20 +2861,25 @@ double CHalfSegment::distance( const Point& p ) const
     }
     else
     {
+#ifdef RATIONAL_COORDINATES
 	double k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
 	 	   (yl.IsInteger()? yl.IntValue():yl.Value())) /
 		  ((xr.IsInteger()? xr.IntValue():xr.Value()) -
 		   (xl.IsInteger()? xl.IntValue():xl.Value()));
 	double a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 		    k*(xl.IsInteger()? xl.IntValue():xl.Value());
-
-	//double K=-1/k;  //the auxiliary line's slope is K.
-
 	double xx= (k*((Y.IsInteger()? Y.IntValue():Y.Value())-a)+
 		    (X.IsInteger()? X.IntValue():X.Value())) / (k*k+1);
-	double yy=k*xx+a;  //intersection
-
+	double yy=k*xx+a;
 	Coord XX(xx), YY(yy);
+#else 
+	double k=(yr - yl) / (xr - xl);
+	double a=yl - k*xl;
+	double xx= (k*(Y-a)+ X) / (k*k+1);
+	double yy=k*xx+a;
+	Coord XX=xx;
+	Coord YY=yy;
+#endif
 	Point PP(true, XX, YY);
 	if ((xl<=XX)&&(XX<=xr))
 	{
@@ -2733,11 +2921,16 @@ const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
 
 	if ((x==xl) && (yl>y))
 	{
+#ifdef RATIONAL_COORDINATES
 	    abovey0=(yl.IsInteger()? yl.IntValue():yl.Value());
+#else     
+	    abovey0=yl;  
+#endif
 	    res=true;
 	}
 	else if ((xl < x) && (x < xr))
 	{   //Here: the problem is with the rational numbers
+#ifdef RATIONAL_COORDINATES
 	    double k=
 		    ((yr.IsInteger()? yr.IntValue():yr.Value()) -
 		     (yl.IsInteger()? yl.IntValue():yl.Value())) /
@@ -2749,8 +2942,14 @@ const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
 
 	    double y0=
 		    k*(x.IsInteger()? x.IntValue():x.Value())+a;
-
+	    
 	    Coord yy(y0);
+#else 
+	    double k=  (yr - yl) / (xr - xl);
+	    double a=  (yl - k*xl);
+	    double y0=k*x+a;
+	    Coord yy=y0;
+#endif
 	    if (yy>y)
 	    {
 		abovey0=y0;
@@ -3312,11 +3511,15 @@ size_t   CLine::HashValue()
 	x2=chs.GetRP().GetX();
 	y2=chs.GetRP().GetY();
 	
+#ifdef RATIONAL_COORDINATES
 	h=h+(unsigned long)
 	 ((5*(x1.IsInteger()? x1.IntValue():x1.Value())
 	   + (y1.IsInteger()? y1.IntValue():y1.Value()))+
 	  (5*(x2.IsInteger()? x2.IntValue():x2.Value())
 	   + (y2.IsInteger()? y2.IntValue():y2.Value())));
+#else 
+	h=h+(unsigned long)((5*x1 + y1)+ (5*x2 + y2));
+#endif
     }
     return size_t(h);
 }
@@ -4242,12 +4445,15 @@ size_t   CRegion::HashValue()
 	
 	x2=chs.GetRP().GetX();
 	y2=chs.GetRP().GetY();
-	
+#ifdef RATIONAL_COORDINATES
 	h=h+(unsigned long)
 	 ((5*(x1.IsInteger()? x1.IntValue():x1.Value())
 	   + (y1.IsInteger()? y1.IntValue():y1.Value()))+
 	  (5*(x2.IsInteger()? x2.IntValue():x2.Value())
 	   + (y2.IsInteger()? y2.IntValue():y2.Value())));
+#else 
+	h=h+(unsigned long)((5*x1 + y1)+ (5*x2 + y2));
+#endif
     }
     return size_t(h);
 }
@@ -9895,12 +10101,14 @@ direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 	    }
 	    return (0);
 	}
-
+#ifdef RATIONAL_COORDINATES
 	k=((y2.IsInteger()? y2.IntValue():y2.Value()) -
 	      (y1.IsInteger()? y1.IntValue():y1.Value())) /
 	     ((x2.IsInteger()? x2.IntValue():x2.Value()) -
 	      (x1.IsInteger()? x1.IntValue():x1.Value()));
-
+#else 
+	k=(y2 - y1) / (x2 - x1);
+#endif
 	//here I should change the slope k to 0-PI
 	direction=atan(k) * 180 /  M_PI;
 	//cout<<k<<"==>"<<direction<<endl;
