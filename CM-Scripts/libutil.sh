@@ -64,10 +64,30 @@ EOFM
 
 }
 
+#showGPL
+#
+function showGPL() {
+
+  printf "%s\n"   "Copyright (C) 2004, University in Hagen,"
+  printf "%s\n"   "Department of Computer Science,"
+  printf "%s\n\n" "Database Systems for New Applications."
+  printf "%s\n"   "This is free software; see the source for copying conditions."
+  printf "%s\n"   "There is NO warranty; not even for MERCHANTABILITY or FITNESS"
+  printf "%s\n"   "FOR A PARTICULAR PURPOSE."
+}
+
 TEMP="/tmp"
 if [ ! -d $TEMP ]; then
   printf "%s\n" "creating directory $TEMP"
 fi 
+
+buildDir=${SECONDO_BUILD_DIR}
+
+####################################################################################
+#
+# Test functions
+#
+####################################################################################
 
 if [ "$1" == "test" ]; then  
 
