@@ -6,57 +6,57 @@
 
 include ../makefile.env
 
+VPATH = $(LIBDIR):$(INCLUDEDIR)
+
 APPLOBJECTS=\
 	SecondoTTY.o \
-	DisplayTTY.o \
-	SecondoTestFrame.o
+	DisplayTTY.o 
 
-APPLICATIONS=\
-	$(BINDIR)/SecondoTTYCS$(EXEEXT) \
-	$(BINDIR)/TupleTestBDB$(EXEEXT)
+
+ifeq ($(smitype),ora)
+APPLICATION = $(BINDIR)/SecondoTTYORA$(EXEEXT)
+else
+APPLICATION = $(BINDIR)/SecondoTTYBDB$(EXEEXT)
+endif
+
 
 .PHONY: all
 all: $(APPLOBJECTS)
 
 .PHONY: buildapp
-ifeq ($(smitype),ora)
-buildapp: $(APPLICATIONS) $(BINDIR)/SecondoTTYORA$(EXEEXT)
-else
-buildapp: $(APPLICATIONS) $(BINDIR)/SecondoTTYBDB$(EXEEXT)
-endif
+buildapp: $(APPLICATION)
+
+
+.PHONY: client
+client: $(BINDIR)/SecondoTTYCS$(EXEEXT)
 
 CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
 CCXFLAGS= $(DEFAULTCCFLAGS)
 
 # --- User Interface Applications
-SecondoTestFrame.o: SecondoTestFrame.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/DisplayTTY.h
-		$(CC) -c -o $@ SecondoTestFrame.cpp $(CCXFLAGS)
+SecondoTTY.o: SecondoTTY.cpp Application.h Profiles.h FileSystem.h SecondoSystem.h SecondoInterface.h SecondoSMI.h NestedList.h DisplayTTY.h
+	$(CC) -c -o $@ $< $(CCXFLAGS)
 
-SecondoTTY.o: SecondoTTY.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/DisplayTTY.h
-	$(CC) -c -o $@ SecondoTTY.cpp $(CCXFLAGS)
-
-DisplayTTY.o: DisplayTTY.cpp $(INCLUDEDIR)/DisplayTTY.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/AlgebraTypes.h
-	$(CC) -c -o $@ DisplayTTY.cpp $(CCXFLAGS)
+DisplayTTY.o: DisplayTTY.cpp DisplayTTY.h SecondoInterface.h AlgebraTypes.h
+	$(CC) -c -o $@ $< $(CCXFLAGS)
 
 # --- Link applications
+$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES) 
+	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/TupleTestBDB$(EXEEXT): SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT) SecondoTestFrame.o $(TUPLEMANAGER) 
-	$(LD) $(EXEFLAGS) -o $@ SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(TUPLEMANAGER) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
 
-
-$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT) $(TUPLEMANAGER)
-	$(LD) $(EXEFLAGS) -o $@ SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(TUPLEMANAGER) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-
-$(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
-
-$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceGeneral.o -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) *.o
-	$(RM) *.lo
+	$(RM) $(APPLOBJECTS) $(APPLICATION)
+
+.PHONY: clean_client
+clean_client:
+	$(RM) $(BINDIR)/SecondoTTYCS$(EXEEXT)
 
