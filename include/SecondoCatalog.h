@@ -486,11 +486,13 @@ specifications from [BeG95b, Section3.1].
 Checks whether ~opName~ is a valid operator name.
 
 */
-  void GetFirstOperatorId( const string& opName, int& algebraId, int& opId );
-  bool GetNextOperatorId( int& algebraId, int& opId );
+  ListExpr GetOperatorIds( const string& opName );
+
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
-~opId~ of an existing ~opName~. 
+~opId~ for all operators called ~opName~ in list format like below
+
+( (alId1 opId1) ... (alIdN opIdN) )  
 
 *Precondition*: "IsOperatorName( opName ) == true"[4].
 
@@ -569,12 +571,6 @@ following format:
   SmiKeyedFile   objCatalogFile;
   SmiRecordFile  objValueFile;
   SmiRecordFile  objModelFile;
-
-
-  bool canGetNextOperator;
-  CatalogEntrySet* operatorSet;
-  CatalogEntrySet::iterator operatorSetIterator;
-
 
   bool testMode;
 /*

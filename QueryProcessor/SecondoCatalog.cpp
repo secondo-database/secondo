@@ -1757,8 +1757,8 @@ Checks whether ~opName~ is a valid operator name.
   return (operators.find( opName ) != operators.end());
 }
 
-void
-SecondoCatalog::GetFirstOperatorId( const string& opName, int& algebraId, int& opId )
+ListExpr
+SecondoCatalog::GetOperatorIds( const string& opName )
 {
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
@@ -1767,57 +1767,31 @@ Returns the algebra identifier ~algebraId~ and the operator identifier
 Precondition: ~IsOperatorName( opName)~ delivers TRUE.  
 
 */
-
+  ListExpr opList;
   LocalOperatorCatalog::iterator pos = operators.find( opName );
  
   if (  pos != operators.end() )
   {
-    operatorSet = pos->second;
-    operatorSetIterator = operatorSet->begin();
+    CatalogEntrySet *operatorSet = pos->second;
+    CatalogEntrySet::iterator operatorSetIterator = operatorSet->begin();
 
-    algebraId = operatorSetIterator->algebraId;
-    opId      = operatorSetIterator->entryId;
+    opList = nl->OneElemList(
+               nl->TwoElemList( nl->IntAtom( operatorSetIterator->algebraId ), nl->IntAtom( operatorSetIterator->entryId ) ) );
 
-    operatorSetIterator++;
-    canGetNextOperator = true;
+    while ( ++operatorSetIterator != operatorSet->end() )
+    {
+      nl->Append( opList,
+                  nl->TwoElemList( nl->IntAtom( operatorSetIterator->algebraId ), nl->IntAtom( operatorSetIterator->entryId ) ) );
+    }
+    return opList;
   }
   else
   { 
-    cerr << "  GetFirstOperatorId: " << opName << " is not a valid operator name!" << endl;
+    cerr << "  GetOperatorIds: " << opName << " is not a valid operator name!" << endl;
     exit( 0 );
   }
 }
 
-bool
-SecondoCatalog::GetNextOperatorId( int& algebraId, int& opId )
-{
-/*
-Returns the algebra identifier ~algebraId~ and the operator identifier
-~opId~ of an existing ~opName~. 
-
-Precondition: ~GetFirstOperatorId( opName )~ executed before.  
-*/
-
-  if( !canGetNextOperator )
-  { 
-    cerr << "  GetNextOperatorId: " << " Try to run first GetFirstOperatorId!" << endl;
-    exit( 0 );
-  }
- 
-  if ( operatorSetIterator != operatorSet->end() )
-  {
-    algebraId = operatorSetIterator->algebraId;
-    opId      = operatorSetIterator->entryId;
-
-    operatorSetIterator++;
-    return true;
-  }
-  else
-  {
-    canGetNextOperator = false;
-    return false;
-  }
-}
 string
 SecondoCatalog::GetOperatorName( const int algebraId, const int opId )
 {
@@ -1973,8 +1947,6 @@ Defines a dictionary for algebra operators.
       }
     }
   }
-
-  canGetNextOperator = false;
 }
 
 SecondoCatalog::~SecondoCatalog()

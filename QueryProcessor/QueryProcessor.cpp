@@ -1148,16 +1148,7 @@ function index.
         }
         else if ( GetCatalog( level )->IsOperatorName( name ) )
         {
-          GetCatalog( level )->GetFirstOperatorId( name, alId, opId );
-          ListExpr opList = nl->OneElemList(
-                              nl->TwoElemList( nl->IntAtom( alId ), nl->IntAtom( opId ) ) );
-
-          while ( GetCatalog( level )->GetNextOperatorId( alId, opId ) )
-          {
-            nl->Append( opList, 
-                        nl->TwoElemList( nl->IntAtom( alId ), nl->IntAtom( opId ) ) );
-          }
-
+          ListExpr opList = GetCatalog( level )->GetOperatorIds( name );
           return (nl->TwoElemList(
                     nl->ThreeElemList(
                       expr,
@@ -1560,7 +1551,7 @@ arguments preceding this function argument in an operator application.
 */
   string name, name2;
   ListExpr annexpr, list, paramtype;
-  int alId, opId, localfunctionno;
+  int localfunctionno;
 
 string xxx;
   localfunctionno = functionno;
@@ -1614,13 +1605,23 @@ string xxx;
         }
         else if ( GetCatalog( level )->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
-          GetCatalog( level )->GetFirstOperatorId( name2, alId, opId );
+          ListExpr opList = GetCatalog( level )->GetOperatorIds( name2 );
+          ListExpr first = nl->First( opList );
+          ListExpr rest = nl->Rest( opList );
+          int alId = nl->IntValue( nl->First( first ) ),
+              opId = nl->IntValue( nl->Second( first ) );
 
           paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
 
           while ( ( nl->IsAtom( paramtype ) && nl->AtomType( paramtype ) == SymbolType && nl->SymbolValue( paramtype ) == "typeerror" ) &&
-                  ( GetCatalog( level )->GetNextOperatorId( alId, opId ) ) ) 
+                  !nl->IsEmpty( rest )  ) 
           {
+            first = nl->First( rest );
+            rest = nl->Rest( rest );
+
+            alId = nl->IntValue( nl->First( first ) );
+            opId = nl->IntValue( nl->Second( first ) );
+
             paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
           }
         }
