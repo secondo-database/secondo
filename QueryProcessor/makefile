@@ -21,7 +21,7 @@ all: $(CODE_DEPENDENCIES) $(OBJECTS)
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
 # create dependencies from include directives
-%.dep: %.cpp
+%.dep: %.cpp 
 	$(CC) -MM $(CCFLAGS) $< > $@
 
 $(LIBDIR)/%.dep: %.cpp
@@ -33,9 +33,10 @@ $(LIBDIR)/%.dep: %.cpp
 $(LIBDIR)/%.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) 
 
-
 include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
-clean:
-	$(RM) *.dep $(OBJECTS)
+clean: 
+	$(RM) *.dep $(LIBDIR)/*.dep $(OBJECTS)
+
+
