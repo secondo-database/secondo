@@ -141,47 +141,7 @@ cardQuery(Pred, Rel1, Rel2, Query) :-
   sample(Rel2, Rel2S),
   possiblyRename(Rel1S, Rel1Query),
   possiblyRename(Rel2S, Rel2Query),
-  transformPred(Pred, t, 1, Pred2),
-  Query = count(loopsel(Rel1Query, fun([param(t, tuple)], filter(Rel2Query, Pred2)))).
-
-/*
-
-----	transformPred(Pred, Param, Arg, Pred2) :- 
-----
-
-~Pred2~ is ~Pred~ transformed such that the attribute X of relation ~ArgNo~ is written
-as ``attribute(Param, attrname(X))''
-
-*/
-
-transformPred(attr(Attr, Arg, Case), Param, Arg, 
-  attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
-
-transformPred(attr(Attr, Arg, Case), _, _, attr(Attr, Arg, Case)) :- !.
-
-transformPred(Pred, Param, Arg, Pred2) :-
-  compound(Pred),
-  functor(Pred, T, 1), !,
-  arg(1, Pred, Arg1),
-  transformPred(Arg1, Param, Arg, Arg1T),
-  functor(Pred2, T, 1),
-  arg(1, Pred2, Arg1T).
-
-transformPred(Pred, Param, Arg, Pred2) :-
-  compound(Pred),
-  functor(Pred, T, 2), !,
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  transformPred(Arg1, Param, Arg, Arg1T),
-  transformPred(Arg2, Param, Arg, Arg2T),
-  functor(Pred2, T, 2),
-  arg(1, Pred2, Arg1T),
-  arg(2, Pred2, Arg2T).
-
-transformPred(Pred, _, _, Pred).
-
-
-%  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
+  Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
 dynamicCardQuery(Pred, Rel, Query) :-
   dynamicPossiblyRename(Rel, RelQuery),
@@ -191,29 +151,6 @@ dynamicCardQuery(Pred, Rel1, Rel2, Query) :-
   dynamicPossiblyRename(Rel1, Rel1Query),
   dynamicPossiblyRename(Rel2, Rel2Query),
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
-
-createSampleRelation(Rel) :-
-  not(spelling(Rel, _)),
-  upper(Rel, URel),
-  sampleName(URel, Sample),
-  concat_atom(['let ', Sample, ' = ', URel, 
-    ' sample[100, 0.01] consume'], '', QueryAtom),
-  secondo(QueryAtom), !.
-
-createSampleRelation(Rel) :-
-  spelling(Rel, Spelled),
-  Spelled = lc(Spelled2),
-  sampleName(Spelled2, Sample),
-  concat_atom(['let ', Sample, ' = ', Spelled2, 
-    ' sample[100, 0.01] consume'], '', QueryAtom),
-  secondo(QueryAtom), !.
-
-createSampleRelation(Rel) :-
-  upper(Rel, URel),
-  sampleName(URel, Sample),
-  concat_atom(['let ', Sample, ' = ', URel, 
-    ' sample[100, 0.01] consume'], '', QueryAtom),
-  secondo(QueryAtom), !.
 
 sels(Pred, Sel) :-
   sel(Pred, Sel),
@@ -275,54 +212,6 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   assert(storedSel(PSimple, Sel)),
   !.
 
-  selectivity(pr(Pred, Rel1, Rel2), Sel) :-
-  Rel1 = rel(BaseName1, _, _),
-  sampleName(BaseName1, SampleName1),
-  card(SampleName1, SampleCard1),
-  Rel2 = rel(BaseName2, _, _),
-  card(BaseName2, Card2),
-  SampleCard2 is truncate(min(Card2, max(100, Card2 * 0.01))),
-  sampleName(BaseName2, SampleName),
-  assert(storedCard(SampleName, SampleCard2)),
-  dynamicCardQuery(Pred, Rel1, Rel2, Query),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
-  secondo(QueryAtom, [int, ResCard]),
-  Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
-  write('selectivity : '),
-  write(Sel),
-  nl,
-  simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  createSampleRelation(BaseName2),
-  assert(storedSel(PSimple, Sel)),
-  !.
-
-  selectivity(pr(Pred, Rel1, Rel2), Sel) :-
-  Rel2 = rel(BaseName2, _, _),
-  sampleName(BaseName2, SampleName2),
-  card(SampleName2, SampleCard2),
-  Rel1 = rel(BaseName1, _, _),
-  card(BaseName1, Card1),
-  SampleCard1 is truncate(min(Card1, max(100, Card1 * 0.01))),
-  sampleName(BaseName1, SampleName),
-  assert(storedCard(SampleName, SampleCard1)),
-  dynamicCardQuery(Pred, Rel1, Rel2, Query),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '),
-  %write(QueryAtom),
-  secondo(QueryAtom, [int, ResCard]),
-  Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
-  write('selectivity : '),
-  write(Sel),
-  nl,
-  simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  createSampleRelation(BaseName1),
-  assert(storedSel(PSimple, Sel)),
-  !. 
-
 selectivity(pr(Pred, Rel), Sel) :-
   Rel = rel(BaseName, _, _),
   sampleName(BaseName, SampleName),
@@ -344,14 +233,10 @@ selectivity(pr(Pred, Rel), Sel) :-
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel1 = rel(BaseName1, _, _),
   card(BaseName1, Card1),
-  SampleCard1 is truncate(min(Card1, max(100, Card1 * 0.01))),
-  sampleName(BaseName1, SampleName1),
-  assert(storedCard(SampleName1, SampleCard1)),
+  SampleCard1 is min(Card1, max(100, Card1 * 0.01)),
   Rel2 = rel(BaseName2, _, _),
   card(BaseName2, Card2),
-  SampleCard2 is truncate(min(Card2, max(100, Card2 * 0.01))),
-  sampleName(BaseName2, SampleName2),
-  assert(storedCard(SampleName2, SampleCard2)),
+  SampleCard2 is min(Card2, max(100, Card2 * 0.01)),
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -363,29 +248,24 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  createSampleRelation(BaseName1),
-  createSampleRelation(BaseName2),
   assert(storedSel(PSimple, Sel)),
   !.
 
 selectivity(pr(Pred, Rel), Sel) :-
   Rel = rel(BaseName, _, _),
   card(BaseName, Card),
-  SampleCard is truncate( min(Card, max(100, Card * 0.01))),
-  sampleName(BaseName, SampleName),
-  assert(storedCard(SampleName, SampleCard)),
+  SampleCard is min(Card, max(100, Card * 0.01)),
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  write('selectivity query : '),
-  write(QueryAtom),
+  %write('selectivity query : '),
+  %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('selectivity : '),
   write(Sel),
   nl,
   simplePred(pr(Pred, Rel), PSimple),
-  createSampleRelation(BaseName),
   assert(storedSel(PSimple, Sel)),
   !.
 
