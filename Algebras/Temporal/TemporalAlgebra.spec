@@ -10,5 +10,8 @@ operator val alias VAL pattern op ( _ )
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator deftime alias DEFTIME pattern op ( _ )
 operator trajectory alias TRAJECTORY pattern op ( _ )
-
+operator present alias PRESENT pattern _ infixop _
+operator passes alias PASSES pattern _ infixop _
+operator initial alias INITIAL pattern op ( _ )
+operator final alias FINAL pattern op ( _ )
 

@@ -1462,6 +1462,95 @@ MPointTypeMapLine( ListExpr args )
 }
 
 /*
+16.1.9 Type mapping function Mapping x Instant -- Bool
+
+It is for the operator ~present~.
+
+*/
+ListExpr
+MappingInstantTypeMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+	return (nl->SymbolAtom( "bool" ));
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+	return (nl->SymbolAtom( "bool" ));
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+	return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+16.1.10 Type mapping function Mapping(a) x a -- Bool
+
+It is for the operator ~passes~.
+
+*/
+ListExpr
+MappingATypeMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "int" )
+	return (nl->SymbolAtom( "bool" ));
+/*
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "real" )
+	return (nl->SymbolAtom( "bool" ));
+    
+*/
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" &&
+        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "point" )
+	return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+16.1.11 Type mapping function Mapping -- Intime
+
+It is for the operators ~initial~ and ~final~.
+
+*/
+ListExpr
+MappingTypeMapIntime( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint")
+	return (nl->SymbolAtom( "intimeint" ));
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal")
+	return (nl->SymbolAtom( "intimereal" ));
+    
+    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint")
+	return (nl->SymbolAtom( "intimepoint" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/*
 16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -1500,6 +1589,7 @@ RangeSelectPredicates( ListExpr args )
   assert( false );
   return (-1); // This point should never be reached
 }
+
 /*
 16.2.2 Selection function ~TemporalSelectAtinstant~
 
@@ -1508,12 +1598,11 @@ Is used for the ~atinstant~ operations.
 */
 int
 TemporalSelectAtInstant( ListExpr args )
-{
+{ //also for present operator
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
   
   if (nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
-     // ( nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "real" )  //added for debug
   {
       if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )
 	  return (0);
@@ -1527,6 +1616,31 @@ TemporalSelectAtInstant( ListExpr args )
   
   cout<<endl<<">>>currently the instant value can only be input with nested list format queries...eg. "<<endl;
   cout<<"(query (atinstant mb (instant 1.5)))<<<"<<endl<<endl;
+
+  //assert( false );
+  return (-1); // This point should never be reached
+}
+
+/*
+16.2.2 Selection function ~TemporalSelectPasses~
+
+Is used for the ~passes~ operations.
+
+*/
+int
+TemporalSelectPasses( ListExpr args )
+{ 
+  ListExpr arg1 = nl->First( args );
+  //ListExpr arg2 = nl->Second( args );
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )
+      return (0);
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" )
+      return (1);
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
+      return (2);
 
   //assert( false );
   return (-1); // This point should never be reached
@@ -1552,6 +1666,30 @@ TemporalSelectDeftime( ListExpr args )
   if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
       return (2);	
   
+  return (-1); // This point should never be reached
+}
+
+/*
+16.2.4 Selection function ~TemporalSelectInitial Final~
+
+Is used for the ~passes~ operations.
+
+*/
+int
+TemporalSelectInitialFinal( ListExpr args )
+{ 
+  ListExpr arg1 = nl->First( args );
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )
+      return (0);
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" )
+      return (1);
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
+      return (2);
+
+  //assert( false );
   return (-1); // This point should never be reached
 }
 
@@ -2176,6 +2314,363 @@ int trajectory_mp( Word* args, Word& result, int message, Word& local, Supplier 
   return (0);
 }
 
+/*
+16.3.22 Value mapping functions of operator ~present~
+
+*/
+int present_mint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x instant  --> bool
+  result = qp->ResultStorage( s );
+  
+  MInt *mint;
+  Instant* inst;
+  
+  ConstTemporalUnit<CcInt> unit;
+  
+  mint=((MInt*)args[0].addr);
+  inst=((Instant*)args[1].addr);
+
+  for( int i = 0; i < mint->GetNoComponents(); i++ )
+  {
+      mint->Get(i, unit );
+      
+      if (unit.timeInterval.Contains(*inst)) 
+      {
+	  ((CcBool *)result.addr)->Set( true, true);
+	  return (0);
+      }
+  }
+  ((CcBool *)result.addr)->Set( true, false );
+  return (0);
+}
+
+int present_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x instant  --> bool
+  result = qp->ResultStorage( s );
+  
+  MReal *mreal;
+  Instant* inst;
+  
+  UReal unit;
+  
+  mreal=((MReal*)args[0].addr);
+  inst=((Instant*)args[1].addr);
+
+  for( int i = 0; i < mreal->GetNoComponents(); i++ )
+  {
+      mreal->Get(i, unit );
+      
+      if (unit.timeInterval.Contains(*inst)) 
+      {
+	  ((CcBool *)result.addr)->Set( true, true);
+	  return (0);
+      }
+  }
+  ((CcBool *)result.addr)->Set( true, false );
+  return (0);
+}
+
+int present_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x instant  --> bool
+  result = qp->ResultStorage( s );
+  
+  MPoint *mpoint;
+  Instant* inst;
+  
+  UPoint unit;
+  
+  mpoint=((MPoint*)args[0].addr);
+  inst=((Instant*)args[1].addr);
+
+  for( int i = 0; i < mpoint->GetNoComponents(); i++ )
+  {
+      mpoint->Get(i, unit );
+      
+      if (unit.timeInterval.Contains(*inst)) 
+      {
+	  ((CcBool *)result.addr)->Set( true, true);
+	  return (0);
+      }
+  }
+  ((CcBool *)result.addr)->Set( true, false );
+  return (0);
+}
+
+/*
+16.3.22 Value mapping functions of operator ~passes~
+
+*/
+int passes_mint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x int  --> bool
+  result = qp->ResultStorage( s );
+  
+  MInt *mint;
+  CcInt* val;
+  
+  ConstTemporalUnit<CcInt> unit;
+  
+  mint=((MInt*)args[0].addr);
+  val=((CcInt*)args[1].addr);
+
+  for( int i = 0; i < mint->GetNoComponents(); i++ )
+  {
+      mint->Get(i, unit );
+      
+      if (unit.constValue.GetIntval()==val->GetIntval()) 
+      {
+	  ((CcBool *)result.addr)->Set( true, true);
+	  return (0);
+      }
+  }
+  ((CcBool *)result.addr)->Set( true, false );
+  return (0);
+}
+
+int passes_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint x int  --> bool
+  result = qp->ResultStorage( s );
+  
+  MReal *mreal;
+  CcReal* val;
+  
+  UReal unit;
+  
+  mreal=((MReal*)args[0].addr);
+  val=((CcReal*)args[1].addr);
+
+  for( int i = 0; i < mreal->GetNoComponents(); i++ )
+  {
+      mreal->Get(i, unit );
+      
+      //if (unit.constValue.GetIntval()==val->GetIntval()) 
+      {  
+	  ((CcBool *)result.addr)->Set( true, true);
+	  return (0);
+      }
+  }
+  ((CcBool *)result.addr)->Set( true, false );
+  return (0);
+}
+
+int passes_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mpoint x point  --> bool
+  result = qp->ResultStorage( s );
+  
+  MPoint *mpoint;
+  Point* val;
+    
+  UPoint unit;
+  CHalfSegment reschs;
+  Point p1, p2;
+  
+  mpoint=((MPoint*)args[0].addr);
+  val=((Point*)args[1].addr);
+
+  for( int i = 0; i < mpoint->GetNoComponents(); i++ )
+  {
+      mpoint->Get(i, unit );
+      p1.Set(unit.x0 + unit.x1 * unit.timeInterval.start.GetRealval(), 
+	   unit.y0 + unit.y1 * unit.timeInterval.start.GetRealval()); 
+      p2.Set(unit.x0 + unit.x1 * unit.timeInterval.end.GetRealval(), 
+	   unit.y0 + unit.y1 * unit.timeInterval.end.GetRealval());
+      reschs.Set(true, p1, p2);
+      
+      if (reschs.Contains(*val)) 
+      {  
+	  ((CcBool *)result.addr)->Set( true, true);
+	  return (0);
+      }
+  }
+  ((CcBool *)result.addr)->Set( true, false );
+  return (0);
+}
+
+/*
+16.3.23 Value mapping functions of operator ~initial~
+
+*/
+int initial_mint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MInt *mint;
+  Instant inst;
+  
+  ConstTemporalUnit<CcInt> unit;
+  mint=((MInt*)args[0].addr);
+  
+  //  inst=((Instant*)args[1].addr);
+  if ((mint->GetNoComponents() <=0)||(!(mint->IsOrdered()))) return (0);
+  mint->Get(0, unit );
+  inst.CopyFrom(&unit.timeInterval.start);
+  
+  CcInt resInt;
+  if (mint->TemporalFunction( inst, resInt ))
+  {
+      ((Intime<CcInt>*)result.addr)->instant = inst;
+      ((Intime<CcInt>*)result.addr)->value = resInt;
+      return (0);
+  }
+  else //not included in any units
+  {
+      ((Intime<CcInt>*)result.addr)->instant = inst;
+      ((Intime<CcInt>*)result.addr)->value.SetDefined(false);
+      return (0);
+  }
+}
+
+int initial_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MReal *mreal;
+  Instant inst;
+  
+  UReal unit;
+  
+  mreal=((MReal*)args[0].addr);
+  
+  //  inst=((Instant*)args[1].addr);
+  if ((mreal->GetNoComponents() <=0)||(!mreal->IsOrdered())) return (0);
+  mreal->Get(0, unit );
+  inst.CopyFrom(&unit.timeInterval.start);
+  
+  CcReal resReal;
+  if (mreal->TemporalFunction( inst, resReal ))
+  {
+      ((Intime<CcReal>*)result.addr)->instant = inst;
+      ((Intime<CcReal>*)result.addr)->value = resReal;
+      return (0);
+  }
+  else  //not included in any unit
+  {
+      ((Intime<CcReal>*)result.addr)->instant = inst;
+      ((Intime<CcReal>*)result.addr)->value.SetDefined(false);
+      return (0);
+  }
+}
+
+int initial_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MPoint *mpoint;
+  Instant inst;
+  UPoint unit;
+  
+  mpoint=((MPoint*)args[0].addr);
+  
+  //  inst=((Instant*)args[1].addr);
+  if ((mpoint->GetNoComponents() <=0)||(!mpoint->IsOrdered())) return (0);
+  mpoint->Get(0, unit );
+  inst.CopyFrom(&unit.timeInterval.start);
+  
+  Point resPoint;
+  if (mpoint->TemporalFunction( inst, resPoint ))
+  {
+      ((Intime<Point>*)result.addr)->instant = inst;
+      ((Intime<Point>*)result.addr)->value = resPoint;
+      return (0);
+  }
+  else //not included in any unit
+  { 
+      ((Intime<Point>*)result.addr)->instant = inst;
+      ((Intime<Point>*)result.addr)->value.SetDefined(false);
+      return (0); 
+  }
+}
+
+/*
+16.3.24 Value mapping functions of operator ~final~
+
+*/
+int final_mint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MInt *mint;
+  Instant inst;
+  
+  ConstTemporalUnit<CcInt> unit;
+  mint=((MInt*)args[0].addr);
+  
+  if ((mint->GetNoComponents() <=0)||(!(mint->IsOrdered()))) return (0);
+  mint->Get(mint->GetNoComponents()-1, unit );
+  inst.CopyFrom(&unit.timeInterval.end);
+  
+  CcInt resInt;
+  if (mint->TemporalFunction( inst, resInt ))
+  {
+      ((Intime<CcInt>*)result.addr)->instant = inst;
+      ((Intime<CcInt>*)result.addr)->value = resInt;
+      return (0);
+  }
+  else //not included in any units
+  {
+      ((Intime<CcInt>*)result.addr)->instant = inst;
+      ((Intime<CcInt>*)result.addr)->value.SetDefined(false);
+      return (0);
+  }
+}
+
+int final_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MReal *mreal;
+  Instant inst;
+  
+  UReal unit;
+  
+  mreal=((MReal*)args[0].addr);
+  
+  if ((mreal->GetNoComponents() <=0)||(!mreal->IsOrdered())) return (0);
+  mreal->Get(mreal->GetNoComponents()-1, unit );
+  inst.CopyFrom(&unit.timeInterval.end);
+  
+  CcReal resReal;
+  if (mreal->TemporalFunction( inst, resReal ))
+  {
+      ((Intime<CcReal>*)result.addr)->instant = inst;
+      ((Intime<CcReal>*)result.addr)->value = resReal;
+      return (0);
+  }
+  else  //not included in any unit
+  {
+      ((Intime<CcReal>*)result.addr)->instant = inst;
+      ((Intime<CcReal>*)result.addr)->value.SetDefined(false);
+      return (0);
+  }
+}
+
+int final_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint  --> intime(int) note: Operators run based on class objects
+  result = qp->ResultStorage( s );
+  
+  MPoint *mpoint;
+  Instant inst;
+  UPoint unit;
+  
+  mpoint=((MPoint*)args[0].addr);
+  
+  if ((mpoint->GetNoComponents() <=0)||(!mpoint->IsOrdered())) return (0);
+  mpoint->Get(mpoint->GetNoComponents()-1, unit );
+  inst.CopyFrom(&unit.timeInterval.end);
+  
+  Point resPoint;
+  if (mpoint->TemporalFunction( inst, resPoint ))
+  {
+      ((Intime<Point>*)result.addr)->instant = inst;
+      ((Intime<Point>*)result.addr)->value = resPoint;
+      return (0);
+  }
+  else //not included in any unit
+  { 
+      ((Intime<Point>*)result.addr)->instant = inst;
+      ((Intime<Point>*)result.addr)->value.SetDefined(false);
+      return (0); 
+  }
+}
 
 /*
 16.4 Definition of operators
@@ -2235,15 +2730,35 @@ ValueMapping intimepointvalmap[] = { IntimeVal<Point> };
 
 ValueMapping atinstantmap[] =   {  atinstant_mint,
 			     atinstant_mreal,
-			     atinstant_mpoint,
+			     atinstant_mpoint
 			   };
 
 ValueMapping deftimemap[] =   {  deftime_mint,
 			     deftime_mreal,
-			     deftime_mpoint,
+			     deftime_mpoint
 			   };
 
-ValueMapping trajectorymap[] =   {  trajectory_mp  };
+ValueMapping trajectorymap[] =   {  trajectory_mp };
+
+ValueMapping presentmap[] =   {  present_mint,
+			     present_mreal,
+			     present_mpoint
+			   };
+
+ValueMapping passesmap[] =   {  passes_mint,
+			     passes_mreal,
+			     passes_mpoint
+			   };
+
+ValueMapping initialmap[] =   {  initial_mint,
+			     initial_mreal,
+			     initial_mpoint
+			   };
+
+ValueMapping finalmap[] =   {  final_mint,
+			     final_mreal,
+			     final_mpoint
+			   };
 
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
@@ -2438,6 +2953,38 @@ const string TemporalSpecTrajectory  = "( ( \"Signature\" \"Syntax\" \"Meaning\"
                                 "<text> trajectory( _ )</text--->"
                                 "<text>get the trajectory of the corresponding moving data objects.</text--->"
                                 "<text>trajectory(mp1)</text--->"
+                                ") )";
+
+const string TemporalSpecPresent  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(mint||mreal||mpoint) x (instant) -> bool</text--->"
+                                "<text>_ present _ </text--->"
+                                "<text>whether the object is present at the given instant.</text--->"
+                                "<text>mpoint1 present (instant 21.2)</text--->"
+                                ") )";
+
+const string TemporalSpecPasses = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(mint||mreal||mpoint) x (int||real||point) -> bool</text--->"
+                                "<text>_ passes _ </text--->"
+                                "<text>whether the object passes the given value.</text--->"
+                                "<text>mpoint1 passes point1</text--->"
+                                ") )";
+
+const string TemporalSpecInitial  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>mint||mreal||mpoint -> intimeint||intimereal||intimepoint</text--->"
+                                "<text> initial( _ )</text--->"
+                                "<text>get the Intime value corresponding to the initial instant.</text--->"
+                                "<text>initial(mpoint1)</text--->"
+                                ") )";
+
+const string TemporalSpecFinal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>mint||mreal||mpoint -> intimeint||intimereal||intimepoint</text--->"
+                                "<text> final( _ )</text--->"
+                                "<text>get the Intime value corresponding to the final instant.</text--->"
+                                "<text>final(mpoint1)</text--->"
                                 ") )";
 
 /*
@@ -2748,6 +3295,39 @@ Operator trajectory( "trajectory",
                                 rangenomodelmap,
                                 Operator::SimpleSelect,
                                 MPointTypeMapLine);
+
+Operator present( "present",
+                        TemporalSpecPresent,
+                        3,
+                        presentmap,
+                        temporalnomodelmap,
+                        TemporalSelectAtInstant,
+                        MappingInstantTypeMapBool);
+
+Operator passes( "passes",
+                        TemporalSpecPasses,
+                        3,
+                        passesmap,
+                        temporalnomodelmap,
+                        TemporalSelectPasses,
+                        MappingATypeMapBool);
+
+Operator initial( "initial",
+                        TemporalSpecInitial,
+                        3,
+                        initialmap,
+                        temporalnomodelmap,
+                        TemporalSelectInitialFinal,
+                        MappingTypeMapIntime );
+
+Operator final( "final",
+                        TemporalSpecFinal,
+                        3,
+                        finalmap,
+                        temporalnomodelmap,
+                        TemporalSelectInitialFinal,
+                        MappingTypeMapIntime );
+
 /*
 6 Creating the Algebra
 
@@ -2839,6 +3419,10 @@ class TemporalAlgebra : public Algebra
     AddOperator( &atinstant);
     AddOperator( &deftime);
     AddOperator( &trajectory);
+    AddOperator( &present);
+    AddOperator( &passes);
+    AddOperator( &initial);
+    AddOperator( &final);
   }
   ~TemporalAlgebra() {};
 };
