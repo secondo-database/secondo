@@ -171,6 +171,12 @@ display(string, N) :-
   term_to_atom(String, N), 
   displayString(String).
 
+display(rect, [L, R, B, T]) :-
+  !,
+  write('rectangle xl = '), write(L),
+  write(', xr = '), write(R),
+  write(', yb = '), write(B),
+  write(', yt = '), write(T).
 
 display([rel, [tuple, Attrs]], Tuples) :-
   !,
