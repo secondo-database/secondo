@@ -18,6 +18,13 @@ public class LEUtils {
    * @see <a href="LEUtilssrc.html#readInstant">Source</a>
    */
   public static Double readInstant (ListExpr le) {
+    if(le.listLength() == 2){
+       if(le.first().atomType()!=le.SYMBOL_ATOM)
+          return null;
+       if(!le.first().symbolValue().equals("instant"))
+          return null;
+       return readNumeric(le.second());
+    }
     if ((le.listLength() != 4) && (le.listLength() != 6) && (le.listLength() != 7) && (le.listLength() != 8))
       return  null;
     if ((le.first().atomType() != ListExpr.SYMBOL_ATOM) || (le.second().atomType()
