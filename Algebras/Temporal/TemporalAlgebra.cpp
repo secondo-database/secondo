@@ -1,8 +1,8 @@
 /*
-----
+---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -59,6 +59,26 @@ using namespace datetime;
 #include "TemporalAlgebra.h"
 
 /*
+3 Auxiliary Functions
+
+*/
+bool AlmostEqual( const double d1, const double d2 )
+{
+  double factor = abs( d1 + d2 ) * FACTOR;
+  if( abs(d1 - d2) <= factor )
+    return true;
+  return false;
+}
+
+bool AlmostEqual( const Point& p1, const Point& p2 )
+{
+  if( AlmostEqual( p1.GetX(), p2.GetX() ) &&
+      AlmostEqual( p1.GetY(), p2.GetY() ) )
+    return true;
+  return false;
+}
+
+/*
 3 Implementation of C++ Classes
 
 3.1 Class ~UReal~
@@ -68,8 +88,8 @@ void UReal::TemporalFunction( Instant& t, CcReal& result )
 {
   assert( t.IsDefined() && timeInterval.Contains( t ) );
 
-  double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) +
-               b * ( t.ToDouble() - timeInterval.start.ToDouble() ) +
+  double res = a * pow( t.ToDouble() - timeInterval.start.ToDouble(), 2 ) + 
+               b * ( t.ToDouble() - timeInterval.start.ToDouble() ) + 
                c;
   if( r ) res = sqrt( res );
 
@@ -297,9 +317,9 @@ void UPoint::Distance( Point& p, UReal& result )
          t0 = result.timeInterval.start.ToDouble(),
          t1 = result.timeInterval.end.ToDouble();
 
-  result.a = pow( (x1 - x0) / (t1 - t0), 2 ) +
+  result.a = pow( (x1 - x0) / (t1 - t0), 2 ) + 
              pow( (y1 - y0) / (t1 - t0), 2 );
-  result.b = 2 * ( (x0 - x) * (x1 - x0) / (t1 - t0) +
+  result.b = 2 * ( (x0 - x) * (x1 - x0) / (t1 - t0) + 
                    (y0 - y) * (y1 - y0) / (t1 - t0) );
   result.c = pow( x0 - x, 2 ) + pow( y0 - y, 2 );
   result.r = true;
@@ -327,7 +347,7 @@ void MPoint::Trajectory( CLine& line )
       assert( AlmostEqual( unit.p0, p ) );
       chs.Set( true, p, unit.p1 );
       p.SetDefined( false );
-    }
+    } 
     else if( !AlmostEqual( unit.p0, unit.p1 ) )
       chs.Set( true, unit.p0, unit.p1 );
     else
@@ -336,7 +356,7 @@ void MPoint::Trajectory( CLine& line )
       p = unit.p0;
       continue;
     }
-
+    
     line += chs;
     chs.SetLDP( false );
     line += chs;
