@@ -28,7 +28,7 @@ buildapp: $(APPLICATION) testrunner
 testrunner: $(BINDIR)/TestRunner$(EXEEXT)
 
 .PHONY: secondopl
-secondopl: $(BINDIR)/SecondoPL$(EXEEXT)
+secondopl: $(OPTDIR)/SecondoPL$(EXEEXT)
 
 .PHONY: client
 client: $(BINDIR)/SecondoTTYCS$(EXEEXT)
@@ -63,7 +63,7 @@ $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o 
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
 	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoPL$(EXEEXT): SecondoPL.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
+$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
 	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) $(PLLDFLAGS) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
