@@ -291,7 +291,7 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
       {
         if ( lastline || (printstr[i-1] == '\n') )
 	{
-	  cout << line << endl;
+	  cout << line;
 	  line = "";
 	  lastblank = -1;
 	  position = 0;
