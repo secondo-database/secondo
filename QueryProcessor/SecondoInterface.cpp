@@ -588,12 +588,14 @@ If value 0 is returned, the command was executed without error.
            nl->IsEqual( nl->Third( list ), "constructors" ) )
       {
         resultList =
-          SecondoSystem::GetCatalog( level )->ListTypeConstructors();
+	  nl->TwoElemList( nl->SymbolAtom("formatted"),
+	  SecondoSystem::GetCatalog( level )->ListTypeConstructors() ); 
       }
       else if ( nl->IsEqual( nl->Second(list), "operators" ) )
       {
         resultList =
-          SecondoSystem::GetCatalog( level )->ListOperators();
+	  nl->TwoElemList( nl->SymbolAtom("formatted"),
+          SecondoSystem::GetCatalog( level )->ListOperators() );
       }
       else if ( nl->IsEqual( nl->Second( list ), "databases" ) )
       {
@@ -1017,6 +1019,9 @@ If value 0 is returned, the command was executed without error.
 
 	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
                cerr << ReportTupleStatistics();
+               //cerr << ReportRelStatistics();
+               //cerr << ReportRelITStatistics();
+	       //cerr << ReportTupleAttributesInfoStatistics();
 
             }
             else if ( isFunction ) // abstraction or function object
