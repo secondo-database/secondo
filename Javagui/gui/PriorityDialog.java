@@ -12,6 +12,7 @@ public class PriorityDialog extends JDialog{
 
 public PriorityDialog(Frame F){
   super(F,true);
+  setTitle("Viewer Priorities");
   Model = new ViewerListModel();  
   ViewerList = new JList(Model);
   ScrollPane = new JScrollPane(ViewerList);
