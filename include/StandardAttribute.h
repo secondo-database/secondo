@@ -26,7 +26,7 @@ May 1998 Stefan Dieker
 December 1998 Friedhelm Becker
 
 April 2002 Ulrich Telle Adjustments for the new Secondo version
- 
+
 1.1 Overview
 
 The data types in the standard algebra are classes derived from the
@@ -45,7 +45,8 @@ class StandardAttribute : public Attribute
 {
  public:
   virtual void* GetValue() = 0;
+  virtual size_t HashValue() = 0;
 };
 
 #endif
-  
+

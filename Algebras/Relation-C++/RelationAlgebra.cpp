@@ -58,7 +58,7 @@ static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
 
   string s;
 
-  if (nl->AtomType(symbol) == SymbolType) 
+  if (nl->AtomType(symbol) == SymbolType)
   {
     s = nl->SymbolValue(symbol);
     if (s == "rel"   ) return rel;
@@ -1958,7 +1958,7 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
       else return CANCEL;
       
     case CLOSE :
-    
+
       qp->Close(args[0].addr);
       return 0;
   }
@@ -2504,7 +2504,7 @@ Operator sortBy (
 
 This operator computes the equijoin two streams.
 
-7.3.1 Type mapping function of operator ~equimergejoin~
+7.3.1 Type mapping function of operators ~equimergejoin~ and ~equihashjoin~
 
 Type mapping for ~equimergejoin~ is
 
@@ -2513,12 +2513,21 @@ Type mapping for ~equimergejoin~ is
       -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym tm)))) APPEND (i j)
 ----
 
+Type mapping for ~equihashjoin~ is
+
+----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj int)
+
+      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym tm)))) APPEND (i j)
+----
+
+
 */
-ListExpr EquiMergeJoinTypeMap(ListExpr args)
+template<bool expectIntArgument> ListExpr EquiJoinTypeMap
+(ListExpr args)
 {
   ListExpr attrTypeA, attrTypeB;
   ListExpr streamA, streamB, list, list1, list2, outlist;
-  if (nl->ListLength(args) == 4)
+  if (nl->ListLength(args) == (expectIntArgument ? 5 : 4))
   {
     streamA = nl->First(args); streamB = nl->Second(args);
     if (nl->ListLength(streamA) == 2)
@@ -2566,6 +2575,7 @@ ListExpr EquiMergeJoinTypeMap(ListExpr args)
     outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
 
+    ListExpr joinAttrDescription;
     string attrAName = nl->SymbolValue(nl->Third(args));
     string attrBName = nl->SymbolValue(nl->Fourth(args));
     int attrAIndex = findattr(nl->Second(nl->Second(streamA)), attrAName, attrTypeA);
@@ -2574,9 +2584,14 @@ ListExpr EquiMergeJoinTypeMap(ListExpr args)
     {
       return nl->SymbolAtom("typeerror");
     }
-    ListExpr joinAttrDescription =
-      nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
+    
+    if(expectIntArgument && nl->SymbolValue(nl->Fifth(args)) != "int")
+    {
+      return nl->SymbolAtom("typeerror");
+    }
 
+    joinAttrDescription =
+      nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               joinAttrDescription, outlist);
   }
@@ -2829,7 +2844,183 @@ Operator equiMergeJoinOperator(
          EquiMergeJoin,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         EquiMergeJoinTypeMap   // type mapping
+         EquiJoinTypeMap<false>   // type mapping
+);
+
+/*
+
+7.3 Operator ~equimergejoin~
+
+This operator computes the equijoin two streams via a hash join.
+The user can specify the number of hash buckets.
+
+7.3.1 Auxiliary Class for Operator ~equimergejoin~
+
+*/
+
+class EquiHashJoinLocalInfo
+{
+private:
+  static const size_t MAX_BUCKETS = 6151;
+  static const size_t MIN_BUCKETS = 1;
+  static const size_t DEFAULT_BUCKETS = 97;
+  size_t nBuckets;
+  size_t currentBucket;
+
+  int attrIndexA;
+  int attrIndexB;
+
+  Word streamA;
+  Word streamB;
+
+  vector<vector< CcTuple*> > bucketsA;
+  vector<vector< CcTuple*> > bucketsB;
+  vector<CcTuple*> resultBucket;
+
+  int CompareCcTuples(CcTuple* a, CcTuple* b)
+  {
+    return ((Attribute*)a->Get(attrIndexA))->
+      Compare((Attribute*)b->Get(attrIndexB));
+  }
+
+  size_t HashTuple(CcTuple* tuple, int attrIndex)
+  {
+    return (((StandardAttribute*)tuple->Get(attrIndex))->HashValue() % nBuckets);
+  }
+
+  void FillHashBuckets(Word stream, int attrIndex,
+    vector<vector< CcTuple*> >& buckets)
+  {
+    Word tupleWord;
+    qp->Open(stream.addr);
+    qp->Request(stream.addr, tupleWord);
+    while(qp->Received(stream.addr))
+    {
+      CcTuple* tuple = (CcTuple*)tupleWord.addr;
+      buckets[HashTuple(tuple, attrIndex)].push_back(tuple);
+      qp->Request(stream.addr, tupleWord);
+    }
+  }
+
+  bool FillResultBucket()
+  {
+    while(resultBucket.empty() && currentBucket < nBuckets)
+    {
+      vector<CcTuple*>& a = bucketsA[currentBucket];
+      vector<CcTuple*>& b = bucketsB[currentBucket];
+
+      vector<CcTuple*>::iterator iterA = a.begin();
+      vector<CcTuple*>::iterator iterB;
+      for(; iterA != a.end(); iterA++)
+      {
+        for(iterB = b.begin(); iterB != b.end(); iterB++)
+        {
+          if(CompareCcTuples(*iterA, *iterB) == 0)
+          {
+            CcTuple* resultTuple = new CcTuple;
+            Word resultWord = SetWord(resultTuple);
+            Word aWord = SetWord(*iterA);
+            Word bWord = SetWord(*iterB);
+            Concat(aWord, bWord, resultWord);
+            resultBucket.push_back(resultTuple);
+          };
+        }
+      }
+      currentBucket++;
+    }
+    return !resultBucket.empty();
+  };
+
+public:
+  EquiHashJoinLocalInfo(Word streamA, Word attrIndexAWord,
+    Word streamB, Word attrIndexBWord, Word nBucketsWord)
+  {
+    this->streamA = streamA;
+    this->streamB = streamB;
+    currentBucket = 0;
+
+    attrIndexA = (int)((StandardAttribute*)attrIndexAWord.addr)->GetValue() - 1;
+    attrIndexB = (int)((StandardAttribute*)attrIndexBWord.addr)->GetValue() - 1;
+    nBuckets = (int)((StandardAttribute*)nBucketsWord.addr)->GetValue();
+    if(nBuckets < MIN_BUCKETS || nBuckets > MAX_BUCKETS)
+    {
+      nBuckets = DEFAULT_BUCKETS;
+    }
+    bucketsA.resize(nBuckets);
+    bucketsB.resize(nBuckets);
+
+    FillHashBuckets(streamA, attrIndexA, bucketsA);
+    FillHashBuckets(streamB, attrIndexB, bucketsB);
+  }
+
+  ~EquiHashJoinLocalInfo()
+  {
+  }
+
+  CcTuple* NextResultTuple()
+  {
+    if(resultBucket.empty())
+    {
+      if(!FillResultBucket())
+      {
+        return 0;
+      }
+    }
+    CcTuple* result = resultBucket.back();
+    resultBucket.pop_back();
+    return result;
+  }
+};
+
+/*
+
+7.3.2 Value Mapping Function of Operator ~equihashjoin~
+
+*/
+
+static int
+EquiHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  EquiHashJoinLocalInfo* localInfo;
+
+  switch(message)
+  {
+    case OPEN:
+      localInfo = new EquiHashJoinLocalInfo(args[0], args[5],
+        args[1], args[6], args[4]);
+      local = SetWord(localInfo);
+      return 0;
+    case REQUEST:
+      localInfo = (EquiHashJoinLocalInfo*)local.addr;
+      result = SetWord(localInfo->NextResultTuple());
+      return result.addr != 0 ? YIELD : CANCEL;
+    case CLOSE:
+      localInfo = (EquiHashJoinLocalInfo*)local.addr;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+
+/*
+
+4.1.3 Specification of Operator ~equihashjoin~
+
+*/
+const string EquiHashJoinSpec =
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams via a hash join. The number of hash buckets is given by the parameter nBuckets.</text--->)";
+/*
+
+4.1.3 Definition of Operator ~equihashjoin~
+
+*/
+Operator equiHashJoinOperator(
+         "equihashjoin",        // name
+         EquiHashJoinSpec,     // specification
+         EquiHashJoin,         // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         EquiJoinTypeMap<true>   // type mapping
 );
 
 /*
@@ -3183,6 +3374,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppconcat);
     AddOperator(&sortBy);
     AddOperator(&equiMergeJoinOperator);
+    AddOperator(&equiHashJoinOperator);
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );

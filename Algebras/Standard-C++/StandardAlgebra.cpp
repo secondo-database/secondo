@@ -27,7 +27,7 @@ or not (e.g it could be undefined because it is the result of a divivion by zero
 
 Following operators are defined:
 
-  * + (add) 
+  * + (add)
 
 ----    int x int --> int
         int x real --> real
@@ -194,8 +194,8 @@ CcProperty()
 /*
 3.1 Type constructor *CcInt*
 
-Each instance of below defined class CcInt will be the main memory 
-representation of a  
+Each instance of below defined class CcInt will be the main memory
+representation of a
 value of type ~ccint~. It consists of a boolean flag, ~defined~,
 and an integer value, ~intval~. ~defined~ may be used to indicate whether
 an instance of class CcInt represents a valid value or not. E.g., a
@@ -215,7 +215,7 @@ void*  CcInt::GetValue() { return (void *)intval;};
 bool   CcInt::IsDefined() { return (defined); };
 int    CcInt::Sizeof() { return (sizeof(CcInt)); };
 CcInt* CcInt::Clone() { return (new CcInt( *this )); };
-
+size_t CcInt::HashValue() { return (defined ? intval : 0); };
 int    CcInt::Compare( Attribute* arg )
 {
 //        CcInt* p = dynamic_cast< CcInt* >(arg);
@@ -228,13 +228,13 @@ int    CcInt::Compare( Attribute* arg )
 
 /*
 Now we define a function, ~OutInt~, that takes as inputs a type description
-and a pointer to a value of this type. The representation of this value in 
-nested list format is returned. 
+and a pointer to a value of this type. The representation of this value in
+nested list format is returned.
 
 For the simple types int, real, string, bool we don't use the type description at all. We will
 need it in the case of more complex type constructors,
-e.g. to be able to compute the nested list 
-representation of a tuple value we must know the types of the 
+e.g. to be able to compute the nested list
+representation of a tuple value we must know the types of the
 respective attribute values.
 
 */
@@ -248,7 +248,7 @@ OutCcInt( ListExpr typeinfo, Word value )
 /*
 The function ~InInt~ provides a functionality complementary to ~OutInt~:
 A pointer to a value's main memory representation is returned. It is calculated
-by taking the value's nested list representation and its type description as 
+by taking the value's nested list representation and its type description as
 input parameters.
 
 */
@@ -288,20 +288,20 @@ DeleteCcInt( Word& w )
 
 /*
 3.2.5 {\em Cast}-function of type constructor {\tt ccint}
- 
+
 */
- 
+
 static void*
 CastInt( void* addr )
 {
   return (new (addr) CcInt);
 }
- 
+
 /*
 3.2.6 {\em Type check} function of type constructor {\tt ccint}
- 
+
 */
- 
+
 static bool
 CheckInt( ListExpr type, ListExpr& errorInfo )
 {
@@ -441,7 +441,7 @@ IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 
 TypeConstructor ccInt( "int",            CcProperty,
-                       OutCcInt,         InCcInt,        CreateCcInt, 
+                       OutCcInt,         InCcInt,        CreateCcInt,
                        DeleteCcInt,      CastInt,        CheckInt,
                        0,                0,
                        InIntSetModel,    OutIntSetModel,
@@ -450,7 +450,7 @@ TypeConstructor ccInt( "int",            CcProperty,
 /*
 3.2 Type constructor *ccreal*
 
-The following type constructor, ~ccreal~, is defined in the same way as 
+The following type constructor, ~ccreal~, is defined in the same way as
 ~ccint~.
 
 */
@@ -465,6 +465,22 @@ void    CcReal::Set( float v ) { defined = true, realval = v; };
 void    CcReal::Set( bool d, float v ) { defined = d, realval = v; };
 int     CcReal::Sizeof() { return (sizeof(CcReal)); };
 CcReal* CcReal::Clone() { return (new CcReal(*this)); };
+
+size_t CcReal::HashValue()
+{
+  if(!defined)
+  {
+    return 0;
+  }
+
+  unsigned long h = 0;
+  char* s = (char*)&realval;
+  for(unsigned int i = 1; i <= sizeof(float) / sizeof(char); i++)
+    h = 5 * h + *s;
+    s++;
+  return size_t(h);
+}
+
 int     CcReal::Compare( Attribute * arg )
 {
    //     CcReal* p = dynamic_cast< CcReal* >(arg);
@@ -514,7 +530,7 @@ DeleteCcReal( Word& w )
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
  
 */
- 
+
 static void*
 CastReal( void* addr )
 {
@@ -524,25 +540,25 @@ CastReal( void* addr )
 
 /*
 3.3.7 {\em Type check} function of type constructor {\tt ccreal}
- 
+
 */
- 
+
 static bool
 CheckReal( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "real" ));
 }
- 
+
 
 TypeConstructor ccReal( "real",       CcProperty,
                         OutCcReal,    InCcReal,   CreateCcReal,
                         DeleteCcReal, CastReal,   CheckReal );
 
-/* 
+/*
 3.3 Type constructor *ccbool*
 
-Each instance of below defined class CcBool will be the main memory 
-representation of a  
+Each instance of below defined class CcBool will be the main memory
+representation of a
 value of type ~ccbool~. It consists of a boolean flag, ~defined~,
 and an boolean value, ~boolval~. ~defined~ may be used to indicate whether
 an instance of class CcBool represents a valid value or not. E.g., a
@@ -561,6 +577,7 @@ bool    CcBool::GetBoolval() { return boolval; };
 void*   CcBool::GetValue() { return (void *)boolval; };
 int     CcBool::Sizeof() { return sizeof(CcBool); };
 CcBool* CcBool::Clone() { return new CcBool(*this); };
+size_t CcBool::HashValue() { return (defined ? boolval : false); };
 int     CcBool::Compare(Attribute* arg)
 {
    //     CcBool* p = dynamic_cast< CcBool* >(arg);
@@ -573,8 +590,8 @@ int     CcBool::Compare(Attribute* arg)
 
 /*
 Now we define a function, ~OutBool~, that takes as inputs a type description
-and a pointer to a value of this type. The representation of this value in 
-nested list format is returned. 
+and a pointer to a value of this type. The representation of this value in
+nested list format is returned.
 
 */
 
@@ -587,7 +604,7 @@ OutCcBool( ListExpr typeinfo, Word value )
 /*
 The function ~InBool~ provides a functionality complementary to ~OutBool~:
 A pointer to a value's main memory representation is returned. It is calculated
-by taking the value's nested list representation and its type description as 
+by taking the value's nested list representation and its type description as
 input parameters. Again, we don't need the type information in this example due to
 simplicity of types used.
 
@@ -626,7 +643,7 @@ DeleteCcBool( Word& w )
 
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
- 
+
 */
  
 static void*
@@ -645,7 +662,7 @@ CheckBool( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "bool" ));
 }
- 
+
 /*
 1.9.2 Model for Set of Booleans
 
@@ -719,7 +736,7 @@ TypeConstructor ccBool( "bool",             CcProperty,
                         InBoolSetModel,     OutBoolSetModel,
                         BoolToBoolSetModel, BoolListToBoolSetModel );
 
-/* 
+/*
 3.5 Type constructor *CcString*
 
 */
@@ -732,6 +749,24 @@ STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
 int       CcString::Sizeof() { return (sizeof(CcString)); };
 CcString* CcString::Clone() { return (new CcString( *this )); };
+
+size_t CcString::HashValue()
+{
+  if(!defined)
+  {
+    return 0;
+  }
+
+  unsigned long h = 0;
+  char* s = stringval;
+  while(*s != 0)
+  {
+    h = 5 * h + *s;
+    s++;
+  }
+  return size_t(h);
+}
+
 int       CcString::Compare( Attribute* arg )
 {
    //     CcString* p = dynamic_cast< CcString* >(arg);
