@@ -4,6 +4,9 @@
 #include <string>
 
 string ReportTupleStatistics();
+//string ReportRelStatistics();
+//string ReportRelITStatistics();
+//string ReportTupleAttributesInfoStatistics();
 
 #endif /* RELATIONAL_ALGEBRA_INFO_H */
 
