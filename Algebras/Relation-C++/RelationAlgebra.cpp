@@ -3282,7 +3282,10 @@ public:
           if(outputBWithoutA)
           {
             result = currentBTuple;
-            NextBTuple();
+            while(currentBTuple != 0 && TuplesEqual(result, currentBTuple))
+            {
+              NextBTuple();
+            }
           }
           else
           {
@@ -3297,7 +3300,10 @@ public:
           if(outputAWithoutB)
           {
             result = currentATuple;
-            NextATuple();
+            while(currentATuple != 0 && TuplesEqual(result, currentATuple))
+            {
+              NextATuple();
+            }
           }
           else
           {
@@ -3313,7 +3319,12 @@ public:
             {
               result = currentATuple;
             }
-            NextATuple();
+            
+            CcTuple* tmp = currentATuple;
+            while(currentATuple != 0 && TuplesEqual(tmp, currentATuple))
+            {
+              NextATuple();
+            }
           }
           else if(smallerThan(currentBTuple, currentATuple))
           {
@@ -3321,7 +3332,12 @@ public:
             {
               result = currentBTuple;
             }
-            NextBTuple();
+
+            CcTuple* tmp = currentBTuple;
+            while(currentBTuple != 0 && TuplesEqual(tmp, currentBTuple))
+            {
+              NextBTuple();
+            }
           }
           else
           {
