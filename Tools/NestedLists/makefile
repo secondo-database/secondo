@@ -31,7 +31,8 @@ NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
 	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
 	sed \
 	   -e "/^int yyparse (void[ *]*);$$/d" \
-     -e "/^YYPARSE_RETURN_TYPE yyparse (void[ *]*);$$/d" \
+	   -e "/^YYSTYPE yylval;/d" \
+	   -e "/^YYPARSE_RETURN_TYPE yyparse (void[ *]*);$$/d" \
 	   -e s/__NLParser__parse/NLParser::yyparse/g \
 	   -e s/__NLParser__lex/yylex/g \
 	   -e s/__NLParser__error/yyerror/g \
