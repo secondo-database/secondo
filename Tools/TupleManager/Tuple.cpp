@@ -35,6 +35,7 @@ void Tuple::Init(const TupleAttributes *attributes) {
 	lobFile = 0;
 	recFile = 0;
 	lobFileOpened = false;
+	lobFileAllocated = false;
 	attribInfo = 0;
 	state = Fresh;
 	attrNum = attributes->totalNumber;
@@ -104,6 +105,7 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 	lobFile = new SmiRecordFile(false);
 	lobFileOpened = lobFile->Open(th.lobFileId);
 	ok = lobFileOpened;
+	lobFileAllocated = true;
 
 	if (ok == false) {
 		error = true;
@@ -161,14 +163,13 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 
 /* previously called Close. */
 Tuple::~Tuple() {
-	if (lobFileOpened == true) {
-		lobFile->Close();
-		lobFileOpened = false;
+	if (lobFile != 0) {
+		if (lobFileOpened == true) lobFile->Close();
+		if (lobFileAllocated == true) delete lobFile;
+		lobFileOpened = false;		
 	}
 	
-  	if (memoryTuple != 0) {
-     	free(memoryTuple);
-  	}
+  	if (memoryTuple != 0) free(memoryTuple);
   
   	// delete attributes
   	for (int i = 0; i < attrNum; i++) {
@@ -179,32 +180,29 @@ Tuple::~Tuple() {
 		attribInfo[i].destruct = false;
   	}
 	  
-  	if (attribInfo != 0) {
-    	delete[] attribInfo;
-  	}
-	
+  	if (attribInfo != 0) delete[] attribInfo;	
 }
 
 /* Determine the size of FLOB data stored in lobFile. */
 int Tuple::CalcSizeOfFLOBData() {
 	FLOB *tmpFLOB;
-	int rc = 0;
+	int result = 0;
 	for (int i = 0; i < attrNum; i++) {
 		for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
 			tmpFLOB = attribInfo[i].value->GetFLOB(j);
 			bool stl = tmpFLOB->SaveToLob();
 			if (stl == false) {
-				rc = rc + tmpFLOB->Size();
+				result = result + tmpFLOB->Size();
 			}
 		}
 	}
-	return rc;
+	return result;
 }
 
 /* move FLOB data to extension tuple. */
 char *Tuple::moveFLOBDataToExtensionTuple() {
-	char *rc = (char *)malloc(extensionSize);
-	char *extensionPtr = rc;
+	char *result = (char *)malloc(extensionSize);
+	char *extensionPtr = result;
 	FLOB *tmpFLOB;
 	for (int i = 0; i < attrNum; i++) {
 		for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
@@ -215,7 +213,7 @@ char *Tuple::moveFLOBDataToExtensionTuple() {
 			}
 		}
 	}
-	return rc;
+	return result;
 }
 
 /* move external attribue values to memory tuple */
@@ -229,7 +227,6 @@ void Tuple::MoveExternalAttributeToMemoryTuple() {
 }
 
 
-
 /*
 1.5.3 SaveTo
 
@@ -237,9 +234,17 @@ void Tuple::MoveExternalAttributeToMemoryTuple() {
 bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   	if (error == true) return false;
   
+  	// close the old lobfile and delete the old lobfile value,
+	// if the tuple manager created it.
+  	if (lobFile != 0) {
+		if (lobFileOpened == true) lobFile->Close();
+		if (lobFileAllocated == true) delete lobFile;
+	}
+  
   	lobFile = lobfile;
   	recFile = tuplefile;
 	lobFileOpened = false;
+	lobFileAllocated = false;
 	extensionSize = CalcSizeOfFLOBData();
 
 
