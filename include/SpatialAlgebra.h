@@ -5,7 +5,7 @@
 
 February, 2003 Victor Teixeira de Almeida
 
-March-April, 2003 Zhiming DING
+March-June, 2003 Zhiming DING
 
 1 Overview
 
