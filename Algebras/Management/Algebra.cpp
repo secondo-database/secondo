@@ -87,11 +87,6 @@ Operator::~Operator()
   delete[] modelMap;
 }
 
-int
-Operator::Select( ListExpr le )
-{
-  return ((*selectFunc)( le ));
-}
 
 bool
 Operator::AddValueMapping( const int index, ValueMapping f )
@@ -125,13 +120,6 @@ string
 Operator::Specification()
 {
   return (specString);
-}
-
-int
-Operator::CallValueMapping( const int index, ArgVector args, Word& result,
-                            int message, Word& local, Supplier sup )
-{
-  return (*valueMap[index])( args, result, message, local, sup );
 }
 
 ListExpr

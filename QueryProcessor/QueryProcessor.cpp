@@ -1751,7 +1751,7 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
 	
 
 		/* apply the operator's type mapping: */
-		resultType = (algebraManager->TransformType( alId, opId ))( typeList );
+		resultType = algebraManager->TransformType( alId, opId, typeList );
 		string algName = algebraManager->GetAlgebraName(alId);	
 
 		if ( traceMode ) {
@@ -2647,8 +2647,8 @@ normal evaluation.
         {
           arg[i].addr = tree->u.op.sons[i];
         }
-        result = (algebraManager->TransformModel( tree->u.op.algebraId, tree->u.op.opFunId ))
-		( arg, tree );
+        result = algebraManager->TransformModel( tree->u.op.algebraId, tree->u.op.opFunId,
+		                                             arg, tree );
         tree->u.op.subtreeModel = result;
         return;
       }

@@ -302,7 +302,7 @@ AlgebraManager::OperatorNumber( int algebraId )
 string
 AlgebraManager::Ops( int algebraId, int operatorId )
 {
-  return (algebra[algebraId]->GetOperator( operatorId )->name);
+  return (algebra[algebraId]->GetOperator( operatorId )->GetName());
 }
 
 ListExpr
@@ -310,7 +310,7 @@ AlgebraManager::Specs( int algebraId, int operatorId )
 {
   ListExpr spec = nl->TheEmptyList();
   nl->ReadFromString(
-        algebra[algebraId]->GetOperator( operatorId )->specString,
+        algebra[algebraId]->GetOperator( operatorId )->GetSpecString(),
         spec );
   return (spec);
 }
@@ -327,25 +327,13 @@ AlgebraManager::InitOpPtrField() {
 }
 
 
-ModelMapping
-AlgebraManager::TransformModel( int algebraId, int opFunId )
-{
-  int opId  = opFunId % 65536;
-  int funId = opFunId / 65536;
-  return (algebra[algebraId]->GetOperator( opId )->modelMap[funId]);
-}
-
-TypeMapping
-AlgebraManager::TransformType( int algebraId, int operatorId )
-{
-  return (algebra[algebraId]->GetOperator( operatorId )->typeMap);
-}
-
-TypeMapping
-AlgebraManager::ExecuteCost( int algebraId, int operatorId )
-{
-  return (algebra[algebraId]->GetOperator( operatorId )->costMap);
-}
+// Currently not used!
+//
+//TypeMapping
+//AlgebraManager::ExecuteCost( int algebraId, int operatorId )
+//{
+//  return (algebra[algebraId]->GetOperator( operatorId )->costMap);
+//}
 
 /*
 

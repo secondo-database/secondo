@@ -352,14 +352,18 @@ Is the type of property functions, one for each type constructor.
 
 */
 
+// the definitions above are needed in Algebra.h and here some
+// definitions of algebra.h are used. Hence we include here since
+// a simple forward declaration doesn't work. Algebra.h will first
+// include AlgebraManager.h and then recognize that Algebra.h is already
+// read  
+#include "Algebra.h"
+
+
 /*
 1.6 Class "AlgebraManager"[1]
 
 */
-
-//struct AlgebraListEntry;
-//class Algebra;
-#include "Algebra.h"
 
 class QueryProcessor;
 /*
@@ -613,7 +617,7 @@ as a nested list expression.
 */
   inline int Select( const int algebraId, const int operatorId, const ListExpr typeList )
   {
-    return getOperator(algebraId, operatorId)->selectFunc(typeList);
+    return getOperator(algebraId, operatorId)->Select(typeList);
   }
 
 /*
@@ -624,12 +628,13 @@ algebra ~algebraId~.
   
   inline int Execute( const int algebraId, const int opFunId, 
                       ArgVector args, Word& result, int msg, 
-	              Word& local, Supplier tree ) 
+	                    Word& local, Supplier tree ) 
   {	       
     int opId  = opFunId % 65536;
     int funId = opFunId / 65536;
       
-    return getOperator(algebraId, opId)->valueMap[funId](args, result, msg, local, tree);	       	       
+    return getOperator(algebraId, opId)->CallValueMapping( funId, args, result, 
+		                                                       msg, local, tree );	       	       
   }	       
 
 /*
@@ -637,25 +642,36 @@ Returns the address of the evaluation function of the - possibly
 overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
-  ModelMapping
-    TransformModel( const int algebraId, const int opFunId );
+    inline Word TransformModel( const int algebraId, const int opFunId, 
+		                            ArgVector args, Supplier tree )
+		{
+		  int opId  = opFunId % 65536;
+      int funId = opFunId / 65536;
+      return getOperator(algebraId, opId)->CallModelMapping(funId, args, tree);
+		}
 /*
 Returns the address of the model mapping function of the - possibly
 overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
-  TypeMapping
-    TransformType( const int algebraId, const int operatorId );
+    inline ListExpr TransformType( const int algebraId, const int operatorId, 
+		                               const ListExpr typeList ) 
+		{
+		  return getOperator(algebraId, operatorId)->CallTypeMapping(typeList);
+		}
 /*
 Returns the address of the type mapping function of operator
 ~operatorId~ of algebra ~algebraId~.
 
 */
-  TypeMapping
-    ExecuteCost( const int algebraId, const int operatorId );
+  
+    inline ListExpr ExecuteCost( const int algebraId, const int operatorId ) 
+		{
+		  assert(false);
+		};
 /*
 Returns the address of the cost estimating function of operator
-~operatorId~ of algebra ~algebraId~.
+~operatorId~ of algebra ~algebraId~. Currently, this function is never called!
 
 */
   int ConstrNumber( const int algebraId );

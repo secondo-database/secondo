@@ -32,6 +32,11 @@ Figure 1: Object state diagram [objstatediagram.eps]
 
 March 2003 Victor Almeida created the function "SizeOf".
 
+Oct 2004 M. Spiekermann removed the friend relationship between class 
+AlgebraManager and class Operator. Additonally some functions are declared
+as inline functions.
+
+
 1.1 Overview
 
 A snapshot of a working "Secondo"[3] system will show a collection of algebras,
@@ -67,12 +72,13 @@ type constructors.
 
 */
 
-#ifndef ALGEBRA_H
-#define ALGEBRA_H
 
 #include <string>
 #include <vector>
 #include "AlgebraManager.h"
+
+#ifndef ALGEBRA_H
+#define ALGEBRA_H
 
 /*
 1.4 Class "Operator"[1]
@@ -133,18 +139,26 @@ Destroys an operator instance.
 Returns the operator specification as a string.
 
 */
-  int      Select( ListExpr argtypes );
+  inline int Select( ListExpr argtypes ) 
+	{
+	  return ((*selectFunc)( argtypes ));
+	}
 /*
 Returns the index of the overloaded evaluation function depending on
 the argument types ~argtypes~.
 
 */
-  int CallValueMapping( const int index,
+  inline int CallValueMapping( const int index,
                         ArgVector args,
                         Word& result,
                         int message,
                         Word& local,
-                        Supplier s );
+                        Supplier s )
+	{	
+	  assert(index < numOfFunctions);																					
+	  return (*valueMap[index])( args, result, message, local, s );
+	}	
+
 /*
 Calls the value mapping function of the operator.
 
@@ -180,8 +194,13 @@ Defines a dummy cost mapping function for operators.
 /*
 Defines a dummy cost mapping function for operators.
 
+
 */
- private:
+  const string& GetName() { return name;}
+	const string& GetSpecString() {return specString; }
+ 
+	
+	private:
   bool AddValueMapping( const int index, ValueMapping f );
 /*
 Adds a value mapping function to the list of overloaded operator functions.
@@ -201,7 +220,6 @@ Adds a model mapping function to the list of overloaded operator functions.
   TypeMapping    typeMap;
   CostMapping    costMap;
 
-  friend class AlgebraManager;
 };
 
 /*
