@@ -91,34 +91,35 @@ class SegSeg_Ops {
     }//end method adjacent
 
 
-  public static boolean overlap(Segment s1, Segment s2){
-    //true if s1,s2 overlap but don't only meet, false else
-      
-      if (s1.equal(s2))
-	  { return true; }
-      else {
-	  boolean linDep = Mathset.linearly_dependent(s1,s2);
-	  boolean formALin = formALine(s1,s2);
-	  //System.out.println("SSO.overlap: linDep:"+linDep+", formALin: "+formALin);
-	  if (linDep && !formALin) {
-	      if (PointSeg_Ops.isEndpoint(s1.startpoint,s2) ||
-		  PointSeg_Ops.isEndpoint(s1.endpoint,s2) ||
-		  PointSeg_Ops.isEndpoint(s2.startpoint,s1) ||
-		  PointSeg_Ops.isEndpoint(s2.endpoint,s1)) { 
-		  //System.out.println("SSO.overlap: true (case1)");
-		  return true; }
-	      if (PointSeg_Ops.liesOn(s1.startpoint,s2) &&
-		  PointSeg_Ops.liesOn(s1.endpoint,s2)) {
-		  //System.out.println("SSO.overlap: true (case2)");
-		  return true; }
-	      if (PointSeg_Ops.liesOn(s2.startpoint,s1) &&
-		  PointSeg_Ops.liesOn(s2.endpoint,s1)) {
-		  //System.out.println("SSO.overlap: true (case3)");
-		  return true; }
-	  }//if
-      }//else
-      return false;
-  }//end method overlap
+    public static boolean overlap(Segment s1, Segment s2){
+	//true if s1,s2 overlap but don't only meet, false else
+	//System.out.println("entering SSO.overlap..."); 
+	
+	if (s1.equal(s2))
+	    { return true; }
+	else {
+	    boolean linDep = Mathset.linearly_dependent(s1,s2);
+	    boolean formALin = formALine(s1,s2);
+	    //System.out.println("SSO.overlap: linDep:"+linDep+", formALin: "+formALin);
+	    if (linDep && !formALin) {
+		if (PointSeg_Ops.isEndpoint(s1.startpoint,s2) ||
+		    PointSeg_Ops.isEndpoint(s1.endpoint,s2) ||
+		    PointSeg_Ops.isEndpoint(s2.startpoint,s1) ||
+		    PointSeg_Ops.isEndpoint(s2.endpoint,s1)) { 
+		    //System.out.println("SSO.overlap: true (case1)");
+		    return true; }
+		if (PointSeg_Ops.liesOn(s1.startpoint,s2) &&
+		    PointSeg_Ops.liesOn(s1.endpoint,s2)) {
+		    //System.out.println("SSO.overlap: true (case2)");
+		    return true; }
+		if (PointSeg_Ops.liesOn(s2.startpoint,s1) &&
+		    PointSeg_Ops.liesOn(s2.endpoint,s1)) {
+		    //System.out.println("SSO.overlap: true (case3)");
+		    return true; }
+	    }//if
+	}//else
+	return false;
+    }//end method overlap
 
 
   public static Segment commonPart(Segment s1, Segment s2){

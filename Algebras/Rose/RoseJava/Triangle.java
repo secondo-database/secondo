@@ -247,7 +247,22 @@ class Triangle extends Element{
       Triangle tin = (Triangle)trin;
       SegList sl01 = this.segments();
       SegList sl02 = tin.segments();
-      return SetOps.equal(sl01,sl02);
+      Segment[] slA1 = new Segment[3];
+      slA1 = (Segment[])sl01.toArray(slA1);
+      Segment[] slA2 = new Segment[3];
+      slA2 = (Segment[])sl02.toArray(slA2);
+      if ((slA1[0].equal(slA2[0]) ||
+	   slA1[0].equal(slA2[1]) ||
+	   slA1[0].equal(slA2[2])) &&
+	  (slA1[1].equal(slA2[0]) ||
+	   slA1[1].equal(slA2[1]) ||
+	   slA1[1].equal(slA2[2])) &&
+	  (slA1[2].equal(slA2[0]) ||
+	   slA1[2].equal(slA2[1]) ||
+	   slA1[2].equal(slA2[2])))
+	  return true;
+      //return SetOps.equal(sl01,sl02);
+      else return false;
     }//if
     else { throw new WrongTypeException("Expected: "+this.getClass()+" - Found: "+trin.getClass()); }
   }//end method equal

@@ -1,9 +1,16 @@
 import java.util.*;
 import java.lang.reflect.*;
 
-class Algebra {
+public class Algebra {
 
   //variables
+    static final Rational deriv = new Rational(0.00000000001); //allowed derivation for comparisons to be equal
+    //this is used in: Rational,...
+    //static final Rational deriv2 = new Rational(0.000000000005); //used in Mathset...
+
+    static final int NUM_DIGITS = 7; //number of digits used right of the decimal point
+    //used in Rational
+
     static final Class pointClass = (new Point()).getClass();
     static final Class segClass = (new Segment()).getClass();
     static final Class triClass = (new Triangle()).getClass();
@@ -67,7 +74,8 @@ class Algebra {
 	    //System.out.println("ljpl:"); ljpl.print();
 	    //System.exit(0);
 	    ljpl = SetOps.subtractSets(ljpl,m4);
-	    //System.out.println("ljpl:"); ljpl.print();
+	    //System.out.println("\nsubtractSets: ");
+	    //ljpl.print();
 	    //System.exit(0);
 	    //System.out.println("leftjoinpairlist:");
 	    //ElemList sretlist = SetOps.subtract(ljpl,m5);
@@ -91,7 +99,7 @@ class Algebra {
 	//comment missing
 	//same as minus(SegList,TriList)
 	
-	//System.out.println("entering A.minus.. ");
+	System.out.println("entering A.minus.. ");
 
 	TriList retList = new TriList();
 	Class c = (new Triangle()).getClass();
@@ -112,7 +120,7 @@ class Algebra {
 	    
 	    Method m2 = c.getMethod("minus",paramListT);
 	    Method m3 = c2.getMethod("subtract",paramList);
-	    //LeftJoinPairList ljpl = SetOps.overlapLeftOuterJoin(tl1,tl2,m1);
+	    LeftJoinPairList ljpl = SetOps.overlapLeftOuterJoin(tl1,tl2,m1,false);
 	    //System.out.println("ljpl.size:"+ljpl.size());
 	    //ljpl.print();
 	    //System.exit(0);
@@ -220,7 +228,7 @@ class Algebra {
 
     public static SegList contour (TriList tl,boolean minOverlap,boolean uniOverlap) {
 	//comment missing
-	//minOverlap/uniOverlap toggle whether overlapReduce(true) of Reduce(false)
+	//minOverlap/uniOverlap toggle whether overlapReduce(true) or Reduce(false)
 	//is used
 	
 	//System.out.println("entering A.contour...");
@@ -241,6 +249,7 @@ class Algebra {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.exit(0);
 	}//catch
+	//System.out.println("contour: "); retList.print();
 	//System.out.println("leaving A.contour.");
 	return retList;
     }//end method contour
@@ -374,6 +383,16 @@ class Algebra {
     public static boolean lr_inside (SegList sl, TriList tl) {
 	//comment missing
 	SegList retList = minus(sl,tl);
+	//System.out.println("A.lr: result of minus.size(): "+retList.size());
+	/*
+	GFXout g = new GFXout();
+	g.initWindow();
+	g.addList(retList.copy());
+	g.showIt();
+	try { int data = System.in.read(); }
+	catch (Exception e) { System.exit(0); }
+	g.kill();
+	*/
 	if (retList.size() == 0) { return true; }
 	else { return false; }
     }//end method lr_inside
@@ -613,21 +632,49 @@ class Algebra {
 	    Method m2 = c.getMethod("intersection",paramListT);
 	    //contourP = contour(TriList.convert(SetOps.map(SetOps.join(tl1,tl2,m1),m2)));
 	    //System.out.println("computed contourP");
-	    //PairList pl = SetOps.overlapJoin(tl1,tl2,m1);
+	    PairList pl = SetOps.overlapJoin(tl1,tl2,m1,false);
 	    //System.out.println("pairlist:"); pl.print();
-	    //ElemList el = SetOps.map(pl,m2);
+	    //System.exit(0);
+	    ElemList el = SetOps.map(pl,m2);
 	    //contourP = contour(TriList.convert(el));
 	    //System.out.println("contourP("+contourP.size()+"):"); contourP.print();
 	    //System.exit(0);
-	    contourP = contour(TriList.convert(SetOps.map(SetOps.overlapJoin(tl1,tl2,m1,false),m2)),false,true);
+	    GFXout ggi = new GFXout();
+	    ggi.initWindow();
+	    ggi.addList(el.copy());
+	    ggi.showIt();
+	    try { System.in.read(); }
+	    catch (Exception e) { System.exit(0); }
+	    ggi.kill();
+
+	    contourP = contour(TriList.convert(el),false,true);
+	    System.out.println("contour: ");
+	    contourP.print();
+	    GFXout ggi2 = new GFXout();
+	    ggi2.initWindow();
+	    ggi2.addList(contourP.copy());
+	    ggi2.showIt();
+	    try { System.in.read(); }
+	    catch (Exception e) { System.exit(0); }
+	    ggi2.kill();
+
+	    //System.exit(0);
+
+	    //++++++++
+	    //this is the right line:
+	    //+++++++ 
+	    //contourP = contour(TriList.convert(SetOps.map(SetOps.overlapJoin(tl1,tl2,m1,false),m2)),false,true);
 	    
+	    /*
 	    GFXout gg = new GFXout();
 	    gg.initWindow();
-	    //gg.addList(el);
-	    gg.addList(contourP);
+	    gg.addList(el);
+	    //gg.addList(contourP);
 	    gg.showIt();
-	    
-	    
+	    try { int data = System.in.read(); }
+	    catch (Exception e) { System.exit(0); }
+	    gg.kill();
+	    */
 	    //long time3 = System.currentTimeMillis();
 	    //PairList tl01 = SetOps.join(tl1,tl2,m1);
 	    //long time4 = System.currentTimeMillis();
@@ -645,8 +692,8 @@ class Algebra {
 	    //System.exit(0);
 	    //System.out.println();
 	    
-	    return new TriList();
-	    //retList = Polygons.computeTriangles(contourP);
+	    //return new TriList();
+	    retList = Polygons.computeTriangles(contourP);
 	}//try
 	catch (Exception e) {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
@@ -772,7 +819,18 @@ class Algebra {
 	Class c = ssOpsClass;
 	PairList joinList = new PairList();
 	SegList retList = new SegList();
-	
+	/*
+	System.out.println("reduce contour... size:"+sl1.size());
+	for (int i = 0; i < 455; i++) sl1.removeFirst();
+	sl1.print();
+	GFXout zui = new GFXout();
+	zui.initWindow();
+	zui.addList(sl1);
+	zui.showIt();
+	try { int data1 = System.in.read(); }
+	catch (Exception e) { System.exit(0); }
+	System.exit(0);
+	*/
 	try {
 	    Method m1 = c.getMethod("overlap",paramListSS);
 	    joinList = SetOps.overlapJoin(sl1,sl2,m1,false);
@@ -783,6 +841,15 @@ class Algebra {
 	}//catch
 	if (joinList.isEmpty()) { return retList; }
 	else {
+	    /*
+	    GFXout oiu = new GFXout();
+	    oiu.initWindow();
+	    oiu.addList(SetOps.proj1(joinList));
+	    oiu.showIt();
+	    try { int data = System.in.read(); }
+	    catch (Exception e) { System.exit(0); }
+	    System.exit(0);
+	    */
 	    try {
 		Method m2 = c.getMethod("theOverlap",paramListSS);
 		retList = minimal(SegList.convert(SetOps.map(joinList,m2)),true);

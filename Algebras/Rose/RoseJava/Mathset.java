@@ -4,6 +4,7 @@ class Mathset {
   //provides some mathematical methodes for Points(interpreted as vectors)
 
   //variables
+    //static final Rational deriv = Algebra.deriv;
 
   //constructors
 
@@ -40,79 +41,108 @@ class Mathset {
     return e;
   }//end method prod
 
+
     public static Point mulfac(Point p, Rational fac) {
 	//multiplies p with fac
 	return new Point(p.x.times(fac),p.y.times(fac));
     }//end method mulfac
+
 
     public static Point addfac(Point p, double fac) {
 	//add fac to p
 	return new Point(p.x.plus(new Rational(fac)),p.y.plus(new Rational(fac)));
     }//end method addfac
 
+
     public static Point subfac(Point p, double fac) {
 	//subtracts fac from p
 	return new Point(p.x.minus(new Rational(fac)),p.y.minus(new Rational(fac)));
     }//end method subfac
 
-  public static boolean linearly_dependent(Segment s1, Segment s2) {
-      //true, if the vectors given by s1,s2 are linear dependant, false else
-      //caution: division by zero may occur!!!
-      
-      //System.out.println("MS.lindep");
 
-      //new implementation
-      Point sv1 = new Point(s1.endpoint.x.minus(s1.startpoint.x),
-			    s1.endpoint.y.minus(s1.startpoint.y));
-      Point sv2 = new Point(s2.endpoint.x.minus(s2.startpoint.x),
-			    s2.endpoint.y.minus(s2.startpoint.y));
+    public static boolean linearly_dependent(Segment s1, Segment s2) {
+	//true, if the vectors given by s1,s2 are linear dependant, false else
+	//caution: division by zero may occur!!!
+	
+	//System.out.println("MS.lindep");
+	
+	//new implementation
+	Point sv1 = new Point(s1.endpoint.x.minus(s1.startpoint.x),
+			      s1.endpoint.y.minus(s1.startpoint.y));
+	Point sv2 = new Point(s2.endpoint.x.minus(s2.startpoint.x),
+			      s2.endpoint.y.minus(s2.startpoint.y));
+	
+	//System.out.println("MS.sv1:"); sv1.print();
+	//System.out.println("MS.sv2:"); sv2.print();
+	
+	//int count = 0;
+	boolean sv2X0 = sv2.x.equal(0);
+	boolean sv2Y0 = sv2.y.equal(0);
+	
+	if (sv2X0 && sv2Y0) return true;
+	
+	//frome here: changed double back to Rational (15-07-03)
+	Rational t1 = new Rational(0);
+	//double t1 = 0;
+	Rational t2 = new Rational(0);
+	//double t2 = 0;
+	
+	if (!sv2X0) t1 = sv1.x.dividedby(sv2.x);
+	//if (!sv2X0) t1 = sv1.x.getDouble() / sv2.x.getDouble();
+	if (!sv2Y0) t2 = sv1.y.dividedby(sv2.y);
+	//if (!sv2Y0) t2 = sv1.y.getDouble() / sv2.y.getDouble();
+	
+	//old:
+	//boolean t1t2equal = (((t1 - t2) < Algebra.deriv.getDouble()) &&
+	//			   ((t1 - t2) > Algebra.deriv.getDouble()));
+	//new:
+	boolean t1t2equal = false;
+	if (t1.minus(t2).equal(0)) t1t2equal = true;
+	//if ((t1 - t2) == 0) t1t2equal = true;
+	else {
+	    Rational zwires = (t1.minus(t2)).abs();
+	    //double zwires = Math.abs(t1-t2);
+	    //System.out.println("t1 - t2 = "+zwires);
+	    if (zwires.less(Algebra.deriv)) t1t2equal = true;
+	    //if (zwires < Algebra.deriv.getDouble()) t1t2equal = true;
+	    else t1t2equal = false;
+	}//else
+	
+	
+	//System.out.println("t1: "+t1+", t2: "+t2+", equal: "+t1t2equal);
 
-      //System.out.println("MS.sv1:"); sv1.print();
-      //System.out.println("MS.sv2:"); sv2.print();
+	//if (!(sv2X0 || sv2Y0) && !t1.equal(t2)) {
+	if (!(sv2X0 || sv2Y0) && !t1t2equal) {
+	    //System.out.println("false case2");
+	    return false; }
 
-      int count = 0;
-      boolean sv2X0 = sv2.x.equal(0);
-      boolean sv2Y0 = sv2.y.equal(0);
+	//if (t1.equal(t2)) return true;
+	if (t1t2equal && !(t1.equal(0) && t2.equal(0))) return true;
+	//if (t1t2equal && !(t1 == 0 && t2 == 0)) return true;
+	
+	boolean compsv1x = (sv2.x.times(t1).minus(sv1.x)).abs().lessOrEqual(Algebra.deriv);
+	//boolean compsv1x = (((sv2.x.getDouble() * t1 - sv1.x.getDouble()) < Algebra.deriv.getDouble()) &&
+	//		  ((sv2.x.getDouble() * t1 - sv1.x.getDouble()) > (Algebra.deriv.times(-1)).getDouble()));
+	boolean compsv1y = (sv2.y.times(t2).minus(sv1.y)).abs().lessOrEqual(Algebra.deriv);
+	//boolean compsv1y = (((sv2.y.getDouble() * t2 - sv1.y.getDouble()) < Algebra.deriv.getDouble()) &&
+	//		  ((sv2.y.getDouble() * t2 - sv1.y.getDouble()) > (Algebra.deriv.times(-1)).getDouble()));
 
-      if (sv2X0 && sv2Y0) return true;
+	
+	/*
+	  System.out.println("sv2.x*t1-sv1.x = "+sv2.x.times(t1).minus(sv1.x));
+	  System.out.println("sv2.y*t2-sv1.y = "+sv2.y.times(t2).minus(sv1.y));
+	  System.out.println("compsv1x: "+compsv1x+", compsv1y: "+compsv1y);
+	*/
 
-      //Rational t1 = new Rational(0);
-      double t1 = 0;
-      //Rational t2 = new Rational(0);
-      double t2 = 0;
-
-      //if (!sv2X0) t1 = sv1.x.dividedby(sv2.x);
-      if (!sv2X0) t1 = sv1.x.getDouble() / sv2.x.getDouble();
-      //if (!sv2Y0) t2 = sv1.y.dividedby(sv2.y);
-      if (!sv2Y0) t2 = sv1.y.getDouble() / sv2.y.getDouble();
-      
-      boolean t1t2equal = (((t1 - t2) < 0.0000000001) && 
-			   ((t1 - t2) > -0.0000000001));
-
-      //System.out.println("t1: "+t1+", t2: "+t2+", equal: "+t1t2equal);
-
-      //if (!(sv2X0 || sv2Y0) && !t1.equal(t2)) {
-      if (!(sv2X0 || sv2Y0) && !t1t2equal) {
-	  //System.out.println("false case2");
-	  return false; }
-
-      //if (t1.equal(t2)) return true;
-      if (t1t2equal && !(t1 == 0 && t2 == 0)) return true;
-
-      boolean compsv1x = (((sv2.x.getDouble() * t1 - sv1.x.getDouble()) < 0.0000000001) &&
-			  ((sv2.x.getDouble() * t1 - sv1.x.getDouble()) > -0.0000000001));
-      boolean compsv1y = (((sv2.y.getDouble() * t2 - sv1.y.getDouble()) < 0.0000000001) &&
-			  ((sv2.y.getDouble() * t2 - sv1.y.getDouble()) > -0.0000000001));
-
-      if (compsv1x && compsv1y) return true;
-      //if (sv2.x.times(t1).equal(sv1.x) &&
-      //	  sv2.y.times(t2).equal(sv1.y)) { return true; }
-      //System.out.println("false case3");
-      return false;
-      /*
-      if (t1.equal(t2)) { return true; }
-      else { return false; }
-      */
+	if (compsv1x && compsv1y) return true;
+	//if (sv2.x.times(t1).equal(sv1.x) &&
+	//	  sv2.y.times(t2).equal(sv1.y)) { return true; }
+	//System.out.println("false case3");
+	return false;
+	/*
+	  if (t1.equal(t2)) { return true; }
+	  else { return false; }
+	*/
 
       /* old implementation
       Rational grad1 = new Rational(0);

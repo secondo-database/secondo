@@ -54,6 +54,16 @@ class Interval {
     else { return false; }
   }//end method equal
 
+    public boolean equalX(Interval in) {
+	//returns true if both object's interval borders AND their
+	//x-coordinate are equal
+	//false else
+	if (this.left.equal(in.left) &&
+	    this.right.equal(in.right) &&
+	    this.x.equal(in.x)) return true;
+	else return false;
+    }//end method equalX
+
     protected void print() {
 	//prints the object's data
 	System.out.print("Interval:");
@@ -61,9 +71,9 @@ class Interval {
 	System.out.print(" top: "+this.right.toString());
 	System.out.print(" mark: "+this.mark);
 	System.out.print(" x: "+this.x.toString());
-	System.out.print(" number: "+this.number);
-	System.out.println(" ref: ");
-	this.ref.print();
+	System.out.println(" number: "+this.number);
+	//System.out.println(" ref: ");
+	//this.ref.print();
     }//end method print
   
 

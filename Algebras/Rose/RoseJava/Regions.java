@@ -80,7 +80,7 @@ public class Regions implements Serializable{
     }//end method isRegularTriList
 
 
-    public ElemListListList cyclesPoints() {
+    protected ElemListListList cyclesPoints() {
 	//returns the cycles of this as an ElemListListList
 	//which has points as elements
 	Polygons pol = new Polygons(trilist);

@@ -40,8 +40,13 @@ public class GFXout extends JApplet {
 	  System.exit(0);
       }//if
 
+      //add point (0,0)
+      elemList.addFirst(new Segment(-10,0,10,0));
+      elemList.addFirst(new Segment(0,-10,0,10));
+      //elemList.addFirst(new Point(0,0));
+      
     //find max x/y-values
-    
+
       Rational maxX = new Rational(0);
       Rational maxY = new Rational(0);
       Rational minX = new Rational(0);
@@ -64,7 +69,7 @@ public class GFXout extends JApplet {
 
       System.out.println("maxX/maxY: "+maxX.toString()+"/"+maxY.toString());
       System.out.println("minX/minY: "+minX.toString()+"/"+minY.toString());
-      System.out.println("elemList has "+((LinkedList)elemList).size()+" elements");
+      System.out.println("elemList has "+(((LinkedList)elemList).size()-2)+" elements");
     //put the drawings in the middle
 	  
     //maxX = maxX.plus(maxX.times(new Rational(0.25)));
@@ -142,6 +147,11 @@ public class GFXout extends JApplet {
     f.setSize(new Dimension(maxX.getInt(), maxY.getInt()));
     f.setVisible(true);
   }//end method show
+
+
+    public static void kill(){
+	f.dispose();
+    }
 
   private static void initList(){
     //initiates the segment list

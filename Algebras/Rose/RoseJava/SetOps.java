@@ -15,6 +15,8 @@ class SetOps {
 	//...
 
 	//System.out.println("\nentering SO.subtractRemove...");
+	//System.out.println("el1: "); el1.print();
+	//System.out.println("\nel2: "); el2.print();
 
 	int paramTypeCountPred = Array.getLength(predicate.getParameterTypes());
 	int paramTypeCountMet = Array.getLength(method.getParameterTypes());
@@ -53,9 +55,14 @@ class SetOps {
 		    }//else
 		    try {
 			isTrue = ((Boolean)predicate.invoke(actEl1,paramListP)).booleanValue();
-			//System.out.println("checked for predicate..."+isTrue);
-			//actEl1.print();
-			//actEl2.print();
+			/*
+			  if (!isTrue) {
+			  System.out.println("\n+++++\nchecked for predicate..."+isTrue);
+			  if (!isTrue) { System.out.println("linDep:"+Mathset.linearly_dependent((Segment)actEl1,(Segment)actEl2)+", formALin:"+SegSeg_Ops.formALine((Segment)actEl1,(Segment)actEl2)); }
+			  actEl1.print();
+			  actEl2.print();System.out.println("+++++\n");
+			  }//if
+			*/
 		    }//try
 		    catch (Exception e) {
 			System.out.println("Exception: "+e.getClass()+" ---"+e.getMessage());
@@ -80,6 +87,7 @@ class SetOps {
 			    System.exit(0);
 			}//catch
 			if (isTrue) {
+			    //System.out.println("---> removed element");
 			    //System.out.println("*****mreturn:");
 			    //mreturn.print();
 			    //System.out.println("*****mreturn-end");
@@ -107,9 +115,9 @@ class SetOps {
 	    retList.print();
 	    System.exit(0); }
 	*/
-	//System.out.println("leaving SO.subtract.");
+	//System.out.println("leaving SO.subtractRemove.");
 	return retList;
-    }//end method subtract
+    }//end method subtractRemove
 
 
     public static LeftJoinPairList overlapLeftOuterJoin (ElemList el1, ElemList el2, Method predicate, boolean useOvLapPairsMeet) {
@@ -247,6 +255,9 @@ class SetOps {
     
     public static ElemList subtract (LeftJoinPairList ljpl, Method method) {
 	//subtracts the elements in elemList of every ljpl from the elem in ljpl
+
+	System.out.println("entering SO.subtract...");
+	
 	ElemList retList = new ElemList();
 	ListIterator lit1 = ljpl.listIterator(0);
 	ListIterator lit2;
@@ -304,6 +315,8 @@ class SetOps {
 	    }//while
 	}//while
 	
+	System.out.println("leaving SO.subtract.");
+
 	return retList;
     }//end method subtract
 
@@ -466,22 +479,53 @@ class SetOps {
 	//if predicate holds also for non-overlapping elements, the result won't be computed correctly
 	//ovLapPairsMeet is passed to overlappingPairs
 
-	System.out.println("entering SO.overlapJoin...");
-	long time1 = System.currentTimeMillis();
+	//System.out.println("entering SO.overlapJoin...");
+	//el1.print();
+	//long time1 = System.currentTimeMillis();
+	//System.out.println("\n*****critical section*****");
 	PairList retList = overlappingPairs(el1,el2,false,ovLapPairsMeet);
-	long time2 = System.currentTimeMillis();
-	System.out.println("elapsed time (overlappingPairs"+el1.size()+","+el2.size()+"): "+(time2-time1)+"ms");
-	System.out.println("retList has "+retList.size()+" elements");
-	long time3 = System.currentTimeMillis();
+	//long time2 = System.currentTimeMillis();
+	//System.out.println("elapsed time (overlappingPairs"+el1.size()+","+el2.size()+"): "+(time2-time1)+"ms");
+	//System.out.println("retList has "+retList.size()+" elements");
+	/*
+	System.out.println("SO.ovJoin...1");
+	//proj1(retList).print();
+	GFXout zzz = new GFXout();
+	zzz.initWindow();
+	zzz.addList(proj1(retList));
+	zzz.showIt();
+	try { int data2 = System.in.read(); }
+	catch (Exception e) { System.exit(0); }
+	System.exit(0);
+	*/
+
+	//long time3 = System.currentTimeMillis();
 	retList = filter(retList,predicate,true);
-	long time4 = System.currentTimeMillis();
-	System.out.println("elapsed time (filter): "+(time4-time3)+"ms");
-	System.out.println("after filter retList has "+retList.size()+" elements");
+	System.out.println("SO.ovJoin: Look here! There are too many doubles in the result list of overlappingPairs!!!");
+	//System.out.println("SO.ovJoin...2");
+	//Segment sss = new Segment(681.03,91.875,681.436,108.213);
+	//proj1(retList).print();
+	//ElemList elll = proj1(retList);
+	//elll.add(sss);
+	/*
+	  GFXout zzy = new GFXout();
+	  zzy.initWindow();
+	  zzy.addList(elll);
+	  zzy.showIt();
+	  try { int data3 = System.in.read(); }
+	  catch (Exception e) { System.exit(0); }
+	//System.exit(0);
+	*/
+
+	//long time4 = System.currentTimeMillis();
+	//System.out.println("elapsed time (filter): "+(time4-time3)+"ms");
+	//System.out.println("after filter retList has "+retList.size()+" elements");
+	//System.exit(0);
 	//System.out.println("retlist:");
 	//quicksort(retList); //this may be removed
 	//retList.print();
 	//System.exit(0);
-	System.out.println("leaving SO.overlapJoin...");
+	//System.out.println("leaving SO.overlapJoin...");
 	return retList;
     }//end method overlapJoin
 
@@ -592,7 +636,7 @@ class SetOps {
 	//Element[] paramListSM = new Element[2];
 	ElemList paramList1 = new ElemList();
 
-	//System.out.println("entering SO.map...");
+	//System.out.println("\nentering SO.map(ljpl,m,m,m)...");
 
 	//System.out.println("LeftJoinPairList:");
 	//ljpl.print();
@@ -642,13 +686,6 @@ class SetOps {
     public static ElemList proj1 (PairList pl) {
 	//returns an ElemList of the first elements
 	//of pl's tuples
-	//CAUTION: We have a problem here. The proper type of
-	//the first tuple-element must be retrieved and a new
-	//list must be instantiated, but the classname is not
-	//known at this point. Therefore the instantiation can
-	//not be done.
-	//SOLUTION???: Use a LinkedList and cast to ElemList!
-	//...seems to be solved. Better check again!
 
 	ElemList retList = new ElemList();
 
@@ -659,6 +696,19 @@ class SetOps {
 	return retList;
     }//end method proj1
        
+
+    public static ElemList proj2 (PairList pl) {
+	//returns an ElemList of the second elements
+	//of pl's tuples
+	ElemList retList = new ElemList();
+	
+	for (int i = 0; i < pl.size(); i++) {
+	    retList.add(((ElemPair)pl.get(i)).second);
+	}//for i
+
+	return retList;
+    }//end method proj2
+	
 
     public static boolean disjoint (ElemList el1, ElemList el2) {
 	//returns TRUE if join(el1,el2,intersects()) is empty
@@ -737,7 +787,7 @@ class SetOps {
 
 	//CAUTION: WE NEED AN OVERLAP VERSION HERE, TOO!!!
 
-	System.out.println("entering SO.leftOuterJoin...");
+	//System.out.println("entering SO.leftOuterJoin...");
 
 	int paramTypeCountPred = Array.getLength(predicate.getParameterTypes());
 	LeftJoinPairList retList = new LeftJoinPairList();
@@ -750,7 +800,7 @@ class SetOps {
 
 	while (lit1.hasNext()) {
 	    actEl1 = (Element)lit1.next();
-	    System.out.println("SO.loj: processing "+(lit1.nextIndex()-1));
+	    //System.out.println("SO.loj: processing "+(lit1.nextIndex()-1));
 	    LeftJoinPair actLjp = new LeftJoinPair();
 	    actLjp.element = actEl1;
 	    //actEl.elemList = ((ElemList)el2.copy());
@@ -787,7 +837,7 @@ class SetOps {
 	    retList.add(actLjp);
 	}//for i
 	
-	System.out.println("leaving leftOuterJoin.");
+	//System.out.println("leaving leftOuterJoin.");
 	return retList;
     }//end method leftOuterJoin
 
@@ -877,7 +927,7 @@ class SetOps {
 			if (isTrue) {
 			    System.out.println("*****mreturn:");
 			    mreturn.print();
-			    System.out.println("*****mreturn-end");
+			    System.out.println("*****mreturn-end\n");
 			    int index = lit1.nextIndex()-1;
 			    lit1.remove();
 			    retList.addAll(mreturn);
@@ -1302,6 +1352,9 @@ class SetOps {
 	//m must be a method: Element x Element -> Element
 
 	//System.out.println("\nentering SO.map(pl,m)...");
+	//System.out.println("first pair: ");
+	//((ElemPair)(pl.getFirst())).first.print();
+	//((ElemPair)(pl.getFirst())).second.print();
 	//System.out.println("method:"+method);
 	//System.out.println("pl.size: "+pl.size());
 
@@ -1347,6 +1400,20 @@ class SetOps {
 		//System.out.println("SO.map: trying to invoke method... on:");
 		//actPair.first.print();
 		//actPair.second.print();
+		
+		/*
+		GFXout zut = new GFXout();
+		zut.initWindow();
+		zut.add(actPair.first.copy());
+		zut.add(actPair.second.copy());
+		zut.showIt();
+		System.out.println("press RETURN");
+		int data = -1;
+		try { data = System.in.read(); }
+		catch (Exception e) { System.exit(0); }
+		zut.kill();
+		*/
+		
 		//if returntype of m is Element
 		if (metTypeElement) {
 		    retList.add((Element)(method.invoke(actPair.first,paramList)));
@@ -1733,7 +1800,16 @@ class SetOps {
       //meeting bounding boxes
  
       //System.out.println("entering overlappingPairs...");
-
+      /*
+      if (el1.size()== 480) {
+	  System.out.println("SO.ovP:reducing number of segments... pre: "+el1.size()+"/"+el2.size());
+	  for (int i = 0; i < 200; i++) {
+	      el1.removeFirst();
+	      el2.removeFirst();
+	  }//for i
+	  System.out.println("SO.ovP: ...post: "+el1.size()+"/"+el2.size());
+      }//if
+      */
     PairList pairs = new PairList();
 
     if (el1.isEmpty() || el2.isEmpty()) return pairs;
@@ -1786,6 +1862,7 @@ class SetOps {
     //System.out.println("generated intervalLists...");
 
     //long time1 = System.currentTimeMillis();
+    //System.out.println("elvert.sort(): ");
     elvert.sort();
     //long time2 = System.currentTimeMillis();
     //System.out.println("sort1: "+(time2-time1)+"ms");
@@ -1877,6 +1954,7 @@ class SetOps {
 	}//while
     }//if meet
     else {
+	//System.out.println("meet = false");
 	//if meet = false
 	//for every x-coordinate sort the existing intervals as follows:
 	//first, take all right borders of bboxes which left partner has
@@ -1888,6 +1966,8 @@ class SetOps {
 	Interval actInt1;
 	Interval actInt2;
 	while(!elvert.isEmpty()) {
+	    //elvert.print();
+	    //System.exit(0);
 	    IvlList sortVert = new IvlList();
 	    IvlList sameX = new IvlList();
 	    Rational actX = ((Interval)elvert.getFirst()).x;
@@ -1958,6 +2038,7 @@ class SetOps {
 	    //add this sequence to finalSort
 	    finalSort.addAll(sortVert);
 	}//while
+	//finalSort.print();
     }//else
 
 
@@ -2556,7 +2637,7 @@ class SetOps {
 	//returns the difference of two PairLists
 	//CAUTION: the elements of the pairs are swapped
 	
-	System.out.println("entering SO.difference(pl,pl)...");
+	//System.out.println("entering SO.difference(pl,pl)...");
 
 	PairList retList = new PairList();
 	PairList pl1 = pl1In.copy();
@@ -2570,8 +2651,8 @@ class SetOps {
 	pl2.twistElements();
 	pl1 = rdup(pl1);
 	pl2 = rdup(pl2);
-	System.out.println("pl1.size:"+pl1.size());
-	System.out.println("pl2.size:"+pl2.size());
+	//System.out.println("pl1.size:"+pl1.size());
+	//System.out.println("pl2.size:"+pl2.size());
 	
 	if (pl2.isEmpty()) { return pl1; }
 
@@ -2610,7 +2691,7 @@ class SetOps {
 		retList.add(((ElemPair)pl1.get(k)).copy());
 	    }//for k
 	}//if
-	System.out.println("leaving SO.difference(pl,pl.)");
+	//System.out.println("leaving SO.difference(pl,pl.)");
 	return retList;
     }//end method difference
 

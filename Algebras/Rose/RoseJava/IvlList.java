@@ -415,6 +415,8 @@ class IvlList extends LinkedList{
 
     private static void quickX (Object[] elArr, int lo, int hi) {
 	//supportive method for sort
+	//System.out.println("\nquickX: "+elArr+", lo: "+lo+", hi: "+hi);
+	//for (int i = lo; i < hi+1; i++) { System.out.print("["+i+"] "); ((Interval)elArr[i]).print(); }
 	int i = lo;
 	int j = hi;
 	int k = -1;
@@ -425,6 +427,7 @@ class IvlList extends LinkedList{
 	    findkRes = findPivotX(elArr,i,j);
 	    k = ((Integer)findkRes[0]).intValue();
 	    kElem = (Interval)findkRes[1];
+	    //System.out.print("\npos: "+k+", pivot: "); kElem.print();
 	    if (k != -1) {
 		k = partitionX(elArr,i,j,kElem); //divide
 		quickX(elArr,i,k-1); //conquer
@@ -441,7 +444,7 @@ class IvlList extends LinkedList{
 	byte res;
 	int k = 0;
 	k = i+1;
-	while ((k <= j) && (((Interval)elArr[k]).equal((Interval)elArr[k-1]))) {
+	while ((k <= j) && (((Interval)elArr[k]).equalX((Interval)elArr[k-1]))) {
 	    k++; }//while
 	if (k > j) {
 	    retArr[0] = new Integer(-1);

@@ -261,7 +261,6 @@ class ROSEAlgebra {
      *the following operations are the original ROSE operations *
      ***********************************************************/
     
-    //@ TESTED.
     public static boolean pp_equal (Points p1, Points p2) {
 	//comment missing
 	PointList pl1 = p1.pointlist;
@@ -273,7 +272,6 @@ class ROSEAlgebra {
     }//end method pp_equal
 
 
-    //@ TESTED.
     public static boolean ll_equal (Lines l1, Lines l2) {
 	//comment missing
 	SegList sl1 = l1.seglist;
@@ -284,7 +282,6 @@ class ROSEAlgebra {
     }//end method ll_equal
 
 
-    //@ TESTED.
     public static boolean rr_equal (Regions r1, Regions r2) {
 	//comment missing
 	TriList tl1 = r1.trilist;
@@ -293,7 +290,6 @@ class ROSEAlgebra {
     }//end method rr_equal
 
 
-    //@ TESTED.
     public static boolean pp_unequal (Points p1, Points p2) {
 	//comment missing
 	PointList pl1 = p1.pointlist;
@@ -302,7 +298,6 @@ class ROSEAlgebra {
     }//end method pp_unequal
 
 
-    //@ TESTED.
     public static boolean ll_unequal (Lines l1, Lines l2) {
 	//comment missing
 	SegList sl1 = l1.seglist;
@@ -311,16 +306,14 @@ class ROSEAlgebra {
     }//end method ll_unequal
 
 
-    //@ TESTED.
     public static boolean rr_unequal (Regions r1, Regions r2) {
 	//comment missing
-	//TriList tl1 = r1.trilist;
-	//TriList tl2 = r2.trilist;
-	return (!rr_equal(r1,r2));
+	TriList tl1 = r1.trilist;
+	TriList tl2 = r2.trilist;
+	return (!rr_equal(new Regions(tl1),new Regions(tl2)));
     }//end method rr_unequal
 
 
-    //@ TESTED.
     public static boolean pp_disjoint (Points p1, Points p2) {
 	//comment missing
 	PointList pl1 = p1.pointlist;
@@ -329,7 +322,6 @@ class ROSEAlgebra {
     }//end method pp_disjoint
 	
 
-    //@ TESTED.
     public static boolean ll_disjoint (Lines l1, Lines l2) {
 	//comment missing
 	SegList sl1 = l1.seglist;
@@ -338,7 +330,6 @@ class ROSEAlgebra {
     }//end method ll_disjoint
 
 
-    //@ TESTED.
     public static boolean rr_disjoint (Regions r1, Regions r2) {
 	//comment missing
 	TriList tl1 = r1.trilist;
@@ -347,7 +338,6 @@ class ROSEAlgebra {
     }//end method rr_disjoint
 
 
-    //@ TESTED.
     public static boolean pr_inside (Points p, Regions r) {
 	//comment missing
 	PointList pl = p.pointlist;
@@ -369,7 +359,6 @@ class ROSEAlgebra {
     }//end method pr_inside
 
     
-    //@ TESTED.
     public static boolean lr_inside (Lines l, Regions r) {
 	//comment missing
 	SegList sl = l.seglist;
@@ -380,33 +369,31 @@ class ROSEAlgebra {
     }//end method lr_inside
 
 
-    //@ TESTED. Why is this function constant false?
     public static boolean rr_inside (Regions r1, Regions r2) {
 	return false;
     }
 
-    //@ TESTED. Why is this function constant false?
+
     public static boolean rr_area_disjoint (Regions r1, Regions r2) {
 	return false;
     }
 
-    //@ TESTED. Why is this function constant false?
+
     public static boolean rr_edge_disjoint (Regions r1, Regions r2) {
 	return false;
     }
     
-    //@ TESTED. Why is this function constant false?
+
     public static boolean rr_edge_inside (Regions r1, Regions r2) {
 	return false;
     }
 
-    //@ TESTED. Why is this function constant false?
+
     public static boolean rr_vertex_inside (Regions r1, Regions r2) {
 	return false;
     }
 
 
-    //@ TESTED.
     public static boolean ll_intersects (Lines l1, Lines l2) {
 	//comment missing
 	SegList sl1 = l1.seglist;
@@ -415,7 +402,6 @@ class ROSEAlgebra {
     }//end method ll_intersects
 
 
-    //@ TESTED.
     public static boolean lr_intersects (Lines l, Regions r) {
 	//comment missing
 	SegList sl = l.seglist;
@@ -436,14 +422,12 @@ class ROSEAlgebra {
     }//end method lr_intersects
 
 
-    //@ TESTED.
     public static boolean rl_intersects (Regions r, Lines l) {
 	//comment missing
 	return lr_intersects(l,r);
     }//end method rl_intersects
 
 
-    //@ TESTED.
     public static boolean rr_intersects (Regions r1, Regions r2) {
 	//comment missing
 	TriList tl1 = r1.trilist;
@@ -452,28 +436,26 @@ class ROSEAlgebra {
     }//end method rr_intersects
 
 
-    //@ TESTED. 
     public static boolean ll_meets (Lines l1, Lines l2) {
 	return false;
     }
 	
-    //@ TESTED.
+
     public static boolean lr_meets (Lines l, Regions r) {
 	return false;
     }
 
-    //@ TESTED.
+
     public static boolean rl_meets (Regions r, Lines l) {
 	return false;
     }
 
-    //@ TESTED. Why is this function contant false?
+
     public static boolean rr_meets (Regions r1, Regions r2) {
 	return false;
     }
 
 
-    //@ TESTED.
     public static boolean ll_border_in_common (Lines l1, Lines l2) {
 	//comment missing
 	SegList sl1 = l1.seglist;
@@ -494,7 +476,6 @@ class ROSEAlgebra {
     }//end method ll_border_in_common
 
 
-    //@ TESTED.
     public static boolean lr_border_in_common (Lines l, Regions r) {
 	//comment missing
 	SegList sl = l.seglist;
@@ -514,7 +495,7 @@ class ROSEAlgebra {
 	else { return true; }
     }//end method lr_border_in_common
 
-    //@ TESTED.
+
     public static boolean rl_border_in_common (Regions r, Lines l) {
 	//comment missing
 	return lr_border_in_common(l,r);
@@ -529,36 +510,70 @@ class ROSEAlgebra {
     }//end method rr_border_in_common
 
 
-    //@ TESTED.
     public static boolean rr_adjacent (Regions r1, Regions r2) {
 	//comment missing
 	return rr_border_in_common(r1,r2);
     }//end method rr_adjacent
       
 	
-    //@ TESTED. Why is this function contant false?
     public static boolean rr_encloses (Regions r1, Regions r2) {
 	return false;
     }
 
 
-    //@ TESTED(JNI)
-    // FEHLER !!!!
     public static boolean pl_on_border_of (Points p, Lines l) {
-	return true;
+	//comment missing
+	PointList pl = p.pointlist;
+	SegList sl = l.seglist;
+	Class c = psOpsClass;
+	PointList retList = new PointList();
+	
+	try {
+	    Method m = c.getMethod("lies_on",paramListPS);
+	    retList = PointList.convert(SetOps.rdup(SetOps.proj1(SetOps.join(pl,sl,m))));
+	}//try
+	catch (Exception e) {
+	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.exit(0);
+	}//catch
+	return pp_equal(new Points(retList),p);
     }//end method pl_on_border_of
 
 
-    //@ TESTED(JNI)
-    // FEHLER !!!!
     public static boolean pr_on_border_of (Points p, Regions r) {
-	return true;
+	//comment missing
+	PointList pl = p.pointlist;
+	TriList tl = r.trilist;
+	Class c = psOpsClass;
+	PointList retList = new PointList();
+
+	try{
+	    Method m = c.getMethod("lies_on",paramListPS);
+	    retList = PointList.convert(SetOps.rdup(SetOps.proj1(SetOps.join(pl,contour(tl),m))));
+	}//try
+	catch (Exception e) {
+	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.exit(0);
+	}//catch
+	return pp_equal(new Points(retList),p);
     }//end method pr_on_border_of
 
-    //@ TESTED(JNI)
-    // FEHLER !!!!
+
     public static Points pp_intersection (Points p1, Points p2) {
-	return p1;
+	//comment missing
+	PointList pl1 = p1.pointlist;
+	PointList pl2 = p2.pointlist;
+	PointList retList = new PointList();
+	
+	try {
+	    retList = PointList.convert(SetOps.intersection(pl1,pl2));
+	}//try
+	catch (Exception e) {
+	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.exit(0);
+	}//catch
+
+	return new Points(retList);
     }//end method pp_intersection
 
 
@@ -585,10 +600,45 @@ class ROSEAlgebra {
     }//end method ll_intersection
 
 
-    //@ TESTED(JNI)
-    // FEHLER !!!!
     public static Regions rr_intersection (Regions r1, Regions r2) {
-	return r1;
+	//comment missing
+	TriList tl1 = r1.trilist;
+	TriList tl2 = r2.trilist;
+	TriList retList = new TriList();
+	Class c = triClass;
+	Class[] paramListT = { c };
+	SegList contourP = new SegList();
+	
+	try {
+	    Method m1 = c.getMethod("pintersects",paramListT);
+	    Method m2 = c.getMethod("intersection",paramListT);
+	    //contourP = contour(TriList.convert(SetOps.map(SetOps.join(tl1,tl2,m1),m2)));
+	    //System.out.println("computed contourP");
+	    //contourP = contour(TriList.convert(SetOps.map(SetOps.overlapJoin(tl1,tl2,m1),m2)));
+	    
+	    long time3 = System.currentTimeMillis();
+	    PairList tl01 = SetOps.join(tl1,tl2,m1);
+	    long time4 = System.currentTimeMillis();
+	    System.out.println("elapsed time (join):"+(time4-time3)+"ms");
+	    //System.out.println("join:"); //tl01.print();
+	    long time1 = System.currentTimeMillis();
+	    PairList tl02 = SetOps.overlapJoin(tl1,tl2,m1,false);
+	    long time2 = System.currentTimeMillis();
+	    System.out.println("elapsed time (overlapJoin): "+(time2-time1)+"ms");
+	    //System.exit(0);
+	    //System.out.println("ovjoin:"); tl02.print();
+	    PairList tl03 = SetOps.difference(tl01,tl02);
+	    //System.out.println("diffList:");
+	    tl03.print();
+	    System.exit(0);
+	    //System.out.println();
+	    retList = Polygons.computeTriangles(contourP);
+	}//try
+	catch (Exception e) {
+	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.exit(0);
+	}//catch
+	return new Regions(retList);
     }//end method rr_intersection
 
 
@@ -647,10 +697,8 @@ class ROSEAlgebra {
     }//end method ll_plus
 
 
-    //@ TESTED. FEHLER.
     public static Regions rr_plus (Regions r1, Regions r2) {
-	//Regions result = new Regions();
-	return r1;
+	return new Regions();
     }
 	
     
@@ -703,10 +751,12 @@ class ROSEAlgebra {
     }//end method ll_minus
 
 
-    //@ TESTED(JNI)
-    // FEHLER !!!!
     public static Regions rr_minus (Regions r1, Regions r2) {
-	return r1;
+	//comment missing
+	TriList tl1 = r1.trilist;
+	TriList tl2 = r2.trilist;
+	System.out.println("\n\nentering rr_minus...");
+	return new Regions(minus(tl1,tl2));
     }//end method rr_minus
 
 
@@ -756,7 +806,6 @@ class ROSEAlgebra {
     }//end method rl_common_border
 
 
-    //@ TESTED.
     public static Lines rr_common_border (Regions r1, Regions r2) {
 	//comment missing
 	TriList tl1 = r1.trilist;
@@ -790,7 +839,10 @@ class ROSEAlgebra {
 
 
     public static Regions l_interior (Lines l) {
-	return new Regions();
+	//comment missing
+	SegList sl = l.seglist;
+	Polygons pol = new Polygons(sl);
+	return new Regions(pol.triangles());
     }//end method l_interior
 
 
