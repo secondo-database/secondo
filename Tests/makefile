@@ -42,8 +42,10 @@ TESTNAMES += nlchecker
 
 ifdef file
 TESTFILES := $(file)
+LIBS := $(LD_LINK_LIBS)
 else
 TESTFILES := $(TESTNAMES)
+LIBS := $(LD_LINK_LIBS_ALG)
 endif
 
 CODE_FILES := $(addsuffix .cpp, $(TESTFILES))
@@ -57,7 +59,6 @@ endif
 
 .PHONY: all 
 all:  $(OBJECTS)
-	echo $(OBJECTS)
 
 # create dependencies from include directives
 %.dep: %.cpp
@@ -68,7 +69,7 @@ CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS) $(myflags)
 
 # some default rules
 %$(EXEEXT): %.cpp libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT) libsdbutils.$(LIBEXT)
-	g++ -o $@ $< $(CCFLAGS) $(LD_LINK_LIBS_ALG) 
+	g++ -o $@ $< $(CCFLAGS) $(LIBS) 
 
 %$(EXEEXT): %.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $< $(LD_LINK_LIBS)
