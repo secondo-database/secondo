@@ -2,6 +2,8 @@
 #
 # SECONDO Makefile
 #
+# $Log$
+#
 ########################################################################
 
 include makefile.env
@@ -39,8 +41,6 @@ else
 SMILIB=$(BDBSMILIB)
 endif
 
-# communicate variables to the sub-makes
-export
 
 .PHONY: all
 all: makedirs buildlibs buildapps
@@ -112,6 +112,24 @@ buildapps:
 .PHONY: tests
 tests: buildlibs
 	$(MAKE) -C Tests
+
+
+# rules for deployment of source files
+# default value for cvs tag 
+ifndef tag
+tag=HEAD
+endif
+
+.PHONY: save_sources
+save_sources: secondo.tgz
+
+secondo.tgz:
+	cvs export -r$(tag) secondo
+	tar -cvf secondo.tar secondo/*
+	rm -r secondo
+	mv secondo.tar secondo
+	gzip -S .tgz secondo
+
 
 #.PHONY: install
 #install:
