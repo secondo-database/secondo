@@ -4,6 +4,10 @@
 #
 ########################################################################
 
+CP := cp
+RM := rm
+CC := gcc
+
 OCIDLLHOME=$(ORACLEHOME)/bin
 BDB_BUILD_DIR=/usr/local/db-4.1.25/build_win32
 
