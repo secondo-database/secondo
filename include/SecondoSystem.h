@@ -26,6 +26,9 @@ August 2002, Ulrich Telle. Added methods to set and get the current algebra leve
 
 April 29 2003, F. Hoffmann. Added save and restore commands for single objects.
 
+April 2004 Hoffmann Changed some implementation details, so that the list databases 
+command is available under Windows XP.
+
 May 2004, M. Spiekermann. Function ~SaveDatabase~ was modified to left out derived objects.
 
 1.1 Overview
