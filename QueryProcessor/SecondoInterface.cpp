@@ -937,6 +937,9 @@ If value 0 is returned, the command was executed without error.
         else
         {
           StartCommand();
+
+	  cout << "Analyze query ..." << endl;
+
           SecondoSystem::GetQueryProcessor()->
             Construct( level, nl->Second( list ), correct, evaluable, defined, 
                        isFunction, tree, resultType );
@@ -948,7 +951,9 @@ If value 0 is returned, the command was executed without error.
           {
             if ( evaluable )
             {
-              SecondoSystem::GetQueryProcessor()->
+              cout << "Execute ..." << endl;
+
+	      SecondoSystem::GetQueryProcessor()->
                 Eval( tree, result, 1 );
               valueList = SecondoSystem::GetCatalog( level )->
                             OutObject( resultType, result );
