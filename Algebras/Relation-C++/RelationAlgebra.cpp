@@ -5590,7 +5590,7 @@ Word DummyClone(const Word& w) { return SetWord( Address(0) ); };
 
 TypeConstructor cpptuple( "tuple",           TupleProp,
                           OutTuple,          InTuple,		
-                          0,                 0,
+                          SaveToListTuple,   RestoreFromListTuple,
                           CreateTuple,       DummyDelete,       
                           0,                 0,
                           DummyClose,        DummyClone,
@@ -5607,7 +5607,6 @@ class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
-
 TypeConstructor cpprel( "rel",          RelProp,
                         OutRel,         InRel,   	
                         0,              0,

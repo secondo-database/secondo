@@ -88,7 +88,12 @@ string ReportTupleStatistics();
 
 ListExpr OutTuple (ListExpr, Word);
 
+ListExpr SaveToListTuple (ListExpr, Word);
+
 Word InTuple(ListExpr typeInfo, ListExpr value,
+          int errorPos, ListExpr& errorInfo, bool& correct);
+
+Word RestoreFromListTuple(ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct);
 
 void DeleteTuple(Word&);
@@ -168,9 +173,14 @@ class CcRel
 
 ListExpr OutRel(ListExpr, Word);
 
+ListExpr SaveToListRel(ListExpr, Word);
+
 Word CreateRel(const ListExpr);
 
 Word InRel(ListExpr, ListExpr,
+          int, ListExpr&, bool&);
+
+Word RestoreFromListRel(ListExpr, ListExpr,
           int, ListExpr&, bool&);
 
 void DeleteRel(Word&);

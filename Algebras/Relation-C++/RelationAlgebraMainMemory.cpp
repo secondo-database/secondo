@@ -277,8 +277,10 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
     attrlist = nl->Rest(attrlist);
     algebraId = nl->IntValue(nl->First(nl->Second(first)));
     typeId = nl->IntValue(nl->Second(nl->Second(first)));
-    valuelist = (algM->SaveToListObj(algebraId, typeId))(nl->Rest(first),
+
+    valuelist = (algM->OutObj(algebraId, typeId))(nl->Rest(first),
                   SetWord(tupleptr->Get(attrno)));
+
     attrno++;
     if (l == nl->TheEmptyList())
     {
@@ -290,6 +292,52 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
   }
   return l;
 }
+/*
+
+1.3.2 ~SaveToList~-function of type constructor ~tuple~
+
+The ~SaveToList~-function of type constructor ~tuple~ takes as inputs a type
+description (~typeInfo~) of the tuples attribute structure in nested list
+format and a pointer to a tuple value, stored in main memory.
+The function returns the tuple value from main memory storage
+in nested list format. The difference between this function and the ~Out~-
+function is that it uses an internal structure and does not make correctness
+tests. 
+
+*/
+ListExpr SaveToListTuple (ListExpr typeInfo, Word  value)
+{
+  int attrno, algebraId, typeId;
+  ListExpr l, lastElem, attrlist, first, valuelist;
+  CcTuple* tupleptr;
+
+  tupleptr = (CcTuple*)value.addr;
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+  attrlist = nl->Second(nl->First(typeInfo));
+  attrno = 0;
+  l = nl->TheEmptyList();
+  while (!nl->IsEmpty(attrlist))
+  {
+    first = nl->First(attrlist);
+    attrlist = nl->Rest(attrlist);
+    algebraId = nl->IntValue(nl->First(nl->Second(first)));
+    typeId = nl->IntValue(nl->Second(nl->Second(first)));
+
+    valuelist = (algM->SaveToListObj(algebraId, typeId))(nl->Rest(first),
+                  SetWord(tupleptr->Get(attrno)));
+
+    attrno++;
+    if (l == nl->TheEmptyList())
+    {
+      l = nl->Cons(valuelist, nl->TheEmptyList());
+      lastElem = l;
+    }
+    else
+      lastElem = nl->Append(lastElem, valuelist);
+  }
+  return l;
+}
+
 /*
 
 1.3.2 ~In~-function of type constructor ~tuple~
@@ -378,8 +426,10 @@ Word InTuple(ListExpr typeInfo, ListExpr value,
       {
         firstvalue = nl->First(valuelist);
         valuelist = nl->Rest(valuelist);
-        attr = (algM->RestoreFromListObj(algebraId, typeId))(nl->Rest(first),
+
+        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
                  firstvalue, attrno, errorInfo, valueCorrect);
+
         if (valueCorrect)
         {
           correct = true;
@@ -425,6 +475,60 @@ Word InTuple(ListExpr typeInfo, ListExpr value,
   tupleaddr->SetNoAttrs(noOfAttrs);
   return (SetWord(tupleaddr));
 }
+
+/*
+
+1.3.2 ~In~-function of type constructor ~tuple~
+
+The ~in~-function of type constructor ~tuple~ takes as inputs a type
+description (~typeInfo~) of the tuples attribute structure in nested
+list format and the tuple value in nested list format. The function
+returns a pointer to a tuple value, stored in main memory in accordance to
+the tuple value in nested list format. The difference between this function 
+and the ~In~-function is that it uses an internal structure and does not 
+make correctness tests.
+
+*/
+Word RestoreFromListTuple(ListExpr typeInfo, ListExpr value,
+                          int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  int  attrno, algebraId, typeId, noOfAttrs;
+  Word attr;
+  CcTuple* tupleaddr;
+  bool valueCorrect;
+  ListExpr first, firstvalue, valuelist, attrlist;
+
+  attrno = 0;
+  noOfAttrs = 0;
+  tupleaddr = new CcTuple();
+
+  attrlist =  nl->Second(nl->First(typeInfo));
+  valuelist = value;
+  correct = true;
+
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+  while (!nl->IsEmpty(attrlist))
+  {
+    first = nl->First(attrlist);
+    attrlist = nl->Rest(attrlist);
+    attrno++;
+    algebraId = nl->IntValue(nl->First(nl->Second(first)));
+    typeId = nl->IntValue(nl->Second(nl->Second(first)));
+
+    firstvalue = nl->First(valuelist);
+    valuelist = nl->Rest(valuelist);
+
+    attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
+            firstvalue, attrno, errorInfo, valueCorrect);
+
+    assert(valueCorrect);
+    tupleaddr->Put(attrno - 1, (Attribute*)attr.addr);
+    noOfAttrs++;
+  }
+  tupleaddr->SetNoAttrs(noOfAttrs);
+  return (SetWord(tupleaddr));
+}
+
 /*
 
 1.3.4 ~Destroy~-function of type constructor ~tuple~
@@ -775,7 +879,9 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
   {
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
 	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+
     tlist = OutTuple(TupleTypeInfo, SetWord(t));
+
     if (l == nl->TheEmptyList())
     {
       l = nl->Cons(tlist, nl->TheEmptyList());
@@ -787,6 +893,42 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
   return l;
   delete rit;
 }
+
+/*
+
+1.4.2 ~SaveToList~-function of type constructor ~rel~
+
+*/
+ListExpr SaveToListRel(ListExpr typeInfo, Word value)
+{
+  CcTuple* t;
+  ListExpr l, lastElem, tlist, TupleTypeInfo;
+
+  CcRel* r = (CcRel*)(value.addr);
+
+  CcRelIT* rit = r->MakeNewScan();
+  l = nl->TheEmptyList();
+
+  //cerr << "OutRel " << endl;
+  while ( (t = rit->GetNextTuple()) != 0 )
+  {
+    TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
+          nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+
+    tlist = SaveToListTuple(TupleTypeInfo, SetWord(t));
+
+    if (l == nl->TheEmptyList())
+    {
+      l = nl->Cons(tlist, nl->TheEmptyList());
+      lastElem = l;
+    }
+    else
+      lastElem = nl->Append(lastElem, tlist);
+  }
+  return l;
+  delete rit;
+}
+
 /*
 
 1.3.3 ~Create~-function of type constructor ~rel~
@@ -878,6 +1020,49 @@ Word InRel(ListExpr typeInfo, ListExpr value,
     return (SetWord((void*)rel));
   }
 }
+/*
+
+1.4.2 ~RestoreFromList~-function of type constructor ~rel~
+
+*/
+Word RestoreFromListRel(ListExpr typeInfo, ListExpr value,
+                        int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  ListExpr tuplelist, TupleTypeInfo, first;
+  CcRel* rel;
+  CcTuple* tupleaddr;
+  int tupleno, count;
+  bool tupleCorrect;
+
+  correct = true;
+  count = 0;
+  rel = new CcRel();
+
+  //cerr << "InRel " << endl;
+  tuplelist = value;
+  TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
+    nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+  tupleno = 0;
+
+  // increase tupleno
+  while (!nl->IsEmpty(tuplelist))
+  {
+    first = nl->First(tuplelist);
+    tuplelist = nl->Rest(tuplelist);
+    tupleno++;
+    tupleaddr = (CcTuple*)(RestoreFromListTuple(TupleTypeInfo, first, tupleno,
+                                                 errorInfo, tupleCorrect).addr);
+
+    assert(tupleCorrect);
+    tupleaddr->SetFree(false);
+    rel->AppendTuple(tupleaddr);
+    count++;
+  }
+  rel->SetNoTuples(count);
+  return (SetWord((void*)rel));
+}
+
+
 /*
 
 1.3.4 ~Destroy~-function of type constructor ~rel~
@@ -1027,7 +1212,7 @@ OpenRel( SmiRecord& valueRecord,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = InRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct); 
+  value = RestoreFromListRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct); 
 
   cache[current++] = value;
   if ( current == cachesize ) current = 0;
@@ -1049,7 +1234,7 @@ SaveRel( SmiRecord& valueRecord,
   string valueString;
   int valueLength;
 
-  valueList = OutRel( nl->First(typeInfo), value );
+  valueList = SaveToListRel( nl->First(typeInfo), value );
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();
@@ -1061,6 +1246,7 @@ SaveRel( SmiRecord& valueRecord,
   nl->Destroy( valueList );
   return (true);
 }
+
 /*
 
 3.2.5 ~Model~-functions of type constructor ~rel~
