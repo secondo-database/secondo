@@ -1796,7 +1796,6 @@ bool Interval<Alpha>::IsValid()
   {
     return rc && lc;
   }
-
   return true;
 }
 
@@ -3388,8 +3387,14 @@ void MPoint::Get( const int i, UPoint& unit )
 
 void MPoint::Add( UPoint& unit )
 {
-  assert( unit.IsValid() );
-  units.Append( unit );
+    //assert( unit.IsValid() );
+    if (unit.IsValid())
+	units.Append( unit );
+    else 
+    {	
+	    cout<<"Invalid time interval found, please check!"<<endl;
+	    assert( false );
+    }
 }
 
 void MPoint::Clear()

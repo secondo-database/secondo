@@ -121,7 +121,8 @@ InInstant( ListExpr typeInfo, ListExpr value,
     {
 	if ((nl->IsAtom(nl->First(value)))&&
 	    (nl->AtomType(nl->First(value)) == SymbolType)&&
-	    (nl->SymbolValue(nl->First(value))=="instant"))
+	    ((nl->SymbolValue(nl->First(value))=="instant")||
+	     (nl->SymbolValue(nl->First(value))=="datetime")))
 	{
 	    instantValue=nl->Second(value);
 	}
