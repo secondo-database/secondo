@@ -61,22 +61,28 @@ elements of type ~T~.
 
 */
 
-#ifndef PARRAY_H
-#define PARRAY_H
+#ifndef PAGED_ARRAY_H
+#define PAGED_ARRAY_H
 
 #include <iostream> 
+#include <strstream> 
+#include <fstream> 
 #include <cassert>
-#include "SecondoSMI.h"
 #include <vector>
+#include <map>
+
+#include "SecondoSMI.h"
 
 typedef unsigned long Cardinal;
+
+extern unsigned int FileCtr;  // quick and dirty!, sorry
 
 template<class T>
 class PagedArray
 {
  public:
 
-  PagedArray( SmiRecordFile *parrays );
+  PagedArray( SmiRecordFile *parrays, bool logon=false );
 
 /*
 Creates creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
@@ -143,35 +149,76 @@ Returns the identifier of this array.
 
 */
 
- int PageChanges() {  
-     int swap = pageChangeCounter; 
-     pageChangeCounter=0;    
+ unsigned long PageChanges() {  
+     unsigned long swap = log.pageChangeCounter; 
+     log.pageChangeCounter=0;    
      return swap; 
  }
 
+  unsigned long SlotAccess() {  
+     unsigned long swap = log.slotAccessCounter; 
+     log.slotAccessCounter=0;    
+     return swap; 
+ }
+
+
+
  private:
 
-  void GetSlot( Cardinal const index, int &slot );
-  // Loads another record if neccessary and calculates a slot number inside a record
+  
+  static const int MAX_PAGE_FRAMES = 4;
+
+  // the next method loads another record if neccessary and calculates a slot number inside a record
+  inline void GetSlot( Cardinal const index, int &slot );
 
   bool writeable;
+  bool canDelete;
  
   SmiRecord record;
   SmiRecordId recid;
  
-  Cardinal size;
- 
-  int recordSize;
-  int slotSize;
-  int slotsPerRecord;
-  int currentPage;
-  int pageChangeCounter; 
- 
-  vector<SmiRecordId> recidVec;
-  T *pageBufPtr;  
-
-  bool canDelete;
   SmiRecordFile *parrays;
+  vector<SmiRecordId> recidVec;
+
+  Cardinal size;
+  Cardinal maxPageNo;
+  
+  map<int, T*> pageTable;
+  map<int, T*>::iterator it, frameChangeIter; 
+
+  Cardinal frameTable[MAX_PAGE_FRAMES];
+
+  typedef struct {
+    
+    int size;
+    int slotSize;
+    int slots;
+
+  } PageRecordInfo;
+
+  typedef struct {
+
+    int no;
+    int nextFrame; 
+    T *bufPtr; 
+  
+  } PageInfo;
+ 
+  PageInfo currentPage;
+  PageRecordInfo pageRecord;
+  
+
+  typedef struct {
+
+    bool switchedOn;
+    ofstream *filePtr;
+    strstream fileName;
+    unsigned long pageChangeCounter; 
+    unsigned long slotAccessCounter;
+
+  }  LogInfo;
+
+  LogInfo log;
 
 };
 
@@ -181,7 +228,7 @@ Returns the identifier of this array.
 
 Version: 0.7
 
-August 2002 RHG
+August 2003 M. Spiekermann 
 
 2.1 Overview
 
@@ -190,27 +237,47 @@ SecondoSMI interface.
 
 */
 
+
 template<class T>
-PagedArray<T>::PagedArray( SmiRecordFile *parrays ) :
+PagedArray<T>::PagedArray( SmiRecordFile *parrays, bool logOn /*=false*/ ) :
 writeable( true ),
-size( 0 ),
-pageChangeCounter( 0 ),
 canDelete( false ),
-parrays( parrays )
+parrays( parrays ),
+size( 0 )
 {
-  assert( parrays->AppendRecord( recid, record ) );
-  assert( recordSize = parrays->GetRecordLength() );
+  log.switchedOn = logOn;
 
-  slotSize = sizeof(T);
-  slotsPerRecord =  recordSize/slotSize;
-  //cerr << "PagedArray() slotsPerRecord: " << slotsPerRecord;
-  
-  pageBufPtr = new T[slotsPerRecord];
-  recidVec.push_back(recid);
-  //cerr << "PagedArray() recidVec: " << recidVec.size() << endl;
+  log.pageChangeCounter = 0;
+  log.slotAccessCounter = 0;
 
-  currentPage = 0;
-  size = slotsPerRecord;
+  maxPageNo = 0;
+
+  pageRecord.size = parrays->GetRecordLength();
+  pageRecord.slotSize = sizeof(T);
+  pageRecord.slots =  pageRecord.size / pageRecord.slotSize;
+
+  for (int i=0; i < MAX_PAGE_FRAMES; i++) {
+
+    assert( parrays->AppendRecord( recid, record ) );
+    record.Finish();
+    pageTable[i] =  new T[ pageRecord.slots ];
+    frameTable[i] = i;
+    recidVec.push_back( recid );
+    maxPageNo++;
+  }
+  size = MAX_PAGE_FRAMES * pageRecord.slots;
+
+  currentPage.no = 0;
+  currentPage.bufPtr = pageTable[0];
+  currentPage.nextFrame = 0;  
+
+  if ( log.switchedOn ) {
+
+    FileCtr++;
+    log.fileName << "PagedArray_" << FileCtr << "_" << pageRecord.slots << ".log" << ends; 
+    log.filePtr = new ofstream( log.fileName.str() );  
+  }
+
 }
 
 /*
@@ -230,9 +297,19 @@ parrays( parrays )
 template<class T>
 PagedArray<T>::~PagedArray()
 {
-  record.Write( pageBufPtr, recordSize, 0);
-  record.Finish();
-  delete [] pageBufPtr;
+  for (it = pageTable.begin(); it != pageTable.end(); it++) {
+     
+     recid = recidVec[ it->first ];
+     record.Finish();
+     assert( parrays->SelectRecord(recid, record, SmiFile::Update) );
+     record.Write( it->second, pageRecord.size, 0);
+     
+     delete [] it->second;
+  }
+
+  if ( log.switchedOn ) {
+    delete log.filePtr;
+  }
 /*
   if ( canDelete ) 
   {
@@ -245,30 +322,92 @@ PagedArray<T>::~PagedArray()
 */
 }
 
+/*
+The function below calculates the page number which holds a specific array
+index and determines if this page is still in the memory buffer or if one
+of the pages in memory has to be substituted by a page on disk.
+*/
+
 template< class T>
 void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
 {
   static int pageNo = 0;
-  
-  pageNo=index/slotsPerRecord;
-  
-  if ( pageNo != currentPage) {
+  bool pageChange = false;
+ 
 
-     record.Write( pageBufPtr, recordSize, 0);
+  /* enlarge the array if necessary */ 
+  if (index >= size) {
+    
+     assert( parrays->AppendRecord( recid, record ) );
+     recidVec.push_back(recid);
+     maxPageNo++;
+     size = size + pageRecord.slots;
+  } 
+
+  /* calculate page number */
+  pageNo = index / pageRecord.slots;
+  
+  if (currentPage.no != pageNo ) {
+
+  it = pageTable.find( pageNo );
+
+  if ( it == pageTable.end() ) { /* substitute memory buffer */
+
+     frameChangeIter = pageTable.find( frameTable[ currentPage.nextFrame ] );
+
+     T* bufPtr = frameChangeIter->second;
+     int removePageNo = frameChangeIter->first;
+ 
+     recid = recidVec[ removePageNo ];
      record.Finish();
-     recid = recidVec[pageNo];
-     currentPage = pageNo;
      assert( parrays->SelectRecord(recid, record, SmiFile::Update) );
-     record.Read( pageBufPtr, recordSize, 0 );
 
-     pageChangeCounter++;
-  }  
+     record.Write( bufPtr, pageRecord.size, 0);
+     
+     recid = recidVec[ pageNo ];
+     record.Finish();
+     assert( parrays->SelectRecord(recid, record, SmiFile::Update) );
+     record.Read( bufPtr, pageRecord.size, 0 );
+    
+     pageTable[pageNo] = bufPtr; 
+     pageTable.erase(frameChangeIter);
+     frameTable[currentPage.nextFrame] = pageNo;
+
+     currentPage.bufPtr = bufPtr;
+     currentPage.no = pageNo;
+
+     if ( log.switchedOn ) {
+       *(log.filePtr) << index << " | PageChange: " << frameChangeIter->first << " -> " << pageNo; 
+       pageChange = true;
+       log.pageChangeCounter++;
+     }
   
-  slot = index - (currentPage * slotsPerRecord);
+     currentPage.nextFrame++;
+     if (  currentPage.nextFrame == MAX_PAGE_FRAMES ) {
+        currentPage.nextFrame = 0;
+     }
+     /*  Note: A cyclic move inside the buffers cannot be implemented with an iterator for
+      *  the map elements since the insert and erase method will corrupt this iterator       
+      */
+ 
+  } else { /* update page number and page frame address */
+
+     currentPage.no = pageNo;
+     currentPage.bufPtr = it->second; 
+  }
+
+  }
+
+  slot = index - (currentPage.no * pageRecord.slots);
+  assert ( slot >= 0 && slot < pageRecord.slots);
   
-  //cerr << "GetSlot - pageNo/slotsPerRecord - index/slot: " 
-  //     << pageNo << "/" << slotsPerRecord << " - " << index << "/" << slot << endl; 
-  assert ( slot >= 0 && slot < slotsPerRecord );
+  if ( log.switchedOn ) {
+     log.slotAccessCounter++;
+     if ( pageChange ) {
+        *(log.filePtr) << " | " << pageNo << "/" << slot << endl; 
+     }
+  }
+
 }
 
 
@@ -276,25 +415,13 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
 template<class T>
 void PagedArray<T>::Put(Cardinal const index, T& elem)
 {
-  static int slot=0;
+  static int slot = 0;
 
   assert ( writeable );
-  assert ( index < size+slotsPerRecord );
-
-  if (index >= size) {
-    
-     record.Write( pageBufPtr, recordSize, 0);
-     record.Finish();
-     assert( parrays->AppendRecord( recid, record ) );
-     recidVec.push_back(recid);
-     currentPage++;
-     size = size + slotsPerRecord;
-  } 
+  assert ( index <= size );
 
   GetSlot(index, slot);
-
-  pageBufPtr[slot] = elem;
-  //record.Write( &elem, slotSize, slot*slotSize );
+  currentPage.bufPtr[slot] = elem;
 }
 
 
@@ -302,12 +429,11 @@ template<class T>
 void PagedArray<T>::Get(Cardinal const index, T& elem)
 {
   static int slot = 0;
+  
   assert ( 0 <= index && index < size );
   
   GetSlot(index, slot); 
-
-  elem = pageBufPtr[slot];
-  //record.Read(&elem, slotSize, slot*slotSize);
+  elem = currentPage.bufPtr[slot];
 }
 
 template<class T>
