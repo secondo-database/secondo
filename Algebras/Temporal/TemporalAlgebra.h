@@ -1054,8 +1054,8 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
       Instant t0=timeInterval.start;
       Instant t1=timeInterval.end;
       
-      double x = ((x1 - x0) * (t.ToDouble() - t0.ToDouble())) / (t1.ToDouble() - t0.ToDouble()) + x0;
-      double y = ((y1 - y0) * (t.ToDouble() - t0.ToDouble())) / (t1.ToDouble() - t0.ToDouble()) + y0;
+      double x = (x1 - x0) * ((t - t0) / (t1 - t0)) + x0;
+      double y = (y1 - y0) * ((t - t0) / (t1 - t0)) + y0;
       
       result.Set( x, y );
       return true;
@@ -3633,9 +3633,9 @@ int MPoint::Position( const Instant& t )
 	if (midUPoint.timeInterval.Contains(t1)) 
 	    return mid;
 	else  //not contained 
-	    if( t1.ToDouble() >= midUPoint.timeInterval.end.ToDouble() )
+	    if (( t1> midUPoint.timeInterval.end ) || ( t1== midUPoint.timeInterval.end ))
 		first = mid + 1;
-	else if( t1.ToDouble() <= midUPoint.timeInterval.start.ToDouble() )
+	else if (( t1 < midUPoint.timeInterval.start ) || ( t1 == midUPoint.timeInterval.start ))
 	    last = mid - 1;
 	else  return -1; //should never reached.
     }
@@ -3840,16 +3840,16 @@ int MInt::Position( const Instant& t )
     
     ConstTemporalUnit<CcInt> midUInt;
     units.Get( mid, midUInt );
-    if( t1.ToDouble() > midUInt.timeInterval.end.ToDouble() )
-      first = mid + 1;
-    else if( t1.ToDouble() < midUInt.timeInterval.start.ToDouble() )
-      last = mid - 1;
-    else  // (midUPoint.begin <= t <= midUPoint.end)
-    {
-	  if (midUInt.timeInterval.Contains(t1)) 
-	      return mid;
-	  else return -1;
-     }
+    
+    if (midUInt.timeInterval.Contains(t1)) 
+	return mid;
+    else  //not contained 
+	if (( t1> midUInt.timeInterval.end ) || ( t1== midUInt.timeInterval.end ))
+	    first = mid + 1;
+    else if (( t1 < midUInt.timeInterval.start ) || ( t1 == midUInt.timeInterval.start ))
+	last = mid - 1;
+    else  return -1; //should never reached.
+	
    }
    return -1;
 }
@@ -4213,30 +4213,29 @@ bool MReal::IsValid()
 
 int MReal::Position( const Instant& t ) 
 {
-  assert( IsOrdered() && t.IsDefined() );
+    assert( IsOrdered() && t.IsDefined() );
   
-  int first = 0, last = units.Size();
-  Instant t1=t;
+    int first = 0, last = units.Size();
+    Instant t1=t;
   
-  while (first <= last)
-  {
-    int mid = ( first + last ) / 2;
-    if ((mid<0)||(mid>=units.Size())) return -1;
-    
-    UReal midUReal;
-    units.Get( mid, midUReal );
-    if( t1.ToDouble() > midUReal.timeInterval.end.ToDouble() )
-      first = mid + 1;
-    else if( t1.ToDouble() < midUReal.timeInterval.start.ToDouble() )
-      last = mid - 1;
-    else  // midUPoint.begin <= t <= midUPoint.end
+    while (first <= last)
     {
-	  if (midUReal.timeInterval.Contains(t1)) 
-	      return mid;
-	  else return -1;
-     }
-   }
-   return -1;
+	int mid = ( first + last ) / 2;
+	if ((mid<0)||(mid>=units.Size())) return -1;
+    
+	UReal midUReal;
+	units.Get( mid, midUReal );
+   
+	if (midUReal.timeInterval.Contains(t1)) 
+	    return mid;
+	else  //not contained 
+	    if (( t1> midUReal.timeInterval.end ) || ( t1== midUReal.timeInterval.end ))
+		first = mid + 1;
+	else if (( t1 < midUReal.timeInterval.start ) || ( t1 == midUReal.timeInterval.start ))
+	    last = mid - 1;
+	else  return -1; //should never reached.
+    }
+    return -1;
 }
 
 bool MReal::TemporalFunction( Instant& t, CcReal& result )
