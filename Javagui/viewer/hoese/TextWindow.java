@@ -46,8 +46,6 @@ public class TextWindow extends JPanel {
     setLayout(new BorderLayout());
 
     QueryCombo = new JComboBox(new DefaultComboBoxModel());
-
-
     QueryCombo.setMaximumSize(new Dimension(200, 300));
     setMinimumSize(new Dimension(100, 100));
     QueryScrollPane = new JScrollPane();
@@ -88,7 +86,31 @@ public class TextWindow extends JPanel {
              search();
         }
     });
-  }
+ }
+ 
+ 
+ public void ensureSelectedIndexIsVisible(){
+   QueryResult qr = (QueryResult) QueryCombo.getSelectedItem();
+   if(qr==null)
+      return;
+   int Pos = qr.getSelectedIndex();
+   if(Pos>=0){
+      int h = QueryScrollPane.getSize().height;
+      int fh = qr.getFont().getSize();
+      int rows = h/(fh+4); // ca. number of visible rows (+4 = gap between rows)
+      rows = rows/2 -1;  // the rows under and above from Pos;
+      int Count = qr.getModel().getSize();
+      if(Pos<rows)
+         qr.ensureIndexIsVisible(Pos);
+      else if(Pos+rows>Count)
+         qr.ensureIndexIsVisible(Count);
+      else{
+         qr.ensureIndexIsVisible(Pos-rows);
+         qr.ensureIndexIsVisible(Pos+rows);
+      }
+   }   
+ }
+ 
 
 
  private void search(){
@@ -349,6 +371,7 @@ public class TextWindow extends JPanel {
 
 
 }
+
 
 
 
