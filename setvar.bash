@@ -52,7 +52,7 @@ fi
 #########################################################
 
 
-#export SECONDO_CONFIG="$1/bin/SecondoConfig.ini"
+export SECONDO_CONFIG="$1/bin/SecondoConfig.ini"
 
 export CVSROOT=":pserver:$CVSUSER@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
 
