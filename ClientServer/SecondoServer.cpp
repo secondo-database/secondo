@@ -64,7 +64,7 @@ typedef void (SecondoServer::*ExecCommand)();
 class SecondoServer : public Application
 {
  public:
-  SecondoServer( const int argc, const char** argv ) : Application( argc, argv ) {};
+  SecondoServer( const int argc, const char** argv ) : Application( argc, argv, false ) {};
   virtual ~SecondoServer() {};
   int Execute();
   void CallSecondo();

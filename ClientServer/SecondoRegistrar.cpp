@@ -44,7 +44,7 @@ typedef void (SecondoRegistrar::*ExecCommand)();
 class SecondoRegistrar : public Application
 {
  public:
-  SecondoRegistrar( const int argc, const char** argv ) : Application( argc, argv ) {};
+  SecondoRegistrar( const int argc, const char** argv ) : Application( argc, argv, false ) {};
   virtual ~SecondoRegistrar() {};
   int Execute();
   bool AbortOnSignal( int sig );

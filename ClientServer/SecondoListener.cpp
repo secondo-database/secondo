@@ -42,7 +42,7 @@ const int EXIT_LISTENER_FAIL     = 5;
 class SecondoListener : public Application
 {
  public:
-  SecondoListener( const int argc, const char** argv ) : Application( argc, argv ) {};
+  SecondoListener( const int argc, const char** argv ) : Application( argc, argv, false ) {};
   virtual ~SecondoListener() {};
   int  Execute();
   bool ClientAllowed();

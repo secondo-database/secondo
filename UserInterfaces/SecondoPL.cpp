@@ -51,6 +51,7 @@ using namespace std;
 #include "SecondoInterface.h"
 #include "Profiles.h"
 #include "LogMsg.h"
+#include "License.h"
 
 SecondoInterface* si = 0;
 NestedList* plnl = 0;
@@ -551,6 +552,8 @@ int registerSecondo(){
 int
 main(int argc, char **argv)
 {
+  cout << License::getStr() << endl;
+
   char* configFile;
 
   atexit(handle_exit);

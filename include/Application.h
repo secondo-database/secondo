@@ -121,7 +121,7 @@ This class provides an application framework.
 class SDB_EXPORT Application
 {
  public:
-  Application( int argc, const char **argv );
+  Application( int argc, const char **argv, const bool showLicense = true );
 /*
 Creates and initializes the ~Application~ object.
 

@@ -56,7 +56,7 @@ const int EXIT_CHECKPOINT_FAIL  = 3;
 class SecondoCheckpoint : public Application
 {
  public:
-  SecondoCheckpoint( const int argc, const char** argv ) : Application( argc, argv ) {};
+  SecondoCheckpoint( const int argc, const char** argv ) : Application( argc, argv, false ) {};
   virtual ~SecondoCheckpoint() {};
   int  Execute();
  private:
