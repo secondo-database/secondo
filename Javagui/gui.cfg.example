@@ -14,6 +14,11 @@ START_CONNECTION true
 # default is the directory over Javagui
 #SECONDO_HOME_DIR = /home/behr/secondo
 
+# if debug mode is set to false additional debug messages
+# from parser are not printed
+# valid values are true and false
+PARSER_DEBUG_MODE false
+
 
 # set directory for load/save objects 
 # if you want to change the standard

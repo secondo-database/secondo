@@ -260,6 +260,15 @@ public MainWindow(String Title){
         }
    }
 
+   String Parser_Debug_Mode = Config.getProperty("PARSER_DEBUG_MODE");
+   if(Parser_Debug_Mode!=null){
+      Parser_Debug_Mode = Parser_Debug_Mode.toLowerCase().trim();
+      if(Parser_Debug_Mode.equals("false"))
+         sj.lang.ListExpr.setDebugMode(false);
+      else
+         sj.lang.ListExpr.setDebugMode(true);
+   }
+
 
    String FS = System.getProperty("file.separator");
    if(FS==null){
@@ -513,7 +522,7 @@ public boolean execGuiCommand(String command){
         else{
            ComPanel.appendText("this is not a SecondoViewer");
            success=false;
-        }   
+        }
      }catch(Exception e){
         ComPanel.appendText("cannot load viewer:"+ViewerName+"\n");
         success=false;
