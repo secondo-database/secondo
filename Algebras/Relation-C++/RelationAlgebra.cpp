@@ -1541,15 +1541,19 @@ static ListExpr FeedTypeMap(ListExpr args)
 static int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
- CcRel* r;
- CcRelIT* rit;
+  CcRel* r;
+  CcRelIT* rit;
+  Word argRelation;
+
 
   switch (message)
   {
     case OPEN :
 
-      //cout << "Feed OPEN " << endl;
-      r = ((CcRel*)args[0].addr);
+	//cout << "Feed OPEN " << endl;
+
+      qp->Request(args[0].addr, argRelation);
+      r = ((CcRel*)argRelation.addr);
       rit = r->MakeNewScan();
 
       local.addr = rit;
@@ -1557,7 +1561,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST :
 
-      //cout << "Feed REQUEST " << endl;
+	//cout << "Feed REQUEST " << endl;
+
       rit = (CcRelIT*)local.addr;
       if (!(rit->EndOfScan()))
       {
@@ -1574,7 +1579,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
       rit = (CcRelIT*)local.addr;
       delete rit;
-      //cout << "Feed CLOSE " << endl;
+
+	//cout << "Feed CLOSE " << endl;
+
       return 0;
   }
   return 0;
@@ -1643,7 +1650,8 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   Word actual;
   CcRel* rel;
 
-  //cout << "Consume " << endl;
+	//cout << "consume starts" << endl;
+
   rel = (CcRel*)((qp->ResultStorage(s)).addr);
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
@@ -1659,6 +1667,9 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   result = SetWord((void*) rel);
 
   qp->Close(args[0].addr);
+
+	//cout << "consume finishes" << endl;
+
   return 0;
 }
 /*
@@ -1848,13 +1859,15 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case OPEN:
 
-      //cout << "TFilter OPEN " << endl;
+	//cout << "tfilter OPEN " << endl;
+
       qp->Open (args[0].addr);
       return 0;
 
     case REQUEST:
 
-      //cout << "TFilter REQUEST " << endl;
+	//cout << "tfilter REQUEST " << endl;
+
       funargs = qp->Argument(args[1].addr);
       qp->Request(args[0].addr, elem);
       found = false;
@@ -1883,7 +1896,8 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
 
-      //cout << "TFilter CLOSE " << endl;
+	//cout << "tfilter CLOSE " << endl;
+
       qp->Close(args[0].addr);
       return 0;
   }
@@ -2006,7 +2020,7 @@ ListExpr ProjectTypeMap(ListExpr args)
 static int
 Project(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem1, elem2;
+  Word elem1, elem2, arg2;
   int noOfAttrs, index;
   Supplier son;
   Attribute* attr;
@@ -2017,17 +2031,24 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
 
+	//cout << "project OPEN" << endl;
+
+
       qp->Open(args[0].addr);
       return 0;
 
     case REQUEST :
+
+	//cout << "project REQUEST" << endl;
 
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
         t = new CcTuple();
         t->SetFree(true);
-        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
+
+	qp->Request(args[2].addr, arg2);
+        noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
         t->SetNoAttrs(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
@@ -2044,6 +2065,8 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
       else return CANCEL;
 
     case CLOSE :
+
+	//cout << "project CLOSE" << endl;
 
       qp->Close(args[0].addr);
       return 0;
@@ -2443,6 +2466,8 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   Word elem;
   int count = 0;
 
+  cout << "tcount" << endl;
+
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   while ( qp->Received(args[0].addr) )
@@ -2816,17 +2841,27 @@ static int
 Head(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   int maxTuples;
+  Word maxTuplesWord;
   Word tupleWord;
   CcTuple* tuple;
 
   switch(message)
   {
     case OPEN:
+
+	//cout << "head OPEN" << endl;
+
       qp->Open(args[0].addr);
       local.ival = 0;
       return 0;
+
     case REQUEST:
-      maxTuples = (int)((StandardAttribute*)args[1].addr)->GetValue();
+
+	//cout << "head REQUEST" << endl;
+
+      qp->Request(args[1].addr, maxTuplesWord);
+
+      maxTuples = (int)((StandardAttribute*)maxTuplesWord.addr)->GetValue();
       if(local.ival >= maxTuples)
       {
         return CANCEL;
@@ -2845,6 +2880,9 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
       }
     case CLOSE:
+
+	//cout << "head CLOSE" << endl;
+
       qp->Close(args[0].addr);
       return 0;
   }
