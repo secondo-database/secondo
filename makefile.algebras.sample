@@ -81,8 +81,8 @@ ALGEBRAS     +=	BinaryFileAlgebra
 ALGEBRA_DIRS +=	Temporal
 ALGEBRAS     +=	TemporalAlgebra
 
-#ALGEBRA_DIRS +=	DateTime
-#ALGEBRAS     +=	DateTimeAlgebra
+ALGEBRA_DIRS +=	DateTime
+ALGEBRAS     +=	DateTimeAlgebra
 
 
 #ALGEBRA_DIRS += MP3
