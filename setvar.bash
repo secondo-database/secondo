@@ -27,13 +27,18 @@ export SECONDO_PLATFORM="win32"
 
 export SECONDO_BUILD_DIR="$1"
 
-export SECONDO_CONFIG="$HOME/SecBase/secondo/bin/MyConfig.ini"
+export SECONDO_CONFIG="/SecBase/secondo/bin/MyConfig.ini"
 
 export BERKELEY_DB_DIR="/usr/local/db-4.0.14"
 
-export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin"
+if [ $SECONDO_PLATFORM != "win32" ]; then
+   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin"
+   export LD_LIBRARY_PATH="$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib"
+else
+   # windows looks for dlls in the directories included in the PATH variable
+   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin:$SECONDO_BUILD_DIR/lib"	
+fi
 
-export LD_LIBRARY_PATH="$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib"
 
 export CVSROOT=":pserver:spieker@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
 
