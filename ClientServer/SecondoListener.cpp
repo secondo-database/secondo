@@ -105,7 +105,7 @@ SecondoListener::Execute()
           int pidServer;
           string pgmArgs = string( "\"" ) + parmFile + "\""; 
           if ( !ProcessFactory::SpawnProcess( server, pgmArgs,
-                                              pidServer, false, client ) )
+                                              pidServer, true, client ) )
           {
             // --- Start of server failed
             iostream& ss = client->GetSocketStream();
