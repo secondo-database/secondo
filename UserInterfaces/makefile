@@ -11,10 +11,14 @@ include ../makefile.$(platform)
 
 APPLOBJECTS=\
 	SecondoTTY.o \
-	DisplayTTY.o
+	DisplayTTY.o \
+	SecondoTestFrame.o
 
 APPLICATIONS=\
-	$(BINDIR)/SecondoTTYCS$(EXEEXT)
+	$(BINDIR)/SecondoTTYCS$(EXEEXT) \
+	$(BINDIR)/SecondoTestBDB
+
+TUPLEMANDIR = $(BUILDDIR)/Tools/TupleManager
 
 .PHONY: all
 all: $(APPLOBJECTS)
@@ -30,6 +34,8 @@ CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
 CCXFLAGS= $(DEFAULTCCFLAGS)
 
 # --- User Interface Applications
+SecondoTestFrame.o: SecondoTestFrame.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/DisplayTTY.h
+		$(CC) -c -o SecondoTestFrame.o SecondoTestFrame.cpp $(CCXFLAGS)
 
 SecondoTTY.o: SecondoTTY.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/NestedList.h $(INCLUDEDIR)/DisplayTTY.h
 	$(CC) -c -o SecondoTTY.o SecondoTTY.cpp $(CCXFLAGS)
@@ -38,6 +44,10 @@ DisplayTTY.o: DisplayTTY.cpp $(INCLUDEDIR)/DisplayTTY.h $(INCLUDEDIR)/SecondoInt
 	$(CC) -c -o DisplayTTY.o DisplayTTY.cpp $(CCXFLAGS)
 
 # --- Link applications
+
+$(BINDIR)/SecondoTestBDB$(EXEEXT): SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT) SecondoTestFrame.o $(TUPLEMANDIR)/Tuple.o
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTestBDB$(EXEEXT) SecondoTestFrame.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(TUPLEMANDIR)/FLOB.o $(TUPLEMANDIR)/Tuple.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+
 
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTTYBDB$(EXEEXT) SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
