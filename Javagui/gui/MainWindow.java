@@ -609,13 +609,13 @@ private void updateRelationList(){
 	      while(!TupleList.isEmpty()){
 	         String AttrName = TupleList.first().first().symbolValue();
 	         MI_Attr = RelMenu.add(AttrName);
-	         MI_Attr.setActionCommand("optimizer updateIndex "+RelName.toLowerCase()+" "+AttrName.toLowerCase());
+	         MI_Attr.setActionCommand("updateIndex "+RelName.toLowerCase()+" "+AttrName.toLowerCase());
 	         MI_Attr.addActionListener(new ActionListener(){
 	              public void actionPerformed(ActionEvent evt){
                          JMenuItem Btn = (JMenuItem) evt.getSource();
  	  	         String command = Btn.getActionCommand();
 		         String res = ComPanel.sendToOptimizer(command);
-		         ComPanel.appendText("\n"+command);
+		         ComPanel.appendText("\noptimizer "+command);
 		         if(res ==null)
 		             ComPanel.appendText("...failed");
 		         else
