@@ -11,7 +11,7 @@ public class fTriangle implements SimpleObject{
 
 /**
  * creates a new fTriangle
- * noch check whether this results a valid triangle
+ * no check whether this results a valid triangle
  * @param BP1,BP2,BP3 the location of this Triangle
  * @param Z1,Z2,Z3 the degrees of fuzziness in the cornerpoints
  */
@@ -32,8 +32,41 @@ CP_3 = (BasicPoint) fEPs[2].basic();
 this.Z1 = fEPs[0].getZ();
 this.Z2 = fEPs[1].getZ();
 this.Z3 = fEPs[2].getZ();
+}
+
+/* create a triabgle from 3 fuzzy points */
+public fTriangle(fEPoint P1,fEPoint P2,fEPoint P3){
+  fEPoint[] fEPs = new fEPoint[3];
+  fEPs[0] = P1;
+  fEPs[1] = P2;
+  fEPs[2] = P3;
+  fEPoint.sort(fEPs);
+CP_1 = (BasicPoint) fEPs[0].basic();
+CP_2 = (BasicPoint) fEPs[1].basic();
+CP_3 = (BasicPoint) fEPs[2].basic();
+this.Z1 = fEPs[0].getZ();
+this.Z2 = fEPs[1].getZ();
+this.Z3 = fEPs[2].getZ();
+
 
 }
+
+
+/* get the first corner point */
+public fEPoint getP1(){
+  return new fEPoint(CP_1,Z1);
+}
+
+/* gte the second cornerpoint */
+public fEPoint getP2(){
+  return new fEPoint(CP_2,Z2);
+}
+
+/* get the last corner point */
+public fEPoint getP3(){
+  return new fEPoint(CP_3,Z3);
+}
+
 
 /**
  * creates a new fTriangle

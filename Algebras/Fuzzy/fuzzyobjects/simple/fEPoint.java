@@ -21,6 +21,16 @@ public fEPoint(BasicPoint BP, double Z){
   this.Z  = Z;
 }
 
+/** get the x value of this point */
+public int getX(){
+   return BP.getX();
+}
+
+/** get the y value of this point */
+public int getY(){
+    return BP.getY();
+}
+
 /**
  * creates a new FEPoint
  * no Check of vadility

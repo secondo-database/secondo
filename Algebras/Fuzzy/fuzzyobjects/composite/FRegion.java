@@ -24,6 +24,23 @@ protected BoundingBox  BB = new BoundingBox();
 /** returns the bounding box of this region */
 public BoundingBox getBoundingBox(){ return BB; }
 
+/** returns the number of containing triangles */
+public int getSize(){
+  return fTs.getSize();
+}
+
+/** returns the triangle at given position */
+public fTriangle getTriangleAt(int index){
+  if(index<0 || index >=fTs.getSize())
+     return null;
+  return (fTriangle) fTs.get(index);
+}
+
+/* remove all containibng triangles */
+public void clear(){
+   fTs.makeEmpty();
+}
+
 /** computes the boundinmg box of this region */
 private void computeBoundingBox(){
 if(fTs.isEmpty())

@@ -26,7 +26,27 @@ SortedObjects getSortedObjects(){
   return fSeg;
 }
 
+/** remove all conataing segments */
+public void clear(){
+  fSeg.makeEmpty();
+}
 
+
+/** returns the number of containing fuzzy segments */
+public int getSize(){
+   return fSeg.getSize();
+}
+
+
+/* retuns the fuzzy segment at position index,
+   if this object not exists null is returned
+ */
+public fSegment getSegmentAt(int index){
+  if(index<0 || index>=fSeg.getSize())
+     return null;
+  return (fSegment) fSeg.get(index);
+} 
+ 
 
 /** the bounding box */
 protected BoundingBox BB = new BoundingBox();

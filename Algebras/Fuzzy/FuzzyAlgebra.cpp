@@ -3,7 +3,7 @@
 
 [1] Fuzzy Algebra
 
-2003-06-10 Thomas Behr 
+2003-06-10 Thomas Behr
 
 This class provides three datatypes CcFPoint, CcFLine and CcFRegion
 and a lot of operators. The datatypes are described in
@@ -38,14 +38,15 @@ static JVMInitializer *jvminit=0;
 static JNIEnv *env;
 static JavaVM *jvm;
 
-
+static jclass PointCls;
+static jclass SimplePointCls;
 
 /*
 1.2 Error Function.
 
 Prints a short message and the line number of an occurred error
 referring to problems with JNI to stderr.
-If this function is invoked please check your local installation of 
+If this function is invoked please check your local installation of
 the Java Development Kit (JDK).
 */
 
@@ -55,7 +56,7 @@ static void error(int line) {
   exit(1);
 }
 
-/* 
+/*
  2.
    The wrapper classes. The follow three classes are implemented in
    java programming language. The C++ function invoke the corresponding
@@ -98,7 +99,7 @@ public:
    CcFPoint* Union(CcFPoint* P);
 private:
   jclass cls;  // pointer to the corresponding java class Point.
-  jobject obj; // pointer to the corresponding instance 
+  jobject obj; // pointer to the corresponding instance
   bool defined;
 };
 
@@ -215,11 +216,11 @@ CcFPoint::CcFPoint() {
   jmethodID mid;
 
   /* Find the class Point. */
-  cls = env->FindClass("fuzzyobjects/composite/FPoint");  
+  cls = env->FindClass("fuzzyobjects/composite/FPoint");
   if (cls == 0) {
     error(__LINE__);
   }
-  
+
   /* Get the method ID of the constructor which takes no parameters. */
   mid = env->GetMethodID(cls, "<init>", "()V");
   if (mid == 0) {
@@ -248,7 +249,7 @@ CcFPoint::CcFPoint(const jobject jobj){
 
 /* Destructor of a CcFPoint. Deletes the corresponding java object. */ 
 CcFPoint::~CcFPoint(){
-  env->DeleteLocalRef(obj);		
+  env->DeleteLocalRef(obj);
 }
 
 /* returns the jobject to manage */
@@ -485,50 +486,216 @@ CcFLine::~CcFLine(){
   env->DeleteLocalRef(obj);
 }
 
+
+/* Convert simple elementary objects from and to lists */
+/* convert a fuzzy elementary point to ListExpr,
+   no check wether p is really a FPoint */
+static ListExpr fEPointToListExpr(jobject FEP){
+     jclass fepclass = env->GetObjectClass(FEP);
+     jmethodID mid = env->GetMethodID(fepclass,"getX","()I");
+     if(mid==0) error(__LINE__);
+     int x = env->CallIntMethod(FEP,mid);
+     mid = env->GetMethodID(fepclass,"getY","()I");
+     int y = env->CallIntMethod(FEP,mid);
+     mid = env->GetMethodID(fepclass,"getZ","()D");
+     float z =(float) env->CallDoubleMethod(FEP,mid);
+     return nl->ThreeElemList( nl->IntAtom(x), nl->IntAtom(y),nl->RealAtom(z));
+}
+
+/* read a FEPoint from a ListExpr,
+   if LE is not a valid representation of a fepoint then null is returned*/
+static jobject ListExprTofEPoint(ListExpr &LE){
+   if( (nl->ListLength(LE))!=3)
+      return 0;
+   ListExpr a1 = nl->First(LE);
+   ListExpr a2 = nl->Second(LE);
+   ListExpr a3 = nl->Third(LE);
+   int x,y;
+   double z;
+   if(nl->AtomType(a1)!=IntType)
+      return 0;
+   x = nl->IntValue(a1);
+   if(nl->AtomType(a2)!=IntType)
+      return 0;
+   y =(nl->IntValue(a2));
+   if(nl->AtomType(a3)!=RealType)
+      return 0;
+   z = (nl->RealValue(a3));
+   jclass cls = env->FindClass("fuzzyobjects/simple/fEPoint");
+   if(cls==0) error(__LINE__);
+   jmethodID mid = env->GetMethodID(cls,"<init>","(IID)V");
+   if(mid==0) error(__LINE__);
+   jobject res= env->NewObject(cls,mid,x,y,z);
+   if(res==0) error(__LINE__);
+   return res;
+}
+
+/** returns the list representation for a given fuzzy segment */
+static ListExpr FSegmentToListExpr(jobject obj){
+  jclass cls = env->GetObjectClass(obj);
+  jmethodID mid1 = env->GetMethodID(cls,"getP1","()Lfuzzyobjects/simple/fEPoint;");
+  if(mid1==0) error(__LINE__);
+  jmethodID mid2 = env->GetMethodID(cls,"getP2","()Lfuzzyobjects/simple/fEPoint;");
+  if(mid2==0) error(__LINE__);
+  jobject P1 = env->CallObjectMethod(obj,mid1);
+  jobject P2 = env->CallObjectMethod(obj,mid2);
+  ListExpr res = nl->TwoElemList( fEPointToListExpr(P1),fEPointToListExpr(P2));
+  return res;
+}
+
+/** convert a ListExpr to a fuzzy segment,
+    if the given ListExpr is not a valid representation of a 
+    fuzzy segment, then null is returned */
+static jobject ListExprToFSegment(ListExpr LE){
+  if(nl->ListLength(LE)!=2)
+    return 0;
+  jclass cls = env->FindClass("fuzzyobjects/simple/fSegment");
+  if(cls==0) error(__LINE__);
+  jmethodID mid = env->GetMethodID(cls,"<init>","(Lfuzzyobjects/simple/fEPoint;Lfuzzyobjects/simple/fEPoint;)V");
+  if(mid==0) error(__LINE__);
+  ListExpr P1L = nl->First(LE);
+  jobject P1 = ListExprTofEPoint(P1L);
+  if(P1==0) return 0;
+  ListExpr P2L = nl->Second(LE);
+  jobject P2 = ListExprTofEPoint(P2L);
+  if(P2==0) return 0;
+  return env->NewObject(cls,mid,P1,P2);
+}
+
+/** convert a ListExpr to a fuzzy triangle,
+    if the given ListExpr is not a valid representation of a 
+    fuzzy triangle, then null is returned */
+static jobject ListExprToFTriangle(ListExpr LE){
+  if(nl->ListLength(LE)!=3)
+    return 0;
+  jclass cls = env->FindClass("fuzzyobjects/simple/fTriangle");
+  if(cls==0) error(__LINE__);
+  jmethodID mid = env->GetMethodID(cls,"<init>","(Lfuzzyobjects/simple/fEPoint;Lfuzzyobjects/simple/fEPoint;Lfuzzyobjects/simple/fEPoint;)V");
+  if(mid==0) error(__LINE__);
+  ListExpr P1L = nl->First(LE);
+  jobject P1 = ListExprTofEPoint(P1L);
+  if(P1==0) return 0;
+  ListExpr P2L = nl->Second(LE);
+  jobject P2 = ListExprTofEPoint(P2L);
+  if(P2==0) return 0;
+  ListExpr P3L = nl->Third(LE);
+  jobject P3 = ListExprTofEPoint(P3L);
+  if(P3==0) return 0; 
+  return env->NewObject(cls,mid,P1,P2,P3);
+}
+
+/** returns the list representation for a given fuzzy segment */
+static ListExpr FTriangleToListExpr(jobject obj){
+  jclass cls = env->GetObjectClass(obj);
+  jmethodID mid1 = env->GetMethodID(cls,"getP1","()Lfuzzyobjects/simple/fEPoint;");
+  if(mid1==0) error(__LINE__);
+  jmethodID mid2 = env->GetMethodID(cls,"getP2","()Lfuzzyobjects/simple/fEPoint;");
+  if(mid2==0) error(__LINE__);
+  jmethodID mid3 = env->GetMethodID(cls,"getP3","()Lfuzzyobjects/simple/fEPoint;");
+  jobject P1 = env->CallObjectMethod(obj,mid1);
+  jobject P2 = env->CallObjectMethod(obj,mid2);
+  jobject P3 = env->CallObjectMethod(obj,mid3);
+  ListExpr res = nl->ThreeElemList( fEPointToListExpr(P1),fEPointToListExpr(P2),fEPointToListExpr(P3));
+  return res;
+}
+
+
 /* convert the CcFLine to ListExpr */
 ListExpr CcFLine::toListExpr(){
+ /*
+   // the old implementation using java conversion 
    jmethodID mid;
    char* jnlstr;
    jstring jnljstr;
    string cppstr;
    ListExpr le;
    bool success;
-
    mid=env->GetMethodID(cls,"toListString","()Ljava/lang/String;");
    if(mid==0) error(__LINE__);
-   
    jnljstr =(jstring) env->CallObjectMethod(obj,mid);
    if(jnljstr==0) error(__LINE__);
-   
    jnlstr=(char *)env->GetStringUTFChars(jnljstr,0);
    if(jnlstr==0) error(__LINE__);
-   
    cppstr=jnlstr;
-
    success=nl->ReadFromString(cppstr,le);
    if(!success) error(__LINE__);
-    
    return le; 
-}
+ */
+  // the new cpp implementation
+   jmethodID mid;
+   mid = env->GetMethodID(cls,"getSF","()D");
+   if(mid==0) error(__LINE__);
+   float Z = (float) env->CallDoubleMethod(obj,mid);
+
+   mid = env->GetMethodID(cls,"getSize","()I");
+   if(mid==0) error(__LINE__);
+   int size = env->CallIntMethod(obj,mid);
+
+   mid = env->GetMethodID(cls,"getSegmentAt","(I)Lfuzzyobjects/simple/fSegment;");
+   if(mid==0) error(__LINE__);
+
+   ListExpr Segments;
+   ListExpr Last;
+   if(size==0)
+      Segments = nl->TheEmptyList();
+   else{
+      jobject S = env->CallObjectMethod(obj,mid,0);
+      if(S==0) error(__LINE__);
+      Segments = nl->OneElemList(FSegmentToListExpr(S));
+      Last = Segments;
+   }
+   jobject NextSegment;
+   for(int i=1;i<size;i++){
+       NextSegment = env->CallObjectMethod(obj,mid,i);
+       if(NextSegment==0) error(__LINE__);
+       Last = nl->Append(Last,FSegmentToListExpr(NextSegment));
+  }
+   return nl->TwoElemList(nl->RealAtom(Z),Segments);
+  }
 
 /* read the CcFLine from given ListExpr */
 bool CcFLine::readFromListExpr(ListExpr LE){
-   string nlstr;
-   jstring jstr;
-   jmethodID mid;
-   char* nlchar;
-   
-   if(!(nl->WriteToString(nlstr,LE))) error(__LINE__);
+  if (nl->ListLength(LE)!=2){  // error  (scaledfactor <Segmentlist>)
+     return false;
+  }
+  ListExpr Factor = nl->First(LE);
+  ListExpr Segments = nl->Second(LE);
+  if(nl->AtomType(Factor)!=RealType){
+      return false;
+  }
+  double z = nl->RealValue(Factor);
+  // remove all objects from the Fline
+  jmethodID mid = env->GetMethodID(cls,"clear","()V");
+  if(mid==0) error(__LINE__);
+  env->CallVoidMethod(obj,mid);  
+  
+  // set the factor
+  mid = env->GetMethodID(cls,"setSF","(D)Z");
+  if(mid==0) error(__LINE__);
+  bool ok = env->CallBooleanMethod(obj,mid,z);
 
-   nlchar = (char *)nlstr.c_str();
-   jstr = env->NewStringUTF(nlchar);
-   if(jstr==0) error(__LINE__);
-
-   mid=env->GetMethodID(cls,"readFromListString","(Ljava/lang/String;)Z");
-   if(mid==0) error(__LINE__);
-
-   return env->CallBooleanMethod(obj,mid,jstr);
+  // add the Objects
+  mid = env->GetMethodID(cls,"add","(Lfuzzyobjects/simple/fSegment;)Z");
+  if(mid==0) error(__LINE__);
+  jobject NextSegment;
+  ListExpr SL;  // list for a single segment
+  int count =0;
+  while(ok & !nl->IsEmpty(Segments)){
+        SL = nl->First(Segments);
+        NextSegment = ListExprToFSegment(SL);
+	count++;
+	if(NextSegment==0){
+	    ok = false;
+	}
+	else{
+	   ok = env->CallBooleanMethod(obj,mid,NextSegment);
+	}
+	Segments = nl->Rest(Segments);
+    }
+  return ok;
 }
+
+
 
 /* returns the java obkject from this cpp class */
 jobject CcFLine::GetObject(){
@@ -634,7 +801,7 @@ CcFLine* CcFLine::Intersection(CcFLine* L){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,L->obj);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 
@@ -653,7 +820,7 @@ double CcFLine::Length3D(){
 double CcFLine::Length(){
    jmethodID mid = env->GetMethodID(cls,"length","()D");
    if(mid==0) error(__LINE__);
-   return env->CallDoubleMethod(obj,mid); 
+   return env->CallDoubleMethod(obj,mid);
 }
 
 double CcFLine::MaxValue(){
@@ -790,49 +957,78 @@ CcFRegion::~CcFRegion(){
 
 /*transform to a ListExpr*/
 ListExpr CcFRegion::toListExpr(){
-  jmethodID mid;
-  char* jnlstr;
-  jstring jnljstr;
-  string cppstr;
-  ListExpr le;
-  bool success;
-  
-  mid = env->GetMethodID(cls,"toListString","()Ljava/lang/String;");
-  if(mid==0) error(__LINE__);
+   jmethodID mid;
+   mid = env->GetMethodID(cls,"getSF","()D");
+   if(mid==0) error(__LINE__);
+   float Z = (float) env->CallDoubleMethod(obj,mid);
 
-  jnljstr = (jstring) env->CallObjectMethod(obj,mid);
-  if(jnljstr==0) error(__LINE__);
+   mid = env->GetMethodID(cls,"getSize","()I");
+   if(mid==0) error(__LINE__);
+   int size = env->CallIntMethod(obj,mid);
 
-  /* get the c string */
-  jnlstr = (char *)env->GetStringUTFChars(jnljstr,0);
-  if(jnlstr==0) error(__LINE__);
-  
-  cppstr = jnlstr;
+   mid = env->GetMethodID(cls,"getTriangleAt","(I)Lfuzzyobjects/simple/fTriangle;");
+   if(mid==0) error(__LINE__);
 
-  success = nl->ReadFromString(cppstr,le);
-  if(!success) error(__LINE__);
+   ListExpr Triangles;
+   ListExpr Last;
+   if(size==0)
+      Triangles = nl->TheEmptyList();
+   else{
+      jobject T = env->CallObjectMethod(obj,mid,0);
+      if(T==0) error(__LINE__);
+      Triangles = nl->OneElemList(FTriangleToListExpr(T));
+      Last = Triangles;
+   }
+   jobject NextTriangle;
+   for(int i=1;i<size;i++){
+       NextTriangle = env->CallObjectMethod(obj,mid,i);
+       if(NextTriangle==0) error(__LINE__);
+       Last = nl->Append(Last,FTriangleToListExpr(NextTriangle));
+  }
+   return nl->TwoElemList(nl->RealAtom(Z),Triangles);
 
-  return le;
 }
 
 /* reads a CcFRegion from a given ListExpr*/
 bool CcFRegion::readFromListExpr(ListExpr LE){
-  string nlstr;
-  jstring jstr;
-  jmethodID mid;
-  char* nlchar;
-  
-  if(nl->WriteToString(nlstr,LE)==false) error(__LINE__);
-
-  nlchar = (char *)nlstr.c_str();
-  jstr = env->NewStringUTF(nlchar);
-  if(jstr==0) error(__LINE__);
-
-  mid = env->GetMethodID(cls,"readFromListString","(Ljava/lang/String;)Z");
+  if (nl->ListLength(LE)!=2){  // error  (scaledfactor <Trianglelist>)
+     return false;
+  }
+  ListExpr Factor = nl->First(LE);
+  ListExpr Triangles = nl->Second(LE);
+  if(nl->AtomType(Factor)!=RealType){
+      return false;
+  }
+  double z = nl->RealValue(Factor);
+  // remove all objects from the FRegion
+  jmethodID mid = env->GetMethodID(cls,"clear","()V");
   if(mid==0) error(__LINE__);
+  env->CallVoidMethod(obj,mid);  
+  
+  // set the factor
+  mid = env->GetMethodID(cls,"setSF","(D)Z");
+  if(mid==0) error(__LINE__);
+  bool ok = env->CallBooleanMethod(obj,mid,z);
 
-  bool success= env->CallBooleanMethod(obj,mid,jstr);
-  return success;
+  // add the Objects
+  mid = env->GetMethodID(cls,"add","(Lfuzzyobjects/simple/fTriangle;)Z");
+  if(mid==0) error(__LINE__);
+  jobject NextTriangle;
+  ListExpr TL;  // list for a single triangle
+  int count =0;
+  while(ok & !nl->IsEmpty(Triangles)){
+        TL = nl->First(Triangles);
+        NextTriangle = ListExprToFTriangle(TL);
+	count++;
+	if(NextTriangle==0){
+	    ok = false;
+	}
+	else{
+	   ok = env->CallBooleanMethod(obj,mid,NextTriangle);
+	}
+	Triangles = nl->Rest(Triangles);
+    }
+  return ok;
 }
 
 /* get the java object */
@@ -899,7 +1095,7 @@ double CcFRegion::BasicArea(){
   jmethodID mid = env->GetMethodID(cls,"basicArea","()D");
   if(mid==0) error(__LINE__);
   jdouble d = env->CallDoubleMethod(obj,mid);
-  return d; 
+  return d;
 }
 
 double CcFRegion::BasicSimilar(const CcFRegion* R){
@@ -1106,11 +1302,13 @@ CcFRegion* CcFRegion::Union(CcFRegion* R){
 /* static functions to define typeconstructors and operators */
 
 
+
 /* get the list representation of a FPoint */
 static ListExpr OutFPoint( ListExpr typeInfo, Word value ){
+/*
+   // use java function
   CcFPoint* ccfpoint;
   ccfpoint = (CcFPoint*)(value.addr);
-
   jclass cls;
   jmethodID mid;
   char* jnlstr;
@@ -1127,8 +1325,8 @@ static ListExpr OutFPoint( ListExpr typeInfo, Word value ){
 
   jnljstr = (jstring) env->CallObjectMethod(ccfpoint->GetObject(),mid);
   if(jnljstr==0) error(__LINE__);
-  
-  /* Get the c string of above java string */
+
+  // Get the c string of above java string
   jnlstr = (char *)env->GetStringUTFChars(jnljstr, 0);
   if (jnlstr == 0) error(__LINE__);
 
@@ -1138,15 +1336,57 @@ static ListExpr OutFPoint( ListExpr typeInfo, Word value ){
 
   if(success==false) error(__LINE__);
   return le;
+*/
+
+  // converting in c++
+
+  CcFPoint* ccfpoint;
+  ccfpoint = (CcFPoint*)(value.addr);
+  jmethodID mid = env->GetMethodID(PointCls,"getSize","()I");
+  if(mid==0) error(__LINE__);
+
+  jobject obj = ccfpoint->GetObject();
+
+  int size = env->CallIntMethod(obj,mid);
+
+  mid = env->GetMethodID(PointCls,"getSF","()D");
+  if(mid==0) error(__LINE__);
+  float z = env->CallDoubleMethod(obj,mid);
+
+  mid = env->GetMethodID(PointCls,"getPointAt","(I)Lfuzzyobjects/simple/fEPoint;");
+  if(mid==0) error(__LINE__);
+
+   ListExpr Points;
+   ListExpr Last;
+
+   if(size==0)
+      Points = nl->TheEmptyList();
+   else{
+      jobject p = env->CallObjectMethod(obj,mid,0);
+      if(p==0) error(__LINE__);
+      Points = nl->OneElemList(fEPointToListExpr(p));
+      Last = Points;
+   }
+   jobject NextPoint;
+   for(int i=1;i<size;i++){
+       NextPoint = env->CallObjectMethod(obj,mid,i);
+       if(NextPoint==0) error(__LINE__);
+       Last = nl->Append(Last,fEPointToListExpr(NextPoint));
+  }
+   return nl->TwoElemList(nl->RealAtom(z),Points);
+  
 }
 
 
 
-static Word InFPoint (const ListExpr typeInfo, 
-		     const ListExpr instance, 
-		     const int errorPos, 
-		     ListExpr& errorInfo, 
+static Word InFPoint (const ListExpr typeInfo,
+		     const ListExpr instance,
+		     const int errorPos,
+		     ListExpr& errorInfo,
 		     bool& correct ) {
+
+/*
+  // a implementation using java function to convert
   CcFPoint* newfpoint;
   string  nlstr;
   jstring jstr;
@@ -1157,35 +1397,35 @@ static Word InFPoint (const ListExpr typeInfo,
   jboolean success;
   char* nlchar;
 
-  /* we need a string representation for the ListExpr instance */
+  // we need a string representation for the ListExpr instance
   if(nl->WriteToString(nlstr,instance)==false)
     error(__LINE__);
 
   nlchar = (char *)nlstr.c_str();
- 
+
   jstr = env->NewStringUTF(nlchar);
   if (jstr == 0) error(__LINE__);
 
 
-  /* Find the class FPoint. */
-  cls = env->FindClass("fuzzyobjects/composite/FPoint");  
+  // Find the class FPoint.
+  cls = env->FindClass("fuzzyobjects/composite/FPoint");
   if (cls == 0) {
     error(__LINE__);
   }
 
-  /* Get the method ID of the constructor which takes no parameters. */
+  // Get the method ID of the constructor which takes no parameters.
   cons = env->GetMethodID(cls, "<init>", "()V");
   if (cons == 0) {
     error(__LINE__);
   }
 
-  /* Create a Java-object FPoint. */
+  // Create a Java-object FPoint.
   jfpoint = env->NewObject(cls, cons);
   if (jfpoint == 0) {
     error(__LINE__);
-  }  
+  }
 
-  /* get the method id to read in a FPoint from a String */
+  // get the method id to read in a FPoint from a String
   mid = env->GetMethodID(cls,"readFromListString","(Ljava/lang/String;)Z");
   if(mid==0) error(__LINE__);
 
@@ -1193,14 +1433,81 @@ static Word InFPoint (const ListExpr typeInfo,
 
   if(success==false){
      // destroy the fpoint
-     env->DeleteLocalRef(jfpoint);		
+     env->DeleteLocalRef(jfpoint);
      correct = false;
      return SetWord(Address(0));
   } else{
     correct=true;
-    newfpoint = new CcFPoint(jfpoint); 
+    newfpoint = new CcFPoint(jfpoint);
     return SetWord(newfpoint);
   }
+
+*/  
+
+// converting in  cpp
+  if (nl->ListLength(instance)!=2){  // error
+     return SetWord(Address(0));
+     correct = false;
+  }
+
+  ListExpr Factor = nl->First(instance);
+  ListExpr Points = nl->Second(instance);
+ 
+ if(nl->AtomType(Factor)!=RealType){
+       correct=false;
+       return SetWord(Address(0));
+  }
+  double z = nl->RealValue(Factor);
+
+  // create a new FPoint
+  jmethodID mid = env->GetMethodID(PointCls,"<init>","()V");
+  if(mid==0) error(__LINE__);
+  jobject FP = env->NewObject(PointCls,mid);
+  if(FP==0) error(__LINE__);
+  
+  mid = env->GetMethodID(PointCls,"setSF","(D)Z");
+  if(mid==0) error(__LINE__);
+  bool ok = env->CallBooleanMethod(FP,mid,z);
+   
+   cout<<"scalefactor is set to "<<z<<endl;
+   
+
+   mid = env->GetMethodID(PointCls,"add","(Lfuzzyobjects/simple/fEPoint;)Z");
+   if(mid==0) error(__LINE__);
+
+   cout<<"add methodid "<<mid<<endl;
+
+   jobject NextPoint;
+   ListExpr PL;  // list for a singe point
+   cout<<"start conversion of points "<<endl;
+   int count =0;
+   while(ok & !nl->IsEmpty(Points)){
+        PL = nl->First(Points);
+        NextPoint = ListExprTofEPoint(PL);
+	count++;
+	if(NextPoint==0){
+	    ok = false;
+	    cout <<"error in ListExprTofEPoint in object number :"<<count<<endl;
+	}
+	else{
+	   ok = env->CallBooleanMethod(FP,mid,NextPoint);
+	   if(!ok)
+	       cout<<"error in converting point no "<<count<<endl;
+	}
+	Points = nl->Rest(Points);
+    }
+
+
+    if(!ok){
+       env->DeleteLocalRef(FP);
+       correct=false;
+       return SetWord(Address(0));
+    } else{
+      cout<<"conversion successful"<<endl;
+      correct=true;
+      CcFPoint* newFPoint = new CcFPoint(FP);
+      return SetWord(newFPoint);
+    }
 }
 
 
@@ -2971,7 +3278,7 @@ Operator op_max_value_at
  3,
  MaxValueAtMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
+ fuzzySelect,			//trivial selection function
  FORealRealReal		//type mapping 
 );
 
@@ -3005,7 +3312,7 @@ Operator op_scaled_add
  3,
  ScaledAddMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
+ fuzzySelect,			//trivial selection function
  FOiFOiFOi		//type mapping 
 );
 
@@ -3160,6 +3467,12 @@ InitializeFuzzyAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   jvminit = new JVMInitializer();
   env = jvminit->getEnv();
   jvm = jvminit->getJVM();
+  PointCls = env->FindClass("fuzzyobjects/composite/FPoint");
+  SimplePointCls = env->FindClass("fuzzyobjects/simple/fEPoint");
+  if(PointCls==0) error(__LINE__);
+  if(SimplePointCls==0) error(__LINE__);
+
+
   nl = nlRef;
   qp = qpRef;
   return (&fuzzyAlgebra);

@@ -37,6 +37,18 @@ public boolean setSF(double SF){
 }
 
 
+/* returns the number of containing fuzzy elementary points */
+public int getSize(){
+   return feP.getSize();
+}
+
+public fEPoint getPointAt(int index){
+   if(index<0 || index >=feP.getSize())
+       return null;
+   else
+       return (fEPoint) feP.get(index);
+}
+
 /**
  * creates a new FPoint
  * whith given factor of scale
@@ -124,6 +136,7 @@ else{
  *         </ul>
  */
 public boolean add(fEPoint SP){
+
 boolean first = feP.isEmpty();
 boolean ok = feP.insert(SP.copy());
 if(ok) { // update bounding box
@@ -158,7 +171,23 @@ return ok;
  *         </ul>
  */
 public boolean update(fEPoint SP){
-   return feP.update(SP.copy());
+   if(feP.update(SP.copy())){
+     int minX = BB.getMinX();
+     int minY = BB.getMinY();
+     int maxX = BB.getMaxX();
+     int maxY = BB.getMaxY();
+     if(minX>SP.getMinX())
+        minX = SP.getMinX();
+     if(minY>SP.getMinY())
+        minY = SP.getMinY();
+     if(maxX<SP.getMaxX())
+        maxX = SP.getMaxX();
+     if(maxY<SP.getMaxY())
+        maxY = SP.getMaxY();
+     BB.setBox(minX,minY,maxX,maxY);
+     return true;
+   }
+   return false;
 }
 
 /**
@@ -1331,10 +1360,10 @@ public ListExpr toListExpr(){
   if(feP.getSize()==0)
      Points = ListExpr.theEmptyList();
   else {
-     Points = ListExpr.oneElemList(((fEPoint)feP.get(0)).toListExpr()); 
+     Points = ListExpr.oneElemList(((fEPoint)feP.get(0)).toListExpr());
      Last = Points;
   }
-  fEPoint NextPoint; 
+  fEPoint NextPoint;
   for(int i=1;i<feP.getSize();i++){
      NextPoint = (fEPoint) feP.get(i);
      Last=ListExpr.append(Last,NextPoint.toListExpr());
@@ -1354,7 +1383,7 @@ public ListExpr toTypedListExpr(){
 }
 
 
-/** read the FPoint from a String representation of a ListExpr 
+/** read the FPoint from a String representation of a ListExpr
   * @return true if List is a String of a ListExpr containing a correct FPoint
   */
 public boolean readFromListString(String List){
@@ -1363,7 +1392,7 @@ public boolean readFromListString(String List){
      return false;
   }
   else{
-     return readFromListExpr(LE); 
+     return readFromListExpr(LE);
  }
 }
 
@@ -1391,17 +1420,17 @@ public boolean readFromListExpr(ListExpr LE){
 
   ListExpr Points = LE.second();
   fEPoint P;
-  boolean ok = true; 
+  boolean ok = true;
   while( !Points.isEmpty() & ok) {
     P = new fEPoint(0,0,0);
-    
+
     if(P.readFromListExpr(Points.first())){
        add(P);
-       
+
        Points=Points.rest();
     }
     else{
-       
+
        ok = false;
     }
 

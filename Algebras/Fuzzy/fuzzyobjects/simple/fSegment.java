@@ -253,6 +253,15 @@ public boolean readFromListExpr(ListExpr LE){
   return true;
 }
 
+/* returns the first endpoint */
+public fEPoint getP1(){
+   return new fEPoint(EP_1,Z1);
+}
+
+/* returns the second endpoint */
+public fEPoint getP2(){
+   return new fEPoint(EP_2,Z2);
+}
 
 
 /** a BasicPoint */
