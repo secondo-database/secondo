@@ -127,6 +127,7 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 2.4 Functions Describing the Signature of the Type Constructors
 
 This one works for type constructors ~point~.
+
 */
 static ListExpr
 PointProperty()
@@ -172,6 +173,7 @@ ClonePoint( const Word& w )
  
 /*
 Function describing type property of type constructor ~rectangle~
+
 */
 
 static ListExpr
