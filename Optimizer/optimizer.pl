@@ -3243,12 +3243,14 @@ to a new object ~X~, using the optimizer.
 */
 
 sql Term :-
+  isDatabaseOpen,
   mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
 
 sql(Term, SecondoQueryRest) :-
+  isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
   concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
@@ -3256,6 +3258,7 @@ sql(Term, SecondoQueryRest) :-
   query(Query).
 
 let(X, Term) :-
+  isDatabaseOpen,
   mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
@@ -3263,6 +3266,7 @@ let(X, Term) :-
   secondo(Command).
 
 let(X, Term, SecondoQueryRest) :-
+  isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
   concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
