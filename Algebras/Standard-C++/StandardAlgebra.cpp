@@ -1,13 +1,15 @@
 /*
-\def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
-pace}
-\centerline{\LARGE \bf  Secondo Standardalgebra 1}
+//paragraph [1] Title:	[{\Large \bf ]	[}]
+
+[1] Secondo Standardalgebra
  
-\centerline{Friedhelm Becker , Nov. 1998}
+Friedhelm Becker, Nov. 1998
 
 August 16, 2000 RHG Changed includes to show dependencies more clearly.
 
 March 2002 Ulrich Telle Port to C++
+
+November 9, 2002 RHG Added operators ~randint~ and ~log~. Some other slight revisions.
  
 \begin{center}
 \footnotesize
@@ -64,8 +66,24 @@ Following operators are defined:
 
   * div (integer division) 
 
-----        int x int --> int
+----	int x int --> int
 ----
+
+  * randint
+
+----	int -> int
+----
+
+Computes a random integer within the range [0, arg-1]. The argument must be
+greater than 0. Otherwise it is set to 2.
+
+  * log
+
+----	int -> int
+----
+
+Computes the base 2 logarithm of the first argument (i.e., the integer part of
+it).	
 
   * \verb+<+ , \verb+>+ , =, \verb+<=+ , \verb+>=+ , \# 
 
@@ -110,6 +128,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include <iostream>
 #include <string>
+#include <math.h>
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
@@ -902,6 +921,33 @@ CcMathTypeMap1( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+
+
+
+
+
+/*
+4.2.x Type mapping function IntInt
+
+Used for operators ~randint~ and ~log~.
+
+*/
+
+static ListExpr
+IntInt( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( nl->IsEqual( arg1, "int" ) )
+      return (nl->SymbolAtom( "int" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+
 /*
 4.2.4 Type mapping function CcMathTypeMapBool
 
@@ -1003,6 +1049,10 @@ difference is that it doesn't return a type but the index of a value
 mapping function being able to deal with the respective combination of
 input parameter types.
 
+Note that a selection function does not need to check the correctness of
+argument types; it has already been checked by the type mapping function that it
+is applied to correct arguments.
+
 */
 
 /*
@@ -1029,23 +1079,17 @@ CcMathSelectCompute( ListExpr args )
 }
 
 /*
-4.3.2 Selection function  CcMathSelectCompute1
+4.3.2 Selection function SimpleSelect
 
-It is used for the  operators ~mod~ and ~div~ .
+Is used for all non-overloaded operators.
 
 */
 
 static int
-CcMathSelectCompute1( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  if ( TypeOfSymbol( arg1 ) == ccint )
-    return (0);
-  return (-1); // This point should never be reached
-}
+SimpleSelect( ListExpr args ) {return (0);}
 
 /*
-4.3.2 Selection function  CcMathSelectCompare
+4.3.3 Selection function  CcMathSelectCompare
 
 It is used for the  all compare operators .
 
@@ -1071,55 +1115,6 @@ CcMathSelectCompare( ListExpr args )
   return (-1); // This point should never be reached
 }
 
-/*
-4.3.2 Selection function  CcMathSelectBool1
-
-It is used for the  ~not~  operator .
-
-*/
-
-static int
-CcMathSelectBool1( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  if ( TypeOfSymbol( arg1 ) == ccbool )
-    return (0);
-  return (-1); // This point should never be reached
-}
-
-/*
-4.3.3 Selection function  CcMathSelectBool2
-
-It is used for the  ~and~ and ~or~  operators .
-
-*/
-
-static int
-CcMathSelectBool2( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == ccbool && TypeOfSymbol( arg2 ) == ccbool )
-    return (0);
-  return (-1); // This point should never be reached
-}
-
-/*
-4.3.3 Selection function  CcMathSelectBool3
-
-It is used for the  ~starts~ and ~contains~  operators .
-
-*/
-
-static int
-CcMathSelectBool3( ListExpr args )
-{
-  ListExpr arg1 = nl->First( args );
-  ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == ccstring && TypeOfSymbol( arg2 ) == ccstring )
-    return (0);
-  return (-1); // This point should never be reached
-}
 
 /*
 4.4 Value mapping functions of operator ~+~
@@ -1491,6 +1486,71 @@ CcDiv( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
+
+
+
+
+/*
+4.8 Value mapping function of operator ~randint~
+
+*/
+
+int randint(int u)    	//Computes a random integer in the range 0..u-1,
+			//for u >= 2
+{
+  int r = rand();
+  if ( u < 2 ) {u=2;}
+  return (r % u);
+}
+
+
+static int
+RandInt( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcInt*)args[0].addr)->IsDefined() )
+  {
+    ((CcInt *)result.addr)->
+      Set( true, randint(((CcInt*)args[0].addr)->GetIntval()) );
+  }
+  else
+  {
+    ((CcInt *)result.addr)->Set( false, 0 );
+  }
+  return (0);
+}
+
+
+/*
+4.8 Value mapping function of operator ~log~
+
+*/
+
+int intlog(int n)
+{
+  int i = 0;
+  while (n > 1) {n >>= 1; i++;}
+  return i;
+}
+
+
+static int
+LogFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcInt*)args[0].addr)->IsDefined() &&
+      ((CcInt*)args[0].addr)->GetIntval() )
+  {
+    int n = intlog(((CcInt*)args[0].addr)->GetIntval());
+    ((CcInt *)result.addr)-> Set( true, n );
+  }
+  else
+  {
+    ((CcInt *)result.addr)-> Set( false, 0 );
+  }
+  return (0);
+}
+
 
 /*
 4.9 Value mapping functions of operator  $ < $ 
@@ -2189,7 +2249,7 @@ CcDiff_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 static int
-CcStarts( Word* args, Word& result, int message, Word& local, Supplier s )
+StartsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcString*)args[0].addr)->IsDefined() &&
@@ -2218,7 +2278,7 @@ CcStarts( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 static int
-CcContains( Word* args, Word& result, int message, Word& local, Supplier s )
+ContainsFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcString*)args[0].addr)->IsDefined() &&
@@ -2246,7 +2306,7 @@ CcContains( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 static int
-CcNot( Word* args, Word& result, int message, Word& local, Supplier s )
+NotFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((CcBool*)args[0].addr)->IsDefined() )
@@ -2266,7 +2326,7 @@ CcNot( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 static int
-CcAnd( Word* args, Word& result, int message, Word& local, Supplier s )
+AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( (((CcBool*)args[0].addr)->IsDefined() &&
@@ -2300,7 +2360,7 @@ CcAnd( Word* args, Word& result, int message, Word& local, Supplier s )
 */
 
 static int
-CcOr( Word* args, Word& result, int message, Word& local, Supplier s )
+OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( (((CcBool*)args[0].addr)->IsDefined() &&
@@ -2425,8 +2485,10 @@ ValueMapping ccplusmap[] = { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr };
 ValueMapping ccminusmap[] = { CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr };
 ValueMapping ccproductmap[] = { CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr };
 ValueMapping ccdivisionmap[] = { CcDivision_ii, CcDivision_ir, CcDivision_ri, CcDivision_rr };
+
 ValueMapping ccmodmap[] = { CcMod };
 ValueMapping ccdivmap[] = { CcDiv };
+
 ValueMapping cclessmap[] = { CcLess_ii, CcLess_ir, CcLess_ri, CcLess_rr,
                              CcLess_bb, CcLess_ss};
 ValueMapping cclessequalmap[] = { CcLessEqual_ii, CcLessEqual_ir, CcLessEqual_ri,
@@ -2440,11 +2502,12 @@ ValueMapping ccequalmap[] = { CcEqual_ii, CcEqual_ir, CcEqual_ri, CcEqual_rr,
                               CcEqual_bb,  CcEqual_ss };
 ValueMapping ccdiffmap[] = { CcDiff_ii, CcDiff_ir, CcDiff_ri, CcDiff_rr,
                              CcDiff_bb, CcDiff_ss };
-ValueMapping ccstartsmap[] = { CcStarts };
-ValueMapping cccontainsmap[] = { CcContains };
-ValueMapping ccnotmap[] = { CcNot };
-ValueMapping ccandmap[] = { CcAnd };
-ValueMapping ccormap[] = { CcOr };
+
+ValueMapping ccstartsmap[] = { StartsFun };
+ValueMapping cccontainsmap[] = { ContainsFun };
+ValueMapping ccandmap[] = { AndFun };
+ValueMapping ccormap[] = { OrFun };
+ValueMapping ccnotmap[] = { NotFun };
 
 ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
@@ -2457,6 +2520,8 @@ const string CCSpecMul  = "(<text> (int int) -> int, (int real) -> real, (real i
 const string CCSpecDiv  = "(<text> (int int) -> real, (int real) -> real, (real int) -> real, (real real) -> real</text---><text> Division. </text--->)";
 const string CCSpecMod  = "(<text> (int int) -> int</text---><text> Modulo. </text--->)";
 const string CCSpecDiv2 = "(<text> (int int) -> int</text---><text> Integer Division. </text--->)";
+const string CCSpecRandInt  = "(<text> int -> int </text---><text> Returns a random integer between 0 and arg-1, for arg > 1.</text--->)";
+const string CCSpecLog  = "(<text> int -> int </text---><text> Returns (floor of) the base 2 logarithm of the argument.</text--->)";
 const string CCSpecLT   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Less. </text--->)";
 const string CCSpecLE   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Less or equal. </text--->)";
 const string CCSpecGT   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Greater. </text--->)";
@@ -2473,19 +2538,21 @@ Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccproduct( "*", CCSpecMul, 4,ccproductmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMapdiv );
-Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, CcMathSelectCompute1, CcMathTypeMap1 );
-Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, CcMathSelectCompute1, CcMathTypeMap1 );
+Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, SimpleSelect, CcMathTypeMap1 );
+Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, SimpleSelect, CcMathTypeMap1 );
+Operator ccrandint( "randint", CCSpecRandInt, RandInt, Operator::DummyModel, SimpleSelect, IntInt );
+Operator cclog( "log", CCSpecLog, LogFun, Operator::DummyModel, SimpleSelect, IntInt );
 Operator ccless( "<", CCSpecLT, 6, cclessmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccequal( "=", CCSpecEQ, 6, ccequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, ccnomodelmap, CcMathSelectBool3, CcMathTypeMapBool3 );
-Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, CcMathSelectBool3, CcMathTypeMapBool3 );
-Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, CcMathSelectBool1, CcMathTypeMapBool1 );
-Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, CcMathSelectBool2, CcMathTypeMapBool2 );
-Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, CcMathSelectBool2, CcMathTypeMapBool2 );
+Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool3 );
+Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool3 );
+Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool1 );
+Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
+Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
 
 /*
 6 Class ~CcAlgebra~
@@ -2526,6 +2593,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccdivision );
     AddOperator( &ccmod );
     AddOperator( &ccdiv );
+    AddOperator( &ccrandint );
+    AddOperator( &cclog );
     AddOperator( &ccless );
     AddOperator( &cclessequal );
     AddOperator( &ccgreater );
