@@ -19,7 +19,7 @@ public final int MAX_FONTSIZE = 24;
 // shows additional informations if an error is occured
 private boolean DEBUG_MODE = true;
 // the name of the currently opened database
-private String OpenedDatabase = "";
+
 
 private JPanel PanelTop;        // change to the desired components
 private CommandPanel ComPanel;
@@ -60,6 +60,12 @@ private JMenu ServerMenu;
 private JMenuItem MI_Connect;
 private JMenuItem MI_Disconnect;
 private JMenuItem MI_Settings;
+
+private JMenu OptimizerMenu;
+private JMenuItem MI_OptimizerEnable;
+private JMenuItem MI_OptimizerDisable;
+private JMenuItem MI_OptimizerSettings;
+
 
 private JMenu Menu_ServerCommand;
 
@@ -398,6 +404,44 @@ public MainWindow(String Title){
 
 
    StartScript = Config.getProperty("STARTSCRIPT");
+   
+   // optimizer settings
+   String OptHost = Config.getProperty("OPTIMIZER_HOST");
+   if(OptHost==null){
+      OptHost ="localhost";  // the default value
+      System.err.println("OPTIMIZER_HOST not defined, use default: "+OptHost);
+   }
+   String OptPortString = Config.getProperty("OPTIMIZER_PORT");
+   int OptPort = 1235; // default value
+   if(OptPortString!=null){
+      try{
+        int P = Integer.parseInt(OptPortString);
+        if(P<=0){
+          System.err.println("optimizer-port has no valid value");
+	}else
+	   OptPort = P;
+       }
+       catch(Exception e){
+          System.err.println("optimizer-port is not a valid integer");
+       }
+   }else{
+      System.err.println("OPTIMIZER_PORT not defined, use default: "+OptPort);
+   }
+   ComPanel.setOptimizer(OptHost,OptPort);
+   String OptEnable = Config.getProperty("ENABLE_OPTIMIZER");
+   if(OptEnable==null)
+      System.err.println("ENABLE_OPTIMIZER not defined in configuration file");
+   else  {
+      OptEnable=OptEnable.trim().toLowerCase();
+      if(OptEnable.equals("true"))
+          if(!ComPanel.enableOptimizer())
+	     System.err.println("error in enabling optimizer");
+	  else
+	     System.err.println("optimizer enabled");
+   }
+
+
+
   } // config -file readed
 
 
@@ -806,10 +850,10 @@ public boolean execGuiCommand(String command){
   } else if(command.startsWith("status")){
       if(ComPanel.isConnected()){
         ComPanel.appendText("connected to Secondo\n");
-        if(OpenedDatabase.equals(""))
+        if(ComPanel.getOpenedDatabase().equals(""))
            ComPanel.appendText("no database open");
          else
-            ComPanel.appendText("opened database: "+OpenedDatabase);
+            ComPanel.appendText("opened database: "+ComPanel.getOpenedDatabase());
        }else{
          ComPanel.appendText("not connected");
        }
@@ -1249,6 +1293,56 @@ private void createMenuBar(){
        showServerSettings();
     }});
 
+
+   
+   OptimizerMenu = new JMenu("Optimizer");
+   MI_OptimizerEnable = OptimizerMenu.add("Enable");
+   MI_OptimizerDisable = OptimizerMenu.add("Disable");
+   MI_OptimizerSettings = OptimizerMenu.add("Settings");
+   OptimizerMenu.addMenuListener(new MenuListener(){
+     public void menuSelected(MenuEvent evt){
+        if(ComPanel.useOptimizer()){
+           MI_OptimizerEnable.setEnabled(false);
+           MI_OptimizerDisable.setEnabled(true);
+        }
+        else{
+           MI_OptimizerEnable.setEnabled(true);
+           MI_OptimizerDisable.setEnabled(false);
+	}
+     }
+     public void menuDeselected(MenuEvent evt){}
+     public void menuCanceled(MenuEvent evt){}
+   } );
+
+
+   ActionListener OptimizerListener= new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          Object source = evt.getSource();
+	  if(source.equals(MI_OptimizerEnable)){
+	    if(!ComPanel.enableOptimizer()){
+                ComPanel.appendText("enabling optimizer failed");
+		ComPanel.showPrompt();
+	    } else{
+                ComPanel.appendText("optimizer enabled");
+		ComPanel.showPrompt();
+	    }
+	  }
+	  if(source.equals(MI_OptimizerDisable)){
+	        ComPanel.appendText("optimizer disabled");
+		ComPanel.showPrompt();
+	        ComPanel.disableOptimizer();
+	  }
+	  if(source.equals(MI_OptimizerSettings))
+	    ComPanel.showOptimizerSettings();
+       }};
+
+    MI_OptimizerEnable.addActionListener(OptimizerListener);
+    MI_OptimizerSettings.addActionListener(OptimizerListener);
+    MI_OptimizerDisable.addActionListener(OptimizerListener);
+
+    MainMenu.add(OptimizerMenu);
+
+
    Menu_ServerCommand = new JMenu("Command");
    MainMenu.add(Menu_ServerCommand);
    // commands are only possible if connected
@@ -1566,6 +1660,7 @@ private void cleanMenu(){
    MainMenu.removeAll();
    MainMenu.add(ProgramMenu);
    MainMenu.add(ServerMenu);
+   MainMenu.add(OptimizerMenu);
    MainMenu.add(Menu_ServerCommand);
    MainMenu.add(HelpMenu);
    MainMenu.add(Viewers);
@@ -1687,7 +1782,6 @@ public void databaseOpened(String DBName){
   MI_CreateDatabase.setEnabled(false);
   DeleteDatabaseMenu.setEnabled(false);
   Menu_RestoreDatabase.setEnabled(false);
-  OpenedDatabase = DBName;
   OList.enableStoring(true);
 }
 
@@ -1704,7 +1798,6 @@ public void databaseClosed(){
   MI_CreateDatabase.setEnabled(true);
   DeleteDatabaseMenu.setEnabled(true);
   Menu_RestoreDatabase.setEnabled(true);
-  OpenedDatabase ="";
   OList.enableStoring(false);
 }
 

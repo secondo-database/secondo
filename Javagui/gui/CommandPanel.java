@@ -7,6 +7,7 @@ import  javax.swing.text.*;
 import  javax.swing.event.*;
 import  java.util.*;
 import  sj.lang.*;
+import  communication.optimizer.*;
 
 /**
  * The command area is a component of the GUI. Here the user
@@ -18,7 +19,7 @@ import  sj.lang.*;
  * @author  Thomas Höse
  * @version 0.99 1.1.02
  *
- * modified by Thomas Behr 
+ * modified by Thomas Behr
  *
  */
 
@@ -33,6 +34,11 @@ public class CommandPanel extends JScrollPane {
   private ESInterface Secondointerface;
   private ReturnKeyAdapter ReturnKeyListener;
   private Vector ChangeListeners = new Vector(3);
+  private String OpenedDatabase = "";
+  private OptimizerInterface OptInt = new OptimizerInterface();
+  private OptimizerSettingsDialog OptSet = new OptimizerSettingsDialog(null);
+
+
 
   /**
    * The constructor sets up the internal textarea.
@@ -57,6 +63,16 @@ public class CommandPanel extends JScrollPane {
     SystemArea.setCaretPosition(aktPos);
     setViewportView(SystemArea);
     SystemArea.setFont(new Font("Monospaced",Font.PLAIN,18));
+  }
+
+
+  /** sets the connection properties for the optimizer server
+    * the changes holds for the next connection with a optimizer
+    */
+  public void setOptimizer(String Host,int Port){
+     OptSet.setConnection(Host,Port);
+     OptInt.setHost(Host);
+     OptInt.setPort(Port);
   }
 
 
@@ -168,6 +184,34 @@ public class CommandPanel extends JScrollPane {
   }
 
 
+  /** optimizes a command if optimizer is enabled */
+  private String optimize(String command){
+
+  String CMD = command.substring(0,6).toUpperCase();
+  if(!CMD.startsWith("SQL") & !CMD.startsWith("SELECT") ){ // command not to optimize
+     return command;
+  }
+
+  if(!useOptimizer()){
+    appendText("optimizer not available");
+    showPrompt();
+    return "";
+  }
+
+  IntObj Err = new IntObj();
+  String opt = OptInt.optimize(command,OpenedDatabase,Err);
+  if(Err.value!=ErrorCodes.NO_ERROR){
+        appendText("error in optimization of this query");
+        showPrompt();
+	return "";
+  }else{
+       return "query "+opt;
+  }
+  
+}
+
+
+
  /**
    * This method allows to any class to command to this SecondoJava object to
    * execute a Secondo command, and this object will execute the Secondo command
@@ -210,6 +254,9 @@ public class CommandPanel extends JScrollPane {
 
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
+         command = optimize(command);
+	 if(command.equals("")) return false;
+
          Secondointerface.secondo(command,           //Command to execute.
          ListExpr.theEmptyList(),                    // we don't use it here.
          commandLevel, true,         // command as text.
@@ -238,7 +285,8 @@ public class CommandPanel extends JScrollPane {
     * @return the ErrorCode from Server
     **/
   public int internCommand (String command) {
-    command = command.trim();
+    command = optimize(command.trim());
+    if(command.equals("")) return -1;
     ListExpr displayErrorList;
     int displayErrorCode;
     ListExpr resultList = new ListExpr();
@@ -278,7 +326,8 @@ public class CommandPanel extends JScrollPane {
       * if an error is occurred null is returned
     **/
   public ListExpr getCommandResult (String command) {
-    command = command.trim();
+    command = optimize(command.trim());
+    if(command.equals("")) return ListExpr.theEmptyList();
     ListExpr displayErrorList;
     int displayErrorCode;
     ListExpr resultList = new ListExpr();
@@ -333,6 +382,7 @@ public class CommandPanel extends JScrollPane {
     return Secondointerface.getPassWd();
   }
 
+  /** set the values for connection with SECONDO */
   public void setConnection(String User,String PassWd,String Host,int Port){
     Secondointerface.setUserName(User);
     Secondointerface.setPassWd(PassWd);
@@ -340,6 +390,7 @@ public class CommandPanel extends JScrollPane {
     Secondointerface.setPort(Port);
   }
 
+  /** connect the commandpanel to SECONDO */
   public boolean connect(){
     boolean ok = Secondointerface.connect();
     if(ok)
@@ -347,11 +398,52 @@ public class CommandPanel extends JScrollPane {
     return ok;
   }
 
+  /** disconnect from Secondo */
   public void disconnect(){
      Secondointerface.terminate();
      informListeners("disconnect");
   }
 
+
+
+  /** enables the optimizer
+    * returns true if successful false otherwise
+    */
+  public boolean enableOptimizer(){
+    if(!useOptimizer())
+      return OptInt.connect();
+    return true;
+  }
+
+
+  /** disables the use of the optimizer */
+  public void disableOptimizer(){
+      OptInt.disconnect();
+  }
+
+
+  /** returns true if the opttimizer is enabled
+    * if the optimizer was enabled but the connection is broken,
+    * the function will return false
+    */
+  public boolean useOptimizer(){
+     return OptInt.isConnected();
+  }
+
+  /** shows a dialog for making settings for optimizer
+    */
+  public void showOptimizerSettings(){
+      if(OptSet.showDialog()){
+         OptInt.setHost(OptSet.getHost());
+         OptInt.setPort(OptSet.getPort());
+     }
+  }
+
+
+
+  public String getOpenedDatabase(){
+     return  OpenedDatabase;
+  }
 
 
   /** returns the size if the history*/
@@ -398,10 +490,13 @@ public class CommandPanel extends JScrollPane {
          int index = cmd.lastIndexOf(" ");
 	 String DBName = cmd.substring(index+1);
          SCL.databaseOpened(DBName);
+	 OpenedDatabase=DBName;
       }
       else
-      if(cmd.endsWith(" database") && cmd.startsWith("close"))
+      if(cmd.endsWith(" database") && cmd.startsWith("close")){
+         OpenedDatabase="";
          SCL.databaseClosed();
+      }
       else
       if(cmd.startsWith("create ") || cmd.startsWith("delete ") || cmd.startsWith("let ") ||
          cmd.startsWith("update "))

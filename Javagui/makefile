@@ -25,7 +25,8 @@ all: makedirs config
 
 .PHONY: makedirs
 makedirs:
-	(cd ../Javainterface;make all)	
+	(cd ../Javainterface;make all)
+	(cd communication;make all)
 	(cd extern;make all)
 	(cd components;make all)
 	(cd viewer;make all)
@@ -64,6 +65,7 @@ clean:
 	(cd gui; make clean)
 	(cd project; make clean)	
 	(cd components;make clean)
+	(cd communication;make clean)
 	(rm -f ./doc/* -r)
 	(rm -fr doc)
 
