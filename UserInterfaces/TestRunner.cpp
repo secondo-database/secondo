@@ -293,6 +293,10 @@ TestRunner::GetCommand()
             line.erase(line.size() - 1);
             string nextline;
             getline(cin, nextline);
+            if( line[line.size() - 1] == '\\') {
+              line.erase(line.size() - 1);
+              line += "\n";
+            }
             line += nextline;
           }
 
@@ -337,6 +341,18 @@ TestRunner::GetCommand()
             state = SETUP;
             testName = restOfLine;
             cout << "Starting test " << restOfLine << endl;
+          }
+          else if(command.find("description") == 0) {
+            cout << "description: " << endl << restOfLine << endl;
+          }
+          else if(command.find("stop") == 0) {
+            if (state == START) {
+              cout << endl << "Stop directive found! Test will not be executed." << endl;
+              cout << "Reason: " << restOfLine << endl << endl;
+              exit(0);
+            } else {
+              cout << "Warning: stop directives after setup are ignored!" << endl;
+            }
           }
           else if(command.find("testcase") == 0)
           {
@@ -836,6 +852,8 @@ TestRunner::Execute()
     {
       if ( iFileName.length() > 0 )
       {
+        cout << endl << "--- Opening file " 
+             << iFileName << " ---" << endl << endl;
         fileInput.open( iFileName.c_str() );
         if ( fileInput.is_open() )
         {
@@ -902,9 +920,6 @@ The main function creates the TestRunner and starts its execution.
 int
 main( const int argc, const char* argv[] )
 {
-  //int devNullFd = open("/dev/null", O_RDONLY);
-  //dup2(devNullFd, 2);
-
   TestRunner* appPointer = new TestRunner( argc, argv );
   int rc = appPointer->Execute();
   delete appPointer;
