@@ -33,13 +33,7 @@ $(HOME)/.bashrc: $(SCRIPT_DIR)/.bashrc-sample
 
 # Copying files to SECONDO_CD
 .PHONY: dist
-dist: $(NETDEV)/fstab $(NETDEV)/profile $(NETDEV)/install-msys.bash
+dist: $(NETDEV)/install-msys.bash
 
 $(NETDEV)/install-msys.bash: $(SCRIPT_DIR)/install-msys.bash
-	cp $< $@
-
-$(NETDEV)/fstab: fstab
-	cp $< $@
-
-$(NETDEV)/profile: profile
 	cp $< $@

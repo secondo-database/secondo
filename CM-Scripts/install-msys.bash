@@ -79,7 +79,7 @@ for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
   done
 done
 
-cd "$instpath"
+cd "$HOME"
 printf "\n  Uncompressing SECONDO source files ..."
 tar -xzf "$cdpath/secondo.tgz"
 
@@ -92,7 +92,7 @@ cd "$instpath/secondo-sdk/bin"
 chmod u+x setvar.bash catvar.sh 
 cd "$HOME"
 chmod u+x .secondorc .bashrc
-cd "$cdpath"
+cd "$instpath/secondo/Win32/MSYS"
 cp --backup fstab profile "$msysdir/etc"
 
 "$cdpath/prolog/w32pl5010.exe"

@@ -14,5 +14,4 @@
 
 #Win32_Path		Mount_Point
 \mingw			/mingw
-\secondo		/secondo
 \secondo-sdk		/secondo-sdk
