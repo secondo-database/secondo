@@ -62,7 +62,7 @@ assorted flavors of R-tree and R*-tree behaviours.
 
 */
 
-const int minimize_leafnode_overlap = 0;
+const int minimize_leafnode_overlap = 1;
 /*
 Checked while choosing the node in which a new entry will be placed.
 Makes the insertion algorithm behave differently when next to the
@@ -82,7 +82,7 @@ result in least area enlargement.
 
 */
 
-const int do_forced_reinsertion = 0;
+const int do_forced_reinsertion = 1;
 /*
 Checked while trying to insert an entry into a full leaf node. If set,
 some of the entries of the leaf node (governed by variable
@@ -100,7 +100,7 @@ Used in R*-trees.
 Only one of the three next flags below should be set
 
 */
-const int do_linear_split = 1;
+const int do_linear_split = 0;
 /*
 If set, Guttman's linear split algorithm is performed.
 Used in standard R-trees
@@ -112,7 +112,7 @@ If set, Guttman's quadratic split algorithm is performed.
 Used in standard R-trees
 
 */
-const int do_axis_split = 0;
+const int do_axis_split = 1;
 /*
 If set, Krigel et al's axis split algorithm is performed.
 
@@ -2052,6 +2052,7 @@ Word InRTree(ListExpr typeInfo, ListExpr value,
 */
 Word CreateRTree(const ListExpr typeInfo)
 {
+  cout << "Create RTree" << endl;
   return SetWord( new R_Tree( 4000 ) );
 }
 
@@ -2061,6 +2062,7 @@ Word CreateRTree(const ListExpr typeInfo)
 */
 void CloseRTree(Word& w)
 {
+  cout << "Close RTree" << endl;
   R_Tree* rtree = (R_Tree*)w.addr;
   delete rtree;
 }
@@ -2082,6 +2084,7 @@ Word CloneRTree(const Word& w)
 */
 void DeleteRTree(Word& w)
 {
+  cout << "Delete RTree" << endl;
   R_Tree* rtree = (R_Tree*)w.addr;
   rtree->DeleteFile();
   delete rtree;
@@ -2131,6 +2134,7 @@ OpenRTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
+  cout << "Open RTree" << endl;
   SmiFileId fileid;
   valueRecord.Read( &fileid, sizeof( SmiFileId ), 0 );
   R_Tree *rtree = new R_Tree( fileid );
@@ -2147,6 +2151,7 @@ SaveRTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
+  cout << "Save RTree" << endl;
   R_Tree *rtree = (R_Tree *)value.addr;
   SmiFileId fileid = rtree->FileId();
   valueRecord.Write( &fileid, sizeof( SmiFileId ), 0 );
