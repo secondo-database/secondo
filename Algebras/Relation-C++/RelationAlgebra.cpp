@@ -1132,18 +1132,9 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 
   tupleptr = (Tuple*)args[0].addr;
   index = ((CcInt*)args[2].addr)->GetIntval();
-  if ((1 <= index) && (index <= tupleptr->GetNoAttributes()))
-  {
-    result = qp->ResultStorage(s);
-    ((StandardAttribute*)result.addr)->CopyFrom(
-      (StandardAttribute*)tupleptr->GetAttribute(index - 1));
-    return 0;
-  }
-  else
-  {
-    cout << "attribute: index out of range !";
-    return -1;
-  }
+  assert( 1 <= index && index <= tupleptr->GetNoAttributes() );
+  result = SetWord(tupleptr->GetAttribute(index - 1));
+  return 0;
 }
 /*
 
