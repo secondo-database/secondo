@@ -99,6 +99,11 @@ private void clear(){
    W3D.repaint();
 }
 
+public void removeAll(){
+  clear();
+
+}
+
 
 private void showPaintOptions(){
     OptionsPaint.reset();
@@ -215,8 +220,14 @@ private void showPaintOptions(){
  }
 
  public  boolean selectObject(SecondoObject O){
-     System.out.println("Viewer3D.selectObject not implemented");
-     return false;
+     int index = getIndexOf(O);
+     if(index<0)
+        return false;
+     else{
+        ComboBox.setSelectedIndex(index);
+        return true;
+     }
+       
  }
 
  public MenuVector getMenuVector(){
@@ -248,3 +259,5 @@ private void showPaintOptions(){
  private BoundingBox3D BoundingBox = new BoundingBox3D();
  private final String BBText = "BoundingBox =";
 }
+
+
