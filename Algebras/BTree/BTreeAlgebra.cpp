@@ -404,6 +404,11 @@ public:
     SmiKey key;
     bool success;
 
+    if(!attr->Defined())
+    {
+      return false;
+    }
+
     AttrToKey(attr, keyType, key);
     if(file->InsertRecord(key, record))
     {

@@ -4261,7 +4261,7 @@ const string GroupBySpec =
   "(a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... "
   "bjl)))</text---><text>Groups a relation according to attributes "
   "ai1, ..., aik and feeds the groups to other functions. The results of those "
-  "functions are appended to the grouping attributes.</text--->";
+  "functions are appended to the grouping attributes.</text--->)";
 
 /*
 
