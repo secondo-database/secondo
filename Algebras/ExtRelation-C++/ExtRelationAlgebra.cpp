@@ -34,6 +34,7 @@ called Relational Algebra and Extended Relational Algebra.
 #include "QueryProcessor.h"
 #include "CPUTimeMeasurer.h"
 #include "StandardTypes.h"
+#include "Counter.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -70,7 +71,6 @@ ListExpr GroupTypeMap(ListExpr args)
   string argstr;
 
   nl->WriteToString(argstr,args);
-  cout << argstr << endl;
 
   CHECK_COND(nl->ListLength(args) >= 1 && !nl->IsAtom(args),
     "Type operator sample expects a list with minimal length one.");
@@ -3693,12 +3693,12 @@ const string ConcatSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator extrelconcat (
-         "concat",              // name
-         ConcatSpec,            // specification
-         Concat,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         Operator::SimpleSelect,          // trivial selection function
-         ConcatTypeMap          // type mapping
+         "concat",               // name
+         ConcatSpec,             // specification
+         Concat,                 // value mapping
+         Operator::DummyModel,   // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect, // trivial selection function
+         ConcatTypeMap           // type mapping
 );
 
 /*
@@ -3714,9 +3714,10 @@ Result type of ~groupby~ operation.
 
         -> ( APPEND (m p1 ... pm) (stream (tuple (xj1 tj1)... (xjl tjl) (y1 T1) ... (ym Tm))))
 
-       with tj,Ti in kind DATA, xi <> xj and k+l=n, pi <> pj and 1 <= pi <= m. This means attributes xi ... xik
-       are removed from the stream and attributes y1 ... ym are appended. These new attributes represent
-       aggregated values computed by maps of R -> Ti which must have a result type of kind DATA.
+       with tj,Ti in kind DATA, xi <> xj and k+l=n, pi <> pj and 1 <= pi <= m. 
+       This means attributes xi ... xik are removed from the stream and attributes 
+       y1 ... ym are appended. These new attributes represent aggregated values computed 
+       by maps of R -> Ti which must have a result type of kind DATA.
 ----
 
 */
@@ -3930,31 +3931,39 @@ struct GroupByLocalInfo
 int GroupByValueMapping
 (Word* args, Word& result, int message, Word& local, Supplier supplier)
 {
-  Tuple *t;
-  Tuple *s;
-  Word sWord;
-  TupleBuffer* tp;
-  TupleBufferIterator* relIter;
-  int i, j, k;
-  int numberatt;
-  bool ifequal;
-  Word value;
+  Tuple *t = 0;
+  Tuple *s = 0;
+  Word sWord =SetWord(Address(0));
+  TupleBuffer* tp = 0;
+  TupleBufferIterator* relIter = 0;
+  int i = 0, j = 0, k = 0;
+  int numberatt = 0;
+  bool ifequal = false;
+  Word value = SetWord(Address(0));
   Supplier  value2;
   Supplier supplier1;
   Supplier supplier2;
-  int ind;
-  int noOffun;
+  int noOffun = 0;
   ArgVectorPointer vector;
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
-  int attribIdx;
-  Word nAttributesWord;
-  Word attribIdxWord;
-  GroupByLocalInfo *gbli;
+  int attribIdx = 0;
+  Word nAttributesWord = SetWord(Address(0));
+  Word attribIdxWord = SetWord(Address(0));
+  GroupByLocalInfo *gbli = 0;
+
+  // The argument vector contains the following values:
+  // args[0] = stream of tuples 
+  // args[1] = list of identifiers 
+  // args[2] = list of functions
+  // args[3] = Number of extra arguments 
+  // args[4 ...] = args added by APPEND
 
   switch(message)
   {
-    case OPEN:
+    case OPEN: 
+      // Get the first tuple pointer and store it in the
+      // GroupBylocalInfo structure
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, sWord);
       if (qp->Received(args[0].addr))
@@ -3972,76 +3981,93 @@ int GroupByValueMapping
       return 0;
 
     case REQUEST:
-      if(local.addr == 0)
+      Counter::getRef("GroupBy:Request")++;
+      if(local.addr == 0) // should not happen
         return CANCEL;
       else
       {
         gbli = (GroupByLocalInfo *)local.addr;
-        if( gbli->t == 0 )
+        if( gbli->t == 0 ) // Stream ends
           return CANCEL;
-
+         
+        //cout << *(gbli->t) << endl;
         t = gbli->t->Clone( true );
+        Tuple* copyt = t->Clone( true );
         gbli->t->DeleteIfAllowed();
         gbli->t = 0;
         tp = new TupleBuffer();
-        tp->AppendTuple(t);
+        tp->AppendTuple(copyt);
+        copyt->DeleteIfAllowed();
       }
+      // get number of attributes
       qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
       numberatt = ((CcInt*)nAttributesWord.addr)->GetIntval();
 
       ifequal = true;
+
+      // Get next tuple
       qp->Request(args[0].addr, sWord);
+      //Tuple cmpTup = (Tuple*)sWord.addr;
+      //cmpTup->SetFree(false);
       while ((qp->Received(args[0].addr)) && ifequal)
       {
         s = (Tuple*)sWord.addr;
-        for (k = 0; k < numberatt; k++)
+        for (k = 0; k < numberatt; k++) // check if  tuples t = s
         {
+          // loop over all grouping attributes
           qp->Request(args[startIndexOfExtraArguments+k].addr, attribIdxWord);
           attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
           j = attribIdx - 1;
           if (((Attribute*)t->GetAttribute(j))->Compare((Attribute *)s->GetAttribute(j)))
             ifequal = false;
         }
-        if (ifequal)
+        if (ifequal) // store in tuple buffer
         {
           Tuple *auxS = s;
-          s = s->Clone( true );
+          s = auxS->Clone(true);
           auxS->DeleteIfAllowed();
           tp->AppendTuple( s );
-          qp->Request(args[0].addr, sWord);
+          qp->Request(args[0].addr, sWord); // get next tuple
         }
         else
-          gbli->t = (Tuple *)sWord.addr;
+          gbli->t = (Tuple *)sWord.addr; // store tuple pointer in local info
       }
-      if(ifequal)
+      if (ifequal) //  last group finished, stream ends
       {
         gbli->t = 0;
       }
 
+      // create result tuple
       t = new Tuple( *gbli->resultTupleType, true );
       assert( t->IsFree() == true );
       relIter = tp->MakeScan();
       s = relIter->GetNextTuple();
 
+      // copy in grouping attributes
       for(i = 0; i < numberatt; i++)
       {
         qp->Request(args[startIndexOfExtraArguments+i].addr, attribIdxWord);
         attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
         t->PutAttribute(i, ((Attribute*)s->GetAttribute(attribIdx - 1))->Clone());
       }
-      value2 = (Supplier)args[2].addr;
+      value2 = (Supplier)args[2].addr; // list of functions 
       noOffun  =  qp->GetNoSons(value2);
       assert( t->GetNoAttributes() == numberatt + noOffun );
       delete relIter;
 
-      for(ind = 0; ind < noOffun; ind++)
+      for(i = 0; i < noOffun; i++)
       {
-        supplier1 = qp->GetSupplier(value2, ind);
+        // prepare arguments for function i
+        supplier1 = qp->GetSupplier(value2, i);
         supplier2 = qp->GetSupplier(supplier1, 1);
         vector = qp->Argument(supplier2);
+        // The group was stored in a relation identified by symbol group 
+        // which is a typemap operator. Here it is stored in the argument vector
         (*vector)[0] = SetWord(tp);
-        qp->Request(supplier2, value);
-        t->PutAttribute(numberatt + ind, ((Attribute*)value.addr)->Clone()) ;
+        
+        // compute value of function i and put it into the result tuple
+        qp->Request(supplier2, value); 
+        t->PutAttribute(numberatt + i, ((Attribute*)value.addr)->Clone()) ;
       }
       result = SetWord(t);
 //      tp->Clear();

@@ -60,7 +60,7 @@ public:
     cmpPtr(0) 
   {};
   
-  TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0, size_t newPos = 0) :
+  TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0, int newPos = 0) :
     tuple(newTuple),
     pos(newPos),
     cmpPtr(cmpObjPtr)
@@ -76,11 +76,13 @@ public:
     // TupleCompareBy and an appropriate sort order specification, 
     Counter::getRef("TupleAndRelPos::less")++;
     if (!this->tuple || !ref.tuple) {
+      assert(false);
       return true;
     }
     if ( cmpPtr ) {
       return !(*(TupleCompareBy*)cmpPtr)( this->tuple, ref.tuple );
     } else {
+      assert( false );
       return !lexCmp( this->tuple, ref.tuple );
     }
   }
@@ -213,7 +215,8 @@ class SortByLocalInfo
           assert( (t!=0) );                 
           
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
-           
+          //cout << "  Next:" << *t << endl;           
+
           if ( i < MAX_TUPLES_IN_MEMORY ){ 
            
             currentRun->push(nextTuple);
@@ -232,31 +235,25 @@ class SortByLocalInfo
               // get first tuple and store it in an relation
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
+              AppendToRel(*rel, minTuple);
               lastTuple = minTuple;
-              AppendToRel(*rel, nextTuple);
               currentRun->pop();              
               
             } else { // check if nextTuple can be saved in current relation
               
+              //cout << "  MIN : " << *minTuple.tuple << endl;
+              //cout << "  LAST: " << *lastTuple.tuple << endl;
               TupleAndRelPos copyOfLast = lastTuple;
               if ( nextTuple < lastTuple ) { // nextTuple is in order              
 
-                if ( minTuple < nextTuple ) { 
-                  // nextTuple smaller than min, append it to the
-                  // current relation 
-                  AppendToRel(*rel, nextTuple);
-                  lastTuple = nextTuple;
-                  a++;
-                } else { 
-                  // Append the minimum to the current relation and push
-                  // the next tuple into the heap. 
+                  // Push the next tuple int the heap and append the minimum to 
+                  // the current relation and push
+                  currentRun->push(nextTuple);
+                  minTuple = currentRun->top();
                   AppendToRel(*rel, minTuple);
                   lastTuple = minTuple;
-                  minTuple = currentRun->top();
                   currentRun->pop();
-                  currentRun->push(nextTuple);
                   m++;
-                } 
                      
               } else { // nextTuple is smaller, save it for the next relation
                 
@@ -264,9 +261,11 @@ class SortByLocalInfo
                 n++;
 
                 if ( !currentRun->empty() ) {
-                
-                  lastTuple = currentRun->top();
-                  AppendToRel(*rel, lastTuple);
+            
+                  // Append the minimum to the current relation    
+                  minTuple = currentRun->top();
+                  AppendToRel(*rel, minTuple);
+                  lastTuple = minTuple;
                   currentRun->pop();
                   
                 } else { //create a new run 
@@ -301,35 +300,36 @@ class SortByLocalInfo
           
           qp->Request(stream.addr, wTuple);
         }
+        cout << "Stream finished!" << endl;
         ShowPartitionInfo(c,a,n,m,r);
 
         // delete lastTuple and minTuple if allowed
-        if (lastTuple.pos) {
+        if ( lastTuple.pos && lastTuple.tuple ) {
           lastTuple.tuple->SetFree(true);
           lastTuple.tuple->DeleteIfAllowed();
         }
-        if (minTuple.pos) {
+        /*
+        if ( minTuple.pos && minTuple.tuple ) {
           minTuple.tuple->SetFree(true);
           minTuple.tuple->DeleteIfAllowed();
         }
+        */
 
         qp->Close(stream.addr);
 
         // the lastRun and NextRun partitions in memory having 
         // less than MAX_TUPLE elements
         if( !queue[0].empty() ) {
-          TupleAndRelPos t = queue[0].top();
+          Tuple* t = queue[0].top().tuple;
           queue[0].pop();
-          t.pos = -2;
-          mergeTuples.push( t );
+          mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -2) );
         } 
         if( !queue[1].empty() ) {
-          TupleAndRelPos t = queue[1].top();
+          Tuple* t = queue[1].top().tuple;
           queue[1].pop();
-          t.pos = -1;
-          mergeTuples.push( t );
+          mergeTuples.push( TupleAndRelPos(t, tupleCmpBy, -1) );
         } 
-               
+
         // Get next tuple from each relation and push it into the heap.
         for( size_t i = 0; i < relations.size(); i++ )
         {
@@ -373,10 +373,11 @@ class SortByLocalInfo
         assert( (p.pos != 0) && (p.pos >= -2) && (p.pos <= (int)relations.size()+1) );
         assert( result != 0);
 
+        //cout << "Out: pos=" << p.pos << " | " << *result << endl; 
         if (p.pos > 0) {
           t = relations[p.pos-1].second->GetNextTuple();
-        }
-        if (p.pos < 0) {
+
+        } else {
 
           int idx = p.pos+2;
           if ( !queue[idx].empty() ) {
@@ -387,8 +388,9 @@ class SortByLocalInfo
           } 
         }
 
-        if( t != 0 ) {
+        if( t != 0 ) { // partition not finished
           p.tuple = t;
+          //cout << "IN: pos=" << p.pos << " | " << *t << endl; 
           mergeTuples.push( p );
         }
         result->SetFree(true);
@@ -400,13 +402,14 @@ class SortByLocalInfo
     inline void AppendToRel( Relation &rel, TupleAndRelPos& t )
     {
         Tuple *tp = t.tuple->CloneIfNecessary();
+        //cout << *tp << endl;
         rel.AppendTuple( tp );
 
         if( tp != t.tuple ) {
           t.pos=1; 
           // this indicates that the tuple was saved to disk
           // since it may be needed for further comparisons
-          // it will be deleted on other places
+          // it will be deleted in the code above. 
         }
         tp->DeleteIfAllowed();
     }
@@ -416,7 +419,6 @@ class SortByLocalInfo
       if ( RTFlag::isActive("Sort:Stat") ) {
 
         cmsg.info() << "Partition finished: processed tuples=" << c 
-                    << ", append directly=" << a 
                     << ", append minimum=" << m 
                     << ", append next=" << n << "," << endl << "  "
                     << "materialized partitions=" << r
