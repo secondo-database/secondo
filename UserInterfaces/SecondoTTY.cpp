@@ -791,26 +791,24 @@ SecondoTTY::Execute()
     streambuf* oldOutputBuffer = 0;
     ifstream fileInput;
     ofstream fileOutput;
+       
+    si = new SecondoInterface();
+    if ( si->Initialize( user, pswd, host, port, parmFile ) )
+    {
+      //set AlgebraLevel and LogMsg prefixes
+      string algLevelStr = SmiProfile::GetParameter( "Environment", "AlgebraLevel", "Descriptive", parmFile );
+      string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );
     
-    //set AlgebraLevel and LogMsg prefixes
-    string algLevelStr = SmiProfile::GetParameter( "Environment", "AlgebraLevel", "Descriptive", parmFile );
-    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );
+      RTFlag::initByString(logMsgList);
     
-    RTFlag::initByString(logMsgList);
-    
-    char chLevel = toupper( (algLevelStr.data())[0] );
-    switch (chLevel) {
+      char chLevel = toupper( (algLevelStr.data())[0] );
+      switch (chLevel) {
        case 'E': currentLevel = ExecutableLevel; break;
        case 'D': currentLevel = DescriptiveLevel; break;
        case 'H': currentLevel = HybridLevel; break;
        default:  currentLevel = DescriptiveLevel; 
-    }
-    
-
- 
-    si = new SecondoInterface();
-    if ( si->Initialize( user, pswd, host, port, parmFile ) )
-    {
+      }
+	    
       if ( iFileName.length() > 0 )
       {
         fileInput.open( iFileName.c_str() );

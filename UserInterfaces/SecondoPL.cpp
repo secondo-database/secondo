@@ -20,6 +20,8 @@ support for calling Secondo from PROLOG.
 #include <iostream>
 #include <list>
 
+#include "stdlib.h"
+
 #include "SWI-Prolog.h"
 
 using namespace std;
@@ -31,8 +33,28 @@ using namespace std;
 SecondoInterface* si = 0;
 NestedList* plnl = 0;
 
-int lastErrorCode;
-string lastErrorMessage;
+int lastErrorCode = 0;
+string lastErrorMessage = "";
+int success = 0;
+
+/*
+
+3 Function handle_exit   
+
+This function is registerd as exit handler in the main function.
+
+*/
+void handle_exit(void) {
+  
+  /* PROLOG interpreter has terminated, shutdown Secondo */
+  if(si != 0)
+  {
+    si->Terminate();
+    delete si;
+  };
+
+}
+
 
 /*
 
@@ -454,14 +476,15 @@ StartSecondoC(char* configFileName)
   string port = "";
   string configFile = configFileName;
 
-  string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", configFile );
-  RTFlag::initByString(logMsgList);
 
   
   si = new SecondoInterface();
 
   if(si->Initialize(user, pswd, host, port, configFile))
-  {
+  {   
+    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", configFile );
+    RTFlag::initByString(logMsgList);
+	  
     plnl = si->GetNestedList();
     return true;
   }
@@ -480,8 +503,9 @@ int
 main(int argc, char **argv)
 {
   char* configFile;
-  int success;
 
+  atexit(handle_exit);
+  
   /* Start Secondo and remove Secondo command line arguments
      from the argument vector .*/
   configFile = GetConfigFileNameFromArgV(argc, argv);
@@ -505,14 +529,9 @@ main(int argc, char **argv)
 #endif
   
   success = PL_toplevel();
+  // this function never returns. Entering "halt." at the Userinterface
+  // calls exit().
   
-  /* PROLOG interpreter has terminated, shutdown Secondo */
-  if(si != 0)
-  {
-    si->Terminate();
-    delete si;
-  };
-  cout << "Terminating ... " << endl;
-
-  PL_halt(success ? 0 : 1);
 }
+
+
