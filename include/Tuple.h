@@ -204,6 +204,7 @@ private:
     SmiRecordFile* lobFile;     	// Reference to a File which contains LOBs.
     SmiRecordFile* recFile;			// Reference to a File which contains tuples.  
     bool lobFileOpened;				// Is the lobfile open?
+    bool lobFileAllocated;			// Was the lobFile allocated by the Tuple manager?
     int attrNum;                	// Number of attribs. 
     AttributeInfo *attribInfo;  	// Sizes of attrib values. 
     AlgebraManager* algM;       	// Reference to Algebramanagers. 
