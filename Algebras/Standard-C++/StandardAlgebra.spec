@@ -32,5 +32,7 @@ operator minus alias SET_MINUS pattern _ infixop _
 operator relcount alias RELCOUNT pattern _ op
 operator relcount2 alias RELCOUNT2 pattern _ op
 
+operator keywords alias KEYWORD pattern _ op
+
 
 
