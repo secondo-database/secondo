@@ -2849,22 +2849,22 @@ finish2(Stream, Extend, Sort, Project, Stream4) :-
 
 
 
-fExtend(Stream, [], Stream).
+fExtend(Stream, [], Stream) :- !.
 
 fExtend(Stream, Extend, extend(Stream, Extend)).
 
 
 
-fSort(Stream, [], Stream).
+fSort(Stream, [], Stream) :- !.
 
 fSort(Stream, SortAttrs, sortby(Stream, AttrNames)) :-
   attrnamesSort(SortAttrs, AttrNames).
 
 
 
-fProject(Stream, *, Stream).
+fProject(Stream, *, Stream) :- !.
 
-fProject(Stream, count(*), count(Stream)).
+fProject(Stream, count(*), count(Stream)) :- !.
 
 fProject(Stream, Project, project(Stream, AttrNames)) :-
   attrnames(Project, AttrNames).
