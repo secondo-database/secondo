@@ -1,0 +1,7 @@
+# Feb 2005 M. Spiekermann
+#
+# I have removed the oracle implementation
+# since it was not used for many years.
+# You can get the files from CVS by
+#
+# cvs co -rBefore-Orafiles_removed
