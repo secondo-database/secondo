@@ -3599,19 +3599,20 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 	// out of the input stream			 		 
 	
 	ListExpr rest = second;
+        ListExpr lastlistp = nl->TheEmptyList();
+	bool firstcall = true;
+	
 	while (!nl->IsEmpty(rest))
 	{
 	  ListExpr attrtype = nl->TheEmptyList();
-	  ListExpr lastlistp = nl->TheEmptyList();
 		ListExpr first2 = nl->First(rest);
-		rest = nl->Rest(rest);
 		string attrname = nl->SymbolValue(first2);
 
 		// calculate index of attribute in tuple
-		bool firstcall = true;
 		int j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
 		if (j)
 		{
+		  cout << "Attribute " << j << endl;
 			if (!firstcall)
 			{
 				lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
@@ -3629,14 +3630,16 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 		else // grouping attribute not in input stream
 		{
 			string errMsg = "groupby: Attribute " + attrname 
-											+ " not present in input stream!"; 
+				        + " not present in input stream!"; 
 											
 			ErrorReporter::ReportError(errMsg);
 			return nl->SymbolAtom("typeerror");
 		}
+		rest = nl->Rest(rest);
 	} // end while
 			
 			
+				
 		// compute output tuple with attribute names and their types
 		//loopok = true;
 		rest = third;
