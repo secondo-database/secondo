@@ -141,8 +141,14 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
 {
   assert(subsetSize >= 1);
   assert(setSize >= 2);
-  /* assert(setSize <= RAND_MAX); RHG 12.2.04 */ 
   assert(setSize > subsetSize);
+  // 28.04.04 M. Spiekermann. Multiply the random numbers by a factor greater than 1 when
+  // the requested setSize is bigger than the number of possible random numbers. This is a
+  // work around for windows, since the RAND_MAX value on windows is very small.
+  double randomStrechFactor = (double)setSize / (double)RAND_MAX;
+  if (randomStrechFactor < 1) {
+    randomStrechFactor = 1.0;
+  }
 
   set<int> drawnNumbers;
   set<int>::iterator iter;
@@ -168,8 +174,9 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
 
   while(nDrawn < drawSize)
   {
-    r = rand();
-    r = r % (setSize + 1);
+    // the calculation of random numbers blow is recommended in the man page 
+    // documentation of the rand() function
+    r = (int) ((double)randomStrechFactor * (double)(setSize + 1) * rand()/(RAND_MAX+1.0)); 
     if(r == 0)
     {
       continue;

@@ -13,6 +13,10 @@ November 9, 2002 RHG Added operators ~randint~ and ~log~. Some other slight revi
 
 February 2004, Hoffmann added operators ~relcount~ and ~relcount2~.
 
+April 28, 2004, M. Spiekermann added operators ~nextint~ and ~randmax~. The calculation of
+random numbers in an specified range was revised according to the recommendations documented 
+in the rand() manpage.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -72,12 +76,23 @@ Following operators are defined:
 ----
 
   * randint
+  * randmax
 
 ----	int -> int
+            -> int
 ----
 
 Computes a random integer within the range [0, arg-1]. The argument must be
-greater than 0. Otherwise it is set to 2.
+greater than 0. Otherwise it is set to 2. 
+
+  * seqinit
+  * seqnext
+
+----	int -> bool 
+            -> int
+----
+The seqinit operator can be used to create
+sequences of numbers starting by arg. The n-th call of seqnext will return arg+n-1 
 
   * log
 
@@ -1325,9 +1340,9 @@ CcMathTypeMap2( ListExpr args )
 }
 
 /*
-4.2.4 Type mapping function IntInt
+4.2.4 Type mapping functions IntInt, IntBool and EmptyInt
 
-Used for operators ~randint~ and ~log~.
+Used for operators ~randint~, ~randmax~, ~initseq~, ~nextseq~ and ~log~.
 
 */
 
@@ -1342,6 +1357,29 @@ IntInt( ListExpr args )
       return (nl->SymbolAtom( "int" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
+}
+
+ListExpr
+IntBool( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( nl->IsEqual( arg1, "int" ) )
+      return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+ListExpr
+EmptyInt( ListExpr args )
+{
+  if ( !nl->IsEmpty( args ) ) {
+    return (nl->SymbolAtom( "typeerror" ));
+  } else {
+    return (nl->SymbolAtom( "int" ));
+  }
 }
 
 
@@ -1989,16 +2027,17 @@ CcDiv( Word* args, Word& result, int message, Word& local, Supplier s )
 
 
 /*
-4.8 Value mapping function of operator ~randint~
+4.8 Value mapping function of operators ~randint~, ~maxrand~, ~initseq~ and ~nextseq~
 
 */
 
 int randint(int u)    	//Computes a random integer in the range 0..u-1,
 			//for u >= 2
 {
-  int r = rand();
   if ( u < 2 ) {u=2;}
-  return (r % u);
+  // rand creates a value between [0,RAND_MAX]. The calculation procedure below is recommended
+  // in the manpage of the rand() function. Using rand() % u will yield poor results.
+  return (int) ( (float)u * rand()/(RAND_MAX+1.0) );
 }
 
 
@@ -2015,6 +2054,43 @@ RandInt( Word* args, Word& result, int message, Word& local, Supplier s )
   {
     ((CcInt *)result.addr)->Set( false, 0 );
   }
+  return (0);
+}
+
+int
+MaxRand( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((CcInt *)result.addr)-> Set( true, RAND_MAX );
+  return (0);
+}
+
+
+static int SequenceCounter = 0;
+
+
+int
+InitSeq( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if( ((CcInt*)args[0].addr)->IsDefined() )
+  {
+    ((CcBool *)result.addr)->Set( true, true );
+      SequenceCounter = ((CcInt*)args[0].addr)->GetIntval();
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
+  return (0);
+}
+
+int
+NextSeq( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((CcInt *)result.addr)-> Set( true, SequenceCounter );
+  SequenceCounter++;
   return (0);
 }
 
@@ -3394,17 +3470,44 @@ const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                              "( <text>int -> int </text--->"
 			       "<text>randint ( _ )</text--->"
 			       "<text>Returns a random integer between 0 and "
-			       "arg-1, for arg > 1.</text--->"
+			       "arg-1, the argument must be at least 2 otherwise it is set to 2. </text--->"
 			       "<text>query randint (9)</text--->"
+			      ") )";
+
+const string CCSpecMaxRand  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" )"
+                             "( <text> -> int </text--->"
+			       "<text>maxrand</text--->"
+			       "<text>Returns the value of MAX_RAND </text--->"
+			       "<text>query maxrand</text--->"
+			      ") )";
+
+
+const string CCSpecInitSeq  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" )"
+                             "( <text>int -> bool </text--->"
+			       "<text>intitseq ( _ ) </text--->"
+			       "<text>Returns true and sets the start value "
+                               " of the sequence to the argument value</text--->"
+			       "<text>query initseq (100)</text--->"
+			      ") )";
+
+const string CCSpecNextSeq  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" )"
+                             "( <text> -> int </text--->"
+			       "<text>nextseq ()</text--->"
+			       "<text>Returns s+n-1 at the n-th call when the sequence"
+                               " was initialzed with intiseq (s) otherwise s defaults to 0.</text--->"
+			       "<text>query nextseq ()</text--->"
 			      ") )";
 
 const string CCSpecLog  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>int -> int </text--->"
 			       "<text>log ( _ )</text--->"
-			       "<text>Computes a random integer within the "
-			       "range [0, arg-1]. The argument must be greater"
-			       "than 0. Otherwise it is set to 2.</text--->"
+			       "<text>Computes the logarithmus of base 2."
+			       " The argument must be greater"
+			       "than 0.</text--->"
 			       "<text>query log (256)</text--->"
 			      ") )";
 
@@ -3572,6 +3675,9 @@ Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap, ccnomodelmap, CcMathSelec
 Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMap1 );
 Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMap1 );
 Operator ccrandint( "randint", CCSpecRandInt, RandInt, Operator::DummyModel, Operator::SimpleSelect, IntInt );
+Operator ccrandmax( "randmax", CCSpecMaxRand, MaxRand, Operator::DummyModel, Operator::SimpleSelect, EmptyInt );
+Operator ccseqinit( "seqinit", CCSpecInitSeq, InitSeq, Operator::DummyModel, Operator::SimpleSelect, IntBool );
+Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq, Operator::DummyModel, Operator::SimpleSelect, EmptyInt );
 Operator cclog( "log", CCSpecLog, LogFun, Operator::DummyModel, Operator::SimpleSelect, IntInt );
 Operator ccless( "<", CCSpecLT, 6, cclessmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
@@ -3636,6 +3742,9 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccmod );
     AddOperator( &ccdiv );
     AddOperator( &ccrandint );
+    AddOperator( &ccrandmax );
+    AddOperator( &ccseqinit );
+    AddOperator( &ccseqnext );
     AddOperator( &cclog );
     AddOperator( &ccless );
     AddOperator( &cclessequal );
