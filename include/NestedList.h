@@ -45,8 +45,10 @@ this modifications gain a speed up of the client-server communication.
 
 February 2004, M. Spiekermann. Reading of binary encoded lists was implemented.
 
-June 2004, M. Spiekermann. The persistent implementation of this module was finished.
+June 2004, M. Spiekermann. The persistent implementation of this module was finished. Now it
+is possible to process lists which have big textual representations (e.g. 500MB).
 
+July 2004, M. Spiekermann. A runtime check isPersistentImpl() was added.
 
 1.1 Overview
 
@@ -181,7 +183,7 @@ The operations are defined below.
 The implementation of the nested list structure is based on the CTABLE
 structure which has a memory and a SMI based implementation. In order to manage
 lists of arbitary size you should switch on the persistent implementation.
-define switch NL_PERSISTENT with the -D option of gcc in order to use
+define switch NL\_PERSISTENT with the -D option of gcc in order to use
 persistent memory representation. This should be configured in the file
 makefile.env at the top level of SECONDOs directory structure. But be careful,
 the interfaces are not exactly the same. The restrictions are explained in the
@@ -793,7 +795,7 @@ Determines the type of list expression ~atom~ according to the enumeration
 type ~NodeType~. If the parameter is not an atom, the function returns the
 value 'NoAtom'.
 
-1.3.11 Size Info
+1.3.11 Size and Implementation Info
 
 */
   const string reportVectorSizes();
@@ -801,6 +803,7 @@ value 'NoAtom'.
     return (   "Nodes: " + nodeTable->StateToStr() + "\n" 
              + "Const: " + intTable->StateToStr() );
   }
+  static const bool isPersistentImpl() { return isPersistent; }
 
 /*
 Reports the slot numbers and allocated memory of all
@@ -876,7 +879,7 @@ Copies a nested list from ~this~ instance to the target instance.
   ostream*             outStream;
 
   static bool          doDestroy;
-  const static bool    isPersistent;
+  static const bool    isPersistent;
   void AppendShortText( const ListExpr atom,
                    const string&  textBuffer );
 
