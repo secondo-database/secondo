@@ -23,8 +23,6 @@ using namespace std;
 #include "../Algebras/Polygon/PolygonAlgebra.cpp"
 
 
-namespace {
-
 static const bool needIdent = false;
 
 class SecondoTestFrame : public Application
@@ -296,7 +294,7 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *
 	CcBool *bool1;
 	SmiRecordFile *lobFile;
 	bool lobFileOpen;
-	Polygon* polygon1;
+	CcPolygon* polygon1;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -322,7 +320,7 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes, SmiRecordFile *
 	lobFile = new SmiRecordFile(false);
 	lobFileOpen = lobFile->Open("LOBFILE");
 
-	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -448,7 +446,7 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *
 	CcBool *bool1;
 	SmiRecordFile *lobFile;
 	bool lobFileOpen;
-	Polygon* polygon1;
+	CcPolygon* polygon1;
 	SmiRecordId recId;
 	
 	cout << "\tnumber of tuples, please: "; cin >> numberOfTuples;
@@ -478,7 +476,7 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes, SmiRecordFile *
 		lobFile = new SmiRecordFile(false);
 		lobFileOpen = lobFile->Open("LOBFILE");
 
-		polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+		polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 		myTuple->Put(0, int1);
 		myTuple->Put(1, bool1);
 		myTuple->Put(2, real1);
@@ -542,7 +540,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
 	CcBool *bool1;
 	SmiRecordFile *lobFile;
 	bool lobFileOpen;
-	Polygon* polygon1;
+	CcPolygon* polygon1;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -568,7 +566,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes, SmiRecordFile *
 	lobFile = new SmiRecordFile(false);
 	lobFileOpen = lobFile->Open("LOBFILE");
 
-	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -628,8 +626,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	CcBool *bool2;
 	SmiRecordFile *lobFile;
 	bool lobFileOpen;
-	Polygon* polygon1;
-	Polygon* polygon2;
+	CcPolygon* polygon1;
+	CcPolygon* polygon2;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -666,8 +664,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes, SmiRecordFile *
 	int2 = new CcInt(true, intv2);
 	bool2 = new CcBool(true, bboolv2);
 
-	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
-	polygon2 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon2 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 	
 	myTuple->DelPut(0, int1);
 	myTuple->DelPut(1, bool1);
@@ -727,7 +725,7 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 	CcBool *bool1;
 	SmiRecordFile *lobFile;
 	bool lobFileOpen;
-	Polygon* polygon1;
+	CcPolygon* polygon1;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -752,14 +750,14 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 	lobFile = new SmiRecordFile(false);
 	lobFileOpen = lobFile->Open("LOBFILE");
 
-	polygon1 = new Polygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
+	polygon1 = new CcPolygon(lobFile, numberOfPoints, (char *)X, (char *)Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
 	myTuple->Put(3, polygon1);
 					
-	//cout << "\ttest tuple values" << endl;
-	//cout << "\t" << *myTuple << endl;
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
 	cout << "\tSize: " << myTuple->GetSize() << endl;
 	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
 	cout << "\tSave tuple into recFile. Persistent id = ";
@@ -860,7 +858,7 @@ int SecondoTestFrame::Execute() {
 	    	AttributeType realAttr = {algIdStandard, CcRealId, sizeof(CcReal)};
 	      	AttributeType intAttr = {algIdStandard, CcIntId, sizeof(CcInt)};
 	      	AttributeType boolAttr = {algIdStandard, CcBoolId, sizeof(CcBool)};
-			AttributeType polygonAttr = {algIdPolygon, CcPolygonId, sizeof(Polygon)};
+			AttributeType polygonAttr = {algIdPolygon, CcPolygonId, sizeof(CcPolygon)};
 
          	AttributeType attrTypes[] = {intAttr, boolAttr, realAttr, polygonAttr};
 
@@ -950,7 +948,6 @@ int SecondoTestFrame::Execute() {
   return rc;
 }
 
-} // end of namespace{
 
 /*
 14 main

@@ -9,13 +9,10 @@ static QueryProcessor* qp;
 #include "Attribute.h"
 #include "FLOB.h"
 
-namespace {
+struct CcPoint { int x; int y; };
+struct CcRectangle { CcPoint ur; CcPoint ul; CcPoint ll; CcPoint lr; };
 
-struct Point { int x; int y; };
-
-struct Rectangle { Point ur; Point ul; Point ll; Point lr; };
-
-class Polygon : public Attribute {
+class CcPolygon : public Attribute {
   	friend void SecondoMain(int, char *[]); /* Simplify writing test programs. */
 	friend void *CastPolygon(void *addr); // this method needs access to convexHull.
   	int numberOfPoints;
@@ -23,15 +20,15 @@ class Polygon : public Attribute {
 	FLOB Y;
 	
 public:
-	Polygon(SmiRecordFile *recfile) : X(recfile), Y(recfile) {};
-	Polygon(SmiRecordFile *recfile, int inNumberOfPoints, char *inX, char *inY) 
+	CcPolygon(SmiRecordFile *recfile) : X(recfile), Y(recfile) {};
+	CcPolygon(SmiRecordFile *recfile, int inNumberOfPoints, char *inX, char *inY) 
 		: X(recfile, inNumberOfPoints * sizeof(int)), Y(recfile, inNumberOfPoints * sizeof(int)) {
 		numberOfPoints = inNumberOfPoints;
 		X.Write(0, inNumberOfPoints * sizeof(int), inX);
 		Y.Write(0, inNumberOfPoints * sizeof(int), inY);
 	}
 
-    ~Polygon(){};
+    ~CcPolygon(){};
   	int NumOfFLOBs() { return 2; };
   	FLOB *GetFLOB(int i) { 
       switch (i) {
@@ -42,7 +39,7 @@ public:
     }
    	int Compare(Attribute*){ return 0; };
    	int Sizeof(){ 
-		return sizeof(Polygon); 
+		return sizeof(CcPolygon); 
 	};
    	class Attribute * Clone() {return NULL;};
    	bool IsDefined(){return true;};
@@ -61,15 +58,15 @@ public:
   */
 };
 
-ostream &operator<<(ostream &os, Point &p){ 
+ostream &operator<<(ostream &os, CcPoint &p){ 
 	return os << "(" << p.x << ", " << p.y << ")";
 };
 
-ostream &operator<<(ostream &os, Rectangle &r){ 
+ostream &operator<<(ostream &os, CcRectangle &r){ 
 	return os << "(" << r.ur << ", " << r.ul << ", " << r.ll << ", " << r.lr << ")";
 };
 
-ostream &Polygon::Print(ostream &os) {
+ostream &CcPolygon::Print(ostream &os) {
 	os << "{POLYGON: ";
 	
 	int *xArray = new int[numberOfPoints];
@@ -168,7 +165,6 @@ PolygonAlgebra polygonalgebra;
 
 /* Initialization */
 
-
 extern "C"
 Algebra*
 InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef) {
@@ -177,4 +173,4 @@ InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef) {
 	return (&polygonalgebra);
 }
 
-} // end of namespace {
+
