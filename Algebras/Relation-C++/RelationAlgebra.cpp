@@ -2063,8 +2063,7 @@ RenameTypeMap( ListExpr args )
   "(stream (tuple ((a1 t1)...(an tn))))\n"
   "Operator rename gets a list with structure '" + argstr + "'.");
   
-  nl->WriteToString(argstr, second);
-  cout << argstr << endl;   
+  nl->WriteToString(argstr, second);   
   CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
   "Operator rename expects as second argument a symbol atom (attribute suffix) " 
   "Operator rename gets '" + argstr + "'.");

@@ -3612,7 +3612,6 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 		int j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
 		if (j)
 		{
-		  cout << "Attribute " << j << endl;
 			if (!firstcall)
 			{
 				lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
