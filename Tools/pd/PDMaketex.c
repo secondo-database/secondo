@@ -6,11 +6,12 @@ Use the parser to transform from implicitly formatted text to TeX.
 
 */
 
-main()
-{	int error;
+int main()
+{	int error=0;
 
 	error = yyparse();
 	print_tail();
+        return error;
 }
 
 print_tail()

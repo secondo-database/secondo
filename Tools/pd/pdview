@@ -1,5 +1,11 @@
-cat $PD_HEADER > $1.tex
-pdtabs < $1 | maketex | linebreaks >> $1.tex
-latex $1.tex
-$DVI_VIEWER $1.dvi &
-rm -f $1.log $1.tex
+#!/bin/bash
+#
+# pdview <file> - previews an PD file with LaTeX's DVI previewer
+#
+# May 2004, M. Spiekermann
+
+if { ! pd2dvi $1; }; then
+   exit 1
+fi
+
+pdpreview $1 dvi $DVI_VIEWER &

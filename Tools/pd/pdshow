@@ -1,6 +1,11 @@
-cat $PD_HEADER > $1.tex
-pdtabs < $1 | maketex | linebreaks >> $1.tex
-latex $1.tex
-dvips -o $1.ps $1.dvi
-$PS_VIEWER $1.ps
-rm -f $1.aux $1.log $1.tex $1.dvi $1.ps
+#!/bin/bash
+#
+# pdshow <file> - previews an PD file using a Postscript previewer
+#
+# May 2004, M. Spiekermann
+
+if { ! pd2ps $1; }; then
+   exit 1
+fi
+
+pdpreview $1 ps $PD_PS_VIEWER &

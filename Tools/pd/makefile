@@ -6,12 +6,12 @@
 #
 # 10/03 Markus Spiekermann. Target install introduced. 
 # 
+# 05/04 Markus Spiekermann. Changes in documentation and script files.
 
-
-# Uncomment next to switch on debug mode 
+# Uncomment next line to switch on debug mode 
 #OPTIONS = -g 
 
-# The first line is used when compiling with FLEX and BISON
+# The first line is used when compiling with FLEX (2.5.4a) and BISON (1.35)
 # The second line when compiling with LEX and YACC
 LINKLIBS = -L /usr/local/lib  -lfl 
 #LINKLIBS = -ll -ly
@@ -35,9 +35,10 @@ DOCU_FILES = PD1 PDNestedText.h PDNestedText.c \
 	     PD7 pdtabs.c linebreaks.c \
 	     PD8 pdview \
 	     PD8.2 pdshow \
-	     PD8.3 pdprint \
-	     PD8.4 pd2tex \
-	     PD8.5 pdshowtex \
+	     PD8.3 pd2tex \
+	     PD8.4 pd2dvi \
+	     PD8.5 pd2ps \
+             PD8.6 pd2pdf \
 	     PD9 makefile \
 	     PDRefs
 
@@ -55,7 +56,7 @@ OBJECTS = pdtabs \
 
 DOCU = docu docuhtml
 
-SCRIPTS = pd2ascii pd2html pd2tex pdprint pdshow pdview pdshowtex
+SCRIPTS = pd2ascii pd2html pd2tex pd2dvi pd2ps pd2pdf pdshow pdview
 
 TEMPORARYS = lex.yy.c \
 	     y.tab.c \

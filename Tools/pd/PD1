@@ -1,6 +1,7 @@
 /*
 //paragraph [1] Title: [{\Large \bf] [}]
 //[ue] [\"{u}]
+//[us] [\_]
 
 
 [1] The PD System: Integrating Programs and Documentation
@@ -8,6 +9,8 @@
 Ralf Hartmut G[ue]ting
 
 May 1995
+
+2002-2004, Markus Spiekermann. Changes of makefiles and shell scripts.  
 
 
 
@@ -26,14 +29,23 @@ The file ~pd.header~ is shown in Section 6.1. ~Cat~ is a UNIX system command. Ex
 
 There are further command procedures:
 
-  * ~pdview~ allows one to view a PD file under the ~xdvi~ viewer (after it has been processed by LaTeX. This viewer has a good resolution, but does not 
-show embedded postscript figures.
+  * ~pdview~ allows one to view a PD file under unix using the ~xdvi~ viewer (after it has been processed by LaTeX). On MS-Windows the previewer is called ~yap~. The viewer is defined in the environment variable ~PD_DVI_VIEWER~.  
 
-  * ~pdshow~ shows a PD file using the postscript viewer ~pageview~. This shows embedded figures. However, the quality of the display is not as good as with ~xdvi~.
+  * ~pdshow~ shows a PD file using a postscript viewer defined in the environment variable ~PD[us]PS[us]VIEWER~. This shows embedded figures. However, the quality of the display is not as good as with ~xdvi~.
 
-  * ~pdprint~ prints a PD file. The file must have been viewed under  ~pdview~ before, because this procedure starts from ~pdfile~.dvi.
+  * ~pd2pdf~ converts a PD file into the portable document format using the program ~dvipdfm~.
 
-  * ~pdshowtex~ shows a PD file starting from its TeX version ~pdfile~.tex (created by ~pd2tex~).
+At a lower level there are three scripts which convert PD to other formats:
+
+  * ~pd2tex~ is called by every script to convert PD into a LaTeX file.
+
+  * ~pd2dvi~ is called by ~pdview~ to create a DVI file.
+
+  * ~pd2ps~  is called by ~pdshow~ and creates a postscript file.
+ 
+These scripts may be useful to recreate a DVI file while previewing an older version. Since the previewer will detect automatically
+that there exists a newer DVI file and Displays it. Another application may be to use Adobe Distiller to create a PDF starting
+from a postscript file. 
 
 As an example, the processing steps used in ~pdshow~ are illustrated in Figure 2.
 

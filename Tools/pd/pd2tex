@@ -1,2 +1,17 @@
-cat $PD_HEADER > $1.tex
-pdtabs < $1 | maketex | linebreaks >> $1.tex
+#!/bin/bash 
+#
+# pd2dvi - Converts a PD file to a TEX file
+#
+# May 2004, M. Spiekermann
+
+pdFile="$1"
+texFile="$1.tex"
+
+if { ! pdtabs < $pdFile | maketex > /dev/null; }; then
+
+   printf "\n PD-Error: Could not create $texFile! \n\n"
+   exit 1
+fi
+cat $PD_HEADER > $texFile 
+pdtabs < $pdFile | maketex | linebreaks >> $texFile 
+
