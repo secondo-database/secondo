@@ -21,6 +21,8 @@
 
 April 2002 Ulrich Telle
 
+November 30, 2002 RHG Added function ~GetKey~.
+
 1.1 Overview
 
 The *Storage Management Interface* provides all types and classes needed
@@ -696,8 +698,15 @@ The amount of bytes actually transfered is being returned.
 */
   SmiSize  Size();
 /*
-Retrieves the total amount of bytes stored within the persistent representaion
+Retrieves the total amount of bytes stored within the persistent representation
 of this record.
+
+*/
+
+  SmiKey GetKey();
+
+/*
+Returns the key of this record.
 
 */
   bool  Truncate( const SmiSize newSize );
