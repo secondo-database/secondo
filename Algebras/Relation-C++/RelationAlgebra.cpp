@@ -759,7 +759,6 @@ void DeleteRel(Word& w)
   rs = r->Begin();
   while (rs != r->End())
   {
-    cout << "while" << endl;
     t = (CcTuple)*rs;
     v = SetWord(&t);
     DeleteTuple(v);
