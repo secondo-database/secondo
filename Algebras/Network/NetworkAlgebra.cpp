@@ -525,26 +525,23 @@ bool Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeI
 {
   n = new Network();
 
-  if( !Relation::Open( valueRecord, offset, 
-                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesTypeInfo() ), 
-                       n->routes ) )
+  if( !( n->routes = Relation::Open( valueRecord, offset, 
+                                     SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesTypeInfo() ) ) ) ) 
   {
     n->routes = 0;
     return false;
   }
 
-  if( !Relation::Open( valueRecord, offset, 
-                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsInternalTypeInfo() ), 
-                       n->junctions ) )
+  if( !( n->junctions = Relation::Open( valueRecord, offset, 
+                                        SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetJunctionsInternalTypeInfo() ) ) ) ) 
   {  
     n->junctions = 0;
     n->routes->Delete(); n->routes = 0;
     return false;
   }
 
-  if( !Relation::Open( valueRecord, offset, 
-                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetSectionsInternalTypeInfo() ), 
-                       n->sections ) )
+  if( !( n->sections = Relation::Open( valueRecord, offset, 
+                                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetSectionsInternalTypeInfo() ) ) ) ) 
   {
     n->sections = 0;
     n->routes->Delete(); n->routes = 0;
@@ -552,9 +549,8 @@ bool Network::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeI
     return false;
   }
 
-  if( !BTree::Open( valueRecord, offset, 
-                    SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesBTreeTypeInfo() ), 
-                    n->routesBTree ) )
+  if( !( n->routesBTree = BTree::Open( valueRecord, offset, 
+                                       SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( GetRoutesBTreeTypeInfo() ) ) ) ) 
   {
     n->routesBTree = 0;
     n->routes->Delete(); n->routes = 0;
