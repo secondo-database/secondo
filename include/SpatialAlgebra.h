@@ -1608,7 +1608,7 @@ half segment is indicated by ~pos~
 
 */     
     bool contain( const Point& p ) const;
-    bool contain( const Point& p, int &pathlength, int & scanned ) const;
+    bool containpr( const Point& p, int &pathlength, int & scanned ) const;
 /*
 7.9 innercontain function
 
