@@ -13,15 +13,19 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
+	$(INCLUDEDIR)/FLOB.h \
+	$(INCLUDEDIR)/DBArray.h \
 	RelationAlgebra.h
 
 MODNAME=RelationAlgebra
 LIBNAME=lib$(MODNAME)
 
 OBJECTS=\
-	$(MODNAME).$(OBJEXT) \
-	RelationAlgebraPersistence.$(OBJEXT) \
-	RelationAlgebraMainMemory.$(OBJEXT)
+	FLOB.$(OBJEXT) \
+	RelationCommon.$(OBJEXT) \
+	RelationPersistent.$(OBJEXT) \
+	RelationMainMemory.$(OBJEXT) \
+	$(MODNAME).$(OBJEXT) 
 
 .PHONY: all
 all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
@@ -30,6 +34,15 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I.
+
+#This define RELALG_PERSISTENT is used to compile the Persistent Relational Algebra.
+#Uncomment this line below to change it to the Main Memory Relational Algebra.
+CCFLAGS+= -DRELALG_PERSISTENT 
+#CCFLAGS+= -DRELALG_PERSISTENT -DPERSISTENT_FLOB
+
+#The define _PREFETCHING_ is used to use Prefetching Iterators instead or normal
+#ones and is used only for testing purposes. It will be removed in later versions.
+CCFLAGS+= -D_PREFETCHING_
 
 # --- Relation Algebra C++ library ---
 
@@ -47,11 +60,17 @@ endif
 $(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
 	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
 
-RelationAlgebraPersistence.$(OBJEXT): RelationAlgebraPersistence.cpp  $(INCFILES)
-	$(CC) -c -o RelationAlgebraPersistence.$(OBJEXT) RelationAlgebraPersistence.cpp $(CCFLAGS)
+FLOB.$(OBJEXT): FLOB.cpp  $(INCFILES)
+	$(CC) -c -o FLOB.$(OBJEXT) FLOB.cpp $(CCFLAGS)
 
-RelationAlgebraMainMemory.$(OBJEXT): RelationAlgebraMainMemory.cpp  $(INCFILES)
-	$(CC) -c -o RelationAlgebraMainMemory.$(OBJEXT) RelationAlgebraMainMemory.cpp $(CCFLAGS)
+RelationCommon.$(OBJEXT): RelationCommon.cpp  $(INCFILES)
+	$(CC) -c -o RelationCommon.$(OBJEXT) RelationCommon.cpp $(CCFLAGS)
+
+RelationPersistent.$(OBJEXT): RelationPersistent.cpp  $(INCFILES)
+	$(CC) -c -o RelationPersistent.$(OBJEXT) RelationPersistent.cpp $(CCFLAGS)
+
+RelationMainMemory.$(OBJEXT): RelationMainMemory.cpp  $(INCFILES)
+	$(CC) -c -o RelationMainMemory.$(OBJEXT) RelationMainMemory.cpp $(CCFLAGS)
 
 include ../../include.dep
 

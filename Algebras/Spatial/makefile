@@ -13,9 +13,10 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-        $(INCLUDEDIR)/SpatialAlgebra.h \
         $(INCLUDEDIR)/Rational.h \
-        $(INCLUDEDIR)/PArray.h
+        $(INCLUDEDIR)/DBArray.h \
+	../Rectangle/RectangleAlgebra.h \
+	./SpatialAlgebra.h \
 
 MODNAME=SpatialAlgebra
 LIBNAME=lib$(MODNAME)
@@ -28,7 +29,7 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Rectangle
 
 # --- PointRectangle Algebra C++ library ---
 

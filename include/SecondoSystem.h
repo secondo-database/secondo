@@ -42,7 +42,7 @@ algebra is loaded into memory by calling the procedures of the module
 ~Algebra Manager~.
 
 1.2 Interface methods
-    
+
 The class ~SecondoSystem~ provides the following methods:
 
 [23]    System Management & Database Management & Information    \\
@@ -108,7 +108,7 @@ this name already exists.
   bool DestroyDatabase( const string& dbname );
 /*
 Deletes a database named ~dbname~ and all data files belonging to it.
-Returns "false"[4] if the database ~dbname~ is not known. 
+Returns "false"[4] if the database ~dbname~ is not known.
 
 *Precondition*: No database is open.
 
@@ -116,7 +116,7 @@ Returns "false"[4] if the database ~dbname~ is not known.
   bool OpenDatabase( const string& dbname );
 /*
 Opens a database with name ~dbname~.
-Returns "false"[4] if database ~dbname~ is unknown. 
+Returns "false"[4] if database ~dbname~ is unknown.
 
 *Precondition*: No database is open.
 
@@ -129,7 +129,7 @@ Closes the currently opened database.
 
 */
   bool IsDatabaseOpen();
-/* 
+/*
 Returns "true"[4] if a database is in open state, otherwise "false"[4].
 
 */
@@ -138,8 +138,8 @@ bool IsDatabaseObject( const string& objectName );
 Returns whether object with ~objectName~ is known in the currently opened
 database.
 
-*/ 
-bool SaveObject ( const string& objectName, 
+*/
+bool SaveObject ( const string& objectName,
                   const string& filename );
 /*
 Writes the currently open database called ~dbname~ to a file with name
@@ -147,7 +147,7 @@ Writes the currently open database called ~dbname~ to a file with name
 
 ---- (OBJECT <object name> (<type name>) <type expression> <value> <model>)*
 
-----   
+----
 
 Returns error 1 if there was a problem in writing the file.
 
@@ -157,7 +157,7 @@ Precondition: dbState = dbOpen.
   bool SaveDatabase( const string& filename );
 /*
 Writes the currently open database called ~dbname~ to a file with name
-~filename~ in nested list format. The format is as follows: 
+~filename~ in nested list format. The format is as follows:
 
 ---- (DATABASE <database name>
        (DESCRIPTIVE ALGEBRA)
@@ -177,7 +177,7 @@ Writes the currently open database called ~dbname~ to a file with name
                                                <value> <model>)*
          )
      )
-----   
+----
 
 Returns "false"[4] if there was a problem in writing the file.
 
@@ -190,11 +190,11 @@ Returns "false"[4] if there was a problem in writing the file.
 /*
 Reads an object from a file named ~filename~ and fills the catalog
 with this object. The database remains in state ~dbOpen~.
-Returns error 1, if object name in file is different from parameter ~objectname~, 
-error 2, if there was a problem in reading the file, error 3, if the list structure 
+Returns error 1, if object name in file is different from parameter ~objectname~,
+error 2, if there was a problem in reading the file, error 3, if the list structure
 in the file was not correct, error 4, if there is an error in object list expression,
 
-Furthermore, any errors found by kind checking and by ~In~ procedures are added to 
+Furthermore, any errors found by kind checking and by ~In~ procedures are added to
 the list ~errorInfo~.
 
 *Precondition*: Database is open and object is not known in the currently opened database.
@@ -212,10 +212,10 @@ Returns error 1 if ~dbname~ is not a known database name, error 2, if
 the database name in the file is different from ~dbname~ here, error 3,
 if there was a problem in reading the file, and error 4, if the list
 structure in the file was not correct. Returns error 5 if there are
-errors in type definitions and/or object list expressions. 
+errors in type definitions and/or object list expressions.
 
 Furthermore, any errors found by kind checking and by ~In~ procedures
-are returned in the list ~errorInfo~. 
+are returned in the list ~errorInfo~.
 
 *Precondition*: No database is open.
 
@@ -273,8 +273,8 @@ algebra ~level~.
   static NestedList* GetAppNestedList();
 /*
 Returns a reference to the associated nested list container.
-The first one is used by the query processor and algebra modules and 
-the second is an application specific list container in which query 
+The first one is used by the query processor and algebra modules and
+the second is an application specific list container in which query
 results are stored.
 
 */
@@ -293,12 +293,11 @@ Commits a transaction.
 Aborts a transaction.
 
 */
-  static SmiRecordFile* GetLobFile();
+  static SmiRecordFile* GetFlobFile();
 /*
 Returns the file for FLOB objects.
 
 */
-
  protected:
   SecondoSystem( const SecondoSystem& );
   SecondoSystem& operator=( const SecondoSystem& );
@@ -323,7 +322,7 @@ Are internal methods for restoring a database.
   SecondoCatalog* scDescriptive;
   SecondoCatalog* scExecutable;
   AlgebraLevel    currentLevel;
-  SmiRecordFile*  lobFile;
+  SmiRecordFile*  flobFile;
 
   bool            testMode;
   bool            initialized;

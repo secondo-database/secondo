@@ -25,8 +25,8 @@ using namespace std;
 #include "StandardTypes.h"	//needed because we return a CcBool in an op.
 #include <string>
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 1.2 Dummy Functions
@@ -34,14 +34,14 @@ static QueryProcessor* qp;
 Not interesting, but needed in the definition of a type constructor.
 
 */
-static void* DummyCast( void* addr ) {return (0);}
+void* DummyCast( void* addr ) {return (0);}
 /*
 2 Type Constructor ~xpoint~
 
 2.1 Data Structure - Class ~XPoint~
 
 */
-class XPoint	
+class XPoint
 {
  public:
   XPoint( int x, int y );
@@ -82,7 +82,7 @@ The list representation of a xpoint is
 
 */
 
-static ListExpr
+ListExpr
 OutXPoint( ListExpr typeInfo, Word value )
 {
   XPoint* point;
@@ -90,18 +90,18 @@ OutXPoint( ListExpr typeInfo, Word value )
   return nl->TwoElemList(nl->IntAtom(point->GetX()), nl->IntAtom(point->GetY()));
 }
 
-static Word
+Word
 InXPoint( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct )
+          const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   XPoint* newpoint;
 
   if ( nl->ListLength( instance ) == 2 )
-  { 
-    ListExpr First = nl->First(instance); 
+  {
+    ListExpr First = nl->First(instance);
     ListExpr Second = nl->Second(instance);
 
-    if ( nl->IsAtom(First) && nl->AtomType(First) == IntType 
+    if ( nl->IsAtom(First) && nl->AtomType(First) == IntType
       && nl->IsAtom(Second) && nl->AtomType(Second) == IntType )
     {
       correct = true;
@@ -119,65 +119,71 @@ InXPoint( const ListExpr typeInfo, const ListExpr instance,
 This one works for type constructors ~xpoint~.
 
 */
-static ListExpr
+ListExpr
 XPointProperty()
 {
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FiveElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List"),
 			     nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("xpoint"), 
-			     nl->StringAtom("(<x> <y>)"), 
+            nl->FiveElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("xpoint"),
+			     nl->StringAtom("(<x> <y>)"),
 			     nl->StringAtom("(-3 15)"),
 			     nl->StringAtom("x- and y-coordinates must be "
 			     "of type int."))));
 }
-static Word
-CreateXPoint( const ListExpr typeInfo ) 
+Word
+CreateXPoint( const ListExpr typeInfo )
 {
   return (SetWord( new XPoint( 0, 0 ) ));
 }
 
-static void
-DeleteXPoint( Word& w ) 
+void
+DeleteXPoint( Word& w )
 {
   delete (XPoint *)w.addr;
   w.addr = 0;
 }
- 
-static void
-CloseXPoint( Word& w ) 
+
+void
+CloseXPoint( Word& w )
 {
   delete (XPoint *)w.addr;
   w.addr = 0;
 }
- 
-static Word
-CloneXPoint( const Word& w ) 
+
+Word
+CloneXPoint( const Word& w )
 {
   return SetWord( ((XPoint *)w.addr)->Clone() );
 }
- 
+
+int
+SizeOfXPoint()
+{
+  return sizeof(XPoint);
+}
+
 /*
 Function describing type property of type constructor ~xrectangle~
 
 */
 
-static ListExpr
+ListExpr
 XRectangleProperty()
 {
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FiveElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List"),
 			     nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("xrectangle"), 
-			     nl->StringAtom("(<xleft> <xright> <ybottom> <ytop>)"), 
+            nl->FiveElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("xrectangle"),
+			     nl->StringAtom("(<xleft> <xright> <ybottom> <ytop>)"),
 			     nl->StringAtom("(4 12 8 2)"),
 			     nl->StringAtom("all coordinates must be of "
 			     "type int."))));
@@ -190,7 +196,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~xpoint~ does not have arguments, this is trivial.
 
 */
-static bool
+bool
 CheckXPoint( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "xpoint" ));
@@ -200,16 +206,17 @@ CheckXPoint( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor xpoint(
-	"xpoint",			//name		
+	"xpoint",			//name
 	XPointProperty, 	                //property function describing signature
         OutXPoint,   	  InXPoint,	//Out and In functions
         0,                0,	        //SaveToList and RestoreFromList functions
 	CreateXPoint,	  DeleteXPoint,	//object creation and deletion
         0, 0, CloseXPoint, CloneXPoint,    //object open, save, close, and clone
 	DummyCast,			//cast function
+        SizeOfXPoint, 			//sizeof function
 	CheckXPoint,	                //kind checking function
 	0, 				//predef. pers. function for model
-        TypeConstructor::DummyInModel, 	
+        TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
@@ -227,7 +234,7 @@ Later we need (iv) a property function, (v) a kind checking function. Finally
 the type constructor instance can be created.
 
 */
-class XRectangle	
+class XRectangle
 {
  public:
   XRectangle( int XLeft, int XRight, int YBottom, int YTop )
@@ -279,38 +286,38 @@ The list representation of a xrectangle is
 ----
 
 */
-static ListExpr
+ListExpr
 OutXRectangle( ListExpr typeInfo, Word value )
 {
   XRectangle* rectangle;
   rectangle = (XRectangle*)(value.addr);
   return nl->FourElemList(
-    nl->IntAtom(rectangle->GetXLeft()), 
+    nl->IntAtom(rectangle->GetXLeft()),
     nl->IntAtom(rectangle->GetXRight()),
-    nl->IntAtom(rectangle->GetYBottom()), 
+    nl->IntAtom(rectangle->GetYBottom()),
     nl->IntAtom(rectangle->GetYTop())		);
 }
 
-static Word
+Word
 InXRectangle( const ListExpr typeInfo, const ListExpr instance,
-       const int errorPos, ListExpr& errorInfo, bool& correct )
+              const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   XRectangle* newrectangle;
 
   if ( nl->ListLength( instance ) == 4 )
-  { 
-    ListExpr First = nl->First(instance); 
+  {
+    ListExpr First = nl->First(instance);
     ListExpr Second = nl->Second(instance);
-    ListExpr Third = nl->Third(instance); 
+    ListExpr Third = nl->Third(instance);
     ListExpr Fourth = nl->Fourth(instance);
 
-    if ( nl->IsAtom(First) && nl->AtomType(First) == IntType 
-      && nl->IsAtom(Second) && nl->AtomType(Second) == IntType 
-      && nl->IsAtom(Third) && nl->AtomType(Third) == IntType 
+    if ( nl->IsAtom(First) && nl->AtomType(First) == IntType
+      && nl->IsAtom(Second) && nl->AtomType(Second) == IntType
+      && nl->IsAtom(Third) && nl->AtomType(Third) == IntType
       && nl->IsAtom(Fourth) && nl->AtomType(Fourth) == IntType )
     {
       int xl = nl->IntValue(First);
-      int xr = nl->IntValue(Second); 
+      int xr = nl->IntValue(Second);
       int yb = nl->IntValue(Third);
       int yt = nl->IntValue(Fourth);
 
@@ -326,30 +333,36 @@ InXRectangle( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
-static Word
+Word
 CreateXRectangle( const ListExpr typeInfo )
 {
   return (SetWord( new XRectangle( 0, 0, 0, 0 ) ));
 }
 
-static void
+void
 DeleteXRectangle( Word& w )
 {
   delete (XRectangle *)w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseXRectangle( Word& w )
 {
   delete (XRectangle *)w.addr;
   w.addr = 0;
 }
 
-static Word
-CloneXRectangle( const Word& w ) 
+Word
+CloneXRectangle( const Word& w )
 {
   return SetWord( ((XRectangle *)w.addr)->Clone() );
+}
+
+int
+SizeOfXRectangle()
+{
+  return sizeof(XRectangle);
 }
 
 /*
@@ -363,7 +376,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~xrectangle~ does not have arguments, this is trivial.
 
 */
-static bool
+bool
 CheckXRectangle( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "xrectangle" ));
@@ -372,14 +385,16 @@ CheckXRectangle( ListExpr type, ListExpr& errorInfo )
 3.6 Creation of the Type Constructor Instance
 
 */
-TypeConstructor xrectangle( "xrectangle",	    XRectangleProperty,
-                           OutXRectangle,    InXRectangle,         
-                           0,               0,
-			   CreateXRectangle, DeleteXRectangle,
-        		   0,               0, 			
-                           CloseXRectangle,  CloneXRectangle,
-                           DummyCast,       CheckXRectangle,	
-                           0);
+TypeConstructor xrectangle( "xrectangle",
+							XRectangleProperty,
+                           	OutXRectangle,    	InXRectangle,
+                           	0,               	0,
+			   				CreateXRectangle, 	DeleteXRectangle,
+        		   			0,               	0,
+                           	CloseXRectangle, 	CloneXRectangle,
+                           	DummyCast,       	SizeOfXRectangle,
+                           	CheckXRectangle,
+                           	0);
 /*
 4 Creating Operators
 
@@ -391,7 +406,7 @@ returns a list expression for the result type, otherwise the symbol
 
 */
 
-static ListExpr
+ListExpr
 RectRectBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -399,13 +414,13 @@ RectRectBool( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "xrectangle") && nl->IsEqual(arg2, "xrectangle") )  
+    if ( nl->IsEqual(arg1, "xrectangle") && nl->IsEqual(arg2, "xrectangle") )
     return nl->SymbolAtom("bool");
   }
   return nl->SymbolAtom("typeerror");
 }
 
-static ListExpr
+ListExpr
 XPointRectBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -413,29 +428,17 @@ XPointRectBool( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "xpoint") && nl->IsEqual(arg2, "xrectangle") )  
+    if ( nl->IsEqual(arg1, "xpoint") && nl->IsEqual(arg2, "xrectangle") )
     return nl->SymbolAtom("bool");
   }
   return nl->SymbolAtom("typeerror");
 }
 
 /*
-4.2 Selection Function
-
-Is used to select one of several evaluation functions for an overloaded
-operator, based on the types of the arguments. In case of a non-overloaded
-operator, we just have to return 0.
-
-*/
-
-static int
-simpleSelect (ListExpr args ) { return 0; }
-
-/*
 4.3 Value Mapping Function
 
 */
-static int
+int
 intersectsFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Intersects predicate for two rectangles.
@@ -456,7 +459,7 @@ Intersects predicate for two rectangles.
   return 0;
 }
 
-static int
+int
 insideFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Inside predicate for xpoint and xrectangle.
@@ -513,18 +516,18 @@ Operator intersects (
 	intersectsSpec,         //specification
 	intersectsFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
-	RectRectBool		//type mapping 
-);	
-	
+	Operator::SimpleSelect,		//trivial selection function
+	RectRectBool		//type mapping
+);
+
 Operator inside (
 	"inside", 		//name
 	insideSpec,		//specification
 	insideFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
-	XPointRectBool		//type mapping 
-);	
+	Operator::SimpleSelect,		//trivial selection function
+	XPointRectBool		//type mapping
+);
 
 /*
 5 Creating the Algebra
@@ -548,7 +551,7 @@ class PointRectangleAlgebra : public Algebra
   ~PointRectangleAlgebra() {};
 };
 
-PointRectangleAlgebra pointRectangleAlgebra; 
+PointRectangleAlgebra pointRectangleAlgebra;
 
 /*
 6 Initialization

@@ -87,7 +87,6 @@ $(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS)
 
-
 $(BINDIR)/TestRunner$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES)
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)

@@ -3,10 +3,22 @@
 # SECONDO makefile for Polygon Algebra
 #
 # $Log$
+# Revision 1.5  2003/04/17 21:04:17  telle
+# Fixed makefile problems when building shared library version. (LIBNAME needs to be a target specific variable if there are more than one library to be built within one makefile.)
+# Definition of variable SMILIB moved from main makefile to makefile.env.
+# Changed references to variable BDBSMILIB to SMILIB in several algebra modul makefiles to make them independent of the used SMI implementation.
+# FTextAlgebra.cpp: include <iostream> instead of <iostream.h> (which is deprecated)
+# SpatialAlgebra.cpp: changed long string constants to avoid warnings.
+#
 # Revision 1.4  2003/04/03 09:35:27  valmeida
 #
 # Correcting a bug in the PArray organization. Now the SecondoSystem is
 # responsible to opening and closing a LOB file which the PArrays will use.
+#
+# Revision 1.3.4.1  2003/04/08 15:39:48  valmeida
+#
+# This modification adds the first working version of the Persistent
+# Relational Algebra. Lots of works must be done to be the final version.
 #
 # Revision 1.3  2002/11/27 20:31:04  spieker
 # Rules for generation of libraries were revised. Many rules are written
@@ -32,7 +44,7 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-        $(INCLUDEDIR)/PArray.h
+        $(INCLUDEDIR)/DBArray.h
 
 REFFILE=\
 
@@ -48,6 +60,10 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+
+#This define RELALG_PERSISTENT is used to compile the Persistent Relational Algebra.
+#Uncomment this line below to change it to the Main Memory Relational Algebra.
+CCFLAGS+= -DRELALG_PERSISTENT
 
 # --- Standard Algebra C++ library ---
 

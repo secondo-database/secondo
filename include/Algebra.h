@@ -24,41 +24,43 @@ May 2002 Ulrich Telle Port to C++
 August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
-January 2003 VTA Changed ~PersistValue~ interface and created three
+January 2003 Victor Almeida Changed ~PersistValue~ interface and created three
 new functions ~Open~, ~Save~, and ~Close~ that join the ~Create~ and ~Delete~
-to form the object state diagram in the Figure 1. 
+to form the object state diagram in the Figure 1.
 
 Figure 1: Object state diagram [objstatediagram.eps]
+
+March 2003 Victor Almeida created the function "SizeOf".
 
 1.1 Overview
 
 A snapshot of a working "Secondo"[3] system will show a collection of algebras,
 each of them ``populated'' by two different kinds of entities: objects and
-operators. 
-Operators are fix in terms of number and functionality which 
+operators.
+Operators are fix in terms of number and functionality which
 are defined by the algebra implementor. In contrast to that, the number of
 objects is variable and changes dynamically at runtime. Even the types of
-objects are not predefined, but only their type constructors. 
+objects are not predefined, but only their type constructors.
 
 These very different properties of types and objects give rise to a very
 different C++ representation of  operators and objects:
 
   * Operators are instances of a predefined class ~Operator~. Thus an
 implementation  of an algebra with "n"[2] operators contains "n"[2] definitions
-of instances of class ~Operator~. 
+of instances of class ~Operator~.
 
   * Objects cannot be predefined, because they are constructed and deleted at
 runtime. Even the possible types of objects cannot be predeclared, because they
-can be declared at runtime, too. Only an algebras's  ~type constructors~ are 
-well known and fix. An implementation of an algebra with "m"[2] 
+can be declared at runtime, too. Only an algebras's  ~type constructors~ are
+well known and fix. An implementation of an algebra with "m"[2]
 type constructors contains "m"[2] definitions of instances of the predefined
 class ~TypeConstructor~.
 
 From a top level point of view, a "Secondo"[3] universe is a collection of algebras.
 This can be implemented by defining an instance of a subclass
-of the predefined class ~Algebra~ for 
-each existing algebra. Each of these ~Algebra~ 
-instances essentially consists of a set of operators and a set of 
+of the predefined class ~Algebra~ for
+each existing algebra. Each of these ~Algebra~
+instances essentially consists of a set of operators and a set of
 type constructors.
 
 1.2 Defines and Includes
@@ -75,23 +77,23 @@ type constructors.
 /*
 1.4 Class "Operator"[1]
 
-An operator instance consists of 
+An operator instance consists of
 
-  * a name 
+  * a name
 
   * at least one value mapping function, sometimes called evaluation function
 
-  * a type Mapping function, returned the operator's result type with respect 
+  * a type Mapping function, returned the operator's result type with respect
     to input parameters type
 
   * a selection function calculating the index of a value mapping function
     with respect to input parameter types
 
-  * model and cost mapping functions (reserved for future use) 
+  * model and cost mapping functions (reserved for future use)
 
 All properties of operators are set in the constructor. Only the value mapping
 functions have to be registered later on since their number is arbitrary. This
-number is set in the constructor (~noF~). 
+number is set in the constructor (~noF~).
 
 */
 
@@ -102,9 +104,9 @@ class Operator
             const string& spec,
             const int noF,
             ValueMapping vms[],
-	    ModelMapping mms[],
+	          ModelMapping mms[],
             SelectFunction sf,
-	    TypeMapping tm,
+      	    TypeMapping tm,
             CostMapping cm = Operator::DummyCost );
 /*
 Constructs an operator with ~noF~ overloaded evaluation functions.
@@ -174,6 +176,11 @@ Defines a dummy model mapping function for operators.
 Defines a dummy cost mapping function for operators.
 
 */
+  static int SimpleSelect( ListExpr );
+/*
+Defines a dummy cost mapping function for operators.
+
+*/
  private:
   bool AddValueMapping( const int index, ValueMapping f );
 /*
@@ -200,7 +207,7 @@ Adds a model mapping function to the list of overloaded operator functions.
 /*
 1.5 Class "TypeConstructor"[1]
 
-An instance of class ~TypeConstructor~ consists of 
+An instance of class ~TypeConstructor~ consists of
 
   * a name
 
@@ -215,7 +222,7 @@ An instance of class ~TypeConstructor~ consists of
 
   * a function (``deleteFunc'') releasing the memory previously allocated by
     createFunc.
-  
+
   * a function (``openFunc'').
 
   * a function (``saveFunc'').
@@ -245,6 +252,7 @@ class TypeConstructor
                    ObjectClose close,
                    ObjectClone clone,
                    ObjectCast ca,
+                   ObjectSizeof sizeOf,
                    TypeCheckFunction tcf,
                    PersistFunction pmf = 0,
                    InModelFunction inm =
@@ -276,13 +284,13 @@ Returns the properties of the type constructor as a nested list.
 */
   ListExpr Out( ListExpr type, Word value );
   Word     In( const ListExpr typeInfo,
-               const ListExpr value, 
+               const ListExpr value,
                const int errorPos,
                ListExpr& errorInfo,
                bool& correct );
   ListExpr SaveToList( ListExpr type, Word value );
   Word     RestoreFromList( const ListExpr typeInfo,
-                            const ListExpr value, 
+                            const ListExpr value,
                             const int errorPos,
                             ListExpr& errorInfo,
                             bool& correct );
@@ -296,6 +304,7 @@ Returns the properties of the type constructor as a nested list.
                  Word& value );
   void     Close( Word& w );
   Word     Clone( const Word& w );
+  int      SizeOf();
 
   Word     InModel( ListExpr, ListExpr, int );
   ListExpr OutModel( ListExpr, Word );
@@ -359,6 +368,12 @@ by the algebra module.
                                      const int errorPos,
                                      ListExpr& errorInfo,
                                      bool& correct );
+  static Word DummyCreate( const ListExpr typeInfo );
+  static void DummyDelete( Word& w );
+  static void DummyClose( Word& w );
+  static Word DummyClone( const Word& w );
+  static int  DummySizeOf();
+
 /*
 Are dummy methods used as placeholders for model manipulating type
 constructor functions.
@@ -370,7 +385,7 @@ constructor functions.
   OutObject                outFunc;
   InObject                 inFunc;
   OutObject                saveToListFunc;
-  InObject                 restoreFromListFunc;  
+  InObject                 restoreFromListFunc;
   ObjectCreation           createFunc;
   ObjectDeletion           deleteFunc;
   ObjectOpen               openFunc;
@@ -378,6 +393,7 @@ constructor functions.
   ObjectClose              closeFunc;
   ObjectClone              cloneFunc;
   ObjectCast               castFunc;
+  ObjectSizeof             sizeofFunc;
   PersistFunction          persistModelFunc;
   InModelFunction          inModelFunc;
   OutModelFunction         outModelFunc;
@@ -396,19 +412,19 @@ An instance of class ~Algebra~ provides access to all information about a given
 algebra at run time, i.e. a set of type constructors and a set of operators.
 These properties have to be set once. A straightforward approach is to do
 these settings within an algebra's constructor. As all algebra modules use
-different type constructors and operators, all algebra constructors are 
-different from each other. Hence we cannot use a single constructor, but 
+different type constructors and operators, all algebra constructors are
+different from each other. Hence we cannot use a single constructor, but
 request algebra implementors to derive a new subclass of class ~Algebra~ for
 each algebra module in order to provide a new constructor. Each of these
 subclasses will be instantiated exactly once. An algebra subclass
-instance serves as a handle for accessing an algebra's type constructors 
+instance serves as a handle for accessing an algebra's type constructors
 and operators.
 
 */
 
 class Algebra
 {
- public: 
+ public:
   Algebra();
 /*
 Creates an instance of an algebra. Concrete algebra modules are implemented

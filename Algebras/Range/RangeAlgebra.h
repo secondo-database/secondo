@@ -37,183 +37,186 @@ $closure(X) = X \cup \{ inf(X) \} \cup \{ sup(X) \}$.
 
 /*
 
-3 Class ~Interval~
+3 Struct ~Interval~
+
+3.1 Overview
 
 The class ~Interval~ implements the closure of an $\alpha$-interval. To be a generic
 class, this class stores attributes of ~StandardAttribute~ type. In this way, any 
 child class of ~StandardAttribute~ can have an interval counterpart.
 
+An interval contains a ~start~, an ~end~ and two flags ~lc~ and ~rc~ indicating if
+the interval is left-closed and right-closed, respectively. 
+
+
 */
-class Interval
+struct Interval
 {
-  public:
 /*
-3.1 Constructors and Destructor
+3.2 Constructors and Destructor
 
 */
-    Interval( StandardAttribute* b, StandardAttribute* e ):
-      begin( b ),
-      end( e )
-      { assert( b != NULL && e != NULL );
-        assert( (b->IsDefined() && e->IsDefined() && b->Compare( e ) <= 0) || (!b->IsDefined() && !e->IsDefined()) ); }
+  Interval( const int algebraId, const int typeId );
 /*
-Constructs an interval receiving as arguments two StandardAttribute pointers ~b~ and ~e~
-to be the begin and end of the interval, respectively.
-
-*Precondition:*  
+The simple constructor.
 
 */
-    ~Interval()
-      {}
+  Interval( const Interval& interval );
+/*
+The copy constructor.
+
+*/
+  Interval( const int algebraId,
+            const int typeId,
+            StandardAttribute* start,
+            StandardAttribute* end,
+            const bool lc,
+            const bool rc );
+/*
+The creation of the interval setting all attributes. One should note that the ~start~
+and ~end~ attributes are cloned.
+
+*/
+  ~Interval();
+
 /*
 The destructor.
 
-3.2 Member functions
+3.3 Member functions
 
 */
-    StandardAttribute *GetBegin() const
-      { return begin; }
+  bool IsDefined() const
+    { return start->IsDefined() && end->IsDefined(); }
 /*
-Returns the begin of the interval.
-
-*/
-    StandardAttribute *GetEnd() const
-      { return end; }
-/*
-Returns the end of the interval.
-
-*/
-    const bool IsDefined() const
-      { return begin->IsDefined() && end->IsDefined(); }
-/*
-Returns true if both the begin and the end of the interval are defined. Returns
+Returns true if both the start and the end of the interval are defined. Returns
 false otherwise.
 
 */
-    int operator==(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return begin->Compare( i.GetBegin() ) == 0 && 
-               end->Compare( i.GetEnd() ) == 0; }
+  bool IsValid() const;
+/*
+Checks if the interval is valid or not. This function should be used for debugging purposes
+only.  An interval is valid if the following conditions are true:
+
+  1 is defined
+
+  2 ~start~ $<=$ ~end~
+
+  3 if ~start~ $==$ ~end~, then must ~lc~ $=$ ~rc~ $=$ ~true~
+
+*/
+  Interval& operator=( const Interval& i );
+/*
+Redefinition of the copy operator ~=~.
+
+*/
+  bool operator==(const Interval& i) const;
 /*
 Returns ~true~ if this interval is equal to the interval ~i~ and ~false~ if they are different.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    int operator!=(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return begin->Compare( i.GetBegin() ) != 0 || 
-               end->Compare( i.GetEnd() ) != 0; }
+  bool operator!=(const Interval& i) const;
 /*
 Returns ~true~ if this interval is different to the interval ~i~ and ~false~ if they are equal.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    int operator<(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return begin->Compare( i.GetBegin() ) < 0; }
+  bool R_Disjoint(const Interval& i) const;
 /*
-Returns ~true~ if the beginning of this interval is less than the beginning of the interval ~i~
-and ~false~ otherwise.
+Returns ~true~ if this interval is r-disjoint with the interval ~i~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    int operator<=(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return begin->Compare( i.GetBegin() ) <= 0; }
+  bool Disjoint(const Interval& i) const;
 /*
-Returns ~true~ if the beginning of this interval is less or equal than the beginning of the 
-interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is disjoint with the interval ~i~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    int operator>(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return begin->Compare( i.GetBegin() ) > 0; }
+  bool R_Adjacent(const Interval& i) const;
 /*
-Returns ~true~ if the beginning of this interval is greater than the beginning of the interval ~i~
-and ~false~ otherwise.
+Returns ~true~ if this interval is r-adjacent with the interval ~i~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    int operator>=(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return begin->Compare( i.GetBegin() ) >= 0; }
+  bool Adjacent(const Interval& i) const;
 /*
-Returns ~true~ if the beginning of this interval is greater or equal than the beginning of the 
-interval ~i~ and ~false~ otherwise.
+Returns ~true~ if this interval is adjacent with the interval ~i~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    int Inside(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return ( begin->Compare( i.GetBegin() ) >= 0 && end->Compare( i.GetEnd() ) <= 0 ); } 
+  bool Inside(const Interval& i) const;
 /*
 Returns ~true~ if this interval is inside the interval ~i~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    const bool Contains(StandardAttribute* a) const
-      { assert( IsDefined() && a->IsDefined() );
-        return ( begin->Compare( a ) <= 0 && end->Compare( a ) >= 0 ); } 
+  bool Contains(StandardAttribute* a) const;
 /*
 Returns ~true~ if this interval contains the value ~a~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ a.IsDefined()~
 
 */
-    int Intersects(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return ( Inside( i ) ) ||
-               ( begin->Compare( i.GetBegin() ) <= 0 && end->Compare( i.GetBegin() ) >= 0 ) ||
-               ( begin->Compare( i.GetEnd() ) <= 0 && end->Compare( i.GetEnd() ) >= 0 ); } 
+  bool Intersects(const Interval& i) const;
 /*
 Returns ~true~ if this interval intersects with the interval ~i~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    const bool Before(const Interval& i) const
-      { assert( IsDefined() && i.IsDefined() );
-        return ( end->Compare( i.GetBegin() ) <= 0 ); } 
+  bool Before(const Interval& i) const;
 /*
 Returns ~true~ if this interval is before the interval ~i~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ i.IsDefined()~
 
 */
-    const bool Before(StandardAttribute* a) const
-      { assert( IsDefined() && a->IsDefined() );
-        return ( end->Compare( a ) <= 0 ); } 
-    const bool After(StandardAttribute* a) const
-      { assert( IsDefined() && a->IsDefined() );
-        return ( begin->Compare( a ) >= 0 ); } 
+  bool Before(StandardAttribute* a) const;
+  bool After(StandardAttribute* a) const;
 /*
 Returns ~true~ if this interval is before/after the value ~a~ and ~false~ otherwise.
 
 *Precondition:* ~this.IsDefined() $\&\&$ a.IsDefined()~
 
-*/
-    
-  private:
-/*
 3.3 Attributes
 
 */
-    StandardAttribute* begin;
+  int algebraId;
 /*
-The begin of the interval.
+The algebra identification of the interval's type.
 
 */
-    StandardAttribute* end;
+  int typeId;
+/*
+The type identification of the interval's type.
+
+*/
+  StandardAttribute* start;
+/*
+The start of the interval.
+
+*/
+  StandardAttribute* end;
 /*
 The end of the interval.
+
+*/
+  bool lc;
+/*
+Tells if the interval is left-closed.
+
+*/
+  bool rc;
+/*
+Tells if the interval is right-closed.
 
 */
 };
@@ -235,30 +238,19 @@ class Range
 /*
 4.1 Constructors and Destructor
 
-There are two ways of constructing a range:
+*/
+    Range( const int algebraId, const int typeId, const int size, const int n = 0 );
+/*
+The ~range~ constructor receives the ~algebraId~, the ~typeId~, and the ~size~ of
+the $\alpha$-type. The size will be used for reading and writing the range values into 
+disk. One can also initialize the allocation with size ~n~.
 
 */
-    Range( SmiRecordFile *recordFile, const int algebraId, const int typeId, const int size );
-/*
-The first one receives the size that the type $\alpha$ occupes in memory.
-This size will be used for reading and writing the range values into 
-disk.
-
-*/
-    Range( SmiRecordFile *recordFile, const SmiRecordId id, const bool update = true );
-/*
-The second one opens a saved range which recordid is pointed by ~id~. The 
-flag ~update~ tells when to open the files only for reading or also to
-make updates.
-
-*/ 
     void Destroy();
 /*
 This function should be called before the destructor if one wants to destroy the
 persistent array of intervals. It marks the persistent array for destroying. The
 destructor will perform the real destroying.
-
-*Precondition:* ~writeable == true~
 
 */
     ~Range();
@@ -275,7 +267,7 @@ condition only for bulk load of intervals. All other operations assume that the 
 ordered.
 
 */
-    const bool IsOrdered() const;
+    bool IsOrdered() const;
 /*
 Returns if the interval set is ordered. There is a flag ~ordered~ (see attributes) in order
 to avoid a scan in the interval set to answer this question.
@@ -283,7 +275,7 @@ to avoid a scan in the interval set to answer this question.
 */
     void StartBulkLoad();
 /*
-Marks the begin of a bulk load of intervals relaxing the condition that the intervals must be
+Marks the start of a bulk load of intervals relaxing the condition that the intervals must be
 ordered. We will assume that the only way to add intervals to an interval set is inside bulk
 loads, i.e., into non-ordered ranges.
 
@@ -295,28 +287,28 @@ Marks the end of a bulk load and sorts the interval set.
 4.3 Member functions
 
 */
-    const bool IsEmpty() const
-      { return intervalCount == 0; }
+    bool IsEmpty() const
+      { return noComponents == 0; }
 /*
 Returns if the range is empty of intervals or not.
 
 */
-    const int GetIntervalCount() const
-      { return intervalCount; }
+    int GetAlgebraId() const
+      { return algebraId; }
 /*
-Returns the number of intervals in the range.
+Returns the algebra ~id~ of the $\alpha$-element of the range.
 
 */
-    const int GetElemSize() const
+    int GetTypeId() const
+      { return typeId; }
+/*
+Returns the type ~id~ of the $\alpha$-element of the range.
+
+*/
+    int GetElemSize() const
       { return size; }
 /*
 Returns the size of the $\alpha$-element of the range.
-
-*/
-    const int GetRecordId() const
-      { return recid; }
-/*
-Returns the record identification of the range persistent array.
 
 */
     void Get( const int i, Interval& ai );
@@ -325,7 +317,7 @@ Returns the interval ~ai~ at the position ~i~ in the range.
 
 */
     enum IntervalPosition { Begin, End };
-    void Get( const int i, const IntervalPosition pos, StandardAttribute *a );
+    void Get( const int i, const IntervalPosition pos, StandardAttribute *a, bool& closed );
 /*
 Returns the attribute at the ~i~-th interval at position ~pos~ (~Begin~ or ~End~).
 
@@ -335,7 +327,7 @@ Returns the attribute at the ~i~-th interval at position ~pos~ (~Begin~ or ~End~
 Add an interval ~i~ to the range. We will assume that the only way of
 adding intervals is in bulk loads, i.e., in a non-ordered array.
 
-*Precondition:* ~writeable == true $\&\&$ IsOrdered() == false~
+*Precondition:* ~IsOrdered() == false~
 
 4.4 Operations
 
@@ -348,7 +340,7 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    int operator==(Range& r);
+    bool operator==(Range& r);
 /*
 4.4.2 Operation $\neq$ (~not equal~)
 
@@ -359,7 +351,7 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    int operator!=(Range& r);
+    bool operator!=(Range& r);
 /*
 4.4.3 Operation ~intersects~
 
@@ -370,7 +362,7 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    const bool Intersects(Range& r);
+    bool Intersects(Range& r);
 /*
 4.4.3 Operation ~inside~
 
@@ -381,7 +373,7 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
 
 */
-    const bool Inside(Range& r);
+    bool Inside(Range& r);
 /*
 4.4.4 Operation ~contains~
 
@@ -392,7 +384,7 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 *Complexity:* $O(log(n))$, where ~n~ is the size of this range ~X~.
 
 */
-    const bool Contains(StandardAttribute *a);
+    bool Contains(StandardAttribute *a);
 /*
 4.4.5 Operation ~before~ (with ~range~)
 
@@ -403,7 +395,7 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 *Complexity:* $O(1)$.
 
 */
-    const bool Before(Range& r);
+    bool Before(Range& r);
 /*
 4.4.6 Operation ~before~ (with ~BASE~ type)
 
@@ -414,7 +406,7 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 *Complexity:* $O(1)$.
 
 */
-    const bool Before(StandardAttribute *a);
+    bool Before(StandardAttribute *a);
 /*
 4.4.7 Operation ~after~ 
 
@@ -428,7 +420,7 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(1)$.
 
 */
-    const bool After(StandardAttribute *a);
+    bool After(StandardAttribute *a);
 /*
 4.4.8 Operation ~intersection~ 
 
@@ -485,7 +477,7 @@ before on a contrary order, i.e., ~x before Y~.
 */
     void Minimum(StandardAttribute *result);
 /*
-4.4.8 Operation ~no_components~ 
+4.4.8 Operation ~no\_components~ 
 
 *Precondition:* ~X.IsOrdered()~
 
@@ -494,24 +486,37 @@ before on a contrary order, i.e., ~x before Y~.
 *Complexity:* $O(1)$
 
 */
-    const int NoComponents();
+    int GetNoComponents() const;
 
   private:
 /*
 4.5 Private member functions
 
 */
-    void Sort();
-    void QuickSortRecursive( const int low, const int high );
+    bool IsValid();
 /*
-Sorts (quick-sort algorithm) the persistent array of points.
+This functions tests if a ~range~ is in a valid form. It is used for debugging
+purposes only. The ~range~ is valid, if the following conditions are true:
+
+  1 Each interval is valid
+
+  2 Start of each interval $>=$ end of the interval before
+
+  3 If start of an interval = end of the interval before, then one needs to 
+    make sure that the interval is not left-closed or the interval before 
+    is not right-closed
+
+*/
+    void Sort();
+/*
+Sorts (STL ~sort~ algorithm) the range.
 
 */
     void Put( const int i, const Interval& interval );
 /*
 Puts an interval in the ~i~-th position of the array.
 
-*Precondition:* ~writeable == true $\&\&$ 0 $\leq$ i $<$ intervalCount~
+*Precondition:* ~0 $\leq$ i $<$ noComponents~
 
 4.6 Attributes
 
@@ -523,25 +528,13 @@ Puts an interval in the ~i~-th position of the array.
 The algebraId, typeId, and size of the $\alpha$-element of the range.
 
 */
-    bool writeable;
-/*
-A flag indication if the files were opened for writing.
-
-*/
-    SmiRecordFile *parrays;
-    SmiRecord record;
-    SmiRecordId recid;
-/*
-File management information.
-
-*/
     bool canDelete;
 /*
 A flag indicating if the destructor should destroy also the persistent
 array of intervals.
 
 */
-    int intervalCount;
+    int noComponents;
 /*
 Stores the number of intervals of the range.
 
@@ -549,6 +542,13 @@ Stores the number of intervals of the range.
     bool ordered;
 /*
 A flag indicating whether the interval set is ordered or not.
+
+*/
+    FLOB intervals;
+/*
+The intervals array as a FLOB. We cannot use DBArrays here because the
+range contains pointers to StandardAttribute, and cannot be saved in
+this way. 
 
 */
 };

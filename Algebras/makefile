@@ -63,5 +63,5 @@ clean:
 ifeq ($(USE_JNI),"true")
 	for dir in $(JNI_ALGEBRA_DIRS); do \
           $(MAKE) -C $$dir clean; \
-        done
+	done
 endif

@@ -30,9 +30,8 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 using namespace std;
 
-static NestedList* nl;
-static QueryProcessor* qp;
-
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 /*
 2 Type Constructor ~text~
@@ -77,7 +76,7 @@ public:
   int      Sizeof() const;
   FText*   Clone();
   ostream& Print(ostream &os);
-  int      Adjacent(Attribute * arg);
+  bool     Adjacent(Attribute * arg);
 
 private:
   textType theText;
@@ -254,7 +253,7 @@ ostream& FText::Print(ostream &os)
 }
 
 
-int FText::Adjacent(Attribute *arg)
+bool FText::Adjacent(Attribute *arg)
 {
   if(traces)
     cout << '\n' << "Start Adjacent" << '\n';
@@ -333,6 +332,12 @@ CloneFText( const Word& w )
   if(traces)
     cout << '\n' << "Start CloneFText" << '\n';
   return SetWord( ((FText *)w.addr)->Clone() );
+}
+
+static int
+SizeOfFText()
+{
+  return 0;
 }
 
 static void*
@@ -474,6 +479,7 @@ TypeConstructor ftext(
   CreateFText, DeleteFText,     //object creation and deletion
   0, 0, CloseFText, CloneFText, //object open, save, close, and clone
   CastFText,                    //cast function
+  SizeOfFText,					//sizeof function
   CheckFText,                   //kind checking function
   0,                            //predef. pers. function for model
   TypeConstructor::DummyInModel,

@@ -295,7 +295,7 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes,
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	CcPolygon* polygon1;
+	Polygon* polygon1;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -318,7 +318,7 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes,
     int1 = new CcInt(true, intv);
 	bool1 = new CcBool(true, bboolv);
 					
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
+	polygon1 = new Polygon(lobFile, numberOfPoints, X, Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -333,7 +333,8 @@ void SecondoTestFrame::Test01(const TupleAttributes *attributes,
 	myTuple->SaveTo(recFile, lobFile);
 	recId = myTuple->GetPersistentId();
 	cout << recId << endl;
-	
+
+        polygon1->Close();	
 	delete polygon1;
 	delete real1;
 	delete int1;
@@ -367,7 +368,7 @@ void SecondoTestFrame::Test02(const TupleAttributes *attributes,
 		cout << "\t\tint-Attribute:\t\t" << *myTuple->Get(0) << endl;
 		cout << "\t\tbool-Attribute:\t\t" << *myTuple->Get(1) << endl;
 		cout << "\t\treal-Attribute:\t\t" << *myTuple->Get(2) << endl;
-		cout << "\t\tCcPolygon-Attribute:\t" << *myTuple->Get(3) << endl;
+		cout << "\t\tPolygon-Attribute:\t" << *myTuple->Get(3) << endl;
 
 		cout << "\tSize: " << myTuple->GetSize() << endl;
 		cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
@@ -461,7 +462,7 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes,
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	CcPolygon* polygon1;
+	Polygon* polygon1;
 	SmiRecordId recId;
 	
 	cout << "\tnumber of tuples, please: "; cin >> numberOfTuples;
@@ -489,7 +490,7 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes,
     	int1 = new CcInt(true, intv + j);
 		bool1 = new CcBool(true, bboolv);				
 		
-		polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
+		polygon1 = new Polygon(lobFile, numberOfPoints, X, Y);
 		myTuple->Put(0, int1);
 		myTuple->Put(1, bool1);
 		myTuple->Put(2, real1);
@@ -506,6 +507,7 @@ void SecondoTestFrame::Test04(const TupleAttributes *attributes,
 		delete real1;
 		delete int1;
 		delete bool1;
+                polygon1->Close();
 		delete polygon1;
 		delete myTuple;
 		
@@ -565,7 +567,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes,
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	CcPolygon* polygon1;
+	Polygon* polygon1;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -588,7 +590,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes,
     int1 = new CcInt(true, intv);
 	bool1 = new CcBool(true, bboolv);
 					
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
+	polygon1 = new Polygon(lobFile, numberOfPoints, X, Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -611,6 +613,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes,
 	recId = myTuple->GetPersistentId();
 	cout << "\tnew Persistent id = " << recId << endl;
 
+        polygon1->Close();	
 	delete polygon1;
 	delete real1;
 	delete int1;
@@ -646,8 +649,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes,
 	CcBool *bool1;
 	CcBool *bool2;
 	CcBool *bool2a;
-	CcPolygon* polygon1;
-	CcPolygon* polygon2;
+	Polygon* polygon1;
+	Polygon* polygon2;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -681,8 +684,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes,
 	bool2 = new CcBool(true, bboolv2);
 	bool2a = new CcBool(true, bboolv2);
 	
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
-	polygon2 = new CcPolygon(lobFile, numberOfPoints, X, Y);
+	polygon1 = new Polygon(lobFile, numberOfPoints, X, Y);
+	polygon2 = new Polygon(lobFile, numberOfPoints, X, Y);
 	
 	myTuple->DelPut(0, int1);
 	myTuple->DelPut(1, bool1);
@@ -722,6 +725,7 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes,
 	cout << "****************" << endl;
 	
 	
+        polygon1->Close();	
 	delete polygon1;
 	delete polygon2;
 
@@ -752,7 +756,7 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes,
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	CcPolygon* polygon1;
+	Polygon* polygon1;
 	SmiRecordId recId;
 
 	myTuple = new Tuple(attributes);
@@ -774,7 +778,7 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes,
     int1 = new CcInt(true, intv);
 	bool1 = new CcBool(true, bboolv);
 					
-	polygon1 = new CcPolygon(lobFile, numberOfPoints, X, Y);
+	polygon1 = new Polygon(lobFile, numberOfPoints, X, Y);
 	myTuple->Put(0, int1);
 	myTuple->Put(1, bool1);
 	myTuple->Put(2, real1);
@@ -790,6 +794,7 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes,
 	recId = myTuple->GetPersistentId();
 	cout << recId << endl;
 
+        polygon1->Close();	
 	delete polygon1;
 	delete real1;
 	delete int1;
@@ -831,10 +836,10 @@ int SecondoTestFrame::Execute() {
 			cout << "************************************************" << endl;
 			
 			int algIdPolygon = 0;
-			int CcPolygonId = 0;
+			int PolygonId = 0;
 
-			if ((exCatalog->GetTypeId("polygon", algIdPolygon, CcPolygonId) == true)) {
-				cout << "* Polygon --> algId: " << algIdPolygon << ", typeid: " << CcPolygonId << endl;
+			if ((exCatalog->GetTypeId("polygon", algIdPolygon, PolygonId) == true)) {
+				cout << "* Polygon --> algId: " << algIdPolygon << ", typeid: " << PolygonId << endl;
 			}
 			else {
 				cout << "* failed." << endl;
@@ -880,7 +885,7 @@ int SecondoTestFrame::Execute() {
 	    	AttributeType realAttr = {algIdStandard, CcRealId, sizeof(CcReal)};
 	      	AttributeType intAttr = {algIdStandard, CcIntId, sizeof(CcInt)};
 	      	AttributeType boolAttr = {algIdStandard, CcBoolId, sizeof(CcBool)};
-			AttributeType polygonAttr = {algIdPolygon, CcPolygonId, sizeof(CcPolygon)};
+			AttributeType polygonAttr = {algIdPolygon, PolygonId, sizeof(Polygon)};
 
          	AttributeType attrTypes[] = {intAttr, boolAttr, realAttr, polygonAttr};
 

@@ -27,7 +27,7 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I. -I../Relation-C++
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Relation-C++
 
 # --- BTree Algebra library ---
 

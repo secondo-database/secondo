@@ -21,8 +21,8 @@ shows examples of these spatial data types.
 #ifndef __SPATIAL_ALGEBRA_H__
 #define __SPATIAL_ALGEBRA_H__
 
-#include "PArray.h"
 #include "StandardAttribute.h"
+#include "DBArray.h"
 #include "RectangleAlgebra.h"
 
 //#define RATIONAL_COORDINATES
@@ -89,7 +89,12 @@ class Point: public StandardSpatialAttribute
 There are two ways of constructing a point:
 
 */
-    Point( const bool d = false, const Coord& x = 0, const Coord& y = 0 );
+    Point() {};
+/*
+This constructor should not be used. 
+
+*/
+    Point( const bool d, const Coord& x = Coord(), const Coord& y = Coord() );
 /*
 The first one receives a boolean value ~d~ indicating if the point is defined
 and two coordinate ~x~ and ~y~ values. Note that this constructor can be
@@ -129,9 +134,9 @@ Returns the point bounding box which is also a point.
 
 */
 
-    void  Set( const bool D, const Coord& X, const Coord& Y)
+    void  Set( const Coord& X, const Coord& Y)
     {
-	defined=D;
+	defined=true;
 	x=X;
 	y=Y;
     }
@@ -169,7 +174,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    int operator==(const Point& p) const;
+    bool operator==(const Point& p) const;
 /*
 3.3.2 Operation $\neq$ (~not equal~)
 
@@ -180,7 +185,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    int operator!=(const Point& p) const;
+    bool operator!=(const Point& p) const;
 /*
 3.3.3 Operation $\leq$ (~less or equal~)
 
@@ -191,7 +196,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    int operator<=(const Point& p) const;
+    bool operator<=(const Point& p) const;
 /*
 3.3.4 Operation $<$ (~less than~)
 
@@ -202,7 +207,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    int operator<(const Point& p) const;
+    bool operator<(const Point& p) const;
 /*
 3.3.5 Operation $\geq$ (~greater or equal~)
 
@@ -213,7 +218,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    int operator>=(const Point& p) const;
+    bool operator>=(const Point& p) const;
 /*
 3.3.6 Operation $>$ (~greater than~)
 
@@ -224,7 +229,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(1)$
 
 */
-    int operator>(const Point& p) const;
+    bool operator>(const Point& p) const;
 /*
 3.3.7 Operation ~inside~
 
@@ -235,7 +240,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-    const bool Inside( const Points& ps ) const;
+    bool Inside( Points& ps ) const;
 /*
 3.3.8 Operation ~intersection~ (with ~point~)
 
@@ -257,7 +262,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-    void Intersection( const Points& ps, Point& result ) const;
+    void Intersection( Points& ps, Point& result ) const;
 /*
 3.3.10 Operation ~minus~ (with ~point~)
 
@@ -279,7 +284,7 @@ Sets the point to defined or undefined depending on the value of ~d~.
 *Complexity:* $O(log(n))$, where ~n~ is the size of the point set ~V~
 
 */
-    void Minus( const Points& ps, Point& result ) const;
+    void Minus( Points& ps, Point& result ) const;
 /*
 3.3.10 Operation ~distance~
 
@@ -304,7 +309,7 @@ as an attribute.
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
-    int      Adjacent(Attribute * arg);
+    bool     Adjacent(Attribute * arg);
     int      Sizeof() const;
     Point*    Clone();
     ostream& Print( ostream &os );
@@ -355,34 +360,22 @@ class Points: public StandardSpatialAttribute
 There are three ways of constructing a point set:
 
 */
-    Points( SmiRecordFile *recordFile, const int initsize = 0 );
+    Points() {}
+/*
+This constructor should not be used.
+
+*/
+    Points( const int initsize );
 /*
 The first one constructs an empty point set but open space for ~initsize~ points.
-If ~recordFile~ is 0 then the point set will be stored in memory.
 
 */
-    Points( SmiRecordFile *recordFile, const Points& ps);
+    Points( Points& ps);
 /*
 The second one receives another point set ~ps~ as argument and constructs a point
-set which is a copy of ~ps~.  If ~recordFile~ is 0 then the point set will be stored
-in memory.
+set which is a copy of ~ps~. 
 
 */
-    Points( SmiRecord& rootRecord, SmiRecordFile *recordFile, bool update = true);
-/*
-The third and the last one receives a ~recordId~ and a flag ~update~ as arguments.
-This constructor is applied not to create a new point set, but to read it from
-the disk. The ~recordId~ gives the position of the point set in the persistent
-array (~PArray~) structure and the flag ~update~ is used to open the array for
-update or read-only.
-
-*/
-    void Save( SmiRecord& rootRecord ) const;
-/*
-Saves the point root record.
-
-*/
-
     void Destroy();
 /*
 This function should be called before the destructor if one wants to destroy the
@@ -404,7 +397,7 @@ condition only for bulk load of points. All other operations assume that the poi
 ordered.
 
 */
-    const bool IsOrdered() const;
+    bool IsOrdered() const;
 /*
 Returns if the point se is ordered. There is a flag ~ordered~ (see attributes) in order
 to avoid a scan in the point set to answer this question.
@@ -430,36 +423,31 @@ Marks the end of a bulk load and sorts the point set.
 Returns the bounding box that spatially contains all points.
 
 */
-    const bool IsEmpty() const;
+    bool IsEmpty() const;
 /*
 Returns if the set is empty of not.
 
 */
-    const int Size() const;
+    int Size() const;
 /*
 Returns the size of the point set. Returns ~0~ if the set is empty.
 
 */
-    void Get( const int i, Point& p ) const;
+    void Get( const int i, Point& p );
 /*
 Retrieves the point ~p~ at position ~i~ in the point set.
 
 *Precondition:* $0 \leq i < Size()$
 
 */
-    const SmiRecordId GetPointsRecordId() const;
-/*
-Returns the record identification of the points persistent array.
-
-*/
-    Points& operator=(const Points& ps);
+    Points& operator=(Points& ps);
 /*
 Assignement operator redefinition.
 
 *Precondition:* ~ps.IsOrdered()~
 
 */
-    const bool Contains(const Point& p) const;
+    bool Contains(const Point& p);
 /*
 Searches (binary search algorithm) for a point in the point set and
 return ~true~ if found and ~false~ if not.
@@ -467,7 +455,7 @@ return ~true~ if found and ~false~ if not.
 *Precondition:* ~this.IsOrdered() $\&\&$ p.IsDefined()~
 
 */
-    const bool Contains(const Points& ps) const;
+    bool Contains(Points& ps);
 /*
 Returns ~true~ if this point set contains the ~ps~ point set and
 ~false~ otherwise.
@@ -485,7 +473,7 @@ Returns ~true~ if this point set contains the ~ps~ point set and
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    int operator==(const Points&) const;
+    bool operator==(Points&);
 /*
 4.4.2 Operation $\neq$ (~not equal~)
 
@@ -496,7 +484,7 @@ Returns ~true~ if this point set contains the ~ps~ point set and
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    int operator!=(const Points&) const;
+    bool operator!=(Points&);
 /*
 4.4.3 Operation ~union~ (with ~point~)
 
@@ -520,7 +508,7 @@ of this point set.
 of this point set and ~m~ is the size of ~ps~.
 
 */
-    Points& operator+=(const Points& ps);
+    Points& operator+=(Points& ps);
 /*
 4.4.5 Operation ~minus~ (with ~point~)
 
@@ -542,7 +530,7 @@ of this point set and ~m~ is the size of ~ps~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    const bool Inside(const Points& ps) const;
+    bool Inside(Points& ps);
 /*
 4.4.7 Operation ~intersects~
 
@@ -553,7 +541,7 @@ of this point set and ~m~ is the size of ~ps~.
 *Complexity:* $O(n+m)$, where ~n~ is the size of this point set and m the size of ~ps~.
 
 */
-    const bool Intersects(const Points& ps) const;
+    bool Intersects(Points& ps);
 /*
 4.4.8 Object Traversal Functions
 
@@ -583,7 +571,7 @@ using ROSE algebra algorithms (DZM).
 Sorts the persistent array of points.
 
 */
-    const int Position(const Point&) const;
+    int Position(const Point&);
 /*
 Searches (binary search algorithm) for a point in the point set and
 returns its position. Returns -1 if the point is not found.
@@ -595,12 +583,15 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
+    int NumOfFLOBs();
+    FLOB *GetFLOB(const int i);
+
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
-    int      Adjacent(Attribute * arg);
+    bool     Adjacent(Attribute * arg);
     int      Sizeof() const;
     Points*    Clone() ;
     ostream& Print( ostream &os );
@@ -609,7 +600,7 @@ as an attribute.
 4.6 Atrtibutes
 
 */
-    GArray<Point>* points;
+    DBArray<Point> points;
 /*
 The persisten array of points.
 
@@ -642,7 +633,7 @@ ostream& operator<<( ostream& o, const Point& p );
 Print the point ~p~ in the out stream ~o~.
 
 */
-ostream& operator<<( ostream& o, const Points& ps );
+ostream& operator<<( ostream& o, Points& ps );
 /*
 Print the point set ~ps~ int the out stream ~o~.
 
@@ -654,15 +645,17 @@ half segments. This attribute is utilized only when we are handling regions. In 
 this attibute is ignored.
 
 */
-typedef struct
+struct AttrType
 {
-    int faceno;
-    int cycleno;
-    int edgeno;
-    int coverageno;  //this number is used for the fast spacial scan of the inside_pr algorithm
-    //set<int> attr;
-    int attr;
-} attrtype;
+  AttrType() {}
+
+  int faceno;
+  int cycleno;
+  int edgeno;
+  int coverageno;  //this number is used for the fast spacial scan of the inside_pr algorithm
+  //set<int> attr;
+  int attr;
+};
 
 /*
 5 Class Half Segment
@@ -692,9 +685,13 @@ A Half Segment is composed of two points which are called ~left point~ LP and ~r
 dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ value.
 
 */
-    CHalfSegment(bool Defined, bool LDP, Point& LP, Point& RP);
+    CHalfSegment() {}
+/*
+This constructor should not be used.
+
+*/
+    CHalfSegment( bool Defined, bool LDP = false, const Point& LP = Point( false ), const Point& RP = Point( false ) );
     CHalfSegment( const CHalfSegment& chs );
-    CHalfSegment();
     ~CHalfSegment();
 
 /*
@@ -705,7 +702,7 @@ dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ val
 *Complexity:* $O( 1)$
 
 */
-    const bool IsDefined() const;
+    bool IsDefined() const;
 /*
 This function returns a boolean value indicating whether the half segment is defined.
 
@@ -730,7 +727,7 @@ This function returns the dominating point of the half segment.
 This function returns the secondary point of the half segment.
 
 */
-    const bool GetLDP() const;
+    bool GetLDP() const;
 /*
 This function returns the boolean flag which indicates whether the dominating point is on the
 left side.
@@ -741,7 +738,7 @@ left side.
 Returns the bounding box of the half segment.
 
 */
-    const attrtype&  GetAttr() const;
+    const AttrType&  GetAttr() const;
 /*
 This function returns the "attribute" value associated with a half segment. The "attribute" argument is
 useful when we process region values.
@@ -753,7 +750,7 @@ useful when we process region values.
 *Complexity:* $O( 1)$
 
 */
-    void     Set(bool Defined,  bool LDP, Point& LP, Point& RP);
+    void     Set(bool LDP, Point& LP, Point& RP);
 /*
 This function sets the value of a half segment. The parameter LP and RP can ignore the order, and the
 function will compare the parameter points and put the smaller one to LP and larger one to RP.
@@ -766,7 +763,7 @@ function will compare the parameter points and put the smaller one to LP and lar
 This function sets the value of the "defined" argument of a half segment.
 
 */
-    void     SetAttr(attrtype& ATTR);
+    void     SetAttr(AttrType& ATTR);
 /*
 This function sets the value of the "attr" argument of a half segment.
 
@@ -804,8 +801,8 @@ dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 *Complexity:* $O( 1 )$
 
 */
-    int operator==(const CHalfSegment& chs) const;
-    int operator!=(const CHalfSegment& chs) const;
+    bool operator==(const CHalfSegment& chs) const;
+    bool operator!=(const CHalfSegment& chs) const;
 /*
 5.4.4 Operation $<$ (~less than~)
 
@@ -814,7 +811,7 @@ dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 *Complexity:* $O( 1 )$
 
 */
-    int operator<(const CHalfSegment& chs) const;
+    bool operator<(const CHalfSegment& chs) const;
 /*
 5.4.5 Operation $>$ (~greater than~)
 
@@ -823,7 +820,7 @@ dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 *Complexity:* $O( 1 )$
 
 */
-    int operator>(const CHalfSegment& chs) const;
+    bool operator>(const CHalfSegment& chs) const;
 /*
 5.5 Clone Function
 
@@ -840,50 +837,50 @@ their middle points. So we defined a lot of different kinds of intersect functio
 *Complexity:* $O( 1 )$
 
 */
-    const bool Intersects( const CHalfSegment& chs) const;
+    bool Intersects( const CHalfSegment& chs) const;
 /*
 This function is the most common one, and it computes whether two half segments intersect each other,
 no matter where the intersection is. They can be endpoints or middle points
 
 */
-    const bool Intersects( const CHalfSegment& chs, CHalfSegment& reschs) const;
+    bool Intersects( const CHalfSegment& chs, CHalfSegment& reschs) const;
 /*
 This function computes whether two half segments intersect each other, and at the same,
 time, it will return the intersected part as a result. The intersected part should be a segment.
 If it is a point, the it will be ignored.
 
 */
-    const bool spintersect( const CHalfSegment& chs, Point& resp) const;
+    bool spintersect( const CHalfSegment& chs, Point& resp) const;
 /*
 This function (single point intersects) compute whether two half segments intersect each other
  with a single point, if yes, the intersection point is returned.
 
 */
-    const bool overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const;
+    bool overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const;
 /*
 This function compute whether two half segments intersect each other with a segment, if yes,
 the intersection segment is returned.
 
 */
-    const bool innerIntersects( const CHalfSegment& chs) const;
+    bool innerIntersects( const CHalfSegment& chs) const;
 /*
 This function decides whether two half segments intersect in the following manner: a point of
 the first segment and a innerpoint of the second segment is the same.
 
 */
-    const bool cross( const CHalfSegment& chs ) const;
+    bool cross( const CHalfSegment& chs ) const;
 /*
 This function computes whether two half segments intersect with their mid-points. Be aware
 that endpoints are not considered in computing the results.
 
 */
-    const bool crossings( const CHalfSegment& chs, Point& p ) const;
+    bool crossings( const CHalfSegment& chs, Point& p ) const;
 /*
 This function is ued for the ~crossings~ operator. It  computes whether two half segments
 is crossing each other.
 
 */
-    const bool overlap( const CHalfSegment& chs) const;
+    bool overlap( const CHalfSegment& chs) const;
 /*
 This function computes whether  two half segments overlap each other. If their inner part
 intersect, then the result is true.
@@ -899,7 +896,7 @@ another segment B, then we say A is inside B. eg. -------======-------.
 *Complexity:* $O( 1 )$
 
 */
-    const bool Inside(const CHalfSegment& chs) const ;
+    bool Inside(const CHalfSegment& chs) const ;
 /*
 5.8 Contain Function
 
@@ -909,7 +906,7 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 *Complexity:* $O( 1 )$
 
 */
-    const bool Contains( const Point& p ) const;
+    bool Contains( const Point& p ) const;
 /*
 5.9 rayAbove Function
 
@@ -919,7 +916,7 @@ useful when we want to decide whether a point is inside a region.
 *Complexity:* $O( 1 )$
 
 */
-    const bool rayAbove( const Point& p, double &abovey0 ) const;
+    bool rayAbove( const Point& p, double &abovey0 ) const;
 
 /*
 5.10 Operation ~distance~ (with ~point~)
@@ -967,7 +964,7 @@ These two properties give the left and right point of the half segment.
 
 */
     public:
-    attrtype attr;
+    AttrType attr;
 /*
 This ~attribute~ property is useful if we process region values in the way indicated in the ROSE
 paper.
@@ -1000,10 +997,13 @@ expressed as a set of segments. However, in the internal (class) representation,
 as a set of sorted halfsegments, which are stored as a PArray.
 
 */
-    CLine(SmiRecordFile *recordFile, const int initsize = 0);
-    CLine(SmiRecordFile *recordFile, const CLine& cl );
-    CLine(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update = true );
-    void Save(SmiRecord& rootRecord) const;
+    CLine() {}
+/*
+This constructor should not be used.
+
+*/
+    CLine(const int initsize);
+    CLine(CLine& cl );
     void Destroy();
     ~CLine();
 
@@ -1017,31 +1017,26 @@ as a set of sorted halfsegments, which are stored as a PArray.
 *Complexity:* $O( 1)$
 
 */
-    const bool IsOrdered() const;
+    bool IsOrdered() const;
 /*
 This function decides whether the half segments in the line value is sorted.
 
 */
     void     setOrdered(bool isordered);
 
-    const bool IsEmpty() const;
+    bool IsEmpty() const;
 /*
 This function decides whether the line value is empty.
 
 */
-    const int Size() const;
+    int Size() const;
 /*
 This function returns the number of half segments in the line value.
 
 */
-    void Get( const int i, CHalfSegment& chs ) const;
+    void Get( const int i, CHalfSegment& chs );
 /*
 This function reads the ith half segment from the line value.
-
-*/
-    const SmiRecordId GetLineRecordId() const;
-/*
-This function gets the Record ID of the PArray which store half segments of the line value.
 
 6.3 Bulkload Functions
 
@@ -1066,7 +1061,7 @@ This function marks the end of a bulk load and sorts the half segments.
 *Complexity:* $O( n )$
 
 */
-    CLine& operator=(const CLine& cl);
+    CLine& operator=(CLine& cl);
 /*
 6.4.2 Operation $==$ (~equal~)
 
@@ -1075,7 +1070,7 @@ This function marks the end of a bulk load and sorts the half segments.
 *Complexity:* $O( n )$
 
 */
-    int operator==(const CLine& cl) const;
+    bool operator==(CLine& cl);
 /*
 6.4.3 Operation $+=$ (~Union~)
 
@@ -1143,12 +1138,15 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
+    int NumOfFLOBs();
+    FLOB *GetFLOB(const int i);
+
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
-    int      Adjacent(Attribute * arg);
+    bool     Adjacent(Attribute * arg);
     int      Sizeof() const;
     //CLine*    Clone() ;
     ostream& Print( ostream &os );
@@ -1163,7 +1161,7 @@ as an attribute.
 Sorts (quick-sort algorithm) the persistent array of half segments in the line value.
 
 */
-    const int Position(const CHalfSegment&) const;
+    int Position(const CHalfSegment&);
 /*
 Searches (binary search algorithm) for a half segment in the line value and
 returns its position. Returns -1 if the half segment is not found.
@@ -1171,7 +1169,7 @@ returns its position. Returns -1 if the half segment is not found.
 6.8 Atrtibutes
 
 */
-    GArray<CHalfSegment>* line;
+    DBArray<CHalfSegment> line;
 /*
 The persisten array of half segments.
 
@@ -1194,7 +1192,7 @@ Whether the half segments in the line value are sorted.
 6.9 overloaded output operator
 
 */
-ostream& operator<<( ostream& o, const CLine& cl );
+ostream& operator<<( ostream& o, CLine& cl );
 
 /*
 7 Class Region
@@ -1218,12 +1216,13 @@ The system will do the basic check on the validity of the region data (see the e
 insertOK() function).
 
 */
+    CRegion() {}
+/*
+This constructor should not be used.
 
-    CRegion(SmiRecordFile *recordFile, const int initsize = 0);
-    CRegion(SmiRecordFile *recordFile, const CRegion& cr );
-    CRegion(const CRegion& cr, SmiRecordFile *recordFile );
-    CRegion(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update = true );
-    void Save(SmiRecord& rootRecord) const;
+*/
+    CRegion(const int initsize);
+    CRegion(CRegion& cr, bool onlyLeft = false);
     void Destroy();
     ~CRegion();
 
@@ -1237,29 +1236,24 @@ insertOK() function).
 *Complexity:* $O( 1)$
 
 */
-    const bool IsOrdered() const;
+    bool IsOrdered() const;
 /*
 This function decides whether the half segments in the region value is sorted.
 
 */
-    const bool IsEmpty() const;
+    bool IsEmpty() const;
 /*
 This function decides whether the region value is empty.
 
 */
-    const int Size() const;
+    int Size() const;
 /*
 This function returns the number of half segments in the region value.
 
 */
-    void Get( const int i, CHalfSegment& chs ) const;
+    void Get( const int i, CHalfSegment& chs );
 /*
 This function reads the ith half segment from the region value.
-
-*/
-    const SmiRecordId GetRegionRecordId() const;
-/*
-This function gets the Record ID of the PArray which store half segments of the line value.
 
 7.3 Bulkload Functions
 
@@ -1277,7 +1271,7 @@ Marks the end of a bulk load and sorts the half segments.
 7.4 Validity Checking Function
 
 */
-    const bool insertOK(const CHalfSegment& chs);
+    bool insertOK(const CHalfSegment& chs);
 /*
 This function check whether a region value is valid after the insertion of a new half segment.
 Whenever a half segment is about to be inserted, the state of the region is checked.
@@ -1310,7 +1304,7 @@ of different cycles can intersect each other;
 *Complexity:* $O( n )$
 
 */
-    CRegion& operator=(const CRegion& cr);
+    CRegion& operator=(CRegion& cr);
 /*
 7.5.2 Operation $==$ (~equal~)
 
@@ -1319,7 +1313,7 @@ of different cycles can intersect each other;
 *Complexity:* $O( n )$
 
 */
-    int operator==(const CRegion& cr) const;
+    bool operator==(CRegion& cr);
 /*
 7.5.3 Operation $+=$ (~Union~)
 
@@ -1381,13 +1375,13 @@ Insert a half segment into the region value, and put the ~pos~ pointer to this n
 half segment.
 
 */
-    const attrtype& GetAttr();
+    const AttrType& GetAttr();
 /*
 read the ~attr~ value of the current half segment from the region value. The current
 half segment is indicated by ~pos~
 
 */
-    void UpdateAttr( attrtype& attr );
+    void UpdateAttr( AttrType& attr );
 /*
 update the ~attr~ value of the current half segment from the region value.The current
 half segment is indicated by ~pos~
@@ -1399,9 +1393,9 @@ half segment is indicated by ~pos~
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool contain_old( const Point& p ) const;
-    bool contain( const Point& p ) const;
-    bool containpr( const Point& p, int &pathlength, int & scanned ) const;
+    bool contain_old( const Point& p );
+    bool contain( const Point& p );
+    bool containpr( const Point& p, int &pathlength, int & scanned );
 /*
 7.9 innercontain function
 
@@ -1410,7 +1404,7 @@ half segment is indicated by ~pos~
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool innercontain( const Point& p ) const;
+    bool innercontain( const Point& p );
 /*
 7.10 contain function (segment)
 
@@ -1419,7 +1413,7 @@ half segment is indicated by ~pos~
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool contain( const CHalfSegment& chs ) const;
+    bool contain( const CHalfSegment& chs );
 /*
 7.11 holeedge-contain function
 
@@ -1428,14 +1422,14 @@ half segment is indicated by ~pos~
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */
-    bool holeedgecontain( const CHalfSegment& chs ) const;
+    bool holeedgecontain( const CHalfSegment& chs );
 /*
 The following two functions are used to sort the half segments according to their attributes;
 
 */
     void logicsort();
 
-    void     setOrdered(bool isordered);
+    void setOrdered(bool isordered);
 /*
 7.12 Functions needed to import the the ~Region~ data type to tuple
 
@@ -1444,12 +1438,15 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
+    int NumOfFLOBs();
+    FLOB *GetFLOB(const int i);
+
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
-    int      Adjacent(Attribute * arg);
+    bool     Adjacent(Attribute * arg);
     int      Sizeof() const;
     //CRegion*    Clone() ;
     ostream& Print( ostream &os );
@@ -1465,8 +1462,8 @@ as an attribute.
 sorts (quick-sort algorithm) the persistent array of half segments in the region value.
 
 */
-    const int Position(const CHalfSegment&) const;
-    const int Position(const Point&) const;
+    int Position(const CHalfSegment&);
+    int Position(const Point&);
 /*
 searches (binary search algorithm) for a half segment in the region value and
 returns its position. Returns -1 if the half segment is not found.
@@ -1474,7 +1471,7 @@ returns its position. Returns -1 if the half segment is not found.
 7.14 Atrtibutes
 
 */
-    GArray<CHalfSegment>* region;
+    DBArray<CHalfSegment> region;
 
     Rectangle bbox;
 
@@ -1499,7 +1496,7 @@ Whether the half segments in the region value are sorted.
 7.15 overloaded output operator
 
 */
-ostream& operator<<( ostream& o, const CRegion& cr );
+ostream& operator<<( ostream& o, CRegion& cr );
 
 #endif // __SPATIAL_ALGEBRA_H__
 

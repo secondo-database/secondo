@@ -430,6 +430,12 @@ AlgebraManager::Cast( int algebraId, int typeId )
   return (algebra[algebraId]->GetTypeConstructor( typeId )->castFunc);
 }
 
+ObjectSizeof
+AlgebraManager::SizeOfObj( int algebraId, int typeId )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->sizeofFunc);
+}
+
 bool
 AlgebraManager::PersistModel( const int algebraId, const int typeId,
                               const PersistDirection dir,

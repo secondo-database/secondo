@@ -61,8 +61,8 @@ using namespace std;
 #include <string>
 #include <stdio.h>
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 
@@ -130,8 +130,8 @@ class Date: public StandardAttribute
   void     successor(Date *d, Date *s);
 /*************************************************************************
 
-  The following 10 virtual functions: IsDefined(),SetDefined(), HashValue(),
-  CopyFrom(), Compare(), Adjacent() Sizeof(), Clone(), Print(), need to be defined if
+  The following 8 virtual functions: IsDefined(), SetDefined(), HashValue(),
+  CopyFrom(), Compare(), Adjacent(), Clone(), Print(), need to be defined if
   we want to use ~date~ as an attribute type in tuple definitions.
 
 *************************************************************************/
@@ -141,9 +141,10 @@ class Date: public StandardAttribute
   size_t   HashValue();
   void	   CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
-  int      Adjacent(Attribute * arg);
-  int      Sizeof() const;
+  bool     Adjacent(Attribute * arg);
   Date*    Clone();
+  void     SaveTo(char *target, int& offset) const;
+  void     RestoreFrom(char *source, int& offset);
   ostream& Print( ostream &os );
 
  private:
@@ -288,7 +289,7 @@ void Date::successor(Date *d, Date *s)
 //    cout<<"NewDate"<<Year<<":"<<Month<<":"<<Day<<endl;
 }
 
-int Date::Adjacent(Attribute *arg)
+bool Date::Adjacent(Attribute *arg)
 {
   Date *d = (Date *)arg;
   if( this->Compare( d ) == 0 ) return 1;                 //both undefined or they are equal
@@ -316,9 +317,31 @@ int Date::Adjacent(Attribute *arg)
   }
 }
 
-int  Date::Sizeof() const {return sizeof(Date);}
-
 Date*  Date::Clone() {return (new Date( *this));}
+
+void Date::SaveTo(char *target, int& offset) const
+{
+  memcpy(target + offset, &defined, sizeof(bool));
+  offset += sizeof(bool);
+  memcpy(target + offset, &day, sizeof(int));
+  offset += sizeof(int);
+  memcpy(target + offset, &month, sizeof(int));
+  offset += sizeof(int);
+  memcpy(target + offset, &year, sizeof(int));
+  offset += sizeof(int);
+}
+
+void Date::RestoreFrom(char *source, int& offset)
+{
+  memcpy(&defined, source + offset, sizeof(bool));
+  offset += sizeof(bool);
+  memcpy(&day, source + offset, sizeof(int));
+  offset += sizeof(int);
+  memcpy(&month, source + offset, sizeof(int));
+  offset += sizeof(int);
+  memcpy(&year, source + offset, sizeof(int));
+  offset += sizeof(int);
+}
 
 ostream& Date::Print(ostream &os)
 {
@@ -338,7 +361,7 @@ The list representation of a date is
 2.3 ~In~ and ~Out~ Functions
 
 */
-static  ListExpr
+ListExpr
 OutDate( ListExpr typeInfo, Word value )
 {
   Date* date;
@@ -358,7 +381,7 @@ OutDate( ListExpr typeInfo, Word value )
   return (nl->StringAtom(outputStr));
 }
 
-static Word
+Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Date* newdate;
@@ -439,33 +462,39 @@ The following 5 functions must be defined if we want to use ~date~ as an attribu
 
 ************************************************************************/
 
-static Word
+Word
 CreateDate( const ListExpr typeInfo )
 {
   return (SetWord( new Date( false, 0, 0, 0 )));
 }
 
-static void
+void
 DeleteDate( Word& w )
 {
   delete (Date*) w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseDate( Word& w )
 {
   delete (Date*) w.addr;
   w.addr = 0;
 }
 
-static Word
+Word
 CloneDate( const Word& w )
 {
   return SetWord( ((Date *)w.addr)->Clone() );
 }
 
-static void*
+int
+SizeOfDate()
+{
+  return sizeof(bool) + 3 * sizeof(int);
+}
+
+void*
 CastDate( void* addr )
 {
   return (new (addr) Date);
@@ -479,7 +508,7 @@ This one works for type constructor ~date~ , which is an ``atomic'' type.
 
 */
 
-static ListExpr
+ListExpr
 DateProperty()
 {
   ListExpr listreplist = nl->TextAtom();
@@ -506,7 +535,7 @@ the type constructor ~date~ does not have arguments, this is trivial.
 
 */
 
-static bool
+bool
 CheckDate( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual(type, "date" ));
@@ -524,6 +553,7 @@ TypeConstructor date(
 	CreateDate, DeleteDate,		    //object creation and deletion
         0, 0, CloseDate, CloneDate,	    //object open, save, close, and clone
 	CastDate,  		            //cast function
+        SizeOfDate,			    //sizeof function
 	CheckDate,			    //kind checking function
 	0, 				    //predef. pers. function for model
 	TypeConstructor::DummyInModel,
@@ -545,7 +575,7 @@ returns a list expression for the result type, otherwise the symbol
 
 */
 
-static ListExpr
+ListExpr
 DateInt( ListExpr args )
 {
   ListExpr arg1;
@@ -559,7 +589,7 @@ DateInt( ListExpr args )
 }
 
 
-static ListExpr
+ListExpr
 DateDateBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -574,7 +604,7 @@ DateDateBool( ListExpr args )
 }
 
 
-static ListExpr
+ListExpr
 IntIntIntDate( ListExpr args )
 {
   ListExpr arg1, arg2, arg3;
@@ -593,30 +623,11 @@ IntIntIntDate( ListExpr args )
 
 
 /*
-
-3.2 Selection Function
-
-Selection Function is used to select one of several evaluation functions for an overloaded
-operator, based on the types of the arguments. In case of a non-overloaded
-operator, we just have to return 0.
-
-operators ~day~, ~month~, ~year~, ~\verb+<+~, ~=~, ~\verb+>+~, ~thedate~ are all non-overloaded
-operators, therefore we only need to return 0.
-
-*/
-
-
-static int
-simpleSelect (ListExpr args ) {return 0;}
-
-
-/*
-
 3.3 Value Mapping Functions
 
 */
 
-static int
+int
 dayFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d;
@@ -631,7 +642,7 @@ dayFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 monthFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d;
@@ -646,7 +657,7 @@ monthFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 yearFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d;
@@ -661,7 +672,7 @@ yearFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 earlierFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d1;
@@ -690,7 +701,7 @@ earlierFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 equalFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d1;
@@ -712,7 +723,7 @@ equalFun (Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 laterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Date* d1;
@@ -742,7 +753,7 @@ laterFun (Word* args, Word& result, int message, Word& local, Supplier s)
    return 0;
 }
 
-static int
+int
 dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcInt *dd;
@@ -851,7 +862,7 @@ Operator day (
 	DaySpec, 	     	//specification
 	dayFun,			//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateInt			//type mapping
 );
 
@@ -860,7 +871,7 @@ Operator month (
 	MonthSpec,	        //specification
 	monthFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateInt			//type mapping
 );
 
@@ -869,7 +880,7 @@ Operator year (
 	YearSpec, 		//specification
 	yearFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateInt			//type mapping
 );
 
@@ -878,7 +889,7 @@ Operator earlier (
 	EarlierSpec,		//specification
 	earlierFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateDateBool		//type mapping
 );
 
@@ -887,7 +898,7 @@ Operator opequal (
 	EqualSpec,		//specification
 	equalFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateDateBool		//type mapping
 );
 
@@ -896,7 +907,7 @@ Operator later (
 	LaterSpec,		//specification
 	laterFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateDateBool		//type mapping
 );
 
@@ -905,7 +916,7 @@ Operator thedate (
 	DateSpec,		//specification
 	dateFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	IntIntIntDate		//type mapping
 );
 /*

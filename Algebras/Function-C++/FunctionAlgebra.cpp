@@ -15,8 +15,8 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 2.1 Dummy Functions
@@ -24,7 +24,7 @@ static QueryProcessor* qp;
 The next function defines the type property of type constructor ~map~.
 
 */
-static ListExpr
+ListExpr
 FunctionProperty()
 {
   ListExpr remarkslist = nl->TextAtom();
@@ -36,25 +36,25 @@ FunctionProperty()
             nl->OneElemList(remarkslist)));
 }
 
-static Word
+Word
 DummyInModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static ListExpr
+ListExpr
 DummyOutModel( ListExpr typeExpr, Word model )
 {
   return (0);
 }
 
-static Word
+Word
 DummyValueToModel( ListExpr typeExpr, Word value )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static Word
+Word
 DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
                        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -62,29 +62,35 @@ DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
   return (SetWord( Address( 0 ) ));
 }
 
-static Word
+Word
 NoSpace( const ListExpr typeInfo )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static void
+void
 DoNothing( Word& w )
 {
   w.addr = 0;
 }
 
-static Word
+Word
 CloneNothing( const Word& w )
 {
   return SetWord( Address(0) );
+}
+
+int
+SizeOfNothing()
+{
+  return 0;
 }
 
 /*
 2.2 The Functions Needed
 
 */
-static Word
+Word
 InMap( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -97,32 +103,38 @@ query processor.
   return (SetWord( instance ));
 }
 
-static ListExpr
+ListExpr
 OutMap( ListExpr typeInfo, Word value )
 {
   return (value.list);
 }
 
-static void*
+void*
 DummyCast( void* addr )
 {
   return (0);
 }
 
-static bool
+int
+NullSize()
+{
+  return 0;
+}
+
+bool
 CheckMap( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( nl->First( type ), "map" ));
 }
 
 TypeConstructor functionMap( "map",             FunctionProperty,
-                             OutMap,            InMap,         
+                             OutMap,            InMap,
                              0,                 0,
-                             NoSpace,           DoNothing,         
+                             NoSpace,           DoNothing,
                              0,                 0,
                              DoNothing,         CloneNothing,
-                             DummyCast,         CheckMap,
-                             0,        
+                             DummyCast,         NullSize, CheckMap,
+                             0,
                              DummyInModel,      DummyOutModel,
                              DummyValueToModel, DummyValueListToModel );
 

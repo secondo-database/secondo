@@ -41,10 +41,10 @@ It consists of six parts: First it contains an interface to
  Fifth and Sixth it delivers functions to look up the type constructors and
  operators of the actually loaded algebras. These functions are implemented
  by applying the functions of the lower modules *CTable*, *NameIndex*,
- *AlgebraManager2*, *ObjectListManager* and *ObjectManager*. 
-The names of existing databases are stored in a list ~DBTable~. 
+ *AlgebraManager2*, *ObjectListManager* and *ObjectManager*.
+The names of existing databases are stored in a list ~DBTable~.
 
-\tableofcontents 
+\tableofcontents
 
 1.2 Implementation
 
@@ -58,9 +58,9 @@ using namespace std;
 SecondoSystem* SecondoSystem::secondoSystem = 0;
 
 /**************************************************************************
-3 Functions and Procedures 
+3 Functions and Procedures
 
-3.1 Interface to DatabasesAndTransactions 
+3.1 Interface to DatabasesAndTransactions
 
 */
 
@@ -73,7 +73,7 @@ Creates a scan on the table of database names and returns the names of existing 
 ---- (<database name 1>..<database name n>)
 ----
 
-*/     
+*/
   ListExpr list, lastElem = 0;
   string dbName;
   list = nl->TheEmptyList();
@@ -81,7 +81,7 @@ Creates a scan on the table of database names and returns the names of existing 
   {
     if ( list == nl->TheEmptyList() )
     {
-      list = nl->OneElemList( nl->SymbolAtom( dbName ) ); 
+      list = nl->OneElemList( nl->SymbolAtom( dbName ) );
       lastElem = list;
     }
     else
@@ -180,7 +180,7 @@ Precondition: dbState = dbClosed.
       if ( scExecutable->Open() )
       {
         ok = true;
-        ok = ok && lobFile->Open( "LOB" );
+        ok = ok && flobFile->Open( "FLOB" );
         SmiEnvironment::CommitTransaction();
       }
       else
@@ -198,7 +198,7 @@ bool
 SecondoSystem::CloseDatabase()
 {
 /*
-Closes the actually opened database. All open segments are closed and the allocated memory for internal data structures is returned. 
+Closes the actually opened database. All open segments are closed and the allocated memory for internal data structures is returned.
 
 Precondition: dbState = dbOpen.
 
@@ -210,14 +210,14 @@ Precondition: dbState = dbOpen.
   }
   scExecutable->Close();
   scDescriptive->Close();
-  lobFile->Close();
+  flobFile->Close();
   return (SmiEnvironment::CloseDatabase());
 }
 
 bool
 SecondoSystem::IsDatabaseOpen()
 {
-/* 
+/*
 Returns the state of the database ~state~.
 
 */
@@ -231,7 +231,7 @@ SecondoSystem::IsDatabaseObject( const string& objectName )
 Returns whether object with ~objectName~ is known in the currently opened
 database.
 
-*/ 
+*/
   if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
     return ( scExecutable->IsObjectName( objectName) );
   else if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
@@ -240,17 +240,17 @@ database.
 }
 
 bool
-SecondoSystem::SaveObject ( const string& objectName, 
+SecondoSystem::SaveObject ( const string& objectName,
                             const string& filename )
 {
 /*
 Writes a secondo object called ~objectName~ of the currently opened database
-to a file with name ~filename~ in nested list format. The format is the 
+to a file with name ~filename~ in nested list format. The format is the
 following:
 
 ---- (OBJECT <object name> (<type name>) <type expression> <value> <model>)*
 
-----   
+----
 
 Returns false if there was a problem in writing the file.
 
@@ -267,7 +267,7 @@ Precondition: dbState = dbOpen.
     cerr << " SaveObject: database is not open!" << endl;
     exit( 0 );
   }
-  
+
   if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
   {
     scExecutable->GetObjectExpr( objectName, typeName, typeExpr,
@@ -281,7 +281,7 @@ Precondition: dbState = dbOpen.
     {
       valueList = nl->TheEmptyList();
     }
-    
+
     if ( model.addr != 0 )
     {
       modelList = scExecutable->OutObjectModel( typeExpr, model );
@@ -297,7 +297,7 @@ Precondition: dbState = dbOpen.
     {
       scDescriptive->GetObjectExpr( objectName, typeName, typeExpr,
                        value, defined, model, hasTypeName );
-  
+
       if ( defined )
       {
         valueList = scDescriptive->OutObject( typeExpr, value );
@@ -307,7 +307,7 @@ Precondition: dbState = dbOpen.
       {
         valueList = nl->TheEmptyList();
       }
-  
+
       if ( model.addr != 0 )
       {
         modelList = scDescriptive->OutObjectModel( typeExpr, model );
@@ -318,7 +318,7 @@ Precondition: dbState = dbOpen.
       }
     }
   }
-  
+
   objectList = nl->SixElemList(
                    nl->SymbolAtom( "OBJECT" ),
                    nl->SymbolAtom( objectName ),
@@ -326,7 +326,7 @@ Precondition: dbState = dbOpen.
                    typeExpr,
                    valueList,
                    modelList );
-		   
+
   return (nl->WriteToFile( filename, objectList ));
 }
 
@@ -338,14 +338,14 @@ Writes the currently open database called ~dbname~ to a file with name
 ~filename~ in nested list format. The format is the following:
 
 ---- (DATABASE <database name>
-       (TYPES 
-         (TYPE <type name> <type expression>)*  
+       (TYPES
+         (TYPE <type name> <type expression>)*
        )
-       (OBJECTS 
+       (OBJECTS
          (OBJECT <object name> (<type name>) <type expression> <value> <model>)*
        )
-     ) 
-----   
+     )
+----
 
 Returns error 1 if there was a problem in writing the file.
 
@@ -360,7 +360,7 @@ Precondition: dbState = dbOpen.
 
   ListExpr typeExprDesc = scDescriptive->ListTypes();
   ListExpr typeExprExec = scExecutable->ListTypes();
-     
+
   /* get the objects with value component !!*/
   ListExpr objExprDesc = scDescriptive->ListObjectsFull();
   ListExpr objExprExec = scExecutable->ListObjectsFull();
@@ -390,13 +390,13 @@ SecondoSystem::RestoreObjectFromFile( const string& objectname,
 /*
 Reads an object from a file named ~filename~ and fills the catalog
 with this object. The database remains in state ~dbOpen~.
-Returns 
+Returns
 
-  * error 1 object name in file is different from parameter ~objectname~, 
+  * error 1 object name in file is different from parameter ~objectname~,
 
-  * error 2, if there was a problem in reading the file, 
+  * error 2, if there was a problem in reading the file,
 
-  * error 3, if the list structure in the file was not correct, 
+  * error 3, if the list structure in the file was not correct,
 
   * error 4, if there is an error in object list expression,
 
@@ -406,39 +406,39 @@ Precondition: dbState = dbOpen.
 */
   ListExpr list;
   int rc = 0;
-  
+
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
   {
     cerr << " RestoreObjectFromFile: database is not open!" << endl;
     exit( 0 );
   }
-  
+
   else if ( !nl->ReadFromFile( filename, list ) )
   {
     rc = 2; // Error reading file
   }
-  
+
     else if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
     {
       rc = 1; // Object name in file different
     }
-      
+
       else if ( nl->IsEmpty( list) )
       {
         rc = 3; // List structure invalid
       }
-  
+
         else if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
         {
           if ( RestoreObjects( scExecutable, nl->TwoElemList( nl-> SymbolAtom
             ("OBJECTS"), list ), errorInfo ) )
 	  {
             rc = 0; // object successfully restored
-	  } 
+	  }
           else
-	  {  
+	  {
 	    rc = 4; // Error in reading object
-	  }   
+	  }
         }
           else if ( SecondoSystem::GetAlgebraLevel() == DescriptiveLevel )
           {
@@ -446,10 +446,10 @@ Precondition: dbState = dbOpen.
 	      ( nl-> SymbolAtom("OBJECTS"), list ), errorInfo ) )
 	    {
               rc = 0; // object successfully restored
-	    } 
+	    }
             else
 	    {
-	      rc = 4; // Error in reading object   
+	      rc = 4; // Error in reading object
             }
 	  }
   return ( rc );
@@ -464,13 +464,13 @@ SecondoSystem::RestoreDatabase( const string& dbname,
 Reads a database from a file named ~filename~ that has the same nested
 list format as in the procedure ~SaveDatabase~ and fills the catalogs
 for database types and objects. The database state changes to ~dbOpen~.
-Returns 
+Returns
 
-  * error 1 if ~dbname~ is not a known database name, 
+  * error 1 if ~dbname~ is not a known database name,
 
-  * error 2, if the database name in the file is different from ~dbname~ here, 
+  * error 2, if the database name in the file is different from ~dbname~ here,
 
-  * error 3, if there was a problem in reading the file, 
+  * error 3, if there was a problem in reading the file,
 
   * error 4, if the list structure in the file was not correct,
 
@@ -504,7 +504,7 @@ Precondition: dbState = dbClosed.
   {
     listFile = list;
 /*
-Tests the syntax of the database file named ~filename~. 
+Tests the syntax of the database file named ~filename~.
 
 */
     if ( nl->ExprLength( list ) >= 8 )
@@ -603,7 +603,7 @@ Load database types and objects from file named ~filename~.
 }
 
 /*
-3.3 Local Functions and Procedures 
+3.3 Local Functions and Procedures
 
 */
 
@@ -641,7 +641,7 @@ SecondoSystem::RestoreTypes( SecondoCatalog* sc,
           nl->IsAtom( nl->Second( first ) ) &&
          (nl->AtomType( nl->Second( first ) ) == SymbolType ) )
     {
-      typeName = nl->SymbolValue( nl->Second( first ) ); 
+      typeName = nl->SymbolValue( nl->Second( first ) );
       typeExpr = nl->Third( first );
       if ( sc->KindCorrect( typeExpr, errorInfo ) )
       {
@@ -649,7 +649,7 @@ SecondoSystem::RestoreTypes( SecondoCatalog* sc,
         {
           // typename doubly defined
           correct = false;
-          errorInfo = nl->Append( errorInfo, 
+          errorInfo = nl->Append( errorInfo,
                         nl->ThreeElemList(
                           nl->IntAtom( 41 ),
                           nl->IntAtom( typeno ),
@@ -695,7 +695,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
 
   objects = nl->Rest( objects );
   objno = 0;
-    
+
   while ( !nl->IsEmpty( objects) )
   {
     SecondoSystem::BeginTransaction();
@@ -703,14 +703,14 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
     objects = nl->Rest( objects );
     objno++;
     if ( (nl->ExprLength( first) >= 5) &&
-          nl->IsEqual( nl->First( first ), "OBJECT" ) && 
-          nl->IsAtom( nl->Second( first ) ) && 
+          nl->IsEqual( nl->First( first ), "OBJECT" ) &&
+          nl->IsAtom( nl->Second( first ) ) &&
          (nl->AtomType( nl->Second( first ) ) == SymbolType ) &&
          !nl->IsAtom( nl->Third( first ) ) )
     {
       objectName = nl->SymbolValue( nl->Second( first ) );
       if ( !nl->IsEmpty( nl->Third( first ) ) &&
-            nl->IsAtom( nl->First( nl->Third( first ) ) ) && 
+            nl->IsAtom( nl->First( nl->Third( first ) ) ) &&
            (nl->AtomType( nl->First( nl->Third( first ) ) ) == SymbolType ) )
       {
         typeName = nl->SymbolValue( nl->First( nl->Third( first ) ) );
@@ -741,7 +741,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
                                   value, true, model ) )
           {
             // doubly defined object
-            errorInfo = nl->Append( errorInfo, 
+            errorInfo = nl->Append( errorInfo,
                           nl->ThreeElemList(
                             nl->IntAtom( 51 ),
                             nl->IntAtom( objno ),
@@ -752,7 +752,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
         {
           // wrong list representation
           correct = false;
-          errorInfo = nl->Append( errorInfo, 
+          errorInfo = nl->Append( errorInfo,
                         nl->ThreeElemList(
                           nl->IntAtom( 53 ),
                           nl->IntAtom( objno ),
@@ -763,7 +763,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
       {
         // wrong type expression
         correct = false;
-        errorInfo = nl->Append( errorInfo, 
+        errorInfo = nl->Append( errorInfo,
                       nl->ThreeElemList(
                         nl->IntAtom( 52 ),
                         nl->IntAtom( objno ),
@@ -774,7 +774,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
     {
       // error in object definition
       correct = false;
-      errorInfo = nl->Append( errorInfo, 
+      errorInfo = nl->Append( errorInfo,
                     nl->TwoElemList(
                       nl->IntAtom( 50 ),
                       nl->IntAtom( objno ) ) );
@@ -801,7 +801,7 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   al = new NestedList();
   algebraManager = new AlgebraManager( *nl, getAlgebraEntryFunc );
   queryProcessor = new QueryProcessor( nl, algebraManager );
-  lobFile = new SmiRecordFile( false );
+  flobFile = new SmiRecordFile( false );
   scDescriptive  = 0;
   scExecutable   = 0;
   currentLevel   = UndefinedLevel;
@@ -828,7 +828,7 @@ SecondoSystem::~SecondoSystem()
   delete algebraManager;
   delete nl;
   delete al;
-  delete lobFile;
+  delete flobFile;
   secondoSystem = 0;
 }
 
@@ -939,8 +939,7 @@ SecondoSystem::AbortTransaction()
   return (SmiEnvironment::AbortTransaction());
 }
 
-SmiRecordFile *SecondoSystem::GetLobFile()
+SmiRecordFile *SecondoSystem::GetFlobFile()
 {
-  return (secondoSystem->lobFile);
+  return (secondoSystem->flobFile);
 }
-

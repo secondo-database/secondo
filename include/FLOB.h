@@ -6,6 +6,9 @@
 
 [1] Header File of Module FLOB
 
+Victor Almeida, 24/04/03. Adapting the class to accept standalone objects
+and objects inside tuples transparently.
+
 Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
 
 Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
@@ -26,147 +29,187 @@ Stefan Dieker, 03/05/98
 */
 #include "SecondoSMI.h"
 
+#ifdef PERSISTENT_FLOB
+enum FLOB_Type {Destroyed, InMemory, InDiskSmall, InDiskLarge, InDiskMemory};
+#else
+enum FLOB_Type {Destroyed, InMemory, InDiskSmall, InDiskLarge};
+#endif
+
 /*
 3 class FLOB
 
-This class implements a FLOB which define a new 
+This class implements a FLOB which define a new
 large object abstraction that offers most access
 methods of the original one.
-It defines a threshold size namely SWITCH\_THRESHOLD 
+It defines a threshold size namely SWITCH\_THRESHOLD
 as a static attribute. This value defines a limit
 between "small" and "large" values referring its
 size.
 A small FLOB is stored in a main memory structure
-whereas a large FLOB is stored into a seperate 
-SmiRecord in an SmiFile. 
+whereas a large FLOB is stored into a seperate
+SmiRecord in an SmiFile.
 
 */
-class FLOB {
-private:
-	/* This is the tresholdsize for a FLOB. 
-		Whenever the size of this FLOB exceeds
-		the thresholdsize the data will stored
-		in a separate file for lobs.
-	*/
-  	static const int SWITCH_THRESHOLD;
-  
-  	/* In this file the FLOB object will store the data
-		if the FLOB is large. */
-  	SmiRecordFile* lobFile;
-	/* In this record the FLOB object will store the data
-		if the FLOB is large. */
-  	SmiRecord lob;
-	/* This is the number of the record in which the FLOB data
-		is stored if the FLOB is large. */
-  	SmiRecordId lobId;
-  
-  	/* This is the size of memory allocated by start. */
-  	int size;
-	
-	/* This is a pointer to the memory where the data
-		of the FLOB is stored if the FLOB is small. */
-	char *start;
 
-	/* The friend relationship between FLOB and Tuple is
-		necessary because after the recreation of a FLOB
-		from its persistent representation the pointer lobFile
-		is invalid. The tuple will set this pointer to its 
-		lobFile attribute. */
-  	friend class Tuple;
-       
-  	  
-public:
+class FLOB
+{
+
+  public:
+
+    static const int SWITCH_THRESHOLD;
 /*
-
-3.1 Constructor.
+This is the tresholdsize for a FLOB.  Whenever the size of this FLOB exceeds
+the thresholdsize the data will stored in a separate file for lobs.
 
 */
-  	FLOB(SmiRecordFile* inlobFile);
-	
+
+    FLOB() {}
 /*
+This constructor should not be used.
 
-3.2 Constructor.
+3.1 Constructor
 
-Create from scratch.
+Create a new FLOB from scratch.
 
 */
-  	FLOB(SmiRecordFile* inlobFile, int sz);
+    FLOB( int sz );
 
 /*
-3.3 Destructor. 
+3.3 Destructor
 
-Destroy LOB instance.
+Deletes the FLOB instance.
 
 */
-  	~FLOB();
-	
+    ~FLOB();
+
+
 /*
+3.4 BringToMemory
 
-3.4 Destroy.
+Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
+state to a ~InMemory~ state.
 
-Destroy persistent representation
+*/ 
+    void BringToMemory();
 
-*/
-  	void Destroy();
-	
 /*
 3.5 Get
 
 Read by copying
 
 */
-  	void Get(int offset, int length, char *target);
-	
-/* 
-3.6	Write
+    void Get( int offset, int length, void *target );
 
-Write Flob data into source. 
+/*
+3.6	Put
+
+Write Flob data into source.
 
 */
-  	void Write(int offset, int length, char *source);
-	
-/* 
+    void Put( int offset, int length, const void *source );
+
+/*
 3.7 Size
 
 Returns the size of a FLOB.
 
 */
-   	int Size();
-  
-  
+    int Size() const;
+
+
 /*
 3.8 Resize
 
 Resizes the FLOB.
 
 */
-  	void Resize(int size);
-  
-  
+    void Resize( int size );
+
+/*
+3.8 Clear 
+
+Clears the FLOB.
+
+*/
+    void Clear();
+
+
+/*
+3.8 Destroy 
+
+Destroys the physical representation of the FLOB.
+
+*/
+    void Destroy();
+
 /*
 3.9 Restore
 
 Restore from byte string.
 
 */
-   	int Restore(char *address);
-	
+    void Restore( void *address );
+
+/*
+3.10 SaveToLob
+
+*/
+    void SaveToLob( SmiRecordFile& lobFile, SmiRecordId lobId = 0 );
+
+/*
+3.10 SetLobFile
+
+*/
+    void SetLobFile( SmiRecordFile* lobFile );
+
+/*
+3.11 SaveToTupleRecord
+
+*/
+    void SaveToExtensionTuple( void *extensionTuple );
+
 /*
 3.10 IsLob
 
-Returns treue, if value stored in underlying LOB, otherwise false.
+Returns true, if value stored in underlying LOB, otherwise false.
 
 */
-  	bool IsLob();
-	
-/* 
-3.11 SaveToLob
+    bool IsLob() const;
 
-Switch from Main Memory to LOB Representation 
-if the size of this FLOB exceeds threshold size.
+/*
+3.11 GetType
 
 */
-  	bool SaveToLob();
-	 
+    FLOB_Type GetType() const;
+
+
+  protected:
+
+    FLOB_Type type;
+    int size;
+
+    union FLOB_Descriptor
+    {
+      struct InMemory
+      {
+        char *buffer;
+        bool freeBuffer;
+      } inMemory;
+      struct InDiskLarge
+      {
+    	SmiRecordFile *lobFile;
+        SmiRecordId lobId;
+      } inDiskLarge;
+#ifdef PERSISTENT_FLOB
+      struct InDiskMemory
+      {
+        SmiRecordFile *lobFile;
+        SmiRecordId lobId;
+        char *pageBuffer;
+        int pageId;
+      } inDiskMemory;
+#endif
+    } fd;
 };
+
 #endif

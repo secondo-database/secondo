@@ -5,6 +5,8 @@ using namespace std;
 #include "NestedList.h"
 #include "SecondoSystem.h"
 
+NestedList *nl;
+QueryProcessor *qp;
 
 /* Member functions of class Operator: */
 
@@ -16,6 +18,12 @@ Operator::DummyModel( ArgVector, Supplier )
 
 ListExpr
 Operator::DummyCost( ListExpr )
+{
+  return (0);
+}
+
+int
+Operator::SimpleSelect( ListExpr )
 {
   return (0);
 }
@@ -37,7 +45,7 @@ Operator::Operator( const string& nm,
   modelMap       = new ModelMapping[numOfFunctions];
   typeMap        = tm;
   costMap        = cm;
-  
+
   for ( int i = 0; i < numOfFunctions; i++ )
   {
     AddValueMapping( i, vms[i] );
@@ -113,7 +121,7 @@ Operator::Specification()
 }
 
 int
-Operator::CallValueMapping( const int index, ArgVector args, Word& result, 
+Operator::CallValueMapping( const int index, ArgVector args, Word& result,
                             int message, Word& local, Supplier sup )
 {
   return (*valueMap[index])( args, result, message, local, sup );
@@ -144,11 +152,10 @@ TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
                               const ListExpr typeInfo,
                               Word& value )
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr valueList = 0;
   string valueString;
   int valueLength;
-  
+
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   bool correct;
   valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
@@ -171,7 +178,6 @@ TypeConstructor::DefaultSave( SmiRecord& valueRecord,
                               const ListExpr typeInfo,
                               Word& value )
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr valueList;
   string valueString;
   int valueLength;
@@ -193,7 +199,6 @@ TypeConstructor::DefaultPersistModel( const PersistDirection dir,
                                       const ListExpr typeExpr,
                                       Word& model )
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr modelList = 0;
   string modelString;
   int modelLength;
@@ -266,6 +271,34 @@ TypeConstructor::DummyValueListToModel( const ListExpr typeExpr,
   return (SetWord( Address( 0 ) ));
 }
 
+Word
+TypeConstructor::DummyCreate( const ListExpr typeInfo )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+void
+TypeConstructor::DummyDelete( Word& w )
+{
+}
+
+void
+TypeConstructor::DummyClose( Word& w )
+{
+}
+
+Word
+TypeConstructor::DummyClone( const Word& w )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+int
+TypeConstructor::DummySizeOf()
+{
+  return (0);
+}
+
 TypeConstructor::TypeConstructor( const string& nm,
                                   TypeProperty prop,
                                   OutObject out,
@@ -279,6 +312,7 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   ObjectClose close,
                                   ObjectClone clone,
                                   ObjectCast ca,
+                                  ObjectSizeof sizeOf,
                                   TypeCheckFunction tcf,
                                   PersistFunction pmf,
                                   InModelFunction inm,
@@ -299,6 +333,7 @@ TypeConstructor::TypeConstructor( const string& nm,
   closeFunc            = close;
   cloneFunc            = clone;
   castFunc             = ca;
+  sizeofFunc           = sizeOf;
   typeCheckFunc        = tcf;
   persistModelFunc     = pmf;
   inModelFunc          = inm;
@@ -411,6 +446,12 @@ Word
 TypeConstructor::Clone( const Word& w )
 {
   return (*cloneFunc)( w );
+}
+
+int
+TypeConstructor::SizeOf()
+{
+  return (*sizeofFunc)();
 }
 
 bool

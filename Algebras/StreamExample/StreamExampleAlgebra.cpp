@@ -27,9 +27,8 @@ using namespace std;
 #include <string>
 #include <iostream>		//for testing
 
-static NestedList* nl;
-static QueryProcessor* qp;
-
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 
@@ -47,7 +46,7 @@ stream will be empty.
 
   * stream(int) [->] int	count
 
-    Returns the number of elements in an integer stream.  
+    Returns the number of elements in an integer stream.
 
 
   * stream(int) [->] stream(int)		printintstream
@@ -72,7 +71,7 @@ Type mapping for ~intstream~ is
 ----
 
 */
-static ListExpr
+ListExpr
 intstreamType( ListExpr args ){
   ListExpr arg1, arg2;
   if ( nl->ListLength(args) == 2 )
@@ -92,7 +91,7 @@ Type mapping for ~count~ is
 ----
 
 */
-static ListExpr
+ListExpr
 countType( ListExpr args )
 {
   ListExpr arg1;
@@ -100,9 +99,9 @@ countType( ListExpr args )
   {
     arg1 = nl->First(args);
 
-    if ( nl->ListLength(arg1) == 2 ) 
-      if ( nl->IsEqual(nl->First(arg1), "stream") 
-	   && nl->IsEqual(nl->Second(arg1), "int") ) 
+    if ( nl->ListLength(arg1) == 2 )
+      if ( nl->IsEqual(nl->First(arg1), "stream")
+	   && nl->IsEqual(nl->Second(arg1), "int") )
       return nl->SymbolAtom("int");
   }
   return nl->SymbolAtom("typeerror");
@@ -115,7 +114,7 @@ Type mapping for ~printintstream~ is
 ----
 
 */
-static ListExpr
+ListExpr
 printintstreamType( ListExpr args )
 {
   ListExpr arg11, arg12;
@@ -131,13 +130,13 @@ printintstreamType( ListExpr args )
 }
 
 /*
-Type mapping for ~filter~ is
+Type mapping for ~sfilter~ is
 
 ----	((stream int) (map int bool)) -> (stream x)
 ----
 
 */
-static ListExpr
+ListExpr
 filterType( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -146,14 +145,14 @@ filterType( ListExpr args )
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
 
-    if ( nl->ListLength(arg1) == 2 && nl->ListLength(arg2) == 3 
+    if ( nl->ListLength(arg1) == 2 && nl->ListLength(arg2) == 3
       && nl->IsEqual(nl->First(arg1), "stream")
       && nl->IsEqual(nl->Second(arg1), "int")
       && nl->IsEqual(nl->First(arg2), "map")
       && nl->IsEqual(nl->Second(arg2), "int")
       && nl->IsEqual(nl->Third(arg2), "bool") )
     return arg1;
-  } 
+  }
   return nl->SymbolAtom("typeerror");
 }
 
@@ -166,14 +165,14 @@ operator, we just have to return 0.
 
 */
 
-static int
+int
 simpleSelect (ListExpr args ) { return 0; }
 
 /*
 4.3 Value Mapping Function
 
 */
-static int
+int
 intstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Create integer stream. An example for creating a stream.
@@ -233,7 +232,7 @@ This is illustrated in the value mapping functions below.
   return -1;
 }
 
-static int
+int
 countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Count the number of elements in a stream. An example for consuming a stream.
@@ -260,7 +259,7 @@ Count the number of elements in a stream. An example for consuming a stream.
   return 0;
 }
 
-static int
+int
 printintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Print the elements of an integer stream. An example for a pure stream operator
@@ -297,7 +296,7 @@ Print the elements of an integer stream. An example for a pure stream operator
   return -1;
 }
 
-static int
+int
 filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Filter the elements of a stream by a predicate. An example for a stream
@@ -326,13 +325,13 @@ operator and also for one calling a parameter function.
 						//parameter function.
         qp->Request(args[1].addr, funresult);	//Ask the parameter function
 						//to be evaluated.
-	if ( ((CcBool*) funresult.addr)->GetBoolval() )      
-	{	 	 	
+	if ( ((CcBool*) funresult.addr)->GetBoolval() )
+	{
 	  result = elem;
 	  return YIELD;
         }
       qp->Request(args[0].addr, elem);
-      }  
+      }
       return CANCEL;
 
     case CLOSE:
@@ -360,7 +359,7 @@ const string intstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			    "count</text--->"
 			      ") )";
 
-const string countSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string countSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" ) "
                              "( <text>((stream x)) -> int</text--->"
 			     "<text>_ count</text--->"
@@ -399,7 +398,7 @@ Operator intstream (
 	intstreamSpec,         //specification
 	intstreamFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
+	simpleSelect,		//trivial selection function
 	intstreamType		//type mapping
 );
 
@@ -408,7 +407,7 @@ Operator cppcount (
 	countSpec,         	//specification
 	countFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
+	simpleSelect,		//trivial selection function
 	countType		//type mapping
 );
 
@@ -417,20 +416,20 @@ Operator printintstream (
 	printintstreamSpec,	//specification
 	printintstreamFun,	//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
+	simpleSelect,		//trivial selection function
 	printintstreamType	//type mapping
 );
 
-Operator filter (
+Operator sfilter (
 	"filter", 		//name
 	filterSpec,		//specification
 	filterFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
+	simpleSelect,		//trivial selection function
 	filterType		//type mapping
-);			
-			
-	
+);
+
+
 
 /*
 5 Creating the Algebra
@@ -445,7 +444,7 @@ class StreamExampleAlgebra : public Algebra
     AddOperator( &intstream );
     AddOperator( &cppcount );
     AddOperator( &printintstream );
-    AddOperator( &filter );
+    AddOperator( &sfilter );
   }
   ~StreamExampleAlgebra() {};
 };

@@ -34,7 +34,7 @@ which are loaded by the ~AlgebraManager~. The first parameter is the
 original type expression in nested list format, the second parameter is
 the type expression in numeric nested list format describing the value
 which is going to be displayed by the display function. The third
-parameter is this value in nested list format. 
+parameter is this value in nested list format.
 
 1.2 Includes and Defines
 
@@ -62,12 +62,12 @@ Is the type definition for references to display functions.
 This class manages the display functions in the "Secondo"[3] TTY interface.
  he map ~displayFunctions~ holds all existing display functions. It
 is indexed by a string consisting of the ~algebraId~ and the ~typeId~ of the
-corresponding type constructor. 
+corresponding type constructor.
 
 Display functions are used to  transform a nested list value into a pretty
 printed output in text format. Display functions which are called with a
 value of compound type usually call recursively the display functions of
-the subtypes, passing the subtype and subvalue, respectively. 
+the subtypes, passing the subtype and subvalue, respectively.
 
 */
 
@@ -90,7 +90,7 @@ paramaters are given as nested lists.
 static void DisplayResult2( ListExpr value );
 /*
 Displays all type constructors and operators, currently registered, in formatted manner.
-Displays all type constructors and operators for a single, included algebra in 
+Displays all type constructors and operators for a single, included algebra in
 formatted manner.
 */
  protected:
@@ -201,6 +201,10 @@ Is a display function for functions.
   static void DisplayDate( ListExpr type,
                           ListExpr numType,
                           ListExpr value );
+/*
+Is a display function for date.
+
+*/
 
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container

@@ -49,16 +49,17 @@ version.
 #include "SecondoSystem.h"
 #include "NestedList.h"
 #include "AlgebraManager.h"
+#include "FLOB.h"
 #include "TupleElement.h"
 
 class Attribute : public TupleElement
 {
- public:
-  virtual int        Compare( Attribute *attrib ) = 0;
-  virtual int        Adjacent( Attribute *attrib ) = 0;
-  virtual Attribute* Clone() = 0;
-  virtual bool       IsDefined() const = 0;
-  virtual int        Sizeof() const = 0;
+  public:
+    virtual Attribute* Clone()     = 0;
+    virtual bool       IsDefined() const = 0;
+    virtual void       SetDefined(bool defined) = 0;
+    virtual int        Compare( Attribute *attrib ) = 0;
+    virtual bool       Adjacent( Attribute *attrib ) = 0;
 };
 
 #endif

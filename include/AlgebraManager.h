@@ -46,20 +46,19 @@ August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
 January, 2003 VTA Changed ~PersistValue~ interface and created three
-new functions ~Open~, ~Save~, ~Close~, and ~Clone~ that join the ~Create~ 
+new functions ~Open~, ~Save~, ~Close~, and ~Clone~ that join the ~Create~
 and ~Delete~ to form the object state diagram in the Figure 1.
 
 Figure 1: Object state diagram [objstatediagram.eps]
 
-February 2003 Ulrich Telle Introduced new mode ~DeleteFrom~ for the
-~PersistValue~ and ~PersistModel~ interface
+March 2003, Victor Almeida created the function ~SizeOf~
 
 August 2003 VTA Added the ~SaveToList~ and ~RestoreFromList~ functions
 
 September 2003 Frank Hoffmann Added ~ListAlgebras~ and ~GetAlgebraId~
 
 1.1 Overview
- 
+
 The "Secondo"[3] algebra manager is responsible for registering and initializing
 all specified algebra modules and provides interface functions for the
 query processor and the catalog functions to access the type constructors
@@ -76,7 +75,7 @@ time, although an algebra module may be a shared library which is loaded
 dynamically into memory only when the "Secondo"[3] server is started. To
 build an algebra modula as a shared library has the advantage that one
 does not need to rebuild the "Secondo"[3] system when only the
-implementation of the algebra modula changes. 
+implementation of the algebra modula changes.
 
 In principal it would be possible to load algebra modules at runtime which
 are not known at link time. But there are at least two disadvantages:
@@ -99,47 +98,49 @@ to each type of the algebra. A ~model~ is a miniature version of the
 data structure itself used instead of this for cost estimations (e.g.
 for a relation the number of tuples, the number of used segments,
 statistics for the distribution of chosen attributes could be taken into
-account within the model). 
+account within the model).
 
 An algebra module offers for each type constructor up to eight generic
-operations: 
+operations:
 
   * ~AssociateKind~, ~Property~. Supply the kind and the properties of a type.
 
   * ~Create~, ~Delete~. Allocate/deallocate internal memory. Not needed
-for types represented in a single word of storage. 
+for types represented in a single word of storage.
 
   * ~Open~, ~Close~, ~Save~. Only needed, if the type is ~independently~
 persistent. For example, they will be needed for relations or object
 classes, but not for tuples or atomic values (if we decide that the
-latter are not independently persistent). 
+latter are not independently persistent).
 
   * ~Clone~. Clones an instance of a type constructor.
 
   * ~In~, ~Out~. Map a nested list into a value of the type and vice
 versa. Used for delivering a value to the application (among other
-things). 
+things).
 
   * ~RestoreFromList~, ~SaveToList~. Act as ~In~ and ~Out~ functions
 but use internal representation of the objects. Most simple objects
-does not need this functions, so by default they will call the 
+does not need this functions, so by default they will call the
 correspondent ~In~ and ~Out~ functions.
+
+  * ~SizeOf~. Returns the size of the RootRecord of the object.
 
 Every value of every type has a representation as a single "Word"[4] of
 storage. For a simple type, this can be all. For more complex types, it
 may be a pointer to some structure. For persistent objects (that are
 currently not in memory) it can be an index into a catalog which tells
-where the object is on disk. 
+where the object is on disk.
 
 If a type (constructor) has a model, then the algebra module offers
-four further operations: 
+four further operations:
 
-  * ~InModel~. Create a model data structure from a nested list. 
+  * ~InModel~. Create a model data structure from a nested list.
 
   * ~OutModel~. Create a nested list representation from the model data
-structure 
+structure
 
-  * ~ValueToModel~. Create a model data structure from a value. 
+  * ~ValueToModel~. Create a model data structure from a value.
 
   * ~ValueListToModel~.
 
@@ -148,12 +149,12 @@ operation:
 
   * ~PersistModel~. Saving and restoring an object model.
 
-Three default implementations (~DefaultOpen~, ~DefaultSave~ and 
-~DefaultPersistModel~) are supplied which store values and models in 
+Three default implementations (~DefaultOpen~, ~DefaultSave~ and
+~DefaultPersistModel~) are supplied which store values and models in
 their nested list representation.
 
 The algebra module offers five (sets of) functions for every operator,
-namely 
+namely
 
   * ~Set of Evaluation Functions~. Associated with each operator is at
 least one, but are possibly several, evaluation functions. Each
@@ -165,20 +166,20 @@ parameter function calls are handled by calling the functions ~Request~,
 
   * ~Type Mapping~. This function maps a list of input types in nested
 list format (~ListExpr~) into an output type. Used for type checking and
-mapping. 
+mapping.
 
   * ~Selection Function~. This function is given a list of argument types
 together with an operator number; based on these it returns the number
 of an evaluation function. This is used to determine for an overloaded
 operator the appropriate evaluation function. Usually the same function
 can be used for all operators of an algebra; if operators are not
-overloaded, identity (on the numbers) is sufficient. 
+overloaded, identity (on the numbers) is sufficient.
 
-  * ~Model Mapping~. Computes a result model from the argument models. 
+  * ~Model Mapping~. Computes a result model from the argument models.
 
   * ~Cost Mapping~. Estimates from the models of the arguments the costs
 for evaluating the operation (number of CPUs, number of swapped pages).
-If there are no models, it returns some constant cost. 
+If there are no models, it returns some constant cost.
 
 1.2 Defines, Includes, Constants
 
@@ -255,7 +256,7 @@ Is the type of a cost mapping procedure.
 */
 
 typedef int (*SelectFunction)( ListExpr typeList );
-/* 
+/*
 Is the type of a selection function.
 
 */
@@ -305,7 +306,7 @@ typedef ListExpr (*OutObject)( const ListExpr numType,
 
 typedef Word (*ObjectCreation)( const ListExpr typeInfo );
 
-typedef void (*ObjectDeletion)( Word& object ); 
+typedef void (*ObjectDeletion)( Word& object );
 
 typedef bool (*ObjectOpen)( SmiRecord& valueRecord,
                             const ListExpr typeExpr,
@@ -315,11 +316,13 @@ typedef bool (*ObjectSave)( SmiRecord& valueRecord,
                             const ListExpr typeExpr,
                             Word& value );
 
-typedef void (*ObjectClose)( Word& object ); 
+typedef void (*ObjectClose)( Word& object );
 
-typedef Word (*ObjectClone)( const Word& object ); 
+typedef Word (*ObjectClone)( const Word& object );
 
-typedef void* (*ObjectCast)(void*);
+typedef void* (*ObjectCast)( void* );
+
+typedef int (*ObjectSizeof)();
 
 /*
 Are the types used for creating, deleting and initializing the
@@ -406,7 +409,7 @@ Additionally the address of the initialization function of the algebra is
 registered. For algebras to be used this forces the linker to include the
 algebra module from an appropriate link library. For an algebra to be
 loaded dynamically the address of the initialization function is not set.
-Instead the method ~LoadAlgebras~ uses the algebra name to identify and 
+Instead the method ~LoadAlgebras~ uses the algebra name to identify and
 load the shared library and to identify and call the initialization
 function of the algebra module. A reference to the shared library is
 stored in the member variable ~dynlib~ to be able to unload the library
@@ -526,16 +529,16 @@ The list format is :
 */
 
   int GetAlgebraId( const string algName);
-/* 
+/*
 Returns the id of the algebra with name algName, if this algebra is currently
 included, otherwise 0.
-  
-*/  
+
+*/
   void LoadAlgebras();
 /*
 All existing algebras are loaded into the "Secondo"[3] programming interface.
 The catalog of every algebra contains the specifications of type constructors
-and operators of the algebra as defined above. 
+and operators of the algebra as defined above.
 
 This procedure has to be started before the use of other functions of the
 database, otherwise no algebra function (operator) or type constructor can
@@ -543,7 +546,7 @@ be used.
 
 */
   void UnloadAlgebras();
-/* 
+/*
 The allocated memory for the algebra catalogs is returned.
 No algebra function (operator) or type constructor can be used anymore.
 
@@ -608,14 +611,14 @@ algebra ~algebraId~.
   ValueMapping
     Execute( const int algebraId, const int opFunId );
 /*
-Returns the address of the evaluation function of the - possibly 
+Returns the address of the evaluation function of the - possibly
 overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
   ModelMapping
     TransformModel( const int algebraId, const int opFunId );
 /*
-Returns the address of the model mapping function of the - possibly 
+Returns the address of the model mapping function of the - possibly
 overloaded - operator ~opFunId~ of algebra ~algebraId~.
 
 */
@@ -691,7 +694,7 @@ Returns the address of the object deletion function of type constructor
                 SmiRecord& valueRecord,
                 const ListExpr typeInfo, Word& value );
 /*
-Open objects of type as constructed by type constructor 
+Open objects of type as constructed by type constructor
 ~typeId~ of algebra ~algebraId~.
 Return "true"[4], if the operation was successful.
 
@@ -700,7 +703,7 @@ Return "true"[4], if the operation was successful.
                 SmiRecord& valueRecord,
                 const ListExpr typeInfo, Word& value );
 /*
-Save objects of type as constructed by type constructor 
+Save objects of type as constructed by type constructor
 ~typeId~ of algebra ~algebraId~.
 Return "true"[4], if the operation was successful.
 
@@ -722,6 +725,13 @@ Returns the address of the object clone function of type constructor
   ObjectCast Cast( const int algebraId, const int typeId );
 /*
 Returns the address of the type casting function of type constructor
+~typeId~ of algebra ~algebraId~.
+
+*/
+  ObjectSizeof
+    SizeOfObj( const int algebraId, const int typeId );
+/*
+Returns the address of the object sizeof function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
@@ -793,7 +803,7 @@ The second format is:
 
 This means ``Error number ~errno~ in type expression for kind ~kind~''.
 The specific error numbers are defined in the kind checking procedure;
-the list may contain further information to describe the error. 
+the list may contain further information to describe the error.
 
 */
  private:

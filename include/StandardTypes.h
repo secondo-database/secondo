@@ -40,9 +40,8 @@ class CcInt : public StandardAttribute
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
   int      Compare(Attribute *arg);
-  int      Adjacent(Attribute *arg);
-  int      Sizeof() const;
-  CcInt*   Clone();
+  bool     Adjacent(Attribute *arg);
+  CcInt*   Clone() ;
   ostream& Print( ostream &os ) { return (os << intval); }
 
     ListExpr   CopyToList( ListExpr typeInfo )
@@ -71,6 +70,9 @@ class CcInt : public StandardAttribute
       return SetWord( Address(0) );
     }
 
+  static long intsCreated;
+  static long intsDeleted;
+
  private:
   bool defined;
   int  intval;
@@ -95,10 +97,13 @@ class CcReal : public StandardAttribute
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute* arg );
-  int      Adjacent( Attribute* arg );
-  int      Sizeof() const;
-  CcReal*  Clone();
+  bool      Adjacent( Attribute* arg );
+  CcReal*  Clone() ;
   ostream& Print( ostream &os ) { return (os << realval); }
+
+  static long realsCreated;
+  static long realsDeleted;
+
  private:
   bool  defined;
   float realval;
@@ -122,13 +127,16 @@ class CcBool : public StandardAttribute
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute * arg );
-  int      Adjacent( Attribute * arg );
-  int      Sizeof() const;
-  CcBool*  Clone();
+  bool     Adjacent( Attribute * arg );
+  CcBool*  Clone() ;
   ostream& Print( ostream &os ) {
     if (boolval == true) return (os << "TRUE");
     else return (os << "FALSE");
   }
+
+  static long boolsCreated;
+  static long boolsDeleted;
+
  private:
   bool defined;
   bool boolval;
@@ -154,14 +162,19 @@ class CcString : public StandardAttribute
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
   int       Compare( Attribute* arg );
-  int       Adjacent( Attribute* arg );
-  int       Sizeof() const;
-  CcString* Clone();
+  bool      Adjacent( Attribute* arg );
+  CcString* Clone() ;
   ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }
+
+  static long stringsCreated;
+  static long stringsDeleted;
+
  private:
   bool   defined;
   STRING stringval;
 };
+
+ostream& ShowStandardTypesStatistics( const bool reset, ostream& o );
 
 #endif
 

@@ -13,7 +13,7 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-	../Relation-C++/RelationAlgebra.h
+	../OldRelation-C++/OldRelationAlgebra.h
 
 MODNAME=ArrayAlgebra
 LIBNAME=lib$(MODNAME)
@@ -27,7 +27,7 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I. -I../Relation-C++
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I. -I../OldRelation-C++
 
 # --- Array Algebra library ---
 

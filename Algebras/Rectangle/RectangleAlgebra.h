@@ -37,15 +37,20 @@ class Rectangle: public StandardAttribute
 {
   public:
 
-    Rectangle();
+    Rectangle() {}
 /*
-The simple constructor. Create two undefined points.
+Do not use this constructor.
 
 */
 
-    Rectangle( const double bottom, const double top, const double left, const double right );
+    Rectangle( const bool defined, 
+               const double bottom = 0, 
+               const double top = 0, 
+               const double left = 0, 
+               const double right = 0 );
 /*
-The second constructor. Receives four coordinates.
+The constructor. First one can set if the rectangle is defined, and if it is,
+the four coordinates can be set.
 
 */
 
@@ -158,8 +163,8 @@ an attribute in the Relational Algebra.
     int Compare( Attribute *arg )
       { return 0; }
 
-    int Adjacent( Attribute *arg )
-      { return 0; }
+    bool Adjacent( Attribute *arg )
+      { return false; }
 
     int Sizeof() const
       { return sizeof( Rectangle ); }

@@ -7,7 +7,7 @@ October, 2003. Victor Teixeira de Almeida
 
 1 Overview
 
-This implementation file essentially contains the implementation of the 
+This implementation file essentially contains the implementation of the
 struct ~Rectangle~, and the definitions of the type constructur
 ~rect~ with its associated operations.
 
@@ -23,38 +23,26 @@ using namespace std;
 #include "RectangleAlgebra.h"
 #include "StandardTypes.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 /*
 3 Type Constructor ~rect~
 
-A value of type ~rect~ represents a 2-dimensional rectangle alligned with 
-the axes x and y. A rectangle in such a way can be represented by four 
+A value of type ~rect~ represents a 2-dimensional rectangle alligned with
+the axes x and y. A rectangle in such a way can be represented by four
 numbers, the upper and lower values for the two dimensions.
 
 3.1 Implementation of the class ~Rectangle~
 
-The simple constructor. Create two undefined points.
+The constructor. First one can set if the rectangle is defined, and if it is,
+the four coordinates can be set.
 
 */
-
-Rectangle::Rectangle() :
-defined( false ),
-bottom( 0 ), 
-top( 0 ),
-left( 0 ),
-right( 0 )
-{
-  assert( Proper() );
-}
-
-/*
-The second constructor. Receives four coordinates.
-
-*/
-Rectangle::Rectangle( const double left, const double right, const double bottom, const double top ) :
-defined( true ),
+Rectangle::Rectangle( const bool defined, 
+                      const double left, const double right, 
+                      const double bottom, const double top ) :
+defined( defined ),
 bottom( bottom ),
 top( top ),
 left( left ),
@@ -82,7 +70,7 @@ Checks if the rectangle is defined.
 
 */
 bool Rectangle::IsDefined() const
-{ 
+{
   return defined;
 }
 
@@ -91,7 +79,7 @@ Redefinition of operator ~=~.
 
 */
 Rectangle& Rectangle::operator = ( const Rectangle& r )
-{ 
+{
   this->defined = r.defined;
   if( this->defined )
   {
@@ -101,7 +89,7 @@ Rectangle& Rectangle::operator = ( const Rectangle& r )
     this->right = r.right;
   }
   assert( Proper() );
-  return *this; 
+  return *this;
 }
 
 /*
@@ -165,11 +153,11 @@ Redefinition of operator ~==~.
 
 */
 bool Rectangle::operator == ( const Rectangle& r ) const
-{ 
+{
   assert( IsDefined() && r.IsDefined() );
-  return this->bottom == r.bottom && 
+  return this->bottom == r.bottom &&
          this->top == r.top &&
-         this->left == r.left && 
+         this->left == r.left &&
          this->right == r.right;
 }
 
@@ -178,8 +166,8 @@ Redefinition of operator ~!=~.
 
 */
 bool Rectangle::operator != ( const Rectangle& r ) const
-{ 
-  return !(*this == r); 
+{
+  return !(*this == r);
 }
 
 /*
@@ -187,12 +175,12 @@ Returns the area of a rectangle.
 
 */
 double Rectangle::Area() const
-{ 
-  if( !IsDefined() ) 
+{
+  if( !IsDefined() )
     return 0.0;
 
   return (this->left - this->right) *
-         (this->top - this->bottom); 
+         (this->top - this->bottom);
 }
 
 /*
@@ -200,11 +188,11 @@ Returns the perimeter of a rectangle.
 
 */
 double Rectangle::Perimeter () const
-{ 
-  if( !IsDefined() ) 
+{
+  if( !IsDefined() )
     return 0;
 
-  return 2 * (this->left - this->right + this->top - this->bottom); 
+  return 2 * (this->left - this->right + this->top - this->bottom);
 }
 
 /*
@@ -212,9 +200,9 @@ Returns the min coord value for the given dimension ~dim~.
 
 */
 const double Rectangle::MinD( int dim ) const
-{ 
-  assert( dim == 0 || dim == 1 ); 
-  return (dim == 0 ? this->left : this->bottom); 
+{
+  assert( dim == 0 || dim == 1 );
+  return (dim == 0 ? this->left : this->bottom);
 }
 
 /*
@@ -222,9 +210,9 @@ Returns the max coord value for the given dimension ~dim~.
 
 */
 const double Rectangle::MaxD( int dim ) const
-{ 
-  assert( dim == 0 || dim == 1 ); 
-  return (dim == 0 ? this->right : this->top); 
+{
+  assert( dim == 0 || dim == 1 );
+  return (dim == 0 ? this->right : this->top);
 }
 
 /*
@@ -233,13 +221,14 @@ Returns the bounding box that contains both this and the rectangle ~r~.
 */
 Rectangle Rectangle::Union( const Rectangle& r ) const
 {
-  if( !IsDefined() ) 
+  if( !IsDefined() )
     return r;
 
-  if( !r.IsDefined() ) 
+  if( !r.IsDefined() )
     return *this;
 
-  return Rectangle( MIN( this->left, r.left ),
+  return Rectangle( true,
+                    MIN( this->left, r.left ),
                     MAX( this->right, r.right ),
                     MIN( this->bottom, r.bottom ),
                     MAX( this->top, r.top ) );
@@ -251,18 +240,19 @@ Returns the intersection between this and the rectangle ~r~.
 */
 Rectangle Rectangle::Intersection( const Rectangle& r ) const
 {
-  if( !IsDefined() ) 
+  if( !IsDefined() )
     return *this;
 
-  if( !r.IsDefined() ) 
+  if( !r.IsDefined() )
     return r;
 
   if( Intersects( r ) )
-    return Rectangle( MAX( this->left, r.left ),
+    return Rectangle( true,
+                      MAX( this->left, r.left ),
                       MIN( this->right, r.right ),
                       MAX( this->bottom, r.bottom ),
                       MIN( this->top, r.top ) );
-  else return Rectangle();
+  else return Rectangle( false );
 }
 
 /*
@@ -271,9 +261,9 @@ represent an empty set.
 
 */
 bool Rectangle::Proper() const
-{ 
+{
   return !IsDefined() ||
-         (IsDefined() && this->bottom <= this->top && this->left <= this->right); 
+         (IsDefined() && this->bottom <= this->top && this->left <= this->right);
 }
 
 /*
@@ -287,13 +277,13 @@ The list representation of a rectangle is
 3.3 ~Out~-function
 
 */
-static ListExpr
+ListExpr
 OutRectangle( ListExpr typeInfo, Word value )
 {
   Rectangle* r = (Rectangle*)(value.addr);
   if( r->IsDefined() )
   {
-    return nl->FourElemList( 
+    return nl->FourElemList(
              nl->RealAtom( r->Left() ),
              nl->RealAtom( r->Right() ),
              nl->RealAtom( r->Bottom() ),
@@ -309,7 +299,7 @@ OutRectangle( ListExpr typeInfo, Word value )
 3.4 ~In~-function
 
 */
-static Word
+Word
 InRectangle( const ListExpr typeInfo, const ListExpr instance,
              const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -319,13 +309,22 @@ InRectangle( const ListExpr typeInfo, const ListExpr instance,
       nl->IsAtom( nl->Third( instance ) ) && nl->AtomType( nl->Third( instance ) ) == RealType &&
       nl->IsAtom( nl->Fourth( instance ) ) && nl->AtomType( nl->Fourth( instance ) ) == RealType  )
   {
-    Rectangle *r = new Rectangle( nl->RealValue( nl->First( instance ) ),
+    Rectangle *r = new Rectangle( true,
+                                  nl->RealValue( nl->First( instance ) ),
                                   nl->RealValue( nl->Second( instance ) ),
                                   nl->RealValue( nl->Third( instance ) ),
                                   nl->RealValue( nl->Fourth( instance ) ) );
     correct = true;
-    return SetWord( r ); 
+    return SetWord( r );
   }
+  else if ( nl->IsAtom( instance ) && 
+            nl->AtomType( instance ) == SymbolType && 
+            nl->SymbolValue( instance ) == "undef" )
+  {
+    correct = true;
+    return SetWord( new Rectangle( false ) );
+  }
+
   correct = false;
   return SetWord( Address( 0 ) );
 }
@@ -334,17 +333,17 @@ InRectangle( const ListExpr typeInfo, const ListExpr instance,
 3.5 ~Create~-function
 
 */
-static Word
+Word
 CreateRectangle( const ListExpr typeInfo )
 {
-  return SetWord( new Rectangle() );
+  return SetWord( new Rectangle( false ) );
 }
 
 /*
 3.6 ~Delete~-function
 
 */
-static void
+void
 DeleteRectangle( Word& w )
 {
   delete (Rectangle *)w.addr;
@@ -355,7 +354,7 @@ DeleteRectangle( Word& w )
 3.7 ~Close~-function
 
 */
-static void
+void
 CloseRectangle( Word& w )
 {
   delete (Rectangle *)w.addr;
@@ -366,7 +365,7 @@ CloseRectangle( Word& w )
 3.8 ~Clone~-function
 
 */
-static Word
+Word
 CloneRectangle( const Word& w )
 {
   Rectangle *r = new Rectangle( *((Rectangle *)w.addr) );
@@ -377,7 +376,7 @@ CloneRectangle( const Word& w )
 3.9 Function describing the signature of the type constructor
 
 */
-static ListExpr
+ListExpr
 RectangleProperty()
 {
   return (nl->TwoElemList(
@@ -398,7 +397,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~rect~ does not have arguments, this is trivial.
 
 */
-static bool
+bool
 CheckRectangle( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "rect" ));
@@ -414,6 +413,15 @@ void* CastRectangle(void* addr)
 }
 
 /*
+3.11 ~SizeOf~-function
+
+*/
+int SizeOfRectangle()
+{
+  return sizeof(Rectangle);
+}
+
+/*
 3.12 Creation of the type constructor instance
 
 */
@@ -426,6 +434,7 @@ TypeConstructor rect(
         0,               0,               //open and save functions
         CloseRectangle,  CloneRectangle,  //object close, and clone
         CastRectangle,                    //cast function
+        SizeOfRectangle,				  //sizeof function
         CheckRectangle,                   //kind checking function
         0,                                //predef. pers. function for model
         TypeConstructor::DummyInModel,
@@ -452,7 +461,7 @@ the output type of the operator is returned.
 It is for the compare operators which have ~bool~ as resulttype, like =, !=.
 
 */
-static ListExpr
+ListExpr
 RectangleTypeMapBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -476,7 +485,7 @@ It is for the operator ~isempty~ which have ~rect~ as input and ~bool~ resulttyp
 
 */
 
-static ListExpr
+ListExpr
 RectangleTypeMapBool1( ListExpr args )
 {
   ListExpr arg1;
@@ -495,7 +504,7 @@ RectangleTypeMapBool1( ListExpr args )
 10.2 The dummy model mapping:
 
 */
-static Word
+Word
 RectangleNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));
@@ -518,7 +527,7 @@ is applied to correct arguments.
 Is used for all non-overloaded operators.
 
 */
-static int
+int
 RectangleSimpleSelect( ListExpr args )
 {
   return (0);
@@ -536,8 +545,8 @@ parameter types.
 4.4.1 Value mapping functions of operator ~isempty~
 
 */
-static int
-IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RectangleIsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Rectangle*)args[0].addr)->IsDefined() )
@@ -555,8 +564,8 @@ IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 4.4.2 Value mapping functions of operator ~$=$~
 
 */
-static int
-Equal_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RectangleEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Rectangle*)args[0].addr)->IsDefined() &&
@@ -576,8 +585,8 @@ Equal_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 4.4.3 Value mapping functions of operator ~$\neq$~
 
 */
-static int
-NotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RectangleNotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Rectangle*)args[0].addr)->IsDefined() &&
@@ -597,8 +606,8 @@ NotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 4.4.4 Value mapping functions of operator ~intersects~
 
 */
-static int
-Intersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RectangleIntersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -613,8 +622,8 @@ Intersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 
-static int
-Inside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RectangleInside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( ((Rectangle*)args[0].addr)->IsDefined() &&
@@ -643,11 +652,11 @@ defined, so it easier to make them overloaded.
 4.5.1 Definition of value mapping vectors
 
 */
-ValueMapping rectangleisemptymap[] = { IsEmpty_r };
-ValueMapping rectangleequalmap[] = { Equal_rr };
-ValueMapping rectanglenotequalmap[] = { NotEqual_rr };
-ValueMapping rectangleintersectsmap[] = { Intersects_rr };
-ValueMapping rectangleinsidemap[] = { Inside_rr };
+ValueMapping rectangleisemptymap[] = { RectangleIsEmpty_r };
+ValueMapping rectangleequalmap[] = { RectangleEqual_rr };
+ValueMapping rectanglenotequalmap[] = { RectangleNotEqual_rr };
+ValueMapping rectangleintersectsmap[] = { RectangleIntersects_rr };
+ValueMapping rectangleinsidemap[] = { RectangleInside_rr };
 ModelMapping rectanglenomodelmap[] = { RectangleNoModelMapping,
                                        RectangleNoModelMapping };
 
@@ -715,7 +724,7 @@ Operator rectangleintersects
           rectanglenomodelmap, RectangleSimpleSelect, RectangleTypeMapBool );
 
 Operator rectangleinside
-        ( "inside", RectangleSpecInside, 1, rectangleinsidemap, 
+        ( "inside", RectangleSpecInside, 1, rectangleinsidemap,
           rectanglenomodelmap, RectangleSimpleSelect, RectangleTypeMapBool );
 
 /*

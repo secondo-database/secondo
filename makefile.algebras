@@ -21,8 +21,14 @@ ALGEBRAS     += PointRectangleAlgebra
 ALGEBRA_DIRS += StreamExample
 ALGEBRAS     +=	StreamExampleAlgebra
 
+ALGEBRA_DIRS += OldRelation-C++
+ALGEBRAS     +=	OldRelationAlgebra
+
 ALGEBRA_DIRS += Relation-C++
 ALGEBRAS     +=	RelationAlgebra
+
+ALGEBRA_DIRS += ExtRelation-C++
+ALGEBRAS     +=	ExtRelationAlgebra
 
 ALGEBRA_DIRS +=	Date
 ALGEBRAS     +=	DateAlgebra

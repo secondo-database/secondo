@@ -45,6 +45,7 @@ class StandardAttribute : public Attribute
 {
  public:
   virtual size_t HashValue() = 0;
+
 /*
 
 1.2 Function ~CopyFrom~
@@ -55,7 +56,6 @@ in the algebras.
 
 */
   virtual void CopyFrom(StandardAttribute* right) = 0;
-  virtual void SetDefined(bool defined) = 0;
 };
 
 #endif

@@ -28,8 +28,8 @@ November 30, 2002 RHG Added function ~GetKey~.
 The *Storage Management Interface* provides all types and classes needed
 for dealing with persistent data objects in "Secondo"[3].
 
-Essential for all operations on persistent data objects is the class 
-~SmiEnvironment~ which provides methods for startup and shutdown of 
+Essential for all operations on persistent data objects is the class
+~SmiEnvironment~ which provides methods for startup and shutdown of
 the storage management, for transaction handling and for error handling.
 
 Internally the ~SmiEnvironment~ handles the connection to the underlying
@@ -586,7 +586,7 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 (seldom needed).
 
 */
-  static bool StartUp( const RunMode mode, 
+  static bool StartUp( const RunMode mode,
                        const string& parmFile,
                        ostream& errStream );
 /*
@@ -667,7 +667,7 @@ In a future extension it may be used for user management and access control.
 Are provided for transaction handling. Transactions are never implicitly started.
 Therefore an explicit call to ~BeginTransaction~ is always necessary. To be able
 to rollback requests for deleting ~SmiFiles~ such requests are registered throughout
-the transaction and carried out only if the transaction completes successfully. 
+the transaction and carried out only if the transaction completes successfully.
 ~Named SmiFiles~ are registered in a file catalog. Changes to this catalog take
 place when a transaction is committed. When updates to the file catalog fail,
 the transaction is implicitly aborted.
@@ -685,9 +685,9 @@ Optionally the accompanying error message is returned.
 */
   static void SetError( const SmiError smiErr,
                         const int sysErr = 0 );
-  static void SetError( const SmiError smiErr, 
+  static void SetError( const SmiError smiErr,
                         const string& errMsg );
-  static void SetError( const SmiError smiErr, 
+  static void SetError( const SmiError smiErr,
                         const char* errMsg );
 /*
 Allows to set an SmiError code and a system error code or an error message.
@@ -811,7 +811,7 @@ methods for initialization and can be used thereafter to access a record.
 Destroys a record handle.
 
 */
-  SmiSize  Read( void* buffer, 
+  SmiSize  Read( void* buffer,
                  const SmiSize numberOfBytes,
                  const SmiSize offset = 0 );
 /*
@@ -820,8 +820,8 @@ provided by the user. Optionally a record ~offset~ can be specified.
 The amount of bytes actually transfered is being returned.
 
 */
-  SmiSize  Write( const void*   buffer, 
-                  const SmiSize numberOfBytes, 
+  SmiSize  Write( const void*   buffer,
+                  const SmiSize numberOfBytes,
                   const SmiSize offset = 0 );
 /*
 Writes a sequence of at most ~numberOfBytes~ bytes into the record from the ~buffer~
@@ -908,7 +908,7 @@ Creates a handle for an ~SmiRecordFile~. The handle is associated with an
 Destroys a handle of an ~SmiRecordFile~.
 
 */
-  bool SelectRecord( const SmiRecordId recno, 
+  bool SelectRecord( const SmiRecordId recno,
                      SmiRecord& record,
                      const SmiFile::AccessType accessType =
                            SmiFile::ReadOnly );
@@ -921,7 +921,7 @@ initialized by this method.
   bool SelectAll( SmiRecordFileIterator& iterator,
                   const SmiFile::AccessType accessType =
                         SmiFile::ReadOnly );
-  
+
 /*
 Initializes an iterator for sequentially accessing all records of the ~SmiFile~.
 The requested access type - read only or update - has to be specified.
@@ -934,7 +934,7 @@ The same as ~SelectAll~, but returns a ~PrefetchingIterator~.
 A ~PrefetchingIterator~ is read-only.
 
 */
-  
+
   bool AppendRecord( SmiRecordId& recno,
                      SmiRecord& record );
 /*
@@ -983,13 +983,13 @@ only one record can be stored. Otherwise duplicate records are allowed.
 Destroys a file handle.
 
 */
-  bool SelectRecord( const SmiKey& key, 
+  bool SelectRecord( const SmiKey& key,
                      SmiKeyedFileIterator& iterator,
                      const SmiFile::AccessType accessType =
                            SmiFile::ReadOnly );
 /*
 Selects the data record with the given key. It is required to specify
-whether the select takes place for read only or update of the record. 
+whether the select takes place for read only or update of the record.
 This method always initializes a record iterator regardless whether
 keys are unique or not. Usually this method should only be used when
 duplicate records are supported.
@@ -1028,17 +1028,17 @@ The function returns "true"[4] when the iterator was initialized successfully.
 
 */
 
-  PrefetchingIterator* 
+  PrefetchingIterator*
     SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey);
 /*
 The same as ~SelectRange~, but returns a ~PrefetchingIterator~.
 
 A ~PrefetchingIterator~ is read-only. Duplicates are always
-reported. 
+reported.
 
 */
 
-  bool SelectLeftRange( const SmiKey& toKey, 
+  bool SelectLeftRange( const SmiKey& toKey,
                         SmiKeyedFileIterator& iterator,
                         const SmiFile::AccessType accessType =
                               SmiFile::ReadOnly,
@@ -1060,11 +1060,11 @@ The function returns "true"[4] when the iterator was initialized successfully.
 The same as ~SelectLeftRange~, but returns a ~PrefetchingIterator~.
 
 A ~PrefetchingIterator~ is read-only. Duplicates are always
-reported. 
+reported.
 
 */
 
-  bool SelectRightRange( const SmiKey& fromKey, 
+  bool SelectRightRange( const SmiKey& fromKey,
                          SmiKeyedFileIterator& iterator,
                          const SmiFile::AccessType accessType =
                                SmiFile::ReadOnly,
@@ -1086,10 +1086,10 @@ The function returns "true"[4] when the iterator was initialized successfully.
 The same as ~SelectRightRange~, but returns a ~PrefetchingIterator~.
 
 A ~PrefetchingIterator~ is read-only. Duplicates are always
-reported. 
+reported.
 
 */
-  
+
   bool SelectAll( SmiKeyedFileIterator& iterator,
                   const SmiFile::AccessType accessType =
                         SmiFile::ReadOnly,
@@ -1111,7 +1111,7 @@ The function returns "true"[4] when the iterator was initialized successfully.
 The same as ~SelectAll~, but returns a ~PrefetchingIterator~.
 
 A ~PrefetchingIterator~ is read-only. Duplicates are always
-reported. 
+reported.
 
 */
 
@@ -1160,7 +1160,7 @@ Tells whether there are unscanned records left in the selected set of records.
   bool Finish();
 /*
 Closes the iterator. The iterator handle may be reused (i.e. reinitialized)
-afterwards. This method should always be called as soon as access to the record set 
+afterwards. This method should always be called as soon as access to the record set
 selected by the iterator is not required anymore, although the destructor will call
 it implicitly.
 
@@ -1268,7 +1268,7 @@ Creates a handle for a ~SmiKeyedFile~ iterator. The handle is associated with a
 ~SmiFile~ by means of a ~Select~ method of that file. Initially the iterator is
 positioned in front of the first record of the selected set of records.
 
-*/  
+*/
   ~SmiKeyedFileIterator();
 /*
 Destroys a ~SmiKeyedFile~ iterator handle.
@@ -1306,25 +1306,25 @@ Duplicates are supported and are always output.
 
 */
 class PrefetchingIterator
-{  
+{
 
 protected:
 
-  SmiKey::KeyDataType keyType;  
+  SmiKey::KeyDataType keyType;
 
   virtual void GetKeyAddressAndLength(void** addr, SmiSize& length) = 0;
 /*
 Returns the address and the length of the current key (represented as
 a binary string). This method makes it possible that an implementation
 of this interface need not be a friend of SmiKey, only this interface
-itself needs to be a friend of SmiKey. This method is called by the 
+itself needs to be a friend of SmiKey. This method is called by the
 method ~CurrentKey~.
 
 */
 
 public:
   virtual ~PrefetchingIterator();
-  
+
   virtual void CurrentKey(SmiKey& smiKey);
 /*
 Returns the current key.
@@ -1338,26 +1338,26 @@ Advances the iterator by one tuple. If the iterator cannot be advanced,
 
 */
 
-  virtual SmiSize ReadCurrentData(void* userBuffer, 
+  virtual SmiSize ReadCurrentData(void* userBuffer,
     SmiSize nBytes, SmiSize offset = 0) = 0;
 /*
-This method is analogous to the ~Read~ method in ~SmiRecord~. 
+This method is analogous to the ~Read~ method in ~SmiRecord~.
 
 */
 
-  virtual SmiSize ReadCurrentKey(void* userBuffer, 
+  virtual SmiSize ReadCurrentKey(void* userBuffer,
     SmiSize nBytes, SmiSize offset = 0) = 0;
 /*
 This method is analogous to the ~Read~ method in ~SmiRecord~, however
 it is not concerned with the data, but with the key of the current tuple.
-This can only be called if the underlying file is an 
+This can only be called if the underlying file is an
 ~SmiKeyedFile~.
 
 */
 
   virtual void ReadCurrentRecordNumber(SmiRecordId& recordNumber) = 0;
 /*
-Return the id of the current tuple. This can only be called if the 
+Return the id of the current tuple. This can only be called if the
 underlying file is an ~SmiRecordFile~.
 
 */

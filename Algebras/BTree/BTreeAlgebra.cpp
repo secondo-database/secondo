@@ -10,6 +10,7 @@
 2 Auxiliary Functions
 
 */
+using namespace std;
 
 #include "Algebra.h"
 #include "AlgebraManager.h"
@@ -31,9 +32,8 @@
 #include <sstream>
 #include <typeinfo>
 
-namespace {
-
-static NestedList* nl;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 
@@ -44,30 +44,6 @@ of prefetching iterators in the btree algebra.
 #define BTREE_PREFETCH
 
 /*
-
-2.1 Macro CHECK\_COND
-
-This macro makes reporting errors in type mapping functions more convenient.
-
-*/
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
-
-/*
-
-2.2 Function ~simpleSelect~
-
-Trivial selection function.
-
-*/
-static int simpleSelect (ListExpr args) { return 0; }
-
-/*
-
 2.2 Type property of type constructor ~btree~
 
 */
@@ -473,7 +449,6 @@ public:
 
   bool SetTypeAndCreate(SmiKey::KeyDataType keyType)
   {
-
     assert(
       keyType == SmiKey::Integer
       || keyType == SmiKey::String
@@ -907,6 +882,11 @@ void* CastBTree(void* addr)
   return ( 0 );
 }
 
+int SizeOfBTree()
+{
+  return 0;
+}
+
 /*
 
 5.8 ~OpenFunction~ of type constructor ~btree~
@@ -1013,46 +993,22 @@ SaveBTree( SmiRecord& valueRecord,
 
 /*
 
-5.10 ~Model~-functions of type constructor ~btree~
-
-*/
-Word BTreeInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr BTreeOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word BTreeValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word BTreeValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
-}
-
-/*
-
 5.11 Type Constructor object for type constructor ~btree~
 
 */
-TypeConstructor cppbtree( "btree",		BTreeProp,
-                          OutBTree,		InBTree,
+TypeConstructor cppbtree( "btree",				BTreeProp,
+                          OutBTree,				InBTree,
                           SaveToListBTree,      RestoreFromListBTree,
-                          CreateBTree,		DeleteBTree,
-			  OpenBTree,		SaveBTree,
-			  CloseBTree,		CloneBTree,
-			  CastBTree,   		CheckBTree,
-			  0,
-			  BTreeInModel,		BTreeOutModel,
-			  BTreeValueToModel,	BTreeValueListToModel );
+                          CreateBTree,			DeleteBTree,
+						  OpenBTree,			SaveBTree,
+						  CloseBTree,			CloneBTree,
+						  CastBTree,   			SizeOfBTree,
+                          CheckBTree,
+						  0,
+                          TypeConstructor::DummyInModel,
+                          TypeConstructor::DummyOutModel,
+                          TypeConstructor::DummyValueToModel,
+                          TypeConstructor::DummyValueListToModel );
 
 /*
 
@@ -1061,11 +1017,10 @@ TypeConstructor cppbtree( "btree",		BTreeProp,
 6.1 Type Mapping of operator ~createbtree~
 
 */
-static ListExpr CreateBTreeTypeMap(ListExpr args)
+ListExpr CreateBTreeTypeMap(ListExpr args)
 {
   string attrName;
   char* errmsg = "Incorrect input for operator createbtree.";
-  NestedList* nl = SecondoSystem::GetNestedList();
   int attrIndex;
   ListExpr attrType;
 
@@ -1096,8 +1051,8 @@ static ListExpr CreateBTreeTypeMap(ListExpr args)
   CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
   CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
   CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(attrList, nl), errmsg);
-  CHECK_COND((attrIndex = findattr(attrList, attrName, attrType, nl)) > 0, errmsg);
+  CHECK_COND(IsTupleDescription(attrList), errmsg);
+  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0, errmsg);
 
   assert
     (nl->SymbolValue(attrType) == "string"
@@ -1124,24 +1079,23 @@ static ListExpr CreateBTreeTypeMap(ListExpr args)
 6.2 Value mapping function of operator ~createbtree~
 
 */
-static int
+int
 CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  QueryProcessor* qp = SecondoSystem::GetQueryProcessor();
   result = qp->ResultStorage(s);
 
-  CcRel* relation;
+  Relation* relation;
   BTree* btree;
   CcInt* attrIndexCcInt;
   int attrIndex;
   CcString* attrTypeStr;
-  CcRelIT* iter;
-  CcTuple* tuple;
+  RelationIterator* iter;
+  Tuple* tuple;
   SmiKey::KeyDataType dataType;
   bool appendHasNotWorked = false;
 
   btree = (BTree*)qp->ResultStorage(s).addr;
-  relation = (CcRel*)args[0].addr;
+  relation = (Relation*)args[0].addr;
   attrIndexCcInt = (CcInt*)args[2].addr;
   attrTypeStr = (CcString*)args[3].addr;
 
@@ -1174,14 +1128,11 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
     return -1;
   }
 
-  iter = relation->MakeNewScan();
-  while(!iter->EndOfScan())
+  iter = relation->MakeScan();
+  while( (tuple = iter->GetNextTuple()) != 0 )
   {
-    tuple = iter->GetTuple();
-    iter->Next();
-
     appendHasNotWorked = appendHasNotWorked ||
-      !btree->Append((StandardAttribute*)tuple->Get(attrIndex), tuple->GetId());
+      !btree->Append( (StandardAttribute *)tuple->GetAttribute(attrIndex), tuple->GetTupleId() );
     tuple->DeleteIfAllowed();
   }
 
@@ -1202,15 +1153,16 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
 const string CreateBTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
                                 "( <text>((rel (tuple ((x1 t1)...(xn tn))))"
-				" xi)"
-				" -> (btree (tuple ((x1 t1)...(xn tn))) ti)"
-				"</text--->"
-			        "<text>_ createbtree [ _ ]</text--->"
-			        "<text>Creates a btree. The key type ti must"
-				" be either string or int or real.</text--->"
-			        "<text>let mybtree = ten createbtree [nr]"
-				"</text--->"
-			        ") )";
+								" xi)"
+								" -> (btree (tuple ((x1 t1)...(xn tn))) ti)"
+								"</text--->"
+						        "<text>_ createbtree [ _ ]</text--->"
+						        "<text>Creates a btree. The key type ti must"
+								" be either string or int or real.</text--->"
+						        "<text>let mybtree = ten createbtree [nr]"
+								"</text--->"
+						        ") )";
+
 /*
 
 6.4 Definition of operator ~createbtree~
@@ -1221,7 +1173,7 @@ Operator createbtree (
           CreateBTreeSpec,              // specification
           CreateBTreeValueMapping,                  // value mapping
           Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-          simpleSelect,         // trivial selection function
+          Operator::SimpleSelect,         // trivial selection function
           CreateBTreeTypeMap           // type mapping
 );
 
@@ -1306,7 +1258,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   CHECK_COND(nl->IsAtom(btreeTupleSymbol), errmsg);
   CHECK_COND(nl->AtomType(btreeTupleSymbol) == SymbolType, errmsg);
   CHECK_COND(nl->SymbolValue(btreeTupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(btreeAttrList, nl), errmsg);
+  CHECK_COND(IsTupleDescription(btreeAttrList), errmsg);
 
   /* handle rel part of argument */
   CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
@@ -1329,7 +1281,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
   CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
   CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(attrList, nl), errmsg);
+  CHECK_COND(IsTupleDescription(attrList), errmsg);
 
   /* check that btree and rel have the same associated tuple type */
   CHECK_COND(nl->Equal(attrList, btreeAttrList), errmsg);
@@ -1344,7 +1296,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
 
 struct IndexQueryLocalInfo
 {
-  CcRel* relation;
+  Relation* relation;
   BTreeIterator* iter;
 };
 
@@ -1355,15 +1307,13 @@ struct IndexQueryLocalInfo
 
 */
 template<int operatorId>
-static int
+int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  QueryProcessor* qp = SecondoSystem::GetQueryProcessor();
-
   BTree* btree;
   StandardAttribute* key;
   StandardAttribute* secondKey;
-  CcTuple* tuple;
+  Tuple* tuple;
   SmiRecordId id;
   IndexQueryLocalInfo* localInfo;
 
@@ -1385,7 +1335,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
       localInfo = new IndexQueryLocalInfo;
       btree = (BTree*)btreeWord.addr;
-      localInfo->relation = (CcRel*)relWord.addr;
+      localInfo->relation = (Relation*)relWord.addr;
       key = (StandardAttribute*)keyWord.addr;
       if(operatorId == RANGE)
       {
@@ -1431,7 +1381,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       if(localInfo->iter->Next())
       {
         id = localInfo->iter->GetId();
-        tuple = localInfo->relation->GetTupleById(id);
+        tuple = localInfo->relation->GetTuple( id );
         if(tuple == 0)
         {
           cerr << "Could not find tuple for the given tuple id. "
@@ -1462,21 +1412,21 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 6.7 Specification of operator ~exactmatch~
 
 */
-const string ExactMatchSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
-                               " \"Example\" )"
-                             "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
-			     " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) ->"
-			     " (stream (tuple ((x1 t1)...(xn tn))))"
-			     "</text--->"
-			     "<text>_ _ exactmatch [ _ ]</text--->"
-			     "<text>Uses the given btree to find all tuples"
-			     " in the given relation with .xi = argument "
-			     "value.</text--->"
-			     "<text>query citiesNameInd cities exactmatch"
-			     " [\"Berlin\"] consume; where citiesNameInd "
-			     "is e.g. created with 'let citiesNameInd = "
-			     "cities createbtree [name]'</text--->"
-			      ") )";
+const string ExactMatchSpec  = 	"( ( \"Signature\" \"Syntax\" \"Meaning\""
+                               	" \"Example\" )"
+                             	"( <text>((btree (tuple ((x1 t1)...(xn tn)))"
+			     				" ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) ->"
+			     				" (stream (tuple ((x1 t1)...(xn tn))))"
+			     				"</text--->"
+			     				"<text>_ _ exactmatch [ _ ]</text--->"
+			     				"<text>Uses the given btree to find all tuples"
+			     				" in the given relation with .xi = argument "
+			     				"value.</text--->"
+			     				"<text>query citiesNameInd cities exactmatch"
+			     				" [\"Berlin\"] consume; where citiesNameInd "
+			     				"is e.g. created with 'let citiesNameInd = "
+			     				"cities createbtree [name]'</text--->"
+			      				") )";
 /*
 
 6.8 Definition of operator ~exactmatch~
@@ -1487,7 +1437,7 @@ Operator exactmatch (
 	 ExactMatchSpec,          // specification
 	 IndexQuery<EXACTMATCH>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<EXACTMATCH>        // type mapping
 );
 
@@ -1496,19 +1446,19 @@ Operator exactmatch (
 6.9 Specification of operator ~range~
 
 */
-const string RangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" )"
-                          "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
-			  " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti ti)"
-			  " -> (stream (tuple ((x1 t1)...(xn tn))))"
-			  "</text--->"
-			  "<text>_ _ range [ _ , _ ]</text--->"
-			  "<text>Uses the given btree to find all tuples "
-			  "in the given relation with .xi >= argument value 1"
-			  " and .xi <= argument value 2.</text--->"
-			  "<text>query tenNoInd ten range[5, 7] consume"
-			  "</text--->"
-			  "   ) )";
+const string RangeSpec  = 	"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          	"\"Example\" )"
+                        	"( <text>((btree (tuple ((x1 t1)...(xn tn)))"
+			  				" ti)(rel (tuple ((x1 t1)...(xn tn)))) ti ti)"
+			  				" -> (stream (tuple ((x1 t1)...(xn tn))))"
+			  				"</text--->"
+			  				"<text>_ _ range [ _ , _ ]</text--->"
+			  				"<text>Uses the given btree to find all tuples "
+			  				"in the given relation with .xi >= argument value 1"
+			  				" and .xi <= argument value 2.</text--->"
+			  				"<text>query tenNoInd ten range[5, 7] consume"
+			  				"</text--->"
+			  				"   ) )";
 
 /*
 
@@ -1520,7 +1470,7 @@ Operator cpprange (
 	 RangeSpec,          // specification
 	 IndexQuery<RANGE>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<RANGE>        // type mapping
 );
 
@@ -1529,23 +1479,23 @@ Operator cpprange (
 6.11 Specification of operator ~leftrange~
 
 */
-const string LeftRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                              "\"Example\" ) "
-                              "( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
-			      "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
-			      "(stream"
-			      " (tuple ((x1 t1)...(xn tn))))</text--->"
-			      "<text>_ _ leftrange [ _ ]</text--->"
-			      "<text>Uses the given btree to find all tuples"
-			      " in the given relation with .xi <= argument "
-			      "value</text--->"
-			      "<text>query citiesNameInd cities leftrange"
-			      "[\"Hagen\"]"
-			      " consume; where citiesNameInd is e.g. created "
-			      "with "
-			      "'let citiesNameInd = cities createbtree [name]'"
-			      "</text--->"
-			      ") )";
+const string LeftRangeSpec  = 	"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                  	            "\"Example\" ) "
+                  	            "( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
+			      				"(rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
+			      				"(stream"
+			      				" (tuple ((x1 t1)...(xn tn))))</text--->"
+			      				"<text>_ _ leftrange [ _ ]</text--->"
+			      				"<text>Uses the given btree to find all tuples"
+			      				" in the given relation with .xi <= argument "
+			      				"value</text--->"
+			      				"<text>query citiesNameInd cities leftrange"
+			      				"[\"Hagen\"]"
+			      				" consume; where citiesNameInd is e.g. created "
+			      				"with "
+			      				"'let citiesNameInd = cities createbtree [name]'"
+			      				"</text--->"
+			      				") )";
 /*
 
 6.12 Definition of operator ~leftrange~
@@ -1556,7 +1506,7 @@ Operator leftrange (
 	 LeftRangeSpec,          // specification
 	 IndexQuery<LEFTRANGE>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<LEFTRANGE>        // type mapping
 );
 
@@ -1595,7 +1545,7 @@ Operator rightrange (
 	 RightRangeSpec,          // specification
 	 IndexQuery<RIGHTRANGE>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<RIGHTRANGE>        // type mapping
 );
 
@@ -1622,13 +1572,11 @@ class BTreeAlgebra : public Algebra
 
 BTreeAlgebra btreealgebra;
 
-
 extern "C"
 Algebra*
 InitializeBTreeAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
+  qp = qpRef;
   return (&btreealgebra);
-}
-
 }

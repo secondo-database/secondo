@@ -1,8 +1,6 @@
 /*
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 
-//[alpha] [$\alpha$]
-
 [1] Header File of the Range Algebra
 
 February, 2002 Victor Teixeira de Almeida
@@ -11,7 +9,7 @@ February, 2002 Victor Teixeira de Almeida
 
 This implementation file essentially contains the implementation of the classes 
 ~Interval~ and ~Range~. The class ~Range~ corresponds to the memory representation of the type
-constructor ~range [alpha]~. The class ~Interval~ is used by the class ~Range~.
+constructor ~range($\alpha$)~. The class ~Interval~ is used by the class ~Range~.
 
 For more detailed information see RangeAlgebra.h.
 
@@ -26,183 +24,314 @@ using namespace std;
 #include "StandardTypes.h"
 #include "RangeAlgebra.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 /*
-
 3 Type Constructor ~range~
 
-This type constructor implements the carrier set for ~range [alpha]~.
+This type constructor implements the carrier set for ~range($\alpha$)~.
 
-3.1 Implementation of class ~Range~
+3.1 Implementation of struct ~Interval~
 
 */
-Range::Range( SmiRecordFile *recordFile, const int algebraId, const int typeId, const int size ):
+Interval::Interval( const int algebraId, const int typeId ) :
+algebraId( algebraId ),
+typeId( typeId ),
+start( NULL ),
+end( NULL ),
+lc( lc ),
+rc( rc )
+{
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+  start = (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr;
+  end   = (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr;
+}
+
+Interval::Interval( const Interval& interval ):
+algebraId( interval.algebraId ),
+typeId( interval.typeId ),
+start( (StandardAttribute*)interval.start->Clone() ),
+end( (StandardAttribute*)interval.end->Clone() ),
+lc( interval.lc ),
+rc( interval.rc )
+{
+}
+
+Interval::Interval( const int algebraId,
+                    const int typeId,
+                    StandardAttribute* start,
+                    StandardAttribute* end,
+                    const bool lc,
+                    const bool rc ) :
+algebraId( algebraId ),
+typeId( typeId ),
+start( (StandardAttribute*)start->Clone() ),
+end( (StandardAttribute*)end->Clone() ),
+lc( lc ),
+rc( rc )
+{
+}
+ 
+Interval::~Interval()
+{
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+
+  Word wstart = SetWord( start ),
+       wend   = SetWord( end );
+
+  (algM->DeleteObj(algebraId, typeId))( wstart );
+  (algM->DeleteObj(algebraId, typeId))( wend );
+}
+
+bool Interval::IsValid() const
+{
+  if( !IsDefined() )
+    return false;
+
+  if( start->Compare( end ) < 0 )
+  {
+    if( start->Adjacent( end ) )
+      return lc || rc;
+  }
+  else if( start->Compare( end ) == 0 )
+  {
+    return rc && lc;
+  }
+
+  return true;
+}
+
+Interval& Interval::operator=( const Interval& interval )
+{
+  assert( algebraId == interval.algebraId &&
+          typeId == interval.typeId );
+
+  start = (StandardAttribute*)interval.start->Clone();
+  end = (StandardAttribute*)interval.end->Clone();
+  lc = interval.lc;
+  rc = interval.rc;
+
+  return *this;
+}
+ 
+bool Interval::operator==(const Interval& i) const
+{ 
+  assert( IsDefined() && i.IsDefined() );
+  return( ( start->Compare( i.start ) == 0 && lc == i.lc && 
+            end->Compare( i.end ) == 0 && rc == i.rc ) ||
+          ( start->Compare( i.start ) == 0 && lc == i.lc && 
+            end->Compare( i.end ) != 0 && end->Adjacent( i.end ) && ( !rc || !i.rc ) ) ||
+          ( end->Compare( i.end ) == 0 && rc == i.rc && 
+            start->Compare( i.start ) != 0 && start->Adjacent( i.start ) && ( !lc || !i.lc ) ) ||
+          ( start->Compare( i.start ) != 0 && start->Adjacent( i.start ) && (!lc || !i.lc) && 
+            end->Compare( i.end ) != 0 && end->Adjacent( i.end ) && ( !rc || !i.rc ) ) ); 
+}
+
+bool Interval::operator!=(const Interval& i) const
+{ 
+  assert( IsDefined() && i.IsDefined() );
+  return !( *this == i ); 
+}
+
+bool Interval::R_Disjoint(const Interval& i) const
+{
+  return( end->Compare( i.start ) < 0 ||
+          ( end->Compare( i.start ) == 0 && !( rc && i.lc ) ) );
+}
+
+bool Interval::Disjoint(const Interval& i) const
+{
+  return( R_Disjoint( i ) || i.R_Disjoint( *this ) );
+}
+
+bool Interval::R_Adjacent(const Interval& i) const
+{
+  return( Disjoint( i ) && 
+          ( end->Compare( i.start ) == 0 && (rc || i.lc) ) ||
+          ( ( end->Compare( i.start ) < 0 && rc && i.lc ) && end->Adjacent( i.start ) ) );
+}
+
+bool Interval::Adjacent(const Interval& i) const
+{
+  return( R_Adjacent( i ) || i.R_Adjacent( *this ) );
+}
+
+bool Interval::Inside(const Interval& i) const
+{ 
+  assert( IsDefined() && i.IsDefined() );
+
+  return( ( start->Compare( i.start ) > 0 ||
+            ( start->Compare( i.start ) == 0 && ( !lc || i.lc ) ) ) &&
+          ( end->Compare( i.end ) < 0 ||
+            ( end->Compare( i.end ) == 0 && ( !rc || i.rc ) ) ) );   
+}
+
+bool Interval::Contains(StandardAttribute* a) const
+{ 
+  assert( IsDefined() && a->IsDefined() );
+  return ( ( start->Compare( a ) < 0 || 
+             ( start->Compare( a ) == 0 && lc ) ) && 
+           ( end->Compare( a ) > 0 ||
+             ( end->Compare( a ) == 0 && rc ) ) ); 
+}
+
+bool Interval::Intersects(const Interval& i) const
+{ 
+  assert( IsDefined() && i.IsDefined() );
+  return !( 
+            ( ( (start->Compare( i.start ) < 0) ||
+                (start->Compare( i.start ) == 0 && !(lc && i.lc)) ) && 
+              ( (end->Compare( i.start ) < 0) ||
+                (end->Compare( i.start ) == 0 && !(rc && i.lc)) ) ) ||
+            ( ( (start->Compare( i.end ) > 0) ||
+                (start->Compare( i.end ) == 0 && !(lc && i.rc)) ) &&
+              ( (end->Compare( i.end ) > 0) ||
+                (end->Compare( i.end ) == 0 && !(rc && i.rc)) ) ) 
+          );
+}
+
+bool Interval::Before(StandardAttribute* a) const
+{ 
+  assert( IsDefined() && a->IsDefined() );
+  return ( end->Compare( a ) <= 0 );
+}
+
+bool Interval::After(StandardAttribute* a) const
+{ 
+  assert( IsDefined() && a->IsDefined() );
+  return ( start->Compare( a ) >= 0 );
+}
+
+bool Interval::Before(const Interval& i) const
+{ 
+  assert( IsDefined() && i.IsDefined() );
+  return ( Before( i.start ) ); 
+}
+
+/*
+3.2 Implementation of class ~Range~
+
+*/
+Range::Range( const int algebraId, const int typeId, const int size, const int n ):
 algebraId( algebraId ),
 typeId( typeId ),
 size( size ),
-writeable( true ),
-parrays( recordFile ),
 canDelete( false ),
-intervalCount( 0 ),
-ordered( true )
+noComponents( 0 ),
+ordered( true ),
+intervals( n * 2 * ( size + sizeof(bool) ) )
 {
-  parrays->AppendRecord( recid, record );
-  record.Write( &algebraId, sizeof( int ), 0 );
-  record.Write( &typeId, sizeof( int ), sizeof( int ) );
-  record.Write( &size, sizeof( int ), 2 * sizeof( int ) );
-  record.Write( &intervalCount, sizeof(int), 3 * sizeof( int ) );
-}
-
-Range::Range( SmiRecordFile *recordFile, const SmiRecordId id, const bool update ) :
-writeable( update ),
-parrays( recordFile ),
-canDelete( false ),
-ordered( true )
-{
-  SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  parrays->SelectRecord( id, record, at );
-  recid = id;
-  record.Read( &algebraId, sizeof( int ), 0 );
-  record.Read( &typeId, sizeof( int ), sizeof( int ) );
-  record.Read( &size, sizeof( int ), 2 * sizeof( int ) );
-  record.Read( &intervalCount, sizeof(int), 3 * sizeof( int ) );
 }
 
 Range::~Range()
 {
   if ( canDelete )
-  {
-    parrays->DeleteRecord( recid );
-  }
-  else if ( writeable )
-  {
-    record.Write( &intervalCount, sizeof(int), 3 * sizeof( int ) );
-  }
+    intervals.Destroy();
 }
 
 void Range::Add( const Interval& interval )
 {
-  assert ( writeable );
-  assert ( interval.GetBegin() != NULL && interval.GetEnd() != NULL );
-  assert ( interval.GetBegin()->IsDefined() && interval.GetEnd()->IsDefined() );
+  assert ( interval.start != NULL && interval.end != NULL );
+  assert ( interval.start->IsDefined() && interval.end->IsDefined() );
 
-  record.Write(interval.GetBegin(), size, 4 * sizeof(int) + size *  2 * intervalCount );
-  record.Write(interval.GetEnd(),   size, 4 * sizeof(int) + size * (2 * intervalCount + 1) );
-
-  intervalCount++;
+  if( intervals.Size() < (noComponents + 1) * ( 2 * ( size + (int)sizeof(bool) ) ) )
+    intervals.Resize( (noComponents + 1) * ( 2 * ( size + (int)sizeof(bool) ) ) );
+  Put( noComponents, interval );
+  noComponents++;
 }
 
 void Range::Put( const int index, const Interval& interval )
 {
-  assert ( writeable );
-  assert ( interval.GetBegin() != NULL && interval.GetEnd() != NULL );
-  assert ( interval.GetBegin()->IsDefined() && interval.GetEnd()->IsDefined() );
-  assert ( 0 <= index && index < intervalCount ); 
-
-  record.Write(interval.GetBegin(), size, 4 * sizeof(int) + size *  2 * index );
-  record.Write(interval.GetEnd(),   size, 4 * sizeof(int) + size * (2 * index + 1) );
+  intervals.Put( index * ( 2 * ( size + sizeof(bool) ) ), size, interval.start );
+  intervals.Put( index * ( 2 * ( size + sizeof(bool) ) ) + size, size, interval.end );
+  intervals.Put( index * ( 2 * ( size + sizeof(bool) ) ) + ( 2 * size ), sizeof(bool), &interval.lc );
+  intervals.Put( index * ( 2 * ( size + sizeof(bool) ) ) + ( 2 * size ) + sizeof(bool), sizeof(bool), &interval.rc );
 }
 
-void Range::Get(const int index, Interval& interval)
+void Range::Get( const int index, Interval& interval )
 {
-  assert ( 0 <= index && index < intervalCount );
-  assert ( interval.GetBegin() != NULL && interval.GetEnd() != NULL );
-  assert ( interval.GetBegin()->Sizeof() == size && interval.GetEnd()->Sizeof() == size );
+  assert ( 0 <= index && index < noComponents );
+  assert ( interval.start != NULL && interval.end != NULL );
+ 
+  void *buf = malloc( size ); 
+  intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ), size, buf );
 
-  record.Read(interval.GetBegin(), size, 4 * sizeof(int) + size *  2 * index );
-  record.Read(interval.GetEnd(),   size, 4 * sizeof(int) + size * (2 * index + 1) );
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+  memcpy( interval.start, (StandardAttribute *)(algM->Cast(algebraId, typeId))( buf ), size );
 
-  assert( interval.GetBegin()->IsDefined() && interval.GetEnd()->IsDefined() );
+  intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ) + size, size, buf );
+  memcpy( interval.end, (StandardAttribute *)(algM->Cast(algebraId, typeId))( buf ), size );
+
+  intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ) + ( 2 * size ), sizeof(bool), &interval.lc );
+  intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ) + ( 2 * size ) + sizeof(bool), sizeof(bool), &interval.rc );
+ 
+  free( buf ); 
+  assert( interval.start->IsDefined() && interval.end->IsDefined() );
 }
 
-void Range::Get(const int index, const IntervalPosition pos, StandardAttribute *a)
+void Range::Get( const int index, const IntervalPosition pos, StandardAttribute *a, bool& closed )
 {
-  assert ( 0 <= index && index < intervalCount );
+  assert ( 0 <= index && index < noComponents );
   assert ( a != NULL );
-  assert ( a->Sizeof() == size );
 
   if( pos == Begin )
-    record.Read(a, size, 4 * sizeof(int) + size *  2 * index );
+  {
+    void *buf = malloc( size ); 
+    intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ), size, buf );
+
+    AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+    memcpy( a, (StandardAttribute *)(algM->Cast(algebraId, typeId))( buf ), size );
+    free( buf );
+
+    intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ) + size + sizeof(bool), sizeof(bool), &closed );
+  }
   else
-    record.Read(a, size, 4 * sizeof(int) + size * (2 * index + 1) );
+  {
+    void *buf = malloc( size ); 
+    intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ) + size, size, buf );
+
+    AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+    a = (StandardAttribute *)(algM->Cast(algebraId, typeId))( buf );
+    free( buf );
+
+    intervals.Get( index * ( 2 * ( size + sizeof(bool) ) ) + size + 2 * sizeof(bool), sizeof(bool), &closed );
+  }
 
   assert( a->IsDefined() );
 }
 
 void Range::Destroy()
 {
-  assert( writeable );
   canDelete = true;
+}
+
+bool IntervalCompare( const Interval& a, const Interval& b )
+{
+  if( a.Before( b ) )
+    return true;
+  else
+    return false;
 }
 
 void Range::Sort()
 {
-  if( intervalCount > 1 )
+  if( noComponents > 1 )
   {
-    int low = 0, high = intervalCount - 1;
-    QuickSortRecursive( low, high );
-  }
-}
+    vector<Interval> intervalArray;
 
-void Range::QuickSortRecursive( const int low, const int high )
-{
-  int i = high, j = low;
-
-  // Creating the memory representation of the objects to be used in the sort
-  // algorithm.
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval p( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-              (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval pi( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-               (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval pj( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-               (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Get( (int)( (low + high) / 2 ), p );
-
-  do
-  {
-    Get( j, pj );
-    while( pj < p )
-      Get( ++j, pj );
-
-    Get( i, pi );
-    while( pi > p )
-      Get( --i, pi );
-
-    if( i >= j )
+    for( int i = 0; i < noComponents; i++ )
     {
-      if ( i != j )
-      {
-        Put( i, pj );
-        Put( j, pi );
-      }
-
-      i--;
-      j++;
+      Interval interval( algebraId, typeId );
+      Get( i, interval );
+      intervalArray.push_back( interval );
     }
-  } while( j <= i );
 
-  if( low < i )
-    QuickSortRecursive( low, i );
-  if( j < high )
-    QuickSortRecursive( j, high );
+    sort( intervalArray.begin(), intervalArray.end(), IntervalCompare );
 
-  
-  // Deleting the memory representation of the objects used in the sort algorithm.
-  Word begin = SetWord(p.GetBegin()),
-       end   = SetWord(p.GetEnd());
-  (algM->CloseObj(algebraId, typeId))( begin );
-  (algM->CloseObj(algebraId, typeId))( end );
-  begin = SetWord(pi.GetBegin());
-  end   = SetWord(pi.GetEnd());
-  (algM->CloseObj(algebraId, typeId))( begin );
-  (algM->CloseObj(algebraId, typeId))( end );
-  begin = SetWord(pj.GetBegin());
-  end   = SetWord(pj.GetEnd());
-  (algM->CloseObj(algebraId, typeId))( begin );
-  (algM->CloseObj(algebraId, typeId))( end );
+    for( size_t i = 0; i < intervalArray.size(); i++ )
+      Put( i, intervalArray[i] );
+  }
 }
 
 void Range::StartBulkLoad()
@@ -217,26 +346,24 @@ void Range::EndBulkLoad( const bool sort )
   if( sort )
     Sort();
   ordered = true;
+  assert( IsValid() );
 }
 
-const bool Range::IsOrdered() const
+bool Range::IsOrdered() const
 {
   return ordered;
 }
 
-int Range::operator==(Range& r)
+bool Range::operator==(Range& r)
 {
-  if( GetIntervalCount() != r.GetIntervalCount() )
+  if( GetNoComponents() != r.GetNoComponents() )
     return false;
 
   bool result = true;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                     (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+  Interval thisInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
 
-  for( int i = 0; i < GetIntervalCount(); i++ )
+  for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, thisInterval );
     r.Get( i, interval );
@@ -248,35 +375,23 @@ int Range::operator==(Range& r)
     }
   }
 
-  Word begin = SetWord(thisInterval.GetBegin()),
-       end   = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-  begin = SetWord(interval.GetBegin());
-  end   = SetWord(interval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-
   return result;
 }
 
-int Range::operator!=(Range& r)
+bool Range::operator!=(Range& r)
 {
  return !( *this == r );
 }
 
-const bool Range::Intersects(Range& r)
+bool Range::Intersects(Range& r)
 {
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   bool result = false;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                     (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-
+  Interval thisInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
+  
   int i = 0, j = 0;
   Get( i, thisInterval );
   r.Get( j, interval );
@@ -291,7 +406,7 @@ const bool Range::Intersects(Range& r)
 
     if( thisInterval.Before( interval ) )
     {
-      if( ++i == GetIntervalCount() )
+      if( ++i == GetNoComponents() )
       {
         result = false;
         break;
@@ -301,7 +416,7 @@ const bool Range::Intersects(Range& r)
     
     if( interval.Before( thisInterval ) )
     {
-      if( ++j == r.GetIntervalCount() )
+      if( ++j == r.GetNoComponents() )
       {
         result = false;
         break;
@@ -310,29 +425,17 @@ const bool Range::Intersects(Range& r)
     }
   }
 
-  Word begin = SetWord(thisInterval.GetBegin()),
-       end   = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-  begin = SetWord(interval.GetBegin());
-  end   = SetWord(interval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-
   return result;
 }
 
-const bool Range::Inside(Range& r)
+bool Range::Inside(Range& r)
 {
   if( IsEmpty() ) return true;
   if( r.IsEmpty() ) return false;
 
   bool result = true;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                     (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+  Interval thisInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
 
   int i = 0, j = 0;
   Get( i, thisInterval );
@@ -342,7 +445,7 @@ const bool Range::Inside(Range& r)
   {
     if( interval.Before( thisInterval ) )
     {
-      if( ++j == r.GetIntervalCount() )
+      if( ++j == r.GetNoComponents() )
       {
         result = false;
         break;
@@ -351,7 +454,7 @@ const bool Range::Inside(Range& r)
     }
     else if( thisInterval.Inside( interval ) )
     {
-      if( ++i == GetIntervalCount() )
+      if( ++i == GetNoComponents() )
       {
         break;
       }
@@ -364,25 +467,16 @@ const bool Range::Inside(Range& r)
     }
     else 
     {
-      // Intersection but no inside.
+      // Intersects but not inside.
       result = false;
       break;
     }
   }
 
-  Word begin = SetWord(thisInterval.GetBegin()),
-       end   = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-  begin = SetWord(interval.GetBegin());
-  end   = SetWord(interval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-
   return result;
 }
 
-const bool Range::Contains(StandardAttribute *a)
+bool Range::Contains(StandardAttribute *a)
 {
   assert( IsOrdered() && a->IsDefined() );
 
@@ -390,11 +484,9 @@ const bool Range::Contains(StandardAttribute *a)
     return false;
 
   bool result = false;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval midInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                        (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+  Interval midInterval( algebraId, typeId );
 
-  int first = 0, last = GetIntervalCount() - 1;
+  int first = 0, last = GetNoComponents() - 1;
 
   while (first <= last)
   {
@@ -416,77 +508,46 @@ const bool Range::Contains(StandardAttribute *a)
     }
   }
 
-  Word begin = SetWord(midInterval.GetBegin()),
-       end   = SetWord(midInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-
   return result;
 }
 
-const bool Range::Before(Range& r)
+bool Range::Before(Range& r)
 {
   assert( !IsEmpty() && !r.IsEmpty() );
 
   bool result = true;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                     (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+  Interval thisInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
 
-  Get( GetIntervalCount() - 1, thisInterval );
+  Get( GetNoComponents() - 1, thisInterval );
   r.Get( 0, interval );
   result = thisInterval.Before( interval );
 
-  Word begin = SetWord(thisInterval.GetBegin()),
-       end   = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-  begin = SetWord(interval.GetBegin());
-  end   = SetWord(interval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-
   return result;
 }
 
-const bool Range::Before(StandardAttribute *a)
+bool Range::Before(StandardAttribute *a)
 {
   assert( !IsEmpty() && a->IsDefined() );
 
   bool result = true;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+  Interval thisInterval( algebraId, typeId );
 
-  Get( GetIntervalCount() - 1, thisInterval );
+  Get( GetNoComponents() - 1, thisInterval );
   result = thisInterval.Before( a );
 
-  Word begin = SetWord(thisInterval.GetBegin()),
-       end   = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-
   return result;
 }
 
-const bool Range::After(StandardAttribute *a)
+bool Range::After(StandardAttribute *a)
 {
   assert( !IsEmpty() && a->IsDefined() );
 
   bool result = true;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+  Interval thisInterval( algebraId, typeId );
 
   Get( 0, thisInterval );
   result = thisInterval.After( a );
-
-  Word begin = SetWord(thisInterval.GetBegin()),
-       end   = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
 
   return result;
 }
@@ -495,124 +556,118 @@ void Range::Intersection(Range& r, Range& result)
 {
   assert( IsOrdered() && r.IsOrdered() && result.IsEmpty() );
 
-  if( !Intersects( r ) )
-    return;
-
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                     (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+  Interval thisInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
 
   int i = 0, j = 0;
   Get( i, thisInterval );
   r.Get( j, interval );
 
   result.StartBulkLoad();
-  while( 1 )
+  while( i < GetNoComponents() && j < r.GetNoComponents() )
   {
-    if( thisInterval == interval )
+    if( thisInterval.start->Compare( interval.start ) == 0 && 
+        thisInterval.end->Compare( interval.end ) == 0 )
     {
-      Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                            (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
+      Interval newInterval( algebraId, typeId,
+                            thisInterval.start, thisInterval.end,
+                            thisInterval.lc && interval.lc, 
+                            thisInterval.rc && interval.rc );
+      if( newInterval.IsValid() )
         result.Add( newInterval );
-        Word begin = SetWord(newInterval.GetBegin()),
-             end   = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( begin );
-        (algM->DeleteObj(algebraId, typeId))( end );
-        if( ++i < GetIntervalCount() )
-          Get( i, thisInterval );
-        else
-          break;
-        if( ++j < r.GetIntervalCount() )
-          r.Get( j, interval );
-        else
-          break;
+      if( ++i < GetNoComponents() )
+        Get( i, thisInterval );
+      if( ++j < r.GetNoComponents() )
+        r.Get( j, interval );
     }
     else if( thisInterval.Inside( interval ) )
     {
-      Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                            (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
-      result.Add( newInterval );
-      Word begin = SetWord(newInterval.GetBegin()),
-           end   = SetWord(newInterval.GetEnd());
-      (algM->DeleteObj(algebraId, typeId))( begin );
-      (algM->DeleteObj(algebraId, typeId))( end );
-      if( ++i < GetIntervalCount() )
+      Interval newInterval( thisInterval );
+      if( newInterval.IsValid() )
+        result.Add( newInterval );
+      if( ++i < GetNoComponents() )
         Get( i, thisInterval );
-      else
-        break;
     }
     else if( interval.Inside( thisInterval ) )
     {
-      Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr,
-                            (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr );
-      result.Add( newInterval );
-      Word begin = SetWord(newInterval.GetBegin()),
-           end   = SetWord(newInterval.GetEnd());
-      (algM->DeleteObj(algebraId, typeId))( begin );
-      (algM->DeleteObj(algebraId, typeId))( end );
-      if( ++j < r.GetIntervalCount() )
+      Interval newInterval( interval );
+      if( newInterval.IsValid() )
+        result.Add( newInterval );
+      if( ++j < r.GetNoComponents() )
         r.Get( j, interval );
-      else
-        break;
     }
     else if( thisInterval.Intersects( interval ) )
     {
-      if( thisInterval <= interval )
+      if( thisInterval.start->Compare( interval.end ) == 0 && ( thisInterval.lc && interval.rc ) )
       {
-        Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr,
-                              (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
+        Interval newInterval( algebraId, typeId, 
+                              interval.end, interval.end, true, true );
         result.Add( newInterval );
-        Word begin = SetWord(newInterval.GetBegin()),
-             end   = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( begin );
-        (algM->DeleteObj(algebraId, typeId))( end );
-        if( ++i < GetIntervalCount() )
+        if( ++j < r.GetNoComponents() )
+          r.Get( j, interval );
+      }
+      else if( thisInterval.end->Compare( interval.start ) == 0 && ( thisInterval.rc && interval.lc ) )
+      {
+        Interval newInterval( algebraId, typeId, 
+                              interval.start, interval.start, true, true );
+        result.Add( newInterval );
+        if( ++i < GetNoComponents() )
           Get( i, thisInterval );
+      }
+      else if( thisInterval.start->Compare( interval.start ) < 0 )
+      {
+        Interval newInterval( algebraId, typeId, 
+                              interval.start, thisInterval.end, interval.lc, thisInterval.rc );
+        if( newInterval.IsValid() )
+          result.Add( newInterval );
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
+      }
+      else if( thisInterval.start->Compare( interval.start ) == 0 )
+      {
+        assert( !thisInterval.lc || !interval.lc );
+        if( thisInterval.end->Compare( interval.end ) > 0 )
+        {
+          Interval newInterval( algebraId, typeId, 
+                                interval.start, interval.end, interval.lc && thisInterval.lc, interval.rc );
+          if( newInterval.IsValid() )
+            result.Add( newInterval );
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
         else
-          break;
+        {
+          assert( thisInterval.end->Compare( interval.end ) < 0 );
+          Interval newInterval( algebraId, typeId, 
+                                thisInterval.start, thisInterval.end, interval.lc && thisInterval.lc, thisInterval.rc );
+          if( newInterval.IsValid() )
+            result.Add( newInterval );
+          if( ++i < GetNoComponents() )
+            Get( i, thisInterval );
+        }
       }
       else
       {
-        Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                              (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr );
+        Interval newInterval( algebraId, typeId,
+                              thisInterval.start, interval.end, thisInterval.lc, interval.rc );
+        if( newInterval.IsValid() )
         result.Add( newInterval );
-        Word begin = SetWord(newInterval.GetBegin()),
-             end   = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( begin );
-        (algM->DeleteObj(algebraId, typeId))( end );
-        if( ++j < r.GetIntervalCount() )
+        if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
-        else
-          break;
       }
     }
-    else if( thisInterval <= interval )
+    else if( thisInterval.start->Compare( interval.start ) <= 0 )
     {
-      if( ++i < GetIntervalCount() )
+      if( ++i < GetNoComponents() )
         Get( i, thisInterval );
-      else
-        break;
     }
     else
     {
-      if( ++j < r.GetIntervalCount() )
+      if( ++j < r.GetNoComponents() )
         r.Get( j, interval );
-      else
-        break;
     }
   }
   result.EndBulkLoad( false );
-
-  Word begin = SetWord(thisInterval.GetBegin()),
-       end   = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
-  begin = SetWord(interval.GetBegin());
-  end   = SetWord(interval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( begin );
-  (algM->DeleteObj(algebraId, typeId))( end );
 }
 
 void Range::Union(Range& r, Range& result)
@@ -620,526 +675,801 @@ void Range::Union(Range& r, Range& result)
   assert( IsOrdered() && r.IsOrdered() && result.IsEmpty() );
 
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                     (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-
-  int i = 0, j = 0;
-  Get( i, thisInterval );
-  r.Get( j, interval );
+  Interval thisInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
 
   result.StartBulkLoad();
-  StandardAttribute *begin = NULL, *end = NULL;
+  int i = 0, j = 0;
 
-  while( 1 )
+  if( !IsEmpty() )
+    Get( i, thisInterval );
+  if( !r.IsEmpty() )
+    r.Get( j, interval );
+
+  if( !IsEmpty() && !r.IsEmpty() )
   {
-    if( thisInterval == interval )
+    StandardAttribute *start = NULL, *end = NULL;
+    bool lc = false, rc = false;
+
+    while( i < GetNoComponents() && j < r.GetNoComponents() )
     {
-      Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                            (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
+      if( thisInterval.start->Compare( interval.start ) == 0 &&
+          thisInterval.end->Compare( interval.end ) == 0 )
+      {
+        Interval newInterval( algebraId, typeId,
+                              thisInterval.start, thisInterval.end,
+                              thisInterval.lc || interval.lc, 
+                              thisInterval.rc || interval.rc );
+        result.Add( newInterval );
+  
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
+        
+        if( ++j < r.GetNoComponents() )
+          r.Get( j, interval );
+      }
+      else if( interval.Inside( thisInterval ) )
+      {
+        if( ++j < r.GetNoComponents() )
+          r.Get( j, interval );
+      }
+      else if( thisInterval.Inside( interval ) )
+      {
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
+      }
+      else if( !thisInterval.Intersects( interval ) )
+      {
+        if( thisInterval.end->Compare( interval.start ) < 0 )
+        {
+          if( thisInterval.Adjacent( interval ) )
+          {
+            if( start != NULL && end != NULL )
+            {
+              Word e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( e );
+            }
+            else
+            {
+              start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.start ) ).addr;
+              lc = thisInterval.lc;
+            }
+            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+            rc = interval.rc;
+          }
+          else
+          {
+            if( start != NULL && end != NULL )
+            {
+              Interval newInterval( algebraId, typeId,
+                                    start, end, lc, rc );
+              result.Add( newInterval );
+              Word s = SetWord(start),
+                   e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( s );
+              (algM->DeleteObj(algebraId, typeId))( e );
+              start = NULL; end   = NULL;
+              lc = false; rc = false;
+            }
+            else
+            {
+              Interval newInterval( thisInterval );
+              result.Add( newInterval );
+            }
+          }
+    
+          if( ++i < GetNoComponents() )
+            Get( i, thisInterval );
+        }
+        else if( thisInterval.start->Compare( interval.end ) > 0 )
+        {
+          if( thisInterval.Adjacent( interval ) )
+          {
+            if( start != NULL && end != NULL )
+            {
+              Word e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( e );
+            }
+            else
+            {
+              start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.start ) ).addr;
+              lc = interval.lc;
+            }
+            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+            rc = thisInterval.rc;
+          }
+          else
+          {
+            if( start != NULL && end != NULL )
+            {
+              Interval newInterval( algebraId, typeId,
+                                    start, end, lc, rc );
+              result.Add( newInterval );
+              Word s = SetWord(start),
+                   e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( s );
+              (algM->DeleteObj(algebraId, typeId))( e );
+              start = NULL; end   = NULL;
+              lc = false; rc = false;
+            }
+            else
+            {
+              Interval newInterval( interval );
+              result.Add( newInterval );
+            }
+          }
+    
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
+        else if( thisInterval.start->Compare( interval.end ) == 0 )
+        {
+          if( !thisInterval.lc && !interval.rc )
+          {
+            if( start != NULL && end != NULL )
+            {
+              Interval newInterval( algebraId, typeId,
+                                    start, end, lc, rc );
+              result.Add( newInterval );
+              Word s = SetWord(start),
+                   e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( s );
+              (algM->DeleteObj(algebraId, typeId))( e );
+              start = NULL; end   = NULL;
+              lc = false; rc = false;
+            }
+            else
+            {
+              Interval newInterval( interval );
+              result.Add( newInterval );
+            }
+          }
+          else
+          {
+            if( start != NULL && end != NULL ) 
+            {
+              if( end->Compare( thisInterval.end ) < 0 )
+              {
+                Word e = SetWord(end);
+                (algM->DeleteObj(algebraId, typeId))( e );
+                end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+                rc = thisInterval.rc;
+              }
+              else if( end->Compare( thisInterval.end ) == 0 )
+              {
+                rc = rc || thisInterval.rc;
+              }
+            }
+            else
+            {
+              start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.start ) ).addr;
+              lc = interval.lc;
+              end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+              rc = thisInterval.rc;
+            }
+          }
+   
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
+        else if( interval.start->Compare( thisInterval.end ) == 0 )
+        {
+          if( !interval.lc && !thisInterval.rc )
+          {
+            if( start != NULL && end != NULL )
+            {
+              Interval newInterval( algebraId, typeId, start, end, lc, rc );
+              result.Add( newInterval );
+              Word s = SetWord(start),
+                   e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( s );
+              (algM->DeleteObj(algebraId, typeId))( e );
+              start = NULL; end   = NULL;
+              lc = false; rc = false;
+            }
+            else
+            {
+              Interval newInterval( thisInterval );
+              result.Add( newInterval );
+            }
+          }
+          else
+          {
+            if( start != NULL && end != NULL )
+            {
+              if( end->Compare( interval.end ) < 0 )
+              {
+                Word e = SetWord(end);
+                (algM->DeleteObj(algebraId, typeId))( e );
+                end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+                rc = interval.rc;
+              }
+              else if( end->Compare( interval.end ) == 0 )
+              {
+                rc = rc || interval.rc;
+              }
+            }
+            else
+            {
+              start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.start ) ).addr;
+              lc = thisInterval.lc;
+              end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+              rc = interval.rc;
+            }
+          }
+  
+          if( ++i < GetNoComponents() )
+            Get( i, thisInterval );
+        }
+      }
+      else if( thisInterval.start->Compare( interval.start ) < 0 )
+      {
+        if( start == NULL && end == NULL )
+        {
+          start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.start ) ).addr;
+          lc = thisInterval.lc;
+          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+          rc = interval.rc;
+        }
+        else
+        {
+          if( end->Compare( interval.end ) < 0 )
+          {
+            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+            rc = interval.rc;
+          }
+          if( end->Compare( interval.end ) == 0 )
+          {
+            rc = rc || interval.rc;
+          }
+        }
+  
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
+      } 
+      else if( interval.start->Compare( thisInterval.start ) < 0 )
+      {
+        if( start == NULL && end == NULL )
+        {
+          start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.start ) ).addr;
+          lc = interval.lc;
+          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+          rc = thisInterval.rc;
+        }
+        else
+        {
+          if( end->Compare( thisInterval.end ) < 0 )
+          {
+            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+            rc = thisInterval.rc;
+          }
+          if( end->Compare( thisInterval.end ) == 0 )
+          {
+            rc = rc || thisInterval.rc;
+          }
+        }
+
+        if( ++j < r.GetNoComponents() )
+          r.Get( j, interval );
+      }
+      else if( thisInterval.start->Compare( interval.start ) == 0 )
+      {
+        assert( start == NULL && end == NULL );
+        start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.start ) ).addr;
+        lc = thisInterval.lc || interval.lc;
+        if( thisInterval.end->Compare( interval.end ) < 0 )
+        {
+          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+          rc = interval.rc;
+
+          if( ++i < GetNoComponents() )
+            Get( i, thisInterval );
+        }
+        else
+        {
+          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+          rc = thisInterval.rc;
+  
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
+      }
+      else if( thisInterval.end->Compare( interval.end ) == 0 )
+      {
+        assert( start != NULL && end != NULL );
+        rc = thisInterval.rc || interval.rc;
+  
+        Interval newInterval( algebraId, typeId, start, end, lc, rc );
+        result.Add( newInterval );
+        Word s = SetWord(start),
+             e = SetWord(end);
+        (algM->DeleteObj(algebraId, typeId))( s );
+        (algM->DeleteObj(algebraId, typeId))( e );
+        start = NULL; end   = NULL;
+        lc = false; rc = false;
+  
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
+  
+        if( ++j < r.GetNoComponents() )
+          r.Get( j, interval );
+      }
+    }
+  
+    if( start != NULL && end != NULL )
+    {
+      Interval newInterval( algebraId, typeId, start, end, lc, rc );
       result.Add( newInterval );
-      Word begin = SetWord(newInterval.GetBegin()),
-           end   = SetWord(newInterval.GetEnd());
-      (algM->DeleteObj(algebraId, typeId))( begin );
-      (algM->DeleteObj(algebraId, typeId))( end );
-
-      if( ++i < GetIntervalCount() )
-        Get( i, thisInterval );
-      
-      if( ++j < r.GetIntervalCount() )
-        r.Get( j, interval );
-
-      if( i >= GetIntervalCount() || j >= r.GetIntervalCount() )
-        break;
-    }
-    else if( !thisInterval.Intersects( interval ) )
-    {
-      if( begin != NULL && end != NULL )
-      {
-        Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( begin ) ).addr,
-                              (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( end ) ).addr );
-        result.Add( newInterval );
-        Word b = SetWord(newInterval.GetBegin()),
-             e = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( b );
-        (algM->DeleteObj(algebraId, typeId))( e );
-        begin = NULL; 
-        end   = NULL;
-
-        if( thisInterval < interval )
-        {
-          if( ++i < GetIntervalCount() )
-            Get( i, thisInterval );
-          else
-            break;
-        }
-        else
-        {
-          if( ++j < r.GetIntervalCount() )
-            r.Get( j, interval );
-          else
-            break;
-        }
-      }
-      else
-      {
-        if( thisInterval < interval )
-        {
-          Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                                (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
-          result.Add( newInterval );
-          Word begin = SetWord(newInterval.GetBegin()),
-               end   = SetWord(newInterval.GetEnd());
-          (algM->DeleteObj(algebraId, typeId))( begin );
-          (algM->DeleteObj(algebraId, typeId))( end );
-
-          if( ++i < GetIntervalCount() )
-            Get( i, thisInterval );
-          else
-            break;
-        }
-        else
-        {
-          Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr,
-                                (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr );
-          result.Add( newInterval );
-          Word begin = SetWord(newInterval.GetBegin()),
-               end   = SetWord(newInterval.GetEnd());
-          (algM->DeleteObj(algebraId, typeId))( begin );
-          (algM->DeleteObj(algebraId, typeId))( end );
-
-          if( ++j < r.GetIntervalCount() )
-            r.Get( j, interval );
-          else
-            break;
-        }
-      }
-    }
-    else
-    {
-      if( begin == NULL && end == NULL )
-      {
-        if( thisInterval.GetBegin()->Compare( interval.GetBegin() ) <= 0 )
-          begin = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr;
-        else
-          begin = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr;
+      Word s = SetWord(start),
+           e = SetWord(end);
+      (algM->DeleteObj(algebraId, typeId))( s );
+      (algM->DeleteObj(algebraId, typeId))( e );
+      start = end = NULL;
+      lc = rc = false;
   
-        if( thisInterval.GetEnd()->Compare( interval.GetEnd() ) >= 0 )
-          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr;
-        else
-          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr;
-      }
-      else
+      if( j >= r.GetNoComponents() )
       {
-        if( thisInterval <= interval )
-        {
-          if( begin->Compare( thisInterval.GetBegin() ) > 0 )
-          {
-            Word b = SetWord( begin );
-            (algM->DeleteObj(algebraId, typeId))( b );
-            
-            begin = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr;
-          }
-        }
-        else
-        {
-          if( begin->Compare( interval.GetBegin() ) > 0 )
-          {
-            Word b = SetWord( begin );
-            (algM->DeleteObj(algebraId, typeId))( b );
-
-            begin = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr;
-          }
-        }
-  
-        if( thisInterval.GetEnd()->Compare( interval.GetEnd() ) >= 0 )
-        {
-          if( end->Compare( thisInterval.GetEnd() ) < 0 )
-          {
-            Word e = SetWord( end );
-            (algM->DeleteObj(algebraId, typeId))( e );
-            
-            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr;
-          }
-        }
-        else
-        {
-          if( end->Compare( interval.GetEnd() ) < 0 )
-          {
-            Word e = SetWord( end );
-            (algM->DeleteObj(algebraId, typeId))( e );
-            
-            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr;
-          }
-        }
-      }
-
-      if( thisInterval.GetEnd()->Compare( interval.GetEnd() ) < 0 )
-      {
-        if( ++i < GetIntervalCount() )
+        if( ++i < GetNoComponents() )
           Get( i, thisInterval );
-        else
-          break;
       }
-      else if( thisInterval.GetEnd()->Compare( interval.GetEnd() ) > 0 )
+      else if( i >= GetNoComponents() )
       {
-        if( ++j < r.GetIntervalCount() )
+        if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
-        else
-          break;
-      }
-      else
-      {
-        if( ++i < GetIntervalCount() )
-          Get( i, thisInterval );
-
-        if( ++j < r.GetIntervalCount() )
-          r.Get( j, interval );
-
-        if( i >= GetIntervalCount() || j >= r.GetIntervalCount() )
-          break;
-
-        Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( begin ) ).addr,
-                              (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( end ) ).addr );
-        result.Add( newInterval );
-        Word b = SetWord(newInterval.GetBegin()),
-             e = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( b );
-        (algM->DeleteObj(algebraId, typeId))( e );
-        begin = NULL;
-        end   = NULL;
       }
     }
   }
-  if( begin != NULL && end != NULL )
-  {
-    Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( begin ) ).addr,
-                          (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( end ) ).addr );
-    result.Add( newInterval );
-    Word b = SetWord(newInterval.GetBegin()),
-         e = SetWord(newInterval.GetEnd());
-    (algM->DeleteObj(algebraId, typeId))( b );
-    (algM->DeleteObj(algebraId, typeId))( e );
 
-    if( j >= r.GetIntervalCount() )
-    {
-      if( ++i < GetIntervalCount() )
-        Get( i, thisInterval );
-    }
-    else if( i >= GetIntervalCount() )
-    {
-      if( ++j < r.GetIntervalCount() )
-        r.Get( j, interval );
-    }
-  }
-  while( i < GetIntervalCount() )
+  while( i < GetNoComponents() )
   {
-    Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                          (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
+    Interval newInterval( thisInterval );
     result.Add( newInterval );
-    Word b = SetWord(newInterval.GetBegin()),
-         e = SetWord(newInterval.GetEnd());
-    (algM->DeleteObj(algebraId, typeId))( b );
-    (algM->DeleteObj(algebraId, typeId))( e );
 
-    if( ++i < GetIntervalCount() )
+    if( ++i < GetNoComponents() )
       Get( i, thisInterval );
   }
-  while( j < r.GetIntervalCount() )
-  {
-    Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr,
-                          (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr );
-    result.Add( newInterval );
-    Word b = SetWord(newInterval.GetBegin()),
-         e = SetWord(newInterval.GetEnd());
-    (algM->DeleteObj(algebraId, typeId))( b );
-    (algM->DeleteObj(algebraId, typeId))( e );
 
-    if( ++j < r.GetIntervalCount() )
+  while( j < r.GetNoComponents() )
+  {
+    Interval newInterval( interval );
+    result.Add( newInterval );
+
+    if( ++j < r.GetNoComponents() )
       r.Get( j, interval );
   }
   result.EndBulkLoad( false );
-
-  Word b = SetWord(thisInterval.GetBegin()),
-       e = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( b );
-  (algM->DeleteObj(algebraId, typeId))( e );
-  b = SetWord(interval.GetBegin());
-  e = SetWord(interval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( b );
-  (algM->DeleteObj(algebraId, typeId))( e );
 }
 
 void Range::Minus(Range& r, Range& result)
 {
   assert( IsOrdered() && r.IsOrdered() && result.IsEmpty() );
-
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  Interval thisInterval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
-  Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr,
-                     (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( nl->TheEmptyList() ).addr );
+
+  if( IsEmpty() ) 
+    return;
+  result.StartBulkLoad();
+
+  Interval thisInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
 
   int i = 0, j = 0;
   Get( i, thisInterval );
-  r.Get( j, interval );
 
-  result.StartBulkLoad();
-  StandardAttribute *begin = NULL, *end = NULL;
-
-  while( 1 )
+  if( !r.IsEmpty() )
   {
-    if( thisInterval == interval )
+    r.Get( j, interval );
+
+    StandardAttribute *start = NULL, *end = NULL;
+    bool lc = false, rc = false;
+
+    while( i < GetNoComponents() && j < r.GetNoComponents() )
     {
-      if( ++i < GetIntervalCount() )
-        Get( i, thisInterval );
+      if( thisInterval.start->Compare( interval.start ) == 0 &&
+          thisInterval.end->Compare( interval.end ) == 0 )
+      {
+        if( thisInterval.lc && !interval.lc )
+        {
+          Interval newInterval( algebraId, typeId,
+                                thisInterval.start, thisInterval.start, true, true );
+          result.Add( newInterval );
+        }
+        if( thisInterval.rc && !interval.rc )
+        {
+          Interval newInterval( algebraId, typeId,
+                                thisInterval.end, thisInterval.end, true, true );
+          result.Add( newInterval );
+        }
+  
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
       
-      if( ++j < r.GetIntervalCount() )
-        r.Get( j, interval );
-
-      if( i >= GetIntervalCount() || j >= r.GetIntervalCount() )
-        break;
-    }
-    else if( !thisInterval.Intersects( interval ) )
-    {
-      if( begin != NULL && end != NULL )
-      {
-        assert( thisInterval < interval );
-
-        Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( begin ) ).addr,
-                              (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( end ) ).addr );
-        result.Add( newInterval );
-        Word b = SetWord(newInterval.GetBegin()),
-             e = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( b );
-        (algM->DeleteObj(algebraId, typeId))( e );
-
-        begin = NULL;
-        end   = NULL;
-
-        if( ++i < GetIntervalCount() )
-          Get( i, thisInterval );
-        else
-          break;
-      }
-      else
-      {
-        if( thisInterval < interval )
-        {
-          Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                                (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
-          result.Add( newInterval );
-          Word b = SetWord(newInterval.GetBegin()),
-               e = SetWord(newInterval.GetEnd());
-          (algM->DeleteObj(algebraId, typeId))( b );
-          (algM->DeleteObj(algebraId, typeId))( e );
- 
-          if( ++i < GetIntervalCount() )
-            Get( i, thisInterval );
-          else
-            break;
-        }
-        else
-        {
-          if( ++j < r.GetIntervalCount() )
-            r.Get( j, interval );
-          else
-            break;
-        }
-      }
-    }
-    else if( thisInterval.Inside( interval ) )
-    {
-      if( ++i < GetIntervalCount() )
-        Get( i, thisInterval );
-      else
-        break;
-    }
-    else if( interval.Inside( thisInterval ) )
-    {
-      if( begin == NULL && end == NULL )
-      {
-        if( thisInterval.GetBegin()->Compare( interval.GetBegin() ) < 0 )
-        {
-          Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                                (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr );
-          result.Add( newInterval );
-          Word b = SetWord(newInterval.GetBegin()),
-               e = SetWord(newInterval.GetEnd());
-          (algM->DeleteObj(algebraId, typeId))( b );
-          (algM->DeleteObj(algebraId, typeId))( e );
-        }
-      }
-      else
-      {
-        end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr;
-
-        Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( begin ) ).addr,
-                              (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( end ) ).addr );
-        result.Add( newInterval );
-        Word b = SetWord(newInterval.GetBegin()),
-             e = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( b );
-        (algM->DeleteObj(algebraId, typeId))( e );
-      }
-
-      if( interval.GetEnd()->Compare( thisInterval.GetEnd() ) < 0 )
-      {
-        begin = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr;
-        end   = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr;
- 
-        if( ++j < r.GetIntervalCount() )
+        if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
+      }
+      else if( !thisInterval.Intersects( interval ) )
+      {
+        if( start != NULL && end != NULL )
+        { 
+          Interval newInterval( algebraId, typeId, start, end, lc, rc );
+          if( newInterval.IsValid() )
+            result.Add( newInterval );
+          Word s = SetWord(start),
+               e = SetWord(end);
+          (algM->DeleteObj(algebraId, typeId))( s );
+          (algM->DeleteObj(algebraId, typeId))( e );
+          start = end = NULL;
+          lc = rc = false;
+        }
+        else if( thisInterval.start->Compare( interval.start ) <= 0 )
+        {
+          Interval newInterval( thisInterval );
+          result.Add( newInterval );
+        }
+
+        if( thisInterval.start->Compare( interval.start ) <= 0 )
+        {
+          if( ++i < GetNoComponents() )
+            Get( i, thisInterval );
+        }
         else
-          break;
+        {
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
+      }
+      else if( thisInterval.Inside( interval ) )
+      {
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
+      }
+      else if( interval.Inside( thisInterval ) )
+      {
+        if( interval.start->Compare( thisInterval.start ) == 0 )
+        {
+          assert( start == NULL && end == NULL );
+          if( thisInterval.lc && !interval.lc )
+          {
+            Interval newInterval( algebraId, typeId,
+                                  thisInterval.start, thisInterval.start, true, true );
+            result.Add( newInterval );
+          }
+          start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+          lc = !interval.rc;
+          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+          rc = thisInterval.rc;
+
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
+        else if( interval.end->Compare( thisInterval.end ) == 0 )
+        {
+          if( start == NULL && end == NULL )
+          {
+            Interval newInterval( algebraId, typeId, 
+                                  thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+            if( newInterval.IsValid() )
+              result.Add( newInterval );
+          }
+          else
+          {
+            Interval newInterval( algebraId, typeId, 
+                                  start, interval.start, lc, !interval.lc );
+            if( newInterval.IsValid() )
+              result.Add( newInterval );
+            Word s = SetWord(start),
+                 e = SetWord(end);
+            (algM->DeleteObj(algebraId, typeId))( s );
+            (algM->DeleteObj(algebraId, typeId))( e );
+            start = NULL; end = NULL;
+            lc = false; rc = false;
+          }
+  
+          if( thisInterval.rc && !interval.rc )
+          {
+            Interval newInterval( algebraId, typeId, thisInterval.end, thisInterval.end, true, true );
+            result.Add( newInterval );
+          }
+  
+          if( ++i < GetNoComponents() )
+            Get( i, thisInterval );
+  
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
+        else
+        {
+          assert( thisInterval.start->Compare( interval.start ) < 0 &&
+                  thisInterval.end->Compare( interval.end ) > 0 );
+          if( start == NULL && end == NULL )
+          {
+            Interval newInterval( algebraId, typeId,
+                                  thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+            if( newInterval.IsValid() )
+              result.Add( newInterval );
+          }
+          else
+          {
+            assert( end->Compare( thisInterval.end ) == 0 && rc == thisInterval.rc );
+
+            Interval newInterval( algebraId, typeId, 
+                                  start, interval.start, lc, !interval.lc );
+            if( newInterval.IsValid() )
+              result.Add( newInterval );
+            Word s = SetWord(start),
+                 e = SetWord(end);
+            (algM->DeleteObj(algebraId, typeId))( s );
+            (algM->DeleteObj(algebraId, typeId))( e );
+            start = end = NULL;
+            lc = rc = false;
+          }
+            
+          start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+          lc = !interval.rc;
+          end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+          rc = thisInterval.rc;
+  
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
       }
       else
       {
-        if( ++i < GetIntervalCount() )
-          Get( i, thisInterval );
- 
-        if( ++j < r.GetIntervalCount() )
-          r.Get( j, interval );
+        assert( thisInterval.Intersects( interval ) );
+        
+        if( interval.start->Compare( thisInterval.start ) < 0 )
+        {
+          assert( start == NULL && end == NULL );
+          
+          if( interval.end->Compare( thisInterval.end ) == 0 )
+          {
+            if( thisInterval.rc && !interval.rc )
+            {
+              Interval newInterval( algebraId, typeId, 
+                                    thisInterval.end, thisInterval.end, true, true );
+              result.Add( newInterval );
+            }
+  
+            if( ++i < GetNoComponents() )
+              Get( i, thisInterval );
+  
+            if( ++j < r.GetNoComponents() )
+              r.Get( j, interval );
+          }
+          else
+          {
+            start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+            if( interval.end->Compare( thisInterval.start ) == 0 )
+            {
+              lc = thisInterval.lc && !interval.rc;
+            }
+            else
+            {
+              lc = !interval.rc;
+            }
+            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+            rc = thisInterval.rc;
+  
+            if( ++j < r.GetNoComponents() )
+              r.Get( j, interval );
+          }
+        }
+        else if( interval.start->Compare( thisInterval.start ) == 0 )
+        {
+          assert( start == NULL & end == NULL );
 
-        if( i >= GetIntervalCount() || j >= r.GetIntervalCount() )
-          break;
+          if( thisInterval.lc && !interval.lc )
+          {
+            Interval newInterval( algebraId, typeId, thisInterval.start, thisInterval.start, true, true );
+            result.Add( newInterval );
+          }
+
+          if( thisInterval.end->Compare( interval.end ) > 0 )
+          {
+            start = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.end ) ).addr;
+            lc = !interval.rc;
+            end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.end ) ).addr;
+            rc = thisInterval.rc;
+
+            if( ++j < r.GetNoComponents() )
+              r.Get( j, interval );
+          }
+          else
+          {
+            assert( thisInterval.end->Compare( interval.end ) < 0 );
+            if( ++i < GetNoComponents() )
+              Get( i, thisInterval );
+          }
+        }
+        else if( interval.end->Compare( thisInterval.end ) > 0 )
+        {
+          if( thisInterval.start->Compare( interval.start ) == 0 )
+          {
+            assert( start == NULL && end == NULL );
+            cerr << "I think that there is an error here!!!" << endl;
+          } 
+          else
+          {
+            if( start != NULL && end != NULL )
+            { 
+              if( interval.start->Compare( start ) > 0 ||
+                  ( interval.start->Compare( start ) == 0 && interval.lc && !lc ) )
+              {
+                Word e = SetWord(end);
+                (algM->DeleteObj(algebraId, typeId))( e );
+                end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.start ) ).addr;
+                if( interval.start->Compare( thisInterval.end ) == 0 )
+                  rc = thisInterval.rc && !interval.lc;
+                else
+                  rc = !interval.lc;
+  
+                Interval newInterval( algebraId, typeId, start, end, lc, rc );
+                if( newInterval.IsValid() )
+                  result.Add( newInterval );
+              }
+              Word s = SetWord(start),
+                   e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( s );
+              (algM->DeleteObj(algebraId, typeId))( e );
+              start = end = NULL;
+              lc = rc = false;
+            }
+            else
+            {
+              Interval newInterval( algebraId, typeId,
+                                    thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+              if( newInterval.IsValid() )
+                result.Add( newInterval );
+            }
+            if( ++i < GetNoComponents() )
+              Get( i, thisInterval );
+          }
+        }
+        else
+        {
+          assert( interval.end->Compare( thisInterval.end ) == 0 );
+
+          if( interval.start->Compare( thisInterval.start ) < 0 )
+          {
+            assert( start == NULL && end == NULL );
+            if( thisInterval.rc && !interval.rc )
+            {
+              Interval newInterval( algebraId, typeId,
+                                    interval.end, interval.end, true, true );
+              result.Add( newInterval );
+            }
+          }
+          else
+          {
+            assert( interval.start->Compare( thisInterval.start ) > 0 );
+
+            if( start != NULL && end != NULL )
+            {
+              Word e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( e );
+              end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.start ) ).addr;
+              rc = !interval.lc;
+
+              Interval newInterval( algebraId, typeId, start, end, lc, rc );
+              if( newInterval.IsValid() )
+                result.Add( newInterval );
+              Word s = SetWord(start);
+              e = SetWord(end);
+              (algM->DeleteObj(algebraId, typeId))( s );
+              (algM->DeleteObj(algebraId, typeId))( e );
+              start = end = NULL;
+              lc = rc = false;
+            }
+            else
+            {
+              Interval newInterval( algebraId, typeId, thisInterval.start, interval.start, thisInterval.lc, !interval.lc );
+              if( newInterval.IsValid() )
+                result.Add( newInterval );
+            }
+          }
+
+          if( ++i < GetNoComponents() )
+            Get( i, thisInterval );
+
+          if( ++j < r.GetNoComponents() )
+            r.Get( j, interval );
+        }
       }
     }
-    else
+
+    if( start != NULL && end != NULL )
     {
-      assert( thisInterval.Intersects( interval ) );
-
-      if( begin == NULL && end == NULL )
-      {
-        if( thisInterval < interval )
-        {
-          Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                                (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr );
-          result.Add( newInterval );
-          Word b = SetWord(newInterval.GetBegin()),
-               e = SetWord(newInterval.GetEnd());
-          (algM->DeleteObj(algebraId, typeId))( b );
-          (algM->DeleteObj(algebraId, typeId))( e );
-    
-          if( ++i < GetIntervalCount() )
-            Get( i, thisInterval );
-          else
-            break;
-        }
-        else
-        {
-          begin = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr;
-          end   = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr;
-
-          if( ++j < r.GetIntervalCount() )
-            r.Get( j, interval );
-          else
-            break;
-
-        }
-      }
-      else
-      {
-        assert( thisInterval < interval );
-        assert( interval.GetBegin()->Compare( begin ) > 0 && interval.GetBegin()->Compare( end ) <= 0 );
-
-        end = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetBegin() ) ).addr;
-
-        Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( begin ) ).addr,
-                              (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( end ) ).addr );
+      Interval newInterval( algebraId, typeId, start, end, lc, rc );
+      if( newInterval.IsValid() )
         result.Add( newInterval );
-        Word b = SetWord(newInterval.GetBegin()),
-             e = SetWord(newInterval.GetEnd());
-        (algM->DeleteObj(algebraId, typeId))( b );
-        (algM->DeleteObj(algebraId, typeId))( e );
-
-        if( interval.GetEnd()->Compare( thisInterval.GetEnd() ) < 0 )
-        {
-          begin = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( interval.GetEnd() ) ).addr;
-          end   = (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr;
-
-          if( ++j < r.GetIntervalCount() )
-            r.Get( j, interval );
-          else
-            break;
-        }
-        else if( interval.GetEnd()->Compare( thisInterval.GetEnd() ) > 0 )
-        {
-          if( ++i < GetIntervalCount() )
-            Get( i, thisInterval );
-          else
-            break;
-        }
-        else
-        {
-          if( ++i < GetIntervalCount() )
-            Get( i, thisInterval );
-
-          if( ++j < r.GetIntervalCount() )
-            r.Get( j, interval );
-         
-          if( i >= GetIntervalCount() || j >= r.GetIntervalCount() )
-            break;
-        } 
+      Word s = SetWord(start),
+           e = SetWord(end);
+      (algM->DeleteObj(algebraId, typeId))( s );
+      (algM->DeleteObj(algebraId, typeId))( e );
+  
+      if( j >= r.GetNoComponents() )
+      {
+        if( ++i < GetNoComponents() )
+          Get( i, thisInterval );
+      }
+      else if( i >= GetNoComponents() )
+      {
+        if( ++j < r.GetNoComponents() )
+          r.Get( j, interval );
       }
     }
   }
-  if( begin != NULL && end != NULL )
-  {
-    Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( begin ) ).addr,
-                          (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( end ) ).addr );
-    result.Add( newInterval );
-    Word b = SetWord(newInterval.GetBegin()),
-         e = SetWord(newInterval.GetEnd());
-    (algM->DeleteObj(algebraId, typeId))( b );
-    (algM->DeleteObj(algebraId, typeId))( e );
 
-    if( ++i < GetIntervalCount() )
-      Get( i, thisInterval );
-  }
-  while( i < GetIntervalCount() )
+  while( i < GetNoComponents() )
   {
-    Interval newInterval( (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetBegin() ) ).addr,
-                          (StandardAttribute *)(algM->CloneObj(algebraId, typeId))( SetWord( thisInterval.GetEnd() ) ).addr );
+    Interval newInterval( thisInterval );
     result.Add( newInterval );
-    Word b = SetWord(newInterval.GetBegin()),
-         e = SetWord(newInterval.GetEnd());
-    (algM->DeleteObj(algebraId, typeId))( b );
-    (algM->DeleteObj(algebraId, typeId))( e );
 
-    if( ++i < GetIntervalCount() )
+    if( ++i < GetNoComponents() )
       Get( i, thisInterval );
   }
   result.EndBulkLoad( false );
-
-  Word b = SetWord(thisInterval.GetBegin()),
-       e = SetWord(thisInterval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( b );
-  (algM->DeleteObj(algebraId, typeId))( e );
-  b = SetWord(interval.GetBegin());
-  e = SetWord(interval.GetEnd());
-  (algM->DeleteObj(algebraId, typeId))( b );
-  (algM->DeleteObj(algebraId, typeId))( e );
 }
 
 void Range::Maximum(StandardAttribute *result)
 {
   assert( IsOrdered() && !IsEmpty() );
-
-  Get( intervalCount-1, End, result );
+  assert( result != NULL );
+  bool closed;
+  Get( noComponents-1, End, result, closed );
 }
 
 void Range::Minimum(StandardAttribute *result)
 {
   assert( IsOrdered() && !IsEmpty() );
-
-  Get( 0, Begin, result );
+  assert( result != NULL );
+  bool closed;
+  Get( 0, Begin, result, closed );
 }
 
-const int Range::NoComponents()
+int Range::GetNoComponents() const
 {
-  return intervalCount;
+  return noComponents;
+}
+
+bool Range::IsValid()
+{
+  assert( IsOrdered() );
+
+  if( IsEmpty() )
+    return true;
+
+  bool result = true;
+  Interval lastInterval( algebraId, typeId ), 
+           interval( algebraId, typeId );
+
+  if( GetNoComponents() == 1 )
+  {
+    Get( 0, interval );
+    return( interval.IsValid() );
+  }
+
+  for( int i = 1; i < GetNoComponents(); i++ )
+  {
+    Get( i-1, lastInterval );
+    if( !lastInterval.IsValid() )
+    {
+      result = false; 
+      break;
+    }
+    Get( i, interval );
+    if( !interval.IsValid() )
+    {
+      result = false; 
+      break;
+    }
+    if( !( lastInterval.Disjoint( interval ) && !lastInterval.Adjacent( interval ) ) )
+    {
+      result = false; 
+      break;
+    }
+  }
+
+  return result;
 }
 
 /*
@@ -1147,13 +1477,17 @@ const int Range::NoComponents()
 
 The list representation of a ~range($\alpha$)~ is
 
-----    ( (i1b i1e) (i2b i2e) ... (inb ine) )
+----    ( (i1b i1e lc1 rc1) (i2b i2e lc2 rc2) ... (inb ine lcn rcn) )
+----
+
+For example:
+----    ( (1 5 TRUE FALSE) (6 9 FALSE FALSE) (11 11 TRUE TRUE) )
 ----
 
 3.4 ~Out~-function
 
 */
-static ListExpr
+ListExpr
 OutRange( ListExpr typeInfo, Word value )
 {
   Range* range = (Range*)(value.addr);
@@ -1164,23 +1498,20 @@ OutRange( ListExpr typeInfo, Word value )
   }
   else
   {
+    assert( range->IsOrdered() );
     AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
     ListExpr alphaInfo = nl->Second( typeInfo );
     int algebraId = nl->IntValue( nl->First( alphaInfo ) ),
         typeId = nl->IntValue( nl->Second( alphaInfo ) );
     ListExpr l = nl->TheEmptyList(), lastElem, intervalList;
 
-    for( int i = 0; i < range->GetIntervalCount(); i++ )
+    for( int i = 0; i < range->GetNoComponents(); i++ )
     {
-      Interval interval( (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( alphaInfo ).addr, 
-                         (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( alphaInfo ).addr );
+      Interval interval( algebraId, typeId );
       range->Get( i, interval );
-      intervalList = nl->TwoElemList( (algM->OutObj( algebraId, typeId ))( alphaInfo, SetWord(interval.GetBegin())),
-                                      (algM->OutObj( algebraId, typeId ))( alphaInfo, SetWord(interval.GetEnd())));
-      Word begin = SetWord(interval.GetBegin()),
-           end   = SetWord(interval.GetEnd());
-      (algM->DeleteObj(algebraId, typeId))( begin );
-      (algM->DeleteObj(algebraId, typeId))( end );
+      intervalList = nl->FourElemList( (algM->OutObj( algebraId, typeId ))( alphaInfo, SetWord(interval.start)),
+                                       (algM->OutObj( algebraId, typeId ))( alphaInfo, SetWord(interval.end)),
+                                       nl->BoolAtom( interval.lc ), nl->BoolAtom( interval.rc));
       if (l == nl->TheEmptyList())
       {
         l = nl->Cons( intervalList, nl->TheEmptyList());
@@ -1196,20 +1527,20 @@ OutRange( ListExpr typeInfo, Word value )
 3.5 ~In~-function
 
 */
-static Word
+Word
 InRange( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+  cout << "InRange" << endl;
+  cout << ShowStandardTypesStatistics( true, cout );
+
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   ListExpr alphaInfo = nl->Second( typeInfo );
   int algebraId = nl->IntValue( nl->First( alphaInfo ) ),
       typeId = nl->IntValue( nl->Second( alphaInfo ) );
-  StandardAttribute *aux = (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( alphaInfo ).addr;
-  int objSize = aux->Sizeof();
-  Word w = SetWord( aux );
-  (algM->DeleteObj(algebraId, typeId))( w );
+  int objSize = (algM->SizeOfObj(algebraId, typeId))();
 
-  Range* range = new Range( SecondoSystem::GetLobFile(), algebraId, typeId, objSize );
+  Range* range = new Range( algebraId, typeId, objSize );
   range->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -1218,17 +1549,34 @@ InRange( const ListExpr typeInfo, const ListExpr instance,
     ListExpr first = nl->First( rest );
     rest = nl->Rest( rest );
 
-    if( nl->IsAtom( nl->First( first ) ) && nl->IsAtom( nl->Second( first ) ) )
+    if( nl->ListLength( first ) == 4 &&
+        nl->IsAtom( nl->First( first ) ) &&
+        nl->IsAtom( nl->Second( first ) ) && 
+        nl->IsAtom( nl->Third( first ) ) &&
+        nl->AtomType( nl->Third( first ) ) == BoolType &&
+        nl->IsAtom( nl->Fourth( first ) ) &&
+        nl->AtomType( nl->Fourth( first ) ) == BoolType ) 
     {
-      Interval interval( (StandardAttribute *)(algM->InObj(algebraId, typeId))( alphaInfo, nl->First( first ), errorPos, errorInfo, correct ).addr, 
-                         (StandardAttribute *)(algM->InObj(algebraId, typeId))( alphaInfo, nl->Second( first ), errorPos, errorInfo, correct ).addr );
+      StandardAttribute *start = 
+                          (StandardAttribute *)
+                          (algM->InObj(algebraId, typeId))( alphaInfo, nl->First( first ), errorPos, errorInfo, correct ).addr,
+                        *end = 
+                          (StandardAttribute *)
+                          (algM->InObj(algebraId, typeId))( alphaInfo, nl->Second( first ), errorPos, errorInfo, correct ).addr;
+      Interval interval( algebraId, typeId, 
+                         start, end, 
+                         nl->BoolValue( nl->Third( first ) ), 
+                         nl->BoolValue( nl->Fourth( first ) ) );
+
+      AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+      Word wstart = SetWord( start ),
+           wend   = SetWord( end );
+      (algM->DeleteObj(algebraId, typeId))( wstart );
+      (algM->DeleteObj(algebraId, typeId))( wend );
+      
       if( correct == false )
         return SetWord( Address(0) );
       range->Add( interval );
-      Word begin = SetWord(interval.GetBegin()),
-           end   = SetWord(interval.GetEnd());
-      (algM->DeleteObj(algebraId, typeId))( begin );
-      (algM->DeleteObj(algebraId, typeId))( end );
     }
     else
     {
@@ -1237,7 +1585,11 @@ InRange( const ListExpr typeInfo, const ListExpr instance,
     }
   }
   range->EndBulkLoad( true );
+  assert( range->IsOrdered() );
   correct = true;
+
+  cout << ShowStandardTypesStatistics( true, cout );
+
   return SetWord( range );
 }
 
@@ -1245,25 +1597,22 @@ InRange( const ListExpr typeInfo, const ListExpr instance,
 3.6 ~Create~-function
 
 */
-static Word
+Word
 CreateRange( const ListExpr typeInfo )
 {
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   ListExpr alphaInfo = nl->Second( typeInfo );
   int algebraId = nl->IntValue( nl->First( alphaInfo ) ),
       typeId = nl->IntValue( nl->Second( alphaInfo ) );
-  StandardAttribute *aux = (StandardAttribute *)(algM->CreateObj(algebraId, typeId))( alphaInfo ).addr;
-  int objSize = aux->Sizeof();
-  Word w = SetWord( aux );
-  (algM->DeleteObj(algebraId, typeId))( w );
-  return (SetWord( new Range( SecondoSystem::GetLobFile(), algebraId, typeId, objSize ) ));
+  int objSize = (algM->SizeOfObj(algebraId, typeId))();
+  return (SetWord( new Range( algebraId, typeId, objSize ) ));
 }
 
 /*
 3.7 ~Delete~-function
 
 */
-static void
+void
 DeleteRange( Word& w )
 {
   ((Range *)w.addr)->Destroy();
@@ -1275,7 +1624,7 @@ DeleteRange( Word& w )
 3.8 ~Close~-function
 
 */
-static void
+void
 CloseRange( Word& w )
 {
   delete (Range *)w.addr;
@@ -1286,52 +1635,44 @@ CloseRange( Word& w )
 3.9 ~Clone~-function
 
 */
-static Word
+Word
 CloneRange( const Word& w )
 {
-  return SetWord( 0 );
+  Range *r = (Range *)w.addr;
+  int algebraId = r->GetAlgebraId(), 
+      typeId = r->GetTypeId(),
+      size = r->GetElemSize();
+
+  Range *result = new Range( algebraId, typeId, size );
+
+  assert( result->IsOrdered() );
+  result->StartBulkLoad();
+  for( int i = 0; i < r->GetNoComponents(); i++ )
+  {
+    Interval interval( algebraId, typeId );
+    r->Get( i, interval );
+    result->Add( interval );
+  }
+  result->EndBulkLoad( false );
+    
+  return SetWord( result );
 }
 
 /*
-3.10 ~Open~-function
+3.9 ~Sizeof~-function
 
 */
-static bool
-OpenRange( SmiRecord& valueRecord,
-                const ListExpr typeInfo,
-                Word& value )
+int
+SizeOfRange()
 {
-  SmiRecordId recordId;
-
-  valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-  Range *range = new Range( SecondoSystem::GetLobFile(), recordId );
-  value = SetWord( range );
-
-  return (true);
-}
-
-/*
-3.11 ~Save~-function
-
-*/
-static bool
-SaveRange( SmiRecord& valueRecord,
-                const ListExpr typeInfo,
-                Word& value )
-{
-  Range *range = (Range *)value.addr;
-  SmiRecordId recordId = range->GetRecordId();
-
-  valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  
-  return (true);
+  return 0;
 }
 
 /*
 3.12 function Describing the Signature of the Type Constructor
 
 */
-static ListExpr
+ListExpr
 RangeProperty()
 {
   ListExpr remarkslist = nl->TextAtom();
@@ -1339,19 +1680,19 @@ RangeProperty()
   "lci means left closed interval, rci respectively right closed interval,"
   " e.g. (0 1 TRUE FALSE) means the range [0, 1[");
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
-			     nl->StringAtom("Example List"),
-			     nl->StringAtom("Remarks")),			     
-            nl->FiveElemList(nl->StringAtom("BASE -> RANGE"), 
-	                     nl->StringAtom("(range <basetype>), e.g. "
-			     "(range int)"), 
-			     nl->StringAtom("( (b1 e1 lci rci) ... "
-			     "(bn en lci rci) )"), 
-			     nl->StringAtom("( (0 1 TRUE FALSE)"
-			     "(2 5 TRUE TRUE) )"),
-			     remarkslist)));			     
+            nl->FiveElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("BASE -> RANGE"),
+                             nl->StringAtom("(range <basetype>), e.g. "
+                             "(range int)"),
+                             nl->StringAtom("( (b1 e1 lci rci) ... "
+                             "(bn en lci rci) )"),
+                             nl->StringAtom("( (0 1 TRUE FALSE)"
+                             "(2 5 TRUE TRUE) )"),
+                             remarkslist)));
 }
 
 /*
@@ -1361,7 +1702,7 @@ This function checks whether the type constructor is applied correctly. It
 checks if the argument $\alpha$ of the range belongs to the ~BASE~ kind.
 
 */
-static bool
+bool
 CheckRange( ListExpr type, ListExpr& errorInfo )
 {
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -1390,16 +1731,17 @@ void* CastRange(void* addr)
 
 */
 TypeConstructor range(
-        "range",                                //name
-        RangeProperty,                          //property function describing signature
-        OutRange,               InRange,        //Out and In functions
-        0,                      0,              //SaveToList and RestoreFromList functions
-        CreateRange,            DeleteRange,    //object creation and deletion
-        OpenRange,              SaveRange,      // object open and save
-        CloseRange,             CloneRange,     //object close and clone
-        CastRange,                              //cast function
-        CheckRange,                             //kind checking function
-        0,                                              //predef. pers. function for model
+        "range",                        //name
+        RangeProperty,                  //property function describing signature
+        OutRange,       InRange,        //Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
+        CreateRange,    DeleteRange,    //object creation and deletion
+        0,              0,              // object open and save
+        CloseRange,     CloneRange,     //object close and clone
+        CastRange,                      //cast function
+        SizeOfRange,                    //sizeof function
+        CheckRange,                     //kind checking function
+        0,                              //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
@@ -1424,7 +1766,7 @@ the output type of the operator is returned.
 It is for the operator ~isempty~ which have a ~range~ as input and ~bool~ result type.
 
 */
-static ListExpr
+ListExpr
 RangeTypeMapBool1( ListExpr args )
 {
   if ( nl->ListLength( args ) == 1 )
@@ -1446,7 +1788,7 @@ It is for the operators $=$, $\neq$, and ~intersects~ which have two
 ~ranges~ as input and ~bool~ result type.
 
 */
-static ListExpr
+ListExpr
 RangeRangeTypeMapBool( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
@@ -1456,8 +1798,12 @@ RangeRangeTypeMapBool( ListExpr args )
 
     if( nl->ListLength( arg1 ) == 2 && nl->ListLength( arg2 ) == 2 )
     {
-      if( nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && nl->SymbolValue( nl->First( arg1 ) ) == "range" && 
-          nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" && 
+      if( nl->IsAtom( nl->First( arg1 ) ) && 
+          nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg1 ) ) == "range" && 
+          nl->IsAtom( nl->First( arg2 ) ) && 
+          nl->AtomType( nl->First( arg2 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg2 ) ) == "range" && 
           nl->IsAtom( nl->Second( arg1 ) ) && nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
           nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
           nl->SymbolValue( nl->Second( arg1 ) ) == nl->SymbolValue( nl->Second( arg2 ) ) )
@@ -1474,7 +1820,7 @@ It is for the operator ~inside~ which have two ~ranges~ as input or a
 ~BASE~ and a ~range~ in this order as arguments and ~bool~ as the result type.
 
 */
-static ListExpr
+ListExpr
 RangeBaseTypeMapBool1( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
@@ -1484,16 +1830,24 @@ RangeBaseTypeMapBool1( ListExpr args )
 
     if( nl->ListLength( arg1 ) == 2 && nl->ListLength( arg2 ) == 2 )
     {
-      if( nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
-          nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
-          nl->IsAtom( nl->Second( arg1 ) ) && nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
-          nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
+      if( nl->IsAtom( nl->First( arg1 ) ) && 
+          nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
+          nl->IsAtom( nl->First( arg2 ) ) && 
+          nl->AtomType( nl->First( arg2 ) ) == SymbolType &&  
+          nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
+          nl->IsAtom( nl->Second( arg1 ) ) && 
+          nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
+          nl->IsAtom( nl->Second( arg2 ) ) && 
+          nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
           nl->SymbolValue( nl->Second( arg1 ) ) == nl->SymbolValue( nl->Second( arg2 ) ) )
         return (nl->SymbolAtom( "bool" ));
     }
     else if( nl->IsAtom( arg1 ) && nl->ListLength( arg2 ) == 2 )
     {
-      if( nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
+      if( nl->IsAtom( nl->First( arg2 ) ) && 
+          nl->AtomType( nl->First( arg2 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
           nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
           nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType &&
           nl->SymbolValue( nl->Second( arg2 ) ) == nl->SymbolValue( arg1 ) )
@@ -1510,7 +1864,7 @@ It is for the operator ~before~ which have two ~ranges~ as input or a
 ~BASE~ and a ~range~ in any order as arguments and ~bool~ as the result type.
 
 */
-static ListExpr
+ListExpr
 RangeBaseTypeMapBool2( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
@@ -1520,25 +1874,38 @@ RangeBaseTypeMapBool2( ListExpr args )
 
     if( nl->ListLength( arg1 ) == 2 && nl->ListLength( arg2 ) == 2 )
     {
-      if( nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
-          nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
-          nl->IsAtom( nl->Second( arg1 ) ) && nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
-          nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
+      if( nl->IsAtom( nl->First( arg1 ) ) && 
+          nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
+          nl->IsAtom( nl->First( arg2 ) ) && 
+          nl->AtomType( nl->First( arg2 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
+          nl->IsAtom( nl->Second( arg1 ) ) && 
+          nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
+          nl->IsAtom( nl->Second( arg2 ) ) && 
+          nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
           nl->SymbolValue( nl->Second( arg1 ) ) == nl->SymbolValue( nl->Second( arg2 ) ) )
         return (nl->SymbolAtom( "bool" ));
     }
     else if( nl->IsAtom( arg1 ) && nl->ListLength( arg2 ) == 2 )
     {
-      if( nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
-          nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
-          nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType &&
+      if( nl->IsAtom( nl->First( arg2 ) ) && 
+          nl->AtomType( nl->First( arg2 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
+          nl->IsAtom( nl->Second( arg2 ) ) && 
+          nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
+          nl->IsAtom( arg1 ) && 
+          nl->AtomType( arg1 ) == SymbolType &&
           nl->SymbolValue( nl->Second( arg2 ) ) == nl->SymbolValue( arg1 ) )
         return (nl->SymbolAtom( "bool" ));
     }
     else if( nl->ListLength( arg1 ) == 2 && nl->IsAtom( arg2 ) == 1 )
     {
-      if( nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
-          nl->IsAtom( nl->Second( arg1 ) ) && nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
+      if( nl->IsAtom( nl->First( arg1 ) ) && 
+          nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
+          nl->IsAtom( nl->Second( arg1 ) ) && 
+          nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
           nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType &&
           nl->SymbolValue( nl->Second( arg1 ) ) == nl->SymbolValue( arg2 ) )
         return (nl->SymbolAtom( "bool" ));
@@ -1554,7 +1921,7 @@ It is for the operators ~intersection~, ~union~, and ~minus~ which have two
 ~ranges~ as input and a ~range~ as result type.
 
 */
-static ListExpr
+ListExpr
 RangeRangeTypeMapRange( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
@@ -1564,10 +1931,16 @@ RangeRangeTypeMapRange( ListExpr args )
 
     if( nl->ListLength( arg1 ) == 2 && nl->ListLength( arg2 ) == 2 )
     {
-      if( nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && nl->SymbolValue( nl->First( arg1 ) ) == "range" && 
-          nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" && 
-          nl->IsAtom( nl->Second( arg1 ) ) && nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
-          nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
+      if( nl->IsAtom( nl->First( arg1 ) ) && 
+          nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg1 ) ) == "range" && 
+          nl->IsAtom( nl->First( arg2 ) ) && 
+          nl->AtomType( nl->First( arg2 ) ) == SymbolType && 
+          nl->SymbolValue( nl->First( arg2 ) ) == "range" && 
+          nl->IsAtom( nl->Second( arg1 ) ) && 
+          nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
+          nl->IsAtom( nl->Second( arg2 ) ) && 
+          nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
           nl->SymbolValue( nl->Second( arg1 ) ) == nl->SymbolValue( nl->Second( arg2 ) ) )
         return (nl->TwoElemList( nl->SymbolAtom( "range" ), nl->Second( arg1 ) ));
     }
@@ -1582,7 +1955,7 @@ It is for the aggregate operators ~min~, ~max~, and ~avg~ which have one
 ~range~ as input and a ~BASE~ as result type.
 
 */
-static ListExpr
+ListExpr
 RangeTypeMapBase( ListExpr args )
 {
   ListExpr errorInfo;
@@ -1593,7 +1966,8 @@ RangeTypeMapBase( ListExpr args )
     if( nl->ListLength( nl->First( args ) ) == 2 )
     {
       ListExpr arg1 = nl->First( args );
-      if( nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+      if( nl->IsAtom( nl->First( arg1 ) ) && 
+          nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
           nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
           algMgr->CheckKind("BASE", nl->Second( arg1 ), errorInfo) )
         return (nl->Second( arg1 ));
@@ -1609,7 +1983,7 @@ It is for the ~no_components~ operator which have one
 ~range~ as input and a ~int~ as result type.
 
 */
-static ListExpr
+ListExpr
 RangeTypeMapInt( ListExpr args )
 {
   ListExpr errorInfo;
@@ -1620,7 +1994,8 @@ RangeTypeMapInt( ListExpr args )
     if( nl->ListLength( nl->First( args ) ) == 2 )
     {
       ListExpr arg1 = nl->First( args );
-      if( nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType &&
+      if( nl->IsAtom( nl->First( arg1 ) ) && 
+          nl->AtomType( nl->First( arg1 ) ) == SymbolType &&
           nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
           algMgr->CheckKind("BASE", nl->Second( arg1 ), errorInfo) )
         return (nl->SymbolAtom( "int" ));
@@ -1633,7 +2008,7 @@ RangeTypeMapInt( ListExpr args )
 5.1.8 The dummy model mapping:
 
 */
-static Word
+Word
 RangeNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));
@@ -1651,48 +2026,50 @@ Note that a selection function does not need to check the correctness of
 argument types; it has already been checked by the type mapping function that it
 is applied to correct arguments.
 
-5.2.1 Selection function ~SimpleSelect~
-
-Is used for all non-overloaded operators.
-
-*/
-static int
-SimpleSelect( ListExpr args )
-{
-  return (0);
-}
-
-/*
 5.2.2 Selection function ~RangeSelectPredicates~
 
 Is used for the ~inside~ and ~before~ operations.
 
 */
-static int
+int
 RangeSelectPredicates( ListExpr args )
 {
   ListExpr arg1 = nl->First( args ),
            arg2 = nl->Second( args );
 
   if( nl->ListLength( arg1 ) == 2 && nl->ListLength( arg2 ) == 2 &&
-      nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
-      nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
-      nl->IsAtom( nl->Second( arg1 ) ) && nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
-      nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
+      nl->IsAtom( nl->First( arg1 ) ) && 
+      nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+      nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
+      nl->IsAtom( nl->First( arg2 ) ) && 
+      nl->AtomType( nl->First( arg2 ) ) == SymbolType && 
+      nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
+      nl->IsAtom( nl->Second( arg1 ) ) && 
+      nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
+      nl->IsAtom( nl->Second( arg2 ) ) && 
+      nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
       nl->SymbolValue( nl->Second( arg1 ) ) == nl->SymbolValue( nl->Second( arg2 ) ) )
     return (0);
 
   if( nl->IsAtom( arg1 ) && nl->ListLength( arg2 ) == 2 &&
-      nl->IsAtom( nl->First( arg2 ) ) && nl->AtomType( nl->First( arg2 ) ) == SymbolType && nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
-      nl->IsAtom( nl->Second( arg2 ) ) && nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
-      nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType &&
+      nl->IsAtom( nl->First( arg2 ) ) && 
+      nl->AtomType( nl->First( arg2 ) ) == SymbolType && 
+      nl->SymbolValue( nl->First( arg2 ) ) == "range" &&
+      nl->IsAtom( nl->Second( arg2 ) ) && 
+      nl->AtomType( nl->Second( arg2 ) ) == SymbolType &&
+      nl->IsAtom( arg1 ) && 
+      nl->AtomType( arg1 ) == SymbolType &&
       nl->SymbolValue( nl->Second( arg2 ) ) == nl->SymbolValue( arg1 ) )
     return (1);
 
   if( nl->ListLength( arg1 ) == 2 && nl->IsAtom( arg2 ) &&
-      nl->IsAtom( nl->First( arg1 ) ) && nl->AtomType( nl->First( arg1 ) ) == SymbolType && nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
-      nl->IsAtom( nl->Second( arg1 ) ) && nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
-      nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType &&
+      nl->IsAtom( nl->First( arg1 ) ) && 
+      nl->AtomType( nl->First( arg1 ) ) == SymbolType && 
+      nl->SymbolValue( nl->First( arg1 ) ) == "range" &&
+      nl->IsAtom( nl->Second( arg1 ) ) && 
+      nl->AtomType( nl->Second( arg1 ) ) == SymbolType &&
+      nl->IsAtom( arg2 ) && 
+      nl->AtomType( arg2 ) == SymbolType &&
       nl->SymbolValue( nl->Second( arg1 ) ) == nl->SymbolValue( arg2 ) )
     return (2);
 
@@ -1711,8 +2088,8 @@ parameter types.
 5.3.1 Value mapping functions of operator ~isempty~
 
 */
-static int
-IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeIsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->IsEmpty() )
@@ -1730,8 +2107,8 @@ IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.2 Value mapping functions of operator $=$ (~equal~)
 
 */
-static int
-Equal_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( *((Range*)args[0].addr) == *((Range*)args[1].addr) )
@@ -1749,8 +2126,8 @@ Equal_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.3 Value mapping functions of operator $\neq$ (~not equal~)
 
 */
-static int
-NotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeNotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( *((Range*)args[0].addr) != *((Range*)args[1].addr) )
@@ -1768,8 +2145,8 @@ NotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.4 Value mapping functions of operator ~intersects~
 
 */
-static int
-Intersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeIntersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Intersects( *((Range*)args[1].addr) ) )
@@ -1787,8 +2164,8 @@ Intersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.5 Value mapping functions of operator ~inside~
 
 */
-static int
-Inside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeInside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Inside( *((Range*)args[1].addr) ) )
@@ -1802,8 +2179,8 @@ Inside_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
-Inside_ar( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeInside_ar( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[1].addr)->Contains( ((StandardAttribute*)args[0].addr) ) )
@@ -1821,8 +2198,8 @@ Inside_ar( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.6 Value mapping functions of operator ~before~
 
 */
-static int
-Before_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeBefore_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Before( *((Range*)args[1].addr) ) )
@@ -1836,8 +2213,8 @@ Before_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
-Before_ar( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeBefore_ar( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[1].addr)->After( ((StandardAttribute*)args[0].addr) ) )
@@ -1851,8 +2228,8 @@ Before_ar( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
-static int
-Before_ra( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeBefore_ra( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if( ((Range*)args[0].addr)->Before( ((StandardAttribute*)args[1].addr) ) )
@@ -1870,8 +2247,8 @@ Before_ra( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.7 Value mapping functions of operator ~intersection~
 
 */
-static int
-Intersection_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeIntersection_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((Range*)args[0].addr)->Intersection( *((Range*)args[1].addr), (*(Range*)result.addr) );
@@ -1882,8 +2259,8 @@ Intersection_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 5.3.8 Value mapping functions of operator ~union~
 
 */
-static int
-Union_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeUnion_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((Range*)args[0].addr)->Union( *((Range*)args[1].addr), (*(Range*)result.addr) );
@@ -1894,8 +2271,8 @@ Union_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.9 Value mapping functions of operator ~minus~
 
 */
-static int
-Minus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeMinus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((Range*)args[0].addr)->Minus( *((Range*)args[1].addr), (*(Range*)result.addr) );
@@ -1906,8 +2283,8 @@ Minus_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.10 Value mapping functions of operator ~min~
 
 */
-static int
-Minimum_r( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeMinimum_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -1926,8 +2303,8 @@ Minimum_r( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.10 Value mapping functions of operator ~max~
 
 */
-static int
-Maximum_r( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeMaximum_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
@@ -1946,11 +2323,11 @@ Maximum_r( Word* args, Word& result, int message, Word& local, Supplier s )
 5.3.11 Value mapping functions of operator ~max~
 
 */
-static int
-NoComponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
+int
+RangeNoComponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcInt *)result.addr)->Set( true, ((Range*)args[0].addr)->NoComponents() );
+  ((CcInt *)result.addr)->Set( true, ((Range*)args[0].addr)->GetNoComponents() );
   return (0);
 }
 
@@ -1965,135 +2342,156 @@ mapping functions for each operator. For nonoverloaded operators there is also s
 defined, so it easier to make them overloaded.
 
 */
-ValueMapping rangeisemptymap[] = { IsEmpty_r };
-ValueMapping rangeequalmap[] = { Equal_rr };
-ValueMapping rangenotequalmap[] = { NotEqual_rr };
-ValueMapping rangeintersectsmap[] = { Intersects_rr };
-ValueMapping rangeinsidemap[] = { Inside_rr, Inside_ar };
-ValueMapping rangebeforemap[] = { Before_rr, Before_ar, Before_ra };
-ValueMapping rangeintersectionmap[] = { Intersection_rr };
-ValueMapping rangeunionmap[] = { Union_rr };
-ValueMapping rangeminusmap[] = { Minus_rr };
-ValueMapping rangeminmap[] = { Minimum_r };
-ValueMapping rangemaxmap[] = { Maximum_r };
-ValueMapping rangenocomponentsmap[] = { NoComponents_r };
+ValueMapping rangeisemptymap[] = { RangeIsEmpty_r };
+ValueMapping rangeequalmap[] = { RangeEqual_rr };
+ValueMapping rangenotequalmap[] = { RangeNotEqual_rr };
+ValueMapping rangeintersectsmap[] = { RangeIntersects_rr };
+ValueMapping rangeinsidemap[] = { RangeInside_rr, RangeInside_ar };
+ValueMapping rangebeforemap[] = { RangeBefore_rr, RangeBefore_ar, RangeBefore_ra };
+ValueMapping rangeintersectionmap[] = { RangeIntersection_rr };
+ValueMapping rangeunionmap[] = { RangeUnion_rr };
+ValueMapping rangeminusmap[] = { RangeMinus_rr };
+ValueMapping rangeminmap[] = { RangeMinimum_r };
+ValueMapping rangemaxmap[] = { RangeMaximum_r };
+ValueMapping rangenocomponentsmap[] = { RangeNoComponents_r };
 
 ModelMapping rangenomodelmap[] = { RangeNoModelMapping, RangeNoModelMapping,
                                    RangeNoModelMapping, RangeNoModelMapping,
                                    RangeNoModelMapping, RangeNoModelMapping };
 
-const string RangeSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                 "\"Example\" ) "
-                             "( <text>(range x) -> bool</text--->"
-			       "<text>isempty ( _ )</text--->"
-			       "<text>Returns whether the range is empty or "
-			       "not.</text--->"
-			       "<text>query isempty ( range1 )</text--->"
-			       ") )";
+const string RangeSpecIsEmpty = "(<text> (range x) -> bool</text--->"
+                                "<text> Returns whether the range is empty or not. </text--->)";
 
-const string RangeSpecEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" )"
-                            "( <text>( (range x) (range x) ) -> bool</text--->"
-			       "<text>_ = _</text--->"
-			       "<text>Equal.</text--->"
-			       "<text>query range1 = range2</text--->"
-			      ") )";
+const string RangeSpecEqual = "(<text> ( (range x) (range x) ) -> bool</text--->"
+                              "<text> Equal. </text--->)";
 
-const string RangeSpecNotEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                  "\"Example\" ) "
-                             "( <text>( (range x) (range x) ) -> bool</text--->"
-			       "<text>_ # _</text--->"
-			       "<text>Not equal.</text--->"
-			       "<text>query range1 # range2</text--->"
-			      ") )";
+const string RangeSpecNotEqual = "(<text> ( (range x) (range x) ) -> bool</text--->"
+                                 "<text> Not equal. </text--->)";
 
-const string RangeSpecIntersects  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                    "\"Example\" ) "
-                             "( <text>( (range x) (range x) ) -> bool</text--->"
-			       "<text>_ intersects _</text--->"
-			       "<text>Intersects.</text--->"
-			       "<text>query range1 intersects range2</text--->"
-			      ") )";
+const string RangeSpecIntersects = "(<text> ( (range x) (range x) ) -> bool</text--->"
+                                   "<text> Intersects. </text--->)";
 
-const string RangeSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                             "( <text>( (range x) (range x) ) -> bool," 
-			     "( x (range x) ) -> bool</text--->"
-			       "<text>_ inside _</text--->"
-			       "<text>Inside.</text--->"
-			       "<text>query 5 inside range1</text--->"
-			      ") )";
+const string RangeSpecInside = "(<text> ( (range x) (range x) ) -> bool, "
+                               "( x (range x) ) -> bool</text--->"
+                               "<text> Inside. </text--->)";
 
-const string RangeSpecBefore  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) " 
-                             "( <text>( (range x) (range x) ) -> bool, "
-			     "( x (range x) ) -> bool, ( (range x) x ) -> "
-			     "bool</text--->"
-			       "<text>_ before _</text--->"
-			       "<text>Before.</text--->"
-			       "<text>query 5 before range1</text--->"
-			      ") )";
+const string RangeSpecBefore = "(<text> ( (range x) (range x) ) -> bool, "
+                               "( x (range x) ) -> bool, ( (range x) x ) -> bool</text--->"
+                               "<text> Inside. </text--->)";
 
-const string RangeSpecIntersection  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                      "\"Example\" ) "
-                         "( <text>( (range x) (range x) ) -> (range x)</text--->"
-			       "<text>_ intersection _</text--->"
-			       "<text>Intersection.</text--->"
-			       "<text>query range1 intersection range2</text--->"
-			      ") )";
+const string RangeSpecIntersection = "(<text> ( (range x) (range x) ) -> (range x)</text--->"
+                                     "<text> Intersection. </text--->)";
 
-const string RangeSpecUnion  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" ) "
-                         "( <text>( (range x) (range x) ) -> (range x)</text--->"
-			       "<text>_ union _</text--->"
-			       "<text>Union.</text--->"
-			       "<text>query range1 union range2</text--->"
-			      ") )";
+const string RangeSpecUnion = "(<text> ( (range x) (range x) ) -> (range x)</text--->"
+                              "<text> Union. </text--->)";
 
-const string RangeSpecMinus  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" ) "
-                          "( <text>( (range x) (range x) ) -> (range x)</text--->"
-			       "<text>_ minus _</text--->"
-			       "<text>Minus.</text--->"
-			       "<text>query range1 minus range2</text--->"
-			      ") )";
+const string RangeSpecMinus = "(<text> ( (range x) (range x) ) -> (range x)</text--->"
+                              "<text> Minus. </text--->)";
 
-const string RangeSpecMinimum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                 "\"Example\" ) "
-                             "( <text>(range x) -> x</text--->"
-			       "<text>minimum ( _ )</text--->"
-			       "<text>Minimum.</text--->"
-			       "<text>minimum ( range1 )</text--->"
-			      ") )";
+const string RangeSpecMinimum = "(<text> (range x) -> x</text--->"
+                                "<text> Minimum. </text--->)";
 
-const string RangeSpecMaximum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                 "\"Example\" ) "
-                             "( <text>(range x) -> x</text--->"
-			       "<text>maximum ( _ )</text--->"
-			       "<text>Maximum.</text--->"
-			       "<text>maximum ( range1 )</text--->"
-			      ") )";
+const string RangeSpecMaximum = "(<text> (range x) -> x</text--->"
+                                "<text> Maximum. </text--->)";
 
-const string RangeSpecNoComponents  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                      "\"Example\" ) "
-                             "( <text>(range x) -> int</text--->"
-			       "<text>no_components ( _ )</text--->"
-			       "<text>Number of components.</text--->"
-			       "<text>no_components ( range1 )</text--->"
-			      ") )";
+const string RangeSpecNoComponents = "(<text> (range x) -> int</text--->"
+                                     "<text> Number of components. </text--->)";
 
-Operator rangeisempty( "isempty", RangeSpecIsEmpty, 1, rangeisemptymap, rangenomodelmap, SimpleSelect, RangeTypeMapBool1 );
-Operator rangeequal( "=", RangeSpecEqual, 1, rangeequalmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapBool );
-Operator rangenotequal( "#", RangeSpecNotEqual, 1, rangenotequalmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapBool );
-Operator rangeintersects( "intersects", RangeSpecIntersects, 1, rangeintersectsmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapBool );
-Operator rangeinside( "inside", RangeSpecInside, 2, rangeinsidemap, rangenomodelmap, RangeSelectPredicates, RangeBaseTypeMapBool1 );
-Operator rangebefore( "before", RangeSpecBefore, 3, rangebeforemap, rangenomodelmap, RangeSelectPredicates, RangeBaseTypeMapBool2 );
-Operator rangeintersection( "intersection", RangeSpecIntersection, 1, rangeintersectionmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
-Operator rangeunion( "union", RangeSpecUnion, 1, rangeunionmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
-Operator rangeminus( "minus", RangeSpecMinus, 1, rangeminusmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
-Operator rangemin( "minimum", RangeSpecMinimum, 1, rangeminmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
-Operator rangemax( "maximum", RangeSpecMaximum, 1, rangemaxmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
-Operator rangenocomponents( "no_components", RangeSpecNoComponents, 1, rangenocomponentsmap, rangenomodelmap, SimpleSelect, RangeTypeMapInt );
+Operator rangeisempty( "isempty", 
+                       RangeSpecIsEmpty, 
+                       1, 
+                       rangeisemptymap, 
+                       rangenomodelmap, 
+                       Operator::SimpleSelect, 
+                       RangeTypeMapBool1 );
+
+Operator rangeequal( "=", 
+                     RangeSpecEqual, 
+                     1, 
+                     rangeequalmap, 
+                     rangenomodelmap, 
+                     Operator::SimpleSelect, 
+                     RangeRangeTypeMapBool );
+
+Operator rangenotequal( "#", 
+                        RangeSpecNotEqual, 
+                        1, 
+                        rangenotequalmap, 
+                        rangenomodelmap, 
+                        Operator::SimpleSelect, 
+                        RangeRangeTypeMapBool );
+
+Operator rangeintersects( "intersects", 
+                          RangeSpecIntersects, 
+                          1, 
+                          rangeintersectsmap, 
+                          rangenomodelmap, 
+                          Operator::SimpleSelect, 
+                          RangeRangeTypeMapBool );
+
+Operator rangeinside( "inside", 
+                      RangeSpecInside, 
+                      2, 
+                      rangeinsidemap, 
+                      rangenomodelmap, 
+                      RangeSelectPredicates, 
+                      RangeBaseTypeMapBool1 );
+
+Operator rangebefore( "before", 
+                      RangeSpecBefore, 
+                      3, 
+                      rangebeforemap, 
+                      rangenomodelmap, 
+                      RangeSelectPredicates, 
+                      RangeBaseTypeMapBool2 );
+
+Operator rangeintersection( "intersection", 
+                            RangeSpecIntersection, 
+                            1, 
+                            rangeintersectionmap, 
+                            rangenomodelmap, 
+                            Operator::SimpleSelect, 
+                            RangeRangeTypeMapRange );
+
+Operator rangeunion( "union", 
+                     RangeSpecUnion, 
+                     1, 
+                     rangeunionmap, 
+                     rangenomodelmap, 
+                     Operator::SimpleSelect, 
+                     RangeRangeTypeMapRange );
+
+Operator rangeminus( "minus", 
+                     RangeSpecMinus, 
+                     1,
+                     rangeminusmap, 
+                     rangenomodelmap, 
+                     Operator::SimpleSelect, 
+                     RangeRangeTypeMapRange );
+
+Operator rangemin( "min", 
+                   RangeSpecMinimum, 
+                   1, 
+                   rangeminmap, 
+                   rangenomodelmap, 
+                   Operator::SimpleSelect, 
+                   RangeTypeMapBase );
+
+Operator rangemax( "max", 
+                   RangeSpecMaximum, 
+                   1, 
+                   rangemaxmap, 
+                   rangenomodelmap, 
+                   Operator::SimpleSelect, 
+                   RangeTypeMapBase );
+
+Operator rangenocomponents( "no_components", 
+                            RangeSpecNoComponents, 
+                            1, 
+                            rangenocomponentsmap, 
+                            rangenomodelmap, 
+                            Operator::SimpleSelect, 
+                            RangeTypeMapInt );
 
 /*
 6 Creating the Algebra

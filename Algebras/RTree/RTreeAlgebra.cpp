@@ -22,6 +22,7 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "StandardTypes.h"
 #include "RectangleAlgebra.h"
 
 extern NestedList* nl;
@@ -138,9 +139,7 @@ child node.
 
 */
 
-  R_TreeEntry() :
-    box(), pointer( 0 )
-    {}
+  R_TreeEntry() {}
 /*
 The simple constructor.
 
@@ -437,7 +436,6 @@ bool R_TreeNode::Remove( int index )
   assert( index >= 0 && index < count );
 
   entry[ index ] = entry[ count - 1 ];
-  entry[ count - 1 ] = R_TreeEntry();
   count -= 1;
 
   modified = true;
@@ -619,7 +617,7 @@ inline void SortedArray::push( int index, double pri )
   n++;
 }
 
-static int myCompare( const void* a, const void* b )
+int myCompare( const void* a, const void* b )
 {
   if( ((SortedArrayItem *) a)->pri < ((SortedArrayItem *) b)->pri )
     return -1;
@@ -846,7 +844,6 @@ void R_TreeNode::Split( R_TreeNode& n1, R_TreeNode& n2 )
         }
         else
         {
-          BBox union1, union2;
           if( do_quadratic_split )
             i = QuadraticPickNext( box1, box2 );
           else
@@ -854,8 +851,8 @@ void R_TreeNode::Split( R_TreeNode& n1, R_TreeNode& n2 )
             assert( do_linear_split );
             i = 0;
           }
-          union1 = box1.Union( entry[ i ].box );
-          union2 = box2.Union( entry[ i ].box );
+          BBox union1 = box1.Union( entry[ i ].box );
+          BBox union2 = box2.Union( entry[ i ].box );
 
           if( union1.Area() - box1.Area() < union2.Area() - box2.Area() )
           {
@@ -886,7 +883,7 @@ void R_TreeNode::Split( R_TreeNode& n1, R_TreeNode& n2 )
 BBox R_TreeNode::BoundingBox() const
 {
   if( count == 0 )
-    return BBox();
+    return BBox( false );
   else
   {
     BBox result = entry[ 0 ].box;
@@ -939,7 +936,12 @@ void R_TreeNode::Read( SmiRecord& record )
   assert( count <= maxEntries );
 
   // Now read the entry array.
-  memcpy( entry, buffer + offset, count * sizeof( R_TreeEntry ) );
+  for( int i = 0; i < count; i++ )
+  {
+    R_TreeEntry *e = new ((void *)(buffer + offset)) R_TreeEntry;
+    entry[i] = *e;
+    offset += sizeof( R_TreeEntry );
+  }
 
   modified = false;
 }
@@ -1290,7 +1292,7 @@ nodePtr( NULL ),
 currLevel( -1 ),
 currEntry( -1 ),
 reportLevel( -1 ),
-searchBox(),
+searchBox( false ),
 scanFlag( false )
 {
   file.Create();
@@ -1900,7 +1902,7 @@ bool R_Tree::Remove( const R_TreeEntry& entry )
   { // Create a list of nodes whose entries must be reinserted
     stack<int> reinsertLevelList;
     stack<R_TreeNode*> reinsertNodeList;
-    BBox sonBox;
+    BBox sonBox( false );
 
     // remove leaf node entry
     nodePtr->Remove( currEntry );
@@ -2059,7 +2061,7 @@ Word InRTree(ListExpr typeInfo, ListExpr value,
 */
 Word CreateRTree(const ListExpr typeInfo)
 {
-  cout << "Create RTree" << endl;
+//  cout << "Create RTree" << endl;
   return SetWord( new R_Tree( 4000 ) );
 }
 
@@ -2069,7 +2071,7 @@ Word CreateRTree(const ListExpr typeInfo)
 */
 void CloseRTree(Word& w)
 {
-  cout << "Close RTree" << endl;
+//  cout << "Close RTree" << endl;
   R_Tree* rtree = (R_Tree*)w.addr;
   delete rtree;
 }
@@ -2091,7 +2093,7 @@ Word CloneRTree(const Word& w)
 */
 void DeleteRTree(Word& w)
 {
-  cout << "Delete RTree" << endl;
+//  cout << "Delete RTree" << endl;
   R_Tree* rtree = (R_Tree*)w.addr;
   rtree->DeleteFile();
   delete rtree;
@@ -2141,7 +2143,7 @@ OpenRTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
-  cout << "Open RTree" << endl;
+//  cout << "Open RTree" << endl;
   SmiFileId fileid;
   valueRecord.Read( &fileid, sizeof( SmiFileId ), 0 );
   R_Tree *rtree = new R_Tree( fileid );
@@ -2158,11 +2160,21 @@ SaveRTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
-  cout << "Save RTree" << endl;
+//  cout << "Save RTree" << endl;
   R_Tree *rtree = (R_Tree *)value.addr;
   SmiFileId fileid = rtree->FileId();
   valueRecord.Write( &fileid, sizeof( SmiFileId ), 0 );
   return true;
+}
+
+/*
+6.11 ~SizeOf~-function of type constructor ~rtree~
+
+*/
+int
+NoSize()
+{
+  return 0;
 }
 
 /*
@@ -2175,7 +2187,8 @@ TypeConstructor rtree( "rtree",              RTreeProp,
                        CreateRTree,          DeleteRTree,
                        OpenRTree,            SaveRTree,
                        CloseRTree,           CloneRTree,
-                       CastRTree,            CheckRTree,
+                       CastRTree,            NoSize,
+                       CheckRTree,
                        0,
                        TypeConstructor::DummyInModel,
                        TypeConstructor::DummyOutModel,
@@ -2191,7 +2204,7 @@ TypeConstructor rtree( "rtree",              RTreeProp,
 7.1.1 Type Mapping of operator ~creatertree~
 
 */
-static ListExpr CreateRTreeTypeMap(ListExpr args)
+ListExpr CreateRTreeTypeMap(ListExpr args)
 {
   string attrName;
   char* errmsg = "Incorrect input for operator creatertree.";
@@ -2225,8 +2238,8 @@ static ListExpr CreateRTreeTypeMap(ListExpr args)
   CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
   CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
   CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(attrList, nl), errmsg);
-  CHECK_COND((attrIndex = findattr(attrList, attrName, attrType, nl)) > 0, errmsg);
+  CHECK_COND(IsTupleDescription(attrList), errmsg);
+  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0, errmsg);
 
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo;
@@ -2255,18 +2268,18 @@ enum SpatialKind { Point, Points, Line, Region };
 int
 CreateRTreeValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  CcRel* relation;
+  Relation* relation;
   CcInt* attrIndexCcInt;
   int attrIndex;
   CcString* attrTypeStr;
-  CcRelIT* iter;
-  CcTuple* tuple;
+  RelationIterator* iter;
+  Tuple* tuple;
   SpatialKind dataType;
 
   R_Tree *rtree = (R_Tree*)qp->ResultStorage(s).addr;
   result = SetWord( rtree );
 
-  relation = (CcRel*)args[0].addr;
+  relation = (Relation*)args[0].addr;
   attrIndexCcInt = (CcInt*)args[2].addr;
   attrTypeStr = (CcString*)args[3].addr;
 
@@ -2298,14 +2311,11 @@ CreateRTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
     assert(false /* this should not happen */);
   }
 
-  iter = relation->MakeNewScan();
-  while(!iter->EndOfScan())
+  iter = relation->MakeScan();
+  while( (tuple = iter->GetNextTuple()) != 0 )
   {
-    tuple = iter->GetTuple();
-    iter->Next();
-
-    BBox box = ((StandardSpatialAttribute*)tuple->Get(attrIndex))->BoundingBox();
-    R_TreeEntry e( box, tuple->GetId() );
+    BBox box = ((StandardSpatialAttribute*)tuple->GetAttribute(attrIndex))->BoundingBox();
+    R_TreeEntry e( box, tuple->GetTupleId() );
     rtree->Insert( e );
 
     tuple->DeleteIfAllowed();
@@ -2336,14 +2346,12 @@ const string CreateRTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 7.1.4 Definition of operator ~creatertree~
 
 */
-int SimpleSelect (ListExpr args) { return 0; }
-
 Operator creatertree (
           "creatertree",                // name
           CreateRTreeSpec,              // specification
           CreateRTreeValueMapping,   	// value mapping
           Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
-          SimpleSelect,         	// trivial selection function
+          Operator::SimpleSelect,         	// trivial selection function
           CreateRTreeTypeMap        	// type mapping
 );
 
@@ -2400,7 +2408,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   CHECK_COND(nl->IsAtom(rtreeTupleSymbol), errmsg);
   CHECK_COND(nl->AtomType(rtreeTupleSymbol) == SymbolType, errmsg);
   CHECK_COND(nl->SymbolValue(rtreeTupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(rtreeAttrList, nl), errmsg);
+  CHECK_COND(IsTupleDescription(rtreeAttrList), errmsg);
 
   /* handle rel part of argument */
   CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
@@ -2423,7 +2431,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
   CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
   CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(attrList, nl), errmsg);
+  CHECK_COND(IsTupleDescription(attrList), errmsg);
 
   /* check that btree and rel have the same associated tuple type */
   CHECK_COND(nl->Equal(attrList, rtreeAttrList), errmsg);
@@ -2442,7 +2450,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
 */
 struct WindowIntersectsLocalInfo
 {
-  CcRel* relation;
+  Relation* relation;
   R_Tree* rtree;
   BBox *searchBox;
   bool first;
@@ -2466,7 +2474,7 @@ WindowIntersectsValueMapping(Word* args, Word& result,
 
       localInfo = new WindowIntersectsLocalInfo;
       localInfo->rtree = (R_Tree*)rtreeWord.addr;
-      localInfo->relation = (CcRel*)relWord.addr;
+      localInfo->relation = (Relation*)relWord.addr;
       localInfo->first = true;
       localInfo->searchBox = (Rectangle *)boxWord.addr;
 
@@ -2486,7 +2494,7 @@ WindowIntersectsValueMapping(Word* args, Word& result,
         localInfo->first = false;
         if( localInfo->rtree->First( *localInfo->searchBox, e ) )
         {
-          CcTuple *tuple = localInfo->relation->GetTupleById(e.pointer);
+          Tuple *tuple = localInfo->relation->GetTuple(e.pointer);
           result = SetWord(tuple);
           return YIELD;
         }
@@ -2497,7 +2505,7 @@ WindowIntersectsValueMapping(Word* args, Word& result,
       {
         if( localInfo->rtree->Next( e ) )
         {
-          CcTuple *tuple = localInfo->relation->GetTupleById(e.pointer);
+          Tuple *tuple = localInfo->relation->GetTuple(e.pointer);
           result = SetWord(tuple);
           return YIELD;
         }
@@ -2544,7 +2552,7 @@ Operator windowintersects (
          WindowIntersectsSpec,          // specification
          WindowIntersectsValueMapping,  // value mapping
          Operator::DummyModel, 		// dummy model mapping, defines in Algebra.h
-         SimpleSelect,         		// trivial selection function
+         Operator::SimpleSelect,         		// trivial selection function
          WindowIntersectsTypeMap	// type mapping
 );
 

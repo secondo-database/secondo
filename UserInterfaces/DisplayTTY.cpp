@@ -804,13 +804,13 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
 {
   si = secondoInterface;
   nl = si->GetNestedList();
-  InsertDisplayFunction( "int",    &DisplayInt );
-  InsertDisplayFunction( "real",   &DisplayReal );
-  InsertDisplayFunction( "bool",   &DisplayBoolean );
-  InsertDisplayFunction( "string", &DisplayString );
-  InsertDisplayFunction( "rel",    &DisplayRelation );
-  InsertDisplayFunction( "tuple",  &DisplayTuples );
-  InsertDisplayFunction( "map",    &DisplayFun );
+  InsertDisplayFunction( "int",     &DisplayInt );
+  InsertDisplayFunction( "real",    &DisplayReal );
+  InsertDisplayFunction( "bool",    &DisplayBoolean );
+  InsertDisplayFunction( "string",  &DisplayString );
+  InsertDisplayFunction( "rel",     &DisplayRelation );
+  InsertDisplayFunction( "tuple",   &DisplayTuples );
+  InsertDisplayFunction( "map",     &DisplayFun );
   InsertDisplayFunction( "date",    &DisplayDate );
   InsertDisplayFunction( "text",    &DisplayText );
   InsertDisplayFunction( "xpoint",  &DisplayXPoint);

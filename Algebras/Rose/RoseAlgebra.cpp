@@ -29,8 +29,8 @@ using namespace std;
 #include "StandardTypes.h"	//needed because we return a CcBool in an op.
 #include "StandardAttribute.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 #include "Attribute.h"
 #include <jni.h>
@@ -63,7 +63,7 @@ c) Used JAR archives must also have an entry in that file.
 
 /* this function prints an error message including the line
 	where the error occured. Should never invoked normally. */
-static void error(char *name, int line) {
+void error(char *name, int line) {
   cerr << "Error in " << name << " in line: " << line << "." << endl;
   exit(1);
 }
@@ -72,22 +72,11 @@ static void error(char *name, int line) {
    where the error occured. This method is used for calls
    to Java methods. The name of the Java method which
    should invoked is also printed. */
-static void error(char *filename, char *classname, int line) {
+void error(char *filename, char *classname, int line) {
   cerr << "Error in " << filename << " in line: " << line
        << ". " << endl << "Requested Java method couldn't invoked: "
        << classname << "." << endl;
   exit(1);
-}
-
-/*
-1.3 Dummy Functions
-
-Not interesting, but needed in the definition of a type constructor.
-
-*/
-
-static void *DummyCast(void *addr) {
-  return 0;
 }
 
 /*
@@ -363,7 +352,7 @@ whereas the (internal) list representation of a coordinate is
 
 */
 
-static ListExpr OutCcPoints( ListExpr typeInfo, Word value ) {
+ListExpr OutCcPoints( ListExpr typeInfo, Word value ) {
   CcPoints* ccpoints = (CcPoints*)(value.addr);
   ListExpr le;
 
@@ -372,7 +361,7 @@ static ListExpr OutCcPoints( ListExpr typeInfo, Word value ) {
 }
 
 
-static Word InCcPoints(const ListExpr typeInfo,
+Word InCcPoints(const ListExpr typeInfo,
 		       const ListExpr instance,
 		       const int errorPos,
 		       ListExpr& errorInfo,
@@ -384,21 +373,21 @@ static Word InCcPoints(const ListExpr typeInfo,
   return SetWord(newpoints);
 }
 
-static Word CreateCcPoints(const ListExpr typeInfo) {
+Word CreateCcPoints(const ListExpr typeInfo) {
   return (SetWord(new CcPoints()));
 }
 
-static void DeleteCcPoints(Word &w) {
+void DeleteCcPoints(Word &w) {
   delete ((CcPoints *)w.addr);
   w.addr = 0;
 }
 
-static void CloseCcPoints(Word & w) {
+void CloseCcPoints(Word & w) {
   delete (CcPoints *)w.addr;
   w.addr = 0;
 }
 
-static Word CloneCcPoints(const Word &w) {
+Word CloneCcPoints(const Word &w) {
   return SetWord(((CcPoints *)w.addr)->Clone());
 }
 
@@ -407,7 +396,7 @@ static Word CloneCcPoints(const Word &w) {
 
 */
 
-static ListExpr PointsProperty() {
+ListExpr PointsProperty() {
   return
     (nl->TwoElemList
      (
@@ -433,7 +422,7 @@ type constructor ~ccpoints~ does not have arguments, this is trivial.
 
 */
 
-static bool CheckCcPoints( ListExpr type, ListExpr& errorInfo ) {
+bool CheckCcPoints( ListExpr type, ListExpr& errorInfo ) {
   return (nl->IsEqual(type, "ccpoints"));
 }
 
@@ -757,7 +746,7 @@ whereas the (internal) list representation of a rational number is
 */
 
 
-static ListExpr OutCcLines( ListExpr typeInfo, Word value ) {
+ListExpr OutCcLines( ListExpr typeInfo, Word value ) {
   CcLines* cclines = (CcLines*)(value.addr);
   ListExpr le;
 
@@ -765,7 +754,7 @@ static ListExpr OutCcLines( ListExpr typeInfo, Word value ) {
   return le;
 }
 
-static Word InCcLines(const ListExpr typeInfo,
+Word InCcLines(const ListExpr typeInfo,
 		      const ListExpr instance,
 		      const int errorPos,
 		      ListExpr& errorInfo,
@@ -778,21 +767,21 @@ static Word InCcLines(const ListExpr typeInfo,
   return SetWord(newlines);
 }
 
-static Word CreateCcLines(const ListExpr typeInfo) {
+Word CreateCcLines(const ListExpr typeInfo) {
   return (SetWord(new CcLines()));
 }
 
-static void DeleteCcLines(Word &w) {
+void DeleteCcLines(Word &w) {
   delete ((CcLines *)w.addr);
   w.addr = 0;
 }
 
-static void CloseCcLines(Word & w) {
+void CloseCcLines(Word & w) {
   delete (CcLines *)w.addr;
   w.addr = 0;
 }
 
-static Word CloneCcLines(const Word &w) {
+Word CloneCcLines(const Word &w) {
   return SetWord(((CcLines *)w.addr)->Clone());
 }
 
@@ -803,7 +792,7 @@ static Word CloneCcLines(const Word &w) {
 
 */
 
-static ListExpr LinesProperty() {
+ListExpr LinesProperty() {
   return
     (nl->TwoElemList
      (
@@ -829,7 +818,7 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 
 */
 
-static bool CheckCcLines(ListExpr type, ListExpr& errorInfo ) {
+bool CheckCcLines(ListExpr type, ListExpr& errorInfo ) {
   return (nl->IsEqual(type, "cclines"));
 }
 
@@ -1155,7 +1144,7 @@ whereas the (internal) list representation of a coordinate is
 
 */
 
-static ListExpr OutCcRegions( ListExpr typeInfo, Word value ) {
+ListExpr OutCcRegions( ListExpr typeInfo, Word value ) {
   CcRegions* ccregions = (CcRegions*)(value.addr);
   ListExpr le;
 
@@ -1165,7 +1154,7 @@ static ListExpr OutCcRegions( ListExpr typeInfo, Word value ) {
 }
 
 
-static Word InCcRegions(const ListExpr typeInfo,
+Word InCcRegions(const ListExpr typeInfo,
 			const ListExpr instance,
 			const int errorPos,
 			ListExpr& errorInfo,
@@ -1178,21 +1167,21 @@ static Word InCcRegions(const ListExpr typeInfo,
   return SetWord(newregions);
 }
 
-static Word CreateCcRegions(const ListExpr typeInfo) {
+Word CreateCcRegions(const ListExpr typeInfo) {
   return (SetWord(new CcRegions()));
 }
 
-static void DeleteCcRegions(Word &w) {
+void DeleteCcRegions(Word &w) {
   delete ((CcRegions *)w.addr);
   w.addr = 0;
 }
 
-static void CloseCcRegions(Word & w) {
+void CloseCcRegions(Word & w) {
   delete (CcRegions *)w.addr;
   w.addr = 0;
 }
 
-static Word CloneCcRegions(const Word &w) {
+Word CloneCcRegions(const Word &w) {
   return SetWord(((CcRegions *)w.addr)->Clone());
 }
 
@@ -1201,7 +1190,7 @@ static Word CloneCcRegions(const Word &w) {
 
 */
 
-static ListExpr RegionsProperty() {
+ListExpr RegionsProperty() {
   return
     (nl->TwoElemList
      (
@@ -1229,7 +1218,7 @@ type constructor ~cclines~ does not have arguments, this is trivial.
 
 */
 
-static bool CheckCcRegions(ListExpr type, ListExpr& errorInfo ) {
+bool CheckCcRegions(ListExpr type, ListExpr& errorInfo ) {
   return (nl->IsEqual(type, "ccregions"));
 }
 
@@ -1289,7 +1278,7 @@ returns a list expression for the result type, otherwise the symbol
 /* This is a general type mapping function for all Rose methods
    which take two parameters. */
 
-static ListExpr typeMappingRose
+ListExpr typeMappingRose
 (ListExpr args, char *type1, char *type2, char *resulttype) {
   ListExpr arg1, arg2;
 
@@ -1306,7 +1295,7 @@ static ListExpr typeMappingRose
 /* This is a general type mapping function for all Rose methods
    which take one parameter. */
 
-static ListExpr typeMappingRose
+ListExpr typeMappingRose
 (ListExpr args, char *type1, char *resulttype) {
   ListExpr arg1;
 
@@ -1319,190 +1308,177 @@ static ListExpr typeMappingRose
 }
 
 
-static ListExpr ccpointsccpointsBool(ListExpr args) {
+ListExpr ccpointsccpointsBool(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "ccpoints", "bool");
 }
 
 
-static ListExpr cclinescclinesBool(ListExpr args) {
+ListExpr cclinescclinesBool(ListExpr args) {
   return typeMappingRose(args, "cclines", "cclines", "bool");
 }
 
 
-static ListExpr ccregionsccregionsBool(ListExpr args) {
+ListExpr ccregionsccregionsBool(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccregions", "bool");
 }
 
 
-static ListExpr ccpointsccregionsBool(ListExpr args) {
+ListExpr ccpointsccregionsBool(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "ccregions", "bool");
 }
 
 
-static ListExpr cclinesccregionsBool(ListExpr args) {
+ListExpr cclinesccregionsBool(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccregions", "bool");
 }
 
 
-static ListExpr ccregionscclinesBool(ListExpr args) {
+ListExpr ccregionscclinesBool(ListExpr args) {
   return typeMappingRose(args, "ccregions", "cclines", "bool");
 }
 
 
-static ListExpr ccregionsccregionsccregions(ListExpr args) {
+ListExpr ccregionsccregionsccregions(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccregions", "ccregions");
 }
 
 
-static ListExpr ccregionscclinescclines(ListExpr args) {
+ListExpr ccregionscclinescclines(ListExpr args) {
   return typeMappingRose(args, "ccregions", "cclines", "cclines");
 }
 
 
-static ListExpr ccregionsccregionscclines(ListExpr args) {
+ListExpr ccregionsccregionscclines(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccregions", "cclines");
 }
 
 
-static ListExpr cclinescclinescclines(ListExpr args) {
+ListExpr cclinescclinescclines(ListExpr args) {
   return typeMappingRose(args, "cclines", "cclines", "cclines");
 }
 
 
-static ListExpr cclinesccregionscclines(ListExpr args) {
+ListExpr cclinesccregionscclines(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccregions", "cclines");
 }
 
 
-static ListExpr cclinescclinesccpoints(ListExpr args) {
+ListExpr cclinescclinesccpoints(ListExpr args) {
   return typeMappingRose(args, "cclines", "cclines", "ccpoints");
 }
 
-static ListExpr ccpointscclinesBool(ListExpr args) {
+ListExpr ccpointscclinesBool(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "cclines", "bool");
 }
 
 
-static ListExpr ccpointsccpointsccpoints(ListExpr args) {
+ListExpr ccpointsccpointsccpoints(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "ccpoints", "ccpoints");
 }
 
 
-static ListExpr cclinesccpoints(ListExpr args) {
+ListExpr cclinesccpoints(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccpoints");
 }
 
 
-static ListExpr cclinesccregions(ListExpr args) {
+ListExpr cclinesccregions(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccregions");
 }
 
 
-static ListExpr ccregionsccpoints(ListExpr args) {
+ListExpr ccregionsccpoints(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccpoints");
 }
 
 
-static ListExpr ccregionscclines(ListExpr args) {
+ListExpr ccregionscclines(ListExpr args) {
   return typeMappingRose(args, "ccregions", "cclines");
 }
 
 
-static ListExpr ccpointsInt(ListExpr args) {
+ListExpr ccpointsInt(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "int");
 }
 
 
-static ListExpr cclinesInt(ListExpr args) {
+ListExpr cclinesInt(ListExpr args) {
   return typeMappingRose(args, "cclines", "int");
 }
 
 
-static ListExpr ccregionsInt(ListExpr args) {
+ListExpr ccregionsInt(ListExpr args) {
   return typeMappingRose(args, "ccregions", "int");
 }
 
 
-static ListExpr ccpointsccpointsReal(ListExpr args) {
+ListExpr ccpointsccpointsReal(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "ccpoints", "real");
 }
 
 
-static ListExpr ccpointscclinesReal(ListExpr args) {
+ListExpr ccpointscclinesReal(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "cclines", "real");
 }
 
 
-static ListExpr ccpointsccregionsReal(ListExpr args) {
+ListExpr ccpointsccregionsReal(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "ccregions", "real");
 }
 
 
-static ListExpr cclinesccpointsReal(ListExpr args) {
+ListExpr cclinesccpointsReal(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccpoints", "real");
 }
 
 
-static ListExpr cclinescclinesReal(ListExpr args) {
+ListExpr cclinescclinesReal(ListExpr args) {
   return typeMappingRose(args, "cclines", "cclines", "real");
 }
 
 
-static ListExpr cclinesccregionsReal(ListExpr args) {
+ListExpr cclinesccregionsReal(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccregions", "real");
 }
 
 
-static ListExpr ccregionsccpointsReal(ListExpr args) {
+ListExpr ccregionsccpointsReal(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccpoints", "real");
 }
 
 
-static ListExpr ccregionscclinesReal(ListExpr args) {
+ListExpr ccregionscclinesReal(ListExpr args) {
   return typeMappingRose(args, "ccregions", "cclines", "real");
 }
 
 
-static ListExpr ccregionsccregionsReal(ListExpr args) {
+ListExpr ccregionsccregionsReal(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccregions", "real");
 }
 
 
-static ListExpr ccpointsReal(ListExpr args) {
+ListExpr ccpointsReal(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "real");
 }
 
 
-static ListExpr cclinesReal(ListExpr args) {
+ListExpr cclinesReal(ListExpr args) {
   return typeMappingRose(args, "cclines", "real");
 }
 
 
-static ListExpr ccregionsReal(ListExpr args) {
+ListExpr ccregionsReal(ListExpr args) {
   return typeMappingRose(args, "ccregions", "real");
 }
 
 
-static ListExpr ccregionsDouble(ListExpr args) {
+ListExpr ccregionsDouble(ListExpr args) {
   return typeMappingRose(args, "ccregions", "real");
 }
 
 
-static ListExpr cclinesDouble(ListExpr args) {
+ListExpr cclinesDouble(ListExpr args) {
   return typeMappingRose(args, "cclines", "real");
-}
-
-/*
-5.2 Selection Function
-
-Is used to select one of several evaluation functions for an overloaded
-operator, based on the types of the arguments. In case of a non-overloaded
-operator, we just have to return 0.
-
-*/
-
-static int simpleSelect (ListExpr args ){
-  return 0;
 }
 
 /*
@@ -1528,7 +1504,7 @@ must correspond to both types and return type.
 */
 
 template <class Type1, class Type2>
-static bool callBooleanJMethod(char *name, Type1 *t1, Type2 *t2, char *signature) {
+bool callBooleanJMethod(char *name, Type1 *t1, Type2 *t2, char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
 
@@ -1552,7 +1528,7 @@ must correspond to the type and return type.
 */
 
 template <class Type1>
-static int callIntegerJMethod(char *name, Type1 *t1, char *signature) {
+int callIntegerJMethod(char *name, Type1 *t1, char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
   int result;
@@ -1579,7 +1555,7 @@ must correspond to the type and return type.
 */
 
 template <class Type1, class Type2>
-static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
+double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
 				  char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
@@ -1628,7 +1604,7 @@ must correspond to the type and return type.
 */
 
 template <class Type1>
-static double callRationalJMethod(char *name, Type1 *t1, char *signature) {
+double callRationalJMethod(char *name, Type1 *t1, char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
   jobject result;
@@ -1675,7 +1651,7 @@ must correspond to the type and return type.
 */
 
 template <class Type1>
-static double callDoubleJMethod(char *name, Type1 *t1, char *signature) {
+double callDoubleJMethod(char *name, Type1 *t1, char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
 
@@ -1700,7 +1676,7 @@ must correspond two both types and return type.
 */
 
 template <class Type1, class Type2, class ReturnType>
-static ReturnType *callObjectJMethod
+ReturnType *callObjectJMethod
 (char *name, Type1 *t1, Type2 *t2, char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
@@ -1729,7 +1705,7 @@ must correspond two both types and return type.
 */
 
 template <class Type1, class ReturnType>
-static ReturnType *callObjectJMethod
+ReturnType *callObjectJMethod
 (char *name, Type1 *t1, char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
@@ -1784,7 +1760,7 @@ The letters have the following meaning:
    two CcPoints and returns a boolean value.
 */
 
-static bool callJMethod_PPB
+bool callJMethod_PPB
 (char *name, CcPoints *ccp1, CcPoints *ccp2) {
   return callBooleanJMethod<CcPoints, CcPoints>
     (name, ccp1, ccp2, "(LPoints;LPoints;)Z");
@@ -1794,7 +1770,7 @@ static bool callJMethod_PPB
    two CcLines and returns a boolean value.
 */
 
-static bool callJMethod_LLB
+bool callJMethod_LLB
 (char *name, CcLines *ccl1, CcLines *ccl2) {
   return callBooleanJMethod<CcLines, CcLines>
     (name, ccl1, ccl2, "(LLines;LLines;)Z");
@@ -1804,7 +1780,7 @@ static bool callJMethod_LLB
    two CcRegions and returns a boolean value.
 */
 
-static bool callJMethod_RRB
+bool callJMethod_RRB
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
   return callBooleanJMethod<CcRegions, CcRegions>
     (name, ccr1, ccr2, "(LRegions;LRegions;)Z");
@@ -1815,7 +1791,7 @@ static bool callJMethod_RRB
    a CcPoints and a CcRegions object and returns a boolean value.
 */
 
-static bool callJMethod_PRB
+bool callJMethod_PRB
 (char *name, CcPoints *ccp, CcRegions *ccr) {
   return callBooleanJMethod<CcPoints, CcRegions>
     (name, ccp, ccr, "(LPoints;LRegions;)Z");
@@ -1825,7 +1801,7 @@ static bool callJMethod_PRB
    a CcLines and a CcRegions object and returns a boolean value.
 */
 
-static bool callJMethod_LRB
+bool callJMethod_LRB
 (char *name, CcLines *ccl, CcRegions *ccr) {
   return callBooleanJMethod<CcLines, CcRegions>
     (name, ccl, ccr, "(LLines;LRegions;)Z");
@@ -1835,7 +1811,7 @@ static bool callJMethod_LRB
    two CcRegions and returns a CcRegions value.
 */
 
-static CcRegions *callJMethod_RRR
+CcRegions *callJMethod_RRR
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
   return
    callObjectJMethod<CcRegions, CcRegions, CcRegions>
@@ -1846,7 +1822,7 @@ static CcRegions *callJMethod_RRR
    two CcRegions and returns a CcLines value.
 */
 
-static CcLines *callJMethod_RRL
+CcLines *callJMethod_RRL
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
   return
     callObjectJMethod<CcRegions, CcRegions, CcLines>
@@ -1857,7 +1833,7 @@ static CcLines *callJMethod_RRL
    a CcRegions and a CcLines object and returns a boolean value.
 */
 
-static bool callJMethod_RLB
+bool callJMethod_RLB
 (char *name, CcRegions *ccr, CcLines *ccl) {
   return
     callBooleanJMethod<CcRegions, CcLines>
@@ -1868,7 +1844,7 @@ static bool callJMethod_RLB
    a CcPoints and a CcLines object and returns a boolean value.
 */
 
-static bool callJMethod_PLB
+bool callJMethod_PLB
 (char *name, CcPoints *ccp, CcLines *ccl) {
   return
     callBooleanJMethod<CcPoints, CcLines>
@@ -1879,7 +1855,7 @@ static bool callJMethod_PLB
    two CcLines and returns a CcPoints value.
 */
 
-static CcPoints *callJMethod_LLP
+CcPoints *callJMethod_LLP
 (char *name, CcLines *ccl1, CcLines *ccl2) {
   return
     callObjectJMethod<CcLines, CcLines, CcPoints>
@@ -1890,7 +1866,7 @@ static CcPoints *callJMethod_LLP
    a CcRegions and a CcLines object and returns a CcLines value.
 */
 
-static CcLines *callJMethod_RLL
+CcLines *callJMethod_RLL
 (char *name, CcRegions *ccr, CcLines *ccl) {
   return
     callObjectJMethod<CcRegions, CcLines, CcLines>
@@ -1901,7 +1877,7 @@ static CcLines *callJMethod_RLL
    two CcPoints and returns a CcPoints value.
 */
 
-static CcPoints *callJMethod_PPP
+CcPoints *callJMethod_PPP
 (char *name, CcPoints *ccp1, CcPoints *ccp2) {
   return
     callObjectJMethod<CcPoints, CcPoints, CcPoints>
@@ -1912,7 +1888,7 @@ static CcPoints *callJMethod_PPP
    two CcLines and returns a CcLines value.
 */
 
-static CcLines *callJMethod_LLL
+CcLines *callJMethod_LLL
 (char *name, CcLines *ccl1, CcLines *ccl2) {
   return
     callObjectJMethod<CcLines, CcLines, CcLines>
@@ -1923,7 +1899,7 @@ static CcLines *callJMethod_LLL
    a CcLines and a CcRegions object and returns a CcLines value.
 */
 
-static CcLines *callJMethod_LRL
+CcLines *callJMethod_LRL
 (char *name, CcLines *ccl, CcRegions *ccr) {
   return
     callObjectJMethod<CcLines, CcRegions, CcLines>
@@ -1934,7 +1910,7 @@ static CcLines *callJMethod_LRL
    a CcLines object and returns a CcLines value.
 */
 
-static CcPoints *callJMethod_LP
+CcPoints *callJMethod_LP
 (char *name, CcLines *ccl) {
   return
     callObjectJMethod<CcLines, CcPoints>
@@ -1945,7 +1921,7 @@ static CcPoints *callJMethod_LP
    a CcLines object and returns a CcRegions value.
 */
 
-static CcRegions *callJMethod_LR
+CcRegions *callJMethod_LR
 (char *name, CcLines *ccl) {
   return
     callObjectJMethod<CcLines, CcRegions>
@@ -1956,7 +1932,7 @@ static CcRegions *callJMethod_LR
    a CcRegions object and returns a CcPoints value.
 */
 
-static CcPoints *callJMethod_RP
+CcPoints *callJMethod_RP
 (char *name, CcRegions *ccr) {
   return
     callObjectJMethod<CcRegions, CcPoints>
@@ -1967,7 +1943,7 @@ static CcPoints *callJMethod_RP
    a CcRegions object and returns a CcLines value.
 */
 
-static CcLines *callJMethod_RL
+CcLines *callJMethod_RL
 (char *name, CcRegions *ccr) {
   return
     callObjectJMethod<CcRegions, CcLines>
@@ -1978,7 +1954,7 @@ static CcLines *callJMethod_RL
    a CcPoints object and returns an Integer value.
 */
 
-static int callJMethod_PI
+int callJMethod_PI
 (char *name, CcPoints *ccp) {
   return
     callIntegerJMethod<CcPoints>(name, ccp, "(LPoints;)I");
@@ -1988,7 +1964,7 @@ static int callJMethod_PI
    a CcLines object and returns an Integer value.
 */
 
-static int callJMethod_LI
+int callJMethod_LI
 (char *name, CcLines *ccl) {
   return
     callIntegerJMethod<CcLines>(name, ccl, "(LLines;)I");
@@ -1998,7 +1974,7 @@ static int callJMethod_LI
    a CcRegions object and returns an Integer value.
 */
 
-static int callJMethod_RI
+int callJMethod_RI
 (char *name, CcRegions *ccr) {
   return
     callIntegerJMethod<CcRegions>(name, ccr, "(LRegions;)I");
@@ -2008,7 +1984,7 @@ static int callJMethod_RI
    two CcPoints and returns a double value.
 */
 
-static double callJMethod_PPd
+double callJMethod_PPd
 (char *name, CcPoints *ccp1, CcPoints *ccp2) {
   return
     callRationalJMethod<CcPoints, CcPoints>
@@ -2019,7 +1995,7 @@ static double callJMethod_PPd
    a CcPoints and CcLines object and returns a double value.
 */
 
-static double callJMethod_PLd
+double callJMethod_PLd
 (char *name, CcPoints *ccp, CcLines *ccl) {
   return
     callRationalJMethod<CcPoints, CcLines>
@@ -2030,7 +2006,7 @@ static double callJMethod_PLd
    a CcPoints and CcRegions object and returns a double value.
 */
 
-static double callJMethod_PRd
+double callJMethod_PRd
 (char *name, CcPoints *ccp, CcRegions *ccr) {
   return
     callRationalJMethod<CcPoints, CcRegions>
@@ -2041,7 +2017,7 @@ static double callJMethod_PRd
    a CcLines and CcPoints object and returns a double value.
 */
 
-static double callJMethod_LPd
+double callJMethod_LPd
 (char *name, CcLines *ccl, CcPoints *ccp) {
   return
     callRationalJMethod<CcLines, CcPoints>
@@ -2052,7 +2028,7 @@ static double callJMethod_LPd
    two CcLines and returns a double value.
 */
 
-static double callJMethod_LLd
+double callJMethod_LLd
 (char *name, CcLines *ccl1, CcLines *ccl2) {
   return
     callRationalJMethod<CcLines, CcLines>
@@ -2063,7 +2039,7 @@ static double callJMethod_LLd
    a CcLines and CcRegions object and returns a double value.
 */
 
-static double callJMethod_LRd
+double callJMethod_LRd
 (char *name, CcLines *ccl, CcRegions *ccr) {
   return
     callRationalJMethod<CcLines, CcRegions>
@@ -2074,7 +2050,7 @@ static double callJMethod_LRd
    a CcRegions and CcPoints object and returns a double value.
 */
 
-static double callJMethod_RPd
+double callJMethod_RPd
 (char *name, CcRegions *ccr, CcPoints *ccp) {
   return
     callRationalJMethod<CcRegions, CcPoints>
@@ -2085,7 +2061,7 @@ static double callJMethod_RPd
    a CcRegions and CcLines object and returns a double value.
 */
 
-static double callJMethod_RLd
+double callJMethod_RLd
 (char *name, CcRegions *ccr, CcLines *ccl) {
   return
     callRationalJMethod<CcRegions, CcLines>
@@ -2096,7 +2072,7 @@ static double callJMethod_RLd
    two CcRegions and returns a double value.
 */
 
-static double callJMethod_RRd
+double callJMethod_RRd
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
   return
     callRationalJMethod<CcRegions, CcRegions>
@@ -2107,7 +2083,7 @@ static double callJMethod_RRd
    one CcPoints and returns a double value.
 */
 
-static double callJMethod_Pd(char *name, CcPoints *ccp) {
+double callJMethod_Pd(char *name, CcPoints *ccp) {
   return
     callRationalJMethod<CcPoints>
     (name, ccp, "(LPoints;)LRational;");
@@ -2117,7 +2093,7 @@ static double callJMethod_Pd(char *name, CcPoints *ccp) {
    one CcLines and returns a double value.
 */
 
-static double callJMethod_Ld(char *name, CcLines *ccl) {
+double callJMethod_Ld(char *name, CcLines *ccl) {
   return
     callRationalJMethod<CcLines>
     (name, ccl, "(LLines;)LRational;");
@@ -2127,7 +2103,7 @@ static double callJMethod_Ld(char *name, CcLines *ccl) {
    one CcRegions and returns a double value.
 */
 
-static double callJMethod_Rd(char *name, CcRegions *ccr) {
+double callJMethod_Rd(char *name, CcRegions *ccr) {
   return
     callRationalJMethod<CcRegions>
     (name, ccr, "(LRegions;)LRational;");
@@ -2137,7 +2113,7 @@ static double callJMethod_Rd(char *name, CcRegions *ccr) {
    a CcLines and returns a double value.
 */
 
-static double callJMethod_LD(char *name, CcLines *ccl) {
+double callJMethod_LD(char *name, CcLines *ccl) {
   return
     callDoubleJMethod<CcLines>(name, ccl, "(LLines;)D");
 }
@@ -2146,7 +2122,7 @@ static double callJMethod_LD(char *name, CcLines *ccl) {
    a CcRegions and returns a double value.
 */
 
-static double callJMethod_RD(char *name, CcRegions *ccr) {
+double callJMethod_RD(char *name, CcRegions *ccr) {
   return
     callDoubleJMethod<CcRegions>(name, ccr, "(LRegions;)D");
 }
@@ -2158,7 +2134,7 @@ static double callJMethod_RD(char *name, CcRegions *ccr) {
 
 /* Equals predicate for two ccpoints. */
 
-static int pp_equalFun(Word* args, Word& result, int message,
+int pp_equalFun(Word* args, Word& result, int message,
 				       Word& local, Supplier s) {
   CcPoints* ccp1;
   CcPoints* ccp2;
@@ -2183,7 +2159,7 @@ static int pp_equalFun(Word* args, Word& result, int message,
 
 /* Equals predicate for two cclines. */
 
-static int ll_equalFun(Word* args, Word& result, int message,
+int ll_equalFun(Word* args, Word& result, int message,
 				       Word& local, Supplier s) {
   CcLines* ls1;
   CcLines* ls2;
@@ -2208,7 +2184,7 @@ static int ll_equalFun(Word* args, Word& result, int message,
 
 /* Equal predicate for two ccregions. */
 
-static int rr_equalFun(Word* args, Word& result, int message,
+int rr_equalFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s) {
   CcRegions* rs1;
   CcRegions* rs2;
@@ -2233,7 +2209,7 @@ static int rr_equalFun(Word* args, Word& result, int message,
 
 /* pp_unequal predicate for two ccpoints. */
 
-static int pp_unequalFun(Word* args, Word& result, int message,
+int pp_unequalFun(Word* args, Word& result, int message,
 			 Word& local, Supplier s)
 {
   CcPoints* ccps1;
@@ -2258,7 +2234,7 @@ static int pp_unequalFun(Word* args, Word& result, int message,
 
 /* ll_unequal predicate for two cclines. */
 
-static int ll_unequalFun(Word* args, Word& result, int message,
+int ll_unequalFun(Word* args, Word& result, int message,
 			 Word& local, Supplier s)
 {
   CcLines* ccl1;
@@ -2283,7 +2259,7 @@ static int ll_unequalFun(Word* args, Word& result, int message,
 
 /* rr_unequal predicate for two ccregions */
 
-static int rr_unequalFun(Word* args, Word& result, int message,
+int rr_unequalFun(Word* args, Word& result, int message,
 				       Word& local, Supplier s)
 {
   CcRegions* ccr1;
@@ -2310,7 +2286,7 @@ static int rr_unequalFun(Word* args, Word& result, int message,
 
 /* pp_disjoint predicate for two CcPoints */
 
-static int pp_disjointFun(Word* args, Word& result, int message,
+int pp_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcPoints* ccp1;
@@ -2336,7 +2312,7 @@ static int pp_disjointFun(Word* args, Word& result, int message,
 
 /* ll_disjoint predicate for two CcLines */
 
-static int ll_disjointFun(Word* args, Word& result, int message,
+int ll_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcLines *ccl1;
@@ -2362,7 +2338,7 @@ static int ll_disjointFun(Word* args, Word& result, int message,
 
 /* rr_disjoint predicate for two CcRegions */
 
-static int rr_disjointFun(Word* args, Word& result, int message,
+int rr_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2388,7 +2364,7 @@ static int rr_disjointFun(Word* args, Word& result, int message,
 
 /* pr_inside predicate for CcPoints and CcRegions */
 
-static int pr_insideFun(Word* args, Word& result, int message,
+int pr_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcPoints *ccp;
@@ -2414,7 +2390,7 @@ static int pr_insideFun(Word* args, Word& result, int message,
 
 /* lr_inside predicate for CcLines and CcRegions */
 
-static int lr_insideFun(Word* args, Word& result, int message,
+int lr_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcLines *ccl;
@@ -2439,7 +2415,7 @@ static int lr_insideFun(Word* args, Word& result, int message,
 
 /* rr_inside predicate for two CcRegions */
 
-static int rr_insideFun(Word* args, Word& result, int message,
+int rr_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2465,7 +2441,7 @@ static int rr_insideFun(Word* args, Word& result, int message,
 
 /* rr_area_disjoint predicate for two CcRegions */
 
-static int rr_area_disjointFun(Word* args, Word& result, int message,
+int rr_area_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2491,7 +2467,7 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
 
 /* rr_edge_disjoint predicate for two CcRegions */
 
-static int rr_edge_disjointFun(Word* args, Word& result, int message,
+int rr_edge_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2517,7 +2493,7 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
 
 /* rr_edge_inside predicate for two CcRegions */
 
-static int rr_edge_insideFun(Word* args, Word& result, int message,
+int rr_edge_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2543,7 +2519,7 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
 
 /* rr_vertex_inside predicate for two CcRegions */
 
-static int rr_vertex_insideFun(Word* args, Word& result, int message,
+int rr_vertex_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2569,7 +2545,7 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
 
 /* rr_intersects predicate for two CcRegions */
 
-static int rr_intersectsFun(Word* args, Word& result, int message,
+int rr_intersectsFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2595,7 +2571,7 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
 
 /* rr_meets predicate for two CcRegions */
 
-static int rr_meetsFun(Word* args, Word& result, int message,
+int rr_meetsFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2621,7 +2597,7 @@ static int rr_meetsFun(Word* args, Word& result, int message,
 
 /* rr_border_in_common predicate for two CcRegions */
 
-static int rr_border_in_commonFun(Word* args, Word& result, int message,
+int rr_border_in_commonFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2647,7 +2623,7 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
 
 /* rr_adjacent predicate for two CcRegions */
 
-static int rr_adjacentFun(Word* args, Word& result, int message,
+int rr_adjacentFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2673,7 +2649,7 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
 
 /* rr_encloses predicate for two CcRegions */
 
-static int rr_enclosesFun(Word* args, Word& result, int message,
+int rr_enclosesFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2699,7 +2675,7 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
 
 /* rr_intersection predicate for two CcRegions */
 
-static int rr_intersectionFun(Word* args, Word& result, int message,
+int rr_intersectionFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2725,7 +2701,7 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
 
 /* rr_plus predicate for two CcRegions */
 
-static int rr_plusFun(Word* args, Word& result, int message,
+int rr_plusFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s) {
   CcRegions *ccr1;
   CcRegions *ccr2;
@@ -2750,7 +2726,7 @@ static int rr_plusFun(Word* args, Word& result, int message,
 
 /* rr_minus predicate for two CcRegions */
 
-static int rr_minusFun(Word* args, Word& result, int message,
+int rr_minusFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
@@ -2776,7 +2752,7 @@ static int rr_minusFun(Word* args, Word& result, int message,
 
 /* rr_common_border predicate for two CcRegions */
 
-static int rr_common_borderFun(Word *args, Word& result,
+int rr_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcRegions *ccr1;
   CcRegions *ccr2;
@@ -2801,7 +2777,7 @@ static int rr_common_borderFun(Word *args, Word& result,
 
 /* ll_intersects predicate for two CcLines */
 
-static int ll_intersectsFun(Word* args, Word& result, int message,
+int ll_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
 
   CcLines *ccl1;
@@ -2827,7 +2803,7 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
 
 /* lr_intersects predicate for CcLines and CcRegions */
 
-static int lr_intersectsFun(Word* args, Word& result, int message,
+int lr_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
   CcLines *ccl;
   CcRegions *ccr;
@@ -2852,7 +2828,7 @@ static int lr_intersectsFun(Word* args, Word& result, int message,
 
 /* rl_intersects predicate for CcRegions and CcLines */
 
-static int rl_intersectsFun(Word* args, Word& result, int message,
+int rl_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
   CcRegions *ccr;
   CcLines *ccl;
@@ -2877,7 +2853,7 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
 
 /* ll_meets predicate for two cclines.*/
 
-static int ll_meetsFun(Word* args, Word& result, int message,
+int ll_meetsFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines* ccl1;
@@ -2902,7 +2878,7 @@ static int ll_meetsFun(Word* args, Word& result, int message,
 
 /* lr_meets predicate for cclines and ccregions. */
 
-static int lr_meetsFun(Word* args, Word& result, int message,
+int lr_meetsFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines* ccl;
@@ -2927,7 +2903,7 @@ static int lr_meetsFun(Word* args, Word& result, int message,
 
 /* rl_meets predicate for ccregions and cclines */
 
-static int rl_meetsFun(Word* args, Word& result, int message,
+int rl_meetsFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines* ccl;
@@ -2952,7 +2928,7 @@ static int rl_meetsFun(Word* args, Word& result, int message,
 
 /* ll_border_in_common predicate for two CcLines. */
 
-static int ll_border_in_commonFun(Word* args, Word& result, int message,
+int ll_border_in_commonFun(Word* args, Word& result, int message,
 				  Word& local, Supplier s)
 {
 
@@ -2979,7 +2955,7 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
 
 /* lr_border_in_common predicate for CcLines and CcRegions. */
 
-static int lr_border_in_commonFun(Word* args, Word& result, int message,
+int lr_border_in_commonFun(Word* args, Word& result, int message,
 				  Word& local, Supplier s)
 {
 
@@ -3006,7 +2982,7 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
 
 /* rl_border_in_common predicate for CcRegions and CcLines. */
 
-static int rl_border_in_commonFun(Word* args, Word& result, int message,
+int rl_border_in_commonFun(Word* args, Word& result, int message,
 				  Word& local, Supplier s)
 {
   CcLines *ccl;
@@ -3033,7 +3009,7 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
 
 /* pl_on_border_of predicate for CcPoints and CcLines */
 
-static int pl_on_border_ofFun(Word* args, Word& result, int message,
+int pl_on_border_ofFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp;
@@ -3059,7 +3035,7 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
 
 /* pr_on_border_of predicate for CcPoints and CcRegions */
 
-static int pr_on_border_ofFun(Word* args, Word& result, int message,
+int pr_on_border_ofFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp;
@@ -3085,7 +3061,7 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
 
 /* pp_intersection predicate for two CcPoints. */
 
-static int pp_intersectionFun(Word* args, Word& result, int message,
+int pp_intersectionFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp1;
@@ -3111,7 +3087,7 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
 
 /* ll_intersection predicate for two CcLines. */
 
-static int ll_intersectionFun(Word* args, Word& result, int message,
+int ll_intersectionFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcLines *ccl1;
@@ -3137,7 +3113,7 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
 
 /* rl_intersection predicate for CcRegions and CcLines */
 
-static int rl_intersectionFun(Word* args, Word& result, int message,
+int rl_intersectionFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcRegions *ccr;
@@ -3163,7 +3139,7 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
 
 /* pp_plus predicate for two CcPoints. */
 
-static int pp_plusFun(Word* args, Word& result, int message,
+int pp_plusFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp1;
@@ -3189,7 +3165,7 @@ static int pp_plusFun(Word* args, Word& result, int message,
 
 /* ll_plus predicate for two CcPoints. */
 
-static int ll_plusFun(Word* args, Word& result, int message,
+int ll_plusFun(Word* args, Word& result, int message,
 		      Word& local, Supplier s)
 {
   CcLines *ccl1;
@@ -3215,7 +3191,7 @@ static int ll_plusFun(Word* args, Word& result, int message,
 
 /* pp_minus predicate for two CcPoints. */
 
-static int pp_minusFun(Word* args, Word& result, int message,
+int pp_minusFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcPoints *ccp1;
@@ -3241,7 +3217,7 @@ static int pp_minusFun(Word* args, Word& result, int message,
 
 /* ll_minus predicate for two CcPoints. */
 
-static int ll_minusFun(Word* args, Word& result, int message,
+int ll_minusFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines *ccl1;
@@ -3267,7 +3243,7 @@ static int ll_minusFun(Word* args, Word& result, int message,
 
 /* ll_common_border predicate for two CcLines. */
 
-static int ll_common_borderFun(Word *args, Word& result,
+int ll_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcLines *ccl1;
   CcLines *ccl2;
@@ -3292,7 +3268,7 @@ static int ll_common_borderFun(Word *args, Word& result,
 
 /* lr_common_border predicate for CcLines and CcRegions. */
 
-static int lr_common_borderFun(Word *args, Word& result,
+int lr_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcLines *ccl;
   CcRegions *ccr;
@@ -3317,7 +3293,7 @@ static int lr_common_borderFun(Word *args, Word& result,
 
 /* rl_common_border predicate for CcLines and CcRegions. */
 
-static int rl_common_borderFun(Word *args, Word& result,
+int rl_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcRegions *ccr;
   CcLines *ccl;
@@ -3342,7 +3318,7 @@ static int rl_common_borderFun(Word *args, Word& result,
 
 /* l_vertices predicate for CcLines. */
 
-static int l_verticesFun(Word *args, Word& result,
+int l_verticesFun(Word *args, Word& result,
 			 int message, Word& local, Supplier s) {
   CcLines *ccl;
   CcPoints *ccresult;
@@ -3365,7 +3341,7 @@ static int l_verticesFun(Word *args, Word& result,
 
 /* r_vertices predicate for CcRegions. */
 
-static int r_verticesFun(Word *args, Word& result,
+int r_verticesFun(Word *args, Word& result,
 			 int message, Word& local, Supplier s) {
   CcRegions *ccr;
   CcPoints *ccresult;
@@ -3388,7 +3364,7 @@ static int r_verticesFun(Word *args, Word& result,
 
 /* l_interior predicate for CcLines. */
 
-static int l_interiorFun(Word *args, Word& result,
+int l_interiorFun(Word *args, Word& result,
 			 int message, Word& local, Supplier s) {
   CcLines *ccl;
   CcRegions *ccresult;
@@ -3411,7 +3387,7 @@ static int l_interiorFun(Word *args, Word& result,
 
 /* r_contour predicate for CcRegions. */
 
-static int r_contourFun(Word *args, Word& result,
+int r_contourFun(Word *args, Word& result,
 			int message, Word& local, Supplier s) {
   CcRegions *ccr;
   CcLines *ccresult;
@@ -3434,7 +3410,7 @@ static int r_contourFun(Word *args, Word& result,
 
 /* p_no_of_components predicate for CcPoints. */
 
-static int p_no_of_componentsFun(Word *args, Word &result,
+int p_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcPoints *ccp = ((CcPoints *)args[0].addr);
@@ -3456,7 +3432,7 @@ static int p_no_of_componentsFun(Word *args, Word &result,
 
 /* l_no_of_components predicate for CcLines. */
 
-static int l_no_of_componentsFun(Word *args, Word &result,
+int l_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcLines *ccl = ((CcLines *)args[0].addr);
@@ -3478,7 +3454,7 @@ static int l_no_of_componentsFun(Word *args, Word &result,
 
 /* r_no_of_components predicate for CcPoints. */
 
-static int r_no_of_componentsFun(Word *args, Word &result,
+int r_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcRegions *ccr = ((CcRegions *)args[0].addr);
@@ -3500,7 +3476,7 @@ static int r_no_of_componentsFun(Word *args, Word &result,
 
 /* pp_dist predicate for two CcPoints */
 
-static int pp_distFun(Word *args, Word &result, int message,
+int pp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcPoints *ccp1 = ((CcPoints *)args[0].addr);
@@ -3523,7 +3499,7 @@ static int pp_distFun(Word *args, Word &result, int message,
 
 /* pl_dist predicate for CcPoints and CcLines */
 
-static int pl_distFun(Word *args, Word &result, int message,
+int pl_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
@@ -3546,7 +3522,7 @@ static int pl_distFun(Word *args, Word &result, int message,
 
 /* pr_dist predicate for CcPoints and CcRegions */
 
-static int pr_distFun(Word *args, Word &result, int message,
+int pr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
@@ -3569,7 +3545,7 @@ static int pr_distFun(Word *args, Word &result, int message,
 
 /* lp_dist predicate for CcLines and CcPoints */
 
-static int lp_distFun(Word *args, Word &result, int message,
+int lp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
@@ -3592,7 +3568,7 @@ static int lp_distFun(Word *args, Word &result, int message,
 
 /* ll_dist predicate for two CcLines. */
 
-static int ll_distFun(Word *args, Word &result, int message,
+int ll_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcLines *ccl1 = ((CcLines *)args[0].addr);
@@ -3615,7 +3591,7 @@ static int ll_distFun(Word *args, Word &result, int message,
 
 /* lr_dist predicate for CcLines and CcRegions. */
 
-static int lr_distFun(Word *args, Word &result, int message,
+int lr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
@@ -3638,7 +3614,7 @@ static int lr_distFun(Word *args, Word &result, int message,
 
 /* rp_dist predicate for CcRegions and CcPoints. */
 
-static int rp_distFun(Word *args, Word &result, int message,
+int rp_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
@@ -3661,7 +3637,7 @@ static int rp_distFun(Word *args, Word &result, int message,
 
 /* rl_dist predicate for CcRegions and CcLines. */
 
-static int rl_distFun(Word *args, Word &result, int message,
+int rl_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
@@ -3684,7 +3660,7 @@ static int rl_distFun(Word *args, Word &result, int message,
 
 /* rr_dist predicate for two CcRegions. */
 
-static int rr_distFun(Word *args, Word &result, int message,
+int rr_distFun(Word *args, Word &result, int message,
 		      Word &local, Supplier s) {
 
   CcRegions *ccr1 = ((CcRegions *)args[0].addr);
@@ -3707,7 +3683,7 @@ static int rr_distFun(Word *args, Word &result, int message,
 
 /* p_diameter predicate for a CcPoints. */
 
-static int p_diameterFun(Word *args, Word &result, int message,
+int p_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
@@ -3729,7 +3705,7 @@ static int p_diameterFun(Word *args, Word &result, int message,
 
 /* l_diameter predicate for a CcLines. */
 
-static int l_diameterFun(Word *args, Word &result, int message,
+int l_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
@@ -3751,7 +3727,7 @@ static int l_diameterFun(Word *args, Word &result, int message,
 
 /* r_diameter predicate for a CcRegions. */
 
-static int r_diameterFun(Word *args, Word &result, int message,
+int r_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
@@ -3773,7 +3749,7 @@ static int r_diameterFun(Word *args, Word &result, int message,
 
 /* l_length predicate for a CcLines. */
 
-static int l_lengthFun(Word *args, Word &result, int message,
+int l_lengthFun(Word *args, Word &result, int message,
 		       Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
@@ -3795,7 +3771,7 @@ static int l_lengthFun(Word *args, Word &result, int message,
 
 /* r_aera predicate for a CcRegions. */
 
-static int r_areaFun(Word *args, Word &result, int message,
+int r_areaFun(Word *args, Word &result, int message,
 		     Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
@@ -3817,7 +3793,7 @@ static int r_areaFun(Word *args, Word &result, int message,
 
 /* r_perimeter predicate for a CcRegions. */
 
-static int r_perimeterFun(Word *args, Word &result, int message,
+int r_perimeterFun(Word *args, Word &result, int message,
 			  Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);

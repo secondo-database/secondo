@@ -1,6 +1,6 @@
 ########################################################################
 #
-# SECONDO makefile for BTree Algebra
+# SECONDO makefile for RTree Algebra
 #
 ########################################################################
 
@@ -13,7 +13,8 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-        $(INCLUDEDIR)/SpatialAlgebra.h \
+        ../Spatial/SpatialAlgebra.h \
+	../Rectangle/RectangleAlgebra.h \
         ../Relation-C++/RelationAlgebra.h
 
 MODNAME=RTreeAlgebra
@@ -28,7 +29,7 @@ all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I. -I../Relation-C++ 
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Relation-C++ -I../Spatial -I../Rectangle
 
 # --- BTree Algebra library ---
 

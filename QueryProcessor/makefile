@@ -18,7 +18,7 @@ CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
 .PHONY: all
 all: $(CODE_DEPENDENCIES) $(OBJECTS)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../Algebras/Relation-C++
 
 # create dependencies from include directives
 %.dep: %.cpp 

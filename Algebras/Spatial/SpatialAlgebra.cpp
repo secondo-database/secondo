@@ -111,7 +111,7 @@ const Coord& Point::GetY() const
 
 const Rectangle Point::BoundingBox() const
 {
-  return Rectangle( this->x, this->x, this->y, this->y );
+  return Rectangle( true, this->x, this->x, this->y, this->y );
 }
 
 Point& Point::operator=( const Point& p )
@@ -125,19 +125,19 @@ Point& Point::operator=( const Point& p )
   return *this;
 }
 
-int Point::operator==( const Point& p ) const
+bool Point::operator==( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
   return x == p.GetX() && y == p.GetY();
 }
 
-int Point::operator!=( const Point& p ) const
+bool Point::operator!=( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
   return x != p.GetX() || y != p.GetY();
 }
 
-int Point::operator<=( const Point& p ) const
+bool Point::operator<=( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
   if( x < p.GetX() )
@@ -147,7 +147,7 @@ int Point::operator<=( const Point& p ) const
   return 0;
 }
 
-int Point::operator<( const Point& p ) const
+bool Point::operator<( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
   if( x < p.GetX() )
@@ -157,7 +157,7 @@ int Point::operator<( const Point& p ) const
   return 0;
 }
 
-int Point::operator>=( const Point& p ) const
+bool Point::operator>=( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
   if( x > p.GetX() )
@@ -167,7 +167,7 @@ int Point::operator>=( const Point& p ) const
   return 0;
 }
 
-int Point::operator>( const Point& p ) const
+bool Point::operator>( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
   if( x > p.GetX() )
@@ -222,11 +222,11 @@ void  Point::CopyFrom(StandardAttribute* right)
 {
 //  cout<<"classcopy ////////////////////"<<endl;
 
-  Point * p = (Point*)right;
+  Point* p = (Point*)right;
   defined = p->IsDefined();
   if (defined)
   {
-      Set( true, p->GetX(), p->GetY());
+      Set( p->GetX(), p->GetY());
   }
   //cout<<*this<<" .vs. "<<*p<<endl;
 }
@@ -249,7 +249,7 @@ int   Point::Compare(Attribute * arg)
     return (res);
 }
 
-int   Point::Adjacent(Attribute * arg)
+bool   Point::Adjacent(Attribute * arg)
 {
     return 0;
     //for points which takes double values, we can not decides whether they are
@@ -279,7 +279,7 @@ ostream& Point::Print( ostream &os )
   ***************************************************
 
 */
-const bool Point::Inside( const Points& ps ) const
+bool Point::Inside( Points& ps ) const
 {
   assert( IsDefined() && ps.IsOrdered() );
 
@@ -296,7 +296,7 @@ void Point::Intersection( const Point& p, Point& result ) const
     result.SetDefined( false );
 }
 
-void Point::Intersection( const Points& ps, Point& result ) const
+void Point::Intersection( Points& ps, Point& result ) const
 {
   assert( IsDefined() );
 
@@ -316,7 +316,7 @@ void Point::Minus( const Point& p, Point& result ) const
     result = *this;
 }
 
-void Point::Minus( const Points& ps, Point& result ) const
+void Point::Minus( Points& ps, Point& result ) const
 {
   assert( IsDefined() );
 
@@ -625,7 +625,7 @@ static Word
 CreatePoint( const ListExpr typeInfo )
 {
     //cout<<"create point2"<<endl;
-    return (SetWord( new Point() ));
+    return (SetWord( new Point( false ) ));
 }
 
 /*
@@ -658,9 +658,18 @@ static Word
 ClonePoint( const Word& w )
 {
   // cout<<"typeclone ////////////////////"<<endl;
-  assert( ((Point *)w.addr)->IsDefined() );
   Point *p = new Point( *((Point *)w.addr) );
   return SetWord( p );
+}
+
+/*
+4.8 ~SizeOf~-function
+
+*/
+int
+SizeOfPoint()
+{
+  return sizeof(Point);
 }
 
 /*
@@ -700,7 +709,7 @@ CheckPoint( ListExpr type, ListExpr& errorInfo )
 */
 void* CastPoint(void* addr)
 {
-  return ( 0 );
+  return (new (addr) Point);
 }
 
 /*
@@ -716,6 +725,7 @@ TypeConstructor point(
 	0, 0, 				//open and save functions
 	ClosePoint, ClonePoint,   	//object close, and clone
 	CastPoint,			//cast function
+	SizeOfPoint,			//sizeof function
 	CheckPoint,	                //kind checking function
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel,
@@ -732,14 +742,14 @@ A ~points~ value is a finite set of points.
 5.1 Implementation of the class ~Points~
 
 */
-Points::Points( SmiRecordFile *recordFile, const int initsize ) :
-  points( recordFile ? new PArray<Point>( recordFile, initsize ) : new MArray<Point>( initsize ) ),
-  bbox(),
+Points::Points( const int initsize ) :
+  points( initsize ),
+  bbox( false ),
   ordered( true )
 {}
 
-Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
-  points( recordFile ? new PArray<Point>( recordFile, ps.Size() ) : new MArray<Point>( ps.Size() ) ),
+Points::Points( Points& ps ) :
+  points( ps.Size() ),
   bbox( ps.BoundingBox() ),
   ordered( true )
 {
@@ -749,36 +759,17 @@ Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
   {
     Point p;
     ps.Get( i, p );
-    points->Put( i, p );
+    points.Put( i, p );
   }
-}
-
-Points::Points( SmiRecord& rootRecord, SmiRecordFile *recordFile, bool update):
-  points( NULL ),
-  bbox(),
-  ordered( true )
-{
-  SmiRecordId recordId;
-  rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-  points = new PArray<Point>( recordFile, recordId, update );
-  rootRecord.Read( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
-}
-
-void Points::Save( SmiRecord& rootRecord ) const
-{
-  SmiRecordId recordId = GetPointsRecordId();
-  rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  rootRecord.Write( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void Points::Destroy()
 {
-  points->MarkDelete();
+  points.Destroy();
 }
 
 Points::~Points()
 {
-  delete points;
 }
 
 const Rectangle Points::BoundingBox() const
@@ -786,21 +777,21 @@ const Rectangle Points::BoundingBox() const
   return bbox;
 }
 
-void Points::Get( const int i, Point& p ) const
+void Points::Get( const int i, Point& p ) 
 {
   assert( i >= 0 && i < Size() );
 
-  points->Get( i, p );
+  points.Get( i, p );
 }
 
-const int Points::Size() const
+int Points::Size() const
 {
-  return points->Size();
+  return points.Size();
 }
 
-const bool Points::IsEmpty() const
+bool Points::IsEmpty() const
 {
-  return points->Size() == 0;
+  return points.Size() == 0;
 }
 
 /*
@@ -828,7 +819,7 @@ bool Points::EndOfPt()
 
 void Points::GetPt( Point& p )
 {
-    if (( pos>=0) && (pos<=Size()-1)) points->Get( pos, p);
+    if (( pos>=0) && (pos<=Size()-1)) points.Get( pos, p);
     else p.SetDefined(false);
 }
 
@@ -840,27 +831,27 @@ void Points::InsertPt( Point& p )
 
     if( !IsOrdered() )
     {
-	pos=points->Size();
-	points->Put( points->Size(), p );
+	pos=points.Size();
+	points.Put( points.Size(), p );
     }
     else
     {
 	int insertpos = Position( p );
 	if( insertpos != -1 )
 	{
-	    for( int i = points->Size() - 1; i >= insertpos; i++ )
+	    for( int i = points.Size() - 1; i >= insertpos; i++ )
 	    {
 		Point auxp;
-		points->Get( i, auxp );
-		points->Put( i+1, auxp );
+		points.Get( i, auxp );
+		points.Put( i+1, auxp );
 	    }
-	    points->Put( insertpos, p );
+	    points.Put( insertpos, p );
 	    pos=insertpos;
 	}
     }
 }
 
-const int Points::Position( const Point& p ) const
+int Points::Position( const Point& p ) 
 {
   assert( IsOrdered() && p.IsDefined() );
 
@@ -870,7 +861,7 @@ const int Points::Position( const Point& p ) const
   {
     int mid = ( first + last ) / 2;
     Point midPoint;
-    points->Get( mid, midPoint );
+    points.Get( mid, midPoint );
     if( p > midPoint )
       first = mid + 1;
     else if( p < midPoint )
@@ -881,23 +872,17 @@ const int Points::Position( const Point& p ) const
    return -1;
 }
 
-const SmiRecordId Points::GetPointsRecordId() const
-{
-  return points->Id();
-}
-
-Points& Points::operator=( const Points& ps )
+Points& Points::operator=( Points& ps )
 {
   assert( ps.IsOrdered() );
 
-  points->MarkDelete();
-  delete points;
-  points = new PArray<Point>(SecondoSystem::GetLobFile());
+  points.Clear();
+  points.Resize( ps.Size() );
   for( int i = 0; i < ps.Size(); i++ )
   {
     Point p;
     ps.Get( i, p );
-    points->Put( i, p );
+    points.Put( i, p );
   }
   bbox = ps.BoundingBox();
   ordered = true;
@@ -919,7 +904,7 @@ void Points::EndBulkLoad()
   ordered = true;
 }
 
-const bool Points::IsOrdered() const
+bool Points::IsOrdered() const
 {
   return ordered;
 }
@@ -929,7 +914,7 @@ void  Points::setOrdered(bool isordered)
   ordered = isordered;
 }
 
-int Points::operator==( const Points& ps ) const
+bool Points::operator==( Points& ps ) 
 {
   assert( IsOrdered() && ps.IsOrdered() );
 
@@ -942,7 +927,7 @@ int Points::operator==( const Points& ps ) const
   for( int i = 0; i < Size(); i++ )
   {
     Point p1, p2;
-    points->Get( i, p1 );
+    points.Get( i, p1 );
     ps.Get( i, p2 );
     if( p1 != p2 )
       return 0;
@@ -950,7 +935,7 @@ int Points::operator==( const Points& ps ) const
   return 1;
 }
 
-int Points::operator!=( const Points& ps ) const
+bool Points::operator!=( Points& ps )
 {
   assert( IsOrdered() && ps.IsOrdered() );
 
@@ -968,33 +953,33 @@ Points& Points::operator+=(const Point& p)
       bool found=false;
       Point auxp;
 
-      for( int i = 0; ((i < points->Size())&&(!found)); i++ )
+      for( int i = 0; ((i < points.Size())&&(!found)); i++ )
       {
-	  points->Get( i, auxp );
+	  points.Get( i, auxp );
 	  if (auxp==p) found=true;
       }
 
       if (!found)
-	  points->Put( points->Size(), p );
+	  points.Put( points.Size(), p );
   }
   else
   {
     int pos = Position( p );
     if( pos != -1 )
     {
-      for( int i = points->Size() - 1; i >= pos; i++ )
+      for( int i = points.Size() - 1; i >= pos; i++ )
       {
         Point auxp;
-        points->Get( i, auxp );
-        points->Put( i+1, auxp );
+        points.Get( i, auxp );
+        points.Put( i+1, auxp );
       }
-      points->Put( pos, p );
+      points.Put( pos, p );
     }
   }
   return *this;
 }
 
-Points& Points::operator+=(const Points& ps)
+Points& Points::operator+=(Points& ps)
 {
   bbox = bbox.Union( ps.BoundingBox() );
 
@@ -1002,7 +987,7 @@ Points& Points::operator+=(const Points& ps)
   {
     Point p;
     ps.Get( i, p );
-    points->Put( points->Size(), p );
+    points.Put( points.Size(), p );
   }
   if( IsOrdered() )
   {
@@ -1023,33 +1008,33 @@ Points& Points::operator-=(const Point& p)
     for( int i = pos; i < Size(); i++ )
     {
       Point auxp;
-      points->Get( i+1, auxp );
-      points->Put( i, auxp );
+      points.Get( i+1, auxp );
+      points.Put( i, auxp );
     }
   }
 
   // Naive way to redo the bounding box.
-  bbox = Rectangle();
+  bbox.SetDefined( false );
   for( int i = 0; i < Size(); i++ )
   {
     Point auxp;
-    points->Get( i, auxp );
+    points.Get( i, auxp );
     bbox = bbox.Union( auxp.BoundingBox() );
   }
 
   return *this;
 }
 
-ostream& operator<<( ostream& o, const Points& ps )
+ostream& operator<<( ostream& o, Points& ps )
 {
-  o << "(" << ps.GetPointsRecordId() << ") <";
+  o << "<";
   for( int i = 0; i < ps.Size(); i++ )
   {
     Point p;
     ps.Get( i, p );
     o << " " << p;
   }
-  o << " >";
+  o << ">";
 
   return o;
 }
@@ -1066,12 +1051,12 @@ void Points::Sort()
 {
   assert( !IsOrdered() );
 
-  points->Sort( PointCompare );
+  points.Sort( PointCompare );
 
   ordered = true;
 }
 
-const bool Points::Contains( const Point& p ) const
+bool Points::Contains( const Point& p )
 {
   assert( IsOrdered() && p.IsDefined() );
 
@@ -1087,7 +1072,7 @@ const bool Points::Contains( const Point& p ) const
   {
     int mid = ( first + last ) / 2;
     Point midPoint;
-    points->Get( mid, midPoint );
+    points.Get( mid, midPoint );
     if( p > midPoint )
       first = mid + 1;
     else if( p < midPoint )
@@ -1098,7 +1083,7 @@ const bool Points::Contains( const Point& p ) const
    return false;
 }
 
-const bool Points::Contains( const Points& ps ) const
+bool Points::Contains( Points& ps )
 {
   assert( IsOrdered() && ps.IsOrdered() );
 
@@ -1141,14 +1126,14 @@ const bool Points::Contains( const Points& ps ) const
   return true;
 }
 
-const bool Points::Inside( const Points& ps ) const
+bool Points::Inside( Points& ps )
 {
   assert( IsOrdered() && ps.IsOrdered() );
 
   return ps.Contains( *this );
 }
 
-const bool Points::Intersects( const Points& ps ) const
+bool Points::Intersects( Points& ps )
 {
   assert( IsOrdered() && ps.IsOrdered() );
 
@@ -1192,6 +1177,17 @@ const bool Points::Intersects( const Points& ps ) const
   ************************************************************************
 
 */
+int Points::NumOfFLOBs()
+{
+  return 1;
+}
+
+FLOB *Points::GetFLOB(const int i)
+{
+  assert( i >= 0 && i < NumOfFLOBs() );
+  return &points;
+}
+
 bool Points::IsDefined() const
 {
   return true;
@@ -1230,7 +1226,7 @@ size_t   Points::HashValue()
 
 void  Points::Clear()
 {
-    points->Clear();
+    points.Clear();
     pos=-1;
     ordered=true;
     bbox.SetDefined(false);
@@ -1246,7 +1242,7 @@ void  Points::CopyFrom(StandardAttribute* right)
     {
 	Point p;
 	ps->Get( i, p );
-	points->Put( i, p );
+	points.Put( i, p );
     }
     bbox = ps->BoundingBox();
 }
@@ -1282,7 +1278,7 @@ int   Points::Compare(Attribute * arg)
     return (res);
 }
 
-int   Points::Adjacent(Attribute * arg)
+bool   Points::Adjacent(Attribute * arg)
 {
     return 0;
     //for points which takes double values, we can not decides whether they are
@@ -1296,19 +1292,19 @@ int  Points::Sizeof() const
 
 Points*  Points::Clone()
 {
-    return (new Points(SecondoSystem::GetLobFile(),  *this));
+    return (new Points(*this));
 }
 
 ostream& Points::Print( ostream &os )
 {
-    os << "(" << GetPointsRecordId() << ") <";
+    os << "<";
     for( int i = 0; i < Size(); i++ )
     {
 	Point p;
 	Get( i, p );
 	os << " " << p;
     }
-    os << " >";
+    os << ">";
 
     return os;
 }
@@ -1368,7 +1364,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
 {
   //cout << "InPoints" << endl;
 
-  Points* points = new Points( SecondoSystem::GetLobFile(), nl->ListLength( instance ) );
+  Points* points = new Points( nl->ListLength( instance ) );
   points->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -1402,7 +1398,7 @@ CreatePoints( const ListExpr typeInfo )
 {
 //  cout << "CreatePoints" << endl;
 
-  return (SetWord( new Points( SecondoSystem::GetLobFile() ) ));
+  return (SetWord( new Points( 0 ) ));
 }
 
 /*
@@ -1442,46 +1438,18 @@ ClonePoints( const Word& w )
 {
 //  cout << "ClonePoints" << endl;
 
-  Points *p = new Points(  SecondoSystem::GetLobFile(), *((Points *)w.addr) );
+  Points *p = new Points( *((Points *)w.addr) );
   return SetWord( p );
 }
 
 /*
-5.9 ~Open~-function
+5.8 ~SizeOf~-function
 
 */
-bool
-OpenPoints( SmiRecord& valueRecord,
-            const ListExpr typeInfo,
-            Word& value )
+static int
+SizeOfPoints()
 {
-//  cout << "OpenPoints" << endl;
-
-  Points *points = new Points( valueRecord, SecondoSystem::GetLobFile() );
-  value = SetWord( points );
-
-//  cout << "OpenPoints: " << *points << endl;
-  return (true);
-}
-
-/*
-5.10 ~Save~-function
-
-*/
-bool
-SavePoints( SmiRecord& valueRecord,
-            const ListExpr typeInfo,
-            Word& value )
-{
-//  cout << "SavePoints" << endl;
-
-  Points *points = (Points*)value.addr;
-
-//  cout << "SavePoints: " << *points << endl;
-
-  points->Save( valueRecord );
-
-  return (true);
+  return sizeof(Points);
 }
 
 /*
@@ -1521,30 +1489,13 @@ CheckPoints( ListExpr type, ListExpr& errorInfo )
 */
 void* CastPoints(void* addr)
 {
-  return ( 0 );
+  return (new (addr) Points);
 }
 
 /*
 5.14 Creation of the type constructor instance
 
 */
-#ifdef RELALG_PERSISTENT
-TypeConstructor points(
-	"points",			//name
-	PointsProperty, 		//property function describing signature
-	OutPoints,   	InPoints,	//Out and In functions
-        0,              0,              //SaveToList and RestoreFromList functions
-	CreatePoints,	DeletePoints,	//object creation and deletion
-	OpenPoints, 	SavePoints,    	// object open and save
-	ClosePoints, 	ClonePoints,   	//object close and clone
-	CastPoints,			//cast function
-	CheckPoints,	                //kind checking function
-	0, 				//predef. pers. function for model
-        TypeConstructor::DummyInModel,
-        TypeConstructor::DummyOutModel,
-        TypeConstructor::DummyValueToModel,
-        TypeConstructor::DummyValueListToModel );
-#else
 TypeConstructor points(
         "points",                       //name
         PointsProperty,                 //property function describing signature
@@ -1554,13 +1505,13 @@ TypeConstructor points(
         0,     0,		     	// object open and save
         ClosePoints,    ClonePoints,    //object close and clone
         CastPoints,                     //cast function
+        SizeOfPoints,                   //sizeof function
         CheckPoints,                    //kind checking function
         0,                              //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
-#endif
 
 /*
 6 Type Constructor ~halfsegment~
@@ -1572,22 +1523,28 @@ A ~halfsegment~ value is a pair of points, with a boolean flag indicating the do
 6.1.1 Constructions and Distruction
 
 */
-
-CHalfSegment::CHalfSegment(bool Defined, bool LDP, Point& P1, Point& P2)
+CHalfSegment::CHalfSegment(bool Defined, bool LDP, const Point& P1, const Point& P2)
 {
    defined = Defined;
-   ldp = LDP;
-   if (P1<P2)
+   if( defined )
    {
+     ldp = LDP;
+     if (P1<P2)
+     {  
        lp = P1;
        rp = P2;
-   }
-   else if (P1>P2)
-   {
+     }
+     else if (P1>P2)
+     { 
        lp = P2;
        rp = P1;
+     }
+     else cout <<"incorrect segment value!"<<endl;
    }
-   else cout <<"incorrect segment value!"<<endl;
+   else 
+   {
+     ldp = false;
+   }
 }
 
 
@@ -1607,12 +1564,6 @@ CHalfSegment::CHalfSegment( const CHalfSegment& chs )
    }
 }
 
-CHalfSegment::CHalfSegment():
-  defined( false ),
-  ldp( false )
-{
-}
-
 CHalfSegment::~CHalfSegment()
 {
 }
@@ -1622,7 +1573,7 @@ CHalfSegment::~CHalfSegment()
 
 */
 
-const bool CHalfSegment::IsDefined() const
+bool CHalfSegment::IsDefined() const
 {
     return (defined);
 }
@@ -1651,7 +1602,7 @@ const Point&  CHalfSegment::GetSPoint() const
     else return lp;
 }
 
-const bool CHalfSegment::GetLDP() const
+bool CHalfSegment::GetLDP() const
 {
     assert(IsDefined());
     return ldp;
@@ -1672,13 +1623,14 @@ void    CHalfSegment::translate(double xx, double yy)
 
 const Rectangle CHalfSegment::BoundingBox() const
 {
-  return Rectangle( MIN( GetLP().GetX(), GetRP().GetX() ),
+  return Rectangle( true,
+                    MIN( GetLP().GetX(), GetRP().GetX() ),
                     MAX( GetLP().GetX(), GetRP().GetX() ),
                     MIN( GetLP().GetY(), GetRP().GetY() ),
                     MAX( GetLP().GetY(), GetRP().GetY() ) );
 }
 
-const attrtype&  CHalfSegment::GetAttr() const
+const AttrType&  CHalfSegment::GetAttr() const
 {
     assert(IsDefined());
     return attr;
@@ -1693,9 +1645,9 @@ void CHalfSegment::SetDefined(bool Defined)
     defined = Defined;
 }
 
-void  CHalfSegment::Set(bool Defined,  bool LDP, Point& P1, Point& P2)
+void  CHalfSegment::Set(bool LDP, Point& P1, Point& P2)
 {
-    defined = Defined;
+    defined = true;
     ldp = LDP;
     if (P1<P2)
     {
@@ -1710,7 +1662,7 @@ void  CHalfSegment::Set(bool Defined,  bool LDP, Point& P1, Point& P2)
     else cout <<"incorrect segment value!"<<endl;
 }
 
-void    CHalfSegment::SetAttr(attrtype& ATTR)
+void    CHalfSegment::SetAttr(AttrType& ATTR)
 {
     attr=ATTR;
 }
@@ -1844,22 +1796,22 @@ CHalfSegment& CHalfSegment::operator=(const CHalfSegment& chs)
   return *this;
 }
 
-int CHalfSegment::operator==(const CHalfSegment& chs) const
+bool CHalfSegment::operator==(const CHalfSegment& chs) const
 {
     return (chscmp(chs)==0);
 }
 
-int CHalfSegment::operator!=(const CHalfSegment& chs) const
+bool CHalfSegment::operator!=(const CHalfSegment& chs) const
 {
     return (!(*this==chs));
 }
 
-int CHalfSegment::operator<(const CHalfSegment& chs) const
+bool CHalfSegment::operator<(const CHalfSegment& chs) const
 {
     return (chscmp(chs)==-1);
 }
 
-int CHalfSegment::operator>(const CHalfSegment& chs) const
+bool CHalfSegment::operator>(const CHalfSegment& chs) const
 {
     return (chscmp(chs)==1);
 }
@@ -1898,17 +1850,17 @@ int CHalfSegment::logicgreater(const CHalfSegment& chs) const
     }
 }
 
-bool HalfSegmentCompare(const CHalfSegment& chsa, const CHalfSegment& chsb)
+bool HalfSegmentCompare(const CHalfSegment& a, const CHalfSegment& b)
 {
-  if( chsa < chsb )
+  if( a < b )
     return true;
   else
     return false;
 }
 
-bool HalfSegmentLogCompare(const CHalfSegment& chsa, const CHalfSegment& chsb)
+bool HalfSegmentLogCompare(const CHalfSegment& a, const CHalfSegment& b)
 {
-  if( chsa.logicless(chsb))
+  if( a.logicless(b))
     return true;
   else
     return false;
@@ -1934,7 +1886,7 @@ This function decides whether two line segments intersect each other. The inters
 can be in any place of the line segments, including the middle points and endpoints.
 
 */
-const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
+bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
     Coord Xl,Yl,Xr,Yr;
@@ -2056,7 +2008,7 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
 This function decides whether two line segments intersect with their inner points.
 
 */
-const bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
+bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
     Coord Xl,Yl,Xr,Yr;
@@ -2195,7 +2147,7 @@ This function decides whether two line segments intersect with a single point. T
 intersecting points can be middle point or endpoint.
 
 */
-const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) const
+bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) const
 {
     Coord xl,yl,xr,yr;
     Coord Xl,Yl,Xr,Yr;
@@ -2255,7 +2207,7 @@ const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) cons
 	{
 	    if (((yy>Yl) && (yy<Yr)) || ((yy>Yr) && (yy<Yl)))
 	     {
-		resp.Set(true, Xl, yy);
+		resp.Set(Xl, yy);
 		return true;
 	    }
 	    else return false;
@@ -2277,7 +2229,7 @@ const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) cons
 	{
 	    if (((YY>yl) && (YY<yr)) || ((YY>yr) && (YY<yl)))
 	    {
-		resp.Set(true, xl,YY);
+		resp.Set(xl,YY);
 		return true;
 	    }
 	    else return false;
@@ -2305,7 +2257,7 @@ const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) cons
 
 	if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx <Xr))
 	{
-	    resp.Set(true, xx, yy);
+	    resp.Set(xx, yy);
 	    return true;
 	}
 	else return false;
@@ -2318,7 +2270,7 @@ This function decides whether two line segments overlap each other. That is, the
 part of the segment, not just a point.
 
 */
-const bool CHalfSegment::overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const
+bool CHalfSegment::overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const
 {
     Coord xl,yl,xr,yr;
     Coord Xl,Yl,Xr,Yr;
@@ -2399,14 +2351,14 @@ const bool CHalfSegment::overlapintersect( const CHalfSegment& chs, CHalfSegment
 	    {
 		Point p1, p2;
 		if (ylow>Ylow)
-		        p1.Set(true, xl, ylow);
-		else p1.Set(true, xl, Ylow);
+		        p1.Set(xl, ylow);
+		else p1.Set(xl, Ylow);
 
 		if (yup<Yup)
-		        p2.Set(true, xl, yup);
-		else p2.Set(true, xl, Yup);
+		        p2.Set(xl, yup);
+		else p2.Set(xl, Yup);
 
-		reschs.Set(true, true, p1, p2);
+		reschs.Set(true, p1, p2);
 		return true;
 	    }
 	    else return false;
@@ -2428,14 +2380,14 @@ const bool CHalfSegment::overlapintersect( const CHalfSegment& chs, CHalfSegment
 	{
 	    Point p1, p2;
 	    if (xl>Xl)
-	             p1.Set(true, xl, yl);
-	    else  p1.Set(true, Xl, Yl);
+	             p1.Set(xl, yl);
+	    else  p1.Set(Xl, Yl);
 
 	    if (xr<Xr)
-	             p2.Set(true, xr, yr);
-	    else  p2.Set(true, Xr, Yr);
+	             p2.Set(xr, yr);
+	    else  p2.Set(Xr, Yr);
 
-	    reschs.Set(true, true, p1, p2);
+	    reschs.Set(true, p1, p2);
 	    return true;
 	}
 	else return false;
@@ -2449,7 +2401,7 @@ This function decides whether two line segments cross each other. That is, they 
 and they intersect with a middle point.
 
 */
-const bool CHalfSegment::cross( const CHalfSegment& chs ) const
+bool CHalfSegment::cross( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
     Coord Xl,Yl,Xr,Yr;
@@ -2563,7 +2515,7 @@ This function is similar to cross function, with just minor differences; the int
 of the first segment but not the second.
 
 */
-const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
+bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 {
     Coord xl,yl,xr,yr;
     Coord Xl,Yl,Xr,Yr;
@@ -2625,7 +2577,7 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 	{
 	    if (((yy>=Yl) && (yy<=Yr)) || ((yy>=Yr) && (yy<=Yl)))
 	    {
-		p.Set(true, xx, yy);
+		p.Set(xx, yy);
 		return true;
 	    }
 	    else return false;
@@ -2649,7 +2601,7 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 	{
 	    if (((YY>=yl) && (YY<=yr)) || ((YY>=yr) && (YY<=yl)))
 	    {
-		p.Set(true, XX, YY);
+		p.Set(XX, YY);
 		return true;
 	    }
 	    else return false;
@@ -2673,7 +2625,7 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 
 	if ((xx>=xl) && (xx<=xr) && (xx>=Xl) && (xx<=Xr))
 	{
-	    p.Set(true, xx, yy);
+	    p.Set(xx, yy);
 	    return true;
 	}
 	else return false;
@@ -2686,7 +2638,7 @@ This function decides whether two line segments overlap each other. That is, the
  same (endless) line and they intersect with middle points.
 
 */
-const bool CHalfSegment::overlap( const CHalfSegment& chs ) const
+bool CHalfSegment::overlap( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
     Coord Xl,Yl,Xr,Yr;
@@ -2826,7 +2778,7 @@ This function decides whether a line segment is inside another, that is, it is a
 of the other line segment.
 
 */
-const bool CHalfSegment::Inside(const CHalfSegment& chs) const
+bool CHalfSegment::Inside(const CHalfSegment& chs) const
 { //to decide whether *this is part of *arg.
   assert( IsDefined() && chs.IsDefined() );
 
@@ -2895,7 +2847,7 @@ This function decides whether a point is inside a line segment. Semantically, if
 on the end points of the segment, then it is also "contained".
 
 */
-const bool CHalfSegment::Contains( const Point& p ) const
+bool CHalfSegment::Contains( const Point& p ) const
 {
   assert( p.IsDefined() );
 
@@ -3061,7 +3013,7 @@ This function decides whether a line segment is above a given point. That is,
 they are separate and the line segment is straight above the point.
 
 */
-const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
+bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
 {
     Coord x, y, xl, yl,xr, yr;
     x=p.GetX();
@@ -3168,8 +3120,7 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance, const int error
 	     nl->SymbolValue(instance)=="undef")
 	{
 	    correct = true;
-	    chs = new CHalfSegment();
-	    chs->SetDefined(false);
+	    chs = new CHalfSegment( false );
 	    return SetWord(chs);
 	}
 	else
@@ -3243,8 +3194,7 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance, const int error
 static Word
 CreateHalfSegment( const ListExpr typeInfo )
 {
-    CHalfSegment* chs = new CHalfSegment();
-    chs->SetDefined(false);
+    CHalfSegment* chs = new CHalfSegment( false );
     return (SetWord(chs));
 }
 
@@ -3281,6 +3231,16 @@ static Word
 CloneHalfSegment( const Word& w )
 {
   return SetWord( ((CHalfSegment*)w.addr)->Clone());
+}
+
+/*
+6.8 ~SizeOf~-function
+
+*/
+int
+SizeOfHalfSegment()
+{
+  return sizeof(CHalfSegment);
 }
 
 /*
@@ -3332,6 +3292,7 @@ TypeConstructor halfsegment(
 	CreateHalfSegment, DeleteHalfSegment,	//object creation and deletion
 	0, 0, CloseHalfSegment, CloneHalfSegment, //open, save, close, clone
 	CastHalfSegment, 			//cast function
+	SizeOfHalfSegment,			//sizeof function
 	CheckHalfSegment,			//kind checking function
 	0, 				    	//function for model
 	TypeConstructor::DummyInModel,
@@ -3349,18 +3310,16 @@ as a set of sorted halfsegments, which are stored as a PArray.
 7.1 Implementation of the class ~line~
 
 */
-
-
-CLine::CLine(SmiRecordFile *recordFile, const int initsize) :
-	line( recordFile ? new PArray<CHalfSegment>(recordFile, initsize) : new MArray<CHalfSegment>(initsize) ),
-	bbox(),
-	ordered( true )
+CLine::CLine(const int initsize) :
+        line( initsize ),
+        bbox( false ),
+        ordered( true )
 {}
 
-CLine::CLine(SmiRecordFile *recordFile, const CLine& cl ) :
-	line( recordFile ? new PArray<CHalfSegment>(recordFile, cl.Size()) : new MArray<CHalfSegment>(cl.Size()) ),
-	bbox( cl.BoundingBox() ),
-	ordered( true )
+CLine::CLine(CLine& cl ) :
+        line( cl.Size() ),
+        bbox( cl.BoundingBox() ),
+        ordered( true )
 {
   assert( cl.IsOrdered());
 
@@ -3368,36 +3327,17 @@ CLine::CLine(SmiRecordFile *recordFile, const CLine& cl ) :
   {
     CHalfSegment chs;
     cl.Get( i, chs );
-    line->Put( i, chs );
+    line.Put( i, chs );
   }
-}
-
-CLine::CLine(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update):
-	line( NULL ),
-	bbox(),
-	ordered(true)
-{
-    SmiRecordId recordId;
-    rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-    line = new PArray<CHalfSegment>( recordFile, recordId, update );
-    rootRecord.Read( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
-}
-
-void CLine::Save( SmiRecord& rootRecord ) const
-{
-  SmiRecordId recordId = GetLineRecordId();
-  rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  rootRecord.Write( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void CLine::Destroy()
 {
-  line->MarkDelete();
+  line.Destroy();
 }
 
 CLine::~CLine()
 {
-  delete line;
 }
 
 const Rectangle CLine::BoundingBox() const
@@ -3405,7 +3345,7 @@ const Rectangle CLine::BoundingBox() const
   return bbox;
 }
 
-const bool CLine::IsOrdered() const
+bool CLine::IsOrdered() const
 {
   return ordered;
 }
@@ -3430,46 +3370,40 @@ void CLine::EndBulkLoad()
   ordered = true;
 }
 
-const bool CLine::IsEmpty() const
+bool CLine::IsEmpty() const
 {
-  return (line->Size() == 0);
+  return (line.Size() == 0);
 }
 
-const int CLine::Size() const
+int CLine::Size() const
 {
-  return (line->Size());
+  return (line.Size());
 }
 
-void CLine::Get( const int i, CHalfSegment& chs ) const
+void CLine::Get( const int i, CHalfSegment& chs ) 
 {
   assert( i >= 0 && i < Size());
-  line->Get( i, chs);
+  line.Get( i, chs);
 }
 
-const SmiRecordId CLine::GetLineRecordId() const
-{
-  return line->Id();
-}
-
-CLine& CLine::operator=(const CLine& cl)
+CLine& CLine::operator=(CLine& cl)
 {
   assert( cl.IsOrdered() );
 
-  line->MarkDelete();
-  delete line;
-  line = new PArray<CHalfSegment>(SecondoSystem::GetLobFile());
+  line.Clear();
+  line.Resize( cl.Size() );
   for( int i = 0; i < cl.Size(); i++ )
   {
     CHalfSegment chs;
     cl.Get( i, chs );
-    line->Put( i, chs );
+    line.Put( i, chs );
   }
   bbox = cl.BoundingBox();
   ordered = true;
   return *this;
 }
 
-int CLine::operator==(const CLine& cl) const
+bool CLine::operator==(CLine& cl)
 {
   assert( IsOrdered() && cl.IsOrdered() );
 
@@ -3480,7 +3414,7 @@ int CLine::operator==(const CLine& cl) const
   for( int i = 0; i < Size(); i++ )
   {
     CHalfSegment chs1, chs2;
-    line->Get( i, chs1 );
+    line.Get( i, chs1 );
     cl.Get( i, chs2 );
     if( chs1 != chs2 )
       return 0;
@@ -3499,26 +3433,26 @@ CLine& CLine::operator+=(const CHalfSegment& chs)
       bool found=false;
       CHalfSegment auxchs;
 
-      for( int i = 0; ((i < line->Size())&&(!found)); i++ )
+      for( int i = 0; ((i < line.Size())&&(!found)); i++ )
       {
-	  line->Get( i, auxchs );
+	  line.Get( i, auxchs );
 	  if (auxchs==chs) found=true;
       }
 
-      if (!found)  line->Put( line->Size(), chs);
+      if (!found)  line.Put( line.Size(), chs);
   }
   else
   {
     int pos = Position( chs );
     if( pos != -1 )
     {
-      for( int i = line->Size() - 1; i >= pos; i++ )
+      for( int i = line.Size() - 1; i >= pos; i++ )
       {
         CHalfSegment auxchs;
-        line->Get( i, auxchs );
-        line->Put( i+1, auxchs );
+        line.Get( i, auxchs );
+        line.Put( i+1, auxchs );
       }
-      line->Put( pos, chs );
+      line.Put( pos, chs );
     }
   }
   return *this;
@@ -3534,17 +3468,17 @@ CLine& CLine::operator-=(const CHalfSegment& chs)
     for( int i = pos; i < Size(); i++ )
     {
       CHalfSegment auxchs;
-      line->Get( i+1, auxchs );
-      line->Put( i, auxchs );
+      line.Get( i+1, auxchs );
+      line.Put( i, auxchs );
     }
   }
 
   // Naive way to redo the bounding box.
-  bbox = Rectangle();
+  bbox.SetDefined( false );
   for( int i = 0; i < Size(); i++ )
   {
       CHalfSegment auxchs;
-      line->Get( i, auxchs );
+      line.Get( i, auxchs );
       bbox = bbox.Union( chs.BoundingBox() );
   }
 
@@ -3570,7 +3504,7 @@ bool CLine::EndOfHs()
 
 void CLine::GetHs( CHalfSegment& chs )
 {
-    if (( pos>=0) && (pos<=Size()-1))    line->Get( pos, chs);
+    if (( pos>=0) && (pos<=Size()-1))    line.Get( pos, chs);
     else chs.SetDefined(false);
 }
 
@@ -3580,27 +3514,27 @@ void CLine::InsertHs( CHalfSegment& chs )
 
     if( !IsOrdered())
     {
-	pos=line->Size();
-	line->Put( line->Size(), chs);
+	pos=line.Size();
+	line.Put( line.Size(), chs);
     }
     else
     {
 	int insertpos = Position( chs );
 	if( insertpos != -1 )
 	{
-	    for( int i = line->Size() - 1; i >= insertpos; i++ )
+	    for( int i = line.Size() - 1; i >= insertpos; i++ )
 	    {
 		CHalfSegment auxchs;
-		line->Get( i, auxchs );
-		line->Put( i+1, auxchs );
+		line.Get( i, auxchs );
+		line.Put( i+1, auxchs );
 	    }
-	    line->Put( insertpos, chs );
+	    line.Put( insertpos, chs );
 	    pos=insertpos;
 	}
     }
 }
 
-const int CLine::Position( const CHalfSegment& chs) const
+int CLine::Position( const CHalfSegment& chs)
 {
   assert( IsOrdered() && chs.IsDefined() );
 
@@ -3610,7 +3544,7 @@ const int CLine::Position( const CHalfSegment& chs) const
   {
     int mid = ( first + last ) / 2;
     CHalfSegment midchs;
-    line->Get( mid, midchs);
+    line.Get( mid, midchs);
     if (chs > midchs )   first = mid + 1;
     else if ( chs < midchs)  last = mid - 1;
             else  return mid;
@@ -3622,21 +3556,21 @@ void CLine::Sort()
 {
   assert( !IsOrdered() );
 
-  line->Sort( HalfSegmentCompare );
+  line.Sort( HalfSegmentCompare );
 
   ordered = true;
 }
 
-ostream& operator<<( ostream& os, const CLine& cl )
+ostream& operator<<( ostream& os, CLine& cl )
 {
-  os << "(" << cl.GetLineRecordId() << ") <";
+  os << "<";
   for( int i = 0; i < cl.Size(); i++ )
   {
     CHalfSegment chs;
     cl.Get( i, chs );
     os << " " << chs;
   }
-  os << " >";
+  os << ">";
   return os;
 }
 
@@ -3646,6 +3580,17 @@ ostream& operator<<( ostream& os, const CLine& cl )
   ************************************************************************
 
 */
+int CLine::NumOfFLOBs()
+{
+  return 1;
+}
+
+FLOB *CLine::GetFLOB(const int i)
+{
+  assert( i >= 0 && i < NumOfFLOBs() );
+  return &line;
+}
+
 bool CLine::IsDefined() const
 {
   return true;
@@ -3656,7 +3601,6 @@ void CLine::SetDefined( bool Defined )
     //defined = Defined;
     //since every line is defined, so the function does nothing.
 }
-
 
 size_t   CLine::HashValue()
 {
@@ -3691,7 +3635,7 @@ size_t   CLine::HashValue()
 
 void  CLine::Clear()
 {
-    line->Clear();
+    line.Clear();
     pos=-1;
     ordered=true;
     bbox.SetDefined(false);
@@ -3707,7 +3651,7 @@ void  CLine::CopyFrom(StandardAttribute* right)
     {
 	CHalfSegment chs;
 	cl->Get( i, chs );
-	line->Put( i, chs );
+	line.Put( i, chs );
     }
     bbox=cl->BoundingBox();
 }
@@ -3743,7 +3687,7 @@ int   CLine::Compare(Attribute * arg)
     return (res);
 }
 
-int   CLine::Adjacent(Attribute * arg)
+bool   CLine::Adjacent(Attribute * arg)
 {
     return 0;
     //for points which takes double values, we can not decides whether they are
@@ -3757,19 +3701,19 @@ int  CLine::Sizeof() const
 
 CLine*  CLine::Clone()
 {
-    return (new CLine(SecondoSystem::GetLobFile(),  *this));
+    return (new CLine(*this));
 }
 
 ostream& CLine::Print( ostream &os )
 {
-    os << "(" << GetLineRecordId() << ") <";
+    os << "<";
     for( int i = 0; i < Size(); i++ )
     {
 	CHalfSegment chs;
 	Get( i, chs );
 	os << " " << chs;
     }
-    os << " >";
+    os << ">";
     return os;
 }
 /*
@@ -3846,7 +3790,7 @@ static Word
 InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
 //    cout<<"Inline###########"<<endl;
-  CLine* cl = new CLine( SecondoSystem::GetLobFile());
+  CLine* cl = new CLine( 0 );
   CHalfSegment * chs;
   cl->StartBulkLoad();
   ListExpr first, halfseg, halfpoint;
@@ -3906,7 +3850,7 @@ static Word
 CreateLine( const ListExpr typeInfo )
 {
   //  cout << "CreateLine" << endl;
-  return (SetWord( new CLine(SecondoSystem::GetLobFile() ) ));
+  return (SetWord( new CLine( 0 ) ));
 }
 
 /*
@@ -3944,46 +3888,17 @@ static Word
 CloneLine( const Word& w )
 {
   //  cout << "CloneLine" << endl;
-  CLine *cl = new CLine(SecondoSystem::GetLobFile(), *((CLine *)w.addr) );
+  CLine *cl = new CLine(*((CLine *)w.addr) );
   return SetWord( cl );
 }
 
 /*
-7.9 ~Open~-function
+7.9 ~SizeOf~-function
 
 */
-bool
-OpenLine( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
+int SizeOfLine()
 {
-  //SmiRecordId recordId;
-  //valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-
-  CLine *cl = new CLine( SecondoSystem::GetLobFile(), valueRecord );
-  value = SetWord( cl );
-
-  //cout << "OpenLine: " << *cl << endl;
-
-  return (true);
-}
-
-/*
-7.10 ~Save~-function
-
-*/
-bool
-SaveLine( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
-{
-  //  cout << "SaveLine" << endl;
-
-  CLine *cl = (CLine*)value.addr;
-
-  //  cout << "SaveLine: " << *cl << endl;
-
-  //SmiRecordId recordId = cl->GetLineRecordId();
-  //valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  cl->Save(valueRecord);
-
-  return (true);
+  return sizeof(CLine);
 }
 
 /*
@@ -4026,30 +3941,13 @@ CheckLine( ListExpr type, ListExpr& errorInfo )
 */
 void* CastLine(void* addr)
 {
-  return ( 0 );
+  return (new (addr) CLine);
 }
 
 /*
 7.14 Creation of the type constructor instance
 
 */
-#ifdef RELALG_PERSISTENT
-TypeConstructor line(
-	"line",				//name
-	LineProperty,	 		//describing signature
-	OutLine,   	InLine,		//Out and In functions
-        0,              0,              //SaveToList and RestoreFromList functions
-	CreateLine,	DeleteLine,	//object creation and deletion
-	OpenLine, 	SaveLine,    	// object open and save
-	CloseLine, 	CloneLine,   	//object close and clone
-	CastLine,			//cast function
-	CheckLine,			//kind checking function
-	0, 				//function for model
-	TypeConstructor::DummyInModel,
-	TypeConstructor::DummyOutModel,
-	TypeConstructor::DummyValueToModel,
-	TypeConstructor::DummyValueListToModel );
-#else
 TypeConstructor line(
         "line",                         //name
         LineProperty,                   //describing signature
@@ -4059,13 +3957,14 @@ TypeConstructor line(
         0,       	0,       	// object open and save
         CloseLine,      CloneLine,      //object close and clone
         CastLine,                       //cast function
+        SizeOfLine,			//sizeof function
         CheckLine,                      //kind checking function
         0,                              //function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
-#endif
+
 /*
 8 Type Constructor ~region~
 
@@ -4079,80 +3978,50 @@ insertOK() function).
 8.1 Implementation of the class ~region~
 
 */
+CRegion::CRegion(const int initsize) :
+        region( initsize ),
+        bbox( false ),
+        ordered( true )
+{}
 
-CRegion::CRegion(SmiRecordFile *recordFile, const int initsize) :
-	region( recordFile ? new PArray<CHalfSegment>(recordFile, initsize) : new MArray<CHalfSegment>(initsize) ),
-	bbox(),
-	ordered( true )
+CRegion::CRegion(CRegion& cr, bool onlyLeft ) :
+        region( cr.Size() ),
+        bbox(cr.BoundingBox()),
+        ordered( true )
 {
-    //cout << "CRegion::CRegion1 "<<endl;
-}
-
-CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
-	region( recordFile ? new PArray<CHalfSegment>(recordFile, cr.Size()) : new MArray<CHalfSegment>(cr.Size()) ),
-	bbox(cr.BoundingBox()),
-	ordered( true )
-{
-  //cout << "CRegion::CRegion2 "<<endl;
-  assert( cr.IsOrdered());
-
-  for( int i = 0; i < cr.Size(); i++ )
+  if( !onlyLeft )
   {
-    CHalfSegment chs;
-    cr.Get( i, chs );
-    region->Put( i, chs );
+    assert( cr.IsOrdered() );
+    for( int i = 0; i < cr.Size(); i++ )
+    {
+      CHalfSegment chs;
+      cr.Get( i, chs );
+      region.Put( i, chs );
+    }
   }
-}
-
-CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
-	  region( recordFile ? new PArray<CHalfSegment>(recordFile, cr.Size()) : new MArray<CHalfSegment>(cr.Size()) ),
-	  bbox(cr.BoundingBox()),
-	  ordered( false )
-{
-    //  assert( cr.IsOrdered());
-    //cout << "CRegion::CRegion3 "<<endl;
+  else
+  {
     int j=0;
     for( int i = 0; i < cr.Size(); i++ )
     {
-	CHalfSegment chs;
-	cr.Get( i, chs );
-	if (chs.GetLDP())
-	{
-	    region->Put( j, chs );
-	    j++;
-	}
+        CHalfSegment chs;
+        cr.Get( i, chs );
+        if (chs.GetLDP())
+        {
+            region.Put( j, chs );
+            j++;
+        }
     }
-}
-
-CRegion::CRegion(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update ):
-	  region( NULL ),
-	  bbox(),
-	  ordered(true)
-{
-    //cout << "CRegion::CRegion4 "<<endl;
-    SmiRecordId recordId;
-    rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-    region = new PArray<CHalfSegment>( recordFile, recordId, update );
-    rootRecord.Read( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
-}
-
-void CRegion::Save( SmiRecord& rootRecord ) const
-{
-  //cout << "CRegion::SAVE "<<endl;
-  SmiRecordId recordId = GetRegionRecordId();
-  rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  rootRecord.Write( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
+  }
 }
 
 void CRegion::Destroy()
 {
-  //cout << "CRegion::DESTROY "<<endl;
-  region->MarkDelete();
+  region.Destroy();
 }
 
 CRegion::~CRegion()
 {
-  delete region;
 }
 
 const Rectangle CRegion::BoundingBox() const
@@ -4160,7 +4029,7 @@ const Rectangle CRegion::BoundingBox() const
   return bbox;
 }
 
-const bool CRegion::IsOrdered() const
+bool CRegion::IsOrdered() const
 {
   return ordered;
 }
@@ -4197,7 +4066,7 @@ void CRegion::EndBulkLoad()
 	//cout<<chs<<endl;
 
 	//The following line must be added in order for coverageno to carry value
-	region->Put( i, chs );
+	region.Put( i, chs );
     }
 }
 
@@ -4206,28 +4075,23 @@ void  CRegion::setOrdered(bool isordered)
   ordered = isordered;
 }
 
-const bool CRegion::IsEmpty() const
+bool CRegion::IsEmpty() const
 {
-  return (region->Size() == 0);
+  return (region.Size() == 0);
 }
 
-const int CRegion::Size() const
+int CRegion::Size() const
 {
-  return (region->Size());
+  return (region.Size());
 }
 
-void CRegion::Get( const int i, CHalfSegment& chs ) const
+void CRegion::Get( const int i, CHalfSegment& chs ) 
 {
   assert( i >= 0 && i < Size());
-  region->Get( i, chs);
+  region.Get( i, chs);
 }
 
-const SmiRecordId CRegion::GetRegionRecordId() const
-{
-  return region->Id();
-}
-
-bool CRegion::contain_old( const Point& p ) const
+bool CRegion::contain_old( const Point& p ) 
 {
     if (!bbox.Contains(p)) return false;
 
@@ -4267,7 +4131,7 @@ bool CRegion::contain_old( const Point& p ) const
     return false;
 }
 
-bool CRegion::contain( const Point& p ) const
+bool CRegion::contain( const Point& p )
 {
     //here: if the point is on the border, it is also counted.
     //used in inside operator
@@ -4331,7 +4195,7 @@ bool CRegion::contain( const Point& p ) const
 
     while ((continuemv) && (i>=0))
     {
-	region->Get( i, chs );
+	region.Get( i, chs );
 	chsVisiteds++;
 
 	if (chs.GetDPoint().GetX() == p.GetX())
@@ -4356,7 +4220,7 @@ bool CRegion::contain( const Point& p ) const
 
 
     //3. get the coverage value
-    region->Get( i, chs );
+    region.Get( i, chs );
     coverno=chs.attr.coverageno;
 
     //cout<<"real starting position at: "<<chs<<endl;
@@ -4403,7 +4267,7 @@ bool CRegion::contain( const Point& p ) const
     return false;
 }
 
-bool CRegion::containpr( const Point& p, int &pathlength, int & scanned ) const
+bool CRegion::containpr( const Point& p, int &pathlength, int & scanned )
 {
     //here: if the point is on the border, it is also counted.
     //used in inside_pathlength and inside_scaned operators
@@ -4482,7 +4346,7 @@ bool CRegion::containpr( const Point& p, int &pathlength, int & scanned ) const
 
     while ((continuemv) && (i>=0))
     {
-	region->Get( i, chs );
+	region.Get( i, chs );
 	chsVisiteds++;
 
 	if (chs.GetDPoint().GetX() == p.GetX())
@@ -4507,7 +4371,7 @@ bool CRegion::containpr( const Point& p, int &pathlength, int & scanned ) const
 
 
     //3. get the coverage value
-    region->Get( i, chs );
+    region.Get( i, chs );
     coverno=chs.attr.coverageno;
 
     //cout<<"real starting position at: "<<chs<<endl;
@@ -4558,7 +4422,7 @@ bool CRegion::containpr( const Point& p, int &pathlength, int & scanned ) const
     return false;
 }
 
-bool CRegion::innercontain( const Point& p ) const
+bool CRegion::innercontain( const Point& p )
 {
     //onborder points are not counted.
 
@@ -4600,7 +4464,7 @@ bool CRegion::innercontain( const Point& p ) const
     return false;
 }
 
-bool CRegion::contain( const CHalfSegment& chs ) const
+bool CRegion::contain( const CHalfSegment& chs )
 {
     //onborder cases are also counted as contain.
 
@@ -4687,7 +4551,7 @@ bool CRegion::contain( const CHalfSegment& chs ) const
     }
 }
 
-bool CRegion::holeedgecontain( const CHalfSegment& chs ) const
+bool CRegion::holeedgecontain( const CHalfSegment& chs ) 
 {
     CHalfSegment auxchs;
 
@@ -4703,26 +4567,25 @@ bool CRegion::holeedgecontain( const CHalfSegment& chs ) const
 }
 
 
-CRegion& CRegion::operator=(const CRegion& cr)
+CRegion& CRegion::operator=(CRegion& cr)
 {
   //cout<<"CRegion::operator="<<endl;
   assert( cr.IsOrdered() );
 
-  region->MarkDelete();
-  delete region;
-  region = new PArray<CHalfSegment>(SecondoSystem::GetLobFile());
+  region.Clear();
+  region.Resize( cr.Size() );
   for( int i = 0; i < cr.Size(); i++ )
   {
     CHalfSegment chs;
     cr.Get( i, chs );
-    region->Put( i, chs );
+    region.Put( i, chs );
   }
   bbox = cr.BoundingBox();
   ordered = true;
   return *this;
 }
 
-int CRegion::operator==(const CRegion& cr) const
+bool CRegion::operator==(CRegion& cr) 
 {
   assert( IsOrdered() && cr.IsOrdered() );
   if( Size() != cr.Size() )    return 0;
@@ -4732,7 +4595,7 @@ int CRegion::operator==(const CRegion& cr) const
   for( int i = 0; i < Size(); i++ )
   {
     CHalfSegment chs1, chs2;
-    region->Get( i, chs1 );
+    region.Get( i, chs1 );
     cr.Get( i, chs2 );
     if( chs1 != chs2 )
       return 0;
@@ -4748,20 +4611,20 @@ CRegion& CRegion::operator+=(const CHalfSegment& chs)
 
   if( !IsOrdered() )
   {
-      region->Put( region->Size(), chs);
+      region.Put( region.Size(), chs);
   }
   else
   {
     int pos = Position( chs );
     if( pos != -1 )
     {
-      for( int i = region->Size() - 1; i >= pos; i++ )
+      for( int i = region.Size() - 1; i >= pos; i++ )
       {
         CHalfSegment auxchs;
-        region->Get( i, auxchs );
-        region->Put( i+1, auxchs );
+        region.Get( i, auxchs );
+        region.Put( i+1, auxchs );
       }
-      region->Put( pos, chs );
+      region.Put( pos, chs );
     }
   }
   return *this;
@@ -4777,17 +4640,17 @@ CRegion& CRegion::operator-=(const CHalfSegment& chs)
     for( int i = pos; i < Size(); i++ )
     {
       CHalfSegment auxchs;
-      region->Get( i+1, auxchs );
-      region->Put( i, auxchs );
+      region.Get( i+1, auxchs );
+      region.Put( i, auxchs );
     }
   }
 
   // Naive way to redo the bounding box.
-  bbox = Rectangle();
+  bbox.SetDefined( false );
   for( int i = 0; i < Size(); i++ )
   {
       CHalfSegment auxchs;
-      region->Get( i, auxchs );
+      region.Get( i, auxchs );
       bbox = bbox.Union( chs.BoundingBox() );
   }
 
@@ -4813,7 +4676,7 @@ bool CRegion::EndOfHs()
 
 void CRegion::GetHs( CHalfSegment& chs )
 {
-    if (( pos>=0) && (pos<=Size()-1))  region->Get( pos, chs);
+    if (( pos>=0) && (pos<=Size()-1))  region.Get( pos, chs);
     else chs.SetDefined(false);
 }
 
@@ -4824,46 +4687,46 @@ void CRegion::InsertHs( CHalfSegment& chs )
 
     if( !IsOrdered())
     {
-	pos=region->Size();
-	region->Put( region->Size(), chs);
+	pos=region.Size();
+	region.Put( region.Size(), chs);
     }
     else
     {
 	int insertpos = Position( chs );
 	if( insertpos != -1 )
 	{
-	    for( int i = region->Size() - 1; i >= insertpos; i++ )
+	    for( int i = region.Size() - 1; i >= insertpos; i++ )
 	    {
 		CHalfSegment auxchs;
-		region->Get( i, auxchs );
-		region->Put( i+1, auxchs );
+		region.Get( i, auxchs );
+		region.Put( i+1, auxchs );
 	    }
-	    region->Put( insertpos, chs );
+	    region.Put( insertpos, chs );
 	    pos=insertpos;
 	}
     }
 }
 
-const attrtype& CRegion::GetAttr()
+const AttrType& CRegion::GetAttr()
 {
     assert(( pos>=0) && (pos<=Size()-1));
     CHalfSegment chs;
-    region->Get( pos, chs);
+    region.Get( pos, chs);
     return chs.GetAttr();
 }
 
-void CRegion::UpdateAttr( attrtype& ATTR )
+void CRegion::UpdateAttr( AttrType& ATTR )
 {
     if (( pos>=0) && (pos<=Size()-1))
     {
 	CHalfSegment chs;
-	region->Get( pos, chs);
+	region.Get( pos, chs);
 	chs.SetAttr(ATTR);
-	region->Put( pos, chs);
+	region.Put( pos, chs);
     }
 }
 
-const int CRegion::Position( const CHalfSegment& chs) const
+int CRegion::Position( const CHalfSegment& chs) 
 {
   assert( IsOrdered() && chs.IsDefined() );
 
@@ -4873,7 +4736,7 @@ const int CRegion::Position( const CHalfSegment& chs) const
   {
     int mid = ( first + last ) / 2;
     CHalfSegment midchs;
-    region->Get( mid, midchs);
+    region.Get( mid, midchs);
     if (chs > midchs )   first = mid + 1;
     else if ( chs < midchs)  last = mid - 1;
             else  return mid;
@@ -4881,7 +4744,7 @@ const int CRegion::Position( const CHalfSegment& chs) const
    return -1;
 }
 
-const int CRegion::Position( const Point& p) const
+int CRegion::Position( const Point& p)
 {
   //to find the exact position by comparing the (x y) values
   assert( IsOrdered() && p.IsDefined() );
@@ -4892,11 +4755,11 @@ const int CRegion::Position( const Point& p) const
   int res=-1;
 
   //1. check special occassions
-  region->Get( 0, chs);
+  region.Get( 0, chs);
   if ( p < chs.GetDPoint() ) return -1;  //p is smallest
   else if ( p == chs.GetDPoint() ) return -3;  //p equals to an vertex
 
-  region->Get( Size()-1, chs);
+  region.Get( Size()-1, chs);
   if ( p > chs.GetDPoint() ) return -2;  //p is largest
   else if ( p == chs.GetDPoint() ) return -3;
 
@@ -4904,7 +4767,7 @@ const int CRegion::Position( const Point& p) const
   while (first <= last)
   {
     mid = ( first + last ) / 2;
-    region->Get( mid, chs);
+    region.Get( mid, chs);
     if ( p > chs.GetDPoint() )   first = mid + 1;
     else if ( p < chs.GetDPoint() )  last = mid - 1;
     else  return -3;
@@ -4914,7 +4777,7 @@ const int CRegion::Position( const Point& p) const
   bool exact=false;
   while ((!exact)&&(res<Size()))
   {
-      region->Get( res, chs);
+      region.Get( res, chs);
 
       if ( p > chs.GetDPoint() )  res++;
       else if ( p < chs.GetDPoint() )
@@ -4932,7 +4795,7 @@ const int CRegion::Position( const Point& p) const
 
   while ((continuemv) && (samexp<Size()))
   {
-      region->Get( samexp, chs );
+      region.Get( samexp, chs );
       if (chs.GetDPoint().GetX() == p.GetX())
       {
 	  samexp++;
@@ -4950,7 +4813,7 @@ void CRegion::Sort()
 {
   assert( !IsOrdered() );
 
-  region->Sort( HalfSegmentCompare );
+  region.Sort( HalfSegmentCompare );
 
   ordered = true;
 }
@@ -4958,21 +4821,21 @@ void CRegion::Sort()
 void CRegion::logicsort()
 {
   //cout<<"CRegion::logicsort"<<endl;
-  region->Sort( HalfSegmentLogCompare );
+  region.Sort( HalfSegmentLogCompare );
 
   ordered = true;
 }
 
-ostream& operator<<( ostream& os, const CRegion& cr )
+ostream& operator<<( ostream& os, CRegion& cr )
 {
-  os << "(" << cr.GetRegionRecordId() << ") <";
+  os << "<";
   for( int i = 0; i < cr.Size(); i++ )
   {
     CHalfSegment chs;
     cr.Get( i, chs );
     os << " " << chs;
   }
-  os << " >";
+  os << ">";
   return os;
 }
 
@@ -4982,6 +4845,17 @@ ostream& operator<<( ostream& os, const CRegion& cr )
   ************************************************************************
 
 */
+int CRegion::NumOfFLOBs()
+{
+  return 1;
+}
+
+FLOB *CRegion::GetFLOB(const int i)
+{
+  assert( i >= 0 && i < NumOfFLOBs() );
+  return &region;
+}
+
 bool CRegion::IsDefined() const
 {
   return true;
@@ -5026,7 +4900,7 @@ size_t   CRegion::HashValue()
 
 void  CRegion::Clear()
 {
-    region->Clear();
+    region.Clear();
     pos=-1;
     ordered=true;
     bbox.SetDefined(false);
@@ -5038,13 +4912,13 @@ void  CRegion::CopyFrom(StandardAttribute* right)
     CRegion * cr = (CRegion*)right;
     ordered = true;
     assert( cr->IsOrdered());
-    //I think that here the PArray region->should be clear first...DZM
+    //I think that here the PArray region should be clear first...DZM
     Clear();
     for( int i = 0; i < cr->Size(); i++ )
     {
 	CHalfSegment chs;
 	cr->Get( i, chs );
-	region->Put( i, chs );
+	region.Put( i, chs );
     }
     bbox=cr->BoundingBox();
     //cout<<*this<<endl<<" .vs. "<<endl<<*cr<<endl;
@@ -5082,7 +4956,7 @@ int   CRegion::Compare(Attribute * arg)
     return (res);
 }
 
-int   CRegion::Adjacent(Attribute * arg)
+bool   CRegion::Adjacent(Attribute * arg)
 {
     return 0;
     //for points which takes double values, we can not decides whether they are
@@ -5097,22 +4971,19 @@ int  CRegion::Sizeof() const
 CRegion*  CRegion::Clone()
 {
     //cout<<"CRegion Clone****"<<endl;
-    //return (new CRegion(SecondoSystem::GetLobFile(),  *this));
-    CRegion* newr=new CRegion(SecondoSystem::GetLobFile(),  *this);
-    //cout<<*this<<endl<<" .vs. "<<endl<<*newr<<endl;
-    return (newr);
+    return (new CRegion(*this));
 }
 
 ostream& CRegion::Print( ostream &os )
 {
-    os << "(" << GetRegionRecordId() << ") <";
+    os << "<";
     for( int i = 0; i < Size(); i++ )
     {
 	CHalfSegment chs;
 	Get( i, chs );
 	os << " " << chs;
     }
-    os << " >";
+    os << ">";
     return os;
 }
 /*
@@ -5122,7 +4993,7 @@ ostream& CRegion::Print( ostream &os )
 
 */
 
-const bool CRegion::insertOK(const CHalfSegment& chs)
+bool CRegion::insertOK(const CHalfSegment& chs)
 {
     CHalfSegment auxchs;
     double dummyy0;
@@ -5140,9 +5011,9 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 
 	}
 
-	for( int i = 0; i<= region->Size()-1; i++ )
+	for( int i = 0; i<= region.Size()-1; i++ )
 	{
-	    region->Get( i, auxchs );
+	    region.Get( i, auxchs );
 
 	    if (auxchs.GetLDP())
 	    {
@@ -5220,10 +5091,10 @@ face is not clear. In the following we do this kind of check.
     {
 	CHalfSegment chsHoleNEnd, chsHoleNStart;
 
-	if (region->Size() ==0) return true;
+	if (region.Size() ==0) return true;
 
-	int holeNEnd=region->Size()-1;
-	region->Get(holeNEnd, chsHoleNEnd );
+	int holeNEnd=region.Size()-1;
+	region.Get(holeNEnd, chsHoleNEnd );
 
 	if  ((chsHoleNEnd.attr.cycleno>1) &&
 	    ((!chs.IsDefined())||
@@ -5235,14 +5106,14 @@ face is not clear. In the following we do this kind of check.
 	    {
 
 		int holeNStart=holeNEnd - 1;
-		region->Get(holeNStart, chsHoleNStart );
+		region.Get(holeNStart, chsHoleNStart );
 
 		while ((chsHoleNStart.attr.faceno==chsHoleNEnd.attr.faceno) &&
 		       (chsHoleNStart.attr.cycleno==chsHoleNEnd.attr.cycleno)&&
 		       (holeNStart>0))
 		{
 		    holeNStart--;
-		    region->Get(holeNStart, chsHoleNStart );
+		    region.Get(holeNStart, chsHoleNStart );
 		}
 		holeNStart++;
 
@@ -5252,7 +5123,7 @@ face is not clear. In the following we do this kind of check.
 		bool stillPrevHole = true;
 		while ((stillPrevHole) && (prevHolePnt>=0))
 		{
-		    region->Get(prevHolePnt, chsPrevHole );
+		    region.Get(prevHolePnt, chsPrevHole );
 		    prevHolePnt--;
 
 		    if ((chsPrevHole.attr.faceno!= chsHoleNEnd.attr.faceno)||
@@ -5266,7 +5137,7 @@ face is not clear. In the following we do this kind of check.
 			int holeNMeent=0;
 			for (int i=holeNStart; i<=holeNEnd; i++)
 			{
-			    region->Get(i, chsLastHole );
+			    region.Get(i, chsLastHole );
 			    if ((chsLastHole.GetLDP())&&
 			        (chsLastHole.rayAbove
 			        (chsPrevHole.GetLP(), dummyy0)))
@@ -5407,7 +5278,7 @@ OutRegion( ListExpr typeInfo, Word value )
     }
     else
     {
-	CRegion *RCopy=new CRegion(*cr, 0); // in memory
+	CRegion *RCopy=new CRegion(*cr, true); // in memory
 
 	RCopy->logicsort();
 
@@ -5645,7 +5516,7 @@ RestoreFromListRegion( const ListExpr typeInfo, const ListExpr instance, const i
 {
     //cout<<"RestoreFromListRegion###########"<<endl;
     //Fron NL DIRECTLY to Class Objects. Analogious to IN_Region
-    CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
+    CRegion* cr = new CRegion( 0 );
 
     cr->setOrdered(false);    // == cr->StartBulkLoad() to avoid sorting
 
@@ -5697,7 +5568,7 @@ static Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   //cout<<"InRegion#############"<<endl;
-  CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
+  CRegion* cr = new CRegion( 0 );
 
   cr->StartBulkLoad();
 
@@ -5751,7 +5622,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		  ListExpr flagedSeg, currPoint;
 		  CycleNL = nl->Rest( CycleNL );
 
-		  Points *cyclepoints= new Points(0); // in memory
+		  Points *cyclepoints= new Points( 0 ); // in memory
 
 		  Point *currvertex;
 
@@ -5842,8 +5713,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 	   }
       }
 
-      CHalfSegment * chs=new CHalfSegment ();
-      chs->SetDefined(false);
+      CHalfSegment * chs=new CHalfSegment ( false );
       if (!( cr->insertOK(*chs) ))
       {
 	  correct=false;
@@ -5870,7 +5740,7 @@ CreateRegion( const ListExpr typeInfo )
 {
   //cout << "CreateRegion" << endl;
 
-  return (SetWord( new CRegion(SecondoSystem::GetLobFile() ) ));
+  return (SetWord( new CRegion( 0 ) ));
 }
 
 /*
@@ -5910,46 +5780,17 @@ CloneRegion( const Word& w )
 {
   //cout << "CloneRegion" << endl;
 
-  CRegion *cr = new CRegion( SecondoSystem::GetLobFile(), *((CRegion *)w.addr) );
+  CRegion *cr = new CRegion( *((CRegion *)w.addr) );
   return SetWord( cr );
 }
 
 /*
-8.9 ~Open~-function
+8.9 ~SizeOf~-function
 
 */
-bool
-OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
+int SizeOfRegion()
 {
-    //cout << "Open Region2" << endl;
-
-  //SmiRecordId recordId;
-  //valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-
-    CRegion *cr = new CRegion(SecondoSystem::GetLobFile(), valueRecord );
-
-    value = SetWord( cr );
-
-    return (true);
-}
-
-/*
-8.10 ~Save~-function
-
-*/
-bool
-SaveRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
-{
-    //cout << "save Region2" << endl;
-
-    CRegion *cr = (CRegion*)value.addr;
-
-    //  cout << "SaveRegion: " << *cr << endl;
-    //SmiRecordId recordId = cr->GetRegionRecordId();
-    //valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-    cr->Save(valueRecord);
-
-    return (true);
+  return sizeof(CRegion);
 }
 
 /*
@@ -6001,46 +5842,29 @@ CheckRegion( ListExpr type, ListExpr& errorInfo )
 */
 void* CastRegion(void* addr)
 {
-  return ( 0 );
+  return (new (addr) CRegion);
 }
 
 /*
 8.14 Creation of the type constructor instance
 
 */
-#ifdef RELALG_PERSISTENT
 TypeConstructor region(
-	"region",				//name
-	RegionProperty,	 		//describing signature
-	OutRegion,   	InRegion,	//Out and In functions //SaveToListRegion, RestoreFromListRegion
-	SaveToListRegion, RestoreFromListRegion, //SaveToList and RestoreFromList functions
-	CreateRegion,	DeleteRegion,	//object creation and deletion
-	OpenRegion, 	SaveRegion,    	// object open and save
-	CloseRegion, 	CloneRegion,   	//object close and clone
-	CastRegion,			//cast function
-	CheckRegion,			//kind checking function
-	0, 				//function for model
-	TypeConstructor::DummyInModel,
-	TypeConstructor::DummyOutModel,
-	TypeConstructor::DummyValueToModel,
-	TypeConstructor::DummyValueListToModel );
-#else
-TypeConstructor region(
-        "region",  		                     //name
-        RegionProperty, 	    	    //describing signature
-        OutRegion,      InRegion, 	    //Out and In functions //SaveToListRegion, RestoreFromListRegion,
-        SaveToListRegion, RestoreFromListRegion, //SaveToList and RestoreFromList functions
-        CreateRegion,   DeleteRegion, 	   //object creation and deletion
-        0,     		0,    	   // object open and save
-        CloseRegion,    CloneRegion,     //object close and clone
-        CastRegion,                    	 //cast function
-        CheckRegion,                   	 //kind checking function
-        0,                             		 //function for model
+        "region",  		                     	//name
+        RegionProperty, 	    	    		//describing signature
+        OutRegion,      InRegion, 	    		//Out and In functions //SaveToListRegion, RestoreFromListRegion,
+        SaveToListRegion, RestoreFromListRegion, 	//SaveToList and RestoreFromList functions
+        CreateRegion,   DeleteRegion, 	   		//object creation and deletion
+        0,     		0,    	   			// object open and save
+        CloseRegion,    CloneRegion,     		//object close and clone
+        CastRegion,                    	 		//cast function
+	SizeOfRegion,					//sizeof function
+        CheckRegion,                   	 		//kind checking function
+        0,                             		 	//function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
-#endif
 
 /*
 9 Object Traversal functions
@@ -9681,7 +9505,7 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 			midy /= (long)2 ;
 
 			midx += (double)0.01;
-			tryp.Set(true, midx, midy);
+			tryp.Set(midx, midy);
 			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
 			{
 			    ((CcBool *)result.addr)->Set( true, true );
@@ -9689,7 +9513,7 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 			}
 
 			midx -=(double)0.02;
-			tryp.Set(true, midx, midy);
+			tryp.Set(midx, midy);
 			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
 			{
 			    ((CcBool *)result.addr)->Set( true, true );
@@ -9698,7 +9522,7 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 
 			midx +=(double)0.01;
 			midy +=(double)0.01;
-			tryp.Set(true, midx, midy);
+			tryp.Set(midx, midy);
 			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
 			{
 			    ((CcBool *)result.addr)->Set( true, true );
@@ -9706,7 +9530,7 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 			}
 
 			midy -=(double)0.02;
-			tryp.Set(true, midx, midy);
+			tryp.Set(midx, midy);
 			if ((cr1->innercontain(tryp))&&(cr2->innercontain(tryp)))
 			{
 			    ((CcBool *)result.addr)->Set( true, true );
@@ -10589,7 +10413,7 @@ union_pps( Word* args, Word& result, int message, Word& local, Supplier s )
     Point *p=((Point*)args[0].addr);
     Points *ps=((Points*)args[1].addr);
 
-    if ( ps->Contains(p))
+    if ( ps->Contains(*p))
     {
 	*((Points *)result.addr)=*ps;
 	return (0);
@@ -10617,7 +10441,7 @@ union_psp( Word* args, Word& result, int message, Word& local, Supplier s )
     Point *p=((Point*)args[1].addr);
     Points *ps=((Points*)args[0].addr);
 
-    if ( ps->Contains(p))
+    if ( ps->Contains(*p))
     {
 	*((Points *)result.addr)=*ps;
 	return (0);

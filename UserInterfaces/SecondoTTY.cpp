@@ -872,6 +872,7 @@ main( const int argc, const char* argv[] )
   SecondoTTY* appPointer = new SecondoTTY( argc, argv );
   int rc = appPointer->Execute();
   delete appPointer;
+
   return (rc);
 }
 

@@ -25,230 +25,206 @@ Version: 0.7
 
 August 2002 RHG
 
+April 2003 Victor Almeida chaged the implementation to not use templates.
+
 1.1 Overview
 
 This module offers a generic persistent array implemented on top of the
-SecondoSMI interface.
-
-
+FLOB interface.
 
 1.2 Interface methods
 
 This module offers the following methods:
 
-[23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
+[23]	Creation/Removal 	& Access   	& Inquiries	\\
 	[--------]
-	DBArray        		& Get 		& Size		\\  	
-	[tilde]DBArray		& Put		& Id		\\
-	MarkDelete		&		& 		\\
+	DBArray        		& Get 		& NoComponents	\\
+	[tilde]DBArray		& Put		  & Id		        \\
+	MarkDelete		    &		      & 		          \\
 
+Operations have to follow the protocol shown below:
+
+		Figure 1: Protocol [Protocol.eps]
 
 1.3 Class ~DBArray~
 
-An instance of the class is a handle to a persistent array of fixed size with
-
-elements of type ~T~.
+An instance of the class is a handle to a persistent array of fixed size.
 
 */
 
-#ifndef MARRAY_H
-#define MARRAY_H
+#ifndef DBARRAY_H
+#define DBARRAY_H
 
-#include <iostream> 
-#include <cassert>
 #include <vector>
 #include <algorithm>
-#include "GArray.h"
+#include "FLOB.h"
 
-template<class T>
-class DBArray : public GArray<T>
+using namespace std;
+
+template<class DBArrayElement>
+class DBArray : public FLOB
 {
- public:
+  public:
 
-  DBArray( SmiRecordFile *parrays, const int initsize = 0 );
+    DBArray() {}
 /*
-Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
-persistent array. One can define an initial size of the persistent
-array with the argument ~initsize~. 
+This constructor should not be used.
+
+*/
+    DBArray( int n ):
+      FLOB( n * sizeof( DBArrayElement ) ),
+      nElements( 0 ),
+      maxElements( n )
+      {}
+/*
+The constructor of the array passing the number of elements to initialize it.
 
 */
 
-  DBArray( const int initsize = 0 );
+    ~DBArray()
+      {}
+
 /*
-Create a new memory version of the DBArray. It is used for temporary arrays.
+The destructor.
 
 */
-  
-  DBArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update = true );
-/*
-Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
-value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-only.
+    void Resize( const int newSize )
+    {
+      assert( nElements <= maxElements );
+      assert( newSize > 0 );
 
-*/
+      if( newSize < nElements )
+        nElements = newSize;
 
-  ~DBArray();
-/*
-Destroys the handle. If the array is marked for deletion, then it also destroys the
-persistent array.
+      maxElements = newSize;
+      FLOB::Resize( newSize * sizeof( DBArrayElement ) );
 
-*/
+      assert( FLOB::Size() % sizeof( DBArrayElement ) == 0 );
+      assert( maxElements == FLOB::Size() / (int)sizeof( DBArrayElement ) );
+    }
 
-  void MarkDelete();
-/*
-Marks the persistent array for deletion. It will be permanently deleted on the 
-destruction of the object.
+    void Clear()
+    {
+      nElements = 0;
+      maxElements = 0;
+      FLOB::Clear();
+    }
 
-*Precondition:* The array must be opened in update mode.
+    void Destroy()
+    {
+      nElements = 0;
+      maxElements = 0;
+      FLOB::Destroy();
+    }
 
-*/
+    void Append( const DBArrayElement& elem )
+    {
+      Put( nElements, elem );
+    }
 
-  void Put(int const index, const T& elem);
+    void Put( int index, const DBArrayElement& elem )
+    {
+      assert( index >= 0 );
+      assert( nElements <= maxElements );
+
+      if( index < nElements )
+      {
+        FLOB::Put( index * sizeof( DBArrayElement ),
+                   sizeof( DBArrayElement ),
+                   &elem );
+      }
+      else
+      {
+        nElements = index + 1;
+        if( nElements > maxElements )
+        {
+          maxElements = nElements;
+          FLOB::Resize( maxElements * sizeof( DBArrayElement ) );
+        }
+
+        FLOB::Put( index * sizeof( DBArrayElement ),
+                   sizeof( DBArrayElement ),
+                   &elem );
+
+        assert( FLOB::Size() % sizeof( DBArrayElement ) == 0 );
+        assert( maxElements == FLOB::Size() / (int)sizeof( DBArrayElement ) );
+      }
+    }
+
 /*
 Copies element ~elem~ into the persistent array at index ~index~.
 
-*Precondition:* 0 [<=] ~index~ [<=] ~size~ - 1. The array must be opened in update mode.
+*Precondition:* 0 [<=] ~index~.
 
 */
 
-  void Get(int const index, T& elem);
+    void Get( int index, DBArrayElement& elem )
+    {
+      assert( index >= 0 && index < nElements );
+      char *buf = (char*)malloc( sizeof( DBArrayElement ) );
+      FLOB::Get( index * sizeof( DBArrayElement ),
+                 sizeof( DBArrayElement ),
+                 buf );
+      DBArrayElement *auxElem = (new ((void*)buf) DBArrayElement);
+      memcpy( &elem, auxElem, sizeof(DBArrayElement) );
+      free( buf );
+    }
+
 /*
 Returns the element ~index~ of the array.
 
-*Precondition:* 0 [<=] ~index~ [<=] ~size~ - 1. 
+*Precondition:* 0 [<=] ~index~ [<=] ~noComponents~ - 1.
 
 */
 
-  void Clear();
+    int Size() const
+    {
+      return nElements;
+    }
+
 /*
-Clears the persistent array.
+Returns the number of components of this array.
 
 */
 
-  void Sort( bool (*cmp)(const T&, const T&) )  
-  {
-    if( size <= 1 ) 
-      return;
+    void Sort( bool (*cmp)(const DBArrayElement&, const DBArrayElement&) )
+    {
+      if( nElements <= 1 )
+        return;
 
-    sort( marray->begin(), marray->end(), cmp );
-  }
+      vector<DBArrayElement> elements;
+
+      for( int i = 0; i < nElements; i++ )
+      {
+        DBArrayElement elem;
+        Get( i, elem );
+        elements.push_back( elem );
+      }
+
+      sort( elements.begin(), elements.end(), cmp );
+
+      for( size_t i = 0; i < elements.size(); i++ )
+        Put( i, elements[i] );
+    }
 /*
-Sorts the persisten array given the ~cmp~ comparison criteria.
+Sorts the database array given the ~cmp~ comparison criteria. The
+sort is done in memory using an STL vector.
 
 */
+  private:
 
-  const int Size() const;
+    int nElements;
 /*
-Returns the size of this array.
+Store the number of elements inserted in the array.
 
 */
-
-  const SmiRecordId Id() const;
+    int maxElements;
 /*
-Returns the identifier of this array.
+Store the total number of elements that can be added to the array.
 
 */
-
- private:
-
-  bool writeable;
-  int size;
-  vector<T> *marray;
-
 };
 
 
-/*
-2 Implementation of DBArray
-
-Version: 0.7
-
-August 2002 RHG
-October 2003 M. Spiekermann
-
-2.1 Overview
-
-This module offers the interface of a generic persistent array implemented on top of the
-SecondoSMI interface. It is the same as DBArray but renamed into DBArray
-
-*/
-
-template<class T>
-DBArray<T>::DBArray( SmiRecordFile *parrays, const int initsize ) :
-writeable( true ),
-size( 0 ),
-marray( new vector<T>( initsize ) )
-{
-}
-
-template<class T>
-DBArray<T>::DBArray( const int initsize ) :
-writeable( true ),
-size( 0 ),
-marray( new vector<T>( initsize ) )
-{
-}
-
-template<class T>
-DBArray<T>::DBArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update ) 
-{
-  assert( false );
-}
-
-template<class T>
-DBArray<T>::~DBArray()
-{
-  delete marray;  
-}
-
-template<class T>
-void DBArray<T>::Clear()
-{
-  marray->clear();
-  size = 0;
-}
-
-template<class T>
-void DBArray<T>::Put(const int index, const T& elem)
-{
-  assert ( writeable );
-  
-  if ( size <= index ) 
-  {
-    size = index + 1;
-    marray->resize( size );
-  }
-
-  (*marray)[index] = elem;
-}
-
-
-template<class T>
-void DBArray<T>::Get(int const index, T& elem)
-{
-  assert ( 0 <= index && index < size );
-
-  elem = (*marray)[index];
-}
-
-template<class T>
-void DBArray<T>::MarkDelete() 
-{
-  assert( writeable );
-}
-
-
-template<class T>
-const int DBArray<T>::Size() const
-{
-  return size;
-}
-
-
-template<class T>
-const SmiRecordId DBArray<T>::Id() const 
-{ 
-  return 0;
-}
-
-#endif
+#endif //DBARRAY_H
 

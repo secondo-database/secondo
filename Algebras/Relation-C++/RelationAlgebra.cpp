@@ -3,307 +3,744 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Module Relation Algebra Main Memory
-
-[1] Using Storage Manager Berkeley DB
+[1] Implementation of Module Relation Algebra
 
 June 1996 Claudia Freundorfer
 
 May 2002 Frank Hoffmann port to C++
 
-November 7, 2002 RHG Corrected the type mapping of ~tcount~.
+November 7, 2002 RHG Corrected the type mapping of ~count~.
 
 November 30, 2002 RHG Introduced a function ~RelPersistValue~ instead of
 ~DefaultPersistValue~ which keeps relations that have been built in memory in a
 small cache, so that they need not be rebuilt from then on.
 
+March 2003 Victor Almeida created the new Relational Algebra organization.
+
 [TOC]
 
-2 Auxilary Functions
+1 Overview
 
-1.2 Function ~TypeOfRelAlgSymbol~
+The Relational Algebra basically implements two type constructors, namely ~tuple~ and ~rel~.
+More information about the Relational Algebra can be found in the RelationAlgebra.h header
+file.
 
-Transforms a list expression ~symbol~ into one of the values of
-type ~RelationType~. ~Symbol~ is allowed to be any list. If it is not one
-of these symbols, then the value ~error~ is returned.
+2 Defines, includes, and constants
 
 */
-
-#include <set>
-#include <time.h>
-
 #include "RelationAlgebra.h"
+#include "CPUTimeMeasurer.h"
+#include "NestedList.h"
+#include "QueryProcessor.h"
+#include "Algebra.h"
+#include "StandardTypes.h"
 
-NestedList* nl = 0;
-QueryProcessor* qp = 0;
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
-static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
-
-  string s;
-
-  if (nl->AtomType(symbol) == SymbolType)
-  {
-    s = nl->SymbolValue(symbol);
-    if (s == "rel"   ) return rel;
-    if (s == "tuple" ) return tuple;
-    if (s == "stream") return stream;
-    if (s == "map"   ) return ccmap;
-    if (s == "bool"  ) return ccbool;
-  }
-  return error;
-}
 /*
+3 Type constructor ~tuple~
 
-1.3 Macro CHECK\_COND
+The list representation of a tuple is:
 
-This macro makes reporting errors in type mapping functions more convenient.
+----    (<attrrep 1> ... <attrrep n>)
+----
+
+Typeinfo is:
+
+----    (<NumericType(<type exression>)> <number of attributes>)
+----
+
+
+For example, for
+
+----    (tuple
+                (
+                        (name string)
+                        (age int)))
+----
+
+the typeinfo is
+
+----    (
+                (2 2)
+                        (
+                                (name (1 4))
+                                (age (1 1)))
+                2)
+----
+
+The typeinfo list consists of three lists. The first list is a
+pair (~algebraId~, ~typeId~). The second list represents the
+attribute list of the tuple. This list is a sequence of pairs
+(~attribute\_name~ (~algebraId~ ~typeId~)). Here the
+~typeId~ is the identificator of a standard data type, e.g. int.
+The third list is an atom and counts the number of the
+tuple's attributes.
+
+3.1 Type property of type constructor ~tuple~
 
 */
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
-/*
-
-5.6 Function ~findattr~
-
-Here ~list~ should be a list of pairs of the form (~name~,~datatype~).
-The function ~findattr~ determines whether ~attrname~ occurs as one of
-the names in this list. If so, the index in the list (counting from 1)
-is returned and the corresponding datatype is returned in ~attrtype~.
-Otherwise 0 is returned. Used in operator ~attr~.
-
-*/
-int findattr( ListExpr list, string attrname, ListExpr& attrtype, NestedList* nl)
+ListExpr TupleProp ()
 {
-  ListExpr first, rest;
-  int j;
-  string  name;
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,"(\"Myers\" 53)");
 
-  if (nl->IsAtom(list))
-    return 0;
-  rest = list;
-  j = 1;
-  while (!nl->IsEmpty(rest))
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> TUPLE"),
+	                     nl->StringAtom("(tuple((name string)(age int)))"),
+			     nl->StringAtom("(<attr1> ... <attrn>)"),
+			     examplelist)));
+}
+
+/*
+3.2 ~Out~-function of type constructor ~tuple~
+
+The ~out~-function of type constructor ~tuple~ takes as inputs a type
+description (~typeInfo~) of the tuples attribute structure in nested list
+format and a pointer to a tuple value, stored in main memory.
+The function returns the tuple value from main memory storage
+in nested list format.
+
+*/
+ListExpr
+OutTuple (ListExpr typeInfo, Word  value)
+{
+  return ((Tuple *)value.addr)->Out( typeInfo );
+}
+
+/*
+3.3 ~SaveToList~-function of type constructor ~tuple~
+
+The ~SaveToList~-function should act as the ~Out~-function
+but using internal representation of the objects. It is called
+by the default persistence mechanism to store the objects in 
+the database.
+
+*/
+ListExpr
+SaveToListTuple (ListExpr typeInfo, Word  value)
+{
+  return ((Tuple *)value.addr)->SaveToList( typeInfo );
+}
+
+/*
+3.3 ~In~-function of type constructor ~tuple~
+
+The ~In~-function of type constructor ~tuple~ takes as inputs a type
+description (~typeInfo~) of the tuples attribute structure in nested
+list format and the tuple value in nested list format. The function
+returns a pointer to a tuple value, stored in main memory in accordance to
+the tuple value in nested list format.
+
+Error handling in ~InTuple~: ~correct~ is only true if there is the right
+number of attribute values and all values have correct list representations.
+Otherwise the following error messages are added to ~errorInfo~:
+
+----    (71 tuple 1 <errorPos>)                 atom instead of value list
+        (71 tuple 2 <errorPos>)                 not enough values
+        (71 tuple 3 <errorPos> <attrno>)        wrong attribute value in
+                                                attribute <attrno>
+        (71 tuple 4 <errorPos>)                 too many values
+----
+
+is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple in the
+relation list (passed by ~InRelation~).
+
+
+*/
+Word
+InTuple(ListExpr typeInfo, ListExpr value,
+        int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  return SetWord( Tuple::In( typeInfo, value, errorPos, errorInfo, correct ) );
+}
+
+/*
+3.3 ~RestoreFromList~-function of type constructor ~tuple~
+
+The ~RestoreFromList~-function should act as the ~In~-function
+but using internal representation of the objects. It is called
+by the default persistence mechanism to retrieve the objects in
+the database.
+
+*/
+Word
+RestoreFromListTuple(ListExpr typeInfo, ListExpr value,
+                     int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  return SetWord( Tuple::RestoreFromList( typeInfo, value, errorPos, errorInfo, correct ) );
+}
+
+/*
+3.4 ~Delete~-function of type constructor ~tuple~
+
+A type constructor's ~delete~-function is used by the query processor in order
+to deallocate memory occupied by instances of Secondo objects. They may have
+been created in two ways:
+
+  * as return values of operator calls
+
+  * by calling a type constructor's ~create~-function.
+
+*/
+void DeleteTuple(Word& w)
+{
+  delete (Tuple *)w.addr;
+}
+
+/*
+
+3.5 ~Check~-function of type constructor ~tuple~
+
+Checks the specification:
+
+----    (ident x DATA)+         -> TUPLE        tuple
+----
+
+with the additional constraint that all identifiers used (attribute names)
+must be distinct. Hence a tuple type has the form:
+
+----    (tuple
+            (
+                (age x)
+                (name y)))
+----
+
+and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces the
+following error codes:
+
+----    (... 1)         Empty tuple type
+        (... 2 x)       x is not an attribute list, but an atom
+        (... 3 x)       Doubly defined attribute name x
+        (... 4 x)       Invalid attribute name x
+        (... 5 x)       Invalid attribute definition x (x is not a pair)
+        (... 6 x)       Attribute type does not belong to kind DATA
+----
+
+*/
+bool
+CheckTuple(ListExpr type, ListExpr& errorInfo)
+{
+  vector<string> attrnamelist;
+  ListExpr attrlist, pair;
+  string attrname;
+  bool correct, ckd;
+  int unique;
+  AlgebraManager* algMgr;
+
+  if ((nl->ListLength(type) == 2) && (nl->IsEqual(nl->First(type), "tuple",
+       true)))
   {
-    first = nl->First(rest);
-    rest = nl->Rest(rest);
-    if ((nl->ListLength(first) == 2) &&
-       (nl->AtomType(nl->First(first)) == SymbolType))
+    attrlist = nl->Second(type);
+    if (nl->IsEmpty(attrlist))
     {
-      name = nl->SymbolValue(nl->First(first));
-      if (name == attrname)
+      errorInfo = nl->Append(errorInfo,
+        nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->IntAtom(1)));
+      return false;
+    }
+    if (nl->IsAtom(attrlist))
+    {
+      errorInfo = nl->Append(errorInfo,
+        nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->IntAtom(2),
+        attrlist));
+      return false;
+    }
+    algMgr = SecondoSystem::GetAlgebraManager();
+
+    unique = 0;
+    correct = true;
+    while (!nl->IsEmpty(attrlist))
+    {
+      pair = nl->First(attrlist);
+      attrlist = nl->Rest(attrlist);
+      if (nl->ListLength(pair) == 2)
       {
-        attrtype = nl->Second(first);
-        return j;
+        if ((nl->IsAtom(nl->First(pair))) &&
+          (nl->AtomType(nl->First(pair)) == SymbolType))
+        {
+          attrname = nl->SymbolValue(nl->First(pair));
+          unique = std::count(attrnamelist.begin(), attrnamelist.end(),
+                         attrname);
+          if (unique > 0)
+          {
+            errorInfo = nl->Append(errorInfo,
+             nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+               nl->IntAtom(3), nl->First(pair)));
+            correct = false;
+          }
+          attrnamelist.push_back(attrname);
+          ckd =  algMgr->CheckKind("DATA", nl->Second(pair), errorInfo);
+          if (!ckd)
+          {
+            errorInfo = nl->Append(errorInfo,
+              nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+                nl->IntAtom(6),nl->Second(pair)));
+          }
+          correct = correct && ckd;
+        }
+        else
+        {
+          errorInfo = nl->Append(errorInfo,
+          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->IntAtom(4),nl->First(pair)));
+          correct = false;
+        }
+      }
+      else
+      {
+        errorInfo = nl->Append(errorInfo,
+          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->IntAtom(5),pair ));
+        correct = false;
       }
     }
-    else
-      return 0; // typeerror
-    j++;
-  }
-  return 0; // attrname not found
-}
-
-/*
-
-5.6 Function ~ConcatLists~
-
-Concatenates two lists.
-
-*/
-ListExpr ConcatLists( ListExpr list1, ListExpr list2)
-{
-  if (nl->IsEmpty(list1))
-  {
-    return list2;
+    return correct;
   }
   else
   {
-    return nl->Cons(nl->First(list1), ConcatLists(nl->Rest(list1), list2));
+    errorInfo = nl->Append(errorInfo,
+      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("TUPLE"), type));
+    return false;
   }
 }
 
 /*
+3.6 ~Cast~-function of type constructor ~tuple~
 
-5.6 Function ~IsTupleDescription~
-
-Checks wether a ListExpression is of the form
-((a1 t1) ... (ai ti)).
+Casts a tuple from a stream representation of it. This function is used to read
+objects from the disk by the ~TupleManager~. Since tuples are not part of relations
+the implementation of this function is not necessary.
 
 */
-bool IsTupleDescription(ListExpr a, NestedList* nl)
+void*
+CastTuple(void* addr)
 {
-  ListExpr rest = a;
-  ListExpr current;
+  return ( 0 );
+}
 
-  while(!nl->IsEmpty(rest))
+/*
+3.7 ~Create~-function of type constructor ~tuple~
+
+This function is used to allocate memory sufficient for keeping one instance
+of ~tuple~.
+
+*/
+Word
+CreateTuple(const ListExpr typeInfo)
+{
+  Tuple *tup = new Tuple( nl->Second( typeInfo ) );
+  return (SetWord(tup));
+//  return (SetWord(Address(0)));
+}
+
+/*
+3.8 ~Close~-function of type constructor ~tuple~
+
+This function is used to destroy the memory allocated by a ~tuple~.
+
+*/
+void CloseTuple(Word& w)
+{
+  delete (Tuple *)w.addr;
+}
+
+/*
+3.9 ~Clone~-function of type constructor ~tuple~
+
+This function creates a cloned tuple.
+
+*/
+Word
+CloneTuple(const Word& w)
+{
+  return SetWord( ((Tuple *)w.addr)->Clone() );
+}
+
+/*
+3.10 ~Sizeof~-function of type constructor ~tuple~
+
+Returns the size of a tuple's root record to be stored on the disk as a stream.
+Since tuples are not part of a relation, the implementation of this function
+is not necessary.
+
+*/
+int
+SizeOfTuple()
+{
+  return 0;
+}
+
+/*
+3.11 ~Model~-functions of type constructor ~tuple~
+
+*/
+Word
+TupleInModel( ListExpr typeExpr, ListExpr list, int objNo )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+ListExpr
+TupleOutModel( ListExpr typeExpr, Word model )
+{
+  return (0);
+}
+
+Word
+TupleValueToModel( ListExpr typeExpr, Word value )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+Word
+TupleValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
+                       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  correct = true;
+  return (SetWord( Address( 0 ) ));
+}
+
+/*
+3.12 Definition of type constructor ~tuple~
+
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
+name and the eleven functions previously defined.
+
+*/
+TypeConstructor cpptuple( "tuple",           	TupleProp,
+                          OutTuple,          	InTuple,
+                          SaveToListTuple,      RestoreFromListTuple,
+                          CreateTuple,		DeleteTuple,
+			  0, 			0,
+                          CloseTuple, 		CloneTuple,
+                          CastTuple,   		SizeOfTuple,
+                          CheckTuple,           0,
+			  TupleInModel,      	TupleOutModel,
+			  TupleValueToModel, 	TupleValueListToModel );
+/*
+4 TypeConstructor ~rel~
+
+The list representation of a relation is:
+
+----    (<tuplerep 1> ... <tuplerep n>)
+----
+
+Typeinfo is:
+
+----    (<NumericType(<type exression>)>)
+----
+
+For example, for
+
+----    (rel (tuple ((name string) (age int))))
+----
+
+the type info is
+
+----    ((2 1) ((2 2) ((name (1 4)) (age (1 1)))))
+----
+
+4.1 Type property of type constructor ~rel~
+
+*/
+ListExpr RelProp ()
+{
+  ListExpr listreplist = nl->TextAtom();
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(listreplist,"(<tuple>*)where <tuple> is "
+  "(<attr1> ... <attrn>)");
+  nl->AppendText(examplelist,"((\"Myers\" 53)(\"Smith\" 21))");
+
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("TUPLE -> REL"),
+	               nl->StringAtom("(rel(tuple((name string)(age int))))"),
+		       listreplist,
+		       examplelist)));
+}
+
+/*
+4.2 ~Out~-function of type constructor ~rel~
+
+*/
+ListExpr
+OutRel(ListExpr typeInfo, Word  value)
+{
+  return ((Relation *)value.addr)->Out( typeInfo );
+}
+/*
+4.3 ~SaveToList~-function of type constructor ~rel~
+
+The ~SaveToList~-function should act as the ~Out~-function
+but using internal representation of the objects. It is called
+by the default persistence mechanism to store the objects in
+the database.
+
+*/
+ListExpr
+SaveToListRel(ListExpr typeInfo, Word  value)
+{
+  return ((Relation *)value.addr)->SaveToList( typeInfo );
+}
+
+/*
+4.3 ~Create~-function of type constructor ~rel~
+
+The function is used to allocate memory sufficient for keeping one instance
+of ~rel~.
+
+*/
+Word
+CreateRel(const ListExpr typeInfo)
+{
+  Relation* rel = new Relation( typeInfo );
+  return (SetWord(rel));
+}
+
+/*
+4.4 ~In~-function of type constructor ~rel~
+
+~value~ is the list representation of the relation. The structure of
+~typeInfol~ and ~value~ are described above. Error handling in ~InRel~:
+
+The result relation will contain all tuples that have been converted
+correctly (have correct list expressions). For all other tuples, an error
+message containing the position of the tuple within this relation (list) is
+added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~).
+If any tuple representation is wrong, then ~InRel~ will return ~correct~ as
+FALSE and will itself add an error message of the form
+
+----    (InRel <errorPos>)
+----
+
+to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment;
+probably it is the position of the relation object in the list of
+database objects.
+
+*/
+Word
+InRel(ListExpr typeInfo, ListExpr value,
+      int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  return SetWord( Relation::In( typeInfo, value, errorPos, errorInfo, correct ) );
+}
+
+/*
+4.3 ~RestoreFromList~-function of type constructor ~rel~
+
+The ~RestoreFromList~-function should act as the ~In~-function
+but using internal representation of the objects. It is called
+by the default persistence mechanism to retrieve the objects in
+the database.
+
+*/
+Word
+RestoreFromListRel(ListExpr typeInfo, ListExpr value,
+                   int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  return SetWord( Relation::RestoreFromList( typeInfo, value, errorPos, errorInfo, correct ) );
+}
+
+/*
+4.5 ~Delete~-function of type constructor ~rel~
+
+*/
+void DeleteRel(Word& w)
+{
+  return ((Relation *)w.addr)->Delete();
+}
+
+/*
+4.6 ~Check~-function of type constructor ~rel~
+
+Checks the specification:
+
+----    TUPLE   -> REL          rel
+----
+
+Hence the type expression must have the form
+
+----    (rel x)
+----
+
+and ~x~ must be a type of kind TUPLE.
+
+*/
+bool
+CheckRel(ListExpr type, ListExpr& errorInfo)
+{
+  AlgebraManager* algMgr;
+
+  if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "rel"))
   {
-    current = nl->First(rest);
-    rest = nl->Rest(rest);
-    if((nl->ListLength(current) == 2)
-      && (nl->IsAtom(nl->First(current)))
-      && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (nl->IsAtom(nl->Second(current)))
-      && (nl->AtomType(nl->Second(current)) == SymbolType))
-    {
-    }
-    else
-    {
-      return false;
-    }
+    algMgr = SecondoSystem::GetAlgebraManager();
+    return (algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo));
   }
-  return true;
+  else
+  {
+    errorInfo = nl->Append(errorInfo,
+      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("REL"), type));
+    return false;
+  }
+}
+
+/*
+4.7 ~Cast~-function of type constructor ~rel~
+
+*/
+void*
+CastRel(void* addr)
+{
+  return ( 0 );
+}
+
+/*
+4.8 ~Close~-function of type constructor ~rel~
+
+There is a cache of relations in order to increase performance.
+The cache is responsible for closing the relations.
+In this case we will implement one function that does nothing, called
+~CloseRel~ and another which the cache will execute, called
+~CacheCloseRel~.
+
+*/
+void CloseRel(Word& w)
+{
+  return ((Relation *)w.addr)->Close();
+}
+
+/*
+4.9 ~Open~-function of type constructor ~rel~
+
+This is a slightly modified version of the function ~DefaultOpen~ (from
+~Algebra~) which creates the relation from the SmiRecord only if it does not
+yet exist.
+
+The idea is to maintain a cache containing the relation representations that
+have been built in memory. The cache basically stores pairs (~recordId~,
+~relation\_value~). If the ~recordId~ passed to this function is found,
+the cached relation value is returned instead of building a new one.
+
+*/
+bool
+OpenRel( SmiRecord& valueRecord,
+         const ListExpr typeInfo,
+         Word& value )
+{
+  return Relation::Open( valueRecord, typeInfo, (Relation *)value.addr );
+}
+
+/*
+4.10 ~Save~-function of type constructor ~rel~
+
+*/
+bool
+SaveRel( SmiRecord& valueRecord,
+         const ListExpr typeInfo,
+         Word& value )
+{
+  return ((Relation *)value.addr)->Save( valueRecord, typeInfo );
+}
+
+/*
+4.11 ~Sizeof~-function of type constructor ~rel~
+
+*/
+int
+SizeOfRel()
+{
+  return 0;
+}
+
+/*
+4.12 ~Clone~-function of type constructor ~rel~
+
+*/
+Word
+CloneRel(const Word& w)
+{
+  return SetWord( Address(0) );
+}
+
+/*
+4.13 ~Model~-functions of type constructor ~rel~
+
+*/
+Word RelInModel( ListExpr typeExpr, ListExpr list, int objNo )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+ListExpr RelOutModel( ListExpr typeExpr, Word model )
+{
+  return (0);
+}
+
+Word RelValueToModel( ListExpr typeExpr, Word value )
+{
+  return (SetWord( Address( 0 ) ));
+}
+
+Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
+                       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  correct = true;
+  return (SetWord( Address( 0 ) ));
 }
 
 /*
 
-5.6 Function ~AttributesAreDisjoint~
+4.14 Definition of type constructor ~rel~
 
-Checks wether two ListExpressions are of the form
-((a1 t1) ... (ai ti)) and ((b1 d1) ... (bj dj))
-and wether the ai and the bi are disjoint.
-
-*/
-bool AttributesAreDisjoint(ListExpr a, ListExpr b)
-{
-  set<string> aNames;
-  ListExpr rest = a;
-  ListExpr current;
-
-  while(!nl->IsEmpty(rest))
-  {
-    current = nl->First(rest);
-    rest = nl->Rest(rest);
-    if((nl->ListLength(current) == 2)
-      && (nl->IsAtom(nl->First(current)))
-      && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (nl->IsAtom(nl->Second(current)))
-      && (nl->AtomType(nl->Second(current)) == SymbolType))
-    {
-      aNames.insert(nl->SymbolValue(nl->First(current)));
-    }
-    else
-    {
-      return false;
-    }
-  }
-  rest = b;
-  while(!nl->IsEmpty(rest))
-  {
-    ListExpr current = nl->First(rest);
-    rest = nl->Rest(rest);
-    if((nl->ListLength(current) == 2)
-      && (nl->IsAtom(nl->First(current)))
-      && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (nl->IsAtom(nl->Second(current)))
-      && (nl->AtomType(nl->Second(current)) == SymbolType))
-    {
-      if(aNames.find(nl->SymbolValue(nl->First(current))) != aNames.end())
-      {
-        return false;
-      }
-    }
-    else
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
-/*
-
-4.6 Utility class ~CPUTimeMeasurer~
-
-If ~MEASURE\_OPERATORS~ is defined, detailed data about
-the runnning times of several operators is gathered
-and printed to ~cerr~.
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
+name and the eleven functions previously defined.
 
 */
 
-//#define MEASURE_OPERATORS
-
-class CPUTimeMeasurer
-{
-private:
-  clock_t enterTime;
-  clock_t exitTime;
-  clock_t accumulated;
-
-public:
-  CPUTimeMeasurer()
-  {
-    accumulated = 0;
-  }
-
-  inline void Enter()
-  {
-#ifdef MEASURE_OPERATORS
-    enterTime = clock();
-#endif
-  }
-
-  inline void Exit()
-  {
-#ifdef MEASURE_OPERATORS
-    exitTime = clock();
-    accumulated += exitTime - enterTime;
-#endif
-  }
-
-  inline double GetCPUTimeAndReset()
-  {
-    double accumulatedDouble = 0.0;
-
-#ifdef MEASURE_OPERATORS
-    accumulatedDouble = ((double)accumulated) / CLOCKS_PER_SEC;
-    accumulated = 0;
-#endif
-    return accumulatedDouble;
-  }
-
-  inline void PrintCPUTimeAndReset(char* prefix)
-  {
-#ifdef MEASURE_OPERATORS
-    cerr << prefix << GetCPUTimeAndReset() << endl;
-#endif
-  }
-};
+TypeConstructor cpprel( "rel",           RelProp,
+                        OutRel,          InRel,
+	                SaveToListRel,   RestoreFromListRel,
+                        CreateRel, 	 DeleteRel,
+			OpenRel, 	 SaveRel,
+                        CloseRel,        CloneRel,
+                        CastRel,         SizeOfRel,
+                        CheckRel,        0,
+			RelInModel,      RelOutModel,
+			RelValueToModel, RelValueListToModel );
 
 /*
 
-4 Operators
+5 Operators
 
-4.2 Selection function for non-overloaded operators
-
-For non-overloaded operators, the set of value mapping functions consists
-of exactly one element.  Consequently, the selection function of such an
-operator always returns 0.
-
-*/
-static int simpleSelect (ListExpr args) { return 0; }
-
-/*
-
-4.2 Selection function for type operators
+5.2 Selection function for type operators
 
 The selection function of a type operator always returns -1.
 
 */
-static int typeOperatorSelect(ListExpr args) { return -1; }
-
+int TypeOperatorSelect(ListExpr args)
+{
+  return -1;
+}
 
 /*
-
-6.1 Type Operator ~TUPLE~
+5.3 Type Operator ~TUPLE~
 
 Type operators are used only for inferring argument types of parameter
 functions. They have a type mapping but no evaluation function.
 
-6.1.1 Type mapping function of operator ~TUPLE~
+5.3.1 Type mapping function of operator ~TUPLE~
 
 Extract tuple type from a stream or relation type given as the first argument.
 
@@ -329,37 +766,38 @@ ListExpr TUPLETypeMap(ListExpr args)
 }
 /*
 
-4.1.3 Specification of operator ~TUPLE~
+5.3.2 Specification of operator ~TUPLE~
 
 */
-const string TUPLESpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Remarks\" ) "
-                          "( <text>((stream x)...) -> x, ((rel x)...) -> "
-			  "x</text--->"
-			  "<text>type operator</text--->"
-			  "<text>Extract tuple type from a stream or "
-			  "relation type given as the first argument."
-			  "</text--->"
-			  "<text>not for use with sos-syntax</text--->"
-			  "  ) )";
+const string TUPLESpec =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+	"\"Remarks\" ) "
+	"( <text>((stream x)...) -> x, ((rel x)...) -> "
+	"x</text--->"
+	"<text>type operator</text--->"
+	"<text>Extract tuple type from a stream or "
+	"relation type given as the first argument."
+	"</text--->"
+	"<text>not for use with sos-syntax</text--->"
+	"  ) )";
 /*
 
-4.1.3 Definition of operator ~TUPLE~
+5.3.3 Definition of operator ~TUPLE~
 
 */
-Operator TUPLE (
+Operator relalgTUPLE (
          "TUPLE",              // name
          TUPLESpec,            // specification
          0,                    // no value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         typeOperatorSelect,   // trivial selection function
+         TypeOperatorSelect,   // trivial selection function
          TUPLETypeMap          // type mapping
 );
 /*
 
-6.1 Type Operator ~TUPLE2~
+5.4 Type Operator ~TUPLE2~
 
-6.1.1 Type mapping function of operator ~TUPLE2~
+5.4.1 Type mapping function of operator ~TUPLE2~
 
 Extract tuple type from a stream or relation type given as the second argument.
 
@@ -385,103 +823,41 @@ ListExpr TUPLE2TypeMap(ListExpr args)
 }
 /*
 
-4.1.3 Specification of operator ~TUPLE2~
+5.4.2 Specification of operator ~TUPLE2~
 
 */
 const string TUPLE2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Remarks\" ) "
                            "( <text><text>((stream x) (stream y) ...) -> y, "
-			   "((rel x) (rel y) ...) -> y</text--->"
-			   "<text>type operator</text--->"
-			   "<text>Extract tuple type from a stream or "
-			   "relation"
-			   " type given as the second argument.</text--->"
-			   "<text>not for use with sos-syntax</text--->"
-			   ") )";
+                           "((mrel x) (mrel y) ...) -> y</text--->"
+                           "<text>type operator</text--->"
+                           "<text>Extract tuple type from a stream or "
+                           "relation"
+                           " type given as the second argument.</text--->"
+                           "<text>not for use with sos-syntax</text--->"
+                           ") )";
+
 /*
 
-4.1.3 Definition of operator ~TUPLE2~
+5.4.3 Definition of operator ~TUPLE2~
 
 */
-Operator TUPLE2 (
+Operator relalgTUPLE2 (
          "TUPLE2",             // name
          TUPLE2Spec,           // specification
          0,                    // no value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         typeOperatorSelect,   // trivial selection function
+         TypeOperatorSelect,   // trivial selection function
          TUPLE2TypeMap         // type mapping
 );
 
 /*
 
-6.1 Type Operator ~Group~
-
-Type operators are used only for inferring argument types of parameter
-functions. They have a type mapping but no evaluation function.
-
-6.1.1 Type mapping function of operator ~group~
-
-----  ((stream x))                -> (rel x)
-----
-
-*/
-ListExpr GroupTypeMap(ListExpr args)
-{
-  ListExpr first;
-  ListExpr tupleDesc;
-
-  if(!nl->IsAtom(args) && nl->ListLength(args) >= 1)
-  {
-    first = nl->First(args);
-    if(!nl->IsAtom(first) && nl->ListLength(first) == 2  )
-    {
-      tupleDesc = nl->Second(first);
-      if(TypeOfRelAlgSymbol(nl->First(first)) == stream
-        && (!nl->IsAtom(tupleDesc))
-        && (nl->ListLength(tupleDesc) == 2)
-        && TypeOfRelAlgSymbol(nl->First(tupleDesc)) == tuple
-        && IsTupleDescription(nl->Second(tupleDesc), nl))
-        return
-          nl->TwoElemList(
-            nl->SymbolAtom("rel"),
-            tupleDesc);
-    }
-  }
-  return nl->SymbolAtom("typeerror");
-}
-/*
-
-4.1.3 Specification of operator ~Group~
-
-*/
-const string GroupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Remarks\" ) "
-                          "( <text>((stream x)) -> (rel x)</text--->"
-			  "<text>type operator</text--->"
-			  "<text>Maps stream type to a rel.</text--->"
-			  "<text>not for use with sos-syntax</text--->"
-			  ") )";
-/*
-
-4.1.3 Definition of operator ~group~
-
-*/
-Operator group (
-         "GROUP",              // name
-         GroupSpec,            // specification
-         0,                    // no value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         typeOperatorSelect,   // trivial selection function
-         GroupTypeMap          // type mapping
-);
-
-/*
-
-4.1 Operator ~feed~
+5.5 Operator ~feed~
 
 Produces a stream from a relation by scanning the relation tuple by tuple.
 
-4.1.1 Type mapping function of operator ~feed~
+5.5.1 Type mapping function of operator ~feed~
 
 A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
@@ -493,7 +869,7 @@ Result type of feed operation.
 ----
 
 */
-static ListExpr FeedTypeMap(ListExpr args)
+ListExpr FeedTypeMap(ListExpr args)
 {
   ListExpr first ;
 
@@ -508,14 +884,14 @@ static ListExpr FeedTypeMap(ListExpr args)
 }
 /*
 
-4.1.2 Value mapping function of operator ~feed~
+5.5.2 Value mapping function of operator ~feed~
 
 */
-static int
+int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  CcRel* r;
-  CcRelIT* rit;
+  GenericRelation* r;
+  GenericRelationIterator* rit;
   Word argRelation;
 
 
@@ -523,18 +899,18 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
       qp->Request(args[0].addr, argRelation);
-      r = ((CcRel*)argRelation.addr);
-      rit = r->MakeNewScan();
+      r = ((GenericRelation*)argRelation.addr);
+      rit = r->MakeScan();
 
-      local.addr = rit;
+      local = SetWord(rit);
       return 0;
 
     case REQUEST :
-      rit = (CcRelIT*)local.addr;
-      if (!(rit->EndOfScan()))
+      rit = (GenericRelationIterator*)local.addr;
+      Tuple *t;
+      if ((t = rit->GetNextTuple()) != 0)
       {
-        result = SetWord(rit->GetTuple());
-        rit->Next();
+        result = SetWord(t);
         return YIELD;
       }
       else
@@ -543,7 +919,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      rit = (CcRelIT*)local.addr;
+      rit = (GenericRelationIterator*)local.addr;
       delete rit;
       return 0;
   }
@@ -551,340 +927,41 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 /*
 
-4.1.3 Specification of operator ~feed~
+5.5.3 Specification of operator ~feed~
 
 */
 const string FeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
-                         "( <text>(rel x) -> (stream x)</text--->"
-			 "<text>_ feed</text--->"
-			 "<text>Produces a stream from a relation by "
-			 "scanning the relation tuple by tuple.</text--->"
-			 "<text>query cities feed consume</text--->"
-			 ") )";
+                         "( <text>(mrel x) -> (stream x)</text--->"
+                         "<text>_ feed</text--->"
+                         "<text>Produces a stream from a relation by "
+                         "scanning the relation tuple by tuple.</text--->"
+                         "<text>query cities feed consume</text--->"
+                         ") )";
+
 /*
 
-4.1.3 Definition of operator ~feed~
+5.5.4 Definition of operator ~feed~
 
 Non-overloaded operators are defined by constructing a new instance of
 class ~Operator~, passing all operator functions as constructor arguments.
 
 */
-Operator feed (
+Operator relalgfeed (
           "feed",                // name
           FeedSpec,              // specification
           Feed,                  // value mapping
           Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-          simpleSelect,         // trivial selection function
+          Operator::SimpleSelect,         // trivial selection function
           FeedTypeMap           // type mapping
 );
 
 /*
-
-4.1 Operator ~sample~
-
-Produces a stream representing a sample of a relation.
-
-4.1.1 Function ~MakeRandomSubset~
-
-Generates a random subset of the numbers 1 ... ~setSize~, the size
-of which is ~subsetSize~. This function is needed for operator ~sample~.
-
-The strategy for generating a random subset works as follows: The algorithm
-maintains a set of already drawn numbers. The algorithm draws a new random
-number (using the libc random number generator) and adds it to the set of
-already drawn numbers, if it has not been
-already drawn. This is repeated until the size of the drawn set equals
-~subsetSize~. If ~subsetSize~ it not considerably smaller than ~setSize~, e.g.
-~subsetSize~ = ~setSize~ - 1, this approach becomes very inefficient
-or may even not terminate, because towards the end of the algorithm
-it may take a very long (or infinitely long)
-time until the random number generator hits one of the few numbers,
-which have not been already drawn. Therefore, if ~subsetSize~ is more
-than half of ~subSet~, we simple draw a subset of size
-~setSize~ - ~subsetSize~ and take the complement of that set as result set.
-
-*/
-void
-MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
-{
-  assert(subsetSize >= 1);
-  assert(setSize >= 2);
-  assert(setSize <= RAND_MAX);
-  assert(setSize > subsetSize);
-
-  set<int> drawnNumbers;
-  set<int>::iterator iter;
-  int drawSize;
-  int nDrawn = 0;
-  int i;
-  int r;
-  bool doInvert;
-
-  result.resize(0);
-  srand(time(0));
-
-  if(((double)setSize) / ((double)subsetSize) <= 2)
-  {
-    doInvert = true;
-    drawSize = setSize - subsetSize;
-  }
-  else
-  {
-    doInvert = false;
-    drawSize = subsetSize;
-  }
-
-  while(nDrawn < drawSize)
-  {
-    r = rand();
-    r = r % (setSize + 1);
-    if(r == 0)
-    {
-      continue;
-    }
-
-    if(drawnNumbers.find(r) == drawnNumbers.end())
-    {
-      drawnNumbers.insert(r);
-      ++nDrawn;
-    }
-  }
-
-  if(doInvert)
-  {
-    for(i = 1; i <= setSize; ++i)
-    {
-      if(drawnNumbers.find(i) == drawnNumbers.end())
-      {
-        result.push_back(i);
-      }
-    }
-  }
-  else
-  {
-    for(iter = drawnNumbers.begin(); iter != drawnNumbers.end(); ++iter)
-    {
-      result.push_back(*iter);
-    }
-  }
-}
-
-/*
-
-4.1.1 Type mapping function of operator ~sample~
-
-A type mapping function takes a nested list as argument. Its contents are
-type descriptions of an operator's input parameters. A nested list describing
-the output type of the operator is returned.
-
-Result type of feed operation.
-
-----	((rel x) int real)		-> (stream x)
-----
-
-*/
-static ListExpr SampleTypeMap(ListExpr args)
-{
-  ListExpr first ;
-  ListExpr minSampleSizeLE;
-  ListExpr minSampleRateLE;
-
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator sample expects a list of length three.");
-
-  first = nl->First(args);
-  minSampleSizeLE = nl->Second(args);
-  minSampleRateLE = nl->Third(args);
-
-  CHECK_COND(nl->ListLength(first) == 2,
-    "Operator sample expects a relation as first argument.");
-  CHECK_COND(TypeOfRelAlgSymbol(nl->First(first)) == rel,
-    "Operator sample expects a relation as first argument.");
-
-  CHECK_COND(nl->IsAtom(minSampleSizeLE),
-    "Operator sample expects an int as second argument.")
-  CHECK_COND(nl->AtomType(minSampleSizeLE) == SymbolType,
-    "Operator sample expects an int as second argument.")
-  CHECK_COND(nl->SymbolValue(minSampleSizeLE) == "int",
-    "Operator sample expects an int as second argument.");
-  CHECK_COND(nl->IsAtom(minSampleRateLE),
-    "Operator sample expects a real as third argument.")
-  CHECK_COND(nl->AtomType(minSampleRateLE) == SymbolType,
-    "Operator sample expects a real as third argument.")
-  CHECK_COND(nl->SymbolValue(minSampleRateLE) == "real",
-    "Operator sample expects a real as third argument.");
-
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
-}
-/*
-
-4.1.2 Value mapping function of operator ~sample~
-
-*/
-struct SampleLocalInfo
-{
-  vector<int> sampleIndices;
-  vector<int>::iterator iter;
-  int lastIndex;
-  CcRelIT* relIT;
-};
-
-static int
-Sample(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  SampleLocalInfo* localInfo;
-  Word argRelation;
-  Word sampleSizeWord;
-  Word sampleRateWord;
-
-  CcRel* rel;
-  CcTuple* tuple;
-
-  int sampleSize;
-  int relSize;
-  float sampleRate;
-  int i;
-  int currentIndex;
-
-  switch(message)
-  {
-    case OPEN :
-      localInfo = new SampleLocalInfo();
-      local = SetWord(localInfo);
-
-      qp->Request(args[0].addr, argRelation);
-      qp->Request(args[1].addr, sampleSizeWord);
-      qp->Request(args[2].addr, sampleRateWord);
-
-      rel = (CcRel*)argRelation.addr;
-      relSize = rel->GetNoTuples();
-      localInfo->relIT = rel->MakeNewScan();
-      sampleSize = ((CcInt*)sampleSizeWord.addr)->GetIntval();
-      sampleRate = ((CcReal*)sampleRateWord.addr)->GetRealval();
-
-      if(sampleSize < 1)
-      {
-        sampleSize = 1;
-      }
-      if(sampleRate <= 0.0)
-      {
-        sampleRate = 0.0;
-      }
-      else if(sampleRate > 1.0)
-      {
-        sampleRate = 1.0;
-      }
-      if((int)(sampleRate * (float)relSize) > sampleSize)
-      {
-        sampleSize = (int)(sampleRate * (float)relSize);
-      }
-
-      if(relSize <= sampleSize)
-      {
-        for(i = 1; i <= relSize; ++i)
-        {
-          localInfo->sampleIndices.push_back(i);
-        }
-      }
-      else
-      {
-        MakeRandomSubset(localInfo->sampleIndices, sampleSize, relSize);
-      }
-
-      localInfo->iter = localInfo->sampleIndices.begin();
-      localInfo->lastIndex = 0;
-      return 0;
-
-    case REQUEST:
-      localInfo = (SampleLocalInfo*)local.addr;
-      if(localInfo->iter == localInfo->sampleIndices.end())
-      {
-        return CANCEL;
-      }
-      else
-      {
-        currentIndex = *(localInfo->iter);
-        if(!localInfo->relIT->EndOfScan())
-        {
-          tuple = localInfo->relIT->GetTuple();
-          localInfo->relIT->Next();
-        }
-        else
-        {
-          return CANCEL;
-        }
-
-        /* Advance iterator to the the next tuple belonging to the sample */
-        for(i = 1; i < currentIndex - localInfo->lastIndex; ++i)
-        {
-          tuple->DeleteIfAllowed();
-          if(!localInfo->relIT->EndOfScan())
-          {
-            tuple = localInfo->relIT->GetTuple();
-            localInfo->relIT->Next();
-          }
-          else
-          {
-            return CANCEL;
-          }
-        }
-
-        result = SetWord(tuple);
-        localInfo->lastIndex = *(localInfo->iter);
-        localInfo->iter++;
-        return YIELD;
-      }
-
-    case CLOSE :
-      localInfo = (SampleLocalInfo*)local.addr;
-      delete localInfo->relIT;
-      delete localInfo;
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~sample~
-
-*/
-const string SampleSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>(rel x) int real -> (stream x)"
-			   "</text--->"
-			   "<text>_ sample [ _  , _ ]</text--->"
-			   "<text>Produces a random sample of a relation."
-			   " The sample size is min(relSize, "
-			   "max(s, t * relSize)), where relSize is the size"
-			   " of the argument relation, s is the second "
-			   "argument, and t the third.</text--->"
-			  "<text>query cities sample[0, 0.45] count</text--->"
-			   ") )";
-
-/*
-
-4.1.3 Definition of operator ~sample~
-
-Non-overloaded operators are defined by constructing a new instance of
-class ~Operator~, passing all operator functions as constructor arguments.
-
-*/
-Operator sample (
-          "sample",                // name
-          SampleSpec,              // specification
-          Sample,                  // value mapping
-          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-          simpleSelect,         // trivial selection function
-          SampleTypeMap           // type mapping
-);
-
-/*
-4.1 Operator ~consume~
+5.6 Operator ~consume~
 
 Collects objects from a stream into a relation.
 
-4.1.1 Type mapping function of operator ~consume~
+5.6.1 Type mapping function of operator ~consume~
 
 Operator ~consume~ accepts a stream of tuples and returns a relation.
 
@@ -900,38 +977,42 @@ ListExpr ConsumeTypeMap(ListExpr args)
   if(nl->ListLength(args) == 1)
   {
     first = nl->First(args);
-    if(nl->ListLength(first) == 2)
-    {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-        return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
-    }
+    if ((nl->ListLength(first) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+        (nl->ListLength(nl->Second(first)) == 2) &&
+        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
+      return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
   }
   ErrorReporter::ReportError("Incorrect input for operator consume.");
   return nl->SymbolAtom("typeerror");
 }
 /*
 
-4.1.2 Value mapping function of operator ~consume~
+5.6.2 Value mapping function of operator ~consume~
 
 */
-static int
+int
 Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word actual;
-  CcRel* rel;
+  Relation* rel;
 
-  rel = (CcRel*)((qp->ResultStorage(s)).addr);
-  if( rel->GetNoTuples() > 0 )
-    rel->Empty();
+  rel = (Relation*)((qp->ResultStorage(s)).addr);
+  if(rel->GetNoTuples() > 0)
+  {
+    rel->Clear();
+  }
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    CcTuple* tuple = (CcTuple*)actual.addr;
-    tuple = tuple->CloneIfNecessary();
-    tuple->SetFree(false);
+    Tuple* tuple = ((Tuple*)actual.addr)->CloneIfNecessary();
     rel->AppendTuple(tuple);
+    if( tuple != actual.addr )
+      ((Tuple*)actual.addr)->DeleteIfAllowed();
+    tuple->Delete();
+
     qp->Request(args[0].addr, actual);
   }
 
@@ -943,35 +1024,36 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 /*
 
-4.1.3 Specification of operator ~consume~
+5.6.3 Specification of operator ~consume~
 
 */
 const string ConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
-                            "( <text>(stream x) -> (rel x)</text--->"
-			    "<text>_ consume</text--->"
-			    "<text>Collects objects from a stream."
-			    "</text--->"
-			    "<text>query cities feed consume</text--->"
-			    ") )";
+                            "( <text>(stream x) -> (mrel x)</text--->"
+                            "<text>_ consume</text--->"
+                            "<text>Collects objects from a stream."
+                            "</text--->"
+                            "<text>query cities feed consume</text--->"
+                            ") )";
+
 /*
 
-4.1.3 Definition of operator ~consume~
+5.6.4 Definition of operator ~consume~
 
 */
-Operator consume (
+Operator relalgconsume (
          "consume",            // name
 	 ConsumeSpec,          // specification
 	 Consume,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 ConsumeTypeMap        // type mapping
 );
 /*
 
-7.1 Operator ~attr~
+5.7 Operator ~attr~
 
-7.1.1 Type mapping function of operator ~attr~
+5.7.1 Type mapping function of operator ~attr~
 
 Result type attr operation.
 
@@ -1018,18 +1100,20 @@ ListExpr AttrTypeMap(ListExpr args)
         (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(first), attrname, attrtype, nl);
+      j = FindAttribute(nl->Second(first), attrname, attrtype);
       if (j)
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                   nl->OneElemList(nl->IntAtom(j)), attrtype);
     }
+    ErrorReporter::ReportError("Incorrect input for operator attr.");
+    return nl->SymbolAtom("typeerror");
   }
   ErrorReporter::ReportError("Incorrect input for operator attr.");
   return nl->SymbolAtom("typeerror");
 }
 /*
 
-4.1.2 Value mapping function of operator ~attr~
+5.7.2 Value mapping function of operator ~attr~
 
 The argument vector ~arg~ contains in the first slot ~args[0]~ the tuple
 and in ~args[2]~ the position of the attribute as a number. Returns as
@@ -1039,52 +1123,62 @@ in the function ~AttributeTypeMap~ to determine the attribute
 number ~args[2]~ .
 
 */
-static int
+int
 Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  CcTuple* tupleptr;
+  Tuple* tupleptr;
   int index;
 
-  tupleptr = (CcTuple*)args[0].addr;
+  tupleptr = (Tuple*)args[0].addr;
   index = ((CcInt*)args[2].addr)->GetIntval();
-  assert( 1 <= index && index <= tupleptr->GetNoAttrs() );
-  result = SetWord(tupleptr->Get(index - 1));
-  return 0;
+  if ((1 <= index) && (index <= tupleptr->GetNoAttributes()))
+  {
+    result = qp->ResultStorage(s);
+    ((StandardAttribute*)result.addr)->CopyFrom(
+      (StandardAttribute*)tupleptr->GetAttribute(index - 1));
+    return 0;
+  }
+  else
+  {
+    cout << "attribute: index out of range !";
+    return -1;
+  }
 }
 /*
 
-4.1.3 Specification of operator ~attr~
+5.7.3 Specification of operator ~attr~
 
 */
 const string AttrSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Remarks\" ) "
-                         "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
-			 "ti)</text--->"
-			 "<text>attr ( _ , _ )</text--->"
-			 "<text>Returns the value of an attribute at a "
-			 "given position.</text--->"
-			 "<text>not for use with sos-syntax</text--->"
-			 ") )";
+                         "( <text>((mtuple ((x1 t1)...(xn tn))) xi)  -> "
+                         "ti)</text--->"
+                         "<text>attr ( _ , _ )</text--->"
+                         "<text>Returns the value of an attribute at a "
+                         "given position.</text--->"
+                         "<text>not for use with sos-syntax</text--->"
+                         ") )";
+
 /*
 
-4.1.3 Definition of operator ~attr~
+5.7.4 Definition of operator ~attr~
 
 */
-Operator attr (
-         "attr",           // name
+Operator relalgattr (
+     "attr",           // name
      AttrSpec,        // specification
      Attr,            // value mapping
      Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-     simpleSelect,         // trivial selection function
+     Operator::SimpleSelect,         // trivial selection function
      AttrTypeMap      // type mapping
 );
 /*
 
-7.3 Operator ~filter~
+5.8 Operator ~filter~
 
 Only tuples, fulfilling a certain condition are passed on to the output stream.
 
-7.3.1 Type mapping function of operator ~filter~
+5.8.1 Type mapping function of operator ~filter~
 
 Result type of filter operation.
 
@@ -1092,7 +1186,7 @@ Result type of filter operation.
 ----
 
 */
-template<bool isFilter> ListExpr FilterTypeMap(ListExpr args)
+ListExpr FilterTypeMap(ListExpr args)
 {
   ListExpr first, second;
   if(nl->ListLength(args) == 2)
@@ -1111,46 +1205,39 @@ template<bool isFilter> ListExpr FilterTypeMap(ListExpr args)
     return first;
   }
 
-  ErrorReporter::ReportError(
-    isFilter ?
-      "Incorrect input for operator filter." :
-      "Incorrect input for operator cancel.");
+  ErrorReporter::ReportError( "Incorrect input for operator filter.");
   return nl->SymbolAtom("typeerror");
 }
 
 /*
 
-4.1.2 Value mapping function of operator ~filter~
+5.8.2 Value mapping function of operator ~filter~
 
 */
-static int
+int
 Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool found;
   Word elem, funresult;
   ArgVectorPointer funargs;
-  CcTuple* tuple;
+  Tuple* tuple;
 
   switch ( message )
   {
 
     case OPEN:
 
-	//cout << "tfilter OPEN " << endl;
-
       qp->Open (args[0].addr);
       return 0;
 
     case REQUEST:
-
-	//cout << "tfilter REQUEST " << endl;
 
       funargs = qp->Argument(args[1].addr);
       qp->Request(args[0].addr, elem);
       found = false;
       while (qp->Received(args[0].addr) && !found)
       {
-        tuple = (CcTuple*)elem.addr;
+        tuple = (Tuple*)elem.addr;
         (*funargs)[0] = elem;
         qp->Request(args[1].addr, funresult);
         if (((StandardAttribute*)funresult.addr)->IsDefined())
@@ -1173,8 +1260,6 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
 
-	//cout << "tfilter CLOSE " << endl;
-
       qp->Close(args[0].addr);
       return 0;
   }
@@ -1182,38 +1267,39 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 /*
 
-4.1.3 Specification of operator ~filter~
+5.8.3 Specification of operator ~filter~
 
 */
 const string FilterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
                            "( <text>((stream x) (map x bool)) -> "
-			   "(stream x)</text--->"
-			   "<text>_ filter [ fun ]</text--->"
-			   "<text>Only tuples, fulfilling a certain "
-	                   "condition are passed on to the output "
-			   "stream.</text--->"
+                           "(stream x)</text--->"
+                           "<text>_ filter [ fun ]</text--->"
+                           "<text>Only tuples, fulfilling a certain "
+                           "condition are passed on to the output "
+                           "stream.</text--->"
                            "<text>query cities feed filter "
-			   "[.population > 500000] consume</text--->"
-			      ") )";
+                           "[.population > 500000] consume</text--->"
+                              ") )";
+
 /*
 
-4.1.3 Definition of operator ~filter~
+5.8.4 Definition of operator ~filter~
 
 */
-Operator tfilter (
+Operator relalgfilter (
          "filter",            // name
          FilterSpec,           // specification
          Filter,               // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
-         FilterTypeMap<true>         // type mapping
+         Operator::SimpleSelect,         // trivial selection function
+         FilterTypeMap         // type mapping
 );
 /*
 
-7.3 Operator ~project~
+5.9 Operator ~project~
 
-7.3.1 Type mapping function of operator ~filter~
+5.9.1 Type mapping function of operator ~filter~
 
 Result type of project operation.
 
@@ -1255,40 +1341,40 @@ ListExpr ProjectTypeMap(ListExpr args)
       while (!(nl->IsEmpty(second)))
       {
         first2 = nl->First(second);
-	    second = nl->Rest(second);
-	    if (nl->AtomType(first2) == SymbolType)
-        {
-          attrname = nl->SymbolValue(first2);
-        }
-        else
-        {
-          ErrorReporter::ReportError("Incorrect input for operator project.");
-          return nl->SymbolAtom("typeerror");
-        }
-        j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-	    if (j)
-	    {
-	      if (firstcall)
-	      {
-	        firstcall = false;
-	        newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
-	        lastNewAttrList = newAttrList;
-	        numberList = nl->OneElemList(nl->IntAtom(j));
-	       lastNumberList = numberList;
-	      }
-	      else
-	      {
-	        lastNewAttrList =
-	          nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
-	        lastNumberList =
-	          nl->Append(lastNumberList, nl->IntAtom(j));
-	      }
-	    }
-	    else
+	second = nl->Rest(second);
+	if (nl->AtomType(first2) == SymbolType)
+	{
+	  attrname = nl->SymbolValue(first2);
+	}
+	else
         {
           ErrorReporter::ReportError("Incorrect input for operator project.");
           return nl->SymbolAtom("typeerror");
         }
+	j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+	if (j)
+	{
+	  if (firstcall)
+	  {
+	    firstcall = false;
+	    newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
+	    lastNewAttrList = newAttrList;
+	    numberList = nl->OneElemList(nl->IntAtom(j));
+	    lastNumberList = numberList;
+	  }
+	  else
+	  {
+	    lastNewAttrList =
+	      nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
+	    lastNumberList =
+	      nl->Append(lastNumberList, nl->IntAtom(j));
+	  }
+	}
+	else
+  {
+    ErrorReporter::ReportError("Incorrect input for operator project.");
+    return nl->SymbolAtom("typeerror");
+  }
       }
       // Check whether all new attribute names are distinct
       // - not yet implemented
@@ -1298,7 +1384,6 @@ ListExpr ProjectTypeMap(ListExpr args)
 		 nl->TwoElemList(nl->SymbolAtom("stream"),
 		               nl->TwoElemList(nl->SymbolAtom("tuple"),
 			                     newAttrList)));
-      // cout << nl->WriteToFile("/dev/tty",outlist) << endl;
       return outlist;
     }
   }
@@ -1307,345 +1392,101 @@ ListExpr ProjectTypeMap(ListExpr args)
 }
 /*
 
-4.1.2 Value mapping function of operator ~project~
+5.9.2 Value mapping function of operator ~project~
 
 */
-static int
+int
 Project(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem1, elem2, arg2;
-  int noOfAttrs, index;
-  Supplier son;
-  Attribute* attr;
-  CcTuple* t;
-
 
   switch (message)
   {
     case OPEN :
-
-	//cout << "project OPEN" << endl;
-
+    {
+      ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+      TupleType *tupleType = new TupleType( nl->Second( resultType ) );
+      local.addr = tupleType;
 
       qp->Open(args[0].addr);
       return 0;
-
+    }
     case REQUEST :
-
-	//cout << "project REQUEST" << endl;
+    {
+      Word elem1, elem2, arg2;
+      int noOfAttrs, index;
+      Supplier son;
+      Attribute* attr;
 
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
-        t = new CcTuple();
-        t->SetFree(true);
+        TupleType *tupleType = (TupleType *)local.addr;
+        Tuple *t = new Tuple( *tupleType, true );
+        assert( t->IsFree() );
 
-	qp->Request(args[2].addr, arg2);
+        qp->Request(args[2].addr, arg2);
         noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
-        t->SetNoAttrs(noOfAttrs);
-        for (int i=1; i <= noOfAttrs; i++)
+        assert( t->GetNoAttributes() == noOfAttrs );
+
+        for( int i = 0; i < noOfAttrs; i++)
         {
-          son = qp->GetSupplier(args[3].addr, i-1);
+          son = qp->GetSupplier(args[3].addr, i);
           qp->Request(son, elem2);
           index = ((CcInt*)elem2.addr)->GetIntval();
-          attr = ((CcTuple*)elem1.addr)->Get(index-1);
-          t->Put(i-1, ((StandardAttribute*)attr->Clone()));
+          attr = ((Tuple*)elem1.addr)->GetAttribute(index-1);
+          t->PutAttribute(i, ((StandardAttribute*)attr->Clone()));
         }
-        ((CcTuple*)elem1.addr)->DeleteIfAllowed();
+        ((Tuple*)elem1.addr)->DeleteIfAllowed();
         result = SetWord(t);
         return YIELD;
       }
       else return CANCEL;
-
+    }
     case CLOSE :
-
-	//cout << "project CLOSE" << endl;
-
+    {
+      delete (TupleType *)local.addr;
       qp->Close(args[0].addr);
       return 0;
+    }
   }
   return 0;
 }
 /*
 
-4.1.3 Specification of operator ~project~
+5.9.3 Specification of operator ~project~
 
 */
 const string ProjectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
-                            "( <text>((stream (tuple ((x1 T1) ... "
-			    "(xn Tn)))) (ai1 ... aik)) -> (stream (tuple"
-			    " ((ai1 Ti1) ... (aik Tik))))</text--->"
-			    "<text>_ project [ list ]</text--->"
-			    "<text>Produces a projection tuple for each "
-			    "tuple of its input stream.</text--->"
-			    "<text>query cities feed project[cityname, "
-			    "population] consume</text--->"
-			      ") )";
+                            "( <text>((stream (mtuple ((x1 T1) ... "
+                            "(xn Tn)))) (ai1 ... aik)) -> (stream (mtuple"
+                            " ((ai1 Ti1) ... (aik Tik))))</text--->"
+                            "<text>_ project [ list ]</text--->"
+                            "<text>Produces a projection tuple for each "
+                            "tuple of its input stream.</text--->"
+                            "<text>query cities feed project[cityname, "
+                            "population] consume</text--->"
+                              ") )";
 
 /*
 
-4.1.3 Definition of operator ~project~
+5.9.4 Definition of operator ~project~
 
 */
-Operator project (
+Operator relalgproject (
          "project",            // name
          ProjectSpec,          // specification
          Project,              // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         Operator::SimpleSelect,         // trivial selection function
          ProjectTypeMap        // type mapping
 );
 
-//***********************the following code is for ~remove~ operation***********************
 /*
 
-7.3 Operator ~remove~
+5.10 Operator ~product~
 
-7.3.1 Type mapping function of operator ~remove~
-
-Result type of ~remove~ operation.
-
-----	((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))	->
-
-		(APPEND
-			(n-k (j1 ... jn-k))
-			(stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))
-		)
-----
-
-The type mapping computes the number of attributes and the list of attribute
-numbers for the given left attributes (after removal) and asks the query processor to
-append it to the given arguments.
-
-*/
-ListExpr RemoveTypeMap(ListExpr args)
-{
-  bool firstcall;
-  int noAttrs, j;
-  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
-           lastNumberList, numberList, outlist;
-  string attrname;
-  set<int> removeSet;
-  removeSet.clear();
-
-  firstcall = true;
-  if (nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second = nl->Second(args);
-
-    if ((nl->ListLength(first) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-	(nl->ListLength(nl->Second(first)) == 2) &&
-	(TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	(!nl->IsAtom(second)) &&
-	(nl->ListLength(second) > 0))
-    {
-      while (!(nl->IsEmpty(second)))
-      {
-	first2 = nl->First(second);
-	second = nl->Rest(second);
-
-	if (nl->AtomType(first2) == SymbolType)
-	{
-	  attrname = nl->SymbolValue(first2);
-	}
-	else
-	{
-	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-	  return nl->SymbolAtom("typeerror");
-	}
-
-	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-	if (j)  removeSet.insert(j);
-	else
-	{
-	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-	  return nl->SymbolAtom("typeerror");
-	}
-      }
-      //*****here: we need to generate new attr list according to removeSet*****
-      ListExpr oldAttrList;
-      int i;
-      i=0;  // i is the index of the old attriblist
-      first = nl->First(args);
-      second = nl->Second(args);
-      oldAttrList=nl->Second(nl->Second(first));
-      //noAttrs = nl->ListLength(oldAttrList) - nl->ListLength(second);  // n-k
-      noAttrs =0;
-      while (!(nl->IsEmpty(oldAttrList)))
-      {
-	i++;
-	first2 = nl->First(oldAttrList);
-	oldAttrList = nl->Rest(oldAttrList);
-
-	if (removeSet.find(i)==removeSet.end())  //the attribute is not in the removal list
-	{
-	  noAttrs++;
-	  if (firstcall)
-	  {
-	    firstcall = false;
-	    newAttrList = nl->OneElemList(first2);
-	    lastNewAttrList = newAttrList;
-	    numberList = nl->OneElemList(nl->IntAtom(i));
-	    lastNumberList = numberList;
-	  }
-	  else
-	  {
-	    lastNewAttrList = nl->Append(lastNewAttrList, first2);
-	    lastNumberList = nl->Append(lastNumberList, nl->IntAtom(i));
-	  }
-	}
-      }
-
-      // Check whether all new attribute names are distinct
-      // - not yet implemented
-      //check whether the returning list is null
-      if (noAttrs>0)
-      {outlist = nl->ThreeElemList(
-                 nl->SymbolAtom("APPEND"),
-		 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-		 nl->TwoElemList(nl->SymbolAtom("stream"),
-		               nl->TwoElemList(nl->SymbolAtom("tuple"),
-			                     newAttrList)));
-      return outlist;
-      }
-      else
-      {
-      ErrorReporter::ReportError(
-	"Incorrect input for operator ~remove~ - trying to remove all attributes.");
-      return nl->SymbolAtom("typeerror");
-      }
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.2 Value mapping function of operator ~remove~
-
-*/
-static int
-Remove(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word elem1, elem2, arg2;
-  int noOfAttrs, index;
-  Supplier son;
-  Attribute* attr;
-  CcTuple* t;
-
-
-  switch (message)
-  {
-    case OPEN :
-      qp->Open(args[0].addr);
-      return 0;
-
-    case REQUEST :
-      qp->Request(args[0].addr, elem1);
-      if (qp->Received(args[0].addr))
-      {
-        t = new CcTuple();
-        t->SetFree(true);
-
-	qp->Request(args[2].addr, arg2);
-        noOfAttrs = ((CcInt*)arg2.addr)->GetIntval();
-        t->SetNoAttrs(noOfAttrs);
-        for (int i=1; i <= noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[3].addr, i-1);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          attr = ((CcTuple*)elem1.addr)->Get(index-1);
-          t->Put(i-1, ((StandardAttribute*)attr->Clone()));
-        }
-        ((CcTuple*)elem1.addr)->DeleteIfAllowed();
-        result = SetWord(t);
-        return YIELD;
-      }
-      else return CANCEL;
-
-    case CLOSE :
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~remove~
-
-*/
-const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream (tuple ((x1 T1) ... "
-			   "(xn Tn)))) (ai1 ... aik)) -> (stream "
-			   "(tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))"
-			   "</text--->"
-			   "<text>_ remove [list]</text--->"
-			   "<text>Produces a removal tuple for each "
-			   "tuple of its input stream.</text--->"
-			   "<text>query cities feed remove[zipcode] "
-			   "consume</text--->"
-			      ") )";
-
-/*
-
-4.1.3 Definition of operator ~remove~
-
-*/
-Operator removal (
-         "remove",                             // name
-         RemoveSpec,                        // specification
-         Remove,                               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,                       // trivial selection function
-         RemoveTypeMap               // type mapping
-);
-/*
-
-7.3 Operator ~product~
-
-5.6.1 Help Function ~Concat~
-
-Copies the attribute values of two tuples
-(words) ~r~ and ~s~ into tuple (word) ~t~.
-
-*/
-void Concat (Word r, Word s, Word& t)
-{
-  int rnoattrs, snoattrs, tnoattrs;
-  Attribute* attr;
-
-  rnoattrs = ((CcTuple*)r.addr)->GetNoAttrs();
-  snoattrs = ((CcTuple*)s.addr)->GetNoAttrs();
-  if ((rnoattrs + snoattrs) > MaxSizeOfAttr)
-  {
-    tnoattrs = MaxSizeOfAttr;
-  }
-  else
-  {
-    tnoattrs = rnoattrs + snoattrs;
-  }
-
-  ((CcTuple*)t.addr)->SetNoAttrs(tnoattrs);
-  for (int i = 1; i <= rnoattrs; i++)
-  {
-    attr = ((CcTuple*)r.addr)->Get(i - 1);
-    ((CcTuple*)t.addr)->Put((i - 1), ((StandardAttribute*)attr)->Clone());
-  }
-  for (int j = (rnoattrs + 1); j <= tnoattrs; j++)
-  {
-    attr = ((CcTuple*)s.addr)->Get(j - rnoattrs - 1);
-    ((CcTuple*)t.addr)->Put((j - 1), ((StandardAttribute*)attr)->Clone());
-  }
-}
-/*
-
-7.3.1 Type mapping function of operator ~product~
+5.10.1 Type mapping function of operator ~product~
 
 Result type of product operation.
 
@@ -1655,31 +1496,6 @@ Result type of product operation.
 ----
 
 */
-
-bool comparenames(ListExpr list)
-{
-  vector<string> attrnamestrlist;
-  vector<string>::iterator it;
-  ListExpr attrnamelist;
-  int unique;
-  string attrname;
-
-  attrnamelist = list;
-  attrnamestrlist.resize(nl->ListLength(list));
-  it = attrnamestrlist.begin();
-  while (!nl->IsEmpty(attrnamelist))
-  {
-    attrname = nl->SymbolValue(nl->First(nl->First(attrnamelist)));
-    attrnamelist = nl->Rest(attrnamelist);
-    unique = std::count(attrnamestrlist.begin(), attrnamestrlist.end(),
-	                       attrname);
-    *it =  attrname;
-    if (unique) return false;
-    it++;
-  }
-  return true;
-}
-
 ListExpr ProductTypeMap(ListExpr args)
 {
   ListExpr first, second, list, list1, list2, outlist;
@@ -1730,7 +1546,7 @@ ListExpr ProductTypeMap(ListExpr args)
     // Check whether all new attribute names are distinct
     // - not yet implemented
 
-    if ( comparenames(list) )
+    if ( CompareNames(list) )
     {
       outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
         nl->TwoElemList(nl->SymbolAtom("tuple"), list));
@@ -1746,49 +1562,76 @@ typeerror:
 }
 /*
 
-4.1.2 Value mapping function of operator ~product~
+5.10.2 Value mapping function of operator ~product~
 
 */
 
 CPUTimeMeasurer productMeasurer;
 
+class NoOrder;
+
 struct ProductLocalInfo
 {
-  CcTuple* currentTuple;
-  vector<CcTuple*> rightRel;
-  vector<CcTuple*>::iterator iter;
+  TupleType *resultTupleType;
+  Tuple* currentTuple;
+  TupleBuffer *rightRel;
+  TupleBufferIterator *iter;
 };
 
-static int
+int
 Product(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word r, u, t;
-  CcTuple* tuple;
+  Word r, u;
   ProductLocalInfo* pli;
 
   switch (message)
   {
     case OPEN :
-
+    {
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, r);
       pli = new ProductLocalInfo;
-      pli->currentTuple = qp->Received(args[0].addr) ? (CcTuple*)r.addr : 0;
+      pli->currentTuple = qp->Received(args[0].addr) ? (Tuple*)r.addr : 0;
 
       /* materialize right stream */
       qp->Open(args[1].addr);
       qp->Request(args[1].addr, u);
+
+      if(qp->Received(args[1].addr))
+      {
+        pli->rightRel = new TupleBuffer();
+      }
+      else
+      {
+        pli->rightRel = 0;
+      }
+
       while(qp->Received(args[1].addr))
       {
-        pli->rightRel.push_back((CcTuple*)u.addr);
+        Tuple *t = ((Tuple*)u.addr)->CloneIfNecessary();
+        pli->rightRel->AppendTuple( t );
+        ((Tuple*)u.addr)->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
       }
 
-      pli->iter = pli->rightRel.begin();
+      if( pli->rightRel )
+      {
+        pli->iter = pli->rightRel->MakeScan();
+      }
+      else
+      {
+        pli->iter = 0;
+      }
+
+      ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+
       local = SetWord(pli);
       return 0;
-
+    }
     case REQUEST :
+    {
+      Tuple *resultTuple, *rightTuple;
       pli = (ProductLocalInfo*)local.addr;
 
       productMeasurer.Enter();
@@ -1800,15 +1643,18 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-        if(pli->iter != pli->rightRel.end())
+        if( pli->rightRel == 0 ) // second stream is empty
         {
-          tuple = new CcTuple();
-          tuple->SetFree(true);
-          t = SetWord(tuple);
-          Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
-          result = t;
-          ++(pli->iter);
+          productMeasurer.Exit();
+          return CANCEL;
+        }
+        else if( (rightTuple = pli->iter->GetNextTuple()) != 0 )
+        {
+          resultTuple = new Tuple( *(pli->resultTupleType), true );
+          assert( resultTuple->IsFree() );
 
+          Concat(pli->currentTuple, rightTuple, resultTuple);
+          result = SetWord(resultTuple);
           productMeasurer.Exit();
           return YIELD;
         }
@@ -1818,28 +1664,22 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
              fetch a new tuple from left stream */
           pli->currentTuple->DeleteIfAllowed();
           pli->currentTuple = 0;
+          delete pli->iter;
+          pli->iter = 0;
           qp->Request(args[0].addr, r);
           if (qp->Received(args[0].addr))
           {
-            pli->currentTuple = (CcTuple*)r.addr;
-            pli->iter = pli->rightRel.begin();
-            if(pli->iter == pli->rightRel.end()) // second stream is empty
-            {
-              productMeasurer.Exit();
-              return CANCEL;
-            }
-            else
-            {
-              tuple = new CcTuple();
-              tuple->SetFree(true);
-              t = SetWord(tuple);
-              Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
-              result = t;
-              ++(pli->iter);
+            pli->currentTuple = (Tuple*)r.addr;
+            pli->iter = pli->rightRel->MakeScan();
+            assert( (rightTuple = pli->iter->GetNextTuple()) != 0 );
 
-              productMeasurer.Exit();
-              return YIELD;
-            }
+            resultTuple = new Tuple( *(pli->resultTupleType), true );
+            assert( resultTuple->IsFree() );
+
+            Concat(pli->currentTuple, rightTuple, resultTuple);
+            result = SetWord(resultTuple);
+            productMeasurer.Exit();
+            return YIELD;
           }
           else
           {
@@ -1848,19 +1688,19 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
           }
         }
       }
-
+    }
     case CLOSE :
+    {
       pli = (ProductLocalInfo*)local.addr;
       if(pli->currentTuple != 0)
-      {
         pli->currentTuple->DeleteIfAllowed();
-      }
-
-      for(pli->iter = pli->rightRel.begin();
-        pli->iter != pli->rightRel.end();
-        ++(pli->iter))
+      if( pli->iter != 0 )
+        delete pli->iter;
+      delete pli->resultTupleType;
+      if( pli->rightRel )
       {
-        (*(pli->iter))->DeleteIfAllowed();
+        pli->rightRel->Clear();
+        delete pli->rightRel;
       }
       delete pli;
 
@@ -1869,143 +1709,50 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 
       productMeasurer.PrintCPUTimeAndReset("Product CPU Time : ");
       return 0;
+    }
   }
   return 0;
 }
 /*
 
-4.1.3 Specification of operator ~product~
+5.10.3 Specification of operator ~product~
 
 */
 const string ProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
-                            "( <text>((stream (tuple (x1 ... xn))) (stream "
-			    "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
-			    "... xn y1 ... ym)))</text--->"
-			    "<text>_ _ product</text--->"
-			    "<text>Computes a Cartesian product stream from "
-			    "its two argument streams.</text--->"
-			    "<text>query ten feed twenty feed product count"
-			    "</text--->"
-			     " ) )";
+                            "( <text>((stream (mtuple (x1 ... xn))) (stream "
+                            "(mtuple (y1 ... ym)))) -> (stream (mtuple (x1 "
+                            "... xn y1 ... ym)))</text--->"
+                            "<text>_ _ product</text--->"
+                            "<text>Computes a Cartesian product stream from "
+                            "its two argument streams.</text--->"
+                            "<text>query ten feed twenty feed product count"
+                            "</text--->"
+                             " ) )";
+
 /*
 
-4.1.3 Definition of operator ~product~
+5.10.4 Definition of operator ~product~
 
 */
-Operator product (
+Operator relalgproduct (
          "product",            // name
          ProductSpec,          // specification
          Product,              // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         Operator::SimpleSelect,         // trivial selection function
          ProductTypeMap        // type mapping
 );
 /*
 
-7.3 Operator ~cancel~
-
-Transmits tuple from its input stream to its output stream until a tuple
-arrives fulfilling some condition.
-
-7.3.1 Type mapping function of operator ~cancel~
-
-Type mapping for ~cancel~ is the same, as type mapping for operator ~filter~.
-Result type of cancel operation.
-
-----    ((stream x) (map x bool)) -> (stream x)
-----
-
-4.1.2 Value mapping function of operator ~cancel~
-
-*/
-static int
-Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word t, value;
-  CcTuple* tuple;
-  bool found;
-  ArgVectorPointer vector;
-
-  switch (message)
-  {
-    case OPEN :
-
-      qp->Open(args[0].addr);
-      return 0;
-
-    case REQUEST :
-
-      qp->Request(args[0].addr, t);
-      found= false;
-      if (qp->Received(args[0].addr))
-      {
-        tuple = (CcTuple*)t.addr;
-        vector = qp->Argument(args[1].addr);
-        (*vector)[0] = t;
-        qp->Request(args[1].addr, value);
-        found =
-          ((CcBool*)value.addr)->IsDefined()
-          && ((CcBool*)value.addr)->GetBoolval();
-        if (found)
-        {
-          qp->Close(args[0].addr);
-          return CANCEL;
-        }
-        else
-        {
-          result = SetWord(tuple);
-          return YIELD;
-        }
-      }
-      else return CANCEL;
-
-    case CLOSE :
-
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~cancel~
-
-*/
-const string CancelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream x) (map x bool)) -> "
-			   "(stream x)</text--->"
-			   "<text>_ cancel [ fun ]</text--->"
-			   "<text>Transmits tuple from its input stream "
-			   "to its output stream until a tuple arrives "
-			   "fulfilling some condition.</text--->"
-			   "<text>query cities feed cancel [.cityname = "
-			   "\"Dortmund\"] consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~cancel~
-
-*/
-Operator cancel (
-         "cancel",             // name
-         CancelSpec,           // specification
-         Cancel,               // value mapping
-         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
-         FilterTypeMap<false>         // type mapping
-);
-/*
-
-7.3 Operator ~tcount~
+5.11 Operator ~count~
 
 Count the number of tuples within a stream of tuples.
 
 
-7.3.1 Type mapping function of operator ~tcount~
+5.11.1 Type mapping function of operator ~count~
 
-Operator ~tcount~ accepts a stream of tuples and returns an integer.
+Operator ~count~ accepts a stream of tuples and returns an integer.
 
 ----    (stream  (tuple x))                 -> int
 ----
@@ -2034,22 +1781,20 @@ TCountTypeMap(ListExpr args)
 
 /*
 
-4.1.2 Value mapping functions of operator ~tcount~
+5.11.2 Value mapping functions of operator ~count~
 
 */
-static int
+int
 TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word elem;
   int count = 0;
 
-	//cout << "tcount" << endl;
-
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   while ( qp->Received(args[0].addr) )
   {
-    ((CcTuple*)elem.addr)->DeleteIfAllowed();
+    ((Tuple*)elem.addr)->DeleteIfAllowed();
     count++;
     qp->Request(args[0].addr, elem);
   }
@@ -2059,10 +1804,10 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  CcRel* rel = (CcRel*)args[0].addr;
+  Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
   ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
   return 0;
@@ -2071,26 +1816,27 @@ TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 
 /*
 
-4.1.3 Specification of operator ~tcount~
+5.11.3 Specification of operator ~count~
 
 */
 const string TCountSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
-                           "( <text>((stream/rel (tuple x))) -> int"
-			   "</text--->"
-			   "<text>_ count</text--->"
-			   "<text>Count number of tuples within a stream "
-			   "or a relation of tuples.</text--->"
-			   "<text>query cities count or query cities "
-			   "feed count</text--->"
-			      ") )";
+                           "( <text>((stream/mrel (mtuple x))) -> int"
+                           "</text--->"
+                           "<text>_ count</text--->"
+                           "<text>Count number of tuples within a stream "
+                           "or a relation of tuples.</text--->"
+                           "<text>query cities count or query cities "
+                           "feed count</text--->"
+                              ") )";
+
 /*
 
-4.3.1 Selection function of operator ~tcount~
+5.11.4 Selection function of operator ~count~
 
 */
 
-static int
+int
 TCountSelect( ListExpr args )
 {
   ListExpr first ;
@@ -2118,34 +1864,34 @@ TCountSelect( ListExpr args )
 
 /*
 
-4.1.3 Definition of operator ~tcount~
+5.11.5 Definition of operator ~count~
 
 */
-static Word
+Word
 RelNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-ValueMapping tcountmap[] = {TCountStream, TCountRel };
+ValueMapping countmap[] = {TCountStream, TCountRel };
 ModelMapping nomodelmap[] = {RelNoModelMapping, RelNoModelMapping};
 
-Operator tcount (
+Operator relalgcount (
          "count",           // name
          TCountSpec,         // specification
          2,                  // number of value mapping functions
-         tcountmap,          // value mapping functions
+         countmap,          // value mapping functions
          nomodelmap,         // dummy model mapping functions
          TCountSelect,       // trivial selection function
          TCountTypeMap       // type mapping
 );
 /*
 
-7.3 Operator ~rename~
+5.12 Operator ~rename~
 
 Renames all attribute names by adding them with the postfix passed as parameter.
 
-7.3.1 Type mapping function of operator ~rename~
+5.12.1 Type mapping function of operator ~rename~
 
 Type mapping for ~rename~ is
 
@@ -2154,7 +1900,7 @@ Type mapping for ~rename~ is
 ----
 
 */
-static ListExpr
+ListExpr
 RenameTypeMap( ListExpr args )
 {
   ListExpr first, first2, second, rest, listn, lastlistn;
@@ -2210,14 +1956,14 @@ RenameTypeMap( ListExpr args )
 }
 /*
 
-4.1.2 Value mapping function of operator ~rename~
+5.12.2 Value mapping function of operator ~rename~
 
 */
-static int
+int
 Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t;
-  CcTuple* tuple;
+  Tuple* tuple;
 
   switch (message)
   {
@@ -2231,7 +1977,7 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
-        tuple = (CcTuple*)t.addr;
+        tuple = (Tuple*)t.addr;
         result = SetWord(tuple);
         return YIELD;
       }
@@ -2246,3559 +1992,38 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 /*
 
-4.1.3 Specification of operator ~rename~
+5.12.3 Specification of operator ~rename~
 
 */
 const string RenameSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
-                           "( <text>((stream (tuple([a1:d1, ... ,"
-			   "an:dn)))ar) -> (stream (tuple([a1ar:d1, "
-			   "... ,anar:dn)))</text--->"
-			   "<text>_ rename [ _ ] or just _ { _ }"
-			   "</text--->"
-			   "<text>Renames all attribute names by adding"
-			   " them with the postfix passed as parameter. "
-			   "NOTE: parameter must be of symbol type."
-			   "</text--->"
-			   "<text>query ten feed rename [ r1 ] consume "
-			   "or query ten feed {r1} consume, the result "
-			   "has format e.g. n_r1</text--->"
-			      ") )";
+                           "( <text>((stream (mtuple([a1:d1, ... ,"
+                           "an:dn)))ar) -> (stream (mtuple([a1ar:d1, "
+                           "... ,anar:dn)))</text--->"
+                           "<text>_ rename [ _ ] or just _ { _ }"
+                           "</text--->"
+                           "<text>Renames all attribute names by adding"
+                           " them with the postfix passed as parameter. "
+                           "NOTE: parameter must be of symbol type."
+                           "</text--->"
+                           "<text>query ten feed rename [ r1 ] consume "
+                           "or query ten feed {r1} consume, the result "
+                           "has format e.g. n_r1</text--->"
+                              ") )";
 
 /*
 
-4.1.3 Definition of operator ~rename~
+5.12.4 Definition of operator ~rename~
 
 */
-Operator cpprename (
+Operator relalgrename (
          "rename",             // name
          RenameSpec,           // specification
          Rename,               // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         Operator::SimpleSelect,         // trivial selection function
          RenameTypeMap         // type mapping
 );
-/*
-
-7.3 Operator ~extract~
-
-This operator has a stream of tuples and the name of an attribut as input and
-returns the value of this attribute
-from the first tuple of the input stream. If the input stream is empty a run
-time error occurs. In this case value -1 will be returned.
-
-7.3.1 Type mapping function of operator ~extract~
-
-Type mapping for ~extract~ is
-
-----	((stream (tuple ((x1 t1)...(xn tn))) xi) 	-> ti
-							APPEND (i) ti)
-----
-
-*/
-static ListExpr
-ExtractTypeMap( ListExpr args )
-{
-  ListExpr first, second, attrtype;
-  string  attrname;
-  int j;
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  ) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream)  &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)  &&
-       (nl->IsAtom(second)) &&
-       (nl->AtomType(second) == SymbolType))
-    {
-      attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-      if (j)
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->OneElemList(nl->IntAtom(j)), attrtype);
-    }
-    ErrorReporter::ReportError("Incorrect input for operator extract.");
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError("Incorrect input for operator extract.");
-  return nl->SymbolAtom("typeerror");
-}
-/*
-
-4.1.2 Value mapping function of operator ~extract~
-
-The argument vector ~args~ contains in the first slot ~args[0]~ the tuple
-and in ~args[2]~ the position of the attribute as a number. Returns as
-~result~ the value of an attribute at the given position ~args[2]~ in a
-tuple object.
-
-*/
-static int
-Extract(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word t;
-  CcTuple* tupleptr;
-  int index;
-  StandardAttribute* res = (StandardAttribute*)((qp->ResultStorage(s)).addr);
-  result = SetWord(res);
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr,t);
-
-  if (qp->Received(args[0].addr))
-  {
-    tupleptr = (CcTuple*)t.addr;
-    index = ((CcInt*)args[2].addr)->GetIntval();
-    assert((1 <= index) && (index <= tupleptr->GetNoAttrs()));
-    res->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
-    tupleptr->DeleteIfAllowed();
-  }
-  else
-  {
-    res->SetDefined(false);
-  }
-
-  qp->Close(args[0].addr);
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~extract~
-
-*/
-const string ExtractSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-			    "))) x ai) -> di</text--->"
-			    "<text>_ extract [ _ ]</text--->"
-			    "<text>Returns the value of attribute ai of "
-			    "the first tuple in the input stream."
-			    "</text--->"
-			    "<text>query cities feed extract [population]"
-			    "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~extract~
-
-*/
-Operator cppextract (
-         "extract",             // name
-         ExtractSpec,           // specification
-         Extract,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         ExtractTypeMap         // type mapping
-);
-
-/*
-
-7.3 Operator ~head~
-
-This operator fetches the first n tuples from a stream.
-
-7.3.1 Type mapping function of operator ~head~
-
-Type mapping for ~head~ is
-
-----	((stream (tuple ((x1 t1)...(xn tn))) int) 	->
-							((stream (tuple ((x1 t1)...(xn tn))))
-----
-
-*/
-static ListExpr
-HeadTypeMap( ListExpr args )
-{
-  ListExpr first, second;
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
-      && (nl->IsAtom(second))
-      && (nl->AtomType(second) == SymbolType)
-      && nl->SymbolValue(second) == "int")
-    {
-      return first;
-    }
-    ErrorReporter::ReportError("Incorrect input for operator head.");
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError("Incorrect input for operator head.");
-  return nl->SymbolAtom("typeerror");
-}
-/*
-
-4.1.2 Value mapping function of operator ~head~
-
-*/
-static int
-Head(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  int maxTuples;
-  Word maxTuplesWord;
-  Word tupleWord;
-  CcTuple* tuple;
-
-  switch(message)
-  {
-    case OPEN:
-
-	//cout << "head OPEN" << endl;
-
-      qp->Open(args[0].addr);
-      local.ival = 0;
-      return 0;
-
-    case REQUEST:
-
-	//cout << "head REQUEST" << endl;
-
-      qp->Request(args[1].addr, maxTuplesWord);
-      maxTuples = ((CcInt*)maxTuplesWord.addr)->GetIntval();
-      if(local.ival >= maxTuples)
-      {
-        return CANCEL;
-      }
-
-      qp->Request(args[0].addr, tupleWord);
-      if(qp->Received(args[0].addr))
-      {
-        tuple = (CcTuple*)tupleWord.addr;
-        result = SetWord(tuple);
-        local.ival++;
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    case CLOSE:
-
-	//cout << "head CLOSE" << endl;
-
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~head~
-
-*/
-const string HeadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-			 "))) x int) -> (stream (tuple([a1:d1, ... ,"
-			 "an:dn])))</text--->"
-			 "<text>_ head [ _ ]</text--->"
-			 "<text>Returns the first n tuples in the input "
-			 "stream.</text--->"
-			 "<text>query cities feed head[10] consume"
-			 "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~head~
-
-*/
-Operator cpphead (
-         "head",             // name
-         HeadSpec,           // specification
-         Head,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         HeadTypeMap         // type mapping
-);
-
-/*
-
-7.3 Operators ~max~ and ~min~
-
-
-7.3.1 Type mapping function of Operators ~max~ and ~min~
-
-Type mapping for ~max~ and ~min~ is
-
-----	((stream (tuple ((x1 t1)...(xn tn))) xi) 	-> ti
-							APPEND (i ti)
-----
-
-*/
-template<bool isMax> ListExpr
-MaxMinTypeMap( ListExpr args )
-{
-  ListExpr first, second, attrtype;
-  string  attrname;
-  int j;
-  const char* errorMessage =
-    isMax ?
-      "Incorrect input for operator max."
-      : "Incorrect input for operator min.";
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
-      && (nl->IsAtom(second))
-      && (nl->AtomType(second) == SymbolType))
-    {
-      attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-
-      if (j > 0
-        && (nl->SymbolValue(attrtype) == "real"
-          || nl->SymbolValue(attrtype) == "string"
-          || nl->SymbolValue(attrtype) == "bool"
-          || nl->SymbolValue(attrtype) == "int"))
-      {
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->OneElemList(nl->IntAtom(j)), attrtype);
-      }
-    }
-    ErrorReporter::ReportError(errorMessage);
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
-}
-/*
-
-4.1.2 Value mapping function of operators ~max~ and ~min~
-
-*/
-
-template<bool isMax> int
-MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  bool definedValueFound = false;
-  Word currentTupleWord;
-  StandardAttribute* extremum = (StandardAttribute*)(qp->ResultStorage(s)).addr;
-  extremum->SetDefined(false);
-  result = SetWord(extremum);
-
-  assert(args[2].addr != 0);
-  int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, currentTupleWord);
-  while(qp->Received(args[0].addr))
-  {
-    CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
-    StandardAttribute* currentAttr =
-      (StandardAttribute*)currentTuple->Get(attributeIndex);
-    if(currentAttr->IsDefined())
-    {
-      if(definedValueFound)
-      {
-        if(isMax)
-        {
-          if(currentAttr->Compare(extremum) > 0)
-          {
-            extremum->CopyFrom(currentAttr);
-          }
-        }
-        else
-        {
-          if(currentAttr->Compare(extremum) < 0)
-          {
-            extremum->CopyFrom(currentAttr);
-          }
-        }
-      }
-      else
-      {
-        definedValueFound = true;
-        extremum->CopyFrom(currentAttr);
-      }
-    }
-    currentTuple->DeleteIfAllowed();
-    qp->Request(args[0].addr, currentTupleWord);
-  }
-  qp->Close(args[0].addr);
-
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~max~
-
-*/
-const string MaxOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-			  "))) x ai) -> di</text--->"
-			  "<text>_ _ mergesec</text--->"
-			  "<text>Returns the maximum value of attribute "
-			  "ai over the input stream.</text--->"
-			  "<text>query cities feed max [ cityname ]"
-			  "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~max~
-
-*/
-Operator cppmax (
-         "max",             // name
-         MaxOpSpec,           // specification
-         MaxMinValueMapping<true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         MaxMinTypeMap<true>         // type mapping
-);
-
-/*
-
-4.1.3 Specification of operator ~min~
-
-*/
-const string MinOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (tuple([a1:d1, ... ,an:dn])))"
-			  " x ai) -> di</text--->"
-			  "<text>_ min [ _ ]</text--->"
-			  "<text>Returns the minimum value of attribute ai "
-			  "over the input stream.</text--->"
-			  "<text>query cities feed min [ cityname ]"
-			  "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~min~
-
-*/
-Operator cppmin (
-         "min",             // name
-         MinOpSpec,           // specification
-         MaxMinValueMapping<false>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         MaxMinTypeMap<false>         // type mapping
-);
-
-/*
-
-7.3 Operators ~avg~ and ~sum~
-
-
-7.3.1 Type mapping function of Operators ~avg~ and ~sum~
-
-Type mapping for ~avg~ is
-
-----	((stream (tuple ((x1 t1)...(xn tn))) xi) 	-> real
-							APPEND (i ti)
-----
-
-Type mapping for ~sum~ is
-
-----	((stream (tuple ((x1 t1)...(xn tn))) xi) 	-> ti
-							APPEND (i ti)
-----
-
-*/
-
-template<bool isAvg> ListExpr
-AvgSumTypeMap( ListExpr args )
-{
-  ListExpr first, second, attrtype;
-  string  attrname;
-  int j;
-  const char* errorMessage =
-    isAvg ?
-      "Incorrect input for operator avg."
-      : "Incorrect input for operator sum.";
-
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
-      && (nl->IsAtom(second))
-      && (nl->AtomType(second) == SymbolType))
-    {
-      attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-
-      if (j > 0
-        && (nl->SymbolValue(attrtype) == "real"
-          || nl->SymbolValue(attrtype) == "int"))
-      {
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->TwoElemList(nl->IntAtom(j),
-            nl->StringAtom(nl->SymbolValue(attrtype))),
-            isAvg ? nl->SymbolAtom("real") : attrtype);
-      }
-    }
-    ErrorReporter::ReportError(errorMessage);
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.2 Value mapping function of operators ~avg~ and ~sum~
-
-*/
-template<bool isAvg> int
-AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  bool definedValueFound = false;
-  Word currentTupleWord;
-  Attribute* accumulated = 0;
-  int nProcessedItems = 0;
-
-  assert(args[2].addr != 0);
-  assert(args[3].addr != 0);
-
-  int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, currentTupleWord);
-  while(qp->Received(args[0].addr))
-  {
-    CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
-    Attribute* currentAttr = (Attribute*)currentTuple->Get(attributeIndex);
-    if(currentAttr->IsDefined())
-    {
-      nProcessedItems++;
-
-      if(definedValueFound)
-      {
-        if(strcmp(*attributeType, "real") == 0)
-        {
-          CcReal* accumulatedReal = (CcReal*)accumulated;
-          CcReal* currentReal = (CcReal*)currentAttr;
-          accumulatedReal->Set(currentReal->GetRealval()
-            + accumulatedReal->GetRealval());
-        }
-        else
-        {
-          CcInt* accumulatedInt = (CcInt*)accumulated;
-          CcInt* currentInt = (CcInt*)currentAttr;
-          accumulatedInt->Set(currentInt->GetIntval()
-            + accumulatedInt->GetIntval());
-        }
-      }
-      else
-      {
-        definedValueFound = true;
-        accumulated = currentAttr->Clone();
-      }
-    }
-    currentTuple->DeleteIfAllowed();
-    qp->Request(args[0].addr, currentTupleWord);
-  }
-  qp->Close(args[0].addr);
-
-  if(definedValueFound)
-  {
-    if(isAvg)
-    {
-      CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
-      float nItems = (float)nProcessedItems;
-
-      if(strcmp(*attributeType, "real") == 0)
-      {
-        CcReal* accumulatedReal = (CcReal*)accumulated;
-        resultAttr->Set(accumulatedReal->GetRealval() / nItems);
-      }
-      else
-      {
-        CcInt* accumulatedInt = (CcInt*)accumulated;
-        resultAttr->Set(((float)accumulatedInt->GetIntval()) / nItems);
-      }
-      delete accumulated;
-      result = SetWord(resultAttr);
-    }
-    else
-    {
-      if(strcmp(*attributeType, "real") == 0)
-      {
-        CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
-        CcReal* accumulatedReal = (CcReal*)accumulated;
-        resultAttr->Set(accumulatedReal->GetRealval());
-        result = SetWord(resultAttr);
-      }
-      else
-      {
-        CcInt* resultAttr = (CcInt*)(qp->ResultStorage(s).addr);
-        CcInt* accumulatedInt = (CcInt*)accumulated;
-        resultAttr->Set(accumulatedInt->GetIntval());
-        result = SetWord(resultAttr);
-      }
-      delete accumulated;
-    }
-    return 0;
-  }
-  else
-  {
-    ((StandardAttribute*)qp->ResultStorage(s).addr)->SetDefined(false);
-    result = qp->ResultStorage(s);
-    return 0;
-  }
-}
-
-/*
-
-4.1.3 Specification of operator ~avg~
-
-*/
-const string AvgOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-			  "))) x ai) -> real</text--->"
-			  "<text>_ avg [ _ ]</text--->"
-			  "<text>Returns the average value of attribute "
-			  "ai over the input stream.</text--->"
-			  "<text>query cities feed avg [population]"
-			  "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~avg~
-
-*/
-Operator cppavg (
-         "avg",             // name
-         AvgOpSpec,           // specification
-         AvgSumValueMapping<true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         AvgSumTypeMap<true>         // type mapping
-);
-
-/*
-
-4.1.3 Specification of operator ~sum~
-
-*/
-const string SumOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" ) "
-                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-			  "))) x ai) -> di</text--->"
-			  "<text>_ sum [ _ ]</text--->"
-			  "<text>Returns the sum of the values of attribute"
-			  " ai over the input stream.</text--->"
-			  "<text>query cities feed sum[population]"
-			  "</text--->"
-			      ") )";
-
-/*
-
-4.1.3 Definition of operator ~sum~
-
-*/
-Operator cppsum (
-         "sum",             // name
-         SumOpSpec,           // specification
-         AvgSumValueMapping<false>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         AvgSumTypeMap<false>         // type mapping
-);
-
-/*
-
-7.3 Operator ~sortBy~
-
-This operator sorts a stream of tuples by a given list of attributes.
-For each attribute it must be specified wether the list should be sorted
-in ascending (asc) or descending (desc) order with regard to that attribute.
-
-7.3.1 Type mapping function of operator ~sortBy~
-
-Type mapping for ~sortBy~ is
-
-----	((stream (tuple ((x1 t1)...(xn tn))) ((xi1 asc/desc) ... (xij asc/desc)))
-              -> (stream (tuple ((x1 t1)...(xn tn)))
-                  APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc)
-----
-
-*/
-
-static char* sortAscending = "asc";
-static char* sortDescending = "desc";
-
-static ListExpr
-SortByTypeMap( ListExpr args )
-{
-  ListExpr attrtype;
-  string  attrname;
-
-  if(nl->ListLength(args) == 2)
-  {
-    ListExpr streamDescription = nl->First(args);
-    ListExpr sortSpecification  = nl->Second(args);
-
-    if((nl->ListLength(streamDescription) == 2  ) &&
-      (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream)  &&
-      (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == tuple))
-    {
-      int numberOfSortAttrs = nl->ListLength(sortSpecification);
-      if(numberOfSortAttrs > 0)
-      {
-        ListExpr sortOrderDescription = nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
-        ListExpr sortOrderDescriptionLastElement = sortOrderDescription;
-        ListExpr rest = sortSpecification;
-        while(!nl->IsEmpty(rest))
-        {
-          ListExpr attributeSpecification = nl->First(rest);
-          rest = nl->Rest(rest);
-          if((nl->ListLength(attributeSpecification) == 2)
-            && (nl->IsAtom(nl->First(attributeSpecification)))
-            && (nl->AtomType(nl->First(attributeSpecification)) == SymbolType)
-            && (nl->IsAtom(nl->Second(attributeSpecification)))
-            && (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType))
-          {
-            attrname = nl->SymbolValue(nl->First(attributeSpecification));
-            int j = findattr(nl->Second(nl->Second(streamDescription)), attrname, attrtype, nl);
-            if ((j > 0)
-              && ((nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending)
-                  || (nl->SymbolValue(nl->Second(attributeSpecification)) == sortDescending)))
-            {
-              sortOrderDescriptionLastElement =
-                nl->Append(sortOrderDescriptionLastElement, nl->IntAtom(j));
-              bool isAscending =
-                nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending;
-              sortOrderDescriptionLastElement =
-                nl->Append(sortOrderDescriptionLastElement,
-                  nl->BoolAtom(isAscending));
-            }
-            else
-            {
-              ErrorReporter::ReportError("Incorrect input for operator sortby.");
-              return nl->SymbolAtom("typeerror");
-            }
-          }
-          else
-          {
-            ErrorReporter::ReportError("Incorrect input for operator sortby.");
-            return nl->SymbolAtom("typeerror");
-          }
-        }
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-              sortOrderDescription, streamDescription);
-      };
-      ErrorReporter::ReportError("Incorrect input for operator sortby.");
-      return nl->SymbolAtom("typeerror");
-    }
-    ErrorReporter::ReportError("Incorrect input for operator sortby.");
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError("Incorrect input for operator sortby.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.2 Value mapping function of operator ~sortBy~
-
-The argument vector ~args~ contains in the first slot ~args[0]~ the stream and
-in ~args[2]~ the number of sort attributes. ~args[3]~ contains the index of the first
-sort attribute, ~args[4]~ a boolean indicating wether the stream is sorted in
-ascending order with regard to the sort first attribute. ~args[5]~ and ~args[6]~
-contain these values for the second sort attribute  and so on.
-
-*/
-
-typedef vector< pair<int, bool> > SortOrderSpecification;
-
-class CcTupleCmp
-{
-public:
-  SortOrderSpecification spec;
-  bool operator()(const CcTuple* aConst, const CcTuple* bConst) const
-  {
-    CcTuple* a = (CcTuple*)aConst;
-    CcTuple* b = (CcTuple*)bConst;
-
-    SortOrderSpecification::const_iterator iter = spec.begin();
-    while(iter != spec.end())
-    {
-      if(((Attribute*)a->Get(iter->first - 1))->
-        Compare(((Attribute*)b->Get(iter->first - 1))) < 0)
-      {
-        return iter->second;
-      }
-      else
-      {
-        if(((Attribute*)a->Get(iter->first - 1))->
-          Compare(((Attribute*)b->Get(iter->first - 1))) > 0)
-        {
-          return !(iter->second);
-        }
-      }
-      iter++;
-    }
-    return false;
-  }
-};
-
-struct SortByLocalInfo
-{
-  vector<CcTuple*>* tuples;
-  size_t currentIndex;
-};
-
-CPUTimeMeasurer sortMeasurer;
-
-template<bool lexicographically, bool requestArgs> int
-SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word tuple;
-  vector<CcTuple*>* tuples;
-  SortByLocalInfo* localInfo;
-  SortOrderSpecification spec;
-  int i;
-  Word intWord;
-  Word boolWord;
-  size_t j;
-  int sortAttrIndex;
-  int nSortAttrs;
-  bool sortOrderIsAscending;
-  CcTupleCmp ccCmp;
-  LexicographicalCcTupleCmp lCcCmp;
-  CcTuple* t;
-
-  switch(message)
-  {
-    case OPEN:
-      tuples = new vector<CcTuple*>;
-      qp->Open(args[0].addr);
-      qp->Request(args[0].addr,tuple);
-      while(qp->Received(args[0].addr))
-      {
-        t =(CcTuple*)tuple.addr;
-        tuples->push_back(t);
-        qp->Request(args[0].addr,tuple);
-      }
-      qp->Close(args[0].addr);
-
-      if(lexicographically)
-      {
-        sortMeasurer.Enter();
-        sort(tuples->begin(), tuples->end(), lCcCmp);
-        sortMeasurer.Exit();
-      }
-      else
-      {
-	if(requestArgs)
-        {
-          qp->Request(args[2].addr, intWord);
-        }
-        else
-        {
-          intWord = SetWord(args[2].addr);
-        }
-        nSortAttrs = ((CcInt*)intWord.addr)->GetIntval();
-        for(i = 1; i <= nSortAttrs; i++)
-        {
-	  if(requestArgs)
-          {
-            qp->Request(args[2 * i + 1].addr, intWord);
-          }
-          else
-          {
-            intWord = SetWord(args[2 * i + 1].addr);
-          }
-          sortAttrIndex = ((CcInt*)intWord.addr)->GetIntval();
-
-          if(requestArgs)
-          {
-            qp->Request(args[2 * i + 2].addr, boolWord);
-          }
-          else
-          {
-            boolWord = SetWord(args[2 * i + 2].addr);
-          }
-          sortOrderIsAscending = ((CcBool*)boolWord.addr)->GetBoolval();
-          spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
-        };
-        ccCmp.spec = spec;
-
-        sortMeasurer.Enter();
-        sort(tuples->begin(), tuples->end(), ccCmp);
-        sortMeasurer.Exit();
-      }
-
-      sortMeasurer.PrintCPUTimeAndReset("CPU Time for Sorting Tuples : ");
-
-      localInfo = new SortByLocalInfo;
-      localInfo->tuples = tuples;
-      localInfo->currentIndex = 0;
-      local = SetWord(localInfo);
-      return 0;
-    case REQUEST:
-      localInfo = (SortByLocalInfo*)local.addr;
-      tuples = localInfo->tuples;
-      if(localInfo->currentIndex  + 1 <= tuples->size())
-      {
-        result = SetWord((*tuples)[localInfo->currentIndex]);
-        localInfo->currentIndex++;
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    case CLOSE:
-      localInfo = (SortByLocalInfo*)local.addr;
-
-      for(j = localInfo->currentIndex;
-        j + 1 <= localInfo->tuples->size(); j++)
-      {
-        (*(localInfo->tuples))[j]->DeleteIfAllowed();
-      }
-
-      delete localInfo->tuples;
-      delete localInfo;
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~sortBy~
-
-*/
-const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>((stream (tuple([a1:d1, ... ,an:dn])))"
-			   " ((xi1 asc/desc) ... (xij asc/desc))) -> "
-			   "(stream (tuple([a1:d1, ... ,an:dn])))</text--->"
-			   "<text>_ sortby [list]</text--->"
-			   "<text>Sorts input stream according to a list "
-			   "of attributes ai1 ... aij.</text--->"
-			   "<text>query employee feed sortby[DeptNo asc] "
-			   "consume</text--->"
-			      ") )";
-
-/*
-
-4.1.3 Definition of operator ~sortBy~
-
-*/
-Operator sortBy (
-         "sortby",              // name
-         SortBySpec,            // specification
-         SortBy<false, true>,   // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         SortByTypeMap          // type mapping
-);
-
-/*
-
-7.3 Operator ~sort~
-
-This operator sorts a stream of tuples lexicographically.
-
-7.3.1 Type mapping function of operator ~sort~
-
-Type mapping for ~sort~ is
-
-----	((stream (tuple ((x1 t1)...(xn tn)))) 	-> (stream (tuple ((x1 t1)...(xn tn)))
-
-----
-
-*/
-template<bool isSort> ListExpr
-IdenticalTypeMap( ListExpr args )
-{
-  ListExpr first;
-  const char* errorMessage = isSort ?
-    "Incorrect input for operator sort."
-    : "Incorrect input for operator rdup.";
-
-  if(nl->ListLength(args) == 1)
-  {
-    first = nl->First(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)), nl))
-    {
-      return first;
-    }
-    ErrorReporter::ReportError(errorMessage);
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.3 Specification of operator ~sort~
-
-*/
-const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-			 ")))) -> (stream (tuple([a1:d1, ... ,an:dn])))"
-			 "</text--->"
-			 "<text>_ sort</text--->"
-			 "<text>Sorts input stream lexicographically."
-			 "</text--->"
-		    "<text>query cities feed sort consume</text--->"
-			      ") )";
-
-/*
-
-4.1.3 Definition of operator ~sort~
-
-*/
-Operator cppsort (
-         "sort",             // name
-         SortSpec,           // specification
-         SortBy<true, true>,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         IdenticalTypeMap<true>         // type mapping
-);
-
-/*
-
-7.3 Operator ~rdup~
-
-This operator removes duplicates from a sorted stream.
-
-4.1.2 Value mapping function of operator ~rdup~
-
-*/
-
-static int
-RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word tuple;
-  LexicographicalCcTupleCmp cmp;
-  CcTuple* currentTuple;
-  CcTuple* lastOutputTuple;
-
-  switch(message)
-  {
-    case OPEN:
-      qp->Open(args[0].addr);
-      local = SetWord(0);
-      return 0;
-    case REQUEST:
-      while(true)
-      {
-        qp->Request(args[0].addr, tuple);
-        if(qp->Received(args[0].addr))
-        {
-          if(local.addr != 0)
-          {
-            currentTuple = (CcTuple*)tuple.addr;
-            lastOutputTuple = (CcTuple*)local.addr;
-            if(cmp(currentTuple, lastOutputTuple)
-              || cmp(lastOutputTuple, currentTuple))
-            {
-              lastOutputTuple->DeleteIfAllowed();
-              local = SetWord(currentTuple->Clone());
-              result = SetWord(currentTuple);
-              return YIELD;
-            }
-            else
-            {
-              currentTuple->DeleteIfAllowed();
-            }
-          }
-          else
-          {
-            currentTuple = (CcTuple*)tuple.addr;
-            local = SetWord(currentTuple->Clone());
-            result = SetWord(currentTuple);
-            return YIELD;
-          }
-        }
-        else
-        {
-	  lastOutputTuple = (CcTuple*)local.addr;
-          if(lastOutputTuple != 0)
-          {
-           lastOutputTuple->DeleteIfAllowed();
-         }
-         return CANCEL;
-        }
-      }
-    case CLOSE:
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~rdup~
-
-*/
-const string RdupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]))))"
-			 " -> (stream (tuple([a1:d1, ... ,an:dn])))"
-			 "</text--->"
-			 "<text>_ rdup</text--->"
-			 "<text>Removes duplicates from a sorted "
-			 "stream.</text--->"
-			 "<text>query twenty feed ten feed concat sort "
-			 "rdup consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~rdup~
-
-*/
-Operator cpprdup (
-         "rdup",             // name
-         RdupSpec,           // specification
-         RdupValueMapping,               // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         IdenticalTypeMap<false>         // type mapping
-);
-
-/*
-
-7.3 Set Operators
-
-These operators compute set operations on two sorted stream.
-
-7.3.1 Generic Type Mapping for Set Operations
-
-*/
-
-const char* setOpErrorMessages[] =
-  { "Incorrect input for operator mergesec.",
-    "Incorrect input for operator mergediff.",
-    "Incorrect input for operator mergeunion." };
-
-template<int errorMessageIdx> ListExpr
-SetOpTypeMap( ListExpr args )
-{
-  ListExpr first, second;
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
-      && (nl->Equal(first, second)))
-    {
-      return first;
-    }
-    ErrorReporter::ReportError(setOpErrorMessages[errorMessageIdx]);
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError(setOpErrorMessages[errorMessageIdx]);
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-7.3.2 Auxiliary Class for Set Operations
-
-*/
-
-class SetOperation
-{
-public:
-  bool outputAWithoutB;
-  bool outputBWithoutA;
-  bool outputMatches;
-
-private:
-  LexicographicalCcTupleCmp smallerThan;
-
-  Word streamA;
-  Word streamB;
-
-  CcTuple* currentATuple;
-  CcTuple* currentBTuple;
-
-  CcTuple* NextATuple(bool deleteOldTuple)
-  {
-    Word tuple;
-    if(deleteOldTuple && currentATuple != 0)
-    {
-      currentATuple->DeleteIfAllowed();
-    }
-
-    qp->Request(streamA.addr, tuple);
-    if(qp->Received(streamA.addr))
-    {
-      currentATuple = (CcTuple*)tuple.addr;
-      return currentATuple;
-    }
-    else
-    {
-      currentATuple = 0;
-      return 0;
-    }
-  }
-
-  CcTuple* NextBTuple(bool deleteOldTuple)
-  {
-    Word tuple;
-    if(deleteOldTuple && currentBTuple != 0)
-    {
-      currentBTuple->DeleteIfAllowed();
-    }
-
-    qp->Request(streamB.addr, tuple);
-    if(qp->Received(streamB.addr))
-    {
-      currentBTuple = (CcTuple*)tuple.addr;
-      return currentBTuple;
-    }
-    else
-    {
-      currentBTuple = 0;
-      return 0;
-    }
-  }
-
-  bool TuplesEqual(CcTuple* a, CcTuple* b)
-  {
-    return !(smallerThan(a, b) || smallerThan(b, a));
-  }
-
-public:
-
-  SetOperation(Word streamA, Word streamB)
-  {
-    this->streamA = streamA;
-    this->streamB = streamB;
-
-    currentATuple = 0;
-    currentBTuple = 0;
-
-    qp->Open(streamA.addr);
-    qp->Open(streamB.addr);
-
-    NextATuple(false);
-    NextBTuple(false);
-  }
-
-  virtual ~SetOperation()
-  {
-    qp->Close(streamA.addr);
-    qp->Close(streamB.addr);
-  }
-
-  CcTuple* NextResultTuple()
-  {
-    CcTuple* result = 0;
-    while(result == 0)
-    {
-      if(currentATuple == 0)
-      {
-        if(currentBTuple == 0)
-        {
-          return 0;
-        }
-        else
-        {
-          if(outputBWithoutA)
-          {
-            result = currentBTuple;
-            NextBTuple(false);
-            while(currentBTuple != 0 && TuplesEqual(result, currentBTuple))
-            {
-              NextBTuple(true);
-            }
-          }
-          else
-          {
-            currentBTuple->DeleteIfAllowed();
-            return 0;
-          }
-        }
-      }
-      else
-      {
-        if(currentBTuple == 0)
-        {
-          if(outputAWithoutB)
-          {
-            result = currentATuple;
-            NextATuple(false);
-            while(currentATuple != 0 && TuplesEqual(result, currentATuple))
-            {
-              NextATuple(true);
-            }
-          }
-          else
-          {
-            currentATuple->DeleteIfAllowed();
-            return 0;
-          }
-        }
-        else
-        {
-          /* both current tuples != 0 */
-          if(smallerThan(currentATuple, currentBTuple))
-          {
-            if(outputAWithoutB)
-            {
-              result = currentATuple;
-            }
-
-            CcTuple* tmp = currentATuple;
-            NextATuple(false);
-            while(currentATuple != 0 && TuplesEqual(tmp, currentATuple))
-            {
-              NextATuple(true);
-            }
-            if(!outputAWithoutB)
-            {
-              tmp->DeleteIfAllowed();
-            }
-          }
-          else if(smallerThan(currentBTuple, currentATuple))
-          {
-            if(outputBWithoutA)
-            {
-              result = currentBTuple;
-            }
-
-            CcTuple* tmp = currentBTuple;
-            NextBTuple(false);
-            while(currentBTuple != 0 && TuplesEqual(tmp, currentBTuple))
-            {
-              NextBTuple(true);
-            }
-            if(!outputBWithoutA)
-            {
-              tmp->DeleteIfAllowed();
-            }
-
-          }
-          else
-          {
-            /* found match */
-            assert(TuplesEqual(currentATuple, currentBTuple));
-            CcTuple* match = currentATuple;
-            if(outputMatches)
-            {
-              result = match;
-            }
-
-            NextATuple(false);
-            while(currentATuple != 0 && TuplesEqual(match, currentATuple))
-            {
-              NextATuple(true);
-            }
-            while(currentBTuple != 0 && TuplesEqual(match, currentBTuple))
-            {
-              NextBTuple(true);
-            }
-            if(!outputMatches)
-            {
-              match->DeleteIfAllowed();
-            }
-          }
-        }
-      }
-    }
-    return result;
-  }
-};
-
-/*
-
-7.3.2 Generic Value Mapping Function for Set Operations
-
-*/
-
-template<bool outputAWithoutB, bool outputBWithoutA, bool outputMatches> int
-SetOpValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  SetOperation* localInfo;
-
-  switch(message)
-  {
-    case OPEN:
-      localInfo = new SetOperation(args[0], args[1]);
-      localInfo->outputBWithoutA = outputBWithoutA;
-      localInfo->outputAWithoutB = outputAWithoutB;
-      localInfo->outputMatches = outputMatches;
-
-      local = SetWord(localInfo);
-      return 0;
-    case REQUEST:
-      localInfo = (SetOperation*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
-      return result.addr != 0 ? YIELD : CANCEL;
-    case CLOSE:
-      localInfo = (SetOperation*)local.addr;
-      delete localInfo;
-      return 0;
-  }
-  return 0;
-}
-
-/*
-
-4.1.3 Specification of Operator ~mergesec~
-
-*/
-const string MergeSecSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" ) "
-                         "( <text>((stream (tuple ((x1 t1) ... "
-			 "(xn tn)))) stream (tuple ((x1 t1) ... (xn tn)"
-			 ")))) -> (stream (tuple ((x1 t1) ... (xn tn))))"
-			 "</text--->"
-			 "<text>_ _ mergesec</text--->"
-			 "<text>Computes the intersection of two sorted "
-			 "streams.</text--->"
-			 "<text>query twenty feed oddtwenty feed mergesec"
-			 " consume</text--->"
-			 ") )";
-/*
-
-4.1.3 Definition of Operator ~mergesec~
-
-*/
-Operator cppmergesec(
-         "mergesec",        // name
-         MergeSecSpec,     // specification
-         SetOpValueMapping<false, false, true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         SetOpTypeMap<0>   // type mapping
-);
-
-/*
-
-4.1.3 Specification of Operator ~mergediff~
-
-*/
-const string MergeDiffSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                              "\"Example\" ) "
-                             "( <text>((stream (tuple ((x1 t1) ... (xn tn)"
-			     "))) stream (tuple ((x1 t1) ... (xn tn))))) ->"
-			     " (stream (tuple ((x1 t1) ... (xn tn))))"
-			     "</text--->"
-			     "<text>_ _ mergediff</text--->"
-			     "<text>Computes the difference of two sorted "
-			     "streams.</text--->"
-			     "<text>query twenty feed oddtwenty feed"
-			     " mergediff consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of Operator ~mergediff~
-
-*/
-Operator cppmergediff(
-         "mergediff",        // name
-         MergeDiffSpec,     // specification
-         SetOpValueMapping<true, false, false>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         SetOpTypeMap<1>   // type mapping
-);
-
-/*
-
-4.1.3 Specification of Operator ~mergeunion~
-
-*/
-const string MergeUnionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                               "\"Example\" ) "
-                         "( <text>((stream (tuple ((x1 t1) ... (xn tn))))"
-			 "stream (tuple ((x1 t1) ... (xn tn))))) -> (stream"
-			 " (tuple ((x1 t1) ... (xn tn))))</text--->"
-			 "<text>_ _ mergeunion</text--->"
-			 "<text>Computes the union of two sorted streams."
-			 "</text--->"
-			 "<text>query twenty feed oddtwenty feed "
-			 "mergeunion consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of Operator ~mergeunion~
-
-*/
-Operator cppmergeunion(
-         "mergeunion",        // name
-         MergeUnionSpec,     // specification
-         SetOpValueMapping<true, true, true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         SetOpTypeMap<2>   // type mapping
-);
-
-/*
-
-7.3 Operator ~mergejoin~
-
-This operator computes the equijoin two streams.
-
-7.3.1 Type mapping function of operators ~mergejoin~ and ~hashjoin~
-
-Type mapping for ~mergejoin~ is
-
-----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj)
-
-      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)))) APPEND (i j)
-----
-
-Type mapping for ~hashjoin~ is
-
-----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj int)
-
-      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)))) APPEND (i j)
-----
-
-
-*/
-
-const char* joinErrorMessages[] =
-  { "Incorrect input for operator mergejoin.",
-    "Incorrect input for operator sortmergejoin.",
-    "Incorrect input for operator hashjoin." };
-
-template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
-(ListExpr args)
-{
-  ListExpr attrTypeA, attrTypeB;
-  ListExpr streamA, streamB, list, list1, list2, outlist;
-  if (nl->ListLength(args) == (expectIntArgument ? 5 : 4))
-  {
-    streamA = nl->First(args); streamB = nl->Second(args);
-    if (nl->ListLength(streamA) == 2)
-    {
-      if (TypeOfRelAlgSymbol(nl->First(streamA)) == stream)
-      {
-        if (nl->ListLength(nl->Second(streamA)) == 2)
-        {
-          if (TypeOfRelAlgSymbol(nl->First(nl->Second(streamA))) == tuple)
-          {
-            list1 = nl->Second(nl->Second(streamA));
-          }
-          else goto typeerror;
-        }
-        else goto typeerror;
-      }
-      else goto typeerror;
-    }
-    else goto typeerror;
-
-    if (nl->ListLength(streamB) == 2)
-    {
-      if (TypeOfRelAlgSymbol(nl->First(streamB)) == stream)
-      {
-        if (nl->ListLength(nl->Second(streamB)) == 2)
-        {
-          if (TypeOfRelAlgSymbol(nl->First(nl->Second(streamB))) == tuple)
-          {
-            list2 = nl->Second(nl->Second(streamB));
-          }
-          else goto typeerror;
-        }
-        else goto typeerror;
-      }
-      else goto typeerror;
-    }
-    else goto typeerror;
-
-    if(!AttributesAreDisjoint(list1, list2))
-    {
-      goto typeerror;
-    }
-
-    list = ConcatLists(list1, list2);
-    outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-
-    ListExpr joinAttrDescription;
-    if(!(nl->IsAtom(nl->Third(args))
-        && nl->IsAtom(nl->Fourth(args))
-        && nl->AtomType(nl->Third(args)) == SymbolType
-        && nl->AtomType(nl->Fourth(args)) == SymbolType))
-    {
-      goto typeerror;
-    }
-
-    string attrAName = nl->SymbolValue(nl->Third(args));
-    string attrBName = nl->SymbolValue(nl->Fourth(args));
-    int attrAIndex = findattr(nl->Second(nl->Second(streamA)), attrAName, attrTypeA, nl);
-    int attrBIndex = findattr(nl->Second(nl->Second(streamB)), attrBName, attrTypeB, nl);
-    if(attrAIndex <= 0 || attrBIndex <= 0 || !nl->Equal(attrTypeA, attrTypeB))
-    {
-      goto typeerror;
-    }
-
-    if(expectIntArgument && nl->SymbolValue(nl->Fifth(args)) != "int")
-    {
-      goto typeerror;
-    }
-
-    joinAttrDescription =
-      nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-              joinAttrDescription, outlist);
-  }
-  else goto typeerror;
-
-typeerror:
-  ErrorReporter::ReportError(joinErrorMessages[errorMessageIdx]);
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.2 Auxiliary definitions for value mapping function of operator ~mergejoin~
-
-*/
-
-static CcInt oneCcInt(true, 1);
-static CcBool trueCcBool(true, true);
-
-CPUTimeMeasurer mergeMeasurer;
-
-class MergeJoinLocalInfo
-{
-private:
-  vector<CcTuple*> bucketA;
-  vector<CcTuple*> bucketB;
-  deque<CcTuple*> resultBucket;
-
-  Word aResult;
-  Word bResult;
-
-  Word streamALocalInfo;
-  Word streamBLocalInfo;
-
-  Word streamA;
-  Word streamB;
-
-  ArgVector aArgs;
-  ArgVector bArgs;
-
-  int attrIndexA;
-  int attrIndexB;
-
-  bool expectSorted;
-
-  int CompareCcTuples(CcTuple* a, CcTuple* b)
-  {
-    /* tuples with NULL-Values in the join attributes
-       are never matched with other tuples. */
-    if(!((Attribute*)a->Get(attrIndexA))->IsDefined())
-    {
-      return -1;
-    }
-    if(!((Attribute*)b->Get(attrIndexB))->IsDefined())
-    {
-      return 1;
-    }
-
-    return ((Attribute*)a->Get(attrIndexA))->Compare((Attribute*)b->Get(attrIndexB));
-  }
-
-  void SetArgs(ArgVector& args, Word stream, Word attrIndex)
-  {
-    args[0] = SetWord(stream.addr);
-    args[2] = SetWord(&oneCcInt);
-    args[3] = SetWord(attrIndex.addr);
-    args[4] = SetWord(&trueCcBool);
-  }
-
-  CcTuple* nextATuple()
-  {
-    bool yield;
-    if(expectSorted)
-    {
-      qp->Request(streamA.addr, aResult);
-      yield = qp->Received(streamA.addr);
-    }
-    else
-    {
-      int errorCode = SortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
-      yield = (errorCode == YIELD);
-    }
-
-    if(yield)
-    {
-      return (CcTuple*)aResult.addr;
-    }
-    else
-    {
-      aResult = SetWord((void*)0);
-      return 0;
-    }
-  }
-
-  CcTuple* nextBTuple()
-  {
-    bool yield;
-    if(expectSorted)
-    {
-      qp->Request(streamB.addr, bResult);
-      yield = qp->Received(streamB.addr);
-    }
-    else
-    {
-      int errorCode = SortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
-      yield = (errorCode == YIELD);
-    }
-
-    if(yield)
-    {
-      return (CcTuple*)bResult.addr;
-    }
-    else
-    {
-      bResult = SetWord((void*)0);
-      return 0;
-    }
-  }
-
-  bool FetchNextMatch()
-  {
-    CcTuple* aCcTuple = (CcTuple*)aResult.addr;
-    CcTuple* bCcTuple = (CcTuple*)bResult.addr;
-    if(aCcTuple == 0 || bCcTuple == 0)
-    {
-      if(aCcTuple != 0)
-        aCcTuple->DeleteIfAllowed();
-      if(bCcTuple != 0)
-        bCcTuple->DeleteIfAllowed();
-
-      return false;
-    }
-    else
-    {
-      int cmpResult = CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
-      while(cmpResult != 0)
-      {
-        if(cmpResult < 0)
-        {
-          ((CcTuple*)aResult.addr)->DeleteIfAllowed();
-          if(nextATuple() == 0)
-          {
-            ((CcTuple*)bResult.addr)->DeleteIfAllowed();
-            return false;
-          }
-        }
-        else
-        {
-          ((CcTuple*)bResult.addr)->DeleteIfAllowed();
-          if(nextBTuple() == 0)
-          {
-            ((CcTuple*)aResult.addr)->DeleteIfAllowed();
-            return false;
-          }
-        }
-        cmpResult = CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
-      }
-      return true;
-    }
-  }
-
-  void ComputeProductOfBuckets()
-  {
-    assert(!bucketA.empty());
-    assert(!bucketB.empty());
-
-    vector<CcTuple*>::iterator iterA = bucketA.begin();
-    vector<CcTuple*>::iterator iterB = bucketB.begin();
-    for(; iterA != bucketA.end(); iterA++)
-    {
-      for(iterB = bucketB.begin(); iterB != bucketB.end(); iterB++)
-      {
-        CcTuple* resultTuple = new CcTuple;
-        resultTuple->SetFree(true);
-        Word resultWord = SetWord(resultTuple);
-        Word aWord = SetWord(*iterA);
-        Word bWord = SetWord(*iterB);
-        Concat(aWord, bWord, resultWord);
-        resultBucket.push_back(resultTuple);
-      }
-    }
-  }
-
-  void ClearBuckets()
-  {
-    vector<CcTuple*>::iterator iterA = bucketA.begin();
-    vector<CcTuple*>::iterator iterB = bucketB.begin();
-
-    for(; iterA != bucketA.end(); iterA++)
-    {
-      (*iterA)->DeleteIfAllowed();
-    }
-
-    for(; iterB != bucketB.end(); iterB++)
-    {
-      (*iterB)->DeleteIfAllowed();
-    }
-
-    bucketA.clear();
-    bucketB.clear();
-  }
-
-  void FillResultBucket()
-  {
-    assert((CcTuple*)aResult.addr != 0);
-    assert((CcTuple*)bResult.addr != 0);
-
-    CcTuple* aMatch = (CcTuple*)aResult.addr;
-    CcTuple* bMatch = (CcTuple*)bResult.addr;
-    assert(CompareCcTuples(aMatch, bMatch) == 0);
-
-    CcTuple* currentA = aMatch;
-    CcTuple* currentB = bMatch;
-
-    while(currentA != 0 && CompareCcTuples(currentA, bMatch) == 0)
-    {
-      bucketA.push_back(currentA);
-      currentA = nextATuple();
-    }
-
-    while(currentB != 0 && CompareCcTuples(aMatch, currentB) == 0)
-    {
-      bucketB.push_back(currentB);
-      currentB = nextBTuple();
-    }
-
-    ComputeProductOfBuckets();
-    ClearBuckets();
-  }
-
-public:
-  MergeJoinLocalInfo(Word streamA, Word attrIndexA,
-    Word streamB, Word attrIndexB, bool expectSorted)
-  {
-    assert(streamA.addr != 0);
-    assert(streamB.addr != 0);
-    assert(attrIndexA.addr != 0);
-    assert(attrIndexB.addr != 0);
-    assert(((CcInt*)attrIndexA.addr)->GetIntval() > 0);
-    assert(((CcInt*)attrIndexB.addr)->GetIntval() > 0);
-
-    aResult = SetWord(0);
-    bResult = SetWord(0);
-
-    this->expectSorted = expectSorted;
-    this->streamA = streamA;
-    this->streamB = streamB;
-    this->attrIndexA = ((CcInt*)attrIndexA.addr)->GetIntval() - 1;
-    this->attrIndexB = ((CcInt*)attrIndexB.addr)->GetIntval() - 1;
-
-    if(expectSorted)
-    {
-      qp->Open(streamA.addr);
-      qp->Open(streamB.addr);
-    }
-    else
-    {
-      SetArgs(aArgs, streamA, attrIndexA);
-      SetArgs(bArgs, streamB, attrIndexB);
-      SortBy<false, false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
-      SortBy<false, false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
-    }
-
-    nextATuple();
-    nextBTuple();
-  }
-
-  ~MergeJoinLocalInfo()
-  {
-    if(expectSorted)
-    {
-      qp->Close(streamA.addr);
-      qp->Close(streamB.addr);
-    }
-    else
-    {
-      SortBy<false, false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
-      SortBy<false, false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
-    };
-  }
-
-  CcTuple* NextResultTuple()
-  {
-    if(resultBucket.empty())
-    {
-      if(FetchNextMatch())
-      {
-        FillResultBucket();
-      }
-      else
-      {
-        return 0;
-      }
-    }
-    CcTuple* next = resultBucket.front();
-    resultBucket.pop_front();
-    return next;
-  }
-};
-
-/*
-
-4.1.2 Value mapping function of operator ~mergejoin~
-
-*/
-
-template<bool expectSorted> int
-MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  MergeJoinLocalInfo* localInfo;
-  Word attrIndexA;
-  Word attrIndexB;
-
-  switch(message)
-  {
-    case OPEN:
-      qp->Request(args[4].addr, attrIndexA);
-      qp->Request(args[5].addr, attrIndexB);
-      localInfo = new MergeJoinLocalInfo
-        (args[0], attrIndexA, args[1], attrIndexB, expectSorted);
-      local = SetWord(localInfo);
-      return 0;
-    case REQUEST:
-      mergeMeasurer.Enter();
-      localInfo = (MergeJoinLocalInfo*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
-      mergeMeasurer.Exit();
-      return result.addr != 0 ? YIELD : CANCEL;
-    case CLOSE:
-      mergeMeasurer.PrintCPUTimeAndReset("CPU Time for Merging Tuples : ");
-
-      localInfo = (MergeJoinLocalInfo*)local.addr;
-      delete localInfo;
-      return 0;
-  }
-  return 0;
-}
-
-/*
-
-4.1.3 Specification of operator ~mergejoin~
-
-*/
-const string MergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                              "\"Example\" ) "
-                             "( <text>((stream (tuple ((x1 t1) ... "
-			     "(xn tn)))) (stream (tuple ((y1 d1) ... "
-			     "(ym dm)))) xi yj) -> (stream (tuple ((x1 t1)"
-			     " ... (xn tn) (y1 d1) ... (ym dm))))"
-			     "</text--->"
-			     "<text>_ _ mergejoin [_, _]</text--->"
-			     "<text>Computes the equijoin two streams. "
-			     "Expects that input streams are sorted."
-			     "</text--->"
-			     "<text>query duplicates feed ten feed "
-			     "rename[A] mergejoin[no, no_A] sort rdup "
-			     "consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~mergejoin~
-
-*/
-Operator MergeJoinOperator(
-         "mergejoin",        // name
-         MergeJoinSpec,     // specification
-         MergeJoin<true>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         JoinTypeMap<false, 0>   // type mapping
-);
-
-/*
-
-7.3 Operator ~sortmergejoin~
-
-This operator sorts two input streams and computes their equijoin.
-
-4.1.3 Specification of operator ~sortmergejoin~
-
-*/
-const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
-                                  "\"Meaning\" \"Example\" ) "
-                             "( <text>((stream (tuple ((x1 t1) ... "
-			     "(xn tn)))) (stream (tuple ((y1 d1) ..."
-			     " (ym dm)))) xi yj) -> (stream (tuple "
-			     "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
-			     ")))</text--->"
-			     "<text>_ _ sortmergejoin [ _ , _ ]"
-			     "</text--->"
-			     "<text>Computes the equijoin two streams."
-			     "</text--->"
-			     "<text>query duplicates feed ten feed "
-			     "mergejoin[no, nr] consume</text--->"
-			      ") )";
-
-/*
-
-4.1.3 Definition of operator ~sortmergejoin~
-
-*/
-Operator SortMergeJoinOperator(
-         "sortmergejoin",        // name
-         SortMergeJoinSpec,     // specification
-         MergeJoin<false>,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         JoinTypeMap<false, 1>   // type mapping
-);
-
-
-/*
-
-7.3 Operator ~hashjoin~
-
-This operator computes the equijoin two streams via a hash join.
-The user can specify the number of hash buckets.
-
-7.3.1 Auxiliary Class for Operator ~hashjoin~
-
-*/
-
-CPUTimeMeasurer hashMeasurer;  // measures cost of distributing into buckets and
-                               // of computing products of buckets
-CPUTimeMeasurer bucketMeasurer;// measures the cost of producing the tuples in
-                               // the result set
-
-class HashJoinLocalInfo
-{
-private:
-  static const size_t MAX_BUCKETS = 6151;
-  static const size_t MIN_BUCKETS = 1;
-  static const size_t DEFAULT_BUCKETS = 97;
-  size_t nBuckets;
-  size_t currentBucket;
-
-  int attrIndexA;
-  int attrIndexB;
-
-  Word streamA;
-  Word streamB;
-
-  vector<vector< CcTuple*> > bucketsA;
-  vector<vector< CcTuple*> > bucketsB;
-  vector<CcTuple*> resultBucket;
-
-  int CompareCcTuples(CcTuple* a, CcTuple* b)
-  {
-    /* tuples with NULL-Values in the join attributes
-       are never matched with other tuples. */
-    if(!((Attribute*)a->Get(attrIndexA))->IsDefined())
-    {
-      return -1;
-    }
-    if(!((Attribute*)b->Get(attrIndexB))->IsDefined())
-    {
-      return 1;
-    }
-
-    return ((Attribute*)a->Get(attrIndexA))->
-      Compare((Attribute*)b->Get(attrIndexB));
-  }
-
-  size_t HashTuple(CcTuple* tuple, int attrIndex)
-  {
-    return (((StandardAttribute*)tuple->Get(attrIndex))->HashValue() % nBuckets);
-  }
-
-  void FillHashBuckets(Word stream, int attrIndex,
-    vector<vector< CcTuple*> >& buckets)
-  {
-    Word tupleWord;
-    qp->Open(stream.addr);
-    qp->Request(stream.addr, tupleWord);
-    while(qp->Received(stream.addr))
-    {
-      hashMeasurer.Enter();
-
-      CcTuple* tuple = (CcTuple*)tupleWord.addr;
-      buckets[HashTuple(tuple, attrIndex)].push_back(tuple);
-
-      hashMeasurer.Exit();
-
-      qp->Request(stream.addr, tupleWord);
-    }
-    qp->Close(stream.addr);
-  }
-
-  void ClearBucket(vector<CcTuple*>& bucket)
-  {
-    vector<CcTuple*>::iterator iter = bucket.begin();
-    while(iter != bucket.end())
-    {
-      (*iter)->DeleteIfAllowed();
-      iter++;
-    }
-  }
-
-  bool FillResultBucket()
-  {
-    hashMeasurer.Enter();
-
-    while(resultBucket.empty() && currentBucket < nBuckets)
-    {
-      vector<CcTuple*>& a = bucketsA[currentBucket];
-      vector<CcTuple*>& b = bucketsB[currentBucket];
-
-      vector<CcTuple*>::iterator iterA = a.begin();
-      vector<CcTuple*>::iterator iterB;
-      for(; iterA != a.end(); iterA++)
-      {
-        for(iterB = b.begin(); iterB != b.end(); iterB++)
-        {
-          if(CompareCcTuples(*iterA, *iterB) == 0)
-          {
-            hashMeasurer.Exit();
-            bucketMeasurer.Enter();
-
-            CcTuple* resultTuple = new CcTuple;
-            resultTuple->SetFree(true);
-            Word resultWord = SetWord(resultTuple);
-            Word aWord = SetWord(*iterA);
-            Word bWord = SetWord(*iterB);
-            Concat(aWord, bWord, resultWord);
-            resultBucket.push_back(resultTuple);
-
-            bucketMeasurer.Exit();
-            hashMeasurer.Enter();
-          };
-        }
-      }
-
-      ClearBucket(a);
-      ClearBucket(b);
-      currentBucket++;
-    }
-
-    hashMeasurer.Exit();
-    return !resultBucket.empty();
-  };
-
-public:
-  HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
-    Word streamB, Word attrIndexBWord, Word nBucketsWord)
-  {
-    this->streamA = streamA;
-    this->streamB = streamB;
-    currentBucket = 0;
-
-    attrIndexA = ((CcInt*)attrIndexAWord.addr)->GetIntval() - 1;
-    attrIndexB = ((CcInt*)attrIndexBWord.addr)->GetIntval() - 1;
-    nBuckets = ((CcInt*)nBucketsWord.addr)->GetIntval();
-    if(nBuckets < MIN_BUCKETS)
-    {
-      nBuckets = MIN_BUCKETS;
-    }
-    else if(nBuckets > MAX_BUCKETS)
-    {
-      nBuckets = MAX_BUCKETS;
-    }
-
-    hashMeasurer.Enter();
-
-    bucketsA.resize(nBuckets);
-    bucketsB.resize(nBuckets);
-
-    hashMeasurer.Exit();
-
-    FillHashBuckets(streamA, attrIndexA, bucketsA);
-    FillHashBuckets(streamB, attrIndexB, bucketsB);
-  }
-
-  ~HashJoinLocalInfo()
-  {
-  }
-
-  CcTuple* NextResultTuple()
-  {
-    if(resultBucket.empty())
-    {
-      if(!FillResultBucket())
-      {
-        return 0;
-      }
-    }
-    CcTuple* result = resultBucket.back();
-    resultBucket.pop_back();
-    return result;
-  }
-};
-
-/*
-
-7.3.2 Value Mapping Function of Operator ~hashjoin~
-
-*/
-
-static int
-HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  HashJoinLocalInfo* localInfo;
-  Word attrIndexA;
-  Word attrIndexB;
-  Word nHashBuckets;
-
-  switch(message)
-  {
-    case OPEN:
-      qp->Request(args[5].addr, attrIndexA);
-      qp->Request(args[6].addr, attrIndexB);
-      qp->Request(args[4].addr, nHashBuckets);
-      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
-        args[1], attrIndexB, nHashBuckets);
-      local = SetWord(localInfo);
-      return 0;
-    case REQUEST:
-      localInfo = (HashJoinLocalInfo*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
-      return result.addr != 0 ? YIELD : CANCEL;
-    case CLOSE:
-      hashMeasurer.PrintCPUTimeAndReset("CPU Time for Hashing Tuples : ");
-      bucketMeasurer.PrintCPUTimeAndReset(
-        "CPU Time for Computing Products of Buckets : ");
-
-      localInfo = (HashJoinLocalInfo*)local.addr;
-      delete localInfo;
-      return 0;
-  }
-  return 0;
-}
-
-/*
-
-4.1.3 Specification of Operator ~hashjoin~
-
-*/
-const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
-                             "\"Meaning\" \"Example\" ) "
-                          "( <text>((stream (tuple ((x1 t1) ... "
-			  "(xn tn)))) (stream (tuple ((y1 d1) ... "
-			  "(ym dm)))) xi yj nbuckets) -> (stream "
-			  "(tuple ((x1 t1) ... (xn tn) (y1 d1) ..."
-			  " (ym dm))))</text--->"
-			  "<text> _ _ hashjoin [ _ , _ , _ ]"
-			  "</text--->"
-			  "<text>Computes the equijoin two streams "
-			  "via a hash join. The number of hash buckets"
-			  " is given by the parameter nBuckets."
-			  "</text--->"
-			  "<text>query Employee feed Dept feed "
-			  "rename[A] hashjoin[DeptNr, DeptNr_A, 17] "
-			  "sort consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of Operator ~hashjoin~
-
-*/
-Operator HashJoinOperator(
-         "hashjoin",        // name
-         HashJoinSpec,     // specification
-         HashJoin,         // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         JoinTypeMap<true, 2>   // type mapping
-);
-
-/*
-
-7.3 Operator ~extend~
-
-Extends each input tuple by new attributes as specified in the parameter list.
-
-7.3.1 Type mapping function of operator ~extend~
-
-Type mapping for ~extend~ is
-
-----     ((stream x) ((b1 (map x y1)) ... (bm (map x ym))))
-
-        -> (stream (tuple ((a1 x1) ... (an xn) (b1 y1 ... bm ym))))
-
-        wobei x = (tuple ((a1 x1) ... (an xn)))
-----
-
-*/
-static ListExpr
-ExtendTypeMap( ListExpr args )
-{
-  ListExpr first, second, rest, listn, errorInfo,
-           lastlistn, first2, second2, firstr, outlist;
-  bool loopok;
-  AlgebraManager* algMgr;
-
-  algMgr = SecondoSystem::GetAlgebraManager();
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-    if((nl->ListLength(first) == 2)  &&
-      (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-      (!nl->IsAtom(second)) &&
-      (nl->ListLength(second) > 0))
-    {
-      rest = nl->Second(nl->Second(first));
-      listn = nl->OneElemList(nl->First(rest));
-      lastlistn = listn;
-      rest = nl->Rest(rest);
-      while (!(nl->IsEmpty(rest)))
-      {
-        lastlistn = nl->Append(lastlistn,nl->First(rest));
-        rest = nl->Rest(rest);
-      }
-      loopok = true;
-      rest = second;
-      while (!(nl->IsEmpty(rest)))
-      {
-        firstr = nl->First(rest);
-        rest = nl->Rest(rest);
-        first2 = nl->First(firstr);
-        second2 = nl->Second(firstr);
-        if ((nl->IsAtom(first2)) &&
-            (nl->ListLength(second2) == 3) &&
-            (nl->AtomType(first2) == SymbolType) &&
-            (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-            (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)) &&
-                  (nl->Equal(nl->Second(first),nl->Second(second2))))
-        {
-          lastlistn = nl->Append(lastlistn,
-            (nl->TwoElemList(first2,nl->Third(second2))));
-        }
-        else
-        {
-          loopok = false;
-        }
-      }
-      if ((loopok) && (comparenames(listn)))
-      {
-        outlist =
-          nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
-        return outlist;
-      }
-      else
-      {
-        ErrorReporter::ReportError("Incorrect input for operator extend.");
-        return nl->SymbolAtom("typeerror");
-      }
-    }
-    else
-    {
-      ErrorReporter::ReportError("Incorrect input for operator extend.");
-      return nl->SymbolAtom("typeerror");
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator extend.");
-  return nl->SymbolAtom("typeerror");
-}
-/*
-
-4.1.2 Value mapping function of operator ~extend~
-
-*/
-static int
-Extend(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word t, value;
-  CcTuple* tup;
-  Supplier supplier, supplier2, supplier3;
-  int noofoldattrs, nooffun, noofsons;
-  ArgVectorPointer funargs;
-
-  switch (message)
-  {
-    case OPEN :
-
-      qp->Open(args[0].addr);
-      return 0;
-
-    case REQUEST :
-
-      qp->Request(args[0].addr,t);
-      if (qp->Received(args[0].addr))
-      {
-        tup = (CcTuple*)t.addr;
-        tup = tup->CloneIfNecessary();
-        noofoldattrs = tup->GetNoAttrs();
-        supplier = args[1].addr;
-        nooffun = qp->GetNoSons(supplier);
-        for (int i=0; i < nooffun;i++)
-        {
-          supplier2 = qp->GetSupplier(supplier, i);
-          noofsons = qp->GetNoSons(supplier2);
-          supplier3 = qp->GetSupplier(supplier2, 1);
-          funargs = qp->Argument(supplier3);
-          (*funargs)[0] = SetWord(tup);
-          qp->Request(supplier3,value);
-          tup->Put(noofoldattrs+i,((StandardAttribute*)value.addr)->Clone());
-        }
-
-        tup->SetNoAttrs(noofoldattrs + nooffun);
-        result = SetWord(tup);
-        return YIELD;
-      }
-      else
-        return CANCEL;
-
-    case CLOSE :
-
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~extend~
-
-*/
-const string ExtendSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                           "( <text>(stream(tuple(x)) x [(a1, (tuple(x)"
-			   " -> d1)) ... (an, (tuple(x) -> dn))] -> "
-			   "stream(tuple(x@[a1:d1, ... , an:dn])))"
-			   "</text--->"
-			   "<text>_ extend [funlist]</text--->"
-			   "<text>Extends each input tuple by new "
-			   "attributes as specified in the parameter"
-			   " list.</text--->"
-			   "<text>query ten feed extend [mult5 : "
-			   ".nr * 5, mod2 : .nr mod 2] consume"
-			   "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~extend~
-
-*/
-Operator cppextend (
-         "extend",              // name
-         ExtendSpec,            // specification
-         Extend,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         ExtendTypeMap          // type mapping
-);
-
-/*
-
-7.3 Operator ~loopjoin~
-
-This operator will fulfill a join of two relations. Tuples in the cartesian product which satisfy certain
-conditions are passed on to the output stream.
-
-For instance,
-
-----	query Staedte feed loopjoin [plz feed filter [.Ort=.SName] ] consume;
-
-    	(query (consume (loopjoin (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
-		(fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
-----
-
-7.3.1 Type mapping function of operator ~loopjoin~
-
-The type mapping function of the loopjoin operation is as follows:
-
-----    ((stream (tuple x)) (map (tuple x) (stream (tuple y))))  -> (stream (tuple x * y))
-	where x = ((x1 t1) ... (xn tn)) and y = ((y1 d1) ... (ym dm))
-----
-
-*/
-ListExpr LoopjoinTypeMap(ListExpr args)
-{
-  ListExpr first, second;
-  ListExpr list1, list2, list, outlist;
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if 	    ( (nl->ListLength(first) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-	&& (nl->ListLength(second) == 3)
-	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)
-	&& (nl->Equal(nl->Second(first), nl->Second(second)))
-	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
-	{
-                   list1 = nl->Second(nl->Second(first));
-                   list2 = nl->Second(nl->Second(nl->Third(second)));
-	   if(!AttributesAreDisjoint(list1, list2))
-	   {
-	       goto typeerror;
-	   }
-	   list = ConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-  	   return outlist;
-	}
-    else goto typeerror;
-  }
- else goto typeerror;
-
-typeerror:
-  ErrorReporter::ReportError("Incorrect input for operator loopjoin.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.2 Value mapping function of operator ~loopjoin~
-
-*/
-
-struct LoopjoinLocalInfo
-{
-    Word tuplex;
-    Word streamy;
-};
-
-static int
-Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  ArgVectorPointer funargs;
-  Word tuplex, tupley, tuplexy, streamy;
-  CcTuple* ctuplex;
-  CcTuple* ctupley;
-  CcTuple* ctuplexy;
-  LoopjoinLocalInfo *localinfo;
-
-  switch ( message )
-  {
-    case OPEN:
-      //1.open the stream and initiate the variables
-      qp->Open (args[0].addr);
-      qp->Request(args[0].addr, tuplex);
-      if (qp->Received(args[0].addr))
-      {
-      //2>>> here: compute the rely which corresponding to tuplex
-          funargs = qp->Argument(args[1].addr);
-          (*funargs)[0] = tuplex;
-          streamy=args[1];
-          qp->Open (streamy.addr);
-     //3>>> here: put the information of tuplex and rely into local
-           localinfo=new LoopjoinLocalInfo;
-           localinfo->tuplex=tuplex;
-           localinfo->streamy=streamy;
-           local = SetWord(localinfo);
-      }
-      else
-      {
-           local = SetWord(Address(0));
-       }
-      return 0;
-
-    case REQUEST:
-      if (local.addr ==0) return CANCEL;
-      //1>>>>>>restore localinformation from the local variable.
-      localinfo=(LoopjoinLocalInfo *) local.addr;
-      tuplex=localinfo->tuplex;
-      ctuplex=(CcTuple*)tuplex.addr;
-      streamy=localinfo->streamy;
-      //2>>>>>> prepare tuplex and tupley for processing. if rely is exausted: fetch next tuplex.
-      tupley=SetWord(Address(0));
-      while (tupley.addr==0)
-      {
-           qp->Request(streamy.addr, tupley);
-           if (!(qp->Received(streamy.addr)))
-             {
-	    qp->Close(streamy.addr);
-	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
-	    qp->Request(args[0].addr, tuplex);
-	    if (qp->Received(args[0].addr))
-	    {
-                       funargs = qp->Argument(args[1].addr);
-	       ctuplex=(CcTuple*)tuplex.addr;
-	       (*funargs)[0] = tuplex;
-                       streamy=args[1];
-                       qp->Open (streamy.addr);
-	       tupley=SetWord(Address(0));
-
- 	       localinfo->tuplex=tuplex;
- 	       localinfo->streamy=streamy;
-	       local =  SetWord(localinfo);
-	   }
-	   else return CANCEL;
-           }
-          else
-           {
-	    ctupley=(CcTuple*)tupley.addr;
-            }
-      }
-      //3>>>>>> compute tuplexy.
-      ctuplexy = new CcTuple();
-      ctuplexy->SetFree(true);
-      tuplexy = SetWord(ctuplexy);
-      Concat(tuplex, tupley, tuplexy);
-      ((CcTuple*)tupley.addr)->DeleteIfAllowed();
-      result = tuplexy;
-      return YIELD;
-
-    case CLOSE:
-      qp->Close(args[0].addr);
-      localinfo=(LoopjoinLocalInfo *) local.addr;
-      delete localinfo;
-      return 0;
-  }
-
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~loopjoin~
-
-*/
-const string LoopjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                             "\"Example\" ) "
-                        "( <text>((stream tuple1) (map tuple1 "
-			"rel(tuple2))) -> (stream tuple1*tuple2)"
-			"</text--->"
-			"<text>_ loopjoin [ fun ]</text--->"
-			"<text>Only tuples in the cartesian product "
-			"which satisfy certain conditions are passed on"
-			" to the output stream.</text--->"
-			"<text>query cities feed loopjoin [five feed "
-			"filter [.no > 2]] consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~loopjoin~
-
-*/
-Operator OLoopjoin (
-         "loopjoin",	           		// name
-         LoopjoinSpec,          		// specification
-         Loopjoin,               		// value mapping
-         Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
-         simpleSelect,         		// trivial selection function
-         LoopjoinTypeMap	         	// type mapping
-);
-
-/*
-
-7.4 Operator ~loopselect~
-
-This operator is similar to the ~loopjoin~ operator except that it only returns the inner tuple
-(instead of the concatination of two tuples). Tuples in the cartesian product which satisfy
-certain conditions are passed on to the output stream.
-
-For instance,
-
-----	query Staedte feed loopselect [plz feed filter [.Ort=.SName] ] consume;
-
-    	(query (consume (loopselect (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
-		(fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
-----
-
-7.4.1 Type mapping function of operator ~loopselect~
-
-The type mapping function of the loopjoin operation is as follows:
-
-----    ((stream (tuple x)) (map (tuple x) (stream (tuple y))))  -> (stream (tuple y))
-	where x = ((x1 t1) ... (xn tn)) and y = ((y1 d1) ... (ym dm))
-----
-
-*/
-ListExpr LoopselectTypeMap(ListExpr args)
-{
-  ListExpr first, second;
-  ListExpr list1, list2, outlist;
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if 	    ( (nl->ListLength(first) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-	&& (nl->ListLength(second) == 3)
-	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)
-	&& (nl->Equal(nl->Second(first), nl->Second(second)))
-	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
-	{
-                   list1 = nl->Second(nl->Second(first));
-                   list2 = nl->Second(nl->Second(nl->Third(second)));
-	   //if(!AttributesAreDisjoint(list1, list2))
-	   //{
-	   //    goto typeerror;
-	   //}
-	   //list = ConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("tuple"), list2));
-  	   return outlist;
-	}
-    else goto typeerror;
-  }
- else goto typeerror;
-
-typeerror:
-  ErrorReporter::ReportError("Incorrect input for operator loopselect.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.2 Value mapping function of operator ~loopjoin~
-
-*/
-
-struct LoopselectLocalInfo
-{
-    Word tuplex;
-    Word streamy;
-};
-
-static int
-Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  ArgVectorPointer funargs;
-  Word tuplex, tupley, streamy;  //tuplexy
-  CcTuple* ctuplex;
-  CcTuple* ctupley;
-  //CcTuple* ctuplexy;
-  LoopselectLocalInfo *localinfo;
-
-  switch ( message )
-  {
-    case OPEN:
-      //1.open the stream and initiate the variables
-      qp->Open (args[0].addr);
-      qp->Request(args[0].addr, tuplex);
-      if (qp->Received(args[0].addr))
-      {
-      //2>>> here: compute the rely which corresponding to tuplex
-          funargs = qp->Argument(args[1].addr);
-          (*funargs)[0] = tuplex;
-          streamy=args[1];
-          qp->Open (streamy.addr);
-     //3>>> here: put the information of tuplex and rely into local
-           localinfo=new LoopselectLocalInfo;
-           localinfo->tuplex=tuplex;
-           localinfo->streamy=streamy;
-           local = SetWord(localinfo);
-      }
-      else
-      {
-           local = SetWord(Address(0));
-       }
-      return 0;
-
-    case REQUEST:
-      if (local.addr ==0) return CANCEL;
-      //1>>>>>>restore localinformation from the local variable.
-      localinfo=(LoopselectLocalInfo *) local.addr;
-      tuplex=localinfo->tuplex;
-      ctuplex=(CcTuple*)tuplex.addr;
-      streamy=localinfo->streamy;
-      //2>>>>>> prepare tuplex and tupley for processing. if rely is exausted: fetch next tuplex.
-      tupley=SetWord(Address(0));
-      while (tupley.addr==0)
-      {
-           qp->Request(streamy.addr, tupley);
-           if (!(qp->Received(streamy.addr)))
-             {
-	    qp->Close(streamy.addr);
-	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
-	    qp->Request(args[0].addr, tuplex);
-	    if (qp->Received(args[0].addr))
-	    {
-                       funargs = qp->Argument(args[1].addr);
-	       ctuplex=(CcTuple*)tuplex.addr;
-	       (*funargs)[0] = tuplex;
-                       streamy=args[1];
-                       qp->Open (streamy.addr);
-	       tupley=SetWord(Address(0));
-
- 	       localinfo->tuplex=tuplex;
- 	       localinfo->streamy=streamy;
-	       local =  SetWord(localinfo);
-	   }
-	   else return CANCEL;
-           }
-          else
-           {
-	    ctupley=(CcTuple*)tupley.addr;
-            }
-      }
-      //3>>>>>> compute tuplexy.
-      //ctuplexy = new CcTuple();
-      //ctuplexy->SetFree(true);
-      //tuplexy = SetWord(ctuplexy);
-      //Concat(tuplex, tupley, tuplexy);
-      //((CcTuple*)tupley.addr)->DeleteIfAllowed();
-      result = tupley;
-      return YIELD;
-
-    case CLOSE:
-      qp->Close(args[0].addr);
-      localinfo=(LoopselectLocalInfo *) local.addr;
-      delete localinfo;
-      return 0;
-  }
-
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~loopjoin~
-
-*/
-const string LoopselectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                             "\"Example\" ) "
-                        "( <text>((stream tuple1) (map tuple1 "
-			"rel(tuple2))) -> (stream tuple2)"
-			"</text--->"
-			"<text>_ loopselect [ fun ]</text--->"
-			"<text>Only tuples in the cartesian product "
-			"which satisfy certain conditions are passed on"
-			" to the output stream.</text--->"
-			"<text>query cities feed loopselect [five feed "
-			"filter [.no > 2]] consume</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~loopjoin~
-
-*/
-Operator OLoopselect (
-         "loopsel",	           		// name
-         LoopselectSpec,         		// specification
-         Loopselect,               		// value mapping
-         Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
-         simpleSelect,         		// trivial selection function
-         LoopselectTypeMap	         	// type mapping
-);
-
-
-/*
-
-7.3 Operator ~loopjoinrel~
-
-This operator will fulfill a join of two relations. Tuples in the cartesian product which satisfy certain
-conditions are passed on to the output stream.
-
-For instance,
-
-----    query Staedte feed loopjoinrel [plz feed filter [.Ort=.SName] consume] consume;
-
-    	(query (consume (loopjoinrel (feed tryrel) (fun (t1 TUPLE)
-		(consume filter (feed null) (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
-----
-
-7.3.1 Type mapping function of operator ~loopjoinrel~
-
-The type mapping function of the loopjoinrel operation is as follows:
-
-----    ((stream (tuple x)) (map (tuple x) (rel (tuple y))))  -> (stream (tuple x * y))
-	where x = ((x1 t1) ... (xn tn)) and y = ((y1 d1) ... (ym dm))
-----
-
-*/
-ListExpr LoopjoinrelTypeMap(ListExpr args)
-{
-  ListExpr first, second;
-  ListExpr list1, list2, list, outlist;
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if 	    ( (nl->ListLength(first) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-	&& (nl->ListLength(second) == 3)
-	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)
-	&& (nl->Equal(nl->Second(first), nl->Second(second)))
-	&& (nl->ListLength(nl->Third(second)) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == rel)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
-	{
-                   list1 = nl->Second(nl->Second(first));
-                   list2 = nl->Second(nl->Second(nl->Third(second)));
-	   if(!AttributesAreDisjoint(list1, list2))
-	   {
-	       goto typeerror;
-	   }
-	   list = ConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-		nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-  	   return outlist;
-	}
-    else goto typeerror;
-  }
- else goto typeerror;
-
-typeerror:
-  ErrorReporter::ReportError("Incorrect input for operator loopjoinrel.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-4.1.2 Value mapping function of operator ~loopjoinrel~
-
-*/
-
-struct LoopjoinrelLocalInfo
-{
-    Word tuplex;
-    Word rely;
-    Word relyit;
-};
-
-static int
-Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  ArgVectorPointer funargs;
-  Word tuplex, tupley, tuplexy, funresult, rely;
-  CcTuple* ctuplex;
-  CcTuple* ctupley;
-  CcTuple* ctuplexy;
-  CcRel* crely;
-  CcRelIT* crelyit;
-  LoopjoinrelLocalInfo *localinfo;
-
-  switch ( message )
-  {
-    case OPEN:
-      //1.open the stream and initiate the variables
-      qp->Open (args[0].addr);
-      qp->Request(args[0].addr, tuplex);
-      if (qp->Received(args[0].addr))
-      {
-      //2>>> here: compute the rely which corresponding to tuplex
-          funargs = qp->Argument(args[1].addr);
-          ctuplex=(CcTuple*)tuplex.addr;
-          (*funargs)[0] = tuplex;
-          qp->Request(args[1].addr, funresult);
-          rely=funresult;
-          crely = (CcRel*)(funresult.addr);
-          crelyit=crely->MakeNewScan();
-     //3>>> here: put the information of tuplex and rely into local
-           localinfo=new LoopjoinrelLocalInfo;
-           localinfo->tuplex=tuplex;
-           localinfo->rely=rely;
-           localinfo->relyit=SetWord(crelyit);
-           local = SetWord(localinfo);
-      }
-      else
-      {
-           local = SetWord(Address(0));
-       }
-      return 0;
-
-    case REQUEST:
-      if (local.addr ==0) return CANCEL;
-      //1>>>>>>restore localinformation from the local variable.
-      localinfo=(LoopjoinrelLocalInfo *) local.addr;
-      tuplex=localinfo->tuplex;
-      ctuplex=(CcTuple*)tuplex.addr;
-      rely=localinfo->rely;
-      crely=((CcRel*)rely.addr);
-      crelyit=(CcRelIT*)((localinfo->relyit).addr);
-      //2>>>>>> prepare tuplex and tupley for processing. if rely is exausted: fetch next tuplex.
-      tupley=SetWord(Address(0));
-      while (tupley.addr==0)
-      {
-           crely=((CcRel*)rely.addr);
-           if (crelyit->EndOfScan())
-           {
-	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
-	    qp->Request(args[0].addr, tuplex);
-	    if (qp->Received(args[0].addr))
-	    {
-                       funargs = qp->Argument(args[1].addr);
-	       ctuplex=(CcTuple*)tuplex.addr;
-	       (*funargs)[0] = tuplex;
-	       qp->Request(args[1].addr, funresult);
-	       rely=SetWord(funresult.addr);
-	       crely = (CcRel*)(funresult.addr);
-                       crelyit=crely->MakeNewScan();
-	       tupley=SetWord(Address(0));
-	       //cout<<"number of tuples in rel y:"<<((CcRel*)rely.addr)->GetNoTuples()<<endl;
-
- 	       localinfo->tuplex=tuplex;
- 	       localinfo->rely=rely;
-	       localinfo->relyit=SetWord(crelyit);
-	       local =  SetWord(localinfo);
-	   }
-	   else return CANCEL;
-           }
-          else
-           {
-	    tupley=SetWord(crelyit->GetTuple());
-	    ctupley=(CcTuple*)tupley.addr;
-	    crelyit->Next();
-	    localinfo->relyit=SetWord(crelyit);
-	    local =  SetWord(localinfo);
-            }
-      }
-      //3>>>>>> compute tuplexy.
-      ctuplexy = new CcTuple();
-      ctuplexy->SetFree(true);
-      tuplexy = SetWord(ctuplexy);
-      Concat(tuplex, tupley, tuplexy);
-      ((CcTuple*)tupley.addr)->DeleteIfAllowed();
-      result = tuplexy;
-      return YIELD;
-
-    case CLOSE:
-      qp->Close(args[0].addr);
-      localinfo=(LoopjoinrelLocalInfo *) local.addr;
-      delete localinfo;
-      return 0;
-  }
-
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~loopjoinrel~
-
-*/
-const string LoopjoinrelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                                "\"Example\" ) "
-                      "( <text>((stream tuple1) (map tuple1 rel(tuple2))) "
-		      "-> (stream tuple1*tuple2)</text--->"
-		      "<text>_ loopjoin [ fun ]</text--->"
-		      "<text>Only tuples in the cartesian product which "
-		      "satisfy certain conditions are passed on to the "
-		      "output stream.</text--->"
-		      "<text>query cities feed loopjoin [ five ] consume"
-		      "</text--->"
-			     " ) )";
-/*
-
-4.1.3 Definition of operator ~loopjoinrel~
-
-*/
-Operator OLoopjoinrel (
-         "loopjoinrel",	           		// name
-         LoopjoinrelSpec,        		// specification
-         Loopjoinrel,               		// value mapping
-         Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
-         simpleSelect,         		// trivial selection function
-         LoopjoinrelTypeMap	         	// type mapping
-);
-
-/*
-
-7.3 Operator ~concat~
-
-7.3.1 Type mapping function of operator ~concat~
-
-Type mapping for ~concat~ is
-
-----    ((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn))))
-
-        -> (stream (tuple (a1:d1 ... an:dn)))
-----
-
-*/
-ListExpr GetAttrTypeList (ListExpr l)
-{
-  ListExpr first, olist, lastolist, attrlist;
-
-  olist = nl->TheEmptyList();
-  attrlist = l;
-  while (!nl->IsEmpty(attrlist))
-  {
-    first = nl->First(attrlist);
-    attrlist = nl->Rest(attrlist);
-    if (olist == nl->TheEmptyList())
-    {
-      olist = nl->Cons(nl->Second(first), nl->TheEmptyList());
-      lastolist = olist;
-    }
-    else
-    {
-      lastolist = nl->Append(lastolist, nl->Second(first));
-    }
-  }
-  return olist;
-}
-
-static ListExpr
-ConcatTypeMap( ListExpr args )
-{
-  ListExpr first, second;
-  if(nl->ListLength(args)  == 2)
-  {
-    first = nl->First(args);
-    second = nl->Second(args);
-
-    if((nl->ListLength(first) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-       (nl->ListLength(second) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(second)) == stream) &&
-       (nl->ListLength(nl->Second(second)) == 2) &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-       (nl->Equal(GetAttrTypeList(nl->Second(nl->Second(first))),
-          GetAttrTypeList(nl->Second(nl->Second(second))))))
-       return first;
-    else
-    {
-      ErrorReporter::ReportError("Incorrect input for operator concat.");
-      return nl->SymbolAtom("typeerror");
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator concat.");
-  return nl->SymbolAtom("typeerror");
-}
-/*
-
-4.1.2 Value mapping function of operator ~concat~
-
-*/
-static int
-Concat(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word t;
-  CcTuple* tuple;
-
-  switch (message)
-  {
-    case OPEN :
-
-      qp->Open(args[0].addr);
-      qp->Open(args[1].addr);
-      local = SetWord(new CcInt(true, 0));
-      return 0;
-
-    case REQUEST :
-      if ( (((CcInt*)local.addr)->GetIntval()) == 0)
-      {
-        qp->Request(args[0].addr, t);
-        if (qp->Received(args[0].addr))
-        {
-          tuple = (CcTuple*)t.addr;
-          result = SetWord(tuple);
-          return YIELD;
-        }
-        else
-        {
-          ((CcInt*)local.addr)->Set(1);
-        }
-      }
-      qp->Request(args[1].addr, t);
-      if (qp->Received(args[1].addr))
-      {
-        tuple = (CcTuple*)t.addr;
-        result = SetWord(tuple);
-        return YIELD;
-      }
-      else
-        return CANCEL;
-
-    case CLOSE :
-
-      qp->Close(args[0].addr);
-      qp->Close(args[1].addr);
-      delete (CcInt*)local.addr;
-      return 0;
-  }
-  return 0;
-}
-/*
-
-4.1.3 Specification of operator ~concat~
-
-*/
-const string ConcatSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" ) "
-                     "( <text>((stream (tuple (a1:d1 ... an:dn))) "
-		     "(stream (tuple (b1:d1 ... bn:dn)))) -> (stream"
-		     " (tuple (a1:d1 ... an:dn)))</text--->"
-		     "<text>_ _ concat</text--->"
-		     "<text>Union.</text--->"
-		     "<text>query ten feed five feed concat consume"
-		     "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~concat~
-
-*/
-Operator cppconcat (
-         "concat",              // name
-         ConcatSpec,            // specification
-         Concat,                // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         ConcatTypeMap          // type mapping
-);
-
-/*
-
-7.20 Operator ~groupby~
-
-
-7.20.1 Type mapping function of operator ~groupby~
-
-
-Result type of ~groupby~ operation.
-
-----    ((stream (tuple (xi1 ... xin))) ((namei1(fun x y1)) .. (namein (fun x ym)))
-
-        -> (stream (tuple (xi1 .. xin y1 .. ym)))		APPEND (i1,...in)
-----
-
-*/
-ListExpr GroupByTypeMap(ListExpr args)
-{
-  ListExpr first, second, third, rest, listn, lastlistn, first2,
-    second2, firstr, attrtype, listp, lastlistp;
-  ListExpr groupType;
-  bool loopok;
-  string  attrname;
-  int j;
-  bool firstcall = true;
-  int numberatt;
-  string listString;
-
-  if(nl->ListLength(args) == 3)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-    third  = nl->Third(args);
-
-    if(nl->ListLength(first) == 2  &&
-      (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-      (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-      (!nl->IsAtom(second)) &&
-      (nl->ListLength(second) > 0))
-    {
-      numberatt = nl->ListLength(second);
-      rest = second;
-      while (!nl->IsEmpty(rest))
-      {
-        first2 = nl->First(rest);
-        rest = nl->Rest(rest);
-        attrname = nl->SymbolValue(first2);
-        j =   findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-        if (j)
-        {
-          if (!firstcall)
-          {
-            lastlistn  = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
-            lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
-          }
-          else
-          {
-            firstcall = false;
-            listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
-            lastlistn = listn;
-            listp = nl->OneElemList(nl->IntAtom(j));
-            lastlistp = listp;
-          }
-        }
-        else
-        {
-          ErrorReporter::ReportError("Incorrect input for operator groupby.");
-          return nl->SymbolAtom("typeerror");
-        }
-
-      }
-      loopok = true;
-      rest = third;
-
-      groupType =
-        nl->TwoElemList(
-          nl->SymbolAtom("rel"),
-          nl->Second(first));
-
-      while (!(nl->IsEmpty(rest)))
-      {
-        firstr = nl->First(rest);
-
-        rest = nl->Rest(rest);
-        first2 = nl->First(firstr);
-        second2 = nl->Second(firstr);
-
-        if((nl->IsAtom(first2)) &&
-          (nl->ListLength(second2) == 3) &&
-          (nl->AtomType(first2) == SymbolType) &&
-          (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-          (nl->Equal(groupType, nl->Second(second2))))
-        {
-          lastlistn = nl->Append(lastlistn,
-          (nl->TwoElemList(first2,nl->Third(second2))));
-        }
-        else
-          loopok = false;
-        }
-      }
-    if ((loopok) && (comparenames(listn)))
-    {
-      return
-        nl->ThreeElemList(
-          nl->SymbolAtom("APPEND"),
-          nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
-          nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-              nl->SymbolAtom("tuple"),
-              listn)));
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator groupby.");
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-
-7.20.2 Value mapping function of operator ~groupby~
-
-*/
-
-int GroupByValueMapping
-(Word* args, Word& result, int message, Word& local, Supplier supplier)
-{
-  CcTuple *t;
-  CcTuple *s;
-  Word sWord;
-  Word relWord;
-  CcRel* tp;
-  CcRelIT* relIter;
-  int i, j, k;
-  int numberatt;
-  bool ifequal;
-  Word value;
-  Supplier  value2;
-  Supplier supplier1;
-  Supplier supplier2;
-  int ind;
-  int noOffun;
-  ArgVectorPointer vector;
-  const int indexOfCountArgument = 3;
-  const int startIndexOfExtraArguments = indexOfCountArgument +1;
-  int attribIdx;
-  Word nAttributesWord;
-  Word attribIdxWord;
-
-  switch(message)
-  {
-    case OPEN:
-      qp->Open (args[0].addr);
-      qp->Request(args[0].addr, sWord);
-      if (qp->Received(args[0].addr))
-      {
-        local = SetWord((CcTuple*)sWord.addr);
-      }
-      else
-      {
-        local = SetWord(0);
-      }
-      return 0;
-
-    case REQUEST:
-      tp = new CcRel;
-      if(local.addr == 0)
-      {
-        delete tp;
-        return CANCEL;
-      }
-      else
-      {
-        t = (CcTuple*)local.addr;
-        t = t->CloneIfNecessary();
-        t->SetFree(false);
-        tp->AppendTuple(t);
-      }
-      qp->Request(args[indexOfCountArgument].addr, nAttributesWord);
-      numberatt = ((CcInt*)nAttributesWord.addr)->GetIntval();
-
-      ifequal = true;
-      qp->Request(args[0].addr, sWord);
-      while ((qp->Received(args[0].addr)) && ifequal)
-      {
-        s = (CcTuple*)sWord.addr;
-        for (k = 0; k < numberatt; k++)
-        {
-          qp->Request(args[startIndexOfExtraArguments+k].addr, attribIdxWord);
-          attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
-          j = attribIdx - 1;
-          if (((Attribute*)t->Get(j))->Compare((Attribute *)s->Get(j)))
-            ifequal = false;
-        }
-        if (ifequal)
-        {
-          s = s->CloneIfNecessary();
-          s->SetFree(false);
-          tp->AppendTuple(s);
-          qp->Request(args[0].addr, sWord);
-        }
-        else
-          local = SetWord((CcTuple*)sWord.addr);
-      }
-      if(ifequal)
-      {
-        local = SetWord(0);
-      }
-
-      t = new CcTuple;
-      t->SetFree(true);
-      relIter = tp->MakeNewScan();
-      s = relIter->GetNextTuple();
-
-      for(i = 0; i < numberatt; i++)
-      {
-        qp->Request(args[startIndexOfExtraArguments+i].addr, attribIdxWord);
-        attribIdx = ((CcInt*)attribIdxWord.addr)->GetIntval();
-        t->Put(i, ((Attribute*)s->Get(attribIdx - 1))->Clone());
-      }
-      value2 = (Supplier)args[2].addr;
-      noOffun  =  qp->GetNoSons(value2);
-      t->SetNoAttrs(numberatt + noOffun);
-      delete relIter;
-
-      for(ind = 0; ind < noOffun; ind++)
-      {
-        supplier1 = qp->GetSupplier(value2, ind);
-        supplier2 = qp->GetSupplier(supplier1, 1);
-        vector = qp->Argument(supplier2);
-        (*vector)[0] = SetWord(tp);
-        qp->Request(supplier2, value);
-        t->Put(numberatt + ind, ((Attribute*)value.addr)->Clone()) ;
-      }
-      result = SetWord(t);
-      relWord = SetWord(tp);
-      DeleteRel(relWord);
-      return YIELD;
-
-    case CLOSE:
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-
-/*
-
-4.1.3 Specification of operator ~groupby~
-
-*/
-const string GroupBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                      "( <text>((stream (tuple (a1:d1 ... an:dn))) "
-		      "(ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1"
-		      " ... an:dn))) (_))) ... (bjl (fun (rel (tuple"
-		      " (a1:d1 ... an:dn))) (_))))) -> (stream (tuple"
-		      " (ai1:di1 ... aik:dik bj1 ... bjl)))</text--->"
-		      "<text>_ groupby [list; funlist]</text--->"
-		      "<text>Groups a relation according to attributes "
-		      "ai1, ..., aik and feeds the groups to other "
-		      "functions. The results of those functions are "
-		      "appended to the grouping attributes.</text--->"
-		      "<text>query Employee feed sortby[DeptNr asc] "
-		      "groupby[DeptNr; anz : group feed count] consume"
-		      "</text--->"
-			      ") )";
-/*
-
-4.1.3 Definition of operator ~groupby~
-
-*/
-Operator cppgroupby (
-         "groupby",             // name
-         GroupBySpec,           // specification
-         GroupByValueMapping,   // value mapping
-         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
-         simpleSelect,          // trivial selection function
-         GroupByTypeMap         // type mapping
-);
-
-/*
-
-5 Defnition of type constructor ~tuple~
-
-Eventually a type constructor is created by defining an instance of
-class ~TypeConstructor~. Constructor's arguments are the type constructor's
-name and the eleven functions previously defined.
-
-*/
-void DummyDelete(Word& w) {};
-void DummyClose(Word& w) {};
-Word DummyClone(const Word& w) { return SetWord( Address(0) ); };
-
-TypeConstructor cpptuple( "tuple",           TupleProp,
-                          OutTuple,          InTuple,
-                          SaveToListTuple,   RestoreFromListTuple,
-                          CreateTuple,       DummyDelete,
-                          0,                 0,
-                          DummyClose,        DummyClone,
-                          CastTuple,         CheckTuple,
-			  0,
-			  TupleInModel,      TupleOutModel,
-			  TupleValueToModel, TupleValueListToModel );
-/*
-
-5 Definition of type constructor ~rel~
-
-Eventually a type constructor is created by defining an instance of
-class ~TypeConstructor~. Constructor's arguments are the type constructor's
-name and the eleven functions previously defined.
-
-*/
-TypeConstructor cpprel( "rel",          RelProp,
-                        OutRel,         InRel,
-                        0,              0,
-                        CreateRel, 	DummyDelete,
-			OpenRel, 	SaveRel,
-                        DummyClose,     DummyClone,
-                        CastRel,        CheckRel,
-			0,
-			RelInModel,      RelOutModel,
-			RelValueToModel, RelValueListToModel );
 
 /*
 
@@ -5820,41 +2045,16 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpptuple );
     AddTypeConstructor( &cpprel );
 
-    AddOperator(&feed);
-    AddOperator(&sample);
-    AddOperator(&consume);
-    AddOperator(&TUPLE);
-    AddOperator(&group);
-    AddOperator(&TUPLE2);
-    AddOperator(&attr);
-    AddOperator(&tfilter);
-    AddOperator(&project);
-    AddOperator(&removal);
-    AddOperator(&product);
-    AddOperator(&cancel);
-    AddOperator(&tcount);
-    AddOperator(&cpprename);
-    AddOperator(&cppextract);
-    AddOperator(&cppextend);
-    AddOperator(&cppconcat);
-    AddOperator(&cppmax);
-    AddOperator(&cppmin);
-    AddOperator(&cppavg);
-    AddOperator(&cppsum);
-    AddOperator(&cpphead);
-    AddOperator(&sortBy);
-    AddOperator(&cppsort);
-    AddOperator(&cpprdup);
-    AddOperator(&cppmergesec);
-    AddOperator(&cppmergediff);
-    AddOperator(&cppmergeunion);
-    AddOperator(&MergeJoinOperator);
-    AddOperator(&OLoopjoin);
-    AddOperator(&OLoopselect);
-    AddOperator(&OLoopjoinrel);
-    AddOperator(&SortMergeJoinOperator);
-    AddOperator(&HashJoinOperator);
-    AddOperator(&cppgroupby);
+    AddOperator(&relalgfeed);
+    AddOperator(&relalgconsume);
+    AddOperator(&relalgTUPLE);
+    AddOperator(&relalgTUPLE2);
+    AddOperator(&relalgattr);
+    AddOperator(&relalgfilter);
+    AddOperator(&relalgproject);
+    AddOperator(&relalgproduct);
+    AddOperator(&relalgcount);
+    AddOperator(&relalgrename);
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );

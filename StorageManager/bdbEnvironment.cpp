@@ -165,7 +165,11 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   DbEnv*    dbenv = instance.impl->bdbEnv;
   Db*       dbseq = instance.impl->bdbSeq;
 
-  if ( dbseq )
+  if ( isTemporary )
+  {
+    newFileId = ++instance.impl->tmpId;
+  }
+  else if ( dbseq )
   {
     DbTxn* tid = 0;
     db_recno_t seqno = SMI_SEQUENCE_FILEID;
