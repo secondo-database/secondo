@@ -114,13 +114,19 @@ const Coord& Point::GetY() const
   return y;
 }
 
+const BBox Point::BoundingBox() const
+{
+  return BBox( *this, *this );
+}
+
 Point& Point::operator=( const Point& p )
 {
-  //assert( p.IsDefined() );
   defined = p.IsDefined();
-  x = p.GetX();
-  y = p.GetY();
-
+  if( defined )
+  {
+    x = p.GetX();
+    y = p.GetY();
+  }
   return *this;
 }
 
@@ -737,11 +743,13 @@ A ~points~ value is a finite set of points.
 */
 Points::Points( SmiRecordFile *recordFile, const int initsize ) :
   points( recordFile ? new PArray<Point>( recordFile, initsize ) : new MArray<Point>( initsize ) ),
+  bbox(),
   ordered( true )
 {}
 
 Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
   points( recordFile ? new PArray<Point>( recordFile, ps.Size() ) : new MArray<Point>( ps.Size() ) ),
+  bbox( ps.BoundingBox() ),
   ordered( true )
 {
   assert( ps.IsOrdered() );
@@ -754,10 +762,23 @@ Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
   }
 }
 
-Points::Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update):
-  points( new PArray<Point>( recordFile, recordId, update ) ),
+Points::Points( SmiRecord& rootRecord, SmiRecordFile *recordFile, bool update):
+  points( NULL ),
+  bbox(),
   ordered( true )
-  {}
+{
+  SmiRecordId recordId;
+  rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
+  points = new PArray<Point>( recordFile, recordId, update );
+  rootRecord.Read( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+}
+
+void Points::Save( SmiRecord& rootRecord ) const
+{
+  SmiRecordId recordId = GetPointsRecordId();
+  rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
+  rootRecord.Write( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+}
 
 void Points::Destroy()
 {
@@ -767,6 +788,11 @@ void Points::Destroy()
 Points::~Points()
 {
   delete points;
+}
+
+const BBox Points::BoundingBox() const
+{
+  return bbox;
 }
 
 void Points::Get( const int i, Point& p ) const
@@ -818,6 +844,8 @@ void Points::GetPt( Point& p )
 void Points::InsertPt( Point& p )
 {
     assert(p.IsDefined());
+
+    bbox = bbox.Union( BBox( p, p ) );
 
     if( !IsOrdered() )
     {
@@ -880,6 +908,7 @@ Points& Points::operator=( const Points& ps )
     ps.Get( i, p );
     points->Put( i, p );
   }
+  bbox = ps.BoundingBox();
   ordered = true;
   return *this;
 }
@@ -911,6 +940,9 @@ int Points::operator==( const Points& ps ) const
   if( Size() != ps.Size() )
     return 0;
 
+  if( bbox != ps.BoundingBox() )
+    return 0;
+
   for( int i = 0; i < Size(); i++ )
   {
     Point p1, p2;
@@ -932,6 +964,8 @@ int Points::operator!=( const Points& ps ) const
 Points& Points::operator+=(const Point& p)
 {
   assert( p.IsDefined() );
+
+  bbox = bbox.Union( BBox( p, p ) );
 
   if( !IsOrdered() )
   {
@@ -966,6 +1000,8 @@ Points& Points::operator+=(const Point& p)
 
 Points& Points::operator+=(const Points& ps)
 {
+  bbox = bbox.Union( ps.BoundingBox() );
+
   for( int i = 0; i < ps.Size(); i++ )
   {
     Point p;
@@ -995,6 +1031,16 @@ Points& Points::operator-=(const Point& p)
       points->Put( i, auxp );
     }
   }
+
+  // Naive way to redo the bounding box.
+  bbox = BBox();
+  for( int i = 0; i < Size(); i++ )
+  {
+    Point auxp;
+    points->Get( i, auxp );
+    bbox = bbox.Union( BBox( auxp, auxp ) );
+  }
+  
   return *this;
 }
 
@@ -1036,6 +1082,9 @@ const bool Points::Contains( const Point& p ) const
   if( IsEmpty() )
     return false;
 
+  if( !bbox.Contains( p ) )
+    return false;
+
   int first = 0, last = Size() - 1;
 
   while (first <= last)
@@ -1060,6 +1109,8 @@ const bool Points::Contains( const Points& ps ) const
   if( ps.IsEmpty() )
     return true;
   if( IsEmpty() )
+    return false;
+  if( !bbox.Contains( ps.BoundingBox() ) )
     return false;
 
   Point p1, p2;
@@ -1106,6 +1157,8 @@ const bool Points::Intersects( const Points& ps ) const
   assert( IsOrdered() && ps.IsOrdered() );
 
   if( IsEmpty() || ps.IsEmpty() )
+    return false;
+  if( !bbox.Intersects( ps.BoundingBox() ) )
     return false;
 
   Point p1, p2;
@@ -1193,7 +1246,7 @@ void  Points::Clear()
 
 void  Points::CopyFrom(StandardAttribute* right)
 {
-    Points * ps = (Points*)right;
+    Points *ps = (Points*)right;
     ordered = true;
     assert( ps->IsOrdered());
     Clear();
@@ -1203,6 +1256,7 @@ void  Points::CopyFrom(StandardAttribute* right)
 	ps->Get( i, p );
 	points->Put( i, p );
     }
+    bbox = ps->BoundingBox();
 }
 
 int   Points::Compare(Attribute * arg)
@@ -1411,10 +1465,7 @@ OpenPoints( SmiRecord& valueRecord,
 {
 //  cout << "OpenPoints" << endl;
 
-  SmiRecordId recordId;
-
-  valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-  Points *points = new Points( SecondoSystem::GetLobFile(), recordId );
+  Points *points = new Points( valueRecord, SecondoSystem::GetLobFile() );
   value = SetWord( points );
 
 //  cout << "OpenPoints: " << *points << endl;
@@ -1436,9 +1487,7 @@ SavePoints( SmiRecord& valueRecord,
 
 //  cout << "SavePoints: " << *points << endl;
 
-  SmiRecordId recordId = points->GetPointsRecordId();
-
-  valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
+  points->Save( valueRecord );
 
   return (true);
 }

@@ -56,6 +56,8 @@ elements of type ~T~.
 #ifndef GARRAY_H
 #define GARRAY_H
 
+#include "SecondoSMI.h" 
+
 template<class T>
 class GArray
 {

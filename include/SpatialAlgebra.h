@@ -21,8 +21,8 @@ shows examples of these spatial data types.
 #ifndef __SPATIAL_ALGEBRA_H__
 #define __SPATIAL_ALGEBRA_H__
 
-#include "Rational.h"
 #include "PArray.h"
+#include "StandardAttribute.h"
 
 //#define RATIONAL_COORDINATES
 #define DOUBLE_COORDINATES
@@ -33,6 +33,9 @@ typedef double Coord;
 
 #ifdef RATIONAL_COORDINATES
 #ifdef WITH_ARBITRARY_PRECISION
+
+#include "Rational.h"
+
 typedef Rational Coord;
 #else 
 typedef Rational Coord;
@@ -42,6 +45,9 @@ typedef long Coord;
 #endif
 
 #endif
+
+#define MAX( a, b ) ((a) > (b) ? (a) : (b))
+#define MIN( a, b ) ((a) < (b) ? (a) : (b))
 
 
 /*
@@ -53,6 +59,18 @@ coordinates are being used and defines if the system will use rational
 numbers with arbitrary precision (~not implemented yet~) instead of fixed 
 precision (~Rational~).
 
+3 Class StandardSpatialAttribute
+
+*/
+struct Rectangle;
+
+class StandardSpatialAttribute : public StandardAttribute
+{
+  public:
+    virtual const Rectangle BoundingBox() const = 0;
+};
+
+/*
 3 Class Point
 
 This class implements the memory representation of the ~point~ type 
@@ -67,7 +85,7 @@ A forward declaration of the class ~Points~.
 
 */
 
-class Point: public StandardAttribute
+class Point: public StandardSpatialAttribute
 {
   public:
 /*
@@ -115,6 +133,12 @@ Returns the ~y~ coordinate of the point.
 *Precondition:* ~IsDefined()~
 
 */
+    const Rectangle BoundingBox() const;
+/*
+Returns the point bounding box which is also a point.
+
+*/
+
     void  Set( const bool D, const Coord& X, const Coord& Y)
     {
 	defined=D;
@@ -313,6 +337,228 @@ A flag that tells if the point is defined or not.
 */
 };
 
+typedef Point CPoint;
+
+/*
+2 Struct ~Rectangle~
+
+This structure will represent rectangles aligned with the axes ~x~ and ~y~.
+
+*/
+struct Rectangle
+{
+  Point min;
+/*
+The bottom left point of the rectangle.
+
+*/
+  Point max;
+/*
+The top right point of the rectangle.
+
+*/
+
+  Rectangle() :
+    min(), max()
+    {}
+/*
+The simple constructor. Create two undefined points.
+
+*/
+
+  Rectangle( const Point& min, const Point& max ) :
+    min( min ), max( max )
+    {}
+/*
+The secondo constructor. Receives two points and stores them into ~min~ and ~max~.
+
+*/
+
+  Rectangle( const Coord& p1x, const Coord& p1y, const Coord& p2x, const Coord& p2y ) :
+    min( true, MIN( p1x, p2x ), MIN( p1y, p2y ) ),
+    max( true, MAX( p1x, p2x ), MAX( p1y, p2y ) )
+    {}
+/*
+The third constructor. Receives four coordinates.
+
+*/
+
+  Rectangle( const Rectangle& r ) :
+    min( r.min ), max( r.max )
+    {}
+/*
+The copy constructor.
+
+*/
+
+  inline bool IsDefined() const
+    { return min.IsDefined() && max.IsDefined(); }
+/*
+Checks if the rectangle is defined, i.e, if its points are defined.
+
+*/
+  inline Rectangle& operator = ( const Rectangle& r )
+    { this->min = r.min; this->max = r.max; return *this; }
+/*
+Redefinition of operator ~=~.
+
+*/
+
+  inline bool Contains( const Point& p ) const;
+/*
+Checks if the rectangle contains the point ~p~.
+
+*/
+  inline bool Contains( const Rectangle& r ) const;
+/*
+Checks if the rectangle contains the rectangle ~r~.
+
+*/
+
+  inline int Intersects( const Rectangle& r ) const;
+/*
+Checks if the rectangle intersects with rectangle ~r~.
+
+*/
+
+  inline int operator == ( const Rectangle& r ) const
+    { assert( Proper() && r.Proper() ); 
+      return (this->min == r.min) && (this->max == r.max); }
+/*
+Redefinition of operator ~==~.
+
+*/
+
+  inline int operator != ( const Rectangle& r ) const
+    { return !(*this == r); }
+/*
+Redefinition of operator ~!=~.
+
+*/
+
+  double Area() const
+    { if( !Proper() ) return 0; 
+      return ((double) (this->max.GetX() - this->min.GetX() + 1)) *
+             ((double) (this->max.GetY() - this->min.GetY() + 1)); }
+/*
+Returns the area of a rectangle.
+
+*/
+
+  double Perimeter () const
+    { if( !Proper() ) return 0;
+      return 2 * ((max.GetX() - min.GetX() + 1) + (max.GetY() - min.GetY() + 1)); }
+/*
+Returns the perimeter of a rectangle.
+
+*/
+
+  Coord MinD( int dim ) const
+    { assert( dim == 0 || dim == 1 ); return dim == 0 ? min.GetX() : min.GetY(); }
+/*
+Returns the min coord value for the given dimension ~dim~.
+
+*/
+
+  Coord MaxD( int dim ) const
+    { assert( dim == 0 || dim == 1 ); return dim == 0 ? max.GetX() : max.GetY(); }
+/*
+Returns the max coord value for the given dimension ~dim~.
+
+*/
+
+  inline Rectangle Union( const Rectangle& b ) const;
+/*
+Returns the bounding box that contains both this and ~b~.
+
+*/
+
+  inline Rectangle Intersection( const Rectangle& b ) const;
+/*
+Returns the intersection between this and ~b~.
+
+*/
+
+  inline bool Proper() const
+      { return IsDefined() && min.GetX() <= max.GetX() && min.GetY() <= max.GetY(); }
+/*
+Returns ~true~ if this is a "proper" rectangle, i.e. it does not
+represent an empty set.
+
+*/
+};
+
+inline bool Rectangle::Contains( const Point& p ) const
+{
+  assert( p.IsDefined() );
+
+  if( !Proper() )
+    return false;
+
+  if( p.GetX() < this->min.GetX() || p.GetX() > this->max.GetX() )
+    return false;
+  else if( p.GetY() < this->min.GetY() || p.GetY() > this->max.GetY() )
+    return false;
+  else
+    return true;
+}
+
+inline bool Rectangle::Contains( const Rectangle& r ) const
+{
+  if( !Proper() || !r.Proper() )
+    return false;
+
+  if( this->min.GetX() <= r.min.GetX() &&
+      this->min.GetY() <= r.min.GetY() &&
+      this->max.GetX() <= r.max.GetX() &&
+      this->max.GetY() <= r.max.GetY() )
+    return true;
+  else
+    return false;
+}
+
+inline int Rectangle::Intersects( const Rectangle& r ) const
+{
+  if( !Proper() || !r.Proper() )
+    return 0;
+
+  if( this->max.GetX() < r.min.GetX() ) return 0;
+  if( r.max.GetX() < this->min.GetX() ) return 0;
+  if( this->max.GetY() < r.min.GetY() ) return 0;
+  if( r.max.GetY() < this->min.GetY() ) return 0;
+
+  if( this->min.GetX() < r.min.GetX() && this->max.GetX() > r.max.GetX() &&
+      r.min.GetY() < this->min.GetY() && r.max.GetY() > this->max.GetY() ) return 2;
+
+  if( r.min.GetX() < this->min.GetX() && r.max.GetX() > this->max.GetX() &&
+      this->min.GetY() < r.min.GetY() && this->max.GetY() > r.max.GetY() ) return 2;
+
+  return 1;
+}
+
+inline Rectangle Rectangle::Union( const Rectangle& b ) const
+{
+  if( !Proper() ) return b;
+  if( !b.Proper() ) return *this;
+ 
+  return Rectangle( Point( true, MIN( this->min.GetX(), b.min.GetX() ), MIN( this->min.GetY(), b.min.GetY() ) ),
+                    Point( true, MAX( this->max.GetX(), b.max.GetX() ), MAX( this->max.GetY(), b.max.GetY() ) ) );
+}
+
+inline Rectangle Rectangle::Intersection( const Rectangle& b ) const
+{
+  if( !Proper() ) return *this;
+  if( !b.Proper() ) return b;
+
+  if( this->Intersects( b ) )
+    return Rectangle( Point( true, MAX( this->min.GetX(), b.min.GetX() ), MAX( this->min.GetY(), b.min.GetY() ) ),
+                      Point( true, MIN( this->max.GetX(), b.max.GetX() ), MIN( this->max.GetY(), b.max.GetY() ) ) );
+  else return Rectangle();
+}
+
+typedef Rectangle BBox;
+
+
 /*
 4 Class Points
 
@@ -324,7 +570,7 @@ The implementation of the points type constructor is a persistent array of point
 ordered by lexicographic order.
 
 */
-class Points: public StandardAttribute
+class Points: public StandardSpatialAttribute
 {
   public:
 /*
@@ -346,7 +592,7 @@ set which is a copy of ~ps~.  If ~recordFile~ is 0 then the point set will be st
 in memory.
 
 */
-    Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true);
+    Points( SmiRecord& rootRecord, SmiRecordFile *recordFile, bool update = true);
 /* 
 The third and the last one receives a ~recordId~ and a flag ~update~ as arguments.
 This constructor is applied not to create a new point set, but to read it from
@@ -355,6 +601,12 @@ array (~PArray~) structure and the flag ~update~ is used to open the array for
 update or read-only.
 
 */
+    void Save( SmiRecord& rootRecord ) const;
+/*
+Saves the point root record. 
+
+*/
+
     void Destroy();
 /*
 This function should be called before the destructor if one wants to destroy the 
@@ -393,6 +645,11 @@ ordered.
 Marks the end of a bulk load and sorts the point set.
 
 4.3 Member functions
+
+*/
+    const Rectangle BoundingBox() const;
+/*
+Returns the bounding box that spatially contains all points.
 
 */
     const bool IsEmpty() const;
@@ -576,6 +833,11 @@ as an attribute.
     GArray<Point>* points;
 /*
 The persisten array of points.
+
+*/
+    BBox bbox;
+/*
+The bounding box that spatially contains all points.
 
 */
     bool ordered;

@@ -9,7 +9,16 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec BTree/*.spec Range/*.spec Spatial/*.spec FText/*.spec Array/*.spec
+specs:  Standard-C++/*.spec \
+        Relation-C++/*.spec \
+        PointRectangle/*.spec \
+        StreamExample/*.spec \
+        BTree/*.spec \
+        Range/*.spec \
+        Spatial/*.spec \
+        FText/*.spec \
+        Array/*.spec \
+        RTree/*.spec
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
@@ -31,6 +40,7 @@ makedirsnormal:
 	$(MAKE) -C Spatial
 	$(MAKE) -C FText
 	$(MAKE) -C Array
+	$(MAKE) -C RTree 
 
 # here include algebras using jni
 .PHONY: makedirsjni
@@ -58,6 +68,7 @@ buildlibsnormal:
 	$(MAKE) -C Spatial        buildlibs
 	$(MAKE) -C FText 	  buildlibs
 	$(MAKE) -C Array 	  buildlibs
+	$(MAKE) -C RTree 	  buildlibs
 
 
 .PHONY:buildlibsjni
@@ -85,6 +96,7 @@ clean:
 	$(MAKE) -C Spatial        clean
 	$(MAKE) -C FText          clean
 	$(MAKE) -C Array	  clean
+	$(MAKE) -C RTree	  clean
 	$(MAKE) -C Fuzzy	  clean
 	$(MAKE) -C JNIExample     clean
 	$(MAKE) -C Rose           clean
