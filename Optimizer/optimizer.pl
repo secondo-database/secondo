@@ -325,8 +325,8 @@ For a join predicate we have to find the two arps containing its
 two relations and to merge them into a single arp; the remaining 
 arps are copied unchanged.
 
-For the moment, several join predicates applying to the same pair of
-relations are not yet allowed/supported.
+Or a join predicate may find its two relations in the same arp which means
+another join on the same two relations has already been preformed.
 
 */
 
@@ -341,9 +341,18 @@ copyPart(pr(P, Rel), PNo, Arps, [Arp2 | Arps2]) :-
   Arp2 = arp(res(ResNo), Rels, [P | Preds]).
 
 copyPart(pr(P, R1, R2), PNo, Arps, [Arp2 | Arps2]) :-
+  select(X, Arps, Arps2),
+  X = arp(Arg, Rels, Preds),
+  member(R1, Rels),
+  member(R2, Rels), !,
+  nodeNo(Arg, No),
+  ResNo is No + PNo,
+  Arp2 = arp(res(ResNo), Rels, [P | Preds]).
+
+copyPart(pr(P, R1, R2), PNo, Arps, [Arp2 | Arps2]) :-
   select(X, Arps, Rest),
   X = arp(ArgX, RelsX, PredsX),
-  member(R1, RelsX), !,
+  member(R1, RelsX),
   select(Y, Rest, Arps2),
   Y = arp(ArgY, RelsY, PredsY),
   member(R2, RelsY), !,
@@ -382,6 +391,13 @@ newEdge(pr(P, Rel), PNo, Node, Edge) :-
   Edge = edge(Source, Target, select(Arg, pr(P, Rel)), Result, Node, PNo).
 
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
+  findRels(R1, R2, Node, Source, Arg),
+  Target is Source + PNo,
+  nodeNo(Arg, ArgNo),
+  Result is ArgNo + PNo,
+  Edge = edge(Source, Target, select(Arg, pr(P, R1, R2)), Result, Node, PNo).
+
+newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   findRels(R1, R2, Node, Source, Arg1, Arg2),
   Target is Source + PNo,
   nodeNo(Arg1, Arg1No),
@@ -413,6 +429,13 @@ findRel(Rel, node(No, _, Arps), No, ArgX) :-
   X = arp(ArgX, RelsX, _),
   member(Rel, RelsX).
 
+
+findRels(Rel1, Rel2, node(No, _, Arps), No, ArgX) :-
+  select(X, Arps, _),
+  X = arp(ArgX, RelsX, _),
+  member(Rel1, RelsX),
+  member(Rel2, RelsX).
+
 findRels(Rel1, Rel2, node(No, _, Arps), No, ArgX, ArgY) :-
   select(X, Arps, Rest),
   X = arp(ArgX, RelsX, _),
@@ -420,6 +443,8 @@ findRels(Rel1, Rel2, node(No, _, Arps), No, ArgX, ArgY) :-
   select(Y, Rest, _),
   Y = arp(ArgY, RelsY, _),
   member(Rel2, RelsY).
+
+
 
 /*
 3.8 copyEdges
@@ -1010,6 +1035,10 @@ arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
 
 select(Arg, pr(Pred, _)) => filter(ArgS, Pred) :-
   Arg => ArgS.
+
+select(Arg, pr(Pred, _, _)) => filter(ArgS, Pred) :-
+  Arg => ArgS.
+
 
 /*
 
