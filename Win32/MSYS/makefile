@@ -1,8 +1,6 @@
 # makefile for archiving msys configuration files
 # and copying them to the Secondo-CDROM directory
 
-include ../../makefile.env
-
 SETVAR_SCRIPT_DIR=../..
 
 .PHONY: all

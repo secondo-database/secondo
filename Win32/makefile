@@ -4,11 +4,11 @@
 #
 ########################################################################
 
-include ../makefile.env
-
 OCIDLLHOME=$(ORACLEHOME)/bin
 BDB_BUILD_DIR=/usr/local/db-4.1.25/build_win32
 
+LIBDIR := /usr/local/lib
+INCDIR := /usr/local/include
 
 # --- Berkeley DB
 MODIFIED_BDB_FILES = \
@@ -61,9 +61,9 @@ utilities:
 
 .PHONY: install
 install:
-	install -m744 $(BDB_BUILD_DIR)/*.h /usr/local/include
-	install -m744 $(BDB_BUILD_DIR)/../dbinc/*.h /usr/local/include
-	install -m755 $(BDBLIB_OBJECTS) /usr/local/lib
+	install -m744 $(BDB_BUILD_DIR)/*.h $(INCDIR)
+	install -m744 $(BDB_BUILD_DIR)/../dbinc/*.h $(INCDIR)
+	install -m755 $(BDBLIB_OBJECTS) $(LIBDIR)
 	install -m755 $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) /usr/local/bin
 
 .PHONY: berkeley_db
@@ -95,9 +95,4 @@ oci.def: $(OCIDLLHOME)/oci.dll impdef.exe
 
 .PHONY: clean
 clean:
-	$(RM) *.o
-	$(RM) *.def
-	$(RM) *.a
-	$(RM) *.dll
-	$(RM) ../
-
+	$(RM) *.o *.def *.a *.dll
