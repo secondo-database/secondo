@@ -95,6 +95,7 @@ class SortByLocalInfo
         {
           tupleType = new TupleType( ((Tuple*)wTuple.addr)->GetTupleType() );
           MAX_TUPLES_IN_MEMORY = MAX_MEMORY_SIZE / ((Tuple*)wTuple.addr)->GetMemorySize();
+          cout << "Sort.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
         }
 
         while(qp->Received(stream.addr))
@@ -452,13 +453,39 @@ private:
     {
       Tuple *t =  (*iter)->CloneIfNecessary();
       rel->AppendTuple( t );
-      t->Delete();
+      if( t != *iter )
+        t->Delete();
       iter++;
     }
   }
 
+  void ReadFrom( RelationIterator *iter, vector<Tuple*>& bucket )
+  {
+    size_t i = 0;
+    Tuple *t;
+
+    while( i < MAX_TUPLES_IN_MEMORY && (t = iter->GetNextTuple()) != 0 )
+    {
+      bucket.push_back( t );
+      i++;
+    }
+  }
+
+  void ClearBucket( vector<Tuple*>& bucket )
+  {
+    vector<Tuple*>::iterator i = bucket.begin();
+    while( i != bucket.end() )
+    {
+      Tuple *t = *i;
+      t->Delete();
+      i++;
+    }
+    bucket.clear(); 
+  }
+
+  size_t MAX_TUPLES_IN_MEMORY;
 public:
-  static const size_t MAX_TUPLES_IN_MEMORY;
+  static const size_t MAX_MEMORY_SIZE;
 
   MergeJoinLocalInfo(Word streamA, Word attrIndexA,
     Word streamB, Word attrIndexB, bool expectSorted,
@@ -497,12 +524,24 @@ public:
     ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
     resultTupleType = new TupleType( nl->Second( resultType ) );
 
-    NextATuple();
-    NextBTuple();
+    Tuple *tupleA = NextATuple(),
+          *tupleB = NextBTuple();
+
+    if( tupleA != 0 && tupleB != 0 )
+    {
+      long sizeTupleA = tupleA->GetMemorySize(),
+           sizeTupleB = tupleB->GetMemorySize(),
+           tupleSize = sizeTupleA > sizeTupleB ? sizeTupleA : sizeTupleB;
+      MAX_TUPLES_IN_MEMORY = MAX_MEMORY_SIZE / ( 2 * tupleSize );
+      cout << "Merge.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
+    }
   }
 
   ~MergeJoinLocalInfo()
   {
+    ClearBucket( bucketA );
+    ClearBucket( bucketB );
+
     if(expectSorted)
     {
       qp->Close(streamA.addr);
@@ -520,116 +559,111 @@ public:
   {
     Tuple *tupleA, *tupleB;
     Tuple *resultTuple = 0;
-    
+
     if( bucketA.size() > 0 )
     // There are equal tuples that fit in memory for the bucket A.
     {
-      assert( bucketB.size() > 0 || relationB != 0 );
-      resultTuple = new Tuple( *resultTupleType, false );
+      assert( bucketB.size() > 0 );
 
-      if( bucketB.size() > 0 )
+      if( indexB == bucketB.size() )
       {
-        if( indexB == bucketB.size() )
-        {
-          indexB = 0;
-          indexA++;
-        }
-        if( indexA == bucketA.size() )
-        {
-          bucketA.clear(); indexA = 0;
-          bucketB.clear(); indexB = 0;
-  
-          resultTuple = NextResultTuple();
-        }
-        else
-        {
-          resultTuple = new Tuple( *resultTupleType, false );
-          Concat( bucketA[indexA], bucketB[indexB], resultTuple );
-        }
+        indexB = 0;
+        indexA++;
       }
-      else // ( relationB != 0 )
+
+      if( indexA == bucketA.size() )
       {
-        if( (tupleB = iterRelationB->GetNextTuple()) == 0 )
+        if( relationB != 0 )
         {
-          delete iterRelationB;
-          iterRelationB = relationB->MakeScan();
-          tupleB = iterRelationB->GetNextTuple();
-          indexA++;
+          ClearBucket( bucketB ); indexB = 0;
+          ReadFrom( iterRelationB, bucketB );
+
+          if( bucketB.empty() )
+          {
+            ClearBucket( bucketA ); indexA = 0;
+
+            if( relationA != 0 )
+            {
+              ReadFrom( iterRelationA, bucketA );
+              if( bucketA.empty() )
+              {
+                delete iterRelationA;
+                relationA->Delete(); relationA = 0;
+                delete iterRelationB;
+                relationB->Delete(); relationB = 0;
+              }
+              else
+              {
+                indexA = 0;
+                delete iterRelationB;
+                iterRelationB = relationB->MakeScan();
+                ReadFrom( iterRelationB, bucketB );
+                indexB = 0; 
+              }
+              resultTuple = NextResultTuple();
+            }
+            else
+            {
+              delete iterRelationB;
+              relationB->Delete(); relationB = 0;
+              resultTuple = NextResultTuple();
+            }
+          }
+          else
+          {
+            indexA = 0; indexB = 0;
+            resultTuple = NextResultTuple();  
+          }
         }
-        if( indexA == bucketA.size() )
+        else if( relationA != 0 )
         {
-          bucketA.clear(); indexA = 0;
-          delete iterRelationB;
-          relationB->Delete(); relationB = 0;
+          ClearBucket( bucketA ); indexA = 0;
+          ReadFrom( iterRelationA, bucketA );
+          if( bucketA.empty() )
+          {
+            ClearBucket( bucketB ); indexB = 0;
+            delete iterRelationA;
+            relationA->Delete(); relationA = 0;
+          }
+          else
+          {
+            indexA = 0;
+            indexB = 0;
+          }
           resultTuple = NextResultTuple();
         }
         else
         {
-          resultTuple = new Tuple( *resultTupleType, false );
-          Concat( bucketA[indexA], tupleB, resultTuple );
-        }
-      }
-    }
-    else if( relationA != 0 )
-    // There are equal tuples that did not fit in memory for bucket A.
-    {
-      assert( bucketB.size() > 0 || relationB != 0 );
-
-      if( relationB != 0 )
-      {
-        if( (tupleB = iterRelationB->GetNextTuple()) == 0 )
-        {
-          delete iterRelationB;
-          iterRelationB = relationB->MakeScan();
-          tupleB = iterRelationB->GetNextTuple();
-          tupleA = iterRelationA->GetNextTuple();
-        }
-        if( tupleA == 0 )
-        {
-          delete iterRelationA;
-          relationA->Delete(); relationA = 0;
-          delete iterRelationB;
-          relationB->Delete(); relationB = 0;
+          ClearBucket( bucketA ); indexA = 0;
+          ClearBucket( bucketB ); indexB = 0;
 
           resultTuple = NextResultTuple();
-        }
-        else
-        {
-          resultTuple = new Tuple( *resultTupleType, false );
-          Concat( tupleA, tupleB, resultTuple );
         }
       }
       else
       {
-        if( indexB == bucketB.size() )
-        {
-          indexB = 0;
-          tupleA = iterRelationA->GetNextTuple();
-        }
-        if( tupleA == 0 )
-        {
-          delete iterRelationA;
-          relationA->Delete(); relationA = 0;
-          bucketB.clear(); indexB = 0;
-
-          resultTuple = NextResultTuple();
-        }
-        else
-        {
-          resultTuple = new Tuple( *resultTupleType, false );
-          Concat( tupleA, bucketB[indexB], resultTuple );
-        }
+        resultTuple = new Tuple( *resultTupleType, false );
+        Concat( bucketA[indexA], bucketB[indexB++], resultTuple );
       }
     }
     else
     // There are no stored equal tuples.
     {
-      if( aResult.addr == 0 || bResult.addr == 0 )
-      // One of the streams finished.
-        return 0;
+      assert( relationA == 0 && relationB == 0 );
+      assert( bucketA.empty() && bucketB.empty() );
 
       tupleA = (Tuple *)aResult.addr;
       tupleB = (Tuple *)bResult.addr;
+
+      if( tupleA == 0 || tupleB == 0 )
+      // One of the streams finished.
+      {
+        if( tupleA != 0 )  
+          tupleA->DeleteIfAllowed();
+        if( tupleB != 0 )
+          tupleB->DeleteIfAllowed();
+        return 0;
+      }
 
       int cmp = CompareTuples( tupleA, tupleB );
 
@@ -637,65 +671,82 @@ public:
       // The tuples are equal. We must store them in a buffer if it fits or in 
       // the disk otherwise
       {
-        Tuple *equalTuple = tupleA;
+        Tuple *equalTupleB = tupleB->Clone(),
+              *equalTupleA = tupleA->Clone();
+       
         bucketA.push_back( tupleA );
         bucketB.push_back( tupleB );
  
         tupleA = NextATuple();
-        while( tupleA != 0 && CompareTuples( equalTuple, tupleA ) == 0 )
+        while( tupleA != 0 && CompareTuples( tupleA, equalTupleB ) == 0 )
         {
           if( bucketA.size() == MAX_TUPLES_IN_MEMORY )
           {
             relationA = new Relation( tupleA->GetTupleType(), true );
             SaveTo( bucketA, relationA );
-            bucketA.clear();
+            ClearBucket( bucketA ); 
           }
           if( bucketA.size() > 0 )
             bucketA.push_back( tupleA );
           else
-            relationA->AppendTuple( tupleA );
+          {
+            Tuple *t = tupleA->CloneIfNecessary();
+            relationA->AppendTuple( t );
+            if( t != tupleA )
+              t->Delete();
+            tupleA->DeleteIfAllowed();
+          }
           tupleA = NextATuple();
         } 
+        equalTupleB->Delete();
+        indexA = 0;
 
-        if( bucketA.size() > 0 )
-          indexA = 0;
-        else
+        if( bucketA.size() == 0 )
         {
           assert( relationA != 0 );
           iterRelationA = relationA->MakeScan();
+          ReadFrom( iterRelationA, bucketA );
         }
 
         tupleB = NextBTuple();
-        while( tupleB != 0 && CompareTuples( equalTuple, tupleB ) == 0 )
+        while( tupleB != 0 && CompareTuples( equalTupleA, tupleB ) == 0 )
         {
           if( bucketB.size() == MAX_TUPLES_IN_MEMORY )
           {
             relationB = new Relation( tupleB->GetTupleType(), true );
             SaveTo( bucketB, relationB );
-            bucketB.clear();
+            ClearBucket( bucketB );
           }
           if( bucketB.size() > 0 )
             bucketB.push_back( tupleB );
           else
-            relationB->AppendTuple( tupleB );
+          {
+            Tuple *t = tupleB->CloneIfNecessary();
+            relationB->AppendTuple( t );
+            if( t != tupleB )
+              t->Delete();
+            tupleB->DeleteIfAllowed();
+          }
           tupleB = NextBTuple();
         } 
+        equalTupleA->Delete();
+        indexB = 0;
 
-        if( bucketB.size() > 0 )
-          indexB = 0;
-        else
+        if( bucketB.size() == 0 )
         {
           assert( relationB != 0 );
           iterRelationB = relationB->MakeScan();
+          ReadFrom( iterRelationB, bucketB );
         }
 
         if( bucketA.size() == 1 && bucketB.size() == 1 )
         // Only one equal tuple.
         {
+          assert( relationA == 0 && relationB == 0 );
           resultTuple = new Tuple( *resultTupleType, false );
           Concat( bucketA[0], bucketB[0], resultTuple );
-          bucketA.clear(); 
-          bucketB.clear(); 
+          ClearBucket( bucketA ); 
+          ClearBucket( bucketB ); 
         } 
         else
         {
@@ -704,18 +755,24 @@ public:
       }
       else if( cmp > 0 )
       {
+        tupleB->DeleteIfAllowed();
         tupleB = NextBTuple();
-        while( CompareTuples( tupleA, tupleB ) > 0 )
+        while( tupleB != 0 && CompareTuples( tupleA, tupleB ) > 0 )
+        {
+          tupleB->DeleteIfAllowed();
           tupleB = NextBTuple();
-
+        }
         resultTuple = NextResultTuple();
       }
       else if( cmp < 0 )
       {
+        tupleA->DeleteIfAllowed();
         tupleA = NextATuple();
-        while( CompareTuples( tupleA, tupleB ) < 0 )
+        while( tupleA != 0 && CompareTuples( tupleA, tupleB ) < 0 )
+        {
+          tupleA->DeleteIfAllowed();
           tupleA = NextATuple();
-
+        }
         resultTuple = NextResultTuple();
       }
     }
@@ -723,7 +780,7 @@ public:
   }
 };
 
-const size_t MergeJoinLocalInfo::MAX_TUPLES_IN_MEMORY = 2;
+const size_t MergeJoinLocalInfo::MAX_MEMORY_SIZE = 2097152;
 
 /*
 2.2.2 Value mapping function of operator ~mergejoin~

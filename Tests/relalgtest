@@ -16,6 +16,9 @@ e
 (create two : (rel(tuple((no int)))));
 (update two := ((rel(tuple((no int))))((1)(2))));
 
+(create three : (rel(tuple((no int)))));
+(update three := ((rel(tuple((no int))))((1)(1)(1))));
+
 (create ten : (rel(tuple((no int)))));
 (update ten := ((rel(tuple((no int))))((1)(2)(3)(4)(5)(6)(7)(8)(9)(10))));
 
