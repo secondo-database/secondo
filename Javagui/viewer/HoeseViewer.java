@@ -159,12 +159,21 @@ public class HoeseViewer extends SecondoViewer {
     Cats = new Vector(30, 10);
     context = new ContextPanel(this);
     Cats.add(Category.getDefaultCat());
-    //Load Standard Categories
-    String Catfile = configuration.getProperty("StandardCat");
-    if (Catfile != null) {
-      ListExpr le = new ListExpr();
-      le.readFromFile(Catfile);
-      readAllCats(le);
+
+    //Load S Categories
+    String Catfiles = configuration.getProperty("StandardCats");
+    if (Catfiles != null) {
+      StringTokenizer ST = new StringTokenizer(Catfiles," \n\t");
+      while(ST.hasMoreTokens()){
+        String FileName = ST.nextToken().trim();
+        ListExpr le = new ListExpr();
+        if(le.readFromFile(Catfiles)!=0){
+          MessageBox.showMessage("i can't load the file "+FileName);
+        } else{
+         if(!readAllCats(le))
+            MessageBox.showMessage("no categories in file "+FileName);
+        }  
+      }   
     }
     initComponents();
 
@@ -299,20 +308,21 @@ public class HoeseViewer extends SecondoViewer {
    * Reads all categories out of the Listexpr le
    * @param le a ListExpr containing Categories
    */
-  public void readAllCats (ListExpr le) {
+  public boolean readAllCats (ListExpr le) {
     if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
-      return;
+      return false;
     if (!le.first().symbolValue().equals("Categories"))
-      return;
+      return false;
     le = le.second();
     ListExpr aCat;
     while (!le.isEmpty()) {
       aCat = le.first();
       Category cat = Category.ConvertLEtoCat(aCat);
-      if (cat != null)
-        Cats.add(cat);
+      if (cat != null && Cats.indexOf(cat)<0 )  // only new categories
+          Cats.add(cat);
       le = le.rest();
     }
+    return true;
   }
 
 
@@ -1475,6 +1485,7 @@ public boolean canDisplay(SecondoObject o){
         qr = (QueryResult)cb.getSelectedItem();
         //qr.clearSelection();
         qr.setSelectedValue(Obj2sel, true);
+        TextDisplay.ensureSelectedIndexIsVisible();    
       }
     }
   }
@@ -1621,6 +1632,7 @@ public boolean canDisplay(SecondoObject o){
   }
     }
 }
+
 
 
 
