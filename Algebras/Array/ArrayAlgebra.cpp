@@ -1630,6 +1630,121 @@ Operator tie (
 );
 
 /*
+3.13 Operator ~cumulate~
+
+The operator cumulates the values of the array under a given function. The 
+i-th element of the resulting array is the concatination from the first to 
+the i-th element of the input array under a given function evaluated from
+left to right (compare operator ~tie~), e.g.
+
+cumulate ( (a1, a2, ... , an), + ) = (a1, a1 + a2, ... , a1 + a2 + ... + an)
+
+The formal specification of type mapping is:
+
+---- ((array t) (map t t t)) -> (array t)
+----
+
+*/
+static ListExpr
+cumulateTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) 
+  {
+    ListExpr arrayDesc = nl->First(args);
+    ListExpr elementDesc = nl->Second(arrayDesc);
+    ListExpr mapDesc = nl->Second(args); 
+
+    if (nl->IsEqual(nl->First(arrayDesc), "array") 
+        && nl->IsEqual(nl->First(mapDesc), "map")
+        && (nl->ListLength(mapDesc) == 4))
+    {
+      if (nl->Equal(elementDesc, nl->Second(mapDesc))
+          && nl->Equal(elementDesc, nl->Third(mapDesc))
+          && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
+      {
+        return arrayDesc;
+      }
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+cumulateFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Array* array = ((Array*)args[0].addr);
+
+  ArgVectorPointer funargs = qp->Argument(args[1].addr);
+  Word funresult;
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = array->getSize();
+  Word a[n];
+  Word cumResult;
+
+  ListExpr elemLE, cumResultLE;
+
+  int errorPos;
+  ListExpr errorInfo;
+  bool correct;
+
+  cumResult = array->getElement(0);
+
+  for (int i=0; i<n; i++) {
+    if (i>=1) {
+      (*funargs)[0] = cumResult;
+      (*funargs)[1] = array->getElement(i);
+
+      qp->Request(args[1].addr, funresult);
+
+      cumResultLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
+
+      (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(cumResult);
+      cumResult = (am->InObj(algebraId, typeId))
+                          (typeOfElement, cumResultLE, errorPos, errorInfo, correct);
+    }
+
+    elemLE = (am->OutObj(algebraId, typeId))
+                     (typeOfElement, cumResult);
+    a[i] = (am->InObj(algebraId, typeId))
+                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+
+  return 0;
+}
+
+const string cumulateSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) (map t t t)) -> (array t)</text--->"
+       "<text>_ cumulate [ fun ]</text--->"
+       "<text>Cumulates the values of an array under a given function.</text--->"
+       "<text>query ai cumulate[fun(i:int,l:int)(i+l)]</text---> ))";
+
+Operator cumulate (
+	"cumulate",
+	cumulateSpec,
+	cumulateFun,
+	Operator::DummyModel,
+	simpleSelect,
+	cumulateTypeMap
+);
+
+/*
 4 Creating the Algebra
 
 */
@@ -1659,6 +1774,7 @@ class ArrayAlgebra : public Algebra
     AddOperator( &sortarray );
 
     AddOperator( &tie );
+    AddOperator( &cumulate );
   }
   ~ArrayAlgebra() {};
 };

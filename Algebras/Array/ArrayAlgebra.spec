@@ -6,4 +6,5 @@ operator sortarray alias SORTARRAY pattern _ op [ fun ] implicit parameter eleme
 operator get alias GET pattern _ op [ _ ]
 operator put alias PUT pattern _ _ op [ _ ]
 operator tie alias TIE pattern _ op [ fun ] implicit parameters first, second types ELEMENT, ELEMENT
+operator cumulate alias CUMULATE pattern _ op [ fun ] implicit parameters first, second types ELEMENT, ELEMENT
 
