@@ -7,7 +7,7 @@ include ../../makejava.inc
 all: Java_ListExpr langClasses
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
-             ESInterface.class
+             ESInterface.class ListExpr.class
 
 Java_ListExpr:
 	(cd JavaListExpr; make all)
