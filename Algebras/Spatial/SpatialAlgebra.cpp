@@ -4219,7 +4219,7 @@ const SmiRecordId CRegion::GetRegionRecordId() const
 bool CRegion::contain( const Point& p ) const
 {
     //here: if the point is on the border, it is also counted.
-
+    
     if (!bbox.Contains(p)) return false;
     
     int faceISN[100];
@@ -4273,7 +4273,9 @@ bool CRegion::contain( const Point& p ) const
     
     //1. find the right place by binary search
     startpos = Position( p );  
+    
     //int chsVisited2 = int(((log (this->Size())) / (log (2))) + 0.5);
+    
     int chsVisiteds=0;
     
     if ( startpos == -1 ) 	//p is smallest
@@ -4349,6 +4351,160 @@ bool CRegion::contain( const Point& p ) const
 	i--;  //the iterator
     }
     //cout<<"number of chs actually checked: "<<chsVisited2<<" + "<<chsVisiteds<<endl;
+    // ================= End of the new method =================
+    
+    for (int j=0; j<=lastfaceno; j++)
+    {
+	if (faceISN[j] %2 !=0 )
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
+bool CRegion::contain( const Point& p, int &pathlength, int & scanned ) const
+{
+    //here: if the point is on the border, it is also counted.
+    
+    pathlength=0;
+    scanned=0;
+    
+    if (!bbox.Contains(p)) return false;
+    
+    int faceISN[100];
+
+    int lastfaceno=-1;
+    for (int i=0; i<100; i++)
+    {
+	faceISN[i]=0;
+    }
+
+    CHalfSegment chs;
+
+    //cout<<"============================================"<<endl;
+    //cout<<"number of chs in the region: "<<this->Size()<<endl;
+    
+    //cout<<"!!!the region value is!!!: "<<endl;
+    //for (int i=0; i<this->Size(); i++)
+    //{
+    //	this->Get(i, chs); 
+    //	cout<<chs<<endl;
+    //}
+    //cout<<"!!!the point value is!!!: "<<endl;
+    //cout<<p<<endl;
+    
+    /*  ======================================================
+    //This part will be replaced by the new method from Ralf.
+    for (int i=0; i<this->Size(); i++)
+    {
+	this->Get(i, chs);
+	double y0;
+
+	if  ((chs.GetLDP()) &&(chs.Contains(p)))
+	    return true;
+	
+	if ((chs.GetLDP())&&( (chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
+	    cout<<"eligable: "<<chs<<endl;
+	
+	if ((chs.GetLDP()) &&(chs.rayAbove(p, y0)))
+	{
+	    faceISN[chs.attr.faceno]++;
+	    if (lastfaceno < chs.attr.faceno)
+		lastfaceno=chs.attr.faceno;
+	}
+    }
+    //======================================================*/
+    //*********Here: New Method by Ralf.*********
+    
+    int coverno=0;
+    int startpos=0;
+    double y0;
+    
+    //1. find the right place by binary search
+    startpos = Position( p );  
+    
+    int chsVisited2 = int(((log (this->Size())) / (log (2))) + 0.5);
+    
+    int chsVisiteds=0;
+    
+    if ( startpos == -1 ) 	//p is smallest
+	return false;
+    else if ( startpos == -2 ) 	//p is largest
+	return false;
+    else if ( startpos == -3 ) 	//p is a vertex
+	return true;
+	
+    //2. deal with equal-x chs's 
+    bool continuemv=true;
+    int i=startpos;
+    
+    while ((continuemv) && (i>=0))
+    {
+	region->Get( i, chs );
+	chsVisiteds++;
+	
+	if (chs.GetDPoint().GetX() == p.GetX())
+	{
+	    if  (chs.Contains(p))  return true;
+	    
+	    if (chs.GetLDP())  
+	    {
+		//cout<<"ELIGABLE**: "<<chs<<endl;
+		if (chs.rayAbove(p, y0))
+		{
+		    faceISN[chs.attr.faceno]++;
+		    if (lastfaceno < chs.attr.faceno)
+			lastfaceno=chs.attr.faceno;
+		}
+	    }
+
+	i--;
+	}
+	else continuemv=false;
+    }       //now i is pointing to the last chs whose DP.X != p.x
+	
+	
+    //3. get the coverage value
+    region->Get( i, chs );
+    coverno=chs.attr.coverageno; 
+    
+    //cout<<"real starting position at: "<<chs<<endl;
+    //cout<<"real-startpos: "<< i <<"  coverno: "<<coverno<<endl;
+    
+    //4. search the region value for coverageno steps
+    int touchedNo=0;
+    
+    while (( i>=0)&&(touchedNo<coverno))
+    {
+	this->Get(i, chs);
+	chsVisiteds++;
+		
+	if  (chs.Contains(p))  return true;
+	
+	if ((chs.GetLDP())&&((chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
+	{
+	      //cout<<"ELIGABLE: "<<chs<<endl;
+	      touchedNo++;
+	}
+	    
+	if (chs.GetLDP())  
+	{
+	    if (chs.rayAbove(p, y0))
+	    {
+		faceISN[chs.attr.faceno]++;
+		if (lastfaceno < chs.attr.faceno)
+		    lastfaceno=chs.attr.faceno;
+	    }
+	}
+	
+	i--;  //the iterator
+    }
+    //cout<<"number of chs actually checked: "<<chsVisited2<<" + "<<chsVisiteds<<endl;
+    
+    pathlength=chsVisited2;
+    scanned=chsVisiteds; 
+    
     // ================= End of the new method =================
     
     for (int j=0; j<=lastfaceno; j++)
@@ -6897,6 +7053,28 @@ bboxMap( ListExpr args )
     return (nl->SymbolAtom( "typeerror" ));    
 }
 
+/*
+10.1.12 Type mapping function for operator ~insidepathlength~ and ~insidescanned~
+
+This type mapping function is used for the ~insidepathlength~ and  ~insidescanned~ operators. 
+
+*/
+static ListExpr
+insidepsMap( ListExpr args )
+{  
+    ListExpr arg1, arg2;
+    if ( nl->ListLength( args ) == 2 )
+    {
+	arg1 = nl->First( args );
+	arg2 = nl->Second( args );
+
+	if ( TypeOfSymbol( arg1 ) == stpoint &&
+	     TypeOfSymbol( arg2 ) == stregion )
+	    return (nl->SymbolAtom( "int" ));
+    }
+    
+    return (nl->SymbolAtom( "typeerror" ));
+}
 
 /*
 10.2 The dummy model mapping:
@@ -8237,6 +8415,60 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
 	return (0);
     }
  }
+
+static int
+SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //point + region --> int
+    int pathlength=0;
+    int scanned=0;
+    
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+
+    //((CcInt *)result.addr)->Set( true, ps->Size());
+    
+    if(! cr->BoundingBox().Contains( *p) )  
+    {
+	((CcInt *)result.addr)->Set( true, 0);
+	//no chs checked because it is done by checking BBOX
+	return (0);
+    }
+    
+    cr->contain(*p, pathlength, scanned);
+    
+    ((CcInt *)result.addr)->Set( true, pathlength);
+    return (0);
+}
+
+static int
+SpatialInside_scanned_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //point + region --> int
+    int pathlength=0;
+    int scanned=0;
+    
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+
+    //((CcInt *)result.addr)->Set( true, ps->Size());
+    
+    if(! cr->BoundingBox().Contains( *p) )  
+    {
+	((CcInt *)result.addr)->Set( true, 0);
+	//no chs checked because it is done by checking BBOX
+	return (0);
+    }
+    
+    cr->contain(*p, pathlength, scanned);
+    
+    ((CcInt *)result.addr)->Set( true, scanned);
+    return (0);
+}
 
 static int
 SpatialInside_psps( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -11492,6 +11724,12 @@ ValueMapping nohalfsegmap[] =      {     nohalfseg_r
 ValueMapping bboxmap[] =      {     bbox_r
 				};
 
+ValueMapping insidepathlengthmap[] =      {     SpatialInside_pathlength_pr
+				};
+
+ValueMapping insidescannedmap[] =      {     SpatialInside_scanned_pr
+				};
+
 ValueMapping sizemap[] = 	      { size_l
 				      };
 
@@ -11719,6 +11957,22 @@ const string SpatialSpecBbox  =
 	"<text>query bbox(region)</text--->"
 	") )";
 
+const string SpatialSpecInsidepathlength  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(point x region) -> int</text--->"
+	"<text> point insidepathlength region</text--->"
+	"<text>return the pathlength in inside_pr.</text--->"
+	"<text>query point insidepathlength region</text--->"
+	") )";
+
+const string SpatialSpecinsidescanned  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(point x region) -> int</text--->"
+	"<text> point insidescanned region</text--->"
+	"<text>return the scanned in inside_pr.</text--->"
+	"<text>query point insidescanned region</text--->"
+	") )";
+
 const string SpatialSpecSize  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(line) -> real</text--->"
@@ -11838,6 +12092,14 @@ Operator spatialnohalfseg
 	( "nohalfseg", SpatialSpecNohalfseg, 1, nohalfsegmap, spatialnomodelmap,
 	  nohalfsegSelect,  nocomponentsMap);
 
+Operator spatialinsidepathlength
+	( "insidepathlength", SpatialSpecInsidepathlength, 1, insidepathlengthmap, spatialnomodelmap,
+	  SimpleSelect,  insidepsMap);
+
+Operator spatialinsidescanned
+	( "insidescanned", SpatialSpecinsidescanned, 1, insidescannedmap, spatialnomodelmap,
+	  SimpleSelect,  insidepsMap);
+
 Operator spatialbbox
 	( "bbox", SpatialSpecBbox, 1, bboxmap, spatialnomodelmap,
 	  SimpleSelect,  bboxMap);
@@ -11902,6 +12164,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialnohalfseg );
     AddOperator( &spatialsize );
     AddOperator( &spatialbbox);
+    AddOperator( &spatialinsidepathlength );
+    AddOperator( &spatialinsidescanned );
   }
   ~SpatialAlgebra() {};
 };
