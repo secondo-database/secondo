@@ -2175,6 +2175,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 */
 
 :- op(990, fx, sql).
+:- op(985, xfx, >>).
 :- op(950, fx, select).
 :- op(960, xfx, from).
 :- op(950, xfx, where).
@@ -2618,6 +2619,31 @@ queryToPlan(Query, consume(project(Stream, AttrNames)), Cost) :-
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNames).
 
+
+
+/*
+
+----	queryToStream(Query, Plan, Cost) :-
+----
+
+Same as ~queryToPlan~, but returns a stream plan, if possible. To be used for 
+``mixed queries'' that add Secondo operators to the plan built by the optimizer.
+
+*/
+
+queryToStream(Query,  Stream, Cost) :-
+  translate(Query, Stream, select *, Cost), !.
+
+queryToStream(Query, count(Stream), Cost) :-
+  translate(Query, Stream, select count(*), Cost), !.
+
+queryToStream(Query,  project(Stream, AttrNames), Cost) :-
+  translate(Query, Stream, select Attrs, Cost), !,
+  makeList(Attrs, Attrs2),
+  attrnames(Attrs2, AttrNames).
+
+
+
 /*
 
 ----	attrnames(Attrs, AttrNames) :-
@@ -2917,13 +2943,22 @@ example21(Query, Cost) :- optimize(
 12 Optimizing and Calling Secondo
 
 ----	sql Term
+	sql(Term, SecondoQueryRest)
+	let(X, Term)
+	let(X, Term, SecondoQueryRest)
 ----	
 
-~Term~ must be select * from Rels where Preds. It is optimized and Secondo is
-called to execute it.
+~Term~ must be one of the available select-from-where statements.
+It is optimized and Secondo is called to execute it. ~SecondoQueryRest~
+is a character string (atom) containing a sequence of Secondo 
+operators that can be appended to a given
+plan found by the optimizer; in this case the optimizer returns a
+plan producing a stream.
+
+The two versions of ~let~ allow one to assign the result of a query
+to a new object ~X~, using the optimizer.
 
 */
-
 
 sql Term :-
   optimize(Term, Query, Cost),
@@ -2931,6 +2966,39 @@ sql Term :-
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
 
+sql(Term, SecondoQueryRest) :-
+  callLookup(Term, Term2),
+  queryToStream(Term2, Plan, Cost),
+  plan_to_atom(Plan, SecondoQuery),
+  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  query(Query).
+
+let(X, Term) :-
+  optimize(Term, Query, Cost),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  concat_atom(['let ', X, ' = ', Query], '', Command),
+  secondo(Command).
+
+let(X, Term, SecondoQueryRest) :-
+  callLookup(Term, Term2),
+  queryToStream(Term2, Plan, Cost),
+  plan_to_atom(Plan, SecondoQuery),
+  concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  concat_atom(['let ', X, ' = ', Query], '', Command),
+  secondo(Command).
+
+
+
+
+/*
+Some auxiliary stuff.
+
+*/
 
 bestPlanCount :-
   bestPlan(P, _),
