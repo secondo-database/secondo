@@ -59,7 +59,7 @@ public class DsplGeneric
     else 
       ts = type.first().writeListExprToString();
     qr.addEntry(new String("Unknown Type: " + ts));
-    HoeseViewer.writeCommand("\nListExpr for unknown type " + ts + value.writeListExprToString());
+   // HoeseViewer.("ListExpr for unknown type " + ts + value.writeListExprToString());
     return;
   }
   /**
