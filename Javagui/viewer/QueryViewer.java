@@ -26,6 +26,20 @@ public QueryViewer(){
   createShowMenu();
   MenuExtension.addMenu(SubViewersMenu);
   MenuExtension.addMenu(ShowMenu);
+  RelSplitter.addMouseListener(new MouseAdapter(){
+     public void mouseClicked(MouseEvent evt){
+        if(evt.getClickCount()>1){
+           SecondoObject SO = QueryViewer.this.RelSplitter.getSelectedObject();
+           if(SO==null)
+             QueryViewer.this.showMessage("no Object selected");
+           else{
+             QueryViewer.this.getCurrentViewer().addObject(SO);
+           }
+
+	}
+     }
+
+  });
 }
 
 

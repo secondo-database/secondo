@@ -38,7 +38,7 @@ public boolean readFromSecondoObject(SecondoObject SO){
    WholeRelation = SO;
    TupleType = SO.toListExpr().first().second();
    initialized = true;
-   return true; 
+   return true;
 }
 
 
@@ -63,8 +63,8 @@ public int find(String S,boolean CaseSensitiv,int OffSet){
                found=true;
                pos=i;
            }
-        
-     }    
+
+     }
   }
   return pos;
 }
@@ -72,11 +72,11 @@ public int find(String S,boolean CaseSensitiv,int OffSet){
 
 /** read the Value of this Relation */
 private boolean readValue(Head H,ListExpr ValueList){
-  ListExpr NextTuple; 
+  ListExpr NextTuple;
   ListExpr Rest = ValueList;
   SecondoObjects.clear();
   TupleIDs.clear();
-  WholeRelation = null; 
+  WholeRelation = null;
   TupleType = ListExpr.theEmptyList();
   boolean ok = true;
   while(Rest.listLength()>0 && ok){
@@ -105,7 +105,7 @@ private boolean readValue(Head H,ListExpr ValueList){
     TupleIDs.clear();
     TupleType = ListExpr.theEmptyList();
   }
-  return ok; 
+  return ok;
 }
 
 
@@ -118,8 +118,12 @@ private String computeObjectName(String name,String type,ListExpr value){
   Name += name+" ";
 
   String ValueString;
-  if (!value.isAtom())
+  if(!value.isAtom() && value.listLength()==1 && value.first().atomType()==ListExpr.TEXT_ATOM)
+     value = value.first();
+
+  if (!value.isAtom()){
        ValueString = type;
+  }
   else{
       int atomType = value.atomType();
       switch (atomType){
@@ -128,11 +132,15 @@ private String computeObjectName(String name,String type,ListExpr value){
         case ListExpr.INT_ATOM : ValueString = ""+value.intValue(); break;
         case ListExpr.SYMBOL_ATOM : ValueString = value.symbolValue(); break;
         case ListExpr.BOOL_ATOM : ValueString = ""+value.boolValue(); break;
-        case ListExpr.TEXT_ATOM : ValueString = "TEXT";break;
+        case ListExpr.TEXT_ATOM :  if(value.textLength()>48)
+	                               ValueString = "TEXT "+value.textLength()+" chars";
+				    else
+				       ValueString = value.textValue();
+	                            break;
         case ListExpr.NO_ATOM : ValueString= type; break;
         default : ValueString = "unknow type";
       }
-  } 
+  }
   return Name+": "+ValueString;
 }
 
@@ -144,8 +152,8 @@ public static boolean isRelation(SecondoObject SO){
 }
 
 
-/** return the SecondoObject on given position 
-  * both numbers are started with 0 
+/** return the SecondoObject on given position
+  * both numbers are started with 0
   */
 public SecondoObject getSecondoObject(int TupleNumber,int ObjectNumber){
   if (!initialized)
@@ -165,7 +173,7 @@ private SecondoObject[] getTupleAt(int index){
    int startTuple = index*head.getSize();
    if(startTuple<0 || startTuple+head.getSize()>SecondoObjects.size())
       return null;
-   
+
    SecondoObject[] Tuple = new SecondoObject[head.getSize()];
    for(int i=0;i<head.getSize();i++)
       Tuple[i]  = (SecondoObject) SecondoObjects.get(i+startTuple);
@@ -180,7 +188,7 @@ public SecondoObject getTupleNo(int index){
   if (Content==null)
     return null;
   // compute the value_list
-  ListExpr Value,Last=null; 
+  ListExpr Value,Last=null;
   if(Content.length==0)
       Value = ListExpr.theEmptyList();
   else{

@@ -59,11 +59,11 @@ public boolean selectObject(SecondoObject O){
    if(index >=0){
       AllRelations.setSelectedIndex(index);
       return true;
-   } 
+   }
    IntByReference RI = new IntByReference();
    IntByReference LI = new IntByReference();
    if(searchID(O.getID(),RI,LI)){
-      AllRelations.setSelectedIndex(RI.value);  
+      AllRelations.setSelectedIndex(RI.value);
       CurrentRelation.setSelectedIndex(LI.value);
       return true;
    }
@@ -108,7 +108,7 @@ private SecondoObject makeRelation(SecondoObject SO){
                                          ListExpr.oneElemList(TupleEntry));
   ListExpr RelType = ListExpr.twoElemList( ListExpr.symbolAtom("rel"),
                                            (Tuple));
-  ListExpr Rel = ListExpr.twoElemList( RelType,ListExpr.oneElemList(ListExpr.oneElemList(Value)));  
+  ListExpr Rel = ListExpr.twoElemList( RelType,ListExpr.oneElemList(ListExpr.oneElemList(Value)));
   SecondoObject R = new SecondoObject(SO.getID());
   R.fromList(Rel);
   R.setName(SO.getName());
@@ -153,7 +153,11 @@ public SecondoObject getSelectedTuple(){
 
 /** returns all objects in this relation */
 public SecondoObject[] getAllObjects(){
-  return ((RelationListModel) CurrentRelation.getModel()).getAllObjects();
+
+  if(CurrentRelation.getModel() instanceof RelationListModel)
+      return ((RelationListModel) CurrentRelation.getModel()).getAllObjects();
+  else
+      return new SecondoObject[0];
 }
 
 
@@ -306,6 +310,10 @@ public boolean addRelation(SecondoObject SO){
 
 private void showMessage(String S){
    OptionPane.showMessageDialog(this,S);
+}
+
+public void addMouseListener(MouseListener ml){
+   CurrentRelation.addMouseListener(ml);
 }
 
 private JComboBox AllRelations;
