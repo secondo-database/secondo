@@ -7,7 +7,7 @@ import  java.awt.event.*;
 import  javax.swing.*;
 import  java.awt.geom.*;
 import  java.util.*;
-import viewer.HoeseViewer;
+import  viewer.HoeseViewer;
 
 
 /**
@@ -254,8 +254,7 @@ public class GraphWindow extends JLayeredPane
   }
 
 /** A Scalable JLabel for the background image 
- * @see <a href="Categorysrc.html#ScaledLabel">Source</a> 
-   */
+  */
   class ScaledLabel extends JLabel {
     public ScaledLabel (Icon image, int h) {
       super(image, h);

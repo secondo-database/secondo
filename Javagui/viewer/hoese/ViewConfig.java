@@ -281,7 +281,6 @@ public class ViewConfig extends javax.swing.JDialog {
 
   /**
    * In single-tuple mode some fields need to be refreshed, when stepping through tuples
-   * @see <a href="ViewConfigsrc.html#updateFields">Source</a>
    */
   private void updateFields () {
     TupNrLabel.setText("Tuple " + AktTupNr + "/" + TupelCount);
@@ -300,6 +299,8 @@ public class ViewConfig extends javax.swing.JDialog {
     LabYOffText.setText(Double.toString(AktGO.getLabPosOffset().getY()));
     LabelText.setText(AktGO.getLabelText());
   }
+
+
 
   /**
    * When 'OK' is pushed this method checks
@@ -524,7 +525,6 @@ public class ViewConfig extends javax.swing.JDialog {
    * Makes a double-value out of a special atom-type
    * @param le
    * @return double value
-   * @see <a href="ViewConfigsrc.html#convertLEtoDouble">Source</a>
    */
   private double convertLEtoDouble (ListExpr le) {
     if (le.atomType() == ListExpr.STRING_ATOM)
@@ -542,20 +542,20 @@ public class ViewConfig extends javax.swing.JDialog {
       return  0;
   }
 
+
   /**
    * Moves to the previous or the last tuple
    * @param evt
-   * @see <a href="ViewConfigsrc.html#PrTuBActionPerformed">Source</a>
    */
   private void PrTuBActionPerformed (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_PrTuBActionPerformed
     AktTupNr = (AktTupNr > 1) ? AktTupNr - 1 : TupelCount;
     updateFields();
   }             //GEN-LAST:event_PrTuBActionPerformed
 
+
   /**
    * Moves to the next or first tuple.
    * @param evt
-   * @see <a href="ViewConfigsrc.html#NeTuBActionPerformed">Source</a>
    */
   private void NeTuBActionPerformed (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_NeTuBActionPerformed
     AktTupNr = (AktTupNr < TupelCount) ? AktTupNr + 1 : 1;
@@ -575,7 +575,6 @@ public class ViewConfig extends javax.swing.JDialog {
 
 
   /** Closes the dialog 
-  * @see <a href="ViewConfigsrc.html#closeDialog">Source</a>
    */
   private void closeDialog (java.awt.event.WindowEvent evt) {                   //GEN-FIRST:event_closeDialog
     setVisible(false);
@@ -583,32 +582,32 @@ public class ViewConfig extends javax.swing.JDialog {
   }             //GEN-LAST:event_closeDialog
   //  }
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JLabel GALabel;
-  private javax.swing.JLabel VCLabel;
-  private javax.swing.JComboBox CatCB;
-  private javax.swing.JCheckBox RefDepCBo;
-  private javax.swing.JLabel RALabel;
-  private javax.swing.JLabel RTLabel;
-  private javax.swing.JComboBox RefAttrCB;
-  private javax.swing.JComboBox RendTypeCB;
-  private javax.swing.JLabel NGLabel;
-  private javax.swing.JSlider NoSlider;
-  private javax.swing.JTextField NoText;
-  private javax.swing.JTextField LabelText;
-  private javax.swing.JTextField LabXOffText;
-  private javax.swing.JTextField LabYOffText;
-  private javax.swing.JCheckBox SingleTupelCBo;
-  private javax.swing.JButton NeTuB;
-  private javax.swing.JButton PrTuB;
-  private javax.swing.JButton GATuB;
-  private javax.swing.JButton ApplyTuB;
-  private javax.swing.JButton OKB;
-  private javax.swing.JButton CancelB;
-  private javax.swing.JButton DefaultB;
-  private javax.swing.JLabel LALabel;
-  private javax.swing.JLabel LTLabel;
-  private javax.swing.JComboBox LabelAttrCB;
-  private javax.swing.JComboBox RendPosCB;
+  private JLabel GALabel;
+  private JLabel VCLabel;
+  private JComboBox CatCB;
+  private JCheckBox RefDepCBo;
+  private JLabel RALabel;
+  private JLabel RTLabel;
+  private JComboBox RefAttrCB;
+  private JComboBox RendTypeCB;
+  private JLabel NGLabel;
+  private JSlider NoSlider;
+  private JTextField NoText;
+  private JTextField LabelText;
+  private JTextField LabXOffText;
+  private JTextField LabYOffText;
+  private JCheckBox SingleTupelCBo;
+  private JButton NeTuB;
+  private JButton PrTuB;
+  private JButton GATuB;
+  private JButton ApplyTuB;
+  private JButton OKB;
+  private JButton CancelB;
+  private JButton DefaultB;
+  private JLabel LALabel;
+  private JLabel LTLabel;
+  private JComboBox LabelAttrCB;
+  private JComboBox RendPosCB;
   private JLabel GAAttrName, TupNrLabel;
   private static int VariantNr = 0;
   // End of variables declaration//GEN-END:variables

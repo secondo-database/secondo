@@ -29,6 +29,12 @@ public class TextWindow extends JPanel {
   private JPanel   dummy = new JPanel();
 
  
+/** Components for a search Panel */
+  private JTextField SearchText;
+  private JButton SearchBtn;
+
+  private JOptionPane OptionPane = new JOptionPane();
+
 
  /**
    * Construktor 
@@ -61,8 +67,67 @@ public class TextWindow extends JPanel {
     }); 
 
     parent = aparent;
+
+    //construct a search panel
+    JPanel SearchPanel = new JPanel();
+    SearchBtn = new JButton("go");
+    JLabel SearchLabel = new JLabel("search");
+    SearchText= new JTextField(6);
+    SearchPanel.add(SearchLabel);
+    SearchPanel.add(SearchText);
+    SearchPanel.add(SearchBtn);
+    add(SearchPanel,BorderLayout.SOUTH);
+    SearchBtn.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+           search();
+        }
+    });
+    SearchText.addKeyListener(new KeyAdapter(){
+        public void keyPressed(KeyEvent evt) {
+           if(evt.getKeyCode()==KeyEvent.VK_ENTER)
+             search();
+        }
+    });
   }
 
+
+ private void search(){
+   QueryResult QR = (QueryResult) QueryCombo.getSelectedItem();
+   if(QR==null){
+     OptionPane.showMessageDialog(this,"no query result selected");
+     return;
+   }
+   String Text=SearchText.getText().trim();
+   if(Text.equals("")){
+     OptionPane.showMessageDialog(this,"no text to search entered");
+     return;
+   }
+
+   int SelectedIndex = QR.getSelectedIndex();
+   int Offset= (SelectedIndex<0)?0:SelectedIndex+1;
+   int Pos = QR.find(Text,false,Offset);
+   if (Pos<0)
+       Pos=QR.find(Text,false,1);
+   if(Pos<0){
+     OptionPane.showMessageDialog(this,"text not found");
+     return;
+   }   
+   QR.setSelectedIndex(Pos);
+   int h = QueryScrollPane.getSize().height;
+   int fh = QR.getFont().getSize();
+   int rows = h/(fh+4); // ca. number of visible rows (+4 = gap between rows)
+   rows = rows/2 -1;  // the rows under and above from Pos;
+   int Count = QR.getModel().getSize();
+   if(Pos<rows)
+      QR.ensureIndexIsVisible(Pos);
+   else if(Pos+rows>Count)
+      QR.ensureIndexIsVisible(Count);
+   else{
+      QR.ensureIndexIsVisible(Pos-rows);
+      QR.ensureIndexIsVisible(Pos+rows);
+   }
+
+ }
 
 
  /* set a new ComboBox()  */

@@ -63,6 +63,7 @@ public class QueryResult extends JList {
   }
 
 
+
   /** get the ViewConfigs for this query */
   public ViewConfig[] getViewConfigs(){
      ViewConfig[] Cfgs = new ViewConfig[ViewConfigs.size()];
@@ -136,7 +137,6 @@ public class QueryResult extends JList {
   /**
    * Adds an object to the end of the result list
    * @param entry The entry object
-   * @see <a href="QueryResultsrc.html#addEntry">Source</a>
    */
   public void addEntry (Object entry) {
     if (entry instanceof DsplBase) {
@@ -147,6 +147,35 @@ public class QueryResult extends JList {
     }
     ((DefaultListModel)getModel()).addElement(entry);
   }
+
+
+
+  /** search the given String in this list and returns 
+    * the index, the search is started with offset 
+    * and go to the end of the list. if the given string
+    * is not containing between offset and end -1 is
+    * returned
+    */
+
+ public int find(String S,boolean CaseSensitiv,int Offset){
+   ListModel LM = getModel();
+   if(LM==null)
+     return -1;
+   String UCS = S.toUpperCase();   
+   boolean found = false;
+   int pos = -1;
+   for(int i=Offset;i<LM.getSize() && !found;i++){
+      if(CaseSensitiv && LM.getElementAt(i).toString().indexOf(S)>=0){
+         pos=i;
+         found = true;
+      } 
+      if(!CaseSensitiv && LM.getElementAt(i).toString().toUpperCase().indexOf(UCS)>=0){
+         pos=i;
+         found = true;
+      }
+   }
+   return pos;
+ }
 
 
   public boolean equals(Object o){
