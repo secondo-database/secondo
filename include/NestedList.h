@@ -154,7 +154,16 @@ The operations are defined below.
 
 #include <string>
 #include <iostream>
+
+/* define switch NL_PERSISTENT with the -D option of gcc in order to use persistent memory representation */
+#ifdef NL_PERSISTENT
+#define CTABLE_PERSISTENT
+#endif
+
 #include "CTable.h"
+
+#include "SecondoSMI.h"
+
 /*
 Nested lists are represented by four compact tables called
 ~nodeTable~, ~intTable~, ~stringTable~, and ~textTable~, which are private
@@ -162,9 +171,11 @@ member variables of the nested list container class ~NestedList~.
 
 */
 const int INITIAL_ENTRIES = 10000;
+const int PAGED_ARRAY_RECSIZE = 8000;
 /*
-Specifies the default size of the compact tables. This value can be overwritten
-in the constructor.
+The first specifies the default size of the compact tables. This value can be overwritten
+in the constructor. The second defines the record length of the record-file in the persistent
+implementation.
 
 */
 
@@ -317,7 +328,8 @@ text atom.
 class NestedList
 {
  public:
-  NestedList( Cardinal NodeEntries = 2*INITIAL_ENTRIES,
+  NestedList( SmiRecordFile* ptr2RecFile = 0,
+	      Cardinal NodeEntries = 2*INITIAL_ENTRIES,
 	      Cardinal ConstEntries = INITIAL_ENTRIES, 
 	      Cardinal StringEntries = INITIAL_ENTRIES,
 	      Cardinal TextEntries = 50 );
@@ -326,6 +338,14 @@ Creates an instance of a nested list container. The compact tables which
 store the nodes of nested lists reserve initially memory for holding at
 least ~initialEntries~ nodes.
 
+*/
+
+   string MemoryModel();
+
+/*
+Returns the Memory-Model of the underlying CTable data structures. Possible values
+are PERSISTENT and NON-PERSISTENT. The PERSISTENT variant uses Berkeley-DB Records
+for its nodes instead of the NON-PERSISTENT version which uses heap memory.
 */
   virtual ~NestedList();
 /*
@@ -482,6 +502,12 @@ if writing was successful, "false"[4] if the string could not be written properl
 
 */
 
+  string ToString( const ListExpr list );
+
+/*
+A wrapper for ~WriteToString~ which directly returns a string object. 
+*/
+
   void WriteListExpr( ListExpr list, ostream& ostr );
   void WriteListExpr( ListExpr list );
 /*
@@ -544,9 +570,13 @@ corresponding atom:
   ListExpr IntAtom( const long value );
   ListExpr RealAtom( const double value );
   ListExpr BoolAtom( const bool value );
-  ListExpr StringAtom( const string& value );
+  ListExpr StringAtom( const string& value, bool isString=true );
   ListExpr SymbolAtom( const string& value );
 /*
+Note: ~Symbols~ and ~Strings~ are character sequences up to 3*STRINGSIZE.
+SymbolAtom is only a wrapper which calls Stringatom(value,false) to avoid
+duplicated code.
+
 Values of type ~Text~ may have arbitrary length. To construct ~Text~ atoms, 
 two operations are offered:
 
@@ -652,7 +682,8 @@ private CTable members and the underlying vector classes.
 
 */
 
-  void initializeListMemory( Cardinal NodeEntries = 2*INITIAL_ENTRIES,
+  void initializeListMemory( 
+			     Cardinal NodeEntries = 2*INITIAL_ENTRIES,
 		             Cardinal ConstEntries = INITIAL_ENTRIES, 
 		             Cardinal StringEntries = INITIAL_ENTRIES,
 			     Cardinal TextEntries = 50 );
@@ -660,16 +691,22 @@ private CTable members and the underlying vector classes.
 /*
 Creates new CTable Objects with the given size and deletes the old ones.
 The default values are tuning parameters and reflect values which are
-useful in the present state of SECONDO.
+useful in the present development state of SECONDO.  
 
 1.3.13 Copying of Lists
 */
   
   const ListExpr CopyList( const ListExpr list, const NestedList* target );
+
   
 /*
 Copies a nested list from this instance to the target instance.
+
+1.3.14 Distinction between main memory and persistent implementation
 */
+
+  const static bool isPersistent;
+ 
 
  protected:
   const ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
@@ -685,13 +722,19 @@ Copies a nested list from this instance to the target instance.
                   const bool afterList, const bool toScreen );
   void WriteAtom( const ListExpr atom, bool toScreen );
   bool WriteToStringLocal( string& nlChars, ListExpr list );
+
  private:
+ 
+  SmiRecordFile *recFilePtr;
+  bool delRecFile;
+
   CTable<NodeRecord>   *nodeTable;   // nodes
   CTable<Constant>     *intTable;    // ints;
   CTable<StringRecord> *stringTable; // strings
   CTable<TextRecord>   *textTable  ; // texts
   ostream*             outStream;
   static bool          doDestroy;
+
 /*
 The class member ~doDestroy~ defines whether the ~Destroy~ method really
 destroys a nested list. Only if ~doDestroy~ is "true"[4], nested lists are

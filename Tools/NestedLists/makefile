@@ -6,6 +6,10 @@
 
 include ../../makefile.env
 
+ifeq ($(NL_PERSISTENT),"true")
+DEFAULTCCFLAGS += -DNL_PERSISTENT
+endif
+
 OBJECTS=\
 	NLLex.$(OBJEXT) \
 	NLScanner.$(OBJEXT) \

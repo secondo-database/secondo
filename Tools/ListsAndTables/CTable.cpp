@@ -1,3 +1,14 @@
+/*
+1 Implementation File: Compact Table - Code for the In-Memory Implementation
+
+
+Jan - May 2003 M. Spiekermann, Code was splitted into the two files CTable.cpp and PCTable.cpp.
+ 
+*/
+
+
+
+
 #include <assert.h>
 #include <sstream>
 #include <iostream>
@@ -8,74 +19,61 @@ using namespace std;
 
 1.1 Constructor/Destructor of a CTable 
 
-
-
 */
 
 template<typename T>
 
+string
+CTable<T>::MemoryModel() {
+	return "NON-PERSISTENT";
+}
+
+
+template<typename T>
+
 CTable<T>::CTable( Cardinal const count )
-
 {
-
   assert( count > 0 );
 
   table.resize( count );
-
   valid.resize( count );
 
   for ( Cardinal j = 0; j < count; j++ )
-
   {
-
     valid[j] = false;
-
   }
 
   elemCount    = count;
-
   leastFree    = 1;
-
   highestValid = 0;
 
 }
 
 
-
 template<typename T>
 
-CTable<T>::~CTable()
-
-{
-
+CTable<T>::~CTable() { 
 }
-
 
 
 /*
 
 1.1 Size of a CTable
 
-
-
 */
 
 template<typename T>
 
 Cardinal
-
 CTable<T>::Size()
-
 {
-
   return elemCount;
-
 }
 
 template<typename T>
 
-Cardinal
-CTable<T>::totalMemory() {
+void
+CTable<T>::totalMemory(Cardinal &mem, Cardinal &pageChanges) {
  
  T* ptrT = 0;
  bool* ptrb = 0;
@@ -84,7 +82,8 @@ CTable<T>::totalMemory() {
  long dT = ((long)++ptrT); 
  long db = ((long)++ptrb);
   
- return (Cardinal)(dT * table.capacity()) + (db * valid.capacity());
+ mem = (Cardinal)(dT * table.capacity()) + (db * valid.capacity());
+ pageChanges = 0;
 }
 
 
@@ -121,27 +120,17 @@ CTable<T>::NoEntries()
 template<typename T>
 
 T&
-
-CTable<T>::operator[]( Cardinal n )
-
-{
+CTable<T>::operator[]( Cardinal n ) {
 
   assert( n > 0 && n <= elemCount );
 
-  if ( n == leastFree )
+  if ( n == leastFree ) {
 
-  {
-
-    do
-
-    {
+    do {
 
       ++leastFree;
-
     }
-
     while ( leastFree <= elemCount && valid[leastFree-1] );
-
   }
 
   valid[n-1] = true;
@@ -151,31 +140,40 @@ CTable<T>::operator[]( Cardinal n )
     highestValid = n;
 
   return table[n-1];
-
 }
-
 
 
 /*
 
 1.1 Access of an element as an rvalue
 
-
-
 */
 
 template<typename T>
 
 const T&
-
-CTable<T>::operator[]( Cardinal n ) const
-
-{
+CTable<T>::operator[]( Cardinal n ) const {
 
   assert( n > 0 && n <= elemCount );
 
   return table[n-1];
+}
 
+
+template<typename T>
+
+void
+CTable<T>::Get( Cardinal const n, T& elem ) {
+
+   elem = (*this)[n];
+}
+
+template<typename T>
+
+void
+CTable<T>::Put( Cardinal const n, T& elem ) {
+
+   (*this)[n] = elem;
 }
 
 
@@ -192,14 +190,11 @@ template<typename T>
 
 bool
 
-CTable<T>::IsValid( Cardinal const index ) const
-
-{
+CTable<T>::IsValid( Cardinal const index ) {
 
   assert( index > 0 && index <= elemCount );
 
   return valid[index-1];
-
 }
 
 
@@ -207,35 +202,22 @@ CTable<T>::IsValid( Cardinal const index ) const
 template<typename T>
 
 const Cardinal
-
 CTable<T>::EmptySlot()
-
 {
-
   if ( leastFree > elemCount )
-
   {
-
     Cardinal newElemCount = 2 * elemCount;
-
     table.resize( newElemCount );
-
     valid.resize( newElemCount );
 
     for ( Cardinal j = elemCount; j < newElemCount; j++ )
-
     {
-
       valid[j] = false;
-
     }
-
     elemCount = newElemCount;
-
   }
 
   return leastFree;
-
 }
 
 
@@ -243,39 +225,27 @@ CTable<T>::EmptySlot()
 template<typename T>
 
 const Cardinal
-
 CTable<T>::Add( const T& element )
-
 {
 
   Cardinal index = EmptySlot();
-
   valid[index-1] = true;
-
   table[index-1] = element;
 
   if ( index == leastFree )
-
   {
-
     do
-
     {
-
       ++leastFree;
-
     }
-
     while ( leastFree <= elemCount && valid[leastFree-1] );
-
   }
 
-  if (highestValid < index)
-
+  if (highestValid < index)  {
     highestValid = index;
+  }
 
   return index;
-
 }
 
 
@@ -283,33 +253,22 @@ CTable<T>::Add( const T& element )
 template<typename T>
 
 void
-
 CTable<T>::Remove( Cardinal const index )
-
 {
-
   assert( index > 0 && index <= elemCount );
 
   valid[index-1] = false;
 
   if ( index < leastFree )
-
     leastFree = index;
 
   if ( index == highestValid )
-
   {
-
     do
-
     {
-
       --highestValid;
-
     }
-
     while ( highestValid > 0 && !valid[highestValid-1] );
-
   }
 
 }
@@ -329,11 +288,8 @@ template<typename T>
 typename CTable<T>::Iterator
 
 CTable<T>::Begin()
-
 {
-
   return CTable<T>::Iterator( this );
-
 }
 
 
@@ -351,11 +307,8 @@ template<typename T>
 typename CTable<T>::Iterator
 
 CTable<T>::End()
-
 {
-
   return CTable<T>::Iterator( this, false );
-
 }
 
 
@@ -371,7 +324,6 @@ CTable<T>::End()
 template<typename T>
 
 CTable<T>::Iterator::Iterator() : ct(0), current(0)
-
 {
 
 }
@@ -389,19 +341,15 @@ CTable<T>::Iterator::Iterator() : ct(0), current(0)
 template<typename T>
 
 CTable<T>::Iterator::Iterator( CTable<T>* ctPtr )
-
 {
 
   ct      = ctPtr;
-
   current = 0;
 
   while ( current < ct->highestValid && !ct->valid[current] )
-
   {
 
     ++current;
-
   }
 
 }
@@ -411,13 +359,9 @@ CTable<T>::Iterator::Iterator( CTable<T>* ctPtr )
 template<typename T>
 
 CTable<T>::Iterator::Iterator( CTable<T>* ctPtr, bool )
-
 {
-
   ct      = ctPtr;
-
   current = ct->highestValid;
-
 }
 
 
@@ -433,13 +377,9 @@ CTable<T>::Iterator::Iterator( CTable<T>* ctPtr, bool )
 template<typename T>
 
 CTable<T>::Iterator::Iterator( Iterator const &other )
-
 {
-
   ct      = other.ct;
-
   current = other.current;
-
 }
 
 
@@ -455,17 +395,12 @@ CTable<T>::Iterator::Iterator( Iterator const &other )
 template<typename T>
 
 T&
-
 CTable<T>::Iterator::operator*() const
-
 {
-
   assert( ct != 0 );
-
   assert( current < ct->elemCount && ct->valid[current] );
 
   return ct->table[current];
-
 }
 
 
@@ -475,7 +410,6 @@ CTable<T>::Iterator::operator*() const
 1.1 Iterator assignment
 
 
-
 */
 
 template<typename T>
@@ -483,15 +417,11 @@ template<typename T>
 typename CTable<T>::Iterator&
 
 CTable<T>::Iterator::operator=( CTable<T>::Iterator const &other )
-
 {
-
   ct      = other.ct;
-
   current = other.current;
 
   return *this;
-
 }
 
 
@@ -501,7 +431,6 @@ CTable<T>::Iterator::operator=( CTable<T>::Iterator const &other )
 1.1 Iterator increment (prefix and postfix notation)
 
 
-
 */
 
 template<typename T>
@@ -509,15 +438,12 @@ template<typename T>
 typename CTable<T>::Iterator&
 
 CTable<T>::Iterator::operator++()
-
 {
-
   assert( ct != 0 );
 
   while ( current < ct->highestValid && !ct->valid[++current] );
 
   return *this;
-
 }
 
 
@@ -527,9 +453,7 @@ template<typename T>
 const typename CTable<T>::Iterator
 
 CTable<T>::Iterator::operator++( int )
-
 {
-
   assert( ct != 0 );
 
   CTable<T>::Iterator temp( *this );
@@ -537,7 +461,6 @@ CTable<T>::Iterator::operator++( int )
   while (current < ct->highestValid && !ct->valid[++current] );
 
   return temp;
-
 }
 
 
@@ -553,13 +476,9 @@ CTable<T>::Iterator::operator++( int )
 template<typename T>
 
 bool
-
 CTable<T>::Iterator::operator==( const Iterator& other ) const
-
 {
-
   return (ct == other.ct) && (current == other.current);
-
 }
 
 
@@ -567,15 +486,10 @@ CTable<T>::Iterator::operator==( const Iterator& other ) const
 template<typename T>
 
 bool
-
 CTable<T>::Iterator::operator!=( const Iterator& other ) const
-
 {
-
   return (ct != other.ct) || (current != other.current);
-
 }
-
 
 
 /*
@@ -583,21 +497,16 @@ CTable<T>::Iterator::operator!=( const Iterator& other ) const
 1.1 Index of element iterator is pointing to
 
 
-
 */
 
 template<typename T>
 
 Cardinal
-
 CTable<T>::Iterator::GetIndex() const
-
 {
-
   assert( ct != 0 );
 
   return current+1;
-
 }
 
 
@@ -613,16 +522,9 @@ CTable<T>::Iterator::GetIndex() const
 template<typename T>
 
 bool
-
 CTable<T>::Iterator::EndOfScan() const
-
 {
-
   assert( ct != 0 );
 
   return current >= ct->highestValid;
-
 }
-
-
-
