@@ -16,6 +16,9 @@ public final String CONFIGURATION_FILE="gui.cfg";
 public final int MIN_FONTSIZE = 6;
 public final int MAX_FONTSIZE = 24;
 
+// shows additional informations if an error is occured
+private boolean DEBUG_MODE = false;
+
 private JPanel PanelTop;        // change to the desired components
 private CommandPanel ComPanel;
 private ObjectList OList;
@@ -255,18 +258,24 @@ public MainWindow(String Title){
              else
                System.out.println(ViewerName+" is not a SecondoViewer");
             }catch(Exception e){
+            if(DEBUG_MODE)
+               e.printStackTrace(); 
            System.out.println("cannot load viewer:"+ViewerName+"\n");
            }
         }
    }
 
-   String Parser_Debug_Mode = Config.getProperty("PARSER_DEBUG_MODE");
-   if(Parser_Debug_Mode!=null){
-      Parser_Debug_Mode = Parser_Debug_Mode.toLowerCase().trim();
-      if(Parser_Debug_Mode.equals("false"))
+   String Debug_Mode = Config.getProperty("DEBUG_MODE");
+   if(Debug_Mode!=null){
+      Debug_Mode = Debug_Mode.toLowerCase().trim();
+      if(Debug_Mode.equals("false")){
          sj.lang.ListExpr.setDebugMode(false);
-      else
+         DEBUG_MODE=false;
+      }   
+      else{
          sj.lang.ListExpr.setDebugMode(true);
+         DEBUG_MODE=true;
+      }   
    }
 
 
@@ -526,6 +535,8 @@ public boolean execGuiCommand(String command){
      }catch(Exception e){
         ComPanel.appendText("cannot load viewer:"+ViewerName+"\n");
         success=false;
+        if(DEBUG_MODE)
+           e.printStackTrace();
      }
      ComPanel.showPrompt();
   } 
@@ -746,8 +757,10 @@ private int executeFile(String FileName,boolean ignoreErrors){
   }
   catch(Exception e){
     ComPanel.appendText("a IO error is occurred\n");
-    System.out.println(e);
-    e.printStackTrace();
+    if(DEBUG_MODE){
+       System.out.println(e);
+       e.printStackTrace();
+    }   
     errors++;
   }
   finally{
@@ -779,7 +792,11 @@ public void updateMenu(){
         MainMenu.revalidate();
         OList.updateMarks();
      }
-     catch(Exception e) {showMessage("error when update the menu");}
+     catch(Exception e) {
+        if(DEBUG_MODE)
+           e.printStackTrace();
+        showMessage("error when update the menu");
+     }
    }  
 }
 
@@ -863,7 +880,11 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
                      showMessage("no Viewer loaded to display this result");
                }
                */
-            } catch(Exception e){showMessage("an error is occurred (in current viewer)");}
+            } catch(Exception e){
+               if(DEBUG_MODE)
+                  e.printStackTrace();
+               showMessage("an error is occurred (in current viewer)");
+            }
          }
          ComPanel.appendText("see result in object list");
      }
@@ -879,6 +900,8 @@ public boolean canActualDisplay(SecondoObject SO){
   else
     try{return CurrentViewer.canDisplay(SO);}
     catch(Exception e){
+       if(DEBUG_MODE)
+          e.printStackTrace();
        System.out.println("error in method canDisplay in the current Viewer");
        return false;
     }
@@ -891,6 +914,8 @@ public boolean isActualDisplayed(SecondoObject SO){
   else
      try{return CurrentViewer.isDisplayed(SO);}
      catch(Exception e){ 
+        if(DEBUG_MODE)
+           e.printStackTrace();
         System.out.println("error in current Viewer "+CurrentViewer+" method: isDisplayed");
         return false; 
      }
@@ -918,7 +943,8 @@ public boolean showObject(SecondoObject SO){
      }      
      catch(Exception e){
         System.out.println("error in Viewer :"+CurrentViewer+" method addObject");
-        e.printStackTrace();
+        if(DEBUG_MODE)
+           e.printStackTrace();
         return false;
      }
 }
@@ -936,6 +962,8 @@ public void hideObject(Object Sender,SecondoObject SO){
           ((SecondoViewer)AllViewers.get(i)).removeObject(SO);
         }
         catch(Exception e){
+           if(DEBUG_MODE)
+              e.printStackTrace();
            System.out.println("an Exception is occured in removeObject-Method of a Viewer");
         }
      }
@@ -961,6 +989,8 @@ public void selectObject(Object Sender,SecondoObject SO){
          CurrentViewer.selectObject(SO);
           }
        catch(Exception e){
+          if(DEBUG_MODE)
+            e.printStackTrace();
           showMessage("Exception in current viewer (method selectObject)");
        }
      }
@@ -1229,8 +1259,9 @@ private void createMenuBar(){
                    catch(Exception e){
                         ComPanel.appendText(""+e);
                         ComPanel.showPrompt();
-     				showMessage("cannot load the given Viewer\n see commandPanel for details");
-                        e.printStackTrace();
+     				    showMessage("cannot load the given Viewer\n see commandPanel for details");
+     				    if(DEBUG_MODE)
+                           e.printStackTrace();
 
                    }
                 }
@@ -1274,6 +1305,8 @@ public void loadHistory(boolean replace){
         }
       } catch(Exception e){
         ComPanel.appendText("load history failed \n");
+        if(DEBUG_MODE)
+           e.printStackTrace();
         ok = false;
       }
       finally{
@@ -1357,6 +1390,8 @@ private void saveHistory(){
               FW.write(ComPanel.getHistoryEntryAt(i)+"\n");
        }
        catch(Exception e){
+          if(DEBUG_MODE)
+            e.printStackTrace();
           ComPanel.appendText("IO error");
        }
        finally{
