@@ -51,11 +51,17 @@ function printSep() {
 declare -i rc=0
 function checkCmd() {
 
-  eval ${1}  # useful if $1 contains quotes or variables
-  let rc=$?  # save returncode
+  if [ "$testMode" != "true" ]; then
+    eval ${1}  # useful if $1 contains quotes or variables
+    let rc=$?  # save returncode
 
-  if [ $rc -ne 0 ]; then
-    printf "\n Failure! Command {${1}} returned with value ${rc} \n"
+    if [ $rc -ne 0 ]; then
+      printf "\n Failure! Command {${1}} returned with value ${rc} \n"
+    fi
+
+  else 
+
+    printf "%s\n" "cmd: $1"
   fi
 }
 

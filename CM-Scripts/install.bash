@@ -184,7 +184,7 @@ if [ "$installJava" == "true" ]; then
   else
 
     cd $cdpath/java
-    $exec j2sdk*windows*.exe
+    checkCmd j2sdk*windows*.exe
 
   fi  
 
@@ -228,39 +228,39 @@ fi
 
 printf "\n"
 printSep "Compiling GCC ... this will take the most time ..."
-$exec "cd $temp/gcc-* && ./configure --prefix=$sdk >> $logfile 2>&1
+checkCmd "cd $temp/gcc-* && ./configure --prefix=$sdk >> $logfile 2>&1
 if { ! make bootstrap >> $logfile 2>&1; }; then
   printf \"\n Error: Compiling GCC failed! \n\"
   exit 6
 fi"
-$exec make install >> $logfile 2>&1
+checkCmd make install >> $logfile 2>&1
 export PATH=".:$sdk/bin:$PATH"
 printf "\n <PATH: $PATH> \n" >> $logfile
 gcc --version >> $logfile
 
 printSep "Compiling Berkeley-DB ..."
 cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx >> $logfile 2>&1
-$exec "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
+checkCmd "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
 
 printSep "Compiling libncurses ..."
 cd $temp/ncurses-* && ./configure --prefix=$sdk >> $logfile 2>&1
-$exec "make >> $logfile 2>&1 && make install >> $logfile 2>&1" 
+checkCmd "make >> $logfile 2>&1 && make install >> $logfile 2>&1" 
 
 printSep "Compiling SWI-Prolog ..."
 cd $temp/readline-* && ./configure --prefix=$sdk --with-curses >> $logfile 2>&1
-$exec "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
+checkCmd "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
 cd $temp/pl-* && ./configure --prefix=$sdk >> $logfile 2>&1
-$exec "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
+checkCmd "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
 
 printSep "Compiling flex and bison, the scanner and parser generators"
 cd $temp/flex-* && ./configure --prefix=$sdk >> $logfile 2>&1
-$exec "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
+checkCmd "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
 cd $temp/bison-* && ./configure --prefix=$sdk >> $logfile 2>&1
-$exec "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
+checkCmd "make >> $logfile 2>&1 && make install >> $logfile 2>&1"
 
 printSep "Compiling JPEG library ..."
 cd $temp/jpeg-* && ./configure --prefix=$sdk >> $logfile 2>&1
-$exec "make >> $logfile 2>&1 && make install >> $logfile 2>&1 && make install-lib >> $logfile 2>&1"
+checkCmd "make >> $logfile 2>&1 && make install >> $logfile 2>&1 && make install-lib >> $logfile 2>&1"
 
 copyConfigFiles
 

@@ -3,35 +3,32 @@
 # Oct. 2003, M. Spiekermann - initial version
 # May  2004, M. Spiekermann - some improvements
 
-
-# the mount point must exists before installing mingw
-mkdir -p $msysdir/mingw
 printSep "Starting MinGW Installer ..."
 cd $platformdir/mingw
-$exec Min*.exe
+checkCmd Min*.exe
 
 if [ ! -d "$mingwdir" ]; then
    printf  "\n%s\n" " WARNING: Directory $mingwdir not found." 
-   printf  "%s\n"   "          You may need to configure etc/fstab."
+   printf  "%s\n"   "          You may need to configure .secondo.win32rc."
 fi
  
 printSep  "Starting SWI-Prolog Installer ..."
 cd $platformdir/prolog
-$exec w32pl*.exe
+checkCmd w32pl*.exe
 
 prologdir=$sdk/pl
 if [ ! -d "$prologdir" ]; then
    printf  "\n%s\n" "WARNING: Directory $prologdir not found." 
-   printf  "%s\n"   "         You need to configure the .secondo*rc files."
+   printf  "%s\n"   "         You may need to configure the .secondo.win32rc."
 fi
 
 
 printSep "Installing unzip ..."
 
 cd $sdk/bin
-$exec "$platformdir/non-gnu/unzip/unz550xN.exe > /dev/null" 
+checkCmd "$platformdir/non-gnu/unzip/unz550xN.exe > /dev/null" 
 export PATH="$sdk/bin:$sdk/lib:$PATH"
-$exec "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
+checkCmd "unzip -q -o $platformdir/non-gnu/unzip/zip23xN.zip"
 
 printSep "Uncompressing 3d-party tools ..."
 
@@ -42,9 +39,9 @@ printf "\n"
 printSep "Compiling Berkeley-DB ..."
 
 export PATH=/c/mingw/bin:$PATH
-$xterm -title \"Berkeley-DB Compilation\" -e tail -f $logfile &
-$exec "cd $temp/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx --enable-mingw >> $logfile 2>&1"
-$exec "make > $logfile 2>&1 && make install >> $logfile 2>&1"
+$xterm -title "Berkeley-DB Compilation" -e tail -f $logfile &
+checkCmd "cd $sdk/db-*/build_unix && ../dist/configure --prefix=$sdk --enable-cxx --enable-mingw >> $logfile 2>&1"
+checkCmd "make > $logfile 2>&1 && make install >> $logfile 2>&1"
 
 copyConfigFiles
 

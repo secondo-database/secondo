@@ -3,7 +3,7 @@
 # Feb 2005. M. Spiekermann
 
 # MinGW
-export MINGW_DIR="/c/mingw"
+export MINGW_DIR="/c/mingw/bin"
  
 #SWI_HOME_DIR must be specified with drive letter 
 #and \ as path separator 
