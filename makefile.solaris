@@ -28,7 +28,8 @@ AR = ar
 RANLIB = ranlib
 CP = cp
 RM = rm -f
-LEX = flex
+LEXPREFIX = /export/home/spiekermann/local_install
+LEX = $(LEXPREFIX)/bin/flex
 YACC = bison
 
 EXEEXT =
@@ -43,7 +44,7 @@ else
 PICFLAG =
 OBJEXT = o
 LIBEXT = a
-LDFLAGS =
+LDFLAGS = -L$(LEXPREFIX)/lib
 #EXEFLAGS = -static
 EXEFLAGS =
 endif
@@ -53,4 +54,4 @@ DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I/opt/pdsoft/include -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED -B/opt/pdsoft/binutils/bin/
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I$(LEXPREFIX)/include -I/opt/pdsoft/include -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED -B/opt/pdsoft/binutils/bin/
