@@ -21,10 +21,20 @@ small cache, so that they need not be rebuilt from then on.
 
 [TOC]
 
+1 Overview
+
+This module implements the Main Memory Relational Algebra (MMRA). Relations in the
+MMRA are simply arrays of tuples, which are simply arrays of attributes. FLOBs are
+represented in memory only. Relations are stored using In and Out function, i.e.,
+they are stored using list representation. A schema of a relation can be viewed in
+the figure below:
+
+                Figure 1: Schema of a main memory relation. [MainMemoryRelation.eps]
+
 1 Includes, Constants, Globals, Enumerations
 
 */
-#ifndef RELALG_PERSISTENT  
+#ifndef RELALG_PERSISTENT
 
 using namespace std;
 
@@ -88,15 +98,15 @@ ListExpr TupleProp ()
 {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,"(\"Myers\" 53)");
- 
+
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> TUPLE"), 
-	                     nl->StringAtom("(tuple((name string)(age int)))"), 
-			     nl->StringAtom("(<attr1> ... <attrn>)"), 
+            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> TUPLE"),
+	                     nl->StringAtom("(tuple((name string)(age int)))"),
+			     nl->StringAtom("(<attr1> ... <attrn>)"),
 			     examplelist)));
 }
 /*
@@ -305,7 +315,7 @@ format and a pointer to a tuple value, stored in main memory.
 The function returns the tuple value from main memory storage
 in nested list format. The difference between this function and the ~Out~-
 function is that it uses an internal structure and does not make correctness
-tests. 
+tests.
 
 */
 ListExpr SaveToListTuple (ListExpr typeInfo, Word  value)
@@ -487,8 +497,8 @@ The ~in~-function of type constructor ~tuple~ takes as inputs a type
 description (~typeInfo~) of the tuples attribute structure in nested
 list format and the tuple value in nested list format. The function
 returns a pointer to a tuple value, stored in main memory in accordance to
-the tuple value in nested list format. The difference between this function 
-and the ~In~-function is that it uses an internal structure and does not 
+the tuple value in nested list format. The difference between this function
+and the ~In~-function is that it uses an internal structure and does not
 make correctness tests.
 
 */
@@ -762,13 +772,13 @@ ListExpr RelProp ()
   nl->AppendText(examplelist,"((\"Myers\" 53)(\"Smith\" 21))");
 
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("TUPLE -> REL"), 
-	               nl->StringAtom("(rel(tuple((name string)(age int))))"), 
-		       listreplist, 
+            nl->FourElemList(nl->StringAtom("TUPLE -> REL"),
+	               nl->StringAtom("(rel(tuple((name string)(age int))))"),
+		       listreplist,
 		       examplelist)));
 }
 
@@ -1172,7 +1182,7 @@ OpenRel( SmiRecord& valueRecord,
   SmiRecordId recId;
   mykey = valueRecord.GetKey();
   if ( ! mykey.GetKey(recId) )
-  { 
+  {
     cout << "\tRelPersistValue: Couldn't get the key!" << endl;
   }
 
@@ -1204,7 +1214,7 @@ OpenRel( SmiRecord& valueRecord,
 
   // prepare to cache the value constructed from the list
 
-  if ( key[current] != 0 ) { 
+  if ( key[current] != 0 ) {
     // cout << "I do delete!" << endl;
     DeleteRel(cache[current]);
   }
@@ -1219,11 +1229,11 @@ OpenRel( SmiRecord& valueRecord,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = RestoreFromListRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct); 
+  value = RestoreFromListRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct);
 
   cache[current++] = value;
   if ( current == cachesize ) current = 0;
-        
+
   if ( errorInfo != 0 )     {
     nl->Destroy( errorInfo );
   }

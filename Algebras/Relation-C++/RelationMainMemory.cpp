@@ -13,16 +13,20 @@ The Relational Algebra basically implements two type constructors, namely ~tuple
 More information about the Relational Algebra can be found in the RelationAlgebra.h header
 file.
 
-This file contains the implementation of the Main Memory Relational Algebra, where the 
-type constructors ~tuple~ and ~rel~ are kept in main memory. The ~tuple~ data type is 
-an array of attributes and the ~rel~ is an array of tuples.
+This file contains the implementation of the Main Memory Relational Algebra, where the
+type constructors ~tuple~ and ~rel~ are kept in main memory. The ~tuple~ data type is
+an array of attributes and the ~rel~ is an array of tuples. FLOBs are represented in
+memory only. Relations are stored using In and Out function, i.e., they are stored
+using list representation. A schema of a relation can be viewed in the figure below:
+
+                Figure 1: Example schema of a main memory relation. [MainMemoryRelation.eps]
 
 2 Defines, includes, and constants
 
 */
 #ifndef RELALG_PERSISTENT
 /*
-This ~RELALG_PERSISTENT~ defines which kind of relational algebra is to be compiled.
+This ~RELALG\_PERSISTENT~ defines which kind of relational algebra is to be compiled.
 If it is set, the persistent version of the relational algebra will be compiled, and
 otherwise, the main memory version will be compiled.
 
@@ -49,7 +53,7 @@ These global variables are used for caching relations.
 
 3.2 Struct ~PrivateTuple~
 
-This struct contains the private attributes of the class ~Tuple~. 
+This struct contains the private attributes of the class ~Tuple~.
 
 */
 struct PrivateTuple
@@ -61,7 +65,7 @@ struct PrivateTuple
     isFree( isFree )
     {
       for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
-        attrArray[i] = 0; 
+        attrArray[i] = 0;
     }
 /*
 The constructor.
@@ -74,7 +78,7 @@ The constructor.
     isFree( isFree )
     {
       for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
-        attrArray[i] = 0; 
+        attrArray[i] = 0;
     }
 /*
 The constructor.
@@ -107,9 +111,9 @@ The array of attribute pointers.
 
 */
   bool isFree;
-/* 
-A flag that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving 
-the tuple can delete or reuse it 
+/*
+A flag that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
+the tuple can delete or reuse it
 
 */
 };
@@ -129,7 +133,7 @@ Tuple::Tuple( const TupleType& tupleType, const bool isFree ):
     if( tuplesInMemory > maximumTuples )
       maximumTuples = tuplesInMemory;
   }
-    
+
 Tuple::Tuple( const ListExpr typeInfo, const bool isFree ):
   privateTuple( new PrivateTuple( typeInfo, isFree ) )
   {
@@ -257,7 +261,7 @@ void Tuple::SetFree( const bool onoff )
   privateTuple->isFree = onoff;
 }
 
-Tuple *Tuple::CloneIfNecessary() 
+Tuple *Tuple::CloneIfNecessary()
 {
   if( IsFree() )
     return this;
@@ -287,7 +291,7 @@ will be in memory, i.e., the buffer will be an array of tuples.
 */
 struct PrivateTupleBuffer
 {
-  vector<Tuple*> buffer; 
+  vector<Tuple*> buffer;
 /*
 The buffer which is a ~vector~ from STL.
 
@@ -332,7 +336,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
 
 TupleBufferIterator *TupleBuffer::MakeScan() const
 {
-  return new TupleBufferIterator( *this );  
+  return new TupleBufferIterator( *this );
 }
 
 /*
@@ -435,7 +439,7 @@ Contains the tuple type.
 */
   CTable<Tuple*>* tupleArray;
 /*
-The array of tuples. 
+The array of tuples.
 
 */
   TupleId currentId;
@@ -497,7 +501,7 @@ Relation::~Relation()
   Tuple *t;
   while( (t = iter->GetNextTuple()) != 0 )
     delete t;
-  delete iter;    
+  delete iter;
   delete privateRelation;
 }
 
@@ -585,9 +589,9 @@ bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*&
 
   // check whether value was cached
   for ( int j = 0; j < cachesize; j++ )
-    if ( key[j]  == recId ) 
+    if ( key[j]  == recId )
     {
-      value = (Relation *)cache[j].addr; 
+      value = (Relation *)cache[j].addr;
       return true;
     }
 
@@ -658,7 +662,7 @@ Tuple* Relation::GetTuple( const TupleId& tupleId ) const
 void Relation::Clear()
 {
   CTable<Tuple*>::Iterator iter = privateRelation->tupleArray->Begin();
-  
+
   while( iter != privateRelation->tupleArray->End() )
   {
     Tuple *t = *iter;
@@ -715,7 +719,7 @@ A reference to the relation.
 /*
 4.4 Implementation of the class ~RelationIterator~
 
-This class is used for scanning (iterating through) relations. 
+This class is used for scanning (iterating through) relations.
 
 */
 RelationIterator::RelationIterator( const Relation& relation ):
@@ -727,17 +731,17 @@ RelationIterator::~RelationIterator()
   delete privateRelationIterator;
 }
 
-Tuple* RelationIterator::GetNextTuple()  
+Tuple* RelationIterator::GetNextTuple()
 {
   if( EndOfScan() )
     return NULL;
 
   Tuple *result = *privateRelationIterator->iterator;
   privateRelationIterator->iterator++;
-  return result; 
+  return result;
 }
 
-const bool RelationIterator::EndOfScan() 
+const bool RelationIterator::EndOfScan()
 {
   return privateRelationIterator->iterator.EndOfScan();
 }

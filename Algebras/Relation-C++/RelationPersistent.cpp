@@ -28,15 +28,37 @@ More information about the Relational Algebra can be found in the RelationAlgebr
 file.
 
 This file contains the implementation of the Persistent Relational Algebra, where the
-type constructors ~tuple~ and ~rel~ are kept in secondary memory. This implementation uses
-the Tuple Manager.
+type constructors ~tuple~ and ~rel~ are kept in secondary memory.
+
+A relation has two files: the tuple file and the LOB file, for storing tuples and LOBs
+respectively.
+
+The tuples can be in two states, namely ~fresh~ and ~solid~. A fresh tuple is a tuple created
+by the In function of the ~tuple~ type constructor. It is stored in memory and looks like
+the tuple in the Main Memory Relational Algebra. An example schema of such tuple can be viewed
+in Figure 1.
+
+                Figure 1: Example schema of a fresh tuple. [FreshTuple.eps]
+
+A solid tuple is created when a fresh tuple is saved on disk, or when a tuple is read from disk.
+The tuple representation on disk has two basic parts: the attributes and the tuple extension
+for small FLOBs. Large FLOBs are written in the LOB file of the relation. An example schema of
+two tuples of the same type as the one in Figure 1 can be viewed in Figure 2. The first tuple
+contains a small region, and the second contains a big one, which is saved separately on the
+LOB file.
+
+                Figure 2: Example schema of two solid tuples with a small FLOB (a) and with a big one (b).[SolidTuple.eps]
+
+The state diagram of tuples can be seen in the Figure 3.
+
+                Figure 3: State diagram of tuples.[TupleStateDiagram.eps]
 
 2 Includes, Constants, Globals, Enumerations
 
 */
 #ifdef RELALG_PERSISTENT
 /*
-This ~RELALG_PERSISTENT~ defines which kind of relational algebra is to be compiled.
+This ~RELALG\_PERSISTENT~ defines which kind of relational algebra is to be compiled.
 If it is set, the persistent version of the relational algebra will be compiled, and
 otherwise, the main memory version will be compiled.
 
