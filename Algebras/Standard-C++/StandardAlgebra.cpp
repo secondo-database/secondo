@@ -2196,10 +2196,7 @@ CcStarts( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcString*)args[1].addr)->IsDefined() )
   {
     string str1 = (string)(char*)((CcString*)args[0].addr)->GetStringval();
-    cout << str1 << endl;
     string str2 = (string)(char*)((CcString*)args[1].addr)->GetStringval();
-    cout << str1 << endl;
-    cout << str1.compare(str2, 0, str2.length()) << endl;
     ((CcBool *)result.addr)->
     Set (true, str1.compare(str2, 0, str2.length()) == 0 );
     //((CcBool *)result.addr)->
@@ -2227,6 +2224,11 @@ CcContains( Word* args, Word& result, int message, Word& local, Supplier s )
   if ( ((CcString*)args[0].addr)->IsDefined() &&
        ((CcString*)args[1].addr)->IsDefined() )
   {
+    string str1 = (string)(char*)((CcString*)args[0].addr)->GetStringval();
+    string str2 = (string)(char*)((CcString*)args[1].addr)->GetStringval();
+    ((CcBool *)result.addr)->
+    Set (true, str1.find(str2) != string::npos);
+
     //((CcBool *)result.addr)->
       //Set( true, ((CcString*)args[0].addr)->GetStringval()->find(
                 //*((CcString*)args[1].addr)->GetStringval() ) != string::npos );
