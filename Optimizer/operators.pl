@@ -25,6 +25,10 @@ filterTC(1.68).
 
 productTC(1.26).
 
+loopjoinTC(1.0).
+
+exactmatchTC(10.0).
+
 hashjoinTC(1.5, 0.65).
 
 sortmergejoinTC(0.3, 0.73).

@@ -854,6 +854,13 @@ plan_to_atom(loopjoin(A, B), Result) :-
   concat_atom([AAtom, 'loopjoin[', BAtom, '] '], Result),
   !.
 
+plan_to_atom(exactmatch(IndexName, Rel, Value), Result) :-
+  plan_to_atom(Rel, RelAtom),
+  plan_to_atom(Value, ValueAtom),
+  concat_atom([IndexName,
+    ' ', RelAtom, 'exactmatch[', ValueAtom, '] '], Result),
+  !.
+
 plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(Rel, RelAtom),
   plan_to_atom(a(Name, R, Case), AttrAtom),
@@ -1005,6 +1012,31 @@ select(Arg, pr(Pred, _)) => filter(ArgS, Pred) :-
   Arg => ArgS.
 
 /*
+
+Translation of selections using indices.
+
+*/
+select(arg(N), Y) => X :-
+  indexselect(arg(N), Y) => X.
+
+indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
+  indexselect(arg(N), pr(Y = attr(AttrName, Arg, Case), Rel)) => X.
+
+indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
+  exactmatch(IndexName, rel(Name, *, Case), Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
+  rename(exactmatch(IndexName, rel(Name, Var, Case), Y), Var)
+  :-
+  argument(N, rel(Name, Var, Case)),
+  !,
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+/*
 Here ~ArgS~ is meant to indicate ``argument stream''.
 
 5.2.3 Translation of Joins
@@ -1034,7 +1066,7 @@ exactmatchfun(IndexName, arg(N), Attr) =>
 
 /*
 
-For index joins we also employ the extend/remove technique 
+For index joins we also employ the extend/remove technique
 described below.
 
 */
@@ -1378,19 +1410,36 @@ cost(product(X, Y), _, S, C) :-
 /*
 
 Simplistic cost estimation for loop joins.
-The cost are deliberatly set to low values,
-otherwise the loopjoin would not be called for
-intersesting queries.
+
+If attribute values are assumed independent, then the selectivity
+of a subquery appearing in an index join equals the overall
+join selectivity. Therefore it is possible to estimate
+the result size and cost of a subquery
+(i.e. ~exactmatch~ and ~exactmatchfun~). As a subquery in an
+index join is executed as often as a tuple from the left
+input stream arrives, it is also possible to estimate the
+overall index join cost.
 
 */
+cost(exactmatchfun(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
+  exactmatchTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
 
-cost(loopjoin(X, Y), Sel, S, C) :-
+cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
+  exactmatchTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
+
+cost(loopjoin(X, Y), Sel, S, Cost) :-
   cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+  cost(Y, Sel, SizeY, CostY),
   S is SizeX * SizeY * Sel,
-  C is CostX + SizeY * CostY.
+  loopjoinTC(C),
+  Cost is C * SizeX + CostX + SizeX * CostY.
 
-cost(exactmatchfun(_, Rel, Attr), _, 0, 0).
 
 /*
 
@@ -1504,7 +1553,7 @@ graph.
 We implement the shortest path algorithm by Dijkstra. There are two  
 relevant sets of nodes: 
  
-  * center: the nodes for which shortest paths have already been  
+  * center: the nodes for which shortest paths have already been
 computed 
 
   * boundary: the nodes that have been seen, but that have not yet been  
