@@ -273,10 +273,10 @@ selectivity(pr(Pred, Rel), Sel) :-
 selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   Rel1 = rel(BaseName1, _, _),
   card(BaseName1, Card1),
-  SampleCard1 is min(Card1, max(100, Card1 * 0.01)),
+  SampleCard1 is min(Card1, max(500, Card1 * 0.00001)),
   Rel2 = rel(BaseName2, _, _),
   card(BaseName2, Card2),
-  SampleCard2 is min(Card2, max(100, Card2 * 0.01)),
+  SampleCard2 is min(Card2, max(500, Card2 * 0.00001)),
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -294,7 +294,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
 selectivity(pr(Pred, Rel), Sel) :-
   Rel = rel(BaseName, _, _),
   card(BaseName, Card),
-  SampleCard is min(Card, max(100, Card * 0.01)),
+  SampleCard is min(Card, max(500, Card * 0.00001)),
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
