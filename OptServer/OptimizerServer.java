@@ -523,6 +523,9 @@ public class OptimizerServer extends Thread{
         System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer  PortNumber");
 	System.exit(1);
        }
+       System.out.println("\n\n");
+       printLicence(System.out);
+       System.out.println("\n");
        String arg = args[0];
        OptimizerServer OS = new OptimizerServer();
        try{
@@ -607,6 +610,16 @@ public class OptimizerServer extends Thread{
    }
 
 
+   /** Prints out the licence information of this software **/
+   public static void printLicence(PrintStream out){
+       out.println(" Copyright (C) 2004, University in Hagen, ");
+       out.println(" Department of Computer Science,  ");
+       out.println(" Database Systems for New Applications. \n");
+
+       out.println(" This is free software; see the source for copying conditions.");
+       out.println(" There is NO warranty; not even for MERCHANTABILITY or FITNESS ");
+       out.println(" FOR A PARTICULAR PURPOSE.");
+   }
 
 
    private static PrologParser Parser = new PrologParser();
