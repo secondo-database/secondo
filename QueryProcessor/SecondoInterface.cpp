@@ -1234,7 +1234,13 @@ which should be named Command\_<name>.
  
  if ( errorCode > 0) { // translate error code into text
 
-   cmsg.send();
+   // check if the queryprocessor reports errors
+   string repMsg("");
+   ErrorReporter::GetErrorMessage(repMsg);
+   ErrorReporter::Reset();
+   errorMessage += repMsg + "\n";
+
+   cmsg.send(); // flush cmsg buffer
    errorMessage += cmsg.getErrorMsg();
    errorMessage += GetErrorMessage(errorCode);
  }
@@ -1305,9 +1311,6 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
   
   if ( !correct ) // Error in query
   {
-    ErrorReporter::GetErrorMessage(errorMessage); 
-    ErrorReporter::Reset();
-    cmsg.error() << errorMessage << endl;
     return ERR_IN_QUERY_EXPR; 
   }
 
@@ -1351,9 +1354,6 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
   }
   else
   {
-    ErrorReporter::GetErrorMessage(errorMessage);
-    ErrorReporter::Reset();
-    cmsg.error() << errorMessage << endl;
     errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable   
   }
   
