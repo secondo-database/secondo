@@ -42,6 +42,12 @@ setting of tabstops in editors will mess the code formatting.
 
 Dec 2004, M. Spiekermann. New function ~setFlag~ implemented.
 
+Jan 2005, M. Spiekermann. Some "stringstream << ends"[1] have been removed. The ~ends~
+function adds a byte of value 0 to the ~stringstreams~ and also into their
+resulting strings. This caused a hard to find bug (Value = is a whitespace) in
+nested list text atoms since value 0 is the only one which is used internally
+in text records to distinguish between empty and non empty space. 
+
 1.1 Overview
 
 This file declares a class ~RTFlag~ (Runtime Flag) and a preprocessor Macro
@@ -209,7 +215,7 @@ public:
 
   inline void send() {
   
-    buffer << ends;
+    //buffer << ends;
     if ( stdOutput == 3 ) {
       (*fp) << buffer.str();
     }
@@ -228,7 +234,7 @@ public:
 
   inline string getErrorMsg() {
 
-    allErrors << ends;
+    //allErrors << ends;
     string result = allErrors.str();
     allErrors.str("");
     allErrors.clear(); 
