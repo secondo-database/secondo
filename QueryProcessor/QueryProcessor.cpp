@@ -1196,8 +1196,35 @@ function index.
       }
       case TextType:
       {
-        cerr << "Annotate: textatom in query not allowed !" << endl;
-        exit(0);
+        AllocateValuesAndModels( valueno );
+        if ( level == DescriptiveLevel )
+        {
+          models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+            nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
+        }
+        else
+        {
+          int algId, typeId;
+
+          GetCatalog( level )->LookUpTypeExpr( nl->SymbolAtom( "text" ), typeName, algId, typeId ); //???
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "text" ), expr, //???
+            errorPos, errorInfo, correct );
+          values[valueno].isConstant = true;
+          values[valueno].isList = false;
+          values[valueno].algId = algId;
+          values[valueno].typeId = typeId;
+          values[valueno].value = value;
+          models[valueno] = GetCatalog( level )->ValueToObjectModel(
+            nl->SymbolAtom( "text" ), value );
+        }
+        valueno++;
+        return (nl->TwoElemList(
+                  nl->ThreeElemList(
+                    expr,
+                    nl->SymbolAtom( "constant" ),
+                    nl->IntAtom( valueno-1 ) ),
+                  nl->SymbolAtom( "text" ) ));
+
       }
       case SymbolType:
       {
