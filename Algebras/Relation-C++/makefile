@@ -28,17 +28,26 @@ OBJECTS=\
 	RelationMainMemory.$(OBJEXT) \
 	$(MODNAME).$(OBJEXT) 
 
+CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
+
 .PHONY: all
-all: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+all: $(CODE_DEPENDENCIES) $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+
+# create dependencies from include directives
+%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< -o $@
+
+
 
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I../OldRelation-C++
 
-#This define RELALG_PERSISTENT is used to compile the Persistent Relational Algebra.
-#comment this line below to change it to the Main Memory Relational Algebra.
-CCFLAGS+= -DRELALG_PERSISTENT 
+# define the compiler flag -DRELALG_PERSISTENT in the file 
+# makefile.env to compile the Persistent Relational Algebra.
+# It must be defined on a higher level since other algebras have
+# to interoperate with the relational algebra.
 
 #The define _PREFETCHING_ is used to use Prefetching Iterators instead or normal
 #ones and is used only for testing purposes. It will be removed in later versions.
@@ -73,6 +82,8 @@ RelationMainMemory.$(OBJEXT): RelationMainMemory.cpp  $(INCFILES)
 	$(CC) -c -o RelationMainMemory.$(OBJEXT) RelationMainMemory.cpp $(CCFLAGS)
 
 include ../../include.dep
+include $(CODE_DEPENDENCIES:.cpp=.dep)
+
 
 .PHONY: clean
 clean:
