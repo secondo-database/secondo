@@ -6,6 +6,7 @@
 
 *****************************************************************************/
 
+#include <stdio.h>
 #include <string.h>
 #include "PDNestedText.h"
 
@@ -15,7 +16,7 @@
 #undef NULL
 #define NULL -1
 
-#define STRINGMAX 30000
+#define STRINGMAX 300000
 /*
 Maximal number of characters in buffer ~text~.
 
@@ -58,7 +59,7 @@ int atom(char *string, int length)
     /* put string into text buffer: */
 
     	if (first_free_char + length > STRINGMAX)
-	    {printf("Error: too many characters.\n"); exit(1);}
+	    {fprintf(stderr, "Error: too many characters.\n"); exit(1);}
 
     	for (i = 0; i< length; i++)
 	    text[first_free_char + i] = string[i];
@@ -67,7 +68,7 @@ int atom(char *string, int length)
 
     	newnode = first_free_node++;
     	if (first_free_node > NODESMAX)
-	    {printf("Error: too many nodes.\n"); exit(1);}
+	    {fprintf(stderr, "Error: too many nodes.\n"); exit(1);}
 
    	nodespace[newnode].left = NULL;
   	nodespace[newnode].right = NULL;
@@ -103,7 +104,7 @@ int concat(int list1, int list2)
     newnode = first_free_node++;
 
     if (first_free_node > NODESMAX)
-	{printf("Error: too many nodes.\n"); exit(1);}
+	{fprintf(stderr, "Error: too many nodes.\n"); exit(1);}
 
     nodespace[newnode].left = list1;
     nodespace[newnode].right = list2;
@@ -164,7 +165,7 @@ int copylist(int list, char *target, int lengthlimit)
 	    return nodespace[list].length;
 	    }
 	else
-	    {printf("Error in copylist: too long text.\n"); print(list);
+	    {fprintf(stderr, "Error in copylist: too long text.\n"); print(list);
 	    exit(1);
 	    }
     else

@@ -89,7 +89,7 @@ enter_def(int index, int name, int open, int close)
     first_free_def++;
 
     if (first_free_def >= DEFMAX)
-	{printf("Error in enter_def: table full.\n"); 
+	{fprintf(stderr, "Error in enter_def: table full.\n"); 
 	exit(1);
 	}
 }
@@ -188,7 +188,7 @@ int get_startref_index(int listexpr)
 	case 5: 				/* two digits */
 		return (10 * (ref[1] - '0') + (ref[2] - '0'));
 	default:
-		{printf ("Error in get_startref_index: length is %d.\n", 
+		{fprintf(stderr, "Error in get_startref_index: length is %d.\n", 
 			length);
 		exit(1);
 		}
