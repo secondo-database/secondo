@@ -1221,12 +1221,14 @@ SecondoInterface::Command_Query( const AlgebraLevel level,
 		 ListExpr valueList = ctlg.OutObject( resultType, result );
 		 resultList = nl.TwoElemList( resultType, valueList );
 		 
+		 StopWatch destroyTime;
 		 qp.Destroy( tree, true );
 
 		 if (!RTFlag::isActive("SI:NoQueryAnalysis")) 
 		 {
-			 cmsg.info() << "Execute "<< queryTime.diffTimes() << endl
-			             << nl.ReportTableSizes() << endl;
+		   cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
+			 cmsg.info() << "Execute " << queryTime.diffTimes() << endl;
+			 cmsg.info() << nl.ReportTableSizes() << endl;
 			 cmsg.send();
 		 }
 
