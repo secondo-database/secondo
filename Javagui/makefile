@@ -1,18 +1,10 @@
 # filename Javagui.makefile
 #
 # last change 05-2003; Thomas Behr
+#
+#             10-2003; M. Spiekermann, automatic creation of configuration files added.
 
 include ./makefile.inc
-
-.PHONY: all #creates the gui and all know viewers
-all:
-	(cd ../Javainterface;make all)
-	(cd extern;make all)
-	(cd components;make all)
-	(cd viewer;make all)
-	(cd project;make all);
-	(cd gui;make all)
-	(cd viewer;make viewers)
 
 
 .PHONY: help
@@ -46,14 +38,22 @@ config: GBS.cfg gui.cfg
 	chmod ugo+x sgui
 	
 # Automatic creation of configuration files
-GBS.cfg: GBS.cfg.sample
-	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
-	|| test ! -e $@ && cp $< $@
-	
-gui.cfg: gui.cfg.example
-	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
-	|| test ! -e $@ && cp $< $@
 
+INI_1 := $(shell ls gui.cfg)
+gui.cfg: gui.cfg.example
+ifdef INI_1
+	@echo "Warning: Configuration file $< is newer than $@!"
+else
+	cp $< $@
+endif
+	
+INI_2 := $(shell ls GBS.cfg)
+GBS.cfg: GBS.cfg.sample
+ifdef INI_2
+	@echo "Warning: Configuration file $< is newer than $@!"
+else
+	cp $< $@
+endif
 
 .PHONY: clean # removes the documentation and all .class files
 clean:

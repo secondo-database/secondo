@@ -56,18 +56,32 @@ SMILIB=$(BDBSMILIB)
 endif
 
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps java config showjni 
+all: makedirs buildlibs buildalg buildapps java checkup 
+
+
+.PHONY: checkup
+checkup: config showjni
 
 .PHONY: config
 config: bin/SecondoConfig.ini Optimizer/SecondoConfig.ini
 
+BIN_INI := $(shell ls bin/SecondoConfig.ini)
 bin/SecondoConfig.ini: bin/SecondoConfig.example
-	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
-	|| test ! -e $@ && cp $< $@
+#	echo -$(BIN_INI)-
+ifdef BIN_INI
+	@echo "Warning: Configuration file $< is newer than $@!"
+else
+	cp $< $@
+endif
 	
+OPT_INI := $(shell ls Optimizer/SecondoConfig.ini)
 Optimizer/SecondoConfig.ini: bin/SecondoConfig.example
-	@test -e $@  && echo "Warning: Configuration file $< is newer than $@!" \
-	|| test ! -e $@ && cp $< $@
+#	echo -$(OPT_INI)-
+ifdef OPT_INI
+	@echo "Warning: Configuration file $< is newer than $@!"
+else
+	cp $< $@
+endif
 
 
 .PHONY: showjni
@@ -82,7 +96,7 @@ javagui:
 clientserver: cs
 
 .PHONY: cs 
-cs: makedirs buildlibs buildalg
+cs: makedirs buildlibs buildalg checkup
 	$(MAKE) -C ClientServer
 	$(MAKE) -C UserInterfaces TTYCS 
 	$(MAKE) -C ClientServer buildapp
@@ -101,16 +115,16 @@ makedirs:
 java:
 	$(MAKE) -C Javagui all
 
-.PHONY: TTY showjni 
+.PHONY: TTY checkup 
 TTY: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces TTY 
 
-.PHONY: TestRunner showjni
+.PHONY: TestRunner checkup 
 TestRunner: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces TestRunner
 
 
-.PHONY: optimizer
+.PHONY: optimizer checkup
 optimizer: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces optimizer
 	
