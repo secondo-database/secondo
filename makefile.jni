@@ -41,7 +41,7 @@ OS_DIR=linux
 
 JNIINCLUDE =  -I$(JNI_H_DIR) -I$(JNI_H_DIR)/$(OS_DIR)  -I$(INCLUDEDIR)
 
-JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify 
+JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify  $(JVMINIT_DIR)/JNITool.o
 
 endif
 
