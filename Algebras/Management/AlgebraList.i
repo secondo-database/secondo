@@ -31,4 +31,5 @@ ALGEBRA_INCLUDE(7,DateAlgebra,Executable)
 ALGEBRA_INCLUDE(8,BTreeAlgebra,Executable)
 ALGEBRA_INCLUDE(9,RangeAlgebra,Executable)
 ALGEBRA_INCLUDE(10,SpatialAlgebra,Executable)
+ALGEBRA_INCLUDE(11,FTextAlgebra,Executable)
 
