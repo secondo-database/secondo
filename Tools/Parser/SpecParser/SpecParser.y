@@ -5,6 +5,9 @@ March 2002 Ulrich Telle Port to C++, new version of NestedText
 
 February 2003 Ulrich Telle, adjusted for GNU C++ version 3.2
 
+May 2, 2003 RHG Prefixed ``ZZ'' to each operator token to avoid conflicts 
+under Windows.
+
 */
 
 %{
@@ -57,7 +60,7 @@ specs		: spec
 spec		: ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN 
 			{hasfunction = ZZFALSE; hasfunctionlist = ZZFALSE;
 			NestedText::CopyOut($2, operator1);
-			NestedText::CopyOut($4, token);
+			NestedText::CopyOut($4, token); token = "ZZ" + token;
 			if (issymbol)
 			  fprintf(lexrules, "\"%s\"\t\t{return %s;}\n", 
 			    operator1.c_str(), token.c_str());
