@@ -552,6 +552,7 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
    } 
   else
    {
+       cout <<"   >>>invalid date, replaced by UNDEFINED!<<<" << endl;
        delem=new Date (false, 0, 0, 0);
        result.addr=delem;
     } 
