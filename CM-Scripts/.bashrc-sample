@@ -1,0 +1,6 @@
+# Sample .bashrc for SECONDO
+# May 2004, Markus Spiekermann 
+#
+
+source ./secondo-bashrc
+
