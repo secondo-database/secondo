@@ -23,6 +23,7 @@ support for calling Secondo from PROLOG.
 #include "stdlib.h"
 
 #include "SWI-Prolog.h"
+#include "SecondoPL.h"
 
 using namespace std;
 
@@ -477,14 +478,14 @@ StartSecondoC(char* configFileName)
   string configFile = configFileName;
 
 
-  
+
   si = new SecondoInterface();
 
   if(si->Initialize(user, pswd, host, port, configFile))
-  {   
+  {
     string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", configFile );
     RTFlag::initByString(logMsgList);
-	  
+
     plnl = si->GetNestedList();
     return true;
   }
@@ -498,6 +499,34 @@ StartSecondoC(char* configFileName)
     return false;
   }
 }
+
+
+/* 9. registerSecondo
+   This function registers the secondo predicate at the prolog engine.
+*/
+
+int registerSecondo(){
+  cout << "register secondo" << endl;
+  char* configFile;
+  atexit(handle_exit);
+
+  /* Start Secondo and remove Secondo command line arguments
+     from the argument vector .*/
+  //configFile = GetConfigFileNameFromArgV(argc, argv);
+  int argnumber =0;
+  configFile = GetConfigFileNameFromArgV(argnumber,0);
+  if(configFile == 0 || !StartSecondoC(configFile))
+  {
+    cout << "SECONDO_CONFIG not defined" << endl;
+    return -1;
+  }
+
+  /* Start PROLOG interpreter with our extensions. */
+  PL_register_extensions(predicates);
+  return 0;
+}
+
+
 
 int
 main(int argc, char **argv)
