@@ -106,8 +106,19 @@ public void disconnect(){
      try{
         sendLine("<end connection>");
 	out.flush();
-        ClientSocket.close();
-     }catch(Exception e){}
+     }catch(Exception e){
+        System.out.println("error in sending end-message to optimizer-server");
+     }
+     finally{
+        try{
+	  ClientSocket.close();
+	}
+	catch(Exception e2){
+	  System.out.println("error in closing connection to optimizer-server");
+	}
+     }
+  }else{
+    System.out.println("ClientSocket==null");
   }
   ClientSocket = null;
   in  = null;
