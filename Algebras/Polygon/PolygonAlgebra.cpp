@@ -29,6 +29,7 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "SecondoSystem.h"
 #include "PArray.h"
 
 static NestedList* nl;
@@ -89,8 +90,8 @@ class Polygon //: public Attribute
 {
 	
   public:
-    Polygon();
-    Polygon( SmiRecordId id, bool update = true );
+    Polygon( SmiRecordFile *recordFile );
+    Polygon( SmiRecordFile *recordFile, SmiRecordId recordId, bool update = true );
     ~Polygon();
     
 //    int NumOfFLOBs();
@@ -127,9 +128,9 @@ class Polygon //: public Attribute
 This first constructor creates a new polygon.
 
 */
-Polygon::Polygon() :
+Polygon::Polygon( SmiRecordFile *recordFile ) :
   noVertices( 0 ),
-  vertices( new PArray<Vertex>() ),
+  vertices( new PArray<Vertex>( recordFile ) ),
   state( partial ) 
 {}
 
@@ -142,8 +143,8 @@ it is necessary to be completed for a polygon to
 be closed.
 
 */
-Polygon::Polygon( SmiRecordId id, bool update ) :
-  vertices( new PArray<Vertex>( id, update ) ),
+Polygon::Polygon( SmiRecordFile *recordFile, SmiRecordId recordId, bool update ) :
+  vertices( new PArray<Vertex>( recordFile, recordId, update ) ),
   state( complete ) 
 {
   noVertices = vertices->Size();
@@ -216,7 +217,7 @@ copy of ~this~.
 Polygon *Polygon::Clone() 
 {
   assert( state == complete );
-  Polygon *p = new Polygon();
+  Polygon *p = new Polygon( SecondoSystem::GetLobFile() );
   for( int i = 0; i < noVertices; i++ )
     p->Append( this->GetVertex( i ) );
   p->Complete();
@@ -461,7 +462,7 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
   if( nl->IsEmpty( first ) )
     // new polygon. Recordid unknown
   {
-    polygon = new Polygon();
+    polygon = new Polygon( SecondoSystem::GetLobFile() );
     ListExpr rest = nl->Rest( instance );
     while( !nl->IsEmpty( rest ) )
     {
@@ -488,7 +489,7 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
   else if( nl->ListLength( first ) == 1 && nl->IsAtom( nl->First( first ) ) && nl->AtomType( nl->First( first ) ) == IntType )
     // persistent polygon. First list contains the recordid
   {
-    polygon = new Polygon( nl->IntValue( nl->First( first ) ) );
+    polygon = new Polygon( SecondoSystem::GetLobFile(), nl->IntValue( nl->First( first ) ) );
     correct = true;
     return SetWord( polygon );
   }
@@ -532,7 +533,7 @@ Word CreatePolygon(const ListExpr typeInfo)
 {
   cout << "Polygon Algebra: Create" << endl;
 
-  Polygon* polygon = new Polygon();
+  Polygon* polygon = new Polygon( SecondoSystem::GetLobFile() );
   return ( SetWord(polygon) );
 }
 
@@ -570,7 +571,7 @@ OpenPolygon( SmiRecord& valueRecord,
     return (false);
   }
 
-  Polygon *polygon = new Polygon( recordId );
+  Polygon *polygon = new Polygon( SecondoSystem::GetLobFile(), recordId );
   value = SetWord( polygon );
 
   return (true);

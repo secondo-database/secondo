@@ -35,33 +35,31 @@ This type constructor implements the carrier set for ~range($\alpha$)~.
 3.1 Implementation of class ~Range~
 
 */
-Range::Range( const int algebraId, const int typeId, const int size ):
+Range::Range( SmiRecordFile *recordFile, const int algebraId, const int typeId, const int size ):
 algebraId( algebraId ),
 typeId( typeId ),
 size( size ),
 writeable( true ),
-parrays( false, 0 ),
+parrays( recordFile ),
 canDelete( false ),
 intervalCount( 0 ),
 ordered( true )
 {
-  parrays.Open( "parrayfile" );
-  parrays.AppendRecord( recid, record );
+  parrays->AppendRecord( recid, record );
   record.Write( &algebraId, sizeof( int ), 0 );
   record.Write( &typeId, sizeof( int ), sizeof( int ) );
   record.Write( &size, sizeof( int ), 2 * sizeof( int ) );
   record.Write( &intervalCount, sizeof(int), 3 * sizeof( int ) );
 }
 
-Range::Range( const SmiRecordId id, const bool update ) :
+Range::Range( SmiRecordFile *recordFile, const SmiRecordId id, const bool update ) :
 writeable( update ),
-parrays( false, 0 ),
+parrays( recordFile ),
 canDelete( false ),
 ordered( true )
 {
-  parrays.Open( "parrayfile" );
   SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  parrays.SelectRecord( id, record, at );
+  parrays->SelectRecord( id, record, at );
   recid = id;
   record.Read( &algebraId, sizeof( int ), 0 );
   record.Read( &typeId, sizeof( int ), sizeof( int ) );
@@ -73,13 +71,12 @@ Range::~Range()
 {
   if ( canDelete )
   {
-    parrays.DeleteRecord( recid );
+    parrays->DeleteRecord( recid );
   }
   else if ( writeable )
   {
     record.Write( &intervalCount, sizeof(int), 3 * sizeof( int ) );
   }
-  parrays.Close();
 }
 
 void Range::Add( const Interval& interval )
@@ -1209,7 +1206,7 @@ InRange( const ListExpr typeInfo, const ListExpr instance,
   Word w = SetWord( aux );
   (algM->DeleteObj(algebraId, typeId))( w );
 
-  Range* range = new Range( algebraId, typeId, objSize );
+  Range* range = new Range( SecondoSystem::GetLobFile(), algebraId, typeId, objSize );
   range->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -1256,7 +1253,7 @@ CreateRange( const ListExpr typeInfo )
   int objSize = aux->Sizeof();
   Word w = SetWord( aux );
   (algM->DeleteObj(algebraId, typeId))( w );
-  return (SetWord( new Range( algebraId, typeId, objSize ) ));
+  return (SetWord( new Range( SecondoSystem::GetLobFile(), algebraId, typeId, objSize ) ));
 }
 
 /*
@@ -1304,7 +1301,7 @@ OpenRange( SmiRecord& valueRecord,
   SmiRecordId recordId;
 
   valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-  Range *range = new Range( recordId );
+  Range *range = new Range( SecondoSystem::GetLobFile(), recordId );
   value = SetWord( range );
 
   return (true);

@@ -238,14 +238,14 @@ class Range
 There are two ways of constructing a range:
 
 */
-    Range( const int algebraId, const int typeId, const int size );
+    Range( SmiRecordFile *recordFile, const int algebraId, const int typeId, const int size );
 /*
 The first one receives the size that the type $\alpha$ occupes in memory.
 This size will be used for reading and writing the range values into 
 disk.
 
 */
-    Range( const SmiRecordId id, const bool update = true );
+    Range( SmiRecordFile *recordFile, const SmiRecordId id, const bool update = true );
 /*
 The second one opens a saved range which recordid is pointed by ~id~. The 
 flag ~update~ tells when to open the files only for reading or also to
@@ -528,7 +528,7 @@ The algebraId, typeId, and size of the $\alpha$-element of the range.
 A flag indication if the files were opened for writing.
 
 */
-    SmiRecordFile parrays;
+    SmiRecordFile *parrays;
     SmiRecord record;
     SmiRecordId recid;
 /*

@@ -407,13 +407,13 @@ A ~points~ value is a finite set of points.
 5.1 Implementation of the class ~Points~
 
 */
-Points::Points() :
-  points( new PArray<Point>() ),
+Points::Points( SmiRecordFile *recordFile ) :
+  points( new PArray<Point>( recordFile ) ),
   ordered( true )
 {}
 
-Points::Points( const Points& ps ) :
-  points( new PArray<Point>() ), 
+Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
+  points( new PArray<Point>( recordFile ) ), 
   ordered( true )
 {
   assert( ps.IsOrdered() );
@@ -426,8 +426,8 @@ Points::Points( const Points& ps ) :
   }
 }
 
-Points::Points( const SmiRecordId recordId, bool update ):
-  points( new PArray<Point>( recordId, update ) ),
+Points::Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update ):
+  points( new PArray<Point>( recordFile, recordId, update ) ),
   ordered( true )
   {}
 
@@ -490,7 +490,7 @@ Points& Points::operator=( const Points& ps )
 
   points->MarkDelete();
   delete points;
-  points = new PArray<Point>();
+  points = new PArray<Point>( SecondoSystem::GetLobFile() );
   for( int i = 0; i < ps.Size(); i++ )
   {
     Point p;
@@ -822,7 +822,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
 {
   cout << "InPoints" << endl;
 
-  Points* points = new Points();
+  Points* points = new Points( SecondoSystem::GetLobFile() );
   points->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -856,7 +856,7 @@ CreatePoints( const ListExpr typeInfo )
 {
   cout << "CreatePoints" << endl;
 
-  return (SetWord( new Points() ));
+  return (SetWord( new Points( SecondoSystem::GetLobFile() ) ));
 }
 
 /*
@@ -896,7 +896,7 @@ ClonePoints( const Word& w )
 {
   cout << "ClonePoints" << endl;
 
-  Points *p = new Points( *((Points *)w.addr) );
+  Points *p = new Points( SecondoSystem::GetLobFile(), *((Points *)w.addr) );
   return SetWord( p );
 }
  
@@ -914,7 +914,7 @@ OpenPoints( SmiRecord& valueRecord,
   SmiRecordId recordId;
 
   valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
-  Points *points = new Points( recordId );
+  Points *points = new Points( SecondoSystem::GetLobFile(), recordId );
   value = SetWord( points );
 
   cout << "OpenPoints: " << *points << endl;

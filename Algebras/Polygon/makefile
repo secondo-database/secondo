@@ -3,6 +3,11 @@
 # SECONDO makefile for Polygon Algebra
 #
 # $Log$
+# Revision 1.3  2002/11/27 20:31:04  spieker
+# Rules for generation of libraries were revised. Many rules are written
+# in a short manner by use of VPATH and automatic variables $@ and $<.
+# Hopefully the makefiles are now easier to read and to maintain.
+#
 # Revision 1.2  2002/09/26 17:27:14  spieker
 # Problems with make shared=yes, because the polygon algebra references the
 # Tuplemanager and the SMI. Tuplemanager files and libsmi have been added to the
@@ -21,7 +26,8 @@ INCFILES=\
 	$(INCLUDEDIR)/Algebra.h \
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
-	$(INCLUDEDIR)/StandardTypes.h
+	$(INCLUDEDIR)/StandardTypes.h \
+        $(INCLUDEDIR)/PArray.h
 
 REFFILE=\
 

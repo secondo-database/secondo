@@ -254,6 +254,12 @@ Commits a transaction.
 Aborts a transaction.
 
 */
+  static SmiRecordFile* GetLobFile();
+/*
+Returns the file for FLOB objects.
+
+*/
+
  protected:
   SecondoSystem( const SecondoSystem& );
   SecondoSystem& operator=( const SecondoSystem& );
@@ -278,6 +284,7 @@ Are internal methods for restoring a database.
   SecondoCatalog* scDescriptive;
   SecondoCatalog* scExecutable;
   AlgebraLevel    currentLevel;
+  SmiRecordFile*  lobFile;
 
   bool            testMode;
   bool            initialized;

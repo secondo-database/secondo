@@ -65,7 +65,7 @@ class PArray
 {
  public:
 
-  PArray();
+  PArray( SmiRecordFile *parrays );
 
 /*
 Creates creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
@@ -74,7 +74,7 @@ array with the argument ~initsize~.
 
 */
   
-  PArray( const SmiRecordId id, const bool update = true );
+  PArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update = true );
 
 /*
 Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
@@ -135,11 +135,11 @@ Returns the identifier of this array.
  private:
 
   bool writeable;
-  SmiRecordFile parrays;
   SmiRecord record;
   SmiRecordId recid;
   int size;
   bool canDelete;
+  SmiRecordFile *parrays;
 
 };
 
@@ -159,26 +159,24 @@ SecondoSMI interface.
 */
 
 template<class T>
-PArray<T>::PArray() :
+PArray<T>::PArray( SmiRecordFile *parrays ) :
 writeable( true ),
-parrays( false, 0 ),
 size( 0 ),
-canDelete( false )
+canDelete( false ),
+parrays( parrays )
 {
-  parrays.Open( "parrayfile" );
-  parrays.AppendRecord( recid, record );
+  parrays->AppendRecord( recid, record );
   record.Write( &size, sizeof(int) );
 }
 
 template<class T>
-PArray<T>::PArray( const SmiRecordId id, const bool update ) :
+PArray<T>::PArray( SmiRecordFile *parrays, const SmiRecordId id, const bool update ) :
 writeable( update ),
-parrays( false, 0 ),
-canDelete( false )
+canDelete( false ),
+parrays( parrays )
 {
-  parrays.Open( "parrayfile" );
   SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  assert( parrays.SelectRecord( id, record, at ) );
+  assert( parrays->SelectRecord( id, record, at ) );
   recid = id;
   record.Read( &size, sizeof( int ) );
 }
@@ -188,14 +186,12 @@ PArray<T>::~PArray()
 {
   if ( canDelete ) 
   {
-    parrays.DeleteRecord( recid );
+    parrays->DeleteRecord( recid );
   }
   else if ( writeable )
   {
     record.Write( &size, sizeof( int ) );
   } 
-
-  parrays.Close();
 }
 
 template<class T>

@@ -15,7 +15,8 @@ INCFILES=\
 	$(INCLUDEDIR)/StandardTypes.h \
 	$(INCLUDEDIR)/StandardAttribute.h \
 	$(INCLUDEDIR)/SecondoSMI.h \
-	./RangeAlgebra.h
+        $(INCLUDEDIR)/PArray.h \
+	$(INCLUDEDIR)/RangeAlgebra.h
  
 
 
