@@ -473,6 +473,13 @@ public class ListExpr extends Object {
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.isAtom() || this.isEmpty()) {
         System.err.println("CHECK PRECONDITIONS: Error when calling the first() method: the ListExpr object does not fulfil the preconditions.");
+        if(this.isAtom()){
+           System.err.println("This is an atom");
+           this.writeListExpr();
+        }
+        if (this.isEmpty())
+           System.err.println("This is empty");
+        new Throwable().printStackTrace();
       }
     }
     return  (ListExpr)this.value;
