@@ -1,0 +1,220 @@
+package viewer.hoese.algebras.periodic;
+
+import java.util.Vector;
+import sj.lang.ListExpr;
+
+/* to do :
+   - accelerate the search by including a vector of
+     summarized time intervals
+*/
+
+public class CompositeMove implements Move{
+
+/** creates a undefined composite move */
+public CompositeMove(){
+   this(-1);
+}
+
+/** creates a undefined composite move with the given
+  * initial capacity for sub moves
+  */
+
+public CompositeMove(int InitialCapacity){
+   interval = null;
+   defined = false;
+   subMoves = InitialCapacity<=0? new Vector() : new Vector(InitialCapacity);
+   summarizedIntervals = InitialCapacity<=0? new Vector() : new Vector(InitialCapacity);
+}
+
+/** returns true if this composite move is defined */
+public boolean isDefined(){
+   return defined;
+}
+
+/** returns the total relative interval of this move */
+public RelInterval getInterval(){
+   return interval;
+}
+
+public Object getObjectAt(Time T){
+   if(!defined){
+     if(Environment.DEBUG_MODE)
+        System.err.println("CompositeMove.getObjectAt called on undefined instance");
+     return null;
+   }
+   if(!this.interval.contains(T)){
+      return null;
+   }
+   if(Time.ZeroTime.compareTo(T)>0){
+      return ((Move) subMoves.get(0)).getObjectAt(T);
+   }
+   int minIndex = ((Move) subMoves.get(0)).getInterval().isLeftInfinite()?1:0;
+   Move M = (Move) subMoves.get(minIndex);
+   if(M.getInterval().contains(T))
+      return M.getObjectAt(T);
+   minIndex++;
+   int maxIndex=subMoves.size();
+   int midIndex = (maxIndex+minIndex)/2;
+   RelInterval MidInterval = (RelInterval) summarizedIntervals.get(midIndex);
+   RelInterval PreMidInterval = (RelInterval) summarizedIntervals.get(midIndex-1);
+   boolean CMid = MidInterval.contains(T);
+   boolean CPre = PreMidInterval.contains(T);
+   while(CPre || !CMid){
+      if(CPre){
+        maxIndex = midIndex-1;
+      }else { // !CMid
+        minIndex = midIndex+1;
+      }
+      midIndex = (maxIndex+minIndex)/2;
+      MidInterval = (RelInterval) summarizedIntervals.get(midIndex);
+      PreMidInterval = (RelInterval) summarizedIntervals.get(midIndex-1);
+      CMid = MidInterval.contains(T);
+      CPre = PreMidInterval.contains(T);
+   }
+   M = (Move) subMoves.get(midIndex);
+   return M.getObjectAt(T.minus(PreMidInterval.getLength()));
+}
+
+
+/** returns the number of cointained moves */
+public int getNumberOfMoves(){
+    return subMoves.size();
+}
+
+/** returns the Move at the specific index
+  * returns null if this index is not contained
+  */
+public Move getMoveNo(int index){
+   if(index<0 || index >=subMoves.size())
+      return null;
+   return (Move) subMoves.get(index);
+}
+
+
+private void setUndefined(){
+    defined = false;
+    interval=null;
+    subMoves.clear();
+}
+
+public boolean readFrom(ListExpr LE, Class linearClass){
+   if(LE.listLength()!=2){
+     if(Environment.DEBUG_MODE){
+        System.err.println("CompositeMove.readFrom : wrong ListLength");
+	System.err.println("exected 2, received : "+LE.listLength());
+     }
+     setUndefined();
+     return false;
+   }
+   if(LE.first().atomType()!=LE.SYMBOL_ATOM ||
+      LE.second().atomType() != LE.NO_ATOM){
+      if(Environment.DEBUG_MODE)
+        System.err.println("CompositeMove.readFrom : wrong types of the sublists");
+     setUndefined();
+     return false;
+   }
+   if(!LE.first().symbolValue().equals("composite")){
+     if(Environment.DEBUG_MODE)
+        System.err.println("CompositeMove.readFrom : wrong type description");
+     setUndefined();
+   }
+
+   int length = LE.second().listLength();
+   if(length<1){
+      if(Environment.DEBUG_MODE)
+        System.err.println("CompositeMove.readFrom : wrong length of the value list");
+      setUndefined();
+      return false;
+   }
+   ListExpr SubMoves = LE.second();
+   subMoves.ensureCapacity(SubMoves.listLength()+1);
+   summarizedIntervals.ensureCapacity(SubMoves.listLength()+1);
+   boolean ok = true;
+   while(!SubMoves.isEmpty() && ok){
+     ListExpr SML = SubMoves.first();
+     SubMoves = SubMoves.rest();
+     if(SML.listLength()<1 || SML.first().atomType()!=LE.SYMBOL_ATOM){
+       ok = false;
+     }else{
+       String type = SML.first().symbolValue();
+       if(!type.equals("period") && !type.equals("linear")){
+            if(Environment.DEBUG_MODE)
+              System.err.println("CompositeMove.readFrom : found unknown type of sub move");
+            ok = false;
+       } else{
+         try{
+            Move SM;
+	    if(type.equals("period"))
+               SM = new PeriodMove();
+   	    else
+	       SM = (Move) linearClass.newInstance();
+            ok = SM.readFrom(SML,linearClass);
+            if(!ok && Environment.DEBUG_MODE)
+                   System.err.println("CompositeMove.readFrom : error in reading submove ");
+            if(ok)
+	       ok = append(SM);
+	    if(!ok && Environment.DEBUG_MODE)
+	       System.err.println("CompositeMOve.readFRom: error in appending submove");
+
+	 }catch(Exception e){
+	     if(Environment.DEBUG_MODE){
+                 System.err.println("CompositeMove.readFrom : can't create the Submove");
+		 e.printStackTrace();
+	     }
+             ok = false;
+	 }
+       }
+     }
+    } // while
+    if(!ok){
+     if(Environment.DEBUG_MODE)
+        System.err.println("CompositeMove.readFrom : error in reading submoves");
+     setUndefined();
+     return false;
+   }
+   return true;
+
+}
+
+
+/** append the specified Move
+  * if the interval can't be appendend null is returned
+  */
+public boolean append(Move M){
+  if(M==null){
+     if(Environment.DEBUG_MODE)
+        System.err.println("CompositeMove.append: tray to append null");
+     return false;
+  }
+  if(!defined){
+     this.interval = M.getInterval().copy();
+     boundingBox = M.getBoundingBox();
+     subMoves.add(M);
+     summarizedIntervals.add(interval.copy());
+     defined=true;
+     return true;
+  }
+  RelInterval Minterval = M.getInterval();
+  if(!this.interval.canAppended(Minterval)){
+     if(Environment.DEBUG_MODE)
+        System.err.println("CompositeMove.append: submove interval collides with this interval");
+     return false;
+  }
+  subMoves.add(M);
+  this.interval.append(Minterval);
+  summarizedIntervals.add(interval.copy());
+  if(boundingBox!=null)
+     boundingBox = boundingBox.union(M.getBoundingBox());
+  return true;
+}
+
+public BBox getBoundingBox(){
+   return boundingBox;
+}
+
+private boolean defined;
+private RelInterval interval;
+private Vector  subMoves;
+private Vector  summarizedIntervals;
+private BBox boundingBox;
+}
