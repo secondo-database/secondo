@@ -2611,9 +2611,12 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
       qp->Close(args[0].addr);
-      localinfo=(LoopjoinLocalInfo *) local.addr;
-      delete localinfo->resultTupleType;
-      delete localinfo;
+      if( local.addr != 0 )
+      {
+        localinfo=(LoopjoinLocalInfo *) local.addr;
+        delete localinfo->resultTupleType;
+        delete localinfo;
+      }
       return 0;
   }
 
