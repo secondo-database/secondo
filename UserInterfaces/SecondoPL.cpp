@@ -25,6 +25,8 @@ support for calling Secondo from PROLOG.
 using namespace std;
 
 #include "SecondoInterface.h"
+#include "Profiles.h"
+#include "LogMsg.h"
 
 SecondoInterface* si = 0;
 NestedList* plnl = 0;
@@ -452,6 +454,10 @@ StartSecondoC(char* configFileName)
   string port = "";
   string configFile = configFileName;
 
+  string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", configFile );
+  RTFlag::initByString(logMsgList);
+
+  
   si = new SecondoInterface();
 
   if(si->Initialize(user, pswd, host, port, configFile))
@@ -499,7 +505,7 @@ main(int argc, char **argv)
 #endif
   
   success = PL_toplevel();
-
+  
   /* PROLOG interpreter has terminated, shutdown Secondo */
   if(si != 0)
   {
