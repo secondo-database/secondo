@@ -202,7 +202,7 @@ pr_order(order_t *o, int mode)
 	
      fprintf(fp_o, "(OBJECT ORDERS \n");
      fprintf(fp_o, "  ()");
-     fprintf(fp_o, "  (rel( tuple ( (O_ORDDERKEY int) \n");
+     fprintf(fp_o, "  (rel( tuple ( (O_ORDERKEY int) \n");
      fprintf(fp_o, "                (O_CUSTKEY int) \n");
      fprintf(fp_o, "                (O_ORDERSTATUS string) \n");
      fprintf(fp_o, "                (O_TOTALPRICE real) \n");
