@@ -139,7 +139,11 @@ file		"<file>"[^<\n]+"</file--->"
  */
 
 <TEXT>.|\n              { cols += yyleng;
-                        text->put( yytext[0] );
+                          if(yytext[0]=='\n'){
+                             lines++;
+                             cols = 0;
+                          } 
+                          text->put( yytext[0] );
                         }
 
 
