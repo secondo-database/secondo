@@ -47,7 +47,7 @@ done
 
 cd "$HOME"
 printf "\n\n* Uncompressing SECONDO source files ... \n"
-if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
+if { ! tar -xzf "$cdpath/secondo-linux.tgz"; }; then
   exit 3
 fi
 

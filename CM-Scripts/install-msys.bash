@@ -102,7 +102,7 @@ done
 
 cd "$HOME"
 printf "\n\n* Uncompressing SECONDO source files ... \n"
-if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
+if { ! tar -xzf "$cdpath/secondo-win32.tgz"; }; then
   exit 5
 fi
 
