@@ -61,9 +61,10 @@ utilities:
 
 .PHONY: install
 install:
-	$(CP) $(BDB_BUILD_DIR)/*.h $(BDBDIR)/dbinc
-	$(CP) $(BDBLIB_OBJECTS) $(LIBDIR)
-	$(CP) $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) $(BUILDDIR)/bin
+	install -m744 $(BDB_BUILD_DIR)/*.h /usr/local/include
+	install -m744 $(BDBDIR)/dbinc/*.h /usr/local/include
+	install -m755 $(BDBLIB_OBJECTS) /usr/local/lib
+	install -m755 $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) /usr/local/bin
 
 .PHONY: berkeley_db
 $(BDBLIB_OBJECTS):
