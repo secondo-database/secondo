@@ -62,4 +62,3 @@ fi
 export USER=$LOGNAME
 cd "$HOME"
 
-source ./secondo-bashrc

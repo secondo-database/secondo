@@ -13,6 +13,8 @@ else if [ "$1" = "testmode" ]; then
      instpath="$HOME/SANDBOX-DRV-C"
      install -d "$instpath/msys/1.0"
      install -d "$instpath/mingw"
+     install -d "$instpath/secondo-sdk"
+     install -d "$instpath/secondo"
    else
      instpath="$1"
    fi
@@ -45,28 +47,40 @@ fi
 
 printf "\n* Installing from " 
 printf "\n* '$cdpath' to '$instpath' \n" 
-printf "\n* Creating mount points ... \n"
+printf "\n\n* Creating mount points ... \n"
 
 
 mkdir "$msysdir/secondo-sdk"
 mkdir "$msysdir/secondo"
 mkdir "$msysdir/mingw"
 
-printf "\n* Uncompressing archives ... "
+printf "\n\n* Installing unzip ..."
 
-cd "$instpath"
-tar -xzf "$cdpath/secondo.tgz"
-tar -xzf "$cdpath/sdk.tgz"
 cd "$instpath/secondo-sdk"
-tar -xzf "$cdpath/../java/cvs/jcvs-*.tgz"
-unzip -q "$cdpath/../bdb/db-4.*.zip"
+echo "$cdpath/non-gnu/unz550xN"
+export PATH="$instpath/secondo-sdk/bin:$instpath/secondo-sdk/lib:$PATH"
 
+printf "\n\n* Uncompressing archives ... "
 
-printf  "\n* Copying configuration files ... \n"
-cd "$instpath/secondo"
-chmod u+x setvar.bash catvar secondo-bashrc
-cp setvar.bash catvar "$instpath/secondo-sdk/bin"
-cp secondo-bashrc "$HOME"
+for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs $cdpath; do
+  zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
+  gzFiles=$(find $folder -maxdepth 1 -name "*.gz")
+  for file in $zipFiles; do
+    printf "\n  processing $file ..."
+    unzip -q -o $file
+  done
+  for file in $gzFiles; do
+    printf "\n  processing $file ..."
+    tar -xzf $file
+  done
+done
+
+printf  "\n\n* Copying configuration files ... \n"
+cd "$instpath/secondo/CM-Scripts"
+chmod u+x setvar.bash catvar .secondorc .bashrc-sample
+cp --backup setvar.bash catvar "$instpath/secondo-sdk/bin"
+cp --backup .secondorc .bashrc-sample "$HOME"
+cp --backup .bashrc-sample "$HOME/.bashrc"
 
 cd "$cdpath" 
 cp --backup fstab profile /etc

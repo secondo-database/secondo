@@ -3,7 +3,7 @@
 
 include ../../makefile.env
 
-ROOT_DIR=../..
+SCRIPT_DIR=../../CM-Scripts
 	
 # Configuration files for MSYS
 .PHONY: config-msys
@@ -11,15 +11,18 @@ config-msys: config-all /etc/profile /etc/fstab
 
 # Configuration files shared by Linux and Windows
 .PHONY: config-all 
-config-all: $(SECONDO_SDK)/bin/setvar.bash $(SECONDO_SDK)/bin/catvar $(HOME)/secondo-bashrc
+config-all: $(SECONDO_SDK)/bin/setvar.bash $(SECONDO_SDK)/bin/catvar $(HOME)/.secondorc
 	
-$(SECONDO_SDK)/bin/setvar.bash: $(ROOT_DIR)/setvar.bash
+$(SECONDO_SDK)/bin/setvar.bash: $(SCRIPT_DIR)/setvar.bash
 	cp --backup $< $@
 
-$(SECONDO_SDK)/bin/catvar: $(ROOT_DIR)/catvar.sh
+$(SECONDO_SDK)/bin/catvar: $(SCRIPT_DIR)/catvar.sh
 	cp --backup $< $@
 
-$(HOME)/secondo-bashrc: $(ROOT_DIR)/secondo-bashrc
+$(HOME)/.secondorc: $(SCRIPT_DIR)/.secondorc
+	cp --backup $< $@
+
+$(HOME)/.bashrc: $(SCRIPT_DIR)/.bashrc-sample
 	cp --backup $< $@
 
 /etc/profile: profile
@@ -32,7 +35,7 @@ $(HOME)/secondo-bashrc: $(ROOT_DIR)/secondo-bashrc
 .PHONY: dist
 dist: $(NETDEV)/fstab $(NETDEV)/profile $(NETDEV)/install-msys.bash
 
-$(NETDEV)/install-msys.bash: $(ROOT_DIR)/install-msys.bash
+$(NETDEV)/install-msys.bash: $(SCRIPT_DIR)/install-msys.bash
 	cp $< $@
 
 $(NETDEV)/fstab: fstab
