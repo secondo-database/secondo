@@ -4,49 +4,26 @@
 
 include ../makefile.inc
 
+JAVAFILES =$(shell find -maxdepth 1 -name "*.java")
+TMPFILES = $(subst .java,.class,$(JAVAFILES))
+CLASSFILES = $(subst ./,,$(TMPFILES))
+
 .PHONY: all
-all: SecondoObject.class ViewerControl.class ServerDialog.class \
-     ResultProcessor.class ObjectList.class CommandPanel.class \
-     HelpScreen.class MainWindow.class 
-
-SecondoObject.class: SecondoObject.java
-	$(JAVAC) -classpath $(CLASSPATH) SecondoObject.java
-
-ViewerControl.class: ViewerControl.java
-	$(JAVAC) -classpath $(CLASSPATH) ViewerControl.java        
-
-ServerDialog.class: ServerDialog.java
-	$(JAVAC) -classpath $(CLASSPATH) ServerDialog.java
-
-ResultProcessor.class: ResultProcessor.java
-	$(JAVAC) -classpath $(CLASSPATH) ResultProcessor.java
-
-CommandPanel.class: CommandPanel.java
-	$(JAVAC) -classpath $(CLASSPATH) CommandPanel.java
-
-ObjectList.class: ObjectList.java
-	$(JAVAC) -classpath $(CLASSPATH) ObjectList.java
-
-HelpScreen.class: HelpScreen.java
-	$(JAVAC) -classpath $(CLASSPATH) HelpScreen.java
-
-MainWindow.class: MainWindow.java
-	$(JAVAC) -classpath $(CLASSPATH) MainWindow.java
+all: IDManager $(CLASSFILES)
 
 
+%.class: %.java
+	$(JAVAC) -classpath $(CLASSPATH) $<
 
+
+.PHONY: IDManager
+IDManager:
+	(cd idmanager; make all);
 
 
 .PHONY: clean
 clean:
+	(cd idmanager; make clean);
 	rm -f *.class
 
 
-t: addclasses showclasses
-
-.PHONY: addclasses
-addclasses: ALLCLASSFILES= $(shell find *.class) 
-
-
-showclasses:
-	@echo $(ALLCLASSFILES)
