@@ -17,8 +17,6 @@ public ListExpr getList(String FileName){
       Last_Error ="error in open file";
       return null;
    }
-   RecordHeader RH = readRecordHeader();
-   Record R = new Record();
    String SecondoType = ShapeType.getSecondoName(Head.getShapeType());
    ListExpr TypeList =
         ListExpr.twoElemList( ListExpr.symbolAtom("rel"),
@@ -32,8 +30,10 @@ public ListExpr getList(String FileName){
    ListExpr ValueList=null;
    ListExpr Last = null;
    ListExpr LE;
+   RecordHeader RH = readRecordHeader();
+   Record R = new Record();
    while(RH!=null){
-      char[] Buffer = readNextRecord(RH);
+      byte[] Buffer = readNextRecord(RH);
       if(Buffer==null){
         RH=null;
       }else{
@@ -77,7 +77,7 @@ private boolean openFile(File F){
           Last_Error = "WRONG_FILESIZE";
           return false;
        }
-       BR = new BufferedReader(new FileReader(F));
+       FIS = new FileInputStream(F);
        opened = true;
        return readHeader();
     }
@@ -90,7 +90,7 @@ private boolean openFile(File F){
 
 private boolean closeFile(){
   try{
-     BR.close();
+     FIS.close();
      opened = false;
      return true;
   }
@@ -106,8 +106,12 @@ private boolean readHeader(){
 
    Head = new ShapeHeader();
   try{
-   char[] Buffer = new char[100];
-   BR.read(Buffer);
+   byte[] Buffer = new byte[100];
+   int readed = FIS.read(Buffer);
+   if(readed!=Buffer.length){
+      System.err.println("Shapeheader not correct readed");
+      return false;
+   }
    if(!Head.readFrom(Buffer)){
       System.err.println("error in Reading ShapeHeader");
       return false;
@@ -124,8 +128,8 @@ private boolean readHeader(){
 private RecordHeader readRecordHeader(){
    RecordHeader Res = null;
    try{
-     char[] Buffer = new char[8];
-     BR.read(Buffer);
+     byte[] Buffer = new byte[8];
+     FIS.read(Buffer);
      Res = new RecordHeader();
      Res.readFrom(Buffer);
    }catch(Exception e){
@@ -137,10 +141,13 @@ private RecordHeader readRecordHeader(){
 
 
 
-private char[] readNextRecord(RecordHeader RH){
+private byte[] readNextRecord(RecordHeader RH){
    try{
-      char[] Buffer = new char[RH.getContentLength()*2];
-      BR.read(Buffer);
+      byte[] Buffer = new byte[RH.getContentLength()*2];
+      if(FIS.read(Buffer)!=Buffer.length){
+         System.err.println("Buffer not complete loaded");
+         return null;
+      }
       return Buffer;
    }catch(Exception e){
        Last_Error = "ERROR_IN_READING_FILE";
@@ -148,7 +155,9 @@ private char[] readNextRecord(RecordHeader RH){
    }
 }
 
-private BufferedReader BR;
+private FileInputStream FIS;
+
+
 private boolean opened= false;
 private ShapeHeader Head;
 

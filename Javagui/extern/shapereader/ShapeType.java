@@ -76,7 +76,7 @@ public static String getSecondoName(int type){
     return type;
  }
 
- public boolean readFrom(char[] Buffer){
+ public boolean readFrom(byte[] Buffer){
    if(Buffer.length!=4)
       return false;
    type = NumericReader.getIntLittle(Buffer,0);

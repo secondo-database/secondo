@@ -13,7 +13,7 @@ import extern.numericreader.*;
 public class Record{
 
 
-public boolean readFrom(char[] Buffer){
+public boolean readFrom(byte[] Buffer){
   LE =null;
   if(Buffer.length<4)
      return false;
@@ -45,13 +45,13 @@ public BoundingBox getBoundingBox(){
 }
 
 
-private boolean readNullShape(char[] Buffer){
+private boolean readNullShape(byte[] Buffer){
   LE = ListExpr.theEmptyList();
   BBox = new BoundingBox(0,0,0,0);
   return true;
 }
 
-private boolean readPoint(char[] Buffer){
+private boolean readPoint(byte[] Buffer){
    if(Buffer.length<20)
       return false;
    double x = NumericReader.getDoubleLittle(Buffer,4);
@@ -63,7 +63,7 @@ private boolean readPoint(char[] Buffer){
 }
 
 
-private boolean readPoints(char[] Buffer){
+private boolean readPoints(byte[] Buffer){
    if(Buffer.length<40)
        return false;
    double xmin = NumericReader.getDoubleLittle(Buffer,4);
@@ -98,7 +98,7 @@ private boolean readPoints(char[] Buffer){
 
 
 
-private boolean readPolyLine(char[] Buffer){
+private boolean readPolyLine(byte[] Buffer){
   if(Buffer.length<44)
       return false;
   double xmin = NumericReader.getDoubleLittle(Buffer,4);
@@ -166,7 +166,7 @@ private static boolean isHoleFrom(Cycle2D Hole,Cycle2D Face){
 
 
 
-private boolean readPolygon(char[] Buffer){
+private boolean readPolygon(byte[] Buffer){
   if(Buffer.length<44)
       return false;
   double xmin = NumericReader.getDoubleLittle(Buffer,4);

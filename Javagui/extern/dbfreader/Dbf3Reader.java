@@ -27,10 +27,10 @@ public  ListExpr getList(String FileName){
      ErrorString="FILE_NOT_EXISTS";
      return null;
   }
-  BufferedReader BR=null;
+  FileInputStream BR=null;
   try{
-     BR = new BufferedReader(new FileReader(F));
-     char[] Buffer = new char[32];
+     BR = new FileInputStream(F);
+     byte[] Buffer = new byte[32];
      BR.read(Buffer);
      // read the Main-Header
      DB3MainHeader MH = new DB3MainHeader();
@@ -40,13 +40,13 @@ public  ListExpr getList(String FileName){
 	return null;
      }
      int FD_Length = MH.getHeaderLength()-32; // all Header-MainHeader
-     Buffer = new char[FD_Length];
+     Buffer = new byte[FD_Length];
      BR.read(Buffer);
      DB3RecordHeader RH = new DB3RecordHeader();
      RH.readFrom(Buffer);
 
      // read records
-     Buffer = new char[MH.getRecordLength()];
+     Buffer = new byte[MH.getRecordLength()];
 
      ListExpr Res=null;
      ListExpr Last=null;
@@ -109,11 +109,11 @@ private String correctString(String S){
    fielddescriptions */
 private class DB3MainHeader{
 
-public boolean readFrom(char[] Buffer){
+public boolean readFrom(byte[] Buffer){
    if(Buffer.length!=32){
       return false;
    }
-   byte tmpver = (byte) Buffer[0];
+   byte tmpver =   Buffer[0];
    if(tmpver!=3 && tmpver!=131){  // not a dbase 3 file
       return false;
    }
@@ -137,15 +137,15 @@ private int RecordLength=0;
 /* the FieldDescription for a single Field */
 private class DB3FieldDescription{
 
-public boolean readFrom(char[] Buffer){
+public boolean readFrom(byte[] Buffer){
   if(Buffer.length!=32)
      return false;
   Name = "";
   for(int i=0;i<11;i++)
-     Name +=Buffer[i];
+     Name +=(char)Buffer[i];
   Type = Buffer[11];
-  FieldLength = (int) Buffer[16];
-  AfterComma = (int) Buffer[17];
+  FieldLength = NumericReader.getInt(Buffer[16]);
+  AfterComma =  NumericReader.getInt(Buffer[17]);
   if(Type=='M')
     FieldLength=10;
   if(Type=='L')
@@ -178,12 +178,12 @@ public ListExpr getTupleList(){
 
 
 public String getName(){return Name;}
-public char getType(){ return Type;}
+public byte getType(){ return Type;}
 public int getFieldLength(){ return FieldLength;}
 public int getAfterComma(){ return AfterComma;}
 
 private String Name;
-private char Type;
+private byte Type;
 private int FieldLength;
 private int AfterComma;
 }
@@ -192,11 +192,11 @@ private int AfterComma;
 /* FieldDescriptions for all Fields */
 private class DB3RecordHeader{
 
-public boolean readFrom(char[] Buffer){
+public boolean readFrom(byte[] Buffer){
   int N = (Buffer.length-1)/32;
   if(N<0) return false;
   FDs = new DB3FieldDescription[N];
-  char[] FD = new char[32];
+  byte[] FD = new byte[32];
   for(int i=0;i<N;i++){
      for(int j=0;j<32;j++)
         FD[j] = Buffer[i*32+j];
@@ -237,7 +237,7 @@ private DB3FieldDescription[] FDs=null;
 
 private class DB3Record{
 
-public boolean readFrom(char[] Buffer,DB3RecordHeader RH){
+public boolean readFrom(byte[] Buffer,DB3RecordHeader RH){
    int MaxField = RH.getFieldNumber();
    if(MaxField<0)
       return false;
@@ -249,23 +249,23 @@ public boolean readFrom(char[] Buffer,DB3RecordHeader RH){
    DB3FieldDescription FD;
    for(int i=0;i<MaxField;i++){
       FD = RH.getFieldAt(i);
-      char Type = FD.getType();
+      byte Type = FD.getType();
       int length = FD.getFieldLength();
       Next = ListExpr.theEmptyList();
       if(Type=='C'){
         String S = "";
 	for(int k=0;k<length;k++)
-	   S += Buffer[CurrentPos+k];
+	   S += (char)Buffer[CurrentPos+k];
         S = S.trim();
 	if(S.length()>48)
 	   S = S.substring(0,48);
 	Next = ListExpr.stringAtom(correctString(S));
       }
 
-      if(Type=='N'){
+    if(Type=='N'){
         String S = "";
 	for(int k=0;k<length;k++)
-	      S += Buffer[CurrentPos+k];
+	      S += (char)Buffer[CurrentPos+k];
 
 	S = S.trim();
 	if(FD.getAfterComma()>0){
@@ -285,7 +285,7 @@ public boolean readFrom(char[] Buffer,DB3RecordHeader RH){
       }
 
       if(Type=='L'){
-         char V = Buffer[CurrentPos];
+         byte V = Buffer[CurrentPos];
 	 if(V=='j' | V=='J' | V=='T' | V=='t' | V=='Y' | V=='y')
 	    Next = ListExpr.boolAtom(true);
 	 else
@@ -295,7 +295,7 @@ public boolean readFrom(char[] Buffer,DB3RecordHeader RH){
       if(Type=='D'){
         String S = "";
 	for(int k=0;k<length;k++)
-	   S += Buffer[CurrentPos+k];
+	   S += (char)Buffer[CurrentPos+k];
         Next = ListExpr.stringAtom(correctString(S));
       }
 

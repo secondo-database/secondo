@@ -11,12 +11,16 @@ public class RecordHeader{
      return ContentLength;
   }
 
-  public boolean readFrom(char[] Buffer){
+  public boolean readFrom(byte[] Buffer){
      if(Buffer.length!=8)
         return false;
      RecordNumber = NumericReader.getIntBig(Buffer,0);
      ContentLength = NumericReader.getIntBig(Buffer,4);
      return true;
+  }
+
+  public String toString(){
+     return "RecordNumber ="+RecordNumber+"\nContentLength="+ContentLength;
   }
    
   private int RecordNumber=0;

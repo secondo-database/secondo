@@ -9,7 +9,7 @@ public void setFileCode(int Code){
    this.FileCode = Code;
 }
 
-public boolean readFrom(char[] Buffer){
+public boolean readFrom(byte[] Buffer){
    if(Buffer.length!=100)
       return false;
    FileCode = NumericReader.getIntBig(Buffer,0);
@@ -71,6 +71,14 @@ public void setMMin(double MMin){
 public void setMMax(double MMax){
    this.MMax = MMax;
 }
+
+public String toString(){
+  return  "FileLength = " + FileLength +"\n"
+   +"ShapeType =  " + extern.shapereader.ShapeType.getName(ShapeType) +"\n"
+   +"Bounding Box = (" +XMin+","+YMin+") ->("+XMax+","+YMax+")";
+
+}
+
 
 public int getFileCode() {return FileCode;}
 public int getFileLength() {return FileLength;}
