@@ -17,6 +17,7 @@ import  viewer.hoese.*;
 import  gui.SecondoObject;
 import  gui.idmanager.*;
 import  project.*;
+import  components.*;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -43,12 +44,12 @@ public class HoeseViewer extends SecondoViewer {
   /** The Zoomfactor of the GraphWindow */
   protected double ZoomFactor = 1;
   private AffineTransform ZoomTransform = new AffineTransform();
-  private MouseListener SelectionControl;
+  private SelMouseAdapter SelectionControl;
 
   /** The time which is actually set in app. */
   public double ActualTime = 0;
   private Interval TimeBounds;
-  private JScrollBar TimeSlider;
+  private LongScrollBar TimeSlider;
 
   /** The list of categories present in the app. */
   public Vector Cats;
@@ -151,7 +152,8 @@ public class HoeseViewer extends SecondoViewer {
   private JFileChooser FC_Category=new JFileChooser();
   /** a FileChooser for References Attribute value -> Category */
   private JFileChooser FC_References = new JFileChooser();
-
+  /** a dialog to input a time value */
+  TimeInputDialog TimeInput = new TimeInputDialog(this.getMainFrame());
 
   private String TexturePath;
   private String FileSeparator;
@@ -228,13 +230,17 @@ public class HoeseViewer extends SecondoViewer {
       jtb.add(ctrls[i]);
     }
 
-    TimeSlider = new JScrollBar(JScrollBar.HORIZONTAL, 0, 0, 0, 0);
+    TimeSlider = new LongScrollBar(0, 0, 1);
     //JSlider(0,300,0);
-    TimeSlider.addAdjustmentListener(new TimeAdjustmentListener());
+    TimeSlider.addChangeValueListener(new TimeChangeListener());
     TimeSlider.setPreferredSize(new Dimension(400, 15));
-    TimeSlider.setUnitIncrement(1);
-    TimeSlider.setBlockIncrement(60);
-    jtb.add(TimeSlider);
+    TimeSlider.setUnitIncrement(1000); // 1 sec
+    TimeSlider.setBlockIncrement(60000); // 1 min
+    JPanel TimeSliderAndLabel = new JPanel(new BorderLayout());
+    TimeSliderAndLabel.add(TimeSlider,BorderLayout.NORTH);
+    TimeSliderAndLabel.add(actTimeLabel,BorderLayout.SOUTH);
+    actTimeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+    jtb.add(TimeSliderAndLabel);
     jtb.add(MouseKoordLabel);
 
     TextDisplay = new TextWindow(this);
@@ -261,6 +267,8 @@ public class HoeseViewer extends SecondoViewer {
 
     SelectionControl = new SelMouseAdapter();
     GraphDisplay.addMouseListener(SelectionControl);
+    //GraphDisplay.addMouseMotionListener(SelectionControl);
+
     SpatioTempPanel = new JPanel(new BorderLayout());
     LayerSwitchBar = new JPanel();
     LayerSwitchBar.setPreferredSize(new Dimension(10, 10));
@@ -699,13 +707,17 @@ public class HoeseViewer extends SecondoViewer {
 
     jMenuGui.add(new JSeparator());
     String TextPar[] =  {
-      "m/h", "h/d", "d/w", "w/M", "M/Y"
+      "ms/s", "s/m", "m/h", "h/d", "d/w", "w/M" ,"M/Y"
     };
 
     JRadioButtonMenuItem RBMITimeFrame[] = new JRadioButtonMenuItem[TextPar.length];
     ButtonGroup bg = new ButtonGroup();
-    final int SliderPar[] =  {
+    /*final int SliderPar[] =  {
       1, 60, 1440, 7*1440, 30*1440, (int)(365.25*1440)
+    };*/
+    // ms  s    min      h      d         week        month               year
+    final long SliderPar[] ={
+      1, 1000, 60000, 3600000, 86400000,  604800000,  2678400000L, 31536000000L
     };
     ActionListener TimeFrameListener = new ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
@@ -723,23 +735,31 @@ public class HoeseViewer extends SecondoViewer {
       jMenuGui.add(RBMITimeFrame[i]);
       bg.add(RBMITimeFrame[i]);
     }
-    RBMITimeFrame[0].setSelected(true);
+    RBMITimeFrame[1].setSelected(true);
     RBMICustTI.setText(tok + " =");
     jMenuGui.add(RBMICustTI);
     bg.add(RBMICustTI);
     RBMICustTI.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        String input = JOptionPane.showInputDialog("Insert a time increment in min.");
-        int l = 1;
+        /*
+	String input = JOptionPane.showInputDialog("Insert a time increment in msec.");
+        long l = 1;
         try {
-          l = Integer.parseInt(input);
+          l = Long.parseLong(input);
         } catch (NumberFormatException n) {}
-        RBMICustTI.setText(tok + " = " + Integer.toString(l) + " min.");
+        RBMICustTI.setText(tok + " = " + l + " msec.");
         TimeSlider.setUnitIncrement(l);
         TimeSlider.setBlockIncrement(l);
+	*/
+	if(TimeInput.inputTime()==TimeInput.OK){
+            RBMICustTI.setText(tok + " = " +TimeInput.getTimeString());
+            long t = TimeInput.getTime();
+	    TimeSlider.setUnitIncrement(t);
+            TimeSlider.setBlockIncrement(t);
+	}
       }
     });
-    //RBMITimeFrame		
+    //RBMITimeFrame
     MenuExtension.addMenu(jMenuGui);
 
     MenuObject.setText("Object");
@@ -755,7 +775,7 @@ public class HoeseViewer extends SecondoViewer {
             ((DsplBase)o).setVisible(false);
             GraphDisplay.repaint();
           } 
-          else 
+          else
             showMessage("No DsplBase object selected!");
         } 
         else
@@ -1036,8 +1056,21 @@ public boolean canDisplay(SecondoObject o){
   ListExpr LE = o.toListExpr();
   if(LE==null)
      return false;
-  else
-     return LE.listLength()==2;
+  else{
+     if(LE.listLength()!=2)
+        return false;
+     ListExpr Type = LE.first();
+     while(Type.atomType()==ListExpr.NO_ATOM){
+       if(Type.listLength()<1)
+           return false;
+       Type = Type.first();
+     }
+
+     if(Type.atomType()!=ListExpr.SYMBOL_ATOM)
+        return false;
+     File F = new File("viewer/hoese/algebras/Dspl"+Type.symbolValue()+".class");
+     return F.exists();
+  }
 }
 
 
@@ -1053,12 +1086,15 @@ public boolean canDisplay(SecondoObject o){
       l.setVisible(false);
       GraphDisplay.add(l, new Integer(20000));
       GraphDisplay.removeMouseListener(SelectionControl);
+     // GraphDisplay.removeMouseMotionListener(SelectionControl);
       GraphDisplay.addMouseListener(context.getProjectionControl());
       VisualPanel.setLeftComponent(context);
     }
     else {
       GraphDisplay.removeMouseListener(context.getProjectionControl());
       GraphDisplay.addMouseListener(SelectionControl);
+     // GraphDisplay.addMouseMotionListener(SelectionControl);
+      System.out.println("addMouseMotionListener");
       GraphDisplay.remove(context.getProjectionLabel());
       VisualPanel.setLeftComponent(TextDisplay);
     }
@@ -1081,7 +1117,7 @@ public boolean canDisplay(SecondoObject o){
     if (displayErrorCode != NOT_ERROR_CODE) {
       showMessage("add queryresult failed");
       return  false;
-    } 
+    }
     else {
       return  true;
       //QueryResultList.add (CurrentQueryResult);
@@ -1109,12 +1145,12 @@ public boolean canDisplay(SecondoObject o){
       }
       return true;
     }
-  } 
+  }
 
 
 
   /**
-   * 
+   *
    * @return The selected grph. object 
    * @see <a href="MainWindowsrc.html#getSelGO">Source</a> 
    */
@@ -1131,7 +1167,7 @@ public boolean canDisplay(SecondoObject o){
   public void setActualTime (Interval in) {
     TimeBounds = in;
     if (in == null) {
-      TimeSlider.setValues(0, 1, 0, 0);
+      TimeSlider.setValues(0, 0, 1);
       actTimeLabel.setText("no time");
       //TimeSlider.setVisible(false);
       ActualTime = 0;
@@ -1139,8 +1175,8 @@ public boolean canDisplay(SecondoObject o){
     else {
       TimeSlider.setVisible(true);
       ActualTime = TimeBounds.getStart();
-      TimeSlider.setValues((int)Math.round(in.getStart()*1440), 1, (int)Math.round(in.getStart()*1440), 
-          (int)Math.round(in.getEnd()*1440) + 1);
+      TimeSlider.setValues((long)Math.round(in.getStart()*86400000), (long)Math.round(in.getStart()*86400000),
+          (long)Math.round(in.getEnd()*86400000) + 1);
       actTimeLabel.setText(LEUtils.convertTimeToString(ActualTime));
     }
   }
@@ -1314,7 +1350,7 @@ public boolean canDisplay(SecondoObject o){
   /**
    * Calc. the projection that all objects fit into visible window with border
    * @return Thecalc. transformation
-   * @see <a href="MainWindowsrc.html#calcProjection">Source</a> 
+   * @see <a href="MainWindowsrc.html#calcProjection">Source</a>
    */
   private AffineTransform calcProjection () {
     double extra = context.getBordSpc();        //extra portion at every border of 30 pix
@@ -1342,7 +1378,7 @@ public boolean canDisplay(SecondoObject o){
       //h-=60;  
       m11 = (2*extra - h)/wph;
       m00 = -m11;
-    } 
+    }
     else {
       //w-=60;
       m00 = (w - 2*extra)/wpw;
@@ -1384,9 +1420,9 @@ public boolean canDisplay(SecondoObject o){
     double y = rDC.getY();
     double w = rDC.getWidth();
     double h = rDC.getHeight();
-    //if (x>0) 
+    //if (x>0)
     w += 2*context.getBordSpc();                //plus extra space
-    //if (y>0) 
+    //if (y>0)
     h += 2*context.getBordSpc();
     BBoxDC = new Rectangle(0, 0, (int)w, (int)h);
     //System.out.println("BBox:,BBoxWC");
@@ -1395,13 +1431,13 @@ public boolean canDisplay(SecondoObject o){
       if (hasBackImage)
         LayerSwitchBar.remove(0);
       if (context.ImagePath != null)
-        addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX(), 
-            context.getMapOfs().getY()), 0); 
+        addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX(),
+            context.getMapOfs().getY()), 0);
       else
         GraphDisplay.createBackLayer(null, 0, 0);
       //mw.LayerSwitchBar.add(mw.GraphDisplay.createBackLayer(ImagePath),0);
       hasBackImage = (context.ImagePath != null);
-      //else 
+      //else
       // GraphDisplay.updateLayersSize(ClipRect);
     }
     GraphDisplay.repaint();
@@ -1445,8 +1481,8 @@ public boolean canDisplay(SecondoObject o){
    */
   public void addSwitch (JToggleButton tb, int index) {
     if (index < 0)
-      LayerSwitchBar.add(tb); 
-    else 
+      LayerSwitchBar.add(tb);
+    else
       LayerSwitchBar.add(tb, index);
     LayerSwitchBar.revalidate();
     LayerSwitchBar.repaint();
@@ -1454,7 +1490,7 @@ public boolean canDisplay(SecondoObject o){
 
 
 /** Listens to a selection change in a query list
-  * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a> 
+  * @see <a href="MainWindowsrc.html#QueryListSelectionListener">Source</a>
    */
 
   class QueryListSelectionListener
@@ -1485,8 +1521,8 @@ public boolean canDisplay(SecondoObject o){
         oldDL = VisComPanel.getLastDividerLocation();
         VisComPanel.setBottomComponent(TimeDisplay);
         VisComPanel.setDividerLocation(0.8);
-      } 
-      else 
+      }
+      else
         //showCommandPanel()
        ;
       if (o instanceof DsplGraph) {
@@ -1495,9 +1531,9 @@ public boolean canDisplay(SecondoObject o){
         dgorig.getLayer().setSelectedButton(true);
         selGraphObj = dgorig;
         if (!isMouseSelected && (selGraphObj instanceof Timed))
-          TimeSlider.setValue((int)Math.round(((Timed)selGraphObj).getTimeBounds().getStart()*1440));
+          TimeSlider.setValue((long)Math.round(((Timed)selGraphObj).getTimeBounds().getStart()*86400000));
         makeSelectionVisible();
-      } 
+      }
       else if (o instanceof DsplBase) {
         selBaseObj = (DsplBase)o;
         selBaseObj.setSelected(true);
@@ -1513,20 +1549,24 @@ public boolean canDisplay(SecondoObject o){
   }
 
 /** Manages mouseclicks in the GraphWindow. It is placed here for textual-interaction
-
-   * @see <a href="MainWindowsrc.html#SelMouseAdapter">Source</a>
-   */
-  class SelMouseAdapter extends MouseAdapter
+  */
+    class SelMouseAdapter extends MouseAdapter
       implements MouseMotionListener {
 
     private int startX;  // start-x of selection rectangle
     private int startY;  // start-y of selection rectangle
-    private int oldX;    // last end-x position of selection rectangle
-    private int oldY;    // last end-y position of selection rectangle
+    private int targetX;    // last end-x position of selection rectangle
+    private int targetY;    // last end-y position of selection rectangle
     private boolean isPainting = false; // is the selection rectangle painted ?
+    private boolean isEnabled = false;
 
 
-    public void drawRectangle(int x1,int y1,int x2,int y2){
+    public void drawRectangle(){
+         if(!isEnabled) return;
+	 int x1 = startX;
+	 int x2 = targetX;
+	 int y1 = startY;
+	 int y2 = targetY;
          Graphics2D G = (Graphics2D) GraphDisplay.getGraphics();
 	 G.setXORMode(Color.white);
          int x = Math.min(x1,x2);
@@ -1539,32 +1579,19 @@ public boolean canDisplay(SecondoObject o){
 
 
     public void mouseReleased (MouseEvent e) {
-      if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
+      if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK & isEnabled) {
       {
-	  GraphDisplay.removeMouseMotionListener(this);
 	  if(isPainting)
-             drawRectangle(startX,startY,oldX,oldY);
+             drawRectangle();
           isPainting=false;
-
-	  int x1,y1,x2,y2;
-	  if(startX<oldX){
-	      x1 = startX;
-	      x2 = oldX;
-	  } else{
-	      x2 = startX;
-	      x1 = oldX;
-	  }
-          if(startY<oldY){
-	     y1=startY;
-	     y2 = oldY;
-	  } else{
-	     y2 = startY;
-	     y1 = oldY;
-	  }
+          int x = Math.min(startX,targetX);
+          int wi = Math.abs(startX-targetX);
+	  int y = Math.min(startY,targetY);
+          int he = Math.abs(startY-targetY);
 
 
-	  Rectangle2D r = new Rectangle2D.Double(x1,y1,x2-x1,y2-y1);
-
+	  Rectangle2D r = new Rectangle2D.Double(x,y,wi,he);
+          GraphDisplay.removeMouseMotionListener(this);
 
 
 
@@ -1598,6 +1625,7 @@ public boolean canDisplay(SecondoObject o){
               (int)(r.getY()*zf), (int)w, (int)h));
           //GeoScrollPane.getViewport().setViewPosition(new Point((int)(r.getX()*zf),(int)(r.getY()*zf)));
           GraphDisplay.repaint();
+	  isEnabled = false;
         }
       }
     }
@@ -1607,17 +1635,22 @@ public boolean canDisplay(SecondoObject o){
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
          startX = e.getX();
          startY = e.getY();
-         GraphDisplay.addMouseMotionListener(this);
+	 targetX = startX;
+	 targetY = startY;
+	 drawRectangle();
+         isPainting=true;
+	 isEnabled = true;
+	 GraphDisplay.addMouseMotionListener(this);
+
       }
     }
     public void mouseDragged (MouseEvent e) {
-      if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
+      if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK & isEnabled) {
           if(isPainting)
-            drawRectangle(startX,startY,oldX,oldY);
-          oldX = e.getX();
-          oldY = e.getY();
-          drawRectangle(startX,startY,oldX,oldY);
-          isPainting=true;
+            drawRectangle();
+          targetX = e.getX();
+          targetY = e.getY();
+          drawRectangle();
       }
     }
 
@@ -1693,20 +1726,20 @@ public boolean canDisplay(SecondoObject o){
 
    * @see <a href="MainWindowsrc.html#TimeAdjustmentListener">Source</a>
    */
-  class TimeAdjustmentListener
-      implements AdjustmentListener {
+  class TimeChangeListener
+      implements ChangeValueListener {
 
-    public void adjustmentValueChanged (AdjustmentEvent e) {
+    public void valueChanged (ChangeValueEvent e) {
       if (TimeBounds == null) {
         TimeSlider.setValue(0);
         return;
       }
-      int v = e.getValue();
+      long v = e.getValue();
       double anf;
       if (v == TimeSlider.getMinimum())
         anf = TimeBounds.getStart();
       else {
-        anf = (double)v/1440.0;
+        anf = (double)v/86400000.0;
         if (anf > TimeBounds.getEnd())
           anf = TimeBounds.getEnd();
       }
@@ -1717,6 +1750,7 @@ public boolean canDisplay(SecondoObject o){
       actTimeLabel.setText(LEUtils.convertTimeToString(ActualTime));
       makeSelectionVisible();
       GraphDisplay.repaint();
+      SelectionControl.drawRectangle();
       //System.out.println(ActualTime);
     }
   }
@@ -1813,24 +1847,24 @@ public boolean canDisplay(SecondoObject o){
    */
   class AnimCtrlListener
       implements ActionListener {
-    int inc = 1;
-    int dir = 1;
+    long inc = 1;
+    boolean forward = true;
     boolean onlyDefined;
     Vector TimeObjects;
     Timer AnimTimer = new Timer(50, new ActionListener() {
 
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        int v = TimeSlider.getValue();
+        long v = TimeSlider.getValue();
         if (onlyDefined) {
           v++;
-          int min = Integer.MAX_VALUE;
+          long min = Long.MAX_VALUE;
           ListIterator li = TimeObjects.listIterator();
           while (li.hasNext()) {
             Timed t = (Timed)li.next();
-            min = Math.min(Interval.getMinGT(t.getIntervals(), (double)v/1440.0),
+            min = Math.min(Interval.getMinGT(t.getIntervals(), (double)v/86400000.0),
                 min);
           }
-          if (min < Integer.MAX_VALUE) {
+          if (min < Long.MAX_VALUE) {
             TimeSlider.setValue(min);
             AnimTimer.setDelay((1000 - TimeObjects.size() < 50) ? 50 : 1000
                 - TimeObjects.size());
@@ -1839,11 +1873,14 @@ public boolean canDisplay(SecondoObject o){
             AnimTimer.stop();
         }
         else {
-          inc = dir*TimeSlider.getUnitIncrement();
-          TimeSlider.setValue(v + inc);
-          if ((v + inc) != TimeSlider.getValue()) {
-            AnimTimer.stop();
+          //inc = (dir*TimeSlider.getUnitIncrement());
+          //TimeSlider.setValue(v + inc);
+	  if(forward && !TimeSlider.next()){
+             AnimTimer.stop();
           }
+	  if(!forward && !TimeSlider.back()){
+	     AnimTimer.stop();
+	  }
         }
       }
     });
@@ -1852,12 +1889,12 @@ public boolean canDisplay(SecondoObject o){
       switch (Integer.parseInt(evt.getActionCommand())) {
         case 0:                 //play
           onlyDefined = false;
-          dir = 1;
+          forward = true;
           AnimTimer.start();
           break;
         case 1:                 //reverse
           onlyDefined = false;
-          dir = -1;
+          forward = false;
           AnimTimer.start();
           break;
         case 2:                 //show at defined Times
@@ -1872,7 +1909,7 @@ public boolean canDisplay(SecondoObject o){
             }
           }
           onlyDefined = true;
-          dir = 1;
+          forward = true;
           AnimTimer.start();
           break;
         case 3:                 //to end
