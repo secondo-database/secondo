@@ -6,6 +6,17 @@
 #include "SecondoSMI.h"
 #include "SmiCodes.h"
 
+/*
+
+IMPORTANT NOTE:
+
+Before using this test program you should set the 
+default buffer size in ~PrefetchingIteratorImpl~
+to 1024, otherwise the code related to handling
+very large tuples will not get tested properly.
+
+*/
+
 using namespace std;
 
 const size_t maxDataSize = 8192;
