@@ -37,6 +37,7 @@ private JButton ClearBtn;
 private JButton StoreBtn;    // save the selected Object into database
 private JButton RenameBtn;   // set a new name for this object
 private boolean isRenameMode;
+private boolean StoringEnabled;
 
 private JFileChooser FileChooser;
 private RenamePanel aRenamePanel;
@@ -85,6 +86,25 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   LoadBtn = new JButton("load");
   StoreBtn = new JButton("store");
   RenameBtn = new JButton("rename");
+  ShowBtn.setEnabled(false);
+  HideBtn.setEnabled(false);
+  RemoveBtn.setEnabled(false);
+  SaveBtn.setEnabled(false);
+  RenameBtn.setEnabled(false);
+  StoreBtn.setEnabled(false);
+  StoringEnabled=false;
+  Content.addListSelectionListener(new ListSelectionListener(){
+        public void valueChanged(ListSelectionEvent evt){
+           ObjectList.this.listChanged();
+	}});
+   Content.getModel().addListDataListener(new ListDataListener(){
+      public void contentsChanged(ListDataEvent evt){
+          ObjectList.this.listChanged();
+      }
+      public void intervalAdded(ListDataEvent evt){}
+      public void intervalRemoved(ListDataEvent evt){}
+    });
+
   ControlPanel.setLayout(new GridLayout(2,4));
   ControlPanel.add(ShowBtn);
   ControlPanel.add(HideBtn);
@@ -122,7 +142,19 @@ public void setObjectDirectory(File dir){
      FileChooser.setCurrentDirectory(dir);
 }
 
+/** enables / disables the store button */
+public void enableStoring(boolean enabled){
+   StoringEnabled=enabled;
+   if(!enabled)
+     StoreBtn.setEnabled(false);
+   else{
+     int index =Content.getSelectedIndex();
+     int max = Content.getModel().getSize();
+     if (index>=0 & index < max)
+         StoreBtn.setEnabled(true);
+   }
 
+}
 
 
 /** returns the index of object with Name Objectname */
@@ -149,7 +181,7 @@ public int renameObject(String oldName,String newName){
          updateList();
          return NO_ERROR;
       }
-  }  
+  }
 }
 
 
@@ -235,6 +267,22 @@ public Dimension getMaximumSize(){
    return getMinimumSize();
 }
 
+/** enabled or disables buttons, when list is changed */
+private void listChanged(){
+   int index = Content.getSelectedIndex();
+   boolean on = index>=0;
+   if(index> Content.getModel().getSize()-1)
+      on=false;
+   ShowBtn.setEnabled(on);
+   HideBtn.setEnabled(on);
+   RemoveBtn.setEnabled(on);
+   SaveBtn.setEnabled(on);
+   RenameBtn.setEnabled(on);
+   
+   StoreBtn.setEnabled( on & StoringEnabled);
+}
+
+
 private void addAllListeners(){
    Content.addMouseListener(new MouseAdapter(){
       public void mouseClicked(MouseEvent evt){
@@ -250,7 +298,7 @@ private void addAllListeners(){
    HideBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
           hideSelectedObject();
-       }}); 
+       }});
 
    SaveBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
@@ -283,7 +331,7 @@ private void addAllListeners(){
 
 /** turn off the listdisplay (problems with  overlapping Menus) **/
 public void showNothing(){
-  //remove(Content);    
+  //remove(Content);
 }
 
 /** turn on the listdisplay (problems with overlapping Menus) **/

@@ -1688,6 +1688,7 @@ public void databaseOpened(String DBName){
   DeleteDatabaseMenu.setEnabled(false);
   Menu_RestoreDatabase.setEnabled(false);
   OpenedDatabase = DBName;
+  OList.enableStoring(true);
 }
 
 public void databaseClosed(){
@@ -1704,6 +1705,7 @@ public void databaseClosed(){
   DeleteDatabaseMenu.setEnabled(true);
   Menu_RestoreDatabase.setEnabled(true);
   OpenedDatabase ="";
+  OList.enableStoring(false);
 }
 
 public void connectionOpened(){
