@@ -55,7 +55,7 @@ CUPCLASSES_RUNTIME := $(JAVAINTERFACEDIR)/lib/java_cup_v10i_runtime.jar
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
 
-CLASSPATH := ".:$(JAVAINTERFACEDIR):$(CUPCLASSESPATH):$(JLEXCLASSESPATH)"
+CLASSPATH := ".:$(JAVAINTERFACEDIR):$(CUPCLASSESPATH):$(JLEXCLASSESPATH):$(CUPCLASSES_RUNTIME)"
 
 # The next conditional ensures that a PLATFORM value exists
 ifndef SECONDO_PLATFORM
