@@ -1,11 +1,14 @@
 /*
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-
+//[TOC] [\tableofcontents]
+  
 [1] Implementation of the Spatial Algebra
 
 February, 2003. Victor Teixeira de Almeida
 
 March-July, 2003. Zhiming Ding
+
+[TOC]
 
 1 Overview
 
