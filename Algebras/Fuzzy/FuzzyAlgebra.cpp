@@ -1648,8 +1648,8 @@ static ListExpr FPointProperty() {
 	   (
 	    nl->StringAtom("-> DATA"),
 	    nl->StringAtom("fpoint"),
-	    nl->StringAtom("\"factor <fepointlist>\""),
-	    nl->StringAtom("\"(20.4 ((0,0,0.5)(20,30,0.1)(-20,60,1.0))(,\""))));
+	    nl->StringAtom("factor <fepointlist>"),
+	    nl->StringAtom("(20.4 ((0,0,0.5)(20,30,0.1)(-20,60,1.0))"))));
 }
 
 
@@ -1720,6 +1720,12 @@ static void* DummyCast( void* addr ) {
 }
 
 
+/* sizeOf functions */
+int SizeOfFPoint(){ return sizeof(CcFPoint);}
+
+int SizeOfFLine(){ return sizeof(CcFLine);}
+
+int SizeOfFRegion(){ return sizeof(CcFRegion);}
 
 /*
 Creation of the Type Constructor Instance
@@ -1730,6 +1736,7 @@ TypeConstructor ccfpoint
  FPointProperty,   // property function describing signature
  OutFPoint,        // Out function
  InFPoint,         // In function
+ 0,        0,      //SaveToList and RestoreFromList functions
  CreateFPoint,     // object creation
  DeleteFPoint,     // object deletion
  0,                // object open
@@ -1737,6 +1744,7 @@ TypeConstructor ccfpoint
  CloseFPoint,       // object close
  CloneFPoint,       // object clone
  DummyCast,        // cast function
+ SizeOfFPoint,     // Size of a point
  CheckPoint,       // kind checking function
  0,                // predef. pers. function for model
  TypeConstructor::DummyInModel,	
@@ -1753,6 +1761,7 @@ TypeConstructor ccfregion
    FRegionProperty, // signature
    OutFRegion,
    InFRegion,
+   0,        0,                        //SaveToList and RestoreFromList functions
    CreateFRegion,
    DeleteFRegion,
    0,
@@ -1760,6 +1769,7 @@ TypeConstructor ccfregion
    CloseFRegion,
    CloneFRegion,
    DummyCast,
+   SizeOfFRegion,     // Size of a point
    CheckFRegion,
    0,
    TypeConstructor::DummyInModel, 
@@ -1772,9 +1782,9 @@ TypeConstructor ccfregion
 /* the typeconstructor for a fLine */
 TypeConstructor ccfline
 (
-  "fline", FLineProperty,OutFLine,InFLine, 
+  "fline", FLineProperty,OutFLine,InFLine,0,0,
   CreateFLine,DeleteFLine,0,0,CloseFLine,
-  CloneFLine,DummyCast,CheckFLine,0,
+  CloneFLine,DummyCast,SizeOfFLine,CheckFLine,0,
   TypeConstructor::DummyInModel,
   TypeConstructor::DummyOutModel,
   TypeConstructor::DummyValueToModel,
