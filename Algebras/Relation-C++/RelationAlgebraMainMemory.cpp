@@ -86,6 +86,9 @@ number of the tuple's attributes.
 */
 ListExpr TupleProp ()
 {
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,"(\"Myers\" 53)");
+ 
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"), 
 	                     nl->StringAtom("Example Type List"), 
@@ -94,7 +97,7 @@ ListExpr TupleProp ()
             nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> TUPLE"), 
 	                     nl->StringAtom("(tuple((name string)(age int)))"), 
 			     nl->StringAtom("(<attr1> ... <attrn>)"), 
-			     nl->StringAtom("(\"Myers\" 53)"))));
+			     examplelist)));
 }
 /*
 
@@ -753,8 +756,10 @@ the type info is
 ListExpr RelProp ()
 {
   ListExpr listreplist = nl->TextAtom();
+  ListExpr examplelist = nl->TextAtom();
   nl->AppendText(listreplist,"(<tuple>*)where <tuple> is "
   "(<attr1> ... <attrn>)");
+  nl->AppendText(examplelist,"((\"Myers\" 53)(\"Smith\" 21))");
 
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"), 
@@ -764,7 +769,7 @@ ListExpr RelProp ()
             nl->FourElemList(nl->StringAtom("TUPLE -> REL"), 
 	               nl->StringAtom("(rel(tuple((name string)(age int))))"), 
 		       listreplist, 
-		       nl->StringAtom("((\"Myers\" 53)(\"Smith\" 21))"))));
+		       examplelist)));
 }
 
 CcRel::CcRel ()
