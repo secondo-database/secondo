@@ -45,7 +45,7 @@ buildapp: $(APPLICATIONS)
 
 # create dependencies from include directives
 %.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
+	$(CC) -MM $(CCFLAGS) $< -o $@
 
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCFLAGS) $(JNIINCLUDE)

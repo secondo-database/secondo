@@ -28,7 +28,7 @@ all: $(CODE_DEPENDENCIES) $(OBJECTS)
 
 # create dependencies from include directives
 %.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
+	$(CC) -MM $(CCFLAGS) $< -o $@
 
 %.$(OBJEXT): %.cpp 
 	$(CC) -c -o $@ $< $(CCFLAGS)

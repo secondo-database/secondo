@@ -1,0 +1,56 @@
+############################################################
+#
+# SECONDO makefile definitions for Windows and MinGW gcc
+#
+############################################################
+
+
+# System dependent default libraries
+DEFAULTLIB = -lws2_32 -lm -lstdc++
+
+BDBDIR = /home/spieker/Windows-Wine-Root/usr/local
+
+# Berkeley DB library
+BDBINCLUDE = -I$(BDBDIR)/include 
+BDBLIBDIR = -L$(BDBDIR)/lib
+BDBLIB = -L$(BDBLIBDIR) -ldb32
+
+# Uncomment next line to compile with debugging information:
+DEBUG = -ggdb
+
+PLATFORM = win32
+CC = wine -- gcc
+LD = wine -- gcc
+AR = wine -- ar
+RANLIB = wine -- ranlib
+CP = cp
+RM = rm -f
+RC = windres
+LEX = wine -- flex
+YACC = wine -- bison
+SED = sed
+
+EXEEXT = .exe
+
+ifeq ($(shared),yes)
+PICFLAG =
+OBJEXT = o
+LIBEXT = dll
+LDFLAGS = -s -shared
+EXEFLAGS =
+# ... Windows needs special treatment when creating DLLs
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
+else
+PICFLAG =
+OBJEXT = o
+LIBEXT = a
+LDFLAGS =
+EXEFLAGS =
+endif
+
+DLLPICFLAG =
+DLLOBJEXT = o
+DLLEXT = dll
+DLLFLAGS = -s -shared
+
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(BDBDIR)/include -I$(INCLUDEDIR) -mconsole -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED
