@@ -5,7 +5,7 @@
 ########################################################################
 
 # Secondo build directory
-BUILDDIR = /change/me/Secondo
+BUILDDIR = $(HOME)/SecBase/secondo_tup
 INCLUDEDIR = $(BUILDDIR)/include
 LIBDIR = $(BUILDDIR)/lib
 BINDIR = $(BUILDDIR)/bin
@@ -13,11 +13,11 @@ BDBSMILIB  = -lsmibdb
 ORASMILIB  = -lsmiora
 TOOLLIB    = -lsdbtool
 SDBLIB     = -lsdbsys
-ALGLIB     = -lfunctionalgebra -lstandardalgebra
+ALGLIB     = -lfunctionalgebra -lstandardalgebra -lpointrectanglealgebra -lstreamexamplealgebra -lrelationalgebra
 DEFAULTLIB = -lsocket -lnsl -ldl -lstdc++
 
 # Berkeley DB library
-BDBDIR = /change/me/berkeley-db
+BDBDIR = /export/home/telle/berkeley-db
 BDBINCLUDE = -I$(BDBDIR)/include
 BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb

@@ -73,6 +73,7 @@ operators	{yylval = NestedText::Atom( yytext, yyleng ); return OPERATORS;}
 types		{yylval = NestedText::Atom( yytext, yyleng ); return TYPES;}
 objects		{yylval = NestedText::Atom( yytext, yyleng ); return OBJECTS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return DOUBLE;}
+"="		{return EQ;}
 
 "+"		{return PLUS;}
 "-"		{return MINUS;}
@@ -115,58 +116,11 @@ sortby		{return SORTBY;}
 mergejoin		{return MERGEJOIN;}
 rename		{return RENAME;}
 extract		{return EXTRACT;}
-sd_get_x		{return GETX;}
-sd_get_y		{return GETY;}
-sd_p_count		{return PCOUNT;}
-sd_p_diameter		{return PDIAMETER;}
-sd_l_vertices		{return LVERTICES;}
-sd_l_count		{return LCOUNT;}
-sd_l_diameter		{return LDIAMETER;}
-sd_l_length		{return LLENGTH;}
-sd_r_vertices		{return RVERTICES;}
-sd_r_contour		{return RCONTOUR;}
-sd_l_interior		{return LINTERIOR;}
-sd_r_count		{return RCOUNT;}
-sd_r_diameter		{return RDIAMETER;}
-sd_r_area		{return RAREA;}
-sd_r_perimeter		{return RPERIMETER;}
-sd_pp_equal		{return PPEQUAL;}
-sd_pp_disjoint		{return PPDISJOINT;}
-sd_pp_intersection		{return PPINTERSECTION;}
-sd_pp_plus		{return PPPLUS;}
-sd_pp_minus		{return PPMINUS;}
-sd_ll_equal		{return LLEQUAL;}
-sd_ll_disjoint		{return LLDISJOINT;}
-sd_ll_intersects		{return LLINTERSECTS;}
-sd_ll_meets		{return LLMEETS;}
-sd_pl_on_border_of		{return PLONBORDEROF;}
-sd_ll_border_in_common		{return LLBORDERINCOMMON;}
-sd_ll_intersection		{return LLINTERSECTION;}
-sd_ll_plus		{return LLPLUS;}
-sd_ll_minus		{return LLMINUS;}
-sd_ll_common_border		{return LLCOMMONBORDER;}
-sd_rr_equal		{return RREQUAL;}
-sd_rr_disjoint		{return RRDISJOINT;}
-sd_pr_inside		{return PRINSIDE;}
-sd_lr_inside		{return LRINSIDE;}
-sd_rr_inside		{return RRINSIDE;}
-sd_rr_area_disjoint		{return RRAREADISJOINT;}
-sd_rr_edge_disjoint		{return RREDGEDISJOINT;}
-sd_rr_edge_inside		{return RREDGEINSIDE;}
-sd_rr_vertex_inside		{return RRVERTEXINSIDE;}
-sd_lr_intersects		{return LRINTERSECTS;}
-sd_rr_intersects		{return RRINTERSECTS;}
-sd_lr_meets		{return LRMEETS;}
-sd_rr_meets		{return RRMEETS;}
-sd_rr_adjacent		{return RRADJACENT;}
-sd_rr_encloses		{return RRENCLOSES;}
-sd_pr_on_border_of		{return PRONBORDEROF;}
-sd_lr_border_in_common		{return LRBORDERINCOMMON;}
-sd_rr_intersection		{return RRINTERSECTION;}
-sd_lr_intersection		{return LRINTERSECTION;}
-sd_rr_plus		{return RRPLUS;}
-sd_rr_minus		{return RRMINUS;}
-sd_lr_common_border		{return LRCOMMONBORDER;}
+intersects		{return INTERSECTS;}
+inside		{return INSIDE;}
+intstream		{return INTSTREAM;}
+count		{return COUNT;}
+printintstream		{return PRINTINTSTREAM;}
 
 {ident}		{yylval = NestedText::Atom( yytext, yyleng ); return IDENTIFIER;}
 

@@ -36,13 +36,12 @@ void PRINT (int i)
 %}
 
 %token 	IDENTIFIER, FUN, INTEGER, REAL, STRING, BOOLEAN, CONST, TUPLE, GROUP,
-
 	TYPE, DELETE, CREATE, UPDATE, QUERY, MODEL, LET, PERSISTENT,
 	BEGIN1, TRANSACTION, COMMIT, ABORT, DATABASE, OPEN, CLOSE, SAVE, TO,
 	RESTORE, FROM, LIST, DATABASES, CONSTRUCTORS, OPERATORS, TYPES,
-	OBJECTS, ASSIGN, DOUBLE
+	OBJECTS, ASSIGN, DOUBLE, EQ
 
-, PLUS, MINUS, TIMES, DIVIDEDBY, DIV, MOD, GT, LT, LE, GE, NE, EQ, NOT, AND, OR, STARTS, CONTAINS, HEAD, MAX, MIN, AVG, SUM, COUNT, CONCAT, ATTR, PROJECT, FILTER, CANCEL, RDUP, SORT, EXTEND, GROUPBY, GFEED, PRODUCT, LOOPJOIN, MERGESEC, MERGEDIFF, SORTBY, MERGEJOIN, RENAME, EXTRACT, GETX, GETY, PCOUNT, PDIAMETER, LVERTICES, LCOUNT, LDIAMETER, LLENGTH, RVERTICES, RCONTOUR, LINTERIOR, RCOUNT, RDIAMETER, RAREA, RPERIMETER, PPEQUAL, PPDISJOINT, PPINTERSECTION, PPPLUS, PPMINUS, LLEQUAL, LLDISJOINT, LLINTERSECTS, LLMEETS, PLONBORDEROF, LLBORDERINCOMMON, LLINTERSECTION, LLPLUS, LLMINUS, LLCOMMONBORDER, RREQUAL, RRDISJOINT, PRINSIDE, LRINSIDE, RRINSIDE, RRAREADISJOINT, RREDGEDISJOINT, RREDGEINSIDE, RRVERTEXINSIDE, LRINTERSECTS, RRINTERSECTS, LRMEETS, RRMEETS, RRADJACENT, RRENCLOSES, PRONBORDEROF, LRBORDERINCOMMON, RRINTERSECTION, LRINTERSECTION, RRPLUS, RRMINUS, LRCOMMONBORDER
+, PLUS, MINUS, TIMES, DIVIDEDBY, DIV, MOD, GT, LT, LE, GE, NE, EQ, NOT, AND, OR, STARTS, CONTAINS, HEAD, MAX, MIN, AVG, SUM, COUNT, CONCAT, ATTR, PROJECT, FILTER, CANCEL, RDUP, SORT, EXTEND, GROUPBY, GFEED, PRODUCT, LOOPJOIN, MERGESEC, MERGEDIFF, SORTBY, MERGEJOIN, RENAME, EXTRACT, INTERSECTS, INSIDE, INTSTREAM, COUNT, PRINTINTSTREAM
 /*
 May 15, 1998 RHG Added rule for the ~model~ command.
 
@@ -76,7 +75,7 @@ command		:	basic
 		|	inquiries
 		;	
 
-basic		:	TYPE IDENTIFIER '=' typeexpr
+basic		:	TYPE IDENTIFIER EQ typeexpr
 				{PRINTF("(type "); PRINT($2); 
 				PRINTF(" = "); PRINT($4); PRINTF(")\n");}
 		|	DELETE TYPE IDENTIFIER	
@@ -105,7 +104,7 @@ basic		:	TYPE IDENTIFIER '=' typeexpr
                                 PRINTF(")\n");}
  
 		|		{paramno=0; depth =0;}
-			LET IDENTIFIER '=' valueexpr
+			LET IDENTIFIER EQ valueexpr
 				{PRINTF("(let "); PRINT($3); 
 				PRINTF(" = "); PRINT($5); PRINTF(")\n");}
 		|	PERSISTENT IDENTIFIER
@@ -298,7 +297,7 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 
 		| GROUP					{$$ = NestedText::AtomC(param);}
 
-		| valueexpr '=' valueexpr
+		| valueexpr EQ valueexpr
 			{$$ = NestedText::Concat(NestedText::AtomC("(="), 
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($1,
@@ -604,340 +603,37 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($4,
 				NestedText::AtomC(")")     )))));}
-		| GETX '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_get_x"), 
+		| valueexpr INTERSECTS valueexpr
+			{$$ = NestedText::Concat(NestedText::AtomC("(intersects"), 
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($1,
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($3,
+				NestedText::AtomC(")")     )))));}
+		| valueexpr INSIDE valueexpr
+			{$$ = NestedText::Concat(NestedText::AtomC("(inside"), 
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($1,
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($3,
+				NestedText::AtomC(")")     )))));}
+		| INTSTREAM '(' valueexpr ',' valueexpr ')'
+			{$$ = NestedText::Concat(NestedText::AtomC("(intstream"), 
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($3,
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($5,
+				NestedText::AtomC(")")     )))));}
+		|  valueexpr COUNT
+			{$$ = NestedText::Concat(NestedText::AtomC("(count"), 
+				NestedText::Concat(NestedText::AtomC(" "), 
+				NestedText::Concat($1,
 				NestedText::AtomC(")")     )));}
-		| GETY '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_get_y"), 
+		|  valueexpr PRINTINTSTREAM
+			{$$ = NestedText::Concat(NestedText::AtomC("(printintstream"), 
 				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
+				NestedText::Concat($1,
 				NestedText::AtomC(")")     )));}
-		| PCOUNT '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_p_count"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| PDIAMETER '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_p_diameter"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| LVERTICES '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_l_vertices"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| LCOUNT '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_l_count"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| LDIAMETER '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_l_diameter"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| LLENGTH '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_l_length"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| RVERTICES '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_r_vertices"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| RCONTOUR '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_r_contour"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| LINTERIOR '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_l_interior"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| RCOUNT '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_r_count"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| RDIAMETER '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_r_diameter"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| RAREA '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_r_area"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| RPERIMETER '(' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_r_perimeter"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::AtomC(")")     )));}
-		| PPEQUAL '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pp_equal"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| PPDISJOINT '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pp_disjoint"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| PPINTERSECTION '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pp_intersection"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| PPPLUS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pp_plus"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| PPMINUS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pp_minus"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLEQUAL '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_equal"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLDISJOINT '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_disjoint"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLINTERSECTS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_intersects"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLMEETS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_meets"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| PLONBORDEROF '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pl_on_border_of"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLBORDERINCOMMON '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_border_in_common"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLINTERSECTION '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_intersection"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLPLUS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_plus"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLMINUS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_minus"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LLCOMMONBORDER '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_ll_common_border"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RREQUAL '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_equal"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRDISJOINT '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_disjoint"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| PRINSIDE '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pr_inside"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LRINSIDE '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_lr_inside"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRINSIDE '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_inside"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRAREADISJOINT '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_area_disjoint"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RREDGEDISJOINT '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_edge_disjoint"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RREDGEINSIDE '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_edge_inside"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRVERTEXINSIDE '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_vertex_inside"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LRINTERSECTS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_lr_intersects"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRINTERSECTS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_intersects"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LRMEETS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_lr_meets"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRMEETS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_meets"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRADJACENT '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_adjacent"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRENCLOSES '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_encloses"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| PRONBORDEROF '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_pr_on_border_of"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LRBORDERINCOMMON '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_lr_border_in_common"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRINTERSECTION '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_intersection"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LRINTERSECTION '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_lr_intersection"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRPLUS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_plus"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| RRMINUS '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_rr_minus"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
-		| LRCOMMONBORDER '(' valueexpr ',' valueexpr ')'
-			{$$ = NestedText::Concat(NestedText::AtomC("(sd_lr_common_border"), 
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($3,
-				NestedText::Concat(NestedText::AtomC(" "), 
-				NestedText::Concat($5,
-				NestedText::AtomC(")")     )))));}
 		;
 
 filterfun	: 	{paramno++;

@@ -23,5 +23,6 @@ function: the algebra name is appended to the string "Initialize".
 ALGEBRA_INCLUDE(1,StandardAlgebra,Hybrid)
 ALGEBRA_INCLUDE(2,FunctionAlgebra,Executable)
 //ALGEBRA_DYNAMIC(2,FunctionAlgebra,Executable)
-ALGEBRA_EXCLUDE(3,RelationAlgebra,Hybrid)
-
+ALGEBRA_INCLUDE(3,RelationAlgebra,Executable)
+ALGEBRA_INCLUDE(4,PointRectangleAlgebra,Executable)
+ALGEBRA_EXCLUDE(5,StreamExampleAlgebra,Executable)
