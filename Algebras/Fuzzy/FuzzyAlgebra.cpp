@@ -61,8 +61,8 @@ static void error(int line) {
 
 /*
  2.
-   The wrapper classes. The follow three classes are implemented in
-   java programming language. The C++ function invoke the corresponding
+   The wrapper classes. The follow three classes are implemented in the
+   java programming language. The C++ functions invoke the corresponding
    java methods.
 */
 
@@ -79,16 +79,13 @@ public:
    CcFPoint* Clone();
    bool IsDefined() const;
    void SetDefined(bool d);
-
    size_t HashValue();
-
    void CopyFrom(StandardAttribute* right);
    int Compare(Attribute *arg);
    bool Adjacent(Attribute * arg);
    int NumOfFLOBs();
    FLOB *GetFLOB(const int i);
    void Initialize();
-
    jobject GetObject();
     // the methods for operators
    CcFPoint* Add(CcFPoint* P);
@@ -121,39 +118,30 @@ private:
   bool canDelete;
   void RestoreFLOBFromJavaObject();
   void RestoreJavaObjectFromFLOB();
-  // for debugging only
-  void Print();
-
- };
-
-
-void CcFPoint::Print(){
-   jmethodID mid = env->GetMethodID(cls,"print","()V");
-   if(mid == 0){
-       error(__LINE__);
-   }
-   env->CallVoidMethod(obj,mid);
-   cout << endl << "defined : " << defined << endl;
-   cout << "canDelete : " << canDelete << endl;
-   cout << "FLOB_SIZE :" << objectData.Size() << endl;
-}
-
+};
 
 
 /*
   2.1.2 A class for fuzzy Lines based on  a FLine Java implementation */
-class CcFLine{
+class CcFLine : public StandardAttribute{
   public:
      CcFLine();
+     CcFLine(int Size);
      CcFLine(const jobject jobj);
      ~CcFLine();
+     void Destroy();
      CcFLine* Clone();
      bool IsDefined() const;
      void SetDefined(bool d);
+     size_t HashValue();
+     void CopyFrom(StandardAttribute* right);
+     int Compare(Attribute *arg);
+     bool Adjacent(Attribute * arg);
+     int NumOfFLOBs();
+     FLOB *GetFLOB(const int i);
+     void Initialize();
      jobject GetObject();
      ListExpr toListExpr();
-     bool readFromListExpr(ListExpr LE);
-
      // functions for operators
      CcFLine* Add(CcFLine* L);
      CcFLine* AlphaCut(double alpha,bool strong);
@@ -184,24 +172,34 @@ class CcFLine{
      jclass cls;
      jobject obj;
      bool defined;
+     FLOB objectData;
+     bool canDelete;
+     void RestoreFLOBFromJavaObject();
+     void RestoreJavaObjectFromFLOB();
 };
 
 /* 2.1.3 The wrapper class for java implementation of a fuzzy region */
-class CcFRegion{
+class CcFRegion: public StandardAttribute{
 public:
    CcFRegion();
+   CcFRegion(int size);
    CcFRegion(const jobject jobj);
    ~CcFRegion();
+   void Destroy();
    CcFRegion* Clone();
    bool IsDefined() const;
    void SetDefined(bool d);
+   size_t HashValue();
+   void CopyFrom(StandardAttribute* right);
+   int Compare(Attribute *arg);
+   bool Adjacent(Attribute* arg);
+   int NumOfFLOBs();
+   FLOB *GetFLOB(const int i);
+   void Initialize();
    jobject GetObject();
    ListExpr toListExpr();
-   bool readFromListExpr(ListExpr LE);
-
 
    // the methods for algebra operators
-
    CcFRegion* Add(const CcFRegion* R);
    CcFRegion* AlphaCut(double alpha, bool strong);
    double Area();
@@ -237,6 +235,10 @@ private:
   jclass cls;  // pointer to the corresponding java class FRegion.
   jobject obj; // pointer to the corresponding instance
   bool defined;
+  FLOB objectData;
+  bool canDelete;
+  void RestoreFLOBFromJavaObject();
+  void RestoreJavaObjectFromFLOB();
 };
 
 
@@ -248,10 +250,7 @@ private:
 /* 2.2.1 Definition of Point functions */
 
 /* Standard constructor.
- *  This Constructor should not be used directly.
- *  Its invoked by the persistent storing mechanism.
- *  When invoked the FLOB already exists. From the given Flob the
- *  Java-Object is to constructed.
+ *  This Constructor should never be used directly.
  */
 CcFPoint::CcFPoint() {}
 
@@ -264,7 +263,6 @@ CcFPoint::CcFPoint(const int size):objectData(size),canDelete(false){}
  * the FLOB must be exist
  */
 void CcFPoint::RestoreFLOBFromJavaObject(){
-  cout << "enter function RestoreFLOBFromJavaObject" << endl;
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
   if(mid == 0){
      error(__LINE__);
@@ -279,14 +277,12 @@ void CcFPoint::RestoreFLOBFromJavaObject(){
   objectData.Put(0,size,bytes);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
   defined=true;
-  cout << "leave function RestoreFLOBFromJavaObject" << endl;
-}
+ }
 
 
 /* creates the content of a FLOB from the given Java-Object
  */
 void CcFPoint::RestoreJavaObjectFromFLOB(){
-   cout << "enter function void CcFPoint::RestoreJavaObjectFromFLOB" << endl;
    // read the data from flob
    cls = env->FindClass("fuzzyobjects/composite/FPoint");
    if (cls == 0) {
@@ -296,14 +292,10 @@ void CcFPoint::RestoreJavaObjectFromFLOB(){
        defined=false;
        return;
    }
-   cout << "flob is ok " << endl;
    int size = objectData.Size();
-   cout << "size of flob is " << size << endl;
    char *bytes = new char[size];
-   cout << "before reading data " << endl;
    objectData.Get(0,size,bytes);
-   cout << "after reading data " << endl;
-  // copy the data into a java-array
+   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
   jmethodID mid = env->GetStaticMethodID(cls,"readFrom","([B)Lfuzzyobjects/composite/FPoint;");
@@ -316,19 +308,14 @@ void CcFPoint::RestoreJavaObjectFromFLOB(){
   }
   obj = jres;
   defined = true;
-  cout << "object created" << endl;
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
-  delete [] bytes;
-  Print();
-
-  cout << "leave function void CcFPoint::RestoreJavaObjectFromFLOB" << endl;
-}
+  //delete [] bytes;   // already done by RealeaseByteArrayElements
+ }
 
 
 
 /* construct a new CcFpoint from a given jobject */
 CcFPoint::CcFPoint(const jobject jobj):objectData(1){
-  cout << "enter constructor CcFPoint::CcFPoint(const jobject jobj)" << endl;
   /* Find the class Point. */
   canDelete = false;
   cls = env->FindClass("fuzzyobjects/composite/FPoint");
@@ -339,8 +326,7 @@ CcFPoint::CcFPoint(const jobject jobj):objectData(1){
   // create the corresponding FLOB
   RestoreFLOBFromJavaObject();
   defined = true;
-  cout << "leave constructor CcFPoint::CcFPoint(const jobject jobj)" << endl;
-}
+ }
 
 
 /* Destructor of a CcFPoint. Deletes the corresponding java object. */
@@ -368,8 +354,7 @@ size_t CcFPoint::HashValue(){
 
 
 void CcFPoint::CopyFrom(StandardAttribute* right){
-   cout << "enter CopyFrom" << endl;
-   CcFPoint *P = (CcFPoint *)right;
+    CcFPoint *P = (CcFPoint *)right;
    cls = env->FindClass("fuzzyobjects/composite/FPoint");
    defined = P->defined;
    objectData.Resize(P->objectData.Size());
@@ -382,7 +367,7 @@ void CcFPoint::CopyFrom(StandardAttribute* right){
 
 
 int CcFPoint::Compare(Attribute * arg){
-  jmethodID mid = env->GetMethodID(cls,"compareTo","(Lfuzzyobjects/compositte/FPoint;)I");
+  jmethodID mid = env->GetMethodID(cls,"compareTo","(Lfuzzyobjects/composite/FPoint;)I");
   if(mid == 0){
       error(__LINE__);
   }
@@ -405,7 +390,6 @@ FLOB *CcFPoint::GetFLOB(const int i){
 }
 
 void CcFPoint::Initialize() {
-  cout << "CcFPoint::Initialize" << endl;
   RestoreJavaObjectFromFLOB();
 }
 
@@ -425,7 +409,6 @@ void CcFPoint::SetDefined(bool d){
 
 /* returns a clone of this CcFPoint */
 CcFPoint* CcFPoint::Clone(){
-  cout << "enter Clone()" << endl;
   jmethodID mid;
   jobject jobj;
 
@@ -558,7 +541,7 @@ CcFPoint* CcFPoint::ScaledAdd(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 }
 
 CcFPoint* CcFPoint::ScaledDifference(CcFPoint* P){
@@ -577,7 +560,7 @@ CcFPoint* CcFPoint::ScaledIntersection(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 }
 
 CcFPoint* CcFPoint::ScaledUnion(CcFPoint* P){
@@ -586,7 +569,7 @@ CcFPoint* CcFPoint::ScaledUnion(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 }
 
 CcFPoint* CcFPoint::Sharp(){
@@ -609,40 +592,125 @@ CcFPoint* CcFPoint::Union(CcFPoint* P){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
-  return new CcFPoint(res);  
+  return new CcFPoint(res);
 
 }
-
-
 
 
 /* Definition of functions for FLines  */
-CcFLine::CcFLine(){
-  jmethodID mid;
-  cls = env->FindClass("fuzzyobjects/composite/FLine");
-  if(cls==0) error(__LINE__);
+/* The empty constructor. */
+CcFLine::CcFLine(){}
 
-  mid=env->GetMethodID(cls,"<init>","()V");
-  if(mid==0) error(__LINE__);
+CcFLine::CcFLine(const int size):objectData(size),canDelete(false){}
 
-  obj = env->NewObject(cls,mid);
-  if(obj==0) error(__LINE__);
-
-  defined=true;
-}
-
-/*create a CcFLine from  a given Java object */
-CcFLine::CcFLine(const jobject jobj){
-   cls = env->FindClass("fuzzyobjects/composite/FLine");  
-   if(cls==0) error(__LINE__);
-   obj=jobj;
+/* This function stored the contained Java object in byte representation in
+ * the corresponding FLOB. The FLOB must already exists.
+ */
+void CcFLine::RestoreFLOBFromJavaObject(){
+   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
+   if(mid == 0) error(__LINE__);
+   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,mid);
+   if(jbytes == 0) error(__LINE__);
+   int size = env->GetArrayLength(jbytes);
+   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
+   objectData.Resize(size);
+   objectData.Put(0,size,bytes);
+   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
    defined=true;
 }
- 
+
+/* This function restores the JavaObject from given FLOB */
+void CcFLine::RestoreJavaObjectFromFLOB(){
+   cls = env->FindClass("fuzzyobjects/composite/FLine");
+   if(cls == 0) error(__LINE__);
+   if(&objectData == 0) error(__LINE__);
+   int size = objectData.Size();
+   char* bytes = new char[size];
+   objectData.Get(0,size,bytes);
+   jbyteArray jbytes = env->NewByteArray(size);
+   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
+   jmethodID mid = env->GetStaticMethodID(cls,"readFrom","([B)Lfuzzyobjects/composite/FLine;");
+   if(mid == 0) error(__LINE__);
+   jobject jres = env->CallStaticObjectMethod(cls,mid,jbytes);
+   if(jres==0) error(__LINE__);
+   obj = jres;
+   defined = true;
+   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+}
+
+
+/*create a CcFLine from  a given Java object */
+CcFLine::CcFLine(const jobject jobj):objectData(1){
+   canDelete = false;
+   cls = env->FindClass("fuzzyobjects/composite/FLine");
+   if(cls==0) error(__LINE__);
+   obj=jobj;
+   RestoreFLOBFromJavaObject();
+   defined=true;
+}
+
 /* the standard destructor */
 CcFLine::~CcFLine(){
-  env->DeleteLocalRef(obj);
+  if(canDelete){
+     env->DeleteLocalRef(obj);
+     Destroy();
+  }
 }
+
+void CcFLine::Destroy(){
+   canDelete=true;
+}
+
+size_t CcFLine::HashValue(){
+   jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
+   if(mid==0) error(__LINE__);
+   return (size_t) env->CallIntMethod(obj,mid);
+}
+
+void CcFLine::CopyFrom(StandardAttribute* right){
+  CcFLine *L = (CcFLine *) right;
+  cls =  env->FindClass("fuzzyobjects/composite/FLine");
+  defined = L->defined;
+  int size = L->objectData.Size();
+  objectData.Resize(size);
+  char* data = new char[size];
+  L->objectData.Get(0,size,data);
+  objectData.Put(0,size,data);
+  delete [] data;
+  RestoreJavaObjectFromFLOB();
+}
+
+int CcFLine::Compare(Attribute* arg){
+  jmethodID mid = env->GetMethodID(cls,"compareTo","(Lfuzzyobjects/composite/FLine;)I");
+  if(mid==0) error(__LINE__);
+  CcFLine* L = (CcFLine*) arg;
+  return env->CallIntMethod(obj,mid,L->obj);
+}
+
+bool CcFLine::Adjacent(Attribute* arg){
+  return false;
+}
+
+int CcFLine::NumOfFLOBs(){
+   return 1;
+}
+
+FLOB* CcFLine::GetFLOB(const int i){
+    assert(i==0);
+    return &objectData;
+}
+
+void CcFLine::Initialize(){
+   RestoreJavaObjectFromFLOB();
+}
+
+
+
+
+
+
+
+
 
 
 /* Convert simple elementary objects from and to lists */
@@ -702,7 +770,7 @@ static ListExpr FSegmentToListExpr(jobject obj){
 }
 
 /** convert a ListExpr to a fuzzy segment,
-    if the given ListExpr is not a valid representation of a 
+    if the given ListExpr is not a valid representation of a
     fuzzy segment, then null is returned */
 static jobject ListExprToFSegment(ListExpr LE){
   if(nl->ListLength(LE)!=2)
@@ -721,7 +789,7 @@ static jobject ListExprToFSegment(ListExpr LE){
 }
 
 /** convert a ListExpr to a fuzzy triangle,
-    if the given ListExpr is not a valid representation of a 
+    if the given ListExpr is not a valid representation of a
     fuzzy triangle, then null is returned */
 static jobject ListExprToFTriangle(ListExpr LE){
   if(nl->ListLength(LE)!=3)
@@ -738,7 +806,7 @@ static jobject ListExprToFTriangle(ListExpr LE){
   if(P2==0) return 0;
   ListExpr P3L = nl->Third(LE);
   jobject P3 = ListExprTofEPoint(P3L);
-  if(P3==0) return 0; 
+  if(P3==0) return 0;
   return env->NewObject(cls,mid,P1,P2,P3);
 }
 
@@ -791,47 +859,7 @@ ListExpr CcFLine::toListExpr(){
    return nl->TwoElemList(nl->RealAtom(Z),Segments);
   }
 
-/* read the CcFLine from given ListExpr */
-bool CcFLine::readFromListExpr(ListExpr LE){
-  if (nl->ListLength(LE)!=2){  // error  (scaledfactor <Segmentlist>)
-     return false;
-  }
-  ListExpr Factor = nl->First(LE);
-  ListExpr Segments = nl->Second(LE);
-  if(nl->AtomType(Factor)!=RealType){
-      return false;
-  }
-  double z = nl->RealValue(Factor);
-  // remove all objects from the Fline
-  jmethodID mid = env->GetMethodID(cls,"clear","()V");
-  if(mid==0) error(__LINE__);
-  env->CallVoidMethod(obj,mid);  
-  
-  // set the factor
-  mid = env->GetMethodID(cls,"setSF","(D)Z");
-  if(mid==0) error(__LINE__);
-  bool ok = env->CallBooleanMethod(obj,mid,z);
 
-  // add the Objects
-  mid = env->GetMethodID(cls,"add","(Lfuzzyobjects/simple/fSegment;)Z");
-  if(mid==0) error(__LINE__);
-  jobject NextSegment;
-  ListExpr SL;  // list for a single segment
-  int count =0;
-  while(ok & !nl->IsEmpty(Segments)){
-        SL = nl->First(Segments);
-        NextSegment = ListExprToFSegment(SL);
-	count++;
-	if(NextSegment==0){
-	    ok = false;
-	}
-	else{
-	   ok = env->CallBooleanMethod(obj,mid,NextSegment);
-	}
-	Segments = nl->Rest(Segments);
-    }
-  return ok;
-}
 
 
 
@@ -852,10 +880,10 @@ void CcFLine::SetDefined(bool d){
 CcFLine* CcFLine::Clone(){
    jmethodID mid;
    jobject jobj;
-   
+
    mid = env->GetMethodID(cls,"copy","()Lfuzzyobjects/composite/FLine;");
    if(mid==0) error(__LINE__);
-   
+
    jobj = env->CallObjectMethod(obj,mid);
    if(jobj==0) error(__LINE__);
 
@@ -865,7 +893,7 @@ CcFLine* CcFLine::Clone(){
 
 /* The functions to define operators of Fuzzy Lines.
    A description for the functions you can find in the
-   documentation of the java class FLine 
+   documentation of the java class FLine
 */
 
 CcFLine* CcFLine::Add(CcFLine* L){
@@ -923,7 +951,7 @@ CcFLine* CcFLine::Difference(CcFLine* L){
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,L->obj);
   if(res==0) error(__LINE__);
-  return new CcFLine(res);   
+  return new CcFLine(res);
 }
 
 double CcFLine::ScaleFactor(){
@@ -1062,36 +1090,111 @@ CcFLine* CcFLine::Union(CcFLine* L){
 /* The definition of  ccFRegion  functions*/
 
 /* the standard constructor for fuzzy regions */
-CcFRegion::CcFRegion(){
-  jmethodID mid;
-  /*find the fregion class */
-   cls = env->FindClass("fuzzyobjects/composite/FRegion");
-  if(cls==0) error(__LINE__);
+CcFRegion::CcFRegion(){}
 
-  /* search the java standard constructor */
-  mid=env->GetMethodID(cls,"<init>","()V");
-  if(mid==0) error(__LINE__);
+CcFRegion::CcFRegion(const int size):objectData(size),canDelete(false){}
 
-  /* create the java object */
-  obj = env->NewObject(cls,mid);
-  if(obj==0) error(__LINE__);
-  defined=true;
-}
+void CcFRegion::RestoreFLOBFromJavaObject(){
+   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
+   if(mid==0) error(__LINE__);
+   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,mid);
+   if(jbytes==0) error(__LINE__);
+   int size = env->GetArrayLength(jbytes);
+   char* bytes = (char*) env->GetByteArrayElements(jbytes,0);
+   objectData.Resize(size);
+   objectData.Put(0,size,bytes);
+   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+   defined=true;
+ }
+
+ void CcFRegion::RestoreJavaObjectFromFLOB(){
+     cls = env->FindClass("fuzzyobjects/composite/FRegion");
+     if(cls==0) error(__LINE__);
+     if(&objectData==0){
+         defined=false;
+	 return;
+     }
+     int size=objectData.Size();
+     char* bytes = new char[size];
+     objectData.Get(0,size,bytes);
+     jbyteArray jbytes = env->NewByteArray(size);
+     env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
+     jmethodID mid = env->GetStaticMethodID(cls,"readFrom","([B)Lfuzzyobjects/composite/FRegion;");
+     if(mid==0) error(__LINE__);
+     jobject jres = env->CallStaticObjectMethod(cls,mid,jbytes);
+     if(jres==0) error(__LINE__);
+     obj = jres;
+     defined=true;
+     env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+ }
 
 
 /* constructor with given jobject */
-CcFRegion::CcFRegion(const jobject jobj){
+CcFRegion::CcFRegion(const jobject jobj):objectData(1){
+   canDelete=false;
    cls = env->GetObjectClass(jobj);
    if(cls==0) error(__LINE__);
    obj = jobj;
+   RestoreFLOBFromJavaObject();
    defined=true;
 }
 
 /* destructor for ccfregions*/
 CcFRegion::~CcFRegion(){
-  env->DeleteLocalRef(obj);
+  if(canDelete){
+    env->DeleteLocalRef(obj);
+    Destroy();
+  }
 }
 
+void CcFRegion::Destroy(){
+   canDelete=true;
+}
+
+size_t CcFRegion::HashValue(){
+  jmethodID mid = env->GetMethodID(cls,"getHashValue","()I");
+  if(mid==0) error(__LINE__);
+  return (size_t) env->CallIntMethod(obj,mid);
+}
+
+
+void CcFRegion::CopyFrom(StandardAttribute* right){
+   CcFRegion* R = (CcFRegion*) right;
+   cls = env->FindClass("fuzzyobjects/composite/FRegion");
+   if(cls==0) error(__LINE__);
+   defined = R->defined;
+   int size = R->objectData.Size();
+   objectData.Resize(size);
+   char* data = new char[size];
+   R->objectData.Get(0,size,data);
+   objectData.Put(0,size,data);
+   delete [] data;
+   RestoreJavaObjectFromFLOB();
+}
+
+int CcFRegion::Compare(Attribute* arg){
+  jmethodID mid = env->GetMethodID(cls,"compareTo","(Lfuzzyobjects/composite/FRegion;)I");
+  if(mid==0) error(__LINE__);
+  CcFRegion* R = (CcFRegion*) arg;
+  return env->CallIntMethod(obj,mid,R->obj);
+}
+
+bool CcFRegion::Adjacent(Attribute* arg){
+   return false;
+}
+
+int CcFRegion::NumOfFLOBs(){
+   return 1;
+}
+
+FLOB* CcFRegion::GetFLOB(const int i){
+   assert(i==0);
+   return &objectData;
+}
+
+void CcFRegion::Initialize(){
+   RestoreJavaObjectFromFLOB();
+}
 
 /*transform to a ListExpr*/
 ListExpr CcFRegion::toListExpr(){
@@ -1125,48 +1228,6 @@ ListExpr CcFRegion::toListExpr(){
   }
    return nl->TwoElemList(nl->RealAtom(Z),Triangles);
 
-}
-
-/* reads a CcFRegion from a given ListExpr*/
-bool CcFRegion::readFromListExpr(ListExpr LE){
-  if (nl->ListLength(LE)!=2){  // error  (scaledfactor <Trianglelist>)
-     return false;
-  }
-  ListExpr Factor = nl->First(LE);
-  ListExpr Triangles = nl->Second(LE);
-  if(nl->AtomType(Factor)!=RealType){
-      return false;
-  }
-  double z = nl->RealValue(Factor);
-  // remove all objects from the FRegion
-  jmethodID mid = env->GetMethodID(cls,"clear","()V");
-  if(mid==0) error(__LINE__);
-  env->CallVoidMethod(obj,mid);
-
-  // set the factor
-  mid = env->GetMethodID(cls,"setSF","(D)Z");
-  if(mid==0) error(__LINE__);
-  bool ok = env->CallBooleanMethod(obj,mid,z);
-
-  // add the Objects
-  mid = env->GetMethodID(cls,"add","(Lfuzzyobjects/simple/fTriangle;)Z");
-  if(mid==0) error(__LINE__);
-  jobject NextTriangle;
-  ListExpr TL;  // list for a single triangle
-  int count =0;
-  while(ok & !nl->IsEmpty(Triangles)){
-        TL = nl->First(Triangles);
-        NextTriangle = ListExprToFTriangle(TL);
-	count++;
-	if(NextTriangle==0){
-	    ok = false;
-	}
-	else{
-	   ok = env->CallBooleanMethod(obj,mid,NextTriangle);
-	}
-	Triangles = nl->Rest(Triangles);
-    }
-  return ok;
 }
 
 /* get the java object */
@@ -1490,8 +1551,8 @@ static Word InFPoint (const ListExpr typeInfo,
 
 
   if (nl->ListLength(instance)!=2){  // error
-     return SetWord(Address(0));
      correct = false;
+     return SetWord(Address(0));
   }
 
   ListExpr Factor = nl->First(instance);
@@ -1550,7 +1611,6 @@ static Word InFPoint (const ListExpr typeInfo,
 
 
 static Word CreateFPoint(const ListExpr typeInfo) {
-  cout << "enter createFPoint" << endl;
   jclass cls = env->FindClass("fuzzyobjects/composite/FPoint");
   jmethodID mid = env->GetMethodID(cls,"<init>","()V");
   if(mid==0) error(__LINE__);
@@ -1591,20 +1651,66 @@ static Word InFLine( const ListExpr typeInfo,
 			   const int errorPos,
 			   ListExpr& errorInfo,
 			   bool& correct){
-  CcFLine * L;
-  L = new CcFLine();
-  bool success= L->readFromListExpr(instance);
-  if(success){
+
+
+  if (nl->ListLength(instance)!=2){  // error  (scaledfactor <Segmentlist>)
+     correct=false;
+     return SetWord(Address(0));
+  }
+  ListExpr Factor = nl->First(instance);
+  ListExpr Segments = nl->Second(instance);
+  if(nl->AtomType(Factor)!=RealType){
+     correct=false;
+     return SetWord(Address(0));
+  }
+
+  double z = nl->RealValue(Factor);
+   // create a new fuzzy line
+  jclass cls = env->FindClass("fuzzyobjects/composite/FLine");
+  jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+  if(mid==0) error(__LINE__);
+  jobject FL = env->NewObject(cls,mid);
+  if(FL==0) error(__LINE__);
+  // set the factor
+  mid = env->GetMethodID(cls,"setSF","(D)Z");
+  if(mid==0) error(__LINE__);
+  bool ok = env->CallBooleanMethod(FL,mid,z);
+  // add the Objects
+  mid = env->GetMethodID(cls,"add","(Lfuzzyobjects/simple/fSegment;)Z");
+  if(mid==0) error(__LINE__);
+  jobject NextSegment;
+  ListExpr SL;  // list for a single segment
+  int count =0;
+  while(ok & !nl->IsEmpty(Segments)){
+        SL = nl->First(Segments);
+        NextSegment = ListExprToFSegment(SL);
+	count++;
+	if(NextSegment==0){
+	    ok = false;
+	}
+	else{
+	   ok = env->CallBooleanMethod(FL,mid,NextSegment);
+	}
+	Segments = nl->Rest(Segments);
+    }
+
+  if(ok){
      correct=true;
-     return SetWord(L);
+     return SetWord(new CcFLine(FL));
   } else{
      correct=false;
+     env->DeleteLocalRef(FL);
      return SetWord(Address(0));
   }
 }
 
 static Word CreateFLine(const ListExpr typeInfo){
-   return (SetWord(new CcFLine()));
+   jclass cls = env->FindClass("fuzzyobjects/composite/FLine");
+   jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+   if(mid==0) error(__LINE__);
+   jobject FL = env->NewObject(cls,mid);
+   if(FL==0) error(__LINE__);
+   return (SetWord(new CcFLine(FL)));
 }
 
 static void DeleteFLine(Word &w){
@@ -1621,6 +1727,11 @@ static Word CloneFLine(const Word &w){
   return SetWord(((CcFLine *)w.addr)->Clone());
 }
 
+static void* CastFLine( void* addr ) {
+  return new (addr) CcFLine;
+}
+
+
 /* the static methods for FRegions needed by type constructor */
 
 /* the out function for a fregion */
@@ -1636,23 +1747,67 @@ static Word InFRegion(const ListExpr typeInfo,
                      const int errorPos,
                      ListExpr& errorInfo,
                      bool& correct){
-  CcFRegion* R;
-  R = new CcFRegion();
-  bool success=R->readFromListExpr(instance);
-  if(success){
+
+
+  if (nl->ListLength(instance)!=2){  // error  (scaledfactor <Trianglelist>)
+    correct=false;
+    return SetWord(Address(0));
+  }
+  ListExpr Factor = nl->First(instance);
+  ListExpr Triangles = nl->Second(instance);
+  if(nl->AtomType(Factor)!=RealType){
+    correct=false;
+    return SetWord(Address(0));
+  }
+  double z = nl->RealValue(Factor);
+
+  // create an JavaObject
+  jclass cls = env->FindClass("fuzzyobjects/composite/FRegion");
+  jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+  if(mid==0) error(__LINE__);
+  jobject FR = env->NewObject(cls,mid);
+  if(FR==0) error(__LINE__);
+  // set the factor
+  mid = env->GetMethodID(cls,"setSF","(D)Z");
+  if(mid==0) error(__LINE__);
+  bool ok = env->CallBooleanMethod(FR,mid,z);
+  // add the Objects
+  mid = env->GetMethodID(cls,"add","(Lfuzzyobjects/simple/fTriangle;)Z");
+  if(mid==0) error(__LINE__);
+  jobject NextTriangle;
+  ListExpr TL;  // list for a single triangle
+  int count =0;
+  while(ok & !nl->IsEmpty(Triangles)){
+        TL = nl->First(Triangles);
+        NextTriangle = ListExprToFTriangle(TL);
+	count++;
+	if(NextTriangle==0){
+	    ok = false;
+	}
+	else{
+	   ok = env->CallBooleanMethod(FR,mid,NextTriangle);
+	}
+	Triangles = nl->Rest(Triangles);
+    }
+  if(ok){
      correct=true;
-     return SetWord(R);
+     return SetWord(new CcFRegion(FR));
   } else{
     correct=false;
-    delete R;
-    return SetWord(Address(0)); 
+    env->DeleteLocalRef(FR);
+    return SetWord(Address(0));
   }
 }
 
 
 /* creation of a fuzzy region */
 static Word CreateFRegion(const ListExpr typeInfo){
-   return (SetWord(new CcFRegion()));
+   jclass cls = env->FindClass("fuzzyobjects/composite/FRegion");
+   jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+   if(mid==0) error(__LINE__);
+   jobject FR = env->NewObject(cls,mid);
+   if(FR==0) error(__LINE__);
+   return (SetWord(new CcFRegion(FR)));
 }
 
 /* delete a fuzzy region */
@@ -1672,6 +1827,9 @@ static Word CloneFRegion(const Word &w){
   return SetWord(((CcFRegion *)w.addr)->Clone());
 }
 
+static void* CastFRegion( void* addr ) {
+  return new (addr) CcFRegion;
+}
 
 
 /* the signature functions */
@@ -1756,16 +1914,6 @@ static bool CheckFRegion(ListExpr type, ListExpr& errorInfo){
 
 
 
-/*
- Dummy Functions
- Not interesting, but needed in the definition of a type constructor.
-*/
-
-static void* DummyCast( void* addr ) {
-  return (0);
-}
-
-
 /* sizeOf functions */
 int SizeOfFPoint(){ return sizeof(CcFPoint);}
 
@@ -1793,7 +1941,7 @@ TypeConstructor ccfpoint
  SizeOfFPoint,     // Size of a point
  CheckPoint,       // kind checking function
  0,                // predef. pers. function for model
- TypeConstructor::DummyInModel,	
+ TypeConstructor::DummyInModel,
  TypeConstructor::DummyOutModel,
  TypeConstructor::DummyValueToModel,
  TypeConstructor::DummyValueListToModel
@@ -1814,7 +1962,7 @@ TypeConstructor ccfregion
    0,
    CloseFRegion,
    CloneFRegion,
-   DummyCast,
+   CastFRegion,
    SizeOfFRegion,     // Size of a point
    CheckFRegion,
    0,
@@ -1830,7 +1978,7 @@ TypeConstructor ccfline
 (
   "fline", FLineProperty,OutFLine,InFLine,0,0,
   CreateFLine,DeleteFLine,0,0,CloseFLine,
-  CloneFLine,DummyCast,SizeOfFLine,CheckFLine,0,
+  CloneFLine,CastFLine,SizeOfFLine,CheckFLine,0,
   TypeConstructor::DummyInModel,
   TypeConstructor::DummyOutModel,
   TypeConstructor::DummyValueToModel,

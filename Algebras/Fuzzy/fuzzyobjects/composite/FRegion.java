@@ -4,6 +4,7 @@ import fuzzyobjects.basic.*;
 import fuzzyobjects.simple.*;
 import java.util.Vector;
 import sj.lang.ListExpr;
+import java.io.*;
 /**
  * this class provides a implementation of fuzzy regions
  * in the X-triangulation
@@ -2112,6 +2113,41 @@ public boolean readFromListString(String List){
  }
 }
 
+/** this method is used for reading a fuzzy region from a byte array;
+  * returns null if the construction of the object failed
+  */
+public static FRegion readFrom(byte[] buffer){
+   try{
+      ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+      FRegion res = (FRegion) ois.readObject();
+      ois.close();
+      return res;
+   } catch(Exception e){
+         return null;
+     }
+}
+
+
+/** this method serialized an object */
+public  byte[] writeToByteArray(){
+
+  try{
+     ByteArrayOutputStream byteout = new ByteArrayOutputStream(fTs.getSize()*16+25);
+     ObjectOutputStream objectout = new ObjectOutputStream(byteout);
+     objectout.writeObject(this);
+     objectout.flush();
+     byte[] res = byteout.toByteArray();
+     objectout.close();
+     return  res;
+  } catch(Exception e){
+     return null;
+  }
+}
+
+/** computes a hash-value for this FPoint */
+public int getHashValue(){
+  return Math.abs((BB.getMaxX()-BB.getMinX())*(BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
+}
 
 
 
