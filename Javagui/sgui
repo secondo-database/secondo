@@ -1,6 +1,0 @@
-if [ "$SECONDO_PLATFORM" = "win32" ]
-    then CP=".;lib/java_cup_v10i_runtime.jar"
-    else CP=".:lib/java_cup_v10i_runtime.jar"
-fi    
-
-java -Xmx80M -classpath $CP gui.MainWindow
