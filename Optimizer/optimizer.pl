@@ -2512,7 +2512,10 @@ lookupPred1(Term, Term, N, Rels, N, Rels).
 */
 
 spelled(Rel:Attr, attr(Attr2, 0, l)) :-
-  spelling(Rel:Attr, lc(Attr2)), !.
+  %spelling(Rel:Attr, lc(Attr2)), !.
+  spelling(Rel:Attr, Attr3),
+  Attr3 = lc(Attr2),
+  !.
 
 spelled(Rel:Attr, attr(Attr2, 0, u)) :-
   spelling(Rel:Attr, Attr2), !.
@@ -2520,7 +2523,10 @@ spelled(Rel:Attr, attr(Attr2, 0, u)) :-
 spelled(_:Attr, attr(Attr, 0, u)) :- !.	% no attr entry in spelling table
 
 spelled(Rel, Rel2, l) :-
-  spelling(Rel, lc(Rel2)), !.
+  %spelling(Rel, lc(Rel2)), !.
+  spelling(Rel, Rel3),
+  Rel3 = lc(Rel2),
+  !.
 
 spelled(Rel, Rel2, u) :-
   spelling(Rel, Rel2), !.
