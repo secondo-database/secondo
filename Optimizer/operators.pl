@@ -23,7 +23,7 @@ consumeTC(1.0).
 
 filterTC(1.68).
 
-productTC(1.26).
+productTC(1.26, 0.4).
 
 leftrangeTC(10).
 
