@@ -20,9 +20,9 @@ public class RelViewer extends SecondoViewer{
  public RelViewer(){
    ComboBox = new JComboBox();
    ScrollPane = new JScrollPane();
-   dummy = new JPanel(); 
+   dummy = new JPanel();
    CurrentTable = null;
-   Tables = new Vector(); 
+   Tables = new Vector();
    setLayout(new BorderLayout());
    add(ComboBox,BorderLayout.NORTH);
    add(ScrollPane,BorderLayout.CENTER);
@@ -42,7 +42,7 @@ public class RelViewer extends SecondoViewer{
     }
     else
       ScrollPane.setViewportView(dummy);
-    
+
  }
 
  public  String getName(){
@@ -58,7 +58,7 @@ public class RelViewer extends SecondoViewer{
       JTable NTable = createTableFrom(o.toListExpr());
       if(NTable==null)
           return false;
-      else{ 
+      else{
          Tables.add(NTable);
          ComboBox.addItem(o.getName());
          selectObject(o);
@@ -68,9 +68,9 @@ public class RelViewer extends SecondoViewer{
     }
  }
 
- 
 
- /** created a new JTable from LE, if LE not a valid 
+
+ /** created a new JTable from LE, if LE not a valid
    * ListExpr for a relation null ist returned
    **/
  private JTable createTableFrom(ListExpr LE){
@@ -83,14 +83,14 @@ public class RelViewer extends SecondoViewer{
     ListExpr value = LE.second();
     // analyse type
     ListExpr maintype = type.first();
-    if (type.listLength()!=2 || !maintype.isAtom() || maintype.atomType()!=ListExpr.SYMBOL_ATOM 
+    if (type.listLength()!=2 || !maintype.isAtom() || maintype.atomType()!=ListExpr.SYMBOL_ATOM
         || !(maintype.symbolValue().equals("rel") | maintype.symbolValue().equals("mrel")))
        return null; // not a relation
     ListExpr tupletype = type.second();
     // analyse Tuple
     ListExpr TupleFirst=tupletype.first();
     if (tupletype.listLength()!=2 || !TupleFirst.isAtom() ||
-         TupleFirst.atomType()!=ListExpr.SYMBOL_ATOM || 
+         TupleFirst.atomType()!=ListExpr.SYMBOL_ATOM ||
 	 !(TupleFirst.symbolValue().equals("tuple") | TupleFirst.symbolValue().equals("mtuple")))
        return null; // not a tuple
     ListExpr TupleTypeValue = tupletype.second();
@@ -103,7 +103,7 @@ public class RelViewer extends SecondoViewer{
         else{
            head[i] = TupleSubType.first().writeListExprToString();
           // remove comment below if Type is wanted
-          // head[i] += "  "+ TupleSubType.second().writeListExprToString();  
+          // head[i] += "  "+ TupleSubType.second().writeListExprToString();
         }
         TupleTypeValue = TupleTypeValue.rest();
     }
@@ -114,7 +114,7 @@ public class RelViewer extends SecondoViewer{
      Vector V= new Vector();
      String[] row;
      int pos;
-     ListExpr Elem; 
+     ListExpr Elem;
      while (!value.isEmpty()){
          TupleValue = value.first();
          row = new String[head.length];
@@ -123,7 +123,13 @@ public class RelViewer extends SecondoViewer{
            Elem = TupleValue.first();
            if (Elem.isAtom() && Elem.atomType()==ListExpr.STRING_ATOM)
               row[pos] = Elem.stringValue();
-           else
+           else if(Elem.isAtom() && Elem.atomType()==ListExpr.TEXT_ATOM){
+	     if(Elem.textLength()<40)
+	        row[pos] = Elem.textValue();
+	     else
+	        row[pos] = "a long text";
+           }
+	   else
               row[pos] = TupleValue.first().writeListExprToString();
            pos++;
            TupleValue = TupleValue.rest();
@@ -131,7 +137,7 @@ public class RelViewer extends SecondoViewer{
          V.add(row);
          value = value.rest();
      }
-     
+
      String[][] TableDatas = new String[V.size()][head.length];
      for(int i=0;i<V.size();i++)
           TableDatas[i]=(String[]) V.get(i);
