@@ -2042,7 +2042,7 @@ ListExpr TCountTypeMap(ListExpr args)
       if (TypeOfRelAlgSymbol(nl->First(first)) == stream) 
         return nl->SymbolAtom("int");
     }
-  } 
+  }
   return nl->SymbolAtom("typeerror");
 }
 
@@ -2405,6 +2405,349 @@ Operator cpphead (
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
          HeadTypeMap         // type mapping
+);
+
+/*
+
+7.3 Operators ~max~ and ~min~
+
+
+7.3.1 Type mapping function of Operators ~max~ and ~min~
+
+Type mapping for ~max~ and ~min~ is
+
+----	((stream (tuple ((x1 t1)...(xn tn))) xi) 	-> ti
+							APPEND (i ti)
+----
+
+*/
+static ListExpr
+MaxMinTypeMap( ListExpr args )
+{
+  ListExpr first, second, attrtype;
+  string  attrname;
+  int j;
+
+  if(nl->ListLength(args) == 2)
+  {
+    first = nl->First(args);
+    second  = nl->Second(args);
+
+    if((nl->ListLength(first) == 2  )
+      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && (nl->IsAtom(second))
+      && (nl->AtomType(second) == SymbolType))
+    {
+      attrname = nl->SymbolValue(second);
+      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+
+      if (j > 0
+        && (nl->SymbolValue(attrtype) == "real"
+          || nl->SymbolValue(attrtype) == "string"
+          || nl->SymbolValue(attrtype) == "bool"
+          || nl->SymbolValue(attrtype) == "int"))
+      {
+        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->OneElemList(nl->IntAtom(j)), attrtype);
+      }
+    }
+    return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+/*
+
+4.1.2 Value mapping function of operators ~max~ and ~min~
+
+*/
+
+template<bool isMax> int
+MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool definedValueFound = false;
+  Word currentTupleWord;
+  Attribute* extremum = 0;
+
+  assert(args[2].addr != 0);
+  int attributeIndex = (int)((StandardAttribute*)args[2].addr)->GetValue() - 1;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, currentTupleWord);
+  while(qp->Received(args[0].addr))
+  {
+    CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
+    Attribute* currentAttr = (Attribute*)currentTuple->Get(attributeIndex);
+    if(currentAttr->IsDefined())
+    {
+      if(definedValueFound)
+      {
+        if(isMax)
+        {
+          if(currentAttr->Compare(extremum) > 0)
+          {
+            extremum = currentAttr;
+          }
+        }
+        else
+        {
+          if(currentAttr->Compare(extremum) < 0)
+          {
+            extremum = currentAttr;
+          }
+        }
+      }
+      else
+      {
+        definedValueFound = true;
+        extremum = currentAttr;
+      }
+    }
+    qp->Request(args[0].addr, currentTupleWord);
+  }
+  qp->Close(args[0].addr);
+
+  if(definedValueFound)
+  {
+    result = SetWord(extremum->Clone());
+    return 0;
+  }
+  else
+  {
+    cout << "No defined value found.\n";
+    return -1;
+  }
+}
+/*
+
+4.1.3 Specification of operator ~max~
+
+*/
+const string MaxOpSpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the maximum value of attribute ai over the input stream.</text--->)";
+/*
+
+4.1.3 Definition of operator ~max~
+
+*/
+Operator cppmax (
+         "max",             // name
+         MaxOpSpec,           // specification
+         MaxMinValueMapping<true>,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         MaxMinTypeMap         // type mapping
+);
+
+/*
+
+4.1.3 Specification of operator ~min~
+
+*/
+const string MinOpSpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the minimum value of attribute ai over the input stream.</text--->)";
+/*
+
+4.1.3 Definition of operator ~min~
+
+*/
+Operator cppmin (
+         "min",             // name
+         MinOpSpec,           // specification
+         MaxMinValueMapping<false>,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         MaxMinTypeMap         // type mapping
+);
+
+/*
+
+7.3 Operators ~avg~ and ~sum~
+
+
+7.3.1 Type mapping function of Operators ~avg~ and ~sum~
+
+Type mapping for ~avg~ is
+
+----	((stream (tuple ((x1 t1)...(xn tn))) xi) 	-> real
+							APPEND (i ti)
+----
+
+Type mapping for ~sum~ is
+
+----	((stream (tuple ((x1 t1)...(xn tn))) xi) 	-> ti
+							APPEND (i ti)
+----
+
+*/
+
+template<bool isAvg> ListExpr
+AvgSumTypeMap( ListExpr args )
+{
+  ListExpr first, second, attrtype;
+  string  attrname;
+  int j;
+
+  if(nl->ListLength(args) == 2)
+  {
+    first = nl->First(args);
+    second  = nl->Second(args);
+
+    if((nl->ListLength(first) == 2  )
+      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && (nl->IsAtom(second))
+      && (nl->AtomType(second) == SymbolType))
+    {
+      attrname = nl->SymbolValue(second);
+      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+
+      if (j > 0
+        && (nl->SymbolValue(attrtype) == "real"
+          || nl->SymbolValue(attrtype) == "int"))
+      {
+        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->TwoElemList(nl->IntAtom(j),
+            nl->StringAtom(nl->SymbolValue(attrtype))),
+            isAvg ? nl->SymbolAtom("real") : attrtype);
+      }
+    }
+    return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+
+4.1.2 Value mapping function of operators ~avg~ and ~sum~
+
+*/
+template<bool isAvg> int
+AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool definedValueFound = false;
+  Word currentTupleWord;
+  Attribute* accumulated = 0;
+  int nProcessedItems = 0;
+
+  assert(args[2].addr != 0);
+  assert(args[3].addr != 0);
+
+  int attributeIndex = (int)((StandardAttribute*)args[2].addr)->GetValue() - 1;
+  char* attributeType = (char*)((StandardAttribute*)args[3].addr)->GetValue();
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, currentTupleWord);
+  while(qp->Received(args[0].addr))
+  {
+    nProcessedItems++;
+
+    CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
+    Attribute* currentAttr = (Attribute*)currentTuple->Get(attributeIndex);
+    if(currentAttr->IsDefined())
+    {
+      if(definedValueFound)
+      {
+        if(strcmp(attributeType, "real") == 0)
+        {
+          CcReal* accumulatedReal = (CcReal*)accumulated;
+          CcReal* currentReal = (CcReal*)currentAttr;
+          accumulatedReal->Set(currentReal->GetRealval()
+            + accumulatedReal->GetRealval());
+        }
+        else
+        {
+          CcInt* accumulatedInt = (CcInt*)accumulated;
+          CcInt* currentInt = (CcInt*)currentAttr;
+          accumulatedInt->Set(currentInt->GetIntval()
+            + accumulatedInt->GetIntval());
+        }
+      }
+      else
+      {
+        definedValueFound = true;
+        accumulated = currentAttr->Clone();
+      }
+    }
+    qp->Request(args[0].addr, currentTupleWord);
+  }
+  qp->Close(args[0].addr);
+
+  if(definedValueFound)
+  {
+    if(isAvg)
+    {
+      CcReal* resultAttr = new CcReal(true, 0.0);
+      float nItems = (float)nProcessedItems;
+
+      if(strcmp(attributeType, "real") == 0)
+      {
+        CcReal* accumulatedReal = (CcReal*)accumulated;
+        resultAttr->Set(accumulatedReal->GetRealval() / nItems);
+      }
+      else
+      {
+        CcInt* accumulatedInt = (CcInt*)accumulated;
+        resultAttr->Set(((float)accumulatedInt->GetIntval()) / nItems);
+      }
+      delete accumulated;
+      result = SetWord(resultAttr);
+    }
+    else
+    {
+      result = SetWord(accumulated);
+    }
+    return 0;
+  }
+  else
+  {
+    cout << "No defined value found.\n";
+    return -1;
+  }
+}
+
+/*
+
+4.1.3 Specification of operator ~avg~
+
+*/
+const string AvgOpSpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real</text---><text>Returns the average value of attribute ai over the input stream.</text--->)";
+/*
+
+4.1.3 Definition of operator ~avg~
+
+*/
+Operator cppavg (
+         "avg",             // name
+         AvgOpSpec,           // specification
+         AvgSumValueMapping<true>,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         AvgSumTypeMap<true>         // type mapping
+);
+
+/*
+
+4.1.3 Specification of operator ~sum~
+
+*/
+const string SumOpSpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the sum of the values of attribute ai over the input stream.</text--->)";
+/*
+
+4.1.3 Definition of operator ~sum~
+
+*/
+Operator cppsum (
+         "sum",             // name
+         AvgOpSpec,           // specification
+         AvgSumValueMapping<false>,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         AvgSumTypeMap<false>         // type mapping
 );
 
 /*
@@ -2979,12 +3322,12 @@ Operator equiMergeJoinOperator(
 
 /*
 
-7.3 Operator ~equimergejoin~
+7.3 Operator ~equihashjoin~
 
 This operator computes the equijoin two streams via a hash join.
 The user can specify the number of hash buckets.
 
-7.3.1 Auxiliary Class for Operator ~equimergejoin~
+7.3.1 Auxiliary Class for Operator ~equihashjoin~
 
 */
 
@@ -3285,7 +3628,7 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST :
-    
+
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
@@ -3502,6 +3845,10 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppextract);
     AddOperator(&cppextend);
     AddOperator(&cppconcat);
+    AddOperator(&cppmax);
+    AddOperator(&cppmin);
+    AddOperator(&cppavg);
+    AddOperator(&cppsum);
     AddOperator(&cpphead);
     AddOperator(&sortBy);
     AddOperator(&equiMergeJoinOperator);
