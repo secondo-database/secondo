@@ -62,7 +62,7 @@ utilities:
 .PHONY: install
 install:
 	install -m744 $(BDB_BUILD_DIR)/*.h /usr/local/include
-	install -m744 $(BDBDIR)/dbinc/*.h /usr/local/include
+	install -m744 $(BDB_BUILD_DIR)/../dbinc/*.h /usr/local/include
 	install -m755 $(BDBLIB_OBJECTS) /usr/local/lib
 	install -m755 $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) /usr/local/bin
 
