@@ -1729,6 +1729,7 @@ RenameTypeMap( ListExpr args )
 	nl->SymbolValue(nl->First(first));
 	attrname = nl->SymbolValue(nl->First(first2));
 	attrnamen = nl->SymbolValue(second);
+	attrname.append("_");
 	attrname.append(attrnamen);
 
 	if (!firstcall)
