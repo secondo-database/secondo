@@ -78,7 +78,10 @@ template<typename T>
 T&
 CTable<T>::operator[]( Cardinal n ) {
 
-  assert( n > 0 && n <= elemCount );
+  if ( !((n>0) && (n <= elemCount)) ) {
+    cerr << "CTable slot " << n << " out of Range! " << endl;
+    assert( n > 0 && n <= elemCount );
+  }
 
   if ( n == leastFree ) {
 
