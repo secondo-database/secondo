@@ -13,11 +13,14 @@ Let SDIR the home of Secondo.
 5. add the Algebra in SDIR/Algebras/Management/AlgebraList.i
 6. compile and link Secondo
 7. set the ClassPath of the javaclasses in SDIR/bin/JNI.ini
+   rename before the SDIR/bin/JNI.ini.sample to SDIR/bin/JNI.ini
 8. if you work with linux add the position of javalib.so to LD_LIBRARY_PATH
-9. start secondo
-10.
-  10.1 Secondo works => be happy
-  10.2 Secondo write the error  "Couldn't create the JVM" and exit
+9. if you work with windows then add the position of jvm.dll to your system PATH
+   (i.e. J2SDKROOT\jre\bin\client
+10. start secondo
+11.
+  11.1 Secondo works => be happy
+  11.2 Secondo write the error  "Couldn't create the JVM" and exit
       try another version number in JNI.ini
       (with installed sdk 1.4 i have success with
            version 1.4 using win32
@@ -30,4 +33,6 @@ How to disable a JNI-Algebras
      set USE_JNI in SDIR/makefile.env to false
    else
       remove the specific algebras in 
-      SDIR/makefle.env and SDIR/Algebras/makefile
+      - SDIR/makefle.env  
+      - SDIR/Algebras/makefile 
+      - SDIR/Algebras/Management/AlgebraList.i
