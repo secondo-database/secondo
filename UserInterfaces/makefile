@@ -21,6 +21,7 @@ endif
 
 ifeq ($(optimizer),"true")
 APPLICATIONS += $(OPTDIR)/SecondoPL
+APPLICATIONS += $(OPTDIR)/SecondoPLCS
 APPLOBJECTS += SecondoPL.$(OBJEXT)
 CCFLAGS += $(PLINCLUDEFLAGS)
 endif
@@ -38,16 +39,16 @@ all: $(CODE_DEPENDENCIES) $(APPLOBJECTS)
 .PHONY: buildapp
 buildapp: $(APPLICATIONS) TestRunner
 
-.PHONY: TestRunner 
+.PHONY: TestRunner
 TestRunner: $(BINDIR)/TestRunner$(EXEEXT)
 
-.PHONY: TTYCS 
+.PHONY: TTYCS
 TTYCS: $(BINDIR)/SecondoTTYCS$(EXEEXT)
 
-.PHONY: TTY 
+.PHONY: TTY
 TTY: $(BINDIR)/SecondoTTY$(SMIUP)$(EXEEXT)
 
-.PHONY: optimizer 
+.PHONY: optimizer
 optimizer: $(OPTDIR)/SecondoPL$(EXEEXT)
 
 .PHONY: clean
@@ -59,7 +60,7 @@ clean:
 #
 # create dependencies from include directives
 
-CCFLAGS += $(DEFAULTCCFLAGS) 
+CCFLAGS += $(DEFAULTCCFLAGS)
 
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
@@ -68,7 +69,7 @@ CCFLAGS += $(DEFAULTCCFLAGS)
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE)
 
 
-#  Rules for linkage 
+#  Rules for linkage
 
 APP_OBJECTS :=  DisplayTTY.o SecondoInterfaceGeneral.o AlgebraList.o
 
@@ -82,17 +83,22 @@ $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 $(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o 
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) 
+$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS)
 
- 
-$(BINDIR)/TestRunner$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES) 
+
+$(BINDIR)/TestRunner$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES)
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
 
-$(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES) 
+$(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBSFILES) $(ALGLIBFILES)
 $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS)  -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
+
+$(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES)
+$(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(PLLDFLAGS)
+
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)
