@@ -46,6 +46,8 @@ own list memory is refreshed in the Interface method Secondo(...) so that every
 command is processed with an initially empty list container.
 The application has to take care about its own list memory to avoid infinte growing.  
 
+April 29 2003 Hoffmann Added save and restore commands for single objects.
+
 
 1.1 Overview
 
@@ -82,6 +84,14 @@ in the treatment of the database state in database commands.
 #include "SocketIO.h"
 #include "NestedList.h"
 #include "AlgebraTypes.h"
+
+/*
+
+Definition of ASCII character US for encoding line feed chracter '\n'
+
+*/
+
+#define line_feed char(31)
 
 /************************************************************************** 
 2.1 Class "SecondoInterface"[1]
@@ -307,9 +317,6 @@ Possible errors:
 
   * 6: no database open
 
-
-*Not yet implemented:*
-
 ----  let <identifier> = <value expression>
 ----
 
@@ -393,7 +400,9 @@ transaction.
       open database <identifier>
       close database 
       save database to <filename>
+      save <objectname> to <filename>
       restore database <identifier> from <filename>
+      restore object <objectname> from <filename>
 ----
 
 *NOTE*: All database commands can not be enclosed in a transaction.
@@ -479,8 +488,27 @@ Possible errors:
   * 6: no database open
 
   * 26: a problem occurred in writing the file (no permission, file system full, etc.)
+  
+----  save <objectname> to <filename>
+----
 
+Writes the contents of an object, type list, value list and model list in nested
+list format to the file ~filename~. The structure of the file is the
+following:
 
+---- (OBJECT <object name> (<type name>) <type expression>
+                                                <value>)
+----
+
+If the file exists, it will be overwritten, otherwise be created.
+Possible errors: 
+
+  * 6 : database not open
+
+  * 26: a problem occurred in writing the file (no permission, file system full, etc.)
+  
+  * 82: identifier of object is not known in the currently opened database
+	
 ----  restore database <identifier> from <filename>
 ----
 
