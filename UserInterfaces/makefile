@@ -16,7 +16,7 @@ APPLICATIONS := $(BINDIR)/SecondoTTY$(SMIUP) \
 # some optional objects and applications
 ifneq ($(smitype),ora)
 APPLOBJECTS += TestRunner.$(OBJEXT)
-APPLICATIONS += TestRunner
+APPLICATIONS += $(BINDIR)/TestRunner
 endif
 
 ifeq ($(optimizer),"true")

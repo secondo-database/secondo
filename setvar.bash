@@ -82,6 +82,7 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
    export PD_HEADER="$HOME/secondo-sdk/pd/pd.header"
    export DVI_VIEWER=kdvi
    export BERKELEY_DB_DIR="$HOME/secondo-sdk"
+   export PATH=".:$J2SDK_ROOT/bin:$PATH"
    export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR:$JNIDIR" 
 else
    export PD_HEADER="/usr/local/pd/pd.header"

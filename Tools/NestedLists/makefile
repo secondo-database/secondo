@@ -65,4 +65,4 @@ include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) *.dep NLParser.tab.hpp NLParser.tab.cpp
+	$(RM) $(OBJECTS) *.dep NLParser.tab.hpp NLParser.tab.cpp NLLex.cpp

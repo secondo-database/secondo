@@ -94,4 +94,4 @@ include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:
-	$(RM) *.$(OBJEXT) $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))
+	$(RM) *.dep *.$(OBJEXT) $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))
