@@ -68,8 +68,8 @@ else
    # windows - SWI_HOME_DIR must be specified with drive letter 
    #           and \ as path separator 
    export SWI_HOME_DIR="C:\secondo-sdk\pl"
-   export PL_INCLUDE_DIR="$SECONDO_SDK/include"
-   export PL_LIB_DIR="$SECONDO_SDK/lib"
+   export PL_INCLUDE_DIR="$SECONDO_SDK/pl/include"
+   export PL_LIB_DIR="$SECONDO_SDK/pl/lib"
    export J2SDK_ROOT="$SECONDO_SDK/j2sdk1.4.2"
 fi
 
@@ -84,22 +84,26 @@ fi
 
 export BERKELEY_DB_DIR="$SECONDO_SDK"
 export BISON_SIMPLE="$SECONDO_SDK/share/bison/bison.simple"
+export PATH=".:$J2SDK_ROOT/bin:$SECONDO_SDK/bin:$COPY_OF_PATH"
 export CPLUS_INCLUDE_PATH="$SECONDO_SDK/include"
+export LIBRARY_PATH="$SECONDO_SDK/lib:$SECONDO_BUILD_DIR/lib"
 
+## The runtime linker uses different variables on linux and windows
+##
 if [ $SECONDO_PLATFORM != "win32" ]; then
-   export PATH=".:$J2SDK_ROOT/bin:$SECONDO_SDK/bin:$COPY_OF_PATH"
    export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib:" 
 else
-   export LIBRARY_PATH="$SECONDO_SDK/lib:$SECONDO_BUILD_DIR/lib"
-   export PATH=".:$J2SDK_ROOT/bin:$J2SDK_ROOT/jre/bin/client:$SECONDO_SDK/bin:$COPY_OF_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$SWI_HOME_DIR/bin"
+   export PATH="$J2SDK_ROOT/jre/bin/client:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib"
 fi
 
 ## PD-System
 
 if [ $SECONDO_PLATFORM != "win32" ]; then
-   export DVI_VIEWER=kdvi
+   export PD_DVI_VIEWER=kdvi
+   export PD_PS_VIEWER=gv
 else
-   export DVI_VIEWER=yap
+   export PD_DVI_VIEWER=yap
+   export PD_PS_VIEWER=gsview
 fi
 
 export PD_HEADER="$SECONDO_BUILD_DIR/Tools/pd/pd.header"
