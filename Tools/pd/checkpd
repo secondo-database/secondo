@@ -80,7 +80,7 @@ rm -rf "$TEMPDIR"
 
 SUCCESS=$(expr "$PROCESSED" - "$PDFAILED" - "$WARNINGS" - "$LATEXFAILED" )
 if [ "$PROCESSED" -gt 0 ]; then
-   echo "Statistic:"
+   echo "checkpd Statistic:"
    if [ "$NOTFOUND" -gt 0 ]; then
       echo "files not found : $NOTFOUND "
    fi
@@ -91,9 +91,9 @@ if [ "$PROCESSED" -gt 0 ]; then
    echo "files ok        : $SUCCESS"
 else
    if [ "$NOTFOUND" -gt 0 ]; then
-      echo "files not found : $NOTFOUND "
+      echo "checkpd: files not found : $NOTFOUND "
    fi
-   echo "no files checked"
+   echo "checkpd: no file to check"
 fi      
 
 FAILED=$(expr "$PDFAILED" + "$LATEXFAILED")
