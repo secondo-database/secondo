@@ -1,0 +1,161 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+########################################################################
+#
+# makefile.cm - rules for CM and deploament related tasks
+#
+#########################################################################
+
+$(shell rm -f .show-update-msg)
+
+# Rules for copying configuration scripts
+SCRIPT_DIR := ./CM-Scripts
+SCRIPT_FILES := $(SECONDO_SDK)/bin/setvar.bash \
+		$(SECONDO_SDK)/bin/libutil.sh \
+		$(SECONDO_SDK)/bin/catvar.sh \
+		$(SECONDO_SDK)/bin/aliaslist.sh \
+
+ifeq ($(platform),win32)
+PROFILE_NAME := $(HOME)/.profile
+endif
+
+RC_FILES := $(HOME)/.secondorc \
+	    $(HOME)/.secondo.sdkrc \
+            $(HOME)/.secondo.$(platform)rc
+
+
+.PHONY: update-environment 
+update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) $(PROFILE_NAME) show-update-msg
+
+UPDATE_MSG := "\n\
+  Configuration Setup has been updated. If you have made changes\n\
+  in one of the files above please transfer them into the new versions.\n\
+  A backup copy ending with ~ will be kept.\n\n\
+  Afterwards please execute the command\n\
+  source ~/.secondorc or close this shell \n\
+  and start a new one.\n\n\
+  Make can't do this for you since all commands started within\n\
+  make are processed in a new subshell, hence the environment\n\
+  of your current running shell will not be modified.\n"
+	
+$(SCRIPT_FILES): $(SECONDO_SDK)/bin/%sh: $(SCRIPT_DIR)/%sh
+	@touch .show-update-msg
+	@cp --backup $< $@
+	@echo " updating" $@
+
+$(RC_FILES): $(HOME)/.sec%rc: $(SCRIPT_DIR)/.sec%rc
+	@touch .show-update-msg
+	@cp --backup $< $@
+	@echo " updating " $@
+
+$(HOME)/.profile: $(SCRIPT_DIR)/.profile
+	@touch .show-update-msg
+	@cp --backup $< $@
+	@echo " updating" $@
+
+.PHONY: show-update-msg
+show-update-msg:
+	@if [ -f .show-update-msg ]; then echo -e $(UPDATE_MSG); \
+	else echo -e " ... are up to date.\n"; fi
+
+.PHONY: show-separator
+show-separator:
+	@echo -e "\n *** Bash environment setup files *** \n"
+
+
+# rules for deployment of source files
+# default value for cvs tag 
+
+INSTALL_SCRIPTS := $(net)/scripts/winsetup.sh \
+		$(net)/scripts/libutil.sh
+
+SRC_FILES := $(net)/win32/secondo-win32.tgz \
+		$(net)/linux/secondo-linux.tgz
+
+INSTGUIDE_FILES := $(net)/Linux-Installation-Guide.pdf \
+ 		$(net)/Windows-Installation-Guide.pdf
+ 
+.PHONY: dist
+dist: tag-version  dist-scripts create-src-tgz $(INSTGUIDE_FILES) min-linux min-win32
+
+
+.PHONY: dist-scripts
+dist-scripts: $(net)/installsdk $(INSTALL_SCRIPTS)
+
+.PHONY: min-linux
+min-linux: 
+	rm -f $@
+	cd $(net) && tar -cvzf $@ Linux*Guide.pdf linux scripts installsdk
+
+.PHONY: min-win32
+min-win32:
+	rm -f $@
+	cd $(net) && zip -9 -r $@ Win*Guide MSYS-* win32 scripts installsdk 
+
+SECONDO_DEMO = secondo-demo
+
+BIN_FILES := bin/SecondoTTYBDB \
+	bin/SecondoListener \
+	bin/SecondoMonitorBDB \
+	bin/SecondoRegistrar \
+	bin/SecondoCheckpoint \
+	bin/SecondoServerBDB \
+
+.PHONY: demo
+demo: $(BIN_FILES) 
+	mkdir $(SECONDO_DEMO)
+	mkdir $(SECONDO_DEMO)/bin
+	cp $< $(SECONDO_DEMO)/bin
+	strip $(SECONDO_DEMO)/bin/*
+	cp bin/testqueries $(SECONDO_DEMO)/bin
+	cp Documents/SecondoManual.pdf $(SECONDO_DEMO)
+	tar -cvzf secondo-demo.tar.gz $(SECONDO_DEMO)/*
+	rm -rf $(SECONDO_DEMO)
+
+
+tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
+.PHONY: tag-version
+tag-version:
+	cvs tag -F $(tag) 
+
+.PHONY: create-src-tgz
+create-src-tgz:
+	cvs export -d secondo -r$(tag) secondo
+ifeq ($(platform),win32)
+	$(error Target dist not supported on windows!)
+else	
+	rm -rf $(SRC_FILES)
+	tar -czf $(net)/secondo-linux.tgz secondo/*
+	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.sda" -or -name "*.fig" -or -name "*.canvas" -or -name "*.fm" -or -name "*.book" -or -name "*.pdf" \) -exec recode lat1..cp1252 {} \;
+	tar -czf $(net)/secondo-win32.tgz secondo/*
+endif
+	rm -r secondo
+
+$(net)/installsdk: $(SCRIPT_DIR)/install.bash
+	cp $< $@
+	chmod ugo+x $@
+
+$(net)/scripts/%.sh: $(SCRIPT_DIR)/%.sh
+	cp $< $@
+	chmod ugo+x $@
+
+$(net)/%.pdf: Documents/Installation/%.ps
+	ps2pdf $< $@
+
