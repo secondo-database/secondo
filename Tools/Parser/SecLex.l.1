@@ -72,6 +72,7 @@ constructors	{yylval = NestedText::Atom( yytext, yyleng ); return CONSTRUCTORS;}
 operators	{yylval = NestedText::Atom( yytext, yyleng ); return OPERATORS;}
 types		{yylval = NestedText::Atom( yytext, yyleng ); return TYPES;}
 objects		{yylval = NestedText::Atom( yytext, yyleng ); return OBJECTS;}
+counters	{yylval = NestedText::Atom( yytext, yyleng ); return COUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return DOUBLE;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return EQ;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return VALUE;}
