@@ -96,6 +96,10 @@ function objects.
 
 March 2002 Ulrich Telle. Port to C++
 
+November 26, 2002 RHG Corrected ~AnnotateFunction~ in order to let
+function bodies that are two-element lists (in particular applications
+of database function objects) be recognized correctly.
+
 \tableofcontents
 
 1.1 Brief Overview
@@ -1523,6 +1527,12 @@ string xxx;
               nl->SymbolAtom( "functionerror" ),
               nl->SymbolAtom( "typeerror" ) ));
   }
+  else if ( nl->ListLength(expr) == 1 )		/* e reached */
+  {
+    annexpr = Annotate( level, nl->First( expr ), varnames, vartable, 
+	defined, fatherargtypes );
+                /* "e" reached */
+  }
   else if ( nl->IsAtom( nl->First( expr ) ) )
   {
     if ( TypeOfSymbol( nl->First( expr ) ) == QP_FUN )
@@ -1534,7 +1544,8 @@ string xxx;
     }
     else
     {
-      annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, fatherargtypes );
+      annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, 
+		fatherargtypes );
                 /* "e" reached */
     }
   }
@@ -1554,7 +1565,8 @@ string xxx;
         else if ( GetCatalog( level )->IsOperatorName( name2 ) )
         { /* name2 is a type operator */
           GetCatalog( level )->GetOperatorId( name2, alId, opId );
-          paramtype = (algebraManager->TransformType( alId, opId ))( nl->Rest( fatherargtypes ) );
+          paramtype = (algebraManager->TransformType( alId, opId ))( 
+		nl->Rest( fatherargtypes ) );
         }
         else
         { 
@@ -1587,13 +1599,24 @@ string xxx;
     }
     else
     {
-      annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, fatherargtypes );
+        cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
+        return (nl->TwoElemList(
+                  nl->SymbolAtom( "functionerror" ),
+                  nl->SymbolAtom( "typeerror" ) ));
+
+      //annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, 	//fatherargtypes );
         /* "e" reached */
     }
   }
   else
   {
-    annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, fatherargtypes );
+        cerr << "Error in AnnotateFunction: branch should never be reached." << endl;
+        return (nl->TwoElemList(
+                  nl->SymbolAtom( "functionerror" ),
+                  nl->SymbolAtom( "typeerror" ) ));
+
+    //annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, 
+	//fatherargtypes );
       /* "e" reached */
   }
   list = nl->Append( lastElem, nl->Second( annexpr ) );
