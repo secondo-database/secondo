@@ -36,15 +36,11 @@ SecondoSMI interface.
 
 This module offers the following methods:
 
-[23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
+[23]	Creation/Removal 	& Access   	& Inquiries	\\
 	[--------]
-	PArray        		& Get 		& Size		\\  	
+	PArray        		& Get 		& Size		\\
 	[tilde]PArray		& Put		& Id		\\
-	MarkDelete		&		& 		\\
-
-Operations have to follow the protocol shown below:
-
-		Figure 1: Protocol [Protocol.eps]
+	MarkDelete			&			& 		\\
 
 1.3 Class ~PArray~
 
@@ -70,13 +66,13 @@ class PArray : public GArray<T>
 /*
 Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
 persistent array. One can define an initial size of the persistent
-array with the argument ~initsize~. 
+array with the argument ~initsize~.
 
 */
 
   PArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update = true );
 /*
-Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
+Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean
 value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-only.
 
 */
@@ -90,7 +86,7 @@ persistent array.
 
   void MarkDelete();
 /*
-Marks the persistent array for deletion. It will be permanently deleted on the 
+Marks the persistent array for deletion. It will be permanently deleted on the
 destruction of the object.
 
 *Precondition:* The array must be opened in update mode.
@@ -109,7 +105,7 @@ Copies element ~elem~ into the persistent array at index ~index~.
 /*
 Returns the element ~index~ of the array.
 
-*Precondition:* 0 [<=] ~index~ [<=] ~size~ - 1. 
+*Precondition:* 0 [<=] ~index~ [<=] ~size~ - 1.
 
 */
 
@@ -118,10 +114,10 @@ Returns the element ~index~ of the array.
 Clears the persistent array.
 
 */
-  
-  void Sort( bool (*cmp)(const T&, const T&) ) 
+
+  void Sort( bool (*cmp)(const T&, const T&) )
   {
-    if( size <= 1 ) 
+    if( size <= 1 )
       return;
 
     vector<T> aux;
@@ -212,7 +208,7 @@ parrays( parrays )
 template<class T>
 PArray<T>::~PArray()
 {
-  if ( canDelete ) 
+  if ( canDelete )
   {
     parrays->DeleteRecord( recid );
   }
@@ -233,8 +229,8 @@ template<class T>
 void PArray<T>::Put(const int index, const T& elem)
 {
   assert ( writeable );
-  
-  if ( size <= index ) 
+
+  if ( size <= index )
     size = index + 1;
 
   record.Write(&elem, sizeof(T), sizeof(int) + index * sizeof(T));
@@ -250,7 +246,7 @@ void PArray<T>::Get(int const index, T& elem)
 }
 
 template<class T>
-void PArray<T>::MarkDelete() 
+void PArray<T>::MarkDelete()
 {
   assert( writeable );
   canDelete = true;
@@ -265,8 +261,8 @@ const int PArray<T>::Size() const
 
 
 template<class T>
-const SmiRecordId PArray<T>::Id() const 
-{ 
+const SmiRecordId PArray<T>::Id() const
+{
   return recid;
 }
 

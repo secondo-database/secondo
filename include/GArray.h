@@ -36,15 +36,11 @@ SecondoSMI interface.
 
 This module offers the following methods:
 
-[23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
+[23]	Creation/Removal 	& Access   	& Inquiries	\\
 	[--------]
-	GArray        		& Get 		& Size		\\  	
+	GArray        		& Get 		& Size		\\
 	[tilde]GArray		& Put		& Id		\\
 	MarkDelete		&		& 		\\
-
-Operations have to follow the protocol shown below:
-
-		Figure 1: Protocol [Protocol.eps]
 
 1.3 Class ~GArray~
 
@@ -56,7 +52,7 @@ elements of type ~T~.
 #ifndef GARRAY_H
 #define GARRAY_H
 
-#include "SecondoSMI.h" 
+#include "SecondoSMI.h"
 
 template<class T>
 class GArray
