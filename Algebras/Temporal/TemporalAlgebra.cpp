@@ -1428,7 +1428,8 @@ TemporalSelectAtInstant( ListExpr args )
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
   
-  if( nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+  if (nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
+     // ( nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "real" )  //added for debug
   {
       if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )
 	  return (0);
@@ -1439,7 +1440,11 @@ TemporalSelectAtInstant( ListExpr args )
       if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
 	  return (2);
   }
-  assert( false );
+  
+  cout<<endl<<">>>currently the instant value can only be input with nested list format queries...eg. "<<endl;
+  cout<<"(query (atinstant mb (instant 1.5)))<<<"<<endl<<endl;
+
+  //assert( false );
   return (-1); // This point should never be reached
 }
 
@@ -1888,7 +1893,12 @@ int atinstant_mint( Word* args, Word& result, int message, Word& local, Supplier
       ((Intime<CcInt>*)result.addr)->value = resInt;
       return (0);
   }
-  else return (0);
+  else //not included in any units
+  {
+      ((Intime<CcInt>*)result.addr)->instant = *inst;
+      ((Intime<CcInt>*)result.addr)->value.SetDefined(false);
+      return (0);
+  }
 }
 
 int atinstant_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -1908,7 +1918,12 @@ int atinstant_mreal( Word* args, Word& result, int message, Word& local, Supplie
       ((Intime<CcReal>*)result.addr)->value = resReal;
       return (0);
   }
-  else return (0);
+  else  //not included in any unit
+  {
+      ((Intime<CcReal>*)result.addr)->instant = *inst;
+      ((Intime<CcReal>*)result.addr)->value.SetDefined(false);
+      return (0);
+  }
 }
 
 int atinstant_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -1928,7 +1943,12 @@ int atinstant_mpoint( Word* args, Word& result, int message, Word& local, Suppli
       ((Intime<Point>*)result.addr)->value = resPoint;
       return (0);
   }
-  else return (0);
+  else //not included in any unit
+  { 
+      ((Intime<Point>*)result.addr)->instant = *inst;
+      ((Intime<Point>*)result.addr)->value.SetDefined(false);
+      return (0); 
+  }
 }
 
 /*
@@ -1984,15 +2004,29 @@ ValueMapping intimeintvalmap[] = { IntimeVal<CcInt> };
 ValueMapping intimerealinstmap[] = { IntimeInst<CcReal> };
 ValueMapping intimerealvalmap[] = { IntimeVal<CcReal> };
 
+ValueMapping atinstantmap[] =   {  atinstant_mint,
+			     atinstant_mreal,
+			     atinstant_mpoint,
+			   };
+
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-ModelMapping temporalnomodelmap[] = { TemporalNoModelMapping };
-ModelMapping rangenomodelmap[] = { TemporalNoModelMapping, TemporalNoModelMapping,
-                                   TemporalNoModelMapping, TemporalNoModelMapping,
-                                   TemporalNoModelMapping, TemporalNoModelMapping };
+ModelMapping temporalnomodelmap[] = { TemporalNoModelMapping,
+				      TemporalNoModelMapping,
+				      TemporalNoModelMapping,
+				      TemporalNoModelMapping,
+				      TemporalNoModelMapping,
+				      TemporalNoModelMapping };
+
+ModelMapping rangenomodelmap[] = {TemporalNoModelMapping, 
+				  TemporalNoModelMapping,
+				  TemporalNoModelMapping,
+				  TemporalNoModelMapping,
+				  TemporalNoModelMapping,
+				  TemporalNoModelMapping };
 
 /*
 16.4.2 Specification strings
@@ -2144,6 +2178,14 @@ const string TemporalSpecVal  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "<text>val ( _ )</text--->"
                                 "<text>Intime value.</text--->"
                                 "<text>val ( i1 )</text--->"
+                                ") )";
+
+const string TemporalSpecAtInstant  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(mint||mreal||mpoint) x (instant) -> intimeint||intimereal||intimepoint</text--->"
+                                "<text>_ atinstant _ </text--->"
+                                "<text>get the Intime value corresponding to the instant.</text--->"
+                                "<text>mpoint1 at instant 21.2</text--->"
                                 ") )";
 
 /*
@@ -2430,6 +2472,14 @@ Operator intimerealval( "val",
                         Operator::SimpleSelect,
                         IntimeTypeMapBase );
 
+Operator atinstant( "atinstant",
+                        TemporalSpecAtInstant,
+                        3,
+                        atinstantmap,
+                        temporalnomodelmap,
+                        TemporalSelectAtInstant,
+                        MappingInstantTypeMapIntime );
+
 /*
 6 Creating the Algebra
 
@@ -2503,6 +2553,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &intimeintval );
     AddOperator( &intimerealinst );
     AddOperator( &intimerealval );
+    AddOperator( &atinstant);
   }
   ~TemporalAlgebra() {};
 };

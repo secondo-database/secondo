@@ -3570,6 +3570,8 @@ int MPoint::Position( const Instant& t )
     while (first <= last)
     {
 	int mid = ( first + last ) / 2;
+	if ((mid<0) || (mid>=units.Size())) return -1;
+	    
 	UPoint midUPoint;
 	units.Get( mid, midUPoint );
 	if( t1.GetRealval() > midUPoint.timeInterval.end.GetRealval() )
@@ -3598,10 +3600,12 @@ bool MPoint::TemporalFunction( Instant& t, Point& result )
     units.Get( pos, posUPoint );
       
     Point resPoint;
-    posUPoint.TemporalFunction(t, resPoint);
-  
-    result.Set( resPoint.GetX(), resPoint.GetY() );
-    return true;
+    if (posUPoint.TemporalFunction(t, resPoint))
+    {
+	result.Set( resPoint.GetX(), resPoint.GetY() );
+	return true;
+    }
+    else return false;
 }
 
 /*
@@ -3778,6 +3782,8 @@ int MInt::Position( const Instant& t )
   while (first <= last)
   {
     int mid = ( first + last ) / 2;
+    if ((mid<0)||(mid>=units.Size())) return -1;
+    
     ConstTemporalUnit<CcInt> midUInt;
     units.Get( mid, midUInt );
     if( t1.GetRealval() > midUInt.timeInterval.end.GetRealval() )
@@ -3806,10 +3812,12 @@ bool MInt::TemporalFunction( Instant& t, CcInt& result )
     units.Get( pos, posUInt );
       
     CcInt resInt;
-    posUInt.TemporalFunction(t, resInt);
-  
-    result.Set( resInt.GetIntval() );
-    return true;
+    if (posUInt.TemporalFunction(t, resInt))
+    {
+	result.Set( resInt.GetIntval() );
+	return true;
+    }
+    else return false;
 }
 
 
@@ -4159,6 +4167,8 @@ int MReal::Position( const Instant& t )
   while (first <= last)
   {
     int mid = ( first + last ) / 2;
+    if ((mid<0)||(mid>=units.Size())) return -1;
+    
     UReal midUReal;
     units.Get( mid, midUReal );
     if( t1.GetRealval() > midUReal.timeInterval.end.GetRealval() )
@@ -4187,10 +4197,12 @@ bool MReal::TemporalFunction( Instant& t, CcReal& result )
     units.Get( pos, posUReal );
       
     CcReal resReal;
-    posUReal.TemporalFunction(t, resReal);
-  
-    result.Set( resReal.GetRealval() );
-    return true;
+    if (posUReal.TemporalFunction(t, resReal))
+    {
+	result.Set( resReal.GetRealval() );
+	return true;
+    }
+    else return false;
 }
 
 /*
