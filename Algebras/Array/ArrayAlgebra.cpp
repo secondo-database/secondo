@@ -1,42 +1,29 @@
 /*
 //paragraph [1] title: [{\Large \bf ]	[}]
+//[ae] [\"{a}]
+//[ue] [\"{u}]
 
+[1] ArrayAlgebra
 
+December 2003 Oliver L[ue]ck
 
-[1] Array Algebra
+This algebra provides a type constructor ~array~, which defines a ["]generic["] array. The elements of the array must have an internal list representation. The definition of arrays has been tested for arrays of relations (type constructor ~rel~, only in the main memory version!), b-trees (~btree~) and the standard types ~int~, ~real~, ~bool~ and ~string~.
 
-Nov 2003 Oliver Lueck
+The four basic operators ~size~, ~get~, ~put~ and ~makearray~ are used to get the size of an array, to retrieve an element with a given index, to set a value to an element with a given index or to construct an array from a given list of elements. 
 
-The algebra provides a type constructor ~array~, which defines a generic 
-array. The elements of the array must have an internal list representation. 
-So persistent relations of the new relational algebra can not be used as 
-elements of an array at this moment.
+Note that the first element has the index 0. A precondition for the operators ~get~ and ~put~ is a valid index between 0 and the size of the array minus 1.
 
-The algebra has four basic operators ~size~, ~get~, ~put~ and ~makearray~. 
-The operators are used to get the size of the array, to retrieve an element 
-with a given index, to set a value to an element with a given index or to 
-construct an array from a given list of elements.
+The operator ~sortarray~ arranges the elements of an array according to their integer values of a given functon.
 
-Note that the first element has the index 0. Precondition for the operators 
-~get~ and ~put~ is a valid index between 0 and the size of the array minus 1.
+The operator ~tie~ concatenates all elements of an array with a given function, e.g. it sums up all elements of an integer array. The operator ~cumulate~ calculates the ["]cumulative["] values for each position of the array (see detailed operator specification).
 
-The operators ~sortarray~, ~tie~ and ~cumulate~ are a useful extension to 
-the basic operators.
+The operator ~distribute~ creates an array of relations from a tuple stream (by ["]distributing["] the tuples into the relations of the array). The operator ~summarize~ provides a tuple stream containing all tuples stored in an array of relations (similar to the operator ~feed~ of the relational algebra for a single relation).
 
-Additionally the algebra provides two special operators ~distribute~ and
-~summarize~ which help to work with arrays of relations.
+The operator ~loop~ evaluates each element of an array with a given function and returns an array which contains the resulting values. Based upon this elementary operator a ["]family["] of more complex ~loop~ operators is defined, which are capable to work with two arrays or with more than one function. The aim is to achieve optimization through switching between these functions or the selection of a function (at best of the most efficient function). Therefore, as a precondition, all functions have to be equivalent (with regard to the calculated values).
 
-The ~loop~ operator evaluates each element of an array with a given function
-and returns an array which contains the resulting values. Based upon the 
-"standard" ~loop~ operator a family of more complex ~loop~ operators is 
-defined, which may capable to work with two arrays or with more then one 
-function.
+The operator ~partjoin~ (and its extensions ~partjoinswitch~ and ~partjoinselect~) realizes a special way to calculate ["]joins["] between two arrays of relations. Nevertheless, the result of this operator is also an ~array~ (see detailed operator specification).
 
-The operators ~distribute~, ~summarize~ and the ~partjoin~-operators exist  
-in a second version with a leading ~m~ (~mdistribute~, ...) for the old 
-relational algebra.
-
-
+Two additional type operators called ~ELEMENT~ and ~ELEMENT2~ support the technique of implicit parameter types (for the declaration of parameter functions). These operators are used by the parser and are not for use with sos-syntax.
 
 1 Preliminaries
 
@@ -50,7 +37,6 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "OldRelationAlgebra.h"
 #include "RelationAlgebra.h"
 #include "time.h"
 
@@ -62,15 +48,94 @@ QueryProcessor* qp;
 /*
 1.2 Dummy Functions
 
-Not interesting, but needed in the definition of a type constructor.
+These functions are needed for the definition of a type constructor (function ~DummyCast~) or for the definition of a non-overloaded operator (function ~simpleSelect~).
 
 */
-static void* DummyCast(void* addr) { return (0); }
+static void*
+DummyCast( void* addr )
+{
+  return (0);
+}
+
+static int
+simpleSelect( ListExpr args )
+{
+  return 0;
+}
+
+/*
+1.3 Auxiliary Functions
+
+The function ~toString~ just converts an integer value to a string.
+
+The function ~extractIds~ ["]extracts["] the id-numbers of the algebra and the type from a given type expression (nested list). This type expression must already be in the numeric format.
+
+*/
+string toString( int number ) 
+{
+  ostringstream o;
+  o << number << char(0);
+  return o.str();
+}
+
+void extractIds( const ListExpr numType, int& algebraId, int& typeId )
+{
+  ListExpr pair;
+
+  if (nl->IsAtom(nl->First(numType))) {
+    pair = numType;
+  }
+  else
+  {
+    pair = nl->First(numType);
+  }
+
+  algebraId = nl->IntValue(nl->First(pair));
+  typeId = nl->IntValue(nl->Second(pair));
+}
+
+/*
+The following ["]generic["] clone function is used by several operators in order to clone objects. Some types may provide just a dummy clone function. In this case the list representation for input and output of objects (if defined) may be used for cloning.
+
+*/
+static Word
+genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
+{
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Word clone;
+
+  // Try cloning with the clone function of the appropriate type
+
+  clone = (am->CloneObj(algebraId, typeId))(object);
+
+  if (clone.addr == 0) {
+
+    // Try cloning via the object's list representation
+
+    ListExpr objectLE;
+
+    int errorPos;
+    ListExpr errorInfo;
+    bool correct;
+
+    objectLE = (am->OutObj(algebraId, typeId))(typeInfo, object);
+
+    clone = (am->InObj(algebraId, typeId))
+                   (typeInfo, objectLE, errorPos, errorInfo, correct);
+
+    assert (correct);
+  }
+
+  return clone;
+}
 
 /*
 2 Type Constructor ~array~
 
 2.1 Data Structure - Class ~Array~
+
+At first a data structure for storing an ~array~ in the main memory is defined. Since an object is represented as a storage Word (which is often a pointer to the actual object), the data structure of an ~array~ is an array of Word.
 
 */
 class Array
@@ -94,9 +159,11 @@ class Array
     Word* array;
 };
 
-Array::Array(int algebraId, int typeId, int n, Word* elements) { 
+Array::Array( int algebraId, int typeId, int n, Word* elements )
+ 
 // Constructor with complete initialization of the array
 
+{
   defined = true;
   elemAlgId = algebraId;
   elemTypeId = typeId;
@@ -108,22 +175,25 @@ Array::Array(int algebraId, int typeId, int n, Word* elements) {
   }
 }
 
-Array::Array() {
-
+Array::Array()
+{
   defined = false;
   size = 0;
   elemAlgId = 0;
   elemTypeId = 0;
 }
 
-Array::~Array() {
-
+Array::~Array()
+{
   delete []array;
 }
 
-void Array::initialize(int algebraId, int typeId, int n, Word* elements) {
-// If the array is already defined, it will be cleared and redefined
+void 
+Array::initialize( int algebraId, int typeId, int n, Word* elements )
 
+// If the array is already defined, it will be cleared and redefined.
+
+{
   if (defined) {
     delete []array;
   }
@@ -139,17 +209,36 @@ void Array::initialize(int algebraId, int typeId, int n, Word* elements) {
   } 
 }
 
-bool Array::isDefined() { return defined; }
+bool 
+Array::isDefined()
+{ 
+  return defined;
+}
 
-int Array::getSize() { return size; }
+int 
+Array::getSize()
+{
+  return size;
+}
 
-int Array::getElemAlgId() { return elemAlgId; }
+int 
+Array::getElemAlgId() 
+{
+  return elemAlgId;
+}
 
-int Array::getElemTypeId() { return elemTypeId; }
+int 
+Array::getElemTypeId()
+{
+  return elemTypeId;
+}
 
-Word Array::getElement(int index) { 
-// Precondition: Array is defined and index>=0 and index<size
+Word 
+Array::getElement( int index )
 
+// The array has to be defined and index >= 0 and index < size.
+
+{
   if (defined && index>=0 && index<size) {
     return array[index];
   } 
@@ -158,89 +247,35 @@ Word Array::getElement(int index) {
   }
 }
 
-void Array::setElement(int index, Word element) {
-// Precondition: Array is defined and index>=0 and index<size
+void 
+Array::setElement( int index, Word element )
 
+// The array has to be defined and index >= 0 and index < size.
+
+{
   if (defined && index>=0 && index<size) {
     array[index] = element;
   }
 }
 
 /*
-2.2 Auxiliary Function
+2.2 List Representation
 
-*/
-void extractIds(const ListExpr numType, int& algebraId, int& typeId) {
+The list representation of an array is:
 
-  ListExpr pair;
-
-  if (nl->IsAtom(nl->First(numType))) {
-    pair = numType;
-  }
-  else
-  {
-    pair = nl->First(numType);
-  }
-
-  algebraId = nl->IntValue(nl->First(pair));
-  typeId = nl->IntValue(nl->Second(pair));
-}
-
-/*
-2.3 List Representation
-
-The list representation of an array is
-
-----	(a1 a2 ... an)
+---- (a1 a2 ... an)
 ----
-The representation of the elements of the array depends from their type.
-So a1 ... an may be nested lists themselves.
+The representation of the elements of the array depends from their type. So a1 ... an may be nested lists themselves.
 
-2.4 ~In~ and ~Out~ Functions
+2.3 Object ~In~ and ~Out~ Functions
 
-These functions use the ~In~ and ~Out~ Functions for the elements of 
-the array.
+These functions use the ~In~ and ~Out~ functions of the elements of the array.
 
 */
-static ListExpr
-OutArray( ListExpr typeInfo, Word value )
-{
-//cout << "In OutArray Funktion!" << endl;
-
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
-  Array* array = (Array*)(value.addr);
-  int algebraId = array->getElemAlgId();
-  int typeId = array->getElemTypeId();
-
-  ListExpr typeOfElement = nl->Second(typeInfo);
-
-  ListExpr list;
-  ListExpr last;
-  ListExpr element;
-
-  for (int i=0; i<array->getSize(); i++) {
-
-    element = (am->OutObj(algebraId, typeId))
-                             (typeOfElement, array->getElement(i));
-    if (i==0) {
-      list = nl->OneElemList(element);
-      last = list;
-    }
-    else {
-      last = nl->Append(last, element);
-    }
-  }
-
-  return list;
-}
-
 static Word 
 InArray( const ListExpr typeInfo, const ListExpr instance,
          const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-//cout << "In InArray Funktion!" << endl;
-
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* newarray;
@@ -250,7 +285,8 @@ InArray( const ListExpr typeInfo, const ListExpr instance,
   int typeId;
 
   if (nl->ListLength(instance) > 0) {
-  // Array has to consist of at least one element.
+
+  // An array has to consist of at least one element.
 
     ListExpr typeOfElement = nl->Second(typeInfo);
     ListExpr listOfElements = instance;
@@ -281,15 +317,9 @@ InArray( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
-/*
-2.5 Object ~SaveToList~ and ~RestoreFromList~ Functions
-
-*/
 static ListExpr
-SaveToListArray( ListExpr typeInfo, Word value )
+OutArray( ListExpr typeInfo, Word value )
 {
-//cout << "In SaveToListArray!" << endl;
-
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* array = (Array*)(value.addr);
@@ -303,9 +333,9 @@ SaveToListArray( ListExpr typeInfo, Word value )
   ListExpr element;
 
   for (int i=0; i<array->getSize(); i++) {
-    element = (am->SaveToListObj(algebraId, typeId))
-                             (typeOfElement, array->getElement(i));
 
+    element = (am->OutObj(algebraId, typeId))
+                             (typeOfElement, array->getElement(i));
     if (i==0) {
       list = nl->OneElemList(element);
       last = list;
@@ -318,12 +348,16 @@ SaveToListArray( ListExpr typeInfo, Word value )
   return list;
 }
 
+/*
+2.4 Object ~RestoreFromList~ and ~SaveToList~ Functions
+
+These functions use the ~RestoreFromList~ and ~SaveToList~ functions of the elements of the array.
+
+*/
 static Word 
 RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
-         const int errorPos, ListExpr& errorInfo, bool& correct )
+                      const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-//cout << "In RestoreFromListArray!" << endl;
-
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
 
   Array* newarray;
@@ -333,7 +367,8 @@ RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
   int typeId;
 
   if (nl->ListLength(instance) > 0) {
-  // Array has to consist of at least one element.
+
+  // An array has to consist of at least one element.
 
     ListExpr typeOfElement = nl->Second(typeInfo);
     ListExpr listOfElements = instance;
@@ -364,32 +399,64 @@ RestoreFromListArray( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
+static ListExpr
+SaveToListArray( ListExpr typeInfo, Word value )
+{
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Array* array = (Array*)(value.addr);
+  int algebraId = array->getElemAlgId();
+  int typeId = array->getElemTypeId();
+
+  ListExpr typeOfElement = nl->Second(typeInfo);
+
+  ListExpr list;
+  ListExpr last;
+  ListExpr element;
+
+  for (int i=0; i<array->getSize(); i++) {
+    element = (am->SaveToListObj(algebraId, typeId))
+                             (typeOfElement, array->getElement(i));
+
+    if (i==0) {
+      list = nl->OneElemList(element);
+      last = list;
+    }
+    else {
+      last = nl->Append(last, element);
+    }
+  }
+
+  return list;
+}
+
 /*
-2.6 Opject ~Open~ and ~Save~ Functions
+2.5 Object ~Open~ and ~Save~ Functions
+
+These functions are similar to the default ~Open~ and ~Save~ functions, but they are based on the *internal* list representation.
+
+The original aim of this change was to handle arrays of ~btrees~, which do not have a list representation (for input and output), but which do have an *internal* list representation (namely a ["]list["] containing a file-id).
 
 */
 bool
-OpenArray( SmiRecord& valueRecord,
-           const ListExpr typeInfo,
-           Word& value )
+OpenArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-//cout << "In OpenArray!\n";
-
   ListExpr valueList = 0;
   string valueString;
   int valueLength;
   
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
   bool correct;
-  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+  valueRecord.Read( &valueLength, sizeof(valueLength), 0 );
   char* buffer = new char[valueLength];
-  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+  valueRecord.Read( buffer, valueLength, sizeof(valueLength) );
   valueString.assign( buffer, valueLength );
 
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = RestoreFromListArray( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
-  if ( errorInfo != 0 )
+  value = RestoreFromListArray( nl->First(typeInfo), nl->First(valueList),
+                                1, errorInfo, correct );
+  if (errorInfo != 0)
   {
     nl->Destroy( errorInfo );
   }
@@ -398,12 +465,8 @@ OpenArray( SmiRecord& valueRecord,
 }
 
 bool
-SaveArray( SmiRecord& valueRecord,
-           const ListExpr typeInfo,
-           Word& value )
+SaveArray( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value)
 {
-//cout << "In SaveArray!\n";
-
   ListExpr valueList;
   string valueString;
   int valueLength;
@@ -412,55 +475,30 @@ SaveArray( SmiRecord& valueRecord,
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();
-  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+  valueRecord.Write( &valueLength, sizeof(valueLength), 0 );
+  valueRecord.Write( valueString.data(), valueString.length(), 
+                     sizeof(valueLength) );
 
   nl->Destroy( valueList );
   return (true);
 }
 
 /*
-2.7 Object ~Creation~, ~Deletion~, ~Close~ and ~Clone~ Functions
+2.6 Object ~Creation~, ~Deletion~, ~Close~, ~Clone~ and ~SizeOf~ Functions
 
-The ~Deletion~ and the ~Clone~ functions use the ~Delete~ and ~Clone~ 
-functions of the elements of the array.
+The ~Clone~ and the ~Close~ functions use the appropriate functions of the elements of the array. Additional details are explained within these function.
 
 */
-Word CreateArray(const ListExpr typeInfo)
+Word 
+CreateArray( const ListExpr typeInfo )
 {
   return SetWord(new Array());
 }
 
-Word CloneArray(const Word& w)
+void 
+DeleteArray( Word& w ) 
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
-
-  Array* array = (Array*)w.addr;
-  Array* newarray;
-
-  bool ok = true;
-
-  int n = array->getSize();
-  int algebraId = array->getElemAlgId();
-  int typeId = array->getElemTypeId();
-
-  Word a[array->getSize()];
-
-  for (int i=0; i < n; i++) {
-    a[i] = (am->CloneObj(algebraId, typeId))(array->getElement(i));
-
-    // Check, if cloning was successful
-    ok = ok && (a[i].addr != 0);
-  }
-
-  if (ok) {
-    newarray = new Array(algebraId, typeId, n, a);
-  }
-  else {
-    newarray = 0;
-  }
-  
-  return SetWord(newarray);
+  w.addr = 0;
 }
 
 void CloseArray( Word& w ) 
@@ -478,23 +516,18 @@ void CloseArray( Word& w )
     for (int i=0; i<array->getSize(); i++) {
       Word element = array->getElement(i);
 
-      if (typeName == "mrel") { 
-      // Due to the relation cache, the relational Algebra just exports a 
-      // dummy function.
-        DeleteCcRel(element);
+      if (typeName == "rel") {
+
+      // Due to the relation cache, the relational algebra just exports a 
+      // dummy function. The next statement is inserted here, because the 
+      // relation cache is not used within an array of relations.
+
+        ((Relation*)element.addr)->Delete();
       }
       else {
-        if (typeName == "rel") {
-        // Due to the relation cache, the relational Algebra just exports a 
-        // dummy function.
-          ((Relation*)element.addr)->Delete();
-        }
-        else {
-          (am->CloseObj(array->getElemAlgId(),
-                        array->getElemTypeId()))(element);
-        }
+        (am->CloseObj(array->getElemAlgId(),
+                      array->getElemTypeId()))(element);
       }
-
     }
   }
 
@@ -503,20 +536,54 @@ void CloseArray( Word& w )
   w.addr = 0;
 }
 
-void DeleteArray(Word& w) 
+Word 
+CloneArray( const Word& w )
 {
-  w.addr = 0;
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Array* array = (Array*)w.addr;
+  Array* newarray;
+
+  bool ok = true;
+
+  int n = array->getSize();
+  int algebraId = array->getElemAlgId();
+  int typeId = array->getElemTypeId();
+
+  Word a[array->getSize()];
+
+  for (int i=0; i < n; i++) {
+    a[i] = (am->CloneObj(algebraId, typeId))(array->getElement(i));
+
+    // Check whether cloning was successful 
+
+    ok = ok && (a[i].addr != 0);
+  }
+
+  if (ok) {
+    newarray = new Array(algebraId, typeId, n, a);
+  }
+  else {
+
+    // If the element's type just provides a dummy clone function, the clone 
+    // function of the array is also a dummy function.
+
+    newarray = 0;
+  }
+  
+  return SetWord(newarray);
 }
 
-int SizeOfArray() {
+int
+SizeOfArray() 
+{
   return sizeof(Array);
 }
 
 /*
-2.8 Function Describing the Signature of the Type Constructor
+2.7 Function Describing the Signature of the Type Constructor
 
-The type of the elements of the array may be described by any valid Type 
-Constructor, but the elements must have a list representation.
+The type of the elements of the array may be described by any valid type constructor, but the elements must have an internal list representation.
 
 */
 static ListExpr
@@ -541,14 +608,13 @@ ArrayProperty()
 }
 
 /*
-2.9 Kind Checking Function
+2.8 Kind Checking Function
 
-The Type Constructor of an array is a list (array type). The first element
-of that list is the symbol "array" and the second element has to be a valid
-Type Constructor for the elements of the array.
+The type constructor of an array is a list (array type). The first element of that list is the symbol atom "array" and the second element has to be a valid type constructor for the elements of the array.
 
-So the second element can be a symbol (e.g. int) or - in case of a more 
-complex type - a Nested List itself.
+So the second element can be an atom (e.g. int) or - in case of a more complex type - a nested list itself.
+
+In order to achieve great flexibility, the element's type is not restricted to the tested types (see introduction). The user of an array has to make sure that the elements have an internal list representation, because this is not checked here.
 
 */
 static bool
@@ -560,7 +626,9 @@ CheckArray( ListExpr type, ListExpr& errorInfo )
     ListExpr Second = nl->Second(type);
 
     if (nl->IsEqual(First, "array")) {
-      // Check whether Second is a valid Type Constructor
+
+      // Check whether Second is a valid type constructor
+
       SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
       if (sc->KindCorrect(Second, errorInfo)) {
@@ -573,92 +641,389 @@ CheckArray( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-2.10 Creation of the Type Constructor Instance
+2.9 Creation of the Type Constructor Instance
 
-Here an object of the type TypeConstructor is created. The constructor for
-an instance of the class TypeConstructor is called with the properties and 
-functions for the array as parameters.
+Here an object of the class TypeConstructor is created. The constructor for an instance of the class TypeConstructor is called with the properties and functions for the array as parameters. The name of the type constructor is ~array~.
 
 */
-TypeConstructor array(
-	"array",                                // name		
-	ArrayProperty,                          // property function describing signature
-	OutArray, InArray,                      // out and in functions
-	SaveToListArray, RestoreFromListArray,  // SaveToList and RestoreFromList functions
-	CreateArray, DeleteArray,               // object creation and deletion
-	OpenArray, SaveArray,                   // default object open and save
-	CloseArray, CloneArray,                 // opject close and clone
-	DummyCast,                              // cast function
-	SizeOfArray,                            // sizeof function
-	CheckArray,                             // kind checking function
-	0,                                      // predef. pers. function for model
-	TypeConstructor::DummyInModel, 	
-	TypeConstructor::DummyOutModel,
-	TypeConstructor::DummyValueToModel,
-	TypeConstructor::DummyValueListToModel );
+TypeConstructor array (
+      "array",
+      ArrayProperty,
+      OutArray, InArray,
+      SaveToListArray, RestoreFromListArray,
+      CreateArray, DeleteArray,
+      OpenArray, SaveArray,
+      CloseArray, CloneArray,
+      DummyCast,
+      SizeOfArray,
+      CheckArray,
+      0,
+      TypeConstructor::DummyInModel, 	
+      TypeConstructor::DummyOutModel,
+      TypeConstructor::DummyValueToModel,
+      TypeConstructor::DummyValueListToModel );
 
 /*
-3 Operators
+3 Administration of Functions, Implementation of the Switch- and the Select Algorithm
 
-3.1 Trivial Selection Function
+3.1 Class ~FunInfo~
 
-This selection function can be used for the non-overloaded operators 
-of the algebra. Currently all operators of this algebra can use the
-trivial selection function.
 
-*/
-static int
-simpleSelect (ListExpr args) { return 0; }
+Each object of this class contains a function (given by a Supplier object) together with some additional information, e.g. an assigned number (["]function-id["]) and an assigned name.
 
-/*
-3.2 Generic Clone Function
-
-This generic clone function is useful for several operators. Often 
-elements have to be cloned before returning them or using them as 
-parts of a new array.
+A function can be requested with given parameters. The system measures, sums up and prints out the used CPU time of the function. The total number of function requests is also available.
 
 */
-static Word 
-genericClone( int algebraId, int typeId, ListExpr typeInfo, Word object )
+class FunInfo { 
+  public :
+    FunInfo();
+    FunInfo(int, string, Supplier);
+    double getTime();
+    void request(Word*, int, Word&, string);
+    void request(Word, Word&, string);
+    void request(Word, Word, Word&, string);
+  private :
+    int no;
+    string name;
+    Supplier supplier;
+    int timesUsed;
+    double consumedTime;
+  friend bool operator<(const FunInfo&, const FunInfo&);
+  friend ostream& operator<<(ostream&, const FunInfo&);
+};
+
+FunInfo::FunInfo() {}
+
+FunInfo::FunInfo( int No, string Name, Supplier s )
 {
-  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  no = No;
+  name = Name;
+  supplier = s;
+  timesUsed = 0;
+  consumedTime = 0;
+}
 
-  Word clone;
+double
+FunInfo::getTime() {
+  return consumedTime;
+}
 
-  // Try cloning with the clone-Function of the appropriate type
-  clone = (am->CloneObj(algebraId, typeId))(object);
+void
+FunInfo::request( Word* arguments, int n, Word& funresult, string info = "" )
+{
+  ArgVectorPointer funargs;
+  clock_t c1;
+  clock_t c2;
+  double timediff;
 
-  if (clone.addr == 0) {
-    // The original Algebra just provides a dummy clone function, 
-    // therefore try cloning via the standard list expression.
+  funargs = qp->Argument( supplier );
 
-    ListExpr objectLE;
-
-    int errorPos;
-    ListExpr errorInfo;
-    bool correct;
-
-    objectLE = (am->OutObj(algebraId, typeId))(typeInfo, object);
-
-    clone = (am->InObj(algebraId, typeId))
-                   (typeInfo, objectLE, errorPos, errorInfo, correct);
-
-    assert (correct);
+  for (int i=0; i<n; i++) {
+    (*funargs)[i] = arguments[i];
   }
 
-  return clone;
+  if (info != "") {
+    cout << info << ", ";
+  }
+
+  cout << "function " << name << ", ";
+
+  c1 = clock();
+  qp->Request( supplier, funresult );
+  c2 = clock();
+
+  timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
+
+  timesUsed++;
+  consumedTime += timediff;
+
+  cout << "used CPU time: " << timediff << " (" << consumedTime 
+       << ") seconds." << endl;
+}
+
+void
+FunInfo::request( Word argument, Word& funresult, string info = "" )
+{
+  request(&argument, 1, funresult, info);
+}
+
+void 
+FunInfo::request( Word firstArg, Word secondArg, Word& funresult, 
+                  string info = "" )
+{
+  Word arguments[2] = { firstArg, secondArg };
+  request(arguments, 2, funresult, info);
+}
+
+bool 
+operator<( const FunInfo& f1, const FunInfo& f2 ) 
+{
+  return (f1.no < f2.no);
+}
+
+ostream& 
+operator<<( ostream& stream, const FunInfo& f ) 
+{
+  return stream << "function " << f.name << " used " << f.timesUsed
+                << " times, used CPU time: " << f.consumedTime << " seconds.";
 }
 
 /*
-3.3 Basic array operators
+3.2 Class ~FunVector~
 
-3.3.1 Operator ~size~
+This class uses the class template ["]vector["]. Each object of the class ~FunVector~ contains a vector of ~FunInfo~ objects. The vector is initialized with a set of functions (given by a Supplier object) and an array of function names. After initializing the vector, a single function or all functions stored in the vector may be requested.
+
+The class also provides some useful methods for the implementation of the switch- and the select algorithm.
+
+*/
+class FunVector {
+  public:
+    void load(Word, Word*);
+    void requestFun(int, Word, Word&, string);
+    void requestFun(int, Word, Word, Word&, string);
+    void requestAll(Word, Word&, string);
+    void requestAll(Word, Word, Word&, string);
+    void writeSummary();
+    void reorder();
+    int getMin();
+  private:
+    vector<FunInfo> funInfos;
+    void addFunction(string, Supplier);
+};
+
+void 
+FunVector::addFunction( string name, Supplier s )
+{
+  FunInfo f( funInfos.size()+1, name, s );
+  funInfos.push_back(f);
+}
+
+void 
+FunVector::load( Word suppl, Word* funNames )
+{
+  Supplier funSupplier = (Supplier)suppl.addr;
+  Supplier supplier1;
+  Supplier supplier2;
+
+  int noOfFuns = qp->GetNoSons(funSupplier);
+
+  for (int i=0; i<noOfFuns; i++) {
+    STRING* name = ((CcString*)funNames[i].addr)->GetStringval();
+
+    supplier1 = qp->GetSupplier(funSupplier, i);
+    supplier2 = qp->GetSupplier(supplier1, 1);
+
+    addFunction(*name, supplier2);
+  }
+}
+
+void 
+FunVector::requestFun( int funNo, Word argument, Word& funresult, 
+                       string info = "" )
+{
+  funInfos[funNo].request(argument, funresult, info);
+}
+
+void 
+FunVector::requestFun( int funNo, Word firstArgument, Word secondArgument, 
+                       Word& funresult, string info = "" )
+{
+  funInfos[funNo].request(firstArgument, secondArgument, funresult, info);
+}
+
+void 
+FunVector::requestAll( Word argument, Word& funresult, string info = "" )
+{
+  for(int i=0; i<(int)funInfos.size(); i++) {
+    requestFun(i, argument, funresult, info);
+  }
+}
+
+void 
+FunVector::requestAll( Word firstArgument, Word secondArgument, 
+                       Word& funresult, string info = "" )
+{
+  for(int i=0; i<(int)funInfos.size(); i++) {
+    requestFun(i, firstArgument, secondArgument, funresult, info);
+  }
+}
+
+void 
+FunVector::reorder()
+
+// Precondition:  All functions between the second and the last element of the
+//                vector are ordered by their used CPU time.
+// Postcondition: All functions of the vector are ordered by their used CPU 
+//                time.
+
+{
+  int n=funInfos.size();
+
+  if (n > 1) {
+    if (funInfos[0].getTime() > funInfos[1].getTime()) {
+
+      // Find the position where to insert the first element, insert the first
+      // element at this position and then remove this element from the first
+      // position.
+
+      int l = 0;
+      int r = n;
+      int m;
+
+      do {
+        m = (l+r) / 2;
+
+        if (funInfos[m].getTime() <= funInfos[0].getTime()) {
+          l = m; 
+        } 
+        else {
+          r = m;
+        }
+      }
+      while ( (m < (n-1)) 
+              && !((funInfos[m].getTime() <= funInfos[0].getTime()) 
+                   && (funInfos[0].getTime() < funInfos[m+1].getTime())) );
+
+      funInfos.insert( funInfos.begin() + m + 1, funInfos[0] );
+      funInfos.erase( funInfos.begin() );
+    }
+  }
+}
+
+int 
+FunVector::getMin() 
+
+// Returns the index of the function with the minimum used CPU time. If there 
+// are more such functions, the index of the first of these functions is 
+// returned.
+
+{
+  int min=0;
+
+  for (int i=0; i < (int)funInfos.size(); i++) {
+    if (funInfos[i].getTime() < funInfos[min].getTime()) {
+      min = i;
+    }
+  }
+
+  return min;
+} 
+
+void 
+FunVector::writeSummary()
+{
+  sort(funInfos.begin(), funInfos.end());
+
+  for (int i=0; i < (int)funInfos.size(); i++) {
+    cout << "SUMMARY, " << funInfos[i] << "\n";
+  }
+}
+
+/*
+3.3 Class ~SwitchAlgorithm~
+
+The switch algorithm is implemented as a sub-class of the class ~FunVector~.
+
+An object of the class ~SwitchAlgorithm~ is initialized like an object of the class ~FunInfo~. For each requests, the switch algorithm chooses the function with the (so far) lowest total used CPU time. 
+
+*/
+class SwitchAlgorithm : public FunVector {
+  public:
+    void request(Word, Word&, string);
+    void request(Word, Word, Word&, string);
+  private:
+    int counter;
+};
+
+void 
+SwitchAlgorithm::request( Word argument, Word& funresult, string info = "" )
+{
+  requestFun(0, argument, funresult, info);
+  reorder();
+}
+
+void 
+SwitchAlgorithm::request( Word firstArgument, Word secondArgument, 
+                          Word& funresult, string info = "" )
+{
+  requestFun(0, firstArgument, secondArgument, funresult, info);
+  reorder();
+}
+
+/*
+3.4 Class ~SelectAlgorithm~
+
+The select algorithm is implemented as a sub-class of the class ~FunVector~.
+
+An object of the class ~SelectAlgorithm~ is initialized analogous to an object of the class ~FunInfo~. In addition to a set of functions, the parameter ~testSize~ has to be set to a number greater than zero. For the first ~testSize~ requests, all functions are used for evaluation. After that, the function with the (so far) lowest total used CPU time is selected for all further requests. However, this selection will not be changed later on.
+
+*/
+class SelectAlgorithm : public FunVector {
+  public:
+    SelectAlgorithm();
+    void setTestSize(int);
+    void request(Word, Word&, string);
+    void request(Word, Word, Word&, string);
+  private:
+    int testSize;
+    int selectedFun;
+    int counter;
+};
+
+SelectAlgorithm::SelectAlgorithm()
+{
+  testSize = 0;
+  selectedFun = -1;
+  counter = 0;
+}
+
+void
+SelectAlgorithm::setTestSize( int n )
+{
+  testSize = n;
+}
+
+void 
+SelectAlgorithm::request( Word argument, Word& funresult, string info = "" )
+{
+  if (counter++ < testSize) {
+    requestAll(argument, funresult, info);
+  }
+  else {
+    if (selectedFun == -1) {
+      selectedFun = getMin();
+    }
+
+    requestFun(selectedFun, argument, funresult, info);
+  }
+}
+
+void 
+SelectAlgorithm::request( Word firstArgument, Word secondArgument, 
+                          Word& funresult, string info = "" )
+{
+  if (counter++ < testSize) {
+    requestAll(firstArgument, secondArgument, funresult, info);
+  }
+  else {
+    if (selectedFun == -1) {
+      selectedFun = getMin();
+    }
+
+    requestFun(selectedFun, firstArgument, secondArgument, funresult, info);
+  }
+} 
+
+/*
+4 Operators
+
+4.1 Operator ~size~
 
 The operator ~size~ returns the number of elements of an array.
 
-The type mapping is
+The type mapping is:
 
----- ((array x)) -> int
+---- ((array t)) -> int
 ----
 
 */
@@ -678,7 +1043,7 @@ sizeTypeMap( ListExpr args )
 }
 
 static int
-sizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
+sizeFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   Array* array = ((Array*)args[0].addr);
 
@@ -690,31 +1055,31 @@ sizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string sizeSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>((array x)) -> int</text--->"
-        "<text>size ( _ )</text--->"
-        "<text>Returns the size of an array.</text--->"
-        "<text>query size(ai)</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t)) -> int</text--->"
+       "<text>size ( _ )</text--->"
+       "<text>Returns the size of an array.</text--->"
+       "<text>query size(ai)</text---> ))";
 
 Operator size (
-	"size", 	       	   //name
-	sizeSpec,                  //specification
-	sizeFun,	      	   //value mapping
-	Operator::DummyModel,      //dummy model mapping, defined in Algebra.h
-	simpleSelect,              //trivial selection function 
-	sizeTypeMap                //type mapping 
-);
+      "size",
+      sizeSpec,
+      sizeFun,
+      Operator::DummyModel,
+      simpleSelect,
+      sizeTypeMap );
 
 /*
-3.3.2 Operator ~get~
+4.2 Operator ~get~
 
-The operator ~get~ returns an element with a given index. So the result type 
-of the operator is the type of the array's elements.
+The operator ~get~ returns an element at a given index. So the result type of the operator is the type of the array's elements.
 
-The type mapping is
+The type mapping is:
 
----- ((array x) int) -> x
+---- ((array t) int) -> t
 ----
+
+Precondition of the value mapping function is a valid index. This means an index between 0 and the size of the array minus 1. An element is cloned before returning.
 
 */
 static ListExpr
@@ -727,6 +1092,7 @@ getTypeMap( ListExpr args )
 
     if (!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1), "array") 
           && nl->IsEqual(arg2, "int")) {
+
       // The second item of arg1 is the type of the array's elements.
 
       ListExpr resultType = nl->Second(arg1);
@@ -737,16 +1103,8 @@ getTypeMap( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
-/*
-Precondition of the value mapping function is a valid index. This means
-an index between 0 and the size of the array minus 1. 
-
-The list representation of the elements is used for cloning them because 
-some types may have a dummy implementation of their ~Clone~ function.
-
-*/
 static int
-getFun (Word* args, Word& result, int message, Word& local, Supplier s)
+getFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   Array* array = ((Array*)args[0].addr);
   CcInt* index = ((CcInt*)args[1].addr);
@@ -754,6 +1112,7 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int i = index->GetIntval();
 
   if (i<0 || i >= array->getSize()) {
+
   // error handling
 
     cout << "*** Error in Operator get: " << endl;
@@ -764,6 +1123,7 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
   }
 
   if (i>=0 && i < array->getSize()) {
+
   // should always be true
 
     SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
@@ -779,6 +1139,7 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     if (nl->ListLength(resultType) > 1) {
       if (nl->IsEqual(nl->First(resultType), "map")) {
+
         // In case of a mapping only the type of the resulting object of
         // the mapping is relevant.
 
@@ -791,7 +1152,12 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     resultType = sc->NumericType(resultType);
 
-    clonedElement = genericClone(algebraId, typeId, resultType, element);    
+    clonedElement = genericClone(algebraId, typeId, resultType, element);
+
+    // In the next statement the (by the Query Processor) provided place for 
+    // the result is not used in order to be flexible with regard to the 
+    // result type.
+
     result.addr = clonedElement.addr;
 
     return 0;
@@ -802,30 +1168,31 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string getSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>((array x) int) -> x</text--->"
-        "<text>get ( _, _ )</text--->"
-        "<text>Returns an element with a given index.</text--->"
-        "<text>query get(ai,3)</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) int) -> t</text--->"
+       "<text>get ( _, _ )</text--->"
+       "<text>Returns an element with a given index.</text--->"
+       "<text>query get(ai,3)</text---> ))";
 
 Operator get (
-	"get",
-	getSpec,
-	getFun,
-	Operator::DummyModel,
-	simpleSelect,
-	getTypeMap
-);
+      "get",
+      getSpec,
+      getFun,
+      Operator::DummyModel,
+      simpleSelect,
+      getTypeMap );
 
 /*
-3.3.3 Operator ~put~
+4.3 Operator ~put~
 
-The operator ~put~ assigns a value to an element of an array.
+The operator ~put~ assigns a value to an element at a given index of an array.
 
-The type mapping is
+The type mapping is:
 
----- ((array x) x int) -> (array x) 
+---- ((array t) t int) -> (array t) 
 ----
+
+Precondition of the value mapping function is a valid index. This means an index between 0 and the size of the array minus 1. The function returns a new array.
 
 */
 static ListExpr
@@ -846,22 +1213,15 @@ putTypeMap( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
-/*
-Precondition of the value mapping function is a valid index. This means
-an index between 0 and the size of the array minus 1.
-
-The list representation of the elements is used for cloning them because 
-some types may have a dummy implementation of their ~Clone~ function.
-
-*/
 static int
-putFun (Word* args, Word& result, int message, Word& local, Supplier s)
+putFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   Array* array = ((Array*)args[0].addr);
   Word newelement = args[1];
   int i = ((CcInt*)args[2].addr)->GetIntval();
 
   if (i<0 || i >= array->getSize()) {
+
   // error handling
 
     cout << "*** Error in Operator put: " << endl;
@@ -872,6 +1232,7 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
   }
 
   if (i>=0 && i < array->getSize()) {
+
   // should always be true
 
     SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
@@ -887,6 +1248,7 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     if (nl->ListLength(resultType) > 1) {
       if (nl->IsEqual(nl->First(resultType), "map")) {
+
         // In case of a mapping only the type of the resulting object of
         // the mapping is relevant.
 
@@ -917,29 +1279,26 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string putSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>((array x) x int) -> (array x)</text--->"
-        "<text>put ( _, _, _ )</text--->"
-        "<text>Replaces an element at a given index.</text--->"
-        "<text>query put(ai,9,3)</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) t int) -> (array x)</text--->"
+       "<text>put ( _, _, _ )</text--->"
+       "<text>Replaces an element at a given index.</text--->"
+       "<text>query put(ai,9,3)</text---> ))";
 
 Operator put (
-	"put",
-	putSpec,
-	putFun,
-	Operator::DummyModel,
-	simpleSelect,
-	putTypeMap
-);
+      "put",
+      putSpec,
+      putFun,
+      Operator::DummyModel,
+      simpleSelect,
+      putTypeMap );
 
 /*
-3.3.4 Operator ~makearray~
+4.4 Operator ~makearray~
 
-This Operator creates an array containing the elements of a given list. 
-Note that all elements must have the same type. The elements are cloned
-before building the array.
+This operator creates an array containing the elements of a given list. Note that all elements must have the same type. The elements are cloned before creating the array.
 
-The type mapping is
+The type mapping is:
 
 ---- (t t ... t) -> (array t)
 ----
@@ -952,7 +1311,6 @@ makearrayTypeMap( ListExpr args )
 
   if (nl->ListLength(args) > 0)
   {
-
     ListExpr typeOfElement = nl->First(args);
     args = nl->Rest(args);
 
@@ -960,7 +1318,7 @@ makearrayTypeMap( ListExpr args )
       sameType = nl->Equal(nl->First(args), typeOfElement);
       args = nl->Rest(args);
     }
-    
+
     if (sameType) {
       return nl->TwoElemList(nl->SymbolAtom("array"), typeOfElement);
     }
@@ -970,7 +1328,7 @@ makearrayTypeMap( ListExpr args )
 }
 
 static int
-makearrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
+makearrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -998,39 +1356,32 @@ makearrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string makearraySpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>(t t ... t) -> (array t)</text--->"
-        "<text>makearray ( list )</text--->"
-        "<text>Creates an array containing the elements of a given list. "
-        "The elements are cloned before building the array.</text--->"
-        "<text>let ai = makearray (0,1,2,3)</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>(t t ... t) -> (array t)</text--->"
+       "<text>makearray ( list )</text--->"
+       "<text>Creates an array containing the elements of a given list. "
+       "The elements are cloned before creating the array.</text--->"
+       "<text>let ai = makearray (0,1,2,3)</text---> ))";
 
-Operator makearray (
-	"makearray",
-	makearraySpec,
-	makearrayFun,
-	Operator::DummyModel,
-	simpleSelect,
-	makearrayTypeMap
-);
+Operator makearray(
+      "makearray",
+      makearraySpec,
+      makearrayFun,
+      Operator::DummyModel,
+      simpleSelect,
+      makearrayTypeMap );
 
 /*
-3.4 Extended array operators
+4.5 Operator ~sortarray~
 
-Some useful operators extending the basic array operators.
-
-3.4.1 Operator ~sortarray~
-
-The operator ~sortarray~ sorts an array in order of the function values
-of the elements of a given function.
+The operator ~sortarray~ arranges the elements of an array according to their integer values of a given function.
 
 The formal specification of type mapping is:
 
 ---- ((array t) (map t int)) -> (array t)
 ----
 
-First an auxiliary class ~IntPair~ is defined. The aim of this class is to 
-use the standard sort algorithm in the value mapping function.
+First an auxiliary class ~IntPair~ is defined. The aim of this class is to use the standard sort algorithm in the value mapping function.
 
 */
 class IntPair { 
@@ -1044,7 +1395,7 @@ bool operator<(const IntPair& p1, const IntPair& p2) {
 }
 
 /*
-Implementation of operator ~sortarray~
+Implementation of operator ~sortarray~.
 
 */
 static ListExpr
@@ -1074,7 +1425,7 @@ sortarrayTypeMap( ListExpr args )
 }
 
 static int
-sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
+sortarrayFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -1096,6 +1447,8 @@ sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
   vector<IntPair> index(n);
   Word a[n];
 
+  // Calculate and assing function values
+
   for (int i=0; i<n; i++) {
     (*funargs)[0] = array->getElement(i);
 
@@ -1105,7 +1458,11 @@ sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
     index[i].second = i;
   }
 
+  // Sort index-vector according to function values
+
   sort(index.begin(), index.end());
+
+  // Create resulting array
 
   for (int i=0; i<n; i++) {
 
@@ -1121,27 +1478,25 @@ sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string sortarraySpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (map t int)) -> (array t)</text--->"
-       "<text>_ sortarray [ fun ]</text--->"
-       "<text>Sorts an array in order of the function values of the "
-       "elements.</text--->"
-       "<text>query ai sortarray[fun(i:int)i]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (map t int)) -> (array t)</text--->"
+      "<text>_ sortarray [ fun ]</text--->"
+      "<text>Sorts an array in order of the function values of the "
+      "elements.</text--->"
+      "<text>query ai sortarray[fun(i:int)i]</text---> ))";
 
-Operator sortarray (
-	"sortarray",
-	sortarraySpec,
-	sortarrayFun,
-	Operator::DummyModel,
-	simpleSelect,
-	sortarrayTypeMap
-);
+Operator sortarray(
+      "sortarray",
+      sortarraySpec,
+      sortarrayFun,
+      Operator::DummyModel,
+      simpleSelect,
+      sortarrayTypeMap );
 
 /*
-3.4.2 Operator ~tie~
+4.6 Operator ~tie~
 
-The operator calculates a single "value" of an array by evaluating the 
-elements of an array with a given function from left to right, e.g.
+The operator calculates a single "value" of an array by evaluating the elements of an array with a given function from left to right, e.g.
 
 tie ( (a1, a2, ... , an), + ) = a1 + a2 + ... + an
 
@@ -1181,7 +1536,7 @@ tieTypeMap( ListExpr args )
 }
 
 static int
-tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
+tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
@@ -1207,6 +1562,8 @@ tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
     (*funargs)[0] = partResult;
     (*funargs)[1] = array->getElement(i);
 
+
+
     qp->Request(args[1].addr, funresult);
 
     if (funresult.addr != partResult.addr) {
@@ -1217,35 +1574,35 @@ tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
     }
   }
 
+  // In the next statement the (by the Query Processor) provided place for 
+  // the result is not used in order to be flexible with regard to the 
+  // result type.
+
   result.addr = partResult.addr;
 
   return 0;
 }
 
 const string tieSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (map t t t)) -> t</text--->"
-       "<text>_ tie [ fun ]</text--->"
-       "<text>Calculates the \"value\" of an array evaluating the elements of "
-       "the array with a given function from left to right.</text--->"
-       "<text>query ai tie[fun(i:int,l:int)(i+l)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (map t t t)) -> t</text--->"
+      "<text>_ tie [ fun ]</text--->"
+      "<text>Calculates the \"value\" of an array evaluating the elements of "
+      "the array with a given function from left to right.</text--->"
+      "<text>query ai tie[fun(i:int,l:int)(i+l)]</text---> ))";
 
-Operator tie (
-	"tie",
-	tieSpec,
-	tieFun,
-	Operator::DummyModel,
-	simpleSelect,
-	tieTypeMap
-);
+Operator tie(
+      "tie",
+      tieSpec,
+      tieFun,
+      Operator::DummyModel,
+      simpleSelect,
+      tieTypeMap );
 
 /*
-3.4.3 Operator ~cumulate~
+4.7 Operator ~cumulate~
 
-The operator cumulates the values of the array under a given function. The 
-i-th element of the resulting array is the concatination from the first to 
-the i-th element of the input array under a given function evaluated from
-left to right (compare operator ~tie~), e.g.
+This operator ["]cumulates["] the values of the array under a given function. The i-th element of the resulting array is the concatenation from the first to the i-th element of the input array under a given function evaluated from left to right (compare operator ~tie~), e.g.
 
 cumulate ( (a1, a2, ... , an), + ) = (a1, a1 + a2, ... , a1 + a2 + ... + an)
 
@@ -1284,7 +1641,7 @@ cumulateTypeMap( ListExpr args )
 }
 
 static int
-cumulateFun (Word* args, Word& result, int message, Word& local, Supplier s)
+cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
@@ -1295,6 +1652,8 @@ cumulateFun (Word* args, Word& result, int message, Word& local, Supplier s)
   Word funresult;
 
   ListExpr type = qp->GetType(s);
+
+
   ListExpr typeOfElement = sc->NumericType(nl->Second(type));
 
   int algebraId;
@@ -1332,245 +1691,39 @@ cumulateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string cumulateSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (map t t t)) -> (array t)</text--->"
-       "<text>_ cumulate [ fun ]</text--->"
-       "<text>Cumulates the values of an array under a given "
-       "function.</text--->"
-       "<text>query ai cumulate[fun(i:int,l:int)(i+l)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (map t t t)) -> (array t)</text--->"
+      "<text>_ cumulate [ fun ]</text--->"
+      "<text>Cumulates the values of an array under a given "
+      "function.</text--->"
+      "<text>query ai cumulate[fun(i:int,l:int)(i+l)]</text---> ))";
 
 Operator cumulate (
-	"cumulate",
-	cumulateSpec,
-	cumulateFun,
-	Operator::DummyModel,
-	simpleSelect,
-	cumulateTypeMap
-);
+      "cumulate",
+      cumulateSpec,
+      cumulateFun,
+      Operator::DummyModel,
+      simpleSelect,
+      cumulateTypeMap );
 
 /*
-3.5 Operators for creation and summarization of arrays of relations
+4.8 Operator ~distribute~
 
-3.5.1 Operator ~mdistribute~
+The operator ~distribute~ creates an array of relations from a stream of tuples. The index of the appropriate relation has to be given by an integer attribute of the tuple.
 
-The operator ~mdistribute~ builds an array of relations from an incoming stream 
-of tuples. The index of the appropriate relation has to be given by an integer 
-attribute of the tuple.
-
-This integer attribute is removed from the tuples in the resulting relations. 
-So the incoming tuples have to consist of at least two attributes.
-
-The formal specification of type mapping is:
-
----- ((stream (mtuple ((x1 t1) ... (xn tn)))) xi) 
-
-     -> (array (mrel (mtuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... (xn tn)))))
-
-     at which n>=2, 1<=i<=n and ti (the type of xi) = int
-----
-
-The index of the attribute ai is appended to the result type, because this
-information is needed by the value mapping function.
-
-*/
-static ListExpr
-mdistributeTypeMap( ListExpr args )
-{
-  if (nl->ListLength(args) == 2)
-  {
-    ListExpr streamDesc = nl->First(args);
-    ListExpr attrNameLE = nl->Second(args);
-
-    if (nl->IsEqual(nl->First(streamDesc), "stream") 
-        && (nl->ListLength(streamDesc) == 2)
-        && (nl->AtomType(attrNameLE) == SymbolType))
-    {
-      ListExpr tupleDesc = nl->Second(streamDesc);
-      string attrName = nl->SymbolValue(attrNameLE);
-
-      if (nl->IsEqual(nl->First(tupleDesc), "mtuple")
-          && (nl->ListLength(tupleDesc) == 2))
-      {
-        ListExpr attrList = nl->Second(tupleDesc);
-
-        if (CcIsTupleDescription(attrList, nl))
-        {
-          int attrIndex;
-          ListExpr attrType;
-
-          attrIndex = CcFindAttribute(attrList, attrName, attrType, nl);
-
-          if (nl->ListLength(attrList) > 1 && attrIndex > 0 
-              && nl->IsEqual(attrType, "int"))
-          {
-            ListExpr attrList2 = nl->TheEmptyList();  
-            ListExpr last;
-
-            while (!nl->IsEmpty(attrList)) {
-              ListExpr attr = nl->First(attrList);
-
-              if (nl->SymbolValue(nl->First(attr)) != attrName) {
-                if (nl->IsEmpty(attrList2)) {
-                  attrList2 = nl->OneElemList(attr);
-                  last = attrList2;
-                }
-                else {
-                  last = nl->Append(last, attr);
-                }
-              }
-
-              attrList = nl->Rest(attrList);
-            }
-
-            return nl->ThreeElemList(
-                         nl->SymbolAtom("APPEND"),
-                         nl->OneElemList(nl->IntAtom(attrIndex)),
-                         nl->TwoElemList(
-                           nl->SymbolAtom("array"), 
-                           nl->TwoElemList(
-                             nl->SymbolAtom("mrel"),
-                             nl->TwoElemList(nl->SymbolAtom("mtuple"),
-                                             attrList2))));
-          }
-        }
-      }
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-}
-
-/*
-The value mapping function implements the operator ~mdistribute~. An integer 
-constant defines the maximum number of relations in the resulting array.
-
-Tuples with an index smaller than 0 or an index greater than the maximum number 
-of relations are distributed to the first respectively the last relation.
-
-*/
-static int
-mdistributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  const int MAX_PKG = 256;
-
-  CcInt* indexAttrCcInt = (CcInt*)args[2].addr;
-  int pkgAttr = (indexAttrCcInt->GetIntval()) - 1;
-
-  CcRel* relPkg[MAX_PKG] = { 0 };
-
-  int n = 0;
-
-  relPkg[0] = new CcRel();
-  relPkg[0]->Empty();
-
-  CcInt* pkgNrCcInt;
-  int pkgNr;
-
-  Word actual;
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, actual);
-
-  while(qp->Received(args[0].addr))
-  {
-    CcTuple* tuple = (CcTuple*)actual.addr;
-    tuple = tuple->CloneIfNecessary();
-    tuple->SetFree(false);
-
-    CcTuple* tuple2 = new CcTuple();
-    tuple2->SetNoAttrs(tuple->GetNoAttrs() - 1);
-
-    int j = 0;
-    for (int i=0; i<tuple->GetNoAttrs(); i++) {
-      if (i!=pkgAttr) {
-       tuple2->Put(j++, tuple->Get(i));
-      }
-    }
-    tuple2->SetFree(false);
-
-    tuple->DeleteIfAllowed();
-
-    pkgNrCcInt = (CcInt*)(tuple->Get(pkgAttr));
-    pkgNr = pkgNrCcInt->GetIntval();
-
-    if (pkgNr < 0) { pkgNr = 0; }
-    if (pkgNr > MAX_PKG - 1) { pkgNr = MAX_PKG - 1; }
-
-    while (n < pkgNr) {
-      relPkg[++n] = new CcRel();
-      relPkg[n]->Empty();
-    }
-    relPkg[pkgNr]->AppendTuple(tuple2);
-
-    qp->Request(args[0].addr, actual);
-  }
-
-  qp->Close(args[0].addr);
-
-  result = qp->ResultStorage(s);
-
-  Word a[++n];
-
-  for (int i=0; i<n; i++) {
-    a[i] = SetWord(relPkg[i]);
-  }
-
-  int algebraId;
-  int typeId;
-
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-
-  if (sc->GetTypeId("mrel", algebraId, typeId)) {
-    ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
-
-    return 0;
-  }
-  else {
-    return 1;
-  }
-}
-
-const string mdistributeSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((stream (mtuple ((x1 t1) ... (xn tn)))) xi) -> "
-       "(array (mrel (mtuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... "
-       "(xn tn)))))</text--->"
-       "<text>_ mdistribute [ _ ]</text--->"
-       "<text>Distributes a stream of tuples into an array or relations. The "
-       "attribute xi determines the index of the relation, therefore ti must "
-       "be int.</text--->"
-       "<text>let prel = plz feed mdistribute [pkg]</text---> ))";
-
-Operator mdistribute (
-	"mdistribute",
-	mdistributeSpec,
-	mdistributeFun,
-	Operator::DummyModel,
-	simpleSelect,
-	mdistributeTypeMap
-);
-
-/*
-3.5.2 Operator ~distribute~
-
-The operator ~distribute~ builds an array of relations from an incoming stream 
-of tuples. The index of the appropriate relation has to be given by an integer 
-attribute of the tuple.
-
-This integer attribute is removed from the tuples in the resulting relations. 
-So the incoming tuples have to consist of at least two attributes.
+This integer attribute is removed from the tuples in the resulting relations. So the incoming tuples have to consist of at least two attributes.
 
 The formal specification of type mapping is:
 
 ---- ((stream (tuple ((x1 t1) ... (xn tn)))) xi) 
-
      -> (array (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... (xn tn)))))
 
      at which n>=2, 1<=i<=n and ti (the type of xi) = int
 ----
 
-The index of the attribute ai is appended to the result type, because this
-information is needed by the value mapping function.
+The index of the attribute ai is appended to the result type by the type mapping function, because this information is needed by the value mapping function.
+
+Within the value mapping function, an integer constant defines the maximum number of relations in the resulting array. Tuples with an index smaller than 0 or an index greater than the maximum number of relations are distributed into the first respectively the last relation.
 
 */
 static ListExpr
@@ -1640,14 +1793,6 @@ distributeTypeMap( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
-/*
-The value mapping function implements the operator ~distribute~. An integer 
-constant defines the maximum number of relations in the resulting array.
-
-Tuples with an index smaller than 0 or an index greater than the maximum number 
-of relations are distributed to the first respectively the last relation.
-
-*/
 static int
 distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1684,23 +1829,28 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   {
     Tuple* tuple = (Tuple*)actual.addr;
     tuple = tuple->CloneIfNecessary();
-    tuple->SetFree(false);
+    tuple->SetFree(true);
 
     Tuple* tuple2 = new Tuple(tupleType);
+
+    // Copy all attributes except the package number from tuple to tuple2.
 
     int j = 0;
     for (int i=0; i<tuple->GetNoAttributes(); i++) {
       if (i!=pkgAttr) {
-       tuple2->PutAttribute(j++, tuple->GetAttribute(i));
+        Attribute* attribute=(tuple->GetAttribute(i))->Clone();
+        tuple2->PutAttribute(j++, attribute);
       }
     }
 
     tuple2->SetFree(false);
 
-    tuple->DeleteIfAllowed();
+    // Determine package and distribute tuple2 to that package.
 
     pkgNrCcInt = (CcInt*)(tuple->GetAttribute(pkgAttr));
     pkgNr = pkgNrCcInt->GetIntval();
+
+    tuple->DeleteIfAllowed();
 
     if (pkgNr < 0) { pkgNr = 0; }
     if (pkgNr > MAX_PKG - 1) { pkgNr = MAX_PKG - 1; }
@@ -1713,7 +1863,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     qp->Request(args[0].addr, actual);
   }
-
   qp->Close(args[0].addr);
 
   result = qp->ResultStorage(s);
@@ -1738,154 +1887,37 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string distributeSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi) -> "
-       "(array (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... "
-       "(xn tn)))))</text--->"
-       "<text>_ distribute [ _ ]</text--->"
-       "<text>Distributes a stream of tuples into an array or relations. The "
-       "attribute xi determines the index of the relation, therefore ti must "
-       "be int.</text--->"
-       "<text>let prel = plz feed distribute [pkg]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi) -> "
+      "(array (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... "
+      "(xn tn)))))</text--->"
+      "<text>_ distribute [ _ ]</text--->"
+      "<text>Distributes a stream of tuples into an array or relations. The "
+      "attribute xi determines the index of the relation, therefore ti must "
+      "be int.</text--->"
+      "<text>let prel = plz feed distribute [pkg]</text---> ))";
 
 Operator distribute (
-	"distribute",
-	distributeSpec,
-	distributeFun,
-	Operator::DummyModel,
-	simpleSelect,
-	distributeTypeMap
-);
+      "distribute",
+      distributeSpec,
+      distributeFun,
+      Operator::DummyModel,
+      simpleSelect,
+      distributeTypeMap );
 
 /*
-3.5.3 Operator ~msummarize~
+4.9 Operator ~summarize~
 
-The operator ~msummarize~ produces a stream of tuples from an array of 
-relations. The operator reads the tuples of all relations beginning
-with the first relation of the array.
+The operator ~summarize~ provides a stream of tuples from an array of relations. For this purpose, the operator scans all relations beginning with the first relation of the array.
 
 The formal specification of type mapping is:
 
----- ((array (mrel x))) -> (stream x)
+---- ((array (rel t))) -> (stream t)
+
+     at which t is of the type tuple
 ----
 
-Note that the operator ~msummarize~ is not exactly inverse to the operator
-~mdistribute~ because the index of the relation is not appended to the
-attributes of the outgoing tuples.
-
-If the array has been constructed by the operator ~mdistribute~ the order
-of the resulting stream in most cases does not correspond to the order of
-the input stream of the operator ~mdistribute~.
-
-*/
-static ListExpr
-msummarizeTypeMap( ListExpr args )
-{
-  if (nl->ListLength(args) == 1) 
-  {
-    ListExpr arrayDesc = nl->First(args);
-
-    if (nl->ListLength(arrayDesc) == 2 
-        && nl->IsEqual(nl->First(arrayDesc), "array")) 
-    {
-      ListExpr relDesc = nl->Second(arrayDesc);
-
-      if (nl->ListLength(relDesc) == 2
-          && nl->IsEqual(nl->First(relDesc), "mrel")) 
-      {
-        return nl->TwoElemList(nl->SymbolAtom("stream"), nl->Second(relDesc));
-      }
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-}
-
-static int
-msummarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  struct ArrayIterator{int current; Array* array; CcRelIT* rit;}* ait;
-
-  CcRel* r;
-  Word argArray;
-  Word element;
-
-  switch (message) {
-    case OPEN :
-      ait = new ArrayIterator;
-      ait->current = -1;
-      qp->Request(args[0].addr, argArray);
-      ait->array = (Array*)argArray.addr;
-
-      local.addr = ait;
-      return 0;
-
-    case REQUEST : 
-      ait = (ArrayIterator*)local.addr;
-
-      if (ait->current < 0 || ait->rit->EndOfScan()) {
-        while (ait->current < 0 
-               || (ait->rit->EndOfScan() 
-                   && ait->current < ait->array->getSize()-1)) {
-          element = ait->array->getElement(++(ait->current));
-          r = (CcRel*)element.addr;
-          ait->rit = r->MakeNewScan();
-        }
-      }
-
-      if (!(ait->rit->EndOfScan())) {
-        result = SetWord(ait->rit->GetTuple());
-        ait->rit->Next();
-        return YIELD;
-      }
-      else {
-        return CANCEL;
-      }
-
-    case CLOSE : 
-      ait = (ArrayIterator*)local.addr;
-      delete ait->rit;
-      return 0;
-  }
-  return 0;
-}
-
-const string msummarizeSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (mrel x))) -> (stream x)</text--->"
-       "<text>_ msummarize</text--->"
-       "<text>Produces a stream of the tuples from all relations in the "
-       "array.</text--->"
-       "<text>query prel msummarize consume</text---> ))";
-
-Operator msummarize (
-	"msummarize",
-	msummarizeSpec,
-	msummarizeFun,
-	Operator::DummyModel,
-	simpleSelect,
-	msummarizeTypeMap
-);
-
-/*
-3.5.4 Operator ~summarize~
-
-The operator ~summarize~ produces a stream of tuples from an array of 
-relations. The operator reads the tuples of all relations beginning
-with the first relation of the array.
-
-The formal specification of type mapping is:
-
----- ((array (rel x))) -> (stream x)
-----
-
-Note that the operator ~summarize~ is not exactly inverse to the operator
-~distribute~ because the index of the relation is not appended to the
-attributes of the outgoing tuples.
-
-If the array has been constructed by the operator ~distribute~ the order
-of the resulting stream in most cases does not correspond to the order of
-the input stream of the operator ~distribute~.
+Note that the operator ~summarize~ is not exactly inverse to the operator ~distribute~ because the index of the relation is not appended to the attributes of the outgoing tuples. If the array has been constructed by the operator ~distribute~ the order of the resulting stream in most cases does not correspond to the order of the input stream of the operator ~distribute~.
 
 */
 static ListExpr
@@ -1903,7 +1935,12 @@ summarizeTypeMap( ListExpr args )
       if (nl->ListLength(relDesc) == 2
           && nl->IsEqual(nl->First(relDesc), "rel")) 
       {
-        return nl->TwoElemList(nl->SymbolAtom("stream"), nl->Second(relDesc));
+        ListExpr tupleDesc = nl->Second(relDesc);
+        if (nl->IsEqual(nl->First(tupleDesc), "tuple"))
+        {
+          return nl->TwoElemList(nl->SymbolAtom("stream"),
+                                 nl->Second(relDesc));
+        }
       }
     }
   }
@@ -1912,9 +1949,10 @@ summarizeTypeMap( ListExpr args )
 }
 
 static int
-summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
+summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  struct ArrayIterator{int current; Array* array; GenericRelationIterator* rit;}* ait;
+  struct ArrayIterator{int current; Array* array; 
+                       GenericRelationIterator* rit;}* ait;
 
   GenericRelation* r;
   Tuple* t;
@@ -1933,6 +1971,10 @@ summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST : 
       ait = (ArrayIterator*)local.addr;
+
+      // Try to get the next tuple of the current package. While this has not 
+      // been successful, go to the next package (if the current package is
+      // not already the last package).
 
       while ( ait->current < 0 
               || (((t = ait->rit->GetNextTuple()) == 0) 
@@ -1960,228 +2002,25 @@ summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string summarizeSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (rel x))) -> (stream x)</text--->"
-       "<text>_ summarize</text--->"
-       "<text>Produces a stream of the tuples from all relations in the "
-       "array.</text--->"
-       "<text>query prel summarize consume</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array (rel t))) -> (stream t)</text--->"
+      "<text>_ summarize</text--->"
+      "<text>Produces a stream of the tuples from all relations in the "
+      "array.</text--->"
+      "<text>query prel summarize consume</text---> ))";
 
 Operator summarize (
-	"summarize",
-	summarizeSpec,
-	summarizeFun,
-	Operator::DummyModel,
-	simpleSelect,
-	summarizeTypeMap
-);
-
-/*
-3.6 Type Operators
-
-Type operators are used only for inferring argument types of parameter
-functions. They have a type mapping but no evaluation function.
-
-3.6.1 Type Operator ~ELEMENT~
-
-This type operator extracts the type of the elements from an array type 
-given as the first argument.
-
-----    ((array x) ...) -> x
-----
-
-*/
-ListExpr ELEMENTTypeMap(ListExpr args)
-{
-  if(nl->ListLength(args) >= 1)
-  {
-    ListExpr first = nl->First(args);
-    if (nl->ListLength(first) == 2)
-    {
-      if (nl->IsEqual(nl->First(first), "array")) {
-        return nl->Second(first);
-      }
-    }
-  }
-  return nl->SymbolAtom("typeerror");
-}
-
-const string ELEMENTSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
-     "( <text>((array x) ... ) -> (x)</text--->"
-       "<text>type operator</text--->"
-       "<text>Extracts the type of the elements from an array type given "
-       "as the first argument.</text--->"
-       "<text>not for use with sos-syntax</text---> ))";
-
-Operator ELEMENT (
-      "ELEMENT",
-      ELEMENTSpec,
-      0,
+      "summarize",
+      summarizeSpec,
+      summarizeFun,
       Operator::DummyModel,
       simpleSelect,
-      ELEMENTTypeMap
-);
+      summarizeTypeMap );
 
 /*
-3.6.2 Type Operator ~ELEMENT2~
+4.10 Operator ~loop~
 
-This type operator extracts the type of the elements from the second 
-array type within a list of argument types.
-
-----    ((array x) (array y) ...) -> y
-----
-
-(The first argument must not be an array. It may also be any other 
-type)
-
-*/
-ListExpr ELEMENT2TypeMap(ListExpr args)
-{
-  if(nl->ListLength(args) >= 2)
-  {
-    ListExpr second = nl->Second(args);
-    if (nl->ListLength(second) == 2)
-    {
-      if (nl->IsEqual(nl->First(second), "array")) {
-        return nl->Second(second);
-      }
-    }
-  }
-  return nl->SymbolAtom("typeerror");
-}
-
-const string ELEMENT2Spec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
-     "( <text>((array x) (array y) ... ) -> (y)</text--->"
-       "<text>type operator</text--->"
-       "<text>Extracts the type of the elements from an array type given "
-       "as the second argument.</text--->"
-       "<text>not for use with sos-syntax. The first argument must not "
-       "be an array. It may also be any other type.</text---> ))";
-
-Operator ELEMENT2 (
-      "ELEMENT2",
-      ELEMENT2Spec,
-      0,
-      Operator::DummyModel,
-      simpleSelect,
-      ELEMENT2TypeMap
-);
-
-/*
-3.7 Loop Operators
-
-3.7.1 Class FunInfo
-
-This class contains a function (given by a Supplier object) together with some 
-additional information, e.g. an assigned number and an assigned name.
-
-A function can be requested with given parameters. The number of requests and 
-the consumed time for these requests will be stored.
-
-*/
-string toString(int number) {
-
-  ostringstream o;
-  o << number << char(0);
-  return o.str();
-}
-
-class FunInfo { 
-  public :
-    FunInfo();
-    FunInfo(int, string, Supplier);
-    double getTime();
-    void request(Word*, int, Word&, string);
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
-  private :
-    int no;
-    string name;
-    Supplier supplier;
-    int timesUsed;
-    double consumedTime;
-  friend bool operator<(const FunInfo&, const FunInfo&);
-  friend ostream& operator<<(ostream&, const FunInfo&);
-};
-
-FunInfo::FunInfo() {}
-
-FunInfo::FunInfo(int No, string Name, Supplier s) 
-{
-  no = No;
-  name = Name;
-  supplier = s;
-  timesUsed = 0;
-  consumedTime = 0;
-}
-
-double FunInfo::getTime() {
-  return consumedTime;
-}
-
-void FunInfo::request(Word* arguments, int n, Word& funresult, 
-                      string info = "") 
-{
-  ArgVectorPointer funargs;
-  clock_t c1;
-  clock_t c2;
-  double timediff;
-
-  funargs = qp->Argument( supplier );
-
-  for (int i=0; i<n; i++) {
-    (*funargs)[i] = arguments[i];
-  }
-
-  if (info != "") {
-    cout << info << ", ";
-  }
-
-  cout << "function " << name << ", ";
-
-  c1 = clock();
-  qp->Request( supplier, funresult );
-  c2 = clock();
-
-  timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
-
-  timesUsed++;
-  consumedTime += timediff;
-
-  cout << "used CPU time: " << timediff << " (" << consumedTime 
-       << ") seconds." << endl;
-}
-
-void FunInfo::request(Word argument, Word& funresult, string info = "")
-{
-  request(&argument, 1, funresult, info);
-}
-
-void FunInfo::request(Word firstArg, Word secondArg, Word& funresult, 
-                      string info = "")
-{
-  Word arguments[2] = { firstArg, secondArg };
-  request(arguments, 2, funresult, info);
-}
-
-bool operator<(const FunInfo& f1, const FunInfo& f2) 
-{
-  return (f1.no < f2.no);
-}
-
-ostream& operator<<(ostream& stream, const FunInfo& f) 
-{
-  return stream << "function " << f.name << " used " << f.timesUsed
-                << " times, used CPU time: " << f.consumedTime << " seconds.";
-}
-
-/*
-3.7.2 Operator ~loop~
-
-The Operator ~loop~ evaluates each element of an array with a given function and
-returns an array which contains the resulting values.
+The Operator ~loop~ evaluates each element of an array with a given function and returns an array which contains the resulting values.
 
 The formal specification of type mapping is:
 
@@ -2206,7 +2045,7 @@ loopTypeMap( ListExpr args )
       {
         if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc)))
         {
-          return nl->TwoElemList(nl->SymbolAtom("array"),
+          return nl->TwoElemList(nl->SymbolAtom("array"), 
                                  nl->Third(mapDesc));
         }
       }
@@ -2216,7 +2055,7 @@ loopTypeMap( ListExpr args )
 }
 
 static int
-loopFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -2253,31 +2092,27 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (map t r)) -> (array r)</text--->"
-       "<text>_ loop [ fun ]</text--->"
-       "<text>Evaluates each element of an array with a given function and "
-       "returns an array which contains the resulting values.</text--->"
-       "<text>query ai loop [fun(i:int)(i*i)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (map t r)) -> (array r)</text--->"
+      "<text>_ loop [ fun ]</text--->"
+      "<text>Evaluates each element of an array with a given function and "
+      "returns an array which contains the resulting values.</text--->"
+      "<text>query ai loop [fun(i:int)(i*i)]</text---> ))";
 
 Operator loop (
-	"loop",
-	loopSpec,
-	loopFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopTypeMap
-);
+      "loop",
+      loopSpec,
+      loopFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopTypeMap );
 
 /*
-3.7.3 Operator ~loopa~
+4.11 Operator ~loopa~
 
-The operator ~loopa~ evaluates each pair of elements ~with the same index~ 
-from two arrays with a given function and returns an array which contains
-the resulting values.
+The operator ~loopa~ evaluates each pair of elements *with the same index* from two arrays with a given function and returns an array which contains the resulting values.
 
-If the two arrays do not have the same size, the remaining elements of the 
-greater array are ignored.
+If the two arrays do not have the same size, the remaining elements of the greater array are ignored.
 
 The formal specification of type mapping is:
 
@@ -2317,7 +2152,7 @@ loopaTypeMap( ListExpr args )
 }
 
 static int
-loopaFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopaFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -2356,40 +2191,38 @@ loopaFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopaSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (array u) (map t u r)) -> (array r)</text--->"
-       "<text>_ _ loopa [ fun ]</text--->"
-       "<text>Evaluates each pair of elements with the same index from "
-       "two arrays with a given function and returns an array which contains "
-       "the resulting values.</text--->"
-       "<text>query ai al loopa[fun(i:int,l:int)(i+l)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (array u) (map t u r)) -> (array r)</text--->"
+      "<text>_ _ loopa [ fun ]</text--->"
+      "<text>Evaluates each pair of elements with the same index from "
+      "two arrays with a given function and returns an array which contains "
+      "the resulting values.</text--->"
+      "<text>query ai al loopa[fun(i:int,l:int)(i+l)]</text---> ))";
 
 Operator loopa (
-	"loopa",
-	loopaSpec,
-	loopaFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopaTypeMap
-);
+      "loopa",
+      loopaSpec,
+      loopaFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopaTypeMap );
 
 /*
-3.7.4 Operator ~loopb~
+4.12 Operator ~loopb~
 
-The operator ~loopb~ evaluates each pair of elements from two arrays with 
-a given function and returns an array which contains the resulting values.
+
+The operator ~loopb~ evaluates each pair of elements from two arrays with a given function and returns an array which contains the resulting values.
 
 The formal specification of type mapping is:
 
 ---- ((array t) (array u) (map t u r)) -> (array r)
 ----
 
-Therefore the Type Mapping function of the operator ~loopa~ can be used 
-also for the operator ~loopb~.
+Therefore the type mapping function of the operator ~loopa~ can also be used for the operator ~loopb~.
 
 */
 static int
-loopbFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopbFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -2431,205 +2264,31 @@ loopbFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopbSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (array u) (map t u r)) -> (array r)</text--->"
-       "<text>_ _ loopb [ fun ]</text--->"
-       "<text>Evaluates each pair of elements from two arrays with a given "
-       "function and returns an array which contains the resulting "
-       "values.</text--->"
-       "<text>query ai al loopb[fun(i:int,l:int)(i+l)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (array u) (map t u r)) -> (array r)</text--->"
+      "<text>_ _ loopb [ fun ]</text--->"
+      "<text>Evaluates each pair of elements from two arrays with a given "
+      "function and returns an array which contains the resulting "
+      "values.</text--->"
+      "<text>query ai al loopb[fun(i:int,l:int)(i+l)]</text---> ))";
 
 Operator loopb (
-	"loopb",
-	loopbSpec,
-	loopbFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopaTypeMap
-);
+      "loopb",
+      loopbSpec,
+      loopbFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopaTypeMap );
 
 /*
-3.7.5 Class FunVector
+4.13 Operator ~loopswitch~
 
-This class handles a vector of FunInfo objects. The vector is initialized 
-with a set of functions (given by a Supplier object and an array of function 
-names).
-
-After initializing the vector, a single function or all functions stored 
-in the vector may be requested.
-
-The class also provides some useful methods for the implementation of the 
-switch and the select algorithm.
-
-*/
-class FunVector {
-  public:
-    void load(Word, Word*);
-    void requestFun(int, Word, Word&, string);
-    void requestFun(int, Word, Word, Word&, string);
-    void requestAll(Word, Word&, string);
-    void requestAll(Word, Word, Word&, string);
-    void writeSummary();
-    void reorder();
-    int getMin();
-  private:
-    vector<FunInfo> funInfos;
-    void addFunction(string, Supplier);
-};
-
-void 
-FunVector::addFunction(string name, Supplier s)
-{
-  FunInfo f( funInfos.size()+1, name, s );
-  funInfos.push_back(f);
-}
-
-void 
-FunVector::load(Word suppl, Word* funNames)
-{
-  Supplier funSupplier = (Supplier)suppl.addr;
-  Supplier supplier1;
-  Supplier supplier2;
-
-  int noOfFuns = qp->GetNoSons(funSupplier);
-
-  for (int i=0; i<noOfFuns; i++) {
-    STRING* name = ((CcString*)funNames[i].addr)->GetStringval();
-
-    supplier1 = qp->GetSupplier(funSupplier, i);
-    supplier2 = qp->GetSupplier(supplier1, 1);
-
-    addFunction(*name, supplier2);
-  }
-}
-
-void 
-FunVector::requestFun(int funNo, Word argument, Word& funresult, 
-                      string info = "")
-{
-  funInfos[funNo].request(argument, funresult, info);
-}
-
-void 
-FunVector::requestFun(int funNo, Word firstArgument, Word secondArgument, 
-                      Word& funresult, string info = "")
-{
-  funInfos[funNo].request(firstArgument, secondArgument, funresult, info);
-}
-
-void 
-FunVector::requestAll(Word argument, Word& funresult, string info = "")
-{
-  for(int i=0; i<(int)funInfos.size(); i++) {
-    requestFun(i, argument, funresult, info);
-  }
-}
-
-void 
-FunVector::requestAll(Word firstArgument, Word secondArgument, 
-                      Word& funresult, string info = "")
-{
-  for(int i=0; i<(int)funInfos.size(); i++) {
-    requestFun(i, firstArgument, secondArgument, funresult, info);
-  }
-}
-
-void 
-FunVector::reorder()
-{
-  int n=funInfos.size();
-
-  if (n > 1) {
-    if (funInfos[0].getTime() > funInfos[1].getTime()) {
-      int l = 0;
-      int r = n;
-      int m;
-
-      do {
-        m = (l+r) / 2;
-
-        if (funInfos[m].getTime() <= funInfos[0].getTime()) {
-          l = m; 
-        } 
-        else {
-          r = m;
-        }
-      }
-      while ( (m < (n-1)) 
-              && !((funInfos[m].getTime() <= funInfos[0].getTime()) 
-                   && (funInfos[0].getTime() < funInfos[m+1].getTime())) );
-
-      funInfos.insert(funInfos.begin() + m + 1, funInfos[0]);
-      funInfos.erase(funInfos.begin());
-    }
-  }
-}
-
-int 
-FunVector::getMin() 
-{
-  int min=0;
-
-  for (int i=0; i < (int)funInfos.size(); i++) {
-    if (funInfos[i].getTime() < funInfos[min].getTime()) {
-      min = i;
-    }
-  }
-
-  return min;
-} 
-
-void 
-FunVector::writeSummary()
-{
-  sort(funInfos.begin(), funInfos.end());
-
-  for (int i=0; i < (int)funInfos.size(); i++) {
-    cout << "SUMMARY, " << funInfos[i] << "\n";
-  }
-}
-
-/*
-3.7.6 Operator ~loopswitch~
-
-The operator ~loopswitch~ evaluates each element of an array with one of the 
-given functions. All functions may get (approximately) the same time for 
-calculation, so that the faster functions will process more elements 
-of the array.
+The operator ~loopswitch~ evaluates each element of an array with one of the given functions using the switch algorithm. So, under certain conditions, all functions may get (approximately) the same time for calculation and the faster functions will process more elements of the array.
 
 The formal specification of type mapping is:
 
 ---- ((array t) ((name1 (map t r)) ... (namen (map t r)))) -> (array r)
 ----
-
-Firstly the switch algorithm is implemented as a sub-class of the class 
-FunVector.
-
-*/
-class SwitchAlgorithm : public FunVector {
-  public:
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
-  private:
-    int counter;
-};
-
-void 
-SwitchAlgorithm::request(Word argument, Word& funresult, string info = "")
-{
-  requestFun(0, argument, funresult, info);
-  reorder();
-}
-
-void 
-SwitchAlgorithm::request(Word firstArgument, Word secondArgument, Word& funresult, string info = "")
-{
-  requestFun(0, firstArgument, secondArgument, funresult, info);
-  reorder();
-}
-
-/*
-Now the operator will be defined.
 
 */
 static ListExpr
@@ -2663,7 +2322,8 @@ loopswitchTypeMap( ListExpr args )
                && (!nl->IsEqual(nl->Third(firstMapDesc), "typeerror"))
                && (nl->Equal(nl->Second(firstMapDesc),nl->Second(arrayDesc))))
           {
-            funNames = nl->OneElemList(nl->StringAtom(nl->SymbolValue(firstFunName)));
+            funNames = nl->OneElemList(
+                             nl->StringAtom(nl->SymbolValue(firstFunName)));
             last = funNames;
           }
         }
@@ -2711,7 +2371,7 @@ loopswitchTypeMap( ListExpr args )
 }
 
 static int
-loopswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopswitchFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -2752,35 +2412,34 @@ loopswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopswitchSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) ((name1 (map t r)) ... (namen (map t r)))) "
-       "-> (array r)</text--->"
-       "<text>_ loopswitch [ funlist ]</text--->"
-       "<text>Evaluates each element of an array with one of the given "
-       "functions. All functions may get (approximately) the same time for "
-       "calculation, so that the \"faster\" function will process more "
-       "elements of the array.</text--->"
-       "<text>query ai loopswitch[f:fun(i:int)(i*2), "
-       "g:fun(l:int)(l+l)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) ((name1 (map t r)) ... (namen (map t r)))) "
+      "-> (array r)</text--->"
+      "<text>_ loopswitch [ funlist ]</text--->"
+      "<text>Evaluates each element of an array with one of the given "
+      "functions. All functions may get (approximately) the same time for "
+      "calculation, so that the \"faster\" function will process more "
+      "elements of the array.</text--->"
+      "<text>query ai loopswitch[f:fun(i:int)(i*2), "
+      "g:fun(l:int)(l+l)]</text---> ))";
 
 Operator loopswitch (
-	"loopswitch",
-	loopswitchSpec,
-	loopswitchFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopswitchTypeMap
-);
+      "loopswitch",
+      loopswitchSpec,
+      loopswitchFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopswitchTypeMap );
 
 /*
-3.7.7 Operator ~loopswitcha~
+4.14 Operator ~loopswitcha~
 
-This operator works like operator ~loopa~ extended by the switch algorithm of 
-operator ~loopswitch~.
+This operator works like operator ~loopa~ extended by the switch algorithm of operator ~loopswitch~.
 
 The formal specification of type mapping is:
 
----- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) -> (array r)
+---- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) 
+     -> (array r)
 ----
 
 */
@@ -2816,10 +2475,13 @@ loopswitchaTypeMap( ListExpr args )
         {
            if ((nl->IsEqual(nl->First(firstMapDesc), "map"))
                && (!nl->IsEqual(nl->Fourth(firstMapDesc), "typeerror"))
-               && (nl->Equal(nl->Second(firstMapDesc),nl->Second(firstArrayDesc)))
-               && (nl->Equal(nl->Third(firstMapDesc),nl->Second(secondArrayDesc))))
+               && (nl->Equal(nl->Second(firstMapDesc),
+                             nl->Second(firstArrayDesc)))
+               && (nl->Equal(nl->Third(firstMapDesc),
+                             nl->Second(secondArrayDesc))))
           {
-            funNames = nl->OneElemList(nl->StringAtom(nl->SymbolValue(firstFunName)));
+            funNames = nl->OneElemList( 
+                             nl->StringAtom(nl->SymbolValue(firstFunName)));
             last = funNames;
           }
         }
@@ -2867,7 +2529,8 @@ loopswitchaTypeMap( ListExpr args )
 }
 
 static int
-loopswitchaFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopswitchaFun( Word* args, Word& result, int message, Word& local, 
+                Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -2910,38 +2573,40 @@ loopswitchaFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopswitchaSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (array u) ((name1 (map t u r)) ... "
-       "(namen (map t u r)))) -> (array r)</text--->"
-       "<text>_ loopswitcha [ funlist ]</text--->"
-       "<text>Works like operator loopa extended by the switch algorithm of "
-       "operator loopswitch.</text--->"
-       "<text>query ai al loopswitcha[f:fun(i1:int,l1:int)(i1 mod l1), "
-       "g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (array u) ((name1 (map t u r)) ... "
+      "(namen (map t u r)))) -> (array r)</text--->"
+      "<text>_ loopswitcha [ funlist ]</text--->"
+      "<text>Works like operator loopa extended by the switch algorithm of "
+      "operator loopswitch.</text--->"
+      "<text>query ai al loopswitcha[f:fun(i1:int,l1:int)(i1 mod l1), "
+      "g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]</text---> ))";
 
 Operator loopswitcha (
-	"loopswitcha",
-	loopswitchaSpec,
-	loopswitchaFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopswitchaTypeMap
-);
+      "loopswitcha",
+      loopswitchaSpec,
+      loopswitchaFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopswitchaTypeMap );
 
 /*
-3.7.8 Operator ~loopswitchb~
+4.15 Operator ~loopswitchb~
 
-This operator works like operator ~loopb~ extended by the switch algorithm of 
-operator ~loopswitch~.
+This operator works like operator ~loopb~ extended by the switch algorithm of operator ~loopswitch~.
 
 The formal specification of type mapping is:
 
----- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) -> (array r)
+---- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r)))) 
+     -> (array r)
 ----
+
+Therefore the type mapping function of the operator ~loopswitcha~ can also be used for the operator ~loopswitchb~.
 
 */
 static int
-loopswitchbFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopswitchbFun( Word* args, Word& result, int message, Word& local, 
+                Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -2974,6 +2639,7 @@ loopswitchbFun (Word* args, Word& result, int message, Word& local, Supplier s)
       sw.request(firstArray->getElement(i), secondArray->getElement(l), 
                  funresult, info);
       a[i * m + l] = genericClone(algebraId, typeId, typeOfElement, funresult);
+
     }
   }
 
@@ -2987,104 +2653,37 @@ loopswitchbFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopswitchbSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (array u) ((name1 (map t u r)) ... "
-       "(namen (map t u r)))) -> (array r)</text--->"
-       "<text>_ loopswitchb [ funlist ]</text--->"
-       "<text>Works like operator loopb extended by the switch algorithm of "
-       "operator loopswitch.</text--->"
-       "<text>query ai al loopswitchb[f:fun(i1:int,l1:int)(i1 mod l1), "
-       "g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (array u) ((name1 (map t u r)) ... "
+      "(namen (map t u r)))) -> (array r)</text--->"
+      "<text>_ loopswitchb [ funlist ]</text--->"
+      "<text>Works like operator loopb extended by the switch algorithm of "
+      "operator loopswitch.</text--->"
+      "<text>query ai al loopswitchb[f:fun(i1:int,l1:int)(i1 mod l1), "
+      "g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2)]</text---> ))";
 
 Operator loopswitchb (
-	"loopswitchb",
-	loopswitchbSpec,
-	loopswitchbFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopswitchaTypeMap
-);
+      "loopswitchb",
+      loopswitchbSpec,
+      loopswitchbFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopswitchaTypeMap );
 
 /*
-3.7.9 Operator ~loopselect~
+4.16 Operator ~loopselect~
 
-The operator ~loopselect~ evaluates the first n elements of the array with each 
-of the given functions and cumulates the used calculation times. The remaining 
-elements are processed with the (so far) fastest function.
+The operator ~loopselect~ evaluates the first n elements of the array with each of the given functions and sums up the used calculation times for each function. The remaining elements are processed with the (so far) fastest function.
 
 The formal specification of type mapping is:
 
----- ((array t) ((name1 (map t r)) ... (namen (map t r))) int real) -> (array r)
+---- ((array t) ((name1 (map t r)) ... (namen (map t r))) int real) 
+     -> (array r)
 ----
 
-The above mentioned parameter n is given by the int- and the real-
-parameter. Let x the int- and y the real-parameter, than n is calculated
-similar to the operator ~sample~ of the Relation Algebra:
+The above mentioned parameter n is given by the int- and the real-parameter. Let x the int- and y the real-parameter, than n is calculated similar to the operator ~sample~ of the Relation Algebra:
 
 n := min(arraySize, max(x, y * arraySize))
-
-Firstly the select algorithm is implemented as a sub-class of the class 
-FunVector.
-
-*/
-class SelectAlgorithm : public FunVector {
-  public:
-    SelectAlgorithm();
-    void setTestSize(int);
-    void request(Word, Word&, string);
-    void request(Word, Word, Word&, string);
-  private:
-    int testSize;
-    int selectedFun;
-    int counter;
-};
-
-SelectAlgorithm::SelectAlgorithm ()
-{
-  testSize = 0;
-  selectedFun = -1;
-  counter = 0;
-}
-
-void
-SelectAlgorithm::setTestSize(int n)
-{
-  testSize = n;
-}
-
-void 
-SelectAlgorithm::request(Word argument, Word& funresult, string info = "")
-{
-  if (counter++ < testSize) {
-    requestAll(argument, funresult, info);
-  }
-  else {
-    if (selectedFun == -1) {
-      selectedFun = getMin();
-    }
-
-    requestFun(selectedFun, argument, funresult, info);
-  }
-}
-
-void 
-SelectAlgorithm::request(Word firstArgument, Word secondArgument, 
-                         Word& funresult, string info = "")
-{
-  if (counter++ < testSize) {
-    requestAll(firstArgument, secondArgument, funresult, info);
-  }
-  else {
-    if (selectedFun == -1) {
-      selectedFun = getMin();
-    }
-
-    requestFun(selectedFun, firstArgument, secondArgument, funresult, info);
-  }
-} 
-
-/*
-Now the operator will be defined.
 
 */
 static ListExpr
@@ -3106,7 +2705,7 @@ loopselectTypeMap( ListExpr args )
 }
 
 static int
-loopselectFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -3138,7 +2737,7 @@ loopselectFun (Word* args, Word& result, int message, Word& local, Supplier s)
   if (relTest < 0) { relTest = 0; }
   if (relTest > 1) { relTest = 1; }
 
-  se.setTestSize( max(absTest, (int)(n * relTest)) );
+  se.setTestSize( max(absTest, (int)(n * relTest + 0.5)) );
 
   Word a[n];
   Word funresult;
@@ -3161,35 +2760,34 @@ loopselectFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopselectSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) ((name1 (map t r)) ... (namen (map t r))) int real) "
-       "-> (array r)</text--->"
-       "<text>_ loopselect [ funlist; _, _ ]</text--->"
-       "<text>Evaluates the first \"n\" elements of the array with each of "
-       "the given functions and cumulates the used calculation times. The "
-       "remaining elements are processed with the (so far) \"fastest\" "
-       "function.</text--->"
-       "<text>query ai loopselect[f:fun(i:int)(i*2), g:fun(l:int)(l+l); "
-       "10, 0.1]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) ((name1 (map t r)) ... (namen (map t r))) int real) "
+      "-> (array r)</text--->"
+      "<text>_ loopselect [ funlist; _, _ ]</text--->"
+      "<text>Evaluates the first \"n\" elements of the array with each of "
+      "the given functions and cumulates the used calculation times. The "
+      "remaining elements are processed with the (so far) \"fastest\" "
+      "function.</text--->"
+      "<text>query ai loopselect[f:fun(i:int)(i*2), g:fun(l:int)(l+l); "
+      "10, 0.1]</text---> ))";
 
 Operator loopselect (
-	"loopselect",
-	loopselectSpec,
-	loopselectFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopselectTypeMap
-);
+      "loopselect",
+      loopselectSpec,
+      loopselectFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopselectTypeMap );
 
 /*
-3.7.10 Operator ~loopselecta~
+4.17 Operator ~loopselecta~
 
-This operator works like operator ~loopa~ extended by the select algorithm of 
-operator ~loopselect~.
+This operator works like operator ~loopa~ extended by the select algorithm of operator ~loopselect~.
 
 The formal specification of type mapping is:
 
----- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r))) int real) -> (array r)
+---- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r))) int 
+     real) -> (array r)
 ----
 
 */
@@ -3214,7 +2812,8 @@ loopselectaTypeMap( ListExpr args )
 }
 
 static int
-loopselectaFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopselectaFun( Word* args, Word& result, int message, Word& local, 
+                Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -3247,7 +2846,7 @@ loopselectaFun (Word* args, Word& result, int message, Word& local, Supplier s)
   if (relTest < 0) { relTest = 0; }
   if (relTest > 1) { relTest = 1; }
 
-  se.setTestSize( max(absTest, (int)(n * relTest)) );
+  se.setTestSize( max(absTest, (int)(n * relTest + 0.5)) );
 
   Word a[n];
   Word funresult;
@@ -3281,28 +2880,30 @@ const string loopselectaSpec =
        "g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2); 10, 0.1]</text---> ))";
 
 Operator loopselecta (
-	"loopselecta",
-	loopselectaSpec,
-	loopselectaFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopselectaTypeMap
-);
+      "loopselecta",
+      loopselectaSpec,
+      loopselectaFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopselectaTypeMap );
 
 /*
-3.7.11 Operator ~loopselectb~
+4.18 Operator ~loopselectb~
 
-This operator works like operator ~loopb~ extended by the select algorithm of 
-operator ~loopselect~.
+This operator works like operator ~loopb~ extended by the select algorithm of operator ~loopselect~.
 
 The formal specification of type mapping is:
 
----- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r))) int real) -> (array r)
+---- ((array t) (array u) ((name1 (map t u r)) ... (namen (map t u r))) int 
+     real) -> (array r)
 ----
+
+Therefore the type mapping function of operator ~loopselecta~ can also be used for operator ~loopselectb~.
 
 */
 static int
-loopselectbFun (Word* args, Word& result, int message, Word& local, Supplier s)
+loopselectbFun( Word* args, Word& result, int message, Word& local, 
+                Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
@@ -3337,7 +2938,7 @@ loopselectbFun (Word* args, Word& result, int message, Word& local, Supplier s)
   if (relTest < 0) { relTest = 0; }
   if (relTest > 1) { relTest = 1; }
 
-  se.setTestSize( max(absTest, (int)(r * relTest)) );
+  se.setTestSize( max(absTest, (int)(r * relTest + 0.5)) );
 
   Word a[r];
   Word funresult;
@@ -3363,231 +2964,28 @@ loopselectbFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string loopselectbSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (array u) ((name1 (map t u r)) ... "
-       "(namen (map t u r))) int real) -> (array r)</text--->"
-       "<text>_ _ loopselecta [ funlist; _, _ ]</text--->"
-       "<text>Works like operator loopb extended by the select algorithm of "
-       "operator loopselect.</text--->"
-       "<text>query ai al loopselectb[f:fun(i1:int,l1:int)(i1 mod l1), "
-       "g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2); 10, 0.1]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array t) (array u) ((name1 (map t u r)) ... "
+      "(namen (map t u r))) int real) -> (array r)</text--->"
+      "<text>_ _ loopselecta [ funlist; _, _ ]</text--->"
+      "<text>Works like operator loopb extended by the select algorithm of "
+      "operator loopselect.</text--->"
+      "<text>query ai al loopselectb[f:fun(i1:int,l1:int)(i1 mod l1), "
+      "g:fun(i2:int,l2:int)(i2-(i2 div l2)*l2); 10, 0.1]</text---> ))";
 
 Operator loopselectb (
-	"loopselectb",
-	loopselectbSpec,
-	loopselectbFun,
-	Operator::DummyModel,
-	simpleSelect,
-	loopselectaTypeMap
-);
+      "loopselectb",
+      loopselectbSpec,
+      loopselectbFun,
+      Operator::DummyModel,
+      simpleSelect,
+      loopselectaTypeMap );
 
 /*
-3.8 Operators for efficient joins between two partitioned relations
+4.19 Operator ~partjoin~
 
-3.8.1 Operator ~mpartjoin~
+The operator ~partjoin~ allows to calculate joins between two partitioned relations (two arrays of relations) in a special way.
 
-The operator ~mpartjoin~ allows to calculate joins between two partitioned 
-relations (two arrays of relations) in an efficient way.
-
-The formal specification of type mapping is:
-
----- ((array (mrel t)) (array (mrel u)) (map (mrel t) (mrel u) r)) -> (array r)
-
-     at which t and u are of the type mtuple, r may be any type
-----
-
-The following functions appends (the tuples of) a relation to an other 
-relations and is used by the partjoin algorithm.
-
-*/
-static void
-appendToMrel (CcRel* rel, Word append)
-{
-// Auxiliary routine used by the partjoin algorithm
-
-  CcRel* part = (CcRel*)(append.addr);
-  CcRelIT* rit = part->MakeNewScan();
-  CcTuple* tuple;
-
-  while (!rit->EndOfScan()) {
-    tuple = rit->GetTuple();  
-    tuple = tuple->CloneIfNecessary();
-    tuple->SetFree(false);
-    rel->AppendTuple(tuple);
-    rit->Next();
-  }
-}
-
-/*
-Implementation of the operator.
-
-*/
-static ListExpr
-mpartjoinTypeMap( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) 
-  {
-    ListExpr firstArrayDesc = nl->First(args);
-    ListExpr secondArrayDesc = nl->Second(args); 
-    ListExpr mapDesc = nl->Third(args);
-
-    if ((nl->ListLength(firstArrayDesc) == 2)
-        && (nl->ListLength(secondArrayDesc) == 2)
-        && (nl->ListLength(mapDesc) == 4))
-    {
-      if (nl->IsEqual(nl->First(firstArrayDesc), "array")
-          && nl->IsEqual(nl->First(secondArrayDesc), "array")
-          && !nl->IsAtom(nl->Second(firstArrayDesc)) 
-          && !nl->IsAtom(nl->Second(secondArrayDesc))
-          && nl->IsEqual(nl->First(mapDesc), "map"))
-      {
-        ListExpr firstElementDesc = nl->Second(firstArrayDesc);
-        ListExpr secondElementDesc = nl->Second(secondArrayDesc);
-
-        if (nl->IsEqual(nl->First(firstElementDesc), "mrel")
-            && nl->IsEqual(nl->First(secondElementDesc), "mrel")
-            && nl->Equal(firstElementDesc, nl->Second(mapDesc))
-            && nl->Equal(secondElementDesc, nl->Third(mapDesc)))
-        {
-          ListExpr firstTupleDesc = nl->Second(firstElementDesc);
-          ListExpr secondTupleDesc = nl->Second(secondElementDesc);
-
-          if ((nl->ListLength(firstTupleDesc) == 2)
-              && (nl->ListLength(secondTupleDesc) == 2)
-              && (nl->IsEqual(nl->First(firstTupleDesc), "mtuple"))
-              && (nl->IsEqual(nl->First(secondTupleDesc), "mtuple")))
-          {
-            return nl->TwoElemList(nl->SymbolAtom("array"),
-                                   nl->Fourth(mapDesc));
-          }
-        }
-      }
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-}
-
-static int
-mpartjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-
-  Array* firstArray = ((Array*)args[0].addr);
-  Array* secondArray = ((Array*)args[1].addr);
-
-  FunInfo f(0, "0", args[2].addr);
-
-  Word funresult;
-  string info;
-
-  ListExpr type = qp->GetType(s);
-  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
-
-  int algebraId;
-  int typeId;
-
-  extractIds(typeOfElement, algebraId, typeId);
-
-  int n = firstArray->getSize();
-  int m = secondArray->getSize();
-
-  Word a[n + m - 1];
-  int c = 0;
-
-  int i = 0;
-  int j = 0;
-
-  CcRel* Acum = new CcRel();
-  CcRel* Bcum = new CcRel();
-
-  Acum->Empty();
-  Bcum->Empty();
-
-  if ((i-j) <= (n-m)) {
-    while ((i-j) <= (n-m)) {
-      info =  "Processing partitions " + toString(i) + " and " + toString(j);
-
-      f.request(firstArray->getElement(i), secondArray->getElement(j), 
-                funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-      if (i > 0) {
-        appendToMrel(Acum, firstArray->getElement(i-1));
-      }
-      i++;
-    }
-    j++;
-    appendToMrel(Bcum, secondArray->getElement(0));
-  }
-  else {
-    while ((i-j) >= (n-m)) {
-      info = "Processing partitions " + toString(i) + " and " + toString(j);
-
-      f.request(firstArray->getElement(i), secondArray->getElement(j), 
-                funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-      appendToMrel(Bcum, secondArray->getElement(j));
-      j++;
-    }
-    i++;
-  }
-
-  while (i < n) {
-    appendToMrel(Acum, firstArray->getElement(i-1));
-    appendToMrel(Bcum, secondArray->getElement(j));
-
-    info = "Processing partitions [0;" + toString(i-1) + "] and " 
-           + toString(j);
-
-    f.request(SetWord(Acum), secondArray->getElement(j), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-    info = "Processing partitions " + toString(i) + " and [0;" 
-           + toString(j) + "]";
-
-    f.request(firstArray->getElement(i), SetWord(Bcum), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-    i++;
-    j++;
-  }
-
-  result = qp->ResultStorage(s);
-
-  ((Array*)result.addr)->initialize(algebraId, typeId, c, a);
-
-  Acum->Empty();
-  Bcum->Empty();
-
-  return 0;
-}
-
-const string mpartjoinSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (mrel t)) (array (mrel u)) (map (mrel t) (mrel u) r)) "
-       "-> (array r)</text--->"
-       "<text>_ _ mpartjoin [ fun ]</text--->"
-       "<text>Allows to calculate joins between two arrays of relations "
-       "in an efficient way.</text--->"
-       "<text>query ar ar mpartjoin[fun(r1:reltype,r2:reltype)r1 feed r2 feed "
-       "rename[A] product count]</text---> ))";
-
-Operator mpartjoin (
-	"mpartjoin",
-	mpartjoinSpec,
-	mpartjoinFun,
-	Operator::DummyModel,
-	simpleSelect,
-	mpartjoinTypeMap
-);
-
-/*
-3.8.2 Operator ~partjoin~
-
-The operator ~partjoin~ allows to calculate joins between two partitioned 
-relations (two arrays of relations) in an efficient way.
 
 The formal specification of type mapping is:
 
@@ -3596,15 +2994,16 @@ The formal specification of type mapping is:
      at which t and u are of the type tuple, r may be any type
 ----
 
-The following functions appends (the tuples of) a relation to an other 
-relations and is used by the partjoin algorithm.
+The following functions appends (the tuples of) a relation to an other relation and is used by the partjoin algorithm.
 
 */
 static void
-appendToRel (Word& relation, Word append)
-{
-// Auxiliary routine used by the partjoin algorithm
+appendToRel( Word& relation, Word append )
 
+// This auxiliary routine is used by the partjoin algorithm to append a 
+// relation to an other relation.
+
+{
   GenericRelation* rel = (GenericRelation*)(relation.addr);
   GenericRelation* part = (GenericRelation*)(append.addr);
   GenericRelationIterator* rit = part->MakeScan();
@@ -3675,8 +3074,11 @@ partjoinTypeMap( ListExpr args )
 }
 
 static int
-partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
+partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
+
+  // INITIALIZATION
+
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
   Array* firstArray = ((Array*)args[0].addr);
@@ -3706,6 +3108,11 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   Word Acum = SetWord(0);
   Word Bcum = SetWord(0);
+
+  // FIRST PART OF THE PARTJOIN ALGORITHM
+
+  // Process the first elements individually to get an "entry point" for the
+  // second part (see below).
 
   if ((i-j) <= (n-m)) {
     while ((i-j) <= (n-m)) {
@@ -3738,6 +3145,12 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
     i++;
   }
 
+  // SECOND PART OF THE PARTJOIN ALGORITHM
+
+  // The next loop implements the main concept of the partjoin algorithm:
+  // the step by step summarization and evaluation of larger parts of the 
+  // participating arrays of relations.
+
   while (i < n) {
     appendToRel(Acum, firstArray->getElement(i-1));
     appendToRel(Bcum, secondArray->getElement(j));
@@ -3757,6 +3170,8 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
     i++;
     j++;
   }
+
+  // SET RESULT AND CLEAN UP
 
   result = qp->ResultStorage(s);
 
@@ -3779,263 +3194,22 @@ const string partjoinSpec =
        "rename[A] product count]</text---> ))";
 
 Operator partjoin (
-	"partjoin",
-	partjoinSpec,
-	partjoinFun,
-	Operator::DummyModel,
-	simpleSelect,
-	partjoinTypeMap
-);
+      "partjoin",
+      partjoinSpec,
+      partjoinFun,
+      Operator::DummyModel,
+      simpleSelect,
+      partjoinTypeMap );
 
 /*
-3.8.3 Operator ~mpartjoinswitch~
+4.20 Operator ~partjoinswitch~
 
-This operator like operator ~mpartjoin~ extended by the switch algorithm of 
-operator ~loopswitch~.
+This operator works like operator ~partjoin~ extended by the switch algorithm of operator ~loopswitch~.
 
 The formal specification of type mapping is:
 
----- ((array (mrel t)) (array (mrel u)) ((name1 (map (mrel t) (mrel u) r)) 
-                                     ... (namen (map (mrel t) (mrel u) r)))) -> (array r)
-
-     at which t and u are of the type mtuple, r may be any type
-----
-
-*/
-static ListExpr
-mpartjoinswitchTypeMap( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) 
-  {
-    ListExpr firstArrayDesc = nl->First(args);
-    ListExpr secondArrayDesc = nl->Second(args);
-    ListExpr funlist = nl->Third(args);
-
-    if ((nl->ListLength(firstArrayDesc) == 2) 
-        && (nl->ListLength(secondArrayDesc) == 2))
-    {
-      if ((nl->IsEqual(nl->First(firstArrayDesc), "array"))
-          && (nl->IsEqual(nl->First(secondArrayDesc), "array"))
-          && !nl->IsAtom(nl->Second(firstArrayDesc)) 
-          && !nl->IsAtom(nl->Second(secondArrayDesc)))
-      {
-        ListExpr firstElementDesc = nl->Second(firstArrayDesc);
-        ListExpr secondElementDesc = nl->Second(secondArrayDesc);
-
-        if ((nl->ListLength(firstElementDesc) == 2)
-            && (nl->ListLength(secondElementDesc) == 2)
-            && (nl->IsEqual(nl->First(firstElementDesc), "mrel"))
-            && (nl->IsEqual(nl->First(secondElementDesc), "mrel")))
-        {
-          ListExpr firstTupleDesc = nl->Second(firstElementDesc);
-          ListExpr secondTupleDesc = nl->Second(secondElementDesc);
-
-          if ((nl->ListLength(firstTupleDesc) == 2)
-              && (nl->ListLength(secondTupleDesc) == 2)
-              && (nl->IsEqual(nl->First(firstTupleDesc), "mtuple"))
-              && (nl->IsEqual(nl->First(secondTupleDesc), "mtuple")))
-          {
-            ListExpr firstFunDesc = nl->First(funlist);
-            funlist = nl->Rest(funlist);
-
-            ListExpr funNames = nl->TheEmptyList();
-            ListExpr last;
-
-            ListExpr firstMapDesc;
-
-            if (nl->ListLength(firstFunDesc) == 2)
-            {
-              ListExpr firstFunName = nl->First(firstFunDesc);
-              firstMapDesc = nl->Second(firstFunDesc);
-
-              if ((nl->AtomType(firstFunName) == SymbolType)
-                  && (nl->ListLength(firstMapDesc) == 4))
-              {
-                 if ((nl->IsEqual(nl->First(firstMapDesc), "map"))
-                     && (!nl->IsEqual(nl->Fourth(firstMapDesc), "typeerror"))
-                     && (nl->Equal(firstElementDesc, nl->Second(firstMapDesc)))
-                     && (nl->Equal(secondElementDesc, nl->Third(firstMapDesc))))
-                {
-                  funNames = nl->OneElemList(nl->StringAtom(nl->SymbolValue(firstFunName)));
-                  last = funNames;
-                }
-              }
-            }
-
-            if (!nl->IsEmpty(funNames))
-            {
-              bool ok = true;
-
-              while (!nl->IsEmpty(funlist) && ok)
-              {
-                ListExpr funDesc = nl->First(funlist);
-
-                if (nl->ListLength(funDesc) == 2)
-                {
-                  ListExpr funName = nl->First(funDesc);
-                  ListExpr mapDesc = nl->Second(funDesc);
-
-                  if ((nl->AtomType(funName) == SymbolType)
-                      && (nl->Equal(mapDesc, firstMapDesc)))
-                  {
-                    last = nl->Append(last, 
-                                 nl->StringAtom(nl->SymbolValue(funName)));
-                  }
-                  else { ok = false; }
-                }
-                else { ok = false; }
-
-                funlist = nl->Rest(funlist);
-              }
-
-              if (ok) {
-                return nl->ThreeElemList(
-                             nl->SymbolAtom("APPEND"),
-                             funNames,
-                             nl->TwoElemList(
-                               nl->SymbolAtom("array"),
-                               nl->Fourth(firstMapDesc)));
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-}
-
-static int
-mpartjoinswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-
-  Array* firstArray = ((Array*)args[0].addr);
-  Array* secondArray = ((Array*)args[1].addr);
-
-  SwitchAlgorithm sw;
-
-  sw.load(args[2], &args[3]);
-
-  Word funresult;
-  string info;
-
-  ListExpr type = qp->GetType(s);
-  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
-
-  int algebraId;
-  int typeId;
-
-  extractIds(typeOfElement, algebraId, typeId);
-
-  int n = firstArray->getSize();
-  int m = secondArray->getSize();
-
-  Word a[n + m - 1];
-  int c = 0;
-
-  int i = 0;
-  int j = 0;
-
-  CcRel* Acum = new CcRel();
-  CcRel* Bcum = new CcRel();
-
-  Acum->Empty();
-  Bcum->Empty();
-
-  if ((i-j) <= (n-m)) {
-    while ((i-j) <= (n-m)) {
-      info =  "Processing partitions " + toString(i) + " and " + toString(j);
-
-      sw.request(firstArray->getElement(i), secondArray->getElement(j), 
-                 funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-      if (i > 0) {
-        appendToMrel(Acum, firstArray->getElement(i-1));
-      }
-      i++;
-    }
-    j++;
-    appendToMrel(Bcum, secondArray->getElement(0));
-  }
-  else {
-    while ((i-j) >= (n-m)) {
-      info = "Processing partitions " + toString(i) + " and " + toString(j);
-
-      sw.request(firstArray->getElement(i), secondArray->getElement(j), 
-                 funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-      appendToMrel(Bcum, secondArray->getElement(j));
-      j++;
-    }
-    i++;
-  }
-
-  while (i < n) {
-    appendToMrel(Acum, firstArray->getElement(i-1));
-    appendToMrel(Bcum, secondArray->getElement(j));
-
-    info = "Processing partitions [0;" + toString(i-1) + "] and " 
-           + toString(j);
-
-    sw.request(SetWord(Acum), secondArray->getElement(j), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-    info = "Processing partitions " + toString(i) + " and [0;" 
-           + toString(j) + "]";
-
-    sw.request(firstArray->getElement(i), SetWord(Bcum), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-    i++;
-    j++;
-  }
-
-  sw.writeSummary();
-
-  result = qp->ResultStorage(s);
-
-  ((Array*)result.addr)->initialize(algebraId, typeId, c, a);
-
-  Acum->Empty();
-  Bcum->Empty();
-
-  return 0;
-}
-
-const string mpartjoinswitchSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (mrel t)) (array (mrel u)) ((name1 (map (mrel t) (mrel u) r)) "
-       "... (namen (map (mrel t) (mrel u) r)))) -> (array r)</text--->"
-       "<text>_ _ mpartjoinswitch [ funlist ]</text--->"
-       "<text>Works like operator mpartjoin extended by the switch algorithm "
-       "of operator loopswitch.</text--->"
-       "<text>query ar ar mpartjoinswitch[f:fun(r11:reltype,r12:reltype)r11 feed "
-       "r12 feed rename[A] sortmergejoin[no,no_A] count, g:fun(r21:reltype,r22:reltype)"
-       "r21 feed r22 feed rename[A] product filter[.no=.no_A] count]</text---> ))";
-
-Operator mpartjoinswitch (
-	"mpartjoinswitch",
-	mpartjoinswitchSpec,
-	mpartjoinswitchFun,
-	Operator::DummyModel,
-	simpleSelect,
-      mpartjoinswitchTypeMap
-);
-
-/*
-3.8.4 Operator ~partjoinswitch~
-
-This operator like operator ~partjoin~ extended by the switch algorithm of 
-operator ~loopswitch~.
-
-The formal specification of type mapping is:
-
----- ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r)) 
-                                   ... (namen (map (rel t) (rel u) r)))) -> (array r)
+---- ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r))
+     ... (namen (map (rel t) (rel u) r)))) -> (array r)
 
      at which t and u are of the type tuple, r may be any type
 ----
@@ -4093,9 +3267,11 @@ partjoinswitchTypeMap( ListExpr args )
                  if ((nl->IsEqual(nl->First(firstMapDesc), "map"))
                      && (!nl->IsEqual(nl->Fourth(firstMapDesc), "typeerror"))
                      && (nl->Equal(firstElementDesc, nl->Second(firstMapDesc)))
-                     && (nl->Equal(secondElementDesc, nl->Third(firstMapDesc))))
+                     && (nl->Equal(secondElementDesc,
+                                   nl->Third(firstMapDesc))))
                 {
-                  funNames = nl->OneElemList(nl->StringAtom(nl->SymbolValue(firstFunName)));
+                  funNames = nl->OneElemList(
+                               nl->StringAtom(nl->SymbolValue(firstFunName)));
                   last = funNames;
                 }
               }
@@ -4120,9 +3296,13 @@ partjoinswitchTypeMap( ListExpr args )
                     last = nl->Append(last, 
                                  nl->StringAtom(nl->SymbolValue(funName)));
                   }
-                  else { ok = false; }
+                  else { 
+                    ok = false; 
+                  }
                 }
-                else { ok = false; }
+                else { 
+                  ok = false;
+                }
 
                 funlist = nl->Rest(funlist);
               }
@@ -4146,8 +3326,13 @@ partjoinswitchTypeMap( ListExpr args )
 }
 
 static int
-partjoinswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
+partjoinswitchFun( Word* args, Word& result, int message, Word& local, 
+                   Supplier s )
 {
+
+  // See value mapping function of operator partjoin for remarks with regard to
+  // the partjoin algorithm.
+
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
   Array* firstArray = ((Array*)args[0].addr);
@@ -4243,207 +3428,34 @@ partjoinswitchFun (Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 const string partjoinswitchSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r)) "
-       "... (namen (map (rel t) (rel u) r)))) -> (array r)</text--->"
-       "<text>_ _ partjoinswitch [ funlist ]</text--->"
-       "<text>Works like operator partjoin extended by the switch algorithm "
-       "of operator loopswitch.</text--->"
-       "<text>query ar ar partjoinswitch[f:fun(r11:reltype,r12:reltype)r11 feed "
-       "r12 feed rename[A] sortmergejoin[no,no_A] count, g:fun(r21:reltype,r22:reltype)"
-       "r21 feed r22 feed rename[A] product filter[.no=.no_A] count]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r))"
+      " ... (namen (map (rel t) (rel u) r)))) -> (array r)</text--->"
+      "<text>_ _ partjoinswitch [ funlist ]</text--->"
+      "<text>Works like operator partjoin extended by the switch algorithm "
+      "of operator loopswitch.</text--->"
+      "<text>query ar ar partjoinswitch[f:fun(r11:reltype,r12:reltype)"
+      "r11 feed r12 feed rename[A] sortmergejoin[no,no_A] count, "
+      "g:fun(r21:reltype,r22:reltype)r21 feed r22 feed rename[A] product "
+      "filter[.no=.no_A] count]</text---> ))";
 
 Operator partjoinswitch (
-	"partjoinswitch",
-	partjoinswitchSpec,
-	partjoinswitchFun,
-	Operator::DummyModel,
-	simpleSelect,
-      partjoinswitchTypeMap
-);
+      "partjoinswitch",
+      partjoinswitchSpec,
+      partjoinswitchFun,
+      Operator::DummyModel,
+      simpleSelect,
+      partjoinswitchTypeMap );
 
 /*
-3.8.5 Operator ~mpartjoinselect~
+4.21 Operator ~partjoinselect~
 
-This operator like operator ~mpartjoin~ extended by the select algorithm of 
-operator ~loopselect~.
+This operator works like operator ~partjoin~ extended by the select algorithm of operator ~loopselect~.
 
 The formal specification of type mapping is:
 
----- ((array (mrel t)) (array (mrel u)) ((name1 (map (mrel t) (mrel u) r)) 
-                                     ... (namen (map (mrel t) (mrel u) r))) int real) -> (array r)
-
-     at which t and u are of the type mtuple, r may be any type
-----
-
-*/
-static ListExpr
-mpartjoinselectTypeMap( ListExpr args )
-{
-  if (nl->ListLength(args) == 5) 
-  {
-    ListExpr firstArrayDesc = nl->First(args);
-    ListExpr secondArrayDesc = nl->Second(args);
-    ListExpr funlist = nl->Third(args); 
-
-    if (nl->IsEqual(nl->Fourth(args), "int")
-        && nl->IsEqual(nl->Fifth(args), "real"))
-    {
-      return mpartjoinswitchTypeMap(nl->ThreeElemList(firstArrayDesc, 
-                                              secondArrayDesc, funlist));
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-}
-
-static int
-mpartjoinselectFun (Word* args, Word& result, int message, Word& local, 
-                    Supplier s)
-{
-  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
-
-  Array* firstArray = ((Array*)args[0].addr);
-  Array* secondArray = ((Array*)args[1].addr);
-
-  CcInt* absTestCcInt = ((CcInt*)args[3].addr);
-  int absTest = absTestCcInt->GetIntval();
-
-  CcReal* relTestCcReal = ((CcReal*)args[4].addr);
-  double relTest = relTestCcReal->GetRealval();
-
-  SelectAlgorithm se;
-
-  se.load(args[2], &args[5]);
-
-  Word funresult;
-  string info;
-
-  ListExpr type = qp->GetType(s);
-  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
-
-  int algebraId;
-  int typeId;
-
-  extractIds(typeOfElement, algebraId, typeId);
-
-  int n = firstArray->getSize();
-  int m = secondArray->getSize();
-
-  int r = n + m - 1;
-
-  if (absTest < 1) { absTest = 1; }
-  if (absTest > r) { absTest = r; }
-
-  if (relTest < 0) { relTest = 0; }
-  if (relTest > 1) { relTest = 1; }
-
-  se.setTestSize( max(absTest, (int)(r * relTest)) );
-
-  Word a[r];
-  int c = 0;
-
-  int i = 0;
-  int j = 0;
-
-  CcRel* Acum = new CcRel();
-  CcRel* Bcum = new CcRel();
-
-  Acum->Empty();
-  Bcum->Empty();
-
-  if ((i-j) <= (n-m)) {
-    while ((i-j) <= (n-m)) {
-      info =  "Processing partitions " + toString(i) + " and " + toString(j);
-
-      se.request(firstArray->getElement(i), secondArray->getElement(j), 
-                 funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-      if (i > 0) {
-        appendToMrel(Acum, firstArray->getElement(i-1));
-      }
-      i++;
-    }
-    j++;
-    appendToMrel(Bcum, secondArray->getElement(0));
-  }
-  else {
-    while ((i-j) >= (n-m)) {
-      info = "Processing partitions " + toString(i) + " and " + toString(j);
-
-      se.request(firstArray->getElement(i), secondArray->getElement(j), 
-                 funresult, info);
-      a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-      appendToMrel(Bcum, secondArray->getElement(j));
-      j++;
-    }
-    i++;
-  }
-
-  while (i < n) {
-    appendToMrel(Acum, firstArray->getElement(i-1));
-    appendToMrel(Bcum, secondArray->getElement(j));
-
-    info = "Processing partitions [0;" + toString(i-1) + "] and " 
-           + toString(j);
-
-    se.request(SetWord(Acum), secondArray->getElement(j), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-    info = "Processing partitions " + toString(i) + " and [0;" 
-           + toString(j) + "]";
-
-    se.request(firstArray->getElement(i), SetWord(Bcum), funresult, info);
-    a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
-
-    i++;
-    j++;
-  }
-
-  se.writeSummary();
-
-  result = qp->ResultStorage(s);
-
-  ((Array*)result.addr)->initialize(algebraId, typeId, c, a);
-
-  Acum->Empty();
-  Bcum->Empty();
-
-  return 0;
-}
-
-const string mpartjoinselectSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (mrel t)) (array (mrel u)) ((name1 (map (mrel t) (mrel u) r)) "
-       "... (namen (map (mrel t) (mrel u) r))) int real) -> (array r)</text--->"
-       "<text>_ _ mpartjoinselect [ funlist ]</text--->"
-       "<text>Works like operator mpartjoin extended by the select algorithm "
-       "of operator loopselect.</text--->"
-       "<text>query ar ar mpartjoinselect[f:fun(r11:reltype,r12:reltype)r11 feed "
-       "r12 feed rename[A] sortmergejoin[no,no_A] count, g:fun(r21:reltype,r22:reltype)"
-       "r21 feed r22 feed rename[A] product filter[.no=.no_A] count; 10, 0.1]</text---> ))";
-
-Operator mpartjoinselect (
-	"mpartjoinselect",
-	mpartjoinselectSpec,
-	mpartjoinselectFun,
-	Operator::DummyModel,
-	simpleSelect,
-      mpartjoinselectTypeMap
-);
-
-/*
-3.8.6 Operator ~partjoinselect~
-
-This operator like operator ~partjoin~ extended by the select algorithm of 
-operator ~loopselect~.
-
-The formal specification of type mapping is:
-
----- ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r)) 
-                                   ... (namen (map (rel t) (rel u) r))) int real) -> (array r)
+---- ((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r))
+     ... namen (map (rel t) (rel u) r))) int real) -> (array r)
 
      at which t and u are of the type mtuple, r may be any type
 ----
@@ -4470,9 +3482,13 @@ partjoinselectTypeMap( ListExpr args )
 }
 
 static int
-partjoinselectFun (Word* args, Word& result, int message, Word& local, 
-                   Supplier s)
+partjoinselectFun( Word* args, Word& result, int message, Word& local, 
+                   Supplier s )
 {
+
+  // See value mapping function of operator partjoin for remarks with regard to
+  // the partjoin algorithm.
+
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
   Array* firstArray = ((Array*)args[0].addr);
@@ -4510,7 +3526,7 @@ partjoinselectFun (Word* args, Word& result, int message, Word& local,
   if (relTest < 0) { relTest = 0; }
   if (relTest > 1) { relTest = 1; }
 
-  se.setTestSize( max(absTest, (int)(r * relTest)) );
+  se.setTestSize( max(absTest, (int)(r * relTest + 0.5)) );
 
   Word a[r];
   int c = 0;
@@ -4584,27 +3600,114 @@ partjoinselectFun (Word* args, Word& result, int message, Word& local,
 }
 
 const string partjoinselectSpec = 
-    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r)) "
-       "... (namen (map (rel t) (rel u) r))) int real) -> (array r)</text--->"
-       "<text>_ _ partjoinselect [ funlist ]</text--->"
-       "<text>Works like operator partjoin extended by the select algorithm "
-       "of operator loopselect.</text--->"
-       "<text>query ar ar partjoinselect[f:fun(r11:reltype,r12:reltype)r11 feed "
-       "r12 feed rename[A] sortmergejoin[no,no_A] count, g:fun(r21:reltype,r22:reltype)"
-       "r21 feed r22 feed rename[A] product filter[.no=.no_A] count; 10, 0.1]</text---> ))";
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r))"
+      " ... (namen (map (rel t) (rel u) r))) int real) -> (array r)</text--->"
+      "<text>_ _ partjoinselect [ funlist ]</text--->"
+      "<text>Works like operator partjoin extended by the select algorithm "
+      "of operator loopselect.</text--->"
+      "<text>query ar ar partjoinselect[f:fun(r11:reltype,r12:reltype)"
+      "r11 feed r12 feed rename[A] sortmergejoin[no,no_A] count, "
+      "g:fun(r21:reltype,r22:reltype)r21 feed r22 feed rename[A] product "
+      "filter[.no=.no_A] count; 10, 0.1]</text---> ))";
 
 Operator partjoinselect (
-	"partjoinselect",
-	partjoinselectSpec,
-	partjoinselectFun,
-	Operator::DummyModel,
-	simpleSelect,
-      partjoinselectTypeMap
-);
+      "partjoinselect",
+      partjoinselectSpec,
+      partjoinselectFun,
+      Operator::DummyModel,
+      simpleSelect,
+      partjoinselectTypeMap );
 
 /*
-4 Creating the Algebra
+4.22 Type Operator ~ELEMENT~
+
+Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
+
+This type operator extracts the type of the elements from an array type given as the first argument.
+
+----    ((array t) ...) -> t
+----
+
+*/
+ListExpr 
+ELEMENTTypeMap( ListExpr args )
+{
+  if(nl->ListLength(args) >= 1)
+  {
+    ListExpr first = nl->First(args);
+    if (nl->ListLength(first) == 2)
+    {
+      if (nl->IsEqual(nl->First(first), "array")) {
+        return nl->Second(first);
+      }
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+const string ELEMENTSpec = 
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>((array t) ... ) -> t</text--->"
+      "<text>type operator</text--->"
+      "<text>Extracts the type of the elements from an array type given "
+      "as the first argument.</text--->"
+      "<text>not for use with sos-syntax</text---> ))";
+
+Operator ELEMENT (
+      "ELEMENT",
+      ELEMENTSpec,
+      0,
+      Operator::DummyModel,
+      simpleSelect,
+      ELEMENTTypeMap );
+
+/*
+4.23 Type Operator ~ELEMENT2~
+
+This type operator extracts the type of the elements from the second array type within a list of argument types.
+
+----    ((array t) (array u) ...) -> u
+----
+
+(The first argument must not be an array. It may also be any other type)
+
+*/
+ListExpr 
+ELEMENT2TypeMap( ListExpr args )
+{
+  if(nl->ListLength(args) >= 2)
+  {
+    ListExpr second = nl->Second(args);
+    if (nl->ListLength(second) == 2)
+    {
+      if (nl->IsEqual(nl->First(second), "array")) {
+        return nl->Second(second);
+      }
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+const string ELEMENT2Spec = 
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>((array t) (array u) ... ) -> u</text--->"
+      "<text>type operator</text--->"
+      "<text>Extracts the type of the elements from an array type given "
+      "as the second argument.</text--->"
+      "<text>not for use with sos-syntax. The first argument must not "
+      "be an array. It may also be any other type.</text---> ))";
+
+Operator ELEMENT2 (
+      "ELEMENT2",
+      ELEMENT2Spec,
+      0,
+      Operator::DummyModel,
+      simpleSelect,
+      ELEMENT2TypeMap );
+
+/*
+5 Creating the Algebra
 
 */
 class ArrayAlgebra : public Algebra
@@ -4625,13 +3728,8 @@ class ArrayAlgebra : public Algebra
     AddOperator( &tie );
     AddOperator( &cumulate );
 
-    AddOperator( &mdistribute );
     AddOperator( &distribute );
-    AddOperator( &msummarize );
     AddOperator( &summarize );
-
-    AddOperator( &ELEMENT );
-    AddOperator( &ELEMENT2 );
 
     AddOperator( &loop );
     AddOperator( &loopa );
@@ -4645,12 +3743,12 @@ class ArrayAlgebra : public Algebra
     AddOperator( &loopselecta );
     AddOperator( &loopselectb );
 
-    AddOperator( &mpartjoin );
     AddOperator( &partjoin );
-    AddOperator( &mpartjoinswitch );
     AddOperator( &partjoinswitch );
-    AddOperator( &mpartjoinselect );
     AddOperator( &partjoinselect );
+
+    AddOperator( &ELEMENT );
+    AddOperator( &ELEMENT2 );
   }
   ~ArrayAlgebra() {};
 };
@@ -4658,19 +3756,13 @@ class ArrayAlgebra : public Algebra
 ArrayAlgebra arrayAlgebra; 
 
 /*
-5 Initialization
+6 Initialization
 
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
+["]Each algebra module needs an initialization function. The algebra manager has a reference to this function if this algebra is included in the list of required algebras, thus forcing the linker to include this module.
 
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
+The algebra manager invokes this function to get a reference to the instance of the algebra class and to provide references to the global nested list container (used to store constructor, type, operator and object information) and to the query processor.
 
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
+The function has a C interface to make it possible to load the algebra dynamically at runtime.["] [Point02]
 
 */
 extern "C"
@@ -4683,3 +3775,11 @@ InitializeArrayAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 }
 
 }
+
+/*
+7 References
+
+[Point02] Algebra Module PointRectangleAlgebra. FernUniversit[ae]t Hagen, Praktische Informatik IV, Secondo System, Directory ["]Algebras/PointRectangle["], file ["]PointRectangleAlgebra.cpp["], since July 2002
+
+*/
+
