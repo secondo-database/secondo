@@ -25,6 +25,11 @@ public void writeInt(int v) throws IOException{
   OS.write(intbuffer);
 }
 
+public void writeReal(double d) throws IOException{
+    writeReal((float)d);
+}
+
+
 public void writeReal(float f) throws IOException{
   int i = Float.floatToIntBits(f);
   writeInt(i);

@@ -190,16 +190,16 @@ public class TextWindow extends JPanel {
         catl = left;
         String lab = (dg.getLabelText() == null) ? "" : dg.getLabelText();
         left = ListExpr.append(left, ListExpr.stringAtom(lab));
-        left = ListExpr.append(left, ListExpr.realAtom((float)dg.getLabPosOffset().getX()));
-        left = ListExpr.append(left, ListExpr.realAtom((float)dg.getLabPosOffset().getY()));
+        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getX()));
+        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getY()));
         left = ListExpr.append(left, ListExpr.boolAtom(dg.getVisible()));
       } 
       else {
         left = ListExpr.append(left, ListExpr.intAtom(catnr));
         String lab = (dg.getLabelText() == null) ? "" : dg.getLabelText();
         left = ListExpr.append(left, ListExpr.stringAtom(lab));
-        left = ListExpr.append(left, ListExpr.realAtom((float)dg.getLabPosOffset().getX()));
-        left = ListExpr.append(left, ListExpr.realAtom((float)dg.getLabPosOffset().getY()));
+        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getX()));
+        left = ListExpr.append(left, ListExpr.realAtom(dg.getLabPosOffset().getY()));
         left = ListExpr.append(left, ListExpr.boolAtom(dg.getVisible()));
       }
     }

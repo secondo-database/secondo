@@ -31,7 +31,7 @@
  is ~null~ and the ~value~ field stores a non ListExpr object. the object
  stored in ~value~ is one of the following types:
  - For an intAtom ListExpr, ~value~ is an Integer object.
- - For a floatAtom ListEpxr, ~value~ is a Float object.
+ - For a realAtom ListEpxr, ~value~ is a Double object.
  - For a boolAtom ListExpr, ~value~ is a Boolean object.
  - For a stringAtom, symbolAtom or textAtom ListExpr, ~value~ is a
  String object.
@@ -425,7 +425,7 @@ public class ListExpr extends Object {
           }
         case ListExpr.REAL_ATOM:
           {
-            chars.append(((Float)list.value).toString());
+            chars.append(((Double)list.value).toString());
             return;
           }
         case ListExpr.BOOL_ATOM:
@@ -628,7 +628,7 @@ public class ListExpr extends Object {
           }
         case ListExpr.REAL_ATOM:
           {
-            file.write(((Float)list.value).toString());
+            file.write(((Double)list.value).toString());
             return;
           }
         case ListExpr.BOOL_ATOM:
@@ -731,7 +731,7 @@ private static boolean writeBinaryRec(ListExpr LE, MyDataOutputStream OS){
 			           }
 
 	  case BIN_REAL         :  {OS.writeByte(T);
-	                            float value = LE.realValue();
+	                            double value = LE.realValue();
 			            OS.writeReal(value);
 			            return true;
 			           }
@@ -1202,7 +1202,7 @@ catch(Exception e){
           }
         case ListExpr.REAL_ATOM:
           {
-            chars.append(((Float)list.value).toString());
+            chars.append(((Double)list.value).toString());
             return  0;
           }
         case ListExpr.BOOL_ATOM:
@@ -1250,7 +1250,7 @@ catch(Exception e){
    * put your documentation comment here
    * @param elem1
    * @param elem2
-   * @return 
+   * @return
    */
   public static ListExpr twoElemList (ListExpr elem1, ListExpr elem2) {
     return  cons(elem1, cons(elem2, theEmptyList()));
@@ -1400,9 +1400,9 @@ catch(Exception e){
    This method creates a new ListExpr object of type realAtom with the
    especified value.
    */
-  public static ListExpr realAtom (float value) {
+  public static ListExpr realAtom (double value) {
     ListExpr result = new ListExpr();
-    result.value = new Float(value);
+    result.value = new Double(value);
     result.type = ListExpr.REAL_ATOM;
     return  result;
   }
@@ -1547,14 +1547,14 @@ catch(Exception e){
    This method returns the real value stored in this ListExpr object.
    *Precondition:* This ListExpr object must be a realAtom.
    */
-  public float realValue () {
+  public double realValue () {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (this.atomType() != ListExpr.REAL_ATOM) {
         System.err.println("CHECK PRECONDITIONS: Error when calling the realValue() method: the ListExpr object does not fulfil the preconditions.");
       }
     }
-    return  ((Float)this.value).floatValue();
+    return  ((Double)this.value).doubleValue();
   }
 
   /*
@@ -1639,7 +1639,167 @@ catch(Exception e){
     }
     return  ((String)this.value).length();
   }
-  
+
+
+ /*
+ 3.4.0 The writeTo(..) method
+ When calling this method this content of this list is
+ written to the Outputstream-argument. When then OnlyRational
+ Flag is set, all real-Atoms are converted in its rational
+ counterparts. This feature can be used to avoid lost of
+ precision. The result indicates the success of the writing.
+ */
+ public boolean writeTo(OutputStream out,boolean OnlyRationals){
+    try{
+       Writer W = new OutputStreamWriter(out);
+       writeToRec(W,OnlyRationals,"");
+       W.write("\n");
+       W.flush();
+       return true;
+    }catch(Exception e){
+       return false;
+    }
+ }
+
+ private void writeToRec(Writer out,boolean OnlyRationals,String indent) throws IOException{
+     switch(type){
+        case INT_ATOM : { out.write(" "+intValue()+" ");
+                          break;
+                        }
+        case REAL_ATOM: { if(!OnlyRationals){
+                            out.write(" "+realValue()+" ");
+                          }else{
+                             double v = realValue();
+                             boolean negative = v<0;
+                             if(negative)
+                                  v=v*-1.0;
+                             int intpart = (int) v;
+                             double rest = v-intpart;
+                             long denominator = 1000000000;
+                             long numerator = (long) (rest * (double)denominator);
+                             long GCD = gcd(denominator,numerator);
+                             denominator = denominator/GCD;
+                             numerator = numerator/GCD;
+
+                             if(Math.abs(v-53.9701)<0.0001){
+                                 System.out.println("Convert "+ v+" to (rat "+intpart+" "+numerator+" / "+denominator);
+                             }
+
+                             out.write(" ( rat ");
+                             if(negative) out.write("- ");
+                             out.write(intpart+" "+numerator+" / "+denominator+" ) ");
+                          }
+                          break;
+                        }
+        case BOOL_ATOM: { boolean b = boolValue();
+                          if(b)
+                             out.write(" TRUE ");
+                          else
+                             out.write(" FALSE ");
+                          break;
+                        }
+        case STRING_ATOM: { out.write(" \""+stringValue()+"\" ");
+                           break;
+                         }
+        case SYMBOL_ATOM:{ out.write(" "+symbolValue()+" ");
+                           break;
+                         }
+        case TEXT_ATOM:  { out.write(" "+BEGIN_TEXT+textValue()+END_TEXT+" ");
+                           break;
+                         }
+        case NO_ATOM:    { out.write("\n"+indent+"(");
+                           ListExpr tmp  = this;
+                           while (!tmp.isEmpty()){
+                               tmp.first().writeToRec(out,OnlyRationals,indent+"   ");
+                               tmp=tmp.rest();
+                           }
+                           out.write(")");
+                           break;
+                         }
+        default: System.err.println("unknow AtomType in WriteToRec(..) method found");
+     }
+ }
+
+/**
+  * Checks for euqlity of the value
+  **/
+ private boolean equalValues(ListExpr LE){
+    if(LE==null) return false; // this is not null
+
+    if(LE.type!=type) // different types
+       return false;
+    if(value==null && !(LE.value==null))
+       return false;
+    if(!(value==null) && (LE.value==null))
+       return false;
+    if(value==null && LE.value==null)
+       return true;
+    else{ // both value members are not null
+       if(type!=REAL_ATOM)
+           return value.equals(LE.value);
+       else{
+           return (float)realValue()==(float)LE.realValue();
+       }
+    }
+}
+
+
+ /*
+  The familiar Equals method.
+ */
+ public boolean equals(Object o){
+    if(o==null)
+        return false;
+    if(!(o instanceof ListExpr))
+       return false;
+    ListExpr LE = (ListExpr)o;
+
+    if(!equalValues(LE)) // check type and value of the first element
+       return false;
+    if(type!=NO_ATOM)
+       return true;
+
+    ListExpr TN = next;
+    ListExpr LEN = LE.next;
+    while(TN!=null && LEN!=null){
+         if(!TN.equalValues(LEN)) // differences found
+             return false;
+         if(type==NO_ATOM){
+            TN = TN.next;
+            LEN=LEN.next;
+         } else{
+            TN=null;
+            LEN=null;
+         }
+    }
+    if(TN!=null || LEN!=null) // different lengths
+       return false;
+    return true;
+ }
+
+
+/*
+ This function returns the greates common denominator of a and b.
+*/
+ private static long gcd(long a, long b){
+   if(a==0 && b==0) // this case should never occur
+      return 1;
+   long tmp;
+   if(a<0) a *= -1;
+   if(b<0) b *= -1;
+   while(a>0){
+     if(b<a){
+       tmp = a;
+       a = b;
+       b = tmp;
+     }else{
+       b = b % a;
+     }
+   }
+   return b;
+}
+
+
 
  /*
    3.4.0 The decodeText() method.

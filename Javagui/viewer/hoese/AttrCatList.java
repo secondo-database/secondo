@@ -453,7 +453,7 @@ private class Link{
     else if(type==BOOLTYPE)
        return ListExpr.threeElemList(ListExpr.symbolAtom("bool"),ListExpr.boolAtom(BoolValue),ListExpr.stringAtom(CatName));
     else if(type==REALTYPE)
-       return ListExpr.threeElemList(ListExpr.symbolAtom("real"),ListExpr.realAtom((float)DoubleValue),ListExpr.stringAtom(CatName));
+       return ListExpr.threeElemList(ListExpr.symbolAtom("real"),ListExpr.realAtom(DoubleValue),ListExpr.stringAtom(CatName));
     else if(type==STRINGTYPE)
        return ListExpr.threeElemList(ListExpr.symbolAtom("string"),ListExpr.stringAtom(StringValue),ListExpr.stringAtom(CatName));
     else

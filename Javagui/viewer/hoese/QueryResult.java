@@ -180,15 +180,15 @@ public class QueryResult extends JList {
 
   public boolean equals(Object o){
     if(!(o instanceof QueryResult))
-      return true;
+      return false;
     else{
       QueryResult qr = (QueryResult)o;
-      return command.equals(qr.command) & LEResult.equals(qr.LEResult);
+      return command.equals(qr.command) && (LEResult==(qr.LEResult));
     }
   }
 
-  /** 
-    * return the command 
+  /**
+    * return the command
     */
   public String getCommand(){return command;}
 

@@ -221,8 +221,8 @@ public class Category
    * @param f line-width as float
    * @see <a href="Categorysrc.html#setLineWidth">Source</a>
    */
-  public void setLineWidth (float f) {
-    LineWidth = f;
+  public void setLineWidth (double f) {
+    LineWidth = (float) f;
     setLineStyle(LineStyle);
   }
 
@@ -307,8 +307,8 @@ public class Category
     le = ListExpr.append(le, ListExpr.intAtom(cat.getLineStyle()));
     le = ListExpr.append(le, ListExpr.realAtom(cat.getLineWidth()));
     le = ListExpr.append(le, ListExpr.boolAtom(cat.getPointasRect()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)cat.getPointSize()));
-    float f = 100.0f - ((AlphaComposite)cat.getAlphaStyle()).getAlpha()*100;
+    le = ListExpr.append(le, ListExpr.realAtom(cat.getPointSize()));
+    double f = 100.0 - ((AlphaComposite)cat.getAlphaStyle()).getAlpha()*100;
     le = ListExpr.append(le, ListExpr.realAtom(f));
     if (cat.getFillStyle() instanceof Color) {
       le = ListExpr.append(le, ListExpr.symbolAtom("solid"));
@@ -381,12 +381,12 @@ public class Category
     le = le.rest();
     if (le.first().atomType() != ListExpr.REAL_ATOM)
       return  null;
-    float f = -le.first().realValue()/100 + 1.0f;
+    double f = -le.first().realValue()/100 + 1.0;
     if (f > 1.0f)
       f = 1.0f;
     if (f < 0.0f)
       f = 0.0f;
-    cat.setAlphaStyle(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, f));
+    cat.setAlphaStyle(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, (float) f));
     le = le.rest();
     if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
       return  null;

@@ -1,8 +1,8 @@
 package extern.shapereader;
 
-
 import sj.lang.ListExpr;
 import java.awt.geom.GeneralPath;
+import java.util.Vector;
 
 public class Cycle2D{
 
@@ -79,13 +79,13 @@ public double getFirstY(){
 
 
 
-// returns true if the given point is contained in this cycle
+// returns true if the given point is contained in this area defined by this cycle
 public boolean contains(double x, double y){
 
   if(NumberOfElements<3)
      return false;
 
-  if(x<x_min || x>x_max || y<y_min || y>y_max) // outside from  bounding box
+ if(x<x_min || x>x_max || y<y_min || y>y_max) // outside from  bounding box
       return false;
 
   GeneralPath GP = new GeneralPath(); // later contruct GP with this cycle ??
@@ -99,7 +99,6 @@ public boolean contains(double x, double y){
   GP.closePath();
   return GP.contains(x,y);
 }
-
 
 
 // returns the List representation of this cycle
@@ -155,18 +154,130 @@ public int getDirection(){
       return CLOCKWISE;
 }
 
+/*
+This function checks wether the cycle contains selfcuts and
+creates a set of cycles without selfcuts.
+*/
+public Cycle2D[] split(){
+   Vector result = new Vector();
+   Cycle2D StartCycle = new Cycle2D();
+   current = start;
+   Element C = start;
+   int count = 0;
+   while(C!=null){
+       count++;
+       Point2D P = C.P;
+       C = C.next;
+       // search this point in StartCycle
+       Element SCE = StartCycle.start;
+       while(SCE!=null){
+          if(SCE.P.equals(P)){ // point is repeated // cut out the subcycle
+             // cut out the subcycle
+             Cycle2D SubCycle = new Cycle2D();
+             SubCycle.start=SCE.next;
+             SubCycle.current = SubCycle.start;
+             SubCycle.end = StartCycle.end;
+             // disconnect the subcycle from the startcycle
+             StartCycle.end=SCE;
+             SCE.next.prev=null;
+             SCE.next = null;
+             SubCycle.minX=SubCycle.start;
+             SubCycle.append(P.getX(),P.getY());
+             // compute bounding box and number of elements of the subcycle
+             Element E = SubCycle.start;
+             SubCycle.minX = E;
+             SubCycle.x_min=SubCycle.x_max = E.P.getX();
+             SubCycle.y_min=SubCycle.y_max = E.P.getY();
+             SubCycle.NumberOfElements=1;
+             E=E.next;
+             while(E!=null){
+                SubCycle.NumberOfElements += 1;
+                if(E.P.getX()<SubCycle.x_min){
+                   SubCycle.minX = E;
+                   SubCycle.x_min =E.P.getX();
+                }
+                SubCycle.x_max = Math.max(SubCycle.x_max,E.P.getX());
+                SubCycle.y_max = Math.max(SubCycle.y_max,E.P.getY());
+                SubCycle.y_min = Math.min(SubCycle.y_min,E.P.getY());
+                E=E.next;
+             }
+             // check whether subcycle is ok
+             if(SubCycle.NumberOfElements>2){
+                 result.add(SubCycle);
+             }else{
+                 ;
+             }
+             SCE = null; // finish the test
+          } else{
+             SCE = SCE.next; // check the next point
+          }
+       } // startcycle don't contains P => extend with P
+       StartCycle.append(P.getX(),P.getY());
+   }
+   // at this pointt we have all SubCycles included in the result
+   Element E = StartCycle.start;
+   if(E!=null){
+      StartCycle.minX = E;
+      StartCycle.x_min = StartCycle.x_max = E.P.getX();
+      StartCycle.y_min = StartCycle.y_max = E.P.getY();
+      StartCycle.NumberOfElements = 1;
+      E = E.next;
+      while(E!=null){
+        StartCycle.NumberOfElements += 1;
+        if(E.P.getX()<StartCycle.x_min){
+           StartCycle.minX = E;
+           StartCycle.x_min =E.P.getX();
+        }
+        StartCycle.x_max = Math.max(StartCycle.x_max,E.P.getX());
+        StartCycle.y_max = Math.max(StartCycle.y_max,E.P.getY());
+        StartCycle.y_min = Math.min(StartCycle.y_min,E.P.getY());
+        E=E.next;
+      }
+   }
+   if(StartCycle.NumberOfElements>2){
+      result.add(StartCycle);
+   }else{
+        ;
+   }
+   Cycle2D[] res = new Cycle2D[result.size()];
+   for(int i=0;i<result.size();i++){
+        res [i] = (Cycle2D) result.get(i);
+   }
+   return res;
+}
 
+public String toString(){
+   Element E = start;
+   String res="";
+   while(E!=null){
+      res+=E.toString();
+      E=E.next;
+   }
+   return res;
+}
+
+Point2D getFirst(){
+   current = start;
+   return getNext();
+}
+
+Point2D getNext(){
+   if(current==null)
+      return null;
+   Point2D P = current.P;
+   current = current.next;
+   return P;
+}
 
 public static final int CLOCKWISE = 0;
 public static final int COUNTERCLOCKWISE = 1;
 public static final int NO_DIRECTION = -1;
 
-
 // the first element of this cycle
 private Element start;
 // the last Element of this cycle
 private Element end;
-// the actual element in this caycle
+// the current element in this cycle
 private Element current;
 // the element with minimal x value
 // needed to compute the direction of this path
@@ -194,6 +305,17 @@ public Element(Point2D P){
    prev = null;
 }
 
+public String toString(){
+   String res ="";
+   if(prev==null)
+      res += "|->";
+   res += P.toString();
+   if(next==null)
+      res+= "->|";
+   else
+      res += "->";
+   return res;
+}
 
  Point2D P;
  Element next;

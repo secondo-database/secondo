@@ -616,7 +616,7 @@ public class JPEGViewer extends SecondoViewer {
         float[] values = new float[256];
         for (int i=0;i<256;i++){
             tempList = float256List.first();
-            if (tempList==null || !tempList.isAtom() || tempList.atomType()!=ListExpr.REAL_ATOM || (values[i]=tempList.realValue())<0 || values[i]>5.0)
+            if (tempList==null || !tempList.isAtom() || tempList.atomType()!=ListExpr.REAL_ATOM || (values[i]=(float)tempList.realValue())<0 || values[i]>5.0)
                 throw new IllegalArgumentException("List must consist only of floats in range 0<=x<=5.0 .");
             float256List = float256List.rest();
             if (float256List==null)

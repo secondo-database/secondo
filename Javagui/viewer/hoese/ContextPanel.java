@@ -363,14 +363,14 @@ public class ContextPanel extends JPanel {
     else if (AutoProjRB.isSelected())
       projType = "autoprojection";
     ListExpr l = ListExpr.oneElemList(ListExpr.symbolAtom(projType));
-    ListExpr le = ListExpr.append(l, ListExpr.realAtom((float)ProjPoint1.getX()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)ProjPoint1.getY()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)ProjPoint2.getX()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)ProjPoint2.getY()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)World1.getX()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)World1.getY()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)World2.getX()));
-    le = ListExpr.append(le, ListExpr.realAtom((float)World2.getY()));
+    ListExpr le = ListExpr.append(l, ListExpr.realAtom(ProjPoint1.getX()));
+    le = ListExpr.append(le, ListExpr.realAtom(ProjPoint1.getY()));
+    le = ListExpr.append(le, ListExpr.realAtom(ProjPoint2.getX()));
+    le = ListExpr.append(le, ListExpr.realAtom(ProjPoint2.getY()));
+    le = ListExpr.append(le, ListExpr.realAtom(World1.getX()));
+    le = ListExpr.append(le, ListExpr.realAtom(World1.getY()));
+    le = ListExpr.append(le, ListExpr.realAtom(World2.getX()));
+    le = ListExpr.append(le, ListExpr.realAtom(World2.getY()));
     le = ListExpr.append(le, ListExpr.stringAtom(WBx1TF.getText()));
     le = ListExpr.append(le, ListExpr.stringAtom(WBy1TF.getText()));
     le = ListExpr.append(le, ListExpr.stringAtom(WBx2TF.getText()));
@@ -404,7 +404,7 @@ public class ContextPanel extends JPanel {
         != ListExpr.REAL_ATOM) || (le.third().atomType() != ListExpr.REAL_ATOM)
         || (le.fourth().atomType() != ListExpr.REAL_ATOM))
       return  false;
-    float r = le.first().realValue();
+    double r = le.first().realValue();
     ProjPoint1.setLocation(le.first().realValue(), le.second().realValue());
     ProjPoint2.setLocation(le.third().realValue(), le.fourth().realValue());
     le = le.rest().rest().rest().rest();
@@ -412,10 +412,10 @@ public class ContextPanel extends JPanel {
         != ListExpr.REAL_ATOM) || (le.third().atomType() != ListExpr.REAL_ATOM)
         || (le.fourth().atomType() != ListExpr.REAL_ATOM))
       return  false;
-    C1XTF.setText(Float.toString(le.first().realValue()));
-    C1YTF.setText(Float.toString(le.second().realValue()));
-    C2XTF.setText(Float.toString(le.third().realValue()));
-    C2YTF.setText(Float.toString(le.fourth().realValue()));
+    C1XTF.setText(Double.toString(le.first().realValue()));
+    C1YTF.setText(Double.toString(le.second().realValue()));
+    C2XTF.setText(Double.toString(le.third().realValue()));
+    C2YTF.setText(Double.toString(le.fourth().realValue()));
     le = le.rest().rest().rest().rest();
     if (le.first().atomType() != ListExpr.STRING_ATOM)
       return  false;

@@ -43,10 +43,13 @@ public double getY(){
 }
 
 public ListExpr getList(){
-  return ListExpr.twoElemList(ListExpr.realAtom((float)x),
-                              ListExpr.realAtom((float)y));
+  return ListExpr.twoElemList(ListExpr.realAtom(x),
+                              ListExpr.realAtom(y));
 }
 
+public String toString(){
+   return "("+x+" , "+y+")";
+}
 
 private double x;
 private double y;

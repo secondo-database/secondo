@@ -57,8 +57,8 @@ private boolean readPoint(byte[] Buffer){
    double x = NumericReader.getDoubleLittle(Buffer,4);
    double y = NumericReader.getDoubleLittle(Buffer,12);
    BBox = new BoundingBox(x,y,x,y);
-   LE = ListExpr.twoElemList( ListExpr.realAtom((float)x),
-                              ListExpr.realAtom((float)y));
+   LE = ListExpr.twoElemList( ListExpr.realAtom(x),
+                              ListExpr.realAtom(y));
    return true;
 }
 
@@ -83,14 +83,14 @@ private boolean readPoints(byte[] Buffer){
    double x = NumericReader.getDoubleLittle(Buffer,40);
    double y = NumericReader.getDoubleLittle(Buffer,48);
    LE = ListExpr.oneElemList( ListExpr.twoElemList(
-                ListExpr.realAtom((float)x),
-                ListExpr.realAtom((float)y)));
+                ListExpr.realAtom(x),
+                ListExpr.realAtom(y)));
    ListExpr Last = LE;
    for(int i=1;i<numpoints;i++){
       x = NumericReader.getDoubleLittle(Buffer,40+16*i);
       y = NumericReader.getDoubleLittle(Buffer,48+16*i);
-      ListExpr P = ListExpr.twoElemList( ListExpr.realAtom((float)x),
-                                         ListExpr.realAtom((float)y));
+      ListExpr P = ListExpr.twoElemList( ListExpr.realAtom(x),
+                                         ListExpr.realAtom(y));
      Last = ListExpr.append(Last,P);
    }
    return true;
@@ -129,11 +129,11 @@ private boolean readPolyLine(byte[] Buffer){
           double y1 = Points[1][i];
           double x2 = Points[0][i+1];
           double y2 = Points[1][i+1];
-          if((float)x1!=(float)x2 | (float)y1!=(float)y2){
-             ListExpr Seg = ListExpr.fourElemList(ListExpr.realAtom((float)x1),
-	                                          ListExpr.realAtom((float)y1),
-					          ListExpr.realAtom((float)x2),
-					          ListExpr.realAtom((float)y2));
+          if(x1!=x2 | y1!=y2){
+             ListExpr Seg = ListExpr.fourElemList(ListExpr.realAtom(x1),
+	                                          ListExpr.realAtom(y1),
+					          ListExpr.realAtom(x2),
+					          ListExpr.realAtom(y2));
              if(TMP==null){
    	        TMP = ListExpr.oneElemList(Seg);
                 Last = TMP;
@@ -148,7 +148,7 @@ private boolean readPolyLine(byte[] Buffer){
   if(TMP!=null)
       LE = TMP;
   else
-      LE = new ListExpr();     
+      LE = new ListExpr();
 
   return true;
 }
@@ -163,11 +163,16 @@ private boolean readPolyLine(byte[] Buffer){
 private static boolean isHoleFrom(Cycle2D Hole,Cycle2D Face){
   if(Hole==null | Face==null)
      return false;
-  double x = Hole.getFirstX();
-  double y = Hole.getFirstY();
-  return Face.contains(x,y);
+  Point2D P = Hole.getFirst();
+  int maxtest =1;
+  int no = 0;
+  while(P!=null && ++no<=maxtest){
+     if(Face.contains(P.getX(),P.getY()))
+         return true;
+     P = Hole.getNext();
+  }
+  return false;
 }
-
 
 
 private boolean readPolygon(byte[] Buffer){
@@ -188,7 +193,8 @@ private boolean readPolygon(byte[] Buffer){
       Points[0][i] = NumericReader.getDoubleLittle(Buffer,44+4*NumParts+16*i);
       Points[1][i] = NumericReader.getDoubleLittle(Buffer,52+4*NumParts+16*i);
   }
- BBox = new BoundingBox(xmin,ymin,xmax,ymax);
+
+  BBox = new BoundingBox(xmin,ymin,xmax,ymax);
 
  Vector Faces = new Vector(NumParts);
  Vector Holes = new Vector(NumParts);
@@ -198,10 +204,18 @@ private boolean readPolygon(byte[] Buffer){
      for(int k=Parts[i];k<Parts[i+1]-1;k++)
         C.append(Points[0][k],Points[1][k]);
      if(C.isValidPolygon()){
-        if(C.getDirection()==Cycle2D.CLOCKWISE)
-	   Faces.add(C);
-	else
-	   Holes.add(C);
+        if(C.getDirection()==Cycle2D.CLOCKWISE){
+           Cycle2D[] Cs = C.split();
+           for(int sc=0;sc<Cs.length;sc++){
+              Faces.add(Cs[sc]);
+           }
+        }
+	else{
+           Cycle2D[] Cs = C.split();
+           for(int sc=0;sc<Cs.length;sc++){
+              Holes.add(Cs[sc]);
+           }
+        }
      }
  }
 
@@ -254,8 +268,6 @@ private boolean readPolygon(byte[] Buffer){
  if(foundHoles!=usedHoles){
    System.out.println("readPolygon : found "+foundHoles+" holes but used "+usedHoles+" holes");
  }
-
-
 
  ListExpr Next = ListExpr.oneElemList( ((Cycle2D)Faces.get(0)).getList());
  ListExpr LastCycle = Next; // add Holes
