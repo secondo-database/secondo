@@ -57,8 +57,8 @@ function checkCmd() {
     if [ -z $checkCmd_log ]; then
       eval "$*"  
     else
-      printf "%s\n" "cmd: $*" >> $checkCmd_log
       printf "%s\n" "-------------------------------------------------" >> $checkCmd_log
+      printf "%s\n" "msg for: $*" >> $checkCmd_log
       printf "%s\n" "-------------------------------------------------" >> $checkCmd_log
       eval "{ $*; } >> $checkCmd_log 2>&1"
     fi

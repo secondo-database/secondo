@@ -94,16 +94,7 @@ if [ $platform != "linux" ]; then
     mingwdir="$instpath/mingw"
   fi
   platformdir=$PWD/windows
-
-  if [ "$testMode" != "true" ]; then
-    for xdir in $msysdir $mingwdir; do 
-      if [ ! -d $xdir ]; then
-         printf  "\n%s\n" "ERROR: Directory $xdir not found."
-         exit 1; 
-      fi
-    done
-  fi
-
+ 
 else
 
   instpath=$HOME
@@ -116,7 +107,7 @@ else
 fi
 
 if [ "$testMode" == "true" ]; then
-  printf "\n%s\n" "* Running in test mode. \$HOME set to \"$HOME\" "
+  printf "\n%s\n" "(!) Running in test mode. \$HOME set to \"$HOME\" "
 fi
 
 
@@ -177,7 +168,7 @@ if [ "$installJava" == "true" ]; then
   printSep "Installing Java SDK ..."
   if [ "$platform" == "linux" ]; then
     cd $sdk
-    $xterm -title "JAVA 2 Installation" -e source $cdpath/j2sdk-${platform}/j2sdk*.bin &
+    $xterm -title "JAVA 2 Installation" -e $cdpath/j2sdk-${platform}/j2sdk*.bin &
   else
     cd $cdpath/j2sdk-$platform
     checkCmd j2sdk*windows*.exe
