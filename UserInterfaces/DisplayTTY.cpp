@@ -180,10 +180,22 @@ DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
     s = nl->SymbolValue( nl->First( nl->First( numType ) ) );
     blanks.assign( maxNameLen-s.length() , ' ' );
     cout << blanks << s << ": ";
-    CallDisplayFunction( nl->Second( nl->First( numType ) ),
-                         nl->Second( nl->First( type ) ),
-                         nl->Second( nl->First( numType ) ),
-                         nl->First( value ) );
+
+    if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
+    {
+      CallDisplayFunction( nl->Second( nl->First( numType ) ),
+                           nl->Second( nl->First( type ) ),
+                           nl->Second( nl->First( numType ) ),
+                           nl->First( value ) );
+    }
+    else
+    {
+      CallDisplayFunction( nl->First( nl->Second( nl->First( numType ) ) ),
+                           nl->Second( nl->First( type ) ),
+                           nl->Second( nl->First( numType ) ),
+                           nl->First( value ) );
+    }
+
     type    = nl->Rest( type );
     numType = nl->Rest( numType );
     value   = nl->Rest( value );
@@ -333,23 +345,6 @@ DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
 {
-   /*   ListExpr d, m, y;
-   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
-    {
-      cout << "UNDEFINED";
-    }
-   else
-   {
-      d =  nl->Second( value ) ;
-      m =  nl->Third( value ) ;
-      y = nl->Fourth( value );
-      nl->WriteListExpr( d, cout );
-      cout << ",";
-      nl->WriteListExpr( m, cout );
-      cout << ",";
-      nl->WriteListExpr( y, cout );
-   }
-   */
   if (nl->IsAtom(value) && nl->AtomType(value)==StringType)
       cout <<nl->StringValue(value);
   else
@@ -726,7 +721,17 @@ DisplayTTY::DisplayResult2( ListExpr value )
 	 int currentlength;
 	 while(!nl->IsEmpty(headerlist)){
             ListExpr tmp = (nl->Second(nl->First(headerlist)));
+
+            cout << "Outer tmp" << endl;
+            nl->WriteListExpr( tmp );
+            cout << endl;
+
 	    while(!nl->IsEmpty(tmp)){
+            
+               cout << "Inner tmp" << endl;
+               nl->WriteListExpr( tmp );
+               cout << endl;
+
 	       currentlength = (nl->StringValue(nl->First(tmp))).length();
 	       tmp = nl->Rest(tmp);
  	       if(currentlength>MaxLength)

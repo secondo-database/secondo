@@ -232,11 +232,17 @@ funcionalities of the persistent array (~PArray~) were included in this
 class ~Range~.
 
 */
-class Range
+class Range : public StandardAttribute
 {
   public:
 /*
 4.1 Constructors and Destructor
+
+*/
+    Range() 
+      {}
+/*
+This constructor should not be used.
 
 */
     Range( const int algebraId, const int typeId, const int size, const int n = 0 );
@@ -329,6 +335,82 @@ adding intervals is in bulk loads, i.e., in a non-ordered array.
 
 *Precondition:* ~IsOrdered() == false~
 
+*/
+    void Clear();
+/*
+Remove all intervals in the range.
+
+4.4 Functions to be part of relations
+
+*/
+  bool IsDefined() const
+    { return true; }
+
+  void SetDefined(bool Defined)
+    {}
+
+  int Compare(Attribute * arg)
+    { return 0; }
+
+  bool Adjacent(Attribute * arg)
+    { return 0; }
+
+  Range* Clone()
+  {
+    assert( this->IsOrdered() );
+
+    int algebraId = this->GetAlgebraId(),
+        typeId = this->GetTypeId(),
+        size = this->GetElemSize();
+
+    Range *result = new Range( algebraId, typeId, size );
+
+    result->StartBulkLoad();
+    for( int i = 0; i < this->GetNoComponents(); i++ )
+    {
+      Interval interval( algebraId, typeId );
+      this->Get( i, interval );
+      result->Add( interval );
+    }
+    result->EndBulkLoad( false );
+
+    return result;
+  }
+
+  ostream& Print( ostream &os )
+    { return os << "Range Algebra" << endl; }
+
+  int NumOfFLOBs()
+    { return 1; }
+
+  FLOB *GetFLOB(const int i)
+    { assert( i == 0 ); return &intervals; }
+
+  size_t HashValue()
+    { return 0; }
+
+  void CopyFrom(StandardAttribute* right)
+  {
+    Range *r = (Range*)right;
+
+    assert( this->algebraId == r->GetAlgebraId() &&
+            this->typeId == r->GetTypeId() &&
+            this->size == r->GetElemSize() );
+    assert( r->IsOrdered() );
+
+    this->Clear();
+
+    this->StartBulkLoad();
+    for( int i = 0; i < r->GetNoComponents(); i++ )
+    {
+      Interval interval( this->algebraId, this->typeId );
+      r->Get( i, interval );
+      this->Add( interval );
+    }
+    this->EndBulkLoad( false );
+  }
+
+/*
 4.4 Operations
 
 4.4.1 Operation $=$ (~equal~)

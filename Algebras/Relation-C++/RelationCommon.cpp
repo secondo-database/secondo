@@ -54,10 +54,19 @@ TupleType::TupleType( const ListExpr typeInfo ):
     ListExpr first = nl->First( rest );
     rest = nl->Rest( rest );
 
-    int algId = nl->IntValue( nl->First( nl->Second( first ) ) ),
-        typeId = nl->IntValue( nl->Second( nl->Second( first ) ) ),
-        size = (algM->SizeOfObj(algId, typeId))();
-
+    int algId, typeId, size;
+    if( nl->IsAtom( nl->First( nl->Second( first ) ) ) )
+    {
+      algId = nl->IntValue( nl->First( nl->Second( first ) ) ),
+      typeId = nl->IntValue( nl->Second( nl->Second( first ) ) ),
+      size = (algM->SizeOfObj(algId, typeId))();
+    }
+    else
+    {
+      algId = nl->IntValue( nl->First( nl->First( nl->Second( first ) ) ) );
+      typeId = nl->IntValue( nl->Second( nl->First( nl->Second( first ) ) ) );
+      size = (algM->SizeOfObj(algId, typeId))();
+    }
     totalSize += size;
     attrTypeArray[i++] = AttributeType( algId, typeId, size );
   }
@@ -246,9 +255,10 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& err
     {
       first = nl->First(attrlist);
       attrlist = nl->Rest(attrlist);
+
+      algebraId = tupleaddr->GetTupleType().GetAttributeType( attrno ).algId;
+      typeId = tupleaddr->GetTupleType().GetAttributeType( attrno ).typeId;
       attrno++;
-      algebraId = nl->IntValue(nl->First(nl->Second(first)));
-      typeId = nl->IntValue(nl->Second(nl->Second(first)));
       if (nl->IsEmpty(valuelist))
       {
         correct = false;
@@ -269,7 +279,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& err
         firstvalue = nl->First(valuelist);
         valuelist = nl->Rest(valuelist);
 
-        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
+        attr = (algM->InObj(algebraId, typeId))(nl->First( nl->Rest(first) ),
                  firstvalue, attrno, errorInfo, valueCorrect);
         if (valueCorrect)
         {
@@ -331,12 +341,13 @@ ListExpr Tuple::Out( ListExpr typeInfo )
   {
     first = nl->First(attrlist);
     attrlist = nl->Rest(attrlist);
-    algebraId = nl->IntValue(nl->First(nl->Second(first)));
-    typeId = nl->IntValue(nl->Second(nl->Second(first)));
 
+    algebraId = GetTupleType().GetAttributeType( attrno ).algId;
+    typeId = GetTupleType().GetAttributeType( attrno ).typeId;
     Attribute *attr = GetAttribute( attrno );
-    valuelist = (algM->OutObj(algebraId, typeId))(nl->Rest(first), SetWord(attr));
+    valuelist = (algM->OutObj(algebraId, typeId))(nl->First(nl->Rest(first)), SetWord(attr));
     attrno++;
+
     if (l == nl->TheEmptyList())
     {
       l = nl->Cons(valuelist, nl->TheEmptyList());

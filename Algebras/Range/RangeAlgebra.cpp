@@ -107,6 +107,18 @@ Interval& Interval::operator=( const Interval& interval )
   assert( algebraId == interval.algebraId &&
           typeId == interval.typeId );
 
+  if( start != NULL )
+  {
+    assert( start->IsDefined() && 
+            end != NULL && end->IsDefined() );
+
+    AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+    Word s = SetWord(start),
+         e = SetWord(end);
+    (algM->DeleteObj(algebraId, typeId))( s );
+    (algM->DeleteObj(algebraId, typeId))( e );
+  }
+    
   start = (StandardAttribute*)interval.start->Clone();
   end = (StandardAttribute*)interval.end->Clone();
   lc = interval.lc;
@@ -228,6 +240,13 @@ Range::~Range()
 {
   if ( canDelete )
     intervals.Destroy();
+}
+
+void Range::Clear()
+{
+  noComponents = 0;
+  ordered = true;
+  intervals.Clear();
 }
 
 void Range::Add( const Interval& interval )
@@ -1531,11 +1550,9 @@ Word
 InRange( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  cout << "InRange" << endl;
-  cout << ShowStandardTypesStatistics( true, cout );
-
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   ListExpr alphaInfo = nl->Second( typeInfo );
+
   int algebraId = nl->IntValue( nl->First( alphaInfo ) ),
       typeId = nl->IntValue( nl->Second( alphaInfo ) );
   int objSize = (algM->SizeOfObj(algebraId, typeId))();
@@ -1559,23 +1576,34 @@ InRange( const ListExpr typeInfo, const ListExpr instance,
     {
       StandardAttribute *start = 
                           (StandardAttribute *)
-                          (algM->InObj(algebraId, typeId))( alphaInfo, nl->First( first ), errorPos, errorInfo, correct ).addr,
-                        *end = 
+                          (algM->InObj(algebraId, typeId))( alphaInfo, nl->First( first ), errorPos, errorInfo, correct ).addr;
+
+      if( correct == false )
+      {
+        return SetWord( Address(0) );
+      }
+
+      StandardAttribute *end = 
                           (StandardAttribute *)
                           (algM->InObj(algebraId, typeId))( alphaInfo, nl->Second( first ), errorPos, errorInfo, correct ).addr;
+
+      if( correct == false )
+      {
+        Word wstart = SetWord( start );
+        (algM->DeleteObj(algebraId, typeId))( wstart );
+        return SetWord( Address(0) );
+      }
+
       Interval interval( algebraId, typeId, 
                          start, end, 
                          nl->BoolValue( nl->Third( first ) ), 
                          nl->BoolValue( nl->Fourth( first ) ) );
 
-      AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
       Word wstart = SetWord( start ),
            wend   = SetWord( end );
       (algM->DeleteObj(algebraId, typeId))( wstart );
       (algM->DeleteObj(algebraId, typeId))( wend );
       
-      if( correct == false )
-        return SetWord( Address(0) );
       range->Add( interval );
     }
     else
@@ -1587,8 +1615,6 @@ InRange( const ListExpr typeInfo, const ListExpr instance,
   range->EndBulkLoad( true );
   assert( range->IsOrdered() );
   correct = true;
-
-  cout << ShowStandardTypesStatistics( true, cout );
 
   return SetWord( range );
 }
@@ -1639,23 +1665,7 @@ Word
 CloneRange( const Word& w )
 {
   Range *r = (Range *)w.addr;
-  int algebraId = r->GetAlgebraId(), 
-      typeId = r->GetTypeId(),
-      size = r->GetElemSize();
-
-  Range *result = new Range( algebraId, typeId, size );
-
-  assert( result->IsOrdered() );
-  result->StartBulkLoad();
-  for( int i = 0; i < r->GetNoComponents(); i++ )
-  {
-    Interval interval( algebraId, typeId );
-    r->Get( i, interval );
-    result->Add( interval );
-  }
-  result->EndBulkLoad( false );
-    
-  return SetWord( result );
+  return SetWord( r->Clone() );
 }
 
 /*
@@ -1665,7 +1675,7 @@ CloneRange( const Word& w )
 int
 SizeOfRange()
 {
-  return 0;
+  return sizeof(Range);
 }
 
 /*
@@ -1713,8 +1723,6 @@ CheckRange( ListExpr type, ListExpr& errorInfo )
   }
   else
   {
-    errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("RANGE"), type));
     return false;
   }
 }
@@ -1724,7 +1732,7 @@ CheckRange( ListExpr type, ListExpr& errorInfo )
 */
 void* CastRange(void* addr)
 {
-  return ( 0 );
+  return new (addr) Range;
 }
 /*
 3.15 Creation of the type constructor ~range~
@@ -2119,6 +2127,7 @@ RangeEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   {
     ((CcBool *)result.addr)->Set( true, false );
   }
+
   return (0);
 }
 
@@ -2359,43 +2368,105 @@ ModelMapping rangenomodelmap[] = { RangeNoModelMapping, RangeNoModelMapping,
                                    RangeNoModelMapping, RangeNoModelMapping,
                                    RangeNoModelMapping, RangeNoModelMapping };
 
-const string RangeSpecIsEmpty = "(<text> (range x) -> bool</text--->"
-                                "<text> Returns whether the range is empty or not. </text--->)";
+const string RangeSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                             "( <text>(range x) -> bool</text--->"
+                               "<text>isempty ( _ )</text--->"
+                               "<text>Returns whether the range is empty or "
+                               "not.</text--->"
+                               "<text>query isempty ( range1 )</text--->"
+                               ") )";
 
-const string RangeSpecEqual = "(<text> ( (range x) (range x) ) -> bool</text--->"
-                              "<text> Equal. </text--->)";
+const string RangeSpecEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" )"
+                            "( <text>( (range x) (range x) ) -> bool</text--->"
+                               "<text>_ = _</text--->"
+                               "<text>Equal.</text--->"
+                               "<text>query range1 = range2</text--->"
+                              ") )";
 
-const string RangeSpecNotEqual = "(<text> ( (range x) (range x) ) -> bool</text--->"
-                                 "<text> Not equal. </text--->)";
+const string RangeSpecNotEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                  "\"Example\" ) "
+                             "( <text>( (range x) (range x) ) -> bool</text--->"
+                               "<text>_ # _</text--->"
+                               "<text>Not equal.</text--->"
+                               "<text>query range1 # range2</text--->"
+                              ") )";
 
-const string RangeSpecIntersects = "(<text> ( (range x) (range x) ) -> bool</text--->"
-                                   "<text> Intersects. </text--->)";
+const string RangeSpecIntersects  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                    "\"Example\" ) "
+                             "( <text>( (range x) (range x) ) -> bool</text--->"
+                               "<text>_ intersects _</text--->"
+                               "<text>Intersects.</text--->"
+                               "<text>query range1 intersects range2</text--->"
+                              ") )";
 
-const string RangeSpecInside = "(<text> ( (range x) (range x) ) -> bool, "
-                               "( x (range x) ) -> bool</text--->"
-                               "<text> Inside. </text--->)";
+const string RangeSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                             "( <text>( (range x) (range x) ) -> bool,"
+                             "( x (range x) ) -> bool</text--->"
+                               "<text>_ inside _</text--->"
+                               "<text>Inside.</text--->"
+                               "<text>query 5 inside range1</text--->"
+                              ") )";
 
-const string RangeSpecBefore = "(<text> ( (range x) (range x) ) -> bool, "
-                               "( x (range x) ) -> bool, ( (range x) x ) -> bool</text--->"
-                               "<text> Inside. </text--->)";
+const string RangeSpecBefore  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                             "( <text>( (range x) (range x) ) -> bool, "
+                             "( x (range x) ) -> bool, ( (range x) x ) -> "
+                             "bool</text--->"
+                               "<text>_ before _</text--->"
+                               "<text>Before.</text--->"
+                               "<text>query 5 before range1</text--->"
+                              ") )";
 
-const string RangeSpecIntersection = "(<text> ( (range x) (range x) ) -> (range x)</text--->"
-                                     "<text> Intersection. </text--->)";
+const string RangeSpecIntersection  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                      "\"Example\" ) "
+                         "( <text>( (range x) (range x) ) -> (range x)</text--->"
+                               "<text>_ intersection _</text--->"
+                               "<text>Intersection.</text--->"
+                               "<text>query range1 intersection range2</text--->"
+                              ") )";
 
-const string RangeSpecUnion = "(<text> ( (range x) (range x) ) -> (range x)</text--->"
-                              "<text> Union. </text--->)";
+const string RangeSpecUnion  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" ) "
+                         "( <text>( (range x) (range x) ) -> (range x)</text--->"
+                               "<text>_ union _</text--->"
+                               "<text>Union.</text--->"
+                               "<text>query range1 union range2</text--->"
+                              ") )";
 
-const string RangeSpecMinus = "(<text> ( (range x) (range x) ) -> (range x)</text--->"
-                              "<text> Minus. </text--->)";
+const string RangeSpecMinus  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" ) "
+                          "( <text>( (range x) (range x) ) -> (range x)</text--->"
+                               "<text>_ minus _</text--->"
+                               "<text>Minus.</text--->"
+                               "<text>query range1 minus range2</text--->"
+                              ") )";
 
-const string RangeSpecMinimum = "(<text> (range x) -> x</text--->"
-                                "<text> Minimum. </text--->)";
+const string RangeSpecMinimum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                             "( <text>(range x) -> x</text--->"
+                               "<text>minimum ( _ )</text--->"
+                               "<text>Minimum.</text--->"
+                               "<text>minimum ( range1 )</text--->"
+                              ") )";
 
-const string RangeSpecMaximum = "(<text> (range x) -> x</text--->"
-                                "<text> Maximum. </text--->)";
+const string RangeSpecMaximum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                             "( <text>(range x) -> x</text--->"
+                               "<text>maximum ( _ )</text--->"
+                               "<text>Maximum.</text--->"
+                               "<text>maximum ( range1 )</text--->"
+                              ") )";
 
-const string RangeSpecNoComponents = "(<text> (range x) -> int</text--->"
-                                     "<text> Number of components. </text--->)";
+const string RangeSpecNoComponents  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                      "\"Example\" ) "
+                             "( <text>(range x) -> int</text--->"
+                               "<text>no_components ( _ )</text--->"
+                               "<text>Number of components.</text--->"
+                               "<text>no_components ( range1 )</text--->"
+                              ") )";
 
 Operator rangeisempty( "isempty", 
                        RangeSpecIsEmpty, 
@@ -2506,6 +2577,7 @@ class RangeAlgebra : public Algebra
     AddTypeConstructor( &range );
 
     range.AssociateKind( "RANGE" );
+    range.AssociateKind( "DATA" );
 
     AddOperator( &rangeisempty );
     AddOperator( &rangeequal );

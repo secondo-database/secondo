@@ -10,6 +10,16 @@ create database rangetest;
 open database rangetest;
 e
 
+(create rangerel : (rel(tuple((no int)(r (range int))))));
+(update rangerel := ((rel(tuple((no int)(r (range int)))))
+(
+  (1 ( ( 5 8 FALSE FALSE) ( 13 14 TRUE FALSE) ) )
+  (2 ( ( 3 5 FALSE FALSE) ( 6 14 FALSE TRUE) ) )
+)
+));
+
+(create r1 : (range int));
+(update r1 := ( (range int) ( ( 5 8 FALSE FALSE) ( 13 14 TRUE FALSE) ) ) );
 
 (create r1 : (range int));
 (update r1 := ( (range int) ( ( 5 8 FALSE FALSE) ( 13 14 TRUE FALSE) ( 16 21 TRUE FALSE) ( 23 28 FALSE FALSE) ( 32 39 TRUE FALSE) ( 41 42 TRUE FALSE) ( 44 47 TRUE TRUE) ( 52 54 FALSE FALSE) ( 58 60 FALSE FALSE) ( 63 72 TRUE FALSE) ( 75 82 TRUE FALSE) ( 84 87 FALSE FALSE) ( 88 97 FALSE TRUE) ( 99 104 FALSE TRUE) ( 106 106 TRUE TRUE) ( 109 109 TRUE TRUE) ( 111 120 FALSE FALSE) ( 122 127 TRUE FALSE) ( 130 136 FALSE TRUE) ( 139 148 FALSE FALSE) ( 150 157 FALSE TRUE) ( 161 162 TRUE FALSE) ( 167 170 TRUE FALSE) ( 172 178 FALSE FALSE) ( 182 190 TRUE FALSE) ( 192 200 FALSE FALSE) ) ) );

@@ -90,7 +90,7 @@ ListExpr CcTupleProp ()
 	                     nl->StringAtom("Example Type List"), 
 			     nl->StringAtom("List Rep"), 
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> TUPLE"), 
+            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> MTUPLE"), 
 	                     nl->StringAtom("(mtuple((name string)(age int)))"), 
 			     nl->StringAtom("(<attr1> ... <attrn>)"), 
 			     examplelist)));
@@ -562,7 +562,7 @@ void DeleteCcTuple(Word& w)
 
 Checks the specification:
 
-----	(ident x DATA)+		-> TUPLE	mtuple
+----	(ident x DATA)+		-> MTUPLE	mtuple
 ----
 
 with the additional constraint that all identifiers used (attribute names)
@@ -574,7 +574,7 @@ must be distinct. Hence a tuple type has the form:
 		(name y)))
 ----
 
-and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces the
+and ~x~ and ~y~ must be types of kind DATA. Kind MTUPLE introduces the
 following error codes:
 
 ----	(... 1) 	Empty tuple type
@@ -602,14 +602,14 @@ bool CheckCcTuple(ListExpr type, ListExpr& errorInfo)
     if (nl->IsEmpty(attrlist))
     {
       errorInfo = nl->Append(errorInfo,
-        nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+        nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("MTUPLE"),
           nl->IntAtom(1)));
       return false;
     }
     if (nl->IsAtom(attrlist))
     {
       errorInfo = nl->Append(errorInfo,
-        nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+        nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("MTUPLE"),
           nl->IntAtom(2),
         attrlist));
       return false;
@@ -633,7 +633,7 @@ bool CheckCcTuple(ListExpr type, ListExpr& errorInfo)
           if (unique > 0)
           {
             errorInfo = nl->Append(errorInfo,
-             nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+             nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("MTUPLE"),
                nl->IntAtom(3), nl->First(pair)));
             correct = false;
           }
@@ -642,7 +642,7 @@ bool CheckCcTuple(ListExpr type, ListExpr& errorInfo)
           if (!ckd)
           {
             errorInfo = nl->Append(errorInfo,
-              nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+              nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("MTUPLE"),
                 nl->IntAtom(6),nl->Second(pair)));
           }
           correct = correct && ckd;
@@ -650,7 +650,7 @@ bool CheckCcTuple(ListExpr type, ListExpr& errorInfo)
         else
         {
           errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("MTUPLE"),
           nl->IntAtom(4),nl->First(pair)));
           correct = false;
         }
@@ -658,7 +658,7 @@ bool CheckCcTuple(ListExpr type, ListExpr& errorInfo)
       else
       {
         errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
+          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("MTUPLE"),
           nl->IntAtom(5),pair ));
         correct = false;
       }
@@ -668,7 +668,7 @@ bool CheckCcTuple(ListExpr type, ListExpr& errorInfo)
   else
   {
     errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("TUPLE"), type));
+      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("MTUPLE"), type));
     return false;
   }
 }
@@ -762,7 +762,7 @@ ListExpr CcRelProp ()
 	                     nl->StringAtom("Example Type List"), 
 			     nl->StringAtom("List Rep"), 
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("TUPLE -> REL"), 
+            nl->FourElemList(nl->StringAtom("MTUPLE -> MREL"), 
 	               nl->StringAtom("(mrel(mtuple((name string)(age int))))"), 
 		       listreplist, 
 		       examplelist)));
@@ -1102,7 +1102,7 @@ void DeleteCcRel(Word& w)
 
 Checks the specification:
 
-----    TUPLE   -> REL          mrel
+----    MTUPLE   -> MREL          mrel
 ----
 
 Hence the type expression must have the form
@@ -1110,7 +1110,7 @@ Hence the type expression must have the form
 ----    (mrel x)
 ----
 
-and ~x~ must be a type of kind TUPLE.
+and ~x~ must be a type of kind MTUPLE.
 
 */
 bool CheckCcRel(ListExpr type, ListExpr& errorInfo)
@@ -1120,12 +1120,12 @@ bool CheckCcRel(ListExpr type, ListExpr& errorInfo)
   if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "mrel"))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
-    return (algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo));
+    return (algMgr->CheckKind("MTUPLE", nl->Second(type), errorInfo));
   }
   else
   {
     errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("REL"), type));
+      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("MREL"), type));
     return false;
   }
 }

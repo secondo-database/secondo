@@ -5808,8 +5808,8 @@ class OldRelationAlgebra : public Algebra
     AddOperator(&ccrelhashjoin);
     AddOperator(&ccrelgroupby);
 
-    ccreltuple.AssociateKind( "TUPLE" );
-    ccrelrel.AssociateKind( "REL" );
+    ccreltuple.AssociateKind( "MTUPLE" );
+    ccrelrel.AssociateKind( "MREL" );
 
   }
   ~OldRelationAlgebra() {};

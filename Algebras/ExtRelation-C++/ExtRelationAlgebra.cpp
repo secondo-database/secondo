@@ -2378,6 +2378,12 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Open(args[0].addr);
       resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+
+//      ListExpr result = qp->GetType( s );
+//      cout << "Extend result type" << endl;
+//      nl->WriteListExpr( result );
+//      cout << endl;
+
       resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( resultTupleType );
       return 0;
