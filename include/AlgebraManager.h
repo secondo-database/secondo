@@ -54,6 +54,7 @@ Figure 1: Object state diagram [objstatediagram.eps]
 February 2003 Ulrich Telle Introduced new mode ~DeleteFrom~ for the
 ~PersistValue~ and ~PersistModel~ interface
 
+August 2003 VTA Added the ~SaveToList~ and ~RestoreFromList~ functions
 
 1.1 Overview
  
@@ -116,6 +117,11 @@ latter are not independently persistent).
   * ~In~, ~Out~. Map a nested list into a value of the type and vice
 versa. Used for delivering a value to the application (among other
 things). 
+
+  * ~RestoreFromList~, ~SaveToList~. Act as ~In~ and ~Out~ functions
+but use internal representation of the objects. Most simple objects
+does not need this functions, so by default they will call the 
+correspondent ~In~ and ~Out~ functions.
 
 Every value of every type has a representation as a single "Word"[4] of
 storage. For a simple type, this can be all. For more complex types, it
@@ -634,6 +640,18 @@ Returns the address of the object input function of type constructor
   OutObject OutObj( const int algebraId, const int typeId );
 /*
 Returns the address of the object output function of type constructor
+~typeId~ of algebra ~algebraId~.
+
+*/
+  InObject RestoreFromListObj( const int algebraId, const int typeId );
+/*
+Returns the address of the object's internal input function of type constructor
+~typeId~ of algebra ~algebraId~.
+
+*/
+  OutObject SaveToListObj( const int algebraId, const int typeId );
+/*
+Returns the address of the object's internal output function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */

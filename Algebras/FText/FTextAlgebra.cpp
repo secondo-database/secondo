@@ -25,7 +25,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h" //needed because we return a CcBool in an op.
 #include <string>
-#include <iostream.h>
+#include <iostream>
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -487,6 +487,7 @@ TypeConstructor ftext(
   typeName,                     //name of the type
   FTextProperty,                //property function describing signature
   OutFText,    InFText,         //Out and In functions
+  0,           0,               //SaveToList and RestoreFromList functions
   CreateFText, DeleteFText,     //object creation and deletion
   0, 0, CloseFText, CloneFText, //object open, save, close, and clone
   CastFText,                    //cast function

@@ -316,6 +316,24 @@ AlgebraManager::OutObj( int algebraId, int typeId )
   return (algebra[algebraId]->GetTypeConstructor( typeId )->outFunc);
 }
 
+OutObject
+AlgebraManager::SaveToListObj( int algebraId, int typeId )
+{
+  if( algebra[algebraId]->GetTypeConstructor( typeId )->saveToListFunc != 0 )
+    return (algebra[algebraId]->GetTypeConstructor( typeId )->saveToListFunc);
+  else
+    return (algebra[algebraId]->GetTypeConstructor( typeId )->outFunc);
+}
+
+InObject
+AlgebraManager::RestoreFromListObj( int algebraId, int typeId )
+{
+  if( algebra[algebraId]->GetTypeConstructor( typeId )->restoreFromListFunc != 0 )
+    return (algebra[algebraId]->GetTypeConstructor( typeId )->restoreFromListFunc);
+  else 
+    return (algebra[algebraId]->GetTypeConstructor( typeId )->inFunc);
+}
+
 ObjectCreation
 AlgebraManager::CreateObj( int algebraId, int typeId )
 {

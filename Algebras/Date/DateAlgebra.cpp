@@ -525,6 +525,7 @@ TypeConstructor date(
 	"date",		            	    //name
 	DateProperty, 		            //property function describing signature
 	OutDate,  InDate,		    //Out and In functions
+        0,        0,                        //SaveToList and RestoreFromList functions
 	CreateDate, DeleteDate,		    //object creation and deletion
         0, 0, CloseDate, CloneDate,	    //object open, save, close, and clone
 	CastDate,  		            //cast function

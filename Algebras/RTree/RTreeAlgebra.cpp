@@ -2172,6 +2172,7 @@ SaveRTree( SmiRecord& valueRecord,
 */
 TypeConstructor rtree( "rtree",              RTreeProp,
                        OutRTree,             InRTree,
+                       0,                    0,
                        CreateRTree,          DeleteRTree,
                        OpenRTree,            SaveRTree,
                        CloseRTree,           CloneRTree,

@@ -418,6 +418,7 @@ TypeConstructor array(
 	"array",                      // name		
 	ArrayProperty,                // property function describing signature
 	OutArray, InArray,            // out and in functions
+        0, 0,                         // SaveToList and RestoreFromList functions
 	CreateArray, DeleteArray,     // object creation and deletion
 	0, 0,                         // default object open and save
 	CloseArray, CloneArray,       // opject close and clone

@@ -270,6 +270,8 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   TypeProperty prop,
                                   OutObject out,
                                   InObject in,
+                                  OutObject saveToList,
+                                  InObject restoreFromList,
                                   ObjectCreation create,
                                   ObjectDeletion del,
                                   ObjectOpen open,
@@ -288,6 +290,8 @@ TypeConstructor::TypeConstructor( const string& nm,
   propFunc             = prop;
   outFunc              = out;
   inFunc               = in;
+  saveToListFunc       = saveToList;
+  restoreFromListFunc  = restoreFromList;
   createFunc           = create;
   deleteFunc           = del;
   openFunc             = open;
@@ -334,6 +338,25 @@ TypeConstructor::In( const ListExpr typeInfo, const ListExpr value,
                      const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   return ((*inFunc)( typeInfo, value, errorPos, errorInfo, correct ));
+}
+
+ListExpr
+TypeConstructor::SaveToList( ListExpr type, Word value )
+{
+  if( saveToListFunc != 0 )
+    return ((*saveToListFunc)( type, value ));
+  else
+    return ((*outFunc)( type, value ));
+}
+
+Word
+TypeConstructor::RestoreFromList( const ListExpr typeInfo, const ListExpr value,
+                                  const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  if( restoreFromListFunc != 0 )
+    return ((*restoreFromListFunc)( typeInfo, value, errorPos, errorInfo, correct ));
+  else
+    return ((*inFunc)( typeInfo, value, errorPos, errorInfo, correct ));
 }
 
 Word

@@ -502,7 +502,8 @@ IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 
 TypeConstructor ccInt( "int",            CcIntProperty,
-                       OutCcInt,         InCcInt,        
+                       OutCcInt,         InCcInt,       
+                       0,                0, 
                        CreateCcInt,      DeleteCcInt,      
                        0,        0,      CloseCcInt, CloneCcInt,
                        CastInt,          CheckInt,
@@ -685,8 +686,11 @@ CheckReal( ListExpr type, ListExpr& errorInfo )
 
 
 TypeConstructor ccReal( "real",       CcRealProperty,
-                        OutCcReal,    InCcReal,   CreateCcReal,
-                        DeleteCcReal, 0, 0, CloseCcReal, CloneCcReal,
+                        OutCcReal,    InCcReal,   
+                        0,            0,
+                        CreateCcReal, DeleteCcReal, 
+                        0,            0, 
+                        CloseCcReal, CloneCcReal,
                         CastReal,   CheckReal );
 
 /*
@@ -933,9 +937,12 @@ BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 
 TypeConstructor ccBool( "bool",             CcBoolProperty,
-                        OutCcBool,          InCcBool,        CreateCcBool,
-                        DeleteCcBool,       0, 0,            CloseCcBool, CloneCcBool,
-                        CastBool,        CheckBool,
+                        OutCcBool,          InCcBool,        
+                        0,                  0,
+                        CreateCcBool,       DeleteCcBool,       
+                        0,                  0,
+                        CloseCcBool,        CloneCcBool,
+                        CastBool,           CheckBool,
                         0,
                         InBoolSetModel,     OutBoolSetModel,
                         BoolToBoolSetModel, BoolListToBoolSetModel );
@@ -1150,9 +1157,12 @@ CheckString( ListExpr type, ListExpr& errorInfo )
 }
 
 TypeConstructor ccString( "string",       CcStringProperty,
-                          OutCcString,    InCcString, CreateCcString,
-                          DeleteCcString, 0, 0,       CloseCcString, CloneCcString,
-                          CastString, CheckString );
+                          OutCcString,    InCcString, 
+                          0,              0,
+                          CreateCcString, DeleteCcString, 
+                          0,              0, 
+                          CloseCcString,  CloneCcString,
+                          CastString,     CheckString );
 
 /*
 4 Operators

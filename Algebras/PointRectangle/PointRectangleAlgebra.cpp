@@ -212,9 +212,10 @@ CheckPoint( ListExpr type, ListExpr& errorInfo )
 TypeConstructor point(
 	"point",			//name		
 	PointProperty, 	                //property function describing signature
-        OutPoint,   	InPoint,	//Out and In functions
-	CreatePoint,	DeletePoint,	//object creation and deletion
-        0, 0, ClosePoint, ClonePoint,    //object open, save, and close
+        OutPoint,   	  InPoint,	//Out and In functions
+        0,                0,	        //SaveToList and RestoreFromList functions
+	CreatePoint,	  DeletePoint,	//object creation and deletion
+        0, 0, ClosePoint, ClonePoint,    //object open, save, close, and clone
 	DummyCast,			//cast function
 	CheckPoint,	                //kind checking function
 	0, 				//predef. pers. function for model
@@ -381,12 +382,14 @@ CheckRectangle( ListExpr type, ListExpr& errorInfo )
 3.6 Creation of the Type Constructor Instance
 
 */
-TypeConstructor rectangle( "rectangle",	RectangleProperty,
-        		OutRectangle, 		InRectangle,         
-			CreateRectangle,	DeleteRectangle, 	
-        		0, 0, 			CloseRectangle,     CloneRectangle,
-                        DummyCast,    		CheckRectangle,	
-                        0);
+TypeConstructor rectangle( "rectangle",	    RectangleProperty,
+                           OutRectangle,    InRectangle,         
+                           0,               0,
+			   CreateRectangle, DeleteRectangle,
+        		   0,               0, 			
+                           CloseRectangle,  CloneRectangle,
+                           DummyCast,       CheckRectangle,	
+                           0);
 /*
 4 Creating Operators
 

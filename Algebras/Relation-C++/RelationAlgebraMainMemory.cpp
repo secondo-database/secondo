@@ -277,7 +277,7 @@ ListExpr OutTuple (ListExpr typeInfo, Word  value)
     attrlist = nl->Rest(attrlist);
     algebraId = nl->IntValue(nl->First(nl->Second(first)));
     typeId = nl->IntValue(nl->Second(nl->Second(first)));
-    valuelist = (algM->OutObj(algebraId, typeId))(nl->Rest(first),
+    valuelist = (algM->SaveToListObj(algebraId, typeId))(nl->Rest(first),
                   SetWord(tupleptr->Get(attrno)));
     attrno++;
     if (l == nl->TheEmptyList())
@@ -378,7 +378,7 @@ Word InTuple(ListExpr typeInfo, ListExpr value,
       {
         firstvalue = nl->First(valuelist);
         valuelist = nl->Rest(valuelist);
-        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
+        attr = (algM->RestoreFromListObj(algebraId, typeId))(nl->Rest(first),
                  firstvalue, attrno, errorInfo, valueCorrect);
         if (valueCorrect)
         {

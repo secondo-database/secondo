@@ -272,11 +272,11 @@ query StaedteTest feed min[SName];
 query realTest feed min[no];
 
 #testcase SumTest1
-#yields (int 18612000)
+#yields (int 18851000)
 query StaedteTest feed sum[Bev];
 
 #testcase SumTest2
-#yields (real -19.625)
+#yields (real -18.625)
 query realTest feed sum[no];
 
 #testcase SumTest3

@@ -5589,9 +5589,12 @@ void DummyClose(Word& w) {};
 Word DummyClone(const Word& w) { return SetWord( Address(0) ); };
 
 TypeConstructor cpptuple( "tuple",           TupleProp,
-                          OutTuple,          InTuple,		CreateTuple,
-                          DummyDelete,       0, 0, 		DummyClose, DummyClone,
-                          CastTuple,   CheckTuple,
+                          OutTuple,          InTuple,		
+                          0,                 0,
+                          CreateTuple,       DummyDelete,       
+                          0,                 0,
+                          DummyClose,        DummyClone,
+                          CastTuple,         CheckTuple,
 			  0,
 			  TupleInModel,      TupleOutModel,
 			  TupleValueToModel, TupleValueListToModel );
@@ -5607,9 +5610,11 @@ name and the eleven functions previously defined.
 
 TypeConstructor cpprel( "rel",          RelProp,
                         OutRel,         InRel,   	
+                        0,              0,
                         CreateRel, 	DummyDelete,     
-			OpenRel, 	SaveRel,	DummyClose, DummyClone, 
-                        CastRel,   CheckRel,
+			OpenRel, 	SaveRel,	
+                        DummyClose,     DummyClone, 
+                        CastRel,        CheckRel,
 			0,
 			RelInModel,      RelOutModel,
 			RelValueToModel, RelValueListToModel );

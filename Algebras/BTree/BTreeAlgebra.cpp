@@ -971,6 +971,7 @@ Word BTreeValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 TypeConstructor cppbtree( "btree",		BTreeProp,
                           OutBTree,		InBTree,   
+                          0,                    0,
                           CreateBTree,		DeleteBTree,
 			  OpenBTree,		SaveBTree,
 			  CloseBTree,		CloneBTree,

@@ -45,6 +45,33 @@ class CcInt : public StandardAttribute
   int      Sizeof() ;
   CcInt*   Clone() ;
   ostream& Print( ostream &os ) { return (os << intval); }
+
+    ListExpr   CopyToList( ListExpr typeInfo )
+    {
+      cout << "CcInt CopyToList" << endl;
+      NestedList *nl = SecondoSystem::GetNestedList();
+      AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+      int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
+          typeId = nl->IntValue( nl->Second( nl->First( typeInfo ) ) );
+
+      return (algMgr->OutObj(algId, typeId))( typeInfo, SetWord(this) );
+    }
+
+    Word CreateFromList( const ListExpr typeInfo, const ListExpr instance,
+                         const int errorPos, ListExpr& errorInfo, bool& correct )
+    {
+      cout << "CcInt CreateFromList" << endl;
+      NestedList *nl = SecondoSystem::GetNestedList();
+      AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+      int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
+          typeId = nl->IntValue( nl->Second( nl->First( typeInfo ) ) );
+
+      Word result = (algMgr->InObj(algId, typeId))( typeInfo, instance, errorPos, errorInfo, correct );
+      if( correct )
+        return result;
+      return SetWord( Address(0) );
+    }
+
  private:
   bool defined;
   int  intval;

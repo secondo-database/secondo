@@ -718,14 +718,15 @@ void* CastPoint(void* addr)
 
 */
 TypeConstructor point(
-	"point",				//name
+	"point",			//name
 	PointProperty,			//property function describing signature
-	OutPoint,   	InPoint,		//Out and In functions
+	OutPoint,   	InPoint,	//Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
 	CreatePoint,	DeletePoint,	//object creation and deletion
 	0, 0, 				//open and save functions	
-	ClosePoint, ClonePoint,   		//object close, and clone
+	ClosePoint, ClonePoint,   	//object close, and clone
 	CastPoint,			//cast function
-	CheckPoint,	                	//kind checking function
+	CheckPoint,	                //kind checking function
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
@@ -1542,6 +1543,7 @@ TypeConstructor points(
 	"points",			//name
 	PointsProperty, 		//property function describing signature
 	OutPoints,   	InPoints,	//Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
 	CreatePoints,	DeletePoints,	//object creation and deletion
 	OpenPoints, 	SavePoints,    	// object open and save
 	ClosePoints, 	ClonePoints,   	//object close and clone
@@ -1557,6 +1559,7 @@ TypeConstructor points(
         "points",                       //name
         PointsProperty,                 //property function describing signature
         OutPoints,      InPoints,       //Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
         CreatePoints,   DeletePoints,   //object creation and deletion
         0,     0,		     	// object open and save
         ClosePoints,    ClonePoints,    //object close and clone
@@ -3314,7 +3317,8 @@ CheckHalfSegment( ListExpr type, ListExpr& errorInfo )
 TypeConstructor halfsegment(
 	"halfsegment",		       		//name
 	HalfSegmentProperty, 			//Describing signature
-	OutHalfSegment,  InHalfSegment,	    	//Out and In functions
+	OutHalfSegment,    InHalfSegment,    	//Out and In functions
+        0,                 0,                   //SaveToList and RestoreFromList functions
 	CreateHalfSegment, DeleteHalfSegment,	//object creation and deletion
 	0, 0, CloseHalfSegment, CloneHalfSegment, //open, save, close, clone
 	CastHalfSegment, 			//cast function
@@ -4024,6 +4028,7 @@ TypeConstructor line(
 	"line",				//name
 	LineProperty,	 		//describing signature
 	OutLine,   	InLine,		//Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
 	CreateLine,	DeleteLine,	//object creation and deletion
 	OpenLine, 	SaveLine,    	// object open and save
 	CloseLine, 	CloneLine,   	//object close and clone
@@ -4039,6 +4044,7 @@ TypeConstructor line(
         "line",                         //name
         LineProperty,                   //describing signature
         OutLine,        InLine,         //Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
         CreateLine,     DeleteLine,     //object creation and deletion
         0,       	0,       	// object open and save
         CloseLine,      CloneLine,      //object close and clone
@@ -4924,6 +4930,11 @@ The list representation of a region is
 */
 
 static ListExpr
+SaveToListRegion( ListExpr typeInfo, Word value )
+{
+}
+
+static ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
 //    cout<<"OutRegion#############"<<endl;
@@ -5166,6 +5177,12 @@ OutRegion( ListExpr typeInfo, Word value )
 8.4 ~In~-function
 
 */
+
+static Word
+RestoreFromListRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+
+}
 
 static Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
@@ -5486,6 +5503,7 @@ TypeConstructor region(
 	"region",			//name
 	RegionProperty,	 		//describing signature
 	OutRegion,   	InRegion,	//Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
 	CreateRegion,	DeleteRegion,	//object creation and deletion
 	OpenRegion, 	SaveRegion,    	// object open and save
 	CloseRegion, 	CloneRegion,   	//object close and clone
@@ -5501,6 +5519,7 @@ TypeConstructor region(
         "region",                       //name
         RegionProperty,                 //describing signature
         OutRegion,      InRegion,       //Out and In functions
+        0,              0,              //SaveToList and RestoreFromList functions
         CreateRegion,   DeleteRegion,   //object creation and deletion
         0,     		0,     		// object open and save
         CloseRegion,    CloneRegion,    //object close and clone

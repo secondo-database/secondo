@@ -46,6 +46,9 @@ version.
 #ifndef ATTRIBUTE_H
 #define ATTRIBUTE_H
 
+#include "SecondoSystem.h"
+#include "NestedList.h"
+#include "AlgebraManager.h"
 #include "TupleElement.h"
 
 class Attribute : public TupleElement

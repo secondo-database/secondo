@@ -1393,6 +1393,7 @@ TypeConstructor range(
         "range",                                //name
         RangeProperty,                          //property function describing signature
         OutRange,               InRange,        //Out and In functions
+        0,                      0,              //SaveToList and RestoreFromList functions
         CreateRange,            DeleteRange,    //object creation and deletion
         OpenRange,              SaveRange,      // object open and save
         CloseRange,             CloneRange,     //object close and clone

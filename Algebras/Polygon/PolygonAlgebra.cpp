@@ -659,9 +659,10 @@ TypeConstructor polygon(
         "polygon",				//name
         PolygonProperty,			//property function describing signature
         OutPolygon,	InPolygon,		//Out and In functions
+        0,              0,                      //SaveToList and RestoreFromList functions
         CreatePolygon,  DeletePolygon,		//object creation and deletion
-        OpenPolygon, SavePolygon,               //object open and save 
-        ClosePolygon, ClonePolygon,		//object close and clone
+        OpenPolygon,    SavePolygon,            //object open and save 
+        ClosePolygon,   ClonePolygon,		//object close and clone
         CastPolygon,                    	//cast function
         CheckPolygon,				//kind checking function
         0,					//predefined persistence function for model

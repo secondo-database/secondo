@@ -236,6 +236,8 @@ class TypeConstructor
                    TypeProperty prop,
                    OutObject out,
                    InObject in,
+                   OutObject saveToList,
+                   InObject restoreFromList,
                    ObjectCreation create,
                    ObjectDeletion del,
                    ObjectOpen open,
@@ -278,6 +280,12 @@ Returns the properties of the type constructor as a nested list.
                const int errorPos,
                ListExpr& errorInfo,
                bool& correct );
+  ListExpr SaveToList( ListExpr type, Word value );
+  Word     RestoreFromList( const ListExpr typeInfo,
+                            const ListExpr value, 
+                            const int errorPos,
+                            ListExpr& errorInfo,
+                            bool& correct );
   Word     Create( const ListExpr typeInfo );
   void     Delete( Word& w );
   bool     Open( SmiRecord& valueRecord,
@@ -361,6 +369,8 @@ constructor functions.
   TypeProperty             propFunc;
   OutObject                outFunc;
   InObject                 inFunc;
+  OutObject                saveToListFunc;
+  InObject                 restoreFromListFunc;  
   ObjectCreation           createFunc;
   ObjectDeletion           deleteFunc;
   ObjectOpen               openFunc;

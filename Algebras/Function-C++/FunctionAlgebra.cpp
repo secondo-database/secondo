@@ -116,9 +116,12 @@ CheckMap( ListExpr type, ListExpr& errorInfo )
 }
 
 TypeConstructor functionMap( "map",             FunctionProperty,
-                             OutMap,            InMap,         NoSpace,
-                             DoNothing,         0, 0,          DoNothing, CloneNothing,
-                             DummyCast,     CheckMap,
+                             OutMap,            InMap,         
+                             0,                 0,
+                             NoSpace,           DoNothing,         
+                             0,                 0,
+                             DoNothing,         CloneNothing,
+                             DummyCast,         CheckMap,
                              0,        
                              DummyInModel,      DummyOutModel,
                              DummyValueToModel, DummyValueListToModel );
