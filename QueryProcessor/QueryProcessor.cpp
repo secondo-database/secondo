@@ -108,10 +108,14 @@ July 2004, M. Spiekermann added a consistency check for the result type calculat
 by annotate. There should be no typeerror symbol in it. The groupby operators type
 mapping caused Secondo to crash since objects of type typeerror should be created
 due to a bug in the type mapping. Now a warning will appear and the operator tree
-is not constructed. Additonally the trace mode of annotated was extended. For every
+is not constructed. Additonally the trace mode of annotate was extended. For every
 operator the input and output for the type mapping will be displayed. This may help
 to isolate type mapping errors.
  
+Sept 2004, M. Spiekermann. Bugfix of a segmentation fault arising sometimes in the 
+~QueryProcessor::Request~ method which was caused by an uninitalized counter number 
+for applying abstractions or functions in the construction of the operator tree.
+
 
 \tableofcontents
 
@@ -170,6 +174,7 @@ using namespace std;
 #include "AlgebraManager.h"
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
+#include "LogMsg.h"
 
 /************************************************************************** 
 1.2 Constants, Types, Global Data Structures
@@ -1827,7 +1832,6 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
 
 	}
 	
-
 	return resultType;
 }
 
@@ -1947,7 +1951,7 @@ arguments preceding this function argument in an operator application.
       {
         paramtype = nl->Second( nl->First( expr ) );
       }
-      if ( IsCorrectTypeExpr( level, paramtype ) )
+			if ( IsCorrectTypeExpr( level, paramtype ) )
       {
         name = nl->SymbolValue( nl->First( nl->First( expr ) ) );
         /* IsIdentifier has checked that name is not a variable yet,
@@ -2281,6 +2285,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->u.op.funNo = 0;
       node->u.op.isStream = false;
       node->u.op.resultAlgId = 0;
+			node->u.op.counterNo = 0;
       return (node);
     }
     case QP_COUNTERDEF:
@@ -2675,9 +2680,16 @@ Calls the parameter function (to which the arguments must have been
 supplied before). The result is returned in ~result~. 
 
 */
-  Eval( (OpTree) s, result, REQUEST );
-  if ( ((OpTree) s)->nodetype == Operator && ((OpTree) s)->u.op.counterNo ) 
-    counter[((OpTree) s)->u.op.counterNo]++;
+  OpTree tree = (OpTree) s;
+  Eval( tree, result, REQUEST );
+	
+	// increment counter
+	int counterIndex = tree->u.op.counterNo;
+  if ( (tree->nodetype == Operator) && counterIndex ) 
+	{
+		assert ( (counterIndex > 0) || (counterIndex < NO_COUNTERS) );
+    counter[counterIndex]++;
+	}	
 }
 
 bool
