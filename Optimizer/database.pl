@@ -55,8 +55,13 @@ hasIndex(Rel, attr(_:A, _, _), IndexName) :-
 
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- index(Rel, Attr, _, Index).
 
+
+
 index(plz, ort, btree, plz_Ort).
 index(plz, plz, btree, plz_PLZ).
+
+
+index(_, _, _, _) :- fail.
 
 
 
