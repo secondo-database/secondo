@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 #
 # pd2dvi <file> - Converts a PD file to a TEX file
 #
@@ -14,12 +14,14 @@ if { ! pd2tex $1; }; then
    exit 1
 fi
 
-if { ! latex --interaction="nonstopmode" $texFile; }; then
+for dummy in 1 2 3 4
+do
+  if { ! latex --interaction="nonstopmode" $texFile; }; then
 
-   printf "\n LaTeX-Error: Could not create $dviFile! "
-   printf "\n              Study LaTeX's messages above and correct"
-   printf "\n              the error in the PD-file $pdFile. \n\n"
-   rm -f $texFile $auxFile $dviFile
-   exit 2
+     printf "\n LaTeX-Error: Could not create $dviFile! "
+     printf "\n              Study LaTeX's messages above and correct"
+     printf "\n              the error in the PD-file $pdFile. \n\n"
+     rm -f $texFile $auxFile $dviFile
+     exit 2
 fi
-
+done
