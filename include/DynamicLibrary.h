@@ -97,6 +97,9 @@ system specific mechanisms to load libraries at runtime.
 #define DYNAMIC_LIBRARY_H
 
 #include "SecondoConfig.h"
+#ifdef SECONDO_WIN32
+#include <windows.h>
+#endif
 
 class SDB_EXPORT DynamicLibrary
 {

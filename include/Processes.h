@@ -85,6 +85,8 @@ The class ~ProcessFactory~ offers the following routines:
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <libgen.h>
+#else
+#include <windows.h>
 #endif
 
 #define DEFAULT_MAX_PROCESSES 10

@@ -83,6 +83,7 @@ This module offers the following routines:
 typedef int   ProcessId;
 #define INVALID_PID (-1)
 #else
+#include <windows.h>
 typedef DWORD ProcessId;
 #define INVALID_PID ((DWORD)-1)
 #endif

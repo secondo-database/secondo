@@ -52,6 +52,7 @@ The class ~SmiEnvironment~ provides the following methods:
 #include <vector>
 
 #ifdef SECONDO_WIN32
+#include <windows.h>
 typedef DWORD FileAttributes;
 #else
 typedef uint32_t FileAttributes;

@@ -67,7 +67,7 @@ endian byte order architecture. Otherwise ~\#undef~ this symbol.
 #  define WINVER       0x0400
 #  define _WIN32_WINNT 0x0400
 #  define WIN32_LEAN_AND_MEAN
-#  include <windows.h>
+//#  include <windows.h>
 /*
 When creating or using shared libraries (i.e. DLLs = Dynamic Link Libraries)
 on Windows platforms it is necessary to specify for C++ classes whether they
