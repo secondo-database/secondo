@@ -178,7 +178,6 @@ public class HoeseViewer extends SecondoViewer {
     jtb.putClientProperty("JToolBar.isRollover", Boolean.TRUE);
     jtb.setFloatable(false);
     jtb.addSeparator();
-    //jtb.add(MouseKoordLabel);
     JPanel AnimPanel = new JPanel(new FlowLayout(2, 0, 4));
     AnimPanel.setPreferredSize(new Dimension(60, 12));
     JButton ctrls[] = new JButton[6];
@@ -203,6 +202,7 @@ public class HoeseViewer extends SecondoViewer {
     TimeSlider.setUnitIncrement(1);
     TimeSlider.setBlockIncrement(60);
     jtb.add(TimeSlider);
+    jtb.add(MouseKoordLabel);
     TextDisplay = new TextWindow(this);
     DoQuerySelection = new QueryListSelectionListener();
     allProjection = new AffineTransform();
@@ -787,8 +787,10 @@ private boolean removeSelectedQuery(){
       }
    }
    qr.getGraphObjects().clear();
-   updateViewParameter();
+   qr.setListData(new Vector(1));
+   VisComPanel.setBottomComponent(dummy); 
    TextDisplay.getQueryCombo().removeItem(qr);
+   updateViewParameter();
    return true;
 }
 
@@ -843,8 +845,14 @@ public boolean selectObject(SecondoObject o){
     }
 }  
 
-/** all objects can displayed (see work of Th.Hoese) **/
-public boolean canDisplay(SecondoObject o){ return true; }
+/** all query results can be displayed (see work of Th.Hoese) **/
+public boolean canDisplay(SecondoObject o){
+  ListExpr LE = o.toListExpr();
+  if(LE==null)
+     return false;
+  else
+     return LE.listLength()==2;
+}
 
 
 
@@ -928,17 +936,6 @@ public boolean canDisplay(SecondoObject o){ return true; }
     return  selGraphObj;
   }
 
-  /**
-   * Shows the Commandpanel instead of Timepanel when it isn't already visible
-   * @see <a href="MainWindowsrc.html#showCommandPanel">Source</a> 
-   */
-  /*public void showCommandPanel () {
-    if (!VisComPanel.getBottomComponent().equals(CommandDisplay)) {
-      VisComPanel.setBottomComponent(CommandDisplay);
-      //VisComPanel.setDividerLocation(oldDL);
-    }
-  }
-  */
 
   /**
    * Sets actual global timeinterval
@@ -950,7 +947,7 @@ public boolean canDisplay(SecondoObject o){ return true; }
     if (in == null) {
       TimeSlider.setValues(0, 1, 0, 0);
       actTimeLabel.setText("no time");
-      TimeSlider.setVisible(false);
+      //TimeSlider.setVisible(false);
       ActualTime = 0;
     } 
     else {
