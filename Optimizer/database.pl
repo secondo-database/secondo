@@ -336,11 +336,32 @@ extractList([[First, _]], [First]).
 extractList([[First, _] | Rest], [First | Rest2]) :-
   extractList(Rest, Rest2).
 
+getSpelled(Rel:Attr) :-
+  spelled(Rel:Attr, attr(Attr, 0, l)).
+
+getSpelled(Rel:Attr) :-
+  spelled(Rel:Attr, attr(Attr, 0, u)).
+
+getIndex(Rel, Attr) :-
+  not(hasIndex(rel(Rel, _, _), attr(Attr, _, _), _)).
+
+getIndex(Rel, Attr) :-
+  hasIndex(rel(Rel, _, _), attr(Attr, _, _), _).
+
+createAttrSpelled(_, []).
+createAttrSpelled(Rel, [ First | Rest ]) :-
+  getSpelled(Rel:First),
+  getIndex(Rel, First),
+  createAttrSpelled(Rel, Rest).
+
 /*
 1.3.2 Looking Up For Relation Schemas
 
 The schema of the relation ~Rel~, namely a list of the attribute names,
-is binded to the variable ~AttrList~ (PROLOG list).
+is binded to the variable ~AttrList~ (PROLOG list). By this way we look
+up for the spelling of all attribute names in ~Attrlist~. Furthermore
+we determine, if there exists an index for all elements in ~Attrlist~
+or not.
 
 */
 relation(Rel, AttrList) :-
@@ -354,7 +375,8 @@ relation(Rel, AttrList) :-
   DCRel = Rel,
   extractList(RestList, AttrList2),
   downcase_list(AttrList2, AttrList),
-  assert(storedRel(Rel, AttrList)).
+  assert(storedRel(Rel, AttrList)),
+  createAttrSpelled(Rel, AttrList).
 
 /*
 1.3.3 Storing And Loading Relation Schemas
