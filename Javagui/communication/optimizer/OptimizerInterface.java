@@ -174,7 +174,7 @@ public String optimize(String query, String Database, IntObj ErrorCode){
      }
      ErrorCode.value = ErrorCodes.NO_ERROR;
      String Opt = result.toString();
-     if(Opt.equals(query)){
+     if(Opt.equals("")){
         ErrorCode.value = ErrorCodes.OPTIMIZATION_FAILED;
 	return "";
      }

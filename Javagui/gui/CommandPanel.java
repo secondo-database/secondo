@@ -569,7 +569,7 @@ public class CommandPanel extends JScrollPane {
      // optimize the select-clause
      String opt = OptInt.optimize(SelectClause,OpenedDatabase,Err);
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
-        appendText("error in optimization of this query");
+        appendText("\nerror in optimization of this query");
         showPrompt();
 	return "";
       }else{
@@ -629,10 +629,10 @@ public class CommandPanel extends JScrollPane {
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
          command = optimize(command);
-	 appendText("\n" + command + "...");
 	 if(command.equals("")) return false;
-
-         Secondointerface.secondo(command,           //Command to execute.
+	 appendText("\n" + command + "...");
+         
+	 Secondointerface.secondo(command,           //Command to execute.
          ListExpr.theEmptyList(),                    // we don't use it here.
          commandLevel, true,         // command as text.
          false,      // result as ListExpr.
