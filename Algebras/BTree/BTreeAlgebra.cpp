@@ -32,6 +32,11 @@
 #include <sstream>
 #include <typeinfo>
 
+namespace {
+
+static NestedList* nl;
+
+
 /*
 
 2.1 Macro CHECK\_COND
@@ -62,7 +67,6 @@ static int simpleSelect (ListExpr args) { return 0; }
 */
 ListExpr BTreeProp ()
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
 
   return
    nl->TwoElemList(
@@ -558,7 +562,6 @@ outputs an empty list.
 */
 ListExpr OutBTree(ListExpr typeInfo, Word  value)
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   return nl->TheEmptyList();
 }
 
@@ -642,7 +645,6 @@ BTreePersistValue( const PersistDirection dir,
     const ListExpr typeInfo,
     Word& value )
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
 
   bool success;
@@ -953,7 +955,6 @@ template<int operatorId>
 ListExpr IndexQueryTypeMap(ListExpr args)
 {
   char* errmsg = errorMessages[operatorId];
-  NestedList* nl = SecondoSystem::GetNestedList();
   int nKeys = nKeyArguments(operatorId);
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -1287,9 +1288,13 @@ class BTreeAlgebra : public Algebra
 
 BTreeAlgebra btreealgebra;
 
+
 extern "C"
 Algebra*
 InitializeBTreeAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
+  nl = nlRef;
   return (&btreealgebra);
+}
+
 }
