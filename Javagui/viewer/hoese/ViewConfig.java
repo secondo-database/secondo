@@ -442,11 +442,46 @@ public class ViewConfig extends javax.swing.JDialog {
     P.add(new JLabel("")); // a dummy
     P.add(MLPanel2);
 
+    KeyListener RKL = new KeyAdapter(){
+            public void keyPressed(KeyEvent evt){
+                if(evt.getKeyCode()==evt.VK_ENTER){
+                   if(evt.getSource().equals(CancelB)){
+                      setVisible(false);
+                      dispose();
+		   }
+		   else
+                      OKBActionPerformed();
+                }
+                if(evt.getKeyCode()==evt.VK_ESCAPE){
+                      setVisible(false);
+                      dispose();
+                }
+            }
+    };
+    CatCB.addKeyListener(RKL);
+    RefDepCBo.addKeyListener(RKL);
+    RefAttrCB.addKeyListener(RKL);
+    RendTypeCB.addKeyListener(RKL);
+    LabelAttrCB.addKeyListener(RKL);
+    NoSlider.addKeyListener(RKL);
+    NoText.addKeyListener(RKL);
+    SingleTupelCBo.addKeyListener(RKL);
+    NeTuB.addKeyListener(RKL);
+    PrTuB.addKeyListener(RKL);
+    GATuB.addKeyListener(RKL);
+    ApplyTuB.addKeyListener(RKL);
+    OKB.addKeyListener(RKL);
+    CancelB.addKeyListener(RKL);
+    DefaultB.addKeyListener(RKL);
+    LabelText.addKeyListener(RKL);
+    LabXOffText.addKeyListener(RKL);
+    LabYOffText.addKeyListener(RKL);
+
 
     OKB.setText("OK");
     OKB.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
-        OKBActionPerformed(evt);
+        OKBActionPerformed();
       }
     });
     RefPanel.add(P);
@@ -508,7 +543,7 @@ public class ViewConfig extends javax.swing.JDialog {
    *    category and rendering type.
    * @param evt
    */
-  private void OKBActionPerformed (java.awt.event.ActionEvent evt) {            //GEN-FIRST:event_OKBActionPerformed
+  private void OKBActionPerformed () {            //GEN-FIRST:event_OKBActionPerformed
     if (!SingleTupelCBo.isSelected()) {
       Category cat = (Category)CatCB.getSelectedItem();
       int LabIndex = LabelAttrCB.getSelectedIndex();
