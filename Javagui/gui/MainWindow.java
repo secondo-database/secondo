@@ -293,7 +293,6 @@ private void removeCurrentViewer(){
       else 
         VSplitPane.setRightComponent(PanelTopRight); 
       
-   
 }
 
 
@@ -541,15 +540,18 @@ public void updateMenu(){
    CurrentMenuVector = null;
    // add the new Menu
    if (CurrentViewer!=null){  
-      CurrentMenuVector = CurrentViewer.getMenuVector();
-      if (CurrentMenuVector!=null)
-         for(int i=0;i<CurrentMenuVector.getSize();i++){
-            CurrentMenuVector.get(i).addMenuListener(BlendOutList);
-            MainMenu.add(CurrentMenuVector.get(i));
-         }
-      CurrentViewer.revalidate();
-      MainMenu.revalidate();
-      OList.updateMarks();
+     try{
+        CurrentMenuVector = CurrentViewer.getMenuVector();
+        if (CurrentMenuVector!=null)
+           for(int i=0;i<CurrentMenuVector.getSize();i++){
+              CurrentMenuVector.get(i).addMenuListener(BlendOutList);
+              MainMenu.add(CurrentMenuVector.get(i));
+           }
+        CurrentViewer.revalidate();
+        MainMenu.revalidate();
+        OList.updateMarks();
+     }
+     catch(Exception e) {showMessage("error when update the menu");}
    }  
 }
 
@@ -599,26 +601,28 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
          o.fromList(ResultList);
          OList.addEntry(o);
          if(CurrentViewer!=null){
-            if (CurrentViewer.canDisplay(o)){
-               CurrentViewer.addObject(o);
-               OList.updateMarks();
-            }
-            else {   // search a Viewer to display the result
-               SecondoViewer Cand=null;
-               boolean found = false;
-               for(int i=0;i<AllViewers.size()&!found;i++){
-                  Cand = (SecondoViewer) AllViewers.get(i);
-                  if (Cand.canDisplay(o))
-                      found = true;
+            try{
+               if (CurrentViewer.canDisplay(o)){
+                   CurrentViewer.addObject(o);
+                   OList.updateMarks();
                }
-               if(found){
-                  setViewer(Cand);
-                  CurrentViewer.addObject(o);
-                  OList.updateMarks();
+               else {   // search a Viewer to display the result
+                  SecondoViewer Cand=null;
+                  boolean found = false;
+                  for(int i=0;i<AllViewers.size()&!found;i++){
+                     Cand = (SecondoViewer) AllViewers.get(i);
+                     if (Cand.canDisplay(o))
+                         found = true;
+                  }
+                  if(found){
+                     setViewer(Cand);
+                     CurrentViewer.addObject(o);
+                     OList.updateMarks();
+                  }
+                  else
+                     showMessage("no Viewer loaded to display this result");
                }
-               else
-                  showMessage("no Viewer loaded to display this result");
-            }
+            } catch(Exception e){showMessage("an error is occurred (in current viewer)");}
          }
          ComPanel.appendText("see result in object list");
      }
@@ -632,7 +636,8 @@ public boolean canActualDisplay(SecondoObject SO){
   if ((SO==null) || (CurrentViewer==null))
       return false;
   else
-     return CurrentViewer.canDisplay(SO);
+    try{return CurrentViewer.canDisplay(SO);}
+    catch(Exception e){ return false; }
 }
 
 // tests if SO displayed in the current Viewer **/
@@ -640,7 +645,8 @@ public boolean isActualDisplayed(SecondoObject SO){
   if ((SO==null) || (CurrentViewer==null))
      return false;
   else
-     return CurrentViewer.isDisplayed(SO);
+     try{return CurrentViewer.isDisplayed(SO);}
+     catch(Exception e){ return false; }
 } 
 
 /** shows SO in current Viewer if possible **/
@@ -648,7 +654,8 @@ public boolean showObject(SecondoObject SO){
   if (CurrentViewer==null) 
       return false;
   else
-      return CurrentViewer.addObject(SO);
+     try{return CurrentViewer.addObject(SO);}
+     catch(Exception e){return false;}
 }
 
 
@@ -659,8 +666,12 @@ public void hideObject(Object Sender,SecondoObject SO){
   if(Sender instanceof SecondoViewer)
      OList.updateMarks();
   else
-     for(int i=0;i<AllViewers.size();i++)
-        ((SecondoViewer)AllViewers.get(i)).removeObject(SO);
+     for(int i=0;i<AllViewers.size();i++){
+        try{
+          ((SecondoViewer)AllViewers.get(i)).removeObject(SO);
+        }
+        catch(Exception e){}
+     }
 }
 
 
@@ -678,7 +689,12 @@ public void selectObject(Object Sender,SecondoObject SO){
   }
   else{
      if (CurrentViewer!=null){
-        CurrentViewer.selectObject(SO);
+       try{
+         CurrentViewer.selectObject(SO);
+          }
+       catch(Exception e){
+          showMessage("Exception in current viewer (method selectObject)");
+       }
      }
   }
 }
@@ -800,7 +816,7 @@ private void createMenuBar(){
                 else{
                    Name= Name.substring(0,Name.length()-6);  // remove ".class" extension
                    try{
-				Class NViewerClass = Class.forName(Name);
+                        Class NViewerClass = Class.forName(Name);
                         Object O = NViewerClass.newInstance();
                         if (!(O instanceof SecondoViewer)){
 					showMessage("the selected class is not an SecondoViewer");
