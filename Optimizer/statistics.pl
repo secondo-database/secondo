@@ -227,6 +227,39 @@ readStoredSels :-
   retractall(storedSel(_, _)),
   [storedSels].
 
+/*
+
+The following functions are auxiliary functions for ~writeStoredSels~. Their
+purpose is to convert a list of character codes (e.g. [100, 99, 100]) to
+an atom (e.g. "dcd"), which makes the stored selectitivities more
+readable.
+
+*/
+
+isIntList([]).
+
+isIntList([X | Rest]) :-
+  integer(X),
+  isIntList(Rest).
+
+charListToAtom(CharList, Atom) :-
+  atom_codes(A, CharList),
+  concat_atom([' "', A, '"'], Atom).
+
+replaceCharList(InTerm, OutTerm) :-
+  isIntList(InTerm),
+  !,
+  charListToAtom(InTerm, OutTerm).
+
+replaceCharList(InTerm, OutTerm) :-
+  compound(InTerm),
+  !,
+  InTerm =.. TermAsList,
+  maplist(replaceCharList, TermAsList, OutTermAsList),
+  OutTerm =.. OutTermAsList.
+
+replaceCharList(X, X).
+
 writeStoredSels :-
   open('storedSels.pl', write, FD),
   write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
@@ -235,10 +268,11 @@ writeStoredSels :-
 
 writeStoredSel(Stream) :-
   storedSel(X, Y),
-  write(Stream, storedSel(X, Y)),
+  replaceCharList(X, XReplaced),
+  write(Stream, storedSel(XReplaced, Y)),
   write(Stream, '.\n').
 
-:- 
+:-
   dynamic(storedSel/2),
   at_halt(writeStoredSels),
   readStoredSels.
