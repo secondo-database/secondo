@@ -18,25 +18,25 @@ SmiKey::SmiKey( MapKeyFunc mapKey /* = 0 */ )
 
 SmiKey::SmiKey( const SmiRecordId key )
 {
-  keyType = SmiKey::RecNo;
+  keyType = SmiKey::Unknown;
   SetKey( key );
 }
 
 SmiKey::SmiKey( const long key )
 {
-  keyType = SmiKey::Integer;
+  keyType = SmiKey::Unknown;
   SetKey( key );
 }
 
 SmiKey::SmiKey( const double key )
 {
-  keyType = SmiKey::Float;
+  keyType = SmiKey::Unknown;
   SetKey( key );
 }
 
 SmiKey::SmiKey( const string& key )
 {
-  keyType = SmiKey::String;
+  keyType = SmiKey::Unknown;
   SetKey( key );
 }
 
