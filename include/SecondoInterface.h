@@ -85,14 +85,6 @@ in the treatment of the database state in database commands.
 #include "NestedList.h"
 #include "AlgebraTypes.h"
 
-/*
-
-Definition of ASCII character US for encoding line feed chracter '\n'
-
-*/
-
-#define line_feed char(31)
-
 /************************************************************************** 
 2.1 Class "SecondoInterface"[1]
 
@@ -402,7 +394,7 @@ transaction.
       save database to <filename>
       save <objectname> to <filename>
       restore database <identifier> from <filename>
-      restore object <objectname> from <filename>
+      restore <objectname> from <filename>
 ----
 
 *NOTE*: All database commands can not be enclosed in a transaction.
@@ -482,7 +474,7 @@ following:
       )
 ----
 
-If the file exists, it will be overwritten, otherwise be created.
+If the file exists, it will be overwritten, otherwise created.
 Possible errors: 
 
   * 6: no database open
@@ -532,6 +524,31 @@ Possible errors:
 In case of error 24, an error list with further information is returned
 in ~resultList~.
 
+----  restore <objectname> from <filename>
+----
+
+Reads the file ~filename~ and creates a Secondo object according to this content.
+
+Precondition:
+
+The database must be in open state and the object is not known in the currently opened database.
+
+Possible errors: 
+
+  * 84: the object name is not known in the database
+
+  * 83: the object name in the file is different from ~identifier~
+
+  * 6: a database is not open
+
+  * 28: a problem occurred in reading the file (syntax error, no permission, file system full, etc.)
+
+  * 29: the overall list structure of the file is not correct
+
+  * 24: there are errors in the object definition in the file
+
+In case of error 24, an error list with further information is returned
+in ~resultList~.
 
 2.1.4 Inquiries
 
@@ -780,6 +797,11 @@ after the error number have the following meaning:
 
     errors[80] = "Secondo protocol error.";
     errors[81] = "Connection to Secondo server lost.";
+    
+    errors[82] = "Identifier of object is not a known database object. ";
+    errors[83] = "Object name in file different from indentifier for object. ";
+    errors[84] = "Identifier of object already known in the database. ";
+
 ----
 
 The error messages 61 and 71 allow a kind checking procedure or an ~In~
