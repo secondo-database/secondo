@@ -19,18 +19,15 @@
 */
 
 /* for debugging purposes. */
-//@ GETESTET
 void dbg(char *message) {
 	//cout << message << endl;
 }
 
 /* for debugging purposes. */
-//@ GETESTET
 void dbg2(int n) {
-	cout << "\n\n\n\t\t\t(" << n << ")\n\n\n" << endl;
+	cout << "\n\t\t\t-----(" << n << ")-----\n" << endl;
 }
 
-//@ GETETESTET
 TupleAttributes::TupleAttributes(int noAttrs, AttributeType *attrTypes) {
 	totalNumber = noAttrs;
 	type = attrTypes;
@@ -41,7 +38,6 @@ TupleAttributes::TupleAttributes(int noAttrs, AttributeType *attrTypes) {
 }
 
 /* initialisation of member variables */
-//@ GETESTET
 void Tuple::Init() {
 	dbg("### Tuple::Init() called.");
 	diskTupleId = 0;
@@ -55,12 +51,10 @@ void Tuple::Init() {
 	coreSize = 0;
 	totalSize = 0;
 	memoryTuple = 0;
-	refCount = 0;
 	dbg("### Tuple::Init() finished.");
 }
 
 /* Creates a fresh tuple. */
-//@ GETESTET
 Tuple::Tuple(const TupleAttributes *attributes) {
 	dbg("### Tuple::Tuple(SmiRecordFile* recFile, const TupleAttributes *attributes) called.");
   	Init();
@@ -76,15 +70,16 @@ Tuple::Tuple(const TupleAttributes *attributes) {
 	
 	// copy attribute info
   	attribInfo = new AttributeInfo[attrNum];
-  	char *valuePtr = memoryTuple;
   	for (int i = 0; i < attrNum; i++) {
 		int actSize = attributes->type[i].size;
     	int algId = attributes->type[i].algId;
     	int typeId = attributes->type[i].typeId;
     	attribInfo[i].size = actSize;
+		char *attrMem = (char *)malloc(actSize);
     	// call cast function of tuple attribute
-    	attribInfo[i].value = (TupleElement*) (*(algM->Cast(algId, typeId)))(valuePtr);
-    	valuePtr = valuePtr + actSize;
+		attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(attrMem);
+		attribInfo[i].destruct = true;
+		attribInfo[i].incRefCount();
   	} 
 	state = Fresh;
   
@@ -92,7 +87,6 @@ Tuple::Tuple(const TupleAttributes *attributes) {
 }
 
 /* Creates a solid tuple. Reads its data into memory. */
-//@ GETESTET
 Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttributes *attributes, SmiFile::AccessType mode) : diskTuple() {
 	dbg("### Tuple::Tuple(SmiRecordFile *rfile, const SmiRecordId rid, const TupleAttributes *attributes, SmiFile::AccessType mode) called.");
 	Init();
@@ -108,33 +102,44 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 
 	// copy attribute info
   	attribInfo = new AttributeInfo[attrNum];
-  	char *valuePtr = memoryTuple;
   	for (int i = 0; i < attrNum; i++) {
 		int actSize = attributes->type[i].size;
     	int algId = attributes->type[i].algId;
     	int typeId = attributes->type[i].typeId;
-    	attribInfo[i].size = actSize;
+		attribInfo[i].size = actSize;
+
+		char *attrMem = (char *)malloc(actSize);
     	// call cast function of tuple attribute
-    	attribInfo[i].value = (TupleElement*) (*(algM->Cast(algId, typeId)))(valuePtr);
-    	valuePtr = valuePtr + actSize;
+		attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(attrMem);
+		attribInfo[i].incRefCount();
+		attribInfo[i].destruct = true;
 	}
 	
   	diskTupleId = rid;
   	recFile = recfile;
 	
 	// reading tuple header from disk
-	recFile->SelectRecord(diskTupleId, diskTuple, SmiFile::ReadOnly);
+	bool ok = recFile->SelectRecord(diskTupleId, diskTuple, SmiFile::ReadOnly);
 
-	char *buf = (char *)malloc(sizeof(TupleHeader));
-  	diskTuple.Read(buf, sizeof(TupleHeader), 0);
-	diskTuple.Read(memoryTuple, totalSize, sizeof(TupleHeader));
+	if (ok == true) {
+		char *buf = (char *)malloc(sizeof(TupleHeader));
+  		ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
+		ok = diskTuple.Read(memoryTuple, totalSize, sizeof(TupleHeader)) && ok;
 	
-	TupleHeader th = {0, 0};
-  	BufferToTupleHeader(buf, &th);
-  	free(buf);
+		TupleHeader th = {0, 0};
+  		BufferToTupleHeader(buf, &th);
+		
+  		free(buf);
 	
-	state = SolidRead;
+		state = SolidRead;
 
+		char *valuePtr = memoryTuple;
+		for (int i = 0; i < attrNum; i++) {
+			memcpy(attribInfo[i].value, valuePtr, attribInfo[i].size);
+			valuePtr = valuePtr + attributes->type[i].size;
+		}
+	}
+	
 	//lobFile = new SmiRecordFile(false);
 	//lobFile->Open(th.lobFileId);
 	
@@ -179,31 +184,33 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 }
 
 /* previously called Close. */
-//@ GETESTET
 Tuple::~Tuple() {
 	dbg("### Tuple::~Tuple() called.");
 	
 	// HIER MUESSEN GGF. SPAETER NOCH GEOEFFNETE LOBFILES GESCHLOSSEN WERDEN.
 
-	/*
+	
   	if (memoryTuple != 0) {
      	free(memoryTuple);
   	}
   
   	// delete attributes
   	for (int i = 0; i < attrNum; i++) {
-	    Unput(i);
+		attribInfo[i].decRefCount();
+		if ((attribInfo[i].refCount == 0) && (attribInfo[i].destruct == true)) {
+			attribInfo[i].deleteValue();
+		}
+		attribInfo[i].destruct = false;
   	}
 	  
   	if (attribInfo != 0) {
     	delete[] attribInfo;
   	}
-	*/
+
   	dbg("### Tuple::~Tuple() finished.");
 }
 
 /* Copies the content of a TupleHeader into a buffer. */
-//@ GETESTET
 void Tuple::TupleHeaderToBuffer(TupleHeader *th, char *str) {
 	dbg("### Tuple::TupleHeaderToBuffer(TupleHeader *th, char *str) called.");
 	memcpy(str, &(th->size), sizeof(int));
@@ -212,7 +219,6 @@ void Tuple::TupleHeaderToBuffer(TupleHeader *th, char *str) {
 }
 
 /* Recovers the data of a TupleHeader from a buffer. */
-//@ GETESTET
 void Tuple::BufferToTupleHeader(char *str, TupleHeader *th) {
 	dbg("### Tuple::BufferToTupleHeader(char *str, TupleHeader *th) called.");
 	memcpy(&(th->size), str, sizeof(int));
@@ -221,7 +227,6 @@ void Tuple::BufferToTupleHeader(char *str, TupleHeader *th) {
 }
 
 /* for debug purposes. */
-//@ GETESTET
 void Tuple::printBuffer(char *buf, int len) {
 	cout << "{";
 	for (int i = 0; i < len; i++) {
@@ -232,7 +237,6 @@ void Tuple::printBuffer(char *buf, int len) {
 }
 
 /* for debug purposes. */
-//@ GETESTET
 void Tuple::printMemoryTuple() {
 	cout << "{";
 	for (int i = 0; i < totalSize; i++) {
@@ -243,7 +247,6 @@ void Tuple::printMemoryTuple() {
 }
 
 /* for debug purposes. */
-//@ GETESTET
 void Tuple::printTupleHeader(TupleHeader th) {
 	cout << "{" << th.size << ", " << th.lobFileId << "}" << endl;
 }
@@ -252,16 +255,12 @@ void Tuple::printTupleHeader(TupleHeader th) {
 1.5.3 SaveTo
 
 */
-//@ GETESTET
 bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   	dbg("### bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) called.");
   
   	lobFile = lobfile;
   	recFile = tuplefile;
  	
-	free(memoryTuple);
-	memoryTuple = (char *)malloc(totalSize);
-	
   	/* move external attribue values to memory tuple */
   	int offset = 0;
   	for (int i = 0; i < attrNum; i++) {
@@ -350,10 +349,10 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
 1.5.4 Save
 
 */
-//@ GETESTET
 bool Tuple::Save() {
 	dbg("### bool Tuple::Save() called.");
 	
+	// To make fresh tuple persistent use SaveTo.
 	if (state == Fresh) {
 		return false;
 	}
@@ -367,10 +366,7 @@ bool Tuple::Save() {
 	}
 	
 	/* move external attribue values to memory tuple */
-  	if (hasChanged) {
-		free(memoryTuple);
-		memoryTuple = (char *)malloc(totalSize);
-		
+  	if (hasChanged == true) {
 		int offset = 0;
   		for (int i = 0; i < attrNum; i++) {
 			memcpy(&(memoryTuple[offset]), attribInfo[i].value, attribInfo[i].size);
@@ -438,7 +434,7 @@ bool Tuple::Save() {
 	// wahrscheinlich kann auf lobFile->GetFileId nicht zugegriffen werden!!!
 	
 	bool res = true;
-	if (hasChanged) {
+	if (hasChanged == true) {
 		/* Store memory tuple to disk tuple. */
 		//TupleHeader th = {totalSize, lobFile->GetFileId()};	
 		TupleHeader th = {totalSize, 0};
@@ -467,7 +463,6 @@ bool Tuple::Save() {
 1.5.5 Destroy
 
 */
-//@ GESTESTET 
 bool Tuple::Destroy() {
 	dbg("### bool Tuple::Destroy() called.");
 	bool rc = recFile->DeleteRecord(diskTupleId);
@@ -486,12 +481,15 @@ referenced by that tuple record.
 1.5.6 Put
 
 */
-//@ GETESTET
 bool Tuple::Put(int attrno, TupleElement *value) {
 	dbg("### bool Tuple::Put(int attrno, TupleElement *value) called.");
 	bool succ = false;
   	if ( (attrno < attrNum) && (attrno >= 0) ) {
+		attribInfo[attrno].decRefCount();
+		if ((attribInfo[attrno].refCount == 0) && 
+			(attribInfo[attrno].destruct == true)) attribInfo[attrno].deleteValue();
     	attribInfo[attrno].value = value;
+		attribInfo[attrno].incRefCount();
     	attribInfo[attrno].destruct = false;
     	attribInfo[attrno].parent = 0;
     	attribInfo[attrno].changed = true;
@@ -519,8 +517,26 @@ to be changed as the close operation is now the destructor !!!!
 1.5.7 DelPut
 
 */
+
 bool Tuple::DelPut(int attrno, TupleElement *value) {
-	return false;
+	dbg("### bool Tuple::DelPut(int attrno, TupleElement *value) called.");
+	bool succ = false;
+  	if ( (attrno < attrNum) && (attrno >= 0) ) {
+		attribInfo[attrno].decRefCount();
+		if ((attribInfo[attrno].refCount == 0) && 
+			(attribInfo[attrno].destruct == true)) 
+			attribInfo[attrno].deleteValue();
+    	attribInfo[attrno].value = value;
+    	attribInfo[attrno].destruct = true;
+    	attribInfo[attrno].parent = 0;
+    	attribInfo[attrno].changed = true;
+		attribInfo[attrno].incRefCount();
+    	succ = true;
+  	}
+	
+	dbg("### bool Tuple::DelPut(int attrno, TupleElement *value) finished.");
+
+ 	return succ; 
 }
 
 /*
@@ -529,7 +545,27 @@ bool Tuple::DelPut(int attrno, TupleElement *value) {
 */
 
 bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
-  	return false;
+	dbg("### bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) called.");
+  	bool succ = false;
+  	if (
+			(attrno_to < attrNum) && 
+			(attrno_to >= 0) && 
+			(attrno_from < tup->attrNum) && 
+			(attrno_from >= 0)) {
+		attribInfo[attrno_to].decRefCount();
+		if (attribInfo[attrno_to].destruct == true) attribInfo[attrno_to].deleteValue();
+    	attribInfo[attrno_to].value = tup->attribInfo[attrno_from].value;
+    	attribInfo[attrno_to].destruct = true;
+    	attribInfo[attrno_to].parent = &(tup->attribInfo[attrno_from]);
+    	attribInfo[attrno_to].changed = true;
+		attribInfo[attrno_to].incRefCount();
+    	succ = true;
+  	}
+	
+	dbg("### bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) finished.");
+
+ 	return succ; 
+
 }
 
 
@@ -537,7 +573,7 @@ bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 1.5.8 Get
 
 */
-//@ GETESTET
+
 TupleElement* Tuple::Get(int attrno) {
 	return ((attrno >= 0 && attrno < attrNum) ? attribInfo[attrno].value : 0);
 }
@@ -546,6 +582,7 @@ TupleElement* Tuple::Get(int attrno) {
 1.5.9 destruct
 
 */
+
 bool Tuple::destruct(int attrno) {
 	return ((attrno >= 0 && attrno < attrNum) ? attribInfo[attrno].destruct : false);
 }
@@ -555,7 +592,7 @@ bool Tuple::destruct(int attrno) {
 1.5.9 GetAttrNum
 
 */
-//@ GETESTET
+
 int Tuple::GetAttrNum(){ 
 	return attrNum;
 }
@@ -565,12 +602,12 @@ int Tuple::GetAttrNum(){
 1.5.9 GetSize
 
 */
-//@ GETESTET
+
 int Tuple::GetSize() {
 	return totalSize; 
 };
 
-//@ GETESTET
+
 ostream &Tuple::Print(ostream &os) {
   	os << "(";
 	
@@ -586,12 +623,12 @@ ostream &Tuple::Print(ostream &os) {
 Get a pointer to the attribute value with number ~attrno~. The ~attrno~ must be between 1 and k and the attribute must have assigned a value earlier.
 
 */
-//@ GETESTET
+
 ostream& operator<< (ostream &os, Tuple &tup) {
   	return tup.Print(os);
 }
 
-//@ GETESTET
+
 ostream &operator<< (ostream &os, TupleElement &attrib) {
   	return attrib.Print(os);
 }
