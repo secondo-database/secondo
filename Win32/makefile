@@ -12,7 +12,8 @@ OCIDLLHOME=$(ORACLEHOME)/bin
 BDB_BUILD_DIR=$(SECONDO_SDK)/db-4.1.25/build_win32
 
 LIBDIR := $(SECONDO_SDK)/lib
-INCDIR := $(SECONDO_SDK)/local/include
+INCDIR := $(SECONDO_SDK)/include
+BINDIR := $(SECONDO_SDK)/bin
 
 # --- Berkeley DB some files were modified in order to translate
 #     it with GCC. For Documentation of changes see directory Berkeley
@@ -69,10 +70,11 @@ install:
 	install -m744 $(BDB_BUILD_DIR)/*.h $(INCDIR)
 	install -m744 $(BDB_BUILD_DIR)/../dbinc/*.h $(INCDIR)
 	install -m755 $(BDBLIB_OBJECTS) $(LIBDIR)
-	install -m755 $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) /usr/local/bin
+	install -m755 $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) $(BINDIR) 
 
 .PHONY: berkeley_db
 $(BDBLIB_OBJECTS):
+	chmod -R u+w $(BDB_BUILD_DIR)
 	$(CP) $(NEW_BDB_FILES) $(BDB_BUILD_DIR)
 	make -C $(BDB_BUILD_DIR) -f $(MAKEFILE_BDB)
 

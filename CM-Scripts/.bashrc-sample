@@ -3,5 +3,5 @@
 #
 
 export SECONDO_CVS_USER=$USER
-source ./secondorc
+source ~/.secondorc
 

@@ -93,7 +93,7 @@ export LIBRARY_PATH="$SECONDO_SDK/lib:$SECONDO_BUILD_DIR/lib"
 if [ $SECONDO_PLATFORM != "win32" ]; then
    export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib:" 
 else
-   export PATH="$J2SDK_ROOT/jre/bin/client:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib"
+   export PATH="$PATH:$J2SDK_ROOT/jre/bin/client:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib"
 fi
 
 ## PD-System
@@ -107,4 +107,4 @@ else
 fi
 
 export PD_HEADER="$SECONDO_BUILD_DIR/Tools/pd/pd.header"
-export PATH=$PATH:"$SECONDO_BUILD_DIR/Tools/pd"
+export PATH="$PATH:$SECONDO_BUILD_DIR/Tools/pd"
