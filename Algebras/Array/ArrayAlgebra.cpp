@@ -5,7 +5,7 @@
 
 [1] Array Algebra
 
-Aug 2003 Oliver Lueck
+Sep 2003 Oliver Lueck
 
 The algebra provides a type constructor ~array~, which defines a generic
 array. The elements of the array must have a list representation.
@@ -518,6 +518,7 @@ sizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   return 0;
 }
+
 
 const string sizeSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -1271,7 +1272,8 @@ loopTypeMap( ListExpr args )
         && (nl->ListLength(mapDesc) == 3))
     {
       if (nl->IsEqual(nl->First(arrayDesc), "array") 
-          && nl->IsEqual(nl->First(mapDesc), "map"))
+          && nl->IsEqual(nl->First(mapDesc), "map")
+          && !nl->IsEqual(nl->Third(mapDesc), "typeerror"))
       {
         if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc)))
         {
@@ -1372,7 +1374,8 @@ loop2TypeMap( ListExpr args )
     {
       if (nl->IsEqual(nl->First(firstArrayDesc), "array") 
           && nl->IsEqual(nl->First(secondArrayDesc), "array")
-          && nl->IsEqual(nl->First(mapDesc), "map"))
+          && nl->IsEqual(nl->First(mapDesc), "map")
+          && !nl->IsEqual(nl->Fourth(mapDesc), "typeerror"))
       {
         if (nl->Equal(nl->Second(firstArrayDesc), nl->Second(mapDesc))
             && nl->Equal(nl->Second(secondArrayDesc), nl->Third(mapDesc)))
@@ -1457,42 +1460,187 @@ Operator loop2 (
 /*
 3.11 Operator ~loopswitch~
 
-The operator ~loopswitch~ evaluates each element of an array with the first 
-~or~ the second function. Both functions may get (approximately) the same time 
-for calculation, so that the faster function will process more elements 
+The operator ~loopswitch~ evaluates each element of an array with one of the 
+given functions. All functions may get (approximately) the same time for 
+calculation, so that the faster functions will process more elements 
 of the array.
 
 The formal specification of type mapping is:
 
----- ((array t) (map t r) (map t r)) -> (array r)
+---- ((array t) ((name1 (map t r)) ... (namen (map t r)))) -> (array r)
 ----
 
 */
 static ListExpr
 loopswitchTypeMap( ListExpr args )
 {
-  if (nl->ListLength(args) == 3) 
+  if (nl->ListLength(args) == 2) 
   {
     ListExpr arrayDesc = nl->First(args);
-    ListExpr firstmapDesc = nl->Second(args); 
-    ListExpr secondmapDesc = nl->Third(args);
+    ListExpr funlist = nl->Second(args);
 
     if ((nl->ListLength(arrayDesc) == 2)
-        && (nl->ListLength(firstmapDesc) == 3))
+        && (nl->IsEqual(nl->First(arrayDesc), "array")))
     {
-      if (nl->IsEqual(nl->First(arrayDesc), "array") 
-          && nl->IsEqual(nl->First(firstmapDesc), "map")
-          && nl->Equal(firstmapDesc, secondmapDesc))
+      ListExpr firstFunDesc = nl->First(funlist);
+      funlist = nl->Rest(funlist);
+
+      ListExpr funNames = nl->TheEmptyList();
+      ListExpr last;
+
+      ListExpr firstMapDesc;
+
+      if (nl->ListLength(firstFunDesc) == 2)
       {
-        if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
+        ListExpr firstFunName = nl->First(firstFunDesc);
+        firstMapDesc = nl->Second(firstFunDesc);
+
+        if ((nl->AtomType(firstFunName) == SymbolType)
+            && (nl->ListLength(firstMapDesc) == 3))
         {
-          return nl->TwoElemList(nl->SymbolAtom("array"),
-                               nl->Third(firstmapDesc));
+           if ((nl->IsEqual(nl->First(firstMapDesc), "map"))
+                && (!nl->IsEqual(nl->Third(firstMapDesc), "typeerror"))
+                && (nl->Equal(nl->Second(firstMapDesc),nl->Second(arrayDesc))))
+          {
+            funNames = nl->OneElemList(nl->StringAtom(nl->SymbolValue(firstFunName)));
+            last = funNames;
+          }
+        }
+      }
+
+      if (!nl->IsEmpty(funNames))
+      {
+        bool ok = true;
+
+        while (!nl->IsEmpty(funlist) && ok)
+        {
+          ListExpr funDesc = nl->First(funlist);
+
+          if (nl->ListLength(funDesc) == 2)
+          {
+            ListExpr funName = nl->First(funDesc);
+            ListExpr mapDesc = nl->Second(funDesc);
+
+            if ((nl->AtomType(funName) == SymbolType)
+                && (nl->Equal(mapDesc, firstMapDesc)))
+            {
+              last = nl->Append(last, nl->StringAtom(nl->SymbolValue(funName)));
+            }
+            else { ok = false; }
+          }
+          else { ok = false; }
+
+          funlist = nl->Rest(funlist);
+        }
+
+        if (ok) {
+          return nl->ThreeElemList(
+                       nl->SymbolAtom("APPEND"),
+                       funNames,
+                       nl->TwoElemList(
+                         nl->SymbolAtom("array"),
+                         nl->Third(firstMapDesc)));
         }
       }
     }
   }
+
   return nl->SymbolAtom("typeerror");
+}
+
+class FunInfo { 
+  friend bool operator<(const FunInfo&, const FunInfo&);
+  friend ostream& operator<<(ostream&, const FunInfo&);
+  public :
+    void initialize(int, string);
+    int getNo();
+    string getName();
+    double getTime();
+    void plus(double);
+  private :
+    int no;
+    string name;
+    int timesUsed;
+    double consumedTime;
+};
+
+bool operator<(const FunInfo& f1, const FunInfo& f2) {
+  return (f1.no < f2.no);
+}
+
+ostream& operator<<(ostream& stream, const FunInfo& f) {
+  return stream << "function " << f.name << " used " << f.timesUsed << " times, "
+                << "used CPU time: " << f.consumedTime << " seconds.";
+}
+
+void FunInfo::initialize(int No, string Name) {
+  no = No;
+  name = Name;
+  timesUsed = 0;
+  consumedTime = 0;
+}
+
+int FunInfo::getNo() {
+  return no;
+}
+
+string FunInfo::getName() {
+  return name;
+}
+
+double FunInfo::getTime() {
+  return consumedTime;
+}
+
+void FunInfo::plus(double time) {
+  timesUsed++;
+  consumedTime += time;
+}
+
+void reorder(vector<FunInfo>& funInfo) {
+
+  int n=funInfo.size();
+  int l=0;
+  int r=n;
+  int m;
+
+  do {
+    m = (l+r) / 2;
+
+    if (funInfo[m].getTime() <= funInfo[0].getTime()) {
+      l = m; 
+    } 
+    else {
+      r = m;
+    }
+  }
+  while ( (m < (n-1)) && !((funInfo[m].getTime() <= funInfo[0].getTime()) 
+                             && (funInfo[0].getTime() < funInfo[m+1].getTime())) );
+
+  funInfo.insert(funInfo.begin() + m + 1, funInfo[0]);
+  funInfo.erase(funInfo.begin());
+}
+
+int getmin(vector<FunInfo>& funInfo) {
+
+  int n=funInfo.size();
+  int min=0;
+
+  for (int i=1; i<n; i++) {
+    if (funInfo[i].getTime() < funInfo[min].getTime()) {
+      min = i;
+    }
+  }
+
+  return min;
+}
+
+void Request(Supplier s, Word& funresult, double& timediff) {
+
+  clock_t c1 = clock();
+  qp->Request(s, funresult);
+  clock_t c2 = clock();
+  timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
 }
 
 static int
@@ -1500,19 +1648,22 @@ loopswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
 
-  Array* array = ((Array*)args[0].addr);
+  Array* array = (Array*)args[0].addr;
 
-  ArgVectorPointer funargs[2];
-  funargs[0] = qp->Argument(args[1].addr);
-  funargs[1] = qp->Argument(args[2].addr);
+  Supplier funSupplier = (Supplier)args[1].addr;
+  Supplier supplier1;
+  Supplier supplier2;
 
-  Word funresult;
+  ArgVectorPointer funargs;
 
-  double consumedTime[2] = {0, 0};
-  int funCount[2] = {0, 0};
-  int selectedFun;
+  int noOfFuns = qp->GetNoSons(funSupplier);
 
-  double timediff;
+  vector<FunInfo> funInfo(noOfFuns);
+
+  for (int i=0; i<noOfFuns; i++) {
+    STRING* name = ((CcString*)args[2+i].addr)->GetStringval();
+    funInfo[i].initialize(i, *name);
+  }
 
   ListExpr type = qp->GetType(s);
   ListExpr typeOfElement = sc->NumericType(nl->Second(type));
@@ -1525,33 +1676,44 @@ loopswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int n = array->getSize();
 
   Word a[n];
+  Word funresult;
+
+  int selectedFun;
+  double timediff;
 
   for (int i=0; i<n; i++) {
-    selectedFun = (consumedTime[0] <= consumedTime[1]) ? 0 : 1;
+    selectedFun = funInfo[0].getNo();
 
-    (*funargs[selectedFun])[0] = array->getElement(i);
+    supplier1 = qp->GetSupplier(funSupplier, selectedFun);
+    supplier2 = qp->GetSupplier(supplier1, 1);
 
-    cout << "Operator loopswitch, element " << i << ", function " 
-         << selectedFun + 1 << ", ";
-    clock_t c1 = clock();
+    funargs = qp->Argument(supplier2);
 
-    qp->Request(args[selectedFun + 1].addr, funresult);
+    (*funargs)[0] = array->getElement(i);
 
-    clock_t c2 = clock();
-    timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
-    consumedTime[selectedFun] += timediff;
-    funCount[selectedFun]++;
+    cout << "Operator loopswitch, element " << i << ", function "
+         << funInfo[0].getName() << ", ";
 
-    cout << "used CPU time: " << timediff << " (" << consumedTime[selectedFun] 
+    Request(supplier2, funresult, timediff);
+
+    funInfo[0].plus(timediff);
+    cout << "used CPU time: " << timediff << " (" << funInfo[0].getTime() 
          << ") seconds." << endl;
 
     a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
+
+    if (noOfFuns > 1) {
+      if (funInfo[0].getTime() > funInfo[1].getTime()) {
+        reorder(funInfo);
+      }
+    }
+
   }
 
-  for (int i=0; i<=1; i++) {
-    cout << "Operator loopswitch, summary, function " << i + 1 << " used " 
-         << funCount[i] << " times, used CPU time: " << consumedTime[i] 
-         << " seconds." << endl;
+  sort(funInfo.begin(), funInfo.end());
+
+  for (int i=0; i<noOfFuns; i++) {
+    cout << "Operator loopswitch, summary, " << funInfo[i] << "\n";
   }
 
   result = qp->ResultStorage(s);
@@ -1563,14 +1725,13 @@ loopswitchFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 const string loopswitchSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (map t r) (map t r)) -> (array r)</text--->"
-       "<text>_ loopswitch [ fun, fun ]</text--->"
-       "<text>Evaluates each element of an array with the first or the "
-       "second function. Both functions may get (approximately) the same "
-       "time for calculation, so that the \"faster\" function will process "
-       "more elements of the array.</text--->"
-       "<text>query ai loopswitch[fun(i:int)(i*2), fun(l:int)(l+l)]"
-       "</text---> ))";
+     "( <text>((array t) ((name1 (map t r)) ... (namen (map t r)))) -> (array r)</text--->"
+       "<text>_ loopswitch [ funlist ]</text--->"
+       "<text>Evaluates each element of an array with one of the given "
+       "functions. All functions may get (approximately) the same time for "
+       "calculation, so that the \"faster\" function will process more "
+       "elements of the array.</text--->"
+       "<text>query ai loopswitch[f:fun(i:int)(i*2), g:fun(l:int)(l+l)]</text---> ))";
 
 Operator loopswitch (
 	"loopswitch",
@@ -1584,13 +1745,13 @@ Operator loopswitch (
 /*
 3.12 Operator ~loopselect~
 
-The operator ~loopselect~ evaluates the first n elements of the array with 
-~both~ functions and cumulates the used calculation times. The remaining elements 
-are processed with the (so far) faster function.
+The operator ~loopselect~ evaluates the first n elements of the array with each 
+of the given functions and cumulates the used calculation times. The remaining 
+elements are processed with the (so far) fastest function.
 
 The formal specification of type mapping is:
 
----- ((array t) (map t r) (map t r) int real) -> (array r)
+---- ((array t) ((name1 (map t r)) ... (namen (map t r))) int real) -> (array r)
 ----
 
 The above mentioned parameter n is given by the int- and the real-
@@ -1603,27 +1764,15 @@ n := min(arraySize, max(x, y * arraySize))
 static ListExpr
 loopselectTypeMap( ListExpr args )
 {
-  if (nl->ListLength(args) == 5) 
+  if (nl->ListLength(args) == 4) 
   {
     ListExpr arrayDesc = nl->First(args);
-    ListExpr firstmapDesc = nl->Second(args); 
-    ListExpr secondmapDesc = nl->Third(args);
+    ListExpr funlist = nl->Second(args); 
 
-    if ((nl->ListLength(arrayDesc) == 2)
-        && (nl->ListLength(firstmapDesc) == 3))
+    if (nl->IsEqual(nl->Third(args), "int")
+        && nl->IsEqual(nl->Fourth(args), "real"))
     {
-      if (nl->IsEqual(nl->First(arrayDesc), "array") 
-          && nl->IsEqual(nl->First(firstmapDesc), "map")
-          && nl->Equal(firstmapDesc, secondmapDesc)
-          && nl->IsEqual(nl->Fourth(args), "int")
-          && nl->IsEqual(nl->Fifth(args), "real"))
-      {
-        if (nl->Equal(nl->Second(arrayDesc), nl->Second(firstmapDesc)))
-        {
-          return nl->TwoElemList(nl->SymbolAtom("array"),
-                                 nl->Third(firstmapDesc));
-        }
-      }
+      return loopswitchTypeMap(nl->TwoElemList(arrayDesc, funlist));
     }
   }
 
@@ -1637,23 +1786,26 @@ loopselectFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   Array* array = ((Array*)args[0].addr);
 
-  ArgVectorPointer funargs[2];
-  funargs[0] = qp->Argument(args[1].addr);
-  funargs[1] = qp->Argument(args[2].addr);
+  Supplier funSupplier = (Supplier)args[1].addr;
+  Supplier supplier1;
+  Supplier supplier2;
 
-  CcInt* absTestCcInt = ((CcInt*)args[3].addr);
+  ArgVectorPointer funargs;
+
+  CcInt* absTestCcInt = ((CcInt*)args[2].addr);
   int absTest = absTestCcInt->GetIntval();
 
-  CcReal* relTestCcReal = ((CcReal*)args[4].addr);
+  CcReal* relTestCcReal = ((CcReal*)args[3].addr);
   double relTest = relTestCcReal->GetRealval();
 
-  Word funresult;
+  int noOfFuns = qp->GetNoSons(funSupplier);
 
-  double consumedTime[2] = {0, 0};
-  int funCount[2] = {0, 0};
-  int selectedFun;
+  vector<FunInfo> funInfo(noOfFuns);
 
-  double timediff;
+  for (int i=0; i<noOfFuns; i++) {
+    STRING* name = ((CcString*)args[4+i].addr)->GetStringval();
+    funInfo[i].initialize(i, *name);
+  }
 
   ListExpr type = qp->GetType(s);
   ListExpr typeOfElement = sc->NumericType(nl->Second(type));
@@ -1674,62 +1826,60 @@ loopselectFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int test = max(absTest, (int)(n * relTest));
 
   Word a[n];
+  Word funresult;
+
+  int selectedFun;
+
+  double timediff;
 
   for (int i=0; i<n; i++) {
 
     if (i < test) {
+      for (int j=0; j<noOfFuns; j++) {
+        supplier1 = qp->GetSupplier(funSupplier, funInfo[j].getNo());
+        supplier2 = qp->GetSupplier(supplier1, 1);
 
-      for (int j=0; j<=1; j++) {
-        (*funargs[j])[0] = array->getElement(i);
+        funargs = qp->Argument(supplier2);
+
+        (*funargs)[0] = array->getElement(i);
 
         cout << "Operator loopselect, element " << i << ", function " 
-             << j + 1 << ", ";
+             << funInfo[j].getName() << ", ";
 
-        clock_t c1 = clock();
+        Request(supplier2, funresult, timediff);
 
-        qp->Request(args[j + 1].addr, funresult);
-
-        clock_t c2 = clock();
-        timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
-        consumedTime[j] += timediff;
-        funCount[j]++;
-
-        cout << "used CPU time: " << timediff << " (" << consumedTime[j] 
+        funInfo[j].plus(timediff);
+        cout << "used CPU time: " << timediff << " (" << funInfo[j].getTime()
              << ") seconds." << endl;
       }
     }
     else {
-
       if (i == test) {
-        selectedFun = consumedTime[0] <= consumedTime[1] ? 0 : 1;
+        selectedFun = getmin(funInfo);
+
+        supplier1 = qp->GetSupplier(funSupplier, funInfo[selectedFun].getNo());
+        supplier2 = qp->GetSupplier(supplier1, 1);
+
+        funargs = qp->Argument(supplier2);
       }
 
-      (*funargs[selectedFun])[0] = array->getElement(i);
+      (*funargs)[0] = array->getElement(i);
 
       cout << "Operator loopselect, element " << i << ", function " 
-           << selectedFun + 1 << ", ";
+           << funInfo[selectedFun].getName() << ", ";
 
-      clock_t c1 = clock();
+      Request(supplier2, funresult, timediff);
 
-      qp->Request(args[selectedFun + 1].addr, funresult);
-
-      clock_t c2 = clock();
-      timediff = (double)(c2 - c1) / CLOCKS_PER_SEC;
-      consumedTime[selectedFun] += timediff;
-      funCount[selectedFun]++;
-
-      cout << "used CPU time: " << timediff << " (" 
-           << consumedTime[selectedFun] << ") seconds." << endl;
-
+      funInfo[selectedFun].plus(timediff);
+      cout << "used CPU time: " << timediff << " (" << funInfo[selectedFun].getTime()
+           << ") seconds." << endl;
     }
 
     a[i] = genericClone(algebraId, typeId, typeOfElement, funresult);
   }
 
-  for (int i=0; i<=1; i++) {
-    cout << "Operator loopselect, summary, function " << i + 1 
-         << " used " << funCount[i] << " times, used CPU time: " 
-         << consumedTime[i] << " seconds." << endl;
+  for (int i=0; i<noOfFuns; i++) {
+    cerr << "Operator loopselect, summary, " << funInfo[i] << "\n";
   }
 
   result = qp->ResultStorage(s);
@@ -1741,14 +1891,13 @@ loopselectFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 const string loopselectSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (map t r) (map t r) int real) -> (array r)</text--->"
-       "<text>_ loopselect [ fun, fun, int, real ]</text--->"
-       "<text>Evaluates the first \"n\" elements of the array with both "
-       "functions and cumulates the used calculation times. The remaining "
-       "elements are processed with the (so far) \"faster\" function."
-       "</text--->"
-       "<text>query ai loopselect[fun(i:int)(i*2), fun(l:int)(l+l), 10, 0.1]"
-       "</text---> ))";
+     "( <text>((array t) ((name1 (map t r)) ... (namen (map t r))) int real) -> (array r)</text--->"
+       "<text>_ loopselect [ funlist; _, _ ]</text--->"
+       "<text>Evaluates the first \"n\" elements of the array with each of "
+       "the given functions and cumulates the used calculation times. The "
+       "remaining elements are processed with the (so far) \"fastest\" "
+       "function.</text--->"
+       "<text>query ai loopselect[f:fun(i:int)(i*2), g:fun(l:int)(l+l); 10, 0.1]</text---> ))";
 
 Operator loopselect (
 	"loopselect",
@@ -1760,7 +1909,7 @@ Operator loopselect (
 );
 
 /*
-3.12 Operator ~partjoin~
+3.13 Operator ~partjoin~
 
 The operator ~partjoin~ allows to calculate joins between two partitioned 
 relations (two arrays of relations) in an efficient way.
@@ -1870,8 +2019,7 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
   Acum->Empty();
   Bcum->Empty();
 
-  clock_t c1;
-  clock_t c2;
+  double timediff;
 
   if ((i-j) <= (n-m)) {
     while ((i-j) <= (n-m)) {
@@ -1880,13 +2028,9 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
       (*funargs)[0] = firstArray->getElement(i);
       (*funargs)[1] = secondArray->getElement(j);
 
-      c1 = clock();
+      Request(args[2].addr, funresult, timediff);
 
-      qp->Request(args[2].addr, funresult);
-
-      c2 = clock();
-      cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
-           << " seconds." << endl;
+      cout << ", used CPU time: " << timediff << " seconds." << endl;
 
       a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
 
@@ -1905,13 +2049,9 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
       (*funargs)[0] = firstArray->getElement(i);
       (*funargs)[1] = secondArray->getElement(j);
 
-      c1 = clock();
+      Request(args[2].addr, funresult, timediff);
 
-      qp->Request(args[2].addr, funresult);
-
-      c2 = clock();
-      cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
-           << " seconds." << endl;
+      cout << ", used CPU time: " << timediff << " seconds." << endl;
 
       a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
 
@@ -1930,13 +2070,9 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
     (*funargs)[0] = SetWord(Acum);
     (*funargs)[1] = secondArray->getElement(j);
 
-    c1 = clock();
+    Request(args[2].addr, funresult, timediff);
 
-    qp->Request(args[2].addr, funresult);
-
-    c2 = clock();
-    cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
-         << " seconds." << endl;
+    cout << ", used CPU time: " << timediff << " seconds." << endl;
 
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
 
@@ -1945,13 +2081,9 @@ partjoinFun (Word* args, Word& result, int message, Word& local, Supplier s)
     (*funargs)[0] = firstArray->getElement(i);
     (*funargs)[1] = SetWord(Bcum);
 
-    c1 = clock();
+    Request(args[2].addr, funresult, timediff);
 
-    qp->Request(args[2].addr, funresult);
-
-    c2 = clock();
-    cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
-         << " seconds." << endl;
+    cout << ", used CPU time: " << timediff << " seconds." << endl;
 
     a[c++] = genericClone(algebraId, typeId, typeOfElement, funresult);
 
@@ -1989,7 +2121,7 @@ Operator partjoin (
 );
 
 /*
-3.13 Operator ~sortarray~
+3.14 Operator ~sortarray~
 
 The operator ~sortarray~ sorts an array in order of the function values
 of the elements.
@@ -2108,7 +2240,7 @@ Operator sortarray (
 );
 
 /*
-3.14 Operator ~tie~
+3.15 Operator ~tie~
 
 The operator calculates a single "value" of an array by evaluating the 
 elements of an array with a given function from left to right, e.g.
@@ -2179,8 +2311,10 @@ tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     qp->Request(args[1].addr, funresult);
 
-    (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(partResult);
-    partResult = genericClone(algebraId, typeId, typeOfElement, funresult);
+    if (funresult.addr != partResult.addr) {
+      (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(partResult);
+       partResult = genericClone(algebraId, typeId, typeOfElement, funresult);
+    }
   }
 
   result.addr = partResult.addr;
@@ -2206,7 +2340,7 @@ Operator tie (
 );
 
 /*
-3.15 Operator ~cumulate~
+3.16 Operator ~cumulate~
 
 The operator cumulates the values of the array under a given function. The 
 i-th element of the resulting array is the concatination from the first to 
@@ -2281,8 +2415,10 @@ cumulateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Request(args[1].addr, funresult);
 
-      (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(cumResult);
-      cumResult = genericClone(algebraId, typeId, typeOfElement, funresult);
+      if (funresult.addr != cumResult.addr) {
+        (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(cumResult);
+        cumResult = genericClone(algebraId, typeId, typeOfElement, funresult);
+      }
     }
 
     a[i] = genericClone(algebraId, typeId, typeOfElement, cumResult);
