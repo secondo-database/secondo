@@ -53,6 +53,7 @@ November 2002 M. Spiekermann, method reportVectorSizes added.
 
 Jan - May 2003 M. Spiekermann, CTable implemented on top of the PArray template. 
 
+June 2004 M. Spiekermann, 
 
 1.1 Concept
 
@@ -495,33 +496,14 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 
 /*********************************************************************
 
-1.7.1 Serialization
-
-*NOTE*: The methods ~Load~ and ~Save~ for support of serialization are currently
-not implemented. Since the class ~CTable~ is based on the C++ template mechanism
-the type of the slots of compact table could be any C++ class. To support
-serialization it would be necessary to have a common base class to all classes
-used as template types. This would be quite limiting.
+1.7.0 Object State
 
 
 */
 
-//  bool Load( string const fileName );
-
-/*
-
-Loads a table from file ~fileName~. 
-
-   If the return value is "false"[4] something went wrong.
-
-
-*/
-
-//  bool Save( string const fileName );
+  const string& StateToStr(); 
 
 /* 
-
-Saves the ~Compact Table~ to file ~fileName~. 
 
 
 1.7.1 Private Members
@@ -533,40 +515,24 @@ private:
 
 #ifdef CTABLE_PERSISTENT
 
-  void initialize(); // Define default values;
- 
-  struct ObjectState {    // Reflects the state of an instance. Used for persistence.
-  
-   SmiRecordId tableId;   // Record ids of stored PArray objects.
-   SmiRecordId validId;
-   SmiFileId fileId;
-   Cardinal elemCount;   // state of the CTable
-   Cardinal leastFree;
-   Cardinal highestValid;	
-  };
- 
-  bool setFALSE;     // variables needed for the PArray.Put(int index, T& elem) method
-  bool setTRUE;
+  bool setFALSE;     // Reference Values needed for the 
+  bool setTRUE;      // PArray.Put(int index, T& elem) method
   T* dummyElem;
 
   PagedArray<T>* table;        // Array of table elements
   PagedArray<bool>* valid;     // Array of table element states
-
-  Cardinal elemCount;      // Size of compact table
-  Cardinal leastFree;      // Position of free slot
-  Cardinal highestValid;   // Position of highest valid slot
  
 #else
 
   std::vector<T> table;       // Array of table elements
   std::vector<bool> valid;    // Array of table element states
 
+#endif
+
+  bool isPersistent; // Flag indicating the implemented model
   Cardinal elemCount;      // Size of compact table
   Cardinal leastFree;      // Position of free slot
   Cardinal highestValid;   // Position of highest valid slot
-  
-
-#endif
 };
 
 
@@ -578,7 +544,6 @@ private:
 */
 
 
-#ifdef CTABLE_PERSISTENT
 /*
 
 1.1 Size of a CTable
@@ -588,10 +553,7 @@ private:
 template<typename T>
 
 Cardinal
-CTable<T>::Size() {
-
-  return elemCount;
-}
+CTable<T>::Size() { return elemCount; }
 
 /*
 
@@ -602,10 +564,36 @@ CTable<T>::Size() {
 template<typename T>
 
 Cardinal
-CTable<T>::NoEntries() {
+CTable<T>::NoEntries() { return highestValid; }
 
-  return highestValid;
+
+template<typename T>
+
+string
+CTable<T>::MemoryModel() {
+
+  if ( !isPersistent) {
+    return "NON-PERSISTENT";
+  } else {
+    return "PERSISTENT";
+  }
 }
+
+
+template<typename T>
+
+const string&
+StateToStr() {
+
+  stringstream st;
+  st << "( elemCount=" << ElemCount 
+     << ", leastFree=" << leastFree
+     << ", highestValid= " << highestValid << ends;
+  
+  return st.str();  
+} 
+
+
 
 /*
 
@@ -745,8 +733,6 @@ CTable<T>::Iterator::EndOfScan() const {
 1.1.1 Inclusion of the implementation dependent parts
 
 */
-
-#endif
 
 #ifdef CTABLE_PERSISTENT
 #include "PCTable.cpp"

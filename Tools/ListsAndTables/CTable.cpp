@@ -21,20 +21,19 @@ using namespace std;
 
 */
 
-template<typename T>
-
-string
-CTable<T>::MemoryModel() {
-	return "NON-PERSISTENT";
-}
 
 
 template<typename T>
 
-CTable<T>::CTable( Cardinal const count )
+CTable<T>::CTable( Cardinal const count ) : 
+isPersistent(false),
+elemCount(count),
+leastFree(1),
+highestValid(0)
 {
   assert( count > 0 );
 
+  // initialize vectors
   table.resize( count );
   valid.resize( count );
 
@@ -42,33 +41,13 @@ CTable<T>::CTable( Cardinal const count )
   {
     valid[j] = false;
   }
-
-  elemCount    = count;
-  leastFree    = 1;
-  highestValid = 0;
-
 }
 
 
 template<typename T>
 
-CTable<T>::~CTable() { 
-}
+CTable<T>::~CTable() {}
 
-
-/*
-
-1.1 Size of a CTable
-
-*/
-
-template<typename T>
-
-Cardinal
-CTable<T>::Size()
-{
-  return elemCount;
-}
 
 template<typename T>
 
@@ -90,31 +69,7 @@ CTable<T>::totalMemory(Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAcces
 
 /*
 
-1.1 Number of entries in a CTable
-
-
-
-*/
-
-template<typename T>
-
-Cardinal
-
-CTable<T>::NoEntries()
-
-{
-
-  return highestValid;
-
-}
-
-
-
-/*
-
 1.1 Access of an element as an lvalue
-
-
 
 */
 
@@ -128,7 +83,6 @@ CTable<T>::operator[]( Cardinal n ) {
   if ( n == leastFree ) {
 
     do {
-
       ++leastFree;
     }
     while ( leastFree <= elemCount && valid[leastFree-1] );
@@ -136,9 +90,9 @@ CTable<T>::operator[]( Cardinal n ) {
 
   valid[n-1] = true;
 
-  if (highestValid < n)
-
+  if (highestValid < n) {
     highestValid = n;
+  }
 
   return table[n-1];
 }
@@ -156,7 +110,6 @@ const T&
 CTable<T>::operator[]( Cardinal n ) const {
 
   assert( n > 0 && n <= elemCount );
-
   return table[n-1];
 }
 
@@ -183,8 +136,6 @@ CTable<T>::Put( Cardinal const n, T& elem ) {
 
 1.1 Check whether an element is valid
 
-
-
 */
 
 template<typename T>
@@ -194,7 +145,6 @@ bool
 CTable<T>::IsValid( Cardinal const index ) {
 
   assert( index > 0 && index <= elemCount );
-
   return valid[index-1];
 }
 
@@ -278,64 +228,7 @@ CTable<T>::Remove( Cardinal const index )
 
 /*
 
-1.1 Creation of a Begin iterator
-
-
-
-*/
-
-template<typename T>
-
-typename CTable<T>::Iterator
-
-CTable<T>::Begin()
-{
-  return CTable<T>::Iterator( this );
-}
-
-
-
-/*
-
-1.1 Creation of an End iterator
-
-
-
-*/
-
-template<typename T>
-
-typename CTable<T>::Iterator
-
-CTable<T>::End()
-{
-  return CTable<T>::Iterator( this, false );
-}
-
-
-
-/*
-
-1.1 Default constructor for iterator
-
-
-
-*/
-
-template<typename T>
-
-CTable<T>::Iterator::Iterator() : ct(0), current(0)
-{
-
-}
-
-
-
-/*
-
 1.1 Constructor for iterator
-
-
 
 */
 
@@ -349,47 +242,15 @@ CTable<T>::Iterator::Iterator( CTable<T>* ctPtr )
 
   while ( current < ct->highestValid && !ct->valid[current] )
   {
-
     ++current;
   }
 
 }
 
 
-
-template<typename T>
-
-CTable<T>::Iterator::Iterator( CTable<T>* ctPtr, bool )
-{
-  ct      = ctPtr;
-  current = ct->highestValid;
-}
-
-
-
-/*
-
-1.1 Copy constructors for iterator
-
-
-
-*/
-
-template<typename T>
-
-CTable<T>::Iterator::Iterator( Iterator const &other )
-{
-  ct      = other.ct;
-  current = other.current;
-}
-
-
-
 /*
 
 1.1 Dereference of an iterator
-
-
 
 */
 
@@ -400,37 +261,13 @@ CTable<T>::Iterator::operator*() const
 {
   assert( ct != 0 );
   assert( current < ct->elemCount && ct->valid[current] );
-
   return ct->table[current];
 }
-
-
-
-/*
-
-1.1 Iterator assignment
-
-
-*/
-
-template<typename T>
-
-typename CTable<T>::Iterator&
-
-CTable<T>::Iterator::operator=( CTable<T>::Iterator const &other )
-{
-  ct      = other.ct;
-  current = other.current;
-
-  return *this;
-}
-
 
 
 /*
 
 1.1 Iterator increment (prefix and postfix notation)
-
 
 */
 
@@ -441,9 +278,7 @@ typename CTable<T>::Iterator&
 CTable<T>::Iterator::operator++()
 {
   assert( ct != 0 );
-
   while ( current < ct->highestValid && !ct->valid[++current] );
-
   return *this;
 }
 
@@ -456,76 +291,9 @@ const typename CTable<T>::Iterator
 CTable<T>::Iterator::operator++( int )
 {
   assert( ct != 0 );
-
   CTable<T>::Iterator temp( *this );
-
   while (current < ct->highestValid && !ct->valid[++current] );
-
   return temp;
 }
 
 
-
-/*
-
-1.1 Iterator comparison (equality and inequality)
-
-
-
-*/
-
-template<typename T>
-
-bool
-CTable<T>::Iterator::operator==( const Iterator& other ) const
-{
-  return (ct == other.ct) && (current == other.current);
-}
-
-
-
-template<typename T>
-
-bool
-CTable<T>::Iterator::operator!=( const Iterator& other ) const
-{
-  return (ct != other.ct) || (current != other.current);
-}
-
-
-/*
-
-1.1 Index of element iterator is pointing to
-
-
-*/
-
-template<typename T>
-
-Cardinal
-CTable<T>::Iterator::GetIndex() const
-{
-  assert( ct != 0 );
-
-  return current+1;
-}
-
-
-
-/*
-
-1.1 Test for end of scan
-
-
-
-*/
-
-template<typename T>
-
-bool
-CTable<T>::Iterator::EndOfScan() const
-{
-  assert( ct != 0 );
-
-  return current >= ct->highestValid;
-}

@@ -160,17 +160,10 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
    //cout << endl << "### NestedList::initializeListMemory" << endl;
    DeleteListMemory();
 
-#ifdef CTABLE_PERSISTENT
-      nodeTable   = new CTable<NodeRecord>(NodeEntries / 10);
-      intTable    = new CTable<Constant>(ConstEntries / 100);
-      stringTable = new CTable<StringRecord>(StringEntries / 100);
-      textTable   = new CTable<TextRecord>(TextEntries / 100);
-#else
-      nodeTable   = new CTable<NodeRecord>(NodeEntries);
-      intTable    = new CTable<Constant>(ConstEntries);
-      stringTable = new CTable<StringRecord>(StringEntries);
-      textTable   = new CTable<TextRecord>(TextEntries);
-#endif
+   nodeTable   = new CTable<NodeRecord>(NodeEntries);
+   intTable    = new CTable<Constant>(ConstEntries);
+   stringTable = new CTable<StringRecord>(StringEntries);
+   textTable   = new CTable<TextRecord>(TextEntries);
 }
 
 

@@ -31,34 +31,15 @@ presented here may be used as a first draft when implementing such a constructor
 
 template<typename T>
 
-string
-CTable<T>::MemoryModel() {
-	return "PERSISTENT";
-}
-
-
-
-template<typename T>
-
-void
-CTable<T>::initialize() {
-
-  setTRUE = true;
-  setFALSE = false;
-
-}
-
-
-template<typename T>
-
 CTable<T>::CTable(  Cardinal const count ) : 
+ setFALSE(false),
+ setTRUE(true),
  dummyElem(new T()),
+ isPersistent(true),
  elemCount(0), 
  leastFree(1),  
  highestValid(0)
 {
-
- initialize(); 
 
   //cout << endl << "### CTable<T>::CTable(" << endl 
   //             << "ptr2RecFile: " << (void*) ptr2RecFile << endl;
@@ -67,6 +48,7 @@ CTable<T>::CTable(  Cardinal const count ) :
   // one, hence count is used to define the initial buffer size.
   // There seems to be some administration data for each record, since 
   // Berkeley-DB cannot create records of the full pagesize.
+
   table = new PagedArray<T>(WinUnix::getPageSize()-100, count, true);
   valid = new PagedArray<bool>(WinUnix::getPageSize()-100, count, true);
 
@@ -114,11 +96,10 @@ CTable<T>::Put( Cardinal const n,  T& elem ) {
 
   assert( n > 0 && n <= elemCount );
 
-  if ( n == leastFree ) {
+  if ( n == leastFree ) { // find the next free slot
 
     bool isvalid = false;
     do {
-
       ++leastFree;      
       valid->Get(leastFree-1, isvalid);
     }
@@ -126,13 +107,12 @@ CTable<T>::Put( Cardinal const n,  T& elem ) {
   }
 
   valid->Put(n-1, setTRUE);
+  table->Put(n-1, elem);
 
   if (highestValid < n) {
-
     highestValid = n;
   }
   
-  table->Put(n-1, elem);
 }
 
 
@@ -167,19 +147,20 @@ CTable<T>::operator[]( Cardinal n ) {
 
   static Cardinal lastIndex = 0;
   static T elem;
-  T* elemPtr = new T;
 
   if ( !(n > 0 && n <= elemCount) ) {
-     cout << "Type " << typeid(elem).name() << " called operator[" << n << "]" << endl;
+     cout << "An instance of CTable<" << typeid(elem).name() 
+          << "> called operator[" << n << "]"
+          << "but ElemCount is " << elemCount << endl;
      assert( n > 0 && n <= elemCount );
   }
 
-  //if ( lastIndex != n ) { // check if call of Get() is necessary
-    table->Get(n-1, *elemPtr);
+  if ( lastIndex != n ) { // check if call of Get() is necessary
+    table->Get(n-1, elem);
     lastIndex = n;
-  //}
+  }
 
-  return *elemPtr;
+  return elem;
 }
 
 
@@ -229,9 +210,9 @@ const Cardinal
 CTable<T>::Add( const T& element ) {
 
   Cardinal index = EmptySlot();
-  valid->Put(index-1, setTRUE);
-  
+
   T elem = element;
+  valid->Put(index-1, setTRUE);
   table->Put(index-1, elem);
 
   if ( index == leastFree ) {
@@ -272,7 +253,6 @@ CTable<T>::Remove( Cardinal const index ) {
     
     bool isvalid = false;
     do {
-
       --highestValid;
       valid->Get(highestValid-1, isvalid);
     }
