@@ -49,11 +49,8 @@ SecParser.y: SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.
 	cat SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.y.3 > SecParser.y
 
 lexrules tokens yaccrules1 yaccrules2: ../../Algebras/specs SpecParser/Parser$(EXEEXT)
-ifeq ($(platform),win32)
-	SpecParser\Parser < ..\..\Algebras\specs
-else
-	SpecParser/Parser < ../../Algebras/specs
-endif
+
+SpecParser/Parser < ../../Algebras/specs
 
 include ../../include.dep
 
