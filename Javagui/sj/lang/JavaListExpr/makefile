@@ -50,7 +50,5 @@ NLToken.class NLTokenizer.class: NLJLex.l.java ../ListExpr.java
 clean:
 	 rm -f *.class
 	(cd ..; rm -f ListExpr.class $(PARSERCLASSES) $(SCANERCLASSES))
-
-.PHONY mrproper:
-mrproper: clean
 	 rm -f $(GENERATEDJAVAFILES)
+

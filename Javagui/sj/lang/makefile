@@ -27,6 +27,4 @@ clean_local:
 clean: clean_local
 	(cd JavaListExpr; make clean)
 
-mrproper: clean_local
-	(cd JavaListExpr; make mrproper)
 

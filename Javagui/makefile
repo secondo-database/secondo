@@ -73,10 +73,6 @@ clean:
 	(rm -fr doc)
 	rm -rf Demo
 
-.PHONY: mrproper
-mrproper: clean
-	(make -C sj mrproper)
-
 
 .PHONY: cleangui
 cleangui:

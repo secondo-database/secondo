@@ -15,6 +15,3 @@ clean:
 	rm -f *.class
 	(cd lang; make clean)
 
-mrproper:
-	rm -f *.class
-	(cd lang; make mrproper)
