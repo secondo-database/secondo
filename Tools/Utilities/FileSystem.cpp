@@ -59,6 +59,21 @@ FileSystem::GetCurrentFolder()
   return (folder);
 }
 
+
+string
+FileSystem::GetParentFolder( const string& folder, int level /* =1 */)
+{
+  string parent = folder;
+  parent.erase( parent.find_last_of(PATH_SLASH[0]) ); 
+  
+  if (level-1) {
+    return GetParentFolder(parent,level-1);
+  } else {
+    return parent;
+  }
+}
+
+
 bool
 FileSystem::SetCurrentFolder( const string& folder )
 {

@@ -22,6 +22,8 @@
 
 May 2002 Ulrich Telle
 
+October 20003 M. Spiekermann new function GetParentFolder() added.
+
 1.1 Overview
 
 The ~File System Management~ provides several services for handling files and
@@ -39,7 +41,7 @@ The class ~SmiEnvironment~ provides the following methods:
         SetCurrentFolder & RenameFileOrFolder & GetFileAttributes \\
         CreateFolder     & DeleteFileOrFolder & SetFileAttributes \\
         EraseFolder      & FileSearch         &      \\
-                         & AppendSlash        &      \\
+        GetParentFolder  & AppendSlash        &      \\
 
 1.4 Imports, Constants, Types
 
@@ -102,6 +104,13 @@ class FileSystem
 Returns the current folder (directory).
 
 */
+  static string FileSystem::GetParentFolder( const string& folder, int level = 1 );
+/*
+Returns the parent of directory ~folder~. The optional second parameter
+indicates the number of levels to go upwards.
+
+*/
+
   static bool SetCurrentFolder( const string& folder );
 /*
 Sets the current folder (directory) to ~folder~.
