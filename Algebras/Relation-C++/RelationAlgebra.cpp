@@ -30,6 +30,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include <iostream>
 #include <string>
+#include <deque>
 #include <algorithm>
 #include <cstdlib>
 #include <unistd.h>
@@ -218,11 +219,11 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
       
     firstvalue = nl->First(valuelist);
     valuelist = nl->Rest(valuelist);
-    attr = (algM->InObj(algebraId, typeId))(nl->Second(first), 
+    attr = (algM->InObj(algebraId, typeId))(nl->Second(first),
               firstvalue, 0, errorInfo, valueCorrect);
     if (valueCorrect)
     {
-      AttributeType attrtype = { algebraId, typeId, ((Attribute*)attr.addr)->Sizeof() }; 
+      AttributeType attrtype = { algebraId, typeId, ((Attribute*)attr.addr)->Sizeof() };
       attrTypes[noofattrs] = attrtype;
       noofattrs++;
     }
@@ -230,7 +231,7 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
   tupleType = new TupleAttributes(noofattrs, attrTypes);
 };
 
-class CcTuple 
+class CcTuple
 {
   private:
 
@@ -240,7 +241,7 @@ class CcTuple
   public:
 
     CcTuple () { NoOfAttr = 0;
-                 for (int i=0; i < MaxSizeOfAttr; i++) 
+                 for (int i=0; i < MaxSizeOfAttr; i++)
 		   AttrList[i] = 0;
                };
     ~CcTuple () {};
@@ -248,7 +249,7 @@ class CcTuple
     void  Put (int index, void* attr) {AttrList[index] = attr;};
     void  SetNoAttrs (int noattr) {NoOfAttr = noattr;};
     int   GetNoAttrs () {return NoOfAttr;};
-  
+
     friend
     ostream& operator<<(ostream& s, CcTuple t);
 };
@@ -260,7 +261,7 @@ The next function supports writing objects of class CcTuple to standard output. 
 ostream& operator<<(ostream& os, CcTuple t)
 {
   TupleElement* attr;
-  
+
   os << "(";
   for (int i=0; i < t.GetNoAttrs(); i++)
   {
@@ -1866,7 +1867,7 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
   Word t, value;
   bool found;
   ArgVectorPointer vector;
-  
+
   switch (message)
   {
     case OPEN :
@@ -1941,7 +1942,7 @@ Operator ~tcount~ accepts a stream of tuples and returns an integer.
 ListExpr TCountTypeMap(ListExpr args)
 {
   ListExpr first ;
-  
+
   if(nl->ListLength(args) == 1)
   {
     first = nl->First(args);
@@ -2054,7 +2055,7 @@ RenameTypeMap( ListExpr args )
 	}
       }
       //nl->WriteToFile("/dev/tty",listn);
-      return 
+      return
         nl->TwoElemList(nl->SymbolAtom("stream"),
 		nl->TwoElemList(nl->SymbolAtom("tuple"),
 		listn));
@@ -2143,7 +2144,7 @@ ExtractTypeMap( ListExpr args )
   {
     first = nl->First(args);
     second  = nl->Second(args);
-			
+
     if((nl->ListLength(first) == 2  ) &&
        (TypeOfRelAlgSymbol(nl->First(first)) == stream)  &&
        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)  &&
@@ -2365,9 +2366,6 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   int sortAttrIndex;
   int nSortAttrs;
   bool sortOrderIsAscending;
-  int index;
-  char* str;
-  ListExpr listArg;
   CcTupleCmp ccCmp;
 
   switch(message)
@@ -2439,6 +2437,322 @@ Operator sortBy (
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
          SortByTypeMap         // type mapping
+);
+
+/*
+
+7.3 Operator ~equimergejoin~
+
+This operator merges two streams.
+
+7.3.1 Type mapping function of operator ~equimergejoin~
+
+Result type of equimergejoin operation.
+
+----	((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))) xi yj)
+
+	-> (stream (tuple (x1 ... xn y1 ... ym)))
+----
+
+*/
+ListExpr EquiMergeJoinTypeMap(ListExpr args)
+{
+  ListExpr attrTypeA, attrTypeB;
+  ListExpr streamA, streamB, list, list1, list2, outlist;
+  if (nl->ListLength(args) == 4)
+  {
+    streamA = nl->First(args); streamB = nl->Second(args);
+    if (nl->ListLength(streamA) == 2)
+    {
+      if (TypeOfRelAlgSymbol(nl->First(streamA)) == stream)
+      {
+        if (nl->ListLength(nl->Second(streamA)) == 2)
+        {
+          if (TypeOfRelAlgSymbol(nl->First(nl->Second(streamA))) == tuple)
+          {
+            list1 = nl->Second(nl->Second(streamA));
+          }
+          else return nl->SymbolAtom("typeerror");
+        }
+        else return nl->SymbolAtom("typeerror");
+      }
+      else return nl->SymbolAtom("typeerror");
+    }
+    else return nl->SymbolAtom("typeerror");
+
+    if (nl->ListLength(streamB) == 2)
+    {
+      if (TypeOfRelAlgSymbol(nl->First(streamB)) == stream)
+      {
+        if (nl->ListLength(nl->Second(streamB)) == 2)
+        {
+          if (TypeOfRelAlgSymbol(nl->First(nl->Second(streamB))) == tuple)
+          {
+            list2 = nl->Second(nl->Second(streamB));
+          }
+          else return nl->SymbolAtom("typeerror");
+        }
+        else return nl->SymbolAtom("typeerror");
+      }
+      else return nl->SymbolAtom("typeerror");
+    }
+    else return nl->SymbolAtom("typeerror");
+    list = ConcatLists(list1, list2);
+    outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+      nl->TwoElemList(nl->SymbolAtom("tuple"), list));
+
+    string attrAName = nl->SymbolValue(nl->Third(args));
+    string attrBName = nl->SymbolValue(nl->Fourth(args));
+    int attrAIndex = findattr(nl->Second(nl->Second(streamA)), attrAName, attrTypeA);
+    int attrBIndex = findattr(nl->Second(nl->Second(streamB)), attrBName, attrTypeB);
+    if(attrAIndex <= 0 || attrBIndex <= 0)
+    {
+      return nl->SymbolAtom("typeerror");
+    }
+    ListExpr joinAttrDescription =
+      nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+              joinAttrDescription, outlist);
+  }
+  else return nl->SymbolAtom("typeerror");
+}
+
+static CcInt oneCcInt(true, 1);
+static CcBool trueCcBool(true, true);
+
+struct EquiMergeJoinLocalInfo
+{
+private:
+  vector<CcTuple*> bucketA;
+  vector<CcTuple*> bucketB;
+  deque<CcTuple*> resultBucket;
+
+  Word aResult;
+  Word bResult;
+
+  Word streamALocalInfo;
+  Word streamBLocalInfo;
+
+  ArgVector aArgs;
+  ArgVector bArgs;
+
+  int attrIndexA;
+  int attrIndexB;
+
+  int CompareCcTuples(CcTuple* a, CcTuple* b)
+  {
+    return ((Attribute*)a->Get(attrIndexA))->Compare((Attribute*)b->Get(attrIndexB));
+  }
+
+  void SetArgs(ArgVector& args, Word stream, Word attrIndex)
+  {
+    args[0] = SetWord(stream.addr);
+    args[2] = SetWord(&oneCcInt);
+    args[3] = SetWord(attrIndex.addr);
+    args[4] = SetWord(&trueCcBool);
+  }
+
+  CcTuple* nextATuple()
+  {
+    int errorCode = SortBy(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+    if(errorCode == YIELD)
+    {
+      return (CcTuple*)aResult.addr;
+    }
+    else
+    {
+      aResult = SetWord((void*)0);
+      return 0;
+    }
+  }
+
+  CcTuple* nextBTuple()
+  {
+    int errorCode = SortBy(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+    if(errorCode == YIELD)
+    {
+      return (CcTuple*)bResult.addr;
+    }
+    else
+    {
+      bResult = SetWord((void*)0);
+      return 0;
+    }
+  }
+
+  bool FetchNextMatch()
+  {
+    CcTuple* aCcTuple = (CcTuple*)aResult.addr;
+    CcTuple* bCcTuple = (CcTuple*)bResult.addr;
+    if(aCcTuple == 0 || bCcTuple == 0)
+    {
+      return false;
+    }
+    else
+    {
+      int cmpResult = CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
+      while(cmpResult != 0)
+      {
+        if(cmpResult < 0)
+        {
+          if(nextATuple() == 0)
+          {
+            return false;
+          }
+        }
+        else
+        {
+          if(nextBTuple() == 0)
+          {
+            return false;
+          }
+        }
+        cmpResult = CompareCcTuples((CcTuple*)aResult.addr, (CcTuple*)bResult.addr);
+      }
+      return true;
+    }
+  }
+
+  void MergeBuckets()
+  {
+    assert(!bucketA.empty());
+    assert(!bucketB.empty());
+
+    vector<CcTuple*>::iterator iterA = bucketA.begin();
+    vector<CcTuple*>::iterator iterB = bucketB.begin();
+    for(; iterA != bucketA.end(); iterA++)
+    {
+      for(iterB = bucketB.begin(); iterB != bucketB.end(); iterB++)
+      {
+        CcTuple* resultTuple = new CcTuple;
+        Word resultWord = SetWord(resultTuple);
+        Word aWord = SetWord(*iterA);
+        Word bWord = SetWord(*iterB);
+        Concat(aWord, bWord, resultWord);
+        resultBucket.push_back(resultTuple);
+      }
+    }
+  }
+
+  void FillResultBucket()
+  {
+    assert((CcTuple*)aResult.addr != 0);
+    assert((CcTuple*)bResult.addr != 0);
+
+    bucketA.clear();
+    bucketB.clear();
+
+    CcTuple* aMatch = (CcTuple*)aResult.addr;
+    CcTuple* bMatch = (CcTuple*)bResult.addr;
+    assert(CompareCcTuples(aMatch, bMatch) == 0);
+
+    CcTuple* currentA = aMatch;
+    CcTuple* currentB = bMatch;
+
+    while(currentA != 0 && CompareCcTuples(currentA, bMatch) == 0)
+    {
+      bucketA.push_back(currentA);
+      currentA = nextATuple();
+    }
+
+    while(currentB != 0 && CompareCcTuples(aMatch, currentB) == 0)
+    {
+      bucketB.push_back(currentB);
+      currentB = nextBTuple();
+    }
+
+    MergeBuckets();
+  }
+
+public:
+  EquiMergeJoinLocalInfo(Word streamA, Word attrIndexA,
+    Word streamB, Word attrIndexB)
+  {
+    assert(streamA.addr != 0);
+    assert(streamB.addr != 0);
+    assert(attrIndexA.addr != 0);
+    assert(attrIndexB.addr != 0);
+    assert((int)((StandardAttribute*)attrIndexA.addr)->GetValue() > 0);
+    assert((int)((StandardAttribute*)attrIndexB.addr)->GetValue() > 0);
+
+    this->attrIndexA = (int)((StandardAttribute*)attrIndexA.addr)->GetValue() - 1;
+    this->attrIndexB = (int)((StandardAttribute*)attrIndexB.addr)->GetValue() - 1;
+    SetArgs(aArgs, streamA, attrIndexA);
+    SetArgs(bArgs, streamB, attrIndexB);
+    SortBy(aArgs, aResult, OPEN, streamALocalInfo, 0);
+    SortBy(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+    nextATuple();
+    nextBTuple();
+  }
+
+  ~EquiMergeJoinLocalInfo()
+  {
+    SortBy(aArgs, aResult, CLOSE, streamALocalInfo, 0);
+    SortBy(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+  }
+
+  CcTuple* NextResultTuple()
+  {
+    if(resultBucket.empty())
+    {
+      if(FetchNextMatch())
+      {
+        FillResultBucket();
+      }
+      else
+      {
+        return 0;
+      }
+    }
+    CcTuple* next = resultBucket.front();
+    resultBucket.pop_front();
+    return next;
+  }
+};
+
+static int
+EquiMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  EquiMergeJoinLocalInfo* localInfo;
+
+  switch(message)
+  {
+    case OPEN:
+      localInfo = new EquiMergeJoinLocalInfo(args[0], args[4], args[1], args[5]);
+      local = SetWord(localInfo);
+      return 0;
+    case REQUEST:
+      localInfo = (EquiMergeJoinLocalInfo*)local.addr;
+      result = SetWord(localInfo->NextResultTuple());
+      return result.addr != 0 ? YIELD : CANCEL;
+    case CLOSE:
+      localInfo = (EquiMergeJoinLocalInfo*)local.addr;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+
+/*
+
+4.1.3 Specification of operator ~equimergejoin~
+
+*/
+const string EquiMergeJoinSpec =
+  "(<text>((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))  xi yj) -> (stream (tuple (x1 ... xn y1 ... ym)))</text---><text>Merges two streams.</text--->)";
+/*
+
+4.1.3 Definition of operator ~equimergejoin~
+
+*/
+Operator equiMergeJoinOperator(
+         "equimergejoin",        // name
+         EquiMergeJoinSpec,     // specification
+         EquiMergeJoin,         // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         EquiMergeJoinTypeMap   // type mapping
 );
 
 /*
@@ -2537,12 +2851,12 @@ ExtendTypeMap( ListExpr args )
 	  loopok = false;
 	}
       }
-      if ((loopok) && (comparenames(listn)))	
+      if ((loopok) && (comparenames(listn)))
       //if ( loopok )
       {
         outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
 			nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
-	//nl->WriteToFile("/dev/tty", outlist);	
+	//nl->WriteToFile("/dev/tty", outlist);
         return outlist;
       }
       else return nl->SymbolAtom("typeerror");
@@ -2564,7 +2878,7 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   Supplier supplier, supplier2, supplier3;
   int noofoldattrs, nooffun, noofsons;
   ArgVectorPointer funargs;
-    
+
   switch (message)
   {
     case OPEN :
@@ -2775,7 +3089,7 @@ class RelationAlgebra : public Algebra
   {
     AddTypeConstructor( &cpptuple );
     AddTypeConstructor( &cpprel );
-    
+
     AddOperator(&feed);
     AddOperator(&consume);
     AddOperator(&TUPLE);
@@ -2791,6 +3105,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppextend);
     AddOperator(&cppconcat);
     AddOperator(&sortBy);
+    AddOperator(&equiMergeJoinOperator);
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );
