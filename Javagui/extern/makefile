@@ -15,11 +15,10 @@ all: subdirs $(CLASSFILES)
 
 .PHONY:subdirs
 subdirs:
-	(make -C numericreader all)	
+	(make -C numericreader all)
 	(make -C shapereader all)
 	(make -C dbfreader all)
 	(make -C shapedbf  all)
-	(make -C fileio all)
 	(make -C binarylist all)
 
 %.class:%.java
@@ -31,6 +30,5 @@ clean:
 	(make -C shapereader clean)
 	(make -C dbfreader clean)
 	(make -C shapedbf clean)
-	(make -C fileio clean)
 	(make -C binarylist clean)
 	rm -f *.class

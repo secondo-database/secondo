@@ -19,7 +19,7 @@ private JButton OkBtn = new JButton("close");
 
 
 public HelpScreen(Frame F){
-  super(F,true);
+  super(F,false);
   init();
   getContentPane().setLayout(new BorderLayout());
   JPanel P = new JPanel();
@@ -31,25 +31,31 @@ public HelpScreen(Frame F){
      public void actionPerformed(ActionEvent evt){
         HelpScreen.this.setVisible(false);
      }
-  }); 
+  });
 
 }
 
 public void setMode(int mode){
-  if (mode==SECONDO_COMMANDS)
+  if (mode==SECONDO_COMMANDS){
       ScrollPane.setViewportView(ServerCommands);
-  if (mode==GUI_COMMANDS)
-     ScrollPane.setViewportView(GuiCommands); 
+      setTitle("SECONDO commands");
+  }
+  if (mode==GUI_COMMANDS){
+     ScrollPane.setViewportView(GuiCommands);
+     setTitle("Gui commands");
+  }
 }
 
 
 private void init(){
- Vector SC = new Vector(20);
+ Vector SC = new Vector(30);
  SC.add("list databases");
  SC.add("list types");
  SC.add("list type constructors");
  SC.add("list objects");
  SC.add("list operators");
+ SC.add("list algebras");
+ SC.add("list algebra <identifier>");
  SC.add("--------------");
  SC.add("create database <identifier> ");
  SC.add("delete database <identifier> ");
@@ -76,7 +82,7 @@ private void init(){
  SC.add("commit transaction");
  SC.add("abort transaction");
  ServerCommands= new JList(SC);
- 
+
  Vector GC = new Vector(20);
  GC.add("gui exit");
  GC.add("gui clearAll");

@@ -66,7 +66,7 @@ public class CommandPanel extends JScrollPane {
    SystemArea.setFont(new Font("Monospaced",Font.PLAIN,Size));
    SystemArea.repaint();
   }
-  
+
   /* get the actual Fontsize */
   public int getFontSize(){
     return SystemArea.getFont().getSize();
@@ -85,25 +85,25 @@ public class CommandPanel extends JScrollPane {
         int myHeight = ParentSize.height / 4;
         return new Dimension(myWidth,myHeight);
      }
-  } 
-   
+  }
+
   /** returns the connection state from secondointerface */
   public boolean isConnected(){
     return Secondointerface.isConnected();
   }
-  
+
   /** set the focus to the SystemArea */
   public void requestFocus(){
      SystemArea.requestFocus();
   }
 
-  
+
   /**
    * Add code to the end of the textarea.
    * @param txt Text to append.
    */
   public void appendText (String txt) {
-    //SystemArea.setForeground(Color.black);	
+    //SystemArea.setForeground(Color.black);
     SystemArea.append(txt);
   }
 
@@ -117,7 +117,7 @@ public class CommandPanel extends JScrollPane {
   }
 
   /**
-   * Simulate a prompt at the end of last light. 
+   * Simulate a prompt at the end of last light.
    * @see <a href="CommandPanelsrc.html#showPrompt">Source</a>
    */
   public void showPrompt () {
@@ -130,9 +130,15 @@ public class CommandPanel extends JScrollPane {
   /* delete all entrys in the history */
   public void clearHistory(){
     History.clear();
-  } 
-  
-  
+  }
+
+  /* use binary list for client server communication */
+  public void useBinaryLists(boolean ubl){
+    Secondointerface.useBinaryLists(ubl);
+  }
+
+
+
   /** make clean the TextArea and the History */
   public void clear(){
      clearHistory();
@@ -146,7 +152,7 @@ public class CommandPanel extends JScrollPane {
    * This method allows to any class to command to this SecondoJava object to
    * execute a Secondo command, and this object will execute the Secondo command
    * The result is send to the current ResultProcessor.
-   * 
+   *
    * @param command The user command
    */
   public boolean execUserCommand (String command) {
@@ -155,7 +161,7 @@ public class CommandPanel extends JScrollPane {
        showPrompt();
        return true;
     }
-    
+
     if(command.startsWith("gui") & RV!=null){
        return RV.execGuiCommand(command.substring(4));
     }
@@ -175,7 +181,7 @@ public class CommandPanel extends JScrollPane {
       // if command is a list representation, then the command level to use
       // is EXEC_COMMAND_LISTEXPR_SYNTAX.
       commandLevel = Secondointerface.EXEC_COMMAND_LISTEXPR_SYNTAX;
-    } 
+    }
     else {
       // if command is not a list representation, then the command level to
       // use is EXEC_COMMAND_SOS_SYNTAX.
@@ -197,14 +203,14 @@ public class CommandPanel extends JScrollPane {
       showPrompt();
       return false;
     }
-     
+
   }
 
 
 
   /** sends command to the SecondoServer the result is ignored
     * @return the ErrorCode from Server
-    **/ 
+    **/
   public int internCommand (String command) {
     command = command.trim();
     ListExpr displayErrorList;
@@ -219,7 +225,7 @@ public class CommandPanel extends JScrollPane {
       // if command is a list representation, then the command level to use
       // is EXEC_COMMAND_LISTEXPR_SYNTAX.
       commandLevel = Secondointerface.EXEC_COMMAND_LISTEXPR_SYNTAX;
-    } 
+    }
     else {
       // if command is not a list representation, then the command level to
       // use is EXEC_COMMAND_SOS_SYNTAX.
@@ -233,7 +239,44 @@ public class CommandPanel extends JScrollPane {
                       false,      // result as ListExpr.
                       resultList, errorCode, errorPos, errorMessage);
     return errorCode.value;
+  }
 
+
+    /** sends command to the SecondoServer the result is ignored
+      * returns the resultList from SecondoServer,
+      * if an error is occurred null is returned
+    **/
+  public ListExpr getCommandResult (String command) {
+    command = command.trim();
+    ListExpr displayErrorList;
+    int displayErrorCode;
+    ListExpr resultList = new ListExpr();
+    int commandLevel = 0;
+    IntByReference errorCode = new IntByReference(0);
+    IntByReference errorPos = new IntByReference(0);
+    StringBuffer errorMessage = new StringBuffer();
+
+    if (command.startsWith("(")) {
+      // if command is a list representation, then the command level to use
+      // is EXEC_COMMAND_LISTEXPR_SYNTAX.
+      commandLevel = Secondointerface.EXEC_COMMAND_LISTEXPR_SYNTAX;
+    }
+    else {
+      // if command is not a list representation, then the command level to
+      // use is EXEC_COMMAND_SOS_SYNTAX.
+      commandLevel = Secondointerface.EXEC_COMMAND_SOS_SYNTAX;
+    }
+
+    // Executes the remote command.
+    Secondointerface.secondo(command,           //Command to execute.
+                      ListExpr.theEmptyList(),                    // we don't use it here.
+                      commandLevel, true,         // command as text.
+                      false,      // result as ListExpr.
+                      resultList, errorCode, errorPos, errorMessage);
+    if(errorCode.value!=0)
+       return  null;
+    else
+       return resultList;
   }
 
 
@@ -241,7 +284,7 @@ public class CommandPanel extends JScrollPane {
   public String getHostName(){
      return Secondointerface.getHostname();
   }
-  
+
   public int getPort(){
      return Secondointerface.getPort();
   }

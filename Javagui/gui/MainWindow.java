@@ -66,6 +66,11 @@ private JMenuItem MI_ListTypes;
 private JMenuItem MI_ListTypeConstructors;
 private JMenuItem MI_ListObjects;
 private JMenuItem MI_ListOperators;
+private JMenuItem MI_ListAlgebras;
+private JMenu AlgebraMenu;
+private JMenu OpenDatabaseMenu;
+private JMenuItem MI_UpdateDatabases;
+private JMenuItem MI_CloseDatabase;
 
 private JMenu HelpMenu;
 private JMenuItem MI_ShowGuiCommands;
@@ -271,11 +276,11 @@ public MainWindow(String Title){
       if(Debug_Mode.equals("false")){
          sj.lang.ListExpr.setDebugMode(false);
          DEBUG_MODE=false;
-      }   
+      }
       else{
          sj.lang.ListExpr.setDebugMode(true);
          DEBUG_MODE=true;
-      }   
+      }
    }
 
 
@@ -297,6 +302,14 @@ public MainWindow(String Title){
      if(F.exists())
         SecondoHomeDir = F.getAbsolutePath();
    }
+   
+   String UseBinaryLists = Config.getProperty("USE_BINARY_LISTS");
+   boolean use_binary_lists = false;
+   if(UseBinaryLists!=null && UseBinaryLists.trim().toLowerCase().equals("true"))
+      use_binary_lists = true;
+   ComPanel.useBinaryLists(use_binary_lists);
+
+
 
    if(SecondoHomeDir!=null){
       ObjectDirectory = SecondoHomeDir+FS+"Data"+FS+"Guidatas"+FS+"gui"+FS+"objects";
@@ -331,6 +344,8 @@ public MainWindow(String Title){
   if (StartConnection){
       if (!ComPanel.connect())
          showMessage("I can't find a Secondo-server");
+      else
+         getServerInfos();
   }
 
   if(StartScript!=null){
@@ -622,8 +637,10 @@ public boolean execGuiCommand(String command){
   }
   else if(command.startsWith("connect")){
     if(!ComPanel.isConnected());
-       if(ComPanel.connect())
+       if(ComPanel.connect()){
           ComPanel.appendText("you are connected to a secondo server");
+	  getServerInfos();
+       }
        else{
           ComPanel.appendText("i can't connect to secondo server (are the settings correct?)");
           success=false;
@@ -817,7 +834,7 @@ public boolean addObject(SecondoObject SO){
 
 /* the main function to start program */
 public static void main(String[] args){
-  System.setErr(System.out); 
+  System.setErr(System.out);
   MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
   SecGui.ComPanel.requestFocus();
@@ -1068,7 +1085,7 @@ private void createMenuBar(){
 	     MI_FontSize_List_Bigger.setEnabled(true);
 	 }
       }};
-      
+
     MI_FontSize_Console_Bigger.addActionListener(FontSizeAL);
     MI_FontSize_Console_Smaller.addActionListener(FontSizeAL);
     MI_FontSize_List_Bigger.addActionListener(FontSizeAL);
@@ -1161,7 +1178,8 @@ private void createMenuBar(){
 
    MI_Connect.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
-          ComPanel.connect();
+          if(ComPanel.connect())
+	     getServerInfos();
        }});
    MI_Disconnect.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
@@ -1182,12 +1200,26 @@ private void createMenuBar(){
    MI_ListTypeConstructors = ServerCommand_List.add("type constructors");
    MI_ListObjects = ServerCommand_List.add("objects");
    MI_ListOperators = ServerCommand_List.add("operators");
+   MI_ListAlgebras = ServerCommand_List.add("algebras");
+   AlgebraMenu = new JMenu("algebra");
+   ServerCommand_List.add(AlgebraMenu);
+   MI_UpdateDatabases = new JMenuItem("Update databases");
+   ServerCommand.add(MI_UpdateDatabases);
+   OpenDatabaseMenu = new JMenu("open database");
+   ServerCommand.add(OpenDatabaseMenu);
+   MI_CloseDatabase = new JMenuItem("close database");
+   ServerCommand.add(MI_CloseDatabase);
+
+
    Command_Listener Com_Listener = new Command_Listener();
    MI_ListDatabases.addActionListener(Com_Listener);
    MI_ListTypes.addActionListener(Com_Listener);
    MI_ListTypeConstructors.addActionListener(Com_Listener);
    MI_ListObjects.addActionListener(Com_Listener);
    MI_ListOperators.addActionListener(Com_Listener);
+   MI_ListAlgebras.addActionListener(Com_Listener);
+   MI_UpdateDatabases.addActionListener(Com_Listener);
+   MI_CloseDatabase.addActionListener(Com_Listener);
 
    HelpMenu = new JMenu("Help");
    MI_ShowGuiCommands=HelpMenu.add("Show gui commands");
@@ -1373,6 +1405,9 @@ private void showServerSettings(){
           if (!ComPanel.connect()){
              showMessage("I can't find a SecondoServer ");
           }
+	  else{
+	    getServerInfos();
+	  }
        }
 }
 
@@ -1417,6 +1452,67 @@ private void cleanMenu(){
 }
 
 
+/* get infos from server
+   - known algebras
+ */
+private void getServerInfos(){
+
+  ListExpr Algebras = ComPanel.getCommandResult("list algebras");
+  if (Algebras==null){
+     AlgebraMenu.removeAll();
+     return;
+  }
+  JMenuItem[] MI_Algebras= new JMenuItem[Algebras.listLength()];
+  int index = 0;
+  while(!Algebras.isEmpty()){
+    String Name = Algebras.first().symbolValue();
+    MI_Algebras[index] = new JMenuItem(Name);
+    MI_Algebras[index].addActionListener(new ActionListener(){
+                      public void actionPerformed(ActionEvent evt){
+		         MainWindow.this.ComPanel.execUserCommand("list algebra "+
+			                         ((JMenuItem)evt.getSource()).getText());
+		      }});
+    Algebras=Algebras.rest();
+    index++;
+  }
+  AlgebraMenu.removeAll();
+  for(int i=0;i<MI_Algebras.length;i++)
+     AlgebraMenu.add(MI_Algebras[i]);
+
+  updateDatabases();
+}
+
+
+/* includes all databases in the "open databaes" menu */
+private boolean updateDatabases(){
+  ListExpr Databases = ComPanel.getCommandResult("list databases");
+  OpenDatabaseMenu.removeAll();
+  if(Databases==null)
+    return false;
+  JMenuItem[] MI_Databases = new JMenuItem[Databases.listLength()];
+  int index = 0;
+  while(!Databases.isEmpty()){
+    String Name = Databases.first().symbolValue();
+    MI_Databases[index] = new JMenuItem(Name);
+    MI_Databases[index].addActionListener(new ActionListener(){
+                           public void actionPerformed(ActionEvent evt){
+			      MainWindow.this.ComPanel.execUserCommand("open database "+
+			                        ((JMenuItem)evt.getSource()).getText());
+			   }});
+    Databases = Databases.rest();
+    index++;
+   }
+   for(int i=0;i<MI_Databases.length;i++)
+      OpenDatabaseMenu.add(MI_Databases[i]);
+
+
+  return true;
+
+}
+
+
+
+
 
 /** the Listener for the SecondoCommands in MainMenu */
 class Command_Listener implements ActionListener{
@@ -1447,7 +1543,23 @@ class Command_Listener implements ActionListener{
 			  cmd="list operators";
                 }
 
-                if (ok) {
+                if(Source.equals(MainWindow.this.MI_ListAlgebras)){
+		   ok = true;
+                   cmd = "list algebras";
+		}
+
+		if(Source.equals(MainWindow.this.MI_UpdateDatabases)){
+                   ok = false; // not execute a Secondo command
+		   if(!MainWindow.this.updateDatabases())
+		      MessageBox.showMessage("error in reading databases");
+		}
+		if(Source.equals(MainWindow.this.MI_CloseDatabase)){
+		   ok = true;
+		   cmd = "close database";
+
+		}
+
+		if (ok) {
                     //MainWindow.this.ComPanel.appendText(cmd+"\n");
                     MainWindow.this.ComPanel.execUserCommand(cmd);
                 }

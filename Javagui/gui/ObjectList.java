@@ -444,15 +444,15 @@ public boolean saveSelectedObject(){
         if(FullFileName.endsWith(".bnl")){
            try{
               BufferedOutputStream FOS = new BufferedOutputStream(new FileOutputStream(FullFileName));
-              saved = BinaryList.writeBinaryTo(LE,FOS);
+              saved = LE.writeBinaryTo(FOS);
               }
               catch(Exception e){
                 saved = false;
               }
-        
-        }  
-        else 
-          saved = LE.writeToFile(FullFileName)==0; 
+
+        }
+        else
+          saved = LE.writeToFile(FullFileName)==0;
        }
   }
   return saved;
