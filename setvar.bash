@@ -45,25 +45,25 @@ export SECONDO_BUILD_DIR="$1"
 ##
 #########################################################
 
-export SECONDO_PLATFORM="win32"
+export SECONDO_PLATFORM="linux"
 
-export SECONDO_CONFIG="/SecBase/secondo/bin/MyConfig.ini"
+export SECONDO_CONFIG="/home/hartmut/database/myconfig.ini"
 
-export BERKELEY_DB_DIR="/usr/local/db-4.0.14"
+export BERKELEY_DB_DIR="/usr/local/BerkeleyDB.4.1"
 
-export CVSROOT=":pserver:spieker@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
+export CVSROOT=":pserver:gueting@robinson.fernuni-hagen.de:2401/cvs-projects/CVS_REPOS"
 
 if [ $SECONDO_PLATFORM != "win32" ]; then 
    
    # unix
-   export PL_INCLUDE_DIR="/Programme/pl/include"
-   export PL_LIBRARY_DIR="/Programme/pl/lib"
+   export PL_INCLUDE_DIR="/usr/local/lib/pl-5.0.10/include"
+   export PL_LIB_DIR="/usr/local/lib/pl-5.0.10/runtime/i686-linux"
 
 else 
 
    # windows 
    # for the next variable use \ as separator	
-   export SWI_HOME_DIR="C:\Programme\pl"
+   export SWI_HOME_DIR=""
 fi
 
 #########################################################
@@ -78,3 +78,6 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
 else
    export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin:$SECONDO_BUILD_DIR/lib:$SWI_HOME_DIR\\bin"
 fi
+
+
+

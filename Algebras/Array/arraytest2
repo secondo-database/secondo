@@ -1,0 +1,77 @@
+# Array von Objekten vom Kind DATA
+
+create ad : array (date);
+
+update ad := [const array(date) value ("2003-01-30" "2003-01-31" "2003-02-01")];
+
+query size(ad);
+
+# Array von Relationen
+
+delete ar;
+
+create ar : array(rel(tuple((no:int))));
+
+update ar := 	[const
+                  array(rel(tuple((no:int))))
+		value
+                (
+                  ( (1) )
+                  ( (2) (3) )
+                  ( (4) (5) (6) )
+                  ( (7) (8) (9) (10) )
+                )
+]
+
+query ar get[3] feed consume
+
+query put(ar, [const rel(tuple((no:int))) value ((1) (2) (3) (4))], 3)
+
+(query (consume (feed (get (put ar ((rel(tuple((no int)))) ((1) (2) (3) (4))) 3) 3))));
+
+(query (consume (feed (get (put ar (get ar 3) 0) 0))));
+
+# Zweidimensionales Array von Integer-Werten
+
+(delete ta);
+
+(create ta : (array(array int)));
+
+(update ta := ((array(array int)) ((1 2 3) (4 5 6))));
+
+(query (get (get ta 1) 2));
+
+(query (put ta (put (get ta 1) 9 2) 1));
+
+# Distribute und Summarize
+
+(delete tenTest);
+
+(create tenTest : (rel(tuple((no int)(na string)))));
+
+(update tenTest := ((rel(tuple((no int)(na string))))
+                    ((1 "One")(2 "Two")(3 "Three")(4 "Four")(5 "Five")
+                     (6 "Six")(7 "Seven")(8 "Eight")(9 "Nine")(10 "Ten"))));
+
+(delete prel);
+
+(let prel =
+    (distribute 
+        (extend
+            (feed tenTest)
+            ((mod2 (fun (tuple1 TUPLE) (mod (attr tuple1 no) 2)))))
+        mod2));
+
+# Besser lesbar ist die Form
+# let prel = tenTest feed extend[mod2 : .no mod 2] distribute[mod2];
+
+query prel summarize consume;
+
+close database;
+
+open database opt;
+
+delete plzArray;
+
+let plzArray = plz feed extend[pkg: log(randint(65536))] distribute[pkg];
+

@@ -9,7 +9,7 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec BTree/*.spec Range/*.spec Spatial/*.spec FText/*.spec
+specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec BTree/*.spec Range/*.spec Spatial/*.spec FText/*.spec Array/*.spec
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
@@ -26,6 +26,7 @@ makedirs:
 	$(MAKE) -C Range
 	$(MAKE) -C Spatial
 	$(MAKE) -C FText
+	$(MAKE) -C Array
 
 buildlibs:
 	$(MAKE) -C Standard-C++   buildlibs
@@ -39,6 +40,7 @@ buildlibs:
 	$(MAKE) -C Range          buildlibs
 	$(MAKE) -C Spatial        buildlibs
 	$(MAKE) -C FText 	  buildlibs
+	$(MAKE) -C Array 	  buildlibs
 
 .PHONY: clean
 clean:
@@ -55,4 +57,5 @@ clean:
 	$(MAKE) -C Range          clean
 	$(MAKE) -C Spatial        clean
 	$(MAKE) -C FText          clean
+	$(MAKE) -C Array	  clean
 

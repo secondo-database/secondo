@@ -32,4 +32,5 @@ ALGEBRA_INCLUDE(8,BTreeAlgebra,Executable)
 ALGEBRA_INCLUDE(9,RangeAlgebra,Executable)
 ALGEBRA_INCLUDE(10,SpatialAlgebra,Executable)
 ALGEBRA_INCLUDE(11,FTextAlgebra,Executable)
+ALGEBRA_INCLUDE(12,ArrayAlgebra,Executable)
 
