@@ -3,6 +3,7 @@ import sj.lang.ListExpr;
 import java.io.*;
 import java.util.*;
 import viewer.hoese.DateTime;
+import viewer.hoese.algebras.periodic.Time;
 
 public class MovingPointBuilder{
 
@@ -27,11 +28,12 @@ private String readLine(BufferedReader R) throws IOException{
    - repeats    : number of repeats
    - distance   : time distance between repeats
 */
-public MovingPointBuilder(String FileName, double offsetTime,boolean reverse,int repeats,int distance){
+public MovingPointBuilder(String FileName,Time StartTime,boolean reverse,int repeats,int distance){
   try{
      BufferedReader R = new BufferedReader(new FileReader(FileName));
-     Vector PointLists = new Vector();
-     Vector Durations = new Vector();
+     Vector PointLists = new Vector(); // stores the points
+     Vector Durations = new Vector();  // stores durations between points
+     // read the points
      while(R.ready()){
 	pointlist pl = new pointlist(reverse);
 	String line;
@@ -60,9 +62,9 @@ public MovingPointBuilder(String FileName, double offsetTime,boolean reverse,int
 	       }
 	      line = readLine(R);
            }
-	   double duration = DateTime.getTime(0,secduration*1000);
+	   Time duration = new Time(0,secduration*1000);
 	   PointLists.add(pl);
-           Durations.add(new Double(duration));
+           Durations.add(duration);
 	}
      }
 
@@ -74,17 +76,17 @@ public MovingPointBuilder(String FileName, double offsetTime,boolean reverse,int
 
      int index;
      int size = PointLists.size();
-     double td = DateTime.getTime(0,distance*1000);
+     Time td = new Time(0,distance*1000);
 
      for(int r=0;r<=repeats;r++){
-        double CurrentTime = offsetTime+r*td;
-        System.out.println("( ("); // open tuple and attribute one
+        Time CurrentTime = StartTime.add(td.mul(r));
+        System.out.println("( ("); // open tuple and attribute
         for(int i=0;i<size;i++){
             index = reverse ? size-1-i : i;
             pointlist pl =  (pointlist) PointLists.get(index);
-            double duration = ((Double) Durations.get(index)).doubleValue();
+            Time duration = (Time) Durations.get(index);
 	    String units = pl.getUnitsString(CurrentTime,duration);
-	    CurrentTime += duration;
+	    CurrentTime.addInternal(duration);
 	    System.out.println(units+"\n");
         }
         System.out.println("))"); // close attribute one and tuple
@@ -114,8 +116,8 @@ public static void main(String[] args){
       no_options=1;
       reverse=true;
   }
-  Double Offset = DateTime.getDateTime(args[1+no_options]);
-  if(Offset==null){
+  Time StartTime = new Time();
+  if(! StartTime.readFrom(args[1+no_options])){
      System.err.println("Timeformat: YYYY-MM-DD-hh:mm:ss:mmm");
      System.exit(0);
   }
@@ -146,7 +148,7 @@ public static void main(String[] args){
   }
 
 
-  MovingPointBuilder UB = new MovingPointBuilder(args[no_options],Offset.doubleValue(),reverse,repeats,distance);
+  MovingPointBuilder UB = new MovingPointBuilder(args[no_options],StartTime,reverse,repeats,distance);
 }
 
 private class point{
@@ -228,15 +230,15 @@ private class pointlist{
     return (point) PL.get(index);
   }
 
-  public String getUnitsString(double starttime, double duration){
+  public String getUnitsString(Time starttime, Time duration){
      if(PL.size()<2)
         return null;
 
       double L = length();
       String res ="";
-      double currentTime=starttime;
+      Time currentTime=starttime;
       double dist = 0;
-      double currentduration;
+      Time currentduration;
       double allLength=0;
       point p1,p2;
       for(int i=0;i<PL.size()-1;i++){
@@ -246,11 +248,11 @@ private class pointlist{
 	    if(L==0)
 	       currentduration = duration;
 	    else
-               currentduration  = duration*dist/L;
+               currentduration  = duration.mul(dist/L);
 	    res +="( \n"; // open unit
-            res += "( \n   (instant " + currentTime +")"+"\n"; // open interval
-	    currentTime += currentduration;
-            res += "   (instant " + currentTime +")"+"\n";
+            res += "( \n " + currentTime.getListExprString(true) +"\n"; // open interval
+	    currentTime.addInternal(currentduration);
+            res +=  currentTime.getListExprString(true) +"\n";
 	    res += "   TRUE \n     FALSE )\n";  // close interval
             res += "  ( "+p1+" "+p2+"))\n\n";   // open points close points close unit
       }
