@@ -201,8 +201,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   cardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  write('selectivity query : '),
-  write(QueryAtom),
+  %write('selectivity query : '),
+  %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
@@ -219,8 +219,8 @@ selectivity(pr(Pred, Rel), Sel) :-
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  write('selectivity query : '),
-  write(QueryAtom),
+  %write('selectivity query : '),
+  %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('selectivity : '),
@@ -240,8 +240,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   dynamicCardQuery(Pred, Rel1, Rel2, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  write('selectivity query : '),
-  write(QueryAtom),
+  %write('selectivity query : '),
+  %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('selectivity : '),
@@ -258,8 +258,8 @@ selectivity(pr(Pred, Rel), Sel) :-
   dynamicCardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  write('selectivity query : '),
-  write(QueryAtom),
+  %write('selectivity query : '),
+  %write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Sel is (ResCard + 1)/ SampleCard,		% must not be 0
   write('selectivity : '),
