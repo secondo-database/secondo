@@ -1087,8 +1087,8 @@ ListExpr RemoveTypeMap(ListExpr args)
       first = nl->First(args);
       second = nl->Second(args);
       oldAttrList=nl->Second(nl->Second(first));
-      noAttrs = nl->ListLength(oldAttrList) - nl->ListLength(second);  // n-k
-      
+      //noAttrs = nl->ListLength(oldAttrList) - nl->ListLength(second);  // n-k
+      noAttrs =0;
       while (!(nl->IsEmpty(oldAttrList)))
       {
 	i++;
@@ -1096,9 +1096,10 @@ ListExpr RemoveTypeMap(ListExpr args)
 	oldAttrList = nl->Rest(oldAttrList);
 	
 	if (removeSet.find(i)==removeSet.end())  //the attribute is not in the removal list
-	{
+	{ 
+	  noAttrs++;
 	  if (firstcall)
-	  {
+	  { 
 	    firstcall = false;
 	    newAttrList = nl->OneElemList(first2);
 	    lastNewAttrList = newAttrList;
