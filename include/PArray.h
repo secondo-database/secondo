@@ -59,6 +59,7 @@ elements of type ~T~.
 #include <iostream> 
 #include <cassert>
 #include <vector>
+#include <algorithm>
 #include "SecondoSMI.h"
 
 template<class T>
@@ -95,7 +96,6 @@ persistent array.
 */
 
   void MarkDelete();
-
 /*
 Marks the persistent array for deletion. It will be permanently deleted on the 
 destruction of the object.
@@ -105,7 +105,6 @@ destruction of the object.
 */
 
   void Put(int const index, const T& elem);
-
 /*
 Copies element ~elem~ into the persistent array at index ~index~.
 
@@ -114,7 +113,6 @@ Copies element ~elem~ into the persistent array at index ~index~.
 */
 
   void Get(int const index, T& elem);
-
 /*
 Returns the element ~index~ of the array.
 
@@ -122,15 +120,44 @@ Returns the element ~index~ of the array.
 
 */
 
-  const int Size() const;
+  template<class Compare>
+  void Sort( const Compare& cmp )
+  {
+    if( size <= 1 ) 
+      return;
 
+    if( marray == 0 )
+    {
+      vector<T> aux;
+      for( int i = 0; i < size; i++ )
+      {
+        T t;
+        Get( i, t );
+        aux.push_back( t );
+      }
+
+      sort( aux.begin(), aux.end(), cmp );
+
+      for( int i = 0; i < size; i++ )
+      {
+        Put( i, aux[i] );
+      }
+    }
+    else
+      sort( marray->begin(), marray->end(), cmp );
+  }
+/*
+Sorts the persisten array given the ~cmp~ comparison criteria.
+
+*/
+
+  const int Size() const;
 /*
 Returns the size of this array.
 
 */
 
   const SmiRecordId Id() const;
-
 /*
 Returns the identifier of this array.
 

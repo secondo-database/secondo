@@ -540,9 +540,8 @@ using ROSE algebra algorithms (DZM).
 
 */
     void Sort();
-    void QuickSortRecursive( const int low, const int high );
 /*
-Sorts (quick-sort algorithm) the persistent array of points.
+Sorts the persistent array of points.
 
 */
     const int Position(const Point&) const;

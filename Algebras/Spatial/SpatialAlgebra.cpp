@@ -950,51 +950,26 @@ ostream& operator<<( ostream& o, const Points& ps )
   return o;
 }
 
+class PointCompare
+{
+  public:
+    bool operator()(const Point& a, const Point& b) const
+    {
+      if( a < b )
+        return true;
+      else
+        return false;
+    }
+};
+
 void Points::Sort()
 {
   assert( !IsOrdered() );
 
-  if( Size() > 1 )
-  {
-    int low = 0, high = Size() - 1;
-    QuickSortRecursive( low, high );
-  }
-}
+  PointCompare cmp;
+  points->Sort<PointCompare>( cmp );
 
-void Points::QuickSortRecursive( const int low, const int high )
-{
-  int i = high, j = low;
-  Point p, pj, pi;
-
-  Get( (int)( (low + high) / 2 ), p );
-
-  do
-  {
-    Get( j, pj );
-    while( pj < p )
-      Get( ++j, pj );
-
-    Get( i, pi );
-    while( pi > p )
-      Get( --i, pi );
-
-    if( i >= j )
-    {
-      if ( i != j )
-      {
-        points->Put( i, pj );
-        points->Put( j, pi );
-      }
-
-      i--;
-      j++;
-    }
-  } while( j <= i );
-
-  if( low < i )
-    QuickSortRecursive( low, i );
-  if( j < high )
-    QuickSortRecursive( j, high );
+  ordered = true;
 }
 
 const bool Points::Contains( const Point& p ) const
