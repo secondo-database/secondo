@@ -30,7 +30,7 @@ VIEWER_DIRS := fuzzy2d jpeg midi relsplit viewer3d hoese
 
 # compile all viewers
 .PHONY: viewers
-viewers: $(VIEWER_CLASSES) makedirs 
+viewers: $(VIEWER_CLASSES) makedirs
 
 
 .PHONY: makedirs
@@ -44,7 +44,7 @@ makedirs:
 
 .PHONY: clean
 clean:
-	rm -f $(VIEWER_CLASSES) 
+	rm -f *.class
 	for dir in $(VIEWER_DIRS); do \
           if !($(MAKE) -C $$dir clean) then \
             exit 1; \
