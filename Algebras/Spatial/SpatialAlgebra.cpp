@@ -1098,6 +1098,8 @@ A ~halfsegment~ value is a pair of points, with a boolean flag indicating the do
 
 6.1 Implementation of the class ~halfsegment~
 
+6.1.1 Constructions and Distruction
+
 */
 
 CHalfSegment::CHalfSegment(bool Defined, bool LDP, Point& P1, Point& P2)
@@ -1134,6 +1136,11 @@ CHalfSegment::CHalfSegment()
 CHalfSegment::~CHalfSegment()
 {
 }
+
+/*
+6.1.2 Property Reading Functions
+
+*/
 
 const bool CHalfSegment::IsDefined() const
 {
@@ -1182,6 +1189,10 @@ const attrtype&  CHalfSegment::GetAttr() const
     return attr;
 }
 
+/*
+6.1.3 Property Setting Functions
+
+*/
 void CHalfSegment::SetDefined(bool Defined)
 {
     defined = Defined;
@@ -1209,25 +1220,16 @@ void    CHalfSegment::SetAttr(attrtype& ATTR)
     attr=ATTR;
 }
 
-CHalfSegment& CHalfSegment::operator=(const CHalfSegment& chs)
-{
-  assert( chs.IsDefined() );
-  defined = true;
-  ldp = chs.GetLDP();
-  lp = chs.GetLP();
-  rp = chs.GetRP();
-  attr = chs.GetAttr();
-  return *this;
-}
-
 /*
-The following function compares two halfsegments, a and b.  if a \verb+<+ b, then -1 is returned;
-if a \verb+>+ b then 1 is returned, if a=b then 0 is returned. The order of halfsegments follows the
-rules given in the paper about the ROSE algebra implementation.
+6.1.4 Overloaded Class Operators
+
+The following utility function, ~chscmp~,  compares two halfsegments, a and b.  if a \verb+<+ b, then -1 is 
+returned; if a \verb+>+ b then 1 is returned, if a=b then 0 is returned. The order of halfsegments 
+follows the rules given in the paper about the ROSE algebra implementation.
 
 */
 
-int CHalfSegment::chscmp(const CHalfSegment& chs) const
+int CHalfSegment::chscmp(const CHalfSegment& chs) const 
 {
     if (!IsDefined() && !(chs.IsDefined()))  return 0;
     else if (!IsDefined())  return -1;
@@ -1331,6 +1333,17 @@ int CHalfSegment::chscmp(const CHalfSegment& chs) const
     return -2;
 }
 
+CHalfSegment& CHalfSegment::operator=(const CHalfSegment& chs)
+{
+  assert( chs.IsDefined() );
+  defined = true;
+  ldp = chs.GetLDP();
+  lp = chs.GetLP();
+  rp = chs.GetRP();
+  attr = chs.GetAttr();
+  return *this;
+}
+
 int CHalfSegment::operator==(const CHalfSegment& chs) const
 {
     return (chscmp(chs)==0);
@@ -1384,7 +1397,10 @@ int CHalfSegment::logicgreater(const CHalfSegment& chs) const
 	}
     }
 }
+/*
+6.1.5 Overloaded Output Function
 
+*/
 ostream& operator<<(ostream &os, const CHalfSegment& chs)
 {
     if( chs.IsDefined())
@@ -1393,7 +1409,13 @@ ostream& operator<<(ostream &os, const CHalfSegment& chs)
     else
          return (os << "undef");
 }
+/*
+6.1.6 Intersects Function
 
+This function decides whether two line segments intersect each other. The intersecting point
+can be in any place of the line segments, including the middle points and endpoints.
+
+*/
 const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
@@ -1484,7 +1506,12 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
 	  else return false;
       }
 }
+/*
+6.1.7 InnerIntersects Function
 
+This function decides whether two line segments intersect with their inner points.
+
+*/
 const bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
@@ -1597,6 +1624,232 @@ const bool CHalfSegment::innerIntersects( const CHalfSegment& chs ) const
       }
 }
 
+/*
+6.1.8 Single-Point-Intersects Function
+
+This function decides whether two line segments intersect with a single point. The single
+intersecting points can be middle point or endpoint.
+
+*/
+const bool CHalfSegment::spintersect( const CHalfSegment& chs, Point& resp) const
+{
+    Coord xl,yl,xr,yr;
+    Coord Xl,Yl,Xr,Yr;
+    double k, a, K, A;
+    double x0, y0; // (x0, y0) is the intersection
+
+    xl=lp.GetX();  yl=lp.GetY();
+    xr=rp.GetX();  yr=rp.GetY();
+    if (xl!=xr)
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
+	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+	      (xl.IsInteger()? xl.IntValue():xl.Value()));
+	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+    }
+
+    Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
+    Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
+    if (Xl!=Xr)
+    {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
+	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
+ 	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
+	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
+	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
+	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+    }
+
+    if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
+      {
+	 return false;
+     }
+
+    if (Xl==Xr)    //only L is vertical
+    {
+	double y0=k*(Xl.IsInteger()? Xl.IntValue():Xl.Value())+a;
+	Coord yy(y0);
+	//(Xl, y0) is the intersection of l and L
+	if    ((Xl>xl) &&(Xl<xr))
+	{
+	    if (((yy>Yl) && (yy<Yr)) || ((yy>Yr) && (yy<Yl)))
+	     {
+		resp.Set(true, Xl, yy);
+		return true;
+	    }
+	    else return false;
+	}
+	else return false;
+    }
+
+    if (xl==xr)    //only l is vertical
+    {
+	double Y0=K*(xl.IsInteger()? xl.IntValue():xl.Value())+A;
+	Coord YY(Y0);
+	//(xl, Y0) is the intersection of l and L
+	if ((xl>Xl) && (xl<Xr))
+	{
+	    if (((YY>yl) && (YY<yr)) || ((YY>yr) && (YY<yl)))
+	    {
+		resp.Set(true, xl,YY);
+		return true;
+	    }
+	    else return false;
+	}
+	else return false;
+    }
+
+    //otherwise: both *this and *arg are non-vertical lines
+    if (k==K)
+    {
+	return false;
+    }
+    else
+    {
+	x0=(A-a) / (k-K);	 
+	y0=x0*k+a;
+	
+	Coord xx(x0);
+	Coord yy(y0);
+	
+	if ((xx>xl) && (xx<xr) && (xx>Xl) && (xx <Xr))
+	{
+	    resp.Set(true, xx, yy);
+	    return true;
+	}
+	else return false;
+    }
+}
+/*
+6.1.9 Overlap Intersects Function
+
+This function decides whether two line segments overlap each other. That is, the intersection is 
+part of the segment, not just a point.
+
+*/
+const bool CHalfSegment::overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const
+{
+    Coord xl,yl,xr,yr;
+    Coord Xl,Yl,Xr,Yr;
+    double k, a, K, A;
+    
+    //cout<<*this<<chs<<endl;
+    if (*this==chs)
+    {
+	reschs=chs;
+	return true;
+    }
+	    
+    xl=lp.GetX();  yl=lp.GetY();
+    xr=rp.GetX();  yr=rp.GetY();
+    if (xl!=xr)
+    {   	//k=(yr-yl) / (xr-xl);  a=yl - k*yl;
+	k=((yr.IsInteger()? yr.IntValue():yr.Value()) -
+	      (yl.IsInteger()? yl.IntValue():yl.Value())) /
+	     ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+	      (xl.IsInteger()? xl.IntValue():xl.Value()));
+	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
+	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
+    }
+
+    Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
+    Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
+    if (Xl!=Xr)
+    {    	//K=(Yr-Yl) / (Xr-Xl);  A=Yl - K*Xl;
+	K=  ((Yr.IsInteger()? Yr.IntValue():Yr.Value()) -
+	        (Yl.IsInteger()? Yl.IntValue():Yl.Value())) /
+ 	       ((Xr.IsInteger()? Xr.IntValue():Xr.Value()) -
+	        (Xl.IsInteger()? Xl.IntValue():Xl.Value()));
+	A = (Yl.IsInteger()? Yl.IntValue():Yl.Value()) -
+	       K*(Xl.IsInteger()? Xl.IntValue():Xl.Value());
+    }
+
+    if ((xl==xr) && (Xl==Xr)) //both l and L are vertical lines
+    {
+	if (xl!=Xl) return false;
+	else  
+	{
+	    Coord ylow, yup, Ylow, Yup;
+	    if (yl<yr) 
+	    {
+		ylow=yl;
+		yup=yr;
+	    }
+	    else
+	    {		 
+		ylow=yr;
+		yup=yl;
+	    }
+	    if (Yl<Yr) 
+	    {
+		Ylow=Yl;
+		Yup=Yr;
+	    }
+	    else
+	    {		 
+		Ylow=Yr;
+		Yup=Yl;
+	    }
+	    
+	    if  (((ylow>Ylow) && (ylow<Yup))||
+	         ((yup>Ylow) && (yup<Yup)) ||
+	         ((Ylow>ylow) && (Ylow<yup))||
+	         ((Yup>ylow) && (Yup<yup)))
+	    {
+		Point p1, p2;
+		if (ylow>Ylow) 
+		        p1.Set(true, xl, ylow);
+		else p1.Set(true, xl, Ylow);
+		
+		if (yup<Yup) 
+		        p2.Set(true, xl, yup);
+		else p2.Set(true, xl, Yup);
+				
+		reschs.Set(true, true, p1, p2);
+		return true;
+	    }
+	    else return false;
+	}
+    }
+
+    if ((Xl==Xr)||(xl==xr))  //only L or l is vertical
+    {
+	return false;
+    }
+
+    //otherwise: both *this and *arg are non-vertical lines
+    if ((k==K) && (A==a))
+    {
+	if (((xl>Xl)&&(xl<Xr)) ||
+	    ((xr>Xl)&&(xr<Xr)) ||
+	    ((Xl>xl) && (Xl<xr))||
+	    ((Xr>xl) && (Xr<xr)))
+	{
+	    Point p1, p2;
+	    if (xl>Xl)
+	             p1.Set(true, xl, yl);
+	    else  p1.Set(true, Xl, Yl);
+	    
+	    if (xr<Xr)
+	             p2.Set(true, xr, yr);
+	    else  p2.Set(true, Xr, Yr);
+	    
+	    reschs.Set(true, true, p1, p2);
+	    return true;
+	}
+	else return false;
+    }
+    else	return false;
+}
+/*
+6.1.10 Cross Intersects Function
+
+This function decides whether two line segments cross each other. That is, they are not parallel 
+and they intersect with a middle point.
+
+*/
 const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
@@ -1615,7 +1868,7 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 	a=(yl.IsInteger()? yl.IntValue():yl.Value()) -
 	     k*(xl.IsInteger()? xl.IntValue():xl.Value());
     }
-
+ 
     Xl=chs.GetLP().GetX();  Yl=chs.GetLP().GetY();
     Xr=chs.GetRP().GetX();  Yr=chs.GetRP().GetY();
     if (Xl!=Xr)
@@ -1677,7 +1930,13 @@ const bool CHalfSegment::cross( const CHalfSegment& chs ) const
 	else return false;
       }
 }
+/*
+6.1.11 Crossings Intersects Function
 
+This function is similar to cross function, with just minor differences; the intersecting point can be the endpoint 
+of the first segment but not the second.
+
+*/
 const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 {
     Coord xl,yl,xr,yr;
@@ -1774,7 +2033,13 @@ const bool CHalfSegment::crossings( const CHalfSegment& chs, Point& p ) const
 	else return false;
       }
 }
+/*
+6.1.12 Overlap Function
 
+This function decides whether two line segments overlap each other. That is, they are in the 
+ same (endless) line and they intersect with middle points.
+
+*/
 const bool CHalfSegment::overlap( const CHalfSegment& chs ) const
 {
     Coord xl,yl,xr,yr;
@@ -1888,7 +2153,13 @@ const bool CHalfSegment::overlap( const CHalfSegment& chs ) const
 	  else return false;
       }
 }
+/*
+6.1.13 Inside Function
 
+This function decides whether a line segment is inside another, that is, it is a part
+of the other line segment.
+
+*/
 const bool CHalfSegment::Inside(const CHalfSegment& chs) const
 { //to decide whether *this is part of *arg.
   assert( IsDefined() && chs.IsDefined() );
@@ -1937,7 +2208,12 @@ const bool CHalfSegment::Inside(const CHalfSegment& chs) const
 
   return false;
 }
+/*
+6.1.14 Contain Function
 
+This function decides whether a point is inside a line segment.
+
+*/
 const bool CHalfSegment::Contains( const Point& p ) const
 {
   assert( p.IsDefined() );
@@ -1967,7 +2243,10 @@ const bool CHalfSegment::Contains( const Point& p ) const
   }
   else    return false;
 }
+/*
+6.1.15 distance Function
 
+*/
 double CHalfSegment::distance( const Point& p ) const
 {
     //this function computes the distance of a line segment and a point
@@ -2050,7 +2329,13 @@ double CHalfSegment::distance( const Point& p ) const
     //cout<<"the distance "<<*this<<" and "<<p <<" is: "<<result<<endl;
     return (result);
 }
+/*
+6.1.16 Rayabove Function
 
+This function decides whether a line segment is above a given point. That is,
+they are separate and the line segment is straight above the point.
+
+*/
 const bool CHalfSegment::rayAbove( const Point& p, double &abovey0 ) const
 {
     Coord x, y, xl, yl,xr, yr;
@@ -5500,9 +5785,9 @@ intersectionSelect( ListExpr args )
   if ( TypeOfSymbol( arg1 ) == stregion &&
        TypeOfSymbol( arg2 ) == stpoints )
       return (11);
-//  if ( TypeOfSymbol( arg1 ) == stline &&
-//       TypeOfSymbol( arg2 ) == stline )
-//      return (12);
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
+      return (12);
 //  if ( TypeOfSymbol( arg1 ) == stline &&
 //       TypeOfSymbol( arg2 ) == stregion )
 //      return (13);
@@ -5883,7 +6168,7 @@ IsEmpty_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.2 Value mapping functions of operator ~$=$~
+10.4.2 Value mapping functions of operator ~$=$~
 
 */
 static int
@@ -5929,7 +6214,7 @@ SpatialEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 }
 
 /*
-10.3.3 Value mapping functions of operator ~$\neq$~
+10.4.3 Value mapping functions of operator ~$\neq$~
 
 */
 static int
@@ -5974,7 +6259,7 @@ SpatialNotEqual_rr( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-10.3.4 Value mapping functions of operator ~$<$~
+10.4.4 Value mapping functions of operator ~$<$~
 
 */
 static int
@@ -5995,7 +6280,7 @@ SpatialLess_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.5 Value mapping functions of operator ~$\leq$~
+10.4.5 Value mapping functions of operator ~$\leq$~
 
 */
 static int
@@ -6016,7 +6301,7 @@ SpatialLessEqual_pp( Word* args, Word& result, int message, Word& local, Supplie
 }
 
 /*
-10.3.6 Value mapping functions of operator ~$>$~
+10.4.6 Value mapping functions of operator ~$>$~
 
 */
 static int
@@ -6037,7 +6322,7 @@ SpatialGreater_pp( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-10.3.7 Value mapping functions of operator ~$\geq$~
+10.4.7 Value mapping functions of operator ~$\geq$~
 
 */
 static int
@@ -6058,7 +6343,7 @@ SpatialGreaterEqual_pp( Word* args, Word& result, int message, Word& local, Supp
 }
 
 /*
-10.3.8 Value mapping functions of operator ~intersects~
+10.4.8 Value mapping functions of operator ~intersects~
 
 */
 static int
@@ -6344,7 +6629,7 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-10.3.9 Value mapping functions of operator ~inside~
+10.4.9 Value mapping functions of operator ~inside~
 
 */
 
@@ -6600,7 +6885,7 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
-10.3.23 Value mapping functions of operator ~touches~
+10.4.10 Value mapping functions of operator ~touches~
 
 */
 
@@ -6882,7 +7167,7 @@ touches_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.24 Value mapping functions of operator ~attached~
+10.4.11 Value mapping functions of operator ~attached~
 
 */
 
@@ -7120,7 +7405,7 @@ attached_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.25 Value mapping functions of operator ~overlaps~
+10.4.12 Value mapping functions of operator ~overlaps~
 
 */
 
@@ -7355,7 +7640,7 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.10 Value mapping functions of operator ~onborder~
+10.4.13 Value mapping functions of operator ~onborder~
 
 */
 
@@ -7427,7 +7712,7 @@ SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-10.3.11 Value mapping functions of operator ~ininterior~
+10.4.14 Value mapping functions of operator ~ininterior~
 
 */
 
@@ -7515,7 +7800,7 @@ SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-10.3.12 Value mapping functions of operator ~intersection~
+10.4.15 Value mapping functions of operator ~intersection~
 
 */
 
@@ -7906,43 +8191,54 @@ intersection_rps( Word* args, Word& result, int message, Word& local, Supplier s
 
 static int
 intersection_ll( Word* args, Word& result, int message, Word& local, Supplier s )
-{   //this function computes the intersection of two lines. However, since line's intersecion
-    //can contain both points and lines, we need to extend the definition of linesegment:
-    //they should allow two endpoints to be equal.
+{   //this function computes the intersection of two lines. However, since line's intersecion can 
+    //contain both points and lines, I will simply ignore the points and just keep line segments
+    
     result = qp->ResultStorage( s );
 
     CLine *cl1=((CLine*)args[0].addr);
     CLine *cl2=((CLine*)args[1].addr);
+    
     CHalfSegment chs1, chs2, chs;
 
     if (!( cl1->IsEmpty()) && (!( cl2->IsEmpty())))
     {
+	((CLine *)result.addr)->StartBulkLoad();
+	
 	for (int i=0; i<cl1->Size(); i++)
 	{
 	    cl1->Get(i, chs1);
+	    
 	    if (chs1.GetLDP())
 	    {
-		for (int j=0; (j<cl2->Size()); j++)
+		for (int j=0; j<cl2->Size(); j++)
 		{
 		    cl2->Get(j, chs2);
-		    //if ((chs2.GetLDP())&&(chs1.intersect(chs2, chs)))
-		    //{
-		    //	*((CLine *)result.addr) += chs;
-		    //}
+		    
+		    if (chs2.GetLDP())
+		    {	
+			if (chs1.overlapintersect(chs2, chs))
+			{
+			    *((CLine *)result.addr) += chs;
+			    chs.SetLDP(false);
+			    *((CLine *)result.addr) += chs;
+			}
+		    }
 		}
 	    }
 	}
+	//when the result is too big, the endbulkload has problem.
+	((CLine *)result.addr)->EndBulkLoad();
 	return (0);
     }
     else  // one of the input is null
     {
 	return (0);
     }
-    return (0);
 }
 
 /*
-10.3.13 Value mapping functions of operator ~minus~
+10.4.16 Value mapping functions of operator ~minus~
 
 */
 
@@ -8149,7 +8445,7 @@ minus_rps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.14 Value mapping functions of operator ~union~
+10.4.17 Value mapping functions of operator ~union~
 
 */
 
@@ -8290,7 +8586,7 @@ union_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.15 Value mapping functions of operator ~crossings~
+10.4.18 Value mapping functions of operator ~crossings~
 
 */
 
@@ -8329,7 +8625,7 @@ crossings_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.16 Value mapping functions of operator ~single~
+10.4.19 Value mapping functions of operator ~single~
 
 */
 
@@ -8355,7 +8651,7 @@ single_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.17 Value mapping functions of operator ~distance~
+10.4.20 Value mapping functions of operator ~distance~
 
 */
 
@@ -8902,7 +9198,7 @@ distance_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.18 Value mapping functions of operator ~direction~
+10.4.21 Value mapping functions of operator ~direction~
 
 */
 
@@ -8991,7 +9287,7 @@ direction_pp( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.19 Value mapping functions of operator ~nocomponents~
+10.4.22 Value mapping functions of operator ~nocomponents~
 
 */
 
@@ -9040,7 +9336,7 @@ nocomponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.20 Value mapping functions of operator ~size~
+10.4.23 Value mapping functions of operator ~size~
 
 */
 
@@ -9068,7 +9364,7 @@ size_l( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-10.3.21 Value mapping functions of operator ~touchpoints~
+10.4.24 Value mapping functions of operator ~touchpoints~
 
 */
 
@@ -9076,7 +9372,39 @@ static int
 touchpoints_lr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-        
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
+
+    cl=((CLine*)args[0].addr);
+    cr=((CRegion*)args[1].addr);
+    
+    ((Points *)result.addr)->StartBulkLoad();
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);	
+	if (chsl.GetLDP())
+	{
+	    for (int j=0; j<cr->Size(); j++)
+	    {
+		cr->Get(j, chsr);
+		if (chsr.GetLDP())
+		{
+		    if (chsr.Contains(chsl.GetLP()))
+		    {
+			*((Points *)result.addr) += chsl.GetLP();
+		    }
+		    
+		    if (chsr.Contains(chsl.GetRP()))
+		    {
+			*((Points *)result.addr) += chsl.GetRP();
+		    }
+		}
+	    }
+	}
+    }
+    ((Points *)result.addr)->EndBulkLoad();
     return (0);
 }
 
@@ -9084,20 +9412,79 @@ static int
 touchpoints_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    
+    CHalfSegment chsl, chsr;
 
+    cl=((CLine*)args[1].addr);
+    cr=((CRegion*)args[0].addr);
+    
+    ((Points *)result.addr)->StartBulkLoad();
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);	
+	if (chsl.GetLDP())
+	{
+	    for (int j=0; j<cr->Size(); j++)
+	    {
+		cr->Get(j, chsr);
+		if (chsr.GetLDP())
+		{
+		    if (chsr.Contains(chsl.GetLP()))
+		    {
+			*((Points *)result.addr) += chsl.GetLP();
+		    }
+		    
+		    if (chsr.Contains(chsl.GetRP()))
+		    {
+			*((Points *)result.addr) += chsl.GetRP();
+		    }
+		}
+	    }
+	}
+    }
+    ((Points *)result.addr)->EndBulkLoad();
     return (0);
 }
 
 static int
 touchpoints_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{
+{   //need to improve this func- endpoints of edges should be considered specially.
     result = qp->ResultStorage( s );
+    
+    CRegion *cr1, *cr2;
+    CHalfSegment chs1, chs2;
+    Point p;
 
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+    
+    ((Points *)result.addr)->StartBulkLoad();
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cr2->Size(); j++)
+	    {
+		cr2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if (chs1.spintersect(chs2, p))
+		    {
+			*((Points *)result.addr) += p;
+		    }
+		}
+	    }
+	}
+    }
+    ((Points *)result.addr)->EndBulkLoad();
     return (0);
 }
 
 /*
-10.3.22 Value mapping functions of operator ~commomborder~
+10.4.25 Value mapping functions of operator ~commomborder~
 
 */
 
@@ -9105,12 +9492,40 @@ static int
 commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-        
+    
+    CRegion *cr1, *cr2;
+    CHalfSegment chs1, chs2, reschs;
+
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+    
+    ((CLine *)result.addr)->StartBulkLoad();
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    for (int j=0; j<cr2->Size(); j++)
+	    {
+		cr2->Get(j, chs2);
+		if (chs2.GetLDP())
+		{
+		    if (chs1.overlapintersect(chs2, reschs))
+		    {
+			*((CLine *)result.addr) += reschs;
+			reschs.SetLDP(false);
+			*((CLine *)result.addr) += reschs;
+		    }
+		}
+	    }
+	}
+    }
+    ((CLine *)result.addr)->EndBulkLoad();
     return (0);
 }
 
 /*
-10.4 Definition of operators
+10.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
@@ -9118,6 +9533,8 @@ type constructors: an instance of class ~Operator~ is defined.
 Because almost all operators are overloaded, we have first do define an array of value
 mapping functions for each operator. For nonoverloaded operators there is also such and array
 defined, so it easier to make them overloaded.
+
+10.5.1 Definition of value mapping vectors
 
 */
 ValueMapping spatialisemptymap[] = { IsEmpty_p,
@@ -9214,6 +9631,7 @@ ValueMapping intersectionmap[] = 	      { intersection_pp,
 				        intersection_lps,
 				        intersection_psr,
 				        intersection_rps,
+				        intersection_ll
 				      };
 
 ValueMapping minusmap[] = 	      { minus_pp,
@@ -9287,7 +9705,10 @@ ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
 				       SpatialNoModelMapping,
 				       SpatialNoModelMapping,
 				       SpatialNoModelMapping };
+/*
+10.5.2 Definition of specification strings
 
+*/
 const string SpatialSpecIsEmpty  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
 	   "( <text>point -> bool, points -> bool, line -> bool,"
@@ -9491,7 +9912,10 @@ const string SpatialSpecCommonborder  =
 	"<text> return the common border of two regions.</text--->"
 	"<text> query region1 commonborder region2</text--->"
 	") )";
+/*
+10.5.3 Definition of the operators
 
+*/
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap,
 	  spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
@@ -9549,7 +9973,7 @@ Operator spatialininterior
 	  onBorder_inInteriorSelect, GeoGeoMapBool );
 
 Operator spatialintersection
-	( "intersection", SpatialSpecIntersection, 12, intersectionmap, spatialnomodelmap,
+	( "intersection", SpatialSpecIntersection, 13, intersectionmap, spatialnomodelmap,
 	  intersectionSelect, intersectionMap );
 
 Operator spatialminus

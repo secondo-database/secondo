@@ -721,9 +721,9 @@ indicated in the ROSE paper.
 /*
 5.6 Intersects Function
 
-*Semantics:*  These two functions decide whether two half segments intersect with or cross each other. 
-Since there is no Realm here as a precondition, two half segments may intersect each other in their middle,
-which is decided by ~cross~. That is: cross=intersect with middle points. 
+*Semantics:*  These intersects functions decide whether two half segments intersect with each other. 
+Since there is no Realm here as a precondition, two half segments may intersect each other in their 
+middle points. 
 
 *Complexity:* $O( 1 )$ 
 
@@ -737,34 +737,44 @@ This first intersects function compute whether two half segments intersect each 
 /*
 This second intersects function compute whether two half segments intersect each other. 
 If they intersect, then the intersected part will be returned so that the function initiates the 
-call can know where they intersect. The intersected part is a segment. If it is a point, then
-the two endpoints of the segment will be the same.
+call can know where they intersect. The intersected part is a segment. If it is a point, the it
+is ignored.
 
 */
-    
+    const bool spintersect( const CHalfSegment& chs, Point& resp) const;
+/*
+This third intersects function (single point intersects) compute whether two half segments 
+intersect each other with a single point, if yes, the intersection point is returned.
+
+*/
+    const bool overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const;
+/*
+This fourth intersects function compute whether two half segments intersect each other with
+a segment, if yes, the intersection segment is returned.
+
+*/
     const bool innerIntersects( const CHalfSegment& chs) const;    
 /*
-This first intersects function compute whether two half segments intersect each other. 
+This fifth intersects function decides whether two half segments intersect in the following manner:
+a point of the first segment and a innerpoint of the second segment is the same. 
 
 */
     const bool cross( const CHalfSegment& chs ) const;
 /*
-This third intersect function, named as ~cross~, compute whether two half segments intersect
- with their mid-points. If they only meet with their endpoints, they are considered as "not cross".
+This sixth intersect function, named ~cross~, compute whether two half segments intersect
+ with their mid-points. Be aware that endpoints are not considered in computing the results.
 
 */    
-    
     const bool crossings( const CHalfSegment& chs, Point& p ) const;
 /*
-This fourth intersect function, named crossings, is ued for the ~crossings~ operator. It computes 
-whether two half segments crossing each other. If they do not intersect, or they are parellel, 
-they are consider not crossing each other. 
+This seventh intersect function, named ~crossings~, is ued for the ~crossings~ operator. It 
+computes whether two half segments crossing each other. 
 
 */
     const bool overlap( const CHalfSegment& chs) const;    
 /*
-This last intersect function, named overlap, computes whether  two half segments overlap each other. 
-If their inner part intersect, then the result is true. 
+This last intersect function, named overlap, computes whether  two half segments overlap 
+each other. If their inner part intersect, then the result is true. 
 
 */
     
@@ -792,7 +802,7 @@ a segment S, then we say P is contained by S. eg. ---------o---------.
 5.9 rayAbove Function
 
 *Semantics:* This function decides whether a half segment is above a point. This is 
-useful when we want to decide whether a point is inside a face or region.
+useful when we want to decide whether a point is inside a region.
 
 *Complexity:* $O( 1 )$ 
 
@@ -848,8 +858,7 @@ These two properties give the left and right point of the half segment.
     attrtype attr;
 /*
 This ~attribute~ property is useful if we process region values in a way similar to that indicated in the ROSE
-paper. Currently the ~attribute~ value is composed of a set of int, but it will soon be implemented as a structure
- which contains more information.
+paper.
 
 */  
 };
@@ -890,12 +899,12 @@ as a set of sorted halfsegments, which are stored as a PArray.
 */    
     const bool IsOrdered() const;
 /*
-judges whether the half segments in the line value is sorted.
+decides whether the half segments in the line value is sorted.
 
 */    
     const bool IsEmpty() const;
 /*
-judges whether the line value is empty.
+decides whether the line value is empty.
 
 */        
     const int Size() const;
@@ -948,7 +957,7 @@ Marks the end of a bulk load and sorts the half segments.
 /*
 6.4.3 Operation $+=$ (~Union~)
 
-*Semantics:* $this +=chs$. It adds a half segment into a line value.
+*Semantics:* $this += chs$. It adds a half segment into a line value.
 
 *Complexity:* $O( 1 )$ , if the set is not ordered; and $O( log(n)+n)$ , if the set is ordered.
 
