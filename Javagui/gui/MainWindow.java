@@ -10,7 +10,7 @@ import java.util.*;
 import java.io.*;
 import gui.idmanager.*;
 
-public class MainWindow extends JFrame implements ResultProcessor,ViewerControl{
+public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,SecondoChangeListener{
 
 public final String CONFIGURATION_FILE="gui.cfg";
 public final int MIN_FONTSIZE = 6;
@@ -59,8 +59,16 @@ private JMenuItem MI_Connect;
 private JMenuItem MI_Disconnect;
 private JMenuItem MI_Settings;
 
-private JMenu ServerCommand;
-private JMenu ServerCommand_List;
+private JMenu Menu_ServerCommand;
+
+private JMenu Menu_BasicCommands;
+private JMenu Menu_Inquiries;
+private JMenu Menu_Databases;
+private JMenu Menu_Transactions;
+private JMenu Menu_ImExport;
+
+
+//Inquiries
 private JMenuItem MI_ListDatabases;
 private JMenuItem MI_ListTypes;
 private JMenuItem MI_ListTypeConstructors;
@@ -68,9 +76,34 @@ private JMenuItem MI_ListObjects;
 private JMenuItem MI_ListOperators;
 private JMenuItem MI_ListAlgebras;
 private JMenu AlgebraMenu;
+
+// Databases
 private JMenu OpenDatabaseMenu;
+private JMenu DeleteDatabaseMenu;
 private JMenuItem MI_UpdateDatabases;
 private JMenuItem MI_CloseDatabase;
+private JMenuItem MI_CreateDatabase;
+
+// Transactions
+private JMenuItem MI_BeginTransaction;
+private JMenuItem MI_CommitTransaction;
+private JMenuItem MI_AbortTransaction;
+
+// Import Export
+private JMenuItem MI_SaveDatabase;
+private JMenuItem MI_RestoreDatabase;
+private JMenuItem MI_SaveObject;
+private JMenuItem MI_RestoreObject;
+
+// Basic Commands
+private JMenuItem MI_CreateType;
+private JMenuItem MI_DeleteType;
+private JMenuItem MI_CreateObject;
+private JMenuItem MI_DeleteObject;
+private JMenuItem MI_UpdateObject;
+private JMenuItem MI_Let;
+private JMenuItem MI_Query;
+
 
 private JMenu HelpMenu;
 private JMenuItem MI_ShowGuiCommands;
@@ -112,11 +145,12 @@ public MainWindow(String Title){
   String StartScript=null;
   setSize(800,600);
   OptionPane = new JOptionPane();
-  ServerDlg = new ServerDialog(this); 
+  ServerDlg = new ServerDialog(this);
   MyHelp = new HelpScreen(this);
   this.getContentPane().setLayout(new BorderLayout());
   PanelTop = new JPanel(new BorderLayout(),true);
   ComPanel = new CommandPanel(this);
+  ComPanel.addSecondoChangeListener(this);
   OList = new ObjectList(this,this);
   PanelTopRight = new JPanel();
   CurrentMenuVector = null;
@@ -178,6 +212,7 @@ public MainWindow(String Title){
       e.printStackTrace();
     }
   }
+ int maxStringLength=48;
  if(config_file_ok){
     String TMPServerName = Config.getProperty("SERVERNAME");
     if (TMPServerName==null)
@@ -250,7 +285,16 @@ public MainWindow(String Title){
 
     }
 
-
+   String MaxStringLen = Config.getProperty("MAX_STRING_LENGTH");
+   if(MaxStringLen!=null){
+      try{
+         int tmp = Integer.parseInt(MaxStringLen.trim());
+	 if(tmp>0)
+	    maxStringLength = tmp;
+      } catch(Exception e){
+         System.out.println("invalid value for MAX_STRING_LENGTH");
+      }
+   }
 
     String KnownViewers = Config.getProperty("KNOWN_VIEWERS");
     if(KnownViewers!=null){
@@ -278,7 +322,7 @@ public MainWindow(String Title){
                System.out.println(ViewerName+" is not a SecondoViewer");
             }catch(Exception e){
             if(DEBUG_MODE)
-               e.printStackTrace(); 
+               e.printStackTrace();
            System.out.println("cannot load viewer:"+ViewerName+"\n");
            }
         }
@@ -316,7 +360,7 @@ public MainWindow(String Title){
      if(F.exists())
         SecondoHomeDir = F.getAbsolutePath();
    }
-   
+
    String UseBinaryLists = Config.getProperty("USE_BINARY_LISTS");
    boolean use_binary_lists = false;
    if(UseBinaryLists!=null && UseBinaryLists.trim().toLowerCase().equals("true"))
@@ -361,6 +405,9 @@ public MainWindow(String Title){
       else
          getServerInfos();
   }
+
+  OList.setMaxStringLength(maxStringLength);
+  ListExpr.setMaxStringLength(maxStringLength);
 
   if(StartScript!=null){
       StartScript = StartScript.trim();
@@ -446,7 +493,7 @@ public SecondoViewer[] getViewers(){
 
 
 
-/** removes the current Viewer and shows nothing 
+/** removes the current Viewer and shows nothing
   * use it with setViewer
  **/
 private void removeCurrentViewer(){
@@ -455,9 +502,9 @@ private void removeCurrentViewer(){
       MainMenu.revalidate();
       if(onlyViewerShow)
         getContentPane().removeAll();
-      else 
-        VSplitPane.setRightComponent(PanelTopRight); 
-      
+      else
+        VSplitPane.setRightComponent(PanelTopRight);
+
 }
 
 
@@ -468,14 +515,14 @@ private void setViewerindex(int index){
      SV = (SecondoViewer)AllViewers.get(index);
      }
  catch(Exception e) {SV=null;}
- setViewer(SV);  
+ setViewer(SV);
 }
 
 
 /** set the current viewer to SV **/
 private void setViewer(SecondoViewer SV){
  if (SV!=null) {
-    removeCurrentViewer(); 
+    removeCurrentViewer();
     if (onlyViewerShow){
        getContentPane().removeAll();
        getContentPane().add(SV);
@@ -569,7 +616,7 @@ public boolean execGuiCommand(String command){
            e.printStackTrace();
      }
      ComPanel.showPrompt();
-  } 
+  }
   else if(command.startsWith("selectViewer")) {
      String ViewerName=command.substring(12).trim();  // command without "selectViewer"
      boolean found=false;
@@ -720,7 +767,7 @@ public boolean execGuiCommand(String command){
      String sep = System.getProperties().getProperty("file.separator");
      if(dir.endsWith(sep))
         dir = dir.substring(1,dir.length()-1);  // remove a fileseparator
-     ObjectDirectory = dir;   
+     ObjectDirectory = dir;
      OList.setObjectDirectory(new File(dir));   
      ComPanel.appendText("ObjectDirectory ="+dir);
      ComPanel.showPrompt();
@@ -860,7 +907,7 @@ public static void main(String[] args){
 public void processResult(String command,ListExpr ResultList,IntByReference ErrorCode,
                         IntByReference ErrorPos,StringBuffer ErrorMessage){
   if (ErrorCode.value!=0){
-    ComPanel.appendText("Error: " + ErrorMessage+"\n");
+    ComPanel.appendText("Error: " + ErrorMessage);
     ComPanel.appendText(ServerErrorCodes.getErrorMessageText(ErrorCode.value));
     if (ErrorCode.value==5){
        StringBuffer SB=new StringBuffer();
@@ -888,30 +935,8 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
                      setViewer(SV);
                   CurrentViewer.addObject(o);
                   OList.updateMarks();
-               }    
-              /*
-               
-               if (CurrentViewer.canDisplay(o)){
-                   CurrentViewer.addObject(o);
-                   OList.updateMarks();
                }
-               else {   // search a Viewer to display the result
-                  SecondoViewer Cand=null;
-                  boolean found = false;
-                  for(int i=0;i<AllViewers.size()&!found;i++){
-                     Cand = (SecondoViewer) AllViewers.get(i);
-                     if (Cand.canDisplay(o))
-                         found = true;
-                  }
-                  if(found){
-                     setViewer(Cand);
-                     CurrentViewer.addObject(o);
-                     OList.updateMarks();
-                  }
-                  else
-                     showMessage("no Viewer loaded to display this result");
-               }
-               */
+  
             } catch(Exception e){
                if(DEBUG_MODE)
                   e.printStackTrace();
@@ -949,7 +974,7 @@ public boolean isActualDisplayed(SecondoObject SO){
         if(DEBUG_MODE)
            e.printStackTrace();
         System.out.println("error in current Viewer "+CurrentViewer+" method: isDisplayed");
-        return false; 
+        return false;
      }
 } 
 
@@ -1006,7 +1031,7 @@ public void hideObject(Object Sender,SecondoObject SO){
 public void removeObject(SecondoObject SO){
   if(SO!=null)
     OList.removeObject(SO);
-  OList.updateMarks(); 
+  OList.updateMarks();
 }
 
 
@@ -1168,6 +1193,8 @@ private void createMenuBar(){
      }});
 
 
+
+   // Create the Server-Menu
    ServerMenu = new JMenu("Server");
    ServerMenu.addMenuListener(new MenuListener(){
      public void menuSelected(MenuEvent evt){
@@ -1206,24 +1233,64 @@ private void createMenuBar(){
        showServerSettings();
     }});
 
-   ServerCommand = new JMenu("Command");
-   ServerMenu.add(ServerCommand);
-   ServerCommand_List = new JMenu("list");
-   ServerCommand.add(ServerCommand_List);
-   MI_ListDatabases=ServerCommand_List.add("databases");
-   MI_ListTypes = ServerCommand_List.add("types");
-   MI_ListTypeConstructors = ServerCommand_List.add("type constructors");
-   MI_ListObjects = ServerCommand_List.add("objects");
-   MI_ListOperators = ServerCommand_List.add("operators");
-   MI_ListAlgebras = ServerCommand_List.add("algebras");
-   AlgebraMenu = new JMenu("algebra");
-   ServerCommand_List.add(AlgebraMenu);
-   MI_UpdateDatabases = new JMenuItem("Update databases");
-   ServerCommand.add(MI_UpdateDatabases);
+   Menu_ServerCommand = new JMenu("Command");
+   ServerMenu.add(Menu_ServerCommand);
+
+   Menu_BasicCommands = new JMenu("Basic Commands");
+   Menu_Inquiries = new JMenu("Inquiries");
+   Menu_Databases = new JMenu("Databases");
+   Menu_Transactions = new JMenu("Transactions");
+   Menu_ImExport = new JMenu("Import / Export");
+
+   Menu_ServerCommand.add(Menu_BasicCommands);
+   Menu_ServerCommand.add(Menu_Inquiries);
+   Menu_ServerCommand.add(Menu_Databases);
+   Menu_ServerCommand.add(Menu_Transactions);
+   Menu_ServerCommand.add(Menu_ImExport);
+
+
+   // Inquiries
+   MI_ListDatabases=Menu_Inquiries.add("list databases");
+   MI_ListTypes = Menu_Inquiries.add("list types");
+   MI_ListTypeConstructors = Menu_Inquiries.add("list type constructors");
+   MI_ListObjects = Menu_Inquiries.add("list objects");
+   MI_ListOperators = Menu_Inquiries.add("list operators");
+   MI_ListAlgebras = Menu_Inquiries.add("list algebras");
+   AlgebraMenu = new JMenu("list algebra");
+   Menu_Inquiries.add(AlgebraMenu);
+
+   // databases
+   MI_UpdateDatabases = new JMenuItem("Update");
+   Menu_Databases.add(MI_UpdateDatabases);
+   MI_CreateDatabase = new JMenuItem("~create database~");
+   Menu_Databases.add(MI_CreateDatabase);
    OpenDatabaseMenu = new JMenu("open database");
-   ServerCommand.add(OpenDatabaseMenu);
+   Menu_Databases.add(OpenDatabaseMenu);
    MI_CloseDatabase = new JMenuItem("close database");
-   ServerCommand.add(MI_CloseDatabase);
+   Menu_Databases.add(MI_CloseDatabase);
+   DeleteDatabaseMenu = new JMenu("delete database");
+   Menu_Databases.add(DeleteDatabaseMenu);
+
+
+   // Transactions
+   MI_BeginTransaction = Menu_Transactions.add("begin");
+   MI_AbortTransaction = Menu_Transactions.add("abort");
+   MI_CommitTransaction = Menu_Transactions.add("commit");
+
+   // Import Export
+   MI_SaveDatabase = Menu_ImExport.add("~save database~");
+   MI_RestoreDatabase = Menu_ImExport.add("~restore database~");
+   MI_SaveObject = Menu_ImExport.add("~save object~");
+   MI_RestoreObject = Menu_ImExport.add("~restore object~");
+
+   // Basic Commands
+   MI_CreateType = Menu_BasicCommands.add("~create type~");
+   MI_DeleteType = Menu_BasicCommands.add("~delete type~");
+   MI_CreateObject = Menu_BasicCommands.add("~create object~");
+   MI_UpdateObject = Menu_BasicCommands.add("~update~");
+   MI_DeleteObject = Menu_BasicCommands.add("~delete object~");
+   MI_Let = Menu_BasicCommands.add("~let~");
+   MI_Query = Menu_BasicCommands.add("~query~");
 
 
    Command_Listener Com_Listener = new Command_Listener();
@@ -1235,6 +1302,21 @@ private void createMenuBar(){
    MI_ListAlgebras.addActionListener(Com_Listener);
    MI_UpdateDatabases.addActionListener(Com_Listener);
    MI_CloseDatabase.addActionListener(Com_Listener);
+   MI_BeginTransaction.addActionListener(Com_Listener);
+   MI_AbortTransaction.addActionListener(Com_Listener);
+   MI_CommitTransaction.addActionListener(Com_Listener);
+   MI_CreateDatabase.addActionListener(Com_Listener);
+   MI_SaveDatabase.addActionListener(Com_Listener);
+   MI_RestoreDatabase.addActionListener(Com_Listener);
+   MI_SaveObject.addActionListener(Com_Listener);
+   MI_RestoreObject.addActionListener(Com_Listener);
+   MI_CreateType.addActionListener(Com_Listener);
+   MI_DeleteType.addActionListener(Com_Listener);
+   MI_CreateObject.addActionListener(Com_Listener);
+   MI_UpdateObject.addActionListener(Com_Listener);
+   MI_DeleteObject.addActionListener(Com_Listener);
+   MI_Let.addActionListener(Com_Listener);
+   MI_Query.addActionListener(Com_Listener);
 
    HelpMenu = new JMenu("Help");
    MI_ShowGuiCommands=HelpMenu.add("Show gui commands");
@@ -1486,7 +1568,7 @@ private void getServerInfos(){
     MI_Algebras[index].addActionListener(new ActionListener(){
                       public void actionPerformed(ActionEvent evt){
 		         String cmd = "list algebra "+((JMenuItem)evt.getSource()).getText();
-			 MainWindow.this.ComPanel.appendText(cmd+"\n");
+			 MainWindow.this.ComPanel.appendText(cmd);
 			 MainWindow.this.ComPanel.addToHistory(cmd);
 		         MainWindow.this.ComPanel.execUserCommand(cmd);
 		      }});
@@ -1500,29 +1582,46 @@ private void getServerInfos(){
 }
 
 
-/* includes all databases in the "open databaes" menu */
-private boolean updateDatabases(){
+/* includes all databases in the "open|delete databases" menu */
+public boolean updateDatabases(){
   ListExpr Databases = ComPanel.getCommandResult("list databases");
   OpenDatabaseMenu.removeAll();
+  DeleteDatabaseMenu.removeAll();
   if(Databases==null)
     return false;
-  JMenuItem[] MI_Databases = new JMenuItem[Databases.listLength()];
+  JMenuItem[] MI_OpenDatabases = new JMenuItem[Databases.listLength()];
+  JMenuItem[] MI_DeleteDatabases = new JMenuItem[Databases.listLength()];
   int index = 0;
   while(!Databases.isEmpty()){
     String Name = Databases.first().symbolValue();
-    MI_Databases[index] = new JMenuItem(Name);
-    MI_Databases[index].addActionListener(new ActionListener(){
+    MI_OpenDatabases[index] = new JMenuItem(Name);
+    MI_OpenDatabases[index].addActionListener(new ActionListener(){
                            public void actionPerformed(ActionEvent evt){
 			      String cmd = "open database "+((JMenuItem)evt.getSource()).getText();
-			      MainWindow.this.ComPanel.appendText(cmd+"\n");
+			      MainWindow.this.ComPanel.appendText(cmd);
 			      MainWindow.this.ComPanel.addToHistory(cmd);
 			      MainWindow.this.ComPanel.execUserCommand(cmd);
+			   }});
+    MI_DeleteDatabases[index] = new JMenuItem(Name);
+    MI_DeleteDatabases[index].addActionListener(new ActionListener(){
+                           public void actionPerformed(ActionEvent evt){
+			      String db = ((JMenuItem)evt.getSource()).getText();
+			      String cmd = "delete database "+db;
+			      int c = JOptionPane.showConfirmDialog(null,"really delete the database "+db+"?",
+			                                           "Confirm",JOptionPane.YES_NO_OPTION);
+			      if(c==JOptionPane.YES_OPTION){
+			         MainWindow.this.ComPanel.appendText(cmd);
+			         MainWindow.this.ComPanel.addToHistory(cmd);
+			         MainWindow.this.ComPanel.execUserCommand(cmd);
+			      }
 			   }});
     Databases = Databases.rest();
     index++;
    }
-   for(int i=0;i<MI_Databases.length;i++)
-      OpenDatabaseMenu.add(MI_Databases[i]);
+   for(int i=0;i<MI_OpenDatabases.length;i++){
+      OpenDatabaseMenu.add(MI_OpenDatabases[i]);
+      DeleteDatabaseMenu.add(MI_DeleteDatabases[i]);
+   }
 
 
   return true;
@@ -1530,6 +1629,18 @@ private boolean updateDatabases(){
 }
 
 
+/* the following methods implements the interface SecondoChangeListener */
+public void databasesChanged(){
+  updateDatabases();
+}
+
+public void objectsChanged(){}
+
+public void typesChanged(){}
+
+public void databaseOpened(){}
+
+public void databaseClosed(){}
 
 
 
@@ -1540,46 +1651,128 @@ class Command_Listener implements ActionListener{
                 JMenuItem Source = (JMenuItem) evt.getSource();
                 boolean ok=false;
                 String cmd = "";
+                if(Source.equals(MainWindow.this.MI_CreateDatabase)){
+		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("create database <dbname>");
+		   return;
+		}
+                if(Source.equals(MainWindow.this.MI_SaveDatabase)){
+                   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("save database to <filename>");
+		   return;
+		}
+                if(Source.equals(MainWindow.this.MI_RestoreDatabase)){
+                   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("restore database <dbname> from <filename>");
+		   return;
+		}
+                if(Source.equals(MainWindow.this.MI_SaveObject)){
+                   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("save <objname> to <filename>");
+		   return;
+		}
+                if(Source.equals(MainWindow.this.MI_RestoreObject)){
+                   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("restore <objname> from <filename>");
+		   return;
+		}
+		if(Source.equals(MainWindow.this.MI_CreateType)){
+  		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("type <name> = <type expr>");
+		   return;
+         	}
+		if(Source.equals(MainWindow.this.MI_DeleteType)){
+  		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("delete type <name>");
+		   return;
+         	}
+		if(Source.equals(MainWindow.this.MI_CreateObject)){
+  		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("create <objname> : <type expr>");
+		   return;
+         	}
+		if(Source.equals(MainWindow.this.MI_UpdateObject)){
+  		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("update <objname> := <value expr>");
+		   return;
+         	}
+		if(Source.equals(MainWindow.this.MI_DeleteObject)){
+  		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("delete <objname>");
+		   return;
+         	}
+		if(Source.equals(MainWindow.this.MI_Let)){
+  		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("let <objname> = <value expr>");
+		   return;
+         	}
+		if(Source.equals(MainWindow.this.MI_Query)){
+  		   ok = false;
+                   MainWindow.this.ComPanel.showPrompt();
+		   MainWindow.this.ComPanel.appendText("query <value expr>");
+		   return;
+         	}
+		if(Source.equals(MainWindow.this.MI_UpdateDatabases)){
+                   ok = false; // execute no Secondo command
+		   if(!MainWindow.this.updateDatabases())
+		      MessageBox.showMessage("error in reading databases");
+		   return;
+		}
+
                 if (Source.equals(MainWindow.this.MI_ListDatabases)){
                     ok = true;
                     cmd = "list databases";
-                }
+                }else
                 if (Source.equals(MainWindow.this.MI_ListTypes)){
                     ok = true;
                     cmd ="list types";
-                }
-
+                } else
                 if (Source.equals(MainWindow.this.MI_ListTypeConstructors)){
                     ok = true;
                     cmd ="list type constructors";
-                }
+                } else
                 if (Source.equals(MainWindow.this.MI_ListObjects)){
                     ok = true;
 			  cmd ="list objects";
-                }
+                } else
                 if(Source.equals(MainWindow.this.MI_ListOperators)){
                     ok = true;
 			  cmd="list operators";
-                }
-
+                } else
                 if(Source.equals(MainWindow.this.MI_ListAlgebras)){
 		   ok = true;
                    cmd = "list algebras";
-		}
-
-		if(Source.equals(MainWindow.this.MI_UpdateDatabases)){
-                   ok = false; // not execute a Secondo command
-		   if(!MainWindow.this.updateDatabases())
-		      MessageBox.showMessage("error in reading databases");
-		}
+		}else
 		if(Source.equals(MainWindow.this.MI_CloseDatabase)){
 		   ok = true;
 		   cmd = "close database";
-
+		} else
+		if(Source.equals(MainWindow.this.MI_BeginTransaction)){
+		   ok = true;
+		   cmd = "begin transaction";
+		} else
+        	if(Source.equals(MainWindow.this.MI_AbortTransaction)){
+		   ok = true;
+		   cmd = "abort transaction";
+		}else
+		if(Source.equals(MainWindow.this.MI_CommitTransaction)){
+		   ok = true;
+		   cmd = "commit transaction";
 		}
-
 		if (ok) {
-                    MainWindow.this.ComPanel.appendText(cmd+"\n");
+		    MainWindow.this.ComPanel.showPrompt();
+                    MainWindow.this.ComPanel.appendText(cmd);
 		    MainWindow.this.ComPanel.addToHistory(cmd);
                     MainWindow.this.ComPanel.execUserCommand(cmd);
                 }

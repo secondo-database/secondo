@@ -1,4 +1,3 @@
-
 package  gui;
 
 import  java.awt.*;
@@ -30,6 +29,7 @@ public class CommandPanel extends JScrollPane {
   private Vector History=new Vector(50,10);
   private ESInterface Secondointerface;
   private ReturnKeyAdapter ReturnKeyListener;
+  private Vector ChangeListeners = new Vector(3);
 
   /**
    * The constructor sets up the internal textarea.
@@ -99,6 +99,17 @@ public class CommandPanel extends JScrollPane {
      SystemArea.requestFocus();
   }
 
+  /** adds a SecondoChangeListener */
+  public void addSecondoChangeListener(SecondoChangeListener SCL){
+    if(SCL==null) return;
+    if(!ChangeListeners.contains(SCL))
+       ChangeListeners.add(SCL);
+  }
+
+  /** removes a SecondoChangeListener */
+  public void removeSecondoChangeListener(SecondoChangeListener SCL){
+    ChangeListeners.remove(SCL);
+  }
 
   /**
    * Add code to the end of the textarea.
@@ -202,7 +213,10 @@ public class CommandPanel extends JScrollPane {
          false,      // result as ListExpr.
          resultList, errorCode, errorPos, errorMessage);
          RV.processResult(command,resultList,errorCode,errorPos,errorMessage);
-         return errorCode.value==0;
+         boolean success = errorCode.value==0;
+	 if(success)
+	   informListeners(command);
+	 return success;
     }
     else{
       appendText("\n you are not connected to SecondoServer");
@@ -244,7 +258,10 @@ public class CommandPanel extends JScrollPane {
                       commandLevel, true,         // command as text.
                       false,      // result as ListExpr.
                       resultList, errorCode, errorPos, errorMessage);
-    return errorCode.value;
+    int res = errorCode.value;
+    if(res==0)
+       informListeners(command);
+    return res;
   }
 
 
@@ -281,8 +298,10 @@ public class CommandPanel extends JScrollPane {
                       resultList, errorCode, errorPos, errorMessage);
     if(errorCode.value!=0)
        return  null;
-    else
+    else{
+       informListeners(command);
        return resultList;
+    }
   }
 
 
@@ -301,7 +320,7 @@ public class CommandPanel extends JScrollPane {
 
   public String getPassWd(){
     return Secondointerface.getPassWd();
-  } 
+  }
 
   public void setConnection(String User,String PassWd,String Host,int Port){
     Secondointerface.setUserName(User);
@@ -312,19 +331,19 @@ public class CommandPanel extends JScrollPane {
 
   public boolean connect(){
     return Secondointerface.connect();
-  } 
+  }
 
   public void disconnect(){
      Secondointerface.terminate();
   }
-  
-  
-  
+
+
+
   /** returns the size if the history*/
   public int getHistorySize(){
      return History.size();
   }
-  
+
   /** returns the entry on pos i in the history,
     * if index i dont exists then null is returned
     */
@@ -333,17 +352,45 @@ public class CommandPanel extends JScrollPane {
       return null;
     if(i>=History.size())
       return null;
-    return (String)History.get(i);  
-  
+    return (String)History.get(i);
+
   }
-  
+
   public void addToHistory(String S){
     if(S!=null){
        History.add(S);
        ReturnKeyListener.HistoryPos=History.size();
     }
   }
-  
+
+
+  /** informs all SecondoChangeListeners about changes in Secondo */
+  private void informListeners(String cmd){
+    cmd = cmd.trim();
+    if(cmd.startsWith("("))
+       cmd = cmd.substring(1).trim();
+
+    if(cmd.equals("")) return;
+    for(int i=0;i<ChangeListeners.size();i++){
+      SecondoChangeListener SCL = (SecondoChangeListener) ChangeListeners.get(i);
+      if(cmd.indexOf(" type ")>=0||cmd.startsWith("type ")){
+         SCL.typesChanged();
+      }else
+      if(cmd.indexOf(" database ")>=0 && (cmd.startsWith("create") || cmd.startsWith("delete")))
+         SCL.databasesChanged();
+      else
+      if(cmd.indexOf(" database ")>=0 && cmd.startsWith("open"))
+         SCL.databaseOpened();
+      else
+      if(cmd.endsWith(" database") && cmd.startsWith("close"))
+         SCL.databaseClosed();
+      else
+      if(cmd.startsWith("create ") || cmd.startsWith("delete ") || cmd.startsWith("let ") ||
+         cmd.startsWith("update "))
+	 SCL.objectsChanged();
+    }
+  }
+
 
   class ReturnKeyAdapter extends KeyAdapter {
     int HistoryPos;
@@ -356,15 +403,15 @@ public class CommandPanel extends JScrollPane {
       String com = "";
       if (e.getKeyCode() == KeyEvent.VK_ENTER) {
         try {
-          com = SystemArea.getText(aktPos, SystemArea.getText().length() - 
+          com = SystemArea.getText(aktPos, SystemArea.getText().length() -
               aktPos);
         } catch (Exception ex) {}
         History.add(com);
         HistoryPos=History.size();
         execUserCommand(com);
-        //SystemArea.append("\n"+com+"\n");
+	//SystemArea.append("\n"+com+"\n");
         //showPrompt();
-      } 
+      }
       else if ((e.getKeyCode() == KeyEvent.VK_BACK_SPACE) && (SystemArea.getCaretPosition()
           == aktPos)) {
         SystemArea.append(" ");
@@ -374,7 +421,7 @@ public class CommandPanel extends JScrollPane {
       if (qrs==0) return;
 	if ((keyCode==KeyEvent.VK_DOWN) &&(HistoryPos <qrs)) HistoryPos++;
 	else if ((keyCode==KeyEvent.VK_UP) &&(HistoryPos >0))	HistoryPos--;
-	else return;	
+	else return;
 	SystemArea.select(aktPos,SystemArea.getText().length());
 	if (HistoryPos==qrs)SystemArea.replaceSelection("");
 	else SystemArea.replaceSelection((String)History.elementAt(HistoryPos));
@@ -382,7 +429,7 @@ public class CommandPanel extends JScrollPane {
     }
     /*	public void keyReleased(KeyEvent e){
      if (e.getKeyCode()==KeyEvent.VK_ENTER){
-     }		
+     }
      }*/
   }
  /** This class controls the caret-movement */
@@ -398,10 +445,10 @@ public class CommandPanel extends JScrollPane {
       //Get the location in the text.
       int dot = e.getDot();
       int mark = e.getMark();
-      if (dot == mark) {        // no selection 			
+      if (dot == mark) {        // no selection
         if (dot < aktPos)
           SystemArea.setCaretPosition(aktPos);
-      } 
+      }
       else if (mark < aktPos) {
         appendText(SystemArea.getSelectedText());
         SystemArea.setCaretPosition(SystemArea.getText().length());
