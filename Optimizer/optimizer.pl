@@ -904,6 +904,19 @@ plan_to_atom(exactmatch(IndexName, Rel, Value), Result) :-
   concat_atom([IndexName,
     ' ', RelAtom, 'exactmatch[', ValueAtom, '] '], Result),
   !.
+plan_to_atom(leftrange(IndexName, Rel, Value), Result) :-
+  plan_to_atom(Rel, RelAtom),
+  plan_to_atom(Value, ValueAtom),
+  concat_atom([IndexName,
+    ' ', RelAtom, 'leftrange[', ValueAtom, '] '], Result),
+  !.
+
+plan_to_atom(rightrange(IndexName, Rel, Value), Result) :-
+  plan_to_atom(Rel, RelAtom),
+  plan_to_atom(Value, ValueAtom),
+  concat_atom([IndexName,
+    ' ', RelAtom, 'rightrange[', ValueAtom, '] '], Result),
+  !.
 
 plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(Rel, RelAtom),
@@ -1124,6 +1137,41 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   argument(N, rel(Name, Var, Case)),
   !,
   hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
+  indexselect(arg(N), pr(Y >= attr(AttrName, Arg, Case), Rel)) => X.
+
+indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
+  leftrange(IndexName, rel(Name, *, Case), Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
+  rename(leftrange(IndexName, rel(Name, Var, Case), Y), Var)
+  :-
+  argument(N, rel(Name, Var, Case)),
+  !,
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
+  indexselect(arg(N), pr(Y <= attr(AttrName, Arg, Case), Rel)) => X.
+
+indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
+  rightrange(IndexName, rel(Name, *, Case), Y)
+  :-
+  argument(N, rel(Name, *, Case)),
+  !,
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
+indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
+  rename(rightrange(IndexName, rel(Name, Var, Case), Y), Var)
+  :-
+  argument(N, rel(Name, Var, Case)),
+  !,
+  hasIndex(rel(Name, Var, Case), attr(AttrName, Arg, AttrCase), IndexName).
+
 
 /*
 Here ~ArgS~ is meant to indicate ``argument stream''.
@@ -1476,6 +1524,18 @@ cost(product(X, Y), _, S, C) :-
   productTC(A),
   S is SizeX * SizeY,
   C is CostX + SizeX * CostY + S * A.
+
+cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
+  leftrangeTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
+
+cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
+  cost(Rel, 1, RelSize, _),
+  leftrangeTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
 
 /*
 

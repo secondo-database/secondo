@@ -25,6 +25,8 @@ filterTC(1.68).
 
 productTC(1.26).
 
+leftrangeTC(10).
+
 loopjoinTC(1.0).
 
 exactmatchTC(10.0).
