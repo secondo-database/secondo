@@ -4415,8 +4415,10 @@ ListExpr OutIntime( ListExpr typeInfo, Word value )
 {
   Intime<Alpha>* intime = (Intime<Alpha>*)(value.addr);
 
-  return nl->TwoElemList( nl->RealAtom( intime->instant.GetRealval() ),
-                          OutFun( nl->TheEmptyList(), SetWord( &intime->value ) ) );
+  return nl->TwoElemList( 
+	  //nl->RealAtom( intime->instant.GetRealval() ),
+	  OutInstant( nl->TheEmptyList(), SetWord(&intime->instant) ),
+	  OutFun( nl->TheEmptyList(), SetWord( &intime->value ) ) );
 }
 
 /*
@@ -4427,22 +4429,32 @@ template <class Alpha, Word (*InFun)( const ListExpr, const ListExpr, const int,
 Word InIntime( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if( nl->ListLength( instance ) == 2 &&
-      nl->IsAtom( nl->First( instance ) ) &&
-      //nl->IsAtom( nl->Second( instance ) ) &&  the second one can be non-atom type. eg. point
-      nl->AtomType( nl->First( instance ) ) == RealType )
-  {
-    Instant instant( true, nl->RealValue( nl->First( instance ) ) );
-    Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), errorPos, errorInfo, correct ).addr;
-    if( correct  )
+    if( nl->ListLength( instance ) == 2 )
     {
-      Intime<Alpha> *intime = new Intime<Alpha>( instant, *value );
-      delete value;
-      return SetWord( intime );
+	//1.deal with the instant value
+	//Instant instant( true, nl->RealValue( nl->First( instance ) ) );
+	Instant *instant = (Instant *)InInstant(
+		    nl->TheEmptyList(), 
+		    nl->First( instance ), 
+		    errorPos, errorInfo, correct ).addr;
+ 
+	if ( correct == false )
+	{
+	    return SetWord( Address(0) );
+	}
+	
+	
+	//2.deal with the alpha value
+	Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), errorPos, errorInfo, correct ).addr;
+	if( correct  )
+	{
+	    Intime<Alpha> *intime = new Intime<Alpha>( *instant, *value );
+	    delete value;
+	    return SetWord( intime );
+	}
     }
-  }
-  correct = false;
-  return SetWord( Address(0) );
+    correct = false;
+    return SetWord( Address(0) );
 }
 
 /*
@@ -4543,16 +4555,14 @@ Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
     if( nl->ListLength( instance ) == 2 &&
-      //nl->IsAtom( nl->First( instance ) ) &&
-        nl->IsAtom( nl->Second( instance ) ) )//&&
-      //nl->AtomType( nl->First( instance ) ) == RealType )
+        nl->IsAtom( nl->Second( instance ) ) )
     {
 	//1. deal with the time interval
 	ListExpr first = nl->First( instance );
 	
 	if( nl->ListLength( first ) == 4 &&
-	    nl->IsAtom( nl->First( first ) ) &&
-	    nl->IsAtom( nl->Second( first ) ) &&
+	    //nl->IsAtom( nl->First( first ) ) &&
+	    //nl->IsAtom( nl->Second( first ) ) &&
 	    nl->IsAtom( nl->Third( first ) ) &&
 	    nl->AtomType( nl->Third( first ) ) == BoolType &&
 	    nl->IsAtom( nl->Fourth( first ) ) &&
@@ -4716,16 +4726,13 @@ the Nested list form is like this:  ( ( 6.37 9.9 TRUE FALSE)   (1.0 2.3 4.1 TRUE
 Word InUreal( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-    if ( nl->ListLength( instance ) == 2 )//&&
-      //nl->IsAtom( nl->First( instance ) ) &&
-      //nl->IsAtom( nl->Second( instance ) ) )//&&
-      //nl->AtomType( nl->First( instance ) ) == RealType )
+    if ( nl->ListLength( instance ) == 2 )
     {
-	//1. deal with the time interval  ( 6.37  9.9  TRUE FALSE) 
-	ListExpr first = nl->First( instance );  
+	//1. deal with the time interval  ( 6.37  9.9  T F) or ((instant 1.0) (instant 2.3) T F)
+	ListExpr first = nl->First( instance );
 	if( nl->ListLength( first ) == 4 &&
-	    nl->IsAtom( nl->First( first ) ) &&
-	    nl->IsAtom( nl->Second( first ) ) &&
+	    //nl->IsAtom( nl->First( first ) ) &&
+	    //nl->IsAtom( nl->Second( first ) ) &&
 	    nl->IsAtom( nl->Third( first ) ) &&
 	    nl->AtomType( nl->Third( first ) ) == BoolType &&
 	    nl->IsAtom( nl->Fourth( first ) ) &&
@@ -4898,17 +4905,14 @@ the Nested list form is like this:  ( ( 6.37  9.9  TRUE FALSE)   (1.0 2.3 4.1 2.
 Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-    if ( nl->ListLength( instance ) == 2 )//&&
-      //nl->IsAtom( nl->First( instance ) ) &&
-      //nl->IsAtom( nl->Second( instance ) ) )//&&
-      //nl->AtomType( nl->First( instance ) ) == RealType )
+    if ( nl->ListLength( instance ) == 2 )
     {
-	//1. deal with the time interval  ( 6.37  9.9  TRUE FALSE) 
-	ListExpr first = nl->First( instance );  
+	//1. deal with the time interval  ( 6.37  9.9  T F) or ((instant 2.0) (instant 3.0) T F)
+	ListExpr first = nl->First( instance );
 	
 	if( nl->ListLength( first ) == 4 &&
-	    nl->IsAtom( nl->First( first ) ) &&
-	    nl->IsAtom( nl->Second( first ) ) &&
+	    //nl->IsAtom( nl->First( first ) ) &&
+	    //nl->IsAtom( nl->Second( first ) ) &&
 	    nl->IsAtom( nl->Third( first ) ) &&
 	    nl->AtomType( nl->Third( first ) ) == BoolType &&
 	    nl->IsAtom( nl->Fourth( first ) ) &&

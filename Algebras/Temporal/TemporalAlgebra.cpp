@@ -42,12 +42,22 @@ be linear and continuous, i.e., isomorphic to the real numbers.
 
 The list representation of an ~instant~ is
 
-----    ( i )
+----    i 
+----
+
+or 
+
+----    ( instant i )
 ----
 
 For example:
 
-----    ( 1.0 )
+----    1.0 
+----
+
+ or 
+ 
+ ----    ( instant 1.0 )
 ----
 
 3.2 function Describing the Signature of the Type Constructor
@@ -80,45 +90,67 @@ CheckInstant( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-3.4 ~Out~-function
+3.4 ~Out~-function ( object -> NL )
 
 */
 ListExpr
 OutInstant( ListExpr typeinfo, Word value )
 {
-  if( ((Instant*)value.addr)->IsDefined() )
-  {
-    return (nl->RealAtom( ((Instant*)value.addr)->GetRealval() ));
-  }
-  else
-  {
-    return (nl->SymbolAtom("undef"));
-  }
+    if( ((Instant*)value.addr)->IsDefined() )
+    {
+	ListExpr instantValue=nl->RealAtom( ((Instant*)value.addr)->GetRealval() );
+	return (nl->TwoElemList(nl->SymbolAtom( "instant"), instantValue ));
+    }
+    else
+    {
+	return (nl->SymbolAtom("undef"));
+    }
 }
  
 /*
-3.5 ~In~-function
+3.5 ~In~-function ( NL -> object )
 
 */
 Word
 InInstant( ListExpr typeInfo, ListExpr value,
-           int errorPos, ListExpr& errorInfo, bool& correct )
+	   int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if ( nl->IsAtom( value ) && nl->AtomType( value ) == RealType )
-  {
-    correct = true;
-    return (SetWord( new Instant( true, nl->RealValue( value )) ));
-  }
-  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
-  {
-    correct = true;
-    return (SetWord( new Instant( false, 0.0) ));
-  }
-  else
-  {
-    correct = false;
-    return (SetWord( Address( 0 ) ));
-  }
+    //1. get the instant value into instantValue
+    ListExpr instantValue;
+    if (nl->ListLength( value ) == 2 )
+    {
+	if ((nl->IsAtom(nl->First(value)))&&
+	    (nl->AtomType(nl->First(value)) == SymbolType)&&
+	    (nl->SymbolValue(nl->First(value))=="instant"))
+	{
+	    instantValue=nl->Second(value);
+	}
+	else
+	{ 
+	    correct = false;
+	    return (SetWord( Address( 0 ) ));
+	}
+    }
+    else  instantValue=value;
+    
+    //2. read the instant value into the class object
+    if ( nl->IsAtom( instantValue ) && nl->AtomType( instantValue ) == RealType )
+    {
+	correct = true;
+	return (SetWord( new Instant( true, nl->RealValue( instantValue )) ));
+    }
+    else if ( nl->IsAtom( instantValue ) && 
+	  nl->AtomType( instantValue ) == SymbolType && 
+	  nl->SymbolValue( instantValue ) == "undef" )
+    {
+	correct = true;
+	return (SetWord( new Instant( false, 0.0) ));
+    }
+    else
+    {
+	correct = false;
+	return (SetWord( Address( 0 ) ));
+    }
 }
 
 /*
