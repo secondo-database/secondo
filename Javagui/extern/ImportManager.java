@@ -27,7 +27,7 @@ public ListExpr importFile(String FileName){
      if(Res!=null){
         System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
         return Res;
-     }   
+     }
      else{
         ErrorText = dbf3Reader.getErrorString();
      }
@@ -48,14 +48,14 @@ public ListExpr importFile(String FileName){
 	         System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
 	         return Res;
          }
-     }    
+     }
      Res = shapereader.getList(FileName);
      if(Res==null)
         ErrorText = shapereader.getErrorString();
      else{
         System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
             return Res;
-     }   
+     }
  }
 
   // a binary nested list
@@ -66,9 +66,9 @@ public ListExpr importFile(String FileName){
         ErrorText = BN.getErrorString();
      else{
         System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
-        return extractFromObject(LE);    
-     }   
-  } 
+        return extractFromObject(LE);
+     }
+  }
 
   // ever try to load this file as nested list
   t1 = System.currentTimeMillis();
@@ -80,7 +80,7 @@ public ListExpr importFile(String FileName){
   }else{
    System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
    return extractFromObject(R);
-  } 
+  }
 
 }
 

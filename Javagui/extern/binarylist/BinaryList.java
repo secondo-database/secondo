@@ -92,17 +92,18 @@ public ListExpr getList(String FileName){
      LastError = "file not found";
      return null;
   }
-  LastError="no error";   
+  LastError="no error";
   try{
      BufferedInputStream FIS = new BufferedInputStream(new FileInputStream(F),4096);
      if(FIS==null)
         LastError = "error in reading file";
-     return readBinaryFrom(FIS);
+     ListExpr Res = readBinaryFrom(FIS);
+     try{FIS.close();}catch(Exception e2){}
+     return Res;
      } catch(Exception E){
         LastError = "error in opening file";
         return null;
-     }      
-
+     }
 }
 
 public ListExpr readBinaryFrom(InputStream In){
@@ -112,12 +113,10 @@ public ListExpr readBinaryFrom(InputStream In){
     int major = DIN.readShort();
     int minor = DIN.readShort();
     if(!Sig.equals("bnl") || major!=1 || minor!=0){
-      try{DIN.close();}catch(Exception e){}
       System.out.println("wrong signatur or version "+Sig+"  "+major+"."+minor);
       return null;
     }
     ListExpr LE = readBinaryRec(DIN);
-    DIN.close();
     return LE;
  }
  catch(Exception e){

@@ -1504,7 +1504,6 @@ public boolean canDisplay(SecondoObject o){
       if (e.getValueIsAdjusting())
         return;
       QueryResult theList = (QueryResult)e.getSource();
-      o = theList.getSelectedValue();
       if (selBaseObj != null) {
         selBaseObj.setSelected(false);
         if (selBaseObj.getFrame() != null) {
@@ -1520,6 +1519,9 @@ public boolean canDisplay(SecondoObject o){
         selGraphObj = null;
         //selGraphObj.getLayer().repaint();
       }
+      if(theList.getModel().getSize()<1)// an empty list
+         return;
+      o = theList.getSelectedValue();
       if (o instanceof Timed) {
         TimeDisplay.setTimeObject((Timed)o);
         oldDL = VisComPanel.getLastDividerLocation();

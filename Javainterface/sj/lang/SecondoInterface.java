@@ -16,6 +16,8 @@ package sj.lang;
 import java.net.*;
 import java.io.*;
 import java.util.StringTokenizer;
+import extern.fileio.*;
+import extern.binarylist.*;
 
 /*
 
@@ -76,8 +78,12 @@ not accessible by the user code.
   protected boolean initialized;
   // Socket connected to the Secondo Server
   protected Socket serverSocket;
+  // flag for binary reading lists from Server
+  private boolean binaryLists = false;
+  // object to read binary lists
+  private BinaryList BNL = new BinaryList();
   // Connection's input reader (from secondoServerSocket).
-  private BufferedReader inSocketStream;
+  private MyDataInputStream inSocketStream;
   // Connection's output writer (to secondoServerSocket).
   private BufferedWriter outSocketStream;
 
@@ -114,7 +120,7 @@ not accessible by the user code.
           serverSocket = new Socket( secHost, secPort );
           try {
             // Creates the input/output streams.
-            inSocketStream = new BufferedReader( new InputStreamReader( serverSocket.getInputStream() ) );
+            inSocketStream = new MyDataInputStream( new BufferedInputStream( serverSocket.getInputStream() ) );
             outSocketStream = new BufferedWriter( new OutputStreamWriter( serverSocket.getOutputStream() ) );
           } catch (IOException e) {
             closeSocket( serverSocket );
@@ -503,20 +509,26 @@ If value 0 is returned, the command was executed without error.
         String result = "";
 	boolean ok = true;
         try {
-          do {
-            line = inSocketStream.readLine();
-	    if(line!=null){
-              if ( line.compareTo( "</SecondoResponse>" ) != 0 ) {
-                 result += line;
-              }
-	    }  
-	    else{
-	      ok = false;
-              System.out.println( "SecondoInterface: Network Error in method secondo reading SecondoResponse." );
-              errorCode.value = 81;
-            }
-          } while (ok && line.compareTo( "</SecondoResponse>" ) != 0);
-          answerList.readFromString( result );
+	  if(!binaryLists){
+             do {
+               line = inSocketStream.readLine();
+	       if(line!=null){
+                 if ( line.compareTo( "</SecondoResponse>" ) != 0 ) {
+                    result += line;
+                 }
+	       }
+	       else{
+	         ok = false;
+                 System.out.println( "SecondoInterface: Network Error in method secondo reading SecondoResponse." );
+                 errorCode.value = 81;
+               }
+             } while (ok && line.compareTo( "</SecondoResponse>" ) != 0);
+	     answerList.readFromString( result );
+	  } else{ // read list binary
+             answerList = BNL.readBinaryFrom(inSocketStream);
+	     if(answerList==null)
+	       throw new IOException();
+	  }
           errorCode.value = answerList.first().intValue();
           errorPos.value  = answerList.second().intValue();
           errorMessage.setLength( 0 );
