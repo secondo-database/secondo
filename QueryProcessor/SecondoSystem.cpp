@@ -24,6 +24,8 @@ May 2002 Ulrich Telle Port to C++
 
 August 2002 Ulrich Telle Added methods to set and get the current algebra level.
 
+April 29 2003 Hoffmann Added methods for saving and restoring single objects.
+
 This module implements those parts of the "Secondo"[3] catalog which
 are independent of the algebra level (descriptive or executable).
 
@@ -223,6 +225,110 @@ Returns the state of the database ~state~.
 }
 
 bool
+SecondoSystem::IsDatabaseObject( const string& objectName )
+{
+/*
+Returns whether object with ~objectName~ is known in the currently opened
+database.
+
+*/ 
+  if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
+    return ( scExecutable->IsObjectName( objectName) );
+  else if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
+    return ( scDescriptive->IsObjectName( objectName) );
+  return ( false );
+}
+
+bool
+SecondoSystem::SaveObject ( const string& objectName, 
+                            const string& filename )
+{
+/*
+Writes a secondo object called ~objectName~ of the currently opened database
+to a file with name ~filename~ in nested list format. The format is the 
+following:
+
+---- (OBJECT <object name> (<type name>) <type expression> <value> <model>)*
+
+----   
+
+Returns false if there was a problem in writing the file.
+
+Precondition: dbState = dbOpen.
+
+*/
+  ListExpr objectList, typeExpr, valueList, modelList;
+  Word value, model;
+  bool defined, hasTypeName;
+  string typeName, typeExprString;
+
+  if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
+  {
+    cerr << " SaveObject: database is not open!" << endl;
+    exit( 0 );
+  }
+  
+  if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
+  {
+    scExecutable->GetObjectExpr( objectName, typeName, typeExpr,
+                       value, defined, model, hasTypeName );
+    if ( defined )
+    {
+      valueList = scExecutable->OutObject( typeExpr, value );
+    }
+    else
+    {
+      valueList = nl->TheEmptyList();
+    }
+    
+    if ( model.addr != 0 )
+    {
+      modelList = scExecutable->OutObjectModel( typeExpr, model );
+    }
+    else
+    {
+      modelList = nl->TheEmptyList();
+    }
+  }
+  else
+  {
+    if ( SecondoSystem::GetAlgebraLevel() == DescriptiveLevel )
+    {
+      scDescriptive->GetObjectExpr( objectName, typeName, typeExpr,
+                       value, defined, model, hasTypeName );
+  
+      if ( defined )
+      {
+        valueList = scDescriptive->OutObject( typeExpr, value );
+      }
+      else
+      {
+        valueList = nl->TheEmptyList();
+      }
+  
+      if ( model.addr != 0 )
+      {
+        modelList = scDescriptive->OutObjectModel( typeExpr, model );
+      }
+      else
+      {
+        modelList = nl->TheEmptyList();
+      }
+    }
+  }
+  
+  objectList = nl->SixElemList(
+                   nl->SymbolAtom( "OBJECT" ),
+                   nl->SymbolAtom( objectName ),
+                   nl->OneElemList( nl->SymbolAtom( typeName ) ),
+                   typeExpr,
+                   valueList,
+                   modelList );
+		   
+  return (nl->WriteToFile( filename, objectList ));
+}
+
+bool
 SecondoSystem::SaveDatabase ( const string& filename )
 {
 /*
@@ -272,6 +378,79 @@ Precondition: dbState = dbOpen.
   list = nl->Cons( nl->SymbolAtom("DATABASE"),
 	           nl->Cons( nl->SymbolAtom( GetDatabaseName() ), list ) );
   return (nl->WriteToFile( filename, list ));
+}
+
+int
+SecondoSystem::RestoreObjectFromFile( const string& objectname,
+                                      const string& filename,
+                                      ListExpr& errorInfo )
+{
+/*
+Reads an object from a file named ~filename~ and fills the catalog
+with this object. The database remains in state ~dbOpen~.
+Returns 
+
+  * error 1 object name in file is different from parameter ~objectname~, 
+
+  * error 2, if there was a problem in reading the file, 
+
+  * error 3, if the list structure in the file was not correct, 
+
+  * error 4, if there is an error in object list expression,
+
+  Furthermore, any errors found by kind checking and by ~In~ procedures are added to the list ~errorInfo~.
+
+Precondition: dbState = dbOpen.
+*/
+  ListExpr list, listFile;
+  int rc = 0;
+  
+  if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
+  {
+    cerr << " RestoreObjectFromFile: database is not open!" << endl;
+    exit( 0 );
+  }
+  
+  else if ( !nl->ReadFromFile( filename, list ) )
+  {
+    rc = 2; // Error reading file
+  }
+  
+    else if ( !nl->IsEqual( nl->Second( list ), objectname, false ) )
+    {
+      rc = 1; // Object name in file different
+    }
+      
+      else if ( nl->IsEmpty( list) )
+      {
+        rc = 3; // List structure invalid
+      }
+  
+        else if ( SecondoSystem::GetAlgebraLevel() == ExecutableLevel )
+        {
+          if ( RestoreObjects( scExecutable, nl->TwoElemList( nl-> SymbolAtom
+            ("OBJECTS"), list ), errorInfo ) )
+	  {
+            rc = 0; // object successfully restored
+	  } 
+          else
+	  {  
+	    rc = 4; // Error in reading object
+	  }   
+        }
+          else if ( SecondoSystem::GetAlgebraLevel() == DescriptiveLevel )
+          {
+            if ( RestoreObjects( scDescriptive, nl->TwoElemList
+	      ( nl-> SymbolAtom("OBJECTS"), list ), errorInfo ) )
+	    {
+              rc = 0; // object successfully restored
+	    } 
+            else
+	    {
+	      rc = 4; // Error in reading object   
+            }
+	  }
+  return ( rc );
 }
 
 int
