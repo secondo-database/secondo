@@ -350,7 +350,7 @@ public void displayTableObject( int row, int col)
 		//	There's no picture, nevertheless, show the
 		//	histogram (only this one)!
 		//
-		System.out.println("There is no picture" );
+		//System.out.println("There is no picture" );
 		phVec = CurrentTable.getHistogramColumns(col, true);
 
 		//      Remove currently displayed picture.& meta data
@@ -372,7 +372,7 @@ public void displayTableObject( int row, int col)
         //	elements should be displayed as well !
 	//
 	//Vector phVec = CurrentTable.getHistogramColumns(col);
-	System.out.println( phVec.size() + " Histograms found" );
+	//System.out.println( phVec.size() + " Histograms found" );
 
  	//
  	//	Show all histogram which were found
@@ -462,7 +462,8 @@ private PictureIcon getExprHistogram(ListExpr LE)
 	for (int i=0; i<258; i++)
 		histo[i] = 0.0;
 	if (LE.listLength() != 3){
-		System.out.println(" Histogram len=" + (LE.listLength()) );
+                if(gui.Environment.DEBUG_MODE)
+		     System.out.println(" Histogram len=" + (LE.listLength()) );
 //		return new PictureIcon( histo, 0, null );
 		return null;
 	}
@@ -471,7 +472,8 @@ private PictureIcon getExprHistogram(ListExpr LE)
 		(LE.third().atomType() != ListExpr.NO_ATOM) ||
 		(LE.third().listLength()!=256) )
 	{
-		System.out.println(" Histogram bad Types" );
+                if(gui.Environment.DEBUG_MODE)
+		   System.out.println(" Histogram bad Types" );
 //		return new PictureIcon( histo, 0, null );
 		return null;
 	}
@@ -578,7 +580,7 @@ This methode returns the type of ListExpr as String
 
 private String getExprType(ListExpr LE)
 {
-   System.out.println( "getExprType called" );
+   //System.out.println( "getExprType called" );
 
    if(LE.listLength()!=2)
       	return "";
@@ -676,8 +678,8 @@ private PictureTable tuplereport(ListExpr LE)
 	Vector names = new Vector();
 	Vector types = new Vector();
 	interpretTuple( LE, names, types);
-	System.out.println( "Anzahl Namen: " + names.size() );
-	System.out.println( "Anzahl Typen: " + types.size() );
+	//System.out.println( "Anzahl Namen: " + names.size() );
+	//System.out.println( "Anzahl Typen: " + types.size() );
 	Vector values = getTupleValues( LE, types);
 
 	return new PictureTable(values, names, types, this);
@@ -707,7 +709,7 @@ This methode shows the table of the selected object
 		    && CurrentTable.getColumnCount()==1)
 		{
 		    displayTableObject( 0, 0);
-		    System.out.println( " PictureViewer select (0,0)" );
+		    //System.out.println( " PictureViewer select (0,0)" );
 		}
     } else {
         tableScroll.setViewportView(dummy);
@@ -827,9 +829,6 @@ This methode adds an Objects to the viewer, stores it and displays it.
 */
 
  public double getDisplayQuality(SecondoObject SO){
-
-    if(DEBUG_MODE)
-        System.out.println( "getDisplayQuality" );
 
     if(canDisplay(SO))
        return 0.9;

@@ -126,8 +126,8 @@ the histogram's channel.
 	this.setOpaque( false );
 
 	if ( LE.listLength() != 3 )
-	{
-	    System.out.println( "DisplayHistogram:" +
+	{   if(gui.Environment.DEBUG_MODE)
+  	       System.out.println( "DisplayHistogram:" +
 				"3 Arguments expected: " +
 				"1. Channel-Number, 2. Max Value, " +
 				"3. List of numbers" );
@@ -137,9 +137,9 @@ the histogram's channel.
 	int channelNo = LE.first().intValue();
 
 	if (channelNo < 0 || channelNo > 3) 
-	{
-	    System.out.println("Expected channel number between 0 and 3"
-			       +" but received "+channelNo);
+	{   if(gui.Environment.DEBUG_MODE)
+	        System.out.println("Expected channel number between 0 and 3"
+		   	            +" but received "+channelNo);
 	    return;
 	}
 
@@ -182,10 +182,10 @@ Check whether somebody has provided fishy histogram data.
 
 */	
 	if ( LE.third().listLength() != 256 )
-	{
-	    System.out.println("DisplayHistogram: " + 
-			       "No correct histogram expression: "+
-			       "256 elements expected!" );
+	{   if(gui.Environment.DEBUG_MODE) 
+  	       System.out.println("DisplayHistogram: " + 
+	  		          "No correct histogram expression: "+
+			          "256 elements expected!" );
 	    return;
 	}
 		
@@ -249,7 +249,7 @@ histogram's maximum value.
 	int i;
 	for (i = 0; i < ticks.length; i++) 
 	    if (ticks[i] <= max) {
-		System.out.println(i);
+		// System.out.println(i);
 		lines.add(
 		    new Line2D.Double(
 			new Point2D.Double(
