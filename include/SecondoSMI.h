@@ -482,6 +482,7 @@ Returns the unique ~SmiFile~ identifier.
 
 /*
 Returns the length of fixed Records. In the case of variable record length 0 is returned.
+
 */
 
   bool   IsOpen();
