@@ -202,18 +202,14 @@ PeriodsProperty()
                              " e.g. ((instant 0.5) (instant 1.1) TRUE FALSE) means the interval [0.5, 1.1[");
 
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"),
+            nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List"),
-                             nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> RANGE"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> RANGE"),
                              nl->StringAtom("(periods) "),
-                             nl->StringAtom("( (b1 e1 lci rci) ... "
-                             "(bn en lci rci) )"),
-                             nl->StringAtom("( ((instant 0.5) (instant 1.1) TRUE FALSE)"
-                             "((instant 2) (instant 5.04) TRUE TRUE) )"),
-                             remarkslist)));
+                             nl->StringAtom("( (b1 e1 lci rci) ... (bn en lci rci) )"),
+                             nl->StringAtom("( ((instant 0.5) (instant 1.1) TRUE FALSE) ...)"))));
 }
 
 /*
@@ -556,7 +552,7 @@ UrealProperty()
             nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(ureal) "),
                              nl->StringAtom("( timeInterval (real1 real2 real3 bool)) "),
-                             nl->StringAtom("( (6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 TRUE) )"))));
+                             nl->StringAtom("( (6.37 9.9 T F) (1.0 2.2 2.5 T) )"))));
 }
 
 /*
@@ -624,7 +620,7 @@ UPointProperty()
             nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(upoint) "),
                              nl->StringAtom("( timeInterval (real1 real2 real3 real4) ) "),
-                             nl->StringAtom("( (6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 2.1) )"))));
+                             nl->StringAtom("( (6.37 9.9 T F) (1.0 2.2 2.5 2.1) )"))));
 }
 
 /*
@@ -692,7 +688,7 @@ MPointProperty()
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mpoint) "),
                              nl->StringAtom("( upoint1 upoint2 ... upointn) "),
-                             nl->StringAtom("( ((6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
+                             nl->StringAtom("( ((6.37 9.9 T F) (1.0 2.2 2.5 2.1)) ...)"))));
 }
 
 /*
@@ -757,8 +753,8 @@ MIntProperty()
                              nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mint) "),
-                             nl->StringAtom("( constTempUnitInt1 constTempUnitInt2 ... constTempUnitIntn) "),
-                             nl->StringAtom("( ( (6.37 9.9 FALSE FALSE) 1)  ((9.9 19.9 FALSE FALSE) 2)...)"))));
+                             nl->StringAtom("( constTempUnitInt1 ... constTempUnitIntn)"),
+                             nl->StringAtom("(((6.3 8.9 T T) 1) ((8.9 9.9 T F) 2)...)"))));
 }
 
 /*
@@ -826,7 +822,7 @@ MRealProperty()
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mreal) "),
                              nl->StringAtom("( ureal1 ureal2 ... urealn) "),
-                             nl->StringAtom("( ((6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 FALSE)) ...)"))));
+                             nl->StringAtom("( ((6.37 9.9 T F) (1.0 2.2 2.5 F)) ...)"))));
 }
 
 /*
