@@ -8,6 +8,15 @@ if [ -z "$BASH" ]; then
   exit 1
 fi
 
+if [ "$OSTYPE" == "msys" ]; then
+   prefix=/c
+   platform="win32"
+else 
+   prefix=$HOME
+   platform="linux"
+fi
+
+
 # recognize aliases also in an non interactive shell
 shopt -s expand_aliases
 
@@ -89,6 +98,34 @@ function showGPL() {
   printf "%s\n"   "This is free software; see the source for copying conditions."
   printf "%s\n"   "There is NO warranty; not even for MERCHANTABILITY or FITNESS"
   printf "%s\n"   "FOR A PARTICULAR PURPOSE."
+}
+
+#uncompressFolders
+#
+# $1 list of directories
+#
+# For each direcory all *.gz files are assumed to be a tar archive and
+# all *.zip files a zip archive
+
+function uncompressFolders() {
+
+for folder in $1; do
+  zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
+  gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
+  for file in $zipFiles; do
+    printf "\n  processing $file ..."
+    if { ! unzip -q -o $file; }; then
+      exit 21 
+    fi
+  done
+  for file in $gzFiles; do
+    printf "\n  processing $file ..."
+    if { ! tar -xzf $file; }; then
+      exit 22 
+    fi
+  done
+done
+
 }
 
 # runTTYBDB

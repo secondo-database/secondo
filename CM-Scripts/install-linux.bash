@@ -1,9 +1,10 @@
 #!/bin/sh
-# install-linux.bash - untar files and run make for
+# install.bash - untar files and run make for
 # various software packages
 #
 # 04/19/05 M. Spiekermann
 # 04/22/09 M. Spiekermann, error handling for starting xterm &
+# 05/16/02 M. Spiekermann, MSYS-Mingw and Linux script merged into this version
 
 if [ "x$1" == "xtestmode" ]; then
    HOME="$HOME/DUMMY-HOME"
