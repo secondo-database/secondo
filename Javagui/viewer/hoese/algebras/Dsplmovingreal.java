@@ -16,19 +16,39 @@ import gui.Environment;
 /**
  * A displayclass for the instant-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplmovingreal extends Dsplinstant {
+public class Dsplmovingreal extends DsplGeneric implements Timed{
+
+  Interval TimeBounds;
   Vector Intervals = new Vector(10, 5);
   Vector MRealMaps = new Vector(10, 5);
   double PixelTime;
   double min=Double.POSITIVE_INFINITY ;
   double max=Double.NEGATIVE_INFINITY ;
   final static int PSIZE=300;
+  boolean err;
+
+
+  /** This method returns the "bounding box" 
+    * of the definition time
+    */
+  public Interval getTimeBounds(){
+     return  TimeBounds;
+  }
+
+
   /**
    * A method of the Timed-Interface to render the content of the TimePanel
-   * @param PixelTime pixel per hour
+   * @param PixelTime pixel per time unit 
    * @return A JPanel component with the renderer
    */
   public JPanel getTimeRenderer (double PixTime) {
+    if(err)
+       return null;
+
+    // Create a MRealLabel for each unit and add it to
+    // the panel 
+    min=Double.POSITIVE_INFINITY ;
+    max=Double.NEGATIVE_INFINITY ;
     PixelTime = PixTime;
     JPanel jp = new JPanel(null);
     if (Intervals == null)
@@ -37,9 +57,13 @@ public class Dsplmovingreal extends Dsplinstant {
     int cnt = 0;
     while (li.hasNext()) {
       Interval in = (Interval)li.next();
+      /*
+       Compute the used x-space in pixels for the current unit
+      */
       int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
       int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
-      //System.out.println(new String(start+" "+end));
+      
+      /* Create a Label for this unit */      
       String bs = MRealMaps.elementAt(cnt).toString();
       MRealLabel jc = new MRealLabel(bs);
       jc.ValueIndex = cnt++;
@@ -48,22 +72,24 @@ public class Dsplmovingreal extends Dsplinstant {
       jc.setForeground(Color.black);
       //jc.setBackground(Color.yellow);
       jc.setToolTipText("...");
+      /*
+       * compute the range of the values for the current unit
+       */
       MRealMap mr = (MRealMap)MRealMaps.elementAt(jc.ValueIndex);
       for (int x=start;x<=end;x++) {
       	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
-      	 double mv;
-         if (mr.f)
-           mv = Math.sqrt(mr.a*actTime*actTime + mr.b*actTime + mr.c);
-         else
-           mv = mr.a*actTime*actTime + mr.b*actTime + mr.c;
-       //  System.out.println(mv);
-         max=Math.max(max,mv);
-         min=Math.min(min,mv);
-       }
-      //Dimension d = jc.getPreferredSize();
+         Double Mv = getValueAt(actTime,jc.ValueIndex);      
+         if(Mv==null){
+            System.err.println("Cannot determine the value at"+actTime);
+         }else{
+            double mv=Mv.doubleValue();
+            max=Math.max(max,mv);
+            min=Math.min(min,mv);
+        }
+      }
+      // set posittion and size of this label      
       jc.setBounds(start, 0, end - start, PSIZE);
-      //   System.out.println(max +" "+min);
-
+      // add the label to the panel
       jp.add(jc);
     }
       //jc.setBorder(new MatteBorder(2, (in.isLeftclosed()) ? 2 : 0, 2, (in.isRightclosed()) ?
@@ -73,6 +99,58 @@ public class Dsplmovingreal extends Dsplinstant {
     return  jp;
   }
 
+
+ /** This functions searchs in the vector of intervals for the 
+   * given instant. If found the index within the Vector is returned,
+   * otherwise -1.
+   */
+ private int getIndexFrom(double time){
+    for(int i=0;i<Intervals.size();i++)
+       if(((Interval)Intervals.get(i)).isDefinedAt(time))
+         return i;
+    return -1;
+ }
+
+
+  /**  Computes the value of this real for a given instant.
+    *  The instant is just given as a double. 
+    *  If the moving real is not defined at the given instant null is returned.
+    **/
+  private   Double getValueAt(double time){
+    int index = getIndexFrom(time);
+    return getValueAt(time,index); 
+  } 
+
+  /** Computes the value for a given index 
+    * There is no check wether the given time is contained in
+    * the interval determined by index.
+    **/
+  private Double getValueAt(double time,int index){ 
+       // check for correct index
+       if(index<0 || index >= Intervals.size())
+          return null;
+       Interval CurrentInterval = (Interval) Intervals.get(index);
+       MRealMap CurrentMap = (MRealMap) MRealMaps.get(index);
+       // in this version, the interval is ignored, in the
+       // new version implemented by Victor we have to subtract the
+       // starting point of the interval from time first
+       double start=CurrentInterval.getStart();
+       time -= start;
+       double polyvalue = CurrentMap.a*time*time + CurrentMap.b*time + CurrentMap.c;
+       if(!CurrentMap.f){
+         return new Double(polyvalue);
+       }else{
+         if(polyvalue<0){
+            System.err.println("Wrong MRealMap detected !!!");
+            System.err.println("attempt to compute the sqareroot of a negative number");
+            return null;
+         }else{
+            return new Double(Math.sqrt(polyvalue));
+         }
+       }
+  }
+
+
   /**
    * Scans the representation of a movingreal datatype
    * @param v A list of time-intervals with the parameter for a quadratic or squareroot formula
@@ -80,12 +158,10 @@ public class Dsplmovingreal extends Dsplinstant {
    * @see <a href="Dsplmovingrealsrc.html#ScanValue">Source</a>
    */
   public void ScanValue (ListExpr v) {
-    ////System.out.println(v.writeListExprToString());
     if (v.isEmpty())
       return;
     while (!v.isEmpty()) {
       ListExpr le = v.first();
-      //System.out.println(le.writeListExprToString());
       Interval in=null;
       ListExpr map=null;
       int len = le.listLength();
@@ -93,7 +169,7 @@ public class Dsplmovingreal extends Dsplinstant {
          return;
       if (len == 8){
          if(Environment.DEBUG_MODE)
-            System.err.println("Warning: deprecated listt represenation for moving real");
+            System.err.println("Warning: deprecated list represenation for moving real");
          in = LEUtils.readInterval(ListExpr.fourElemList(le.first(),
                        le.second(), le.third(), le.fourth()));
          map = le.rest().rest().rest().rest();
@@ -102,17 +178,17 @@ public class Dsplmovingreal extends Dsplinstant {
          in = LEUtils.readInterval(le.first());
          map = le.second();
       }
-
       MRealMap rm = readMRealMap(map);
-
-      if ((in == null) || (rm == null))
-        return;
+      if ((in == null) || (rm == null)){
+          return;
+      }
       Intervals.add(in);
       MRealMaps.add(rm);
       v = v.rest();
     }
     err = false;
   }
+
 
   /**
    * This method reads the parameter for a quadratic or squareroot formula into a MRealMap-instance
@@ -148,6 +224,7 @@ public class Dsplmovingreal extends Dsplinstant {
    */
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
+    err=true;
     ScanValue(value);
     if (err) {
       System.out.println("Error in ListExpr :parsing aborted");
@@ -156,6 +233,7 @@ public class Dsplmovingreal extends Dsplinstant {
     } 
     else 
       qr.addEntry(this);
+    // compute the bounding box of all intervals
     TimeBounds = null;
     for (int i = 0; i < Intervals.size(); i++) {
       Interval in = (Interval)Intervals.elementAt(i);
@@ -212,6 +290,7 @@ public class Dsplmovingreal extends Dsplinstant {
         return  "SQRT(" + a + "t^2+" + b + "t+" + c + ")";
     }
   }
+
   /** Special class to draw the MRealMap function */
   class MRealLabel extends JLabel {
     int ValueIndex;
@@ -236,37 +315,44 @@ public class Dsplmovingreal extends Dsplinstant {
       double y1=-PSIZE/(max-min);
       double y2=PSIZE*max/(max-min);
       int xpos=0;
+      int lastx=0,lasty=0;
       for (int x=start;x<=end;x++) {
       	 double actTime = (double)x/PixelTime+TimeBounds.getStart();
-      	 double mv;
-         if (mr.f)
-           mv = Math.sqrt(mr.a*actTime*actTime + mr.b*actTime + mr.c); 
-         else 
-           mv = mr.a*actTime*actTime + mr.b*actTime + mr.c;
-	 int ypos=(int)(mv*y1+y2);
-	 g.drawLine(xpos,ypos,xpos,ypos+1);
+         Double Mv = getValueAt(actTime,ValueIndex);
+         if(Mv==null){
+           System.err.println("Error in computing the real value for instant "+actTime);
+         }else{
+      	    double mv=Mv.doubleValue();
+	    int ypos=(int)(mv*y1+y2);
+            if(x==start){ // ensure to draw also a single point
+  	        g.drawLine(xpos,ypos,xpos,ypos+1);
+            } else{
+                g.drawLine(lastx,lasty,xpos,ypos);
+            }
+          lastx = xpos;
+          lasty = ypos;
+         }
 	 xpos++;
 	}
       }
+
+
     /**
      * You can point with the mouse to get the value at a time
      * @param evt MouseEvent
      * @return Function value as string
      */
-    
-    
     public String getToolTipText (MouseEvent evt) {
       Interval in = (Interval)Intervals.elementAt(ValueIndex);
       double actTime = in.getStart() + evt.getX()/PixelTime;
-      MRealMap mr = (MRealMap)MRealMaps.elementAt(ValueIndex);
-      double mv;
-      if (mr.f)
-        mv = Math.sqrt(mr.a*actTime*actTime + mr.b*actTime + mr.c); 
-      else 
-        mv = mr.a*actTime*actTime + mr.b*actTime + mr.c;
-      //int start=(int)((in.getStart()-TimeBounds.getStart())*PixelTime);
-      return  LEUtils.convertTimeToString(actTime) + "=" + mv;
-      //return new String(in.getStart() + " " +PixelTime +" "+ evt.getX()) ;
+      Double Mv = getValueAt(actTime,ValueIndex);      
+      if(Mv!=null){
+         double mv=Mv.doubleValue();
+         return  LEUtils.convertTimeToString(actTime) + "=" + mv;
+      }
+      else{
+        return "Error in computing value at instant "+LEUtils.convertTimeToString(actTime);
+      }
     }
   }
 }
