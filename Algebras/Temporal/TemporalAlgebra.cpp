@@ -3364,6 +3364,7 @@ class TemporalAlgebra : public Algebra
     instant.AssociateKind( "DATA" );
     rangeint.AssociateKind( "DATA" );
     rangereal.AssociateKind( "DATA" );
+    periods.AssociateKind( "DATA" );
     constint.AssociateKind( "DATA" );
     ureal.AssociateKind( "DATA" );
     upoint.AssociateKind( "DATA" );

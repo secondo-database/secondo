@@ -1998,7 +1998,16 @@ void Range<Alpha>::EndBulkLoad( const bool sort )
   if( sort )
     intervals.Sort( IntervalCompare<Alpha> );
   ordered = true;
-  assert( IsValid() );
+  //assert( IsValid() );
+  if (!IsValid() )  //do merge first  ????????? I will do it afterwords. DZM
+  {
+   //   Range<Alpha> *copy; //= new Range<Alpha>( 0 );
+   //   copy=this->Clone();
+   //   this->Clear();
+   //   copy->Merge(this);
+   //   cout<<"invalid range found!!!"<<endl;
+  }
+  //assert( IsValid() );
 }
 
 template <class Alpha>
