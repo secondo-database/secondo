@@ -5,6 +5,7 @@ import extern.dbfreader.Dbf3Reader;
 import extern.shapedbf.ShapeDbf;
 import extern.shapereader.ShapeReader;
 import java.io.File;
+import extern.binarylist.*;
 
 public class ImportManager{
 
@@ -14,6 +15,7 @@ public class ImportManager{
     can be obtain with the getErrorText-Method.
     How the file is converted is determined by the file extension */
 public ListExpr importFile(String FileName){
+  long t1=System.currentTimeMillis();
   ErrorText = "no error";
   File F = new File(FileName);
      if(!F.exists()){
@@ -22,8 +24,10 @@ public ListExpr importFile(String FileName){
      }
   if(FileName.toLowerCase().endsWith(".dbf")){
      ListExpr Res = dbf3Reader.getList(FileName);
-     if(Res!=null)
+     if(Res!=null){
+        System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
         return Res;
+     }   
      else{
         ErrorText = dbf3Reader.getErrorString();
      }
@@ -33,29 +37,50 @@ public ListExpr importFile(String FileName){
       String DBFile = FileName.substring(0,FileName.length()-3)+"dbf";
       File F2 = new File(DBFile);
       ListExpr Res;
-      if(F2.exists()){ // try to load combined shape-dbf
+     if(F2.exists()){ // try to load combined shape-dbf
          Res = shapedbfreader.getList(FileName);
-	 if(Res==null){
-            ErrorText = shapedbfreader.getErrorString();
-	    System.out.println("combined shape-dbf failed :"+ErrorText);
-	 }
-	 else
-	    return Res;
-      }
-      Res = shapereader.getList(FileName);
-      if(Res==null)
-          ErrorText = shapereader.getErrorString();
-      else
-         return Res;
-  }
+	     if(Res==null){
+             ErrorText = shapedbfreader.getErrorString();
+	         System.out.println("combined shape-dbf failed :"+ErrorText);
+	         t1 = System.currentTimeMillis();
+	     }
+	 	 else{
+	         System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+	         return Res;
+         }
+     }    
+     Res = shapereader.getList(FileName);
+     if(Res==null)
+        ErrorText = shapereader.getErrorString();
+     else{
+        System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+            return Res;
+     }   
+ }
+
+  // a binary nested list
+  if(FileName.toLowerCase().endsWith(".bnl")){
+     BinaryList BN = new BinaryList();
+     ListExpr LE = BN.getList(FileName);
+     if(LE==null)
+        ErrorText = BN.getErrorString();
+     else{
+        System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+        return extractFromObject(LE);    
+     }   
+  } 
 
   // ever try to load this file as nested list
+  t1 = System.currentTimeMillis();
   ListExpr R = new ListExpr();
   if(R.readFromFile(FileName)!=0){
      if(ErrorText.equals("no error"));
         ErrorText ="cannot load this file";
      return null;
-  }else return extractFromObject(R);
+  }else{
+   System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+   return extractFromObject(R);
+  } 
 
 }
 

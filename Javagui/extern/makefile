@@ -19,6 +19,8 @@ subdirs:
 	(make -C shapereader all)
 	(make -C dbfreader all)
 	(make -C shapedbf  all)
+	(make -C fileio all)
+	(make -C binarylist all)
 
 %.class:%.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
@@ -29,4 +31,6 @@ clean:
 	(make -C shapereader clean)
 	(make -C dbfreader clean)
 	(make -C shapedbf clean)
+	(make -C fileio clean)
+	(make -C binarylist all)
 	rm -f *.class

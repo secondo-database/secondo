@@ -12,6 +12,7 @@ import gui.idmanager.*;
 import java.io.File;
 import javax.swing.event.*;
 import extern.*;
+import extern.binarylist.*;
 
 public class ObjectList extends JPanel{
 
@@ -427,7 +428,8 @@ public boolean saveSelectedObject(){
           SecondoObject SO = (SecondoObject) Objects.get(index);
 	  ListExpr LE = SO.toListExpr();
 	  // convert to SecondoObject ready for a restore
-	  if(FullFileName.endsWith("obj") && LE.listLength()==2){
+	  if(( FullFileName.endsWith("obj") |
+	       FullFileName.endsWith("obj.bnl")) && LE.listLength()==2){
 	      String name = SO.getName().trim();
 	      name = name.replace(' ','_');
 	      if(name.length()>48)
@@ -439,6 +441,17 @@ public boolean saveSelectedObject(){
 					 LE.second(),
            				 ListExpr.theEmptyList());
 	  }
+        if(FullFileName.endsWith(".bnl")){
+           try{
+              BufferedOutputStream FOS = new BufferedOutputStream(new FileOutputStream(FullFileName));
+              saved = BinaryList.writeBinaryTo(LE,FOS);
+              }
+              catch(Exception e){
+                saved = false;
+              }
+        
+        }  
+        else 
           saved = LE.writeToFile(FullFileName)==0; 
        }
   }

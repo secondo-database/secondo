@@ -27,9 +27,9 @@ public  ListExpr getList(String FileName){
      ErrorString="FILE_NOT_EXISTS";
      return null;
   }
-  FileInputStream BR=null;
+  BufferedInputStream BR=null;
   try{
-     BR = new FileInputStream(F);
+     BR = new BufferedInputStream(new FileInputStream(F));
      byte[] Buffer = new byte[32];
      BR.read(Buffer);
      // read the Main-Header

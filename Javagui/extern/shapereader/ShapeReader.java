@@ -77,7 +77,7 @@ private boolean openFile(File F){
           Last_Error = "WRONG_FILESIZE";
           return false;
        }
-       FIS = new FileInputStream(F);
+       FIS = new BufferedInputStream(new FileInputStream(F));
        opened = true;
        return readHeader();
     }
@@ -155,7 +155,7 @@ private byte[] readNextRecord(RecordHeader RH){
    }
 }
 
-private FileInputStream FIS;
+private BufferedInputStream FIS;
 
 
 private boolean opened= false;
