@@ -738,6 +738,13 @@ In the target language, we use the following operators:
 
 				sort stream lexicographically by the given
 				attribute names
+
+	groupby	stream(Tuple) x GroupAttrs x NewFields -> stream(Tuple2)
+
+				group stream by the grouping attributes; for each group
+				compute new fields each of which is specified in the
+				form Attrname : Expr. The argument stream must already
+				be sorted by the grouping attributes.
 ----
 
 In PROLOG, all expressions involving such operators are written in prefix
@@ -876,6 +883,23 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   concat_atom([XAtom, YAtom, 'sortmergejoin[',
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
+
+plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
+  plan_to_atom(Stream, SAtom),
+  plan_to_atom(GroupAttrs, GAtom),
+  plan_to_atom(Fields, FAtom),
+  concat_atom([SAtom, 'groupby[', GAtom, '; ', FAtom, ']'], '', Result),
+  !.
+
+plan_to_atom(field(NewAttr, Expr), Result) :-
+  plan_to_atom(attrname(NewAttr), NAtom),
+  plan_to_atom(Expr, EAtom),
+  concat_atom([NAtom, ': ', EAtom], '', Result).
+
+
+
+
+
 
 
 plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
@@ -2411,6 +2435,17 @@ lookupAttr(*, *).
 
 lookupAttr(count(*), count(*)).
 
+lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
+  lookupAttr(Expr, Expr2).
+
+lookupAttr(Term, Term2) :-
+  compound(Term),
+  functor(Term, Op, 1),
+  arg(1, Term, Arg1),
+  lookupAttr(Arg1, Res1),
+  functor(Term2, Op, 1),
+  arg(1, Term2, Res1).
+
 lookupAttr(Name, Name) :-
   write('Error in attribute list: could not recognize '), write(Name), nl, fail.
 
@@ -2507,32 +2542,41 @@ lookupPred1(Term, Term, N, Rels, N, Rels) :-
 lookupPred1(Term, Term, N, Rels, N, Rels).
  
 
+
+
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
-
+ 
 */
-
+ 
 spelled(Rel:Attr, attr(Attr2, 0, l)) :-
-  %spelling(Rel:Attr, lc(Attr2)), !.
-  spelling(Rel:Attr, Attr3),
+  downcase_atom(Rel, DCRel),
+  downcase_atom(Attr, DCAttr),
+  spelling(DCRel:DCAttr, Attr3),
   Attr3 = lc(Attr2),
   !.
-
+ 
 spelled(Rel:Attr, attr(Attr2, 0, u)) :-
-  spelling(Rel:Attr, Attr2), !.
-
-spelled(_:Attr, attr(Attr, 0, u)) :- !.	% no attr entry in spelling table
-
+  downcase_atom(Rel, DCRel),
+  downcase_atom(Attr, DCAttr),
+  spelling(DCRel:DCAttr, Attr2),
+  !.
+ 
+spelled(_:_, attr(_, 0, _)) :- !, fail. % no attr entry in spelling table
+ 
 spelled(Rel, Rel2, l) :-
-  %spelling(Rel, lc(Rel2)), !.
-  spelling(Rel, Rel3),
+  downcase_atom(Rel, DCRel),
+  spelling(DCRel, Rel3),
   Rel3 = lc(Rel2),
   !.
-
+ 
 spelled(Rel, Rel2, u) :-
-  spelling(Rel, Rel2), !.
+  downcase_atom(Rel, DCRel),
+  spelling(DCRel, Rel2), !.
+ 
+spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
 
-spelled(Rel, Rel, u).		% no rel entry in spelling table.
+
 
 /*
 10.3.7 Examples
@@ -2596,6 +2640,97 @@ translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
 translate(Query orderby Attrs, sortby(Stream, AttrNames), Select, 0) :-
   translate(Query, Stream, Select, _),
   attrnamesSort(Attrs, AttrNames).
+
+translate(Query groupby Attrs, 
+	groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields), 
+	select Select2, Cost) :-
+  translate(Query, Stream, select Select, Cost),
+  makeList(Attrs, Attrs2),
+  attrnames(Attrs2, AttrNamesGroup),
+  attrnamesSort(Attrs2, AttrNamesSort),
+  makeList(Select, SelAttrs),
+  translateFields(SelAttrs, Attrs2, Fields, Select2).
+
+
+
+/*
+----	translateFields(Select, GroupAttrs, Fields, Select2) :-
+----
+
+Translate the ~Select~ clause of a query containing ~groupby~. Grouping
+was done by the attributes ~GroupAttrs~. Return a list ~Fields~ of terms
+of the form ~field(Name, Expr)~; such a list can be used as an argument to the
+groupby operator. Also, return a modified select clause ~Select2~,
+which will translate to a corresponding projection operation.
+
+*/
+
+translateFields([], _, [], []).
+
+translateFields([count(*) as NewAttr | Select], GroupAttrs, 
+	[field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+translateFields([sum(Attr) as NewAttr | Select], GroupAttrs, 
+	[field(NewAttr, sum(feed(group), attrname(Attr))) | Fields], 
+	[NewAttr| Select2]) :-
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+/*
+Generic rule for aggregate functions, similar to sum.
+
+*/
+
+translateFields([Term as NewAttr | Select], GroupAttrs, 
+	[field(NewAttr, Term2) | Fields], 
+	[NewAttr| Select2]) :-
+  compound(Term),
+  functor(Term, AggrOp, 1),
+  arg(1, Term, Attr),
+  member(AggrOp, [min, max, avg]),
+  functor(Term2, AggrOp, 2),
+  arg(1, Term2, feed(group)),
+  arg(2, Term2, attrname(Attr)),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  !.
+
+translateFields([Term | Select], GroupAttrs, 
+	Fields, 
+	Select2) :-
+  compound(Term),
+  functor(Term, AggrOp, 1),
+  arg(1, Term, Attr),
+  member(AggrOp, [count, sum, min, max, avg]),
+  functor(Term2, AggrOp, 2),
+  arg(1, Term2, feed(group)),
+  arg(2, Term2, attrname(Attr)),
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  write('*****'), nl,
+  write('***** Error in groupby: missing name for new attribute'), nl,
+  write('*****'), nl,
+  !.
+
+
+
+translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
+  member(Attr, GroupAttrs),
+  !,
+  translateFields(Select, GroupAttrs, Fields, Select2).
+
+translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
+  not(member(Attr, GroupAttrs)),
+  !,
+  translateFields(Select, GroupAttrs, Fields, Select2),
+  write('*****'), nl,
+  write('***** Error in groupby: '), 
+  write(Attr), 
+  write(' is neither a grouping attribute'), nl,
+  write('      nor an aggregate expression.'), nl,
+  write('*****'), nl.
+
+
 
 /*
 
