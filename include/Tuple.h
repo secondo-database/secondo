@@ -196,15 +196,14 @@ private:
 
     struct TupleHeader{
 	    int size;
-	    SmiFileId lobFileId; 
     };
 
     SmiRecord diskTuple;           	// Membervar which represents an disktuple.
     SmiRecordId diskTupleId; 		// Record that persistently holds the tuple value.
     SmiRecordFile* lobFile;     	// Reference to a File which contains LOBs.
     SmiRecordFile* recFile;			// Reference to a File which contains tuples.  
-    bool lobFileOpened;				// Is the lobfile open?
-    bool lobFileAllocated;			// Was the lobFile allocated by the Tuple manager?
+    //bool lobFileOpened;				// Is the lobfile open?
+    //bool lobFileAllocated;			// Was the lobFile allocated by the Tuple manager?
     int attrNum;                	// Number of attribs. 
     AttributeInfo *attribInfo;  	// Sizes of attrib values. 
     AlgebraManager* algM;       	// Reference to Algebramanagers. 
@@ -247,8 +246,9 @@ new tuple instance based on a tuple type description.
   After this tuple creation, the tuple can be changed or not depending on ~mode~.
 
 */
-	Tuple(SmiRecordFile* recfile, SmiRecordId rid, const TupleAttributes *attributes, SmiFile::AccessType mode);
-
+	//Tuple(const TupleAttributes *attributes, SmiFile::AccessType mode);
+	Tuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecordFile *lobfile, 
+			const TupleAttributes *attributes, SmiFile::AccessType mode);
  
 /*
 1.5.2 Destructor
