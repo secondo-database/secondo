@@ -448,6 +448,19 @@ algebras in the following format:
 ----
 
 */
+
+  ListExpr ListTypeConstructors(int algebraId);
+/*
+Returns a list of type constructors of the algebra with Id algebraId
+in the following format: 
+
+----  (
+        (<type constructor name> (<arg 1>..<arg n>) <result>) * 
+      )
+----
+
+*/
+
   bool IsTypeName( const string& typeName );
 /*
 Checks whether ~typeName~ is a valid name for an algebra type
@@ -501,6 +514,18 @@ This format is based on the formal definition of the syntax of operator
 specifications from [BeG95b, Section3.1]. 
 
 */
+  ListExpr ListOperators( int algebraId );
+/*
+Returns a list of type constructors of the algebra with Id algebraId
+in the following format: 
+
+----  (
+        (<type constructor name> (<arg 1>..<arg n>) <result>) * 
+      )
+----
+
+*/
+
   bool IsOperatorName( const string& opName );
 /*
 Checks whether ~opName~ is a valid operator name.

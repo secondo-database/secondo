@@ -34,6 +34,9 @@ save under transactions, logged, and locked.
 
 October 2002 Ulrich Telle, testMode flag initialization added
 
+September 2003 Frank Hoffmann, added (overloaded) ~ListTypeConstructors~
+and ~ListOperators~
+
 This module implements the module *SecondoCatalog*. It consists of six
 parts: First it contains an interface to *Databases and Transactions*
 for loading the actual catalog of database types and objects and for
@@ -1803,6 +1806,33 @@ Returns a list of type constructors ~typecons~ of the actually load algebras in 
   return (tcList);
 }
 
+ListExpr
+SecondoCatalog::ListTypeConstructors( int algebraId )
+{
+  int k;
+  ListExpr last = 0, list;
+  ListExpr tcList = nl->TheEmptyList();
+  string tcname;
+
+  for ( k = 0; k < am->ConstrNumber( algebraId ); k++ )
+  {
+    tcname = am->Constrs( algebraId, k );
+    list = am->Props( algebraId, k );
+    if ( tcList == nl->TheEmptyList() )
+    {
+      tcList = nl->Cons( nl->Cons( nl->SymbolAtom( tcname ), list ),
+                         nl->TheEmptyList() );
+      last = tcList;
+    }
+    else
+    {
+      last = nl->Append( last,
+                         nl->Cons( nl->SymbolAtom( tcname ), list ) );
+    }
+  }
+  return (tcList);
+}
+
 bool
 SecondoCatalog::IsTypeName( const string& typeName )
 {
@@ -2049,6 +2079,33 @@ specifications from [BeG95b, Section3.1].
         last = nl->Append( last,
                            nl->Cons( nl->SymbolAtom( pos->first ), list ) );
       }
+    }
+  }
+  return (opList);
+}
+
+ListExpr
+SecondoCatalog::ListOperators( int algebraId )
+{
+  int k;
+  ListExpr last = 0, list;
+  ListExpr opList = nl->TheEmptyList();
+  string opname;
+
+  for ( k = 0; k < am->OperatorNumber( algebraId ); k++ )
+  {
+    opname = am->Ops( algebraId, k );
+    list = am->Specs( algebraId, k );
+    if ( opList == nl->TheEmptyList() )
+    {
+      opList = nl->Cons( nl->Cons( nl->SymbolAtom( opname ), list ),
+                         nl->TheEmptyList() );
+      last = opList;
+    }
+    else
+    {
+      last = nl->Append( last,
+                         nl->Cons( nl->SymbolAtom( opname ), list ) );
     }
   }
   return (opList);
