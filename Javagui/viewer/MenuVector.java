@@ -19,6 +19,10 @@ public int getSize(){
    return content.size();
 }
 
+public void clear(){
+  content.clear();
+}
+
 public JMenu get(int index){
    Object o;
    JMenu Menu;
@@ -32,5 +36,7 @@ public JMenu get(int index){
       
    return Menu;
 }
+
+
 
 }
