@@ -1555,6 +1555,28 @@ CcStringMapCcInt( ListExpr args )
 }
 
 /*
+4.2.12 Type mapping function for the ~keywords~ operator:
+
+Type mapping for ~keywords~ is
+
+----	(string) -> (stream string)
+----
+
+*/
+ListExpr
+keywordsType( ListExpr args ){
+  ListExpr arg;
+  
+  if ( nl->ListLength(args) == 1 )
+  {
+    arg = nl->First(args);
+    if ( nl->IsEqual(arg, "string") )
+      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("string"));
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
 4.3 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -3292,6 +3314,127 @@ RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+4.21 Value mapping function of operator ~keywords~
+
+The following auxiliary function ~trim~ removes any kind of space
+characters from the end of a string.
+
+*/
+
+int trim (char s[])
+{
+  int n;
+  
+  for(n = strlen(s) - 1; n >= 0; n--)
+   if ( !isspace(s[n]) ) break;
+  s[n+1] = '\0';
+  return n;
+}
+
+int
+keywordsFun (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+Creates a stream of strings containing the single words
+of the origin string, on the assumption, that words in a string
+are separated by a space character.
+
+*/
+{
+  struct Subword {int start, nochr, strlength; STRING* subw;}* subword;
+
+  CcString* elem;
+  CcString* str;
+  int i;
+  string teststr, tmpstr;
+  STRING* outstrptr;
+  Word arg0;
+
+  switch( message )
+  {
+    case OPEN:
+      //cout << "open" << endl;
+      qp->Request(args[0].addr, arg0);
+
+      str = ((CcString*)arg0.addr);
+
+      subword = new Subword;
+      subword->start = 0;
+      subword->nochr = 0;
+      
+      
+      subword->subw = str->GetStringval();
+      trim(*subword->subw); //remove spaces from the end of the string
+      
+      subword->strlength = strlen(*subword->subw);
+      // get the necessary values to determine the first single word in the 
+      // string, if it is not empty or contains only space characters. 
+      if ( subword->strlength > 0) { 
+        i=0;
+        while ( isspace((*(str->GetStringval()))[i]) ) i++;     
+        subword->start = i;
+      
+        i=subword->start;
+        while ( !isspace((*(str->GetStringval()))[i]) ) i++;
+        subword->nochr = i - subword->start;
+      }
+      local.addr = subword;
+
+      return 0;
+
+    case REQUEST:
+
+      subword = ((Subword*) local.addr);
+      //cout << "request" << endl;
+      // another single word in the string still exists
+      if ( (subword->strlength > 0) && (subword->start < subword->strlength) )
+      {
+        tmpstr = (((string)(*subword->subw)).substr(subword->start,subword->nochr));
+	
+	outstrptr = (STRING*)malloc(strlen(*subword->subw));
+	strcpy(*outstrptr, (char*)tmpstr.c_str());
+        elem = new CcString(true, outstrptr);
+	result.addr = elem;
+
+	subword->start += subword->nochr;	
+        i = subword->start;
+	if (i < subword->strlength ) {
+          while ( isspace((*subword->subw)[i]) ) i++; 
+
+          subword->start = i;	
+          //i = subword->start;
+          while ( (!isspace((*subword->subw)[i])) ) i++;
+          subword->nochr = i - subword->start + 1;
+	}	
+	local.addr = subword;
+	return YIELD;
+      }
+      // no more single words in the string
+      else
+      {
+        // string is empty or contains only space characters
+        if ( subword->strlength == 0 ) {
+	  outstrptr = (STRING*)malloc(1);
+	  *outstrptr[0] = '\0';
+          elem = new CcString(true, outstrptr);
+	  result.addr = elem;
+	  subword->start = subword->strlength = 1;
+	  local.addr = subword;
+	  return YIELD;
+        }	  
+      return CANCEL;
+      }
+       
+    case CLOSE:
+      //cout << "close" << endl;
+      subword = ((Subword*) local.addr);
+      delete subword;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+/*
 1.10 Operator Model Mappings
 
 */
@@ -3416,6 +3559,7 @@ ValueMapping ccsetintersectionmap[] = { CcSetIntersection_ii, CcSetIntersection_
 ValueMapping ccsetminusmap[] = { CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
 ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
+ValueMapping cckeywordsmap[] = { keywordsFun };
 
 ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
@@ -3677,7 +3821,17 @@ const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              " of type string. Uses static method ExecuteQuery"
              " from class QueryProcessor.</text--->"
              "<text>query \"Orte\" relcount2</text--->"
-             ") )";                       
+             ") )";
+	                            
+const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(string) -> (stream string)</text--->"
+             "<text>_ keywords</text--->"
+             "<text>Creates a stream of strings containing the single words"
+             " of the origin string, on the assumption, that words in a string"
+             " are separated by a space character.</text--->"
+             "<text>query ten feed extendstream(name: mystring keywords) consume</text--->"
+             ") )"; 
 
 Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
@@ -3707,6 +3861,7 @@ Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, ccsetinter
 Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
 Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
 Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
+Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap, ccnomodelmap, Operator::SimpleSelect, keywordsType );
 
 /*
 6 Class ~CcAlgebra~
@@ -3774,6 +3929,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccsetminus );
     AddOperator( &ccoprelcount );
     AddOperator( &ccoprelcount2 );
+    AddOperator( &ccopkeywords );
   }
   ~CcAlgebra1() {};
 };
