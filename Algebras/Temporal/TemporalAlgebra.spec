@@ -16,4 +16,6 @@ operator initial alias INITIAL pattern op ( _ )
 operator final alias FINAL pattern op ( _ )
 operator units alias UNITS pattern op ( _ )
 operator theyear alias THEYEAR pattern op ( _ )
+operator themonth alias THEMONTH pattern op ( _, _ )
+
 

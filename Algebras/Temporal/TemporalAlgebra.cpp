@@ -2854,6 +2854,55 @@ int theyearfun( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+16.3.26 Value mapping functions of operator ~themonth~
+
+(int x int) ---- (periods)
+
+*/
+
+int themonthfun( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+  result = qp->ResultStorage( s );
+  ((Range<Instant>*)result.addr)->Clear();
+  
+  //1.get the input and out put objects
+  CcInt *CcIntyear;
+  CcInt *CcIntmonth;
+  int intyear, intmonth;
+  
+  CcIntyear=((CcInt*)args[0].addr);
+  intyear=CcIntyear->GetIntval();
+  
+  CcIntmonth=((CcInt*)args[1].addr);
+  intmonth=CcIntmonth->GetIntval();
+  cout<<"year: "<<intyear<<"month:"<<intmonth<<endl;
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  
+  //2.get the timeintervals and add them to the result
+  defrange->StartBulkLoad();
+  Instant inst1, inst2;
+  
+  inst1.SetType(instanttype);
+  inst1.Set(intyear, intmonth, 1, 0, 0, 0, 0);
+  
+  inst2.SetType(instanttype);
+  if (intmonth<12)
+      inst2.Set(intyear, intmonth+1, 1, 0, 0, 0, 0);
+  else inst2.Set(intyear+1, 1, 1, 0, 0, 0, 0);
+  
+  Interval<Instant> timeInterval(inst1, inst2, true, false);
+  	  
+  defrange->Add( timeInterval ); 
+      
+  defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
+  
+  return (0);
+}
+
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -2947,7 +2996,7 @@ ValueMapping unitsmap[] =   {  units_mp,
 			   };
 
 ValueMapping intperiodsmap[] =   {      theyearfun,
-				    theyearfun,
+				    themonthfun,
 				    theyearfun,
 				    theyearfun,
 				    theyearfun,
@@ -3555,6 +3604,14 @@ Operator theyear( "theyear",
                         TemporalSelectIntPeriods,
                         MappingTypeMapIntPeriods);
 
+Operator themonth( "themonth",
+                        TemporalSpecIntPeriods,
+                        7,
+                        intperiodsmap,
+                        temporalnomodelmap,
+                        TemporalSelectIntPeriods,
+                        MappingTypeMapIntPeriods);
+
 /*
 6 Creating the Algebra
 
@@ -3646,6 +3703,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &final);
     AddOperator( &units);
     AddOperator( &theyear);
+    AddOperator( &themonth);
   }
   ~TemporalAlgebra() {};
 };
