@@ -4434,10 +4434,10 @@ ListExpr LoopjoinTypeMap(ListExpr args)
 	{
                    list1 = nl->Second(nl->Second(first));
                    list2 = nl->Second(nl->Second(nl->Third(second)));
-	   //if(!AttributesAreDisjoint(list1, list2))
-	   //{
-	   //    goto typeerror;
-	   //}
+	   if(!AttributesAreDisjoint(list1, list2))
+	   {
+	       goto typeerror;
+	   }
 	   list = ConcatLists(list1, list2);
 	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"), nl->TwoElemList(nl->SymbolAtom("tuple"), list));
   	   return outlist;
