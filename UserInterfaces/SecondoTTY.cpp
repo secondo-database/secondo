@@ -231,7 +231,7 @@ SecondoTTY::ProcessCommand()
   }
   else if ( cmdWord[0] == '@' )
   {
-    ProcessFile( cmd.substr( 1 ) );
+    ProcessFile( cmd.substr( 1, ( cmd.length() - 2 ) ) ); // Delete blank char at the end
   }
   else
   {
