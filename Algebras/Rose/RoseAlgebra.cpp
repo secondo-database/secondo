@@ -1,18 +1,18 @@
 /*
 [1] Rose Algebra
-  
+
 January 3rd, 2003 Mirco G[ue]nster and Ismail Zerrad
 
 This algebra implements an interface between the Rose Algebra which was
 implemented in the Java programming language and Secondo.
-This means that this module is an algebra in terms of Secondo but the 
+This means that this module is an algebra in terms of Secondo but the
 proper functionality is implemented in Java. Therefore most of the
 functions here are wrapper functions which call with help of the
 JNI (Java Native Interface) according java methods.
 This algebra provides three type constructors ~ccpoints~, ~cclines~
 and ~ccregions~ with its operations.
 For more details of the "Rose"-Algebra in common see the paper:
-"Realm-Based Spatial Data Types - The ROSE Algebra" 
+"Realm-Based Spatial Data Types - The ROSE Algebra"
 by Ralf Hartmut Gueting and Markus Schneider.
 
 1 Preliminaries
@@ -37,7 +37,7 @@ static QueryProcessor* qp;
 #include <JVMInit.h>
 
 /* The JVMInitializer provides access to a pointer to
-   the JNI Environment and to a pointer to the 
+   the JNI Environment and to a pointer to the
    Java Virtual Machine. */
 static JVMInitializer *jvminit = 0;
 
@@ -49,19 +49,19 @@ static JavaVM *jvm;
 1.2 Error functions.
 
 This error function is called if an error referring to the
-JNI interface occurs. In most cases this indicates that 
-there are problems which the installed JDK. 
+JNI interface occurs. In most cases this indicates that
+there are problems which the installed JDK.
 In this case please check the following items first:
 
 a) Under Windows the jvm.dll must be in your PATH.
-b) All paths of used java classes must have an entry in the 
+b) All paths of used java classes must have an entry in the
    JNIPath.ini file.
 c) Used JAR archives must also have an entry in that file.
 
 
 */
 
-/* this function prints an error message including the line 
+/* this function prints an error message including the line
 	where the error occured. Should never invoked normally. */
 static void error(char *name, int line) {
   cerr << "Error in " << name << " in line: " << line << "." << endl;
@@ -70,11 +70,11 @@ static void error(char *name, int line) {
 
 /* this function prints an error message including the line
    where the error occured. This method is used for calls
-   to Java methods. The name of the Java method which 
+   to Java methods. The name of the Java method which
    should invoked is also printed. */
 static void error(char *filename, char *classname, int line) {
-  cerr << "Error in " << filename << " in line: " << line 
-       << ". " << endl << "Requested Java method couldn't invoked: " 
+  cerr << "Error in " << filename << " in line: " << line
+       << ". " << endl << "Requested Java method couldn't invoked: "
        << classname << "." << endl;
   exit(1);
 }
@@ -90,7 +90,7 @@ static void *DummyCast(void *addr) {
   return 0;
 }
 
-/* 
+/*
 2 Type Constructor ~Points~
 
 2.1 Data Structure - Class ~CcPoints~
@@ -101,19 +101,18 @@ class CcPoints {
 private:
   jclass cls;
   jobject obj;
-  
+
 public:
   /* Inherited methods of Attribute */
   int Compare(Attribute *attr);
   Attribute *Clone();
   bool IsDefined();
   int Sizeof();
-  void *GetValue();
   void SetDefined(bool Defined);
   void CopyFrom(StandardAttribute* right);
   size_t HashValue();
-  
-  /* This contructor takes just one serial string 
+
+  /* This contructor takes just one serial string
      of the underlying java object and its length. */
   CcPoints(char *serial, int len);
   /* This constructor takes the nested list representation
@@ -123,17 +122,17 @@ public:
   /* This constructor takes a pointer to a java object which is
      already created. */
   CcPoints(const jobject jobj);
-  /* This constructor creates an empty CcPoints object. */	
+  /* This constructor creates an empty CcPoints object. */
   CcPoints();
   /* retrieves the nested list representation of the underlying
      java object. */
   bool GetNL(ListExpr &le);
-  /* Destructor of CcPoints. This destructor destroys also the 
+  /* Destructor of CcPoints. This destructor destroys also the
      object inside the JVM. */
   ~CcPoints();
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
-  
+
 };
 
 /* Inherited method of StandardAttribute */
@@ -157,11 +156,6 @@ int CcPoints::Sizeof() {
 }
 
 /* Inherited method of StandardAttribute */
-void *CcPoints::GetValue() {
-  return (void *)-1;
-}
-
-/* Inherited method of StandardAttribute */
 void CcPoints::SetDefined(bool Defined) {
 }
 
@@ -174,7 +168,7 @@ size_t CcPoints::HashValue() {
   return 0;
 }
 
-/* This contructor takes just one serial string 
+/* This contructor takes just one serial string
    of the underlying java object and its length. */
 CcPoints::CcPoints(char *serial, int len) {
   jbyteArray jbarr = 0;
@@ -197,13 +191,13 @@ CcPoints::CcPoints(char *serial, int len) {
   if (cls_Rose == 0) error(__FILE__, __LINE__);
 
   /* Get the method ID of imprt_arr */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr",
 				    "([B)Ljava/lang/Object;");
   if (mid_Rose == 0) error(__FILE__, __LINE__);
-  
+
   /* Call the static imprt_arr method */
   obj = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jbarr);
-  if (obj == 0) error(__FILE__, __LINE__);  
+  if (obj == 0) error(__FILE__, __LINE__);
 
 }
 
@@ -225,14 +219,14 @@ CcPoints::CcPoints(const ListExpr &le) {
   /* Get the Class */
   cls = env->FindClass("Points");
   if (cls == 0) error(__FILE__, __LINE__);
-  
+
   /* Get the c_string of le */
   succ = nl->WriteToString(nlstr, le);
   if (succ == false) error(__FILE__, __LINE__);
 
   nlchar = (char *)nlstr.c_str();
   len = strlen(nlchar);
- 
+
   jstr = env->NewStringUTF(nlchar);
   if (jstr == 0) error(__FILE__, __LINE__);
 
@@ -241,9 +235,9 @@ CcPoints::CcPoints(const ListExpr &le) {
   if (cls_Rose == 0) error(__FILE__, __LINE__);
 
   /* Get the method ID of StringToListExpr */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr",
 				    "(Ljava/lang/String;)Lsj/lang/ListExpr;");
-  if (mid_Rose == 0) error(__FILE__, __LINE__); 
+  if (mid_Rose == 0) error(__FILE__, __LINE__);
 
   /* Call the static StringToListExpr method */
   jnl = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jstr);
@@ -269,7 +263,7 @@ CcPoints::CcPoints(const jobject jobj) {
   obj = jobj;
 }
 
-/* This constructor creates an empty CcPoints object. */	
+/* This constructor creates an empty CcPoints object. */
 CcPoints::CcPoints() {
   jmethodID mid;
 
@@ -280,7 +274,7 @@ CcPoints::CcPoints() {
   /* Get the method ID of the constructor which takes no parameters. */
   mid = env->GetMethodID(cls, "<init>", "()V");
   if (mid == 0) error(__FILE__,__LINE__);
-  
+
   /* Create a Java-object Point. */
   obj = env->NewObject(cls, mid);
   if (obj == 0) error(__FILE__,__LINE__);
@@ -306,7 +300,7 @@ bool CcPoints::GetNL(ListExpr& le) {
   mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr",
 				    "(Ljava/lang/String;)Lsj/lang/ListExpr;");
   /* Get the method ID of exprt_nl */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "exprt_nl", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "exprt_nl",
 				    "(Ljava/lang/Object;)Lsj/lang/ListExpr;");
   if (mid_Rose == 0) error(__FILE__, __LINE__);
 
@@ -332,7 +326,7 @@ bool CcPoints::GetNL(ListExpr& le) {
   return nl->ReadFromString(cppstr, le);
 }
 
-/* Destructor of CcPoints. This destructor destroys also the 
+/* Destructor of CcPoints. This destructor destroys also the
      object inside the JVM. */
 CcPoints::~CcPoints() {
   //env->DeleteLocalRef(obj);
@@ -378,13 +372,13 @@ static ListExpr OutCcPoints( ListExpr typeInfo, Word value ) {
 }
 
 
-static Word InCcPoints(const ListExpr typeInfo, 
+static Word InCcPoints(const ListExpr typeInfo,
 		       const ListExpr instance,
-		       const int errorPos, 
-		       ListExpr& errorInfo, 
+		       const int errorPos,
+		       ListExpr& errorInfo,
 		       bool& correct ) {
   CcPoints* newpoints;
-  
+
   correct = true;
   newpoints = new CcPoints(instance);
   return SetWord(newpoints);
@@ -414,7 +408,7 @@ static Word CloneCcPoints(const Word &w) {
 */
 
 static ListExpr PointsProperty() {
-  return 
+  return
     (nl->TwoElemList
      (
       nl->FiveElemList
@@ -477,17 +471,17 @@ TypeConstructor ccpoints
  0,
  // predefined persistence function for model.
  TypeConstructor::DummyInModel,
- //TypeConstructor::DummyInModel, 	
+ //TypeConstructor::DummyInModel,
  TypeConstructor::DummyOutModel,
  //TypeConstructor::DummyOutModel,
  TypeConstructor::DummyValueToModel,
  //TypeConstructor::DummyValueToModel,
  TypeConstructor::DummyValueListToModel
- //TypeConstructor::DummyValueListToModel 
+ //TypeConstructor::DummyValueListToModel
  );
 
 
-/* 
+/*
 3 Type Constructor ~Lines~
 
 3.1 Data Structure - Class ~Lines~
@@ -505,12 +499,11 @@ public:
   Attribute *Clone();
   bool IsDefined();
   int Sizeof();
-  void *GetValue();
   void SetDefined(bool Defined);
   void CopyFrom(StandardAttribute* right);
   size_t HashValue();
 
-  /* This contructor takes just one serial string 
+  /* This contructor takes just one serial string
      of the underlying java object and its length. */
   CcLines(char *serial, int len);
   /* This constructor takes the nested list representation
@@ -522,10 +515,10 @@ public:
   CcLines(const jobject jobj);
   /* retrieves the nested list representation of the underlying
      java object. */
-  /* This constructor creates an empty CcLines object. */	
+  /* This constructor creates an empty CcLines object. */
   CcLines();
   bool GetNL(ListExpr &le);
-  /* Destructor of CcLines. This destructor destroys also the 
+  /* Destructor of CcLines. This destructor destroys also the
      object inside the JVM. */
   ~CcLines();
   /* Returns the pointer to the proper java objet. */
@@ -553,11 +546,6 @@ int CcLines::Sizeof() {
 }
 
 /* Inherited method of StandardAttribute */
-void *CcLines::GetValue() {
-  return (void *)-1;
-}
-
-/* Inherited method of StandardAttribute */
 void CcLines::SetDefined(bool Defined) {
 }
 
@@ -570,7 +558,7 @@ size_t CcLines::HashValue() {
   return 0;
 }
 
-/* This contructor takes just one serial string 
+/* This contructor takes just one serial string
    of the underlying java object and its length. */
 CcLines::CcLines(char *serial, int len) {
   jbyteArray jbarr = 0;
@@ -593,7 +581,7 @@ CcLines::CcLines(char *serial, int len) {
   if (cls_Rose == 0) error(__FILE__, __LINE__);
 
   /* Get the method ID of imprt_arr */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr",
 				    "([B)Ljava/lang/Object;");
   if (mid_Rose == 0) error(__FILE__, __LINE__);
 
@@ -621,14 +609,14 @@ CcLines::CcLines(const ListExpr &le) {
   /* Get the Class */
   cls = env->FindClass("Lines");
   if (cls == 0) error(__FILE__, __LINE__);
-  
+
   /* Get the c_string of le */
   succ = nl->WriteToString(nlstr, le);
   if (succ == false) error(__FILE__, __LINE__);
 
   nlchar = (char *)nlstr.c_str();
   len = strlen(nlchar);
- 
+
   jstr = env->NewStringUTF(nlchar);
   if (jstr == 0) error(__FILE__, __LINE__);
 
@@ -637,9 +625,9 @@ CcLines::CcLines(const ListExpr &le) {
   if (cls_Rose == 0) error(__FILE__, __LINE__);
 
   /* Get the method ID of StringToListExpr */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr",
 				    "(Ljava/lang/String;)Lsj/lang/ListExpr;");
-  if (mid_Rose == 0) error(__FILE__, __LINE__); 
+  if (mid_Rose == 0) error(__FILE__, __LINE__);
 
   /* Call the static StringToListExpr method */
   jnl = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jstr);
@@ -665,7 +653,7 @@ CcLines::CcLines(const jobject jobj) {
   obj = jobj;
 }
 
-/* This constructor creates an empty CcPoints object. */	
+/* This constructor creates an empty CcPoints object. */
 CcLines::CcLines() {
   jmethodID mid;
 
@@ -676,7 +664,7 @@ CcLines::CcLines() {
   /* Get the method ID of the constructor which takes no parameters. */
   mid = env->GetMethodID(cls, "<init>", "()V");
   if (mid == 0) error(__FILE__,__LINE__);
-  
+
   /* Create a Java-object Point. */
   obj = env->NewObject(cls, mid);
   if (obj == 0) error(__FILE__,__LINE__);
@@ -701,7 +689,7 @@ bool CcLines::GetNL(ListExpr& le) {
   mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr",
 				    "(Ljava/lang/String;)Lsj/lang/ListExpr;");
   /* Get the method ID of exprt_nl */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "exprt_nl", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "exprt_nl",
 				    "(Ljava/lang/Object;)Lsj/lang/ListExpr;");
   if (mid_Rose == 0) error(__FILE__, __LINE__);
 
@@ -727,7 +715,7 @@ bool CcLines::GetNL(ListExpr& le) {
   return nl->ReadFromString(cppstr, le);
 }
 
-/* Destructor of CcLines. This destructor destroys also the 
+/* Destructor of CcLines. This destructor destroys also the
      object inside the JVM. */
 CcLines::~CcLines() {
   //env->DeleteLocalRef(obj);
@@ -777,16 +765,16 @@ static ListExpr OutCcLines( ListExpr typeInfo, Word value ) {
   return le;
 }
 
-static Word InCcLines(const ListExpr typeInfo, 
+static Word InCcLines(const ListExpr typeInfo,
 		      const ListExpr instance,
-		      const int errorPos, 
-		      ListExpr& errorInfo, 
+		      const int errorPos,
+		      ListExpr& errorInfo,
 		      bool& correct ) {
   CcLines* newlines;
-  
+
   correct = true;
   newlines = new CcLines(instance);
-  
+
   return SetWord(newlines);
 }
 
@@ -816,7 +804,7 @@ static Word CloneCcLines(const Word &w) {
 */
 
 static ListExpr LinesProperty() {
-  return 
+  return
     (nl->TwoElemList
      (
       nl->FiveElemList
@@ -878,7 +866,7 @@ TypeConstructor cclines (
  0,
  // predefined persistence function for model.
  TypeConstructor::DummyInModel,
- //TypeConstructor::DummyInModel, 	
+ //TypeConstructor::DummyInModel,
  TypeConstructor::DummyOutModel,
  //TypeConstructor::DummyOutModel,
  TypeConstructor::DummyValueToModel,
@@ -887,7 +875,7 @@ TypeConstructor cclines (
  //TypeConstructor::DummyValueListToModel
  );
 
-/* 
+/*
 4 Type Constructor ~Regions~
 
 4.1 Data Structure - Class ~Regions~
@@ -905,12 +893,11 @@ public:
   Attribute *Clone();
   bool IsDefined();
   int Sizeof();
-  void *GetValue();
   void SetDefined(bool Defined);
   void CopyFrom(StandardAttribute* right);
   size_t HashValue();
 
-  /* This contructor takes just one serial string 
+  /* This contructor takes just one serial string
      of the underlying java object and its length. */
   CcRegions(char *serial, int len);
   /* This constructor takes the nested list representation
@@ -920,12 +907,12 @@ public:
  /* This constructor takes a pointer to a java object which is
      already created. */
   CcRegions(const jobject jobj);
-  /* This constructor creates an empty CcRegions object. */	
+  /* This constructor creates an empty CcRegions object. */
   CcRegions();
  /* retrieves the nested list representation of the underlying
      java object. */
   bool GetNL(ListExpr &le);
-  /* Destructor of CcRegions. This destructor destroys also the 
+  /* Destructor of CcRegions. This destructor destroys also the
      object inside the JVM. */
   ~CcRegions();
   /* Returns the pointer to the proper java objet. */
@@ -953,11 +940,6 @@ int CcRegions::Sizeof() {
 }
 
 /* Inherited method of StandardAttribute */
-void *CcRegions::GetValue() {
-  return (void *)-1;
-}
-
-/* Inherited method of StandardAttribute */
 void CcRegions::SetDefined(bool Defined) {
 }
 
@@ -970,7 +952,7 @@ size_t CcRegions::HashValue() {
   return 0;
 }
 
-/* This contructor takes just one serial string 
+/* This contructor takes just one serial string
    of the underlying java object and its length. */
 CcRegions::CcRegions(char *serial, int len) {
   jbyteArray jbarr = 0;
@@ -993,13 +975,13 @@ CcRegions::CcRegions(char *serial, int len) {
   if (cls_Rose == 0) error(__FILE__, __LINE__);
 
   /* Get the method ID of imprt_arr */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "imprt_arr",
 				    "([B)Ljava/lang/Object;");
   if (mid_Rose == 0) error(__FILE__, __LINE__);
 
   /* Call the static imprt_arr method */
   obj = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jbarr);
-  if (obj == 0) error(__FILE__, __LINE__);  
+  if (obj == 0) error(__FILE__, __LINE__);
 }
 
 /* This constructor takes the nested list representation
@@ -1020,14 +1002,14 @@ CcRegions::CcRegions(const ListExpr &le) {
   /* Get the Class */
   cls = env->FindClass("Regions");
   if (cls == 0) error(__FILE__, __LINE__);
-  
+
   /* Get the c_string of le */
   succ = nl->WriteToString(nlstr, le);
   if (succ == false) error(__FILE__, __LINE__);
 
   nlchar = (char *)nlstr.c_str();
   len = strlen(nlchar);
- 
+
   jstr = env->NewStringUTF(nlchar);
   if (jstr == 0) error(__FILE__, __LINE__);
 
@@ -1036,9 +1018,9 @@ CcRegions::CcRegions(const ListExpr &le) {
   if (cls_Rose == 0) error(__FILE__, __LINE__);
 
   /* Get the method ID of StringToListExpr */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr",
 				    "(Ljava/lang/String;)Lsj/lang/ListExpr;");
-  if (mid_Rose == 0) error(__FILE__, __LINE__); 
+  if (mid_Rose == 0) error(__FILE__, __LINE__);
 
   /* Call the static StringToListExpr method */
   jnl = env->CallStaticObjectMethod(cls_Rose, mid_Rose, jstr);
@@ -1064,7 +1046,7 @@ CcRegions::CcRegions(const jobject jobj) {
   obj = jobj;
 }
 
-/* This constructor creates an empty CcRegions object. */	
+/* This constructor creates an empty CcRegions object. */
 CcRegions::CcRegions() {
   jmethodID mid;
 
@@ -1075,7 +1057,7 @@ CcRegions::CcRegions() {
   /* Get the method ID of the constructor which takes no parameters. */
   mid = env->GetMethodID(cls, "<init>", "()V");
   if (mid == 0) error(__FILE__,__LINE__);
-  
+
   /* Create a Java-object Point. */
   obj = env->NewObject(cls, mid);
   if (obj == 0) error(__FILE__,__LINE__);
@@ -1100,7 +1082,7 @@ bool CcRegions::GetNL(ListExpr& le) {
   mid_Rose = env->GetStaticMethodID(cls_Rose, "StringToListExpr",
 				    "(Ljava/lang/String;)Lsj/lang/ListExpr;");
   /* Get the method ID of exprt_nl */
-  mid_Rose = env->GetStaticMethodID(cls_Rose, "exprt_nl", 
+  mid_Rose = env->GetStaticMethodID(cls_Rose, "exprt_nl",
 				    "(Ljava/lang/Object;)Lsj/lang/ListExpr;");
   if (mid_Rose == 0) error(__FILE__, __LINE__);
 
@@ -1126,7 +1108,7 @@ bool CcRegions::GetNL(ListExpr& le) {
   return nl->ReadFromString(cppstr, le);
 }
 
-/* Destructor of CcRegions. This destructor destroys also the 
+/* Destructor of CcRegions. This destructor destroys also the
      object inside the JVM. */
 CcRegions::~CcRegions() {
   //env->DeleteLocalRef(obj);
@@ -1146,18 +1128,18 @@ The list representation of a CcRegions object is
 ----	(face1 face2 ... facen)
 ----
 
-whereas the (internal) list representation of a face is 
+whereas the (internal) list representation of a face is
 
 ----	(outer_cycle hole_cycle1 hole_cycle2 ... hole_cyclem)
 ----
 
-whereas the (internal) list representation of a cycle 
-(outer_cycle or hole_cycle) is  
+whereas the (internal) list representation of a cycle
+(outer_cycle or hole_cycle) is
 
 ----	(vertex1 vertex2 ... vertexk)
 ----
 
-whereas the (internal) list representation of a vertex is 
+whereas the (internal) list representation of a vertex is
 the same as for a point:
 
 ----	(xCoord yCoord)
@@ -1183,16 +1165,16 @@ static ListExpr OutCcRegions( ListExpr typeInfo, Word value ) {
 }
 
 
-static Word InCcRegions(const ListExpr typeInfo, 
+static Word InCcRegions(const ListExpr typeInfo,
 			const ListExpr instance,
-			const int errorPos, 
-			ListExpr& errorInfo, 
+			const int errorPos,
+			ListExpr& errorInfo,
 			bool& correct ) {
   CcRegions* newregions;
 
   correct = true;
   newregions = new CcRegions(instance);
-  
+
   return SetWord(newregions);
 }
 
@@ -1220,7 +1202,7 @@ static Word CloneCcRegions(const Word &w) {
 */
 
 static ListExpr RegionsProperty() {
-  return 
+  return
     (nl->TwoElemList
      (
       nl->FiveElemList
@@ -1284,7 +1266,7 @@ TypeConstructor ccregions (
  0,
  // predefined persistence function for model.
  TypeConstructor::DummyInModel,
- //TypeConstructor::DummyInModel, 	
+ //TypeConstructor::DummyInModel,
  TypeConstructor::DummyOutModel,
  //TypeConstructor::DummyOutModel,
  TypeConstructor::DummyValueToModel,
@@ -1292,7 +1274,7 @@ TypeConstructor ccregions (
  TypeConstructor::DummyValueListToModel
  //TypeConstructor::DummyValueListToModel
  );
- 
+
 /*
 5 Creating Operators
 
@@ -1314,8 +1296,8 @@ static ListExpr typeMappingRose
   if (nl->ListLength(args) == 2) {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, type1) 
-	 && nl->IsEqual(arg2, type2))  
+    if ( nl->IsEqual(arg1, type1)
+	 && nl->IsEqual(arg2, type2))
       return nl->SymbolAtom(resulttype);
   }
   return nl->SymbolAtom("typeerror");
@@ -1431,57 +1413,57 @@ static ListExpr ccpointsInt(ListExpr args) {
 }
 
 
-static ListExpr cclinesInt(ListExpr args) { 
+static ListExpr cclinesInt(ListExpr args) {
   return typeMappingRose(args, "cclines", "int");
 }
 
 
-static ListExpr ccregionsInt(ListExpr args) { 
+static ListExpr ccregionsInt(ListExpr args) {
   return typeMappingRose(args, "ccregions", "int");
 }
 
 
-static ListExpr ccpointsccpointsReal(ListExpr args) { 
+static ListExpr ccpointsccpointsReal(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "ccpoints", "real");
 }
 
 
-static ListExpr ccpointscclinesReal(ListExpr args) { 
+static ListExpr ccpointscclinesReal(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "cclines", "real");
 }
 
 
-static ListExpr ccpointsccregionsReal(ListExpr args) { 
+static ListExpr ccpointsccregionsReal(ListExpr args) {
   return typeMappingRose(args, "ccpoints", "ccregions", "real");
 }
 
 
-static ListExpr cclinesccpointsReal(ListExpr args) { 
+static ListExpr cclinesccpointsReal(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccpoints", "real");
 }
 
 
-static ListExpr cclinescclinesReal(ListExpr args) { 
+static ListExpr cclinescclinesReal(ListExpr args) {
   return typeMappingRose(args, "cclines", "cclines", "real");
 }
 
 
-static ListExpr cclinesccregionsReal(ListExpr args) { 
+static ListExpr cclinesccregionsReal(ListExpr args) {
   return typeMappingRose(args, "cclines", "ccregions", "real");
 }
 
 
-static ListExpr ccregionsccpointsReal(ListExpr args) { 
+static ListExpr ccregionsccpointsReal(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccpoints", "real");
 }
 
 
-static ListExpr ccregionscclinesReal(ListExpr args) { 
+static ListExpr ccregionscclinesReal(ListExpr args) {
   return typeMappingRose(args, "ccregions", "cclines", "real");
 }
 
 
-static ListExpr ccregionsccregionsReal(ListExpr args) { 
+static ListExpr ccregionsccregionsReal(ListExpr args) {
   return typeMappingRose(args, "ccregions", "ccregions", "real");
 }
 
@@ -1520,16 +1502,16 @@ operator, we just have to return 0.
 */
 
 static int simpleSelect (ListExpr args ){
-  return 0; 
+  return 0;
 }
 
 /*
-5.3 Value Mapping Functions. 
+5.3 Value Mapping Functions.
 
 */
 
 /*
-5.3.1 General Wrapper functions for the Java Methods. These methods 
+5.3.1 General Wrapper functions for the Java Methods. These methods
 invoke specific Java methods with the given name and signature.
 
 */
@@ -1559,7 +1541,7 @@ static bool callBooleanJMethod(char *name, Type1 *t1, Type2 *t2, char *signature
   if (mid_ROSE == 0) error(__FILE__, name, __LINE__);
 
   /* Call the static method with given name */
-  return env->CallStaticBooleanMethod(cls_ROSE, mid_ROSE, 
+  return env->CallStaticBooleanMethod(cls_ROSE, mid_ROSE,
 				      t1->GetObj(), t2->GetObj());
 }
 
@@ -1597,7 +1579,7 @@ must correspond to the type and return type.
 */
 
 template <class Type1, class Type2>
-static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2, 
+static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
 				  char *signature) {
   jclass cls_ROSE;
   jmethodID mid_ROSE;
@@ -1617,7 +1599,7 @@ static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
   if (mid_ROSE == 0) error(__FILE__, name, __LINE__);
 
   /* Call the static method with given name */
-  result =  env->CallStaticObjectMethod(cls_ROSE, mid_ROSE, 
+  result =  env->CallStaticObjectMethod(cls_ROSE, mid_ROSE,
 					 t1->GetObj(), t2->GetObj());
   /* Get the class Rational */
   cls_Rational = env->FindClass("Rational");
@@ -1634,7 +1616,7 @@ static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
   /* Calculate the numerator and denominator of the result. */
   numerator = env->CallIntMethod(result, mid_Rational1);
   denominator = env->CallIntMethod(result, mid_Rational2);
-  
+
   return (double)numerator / (double)denominator;
 }
 
@@ -1682,7 +1664,7 @@ static double callRationalJMethod(char *name, Type1 *t1, char *signature) {
   /* Calculate the numerator and denominator of the result */
   numerator = env->CallIntMethod(result, mid_Rational1);
   denominator = env->CallIntMethod(result, mid_Rational2);
-  
+
   return (double)numerator / (double)denominator;
 }
 
@@ -1712,7 +1694,7 @@ static double callDoubleJMethod(char *name, Type1 *t1, char *signature) {
 
 /* this is a template function which calls a method of the
 Java class ROSEAlgebra with two parameters of type CcPoints,
-CcLines or CcRegions and returns another Rose type, like 
+CcLines or CcRegions and returns another Rose type, like
 CcPoints, CcLines or CcRegions. The signature
 must correspond two both types and return type.
 */
@@ -1733,7 +1715,7 @@ static ReturnType *callObjectJMethod
   if (mid_ROSE == 0) error(__FILE__, name, __LINE__);
 
   /* Call the static method with given name */
-  result = env->CallStaticObjectMethod(cls_ROSE, mid_ROSE, 
+  result = env->CallStaticObjectMethod(cls_ROSE, mid_ROSE,
 					t1->GetObj(), t2->GetObj());
 
   return new ReturnType(result);
@@ -1741,7 +1723,7 @@ static ReturnType *callObjectJMethod
 
 /* this is a template function which calls a method of the
 Java class ROSEAlgebra with one parameter of type CcPoints,
-CcLines or CcRegions and returns another Rose type, like 
+CcLines or CcRegions and returns another Rose type, like
 CcPoints, CcLines or CcRegions. The signature
 must correspond two both types and return type.
 */
@@ -1769,18 +1751,18 @@ static ReturnType *callObjectJMethod
 
 /*
 
-5.3.1.2 General Wrapper functions for the Java Methods. These methods 
-invoke specific Java methods with the given name and signature with 
+5.3.1.2 General Wrapper functions for the Java Methods. These methods
+invoke specific Java methods with the given name and signature with
 help of above template functions. These functions are provided to make
 the algebra more clearly arranged.
-The names of these functions all begin with the prefix callJMethod_ 
+The names of these functions all begin with the prefix callJMethod_
 followed by two or three letters in their suffix which stand for the
 types.
 If a suffix consists of three letters the according Java method
 takes two parameters. The first two letters correspond to the type
-of these parameters whereby the last letter correspond to the 
+of these parameters whereby the last letter correspond to the
 return type.
-If a suffix consists of two letters the according Java method 
+If a suffix consists of two letters the according Java method
 takes one paramter only. The first letter corresponds to the type
 of this parameter whereby the second (the last) letter correspond
 to the return type.
@@ -1799,7 +1781,7 @@ The letters have the following meaning:
 
 
 /* Call a Java method with the given name which takes
-   two CcPoints and returns a boolean value. 
+   two CcPoints and returns a boolean value.
 */
 
 static bool callJMethod_PPB
@@ -1809,7 +1791,7 @@ static bool callJMethod_PPB
 }
 
 /* Call a Java method with the given name which takes
-   two CcLines and returns a boolean value. 
+   two CcLines and returns a boolean value.
 */
 
 static bool callJMethod_LLB
@@ -1819,7 +1801,7 @@ static bool callJMethod_LLB
 }
 
 /* Call a Java method with the given name which takes
-   two CcRegions and returns a boolean value. 
+   two CcRegions and returns a boolean value.
 */
 
 static bool callJMethod_RRB
@@ -1830,7 +1812,7 @@ static bool callJMethod_RRB
 
 
 /* Call a Java method with the given name which takes
-   a CcPoints and a CcRegions object and returns a boolean value. 
+   a CcPoints and a CcRegions object and returns a boolean value.
 */
 
 static bool callJMethod_PRB
@@ -1840,7 +1822,7 @@ static bool callJMethod_PRB
 }
 
 /* Call a Java method with the given name which takes
-   a CcLines and a CcRegions object and returns a boolean value. 
+   a CcLines and a CcRegions object and returns a boolean value.
 */
 
 static bool callJMethod_LRB
@@ -1850,18 +1832,18 @@ static bool callJMethod_LRB
 }
 
 /* Call a Java method with the given name which takes
-   two CcRegions and returns a CcRegions value. 
+   two CcRegions and returns a CcRegions value.
 */
 
 static CcRegions *callJMethod_RRR
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
-  return 
+  return
    callObjectJMethod<CcRegions, CcRegions, CcRegions>
    (name, ccr1, ccr2, "(LRegions;LRegions;)LRegions;");
 }
 
 /* Call a Java method with the given name which takes
-   two CcRegions and returns a CcLines value. 
+   two CcRegions and returns a CcLines value.
 */
 
 static CcLines *callJMethod_RRL
@@ -1872,51 +1854,51 @@ static CcLines *callJMethod_RRL
 }
 
 /* Call a Java method with the given name which takes
-   a CcRegions and a CcLines object and returns a boolean value. 
+   a CcRegions and a CcLines object and returns a boolean value.
 */
 
 static bool callJMethod_RLB
 (char *name, CcRegions *ccr, CcLines *ccl) {
-  return 
+  return
     callBooleanJMethod<CcRegions, CcLines>
     (name, ccr, ccl, "(LRegions;LLines;)Z");
 }
 
 /* Call a Java method with the given name which takes
-   a CcPoints and a CcLines object and returns a boolean value. 
+   a CcPoints and a CcLines object and returns a boolean value.
 */
 
 static bool callJMethod_PLB
 (char *name, CcPoints *ccp, CcLines *ccl) {
-  return 
+  return
     callBooleanJMethod<CcPoints, CcLines>
     (name, ccp, ccl, "(LPoints;LLines;)Z");
 }
 
 /* Call a Java method with the given name which takes
-   two CcLines and returns a CcPoints value. 
+   two CcLines and returns a CcPoints value.
 */
 
 static CcPoints *callJMethod_LLP
 (char *name, CcLines *ccl1, CcLines *ccl2) {
-  return 
+  return
     callObjectJMethod<CcLines, CcLines, CcPoints>
     (name, ccl1, ccl2, "(LLines;LLines;)LPoints;");
 }
 
 /* Call a Java method with the given name which takes
-   a CcRegions and a CcLines object and returns a CcLines value. 
+   a CcRegions and a CcLines object and returns a CcLines value.
 */
 
 static CcLines *callJMethod_RLL
 (char *name, CcRegions *ccr, CcLines *ccl) {
-  return 
+  return
     callObjectJMethod<CcRegions, CcLines, CcLines>
     (name, ccr, ccl, "(LRegions;LLines;)LLines;");
 }
 
 /* Call a Java method with the given name which takes
-   two CcPoints and returns a CcPoints value. 
+   two CcPoints and returns a CcPoints value.
 */
 
 static CcPoints *callJMethod_PPP
@@ -1927,29 +1909,29 @@ static CcPoints *callJMethod_PPP
 }
 
 /* Call a Java method with the given name which takes
-   two CcLines and returns a CcLines value. 
+   two CcLines and returns a CcLines value.
 */
 
 static CcLines *callJMethod_LLL
 (char *name, CcLines *ccl1, CcLines *ccl2) {
-  return 
+  return
     callObjectJMethod<CcLines, CcLines, CcLines>
     (name, ccl1, ccl2, "(LLines;LLines;)LLines;");
 }
 
 /* Call a Java method with the given name which takes
-   a CcLines and a CcRegions object and returns a CcLines value. 
+   a CcLines and a CcRegions object and returns a CcLines value.
 */
 
 static CcLines *callJMethod_LRL
 (char *name, CcLines *ccl, CcRegions *ccr) {
-  return 
+  return
     callObjectJMethod<CcLines, CcRegions, CcLines>
     (name, ccl, ccr, "(LLines;LRegions;)LLines;");
 }
 
 /* Call a Java method with the given name which takes
-   a CcLines object and returns a CcLines value. 
+   a CcLines object and returns a CcLines value.
 */
 
 static CcPoints *callJMethod_LP
@@ -1960,34 +1942,34 @@ static CcPoints *callJMethod_LP
 }
 
 /* Call a Java method with the given name which takes
-   a CcLines object and returns a CcRegions value. 
+   a CcLines object and returns a CcRegions value.
 */
 
 static CcRegions *callJMethod_LR
 (char *name, CcLines *ccl) {
-  return 
+  return
     callObjectJMethod<CcLines, CcRegions>
     (name, ccl, "(LLines;)LRegions;");
 }
 
 /* Call a Java method with the given name which takes
-   a CcRegions object and returns a CcPoints value. 
+   a CcRegions object and returns a CcPoints value.
 */
 
 static CcPoints *callJMethod_RP
 (char *name, CcRegions *ccr) {
-  return 
+  return
     callObjectJMethod<CcRegions, CcPoints>
     (name, ccr, "(LRegions;)LPoints;");
 }
 
 /* Call a Java method with the given name which takes
-   a CcRegions object and returns a CcLines value. 
+   a CcRegions object and returns a CcLines value.
 */
 
 static CcLines *callJMethod_RL
 (char *name, CcRegions *ccr) {
-  return 
+  return
     callObjectJMethod<CcRegions, CcLines>
     (name, ccr, "(LRegions;)LLines;");
 }
@@ -1998,12 +1980,12 @@ static CcLines *callJMethod_RL
 
 static int callJMethod_PI
 (char *name, CcPoints *ccp) {
-  return  
+  return
     callIntegerJMethod<CcPoints>(name, ccp, "(LPoints;)I");
 }
 
 /* Call a Java method with given name which takes
-   a CcLines object and returns an Integer value. 
+   a CcLines object and returns an Integer value.
 */
 
 static int callJMethod_LI
@@ -2013,7 +1995,7 @@ static int callJMethod_LI
 }
 
 /* Call a Java method with given name which takes
-   a CcRegions object and returns an Integer value. 
+   a CcRegions object and returns an Integer value.
 */
 
 static int callJMethod_RI
@@ -2023,7 +2005,7 @@ static int callJMethod_RI
 }
 
 /* Call a Java method with given name which takes
-   two CcPoints and returns a double value. 
+   two CcPoints and returns a double value.
 */
 
 static double callJMethod_PPd
@@ -2034,7 +2016,7 @@ static double callJMethod_PPd
 }
 
 /* Call a Java method with given name which takes
-   a CcPoints and CcLines object and returns a double value. 
+   a CcPoints and CcLines object and returns a double value.
 */
 
 static double callJMethod_PLd
@@ -2045,7 +2027,7 @@ static double callJMethod_PLd
 }
 
 /* Call a Java method with given name which takes
-   a CcPoints and CcRegions object and returns a double value. 
+   a CcPoints and CcRegions object and returns a double value.
 */
 
 static double callJMethod_PRd
@@ -2056,7 +2038,7 @@ static double callJMethod_PRd
 }
 
 /* Call a Java method with given name which takes
-   a CcLines and CcPoints object and returns a double value. 
+   a CcLines and CcPoints object and returns a double value.
 */
 
 static double callJMethod_LPd
@@ -2067,7 +2049,7 @@ static double callJMethod_LPd
 }
 
 /* Call a Java method with given name which takes
-   two CcLines and returns a double value. 
+   two CcLines and returns a double value.
 */
 
 static double callJMethod_LLd
@@ -2078,7 +2060,7 @@ static double callJMethod_LLd
 }
 
 /* Call a Java method with given name which takes
-   a CcLines and CcRegions object and returns a double value. 
+   a CcLines and CcRegions object and returns a double value.
 */
 
 static double callJMethod_LRd
@@ -2089,7 +2071,7 @@ static double callJMethod_LRd
 }
 
 /* Call a Java method with given name which takes
-   a CcRegions and CcPoints object and returns a double value. 
+   a CcRegions and CcPoints object and returns a double value.
 */
 
 static double callJMethod_RPd
@@ -2100,7 +2082,7 @@ static double callJMethod_RPd
 }
 
 /* Call a Java method with given name which takes
-   a CcRegions and CcLines object and returns a double value. 
+   a CcRegions and CcLines object and returns a double value.
 */
 
 static double callJMethod_RLd
@@ -2111,7 +2093,7 @@ static double callJMethod_RLd
 }
 
 /* Call a Java method with given name which takes
-   two CcRegions and returns a double value. 
+   two CcRegions and returns a double value.
 */
 
 static double callJMethod_RRd
@@ -2122,7 +2104,7 @@ static double callJMethod_RRd
 }
 
 /* Call a Java method with given name which takes
-   one CcPoints and returns a double value. 
+   one CcPoints and returns a double value.
 */
 
 static double callJMethod_Pd(char *name, CcPoints *ccp) {
@@ -2132,7 +2114,7 @@ static double callJMethod_Pd(char *name, CcPoints *ccp) {
 }
 
 /* Call a Java method with given name which takes
-   one CcLines and returns a double value. 
+   one CcLines and returns a double value.
 */
 
 static double callJMethod_Ld(char *name, CcLines *ccl) {
@@ -2142,7 +2124,7 @@ static double callJMethod_Ld(char *name, CcLines *ccl) {
 }
 
 /* Call a Java method with given name which takes
-   one CcRegions and returns a double value. 
+   one CcRegions and returns a double value.
 */
 
 static double callJMethod_Rd(char *name, CcRegions *ccr) {
@@ -2152,7 +2134,7 @@ static double callJMethod_Rd(char *name, CcRegions *ccr) {
 }
 
 /* Call a Java method with given name which takes
-   a CcLines and returns a double value. 
+   a CcLines and returns a double value.
 */
 
 static double callJMethod_LD(char *name, CcLines *ccl) {
@@ -2161,7 +2143,7 @@ static double callJMethod_LD(char *name, CcLines *ccl) {
 }
 
 /* Call a Java method with given name which takes
-   a CcRegions and returns a double value. 
+   a CcRegions and returns a double value.
 */
 
 static double callJMethod_RD(char *name, CcRegions *ccr) {
@@ -2170,24 +2152,24 @@ static double callJMethod_RD(char *name, CcRegions *ccr) {
 }
 
 /*
-5.3.2 The proper Value Mapping Functions. 
+5.3.2 The proper Value Mapping Functions.
 
 */
 
 /* Equals predicate for two ccpoints. */
 
-static int pp_equalFun(Word* args, Word& result, int message, 
+static int pp_equalFun(Word* args, Word& result, int message,
 				       Word& local, Supplier s) {
   CcPoints* ccp1;
   CcPoints* ccp2;
-  
+
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_PPB
      ("pp_equal", ccp1, ccp2));
@@ -2195,24 +2177,24 @@ static int pp_equalFun(Word* args, Word& result, int message,
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
-  
+
   return 0;
 }
 
 /* Equals predicate for two cclines. */
 
-static int ll_equalFun(Word* args, Word& result, int message, 
+static int ll_equalFun(Word* args, Word& result, int message,
 				       Word& local, Supplier s) {
   CcLines* ls1;
   CcLines* ls2;
 
   ls1 = ((CcLines *)args[0].addr);
   ls2 = ((CcLines *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LLB
      ("ll_equal", ls1, ls2));
@@ -2226,15 +2208,15 @@ static int ll_equalFun(Word* args, Word& result, int message,
 
 /* Equal predicate for two ccregions. */
 
-static int rr_equalFun(Word* args, Word& result, int message, 
+static int rr_equalFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s) {
   CcRegions* rs1;
   CcRegions* rs2;
-  
+
   rs1 = ((CcRegions *)args[0].addr);
   rs2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
 
@@ -2251,19 +2233,19 @@ static int rr_equalFun(Word* args, Word& result, int message,
 
 /* pp_unequal predicate for two ccpoints. */
 
-static int pp_unequalFun(Word* args, Word& result, int message, 
+static int pp_unequalFun(Word* args, Word& result, int message,
 			 Word& local, Supplier s)
 {
   CcPoints* ccps1;
   CcPoints* ccps2;
-  
+
   ccps1 = ((CcPoints *)args[0].addr);
   ccps2 = ((CcPoints *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_PPB
      ("pp_unequal", ccps1, ccps2));
@@ -2276,19 +2258,19 @@ static int pp_unequalFun(Word* args, Word& result, int message,
 
 /* ll_unequal predicate for two cclines. */
 
-static int ll_unequalFun(Word* args, Word& result, int message, 
+static int ll_unequalFun(Word* args, Word& result, int message,
 			 Word& local, Supplier s)
 {
   CcLines* ccl1;
   CcLines* ccl2;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LLB
      ("ll_unequal", ccl1, ccl2));
@@ -2301,22 +2283,22 @@ static int ll_unequalFun(Word* args, Word& result, int message,
 
 /* rr_unequal predicate for two ccregions */
 
-static int rr_unequalFun(Word* args, Word& result, int message, 
+static int rr_unequalFun(Word* args, Word& result, int message,
 				       Word& local, Supplier s)
 {
   CcRegions* ccr1;
   CcRegions* ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_unequal", ccr1, ccr2)); 
+     ("rr_unequal", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2328,22 +2310,22 @@ static int rr_unequalFun(Word* args, Word& result, int message,
 
 /* pp_disjoint predicate for two CcPoints */
 
-static int pp_disjointFun(Word* args, Word& result, int message, 
+static int pp_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcPoints* ccp1;
   CcPoints* ccp2;
-  
+
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_PPB
-     ("pp_disjoint", ccp1, ccp2)); 
+     ("pp_disjoint", ccp1, ccp2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2354,22 +2336,22 @@ static int pp_disjointFun(Word* args, Word& result, int message,
 
 /* ll_disjoint predicate for two CcLines */
 
-static int ll_disjointFun(Word* args, Word& result, int message, 
+static int ll_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcLines *ccl1;
   CcLines *ccl2;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LLB
-     ("ll_disjoint", ccl1, ccl2)); 
+     ("ll_disjoint", ccl1, ccl2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2380,22 +2362,22 @@ static int ll_disjointFun(Word* args, Word& result, int message,
 
 /* rr_disjoint predicate for two CcRegions */
 
-static int rr_disjointFun(Word* args, Word& result, int message, 
+static int rr_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_disjoint", ccr1, ccr2)); 
+     ("rr_disjoint", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2406,22 +2388,22 @@ static int rr_disjointFun(Word* args, Word& result, int message,
 
 /* pr_inside predicate for CcPoints and CcRegions */
 
-static int pr_insideFun(Word* args, Word& result, int message, 
+static int pr_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcPoints *ccp;
   CcRegions *ccr;
-  
+
   ccp = ((CcPoints *)args[0].addr);
   ccr = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_PRB
-     ("pr_inside",ccp, ccr)); 
+     ("pr_inside",ccp, ccr));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2432,22 +2414,22 @@ static int pr_insideFun(Word* args, Word& result, int message,
 
 /* lr_inside predicate for CcLines and CcRegions */
 
-static int lr_insideFun(Word* args, Word& result, int message, 
+static int lr_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcLines *ccl;
   CcRegions *ccr;
-  
+
   ccl = ((CcLines *)args[0].addr);
   ccr = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LRB
-     ("lr_inside", ccl, ccr)); 
+     ("lr_inside", ccl, ccr));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2457,22 +2439,22 @@ static int lr_insideFun(Word* args, Word& result, int message,
 
 /* rr_inside predicate for two CcRegions */
 
-static int rr_insideFun(Word* args, Word& result, int message, 
+static int rr_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_inside",ccr1, ccr2)); 
+     ("rr_inside",ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2483,22 +2465,22 @@ static int rr_insideFun(Word* args, Word& result, int message,
 
 /* rr_area_disjoint predicate for two CcRegions */
 
-static int rr_area_disjointFun(Word* args, Word& result, int message, 
+static int rr_area_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_area_disjoint", ccr1, ccr2)); 
+     ("rr_area_disjoint", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2509,22 +2491,22 @@ static int rr_area_disjointFun(Word* args, Word& result, int message,
 
 /* rr_edge_disjoint predicate for two CcRegions */
 
-static int rr_edge_disjointFun(Word* args, Word& result, int message, 
+static int rr_edge_disjointFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_edge_disjoint", ccr1, ccr2)); 
+     ("rr_edge_disjoint", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2535,22 +2517,22 @@ static int rr_edge_disjointFun(Word* args, Word& result, int message,
 
 /* rr_edge_inside predicate for two CcRegions */
 
-static int rr_edge_insideFun(Word* args, Word& result, int message, 
+static int rr_edge_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_edge_inside", ccr1, ccr2)); 
+     ("rr_edge_inside", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2561,22 +2543,22 @@ static int rr_edge_insideFun(Word* args, Word& result, int message,
 
 /* rr_vertex_inside predicate for two CcRegions */
 
-static int rr_vertex_insideFun(Word* args, Word& result, int message, 
+static int rr_vertex_insideFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_vertex_inside", ccr1, ccr2)); 
+     ("rr_vertex_inside", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2587,22 +2569,22 @@ static int rr_vertex_insideFun(Word* args, Word& result, int message,
 
 /* rr_intersects predicate for two CcRegions */
 
-static int rr_intersectsFun(Word* args, Word& result, int message, 
+static int rr_intersectsFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_intersects", ccr1, ccr2)); 
+     ("rr_intersects", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2613,22 +2595,22 @@ static int rr_intersectsFun(Word* args, Word& result, int message,
 
 /* rr_meets predicate for two CcRegions */
 
-static int rr_meetsFun(Word* args, Word& result, int message, 
+static int rr_meetsFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_meets", ccr1, ccr2)); 
+     ("rr_meets", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2639,22 +2621,22 @@ static int rr_meetsFun(Word* args, Word& result, int message,
 
 /* rr_border_in_common predicate for two CcRegions */
 
-static int rr_border_in_commonFun(Word* args, Word& result, int message, 
+static int rr_border_in_commonFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_border_in_common", ccr1, ccr2)); 
+     ("rr_border_in_common", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2665,22 +2647,22 @@ static int rr_border_in_commonFun(Word* args, Word& result, int message,
 
 /* rr_adjacent predicate for two CcRegions */
 
-static int rr_adjacentFun(Word* args, Word& result, int message, 
+static int rr_adjacentFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_adjacent", ccr1, ccr2)); 
+     ("rr_adjacent", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2691,22 +2673,22 @@ static int rr_adjacentFun(Word* args, Word& result, int message,
 
 /* rr_encloses predicate for two CcRegions */
 
-static int rr_enclosesFun(Word* args, Word& result, int message, 
+static int rr_enclosesFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RRB
-     ("rr_encloses", ccr1, ccr2)); 
+     ("rr_encloses", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2717,20 +2699,20 @@ static int rr_enclosesFun(Word* args, Word& result, int message,
 
 /* rr_intersection predicate for two CcRegions */
 
-static int rr_intersectionFun(Word* args, Word& result, int message, 
+static int rr_intersectionFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
   CcRegions *ccresult;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_RRR("rr_intersection", ccr1, ccr2);
   result.addr = ccresult;
 
@@ -2743,19 +2725,19 @@ static int rr_intersectionFun(Word* args, Word& result, int message,
 
 /* rr_plus predicate for two CcRegions */
 
-static int rr_plusFun(Word* args, Word& result, int message, 
+static int rr_plusFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s) {
   CcRegions *ccr1;
   CcRegions *ccr2;
   CcRegions *ccresult;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_RRR("rr_plus", ccr1, ccr2);
   result.addr = ccresult;
 
@@ -2768,17 +2750,17 @@ static int rr_plusFun(Word* args, Word& result, int message,
 
 /* rr_minus predicate for two CcRegions */
 
-static int rr_minusFun(Word* args, Word& result, int message, 
+static int rr_minusFun(Word* args, Word& result, int message,
 			  Word& local, Supplier s)
 {
   CcRegions *ccr1;
   CcRegions *ccr2;
   CcRegions *ccresult;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
 
@@ -2794,26 +2776,26 @@ static int rr_minusFun(Word* args, Word& result, int message,
 
 /* rr_common_border predicate for two CcRegions */
 
-static int rr_common_borderFun(Word *args, Word& result, 
+static int rr_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcRegions *ccr1;
   CcRegions *ccr2;
   CcLines *ccresult;
-  
+
   ccr1 = ((CcRegions *)args[0].addr);
   ccr2 = ((CcRegions *)args[1].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_RRL("rr_common_border", ccr1, ccr2);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
@@ -2824,18 +2806,18 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
 
   CcLines *ccl1;
   CcLines *ccl2;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LLB
      ("ll_intersects", ccl1, ccl2));
-  
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -2843,24 +2825,24 @@ static int ll_intersectsFun(Word* args, Word& result, int message,
   return 0;
 }
 
-/* lr_intersects predicate for CcLines and CcRegions */ 
+/* lr_intersects predicate for CcLines and CcRegions */
 
 static int lr_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
   CcLines *ccl;
   CcRegions *ccr;
-  
+
   ccl = ((CcLines *)args[0].addr);
   ccr = ((CcRegions *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LRB
      ("lr_intersects", ccl, ccr));
-  
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -2874,18 +2856,18 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
 			    Word& local, Supplier s) {
   CcRegions *ccr;
   CcLines *ccl;
-  
+
   ccr = ((CcRegions *)args[0].addr);
   ccl = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RLB
      ("rl_intersects", ccr, ccl));
-  
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -2895,98 +2877,98 @@ static int rl_intersectsFun(Word* args, Word& result, int message,
 
 /* ll_meets predicate for two cclines.*/
 
-static int ll_meetsFun(Word* args, Word& result, int message, 
+static int ll_meetsFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines* ccl1;
   CcLines* ccl2;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LLB
      ("ll_meets", ccl1, ccl2));
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
-  
+
   return 0;
 }
 
 /* lr_meets predicate for cclines and ccregions. */
 
-static int lr_meetsFun(Word* args, Word& result, int message, 
+static int lr_meetsFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines* ccl;
   CcRegions* ccr;
-  
+
   ccl = ((CcLines *)args[0].addr);
   ccr = ((CcRegions *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LRB
      ("lr_meets", ccl, ccr));
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
-  
+
   return 0;
 }
 
 /* rl_meets predicate for ccregions and cclines */
 
-static int rl_meetsFun(Word* args, Word& result, int message, 
+static int rl_meetsFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines* ccl;
   CcRegions* ccr;
-  
+
   ccr = ((CcRegions *)args[0].addr);
   ccl = ((CcLines *)args[1].addr);
-	
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RLB
      ("rl_meets", ccr, ccl));
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
-  
+
   return 0;
 }
 
 /* ll_border_in_common predicate for two CcLines. */
 
-static int ll_border_in_commonFun(Word* args, Word& result, int message, 
+static int ll_border_in_commonFun(Word* args, Word& result, int message,
 				  Word& local, Supplier s)
 {
-  
+
   CcLines *ccl1;
   CcLines *ccl2;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LLB
-     ("ll_border_in_common", ccl1, ccl2)); 
+     ("ll_border_in_common", ccl1, ccl2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -2997,23 +2979,23 @@ static int ll_border_in_commonFun(Word* args, Word& result, int message,
 
 /* lr_border_in_common predicate for CcLines and CcRegions. */
 
-static int lr_border_in_commonFun(Word* args, Word& result, int message, 
+static int lr_border_in_commonFun(Word* args, Word& result, int message,
 				  Word& local, Supplier s)
 {
-  
+
   CcLines *ccl;
   CcRegions *ccr;
-  
+
   ccl = ((CcLines *)args[0].addr);
   ccr = ((CcRegions *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_LRB
-     ("lr_border_in_common", ccl, ccr)); 
+     ("lr_border_in_common", ccl, ccr));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3024,22 +3006,22 @@ static int lr_border_in_commonFun(Word* args, Word& result, int message,
 
 /* rl_border_in_common predicate for CcRegions and CcLines. */
 
-static int rl_border_in_commonFun(Word* args, Word& result, int message, 
+static int rl_border_in_commonFun(Word* args, Word& result, int message,
 				  Word& local, Supplier s)
 {
   CcLines *ccl;
   CcRegions *ccr;
-  
+
   ccr = ((CcRegions *)args[0].addr);
   ccl = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_RLB
-     ("rl_border_in_common", ccr, ccl)); 
+     ("rl_border_in_common", ccr, ccl));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3051,22 +3033,22 @@ static int rl_border_in_commonFun(Word* args, Word& result, int message,
 
 /* pl_on_border_of predicate for CcPoints and CcLines */
 
-static int pl_on_border_ofFun(Word* args, Word& result, int message, 
+static int pl_on_border_ofFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp;
   CcLines *ccl;
-  
+
   ccp = ((CcPoints *)args[0].addr);
   ccl = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_PLB
-     ("pl_on_border_of", ccp, ccl)); 
+     ("pl_on_border_of", ccp, ccl));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3077,22 +3059,22 @@ static int pl_on_border_ofFun(Word* args, Word& result, int message,
 
 /* pr_on_border_of predicate for CcPoints and CcRegions */
 
-static int pr_on_border_ofFun(Word* args, Word& result, int message, 
+static int pr_on_border_ofFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp;
   CcRegions *ccr;
-  
+
   ccp = ((CcPoints *)args[0].addr);
   ccr = ((CcRegions *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcBool *)result.addr)->Set
     (true, callJMethod_PRB
-     ("pr_on_border_of", ccp, ccr)); 
+     ("pr_on_border_of", ccp, ccr));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3103,20 +3085,20 @@ static int pr_on_border_ofFun(Word* args, Word& result, int message,
 
 /* pp_intersection predicate for two CcPoints. */
 
-static int pp_intersectionFun(Word* args, Word& result, int message, 
+static int pp_intersectionFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp1;
   CcPoints *ccp2;
   CcPoints *ccresult;
-  
+
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
- 
+
   ccresult = callJMethod_PPP("pp_intersection", ccp1, ccp2);
   result.addr = ccresult;
 
@@ -3129,20 +3111,20 @@ static int pp_intersectionFun(Word* args, Word& result, int message,
 
 /* ll_intersection predicate for two CcLines. */
 
-static int ll_intersectionFun(Word* args, Word& result, int message, 
+static int ll_intersectionFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcLines *ccl1;
   CcLines *ccl2;
   CcPoints *ccresult;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LLP("ll_intersection", ccl1, ccl2);
   result.addr = ccresult;
 
@@ -3155,20 +3137,20 @@ static int ll_intersectionFun(Word* args, Word& result, int message,
 
 /* rl_intersection predicate for CcRegions and CcLines */
 
-static int rl_intersectionFun(Word* args, Word& result, int message, 
+static int rl_intersectionFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcRegions *ccr;
   CcLines *ccl;
   CcLines *ccresult;
-  
+
   ccr = ((CcRegions *)args[0].addr);
   ccl = ((CcLines *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_RLL("rl_intersection", ccr, ccl);
   result.addr = ccresult;
 
@@ -3181,20 +3163,20 @@ static int rl_intersectionFun(Word* args, Word& result, int message,
 
 /* pp_plus predicate for two CcPoints. */
 
-static int pp_plusFun(Word* args, Word& result, int message, 
+static int pp_plusFun(Word* args, Word& result, int message,
 			      Word& local, Supplier s)
 {
   CcPoints *ccp1;
   CcPoints *ccp2;
   CcPoints *ccresult;
-  
+
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_PPP("pp_plus", ccp1, ccp2);
   result.addr = ccresult;
 
@@ -3207,20 +3189,20 @@ static int pp_plusFun(Word* args, Word& result, int message,
 
 /* ll_plus predicate for two CcPoints. */
 
-static int ll_plusFun(Word* args, Word& result, int message, 
+static int ll_plusFun(Word* args, Word& result, int message,
 		      Word& local, Supplier s)
 {
   CcLines *ccl1;
   CcLines *ccl2;
   CcLines *ccresult;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LLL("ll_plus", ccl1, ccl2);
   result.addr = ccresult;
 
@@ -3233,20 +3215,20 @@ static int ll_plusFun(Word* args, Word& result, int message,
 
 /* pp_minus predicate for two CcPoints. */
 
-static int pp_minusFun(Word* args, Word& result, int message, 
+static int pp_minusFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcPoints *ccp1;
   CcPoints *ccp2;
   CcPoints *ccresult;
-  
+
   ccp1 = ((CcPoints *)args[0].addr);
   ccp2 = ((CcPoints *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_PPP("pp_minus", ccp1, ccp2);
   result.addr = ccresult;
 
@@ -3259,20 +3241,20 @@ static int pp_minusFun(Word* args, Word& result, int message,
 
 /* ll_minus predicate for two CcPoints. */
 
-static int ll_minusFun(Word* args, Word& result, int message, 
+static int ll_minusFun(Word* args, Word& result, int message,
 		       Word& local, Supplier s)
 {
   CcLines *ccl1;
   CcLines *ccl2;
   CcLines *ccresult;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
 
-  result = qp->ResultStorage(s);	
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LLL("ll_minus", ccl1, ccl2);
   result.addr = ccresult;
 
@@ -3285,168 +3267,168 @@ static int ll_minusFun(Word* args, Word& result, int message,
 
 /* ll_common_border predicate for two CcLines. */
 
-static int ll_common_borderFun(Word *args, Word& result, 
+static int ll_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcLines *ccl1;
   CcLines *ccl2;
   CcLines *ccresult;
-  
+
   ccl1 = ((CcLines *)args[0].addr);
   ccl2 = ((CcLines *)args[1].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LLL("ll_common_border", ccl1, ccl2);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
 /* lr_common_border predicate for CcLines and CcRegions. */
 
-static int lr_common_borderFun(Word *args, Word& result, 
+static int lr_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcLines *ccl;
   CcRegions *ccr;
   CcLines *ccresult;
-  
+
   ccl = ((CcLines *)args[0].addr);
   ccr = ((CcRegions *)args[1].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LRL("lr_common_border", ccl, ccr);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
 /* rl_common_border predicate for CcLines and CcRegions. */
 
-static int rl_common_borderFun(Word *args, Word& result, 
+static int rl_common_borderFun(Word *args, Word& result,
 			       int message, Word& local, Supplier s) {
   CcRegions *ccr;
   CcLines *ccl;
   CcLines *ccresult;
-  
+
   ccr = ((CcRegions *)args[0].addr);
   ccl = ((CcLines *)args[1].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_RLL("rl_common_border", ccr, ccl);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
 /* l_vertices predicate for CcLines. */
 
-static int l_verticesFun(Word *args, Word& result, 
+static int l_verticesFun(Word *args, Word& result,
 			 int message, Word& local, Supplier s) {
   CcLines *ccl;
   CcPoints *ccresult;
-  
+
   ccl = ((CcLines *)args[0].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LP("l_vertices", ccl);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
 /* r_vertices predicate for CcRegions. */
 
-static int r_verticesFun(Word *args, Word& result, 
+static int r_verticesFun(Word *args, Word& result,
 			 int message, Word& local, Supplier s) {
   CcRegions *ccr;
   CcPoints *ccresult;
-  
+
   ccr = ((CcRegions *)args[0].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_RP("r_vertices", ccr);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
 /* l_interior predicate for CcLines. */
 
-static int l_interiorFun(Word *args, Word& result, 
+static int l_interiorFun(Word *args, Word& result,
 			 int message, Word& local, Supplier s) {
   CcLines *ccl;
   CcRegions *ccresult;
-  
+
   ccl = ((CcLines *)args[0].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_LR("l_interior", ccl);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
 /* r_contour predicate for CcRegions. */
 
-static int r_contourFun(Word *args, Word& result, 
+static int r_contourFun(Word *args, Word& result,
 			int message, Word& local, Supplier s) {
   CcRegions *ccr;
   CcLines *ccresult;
-  
+
   ccr = ((CcRegions *)args[0].addr);
 
   result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ccresult = callJMethod_RL("r_contour", ccr);
   result.addr = ccresult;
 
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value
-  
+
   return 0;
 }
 
@@ -3456,14 +3438,14 @@ static int p_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcPoints *ccp = ((CcPoints *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcInt *)result.addr)->Set
     (true, callJMethod_PI
-     ("p_no_of_components", ccp)); 
+     ("p_no_of_components", ccp));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3478,14 +3460,14 @@ static int l_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcLines *ccl = ((CcLines *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcInt *)result.addr)->Set
     (true, callJMethod_LI
-     ("l_no_of_components", ccl)); 
+     ("l_no_of_components", ccl));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3500,14 +3482,14 @@ static int r_no_of_componentsFun(Word *args, Word &result,
 				 int message, Word &local,
 				 Supplier s) {
   CcRegions *ccr = ((CcRegions *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcInt *)result.addr)->Set
     (true, callJMethod_RI
-     ("r_no_of_components", ccr)); 
+     ("r_no_of_components", ccr));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3523,14 +3505,14 @@ static int pp_distFun(Word *args, Word &result, int message,
 
   CcPoints *ccp1 = ((CcPoints *)args[0].addr);
   CcPoints *ccp2 = ((CcPoints *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_PPd
-     ("pp_dist", ccp1, ccp2)); 
+     ("pp_dist", ccp1, ccp2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3546,14 +3528,14 @@ static int pl_distFun(Word *args, Word &result, int message,
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
   CcLines *ccl = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_PLd
-     ("pl_dist", ccp, ccl)); 
+     ("pl_dist", ccp, ccl));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3569,14 +3551,14 @@ static int pr_distFun(Word *args, Word &result, int message,
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
   CcRegions *ccr = ((CcRegions *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_PRd
-     ("pr_dist", ccp, ccr)); 
+     ("pr_dist", ccp, ccr));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3592,14 +3574,14 @@ static int lp_distFun(Word *args, Word &result, int message,
 
   CcLines *ccl = ((CcLines *)args[0].addr);
   CcPoints *ccp = ((CcPoints *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_LPd
-     ("lp_dist", ccl, ccp)); 
+     ("lp_dist", ccl, ccp));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3615,14 +3597,14 @@ static int ll_distFun(Word *args, Word &result, int message,
 
   CcLines *ccl1 = ((CcLines *)args[0].addr);
   CcLines *ccl2 = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_LLd
-     ("ll_dist", ccl1, ccl2)); 
+     ("ll_dist", ccl1, ccl2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3638,14 +3620,14 @@ static int lr_distFun(Word *args, Word &result, int message,
 
   CcLines *ccl = ((CcLines *)args[0].addr);
   CcRegions *ccr = ((CcRegions *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_LRd
-     ("lr_dist", ccl, ccr)); 
+     ("lr_dist", ccl, ccr));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3661,14 +3643,14 @@ static int rp_distFun(Word *args, Word &result, int message,
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
   CcPoints *ccp = ((CcPoints *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_RPd
-     ("rp_dist", ccr, ccp)); 
+     ("rp_dist", ccr, ccp));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3684,14 +3666,14 @@ static int rl_distFun(Word *args, Word &result, int message,
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
   CcLines *ccl = ((CcLines *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_RLd
-     ("rl_dist", ccr, ccl)); 
+     ("rl_dist", ccr, ccl));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3707,14 +3689,14 @@ static int rr_distFun(Word *args, Word &result, int message,
 
   CcRegions *ccr1 = ((CcRegions *)args[0].addr);
   CcRegions *ccr2 = ((CcRegions *)args[1].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_RRd
-     ("rr_dist", ccr1, ccr2)); 
+     ("rr_dist", ccr1, ccr2));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3729,14 +3711,14 @@ static int p_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcPoints *ccp = ((CcPoints *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_Pd
-     ("p_diameter", ccp)); 
+     ("p_diameter", ccp));
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -3751,15 +3733,15 @@ static int l_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_Ld
-     ("l_diameter", ccl)); 
-  
+     ("l_diameter", ccl));
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -3773,15 +3755,15 @@ static int r_diameterFun(Word *args, Word &result, int message,
 			 Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_Rd
-     ("r_diameter", ccr)); 
-  
+     ("r_diameter", ccr));
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -3795,15 +3777,15 @@ static int l_lengthFun(Word *args, Word &result, int message,
 		       Word &local, Supplier s) {
 
   CcLines *ccl = ((CcLines *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_LD
-     ("l_length", ccl)); 
-  
+     ("l_length", ccl));
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -3817,15 +3799,15 @@ static int r_areaFun(Word *args, Word &result, int message,
 		     Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_RD
-     ("r_area", ccr)); 
-  
+     ("r_area", ccr));
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -3839,15 +3821,15 @@ static int r_perimeterFun(Word *args, Word &result, int message,
 			  Word &local, Supplier s) {
 
   CcRegions *ccr = ((CcRegions *)args[0].addr);
-  
-  result = qp->ResultStorage(s);	
+
+  result = qp->ResultStorage(s);
   //query processor has provided
   //a CcBool instance to take the result
-  
+
   ((CcReal *)result.addr)->Set
     (true, (float)callJMethod_RD
-     ("r_perimeter", ccr)); 
-  
+     ("r_perimeter", ccr));
+
   //the first argument says the boolean
   //value is defined, the second is the
   //real boolean value)
@@ -4015,7 +3997,7 @@ const string rr_edge_disjointSpec =
 "<text>rr_edge_disjoint(r1,r2)</text--->"
 ") )";
 
-const string rr_edge_insideSpec = 
+const string rr_edge_insideSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> bool</text--->"
@@ -4026,7 +4008,7 @@ const string rr_edge_insideSpec =
 "<text>rr_edge_inside(r1,r2)</text--->"
 ") )";
 
-const string rr_vertex_insideSpec = 
+const string rr_vertex_insideSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> bool</text--->"
@@ -4037,7 +4019,7 @@ const string rr_vertex_insideSpec =
 "<text>rr_vertex_inside(r1,r2)</text--->"
 ") )";
 
-const string rr_intersectsSpec = 
+const string rr_intersectsSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> bool</text--->"
@@ -4048,8 +4030,8 @@ const string rr_intersectsSpec =
 "<text>rr_intersects(r1,r2)</text--->"
 ") )";
 
-const string rr_meetsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_meetsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> bool</text--->"
 "<text>rr_meets(r1, r2) where"
@@ -4059,8 +4041,8 @@ const string rr_meetsSpec =
 "<text>rr_meets(r1,r2)</text--->"
 ") )";
 
-const string rr_border_in_commonSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_border_in_commonSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> bool</text--->"
 "<text>rr_border_in_common(r1, r2) where"
@@ -4070,8 +4052,8 @@ const string rr_border_in_commonSpec =
 "<text>rr_border_in_common(r1,r2)</text--->"
 ") )";
 
-const string rr_adjacentSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_adjacentSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> bool</text--->"
 "<text>rr_adjacent(r1, r2) where"
@@ -4081,8 +4063,8 @@ const string rr_adjacentSpec =
 "<text>rr_adjacent(r1,r2)</text--->"
 ") )";
 
-const string rr_enclosesSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_enclosesSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> bool</text--->"
 "<text>rr_encloses(r1, r2) where"
@@ -4092,8 +4074,8 @@ const string rr_enclosesSpec =
 "<text>rr_encloses(r1,r2)</text--->"
 ") )";
 
-const string rr_intersectionSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_intersectionSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> ccregions</text--->"
 "<text>rr_intersection(r1, r2) where"
@@ -4103,8 +4085,8 @@ const string rr_intersectionSpec =
 "<text>rr_intersection(r1,r2)</text--->"
 ") )";
 
-const string rr_plusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_plusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> ccregions</text--->"
 "<text>rr_plus(r1, r2) where"
@@ -4114,8 +4096,8 @@ const string rr_plusSpec =
 "<text>rr_plus(r1,r2)</text--->"
 ") )";
 
-const string rr_minusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_minusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> ccregions</text--->"
 "<text>rr_minus(r1, r2) where"
@@ -4125,8 +4107,8 @@ const string rr_minusSpec =
 "<text>rr_minus(r1,r2)</text--->"
 ") )";
 
-const string rr_common_borderSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_common_borderSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> cclines</text--->"
 "<text>rr_common_border(r1, r2) where"
@@ -4136,8 +4118,8 @@ const string rr_common_borderSpec =
 "<text>rr_common_border(r1,r2)</text--->"
 ") )";
 
-const string ll_intersectsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_intersectsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> bool</text--->"
 "<text>ll_intersects(l1, l2) where"
@@ -4147,8 +4129,8 @@ const string ll_intersectsSpec =
 "<text>ll_intersects(r1,r2)</text--->"
 ") )";
 
-const string ll_meetsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_meetsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> bool</text--->"
 "<text>ll_meets(l1, l2) where"
@@ -4158,8 +4140,8 @@ const string ll_meetsSpec =
 "<text>ll_meets(l1,l2)</text--->"
 ") )";
 
-const string ll_border_in_commonSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_border_in_commonSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> bool</text--->"
 "<text>ll_border_in_common(l1, l2) where"
@@ -4169,8 +4151,8 @@ const string ll_border_in_commonSpec =
 "<text>ll_border_in_common(l1,l2)</text--->"
 ") )";
 
-const string ll_intersectionSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_intersectionSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> ccpoints</text--->"
 "<text>ll_intersection(l1, l2) where"
@@ -4180,8 +4162,8 @@ const string ll_intersectionSpec =
 "<text>ll_intersection(l1,l2)</text--->"
 ") )";
 
-const string ll_plusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_plusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> cclines</text--->"
 "<text>ll_plus(l1, l2) where"
@@ -4191,8 +4173,8 @@ const string ll_plusSpec =
 "<text>ll_plus(l1,l2)</text--->"
 ") )";
 
-const string ll_minusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_minusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> cclines</text--->"
 "<text>ll_minus(l1, l2) where"
@@ -4202,8 +4184,8 @@ const string ll_minusSpec =
 "<text>ll_minus(l1,l2)</text--->"
 ") )";
 
-const string ll_common_borderSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_common_borderSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> cclines</text--->"
 "<text>ll_common_border(l1, l2) where"
@@ -4213,8 +4195,8 @@ const string ll_common_borderSpec =
 "<text>ll_common_border(l1,l2)</text--->"
 ") )";
 
-const string lr_intersectsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string lr_intersectsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines ccregions) -> bool</text--->"
 "<text>lr_intersects(l, r) where"
@@ -4224,8 +4206,8 @@ const string lr_intersectsSpec =
 "<text>lr_intersects(l,r)</text--->"
 ") )";
 
-const string lr_meetsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string lr_meetsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines ccregions) -> bool</text--->"
 "<text>lr_meets(l, r) where"
@@ -4235,8 +4217,8 @@ const string lr_meetsSpec =
 "<text>lr_meets(l,r)</text--->"
 ") )";
 
-const string lr_border_in_commonSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string lr_border_in_commonSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines ccregions) -> bool</text--->"
 "<text>lr_border_in_common(l, r) where"
@@ -4246,8 +4228,8 @@ const string lr_border_in_commonSpec =
 "<text>lr_border_in_common(l, r)</text--->"
 ") )";
 
-const string lr_common_borderSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string lr_common_borderSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines ccregions) -> cclines</text--->"
 "<text>lr_common_border(l, r) where"
@@ -4257,8 +4239,8 @@ const string lr_common_borderSpec =
 "<text>ll_common_border(l,r)</text--->"
 ") )";
 
-const string rl_intersectsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rl_intersectsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions cclines) -> bool</text--->"
 "<text>rl_intersects(r, l) where"
@@ -4268,8 +4250,8 @@ const string rl_intersectsSpec =
 "<text>rl_intersects(r, l)</text--->"
 ") )";
 
-const string rl_meetsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rl_meetsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions cclines) -> bool</text--->"
 "<text>rl_meets(r, l) where"
@@ -4279,8 +4261,8 @@ const string rl_meetsSpec =
 "<text>rl_meets(r,l)</text--->"
 ") )";
 
-const string rl_border_in_commonSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rl_border_in_commonSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions cclines) -> bool</text--->"
 "<text>rl_border_in_common(r, l) where"
@@ -4290,8 +4272,8 @@ const string rl_border_in_commonSpec =
 "<text>rl_border_in_common(r, l)</text--->"
 ") )";
 
-const string rl_intersectionSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rl_intersectionSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions cclines) -> cclines</text--->"
 "<text>rl_intersection(r, l) where"
@@ -4301,8 +4283,8 @@ const string rl_intersectionSpec =
 "<text>rl_intersection(r, l)</text--->"
 ") )";
 
-const string rl_common_borderSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rl_common_borderSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions cclines) -> cclines</text--->"
 "<text>rl_common_border(r, l) where"
@@ -4312,8 +4294,8 @@ const string rl_common_borderSpec =
 "<text>rl_common_border(r, l)</text--->"
 ") )";
 
-const string pl_on_border_ofSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pl_on_border_ofSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints cclines) -> bool</text--->"
 "<text>pl_on_border_ofSpec(p, l) where"
@@ -4323,8 +4305,8 @@ const string pl_on_border_ofSpec =
 "<text>pl_on_border_of(p, l)</text--->"
 ") )";
 
-const string pr_on_border_ofSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pr_on_border_ofSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints ccregions) -> bool</text--->"
 "<text>pr_on_border_ofSpec(p, r) where"
@@ -4334,8 +4316,8 @@ const string pr_on_border_ofSpec =
 "<text>pr_on_border_of(p, r)</text--->"
 ") )";
 
-const string pp_intersectionSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pp_intersectionSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints ccpoints) -> bool</text--->"
 "<text>pp_intersection(p1, p2) where"
@@ -4345,8 +4327,8 @@ const string pp_intersectionSpec =
 "<text>pp_intersection(p1, p2)</text--->"
 ") )";
 
-const string pp_plusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pp_plusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints ccpoints) -> ccpoints</text--->"
 "<text>pp_plus(p1, p2) where"
@@ -4356,8 +4338,8 @@ const string pp_plusSpec =
 "<text>pp_plus(p1, p2)</text--->"
 ") )";
 
-const string pp_minusSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pp_minusSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints ccpoints) -> ccpoints</text--->"
 "<text>pp_minus(p1, p2) where"
@@ -4367,8 +4349,8 @@ const string pp_minusSpec =
 "<text>pp_minus(p1, p2)</text--->"
 ") )";
 
-const string l_verticesSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string l_verticesSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines) -> ccpoints</text--->"
 "<text>l_vertices(l) where"
@@ -4378,8 +4360,8 @@ const string l_verticesSpec =
 "<text>l_vertices(l)</text--->"
 ") )";
 
-const string r_verticesSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string r_verticesSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions) -> ccpoints</text--->"
 "<text>r_vertices(r) where"
@@ -4389,8 +4371,8 @@ const string r_verticesSpec =
 "<text>r_vertices(r)</text--->"
 ") )";
 
-const string l_interiorSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string l_interiorSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines) -> ccregions</text--->"
 "<text>l_interior(l) where"
@@ -4400,8 +4382,8 @@ const string l_interiorSpec =
 "<text>l_interior(l)</text--->"
 ") )";
 
-const string r_contourSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string r_contourSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions) -> cclines</text--->"
 "<text>r_contour(r) where"
@@ -4411,8 +4393,8 @@ const string r_contourSpec =
 "<text>r_contour(r)</text--->"
 ") )";
 
-const string p_no_of_componentsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string p_no_of_componentsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints) -> int</text--->"
 "<text>p_no_of_components(p) where"
@@ -4422,8 +4404,8 @@ const string p_no_of_componentsSpec =
 "<text>p_no_of_components(p)</text--->"
 ") )";
 
-const string l_no_of_componentsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string l_no_of_componentsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines) -> int</text--->"
 "<text>l_no_of_components(l) where"
@@ -4433,8 +4415,8 @@ const string l_no_of_componentsSpec =
 "<text>l_no_of_components(l)</text--->"
 ") )";
 
-const string r_no_of_componentsSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string r_no_of_componentsSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions) -> int</text--->"
 "<text>r_no_of_components(r) where"
@@ -4444,8 +4426,8 @@ const string r_no_of_componentsSpec =
 "<text>r_no_of_components(r)</text--->"
 ") )";
 
-const string pp_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pp_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints ccpoints) -> real</text--->"
 "<text>pp_dist(p1, p2) where"
@@ -4455,8 +4437,8 @@ const string pp_distSpec =
 "<text>pp_dist(p1, p2)</text--->"
 ") )";
 
-const string pl_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pl_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints cclines) -> real</text--->"
 "<text>pl_dist(p, l) where"
@@ -4466,8 +4448,8 @@ const string pl_distSpec =
 "<text>pl_dist(p, l)</text--->"
 ") )";
 
-const string pr_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string pr_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints ccregions) -> real</text--->"
 "<text>pr_dist(p, r) where"
@@ -4477,8 +4459,8 @@ const string pr_distSpec =
 "<text>pr_dist(p, r)</text--->"
 ") )";
 
-const string lp_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string lp_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines ccpoints) -> real</text--->"
 "<text>pp_intersection(l, p) where"
@@ -4488,8 +4470,8 @@ const string lp_distSpec =
 "<text>lp_dist(l, p)</text--->"
 ") )";
 
-const string ll_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ll_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines cclines) -> real</text--->"
 "<text>ll_dist(l1, l2) where"
@@ -4499,8 +4481,8 @@ const string ll_distSpec =
 "<text>ll_dist(l1, l2)</text--->"
 ") )";
 
-const string lr_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string lr_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines ccregions) -> real</text--->"
 "<text>lr_intersection(l, r) where"
@@ -4510,8 +4492,8 @@ const string lr_distSpec =
 "<text>lr_dist(l, r)</text--->"
 ") )";
 
-const string rp_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rp_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccpoints) -> real</text--->"
 "<text>rp_dist(r, p) where"
@@ -4521,8 +4503,8 @@ const string rp_distSpec =
 "<text>rp_dist(r, p)</text--->"
 ") )";
 
-const string rl_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rl_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions cclines) -> real</text--->"
 "<text>rl_dist(r, l) where"
@@ -4532,8 +4514,8 @@ const string rl_distSpec =
 "<text>rl_dist(r, l)</text--->"
 ") )";
 
-const string rr_distSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string rr_distSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions ccregions) -> real</text--->"
 "<text>rr_dist(r1, r2) where"
@@ -4543,8 +4525,8 @@ const string rr_distSpec =
 "<text>rr_dist(r1, r2)</text--->"
 ") )";
 
-const string p_diameterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string p_diameterSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccpoints) -> real</text--->"
 "<text>p_diameter(p) where"
@@ -4554,8 +4536,8 @@ const string p_diameterSpec =
 "<text>p_diameter(p)</text--->"
 ") )";
 
-const string l_diameterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string l_diameterSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines) -> real</text--->"
 "<text>l_diameter(l) where"
@@ -4565,8 +4547,8 @@ const string l_diameterSpec =
 "<text>l_diameter(l)</text--->"
 ") )";
 
-const string l_lengthSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string l_lengthSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(cclines) -> real</text--->"
 "<text>l_length(l) where"
@@ -4576,8 +4558,8 @@ const string l_lengthSpec =
 "<text>l_length(l)</text--->"
 ") )";
 
-const string r_diameterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string r_diameterSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions) -> real</text--->"
 "<text>r_diameter(r) where"
@@ -4587,8 +4569,8 @@ const string r_diameterSpec =
 "<text>r_diameter(r)</text--->"
 ") )";
 
-const string r_areaSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string r_areaSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions) -> real</text--->"
 "<text>r_area(r) where"
@@ -4598,8 +4580,8 @@ const string r_areaSpec =
 "<text>r_area(r)</text--->"
 ") )";
 
-const string r_perimeterSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string r_perimeterSpec =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" )"
 "( <text>(ccregions) -> real</text--->"
 "<text>r_perimeter(r) where"
@@ -4615,504 +4597,504 @@ Used to explain the signature and the meaning of the implemented operators.
 
 */
 
-Operator pp_equal 
+Operator pp_equal
 (
  "pp_equal", 			//name
  pp_equalSpec,  		//specification ....
  pp_equalFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccpointsBool		//type mapping
  );
 
-Operator ll_equal 
+Operator ll_equal
 (
  "ll_equal", 			//name
  ll_equalSpec,  		//specification ....
  ll_equalFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesBool		//type mapping
  );
 
-Operator rr_equal 
+Operator rr_equal
 (
  "rr_equal", 			//name
  rr_equalSpec,  		//specification ....
  rr_equalFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool		//type mapping
  );
 
-Operator pp_unequal 
+Operator pp_unequal
 (
  "pp_unequal", 			//name
  pp_unequalSpec,  		//specification ....
  pp_unequalFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccpointsBool		//type mapping
  );
 
-Operator ll_unequal 
+Operator ll_unequal
 (
  "ll_unequal", 			//name
  ll_unequalSpec,       		//specification ....
  ll_unequalFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesBool		//type mapping
  );
 
-Operator rr_unequal 
+Operator rr_unequal
 (
  "rr_unequal", 			//name
  rr_unequalSpec,       		//specification ....
  rr_unequalFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool		//type mapping
  );
 
-Operator pp_disjoint 
+Operator pp_disjoint
 (
  "pp_disjoint", 		//name
  pp_disjointSpec,  		//specification ....
  pp_disjointFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccpointsBool		//type mapping
  );
 
-Operator ll_disjoint 
+Operator ll_disjoint
 (
  "ll_disjoint", 		//name
  ll_disjointSpec,  		//specification ....
  ll_disjointFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesBool		//type mapping
  );
 
-Operator rr_disjoint 
+Operator rr_disjoint
 (
  "rr_disjoint", 		//name
  rr_disjointSpec,  		//specification ....
  rr_disjointFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool		//type mapping
  );
 
-Operator pr_inside 
+Operator pr_inside
 (
  "pr_inside", 			//name
  pr_insideSpec,  		//specification ....
  pr_insideFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccregionsBool		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccregionsBool		//type mapping
  );
 
-Operator lr_inside 
+Operator lr_inside
 (
  "lr_inside", 			//name
  lr_insideSpec,		  	//specification ....
  lr_insideFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool   	//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccregionsBool   	//type mapping
  );
 
-Operator rr_inside 
+Operator rr_inside
 (
  "rr_inside", 			//name
  rr_insideSpec,  		//specification ....
  rr_insideFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool 	//type mapping
  );
 
-Operator rr_area_disjoint 
+Operator rr_area_disjoint
 (
  "rr_area_disjoint", 		//name
  rr_area_disjointSpec,  	//specification ....
  rr_area_disjointFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool 	//type mapping
  );
 
-Operator rr_edge_disjoint 
+Operator rr_edge_disjoint
 (
  "rr_edge_disjoint", 		//name
  rr_edge_disjointSpec,  	//specification ....
  rr_edge_disjointFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool 	//type mapping
  );
 
-Operator rr_edge_inside 
+Operator rr_edge_inside
 (
  "rr_edge_inside", 		//name
  rr_edge_insideSpec,  		//specification ....
  rr_edge_insideFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool 	//type mapping
  );
 
-Operator rr_vertex_inside 
+Operator rr_vertex_inside
 (
  "rr_vertex_inside", 		//name
  rr_vertex_insideSpec,  	//specification ....
  rr_vertex_insideFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool	 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool	 	//type mapping
  );
 
-Operator rr_intersects 
+Operator rr_intersects
 (
  "rr_intersects", 		//name
  rr_intersectsSpec,   	      	//specification ....
  rr_intersectsFun,	      	//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,		      	//trivial selection function 
- ccregionsccregionsBool       	//type mapping 
+ simpleSelect,		      	//trivial selection function
+ ccregionsccregionsBool       	//type mapping
  );
 
-Operator rr_meets 
+Operator rr_meets
 (
  "rr_meets", 			//name
  rr_meetsSpec,  	      	//specification ....
  rr_meetsFun,		      	//value mapping
  Operator::DummyModel,	      	//dummy model mapping, defined in Algebra.h
- simpleSelect,		      	//trivial selection function 
- ccregionsccregionsBool       	//type mapping 
+ simpleSelect,		      	//trivial selection function
+ ccregionsccregionsBool       	//type mapping
  );
 
-Operator rr_border_in_common 
+Operator rr_border_in_common
 (
  "rr_border_in_common",       	//name
  rr_border_in_commonSpec,     	//specification ....
  rr_border_in_commonFun,      	//value mapping
  Operator::DummyModel,	      	//dummy model mapping, defined in Algebra.h
- simpleSelect,		      	//trivial selection function 
- ccregionsccregionsBool       	//type mapping 
+ simpleSelect,		      	//trivial selection function
+ ccregionsccregionsBool       	//type mapping
  );
 
-Operator rr_adjacent 
+Operator rr_adjacent
 (
  "rr_adjacent", 		//name
  rr_adjacentSpec,  		//specification ....
  rr_adjacentFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool 	//type mapping
  );
 
-Operator rr_encloses 
+Operator rr_encloses
 (
  "rr_encloses", 		//name
  rr_enclosesSpec,  		//specification ....
  rr_enclosesFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsBool 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsBool 	//type mapping
  );
 
-Operator rr_intersection 
+Operator rr_intersection
 (
  "rr_intersection", 		//name
  rr_intersectionSpec,  		//specification ....
  rr_intersectionFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsccregions 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsccregions 	//type mapping
  );
 
-Operator rr_plus 
+Operator rr_plus
 (
  "rr_plus", 			//name
  rr_plusSpec,  			//specification ....
  rr_plusFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsccregions 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsccregions 	//type mapping
  );
 
-Operator rr_minus 
+Operator rr_minus
 (
  "rr_minus", 			//name
  rr_minusSpec,  		//specification ....
  rr_minusFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsccregions 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsccregions 	//type mapping
  );
 
-Operator rr_common_border 
+Operator rr_common_border
 (
  "rr_common_border", 		//name
  rr_common_borderSpec,  	//specification ....
  rr_common_borderFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionscclines 	//type mapping 
- );		   
+ simpleSelect,			//trivial selection function
+ ccregionsccregionscclines 	//type mapping
+ );
 
-Operator ll_intersects 
+Operator ll_intersects
 (
  "ll_intersects", 		//name
  ll_intersectsSpec,  		//specification ....
  ll_intersectsFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesBool 		//type mapping
 );
 
-Operator pl_on_border_of 
+Operator pl_on_border_of
 (
  "pl_on_border_of", 		//name
  pl_on_border_ofSpec,  		//specification ....
  pl_on_border_ofFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointscclinesBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointscclinesBool 		//type mapping
 );
 
-Operator pr_on_border_of 
+Operator pr_on_border_of
 (
  "pr_on_border_of", 		//name
  pr_on_border_ofSpec,  		//specification ....
  pr_on_border_ofFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccregionsBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccregionsBool 		//type mapping
 );
 
-Operator pp_intersection 
+Operator pp_intersection
 (
  "pp_intersection", 		//name
  pp_intersectionSpec,  		//specification ....
  pp_intersectionFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsccpoints 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccpointsccpoints 	//type mapping
 );
 
-Operator pp_plus 
+Operator pp_plus
 (
  "pp_plus", 			//name
  pp_plusSpec,  			//specification ....
  pp_plusFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsccpoints 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccpointsccpoints 	//type mapping
 );
 
-Operator pp_minus 
+Operator pp_minus
 (
  "pp_minus", 			//name
  pp_minusSpec,  		//specification ....
  pp_minusFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsccpoints 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccpointsccpoints 	//type mapping
 );
 
-Operator l_vertices 
+Operator l_vertices
 (
  "l_vertices", 			//name
  l_verticesSpec,  		//specification ....
  l_verticesFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccpoints 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccpoints 		//type mapping
 );
 
-Operator r_vertices 
+Operator r_vertices
 (
  "r_vertices", 			//name
  r_verticesSpec,  		//specification ....
  r_verticesFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccpoints 		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccpoints 		//type mapping
 );
 
-Operator rl_border_in_common 
+Operator rl_border_in_common
 (
  "rl_border_in_common", 	//name
  rl_border_in_commonSpec,  	//specification ....
  rl_border_in_commonFun,	//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionscclinesBool 		//type mapping
 );
 
-Operator l_interior 
+Operator l_interior
 (
  "l_interior", 			//name
  l_interiorSpec,  		//specification ....
  l_interiorFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregions 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccregions 		//type mapping
 );
 
-Operator r_contour 
+Operator r_contour
 (
  "r_contour", 			//name
  r_contourSpec,  		//specification ....
  r_contourFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclines 		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionscclines 		//type mapping
 );
 
-Operator rl_intersects 
+Operator rl_intersects
 (
  "rl_intersects", 		//name
  rl_intersectsSpec,  		//specification ....
  rl_intersectsFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionscclinesBool 		//type mapping
 );
 
-Operator rl_meets 
+Operator rl_meets
 (
  "rl_meets", 			//name
  rl_meetsSpec,  		//specification ....
  rl_meetsFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionscclinesBool 		//type mapping
 );
 
-Operator rl_intersection 
+Operator rl_intersection
 (
  "rl_intersection", 		//name
  rl_intersectionSpec,  		//specification ....
  rl_intersectionFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinescclines 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionscclinescclines 	//type mapping
 );
 
-Operator rl_common_border 
+Operator rl_common_border
 (
  "rl_common_border", 		//name
  rl_common_borderSpec,  	//specification ....
  rl_common_borderFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinescclines 	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionscclinescclines 	//type mapping
 );
 
-Operator lr_intersects 
+Operator lr_intersects
 (
  "lr_intersects", 		//name
  lr_intersectsSpec,  		//specification ....
  lr_intersectsFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccregionsBool 		//type mapping
 );
 
-Operator lr_meets 
+Operator lr_meets
 (
  "lr_meets", 			//name
  lr_meetsSpec,  		//specification ....
  lr_meetsFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccregionsBool 		//type mapping
 );
 
-Operator lr_border_in_common 
+Operator lr_border_in_common
 (
  "lr_border_in_common", 	//name
  lr_border_in_commonSpec,  	//specification ....
  lr_border_in_commonFun,	//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccregionsBool 		//type mapping
 );
 
-Operator lr_common_border 
+Operator lr_common_border
 (
  "lr_common_border", 		//name
  lr_common_borderSpec,  	//specification ....
  lr_common_borderFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionscclines 	//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccregionscclines 	//type mapping
 );
 
-Operator ll_meets 
+Operator ll_meets
 (
  "ll_meets", 			//name
  ll_meetsSpec,  		//specification ....
  ll_meetsFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesBool 		//type mapping
 );
 
-Operator ll_border_in_common 
+Operator ll_border_in_common
 (
  "ll_border_in_common", 	//name
  ll_border_in_commonSpec,  	//specification ....
  ll_border_in_commonFun,	//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesBool 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesBool 		//type mapping
 );
 
-Operator ll_intersection 
+Operator ll_intersection
 (
  "ll_intersection", 		//name
  ll_intersectionSpec,  		//specification ....
  ll_intersectionFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesccpoints 	//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesccpoints 	//type mapping
 );
 
-Operator ll_plus 
+Operator ll_plus
 (
  "ll_plus", 			//name
  ll_plusSpec,  			//specification ....
  ll_plusFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinescclines 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinescclines 		//type mapping
 );
 
-Operator ll_minus 
+Operator ll_minus
 (
  "ll_minus", 			//name
  ll_minusSpec,  		//specification ....
  ll_minusFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinescclines 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinescclines 		//type mapping
 );
 
-Operator ll_common_border 
+Operator ll_common_border
 (
  "ll_common_border", 		//name
  ll_common_borderSpec,  	//specification ....
  ll_common_borderFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinescclines 		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinescclines 		//type mapping
 );
 
 Operator p_no_of_components
@@ -5121,8 +5103,8 @@ Operator p_no_of_components
  p_no_of_componentsSpec,  	//specification ....
  p_no_of_componentsFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsInt 	        	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsInt 	        	//type mapping
  );
 
 Operator l_no_of_components
@@ -5131,8 +5113,8 @@ Operator l_no_of_components
  l_no_of_componentsSpec,  	//specification ....
  l_no_of_componentsFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesInt 	        	//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesInt 	        	//type mapping
  );
 
 Operator r_no_of_components
@@ -5141,8 +5123,8 @@ Operator r_no_of_components
  r_no_of_componentsSpec,  	//specification ....
  r_no_of_componentsFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsInt 	        	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsInt 	        	//type mapping
  );
 
 Operator pp_dist
@@ -5151,8 +5133,8 @@ Operator pp_dist
  pp_distSpec,  		        //specification ....
  pp_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccpointsReal   	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccpointsReal   	//type mapping
  );
 
 Operator pl_dist
@@ -5161,8 +5143,8 @@ Operator pl_dist
  pl_distSpec,  		        //specification ....
  pl_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointscclinesReal   		//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointscclinesReal   		//type mapping
  );
 
 Operator pr_dist
@@ -5171,8 +5153,8 @@ Operator pr_dist
  pr_distSpec,  	        	//specification ....
  pr_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsccregionsReal   	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsccregionsReal   	//type mapping
  );
 
 Operator lp_dist
@@ -5181,8 +5163,8 @@ Operator lp_dist
  lp_distSpec,  		        //specification ....
  lp_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccpointsReal   		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccpointsReal   		//type mapping
  );
 
 Operator ll_dist
@@ -5191,8 +5173,8 @@ Operator ll_dist
  ll_distSpec,  	        	//specification ....
  ll_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinescclinesReal   		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinescclinesReal   		//type mapping
  );
 
 Operator lr_dist
@@ -5201,8 +5183,8 @@ Operator lr_dist
  lr_distSpec,  	        	//specification ....
  lr_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesccregionsReal   	//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesccregionsReal   	//type mapping
  );
 
 Operator rp_dist
@@ -5211,8 +5193,8 @@ Operator rp_dist
  rp_distSpec, 	 	        //specification ....
  rp_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccpointsReal  	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccpointsReal  	//type mapping
  );
 
 Operator rl_dist
@@ -5221,8 +5203,8 @@ Operator rl_dist
  rl_distSpec,  		        //specification ....
  rl_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionscclinesReal   	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionscclinesReal   	//type mapping
  );
 
 Operator rr_dist
@@ -5231,8 +5213,8 @@ Operator rr_dist
  rr_distSpec,  		        //specification ....
  rr_distFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsccregionsReal   	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsccregionsReal   	//type mapping
  );
 
 Operator p_diameter
@@ -5241,8 +5223,8 @@ Operator p_diameter
  p_diameterSpec,  		//specification ....
  p_diameterFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccpointsReal           	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccpointsReal           	//type mapping
  );
 
 Operator l_diameter
@@ -5251,8 +5233,8 @@ Operator l_diameter
  l_diameterSpec,  		//specification ....
  l_diameterFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesReal           		//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesReal           		//type mapping
  );
 
 Operator r_diameter
@@ -5261,8 +5243,8 @@ Operator r_diameter
  r_diameterSpec,  		//specification ....
  r_diameterFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsReal           	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsReal           	//type mapping
  );
 
 Operator l_length
@@ -5271,8 +5253,8 @@ Operator l_length
  l_lengthSpec,  		//specification ....
  l_lengthFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- cclinesDouble          	//type mapping 
+ simpleSelect,			//trivial selection function
+ cclinesDouble          	//type mapping
  );
 
 Operator r_area
@@ -5281,8 +5263,8 @@ Operator r_area
  r_areaSpec,  			//specification ....
  r_areaFun,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsDouble          	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsDouble          	//type mapping
  );
 
 Operator r_perimeter
@@ -5291,14 +5273,14 @@ Operator r_perimeter
  r_perimeterSpec,  		//specification ....
  r_perimeterFun,		//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- ccregionsDouble          	//type mapping 
+ simpleSelect,			//trivial selection function
+ ccregionsDouble          	//type mapping
  );
 
 
 /*
   6 Creating the Algebra
-  
+
 */
 
 class RoseAlgebra : public Algebra {
@@ -5310,8 +5292,8 @@ public:
     ccpoints.AssociateKind("DATA");
     cclines.AssociateKind("DATA");
     ccregions.AssociateKind("DATA");
-    /* this means that ccpoints, cclines, ccregions 
-       can be used in places where types of DATA are expected, 
+    /* this means that ccpoints, cclines, ccregions
+       can be used in places where types of DATA are expected,
        e. g. in tuples. */
     AddOperator(&pp_equal);
     AddOperator(&ll_equal);
@@ -5386,7 +5368,7 @@ public:
   ~RoseAlgebra() {};
 };
 
-RoseAlgebra roseAlgebra; 
+RoseAlgebra roseAlgebra;
 
 /*
 7 Initialization
@@ -5409,7 +5391,7 @@ extern "C"
 Algebra*
 InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
-  /* Get the pointers env and jvm from 
+  /* Get the pointers env and jvm from
      the used Java Virtual Machine. */
   jvminit = new JVMInitializer();
   env = jvminit->getEnv();

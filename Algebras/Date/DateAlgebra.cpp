@@ -105,7 +105,7 @@ bool isdate(int  Day, int Month, int Year)
 }
 
 /*
-  
+
 2 Type Constructor ~date~
 
 2.1 Data Structure - Class ~Date~
@@ -119,7 +119,7 @@ class Date: public StandardAttribute
  public:
   Date(bool Defined, int Day, int Month, int Year);
   Date();
-  ~Date();  
+  ~Date();
   int      GetDay();
   int      GetMonth();
   int      GetYear();
@@ -130,15 +130,14 @@ class Date: public StandardAttribute
   void     successor(Date *d, Date *s);
 /*************************************************************************
 
-  The following 10 virtual functions: IsDefined(),SetDefined(), GetValue(), HashValue(),
-  CopyFrom(), Compare(), Adjacent() Sizeof(), Clone(), Print(), need to be defined if 
+  The following 10 virtual functions: IsDefined(),SetDefined(), HashValue(),
+  CopyFrom(), Compare(), Adjacent() Sizeof(), Clone(), Print(), need to be defined if
   we want to use ~date~ as an attribute type in tuple definitions.
 
 *************************************************************************/
 
   bool     IsDefined() const;
   void     SetDefined(bool Defined);
-  void*	   GetValue();
   size_t   HashValue();
   void	   CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
@@ -155,7 +154,7 @@ class Date: public StandardAttribute
 };
 
 
-Date::Date(bool Defined, int Day, int Month, int Year) 
+Date::Date(bool Defined, int Day, int Month, int Year)
 {
    defined = Defined;
    day = Day;
@@ -195,16 +194,8 @@ void Date::Set(bool Defined, int Day, int Month, int Year)
 *************************************************************************/
 
 bool Date::IsDefined() const {return (defined); }
-  
+
 void Date::SetDefined(bool Defined) {defined = Defined; }
-
-/*
-
-The function GetValue() doesn't make sense in this case, so we can just return -1.
-
-*/
-
-void*  Date::GetValue() { return ((void *)-1);}
 
 size_t Date::HashValue()
 {
@@ -230,7 +221,7 @@ The function Compare() defines a total order on the data type ~date~.
 */
 
 int Date::Compare(Attribute * arg)
-{ 
+{
  int res=0;
  Date * d = (Date* )(arg);
  if ( !d ) return (-2);
@@ -256,16 +247,16 @@ int Date::Compare(Attribute * arg)
 void Date::successor(Date *d, Date *s)
 {
     assert(isdate(d->GetDay(), d->GetMonth(), d->GetYear()));
-    
+
     int Year, Month, Day;
     Year=d->GetYear(); Month=d->GetMonth(); Day=d->GetDay();
 //    cout<<"OldDate"<<Year<<":"<<Month<<":"<<Day<<endl;
     bool leapyear;
     int daysinmonth;
     if  (((Year % 4==0) && (Year % 100!=0)) || (Year % 400==0))
-             leapyear=true; 
+             leapyear=true;
     else  leapyear=false;
-    
+
    switch (Month)
 	{
 	  case 1:
@@ -281,41 +272,41 @@ void Date::successor(Date *d, Date *s)
           	  case 11: daysinmonth=30; break;
        	  case 2:  if (leapyear) daysinmonth=29; else daysinmonth=28;
 	}
-    if ((Day<daysinmonth)) 
+    if ((Day<daysinmonth))
            Day++;
     else //==
     {
            Day=1;
             if (Month<12) Month++;
-            else 
+            else
 	    {
-		Month=1; 
+		Month=1;
 		Year++;
                     }
     }
     s->year=Year; s->month=Month; s->day=Day; s->defined=true;
 //    cout<<"NewDate"<<Year<<":"<<Month<<":"<<Day<<endl;
 }
-	
+
 int Date::Adjacent(Attribute *arg)
 {
   Date *d = (Date *)arg;
   if( this->Compare( d ) == 0 ) return 1;                 //both undefined or they are equal
-  
+
   if (!IsDefined() || !(arg->IsDefined()))  return 0;  //one is undefined and another defined
   else					  //both defined and they are not equal
   {
       Date * auxdate=new Date();
-  
+
       successor(this, auxdate);
-      if (auxdate->Compare(d)==0) 
+      if (auxdate->Compare(d)==0)
       {
 	  delete auxdate;
 	  return 1;
       }
-      
+
       successor(d, auxdate);
-      if (this->Compare(auxdate)==0) 
+      if (this->Compare(auxdate)==0)
       {
 	  delete auxdate;
 	  return 1;
@@ -356,7 +347,7 @@ OutDate( ListExpr typeInfo, Word value )
 
   date = (Date*)(value.addr);
   if (date->IsDefined())
-  { 
+  {
     sprintf(buf, "%d-%02d-%02d", date->GetYear(), date->GetMonth(), date->GetDay());   //eg. "1993-02-01"
   }
   else
@@ -369,20 +360,20 @@ OutDate( ListExpr typeInfo, Word value )
 
 static Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
-{ 
+{
   Date* newdate;
   string inputStr;
   char *i, *j;
   int slash=0;
   char buf[100];
-  
+
   if (nl->IsAtom(instance) && nl->AtomType(instance)==StringType)
       inputStr= nl->StringValue( instance);
   else
   {      cout <<">>>invalid date - not a string type!<<<"<<endl;
          correct = false;
          return SetWord(Address(0));
-  }  
+  }
   const char* c_string = inputStr.c_str();
   if (strcmp(c_string,"-")==0)  //"-"
   {
@@ -398,14 +389,14 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
     for ( i=buf; i<buf+bufLen; i++)
     {
 	if (*i=='-') slash++;
-	if ((*i!='-') && ((*i<'0') || (*i>'9'))) 
+	if ((*i!='-') && ((*i<'0') || (*i>'9')))
 	{
 	    cout <<">>>invalid date!<<<"<<endl;
 	    correct = false;
 	    return SetWord(Address(0));
 	}
     }
-    if (slash!=2) 
+    if (slash!=2)
     {
          cout <<">>>invalid date!<<<"<<endl;
          correct = false;
@@ -416,24 +407,24 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
     while ((*j!='-') && (j<buf+bufLen))  j++;
     *j=0;
     int Year=atoi(i);
-    
+
     i=j+1; j=i;
     while ((*j!='-') && (j<buf+bufLen))  j++;
     *j=0;
     int Month=atoi(i);
-    
+
     i=j+1; j=i;
     while ((*j!='-') && (j<buf+bufLen))  j++;
     *j=0;
     int Day=atoi(i);
-    
+
     if (isdate(Day, Month, Year))
-    {   
+    {
          correct = true;
          newdate = new Date(true, Day, Month, Year);
          return SetWord(newdate);
     }
-    else  
+    else
     {
          cout <<">>>invalid date!<<<"<<endl;
          correct = false;
@@ -481,7 +472,7 @@ CastDate( void* addr )
 }
 
 /*
-  
+
 2.4 Function Describing the Signature of the Type Constructor
 
 This one works for type constructor ~date~ , which is an ``atomic'' type.
@@ -496,18 +487,18 @@ DateProperty()
   nl->AppendText(listreplist, "\"<year>-<month>-<day>\"");
   nl->AppendText(examplelist, "\"2003-09-05\"");
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("date"), 
-			     listreplist, 
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("date"),
+			     listreplist,
 			     examplelist)));
 }
 
 /*
-  
+
 2.5 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
@@ -521,7 +512,7 @@ CheckDate( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual(type, "date" ));
 }
 /*
-  
+
 2.6 Creation of the Type Constructor Instance
 
 */
@@ -543,7 +534,7 @@ TypeConstructor date(
 
 
 /*
-  
+
 3 Creating Operators
 
 3.1 Type Mapping Function
@@ -561,7 +552,7 @@ DateInt( ListExpr args )
   if ( nl->ListLength(args) == 1 )
   {
     arg1 = nl->First(args);
-    if ( nl->IsEqual(arg1, "date"))  
+    if ( nl->IsEqual(arg1, "date"))
     return nl->SymbolAtom("int");
   }
   return nl->SymbolAtom("typeerror");
@@ -576,7 +567,7 @@ DateDateBool( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "date") && nl->IsEqual(arg2, "date") )  
+    if ( nl->IsEqual(arg1, "date") && nl->IsEqual(arg2, "date") )
     return nl->SymbolAtom("bool");
   }
   return nl->SymbolAtom("typeerror");
@@ -592,8 +583,8 @@ IntIntIntDate( ListExpr args )
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
     arg3 = nl->Third(args);
-    if ( nl->IsEqual(arg1, "int") && 
-         nl->IsEqual(arg2, "int") && 
+    if ( nl->IsEqual(arg1, "int") &&
+         nl->IsEqual(arg2, "int") &&
 	 nl->IsEqual(arg3, "int"))
       return nl->SymbolAtom("date");
   }
@@ -602,7 +593,7 @@ IntIntIntDate( ListExpr args )
 
 
 /*
-  
+
 3.2 Selection Function
 
 Selection Function is used to select one of several evaluation functions for an overloaded
@@ -620,7 +611,7 @@ simpleSelect (ListExpr args ) {return 0;}
 
 
 /*
-  
+
 3.3 Value Mapping Functions
 
 */
@@ -634,7 +625,7 @@ dayFun (Word* args, Word& result, int message, Word& local, Supplier s)
   result = qp->ResultStorage(s);
   int res=d->GetDay();
 
-  if (d->IsDefined())  
+  if (d->IsDefined())
        ((CcInt*)result.addr)->Set(true, res);
   else ((CcInt*)result.addr)->Set(false, res);
   return 0;
@@ -761,37 +752,37 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
   mm = (CcInt *)args[1].addr;
   yy = (CcInt *)args[2].addr;
   Date *delem;
- 
+
   result = qp->ResultStorage(s);
-  
+
   int Day=dd->GetIntval();
   int Month=mm->GetIntval();
   int Year=yy->GetIntval();
   //bool leapyear;
   //int daysinmonth;
-	  
+
   if (isdate(Day, Month, Year))
    {
       delem=new Date (true, Day, Month, Year);
       result.addr=delem;
-   } 
+   }
   else
    {
        cout <<"   >>>invalid date, replaced by UNDEFINED!<<<" << endl;
        delem=new Date (false, 0, 0, 0);
        result.addr=delem;
-    } 
+    }
   return 0;
 }
 
 /*
-  
+
 3.4 Definition of Operators
 
 */
 
 const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                        "\"Example\" )" 
+                        "\"Example\" )"
                              "( <text>(date) -> int</text--->"
 			       "<text>day ( _ )</text--->"
 			       "<text>extract the day info. from a date."
@@ -800,7 +791,7 @@ const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       ") )";
 
 const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" )" 
+                          "\"Example\" )"
                              "( <text>(date) -> int</text--->"
 			       "<text>month ( _ )</text--->"
 			       "<text>extract the month info. from a date."
@@ -809,7 +800,7 @@ const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       ") )";
 
 const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" )" 
+                         "\"Example\" )"
                              "( <text>(date) -> int</text--->"
 			       "<text>year ( _ )</text--->"
 			       "<text>extract the year info. from a date."
@@ -930,11 +921,11 @@ class DateAlgebra : public Algebra
   {
     AddTypeConstructor( &date );
 
-    date.AssociateKind("DATA");  
- 
+    date.AssociateKind("DATA");
+
     AddOperator( &day );
-    AddOperator( &month ); 
-    AddOperator( &year );    
+    AddOperator( &month );
+    AddOperator( &year );
     AddOperator( &earlier );
     AddOperator( &opequal);
     AddOperator( &later );
@@ -943,7 +934,7 @@ class DateAlgebra : public Algebra
   ~DateAlgebra() {};
 };
 
-DateAlgebra dateAlgebra; 
+DateAlgebra dateAlgebra;
 
 /*
 
@@ -990,15 +981,15 @@ We need to write the following DateAlgebra.spec file to indicate the syntax of t
 
 6.2 Display Function
 
-We need to add the following display function into DisplayTTY.h and DisplayTTY.cpp 
+We need to add the following display function into DisplayTTY.h and DisplayTTY.cpp
 (under the secondo/UserInterface/ subdirectary) to display date correctly:
 
 ----    void
 	DisplayTTY::DisplayDate(ListExpr type,ListExpr numType,ListExpr value)
 	{
    	  ListExpr d, m, y;
-   	  if( nl->IsAtom( value ) && 
-	      nl->AtomType( value ) == SymbolType && 
+   	  if( nl->IsAtom( value ) &&
+	      nl->AtomType( value ) == SymbolType &&
 	      nl->SymbolValue( value ) == "undef" )
     	  {
       	      cout << "UNDEFINED";

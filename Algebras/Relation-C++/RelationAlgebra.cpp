@@ -921,6 +921,8 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   CcRel* rel;
 
   rel = (CcRel*)((qp->ResultStorage(s)).addr);
+  if( rel->GetNoTuples() > 0 )
+    rel->Empty();
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
@@ -1044,7 +1046,7 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
   int index;
 
   tupleptr = (CcTuple*)args[0].addr;
-  index = (int)((StandardAttribute*)args[2].addr)->GetValue();
+  index = ((CcInt*)args[2].addr)->GetIntval();
   assert( 1 <= index && index <= tupleptr->GetNoAttrs() );
   result = SetWord(tupleptr->Get(index - 1));
   return 0;
@@ -1153,7 +1155,7 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
         qp->Request(args[1].addr, funresult);
         if (((StandardAttribute*)funresult.addr)->IsDefined())
         {
-          found = (bool)((StandardAttribute*)funresult.addr)->GetValue();
+          found = ((CcBool*)funresult.addr)->GetBoolval();
         }
         if (!found)
         {
@@ -2349,7 +2351,7 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   if (qp->Received(args[0].addr))
   {
     tupleptr = (CcTuple*)t.addr;
-    index = (int)((StandardAttribute*)args[2].addr)->GetValue();
+    index = ((CcInt*)args[2].addr)->GetIntval();
     assert((1 <= index) && (index <= tupleptr->GetNoAttrs()));
     res->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
     tupleptr->DeleteIfAllowed();
@@ -2461,7 +2463,7 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
 	//cout << "head REQUEST" << endl;
 
       qp->Request(args[1].addr, maxTuplesWord);
-      maxTuples = (int)((StandardAttribute*)maxTuplesWord.addr)->GetValue();
+      maxTuples = ((CcInt*)maxTuplesWord.addr)->GetIntval();
       if(local.ival >= maxTuples)
       {
         return CANCEL;
@@ -2590,7 +2592,7 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   result = SetWord(extremum);
 
   assert(args[2].addr != 0);
-  int attributeIndex = (int)((StandardAttribute*)args[2].addr)->GetValue() - 1;
+  int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
@@ -2770,8 +2772,8 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   assert(args[2].addr != 0);
   assert(args[3].addr != 0);
 
-  int attributeIndex = (int)((StandardAttribute*)args[2].addr)->GetValue() - 1;
-  char* attributeType = (char*)((StandardAttribute*)args[3].addr)->GetValue();
+  int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
+  STRING *attributeType = ((CcString*)args[3].addr)->GetStringval();
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, currentTupleWord);
@@ -2785,7 +2787,7 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
 
       if(definedValueFound)
       {
-        if(strcmp(attributeType, "real") == 0)
+        if(strcmp(*attributeType, "real") == 0)
         {
           CcReal* accumulatedReal = (CcReal*)accumulated;
           CcReal* currentReal = (CcReal*)currentAttr;
@@ -2818,7 +2820,7 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
       CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
       float nItems = (float)nProcessedItems;
 
-      if(strcmp(attributeType, "real") == 0)
+      if(strcmp(*attributeType, "real") == 0)
       {
         CcReal* accumulatedReal = (CcReal*)accumulated;
         resultAttr->Set(accumulatedReal->GetRealval() / nItems);
@@ -2833,7 +2835,7 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
     }
     else
     {
-      if(strcmp(attributeType, "real") == 0)
+      if(strcmp(*attributeType, "real") == 0)
       {
         CcReal* resultAttr = (CcReal*)(qp->ResultStorage(s).addr);
         CcReal* accumulatedReal = (CcReal*)accumulated;
@@ -3111,7 +3113,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           intWord = SetWord(args[2].addr);
         }
-        nSortAttrs = (int)((StandardAttribute*)intWord.addr)->GetValue();
+        nSortAttrs = ((CcInt*)intWord.addr)->GetIntval();
         for(i = 1; i <= nSortAttrs; i++)
         {
 	  if(requestArgs)
@@ -3122,8 +3124,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             intWord = SetWord(args[2 * i + 1].addr);
           }
-          sortAttrIndex =
-            (int)((StandardAttribute*)intWord.addr)->GetValue();
+          sortAttrIndex = ((CcInt*)intWord.addr)->GetIntval();
 
           if(requestArgs)
           {
@@ -3133,8 +3134,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             boolWord = SetWord(args[2 * i + 2].addr);
           }
-          sortOrderIsAscending =
-            (bool*)((StandardAttribute*)boolWord.addr)->GetValue();
+          sortOrderIsAscending = ((CcBool*)boolWord.addr)->GetBoolval();
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
         };
         ccCmp.spec = spec;
@@ -4104,8 +4104,8 @@ public:
     assert(streamB.addr != 0);
     assert(attrIndexA.addr != 0);
     assert(attrIndexB.addr != 0);
-    assert((int)((StandardAttribute*)attrIndexA.addr)->GetValue() > 0);
-    assert((int)((StandardAttribute*)attrIndexB.addr)->GetValue() > 0);
+    assert(((CcInt*)attrIndexA.addr)->GetIntval() > 0);
+    assert(((CcInt*)attrIndexB.addr)->GetIntval() > 0);
 
     aResult = SetWord(0);
     bResult = SetWord(0);
@@ -4113,8 +4113,8 @@ public:
     this->expectSorted = expectSorted;
     this->streamA = streamA;
     this->streamB = streamB;
-    this->attrIndexA = (int)((StandardAttribute*)attrIndexA.addr)->GetValue() - 1;
-    this->attrIndexB = (int)((StandardAttribute*)attrIndexB.addr)->GetValue() - 1;
+    this->attrIndexA = ((CcInt*)attrIndexA.addr)->GetIntval() - 1;
+    this->attrIndexB = ((CcInt*)attrIndexB.addr)->GetIntval() - 1;
 
     if(expectSorted)
     {
@@ -4415,9 +4415,9 @@ public:
     this->streamB = streamB;
     currentBucket = 0;
 
-    attrIndexA = (int)((StandardAttribute*)attrIndexAWord.addr)->GetValue() - 1;
-    attrIndexB = (int)((StandardAttribute*)attrIndexBWord.addr)->GetValue() - 1;
-    nBuckets = (int)((StandardAttribute*)nBucketsWord.addr)->GetValue();
+    attrIndexA = ((CcInt*)attrIndexAWord.addr)->GetIntval() - 1;
+    attrIndexB = ((CcInt*)attrIndexBWord.addr)->GetIntval() - 1;
+    nBuckets = ((CcInt*)nBucketsWord.addr)->GetIntval();
     if(nBuckets < MIN_BUCKETS)
     {
       nBuckets = MIN_BUCKETS;

@@ -2,13 +2,13 @@
 //[ae] [\"a]
 //[ue] [\"u]
 //[oe] [\"o]
- 
-1 Header File: Standard Data Types 
+
+1 Header File: Standard Data Types
 
 December 1998 Friedhelm Becker
- 
+
 1.1 Overview
- 
+
 This file defines four classes: CcInt, CcReal, CcBool and CcString. They
 are the data types which are provided by the Standardalgebra.
 
@@ -35,7 +35,6 @@ class CcInt : public StandardAttribute
   bool     IsDefined() const;
   void     SetDefined(bool defined);
   int      GetIntval();
-  void*    GetValue();
   void     Set( int v );
   void     Set( bool d, int v );
   size_t HashValue();
@@ -91,7 +90,6 @@ class CcReal : public StandardAttribute
   bool     IsDefined() const;
   void     SetDefined(bool defined);
   float    GetRealval();
-  void*    GetValue();
   void     Set( float v );
   void     Set( bool d, float v );
   size_t HashValue();
@@ -120,7 +118,6 @@ class CcBool : public StandardAttribute
   bool     IsDefined() const;
   void     SetDefined(bool defined);
   bool     GetBoolval();
-  void*    GetValue();
   void     Set( bool d, bool v );
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);
@@ -153,7 +150,6 @@ class CcString : public StandardAttribute
   bool      IsDefined() const;
   void      SetDefined(bool defined);
   STRING*   GetStringval();
-  void*     GetValue();
   void      Set( bool d, const STRING* v );
   size_t HashValue();
   void CopyFrom(StandardAttribute* right);

@@ -149,9 +149,6 @@ an attribute in the Relational Algebra.
     void SetDefined( bool Defined )
       {}
 
-    void *GetValue()
-      { return (void *)0; }
-
     size_t HashValue()
       { return 0; }
 
@@ -172,7 +169,7 @@ an attribute in the Relational Algebra.
 
     ostream& Print( ostream &os )
       { if( IsDefined() )
-          return os << "( " << left << ", " << right << ", " << bottom << ", " << top << " )"; 
+          return os << "( " << left << ", " << right << ", " << bottom << ", " << top << " )";
         else
           return os << "undef";
       }

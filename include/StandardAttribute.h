@@ -44,7 +44,6 @@ the "Secondo"[3] query processor.
 class StandardAttribute : public Attribute
 {
  public:
-  virtual void* GetValue() = 0;
   virtual size_t HashValue() = 0;
 /*
 

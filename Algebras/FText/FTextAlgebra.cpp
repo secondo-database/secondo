@@ -63,7 +63,7 @@ public:
 /*************************************************************************
 
   The following virtual functions:
-  IsDefined, SetDefined, GetValue, HashValue, CopyFrom, Compare, Sizeof, Clone, Print, Adjacent
+  IsDefined, SetDefined, HashValue, CopyFrom, Compare, Sizeof, Clone, Print, Adjacent
   need to be defined if we want to use ~text~ as an attribute type in tuple definitions.
 
 *************************************************************************/
@@ -71,7 +71,6 @@ public:
   FText(bool newDefined, textType newText);
   bool     IsDefined() const;
   void     SetDefined(bool newDefined);
-  void*    GetValue();
   size_t   HashValue();
   void     CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
@@ -120,20 +119,20 @@ bool  FText::SearchText(textType subString)
 void FText::Set(textType newString)
 {
   LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n"; )
-    
+
   *theText=*newString;
   defined=true;
-  
+
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
 void FText::Set(bool newDefined, textType newString)
 {
   LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n"; )
-    
+
   *theText=*newString;
   defined=newDefined;
-  
+
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
@@ -179,13 +178,6 @@ void FText::SetDefined(bool newDefined)
   defined = newDefined;
 }
 
-
-void*  FText::GetValue()
-{
-  if(traces)
-    cout << '\n' << "Start GetValue" << '\n';
-  return ((void *)theText);
-}
 
 size_t FText::HashValue()
 {
@@ -234,8 +226,8 @@ int FText::Compare(Attribute * arg)
   textType pstr=f->Get();
   if ( *theText<*pstr)
     return -1;
-    
-  if ( *theText>*pstr)  
+
+  if ( *theText>*pstr)
   	return 1;
 
   return 0;
@@ -267,8 +259,8 @@ int FText::Adjacent(Attribute *arg)
   if(traces)
     cout << '\n' << "Start Adjacent" << '\n';
 
-  textType atT = (textType)GetValue(),
-    btT = (textType)(((FText *)arg)->GetValue());
+  textType atT = Get(),
+           btT = ((FText *)arg)->Get();
 
   const char *a = atT->c_str(),
     *b = btT->c_str();

@@ -2,7 +2,7 @@
 //paragraph [1] Title:	[{\Large \bf ]	[}]
 
 [1] Secondo Standardalgebra
- 
+
 Friedhelm Becker, Nov. 1998
 
 August 16, 2000 RHG Changed includes to show dependencies more clearly.
@@ -10,7 +10,7 @@ August 16, 2000 RHG Changed includes to show dependencies more clearly.
 March 2002 Ulrich Telle Port to C++
 
 November 9, 2002 RHG Added operators ~randint~ and ~log~. Some other slight revisions.
- 
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -20,7 +20,7 @@ November 9, 2002 RHG Added operators ~randint~ and ~log~. Some other slight revi
 1 Overview
 
 In  this algebra the standard types and functions are defined. Standard types are
-~int~, ~real~, ~bool~ and ~string~. These types  are represented 
+~int~, ~real~, ~bool~ and ~string~. These types  are represented
 In Classes of C++ whith a boolean flag which shows whether this value is defined
 or not (e.g it could be undefined because it is the result of a divivion by zero).
 
@@ -43,7 +43,7 @@ Following operators are defined:
         real x real --> real
 ----
 
-  * [*] (multiply) 
+  * [*] (multiply)
 
 ----    int x int --> int
         int x real --> real
@@ -64,7 +64,7 @@ Following operators are defined:
 ----    int x int --> int
 ----
 
-  * div (integer division) 
+  * div (integer division)
 
 ----	int x int --> int
 ----
@@ -83,9 +83,9 @@ greater than 0. Otherwise it is set to 2.
 ----
 
 Computes the base 2 logarithm of the first argument (i.e., the integer part of
-it).	
+it).
 
-  * \verb+<+ , \verb+>+ , =, \verb+<=+ , \verb+>=+ , \# 
+  * \verb+<+ , \verb+>+ , =, \verb+<=+ , \verb+>=+ , \#
 
 ----    int  x int  --> bool
         int  x real --> bool
@@ -96,12 +96,12 @@ it).
 ----
 
 
-  * starts, contains 
+  * starts, contains
 
 ----    string x string --> bool
 ----
 
-  * not	
+  * not
 
 ----    bool  --> bool
 ----
@@ -147,7 +147,7 @@ examine nested list type descriptions. In particular, we
 are going to check whether they describe one of the four types just introduced.
 In order to simplify dealing with list expressions describing these types, we
 declare an enumeration, ~CcType~, containing the four types, and a function,
-~TypeOfSymbol~, taking a nested list as  argument and returning the 
+~TypeOfSymbol~, taking a nested list as  argument and returning the
 corresponding ~CcType~ type name.
 
 */
@@ -158,7 +158,7 @@ enum CcType { ccint, ccreal, ccerror, ccbool, ccstring, ccconst, ccset };
 static CcType
 TypeOfSymbol( ListExpr symbol )
 {
-  if ( nl->AtomType( symbol ) == SymbolType ) 
+  if ( nl->AtomType( symbol ) == SymbolType )
   {
     string s = nl->SymbolValue( symbol );
     if ( s == "int"    ) return (ccint);
@@ -171,10 +171,10 @@ TypeOfSymbol( ListExpr symbol )
   return (ccerror);
 }
 
-/* 
+/*
 3 Type constructors
 
-A type constructor is created by defining an instance of class 
+A type constructor is created by defining an instance of class
 ~TypeConstructor~. Before this instance definition may take place we have
 to define some functions which are passed as constructor arguments
 during ~TypeConstructor~ instantiation.
@@ -198,7 +198,6 @@ CcInt::~CcInt() {};
 void   CcInt::Set( int v ) { defined = true, intval = v; };
 void   CcInt::Set( bool d, int v ) { defined = d, intval = v; };
 int    CcInt::GetIntval() { return (intval); };
-void*  CcInt::GetValue() { return (void *)intval;};
 bool   CcInt::IsDefined() const { return (defined); };
 void   CcInt::SetDefined(bool defined) { this->defined = defined; };
 int    CcInt::Sizeof() const { return (sizeof(CcInt)); };
@@ -242,13 +241,13 @@ static ListExpr
 CcIntProperty()
 {
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("int"), 
-			     nl->StringAtom("(<intvalue>)"), 
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("int"),
+			     nl->StringAtom("(<intvalue>)"),
 			     nl->StringAtom("12 or -32 or 0"))));
 }
 
@@ -278,7 +277,7 @@ static ListExpr
 OutCcInt( ListExpr typeinfo, Word value )
 {
   if( ((CcInt*)value.addr)->IsDefined() )
-  { 
+  {
     return (nl->IntAtom( ((CcInt*)value.addr)->GetIntval() ));
   }
   else
@@ -341,7 +340,7 @@ CloseCcInt( Word& w )
   w.addr = 0;
 }
 
-static Word 
+static Word
 CloneCcInt( const Word& w )
 {
   return SetWord( ((CcInt*)w.addr)->Clone() );
@@ -502,9 +501,9 @@ IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 
 TypeConstructor ccInt( "int",            CcIntProperty,
-                       OutCcInt,         InCcInt,       
-                       0,                0, 
-                       CreateCcInt,      DeleteCcInt,      
+                       OutCcInt,         InCcInt,
+                       0,                0,
+                       CreateCcInt,      DeleteCcInt,
                        0,        0,      CloseCcInt, CloneCcInt,
                        CastInt,          CheckInt,
                        0,
@@ -525,7 +524,6 @@ CcReal::~CcReal(){};
 bool    CcReal::IsDefined() const { return (defined); };
 void    CcReal::SetDefined(bool defined) { this->defined = defined; };
 float   CcReal::GetRealval() { return (realval);};
-void*   CcReal::GetValue() { return ((void*)-1); };
 void    CcReal::Set( float v ) { defined = true, realval = v; };
 void    CcReal::Set( bool d, float v ) { defined = d, realval = v; };
 int     CcReal::Sizeof() const { return (sizeof(CcReal)); };
@@ -585,13 +583,13 @@ static ListExpr
 CcRealProperty()
 {
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("real"), 
-			     nl->StringAtom("(<realvalue>)"), 
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("real"),
+			     nl->StringAtom("(<realvalue>)"),
 			     nl->StringAtom("12.0 or -1.342 or 14e-3 "
 			     "or .23"))));
 }
@@ -605,7 +603,7 @@ static ListExpr
 OutCcReal( ListExpr typeinfo, Word value )
 {
   if( ((CcReal*)value.addr)->IsDefined() )
-  { 
+  {
     return (nl->RealAtom( ((CcReal*)value.addr)->GetRealval() ));
   }
   else
@@ -628,8 +626,8 @@ InCcReal( ListExpr typeInfo, ListExpr value,
     correct = true;
     return (SetWord( new CcReal( false, 0.0) ));
   }
-  else  
-  {  
+  else
+  {
     correct = false;
     return (SetWord( Address( 0 ) ));
   }
@@ -655,7 +653,7 @@ CloseCcReal( Word& w )
   w.addr = 0;
 }
 
-static Word 
+static Word
 CloneCcReal( const Word& w )
 {
   return SetWord( ((CcReal*)w.addr)->Clone() );
@@ -663,7 +661,7 @@ CloneCcReal( const Word& w )
 
 /*
 3.3.6 {\em Cast}-function of type constructor {\tt ccreal}
- 
+
 */
 
 static void*
@@ -686,10 +684,10 @@ CheckReal( ListExpr type, ListExpr& errorInfo )
 
 
 TypeConstructor ccReal( "real",       CcRealProperty,
-                        OutCcReal,    InCcReal,   
+                        OutCcReal,    InCcReal,
                         0,            0,
-                        CreateCcReal, DeleteCcReal, 
-                        0,            0, 
+                        CreateCcReal, DeleteCcReal,
+                        0,            0,
                         CloseCcReal, CloneCcReal,
                         CastReal,   CheckReal );
 
@@ -714,7 +712,6 @@ void    CcBool::Set( bool d, bool v ){ defined = d, boolval = v; };
 bool    CcBool::IsDefined() const { return defined; };
 void    CcBool::SetDefined(bool defined) { this->defined = defined; };
 bool    CcBool::GetBoolval() { return boolval; };
-void*   CcBool::GetValue() { return (void *)boolval; };
 int     CcBool::Sizeof() const { return sizeof(CcBool); };
 CcBool* CcBool::Clone() { return new CcBool(*this); };
 size_t CcBool::HashValue() { return (defined ? boolval : false); };
@@ -756,13 +753,13 @@ static ListExpr
 CcBoolProperty()
 {
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("bool"), 
-			     nl->StringAtom("(<boolvalue>)"), 
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("bool"),
+			     nl->StringAtom("(<boolvalue>)"),
 			     nl->StringAtom("TRUE or FALSE"))));
 }
 
@@ -782,7 +779,7 @@ static ListExpr
 OutCcBool( ListExpr typeinfo, Word value )
 {
   if( ((CcBool*)value.addr)->IsDefined() )
-  { 
+  {
     return (nl->BoolAtom( ((CcBool*)value.addr)->GetBoolval() ));
   }
   else
@@ -843,7 +840,7 @@ CloseCcBool( Word& w )
   w.addr = 0;
 }
 
-static Word 
+static Word
 CloneCcBool( const Word& w )
 {
   return SetWord( ((CcBool*)w.addr)->Clone() );
@@ -937,9 +934,9 @@ BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 
 TypeConstructor ccBool( "bool",             CcBoolProperty,
-                        OutCcBool,          InCcBool,        
+                        OutCcBool,          InCcBool,
                         0,                  0,
-                        CreateCcBool,       DeleteCcBool,       
+                        CreateCcBool,       DeleteCcBool,
                         0,                  0,
                         CloseCcBool,        CloneCcBool,
                         CastBool,           CheckBool,
@@ -958,12 +955,11 @@ CcString::~CcString() {};
 bool      CcString::IsDefined() const { return (defined); };
 void      CcString::SetDefined(bool defined) { this->defined = defined; };
 STRING*   CcString::GetStringval() { return (&stringval); };
-void*     CcString::GetValue() { return ((void*) &stringval); };
 int       CcString::Sizeof() const { return (sizeof(CcString)); };
 CcString* CcString::Clone() { return (new CcString( *this )); };
 void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 
-size_t 
+size_t
 CcString::HashValue()
 {
   if(!defined)
@@ -1002,7 +998,7 @@ int       CcString::Compare( Attribute* arg )
   {
     return 1;
   }
-  
+
   CcString* p = (CcString*)(arg);
   if ( !p ) return (-2);
   if ( strcmp(stringval , p->stringval) < 0) return (-1);
@@ -1022,13 +1018,13 @@ CcStringProperty()
   nl->AppendText(examplelist, "\"A piece of text up to 48 "
 		 "characters\"");
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("string"), 
-			     nl->StringAtom("(<stringvalue>)"), 
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+	                     nl->StringAtom("string"),
+			     nl->StringAtom("(<stringvalue>)"),
 			     examplelist)));
 }
 
@@ -1047,20 +1043,20 @@ int CcString::Adjacent( Attribute* arg )
       char cha = (*a)[strlen(*a)-1],
            chb = (*b)[strlen(*b)-1];
       return( cha == chb + 1 || chb == cha + 1 );
-    } 
+    }
   }
   else if( strlen( *a ) == strlen( *b ) + 1 )
   {
-    return( strncmp( *a, *b, strlen( *b ) ) == 0 && 
+    return( strncmp( *a, *b, strlen( *b ) ) == 0 &&
             ( (*a)[strlen(*a)-1] == 'a' || (*a)[strlen(*a)-1] == 'A' ) );
   }
   else if( strlen( *a ) + 1 == strlen( *b ) )
   {
-    return( strncmp( *a, *b, strlen( *a ) ) == 0 && 
+    return( strncmp( *a, *b, strlen( *a ) ) == 0 &&
             ( (*b)[strlen(*b)-1] == 'a' || (*b)[strlen(*b)-1] == 'A' ) );
   }
-  
-  return 0; 
+
+  return 0;
 }
 
 /*
@@ -1131,7 +1127,7 @@ CloseCcString( Word& w )
   w.addr = 0;
 }
 
-static Word 
+static Word
 CloneCcString( const Word& w )
 {
   return SetWord( ((CcString*)w.addr)->Clone() );
@@ -1149,9 +1145,9 @@ CastString( void* addr )
 
 /*
 3.2.5 {\em Type check} function of type constructor {\tt ccreal}
- 
+
 */
- 
+
 static bool
 CheckString( ListExpr type, ListExpr& errorInfo )
 {
@@ -1159,10 +1155,10 @@ CheckString( ListExpr type, ListExpr& errorInfo )
 }
 
 TypeConstructor ccString( "string",       CcStringProperty,
-                          OutCcString,    InCcString, 
+                          OutCcString,    InCcString,
                           0,              0,
-                          CreateCcString, DeleteCcString, 
-                          0,              0, 
+                          CreateCcString, DeleteCcString,
+                          0,              0,
                           CloseCcString,  CloneCcString,
                           CastString,     CheckString );
 
@@ -1582,7 +1578,7 @@ this example --- there are several value mapping functions, one for each
 possible combination of input parameter types. We have to provide
 four functions for each of the operators ~+~, ~-~,  ~[*]~ ....., since
 each of them accepts four input parameter combinations: ~ccint~ $\times$
-~ccint~, ~ccint~ $\times$ ~ccreal~,  ~ccreal~ $\times$ ~ccint~, and 
+~ccint~, ~ccint~ $\times$ ~ccreal~,  ~ccreal~ $\times$ ~ccint~, and
 ~ccreal~ $\times$ ~ccreal~.
 
 */
@@ -1760,7 +1756,7 @@ CcProduct_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcProduct_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -1778,7 +1774,7 @@ CcProduct_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcProduct_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -1796,7 +1792,7 @@ CcProduct_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcProduct_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -1814,7 +1810,7 @@ CcProduct_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 /*
 4.7 Value mapping functions of operator ~/~
 
@@ -1838,7 +1834,7 @@ CcDivision_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDivision_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -1857,7 +1853,7 @@ CcDivision_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDivision_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -1876,7 +1872,7 @@ CcDivision_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDivision_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2009,7 +2005,7 @@ LogFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
 
 /*
-4.9 Value mapping functions of operator  $ < $ 
+4.9 Value mapping functions of operator  $ < $
 
 */
 
@@ -2030,7 +2026,7 @@ CcLess_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLess_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2048,7 +2044,7 @@ CcLess_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLess_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2066,7 +2062,7 @@ CcLess_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLess_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2084,7 +2080,7 @@ CcLess_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLess_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2102,7 +2098,7 @@ CcLess_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLess_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2111,7 +2107,7 @@ CcLess_ss( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcString*)args[1].addr)->IsDefined() )
   {
     int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp < 0) 
+    if (cmp < 0)
       ((CcBool *)result.addr)->Set( true, true );
     else
       ((CcBool *)result.addr)->Set( true, false );
@@ -2124,7 +2120,7 @@ CcLess_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-4.10 Value mapping functions of operator $ <= $  
+4.10 Value mapping functions of operator $ <= $
 
 */
 
@@ -2145,7 +2141,7 @@ CcLessEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLessEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2163,7 +2159,7 @@ CcLessEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLessEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2181,7 +2177,7 @@ CcLessEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLessEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2199,7 +2195,7 @@ CcLessEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLessEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2217,7 +2213,7 @@ CcLessEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcLessEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2226,7 +2222,7 @@ CcLessEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcString*)args[1].addr)->IsDefined() )
   {
     int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp <= 0) 
+    if (cmp <= 0)
       ((CcBool *)result.addr)->Set( true, true );
     else
       ((CcBool *)result.addr)->Set( true, false );
@@ -2239,7 +2235,7 @@ CcLessEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-4.11 Value mapping functions of operator $ > $ 
+4.11 Value mapping functions of operator $ > $
 
 */
 
@@ -2260,7 +2256,7 @@ CcGreater_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcGreater_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2278,7 +2274,7 @@ CcGreater_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcGreater_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2296,7 +2292,7 @@ CcGreater_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcGreater_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2314,7 +2310,7 @@ CcGreater_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcGreater_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2332,7 +2328,7 @@ CcGreater_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcGreater_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2341,7 +2337,7 @@ CcGreater_ss( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcString*)args[1].addr)->IsDefined() )
   {
     int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp > 0) 
+    if (cmp > 0)
       ((CcBool *)result.addr)->Set( true, true );
     else
       ((CcBool *)result.addr)->Set( true, false );
@@ -2355,7 +2351,7 @@ CcGreater_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-4.12 Value mapping functions of operator $ >= $ 
+4.12 Value mapping functions of operator $ >= $
 
 */
 
@@ -2376,7 +2372,7 @@ CcGreaterEqual_ii( Word* args, Word& result, int message, Word& local, Supplier 
   }
   return (0);
 }
- 
+
 static int
 CcGreaterEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2394,7 +2390,7 @@ CcGreaterEqual_ir( Word* args, Word& result, int message, Word& local, Supplier 
   }
   return (0);
 }
- 
+
 static int
 CcGreaterEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2412,7 +2408,7 @@ CcGreaterEqual_ri( Word* args, Word& result, int message, Word& local, Supplier 
   }
   return (0);
 }
- 
+
 static int
 CcGreaterEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2430,7 +2426,7 @@ CcGreaterEqual_rr( Word* args, Word& result, int message, Word& local, Supplier 
   }
   return (0);
 }
- 
+
 static int
 CcGreaterEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2448,7 +2444,7 @@ CcGreaterEqual_bb( Word* args, Word& result, int message, Word& local, Supplier 
   }
   return (0);
 }
- 
+
 static int
 CcGreaterEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2457,7 +2453,7 @@ CcGreaterEqual_ss( Word* args, Word& result, int message, Word& local, Supplier 
        ((CcString*)args[1].addr)->IsDefined() )
   {
     int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp >= 0) 
+    if (cmp >= 0)
       ((CcBool *)result.addr)->Set( true, true );
     else
       ((CcBool *)result.addr)->Set( true, false );
@@ -2491,7 +2487,7 @@ CcEqual_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2509,7 +2505,7 @@ CcEqual_ir( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2527,7 +2523,7 @@ CcEqual_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2545,7 +2541,7 @@ CcEqual_rr( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2563,7 +2559,7 @@ CcEqual_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2572,7 +2568,7 @@ CcEqual_ss( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcString*)args[1].addr)->IsDefined() )
   {
     int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp == 0) 
+    if (cmp == 0)
       ((CcBool *)result.addr)->Set( true, true );
     else
       ((CcBool *)result.addr)->Set( true, false );
@@ -2606,7 +2602,7 @@ CcDiff_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDiff_ir( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2678,7 +2674,7 @@ CcDiff_bb( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDiff_ss( Word* args, Word& result, int message, Word& local, Supplier s )
 {
@@ -2687,7 +2683,7 @@ CcDiff_ss( Word* args, Word& result, int message, Word& local, Supplier s )
        ((CcString*)args[1].addr)->IsDefined() )
   {
     int cmp = ((CcString*)args[0].addr)->Compare((CcString*)args[1].addr);
-    if (cmp != 0) 
+    if (cmp != 0)
       ((CcBool *)result.addr)->Set( true, true );
     else
       ((CcBool *)result.addr)->Set( true, false );
@@ -2772,7 +2768,7 @@ NotFun( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 /*
 4.16 Value mapping functions of operator ~and~
 
@@ -2783,9 +2779,9 @@ AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   if ( (((CcBool*)args[0].addr)->IsDefined() &&
-        ((CcBool*)args[1].addr)->IsDefined()) ) 
+        ((CcBool*)args[1].addr)->IsDefined()) )
   {
-    ((CcBool*)result.addr)->Set( true, ((CcBool*)args[0].addr)->GetBoolval() && 
+    ((CcBool*)result.addr)->Set( true, ((CcBool*)args[0].addr)->GetBoolval() &&
                                        ((CcBool*)args[1].addr)->GetBoolval() );
   }
   else
@@ -2804,7 +2800,7 @@ static int
 OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((CcBool*)args[0].addr)->IsDefined() && 
+  if( ((CcBool*)args[0].addr)->IsDefined() &&
       ((CcBool*)args[1].addr)->IsDefined() )
   {
     ((CcBool*)result.addr)->Set( true, ((CcBool*)args[0].addr)->GetBoolval() ||
@@ -2883,7 +2879,7 @@ IsEmpty_s( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-4.18 Value mapping functions of operator ~upper~ 
+4.18 Value mapping functions of operator ~upper~
 
 */
 
@@ -2893,8 +2889,8 @@ Upper( Word* args, Word& result, int message, Word& local, Supplier s )
   result = qp->ResultStorage( s );
   char * orgStr = (char*)((CcString*)args[0].addr)->GetStringval();
   char newStr[256];
-  char *lastChar;  
-  
+  char *lastChar;
+
   if( ((CcString*)args[0].addr)->IsDefined() )
   {
       strcpy(newStr, orgStr);
@@ -2926,7 +2922,7 @@ CcSetIntersection_ii( Word* args, Word& result, int message, Word& local, Suppli
   {
     if( ((CcInt*)args[0].addr)->GetIntval() == ((CcInt*)args[1].addr)->GetIntval() )
     {
-      ((CcInt *)result.addr)->Set( true, ((CcInt*)args[0].addr)->GetIntval() ); 
+      ((CcInt *)result.addr)->Set( true, ((CcInt*)args[0].addr)->GetIntval() );
       return (0);
     }
   }
@@ -3145,15 +3141,15 @@ CcNoModelMapping( ArgVector arg, Supplier opTreeNode )
 /*
 5 Definition of operators
 
-Definition of operators is done in a way similar to definition of 
-type constructors: an instance of class ~Operator~ is defined. 
+Definition of operators is done in a way similar to definition of
+type constructors: an instance of class ~Operator~ is defined.
 
 Because almost all operators are overloaded, we have first do define an array of value
 mapping functions for each operator. For nonoverloaded operators there is also such and array
 defined, so it easier to make them overloaded.
 
-*/ 
- 
+*/
+
 ValueMapping ccplusmap[] = { CcPlus_ii, CcPlus_ir, CcPlus_ri, CcPlus_rr };
 ValueMapping ccminusmap[] = { CcMinus_ii, CcMinus_ir, CcMinus_ri, CcMinus_rr };
 ValueMapping ccproductmap[] = { CcProduct_ii, CcProduct_ir, CcProduct_ri, CcProduct_rr };
@@ -3192,7 +3188,7 @@ ModelMapping ccgtmodelmap[] = { IiGreaterModel, CcNoModelMapping, CcNoModelMappi
 
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" )" 
+                          "\"Example\" )"
                           "( <text>(int int) -> int, (int real) -> real, "
 			  "(real int)"
 			  " -> real, (real real) -> real</text--->"
@@ -3208,7 +3204,7 @@ const string CCSpecSub  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>_ - _</text--->"
 			       "<text>Subtraction</text--->"
 			       "<text>query -.2 - 4</text--->"
-			      ") )";   
+			      ") )";
 
 const string CCSpecMul  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -3217,7 +3213,7 @@ const string CCSpecMul  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>_ * _</text--->"
 			       "<text>Multiplication.</text--->"
 			       "<text>query 5 * 1.4 </text--->"
-			      ") )"; 
+			      ") )";
 
 const string CCSpecDiv  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -3243,7 +3239,7 @@ const string CCSpecDiv2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>Integer Division.</text--->"
 			       "<text>query 5 div 2 </text--->"
 			      ") )";
-			      
+
 const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
                              "( <text>int -> int </text--->"
@@ -3252,7 +3248,7 @@ const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "arg-1, for arg > 1.</text--->"
 			       "<text>query randint (9)</text--->"
 			      ") )";
-			      
+
 const string CCSpecLog  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>int -> int </text--->"
@@ -3312,7 +3308,7 @@ const string CCSpecEQ  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>Equal.</text--->"
 			       "<text>query 2.1 = 2.01</text--->"
 			      ") )";
-			      
+
 const string CCSpecNE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                          "( <text>(int int) -> bool, (int real) -> bool, "
@@ -3339,7 +3335,7 @@ const string CCSpecCon  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			    "<text>query \"contains\" contains \"tai\""
 			    "</text--->"
 			      ") )";
-			      
+
 const string CCSpecNot  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>bool -> bool</text--->"
@@ -3347,7 +3343,7 @@ const string CCSpecNot  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>Logical Not.</text--->"
 			       "<text>query not ( 4=4 )</text--->"
 			     " ) )";
-			     
+
 const string CCSpecAnd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                           "( <text>(bool bool) -> bool</text--->"
@@ -3356,7 +3352,7 @@ const string CCSpecAnd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			       "<text>query (8 = 8) and (3 < 4)</text--->"
 			      ") )";
 
-const string CCSpecOr  = "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string CCSpecOr  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                              "( <text>(bool bool) -> bool</text--->"
 			       "<text>_ or _</text--->"
@@ -3426,15 +3422,15 @@ Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, Cc
 /*
 6 Class ~CcAlgebra~
 
-The last steps in adding an algebra to the Secondo system are 
+The last steps in adding an algebra to the Secondo system are
 
-  * Associating value mapping functions with their operators 
+  * Associating value mapping functions with their operators
 
   * ``Bunching'' all
 type constructors and operators in one instance of class ~Algebra~.
 
-Therefore, a new subclass ~CcAlgebra~ of class ~Algebra~ is declared. The only 
-specialization with respect to class ~Algebra~ takes place within the 
+Therefore, a new subclass ~CcAlgebra~ of class ~Algebra~ is declared. The only
+specialization with respect to class ~Algebra~ takes place within the
 constructor: all type constructors and operators are registered at the actual algebra.
 
 After declaring the new class, its only instance ~ccalgebra1~ is defined.
@@ -3519,9 +3515,9 @@ InitializeStandardAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 /*
 8 Query examples
 
-Now we are ready to 
+Now we are ready to
 compile this algebra implementation and link the resulting object
-file with the Secondo library to a Secondo executable containing our 
+file with the Secondo library to a Secondo executable containing our
 example algebra.
 
 Here are some example queries:
@@ -3542,7 +3538,7 @@ Here are some example queries:
   * "(query ([*] (+ 4 5.7)(- 2.5 4)))"[1]
 
     Result value -14.55 is returned.
-	
+
   * "(query (or ( $ < $  4 5.7)( $ > $  2.5 4)))"[1]
 
     Result value TRUE is returned.

@@ -202,12 +202,6 @@ void Point::SetDefined( bool Defined )
   defined = Defined;
 }
 
-void*  Point::GetValue()
-{
-    return ((void *)-1);
-    //the function getvalue doesn't make sense in this case, so we just return -1.
-}
-
 size_t   Point::HashValue()
 {
     if(!defined)  return (0);
@@ -1209,12 +1203,6 @@ void Points::SetDefined( bool Defined )
     //since every points is defined, so the function does nothing.
 }
 
-void*  Points::GetValue()
-{
-    return ((void *)-1);
-    //the function getvalue doesn't make sense in this case, so we just return -1.
-}
-
 size_t   Points::HashValue()
 {
     if(IsEmpty())  return (0);
@@ -1685,7 +1673,7 @@ void    CHalfSegment::translate(double xx, double yy)
 const Rectangle CHalfSegment::BoundingBox() const
 {
   return Rectangle( MIN( GetLP().GetX(), GetRP().GetX() ),
-                    MAX( GetLP().GetX(), GetRP().GetX() ), 
+                    MAX( GetLP().GetX(), GetRP().GetX() ),
                     MIN( GetLP().GetY(), GetRP().GetY() ),
                     MAX( GetLP().GetY(), GetRP().GetY() ) );
 }
@@ -3669,11 +3657,6 @@ void CLine::SetDefined( bool Defined )
     //since every line is defined, so the function does nothing.
 }
 
-void*  CLine::GetValue()
-{
-    return ((void *)-1);
-    //the function getvalue doesn't make sense in this case, so we just return -1.
-}
 
 size_t   CLine::HashValue()
 {
@@ -5008,12 +4991,6 @@ void CRegion::SetDefined( bool Defined )
 {
     //defined = Defined;
     //since every line is defined, so the function does nothing.
-}
-
-void*  CRegion::GetValue()
-{
-    return ((void *)-1);
-    //the function getvalue doesn't make sense in this case, so we just return -1.
 }
 
 size_t   CRegion::HashValue()
@@ -7142,44 +7119,44 @@ insidepsMap( ListExpr args )
 /*
 10.1.17 Type mapping function for operator ~translate~
 
-This type mapping function is used for the ~translate~ operator. This operator 
-moves a region parallelly to another place and gets another region.  
+This type mapping function is used for the ~translate~ operator. This operator
+moves a region parallelly to another place and gets another region.
 
 */
 static ListExpr
 translateMap( ListExpr args )
-{  
+{
     ListExpr arg1, arg2, arg3;
     if ( nl->ListLength( args ) == 3 )
     {
 	arg1 = nl->First( args );
 	arg2 = nl->Second( args );
 	arg3 = nl->Third( args );
-	
+
 	if ( TypeOfSymbol( arg1 ) == stregion &&
 	     nl->IsEqual(arg2, "real") &&
 	     nl->IsEqual(arg3, "real"))
 	      //((nl->IsEqual(arg2, "real"))||(nl->IsEqual(arg2, "int")))  &&
 	      //((nl->IsEqual(arg3, "real"))||(nl->IsEqual(arg3, "int"))))
 	    return (nl->SymbolAtom( "region" ));
-	
+
 	if ( TypeOfSymbol( arg1 ) == stline &&
 	     nl->IsEqual(arg2, "real") &&
 	     nl->IsEqual(arg3, "real"))
 	    return (nl->SymbolAtom( "line" ));
-		
+
 	if ( TypeOfSymbol( arg1 ) == stpoints &&
 	     nl->IsEqual(arg2, "real") &&
 	     nl->IsEqual(arg3, "real"))
 	    return (nl->SymbolAtom( "points" ));
-	
+
 	if ( TypeOfSymbol( arg1 ) == stpoint &&
 	     nl->IsEqual(arg2, "real") &&
 	     nl->IsEqual(arg3, "real"))
 	    return (nl->SymbolAtom( "point" ));
     }
-    
-    return (nl->SymbolAtom( "typeerror" ));    
+
+    return (nl->SymbolAtom( "typeerror" ));
 }
 
 /*
@@ -7856,19 +7833,19 @@ static int
 translateSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
-  
+
   if (TypeOfSymbol( arg1 ) == stpoint)
       return (0);
-  
+
   if (TypeOfSymbol( arg1 ) == stpoints)
       return (1);
-    
+
   if (TypeOfSymbol( arg1 ) == stline)
       return (2);
-      
+
   if (TypeOfSymbol( arg1 ) == stregion)
       return (3);
- 
+
   return (-1); // This point should never be reached
 }
 
@@ -11743,11 +11720,11 @@ static int
 translate_p( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    
+
     Point *p=((Point*)args[0].addr);
     CcReal *xx=(CcReal *)args[1].addr;
     CcReal *yy=(CcReal *)args[2].addr;
-    
+
     if ( p->IsDefined())
     {
 	Point resP(true, p->GetX()+xx->GetRealval(), p->GetY()+yy->GetRealval());
@@ -11766,9 +11743,9 @@ static int
 translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    
+
     ((Points *)result.addr)->Clear();
-    
+
     Points *ps=((Points*)args[0].addr);
     CcReal *xx=(CcReal *)args[1].addr;
     CcReal *yy=(CcReal *)args[2].addr;
@@ -11777,14 +11754,14 @@ translate_ps( Word* args, Word& result, int message, Word& local, Supplier s )
     {
 	Point auxp;
 	((Points *)result.addr)->StartBulkLoad();
-	
+
 	for (int i=0; i<ps->Size(); i++)
 	{
 	    ps->Get(i, auxp);
 	    auxp.translate(xx->GetRealval(), yy->GetRealval());
 	    *((Points *)result.addr) += auxp;
 	}
-	
+
 	((Points *)result.addr)->setOrdered(true);
 	//((Points *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
 	return (0);
@@ -11799,26 +11776,26 @@ static int
 translate_l( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    
+
     ((CLine *)result.addr)->Clear();
-    
+
     CLine *cl=((CLine *)args[0].addr);
     CcReal *xx=(CcReal *)args[1].addr;
     CcReal *yy=(CcReal *)args[2].addr;
-    
+
     CHalfSegment chs;
 
     if (!( cl->IsEmpty()))
     {
 	((CLine *)result.addr)->StartBulkLoad();
-	
+
 	for (int i=0; i<cl->Size(); i++)
 	{
 	    cl->Get(i, chs);
 	    chs.translate(xx->GetRealval(), yy->GetRealval());
 	    *((CLine *)result.addr) += chs;
 	}
-	
+
 	((CLine *)result.addr)->setOrdered(true);
 	//((CLine *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
 	return (0);
@@ -11833,9 +11810,9 @@ static int
 translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-    
+
     ((CRegion *)result.addr)->Clear();
-    
+
     CRegion *cr=((CRegion *)args[0].addr);
     CcReal *xx=(CcReal *)args[1].addr;
     CcReal *yy=(CcReal *)args[2].addr;
@@ -11845,14 +11822,14 @@ translate_r( Word* args, Word& result, int message, Word& local, Supplier s )
     if (!( cr->IsEmpty()))
     {
 	((CRegion *)result.addr)->StartBulkLoad();
-	
+
 	for (int i=0; i<cr->Size(); i++)
 	{
 	    cr->Get(i, chs);
 	    chs.translate(xx->GetRealval(), yy->GetRealval());
 	    *((CRegion *)result.addr) += chs;
 	}
-	
+
 	((CRegion *)result.addr)->setOrdered(true);
 	//((CRegion *)result.addr)->bboxtranslate(xx->GetRealval(), yy->GetRealval());
 	return (0);
@@ -12045,7 +12022,7 @@ ValueMapping commonbordermap[] = { commonborder_rr
 ValueMapping translatemap[] = { translate_p,
 			          translate_ps,
 			          translate_l,
-			          translate_r				  
+			          translate_r
 				      };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
