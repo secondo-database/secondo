@@ -13,7 +13,7 @@ mkdir $HOME/temp-build
 temp=$HOME/temp-build
 sdk=$HOME/secondo-sdk
 
-printf "\n* Installing from " 
+printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
 printf "\n* '$cdpath' to '$instpath' \n" 
 
 printf "\n* Installing Java SDK ... this needs some user interaction"
@@ -23,7 +23,7 @@ cd "sdk"
 "$cdpath/java/j2sdk*.bin"
 
 cd "$temp"
-printf "\n\n* Uncompressing archives ... \n"
+printf "\n* Uncompressing 3d-party tools ... \n"
 
 for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
   zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
@@ -43,7 +43,7 @@ for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
 done
 
 cd "$HOME"
-printf "\n\n  Uncompressing SECONDO source files ... \n"
+printf "\n\n* Uncompressing SECONDO source files ... \n"
 if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
   exit 3
 fi
@@ -76,7 +76,6 @@ cd "$temp/db-*"
 ./configure --prefix=$sdk
 make
 "make install"
-
 
 printf  "\n* Copying configuration files ... \n"
 cd "$HOME/secondo/CM-Scripts"

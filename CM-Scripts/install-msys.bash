@@ -49,25 +49,28 @@ if [ "$continue" = "false" ]; then
    exit
 fi   
 
-printf "\n* Installing from " 
+printf "\n* Installing the SECONDO DEVELOPMENT TOOLKIT from " 
 printf "\n* '$cdpath' to '$instpath' \n" 
-printf "\n\n* Creating mount points ... \n"
-
+printf "\n* Creating mount points ... \n"
 
 install -d "$msysdir/secondo-sdk"
 install -d "$msysdir/secondo"
 install -d "$msysdir/mingw"
 
-printf "\n\n* Installing unzip ..."
+printf "\n* Starting MinGW Installer ... \n"
+cd "$cdpath/mingw"
+Min*.exe
+
+printf "\n* Installing unzip ... \n"
 
 install -d "$instpath/secondo-sdk/bin"
 cd "$instpath/secondo-sdk/bin"
-"$cdpath/non-gnu/unzip/unz550xN.exe > /dev/null"
+"$cdpath/non-gnu/unzip/unz550xN.exe" > /dev/null 
 export PATH="$instpath/secondo-sdk/bin:$instpath/secondo-sdk/lib:$PATH"
 unzip -q -o "$cdpath/non-gnu/unzip/zip23xN.zip"
 
 cd "$instpath/secondo-sdk"
-printf "\n\n* Uncompressing archives ... \n"
+printf "\n* Uncompressing 3d-party tools ... \n"
 
 for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
   zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
@@ -87,12 +90,12 @@ for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
 done
 
 cd "$HOME"
-printf "\n\n  Uncompressing SECONDO source files ... \n"
+printf "\n\n* Uncompressing SECONDO source files ... \n"
 if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
   exit 3
 fi
 
-printf  "\n\n* Copying configuration files ... \n"
+printf  "\n* Copying configuration files ... \n"
 cd "$HOME/secondo/CM-Scripts"
 cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
 cp --backup .secondorc .bashrc-sample "$HOME"
@@ -104,11 +107,14 @@ chmod u+x .secondorc .bashrc
 cd "$HOME/secondo/Win32/MSYS"
 cp --backup fstab profile "$msysdir/etc"
 
+printf  "\n* Starting SWI-Prolog Installer ... \n"
 cd "$cdpath/prolog"
-w32pl5010.exe
+w32pl*.exe
 
-cd "$cdpath/java"
-j2sdk-1_4_2-windows-i586.exe
+
+printf  "\n* Starting JAVA Installer ... \n"
+cd "$cdpath/../java"
+j2sdk*windows*.exe
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"
