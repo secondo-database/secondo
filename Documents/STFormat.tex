@@ -242,29 +242,21 @@ A vertex is a \emph{Point} value.
 
 
 \section{Representation of Time}
-There are several representations for an \emph{instant} value.
-All Applications using instants must be able to read each of this.
-A \emph{DateTime} as an algebra type consist only of its value list. 
-If \emph{DateTime} is used as subtype, e.g. in an interval, the
-type-name has to be included. The typename can be {\tt datetime} or
-{\tt instant}. Summarized we have three possibilities for a \emph{DateTime}:
-\begin{tt}
-  \begin{small}
-     \begin{itemize}
-       \item (datetime $<$datetimevalue$>$) \\
-       \item (instant $<$datetimevalue$>$)  \\
-       \item $<$datetimevalue$>$
-      \end{itemize}
-  \end{small}
-\end{tt}
+They are two types of time. The first one is {\tt instant}, and the 
+second one is {\tt duration}. If a time value is used internal (e.g.
+in moving objects), the list will be:\\
+  {\tt ( type $<$timevalue$>$ )}\\
+where {\tt type} is a Symbol atom which can holds one of the values
+{\tt\{ instant, duration\}}. For the reason of compatibility we
+allow also the value {\tt datetime} as an alias for an instant type. 
 
-The representations of {\tt $<$datetimevalue$>$} are described
+The representations of {\tt $<$timevalue$>$} are described
 in the next subsections.
 
 \subsection{String Representation}
 \label{StringRepOfTime}
-A $<$datetimevalue$>$ can be represented as string in the following
-format: \\
+A $<$timevalue$>$ of type {\tt instant} can be represented as 
+string in the following format: \\
 \begin{tt}
   \begin{small}
       year-month-day[-hour:minute[:second[.millisecond]]]
@@ -274,25 +266,26 @@ The squared brackets indicate optionally parts. All contained values
 are integers which must be in the appropriate interval. 
 
 \subsection{Real Representation}
-A $<$datetimevalue$>$ can just be represented as an real value. 
+A $<$timevalue$>$ can just be represented as an real value. 
 The conversion beween the formats is described in section 
-\ref{TimeConversions}.
+\ref{TimeConversions}. This format is accepted by {\tt instant} and
+{\tt duration} types.
 
 \subsection{Julian Representation}
-A $<$datetimevalue$>$ in the Julian representation is:\\
+A $<$timevalue$>$ in the Julian representation is defined for {\tt duration} 
+types as follow:\\
 \begin{tt}
   \begin{small}
       (day millisecond)
   \end{small}
 \end{tt}\\
 {\tt day} can be any integer and millisecond is an integer in 
-the interval [0,86400000[. {\tt day} represents the difference
-to a fixed nulldate and {\tt milliseconds} represents the 
-time part of this day.
+the interval [0,86400000[. 
 
 \subsection{Gregorian Representation}
-In the Gregorian Representation a $<$datetimevalue$>$ is written 
-down as follow:\\
+In the Gregorian Representation (for {\tt instant}s only)
+a $<$timevalue$>$ is written 
+down as:\\
 \begin{tt}
   \begin{small}
       (day month year [ hour minute [ second [ millisecond]]])
@@ -307,10 +300,15 @@ values must be in the appropriate interval.
 
 \subsection{Conversions between Representations of Time}
 \label{TimeConversions}
+Both types of time can be represented by a tuple {\tt (day, milliseconds)}. 
+The Meaning for a duration type is clear. For an instant type this tuple
+is the difference to a fixed {\tt NULL\_DATE}. Because this {\tt NULL\_DATE}
+is given in the Julian calender, we denote this representation as 
+Julian Representation.
 The conversion between {\tt real} value and Julian representation
 is straightforward:\\
 $ JulToReal : int \times int \rightarrow \R$ \\
-$ JulToReal(day,millisecond) = day + \frac{millisecond}{86400000}$ \\
+$ JulToReal(day, millisecond) = day + \frac{millisecond}{86400000}$ \\
 The used operators are working on real numbers.\\[1em]
 The another direction is computed as follow. Note a possible lost of 
 precision.\\
