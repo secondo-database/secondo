@@ -1,0 +1,57 @@
+# !/bin/sh
+# Script for checking of correctness with respect to pd and latex
+ARGS=$*
+if [ "$ARGS" = "all" ]
+then
+   FILESCPP=$(find $PWD -name '*.cpp')
+   FILESH=$(find $PWD -name '*.h')
+   MYFILES="$FILESCPP $FILESH"
+else
+   MYFILES=""
+   for G in $ARGS
+   do
+     MYFILES="$MYFILES $PWD/$G"
+   done
+fi
+
+TEMPDIR="$HOME/.checkpd"
+HERE="$PWD"
+
+if [ ! -d "$TEMPDIR"  ]; then
+   mkdir "$TEMPDIR"
+   if [ $? -ne 0 ]; then
+     echo "cannot create temp directory"
+     exit 2
+   fi
+   EXIST=FALSE
+else
+   EXIST=TRUE
+fi
+
+cd "$TEMPDIR"
+
+for F in $MYFILES
+do
+   S=$((pdtabs <"$F" | maketex >/dev/null) 2>&1)
+   if [ $? -ne 0 ]
+   then
+     echo "pdcheck for $F failed"
+     echo "message : $S"
+     echo -e "\n\n"
+   else
+     {
+       cat "$PD_HEADER"
+       pdtabs <$F | maketex | linebreaks
+     } >"$TEMPDIR"/tmp.tex
+     latex -interaction=nonstopmode "$TEMPDIR"/tmp.tex >/dev/null
+     if [ $? -ne 0 ]; then
+        echo -e "LaTex Error in \"$F\"\n\n"
+     fi
+     rm -f $TEMPDIR/*.dvi $TEMPDIR/*.log $TEMPDIR/*.aux $TEMPDIR/*.tmp $TEMPDIR/*.toc $TEMPDIR/tmp.tex
+   fi
+done
+
+cd "$HERE"
+if [ "$EXIST" = "FALSE" ]; then
+  rmdir  --ignore-fail-on-non-empty "$TEMPDIR"
+fi
