@@ -100,7 +100,8 @@ class SortByLocalInfo
         while(qp->Received(stream.addr))
         {
           Tuple *t = ((Tuple*)wTuple.addr)->CloneIfNecessary();
-          ((Tuple*)wTuple.addr)->DeleteIfAllowed();
+          if( t != wTuple.addr )
+            ((Tuple*)wTuple.addr)->DeleteIfAllowed();
 
           t->SetFree( false );
           tuples.push_back( t );
@@ -113,7 +114,6 @@ class SortByLocalInfo
 
             Relation *rel = new Relation( *tupleType, true );
             SaveTo( *rel );
-            ClearMemory();
             RelationIterator *iter = rel->MakeScan();
             relations.push_back( pair<Relation*, RelationIterator*>( rel, iter ) );
 
@@ -132,7 +132,6 @@ class SortByLocalInfo
         {
           Relation *rel = new Relation( *tupleType, true );
           SaveTo( *rel );
-          ClearMemory();
           RelationIterator *iter = rel->MakeScan();
           relations.push_back( pair<Relation*, RelationIterator*>( rel, iter ) );
 
@@ -218,18 +217,13 @@ class SortByLocalInfo
       vector<Tuple*>::iterator iter = tuples.begin();
       while( iter != tuples.end() )
       {
-        Tuple *t =  (*iter)->CloneIfNecessary();
+        Tuple *t = (*iter)->CloneIfNecessary();
+        if( t != *iter )
+          (*iter)->DeleteIfAllowed();
         rel.AppendTuple( t );
         t->DeleteIfAllowed();
         iter++;
       }
-    }
-
-    void ClearMemory()
-    {
-      for( size_t i = 0; i < tuples.size(); i++ )
-        delete tuples[i];
-      tuples.clear();
     }
 
     size_t MAX_TUPLES_IN_MEMORY;
@@ -463,9 +457,10 @@ private:
     while( iter != bucket.end() )
     {
       Tuple *t =  (*iter)->CloneIfNecessary();
-      rel->AppendTuple( t );
       if( t != *iter )
-        t->DeleteIfAllowed();
+        (*iter)->DeleteIfAllowed();
+      rel->AppendTuple( t );
+      t->DeleteIfAllowed();
       iter++;
     }
   }
@@ -702,10 +697,10 @@ public:
           else
           {
             Tuple *t = tupleA->CloneIfNecessary();
-            relationA->AppendTuple( t );
             if( t != tupleA )
-              t->DeleteIfAllowed();
-            tupleA->DeleteIfAllowed();
+              tupleA->DeleteIfAllowed();
+            relationA->AppendTuple( t );
+            t->DeleteIfAllowed();
           }
           tupleA = NextATuple();
         }
@@ -733,10 +728,10 @@ public:
           else
           {
             Tuple *t = tupleB->CloneIfNecessary();
-            relationB->AppendTuple( t );
             if( t != tupleB )
-              t->DeleteIfAllowed();
-            tupleB->DeleteIfAllowed();
+              tupleB->DeleteIfAllowed();
+            relationB->AppendTuple( t );
+            t->DeleteIfAllowed();
           }
           tupleB = NextBTuple();
         }
@@ -837,17 +832,11 @@ The user can specify the number of hash buckets.
 2.3.1 Auxiliary definitions for value mapping function of operator ~hashjoin~
 
 */
-
-CPUTimeMeasurer hashMeasurer;  // measures cost of distributing into buckets and
-                               // of computing products of buckets
-CPUTimeMeasurer bucketMeasurer;// measures the cost of producing the tuples in
-                               // the result set
-
 class HashJoinLocalInfo
 {
 private:
   size_t nBuckets;
-  size_t MAX_TUPLES_IN_BUCKET;
+  size_t MAX_TUPLES_IN_MEMORY;
 
   int attrIndexA;
   int attrIndexB;
@@ -855,14 +844,16 @@ private:
   Word streamA;
   Word streamB;
 
-  Word tupleA;
+  Tuple *tupleA;
+  TupleBuffer* relA;
+  TupleBufferIterator* iterTuplesRelA;
+  bool firstPassA;
+  size_t hashA;
+
   vector< vector<Tuple*> > bucketsB;
   vector<Tuple*>::iterator iterTuplesBucketB;
-
-  vector<Relation*> relBucketsB;
-  RelationIterator* iterTuplesRelBucketB;
-
-  size_t hashA;
+  bool remainTuplesB, bFitsInMemory;
+  Word wTupleB;
 
   TupleType *resultTupleType;
 
@@ -888,32 +879,6 @@ private:
     return (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() % nBuckets);
   }
 
-  void SaveTo( vector<Tuple*>& bucket, Relation *rel )
-  {
-    vector<Tuple*>::iterator iter = bucket.begin();
-    while( iter != bucket.end() )
-    {
-      Tuple *t = (*iter)->CloneIfNecessary();
-      rel->AppendTuple( t );
-      t->DeleteIfAllowed();
-      iter++;
-    }
-  }
-
-  int ReadFrom( RelationIterator *iter, vector<Tuple*>& bucket )
-  {
-    size_t i = 0;
-    Tuple *t;
-
-    while( i < MAX_TUPLES_IN_BUCKET && (t = iter->GetNextTuple()) != 0 )
-    {
-      t->SetFree( false );
-      bucket.push_back( t );
-      i++;
-    }
-    return i;
-  }
-
   void ClearBucket( vector<Tuple*>& bucket )
   {
     vector<Tuple*>::iterator i = bucket.begin();
@@ -923,52 +888,6 @@ private:
       i++;
     }
     bucket.clear();
-  }
-
-  void FillHashBucketsB()
-  {
-    Word tupleWord;
-    qp->Open(streamB.addr);
-    qp->Request(streamB.addr, tupleWord);
-
-    if(qp->Received(streamB.addr))
-    {
-      Tuple *tupleB = (Tuple*)tupleWord.addr;
-//      MAX_TUPLES_IN_BUCKET = qp->MemoryAvailableForOperator() / ( nBuckets * tupleB->GetMemorySize() );
-      MAX_TUPLES_IN_BUCKET = 16 * 1024 * 1024 / ( nBuckets * tupleB->GetMemorySize() );
-      cout << "HashJoin.MAX_TUPLES_IN_BUCKET: " << MAX_TUPLES_IN_BUCKET << endl;
-    }
-
-    while(qp->Received(streamB.addr))
-    {
-      hashMeasurer.Enter();
-
-      Tuple* tupleB = ((Tuple*)tupleWord.addr)->CloneIfNecessary();
-      ((Tuple*)tupleWord.addr)->DeleteIfAllowed();
-      size_t hashB = HashTuple(tupleB, attrIndexB);
-
-      if( bucketsB[hashB].size() == MAX_TUPLES_IN_BUCKET )
-      {
-        relBucketsB[hashB] = new Relation( tupleB->GetTupleType(), true );
-        SaveTo( bucketsB[hashB], relBucketsB[hashB] );
-        ClearBucket( bucketsB[hashB] );
-      }
-
-      if( relBucketsB[hashB] == 0 )
-      {
-        tupleB->SetFree( false );
-        bucketsB[hashB].push_back( tupleB );
-      }
-      else
-      {
-        relBucketsB[hashB]->AppendTuple( tupleB );
-        tupleB->DeleteIfAllowed();
-      }
-      hashMeasurer.Exit();
-
-      qp->Request(streamB.addr, tupleWord);
-    }
-    qp->Close(streamB.addr);
   }
 
   void ClearBucketsB()
@@ -982,24 +901,46 @@ private:
     }
   }
 
-  void ClearRelationsB()
+  bool FillHashBucketsB()
   {
-    delete iterTuplesRelBucketB;
-
-    vector< Relation* >::iterator iterBuckets = relBucketsB.begin();
-
-    while(iterBuckets != relBucketsB.end() )
+    if( firstPassA )
     {
-      if( (*iterBuckets) != 0 )
-        delete *iterBuckets;
-      iterBuckets++;
+      qp->Request(streamB.addr, wTupleB);
+      if(qp->Received(streamB.addr))
+      {
+        Tuple *tupleB = (Tuple*)wTupleB.addr;
+//        MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ( tupleB->GetMemorySize() );
+        MAX_TUPLES_IN_MEMORY = 12 * 1024 * 1024 / tupleB->GetMemorySize();
+        cout << "HashJoin.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
+      }
     }
 
+    size_t i = 0;
+    while(qp->Received(streamB.addr) && i++ < MAX_TUPLES_IN_MEMORY)
+    {
+      Tuple* tupleB = ((Tuple*)wTupleB.addr)->CloneIfNecessary();
+      if( tupleB != wTupleB.addr )
+        ((Tuple*)wTupleB.addr)->DeleteIfAllowed();
+      size_t hashB = HashTuple(tupleB, attrIndexB);
+
+      tupleB->SetFree( false );
+      bucketsB[hashB].push_back( tupleB );
+
+      qp->Request(streamB.addr, wTupleB);
+    }
+
+    bool remainTuples = false;
+    if( i >= MAX_TUPLES_IN_MEMORY && qp->Received(streamB.addr) )
+      remainTuples = true;
+
+    if( !remainTuples )
+      qp->Close(streamB.addr);
+
+    return remainTuples;
   }
 
 public:
-  static const size_t MAX_BUCKETS = 257;
-  static const size_t MIN_BUCKETS = 1;
+  static const size_t MIN_BUCKETS = 3;
   static const size_t DEFAULT_BUCKETS = 97;
 
   HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
@@ -1019,101 +960,117 @@ public:
     {
       nBuckets = MIN_BUCKETS;
     }
-    else if(nBuckets > MAX_BUCKETS)
-    {
-      nBuckets = MAX_BUCKETS;
-    }
-
-    hashMeasurer.Enter();
 
     bucketsB.resize(nBuckets);
-    relBucketsB.resize(nBuckets);
+    relA = 0;
+    iterTuplesRelA = 0;
+    firstPassA = true;
+    tupleA = 0;
 
-    for(size_t i = 0; i < nBuckets; i++ )
-      relBucketsB[i] = 0;
+    qp->Open(streamB.addr);
+    remainTuplesB = FillHashBucketsB();
+    bFitsInMemory  = !remainTuplesB;
 
-    iterTuplesRelBucketB = 0;
-
-    hashMeasurer.Exit();
-
-    FillHashBucketsB();
+    if( !bFitsInMemory )
+      relA = new TupleBuffer( 4 * 1024 * 1024 );
 
     qp->Open(streamA.addr);
-    qp->Request( streamA.addr, tupleA );
-    if( qp->Received(streamA.addr) )
-    {
-      hashA = HashTuple((Tuple*)tupleA.addr, attrIndexA);
-      iterTuplesBucketB = bucketsB[hashA].begin();
-    }
+    NextTupleA();
+/*
+At this moment we have a tuple of the stream A and a hash table in memory
+of the stream B. There is a possibility that the stream B does not fit in
+memory, which is kept in the variable ~bFitsInMemory~. The iterator for the
+bucket that the tuple coming from A hashes is also initialized.
+
+*/
   }
 
   ~HashJoinLocalInfo()
   {
     ClearBucketsB();
-    ClearRelationsB();
-    qp->Close(streamA.addr);
+    if( !bFitsInMemory )
+    {
+      assert( relA != 0 );
+      relA->Clear();
+      delete relA;
+    }
     delete resultTupleType;
   }
 
-  Tuple* NextTupleB( size_t hashA )
+  bool NextTupleA()
   {
-    if( iterTuplesBucketB != bucketsB[hashA].end() )
+    if( tupleA != 0 )
     {
-      Tuple *result = *iterTuplesBucketB;
-      iterTuplesBucketB++;
-      return result;
+      if( firstPassA && !bFitsInMemory )
+        relA->AppendTuple( tupleA );
+      tupleA->DeleteIfAllowed();
     }
 
-    if( relBucketsB[hashA] != 0 )
+    if( firstPassA )
     {
-      if( iterTuplesRelBucketB == 0 )
-        iterTuplesRelBucketB = relBucketsB[hashA]->MakeScan();
-
-      if( !bucketsB[hashA].empty() )
-        ClearBucket( bucketsB[hashA] );
-
-      if( ReadFrom( iterTuplesRelBucketB, bucketsB[hashA] ) == 0 )
+      Word wTupleA;
+      qp->Request( streamA.addr, wTupleA );
+      if( qp->Received(streamA.addr) )
       {
-        delete iterTuplesRelBucketB;
-        iterTuplesRelBucketB = 0;
-        return 0;
+        tupleA = ((Tuple*)wTupleA.addr)->CloneIfNecessary();
+        if( tupleA != wTupleA.addr )
+          ((Tuple*)wTupleA.addr)->DeleteIfAllowed();
       }
+      else
+      {
+        tupleA = 0;
+        qp->Close(streamA.addr);
+        return false;
+      }
+    }
+    else
+    {
+      assert( !bFitsInMemory );
+      assert( iterTuplesRelA != 0 );
 
-      iterTuplesBucketB = bucketsB[hashA].begin();
-
-      return NextTupleB( hashA );
+      if( (tupleA = iterTuplesRelA->GetNextTuple()) == 0 )
+      {
+	delete iterTuplesRelA;
+    	return false;
+      }
     }
 
-    iterTuplesRelBucketB = 0;
-    return 0;
+    hashA = HashTuple( tupleA, attrIndexA );
+    iterTuplesBucketB = bucketsB[hashA].begin();
+    return true;
   }
 
   Tuple* NextResultTuple()
   {
-    Tuple *result;
-
-    while( tupleA.addr != 0 )
+    do
     {
-      Tuple *tupleB;
-      while( (tupleB = NextTupleB( hashA )) != 0 )
+      while( iterTuplesBucketB != bucketsB[hashA].end() )
       {
-        if( CompareTuples( (Tuple *)tupleA.addr, tupleB ) == 0 )
+        Tuple *tupleB = *iterTuplesBucketB++;
+
+        if( CompareTuples( tupleA, tupleB ) == 0 )
         {
-          result = new Tuple( *resultTupleType, true );
-          Concat( (Tuple *)tupleA.addr, tupleB, result );
+          Tuple *result = new Tuple( *resultTupleType, true );
+          Concat( tupleA, tupleB, result );
 
           return result;
         }
       }
-      ((Tuple*)tupleA.addr)->DeleteIfAllowed();
 
-      qp->Request( streamA.addr, tupleA );
-      if( qp->Received(streamA.addr) )
+      if( !NextTupleA() )
       {
-        hashA = HashTuple((Tuple*)tupleA.addr, attrIndexA);
-        iterTuplesBucketB = bucketsB[hashA].begin();
+        if( remainTuplesB )
+        {
+          firstPassA = false;
+          ClearBucketsB();
+          remainTuplesB = FillHashBucketsB();
+          assert( relA != 0 );
+          iterTuplesRelA = relA->MakeScan();
+          NextTupleA();
+        }
       }
-    }
+    } while( tupleA != 0 );
+
     return 0;
   }
 };
@@ -1144,10 +1101,6 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       result = SetWord(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
-      hashMeasurer.PrintCPUTimeAndReset("CPU Time for Hashing Tuples : ");
-      bucketMeasurer.PrintCPUTimeAndReset(
-        "CPU Time for Computing Products of Buckets : ");
-
       localInfo = (HashJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;

@@ -1255,9 +1255,10 @@ Relation *Relation::Clone()
   while( (t = iter->GetNextTuple()) != 0 )
   {
     Tuple *insT = t->CloneIfNecessary();
+    if( t != insT )
+      t->DeleteIfAllowed();
     r->AppendTuple( insT );
     insT->DeleteIfAllowed();
-    t->DeleteIfAllowed();
   }
   delete iter;
 

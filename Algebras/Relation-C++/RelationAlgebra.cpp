@@ -1029,9 +1029,9 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   while (qp->Received(args[0].addr))
   {
     Tuple* tuple = ((Tuple*)actual.addr)->CloneIfNecessary();
-    rel->AppendTuple(tuple);
     if( tuple != actual.addr )
       ((Tuple*)actual.addr)->DeleteIfAllowed();
+    rel->AppendTuple(tuple);
     tuple->DeleteIfAllowed();
 
     qp->Request(args[0].addr, actual);
@@ -1632,8 +1632,9 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       while(qp->Received(args[1].addr))
       {
         Tuple *t = ((Tuple*)u.addr)->CloneIfNecessary();
+        if( t != u.addr )
+          ((Tuple*)u.addr)->DeleteIfAllowed();
         pli->rightRel->AppendTuple( t );
-        ((Tuple*)u.addr)->DeleteIfAllowed();
         t->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
       }
