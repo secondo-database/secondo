@@ -13,6 +13,9 @@ April 2003 Ulrich Telle, implemented temporary SmiFiles
 October 2003 M. Spiekermann Startup modified. SecondoHome directory will be created if the
 configuration file contains no or a non-existent directory.
 
+April 2004 Hoffmann Changed some implementation details, so that the list databases 
+command is available under Windows XP.
+
 */
 
 using namespace std;
@@ -557,55 +560,29 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
 bool
 SmiEnvironment::ListDatabases( string& dbname )
 {
-  bool ok    = false;
-  int  rc    = 0;
+  bool ok    = true;
   Db*  dbctl = instance.impl->bdbDatabases;
   dbname     = "";
 
   if ( dbctl )
-  {
-    u_int32_t flags;
-    if ( !instance.impl->listStarted )
-    {
-      rc = dbctl->cursor( 0, &instance.impl->listCursor, 0 );
-      if ( rc != 0 )
-      {
-        SetError( E_SMI_DB_NOTFOUND, rc );
-        return (false);
+  { 
+    try {
+      // Acquire a cursor for the table.
+      Dbc *dbcp;
+      dbctl->cursor(NULL, &dbcp, 0);
+      // Walk through the table, getting the key/data pairs.
+      Dbt key;
+      Dbt data;
+		
+      while (dbcp->get(&key, &data, DB_NEXT) == 0) {
+        dbname += (char *)key.get_data();
+	dbname += "#";
       }
-      instance.impl->listStarted = true;
-      flags = DB_FIRST;
+      dbcp->close();
     }
-    else
-    {
-      flags = DB_NEXT;
-    }
-
-    Dbt key;
-    static char keyData[SMI_MAX_DBNAMELEN+1];
-    key.set_data( keyData );
-    key.set_ulen( SMI_MAX_DBNAMELEN );
-    key.set_flags( DB_DBT_USERMEM );
-
-    Dbt data;
-    static char ch;    
-    data.set_data( &ch );
-    data.set_ulen( 1 );
-    data.set_flags( DB_DBT_USERMEM );
-
-    rc = instance.impl->listCursor->get( &key, &data, flags );
-    if ( rc == 0 )
-    {
-      keyData[key.get_size()] = 0;
-      dbname = keyData;
-      SetError( E_SMI_OK );
-      ok = true;
-    }
-    else
-    {
-      instance.impl->listCursor->close();
-      instance.impl->listStarted = false;
-      SetError( E_SMI_DB_NOTFOUND, rc );
+    catch (DbException &dbe) {
+      cerr << "Error: " << dbe.what() << "\n";
+      ok = false;
     }
   }
   else
@@ -634,20 +611,18 @@ SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId, const bool 
 bool
 SmiEnvironment::Implementation::LookUpDatabase( const string& dbname )
 {
-  bool   ok = false;   
-  int    rc = 0;
+  bool  ok = false;   
+  int  rc = 0, len;
+  char buf[1024];
   Db*    dbctl = instance.impl->bdbDatabases;
 
   if ( dbctl )
-  {
-    Dbt key( (void*) dbname.c_str(), dbname.length() );
-    Dbt data;
-
-    char ch;    
-    data.set_flags( DB_DBT_USERMEM );
-    data.set_data( &ch );
-    data.set_ulen( 1 );
-
+  { 
+    len = dbname.length();
+    for (int i = 0; i < len; i++) buf[i] = dbname[i];
+    buf[len] = '\0';
+    Dbt key(buf, len + 1);
+    Dbt data(buf, len + 1);
     rc = dbctl->get( 0, &key, &data, 0 );
     ok = (rc == 0);
   }
@@ -657,19 +632,20 @@ SmiEnvironment::Implementation::LookUpDatabase( const string& dbname )
 bool
 SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
 {
-  bool   ok = false;   
-  int    rc = 0;
-  Db*    dbctl = instance.impl->bdbDatabases;
+  bool  ok = false;   
+  int  rc = 0;
 
-  if ( dbctl )
-  {
-    Dbt key( (void*) dbname.c_str(), dbname.length() );
-    char ch;
-    Dbt data( (void*) &ch, 0 );
-
-    rc = dbctl->put( 0, &key, &data, DB_NOOVERWRITE | DB_AUTO_COMMIT );
-    ok = (rc == 0);
-  }
+  Db*  dbctl = instance.impl->bdbDatabases;
+  
+  int len;
+  char buf[1024];
+  len = dbname.length();
+  for (int i = 0; i < len; i++) buf[i] = dbname[i];
+  buf[len] = '\0';
+  Dbt key(buf, len + 1);
+  Dbt data(buf, len + 1);
+  rc = dbctl->put(0, &key, &data, DB_NOOVERWRITE | DB_AUTO_COMMIT);
+  ok = (rc == 0);
   return (ok);
 }
 
@@ -677,14 +653,20 @@ bool
 SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 {
   bool   ok = false;
-  int    rc = 0;
+  int    rc = 0, len;
+  char buf[1024];
+
   Db*    dbctl = instance.impl->bdbDatabases;
 
   if ( dbctl )
   {
-    Dbt key( (void*) dbname.c_str(), dbname.length() );
+    len = dbname.length();
+    for (int i = 0; i < len; i++) buf[i] = dbname[i];
+    buf[len] = '\0';
+    Dbt key(buf, len + 1);
 
     rc = dbctl->del( 0, &key, DB_AUTO_COMMIT );
+
     ok = (rc == 0);
   }
   return (ok);
