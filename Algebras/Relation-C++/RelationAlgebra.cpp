@@ -211,6 +211,66 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
   }
   return true;
 }
+
+/*
+
+4.6 Utility class ~CPUTimeMeasurer~
+
+If ~MEASURE\_OPERATORS~ is defined, detailed data about
+the runnning times of several operators is gathered
+and printed to ~cerr~.
+
+*/
+
+//#define MEASURE_OPERATORS
+
+class CPUTimeMeasurer
+{
+private:
+  clock_t enterTime;
+  clock_t exitTime;
+  clock_t accumulated;
+
+public:
+  CPUTimeMeasurer()
+  {
+    accumulated = 0;
+  }
+
+  inline void Enter()
+  {
+#ifdef MEASURE_OPERATORS
+    enterTime = clock();
+#endif
+  }
+
+  inline void Exit()
+  {
+#ifdef MEASURE_OPERATORS
+    exitTime = clock();
+    accumulated += exitTime - enterTime;
+#endif
+  }
+
+  inline double GetCPUTimeAndReset()
+  {
+    double accumulatedDouble = 0.0;
+
+#ifdef MEASURE_OPERATORS
+    accumulatedDouble = ((double)accumulated) / CLOCKS_PER_SEC;
+    accumulated = 0;
+#endif
+    return accumulatedDouble;
+  }
+
+  inline void PrintCPUTimeAndReset(char* prefix)
+  {
+#ifdef MEASURE_OPERATORS
+    cerr << prefix << GetCPUTimeAndReset() << endl;
+#endif
+  }
+};
+
 /*
 
 4 Operators
@@ -1642,6 +1702,8 @@ typeerror:
 
 */
 
+CPUTimeMeasurer productMeasurer;
+
 struct ProductLocalInfo
 {
   CcTuple* currentTuple;
@@ -1681,8 +1743,11 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST :
       pli = (ProductLocalInfo*)local.addr;
 
+      productMeasurer.Enter();
+
       if (pli->currentTuple == 0)
       {
+        productMeasurer.Exit();
         return CANCEL;
       }
       else
@@ -1695,6 +1760,8 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
           Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
           result = t;
           ++(pli->iter);
+
+          productMeasurer.Exit();
           return YIELD;
         }
         else
@@ -1710,6 +1777,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
             pli->iter = pli->rightRel.begin();
             if(pli->iter == pli->rightRel.end()) // second stream is empty
             {
+              productMeasurer.Exit();
               return CANCEL;
             }
             else
@@ -1720,10 +1788,16 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
               Concat(SetWord(pli->currentTuple), SetWord(*(pli->iter)), t);
               result = t;
               ++(pli->iter);
+
+              productMeasurer.Exit();
               return YIELD;
             }
           }
-          else return CANCEL; // left stream exhausted
+          else
+          {
+            productMeasurer.Exit();
+            return CANCEL; // left stream exhausted
+          }
         }
       }
 
@@ -1744,6 +1818,8 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
+
+      productMeasurer.PrintCPUTimeAndReset("Product CPU Time : ");
       return 0;
   }
   return 0;
@@ -2862,6 +2938,8 @@ struct SortByLocalInfo
   size_t currentIndex;
 };
 
+CPUTimeMeasurer sortMeasurer;
+
 template<bool lexicographically, bool requestArgs> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -2896,7 +2974,9 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if(lexicographically)
       {
+        sortMeasurer.Enter();
         sort(tuples->begin(), tuples->end(), lCcCmp);
+        sortMeasurer.Exit();
       }
       else
       {
@@ -2935,8 +3015,13 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
         };
         ccCmp.spec = spec;
+
+        sortMeasurer.Enter();
         sort(tuples->begin(), tuples->end(), ccCmp);
+        sortMeasurer.Exit();
       }
+
+      sortMeasurer.PrintCPUTimeAndReset("CPU Time for Sorting Tuples : ");
 
       localInfo = new SortByLocalInfo;
       localInfo->tuples = tuples;
@@ -3633,6 +3718,8 @@ typeerror:
 static CcInt oneCcInt(true, 1);
 static CcBool trueCcBool(true, true);
 
+CPUTimeMeasurer mergeMeasurer;
+
 class MergeJoinLocalInfo
 {
 private:
@@ -3935,10 +4022,14 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
+      mergeMeasurer.Enter();
       localInfo = (MergeJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
+      mergeMeasurer.Exit();
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
+      mergeMeasurer.PrintCPUTimeAndReset("CPU Time for Merging Tuples : ");
+
       localInfo = (MergeJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;
@@ -4010,6 +4101,9 @@ The user can specify the number of hash buckets.
 
 */
 
+CPUTimeMeasurer hashMeasurer;
+CPUTimeMeasurer bucketMeasurer;
+
 class HashJoinLocalInfo
 {
 private:
@@ -4059,8 +4153,13 @@ private:
     qp->Request(stream.addr, tupleWord);
     while(qp->Received(stream.addr))
     {
+      hashMeasurer.Enter();
+
       CcTuple* tuple = (CcTuple*)tupleWord.addr;
       buckets[HashTuple(tuple, attrIndex)].push_back(tuple);
+
+      hashMeasurer.Exit();
+
       qp->Request(stream.addr, tupleWord);
     }
     qp->Close(stream.addr);
@@ -4180,10 +4279,18 @@ HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
+      bucketMeasurer.Enter();
+
       localInfo = (HashJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
+
+      bucketMeasurer.Exit();
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
+      hashMeasurer.PrintCPUTimeAndReset("CPU Time for Hashing Tuples : ");
+      bucketMeasurer.PrintCPUTimeAndReset(
+        "CPU Time for Computing Products of Buckets : ");
+
       localInfo = (HashJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;
