@@ -89,12 +89,9 @@ public:
     for (int i=0; i < MAX_BUFFERS; i++) { // initialize the buffer
 
        BufInfo[i].bufPtr = (void*) new char[BUF_SIZE];
-       bufferMap[i] = i;
+       BufInfo[i].pageNr = i;
        recidVec.push_back( RecordInfo(0,i) );
        maxPageNr++;
-
-       if (trace)
-       cout << "buf: " << i << ": Adr " << (void*) BufInfo[i].bufPtr << endl;
     }
     
   }
@@ -110,12 +107,27 @@ public:
 
   void* GetBufPtr(const Cardinal& pageNr, bool &pageChange) {
    
-     if (trace)
-     cout << "pageNr: " << pageNr << endl; 
+     if (trace) {
+       cout << "pageNr: " << pageNr << endl; 
+       int k=0;
+       for (vector<BufInfoRec>::iterator it = BufInfo.begin(); it != BufInfo.end(); it++ ) {
+          cout << k << ": ";
+          it->print(cout);
+          k++;
+       }
+       cout << "===========================" << endl;
+       k=0;
+       for (vector<RecordInfo>::iterator it = recidVec.begin(); it != recidVec.end(); it++ ) {
+          cout << k << ": ";
+          it->print(cout);
+          k++;
+       }
+       
+     }
      
      int bufNr = -1;
      // check if page is currently inside the buffer
-     if ( (pageNr <= maxPageNr) && (recidVec[pageNr].index >= 0) ) {
+     if ( (pageNr < maxPageNr) && (recidVec[pageNr].index >= 0) ) {
  
        bufNr = recidVec[pageNr].index;
 
@@ -127,7 +139,12 @@ public:
        pageChange=true;
 
      }
-     assert( bufNr >= 0 && bufNr < MAX_BUFFERS );
+    
+     if ( bufNr >= 0 && bufNr < MAX_BUFFERS ) {
+       cout << "bufNr: " << bufNr << endl;
+       assert( bufNr >= 0 && bufNr < MAX_BUFFERS );
+     }
+
      return (void*) BufInfo[bufNr].bufPtr;
    }
 
@@ -146,6 +163,10 @@ private:
     SmiRecordId id;
     int index;
     RecordInfo(SmiRecordId ID, int INDEX) : id(ID), index(INDEX) {}
+    void print(ostream& os) {
+      os << "( id=" << id
+         << ", index=" << index << " )" << endl;
+    }
 
   };
   vector<RecordInfo> recidVec;
@@ -157,12 +178,17 @@ private:
     SmiRecordId recId;  
     bool recExists;  
     void *bufPtr;   
-    BufInfoRec() : pageNr(0), recId(0), recExists(false), bufPtr(0) {}  
+    BufInfoRec() : pageNr(0), recId(0), recExists(false), bufPtr(0) {}
+    void print(ostream& os) {
+        os << "( pageNr =" << pageNr 
+           << ", recId = " << recId 
+           << ", recExists =" << recExists 
+           << ", bufPtr =" << (void*) bufPtr << ")" << endl;
+    }  
 
   };
   vector<BufInfoRec> BufInfo;
 
-  map<Cardinal, int> bufferMap;
   int bufferReplacements;
 
   bool trace;
@@ -192,7 +218,7 @@ private:
     recInfo.id = recId;
     
     // Read record into memory
-    if ( pageNr > maxPageNr ) { // a new entry in the page table is needed 
+    if ( pageNr >= maxPageNr ) { // a new entry in the page table is needed 
 
       BufInfo[bufNr].recExists = false;
       recidVec.push_back( RecordInfo(0, bufNr) );
@@ -205,12 +231,14 @@ private:
       record.Read( bufPtr, BUF_SIZE, 0);
       BufInfo[bufNr].recExists = true;
       recidVec[pageNr].index = bufNr;
+      BufInfo[bufNr].recId = recidVec[pageNr].id;
     }
 
     if (trace) {
       cout << "MaxPageNr: " << maxPageNr << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
     }
  
+    BufInfo[bufNr].pageNr = pageNr;
     bufferReplacements++;
   }
 
@@ -453,8 +481,9 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
   bufPtr = (T*) recordBuf.GetBufPtr(pageNo, pageChange); 
 
   slot = index - (pageNo * pageRecord.slots);
-  assert ( slot >= 0 && slot < pageRecord.slots);
+  assert ( (slot >= 0) && (slot < pageRecord.slots) );
   
+
   if ( log.switchedOn ) {
      log.slotAccessCounter++;
      if ( pageChange ) {

@@ -25,18 +25,29 @@ void pause()
 bool
 RecordBufferTest() {
 
+  const int MaxPage=10;
   cout << "Tests for the Record Buffer" << endl;
   RecordBuffer rb(rf, 200, 4, true);
   
-  cout << "Show the buffer addresses for 100 pages" << endl;
-  for (int i=0; i<100; i++) {
+  cout << "Show the buffer addresses for " << MaxPage << "pages " << endl;
+  for (int i=0; i<MaxPage; i++) {
 
     bool change=false;
     void* ptr =  rb.GetBufPtr(i, change);
-    cout << " " << (void*) ptr << "(" << change << "), " << endl; 
+    cout << i << ": " << (void*) ptr << "(" << change << "), " << endl; 
   }
   cout << endl;
-  
+
+  cout << "Access pages 0 to " << MaxPage << endl;  
+  for (int i=0; i<MaxPage; i++) {
+
+    bool change=false;
+    void* ptr =  rb.GetBufPtr(i, change);
+    cout << i << ": " << (void*) ptr << "(" << change << "), " << endl; 
+    
+  }
+  cout << endl;
+
   return true;
 
 }
@@ -46,7 +57,7 @@ bool
 PArrayTest() {
 	
   cout << "Tests for the PArray template class!" << endl << endl;
-  PagedArray<int> pa(rf);
+  PagedArray<int> pa(rf,true);
 
   int max = 1000000;
   cout << "Storing numbers from 1 to " << max << ", read back, and sum them up ... " << endl;
