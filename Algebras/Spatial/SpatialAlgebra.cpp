@@ -6875,6 +6875,28 @@ commonborderMap( ListExpr args )
     return (nl->SymbolAtom( "typeerror" ));    
 }
 
+/*
+10.1.11 Type mapping function for operator ~bbox~
+
+This type mapping function is used for the ~bbox~ operator. This operator 
+computes the bbox of a region, which is also a region.  
+
+*/
+static ListExpr
+bboxMap( ListExpr args )
+{  
+    ListExpr arg1;
+    if ( nl->ListLength( args ) == 1 )
+    {
+	arg1 = nl->First( args );
+
+	if ( TypeOfSymbol( arg1 ) == stregion )
+	    return (nl->SymbolAtom( "region" ));
+    }
+    
+    return (nl->SymbolAtom( "typeerror" ));    
+}
+
 
 /*
 10.2 The dummy model mapping:
@@ -11069,6 +11091,58 @@ nohalfseg_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.4.22 Value mapping functions of operator ~bbox~
+
+*/
+static int
+bbox_r( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CRegion *cr=((CRegion*)args[0].addr);
+    BBox bbox=cr->BoundingBox();
+    
+    Coord minx, miny, maxx, maxy;
+    minx=bbox.MinD(0);
+    miny=bbox.MinD(1);
+    maxx=bbox.MaxD(0);
+    maxy=bbox.MaxD(1);
+    
+    ((CRegion *)result.addr)->StartBulkLoad();  //here: to manipulate the result region
+
+    Point p1, p2, p3, p4;
+    p1.Set(true, minx, miny);
+    p2.Set(true, minx, maxy);
+    p3.Set(true, maxx, maxy);
+    p4.Set(true, maxx, miny);
+    
+    CHalfSegment chs;
+    
+    chs.Set(true, true, p1, p2);
+    *((CRegion *)result.addr) += chs;
+    chs.SetLDP(false);
+    *((CLine *)result.addr) += chs;
+
+    chs.Set(true, true, p2, p3);
+    *((CRegion *)result.addr) += chs;
+    chs.SetLDP(false);
+    *((CLine *)result.addr) += chs;
+    
+    chs.Set(true, true, p3, p4);
+    *((CRegion *)result.addr) += chs;
+    chs.SetLDP(false);
+    *((CLine *)result.addr) += chs;
+    
+    chs.Set(true, true, p4, p1);
+    *((CRegion *)result.addr) += chs;
+    chs.SetLDP(false);
+    *((CLine *)result.addr) += chs;
+    
+    ((CRegion *)result.addr)->EndBulkLoad();
+    return (0);
+}
+
+/*
 10.4.23 Value mapping functions of operator ~size~
 
 */
@@ -11415,6 +11489,9 @@ ValueMapping nocomponentsmap[] =   { nocomponents_ps,
 ValueMapping nohalfsegmap[] =      {     nohalfseg_r
 				};
 
+ValueMapping bboxmap[] =      {     bbox_r
+				};
+
 ValueMapping sizemap[] = 	      { size_l
 				      };
 
@@ -11634,6 +11711,14 @@ const string SpatialSpecNohalfseg  =
 	"<text>query nohalfseg(region)</text--->"
 	") )";
 
+const string SpatialSpecBbox  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(region) -> region</text--->"
+	"<text> bbox( _ )</text--->"
+	"<text>return the bounding box of a region.</text--->"
+	"<text>query bbox(region)</text--->"
+	") )";
+
 const string SpatialSpecSize  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(line) -> real</text--->"
@@ -11753,6 +11838,10 @@ Operator spatialnohalfseg
 	( "nohalfseg", SpatialSpecNohalfseg, 1, nohalfsegmap, spatialnomodelmap,
 	  nohalfsegSelect,  nocomponentsMap);
 
+Operator spatialbbox
+	( "bbox", SpatialSpecBbox, 1, bboxmap, spatialnomodelmap,
+	  SimpleSelect,  bboxMap);
+
 Operator spatialsize
 	( "size", SpatialSpecSize, 1, sizemap, spatialnomodelmap,
 	  sizeSelect, sizeMap );
@@ -11812,6 +11901,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialnocomponents );
     AddOperator( &spatialnohalfseg );
     AddOperator( &spatialsize );
+    AddOperator( &spatialbbox);
   }
   ~SpatialAlgebra() {};
 };
