@@ -6,7 +6,7 @@
 
 include ../../makefile.env
 
-# --- List of all needed header files (including indirect dependencies)
+# --- List of all  needed header files (including indirect dependencies)
 
 INCFILES=\
 	$(INCLUDEDIR)/Algebra.h \
