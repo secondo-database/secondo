@@ -30,6 +30,8 @@ of these symbols, then the value ~error~ is returned.
 */
 
 #include <set>
+#include <time.h>
+
 #include "RelationAlgebra.h"
 
 NestedList* nl = 0;
