@@ -1006,6 +1006,7 @@ public boolean canDisplay(SecondoObject o){
     FC_Session.setDialogTitle("Open Session");
     int returnVal = FC_Session.showOpenDialog(HoeseViewer.this);
     if (returnVal == JFileChooser.APPROVE_OPTION) {
+      on_jMenu_NewSession(evt);
       File file = FC_Session.getSelectedFile();
       ListExpr le = new ListExpr();
       boolean ok = true;
@@ -1629,6 +1630,7 @@ public boolean canDisplay(SecondoObject o){
   }
     }
 }
+
 
 
 
