@@ -90,11 +90,12 @@ private void showObjectSettings(){
 private void showOptions3D(){
     OptionsView.reset();
     OptionsView.setBoundingBox(BoundingBox);
-    OptionsView.show();    
+    OptionsView.show();
 }
 
 /** remove all Aobjects from Viewer */
 private void clear(){
+   ComboBox.removeAllItems();
    W3D.removeAll();
    W3D.repaint();
 }
