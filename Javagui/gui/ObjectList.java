@@ -442,13 +442,16 @@ public boolean saveSelectedObject(){
            				 ListExpr.theEmptyList());
 	  }
         if(FullFileName.endsWith(".bnl")){
+	   BufferedOutputStream FOS =null;
            try{
-              BufferedOutputStream FOS = new BufferedOutputStream(new FileOutputStream(FullFileName));
+              FOS = new BufferedOutputStream(new FileOutputStream(FullFileName));
               saved = LE.writeBinaryTo(FOS);
-              }
+	      }
               catch(Exception e){
                 saved = false;
-              }
+              }finally{
+	         try{FOS.close();} catch(Exception e){}
+	      }
 
         }
         else
