@@ -1,3 +1,10 @@
+/*
+
+August 2004, M. Spiekermann. This comment was inserted to make it a PD-File. Moreover, 
+implementation of ~GetAlgebraName~ was done.
+
+*/
+
 #include <string>
 #include <algorithm>
 using namespace std;
@@ -67,7 +74,7 @@ AlgebraManager::ListAlgebras()
 }
 
 int
-AlgebraManager::GetAlgebraId(const string algName)
+AlgebraManager::GetAlgebraId(const string& algName)
 {
   int j;
   
@@ -85,6 +92,20 @@ AlgebraManager::GetAlgebraId(const string algName)
   return 0;
 }
 
+const string& 
+AlgebraManager::GetAlgebraName( const int algId ) {
+  
+	static const string unknown("UnknownAlgebra");
+	assert( algId >= 0 && algId <= maxAlgebraId );
+	map<int, string>::const_iterator it = algebraNames.find(algId);
+	
+	if ( it != algebraNames.end() ) {
+	  return it->second;
+	} else {
+		return unknown;
+	}    
+}
+
 void
 AlgebraManager::LoadAlgebras()
 {
@@ -94,18 +115,21 @@ AlgebraManager::LoadAlgebras()
   
   for ( j = 0; (*getAlgebraEntry)( j ).algebraId > 0; j++ )
   {
+    string algNameStr = (*getAlgebraEntry)( j ).algebraName;
+    int algId = (*getAlgebraEntry)( j ).algebraId;
+    
     if ( (*getAlgebraEntry)( j ).useAlgebra )
     {
       if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
       {
-        algebra[(*getAlgebraEntry)( j ).algebraId] =
-          ((*getAlgebraEntry)( j ).algebraInit)( nl, qp );
+        algebraNames[algId] = algNameStr;
+        algebra[algId] = ((*getAlgebraEntry)( j ).algebraInit)( nl, qp );
       }
       else
       {
         bool loaded = false;
-        string libraryName  = string( "lib" ) + (*getAlgebraEntry)( j ).algebraName;
-        string initFuncName = string( "Initialize" ) + (*getAlgebraEntry)( j ).algebraName;
+        string libraryName  = string( "lib" ) + algNameStr;
+        string initFuncName = string( "Initialize" ) + algNameStr;
         (*getAlgebraEntry)( j ).dynlib = new DynamicLibrary();
         transform( libraryName.begin(), libraryName.end(), libraryName.begin(), ToLowerProperFunction );
         if ( (*getAlgebraEntry)( j ).dynlib->Load( libraryName ) )

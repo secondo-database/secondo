@@ -1,3 +1,10 @@
+/*
+
+July 2004, M. Spiekermann. Counters for type constructors and operators were
+introduced to assert correct vector indexes and avoid segmentation faults.
+
+*/
+
 using namespace std;
 
 #include "AlgebraManager.h"
@@ -491,7 +498,7 @@ TypeConstructor::ValueToModel( ListExpr type, Word value )
 
 /* Member functions of Class Algebra: */
 
-Algebra::Algebra()
+Algebra::Algebra() : tcsNum(0), opsNum(0)
 {
 }
 
@@ -503,11 +510,13 @@ void
 Algebra::AddTypeConstructor( TypeConstructor* tc )
 {
   tcs.push_back( tc );
+  tcsNum++;
 }
 
 void
 Algebra::AddOperator( Operator* op )
 {
   ops.push_back( op );
+  opsNum++;
 }
 
