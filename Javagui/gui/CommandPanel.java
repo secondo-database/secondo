@@ -17,6 +17,9 @@ import  sj.lang.*;
  * selected text will be copied. Enter finishes the input.
  * @author  Thomas Höse
  * @version 0.99 1.1.02
+ *
+ * modified by Thomas Behr 
+ *
  */
 
 public class CommandPanel extends JScrollPane {
@@ -421,7 +424,9 @@ public class CommandPanel extends JScrollPane {
      */
     public void keyPressed (KeyEvent e) {
       String com = "";
-      if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+      int keyCode = e.getKeyCode();
+      int mod = e.getModifiersEx();
+      if (keyCode == KeyEvent.VK_ENTER) {
         try {
           com = SystemArea.getText(aktPos, SystemArea.getText().length() -
               aktPos);
@@ -429,16 +434,35 @@ public class CommandPanel extends JScrollPane {
         History.add(com);
         HistoryPos=History.size();
         execUserCommand(com);
-	//SystemArea.append("\n"+com+"\n");
-        //showPrompt();
+	  }
+     
+      
+      Caret C = SystemArea.getCaret();
+      int p1 = C.getDot();
+      int p2 = C.getMark();
+      if(p1<aktPos | p2<aktPos){
+         if( (mod&e.CTRL_DOWN_MASK)==0 ){ //ctrl not down => allow Cursor-keys and control
+           if(keyCode!=e.VK_DOWN & keyCode!=e.VK_UP & keyCode!=e.VK_LEFT &
+              keyCode!=e.VK_RIGHT & keyCode!=e.VK_CONTROL){
+              C.moveDot(aktPos);
+              C.setDot(aktPos);
+         }
+         } else {  // ctrl is pressed
+            if(keyCode!=e.VK_C & keyCode!=e.VK_CONTROL){
+              C.moveDot(aktPos);
+              C.setDot(aktPos);
+            } 
+         }
       }
-      else if ((e.getKeyCode() == KeyEvent.VK_BACK_SPACE) && (SystemArea.getCaretPosition()
-          == aktPos)) {
-        SystemArea.append(" ");
+      if( ( ( (mod&e.CTRL_DOWN_MASK)!=0 & keyCode==e.VK_H ) |
+            ( (mod&e.CTRL_DOWN_MASK)==0 & keyCode==e.VK_BACK_SPACE))
+          && SystemArea.getCaretPosition()==aktPos){
+        SystemArea.insert(" ",aktPos);
+      
       }
-      int keyCode = e.getKeyCode();
+      
+            
       int qrs=History.size();
-      int mod = e.getModifiersEx();
       if((mod&e.SHIFT_DOWN_MASK)!=0)
          return;
       if (qrs==0) return;
@@ -469,13 +493,6 @@ public class CommandPanel extends JScrollPane {
       int dot = e.getDot();
       int mark = e.getMark();
       int CPos = Math.min(Math.min(SystemArea.getCaretPosition(),dot),mark);
-      if( CPos<aktPos){
-         int p1 =(Math.max(Math.max(dot,mark),aktPos));
-	 SystemArea.setCaretPosition(aktPos);
-	 SystemArea.moveCaretPosition(p1);
-	 SystemArea.repaint();
-         return;
-      }
       if (dot == mark) {        // no selection
         if (dot < aktPos)
           SystemArea.setCaretPosition(aktPos);
