@@ -920,13 +920,13 @@ class CcRel
 
     CcRel () {NoOfTuples = 0; TupleList = new CTable<CcTuple*>(100);};
     ~CcRel () { delete TupleList; };
-    
+
     void    AppendTuple (CcTuple* t)
     {
       TupleList->Add(t);
       NoOfTuples++;
     };
-    
+
     CcRelIT* MakeNewScan()
     {
     	return new CcRelIT(TupleList->Begin(), this);
@@ -937,24 +937,24 @@ class CcRel
 
 };
 
-CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r) 
-{ 
+CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r)
+{
 	this->rs = rs;
-	this->r = r;	
+	this->r = r;
 }
 
-CcRelIT::~CcRelIT () {};  
+CcRelIT::~CcRelIT () {};
 CcTuple* CcRelIT::GetTuple() {return ((CcTuple*)(*rs));};
 void CcRelIT::Next() { rs++; };
-bool CcRelIT::EndOfScan() { return ( rs == (r->TupleList)->End() ); }; 
+bool CcRelIT::EndOfScan() { return ( rs == (r->TupleList)->End() ); };
 CcRelIT& CcRelIT::operator=(CcRelIT& right)
 {
 	rs = right.rs;
 	r = right.r;
 	return (*this);
-	
+
 };
-    
+
 CcTuple* CcRelIT::GetNextTuple()
 {
 	if( rs == (r->TupleList)->End() )
@@ -968,7 +968,7 @@ CcTuple* CcRelIT::GetNextTuple()
 		return result;
 	}
 }
-    
+
 /*
 
 1.4.2 ~Out~-function of type constructor ~rel~
@@ -978,7 +978,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
 {
   CcTuple* t;
   ListExpr l, lastElem, tlist, TupleTypeInfo;
-  
+
   CcRel* r = (CcRel*)(value.addr);
 
   CcRelIT* rit = r->MakeNewScan();
@@ -998,6 +998,7 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
     else
       lastElem = nl->Append(lastElem, tlist);
   }
+  delete rit;
   return l;
 
 }
@@ -1119,6 +1120,7 @@ void DeleteRel(Word& w)
     v = SetWord(t);
     DeleteTuple(v);
   }
+  delete rit;
   delete r;
 }
 /*
@@ -1545,7 +1547,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       //cout << "Feed OPEN " << endl;
       r = ((CcRel*)args[0].addr);
       rit = r->MakeNewScan();
-      
+
       local.addr = rit;
       return 0;
 
@@ -1566,7 +1568,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-    
+      rit = (CcRelIT*)local.addr;
+      delete rit;
       //cout << "Feed CLOSE " << endl;
       return 0;
   }
@@ -5072,6 +5075,7 @@ int GroupByValueMapping
   Word sWord;
   Word relWord;
   CcRel* tp;
+  CcRelIT* relIter;
   int i, j, k;
   int numberatt;
   bool ifequal;
@@ -5146,8 +5150,8 @@ int GroupByValueMapping
 
       t = new CcTuple;
       t->SetFree(true);
-      //tp->NewScan();
-      //s = tp->GetTuple();
+      relIter = tp->MakeNewScan();
+      s = relIter->GetNextTuple();
 
       for(i = 0; i < numberatt; i++)
       {
@@ -5157,10 +5161,10 @@ int GroupByValueMapping
       value2 = (Supplier)args[2].addr;
       noOffun  =  qp->GetNoSons(value2);
       t->SetNoAttrs(numberatt + noOffun);
+      delete relIter;
 
       for(ind = 0; ind < noOffun; ind++)
       {
-        //tp->NewScan();
         supplier1 = qp->GetSupplier(value2, ind);
         supplier2 = qp->GetSupplier(supplier1, 1);
         vector = qp->Argument(supplier2);
