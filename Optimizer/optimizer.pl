@@ -724,7 +724,7 @@ In the target language, we use the following operators:
 	project:	stream(Tuple1) x Attrname+ -> stream(Tuple2)
 
 				where	Tuple2 is Tuple1 projected on the
-					mentioned attributes..
+					mentioned attributes.
 
 	rename		stream(Tuple1) x NewName -> stream(Tuple2)
 
@@ -734,6 +734,11 @@ In the target language, we use the following operators:
 	count		stream(Tuple) -> int
 
 				count the number of tuples in a stream
+
+	sortby		stream(Tuple) x (Attrname, asc/desc)+	-> stream(Tuple)
+
+				sort stream lexicographically by the given
+				attribute names
 ----
 
 In PROLOG, all expressions involving such operators are written in prefix
@@ -942,6 +947,19 @@ plan_to_atom(count(X), Result) :-
   atom_concat(ResX, 'count ', Result),
   !.
 
+plan_to_atom(sortby(X, Attrs), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Attrs, AttrsAtom),
+  concat_atom([XAtom, 'sortby[', AttrsAtom, '] '], '', Result),
+  !.
+
+
+
+
+
+
+
+
 plan_to_atom(X = Y, Result) :-
   plan_to_atom(X, XRes),
   plan_to_atom(Y, YRes),
@@ -992,6 +1010,14 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
   concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
+
+plan_to_atom(asc(Attr), Result) :-
+  plan_to_atom(Attr, AttrAtom), 
+  atom_concat(AttrAtom, ' asc', Result).
+
+plan_to_atom(desc(Attr), Result) :-
+  plan_to_atom(Attr, AttrAtom), 
+  atom_concat(AttrAtom, ' desc', Result).
 
 plan_to_atom(attr(Name, Arg, Case), Result) :-
   plan_to_atom(a(Name, Arg, Case), ResA),
@@ -2041,7 +2067,7 @@ Furthermore, it will be possible to add a groupby- and an orderby-clause:
 
 Example:
 
-----	select [ort, minplz: min(plz), maxplz: max(plz), cntplz: count(*)]
+----	select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
 	from plz
 	where plz > 40000
 	groupby ort
@@ -2059,13 +2085,13 @@ Example:
 
 ----	select [ort, plz]
 	from plz
-	orderby [ort#asc, plz#asc]
+	orderby [ort#asc, plz#desc]
 ----
 
 This example also shows that the where-clause may be omitted. It is also
 possible to combine grouping and ordering:
 
-----	select [ort, minplz: min(plz), maxplz: max(plz), cntplz: count(*)]
+----	select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz]
 	from plz
 	where plz > 40000
 	groupby ort
@@ -2082,9 +2108,13 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 */
 
 :- op(950, fx, select).
-:- op(970, xfx, from).
-:- op(960, xfx, where).
+:- op(960, xfx, from).
+:- op(950, xfx, where).
 :- op(930, xfx, as).
+:- op(970, xfx, groupby).
+:- op(980, xfx, orderby).
+:- op(930, xf, asc).
+:- op(930, xf, desc).
 
 /*
 This ensures that the select-from-where statement is viewed as a term with the
@@ -2140,11 +2170,11 @@ others are lower case. If this is true, then no entry in the table ~spelling~
 is needed. If a name starts with a lower case letter, then this is expressed by
 the functor ~lc~.
 
-11.3.2 Translate a Query
+11.3.2 Looking up Relation and Attribute Names
 
 */
 
-translate(Query, Query2) :-
+callLookup(Query, Query2) :-
   newQuery,
   lookup(Query, Query2), !.
 
@@ -2176,6 +2206,30 @@ lookup(select Attrs from Rels,
 	select Attrs2 from Rels2) :-
   lookupRels(Rels, Rels2),
   lookupAttrs(Attrs, Attrs2).
+
+lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
+  lookup(Query, Query2),
+  makeList(Attrs, Attrs2),
+  lookupAttrs(Attrs2, Attrs3).
+
+lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
+  lookup(Query, Query2),
+  makeList(Attrs, Attrs2),
+  lookupAttrs(Attrs2, Attrs3).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 makeList(L, L) :- is_list(L).
 
@@ -2273,6 +2327,12 @@ lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   variable(Var, Rel2),
   Rel2 = rel(Rel, _, _),
   spelled(Rel:Attr, attr(Attr2, _, Case)).
+
+lookupAttr(Attr asc, Attr2 asc) :- !,
+  lookupAttr(Attr, Attr2).
+
+lookupAttr(Attr desc, Attr2 desc) :- !,
+  lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr, Attr2) :-
   isAttribute(Attr, Rel), !,
@@ -2409,7 +2469,7 @@ We can now formulate several of the previous queries at the user level.
 example11 :- showTranslate(select [sname, bev] from staedte where bev > 500000).
 
 showTranslate(Query) :-
-  translate(Query, Query2),
+  callLookup(Query, Query2),
   write(Query), nl,
   write(Query2), nl.
 
@@ -2434,6 +2494,95 @@ example13 :- showTranslate(
   ).
 
 /*
+11.4 Translating a Query to a Plan
+
+----	translate(Query, Stream, SelectClause, Cost) :-
+----
+
+~Query~ is translated into a ~Stream~ to which still the translation of the
+~SelectClause~ needs to be applied. A ~Cost~ is returned which currently is
+only the cost for evaluating the essential part, the conjunctive query.
+
+*/
+
+translate(Select from Rels where Preds, Stream, Select, Cost) :- !,
+  pog(Rels, Preds, _, _),
+  bestPlan(Stream, Cost).
+
+translate(Select from Rel, feed(Rel), Select, 0) :-
+  not(is_list(Rel)),
+  !.
+
+translate(Select from [Rel], feed(Rel), Select, 0).
+
+translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
+  translate(Select from Rels, Stream, Select, _).
+
+translate(Query orderby Attrs, sortby(Stream, AttrNames), Select, 0) :-
+  translate(Query, Stream, Select, _),
+  attrnamesSort(Attrs, AttrNames).
+
+/*
+
+----	queryToPlan(Query, Plan, Cost) :-
+----
+
+Translate the ~Query~ into a ~Plan~. The ~Cost~ for evaluating the conjunctive
+query is also returned. The ~Query~ must be such that relation and attribute
+names have been looked up already.
+
+*/
+
+queryToPlan(Query, consume(Stream), Cost) :-
+  translate(Query, Stream, select *, Cost), !.
+
+queryToPlan(Query, count(Stream), Cost) :-
+  translate(Query, Stream, select count(*), Cost), !.
+
+queryToPlan(Query, consume(project(Stream, AttrNames)), Cost) :-
+  translate(Query, Stream, select Attrs, Cost), !,
+  makeList(Attrs, Attrs2),
+  attrnames(Attrs2, AttrNames).
+
+/*
+
+----	attrnames(Attrs, AttrNames) :-
+----
+
+Transform each attribute X into attrname(X).
+
+*/
+
+attrnames([], []).
+
+attrnames([Attr | Attrs], [attrname(Attr) | AttrNames]) :-
+  attrnames(Attrs, AttrNames).
+
+/*
+
+----	attrnamesSort(Attrs, AttrNames) :-
+----
+
+Transform attribute names of orderby clause.
+
+*/
+
+attrnamesSort([], []).
+
+attrnamesSort([Attr | Attrs], [Attr2 | Attrs2]) :-
+  attrnameSort(Attr, Attr2),
+  attrnamesSort(Attrs, Attrs2).
+
+attrnameSort(Attr asc, attrname(Attr) asc) :- !.
+
+attrnameSort(Attr desc, attrname(Attr) desc) :- !.
+
+attrnameSort(Attr, attrname(Attr) asc).
+
+
+/*
+
+
 11.3.8 Integration with Optimizer
 
 ----	optimize(Query).
@@ -2444,29 +2593,19 @@ Optimize ~Query~ and print the best ~Plan~.
 */
 
 optimize(Query) :-
-  Query = (select _ from _ where _),
-  translate(Query,
-    select _ from Rels2 where Preds2),
-  pog(Rels2, Preds2, _, _),
-  bestPlan.
+  callLookup(Query, Query2),
+  queryToPlan(Query2, Plan, Cost),
+  plan_to_atom(Plan, SecondoQuery),
+  write('The plan is: '), nl, nl,
+  write(SecondoQuery), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl.
+
 
 optimize(Query, QueryOut, CostOut) :-
-  Query = (select * from _ where _), !,
-  nl,
-  translate(Query,
-    select _ from Rels2 where Preds2),
-  pog(Rels2, Preds2, _, _),
-  bestPlan(Plan, CostOut),
-  plan_to_atom(consume(Plan), QueryOut).
-
-optimize(Query, QueryOut, CostOut) :-
-  Query = (select count(*) from _ where _), !,
-  nl,
-  translate(Query,
-    select _ from Rels2 where Preds2),
-  pog(Rels2, Preds2, _, _),
-  bestPlan(Plan, CostOut),
-  plan_to_atom(count(Plan), QueryOut).
+  callLookup(Query, Query2),
+  queryToPlan(Query2, Plan, CostOut),
+  plan_to_atom(Plan, QueryOut).
+ 
 
 
 /*
@@ -2686,7 +2825,7 @@ called to execute it.
 
 */
 
-:- op(980, fx, sql).
+:- op(990, fx, sql).
 
 sql Term :-
   optimize(Term, Query, Cost),
