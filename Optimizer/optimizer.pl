@@ -697,61 +697,17 @@ In the target language, we use the following operators:
 In PROLOG, all expressions involving such operators are written in prefix
 notation.
 
-5.1.3 Writing PROLOG Plans as Secondo Plans.
+5.1.3 Converting Plans to Atoms and Writing them.
 
-Predicate ~wp~ means ``write plan''. Here basically we have to define the text
-syntax for each operator, as in the Secondo parser. For attributes we have to
+Predicate ~plan\_to\_atom~ converts a plan to a string atom, which represents
+the plan as a SECONDO query in text syntax. For attributes we have to
 distinguish whether a leading ``.'' needs to be written (if the attribute occurs
 within a parameter function) or whether just the attribute name is needed as in
-the arguments for hashjoin, for example.
+the arguments for hashjoin, for example. Predicate ~wp~ (``write plan'') uses
+predicate ~plan\_to\_atom~ to convert its argument to an atom and then writes that
+atom to standard output.
 
 */
-
-wp(rel(Name, _, l)) :- write(Name), write(' '), !.
-wp(rel(Name, _, u)) :- upper(Name, Name2), write(Name2), write(' '), !.
-wp(res(N)) :- write(res(N)), write(' '), !.
-
-wp(feed(X)) :- wp(X), write('feed '), !.
-
-wp(consume(X)) :- wp(X), write('consume '), !.
-
-wp(filter(X, Pred)) :- wp(X), write('filter['), wp(Pred), write('] '), !.
-
-wp(product(X, Y)) :- wp(X), wp(Y), write('product '), !.
-
-wp(hashjoin(X, Y, A, B, C)) :-
-  wp(X), wp(Y), write('hashjoin['), wp(A), write(', '), wp(B),
-  write(', '),   write(C), write('] '), !.
-
-wp(sortmergejoin(X, Y, A, B)) :-
-  wp(X), wp(Y), write('sortmergejoin['), wp(A), write(', '), wp(B),
-  write('] '), !.
-
-wp(rename(X, Y)) :- wp(X), write('{'), write(Y), write('} '), !.
-
-wp(X = Y) :- wp(X), write(' = '), wp(Y), !.
-wp(X <= Y) :- wp(X), write(' <= '), wp(Y), !.
-wp(X >= Y) :- wp(X), write(' >= '), wp(Y), !.
-wp(X < Y) :- wp(X), write(' < '), wp(Y), !.
-wp(X > Y) :- wp(X), write(' > '), wp(Y), !.
-wp(X # Y) :- wp(X), write(' # '), wp(Y), !.
-
-wp(Term) :- is_list(Term), writeString(Term).
-
-wp(Term) :- functor(Term, Op, 2), arg(1, Term, Arg1), arg(2, Term, Arg2),
-  write('('),
-  wp(Arg1), write(' '), write(Op), write(' '), wp(Arg2),
-  write(')').
-
-wp(attr(Name, Arg, Case)) :- write('.'), wp(a(Name, Arg, Case)).
-wp(attrname(attr(Name, Arg, Case))) :- wp(a(Name, Arg, Case)).
-
-wp(a(A:B, _, l)) :- write(B), write('_'), write(A), !.
-wp(a(A:B, _, u)) :- upper(B, B2), write(B2), write('_'), write(A), !.
-wp(a(X, _, l)) :- write(X), !.
-wp(a(X, _, u)) :- upper(X, X2), write(X2), !.
-
-wp(X) :- write(X), !.
 
 upper(Lower, Upper) :-
   atom_codes(Lower, [First | Rest]),
@@ -759,10 +715,9 @@ upper(Lower, Upper) :-
   UpperList = [First2 | Rest],
   atom_codes(Upper, UpperList).
 
-writeString(String) :- put(34), writeChars(String), put(34).
-
-writeChars([]).
-writeChars([Char | Chars]) :- put(Char), writeChars(Chars).
+wp(Plan) :-
+  plan_to_atom(Plan, PlanAtom),
+  write(PlanAtom).
 
 plan_to_atom(rel(Name, _, l), Result) :-
   atom_concat(Name, ' ', Result),
