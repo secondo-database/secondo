@@ -17,6 +17,7 @@ makedirsnormal:
 	$(MAKE) -C NestedLists
 	$(MAKE) -C Parser
 	$(MAKE) -C Utilities
+	$(MAKE) -C pd 
 
 .PHONY: makedirsjni
 makedirsjni:
@@ -30,4 +31,5 @@ clean:
 	$(MAKE) -C Parser clean
 	$(MAKE) -C Utilities clean
 	$(MAKE) -C Jni clean
+	$(MAKE) -C pd clean
 
