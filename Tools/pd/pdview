@@ -8,4 +8,4 @@ if { ! pd2dvi $1; }; then
    exit 1
 fi
 
-pdpreview $1 dvi $DVI_VIEWER &
+pdpreview $1 dvi $PD_DVI_VIEWER &
