@@ -89,6 +89,7 @@ private void showObjectSettings(){
 /** shows the dialog for view settings */
 private void showOptions3D(){
     OptionsView.reset();
+    OptionsView.setBoundingBox(BoundingBox);
     OptionsView.show();    
 }
 

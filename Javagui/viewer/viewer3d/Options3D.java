@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import viewer.viewer3d.graphic3d.*;
+import viewer.viewer3d.objects.BoundingBox3D;
 
 /**
   * this class provides a JDialog to change the 3d-Options for
@@ -15,10 +16,10 @@ public class Options3D extends JDialog{
 public Options3D(Frame F,World3D W3D){
  super(F,"3D-Options",true); 
  this.W3D = W3D;
- setSize(350,200);
+ setSize(350,250);
  Container ContentPane = getContentPane();
  ContentPane.setLayout(new FlowLayout());
- JPanel C = new JPanel(new GridLayout(6,4));
+ JPanel C = new JPanel(new GridLayout(7,4));
  C.add(new JLabel(" "));
  C.add(new JLabel("X",JLabel.CENTER));
  C.add(new JLabel("Y",JLabel.CENTER));
@@ -54,11 +55,13 @@ public Options3D(Frame F,World3D W3D){
  ViewUpYText = new JTextField(""+ W3D.getViewUpY(),5);
  C.add(ViewUpYText);
  ViewUpZText = new JTextField(""+ W3D.getViewUpZ(),5);
+
  C.add(ViewUpZText);
  C.add(ResetBtn);
  C.add(OkBtn);
  C.add(CancelBtn); 
  C.add(ApplyBtn);
+ C.add(ProposalBtn);
 
  ResetBtn.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
@@ -82,6 +85,11 @@ public Options3D(Frame F,World3D W3D){
        public void actionPerformed(ActionEvent evt){
           Options3D.this.accept();
        }});
+ ProposalBtn.addActionListener(new ActionListener(){
+    public void actionPerformed(ActionEvent evt){
+       Options3D.this.makeProposal();
+    }
+});
 
  getContentPane().add(C);
 }
@@ -89,7 +97,6 @@ public Options3D(Frame F,World3D W3D){
 
 /** send the options to the World */
 private boolean accept(){
-
   boolean ok = true;
   double WindowX=0,WindowY=0;
   double EyeX=0,EyeY=0,EyeZ=0;
@@ -167,6 +174,47 @@ public void reset(){
  ViewUpZText.setText(""+ W3D.getViewUpZ());
 }
 
+/** set the BoundingBox to compute a proposal */
+public void setBoundingBox(BoundingBox3D BB){
+   this.BB = BB;
+}
+
+/** compute a Proposal */
+public void makeProposal(){
+  if(BB==null){
+     OptionPane.showMessageDialog(this,"no bounding box is set",
+                                  "error",JOptionPane.ERROR_MESSAGE);
+     return;
+  }
+  
+
+  int xdim = BB.getMaxX()-BB.getMinX();
+  int ydim = BB.getMaxY()-BB.getMinY();
+  int zdim = BB.getMaxZ()-BB.getMinZ();
+
+  // show to center-bottom
+  VRPXText.setText(""+BB.getCenterX());
+  VRPYText.setText(""+BB.getMaxY());
+  VRPZText.setText(""+BB.getMinZ());
+
+  // show from above
+  EyeXText.setText(""+BB.getCenterX());
+  EyeYText.setText(""+(BB.getMinY()-3*(ydim+zdim)));
+  EyeZText.setText(""+(BB.getMaxZ()+4*(ydim+zdim)));
+  ViewUpXText.setText("0");
+  ViewUpYText.setText("0");
+  ViewUpZText.setText("1");
+
+  WindowXText.setText(""+(xdim));
+
+  double dY =  BB.getMaxY()-(BB.getMinY()-3*(ydim+zdim)); //VRPY-EYEY
+  double dZ =  (BB.getMaxZ()+4*(ydim+zdim))-BB.getMinZ(); //EYEZ-VRPZ
+  double Rel = dY/dZ;
+
+  WindowYText.setText(""+((ydim/Rel+zdim*Rel)));
+
+}
+
 
 public final static int OK = 0;
 public final static int CANCEL = 1;
@@ -186,7 +234,9 @@ private JButton ResetBtn = new JButton("reset");
 private JButton OkBtn = new JButton("ok");
 private JButton CancelBtn = new JButton("cancel");
 private JButton ApplyBtn = new JButton("apply");
+private JButton ProposalBtn = new JButton("proposal");
 private String State="ok";
 private int ResultValue;
 private JOptionPane OptionPane = new JOptionPane(); // to show Messages
+private BoundingBox3D BB = null;
 }

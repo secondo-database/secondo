@@ -1,6 +1,7 @@
 package viewer.viewer3d.objects;
 
 
+
 public class BoundingBox3D{
 
 public BoundingBox3D(){
@@ -26,6 +27,30 @@ public boolean set(int minx,int miny,int minz,
   else
     return false;
 }
+
+
+public int getCenterX(){
+   return (maxx+minx)/2;
+}
+
+public int getCenterY(){
+   return (maxy+miny)/2;
+}
+
+public int getCenterZ(){
+   return (maxz+minz)/2;
+}
+
+
+public int getMinX(){ return minx;}
+public int getMinY(){ return miny;}
+public int getMinZ(){ return minz;}
+
+public int getMaxX(){ return maxx;}
+public int getMaxY(){ return maxy;}
+public int getMaxZ(){ return maxz;}
+
+
 
 public void extend(BoundingBox3D BB){
   this.minx = Math.min(this.minx,BB.minx);
