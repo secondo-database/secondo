@@ -9,7 +9,7 @@
 
   1 Implementation of Module TupleManager
   
-  Mirco G[ue]nster, 10/02/02 finish of porting.
+  Mirco G[ue]nster, 10/08/02 finish of porting.
 
   Markus Spiekermann, 06/14/02 port to new secondo core System
 
