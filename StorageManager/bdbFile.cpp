@@ -198,6 +198,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
       if ( pagesize > 0 )
       {
         impl->bdbFile->set_pagesize( pagesize );
+				cout << "Setting page size for SmiFile to " << pagesize << " !" << endl;
       }
 
       // --- Open Berkeley DB file
@@ -890,11 +891,13 @@ bool PrefetchingIteratorImpl::NewPrefetch()
       if(errorCode == 0)
       {
         state = PARTIAL_RETRIEVAL;
+        cerr << "PrefetchingIterator - Warning: state==PARTIAL_RETRIEVAL" << endl;
+				
         if(!isBTreeIterator)
-	{
+	      {
           recordNumber = *((db_recno_t*)keyBuffer);
-	};
-	SmiEnvironment::SetError(E_SMI_OK);
+	      };
+	      SmiEnvironment::SetError(E_SMI_OK);
         return true;  
       }
     }
@@ -912,8 +915,10 @@ bool PrefetchingIteratorImpl::NewPrefetch()
     return false;
   }
    
-  state = BULK_RETRIEVAL; 
+
   DB_MULTIPLE_INIT(p, &buffer);
+  state = BULK_RETRIEVAL; 
+
   return true;
 }
 
