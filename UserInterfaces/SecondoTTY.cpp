@@ -41,6 +41,8 @@ using namespace std;
   #include <stdio.h>
   #include <readline/readline.h>
   #include <readline/history.h>
+  #define HISTORY_FILE ".secondo_history"
+  #define HISTORY_FILE_ENTRIES 100
 #endif
 
 #include "Application.h"
@@ -384,19 +386,23 @@ SecondoTTY::GetCommand()
     }
   }
   // remove spaces from the end of cmd
-  int end = cmd.find_last_not_of(" \t")+1;
+  unsigned int end = cmd.find_last_not_of(" \t");
+  if(end==string::npos)
+     end = 0;
+  else
+     end += 1;
   cmd = cmd.substr(0,end);
   #ifdef READLINE
      if(complete && (cmd.length()>0) && isStdInput){
         // get the last entry from the history if avaiable
-        int noe = where_history();
+        int noe = history_length;
 	string last = "";
 	if(noe){
            HIST_ENTRY* he = history_get(noe);
 	   if(he)
 	       last = string(he->line);
 	}
-	if(last!=cmd)
+	if(last!=cmd && (cmd.find_last_not_of(" \t\n")!=string::npos))
           add_history(cmd.c_str());
        }
   #endif
@@ -1029,10 +1035,37 @@ main( const int argc, const char* argv[] )
   rl_initialize();
   rl_readline_name = "secondo";
   rl_attempted_completion_function = secondo_completion;
+  /* read the history from file */
+  ifstream hist_file(HISTORY_FILE);
+  string histline;
+  if(hist_file){
+    while(!hist_file.eof()){
+       getline(hist_file,histline);
+       if(histline.find_last_not_of(" \t\n")!=string::npos){
+          cout << "add \"" << histline << "\" to history" << endl;
+          add_history(histline.c_str());
+       }
+    }
+    hist_file.close();
+  }
 #endif
   int rc = appPointer->Execute();
   delete appPointer;
-
+#ifdef READLINE
+  /* save the last xxx enties in the history to a file */
+  ofstream out_history(HISTORY_FILE,ofstream::out | ofstream::trunc );
+  if(out_history){
+     int start_history = history_length-HISTORY_FILE_ENTRIES;
+     if(start_history <0) start_history=0;
+     HIST_ENTRY* he;
+     for(int i=0;i<history_length;i++){ // ignore quit
+        he = history_get(i);
+	if(he)
+	   out_history << he->line << endl;
+     }
+     out_history.close();
+  }
+#endif
   return (rc);
 }
 
