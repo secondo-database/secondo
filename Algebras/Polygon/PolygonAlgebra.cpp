@@ -512,16 +512,19 @@ static ListExpr
 PolygonProperty()
 {
   return (nl->TwoElemList(
-            nl->FiveElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
-			     nl->StringAtom("Example List"),
-			     nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("polygon"), 
-			     nl->StringAtom("(<point>*) where <point> is (<x> <y>)"), 
-			     nl->StringAtom("( (3 4) (10 10) (8 2) (6 4) (3 4) )"),
-			     nl->StringAtom("x- and y-coordinates must be of type int."))));
+         nl->FiveElemList(nl->StringAtom("Signature"), 
+	                  nl->StringAtom("Example Type List"), 
+			  nl->StringAtom("List Rep"), 
+			  nl->StringAtom("Example List"),
+			  nl->StringAtom("Remarks")),
+         nl->FiveElemList(nl->StringAtom("-> DATA"), 
+	                  nl->StringAtom("polygon"), 
+			  nl->StringAtom("(<point>*) where <point> is "
+			  "(<x> <y>)"), 
+			  nl->StringAtom("( () (3 4) (10 10) (8 2) (6 4) "
+			  "(3 4) )"),
+			  nl->StringAtom("x- and y-coordinates must be of "
+			  "type int."))));
 }
 
 /*

@@ -412,18 +412,16 @@ static ListExpr
 FTextProperty()
 {
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
-			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                     nl->StringAtom("ftext"), 
-			     nl->StringAtom("(<textvalue>)"), 
-			     nl->StringAtom("<text>A text, which can be longer then 48 " 
-			                    "chararcters<text--->"))));
+         nl->FourElemList(nl->StringAtom("Signature"), 
+	                  nl->StringAtom("Example Type List"), 
+			  nl->StringAtom("List Rep"), 
+			  nl->StringAtom("Example List")),
+         nl->FourElemList(nl->StringAtom("-> DATA"), 
+	                  nl->StringAtom("text"), 
+			  nl->StringAtom("(<textvalue>)"), 
+			  nl->StringAtom("<text>A text, which can be longer "
+			  "than 48 chararcters<text--->"))));
 }
-
-
 
 /*
 2.6 Kind Checking Function
@@ -603,24 +601,24 @@ length predicate for a text.
 
 */
 
-//const string searchSpec =
-  //"(<text>("+typeName+" "+typeName+") -> bool</text---><text>Search the second "+typeName+" in first "+typeName+".</text--->)";
-const string searchSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>("+typeName+" "+typeName+") -> bool</text--->
-			       <text>_ search _</text--->
-			       <text>Search the second \"+typeName+\" in first \"+"
-			       "typeName+\".</text--->"
-			       "<text>text1 search text2</text--->"
-			      ") )";
+const string searchSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" )"
+                           "( <text>(text text) -> "
+			   "bool</text--->"
+			   "<text>_ search _</text--->"
+			   "<text>Search the second text in the first "
+			   "text.</text--->"
+			   "<text>text1 search text2</text--->"
+			   ") )";
 
-//const string lengthSpec =
-  //"(<text>("+typeName+") -> int</text---><text>length returns the length of "+typeName+".</text--->)";
-const string lengthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>("+typeName+") -> int</text--->
-			       <text>length ( _ )</text--->
-			       <text>length returns the length of \"+typeName+\".</text--->
-			       <text>length ( text1 )</text--->
-			      ) )";
+const string lengthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" )"
+                           "( <text>( text ) -> int</text--->"
+			   "<text>length ( _ )</text--->"
+			   "<text>length returns the length of "
+			   "text.</text--->"
+			   "<text>length ( text1 )</text--->"
+			   ") )";
 
 /*
 Used to explain the signature and the meaning of the ~search~ and ~length~ operators.
