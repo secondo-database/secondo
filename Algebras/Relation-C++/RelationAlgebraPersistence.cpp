@@ -1122,19 +1122,5 @@ Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
   return (SetWord( Address( 0 ) ));
 }
 
-TypeConstructor cpptuple( "tuple",           TupleProp,
-                          OutTuple,          InTuple,     CreateTuple,
-                          DeleteTuple,       CastTuple,   CheckTuple,
-			  0,                 0,
-			  TupleInModel,      TupleOutModel,
-			  TupleValueToModel, TupleValueListToModel );
-			  
-TypeConstructor cpprel( "rel",           RelProp,
-                        OutRel,          InRel,   CreateRel,
-                        DeleteRel,       CastRel,   CheckRel,
-			RelPersistValue, 0,
-			RelInModel,      RelOutModel,
-			RelValueToModel, RelValueListToModel );
-
 #endif
 

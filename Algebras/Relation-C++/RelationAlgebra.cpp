@@ -6091,6 +6091,31 @@ Operator sample (
           simpleSelect,         // trivial selection function
           SampleTypeMap           // type mapping
 );
+
+/*
+
+5 Defnition of type constructor ~tuple~
+
+*/
+TypeConstructor cpptuple( "tuple",           TupleProp,
+                          OutTuple,          InTuple,     CreateTuple,
+                          DeleteTuple,       CastTuple,   CheckTuple,
+			  0,                 0,
+			  TupleInModel,      TupleOutModel,
+			  TupleValueToModel, TupleValueListToModel );
+
+/*
+
+5 Definition of type constructor ~rel~
+
+*/
+TypeConstructor cpprel( "rel",           RelProp,
+                        OutRel,          InRel,   CreateRel,
+                        DeleteRel,       CastRel,   CheckRel,
+			RelPersistValue, 0,
+			RelInModel,      RelOutModel,
+			RelValueToModel, RelValueListToModel );
+
 /*
 
 6 Class ~RelationAlgebra~
