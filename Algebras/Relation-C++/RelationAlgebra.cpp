@@ -754,7 +754,8 @@ ListExpr TUPLETypeMap(ListExpr args)
 {
   ListExpr first;
   string argstr;
-  
+  cout << "was in TUPLE 1" << endl;
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Type operator TUPLE expects a list of length one.");
     
