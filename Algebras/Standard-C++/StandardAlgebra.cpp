@@ -13,12 +13,15 @@ November 9, 2002. RHG Added operators ~randint~ and ~log~. Some other slight rev
 
 February 2004. F. Hoffmann added operators ~relcount~ and ~relcount2~.
 
-April 28, 2004. M. Spiekermann added operators ~nextint~ and ~randmax~. The calculation of
-random numbers in an specified range was revised according to the recommendations documented 
-in the rand() manpage.
+April 28, 2004. M. Spiekermann added operators ~nextint~ and ~randmax~. The
+calculation of random numbers in an specified range was revised according to the
+recommendations documented in the rand() manpage.
 
-July 08, 2004. M. Spiekermann changed the IN-function of data type ~real~. Integer atoms are now also
-accepted. 
+July 08, 2004. M. Spiekermann changed the IN-function of data type ~real~.
+Integer atoms are now also accepted. 
+
+November 2004. M. Spiekermann. Some small functions were moved to the header
+file in order to implement them as inline functions.
 
 \begin{center}
 \footnotesize
@@ -215,17 +218,6 @@ to demonstrate how to handle complex  objects.
 long CcInt::intsCreated = 0;
 long CcInt::intsDeleted = 0;
 
-CcInt::CcInt() { intsCreated++; };
-CcInt::CcInt( bool d, int v ) { defined = d; intval = v; intsCreated++; };
-CcInt::~CcInt() { intsDeleted++; };
-void   CcInt::Set( int v ) { defined = true, intval = v; };
-void   CcInt::Set( bool d, int v ) { defined = d, intval = v; };
-int    CcInt::GetIntval() { return (intval); };
-bool   CcInt::IsDefined() const { return (defined); };
-void   CcInt::SetDefined(bool defined) { this->defined = defined; };
-CcInt* CcInt::Clone() { return (new CcInt( this->defined, this->intval )); };
-size_t CcInt::HashValue() { return (defined ? intval : 0); };
-
 void CcInt::CopyFrom(StandardAttribute* right)
 {
   CcInt* r = (CcInt*)right;
@@ -233,27 +225,6 @@ void CcInt::CopyFrom(StandardAttribute* right)
   intval = r->intval;
 }
 
-int    CcInt::Compare( Attribute* arg )
-{
-  if(!IsDefined() && !arg->IsDefined())
-  {
-    return 0;
-  }
-  if(!IsDefined())
-  {
-    return -1;
-  }
-  if(!arg->IsDefined())
-  {
-    return 1;
-  }
-
-  CcInt* p =  (CcInt*)(arg);
-  if ( !p )                 return (-2);
-  if ( intval < p->intval ) return (-1);
-  if ( intval > p->intval)  return (1);
-  return (0);
-};
 /*
 
 The next function defines the type property of type constructor ~CcInt~.
@@ -3246,7 +3217,7 @@ static int
 RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   ListExpr resultType, queryList, resultList, valueList;
-  QueryProcessor* qpp;
+  QueryProcessor* qpp = 0;
   OpTree tree;
   AlgebraLevel level;
   char* relname;

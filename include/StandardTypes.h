@@ -7,6 +7,11 @@
 
 December 1998 Friedhelm Becker
 
+2002-2003 U. Telle. Diploma thesis "reimplementation of SECONDO"
+
+Nov. 2004. M. Spiekermann. Modifications in CcInt. Using inline directives
+and avoiding to dereference pointers in the ~Compare~ method improves performance. 
+
 1.1 Overview
 
 This file defines four classes: CcInt, CcReal, CcBool and CcString. They
@@ -25,27 +30,92 @@ are the data types which are provided by the Standardalgebra.
 
 */
 
-
 class CcInt : public StandardAttribute
 {
  public:
-  CcInt();
-  CcInt( bool d, int v );
-  ~CcInt();
-  bool     IsDefined() const;
-  void     SetDefined(bool defined);
-  int      GetIntval();
-  void     Set( int v );
-  void     Set( bool d, int v );
-  size_t HashValue();
+  
+  CcInt()
+  { 
+    intsCreated++; 
+  }
+  
+  CcInt( bool d, int v )
+  { 
+    defined = d; intval = v; intsCreated++; 
+  }
+  
+  ~CcInt()
+  { 
+    intsDeleted++; 
+  }
+  
+  inline bool IsDefined() const 
+  { 
+    return (defined); 
+  }
+  
+  inline void SetDefined(bool defined) 
+  { 
+    this->defined = defined;
+  }
+    
+  inline int GetIntval() 
+  { 
+    return (intval); 
+  }
+  
+  inline void Set( int v )
+  { 
+    defined = true, intval = v; 
+  }
+  
+  inline void Set( bool d, int v )
+  { 
+    defined = d, intval = v; 
+  }
+  
+  inline size_t HashValue()
+  { 
+    return (defined ? intval : 0); 
+  }
+  
   void CopyFrom(StandardAttribute* right);
-  int      Compare(Attribute *arg);
-  bool     Adjacent(Attribute *arg);
-  CcInt*   Clone() ;
+  
+  inline int Compare(Attribute *arg)
+  {
+    assert(arg);
+    CcInt* p = (CcInt*)(arg);
+    bool argDefined = p->defined;
+    if(!defined && !argDefined) {
+      return 0;
+    }
+    if(!defined) {
+      return -1;
+    }
+    if(!argDefined) {
+      return 1;
+    }
+
+    if ( intval < p->intval ) {
+      return (-1);
+    }  
+    if ( intval > p->intval) {
+      return (1);
+    }  
+    return (0);
+  }
+
+  bool Adjacent(Attribute *arg);
+  
+  inline CcInt* Clone() 
+  { 
+    return (new CcInt( this->defined, this->intval )); 
+  }
+  
   ostream& Print( ostream &os ) { return (os << intval); }
 
-    ListExpr   CopyToList( ListExpr typeInfo )
-    {
+  ListExpr CopyToList( ListExpr typeInfo )
+  {
       cout << "CcInt CopyToList" << endl;
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
@@ -53,22 +123,23 @@ class CcInt : public StandardAttribute
           typeId = nl->IntValue( nl->Second( nl->First( typeInfo ) ) );
 
       return (algMgr->OutObj(algId, typeId))( typeInfo, SetWord(this) );
-    }
+  }
 
-    Word CreateFromList( const ListExpr typeInfo, const ListExpr instance,
-                         const int errorPos, ListExpr& errorInfo, bool& correct )
-    {
+  Word CreateFromList( const ListExpr typeInfo, const ListExpr instance,
+                       const int errorPos, ListExpr& errorInfo, bool& correct )
+  {
       cout << "CcInt CreateFromList" << endl;
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
       int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
           typeId = nl->IntValue( nl->Second( nl->First( typeInfo ) ) );
 
-      Word result = (algMgr->InObj(algId, typeId))( typeInfo, instance, errorPos, errorInfo, correct );
+      Word result = (algMgr->InObj(algId, typeId))( typeInfo, 
+                         instance, errorPos, errorInfo, correct );
       if( correct )
         return result;
       return SetWord( Address(0) );
-    }
+  }
 
   static long intsCreated;
   static long intsDeleted;
