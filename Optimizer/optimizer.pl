@@ -1282,8 +1282,8 @@ cost(sortmergejoin(X, Y, _, _), Sel, S, C) :-
   sortmergejoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +				% producing the arguments
-    A * SizeX * log(SizeX) +
-    A * SizeY * log(SizeY) +			% sorting the arguments
+    A * SizeX * log(SizeX + 1) +
+    A * SizeY * log(SizeY + 1) +		% sorting the arguments
     B * (SizeX + SizeY).			% parallel scan of sorted relations
 
 
