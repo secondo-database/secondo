@@ -11,6 +11,7 @@ if [ "$1" == "" ]; then
 fi
 
 db="$1"
+
 pg_scripts="$PWD/postgres"
 tbl_dir="$PWD"
 if [ "$2" != "" ]; then
@@ -20,6 +21,7 @@ fi
 # convert data suitable for the Postgres copy command
 for file in $tbl_dir/*.tbl
 do
+ echo -e "Processing $file ...\n"
  $pg_scripts/rm-lastsep.sh $file
 done
 
@@ -31,4 +33,5 @@ createdb $db
 psql -e -f"$pg_scripts/create_tbls.sql" -d"$db"
 
 # import data
+echo -e "Importing data into database $db ...\n" 
 psql -e -f"$pg_scripts/import_tbls.sql" -d"$db"
