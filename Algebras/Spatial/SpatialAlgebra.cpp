@@ -1135,12 +1135,19 @@ size_t   Points::HashValue()
     return size_t(h);
 }
 
+void  Points::Clear()
+{
+    points->Clear();
+    pos=-1;
+    ordered=true;
+}
+
 void  Points::CopyFrom(StandardAttribute* right)
 {
     Points * ps = (Points*)right;
     ordered = true;
     assert( ps->IsOrdered());
-
+    Clear();
     for( int i = 0; i < ps->Size(); i++ )
     {
 	Point p;
@@ -3542,12 +3549,19 @@ size_t   CLine::HashValue()
     return size_t(h);
 }
 
+void  CLine::Clear()
+{
+    line->Clear();
+    pos=-1;
+    ordered=true;
+}
+
 void  CLine::CopyFrom(StandardAttribute* right)
 {
     CLine * cl = (CLine*)right;
     ordered = true;
     assert( cl->IsOrdered());
-
+    Clear();
     for( int i = 0; i < cl->Size(); i++ )
     {
 	CHalfSegment chs;
