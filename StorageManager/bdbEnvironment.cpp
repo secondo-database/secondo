@@ -839,18 +839,18 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
       cerr << "Warning: Missing definition of "
            << "SecondoHome in the configuration file!" << endl; 
       useDefaultHome = true;
-    } else {
+
+    } else { // SecondoHome is defined
 
       if (!FileSystem::FileOrFolderExists(secondoHome)) {
         cerr << "Warning: The folder SecondoHome='" << secondoHome 
              << "' does not exist!" << endl;
+        useDefaultHome = true;
       }
-      useDefaultHome = true;
     }
 
     if ( useDefaultHome ) {
 
-      cerr << "  Using default database directory SecondoHome='" << defaultHome << "'." << endl;
       secondoHome = defaultHome;
 
       if (!FileSystem::FileOrFolderExists(secondoHome)) {
@@ -860,8 +860,11 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
                <<"'." << endl;
           return false;
         }
+      } else {
+        cerr << "Using default directory ..." << endl;
       }
     }
+    cerr << "Database directory: SecondoHome='" << secondoHome << "'." << endl;
     instance.impl->bdbHome = secondoHome;
     
     u_int32_t flags = 0;
