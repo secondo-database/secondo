@@ -2542,10 +2542,23 @@ class TemporalAlgebra : public Algebra
     rangereal.AssociateKind( "RANGE" );
     intimeint.AssociateKind( "TEMPORAL" );
     intimereal.AssociateKind( "TEMPORAL" );
-
+    intimepoint.AssociateKind( "TEMPORAL" );
+    constint.AssociateKind( "TEMPORAL" );
+    ureal.AssociateKind( "TEMPORAL" );
+    upoint.AssociateKind( "TEMPORAL" );
+    mint.AssociateKind( "TEMPORAL" );
+    mreal.AssociateKind( "TEMPORAL" );
+    mpoint.AssociateKind( "TEMPORAL" );
+    
     instant.AssociateKind( "DATA" );
     rangeint.AssociateKind( "DATA" );
     rangereal.AssociateKind( "DATA" );
+    constint.AssociateKind( "DATA" );
+    ureal.AssociateKind( "DATA" );
+    upoint.AssociateKind( "DATA" );
+    mint.AssociateKind( "DATA" );
+    mreal.AssociateKind( "DATA" );
+    mpoint.AssociateKind( "DATA" );
 
     AddOperator( &instantisempty );
     AddOperator( &instantequal );
