@@ -120,14 +120,14 @@ This struct will store an entry inside a node of the R_Tree.
 */
 struct R_TreeEntry
 {
-  BBox box; 
+  BBox box;
 /*
 If it is a leaf entry, then the bounding box spatially constains the spatial
 object. If it is an internal entry, the bounding box contains all bounding
 boxes of the entries of its child node.
 
 */
-  SmiRecordId pointer;      
+  SmiRecordId pointer;
 /*
 Points to an ~SmiRecord~ in a file. If it is a leaf entry, this is the record
 where the spatial object is stored, otherwise this is the pointer to its
@@ -135,7 +135,7 @@ child node.
 
 */
 
-  R_TreeEntry() : 
+  R_TreeEntry() :
     box(), pointer( 0 )
     {}
 /*
@@ -214,7 +214,7 @@ Returns the number of entries in this node.
 
     int MaxEntries() const
       { return maxEntries; }
-/* 
+/*
 Returns the max number of entries this node supports.
 
 */
@@ -241,14 +241,14 @@ Returns entry given by index.
 */
 
     BBox BoundingBox() const;
-/* 
+/*
 Returns the bounding box of this node.
 
 */
 
     void Clear()
       { leaf = false; count = 0; modified = true; }
-/* 
+/*
 Clears all entries.
 
 */
@@ -294,10 +294,10 @@ Reads this node from an ~SmiRecordFile~ at position ~id~.
 
 */
 
-    void Write( SmiRecordFile& file, const SmiRecordId pointer ) const;
-    void Write( SmiRecord& record ) const;
+    void Write( SmiRecordFile& file, const SmiRecordId pointer );
+    void Write( SmiRecord& record );
 /*
-Writes this node to an ~SmiRecordFile~ at position ~id~ 
+Writes this node to an ~SmiRecordFile~ at position ~id~
 
 */
 
@@ -326,18 +326,18 @@ Max # of entries per node.
 
 */
 
-      int count;     
-/* 
+      int count;
+/*
 Number of entries in this node.
 
 */
 
-    R_TreeEntry* const entry;   
+    R_TreeEntry* const entry;
 /*
 Array of entries.
 
 */
-   
+
     bool modified;
 /*
 A flag that indicates when a node is modified. This avoids
@@ -512,7 +512,7 @@ void R_TreeNode::QuadraticPickSeeds( int& seed1, int& seed2 ) const
     // This should be called only if the node has an overflow
 
   double bestWaste = -DOUBLE_MAX;
-  double *area = new double[ maxEntries + 1 ]; 
+  double *area = new double[ maxEntries + 1 ];
     // Compute areas just once
 
   for( int i = 0; i < count; i++ )
@@ -937,7 +937,7 @@ void R_TreeNode::Read( SmiRecord& record )
   modified = false;
 }
 
-void R_TreeNode::Write( SmiRecordFile& file, const SmiRecordId pointer ) const
+void R_TreeNode::Write( SmiRecordFile& file, const SmiRecordId pointer )
 {
   if( modified )
   {
@@ -947,40 +947,28 @@ void R_TreeNode::Write( SmiRecordFile& file, const SmiRecordId pointer ) const
   }
 }
 
-void R_TreeNode::Write( SmiRecord& record ) const
+void R_TreeNode::Write( SmiRecord& record )
 {
   if( modified )
   {
+	char *buf = (char*)malloc( record.Size() );
+	memset( buf, 0, record.Size() );
+
     int offset = 0;
 
     // Writes leaf, count
-    assert( record.Write( &leaf, sizeof( leaf ), offset ) == sizeof( leaf ) );
+    memcpy( buf + offset, &leaf, sizeof( leaf ) );
     offset += sizeof( leaf );
-    assert( record.Write( &count, sizeof( count ), offset ) == sizeof( count ) );
+    memcpy( buf + offset, &count, sizeof( count ) );
     offset += sizeof( count );
-  
-    // Write entry array
-    assert( record.Write( entry, count * sizeof( R_TreeEntry ), offset ) == count * sizeof( R_TreeEntry ) );
-  }
-/*
-  if( modified )
-  {
-    unsigned nodeSize = sizeof( leaf ) + sizeof( count ) + count * sizeof( R_TreeEntry );
-    char *buffer = (char *)malloc( nodeSize );
-    int offset = 0;
-    // Writes leaf, count
-    strncpy( buffer + offset, (const char *)&leaf, sizeof( leaf ) );
-    offset += sizeof( leaf );
-    strncpy( buffer + offset, (const char *)&count, sizeof( count ) );
-    offset += sizeof( count );
-  
-    // Write entry array
-    strncpy( buffer + offset, (const char *)entry, count * sizeof( R_TreeEntry ) );
 
-    assert( record.Write( buffer, nodeSize, 0 ) == nodeSize );
-    free( buffer );
+    // Write entry array
+    memcpy( buf + offset, entry, count * sizeof( R_TreeEntry ) );
+
+    assert( record.Write( buf, record.Size(), 0 ) == record.Size() );
+
+    modified = false;
   }
-*/
 }
 
 ostream& operator<<( ostream& o, const R_TreeNode& nod )
@@ -1034,7 +1022,7 @@ Deletes the file of the R-Tree.
 
 */
 
-    SmiFileId FileId() 
+    SmiFileId FileId()
       { return file.GetFileId(); }
 /*
 Returns the ~SmiFileId~ of the R-Tree database file.
@@ -1158,57 +1146,57 @@ The header of the R-Tree which will be written (read) to (from) the file.
 */
 
 
-    SmiRecordId path[ MAX_PATH_SIZE ];        
+    SmiRecordId path[ MAX_PATH_SIZE ];
 /*
 Addresses of all nodes in the current path.
 
 */
 
-    int pathEntry[ MAX_PATH_SIZE ];    
+    int pathEntry[ MAX_PATH_SIZE ];
 /*
 Indices of entries down the current path.
 
 */
 
-    int overflowFlag[ MAX_PATH_SIZE ]; 
+    int overflowFlag[ MAX_PATH_SIZE ];
 /*
 Flags used in Insert which control the forced reinsertion process.
 
 */
 
-    R_TreeNode *nodePtr;   
+    R_TreeNode *nodePtr;
 /*
 The current node of the R-tree.
 
 */
 
-    int currLevel;         
+    int currLevel;
 /*
 Current level (of ~nodePtr~).
 
 */
 
-    int currEntry;         
+    int currEntry;
 /*
 Current entry within ~nodePtr~.
 
 */
 
-    int reportLevel;       
+    int reportLevel;
 /*
 Report level for first/next.
 
 */
 
-    BBox searchBox;      
+    BBox searchBox;
 /*
 Bounding box for first/next.
 
 */
 
-    bool scanFlag;       
+    bool scanFlag;
 /*
-A flag that tells whether we're in the middle of a First/Next 
+A flag that tells whether we're in the middle of a First/Next
 scan of the tree.
 
 */
@@ -1220,7 +1208,7 @@ Writes the node ~node~ at file position ~address~.
 Also deletes the node.
 
 */
- 
+
     R_TreeNode *GetNode( const SmiRecordId address, const bool leaf, const int min, const int max );
     R_TreeNode *GetNode( SmiRecord& record, const bool leaf, const int min, const int max );
 /*
@@ -1236,7 +1224,7 @@ Writes the header of this tree.
 */
 
     void ReadHeader();
-/* 
+/*
 Reads the header of this rtree.
 
 */
@@ -1298,7 +1286,7 @@ reportLevel( -1 ),
 searchBox(),
 scanFlag( false )
 {
-  file.Create(); 
+  file.Create();
 
   // Calculating maxEntries e minEntries
   int nodeEmptySize = R_TreeNode::SizeOfEmptyNode();
@@ -1378,7 +1366,7 @@ void R_Tree::ReadHeader()
   assert( record.Read( &header, sizeof( Header ), 0 ) == sizeof( Header ) );
 }
 
-void R_Tree::WriteHeader() 
+void R_Tree::WriteHeader()
 {
   SmiRecord record;
   assert( file.SelectRecord( (SmiRecordId)1, record, SmiFile::Update ) );
@@ -1581,7 +1569,7 @@ void R_Tree::InsertEntry( const R_TreeEntry& entry )
       { // splitting root node
         BBox n1Box( n1->BoundingBox() );
         BBox n2Box( n2->BoundingBox() );
-        
+
         SmiRecordId node1recno, node2recno;
         SmiRecord node1record, node2record;
 
@@ -1607,7 +1595,7 @@ void R_Tree::InsertEntry( const R_TreeEntry& entry )
         header.nodeCount++;
         R_TreeEntry newEntry( n2->BoundingBox(), newNoderecno );
         PutNode( newNoderecord, &n2 );
-  
+
         // Copy all entries from n1 to nodePtr
         *nodePtr = *n1;
         delete n1;
@@ -2028,7 +2016,7 @@ ListExpr OutRTree(ListExpr typeInfo, Word value)
   R_Tree *rtree = (R_Tree *)value.addr;
   return nl->SixElemList(
            nl->StringAtom( "R-Tree statistics" ),
-           nl->ThreeElemList( nl->StringAtom( "Entries (min/max)" ), 
+           nl->ThreeElemList( nl->StringAtom( "Entries (min/max)" ),
                               nl->IntAtom( rtree->MinEntries() ),
                               nl->IntAtom( rtree->MaxEntries() ) ),
            nl->TwoElemList( nl->StringAtom( "Height" ),
@@ -2195,7 +2183,6 @@ TypeConstructor rtree( "rtree",              RTreeProp,
 static ListExpr CreateRTreeTypeMap(ListExpr args)
 {
   string attrName;
-  string sattrType;
   char* errmsg = "Incorrect input for operator creatertree.";
   int attrIndex;
   ListExpr attrType;
@@ -2230,8 +2217,9 @@ static ListExpr CreateRTreeTypeMap(ListExpr args)
   CHECK_COND(IsTupleDescription(attrList, nl), errmsg);
   CHECK_COND((attrIndex = findattr(attrList, attrName, attrType, nl)) > 0, errmsg);
 
-  sattrType = nl->SymbolValue(attrType);
-  CHECK_COND(sattrType == "point" || sattrType == "points", errmsg);
+  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo;
+  CHECK_COND(algMgr->CheckKind("SPATIAL", attrType, errorInfo), errmsg);
 
   ListExpr resultType =
     nl->ThreeElemList(
@@ -2308,7 +2296,7 @@ CreateRTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
     BBox box = ((StandardSpatialAttribute*)tuple->Get(attrIndex))->BoundingBox();
     R_TreeEntry e( box, tuple->GetId() );
     rtree->Insert( e );
-    
+
     tuple->DeleteIfAllowed();
   }
 
@@ -2376,7 +2364,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
     CHECK_COND(nl->AtomType(searchWindow[i]) == SymbolType, errmsg);
     CHECK_COND(nl->SymbolValue(searchWindow[i]) == "point", errmsg );
   }
-  
+
   /* handle btree part of argument */
   CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg);
   CHECK_COND(!nl->IsAtom(rtreeDescription), errmsg);
@@ -2388,7 +2376,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
 
   CHECK_COND(nl->IsAtom(rtreeKeyType), errmsg);
   CHECK_COND(nl->AtomType(rtreeKeyType) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(rtreeKeyType) == "point" || 
+  CHECK_COND(nl->SymbolValue(rtreeKeyType) == "point" ||
              nl->SymbolValue(rtreeKeyType) == "points", errmsg);
 
   /* handle rtree type constructor */
@@ -2454,8 +2442,8 @@ struct WindowIntersectsLocalInfo
 };
 
 int
-WindowIntersectsValueMapping(Word* args, Word& result, 
-                             int message, Word& local, 
+WindowIntersectsValueMapping(Word* args, Word& result,
+                             int message, Word& local,
                              Supplier s)
 {
   WindowIntersectsLocalInfo *localInfo;
@@ -2500,7 +2488,7 @@ WindowIntersectsValueMapping(Word* args, Word& result,
           return YIELD;
         }
         else
-          return CANCEL; 
+          return CANCEL;
       }
       else
       {
