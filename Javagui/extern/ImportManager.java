@@ -25,7 +25,7 @@ public ListExpr importFile(String FileName){
   if(FileName.toLowerCase().endsWith(".dbf")){
      ListExpr Res = dbf3Reader.getList(FileName);
      if(Res!=null){
-        System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+        // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
         return Res;
      }
      else{
@@ -45,7 +45,7 @@ public ListExpr importFile(String FileName){
 	         t1 = System.currentTimeMillis();
 	     }
 	 	 else{
-	         System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+	         // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
 	         return Res;
          }
      }
@@ -53,7 +53,7 @@ public ListExpr importFile(String FileName){
      if(Res==null)
         ErrorText = shapereader.getErrorString();
      else{
-        System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+        // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
             return Res;
      }
  }
@@ -65,7 +65,7 @@ public ListExpr importFile(String FileName){
      if(LE==null)
         ErrorText = BN.getErrorString();
      else{
-        System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+        // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
         return extractFromObject(LE);
      }
   }
@@ -78,7 +78,7 @@ public ListExpr importFile(String FileName){
         ErrorText ="cannot load this file";
      return null;
   }else{
-   System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
+   // System.out.println("import of "+FileName+" has taken "+(System.currentTimeMillis()-t1) +" ms");
    return extractFromObject(R);
   }
 
