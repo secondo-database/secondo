@@ -31,7 +31,10 @@ using namespace std;
 #include <string>
 #include <cmath>
 
+
+#ifdef SECONDO_WIN32
 const double M_PI = acos( -1.0 );
+#endif
 
 static NestedList* nl;
 static QueryProcessor* qp;
