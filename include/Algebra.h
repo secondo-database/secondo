@@ -447,12 +447,13 @@ Returns the number of operators provided by the algabra module.
 
 */
   TypeConstructor* GetTypeConstructor( int index )
-                     { return (tcs[index]); }
+                     { assert((index >= 0) && (index <= tcsNum-1)); return tcs[index]; }
 /*
 Returns a reference to the type constructor identified by ~index~.
 
 */
-  Operator* GetOperator( int index ) { return (ops[index]); }
+  Operator* GetOperator( int index ) 
+               { assert((index >= 0) && (index <= opsNum-1)); return ops[index]; }
 /*
 Returns a reference to the operator identified by ~index~.
 
@@ -469,6 +470,8 @@ base class.
  private:
   vector<TypeConstructor*> tcs;
   vector<Operator*> ops;
+  int tcsNum;
+  int opsNum;
 
   friend class AlgebraManager;
 };
