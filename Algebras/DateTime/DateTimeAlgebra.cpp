@@ -439,7 +439,20 @@ string DateTime::ToString(){
   }else if(type==instanttype){ // an instant
     int day,month,year;
     ToGregorian(this->day,year,month,day);
-    tmp << year << "-" << month << "-" << day;
+    // ensure to write at least 4 digits for a year
+    if(year < 1000)
+      tmp << "0";
+    if(year < 100)
+      tmp << "0";
+    if(year < 10)
+      tmp << "0";    
+    tmp << year << "-";
+    if(month<10)
+       tmp << "0";
+    tmp << month << "-";
+    if(day<10)
+       tmp << "0";
+    tmp << day;
     long value = milliseconds;
     long ms = value % 1000;
     value = value / 1000;
@@ -451,7 +464,10 @@ string DateTime::ToString(){
     if(value==0) // without time
        return tmp.str();
 
-    tmp << "-" << hour << ":";
+    tmp << "-";
+    if(hour<10)
+        tmp << "0";
+    tmp << hour << ":";
     if(min<10)
       tmp << "0";
     tmp << min;
