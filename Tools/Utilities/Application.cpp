@@ -115,8 +115,6 @@ Application::Application( int argc, const char** argv )
   signal( SIGILL,    Application::AbortOnSignalHandler );
   signal( SIGABRT,   Application::AbortOnSignalHandler );
   signal( SIGFPE,    Application::AbortOnSignalHandler );
-  signal( SIGKILL,   Application::AbortOnSignalHandler );
-  signal( SIGSEGV,   Application::AbortOnSignalHandler );
   signal( SIGPIPE,   Application::AbortOnSignalHandler );
   signal( SIGALRM,   Application::AbortOnSignalHandler );
   signal( SIGTERM,   Application::AbortOnSignalHandler );
