@@ -18,10 +18,18 @@ all: makedirs specs
 LS_COMMAND = $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) )
 SPECFILES = $(shell ls $(LS_COMMAND))
 
-specs:  $(SPECFILES)
+specs: specs.tmp 
 	chmod u+x *.awk
-	cat $^ | sort -b | ./specs.awk
-	cat $^ | ./rm_comment_spec.awk > specs
+	cat $< | sort -b | ./specs.awk
+	cat $< | ./rm_comment_spec.awk > specs
+
+specs.tmp: $(SPECFILES)
+	rm -f specs.tmp
+	for file in $(SPECFILES); do \
+          if !((cat $$file && echo -e "\n") >> specs.tmp) then \
+            exit 1; \
+          fi \
+        done
 
 
 .PHONY: makedirs
@@ -44,7 +52,7 @@ buildlibs:
 
 .PHONY: clean
 clean:
-	$(RM) specs
+	rm -f specs specs.tmp
 	for dir in $(ALL_ALGEBRA_DIRS); do \
           if !($(MAKE) -C $$dir clean) then \
             exit 1; \
