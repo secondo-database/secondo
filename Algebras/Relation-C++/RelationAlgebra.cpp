@@ -39,7 +39,9 @@ using namespace std;
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
+#include <sstream>
 #include <typeinfo>
+#include "RelationAlgebraInfo.h"
 #include "Tuple.h"
 
 static NestedList* nl;
@@ -330,6 +332,10 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
   tupleType = new TupleAttributes(noofattrs, attrTypes);
 };
 
+static int ccTuplesCreated = 0;
+static int ccTuplesDeleted = 0;
+
+
 class CcTuple
 {
   private:
@@ -348,9 +354,14 @@ class CcTuple
       NoOfAttr = 0;
       for (int i=0; i < MaxSizeOfAttr; i++)
         AttrList[i] = 0;
+      ccTuplesCreated++;
     };
 
-    virtual ~CcTuple () {};
+    virtual ~CcTuple ()
+    {
+      ccTuplesDeleted++;
+    };
+
     Attribute* Get (int index) {return AttrList[index];};
     void  Put (int index, Attribute* attr) {AttrList[index] = attr;};
     void  SetNoAttrs (int noattr) {NoOfAttr = noattr;};
@@ -394,6 +405,17 @@ class CcTuple
     friend
     ostream& operator<<(ostream& s, CcTuple t);
 };
+
+string
+ReportTupleStatistics()
+{
+  ostringstream buf;
+  buf << ccTuplesCreated << " tuples created, "
+      << ccTuplesDeleted << " tuples deleted, difference is "
+      << (ccTuplesCreated - ccTuplesDeleted) << "." << endl;
+  return buf.str();
+}
+
 /*
 
 The next function supports writing objects of class CcTuple to standard

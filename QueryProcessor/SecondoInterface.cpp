@@ -10,15 +10,15 @@ January 17, 1998 RHG Connected Secondo Parser (= command level 1 available).
 
 This module implements the module ~SecondoInterface~ by using the
 modules ~NestedList~, ~SecondoCatalog~, ~QueryProcessor~ and
-~StorageManager~. 
+~StorageManager~.
 
 May 15, 1998 RHG Added a command ~model value-expression~ which is
 analogous to ~query value-expression~ but computes the result model for
-a given query rather than the result value. 
+a given query rather than the result value.
 
 November 18, 1998 Stefan User commands ``abort transaction'' and
 ``commit transaction'' are implemented by calling SMI\_Abort() and
-SMI\_Commit(), respectively. 
+SMI\_Commit(), respectively.
 
 April 2002 Ulrich Telle Port to C++
 
@@ -45,6 +45,7 @@ using namespace std;
 #include "Profiles.h"
 #include "FileSystem.h"
 
+#include "RelationAlgebraInfo.h"
 #include "SecondoSMI.h"
 #include "SecParser.h"
 #include "TimeTest.h"
@@ -53,8 +54,8 @@ extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
 static SecondoSystem* ss = 0;
 
-/************************************************************************** 
-3.1 The Secondo Procedure 
+/**************************************************************************
+3.1 The Secondo Procedure
 
 */
 
@@ -363,7 +364,7 @@ If value 0 is returned, the command was executed without error.
   length = nl->ListLength( list );
   if ( length > 1 )
   {
-    first = nl->First( list ); 
+    first = nl->First( list );
 
     // --- Transaction handling
 
@@ -519,7 +520,7 @@ If value 0 is returned, the command was executed without error.
         }                            
       }
       else if ( nl->IsEqual( first, "restore" ) && 
-               (length == 5) && nl->IsAtom( nl->Third( list )) && 
+               (length == 5) && nl->IsAtom( nl->Third( list )) &&
                (nl->AtomType( nl->Third( list )) == SymbolType) &&
                 nl->IsEqual( nl->Fourth( list ), "from" ) &&
                 nl->IsAtom( nl->Fifth( list )) && 
@@ -699,7 +700,7 @@ If value 0 is returned, the command was executed without error.
         else
         {
           errorCode = 6;      // no database open
-        } 
+        }
       }
       else
       {
@@ -968,6 +969,7 @@ If value 0 is returned, the command was executed without error.
                 Destroy( tree, true );
 
 	       cout << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+              cout << ReportTupleStatistics();
 
             }
             else if ( isFunction ) // abstraction or function object
