@@ -253,7 +253,6 @@ void
 DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
 {
    ListExpr d, m, y;
-    cout <<"---DISPLAYTTY---" << endl;    
    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
     {
       cout << "UNDEFINED";
