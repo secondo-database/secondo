@@ -920,14 +920,8 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   Word actual;
   CcRel* rel;
 
-	//cout << "consume starts" << endl;
-
   rel = (CcRel*)((qp->ResultStorage(s)).addr);
-  if(rel->GetNoTuples() > 0)
-  {
-    rel->Empty();
-  }
-  
+
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
@@ -942,8 +936,6 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   result = SetWord((void*) rel);
 
   qp->Close(args[0].addr);
-
-	//cout << "consume finishes" << endl;
 
   return 0;
 }
@@ -1029,8 +1021,6 @@ ListExpr AttrTypeMap(ListExpr args)
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                   nl->OneElemList(nl->IntAtom(j)), attrtype);
     }
-    ErrorReporter::ReportError("Incorrect input for operator attr.");
-    return nl->SymbolAtom("typeerror");
   }
   ErrorReporter::ReportError("Incorrect input for operator attr.");
   return nl->SymbolAtom("typeerror");
@@ -1055,20 +1045,9 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 
   tupleptr = (CcTuple*)args[0].addr;
   index = (int)((StandardAttribute*)args[2].addr)->GetValue();
-  if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))
-  {
-    //result = qp->ResultStorage(s);
-    //((StandardAttribute*)result.addr)->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
-      
-      result = SetWord(tupleptr->Get(index - 1));
-
-    return 0;
-  }
-  else
-  {
-    cout << "attribute: index out of range !";
-    return -1;
-  }
+  assert( 1 <= index && index <= tupleptr->GetNoAttrs() );
+  result = SetWord(tupleptr->Get(index - 1));
+  return 0;
 }
 /*
 
@@ -1274,40 +1253,40 @@ ListExpr ProjectTypeMap(ListExpr args)
       while (!(nl->IsEmpty(second)))
       {
         first2 = nl->First(second);
-	second = nl->Rest(second);
-	if (nl->AtomType(first2) == SymbolType)
-	{
-	  attrname = nl->SymbolValue(first2);
-	}
-	else
+	    second = nl->Rest(second);
+	    if (nl->AtomType(first2) == SymbolType)
+        {
+          attrname = nl->SymbolValue(first2);
+        }
+        else
         {
           ErrorReporter::ReportError("Incorrect input for operator project.");
           return nl->SymbolAtom("typeerror");
         }
-	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
-	if (j)
-	{
-	  if (firstcall)
-	  {
-	    firstcall = false;
-	    newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
-	    lastNewAttrList = newAttrList;
-	    numberList = nl->OneElemList(nl->IntAtom(j));
-	    lastNumberList = numberList;
-	  }
-	  else
-	  {
-	    lastNewAttrList =
-	      nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
-	    lastNumberList =
-	      nl->Append(lastNumberList, nl->IntAtom(j));
-	  }
-	}
-	else
-  {
-    ErrorReporter::ReportError("Incorrect input for operator project.");
-    return nl->SymbolAtom("typeerror");
-  }
+        j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
+	    if (j)
+	    {
+	      if (firstcall)
+	      {
+	        firstcall = false;
+	        newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
+	        lastNewAttrList = newAttrList;
+	        numberList = nl->OneElemList(nl->IntAtom(j));
+	       lastNumberList = numberList;
+	      }
+	      else
+	      {
+	        lastNewAttrList =
+	          nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
+	        lastNumberList =
+	          nl->Append(lastNumberList, nl->IntAtom(j));
+	      }
+	    }
+	    else
+        {
+          ErrorReporter::ReportError("Incorrect input for operator project.");
+          return nl->SymbolAtom("typeerror");
+        }
       }
       // Check whether all new attribute names are distinct
       // - not yet implemented
@@ -1447,7 +1426,7 @@ ListExpr RemoveTypeMap(ListExpr args)
   string attrname;
   set<int> removeSet;
   removeSet.clear();
-  
+
   firstcall = true;
   if (nl->ListLength(args) == 2)
   {
@@ -1465,17 +1444,17 @@ ListExpr RemoveTypeMap(ListExpr args)
       {
 	first2 = nl->First(second);
 	second = nl->Rest(second);
-	
+
 	if (nl->AtomType(first2) == SymbolType)
 	{
 	  attrname = nl->SymbolValue(first2);
 	}
-	else 
+	else
 	{
 	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
 	  return nl->SymbolAtom("typeerror");
 	}
-	
+
 	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
 	if (j)  removeSet.insert(j);
 	else
@@ -1498,12 +1477,12 @@ ListExpr RemoveTypeMap(ListExpr args)
 	i++;
 	first2 = nl->First(oldAttrList);
 	oldAttrList = nl->Rest(oldAttrList);
-	
+
 	if (removeSet.find(i)==removeSet.end())  //the attribute is not in the removal list
-	{ 
+	{
 	  noAttrs++;
 	  if (firstcall)
-	  { 
+	  {
 	    firstcall = false;
 	    newAttrList = nl->OneElemList(first2);
 	    lastNewAttrList = newAttrList;
@@ -1896,7 +1875,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~product~
 
 */
-const string ProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+const string ProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
                             "( <text>((stream (tuple (x1 ... xn))) (stream "
 			    "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
@@ -2030,7 +2009,7 @@ Operator ~tcount~ accepts a stream of tuples and returns an integer.
 ----
 
 */
-ListExpr 
+ListExpr
 TCountTypeMap(ListExpr args)
 {
   ListExpr first;
@@ -3756,7 +3735,7 @@ Operator cppmergediff(
 */
 const string MergeUnionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "\"Example\" ) "
-                         "( <text>((stream (tuple ((x1 t1) ... (xn tn))))" 
+                         "( <text>((stream (tuple ((x1 t1) ... (xn tn))))"
 			 "stream (tuple ((x1 t1) ... (xn tn))))) -> (stream"
 			 " (tuple ((x1 t1) ... (xn tn))))</text--->"
 			 "<text>_ _ mergeunion</text--->"
@@ -4739,13 +4718,13 @@ Operator cppextend (
 
 7.3 Operator ~loopjoin~
 
-This operator will fulfill a join of two relations. Tuples in the cartesian product which satisfy certain 
+This operator will fulfill a join of two relations. Tuples in the cartesian product which satisfy certain
 conditions are passed on to the output stream.
 
-For instance, 
+For instance,
 
 ----	query Staedte feed loopjoin [plz feed filter [.Ort=.SName] ] consume;
-    
+
     	(query (consume (loopjoin (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
 		(fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
 ----
@@ -4763,14 +4742,14 @@ ListExpr LoopjoinTypeMap(ListExpr args)
 {
   ListExpr first, second;
   ListExpr list1, list2, list, outlist;
-  
+
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
     second  = nl->Second(args);
 
     if 	    ( (nl->ListLength(first) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)	   
+	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
 	&& (nl->ListLength(second) == 3)
@@ -4778,7 +4757,7 @@ ListExpr LoopjoinTypeMap(ListExpr args)
 	&& (nl->Equal(nl->Second(first), nl->Second(second)))
 	&& (nl->ListLength(nl->Third(second)) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)	
+	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
 	{
                    list1 = nl->Second(nl->Second(first));
@@ -4795,7 +4774,7 @@ ListExpr LoopjoinTypeMap(ListExpr args)
     else goto typeerror;
   }
  else goto typeerror;
-  
+
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator loopjoin.");
   return nl->SymbolAtom("typeerror");
@@ -4816,33 +4795,33 @@ struct LoopjoinLocalInfo
 static int
 Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  ArgVectorPointer funargs;  
+  ArgVectorPointer funargs;
   Word tuplex, tupley, tuplexy, streamy;
   CcTuple* ctuplex;
   CcTuple* ctupley;
   CcTuple* ctuplexy;
   LoopjoinLocalInfo *localinfo;
-  
+
   switch ( message )
   {
-    case OPEN:  
+    case OPEN:
       //1.open the stream and initiate the variables
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
       if (qp->Received(args[0].addr))
-      {  
+      {
       //2>>> here: compute the rely which corresponding to tuplex
           funargs = qp->Argument(args[1].addr);
           (*funargs)[0] = tuplex;
           streamy=args[1];
           qp->Open (streamy.addr);
      //3>>> here: put the information of tuplex and rely into local
-           localinfo=new LoopjoinLocalInfo; 
+           localinfo=new LoopjoinLocalInfo;
            localinfo->tuplex=tuplex;
            localinfo->streamy=streamy;
            local = SetWord(localinfo);
       }
-      else 
+      else
       {
            local = SetWord(Address(0));
        }
@@ -4873,18 +4852,18 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
                        streamy=args[1];
                        qp->Open (streamy.addr);
 	       tupley=SetWord(Address(0));
-	       
+
  	       localinfo->tuplex=tuplex;
  	       localinfo->streamy=streamy;
 	       local =  SetWord(localinfo);
 	   }
-	   else return CANCEL; 
+	   else return CANCEL;
            }
           else
            {
 	    ctupley=(CcTuple*)tupley.addr;
             }
-      } 
+      }
       //3>>>>>> compute tuplexy.
       ctuplexy = new CcTuple();
       ctuplexy->SetFree(true);
@@ -4895,12 +4874,12 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return YIELD;
 
     case CLOSE:
-      qp->Close(args[0].addr); 
+      qp->Close(args[0].addr);
       localinfo=(LoopjoinLocalInfo *) local.addr;
       delete localinfo;
       return 0;
   }
-  
+
   return 0;
 }
 /*
@@ -4938,14 +4917,14 @@ Operator OLoopjoin (
 
 7.4 Operator ~loopselect~
 
-This operator is similar to the ~loopjoin~ operator except that it only returns the inner tuple 
-(instead of the concatination of two tuples). Tuples in the cartesian product which satisfy 
+This operator is similar to the ~loopjoin~ operator except that it only returns the inner tuple
+(instead of the concatination of two tuples). Tuples in the cartesian product which satisfy
 certain conditions are passed on to the output stream.
 
-For instance, 
+For instance,
 
 ----	query Staedte feed loopselect [plz feed filter [.Ort=.SName] ] consume;
-    
+
     	(query (consume (loopselect (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
 		(fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
 ----
@@ -4963,14 +4942,14 @@ ListExpr LoopselectTypeMap(ListExpr args)
 {
   ListExpr first, second;
   ListExpr list1, list2, outlist;
-  
+
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
     second  = nl->Second(args);
 
     if 	    ( (nl->ListLength(first) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)	   
+	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
 	&& (nl->ListLength(second) == 3)
@@ -4978,7 +4957,7 @@ ListExpr LoopselectTypeMap(ListExpr args)
 	&& (nl->Equal(nl->Second(first), nl->Second(second)))
 	&& (nl->ListLength(nl->Third(second)) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)	
+	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
 	{
                    list1 = nl->Second(nl->Second(first));
@@ -4995,7 +4974,7 @@ ListExpr LoopselectTypeMap(ListExpr args)
     else goto typeerror;
   }
  else goto typeerror;
-  
+
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator loopselect.");
   return nl->SymbolAtom("typeerror");
@@ -5016,33 +4995,33 @@ struct LoopselectLocalInfo
 static int
 Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  ArgVectorPointer funargs;  
+  ArgVectorPointer funargs;
   Word tuplex, tupley, streamy;  //tuplexy
   CcTuple* ctuplex;
   CcTuple* ctupley;
   //CcTuple* ctuplexy;
   LoopselectLocalInfo *localinfo;
-  
+
   switch ( message )
   {
-    case OPEN:  
+    case OPEN:
       //1.open the stream and initiate the variables
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
       if (qp->Received(args[0].addr))
-      {  
+      {
       //2>>> here: compute the rely which corresponding to tuplex
           funargs = qp->Argument(args[1].addr);
           (*funargs)[0] = tuplex;
           streamy=args[1];
           qp->Open (streamy.addr);
      //3>>> here: put the information of tuplex and rely into local
-           localinfo=new LoopselectLocalInfo; 
+           localinfo=new LoopselectLocalInfo;
            localinfo->tuplex=tuplex;
            localinfo->streamy=streamy;
            local = SetWord(localinfo);
       }
-      else 
+      else
       {
            local = SetWord(Address(0));
        }
@@ -5073,18 +5052,18 @@ Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
                        streamy=args[1];
                        qp->Open (streamy.addr);
 	       tupley=SetWord(Address(0));
-	       
+
  	       localinfo->tuplex=tuplex;
  	       localinfo->streamy=streamy;
 	       local =  SetWord(localinfo);
 	   }
-	   else return CANCEL; 
+	   else return CANCEL;
            }
           else
            {
 	    ctupley=(CcTuple*)tupley.addr;
             }
-      } 
+      }
       //3>>>>>> compute tuplexy.
       //ctuplexy = new CcTuple();
       //ctuplexy->SetFree(true);
@@ -5095,12 +5074,12 @@ Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
       return YIELD;
 
     case CLOSE:
-      qp->Close(args[0].addr); 
+      qp->Close(args[0].addr);
       localinfo=(LoopselectLocalInfo *) local.addr;
       delete localinfo;
       return 0;
   }
-  
+
   return 0;
 }
 /*
@@ -5139,13 +5118,13 @@ Operator OLoopselect (
 
 7.3 Operator ~loopjoinrel~
 
-This operator will fulfill a join of two relations. Tuples in the cartesian product which satisfy certain 
+This operator will fulfill a join of two relations. Tuples in the cartesian product which satisfy certain
 conditions are passed on to the output stream.
 
-For instance, 
+For instance,
 
 ----    query Staedte feed loopjoinrel [plz feed filter [.Ort=.SName] consume] consume;
-    
+
     	(query (consume (loopjoinrel (feed tryrel) (fun (t1 TUPLE)
 		(consume filter (feed null) (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
 ----
@@ -5163,14 +5142,14 @@ ListExpr LoopjoinrelTypeMap(ListExpr args)
 {
   ListExpr first, second;
   ListExpr list1, list2, list, outlist;
-  
+
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
     second  = nl->Second(args);
 
     if 	    ( (nl->ListLength(first) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)	   
+	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
 	&& (nl->ListLength(nl->Second(first)) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
 	&& (nl->ListLength(second) == 3)
@@ -5178,7 +5157,7 @@ ListExpr LoopjoinrelTypeMap(ListExpr args)
 	&& (nl->Equal(nl->Second(first), nl->Second(second)))
 	&& (nl->ListLength(nl->Third(second)) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == rel)
-	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)	
+	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)
 	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
 	{
                    list1 = nl->Second(nl->Second(first));
@@ -5195,7 +5174,7 @@ ListExpr LoopjoinrelTypeMap(ListExpr args)
     else goto typeerror;
   }
  else goto typeerror;
-  
+
 typeerror:
   ErrorReporter::ReportError("Incorrect input for operator loopjoinrel.");
   return nl->SymbolAtom("typeerror");
@@ -5217,7 +5196,7 @@ struct LoopjoinrelLocalInfo
 static int
 Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  ArgVectorPointer funargs;  
+  ArgVectorPointer funargs;
   Word tuplex, tupley, tuplexy, funresult, rely;
   CcTuple* ctuplex;
   CcTuple* ctupley;
@@ -5225,31 +5204,31 @@ Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
   CcRel* crely;
   CcRelIT* crelyit;
   LoopjoinrelLocalInfo *localinfo;
-  
+
   switch ( message )
   {
-    case OPEN:  
+    case OPEN:
       //1.open the stream and initiate the variables
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
       if (qp->Received(args[0].addr))
-      {  
+      {
       //2>>> here: compute the rely which corresponding to tuplex
           funargs = qp->Argument(args[1].addr);
           ctuplex=(CcTuple*)tuplex.addr;
           (*funargs)[0] = tuplex;
-          qp->Request(args[1].addr, funresult); 
+          qp->Request(args[1].addr, funresult);
           rely=funresult;
           crely = (CcRel*)(funresult.addr);
           crelyit=crely->MakeNewScan();
      //3>>> here: put the information of tuplex and rely into local
-           localinfo=new LoopjoinrelLocalInfo; 
+           localinfo=new LoopjoinrelLocalInfo;
            localinfo->tuplex=tuplex;
            localinfo->rely=rely;
-           localinfo->relyit=SetWord(crelyit);  
+           localinfo->relyit=SetWord(crelyit);
            local = SetWord(localinfo);
       }
-      else 
+      else
       {
            local = SetWord(Address(0));
        }
@@ -5280,17 +5259,17 @@ Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
 	       (*funargs)[0] = tuplex;
 	       qp->Request(args[1].addr, funresult);
 	       rely=SetWord(funresult.addr);
-	       crely = (CcRel*)(funresult.addr); 
+	       crely = (CcRel*)(funresult.addr);
                        crelyit=crely->MakeNewScan();
 	       tupley=SetWord(Address(0));
 	       //cout<<"number of tuples in rel y:"<<((CcRel*)rely.addr)->GetNoTuples()<<endl;
-	       
+
  	       localinfo->tuplex=tuplex;
  	       localinfo->rely=rely;
 	       localinfo->relyit=SetWord(crelyit);
 	       local =  SetWord(localinfo);
 	   }
-	   else return CANCEL; 
+	   else return CANCEL;
            }
           else
            {
@@ -5300,7 +5279,7 @@ Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
 	    localinfo->relyit=SetWord(crelyit);
 	    local =  SetWord(localinfo);
             }
-      } 
+      }
       //3>>>>>> compute tuplexy.
       ctuplexy = new CcTuple();
       ctuplexy->SetFree(true);
@@ -5311,12 +5290,12 @@ Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
       return YIELD;
 
     case CLOSE:
-      qp->Close(args[0].addr);  
+      qp->Close(args[0].addr);
       localinfo=(LoopjoinrelLocalInfo *) local.addr;
       delete localinfo;
       return 0;
   }
-  
+
   return 0;
 }
 /*
@@ -5792,9 +5771,9 @@ void DummyClose(Word& w) {};
 Word DummyClone(const Word& w) { return SetWord( Address(0) ); };
 
 TypeConstructor cpptuple( "tuple",           TupleProp,
-                          OutTuple,          InTuple,		
+                          OutTuple,          InTuple,
                           SaveToListTuple,   RestoreFromListTuple,
-                          CreateTuple,       DummyDelete,       
+                          CreateTuple,       DummyDelete,
                           0,                 0,
                           DummyClose,        DummyClone,
                           CastTuple,         CheckTuple,
@@ -5811,11 +5790,11 @@ name and the eleven functions previously defined.
 
 */
 TypeConstructor cpprel( "rel",          RelProp,
-                        OutRel,         InRel,   	
+                        OutRel,         InRel,
                         0,              0,
-                        CreateRel, 	DummyDelete,     
-			OpenRel, 	SaveRel,	
-                        DummyClose,     DummyClone, 
+                        CreateRel, 	DummyDelete,
+			OpenRel, 	SaveRel,
+                        DummyClose,     DummyClone,
                         CastRel,        CheckRel,
 			0,
 			RelInModel,      RelOutModel,

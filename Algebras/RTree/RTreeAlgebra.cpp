@@ -1349,12 +1349,14 @@ scanFlag( false )
 
 R_Tree::~R_Tree()
 {
-  assert( file.IsOpen() );
-  if( nodePtr != NULL )
-    PutNode( path[ currLevel ], &nodePtr );
+  if( file.IsOpen() )
+  {
+    if( nodePtr != NULL )
+      PutNode( path[ currLevel ], &nodePtr );
 
-  WriteHeader();
-  file.Close();
+    WriteHeader();
+    file.Close();
+  }
 }
 
 void R_Tree::ReadHeader()
