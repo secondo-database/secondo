@@ -23,6 +23,8 @@ April 2002 Ulrich Telle
 
 November 30, 2002 RHG Added function ~GetKey~.
 
+April, 2004. F.Hoffmann changed implementation details of static method 'ListDatabases'.
+
 Aug 18, 2004. M. Spiekermann added ~Setflag\_NOSYNC~ to speed up closing files 
 at the end of a query. Since queries does not modify the data synchronisation is
 not necessary.
@@ -638,10 +640,8 @@ open, regardless of the name.
 */
   static bool ListDatabases( string& dbname );
 /*
-Lists the names of existing databases, one at a time, and delivers them
-in ~dbname~. The function returns "true"[4] as long as there are names of
-database available and returns "false"[4] after the last name has been
-delivered.
+Lists the names of existing databases in ~dbname~, separated by a '\#'
+character. Returns true, if the execution was successful.
 
 */
   static bool SetUser( const string& uid );
