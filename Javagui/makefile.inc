@@ -28,27 +28,3 @@ DOCPATH := ./doc
 
 GUIPACKAGE := gui gui.idmanager project communication extern
 
-# the viewerpackages
-# if you insert a new viewer extend this
-#
-VIEWERMAINPACKAGE = viewer
-HOESEVIEWERPACKAGE = viewer.hoese viewer.hoese.algebras
-VIEWER3DPACKAGE = components viewer.viewer3d viewer.viewer3d.mathe \
-                  viewer.viewer3d.graphic2d viewer.viewer3d.graphic3d \
-                  viewer.viewer3d.objects
-RELSPLITPACKAGE = viewer.relsplit
-FUZZY2D = viewer.fuzzy2d  # and classes from the viewer3d
-
-VIEWERPACKAGES = $(VIEWERMAINPACKAGE) $(HOESEVIEWERPACKAGE) $(VIEWER3DPACKAGE) \
-                 $(RELSPLITPACKAGE) $(FUZZY2D)
-
-RUNCALL="java gui.MainWindow"
-RUNSCRIPTNAME = sgui
-
-# On Windows the classpath separator is a ";" and on Solaris/Linux it is ":".
-# Also some .bat files have to be generated
-ifeq ($(SECONDO_PLATFORM),win32)
-# CLASSPATH := $(subst :,;, $(CLASSPATH))
-# JISCRIPT_FILES := $(patsubst %.sh,%$(EXT), $(JISCRIPT_SRC))
-  WINSCRIPTNAME := $(RUNSCRIPTNAME).bat
-endif
