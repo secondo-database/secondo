@@ -4,6 +4,8 @@
 
 April 2002 Ulrich Telle
 
+October 2002 Ulrich Telle, fixed bug causing problems with iterators returning record ids (keyDataType was not set appropriately)
+
 */
 
 #include <string>
@@ -35,6 +37,7 @@ SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
     fixedRecordLength = 0;
     uniqueKeys        = true;
   }
+  keyDataType = SmiKey::RecNo;
 }
                  
 SmiRecordFile::~SmiRecordFile()

@@ -32,6 +32,8 @@ from those files, respectively. Now the catalog is semi-persistent, i.e.
 as persistent as provided by the underlying OS, without access being
 save under transactions, logged, and locked. 
 
+October 2002 Ulrich Telle, testMode flag initialization added
+
 This module implements the module *SecondoCatalog*. It consists of six
 parts: First it contains an interface to *Databases and Transactions*
 for loading the actual catalog of database types and objects and for
@@ -1883,7 +1885,7 @@ specifications from [BeG95b, Section3.1].
 SecondoCatalog::SecondoCatalog( const string& name, 
                                 const AlgebraLevel level )
   : typeCatalogFile( SmiKey::String ), objCatalogFile( SmiKey::String ),
-    objValueFile( false ), objModelFile( false )
+    objValueFile( false ), objModelFile( false ), testMode( false )
 {
   catalogName  = name;
   catalogLevel = level;

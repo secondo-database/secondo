@@ -6,6 +6,8 @@ April 2002 Ulrich Telle
 
 September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for system catalog files
 
+October 2002 Ulrich Telle, fixed bug causing problems with iterators returning record ids (keyDataType was not set appropriately)
+
 */
 
 using namespace std;
@@ -38,6 +40,7 @@ SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
     fixedRecordLength = 0;
     uniqueKeys        = true;
   }
+  keyDataType = SmiKey::RecNo;
 }
                  
 SmiRecordFile::~SmiRecordFile()
