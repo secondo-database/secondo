@@ -5,15 +5,42 @@
 \maketitle
 \noindent
 
-\abstract{
-The DateTime-Algebra is originally writtes as a Part of the Periodic-Algebra.
-Because time is a important data type which is needed in
-several algebras, the DateTime type is extracted from this
-Periodic Algebra. The class declaration is located in the File
-SECONDO\_HOME\_DIR/include/DateTime.h.
-}
-
 \tableofcontents
+
+0 Introduction
+
+Time is a very important datatype. They are two different kinds
+of time, namely  {\tt duration} and {\tt instant}. Both types
+can be handled by the same data structure. Unfortunately, not
+all combinations of types makes any sense in each operator, e.g.
+the addition of two instants. To handle this problem, the type
+information is included in the data-structure. The correct use
+of the operators is checked via assert() callings. Note, that several
+operations changes the type of the this-object, e.g. if  ~Minus~ is
+called on an instant and an instant as argument, the this object will
+be changed from instant to duration.
+
+The Algebra provides the following operators.
+
+\begin{tabular}{|l|l|l|}\hline
+ {\bf Operator} & {\bf Signature} & {\bf Remarks }\\\hline
+   +            & instant $\times$ duration $\rightarrow$ instant  & addition of the arguments \\\cline{2-2}
+                & duration $\times$ instant $\rightarrow$ instant  & possible change of the type \\\cline{2-2}
+		& duration $\times$ duration $\rightarrow$  duration & \\\hline
+   -            & instant $\times$ duration $\rightarrow$ instant    & difference of two time instances \\\cline{2-2}
+                & instant $\times$ instant $\rightarrow$ duration    & possible change of the type \\\cline{2-2}
+		& duration $\times$ duration $\rightarrow$ duration  & \\\hline
+   *            & duration $\times$ int $\rightarrow$ duration       & the multiple of a duration \\\hline
+   =, $<$, $>$        & instant $\times$ instant $\rightarrow$ bool        & the familiar comparisons \\\cline{2-2}
+                & duration $\times$ duration $\rightarrow$ bool      & \\\hline
+   weekday      & instant $\rightarrow$ string                       & the weekday in a human readable format \\\hline
+   leapyear     & int $\rightarrow$ bool                             & checks for leapyear \\\hline
+year,month,day  & instant $\rightarrow$ int                          & the date parts of an instant \\\hline
+hour, minute,       & instant $\rightarrow$ int                      & the time parts of an instant \\
+second, millisecond &                                                &         \\\hline
+now                 & $\rightarrow$ instant                          & creates a new instant from the systemtime \\\hline
+today               & $\rightarrow$ instant                          & creates a new instant today at 0:00  \\\hline
+\end{tabular}
 
 1 Includes and Definitions
 
@@ -83,18 +110,18 @@ It is used in a special way in a cast function.
 DateTime::DateTime(){}
 
 /*
-~Constructor with a dummy argument~
+~Constructor~
 
-This constructor ignores the argument. The purpose of this
-parameter is to make this constructor distinguishable to
-the standard one, which can't have any implementation.
+This constructor creates a DateTime at the NULL\_DAY and
+duration zero, respectively.
 
 */
-DateTime::DateTime(int dummy){
+DateTime::DateTime(TimeType type){
   day=0;
   milliseconds=0;
   defined = true;
   canDelete=false;
+  this->type = type;
 }
 
 
@@ -104,7 +131,7 @@ DateTime::DateTime(int dummy){
 The Value of MilliSeconds has to be greater than or equals to zero.
 
 */
-DateTime::DateTime(const long Day,const long MilliSeconds){
+DateTime::DateTime(const long Day,const long MilliSeconds,TimeType type){
    assert(MilliSeconds>=0);
    day = Day;
    milliseconds = MilliSeconds;
@@ -115,6 +142,7 @@ DateTime::DateTime(const long Day,const long MilliSeconds){
    }
    defined = true;
    canDelete=false;
+   this->type = type;
 }
 
 /*
@@ -128,21 +156,39 @@ void DateTime::Destroy(){
 }
 
 
+/*
+~SetType~
+
+*/
+void DateTime::SetType(TimeType TT){
+    type = TT;
+}
+
+/*
+~GetType~
+
+*/
+TimeType DateTime::GetType(){
+    return type;
+}
+
+
 
 /*
 ~Now~
 
 Gets the value of this DateTime from the System.
+Cannot be applied to a duration.
+
 */
 void DateTime::Now(){
+  assert(type != durationtype);
   timeb tb;
   time_t now;
   int ms;
-
   ftime(&tb);
   now = tb.time;
   ms = tb.millitm;
-
   tm* time = localtime(&now);
   day = ToJulian(time->tm_year+1900,time->tm_mon+1,time->tm_mday);
   milliseconds = ((((time->tm_hour)*60)+time->tm_min)*60+time->tm_sec)*1000+ms;
@@ -153,8 +199,11 @@ void DateTime::Now(){
 
 This function reads this DateTime value from the Systemtime. The time part is
 ignored here. This means, that hour ... millisecond are assumed to be zero.
+Cannot applied to a duration.
+
 */
 void DateTime::Today(){
+   assert(type != durationtype);
    time_t today;
    time(&today);
    tm* lt = localtime(&today);
@@ -166,11 +215,12 @@ void DateTime::Today(){
 /*
 ~GetDay~
 
-This function returns the day of this Time instance as
-difference to the reference time.
+This functions yields the day-part of a duration.
+The function can't applied to an instant.
 
 */
 long DateTime::GetDay(){
+   assert(type!=instanttype);
    return day;
 }
 
@@ -189,40 +239,52 @@ long DateTime::GetAllMilliSeconds(){
 ~Gregorian Calender~
 
 The following functions return single values of this DateTime instance.
+This functions cannot applied to durations.
 
 */
 
 int DateTime::GetGregDay(){
+    assert(type!=durationtype);
     int y,m,d;
     ToGregorian(day,y,m,d);
     return d;
 }
 
 int DateTime::GetMonth(){
+   assert(type!=durationtype);
    int y,m,d;
    ToGregorian(day,y,m,d);
    return m;
 }
 int DateTime::GetYear(){
+   assert(type!=durationtype);
    int y,m,d;
    ToGregorian(day,y,m,d);
    return y;
 }
 
 int DateTime::GetHour(){
+   assert(type!=durationtype);
    return (int)(milliseconds / 3600000);
 }
 
 int DateTime::GetMinute(){
+    assert(type!=durationtype);
    return (int) ( (milliseconds / 60000) % 60);
 }
 
 int DateTime::GetSecond(){
+  assert(type!=durationtype);
   return (int) ( (milliseconds / 1000) % 60);
 }
 
 int DateTime::GetMillisecond(){
+  assert(type!=durationtype);
   return (int) (milliseconds % 1000);
+}
+
+int DateTime::GetWeekday(){
+    return day % 7;
 }
 
 /*
@@ -313,22 +375,22 @@ double DateTime::ToDouble(){
 /*
 ~ToString~
 
-This function returns the string representation of this
-Time instance in the format:\\
-if the absolute flag is set: \\
-YEAR-MONTH-DAY-HOUR:MINUTE:SECOND.MILLISECONDS\\
-if the absolute flag is not set:\\
-day\mid{}\mid{}milliseconds
+This function returns the string representation of this DateTime instance.
 
 */
-string DateTime::ToString(bool absolute){
+string DateTime::ToString(){
   ostringstream tmp;
   if(!defined){
     return "undefined";
   }
-  if(!absolute){
-    tmp << day << "||" << milliseconds;
-  }else{
+  if(type==durationtype){ //a duration
+    tmp << day << ".";
+    if(milliseconds<100)
+      tmp << "0";
+    if(milliseconds<10)
+      tmp << "0";
+    tmp << milliseconds;
+  }else{ // an instant
     int day,month,year;
     ToGregorian(this->day,year,month,day);
     tmp << year << "-" << month << "-" << day;
@@ -379,11 +441,11 @@ the time represented by the string and the result is true.
 The format of the string must be:\\
  \hspace{1cm}    YEAR-MONTH-DAY-HOUR:MIN[:SECOND[.MILLISECOND]] \\
 Spaces are not allowed in this string. The squared brackets
-indicates optional parts.
+indicates optional parts. This function is not defined for durations.
 
 */
 bool DateTime::ReadFrom(const string Time){
-
+   assert(type!=durationtype);
    canDelete = false;
    if(Time=="undefined"){
       defined=false;
@@ -531,8 +593,8 @@ bool DateTime::ReadFrom(const double Time){
 ~IsValid~
 
 This functions checks if the given arguments represent a valid gregorian
-date. E.G. this function will return false id month is greater than twelve,
-or the day is not include in the given month/year.
+date. E.g. this function will return false if month is greater than twelve,
+or the day is not included in the given month/year.
 
 */
 bool DateTime::IsValid(int year,int month,int day){
@@ -559,9 +621,11 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
         return false;
      }
      ListExpr TypeList = nl->First(LE);
-     if(!nl->IsEqual(TypeList,"datetime") &&
-        !nl->IsEqual(TypeList,"instant")){ // wrong type
-        return false;
+     if(!nl->IsEqual(TypeList,"datetime")){
+       if( (type==instanttype) && !nl->IsEqual(TypeList,"instant"));
+          return false;
+       if( (type==durationtype) && !nl->IsEqual(TypeList,"duration"));
+          return false;
      }
      ValueList = nl->Second(LE);
   }else{
@@ -571,25 +635,40 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
   // Special Representation in this Algebra
   if(nl->AtomType(ValueList)==SymbolType){
     if(nl->SymbolValue(ValueList)=="now"){
-          Now();
-	  return true;
+        if(type==instanttype){
+           Now();
+	   return true;
+	} else
+	   return false;
     }
     if(nl->SymbolValue(ValueList)=="today"){
-          Today();
-	  return  true;
+        if(type==instanttype){
+           Today();
+	   return  true;
+	} else
+	   return false;
     }
   }
 
   // string representation
-  if(nl->AtomType(ValueList)==StringType)
-     return ReadFrom(nl->StringValue(ValueList));
-
+  if(nl->AtomType(ValueList)==StringType){
+     if(type==instanttype)
+        return ReadFrom(nl->StringValue(ValueList));
+     else
+        return false;
+  }
   // real representation
-  if(nl->AtomType(ValueList)==RealType )
-     return ReadFrom(nl->RealValue(ValueList));
+  if(nl->AtomType(ValueList)==RealType ){
+     if(type==instanttype)
+        return ReadFrom(nl->RealValue(ValueList));
+     else
+        return false;
+  }
 
   // (day month year [hour minute [second [millisecond]]])
   if( (nl->ListLength(ValueList)>=3) && nl->ListLength(ValueList)<=7){
+     if(type==durationtype)
+        return  false;
      int len = nl->ListLength(ValueList);
      if(len==4) return false; // only hours is not allowed
      ListExpr tmp = ValueList;
@@ -624,10 +703,12 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
      return true;
   }
 
-  // (julianday milliseconds)
+  // (julianday milliseconds)  // for durations
   if(nl->ListLength(ValueList)!=2){
     return false;
   }
+  if(type == instanttype)
+     return false;
   ListExpr DayList = nl->First(ValueList);
   ListExpr MSecList = nl->Second(ValueList);
   if(nl->AtomType(DayList)!=IntType || nl->AtomType(MSecList)!=IntType){
@@ -653,9 +734,11 @@ The result will be:
    \item[0] if this instance is equals to P2
    \item[1] if this instance is after P2
 \end{description}
+The types of the arguments has to be equals.
 
 */
 int DateTime::CompareTo(DateTime* P2){
+   assert(type==P2->type);
    if(!defined && !P2->defined)
       return 0;
    if(!defined && P2->defined)
@@ -677,8 +760,8 @@ This funtion returns a copy of this instance.
 
 */
 DateTime* DateTime::Clone(){
-   DateTime* res = new DateTime(day,milliseconds);
-   res->defined = defined;
+   DateTime* res = new DateTime(type);
+   res->Equalize(this);
    return res;
 }
 
@@ -698,6 +781,8 @@ void DateTime::ReadFromSmiRecord(SmiRecord& valueRecord,int& offset){
    offset += sizeof(bool);
    valueRecord.Read(&canDelete,sizeof(bool),offset);
    offset += sizeof(bool);
+   valueRecord.Read(&type,sizeof(TimeType),offset);
+   offset += sizeof(TimeType);
 }
 
 
@@ -731,6 +816,8 @@ void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,int& offset){
    offset += sizeof(bool);
    valueRecord.Write(&canDelete,sizeof(bool),offset);
    offset += sizeof(bool);
+   valueRecord.Write(&type,sizeof(TimeType),offset);
+   offset += sizeof(TimeType);
 }
 
 /*
@@ -829,9 +916,12 @@ void DateTime::CopyFrom(StandardAttribute* arg){
 ~add~
 
 Adds P2 to this instance. P2 remains unchanged.
+The add- function requires least one argument to be
+a duration type. 
 
 */
 void DateTime::Add(DateTime* P2){
+   assert(type==durationtype || P2->type==durationtype);
    day += P2->day;
    milliseconds += P2->milliseconds;
    if(milliseconds>MILLISECONDS){
@@ -839,30 +929,40 @@ void DateTime::Add(DateTime* P2){
       day += dif;
       milliseconds -= dif*MILLISECONDS;
    }
+   if(P2->type==instanttype)
+      type = instanttype;
 }
 
 /*
 ~minus~
 
 Subtracts P2 from this instance.
+If this instance is of type duration the, type of the argument
+has also to be a duration. Its possible that this function changes
+the type of this instance.
 
 */
 void DateTime::Minus(DateTime* P2){
+   assert(type==instanttype || P2->type==durationtype);
+
    day -= P2->day;
    milliseconds -= P2->milliseconds;
    if(milliseconds<0){
       day--;
       milliseconds = MILLISECONDS+milliseconds; //note ms<0
    }
+   if(type==instanttype && P2->type==instanttype)
+      type = durationtype;
 }
 
 /*
 ~mul~
 
-Computes the M'th multiple of this time.
+Computes a multiple of a duration.
 
 */
 void DateTime::Mul(int factor){
+   assert(type==durationtype);
    day = day*factor;
    milliseconds = milliseconds*factor;
    if(milliseconds>MILLISECONDS){
@@ -884,18 +984,20 @@ in milliseconds. If the parameter is true, the value will be a
 string in format year-month-day-hour:minute:second.millisecond
 
 */
-ListExpr DateTime::ToListExpr(bool absolute,bool typeincluded){
+ListExpr DateTime::ToListExpr(bool typeincluded){
   ListExpr value;
+  if(type==instanttype)
+      value = nl->StringAtom(this->ToString());
 
-  if(absolute)
-      value = nl->StringAtom(this->ToString(true));
-
-  else
+  else // a duration
     value = nl->TwoElemList( nl->IntAtom((int)day),
 		             nl->IntAtom((int)milliseconds)
 		             );
   if(typeincluded)
-    return nl->TwoElemList(nl->SymbolAtom("datetime"),value);
+     if(type==instanttype)
+        return nl->TwoElemList(nl->SymbolAtom("instant"),value);
+     else
+        return nl->TwoElemList(nl->SymbolAtom("duration"),value);
   else
     return value;
 }
@@ -911,6 +1013,7 @@ void DateTime::Equalize(DateTime* P2){
    day = P2->day;
    milliseconds = P2->milliseconds;
    defined = P2->defined;
+   type = P2->type;
 }
 
 /*
@@ -943,14 +1046,27 @@ bool DateTime::LessThanZero(){
 
 ListExpr OutDateTime( ListExpr typeInfo, Word value ){
    DateTime* T = (DateTime*) value.addr;
-   return T->ToListExpr(false,false);
+   return T->ToListExpr(false);
 }
 
 
-Word InDateTime( const ListExpr typeInfo, const ListExpr instance,
+Word InInstant( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct ){
 
-  DateTime* T = new DateTime(0);
+  DateTime* T = new DateTime(instanttype);
+  if(T->ReadFrom(instance,false)){
+    correct=true;
+    return SetWord(T);
+  }
+  correct = false;
+  delete(T);
+  return SetWord(Address(0));
+}
+
+Word InDuration( const ListExpr typeInfo, const ListExpr instance,
+              const int errorPos, ListExpr& errorInfo, bool& correct ){
+
+  DateTime* T = new DateTime(durationtype);
   if(T->ReadFrom(instance,false)){
     correct=true;
     return SetWord(T);
@@ -964,8 +1080,11 @@ Word InDateTime( const ListExpr typeInfo, const ListExpr instance,
 /*
 2.2 Property Function
 
+Beacuse we only export the subtypes of datetime (instant and duration, we does not
+need any property function for this.
+
 */
-ListExpr DateTimeProperty(){
+ListExpr InstantProperty(){
   return (nl->TwoElemList(
             nl->FiveElemList(
                 nl->StringAtom("Signature"),
@@ -975,20 +1094,43 @@ ListExpr DateTimeProperty(){
                 nl->StringAtom("Remarks")),
             nl->FiveElemList(
                 nl->StringAtom("-> Data"),
-                nl->StringAtom("datetime"),
-                nl->StringAtom("(int int)"),
-                nl->StringAtom("(25 14400)"),
-                nl->StringAtom("The list can also given as date string"))
-         ));
+                nl->StringAtom("instant"),
+                nl->StringAtom("string"),
+                nl->StringAtom("2004-4-12"),
+                nl->StringAtom("This type represents a point of time")
+         )));
 }
+
+ListExpr DurationProperty(){
+  return (nl->TwoElemList(
+            nl->FiveElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List"),
+                nl->StringAtom("Remarks")),
+            nl->FiveElemList(
+                nl->StringAtom("-> Data"),
+                nl->StringAtom("instant"),
+                nl->StringAtom("(int int)"),
+                nl->StringAtom("(12 273673)"),
+                nl->StringAtom("The first argument is day, the second one milliseconds")
+         )));
+}
+
 
 /*
 2.3 ~Create~ function
 
 */
-Word CreateDateTime(const ListExpr typeInfo){
-  return SetWord(new DateTime(11));
+Word CreateInstant(const ListExpr typeInfo){
+  return SetWord(new DateTime(instanttype));
 }
+
+Word CreateDuration(const ListExpr typeInfo){
+  return SetWord(new DateTime(durationtype));
+}
+
 
 /*
 2.4 ~Delete~ function
@@ -1009,7 +1151,7 @@ void DeleteDateTime(Word &w){
 bool OpenDateTime( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value ){
-  DateTime* T = new DateTime(0);
+  DateTime* T = new DateTime(instanttype); // the type will be overwritten when opened
   T->Open(valueRecord,typeInfo);
   value = SetWord(T);
   return true;
@@ -1069,27 +1211,49 @@ This function checks whether the type constructor is applied correctly. Since
 the type constructor don't have arguments, this is trivial.
 
 */
-bool CheckDateTime( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, "datetime" ));
+
+bool CheckInstant(ListExpr type, ListExpr& errorInfo){
+  return (nl->IsEqual(type,"instant"));
+}
+
+bool CheckDuration(ListExpr type, ListExpr& errorInfo){
+  return (nl->IsEqual(type,"duration"));
 }
 
 /*
 3 Type Constructor
 
 */
-TypeConstructor datetime(
-	"datetime",		//name
-	DateTimeProperty, 	        //property function describing signature
-        OutDateTime, InDateTime,	//Out and In functions
+TypeConstructor instant(
+	"instant",		//name
+	InstantProperty, 	        //property function describing signature
+        OutDateTime, InInstant,	//Out and In functions
         0,           	                //SaveToList and
 	0,                              //           RestoreFromList functions
-	CreateDateTime, DeleteDateTime,	//object creation and deletion
+	CreateInstant, DeleteDateTime,	//object creation and deletion
         OpenDateTime,    SaveDateTime, 	//object open and save
         CloseDateTime,  CloneDateTime,    	//object close and clone
 	CastDateTime,				//cast function
         SizeOfDateTime, 			//sizeof function
-	CheckDateTime,	                //kind checking function
+	CheckInstant,	                //kind checking function
+	0, 					//predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
+
+TypeConstructor duration(
+	"duration",		//name
+	DurationProperty, 	        //property function describing signature
+        OutDateTime, InDuration,	//Out and In functions
+        0,           	                //SaveToList and
+	0,                              //           RestoreFromList functions
+	CreateDuration, DeleteDateTime,	//object creation and deletion
+        OpenDateTime,    SaveDateTime, 	//object open and save
+        CloseDateTime,  CloneDateTime,    	//object close and clone
+	CastDateTime,				//cast function
+        SizeOfDateTime, 			//sizeof function
+	CheckDuration,	                //kind checking function
 	0, 					//predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
@@ -1103,9 +1267,9 @@ TypeConstructor datetime(
 4.1 Type Mappings
 
 */
-ListExpr VoidDateTime(ListExpr args){
+ListExpr VoidInstant(ListExpr args){
   if(nl->IsEmpty(args))
-     return nl->SymbolAtom("datetime");
+     return nl->SymbolAtom("instant");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1117,53 +1281,84 @@ ListExpr IntBool(ListExpr args){
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr DateTimeInt(ListExpr args){
+ListExpr InstantInt(ListExpr args){
   if(nl->ListLength(args)==1)
-     if(nl->IsEqual(nl->First(args),"datetime"))
+     if(nl->IsEqual(nl->First(args),"instant"))
          return nl->SymbolAtom("int");
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr DateTimeDateTimeDateTime(ListExpr args){
+ListExpr PlusCheck(ListExpr args){
   if(nl->ListLength(args)!=2)
      return nl->SymbolAtom("typeerror");
-  if(nl->IsEqual(nl->First(args),"datetime") &&
-     nl->IsEqual(nl->Second(args),"datetime"))
-     return nl->SymbolAtom("datetime");
+  if(nl->IsEqual(nl->First(args),"instant") &&
+     nl->IsEqual(nl->Second(args),"duration"))
+     return nl->SymbolAtom("instant");
+  if(nl->IsEqual(nl->First(args),"duration") &&
+     nl->IsEqual(nl->Second(args),"instant"))
+     return nl->SymbolAtom("instant");
+  if(nl->IsEqual(nl->First(args),"duration") &&
+     nl->IsEqual(nl->Second(args),"duration"))
+     return nl->SymbolAtom("duration");
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr DateTimeDateTimeBool(ListExpr args){
+ListExpr MinusCheck(ListExpr args){
   if(nl->ListLength(args)!=2)
      return nl->SymbolAtom("typeerror");
-  if(nl->IsEqual(nl->First(args),"datetime") &&
-     nl->IsEqual(nl->Second(args),"datetime"))
-     return nl->SymbolAtom("bool");
+  if(nl->IsEqual(nl->First(args),"instant") &&
+     nl->IsEqual(nl->Second(args),"duration"))
+     return nl->SymbolAtom("instant");
+  if(nl->IsEqual(nl->First(args),"instant") &&
+     nl->IsEqual(nl->Second(args),"instant"))
+     return nl->SymbolAtom("duration");
+  if(nl->IsEqual(nl->First(args),"duration") &&
+     nl->IsEqual(nl->Second(args),"duration"))
+     return nl->SymbolAtom("duration");
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr DateTimeIntDateTime(ListExpr args){
+
+ListExpr DurationIntDuration(ListExpr args){
   if(nl->ListLength(args)!=2)
      return nl->SymbolAtom("typeerror");
-  if(nl->IsEqual(nl->First(args),"datetime") &&
+  if(nl->IsEqual(nl->First(args),"duration") &&
      nl->IsEqual(nl->Second(args),"int"))
-     return nl->SymbolAtom("datetime");
+     return nl->SymbolAtom("duration");
   return nl->SymbolAtom("typeerror");
 }
 
-ListExpr DateTimeString(ListExpr args){
+ListExpr InstantString(ListExpr args){
   if(nl->ListLength(args)!=1)
      return nl->SymbolAtom("typeerror");
-  if(nl->IsEqual(nl->First(args),"datetime"))
+  if(nl->IsEqual(nl->First(args),"instant"))
      return nl->SymbolAtom("string");
   return nl->SymbolAtom("typeerror");
 }
+
+
+ListExpr CheckComparisons(ListExpr args){
+  if(nl->ListLength(args)!=2)
+     return nl->SymbolAtom("typeerror");
+
+  if(nl->IsEqual(nl->First(args),"instant") &&
+     nl->IsEqual(nl->Second(args),"instant"))
+       return nl->SymbolAtom("bool");
+
+  if(nl->IsEqual(nl->First(args),"duration") &&
+     nl->IsEqual(nl->Second(args),"duration"))
+       return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
 
 /*
 4.2 Value Mappings
 
 */
-int LeapYearFun_intbool(Word* args, Word& result, int message, Word& local, Supplier s){
+int LeapYearFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     CcInt* Y = (CcInt*) args[0].addr;
     DateTime T;
@@ -1172,83 +1367,69 @@ int LeapYearFun_intbool(Word* args, Word& result, int message, Word& local, Supp
     return 0;
 }
 
-int NowFun_VoidDateTime(Word* args, Word& result, int message, Word& local, Supplier s){
+int NowFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     ((DateTime*) result.addr)->Now();
     return 0;
 }
 
-int TodayFun_VoidDateTime(Word* args, Word& result, int message, Word& local, Supplier s){
+int TodayFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     ((DateTime*) result.addr)->Today();
     return 0;
 }
 
 
-int DateFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
-    result = qp->ResultStorage(s);
-    DateTime* T = (DateTime*) args[0].addr;
-    ((CcInt*) result.addr)->Set(true,(int)(T->GetDay()));
-    return 0;
-}
-
-int TimeFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
-    result = qp->ResultStorage(s);
-    DateTime* T = (DateTime*) args[0].addr;
-    ((CcInt*) result.addr)->Set(true,(int)(T->GetAllMilliSeconds()));
-    return 0;
-}
-
-int DayFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+int DayFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetGregDay());
     return 0;
 }
 
-int MonthFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+int MonthFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetMonth());
     return 0;
 }
 
-int YearFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+int YearFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetYear());
     return 0;
 }
 
-int HourFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+int HourFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetHour());
     return 0;
 }
 
-int MinuteFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+int MinuteFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetMinute());
     return 0;
 }
 
-int SecondFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+int SecondFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetSecond());
     return 0;
 }
 
-int MillisecondFun_DTInt(Word* args, Word& result, int message, Word& local, Supplier s){
+int MillisecondFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
     ((CcInt*) result.addr)->Set(true,T->GetMillisecond());
     return 0;
 }
 
-int AddFun_datetimedatetime(Word* args, Word& result, int message, Word& local, Supplier s){
+int AddFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
@@ -1259,7 +1440,7 @@ int AddFun_datetimedatetime(Word* args, Word& result, int message, Word& local, 
     return 0;
 }
 
-int MinusFun_datetimedatetime(Word* args, Word& result, int message, Word& local, Supplier s){
+int MinusFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
@@ -1270,7 +1451,7 @@ int MinusFun_datetimedatetime(Word* args, Word& result, int message, Word& local
     return 0;
 }
 
-int EqualsFun_datetimedatetime(Word* args, Word& result, int message, Word& local, Supplier s){
+int EqualsFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
@@ -1279,7 +1460,7 @@ int EqualsFun_datetimedatetime(Word* args, Word& result, int message, Word& loca
     return 0;
 }
 
-int BeforeFun_datetimedatetime(Word* args, Word& result, int message, Word& local, Supplier s){
+int BeforeFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
@@ -1288,7 +1469,7 @@ int BeforeFun_datetimedatetime(Word* args, Word& result, int message, Word& loca
     return 0;
 }
 
-int AfterFun_datetimedatetime(Word* args, Word& result, int message, Word& local, Supplier s){
+int AfterFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
@@ -1297,7 +1478,7 @@ int AfterFun_datetimedatetime(Word* args, Word& result, int message, Word& local
     return 0;
 }
 
-int MulFun_datetimeint(Word* args, Word& result, int message, Word& local, Supplier s){
+int MulFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     CcInt* Fact = (CcInt*) args[1].addr;
@@ -1311,7 +1492,7 @@ int MulFun_datetimeint(Word* args, Word& result, int message, Word& local, Suppl
 int WeekdayFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T = (DateTime*) args[0].addr;
-    int day = (T->GetDay() )%7;
+    int day = T->GetWeekday();
     STRING* WD;
     switch(day){
        case 0 :  WD = (STRING*) "Monday";
@@ -1336,18 +1517,6 @@ int WeekdayFun(Word* args, Word& result, int message, Word& local, Supplier s){
     return 0;
 }
 
-int DateTimeToStringFun(Word* args, Word& result, int message, Word& local, Supplier s){
-   result = qp->ResultStorage(s);
-   DateTime* T = (DateTime*) args[0].addr;
-   string TStr = T->ToString(true);
-   if(TStr.length()>47){
-      string TStr2 = TStr.substr(0,47);
-      TStr = TStr2;
-   }
-   ((CcString*)result.addr)->Set(true,(STRING*)TStr.c_str());
-   return 0;
-}
-
 /*
 4.3 Specifications
 
@@ -1361,92 +1530,78 @@ const string LeapYearSpec =
 
 const string NowSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \" -> datetime\""
+   " ( \" -> instant\""
    " \" now \" "
-   "   \"creates a datetime from the current systemtime\" "
+   "   \"creates an instant from the current systemtime\" "
    "   \" query now()\" ))";
 
 const string TodaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \" -> datetime\""
+   " ( \" -> instant\""
    " \" today \" "
-   "   \"creates a datetime from the current systemtime\" "
+   "   \"creates an instant from the current systemtime\" "
    "   \" query today()\" ))";
-
-const string DateSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
-   " \" _ date \" "
-   "   \"return the date of this datetime (the difference to 2000-1-3) \" "
-   "   \" query T1 date\" ))";
-
-const string TimeSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
-   " \" _ time \" "
-   "   \"return the time part of this day in milliseconds since midnight\" "
-   "   \" query T1 time\" ))";
 
 const string DaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
+   " ( \"instant -> int\""
    " \" _ day \" "
-   "   \"return the day of this datetime\" "
+   "   \"return the day of this instant\" "
    "   \" query T1 day\" ))";
 
 const string MonthSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
+   " ( \"instant -> int\""
    " \" _ day \" "
-   "   \"return the month of this datetime\" "
+   "   \"return the month of this instant\" "
    "   \" query T1 month\" ))";
 
 const string YearSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
+   " ( \"instant -> int\""
    " \" _ day \" "
-   "   \"return the year of this datetime\" "
+   "   \"return the year of this instant\" "
    "   \" query T1 year\" ))";
 
 
 const string HourSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
+   " ( \"instant -> int\""
    " \" _  hour\" "
-   "   \"return the hour of this datetime\" "
+   "   \"return the hour of this instant\" "
    "   \" query T1 hour\" ))";
 
 const string MinuteSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
+   " ( \"instant -> int\""
    " \" _ minute \" "
-   "   \"return the minute of this datetime\" "
+   "   \"return the minute of this instant\" "
    "   \" query T1 minute\" ))";
 
 const string SecondSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
+   " ( \"instant -> int\""
    " \" _ second \" "
-   "   \"return the second of this datetime\" "
+   "   \"return the second of this instant\" "
    "   \" query T1 second\" ))";
 
 const string MillisecondSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"daytime -> int\""
+   " ( \"instant -> int\""
    " \" _ millisecond \" "
-   "   \"return the millisecond of this datetime\" "
+   "   \"return the millisecond of this instant\" "
    "   \" query T1 millisecond\" ))";
 
 const string AddSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime x datetime -> datetime\""
+   " ( \"DateTime x DateTime -> DateTime\""
    " \" _ + _ \" "
-   "   \"adds the time values\" "
-   "   \" query T1 + T2\" ))";
+   "   \" DateTime stands for instant or duration\" "
+   "   \" query T1 + D2\" ))";
 
 const string MinusSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime x datetime -> datetime\""
+   " ( \"DateTime x DateTime -> DateTime\""
    " \" _ - _ \" "
    "   \"Computes the difference\" "
    "   \" query T1 - T2\" ))";
@@ -1454,45 +1609,38 @@ const string MinusSpec =
 
 const string EqualsSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime x datetime -> bool\""
+   " ( \"DateTime_i x DateTime_i -> bool\""
    "\" _ = _ \" "
    "   \"checks for equality\" "
    "   \" query T1 = T2\" ))";
 
 const string LessSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime x datetime -> bool\""
+   " ( \"DateTime_i x DateTime_i -> bool\""
    " \" _ < _ \" "
-   "   \"returns true if T1 is before t2\" "
+   "   \"returns true if T1 is before (shorter than) t2\" "
    "   \" query T1 < T2\" ))";
 
 const string GreaterSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime x datetime -> bool\""
+   " ( \"DateTime_i x DateTime_i -> bool\""
    " \" _ > _ \" "
-   "   \"returns true if T1 is after T2\" "
+   "   \"returns true if T1 is after (longer than) T2\" "
    "   \" query T1 > T2\" ))";
 
 const string MulSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime x int -> datetime\""
+   " ( \"duration x int -> duration\""
    " \" _ * _ \" "
-   "   \"computes the product of the parameters\" "
-   "   \" query T1 * 7\" ))";
+   "   \"computes the multiple of a duration\" "
+   "   \" query D * 7\" ))";
 
 const string WeekdaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime -> string\""
+   " ( \"instant -> string\""
    " \" _ weekday \" "
    "   \"returns the weekday in human readable format\" "
    "   \" query T weekday\" ))";
-
-const string toStringSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"datetime -> string\""
-   " \" _ toString \" "
-   "   \"returns the time in format year-month-day:hour:minute:sec.millisecond\" "
-   "   \" query T toString\" ))";
 
 
 /*
@@ -1502,7 +1650,7 @@ const string toStringSpec =
 Operator dt_leapyear(
        "leapyear", // name
        LeapYearSpec, // specification
-       LeapYearFun_intbool,
+       LeapYearFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
        IntBool);
@@ -1510,140 +1658,124 @@ Operator dt_leapyear(
 Operator dt_now(
        "now", // name
        NowSpec, // specification
-       NowFun_VoidDateTime,
+       NowFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       VoidDateTime);
+       VoidInstant);
 
 Operator dt_today(
        "today", // name
        TodaySpec, // specification
-       TodayFun_VoidDateTime,
+       TodayFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       VoidDateTime);
-
-Operator dt_date(
-       "getdate", // name
-       DateSpec, // specification
-       DateFun_DTInt,
-       Operator::DummyModel,
-       Operator::SimpleSelect,
-       DateTimeInt);
-
-Operator dt_time(
-       "time", // name
-       TimeSpec, // specification
-       TimeFun_DTInt,
-       Operator::DummyModel,
-       Operator::SimpleSelect,
-       DateTimeInt);
+       VoidInstant);
 
 Operator dt_day(
        "day", // name
        DaySpec, // specification
-       DayFun_DTInt,
+       DayFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeInt);
+       InstantInt);
 
 Operator dt_month(
        "month", // name
        MonthSpec, // specification
-       MonthFun_DTInt,
+       MonthFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeInt);
+       InstantInt);
 
 Operator dt_year(
        "year", // name
        YearSpec, // specification
-       YearFun_DTInt,
+       YearFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeInt);
+       InstantInt);
 
 Operator dt_hour(
        "hour", // name
        HourSpec, // specification
-       HourFun_DTInt,
+       HourFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeInt);
+       InstantInt);
 
 Operator dt_minute(
        "minute", // name
        MinuteSpec, // specification
-       MinuteFun_DTInt,
+       MinuteFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeInt);
+       InstantInt);
 
 Operator dt_second(
        "second", // name
        SecondSpec, // specification
-       SecondFun_DTInt,
+       SecondFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeInt);
+       InstantInt);
 
 Operator dt_millisecond(
        "millisecond", // name
        MillisecondSpec, // specification
-       MillisecondFun_DTInt,
+       MillisecondFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeInt);
+       InstantInt);
 
 Operator dt_add(
        "+", // name
        AddSpec, // specification
-       AddFun_datetimedatetime,
+       AddFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeDateTimeDateTime);
+       PlusCheck);
 
 Operator dt_minus(
        "-", // name
        MinusSpec, // specification
-       MinusFun_datetimedatetime,
+       MinusFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeDateTimeDateTime);
+       MinusCheck);
 
 
 Operator dt_less(
        "<", // name
        LessSpec, // specification
-       BeforeFun_datetimedatetime,
+       BeforeFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeDateTimeBool);
+       CheckComparisons);
 
 Operator dt_greater(
        ">", // name
        GreaterSpec, // specification
-       AfterFun_datetimedatetime,
+       AfterFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeDateTimeBool);
+       CheckComparisons);
 
 Operator dt_equals(
        "=", // name
        EqualsSpec, // specification
-       EqualsFun_datetimedatetime,
+       EqualsFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeDateTimeBool);
+       CheckComparisons);
 
 
 Operator dt_mul(
        "*", // name
        MulSpec, // specification
-       MulFun_datetimeint,
+       MulFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeIntDateTime);
+       DurationIntDuration);
 
 Operator dt_weekday(
        "weekday", // name
@@ -1651,16 +1783,7 @@ Operator dt_weekday(
        WeekdayFun,
        Operator::DummyModel,
        Operator::SimpleSelect,
-       DateTimeString);
-
-Operator dt_toString(
-       "toString", // name
-       toStringSpec, // specification
-       DateTimeToStringFun,
-       Operator::DummyModel,
-       Operator::SimpleSelect,
-       DateTimeString);
-
+       InstantString);
 
 /*
 5 Creating the Algebra
@@ -1672,8 +1795,11 @@ class DateTimeAlgebra : public Algebra
   DateTimeAlgebra() : Algebra()
   {
     // type constructors
-    AddTypeConstructor( &datetime );
-    datetime.AssociateKind("DATA");
+    AddTypeConstructor( &instant );
+    instant.AssociateKind("DATA");
+    AddTypeConstructor( &duration );
+    duration.AssociateKind("DATA");
+
     // operators
     AddOperator(&dt_add);
     AddOperator(&dt_minus);
@@ -1682,7 +1808,6 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_greater);
     AddOperator(&dt_mul);
     AddOperator(&dt_weekday);
-    AddOperator(&dt_toString);
     AddOperator(&dt_leapyear);
     AddOperator(&dt_year);
     AddOperator(&dt_month);
@@ -1693,8 +1818,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_millisecond);
     AddOperator(&dt_now);
     AddOperator(&dt_today);
-    AddOperator(&dt_date);
-    AddOperator(&dt_time);
+
   }
   ~DateTimeAlgebra() {};
 };
