@@ -69,6 +69,7 @@ public class ViewConfig extends javax.swing.JDialog {
     if (Query.LEResult.first().isAtom())
       return  v;
     v.add("Tupel-No.");
+    LabelAList.add("no Label");
     TupelCount = Query.LEResult.second().listLength();
     ListExpr attrlist = Query.LEResult.first().second().second();
     while (!attrlist.isEmpty()) {
@@ -358,9 +359,15 @@ public class ViewConfig extends javax.swing.JDialog {
             dg.getLabPosOffset().setLocation(Double.parseDouble(LabXOffText.getText()), 
                 Double.parseDouble(LabYOffText.getText()));
           if ((LabIndex >= 0) && (LabelText.getText().equals(""))) {
-            String text = Query.getModel().getElementAt(cnt*(AttrCount + 1)
-                + LabIndex).toString();
-            dg.setLabelText(text.substring(text.indexOf(":") + 1));
+            String text;
+            if(LabIndex==0)  // no Label 
+               text ="";
+            else {  
+               text = Query.getModel().getElementAt(cnt*(AttrCount + 1)
+                + LabIndex-1).toString();
+               text = text.substring(text.indexOf(":") + 1);
+            }   
+            dg.setLabelText(text);
           } 
           else if (LabelText.getText().equals(""))
             dg.setLabelText(null); 
@@ -604,6 +611,26 @@ public class ViewConfig extends javax.swing.JDialog {
   }             //GEN-LAST:event_RefDepCBoActionPerformed
 
 
+
+  /** check for new categories in HoeseViewer an show then */
+  public void setVisible(boolean on){
+    if(on){ // check for new Categorys
+      if(CatCB.getItemCount()!=mw.Cats.size()){ // there are new Categories
+        int index = CatCB.getSelectedIndex();
+        CatCB.removeAllItems();
+        for(int i=0;i<mw.Cats.size();i++)
+           CatCB.addItem( (Category) mw.Cats.get(i));
+        if(index<mw.Cats.size())
+          CatCB.setSelectedIndex(index);
+      }
+    
+    }
+    super.setVisible(on);
+  }
+  
+  
+  
+  
   /** Closes the dialog 
    */
   private void closeDialog (java.awt.event.WindowEvent evt) {                   //GEN-FIRST:event_closeDialog
@@ -642,6 +669,8 @@ public class ViewConfig extends javax.swing.JDialog {
   private static int VariantNr = 0;
   // End of variables declaration//GEN-END:variables
 }
+
+
 
 
 
