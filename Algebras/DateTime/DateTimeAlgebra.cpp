@@ -1218,6 +1218,24 @@ void DateTime::Mul(const double factor){
    milliseconds=(long) ms;
 }
 
+/*
+~Operator mul~
+
+This operator has the same functionality like the ~Mul~ function
+returning the result in a new instance.
+
+*/
+DateTime DateTime::operator*(const int factor)const{
+   DateTime Result(*this);
+   Result.Mul(factor);
+   return Result;
+}
+
+DateTime DateTime::operator*(const double factor)const{
+   DateTime Result(*this);
+   Result.Mul(factor);
+   return Result;
+}
 
 
 /*
@@ -1252,6 +1270,7 @@ string in format year-month-day-hour:minute:second.millisecond
 
 */
 ListExpr DateTime::ToListExpr(const bool typeincluded)const {
+  assert( defined );
   ListExpr value;
   if(type==instanttype)
       value = nl->StringAtom(this->ToString());
@@ -1329,7 +1348,10 @@ void DateTime::ReadFrom( const char *src )
 
 ListExpr OutDateTime( ListExpr typeInfo, Word value ){
    DateTime* T = (DateTime*) value.addr;
-   return T->ToListExpr(false);
+   if( T->IsDefined() )
+     return T->ToListExpr(false);
+   else 
+     return nl->SymbolAtom("undef");
 }
 
 
@@ -1337,15 +1359,20 @@ Word InInstant( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct ){
 
   DateTime* T = new DateTime(instanttype);
-  ListExpr value = instance;
-  if(nl->ListLength(instance)==2){
-     if(nl->IsEqual(nl->First(instance),"instant"))
-        value = nl->Second(instance);
-  }
 
-  if(T->ReadFrom(value,false)){
-    correct=true;
-    return SetWord(T);
+  if( nl->IsEqual(instance, "undef") )
+    T->SetDefined( false );
+  else {
+    ListExpr value = instance;
+    if(nl->ListLength(instance)==2){
+      if(nl->IsEqual(nl->First(instance),"instant"))
+        value = nl->Second(instance);
+    }
+
+    if(T->ReadFrom(value,false)){
+      correct=true;
+      return SetWord(T);
+    }
   }
   correct = false;
   delete(T);

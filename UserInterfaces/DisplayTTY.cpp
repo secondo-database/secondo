@@ -455,7 +455,12 @@ DisplayTTY::DisplayXPoint( ListExpr type, ListExpr numType, ListExpr value)
 void
 DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
 {
-  if(nl->ListLength(value)!=2)
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if(nl->ListLength(value)!=2)
      cout << "Incorrect Data Format";
   else{
      bool err;

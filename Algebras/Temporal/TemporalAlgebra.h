@@ -46,8 +46,15 @@ The type system of the Temporal Algebra can be seen below.
 
 #include "DateTime.h"
 
-//ListExpr OutInstant( ListExpr typeinfo, Word value );
-//Word InInstant( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
+/*
+3 Auxiliary Functions
+
+*/
+const double FACTOR = 0.0000001;
+
+bool AlmostEqual( const double d1, const double d2 );
+bool AlmostEqual( const Point& p1, const Point& p2 );
+
 /*
 3 C++ Classes (Defintion)
 
@@ -60,7 +67,6 @@ This class represents a time instant, or a point in time. It will be
 used in the ~instant~ type constructor.
 
 */
-//typedef CcReal Instant;
 typedef DateTime Instant;
 
 /*
@@ -118,7 +124,7 @@ only.  An interval is valid if the following conditions are true:
 
 */
 
-  Interval<Alpha>& operator=( const Interval<Alpha>& i );
+  Interval<Alpha>& operator=( Interval<Alpha>& i );
 /*
 Redefinition of the copy operator ~=~.
 
@@ -154,7 +160,7 @@ Returns ~true~ if this interval is r-adjacent with the interval ~i~ and ~false~ 
 
 */
 
-  bool adjacent( Interval<Alpha>& i );  //DZM changed Adjacent() (used by relational functions) to adjacent().
+  bool Adjacent( Interval<Alpha>& i );  
 /*
 Returns ~true~ if this interval is adjacent with the interval ~i~ and ~false~ otherwise.
 
@@ -235,7 +241,7 @@ class Range : public StandardAttribute
 3.3.1 Constructors and Destructor
 
 */
-    Range() {ordered=true;}
+    Range() {}
 /*
 The simple constructor. This constructor should not be used.
 
@@ -313,7 +319,11 @@ is in bulk loads, i.e., in a non-ordered array.
 
 */
     
-    void  Merge(Range<Alpha>* result);
+    void Merge( Range<Alpha>& result );
+/*
+Merges a range into ~result~ concatenating adjacent intervals.
+
+*/
     
     void Clear();
 /*
@@ -324,8 +334,8 @@ Remove all intervals in the range.
 */
     bool IsDefined() const;
     void SetDefined( bool Defined );
-    int Compare( Attribute * arg );
-    bool Adjacent( Attribute * arg );
+    int Compare( Attribute* arg );
+    bool Adjacent( Attribute* arg );
     Range<Alpha>* Clone();
     ostream& Print( ostream &os );
     size_t HashValue();
@@ -528,6 +538,8 @@ purposes only. The ~range~ is valid, if the following conditions are true:
 3.3.7 Attributes
 
 */
+  private:
+
     bool canDestroy;
 /*
 A flag indicating if the destructor should destroy also the persistent
@@ -560,9 +572,7 @@ $\alpha$ into a type that associates instants of time with values of $\alpha$.
 template <class Alpha>
 struct Intime: public StandardAttribute
 {
-  Intime() :
-    instant( )
-    {}
+  Intime() {}
 /*
 The simple constructor.
 
@@ -570,7 +580,8 @@ The simple constructor.
 
   Intime( Instant& instant, Alpha& alpha ):
     instant( instant ),
-    value()
+    value(),
+    defined( true )
   {
     value.CopyFrom( &alpha ); 
   }
@@ -579,11 +590,13 @@ The first constructor.
 
 */
 
-  Intime( Intime& intime ):
+  Intime( Intime<Alpha>& intime ):
     instant( intime.instant ),
-    value()
+    value(),
+    defined( intime.defined )
   {
-    value.CopyFrom( &intime.value );
+    if( defined )
+      value.CopyFrom( &intime.value );
   }
 /*
 The second constructor.
@@ -593,58 +606,51 @@ The second constructor.
 */
   bool IsDefined() const
   {
-      return true;
+    return defined;
   }
 
-  void SetDefined( bool Defined )
+  void SetDefined( bool defined )
   {
+    this->defined = defined;
   }
 
-  int Compare( Attribute * arg )
+  int Compare( Attribute* arg )
   {
-      return 0;
+    return 0;
   }
 
-  bool Adjacent( Attribute * arg )
+  bool Adjacent( Attribute* arg )
   {
-      return false;
+    return false;
   }
 
   Intime<Alpha>* Clone()
   {
-      return (new Intime<Alpha>( *this));
+    return (new Intime<Alpha>( *this));
   }
 
   ostream& Print( ostream &os )
   {
-      return os << "Temporal Algebra---Intime" << endl;
+    return os << "Temporal Algebra---Intime" << endl;
   }
 
   size_t HashValue()
   {
-      return 0;
+    return 0;
   }
 
   void CopyFrom( StandardAttribute* right )
   {
-      Intime<Alpha>* i = (Intime<Alpha>*)right;
-      
+    Intime<Alpha>* i = (Intime<Alpha>*)right;
+    
+    defined = i->defined;
+    if( defined )
+    {  
       instant.Equalize(&(i->instant));  
-      
       value.CopyFrom( &i->value ); 
+    }
   }
 
-int NumOfFLOBs()
-{
-  return 0;
-}
-
-FLOB * GetFLOB(const int i)
-{
-  assert( i == 0 ); 
-  return 0; //&units;
-}
-   
 /*
 3.4.3 Attributes:
 
@@ -660,6 +666,12 @@ The time instant associated.
 The $\alpha$ value.
 
 */
+  bool defined;
+/*
+The flag that indicates if the value is defined or not.
+
+*/
+
 };
 
 /*
@@ -671,81 +683,90 @@ inside the temporal unit given a time instant (also inside the temporal unit).
 
 */
 template <class Alpha>
-class TemporalUnit //: public StandardAttribute
+struct TemporalUnit : public StandardAttribute
 {
-  public:
-    
 /*
 3.5.1 Constructors and Destructor
 
 */
-    TemporalUnit() {}
-    
-    TemporalUnit( Interval<Instant>& interval ): timeInterval( interval ) {}
-
-    virtual ~TemporalUnit() {}
-    
+  TemporalUnit() {}
 /*
+The simple constructor. This constructor should not be used.
+
+*/
+    
+  TemporalUnit( Interval<Instant>& interval ): 
+    timeInterval( interval ) 
+    {}
+/*
+This constructor sets the time interval of the temporal unit.
+
+*/
+
+  virtual ~TemporalUnit() {}
+/*
+The destructor.
+
 3.5.2 Member Functions
 
 */
-    bool IsValid();
+
+  bool IsValid();
 /*
-Checks if the TemporalUnit is valid or not. This function should be used for debugging purposes
+Checks if the Temporal Unit is valid or not. This function should be used for debugging purposes
 only.  A TemoralUnit is valid if its timeInterval is valid.
 
 */
 
-    TemporalUnit& operator=( const TemporalUnit& i );
+  virtual TemporalUnit<Alpha>& operator=( TemporalUnit<Alpha>& i );
 /*
 Redefinition of the copy operator ~=~.
 
 */
 
-    bool operator==( TemporalUnit& i );
+  virtual bool operator==( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
 
 */
 
-    bool operator!=( TemporalUnit& i );
+  virtual bool operator!=( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~false~ if they are equal.
 
 */
 
-    bool R_Disjoint( TemporalUnit& i );
+  bool R_Disjoint( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit is r-disjoint with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-    bool Disjoint( TemporalUnit& i );
+  bool Disjoint( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit is disjoint with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-    bool R_Adjacent( TemporalUnit& i );
+  bool R_Adjacent( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit is r-adjacent with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-    bool adjacent( TemporalUnit& i ); //DZM changed Adjacent() <used by relational functions> to adjacent().
+   bool TU_Adjacent( TemporalUnit<Alpha>& i ); // VTA - It should be Adjacent but it does not compile.
 /*
 Returns ~true~ if this temporal unit is adjacent with the temporal unit ~i~ and ~false~ otherwise.
 
 */
     
-    
-    bool Inside( TemporalUnit& i );
+  bool Inside( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit is inside the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-    bool Contains( Instant& a );
+  bool Contains( Instant& a );
 /*
 Returns ~true~ if this temporal unit contains the value ~a~ and ~false~ otherwise.
 
@@ -753,47 +774,112 @@ Returns ~true~ if this temporal unit contains the value ~a~ and ~false~ otherwis
 
 */
 
-    bool Intersects( TemporalUnit& i );
+  bool Intersects( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit intersects with the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-    bool Before( TemporalUnit& i );
+  bool Before( TemporalUnit<Alpha>& i );
 /*
 Returns ~true~ if this temporal unit is before the temporal unit ~i~ and ~false~ otherwise.
 
 */
 
-    bool Before( Instant& a );
-    bool After( Instant& a );
+  bool Before( Instant& a );
+  bool After( Instant& a );
 /*
 Returns ~true~ if this temporal unit is before/after the value ~a~ and ~false~ otherwise.
 
 */
-    virtual bool TemporalFunction( Instant& t, Alpha& result ) = 0;
-    
+
+  virtual void TemporalFunction( Instant& t, Alpha& result ) = 0;
 /*
 The temporal function that receives a time instant ~t~ and returns the value 
 associated with time ~t~ in the output argument ~result~.
 
 *Precondition:* t must be inside the temporal unit time interval
 
+*/
+
+  virtual bool Passes( Alpha& val ) = 0;
+/*
+Checks if inside the unit the function passes by the value ~val~.
+
+*/
+
+  virtual bool At( Alpha& val, TemporalUnit<Alpha>& result ) = 0;
+/*
+Returns a unit restricted to the parts where the temporal function is equal
+to ~val~.
+
 3.3.4 Functions to be part of relations
 
 */
+  virtual bool IsDefined() const
+  {
+    return true;
+  }
+
+  virtual void SetDefined( bool Defined )
+  {
+  }
+
+  virtual int Compare( Attribute* arg )
+  {
+    return 0;
+  }
+
+  virtual bool Adjacent( Attribute* arg )
+  {
+    return false;
+  }
+
+  virtual ostream& Print( ostream &os )
+  {
+    return os << "Temporal Algebra---TemporalUnit" << endl;
+  }
+
+  virtual size_t HashValue()
+  {
+    return 0;
+  }
+
+  virtual TemporalUnit<Alpha>* Clone() = 0;
+  virtual void CopyFrom( StandardAttribute* right ) = 0;
   
 /*
 3.5.3 Attributes
 
 */
-    Interval<Instant> timeInterval;
+
+  Interval<Instant> timeInterval;
 /*
 The time interval of the temporal unit.
 
 */
     
 };
+
+/*
+3.6 Class ~RInt~
+
+*/
+typedef Range<CcInt> RInt;
+
+/*
+3.6 Class ~RReal~
+
+*/
+typedef Range<CcReal> RReal;
+
+/*
+3.6 Class ~Periods~
+
+*/
+typedef Range<Instant> Periods;
+
+
 
 /*
 3.6 ConstTemporalUnit
@@ -806,99 +892,152 @@ their values change only in discrete steps.
 
 */
 template <class Alpha>
-class ConstTemporalUnit : public StandardAttribute, public TemporalUnit<Alpha> 
+struct ConstTemporalUnit : public TemporalUnit<Alpha> 
 {
-  public:
-    
 /*
-3.6.1 Constructors, Destructor, and the Temp-Function
+3.6.1 Constructors, Destructor
 
 */
-    ConstTemporalUnit() {}
+  ConstTemporalUnit() {}
     
-    ConstTemporalUnit( Interval<Instant>& interval, Alpha& a ):
+  ConstTemporalUnit( Interval<Instant>& interval, Alpha& a ):
     TemporalUnit<Alpha>( interval )
-    {
-      constValue.CopyFrom( &a );
-    }
+  {
+    constValue.CopyFrom( &a );
+  }
 
-    bool TemporalFunction( Instant& t, Alpha& result )
-    {
-      if( !timeInterval.Contains( t ) )
-        return false;
-      result = constValue;
-      return true;
-    }
-    
 /*
-3.6.2 Functions to be part of relations
+3.6.2 Operator redefinitions
 
 */
-  bool IsDefined() const
-  {
-      return true;
-  }
 
-  void SetDefined( bool Defined )
+  virtual ConstTemporalUnit<Alpha>& operator=( ConstTemporalUnit<Alpha>& i )
   {
-  }
+    *((TemporalUnit<Alpha>*)this) = *((TemporalUnit<Alpha>*)&i);
+    constValue.CopyFrom( &i.constValue );
 
-  int Compare( Attribute * arg )
-  {
-      return 0;
+    return *this;
   }
-
-  bool Adjacent( Attribute * arg )
-  {
-      return false;
-  }
-
-  ostream& Print( ostream &os )
-  {
-      return os << "Temporal Algebra---constunit" << endl;
-  }
-
-  size_t HashValue()
-  {
-      return 0;
-  }
-  
-  ConstTemporalUnit<Alpha>* Clone()
-  {
-      return (new ConstTemporalUnit<Alpha>( timeInterval, constValue));
-  }
-  
-  void CopyFrom( StandardAttribute* right )
-  {
-      ConstTemporalUnit<Alpha>* i = (ConstTemporalUnit<Alpha>*)right;
-      
-      timeInterval.CopyFrom(i->timeInterval);
-      
-      constValue.CopyFrom( &i->constValue ); 
-  }
-
-  int NumOfFLOBs()
-  {
-      return 0;
-  }
-
-  FLOB * GetFLOB(const int i)
-  {
-      assert( i == 0 ); 
-      return 0; //&units;
-  }
-
-    
 /*
-3.6.3 Attributes
+Redefinition of the copy operator ~=~.
 
 */
-    Alpha constValue;
+
+  virtual bool operator==( ConstTemporalUnit<Alpha>& i )
+  {
+    return *((TemporalUnit<Alpha>*)this) == *((TemporalUnit<Alpha>*)&i) &&
+           constValue.Compare( &i.constValue ) == 0;
+  }
+/*
+Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
+
+*/
+
+  virtual bool operator!=( ConstTemporalUnit<Alpha>& i )
+  {
+    return !( *this == i );
+  }
+/*
+Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~false~ if they are equal.
+
+*/
+
+/*
+3.6.2 The Temporal Functions
+
+*/
+  virtual void TemporalFunction( Instant& t, Alpha& result )
+  {
+    assert( t.IsDefined() && timeInterval.Contains( t ) );
+    result.CopyFrom( &constValue );
+  }
+   
+  virtual bool Passes( Alpha& val )
+  {
+    if( constValue.Compare( &val ) == 0 )
+      return true;
+    return false;
+  }
+
+  virtual bool At( Alpha& val, TemporalUnit<Alpha>& result )
+  {
+    if( constValue.Compare( &val ) == 0 )
+    {
+      result.CopyFrom( this );
+      return true;
+    }
+    return false;
+  }
+ 
+/*
+3.6.3 Functions to be part of relations
+
+*/
+  virtual bool IsDefined() const
+  {
+    return true;
+  }
+
+  virtual void SetDefined( bool Defined )
+  {
+  }
+
+  virtual int Compare( Attribute* arg )
+  {
+    return 0;
+  }
+
+  virtual bool Adjacent( Attribute* arg )
+  {
+    return false;
+  }
+
+  virtual ostream& Print( ostream &os )
+  {
+    return os << "Temporal Algebra---constunit" << endl;
+  }
+
+  virtual size_t HashValue()
+  {
+    return 0;
+  }
+  
+  virtual ConstTemporalUnit<Alpha>* Clone()
+  {
+    return (new ConstTemporalUnit<Alpha>( timeInterval, constValue) );
+  }
+  
+  virtual void CopyFrom( StandardAttribute* right )
+  {
+    ConstTemporalUnit<Alpha>* i = (ConstTemporalUnit<Alpha>*)right;
+      
+    timeInterval.CopyFrom( i->timeInterval );
+    constValue.CopyFrom( &i->constValue ); 
+  }
+
+/*
+3.6.4 Attributes
+
+*/
+
+  Alpha constValue;
 /*
 The constant value of the temporal unit.
 
 */
 };
+
+/*
+3.7 Class ~UBool~
+
+*/
+typedef ConstTemporalUnit<CcBool> UBool;
+
+/*
+3.7 Class ~UInt~
+
+*/
+typedef ConstTemporalUnit<CcInt> UInt;
 
 /*
 3.7 UReal
@@ -907,113 +1046,130 @@ This class will be used in the ~ureal~ type constructor, i.e., the type construc
 for the temporal unit of real numbers.
 
 */
-class UReal : public StandardAttribute,  public TemporalUnit<CcReal>
+struct UReal : public TemporalUnit<CcReal>
 {
-  public:
 /*
 3.7.1 Constructors and Destructor
 
 */
-    UReal() {};
+  UReal() {};
 	
-    UReal( Interval<Instant>& interval,
-           const double a, 
-           const double b,
-           const double c,
-           const bool r ):
-    TemporalUnit<CcReal>( interval ),  //be careful about time-interval and real-interval, and check semantically the validity??????
-    a( a ),
-    b( b ),
-    c( c ),
+  UReal( Interval<Instant>& interval,
+         const double a, 
+         const double b,
+         const double c,
+         const bool r ):
+    TemporalUnit<CcReal>( interval ),  
+    a( a ), b( b ), c( c ),
     r( r )
     {}
-    
+
 /*
-3.7.2 Member Functions
+3.6.2 Operator redefinitions
 
 */
-    bool TemporalFunction( Instant& t, CcReal& result )
-    {
-      assert( t.IsDefined() );
 
-      if( !timeInterval.Contains( t ) )
-        return false;
+  virtual UReal& operator=( UReal& i )
+  {
+    *((TemporalUnit<CcReal>*)this) = *((TemporalUnit<CcReal>*)&i);
+    a = i.a;
+    b = i.b;
+    c = i.c;
+    r = i.r;
 
-      double res = a * t.ToDouble() * t.ToDouble() + b * t.ToDouble() + c;
-      if( r ) res = sqrt( res );
+    return *this;
+  }
+/*
+Redefinition of the copy operator ~=~.
 
-      result.Set( true, res );
-      return true;
-    }
+*/
+
+  virtual bool operator==( UReal& i )
+  {
+    return *((TemporalUnit<CcReal>*)this) == *((TemporalUnit<CcReal>*)&i) &&
+           AlmostEqual( a, i.a ) && 
+           AlmostEqual( b, i.b ) && 
+           AlmostEqual( c, i.c ) && 
+           r == i.r;
+  }
+/*
+Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
+
+*/
+
+  virtual bool operator!=( UReal& i )
+  {
+    return !( *this == i );
+  }
+/*
+Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~false~ if they are equal.
+
+*/
+    
+/*
+3.7.2 The Temporal Functions
+
+*/
+  virtual void TemporalFunction( Instant& t, CcReal& result );
+  virtual bool Passes( CcReal& val );
+  virtual bool At( CcReal& val, TemporalUnit<CcReal>& result );
+
 /*
 3.7.3 Functions to be part of relations
 
 */
-  bool IsDefined() const
+  virtual bool IsDefined() const
   {
-      return true;
+    return true;
   }
 
-  void SetDefined( bool Defined )
+  virtual void SetDefined( bool Defined )
   {
   }
 
-  int Compare( Attribute * arg )
+  virtual int Compare( Attribute* arg )
   {
-      return 0;
+    return 0;
   }
 
-  bool Adjacent( Attribute * arg )
+  virtual bool Adjacent( Attribute* arg )
   {
-      return false;
+    return false;
   }
 
-  ostream& Print( ostream &os )
+  virtual ostream& Print( ostream &os )
   {
-      return os << "Temporal Algebra---ureal" << endl;
+    return os << "Temporal Algebra---ureal" << endl;
   }
 
-  size_t HashValue()
+  virtual size_t HashValue()
   {
-      return 0;
+    return 0;
   }
   
-  UReal* Clone()
+  virtual UReal* Clone()
   {
-      return (new UReal( timeInterval, a, b, c, r));
+    return (new UReal( timeInterval, a, b, c, r) );
   }
   
-  void CopyFrom( StandardAttribute* right )
+  virtual void CopyFrom( StandardAttribute* right )
   {
-      UReal* i = (UReal*)right;
+    UReal* i = (UReal*)right;
       
-      timeInterval.CopyFrom(i->timeInterval);
+    timeInterval.CopyFrom(i->timeInterval);
       
-      a=i->a;
-      b=i->b;
-      c=i->c;
-      r=i->r;
+    a = i->a;
+    b = i->b;
+    c = i->c;
+    r = i->r;
   }
 
-  int NumOfFLOBs()
-  {
-      return 0;
-  }
-
-  FLOB * GetFLOB(const int i)
-  {
-      assert( i == 0 ); 
-      return 0; //&units;
-  }
-
-    
 /*
 3.7.4 Attributes
 
 */
-    //private:
-    double a, b, c;
-    bool r;
+  double a, b, c;
+  bool r;
 };
 
 /*
@@ -1023,171 +1179,159 @@ This class will be used in the ~upoint~ type constructor, i.e., the type constru
 for the temporal unit of point values.
 
 */
-class UPoint : public StandardAttribute, public TemporalUnit<Point>
+struct UPoint : public TemporalUnit<Point>
 {
-  public:
 /*
 3.8.1 Constructors and Destructor
 
 */
-    UPoint() {}; 
+  UPoint() {}; 
 	
-    UPoint( Interval<Instant>& interval, const double x0, const double y0, const double x1, const double y1 ): 
-	    TemporalUnit<Point>( interval ), 
-	    x0( x0 ),
-	    y0( y0 ),
-	    x1( x1 ),
-	    y1( y1 )
+  UPoint( Interval<Instant>& interval, 
+          const double x0, const double y0, 
+          const double x1, const double y1 ): 
+    TemporalUnit<Point>( interval ), 
+    p0( true, x0, y0 ),
+    p1( true, x1, y1 )
     {}
     
+  UPoint( Interval<Instant>& interval, 
+          const Point& p0, const Point& p1 ):
+    TemporalUnit<Point>( interval ), 
+    p0( p0 ),
+    p1( p1 )
+    {}
+
 /*
-3.8.2 Member Functions
+3.6.2 Operator redefinitions
 
 */
-    bool TemporalFunction( Instant& t, Point& result )
-    {
-      assert( t.IsDefined() );
 
-      if( !timeInterval.Contains( t ) )
-        return false;
+  virtual UPoint& operator=( UPoint& i )
+  {
+    *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&i);
+    p0 = i.p0;
+    p1 = i.p1;
 
-      Instant t0=timeInterval.start;
-      Instant t1=timeInterval.end;
-      
-      double x = (x1 - x0) * ((t - t0) / (t1 - t0)) + x0;
-      double y = (y1 - y0) * ((t - t0) / (t1 - t0)) + y0;
-      
-      result.Set( x, y );
-      return true;
-    }
+    return *this;
+  }
+/*
+Redefinition of the copy operator ~=~.
+
+*/
+
+  virtual bool operator==( UPoint& i )
+  {
+    return *((TemporalUnit<Point>*)this) == *((TemporalUnit<Point>*)&i) &&
+           AlmostEqual( p0, i.p0 ) &&
+           AlmostEqual( p1, i.p1 );
+  }
+/*
+Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
+
+*/
+
+  virtual bool operator!=( UPoint& i )
+  {
+    return !( *this == i );
+  }
+/*
+Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~false~ if they are equal.
+
+*/
     
+/*
+3.8.2 The Temporal Functions
+
+*/
+  virtual void TemporalFunction( Instant& t, Point& result );
+  virtual bool Passes( Point& val );
+  virtual bool At( Point& val, TemporalUnit<Point>& result );
+
 /*
 3.8.3 Functions to be part of relations
 
 */
-  bool IsDefined() const
+  inline virtual bool IsDefined() const
   {
-      return true;
+    return true;
   }
 
-  void SetDefined( bool Defined )
+  inline virtual void SetDefined( bool Defined )
   {
   }
 
-  int Compare( Attribute * arg )
+  inline virtual int Compare( Attribute* arg )
   {
-      return 0;
+    return 0;
   }
 
-  bool Adjacent( Attribute * arg )
+  inline virtual bool Adjacent( Attribute* arg )
   {
-      return false;
+    return false;
   }
 
-  ostream& Print( ostream &os )
+  inline virtual ostream& Print( ostream &os )
   {
-      return os << "Temporal Algebra --- UPoint"<< endl;      
+    return os << "Temporal Algebra --- UPoint"<< endl;      
   }
 
-  size_t HashValue()
+  inline virtual size_t HashValue()
   {
-      return 0;
+    return 0;
   }
   
-  UPoint* Clone()
+  inline virtual UPoint* Clone()
   {
-      return (new UPoint( timeInterval, x0,  y0, x1, y1));
+    return (new UPoint( timeInterval, p0, p1 ) );
   }
   
-  void CopyFrom( StandardAttribute* right )
+  inline virtual void CopyFrom( StandardAttribute* right )
   {
-      UPoint* i = (UPoint*)right;
+    UPoint* i = (UPoint*)right;
       
-      timeInterval.CopyFrom(i->timeInterval);
-      
-      x0=i->x0;
-      y0=i->y0;
-      x1=i->x1;
-      y1=i->y1;
+    timeInterval.CopyFrom( i->timeInterval );
+    p0 = i->p0;
+    p1 = i->p1;
   }
 
-  int NumOfFLOBs()
-  {
-      return 0;
-  }
-
-  FLOB * GetFLOB(const int i)
-  {
-      assert( i == 0 ); 
-      return 0; //&units;
-  }
-
-    
 /*
 3.8.4 Attributes
 
 */
-    //private:  (parameters in computing the value inside the time interval)
-    double x0, y0, x1, y1;
+  Point p0, p1;
 };
-
-ostream& operator<<(ostream &os, const UPoint& up)
-{
-    //return os << "((" <<up.timeInterval.start<<", "<<up.timeInterval.end<<", "
-    //<<up.timeInterval.lc<<", "<<up.timeInterval.rc<<") ("<<up.x0<<", "<<up.y0<<", "<<up.x1<<", "<<up.y1<<", "<<"))"<< endl;
-     return os << "((" <<up.timeInterval.lc<<", "<<up.timeInterval.rc<<") ("<<up.x0<<", "<<up.y0<<", "<<up.x1<<", "<<up.y1<<", "<<"))"<< endl;      
-}
 
 /*
 3.9 Mapping
 
 This class will implement the functionalities of the ~mapping~ type constructor.
-It contains a database array of temporal units.
+It contains a database array of temporal units. For that, ~Alpha~ must implement
+the class ~TemporalUnit~ or ~ConstTemporalUnit~, because functions of these classes
+will be used.
 
 */
-
-template <class Alpha>
-class Mapping
-{
-  public:
-
-  private:
-
-    DBArray< TemporalUnit<Alpha> > units;
-    
-/*
-The database array of temporal units.
-
-*/ 
-};
-
-/*
-3.10 Mapping(UPoint)
-
-This class is implement the functionalities of the ~mapping(UPoint)~ type constructor.
-It contains a database array of temporal point units.
-
-*/
-class MPoint : public StandardAttribute
+template <class Unit, class Alpha>
+class Mapping : public StandardAttribute
 {
   public:
 /*
-3.10.1 Constructors and Destructor
+3.9.1 Constructors and Destructor
 
 */
-    MPoint() {}
+    Mapping() {}
 /*
 The simple constructor. This constructor should not be used.
 
 */
 
-    MPoint( const int n );
+    Mapping( const int n );
 /*
 The constructor. Initializes space for ~n~ elements.
 
 */
 
-    ~MPoint();
+    virtual ~Mapping();
 /*
 The destructor.
 
@@ -1238,15 +1382,15 @@ Returns if the mapping is empty of units or not.
 
 */
 
-    void Get( const int i, UPoint& upi );
+    void Get( const int i, Unit& upi );
 /*
 Returns the unit ~upi~ at the position ~i~ in the mapping.
 
 */
 
-    void Add( UPoint& upi );
+    void Add( Unit& upi );
 /*
-Adds an unit ~upi~ to the mapping. We will assume that the only way of adding units 
+Adds an unit ~upi~ to the mapping. We will assume that the only way of adding units
 is in bulk loads, i.e., in a non-ordered array.
 
 *Precondition:* ~IsOrdered() == false~
@@ -1257,67 +1401,8 @@ is in bulk loads, i.e., in a non-ordered array.
 /*
 Remove all units in the mapping.
 
-3.10.4 Functions to be part of relations
-
 */
-    bool IsDefined() const;
-    void SetDefined( bool Defined );
-    int Compare( Attribute * arg );
-    bool Adjacent( Attribute * arg );
-    MPoint* Clone();
-    ostream& Print( ostream &os );
-    size_t HashValue();
-    void CopyFrom( StandardAttribute* right );
 
-    int NumOfFLOBs();
-    FLOB *GetFLOB(const int i);
-    
-    int Position( const Instant& t );
-    bool TemporalFunction( Instant& t, Point& result );
-
-/*
-3.10.5 Operations
-
-3.10.5.1 Operation $=$ (~equal~)
-
-*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
-
-*Semantics:* $X = Y$
-
-*Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
-
-*/
-    bool operator==( MPoint& mp );
-
-/*
-3.10.5.2 Operation $\neq$ (~not equal~)
-
-*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
-
-*Semantics:* $X \neq Y$
-
-*Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
-
-*/
-    bool operator!=( MPoint& mp );
-
-/*
-3.10.5.3 Operation ~no\_components~
-
-*Precondition:* ~X.IsOrdered()~
-
-*Semantics:* $\| intvls(X) \|$
-
-*Complexity:* $O(1)$
-
-*/
-    int GetNoComponents() const;
-
-//  private:
-/*
-3.10.6 Private member functions
-
-*/
     bool IsValid();
 /*
 This functions tests if a ~mapping~ is in a valid format. It is used for debugging
@@ -1331,11 +1416,164 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
     make sure that the unit is not left-closed or the unit before
     is not right-closed
 
+3.10.4 Functions to be part of relations
+
+*/
+    bool IsDefined() const;
+    void SetDefined( bool Defined );
+    int Compare( Attribute* arg );
+    bool Adjacent( Attribute* arg );
+    Mapping<Unit, Alpha>* Clone();
+    ostream& Print( ostream &os );
+    size_t HashValue();
+    void CopyFrom( StandardAttribute* right );
+
+    int NumOfFLOBs();
+    FLOB *GetFLOB(const int i);
+
+/*
+3.10.5 Operations
+
+3.10.5.1 Operation $=$ (~equal~)
+
+*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
+
+*Semantics:* $X = Y$
+
+*Complexity:* $O(n+m)$, where ~n~ is the number of units of this mapping ~X~ and m the 
+number of units of the mapping ~Y~.
+
+*/
+    bool operator==( Mapping<Unit, Alpha>& mp );
+
+/*
+3.10.5.2 Operation $\neq$ (~not equal~)
+
+*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
+
+*Semantics:* $X \neq Y$
+
+*Complexity:* $O(n+m)$, where ~n~ is the number of units of this mapping ~X~ and m the 
+number of units of the mapping ~Y~.
+
+*/
+    bool operator!=( Mapping<Unit, Alpha>& mp );
+
+/*
+3.10.5.3 Operation ~no\_components~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:* $\| intvls(X) \|$
+
+*Complexity:* $O(1)$
+
+*/
+    int GetNoComponents() const;
+
+/*
+3.10.5.3 Operation ~position~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:* 
+
+*Complexity:* $O( \log n )$, where ~n~ is the number of units of this mapping ~X~
+
+*/
+    int Position( const Instant& t ); 
+
+/*
+3.10.5.3 Operation ~atinstant~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:* 
+
+*Complexity:* $O( \log n )$, where ~n~ is the number of units of this mapping ~X~
+
+*/
+    void AtInstant( Instant& t, Intime<Alpha>& result );
+
+/*
+3.10.5.3 Operation ~present~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:* 
+
+*Complexity:* $O( \log n )$, where ~n~ is the number of units of this mapping ~X~
+
+*/
+    bool Present( Instant& t );
+
+/*
+3.10.5.3 Operation ~passes~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( n )$, where ~n~ is the number of units of this mapping ~X~
+
+*/
+    bool Passes( Alpha& val );
+
+/*
+3.10.5.3 Operation ~deftime~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:* 
+
+*Complexity:* $O( n )$, where ~n~ is the number of units of this mapping ~X~
+
+*/
+    void DefTime( Periods& result );
+
+/*
+3.10.5.3 Operation ~at~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( n )$, where ~n~ is the number of units of this mapping ~X~
+
+*/
+    void At( Alpha& val, Mapping<Unit, Alpha>& result );
+
+/*
+3.10.5.3 Operation ~initial~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( 1 )$
+
+*/
+    void Initial( Intime<Alpha>& result );
+
+/*
+3.10.5.3 Operation ~final~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( 1 )$
+
+*/
+    void Final( Intime<Alpha>& result );
+
+/*
 3.10.7 Attributes
 
-*/  
-    private:
-    
+*/
+
+  private:
+
     bool canDestroy;
 /*
 A flag indicating if the destructor should destroy also the persistent
@@ -1349,404 +1587,69 @@ A flag indicating whether the unit set is ordered or not.
 
 */
 
-    DBArray< UPoint > units;
-    
+    DBArray< Unit > units;
+
 /*
 The database array of temporal units.
 
-*/     
+*/
 };
 
 /*
-3.11 Mapping(ConstTemporalUnit(int))
-
-This class is implement the functionalities of the ~mapping(ConstTemporalUnit(int))~ type constructor.
-It contains a database array of temporal ConstTemporalUnit(Int) units.
+3.10 Class ~MBool~
 
 */
-    
-class MInt : public StandardAttribute
-{
-  public:
+typedef Mapping< UBool, CcBool > MBool;
+
 /*
-3.11.1 Constructors and Destructor
+3.10 Class ~MInt~
 
 */
-    MInt() {}
+typedef Mapping< UInt, CcInt > MInt;
+
 /*
-The simple constructor. This constructor should not be used.
+3.11 Class ~MReal~
 
 */
+typedef Mapping< UReal, CcReal > MReal;
 
-    MInt( const int n );
 /*
-The constructor. Initializes space for ~n~ elements.
+3.12 Class ~MPoint~
 
 */
-
-    ~MInt();
-/*
-The destructor.
-
-*/
-
-    void Destroy();
-/*
-This function should be called before the destructor if one wants to destroy the
-persistent array of intervals. It marks the persistent array for destroying. The
-destructor will perform the real destroying.
-
-3.11.2 Functions for Bulk Load of units
-
-As said before, the point set is implemented as an ordered persistent array of intervals.
-The time complexity of an insertion operation in an ordered array is $O(n)$, where ~n~
-is the size of the interval set. In some cases, bulk load of intervals for example, it is good
-to relax the ordered condition to improve the performance. We have relaxed this ordered
-condition only for bulk load of intervals. All other operations assume that the interval set is
-ordered.
-
-*/
-
-    bool IsOrdered() const;
-/*
-Returns if the interval set is ordered. There is a flag ~ordered~ (see attributes) in order
-to avoid a scan in the interval set to answer this question.
-
-*/
-
-    void StartBulkLoad();
-/*
-Marks the start of a bulk load of intervals relaxing the condition that the intervals must be
-ordered. We will assume that the only way to add intervals to an interval set is inside bulk
-loads, i.e., into non-ordered ranges.
-
-*/
-
-    void EndBulkLoad( const bool sort = true );
-/*
-Marks the end of a bulk load and sorts the interval set if the flag ~sort~ is set to true.
-
-3.11.3 Member functions
-
-*/
-    bool IsEmpty() const;
-/*
-Returns if the range is empty of intervals or not.
-
-*/
-
-    void Get( const int i, ConstTemporalUnit<CcInt>& ui );
-/*
-Returns the interval ~ai~ at the position ~i~ in the range.
-
-*/
-
-    void Add( ConstTemporalUnit<CcInt>& ui );
-/*
-Adds an interval ~i~ to the range. We will assume that the only way of adding intervals 
-is in bulk loads, i.e., in a non-ordered array.
-
-*Precondition:* ~IsOrdered() == false~
-
-*/
-    int Position( const Instant& t );
-    bool TemporalFunction( Instant& t, CcInt& result );
-    
-    void Clear();
-/*
-Remove all intervals in the range.
-
-
-3.11.4 Functions to be part of relations
-
-*/
-    bool IsDefined() const;
-    void SetDefined( bool Defined );
-    int Compare( Attribute * arg );
-    bool Adjacent( Attribute * arg );
-    MInt* Clone();
-    ostream& Print( ostream &os );
-    size_t HashValue();
-    void CopyFrom( StandardAttribute* right );
-
-    int NumOfFLOBs();
-    FLOB *GetFLOB(const int i);
-
-/*
-3.11.5 Operations
-
-3.11.5.1 Operation $=$ (~equal~)
-
-*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
-
-*Semantics:* $X = Y$
-
-*Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
-
-*/
-    bool operator==( MInt& mi );
-
-/*
-3.11.5.2 Operation $\neq$ (~not equal~)
-
-*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
-
-*Semantics:* $X \neq Y$
-
-*Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
-
-*/
-    bool operator!=( MInt& mi );
-
-/*
-3.11.5.3 Operation ~no\_components~
-
-*Precondition:* ~X.IsOrdered()~
-
-*Semantics:* $\| intvls(X) \|$
-
-*Complexity:* $O(1)$
-
-*/
-    int GetNoComponents() const;
-
-//  private:
-/*
-3.11.6 Private member functions
-
-*/
-    bool IsValid();
-/*
-This functions tests if a ~range~ is in a valid format. It is used for debugging
-purposes only. The ~range~ is valid, if the following conditions are true:
-
-  1 Each interval is valid
-
-  2 Start of each interval $>=$ end of the interval before
-
-  3 If start of an interval = end of the interval before, then one needs to
-    make sure that the interval is not left-closed or the interval before
-    is not right-closed
-
-3.11.7 Attributes
-
-*/ 
-    private:
-    
-    bool canDestroy;
-/*
-A flag indicating if the destructor should destroy also the persistent
-array of intervals.
-
-*/
-
-    bool ordered;
-/*
-A flag indicating whether the interval set is ordered or not.
-
-*/
-
-    DBArray< ConstTemporalUnit<CcInt> > units;
-    
-/*
-The database array of temporal units.
-
-*/     
-};
-
-/*
-3.12 Mapping(UReal)
-
-This class is implement the functionalities of the ~mapping(UReal)~ type constructor.
-It contains a database array of temporal real units.
-
-*/
-class MReal : public StandardAttribute
+class MPoint : public Mapping< UPoint, Point >
 {
   public:
 /*
 3.12.1 Constructors and Destructor
 
 */
-    MReal() {}
+    MPoint() {}
 /*
 The simple constructor. This constructor should not be used.
 
 */
 
-    MReal( const int n );
+    MPoint( const int n ):
+      Mapping< UPoint, Point >( n ) 
+      {}
 /*
 The constructor. Initializes space for ~n~ elements.
 
 */
 
-    ~MReal();
 /*
-The destructor.
-
-*/
-
-    void Destroy();
-/*
-This function should be called before the destructor if one wants to destroy the
-persistent array of intervals. It marks the persistent array for destroying. The
-destructor will perform the real destroying.
-
-3.12.2 Functions for Bulk Load of units
-
-As said before, the point set is implemented as an ordered persistent array of intervals.
-The time complexity of an insertion operation in an ordered array is $O(n)$, where ~n~
-is the size of the interval set. In some cases, bulk load of intervals for example, it is good
-to relax the ordered condition to improve the performance. We have relaxed this ordered
-condition only for bulk load of intervals. All other operations assume that the interval set is
-ordered.
-
-*/
-
-    bool IsOrdered() const;
-/*
-Returns if the interval set is ordered. There is a flag ~ordered~ (see attributes) in order
-to avoid a scan in the interval set to answer this question.
-
-*/
-
-    void StartBulkLoad();
-/*
-Marks the start of a bulk load of intervals relaxing the condition that the intervals must be
-ordered. We will assume that the only way to add intervals to an interval set is inside bulk
-loads, i.e., into non-ordered ranges.
-
-*/
-
-    void EndBulkLoad( const bool sort = true );
-/*
-Marks the end of a bulk load and sorts the interval set if the flag ~sort~ is set to true.
-
-3.12.3 Member functions
-
-*/
-    bool IsEmpty() const;
-/*
-Returns if the range is empty of intervals or not.
-
-*/
-
-    void Get( const int i, UReal& uri );
-/*
-Returns the interval ~ai~ at the position ~i~ in the range.
-
-*/
-
-    void Add( UReal& uri );
-/*
-Adds an interval ~i~ to the range. We will assume that the only way of adding intervals 
-is in bulk loads, i.e., in a non-ordered array.
-
-*Precondition:* ~IsOrdered() == false~
-
-*/
-
-    void Clear();
-/*
-Remove all intervals in the range.
-
-3.12.4 Functions to be part of relations
-
-*/
-    bool IsDefined() const;
-    void SetDefined( bool Defined );
-    int Compare( Attribute * arg );
-    bool Adjacent( Attribute * arg );
-    MReal* Clone();
-    ostream& Print( ostream &os );
-    size_t HashValue();
-    void CopyFrom( StandardAttribute* right );
-
-    int NumOfFLOBs();
-    FLOB *GetFLOB(const int i);
-    int Position( const Instant& t );
-    bool TemporalFunction( Instant& t, CcReal& result );
-
-/*
-3.12.5 Operations
-
-3.12.5.1 Operation $=$ (~equal~)
-
-*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
-
-*Semantics:* $X = Y$
-
-*Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
-
-*/
-    bool operator==( MReal& mr );
-
-/*
-3.12.5.2 Operation $\neq$ (~not equal~)
-
-*Precondition:* ~X.IsOrdered() $\&\&$ Y.IsOrdered()~
-
-*Semantics:* $X \neq Y$
-
-*Complexity:* $O(n+m)$, where ~n~ is the size of this range ~X~ and m the size of the range ~Y~.
-
-*/
-    bool operator!=( MReal& mr );
-
-/*
-3.12.5.3 Operation ~no\_components~
+3.10.5.3 Operation ~trajectory~
 
 *Precondition:* ~X.IsOrdered()~
 
-*Semantics:* $\| intvls(X) \|$
+*Semantics:*
 
-*Complexity:* $O(1)$
-
-*/
-    int GetNoComponents() const;
-
-//  private:
-/*
-3.12.6 Private member functions
+*Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
 
 */
-    bool IsValid();
-/*
-This functions tests if a ~range~ is in a valid format. It is used for debugging
-purposes only. The ~range~ is valid, if the following conditions are true:
+  void Trajectory( CLine& line );
 
-  1 Each interval is valid
-
-  2 Start of each interval $>=$ end of the interval before
-
-  3 If start of an interval = end of the interval before, then one needs to
-    make sure that the interval is not left-closed or the interval before
-    is not right-closed
-
-3.12.7 Attributes
-
-*/
-    private:
-    
-    bool canDestroy;
-/*
-A flag indicating if the destructor should destroy also the persistent
-array of intervals.
-
-*/
-
-    bool ordered;
-/*
-A flag indicating whether the interval set is ordered or not.
-
-*/
-
-    DBArray< UReal > units;
-           
-/*
-The database array of temporal units.
-
-*/     
 };
 
 /*
@@ -1812,9 +1715,9 @@ bool Interval<Alpha>::IsValid()
 
 */
 template <class Alpha>
-Interval<Alpha>& Interval<Alpha>::operator=( const Interval<Alpha>& i )
+Interval<Alpha>& Interval<Alpha>::operator=( Interval<Alpha>& i )
 {
-  assert( i.IsValid );
+  assert( i.IsValid() );
 
   start.CopyFrom( &i.start );
   end.CopyFrom( &i.end );
@@ -1870,7 +1773,7 @@ bool Interval<Alpha>::R_Adjacent( Interval<Alpha>& i )
 }
 
 template <class Alpha>
-bool Interval<Alpha>::adjacent( Interval<Alpha>& i )
+bool Interval<Alpha>::Adjacent( Interval<Alpha>& i )
 {
   assert( IsValid() && i.IsValid() );
   bool res= ( R_Adjacent( i ) || i.R_Adjacent( *this ) );
@@ -2063,13 +1966,13 @@ void Range<Alpha>::SetDefined( bool Defined )
 }
 
 template <class Alpha>
-int Range<Alpha>::Compare( Attribute * arg )
+int Range<Alpha>::Compare( Attribute* arg )
 {
   return 0;
 }
 
 template <class Alpha>
-bool Range<Alpha>::Adjacent( Attribute * arg )
+bool Range<Alpha>::Adjacent( Attribute* arg )
 {
   return false;
 }
@@ -2500,7 +2403,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
       {
         if( thisInterval.end.Compare( &interval.start ) < 0 )
         {
-          if( thisInterval.adjacent( interval ) )
+          if( thisInterval.Adjacent( interval ) )
           {
             if( start != NULL && end != NULL )
             {
@@ -2536,7 +2439,7 @@ void Range<Alpha>::Union( Range<Alpha>& r, Range<Alpha>& result )
         }
         else if( thisInterval.start.Compare( &interval.end ) > 0 )
         {
-          if( thisInterval.adjacent( interval ) )
+          if( thisInterval.Adjacent( interval ) )
           {
             if( start != NULL && end != NULL )
             {
@@ -3205,7 +3108,7 @@ bool Range<Alpha>::IsValid()
       result = false;
       break;
     }
-    if( (!lastInterval.Disjoint( interval )) && (!lastInterval.adjacent( interval )) )
+    if( (!lastInterval.Disjoint( interval )) && (!lastInterval.Adjacent( interval )) )
     {
       result = false;
       break;
@@ -3216,43 +3119,41 @@ bool Range<Alpha>::IsValid()
 }
 
 template <class Alpha>
-void Range<Alpha>::Merge(Range<Alpha>* result)
+void Range<Alpha>::Merge( Range<Alpha>& result )
 {
   assert( IsOrdered() );
 
-  //Range *result = new Range();
-
-  result->StartBulkLoad();
+  result.Clear();
+  result.StartBulkLoad();
   
-  Interval<Alpha> interval, jinterval;
-  int i=0;
-  int j;
-  bool jcont=true;
+  Interval<Alpha> ii, ji;
+  int i = 0, j;
+  bool jcont = true;
   
-  while (i < GetNoComponents()) 
+  while( i < GetNoComponents() ) 
   {
-      Get( i, interval );
+    Get( i, ii );
       
-      j=i+1; jcont=true;
-      while ((j < GetNoComponents()) && jcont)
+    j = i + 1; 
+    jcont = true;
+    while( j < GetNoComponents() && jcont )
+    {
+      Get( j, ji );
+      if( ii.Adjacent( ji ) )
       {
-	  Get( j, jinterval );
-	  if (interval.adjacent(jinterval))
-	  {
-	      interval.end=jinterval.end;
-	      interval.rc=jinterval.rc;
-	      j++;
-	  }
-	  else jcont=false;
+        ii.end = ji.end;
+	ii.rc = ji.rc;
+	j++;
       }
+      else 
+        jcont=false;
+    }
       
-      result->Add( interval );
-      i=j;
+    result.Add( ii );
+    i = j;
   }
 
-  result->EndBulkLoad( false );
-
-  //return result;
+  result.EndBulkLoad( false );
 }
 
 /*
@@ -3264,29 +3165,29 @@ void Range<Alpha>::Merge(Range<Alpha>* result)
 template <class Alpha>
 bool TemporalUnit<Alpha>::IsValid()
 {
-    return timeInterval.IsValid();
+  return timeInterval.IsValid();
 }
 
 template <class Alpha>
-TemporalUnit<Alpha>& TemporalUnit<Alpha>::operator=( const TemporalUnit& i )
+TemporalUnit<Alpha>& TemporalUnit<Alpha>::operator=( TemporalUnit<Alpha>& i )
 {
-  assert( i.timeInterval.IsValid );
+  assert( i.timeInterval.IsValid() );
 
-  timeInterval=i.timeInterval;
+  timeInterval = i.timeInterval;
   
   return *this;
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::operator==( TemporalUnit& i )
+bool TemporalUnit<Alpha>::operator==( TemporalUnit<Alpha>& i )
 {
   assert( timeInterval.IsValid() && i.timeInterval.IsValid() );
 
-  return( timeInterval==i.timeInterval);
+  return( timeInterval == i.timeInterval);
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::operator!=( TemporalUnit& i )
+bool TemporalUnit<Alpha>::operator!=( TemporalUnit<Alpha>& i )
 {
   return !( *this == i );
 }
@@ -3312,7 +3213,7 @@ bool TemporalUnit<Alpha>::R_Adjacent( TemporalUnit<Alpha>& i )
 }
 
 template <class Alpha>
-bool TemporalUnit<Alpha>::adjacent( TemporalUnit<Alpha>& i )
+bool TemporalUnit<Alpha>::TU_Adjacent( TemporalUnit<Alpha>& i )
 {
   assert( IsValid() && i.IsValid() );
 
@@ -3368,26 +3269,26 @@ bool TemporalUnit<Alpha>::After( Instant& a )
 }
 
 /*
-4.4 MappingPoint
+4.4 Mapping
 
 4.4.1 Constructors and destructor
 
 */
-
-// MPoint::MPoint() {}  have been defined inline
-
-MPoint::MPoint( const int n ):
+template <class Unit, class Alpha>
+Mapping<Unit, Alpha>::Mapping( const int n ):
 canDestroy( false ),
 ordered( true ),
 units( n )
 {}
 
-void MPoint::Destroy()
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::Destroy()
 {
   canDestroy = true;
 }
 
-MPoint::~MPoint()
+template <class Unit, class Alpha>
+Mapping<Unit, Alpha>::~Mapping()
 {
   if( canDestroy )
     units.Destroy();
@@ -3397,22 +3298,24 @@ MPoint::~MPoint()
 4.4.2 Member functions
 
 */
-bool MPoint::IsOrdered() const
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::IsOrdered() const
 {
   return ordered;
 }
 
-void MPoint::StartBulkLoad()
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::StartBulkLoad()
 {
   assert( ordered );
   ordered = false;
 }
 
-
-int mp_unitCompare( const void *a, const void *b )  
+template <class Unit>
+int UnitCompare( const void *a, const void *b )  
 {
-  UPoint *unita = new ((void*)a) UPoint,
-               *unitb = new ((void*)b) UPoint;
+  Unit *unita = new ((void*)a) Unit,
+        *unitb = new ((void*)b) Unit;
 
   if( *unita == *unitb )
     return 0;
@@ -3422,39 +3325,38 @@ int mp_unitCompare( const void *a, const void *b )
     return 1;
 }
 
-void MPoint::EndBulkLoad( const bool sort )
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::EndBulkLoad( const bool sort )
 {
   assert( !ordered );
   if( sort )
-    units.Sort( mp_unitCompare );
+    units.Sort( UnitCompare<Unit> );
   ordered = true;
-  //assert( IsValid() );
+  assert( IsValid() );
 }
 
-bool MPoint::IsEmpty() const
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::IsEmpty() const
 {
   return units.Size() == 0;
 }
 
-void MPoint::Get( const int i, UPoint& unit )
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::Get( const int i, Unit& unit )
 {
   units.Get( i, unit );
   assert( unit.IsValid() );
 }
 
-void MPoint::Add( UPoint& unit )
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::Add( Unit& unit )
 {
-    //assert( unit.IsValid() );
-    if (unit.IsValid())
-	units.Append( unit );
-    else 
-    {	
-	    cout<<"Invalid time interval found, please check!"<<endl;
-	    assert( false );
-    }
+  assert( unit.IsValid() );
+  units.Append( unit );
 }
 
-void MPoint::Clear()
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::Clear()
 {
   ordered = true;
   units.Clear();
@@ -3464,33 +3366,38 @@ void MPoint::Clear()
 4.4.3 Functions to be part of relations
 
 */
-bool MPoint::IsDefined() const
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::IsDefined() const
 {
   return true;
 }
 
-void MPoint::SetDefined( bool Defined )
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::SetDefined( bool Defined )
 {
 }
 
-int MPoint::Compare( Attribute * arg )
+template <class Unit, class Alpha>
+int Mapping<Unit, Alpha>::Compare( Attribute *arg )
 {
   return 0;
 }
 
-bool MPoint::Adjacent( Attribute * arg )
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::Adjacent( Attribute *arg )
 {
   return false;
 }
 
-MPoint* MPoint::Clone()
+template <class Unit, class Alpha>
+Mapping<Unit, Alpha>* Mapping<Unit, Alpha>::Clone()
 {
   assert( IsOrdered() );
 
-  MPoint *result = new MPoint( GetNoComponents() );
+  Mapping<Unit, Alpha> *result = new Mapping<Unit, Alpha>( GetNoComponents() );
 
   result->StartBulkLoad();
-  UPoint unit;
+  Unit unit;
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
@@ -3500,25 +3407,28 @@ MPoint* MPoint::Clone()
   return result;
 }
 
-ostream& MPoint::Print( ostream &os )
+template <class Unit, class Alpha>
+ostream& Mapping<Unit, Alpha>::Print( ostream &os )
 {
-  return os << "Temporal Algebra---MPoint" << endl;
+  return os << "Temporal Algebra---Mapping" << endl;
 }
 
-size_t MPoint::HashValue()
+template <class Unit, class Alpha>
+size_t Mapping<Unit, Alpha>::HashValue()
 {
   return 0;
 }
 
-void MPoint::CopyFrom( StandardAttribute* right )
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::CopyFrom( StandardAttribute* right )
 {
-  MPoint *r = (MPoint*)right;
+  Mapping<Unit, Alpha> *r = (Mapping<Unit, Alpha>*)right;
   assert( r->IsOrdered() );
 
   Clear();
 
   StartBulkLoad();
-  UPoint unit;
+  Unit unit;
   for( int i = 0; i < r->GetNoComponents(); i++ )
   {
     r->Get( i, unit );
@@ -3527,12 +3437,14 @@ void MPoint::CopyFrom( StandardAttribute* right )
   EndBulkLoad( false );
 }
 
-int MPoint::NumOfFLOBs()
+template <class Unit, class Alpha>
+int Mapping<Unit, Alpha>::NumOfFLOBs()
 {
   return 1;
 }
 
-FLOB *MPoint::GetFLOB(const int i)
+template <class Unit, class Alpha>
+FLOB *Mapping<Unit, Alpha>::GetFLOB(const int i)
 {
   assert( i == 0 ); 
   return &units;
@@ -3542,16 +3454,16 @@ FLOB *MPoint::GetFLOB(const int i)
 4.4.4 Operator functions
 
 */
-
-bool MPoint::operator==( MPoint& r )
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::operator==( Mapping<Unit, Alpha>& r )
 {
-  assert( IsValid() && r.IsValid() );
+  assert( IsOrdered() && r.IsOrdered() );
 
   if( GetNoComponents() != r.GetNoComponents() )
     return false;
 
   bool result = true;
-  UPoint thisunit, unit;
+  Unit thisunit, unit;
 
   for( int i = 0; i < GetNoComponents(); i++ )
   {
@@ -3568,17 +3480,20 @@ bool MPoint::operator==( MPoint& r )
   return result;
 }
 
-bool MPoint::operator!=( MPoint& r )
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::operator!=( Mapping<Unit, Alpha>& r )
 {
   return !( *this == r );
 }
 
-int MPoint::GetNoComponents() const
+template <class Unit, class Alpha>
+int Mapping<Unit, Alpha>::GetNoComponents() const
 {
   return units.Size();
 }
 
-bool MPoint::IsValid()
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::IsValid()
 {
   if( canDestroy )
     return false;
@@ -3590,7 +3505,7 @@ bool MPoint::IsValid()
     return true;
 
   bool result = true;
-  UPoint lastunit, unit;
+  Unit lastunit, unit;
 
   if( GetNoComponents() == 1 )
   {
@@ -3612,7 +3527,7 @@ bool MPoint::IsValid()
       result = false;
       break;
     }
-    if( (!lastunit.Disjoint( unit )) && (!lastunit.adjacent( unit )) )
+    if( (!lastunit.Disjoint( unit )) && (!lastunit.TU_Adjacent( unit )) )
     {
       result = false;
       break;
@@ -3622,647 +3537,159 @@ bool MPoint::IsValid()
   return result;
 }
 
-int MPoint::Position( const Instant& t ) 
-{
-    assert( IsOrdered() && t.IsDefined() );
-  
-    int first = 0, last = units.Size() - 1;
-    Instant t1=t;
-  
-    while (first <= last)
-    {
-	int mid = ( first + last ) / 2;
-	if ((mid<0) || (mid>=units.Size())) return -1;
-	    
-	UPoint midUPoint;
-	units.Get( mid, midUPoint );
-	
-	if (midUPoint.timeInterval.Contains(t1)) 
-	    return mid;
-	else  //not contained 
-	    if (( t1> midUPoint.timeInterval.end ) || ( t1== midUPoint.timeInterval.end ))
-		first = mid + 1;
-	else if (( t1 < midUPoint.timeInterval.start ) || ( t1 == midUPoint.timeInterval.start ))
-	    last = mid - 1;
-	else  return -1; //should never reached.
-    }
-    return -1;
-}
-
-bool MPoint::TemporalFunction( Instant& t, Point& result )
-{
-    assert( t.IsDefined() );
-
-    int pos=Position(t);
-      
-    if( pos==-1)  //not contained in any unit
-	return false;
-    UPoint posUPoint;
-    units.Get( pos, posUPoint );
-      
-    Point resPoint;
-    if (posUPoint.TemporalFunction(t, resPoint))
-    {
-	result.Set( resPoint.GetX(), resPoint.GetY() );
-	return true;
-    }
-    else return false;
-}
-
-/*
-4.5 MappingInt
-
-4.5.1 Constructors and destructor
-
-*/
-// MInt::MInt() {}  have been defined inline
-
-MInt::MInt( const int n ):
-canDestroy( false ),
-ordered( true ),
-units( n )
-{}
-
-void MInt::Destroy()
-{
-  canDestroy = true;
-}
-
-MInt::~MInt()
-{
-  if( canDestroy )
-    units.Destroy();
-}
-
-/*
-4.5.2 Member functions
-
-*/
-bool MInt::IsOrdered() const
-{
-  return ordered;
-}
-
-void MInt::StartBulkLoad()
-{
-  assert( ordered );
-  ordered = false;
-}
-
-
-int mi_unitCompare( const void *a, const void *b )
-{
-  ConstTemporalUnit<CcInt> *unita = new ((void*)a) ConstTemporalUnit<CcInt>,
-	  *unitb = new ((void*)b) ConstTemporalUnit<CcInt>;
-
-  if( *unita == *unitb )
-    return 0;
-  else if( unita->Before( *unitb ) )
-    return -1;
-  else
-    return 1;
-}
-
-void MInt::EndBulkLoad( const bool sort )
-{
-  assert( !ordered );
-  if( sort )
-    units.Sort( mi_unitCompare );
-  ordered = true;
-  //assert( IsValid() );
-}
-
-bool MInt::IsEmpty() const
-{
-  return units.Size() == 0;
-}
-
-void MInt::Get( const int i, ConstTemporalUnit<CcInt>& unit )
-{
-  units.Get( i, unit );
-  assert( unit.IsValid() );
-}
-
-void MInt::Add( ConstTemporalUnit<CcInt>& unit )
-{
-  assert( unit.IsValid() );
-  units.Append( unit );
-}
-
-void MInt::Clear()
-{
-  ordered = true;
-  units.Clear();
-}
-
-/*
-4.5.3 Functions to be part of relations
-
-*/
-bool MInt::IsDefined() const
-{
-  return true;
-}
-
-void MInt::SetDefined( bool Defined )
-{
-}
-
-int MInt::Compare( Attribute * arg )
-{
-  return 0;
-}
-
-bool MInt::Adjacent( Attribute * arg )
-{
-  return false;
-}
-
-MInt* MInt::Clone()
-{
-  assert( IsOrdered() );
-
-  MInt *result = new MInt( GetNoComponents() );
-
-  result->StartBulkLoad();
-  ConstTemporalUnit<CcInt> unit;
-  for( int i = 0; i < GetNoComponents(); i++ )
-  {
-    Get( i, unit );
-    result->Add( unit );
-  }
-  result->EndBulkLoad( false );
-  return result;
-}
-
-ostream& MInt::Print( ostream &os )
-{
-  return os << "Temporal Algebra---MInt" << endl;
-}
-
-size_t MInt::HashValue()
-{
-  return 0;
-}
-
-void MInt::CopyFrom( StandardAttribute* right )
-{
-  MInt *r = (MInt*)right;
-  assert( r->IsOrdered() );
-
-  Clear();
-
-  StartBulkLoad();
-  ConstTemporalUnit<CcInt> unit;
-  for( int i = 0; i < r->GetNoComponents(); i++ )
-  {
-    r->Get( i, unit );
-    Add( unit );
-  }
-  EndBulkLoad( false );
-}
-
-int MInt::NumOfFLOBs()
-{
-  return 1;
-}
-
-FLOB *MInt::GetFLOB(const int i)
-{
-  assert( i == 0 ); 
-  return &units;
-}
-
-int MInt::Position( const Instant& t ) 
+template <class Unit, class Alpha>
+int Mapping<Unit, Alpha>::Position( const Instant& t ) 
 {
   assert( IsOrdered() && t.IsDefined() );
   
-  int first = 0, last = units.Size();
-  Instant t1=t;
+  int first = 0, last = units.Size() - 1;
+  Instant t1 = t;
   
   while (first <= last)
   {
     int mid = ( first + last ) / 2;
-    if ((mid<0)||(mid>=units.Size())) return -1;
-    
-    ConstTemporalUnit<CcInt> midUInt;
-    units.Get( mid, midUInt );
-    
-    if (midUInt.timeInterval.Contains(t1)) 
-	return mid;
-    else  //not contained 
-	if (( t1> midUInt.timeInterval.end ) || ( t1== midUInt.timeInterval.end ))
-	    first = mid + 1;
-    else if (( t1 < midUInt.timeInterval.start ) || ( t1 == midUInt.timeInterval.start ))
-	last = mid - 1;
-    else  return -1; //should never reached.
+
+    if( (mid < 0) || (mid >= units.Size()) ) 
+      return -1;
+	    
+    Unit midUnit;
+    units.Get( mid, midUnit );
 	
-   }
-   return -1;
-}
-
-bool MInt::TemporalFunction( Instant& t, CcInt& result )
-{
-    assert( t.IsDefined() );
-
-    int pos=Position(t);
-      
-    if( pos==-1)  //not contained in any unit
-	return false;
-    ConstTemporalUnit<CcInt> posUInt;
-    units.Get( pos, posUInt );
-      
-    CcInt resInt;
-    if (posUInt.TemporalFunction(t, resInt))
-    {
-	result.Set( resInt.GetIntval() );
-	return true;
+    if( midUnit.timeInterval.Contains(t1) ) 
+      return mid;
+    else  //not contained 
+      if( ( t1 > midUnit.timeInterval.end ) || ( t1 == midUnit.timeInterval.end ) )
+        first = mid + 1;
+      else if( ( t1 < midUnit.timeInterval.start ) || ( t1 == midUnit.timeInterval.start ) )
+        last = mid - 1;
+      else  
+        return -1; //should never be reached.
     }
-    else return false;
-}
-
-
-/*
-4.5.4 Operator functions
-
-*/
-
-bool MInt::operator==( MInt& r )
-{
-  assert( IsValid() && r.IsValid() );
-
-  if( GetNoComponents() != r.GetNoComponents() )
-    return false;
-
-  bool result = true;
-  ConstTemporalUnit<CcInt> thisunit, unit;
-
-  for( int i = 0; i < GetNoComponents(); i++ )
-  {
-    Get( i, thisunit );
-    r.Get( i, unit );
-
-    if( thisunit != unit )
-    {
-      result = false;
-      break;
-    }
-  }
-
-  return result;
-}
-
-bool MInt::operator!=( MInt& r )
-{
-  return !( *this == r );
-}
-
-int MInt::GetNoComponents() const
-{
-  return units.Size();
-}
-
-bool MInt::IsValid()
-{
-  if( canDestroy )
-    return false;
-
-  if( !IsOrdered() )
-    return false;
-
-  if( IsEmpty() )
-    return true;
-
-  bool result = true;
-  ConstTemporalUnit<CcInt> lastunit, unit;
-
-  if( GetNoComponents() == 1 )
-  {
-    Get( 0, unit );
-    return( unit.IsValid() );
-  }
-
-  for( int i = 1; i < GetNoComponents(); i++ )
-  {
-    Get( i-1, lastunit );
-    if( !lastunit.IsValid() )
-    {
-      result = false;
-      break;
-    }
-    Get( i, unit );
-    if( !unit.IsValid() )
-    {
-      result = false;
-      break;
-    }
-    
-    //if (lastunit.Disjoint( unit )) {cout<<"Disjoint!"<<endl;} else cout<<"not Disjoint!"<<endl;
-    //if (lastunit.Adjacent( unit ) )  {cout<<"Adjacent!"<<endl;} else cout<<"not Adjacent!"<<endl;
-    
-    if( (!lastunit.Disjoint( unit )) && (!lastunit.adjacent( unit )) )
-    {
-      result = false;
-      break;
-    }
-  }
-
-  return result;
-}
-
-/*
-4.6 MappingReal
-
-4.6.1 Constructors and destructor
-
-*/
-// MReal::MReal() {}  have been defined inline
-
-MReal::MReal( const int n ):
-canDestroy( false ),
-ordered( true ),
-units( n )
-{}
-
-void MReal::Destroy()
-{
-  canDestroy = true;
-}
-
-MReal::~MReal()
-{
-  if( canDestroy )
-    units.Destroy();
-}
-
-/*
-4.6.2 Member functions
-
-*/
-bool MReal::IsOrdered() const
-{
-  return ordered;
-}
-
-void MReal::StartBulkLoad()
-{
-  assert( ordered );
-  ordered = false;
-}
-
-
-int mr_unitCompare( const void *a, const void *b ) 
-{
-  UReal *unita = new ((void*)a) UReal,
-               *unitb = new ((void*)b) UReal;
-
-  if( *unita == *unitb )
-    return 0;
-  else if( unita->Before( *unitb ) )
     return -1;
+}
+
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::AtInstant( Instant& t, Intime<Alpha>& result )
+{
+  assert( IsOrdered() && t.IsDefined() );
+
+  int pos = Position( t );
+      
+  if( pos == -1 )  // not contained in any unit
+    result.SetDefined( false );
   else
-    return 1;
+  {
+    Unit posUnit;
+    units.Get( pos, posUnit );
+
+    result.SetDefined( true );
+    posUnit.TemporalFunction( t, result.value );
+    result.instant.CopyFrom( &t );
+  }
 }
 
-void MReal::EndBulkLoad( const bool sort )
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::Present( Instant& t )
 {
-  assert( !ordered );
-  if( sort )
-    units.Sort( mr_unitCompare );
-  ordered = true;
-  //assert( IsValid() );
-}
+  assert( t.IsDefined() && IsOrdered() );
 
-bool MReal::IsEmpty() const
-{
-  return units.Size() == 0;
-}
-
-void MReal::Get( const int i, UReal& unit )
-{
-  units.Get( i, unit );
-  assert( unit.IsValid() );
-}
-
-void MReal::Add( UReal& unit )
-{
-  assert( unit.IsValid() );
-  units.Append( unit );
-}
-
-void MReal::Clear()
-{
-  ordered = true;
-  units.Clear();
-}
-
-/*
-4.6.3 Functions to be part of relations
-
-*/
-bool MReal::IsDefined() const
-{
+  int pos = Position(t);
+      
+  if( pos == -1 )  //not contained in any unit
+    return false;
   return true;
 }
 
-void MReal::SetDefined( bool Defined )
-{
-}
-
-int MReal::Compare( Attribute * arg )
-{
-  return 0;
-}
-
-bool MReal::Adjacent( Attribute * arg )
-{
-  return false;
-}
-
-MReal* MReal::Clone()
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::DefTime( Periods& r )
 {
   assert( IsOrdered() );
 
-  MReal *result = new MReal( GetNoComponents() );
+  Periods result( GetNoComponents() );
 
-  result->StartBulkLoad();
-  UReal unit;
+  Unit unit;
+  result.StartBulkLoad();
   for( int i = 0; i < GetNoComponents(); i++ )
   {
     Get( i, unit );
-    result->Add( unit );
+    result.Add( unit.timeInterval );
   }
-  result->EndBulkLoad( false );
-  return result;
+  result.EndBulkLoad( false );
+  result.Merge( r );
 }
 
-ostream& MReal::Print( ostream &os )
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::Passes( Alpha& val )
 {
-  return os << "Temporal Algebra---MReal" << endl;
-}
+  assert( IsOrdered() && val.IsDefined() );
 
-size_t MReal::HashValue()
-{
-  return 0;
-}
-
-void MReal::CopyFrom( StandardAttribute* right )
-{
-  MReal *r = (MReal*)right;
-  assert( r->IsOrdered() );
-
-  Clear();
-
-  StartBulkLoad();
-  UReal unit;
-  for( int i = 0; i < r->GetNoComponents(); i++ )
-  {
-    r->Get( i, unit );
-    Add( unit );
-  }
-  EndBulkLoad( false );
-}
-
-int MReal::NumOfFLOBs()
-{
-  return 1;
-}
-
-FLOB *MReal::GetFLOB(const int i)
-{
-  assert( i == 0 ); 
-  return &units;
-}
-
-/*
-4.6.4 Operator functions
-
-*/
-
-bool MReal::operator==( MReal& r )
-{
-  assert( IsValid() && r.IsValid() );
-
-  if( GetNoComponents() != r.GetNoComponents() )
-    return false;
-
-  bool result = true;
-  UReal thisunit, unit;
-
+  Unit unit;
   for( int i = 0; i < GetNoComponents(); i++ )
   {
-    Get( i, thisunit );
-    r.Get( i, unit );
+    Get( i, unit );
+    if( unit.Passes( val ) )
+      return true;
+  }
+  return false;
+}
 
-    if( thisunit != unit )
-    {
-      result = false;
-      break;
-    }
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::At( Alpha& val, Mapping<Unit, Alpha>& result )
+{
+  assert( IsOrdered() && val.IsDefined() );
+
+  result.Clear();
+
+  result.StartBulkLoad();
+
+  Unit unit;
+  for( int i = 0; i < GetNoComponents(); i++ )
+  {
+    Get( i, unit );
+    Unit resUnit;
+    if( unit.At( val, resUnit ) )
+      result.Add( resUnit );
   }
 
-  return result;
+  result.EndBulkLoad( false );
+
+// VTA - The merge of the result is not implemented yet.
 }
 
-bool MReal::operator!=( MReal& r )
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::Initial( Intime<Alpha>& result )
 {
-  return !( *this == r );
-}
-
-int MReal::GetNoComponents() const
-{
-  return units.Size();
-}
-
-bool MReal::IsValid()
-{
-  if( canDestroy )
-    return false;
-
-  if( !IsOrdered() )
-    return false;
+  assert( IsOrdered() );
 
   if( IsEmpty() )
-    return true;
-
-  bool result = true;
-  UReal lastunit, unit;
-
-  if( GetNoComponents() == 1 )
+    result.SetDefined( false );
+  else
   {
-    Get( 0, unit );
-    return( unit.IsValid() );
-  }
+    Unit unit;
+    units.Get( 0, unit );
 
-  for( int i = 1; i < GetNoComponents(); i++ )
-  {
-    Get( i-1, lastunit );
-    if( !lastunit.IsValid() )
-    {
-      result = false;
-      break;
-    }
-    Get( i, unit );
-    if( !unit.IsValid() )
-    {
-      result = false;
-      break;
-    }
-    if( (!lastunit.Disjoint( unit )) && (!lastunit.adjacent( unit )) )
-    {
-      result = false;
-      break;
-    }
+    result.SetDefined( true );
+    unit.TemporalFunction( unit.timeInterval.start, result.value );
+    result.instant.CopyFrom( &unit.timeInterval.start );
   }
-
-  return result;
 }
 
-int MReal::Position( const Instant& t ) 
+template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result )
 {
-    assert( IsOrdered() && t.IsDefined() );
-  
-    int first = 0, last = units.Size();
-    Instant t1=t;
-  
-    while (first <= last)
-    {
-	int mid = ( first + last ) / 2;
-	if ((mid<0)||(mid>=units.Size())) return -1;
-    
-	UReal midUReal;
-	units.Get( mid, midUReal );
-   
-	if (midUReal.timeInterval.Contains(t1)) 
-	    return mid;
-	else  //not contained 
-	    if (( t1> midUReal.timeInterval.end ) || ( t1== midUReal.timeInterval.end ))
-		first = mid + 1;
-	else if (( t1 < midUReal.timeInterval.start ) || ( t1 == midUReal.timeInterval.start ))
-	    last = mid - 1;
-	else  return -1; //should never reached.
-    }
-    return -1;
-}
+  assert( IsOrdered() );
 
-bool MReal::TemporalFunction( Instant& t, CcReal& result )
-{
-    assert( t.IsDefined() );
+  if( IsEmpty() )
+    result.SetDefined( false );
+  else
+  {
+    Unit unit;
+    units.Get( GetNoComponents()-1, unit );
 
-    int pos=Position(t);
-      
-    if( pos==-1)  //not contained in any unit
-	return false;
-    UReal posUReal;
-    units.Get( pos, posUReal );
-      
-    CcReal resReal;
-    if (posUReal.TemporalFunction(t, resReal))
-    {
-	result.Set( resReal.GetRealval() );
-	return true;
-    }
-    else return false;
+    result.SetDefined( true );
+    unit.TemporalFunction( unit.timeInterval.start, result.value );
+    result.instant.CopyFrom( &unit.timeInterval.start );
+  }
 }
 
 /*
@@ -4475,10 +3902,12 @@ ListExpr OutIntime( ListExpr typeInfo, Word value )
 {
   Intime<Alpha>* intime = (Intime<Alpha>*)(value.addr);
 
-  return nl->TwoElemList( 
-	  //nl->RealAtom( intime->instant.GetRealval() ),
-	  OutDateTime( nl->TheEmptyList(), SetWord(&intime->instant) ),
+  if( intime->IsDefined() )
+    return nl->TwoElemList( 
+  	  OutDateTime( nl->TheEmptyList(), SetWord(&intime->instant) ),
 	  OutFun( nl->TheEmptyList(), SetWord( &intime->value ) ) );
+  else
+    return nl->SymbolAtom( "undef" );
 }
 
 /*
@@ -4489,32 +3918,32 @@ template <class Alpha, Word (*InFun)( const ListExpr, const ListExpr, const int,
 Word InIntime( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-    if( nl->ListLength( instance ) == 2 )
-    {
-	//1.deal with the instant value
-	//Instant instant( true, nl->RealValue( nl->First( instance ) ) );
-	Instant *instant = (Instant *)InInstant(
-		    nl->TheEmptyList(), 
-		    nl->First( instance ), 
-		    errorPos, errorInfo, correct ).addr;
+  if( nl->IsEqual( instance, "undef" ) )
+  {
+    Intime<Alpha> *intime = new Intime<Alpha>;
+    intime->SetDefined( false );
+    return SetWord( intime );
+  }
+
+  if( nl->ListLength( instance ) == 2 )
+  {
+    Instant *instant = (Instant *)InInstant( nl->TheEmptyList(), 
+                                             nl->First( instance ), 
+		                             errorPos, errorInfo, correct ).addr;
  
-	if ( correct == false )
-	{
-	    return SetWord( Address(0) );
-	}
+    if( correct == false )
+      return SetWord( Address(0) );
 	
-	
-	//2.deal with the alpha value
-	Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), errorPos, errorInfo, correct ).addr;
-	if( correct  )
-	{
-	    Intime<Alpha> *intime = new Intime<Alpha>( *instant, *value );
-	    delete value;
-	    return SetWord( intime );
-	}
+    Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), errorPos, errorInfo, correct ).addr;
+    if( correct  )
+    {
+      Intime<Alpha> *intime = new Intime<Alpha>( *instant, *value );
+      delete value;
+      return SetWord( intime );
     }
-    correct = false;
-    return SetWord( Address(0) );
+  }
+  correct = false;
+  return SetWord( Address(0) );
 }
 
 /*
@@ -4589,21 +4018,19 @@ void* CastIntime(void* addr)
 template <class Alpha, ListExpr (*OutFun)( ListExpr, Word )>
 ListExpr OutConstTemporalUnit( ListExpr typeInfo, Word value )
 { 
-    //1.get the address of the object and have a class object
-    ConstTemporalUnit<Alpha>* 
-	    constunit = (ConstTemporalUnit<Alpha>*)(value.addr);
+  //1.get the address of the object and have a class object
+  ConstTemporalUnit<Alpha>* constunit = (ConstTemporalUnit<Alpha>*)(value.addr);
 
-    //2.get the time interval NL
-    ListExpr intervalList = nl->FourElemList(
-	    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.start) ),
-	    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.end) ),
-	    nl->BoolAtom( constunit->timeInterval.lc ), 
-	    nl->BoolAtom( constunit->timeInterval.rc));
+  //2.get the time interval NL
+  ListExpr intervalList = nl->FourElemList(
+    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.start) ),
+    OutDateTime( nl->TheEmptyList(), SetWord(&constunit->timeInterval.end) ),
+    nl->BoolAtom( constunit->timeInterval.lc ), 
+    nl->BoolAtom( constunit->timeInterval.rc));
     
-    //3. return the final result
-    return nl->TwoElemList(
-	    intervalList, 
-	    OutFun( nl->TheEmptyList(), SetWord( &constunit->constValue ) ) );
+  //3. return the final result
+  return nl->TwoElemList( intervalList, 
+                          OutFun( nl->TheEmptyList(), SetWord( &constunit->constValue ) ) );
 }
 
 /*
@@ -4614,67 +4041,59 @@ template <class Alpha, Word (*InFun)( const ListExpr, const ListExpr, const int,
 Word InConstTemporalUnit( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-    if( nl->ListLength( instance ) == 2 &&
-        nl->IsAtom( nl->Second( instance ) ) )
+  if( nl->ListLength( instance ) == 2 &&
+      nl->IsAtom( nl->Second( instance ) ) )
+  {
+    //1. deal with the time interval
+    ListExpr first = nl->First( instance );
+	
+    if( nl->ListLength( first ) == 4 &&
+	nl->IsAtom( nl->Third( first ) ) &&
+	nl->AtomType( nl->Third( first ) ) == BoolType &&
+	nl->IsAtom( nl->Fourth( first ) ) &&
+	nl->AtomType( nl->Fourth( first ) ) == BoolType )
     {
-	//1. deal with the time interval
-	ListExpr first = nl->First( instance );
-	
-	if( nl->ListLength( first ) == 4 &&
-	    //nl->IsAtom( nl->First( first ) ) &&
-	    //nl->IsAtom( nl->Second( first ) ) &&
-	    nl->IsAtom( nl->Third( first ) ) &&
-	    nl->AtomType( nl->Third( first ) ) == BoolType &&
-	    nl->IsAtom( nl->Fourth( first ) ) &&
-	    nl->AtomType( nl->Fourth( first ) ) == BoolType )
-	{
-	    Instant *start = (Instant *)InInstant( 
-		    nl->TheEmptyList(), 
-		    nl->First( first ), 
-		    errorPos, errorInfo, correct ).addr;
-	    if( correct == false )
-	    {
-		return SetWord( Address(0) );
-	    }
+      Instant *start = 
+        (Instant *)InInstant( nl->TheEmptyList(), nl->First( first ), 
+	                      errorPos, errorInfo, correct ).addr;
+      if( correct == false )
+        return SetWord( Address(0) );
 
-	    Instant *end = (Instant *)InInstant(
-		    nl->TheEmptyList(), 
-		    nl->Second( first ), 
-		    errorPos, errorInfo, correct ).addr;
-	    if( correct == false )
-	    {
-		delete start;
-		return SetWord( Address(0) );
-	    }
+      Instant *end = 
+        (Instant *)InInstant( nl->TheEmptyList(), nl->Second( first ), 
+                              errorPos, errorInfo, correct ).addr;
+      if( correct == false )
+      {
+        delete start;
+        return SetWord( Address(0) );
+      }
 
-	    Interval<Instant> tinterval( *start, *end,
-				      nl->BoolValue( nl->Third( first ) ),
-				      nl->BoolValue( nl->Fourth( first ) ) );
+      Interval<Instant> tinterval( *start, *end,
+                                   nl->BoolValue( nl->Third( first ) ),
+                                   nl->BoolValue( nl->Fourth( first ) ) );
 
-	    delete start;
-	    delete end;
+      delete start;
+      delete end;
 	    
-	    //2. deal with the alpha value
-	    Alpha *value = (Alpha *)InFun( 
-		    nl->TheEmptyList(), 
-		    nl->Second( instance ), 
-		    errorPos, errorInfo, correct ).addr;
+      //2. deal with the alpha value
+      Alpha *value = (Alpha *)InFun( nl->TheEmptyList(), nl->Second( instance ), 
+                                     errorPos, errorInfo, correct ).addr;
 	
-	    //3. create the class object
-	    if( correct  )
-	    {
-		ConstTemporalUnit<Alpha> *constunit = 
-			new ConstTemporalUnit<Alpha>( tinterval, *value );
-		delete value;
-		return SetWord( constunit );
-	    }
-	}
-	else
-	{
-	    correct = false;
-	    return SetWord( Address(0) );
-	}
+      //3. create the class object
+      if( correct  )
+      {
+        ConstTemporalUnit<Alpha> *constunit = 
+          new ConstTemporalUnit<Alpha>( tinterval, *value );
+        delete value;
+        return SetWord( constunit );
+      }
     }
+    else
+    {
+      correct = false;
+      return SetWord( Address(0) );
+    }
+  }
   correct = false;
   return SetWord( Address(0) );
 }
@@ -4741,5 +4160,171 @@ void* CastConstTemporalUnit(void* addr)
 {
   return new (addr) ConstTemporalUnit<Alpha>;
 }
+
+/*
+5.4 Type Constructor ~moving~
+
+5.4.1 ~Out~-function
+
+*/
+template <class Mapping, class Unit,
+          ListExpr (*OutUnit)( ListExpr, Word )>
+ListExpr OutMapping( ListExpr typeInfo, Word value )
+{
+  Mapping* m = (Mapping*)(value.addr);
+
+  if( m->IsEmpty() )
+    return (nl->TheEmptyList());
+  else
+  {
+    assert( m->IsOrdered() );
+    ListExpr l = nl->TheEmptyList(), 
+             lastElem, unitList;
+
+    for( int i = 0; i < m->GetNoComponents(); i++ )
+    {
+      Unit unit;
+      m->Get( i, unit );
+      unitList = OutUnit( nl->TheEmptyList(), SetWord(&unit) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( unitList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, unitList );
+    }
+    return l;
+  }
+}
+
+/*
+5.6.2 ~In~-function
+
+*/
+template <class Mapping, class Unit,
+          Word (*InUnit)( const ListExpr, const ListExpr, const int, ListExpr&, bool& )>
+Word InMapping( const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  Mapping* m = new Mapping( 0 );
+  m->StartBulkLoad();
+
+  ListExpr rest = instance;
+  while( !nl->IsEmpty( rest ) )
+  {
+    ListExpr first = nl->First( rest );
+    rest = nl->Rest( rest );
+
+    Unit *unit = (Unit*)InUnit( nl->TheEmptyList(), first,
+                                errorPos, errorInfo, correct ).addr;
+    if( correct == false )
+      return SetWord( Address(0) );
+    m->Add( *unit );
+    delete unit;
+  }
+  m->EndBulkLoad( true );
+  if( m->IsValid() )
+  {
+    correct = true;
+    return SetWord( m );
+  }
+  else
+  {
+    correct = false;
+    m->Destroy();
+    delete m;
+    return SetWord( 0 );
+  }
+}
+
+/*
+5.6.3 ~Open~-function
+
+*/
+template <class Mapping>
+bool OpenMapping( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
+{
+  Mapping *m = new Mapping( 0 );
+  mpoint->Open( valueRecord, typeInfo );
+  value = SetWord( m );
+  return true;
+}
+
+/*
+5.6.4 ~Save~-function
+
+*/
+template <class Mapping>
+bool SaveMapping( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
+{
+  Mapping *m = (Mapping *)value.addr;
+  m->Save( valueRecord, typeInfo );
+  return true;
+}
+
+/*
+5.6.5 ~Create~-function
+
+*/
+template <class Mapping>
+Word CreateMapping( const ListExpr typeInfo )
+{
+  return (SetWord( new Mapping( 0 ) ));
+}
+
+/*
+5.6.6 ~Delete~-function
+
+*/
+template <class Mapping>
+void DeleteMapping( Word& w )
+{
+  ((Mapping *)w.addr)->Destroy();
+  delete (Mapping *)w.addr;
+  w.addr = 0;
+}
+
+/*
+5.6.7 ~Close~-function
+
+*/
+template <class Mapping>
+void CloseMapping( Word& w )
+{
+  delete (Mapping *)w.addr;
+  w.addr = 0;
+}
+
+/*
+5.6.8 ~Clone~-function
+
+*/
+template <class Mapping>
+Word CloneMapping( const Word& w )
+{
+  return SetWord( ((Mapping *)w.addr)->Clone() );
+}
+
+/*
+5.6.9 ~Sizeof~-function
+
+*/
+template <class Mapping>
+int SizeOfMapping()
+{
+  return sizeof(Mapping);
+}
+
+/*
+5.6.10 ~Cast~-function
+
+*/
+template <class Mapping>
+void* CastMapping(void* addr)
+{
+  return new (addr) Mapping;
+}
+
 
 #endif // _TEMPORAL_ALGEBRA_H_

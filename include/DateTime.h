@@ -350,6 +350,15 @@ This Operator divides a DateTime by another dateTime
     double operator/(const DateTime T2)const;
 
 /*
+~Operator multiply~
+
+This Operator multiplies a DateTime by a int and double number
+
+*/
+    DateTime operator*(const int factor)const;
+    DateTime operator*(const double factor)const;
+
+/*
 ~Operators for Comparisions~
 
 */
