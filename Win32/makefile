@@ -7,32 +7,71 @@
 include ../makefile.env
 
 OCIDLLHOME=$(ORACLEHOME)/bin
-BDBDIR=$(BERKELEY_DB_DIR)
-LIBDIR=$(SECONDO_BUILD_DIR)/lib
+BDB_BUILD_DIR=$(BDBDIR)/build_win32
 
-.PHONY: all
-ifeq ($(smitype),ora) 
-all: $(LIBDIR)/libocicpp.a
-else
-all: $(LIBDIR)/libdb32.a
-endif
 
 # --- Berkeley DB
+MODIFIED_BDB_FILES = \
+		 db.h \
+		 db_config.h \
+		 cxx_common.h \
+		 os_rename.c 
 
-$(LIBDIR)/libdb32.a:
-	$(CP) BerkeleyDB/db.h $(BDBDIR)/build_win32/db.h
-	$(CP) BerkeleyDB/db_config.h $(BDBDIR)/build_win32/db_config.h
-	$(CP) BerkeleyDB/cxx_common.h $(BDBDIR)/include/cxx_common.h
-	$(CP) BerkeleyDB/libdb32.mingw $(BDBDIR)/build_win32/libdb32.mingw
-	$(CP) BerkeleyDB/os_rename.c $(BDBDIR)/os_win32/os_rename.c
-	make -C $(BDBDIR)/build_win32 -f libdb32.mingw
-	$(CP) $(BDBDIR)/build_win32/*.h $(BDBDIR)/include
-	$(CP) $(BDBDIR)/build_win32/libdb32.a $(LIBDIR)/libdb32.a
-	$(CP) $(BDBDIR)/build_win32/libdb32.dll $(LIBDIR)/libdb32.dll
-	$(CP) $(BDBDIR)/build_win32/libdb32.dll.a $(LIBDIR)/libdb32.dll.a
+MAKEFILE_BDB = libdb32.mingw
+MAKEFILE_OCI = libocicpp.mingw
+
+NEW_BDB_FILES = $(addprefix BerkeleyDB/, $(MODIFIED_BDB_FILES) $(MAKEFILE_BDB))
+
+BDBLIB_FILES = \
+	libdb32.dll \
+	libdb32.a \
+	libdb32.dll.a
+
+BDBLIB_OBJECTS = $(addprefix $(BDB_BUILD_DIR)/, $(BDBLIB_FILES))
+
+
+UTILITIES =\
+	db_archive.exe\
+	db_checkpoint.exe\
+	db_deadlock.exe\
+	db_dump.exe\
+	db_load.exe\
+	db_printlog.exe\
+	db_recover.exe\
+	db_stat.exe\
+	db_upgrade.exe\
+	db_verify.exe
+
+
+
+ifeq ($(smitype),ora) 
+OBJECTS :=  $(LIBDIR)/libocicpp.a
+else
+OBJECTS := $(BDBLIB_OBJECTS) utilities
+endif
+
+.PHONY: all
+all: $(OBJECTS)
+
+
+.PHONY: utilities
+utilities:
+	make -C $(BDB_BUILD_DIR) -f $(MAKEFILE_BDB) utilities
+
+
+.PHONY: install
+install:
+	$(CP) $(BDB_BUILD_DIR)/*.h $(BDBDIR)/include
+	$(CP) $(BDBLIB_OBJECTS) $(LIBDIR)
+	$(CP) $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) $(BUILDDIR)/bin
+
+
+$(BDB_OBJECTS):
+	$(CP) $(NEW_BDB_FILES) $(BDB_BUILD_DIR)
+	make -C $(BDB_BUILD_DIR) -f $(MAKEFILE_BDB)
+
 
 # --- Oracle OCI
-
 $(LIBDIR)/libocicpp.a: $(LIBDIR)/liboci.dll.a
 	$(CP) ocicpplib/ocicpp.h $(OCICPPDIR)/ocicpp/ocicpp.h
 	$(CP) ocicpplib/libocicpp.mingw $(OCICPPDIR)/ocicpp/libocicpp.mingw
