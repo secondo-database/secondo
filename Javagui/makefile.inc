@@ -16,15 +16,18 @@ SECONDOPATH := $(SECONDO_BUILD_DIR)
 
 GUIPATH := $(SECONDOPATH)/Javagui
 
-JLEXCLASSESPATH := $(GUIPATH)/lib/JLex_v1.2.6.jar
-CUPCLASSESPATH := $(GUIPATH)/lib/java_cup_v10k.jar
-CUPCLASSESRUNTIME := $(GUIPATH)/lib/java_cup_v10k_runtime.jar
+LIBPATH=$(GUIPATH)/lib
+JLEX:=JLex_v1.2.6.jar
+CUP:=java_cup_v10k.jar
+CUPRUNTIME:=java_cup_v10k_runtime.jar
+MP3:=jl0.4.jar
 
-MP3CLASSESPATH := $(GUIPATH)/lib/jl0.4.jar
+JLEXCLASSESPATH := $(LIBPATH)/$(JLEX)
+CUPCLASSESPATH := $(LIBPATH)/$(CUP)
+CUPCLASSESRUNTIME := $(LIBPATH)/$(CUPRUNTIME)
+MP3CLASSESPATH := $(LIBPATH)/$(MP3)
 
 CLASSPATH := $(GUIPATH)
 
 DOCPATH := ./doc
-
-GUIPACKAGE := gui gui.idmanager project communication extern
 

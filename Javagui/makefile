@@ -25,7 +25,22 @@ doc: removedoc
 	$(JAVADOC) -d $(DOCPATH) -classpath $(CLASSPATH) $(shell find -name "*.class"  | sed "s#/[^/]*\.class##g"  | sed "s#/[^/]*\.class##g" | sed "s#^\./##g"  | sed "s#/#.#g" | java tools.DupRemover)
 
 
+.PHONY: demo
+demo: Javagui.jar
+	@rm -rf Demo
+	@mkdir Demo
+	@mv Javagui.jar Demo
+	@cp $(CUPCLASSESRUNTIME) $(MP3CLASSESPATH) Demo
+	@cp -r res Demo
+	@cp gui.cfg Demo
+	@cp GBS.cfg Demo
+	@echo -e "java -Xmx80M -cp "$(CUPRUNTIME)":"$(MP3)":Javagui.jar gui.MainWindow\n" >Demo/start
+	@chmod +x Demo/start
+	@echo -e "java -Xmx80M -cp "$(CUPRUNTIME)";"$(MP3)";Javagui.jar gui.MainWindow\n" >Demo/start.bat
 
+Javagui.jar:
+	@make -s all
+	@(jar -cfM Javagui.jar $(shell find -type d | grep -v "CVS" | sed -e "s#\./##g" -e "s#.*#&/*.class#g")) 2>/dev/null ; echo ""
 
 .PHONY: removedoc # removes the documentation
 removedoc:
@@ -56,6 +71,7 @@ clean:
 	make -C viewer clean
 	(rm -f ./doc/* -r)
 	(rm -fr doc)
+	rm -rf Demo
 
 .PHONY: mrproper
 mrproper: clean
