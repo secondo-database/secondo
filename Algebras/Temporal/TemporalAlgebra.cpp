@@ -180,38 +180,36 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   assert( p.IsDefined() );
   UPoint *pResult = (UPoint*)&result;
 
-  if( AlmostEqual( p, p0 ) &&
-      AlmostEqual( p, p1 ) )
+  if( AlmostEqual( p0, p1 ) )
   {
-    result = *this;
-    return true;
+    if( AlmostEqual( p, p0 ) )
+    {
+      *pResult = *this;
+      return true;
+    }
   }
-
-  if( AlmostEqual( p, p0 ) )
+  else if( AlmostEqual( p, p0 ) )
   {
-    if( !timeInterval.lc )
-      return false;
-
-    Interval<Instant> interval( timeInterval.start, timeInterval.start, true, true );
-    UPoint unit( interval, p, p );
-    *pResult = unit;
-    return true;
+    if( timeInterval.lc )
+    {
+      Interval<Instant> interval( timeInterval.start, timeInterval.start, true, true );
+      UPoint unit( interval, p, p );
+      *pResult = unit;
+      return true;
+    }
   }
-
-
-  if( AlmostEqual( p, p1 ) )
+  else if( AlmostEqual( p, p1 ) )
   {
-    if( !timeInterval.rc )
-      return false;
-
-    Interval<Instant> interval( timeInterval.end, timeInterval.end, true, true );
-    UPoint unit( interval, p, p );
-    *pResult = unit;
-    return true;
+    if( timeInterval.rc )
+    {
+      Interval<Instant> interval( timeInterval.end, timeInterval.end, true, true );
+      UPoint unit( interval, p, p );
+      *pResult = unit;
+      return true;
+    }
   }
-
-  if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
-      AlmostEqual( p0.GetX(), p.GetX() ) )
+  else if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
+           AlmostEqual( p0.GetX(), p.GetX() ) )
     // If the segment is vertical
   {
     if( ( p0.GetY() <= p.GetY() && p1.GetY() >= p.GetY() ) ||
@@ -260,7 +258,6 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
       return true;
     }
   }
-
   return false;
 }
 
