@@ -29,7 +29,7 @@ RANLIB = ranlib
 CP = cp
 RM = rm -f
 LEX = flex
-YACC = /usr/local/bin/bison
+YACC = bison
 
 EXEEXT =
 
