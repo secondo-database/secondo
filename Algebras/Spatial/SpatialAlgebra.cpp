@@ -4545,7 +4545,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
     CHalfSegment auxchs;
     double dummyy0;
 
-    return true;  //the check is closed temporarily to import data.
+    //return true;  //the check is closed temporarily to import data.
     
     if (chs.IsDefined())
     {
