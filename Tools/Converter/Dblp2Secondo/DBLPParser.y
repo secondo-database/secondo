@@ -1,6 +1,6 @@
 %{
 
-    //typedef char* YYSTYPE;
+
 #include <stdio.h>
 #include "db.h"
 
@@ -183,7 +183,7 @@ inproceedings   : STARTINPROCEEDINGS fieldlist ENDINPROCEEDINGS {
                     aindex = 0;
 		    authorflag=0;
             titleno=0;
-		    //if (docid == 200000) return (0);
+		    
                   }
                 ;
 
@@ -445,11 +445,6 @@ char** argv;
 {
     FILE* ifile;
 
-    //DB *dbp;
-    //DBT key, data;
-    //int ret, x, t_ret;
-    //int* y;
-
     if ((ret = db_create(&dbp, NULL, 0)) != 0) {
         fprintf(stderr, "db_create: %s\n", db_strerror(ret));
         exit (1);
@@ -460,49 +455,24 @@ char** argv;
     }
     memset(&key, 0, sizeof(key));
     memset(&data, 0, sizeof(data));
-    /*key.data = "Frank Manola";
-    key.size = sizeof("Frank Manola");
-    x = 50;
-    y = &x;
-    data.data = &x;
-    data.size = sizeof(int);
-
-    if ((ret = dbp->put(dbp, NULL, &key, &data, DB_NOOVERWRITE)) == 0) {
-      printf("db: %s: key stored.\n", (char *)key.data);
-      printf("db: %d: data stored.\n", *(int*)data.data);
-    }
-    else {
-        dbp->err(dbp, ret, "DB->put");
-    }
-    if ((ret = dbp->get(dbp, NULL, &key, &data, 0)) == 0)
-		printf("db: %s: key retrieved: data was %d.\n",
-		    (char *)key.data, *(int *)data.data);
-	else {
-		dbp->err(dbp, ret, "DB->get");
-	}
-    if ((t_ret = dbp->close(dbp, 0)) != 0 && ret == 0)
-		ret = t_ret;
-    return (ret);*/
-
-
-
-    authorsfile = fopen("authors", "w");
+    
+    authorsfile = fopen("author", "w");
     authordocfile = fopen("authordoc", "w");
-    docsfile = fopen("documents", "w");
+    docsfile = fopen("document", "w");
 
     if(argc > 1){
        ifile = fopen(argv[1], "r");
        if (ifile == NULL)
        {
-         printf("ERROR: cannot open file ");
-         printf(argv[1]);
-         printf("\n");
-         return 0;
+         fprintf(stderr,"ERROR: cannot open file ");
+         fprintf(stderr,argv[1]);
+         fprintf(stderr,"\n");
+         return -1;
        }
        yyin = ifile;
     }   
 
-    fprintf(docsfile,"%s","(OBJECT documents\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
+    fprintf(docsfile,"%s","(OBJECT document\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
     fprintf(docsfile,"%s","\t\t\t(type string)\n");
     fprintf(docsfile,"%s","\t\t\t(docid int)\n");
     fprintf(docsfile,"%s","\t\t\t(authors text)\n");
@@ -525,7 +495,7 @@ char** argv;
     fprintf(authordocfile,"%s","\t\t\t(authorid int)\n");
     fprintf(authordocfile,"%s","\t\t\t(docid int))))\n(\n");
 
-    fprintf(authorsfile,"%s","(OBJECT authors\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
+    fprintf(authorsfile,"%s","(OBJECT author\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
     fprintf(authorsfile,"%s","\t\t\t(name string)\n");
     fprintf(authorsfile,"%s","\t\t\t(lclastname string)\n");
     fprintf(authorsfile,"%s","\t\t\t(authorid int))))\n(\n");

@@ -5,27 +5,27 @@
 /* regular definitions */
 %%
 
-&auml;   { printf("ae");}
-&Auml;   { printf("Ae");}
-&ouml;   { printf("oe");}
-&Ouml;   { printf("Oe");}
-&uuml;   { printf("ue");}
-&Uuml;   { printf("Ue");}
-&amp;    { printf(" + ");}
-&lt;     { printf("<"); }
-&gt;     { printf(">");}
-&Eacute; { printf("E");}
-&quot;   { printf("\"");}
-&nbsp;   { printf(" ");}
-&iexcl;  { printf("!");}
-&szlig;  { printf("ss");}
+&auml;           { printf("ae");}
+&Auml;           { printf("Ae");}
+&ouml;           { printf("oe");}
+&Ouml;           { printf("Oe");}
+&uuml;           { printf("ue");}
+&Uuml;           { printf("Ue");}
+&amp;            { printf(" + ");}
+&lt;             { printf("<"); }
+&gt;             { printf(">");}
+&Eacute;         { printf("E");}
+&quot;           { printf("\"");}
+&nbsp;           { printf(" ");}
+&iexcl;          { printf("!");}
+&szlig;          { printf("ss");}
 &#19[234567];    { printf("A");}
-&#198;   { printf("Ae");}
-&#199;   { printf("C");}
-&#20[123];    { printf("E");}
-&#20[4567];   { printf("I");}
-&#208;    { printf("Eth");}
-&#209;    { printf("N");}
+&#198;           { printf("Ae");}
+&#199;           { printf("C");}
+&#20[123];       { printf("E");}
+&#20[4567];      { printf("I");}
+&#208;           { printf("Eth");}
+&#209;           { printf("N");}
 &#21[0123456];   { printf("O"); }
 &#21[789];       { printf("U"); }
 &#220;           { printf("U");}
@@ -76,9 +76,9 @@ char** argv;
     ifile = fopen(argv[1], "r");
     if (ifile == NULL)
     {
-      printf("ERROR: cannot open file ");
-      printf(argv[1]);
-      printf("\n");
+      fprintf(stderr,"ERROR: cannot open file ");
+      fprintf(stderr,argv[1]);
+      fprintf(stderr,"\n");
       return -1;
     }
     yyin = ifile;

@@ -1,33 +1,7 @@
-/*
-
-*/
 
 %{
-//#include "DBLPParser.y.h"
 
 int i;
-
-//extern YYSTYPE yylval;
-
-//char* yylvaltmp;
-
-/*void getyylval(char text[], int no, char yytmp[MAXYYLVAL]) {
-  for ( i=no;i<=(yyleng-(no+2));i++ )
-    yytmp[i-no]=yytext[i];
-  //yytmp[yyleng-(no+1)]='\0';
-    yytmp[i-no]='\0';
-  //printf(yytmp);
-  //printf("\n");
-  }*/
-
-/*void getyylval(char text[], int no, int index) {
-  for ( i=no;i<=(yyleng-(no+2));i++ )
-    tokenvalues[index][i-no]=yytext[i];
-  //yytmp[yyleng-(no+1)]='\0';
-    tokenvalues[index][i-no]='\0';
-  //printf(yytmp);
-  //printf("\n");
-}*/
 
 %}
 
@@ -59,17 +33,18 @@ char** argv;
   char c;
   int token;
 
-    /*ifile = fopen(argv[1], "r");
-    if (ifile == NULL)
-    {
-      printf("ERROR: cannot open file ");
-      printf(argv[1]);
-      printf("\n");
-      return 0;
+  if(argc > 1) {
+    ifile = fopen(argv[1], "r");
+    if (ifile == NULL) {
+         fprintf(stderr,"ERROR: cannot open file ");
+         fprintf(stderr,argv[1]);
+         fprintf(stderr,"\n");
+         return -1;
     }  
-    yyin = ifile;*/
+    yyin = ifile;
+  }  
+  token = yylex();
+  while (token != 0)
     token = yylex();
-    while (token != 0)
-    token = yylex();
-    return 0; 
+  return 0; 
 }
