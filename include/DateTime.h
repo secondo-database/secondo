@@ -55,7 +55,7 @@ enum TimeType  {instanttype, durationtype};
 
 */
 
-class DateTime : public StandardAttribute  {
+class DateTime : public IndexableStandardAttribute  {
   public:
 
 /*
@@ -209,7 +209,7 @@ In the other case the format will be:\\
 day$\mid\mid$millisecond.
 
 */
-     string ToString();
+     string ToString() const;
 
 /*
 ~SetType~
@@ -424,6 +424,10 @@ an attribute of a relation.
      size_t HashValue();
      void CopyFrom(StandardAttribute* arg);
      DateTime* Clone();
+    void WriteTo( char *dest ) const;
+    void ReadFrom( const char *src );
+    SmiSize SizeOfChars() const;
+    
 
 /*
 ~WriteToSmiRecord~
@@ -462,8 +466,8 @@ delta in [0,1].
     bool canDelete;
     TimeType type; // can be an instant or a duration
     // a few functions for internal use
-    long ToJulian(int year, int month, int day);
-    void ToGregorian(long Julian, int &year, int &month, int &day);
+    long ToJulian(int year, int month, int day) const;
+    void ToGregorian(long Julian, int &year, int &month, int &day) const;
 };
 
 namespace datetime{

@@ -4,7 +4,7 @@
 
 April 2002 Ulrich Telle
 
-September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for system catalog files
+September 2002 Ulrich Telle, fixed flag (DB\_DIRTY\_READ) in Berkeley DB calls for system catalog files
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
@@ -146,7 +146,7 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+//    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
   }
   if ( rc == 0 )
@@ -218,8 +218,7 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
     iterator.solelyDuplicates = false;
     iterator.ignoreDuplicates = !reportDuplicates;
     iterator.rangeSearch      = false;
-    SmiKey dummy( toKey.mapFunc );
-    iterator.firstKey         = dummy;
+    iterator.firstKey         = SmiKey();
     iterator.lastKey          = toKey;
     iterator.searchKey        = &iterator.firstKey;
     SmiEnvironment::SetError( E_SMI_OK );
@@ -280,9 +279,8 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
     iterator.solelyDuplicates = false;
     iterator.ignoreDuplicates = !reportDuplicates;
     iterator.rangeSearch      = true;
-    SmiKey dummy( fromKey.mapFunc );
     iterator.firstKey         = fromKey;
-    iterator.lastKey          = dummy;
+    iterator.lastKey          = SmiKey();
     iterator.searchKey        = &iterator.firstKey;
     SmiEnvironment::SetError( E_SMI_OK );
   }
@@ -473,9 +471,7 @@ SmiKeyedFileIterator::Next( SmiKey& key, SmiRecord& record )
   bool ok = SmiFileIterator::Next( record );
   if ( ok )
   {
-    MapKeyFunc oldFunc = key.mapFunc;
     key = record.recordKey;
-    key.mapFunc = oldFunc;
     if ( lastKey.GetType() != SmiKey::Unknown )
     {
       ok = !(record.recordKey > lastKey);

@@ -351,7 +351,7 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-long DateTime::ToJulian(int year, int month, int day){
+long DateTime::ToJulian(int year, int month, int day) const{
   int jy = year;
   if (year < 0)
      jy++;
@@ -384,7 +384,7 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-void DateTime::ToGregorian(long Julian, int &year, int &month, int &day){
+void DateTime::ToGregorian(long Julian, int &year, int &month, int &day) const{
    int j=(int)(Julian+NULL_DAY);
    int ja = j;
    int JGREG = 2299161;
@@ -428,7 +428,7 @@ double value;
 This function returns the string representation of this DateTime instance.
 
 */
-string DateTime::ToString(){
+string DateTime::ToString() const{
   ostringstream tmp;
   if(!defined){
     return "undefined";
@@ -1292,6 +1292,21 @@ This function returns true if this instnace is before the Null-Day
 */
 bool DateTime::LessThanZero(){
    return day<0;
+}
+
+SmiSize DateTime::SizeOfChars() const
+{
+  return ToString().length();  
+}
+
+void DateTime::WriteTo( char *dest ) const
+{
+  strcpy( dest, ToString().c_str() );
+}
+
+void DateTime::ReadFrom( const char *src )
+{
+  ReadFrom( string(src) );
 }
 
 /*
@@ -2206,6 +2221,7 @@ class DateTimeAlgebra : public Algebra
     // type constructors
     AddTypeConstructor( &instant );
     instant.AssociateKind("DATA");
+    instant.AssociateKind("INDEXABLE");
     AddTypeConstructor( &duration );
     duration.AssociateKind("DATA");
 

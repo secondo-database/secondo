@@ -57,35 +57,6 @@ BTreeProp()
 }
 
 /*
-2.3 Function ~MapKeyDateTime~
-
-This function is used to create a composite key given a DateTime value.
-
-*/
-void MapKeyDateTime( const void* inKey,
-                     const SmiSize inLen,
-                     void* outKey,
-                     const SmiSize maxOutLen,
-                     SmiSize& outLen,
-                     const bool doMap )
-{
-  if( doMap )
-  {
-    DateTime *dt = (DateTime*)inKey;
-    string sdt = dt->ToString();
-    strcpy((char*)outKey, sdt.c_str());
-    outLen = strlen((char*)outKey);
-  }
-  else
-  {
-    DateTime *dt = new DateTime();
-    dt->ReadFrom( string( (char*)inKey ) );
-    outLen = sizeof( *dt );
-    outKey = dt;
-  }
-}
-
-/*
 
 2.3 Function ~AttrToKey~
 
@@ -95,8 +66,7 @@ Converts a ~StandardAttribute~ to a ~SmiKey~.
 void AttrToKey(
   StandardAttribute* attr,
   SmiKey& key, 
-  SmiKey::KeyDataType keyType,
-  MapKeyFunc mapKeyFunc = 0)
+  SmiKey::KeyDataType keyType)
 {
   float floatval;
   int intval;
@@ -121,8 +91,7 @@ void AttrToKey(
       break;
 
     case SmiKey::Composite:
-      assert(mapKeyFunc != 0);
-      key = SmiKey(attr, sizeof(attr), mapKeyFunc);
+      key = SmiKey((IndexableStandardAttribute*)attr);
       break;
 
     default:
@@ -147,7 +116,6 @@ void KeyToAttr(
   double floatval;
   long intval;
   string strval;
-  SmiSize sz;
 
   assert(key.GetType() == keyType);
   switch(keyType)
@@ -168,7 +136,7 @@ void KeyToAttr(
       break;
 
     case SmiKey::Composite:
-      key.GetKey(attr, sizeof(attr), sz);
+      key.GetKey((IndexableStandardAttribute*)attr);
       break;
 
     default:
@@ -298,7 +266,7 @@ SmiRecordId BTreeIterator::GetId() const
 The key attribute of a btree can be an ~int~, a ~string~, or a ~real~.
 
 */
-BTree::BTree(SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc, SmiKeyedFile* file)
+BTree::BTree(SmiKey::KeyDataType keyType, SmiKeyedFile* file)
 {
   if(keyType != SmiKey::Unknown)
   {
@@ -320,14 +288,6 @@ BTree::BTree(SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc, SmiKeyedFile* f
       this->file = file;
       this->fileId = file->GetFileId();
       this->keyType = keyType;
-
-      if( keyType == SmiKey::Composite )
-      {
-        assert( mapKeyFunc != 0 );
-        this->mapKeyFunc = mapKeyFunc;
-      }
-      else
-        this->mapKeyFunc = 0;
     }
   }
   else
@@ -355,7 +315,7 @@ BTree::~BTree()
   delete file;
 }
 
-BTree::BTree(SmiRecord& record, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc)
+BTree::BTree(SmiRecord& record, SmiKey::KeyDataType keyType)
 {
   SmiSize bytesRead;
   SmiKeyedFile* file = 0;
@@ -370,14 +330,6 @@ BTree::BTree(SmiRecord& record, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFu
     {
       this->file = file;
       this->keyType = keyType;
-
-      if( keyType == SmiKey::Composite )
-      {
-        assert( mapKeyFunc != 0 );
-        this->mapKeyFunc = mapKeyFunc;
-      }
-      else
-        this->mapKeyFunc = 0;
     }
     else
     {
@@ -395,7 +347,7 @@ BTree::BTree(SmiRecord& record, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFu
   }
 }
 
-BTree::BTree(SmiFileId fileId, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc)
+BTree::BTree(SmiFileId fileId, SmiKey::KeyDataType keyType)
 {
   SmiKeyedFile* file = 0;
   bool success;
@@ -407,14 +359,6 @@ BTree::BTree(SmiFileId fileId, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFun
   {
     this->file = file;
     this->keyType = keyType;
-
-    if( keyType == SmiKey::Composite )
-    {
-      assert( mapKeyFunc != 0 );
-      this->mapKeyFunc = mapKeyFunc;
-    }
-    else
-      this->mapKeyFunc = 0;
   }
   else
   {
@@ -457,20 +401,13 @@ void BTree::SetTemporary()
   isTemporary = true;
 }
 
-bool BTree::SetTypeAndCreate(SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc)
+bool BTree::SetTypeAndCreate(SmiKey::KeyDataType keyType)
 {
   if (file == 0)
   {
     assert(this->keyType == SmiKey::Unknown);
 
     this->keyType = keyType;
-    if( keyType == SmiKey::Composite )
-    {
-      assert( mapKeyFunc != 0 );
-      this->mapKeyFunc = mapKeyFunc;
-    }
-    else
-      this->mapKeyFunc = 0;
     isTemporary = true;
     file = new SmiKeyedFile(keyType, false);
     if(!file->Create())
@@ -487,13 +424,6 @@ bool BTree::SetTypeAndCreate(SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc)
   else
   {
     this->keyType = keyType;
-    if( keyType == SmiKey::Composite )
-    {
-      assert( mapKeyFunc != 0 );
-      this->mapKeyFunc = mapKeyFunc;
-    }
-    else
-      this->mapKeyFunc = 0;
     isTemporary = true;
     Truncate();
     return true;
@@ -575,17 +505,12 @@ SmiKey::KeyDataType BTree::GetKeyType()
   return this->keyType;
 }
 
-MapKeyFunc BTree::GetMapKeyFunc()
-{
-  return this->mapKeyFunc;
-}
-
 BTreeIterator* BTree::ExactMatch(StandardAttribute* key)
 {
   SmiKey smiKey;
   BTreeFileIteratorT* iter;
 
-  AttrToKey(key, smiKey, keyType, mapKeyFunc);
+  AttrToKey(key, smiKey, keyType);
 
 #ifdef BTREE_PREFETCH
   iter = file->SelectRangePrefetched(smiKey, smiKey);
@@ -610,7 +535,7 @@ BTreeIterator* BTree::LeftRange(StandardAttribute* key)
   SmiKey smiKey;
   BTreeFileIteratorT* iter;
 
-  AttrToKey(key, smiKey, keyType, mapKeyFunc);
+  AttrToKey(key, smiKey, keyType);
 
 #ifdef BTREE_PREFETCH
   iter = file->SelectLeftRangePrefetched(smiKey);
@@ -635,7 +560,7 @@ BTreeIterator* BTree::RightRange(StandardAttribute* key)
   SmiKey smiKey;
   BTreeFileIteratorT* iter;
 
-  AttrToKey(key, smiKey, keyType, mapKeyFunc);
+  AttrToKey(key, smiKey, keyType);
 
 #ifdef BTREE_PREFETCH
   iter = file->SelectRightRangePrefetched(smiKey);
@@ -661,8 +586,8 @@ BTreeIterator* BTree::Range(StandardAttribute* left, StandardAttribute* right)
   SmiKey rightSmiKey;
   BTreeFileIteratorT* iter;
 
-  AttrToKey(left, leftSmiKey, keyType, mapKeyFunc);
-  AttrToKey(right, rightSmiKey, keyType, mapKeyFunc);
+  AttrToKey(left, leftSmiKey, keyType);
+  AttrToKey(right, rightSmiKey, keyType);
 
 #ifdef BTREE_PREFETCH
   iter = file->SelectRangePrefetched(leftSmiKey, rightSmiKey);
@@ -762,7 +687,6 @@ Word RestoreFromListBTree(ListExpr typeInfo, ListExpr value,
   BTree* btree;
 
   SmiKey::KeyDataType keyType;
-  MapKeyFunc mapKeyFunc = 0;
   ListExpr keyTypeLE;
   ListExpr algNoLE;
   ListExpr typeNoLE;
@@ -800,19 +724,14 @@ Word RestoreFromListBTree(ListExpr typeInfo, ListExpr value,
   {
     keyType = SmiKey::Float;
   }
-  else if(keyTypeString == "instant")
+  else 
   {
     keyType = SmiKey::Composite;
-    mapKeyFunc = MapKeyDateTime;
-  }
-  else
-  {
-    assert(false /* no proper key type given */);
   }
 
   SmiFileId fileId = nl->IntValue(value);
 
-  btree = new BTree(fileId, keyType, mapKeyFunc);
+  btree = new BTree(fileId, keyType);
   if(btree->IsInitialized())
   {
     return SetWord(btree);
@@ -844,7 +763,7 @@ Word CloneBTree(const Word& w)
   BTree *btree = (BTree *)w.addr,
         *clone = new BTree();
 
-  clone->SetTypeAndCreate( btree->GetKeyType(), btree->GetMapKeyFunc() );
+  clone->SetTypeAndCreate( btree->GetKeyType() );
   if( !clone->IsInitialized() )
     return SetWord( Address(0) );
 
@@ -879,13 +798,11 @@ void DeleteBTree(Word& w)
 */
 bool CheckBTree(ListExpr type, ListExpr& errorInfo)
 {
-  AlgebraManager* algMgr;
-
   if((!nl->IsAtom(type))
     && (nl->ListLength(type) == 3)
     && nl->Equal(nl->First(type), nl->SymbolAtom("btree")))
   {
-    algMgr = SecondoSystem::GetAlgebraManager();
+    AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
     return
       algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo)
       && algMgr->CheckKind("DATA", nl->Third(type), errorInfo);
@@ -924,7 +841,6 @@ OpenBTree( SmiRecord& valueRecord,
 
   ListExpr first;
   SmiKey::KeyDataType keyType;
-  MapKeyFunc mapKeyFunc = 0;
   ListExpr keyTypeLE;
   ListExpr algNoLE;
   ListExpr typeNoLE;
@@ -967,14 +883,9 @@ OpenBTree( SmiRecord& valueRecord,
   {
     keyType = SmiKey::Float;
   }
-  else if(keyTypeString == "instant")
+  else 
   {
     keyType = SmiKey::Composite;
-    mapKeyFunc = MapKeyDateTime;
-  }
-  else
-  {
-    assert(false /* no proper key type given */);
   }
 
   SmiSize bytesRead;
@@ -983,7 +894,7 @@ OpenBTree( SmiRecord& valueRecord,
   bytesRead = valueRecord.Read(&fileId, sizeof(SmiFileId));
   if(bytesRead == sizeof(SmiFileId))
   {
-    btree = new BTree(fileId, keyType, mapKeyFunc);
+    btree = new BTree(fileId, keyType);
   }
   else
     return false;
@@ -1077,10 +988,12 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
   CHECK_COND(IsTupleDescription(attrList), errmsg);
   CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0, errmsg);
 
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
   CHECK_COND(nl->SymbolValue(attrType) == "string" || 
              nl->SymbolValue(attrType) == "int" || 
              nl->SymbolValue(attrType) == "real" ||
-             nl->SymbolValue(attrType) == "instant", errmsg);
+             alg->CheckKind("INDEXABLE", attrType, errorInfo), errmsg);
 
 
   ListExpr resultType =
@@ -1115,7 +1028,6 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   RelationIterator* iter;
   Tuple* tuple;
   SmiKey::KeyDataType dataType;
-  MapKeyFunc mapKeyFunc = 0;
   bool appendHasNotWorked = false;
 
   btree = (BTree*)qp->ResultStorage(s).addr;
@@ -1142,16 +1054,11 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   {
     dataType = SmiKey::Float;
   }
-  else if(strcmp(attrType, "instant") == 0)
+  else 
   {
     dataType = SmiKey::Composite;
-    mapKeyFunc = MapKeyDateTime;
   }
-  else
-  {
-    assert(false /* this should not happen */);
-  }
-  btree->SetTypeAndCreate(dataType, mapKeyFunc);
+  btree->SetTypeAndCreate(dataType);
   if(!btree->IsInitialized())
   {
     return -1;
@@ -1164,7 +1071,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
 
     if((StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined())
     {
-      AttrToKey((StandardAttribute *)tuple->GetAttribute(attrIndex), key, dataType, mapKeyFunc);
+      AttrToKey((StandardAttribute *)tuple->GetAttribute(attrIndex), key, dataType);
       appendHasNotWorked = appendHasNotWorked || !btree->Append( key, tuple->GetTupleId() );
       tuple->DeleteIfAllowed();
     }

@@ -14,11 +14,11 @@ using namespace std;
 
 #include "SecondoSMI.h"
 #include "SmiCodes.h"
+#include "StandardAttribute.h"
 
-SmiKey::SmiKey( MapKeyFunc mapKey /* = 0 */ )
+SmiKey::SmiKey()
 {
   keyType = SmiKey::Unknown;
-  mapFunc = mapKey;
 }
 
 SmiKey::SmiKey( const SmiRecordId key )
@@ -45,18 +45,16 @@ SmiKey::SmiKey( const string& key )
   SetKey( key );
 }
 
-SmiKey::SmiKey( const void* key, const SmiSize keyLen, MapKeyFunc mapKey )
+SmiKey::SmiKey( const IndexableStandardAttribute* key )
 {
-  keyType = SmiKey::Unknown;
-  SetKey( key, keyLen, mapKey );
+  SetKey( key );
 }
 
 SmiKey::SmiKey( const SmiKey& other )
 {
   keyType   = other.keyType;
   keyLength = other.keyLength;
-  mapFunc   = other.mapFunc;
-  SetKey( other.keyType, other.GetAddr(), other.keyLength, other.mapFunc );
+  SetKey( other.keyType, other.GetAddr(), other.keyLength );
 }
 
 SmiKey::~SmiKey()
@@ -67,7 +65,7 @@ SmiKey::~SmiKey()
 SmiKey&
 SmiKey::operator=( const SmiKey& other )
 {
-  SetKey( other.keyType, other.GetAddr(), other.keyLength, other.mapFunc );
+  SetKey( other.keyType, other.GetAddr(), other.keyLength );
   return *this;
 }
 
@@ -195,26 +193,18 @@ SmiKey::SetKey( const string& key )
 }
 
 void
-SmiKey::SetKey( const void* key, const SmiSize keyLen, MapKeyFunc mapKey )
+SmiKey::SetKey( const IndexableStandardAttribute* key )
 {
   static char mapdata[SMI_MAX_KEYLEN];
   char* data;
 
   FreeData();
   keyType = SmiKey::Composite;
-  mapFunc = mapKey;
-  if ( mapFunc != 0 )
-  {
-    (*mapFunc)( key, keyLen, mapdata, SMI_MAX_KEYLEN, keyLength, true );
-  }
-  else
-  {
-    keyLength = (keyLen <= SMI_MAX_KEYLEN) ? keyLen : SMI_MAX_KEYLEN;
-    memcpy( mapdata, key, keyLength );
-  }
 
-  if ( keyLength > SMI_MAX_KEYLEN )
-    keyLength = SMI_MAX_KEYLEN;
+  keyLength = key->SizeOfChars();
+  assert( keyLength < SMI_MAX_KEYLEN );
+  key->WriteTo( mapdata );
+
   if ( keyLength > SMI_MAX_KEYLEN_LOCAL )
   {
     longKeyData = new char[keyLength+1];
@@ -230,8 +220,7 @@ SmiKey::SetKey( const void* key, const SmiSize keyLen, MapKeyFunc mapKey )
 
 void
 SmiKey::SetKey( const KeyDataType kdt,
-                const void* key, const SmiSize keyLen,
-                MapKeyFunc mapKey /* = 0 */ )
+                const void* key, const SmiSize keyLen )
 {
   switch (kdt)
   {
@@ -249,7 +238,6 @@ SmiKey::SetKey( const KeyDataType kdt,
       FreeData();
       keyType   = kdt;
       keyLength = keyLen;
-      mapFunc   = mapKey;
       if ( keyLength > SMI_MAX_KEYLEN_LOCAL )
       {
         longKeyData = new char[keyLength+1];
@@ -334,7 +322,7 @@ SmiKey::GetKey( string& key )
 }
 
 bool
-SmiKey::GetKey( void* key, const SmiSize maxKeyLen, SmiSize& keyLen )
+SmiKey::GetKey( IndexableStandardAttribute* key )
 {
   bool ok = false;
   char* data;
@@ -349,15 +337,8 @@ SmiKey::GetKey( void* key, const SmiSize maxKeyLen, SmiSize& keyLen )
     {
       data = shortKeyData;
     }
-    if ( mapFunc != 0 )
-    {
-      (*mapFunc)( data, keyLength, key, maxKeyLen, keyLen, false );
-    }
-    else
-    {
-      keyLen = (keyLength <= maxKeyLen) ? keyLength : maxKeyLen;
-      memcpy( key, data, keyLen );
-    }
+
+    key->ReadFrom( data );
     ok = true;
   }
 

@@ -189,6 +189,7 @@ using namespace std;
 
 #include "SecondoConfig.h"
 #include <string>
+class IndexableStandardAttribute;
 
 const string::size_type SMI_MAX_NAMELEN      =   31;
 /*
@@ -252,18 +253,6 @@ Is the type for record sizes or offsets.
 
 */
 
-typedef void (*MapKeyFunc)( const void*    inKey,
-                            const SmiSize  inLen,
-                                  void*    outKey,
-                            const SmiSize  maxOutLen,
-                                  SmiSize& outLen,
-                            const bool     doMap );
-/*
-Is the type of user functions for mapping composite key types to strings and
-vice versa.
-
-*/
-
 class PrefetchingIterator;
 /* Forward declaration */
 
@@ -303,13 +292,12 @@ be sorted like a usual string in lexical order. On key retrieval the function
 is called to unmap the byte string to the user-defined key structure.
 
 */
-  SmiKey( MapKeyFunc mapKey = 0 );
+  SmiKey();
   SmiKey( const SmiRecordId key );
   SmiKey( const long key );
   SmiKey( const double key );
   SmiKey( const string& key );
-  SmiKey( const void* key, const SmiSize keyLen,
-          MapKeyFunc mapKey );
+  SmiKey( const IndexableStandardAttribute* key );
   SmiKey( const SmiKey& other );
 /*
 Creates a key with a type according to the constructor argument.
@@ -331,8 +319,7 @@ Returns the type of the key.
   bool GetKey( long& key );
   bool GetKey( double& key );
   bool GetKey( string& key );
-  bool GetKey( void* key, const SmiSize maxKeyLen,
-               SmiSize& keyLen );
+  bool GetKey( IndexableStandardAttribute* key );
 /*
 Returns the value of the key. The argument type must match the type of the key!
 
@@ -364,11 +351,9 @@ Returns the memory address of the key value.
   void  SetKey( const long key );
   void  SetKey( const double key );
   void  SetKey( const string& key );
-  void  SetKey( const void* key, const SmiSize keyLen,
-                MapKeyFunc mapKey );
+  void  SetKey( const IndexableStandardAttribute* key );
   void  SetKey( const KeyDataType kdt,
-                const void* key, const SmiSize keyLen,
-                MapKeyFunc mapKey = 0 );
+                const void* key, const SmiSize keyLen );
 /*
 Sets the internal key value to the passed key value, setting also the key type.
 
@@ -376,7 +361,6 @@ Sets the internal key value to the passed key value, setting also the key type.
 
   KeyDataType keyType;   // Type of the key value
   SmiSize     keyLength; // Size of the key value in bytes
-  MapKeyFunc  mapFunc;   // Address of a mapping function
   union                  // Structure for storing the key
   {
     SmiRecordId recnoKey;

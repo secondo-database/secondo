@@ -12,6 +12,7 @@ INCFILES=\
 	$(INCLUDEDIR)/Algebra.h \
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
+	$(INCLUDEDIR)/StandardAttribute.h \
         $(INCLUDEDIR)/DateTime.h
 
 MODNAME=DateTimeAlgebra

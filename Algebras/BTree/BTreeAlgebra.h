@@ -67,17 +67,16 @@ The key attribute of a btree can be an ~int~, a ~string~, or a ~real~.
 class BTree
 {
   public:
-    BTree(SmiKey::KeyDataType keyType = SmiKey::Unknown, 
-          MapKeyFunc mapKeyFunc = 0, SmiKeyedFile* file = 0);
-    BTree(SmiRecord& record, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc = 0);
-    BTree(SmiFileId fileId, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc = 0);
+    BTree(SmiKey::KeyDataType keyType = SmiKey::Unknown, SmiKeyedFile* file = 0);
+    BTree(SmiRecord& record, SmiKey::KeyDataType keyType);
+    BTree(SmiFileId fileId, SmiKey::KeyDataType keyType);
     ~BTree();
 
     bool IsInitialized();
     bool WriteTo(SmiRecord& record);
     void SetPermanent();
     void SetTemporary();
-    bool SetTypeAndCreate(SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc);
+    bool SetTypeAndCreate(SmiKey::KeyDataType keyType);
     bool Truncate();
     void DeleteDeep();
     void DeleteFile();
@@ -85,7 +84,6 @@ class BTree
     SmiKeyedFile* GetFile() const;
     SmiFileId GetFileId() const;
     SmiKey::KeyDataType GetKeyType();
-    MapKeyFunc GetMapKeyFunc();
     
     BTreeIterator* ExactMatch(StandardAttribute* key);
     BTreeIterator* LeftRange(StandardAttribute* key);
@@ -97,7 +95,6 @@ class BTree
     SmiRecordId id;
     bool isTemporary;
     SmiKey::KeyDataType keyType;
-    MapKeyFunc mapKeyFunc;
     SmiKeyedFile* file;
     SmiFileId fileId;
 };
