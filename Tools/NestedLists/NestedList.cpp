@@ -69,7 +69,6 @@ using namespace std;
 
 #include "CharTransform.h"
 #include "NLParser.h"
-//#include "string.h"
 #include "WinUnix.h"
 
 
@@ -1245,9 +1244,8 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
   
   assert( os.good() );
 
-  const byte val[4] = {0,1,0,0};
-  os << "bnl";
-  os.write( (const char*)val,4 ); 
+  const byte val[7] = {'b','n','l',0,1,0,0};
+  os.write( (const char*)val,7 ); 
   bool ok = WriteBinaryRec(list, os);
   os.flush();
   return ok;
@@ -1256,8 +1254,9 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
 
 
 /*
-6.4 WriteBinaryRec
-
+6.4 Int2CharArray calculates a char array with
+    the MSB first (big endian) this computation is
+    independent of the machines byte order for a long value.
 */
 
 char* 
@@ -1272,10 +1271,16 @@ NestedList::Int2CharArray(long value) {
    return (char*) val;
 }
 
+/*
+6.4 WriteBinaryRec
+
+*/
+
 bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 
-
+  int strlen = 0;
+	
   NodeRecord nodeRec1;
   nodeTable->Get(list, nodeRec1);
 
@@ -1283,46 +1288,56 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 
       switch( NT ) {
 
-          case BoolType: { 
- 		          os << (byte) 3; // write code for record type
-	                  bool b = BoolValue(list);
-			  byte value = (byte) (b?1:0);
-			  os << (byte) value; 
-			  return true;
+          case BoolType:   { 
+ 		           os << (byte) 3; // write code for record type
+	                   bool b = BoolValue(list);
+			   byte value = (byte) (b?1:0);
+			   os << (byte) value; 
+			   return true;
 	  }
-	  case IntType: {
-                          os << (byte) 1; 
-	                  long value = IntValue(list);
-			  os.write( Int2CharArray(value),4 ); 
-			  return true;
+	  case IntType:    {
+                           os << (byte) 1; 
+	                   long value = IntValue(list);
+			   os.write( Int2CharArray(value),4 ); 
+			   return true;
 	  }
-	  case RealType: {
+	  case RealType:   {
                            os << (byte) 2;
 	                   float value = RealValue(list);
                            byte val[4] = {0,0,0,0};
-                           memcpy((void*) val, (void*) &value,4);
-			   os.write((const char*)val,4); 
+			   byte* pval = val;
+                           memcpy( (void*) val, (void*) &value,4 );
+			   
+			   if ( WinUnix::isLittleEndian() ) {
+			     byte bigEndianVal[4] = {val[3],val[2],val[1],val[0]};
+			     pval = bigEndianVal;
+			   }
+
+			   os.write( (const char*)pval,4 ); 
 			   return true;
 	  }
 	  case StringType: {
                            os << (byte) 4;
 	                   string value = StringValue(list);
-			   os.write( Int2CharArray(value.length()),4 );
-                           os << value;
+			   strlen = value.length();
+			   os.write( Int2CharArray(strlen),4 );
+                           os.write( value.data(),strlen );
 			   return true;
           }
 	  case SymbolType: {
 			   os << (byte) 5;
 	                   string value = SymbolValue(list);
-			   os.write( Int2CharArray(value.length()),4 );
-                           os << value;
+			   strlen = value.length();
+			   os.write( Int2CharArray(strlen),4 );
+                           os.write( value.data(),strlen );
 			   return true;
 	  }
-	  case TextType: {
+	  case TextType:   {
                            os << (byte) 6;
 	                   string value = Text2String(list);
-			   os.write( Int2CharArray(value.length()),4 );
-			   os << value;
+			   strlen = value.length();
+			   os.write( Int2CharArray(strlen),4 );
+                           os.write( value.data(),strlen );
 			   return true;
           }
 

@@ -113,8 +113,8 @@ int
 TestNLCopy()
 {
    int testcase = 0;
-   NestedList listA;
-   NestedList listB;
+   NestedList listA(rf,10,10,10,10);
+   NestedList listB(rf,10,10,10,10);
 
    cout << endl << "### Copy lists between two C++ NestedList-Objects" << endl;
 
@@ -557,7 +557,7 @@ TestInputOutput() {
 
    cout << endl << "Writing " + fileOut+".bnl" << endl;
    outname = fileOut+".bnl";
-   ofstream outFile2(outname.c_str()); 
+   ofstream outFile2(outname.c_str(), ios::out|ios::trunc|ios::binary); 
    nl.WriteBinaryTo(list, outFile2);   
 
    outFile2.close();  
@@ -689,6 +689,8 @@ TestRun_MainMemory() {
    pause();
    TestBasicOperations();
    
+   pause();
+   TestInputOutput();
    //StringAtom_bug(); 
    
    pause();

@@ -2,6 +2,10 @@
 
 #include "LogMsg.h"
 
+const int __endian_detect = 1;
+ 
+inline bool __little_endian() { return *(char *)&__endian_detect == 1;}
+ 
 
 int
 main () {
@@ -26,5 +30,13 @@ main () {
    cout << "sdlfkj si not active " << endl;
 
  )
+ 
+ cout << "machine has ";
+ if ( __little_endian() ) {
+   cout << "little";
+ } else {
+   cout << "big";
+ }
+ cout << " endian byte order!" << endl;
 
 }

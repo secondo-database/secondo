@@ -13,6 +13,9 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 
 #include "WinUnix.h"
 
+const int
+WinUnix::endian_detect = 1;
+
 int
 WinUnix::getPageSize( void ) { 
 

@@ -1,3 +1,6 @@
+#ifndef CLASS_WINUNIX_H
+#define CLASS_WINUNIX_H
+
 /*
 
 September 03, M. Spiekermann: Initial Version
@@ -16,5 +19,12 @@ public:
    ~WinUnix(){};
 
    static int getPageSize( void );
+ 
+   static inline bool isLittleEndian() { return *(char *)&endian_detect == 1;}
+   
+private:
+   static const int endian_detect;
 
 };
+
+#endif

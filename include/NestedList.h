@@ -503,6 +503,9 @@ if writing was successful, "false"[4] if the string could not be written properl
   bool WriteBinaryTo(ListExpr list, ostream& os);
 /*
 Writes the list in a binary coded format into the referenced stream.
+
+Note: When using an fstream initialise it as ios::binary otherwise the
+output of bytes will be influenced by platform specific implementations
 */
 
   string ToString( const ListExpr list );
