@@ -1,9 +1,13 @@
 /******************************************************************************
+
 //[->] [$\rightarrow $]
 
 1 Libjpeg-Extension for use with FLOBs - Part 1: Decompression
 
   jdatasrc.c  eXtended to jdatasrcX.c  (to be placed in directory JPEG)
+
+  Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+  Database Systems for New Applications.
 
   Copyright (C) 1994-1996, Thomas G. Lane.
   This file is part of the Independent JPEG Group's software.

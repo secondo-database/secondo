@@ -1,7 +1,11 @@
 /**
+
 1 Libjpeg-Extension for use with FLOBs - Part 2: Compression
 
 jdatadstX.c
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
 
 Copyright (C) 1994-1996, Thomas G. Lane.
 This file is part of the Independent JPEG Group's software.
