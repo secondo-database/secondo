@@ -2291,7 +2291,9 @@ TilesFun( Word*  args,  Word& result, int  message,
 9.9.2 Value mapping function of operator ~tiles~
 
 */
-/*
+
+#define COMMENT
+#ifndef COMMENT
 int
 TilesFun( Word*  args,  Word& result, int  message,
           Word&  local, Supplier s )
@@ -2438,7 +2440,8 @@ TilesFun( Word*  args,  Word& result, int  message,
   // we can't arrive here only if 'message' is not faulty
   return -1;
 }
-*/
+#endif
+
 /*
 
 9.9.3 Specification of operator ~tiles~
