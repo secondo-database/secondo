@@ -1593,6 +1593,13 @@ char** argv;
     fclose(ofile);
     ofile = fopen("TTL", "a");
     ifile = fopen(argv[1], "r");
+    if (ifile == NULL)
+    {
+      printf("ERROR: cannot open file ");
+      printf(argv[1]);
+      printf("\n");
+      return 0;
+    } 
     while ((c = getc(ifile)) != EOF)
       putc(c, ofile);
     putc('\n', ofile);
@@ -1605,7 +1612,14 @@ char** argv;
     yylex();
     printf(")\n");
     fclose(ofile);
-    remove("TTL");    
+    remove("TTL");
+    return 0;    
+  }
+  else
+  {
+    printf("ERROR: wrong number of parameters\n");
+    printf("Try TableToList h or TableToList help for more information\n");
+    return 0;
   }
 }
 
