@@ -4,7 +4,7 @@
 % Some TPC-H queries in Secondo SQL syntax
 
 tpc10 :-
-  sql
+  sql(
 select
       [
 	c_custkey,
@@ -42,7 +42,7 @@ groupby
 	c_address,
 	c_comment
        ]
-orderby [ revenue desc ].
+orderby [ revenue desc ], 'head[20] consume').
 
 tpc5 :-
    sql
@@ -110,7 +110,8 @@ orderby
 	[ 
           revenue desc,
 	  o_orderdate asc 
-        ].
+        ]
+first 10.
 
 %select count(*) from lineitem.
 

@@ -7,7 +7,8 @@
 pl="SecondoPL -L4m"
 # run query 
 
-time $pl <<< "[tpcqueries].
+cd $SECONDO_BUILD_DIR/Optimizer
+time $pl <<< "['"$PWD"/tpcqueries.pl'].
 open 'database $1'.
 $2.
 halt."
