@@ -18,7 +18,6 @@ CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
 
 .PHONY: all
 all: $(OBJECTS) 
-	echo $(OBJECTS)
 
 # create dependencies from include directives
 AlgebraList.dep: AlgebraList.i
