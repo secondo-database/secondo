@@ -841,37 +841,15 @@ plan_to_atom([X | Xs], Result) :-
 
 
 /*
-Operators:
+Operators: only special syntax. General rules for standard syntax
+see below.
 
 */
 
-plan_to_atom(feed(X), Result) :-
-  plan_to_atom(X, ResX),
-  atom_concat(ResX, 'feed ', Result),
-  !.
 
 plan_to_atom(sample(Rel, S, T), Result) :-
   plan_to_atom(Rel, ResRel),
   concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
-  !.
-
-plan_to_atom(consume(X), Result) :-
-  plan_to_atom(X, ResX),
-  atom_concat(ResX, 'consume ', Result),
-  !.
-
-plan_to_atom(filter(X, Pred), Result) :-
-  plan_to_atom(X, XAtom),
-  atom_concat(XAtom, 'filter[', Res1),
-  plan_to_atom(Pred, PredAtom),
-  atom_concat(PredAtom, '] ', Res2),
-  atom_concat(Res1, Res2, Result),
-  !.
-
-plan_to_atom(product(X, Y), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  concat_atom([XAtom, YAtom, 'product '], '', Result),
   !.
 
 plan_to_atom(hashjoin(X, Y, A, B, C), Result) :-
@@ -892,31 +870,6 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
-plan_to_atom(loopjoin(A, B), Result) :-
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([AAtom, 'loopjoin[', BAtom, '] '], Result),
-  !.
-
-plan_to_atom(exactmatch(IndexName, Rel, Value), Result) :-
-  plan_to_atom(Rel, RelAtom),
-  plan_to_atom(Value, ValueAtom),
-  concat_atom([IndexName,
-    ' ', RelAtom, 'exactmatch[', ValueAtom, '] '], Result),
-  !.
-plan_to_atom(leftrange(IndexName, Rel, Value), Result) :-
-  plan_to_atom(Rel, RelAtom),
-  plan_to_atom(Value, ValueAtom),
-  concat_atom([IndexName,
-    ' ', RelAtom, 'leftrange[', ValueAtom, '] '], Result),
-  !.
-
-plan_to_atom(rightrange(IndexName, Rel, Value), Result) :-
-  plan_to_atom(Rel, RelAtom),
-  plan_to_atom(Value, ValueAtom),
-  concat_atom([IndexName,
-    ' ', RelAtom, 'rightrange[', ValueAtom, '] '], Result),
-  !.
 
 plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(Rel, RelAtom),
@@ -926,11 +879,6 @@ plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
     ' ', RelAtom, 'exactmatch[attr(', T, ', ', AttrAtom, ')] '], Result),
   !.
 
-plan_to_atom(extend(X, NewAttrs), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(NewAttrs, NewAttrsAtom),
-  concat_atom([XAtom, 'extend[', NewAttrsAtom, '] '], '', Result),
-  !.
 
 plan_to_atom(newattr(Attr, Expr), Result) :-
   plan_to_atom(Attr, AttrAtom),
@@ -938,75 +886,10 @@ plan_to_atom(newattr(Attr, Expr), Result) :-
   concat_atom([AttrAtom, ': ', ExprAtom], '', Result),
   !.
 
-plan_to_atom(remove(X, Attrs), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Attrs, AttrsAtom),
-  concat_atom([XAtom, 'remove[', AttrsAtom, '] '], '', Result),
-  !.
-
-plan_to_atom(project(X, Attrs), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Attrs, AttrsAtom),
-  concat_atom([XAtom, 'project[', AttrsAtom, '] '], '', Result),
-  !.
 
 plan_to_atom(rename(X, Y), Result) :-
   plan_to_atom(X, XAtom),
   concat_atom([XAtom, '{', Y, '} '], '', Result),
-  !.
-
-plan_to_atom(count(X), Result) :-
-  plan_to_atom(X, ResX),
-  atom_concat(ResX, 'count ', Result),
-  !.
-
-plan_to_atom(sortby(X, Attrs), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Attrs, AttrsAtom),
-  concat_atom([XAtom, 'sortby[', AttrsAtom, '] '], '', Result),
-  !.
-
-
-
-
-
-
-
-
-plan_to_atom(X = Y, Result) :-
-  plan_to_atom(X, XRes),
-  plan_to_atom(Y, YRes),
-  concat_atom([XRes, ' = ', YRes], '', Result),
-  !.
-
-plan_to_atom(X <= Y, Result) :-
-  plan_to_atom(X, XRes),
-  plan_to_atom(Y, YRes),
-  concat_atom([XRes, ' <= ', YRes], '', Result),
-  !.
-
-plan_to_atom(X >= Y, Result) :-
-  plan_to_atom(X, XRes),
-  plan_to_atom(Y, YRes),
-  concat_atom([XRes, ' >= ', YRes], '', Result),
-  !.
-
-plan_to_atom(X < Y, Result) :-
-  plan_to_atom(X, XRes),
-  plan_to_atom(Y, YRes),
-  concat_atom([XRes, ' < ', YRes], '', Result),
-  !.
-
-plan_to_atom(X > Y, Result) :-
-  plan_to_atom(X, XRes),
-  plan_to_atom(Y, YRes),
-  concat_atom([XRes, ' > ', YRes], '', Result),
-  !.
-
-plan_to_atom(X # Y, Result) :-
-  plan_to_atom(X, XRes),
-  plan_to_atom(Y, YRes),
-  concat_atom([XRes, ' # ', YRes], '', Result),
   !.
 
 
@@ -1016,13 +899,11 @@ plan_to_atom(fun(Params, Expr), Result) :-
   concat_atom(['fun ', ParamAtom, ExprAtom], '', Result),
   !.
 
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 2),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  plan_to_atom(Arg1, Res1),
-  plan_to_atom(Arg2, Res2),
-  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
+
+/*
+Sort orders and attribute names.
+
+*/
 
 plan_to_atom(asc(Attr), Result) :-
   plan_to_atom(Attr, AttrAtom), 
@@ -1054,6 +935,109 @@ plan_to_atom(a(X, _, l), X) :-
 plan_to_atom(a(X, _, u), X2) :-
   upper(X, X2),
   !.
+
+
+/*
+Translation of operators driven by predicate ~secondoOp~ in 
+file ~opSyntax~. There are rules for
+
+  * postfix, 1 or 2 arguments
+
+  * postfix followed by one argument in square brackets, in total 2 
+or 3 arguments
+
+  * prefix, 2 arguments
+
+Other syntax, if not default (see below) needs to be coded explicitly.
+
+*/
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 1),
+  secondoOp(Op, postfix, 1),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  concat_atom([Res1, ' ', Op, ' '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 2),
+  secondoOp(Op, postfix, 2),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  concat_atom([Res1, ' ', Res2, ' ', Op, ' '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 2),
+  secondoOp(Op, postfixbrackets, 2),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  concat_atom([Res1, ' ', Op, '[', Res2, '] '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 3),
+  secondoOp(Op, postfixbrackets, 3),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  concat_atom([Res1, ' ', Res2, ' ', Op, '[', Res3, '] '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 2),
+  secondoOp(Op, prefix, 2),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
+  !.
+
+
+/*
+Generic rules. Operators that are not 
+recognized are assumed to be:
+
+  * 1 argument: prefix
+
+  * 2 arguments: infix 
+
+  * 3 arguments: prefix
+
+*/
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 1),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  concat_atom([Op, '(', Res1, ')'], '', Result).
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 2),
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg1, Res1),
+  plan_to_atom(Arg2, Res2),
+  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
+
+plan_to_atom(Term, Result) :-
+  functor(Term, Op, 3),
+  arg(1, Term, Arg1),
+  arg(2, Term, Arg2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg1, Res1),
+  plan_to_atom(Arg2, Res2),
+  plan_to_atom(Arg3, Res3),
+  concat_atom([Op, '(', Res1, ', ', Res2, ', ', Res3, ')'], '', Result).
 
 plan_to_atom(X, Result) :-
   atomic(X),
