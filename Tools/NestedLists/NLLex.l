@@ -23,7 +23,9 @@ list module at the moment ..
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <fstream>
 using namespace std;
+#include "Base64.h"
 #include "NestedList.h"
 #include "NLParser.h"
 #include "NLParser.tab.hpp"
@@ -70,7 +72,9 @@ num1	       [-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2	       [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	       {num1}|{num2}
 
-string         \"[^\"]*\"         
+string         \"[^\"]*\"  
+
+file		"<file>".*"</file--->"       
 
 %%
 
@@ -190,6 +194,8 @@ string         \"[^\"]*\"
                  return (ZZTEXT);
                }
 
+{}
+
 {string}       {
                  /* ECHO; printf(" : is a string\n"); */
                  if ( yyleng - 2 > MAX_STRING_LENGTH )
@@ -209,6 +215,50 @@ string         \"[^\"]*\"
                  yylval = nl->SymbolAtom( yytext );
                  return (ZZSYMBOL);
                }
+
+{file}         { /* files are expanded to base64 encoded text atoms */
+
+                 ListExpr newText = nl->TextAtom(); 
+             
+                 string fileNameStr(yytext);
+                 fileNameStr = fileNameStr.substr(6,yyleng-16);
+                 cout << "Reading binary data from file '" << fileNameStr << "'" << endl;
+                 ifstream inFile(fileNameStr.c_str(), ios::binary); 
+                 ofstream outFile((fileNameStr+".base64").c_str());                 
+
+                 /*   Read  3/4 of the length of a base64 line (max 72 bytes) into a buffer, 
+                  *   since base64 uses 4/3 of the binary size.
+                  */ 
+                 const int inLength = 54;
+                 char buf[inLength+1]; 
+                 buf[inLength] = 0;
+                 for (int i=0; i<inLength; i++) { 
+                    buf[i]='A';
+                 }
+                 
+                 string textFragment="";
+                 do {
+                    inFile.read(buf, inLength);
+                    int noBytes = inFile.gcount();
+                    if (noBytes != inLength) {
+                      cout << "Only " << noBytes << " read!" << endl;
+                    }
+                    Base64::encode(buf, textFragment, noBytes);
+                    
+                    nl->AppendText( newText, textFragment );   
+                    outFile << textFragment;
+                 } while (inFile.good());
+                 
+                 if (!inFile.eof()) {
+                    cerr << "Problems reading file " << fileNameStr << endl;
+                    exit(1);
+                 } 
+
+                 /* pass text node and token to the parser */
+                 yylval = newText;
+                 return (ZZTEXT);
+               }
+
 
 "("            { 
                  /* ECHO; printf("\n"); */ 
