@@ -94,8 +94,8 @@ ALGEBRAS     +=	PlugJoinAlgebra
 #ALGEBRA_DIRS += MP3
 #ALGEBRAS     += MP3Algebra
 
-#ALGEBRA_DIRS += JPEG
-#ALGEBRAS     += JPEGAlgebra
+#ALGEBRA_DIRS += Picture 
+#ALGEBRAS     += PictureAlgebra
 #ALGEBRA_DEPS += jpeg           # libjpeg is used and must be installed
 
 #ALGEBRA_DIRS  += Midi
