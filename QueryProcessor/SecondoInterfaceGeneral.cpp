@@ -2,6 +2,7 @@ using namespace std;
 
 #include "SecondoInterface.h"
 
+
 NestedList*
 SecondoInterface::GetNestedList()
 {
@@ -39,6 +40,8 @@ SecondoInterface::InitErrorMessages()
   errors[12] = "Identifier is not a known object name. ";
   errors[13] = "Type of expression is different from type of object. ";
   errors[14] = "Type name is used by an object. Type not deleted. ";
+  errors[15] = "Identifier reserved for system use. ";
+  errors[16] = "Update of derived objects not supported. ";
 
   errors[20] = "Transaction already active. ";
   errors[21] = "No transaction active. ";

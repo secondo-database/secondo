@@ -29,6 +29,11 @@ May 15, 1998 RHG Added treatment of models, especially functions
 
 May 2002 Ulrich Telle Port to C++
 
+May 2004 M. Spiekermann. Support for system reserved identifiers and derived objects added. 
+The new private member ~sysObjNames~ and the methods ~IsSystemObj~ and ~AddSystemObjName~ were
+introduced. To avoid saving derived objects (for further Information see DerivedObj.h) the
+method ~ListObjectsFull~ was modified.
+
 1.1 Overview
 
 This module defines the module ~SecondoCatalog~. It manages a set of
@@ -74,12 +79,16 @@ The class ~SecondoCatalog~ provides the following methods:
 #ifndef SECONDO_CATALOG_H
 #define SECONDO_CATALOG_H
 
-#include <set>
 #include <vector>
+#include <set>
+
 #include "AlgebraManager.h"
 #include "NestedList.h"
 #include "NameIndex.h"
 #include "SecondoSMI.h"
+
+// forward declaration
+class DerivedObj;
 
 /**************************************************************************
 1.3 Class "SecondoCatalog"[1]
@@ -248,7 +257,7 @@ For each object the *value* and *model* component is missing, otherwise
 the whole database would be returned.
 
 */
-  ListExpr ListObjectsFull();
+  ListExpr ListObjectsFull(const DerivedObj& derivedObjs);
 /*
 Returns a list of ~objects~ of the whole database in the following format:
 
@@ -257,6 +266,7 @@ Returns a list of ~objects~ of the whole database in the following format:
                                           <value> <model>)*
      )
 ----
+Derived objects (see class DerivedObj) are not contained in this list.
 
 */
   bool CreateObject( const string& objectName,
@@ -571,12 +581,20 @@ following format:
       )
 ----
 
+The function below test if a name is reserved for system use.
 */
+  
+  inline bool IsSystemObject(const string& s) {
+    set<string>::const_iterator it = sysObjNames.find(s);
+    return ( it != sysObjNames.end() );   
+  }
+
  protected:
   bool TypeUsedByObject( const string& typeName );
  private:
   string           catalogName;
   AlgebraLevel     catalogLevel;
+  string           ctlgLevelStr;
   NestedList*      nl;
   AlgebraManager*  am;
 
@@ -631,7 +649,17 @@ If ~testMode~ is set some preconditions are tested. If an error occurs,
 *TODO*: "exit"[4] should never be called in the server version. In case of
 an error it should always be reported to the client.
 
+
+A set of reserved object identifiers for the SECONDO System can be added
+in the Constructor of the class Catalog. All system reserverd identifiers
+are prefixed with "SEC_".
 */
+  set<string> sysObjNames;  
+  inline void AddSystemObjName(const string& s) {
+     string name = "SEC_"+s; 
+     sysObjNames.insert(name); 
+  }
+
   friend class SecondoSystem;
 };
 

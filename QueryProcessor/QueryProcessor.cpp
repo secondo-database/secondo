@@ -837,8 +837,8 @@ function numbers).
   * ~s~ is a symbol atom: none of the forms before, but equal to ``counter''.
 
 ----	counter		->	((counter counter) typeerror)
-----
-----	pop		->        ((pop identifier) pop)
+
+	pop		->        ((pop identifier) pop)
 
 	<ident>		->        ((<ident> identifier) <ident>)
 ----

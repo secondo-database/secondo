@@ -48,6 +48,8 @@ The application has to take care about its own list memory to avoid infinte grow
 
 April 29 2003 Hoffmann Added save and restore commands for single objects.
 
+May 2004, M. Spiekermann. Support for derived objects added.
+
 
 1.1 Overview
 
@@ -81,9 +83,54 @@ in the treatment of the database state in database commands.
 
 #include <string>
 #include <map>
+#include <list>
+
 #include "SocketIO.h"
 #include "NestedList.h"
 #include "AlgebraTypes.h"
+
+// forward declaration to avoid cyclic includes
+class DerivedObj;
+
+// constants for error messages. After all numbers are
+// replaced by these constants the errors should by defined
+// by an enum typedef.
+
+const short ERR_NO_ERROR = 0;
+const short ERR_CMD_NOT_RECOGNIZED = 1;
+const short ERR_IN_QUERY_EXPR = 2;
+const short ERR_EXPR_NOT_EVALUABLE = 3;
+const short ERR_NO_OBJ_CREATED = 4;
+const short ERR_NO_TYPE_DEFINED = 5;
+const short ERR_NO_DATABASE_OPEN = 6;
+const short ERR_DATABASE_OPEN = 7;
+const short ERR_UNDEF_OBJ_VALUE = 8;
+const short ERR_SYNTAX_ERROR = 9;
+
+const short ERR_IDENT_USED = 10;
+const short ERR_IDENT_UNKNOWN_TYPE = 11;
+const short ERR_IDENT_UNKNOWN_OBJ = 12;
+const short ERR_EXPR_TYPE_NEQ_OBJ_TYPE = 13;
+const short ERR_TYPE_NAME_USED_BY_OBJ = 14;
+const short ERR_IDENT_RESERVED = 15;
+const short ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED = 16;
+
+const short ERR_TRANSACTION_ACTIVE = 20; 
+const short ERR_NO_TRANSACTION_ACTIVE = 21; 
+const short ERR_BEGIN_TRANSACTION_FAILED = 22; 
+const short ERR_COMMIT_OR_ABORT_FAILED = 23;
+
+const short ERR_IN_DEFINITIONS_FILE = 24;
+const short ERR_IDENT_UNKNOWN_DB_NAME = 25;
+const short ERR_PROBLEM_IN_WRITING_TO_FILE = 26;
+const short ERR_DB_NAME_NEQ_IDENT = 27;
+const short ERR_PROBLEM_IN_READING_FILE = 28;
+const short ERR_IN_LIST_STRUCTURE_IN_FILE = 29;
+const short ERR_CMD_NOT_YET_IMPL = 30;
+const short ERR_CMD_LEVEL_NOT_YET_IMPL = 31;
+const short ERR_CMD_NOT_IMPL_AT_THIS_LEVEL = 32;
+
+
 
 /************************************************************************** 
 2.1 Class "SecondoInterface"[1]
@@ -866,6 +913,8 @@ needs to add code branching on these specific error code numbers. Such
 code may or may not be supplied with an algebra. 
 
 */
+  ListExpr DerivedObjValueExpr();
+
   void SetDebugLevel( const int level );
 /*
 Sets the debug level of the query processor.
@@ -886,6 +935,8 @@ Sets the debug level of the query processor.
   static void InitErrorMessages();
   static bool errMsgInitialized;
   static map<int,string> errors;
+
+  DerivedObj* derivedObjPtr;
 };
 
 /*

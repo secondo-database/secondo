@@ -63,6 +63,7 @@ using namespace std;
 
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
+#include "DerivedObj.h"
 
 /**************************************************************************
 2.2 Types
@@ -770,7 +771,7 @@ Precondition: dbState = dbOpen.
 }
 
 ListExpr
-SecondoCatalog::ListObjectsFull()
+SecondoCatalog::ListObjectsFull(const DerivedObj& derivedObjs)
 {
 /*
 Returns a list of ~objects~ of the whole database in the following format:
@@ -799,7 +800,10 @@ Precondition: dbState = dbOpen.
     cerr << " ListObjects: database is closed!" << endl;
     exit( 0 );
   }
-
+  cout << endl << "Saving objects of the " << ctlgLevelStr << " catalog ..." << endl;
+  const string msgOmitted = "omitted (derived object).";
+  const string msgSaved = "saved.";
+  
   objectsList = nl->TheEmptyList();
   if ( objCatalogFile.SelectAll( oIterator ) )
   {
@@ -807,11 +811,20 @@ Precondition: dbState = dbOpen.
     {
       oKey.GetKey( objectName );
       oPos = objects.find( objectName );
+      
       if ( oPos != objects.end() )
       {
         if ( oPos->second.state == EntryDelete ||
              oPos->second.state == EntryUpdate ) continue;
       }
+      
+      // check for derived objects
+      cout << "  " << objectName << " ... ";
+      if ( derivedObjs.isDerived(objectName) ) {
+         cout <<  msgOmitted << endl;
+         continue;
+      }	 
+      
 
       GetObjectExpr( objectName, typeName, typeExpr,
                      value, defined, model, hasTypeName );
@@ -854,14 +867,23 @@ Precondition: dbState = dbOpen.
                        valueList,
                        modelList ) );
       }
+      cout << msgSaved << endl;
     }
   }
   oIterator.Finish();
   for ( oPos = objects.begin(); oPos != objects.end(); oPos++ )
-  {
+  {    
     if ( oPos->second.state == EntryInsert ||
          oPos->second.state == EntryUpdate )
     {
+      
+      // check for derived objects
+      cout << "  " << oPos->first << " ... ";
+      if ( derivedObjs.isDerived(oPos->first) ) {
+         cout <<  msgOmitted << endl;
+         continue;
+      }	 
+
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
 //VTA - This line must be added
 //      typeExpr = nl->First( typeExpr );
@@ -904,6 +926,7 @@ Precondition: dbState = dbOpen.
                        valueList,
                        modelList ) );
       }
+    cout << msgSaved << endl;
     }
   }
   objectsList = nl->Cons( nl->SymbolAtom( "OBJECTS" ), objectsList );
@@ -2159,6 +2182,14 @@ SecondoCatalog::SecondoCatalog( const string& name,
   nl = SecondoSystem::GetNestedList();
   am = SecondoSystem::GetAlgebraManager();
 
+  if ( level == ExecutableLevel ) {
+    ctlgLevelStr = "executable";
+    AddSystemObjName("DERIVED_OBJ"); // enter object identifiers used by the system
+    AddSystemObjName("OBJ_DEP");
+  } else {
+    ctlgLevelStr = "descriptive";
+  }  
+
   CatalogEntry newEntry;
   int algebraId = 0;
 
@@ -2206,6 +2237,7 @@ SecondoCatalog::~SecondoCatalog()
   operators.clear();
   types.clear();
   objects.clear();
+  sysObjNames.clear();
 }
 
 bool
@@ -2216,6 +2248,7 @@ SecondoCatalog::Open()
   ok = ok && objCatalogFile.Open( catalogName + "Objects", "SecondoCatalog" );
   ok = ok && objValueFile.Open( catalogName + "ObjValues", "SecondoCatalog" );
   ok = ok && objModelFile.Open( catalogName + "ObjModels", "SecondoCatalog" );
+  
   if ( !ok )
   {
     Close();

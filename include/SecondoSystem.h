@@ -20,11 +20,13 @@
 
 1 Header File: Secondo System
 
-May 2002 Ulrich Telle Port to C++
+May 2002, Ulrich Telle. Port to C++.
 
-August 2002 Ulrich Telle Added methods to set and get the current algebra level.
+August 2002, Ulrich Telle. Added methods to set and get the current algebra level.
 
-April 29 2003 Added save and restore commands for single objects.
+April 29 2003, F. Hoffmann. Added save and restore commands for single objects.
+
+May 2004, M. Spiekermann. Function ~SaveDatabase~ was modified to left out derived objects.
 
 1.1 Overview
 
@@ -74,6 +76,7 @@ class NestedList;
 class AlgebraManager;
 class QueryProcessor;
 class SecondoCatalog;
+class DerivedObj;
 
 /*
 1.3 Class "SecondoSystem"[1]
@@ -154,7 +157,7 @@ Returns error 1 if there was a problem in writing the file.
 Precondition: dbState = dbOpen.
 
 */
-  bool SaveDatabase( const string& filename );
+  bool SaveDatabase( const string& filename, const DerivedObj& derivedObjs );
 /*
 Writes the currently open database called ~dbname~ to a file with name
 ~filename~ in nested list format. The format is as follows:
@@ -179,6 +182,7 @@ Writes the currently open database called ~dbname~ to a file with name
      )
 ----
 
+Derived objects maintained in the DerivedObj instance are ignored.
 Returns "false"[4] if there was a problem in writing the file.
 
 *Precondition*: A database is open.

@@ -331,7 +331,7 @@ Precondition: dbState = dbOpen.
 }
 
 bool
-SecondoSystem::SaveDatabase ( const string& filename )
+SecondoSystem::SaveDatabase ( const string& filename, const DerivedObj& derivedObjs )
 {
 /*
 Writes the currently open database called ~dbname~ to a file with name
@@ -362,8 +362,8 @@ Precondition: dbState = dbOpen.
   ListExpr typeExprExec = scExecutable->ListTypes();
 
   /* get the objects with value component !!*/
-  ListExpr objExprDesc = scDescriptive->ListObjectsFull();
-  ListExpr objExprExec = scExecutable->ListObjectsFull();
+  ListExpr objExprDesc = scDescriptive->ListObjectsFull(derivedObjs);
+  ListExpr objExprExec = scExecutable->ListObjectsFull(derivedObjs);
 
   ListExpr list;
   list = nl->SixElemList(
@@ -596,10 +596,10 @@ Load database types and objects from file named ~filename~.
       rc = 4; // List structure invalid (List too short)
     }
     nl->Destroy( listFile );
-    if ( rc != 0 )
-    {
-      CloseDatabase();
-    }
+    //if ( rc != 0 )
+    //{
+    //  CloseDatabase();
+    //}
   }
   return (rc);
 }
@@ -700,6 +700,8 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
   objects = nl->Rest( objects );
   objno = 0;
 
+  cout << "Restoring objects of the " << sc->catalogName << " catalog ..." << endl;
+
   while ( !nl->IsEmpty( objects) )
   {
     SecondoSystem::BeginTransaction();
@@ -713,6 +715,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
          !nl->IsAtom( nl->Third( first ) ) )
     {
       objectName = nl->SymbolValue( nl->Second( first ) );
+      cout << "  " << objectName << " ... ";
       if ( !nl->IsEmpty( nl->Third( first ) ) &&
             nl->IsAtom( nl->First( nl->Third( first ) ) ) &&
            (nl->AtomType( nl->First( nl->Third( first ) ) ) == SymbolType ) )
@@ -783,7 +786,10 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
                       nl->IntAtom( 50 ),
                       nl->IntAtom( objno ) ) );
     } // if
+    
     SecondoSystem::CommitTransaction();
+    cout << "processed." << endl;
+     
   } // while
 
   return (correct);
