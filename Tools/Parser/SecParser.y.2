@@ -114,8 +114,15 @@ database	:	ZZCREATE ZZDATABASE ZZIDENTIFIER
 		|	ZZSAVE ZZDATABASE ZZTO ZZIDENTIFIER
 				{PRINTF("(save database to "); PRINT($4); 
 				PRINTF(")\n");}
+		|	ZZSAVE ZZIDENTIFIER ZZTO ZZIDENTIFIER
+				{PRINTF("(save "); PRINT($2); 
+				 PRINTF(" to "); PRINT($4); 
+				PRINTF(")\n");}
 		|	ZZRESTORE ZZDATABASE ZZIDENTIFIER ZZFROM ZZIDENTIFIER
 				{PRINTF("(restore database "); PRINT($3); 
+				PRINTF(" from "); PRINT($5); PRINTF(")\n");}
+		|	ZZRESTORE ZZOBJECT ZZIDENTIFIER ZZFROM ZZIDENTIFIER
+				{PRINTF("(restore object "); PRINT($3); 
 				PRINTF(" from "); PRINT($5); PRINTF(")\n");}
 		;
 
