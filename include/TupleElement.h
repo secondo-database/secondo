@@ -47,12 +47,6 @@ typedef void* Address;
 #endif
 
 #include "FLOB.h"
-/*
-#ifndef TYPE_FLOB_DEFINED
-#define TYPE_FLOB_DEFINED
-typedef void FLOB;
-#endif
-*/
 
 /*
 Are type definitions for a generic address pointer and for a ~fake large object~.

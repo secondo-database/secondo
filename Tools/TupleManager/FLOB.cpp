@@ -1,8 +1,37 @@
+/*
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[ae] [\"a]
+//[ue] [\"u]
+//[oe] [\"o]
+
+[1] Implementation File of Module FLOB
+
+Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
+
+Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
+
+Stefan Dieker, 03/05/98
+
+1 Includes
+
+*/
 #include "FLOB.h"
 #include <stdlib.h>
 
-const int FLOB::SWITCH_THRESHOLD = 102400;
+/*
 
+2 Implementation of class FLOB.
+
+2.1 The threshold size is set to 1K.
+
+*/
+const int FLOB::SWITCH_THRESHOLD = 1024;
+
+/*
+
+2.2 Constructor.
+
+*/
 FLOB::FLOB(SmiRecordFile* inlobFile) : lob() {
 	start = 0;
 	size = 0;
@@ -11,7 +40,13 @@ FLOB::FLOB(SmiRecordFile* inlobFile) : lob() {
   	lobId = 0;
 }
 
+/*
 
+2.3 Constructor.
+
+Create from scratch.
+
+*/
 FLOB::FLOB(SmiRecordFile* inlobFile, int sz) : lob() {
   start = (char *) malloc(sz);
   size = sz;
@@ -20,12 +55,24 @@ FLOB::FLOB(SmiRecordFile* inlobFile, int sz) : lob() {
   lobId = 0;
 }
 
+/*
+2.4 Destructor. 
 
+Destroy LOB instance.
+
+*/
 FLOB::~FLOB() {
   if (start != 0) free(start);
   start = 0;
 }
 
+/*
+
+2.5 Destroy.
+
+Destroy persistent representation.
+
+*/
 void FLOB::Destroy() {
   SmiRecordId id = 0;	 
   if (start != 0) {
@@ -36,6 +83,12 @@ void FLOB::Destroy() {
   else lobFile->DeleteRecord(id);
 }
 
+/*
+2.6 Get
+
+Read by copying
+
+*/
 void FLOB::Get(int offset, int length, char *target) {
   if (start != 0) {
     memcpy(target, start + offset, length);
@@ -46,6 +99,12 @@ void FLOB::Get(int offset, int length, char *target) {
   }
 }
 
+/* 
+2.7	Write
+
+Write Flob data into source. 
+
+*/
 void FLOB::Write(int offset, int length, char *source) {
 	if (start != 0) {
     	memcpy(start + offset, source, (size - offset < length ? size - offset : length));
@@ -56,6 +115,12 @@ void FLOB::Write(int offset, int length, char *source) {
 	}
 }
 
+/* 
+2.8 Size
+
+Returns the size of a FLOB.
+
+*/
 int FLOB::Size() {
   if (start != 0)
     return size;
@@ -63,6 +128,12 @@ int FLOB::Size() {
     return lob.Size();
 }
 
+/*
+2.9 Resize
+
+Resizes the FLOB.
+
+*/
 void FLOB::Resize(int newSize) {
   	if (start != 0) {
 		// the data is still in memory.
@@ -87,17 +158,35 @@ void FLOB::Resize(int newSize) {
 	}
 }
 
+  
+/*
+2.10 IsLob
 
+Returns treue, if value stored in underlying LOB, otherwise false.
+
+*/ 
 bool FLOB::IsLob() {
   if (start != 0) return false; else return true;
 }
+  
+/*
+2.11 Restore
 
+Restore from byte string.
 
+*/
 int FLOB::Restore(char *address) {
   start = address;
   return size;
 }
 
+/* 
+2.12 SaveToLob
+
+Switch from Main Memory to LOB Representation 
+if the size of this FLOB exceeds thresholdsize.
+
+*/
 bool FLOB::SaveToLob() {
  	if (IsLob()){
     	size = lob.Size();

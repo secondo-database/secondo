@@ -7,8 +7,12 @@
 //characters	[3]	ProperName:	[{\sc ]	[}]
 //[i]	[\'{\i}]
 //[n]	[\~{n}]
+//[ae] [\"a]
+//[ue] [\"u]
+//[oe] [\"o]
 
-\title{DBArray.cc}
+
+\title {Implementation of module DBArray}
 \author{Miguel Rodr[i]guez Luaces}
 \date{April 15th, 1998}
 
@@ -21,8 +25,6 @@
 [12] May 28th, 1999. MRL. Comments.
 
 Printed on: \today
-
-\tableofcontents
 
 1 Overview
 
@@ -38,45 +40,89 @@ element.
 ******************************************************************************/
 #include "DBArray.h"
 
+/* 
 
+2.1 Contructor which takes an SmiRecordFile only, to be used by the tuple
+manager. It cannot used in a program.
+
+*/
 DBArray::DBArray(SmiRecordFile *inlobFile) : FLOB(inlobFile) {
+	// there is no valid element yet.
 	mHigh = -1;
 	mSlotSize = 0;
 	mSize = 0;
-	mSizeOfMetaInfo  = 0;			
+	mSizeOfMetaInfo  = 3 * sizeof(int);			
 }
 
-DBArray::DBArray(SmiRecordFile *inlobFile, int SlotSize, int SizeClue) : 
-						FLOB(inlobFile, SlotSize*SizeClue + 3*sizeof(int)) {
-						
-	mHigh = -1; 			// there is no valid element yet.
-	mSlotSize = SlotSize; 	// size of each slot.
-	mSize = SizeClue;		// initial size (number of slots)
+/* 
+
+2.2 Creates a DBArray with slots of size SlotSize. The initial number of slots 
+allocated is SizeClue. 
+
+*/ 
+DBArray::DBArray(SmiRecordFile *inlobFile, int SlotSize, int SizeClue) : FLOB(inlobFile, SlotSize*SizeClue + 3*sizeof(int)) {
+	// there is no valid element yet.					
+	mHigh = -1;
+	// size of each slot.
+	mSlotSize = SlotSize;
+	// initial size (number of slots)
+	mSize = SizeClue;
+	
 	mSizeOfMetaInfo = 3 * sizeof(int);
 }
 
+/*
+
+2.3 Destructor.
+
+*/
+
 DBArray::~DBArray() {
+	// empty. Call destructor of the super class.
 }
 
+/* 
+
+2.4 Destroys the handle to the DBArray, but not the persistent array. 
+
+*/
 void DBArray::Destroy() {
   FLOB::Destroy();
 }
 
+/* 	
 
+2.5 Changes the size of the DBArray to NewSize. 
+NewSize must be smaller than the actual size
+of the DBArray. 
+
+*/
 void DBArray::Shrink(int NewSize) {
 	if (NewSize < mHigh) {
-		Resize(NewSize);
+		// call Resize-method of super class.
+		Resize(NewSize * mSlotSize);
 	}
 }
 
+/*
+ 
+2.6 Copies the slot with index Index to the memory
+starting at Dest. 
 
+*/
 void DBArray::Get(int Index, char *Dest) {
   if (Index >= 0) {
     FLOB::Get(Index*mSlotSize, mSlotSize, Dest);
   }
 }
 
+/* 
 
+2.7 Copies from memory starting at Source into the slot with
+index Index. If necessary the DBArray will grow to make
+this slot available.  
+
+*/
 void DBArray::Put(int Index, char *Source) {
 	if (Index >= 0) {
 		if ((Index + 1) > mSize) {
@@ -89,6 +135,11 @@ void DBArray::Put(int Index, char *Source) {
 	}
 }
 
+/* 
+
+2.8 Returns the current highest valid index. 
+
+*/
 int DBArray::High() {
   return mHigh;
 }
