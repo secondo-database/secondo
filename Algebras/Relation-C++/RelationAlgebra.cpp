@@ -938,7 +938,7 @@ static Word CreateRel(int Size)
 ~value~ is the list representation of the relation. The structure of 
 ~typeInfol~ and ~value~ are described above. Error handling in ~InRel~:
 
-The result relation will contain all tuples that have been converted 
+The result relation will contain all tuples that have been converted
 correctly (have correct list expressions). For all other tuples, an error 
 message containing the position of the tuple within this relation (list) is 
 added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~). 
@@ -1272,7 +1272,9 @@ ListExpr TUPLE2TypeMap(ListExpr args)
 
 */
 const string TUPLE2Spec =
-  "(<text>((stream x) (stream y) ...) -> y, ((rel x) (rel y) ...) -> y</text---><text>Extract tuple type from a stream or relation type given as the second argument.</text--->)";
+  "(<text>((stream x) (stream y) ...) -> y, ((rel x) (rel y) ...) -> "
+  "y</text---><text>Extract tuple type from a stream or relation type "
+  "given as the second argument.</text--->)";
 /*
 
 4.1.3 Definition of operator ~TUPLE2~
@@ -1291,7 +1293,8 @@ Operator TUPLE2 (
 
 6.1 Type Operator ~GROUP~
 
-Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
+Type operators are used only for inferring argument types of parameter 
+functions. They have a type mapping but no evaluation function.
 
 6.1.1 Type mapping function of operator ~GROUP~
 
@@ -1332,7 +1335,8 @@ ListExpr GROUPTypeMap(ListExpr args)
 
 */
 const string GROUPSpec =
-  "(<text>((stream x)) -> (rel x)</text---><text>Maps stream type to a rel type.</text--->)";
+  "(<text>((stream x)) -> (rel x)</text---><text>Maps stream type to a rel "
+  "type.</text--->)";
 /*
 
 4.1.3 Definition of operator ~GROUP~
@@ -1355,14 +1359,14 @@ Produces a stream from a relation by scanning the relation tuple by tuple.
 
 4.1.1 Type mapping function of operator ~feed~
 
-A type mapping function takes a nested list as argument. Its contents are 
+A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
 Result type of feed operation.
 
 ----	((rel x))		-> (stream x)
----- 
+----
 
 */
 static ListExpr FeedTypeMap(ListExpr args)
@@ -1374,10 +1378,10 @@ static ListExpr FeedTypeMap(ListExpr args)
     first = nl->First(args);
     if(nl->ListLength(first) == 2)
     {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == rel) 
+      if (TypeOfRelAlgSymbol(nl->First(first)) == rel)
         return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
     }
-  } 
+  }
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -1403,7 +1407,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST :
-    
+
       //rs = (CTable<CcTuple>::Iterator*)local.addr;
       r = (CcRel*)local.addr;
       //if (!((*rs).EndOfScan()))
@@ -1416,9 +1420,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
         return YIELD;
       }
       else return CANCEL;
-     
+
     case CLOSE :
-    
+
       //rs = (CTable<CcTuple>::Iterator*)local.addr;
       // rs = *((CTable<CCTuple>::Iterator**)local);
       //delete rs;
@@ -1432,12 +1436,14 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string FeedSpec =
-  "(<text>(rel x) -> (stream x)</text---><text>Produces a stream from a relation by scanning the relation tuple by tuple.</text--->)";
+  "(<text>(rel x) -> (stream x)</text---><text>Produces a stream from a "
+  "relation by scanning the relation tuple by tuple.</text--->)";
 /*
 
 4.1.3 Definition of operator ~feed~
 
-Non-overloaded operators are defined by constructing a new instance of class~Operator~, passing all operator functions as constructor arguments. 
+Non-overloaded operators are defined by constructing a new instance of 
+class ~Operator~, passing all operator functions as constructor arguments.
 
 */
 Operator feed (
@@ -1465,7 +1471,7 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
 ListExpr ConsumeTypeMap(ListExpr args)
 {
   ListExpr first ;
-  
+
   if(nl->ListLength(args) == 1)
   {
     first = nl->First(args);
@@ -1490,7 +1496,7 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   CcRel* rel;
   // int catentry;
   // int* catentryptr;
-   
+
   //rel = (Relation)(CreateRel(50).addr);
   rel = new CcRel();
   qp->Open(args[0].addr);
@@ -1503,12 +1509,12 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   // catentry = ctreldb.Add((void*)rel);
   // catentryptr = new int(catentry);
-  
+
   result = SetWord((void*) rel);
 
   // *result = (void*)catentryptr;
   qp->Close(args[0].addr);
-  return 0;  
+  return 0;
 }
 /*
 
@@ -1516,7 +1522,8 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ConsumeSpec =
-  "(<text>(stream x) -> (rel x)</text---><text>Collects objects from a stream into a relation.</text--->)";
+  "(<text>(stream x) -> (rel x)</text---><text>Collects objects from a stream "
+  "into a relation.</text--->)";
 /*
 
 4.1.3 Definition of operator ~consume~
@@ -1542,9 +1549,11 @@ Result type attr operation.
     ((tuple ((x1 t1)...(xn tn))) xi)    -> ti
                             APPEND (i) ti)
 ----
-This type mapping uses a special feature of the query processor, in that if requests to append a further argument to the given list of arguments, namely, the index of the attribute within the tuple. This indes is computed within the type mapping  function. The request is given through the result expression of the type mapping which has the form, for example,
+This type mapping uses a special feature of the query processor, in that if 
+requests to append a further argument to the given list of arguments, namely, 
+the index of the attribute within the tuple. This indes is computed within the type mapping  function. The request is given through the result expression of the type mapping which has the form, for example,
 
----- 
+----
 
     (APPEND (1) string)
 
