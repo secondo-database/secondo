@@ -53,7 +53,10 @@ Currently it is not possible to mix both alternatives.
 December 2003, M. Spiekermann. A new method GetNextText has been introduced and and the
 implementation of Text2String was changed in order to use stringstreams. 
 
-Februar 2002, M. Spiekermann. Reading of binary encoded lists was implemented.
+February 2004, M. Spiekermann. Reading of binary encoded lists was implemented. WriteAtom changed; 
+only 48 bytes of text atoms are displayed on screen now. 
+
+
 
 1 Introduction
 
@@ -881,15 +884,20 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
         if ( !toScreen )
         {
           *outStream << "<text>";
-        }
-        string textFragment = "";
-        while ( GetNextText(atom, textFragment, 1024) ) {
+          string textFragment = "";
+          while ( GetNextText(atom, textFragment, 1024) ) {
            *outStream << textFragment;
-        }
-
-        if ( !toScreen )
-        {
+          }
           *outStream << "</text--->";
+
+        } else {
+         
+          string textFragment = "";
+          TextScan textScan = CreateTextScan( atom );
+          GetText( textScan, 48, textFragment );
+          *outStream << textFragment << " ... (only 48 of text atom)";          
+          DestroyTextScan ( textScan );
+ 
         }
       }
       break;
