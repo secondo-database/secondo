@@ -534,7 +534,7 @@ main(int argc, char **argv)
   char* configFile;
 
   atexit(handle_exit);
-  
+
   /* Start Secondo and remove Secondo command line arguments
      from the argument vector .*/
   configFile = GetConfigFileNameFromArgV(argc, argv);
@@ -547,20 +547,38 @@ main(int argc, char **argv)
   /* Start PROLOG interpreter with our extensions. */
   PL_register_extensions(predicates);
 
-  if(!PL_initialise(argc, argv))
-  {
-    PL_halt(1);
+  /* initialize the prologb engine */
+  char * initargs[argc+3];
+  int p=0;
+  for(p=0;p<argc;p++)   // copy arguments
+     initargs[p]=argv[p];
+  initargs[argc] ="pl";
+  initargs[argc+1] ="-g";
+  initargs[argc+2] ="true";
+  if(!PL_initialise(argc+3,initargs))
+      PL_halt(1);
+  else{
+     /* load the auxiliary and calloptimizer */
+     term_t a0 = PL_new_term_refs(1);
+     static predicate_t p = PL_predicate("consult",1,"");
+     PL_put_atom_chars(a0,"auxiliary");
+     PL_call_predicate(NULL,PL_Q_NORMAL,p,a0);
+     PL_put_atom_chars(a0,"calloptimizer");
+     PL_call_predicate(NULL,PL_Q_NORMAL,p,a0);
+     /* switch to prolog-user-interface */
   }
-  
+
+
+
 // readline support is only needed on unix systems.
 #ifndef SECONDO_WIN32
   PL_install_readline();
 #endif
-  
+
   success = PL_toplevel();
   // this function never returns. Entering "halt." at the Userinterface
   // calls exit().
-  
+
 }
 
 
