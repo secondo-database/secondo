@@ -3,7 +3,9 @@
 
 [1] Header File of the Spatial Algebra
 
-February, 2002 Victor Teixeira de Almeida
+February, 2003 Victor Teixeira de Almeida
+
+March, 2003 Zhiming DING
 
 1 Overview
 
@@ -32,6 +34,7 @@ typedef Rational Coord;
 #else // RATIONAL_COORDINATES
 typedef long Coord;
 #endif
+
 /*
 There are two main defines that will control how the coordinate system is 
 implemented, namely ~RATIONAL\_COORDINATES~ and ~WITH\_ARBITRARY\_PRECISION~.
@@ -463,6 +466,16 @@ of this point set and ~m~ is the size of ~ps~.
 
 */
     const bool Intersects(const Points& ps) const;
+    
+    void SelectFirst();
+    void SelectNext();
+    bool EndOfPt();
+    void GetPt( Point& p );
+    void InsertPt( Point& p );
+/*
+ Added by DZM to comply with ROSE algebra
+  
+*/
 
   private:
 /*
@@ -481,7 +494,7 @@ Searches (binary search algorithm) for a point in the point set and
 returns its position. Returns -1 if the point is not found.
 
 */
-
+  
 /*
 4.6 Atrtibutes
 
@@ -495,6 +508,11 @@ The persisten array of points.
 /*
 The flag that indicates whether the persistent array is in ordered state.
 
+*/
+    int pos;
+/*
+ Added by DZM. According to ROSE algebra, the carrier set of points should contain a pos pointer
+  
 */
 };
 
@@ -513,5 +531,678 @@ Print the point set ~ps~ int the out stream ~o~.
 
 */
 
+/*
+The following type definition indicates the structure of the ~attr~ value associated with 
+half segments. Currently, it is defined as a set of integers. But soon it will be replaced by
+a structure according to the needs of our implementation to the region data type.
+
+*/
+typedef set<int> attrtype;
+//typedef int attrtype;
+
+/*
+5 Class Half Segment
+
+This class implements the memory representation of the ~halfsegment~ type constructor.
+A ~halfsegment~ value is a pair of points, with a boolean flag indicating the dominating point.
+
+
+The name for the class is started with a ~C~ prefix which means that this is a class name. 
+Since very similar names appear in different places with different meaning, it is a good idea
+to put this prefix to eliminate confusion.
+
+*/
+
+class CHalfSegment 
+{
+  public:
+    
+/*
+5.1 Constructors and Destructor
+
+A Half Segment is composed of two points which are called ~left point~ LP and ~right point~ RP 
+(LR \verb+<+ RP), and a ~flag~ LDP (~Left Dominating Point~) which tells which point is
+the dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ value.
+
+*/
+    
+    CHalfSegment(bool Defined, bool LDP, Point& LP, Point& RP);
+    CHalfSegment( const CHalfSegment& chs );
+    CHalfSegment();
+    ~CHalfSegment();
+    
+/*
+5.2 Functions Returning Property Values from an Object
+
+*/
+    const bool IsDefined() const;
+/*
+returns a boolean value indicating whether the half segment is defined.
+
+*/
+    const Point&  GetLP() const;
+/*
+returns the left point of the half segment. 
+
+*/
+    const Point&  GetRP() const;
+/*
+returns the right point of the half segment. 
+
+*/
+    const Point&  GetDPoint() const;
+/*
+returns the dominating point of the half segment. 
+
+*/
+    const Point&  GetSPoint() const; 
+/*
+returns the secondary point of the half segment. 
+
+*/
+    const bool GetLDP() const;
+/*
+returns the boolean flag which indicates whether the dominating point is on the 
+left side. 
+
+*/
+    const attrtype&  GetAttr() const;
+/*
+returns the "attribute" value associated with a half segment. The "attribute" argument is useful when
+ we process region values. Currently the "attribute" value is composed of a set of int, but it will soon be 
+implemented as a structure which contain more information.
+
+
+5.3 Functions Setting Property Values of an Object
+
+*/
+    void     Set(bool Defined,  bool LDP, Point& LP, Point& RP);
+/*
+sets the value of a half segment. 
+
+*/
+    void     SetDefined(bool Defined);
+/*
+sets the value of the "defined" argument of a half segment. 
+
+*/
+    void     SetAttr(attrtype& ATTR);
+/*
+sets the value of the "attr" argument of a half segment. 
+
+*/
+    void     SetLDP(bool LDP); 
+/*
+sets the value of the "Left Dominating Point" flag of a half segment. 
+
+5.4 Overloaded class operators
+
+5.4.1 Operation $=$ (~assignment~)
+
+*Semantics:* $this = chs$. It assigns the value of a half segment to another.
+
+*Complexity:* $O( 1)$ 
+
+*/
+    CHalfSegment& operator=(const CHalfSegment& chs);
+/*
+5.4.2 Auxiliary Function (~compare~)
+
+*Semantics:* This function make comparison between two halfsegments. These two half segments are compared
+according to the following order: dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations), as 
+indicated in the ROSE paper.
+
+*Complexity:* $O( 1 )$ 
+
+*/
+    int chscmp(const CHalfSegment& chs) const;
+/*
+5.4.3 Operation $==$ (~equal~)
+
+*Semantics:* $this ==chs$. It decides whether two half segments are identical.
+
+*Complexity:* $O( 1 )$ 
+
+*/   
+    int operator==(const CHalfSegment& chs) const;
+/*
+5.4.4 Operation $<$ (~less than~)
+
+*Semantics:* $u < v$. It decides whether whether one half segment is less than the other.
+
+*Complexity:* $O( 1 )$ 
+
+*/
+    int operator<(const CHalfSegment& chs) const;
+/*
+5.4.5 Operation $>$ (~greater than~)
+
+*Semantics:* $u > v$. It decides whether whether one half segment is greater than the other.
+
+*Complexity:* $O( 1 )$ 
+
+*/
+    int operator>(const CHalfSegment& chs) const;
+/*
+5.5 Clone Function
+
+*/
+    CHalfSegment*  Clone() {return (new CHalfSegment(*this));}
+    
+/*
+5.6 Intersects Function
+
+*Semantics:*  This function computes whether two half segments intersect with each other. Since 
+there is no Realm here as a precondition, two half segments may intersect each other in their middle.
+
+*Complexity:* $O( 1 )$ 
+
+*/
+    const bool Intersects( const CHalfSegment& chs ) const;
+/*
+5.7 Inside Function
+
+*Semantics:* This operation computes whether one half segment is inside another. If segment A is part of 
+another segment B, then we say A is inside B. eg. -------~------~-------.
+
+*Complexity:* $O( 1 )$ 
+
+*/
+    const bool Inside(const CHalfSegment& chs) const ;
+/*
+5.8 Contain Function
+
+*Semantics:* This operation computes whether one point is contained in a half segment. If a point P is inside 
+a segment S, then we say P is contained by S. eg. ---------o---------.
+
+*Complexity:* $O( 1 )$ 
+
+*/
+    const bool Contains( const Point& p ) const;
+    
+  private:
+/*
+5.9 Properties
+
+*/
+    bool defined;
+/*
+This boolean property indicates whether the half segment is defined.
+
+*/  
+    bool ldp; 
+/*
+This boolean property indicates whether the half segment has its left point as its dominating point.
+
+*/  
+    Point lp;
+    Point rp;
+/*
+These two properties give the left and right point of the half segment.
+
+*/  
+    attrtype attr;
+/*
+This ~attribute~ property is useful if we process region values in a way similar to that indicated in the ROSE
+paper. Currently the ~attribute~ value is composed of a set of int, but it will soon be implemented as a structure
+ which contains more information.
+
+*/  
+};
+/*
+5.10 overloaded output operator
+
+*/
+ostream& operator<<( ostream& o, const CHalfSegment& chs );
+
+/*
+6 Class Line
+
+This class implements the memory representation of the ~line~ type constructor.
+
+*/
+
+class CLine
+{
+  public:
+/*
+6.1 Constructors and Destructor
+
+A ~line~ value is a set of halfsegments. In the external (nestlist) representation, a line value is 
+expressed as a set of segments. However, in the internal (class) representation, it is expressed
+as a set of sorted halfsegments, which are stored as a PArray.
+
+*/    
+    CLine(SmiRecordFile *recordFile);
+    CLine(SmiRecordFile *recordFile, const CLine& cl );
+    CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true );
+    void Destroy();
+    ~CLine();
+    
+/*
+6.2 Functions Reading Property Values from an Object
+
+*/    
+    const bool IsOrdered() const;
+/*
+judges whether the half segments in the line value is sorted.
+
+*/    
+    const bool IsEmpty() const;
+/*
+judges whether the line value is empty.
+
+*/        
+    const int Size() const;
+/*
+returns the number of half segments in the line value.
+
+*/        
+    void Get( const int i, CHalfSegment& chs ) const;
+/*
+reads the ith half segment from the line value.
+
+*/        
+    const SmiRecordId GetLineRecordId() const;
+/*
+gets the Record ID of the PArray which store half segments of the line value.
+
+6.3 Bulkload Functions
+
+*/        
+    void StartBulkLoad();
+/*
+Marks the begin of a bulk load of line relaxing the condition that the half segments must be 
+ordered.
+
+*/
+
+    void EndBulkLoad();
+/*
+Marks the end of a bulk load and sorts the half segments.
+
+6.4 Overloaded Class Operators
+
+6.4.1 Operation $=$ (~assignment~)
+
+*Semantics:* $this = cl$. It assigns the value of a line to another.
+
+*Complexity:* $O( n )$ 
+
+*/
+    CLine& operator=(const CLine& cl);
+/*
+6.4.2 Operation $==$ (~equal~)
+
+*Semantics:* $this ==cl$. It decides whether two line values are identical.
+
+*Complexity:* $O( n )$ 
+
+*/
+    int operator==(const CLine& cl) const;
+/*
+6.4.3 Operation $+=$ (~Union~)
+
+*Semantics:* $this +=chs$. It adds a half segment into a line value.
+
+*Complexity:* $O( 1 )$ , if the set is not ordered; and $O( log(n)+n)$ , if the set is ordered.
+
+*/
+    CLine& operator+=(const CHalfSegment& chs);
+/*
+6.4.4 Operation $-=$ (~Minus~)
+
+*Semantics:* $this -=chs$. It deletes a half segment from a line value.
+
+*Complexity:* $O( log(n)+n)$ .
+
+*/
+    CLine& operator-=(const CHalfSegment& chs);
+/*
+
+6.5 Clone Function
+
+*/
+    CLine*    Clone();
+    
+/*
+6.6 Object Traversal Functions
+
+*Semantics:* The following functions are implemented as basic utilities. They will be useful 
+if we want to adapt our algorithms to object-traversal-based ones.
+
+*Complexity:* All these functions have a complexity of $O( 1 )$ .
+
+*/
+    void SelectFirst();
+/*
+put the pointer ~pos~ to the first half segment in the line value.
+
+*/
+    void SelectNext();
+/*
+move the pointer ~pos~ to the next half segment in the line value.
+
+*/
+    bool EndOfHs();
+/*
+decide whether ~pos~ is -1, which indicates that no more half segments in the line value
+ need to be processed.
+
+*/
+    void GetHs( CHalfSegment& chs );
+/*
+get the current half segment from the line value according to the ~pos~ pointer.
+
+*/
+    void InsertHs( CHalfSegment& chs );
+/*
+insert a half segment into the line value, and put the ~pos~ pointer to this newly inserted 
+half segment.
+
+*/
+    
+  private:
+/*
+6.7 Private member functions
+
+*/
+    void Sort();
+    void QuickSortRecursive( const int low, const int high );
+/*
+Sorts (quick-sort algorithm) the persistent array of half segments in the line value.
+
+*/
+    const int Position(const CHalfSegment&) const;
+/*
+Searches (binary search algorithm) for a half segment in the line value and
+returns its position. Returns -1 if the half segment is not found.
+
+6.8 Atrtibutes
+
+*/
+    PArray<CHalfSegment>* line;
+/*
+The persisten array of half segments.
+
+*/  
+    int pos;
+/*
+The pointer to the current half segments. The pointer is important in object traversal algorithms.
+
+*/  
+    bool ordered;
+/*
+Whether the half segments in the line value are sorted.
+
+*/  
+};
+
+/*
+6.9 overloaded output operator
+
+*/
+ostream& operator<<( ostream& o, const CLine& cl );
+
+/*
+7 Class Region
+
+This class implements the memory representation of the ~region~ type constructor.
+
+*/
+
+class CRegion
+{
+  public:
+/*
+7.1 Constructors and Destructor
+
+A ~region~ value is a set of halfsegments. In the external (nestlist) representation, a region value is 
+expressed as a set of segments. However, in the internal (class) representation, it is expressed
+as a set of sorted halfsegments, which are stored as a PArray.
+
+The system will do the basic check on the validity of the region data. For instance, the region should have 
+at least 3 edges, and every vertex should have even-numbered edges associated.
+
+~This initial design is made before I get the document describing the nested list format of the region
+data type. In the following step, I will change this design: The internal representation of a region
+is still a set of  sorted halfsegments, but the external representation (nestedlist) will be changed to
+ include the concepts of cycles and faces.~
+
+*/    
+    
+    CRegion(SmiRecordFile *recordFile);
+    CRegion(SmiRecordFile *recordFile, const CRegion& cr );
+    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true );
+    void Destroy();
+    ~CRegion();
+    
+/*
+7.2 Functions Reading Property Values from an Object
+
+*/    
+    const bool IsOrdered() const;
+/*
+decides whether the half segments in the region value is sorted.
+
+*/   
+    const bool IsEmpty() const;
+/*
+decides whether the region value is empty.
+
+*/        
+    const int Size() const;
+/*
+returns the number of half segments in the region value.
+
+*/      
+    void Get( const int i, CHalfSegment& chs ) const;
+/*
+reads the ith half segment from the region value.
+
+*/            
+    const SmiRecordId GetRegionRecordId() const;
+/*
+gets the Record ID of the PArray which store half segments of the line value.
+
+7.3 Bulkload Functions
+
+*/      
+    void StartBulkLoad();
+/*
+Marks the begin of a bulk load of line relaxing the condition that the half segments must be 
+ordered.
+
+*/    
+    void EndBulkLoad();
+/*
+Marks the end of a bulk load and sorts the half segments.
+
+7.4 Validity Checking Function
+
+*/    
+    const bool IsValid() const;
+    
+/*
+7.5 Overloaded Class Operators
+
+7.5.1 Operation $=$ (~assignment~)
+
+*Semantics:* $this = cr$. It assigns the value of a region to another.
+
+*Complexity:* $O( n )$ 
+
+*/    
+    CRegion& operator=(const CRegion& cr);
+/*
+7.5.2 Operation $==$ (~equal~)
+
+*Semantics:* $this ==cr$. It decides whether two region values are identical.
+
+*Complexity:* $O( n )$ 
+
+*/    
+    int operator==(const CRegion& cr) const;
+/*
+7.5.3 Operation $+=$ (~Union~)
+
+*Semantics:* $this +=chs$. It adds a half segment into a region value.
+
+*Complexity:* $O( 1 )$ , if the set is not ordered; and $O( log(n)+n)$ , if the set is ordered.
+
+*/    
+    CRegion& operator+=(const CHalfSegment& chs);
+/*
+7.5.4 Operation $-=$ (~Minus~)
+
+*Semantics:* $this -=chs$. It delete a half segment from a region value.
+
+*Complexity:* $O( log(n)+n)$ .
+
+*/    
+    CRegion& operator-=(const CHalfSegment& chs);
+/*
+
+7.6 Clone Function
+
+*/    
+    CRegion*    Clone();
+    
+/*
+7.7 Object Traversal Functions
+
+*Semantics:* The following functions are implemented as basic utilities. They will be useful 
+if we want to adapt our algorithms to object-traversal-based ones.
+
+*Complexity:* All the following functions have a complexity of $O( 1)$ .
+
+*/    
+    void SelectFirst();
+/*
+Put the pointer ~pos~ to the first half segment in the region value.
+
+*/    
+    void SelectNext();
+/*
+Move the pointer "pos" to the next half segment in the region value.
+
+*/    
+    bool EndOfHs();
+/*
+decide whether ~pos~ is -1, which indicates that no more half segments in the region value
+ need to be processed.
+
+*/    
+    void GetHs( CHalfSegment& chs );
+/*
+get the current half segment from the region value according to the ~pos~ pointer.
+
+*/    
+    void InsertHs( CHalfSegment& chs );
+/*
+Insert a half segment into the region value, and put the ~pos~ pointer to this newly inserted 
+half segment.
+
+*/    
+    const attrtype& GetAttr();
+/*
+read the ~attr~ value of the current half segment from the region value. The current 
+half segment is indicated by ~pos~
+
+*/        
+    void UpdateAttr( attrtype& attr );
+/*
+update the ~attr~ value of the current half segment from the region value.The current 
+half segment is indicated by ~pos~
+
+*/     
+  private:
+/*
+7.8 Private member functions
+
+*/    
+    void Sort();
+    void QuickSortRecursive( const int low, const int high );
+/*
+sorts (quick-sort algorithm) the persistent array of half segments in the region value.
+
+*/    
+    const int Position(const CHalfSegment&) const;
+/*
+searches (binary search algorithm) for a half segment in the region value and
+returns its position. Returns -1 if the half segment is not found.
+
+7.9 Atrtibutes
+
+*/    
+    PArray<CHalfSegment>* region;
+/*
+The persisten array of half segments.
+
+*/      
+    int pos;
+/*
+The pointer to the current half segments. The pointer is important in object traversal algorithms.
+
+*/      
+    bool ordered;
+/*
+Whether the half segments in the region value are sorted.
+
+*/      
+};
+
+/*
+7.10 overloaded output operator
+
+*/
+ostream& operator<<( ostream& o, const CRegion& cr );
 
 #endif // __SPATIAL_ALGEBRA_H__
+
+
+/*
+8 Operations of the Spatial Algebra
+
+In this part, we discribe the signatures of operations which should be implemented in the spatial algebra.
+
+We use the following notations:
+
+EXT={line, region}
+
+GEOSET={points, EXT}
+
+GEO={point, GEOSET}
+
+8.1 Operations from the Foundation Paper
+
+Predicates:
+
+isempty    geo --> bool
+
+intersects   geo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
