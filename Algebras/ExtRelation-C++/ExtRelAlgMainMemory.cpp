@@ -63,8 +63,8 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   int sortAttrIndex;
   int nSortAttrs;
   bool sortOrderIsAscending;
-  TupleCmp ccCmp;
-  LexicographicalTupleCompare lCcCmp;
+  TupleCompareBy *tupCmpBy;
+  LexicographicalTupleCompare lexCmp;
   Tuple* t;
 
   switch(message)
@@ -84,7 +84,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       if(lexicographically)
       {
         sortMeasurer.Enter();
-        sort(tuples->begin(), tuples->end(), lCcCmp);
+        sort(tuples->begin(), tuples->end(), lexCmp);
         sortMeasurer.Exit();
       }
       else
@@ -123,11 +123,12 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
             (bool*)((StandardAttribute*)boolWord.addr)->GetValue();
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
         };
-        ccCmp.spec = spec;
-
+        
+        tupCmpBy = new TupleCompareBy( spec );
         sortMeasurer.Enter();
-        sort(tuples->begin(), tuples->end(), ccCmp);
+        sort(tuples->begin(), tuples->end(), *tupCmpBy);
         sortMeasurer.Exit();
+        delete tupCmpBy;
       }
 
       sortMeasurer.PrintCPUTimeAndReset("CPU Time for Sorting Tuples : ");
@@ -647,11 +648,11 @@ public:
 
   Tuple* NextResultTuple()
   {
-    assert( tupleA.addr != 0 );
     Tuple *result;
 
     while( !endquery )
     {
+      assert( tupleA.addr != 0 );
       while( iterTuplesBucketB != bucketsB[hashA].end() )
       {
         if( CompareTuples( (Tuple *)tupleA.addr, *iterTuplesBucketB ) == 0 )

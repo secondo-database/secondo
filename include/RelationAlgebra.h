@@ -272,6 +272,11 @@ Returns the attribute at position ~index~ inside the tuple.
 Puts an attribute in the position ~index~ inside the tuple.
 
 */
+    const long GetMemorySize() const;
+/*
+Returns the size of the memory (in bytes) used by the tuple.
+
+*/
     const int GetNoAttributes() const;
 /*
 Returns the number of attributes of the tuple.

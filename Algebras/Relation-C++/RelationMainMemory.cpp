@@ -342,8 +342,16 @@ Relation::Relation( const TupleType& tupleType, const bool isTemporary ):
   privateRelation( new PrivateRelation( tupleType ) )
   {}
 
-Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
+Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
   privateRelation( new PrivateRelation( typeInfo ) )
+  {
+    // This main memory version of the relational algebra does not need to open
+    // relations, they are always created from the scratch.
+    assert( 0 );
+  }
+
+Relation::Relation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary ):
+  privateRelation( new PrivateRelation( tupleType ) )
   {
     // This main memory version of the relational algebra does not need to open
     // relations, they are always created from the scratch.

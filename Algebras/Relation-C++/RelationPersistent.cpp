@@ -627,6 +627,21 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
   privateTuple->attributes[index] = attr;
 }
 
+const long Tuple::GetMemorySize() const
+{
+  long extensionSize = 0;
+  for( int i = 0; i < privateTuple->tupleType.GetNoAttributes(); i++)
+  {
+    for( int j = 0; j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
+    {
+      FLOB *tmpFLOB = privateTuple->attributes[i]->GetFLOB(j);
+      if( !tmpFLOB->IsLob() )
+        extensionSize += tmpFLOB->GetSize();
+    }
+  }
+  return privateTuple->tupleType.GetTotalSize() + extensionSize;
+}
+
 const int Tuple::GetNoAttributes() const
 {
   return privateTuple->tupleType.GetNoAttributes();
