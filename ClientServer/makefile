@@ -5,6 +5,7 @@
 ########################################################################
 
 include ../makefile.env
+include ../makefile.jni
 
 OBJECTS=\
 	SocketIO.$(OBJEXT) \
@@ -71,7 +72,7 @@ SecondoListener.o: SecondoListener.cpp Application.h Processes.h SocketIO.h Prof
 	$(CC) -c -o $@ $< $(CCXFLAGS)
 
 SecondoServer.o: SecondoServer.cpp Application.h SocketIO.h Profiles.h AlgebraTypes.h SecondoSystem.h SecondoCatalog.h SecondoInterface.h Messenger.h Profiles.h
-	$(CC) -c -o $@ $< $(CCXFLAGS)
+	$(CC) -c -o $@ $< $(CCXFLAGS) $(JNIINCLUDE)
 
 $(LIBDIR)/SecondoInterfaceCS.o: SecondoInterfaceCS.cpp SecondoInterface.h Profiles.h
 	$(CC) -c -o $@ $< $(CCXFLAGS)
@@ -94,7 +95,7 @@ $(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 $(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT)  
-	$(LD) $(EXEFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB) 
+	$(LD) $(EXEFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB) $(JNILINKOPTS)
 
 $(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
