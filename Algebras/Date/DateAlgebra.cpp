@@ -343,7 +343,7 @@ Date*  Date::Clone() {return (new Date( *this));}
 
 ostream& Date::Print(ostream &os)
 {
-  return (os << year << "-"<<month <<"-"<<day);
+  return (os << day << "." << month << "." << year);
 }
 
 
@@ -369,8 +369,8 @@ OutDate( ListExpr typeInfo, Word value )
   date = (Date*)(value.addr);
   if (date->IsDefined())
   {
-    sprintf(buf, "%d-%02d-%02d", date->GetYear(), 
-            date->GetMonth(), date->GetDay());   //eg. "1993-02-01"
+    sprintf(buf, "%02d.%02d.%d", date->GetDay(), 
+            date->GetMonth(), date->GetYear());   //eg. "01.02.1993"
   }
   else
   {
@@ -387,7 +387,7 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
   Date* newdate;
   string inputStr;
   char *i, *j;
-  int slash=0;
+  int dot=0;
   char buf[100];
 
   if (nl->IsAtom(instance) && nl->AtomType(instance)==StringType)
@@ -411,15 +411,15 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
     //basic check on date format
     for ( i=buf; i<buf+bufLen; i++)
     {
-        if (*i=='-') slash++;
-        if ((*i!='-') && ((*i<'0') || (*i>'9')))
+        if (*i=='.') dot++;
+        if ((*i!='.') && ((*i<'0') || (*i>'9')))
         {
             cout <<">>>invalid date!<<<"<<endl;
             correct = false;
             return SetWord(Address(0));
         }
     }
-    if (slash!=2)
+    if (dot!=2)
     {
          cout <<">>>invalid date!<<<"<<endl;
          correct = false;
@@ -427,19 +427,19 @@ InDate( const ListExpr typeInfo, const ListExpr instance,
     }
     //extract the year, month, day information from the date
     i=buf; j=i;
-    while ((*j!='-') && (j<buf+bufLen))  j++;
+    while ((*j!='.') && (j<buf+bufLen))  j++;
     *j=0;
-    int Year=atoi(i);
+    int Day=atoi(i);
 
     i=j+1; j=i;
-    while ((*j!='-') && (j<buf+bufLen))  j++;
+    while ((*j!='.') && (j<buf+bufLen))  j++;
     *j=0;
     int Month=atoi(i);
 
     i=j+1; j=i;
-    while ((*j!='-') && (j<buf+bufLen))  j++;
+    while ((*j!='.') && (j<buf+bufLen))  j++;
     *j=0;
-    int Day=atoi(i);
+    int Year=atoi(i);
 
     if (isdate(Day, Month, Year))
     {
@@ -513,8 +513,8 @@ DateProperty()
 {
   ListExpr listreplist = nl->TextAtom();
   ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(listreplist, "\"<year>-<month>-<day>\"");
-  nl->AppendText(examplelist, "\"2003-09-05\"");
+  nl->AppendText(listreplist, "\"<day>.<month>.<year>\"");
+  nl->AppendText(examplelist, "\"9.5.1955\"");
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
