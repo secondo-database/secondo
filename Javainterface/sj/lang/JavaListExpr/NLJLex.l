@@ -108,7 +108,7 @@ class NLToken extends Symbol implements NLSymbol{
 // It returns the count in an integer variable ~yychar~
 %char
 
-// Configures the scaner to count the number of lines readed.The count is 
+// Configures the scaner to count the number of lines readed.The count is
 // zero-based ( the first line is the character 0).
 // It returns the count in an integer variable ~yyline~
 %line
@@ -166,14 +166,14 @@ string         \"[^\"]*\"
                       System.err.println("DEBUG MODE: Error when parsing an integer number from the input in the NLTokenizer class.");
                     }
                     return (new NLToken(NLToken.error, null, yychar+1,
-                            yyline+1)); 
+                            yyline+1));
  	          }
                   // If the value was propertly parsed.
                   return(new NLToken(NLToken.TT_INT_ATOM, value, yychar+1,
                          yyline+1));
                 }
 
-<YYINITIAL> -?{digit}*\.({digit}+)?(E-?{digit}+)? { 
+<YYINITIAL> -?{digit}*\.({digit}+)?((E|e)-?{digit}+)? {
                   // The token is a ~realAtom~.
                   // Gets its value.
                   ListExpr value = null;
