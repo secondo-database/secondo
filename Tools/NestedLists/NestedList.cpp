@@ -244,7 +244,7 @@ NestedList::NodeType2Text( NodeType type )
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::TheEmptyList()
 {
   return (0);
@@ -434,20 +434,20 @@ NestedList::Destroy ( const ListExpr list )
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::OneElemList( const ListExpr elem1 )
 {
   return (Cons( elem1, TheEmptyList() ));
 }
 
-ListExpr
+inline ListExpr
 NestedList::TwoElemList( const ListExpr elem1, const ListExpr elem2 )
 {
   return (Cons( elem1,
                 Cons( elem2, TheEmptyList () ) ));
 }
 
-ListExpr
+inline ListExpr
 NestedList::ThreeElemList( const ListExpr elem1, const ListExpr elem2,
                            const ListExpr elem3 )
 {
@@ -456,7 +456,7 @@ NestedList::ThreeElemList( const ListExpr elem1, const ListExpr elem2,
                       Cons( elem3, TheEmptyList () ) ) ));
 }
 
-ListExpr
+inline ListExpr
 NestedList::FourElemList( const ListExpr elem1, const ListExpr elem2,
                           const ListExpr elem3, const ListExpr elem4 )
 {
@@ -466,7 +466,7 @@ NestedList::FourElemList( const ListExpr elem1, const ListExpr elem2,
                             Cons( elem4, TheEmptyList () ) ) ) ));
 }
 
-ListExpr
+inline ListExpr
 NestedList::FiveElemList( const ListExpr elem1, const ListExpr elem2,
                           const ListExpr elem3, const ListExpr elem4,
                           const ListExpr elem5 )
@@ -478,7 +478,7 @@ NestedList::FiveElemList( const ListExpr elem1, const ListExpr elem2,
                                   Cons( elem5, TheEmptyList () ) ) ) ) ));
 }
 
-ListExpr
+inline ListExpr
 NestedList::SixElemList( const ListExpr elem1, const ListExpr elem2,
                          const ListExpr elem3, const ListExpr elem4,
                          const ListExpr elem5, const ListExpr elem6 )
@@ -498,14 +498,14 @@ NestedList::SixElemList( const ListExpr elem1, const ListExpr elem2,
 
 */
 
-bool
+inline bool
 NestedList::IsEmpty( const ListExpr list )
 {
   return (list == 0);
 }
 
 
-bool
+inline bool
 NestedList::IsAtom( const ListExpr list )
 {
   if ( IsEmpty( list ) )
@@ -518,7 +518,7 @@ NestedList::IsAtom( const ListExpr list )
   }
 }
 
-bool
+inline bool
 NestedList::EndOfList( ListExpr list )
 {
   if ( IsEmpty( list ) )
@@ -1280,11 +1280,14 @@ bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 
   int strlen = 0;
-	
   NodeRecord nodeRec1;
-  nodeTable->Get(list, nodeRec1);
+  NodeType NT = NoAtom;
 
-  NodeType NT = nodeRec1.nodeType; 
+  if ( list != TheEmptyList() ) {
+
+     nodeTable->Get(list, nodeRec1);
+     NT = nodeRec1.nodeType; 
+  }
 
       switch( NT ) {
 
@@ -1334,7 +1337,7 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 	  }
 	  case TextType:   {
                            os << (byte) 6;
-	                   string value = Text2String(list);
+	                   string value = Text2String(list); // to do: stream based processing of texts
 			   strlen = value.length();
 			   os.write( Int2CharArray(strlen),4 );
                            os.write( value.data(),strlen );
@@ -1393,7 +1396,7 @@ Write ~list~ indented by level to standard output.
 7.1 First
 
 */
-ListExpr
+inline ListExpr
 NestedList::First( const ListExpr list )
 {
   assert( !IsEmpty( list ) && !IsAtom( list ) );
@@ -1405,7 +1408,7 @@ NestedList::First( const ListExpr list )
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::Rest( const ListExpr list )
 {
   assert( !IsEmpty( list ) && !IsAtom( list ) );
@@ -1463,7 +1466,7 @@ least ~N~ elements.
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::Second( const ListExpr list)
 {
   return (NthElement( 2, 2, list ));
@@ -1474,7 +1477,7 @@ NestedList::Second( const ListExpr list)
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::Third( const ListExpr list )
 {
   return (NthElement( 3, 3, list ));
@@ -1485,7 +1488,7 @@ NestedList::Third( const ListExpr list )
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::Fourth( const ListExpr list )
 {
   return (NthElement( 4, 4, list ));
@@ -1496,7 +1499,7 @@ NestedList::Fourth( const ListExpr list )
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::Fifth( const ListExpr list )
 {
   return (NthElement( 5, 5, list ));
@@ -1507,7 +1510,7 @@ NestedList::Fifth( const ListExpr list )
 
 */
 
-ListExpr
+inline ListExpr
 NestedList::Sixth( const ListExpr list )
 {
   return (NthElement( 6, 6, list ));

@@ -355,7 +355,7 @@ Destroys a nested list container.
 1.3.2 Construction Operations
 
 */
-  ListExpr TheEmptyList();
+  inline ListExpr TheEmptyList();
 /*
 Returns a pointer to an empty list (a ``nil'' pointer).
 
@@ -401,17 +401,17 @@ result.
 1.3.3 Test Operations
 
 */
-  bool IsEmpty( const ListExpr list );
+  inline bool IsEmpty( const ListExpr list );
 /*
 Returns "true"[4] if ~list~ is the empty list.
 
 */
-  bool IsAtom( const ListExpr list );
+  inline bool IsAtom( const ListExpr list );
 /*
 Returns "true"[4] if ~list~ is an atom.
 
 */
-  bool EndOfList( ListExpr list );
+  inline bool EndOfList( ListExpr list );
 /*
 Returns "true"[4] if ~Right~(~list~) is the empty list. Returns "false"[4] 
 otherwise and if ~list~ is empty or an atom.
@@ -448,14 +448,14 @@ Returns "true"[4] if ~atom~ is a symbol atom and has the same value as ~str~.
 1.3.4 Traversal
 
 */
-  ListExpr First( const ListExpr list );
+  inline ListExpr First( const ListExpr list );
 /*
 Returns (a pointer to) the left son of ~list~. Result can be the empty list.
 
 *Precondition*: ~list~ is no atom and is not empty.
 
 */
-  ListExpr Rest( const ListExpr list );
+  inline ListExpr Rest( const ListExpr list );
 /*
 Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
@@ -526,22 +526,22 @@ A number of procedures is offered to construct lists with one, two, three,
 etc. up to six elements. 
 
 */
-  ListExpr OneElemList( const ListExpr elem1 );
-  ListExpr TwoElemList( const ListExpr elem1,
+  inline ListExpr OneElemList( const ListExpr elem1 );
+  inline ListExpr TwoElemList( const ListExpr elem1,
                         const ListExpr elem2 );
-  ListExpr ThreeElemList( const ListExpr elem1,
+  inline ListExpr ThreeElemList( const ListExpr elem1,
                           const ListExpr elem2,
                           const ListExpr elem3 );
-  ListExpr FourElemList( const ListExpr elem1,
+  inline ListExpr FourElemList( const ListExpr elem1,
                          const ListExpr elem2,
                          const ListExpr elem3,
                          const ListExpr elem4 );
-  ListExpr FiveElemList( const ListExpr elem1,
+  inline ListExpr FiveElemList( const ListExpr elem1,
                          const ListExpr elem2,
                          const ListExpr elem3,
                          const ListExpr elem4,
                          const ListExpr elem5 );
-  ListExpr SixElemList( const ListExpr elem1,
+  inline ListExpr SixElemList( const ListExpr elem1,
                         const ListExpr elem2,
                         const ListExpr elem3,
                         const ListExpr elem4,
@@ -556,11 +556,11 @@ Similarly, there are procedures to access the second, ..., sixth element.
 Acessing the first element is a basic operation defined above.
 
 */
-  ListExpr Second( const ListExpr list );
-  ListExpr Third( const ListExpr list );
-  ListExpr Fourth( const ListExpr list );
-  ListExpr Fifth( const ListExpr list );
-  ListExpr Sixth( const ListExpr list );
+  inline ListExpr Second( const ListExpr list );
+  inline ListExpr Third( const ListExpr list );
+  inline ListExpr Fourth( const ListExpr list );
+  inline ListExpr Fifth( const ListExpr list );
+  inline ListExpr Sixth( const ListExpr list );
 /*
 A pointer to the respective element is returned. Result may be the empty list, 
 of course.

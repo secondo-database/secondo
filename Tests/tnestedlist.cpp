@@ -51,8 +51,11 @@ const string filePrefix = "testout-";
 void pause()
 {
    char buf[80];
-   cout << "<<< Press return to continue >>>" << endl;
+   cout << "<<< continue? [y,n]: >>>" << endl;
    cin.getline( buf, sizeof(buf) );
+   if ( buf[0] != 'y' && buf[0] != 'Y' ) {
+   exit(0);
+   } 
 }
 
 /******************************************************************************
@@ -229,6 +232,30 @@ ConcatLists_bug() {
   cerr << endl << "### concatenatedlist: " << nl->ToString(concatenatedlist);
 
 }
+
+void empty_textResult() {
+
+   NestedList nl(rf,10,10,10,10);
+
+   //string s1("(0 0 <text></text---> ())");
+   string s1("()");
+  
+   ListExpr list1=0;
+
+   nl.ReadFromString(s1,list1);
+   cout << "string s1: " <<  nl.ToString(list1) << endl;
+   cout << "WriteListExpr: " << list1 << endl;
+   nl.WriteListExpr(list1); 
+   
+   string outname("empty_text.bnl");
+   cout << endl << "Writing " + outname << endl;
+   ofstream outFile2(outname.c_str(), ios::out|ios::trunc|ios::binary); 
+   nl.WriteBinaryTo(list1, outFile2);   
+   outFile2.close();
+
+}
+
+
 
 int 
 TestBasicOperations()
@@ -685,7 +712,10 @@ TestRun_MainMemory() {
    bool ok = true;
    
    cout << endl << "Test run main memory" << endl;
-   
+  
+   pause();
+   empty_textResult();
+ 
    pause();
    TestBasicOperations();
    

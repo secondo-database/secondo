@@ -33,6 +33,9 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
+NestedList.$(OBJEXT):
+	$(CC) -c -o $@ $< $(CCFLAGS) -finline-functions
+
 NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
 	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
 	sed \
