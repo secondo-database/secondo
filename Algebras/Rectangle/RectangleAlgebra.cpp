@@ -532,9 +532,16 @@ int RectangleIntersects( Word* args, Word& result, int message, Word& local, Sup
 {
   result = qp->ResultStorage( s );
 
-  ((CcBool *)result.addr)->
-    Set( true, ((Rectangle<dim>*)args[0].addr)->Intersects( *((Rectangle<dim>*)args[1].addr) ) );
-
+  if ( ((Rectangle<dim>*)args[0].addr)->IsDefined() &&
+       ((Rectangle<dim>*)args[1].addr)->IsDefined() )
+  {
+    ((CcBool *)result.addr)->
+      Set( true, ((Rectangle<dim>*)args[0].addr)->Intersects( *((Rectangle<dim>*)args[1].addr) ) );
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
   return (0);
 }
 

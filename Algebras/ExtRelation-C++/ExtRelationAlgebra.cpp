@@ -4542,13 +4542,21 @@ ListExpr AggregateTypeMap( ListExpr args )
     " and structure (map t1 t1 t2).\n"
     " Operator aggregate gets as third argument '" + argstr + "'.\n" );
 
-  nl->WriteToString(argstr, nl->First(third));
+  nl->WriteToString(argstr, nl->TwoElemList(nl->Second(third), nl->Third(third)) );
   nl->WriteToString(argstr2, attrType);
-  CHECK_COND(nl->Equal(nl->Second(third), attrType),
-    "Operator aggregate expects that the input types for the mapping in the type of the attribute\n"
+  CHECK_COND(nl->Equal(nl->Second(third), attrType) &&
+             nl->Equal(nl->Third(third), attrType),
+    "Operator aggregate expects that the input types for the mapping and the type of the attribute\n"
     "passed as first argument have the same description.\n"
     "Input types for the mapping: '" + argstr + "'.\n"
-    "Fourth argument: '" + argstr2 + "'.\n");
+    "Attribute type: '" + argstr2 + "'.\n");
+
+  nl->WriteToString(argstr, nl->Fourth(third));
+  CHECK_COND(nl->Equal(nl->Fourth(third), attrType),
+    "Operator aggregate expects that the result type for the mapping and the type of the attribute\n"
+    "passed as first argument have the same description.\n"
+    "Result type for the mapping: '" + argstr + "'.\n"
+    "Attribute type: '" + argstr2 + "'.\n");
 
   nl->WriteToString(argstr, fourth);
   CHECK_COND(nl->IsAtom(fourth) && nl->AtomType(fourth) == SymbolType ||
@@ -4582,24 +4590,38 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   // args[3] = zero value
   // args[4] = attribute index added by APPEND
 
-  Word t;
-  int index;
+  Word t1 = SetWord( Address(0) ), 
+       t2 = SetWord( Address(0) );
   ArgVectorPointer vector;
 
   qp->Open(args[0].addr);
-  result = args[3];
-  index = ((CcInt*)args[4].addr)->GetIntval();
+  result = qp->ResultStorage(s);
+  int index = ((CcInt*)args[4].addr)->GetIntval();
 
-  qp->Request(args[0].addr, t);
-  while(qp->Received(args[0].addr))
+  qp->Request( args[0].addr, t1 );
+  if( !qp->Received( args[0].addr ) )
   {
-    vector = qp->Argument(args[2].addr);
-    (*vector)[0] = result;
-    (*vector)[1] = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
-    qp->Request(args[2].addr, result);
-    ((Tuple*)t.addr)->DeleteIfAllowed();
+    ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)args[3].addr );
+  }
+  else
+  {
+    Word iterWord = SetWord( ((Tuple*)t1.addr)->GetAttribute( index-1 ) );
+   
+    qp->Request( args[0].addr, t2 );
+    while( qp->Received( args[0].addr ) )
+    {
+      vector = qp->Argument(args[2].addr);
+      (*vector)[0] = iterWord;
+      (*vector)[1] = SetWord( ((Tuple*)t2.addr)->GetAttribute( index-1 ) );
+      qp->Request(args[2].addr, iterWord);
 
-    qp->Request(args[0].addr, t);
+      ((Tuple*)t1.addr)->DeleteIfAllowed();
+      t1 = t2;
+
+      qp->Request(args[0].addr, t2);
+    }
+    ((StandardAttribute*)result.addr)->CopyFrom( (StandardAttribute*)iterWord.addr );  
+    ((Tuple*)t1.addr)->DeleteIfAllowed();
   }
   qp->Close(args[0].addr);
 

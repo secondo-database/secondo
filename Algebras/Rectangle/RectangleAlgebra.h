@@ -341,10 +341,7 @@ Checks if the rectangle contains the rectangle ~r~.
 template <unsigned dim>
 bool Rectangle<dim>::Contains( const Rectangle<dim>& r ) const
 {
-  assert( r.IsDefined() );
-
-  if( !IsDefined() )
-    return false;
+  assert( defined && r.defined );
 
   for( unsigned i = 0; i < dim; i++ )
     if( min[i] > r.min[i] || max[i] < r.max[i] )
@@ -360,14 +357,12 @@ Checks if the rectangle intersects with rectangle ~r~.
 template <unsigned dim>
 bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
 {
-  if( !IsDefined() || !r.IsDefined() )
-    return false;
+  assert( defined && r.defined );
 
   for( unsigned i = 0; i < dim; i++ )
-  {
     if( max[i] < r.min[i] || r.max[i] < min[i] )
       return false;
-  }
+
   return true;
 }
 
@@ -458,11 +453,8 @@ Returns the bounding box that contains both this and the rectangle ~r~.
 template <unsigned dim>
 Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r ) const
 {
-  if( !IsDefined() )
-    return r;
-
-  if( !r.IsDefined() )
-    return *this;
+  if( !defined || !r.defined )
+    return Rectangle<dim>( false );
 
   double auxmin[dim], auxmax[dim];
   for( unsigned i = 0; i < dim; i++ )
@@ -480,10 +472,13 @@ Translates the rectangle given the translate vector ~t~.
 template <unsigned dim>
 Rectangle<dim>& Rectangle<dim>::Translate( const double t[dim] )
 {
-  for( unsigned i = 0; i < dim; i++ )
+  if( defined )
   {
-    min[i] += t[i];
-    max[i] += t[i];
+    for( unsigned i = 0; i < dim; i++ )
+    {
+      min[i] += t[i];
+      max[i] += t[i];
+    }
   }
   return *this;
 }
@@ -496,7 +491,7 @@ of the rectangle.
 template <unsigned dim>
 const Rectangle<dim> Rectangle<dim>::BoundingBox() const
 {
-  if ( IsDefined() )
+  if( defined )
     return Rectangle<dim>( *this );
   else
     return Rectangle<dim>( false );
@@ -509,23 +504,16 @@ Returns the intersection between this and the rectangle ~r~.
 template <unsigned dim>
 Rectangle<dim> Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
 {
-  if( !IsDefined() )
-    return *this;
+  if( !defined || !r.defined || !Intersects( r ) )
+    return Rectangle<dim>( false ); 
 
-  if( !r.IsDefined() )
-    return r;
-
-  if( Intersects( r ) )
+  double auxmin[dim], auxmax[dim];
+  for( unsigned i = 0; i < dim; i++ )
   {
-    double auxmin[dim], auxmax[dim];
-    for( unsigned i = 0; i < dim; i++ )
-    {
-      auxmin[i] = MAX( min[i], r.min[i] );
-      auxmax[i] = MIN( max[i], r.max[i] );
-    }
-    return Rectangle<dim>( true, auxmin, auxmax );
+    auxmin[i] = MAX( min[i], r.min[i] );
+    auxmax[i] = MIN( max[i], r.max[i] );
   }
-  else return Rectangle<dim>( false );
+  return Rectangle<dim>( true, auxmin, auxmax );
 }
 
 /*
@@ -536,7 +524,7 @@ represent an empty set.
 template <unsigned dim>
 bool Rectangle<dim>::Proper() const
 {
-  if( IsDefined() )
+  if( defined )
   {
     for( unsigned i = 0; i < dim; i++ )
       if( min[i] > max[i] )

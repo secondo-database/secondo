@@ -880,30 +880,33 @@ void Points::GetPt( Point& p )
 
 void Points::InsertPt( Point& p )
 {
-    assert(p.IsDefined());
+  assert(p.IsDefined());
 
+  if( IsEmpty() )
+    bbox = p.BoundingBox();
+  else
     bbox = bbox.Union( p.BoundingBox() );
 
-    if( !IsOrdered() )
-    {
-  pos=points.Size();
-  points.Put( points.Size(), p );
-    }
-    else
-    {
-  int insertpos = Position( p );
-  if( insertpos != -1 )
+  if( !IsOrdered() )
   {
+    pos = points.Size();
+    points.Put( points.Size(), p );
+  }
+  else
+  {
+    int insertpos = Position( p );
+    if( insertpos != -1 )
+    {
       for( int i = points.Size() - 1; i >= insertpos; i++ )
       {
-    Point auxp;
-    points.Get( i, auxp );
-    points.Put( i+1, auxp );
+        Point auxp;
+        points.Get( i, auxp );
+        points.Put( i+1, auxp );
       }
       points.Put( insertpos, p );
       pos=insertpos;
-  }
     }
+  }
 }
 
 int Points::Position( const Point& p )
@@ -995,21 +998,24 @@ Points& Points::operator+=(const Point& p)
 {
   assert( p.IsDefined() );
 
-  bbox = bbox.Union( p.BoundingBox() );
+  if( IsEmpty() )
+    bbox = p.BoundingBox();
+  else
+    bbox = bbox.Union( p.BoundingBox() );
 
   if( !IsOrdered() )
   {
-      bool found=false;
-      Point auxp;
+    bool found=false;
+    Point auxp;
 
-      for( int i = 0; ((i < points.Size())&&(!found)); i++ )
-      {
-    points.Get( i, auxp );
-    if (auxp==p) found=true;
-      }
+    for( int i = 0; ((i < points.Size())&&(!found)); i++ )
+    {
+      points.Get( i, auxp );
+      if (auxp==p) found=true;
+    }
 
-      if (!found)
-    points.Put( points.Size(), p );
+    if (!found)
+      points.Put( points.Size(), p );
   }
   else
   {
@@ -1030,7 +1036,10 @@ Points& Points::operator+=(const Point& p)
 
 Points& Points::operator+=(Points& ps)
 {
-  bbox = bbox.Union( ps.BoundingBox() );
+  if( IsEmpty() )
+    bbox = ps.BoundingBox();
+  else
+    bbox = bbox.Union( ps.BoundingBox() );
 
   for( int i = 0; i < ps.Size(); i++ )
   {
@@ -1038,6 +1047,7 @@ Points& Points::operator+=(Points& ps)
     ps.Get( i, p );
     points.Put( points.Size(), p );
   }
+
   if( IsOrdered() )
   {
     ordered = false;
@@ -1063,10 +1073,14 @@ Points& Points::operator-=(const Point& p)
   }
 
   // Naive way to redo the bounding box.
-  bbox.SetDefined( false );
-  for( int i = 0; i < Size(); i++ )
+  if( IsEmpty() )
+    bbox.SetDefined( false );
+  int i = 0;
+  Point auxp;
+  points.Get( i++, auxp );
+  bbox = auxp.BoundingBox();
+  for( ; i < Size(); i++ )
   {
-    Point auxp;
     points.Get( i, auxp );
     bbox = bbox.Union( auxp.BoundingBox() );
   }
@@ -3488,20 +3502,23 @@ CLine& CLine::operator+=(const CHalfSegment& chs)
 {
   assert(chs.IsDefined());
 
-  bbox=bbox.Union( chs.BoundingBox() );
+  if( IsEmpty() )
+    bbox = chs.BoundingBox();
+  else
+    bbox = bbox.Union( chs.BoundingBox() );
 
   if( !IsOrdered() )
   {
-      bool found=false;
-      CHalfSegment auxchs;
+    bool found=false;
+    CHalfSegment auxchs;
 
-      for( int i = 0; ((i < line.Size())&&(!found)); i++ )
-      {
-    line.Get( i, auxchs );
-    if (auxchs==chs) found=true;
-      }
+    for( int i = 0; ((i < line.Size())&&(!found)); i++ )
+    {
+      line.Get( i, auxchs );
+      if (auxchs==chs) found=true;
+    }
 
-      if (!found)  line.Put( line.Size(), chs);
+    if (!found)  line.Put( line.Size(), chs);
   }
   else
   {
@@ -3536,12 +3553,16 @@ CLine& CLine::operator-=(const CHalfSegment& chs)
   }
 
   // Naive way to redo the bounding box.
-  bbox.SetDefined( false );
-  for( int i = 0; i < Size(); i++ )
+  if( IsEmpty() )
+    bbox.SetDefined( false );
+  int i = 0;
+  CHalfSegment auxchs;
+  line.Get( i++, auxchs );
+  bbox = chs.BoundingBox();
+  for( ; i < Size(); i++ )
   {
-      CHalfSegment auxchs;
-      line.Get( i, auxchs );
-      bbox = bbox.Union( chs.BoundingBox() );
+    line.Get( i, auxchs );
+    bbox = bbox.Union( chs.BoundingBox() );
   }
 
   return *this;
@@ -4807,11 +4828,14 @@ CRegion& CRegion::operator+=(const CHalfSegment& chs)
 {
   assert(chs.IsDefined());
 
-  bbox=bbox.Union( chs.BoundingBox() );
+  if( IsEmpty() )
+    bbox = chs.BoundingBox();
+  else
+    bbox = bbox.Union( chs.BoundingBox() );
 
   if( !IsOrdered() )
   {
-      region.Put( region.Size(), chs);
+    region.Put( region.Size(), chs);
   }
   else
   {
@@ -4846,12 +4870,16 @@ CRegion& CRegion::operator-=(const CHalfSegment& chs)
   }
 
   // Naive way to redo the bounding box.
-  bbox.SetDefined( false );
-  for( int i = 0; i < Size(); i++ )
+  if( IsEmpty() )
+    bbox.SetDefined( false );
+  int i = 0;
+  CHalfSegment auxchs;
+  region.Get( i++, auxchs );
+  bbox = auxchs.BoundingBox();
+  for( ; i < Size(); i++ )
   {
-      CHalfSegment auxchs;
-      region.Get( i, auxchs );
-      bbox = bbox.Union( chs.BoundingBox() );
+    region.Get( i, auxchs );
+    bbox = bbox.Union( chs.BoundingBox() );
   }
 
   return *this;
