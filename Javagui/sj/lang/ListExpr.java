@@ -142,7 +142,7 @@ public class ListExpr extends Object {
   // Defines if the class must show extra information when errors are detected.
   private static boolean DEBUG_MODE = true;
   // Defines if the class must check the preconditions and shows extra information when an input that does not fulfil the preconditions is detected.
-  private static final boolean CHECK_PRECONDITIONS = true;
+  private static final boolean CHECK_PRECONDITIONS = false;
   // defines the maximal length for string atoms
   private static int MAX_STRING_LENGTH = 48;
   // The ~emptyList~ object.
@@ -1555,10 +1555,24 @@ catch(Exception e){
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (value.length() > MAX_STRING_LENGTH) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the stringAtom() method: the input string is larger than "+
-	                    MAX_STRING_LENGTH+" characters.");
+        System.err.println("CHECK PRECONDITIONS: ");
+        System.err.println("   Error when calling the stringAtom() method:");
+        System.err.println("       the input string is larger than "+
+	                           MAX_STRING_LENGTH+" characters.");
+        System.err.println("   String will be shortened");
       }
     }
+
+    // correct stringlength and content
+    if( value.length() > MAX_STRING_LENGTH){
+      value = value.substring(0,MAX_STRING_LENGTH);
+    }
+    if(value.indexOf("\"")>0){
+       System.err.println("Warning: String of a string-atom contains doublequotes");
+       System.err.println("         replace it by single quotes");
+       value = value.replace('\"','\''); 
+    }
+
     ListExpr result = new ListExpr();
     result.value = value;
     result.type = ListExpr.STRING_ATOM;
