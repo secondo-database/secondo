@@ -31,7 +31,7 @@ using namespace std;
 extern "C" {
 
 // out-comment to see internal libjpeg-datastructures for debugging:
-#define JPEG_INTERNALS
+//#define JPEG_INTERNALS
 
 #ifdef JPEG_INTERNALS
 #include "./DebugOnLinuxGNU/jpeglib.h"
