@@ -1,382 +1,111 @@
 /*
+1 Database Dependent Information
 
 [File ~database.pl~]
 
-1 Database Dependent Information
 
-The Secondo optimizer module needs database dependent information to
-compute the best query plan. In particular information about the
-cardinality and the schema of a relation is needed by the optimizer.
-Furthermore the spelling of relation and attribute names must be
-known to send a Secondo query or command. Remember, that all object
-and attribute names are given in lower case, because of the PROLOG
-notation. Words starting with a capital letter are interpreted as a
-variable in PROLOG. Finally the optimizer has to be informed, if an 
-index exists for the pair (relation name, attribute name). All this
-information retrievement is provided by this module.
-
-1.1  Information About Cardinalities Of Relations
-
----- card(Rel, Size) :-
-----
-
-The cardinality of relation ~Rel~ is ~Size~.
-
-1.1.1 Retrieving Cardinalities
-
-If ~card~ is called, it tries to look up the cardinality via the 
-dynamic predicate ~storedCard~ (automatically stored).
-If this fails, a Secondo query is issued, which determines the
-cardinality. The retrieved cardinality is then stored in predicate
-~storedCard~.
-
-*/
-
-card(Rel, Size) :-
-  storedCard(Rel, Size),
-  !.
-
-/*
-Looking up for default writing of the relation name, e.g. Staedte. A
-Secondo query is necessary for the next three rules.
-
-*/
-
-card(Rel, Size) :-
-  not(spelling(Rel, _)),
-  %spelled(Rel, Rel2, u),
-  %Rel = Rel2,
-  Query = (count(rel(Rel, _, u))),  
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  secondo(QueryAtom, [int, Size]),
-  assert(storedCard(Rel, Size)),
-  !.
-
-/*
-The first letter of the relation name is written in lower case, e.g. plz 
-or cItIEs.
-
-*/
-
-card(Rel, Size) :-
-  spelling(Rel, Spelled),
-  Spelled = lc(Spelled2),
-  Query = (count(rel(Spelled2, _, l))),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  secondo(QueryAtom, [int, Size]),
-  assert(storedCard(Rel, Size)),
-  !.
-
-/*
-Arbitrary writing of the relation name, the first letter is in upper 
-case, e.g. PLZ or TEn.
-
-*/
-
-card(Rel, Size) :-
-  spelling(Rel, Spelled), 
-  Query = (count(rel(Spelled, _,u))),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  secondo(QueryAtom, [int, Size]),
-  assert(storedCard(Rel, Size)),
-  !.
-
-card(_, _) :- fail.
-  
-/*
-1.1.2 Storing and Loading Cardinalities
-
-At halt, all retrieved information about the cardinality
-is stored in a file ~storedCards.pl~. This file is loaded up with the
-next call of the optimizer program. This mechanism ensures that a
-cardinality has to be retrieved only once.
-
-*/
-
-readStoredCards :-
-  retractall(storedCard(_, _)),
-  [storedCards].  
-
-writeStoredCards :-
-  open('storedCards.pl', write, FD),
-  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
-  findall(_, writeStoredCard(FD), _),
-  close(FD).
-
-writeStoredCard(Stream) :-
-  storedCard(X, Y),
-  write(Stream, storedCard(X, Y)),
-  write(Stream, '.\n').
-
-:-
-  dynamic(storedCard/2),
-  at_halt(writeStoredCards),
-  readStoredCards.
-
-/*
-1.2 Information About The Spelling Of Relation And Attribute Names
-
----- spelling(Rel:Attr, AttrName) :-
-     spelling(Rel, RelName) :-
-----
-
-The spelling of attribute ~Attr~ of relation ~Rel~ is ~AttrName~.
-
-The spelling of relation ~Rel~ is ~RelName~.
-
-1.2.1 Auxiliary Rules
-
-The Rule ~lowerfl~ sets the first letter of atom ~Upper~ to upper case.
-The result is unified with atom ~Lower~.
-
-*/
-lowerfl(Upper, Lower) :-
-  atom_codes(Upper, [First | Rest]),
-  to_lower(First, First2),
-  LowerList = [First2 | Rest],
-  atom_codes(Lower, LowerList).
-
-/*
-The test ~is\_lowerfl~ checks whether the first letter of ~Rel~ is in
-lower case.
-
-*/
-is_lowerfl(Rel) :-
-  atom_chars(Rel, [First | _]),
-  downcase_atom(First, LCFirst),
-  First = LCFirst.
-
-/*
-The ~spelling2~ rules insure that object ~Rel~ is a member of the list
-~ObjList~ and then the dynamic predicate ~storedSpell~ is set up to the
-respective value. The three possible spellings of relation names have
-to be differentiated.
-
-*/
-spelling2(Rel, ObjList, _) :-
-  upper(Rel, URel),
-  member(URel, ObjList),
-  assert(storedSpell(Rel, default)),
-  !,
-  fail.
-
-spelling2(Rel, ObjList, RelName) :-
-  member(RelList, ObjList),
-  downcase_atom(RelList, Rel),
-  is_lowerfl(RelList),
-  RelName = lc(RelList),
-  assert(storedSpell(Rel, lc(RelList))),
-  !.
-
-spelling2(Rel, ObjList, RelName) :-
-  member(RelList, ObjList),
-  downcase_atom(RelList,Rel),
-  lowerfl(RelList, RelName),
-  assert(storedSpell(Rel, RelName)),
-  !.
-
-/*
-~downcase\_list~ converts the letters of all atoms of the first list
-to lower case.
-
-*/ 
-downcase_list([], []).
-downcase_list([First1 | Rest1], [First2 | Rest2]) :-
-  downcase_atom(First1, First2),
-  downcase_list(Rest1, Rest2).
-
-/*
-~nextto~ succeeds when ~Y~ follows ~X~ in a list.
-
-*/
-nextto(X, Y, [First1, First2 | Rest], RestList) :-
-  X = First1,
-  Y = First2,
-  RestList = Rest.
-nextto(X, Y, [_ | Rest],RestList) :-
-  nextto(X, Y, Rest,RestList).
-
-/*
-~getElem~ issues the Secondo command ~list objects~ and unifies 
-~Elem~ with the real spelling of ~Attr~. Furthermore ~Attr~ must
-be an attribute of ~Rel~.
-
-*/
-getElem(Rel, Attr, Elem) :-
-  secondo('list objects', ObjList),
-  flatten(ObjList, ObjList2),
-  downcase_list(ObjList2,ObjList3),
-  nth1(Index1, ObjList3, object),
-  nth1(Index2, ObjList3, Rel),
-  Index2 is Index1 + 1,
-  nextto(object, Rel, ObjList3, RestList),
-  nth1(Index3, RestList, Attr),
-  Index4 is Index2 + Index3,
-  nth1(Index4, ObjList2, Elem),
-  assert(elem_is(Rel, Attr, Elem)),
-  !.
-
-/* 
-1.2.2 Spelling Of Attribute Names
-
-The first two ~spelling~ rules try to get the spelling of the
-attribute name via the dynamic predicate ~storedSpell~.
-
-*/
-spelling(Rel:Attr, _) :-
-  storedSpell(Rel:Attr, default),
-  !,
-  fail.
-
-spelling(Rel:Attr, AttrName) :-
-  storedSpell(Rel:Attr, AttrName),
-  !.
-
-/*
-The next three ~spelling~ rules retrieve the real spelling of
-~Attr~ by sending a Secondo command. Again the three possible
-different spellings of attribute names have to be differentiated.
-
-*/
-spelling(Rel:Attr, _) :-
-  getElem(Rel, Attr, Elem),
-  upper(Attr, UAttr),
-  UAttr = Elem,
-  assert(storedSpell(Rel:Attr, default)),
-  !,
-  fail.
-
-spelling(Rel:Attr, AttrName) :-
-  elem_is(Rel, Attr, Elem),
-  is_lowerfl(Elem),
-  AttrName = lc(Elem),
-  assert(storedSpell(Rel:Attr, lc(Elem))),
-  !.
-
-spelling(Rel:Attr, AttrName) :-
-  elem_is(Rel, Attr, Elem),
-  lowerfl(Elem, AttrName),
-  assert(storedSpell(Rel:Attr, AttrName)),
-  !.
-
-spelling(_:_, _) :-
-  !,
-  fail. 
-
-/* 
-1.2.3 Spelling Of Relation Names
-
-The first two ~spelling~ rules try to retrieve the spelling
-of relation name ~Rel~ by the predicate ~storedSpell~. The
-last rule issues a Secondo command for this purpose.
-
-*/
-spelling(Rel, _) :-
-  storedSpell(Rel, default),
-  !,
-  fail.
-
-spelling(Rel, RelName) :-
-  storedSpell(Rel, RelName),
-  !.
-
-spelling(Rel, RelName) :-
-  secondo('list objects', ObjList),
-  flatten(ObjList, ObjList2),
-  spelling2(Rel, ObjList2, RelName),
-  !.
-
-/*
-1.2.4 Loading and Storing Relation And Attribute Names
-
-This is quite similiar to the mechanism used in the section about
-the cardinalities of relations.
-
-*/
-readStoredSpells :-
-  retractall(storedSpell(_, _)),
-  [storedSpells]. 
-
-writeStoredSpells :-
-  open('storedSpells.pl', write, FD),
-  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
-  findall(_, writeStoredSpell(FD), _),
-  close(FD).
-
-writeStoredSpell(Stream) :-
-  storedSpell(X, Y),
-  write(Stream, storedSpell(X, Y)),
-  write(Stream, '.\n').
-
-:-
-  dynamic(storedSpell/2),
-  dynamic(elem_is/3),
-  at_halt(writeStoredSpells),
-  readStoredSpells.
-
-/*
-1.3 Relation Schemas
-
----- relation(Rel, AttrList) :-
-----
-
-The schema for relation ~Rel~ is ~AttrList~.
-
-1.3.1 Auxiliary Rule
-
-Rule and fact ~extractlist~ finds a list for one object
-within a list of object lists. The result is unified with
-the second list.
+1.1 Relation Schemas
 
 */
 extractList([[First, _]], [First]).
 extractList([[First, _] | Rest], [First | Rest2]) :-
   extractList(Rest, Rest2).
 
-getSpelled(Rel:Attr) :-
-  spelled(Rel:Attr, attr(Attr, 0, l)).
-
-getSpelled(Rel:Attr) :-
-  spelled(Rel:Attr, attr(Attr, 0, u)).
-
-getIndex(Rel, Attr) :-
-  not(hasIndex(rel(Rel, _, _), attr(Attr, _, _), _)).
-
-getIndex(Rel, Attr) :-
-  hasIndex(rel(Rel, _, _), attr(Attr, _, _), _).
-
-createAttrSpelled(_, []).
-createAttrSpelled(Rel, [ First | Rest ]) :-
-  getSpelled(Rel:First),
-  getIndex(Rel, First),
-  createAttrSpelled(Rel, Rest).
+downcase_list([], []).
+downcase_list([First1 | Rest1], [First2 | Rest2]) :-
+  downcase_atom(First1, First2),
+  downcase_list(Rest1, Rest2).
 
 /*
-1.3.2 Looking Up For Relation Schemas
-
-The schema of the relation ~Rel~, namely a list of the attribute names,
-is binded to the variable ~AttrList~ (PROLOG list). By this way we look
-up for the spelling of all attribute names in ~Attrlist~. Furthermore
-we determine, if there exists an index for all elements in ~Attrlist~
-or not.
-
+relation(staedte, [sname, bev, plz, vorwahl, kennzeichen]).
+relation(plz, [plz, ort]).
+relation(ten, [no]).
+relation(thousand, [no]).
+relation(orte, [kennzeichen, ort, vorwahl, bevt]).
+relation(test1, [attr1, attr2, attr3]).
+relation(test2, [attr1, attr2, attr3]).
+relation(test3, [attr1, attr2, attr3]).
+relation(test4, [attr1, attr2, attr3]).
 */
+
+createSampleRelation(Rel, ObjList) :-
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleName(Rel3, Sample),
+  member(['OBJECT', Sample, _ , [[_ | _]]], ObjList),
+  !.
+
+createSampleRelation(Rel, ObjList) :-
+  spelling(Rel, Rel2),
+  not(Rel2 = lc(_)),
+  upper(Rel2, URel),
+  sampleName(URel, Sample),
+  member(['OBJECT', Sample, _ , [[_ | _]]], ObjList),
+  !.
+
+createSampleRelation(Rel, _) :-
+  spelling(Rel, Rel2),
+  Rel2 = lc(Rel3),
+  sampleName(Rel3, Sample),
+  concat_atom(['let ', Sample, ' = ', Rel3, 
+    ' sample[100, 0.01] consume'], '', QueryAtom),
+  secondo(QueryAtom),
+  card(Rel3, Card),
+  SampleCard is truncate(min(Card, max(100, Card*0.01))),
+  assert(storedCard(Sample, SampleCard)),
+  downcase_atom(Sample, DCSample),
+  assert(storedSpell(DCSample, lc(Sample))),
+  !.
+
+createSampleRelation(Rel, _) :-
+  spelling(Rel, Rel2),
+  upper(Rel2, URel),
+  sampleName(URel, Sample),
+  concat_atom(['let ', Sample, ' = ', URel, 
+    ' sample[100, 0.01] consume'], '', QueryAtom),
+  secondo(QueryAtom),
+  card(Rel2, Card),
+  SampleCard is truncate(min(Card, max(100, Card*0.01))),
+  lowerfl(Sample, LSample),
+  assert(storedCard(LSample, SampleCard)),
+  downcase_atom(Sample, DCSample),
+  assert(storedSpell(DCSample, LSample)),
+  !.
+
+lookupIndex(Rel, Attr) :-
+  not(hasIndex(rel(Rel, _, _), attr(Attr, _, _), _)).
+
+lookupIndex(Rel, Attr) :-
+  hasIndex(rel(Rel, _, _), attr(Attr, _, _), _).
+
+createAttrSpelledAndIndexLookUp(_, []).
+createAttrSpelledAndIndexLookUp(Rel, [ First | Rest ]) :-
+  %downcase_atom(Rel, DCRel),
+  downcase_atom(First, DCFirst),
+  spelling(Rel:DCFirst, _),
+  %lowerfl(Rel, LRel),
+  spelled(Rel, SRel, _),
+  lowerfl(First, LFirst),
+  lookupIndex(SRel, LFirst),
+  createAttrSpelledAndIndexLookUp(Rel, Rest).
+
 relation(Rel, AttrList) :-
   storedRel(Rel, AttrList),
   !.
 
 relation(Rel, AttrList) :-
-  secondo('list objects',[_, [_, [_ | ObjList]]]),
-  member(['OBJECT',OrigRel,_ | [[[_ | [[_ | [RestList]]]]]]], ObjList),
-  downcase_atom(OrigRel, DCRel),
+  getSecondoList(ObjList),
+  member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList2]]]]]]], ObjList),
+  downcase_atom(ORel, DCRel),
   DCRel = Rel,
-  extractList(RestList, AttrList2),
-  downcase_list(AttrList2, AttrList),
+  extractList(AttrList2, AttrList3),
+  downcase_list(AttrList3, AttrList),
   assert(storedRel(Rel, AttrList)),
-  createAttrSpelled(Rel, AttrList).
+  spelling(Rel, _),
+  createAttrSpelledAndIndexLookUp(Rel, AttrList3),
+  card(Rel, _),
+  createSampleRelation(Rel, ObjList),
+  retract(storedSecondoList(ObjList)).
 
 /*
 1.3.3 Storing And Loading Relation Schemas
@@ -405,36 +134,209 @@ writeStoredRel(Stream) :-
   at_halt(writeStoredRels),
   readStoredRels.
 
+
 /*
-1.4 Indexes
-
----- hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :-
-----
-
-If succeeds, ~Index~ is the name of an index of relation ~Rel~ and
-attribute ~Attr~, otherwise fails.
-
-1.4.1 Auxiliary Rules
-
-Looks up if an index exists for ~Rel~ and ~Attr~. If an index exists the
-dynamic predicate ~storedIndex~ is set up properly with the index type
-~IndexType~ e.g. btree and the index name ~Index~. If there isn't any
-existing index, the dynamic predicate ~storedNoIndex~ is initialized 
-respectively (second rule).
+1.2 Spelling of Relation and Attribute Names
 
 */
-retrieveIndex(Rel, Attr, Index) :-
-  secondo('list objects',[_, [_, [_ | ObjList]]]),
-  member(['OBJECT', Index, _ , [[IndexType | _]]], ObjList),
-  assert(storedIndex(Rel, Attr, IndexType, Index)),
+
+is_lowerfl(Rel) :-
+  atom_chars(Rel, [First | _]),
+  downcase_atom(First, LCFirst),
+  First = LCFirst.
+  
+lowerfl(Upper, Lower) :-
+  atom_codes(Upper, [First | Rest]),
+  to_lower(First, First2),
+  LowerList = [First2 | Rest],
+  atom_codes(Lower, LowerList).
+  
+getSecondoList(ObjList) :-
+  storedSecondoList(ObjList),
   !.
 
-retrieveIndex(Rel, Attr, _) :-
-  relation(Rel, List),
-  member(Attr, List),
-  assert(storedNoIndex(Rel, Attr)),
-  !,
-  fail.
+getSecondoList(ObjList) :-
+  secondo('list objects',[_, [_, [_ | ObjList]]]), 
+  assert(storedSecondoList(ObjList)),
+  !.
+ 
+/* 
+spelling(staedte:plz, pLZ).
+spelling(staedte:sname, sName).
+spelling(plz, lc(plz)).
+spelling(plz:plz, pLZ).
+spelling(ten, lc(ten)).
+spelling(ten:no, lc(no)).
+spelling(thousand, lc(thousand)).
+spelling(thousand:no, lc(no)).
+spelling(orte:bevt, bevT).
+spelling(test1, test1).
+spelling(test2, lc(test2)).
+spelling(test3, lc(tEST3)).
+spelling(test4, tEst4).
+spelling(test1:attr1, attr1).
+spelling(test1:attr2, lc(attr2)).
+spelling(test1:attr3, lc(aTTR3)).
+spelling(test1:attr4, aTtr4).
+spelling(test2:attr1, attr1).
+spelling(test2:attr2, lc(attr2)).
+spelling(test2:attr3, lc(aTTR3)).
+spelling(test2:attr4, aTtr4).
+spelling(test3:attr1, attr1).
+spelling(test3:attr2, lc(attr2)).
+spelling(test3:attr3, lc(aTTR3)).
+spelling(test3:attr4, aTtr4).
+spelling(test4:attr1, attr1).
+spelling(test4:attr2, lc(attr2)).
+spelling(test4:attr3, lc(aTTR3)).
+spelling(test4:attr4, aTtr4).
+*/
+
+spelling(Rel:Attr, Spelled) :-
+  storedSpell(Rel:Attr, Spelled),
+  !.
+
+spelling(Rel:Attr, Spelled) :-
+  getSecondoList(ObjList),
+  member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList]]]]]]], ObjList),
+  downcase_atom(ORel, Rel),
+  member([OAttr, _], AttrList),
+  downcase_atom(OAttr, Attr),
+  is_lowerfl(OAttr),
+  Spelled = lc(OAttr),
+  assert(storedSpell(Rel:Attr, lc(OAttr))),
+  %retract(storedSecondoList(ObjList)),
+  !.
+
+spelling(Rel:Attr, Spelled) :-
+  getSecondoList(ObjList),
+  member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList]]]]]]], ObjList),
+  downcase_atom(ORel, Rel),
+  member([OAttr, _], AttrList),
+  downcase_atom(OAttr, Attr),
+  lowerfl(OAttr, Spelled),
+  assert(storedSpell(Rel:Attr, Spelled)),
+  %retract(storedSecondoList(ObjList)),
+  !.
+
+spelling(_:_, _) :- !, fail.  
+
+spelling(Rel, Spelled) :-
+  storedSpell(Rel, Spelled),
+  !.
+
+spelling(Rel, Spelled) :-
+  getSecondoList(ObjList),
+  member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
+  downcase_atom(ORel, Rel),
+  is_lowerfl(ORel),
+  Spelled = lc(ORel),
+  assert(storedSpell(Rel, lc(ORel))),
+  %retract(storedSecondoList(ObjList)),
+  !.
+  
+spelling(Rel, Spelled) :-
+  getSecondoList(ObjList),
+  member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
+  downcase_atom(ORel, Rel),
+  lowerfl(ORel, Spelled),
+  assert(storedSpell(Rel, Spelled)),
+  %retract(storedSecondoList(ObjList)),
+  !.
+  
+readStoredSpells :-
+  retractall(storedSpell(_, _)),
+  [storedSpells]. 
+
+writeStoredSpells :-
+  open('storedSpells.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredSpell(FD), _),
+  close(FD).
+
+writeStoredSpell(Stream) :-
+  storedSpell(X, Y),
+  write(Stream, storedSpell(X, Y)),
+  write(Stream, '.\n').
+
+:-
+  dynamic(storedSpell/2),
+  dynamic(storedSecondoList/1),
+  dynamic(elem_is/3),
+  at_halt(writeStoredSpells),
+  readStoredSpells.
+
+/*
+
+1.3  Cardinalities of Relations
+
+*/
+
+/*
+card(staedte, 58).
+card(staedte_sample, 58).
+card(plz, 41267).
+card(plz_sample, 428).
+card(ten, 10).
+card(ten_sample, 10).
+card(thousand, 1000).
+card(thousand_sample, 89).
+card(orte, 506).
+card(orte_sample, 100).
+card(test1, 2).
+card(test2, 2).
+card(tEST3, 2).
+card(tEst4, 2).
+card(test1_sample, 2).
+card(test2_sample, 2).
+card(tEST3_sample, 2).
+card(tEST4_sample, 2).
+*/
+
+card(Rel, Size) :-
+  storedCard(Rel, Size),
+  !.
+  
+card(Rel, Size) :-
+  %downcase_atom(Rel, DCRel),
+  spelled(Rel, Rel2, l),
+  Query = (count(rel(Rel2, _, l))),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  secondo(QueryAtom, [int, Size]),
+  assert(storedCard(Rel2, Size)),
+  !.
+
+card(Rel, Size) :-
+  spelled(Rel, Rel2, u),
+  Query = (count(rel(Rel2, _, u))),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  secondo(QueryAtom, [int, Size]),
+  assert(storedCard(Rel2, Size)),
+  !.
+
+card(_, _) :- fail.
+
+readStoredCards :-
+  retractall(storedCard(_, _)),
+  [storedCards].  
+
+writeStoredCards :-
+  open('storedCards.pl', write, FD),
+  write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredCard(FD), _),
+  close(FD).
+
+writeStoredCard(Stream) :-
+  storedCard(X, Y),
+  write(Stream, storedCard(X, Y)),
+  write(Stream, '.\n').
+
+:-
+  dynamic(storedCard/2),
+  at_halt(writeStoredCards),
+  readStoredCards.
 
 /*
 1.4.2 Looking Up For Existing Indexes
@@ -443,6 +345,19 @@ The first rule simply reduces a renamed attribute of the form e.g.
 p:ort just to its attribute name e.g. ort.
 
 */
+
+verifyIndexAndStoreIndex(Rel, Attr, Index) :-
+  getSecondoList(ObjList),
+  member(['OBJECT', Index, _ , [[IndexType | _]]], ObjList),
+  assert(storedIndex(Rel, Attr, IndexType, Index)),
+  !.
+
+verifyIndexAndStoreNoIndex(Rel, Attr) :-
+  downcase_atom(Rel, DCRel),
+  downcase_atom(Attr, DCAttr),
+  relation(DCRel, List),
+  member(DCAttr, List),
+  assert(storedNoIndex(Rel, Attr)).
 
 hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName) :-
   hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName).
@@ -472,49 +387,34 @@ of spelling relation name ~Rel~ and attribute name ~Attr~, so that
 objects.
 
 */
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %both written in lc
-  not(Attr = _:_),
-  spelled(Rel, Rel2, l),
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
+  not(Attr = _:_),                                   %succeeds
   spelled(Rel:Attr, attr(Attr2, 0, l)),
-  atom_concat(Rel2, '_', Index1),
+  atom_concat(Rel, '_', Index1),
   atom_concat(Index1, Attr2, Index),
-  retrieveIndex(Rel, Attr, Index),
+  verifyIndexAndStoreIndex(Rel, Attr, Index),
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %rel in lc attr in uc
-  not(Attr = _:_),
-  spelled(Rel, Rel2, l),
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-     %attr in lc
+  not(Attr = _:_),                                   %fails
+  spelled(Rel:Attr, attr(_, 0, l)),
+  verifyIndexAndStoreNoIndex(Rel, Attr),
+  !, fail.
+
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in uc
+  not(Attr = _:_),                                   %succeeds
   spelled(Rel:Attr, attr(Attr2, 0, u)),
-  not(Attr2 = lc(_)),
   upper(Attr2, SpelledAttr),
-  atom_concat(Rel2, '_', Index1),
+  atom_concat(Rel, '_', Index1),
   atom_concat(Index1, SpelledAttr, Index),
-  retrieveIndex(Rel, Attr, Index),
+  verifyIndexAndStoreIndex(Rel, Attr, Index),
   !.
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %rel in uc attr in lc
-  not(Attr = _:_),
-  spelled(Rel, Rel2, u),
-  spelled(Rel:Attr, attr(Attr2, 0, l)),
-  not(Rel2 = lc(_)),
-  %upper(Rel2, SpelledRel),
-  atom_concat(Rel2, '_', Index1),
-  atom_concat(Index1, Attr2, Index),
-  retrieveIndex(Rel, Attr, Index),
-  !.
-
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- % both written in uc
-  not(Attr = _:_),
-  spelled(Rel, Rel2, u),
-  spelled(Rel:Attr, attr(Attr2, 0, u)),
-  not(Rel2 = lc(_)),
-  not(Attr2 = lc(_)),
-  %upper(Rel2, SpelledRel),
-  upper(Attr2, SpelledAttr),
-  atom_concat(Rel2, '_', Index1),
-  atom_concat(Index1, SpelledAttr, Index),
-  retrieveIndex(Rel, Attr, Index),
-  !.
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-     %attr in uc
+  not(Attr = _:_),                                   %fails
+  spelled(Rel:Attr, attr(_, 0, u)),
+  verifyIndexAndStoreNoIndex(Rel, Attr),
+  !, fail.
 
 /*
 1.4.3 Storing And Loading About Existing Indexes
@@ -546,10 +446,113 @@ writeStoredNoIndex(Stream) :-
   write(Stream, '.\n').
 
 :-
-  dynamic(storedIndex/2),
+  dynamic(storedIndex/4),
   dynamic(storedNoIndex/2),
   at_halt(writeStoredIndexes),
   readStoredIndexes.
+/*
+1.4 Update Indexes And Relations
+
+1.4.1 Update Indexes
+
+*/
+updateIndex2(Rel, Attr) :-
+  spelled(Rel, SRel, _),
+  spelled(Rel:Attr, attr(Attr2, _, _)),
+  storedNoIndex(SRel, Attr2),
+  retract(storedNoIndex(SRel, Attr2)),
+  hasIndex(rel(SRel, _, _),attr(Attr2, _, _), _).
+
+updateIndex2(Rel, Attr) :-
+  spelled(Rel, SRel, _),
+  spelled(Rel:Attr, attr(Attr2, _, _)),
+  storedIndex(SRel, Attr2, _, Index),
+  retract(storedIndex(SRel, Attr2, _, Index)),
+  not(hasIndex(rel(SRel, _, _),attr(Attr2, _, _), Index)).
+
+updateIndex(Rel, Attr) :-
+  getSecondoList(ObjList),
+  updateIndex2(Rel, Attr),
+  retract(storedSecondoList(ObjList)), 
+  !.
+
+updateIndex(Rel, Attr) :-
+  getSecondoList(ObjList),
+  not(updateIndex2(Rel, Attr)),
+  retract(storedSecondoList(ObjList)), !, fail.
+/*
+1.4.1 Update Relations
+
+*/
+getRelAttrName(Rel, Arg) :-
+  Arg = Rel:_.
+
+getRelAttrName(Rel, Term) :-
+  functor(Term, _, 1),
+  arg(1, Term, Arg1),
+  getRelAttrName(Rel, Arg1).
+
+getRelAttrName(Rel, Term) :-
+  functor(Term, _, 2),
+  arg(1, Term, Arg1),
+  getRelAttrName(Rel, Arg1).
+
+getRelAttrName(Rel, Term) :-
+  functor(Term, _, 2),
+  arg(2, Term, Arg2),
+  getRelAttrName(Rel, Arg2).
+
+retractSels(Rel) :-
+  storedSel(Term, _),
+  arg(1, Term, Arg1),
+  getRelAttrName(Rel, Arg1),
+  retract(storedSel(Term, _)),
+  retractSels(Rel).
+
+retractSels(Rel) :-
+  storedSel(Term, _),
+  arg(2, Term, Arg2),
+  getRelAttrName(Rel, Arg2),
+  retract(storedSel(Term, _)),
+  retractSels(Rel).
+
+retractSels(_).
+
+updateRel(Rel) :-
+  spelled(Rel, Rel2, l),
+  sampleName(Rel2, Sample),
+  concat_atom(['delete ', Sample], '', QueryAtom),
+  secondo(QueryAtom),
+  lowerfl(Sample, LSample),
+  downcase_atom(Sample, DCSample),
+  retractall(storedCard(Rel2, _)),
+  retractall(storedCard(LSample, _)),
+  retractall(storedSpell(Rel, _)),
+  retractall(storedSpell(Rel:_, _)),
+  retractall(storedSpell(DCSample, _)), 
+  retractSels(Rel2),
+  retractall(storedRel(Rel, _)),
+  retractall(storedIndex(Rel2, _, _, _)),
+  retractall(storedNoIndex(Rel2, _)),!.
+
+updateRel(Rel) :-
+  spelled(Rel, Rel2, u),
+  upper(Rel2, URel),
+  sampleName(URel, Sample),
+  concat_atom(['delete ', Sample], '', QueryAtom),
+  secondo(QueryAtom),
+  lowerfl(Sample, LSample),
+  downcase_atom(Sample, DCSample),
+  retractall(storedCard(Rel2, _)),
+  retractall(storedCard(LSample, _)),
+  retractall(storedSpell(Rel, _)),
+  retractall(storedSpell(Rel:_, _)),
+  retractall(storedSpell(DCSample, _)),  
+  retractSels(Rel2),
+  retractall(storedRel(Rel, _)),
+  retractall(storedIndex(Rel2, _, _, _)),
+  retractall(storedNoIndex(Rel2, _)).
+
 
 
 
