@@ -2771,7 +2771,9 @@ face is not clear. In the following we do this kind of check.
     if ((!chs.IsDefined())||((chs.attr.faceno>0) || (chs.attr.cycleno>2)))
     {          
 	CHalfSegment chsHoleNEnd, chsHoleNStart;
-    
+ 
+	if (region->Size() ==0) return true;
+	
 	int holeNEnd=region->Size()-1;
 	region->Get(holeNEnd, chsHoleNEnd );
     
@@ -2781,7 +2783,7 @@ face is not clear. In the following we do this kind of check.
 	    (chs.attr.cycleno!=chsHoleNEnd.attr.cycleno)))
 	{    //chs start another face or cycle
 	    
-	    cout<<"trigger the test!"<<endl;
+	    //cout<<"trigger the test!"<<endl;
 	    
 	    if (chsHoleNEnd.attr.cycleno>1)
 	    {  	// if the cycle just finished is the second hole or later. 
@@ -2865,8 +2867,11 @@ of different cycles can intersect each other;
 
 The list representation of a region is
 
-----	(face1  face2  face3 ... ) where facei=(outercycle, holecycle1, holecycle2....)
-	each cycle is like this: (vertex1, vertex2,  .....) where each vertex is a point.
+----	(face1  face2  face3 ... ) 
+                 where facei=(outercycle, holecycle1, holecycle2....)
+		 
+	cyclei= (vertex1, vertex2,  .....) 
+                where each vertex is a point.
 ----
 
 8.3 ~Out~-function
@@ -3142,12 +3147,25 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 	  ccno=-1;
 	  edno=-1;
 	  
+	  if (nl->IsAtom( FaceNL ))
+	  {
+	      correct=false;
+	      return SetWord( Address(0) );
+	  }
+	  
 	  while (!nl->IsEmpty( FaceNL) )
 	  {   //2. handle the cycles one by one
 	      CycleNL = nl->First( FaceNL );
+	      FaceNL = nl->Rest( FaceNL );
 	      ccno++;
 	      edno=-1;
-	      FaceNL = nl->Rest( FaceNL );
+	      
+	      if (nl->IsAtom( CycleNL ))
+	      {
+		  correct=false;
+		  return SetWord( Address(0) );
+	      }
+	      
 	       if (nl->ListLength( CycleNL) <3) 
 	       {
 		  cout<<"a cycle must have at least 3 edges!"<<endl;
