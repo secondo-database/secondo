@@ -49,22 +49,23 @@ include ../../include.dep
 .PHONY:pdf
 pdf: DateTimeAlgebra.pdf
 
-DateTimeAlgebra.pdf: DateTimeAlgebra.cpp.dvi
-	dvipdfm -p a4 -o DateTimeAlgebra.pdf DateTimeAlgebra.cpp.dvi
-
-
+DateTimeAlgebra.pdf: DateTimeAlgebra.pd.dvi
+	dvipdfm -p a4 -o DateTimeAlgebra.pdf DateTimeAlgebra.pd.dvi
 
 .PHONY:dvi
-dvi: DateTimeAlgebra.cpp.dvi
+dvi: DateTimeAlgebra.pd.dvi
 
 
-DateTimeAlgebra.cpp.dvi: DateTimeAlgebra.cpp.tex
-	latex DateTimeAlgebra.cpp.tex
-	latex DateTimeAlgebra.cpp.tex
-	latex DateTimeAlgebra.cpp.tex
+DateTimeAlgebra.pd.dvi: DateTimeAlgebra.pd.tex
+	latex DateTimeAlgebra.pd.tex
+	latex DateTimeAlgebra.pd.tex
+	latex DateTimeAlgebra.pd.tex
 
-DateTimeAlgebra.cpp.tex: DateTimeAlgebra.cpp
-	pd2tex DateTimeAlgebra.cpp
+DateTimeAlgebra.pd.tex: DateTimeAlgebra.cpp ../../include/DateTime.h
+	cat DateTimeAlgebra.cpp appendix ../../include/DateTime.h >DateTimeAlgebra.pd
+	pd2tex DateTimeAlgebra.pd
+	$(RM) DateTimeAlgebra.pd
+
 
 
 .PHONY: clean

@@ -27,21 +27,21 @@ The Algebra provides the following operators.
    +                & instant $\times$ duration $\rightarrow$ instant
                     & addition of the arguments \\\cline{2-2}
                     & duration $\times$ instant $\rightarrow$ instant
-		    & possible change of the type \\\cline{2-2}
-		    & duration $\times$ duration $\rightarrow$  duration
-		    & \\\hline
+                    & possible change of the type \\\cline{2-2}
+                    & duration $\times$ duration $\rightarrow$  duration
+                    & \\\hline
    -                & instant $\times$ duration $\rightarrow$ instant
                     & difference of two time instances \\\cline{2-2}
                     & instant $\times$ instant $\rightarrow$ duration
-		    & possible change of the type \\\cline{2-2}
-		    & duration $\times$ duration $\rightarrow$ duration
-		    & \\\hline
+                    & possible change of the type \\\cline{2-2}
+                    & duration $\times$ duration $\rightarrow$ duration
+                    & \\\hline
    *                & duration $\times$ int $\rightarrow$ duration
                     & the multiple of a duration \\\hline
    =, $<$, $>$      & instant $\times$ instant $\rightarrow$ bool
                     & the familiar comparisons \\\cline{2-2}
                     & duration $\times$ duration $\rightarrow$ bool
-		    & \\\hline
+                    & \\\hline
    weekday          & instant $\rightarrow$ string
                     & the weekday in a human readable format \\\hline
    leapyear         & int $\rightarrow$ bool
@@ -509,11 +509,11 @@ bool DateTime::ReadFrom(const string Time){
       day = day*10+digit;
       if(pos==len){ // we allow pure date string without any hour
          if(!IsValid(year,month,day))
-	    return false;
+            return false;
          this->day = ToJulian(year,month,day);;
-	 milliseconds=0;
-	 defined=true;
-	 return true;
+         milliseconds=0;
+         defined=true;
+         return true;
       }
    }
    pos++; // read over '-'
@@ -652,16 +652,16 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
     if(nl->SymbolValue(ValueList)=="now"){
         if(type==instanttype){
            Now();
-	   return true;
-	} else
-	   return false;
+           return true;
+        } else
+           return false;
     }
     if(nl->SymbolValue(ValueList)=="today"){
         if(type==instanttype){
            Today();
-	   return  true;
-	} else
-	   return false;
+           return  true;
+        } else
+           return false;
     }
   }
 
@@ -689,8 +689,8 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
      ListExpr tmp = ValueList;
      while(nl->IsEmpty(tmp)){
         if(nl->AtomType(nl->First(tmp))!=IntType)
-	   return false;
-	tmp = nl->Rest(tmp);
+           return false;
+        tmp = nl->Rest(tmp);
      }
      int d,m,y,h,min,sec,ms;
 
@@ -703,7 +703,7 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
      ms = 0;
      if(len==7){
           ValueList = nl->Rest(ValueList);
-	  ms = nl->IntValue(nl->Sixth(ValueList));
+          ms = nl->IntValue(nl->Sixth(ValueList));
      }
      // check the ranges
      if(!IsValid(y,m,d)) return false;
@@ -1009,8 +1009,8 @@ ListExpr DateTime::ToListExpr(bool typeincluded){
 
   else // a duration
     value = nl->TwoElemList( nl->IntAtom((int)day),
-		             nl->IntAtom((int)milliseconds)
-		             );
+                             nl->IntAtom((int)milliseconds)
+                             );
   if(typeincluded)
      if(type==instanttype)
         return nl->TwoElemList(nl->SymbolAtom("instant"),value);
@@ -1132,7 +1132,7 @@ ListExpr DurationProperty(){
                 nl->StringAtom("(int int)"),
                 nl->StringAtom("(12 273673)"),
                 nl->StringAtom("The first argument is day,"
-		               " the second one milliseconds")
+                               " the second one milliseconds")
          )));
 }
 
@@ -1244,36 +1244,36 @@ bool CheckDuration(ListExpr type, ListExpr& errorInfo){
 
 */
 TypeConstructor instant(
-	"instant",		//name
-	InstantProperty, 	        //property function describing signature
-        OutDateTime, InInstant,	//Out and In functions
-        0,           	                //SaveToList and
-	0,                              //           RestoreFromList functions
-	CreateInstant, DeleteDateTime,	//object creation and deletion
-        OpenDateTime,    SaveDateTime, 	//object open and save
-        CloseDateTime,  CloneDateTime,    	//object close and clone
-	CastDateTime,				//cast function
-        SizeOfDateTime, 			//sizeof function
-	CheckInstant,	                //kind checking function
-	0, 					//predef. pers. function for model
+        "instant",                     //name
+        InstantProperty,              //property function describing signature
+        OutDateTime, InInstant,       //Out and In functions
+        0,                            //SaveToList and
+        0,                            // RestoreFromList functions
+        CreateInstant, DeleteDateTime,//object creation and deletion
+        OpenDateTime,    SaveDateTime,//object open and save
+        CloseDateTime,  CloneDateTime,//object close and clone
+        CastDateTime,                 //cast function
+        SizeOfDateTime,               //sizeof function
+        CheckInstant,                 //kind checking function
+        0,                            //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
         TypeConstructor::DummyValueListToModel );
 
 TypeConstructor duration(
-	"duration",		//name
-	DurationProperty, 	        //property function describing signature
-        OutDateTime, InDuration,	//Out and In functions
-        0,           	                //SaveToList and
-	0,                              //           RestoreFromList functions
-	CreateDuration, DeleteDateTime,	//object creation and deletion
-        OpenDateTime,    SaveDateTime, 	//object open and save
-        CloseDateTime,  CloneDateTime,    	//object close and clone
-	CastDateTime,				//cast function
-        SizeOfDateTime, 			//sizeof function
-	CheckDuration,	                //kind checking function
-	0, 					//predef. pers. function for model
+        "duration",                //name
+        DurationProperty,          //property function describing signature
+        OutDateTime, InDuration,   //Out and In functions
+        0,                         //SaveToList and
+        0,                         // RestoreFromList functions
+        CreateDuration, DeleteDateTime,   //object creation and deletion
+        OpenDateTime,    SaveDateTime,    //object open and save
+        CloseDateTime,  CloneDateTime,    //object close and clone
+        CastDateTime,                     //cast function
+        SizeOfDateTime,                   //sizeof function
+        CheckDuration,                    //kind checking function
+        0,                                //predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,
