@@ -8,9 +8,15 @@
 */
 
 card(staedte, 58).
+card(staedte_sample, 58).
 card(plz, 41267).
+card(plz_sample, 428).
 card(ten, 10).
+card(ten_sample, 10).
 card(thousand, 1000).
+card(thousand_sample, 89).
+
+
 
 /*
 1.2 Hard-Coded Selectivities of Predicates
@@ -101,6 +107,12 @@ Auxiliary predicates for ~selectivity~.
 
 */
 
+sample(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+  atom_concat(Rel, '_sample', Rel2).
+
+sampleName(Name, Sample) :-
+  atom_concat(Name, '_sample', Sample).
+
 possiblyRename(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
@@ -111,12 +123,15 @@ possiblyRename(Rel, Renamed) :-
   Renamed = rename(feed(Rel), Name).
 
 cardQuery(Pred, Rel, Query) :-
-  possiblyRename(Rel, RelQuery),
+  sample(Rel, RelS),
+  possiblyRename(RelS, RelQuery),
   Query = count(filter(RelQuery, Pred)).
 
 cardQuery(Pred, Rel1, Rel2, Query) :-
-  possiblyRename(Rel1, Rel1Query),
-  possiblyRename(Rel2, Rel2Query),
+  sample(Rel1, Rel1S),
+  sample(Rel2, Rel2S),
+  possiblyRename(Rel1S, Rel1Query),
+  possiblyRename(Rel2S, Rel2Query),
   Query = count(filter(product(Rel1Query, Rel2Query), Pred)).
 
 :- dynamic(storedSel/2).
@@ -168,10 +183,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   % write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Rel1 = rel(BaseName1, _, _),
-  card(BaseName1, BaseCard1),
+  sampleName(BaseName1, SampleName1),
+  card(SampleName1, SampleCard1),
   Rel2 = rel(BaseName2, _, _),
-  card(BaseName2, BaseCard2),
-  Sel is ResCard / (BaseCard1 * BaseCard2),
+  sampleName(BaseName2, SampleName2),
+  card(SampleName2, SampleCard2),
+  Sel is ResCard / (SampleCard1 * SampleCard2),
   % write('selectivity : '),
   % write(Sel),
   nl,
@@ -187,8 +204,9 @@ selectivity(pr(Pred, Rel), Sel) :-
   % write(QueryAtom),
   secondo(QueryAtom, [int, ResCard]),
   Rel = rel(BaseName, _, _),
-  card(BaseName, BaseCard),
-  Sel is ResCard / BaseCard,
+  sampleName(BaseName, SampleName),
+  card(SampleName, SampleCard),
+  Sel is ResCard / SampleCard,
   % write('selectivity : '),
   % write(Sel),
   nl,
