@@ -57,15 +57,177 @@ elements of type ~T~.
 #define PAGED_ARRAY_H
 
 #include <iostream> 
+#include <iomanip>
 #include <sstream> 
 #include <fstream> 
 #include <cassert>
 #include <vector>
 #include <map>
+#include <typeinfo>
 
 #include "SecondoSMI.h"
+//#include "NestedList.h"
 
 typedef unsigned long Cardinal;
+
+class RecordBuffer
+{
+
+public:
+  RecordBuffer(SmiRecordFile* bdbFile, int bufSize, int maxBuffers=4, bool traceOn=false) : 
+    BUF_SIZE(bufSize),
+    MAX_BUFFERS(maxBuffers),
+    filePtr(bdbFile),
+    maxPageNr(0),
+    BufInfo(MAX_BUFFERS),
+    bufferReplacements(0),
+    trace(traceOn)
+  {
+    if (trace)
+    cout << "BufSize: " << BUF_SIZE << endl;
+
+    for (int i=0; i < MAX_BUFFERS; i++) { // initialize the buffer
+
+       BufInfo[i].bufPtr = (void*) new char[BUF_SIZE];
+       bufferMap[i] = i;
+       recidVec.push_back( RecordInfo(0,i) );
+       maxPageNr++;
+
+       if (trace)
+       cout << "buf: " << i << ": Adr " << (void*) BufInfo[i].bufPtr << endl;
+    }
+    
+  }
+
+
+  ~RecordBuffer() {
+
+    for (int i=0; i < MAX_BUFFERS; i++) {
+       delete [] (char*) BufInfo[i].bufPtr;
+    }
+  
+  }
+
+  void* GetBufPtr(const Cardinal& pageNr, bool &pageChange) {
+   
+     if (trace)
+     cout << "pageNr: " << pageNr << endl; 
+     
+     int bufNr = -1;
+     // check if page is currently inside the buffer
+     if ( (pageNr <= maxPageNr) && (recidVec[pageNr].index >= 0) ) {
+ 
+       bufNr = recidVec[pageNr].index;
+
+     } else { // not in buffer
+     
+       // select buffer number to replace
+       bufNr = RoundRobin();
+       Replace(bufNr, pageNr);
+       pageChange=true;
+
+     }
+     assert( bufNr >= 0 && bufNr < MAX_BUFFERS );
+     return (void*) BufInfo[bufNr].bufPtr;
+   }
+
+
+private:
+
+  int BUF_SIZE;
+  int MAX_BUFFERS;
+
+  SmiRecord record;
+  SmiRecordId recid;
+  SmiRecordFile *filePtr;
+
+  struct RecordInfo {
+  
+    SmiRecordId id;
+    int index;
+    RecordInfo(SmiRecordId ID, int INDEX) : id(ID), index(INDEX) {}
+
+  };
+  vector<RecordInfo> recidVec;
+  Cardinal maxPageNr;
+
+  struct BufInfoRec {
+
+    int pageNr;    
+    SmiRecordId recId;  
+    bool recExists;  
+    void *bufPtr;   
+    BufInfoRec() : pageNr(0), recId(0), recExists(false), bufPtr(0) {}  
+
+  };
+  vector<BufInfoRec> BufInfo;
+
+  map<Cardinal, int> bufferMap;
+  int bufferReplacements;
+
+  bool trace;
+
+  void Replace(const int bufNr, const Cardinal pageNr) { 
+
+    assert( (pageNr <= (maxPageNr+1)) && (pageNr >= 0) );
+    assert( (bufNr >= 0) && (bufNr < MAX_BUFFERS) );
+
+    void* bufPtr = BufInfo[bufNr].bufPtr;
+    // write bufNr to disk
+    SmiRecord record;
+    SmiRecordId recId; 
+    if ( !BufInfo[bufNr].recExists ) { // a new record is needed
+
+      record.Finish(); 
+      assert( filePtr->AppendRecord( recId, record ) );
+
+    } else {
+      recId = BufInfo[bufNr].recId;
+    }
+    assert( filePtr->SelectRecord( recId, record, SmiFile::Update ) );
+
+    record.Write( bufPtr, BUF_SIZE, 0);
+    RecordInfo& recInfo = recidVec[ BufInfo[bufNr].pageNr ];
+    recInfo.index = -1; // record is on disk
+    recInfo.id = recId;
+    
+    // Read record into memory
+    if ( pageNr > maxPageNr ) { // a new entry in the page table is needed 
+
+      BufInfo[bufNr].recExists = false;
+      recidVec.push_back( RecordInfo(0, bufNr) );
+      maxPageNr++;
+
+    } else { // entry is present in page table
+
+      record.Finish();
+      assert( filePtr->SelectRecord( recidVec[pageNr].id, record, SmiFile::Update ) );
+      record.Read( bufPtr, BUF_SIZE, 0);
+      BufInfo[bufNr].recExists = true;
+      recidVec[pageNr].index = bufNr;
+    }
+
+    if (trace) {
+      cout << "MaxPageNr: " << maxPageNr << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
+    }
+ 
+    bufferReplacements++;
+  }
+
+  int RoundRobin() {
+
+    static int nextBuf=0;
+    if ( nextBuf == MAX_BUFFERS-1 ) {
+       nextBuf=0;
+    } else {
+       nextBuf++;
+    }
+    return nextBuf;
+  }
+
+};
+
+
 extern unsigned int FileCtr;    // quick and dirty, sorry!
 
 template<class T>
@@ -73,7 +235,7 @@ class PagedArray
 {
  public:
 
-  PagedArray( SmiRecordFile *parrays, bool logon=false );
+  PagedArray( SmiRecordFile *parrays, bool logon=false, const int buffers=4 );
 
 /*
 Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
@@ -136,12 +298,6 @@ Returns the element ~index~ of the array.
 /*
 Returns the size of this array.
 
-*/
-
-  const SmiRecordId Id() const;
-
-/*
-Returns the identifier of this array.
 
 1.3.1 Performance Analysis
 
@@ -168,59 +324,42 @@ reflects the total number of the called ~Get~ operations.
   
  private:
 
-  // Number of pages which are hold in memory
-  static const int MAX_PAGE_FRAMES = 4;
-
   // the next method loads another record if neccessary 
   // and calculates a slot number inside a record
   inline void GetSlot( Cardinal const index, int &slot );
 
   bool writeable;
   bool canDelete;
- 
-  SmiRecord record;
-  SmiRecordId recid;
- 
-  SmiRecordFile *parrays;
-  vector<SmiRecordId> recidVec;
-
   Cardinal size;
-  Cardinal maxPageNo;
+
+
+  //Cardinal maxPageNo;
   
-  typedef map<int, T*> PageMapType;
-  PageMapType pageTable;
-  typedef typename PageMapType::iterator PageMapIter;
-  PageMapIter it, frameChangeIter; 
-
-  // Table for the record ids of the currently loaded records
-  Cardinal frameTable[MAX_PAGE_FRAMES];  
-
-  typedef struct {
+  struct PageRecordInfo { // define some important sizes derived from the record size
     
     int size;      // size of the record
     int slotSize;  // size of the objects stored in the array
     int slots;     // number of slots per record
 
-  } PageRecordInfo;
+    PageRecordInfo( int recSize ) : size(recSize), slotSize( sizeof(T) ) 
+    {
+      slots =  size / slotSize;
+      assert ( (size > slotSize) && (slots > 0) );
+    }
 
-  typedef struct {
-
-    int no;          // frame number of the currently used page
-    int nextFrame;   // frame number which will be substituted next
-    T *bufPtr;       // pointer to the Framebuffer
-  
-  } PageInfo;
- 
-  PageInfo currentPage;
+  };
   PageRecordInfo pageRecord;
   
+  RecordBuffer recordBuf; // Record buffer and pointer to elements
+  T* bufPtr;
+
 /*
  The structure below groups all information used for
  creating trace files.
  
 */   
   
-  typedef struct {
+  struct  LogInfo {
 
     bool switchedOn;
     ofstream *filePtr;
@@ -228,8 +367,7 @@ reflects the total number of the called ~Get~ operations.
     unsigned long pageChangeCounter; 
     unsigned long slotAccessCounter;
 
-  }  LogInfo;
-
+  };
   LogInfo log;
 
 };
@@ -249,89 +387,45 @@ top of the SecondoSMI interface.
 
 
 template<class T>
-PagedArray<T>::PagedArray( SmiRecordFile *parrays, bool logOn /*=false*/ ) :
+PagedArray<T>::PagedArray( SmiRecordFile *parrays, bool logOn /*=false*/, const int buffers /*=4*/ ) :
 writeable( true ),
 canDelete( false ),
-parrays( parrays ),
-size( 0 )
+size( 0 ),
+pageRecord( parrays->GetRecordLength() ),
+recordBuf( parrays, pageRecord.size, buffers, true ),
+bufPtr(0)
 {
   log.switchedOn = logOn;
-
   log.pageChangeCounter = 0;
   log.slotAccessCounter = 0;
 
-  maxPageNo = 0;
 
-  pageRecord.size = parrays->GetRecordLength();
-  pageRecord.slotSize = sizeof(T);
-  pageRecord.slots =  pageRecord.size / pageRecord.slotSize;
-
-  for (int i=0; i < MAX_PAGE_FRAMES; i++) {
-
-    assert( parrays->AppendRecord( recid, record ) );
-    record.Finish();
-    pageTable[i] =  new T[ pageRecord.slots ];
-    frameTable[i] = i;
-    recidVec.push_back( recid );
-    maxPageNo++;
-  }
-  size = MAX_PAGE_FRAMES * pageRecord.slots;
-
-  currentPage.no = 0;
-  currentPage.bufPtr = pageTable[0];
-  currentPage.nextFrame = 0;  
+  size = buffers * pageRecord.slots;
 
   if ( log.switchedOn ) {
 
     FileCtr++;
-    log.fileName << "PagedArray_" << FileCtr << "_" << pageRecord.slots << ".log" << ends; 
+    log.fileName << "PagedArray_" << typeid(T).name() << "_" << FileCtr << "_" << pageRecord.slots << ".log" << ends; 
     log.filePtr = new ofstream( log.fileName.str().c_str() );  
+    (*log.filePtr) << "# slotsize:   " << pageRecord.slotSize << endl
+                   << "# pagesize:   " << pageRecord.size << endl
+                   << "#             " << endl
+                   << "# index | changes in page buffer | page/index on page" << endl << endl;
   }
 
 }
 
- /*
-  * template<class T>
-  * PagedArray<T>::PagedArray( SmiRecordFile *parrays, 
-  *                            const SmiRecordId id, const bool update ) :
-  * writeable( update ),
-  * canDelete( false ),
-  * parrays( parrays )
-  * {
-  *  SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  *  assert( parrays->SelectRecord( id, record, at ) );
-  *  recid = id;
-  *  record.Read( &size, sizeof( int ) );
-  * }
-  */
 
 template<class T>
 PagedArray<T>::~PagedArray()
 {
-  for (it = pageTable.begin(); it != pageTable.end(); it++) {
-     
-     recid = recidVec[ it->first ];
-     record.Finish();
-     assert( parrays->SelectRecord(recid, record, SmiFile::Update) );
-     record.Write( it->second, pageRecord.size, 0);
-     
-     delete [] it->second;
-  }
 
-  if ( log.switchedOn ) {
+  if ( log.switchedOn ) { // Write global Ctrs for page changes
+    (*log.filePtr) << endl 
+                   << "# Total page changes: " << log.pageChangeCounter << endl
+                   << "# Total slot accesses: " << log.slotAccessCounter << endl;
     delete log.filePtr;
   }
-
- /*
-  * if ( canDelete ) 
-  * {
-  *  parrays->DeleteRecord( recid );
-  * }
-  * else if ( writeable )
-  * {
-  * record.Write( &size, sizeof( int ) );
-  * } 
-  */
 }
 
 /*
@@ -344,76 +438,21 @@ of the pages in memory has to be substituted by a page on disk.
 template< class T>
 void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
 {
-  static int pageNo = 0;
+  static Cardinal pageNo = 0;
   bool pageChange = false;
  
 
   // enlarge the array if necessary 
   if (index >= size) {
-    
-     assert( parrays->AppendRecord( recid, record ) );
-     recidVec.push_back(recid);
-     maxPageNo++;
      size = size + pageRecord.slots;
   } 
 
   // calculate page number
   pageNo = index / pageRecord.slots;
-  
-  if ( currentPage.no != pageNo ) {
+  // cast the buffer pointer 
+  bufPtr = (T*) recordBuf.GetBufPtr(pageNo, pageChange); 
 
-  it = pageTable.find( pageNo ); // check if page number is in the cache
-
-  if ( it == pageTable.end() ) { // substitute memory buffer
-
-     frameChangeIter = pageTable.find( frameTable[ currentPage.nextFrame ] );
-
-     T* bufPtr = frameChangeIter->second;
-     int removePageNo = frameChangeIter->first;
- 
-     recid = recidVec[ removePageNo ];
-     record.Finish();
-     assert( parrays->SelectRecord(recid, record, SmiFile::Update) );
-
-     record.Write( bufPtr, pageRecord.size, 0);
-     
-     recid = recidVec[ pageNo ];
-     record.Finish();
-     assert( parrays->SelectRecord(recid, record, SmiFile::Update) );
-     record.Read( bufPtr, pageRecord.size, 0 );
-    
-     pageTable[pageNo] = bufPtr; 
-     pageTable.erase(frameChangeIter);
-     frameTable[currentPage.nextFrame] = pageNo;
-
-     currentPage.bufPtr = bufPtr;
-     currentPage.no = pageNo;
-
-     if ( log.switchedOn ) {
-       *(log.filePtr) << index << " | PageChange: " 
-	              << frameChangeIter->first << " -> " << pageNo; 
-       pageChange = true;
-       log.pageChangeCounter++;
-     }
-  
-     currentPage.nextFrame++;
-     if (  currentPage.nextFrame == MAX_PAGE_FRAMES ) {
-        currentPage.nextFrame = 0;
-     }
-     /*  Note: A cyclic move inside the buffers cannot be implemented with 
-      *  an iterator for the map elements since the insert and erase method
-      *  will corrupt this iterator.       
-      */
- 
-  } else { // update page number and page frame address
-
-     currentPage.no = pageNo;
-     currentPage.bufPtr = it->second; 
-  }
-
-  }
-
-  slot = index - (currentPage.no * pageRecord.slots);
+  slot = index - (pageNo * pageRecord.slots);
   assert ( slot >= 0 && slot < pageRecord.slots);
   
   if ( log.switchedOn ) {
@@ -436,7 +475,19 @@ void PagedArray<T>::Put(Cardinal const index, T& elem)
   assert ( index <= size );
 
   GetSlot(index, slot);
-  currentPage.bufPtr[slot] = elem;
+  bufPtr[slot] = elem;
+  if ( log.switchedOn ) {
+    *(log.filePtr) << "w(" << index << "," << &(bufPtr[slot]) << ")" << endl; 
+    string typeName(typeid(elem).name());
+    if ( index == 1 && typeName.find("Node") ) {
+      *(log.filePtr) << "v(1,nodetype:";
+      for (unsigned int i=0; i<sizeof(T); i++ ) {
+         char s = *(((char*) &bufPtr[slot]) + i);
+         *(log.filePtr) << (255 & (unsigned int) s) << " ";
+      }
+      *(log.filePtr) << ")" << endl;
+    }
+  }
 }
 
 
@@ -448,7 +499,21 @@ void PagedArray<T>::Get(Cardinal const index, T& elem)
   assert ( 0 <= index && index < size );
   
   GetSlot(index, slot); 
-  elem = currentPage.bufPtr[slot];
+  // reinitialize type T at a given address
+  elem = *( new(&(bufPtr[slot])) T );
+  if ( log.switchedOn ) {
+    
+    *(log.filePtr) << "r(" << index << "," << &(bufPtr[slot]) << ")" << endl; 
+    string typeName(typeid(elem).name());
+    if ( index == 1 && typeName.find("Node") ) {
+      *(log.filePtr) << "v(1,nodetype:";
+      for (unsigned int i=0; i<sizeof(T); i++ ) {
+         char s = *(((char*) &bufPtr[slot]) + i);
+         *(log.filePtr) << (255 & (unsigned int) s) << " ";
+      }
+      *(log.filePtr) << ")" << endl;
+    }
+  }
 }
 
 template<class T>
@@ -456,20 +521,6 @@ void PagedArray<T>::MarkDelete()
 {
   assert( writeable );
   canDelete = true;
-}
-
-
-template<class T>
-Cardinal PagedArray<T>::Size() 
-{
-  return size;
-}
-
-
-template<class T>
-const SmiRecordId PagedArray<T>::Id() const 
-{ 
-  return recid;
 }
 
 #endif

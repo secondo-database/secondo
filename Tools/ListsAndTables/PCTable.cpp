@@ -6,6 +6,8 @@ Jan - May 2003 M. Spiekermann, Code was splitted into the two files CTable.cpp a
 
 August 2003 M. Spiekermann, Constructor changed. 
 
+June 2004 M. Spiekermann, Operator [] changed.
+
 
 Note: Since debugging of template classes does not work properly, many instructions for
 printing information at the display are included in this code. Comment it out if you need
@@ -23,6 +25,9 @@ presented here may be used as a first draft when implementing such a constructor
 1.1 Constructor/Destructor of a CTable 
 
 */
+
+#include <typeinfo>
+
 
 template<typename T>
 
@@ -71,58 +76,18 @@ CTable<T>::CTable(  Cardinal const count, SmiRecordFile* _ptr2RecFile /* = 0 */)
   //cout << endl << "### CTable<T>::CTable(" << endl 
   //             << "ptr2RecFile: " << (void*) ptr2RecFile << endl;
 
-  table = new PagedArray<T>(ptr2RecFile);
+  table = new PagedArray<T>(ptr2RecFile, true);
   valid = new PagedArray<bool>(ptr2RecFile);
 
   //cout << endl << "### PArrays created" << endl
   //	         << "### count: " << count << endl;
-
 
   // Initialization of count times slots is not necessary, since the PArray grows one by one.
   elemCount = 0;
   leastFree = 1;
   highestValid = 0;
   
-  // store record ids of the persistent arrays
-  oState.tableId = table->Id();
-  oState.validId = valid->Id();     
-  //oStateRecId = oStateRec->Id();
-
-  //cerr << "### CTable(...) : (tableId, validId, masterRecordId) --> " 
-  //     << oState.tableId << "," << oState.validId << "," << oStateRecId << endl; 
 }
-
-
-/* 
-
-ToDo: Construction of a CTable from a stored version on disk.
-
-template<typename T>
-
-CTable<T>::CTable( SmiRecordId id, bool update ) : 
- oStateRec(id),  
- dummyElem(new T()),
- elemCount(oState.elemCount), 
- leastFree(oState.leastFree),  
- highestValid(oState.highestValid)
-{
- initialize();
-	
- oStateRecId = id;
-	
- // construct CTable from persistent arrays
- oStateRec.Get(0, oState);
-
- SmiRecordFile
- 
- table = new PArray<T>(&RecFile, oState.tableId, update);
- valid = new PArray<bool>(&RecFile, oState.validId, update);
-
- cerr << "### CTable( SmiRecordId id ) : (tableId, validId, masterRecordId) --> " 
-      << oState.tableId << "," << oState.validId << "," << oStateRecId << endl; 
-}
-
-*/
 
 template<typename T>
 
@@ -139,30 +104,6 @@ CTable<T>::~CTable() {
     delete ptr2RecFile;
   }
 }
-
-/*
-template<typename T>
-
-SmiRecordId
-CTable<T>::GetId() {
- 
-  // return ID of master record where the PArray record ids are stored.
-  return oStateRecId;
-  
-}
-
-
-template<typename T>
-
-void 
-CTable<T>::MarkDelete() {
-	
-  table->MarkDelete();
-  valid->MarkDelete();
-  oStateRec.MarkDelete();
-}
-
-*/
 
 
 template<typename T>
@@ -247,12 +188,21 @@ template<typename T>
 const T&
 CTable<T>::operator[]( Cardinal n ) {
 
-  assert( n > 0 && n <= elemCount );
-
+  static Cardinal lastIndex = 0;
   static T elem;
-  table->Get(n-1, elem);
+  T* elemPtr = new T;
 
-  return elem;
+  if ( !(n > 0 && n <= elemCount) ) {
+     cout << "Type " << typeid(elem).name() << " called operator[" << n << "]" << endl;
+     assert( n > 0 && n <= elemCount );
+  }
+
+  //if ( lastIndex != n ) { // check if call of Get() is necessary
+    table->Get(n-1, *elemPtr);
+    lastIndex = n;
+  //}
+
+  return *elemPtr;
 }
 
 
@@ -286,9 +236,9 @@ CTable<T>::EmptySlot() {
   //cerr << "### EmptySlot: " << "leastFree, elemCount --> " << leastFree << "," << elemCount << endl;
   if ( leastFree > elemCount ) {
 	  
-    valid->Put(elemCount+1, setFALSE);
-    table->Put(elemCount+1, *dummyElem);
     elemCount++;
+    valid->Put(elemCount, setFALSE);
+    table->Put(elemCount, *dummyElem);
   }
   //cerr << "### EmptySlot: " << "leastFree, elemCount --> " << leastFree << "," << elemCount << endl; 
   return leastFree;
