@@ -71,19 +71,24 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
 */
   ~PrivateTuple()
   {
-    if( memoryTuple == 0 )
-    {
-      assert( extensionTuple == 0 );
-      if( extensionTuple != 0 )
-        free( extensionTuple );
+    if( state == Fresh )
       // This was a fresh tuple saved. In this way, the attributes were
       // created outside the tuple and inserted in the tuple using the
       // ~PutAttribute~ method. In this way, they must be deleted.
+    {
+      assert( memoryTuple == 0 && extensionTuple == 0 );
       for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
         delete attributes[i];
     }
-    else
+    else // state == Solid
+      if( memoryTuple != 0 )
     {
+      for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+      {
+        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+          attributes[i]->GetFLOB(j)->Clear();
+      }
+
       free( memoryTuple );
       if( extensionTuple != 0 )
         free( extensionTuple );
