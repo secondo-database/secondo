@@ -77,8 +77,8 @@ public class PMPsLinear extends LinearMove{
 	 SingleMove M = new SingleMove(x1,y2,x2,y2);
 	 thePoints.add(M);
 	 isstatic = isstatic && M.isStatic();
-	 bounds.union(x1,x2);
-	 bounds.union(y1,y2);
+	 bounds.unionInternal(x1,y1);
+	 bounds.unionInternal(x2,y2);
      }
      defined = true;
      return true;

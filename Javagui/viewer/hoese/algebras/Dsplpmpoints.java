@@ -11,43 +11,36 @@ import javax.swing.JPanel;
 
 public class Dsplpmpoints extends DisplayTimeGraph{
 
-Point2D.Double point;
 Rectangle2D.Double bounds;
 Class linearClass = (new PMPsLinear()).getClass();
 Time T = new Time();
 TotalMove Move=null;
-AffineTransform at;
 
 public Shape getRenderObject(AffineTransform at){
-   this.at=at;
-   return null;
-}
-
-public void draw(Graphics g){
- if(Move==null){
-     return;
-  }
   double t = RefLayer.getActualTime();
   T.readFrom(t);
-  Point2D.Double[] Pts =  (Point2D.Double[]) Move.getObjectAt(T);
-  if(Pts==null){
-     return;
+  Point2D.Double[] Pts = (Point2D.Double[]) Move.getObjectAt(T);
+  if(Pts==null || Pts.length==0){
+    RenderObject=null;
+    return RenderObject;
   }
-  Shape RenderObject;
-  Graphics2D G = (Graphics2D)g;
-  for(int i=0;i<Pts.length;i++){
-      Point2D.Double Pos = Pts[i];
-      double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
-      double pixx = Math.abs(Cat.getPointSize()/at.getScaleX());
-      if(Cat.getPointasRect()){
-	RenderObject = new Rectangle2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
-      }else{
-	RenderObject = new Ellipse2D.Double(Pos.getX()-pixx/2,Pos.getY()-pixy/2,pixx,pixy);
-      }
-      G.draw(RenderObject);
+  Area res = new Area();
+  double pixx = Math.abs(Cat.getPointSize()/at.getScaleX());
+  double pixy = Math.abs(Cat.getPointSize()/at.getScaleY());
+  for(int i=0; i< Pts.length;i++){
+     if(Cat.getPointasRect()){
+        res.add(new Area(new Rectangle2D.Double(Pts[i].getX()-pixx/2,
+	                                        Pts[i].getY()-pixy/2,pixx,pixy)));
+     }else{
+        res.add(new Area(new Ellipse2D.Double(Pts[i].getX()-pixx/2,
+	                                        Pts[i].getY()-pixy/2,pixx,pixy)));
+     }
   }
-  drawLabel(g,bounds);
- }
+  RenderObject=res;
+  return res;
+  
+}
+
 
 public void init(ListExpr type,ListExpr value,QueryResult qr){
   AttrName = type.symbolValue();
@@ -62,6 +55,10 @@ public void init(ListExpr type,ListExpr value,QueryResult qr){
      System.err.println("Bounding Box can't be created");
   }
   bounds = Move.getBoundingBox().toRectangle2D();
+  System.out.println("Bonding Box = " + Move.getBoundingBox());
+  System.out.println("Resulting rectangle: " + Move.getBoundingBox().toRectangle2D());
+
+  
   double StartTime = Move.getStartTime().getDouble();
   RelInterval D = Move.getInterval();
   if(D.isLeftInfinite())
