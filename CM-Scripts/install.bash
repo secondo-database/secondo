@@ -169,6 +169,9 @@ if [ "$installJava" == "true" ]; then
   if [ "$platform" == "linux" ]; then
     cd $sdk
     $xterm -title "JAVA 2 Installation" -e $cdpath/j2sdk-${platform}/j2sdk*.bin &
+    if [ $? -ne 0 ]; then
+      printf "%s\n" "Problems starting $xterm. Please install j2sdk by hand."
+    fi
   else
     cd $cdpath/j2sdk-$platform
     checkCmd j2sdk*windows*.exe
@@ -202,6 +205,10 @@ printSep "Uncompressing 3d-party tools ..."
 uncompressFolders "$platformdir/gnu" "$platformdir/non-gnu" "$platformdir/prolog"
 
 $xterm -title "Installation Protocol" -e tail -f $logfile &
+if [ $? -ne 0 ]; then
+  printf "%s\n" "Problems starting $xterm. Open another shell and run tail -f $logfile"
+  printf "%s\n" "in order to monitor the compiler messages."
+fi
 
 printf "\n"
 printSep "Compiling GCC ... this will take the most time ..."

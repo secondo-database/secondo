@@ -93,7 +93,7 @@ INSTGUIDE_FILES := $(net)/Linux-Installation-Guide.pdf \
  		$(net)/Windows-Installation-Guide.pdf
  
 .PHONY: dist
-dist: tag-version  dist-scripts $(SRC_FILES) $(INSTGUIDE_FILES) min-linux min-win32
+dist: tag-version  dist-scripts create-src-tgz $(INSTGUIDE_FILES) min-linux min-win32
 
 
 .PHONY: dist-scripts
@@ -135,20 +135,16 @@ tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
 tag-version:
 	cvs tag -F $(tag) 
 
-$(net)/win32/sec%.tgz: sec%.tgz
-	cp $< $@ 
-
-$(net)/linux/sec%.tgz: sec%.tgz
-	cp $< $@ 
-
-secondo-win32.tgz secondo-linux.tgz:
+.PHONY: create-src-tgz
+create-src-tgz:
 	cvs export -d secondo -r$(tag) secondo
 ifeq ($(platform),win32)
 	$(error Target dist not supported on windows!)
 else	
-	tar -czf secondo-linux.tgz secondo/*
+	rm -rf $(SRC_FILES)
+	tar -czf $(net)/secondo-linux.tgz secondo/*
 	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.sda" -or -name "*.fig" -or -name "*.canvas" -or -name "*.fm" -or -name "*.book" -or -name "*.pdf" \) -exec recode lat1..cp1252 {} \;
-	tar -czf secondo-win32.tgz secondo/*
+	tar -czf $(net)/secondo-win32.tgz secondo/*
 endif
 	rm -r secondo
 
