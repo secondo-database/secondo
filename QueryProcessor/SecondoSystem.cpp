@@ -373,23 +373,27 @@ This is done by closing, destroying and recreating the database.
 Load database types and objects from file named ~filename~.
 
 */
-          SecondoSystem::BeginTransaction();
+//          SecondoSystem::BeginTransaction();
           if ( RestoreCatalog( scDescriptive, typesDesc, objectsDesc, errorInfo ) &&
                RestoreCatalog( scExecutable, typesExec, objectsExec, errorInfo ) )
           {
             rc = 0; // Database successfully restored
+/*
             if ( !SecondoSystem::CommitTransaction() )
             {
               rc = 23;
             }
+*/
           }
           else
           {
             rc = 5; // Error in types or objects
+/*
             if ( !SecondoSystem::AbortTransaction() )
             {
               rc = 23;
             }
+*/
           }
         }
         else
@@ -445,6 +449,7 @@ SecondoSystem::RestoreTypes( SecondoCatalog* sc,
   typeno = 0;
   while (!nl->IsEmpty( types ))
   {
+    SecondoSystem::BeginTransaction();
     first = nl->First( types );
     types = nl->Rest( types );
     typeno++;
@@ -488,6 +493,7 @@ SecondoSystem::RestoreTypes( SecondoCatalog* sc,
                       nl->IntAtom( 40 ),
                       nl->IntAtom( typeno ) ) );
     } // if
+    SecondoSystem::CommitTransaction();
   } // while
   return (correct);
 }
@@ -509,6 +515,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
     
   while ( !nl->IsEmpty( objects) )
   {
+    SecondoSystem::BeginTransaction();
     first = nl->First( objects );
     objects = nl->Rest( objects );
     objno++;
@@ -589,6 +596,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
                       nl->IntAtom( 50 ),
                       nl->IntAtom( objno ) ) );
     } // if
+    SecondoSystem::CommitTransaction();
   } // while
   return (correct);
 }
