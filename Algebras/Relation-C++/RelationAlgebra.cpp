@@ -4399,10 +4399,6 @@ For instance,
 
     query Staedte feed loopjoin [plz feed filter [.Ort=.SName] consume] consume;
     
-    (query (consume (loopjoin (feed Staedte) (fun (t1 TUPLE) five))))
-    
-    (query (consume (loopjoin (feed tryrel) (fun (t1 TUPLE) people))))
-    
     (query (consume (loopjoin (feed tryrel) (fun (t1 TUPLE) (consume filter (feed null) (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
 
 7.3.1 Type mapping function of operator ~loopjoin~
@@ -4496,7 +4492,6 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
           rely=funresult;
           crely = (CcRel*)(funresult.addr);
           crelyit=crely->MakeNewScan();
-          cout<<"number of tuples in rel y:"<<((CcRel*)rely.addr)->GetNoTuples()<<endl;
      //3>>> here: put the information of tuplex and rely into local
            localinfo=new LoopjoinLocalInfo; 
            localinfo->tuplex=tuplex;
