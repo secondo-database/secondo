@@ -9,11 +9,15 @@
 #
 # at the end of file $HOME/.bashrc.
 #
-# The dafault parameters should work gently.
+# Look in the files 
+#
+#    .secondo.win32rc 
+# or .secondo.linuxrc
+# or .secondo.sdkrc
+# 
+# for setting platform specific or general parameters.
 #
 # DO NOT CHANGE THIS FILE unless you know what you are doing!
-# Look in the files .secondorc and .secondo.win32rc or .secondo.linuxrc 
-# for setting platform specific parameters.
 
 if [ "$OSTYPE" == "msys" ]; then
    prefix=/c
@@ -49,58 +53,62 @@ fi
 
 if [ "$ok" == "true" ]; then
 
-#export variables to the environment
+# export variables to the environment which are
+# evaluated by make
 export SECONDO_SDK=$sdkDir
 export SECONDO_BUILD_DIR=$buildDir
 export SECONDO_PLATFORM=$platform
 
-#include platform specific definitions
+# include platform specific definitions
 source ${HOME}/.secondo.${platform}rc
 
-#include command aliases
+# include command aliases
 source ${buildDir}/CM-Scripts/aliaslist.sh
 
-#include common definitions
+# include common definitions
 source ${HOME}/.secondo.sdkrc
 
-#set common variables
+# set common variables
 source ${sdkDir}/bin/setvar.bash ${buildDir}
 
-#check variables
-if [ -d $BERKELEY_DB_DIR ]; then
-  libStr=$( find ${BERKELEY_DB_DIR} \
-                 -regex ".*libdb_cxx-[0-9\.]*\.a" \
-                 -printf "%f %p\n" | sort | tail -n1 )
+# Berkeley-DB Library
+#
+# In windows installations of SECONDO-SDK the library has another
+# name as in the Berkeley-DB distribution, since the --enable-mingw
+# configure option was not present in version 4.1.25.
+BERKELEY_DB_LIB="db_cxx"
 
-# the printf returns "name dir/filename" the important information
-# needs to be extracted by the following commands
-
-if [ "$libStr" != "" ]; then
-
-  libDirName=${libStr#* } # remove shortest leading pattern "* "
-  libDir=${libDirName%/*/*} # remove shortest trailing pattern "/*/*"
-
-  BERKELEY_DB_DIR=$libDir
-  BERKELEY_DB_LIB="db_cxx"
-else
-  BERKELEY_DB_DIR="$SECONDO_SDK"
-  # In old windows installtion of SECONDO the library has another
-  # name as in the distribution
-  if [ $SECONDO_PLATFORM == "win32" ]; then
-    BERKELEY_DB_LIB=db32
-  else
-    printf "\n%s" "Warning: I could not find a Berkeley-DB library "
-    printf "%s\n" "libdb_cxx* inside \"${BERKELEY_DB_DIR}\"."
-  fi 
+if [ $SECONDO_PLATFORM == "win32" ]; then
+  if [ -f ${BERKELEY_DB_DIR}/lib/libdb32.dll ]; then
+     BERKELEY_DB_LIB="db32"
+  fi
 fi
 export BERKELEY_DB_LIB
 
-else
+# Check if important directories are present
+declare -i DIR_ERROR=0
+if ! [ -d $BERKELEY_DB_DIR ]; then
   printf "%s"   "Error during SECONDO environment setup: Berkeley-DB "
-  printf "%s"   "directory \"${BERKELEY_DB_DIR}\" not present! Please "
-  printf "%s"   " install Berkeley-DB into this directory or "
-  printf "%s\n" "edit file ~/.secondo.sdkrc"
+  printf "%s\n"  "directory \"${BERKELEY_DB_DIR}\" not present!"
+  let DIR_ERROR++ 
 fi
 
+if ! [ -d $J2SDK_ROOT ]; then
+  printf "%s"   "Error during SECONDO environment setup: Java 2 SDK "
+  printf "%s\n" "directory \"${J2SDK_ROOT}\" not present!"
+  let DIR_ERROR++
+fi
 
+if ! [ -d $PL_LIB_DIR ]; then
+  printf "%s"   "Error during SECONDO environment setup: SWI-Prolog library "
+  printf "%s"   "directory \"${$PL_LIB_DIR}\" not present! Please "
+  let DIR_Error++
+fi
+
+if let $DIR_ERROR!=0; then
+  printf "%s"   "Please check your installation and consult the "
+  printf "%s\n" "files ~/.secondo.sdkrc and ~/.secondo.${platform}rc "
+fi
+
+# end of "$ok"="true"
 fi

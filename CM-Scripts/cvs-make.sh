@@ -35,6 +35,7 @@ else
 fi
 
 # directories
+cvsDir=${HOME}/cvsroot
 buildDir=${rootDir}/${coDir}
 scriptDir=${buildDir}/CM-Scripts
 
@@ -58,12 +59,20 @@ setvar $buildDir
 printf "%s\n" "Environment settings"
 catvar
 
-printf "cvs user who commited or added files yesterday:\n"
 
-recipients=$( cvs history -c -a -D yesterday -p secondo | 
-              awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
+cvshist_result=$( cvs history -c -a -D yesterday -p secondo | 
+                  awk '/./ { print $5 }' | sort | uniq | tr "\n" " " )
 
-printf "${recipients}\n"
+printf "%s\n" "cvs user who commited or added files yesterday:"
+printf "%s\n" "$cvshist_result"
+
+recipients=""
+for userName in $cvshist_result; do
+
+  mapStr "${cvsDir}/CVSROOT/users" "$userName" ":"
+  recipients="$recipients $mapStr_name2"
+
+done
 
 cd $rootDir
 checkCmd "cvs -Q checkout -d $coDir secondo"
@@ -83,7 +92,7 @@ if let $rc!=0; then
 mailBody="This is a generated message!  
 
   Users who committed to CVS yesterday:
-  $recipients
+  $cvshist_result
 
   You will find the output of make in the attached file.
   Please fix the problem as soon as possible."
@@ -108,7 +117,7 @@ then
 mailBody="This is a generated message!  
 
   Users who committed to CVS yesterday:
-  $recipients
+  $cvshist_result
 
   You will find the output of run-tests in the attached file.
   Please fix the problem as soon as possible."

@@ -11,10 +11,10 @@
 # Adds path information before the command name $2
 function newAlias() {
 
-if [ -z $buildDir ]; then
-  alias ${1}=$2
+if [ -z $SECONDO_BUILD_DIR ]; then
+  alias ${1}="$2"
 else
-  alias ${1}=${buildDir}/${cmdDir}/$2
+  alias ${1}="${SECONDO_BUILD_DIR}/${cmdDir}/$2"
 fi
 
 }
@@ -39,10 +39,13 @@ newAlias tpcrun tpcrun.sh
 
 cmdDir=bin
 newAlias SecondoTTY SecondoTTYBDB
+newAlias SecondoMonitor "SecondoMonitorBDB -s"
 
 
 # define some useful aliases
 alias setvar='source ${sdkDir}/bin/setvar.bash' 
 alias jcvs='java -jar ${sdkDir}/jCVS-5.2.2/jars/jcvsii.jar'
 alias cvs-info='cvs -nq update | grep "^[A-Z]"'
+alias cvs-mod='cvs -nq update | grep "^[M]"'
+
 

@@ -6,8 +6,6 @@
 
 if [ -z $SETVAR_FIRST_CALL ]; then
 
-  printf "%s\n" "$PATH"
-  printf "%s\n" "$LD_LIBRARY_PATH"
   export SETVAR_FIRST_CALL="true"
   export COPY_OF_PATH="$PATH"
   export COPY_OF_LD_PATH="$LD_LIBRARY_PATH"
@@ -32,10 +30,10 @@ export BISON_SIMPLE=${SECONDO_SDK}/share/bison/bison.simple
 # JNI
 export JNI_INIT=${SECONDO_BUILD_DIR}/bin/JNI.ini
 
-## The runtime linker uses different variables on linux and windows
-
+## Extend the search path
 PATH=.:${J2SDK_ROOT}/bin:${SECONDO_SDK}/bin:${COPY_OF_PATH}
 
+# The runtime linker uses different variables on linux and windows
 if [ $SECONDO_PLATFORM != "win32" ]; then
 
    pathList=${J2SDK_ROOT}/jre/lib/i386
@@ -59,7 +57,10 @@ else
    PATH=.:${PATH}:${pathList}
 fi
 
+# Some general extensions
 PATH=${PATH}:${SECONDO_BUILD_DIR}/Tools/pd
+PATH=${PATH}:${SECONDO_BUILD_DIR}/CM-Scripts
+PATH=${PATH}:${SECONDO_BUILD_DIR}/bin
 
 export PATH LD_LIBRARY_PATH
 

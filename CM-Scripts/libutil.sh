@@ -91,6 +91,34 @@ let rc_ttybdb=$?
 
 }
 
+# mapStr
+#
+# $1 file
+# $2 name1
+# $3 separator
+#
+# reads file $1 which contains a list of "name1 name2" entries
+# and returns name2 if "$1"=0"name1". The parameter name1 should 
+# be unique otherwise the first occurence will be used.
+function mapStr() {
+
+  sep=$3
+  if [ "$sep" == "" ]; then
+    sep=" "
+  fi
+
+  mapStr_line=$(grep $2 $1) 
+  mapStr_name1=${mapStr_line%%${sep}*}
+  if [ "$mapStr_name1" == "$2" ]; then
+    #cut off name1 
+    mapStr_name2=${mapStr_line#*${sep}}
+    # remove trailing blanks
+    mapStr_name2=${mapStr_name2%% *} 
+  else
+    mapStr_name2=""
+  fi 
+} 
+
 # define some environment variables
 TEMP="/tmp"
 if [ ! -d $TEMP ]; then
@@ -133,6 +161,13 @@ XmailBody="This is a generated message!
 
 sendMail "Test Mail!" "spieker root" "$XmailBody" "test.txt"
 
+fi
+
+if [ "$1" == "mapTest" ]; then
+
+   cat $2
+   mapStr "$2" "$3" "$4"
+   printf "%s\n" "\"$3\" -> \"$mapStr_name2\""
 fi
 
 if [ "$1" == "tty" ]; then

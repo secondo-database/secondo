@@ -42,6 +42,9 @@ for testName in $testSuites
 do 
   file="${inputDir}/${testName}"
   printf "\n%s\n" "Running ${testName} ..."
+  logFile="${file}.log"
+  echo "===================================================================\n"  > $logFile
+  echo "===================================================================\n"  > $logFile
   checkCmd "time TestRunner -i  ${file} > ${file}.log 2>&1"
   if [ $rc -ne 0 ]; then
     let error++
