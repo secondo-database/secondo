@@ -4080,13 +4080,16 @@ CRegion::CRegion(SmiRecordFile *recordFile, const int initsize) :
 	region( recordFile ? new PArray<CHalfSegment>(recordFile, initsize) : new MArray<CHalfSegment>(initsize) ),
 	bbox(),
 	ordered( true )
-{}
+{
+    //cout << "CRegion::CRegion1 "<<endl;
+}
 
 CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
 	region( recordFile ? new PArray<CHalfSegment>(recordFile, cr.Size()) : new MArray<CHalfSegment>(cr.Size()) ), 
 	bbox(cr.BoundingBox()),
 	ordered( true )
 {
+  //cout << "CRegion::CRegion2 "<<endl;
   assert( cr.IsOrdered());
 
   for( int i = 0; i < cr.Size(); i++ )
@@ -4103,6 +4106,7 @@ CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
 	  ordered( false )
 {
     //  assert( cr.IsOrdered());
+    //cout << "CRegion::CRegion3 "<<endl;
     int j=0;
     for( int i = 0; i < cr.Size(); i++ )
     {
@@ -4121,6 +4125,7 @@ CRegion::CRegion(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update )
 	  bbox(),
 	  ordered(true)
 {
+    //cout << "CRegion::CRegion4 "<<endl;
     SmiRecordId recordId;
     rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
     region = new PArray<CHalfSegment>( recordFile, recordId, update );
@@ -4128,7 +4133,8 @@ CRegion::CRegion(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update )
 }
 
 void CRegion::Save( SmiRecord& rootRecord ) const
-{
+{ 
+  //cout << "CRegion::SAVE "<<endl;
   SmiRecordId recordId = GetRegionRecordId();
   rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
   rootRecord.Write( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
@@ -4136,6 +4142,7 @@ void CRegion::Save( SmiRecord& rootRecord ) const
 
 void CRegion::Destroy()
 {
+  //cout << "CRegion::DESTROY "<<endl;
   region->MarkDelete();
 }
 
@@ -4219,7 +4226,7 @@ const SmiRecordId CRegion::GetRegionRecordId() const
 bool CRegion::contain( const Point& p ) const
 {
     //here: if the point is on the border, it is also counted.
-    
+   
     if (!bbox.Contains(p)) return false;
     
     int faceISN[100];
@@ -4231,7 +4238,7 @@ bool CRegion::contain( const Point& p ) const
     }
 
     CHalfSegment chs;
-
+    
     //cout<<"============================================"<<endl;
     //cout<<"number of chs in the region: "<<this->Size()<<endl;
     
@@ -4664,6 +4671,7 @@ bool CRegion::holeedgecontain( const CHalfSegment& chs ) const
 
 CRegion& CRegion::operator=(const CRegion& cr)
 {
+  //cout<<"CRegion::operator="<<endl;
   assert( cr.IsOrdered() );
 
   region->MarkDelete();
@@ -4915,6 +4923,7 @@ void CRegion::Sort()
 
 void CRegion::logicsort()
 {
+  //cout<<"CRegion::logicsort"<<endl;
   region->Sort( HalfSegmentLogCompare );
 
   ordered = true;
@@ -4958,7 +4967,7 @@ void*  CRegion::GetValue()
 
 size_t   CRegion::HashValue()
 {
-    cout<<"cregion hashvalue1*******"<<endl;
+    //cout<<"cregion hashvalue1*******"<<endl;
     if(IsEmpty())  return (0);
     unsigned long h=0;
     
@@ -5014,7 +5023,7 @@ void  CRegion::CopyFrom(StandardAttribute* right)
 
 int   CRegion::Compare(Attribute * arg)
 {
-    cout<<"cregion compare1*******"<<endl;
+    //cout<<"cregion compare1*******"<<endl;
     int res=0;
     CRegion* cr = (CRegion* )(arg);
     if ( !cr ) return (-2);
@@ -5830,7 +5839,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 static Word
 CreateRegion( const ListExpr typeInfo )
 {
-//  cout << "CreateRegion" << endl;
+  //cout << "CreateRegion" << endl;
 
   return (SetWord( new CRegion(SecondoSystem::GetLobFile() ) ));
 }
@@ -5842,7 +5851,7 @@ CreateRegion( const ListExpr typeInfo )
 static void
 DeleteRegion( Word& w )
 {
-//  cout << "DeleteRegion" << endl;
+  //cout << "DeleteRegion" << endl;
 
   CRegion *cr = (CRegion *)w.addr;
   cr->Destroy();
@@ -5857,7 +5866,7 @@ DeleteRegion( Word& w )
 static void
 CloseRegion( Word& w )
 {
-//  cout << "CloseRegion" << endl;
+  //cout << "CloseRegion" << endl;
 
   delete (CRegion *)w.addr;
   w.addr = 0;
@@ -5883,7 +5892,7 @@ CloneRegion( const Word& w )
 bool
 OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-  //cout << "Open Region2" << endl;
+    //cout << "Open Region2" << endl;
 
   //SmiRecordId recordId;
   //valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
@@ -5902,7 +5911,7 @@ OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 bool
 SaveRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-    // cout << "save Region2" << endl;
+    //cout << "save Region2" << endl;
     
     CRegion *cr = (CRegion*)value.addr;
     
@@ -8395,13 +8404,17 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
 
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
-
+    
+    //TESTING    
+    //    ((CcBool *)result.addr)->Set( true, false);
+    //    return (0);
+    
     if(! cr->BoundingBox().Contains( *p) )  
     {
 	((CcBool *)result.addr)->Set( true, false);
 	return (0);
     }
-    
+        
     if (cr->contain(*p))
     {	//cout<<"p inside r!!!"<<endl;
 	//cout<<*p<<endl<<*cr<<endl;
