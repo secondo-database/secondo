@@ -258,7 +258,7 @@ Date*  Date::Clone() {return (new Date( *this));}
 
 ostream& Date::Print(ostream &os)
 {
-  return (os << day << ","<<month <<","<<year);
+  return (os << year << "-"<<month <<"-"<<day);
 }
 
 
@@ -307,15 +307,13 @@ OutDate( ListExpr typeInfo, Word value )
   date = (Date*)(value.addr);
   if (date->IsDefined())
   { 
-    sprintf(buf, "%d-%02d-%02d", date->GetYear(), date->GetMonth(), date->GetDay());   //eg. "1993-2-12"
+    sprintf(buf, "%d-%02d-%02d", date->GetYear(), date->GetMonth(), date->GetDay());   //eg. "1993-02-01"
   }
   else
   {
     strcpy(buf,"-");
   }
   outputStr = buf;
-  //char* c_string = outputStr.c_str();
-  //cout << outputStr<<endl;
   return (nl->StringAtom(outputStr));
 }
 
@@ -368,8 +366,8 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
 }
 */
 
-//The above function is replaced by the following function which takes string as input
-//=================================================================
+//The above ~in~ function is replaced by the following function which takes string as input
+//=====================================================================
 static Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 { 
@@ -387,17 +385,18 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
          return SetWord(Address(0));
   }  
   const char* c_string = inputStr.c_str();
-  if (strcmp(c_string,"-")==0)
+  if (strcmp(c_string,"-")==0)  //"-"
   {
     correct = true;
     newdate = new Date(false, 0, 0, 0);
     return SetWord(newdate);
   }
-  else   //"1998-02-21" or "1999-2-21"
+  else   //"1998-02-01" or "1999-2-1"
   {
     strcpy(buf, c_string);
     int bufLen=strlen(buf);
-    for ( i=buf; i<buf+bufLen; i++) 
+    //basic check on date format
+    for ( i=buf; i<buf+bufLen; i++)
     {
 	if (*i=='-') slash++;
 	if ((*i!='-') && ((*i<'0') || (*i>'9'))) 
@@ -413,25 +412,21 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
          correct = false;
          return SetWord(Address(0));
     }
-
+    //extract the year, month, day information from the date
     i=buf; j=i;
     while ((*j!='-') && (j<buf+bufLen))  j++;
     *j=0;
-    int Year=atoi(i);  //get the year information
+    int Year=atoi(i);
     
-    i=j+1;
-    j=i;
+    i=j+1; j=i;
     while ((*j!='-') && (j<buf+bufLen))  j++;
     *j=0;
-    int Month=atoi(i);  //get the month information
+    int Month=atoi(i);
     
-    i=j+1;
-    j=i;
+    i=j+1; j=i;
     while ((*j!='-') && (j<buf+bufLen))  j++;
     *j=0;
-    int Day=atoi(i);  //get the month information
-    
-    //cout<<Year<<"="<<Month<<"="<<Day<<endl;
+    int Day=atoi(i);
     
     if (isdate(Day, Month, Year))
     {   
