@@ -9,17 +9,17 @@
 
 # set a lot of classpathes
 
-%P ..\Algebras\JNIExample\JNIExampleAlgebra.jar
-%P ..\Javainterface
-%P ..\Javainterface\lib\JLex_v1.2.5.zip
-%P ..\Javainterface\lib\java_cup_v10k.zip
-%P ..\Javainterface\lib\java_cup_v10k_runtime.jar    
-%P ..\Javainterface\lib\visualrt.zip
-%P ..\Algebras\Rose\RoseJava
-%P ..\Algebras\Fuzzy     
+%P ../Algebras/JNIExample/JNIExampleAlgebra.jar
+%P ../Javainterface
+%P ../Javainterface/lib/JLex_v1.2.5.zip
+%P ../Javainterface/lib/java_cup_v10k.zip
+%P ../Javainterface/lib/java_cup_v10k_runtime.jar
+%P ../Javainterface/lib/visualrt.zip
+%P ../Algebras/Rose/RoseJava
+%P ../Algebras/Fuzzy
 
    # set the lib path
-%L C:\Local\j2sdk1.4.0\jre\bin\client
+%L ../../secondo-sdk/j2sdk1.4.2_01/jre/bin/client
 
    # set the version number 
 %V 1.4
