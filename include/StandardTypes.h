@@ -89,7 +89,10 @@ class CcBool : public StandardAttribute
   int      Compare( Attribute * arg );
   int      Sizeof()  ;
   CcBool*  Clone() ;
-  ostream& Print( ostream &os ) { return (os << boolval); }
+  ostream& Print( ostream &os ) { 
+    if (boolval == true) return (os << "TRUE");
+    else return (os << "FALSE");
+  }
  private:
   bool defined;
   bool boolval;
@@ -113,7 +116,7 @@ class CcString : public StandardAttribute
   int       Compare( Attribute* arg );
   int       Sizeof()  ;
   CcString* Clone() ;
-  ostream&  Print( ostream &os ) { return (os << stringval); }
+  ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }
  private:
   bool   defined;
   string stringval;
