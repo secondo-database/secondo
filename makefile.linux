@@ -5,7 +5,13 @@
 #############################################
 
 # System dependent default libraries
-DEFAULTLIB = -lm -ldl -lstdc++
+DEFAULTLIB = -lpthread -lm -ldl -lstdc++
+# NOTE: -lpthread is neccessary on SuSe Linux 9.1. But there are two versions, one is 
+# in the /lib directory and another in the /lib/tls directory. The same yields for
+# other libraries. The berkeley db libraries use libraries in the /lib/tls directory.  
+# and there is a dependency to the pthread library which doesn't appear on older
+# Linux Systems. Maybe the reason is the change from Linux Kernel 2.4 to 2.6. 
+
 
 # Berkeley DB library
 BDBINCLUDE = -I$(BDBDIR)/include
