@@ -10,52 +10,31 @@ include ../../makefile.env
 
 # --- List of all needed header files (including indirect dependencies)
 
-INCFILES=\
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h \
-	$(INCLUDEDIR)/StandardTypes.h
+MODNAME = JBBoxAlgebra
 
-REFFILE=\
-
-MODNAME=JBBoxAlgebra
-LIBNAME=lib$(MODNAME)
-
-OBJECTS=\
-	$(MODNAME).$(OBJEXT)
-
+CCFLAGS = $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
 
 .PHONY: all
 all: alljava allcpp
 
+
 .PHONY: alljava
 alljava:
-	make -C bbox all
+	$(MAKE) -C bbox all
 
 .PHONY: allcpp
-allcpp: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+allcpp: $(OBJECTS) $(LIBOBJ)
 
-buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
+include $(DEP_FILES)
 
-CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
-
-# --- Standard Algebra C++ library ---
-
-$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
+$(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) $(LDJNIFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) $(LDJNIFLAGS) -o $(LIBOBJ) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+	$(AR) -r $(LIBOBJ) $(OBJECTS)
 endif
-
-# --- Standard Algebra C++ library modules ---
-
-$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
-	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
-
-include ../../include.dep
 
 
 .PHONY: clean

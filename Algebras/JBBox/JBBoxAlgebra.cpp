@@ -1236,20 +1236,22 @@ static Word CloneJBox(const Word &w) {
 
 */
 bool OpenJPoint(SmiRecord& valueRecord,
+                size_t& offset,
                 const ListExpr typeInfo,
 		Word& value){
    JPoint* P = new JPoint(0);
-   P->Open(valueRecord, typeInfo);
+   P->Open(valueRecord,offset, typeInfo);
    P->RestoreJavaObjectFromFLOB();
    value = SetWord(P);
    return true;
 }
 
 bool OpenJBox(SmiRecord& valueRecord,
+                size_t& offset,
                 const ListExpr typeInfo,
 		Word& value){
    JBox* B = new JBox(0);
-   B->Open(valueRecord, typeInfo);
+   B->Open(valueRecord,offset, typeInfo);
    B->RestoreJavaObjectFromFLOB();
    value = SetWord(B);
    return true;
@@ -1261,18 +1263,20 @@ bool OpenJBox(SmiRecord& valueRecord,
 
 */
 bool SaveJPoint( SmiRecord& valueRecord,
+                 size_t& offset,
                  const ListExpr typeInfo,
 		 Word& value)
 { JPoint* P = (JPoint*) value.addr;
-  P->Save(valueRecord,typeInfo);
+  TupleElement::Save(valueRecord,offset,typeInfo,P);
   return true;
 }
 
 bool SaveJBox( SmiRecord& valueRecord,
+                 size_t& offset,
                  const ListExpr typeInfo,
 		 Word& value)
 { JBox* B = (JBox*) value.addr;
-  B->Save(valueRecord,typeInfo);
+  TupleElement::Save(valueRecord,offset,typeInfo,B);
   return true;
 }
 
