@@ -16,21 +16,13 @@
 # have different jdk versions installed add a prefix.
 
 #PREFIX =
-JAVAC = $(PREFIX)javac 
+JAVAC = $(PREFIX)javac
 #JAVACFLAGS = -verbose
 
 JAVA = $(PREFIX)java
 
 
-# SECONDOPATH is a shell variable which should point to the directory where 
-# the Javainterface is a subdirectory
-#
-ifndef SECONDOPATH
-$(error SECONDOPATH is not defined)
-endif
-
-
-JAVAINTERFACEDIR = $(SECONDOPATH)/Javainterface
+JAVAINTERFACEDIR = $(SECONDO_BUILD_DIR)/Javainterface
 
 # Lexical scanner generator for java, latest version is 1.2.5
 # in case of problems use Jlex 1.2.3
