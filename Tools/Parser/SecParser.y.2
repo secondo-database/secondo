@@ -130,6 +130,11 @@ database	:	ZZCREATE ZZDATABASE ZZIDENTIFIER
 
 inquiries	:	ZZLIST ZZDATABASES
 				{PRINTF("(list databases)\n");}
+		|	ZZLIST ZZALGEBRAS
+				{PRINTF("(list algebras)\n");}
+		|	ZZLIST ZZALGEBRA ZZIDENTIFIER
+				{PRINTF("(list algebra "); PRINT($3); 
+				PRINTF(")\n");}				
 		|	ZZLIST ZZTYPE ZZCONSTRUCTORS
 				{PRINTF("(list type constructors)\n");}
 		|	ZZLIST ZZOPERATORS
