@@ -232,7 +232,7 @@ Typeinfo is:
 
 For example, for
 
-----	(tuple 
+----	(tuple
 		(
 			(name string) 
 			(age int)))
@@ -241,7 +241,7 @@ For example, for
 the typeinfo is
 
 ----	(
-	    	(2 2) 
+	    	(2 2)
 			(
 				(name (1 4))
 				(age (1 1)))
@@ -931,7 +931,7 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
   
   // cout << nl->WriteToFile("/dev/tty",typeInfo) << endl;
   // cout << nl->WriteToFile("/dev/tty",value) << endl;
-    
+
   // rel = (Relation)((CreateRel(50)).addr);
   //rel = (CcRel*)((CreateRel(50)).addr);
   rel = new CcRel();
@@ -1012,7 +1012,7 @@ void DeleteRel(Word& w)
   // Relation r;
   CcRel* r;
   Word v;
-    
+
   // r = (Relation)w.addr;
   r = (CcRel*)w.addr;
   // rs = r->Begin();
@@ -1074,7 +1074,7 @@ static bool CheckRel(ListExpr type, ListExpr& errorInfo)
 
 3.2.5 ~Cast~-function of type constructor ~rel~
  
-*/ 
+*/
 static void* CastRel(void* addr)
 {
   return ( 0 );
@@ -1128,23 +1128,34 @@ TypeConstructor cpprel( "rel",           RelProp,
 For non-overloaded operators, the set of value mapping functions consists
 of exactly one element.  Consequently, the selection function of such an
 operator always returns 0.
- 
+
 */
 static int simpleSelect (ListExpr args) { return 0; }
+
+/*
+
+4.2 Selection function for type operators
+
+The selection function of a type operator always returns -1.
+
+*/
+static int typeOperatorSelect(ListExpr args) { return -1; }
+
+
 /*
 
 6.1 Type Operator ~TUPLE~
 
 Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
- 
+
 6.1.1 Type mapping function of operator ~TUPLE~
- 
+
 Extract tuple type from a stream or relation type given as the first argument.
 
 ----    ((stream x) ...)                -> x
         ((rel x)    ...)                -> x
 ----
- 
+
 */
 ListExpr TUPLETypeMap(ListExpr args)
 {
@@ -1179,7 +1190,7 @@ Operator TUPLE (
          TUPLESpec,            // specification
          0,                    // no value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         typeOperatorSelect,   // trivial selection function
          TUPLETypeMap          // type mapping
 );
 /*
@@ -1187,13 +1198,13 @@ Operator TUPLE (
 6.1 Type Operator ~TUPLE2~
 
 6.1.1 Type mapping function of operator ~TUPLE2~
- 
+
 Extract tuple type from a stream or relation type given as the second argument.
 
 ----    ((stream x) (stream y) ...)          -> y
         ((rel x) (rel y) ...)                -> y
 ----
- 
+
 */
 ListExpr TUPLE2TypeMap(ListExpr args)
 {
@@ -1228,9 +1239,70 @@ Operator TUPLE2 (
          TUPLE2Spec,           // specification
          0,                    // no value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         typeOperatorSelect,   // trivial selection function
          TUPLE2TypeMap         // type mapping
 );
+
+/*
+
+6.1 Type Operator ~GROUP~
+
+Type operators are used only for inferring argument types of parameter functions. They have a type mapping but no evaluation function.
+
+6.1.1 Type mapping function of operator ~GROUP~
+
+----  ((stream x))                -> (rel x)
+----
+
+*/
+ListExpr GROUPTypeMap(ListExpr args)
+{
+  /*string listStr;
+  nl->WriteToString(listStr, args);
+  cout << "Args : " << listStr << "\n";*/
+  ListExpr first;
+  ListExpr tupleDesc;
+
+  if(!nl->IsAtom(args) && nl->ListLength(args) >= 1)
+  {
+    first = nl->First(args);
+    if(!nl->IsAtom(first) && nl->ListLength(first) == 2  )
+    {
+      tupleDesc = nl->Second(first);
+      if(TypeOfRelAlgSymbol(nl->First(first)) == stream
+        && (!nl->IsAtom(tupleDesc))
+        && (nl->ListLength(tupleDesc) == 2)
+        && TypeOfRelAlgSymbol(nl->First(tupleDesc)) == tuple
+        && IsTupleDescription(nl->Second(tupleDesc)))
+        return
+          nl->TwoElemList(
+            nl->SymbolAtom("rel"),
+            tupleDesc);
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+/*
+
+4.1.3 Specification of operator ~GROUP~
+
+*/
+const string GROUPSpec =
+  "(<text>((stream x)) -> (rel x)</text---><text>Maps stream type to a rel type.</text--->)";
+/*
+
+4.1.3 Definition of operator ~GROUP~
+
+*/
+Operator GROUP (
+         "GROUP",              // name
+         GROUPSpec,            // specification
+         0,                    // no value mapping
+         Operator::DummyModel, // dummy model mapping, defines in Algebra.h
+         typeOperatorSelect,   // trivial selection function
+         GROUPTypeMap          // type mapping
+);
+
 /*
 
 4.1 Operator ~feed~
@@ -3463,20 +3535,20 @@ Operator cppmergeunion(
 
 /*
 
-7.3 Operator ~equimergejoin~
+7.3 Operator ~mergejoin~
 
 This operator computes the equijoin two streams.
 
-7.3.1 Type mapping function of operators ~equimergejoin~ and ~equihashjoin~
+7.3.1 Type mapping function of operators ~mergejoin~ and ~hashjoin~
 
-Type mapping for ~equimergejoin~ is
+Type mapping for ~mergejoin~ is
 
 ----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj)
 
       -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym tm)))) APPEND (i j)
 ----
 
-Type mapping for ~equihashjoin~ is
+Type mapping for ~hashjoin~ is
 
 ----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj int)
 
@@ -3485,7 +3557,7 @@ Type mapping for ~equihashjoin~ is
 
 
 */
-template<bool expectIntArgument> ListExpr EquiJoinTypeMap
+template<bool expectIntArgument> ListExpr JoinTypeMap
 (ListExpr args)
 {
   ListExpr attrTypeA, attrTypeB;
@@ -3563,14 +3635,14 @@ template<bool expectIntArgument> ListExpr EquiJoinTypeMap
 
 /*
 
-4.1.2 Auxiliary definitions for value mapping function of operator ~equimergejoin~
+4.1.2 Auxiliary definitions for value mapping function of operator ~mergejoin~
 
 */
 
 static CcInt oneCcInt(true, 1);
 static CcBool trueCcBool(true, true);
 
-class EquiMergeJoinLocalInfo
+class MergeJoinLocalInfo
 {
 private:
   vector<CcTuple*> bucketA;
@@ -3583,11 +3655,16 @@ private:
   Word streamALocalInfo;
   Word streamBLocalInfo;
 
+  Word streamA;
+  Word streamB;
+
   ArgVector aArgs;
   ArgVector bArgs;
 
   int attrIndexA;
   int attrIndexB;
+
+  bool expectSorted;
 
   int CompareCcTuples(CcTuple* a, CcTuple* b)
   {
@@ -3604,8 +3681,19 @@ private:
 
   CcTuple* nextATuple()
   {
-    int errorCode = SortBy<false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
-    if(errorCode == YIELD)
+    bool yield;
+    if(expectSorted)
+    {
+      qp->Request(streamA.addr, aResult);
+      yield = qp->Received(streamA.addr);
+    }
+    else
+    {
+      int errorCode = SortBy<false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+      yield = (errorCode == YIELD);
+    }
+
+    if(yield)
     {
       return (CcTuple*)aResult.addr;
     }
@@ -3618,8 +3706,19 @@ private:
 
   CcTuple* nextBTuple()
   {
-    int errorCode = SortBy<false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
-    if(errorCode == YIELD)
+    bool yield;
+    if(expectSorted)
+    {
+      qp->Request(streamB.addr, bResult);
+      yield = qp->Received(streamB.addr);
+    }
+    else
+    {
+      int errorCode = SortBy<false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+      yield = (errorCode == YIELD);
+    }
+
+    if(yield)
     {
       return (CcTuple*)bResult.addr;
     }
@@ -3715,8 +3814,8 @@ private:
   }
 
 public:
-  EquiMergeJoinLocalInfo(Word streamA, Word attrIndexA,
-    Word streamB, Word attrIndexB)
+  MergeJoinLocalInfo(Word streamA, Word attrIndexA,
+    Word streamB, Word attrIndexB, bool expectSorted)
   {
     assert(streamA.addr != 0);
     assert(streamB.addr != 0);
@@ -3725,20 +3824,41 @@ public:
     assert((int)((StandardAttribute*)attrIndexA.addr)->GetValue() > 0);
     assert((int)((StandardAttribute*)attrIndexB.addr)->GetValue() > 0);
 
+    this->expectSorted = expectSorted;
+    this->streamA = streamA;
+    this->streamB = streamB;
     this->attrIndexA = (int)((StandardAttribute*)attrIndexA.addr)->GetValue() - 1;
     this->attrIndexB = (int)((StandardAttribute*)attrIndexB.addr)->GetValue() - 1;
-    SetArgs(aArgs, streamA, attrIndexA);
-    SetArgs(bArgs, streamB, attrIndexB);
-    SortBy<false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
-    SortBy<false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+
+    if(expectSorted)
+    {
+      qp->Open(streamA.addr);
+      qp->Open(streamB.addr);
+    }
+    else
+    {
+      SetArgs(aArgs, streamA, attrIndexA);
+      SetArgs(bArgs, streamB, attrIndexB);
+      SortBy<false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
+      SortBy<false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+    }
+
     nextATuple();
     nextBTuple();
   }
 
-  ~EquiMergeJoinLocalInfo()
+  ~MergeJoinLocalInfo()
   {
-    SortBy<false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
-    SortBy<false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+    if(expectSorted)
+    {
+      qp->Close(streamA.addr);
+      qp->Close(streamB.addr);
+    }
+    else
+    {
+      SortBy<false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
+      SortBy<false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+    };
   }
 
   CcTuple* NextResultTuple()
@@ -3762,27 +3882,28 @@ public:
 
 /*
 
-4.1.2 Value mapping function of operator ~equimergejoin~
+4.1.2 Value mapping function of operator ~mergejoin~
 
 */
 
-static int
-EquiMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+template<bool expectSorted> int
+MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  EquiMergeJoinLocalInfo* localInfo;
+  MergeJoinLocalInfo* localInfo;
 
   switch(message)
   {
     case OPEN:
-      localInfo = new EquiMergeJoinLocalInfo(args[0], args[4], args[1], args[5]);
+      localInfo = new MergeJoinLocalInfo
+        (args[0], args[4], args[1], args[5], expectSorted);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
-      localInfo = (EquiMergeJoinLocalInfo*)local.addr;
+      localInfo = (MergeJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
-      localInfo = (EquiMergeJoinLocalInfo*)local.addr;
+      localInfo = (MergeJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;
   }
@@ -3791,37 +3912,63 @@ EquiMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 /*
 
-4.1.3 Specification of operator ~equimergejoin~
+4.1.3 Specification of operator ~mergejoin~
 
 */
-const string EquiMergeJoinSpec =
-  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams.</text--->)";
+const string MergeJoinSpec =
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams. Expects that input streams are sorted.</text--->)";
 /*
 
-4.1.3 Definition of operator ~equimergejoin~
+4.1.3 Definition of operator ~mergejoin~
 
 */
-Operator equiMergeJoinOperator(
-         "equimergejoin",        // name
-         EquiMergeJoinSpec,     // specification
-         EquiMergeJoin,         // value mapping
+Operator MergeJoinOperator(
+         "mergejoin",        // name
+         MergeJoinSpec,     // specification
+         MergeJoin<true>,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         EquiJoinTypeMap<false>   // type mapping
+         JoinTypeMap<false>   // type mapping
 );
 
 /*
 
-7.3 Operator ~equihashjoin~
+7.3 Operator ~sortmergejoin~
+
+This operator sorts two input streams and computes their equijoin.
+
+4.1.3 Specification of operator ~sortmergejoin~
+
+*/
+const string SortMergeJoinSpec =
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams.</text--->)";
+/*
+
+4.1.3 Definition of operator ~sortmergejoin~
+
+*/
+Operator SortMergeJoinOperator(
+         "sortmergejoin",        // name
+         SortMergeJoinSpec,     // specification
+         MergeJoin<false>,         // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         JoinTypeMap<false>   // type mapping
+);
+
+
+/*
+
+7.3 Operator ~hashjoin~
 
 This operator computes the equijoin two streams via a hash join.
 The user can specify the number of hash buckets.
 
-7.3.1 Auxiliary Class for Operator ~equihashjoin~
+7.3.1 Auxiliary Class for Operator ~hashjoin~
 
 */
 
-class EquiHashJoinLocalInfo
+class HashJoinLocalInfo
 {
 private:
   static const size_t MAX_BUCKETS = 6151;
@@ -3895,7 +4042,7 @@ private:
   };
 
 public:
-  EquiHashJoinLocalInfo(Word streamA, Word attrIndexAWord,
+  HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
     Word streamB, Word attrIndexBWord, Word nBucketsWord)
   {
     this->streamA = streamA;
@@ -3916,7 +4063,7 @@ public:
     FillHashBuckets(streamB, attrIndexB, bucketsB);
   }
 
-  ~EquiHashJoinLocalInfo()
+  ~HashJoinLocalInfo()
   {
   }
 
@@ -3937,28 +4084,28 @@ public:
 
 /*
 
-7.3.2 Value Mapping Function of Operator ~equihashjoin~
+7.3.2 Value Mapping Function of Operator ~hashjoin~
 
 */
 
 static int
-EquiHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  EquiHashJoinLocalInfo* localInfo;
+  HashJoinLocalInfo* localInfo;
 
   switch(message)
   {
     case OPEN:
-      localInfo = new EquiHashJoinLocalInfo(args[0], args[5],
+      localInfo = new HashJoinLocalInfo(args[0], args[5],
         args[1], args[6], args[4]);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
-      localInfo = (EquiHashJoinLocalInfo*)local.addr;
+      localInfo = (HashJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
-      localInfo = (EquiHashJoinLocalInfo*)local.addr;
+      localInfo = (HashJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;
   }
@@ -3967,23 +4114,23 @@ EquiHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 /*
 
-4.1.3 Specification of Operator ~equihashjoin~
+4.1.3 Specification of Operator ~hashjoin~
 
 */
-const string EquiHashJoinSpec =
+const string HashJoinSpec =
   "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams via a hash join. The number of hash buckets is given by the parameter nBuckets.</text--->)";
 /*
 
-4.1.3 Definition of Operator ~equihashjoin~
+4.1.3 Definition of Operator ~hashjoin~
 
 */
-Operator equiHashJoinOperator(
-         "equihashjoin",        // name
-         EquiHashJoinSpec,     // specification
-         EquiHashJoin,         // value mapping
+Operator HashJoinOperator(
+         "hashjoin",        // name
+         HashJoinSpec,     // specification
+         HashJoin,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
-         EquiJoinTypeMap<true>   // type mapping
+         JoinTypeMap<true>   // type mapping
 );
 
 /*
@@ -4145,7 +4292,7 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       else return CANCEL;
       
     case CLOSE :
-    
+
       qp->Close(args[0].addr);
       return 0;
   }
@@ -4179,7 +4326,7 @@ Operator cppextend (
 Type mapping for ~concat~ is
 
 ----    ((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn))))
- 
+
         -> (stream (tuple (a1:d1 ... an:dn)))
 ----
 
@@ -4275,7 +4422,7 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
     
-      qp->Close(args[0].addr); 
+      qp->Close(args[0].addr);
       qp->Close(args[1].addr);
       delete (CcInt*)local.addr;
       return 0;
@@ -4418,7 +4565,7 @@ ListExpr GroupByTypeMap(ListExpr args)
         nl->WriteToString(listString, first);
         cout << "First List, Second : " << listString << "\n";
 
-        if ((nl->IsAtom(first2)) &&
+        if((nl->IsAtom(first2)) &&
           (nl->ListLength(second2) == 3) &&
           (nl->AtomType(first2) == SymbolType) &&
           (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
@@ -4618,6 +4765,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&feed);
     AddOperator(&consume);
     AddOperator(&TUPLE);
+    AddOperator(&GROUP);
     AddOperator(&TUPLE2);
     AddOperator(&attr);
     AddOperator(&tfilter);
@@ -4640,8 +4788,9 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppmergesec);
     AddOperator(&cppmergediff);
     AddOperator(&cppmergeunion);
-    AddOperator(&equiMergeJoinOperator);
-    AddOperator(&equiHashJoinOperator);
+    AddOperator(&MergeJoinOperator);
+    AddOperator(&SortMergeJoinOperator);
+    AddOperator(&HashJoinOperator);
     AddOperator(&cppgroupby);
 
     cpptuple.AssociateKind( "TUPLE" );
