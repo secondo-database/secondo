@@ -7,6 +7,11 @@
 
 March 2003 Victor Almeida created the new Relational Algebra organization.
 
+Nov 2004 M. Spiekermann. Implementation of the ~Comparison~ Classes moved
+to RelationAlgebra.h in order to declare the operator() as inline function.
+Moreover some uninitialzed variables were set to avoid warning when compiling
+with optimization flag -O2. 
+
 [TOC]
 
 1 Overview
@@ -105,71 +110,6 @@ TupleType::~TupleType()
   delete []attrTypeArray;
 }
 
-/*
-The functions below are declared as inline functions and implemented
-in the header file
-
-*/
-//const int TupleType::GetNoAttributes() const
-//const int TupleType::GetTotalSize() const
-//const AttributeType& TupleType::GetAttributeType( const int index ) const
-//void TupleType::PutAttributeType( const int index, const AttributeType& attrType )
-
-/*
-4 Implementation of the class ~LexicographicalTupleCompare~
-
-*/
-bool LexicographicalTupleCompare::operator()(const Tuple* aConst, const Tuple* bConst) const
-{
-  Tuple* a = (Tuple*)aConst;
-  Tuple* b = (Tuple*)bConst;
-
-  for(int i = 0; i < a->GetNoAttributes(); i++)
-  {
-    if(((Attribute*)a->GetAttribute(i))->Compare(((Attribute*)b->GetAttribute(i))) < 0)
-    {
-      return true;
-    }
-    else
-    {
-      if(((Attribute*)a->GetAttribute(i))->Compare(((Attribute*)b->GetAttribute(i))) > 0)
-      {
-        return false;
-      }
-    }
-  }
-  return false;
-}
-
-/*
-4 Implementation of the class ~TupleCompareBy~
-
-*/
-bool TupleCompareBy::operator()(const Tuple* aConst, const Tuple* bConst) const
-{
-  Tuple* a = (Tuple*)aConst;
-  Tuple* b = (Tuple*)bConst;
-
-  SortOrderSpecification::const_iterator iter = spec.begin();
-  while(iter != spec.end())
-  {
-    if(((Attribute*)a->GetAttribute(iter->first - 1))->
-      Compare(((Attribute*)b->GetAttribute(iter->first - 1))) < 0)
-    {
-      return iter->second;
-    }
-    else
-    {
-      if(((Attribute*)a->GetAttribute(iter->first - 1))->
-        Compare(((Attribute*)b->GetAttribute(iter->first - 1))) > 0)
-      {
-        return !(iter->second);
-      }
-    }
-    iter++;
-  }
-  return false;
-}
 
 /*
 4 Implementation of the class ~Tuple~
@@ -349,8 +289,9 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& err
 
 ListExpr Tuple::Out( ListExpr typeInfo )
 {
-  int attrno, algebraId, typeId;
-  ListExpr l, lastElem, attrlist, first, valuelist;
+  int attrno=0, algebraId=0, typeId=0;
+  ListExpr l = nl->TheEmptyList();
+  ListExpr lastElem=l, attrlist=l, first=l, valuelist=l;
 
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   attrlist = nl->Second(nl->First(typeInfo));
@@ -445,11 +386,11 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExp
 
 ListExpr Relation::Out( ListExpr typeInfo )
 {
-  Tuple* t;
-  ListExpr l, lastElem, tlist, TupleTypeInfo;
+  Tuple* t=0;
+  ListExpr l=nl->TheEmptyList();
+  ListExpr lastElem=l, tlist=l, TupleTypeInfo=l;
 
   RelationIterator* rit = MakeScan();
-  l = nl->TheEmptyList();
 
   //cerr << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
