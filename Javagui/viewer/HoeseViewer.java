@@ -1,5 +1,3 @@
-
-
 package  viewer;
 
 import  javax.swing.*;
@@ -244,7 +242,7 @@ public class HoeseViewer extends SecondoViewer {
     allProjection = new AffineTransform();
     allProjection.scale(ZoomFactor, ZoomFactor);
     GraphDisplay = new GraphWindow(this);
-    GraphDisplay.addMouseMotionListener(new MouseMotionAdapter() {
+    GraphDisplay.addMouseMotionListener(new MouseMotionListener() {
       public void mouseMoved (MouseEvent e) {
         //Koordinaten in Weltkoordinaten umwandeln
         Point2D.Double p = new Point2D.Double();
@@ -255,6 +253,9 @@ public class HoeseViewer extends SecondoViewer {
         MouseKoordLabel.setText(Double.toString(p.getX()).concat("       ").substring(0,
             7) + "/" + Double.toString(p.getY()).concat("       ").substring(0,
             7));
+      }
+      public void mouseDragged(MouseEvent evt){
+         mouseMoved(evt);
       }
     });
 
@@ -1043,21 +1044,18 @@ public boolean canDisplay(SecondoObject o){
 
   /**
    * Shows/hides the context-panel where the TextWindowis displayed. Create an extra temporal projection-layer
-   * @see <a href="MainWindowsrc.html#on_Set_Kontext">Source</a> 
+   * @see <a href="MainWindowsrc.html#on_Set_Kontext">Source</a>
    */
   public void on_Set_Kontext () {
     if (MIsetKontext.isSelected()) {
       JLabel l = context.getProjectionLabel();
-      //if (ClipRect == null)
-      //  l.setBounds(BBoxDC); 
-      //else 
       l.setBounds(0, 0, GraphDisplay.getWidth(), GraphDisplay.getHeight());                     // oder BBoxDC
       l.setVisible(false);
       GraphDisplay.add(l, new Integer(20000));
       GraphDisplay.removeMouseListener(SelectionControl);
       GraphDisplay.addMouseListener(context.getProjectionControl());
       VisualPanel.setLeftComponent(context);
-    } 
+    }
     else {
       GraphDisplay.removeMouseListener(context.getProjectionControl());
       GraphDisplay.addMouseListener(SelectionControl);
@@ -1399,7 +1397,7 @@ public boolean canDisplay(SecondoObject o){
       if (context.ImagePath != null)
         addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX(), 
             context.getMapOfs().getY()), 0); 
-      else 
+      else
         GraphDisplay.createBackLayer(null, 0, 0);
       //mw.LayerSwitchBar.add(mw.GraphDisplay.createBackLayer(ImagePath),0);
       hasBackImage = (context.ImagePath != null);
@@ -1520,13 +1518,12 @@ public boolean canDisplay(SecondoObject o){
    */
   class SelMouseAdapter extends MouseAdapter
       implements MouseMotionListener {
-  //  JLabel selLabel = null;
 
-    private int startX;
-    private int startY;
-    private int oldX;
-    private int oldY;
-    private boolean isPainting = false;
+    private int startX;  // start-x of selection rectangle
+    private int startY;  // start-y of selection rectangle
+    private int oldX;    // last end-x position of selection rectangle
+    private int oldY;    // last end-y position of selection rectangle
+    private boolean isPainting = false; // is the selection rectangle painted ?
 
 
     public void drawRectangle(int x1,int y1,int x2,int y2){
@@ -1543,12 +1540,8 @@ public boolean canDisplay(SecondoObject o){
 
     public void mouseReleased (MouseEvent e) {
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
-      { /*
-          GraphDisplay.remove(selLabel);
-          GraphDisplay.repaint();
-          Rectangle2D r = selLabel.getBounds().getBounds2D();
-          selLabel = null; */
-
+      {
+	  GraphDisplay.removeMouseMotionListener(this);
 	  if(isPainting)
              drawRectangle(startX,startY,oldX,oldY);
           isPainting=false;
@@ -1612,14 +1605,6 @@ public boolean canDisplay(SecondoObject o){
     public void mousePressed (MouseEvent e) {
       //Koordinaten in Weltkoordinaten umwandeln
       if ((e.getModifiers() & InputEvent.BUTTON3_MASK) == InputEvent.BUTTON3_MASK) {
-        /*Rectangle r = new Rectangle(e.getX(), e.getY(), 0, 0);
-        selLabel = new JLabel();
-        selLabel.setBounds(r);
-        selLabel.setBorder(new LineBorder(Color.black, 1));
-        //selLabel.setOpaque(true);
-        //selLabel.setBackground(new Color(230,30,0,50));
-        GraphDisplay.add(selLabel, new Integer(20000));
-        //GraphDisplay.removeMouseListener(SelectionControl); */
          startX = e.getX();
          startY = e.getY();
          GraphDisplay.addMouseMotionListener(this);
@@ -1633,22 +1618,6 @@ public boolean canDisplay(SecondoObject o){
           oldY = e.getY();
           drawRectangle(startX,startY,oldX,oldY);
           isPainting=true;
-
-/*
-	Point p = selLabel.getLocation();
-        int x = (int)p.getX();
-        int y = (int)p.getY();
-        int w = e.getX() - x;
-        int h = e.getY() - y;
-        if (w < 0) {
-          w = -w;               //+selLabel.getWidth();
-          x = x - w + 1;
-        }
-        if (h < 0) {
-          h = -h;               //+selLabel.getHeight();
-          y = y - h + 1;
-        }
-        selLabel.setBounds(x, y, w, h);    */
       }
     }
 
@@ -1722,7 +1691,7 @@ public boolean canDisplay(SecondoObject o){
   }
 /** This class controls movement of the timeslider
 
-   * @see <a href="MainWindowsrc.html#TimeAdjustmentListener">Source</a> 
+   * @see <a href="MainWindowsrc.html#TimeAdjustmentListener">Source</a>
    */
   class TimeAdjustmentListener
       implements AdjustmentListener {
@@ -1735,7 +1704,7 @@ public boolean canDisplay(SecondoObject o){
       int v = e.getValue();
       double anf;
       if (v == TimeSlider.getMinimum())
-        anf = TimeBounds.getStart(); 
+        anf = TimeBounds.getStart();
       else {
         anf = (double)v/1440.0;
         if (anf > TimeBounds.getEnd())
