@@ -3,19 +3,22 @@
 
 [1] Secondo Standardalgebra
 
-Friedhelm Becker, Nov. 1998
+Nov 1998. Friedhelm Becker.
 
-August 16, 2000 RHG Changed includes to show dependencies more clearly.
+August 16, 2000. RHG Changed includes to show dependencies more clearly.
 
-March 2002 Ulrich Telle Port to C++
+March 2002. Ulrich Telle Port to C++
 
-November 9, 2002 RHG Added operators ~randint~ and ~log~. Some other slight revisions.
+November 9, 2002. RHG Added operators ~randint~ and ~log~. Some other slight revisions.
 
-February 2004, Hoffmann added operators ~relcount~ and ~relcount2~.
+February 2004. F. Hoffmann added operators ~relcount~ and ~relcount2~.
 
-April 28, 2004, M. Spiekermann added operators ~nextint~ and ~randmax~. The calculation of
+April 28, 2004. M. Spiekermann added operators ~nextint~ and ~randmax~. The calculation of
 random numbers in an specified range was revised according to the recommendations documented 
 in the rand() manpage.
+
+July 08, 2004. M. Spiekermann changed the IN-function of data type ~real~. Integer atoms are now also
+accepted. 
 
 \begin{center}
 \footnotesize
@@ -643,15 +646,23 @@ Word
 InCcReal( ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if ( nl->IsAtom( value ) && nl->AtomType( value ) == RealType )
+  bool isAtom = nl->IsAtom( value );
+  NodeType nodeType = nl->AtomType( value );
+
+  if ( isAtom && nodeType == RealType )
   {
     correct = true;
-    return (SetWord( new CcReal( true, nl->RealValue( value )) ));
+    return (SetWord( new CcReal( true, nl->RealValue( value ) )));
   }
-  else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  else if ( isAtom && nodeType == SymbolType && nl->SymbolValue( value ) == "undef" )
   {
     correct = true;
     return (SetWord( new CcReal( false, 0.0) ));
+  } 
+  else if ( isAtom && nodeType == IntType  )
+  {
+    return ( SetWord( new CcReal( true, 1.0 * nl->IntValue(value) )));
+    correct = true;    
   }
   else
   {
