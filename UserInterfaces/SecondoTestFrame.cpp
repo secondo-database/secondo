@@ -1,11 +1,14 @@
 /* 
 
 Test program for the tuple manager.
-Demonstrates how to create, save and 
+Demonstrates e.g. how to create, save and 
 reload tuples to the Berkeley DB system.
 
+The class Polygon is used to show how to
+work with FLOBs.
+
 */
-	
+
 using namespace std;
 
 #include <string>
@@ -525,13 +528,15 @@ void SecondoTestFrame::Test05(const TupleAttributes *attributes, SmiRecordFile *
 	cout << "\tnot yet implemented." << endl;
 	SmiRecordFileIterator *it = new SmiRecordFileIterator();
 	bool rc = recFile->SelectAll(*it, SmiFile::ReadOnly); 
+	cout << "recFile->SelectAll(+it, SmiFile::ReadOnly) " << ((rc == true) ? "OK" : "FAILED") << endl;
 	bool hasMore = true;
 	SmiRecordId recId = 2;
-	SmiRecord rec;
-	Tuple *tuple;
+	SmiRecord *rec;
+	//Tuple *tuple;
+	
 	
 	do {
-		hasMore = it->Next(recId, rec);
+		hasMore = it->Next(recId, *rec);
 		cout << "record number:" << recId << endl;
 		//tuple = new Tuple(recFile, recId, attributes, SmiFile::ReadOnly);
 		//cout << "Contents of tuple: " << *tuple << endl;
@@ -788,8 +793,8 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 	myTuple->Put(2, real1);
 	myTuple->Put(3, polygon1);
 					
-	//cout << "\ttest tuple values" << endl;
-	//cout << "\t" << *myTuple << endl;
+	cout << "\ttest tuple values" << endl;
+	cout << "\t" << *myTuple << endl;
 	cout << "\tSize: " << myTuple->GetSize() << endl;
 	cout << "\tAttributes: " << myTuple->GetAttrNum() << endl;
 	cout << "\tSave tuple into recFile. Persistent id = ";
@@ -797,8 +802,7 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes, SmiRecordFile *
 	myTuple->SaveTo(recFile, lobFile);
 	recId = myTuple->GetPersistentId();
 	cout << recId << endl;
-	bool lfc = lobFile->Close();
-	cout << "&&&&&&&&&&&&& lobFile closed:      " << lfc << endl;
+	lobFile->Close();
 
 	delete polygon1;
 	delete lobFile;
@@ -900,11 +904,15 @@ int SecondoTestFrame::Execute() {
         	TupleAttributes tupleType1(4, attrTypes);
 	   
 	    	cout << "* create tuple" << endl;
-
-			bool cdb = SmiEnvironment::OpenDatabase("LOBDB");
+		
+			//// HIER ////
+			//bool cdb = SmiEnvironment::OpenDatabase("LOBDB");
+			bool cdb = SecondoSystem::GetInstance()->OpenDatabase("LOBDB");
 			if (cdb == false) {
 				cout << "* Database opened: NO!!" << endl;
-				cdb = SmiEnvironment::CreateDatabase("LOBDB");
+				//// HIER ////
+				//cdb = SmiEnvironment::CreateDatabase("LOBDB");
+				cdb = SecondoSystem::GetInstance()->CreateDatabase("LOBDB");
 				cout << "* Database created:";
 				if (cdb == true) {
 					cout << "yes" << endl;
@@ -917,18 +925,19 @@ int SecondoTestFrame::Execute() {
 				 cout << "* Database opened: yes" << endl;
 			}
 			
-			SmiRecordFile *recFile = new SmiRecordFile(false);
-
-			bool recFileOpen = recFile->Open("RECFILE");
-			int recFileId = recFile->GetFileId();
-
 			cout << "* Database opened/created: " << (cdb ? "yes" : 		"NO!!!!!!") << endl;
-			cout << "* File for record opened:  " << ((recFileOpen == true) ? "yes" : "NO!!!!!!") << endl;
-					
-			bool trans = SmiEnvironment::BeginTransaction();
+								
+			//// HIER ////
+			//bool trans = SmiEnvironment::BeginTransaction();
+			bool trans = SecondoSystem::GetInstance()->BeginTransaction();
 			cout << "* begin of transactions: ";
 			cout << ((trans == true) ? " OK" : " failed.") << endl;
 			
+			SmiRecordFile *recFile = new SmiRecordFile(false);
+			bool recFileOpen = recFile->Open("RECFILE");
+			int recFileId = recFile->GetFileId();
+			cout << "* File for record opened:  " << ((recFileOpen == true) ? "yes" : "NO!!!!!!") << endl;
+
 			int choice;
 			 		
 			do {
@@ -960,15 +969,23 @@ int SecondoTestFrame::Execute() {
 					case 9: break;
 				}
 			} while (choice != 9);
-					
-			trans = SmiEnvironment::CommitTransaction();
-			cout << "* end (commit) of transactions: ";
-			cout << ((trans == true) ? " OK" : " failed.") << endl;
-		
+			
+
 			recFileId = recFile->GetFileId();
 			recFile->Close();
 			
 			delete recFile;
+
+			//// HIER ////		
+			//trans = SmiEnvironment::CommitTransaction();
+			trans = SecondoSystem::GetInstance()->CommitTransaction();
+			
+			cout << "* end (commit) of transactions: ";
+			cout << ((trans == true) ? " OK" : " failed.") << endl;
+			
+			bool closed = SecondoSystem::GetInstance()->CloseDatabase();
+			cout << "* Database closed: " << ((closed == true) ? "yes" : "NO" ) << endl;
+
     	}
 		cout << "si->Terminate() wird aufgerufen..." << endl;
     	si->Terminate();
