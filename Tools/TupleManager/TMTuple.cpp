@@ -225,80 +225,9 @@ TMTuple::TMTuple(const TupleType& tupleType)
 
 5.3 Constructor of the class TMTuple. 
 
-Creates a solid tuple and
-reads its data into memory.
+Creates a solid tuple and reads its data into memory.
 
 */
-TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecord& record, 
-                 SmiRecordFile *lobfile, const TupleType& tupleType)
-{
-  // initialize member attributes.
-  Init(tupleType);
-
-  diskTupleId = rid;
-  recFile = recfile;
-  lobFile = lobfile;
-
-  // read tuple header and memory tuple from disk
-  bool ok = true;
-  diskTuple = record;
-  TupleHeader th = {0};
-  char *buf = (char *)malloc(sizeof(TupleHeader));
-  ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
-  ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
-  memcpy(&(th.size), buf, sizeof(int));
-  free(buf);
-
-  if (ok == false) {
-    error = true;
-    return;
-  }
-
-  state = SolidRead;
-
-  // read attribute values from memoryTuple.
-  char *valuePtr = memoryTuple;
-  for (int i = 0; i < attrNum; i++) {
-    int algId = tupleType.GetAttributeType(i).algId;
-    int typeId = tupleType.GetAttributeType(i).typeId;
-    attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
-    valuePtr = valuePtr + tupleType.GetAttributeType(i).size;
-  }
-
-  if (th.size > 0) {
-    // Determine the size of FLOB data stored in lobFile
-    FLOB *tmpFLOB;
-    extensionSize = 0;
-
-    for (int i = 0; i < attrNum; i++) {
-      for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-        tmpFLOB = attribInfo[i].value->GetFLOB(j);
-        extensionSize = extensionSize + tmpFLOB->GetSize();
-      }
-    }
-
-    extensionTuple = 0;
-    // move FLOB data to extension tuple if exists.
-    if (extensionSize > 0) {
-      extensionTuple = (char *)malloc(extensionSize);
-      ok = diskTuple.Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
-
-      char *extensionPtr = extensionTuple;
-      for (int i = 0; i < attrNum; i++) {
-        for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-          tmpFLOB = attribInfo[i].value->GetFLOB(j);
-          if (!tmpFLOB->IsLob()) {
-            extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
-          }
-        }
-      }
-    }
-  }
-
-  if (ok == false) error = true;
-}
-
-
 TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
 	     const TupleType& tupleType, SmiFile::AccessType mode) 
 {
@@ -368,6 +297,158 @@ TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile
     }
   }
   
+  if (ok == false) error = true;
+}
+
+/*
+
+5.3 Constructor of the class TMTuple.
+
+Creates a solid tuple and reads its data into memory.
+
+*/
+TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord& record, 
+                 SmiRecordFile *lobfile, const TupleType& tupleType)
+{
+  // initialize member attributes.
+  Init(tupleType);
+
+  SmiKey key;
+  key = record.GetKey();
+  key.GetKey( diskTupleId );
+  recFile = recfile;
+  lobFile = lobfile;
+  diskTuple = record;
+
+  // read tuple header and memory tuple from disk
+  bool ok = true; 
+  TupleHeader th = {0};
+  char *buf = (char *)malloc(sizeof(TupleHeader));
+  ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
+  ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
+  memcpy(&(th.size), buf, sizeof(int));
+  free(buf);
+
+  if (ok == false) {
+    error = true;
+    return;
+  }
+
+  state = SolidRead;
+
+  // read attribute values from memoryTuple.
+  char *valuePtr = memoryTuple;
+  for (int i = 0; i < attrNum; i++) {
+    int algId = tupleType.GetAttributeType(i).algId;
+    int typeId = tupleType.GetAttributeType(i).typeId;
+    attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    valuePtr = valuePtr + tupleType.GetAttributeType(i).size;
+  }
+
+  if (th.size > 0) {
+    // Determine the size of FLOB data stored in lobFile
+    FLOB *tmpFLOB;
+    extensionSize = 0;
+
+    for (int i = 0; i < attrNum; i++) {
+      for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+        tmpFLOB = attribInfo[i].value->GetFLOB(j);
+        extensionSize = extensionSize + tmpFLOB->GetSize();
+      }
+    }
+
+    extensionTuple = 0;
+    // move FLOB data to extension tuple if exists.
+    if (extensionSize > 0) {
+      extensionTuple = (char *)malloc(extensionSize);
+      ok = diskTuple.Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
+
+      char *extensionPtr = extensionTuple;
+      for (int i = 0; i < attrNum; i++) {
+        for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+          tmpFLOB = attribInfo[i].value->GetFLOB(j);
+          if (!tmpFLOB->IsLob()) {
+            extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+          }
+        }
+      }
+    }
+  }
+
+  if (ok == false) error = true;
+}
+
+/*
+
+5.3 Constructor of the class TMTuple.
+
+Creates a solid tuple and reads its data into memory, using a prefetching iterator.
+
+*/
+TMTuple::TMTuple(SmiRecordFile* recfile, PrefetchingIterator* iter,
+                 SmiRecordFile *lobfile, const TupleType& tupleType)
+{
+  // initialize member attributes.
+  Init(tupleType);
+
+  iter->ReadCurrentRecordNumber(diskTupleId);
+  recFile = recfile;
+  lobFile = lobfile;
+
+  // read tuple header and memory tuple from disk
+  TupleHeader th = {0};
+  char *buf = (char *)malloc(sizeof(TupleHeader));
+  bool ok = iter->ReadCurrentData(buf, sizeof(TupleHeader), 0);
+  ok = iter->ReadCurrentData(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
+  memcpy(&(th.size), buf, sizeof(int));
+  free(buf);
+
+  if (ok == false) {
+    error = true;
+    return;
+  }
+
+  state = SolidRead;
+
+  // read attribute values from memoryTuple.
+  char *valuePtr = memoryTuple;
+  for (int i = 0; i < attrNum; i++) {
+    int algId = tupleType.GetAttributeType(i).algId;
+    int typeId = tupleType.GetAttributeType(i).typeId;
+    attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    valuePtr = valuePtr + tupleType.GetAttributeType(i).size;
+  }
+
+  if (th.size > 0) {
+    // Determine the size of FLOB data stored in lobFile
+    FLOB *tmpFLOB;
+    extensionSize = 0;
+
+    for (int i = 0; i < attrNum; i++) {
+      for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+        tmpFLOB = attribInfo[i].value->GetFLOB(j);
+        extensionSize = extensionSize + tmpFLOB->GetSize();
+      }
+    }
+
+    extensionTuple = 0;
+    // move FLOB data to extension tuple if exists.
+    if (extensionSize > 0) {
+      extensionTuple = (char *)malloc(extensionSize);
+      ok = diskTuple.Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
+
+      char *extensionPtr = extensionTuple;
+      for (int i = 0; i < attrNum; i++) {
+        for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+          tmpFLOB = attribInfo[i].value->GetFLOB(j);
+          if (!tmpFLOB->IsLob()) {
+            extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+          }
+        }
+      }
+    }
+  }
+
   if (ok == false) error = true;
 }
 

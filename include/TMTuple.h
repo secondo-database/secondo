@@ -198,10 +198,10 @@ The result of this constructor is a fresh tuple.
 
   TMTuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecordFile *lobfile, 
 	const TupleType& attributes, SmiFile::AccessType mode);
- 
-  TMTuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecord& record, 
-          SmiRecordFile *lobfile, const TupleType& attributes);
 
+  TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecord& record,
+                   SmiRecordFile *lobfile, const TupleType& tupleType);
+ 
   TMTuple(SmiRecordFile* recfile, PrefetchingIterator* iter, SmiRecordFile *lobfile,
 	     const TupleType& attributes);
  

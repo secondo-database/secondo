@@ -418,15 +418,6 @@ void Relation::AppendTuple( Tuple *tuple )
   privateRelation->noTuples += 1;
 }
 
-//Tuple* Relation::GetTuple( const TupleId& tupleId ) const
-//{
-//  Tuple *t = new Tuple( *privateRelation->tupleType );
-//  t->GetPrivateTuple()->tmTuple = new TMTuple( &privateRelation->tupleFile, tupleId.value, 
-//                                               &privateRelation->flobFile, *privateRelation->tupleType, 
-//                                               SmiFile::ReadOnly );
-//  return t;
-//}
-
 void Relation::Clear()
 {
   privateRelation->noTuples = 0;
@@ -446,6 +437,102 @@ RelationIterator *Relation::MakeScan() const
   return new RelationIterator( *this );
 }
 
+#ifdef _PREFETCHING_
+/*
+4.3 Struct ~PrivateRelationIterator~
+
+This struct contains the private attributes of the class ~RelationIterator~.
+
+*/
+struct PrivateRelationIterator
+{
+  PrivateRelationIterator( const Relation& rel ):
+    iterator( rel.privateRelation->tupleFile.SelectAllPrefetched() ),
+    relation( rel ),
+    endOfScan( false ),
+    lastTuple( 0 )
+    {
+    }
+/*
+The constructor.
+
+*/
+  ~PrivateRelationIterator()
+  {
+    delete iterator;
+    delete lastTuple;
+  }
+/*
+The destructor.
+
+*/
+  PrefetchingIterator *iterator;
+/*
+The iterator.
+
+*/
+  const Relation& relation;
+/*
+A reference to the relation.
+
+*/
+  bool endOfScan;
+/*
+Stores the state of the iterator.
+
+*/
+  Tuple *lastTuple;
+/*
+Stores the last tuple of the iteration for deletion purposes.
+
+*/
+};
+
+/*
+4.4 Implementation of the class ~RelationIterator~
+
+This class is used for scanning (iterating through) relations.
+
+*/
+RelationIterator::RelationIterator( const Relation& relation ):
+  privateRelationIterator( new PrivateRelationIterator( relation ) )
+  {}
+
+RelationIterator::~RelationIterator()
+{
+  delete privateRelationIterator;
+}
+
+Tuple* RelationIterator::GetNextTuple() 
+{
+  if( privateRelationIterator->lastTuple != 0 )
+  {
+    delete privateRelationIterator->lastTuple;
+    privateRelationIterator->lastTuple = 0;
+  }
+
+  if( !privateRelationIterator->iterator->Next() )
+  {
+    privateRelationIterator->endOfScan = true;
+    return 0; 
+  }
+
+  Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
+  delete result->GetPrivateTuple()->tmTuple;
+  result->GetPrivateTuple()->tmTuple = 
+    new TMTuple( &privateRelationIterator->relation.privateRelation->tupleFile,
+                 privateRelationIterator->iterator,
+                 &privateRelationIterator->relation.privateRelation->lobFile,
+                 privateRelationIterator->relation.privateRelation->tupleType );
+  privateRelationIterator->lastTuple = result;
+  return result;
+}
+
+const bool RelationIterator::EndOfScan() 
+{
+  return privateRelationIterator->endOfScan;
+}
+#else
 /*
 4.3 Struct ~PrivateRelationIterator~
 
@@ -458,11 +545,16 @@ struct PrivateRelationIterator
     iterator(),
     relation( rel )
     {
-      assert( rel.privateRelation->tupleFile.IsOpen() );
-      rel.privateRelation->tupleFile.SelectAll( iterator ); 
+      rel.privateRelation->tupleFile.SelectAll( iterator );
     }
 /*
 The constructor.
+
+*/
+  ~PrivateRelationIterator()
+  {}
+/*
+The destructor.
 
 */
   SmiRecordFileIterator iterator;
@@ -492,51 +584,29 @@ RelationIterator::~RelationIterator()
   delete privateRelationIterator;
 }
 
-/*
-Tuple* RelationIterator::GetNextTuple() 
-{
-  if( privateRelationIterator->lastTuple != 0 )
-  {
-    delete privateRelationIterator->lastTuple;
-    privateRelationIterator->lastTuple = 0;
-  }
-
-  SmiRecord record;
-  SmiRecordId recordId;
-  privateRelationIterator->iterator.Next( recordId, record );
-
-  privateRelationIterator->lastTuple = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
-  delete privateRelationIterator->lastTuple->GetPrivateTuple()->tmTuple;
-  privateRelationIterator->lastTuple->GetPrivateTuple()->tmTuple = 
-    new TMTuple( &privateRelationIterator->relation.privateRelation->tupleFile,
-                 recordId, record,
-                 &privateRelationIterator->relation.privateRelation->lobFile,
-                 privateRelationIterator->relation.privateRelation->tupleType );
-  return privateRelationIterator->lastTuple;
-}
-*/
-
-Tuple* RelationIterator::GetNextTuple() 
+Tuple* RelationIterator::GetNextTuple()
 {
   SmiRecord record;
-  SmiRecordId recordId;
-  privateRelationIterator->iterator.Next( recordId, record );
+  privateRelationIterator->iterator.Next( record );
+
   if( EndOfScan() )
-    return 0; 
+    return 0;
 
   Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
   delete result->GetPrivateTuple()->tmTuple;
-  result->GetPrivateTuple()->tmTuple = 
+  result->GetPrivateTuple()->tmTuple =
     new TMTuple( &privateRelationIterator->relation.privateRelation->tupleFile,
-                 recordId, record,
+                 record,
                  &privateRelationIterator->relation.privateRelation->lobFile,
                  privateRelationIterator->relation.privateRelation->tupleType );
   return result;
 }
 
-const bool RelationIterator::EndOfScan() 
+const bool RelationIterator::EndOfScan()
 {
   return privateRelationIterator->iterator.EndOfScan();
 }
 
-#endif
+#endif // _PREFETCHING_
+
+#endif // RELALG_PERSISTENT
