@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.15  2003/04/09 12:19:53  spieker
+# New target dist creates tar.gz files of the secondo source code
+#
 # Revision 1.14  2003/01/24 11:56:07  spieker
 # Some modifications on setting environments. If the prolog related
 # environment variables are set SecondoPL will be compiled automatically.
@@ -148,18 +151,19 @@ ifndef tag
 tag=HEAD
 endif
 
-ifeq($(platform), win32)
+ifeq ($(platform),win32)
   NETDEV = /cvs-projects/SECONDO_CD/Windows
 else
   NETDEV = /cvs-projects/SECONDO_CD/Unix
 endif
 
 .PHONY: dist
-save_sources: secondo.tgz
+dist:	secondo.tgz
+
 
 secondo.tgz:
 	cvs export -r$(tag) secondo
-	tar -cvzf  secondo.tgz secondo/*
+	tar -czf  secondo.tgz secondo/*
 	cp secondo.tgz $(NETDEV)
 	rm -r secondo
 
