@@ -27,7 +27,11 @@ private static void convertFile(String FileName){
   PathPos = Math.max(ObjectName.lastIndexOf("/"),ObjectName.lastIndexOf("\\"));
   if(PathPos>=0)
      ObjectName = ObjectName.substring(PathPos+1);
-  ObjectName.replace(' ','_'); // spaces are not allowed
+  // replace not allowed characters
+  ObjectName = ObjectName.replace(' ','_');
+  ObjectName = ObjectName.replace('-','_');
+  ObjectName = ObjectName.replace('+','_');
+  ObjectName = ObjectName.replace('.','_');
   ListExpr outList;
   if(LE.listLength()!=2)
       outList=LE;
