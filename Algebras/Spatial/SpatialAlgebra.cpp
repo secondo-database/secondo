@@ -2766,7 +2766,8 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 	//but the whether any old holes is inside new chs hole is not clear
 	//in the following I will do this check. Be careful that the edges is now
 	//in logic order
-	cout << "processing: faceno, cycleno "<<chs.attr.faceno<<" : "<<chs.attr.cycleno<<" : "<<chs<<endl;
+	//cout << "processing: faceno, cycleno "<<chs.attr.faceno<<" : "
+	//<<chs.attr.cycleno<<" : "<<chs<<endl;
     }
     
     if ((!chs.IsDefined())||((chs.attr.faceno>0) || (chs.attr.cycleno>2)))
