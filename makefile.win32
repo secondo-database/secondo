@@ -54,7 +54,7 @@ EXEFLAGS =
 endif
 
 # compilation options for the PROLOG shell
-PLLDFLAGS= $(PL_LIB_DIR)\libpl.lib -lm
+PLLDFLAGS= "$(PL_LIB_DIR)\libpl.lib" -lm
 
 DLLPICFLAG =
 DLLOBJEXT = o
@@ -62,4 +62,3 @@ DLLEXT = dll
 DLLFLAGS = -s -shared
 
 DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -mconsole -Wall -D_REENTRANT -D_GLIBCPP_DEPRECATED
-
