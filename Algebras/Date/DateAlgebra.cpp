@@ -136,15 +136,15 @@ class Date: public StandardAttribute
 
 *************************************************************************/
 
-  bool     IsDefined();
+  bool     IsDefined() const;
   void     SetDefined(bool Defined);
   void*	   GetValue();
   size_t   HashValue();
   void	   CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
   int      Adjacent(Attribute * arg);
-  int      Sizeof() ;
-  Date*    Clone() ;
+  int      Sizeof() const;
+  Date*    Clone();
   ostream& Print( ostream &os );
 
  private:
@@ -194,7 +194,7 @@ void Date::Set(bool Defined, int Day, int Month, int Year)
 
 *************************************************************************/
 
-bool Date::IsDefined()  {return (defined); }
+bool Date::IsDefined() const {return (defined); }
   
 void Date::SetDefined(bool Defined) {defined = Defined; }
 
@@ -325,7 +325,7 @@ int Date::Adjacent(Attribute *arg)
   }
 }
 
-int  Date::Sizeof() {return sizeof(Date);}
+int  Date::Sizeof() const {return sizeof(Date);}
 
 Date*  Date::Clone() {return (new Date( *this));}
 

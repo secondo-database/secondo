@@ -199,9 +199,9 @@ void   CcInt::Set( int v ) { defined = true, intval = v; };
 void   CcInt::Set( bool d, int v ) { defined = d, intval = v; };
 int    CcInt::GetIntval() { return (intval); };
 void*  CcInt::GetValue() { return (void *)intval;};
-bool   CcInt::IsDefined() { return (defined); };
+bool   CcInt::IsDefined() const { return (defined); };
 void   CcInt::SetDefined(bool defined) { this->defined = defined; };
-int    CcInt::Sizeof() { return (sizeof(CcInt)); };
+int    CcInt::Sizeof() const { return (sizeof(CcInt)); };
 CcInt* CcInt::Clone() { return (new CcInt( *this )); };
 size_t CcInt::HashValue() { return (defined ? intval : 0); };
 
@@ -522,13 +522,13 @@ The following type constructor, ~ccreal~, is defined in the same way as
 CcReal::CcReal(){};
 CcReal::CcReal( bool d, float v ) { defined = d; realval = v; };
 CcReal::~CcReal(){};
-bool    CcReal::IsDefined() { return (defined); };
+bool    CcReal::IsDefined() const { return (defined); };
 void    CcReal::SetDefined(bool defined) { this->defined = defined; };
 float   CcReal::GetRealval() { return (realval);};
 void*   CcReal::GetValue() { return ((void*)-1); };
 void    CcReal::Set( float v ) { defined = true, realval = v; };
 void    CcReal::Set( bool d, float v ) { defined = d, realval = v; };
-int     CcReal::Sizeof() { return (sizeof(CcReal)); };
+int     CcReal::Sizeof() const { return (sizeof(CcReal)); };
 CcReal* CcReal::Clone() { return (new CcReal(*this)); };
 
 size_t CcReal::HashValue()
@@ -711,11 +711,11 @@ CcBool::CcBool(){};
 CcBool::CcBool( bool d, int v ){ defined  = d; boolval = v; };
 CcBool::~CcBool(){};
 void    CcBool::Set( bool d, bool v ){ defined = d, boolval = v; };
-bool    CcBool::IsDefined() { return defined; };
+bool    CcBool::IsDefined() const { return defined; };
 void    CcBool::SetDefined(bool defined) { this->defined = defined; };
 bool    CcBool::GetBoolval() { return boolval; };
 void*   CcBool::GetValue() { return (void *)boolval; };
-int     CcBool::Sizeof() { return sizeof(CcBool); };
+int     CcBool::Sizeof() const { return sizeof(CcBool); };
 CcBool* CcBool::Clone() { return new CcBool(*this); };
 size_t CcBool::HashValue() { return (defined ? boolval : false); };
 
@@ -955,11 +955,11 @@ TypeConstructor ccBool( "bool",             CcBoolProperty,
 CcString::CcString() {};
 CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 CcString::~CcString() {};
-bool      CcString::IsDefined() { return (defined); };
+bool      CcString::IsDefined() const { return (defined); };
 void      CcString::SetDefined(bool defined) { this->defined = defined; };
 STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
-int       CcString::Sizeof() { return (sizeof(CcString)); };
+int       CcString::Sizeof() const { return (sizeof(CcString)); };
 CcString* CcString::Clone() { return (new CcString( *this )); };
 void CcString::Set( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 

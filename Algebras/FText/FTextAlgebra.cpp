@@ -57,7 +57,7 @@ public:
   bool  SearchText(textType subString);
   void  Set(textType newString);
   void  Set(bool newDefined, textType newString);
-  int   TextLength();
+  int   TextLength() const;
   textType Get();
 
 /*************************************************************************
@@ -69,14 +69,14 @@ public:
 *************************************************************************/
 
   FText(bool newDefined, textType newText);
-  bool     IsDefined();
+  bool     IsDefined() const;
   void     SetDefined(bool newDefined);
   void*    GetValue();
   size_t   HashValue();
   void     CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
-  int      Sizeof() ;
-  FText*   Clone() ;
+  int      Sizeof() const;
+  FText*   Clone();
   ostream& Print(ostream &os);
   int      Adjacent(Attribute * arg);
 
@@ -137,7 +137,7 @@ void FText::Set(bool newDefined, textType newString)
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
-int FText::TextLength()
+int FText::TextLength() const
 {
   return theText->length();
 }
@@ -167,7 +167,7 @@ FText::FText(bool newDefined, textType newText)
 }
 
 
-bool FText::IsDefined()
+bool FText::IsDefined() const
 {
   return (defined);
 }
@@ -242,7 +242,7 @@ int FText::Compare(Attribute * arg)
 }
 
 
-int  FText::Sizeof()
+int  FText::Sizeof() const
 {
   if(traces)
     cout << '\n' << "Start Sizeof" << '\n';

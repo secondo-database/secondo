@@ -97,11 +97,6 @@ Point::Point( const Point& p ) :
 Point::~Point()
 {}
 
-const bool Point::IsDefined() const
-{
-  return defined;
-}
-
 const Coord& Point::GetX() const
 {
   assert( IsDefined() );
@@ -114,9 +109,9 @@ const Coord& Point::GetY() const
   return y;
 }
 
-const BBox Point::BoundingBox() const
+const Rectangle Point::BoundingBox() const
 {
-  return BBox( *this, *this );
+  return Rectangle( this->x, this->x, this->y, this->y );
 }
 
 Point& Point::operator=( const Point& p )
@@ -197,7 +192,7 @@ ostream& operator<<( ostream& o, const Point& p )
   ************************************************************************
 
 */
-bool Point::IsDefined()
+bool Point::IsDefined() const
 {
   return defined;
 }
@@ -267,7 +262,7 @@ int   Point::Adjacent(Attribute * arg)
     //adjacent or not.
 }
 
-int  Point::Sizeof()
+int  Point::Sizeof() const
 {
     return sizeof(Point);
 }
@@ -372,7 +367,7 @@ The list representation of a point is
 4.3 ~Out~-function
 
 */
-static ListExpr
+ListExpr
 OutPoint( ListExpr typeInfo, Word value )
 {
   Point* point = (Point*)(value.addr);
@@ -556,7 +551,7 @@ double rational_double(ListExpr NList, bool &correct)
     return xx;
 }
 
-static Word
+Word
 InPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -772,14 +767,14 @@ Points::Points( SmiRecord& rootRecord, SmiRecordFile *recordFile, bool update):
   SmiRecordId recordId;
   rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
   points = new PArray<Point>( recordFile, recordId, update );
-  rootRecord.Read( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+  rootRecord.Read( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void Points::Save( SmiRecord& rootRecord ) const
 {
   SmiRecordId recordId = GetPointsRecordId();
   rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  rootRecord.Write( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+  rootRecord.Write( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void Points::Destroy()
@@ -792,7 +787,7 @@ Points::~Points()
   delete points;
 }
 
-const BBox Points::BoundingBox() const
+const Rectangle Points::BoundingBox() const
 {
   return bbox;
 }
@@ -847,7 +842,7 @@ void Points::InsertPt( Point& p )
 {
     assert(p.IsDefined());
 
-    bbox = bbox.Union( BBox( p, p ) );
+    bbox = bbox.Union( p.BoundingBox() );
 
     if( !IsOrdered() )
     {
@@ -967,7 +962,7 @@ Points& Points::operator+=(const Point& p)
 {
   assert( p.IsDefined() );
 
-  bbox = bbox.Union( BBox( p, p ) );
+  bbox = bbox.Union( p.BoundingBox() );
 
   if( !IsOrdered() )
   {
@@ -1035,12 +1030,12 @@ Points& Points::operator-=(const Point& p)
   }
 
   // Naive way to redo the bounding box.
-  bbox = BBox();
+  bbox = Rectangle();
   for( int i = 0; i < Size(); i++ )
   {
     Point auxp;
     points->Get( i, auxp );
-    bbox = bbox.Union( BBox( auxp, auxp ) );
+    bbox = bbox.Union( auxp.BoundingBox() );
   }
 
   return *this;
@@ -1198,7 +1193,7 @@ const bool Points::Intersects( const Points& ps ) const
   ************************************************************************
 
 */
-bool Points::IsDefined()
+bool Points::IsDefined() const
 {
   return true;
 }
@@ -1300,7 +1295,7 @@ int   Points::Adjacent(Attribute * arg)
     //adjacent or not.
 }
 
-int  Points::Sizeof()
+int  Points::Sizeof() const
 {
     return sizeof(Points);
 }
@@ -1674,6 +1669,14 @@ void     CHalfSegment::SetLDP(bool LDP)
     ldp=LDP;
 }
 
+const Rectangle CHalfSegment::BoundingBox() const
+{
+  return Rectangle( MIN( GetLP().GetX(), GetRP().GetX() ),
+                    MAX( GetLP().GetX(), GetRP().GetX() ), 
+                    MIN( GetLP().GetY(), GetRP().GetY() ),
+                    MAX( GetLP().GetY(), GetRP().GetY() ) );
+}
+
 const attrtype&  CHalfSegment::GetAttr() const
 {
     assert(IsDefined());
@@ -1937,8 +1940,8 @@ const bool CHalfSegment::Intersects( const CHalfSegment& chs ) const
     double k, a, K, A;
     double x0; //, y0;  (x0, y0) is the intersection
 
-    BBox bbox1=BBox( GetLP().GetX(), GetLP().GetY(), GetRP().GetX(), GetRP().GetY() );
-    BBox bbox2=BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() );
+    Rectangle bbox1=this->BoundingBox();
+    Rectangle bbox2=chs.BoundingBox();
 
     if (!bbox1.Intersects(bbox2)) return false;
 
@@ -3376,14 +3379,14 @@ CLine::CLine(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update):
     SmiRecordId recordId;
     rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
     line = new PArray<CHalfSegment>( recordFile, recordId, update );
-    rootRecord.Read( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+    rootRecord.Read( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void CLine::Save( SmiRecord& rootRecord ) const
 {
   SmiRecordId recordId = GetLineRecordId();
   rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  rootRecord.Write( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+  rootRecord.Write( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void CLine::Destroy()
@@ -3396,9 +3399,8 @@ CLine::~CLine()
   delete line;
 }
 
-const BBox CLine::BoundingBox() const
+const Rectangle CLine::BoundingBox() const
 {
-  //return BBox( *this, *this );  //for point;
   return bbox;
 }
 
@@ -3484,7 +3486,7 @@ CLine& CLine::operator+=(const CHalfSegment& chs)
 {
   assert(chs.IsDefined());
 
-  bbox=bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+  bbox=bbox.Union( chs.BoundingBox() );
 
   if( !IsOrdered() )
   {
@@ -3532,12 +3534,12 @@ CLine& CLine::operator-=(const CHalfSegment& chs)
   }
 
   // Naive way to redo the bounding box.
-  bbox = BBox();
+  bbox = Rectangle();
   for( int i = 0; i < Size(); i++ )
   {
       CHalfSegment auxchs;
       line->Get( i, auxchs );
-      bbox = bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+      bbox = bbox.Union( chs.BoundingBox() );
   }
 
   return *this;
@@ -3638,7 +3640,7 @@ ostream& operator<<( ostream& os, const CLine& cl )
   ************************************************************************
 
 */
-bool CLine::IsDefined()
+bool CLine::IsDefined() const
 {
   return true;
 }
@@ -3746,7 +3748,7 @@ int   CLine::Adjacent(Attribute * arg)
     //adjacent or not.
 }
 
-int  CLine::Sizeof()
+int  CLine::Sizeof() const
 {
     return sizeof(CLine);
 }
@@ -4129,7 +4131,7 @@ CRegion::CRegion(SmiRecordFile *recordFile, SmiRecord& rootRecord, bool update )
     SmiRecordId recordId;
     rootRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
     region = new PArray<CHalfSegment>( recordFile, recordId, update );
-    rootRecord.Read( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+    rootRecord.Read( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void CRegion::Save( SmiRecord& rootRecord ) const
@@ -4137,7 +4139,7 @@ void CRegion::Save( SmiRecord& rootRecord ) const
   //cout << "CRegion::SAVE "<<endl;
   SmiRecordId recordId = GetRegionRecordId();
   rootRecord.Write( &recordId, sizeof( SmiRecordId ), 0 );
-  rootRecord.Write( &bbox, sizeof( BBox ), sizeof( SmiRecordId ) );
+  rootRecord.Write( &bbox, sizeof( Rectangle ), sizeof( SmiRecordId ) );
 }
 
 void CRegion::Destroy()
@@ -4151,7 +4153,7 @@ CRegion::~CRegion()
   delete region;
 }
 
-const BBox CRegion::BoundingBox() const
+const Rectangle CRegion::BoundingBox() const
 {
   return bbox;
 }
@@ -4740,7 +4742,7 @@ CRegion& CRegion::operator+=(const CHalfSegment& chs)
 {
   assert(chs.IsDefined());
 
-  bbox=bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+  bbox=bbox.Union( chs.BoundingBox() );
 
   if( !IsOrdered() )
   {
@@ -4779,12 +4781,12 @@ CRegion& CRegion::operator-=(const CHalfSegment& chs)
   }
 
   // Naive way to redo the bounding box.
-  bbox = BBox();
+  bbox = Rectangle();
   for( int i = 0; i < Size(); i++ )
   {
       CHalfSegment auxchs;
       region->Get( i, auxchs );
-      bbox = bbox.Union( BBox( chs.GetLP().GetX(), chs.GetLP().GetY(),chs.GetRP().GetX(),chs.GetRP().GetY() ) );
+      bbox = bbox.Union( chs.BoundingBox() );
   }
 
   return *this;
@@ -4978,7 +4980,7 @@ ostream& operator<<( ostream& os, const CRegion& cr )
   ************************************************************************
 
 */
-bool CRegion::IsDefined()
+bool CRegion::IsDefined() const
 {
   return true;
 }
@@ -5090,7 +5092,7 @@ int   CRegion::Adjacent(Attribute * arg)
     //adjacent or not.
 }
 
-int  CRegion::Sizeof()
+int  CRegion::Sizeof() const
 {
     return sizeof(CRegion);
 }
@@ -7074,7 +7076,7 @@ commonborderMap( ListExpr args )
 10.1.11 Type mapping function for operator ~bbox~
 
 This type mapping function is used for the ~bbox~ operator. This operator
-computes the bbox of a region, which is also a region.
+computes the bbox of a region, which is a ~rect~ (see RectangleAlgebra).
 
 */
 static ListExpr
@@ -7085,10 +7087,12 @@ bboxMap( ListExpr args )
     {
 	arg1 = nl->First( args );
 
-	if ( TypeOfSymbol( arg1 ) == stregion )
-	    return (nl->SymbolAtom( "region" ));
+	if ( TypeOfSymbol( arg1 ) == stregion ||
+             TypeOfSymbol( arg1 ) == stpoint ||
+             TypeOfSymbol( arg1 ) == stline ||
+             TypeOfSymbol( arg1 ) == stpoints )
+	    return (nl->SymbolAtom( "rect" ));
     }
-
     return (nl->SymbolAtom( "typeerror" ));
 }
 
@@ -7684,6 +7688,30 @@ nohalfsegSelect( ListExpr args )
 
   if (TypeOfSymbol( arg1 ) == stregion)
       return (0);
+
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.16 Selection function ~bboxSelect~
+
+This select function is used for the ~bbox~ operator.
+
+*/
+
+static int
+bboxSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if (TypeOfSymbol( arg1 ) == stpoint)
+      return (0);
+  if (TypeOfSymbol( arg1 ) == stpoints)
+      return (1);
+  if (TypeOfSymbol( arg1 ) == stline)
+      return (2);
+  if (TypeOfSymbol( arg1 ) == stregion)
+      return (3);
 
   return (-1); // This point should never be reached
 }
@@ -11394,53 +11422,37 @@ nohalfseg_r( Word* args, Word& result, int message, Word& local, Supplier s )
 
 */
 static int
+bbox_p( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    *((Rectangle*)result.addr) = ((CPoint*)args[0].addr)->BoundingBox();
+    return (0);
+}
+
+static int
+bbox_ps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    *((Rectangle*)result.addr) = ((CPoints*)args[0].addr)->BoundingBox();
+    return (0);
+}
+
+static int
+bbox_l( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    *((Rectangle*)result.addr) = ((CLine*)args[0].addr)->BoundingBox();
+    return (0);
+}
+
+static int
 bbox_r( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
-
-    CRegion *cr=((CRegion*)args[0].addr);
-    BBox bbox=cr->BoundingBox();
-
-    Coord minx, miny, maxx, maxy;
-    minx=bbox.MinD(0);
-    miny=bbox.MinD(1);
-    maxx=bbox.MaxD(0);
-    maxy=bbox.MaxD(1);
-
-    ((CRegion *)result.addr)->Clear();
-    ((CRegion *)result.addr)->StartBulkLoad();  //here: to manipulate the result region
-
-    Point p1, p2, p3, p4;
-    p1.Set(true, minx, miny);
-    p2.Set(true, minx, maxy);
-    p3.Set(true, maxx, maxy);
-    p4.Set(true, maxx, miny);
-
-    CHalfSegment chs;
-
-    chs.Set(true, true, p1, p2);
-    *((CRegion *)result.addr) += chs;
-    chs.SetLDP(false);
-    *((CLine *)result.addr) += chs;
-
-    chs.Set(true, true, p2, p3);
-    *((CRegion *)result.addr) += chs;
-    chs.SetLDP(false);
-    *((CLine *)result.addr) += chs;
-
-    chs.Set(true, true, p3, p4);
-    *((CRegion *)result.addr) += chs;
-    chs.SetLDP(false);
-    *((CLine *)result.addr) += chs;
-
-    chs.Set(true, true, p4, p1);
-    *((CRegion *)result.addr) += chs;
-    chs.SetLDP(false);
-    *((CLine *)result.addr) += chs;
-
-    ((CRegion *)result.addr)->EndBulkLoad();
+    *((Rectangle*)result.addr) = ((CRegion*)args[0].addr)->BoundingBox();
     return (0);
 }
+
 
 /*
 10.4.23 Value mapping functions of operator ~size~
@@ -11791,7 +11803,7 @@ ValueMapping nocomponentsmap[] =   { nocomponents_ps,
 ValueMapping nohalfsegmap[] =      {     nohalfseg_r
 				};
 
-ValueMapping bboxmap[] =      {     bbox_r
+ValueMapping bboxmap[] =      { bbox_p, bbox_ps, bbox_l, bbox_r
 				};
 
 ValueMapping insidepathlengthmap[] =      {     SpatialInside_pathlength_pr
@@ -12029,9 +12041,9 @@ const string SpatialSpecNohalfseg  =
 
 const string SpatialSpecBbox  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	"( <text>(region) -> region</text--->"
+	"( <text>(point||points||line||region) -> rect</text--->"
 	"<text> bbox( _ )</text--->"
-	"<text>return the bounding box of a region.</text--->"
+	"<text>return the bounding box of a spatial type.</text--->"
 	"<text>query bbox(region)</text--->"
 	") )";
 
@@ -12183,8 +12195,8 @@ Operator spatialinsidescanned
 	  SimpleSelect,  insidepsMap);
 
 Operator spatialbbox
-	( "bbox", SpatialSpecBbox, 1, bboxmap, spatialnomodelmap,
-	  SimpleSelect,  bboxMap);
+	( "bbox", SpatialSpecBbox, 4, bboxmap, spatialnomodelmap,
+	  bboxSelect, bboxMap);
 
 Operator spatialsize
 	( "size", SpatialSpecSize, 1, sizemap, spatialnomodelmap,

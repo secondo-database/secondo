@@ -32,7 +32,7 @@ class CcInt : public StandardAttribute
   CcInt();
   CcInt( bool d, int v );
   ~CcInt();
-  bool     IsDefined();
+  bool     IsDefined() const;
   void     SetDefined(bool defined);
   int      GetIntval();
   void*    GetValue();
@@ -42,8 +42,8 @@ class CcInt : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int      Compare(Attribute *arg);
   int      Adjacent(Attribute *arg);
-  int      Sizeof() ;
-  CcInt*   Clone() ;
+  int      Sizeof() const;
+  CcInt*   Clone();
   ostream& Print( ostream &os ) { return (os << intval); }
 
     ListExpr   CopyToList( ListExpr typeInfo )
@@ -88,7 +88,7 @@ class CcReal : public StandardAttribute
   CcReal();
   CcReal( bool d, float v );
   ~CcReal();
-  bool     IsDefined();
+  bool     IsDefined() const;
   void     SetDefined(bool defined);
   float    GetRealval();
   void*    GetValue();
@@ -98,8 +98,8 @@ class CcReal : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute* arg );
   int      Adjacent( Attribute* arg );
-  int      Sizeof() ;
-  CcReal*  Clone() ;
+  int      Sizeof() const;
+  CcReal*  Clone();
   ostream& Print( ostream &os ) { return (os << realval); }
  private:
   bool  defined;
@@ -117,7 +117,7 @@ class CcBool : public StandardAttribute
   CcBool();
   CcBool( bool d, int v );
   ~CcBool();
-  bool     IsDefined();
+  bool     IsDefined() const;
   void     SetDefined(bool defined);
   bool     GetBoolval();
   void*    GetValue();
@@ -126,8 +126,8 @@ class CcBool : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int      Compare( Attribute * arg );
   int      Adjacent( Attribute * arg );
-  int      Sizeof()  ;
-  CcBool*  Clone() ;
+  int      Sizeof() const;
+  CcBool*  Clone();
   ostream& Print( ostream &os ) {
     if (boolval == true) return (os << "TRUE");
     else return (os << "FALSE");
@@ -150,7 +150,7 @@ class CcString : public StandardAttribute
   CcString();
   CcString( bool d, const STRING* v );
   ~CcString();
-  bool      IsDefined();
+  bool      IsDefined() const;
   void      SetDefined(bool defined);
   STRING*   GetStringval();
   void*     GetValue();
@@ -159,8 +159,8 @@ class CcString : public StandardAttribute
   void CopyFrom(StandardAttribute* right);
   int       Compare( Attribute* arg );
   int       Adjacent( Attribute* arg );
-  int       Sizeof()  ;
-  CcString* Clone() ;
+  int       Sizeof() const;
+  CcString* Clone();
   ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }
  private:
   bool   defined;

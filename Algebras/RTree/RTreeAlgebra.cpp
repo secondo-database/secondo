@@ -22,9 +22,12 @@ using namespace std;
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "RectangleAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+
+typedef Rectangle BBox;
 
 #ifndef DOUBLE_MAX
 #define DOUBLE_MAX (1.7E308)
@@ -59,7 +62,7 @@ assorted flavors of R-tree and R*-tree behaviours.
 
 */
 
-const int minimize_leafnode_overlap = 1;
+const int minimize_leafnode_overlap = 0;
 /*
 Checked while choosing the node in which a new entry will be placed.
 Makes the insertion algorithm behave differently when next to the
@@ -79,7 +82,7 @@ result in least area enlargement.
 
 */
 
-const int do_forced_reinsertion = 1;
+const int do_forced_reinsertion = 0;
 /*
 Checked while trying to insert an entry into a full leaf node. If set,
 some of the entries of the leaf node (governed by variable
@@ -97,7 +100,7 @@ Used in R*-trees.
 Only one of the three next flags below should be set
 
 */
-const int do_linear_split = 0;
+const int do_linear_split = 1;
 /*
 If set, Guttman's linear split algorithm is performed.
 Used in standard R-trees
@@ -109,7 +112,7 @@ If set, Guttman's quadratic split algorithm is performed.
 Used in standard R-trees
 
 */
-const int do_axis_split = 1;
+const int do_axis_split = 0;
 /*
 If set, Krigel et al's axis split algorithm is performed.
 
@@ -951,21 +954,18 @@ void R_TreeNode::Write( SmiRecord& record )
 {
   if( modified )
   {
-	char *buf = (char*)malloc( record.Size() );
-	memset( buf, 0, record.Size() );
-
     int offset = 0;
 
     // Writes leaf, count
-    memcpy( buf + offset, &leaf, sizeof( leaf ) );
+    assert( record.Write( &leaf, sizeof( leaf ), offset ) == sizeof( leaf ) );
     offset += sizeof( leaf );
-    memcpy( buf + offset, &count, sizeof( count ) );
+    assert( record.Write( &count, sizeof( count ), offset ) == sizeof( count ) );
     offset += sizeof( count );
 
-    // Write entry array
-    memcpy( buf + offset, entry, count * sizeof( R_TreeEntry ) );
+    assert( count <= maxEntries );
 
-    assert( record.Write( buf, record.Size(), 0 ) == record.Size() );
+    // Now read the entry array.
+    assert( record.Write( entry, count * sizeof( R_TreeEntry ), offset ) == count * sizeof( R_TreeEntry ) );
 
     modified = false;
   }
@@ -1349,14 +1349,12 @@ scanFlag( false )
 
 R_Tree::~R_Tree()
 {
-  if( file.IsOpen() )
-  {
-    if( nodePtr != NULL )
-      PutNode( path[ currLevel ], &nodePtr );
+  assert( file.IsOpen() );
+  if( nodePtr != NULL )
+    PutNode( path[ currLevel ], &nodePtr );
 
-    WriteHeader();
-    file.Close();
-  }
+  WriteHeader();
+  file.Close();
 }
 
 void R_Tree::ReadHeader()
@@ -1375,8 +1373,8 @@ void R_Tree::WriteHeader()
 
 void R_Tree::PutNode( const SmiRecordId recno, R_TreeNode **node )
 {
-  if( file.IsOpen() )
-    (*node)->Write( file, recno );
+  assert( file.IsOpen() );
+  (*node)->Write( file, recno );
   delete *node;
   *node = NULL;
 }
@@ -1390,14 +1388,10 @@ void R_Tree::PutNode( SmiRecord& record, R_TreeNode **node )
 
 R_TreeNode *R_Tree::GetNode( const SmiRecordId recno, const bool leaf, const int min, const int max )
 {
-  if( file.IsOpen() )
-  {
-    R_TreeNode *node = new R_TreeNode( leaf, min, max );
-    node->Read( file, recno );
-    return node;
-  }
-  else
-    return NULL;
+  assert( file.IsOpen() );
+  R_TreeNode *node = new R_TreeNode( leaf, min, max );
+  node->Read( file, recno );
+  return node;
 }
 
 R_TreeNode *R_Tree::GetNode( SmiRecord& record, const bool leaf, const int min, const int max )
@@ -1426,7 +1420,6 @@ void R_Tree::Insert( const R_TreeEntry& entry )
 {
   scanFlag = false;
 
-  assert( entry.box.Proper() );
   LocateBestNode( entry, Height() );
   InsertEntry( entry );
   header.entryCount++;
@@ -1567,34 +1560,38 @@ void R_Tree::InsertEntry( const R_TreeEntry& entry )
       // Write split nodes and update parent
       if( currLevel == 0)
       { // splitting root node
-        BBox n1Box( n1->BoundingBox() );
-        BBox n2Box( n2->BoundingBox() );
-
-        SmiRecordId node1recno, node2recno;
-        SmiRecord node1record, node2record;
-
-        header.height += 1;
-
-        assert( file.AppendRecord( node1recno, node1record ) );
-        assert( file.AppendRecord( node2recno, node2record ) );
-        header.nodeCount += 2;
-        PutNode( node1record, &n1 );
-        PutNode( node2record, &n2 );
 
         nodePtr->Clear();
 
+        BBox n1Box( n1->BoundingBox() );
+        SmiRecordId node1recno;
+        SmiRecord *node1record = new SmiRecord();
+        assert( file.AppendRecord( node1recno, *node1record ) );
+        PutNode( *node1record, &n1 );
         assert( nodePtr->Insert( R_TreeEntry( n1Box, node1recno ) ) );
+        delete node1record;
+
+        BBox n2Box( n2->BoundingBox() );
+        SmiRecordId node2recno;
+        SmiRecord *node2record = new SmiRecord();
+        assert( file.AppendRecord( node2recno, *node2record ) );
+        PutNode( *node2record, &n2 );
         assert( nodePtr->Insert( R_TreeEntry( n2Box, node2recno ) ) );
+        delete node2record;
+
+        header.height += 1;
+        header.nodeCount += 2;
       }
       else
       { // splitting non-root node
         SmiRecordId newNoderecno;
-        SmiRecord newNoderecord;
-
-        file.AppendRecord( newNoderecno, newNoderecord );
-        header.nodeCount++;
+        SmiRecord *newNoderecord = new SmiRecord();
+        assert( file.AppendRecord( newNoderecno, *newNoderecord ) );
         R_TreeEntry newEntry( n2->BoundingBox(), newNoderecno );
-        PutNode( newNoderecord, &n2 );
+        PutNode( *newNoderecord, &n2 );
+        delete newNoderecord;
+
+        header.nodeCount++;
 
         // Copy all entries from n1 to nodePtr
         *nodePtr = *n1;
@@ -2026,10 +2023,10 @@ ListExpr OutRTree(ListExpr typeInfo, Word value)
            nl->TwoElemList( nl->StringAtom( "# of nodes" ),
                             nl->IntAtom( rtree->NodeCount() ) ),
            nl->FiveElemList( nl->StringAtom( "Bounding Box" ),
-                              nl->RealAtom( rtree->BoundingBox().min.GetX() ),
-                              nl->RealAtom( rtree->BoundingBox().min.GetY() ),
-                              nl->RealAtom( rtree->BoundingBox().max.GetX() ),
-                              nl->RealAtom( rtree->BoundingBox().max.GetY() ) ) );
+                              nl->RealAtom( rtree->BoundingBox().MinD( 0 ) ),
+                              nl->RealAtom( rtree->BoundingBox().MinD( 1 ) ),
+                              nl->RealAtom( rtree->BoundingBox().MaxD( 0 ) ),
+                              nl->RealAtom( rtree->BoundingBox().MaxD( 1 ) ) ) );
 }
 
 /*
@@ -2348,22 +2345,17 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
   CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 4, errmsg);
+  CHECK_COND(nl->ListLength(args) == 3, errmsg);
 
   /* Split argument in three parts */
   ListExpr rtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
-  ListExpr searchWindow[2];
-  searchWindow[0] = nl->Third(args);
-  searchWindow[1] = nl->Fourth(args);
+  ListExpr searchWindow = nl->Third(args);
 
   /* find out type of key */
-  for(int i=0; i<2; i++)
-  {
-    CHECK_COND(nl->IsAtom(searchWindow[i]), errmsg);
-    CHECK_COND(nl->AtomType(searchWindow[i]) == SymbolType, errmsg);
-    CHECK_COND(nl->SymbolValue(searchWindow[i]) == "point", errmsg );
-  }
+  CHECK_COND(nl->IsAtom(searchWindow), errmsg);
+  CHECK_COND(nl->AtomType(searchWindow) == SymbolType, errmsg);
+  CHECK_COND(nl->SymbolValue(searchWindow) == "rect", errmsg );
 
   /* handle btree part of argument */
   CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg);
@@ -2453,20 +2445,16 @@ WindowIntersectsValueMapping(Word* args, Word& result,
   {
     case OPEN :
     {
-      Word rtreeWord, relWord, point1Word, point2Word;
+      Word rtreeWord, relWord, boxWord;
       qp->Request(args[0].addr, rtreeWord);
       qp->Request(args[1].addr, relWord);
-      qp->Request(args[2].addr, point1Word);
-      qp->Request(args[3].addr, point2Word);
+      qp->Request(args[2].addr, boxWord);
 
       localInfo = new WindowIntersectsLocalInfo;
       localInfo->rtree = (R_Tree*)rtreeWord.addr;
       localInfo->relation = (CcRel*)relWord.addr;
       localInfo->first = true;
-      BBox box;
-      CPoint *p1 = (CPoint *)point1Word.addr,
-             *p2 = (CPoint *)point2Word.addr;
-      localInfo->searchBox = new BBox( *p1, *p2 );
+      localInfo->searchBox = (Rectangle *)boxWord.addr;
 
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
@@ -2507,7 +2495,6 @@ WindowIntersectsValueMapping(Word* args, Word& result,
     case CLOSE :
     {
       localInfo = (WindowIntersectsLocalInfo*)local.addr;
-      delete localInfo->searchBox;
       delete localInfo;
       return 0;
     }
@@ -2522,15 +2509,15 @@ WindowIntersectsValueMapping(Word* args, Word& result,
 const string WindowIntersectsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
                                      " \"Example\" )"
                                      "( <text>((rtree (tuple ((x1 t1)...(xn tn)))"
-                                     " ti)(rel (tuple ((x1 t1)...(xn tn)))) point point) ->"
+                                     " ti)(rel (tuple ((x1 t1)...(xn tn)))) rect) ->"
                                      " (stream (tuple ((x1 t1)...(xn tn))))"
                                      "</text--->"
-                                     "<text>_ _ windowintersects [ _, _ ]</text--->"
+                                     "<text>_ _ windowintersects [ _ ]</text--->"
                                      "<text>Uses the given rtree to find all tuples"
                                      " in the given relation with .xi intersects the "
                                      " argument value.</text--->"
                                      "<text>query citiesInd cities windowintersects"
-                                     " [p1, p2] consume; where citiesInd "
+                                     " [r] consume; where citiesInd "
                                      "is e.g. created with 'let citiesInd = "
                                      "cities creatertree [pos]'</text--->"
                                      ") )";

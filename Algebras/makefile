@@ -19,6 +19,7 @@ specs:  Standard-C++/*.spec \
         FText/*.spec \
         Array/*.spec \
         RTree/*.spec
+	Rectangle/*.spec \
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
@@ -41,6 +42,7 @@ makedirsnormal:
 	$(MAKE) -C FText
 	$(MAKE) -C Array
 	$(MAKE) -C RTree 
+	$(MAKE) -C Rectangle 
 
 # here include algebras using jni
 .PHONY: makedirsjni
@@ -69,6 +71,7 @@ buildlibsnormal:
 	$(MAKE) -C FText 	  buildlibs
 	$(MAKE) -C Array 	  buildlibs
 	$(MAKE) -C RTree 	  buildlibs
+	$(MAKE) -C Rectangle 	  buildlibs
 
 
 .PHONY:buildlibsjni
@@ -97,6 +100,7 @@ clean:
 	$(MAKE) -C FText          clean
 	$(MAKE) -C Array	  clean
 	$(MAKE) -C RTree	  clean
+	$(MAKE) -C Rectangle	  clean
 	$(MAKE) -C Fuzzy	  clean
 	$(MAKE) -C JNIExample     clean
 	$(MAKE) -C Rose           clean

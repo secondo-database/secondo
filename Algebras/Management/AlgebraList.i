@@ -37,5 +37,6 @@ ALGEBRA_INCLUDE(13,RTreeAlgebra,Executable)
 //ALGEBRA_INCLUDE(14,JNIExampleAlgebra,Executable)
 //ALGEBRA_INCLUDE(15,RoseAlgebra,Executable)
 //ALGEBRA_INCLUDE(16,FuzzyAlgebra,Executable)
+ALGEBRA_INCLUDE(17,RectangleAlgebra,Executable)
 
 

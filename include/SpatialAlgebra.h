@@ -23,6 +23,7 @@ shows examples of these spatial data types.
 
 #include "PArray.h"
 #include "StandardAttribute.h"
+#include "RectangleAlgebra.h"
 
 //#define RATIONAL_COORDINATES
 #define DOUBLE_COORDINATES
@@ -46,10 +47,6 @@ typedef long Coord;
 
 #endif
 
-#define MAX( a, b ) ((a) > (b) ? (a) : (b))
-#define MIN( a, b ) ((a) < (b) ? (a) : (b))
-
-
 /*
 There are two main defines that will control how the coordinate system is 
 implemented, namely ~RATIONAL\_COORDINATES~ and ~WITH\_ARBITRARY\_PRECISION~.
@@ -62,12 +59,10 @@ precision (~Rational~).
 3 Class StandardSpatialAttribute
 
 */
-struct BBox;
-
 class StandardSpatialAttribute : public StandardAttribute
 {
   public:
-    virtual const BBox BoundingBox() const = 0;
+    virtual const Rectangle BoundingBox() const = 0;
 };
 
 /*
@@ -94,7 +89,7 @@ class Point: public StandardSpatialAttribute
 There are two ways of constructing a point:
 
 */
-    Point( const bool d = false, const Coord& x = 0L, const Coord& y = 0L );
+    Point( const bool d = false, const Coord& x = 0, const Coord& y = 0 );
 /*
 The first one receives a boolean value ~d~ indicating if the point is defined
 and two coordinate ~x~ and ~y~ values. Note that this constructor can be
@@ -114,11 +109,6 @@ The destructor.
 3.2 Member functions
 
 */
-    const bool IsDefined() const;
-/*
-Returns if the point is defined.
-
-*/
     const Coord& GetX() const;
 /*
 Returns the ~x~ coordinate of the point.
@@ -133,7 +123,7 @@ Returns the ~y~ coordinate of the point.
 *Precondition:* ~IsDefined()~
 
 */
-    const BBox BoundingBox() const;
+    const Rectangle BoundingBox() const;
 /*
 Returns the point bounding box which is also a point.
 
@@ -303,15 +293,15 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    bool     IsDefined();
+    bool     IsDefined() const;
     //void     SetDefined(bool Defined);
     void*	   GetValue();
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
     int      Adjacent(Attribute * arg);
-    int      Sizeof() ;
-    Point*    Clone() ;
+    int      Sizeof() const;
+    Point*    Clone();
     ostream& Print( ostream &os );
     
 /*
@@ -339,222 +329,6 @@ A flag that tells if the point is defined or not.
 
 typedef Point CPoint;
 
-/*
-2 Struct ~BBox~
-
-This structure will represent rectangles aligned with the axes ~x~ and ~y~.
-
-*/
-struct BBox
-{
-  Point min;
-/*
-The bottom left point of the rectangle.
-
-*/
-  Point max;
-/*
-The top right point of the rectangle.
-
-*/
-
-  BBox() :
-    min(), max()
-    {}
-/*
-The simple constructor. Create two undefined points.
-
-*/
-
-  BBox( const Point& min, const Point& max ) :
-    min( min ), max( max )
-    {}
-/*
-The secondo constructor. Receives two points and stores them into ~min~ and ~max~.
-
-*/
-
-  BBox( const Coord& p1x, const Coord& p1y, const Coord& p2x, const Coord& p2y ) :
-    min( true, MIN( p1x, p2x ), MIN( p1y, p2y ) ),
-    max( true, MAX( p1x, p2x ), MAX( p1y, p2y ) )
-    {}
-/*
-The third constructor. Receives four coordinates.
-
-*/
-
-  BBox( const BBox& r ) :
-    min( r.min ), max( r.max )
-    {}
-/*
-The copy constructor.
-
-*/
-
-  inline bool IsDefined() const
-    { return min.IsDefined() && max.IsDefined(); }
-/*
-Checks if the rectangle is defined, i.e, if its points are defined.
-
-*/
-  inline BBox& operator = ( const BBox& r )
-    { this->min = r.min; this->max = r.max; return *this; }
-/*
-Redefinition of operator ~=~.
-
-*/
-
-  inline bool Contains( const Point& p ) const;
-/*
-Checks if the rectangle contains the point ~p~.
-
-*/
-  inline bool Contains( const BBox& r ) const;
-/*
-Checks if the rectangle contains the rectangle ~r~.
-
-*/
-
-  inline int Intersects( const BBox& r ) const;
-/*
-Checks if the rectangle intersects with rectangle ~r~.
-
-*/
-
-  inline int operator == ( const BBox& r ) const
-    { assert( Proper() && r.Proper() ); 
-      return (this->min == r.min) && (this->max == r.max); }
-/*
-Redefinition of operator ~==~.
-
-*/
-
-  inline int operator != ( const BBox& r ) const
-    { return !(*this == r); }
-/*
-Redefinition of operator ~!=~.
-
-*/
-
-  double Area() const
-    { if( !Proper() ) return 0; 
-      return ((double) (this->max.GetX() - this->min.GetX() + 1)) *
-             ((double) (this->max.GetY() - this->min.GetY() + 1)); }
-/*
-Returns the area of a rectangle.
-
-*/
-
-  double Perimeter () const
-    { if( !Proper() ) return 0;
-      return 2 * ((max.GetX() - min.GetX() + 1) + (max.GetY() - min.GetY() + 1)); }
-/*
-Returns the perimeter of a rectangle.
-
-*/
-
-  Coord MinD( int dim ) const
-    { assert( dim == 0 || dim == 1 ); return dim == 0 ? min.GetX() : min.GetY(); }
-/*
-Returns the min coord value for the given dimension ~dim~.
-
-*/
-
-  Coord MaxD( int dim ) const
-    { assert( dim == 0 || dim == 1 ); return dim == 0 ? max.GetX() : max.GetY(); }
-/*
-Returns the max coord value for the given dimension ~dim~.
-
-*/
-
-  inline BBox Union( const BBox& b ) const;
-/*
-Returns the bounding box that contains both this and ~b~.
-
-*/
-
-  inline BBox Intersection( const BBox& b ) const;
-/*
-Returns the intersection between this and ~b~.
-
-*/
-
-  inline bool Proper() const
-      { return IsDefined() && min.GetX() <= max.GetX() && min.GetY() <= max.GetY(); }
-/*
-Returns ~true~ if this is a "proper" rectangle, i.e. it does not
-represent an empty set.
-
-*/
-};
-
-inline bool BBox::Contains( const Point& p ) const
-{
-  assert( p.IsDefined() );
-
-  if( !Proper() )
-    return false;
-
-  if( p.GetX() < this->min.GetX() || p.GetX() > this->max.GetX() )
-    return false;
-  else if( p.GetY() < this->min.GetY() || p.GetY() > this->max.GetY() )
-    return false;
-  else
-    return true;
-}
-
-inline bool BBox::Contains( const BBox& r ) const
-{
-  if( !Proper() || !r.Proper() )
-    return false;
-
-  if( this->min.GetX() <= r.min.GetX() &&
-      this->min.GetY() <= r.min.GetY() &&
-      this->max.GetX() <= r.max.GetX() &&
-      this->max.GetY() <= r.max.GetY() )
-    return true;
-  else
-    return false;
-}
-
-inline int BBox::Intersects( const BBox& r ) const
-{
-  if( !Proper() || !r.Proper() )
-    return 0;
-
-  if( this->max.GetX() < r.min.GetX() ) return 0;
-  if( r.max.GetX() < this->min.GetX() ) return 0;
-  if( this->max.GetY() < r.min.GetY() ) return 0;
-  if( r.max.GetY() < this->min.GetY() ) return 0;
-
-  if( this->min.GetX() < r.min.GetX() && this->max.GetX() > r.max.GetX() &&
-      r.min.GetY() < this->min.GetY() && r.max.GetY() > this->max.GetY() ) return 2;
-
-  if( r.min.GetX() < this->min.GetX() && r.max.GetX() > this->max.GetX() &&
-      this->min.GetY() < r.min.GetY() && this->max.GetY() > r.max.GetY() ) return 2;
-
-  return 1;
-}
-
-inline BBox BBox::Union( const BBox& b ) const
-{
-  if( !Proper() ) return b;
-  if( !b.Proper() ) return *this;
- 
-  return BBox( Point( true, MIN( this->min.GetX(), b.min.GetX() ), MIN( this->min.GetY(), b.min.GetY() ) ),
-                    Point( true, MAX( this->max.GetX(), b.max.GetX() ), MAX( this->max.GetY(), b.max.GetY() ) ) );
-}
-
-inline BBox BBox::Intersection( const BBox& b ) const
-{
-  if( !Proper() ) return *this;
-  if( !b.Proper() ) return b;
-
-  if( this->Intersects( b ) )
-    return BBox( Point( true, MAX( this->min.GetX(), b.min.GetX() ), MAX( this->min.GetY(), b.min.GetY() ) ),
-                      Point( true, MIN( this->max.GetX(), b.max.GetX() ), MIN( this->max.GetY(), b.max.GetY() ) ) );
-  else return BBox();
-}
 
 /*
 4 Class Points
@@ -644,7 +418,7 @@ Marks the end of a bulk load and sorts the point set.
 4.3 Member functions
 
 */
-    const BBox BoundingBox() const;
+    const Rectangle BoundingBox() const;
 /*
 Returns the bounding box that spatially contains all points.
 
@@ -812,14 +586,14 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    bool     IsDefined();
+    bool     IsDefined() const;
     void     SetDefined(bool Defined);
     void*	   GetValue();
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
     int      Adjacent(Attribute * arg);
-    int      Sizeof() ;
+    int      Sizeof() const;
     Points*    Clone() ;
     ostream& Print( ostream &os );
     void     Clear();
@@ -832,7 +606,7 @@ as an attribute.
 The persisten array of points.
 
 */
-    BBox bbox;
+    Rectangle bbox;
 /*
 The bounding box that spatially contains all points.
 
@@ -848,6 +622,8 @@ The flag that indicates whether the persistent array is in ordered state.
   
 */
 };
+
+typedef Points CPoints;
 
 /*
 4.7 Auxiliary functions
@@ -950,6 +726,11 @@ This function returns the secondary point of the half segment.
 /*
 This function returns the boolean flag which indicates whether the dominating point is on the 
 left side. 
+
+*/
+    const Rectangle BoundingBox() const;
+/*
+Returns the bounding box of the half segment.
 
 */
     const attrtype&  GetAttr() const;
@@ -1216,7 +997,7 @@ as a set of sorted halfsegments, which are stored as a PArray.
     void Destroy();
     ~CLine();
     
-    const BBox BoundingBox() const;
+    const Rectangle BoundingBox() const;
     
 /*
 6.2 Functions Reading Property Values from an Object
@@ -1350,14 +1131,14 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    bool     IsDefined();
+    bool     IsDefined() const;
     void     SetDefined(bool Defined);
     void*	   GetValue();
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
     int      Adjacent(Attribute * arg);
-    int      Sizeof() ;
+    int      Sizeof() const;
     //CLine*    Clone() ;
     ostream& Print( ostream &os );
     void     Clear();
@@ -1384,7 +1165,7 @@ returns its position. Returns -1 if the half segment is not found.
 The persisten array of half segments.
 
 */  
-    BBox bbox;
+    Rectangle bbox;
     
     int pos;
 /*
@@ -1435,7 +1216,7 @@ insertOK() function).
     void Destroy();
     ~CRegion();
     
-    const BBox BoundingBox() const;
+    const Rectangle BoundingBox() const;
     
 /*
 7.2 Functions Reading Property Values from an Object
@@ -1652,14 +1433,14 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    bool     IsDefined();
+    bool     IsDefined() const;
     void     SetDefined(bool Defined);
     void*	   GetValue();
     size_t   HashValue();
     void	   CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
     int      Adjacent(Attribute * arg);
-    int      Sizeof() ;
+    int      Sizeof() const;
     //CRegion*    Clone() ;
     ostream& Print( ostream &os );
     void     Clear();
@@ -1685,7 +1466,7 @@ returns its position. Returns -1 if the half segment is not found.
 */    
     GArray<CHalfSegment>* region;
     
-    BBox bbox;
+    Rectangle bbox;
     
 /*
 The persisten array of half segments.
