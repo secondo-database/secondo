@@ -10,3 +10,13 @@ Specifications and should allow the use of QGEN (see ../dbgen).
 The template for query nn is stored in nn.sql.
 
 Refer to Clause 2.2 for the permissible use of these templates.
+
+
+Dec. 2004, M. Spiekermann
+
+Files ending with ".pg" are translated to Postgres SQL syntax 
+and the files tpcX contain a query plan produced by SECONDOs 
+optimizer whereas the files tpcX_opt are hand tuned query plans.
+
+The file tpcqueries.pl contains queries in a SQL like syntax suitable for
+SECONDO's optimizer.
