@@ -12,60 +12,114 @@ import viewer.HoeseViewer;
  */
 public class LEUtils {
   /**
-   * Reads an instant out of a listexpr and calculates a time value as double-value
-   * @param le A listexpr with sn instant
-   * @return A Double object with the time or null if an error occured
-   * @see <a href="LEUtilssrc.html#readInstant">Source</a>
-   */
+   * This function reads an instant value from the argument list.
+   * @result the Double containing the instant value or null if
+   * the argument don't represent a valid Instant.
+  **/
   public static Double readInstant (ListExpr le) {
-    if(le.listLength() == 2){
-       if(le.first().atomType()!=le.SYMBOL_ATOM)
-          return null;
-       if(!le.first().symbolValue().equals("instant"))
-          return null;
-       return readNumeric(le.second());
-    }
-    if ((le.listLength() != 4) && (le.listLength() != 6) && (le.listLength() != 7) && (le.listLength() != 8))
-      return  null;
-    if ((le.first().atomType() != ListExpr.SYMBOL_ATOM) || (le.second().atomType()
-        != ListExpr.INT_ATOM) || (le.third().atomType() != ListExpr.INT_ATOM)
-        || (le.fourth().atomType() != ListExpr.INT_ATOM))
-      return  null;
+      ListExpr value;
+      if(le.listLength()==2){ // check for type
+         if(le.first().atomType()==le.SYMBOL_ATOM &&
+	      ( le.first().symbolValue().equals("instant") ||
+	        le.first().symbolValue().equals("datetime")))
+		value = le.rest();	  // read over the type
+         else
+	     value = le;
+      } else
+         value = le;
 
-    if (le.listLength() >= 6) {
-        if(le.first().atomType()!=ListExpr.SYMBOL_ATOM)
-	   return null;
-	if(!le.first().symbolValue().equals("datetime"))
-	   return null;
-	le = le.rest();
-	int[] Values = new int[7];
-	for(int i=0;i<7;i++)
-           Values[i]=0;
-        int number = le.listLength();
-	for(int i=0;i<number;i++){
-           if(le.first().atomType()!=ListExpr.INT_ATOM)
-	      return null;
-	   else
-	     Values[i]= le.first().intValue();
-	   le=le.rest();
-	}
-	return new Double(convertDateTime2Double(Values[0],Values[1],Values[2],Values[3],
-	                                         Values[4],Values[5],Values[6]));
-    }
-    else {
-      if (!le.first().symbolValue().equals("date"))
-        return  null;
-      return  new Double(convertDateTime2Double(le.second().intValue(), le.third().intValue(),
-          le.fourth().intValue(), 0, 0,0,0));
-    }
+      // string representation
+      if(value.atomType()==value.STRING_ATOM){
+         long[] daymillis = DateTime.getDayMillis(value.stringValue());
+         if(daymillis==null)
+	    return null;
+	 else
+	    return  new Double((double)daymillis[0]+(double)daymillis[1]/86400000.0);
+      }
+
+      // real representation
+      if(value.atomType()==value.REAL_ATOM){
+          return new Double (value.realValue());
+      }
+
+      // all other representation are based on proper lists
+      // not on atoms
+      if(value.atomType()!=value.NO_ATOM)
+          return null;
+
+
+      // Julian representation
+      if(value.listLength()==2){
+         if(value.first().atomType()==value.INT_ATOM &&
+	    value.second().atomType()==value.INT_ATOM){
+             double day = (double) value.first().intValue();
+	     double ms  = (double) value.second().intValue();
+	     return new Double(day + ms /86400000.0);
+	 } else
+	    return null;
+      }
+
+      // Gregorian representation
+      if(value.isEmpty())
+         return null;
+
+      // check for an deprecated data version
+      if(value.first().atomType()==value.SYMBOL_ATOM &&
+         value.first().symbolValue().equals("datetime")){
+         System.err.println("Deprecated nested list representation of time !!");
+	 value = value.rest();
+      }
+
+      // at least (day month year) and has to be included
+      // at most (day month year hour minute second millisecond) can be included
+      if(value.listLength()<3 || value.listLength()>7)
+          return null;
+
+      // all contained atoms has to be integers
+      ListExpr tmp = value;
+      while(!tmp.isEmpty()){
+          if(tmp.first().atomType()!=tmp.INT_ATOM)
+	     return null;
+	  tmp = tmp.rest();
+      }
+      int year=0,month=0,day=0,hour=0,minute=0,second=0,milli=0;
+      // first we read the required parts
+      day = value.first().intValue();
+      month = value.second().intValue();
+      year  = value.third().intValue();
+      // read over the date
+      value = value.rest().rest().rest();
+
+      int len = value.listLength();
+      // the length can be 0,2,3 or 4
+      if(len==1 || len > 4)
+         return null;
+      if(len>0){  // minimum 2
+         hour = value.first().intValue();
+	 minute = value.second().intValue();
+      }
+      if(len>2)
+         second = value.third().intValue();
+      if(len>3)
+         milli = value.fourth().intValue();
+
+       // easy check of intervals
+       if(year==0) return null; // 1 A.C  is direcly after 1 B.C.
+       if(month<0 || month>12) return null;
+       if(day<0 || day>31) return null; // a check for 31.2.xxx is omitted here
+       if(hour<0 || hour>23) return null;
+       if(minute<0 || minute>59) return null;
+       if(second<0 || second>59) return null;
+       if(milli<0 || milli>999) return null;
+       // compute the result
+       return new Double(convertDateTime2Double(day,month,year,hour,minute,second,milli));
   }
 
-  /**t
+  /**
    * Analyses a ListExpr by scanning through the type and value ListExpr
    * @param type The datatype
    * @param value the value of the datatype
    * @param qr Collects the results
-   * @see <a href="LEUtilssrc.html#analyse">Source</a>
    */
   public static void analyse (ListExpr type, ListExpr value, QueryResult qr) {
     DsplBase db;
