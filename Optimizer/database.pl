@@ -57,6 +57,10 @@ card(orte_sample, 100).
 card(distrikte, 569).
 card(laender, 9).
 card(staedte2, 59).
+card(distrikte_sample, 100).
+card(staedte2_sample, 59).
+card(laender_sample, 9).
+
 
 /*
 1.4 Indexes
