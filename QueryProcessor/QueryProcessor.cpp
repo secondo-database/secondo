@@ -208,7 +208,8 @@ variables is described in the introduction of procedure ~annotate~.
 
 */ 
 
-QueryProcessor::QueryProcessor( NestedList* newNestedList, AlgebraManager* newAlgebraManager )
+QueryProcessor::QueryProcessor( NestedList* newNestedList,
+	AlgebraManager* newAlgebraManager )
   : nl( newNestedList ), algebraManager( newAlgebraManager ),
     testMode( false ), debugMode( false ), traceMode( false )
 {
@@ -515,9 +516,9 @@ omitted in this representation. The bottom row, of course, shows the
 The structure of the operator tree is illustrated by the representation
 of the following executable query: 
 
-----        (filter        (feed cities)
-                (fun        (c city)
-                        (>        (attribute c pop .)
+----        (filter (feed cities)
+                (fun (c city)
+                        (> (attribute c pop .)
                                 500000)))
 ----
 
@@ -693,7 +694,7 @@ are distinguished:
 
   * ~s~ is an empty list. This is interpreted as an empty list of arguments.
 
-----        ()        ->        ((none arglist ()) ())
+----	()        ->        ((none arglist ()) ())
 ----
 
   * ~s~ is an integer, real, boolean, or string atom (a constant). 
@@ -702,9 +703,9 @@ are distinguished:
 ~real~, ~string~, and ~bool~ (provided by some algebra) is called to
 create a constant of the respective type. 
 
-----        7        ->        ((7 constant 1)        int)
+----	7 	->        ((7 constant 1)        int)
 
-        <value>        ->        ((<value> constant <index>) <type>)
+        <value>	->        ((<value> constant <index>) <type>)
 ----
 
         Here ~index~ is an index into array ~values~ containing
@@ -713,19 +714,19 @@ array.
 
   * ~s~ is a symbol atom: an operator
 
-----        add        ->        ((add operator 1 4) typeerror)
+----	add	->        ((add operator 1 4) typeerror)
 
-        <op>        ->        ((<op> operator <algebraId> <operatorId>) typeerror)
+	<op>	->        ((<op> operator <algebraId> <operatorId>) typeerror)
 ----
 
   * ~s~ is a symbol atom: an object of the database, that ~is not itself
 a function~, which means the type of the object does not start ``(map
 ...)''. 
 
-----        cities        ->        ((cities object 7) 
+----	cities		->        ((cities object 7)
                                 (rel (tuple ((name string) (pop int))))        )
 
-        <object name>        ->        
+        <object name>	->
                         (<object name> object <index>)        <type>)
 ----
 
@@ -735,21 +736,20 @@ a function~, which means the type of the object does not start ``(map
 the form ``(map ...)''. The corresponding function definition
 (abstraction) is retrieved from the database and annotated recursively. 
 
-----        double        ->        ((double function annotate((fun (x int) (add x x))))
-                                        (map int int))
+----	double		->	((double function annotate((fun (x int) (add x x))))
+					(map int int))
 
-        <function name>        ->        
-                        (<function name> function annotate(<abstraction>)) 
-                                <type>)
+        <function name>	-> 	(<function name> function annotate(<abstraction>))
+                                	<type>)
 ----
 
   * ~s~ is a symbol atom: neither operator nor object, but a variable
 defined in some enclosing function definition (= abstraction), which
 means it can be found in the table ~variableNames~. 
 
-----        x        ->        ((x variable 3 5) real)
+----	x        	->        ((x variable 3 5) real)
 
-        <var name>        ->        
+        <var name>	->
                         ((<var name> variable <position> <functionno>) <type>)
 ----
 
@@ -761,9 +761,9 @@ function numbers).
 
   * ~s~ is a symbol atom: neither operator nor object nor variable.
 
-----        pop        ->        ((pop identifier) pop)
+----	pop		->        ((pop identifier) pop)
 
-        <ident>        ->        ((<ident> identifier) <ident>)
+	<ident>		->        ((<ident> identifier) <ident>)
 ----
 
         This is some unidentified name which must be interpreted by a
@@ -783,7 +783,7 @@ the form
 which enters the variable definitions into tables and then calls
 ~annotate~ again to annotate the expression ~expr~. The result is 
 
-----                ->        ((none abstraction annotate(expr) <functionno>) <type>)
+---- 	->        ((none abstraction annotate(expr) <functionno>) <type>)
 ----
         Note that here ~type~ is the corresponding functional type (map
 ...). ~Functionno~ is the index in ~ArgVectors~ used for the argument
@@ -796,9 +796,9 @@ as the first element. The type specific ~In~ function is called to
 convert the value given as a second element into a word which is entered
 into the array ~values~. Hence the annotation is as for constants: 
 
-----        (ccint 7) ->        (((ccint 7) constant 1)        ccint)
+----	(ccint 7) 	->        (((ccint 7) constant 1) ccint)
 
-        <value>        ->        ((<value> constant <index>) <type>)
+        <value>		->        ((<value> constant <index>) <type>)
 ----
 
   * ~s~ is a nonempty list: first element is neither the symbol ~fun~,
@@ -826,7 +826,7 @@ the operator number (~opId~) for overloaded operators.
 
 The result is:
 
-----        (        (none applyop (ann(op) ann(arg1) ... ann(argn))) 
+----        ( 	(none applyop (ann(op) ann(arg1) ... ann(argn)))
                 <resulttype> 
                 <opFunId>)
 ----
@@ -890,7 +890,6 @@ The result is
 ----        ((none applyfun (ann(function) ann(arg1) ... ann(argn))) <resulttype>)
 ----
 
-This case is not yet implemented.
 
 Case (3). This is an application of an abstraction. Like the previous
 case, argument types are checked and the result type of the abstraction
@@ -899,13 +898,12 @@ is returned.
 ----        ((none applyabs (ann(abstraction) ann(arg1) ... ann(argn)))<resulttype>)
 ----
 
-This case is also not yet implemented.
 
 Case (4). The whole list is then just a list of expressions (terms). The
 result type is just the list of types of the expressions. 
 
-----        (t1 t2 ... tn)        ->        ((none arglist (ann(t1) ann(t2) ... ann(tn))) 
-                                        (type(t1) type(t2) ... type(tn)))
+----        (t1 t2 ... tn)   ->  ((none arglist (ann(t1) ann(t2) ... ann(tn)))
+					(type(t1) type(t2) ... type(tn)))
 ----
 
 ~Scope and visibility of variables~. We make the following assumptions:
@@ -976,17 +974,19 @@ function index.
         AllocateValuesAndModels( valueno );
 	if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel( nl->SymbolAtom( "int" ),
-                              expr, errorPos, errorInfo, correct );
+	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
 	  /* special treatment of integers at descriptive level; these can
 	  be attribute numbers and must be treated as values in that case. */
 	  values[valueno].list = nl->IntValue( expr );
         }
 	else
         {
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "int" ), expr,
+		errorPos, errorInfo, correct );
           values[valueno] = value;
-          models[valueno] = GetCatalog( level )->ValueToObjectModel( nl->SymbolAtom( "int" ), value );
+          models[valueno] = GetCatalog( level )->ValueToObjectModel(
+		nl->SymbolAtom( "int" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1001,14 +1001,16 @@ function index.
         AllocateValuesAndModels( valueno );
 	if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel( nl->SymbolAtom( "int" ),
-                              expr, errorPos, errorInfo, correct );
+	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
         }
 	else
         {
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "real" ), expr, errorPos, errorInfo, correct );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "real" ), expr,
+		errorPos, errorInfo, correct );
           values[valueno] = value;  
-          models[valueno] = GetCatalog( level )->ValueToObjectModel( nl->SymbolAtom( "real" ), value );
+          models[valueno] = GetCatalog( level )->ValueToObjectModel(
+		nl->SymbolAtom( "real" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1023,14 +1025,16 @@ function index.
         AllocateValuesAndModels( valueno );
 	if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel( nl->SymbolAtom( "int" ),
-                              expr, errorPos, errorInfo, correct );
+	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
         }
 	else
         {
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "bool" ), expr, errorPos, errorInfo, correct );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "bool" ), expr,
+		errorPos, errorInfo, correct );
           values[valueno] = value;  
-          models[valueno] = GetCatalog( level )->ValueToObjectModel( nl->SymbolAtom( "bool" ), value );
+          models[valueno] = GetCatalog( level )->ValueToObjectModel(
+		nl->SymbolAtom( "bool" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1045,14 +1049,16 @@ function index.
         AllocateValuesAndModels( valueno );
 	if ( level == DescriptiveLevel )
         {
-	  models[valueno] = GetCatalog( level )->ValueListToObjectModel( nl->SymbolAtom( "int" ),
-                              expr, errorPos, errorInfo, correct );
+	  models[valueno] = GetCatalog( level )->ValueListToObjectModel(
+		nl->SymbolAtom( "int" ), expr, errorPos, errorInfo, correct );
         }
 	else
         {
-          value = GetCatalog( level )->InObject( nl->SymbolAtom( "string" ), expr, errorPos, errorInfo, correct );
+          value = GetCatalog( level )->InObject( nl->SymbolAtom( "string" ), expr,
+		errorPos, errorInfo, correct );
           values[valueno] = value;  
-          models[valueno] = GetCatalog( level )->ValueToObjectModel( nl->SymbolAtom( "string" ), value );
+          models[valueno] = GetCatalog( level )->ValueToObjectModel(
+		nl->SymbolAtom( "string" ), value );
         }
         valueno++;
         return (nl->TwoElemList(
@@ -1083,9 +1089,6 @@ function index.
           {
             if ( TypeOfSymbol( nl->First( typeExpr ) ) == QP_MAP )
             { /* function object */
-              /* this should be analyzed using fresh tables of variables.
-              Not yet implemented. One needs first to change the catalog so 
-              that function objects can be stored and retrieved.*/
 
               NameIndex newvarnames;
               VarEntryCTable newvartable(20); 
@@ -1173,8 +1176,8 @@ function index.
     { /* treatment of user-defined constant */
       if ( level == DescriptiveLevel )
       {
-	model = GetCatalog( level )->ValueListToObjectModel( nl->First( expr ), nl->Second( expr ), 
-                                            errorPos, errorInfo, correct );
+	model = GetCatalog( level )->ValueListToObjectModel( nl->First( expr ),
+		nl->Second( expr ), errorPos, errorInfo, correct );
         if ( correct )
         { 
           AllocateValuesAndModels( valueno );
@@ -1252,7 +1255,8 @@ function index.
         }
         else
         { /* just pass down the inherited list of args */
-          pair = Annotate( level, nl->First( rest ), varnames, vartable, defined, fatherargtypes );
+          pair = Annotate( level, nl->First( rest ), varnames, vartable, defined,
+		fatherargtypes );
         }
         lastElem = nl->Append( lastElem, pair );
         lastType = nl->Append( lastType, nl->Second( pair ) );
@@ -1489,7 +1493,7 @@ Annotate an abstraction ~expr~ which has the form:
 
 and return the annotated version:
 
-----                ->        ((none abstraction annotate(expr) <functionno>) <type>)
+---- 		->        ((none abstraction annotate(expr) <functionno>) <type>)
 ----
 
 where ~type~ is a functional type of the form (map ...). ~Functionno~ is
@@ -1603,9 +1607,6 @@ string xxx;
         return (nl->TwoElemList(
                   nl->SymbolAtom( "functionerror" ),
                   nl->SymbolAtom( "typeerror" ) ));
-
-      //annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, 	//fatherargtypes );
-        /* "e" reached */
     }
   }
   else
@@ -1614,10 +1615,6 @@ string xxx;
         return (nl->TwoElemList(
                   nl->SymbolAtom( "functionerror" ),
                   nl->SymbolAtom( "typeerror" ) ));
-
-    //annexpr = Annotate( level, nl->First( expr ), varnames, vartable, defined, 
-	//fatherargtypes );
-      /* "e" reached */
   }
   list = nl->Append( lastElem, nl->Second( annexpr ) );
   return (nl->TwoElemList(
@@ -1850,7 +1847,8 @@ string xxx, yyy, zzz;
                                 of an abstraction */
       node->u.op.opFunId = 0;
       node->u.op.noSons = 1;
-      node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ) );                /* the abstraction */
+      node->u.op.sons[0] = Subtree( level, nl->First( nl->Third( nl->First( expr ) ) ) );
+								/* the abstraction */
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
       {                        /* the arguments */
@@ -1968,7 +1966,8 @@ Deletes an operator tree object.
         if ( (tree->u.op.resultAlgId != 0) && destroyRootValue )
         {
           /* space was allocated for result */
-          (algebraManager->DeleteObj( tree->u.op.resultAlgId, tree->u.op.resultTypeId ))( tree->u.op.resultWord );
+          (algebraManager->DeleteObj( tree->u.op.resultAlgId, tree->u.op.resultTypeId ))
+		( tree->u.op.resultWord );
         }
         break;
       }
@@ -2139,7 +2138,8 @@ normal evaluation.
         {
           arg[i].addr = tree->u.op.sons[i];
         }
-        result = (algebraManager->TransformModel( tree->u.op.algebraId, tree->u.op.opFunId ))( arg, tree );
+        result = (algebraManager->TransformModel( tree->u.op.algebraId, tree->u.op.opFunId ))
+		( arg, tree );
         tree->u.op.subtreeModel = result;
         return;
       }
