@@ -103,23 +103,25 @@ class CcBool : public StandardAttribute
 
 */
 
+typedef char STRING[49];
+
 class CcString : public StandardAttribute
 {
  public:
   CcString();
-  CcString( bool d, const string& v );
+  CcString( bool d, const STRING* v );
   ~CcString();
   bool      IsDefined();
-  string*   GetStringval();
+  STRING*   GetStringval();
   void*     GetValue();
-  void      Set( bool d, const string& v );
+  void      Set( bool d, const STRING* v );
   int       Compare( Attribute* arg );
   int       Sizeof()  ;
   CcString* Clone() ;
   ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }
  private:
   bool   defined;
-  string stringval;
+  STRING stringval;
 };
 
 #endif
