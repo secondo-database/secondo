@@ -21,7 +21,7 @@ specs: specs.test
 	@chmod u+x *.awk
 	@rm -f specs
 	@for file in $(SPECFILES); do \
-          if !((cat $$file && echo -e "\n# file $$file \n") >> specs) then \
+          if !((echo -e "\n# file $$file \n" && cat $$file) >> specs) then \
             exit 1; \
           fi \
         done
