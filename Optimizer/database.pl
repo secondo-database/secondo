@@ -3,39 +3,61 @@
 
 [File ~database.pl~]
 
+The Secondo optimizer module needs database dependent information to
+compute the best query plan. In particular information about the
+cardinality and the schema of a relation is needed by the optimizer.
+Furthermore the spelling of relation and attribute names must be
+known to send a Secondo query or command.  Finally the optimizer has 
+to be informed, if an index exists for the pair (~relationname~, 
+~attributename~). All this information look up is provided by this 
+module. There are two assumptions about naming conventions for index
+objects and sample relation objects. These are
+
+  * ~relationname~\_~attributename~ for index objects. Note, that the
+    first letter of the relationname is written in lower case.
+
+  * ~relationname~\_~sample~ for sample relation objects.
+
+You should avoid naming your objects in this manner. Relation- and
+attibute names are written the same way as they are written in the
+Secondo database, with the single exception for index objects 
+(see above).
 
 1.1 Relation Schemas
+
+1.1.1 Auxiliary Rules
+
+Rule ~extractlist~ finds a complete list for one Secondo object within 
+a list of object lists. The result is unified with the second list.
 
 */
 extractList([[First, _]], [First]).
 extractList([[First, _] | Rest], [First | Rest2]) :-
   extractList(Rest, Rest2).
+/*
+Sets all letters of all atoms of the first list into lower case. The 
+result is in the second list.
 
+*/
 downcase_list([], []).
 downcase_list([First1 | Rest1], [First2 | Rest2]) :-
   downcase_atom(First1, First2),
   downcase_list(Rest1, Rest2).
-
 /*
-relation(staedte, [sname, bev, plz, vorwahl, kennzeichen]).
-relation(plz, [plz, ort]).
-relation(ten, [no]).
-relation(thousand, [no]).
-relation(orte, [kennzeichen, ort, vorwahl, bevt]).
-relation(test1, [attr1, attr2, attr3]).
-relation(test2, [attr1, attr2, attr3]).
-relation(test3, [attr1, attr2, attr3]).
-relation(test4, [attr1, attr2, attr3]).
-*/
+Creates a sample relation, for determining the selectivity of a relation 
+object for a given predicate. The first two rules consider the case, that 
+there is a sample relation already available and the last two ones create 
+new relations by sending a Secondo ~let~-command.
 
-createSampleRelation(Rel, ObjList) :-
+*/
+createSampleRelation(Rel, ObjList) :-  % Rel in lc
   spelling(Rel, Rel2),
   Rel2 = lc(Rel3),
   sampleName(Rel3, Sample),
   member(['OBJECT', Sample, _ , [[_ | _]]], ObjList),
   !.
 
-createSampleRelation(Rel, ObjList) :-
+createSampleRelation(Rel, ObjList) :-  % Rel in uc
   spelling(Rel, Rel2),
   not(Rel2 = lc(_)),
   upper(Rel2, URel),
@@ -43,7 +65,7 @@ createSampleRelation(Rel, ObjList) :-
   member(['OBJECT', Sample, _ , [[_ | _]]], ObjList),
   !.
 
-createSampleRelation(Rel, _) :-
+createSampleRelation(Rel, _)  :-  % Rel in lc
   spelling(Rel, Rel2),
   Rel2 = lc(Rel3),
   sampleName(Rel3, Sample),
@@ -57,7 +79,7 @@ createSampleRelation(Rel, _) :-
   assert(storedSpell(DCSample, lc(Sample))),
   !.
 
-createSampleRelation(Rel, _) :-
+createSampleRelation(Rel, _) :-  % Rel in uc
   spelling(Rel, Rel2),
   upper(Rel2, URel),
   sampleName(URel, Sample),
@@ -71,24 +93,44 @@ createSampleRelation(Rel, _) :-
   downcase_atom(Sample, DCSample),
   assert(storedSpell(DCSample, LSample)),
   !.
+/*
+Checks, if an index exists for ~Rel~ and ~Attr~ and stores the 
+respective values to the dynamic predicates ~storedIndex/4~ or 
+~storedNoIndex/2~.
 
+*/
 lookupIndex(Rel, Attr) :-
   not(hasIndex(rel(Rel, _, _), attr(Attr, _, _), _)).
 
 lookupIndex(Rel, Attr) :-
   hasIndex(rel(Rel, _, _), attr(Attr, _, _), _).
 
+/*
+Gets the spelling of each attribute name of a relation and stores 
+the result to ~storedSpells~. The index checking for every attribute
+over the given relation ~Rel~ is also called.
+
+*/
 createAttrSpelledAndIndexLookUp(_, []).
 createAttrSpelledAndIndexLookUp(Rel, [ First | Rest ]) :-
-  %downcase_atom(Rel, DCRel),
   downcase_atom(First, DCFirst),
   spelling(Rel:DCFirst, _),
-  %lowerfl(Rel, LRel),
   spelled(Rel, SRel, _),
   lowerfl(First, LFirst),
   lookupIndex(SRel, LFirst),
   createAttrSpelledAndIndexLookUp(Rel, Rest).
+/*
+1.1.2 Look Up The Relation Schema
 
+---- relation(Rel, AttrList) :-
+----
+
+The schema for relation ~Rel~ is ~AttrList~. If this predicate
+is called, we also look up for the spelling of ~Rel~ and all
+elements of ~AttList~. Index look up and creating sample relations
+are executed furthermore by this rule.
+
+*/
 relation(Rel, AttrList) :-
   storedRel(Rel, AttrList),
   !.
@@ -108,10 +150,7 @@ relation(Rel, AttrList) :-
   retract(storedSecondoList(ObjList)).
 
 /*
-1.3.3 Storing And Loading Relation Schemas
-
-This is again the same procedure as it is described in the respective 
-sections above.
+1.1.3 Storing And Loading Relation Schemas
 
 */
 readStoredRels :-
@@ -133,24 +172,44 @@ writeStoredRel(Stream) :-
   dynamic(storedRel/2),
   at_halt(writeStoredRels),
   readStoredRels.
-
-
 /*
 1.2 Spelling of Relation and Attribute Names
 
-*/
+Due to the facts, that PROLOG interprets words beginning with a capital 
+letter as varibales and that Secondo allows arbitrary writing of
+relation and attribute names, we have to find a convention. So, for
+Secondo names beginning with a small letter, the PROLOG notation will be
+lc(name), which means, leaver the first letter as it is. If the first
+letter of a Secondo name is written in upper case, then it is set to lower
+case. E.G.
 
+The PROLOG notation for ~pLz~ is ~lc(pLz)~ and for ~EMPLOYEE~ it'll be ~eMPLOYEE~. 
+
+1.2.1 Auxiliary Rules
+
+Checks, if the first letter of ~Rel~ is written in lower case
+
+*/
 is_lowerfl(Rel) :-
   atom_chars(Rel, [First | _]),
   downcase_atom(First, LCFirst),
   First = LCFirst.
-  
+/*
+Sets the first letter of ~Upper~ to lower case. Result is ~Lower~.
+
+*/  
 lowerfl(Upper, Lower) :-
   atom_codes(Upper, [First | Rest]),
   to_lower(First, First2),
   LowerList = [First2 | Rest],
   atom_codes(Lower, LowerList).
-  
+/*
+Returns a list of Secondo objects, if available in the knowledge
+base, otherwise a Secondo command is issued to get the list. The
+second rule ensures in addition, that the object list is stored 
+into local memory by the dynamic predicate ~storedSecondoList/1~.
+
+*/
 getSecondoList(ObjList) :-
   storedSecondoList(ObjList),
   !.
@@ -159,43 +218,26 @@ getSecondoList(ObjList) :-
   secondo('list objects',[_, [_, [_ | ObjList]]]), 
   assert(storedSecondoList(ObjList)),
   !.
- 
-/* 
-spelling(staedte:plz, pLZ).
-spelling(staedte:sname, sName).
-spelling(plz, lc(plz)).
-spelling(plz:plz, pLZ).
-spelling(ten, lc(ten)).
-spelling(ten:no, lc(no)).
-spelling(thousand, lc(thousand)).
-spelling(thousand:no, lc(no)).
-spelling(orte:bevt, bevT).
-spelling(test1, test1).
-spelling(test2, lc(test2)).
-spelling(test3, lc(tEST3)).
-spelling(test4, tEst4).
-spelling(test1:attr1, attr1).
-spelling(test1:attr2, lc(attr2)).
-spelling(test1:attr3, lc(aTTR3)).
-spelling(test1:attr4, aTtr4).
-spelling(test2:attr1, attr1).
-spelling(test2:attr2, lc(attr2)).
-spelling(test2:attr3, lc(aTTR3)).
-spelling(test2:attr4, aTtr4).
-spelling(test3:attr1, attr1).
-spelling(test3:attr2, lc(attr2)).
-spelling(test3:attr3, lc(aTTR3)).
-spelling(test3:attr4, aTtr4).
-spelling(test4:attr1, attr1).
-spelling(test4:attr2, lc(attr2)).
-spelling(test4:attr3, lc(aTTR3)).
-spelling(test4:attr4, aTtr4).
-*/
+/*
+1.2.2 Spelling Of Attribute Names
 
+---- spelling(Rel:Attr, Spelled) :-
+----
+
+The spelling of attribute ~Attr~ of relation ~Rel~ is ~Spelled~.
+
+~Spelled~ is available via the dynamic predicate ~storedSpell/2~.
+
+*/
 spelling(Rel:Attr, Spelled) :-
   storedSpell(Rel:Attr, Spelled),
   !.
+/*
+Returns the spelling of attribute name ~Attr~, if the first letter of
+the attribute name is written in lower case. ~Spelled~ returns a term
+lc(attrnanme).
 
+*/ 
 spelling(Rel:Attr, Spelled) :-
   getSecondoList(ObjList),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList]]]]]]], ObjList),
@@ -205,9 +247,13 @@ spelling(Rel:Attr, Spelled) :-
   is_lowerfl(OAttr),
   Spelled = lc(OAttr),
   assert(storedSpell(Rel:Attr, lc(OAttr))),
-  %retract(storedSecondoList(ObjList)),
   !.
+/*
+Returns the spelling of attribute name ~Attr~, if the first letter
+of the attribute name is written in upper case. ~Spelled~ returns just
+the attribute name with the first letter written in lower case.
 
+*/
 spelling(Rel:Attr, Spelled) :-
   getSecondoList(ObjList),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList]]]]]]], ObjList),
@@ -216,15 +262,29 @@ spelling(Rel:Attr, Spelled) :-
   downcase_atom(OAttr, Attr),
   lowerfl(OAttr, Spelled),
   assert(storedSpell(Rel:Attr, Spelled)),
-  %retract(storedSecondoList(ObjList)),
   !.
 
-spelling(_:_, _) :- !, fail.  
+spelling(_:_, _) :- !, fail.
+/*
+1.2.3 Spelling Of Relation Names
 
+---- spelling(Rel, Spelled) :-
+----
+
+The spelling of relation ~Rel~ is ~Spelled~.
+
+~Spelled~ is available via the dynamic predicate ~storedSpell/2~.
+
+*/  
 spelling(Rel, Spelled) :-
   storedSpell(Rel, Spelled),
   !.
+/*
+Returns the spelling of relation name ~Rel~, if the first letter of
+the relation name is written in lower case. ~Spelled~ returns a term
+lc(relationname).
 
+*/
 spelling(Rel, Spelled) :-
   getSecondoList(ObjList),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
@@ -232,18 +292,24 @@ spelling(Rel, Spelled) :-
   is_lowerfl(ORel),
   Spelled = lc(ORel),
   assert(storedSpell(Rel, lc(ORel))),
-  %retract(storedSecondoList(ObjList)),
   !.
-  
+/*
+Returns the spelling of relation name ~Rel~, if the first letter
+of the relation name is written in upper case. ~Spelled~ returns just
+the relation name with the first letter written in lower case.
+
+*/  
 spelling(Rel, Spelled) :-
   getSecondoList(ObjList),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
   downcase_atom(ORel, Rel),
   lowerfl(ORel, Spelled),
   assert(storedSpell(Rel, Spelled)),
-  %retract(storedSecondoList(ObjList)),
   !.
-  
+/*
+1.2.4 Storing And Loading Of Spelling
+
+*/  
 readStoredSpells :-
   retractall(storedSpell(_, _)),
   [storedSpells]. 
@@ -265,40 +331,30 @@ writeStoredSpell(Stream) :-
   dynamic(elem_is/3),
   at_halt(writeStoredSpells),
   readStoredSpells.
-
 /*
-
 1.3  Cardinalities of Relations
 
-*/
+---- card(Rel, Size) :-
+----
 
-/*
-card(staedte, 58).
-card(staedte_sample, 58).
-card(plz, 41267).
-card(plz_sample, 428).
-card(ten, 10).
-card(ten_sample, 10).
-card(thousand, 1000).
-card(thousand_sample, 89).
-card(orte, 506).
-card(orte_sample, 100).
-card(test1, 2).
-card(test2, 2).
-card(tEST3, 2).
-card(tEst4, 2).
-card(test1_sample, 2).
-card(test2_sample, 2).
-card(tEST3_sample, 2).
-card(tEST4_sample, 2).
-*/
+The cardinality of relation ~Rel~ is ~Size~.
 
+1.3.1 Get Cardinalities
+
+If ~card~ is called, it tries to look up the cardinality via the 
+dynamic predicate ~storedCard/2~ (automatically stored).
+If this fails, a Secondo query is issued, which determines the
+cardinality. This cardinality is then stored in local memory.
+
+*/
 card(Rel, Size) :-
   storedCard(Rel, Size),
   !.
-  
+/*
+First letter of ~Rel~ is written in lower case.
+
+*/
 card(Rel, Size) :-
-  %downcase_atom(Rel, DCRel),
   spelled(Rel, Rel2, l),
   Query = (count(rel(Rel2, _, l))),
   plan_to_atom(Query, QueryAtom1),
@@ -306,7 +362,10 @@ card(Rel, Size) :-
   secondo(QueryAtom, [int, Size]),
   assert(storedCard(Rel2, Size)),
   !.
+/*
+First letter of ~Rel~ is written in upper case.
 
+*/
 card(Rel, Size) :-
   spelled(Rel, Rel2, u),
   Query = (count(rel(Rel2, _, u))),
@@ -317,7 +376,10 @@ card(Rel, Size) :-
   !.
 
 card(_, _) :- fail.
+/*
+1.3.2 Storing And Loading Cardinalities
 
+*/
 readStoredCards :-
   retractall(storedCard(_, _)),
   [storedCards].  
@@ -337,54 +399,64 @@ writeStoredCard(Stream) :-
   dynamic(storedCard/2),
   at_halt(writeStoredCards),
   readStoredCards.
-
 /*
-1.4.2 Looking Up For Existing Indexes
+1.4 Looking Up For Existing Indexes
 
-The first rule simply reduces a renamed attribute of the form e.g.
-p:ort just to its attribute name e.g. ort.
+---- hasIndex(rel(Rel, _, _),attr(Attr, _, _), IndexName) :-
+----
+
+If it exists, the index name for relation ~Rel~ and attribute ~Attr~
+is ~IndexName~.
+
+1.4.1 Auxiliary Rule
+
+Checks whether an index exists for ~Rel~ and ~Attr~ in the currently
+opened database. Depending on this result the dynamic predicate
+~storedIndex/4~ or ~storedNoIndex/2~ is set. 
 
 */
-
-verifyIndexAndStoreIndex(Rel, Attr, Index) :-
+verifyIndexAndStoreIndex(Rel, Attr, Index) :- % Index exists
   getSecondoList(ObjList),
   member(['OBJECT', Index, _ , [[IndexType | _]]], ObjList),
   assert(storedIndex(Rel, Attr, IndexType, Index)),
   !.
 
-verifyIndexAndStoreNoIndex(Rel, Attr) :-
+verifyIndexAndStoreNoIndex(Rel, Attr) :-      % No index
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   relation(DCRel, List),
   member(DCAttr, List),
   assert(storedNoIndex(Rel, Attr)).
-
-hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName) :-
-  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName).
-
 /*
-There is an index available via dynamic predicate ~storedIndex~.
+1.4.2 Look up Index
+
+The first rule simply reduces an attribute of the form e.g. p:ort just 
+to its attribute name e.g. ort.
 
 */
+hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName) :-
+  hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName).
+/*
+Gets the index name ~Index~ for relation ~Rel~ and attribute ~Attr~
+via dynamic predicate ~storedIndex/4~.
 
+*/
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :-
   storedIndex(Rel, Attr, _, Index),
   !.
-
 /*
-No Index for relation ~Rel~ and attribute ~Attr~. The rule fails.
+If there is information stored in local memory, that there is no index
+for relation ~Rel~ and attribute ~Attr~ then this rule fails.
 
 */
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-
   storedNoIndex(Rel, Attr),
   !,
   fail.
-
 /*
-We have to differentiate the next rules by the four possible combinations
-of spelling relation name ~Rel~ and attribute name ~Attr~, so that
-~retrieveIndex~ is able to find the index object within the list of
-objects.
+We have to differentiate the next rules, if the first letter of attribute 
+name ~Attr~ is written in lower or in upper case and if there is an
+index available for relation ~Rel~ and attribute ~Attr~.
 
 */
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index) :- %attr in lc
@@ -419,8 +491,8 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _) :-     %attr in uc
 /*
 1.4.3 Storing And Loading About Existing Indexes
 
-Here we provide storing and reading of  the two dynamic predicates 
-~storedIndex~ and ~storedNoIndex~ in the file ~storedIndexes~.
+Storing and reading of  the two dynamic predicates ~storedIndex/4~ and 
+~storedNoIndex/2~ in the file ~storedIndexes~.
 
 */
 readStoredIndexes :-
@@ -451,9 +523,20 @@ writeStoredNoIndex(Stream) :-
   at_halt(writeStoredIndexes),
   readStoredIndexes.
 /*
-1.4 Update Indexes And Relations
+1.5 Update Indexes And Relations
 
-1.4.1 Update Indexes
+The next two predicates provide an update about known indexes and 
+an update for informations about relations, which are stored in local 
+memory.
+
+1.5.1 Update Indexes
+
+---- updateIndex(Rel, Attr) :-
+----
+
+The knowledge about an existing index for ~Rel~ and ~Attr~ in local memory 
+is updated, if an index has been added or an index has been deleted. Note,
+that all letters of ~Rel~ and ~Attr~ must be written in lower case.
 
 */
 updateIndex2(Rel, Attr) :-
@@ -481,8 +564,16 @@ updateIndex(Rel, Attr) :-
   not(updateIndex2(Rel, Attr)),
   retract(storedSecondoList(ObjList)), !, fail.
 /*
-1.4.1 Update Relations
+1.5.2 Update Relations
 
+---- updateRel(Rel) :-
+----
+
+All information stored in local memory about relation ~Rel~ will
+be deleted. The next query, issued on relation ~Rel~, will update
+all needed information in local memory about ~Rel~. Note, that all
+letters of relation ~Rel~ must be written in lower case.
+ 
 */
 getRelAttrName(Rel, Arg) :-
   Arg = Rel:_.
