@@ -79,7 +79,7 @@ static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
 
 /*
 
-1.3 Macro CHECK_COND
+1.3 Macro CHECK\_COND
 
 This macro makes reporting errors in type mapping functions more convenient.
 
@@ -298,7 +298,9 @@ static ListExpr TupleProp ()
 Each instance of the class defined below will be the main memory
 representation of a value of type ~tuple~.
 
-		Figure 1: Main memory representation of a tuple (class ~CcTuple~) [tuple.eps]
+(Figure needs to be redrawn. It doesn't display or print properly.)
+
+Figure 1: Main memory representation of a tuple (class ~CcTuple~) [tuple.eps]
 
 */
 class TupleAttributesInfo
@@ -883,7 +885,9 @@ static ListExpr RelProp ()
 
 1.3.1 Main memory representation
 
-		Figure 2: Main memory representation of a relation (~Compact Table~) [relation.eps]
+(Figure needs to be redrawn, doesn't work.)
+
+Figure 2: Main memory representation of a relation (~Compact Table~) [relation.eps]
 
 */
 typedef CTable<CcTuple*>* Relation;
