@@ -5,6 +5,7 @@ using namespace std;
 #include "NestedList.h"
 #include "SecondoSystem.h"
 
+
 /* Member functions of class Operator: */
 
 Word
@@ -144,13 +145,16 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
                                       const string& type, Word& value )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
-  ListExpr typeExpr, valueList;
+  ListExpr typeExpr, valueList, typeInfo;
   string valueString;
   int valueLength;
-  nl->ReadFromString( type, typeExpr );  
+  
+  nl->ReadFromString( type, typeExpr );
+  typeInfo = SecondoSystem::GetCatalog(ExecutableLevel)->NumericType(typeExpr);
+  
   if ( dir == ReadFrom )
   {
-    ListExpr errorInfo = 0;
+    ListExpr errorInfo = 0;     
     bool correct;
     valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
     char* buffer = new char[valueLength];
@@ -158,7 +162,7 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
     valueString.assign( buffer, valueLength );
     delete []buffer;
     nl->ReadFromString( valueString, valueList );
-    value = In( typeExpr, nl->First( valueList ), 1, errorInfo, correct );
+    value = In( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
     if ( errorInfo != 0 )
     {
       nl->Destroy( errorInfo );
@@ -166,7 +170,7 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
   }
   else // WriteTo
   {
-    valueList = Out( typeExpr, value );
+    valueList = Out( nl->First(typeInfo), value );
     valueList = nl->OneElemList( valueList );
     nl->WriteToString( valueString, valueList );
     valueLength = valueString.length();
