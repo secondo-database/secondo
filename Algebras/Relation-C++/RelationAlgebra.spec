@@ -11,6 +11,7 @@ operator consume alias CONSUME pattern _ op
 operator concat alias CONCAT pattern _ _ op
 operator attr alias ATTR pattern op (_, _)
 operator project alias PROJECT pattern _ op [list]
+operator remove alias REMOVE pattern _ op [list]
 operator filter alias FILTER pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator rdup alias RDUP pattern _ op
