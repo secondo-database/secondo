@@ -3725,6 +3725,27 @@ SpatialTypeMapBool( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+static ListExpr
+GeoGeoMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if (((TypeOfSymbol( arg1 ) == stpoint)  ||
+         (TypeOfSymbol( arg1 ) == stpoints) ||
+         (TypeOfSymbol( arg1 ) == stline)     ||
+         (TypeOfSymbol( arg1 ) == stregion)) &&
+        ((TypeOfSymbol( arg2 ) == stpoint)  ||
+         (TypeOfSymbol( arg2 ) == stpoints) ||
+         (TypeOfSymbol( arg2 ) == stline)     ||
+         (TypeOfSymbol( arg2 ) == stregion)))
+      return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
 /*
 9.1.2 Type mapping function SpatialTypeMapBool1
 
@@ -3816,13 +3837,17 @@ SpatialSelectCompare( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoint )
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoint )
     return (0);
-  if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
     return (1);
-  if ( TypeOfSymbol( arg1 ) == stline && TypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline &&
+       TypeOfSymbol( arg2 ) == stline )
     return (2);
-  if ( TypeOfSymbol( arg1 ) == stregion && TypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
     return (3);
   return (-1); // This point should never be reached
 }
@@ -3833,19 +3858,29 @@ SpatialSelectCompare( ListExpr args )
 It is used for set operators (~intersects~)
 
 */
+
+/*
+  
+----
 static int
 SpatialSelectSets1( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
     return (0);
-  if ( TypeOfSymbol( arg1 ) == stline && TypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
     return (1);
-  if ( TypeOfSymbol( arg1 ) == stregion && TypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
     return (2);
-  return (-1); // This point should never be reached
+  return (-1); 
 }
+----
+
+*/
 
 /*
 9.2.5 Selection function ~SpatialSelectSets2~
@@ -3854,30 +3889,133 @@ It is used for set operators (~inside~) that allow the first argument to be
 simple.
 
 */
+
+/*
+----
 static int
 SpatialSelectSets2( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
-  if ( TypeOfSymbol( arg1 ) == stpoints && TypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+        TypeOfSymbol( arg2 ) == stpoints )
     return (0);
-  if ( TypeOfSymbol( arg1 ) == stline && TypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
     return (1);
-  if ( TypeOfSymbol( arg1 ) == stregion && TypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
     return (2);
-  if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stpoints )
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoints )
     return (3);
-  if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stline )
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stline )
     return (4);
-  if ( TypeOfSymbol( arg1 ) == stpoint && TypeOfSymbol( arg2 ) == stregion )
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stregion )
     return (5);
+  return (-1); // This point should never be reached
+}
+----
+
+*/
+
+static int
+intersectSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (0);
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (1);
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (2);
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (3);
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (4);
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (5);
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (6);
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (7);
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (8);
+  
+  return (-1); // This point should never be reached
+}
+
+static int
+insideSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (0);  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (1);  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (2);  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stpoints )
+      return (3);
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (4);  
+  if ( TypeOfSymbol( arg1 ) == stpoints && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (5);  
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stline )
+    return (6);
+  if ( TypeOfSymbol( arg1 ) == stline && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (7);
+  if ( TypeOfSymbol( arg1 ) == stregion && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (8);
+  
+  return (-1); // This point should never be reached
+}
+
+static int
+onBorder_inInteriorSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stline )
+      return (0);
+  if ( TypeOfSymbol( arg1 ) == stpoint && 
+       TypeOfSymbol( arg2 ) == stregion )
+      return (1);
+  
   return (-1); // This point should never be reached
 }
 
 /*
 9.3 Object Traversal functions
 
-These functions are useful if we want to traverse the objects.  There are 6 combinations, pp, pl, pr, ll, lr, rr
+These functions are useful if we want to traverse the objects.  
+There are 6 combinations, pp, pl, pr, ll, lr, rr
 
 */
 
@@ -4630,6 +4768,124 @@ SpatialIntersects_psps( Word* args, Word& result, int message, Word& local, Supp
 }
 
 static int
+SpatialIntersects_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    Points *ps;
+    CLine *cl;
+    Point p;
+    CHalfSegment chs;
+       
+    ps=((Points*)args[0].addr);
+    cl=((CLine*)args[1].addr);
+    
+    for (int i=0; i<ps->Size(); i++)
+    {
+	ps->Get(i, p);
+	for (int j=0; j<cl->Size(); j++)
+	{
+	    cl->Get(j, chs);
+	    if (chs.Contains(p)) 
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+SpatialIntersects_lps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    Points *ps;
+    CLine *cl;
+    Point p;
+    CHalfSegment chs;
+       
+    ps=((Points*)args[1].addr);
+    cl=((CLine*)args[0].addr);
+    
+    for (int i=0; i<ps->Size(); i++)
+    {
+	ps->Get(i, p);
+	for (int j=0; j<cl->Size(); j++)
+	{
+	    cl->Get(j, chs);
+	    if (chs.Contains(p)) 
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+SpatialIntersects_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    Points *ps;
+    CRegion *cr;
+    Point p;
+       
+    ps=((Points*)args[0].addr);
+    cr=((CRegion*)args[1].addr);
+    
+    for (int i=0; i<ps->Size(); i++)
+    {
+	ps->Get(i, p);
+	
+	if (cr->contain(p)) 
+	{
+	    ((CcBool *)result.addr)->Set( true, true);
+	    return (0);
+	}
+	
+    }
+    
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+SpatialIntersects_rps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+    
+    Points *ps;
+    CRegion *cr;
+    Point p;
+       
+    ps=((Points*)args[1].addr);
+    cr=((CRegion*)args[0].addr);
+    
+    for (int i=0; i<ps->Size(); i++)
+    {
+	ps->Get(i, p);
+	
+	if (cr->contain(p)) 
+	{
+	    ((CcBool *)result.addr)->Set( true, true);
+	    return (0);
+	}
+	
+    }
+    
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
 SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Supplier s )
 {   //to judge whether two lines intersect each other. 
     result = qp->ResultStorage( s );
@@ -4663,6 +4919,88 @@ SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 static int
+SpatialIntersects_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+{   
+    //to judge whether line intersects with region. 
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    CHalfSegment chsl, chsr;
+  
+    cl=((CLine*)args[0].addr);
+    cr=((CRegion*)args[1].addr);
+  
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);
+	if (chsl.GetLDP()) 
+	{
+	    for (int j=0; j<cr->Size(); j++)
+	    {    
+		cr->Get(j, chsr);
+		if (chsr.GetLDP())
+		{
+		    if (chsl.Intersects(chsr)) 
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	    
+	    if ((cr->contain(chsl.GetLP()))|| (cr->contain(chsl.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
+SpatialIntersects_rl( Word* args, Word& result, int message, Word& local, Supplier s )
+{   
+    //to judge whether line intersects with region. 
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    CHalfSegment chsl, chsr;
+  
+    cl=((CLine*)args[1].addr);
+    cr=((CRegion*)args[0].addr);
+  
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);
+	if (chsl.GetLDP()) 
+	{
+	    for (int j=0; j<cr->Size(); j++)
+	    {    
+		cr->Get(j, chsr);
+		if (chsr.GetLDP())
+		{
+		    if (chsl.Intersects(chsr)) 
+		    {
+			((CcBool *)result.addr)->Set( true, true );
+			return (0);
+		    }
+		}
+	    }
+	    
+	    if ((cr->contain(chsl.GetLP()))|| (cr->contain(chsl.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, false);
+    return (0);
+}
+
+static int
 SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {   
     result = qp->ResultStorage( s );
@@ -4688,8 +5026,8 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 			return (0);
 		    }
 		
-
-		    if ((cr2->contain(chs1.GetLP())) || (cr1->contain(chs2.GetLP()))) 
+		    if ((cr2->contain(chs1.GetLP())) ||
+		         (cr1->contain(chs2.GetLP()))) 
 		    {   
 			((CcBool *)result.addr)->Set( true, true );
 			return (0);
@@ -4706,12 +5044,131 @@ SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Suppli
 9.4.9 Value mapping functions of operator ~inside~
 
 */
+
+static int
+SpatialInside_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  if ( ((Point*)args[0].addr)->IsDefined() )
+  {
+    ((CcBool *)result.addr)->
+      Set( true, ((Point*)args[0].addr)->Inside( *((Points*)args[1].addr) ) );
+  }
+  else
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
+  return (0);
+}
+
+static int
+SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Point *p=((Point*)args[0].addr);
+  CLine *cl=((CLine*)args[1].addr);
+  CHalfSegment chs;
+  
+  for (int i=0; i<cl->Size(); i++)
+  {
+      cl->Get(i, chs);
+      if (chs.Contains(*p)) 
+      {
+	  ((CcBool *)result.addr)->Set( true, true );
+	  return (0);
+      }
+  }
+  ((CcBool *)result.addr)->Set( true, false );
+  return (0);
+  
+}
+
+static int
+SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 	
+    result = qp->ResultStorage( s );
+    
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    
+    if (cr->contain(*p))
+    {
+	((CcBool *)result.addr)->Set( true, true);
+	return (0);
+    }
+    else 
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+ }
+
 static int
 SpatialInside_psps( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   ((CcBool *)result.addr)->
     Set( true, ((Points*)args[0].addr)->Inside( *((Points*)args[1].addr) ) );
+  return (0);
+}
+
+static int
+SpatialInside_psl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+  Points *ps=((Points*)args[0].addr);
+  CLine *cl=((CLine*)args[1].addr);
+  
+  Point p;
+  CHalfSegment chs;
+  
+  for (int i=0; i<ps->Size(); i++)
+  {
+      ps->Get(i, p);
+  
+      bool inside=false;
+      for (int j=0; ((j<cl->Size())&&(inside==false)); j++)
+      {
+	  cl->Get(j, chs);
+	  if (chs.Contains(p)) 
+	  {
+	      inside=true;
+	  }
+      }
+      if (inside==false)
+      {
+	  ((CcBool *)result.addr)->Set( true, false );
+	  return (0);
+      }
+  }
+  
+  ((CcBool *)result.addr)->Set( true, true );
+  return (0);
+}
+
+static int
+SpatialInside_psr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  
+  Points *ps=((Points*)args[0].addr);
+  CRegion *cr=((CRegion*)args[1].addr);
+  
+  Point p;
+  CHalfSegment chs;
+  
+  for (int i=0; i<ps->Size(); i++)
+  {
+      ps->Get(i, p);
+      if (!(cr->contain(p)))
+      {
+	  ((CcBool *)result.addr)->Set( true, false );
+	  return (0);
+      }
+  }
+  
+  ((CcBool *)result.addr)->Set( true, true );
   return (0);
 }
 
@@ -4744,6 +5201,34 @@ SpatialInside_ll( Word* args, Word& result, int message, Word& local, Supplier s
 		}
 	    }
 	    if (!found) 
+	    {
+		((CcBool *)result.addr)->Set( true, false);
+		return (0);  
+	    }
+	}
+    }
+    ((CcBool *)result.addr)->Set( true, true);
+    return (0);  
+}
+
+static int
+SpatialInside_lr( Word* args, Word& result, int message, Word& local, Supplier s )
+{   
+    //to decide whether one line value is inside another
+    result = qp->ResultStorage( s );
+    CLine *cl;
+    CRegion *cr;
+    CHalfSegment chsl;
+  
+    cl=((CLine*)args[0].addr);
+    cr=((CRegion*)args[1].addr);
+  
+    for (int i=0; i<cl->Size(); i++)
+    {
+	cl->Get(i, chsl);
+	if (chsl.GetLDP()) 
+	{
+	    if (!(cr->contain(chsl))) 
 	    {
 		((CcBool *)result.addr)->Set( true, false);
 		return (0);  
@@ -4805,71 +5290,171 @@ SpatialInside_rr( Word* args, Word& result, int message, Word& local, Supplier s
 	((CcBool *)result.addr)->Set( true, false);
 	return (0);
     }
-    
-    
+      
     
     ((CcBool *)result.addr)->Set( true, true);
     return (0);
 }
 
+/*
+9.4.10 Value mapping functions of operator ~onborder~
+
+*/
+
 static int
-SpatialInside_pps( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialOnBorder_pl( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  result = qp->ResultStorage( s );
-  if ( ((Point*)args[0].addr)->IsDefined() )
-  {
-    ((CcBool *)result.addr)->
-      Set( true, ((Point*)args[0].addr)->Inside( *((Points*)args[1].addr) ) );
-  }
-  else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
+    //point is endpoint of line
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if ( p->IsDefined() )
+    {
+	for (int i=0; i<cl->Size(); i++)
+	{
+	    cl->Get(i, chs);
+	    if (chs.GetLDP())
+	    {
+		if (((*p)==chs.GetLP())||((*p)==chs.GetRP()))
+		{
+		    ((CcBool *)result.addr)->Set( true, true );    
+		    return (0);
+		}
+	    }
+	}
+	((CcBool *)result.addr)->Set( true, false );
+	return (0);
+    }
+    else
+    {
+	((CcBool *)result.addr)->Set( true, false );
+	return (0);
+    }
 }
 
 static int
-SpatialInside_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+SpatialOnBorder_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  result = qp->ResultStorage( s );
-  Point *p=((Point*)args[0].addr);
-  CLine *cl=((CLine*)args[1].addr);
-  CHalfSegment chs;
-  
-  for (int i=0; i<cl->Size(); i++)
-  {
-      cl->Get(i, chs);
-      if (chs.Contains(*p)) 
-      {
-	  ((CcBool *)result.addr)->Set( true, true );
-	  return (0);
-      }
-  }
-  ((CcBool *)result.addr)->Set( true, false );
-  return (0);
-  
+    //point is on the edge of region
+     result = qp->ResultStorage( s );
+    
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if ( p->IsDefined() )
+    {
+	for (int i=0; i<cr->Size(); i++)
+	{ 
+	    cr->Get(i, chs);
+	    if (chs.Contains(*p))
+	    {
+		((CcBool *)result.addr)->Set( true, true);
+		return (0);
+	    }
+	}
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+    else
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+}
+
+/*
+9.4.11 Value mapping functions of operator ~ininterior~
+
+*/
+
+static int
+SpatialInInterior_pl( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //inside but not onborder
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CLine *cl=((CLine*)args[1].addr);
+    
+    CHalfSegment chs;
+    
+    if ( p->IsDefined() )
+    {
+	for (int i=0; i<cl->Size(); i++)
+	{
+	    cl->Get(i, chs);
+	    if (chs.GetLDP())
+	    {
+		if (chs.Contains(*p))
+		{
+		    if (((*p)==chs.GetLP())||((*p)==chs.GetRP()))
+		    {
+			((CcBool *)result.addr)->Set( true, false );    
+			return (0);
+		    }
+		}
+		else
+		{
+		    ((CcBool *)result.addr)->Set( true, true );
+		    return (0);
+		}
+	    }
+	}
+	((CcBool *)result.addr)->Set( true, false );
+	return (0);
+    }
+    else
+    {
+	((CcBool *)result.addr)->Set( true, false );
+	return (0);
+    }
 }
 
 static int
-SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s )
-{ 	
-
+SpatialInInterior_pr( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    //inside but not onborder
     result = qp->ResultStorage( s );
     
     Point *p=((Point*)args[0].addr);
     CRegion *cr=((CRegion*)args[1].addr);
     
-    if (cr->contain(*p))
+    CHalfSegment chs;
+    
+    if ( p->IsDefined() )
     {
-	((CcBool *)result.addr)->Set( true, true);
-	return (0);
+	if (cr->contain(*p))
+	{
+	    for (int i=0; i<cr->Size(); i++)
+	    { 
+		cr->Get(i, chs);
+		if (chs.Contains(*p))
+		{
+		    ((CcBool *)result.addr)->Set( true, false);
+		    return (0);
+		}
+	    }
+	    ((CcBool *)result.addr)->Set( true, true);
+	    return (0);
+	}
+	else
+	{
+	    ((CcBool *)result.addr)->Set( true, false);
+	    return (0);
+	}
     }
-    else 
+    else
     {
 	((CcBool *)result.addr)->Set( true, false);
 	return (0);
     }
- }
+}
 
 /*
 9.5 Definition of operators
@@ -4906,21 +5491,39 @@ ValueMapping spatialgreatermap[] = { SpatialGreater_pp };
 ValueMapping spatialgreaterequalmap[] = { SpatialGreaterEqual_pp };
 
 ValueMapping spatialintersectsmap[] = { SpatialIntersects_psps, 
+				        SpatialIntersects_psl, 
+				        SpatialIntersects_lps, 
+				        SpatialIntersects_psr, 
+				        SpatialIntersects_rps, 
 				        SpatialIntersects_ll, 
+				        SpatialIntersects_lr, 
+				        SpatialIntersects_rl, 
 				        SpatialIntersects_rr };
 
-ValueMapping spatialinsidemap[] = 	      { SpatialInside_psps, 
-				        SpatialInside_ll, 
-				        SpatialInside_rr, 
-				        SpatialInside_pps, 
+ValueMapping spatialinsidemap[] = 	      { SpatialInside_pps, 
 				        SpatialInside_pl, 
-				        SpatialInside_pr };
+				        SpatialInside_pr, 
+ 				        SpatialInside_psps,
+				        SpatialInside_psl,
+				        SpatialInside_psr, 
+				        SpatialInside_ll, 
+				        SpatialInside_lr, 
+				        SpatialInside_rr };
+
+ValueMapping onbordermap[] = 	      { SpatialOnBorder_pl, 
+				        SpatialOnBorder_pr };
+
+ValueMapping ininteriormap[] = 	      { SpatialInInterior_pl, 
+				        SpatialInInterior_pr };
 
 ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping, 
 				       SpatialNoModelMapping, 
 				       SpatialNoModelMapping, 
 				       SpatialNoModelMapping,
 				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 
+				       SpatialNoModelMapping, 				       
 				       SpatialNoModelMapping };
 
 const string SpatialSpecIsEmpty  = 
@@ -4991,15 +5594,31 @@ const string SpatialSpecIntersects  =
 	     ") )";
 
 const string SpatialSpecInside  = 	
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(points points) -> bool, (line line) -> bool, "
-	     "(region region) -> bool, (point points) -> bool, "
-	     "(point line) -> bool, (point region) -> bool</text--->"
-	     "<text>_ inside _</text--->"
-	     "<text>Inside.</text--->"
-	     "<text>query point1 inside line1</text--->"
-	     ") )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(points points) -> bool, (line line) -> bool, 
+	     (region region) -> bool, (point points) -> bool, 
+	     (point line) -> bool, (point region) -> bool</text--->
+	     <text>_ inside _</text--->
+	     <text>Inside.</text--->
+	     <text>query point1 inside line1</text--->
+	     ) )";
+
+const string SpatialSpecOnBorder  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point line or region) -> bool</text--->
+	     <text>_ onborder _</text--->
+	     <text>on endpoints or on border edges.</text--->
+	     <text>query point onborder line</text--->
+	     ) )";
 			      
+const string SpatialSpecInInterior  = 
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
+	   ( <text>(point line or region) -> bool</text--->
+	     <text>_ ininterior _</text--->
+	     <text>in interior of a line or region.</text--->
+	     <text>query point ininterior region</text--->
+	     ) )";
+
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, 
 	  spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
@@ -5029,12 +5648,20 @@ Operator spatialgreaterequal
 	  spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
 
 Operator spatialintersects
-	( "intersects", SpatialSpecIntersects, 3, spatialintersectsmap,
-	  spatialnomodelmap, SpatialSelectSets1, SpatialTypeMapBool );
+	( "intersects", SpatialSpecIntersects, 9, spatialintersectsmap,
+	  spatialnomodelmap, intersectSelect, GeoGeoMapBool);
 
 Operator spatialinside
-	( "inside", SpatialSpecInside, 6, spatialinsidemap, spatialnomodelmap, 
-	  SpatialSelectSets2, SpatialTypeMapBool );
+	( "inside", SpatialSpecInside, 9, spatialinsidemap, spatialnomodelmap, 
+	  insideSelect, GeoGeoMapBool );
+
+Operator spatialonborder
+	( "onborder", SpatialSpecOnBorder, 2, onbordermap, spatialnomodelmap, 
+	  onBorder_inInteriorSelect, GeoGeoMapBool );
+
+Operator spatialininterior
+	( "ininterior", SpatialSpecOnBorder, 2, ininteriormap, spatialnomodelmap, 
+	  onBorder_inInteriorSelect, GeoGeoMapBool );
 
 /*
 10 Creating the Algebra
@@ -5065,6 +5692,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialgreaterequal );
     AddOperator( &spatialintersects );
     AddOperator( &spatialinside );
+    AddOperator( &spatialonborder );
+    AddOperator( &spatialininterior );
   }
   ~SpatialAlgebra() {};
 };
