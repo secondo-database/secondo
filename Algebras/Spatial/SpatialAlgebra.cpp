@@ -634,8 +634,9 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 */
 static Word
 CreatePoint( const ListExpr typeInfo )
-{ cout<<"create point2"<<endl;
-  return (SetWord( new Point() ));
+{ 
+    //cout<<"create point2"<<endl;
+    return (SetWord( new Point() ));
 }
 
 /*
@@ -1917,7 +1918,8 @@ ostream& operator<<(ostream &os, const CHalfSegment& chs)
 {
     if( chs.IsDefined())
 	return (os << "(" << (chs.GetLDP()? "L":"R") <<
-	            ", ("<< chs.GetLP() << ","<< chs.GetRP() <<"))");
+	            " ("<< chs.GetLP() << " "<< chs.GetRP() <<") "<<  chs.attr.faceno<<" "
+		    <<  chs.attr.cycleno<<" "<< chs.attr.edgeno<<" "<<chs.attr.coverageno<<")");
     else
          return (os << "undef");
 }
@@ -3177,7 +3179,11 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance, const int error
     {
 	First=nl->First(instance);
 	Second=nl->Second(instance);
-
+	
+	//cout<<"the NL in INHALFSEG is:"<<endl;
+	//nl->WriteListExpr(instance , cout );
+	//cout<<endl;
+	
 	if (nl->IsAtom(First) && nl->AtomType(First)==BoolType)
 	    LDP =  nl->BoolValue(First);
 	else
@@ -4156,11 +4162,37 @@ void CRegion::StartBulkLoad()
 
 void CRegion::EndBulkLoad()
 {
-  assert( !IsOrdered());
-  //  cout << "Before sorting: " << *this << endl;
-  Sort();
-  //  cout << "After sorting: " << *this << endl;
-  ordered = true;
+    //1. Original EndBulkload code
+    assert( !IsOrdered());
+    //  cout << "Before sorting: " << *this << endl;
+    Sort();
+    //  cout << "After sorting: " << *this << endl;
+    ordered = true;
+  
+    //2. here: linean scan to create coverage number
+    CHalfSegment chs;
+    int currCoverageNo=0;
+    
+    for (int i=0; i<this->Size(); i++)
+    {
+	this->Get(i, chs);
+
+	if  (chs.GetLDP())  
+	         currCoverageNo++;
+	else  currCoverageNo--;
+	
+	chs.attr.coverageno=currCoverageNo;
+	
+	//cout<<chs<<endl;	
+	
+	//The following line must be added in order for coverageno to carry value
+	region->Put( i, chs );
+    }
+}
+
+void  CRegion::setOrdered(bool isordered)
+{
+  ordered = isordered;
 }
 
 const bool CRegion::IsEmpty() const
@@ -4187,7 +4219,7 @@ const SmiRecordId CRegion::GetRegionRecordId() const
 bool CRegion::contain( const Point& p ) const
 {
     //here: if the point is on the border, it is also counted.
-    
+    //§§§ I should optimize this part §§§
     if (!bbox.Contains(p)) return false;
     
     int faceISN[100];
@@ -4199,7 +4231,18 @@ bool CRegion::contain( const Point& p ) const
     }
 
     CHalfSegment chs;
-
+    
+    //cout<<"!!!the region value is!!!: "<<endl;
+    //for (int i=0; i<this->Size(); i++)
+    //{
+    //	this->Get(i, chs); 
+    //	cout<<chs<<endl;
+    //}
+    //cout<<"!!!the point value is!!!: "<<endl;
+    //cout<<p<<endl;
+    
+    /*  ======================================================
+    //This part will be replaced by the new method from Ralf.
     for (int i=0; i<this->Size(); i++)
     {
 	this->Get(i, chs);
@@ -4207,7 +4250,10 @@ bool CRegion::contain( const Point& p ) const
 
 	if  ((chs.GetLDP()) &&(chs.Contains(p)))
 	    return true;
-
+	
+	if ((chs.GetLDP())&&( (chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
+	    cout<<"eligable: "<<chs<<endl;
+	
 	if ((chs.GetLDP()) &&(chs.rayAbove(p, y0)))
 	{
 	    faceISN[chs.attr.faceno]++;
@@ -4215,7 +4261,87 @@ bool CRegion::contain( const Point& p ) const
 		lastfaceno=chs.attr.faceno;
 	}
     }
-
+    //======================================================*/
+    //*********Here: New Method by Ralf.*********
+    
+    int coverno=0;
+    int startpos=0;
+    double y0;
+    
+    //1. find the right place by binary search
+    startpos = Position( p );  
+    
+    if ( startpos == -1 ) 	//p is smallest
+	return false;
+    else if ( startpos == -2 ) 	//p is largest
+	return false;
+    else if ( startpos == -3 ) 	//p is a vertex
+	return true;
+	
+    //2. deal with equal-x chs's 
+    bool continuemv=true;
+    int i=startpos;
+    
+    while ((continuemv) && (i>=0))
+    {
+	region->Get( i, chs );
+	
+	if (chs.GetDPoint().GetX() == p.GetX())
+	{
+	    if  (chs.Contains(p))  return true;
+	    
+	    if (chs.GetLDP())  
+	    {
+		//cout<<"ELIGABLE**: "<<chs<<endl;
+		if (chs.rayAbove(p, y0))
+		{
+		    faceISN[chs.attr.faceno]++;
+		    if (lastfaceno < chs.attr.faceno)
+			lastfaceno=chs.attr.faceno;
+		}
+	    }
+	i--;
+	}
+	else continuemv=false;
+    }       //now i is pointing to the last chs whose DP.X != p.x
+	
+	
+    //3. get the coverage value
+    region->Get( i, chs );
+    coverno=chs.attr.coverageno; 
+    
+    //cout<<"real starting position at: "<<chs<<endl;
+    //cout<<"real-startpos: "<< i <<"  coverno: "<<coverno<<endl;
+    
+    //4. search the region value for coverageno steps
+    int touchedNo=0;
+    
+    while (( i>=0)&&(touchedNo<coverno))
+    {
+	this->Get(i, chs);
+	if  (chs.Contains(p))  return true;
+	
+	if ((chs.GetLDP())&&((chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
+	{
+	      //cout<<"ELIGABLE: "<<chs<<endl;
+	      touchedNo++;
+	}
+	    
+	if (chs.GetLDP())  
+	{
+	    if (chs.rayAbove(p, y0))
+	    {
+		faceISN[chs.attr.faceno]++;
+		if (lastfaceno < chs.attr.faceno)
+		    lastfaceno=chs.attr.faceno;
+	    }
+	}
+	
+	i--;  //the iterator
+    }
+    //cout<<"stop at: "<<chs<<endl;
+    // ================= End of the new method =================
+    
     for (int j=0; j<=lastfaceno; j++)
     {
 	if (faceISN[j] %2 !=0 )
@@ -4546,6 +4672,71 @@ const int CRegion::Position( const CHalfSegment& chs) const
             else  return mid;
    }
    return -1;
+}
+
+const int CRegion::Position( const Point& p) const
+{
+  //to find the exact position by comparing the (x y) values
+  assert( IsOrdered() && p.IsDefined() );
+  
+  CHalfSegment chs;
+  int first = 0, last = Size()-1;
+  int mid = ( first + last ) / 2;
+  int res=-1;
+  
+  //1. check special occassions
+  region->Get( 0, chs);
+  if ( p < chs.GetDPoint() ) return -1;  //p is smallest
+  else if ( p == chs.GetDPoint() ) return -3;  //p equals to an vertex
+  
+  region->Get( Size()-1, chs);
+  if ( p > chs.GetDPoint() ) return -2;  //p is largest
+  else if ( p == chs.GetDPoint() ) return -3;
+  
+  //2. p is in the middle of the array
+  while (first <= last)
+  {
+    mid = ( first + last ) / 2;
+    region->Get( mid, chs);
+    if ( p > chs.GetDPoint() )   first = mid + 1;
+    else if ( p < chs.GetDPoint() )  last = mid - 1;
+    else  return -3; 
+   }
+  
+  res=last;  //at this time, last is smaller than first
+  bool exact=false;
+  while ((!exact)&&(res<Size()))
+  {
+      region->Get( res, chs);
+      
+      if ( p > chs.GetDPoint() )  res++;
+      else if ( p < chs.GetDPoint() )  
+      {
+	  exact=true;
+	  res--;
+      }
+      else return -3;  //p is equal to the endpoint
+  }
+  //now res is pointing to the last chs whose DP is "just smaller" than P
+  
+  //3. move forward (to the larger chs) until the x-coordinate is no longer equal
+  bool continuemv=true;
+  int samexp=res+1;
+  
+  while ((continuemv) && (samexp<Size()))
+  {
+      region->Get( samexp, chs );
+      if (chs.GetDPoint().GetX() == p.GetX())
+      {
+	  samexp++;
+      }
+      else continuemv=false;
+  }
+  
+  samexp--;  //now samexp is pointing to the last chs whose x-coordinate is equal to p.x
+  
+  //4. return the result
+  return samexp; 
 }
 
 void CRegion::Sort()
@@ -4932,12 +5123,80 @@ The list representation of a region is
 static ListExpr
 SaveToListRegion( ListExpr typeInfo, Word value )
 {
+    //cout<<"SaveToListRegion§§§§§§§§§§§§§"<<endl;
+    // Put the Class Object to Direct NL. Analogious to: OUT_Region
+    CRegion* cr = (CRegion*)(value.addr);
+    if( cr->IsEmpty() )
+    {
+	return (nl->TheEmptyList());
+    }
+    else
+    {
+	CHalfSegment chs;
+
+	ListExpr regionNL = nl->TheEmptyList();
+	ListExpr regionNLLast = regionNL;
+
+	bool LDP;   //Is Left Dominating-Point
+	Point LOutputP, ROutputP;   //the Two Endpoints
+	int fn, cn, en, cvn; //face, cycle, edge, coverage numbers
+	
+	ListExpr LPointNL, RPointNL, CHS_NL;
+	
+	//int currCoverageNo=0;
+    
+	for( int i = 0; i < cr->Size(); i++ )
+	{
+	    cr->Get( i, chs );
+	    
+	    LDP=chs.GetLDP();           // the flag
+	    LOutputP=chs.GetLP();     //the endpoints
+	    ROutputP=chs.GetRP();
+	    fn=chs.attr.faceno;              //the face, cycle, edge numbers
+	    cn=chs.attr.cycleno;
+	    en=chs.attr.edgeno;
+	    
+	    //if  (chs.GetLDP())  
+	    //	currCoverageNo++;
+	    //else  currCoverageNo--;
+	
+	    //chs.attr.coverageno=currCoverageNo;
+	    //cout<<chs<<endl;
+	    
+	    cvn=chs.attr.coverageno;  //coverage number
+	    //cout<<"::"<<cvn<<"::";
+	    
+	    LPointNL=OutPoint( nl->TheEmptyList(), SetWord( &LOutputP));
+	    RPointNL=OutPoint( nl->TheEmptyList(), SetWord( &ROutputP));
+
+	    CHS_NL=nl->SixElemList( nl-> BoolAtom(LDP), 			//Flag
+				     nl->TwoElemList(LPointNL, RPointNL), 	//EndpointRight
+				     nl->IntAtom( fn ),       			//FaceNo 
+				     nl->IntAtom( cn ),       			//CycleNo
+				     nl->IntAtom( en ),      			//EdgeNo
+				     nl->IntAtom( cvn ));      			//CoverageNo
+
+	    if (regionNL==nl->TheEmptyList())
+	    {
+		regionNL=nl->OneElemList( CHS_NL);
+		regionNLLast = regionNL;
+	    }
+	    else
+	    {
+		regionNLLast = nl->Append( regionNLLast, CHS_NL);
+	    }
+	}
+	
+	//cout<<"region direct_NL is: "<<endl;
+	//nl->WriteListExpr( regionNL, cout );
+	return regionNL;
+    }
 }
 
 static ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
-//    cout<<"OutRegion#############"<<endl;
+    //cout<<"OutRegion#############"<<endl;
     CRegion* cr = (CRegion*)(value.addr);
     if( cr->IsEmpty() )
     {
@@ -5180,14 +5439,61 @@ OutRegion( ListExpr typeInfo, Word value )
 
 static Word
 RestoreFromListRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
-{
+{  
+    //cout<<"RestoreFromListRegion§§§§§§§§§§§"<<endl;
+    //Fron NL DIRECTLY to Class Objects. Analogious to IN_Region
+    CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
+    
+    cr->setOrdered(false);    // == cr->StartBulkLoad() to avoid sorting
 
+    ListExpr RegionNL = instance;
+    ListExpr flagedSeg, CHS_NL;
+    
+    while( !nl->IsEmpty( RegionNL ) )
+    {
+	//1. To Fetch one Halfsegment to CHS_NL=(true ((1 1) (2 2)) 3 4 5 0)
+	CHS_NL = nl->First( RegionNL );
+	RegionNL = nl->Rest( RegionNL );
+	//cout<<"the CHS_NL is:";
+	//nl->WriteListExpr( CHS_NL, cout );
+	
+	//2. Translate the CHS_NL to real halfsegment format=(true ((1 1) (2 2)))
+	flagedSeg = nl->TwoElemList (nl->First(CHS_NL),
+				     nl->Second(CHS_NL));
+
+	//cout<<"the real NL is:"<<endl;
+	//nl->WriteListExpr( flagedSeg, cout );
+	//cout<<endl;
+	
+	//3. Create the Halfsegment
+	CHalfSegment * chs = (CHalfSegment*)InHalfSegment
+					     ( nl->TheEmptyList(), flagedSeg,
+					       0, errorInfo, correct ).addr;
+	if (correct)
+	{
+	    //cout<<*chs<<endl;
+	    chs->attr.faceno = (nl->IntValue(nl->Third(CHS_NL)));  //faceNo;
+	    chs->attr.cycleno = (nl->IntValue(nl->Fourth(CHS_NL)));  //cycleNo;
+	    chs->attr.edgeno = (nl->IntValue(nl->Fifth(CHS_NL)));  //edgeNo;
+	    chs->attr.coverageno = (nl->IntValue(nl->Sixth(CHS_NL)));  //coverageNo;
+	    
+	    //4. append the halfsegment
+	    (*cr) += (*chs);
+	    //cout<<"the chs is:"<<*chs<<endl;
+	}
+	else cout<<"incorrect  inner halfsegment format!!!"<<endl;
+    }
+    
+    //cr->EndBulkLoad(); This line is replaced by the following line to aviod sorting
+    cr->setOrdered(true);
+    correct = true;
+    return SetWord( cr );
 }
 
 static Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  //  cout<<"InRegion#############"<<endl;
+  //cout<<"InRegion#############"<<endl;
   CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
 
   cr->StartBulkLoad();
@@ -5290,6 +5596,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		      chs->attr.faceno=fcno;
 		      chs->attr.cycleno=ccno;
 		      chs->attr.edgeno=edno;
+
 		      if (( correct )&&( cr->insertOK(*chs) ))
 		      {
 			  (*cr) += (*chs);
@@ -5315,7 +5622,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		  chs->attr.faceno=fcno;
 		  chs->attr.cycleno=ccno;
 		  chs->attr.edgeno=edno;
-
+		  
 		  if (( correct )&&( cr->insertOK(*chs) ))
 		  {
 		      (*cr) += (*chs);
@@ -5500,10 +5807,10 @@ void* CastRegion(void* addr)
 */
 #ifdef RELALG_PERSISTENT
 TypeConstructor region(
-	"region",			//name
+	"region",				//name
 	RegionProperty,	 		//describing signature
-	OutRegion,   	InRegion,	//Out and In functions
-        0,              0,              //SaveToList and RestoreFromList functions
+	OutRegion,   	InRegion,	//Out and In functions //SaveToListRegion, RestoreFromListRegion
+	SaveToListRegion, RestoreFromListRegion, //SaveToList and RestoreFromList functions
 	CreateRegion,	DeleteRegion,	//object creation and deletion
 	OpenRegion, 	SaveRegion,    	// object open and save
 	CloseRegion, 	CloneRegion,   	//object close and clone
@@ -5516,16 +5823,16 @@ TypeConstructor region(
 	TypeConstructor::DummyValueListToModel );
 #else
 TypeConstructor region(
-        "region",                       //name
-        RegionProperty,                 //describing signature
-        OutRegion,      InRegion,       //Out and In functions
-        0,              0,              //SaveToList and RestoreFromList functions
-        CreateRegion,   DeleteRegion,   //object creation and deletion
-        0,     		0,     		// object open and save
-        CloseRegion,    CloneRegion,    //object close and clone
-        CastRegion,                     //cast function
-        CheckRegion,                    //kind checking function
-        0,                              //function for model
+        "region",  		                     //name
+        RegionProperty, 	    	    //describing signature
+        OutRegion,      InRegion, 	    //Out and In functions //SaveToListRegion, RestoreFromListRegion, 
+        SaveToListRegion, RestoreFromListRegion, //SaveToList and RestoreFromList functions
+        CreateRegion,   DeleteRegion, 	   //object creation and deletion
+        0,     		0,    	   // object open and save
+        CloseRegion,    CloneRegion,     //object close and clone
+        CastRegion,                    	 //cast function
+        CheckRegion,                   	 //kind checking function
+        0,                             		 //function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
         TypeConstructor::DummyValueToModel,

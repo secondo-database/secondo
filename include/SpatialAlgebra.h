@@ -875,6 +875,7 @@ typedef struct
     int faceno;
     int cycleno;
     int edgeno;
+    int coverageno;  //this number is used for the fast spacial scan of the inside_pr algorithm
     //set<int> attr;
     int attr;
 } attrtype;
@@ -1640,6 +1641,7 @@ The following two functions are used to sort the half segments according to thei
 */    
     void logicsort();
     
+    void     setOrdered(bool isordered);
 /*
 7.12 Functions needed to import the the ~Region~ data type to tuple 
 
@@ -1671,6 +1673,7 @@ sorts (quick-sort algorithm) the persistent array of half segments in the region
 
 */    
     const int Position(const CHalfSegment&) const;
+    const int Position(const Point&) const;
 /*
 searches (binary search algorithm) for a half segment in the region value and
 returns its position. Returns -1 if the half segment is not found.
