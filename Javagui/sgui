@@ -1,6 +1,7 @@
 if [ "$SECONDO_PLATFORM" = "win32" ]
-    then CP=".;lib/java_cup_v10i_runtime.jar"
-    else CP=".:lib/java_cup_v10i_runtime.jar"
+    then S=";"
+    else S=":"
 fi    
 
+CP="."$S"lib/java_cup_v10i_runtime.jar"$S"lib/javalayer0.4.zip"
 java -Xmx80M -classpath $CP gui.MainWindow
