@@ -1818,7 +1818,7 @@ Only tuples, fulfilling a certain condition are passed on to the output stream.
 
 Result type of filter operation.
 
-----    ((stream x) (map x bool))       -> (stream x)
+----    ((stream (tuple x)) (map (tuple x) bool))       -> (stream (tuple x))
 ----
 
 */
@@ -1830,17 +1830,19 @@ ListExpr FilterTypeMap(ListExpr args)
     first = nl->First(args);
     second  = nl->Second(args);
 
-    if ((nl->ListLength(first) == 2 && nl->ListLength(second) == 3 ) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream)  &&
-    (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)    &&
-    (TypeOfRelAlgSymbol(nl->Third(second)) == ccbool)  &&
-    (nl->Equal(nl->Second(first),nl->Second(second))))
-      return first;
-    else
-      return nl->SymbolAtom("typeerror");
+    if ( (nl->ListLength(first) == 2) 
+	&& (nl->ListLength(second) == 3)
+	&& (nl->ListLength(nl->Second(first)) == 2)
+	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)  
+	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)    
+	&& (TypeOfRelAlgSymbol(nl->Third(second)) == ccbool)  
+	&& (nl->Equal(nl->Second(first),nl->Second(second)))	)
+    return first;
   }
   return nl->SymbolAtom("typeerror");
 }
+
 /*
 
 4.1.2 Value mapping function of operator ~filter~
@@ -2433,22 +2435,24 @@ Count the number of tuples within a stream of tuples.
 
 Operator ~tcount~ accepts a stream of tuples and returns an integer.
 
-----    (stream  x)                 -> int
+----    (stream  (tuple x))                 -> int
 ----
 
 */
-ListExpr TCountTypeMap(ListExpr args)
+ListExpr 
+TCountTypeMap(ListExpr args)
 {
-  ListExpr first ;
+  ListExpr first;
 
-  if(nl->ListLength(args) == 1)
+  if( nl->ListLength(args) == 1 )
   {
     first = nl->First(args);
-    if(nl->ListLength(first) == 2)
+    if ( (nl->ListLength(first) == 2) && nl->ListLength(nl->Second(first)) == 2  )
     {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == stream
-          || TypeOfRelAlgSymbol(nl->First(first)) == rel)
-        return nl->SymbolAtom("int");
+      if ( ( TypeOfRelAlgSymbol(nl->First(first)) == stream
+             || TypeOfRelAlgSymbol(nl->First(first)) == rel )
+	   && TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple   )
+      return nl->SymbolAtom("int");
     }
   }
   return nl->SymbolAtom("typeerror");
