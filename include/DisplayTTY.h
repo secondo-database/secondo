@@ -198,10 +198,18 @@ Are display functions for tuples.
   static void DisplayPoint( ListExpr type,
                              ListExpr numType,
                              ListExpr value );
-  template<unsigned dim>
+
   static void DisplayRect( ListExpr type,
                            ListExpr numType,
                            ListExpr value );
+
+  static void DisplayRect3( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
+
+  static void DisplayRect4( ListExpr type,
+                            ListExpr numType,
+                            ListExpr value );
 
   static void DisplayBinfile( ListExpr type,
                              ListExpr numType,

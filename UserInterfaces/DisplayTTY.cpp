@@ -499,7 +499,6 @@ DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
-template<unsigned dim>
 void DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
@@ -507,12 +506,12 @@ void DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
   {
     cout << "UNDEFINED";
   }
-  else if( nl->ListLength(value) != 2*dim )
+  else if( nl->ListLength(value) != 4 )
     cout << "Incorrect Data Format";
   else
   {
     bool realValue;
-    double coordValue[2*dim];
+    double coordValue[4];
     unsigned i = 0;
     ListExpr restList, firstVal;
 
@@ -527,22 +526,132 @@ void DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
         coordValue[i] = nl->RealValue(firstVal);
         i++;
       }
-    } while (i < 2*dim && realValue);
+    } while (i < 4 && realValue);
 
     if (realValue)
     {
       cout << "rect: ( (";
-      for( unsigned i = 0; i < dim; i++ )
+      for( unsigned i = 0; i < 2; i++ )
       {
         cout << coordValue[2*i];
-        if( i < dim - 1 )
+        if( i < 2 - 1 )
           cout << ",";
       }
       cout << ") - (";
-      for( unsigned i = 0; i < dim; i++ )
+      for( unsigned i = 0; i < 2; i++ )
       {
         cout << coordValue[2*i+1];
-        if( i < dim - 1 )
+        if( i < 2 - 1 )
+          cout << ",";
+      }
+      cout << ") )";
+    }
+    else
+    {
+      cout << "Incorrect Data Format";
+      return;
+    }
+  }
+}
+
+void DisplayTTY::DisplayRect3( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if( nl->ListLength(value) != 6 )
+    cout << "Incorrect Data Format";
+  else
+  {
+    bool realValue;
+    double coordValue[6];
+    unsigned i = 0;
+    ListExpr restList, firstVal;
+
+    restList = value;
+    do
+    {
+      firstVal = nl->First(restList);
+      realValue = nl->AtomType( firstVal ) == RealType;
+      if (realValue)
+      {
+        restList = nl->Rest(restList);
+        coordValue[i] = nl->RealValue(firstVal);
+        i++;
+      }
+    } while (i < 6 && realValue);
+
+    if (realValue)
+    {
+      cout << "rect: ( (";
+      for( unsigned i = 0; i < 3; i++ )
+      {
+        cout << coordValue[2*i];
+        if( i < 3 - 1 )
+          cout << ",";
+      }
+      cout << ") - (";
+      for( unsigned i = 0; i < 3; i++ )
+      {
+        cout << coordValue[2*i+1];
+        if( i < 3 - 1 )
+          cout << ",";
+      }
+      cout << ") )";
+    }
+    else
+    {
+      cout << "Incorrect Data Format";
+      return;
+    }
+  }
+}
+
+void DisplayTTY::DisplayRect4( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else if( nl->ListLength(value) != 8 )
+    cout << "Incorrect Data Format";
+  else
+  {
+    bool realValue;
+    double coordValue[8];
+    unsigned i = 0;
+    ListExpr restList, firstVal;
+
+    restList = value;
+    do
+    {
+      firstVal = nl->First(restList);
+      realValue = nl->AtomType( firstVal ) == RealType;
+      if (realValue)
+      {
+        restList = nl->Rest(restList);
+        coordValue[i] = nl->RealValue(firstVal);
+        i++;
+      }
+    } while (i < 8 && realValue);
+
+    if (realValue)
+    {
+      cout << "rect: ( (";
+      for( unsigned i = 0; i < 4; i++ )
+      {
+        cout << coordValue[2*i];
+        if( i < 4 - 1 )
+          cout << ",";
+      }
+      cout << ") - (";
+      for( unsigned i = 0; i < 4; i++ )
+      {
+        cout << coordValue[2*i+1];
+        if( i < 4 - 1 )
           cout << ",";
       }
       cout << ") )";
@@ -1013,9 +1122,9 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "date",    &DisplayDate );
   InsertDisplayFunction( "text",    &DisplayText );
   InsertDisplayFunction( "xpoint",  &DisplayXPoint);
-  InsertDisplayFunction( "rect",    &DisplayRect<2>);
-  InsertDisplayFunction( "rect3",   &DisplayRect<3>);
-  InsertDisplayFunction( "rect4",   &DisplayRect<4>);
+  InsertDisplayFunction( "rect",    &DisplayRect);
+  InsertDisplayFunction( "rect3",   &DisplayRect3);
+  InsertDisplayFunction( "rect4",   &DisplayRect4);
   InsertDisplayFunction( "array",   &DisplayArray);
   InsertDisplayFunction( "point",   &DisplayPoint);
   InsertDisplayFunction( "binfile", &DisplayBinfile);
