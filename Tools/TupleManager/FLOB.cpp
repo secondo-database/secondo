@@ -1,7 +1,7 @@
 #include "FLOB.h"
 #include <stdlib.h>
 
-const int FLOB::SWITCH_THRESHOLD = 50; // 102400;
+const int FLOB::SWITCH_THRESHOLD = 102400;
 
 FLOB::FLOB(SmiRecordFile* inlobFile) : lob() {
 	start = 0;
