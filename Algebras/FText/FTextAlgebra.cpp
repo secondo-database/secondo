@@ -7,7 +7,7 @@ March - April 2003 Lothar Sowada
 
 The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
-(i) ~search~, which checks if a text is in another text.
+(i) ~contains~, which search text or string in a text.
 
 (ii) ~length~ which give back the length of a text.
 
@@ -25,7 +25,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h" //needed because we return a CcBool in an op.
 #include <string>
-#include <iostream>
+#include <iostream.h>
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -53,7 +53,8 @@ public:
   FText();
   ~FText();
 
-  bool  Search(textType inString);
+  bool  SearchString(STRING* subString);
+  bool  SearchText(textType subString);
   void  SetFText(textType inString);
   int   TextLength();
   textType GetFText();
@@ -115,7 +116,15 @@ FText::~FText()
 }
 
 
-bool  FText::Search(textType subString)
+bool  FText::SearchString(STRING* subString)
+{
+  string str=*subString;
+  int ipos=theText->find(str);
+  return (ipos>-1);
+}
+
+
+bool  FText::SearchText(textType subString)
 {
   int ipos=theText->find(*subString);
   return (ipos>-1);
@@ -287,7 +296,7 @@ int FText::Adjacent(Attribute *arg)
 
 2.3 Functions for using ~text~ in tuple definitions
 
-The following Functions must be defined if we want to use ~ftext~ as an attribute type in tuple definitions.
+The following Functions must be defined if we want to use ~text~ as an attribute type in tuple definitions.
 
 */
 
@@ -403,20 +412,28 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
 static ListExpr
 FTextProperty()
 {
-  ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist,"<text>A text, which can be longer "
-  "than 48 chararcters</text--->");
-
-  return (nl->TwoElemList(
-         nl->FourElemList(nl->StringAtom("Signature"), 
-	                  nl->StringAtom("Example Type List"), 
-			  nl->StringAtom("List Rep"), 
-			  nl->StringAtom("Example List")),
-         nl->FourElemList(nl->StringAtom("-> DATA"), 
-	                  nl->StringAtom("text"), 
-			  nl->StringAtom("(<textvalue>)"), 
-			  examplelist)));
+  return
+  (
+  nl->TwoElemList
+    (
+      nl->FourElemList
+      (
+        nl->StringAtom("Signature"),
+        nl->StringAtom("Example Type List"),
+        nl->StringAtom("List Rep"),
+        nl->StringAtom("Example List")
+      ),
+      nl->FourElemList
+      (
+        nl->StringAtom("-> DATA"),
+        nl->StringAtom("text"),
+        nl->StringAtom("(<text>)"),
+        nl->StringAtom("<text>This is an example.</text--->")
+      )
+    )
+  );
 }
+
 
 /*
 2.6 Kind Checking Function
@@ -449,14 +466,14 @@ CheckFText( ListExpr type, ListExpr& errorInfo )
 */
 
 TypeConstructor ftext(
-  typeName,       //name of the type
-  FTextProperty,    //property function describing signature
-  OutFText,    InFText, //Out and In functions
-  CreateFText, DeleteFText,  //object creation and deletion
-  0, 0, CloseFText, CloneFText,     //object open, save, close, and clone
-  CastFText,        //cast function
-  CheckFText,                 //kind checking function
-  0,             //predef. pers. function for model
+  typeName,                     //name of the type
+  FTextProperty,                //property function describing signature
+  OutFText,    InFText,         //Out and In functions
+  CreateFText, DeleteFText,     //object creation and deletion
+  0, 0, CloseFText, CloneFText, //object open, save, close, and clone
+  CastFText,                    //cast function
+  CheckFText,                   //kind checking function
+  0,                            //predef. pers. function for model
   TypeConstructor::DummyInModel,
   TypeConstructor::DummyOutModel,
   TypeConstructor::DummyValueToModel,
@@ -475,11 +492,13 @@ returns a list expression for the result type, otherwise the symbol ~typeerror~.
 */
 
 static ListExpr
-FTextFTextBool( ListExpr args )
+TypeMapTextTextBool( ListExpr args )
 {
   if(traces)
-    cout <<'\n'<<"Start FTextFTextBool"<<'\n';
-  nl->WriteToFile("/dev/tty",args);
+  {
+    cout <<'\n'<<"Start TypeMapTextTextBool"<<'\n';
+    nl->WriteToFile("/dev/tty",args);
+  }
   ListExpr arg1, arg2;
   if ( nl->ListLength(args) == 2 )
   {
@@ -492,29 +511,54 @@ FTextFTextBool( ListExpr args )
   }
 
   if(traces)
-    cout <<"End FTextFTextBool with typeerror"<<'\n';
+    cout <<"End TypeMapTextTextBool with typeerror"<<'\n';
   return nl->SymbolAtom("typeerror");
 }
 
 
 static ListExpr
-FTextInt( ListExpr args )
+TypeMapTextStringBool( ListExpr args )
 {
   if(traces)
-    cout << '\n' << "Start FTextInt" << '\n';
+    {
+    cout <<'\n'<<"Start TypeMapTextStringBool"<<'\n';
+    nl->WriteToFile("/dev/tty",args);
+    }
+  ListExpr arg1, arg2;
+  if ( nl->ListLength(args) == 2 )
+  {
+    arg1 = nl->First(args);
+    arg2 = nl->Second(args);
+    if ( nl->IsEqual(arg1, typeName) && nl->IsEqual(arg2, "string") )
+    {
+      return nl->SymbolAtom("bool");
+    }
+  }
+
+  if(traces)
+    cout <<"End TypeMapTextStringBool with typeerror"<<'\n';
+  return nl->SymbolAtom("typeerror");
+}
+
+
+static ListExpr
+TypeMapTextInt( ListExpr args )
+{
+  if(traces)
+    cout << '\n' << "Start TypeMapTextInt" << '\n';
   if ( nl->ListLength(args) == 1 )
   {
     ListExpr arg1= nl->First(args);
     if ( nl->IsEqual(arg1, typeName))
     {
       if(traces)
-        cout << '\n' << "Start FTextInt" << '\n';
+        cout << '\n' << "Start TypeMapTextInt" << '\n';
       return nl->SymbolAtom("int");
     }
   }
 
   if(traces)
-    cout <<"End FTextInt with typeerror"<<'\n';
+    cout <<"End TypeMapTextInt with typeerror"<<'\n';
   return nl->SymbolAtom("typeerror");
 }
 
@@ -537,46 +581,72 @@ simpleSelect (ListExpr args )
 
 
 /*
-3.3 Value Mapping Function
+3.3 Value Mapping Functions
 
 */
 
 static int
-searchFun (Word* args, Word& result, int message, Word& local, Supplier s)
+ValMapTextStringBool (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
-Search predicate for two texts.
+Value Mapping for the ~contains~ operator with the operands text and string.
 
 */
 
 {
   if(traces)
-    cout <<'\n'<<"Start searchFun"<<'\n';
+    cout <<'\n'<<"Start ValMapTextStringBool"<<'\n';
   FText* ftext1= ((FText*)args[0].addr);
-  FText* ftext2= ((FText*)args[1].addr);
+  CcString* string1= ((CcString*)args[1].addr);
 
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->Search(ftext2->GetFText()));
+  ((CcBool*)result.addr)->Set(true, ftext1->SearchString(string1->GetStringval()));
           //the first argument says the boolean
           //value is defined, the second is the
           //real boolean value)
 
   if(traces)
-    cout <<"End searchFun"<<'\n';
+    cout <<"End ValMapTextStringBool"<<'\n';
   return 0;
 }
 
 
 static int
-lengthFun (Word* args, Word& result, int message, Word& local, Supplier s)
+ValMapTextTextBool (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
-length predicate for a text.
+Value Mapping for the ~contains~ operator with two text operands.
 
 */
 
 {
   if(traces)
-    cout <<'\n'<<"Start lengthFun"<<'\n';
+    cout <<'\n'<<"Start ValMapTextTextBool"<<'\n';
+  FText* ftext1= ((FText*)args[0].addr);
+  FText* ftext2= ((FText*)args[1].addr);
+
+  result = qp->ResultStorage(s); //query processor has provided
+          //a CcBool instance to take the result
+  ((CcBool*)result.addr)->Set(true, ftext1->SearchText(ftext2->GetFText()));
+          //the first argument says the boolean
+          //value is defined, the second is the
+          //real boolean value)
+
+  if(traces)
+    cout <<"End ValMapTextTextBool"<<'\n';
+  return 0;
+}
+
+
+static int
+ValMapTextInt (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+Value Mapping for the ~length~ operator with a text and a string operator .
+
+*/
+
+{
+  if(traces)
+    cout <<'\n'<<"Start ValMapTextInt"<<'\n';
   FText* ftext1= ((FText*)args[0].addr);
 
   result = qp->ResultStorage(s); //query processor has provided
@@ -586,7 +656,7 @@ length predicate for a text.
           //value is defined, the second is the
           //length value)
   if(traces)
-    cout <<"End lengthFun"<<'\n';
+    cout <<"End ValMapTextInt"<<'\n';
   return 0;
 }
 
@@ -596,46 +666,72 @@ length predicate for a text.
 
 */
 
-const string searchSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" )"
-                           "( <text>(text text) -> "
-			   "bool</text--->"
-			   "<text>_ search _</text--->"
-			   "<text>Search the second text in the first "
-			   "text.</text--->"
-			   "<text>text1 search text2</text--->"
-			   ") )";
-
-const string lengthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                           "\"Example\" )"
-                           "( <text>( text ) -> int</text--->"
-			   "<text>length ( _ )</text--->"
-			   "<text>length returns the length of "
-			   "text.</text--->"
-			   "<text>length ( text1 )</text--->"
-			   ") )";
-
 /*
-Used to explain the signature and the meaning of the ~search~ and ~length~ operators.
+Used to explain signature, syntax and meaning of the operators of the type ~text~.
 
 */
 
-Operator ftextsearch (
-  "search",     //name
-  searchSpec,         //specification
-  searchFun,    //value mapping
-  Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
-  simpleSelect,     //trivial selection function
-  FTextFTextBool      //type mapping
+const string containsStringSpec =
+  "( (\"Signature\" \"Syntax\" \"Meaning\" )
+    (
+    <text>("+typeName+" string) -> bool</text--->
+    <text>_ contains _</text--->
+    <text>Search string in "+typeName+".</text--->
+    )
+  )";
+
+const string containsTextSpec =
+  "( (\"Signature\" \"Syntax\" \"Meaning\" )
+    (
+    <text>("+typeName+" "+typeName+") -> bool</text--->
+    <text>_ contains _</text--->
+    <text>Search second "+typeName+" in first "+typeName+".</text--->
+    )
+  )";
+
+const string lengthSpec =
+  "( (\"Signature\" \"Syntax\" \"Meaning\" )
+    (
+    <text>("+typeName+" ) -> int</text--->
+    <text>length ( _ )</text--->
+    <text>("+typeName+") -> int</text---><text>length returns the length of "+typeName+".</text--->
+    )
+  )";
+
+/*
+The Definition of the operators of the type ~text~.
+
+*/
+
+Operator containsString
+(
+  "contains",           //name
+  containsStringSpec,   //specification
+  ValMapTextStringBool, //value mapping
+  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
+  simpleSelect,         //trivial selection function
+  TypeMapTextStringBool //type mapping
 );
 
-Operator ftextlength (
-  "length",     //name
-  lengthSpec,         //specification
-  lengthFun,    //value mapping
-  Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
-  simpleSelect,     //trivial selection function
-  FTextInt      //type mapping
+
+Operator containsText
+(
+  "contains",           //name
+  containsTextSpec,     //specification
+  ValMapTextTextBool,   //value mapping
+  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
+  simpleSelect,         //trivial selection function
+  TypeMapTextTextBool   //type mapping
+);
+
+Operator length
+(
+  "length",             //name
+  lengthSpec,           //specification
+  ValMapTextInt,        //value mapping
+  Operator::DummyModel, //dummy model mapping, defined in Algebra.h
+  simpleSelect,         //trivial selection function
+  TypeMapTextInt        //type mapping
 );
 
 
@@ -653,9 +749,10 @@ public:
       cout <<'\n'<<"Start FTextAlgebra() : Algebra()"<<'\n';
     AddTypeConstructor( &ftext );
     ftext.AssociateKind("DATA");
-    AddOperator( &ftextsearch );
-    AddOperator( &ftextlength );
-    //cout <<"End FTextAlgebra() : Algebra()"<<'\n';
+    AddOperator( &containsString );
+    AddOperator( &containsText );
+    AddOperator( &length );
+    cout <<"End FTextAlgebra() : Algebra()"<<'\n';
   }
 
   ~FTextAlgebra() {};
