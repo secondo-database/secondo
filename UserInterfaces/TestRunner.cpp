@@ -888,9 +888,9 @@ TestRunner::Execute()
   }
   else
   {
-    rc = 1;
+    return -1;
   }
-  return (rc);
+  return (nErrors);
 }
 
 /*
