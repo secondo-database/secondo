@@ -4,10 +4,14 @@
 
 include ../makefile.inc
 
-CLASSFILES=xxx2secondo.class xxx2secdb.class MovingPointBuilder.class Base64Encoder.class Base64Decoder.class Base64.class DupRemover.class
+CLASSFILES=xxx2secondo.class xxx2secdb.class MovingPointBuilder.class Base64Encoder.class Base64Decoder.class Base64.class DupRemover.class PeriodicPointBuilder.class PeriodExtractor.class
 
-.PHONY: all
-all: $(CLASSFILES)
+
+.PHONY: all 
+all: ../sj/lang/ListExpr.class $(CLASSFILES)
+
+../sj/lang/ListExpr.class:
+	make -C ../sj
 
 
 %.class: %.java
