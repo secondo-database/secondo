@@ -1329,7 +1329,7 @@ NestedList::ReadInt(istream& in) {
   if( RTFlag::isActive("NL:BinaryListDebug") ) {
     cerr << "Hex-Value: ";
     for (int i=0; i<4; i++) {
-      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned int) buffer[i] << " ";
+      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned char) buffer[i] << " ";
     }
   }  
   
@@ -1339,7 +1339,7 @@ NestedList::ReadInt(istream& in) {
   }
   
   if( RTFlag::isActive("NL:BinaryListDebug") ) {
-    cerr << "   =>  Int-Value: " << result << endl;
+    cerr << "   =>  Int-Value: " << setiosflags(ios::dec) << result << endl;
   }
     
   return result;
@@ -1364,7 +1364,7 @@ NestedList::ReadShort(istream& in) {
   if( RTFlag::isActive("NL:BinaryListDebug") ) {
     cerr << "Hex-Value: ";
     for (int i=0; i<2; i++) {
-      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned int) buffer[i] << " ";
+      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned char) buffer[i] << " ";
     }
   }  
   
@@ -1374,7 +1374,7 @@ NestedList::ReadShort(istream& in) {
   }
   
   if( RTFlag::isActive("NL:BinaryListDebug") ) {
-    cerr << "   =>  Int-Value: " << result << endl;
+    cerr << "   =>  Int-Value: " << setiosflags(ios::dec) << result << endl;
   }
     
   return result;
@@ -1414,9 +1414,7 @@ NestedList::ReadString(istream& in, string& outStr, unsigned long length) {
   strBuf[length]=0;
   outStr = string(strBuf);
   delete [] strBuf;
-
 }
-
 
 
 bool 
@@ -1509,7 +1507,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
                                   result = StringAtom( str );
 				  return true;
 				}
-      case BIN_LONGSTRING     : { len = 2^32-1 & ReadInt(in);
+      case BIN_LONGSTRING     : { len = 4294967295 & ReadInt(in);
 				  ReadString(in, str, len);
 				  pos = pos + 4 + len;
                                   result = StringAtom( str );
@@ -1527,7 +1525,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
                                   result =  SymbolAtom( str );
 				  return true;
 	                        }
-      case BIN_LONGSYMBOL     : { len = 2^32-1 & ReadInt(in);
+      case BIN_LONGSYMBOL     : { len = 4294967295 & ReadInt(in);
 				  ReadString(in, str, len);
                                   pos = pos + 4 + len;
                                   result =  SymbolAtom( str );
@@ -1549,7 +1547,8 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
 				  result = text;
 				  return true;
 	                        }
-      case BIN_LONGTEXT       : { len = 2^32-1 & ReadInt(in);
+      case BIN_LONGTEXT       : { len = 4294967295 & ReadInt(in); 
+                                  // 2^31-1 doesn't work!
 				  ReadString(in, str, len);
                                   pos = pos + 4 + len;
 				  ListExpr text = TextAtom();

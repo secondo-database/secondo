@@ -521,6 +521,7 @@ If value 0 is returned, the command was executed without error.
     string result = "";
     if ( line == "<SecondoResponse>" )
     {
+      bool success = false;
       if ( !RTFlag::isActive("Server:BinaryTransfer") ) { // textual data transfer
 	do
 	{
@@ -532,23 +533,30 @@ If value 0 is returned, the command was executed without error.
 	}
 	while (line != "</SecondoResponse>" && !iosock.fail());      
 	nl->ReadFromString( result, resultList );
+        success = true;
 	
       } else { // binary data transfer
       
 	nl->ReadBinaryFrom(iosock, resultList);
+        ofstream outFile("TTYCS.bnl");
+        nl->WriteBinaryTo(resultList, outFile);
 	getline( iosock, line );
 	if (line != "</SecondoResponse>" ) {
 	  cerr << "Error: No </SecondoResponse> found after receiving a binary list!" << endl;
 	  errorCode = 80;
-	}  
+          resultList = nl->TheEmptyList();
+	} else {
+          success = true;
+        }  
       }  
-      
-      	errorCode = nl->IntValue( nl->First( resultList ) );
-	errorPos  = nl->IntValue( nl->Second( resultList ) );
-	TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
-	nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), errorMessage );
-	nl->DestroyTextScan( ts );
-	resultList = nl->Fourth( resultList );
+        if (success) {
+      	  errorCode = nl->IntValue( nl->First( resultList ) );
+	  errorPos  = nl->IntValue( nl->Second( resultList ) );
+	  TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
+	  nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), errorMessage );
+	  nl->DestroyTextScan( ts );
+	  resultList = nl->Fourth( resultList );
+        }
     }
     else if ( line == "<SecondoError>" )
     {
