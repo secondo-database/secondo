@@ -82,9 +82,6 @@ show-separator:
 
 # rules for deployment of source files
 # default value for cvs tag 
-ifndef tag
-tag=HEAD
-endif
 
 INSTALL_SCRIPTS := $(net)/scripts/winsetup.sh \
 		$(net)/scripts/libutil.sh
@@ -96,7 +93,11 @@ INSTGUIDE_FILES := $(net)/Linux-Installation-Guide.pdf \
  		$(net)/Windows-Installation-Guide.pdf
  
 .PHONY: dist
-dist: tag-version $(net)/installsdk $(SRC_FILES) $(INSTALL_SCRIPTS) $(INSTGUIDE_FILES)
+dist: tag-version  dist-scripts $(SRC_FILES) $(INSTGUIDE_FILES)
+
+
+.PHONY: dist-scripts
+dist-scripts: $(net)/installsdk $(INSTALL_SCRIPTS)
 
 SECONDO_DEMO = secondo-demo
 
