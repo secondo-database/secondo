@@ -61,7 +61,7 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
    # unix
    export PL_INCLUDE_DIR="$HOME/secondo-sdk/include"
    export PL_LIB_DIR="$HOME/secondo-sdk/lib/pl-5.0.10/runtime/i686-linux"
-   export JNIDIR="/usr/java/j2sdk1.4.2/jre/lib/i386:/usr/java/j2sdk1.4.2/jre/lib/i386/client"
+   export J2SDK_ROOT="$HOME/secondo-sdk/j2sdk1.4.2_01"
 else 
 
    # windows 
