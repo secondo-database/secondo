@@ -16,6 +16,11 @@ configuration file contains no or a non-existent directory.
 April 2004 Hoffmann Changed some implementation details, so that the list databases 
 command is available under Windows XP.
 
+August 2004 M. Spiekermann, A new parameter ~dontSyncDiskCache~ has been introduced to speed 
+up closing files at the end of a query. The problem arised in the ~Array~ algebra. Since big arrays 
+open many files a remarkable delay between the end of a query and the representation of the result
+was detected. Since a query changes no data on disk syncronisation is not neccessary.
+
 */
 
 using namespace std;
@@ -36,6 +41,7 @@ using namespace std;
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "LogMsg.h"
+#include "StopWatch.h"
 
 #ifndef SECONDO_WIN32
 #include <libgen.h>
@@ -56,6 +62,7 @@ string         SmiEnvironment::lastMessage;
 bool           SmiEnvironment::smiStarted = false;
 bool           SmiEnvironment::singleUserMode = false;
 bool           SmiEnvironment::useTransactions = false;
+bool					 SmiEnvironment::dontSyncDiskCache = false;
 string         SmiEnvironment::configFile;
 string         SmiEnvironment::uid;
 bool           SmiEnvironment::dbOpened = false;
@@ -137,19 +144,34 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
-  DbHandleIndex idx;
-  for ( idx = 1; idx < instance.impl->dbHandles.size(); idx++ )
+  SmiEnvironment::Implementation& env = (*(instance.impl));
+	unsigned int size = env.dbHandles.size();
+	int closed = 0;
+	int flag = 0;
+	
+	if ( dontSyncDiskCache ) {
+    flag = DB_NOSYNC;
+  }
+	
+  for ( DbHandleIndex idx = 1; idx < size; idx++ )
   {
     if ( !instance.impl->dbHandles[idx].inUse &&
           instance.impl->dbHandles[idx].handle != 0 )
     {
-      instance.impl->dbHandles[idx].handle->close( 0 );
+		  closed++;
+      instance.impl->dbHandles[idx].handle->close( flag );
       delete instance.impl->dbHandles[idx].handle;
       instance.impl->dbHandles[idx].handle = 0;
       instance.impl->dbHandles[idx].nextFree = instance.impl->firstFreeDbHandle;
       instance.impl->firstFreeDbHandle = idx;
     }
   }
+	
+	if ( RTFlag::isActive("SMI:DbHandles") ) {
+	  cerr << "CloseDbHandles() - Report: size = " << size 
+	       << ", closed = " << closed 
+			   << ", nosync = " << dontSyncDiskCache << endl;
+	}			 
 }
 
 SmiFileId 
@@ -1255,6 +1277,12 @@ SmiEnvironment::CommitTransaction()
         rc = instance.impl->usrTxn->commit( 0 );
       }
     }
+		
+		StopWatch closeTime; // measure time for closing DbHandles
+	  LOGMSG( "SMI:DbHandles",
+	    cerr << "Calling CloseDbHandles() ..." << endl;
+		)
+		
     if ( rc == 0 )
     {
       SmiEnvironment::Implementation::CloseDbHandles();
@@ -1267,6 +1295,11 @@ SmiEnvironment::CommitTransaction()
       SmiEnvironment::Implementation::EraseFiles( false );
       SetError( E_SMI_TXN_COMMIT, rc );
     }
+		
+		LOGMSG( "SMI:DbHandles",
+		  cerr << "Time for CloseDbHandles(): " << closeTime.diffTimes() << endl;
+    )
+		
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;

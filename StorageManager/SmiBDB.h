@@ -366,10 +366,12 @@ class SmiFile::Implementation
     Implementation( bool isTemp );
     ~Implementation();
   private:
+	  void CheckDbHandles();   // reallocate Db-Handles if necessary
     DbHandleIndex bdbHandle; // Index in handle array
     Db*           bdbFile;   // Berkeley DB handle
     bool          isSystemCatalogFile;
     bool          isTemporaryFile;
+		bool					noHandle;
 /*
 Flags an ~SmiFile~ as a system catalog file. This distinction is needed,
 since transactional read operations on system catalog files could lead 

@@ -10,6 +10,11 @@ February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
+August 2004 M. Spiekermann. New private function ~CheckDbHandles~ introduced.
+Since files are closed only when an enclosing transaction is finished, reallocation
+of DbHandles is only done when necessary, e.g. when an instance op SmiFile should be
+reused after ~close~ and ~create~ and ~open~ is called again.
+
 */
 
 using namespace std;
@@ -26,6 +31,7 @@ using namespace std;
 #include "SmiCodes.h"
 #include "Profiles.h"
 #include "CharTransform.h"
+#include "Counter.h"
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
@@ -34,10 +40,12 @@ static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
 
 /* --- Implementation of class SmiFile --- */
 
+
 SmiFile::Implementation::Implementation()
 {
   bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
   bdbFile   = SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
+	noHandle = false;
 /*
 The constructor cannot allocate a Berkeley DB handle by itself since handles
 must stay open until the enclosing transaction has been terminated, that is
@@ -52,6 +60,7 @@ SmiFile::Implementation::Implementation( bool isTemp )
 {
   bdbHandle = 0;
   bdbFile   = new Db( SmiEnvironment::Implementation::GetTempEnvironment(), DB_CXX_NO_EXCEPTIONS );
+	noHandle = false;
 /*
 The constructor cannot allocate a Berkeley DB handle by itself since handles
 must stay open until the enclosing transaction has been terminated, that is
@@ -79,6 +88,22 @@ of the enclosing transaction the handle will be closed.
   }
 }
 
+
+
+void
+SmiFile::Implementation::CheckDbHandles() {
+
+  if ( !isTemporaryFile && noHandle ) { // reallocate a DbHandle if necessary
+	
+    bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
+    bdbFile   = SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
+		noHandle = false;
+		cerr << "Reallocation of DbHandle called!" << endl;
+	}		
+}	
+
+
+
 SmiFile::SmiFile( const bool isTemporary )
   : opened( false ), fileContext( "" ), fileName( "" ), fileId( 0 ),
     fixedRecordLength( 0 ), uniqueKeys( true ), keyDataType( SmiKey::Unknown )
@@ -97,6 +122,7 @@ SmiFile::~SmiFile()
 {
   delete impl;
 }
+
 
 bool
 SmiFile::CheckName( const string& name )
@@ -121,7 +147,9 @@ SmiFile::CheckName( const string& name )
 bool
 SmiFile::Create( const string& context /* = "Default" */ )
 {
+  Counter::getRef("SmiFile::Create")++;
   int rc = 0;
+  impl->CheckDbHandles();
 
   if ( CheckName( context ) )
   {
@@ -212,9 +240,13 @@ SmiFile::Create( const string& context /* = "Default" */ )
 bool
 SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
+  assert ( !opened );
+	
+  Counter::getRef("SmiFile::Open")++;
   int rc = 0;
   bool existing = false;
-
+  impl->CheckDbHandles();
+	
   if ( impl->isTemporaryFile )
   {
     rc = E_SMI_FILE_ISTEMP;
@@ -346,8 +378,12 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 bool
 SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 {
+  assert ( !opened );
+	
+  Counter::getRef("SmiFile::Open")++;
   int rc = 0;
-
+  impl->CheckDbHandles();
+	
   if ( CheckName( context ) )
   {
     SmiCatalogEntry entry;
@@ -454,6 +490,7 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 bool
 SmiFile::Close()
 {
+  Counter::getRef("SmiFile::Close")++;
   int rc = 0;
 
   if ( opened )
@@ -464,8 +501,7 @@ SmiFile::Close()
     if ( !impl->isTemporaryFile )
     {
       SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
-      impl->bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
-      impl->bdbFile   = SmiEnvironment::Implementation::GetDbHandle( impl->bdbHandle );
+			impl->noHandle = true;
     }
     else
     {
