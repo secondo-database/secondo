@@ -1,22 +1,20 @@
 /*
-1 Information about selectivity of predicates, cardinality of relations, etc.
+1 Information about Selectivity of Predicates
 
 [File ~statistics.pl~]
 
-1.1  Hard-Coded Cardinalities of Relations
+
+
+1.1 Rules about Commutativity of Predicates
 
 */
 
-card(staedte, 58).
-card(staedte_sample, 58).
-card(plz, 41267).
-card(plz_sample, 428).
-card(ten, 10).
-card(ten_sample, 10).
-card(thousand, 1000).
-card(thousand_sample, 89).
-card(orte, 506).
-card(orte_sample, 100).
+commute(X = Y, Y = X).
+commute(X < Y, Y > X).
+commute(X <= Y, Y >= X).
+commute(X > Y, Y < X).
+commute(X >= Y, Y <= X).
+commute(X # Y, Y # X).
 
 
 
