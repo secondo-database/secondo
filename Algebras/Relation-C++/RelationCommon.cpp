@@ -105,21 +105,23 @@ TupleType::~TupleType()
   delete []attrTypeArray;
 }
 
-const int TupleType::GetNoAttributes() const
-{
-  return noAttributes;
-}
+/*
+~GetNoAttributes~ declared as inline function in the header file
+
+*/
+//const int TupleType::GetNoAttributes() const
 
 const int TupleType::GetTotalSize() const
 {
   return totalSize;
 }
 
-const AttributeType& TupleType::GetAttributeType( const int index ) const
-{
-  assert( index >= 0 && index < noAttributes );
-  return attrTypeArray[index];
-}
+/* 
+~GetAttributeType~, declared as inline function in the header file
+
+*/
+//const AttributeType& TupleType::GetAttributeType( const int index ) const
+
 
 void TupleType::PutAttributeType( const int index, const AttributeType& attrType )
 {
