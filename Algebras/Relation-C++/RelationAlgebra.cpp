@@ -287,11 +287,8 @@ class TupleAttributesInfo
 
   public:
 
-    //static TupleAttributesInfo tupleTypeInfo;
-
     TupleAttributesInfo (ListExpr typeInfo, ListExpr value);
 
-    //Destructor
 };
 
 TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
@@ -303,12 +300,8 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
   bool valueCorrect;
 
-  nl->WriteToFile("/dev/tty",typeInfo);
-  if (nl->IsAtom(typeInfo)) cout << "Is Atom" << endl;
   attrlist = nl->Second(typeInfo);
   valuelist = value;
-  nl->WriteToFile("/dev/tty",attrlist);
-  nl->WriteToFile("/dev/tty",valuelist);
   noofattrs = 0;
 
   while (!nl->IsEmpty(attrlist))
@@ -485,28 +478,18 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
   bool valueCorrect;
   ListExpr first, firstvalue, valuelist, attrlist;
 
-  //nl->WriteToFile("/dev/tty",typeInfo);
- // nl->WriteToFile("/dev/tty",nl->First(typeInfo));
-  //nl->WriteToFile("/dev/tty",value);
-  //typeInfo99 = nl->First(typeInfo);
-  //nl->WriteToFile("/dev/tty",typeInfo99);
-  //TupleAttributesInfo* tai = new TupleAttributesInfo(typeInfo99, value);
-
   attrno = 0;
   noOfAttrs = 0;
   tupleaddr = new CcTuple();
-  //cout << "InTuple: -> " << tupleaddr << endl;
   attrlist =  nl->Second(nl->First(typeInfo));
   valuelist = value;
-  // cout << nl->WriteToFile("/dev/tty",attrlist) << endl;
-  // cout << nl->WriteToFile("/dev/tty",valuelist) << endl;
   correct = true;
   if (nl->IsAtom(valuelist))
   {
     correct = false;
     errorInfo = nl->Append(errorInfo,
-	nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(1),
-	nl->IntAtom(errorPos)));
+      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(1),
+      nl->IntAtom(errorPos)));
     delete tupleaddr;
     return SetWord(Address(0));
   }
@@ -571,8 +554,8 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
 
 1.3.4 ~Destroy~-function of type constructor ~tuple~
 
-A type constructor's ~destroy~-function is used by the query processor in order 
-to deallocate memory occupied by instances of Secondo objects. They may have 
+A type constructor's ~destroy~-function is used by the query processor in order
+to deallocate memory occupied by instances of Secondo objects. They may have
 been created in two ways:
 
   * as return values of operator calls
@@ -586,23 +569,12 @@ void DeleteTuple(Word& w)
 {
   CcTuple* tupleptr;
   int attrno;
-  // const char* typname;
   tupleptr = (CcTuple*)w.addr;
   attrno = tupleptr->GetNoAttrs();
   for (int i = 0; i <= (attrno - 1); i++)
   {
-    // typname = typeid(*(tupleptr->Get(i))).name();
-    // cout << typeid(*(tupleptr->Get(i))).name() << endl;
-
-    // delete &(typeid(*(tupleptr->Get(i))));
     delete (TupleElement*)tupleptr->Get(i);
-    //if (typeid(*(tupleptr->Get(i))) == typeid(CcInt))
-    //{
-      //cout << "Class CcInt" << endl;
-      //delete (CcInt*)tupleptr->Get(i);
-    //}
   }
-  //cout << "DeleteTuple: -> " << tupleptr << endl;
   delete tupleptr;
 }
 /*
@@ -614,7 +586,7 @@ Checks the specification:
 ----	(ident x DATA)+		-> TUPLE	tuple
 ----
 
-with the additional constraint that all identifiers used (attribute names) 
+with the additional constraint that all identifiers used (attribute names)
 must be distinct. Hence a tuple type has the form:
 
 ----	(tuple
@@ -623,7 +595,7 @@ must be distinct. Hence a tuple type has the form:
 		(name y)))
 ----
 
-and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces the 
+and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces the
 following error codes:
 
 ----	(... 1) 	Empty tuple type
@@ -645,7 +617,6 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
   vector<string>::iterator it;
   AlgebraManager* algMgr;
 
-  //cout << nl->WriteToFile("/dev/tty",type) << endl;
   if ((nl->ListLength(type) == 2) && (nl->IsEqual(nl->First(type), "tuple",
        true)))
   {
@@ -655,7 +626,6 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
       errorInfo = nl->Append(errorInfo,
 	nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
 	nl->IntAtom(1)));
-      // cout << nl->WriteToFile("/dev/tty",errorInfo) << endl;
       return false;
     }
     if (nl->IsAtom(attrlist))
@@ -745,11 +715,8 @@ of ~tuple~. The ~Size~-parameter is not evaluated.
 */
 static Word CreateTuple(int Size)
 {
-  // cout << "CreateTuple" <<endl;
   CcTuple* tup;
-
   tup = new CcTuple();
-  //cout << "CreateTuple: -> " << tup << endl;
   return (SetWord(tup));
 }
 /*
@@ -776,15 +743,14 @@ static Word TupleValueListToModel( const ListExpr typeExpr, const ListExpr value
                        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   correct = true;
-  //errorInfo = 0;
   return (SetWord( Address( 0 ) ));
 }
 /*
 
 1.3.5 Defnition of type constructor ~tuple~
 
-Eventually a type constructor is created by defining an instance of 
-class ~TypeConstructor~. Constructor's arguments are the type constructor's 
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
@@ -846,14 +812,17 @@ class CcRel
   public:
 
     CcRel () {NoOfTuples = 0; TupleList = new CTable<CcTuple*>(100);};
-    ~CcRel () {};
-    // void* Get (int index) {return AttrList[index];};
-    // void  Put (int index, void* attr) {AttrList[index] = attr;};
+    ~CcRel () { delete TupleList; };
     void    NewScan() {rs = TupleList->Begin();};
     bool    EndOfScan() {return (rs == TupleList->End());};
     void    NextScan() {(rs)++;};
     CcTuple* GetTuple() {return ((CcTuple*)(*rs));};
-    void    AppendTuple (CcTuple* t) {TupleList->Add(t);};
+    void    AppendTuple (CcTuple* t)
+    {
+      TupleList->Add(t);
+      NoOfTuples++;
+    };
+
     void    SetNoTuples (int notuples) {NoOfTuples = notuples;};
     int     GetNoTuples () {return NoOfTuples;};
 
@@ -865,35 +834,15 @@ class CcRel
 */
 ListExpr OutRel(ListExpr typeInfo, Word  value)
 {
-  // CTable<CcTuple>::Iterator rs;
   CcTuple* t;
   ListExpr l, lastElem, tlist, TupleTypeInfo;
-
-  // cout << "OutRel" << endl;
-
-  // cout << nl->WriteToFile("/dev/tty",typeInfo) << endl;
-
-  // Relation r = (Relation)(value.addr);
   CcRel* r = (CcRel*)(value.addr);
-
-  // rs = r->Begin();
-
-    //CcTuple tup;
-    //r->NewScan();
-    //for (int i = 1; i <= 4;i++)
-    //{
-      //tup = r->GetTuple();
-      // cout << tup << endl;
-      //r->NextScan();
-    //}
 
   r->NewScan();
   l = nl->TheEmptyList();
 
-  // while (rs != r->End())
   while (!r->EndOfScan())
   {
-    // t = (CcTuple)*rs;
     t = r->GetTuple();
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
 	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
@@ -905,11 +854,8 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
     }
     else
       lastElem = nl->Append(lastElem, tlist);
-    // rs++;
     r->NextScan();
   }
-  // cout << nl->WriteToFile("/dev/tty",l);
-  //TupleAttributesInfo* tai = new TupleAttributesInfo(nl->Second(typeInfo), nl->First(l));
   return l;
 
 }
@@ -917,39 +863,34 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
 
 1.3.3 ~Create~-function of type constructor ~rel~
 
-The function is used to allocate memory sufficient for keeping one instance 
+The function is used to allocate memory sufficient for keeping one instance
 of ~rel~. The ~Size~-parameter is not evaluated.
 
 */
 static Word CreateRel(int Size)
 {
-
-  // cout << "CreateRel" << endl;
-  // CTable<CcTuple>* rel;
   CcRel* rel = new CcRel();
-  // rel = new CTable<CcTuple>(100);
-  //cout << "CreateRel: -> " << rel << endl;
   return (SetWord(rel));
 }
 /*
 
 1.4.2 ~In~-function of type constructor ~rel~
 
-~value~ is the list representation of the relation. The structure of 
+~value~ is the list representation of the relation. The structure of
 ~typeInfol~ and ~value~ are described above. Error handling in ~InRel~:
 
 The result relation will contain all tuples that have been converted
-correctly (have correct list expressions). For all other tuples, an error 
-message containing the position of the tuple within this relation (list) is 
-added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~). 
-If any tuple representation is wrong, then ~InRel~ will return ~correct~ as 
+correctly (have correct list expressions). For all other tuples, an error
+message containing the position of the tuple within this relation (list) is
+added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~).
+If any tuple representation is wrong, then ~InRel~ will return ~correct~ as
 FALSE and will itself add an error message of the form
 
 ----	(InRelation <errorPos>)
 ----
 
-to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment; 
-probably it is the position of the relation object in the list of 
+to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment;
+probably it is the position of the relation object in the list of
 database objects.
 
 */
@@ -957,7 +898,6 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct)
 {
   ListExpr tuplelist, TupleTypeInfo, first;
-  // Relation rel;
   CcRel* rel;
   CcTuple* tupleaddr;
   int tupleno, count;
@@ -965,16 +905,8 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
 
   correct = true;
   count = 0;
-
-  // cout << "InRel" << endl;
-
-  // cout << nl->WriteToFile("/dev/tty",typeInfo) << endl;
-  // cout << nl->WriteToFile("/dev/tty",value) << endl;
-
-  // rel = (Relation)((CreateRel(50)).addr);
-  //rel = (CcRel*)((CreateRel(50)).addr);
   rel = new CcRel();
-  //cout << "InRel: -> " << rel << endl;
+  
   tuplelist = value;
   TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
 	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
@@ -995,16 +927,11 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
       tupleno++;
       tupleaddr = (CcTuple*)(InTuple(TupleTypeInfo, first, tupleno,
         errorInfo, tupleCorrect).addr);
-      //cout << "InRelTuples1 -> " << tupleaddr << endl;
-
-      //cout << (*(CcInt*)(tupleaddr->Get(0))).GetIntval() << endl;
 
       if (tupleCorrect)
       {
-        // rel->Add(*((CcTuple*)tupleaddr));
 	rel->AppendTuple(tupleaddr);
 	count++;
-        // delete (CcTuple*)tupleaddr;
       }
       else
       {
@@ -1018,17 +945,9 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
     }
     else rel->SetNoTuples(count);
 
-    //std::cout << (*(CcInt*)(((CcTuple)((*rel)[1])).Get(0))).GetIntval() << endl;
-    //std::cout << (*(CcInt*)(((CcTuple)((*rel)[2])).Get(0))).GetIntval() << endl;
-    //std::cout << (*(CcInt*)(((CcTuple)((*rel)[3])).Get(0))).GetIntval() << endl;
-    //std::cout << (*(CcInt*)(((CcTuple)((*rel)[4])).Get(0))).GetIntval() << endl;
-    // CcTuple tup;
     rel->NewScan();
-    //for (int i = 1; i <= 4;i++)
     while (! rel->EndOfScan())
     {
-      //tup = rel->GetTuple();
-      //cout << "InRelTuples2 -> " << rel->GetTuple() << endl;
       rel->NextScan();
     }
     return (SetWord((void*)rel));
@@ -1046,30 +965,19 @@ The corresponding function of type constructor ~rel~ is called ~DeleteRel~.
 void DeleteRel(Word& w)
 {
 
-  // CTable<CcTuple>::Iterator rs;
   CcTuple* t;
-  // Relation r;
   CcRel* r;
   Word v;
 
-  // r = (Relation)w.addr;
   r = (CcRel*)w.addr;
-  // rs = r->Begin();
   r->NewScan();
-  // while (rs != r->End())
   while (!r->EndOfScan())
   {
-    //cout << "while" << endl;
-    // t = (CcTuple)*rs;
     t = r->GetTuple();
-    //cout << "DeleteRelbeforeTuple: -> " << t << endl;
-
     v = SetWord(t);
     DeleteTuple(v);
-    // rs++;
     r->NextScan();
   }
-  //cout << "DeleteRel: -> " << r << endl;
   delete r;
 }
 /*
@@ -1092,10 +1000,6 @@ and ~x~ must be a type of kind TUPLE.
 static bool CheckRel(ListExpr type, ListExpr& errorInfo)
 {
   AlgebraManager* algMgr;
-
-  // cout << nl->WriteToFile("/dev/tty", type);
-
-  // cout << "CheckRel" << endl;
 
   if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "rel"))
   {
@@ -1142,15 +1046,14 @@ static Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueLi
                        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   correct = true;
-  //errorInfo = 0;
   return (SetWord( Address( 0 ) ));
 }
 /*
 
 1.3.5 Defnition of type constructor ~tuple~
 
-Eventually a type constructor is created by defining an instance of 
-class ~TypeConstructor~. Constructor's arguments are the type constructor's 
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
@@ -1187,7 +1090,7 @@ static int typeOperatorSelect(ListExpr args) { return -1; }
 
 6.1 Type Operator ~TUPLE~
 
-Type operators are used only for inferring argument types of parameter 
+Type operators are used only for inferring argument types of parameter
 functions. They have a type mapping but no evaluation function.
 
 6.1.1 Type mapping function of operator ~TUPLE~
@@ -1202,7 +1105,6 @@ Extract tuple type from a stream or relation type given as the first argument.
 ListExpr TUPLETypeMap(ListExpr args)
 {
   ListExpr first;
-  // cout << nl->WriteToFile("/dev/tty",args);
   if(nl->ListLength(args) >= 1)
   {
     first = nl->First(args);
@@ -1253,7 +1155,6 @@ Extract tuple type from a stream or relation type given as the second argument.
 ListExpr TUPLE2TypeMap(ListExpr args)
 {
   ListExpr second;
-  // cout << nl->WriteToFile("/dev/tty",args);
   if(nl->ListLength(args) >= 2)
   {
     second = nl->Second(args);
@@ -1293,7 +1194,7 @@ Operator TUPLE2 (
 
 6.1 Type Operator ~GROUP~
 
-Type operators are used only for inferring argument types of parameter 
+Type operators are used only for inferring argument types of parameter
 functions. They have a type mapping but no evaluation function.
 
 6.1.1 Type mapping function of operator ~GROUP~
@@ -1304,9 +1205,6 @@ functions. They have a type mapping but no evaluation function.
 */
 ListExpr GROUPTypeMap(ListExpr args)
 {
-  /*string listStr;
-  nl->WriteToString(listStr, args);
-  cout << "Args : " << listStr << "\n";*/
   ListExpr first;
   ListExpr tupleDesc;
 
@@ -1392,15 +1290,12 @@ static ListExpr FeedTypeMap(ListExpr args)
 static int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
- //CTable<CcTuple>::Iterator* rs;
  CcRel* r;
 
   switch (message)
   {
     case OPEN :
 
-      //rs = new CTable<CcTuple>::Iterator::Iterator();
-      //*rs = (*((Relation)args[0].addr)).Begin();
       r = ((CcRel*)args[0].addr);
       r->NewScan();
       local.addr = r;
@@ -1408,14 +1303,10 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST :
 
-      //rs = (CTable<CcTuple>::Iterator*)local.addr;
       r = (CcRel*)local.addr;
-      //if (!((*rs).EndOfScan()))
       if (!(r->EndOfScan()))
       {
-        //result.addr = &(**rs);
 	result = SetWord(r->GetTuple());
-        //(*rs)++;
 	r->NextScan();
         return YIELD;
       }
@@ -1423,9 +1314,6 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
 
-      //rs = (CTable<CcTuple>::Iterator*)local.addr;
-      // rs = *((CTable<CCTuple>::Iterator**)local);
-      //delete rs;
       return 0;
   }
   return 0;
@@ -1442,7 +1330,7 @@ const string FeedSpec =
 
 4.1.3 Definition of operator ~feed~
 
-Non-overloaded operators are defined by constructing a new instance of 
+Non-overloaded operators are defined by constructing a new instance of
 class ~Operator~, passing all operator functions as constructor arguments.
 
 */
@@ -1492,27 +1380,19 @@ static int
 Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word actual;
-  //Relation rel;
   CcRel* rel;
-  // int catentry;
-  // int* catentryptr;
 
-  //rel = (Relation)(CreateRel(50).addr);
   rel = new CcRel();
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
   while (qp->Received(args[0].addr))
   {
-    //rel->Add(*((CcTuple*)actual.addr));
     rel->AppendTuple(((CcTuple*)actual.addr));
     qp->Request(args[0].addr, actual);
   }
-  // catentry = ctreldb.Add((void*)rel);
-  // catentryptr = new int(catentry);
 
   result = SetWord((void*) rel);
 
-  // *result = (void*)catentryptr;
   qp->Close(args[0].addr);
   return 0;
 }
@@ -1549,9 +1429,11 @@ Result type attr operation.
     ((tuple ((x1 t1)...(xn tn))) xi)    -> ti
                             APPEND (i) ti)
 ----
-This type mapping uses a special feature of the query processor, in that if 
-requests to append a further argument to the given list of arguments, namely, 
-the index of the attribute within the tuple. This indes is computed within the type mapping  function. The request is given through the result expression of the type mapping which has the form, for example,
+This type mapping uses a special feature of the query processor, in that if
+requests to append a further argument to the given list of arguments, namely,
+the index of the attribute within the tuple. This indes is computed within
+the type mapping  function. The request is given through the result expression
+of the type mapping which has the form, for example,
 
 ----
 
@@ -1559,7 +1441,15 @@ the index of the attribute within the tuple. This indes is computed within the t
 
 ----
 
-The keyword ~APPEND~ occuring as a first element of a returned type expression tells the query processor to add the elements of the following list - the second element of the type expression - as further arguments to the operator (as if they had been written in the query). The third element  of the query is then used as the real result type. In this case 1 is the index of the attribute determined in this procedure. The query processor, more precisely the procedure ~anotate~ there, will produce the annotation for the constant 1, append it to the list of annotated arguments, and then use "string" as the result type of the ~attr~ operation.
+The keyword ~APPEND~ occuring as a first element of a returned type expression
+tells the query processor to add the elements of the following list - the
+second element of the type expression - as further arguments to the operator
+(as if they had been written in the query). The third element  of the query
+is then used as the real result type. In this case 1 is the index of the
+attribute determined in this procedure. The query processor, more precisely
+the procedure ~anotate~ there, will produce the annotation for the constant 1,
+append it to the list of annotated arguments, and then use "string" as the
+result type of the ~attr~ operation.
 
 */
 ListExpr AttrTypeMap(ListExpr args)
@@ -1567,12 +1457,11 @@ ListExpr AttrTypeMap(ListExpr args)
   ListExpr first, second, attrtype;
   string  attrname;
   int j;
-  // cout << nl->WriteToFile("/dev/tty",args);
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
     second  = nl->Second(args);
-            
+
     if((nl->ListLength(first) == 2  ) &&
         (TypeOfRelAlgSymbol(nl->First(first)) == tuple)  &&
         (nl->IsAtom(second)) &&
@@ -1592,7 +1481,12 @@ ListExpr AttrTypeMap(ListExpr args)
 
 4.1.2 Value mapping function of operator ~attr~
 
-The argument vector ~arg~ contains in the first slot ~args[0]~ the tuple and in ~args[2]~ the position of the attribute as a number. Returns as ~result~ the value of an attribute at the given position ~args[2]~ in a tuple object. The attribute name is argument 2 in the query and is used in the function ~AttributeTypeMap~ to determine the attribute number ~args[2]~ .
+The argument vector ~arg~ contains in the first slot ~args[0]~ the tuple
+and in ~args[2]~ the position of the attribute as a number. Returns as
+~result~ the value of an attribute at the given position ~args[2]~ in a
+tuple object. The attribute name is argument 2 in the query and is used
+in the function ~AttributeTypeMap~ to determine the attribute
+number ~args[2]~ .
 
 */
 static int
@@ -1600,19 +1494,19 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcTuple* tupleptr;
   int index;
-  
+
   tupleptr = (CcTuple*)args[0].addr;
   index = (int)((StandardAttribute*)args[2].addr)->GetValue();
-  if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))   
+  if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))
   {
     result = SetWord(tupleptr->Get(index - 1));
     return 0;
   }
   else
-  { 
+  {
     cout << "attribute: index out of range !";
     return -1;
-  }         
+  }
 }
 /*
 
@@ -1620,7 +1514,9 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string AttrSpec =
-  "(<text>((tuple ((x1 t1)...(xn tn))) xi)  -> ti)</text---><text>Returns the value of an attribute at a given position in a tuple object.</text--->)";
+  "(<text>((tuple ((x1 t1)...(xn tn))) xi)  -> ti)</text--->"
+  "<text>Returns the value of an attribute at a given position "
+  "in a tuple object.</text--->)";
 /*
 
 4.1.3 Definition of operator ~attr~
@@ -1651,7 +1547,6 @@ Result type of filter operation.
 ListExpr FilterTypeMap(ListExpr args)
 {
   ListExpr first, second;
-  // cout << nl->WriteToFile("/dev/tty",args);
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
@@ -1694,14 +1589,13 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr, elem);
       found = false;
       while (qp->Received(args[0].addr) && !found)
-      {    
+      {
         (*funargs)[0] = elem;
         qp->Request(args[1].addr, funresult);
         if (((StandardAttribute*)funresult.addr)->IsDefined())
           found = (bool)((StandardAttribute*)funresult.addr)->GetValue();
         if (!found)
         {
-        // delete(elem);
         qp->Request(args[0].addr, elem);
         }
       }
@@ -1726,7 +1620,9 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string FilterSpec =
-  "(<text>((stream x) (map x bool)) -> (stream x)</text---><text>Only tuples, fulfilling a certain condition are passed on to the output stream.</text--->)";
+  "(<text>((stream x) (map x bool)) -> (stream x)</text---><text>Only "
+  "tuples, fulfilling a certain condition are passed on to "
+  "the output stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~filter~
@@ -1748,7 +1644,7 @@ Operator tfilter (
 
 Result type of project operation.
 
-----	((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))	-> 
+----	((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik))	->
 
 		(APPEND
 			(k (i1 ... ik))
@@ -1756,24 +1652,25 @@ Result type of project operation.
 		)
 ----
 
-The type mapping computes the number of attributes and the list of attribute numbers for the given projection attributes and asks the query processor to append it to the given arguments.
+The type mapping computes the number of attributes and the list of attribute 
+numbers for the given projection attributes and asks the query processor to 
+append it to the given arguments.
 
 */
 ListExpr ProjectTypeMap(ListExpr args)
 {
   bool firstcall;
   int noAttrs, j;
-  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList, 
+  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
            lastNumberList, numberList, outlist;
   string attrname;
-  
+
   firstcall = true;
-  // cout << nl->WriteToFile("/dev/tty",args) << endl;
   if (nl->ListLength(args) == 2)
   {
     first = nl->First(args);
     second = nl->Second(args);
-    
+
     if ((nl->ListLength(first) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
 	(nl->ListLength(nl->Second(first)) == 2) &&
@@ -1787,7 +1684,7 @@ ListExpr ProjectTypeMap(ListExpr args)
         first2 = nl->First(second);
 	second = nl->Rest(second);
 	if (nl->AtomType(first2) == SymbolType)
-	{ 
+	{
 	  attrname = nl->SymbolValue(first2);
 	}
 	else return nl->SymbolAtom("typeerror");
@@ -1806,7 +1703,7 @@ ListExpr ProjectTypeMap(ListExpr args)
 	  {
 	    lastNewAttrList =
 	      nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
-	    lastNumberList =  
+	    lastNumberList =
 	      nl->Append(lastNumberList, nl->IntAtom(j));
 	  }
 	}
@@ -1839,24 +1736,22 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
   Supplier son;
   void* attr;
   CcTuple* t;
-  
+
 
   switch (message)
   {
     case OPEN :
-      
+
       qp->Open(args[0].addr);
       return 0;
-      
+
     case REQUEST :
-    
+
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
       {
-        //result = qp->ResultStorage(s);
 	t = new CcTuple();
         noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        //((CcTuple*)result.addr)->SetNoAttrs(noOfAttrs);
 	t->SetNoAttrs(noOfAttrs);
         for (int i=1; i <= noOfAttrs; i++)
         {
@@ -1864,8 +1759,7 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
           qp->Request(son, elem2);
           index = ((CcInt*)elem2.addr)->GetIntval();
 	  attr = ((CcTuple*)elem1.addr)->Get(index-1);
-          //((CcTuple*)result.addr)->Put(i-1, attr);
-	  t->Put(i-1, attr); 
+	  t->Put(i-1, attr);
         }
 	result = SetWord(t);
         return YIELD;
@@ -1885,7 +1779,9 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ProjectSpec =
-  "(<text>((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))</text---><text>Produces a projection tuple for each tuple of its input stream.</text--->)";
+  "(<text>((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream "
+  "(tuple ((ai1 Ti1) ... (aik Tik))))</text---><text>Produces a projection "
+  "tuple for each tuple of its input stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~project~
@@ -1905,14 +1801,15 @@ Operator project (
 
 5.6.1 Help Function ~Concat~
 
-Copies the attribute values of two tuples (words) ~r~ and ~s~ into tuple (word) ~t~.
+Copies the attribute values of two tuples
+(words) ~r~ and ~s~ into tuple (word) ~t~.
 
 */
 void Concat (Word r, Word s, Word& t)
 {
   int rnoattrs, snoattrs, tnoattrs;
   void* attr;
-  
+
   rnoattrs = ((CcTuple*)r.addr)->GetNoAttrs();
   snoattrs = ((CcTuple*)s.addr)->GetNoAttrs();
   if ((rnoattrs + snoattrs) > MaxSizeOfAttr)
@@ -1934,7 +1831,7 @@ void Concat (Word r, Word s, Word& t)
     attr = ((CcTuple*)s.addr)->Get(j - rnoattrs - 1);
     ((CcTuple*)t.addr)->Put((j - 1), attr);
   }
-}  
+}
 /*
 
 7.3.1 Type mapping function of operator ~product~
@@ -1942,27 +1839,27 @@ void Concat (Word r, Word s, Word& t)
 Result type of product operation.
 
 ----	((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))))
-	
+
 	-> (stream (tuple (x1 ... xn y1 ... ym)))
----- 
+----
 
 */
 ListExpr ProductTypeMap(ListExpr args)
 {
   ListExpr first, second, list, list1, list2, outlist;
-  
-  if (nl->ListLength(args) == 2) 
+
+  if (nl->ListLength(args) == 2)
   {
     first = nl->First(args); second = nl->Second(args);
 
-    // Check first argument and extract list1 
-    if (nl->ListLength(first) == 2) 
+    // Check first argument and extract list1
+    if (nl->ListLength(first) == 2)
     {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == stream) 
+      if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
       {
         if (nl->ListLength(nl->Second(first)) == 2)
 	{
-          if (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) 
+          if (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
 	  {
             list1 = nl->Second(nl->Second(first));
 	  }
@@ -1973,15 +1870,15 @@ ListExpr ProductTypeMap(ListExpr args)
       else return nl->SymbolAtom("typeerror");
     }
     else return nl->SymbolAtom("typeerror");
-  
-    // Check second argument and extract list2 
-    if (nl->ListLength(second) == 2) 
+
+    // Check second argument and extract list2
+    if (nl->ListLength(second) == 2)
     {
-      if (TypeOfRelAlgSymbol(nl->First(second)) == stream) 
+      if (TypeOfRelAlgSymbol(nl->First(second)) == stream)
       {
         if (nl->ListLength(nl->Second(second)) == 2)
 	{
-          if (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) 
+          if (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple)
 	  {
             list2 = nl->Second(nl->Second(second));
 	  }
@@ -1992,12 +1889,12 @@ ListExpr ProductTypeMap(ListExpr args)
       else return nl->SymbolAtom("typeerror");
     }
     else return nl->SymbolAtom("typeerror");
-    
+
     list = ConcatLists(list1, list2);
     // Check whether all new attribute names are distinct
     // - not yet implemented
-    
-    outlist = nl->TwoElemList(nl->SymbolAtom("stream"), 
+
+    outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
     return outlist;
   }
@@ -2012,7 +1909,7 @@ static int
 Product(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word r, u, t;
-  
+
   switch (message)
   {
     case OPEN :
@@ -2022,7 +1919,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[0].addr, r);
       local = (qp->Received(args[0].addr)) ? r : SetWord(Address(0));
       return 0;
-      
+
     case REQUEST :
 
       if (local.addr == 0)
@@ -2036,7 +1933,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 	qp->Request(args[1].addr, u);
 	if (qp->Received(args[1].addr))
 	{
-	  //t = qp->ResultStorage(s);
 	  t = SetWord(new CcTuple());
 	  Concat(r, u, t);
 	  result = t;
@@ -2059,7 +1955,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 	    }
 	    else
 	    {
-	      //t = qp->ResultStorage(s);
 	      t = SetWord(new CcTuple());
 	      Concat(r, u, t);
 	      result = t;
@@ -2075,7 +1970,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
       return 0;
-  }   
+  }
   return 0;
 }
 /*
@@ -2084,7 +1979,9 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ProductSpec =
-  "(<text>((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) -> (stream (tuple (x1 ... xn y1 ... ym)))</text---><text>Computes a Cartesian product stream from its two argument streams.</text--->)";
+  "(<text>((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) -> "
+  "(stream (tuple (x1 ... xn y1 ... ym)))</text---><text>Computes a Cartesian "
+  "product stream from its two argument streams.</text--->)";
 /*
 
 4.1.3 Definition of operator ~product~
@@ -2102,11 +1999,12 @@ Operator product (
 
 7.3 Operator ~cancel~
 
-Transmits tuple from its input stream to its output stream until a tuple arrives fulfilling some condition.
+Transmits tuple from its input stream to its output stream until a tuple
+arrives fulfilling some condition.
 
 7.3.1 Type mapping function of operator ~cancel~
 
-Type mapping for ~cancel~ is the same, as type mapping for operator ~flter~.
+Type mapping for ~cancel~ is the same, as type mapping for operator ~filter~.
 Result type of cancel operation.
 
 ----    ((stream x) (map x bool)) -> (stream x)
@@ -2130,7 +2028,7 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST :
-    
+
       qp->Request(args[0].addr,t);
       found= false;
       if (qp->Received(args[0].addr))
@@ -2165,7 +2063,9 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string CancelSpec =
-  "(<text>((stream x) (map x bool)) -> (stream x)</text---><text>Transmits tuple from its input stream to its output stream until a tuple arrives fulfilling some condition.</text--->)";
+  "(<text>((stream x) (map x bool)) -> (stream x)</text---><text>Transmits "
+  "tuple from its input stream to its output stream until a tuple arrives "
+  "fulfilling some condition.</text--->)";
 /*
 
 4.1.3 Definition of operator ~cancel~
@@ -2240,7 +2140,8 @@ TCount(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string TCountSpec =
-  "(<text>((stream (tuple x))) -> int</text---><text>Count number of tuples within a stream of tuples.</text--->)";
+  "(<text>((stream (tuple x))) -> int</text---><text>Count number of tuples "
+  "within a stream of tuples.</text--->)";
 /*
 
 4.1.3 Definition of operator ~tcount~
@@ -2264,7 +2165,8 @@ Renames all attribute names by adding them with the postfix passed as parameter.
 
 Type mapping for ~rename~ is
 
-----	((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
+----	((stream (tuple([a1:d1, ... ,an:dn)))ar) ->
+           (stream (tuple([a1ar:d1, ... ,anar:dn)))
 ----
 
 */
@@ -2275,7 +2177,6 @@ RenameTypeMap( ListExpr args )
   string  attrname;
   string  attrnamen;
   bool firstcall = true;
-  //nl->WriteToFile("/dev/tty",args);
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
@@ -2296,20 +2197,21 @@ RenameTypeMap( ListExpr args )
 	attrname = nl->SymbolValue(nl->First(first2));
 	attrnamen = nl->SymbolValue(second);
 	attrname.append(attrnamen);
-			
+
 	if (!firstcall)
 	{
-	  lastlistn  = 
-	    nl->Append(lastlistn,nl->TwoElemList(nl->SymbolAtom(attrname), nl->Second(first2)));
+	  lastlistn  =
+	    nl->Append(lastlistn,
+        nl->TwoElemList(nl->SymbolAtom(attrname), nl->Second(first2)));
 	}
 	else
 	{
 	  firstcall = false;
- 	  listn = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),nl->Second(first2)));
+ 	  listn = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),
+        nl->Second(first2)));
 	  lastlistn = listn;
 	}
       }
-      //nl->WriteToFile("/dev/tty",listn);
       return
         nl->TwoElemList(nl->SymbolAtom("stream"),
 		nl->TwoElemList(nl->SymbolAtom("tuple"),
@@ -2359,7 +2261,10 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string RenameSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))</text---><text>Renames all attribute names by adding them with the postfix passed as parameter. NOTE: parameter must be of symbol type.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, "
+  "... ,anar:dn)))</text---><text>Renames all attribute names by adding them "
+  "with the postfix passed as parameter. NOTE: parameter must "
+  "be of symbol type.</text--->)";
 /*
 
 4.1.3 Definition of operator ~rename~
@@ -2377,8 +2282,10 @@ Operator cpprename (
 
 7.3 Operator ~extract~
 
-This operator has a stream of tuples and the name of an attribut as input and returns the value of this attribute
-from the first tuple of the input stream. If the input stream is empty a run time error occurs. In this case value -1 will be returned.
+This operator has a stream of tuples and the name of an attribut as input and
+returns the value of this attribute
+from the first tuple of the input stream. If the input stream is empty a run
+time error occurs. In this case value -1 will be returned.
 
 7.3.1 Type mapping function of operator ~extract~
 
@@ -2421,7 +2328,10 @@ ExtractTypeMap( ListExpr args )
 
 4.1.2 Value mapping function of operator ~extract~
 
-The argument vector ~args~ contains in the first slot ~args[0]~ the tuple and in ~args[2]~ the position of the attribute as a number. Returns as ~result~ the value of an attribute at the given position ~args[2]~ in a tuple object.
+The argument vector ~args~ contains in the first slot ~args[0]~ the tuple
+and in ~args[2]~ the position of the attribute as a number. Returns as
+~result~ the value of an attribute at the given position ~args[2]~ in a
+tuple object.
 
 */
 static int
@@ -2459,7 +2369,9 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ExtractSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the value of attribute ai of the first tuple in the input stream.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
+  "<text>Returns the value of attribute ai of the first tuple in the "
+  "input stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~extract~
@@ -2558,7 +2470,9 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string HeadSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x int) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Returns the first n tuples in the input stream.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x int) -> (stream "
+  "(tuple([a1:d1, ... ,an:dn])))</text---><text>Returns the first n tuples "
+  "in the input stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~head~
@@ -2691,7 +2605,9 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
 
 */
 const string MaxOpSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the maximum value of attribute ai over the input stream.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
+  "<text>Returns the maximum value of attribute ai over the input "
+  "stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~max~
@@ -2712,7 +2628,9 @@ Operator cppmax (
 
 */
 const string MinOpSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the minimum value of attribute ai over the input stream.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
+  "<text>Returns the minimum value of attribute ai over the input "
+  "stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~min~
@@ -2880,7 +2798,9 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
 
 */
 const string AvgOpSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real</text---><text>Returns the average value of attribute ai over the input stream.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real</text--->"
+  "<text>Returns the average value of attribute ai over the "
+  "input stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~avg~
@@ -2901,7 +2821,9 @@ Operator cppavg (
 
 */
 const string SumOpSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text---><text>Returns the sum of the values of attribute ai over the input stream.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
+  "<text>Returns the sum of the values of attribute ai over the "
+  "input stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~sum~
@@ -2928,8 +2850,9 @@ in ascending (asc) or descending (desc) order with regard to that attribute.
 
 Type mapping for ~sortBy~ is
 
-----	((stream (tuple ((x1 t1)...(xn tn))) ((xi1 asc/desc) ... (xij asc/desc))) 	-> (stream (tuple ((x1 t1)...(xn tn)))
-							APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc)
+----	((stream (tuple ((x1 t1)...(xn tn))) ((xi1 asc/desc) ... (xij asc/desc))) 	
+              -> (stream (tuple ((x1 t1)...(xn tn)))
+                  APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc)
 ----
 
 */
@@ -3130,7 +3053,10 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string SortBySpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input stream according to a list of attributes ai1 ... aij.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... "
+  "(xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text--->"
+  "<text>Sorts input stream according to a list of attributes "
+  "ai1 ... aij.</text--->)";
 /*
 
 4.1.3 Definition of operator ~sortBy~
@@ -3187,7 +3113,9 @@ IdenticalTypeMap( ListExpr args )
 
 */
 const string SortSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input stream lexicographically.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> "
+  "(stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input "
+  "stream lexicographically.</text--->)";
 /*
 
 4.1.3 Definition of operator ~sort~
@@ -3268,7 +3196,9 @@ RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string RdupSpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Removes duplicates from a sorted stream.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream "
+  "(tuple([a1:d1, ... ,an:dn])))</text---><text>Removes duplicates from a "
+  "sorted stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~rdup~
@@ -3536,7 +3466,9 @@ SetOpValueMapping(Word* args, Word& result, int message, Word& local, Supplier s
 
 */
 const string MergeSecSpec =
-  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text---><text>Computes the intersection of two sorted streams.</text--->)";
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple "
+  "((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))"
+  "</text---><text>Computes the intersection of two sorted streams.</text--->)";
 /*
 
 4.1.3 Definition of Operator ~mergesec~
@@ -3557,7 +3489,9 @@ Operator cppmergesec(
 
 */
 const string MergeDiffSpec =
-  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text---><text>Computes the difference of two sorted streams.</text--->)";
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) "
+  "... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text--->"
+  "<text>Computes the difference of two sorted streams.</text--->)";
 /*
 
 4.1.3 Definition of Operator ~mergediff~
@@ -3578,7 +3512,9 @@ Operator cppmergediff(
 
 */
 const string MergeUnionSpec =
-  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text---><text>Computes the union of two sorted streams.</text--->)";
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple "
+  "((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))"
+  "</text---><text>Computes the union of two sorted streams.</text--->)";
 /*
 
 4.1.3 Definition of Operator ~mergeunion~
@@ -3976,7 +3912,10 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string MergeJoinSpec =
-  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams. Expects that input streams are sorted.</text--->)";
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) "
+  "... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... "
+  "(ym dm))))</text---><text>Computes the equijoin two streams. Expects that "
+  "input streams are sorted.</text--->)";
 /*
 
 4.1.3 Definition of operator ~mergejoin~
@@ -4001,7 +3940,10 @@ This operator sorts two input streams and computes their equijoin.
 
 */
 const string SortMergeJoinSpec =
-  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams.</text--->)";
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple "
+  "((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) "
+  "(y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two "
+  "streams.</text--->)";
 /*
 
 4.1.3 Definition of operator ~sortmergejoin~
@@ -4178,7 +4120,11 @@ HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string HashJoinSpec =
-  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams via a hash join. The number of hash buckets is given by the parameter nBuckets.</text--->)";
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple "
+  "((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... "
+  "(xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two "
+  "streams via a hash join. The number of hash buckets is given by the "
+  "parameter nBuckets.</text--->)";
 /*
 
 4.1.3 Definition of Operator ~hashjoin~
@@ -4223,16 +4169,13 @@ bool comparenames(ListExpr list)
   attrnamelist = list;
   attrnamestrlist.resize(nl->ListLength(list));
   it = attrnamestrlist.begin();
-  //nl->WriteToFile("/dev/tty",attrnamelist);
   while (!nl->IsEmpty(attrnamelist))
   {
     attrname = nl->SymbolValue(nl->First(nl->First(attrnamelist)));
-    //cout << attrname << endl;
     attrnamelist = nl->Rest(attrnamelist);
     unique = std::count(attrnamestrlist.begin(), attrnamestrlist.end(),
 	                       attrname);
     *it =  attrname;
-    //cout << unique << endl;
     if (unique) return false;
     it++;
   }
@@ -4290,11 +4233,9 @@ ExtendTypeMap( ListExpr args )
 	}
       }
       if ((loopok) && (comparenames(listn)))
-      //if ( loopok )
       {
         outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
 			nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
-	//nl->WriteToFile("/dev/tty", outlist);
         return outlist;
       }
       else return nl->SymbolAtom("typeerror");
@@ -4344,9 +4285,7 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 	  tup->SetNoAttrs(noofoldattrs+i+1);
 	  tup->Put(noofoldattrs+i,((StandardAttribute*)value.addr)->Clone());
 	}
-	//cout << "Extend Anz funs : " << nooffun << endl;
         result = SetWord(tup);
-	//cout << *tup << endl;
 	return YIELD;
       }
       else return CANCEL;
@@ -4364,7 +4303,10 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ExtendSpec =
-  "(<text>(stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))</text---><text>Extends each input tuple by new attributes as specified in the parameter list.</text--->)";
+  "(<text>(stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> "
+  "dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))</text---><text>Extends "
+  "each input tuple by new attributes as specified in the parameter "
+  "list.</text--->)";
 /*
 
 4.1.3 Definition of operator ~extend~
@@ -4496,7 +4438,9 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string ConcatSpec =
-  "(<text>((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))</text---><text>Union (without duplicate removal.</text--->)";
+  "(<text>((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... "
+  "bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))</text---><text>Union "
+  "(without duplicate removal.</text--->)";
 /*
 
 4.1.3 Definition of operator ~concat~
@@ -4586,8 +4530,6 @@ ListExpr GroupByTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("rel"),
           nl->Second(first));
-      /*nl->WriteToString(listString, groupType);
-      cout << "Group Type : " << listString << "\n";*/
 
       while (!(nl->IsEmpty(rest)))
       {
@@ -4596,13 +4538,6 @@ ListExpr GroupByTypeMap(ListExpr args)
         rest = nl->Rest(rest);
         first2 = nl->First(firstr);
         second2 = nl->Second(firstr);
-
-        /*nl->WriteToString(listString, first2);
-        cout << "Third List, First : " << listString << "\n";
-        nl->WriteToString(listString, second2);
-        cout << "Third List, Second : " << listString << "\n";
-        nl->WriteToString(listString, first);
-        cout << "First List, Second : " << listString << "\n";*/
 
         if((nl->IsAtom(first2)) &&
           (nl->ListLength(second2) == 3) &&
@@ -4617,11 +4552,6 @@ ListExpr GroupByTypeMap(ListExpr args)
           loopok = false;
         }
       }
-    /*nl->WriteToString(listString, listp);
-    cout << "ListN : " << listString << "\n";
-    nl->WriteToString(listString, listn);
-    cout << "ListP : " << listString << "\n";*/
-
     if ((loopok) && (comparenames(listn)))
     {
       return
@@ -4759,7 +4689,12 @@ int GroupByValueMapping
 
 */
 const string GroupBySpec =
-  "(<text>((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjl)))</text---><text>Groups a relation according to attributes ai1, ..., aik and feeds the groups to other functions. The results of those functions are appended to the grouping attributes.</text--->";
+  "(<text>((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun "
+  "(rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple "
+  "(a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... "
+  "bjl)))</text---><text>Groups a relation according to attributes "
+  "ai1, ..., aik and feeds the groups to other functions. The results of those "
+  "functions are appended to the grouping attributes.</text--->";
 
 /*
 
@@ -4860,7 +4795,3 @@ InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (&relationalgebra);
 }
-
-
-
-
