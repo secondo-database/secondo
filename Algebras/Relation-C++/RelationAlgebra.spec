@@ -26,6 +26,7 @@ operator mergediff alias MERGEDIFF pattern _ _ op
 
 
 operator sortby alias SORTBY pattern _ op [list]
+operator equimergejoin alias EQUIMERGEJOIN pattern _ _ op [_, _]
 operator mergejoin alias MERGEJOIN pattern _ _ op [_, _, _]
 
 operator rename alias RENAME pattern _ op [ _ ]

@@ -5,7 +5,7 @@
 
 [1] Implementation of Module Relation Algebra Main Memory
 
-[1] Using Storage Manager Berkeley DB 
+[1] Using Storage Manager Berkeley DB
 
 June 1996 Claudia Freundorfer
 
@@ -31,6 +31,7 @@ using namespace std;
 #include <iostream>
 #include <string>
 #include <deque>
+#include <set>
 #include <algorithm>
 #include <cstdlib>
 #include <unistd.h>
@@ -73,8 +74,9 @@ static RelationType TypeOfRelAlgSymbol (ListExpr symbol) {
 5.6 Function ~findattr~
 
 Here ~list~ should be a list of pairs of the form (~name~,~datatype~). The function ~findattr~ determines whether ~attrname~ occurs as one of the names in this list. If so, the index in the list (counting from 1) is returned and the corresponding datatype is returned in ~attrtype~. Otherwise 0 is returned. Used in operator ~attr~. 
+
 */
-int findattr( ListExpr list, string attrname, ListExpr& attrtype) 
+int findattr( ListExpr list, string attrname, ListExpr& attrtype)
 {
   ListExpr first, rest;
   int j;
@@ -113,7 +115,7 @@ Concatenates two lists.
 */
 ListExpr ConcatLists( ListExpr list1, ListExpr list2)
 {
-  if (nl->IsEmpty(list1)) 
+  if (nl->IsEmpty(list1))
   {
     return list2;
   }
@@ -122,6 +124,63 @@ ListExpr ConcatLists( ListExpr list1, ListExpr list2)
     return nl->Cons(nl->First(list1), ConcatLists(nl->Rest(list1), list2));
   }
 }
+
+/*
+
+5.6 Function ~AttributesAreDisjoint~
+
+Checks wether two ListExpressions are of the form
+((a1 t1) ... (ai ti)) and ((b1 d1) ... (bj dj))
+and wether the ai and the bi are disjoint.
+
+*/
+bool AttributesAreDisjoint(ListExpr a, ListExpr b)
+{
+  set<string> aNames;
+  ListExpr rest = a;
+  ListExpr current;
+
+  while(!nl->IsEmpty(rest))
+  {
+    current = nl->First(rest);
+    rest = nl->Rest(rest);
+    if((nl->ListLength(current) == 2)
+      && (nl->IsAtom(nl->First(current)))
+      && (nl->AtomType(nl->First(current)) == SymbolType)
+      && (nl->IsAtom(nl->Second(current)))
+      && (nl->AtomType(nl->Second(current)) == SymbolType))
+    {
+      aNames.insert(nl->SymbolValue(nl->First(current)));
+    }
+    else
+    {
+      return false;
+    }
+  }
+  rest = b;
+  while(!nl->IsEmpty(rest))
+  {
+    ListExpr current = nl->First(rest);
+    rest = nl->Rest(rest);
+    if((nl->ListLength(current) == 2)
+      && (nl->IsAtom(nl->First(current)))
+      && (nl->AtomType(nl->First(current)) == SymbolType)
+      && (nl->IsAtom(nl->Second(current)))
+      && (nl->AtomType(nl->Second(current)) == SymbolType))
+    {
+      if(aNames.find(nl->SymbolValue(nl->First(current))) != aNames.end())
+      {
+        return false;
+      }
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 /*
 
 3 Type constructors of the Algebra
@@ -152,7 +211,7 @@ the typeinfo is
 ----	(
 	    	(2 2) 
 			(
-				(name (1 4)) 
+				(name (1 4))
 				(age (1 1)))
 		2)
 ----
@@ -202,7 +261,7 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
   bool valueCorrect;
   
   nl->WriteToFile("/dev/tty",typeInfo);
-  if (nl->IsAtom(typeInfo)) cout << "Is Atom" << endl;     
+  if (nl->IsAtom(typeInfo)) cout << "Is Atom" << endl;
   attrlist = nl->Second(typeInfo);
   valuelist = value;
   nl->WriteToFile("/dev/tty",attrlist);
@@ -216,7 +275,7 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
 
     algebraId = nl->IntValue(nl->First(nl->Second(first)));
     typeId = nl->IntValue(nl->Second(nl->Second(first)));
-      
+
     firstvalue = nl->First(valuelist);
     valuelist = nl->Rest(valuelist);
     attr = (algM->InObj(algebraId, typeId))(nl->Second(first),
@@ -336,7 +395,7 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
   CcTuple* tupleaddr;
   bool valueCorrect;
   ListExpr first, firstvalue, valuelist, attrlist, typeInfo99;
-  
+
   //nl->WriteToFile("/dev/tty",typeInfo);
  // nl->WriteToFile("/dev/tty",nl->First(typeInfo));  
   //nl->WriteToFile("/dev/tty",value);
@@ -578,7 +637,7 @@ static bool CheckTuple(ListExpr type, ListExpr& errorInfo)
 
 3.2.5 ~Cast~-function of type constructor ~tuple~
  
-*/ 
+*/
 static void* CastTuple(void* addr)
 {
   return ( 0 );
@@ -1975,7 +2034,7 @@ TCount(Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, count);		
+  ((CcInt*) result.addr)->Set(true, count);
   qp->Close(args[0].addr);
   return 0;
 }
@@ -2049,7 +2108,7 @@ RenameTypeMap( ListExpr args )
 	}
 	else
 	{
-	  firstcall = false;			
+	  firstcall = false;
  	  listn = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),nl->Second(first2)));
 	  lastlistn = listn;
 	}
@@ -2082,7 +2141,7 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case REQUEST :
-    
+
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
@@ -2176,7 +2235,7 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   int index;
   
   qp->Open(args[0].addr);
-  
+
   qp->Request(args[0].addr,t);
   
   if (qp->Received(args[0].addr))
@@ -2424,7 +2483,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string SortBySpec =
-  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input stream according to a list of attributes ai1 ... aij.</text--->)";
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input stream according to a list of attributes ai1 ... aij.</text--->)";
 /*
 
 4.1.3 Definition of operator ~sortBy~
@@ -2443,15 +2502,15 @@ Operator sortBy (
 
 7.3 Operator ~equimergejoin~
 
-This operator merges two streams.
+This operator computes the equijoin two streams.
 
 7.3.1 Type mapping function of operator ~equimergejoin~
 
-Result type of equimergejoin operation.
+Type mapping for ~equimergejoin~ is
 
-----	((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))) xi yj)
+----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj)
 
-	-> (stream (tuple (x1 ... xn y1 ... ym)))
+      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym tm)))) APPEND (i j)
 ----
 
 */
@@ -2497,6 +2556,12 @@ ListExpr EquiMergeJoinTypeMap(ListExpr args)
       else return nl->SymbolAtom("typeerror");
     }
     else return nl->SymbolAtom("typeerror");
+
+    if(!AttributesAreDisjoint(list1, list2))
+    {
+      return nl->SymbolAtom("typeerror");
+    }
+
     list = ConcatLists(list1, list2);
     outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
@@ -2505,7 +2570,7 @@ ListExpr EquiMergeJoinTypeMap(ListExpr args)
     string attrBName = nl->SymbolValue(nl->Fourth(args));
     int attrAIndex = findattr(nl->Second(nl->Second(streamA)), attrAName, attrTypeA);
     int attrBIndex = findattr(nl->Second(nl->Second(streamB)), attrBName, attrTypeB);
-    if(attrAIndex <= 0 || attrBIndex <= 0)
+    if(attrAIndex <= 0 || attrBIndex <= 0 || !nl->Equal(attrTypeA, attrTypeB))
     {
       return nl->SymbolAtom("typeerror");
     }
@@ -2521,7 +2586,7 @@ ListExpr EquiMergeJoinTypeMap(ListExpr args)
 static CcInt oneCcInt(true, 1);
 static CcBool trueCcBool(true, true);
 
-struct EquiMergeJoinLocalInfo
+class EquiMergeJoinLocalInfo
 {
 private:
   vector<CcTuple*> bucketA;
@@ -2614,7 +2679,7 @@ private:
     }
   }
 
-  void MergeBuckets()
+  void ComputeProductOfBuckets()
   {
     assert(!bucketA.empty());
     assert(!bucketB.empty());
@@ -2662,7 +2727,7 @@ private:
       currentB = nextBTuple();
     }
 
-    MergeBuckets();
+    ComputeProductOfBuckets();
   }
 
 public:
@@ -2711,6 +2776,12 @@ public:
   }
 };
 
+/*
+
+4.1.2 Value mapping function of operator ~equimergejoin~
+
+*/
+
 static int
 EquiMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -2740,7 +2811,7 @@ EquiMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 const string EquiMergeJoinSpec =
-  "(<text>((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))  xi yj) -> (stream (tuple (x1 ... xn y1 ... ym)))</text---><text>Merges two streams.</text--->)";
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two streams.</text--->)";
 /*
 
 4.1.3 Definition of operator ~equimergejoin~
