@@ -741,6 +741,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
   {
     return (true);
   }
+  cout << "Startup of the Storage Management Interface (SMI) ..." << endl;
 
   if ( RTFlag::isActive("SMI:NoTransactions") ) {
     SmiEnvironment::Implementation::AutoCommitFlag = 0;
@@ -833,16 +834,30 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
     string secondoHome = SmiProfile::GetParameter( "Environment", "SecondoHome", 
                                                    "", parmFile.c_str() );
 
-    if (!FileSystem::FileOrFolderExists(secondoHome)) {
-      cerr << "Warning: The folder '" << secondoHome << "' does not exist!" << endl;
-      cerr << "The default directory '" << defaultHome << "' will be used instead." << endl;
+    bool useDefaultHome = false;
+    if ( secondoHome == "" ) {
+      cerr << "Warning: Missing definition of "
+           << "SecondoHome in the configuration file!" << endl; 
+      useDefaultHome = true;
+    } else {
+
+      if (!FileSystem::FileOrFolderExists(secondoHome)) {
+        cerr << "Warning: The folder SecondoHome='" << secondoHome 
+             << "' does not exist!" << endl;
+      }
+      useDefaultHome = true;
+    }
+
+    if ( useDefaultHome ) {
+
+      cerr << "  Using default database directory SecondoHome='" << defaultHome << "'." << endl;
       secondoHome = defaultHome;
 
       if (!FileSystem::FileOrFolderExists(secondoHome)) {
         cerr << "Creating default directory ..." << endl; 
         if (!FileSystem::CreateFolder(secondoHome)) {
           cerr << "Error: Could not create folder '" << secondoHome 
-               <<"'.  SmiEnvironment startup failed!" << endl;
+               <<"'." << endl;
           return false;
         }
       }

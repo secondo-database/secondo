@@ -135,11 +135,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                               string& parmFile, const bool multiUser )
 {
   bool ok = false;
-  cout << "Checking configuration ..." << endl;
-  if ( parmFile.length() > 0 )
+  bool found = false;
+  cout << endl << "Initializing the SECONDO Interface ..." << endl;
+  if ( parmFile.length() > 0 ) // try file specified by cmd switch -c
   {
-    bool found = false;
-    cout << "Configuration file '" << parmFile;
+    cout << "  Configuration file '" << parmFile;
     found = FileSystem::FileOrFolderExists( parmFile );
     if ( found )
     {
@@ -149,66 +149,69 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     {
       cout << "' not found!" << endl;
     }
-    if ( !found )
+  }
+
+  if ( !found ) // try environment variable 
+  {
+    cout << "Searching environment for configuration file ..." << endl;
+    char* home = getenv( "SECONDO_CONFIG" );
+    if ( home != 0 )
     {
-      cout << "Searching environment for configuration file ..." << endl;
-      char* home = getenv( "SECONDO_HOME" );
-      if ( home != 0 )
+      parmFile = home;
+      FileSystem::AppendSlash( parmFile );
+      parmFile += "SecondoConfig.ini";
+      cout << "  Configuration file '" << parmFile;
+      found = FileSystem::FileOrFolderExists( parmFile );
+      if ( found )
       {
-        parmFile = home;
-        FileSystem::AppendSlash( parmFile );
-        parmFile += "SecondoConfig.ini";
-        cout << "Configuration file '" << parmFile;
-        found = FileSystem::FileOrFolderExists( parmFile );
-        if ( found )
-        {
-          cout << "':" << endl;
-        }
-        else
-        {
-          cout << "' not found!" << endl;
-        }
+	cout << "':" << endl;
       }
       else
       {
-        cout << "Environment variable SECONDO_HOME not defined." << endl;
+	cout << "' not found!" << endl;
       }
-      if ( !found )
-      {
-        cout << "Searching current directory for configuration file ..." << endl;
-        string cwd = FileSystem::GetCurrentFolder();
-        FileSystem::AppendSlash( cwd );
-        parmFile = cwd + "SecondoConfig.ini";
-        cout << "Configuration file '" << parmFile;
-        found = FileSystem::FileOrFolderExists( parmFile );
-        if ( found )
-        {
-          cout << "':" << endl;
-        }
-        else
-        {
-          cout << "' not found!" << endl;
-        }
-      }
-    }
-
-    // initialize runtime flags
-    InitRTFlags(parmFile);
-
-    string value, foundValue;
-    if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")
-    {
-      cout << "Error: Secondo home directory not specified." << endl;
     }
     else
     {
-      ok = true;
+      cout << "  Environment variable SECONDO_CONFIG not defined." << endl;
     }
   }
-  else
+
+  if ( !found ) // try current directory
+  {
+    cout << "Searching current directory for configuration file ..." << endl;
+    string cwd = FileSystem::GetCurrentFolder();
+    FileSystem::AppendSlash( cwd );
+    parmFile = cwd + "SecondoConfig.ini";
+    cout << "  Configuration file '" << parmFile;
+    found = FileSystem::FileOrFolderExists( parmFile );
+    if ( found )
+    {
+      cout << "':" << endl;
+    }
+    else
+    {
+      cout << "' not found!" << endl;
+    }
+  }
+
+  if ( !found ) // still no config file defined! 
   {
     cout << "Error: No configuration file specified." << endl;
     return (false);
+  }
+
+  // initialize runtime flags
+  InitRTFlags(parmFile);
+
+  string value, foundValue;
+  if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")
+  {
+    cout << "Error: Secondo home directory not specified." << endl;
+  }
+  else
+  {
+    ok = true;
   }
 
   if ( ok )
@@ -218,23 +221,20 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     if ( RTFlag::isActive("SMI:NoTransactions") ) {
        
        mode = SmiEnvironment::SingleUserSimple;
-       cout << "Setting mode to SingleUserSimple" << endl;
+       cout << "  Setting mode to SingleUserSimple" << endl;
        
     } else { // Transactions and logging are used
     
        mode = (multiUser) ? SmiEnvironment::MultiUser : SmiEnvironment::SingleUser;
     }                   
     
-    cout << "Initializing storage management interface ... ";
     if ( SmiEnvironment::StartUp( mode, parmFile, cout ) )
     {
       SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
-      cout << "completed." << endl;
       ok = true;
     }
     else
     {
-      cout << "failed." << endl;
       string errMsg;
       SmiEnvironment::GetLastErrorCode( errMsg );
       cout << "Error: " << errMsg << endl;
@@ -243,19 +243,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   }
   if (ok)
   {
-    cout << "Initializing the Secondo system ... ";
+    cout << "Initializing the SECONDO System ... " << endl;
     ss = new SecondoSystem( &GetAlgebraEntry );
     nl = SecondoSystem::GetNestedList();
     al = SecondoSystem::GetAppNestedList();
     ok = SecondoSystem::StartUp();
-    if ( ok )
-    {
-      cout << "completed." << endl;
-    }
-    else
-    {
-      cout << "failed." << endl;
-    }
   }
   initialized = ok;
   return (ok);
