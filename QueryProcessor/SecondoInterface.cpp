@@ -36,6 +36,8 @@ April 29 2003 Hoffmann Added save and restore commands for single objects.
 
 April 29, 2003 M. Spiekermann bug fix in LookUpTypeExpr(...).
 
+April 30 2003 Hoffmann Changes syntax for the restore objects command.
+
 \tableofcontents
 
 */
@@ -622,12 +624,11 @@ If value 0 is returned, the command was executed without error.
     // --- Reading command for objects
     
     else if ( nl->IsEqual( first, "restore" ) &&
-              nl->IsEqual( nl->Second( list ), "object" ) && 
-             (length == 5) && nl->IsAtom( nl->Third( list )) &&
-             (nl->AtomType( nl->Third( list )) == SymbolType) &&
-              nl->IsEqual( nl->Fourth( list ), "from" ) &&
-              nl->IsAtom( nl->Fifth( list )) && 
-             (nl->AtomType( nl->Fifth( list )) == SymbolType) )
+             (length == 4) && nl->IsAtom( nl->Second( list )) &&
+             (nl->AtomType( nl->Second( list )) == SymbolType) &&
+              nl->IsEqual( nl->Third( list ), "from" ) &&
+              nl->IsAtom( nl->Fourth( list )) && 
+             (nl->AtomType( nl->Fourth( list )) == SymbolType) )
     {
       if ( !SecondoSystem::GetInstance()->IsDatabaseOpen() )
       {
@@ -635,8 +636,8 @@ If value 0 is returned, the command was executed without error.
       }
       else
       {
-        objName = nl->SymbolValue( nl->Third( list ) );
-        filename = nl->SymbolValue( nl->Fifth( list ) );
+        objName = nl->SymbolValue( nl->Second( list ) );
+        filename = nl->SymbolValue( nl->Fourth( list ) );
 	
         if ( SecondoSystem::GetInstance()->IsDatabaseObject( objName ) )
 	{
