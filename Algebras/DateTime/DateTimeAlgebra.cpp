@@ -93,7 +93,7 @@ character. If this character does not represent any digit, -1
 is returned.
 
 */
-static int GetValue(char c){
+static int GetValue(const char c){
   switch(c){
     case '0' : return 0;
     case '1' : return 1;
@@ -129,7 +129,7 @@ This constructor creates a DateTime at the NULL\_DAY and
 duration zero, respectively.
 
 */
-DateTime::DateTime(TimeType type){
+DateTime::DateTime(const TimeType type){
   day=0;
   milliseconds=0;
   defined = true;
@@ -144,7 +144,7 @@ DateTime::DateTime(TimeType type){
 The Value of MilliSeconds has to be greater than or equals to zero.
 
 */
-DateTime::DateTime(const long Day,const long MilliSeconds,TimeType type){
+DateTime::DateTime(const long Day,const long MilliSeconds,const TimeType type){
    assert(MilliSeconds>=0);
    day = Day;
    milliseconds = MilliSeconds;
@@ -209,7 +209,7 @@ void DateTime::Set(const int year,const int month, const int day,
 ~SetType~
 
 */
-void DateTime::SetType(TimeType TT){
+void DateTime::SetType(const TimeType TT){
     type = TT;
 }
 
@@ -217,7 +217,7 @@ void DateTime::SetType(TimeType TT){
 ~GetType~
 
 */
-TimeType DateTime::GetType(){
+TimeType DateTime::GetType()const{
     return type;
 }
 
@@ -269,7 +269,7 @@ This functions yields the day-part of a duration.
 The function can't applied to an instant.
 
 */
-long DateTime::GetDay(){
+long DateTime::GetDay()const{
    assert(type!=instanttype);
    return day;
 }
@@ -281,7 +281,7 @@ This function returns the milliseconds of the day
 of this Time instance.
 
 */
-long DateTime::GetAllMilliSeconds(){
+long DateTime::GetAllMilliSeconds()const{
    return milliseconds;
 }
 
@@ -293,47 +293,47 @@ This functions cannot applied to durations.
 
 */
 
-int DateTime::GetGregDay(){
+int DateTime::GetGregDay()const{
     assert(type!=durationtype);
     int y,m,d;
     ToGregorian(day,y,m,d);
     return d;
 }
 
-int DateTime::GetMonth(){
+int DateTime::GetMonth()const{
    assert(type!=durationtype);
    int y,m,d;
    ToGregorian(day,y,m,d);
    return m;
 }
-int DateTime::GetYear(){
+int DateTime::GetYear()const{
    assert(type!=durationtype);
    int y,m,d;
    ToGregorian(day,y,m,d);
    return y;
 }
 
-int DateTime::GetHour(){
+int DateTime::GetHour()const{
    assert(type!=durationtype);
    return (int)(milliseconds / 3600000);
 }
 
-int DateTime::GetMinute(){
+int DateTime::GetMinute()const{
     assert(type!=durationtype);
    return (int) ( (milliseconds / 60000) % 60);
 }
 
-int DateTime::GetSecond(){
+int DateTime::GetSecond()const{
   assert(type!=durationtype);
   return (int) ( (milliseconds / 1000) % 60);
 }
 
-int DateTime::GetMillisecond(){
+int DateTime::GetMillisecond()const{
   assert(type!=durationtype);
   return (int) (milliseconds % 1000);
 }
 
-int DateTime::GetWeekday(){
+int DateTime::GetWeekday()const{
     return day % 7;
 }
 
@@ -351,7 +351,7 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-long DateTime::ToJulian(int year, int month, int day) const{
+long DateTime::ToJulian(const int year, const int month, const int day) const{
   int jy = year;
   if (year < 0)
      jy++;
@@ -384,7 +384,8 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-void DateTime::ToGregorian(long Julian, int &year, int &month, int &day) const{
+void DateTime::ToGregorian(const long Julian, int &year,
+                           int &month, int &day) const{
    int j=(int)(Julian+NULL_DAY);
    int ja = j;
    int JGREG = 2299161;
@@ -661,7 +662,7 @@ date. E.g. this function will return false if month is greater than twelve,
 or the day is not included in the given month/year.
 
 */
-bool DateTime::IsValid(int year,int month,int day){
+bool DateTime::IsValid(const int year,const int month,const int day)const {
    long jday = ToJulian(year,month,day);
    int y=0,m=0,d=0;
    ToGregorian(jday,y,m,d);
@@ -677,7 +678,7 @@ instance remains unchanged. Otherwise this instance will take the value
 represented by this list and the result will be true.
 
 */
-bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
+bool DateTime::ReadFrom(const ListExpr LE,const bool typeincluded){
   canDelete=false;
   ListExpr ValueList;
   if(typeincluded){
@@ -805,7 +806,7 @@ The result will be:
 The types of the arguments has to be equals.
 
 */
-int DateTime::CompareTo(const DateTime* P2){
+int DateTime::CompareTo(const DateTime* P2)const{
    assert(type==P2->type);
    if(!defined && !P2->defined)
       return 0;
@@ -825,15 +826,15 @@ int DateTime::CompareTo(const DateTime* P2){
 ~Operators for Comparisons~
 
 */
-bool DateTime::operator==(const DateTime T2){
+bool DateTime::operator==(const DateTime T2)const{
   return CompareTo(&T2)==0;
 }
 
-bool DateTime::operator<(const DateTime T2){
+bool DateTime::operator<(const DateTime T2)const{
   return CompareTo(&T2)<0;
 }
 
-bool DateTime::operator>(const DateTime T2){
+bool DateTime::operator>(const DateTime T2)const{
   return CompareTo(&T2)>0;
 }
 
@@ -892,7 +893,7 @@ This function write the data part of this DateTime instance to
 this function the offset will be behind the written data part.
 
 */
-void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,int& offset){
+void DateTime::WriteToSmiRecord(SmiRecord& valueRecord,int& offset)const{
    valueRecord.Write(&day,sizeof(long),offset);
    offset += sizeof(long);
    valueRecord.Write(&milliseconds,sizeof(long),offset);
@@ -924,7 +925,7 @@ void DateTime::Save(SmiRecord& valueRecord, const ListExpr typeinfo){
 The function ~Split~ splits a duration into two ones.
 
 */
-bool DateTime::Split(double delta, DateTime& Rest){
+bool DateTime::Split(const double delta, DateTime& Rest){
   assert(type==durationtype);
   assert((delta>=0) && (delta<=1));
   Rest.Equalize(this);
@@ -1066,7 +1067,7 @@ This operator has the same functionality like the ~Add~ function
 returning the result in a new instance.
 
 */
-DateTime DateTime::operator+(const DateTime T2){
+DateTime DateTime::operator+(const DateTime T2)const{
    DateTime Result(*this);
    Result.Add(&T2);
    return Result;
@@ -1083,7 +1084,7 @@ has also to be a duration. Its possible that this function changes
 the type of this instance.
 
 */
-void DateTime::Minus(const DateTime* P2){
+void DateTime::Minus(const DateTime* P2) {
    assert(type==instanttype || P2->type==durationtype);
    long d1 = day;
    long d2 = P2->day;
@@ -1123,7 +1124,7 @@ This operator has the same functionality like the ~Minus~ function
 returning the result in a new instance.
 
 */
-DateTime DateTime::operator-(const DateTime T2){
+DateTime DateTime::operator-(const DateTime T2)const{
    DateTime Result(*this);
    Result.Minus(&T2);
    return Result;
@@ -1135,7 +1136,7 @@ DateTime DateTime::operator-(const DateTime T2){
 This Operator divides a DateTime by another dateTime
 
 */
-double DateTime::operator/(const DateTime T2){
+double DateTime::operator/(const DateTime T2)const{
   double myms = (double)(day*MILLISECONDS+milliseconds);
   double T2ms =  (double)(T2.day*MILLISECONDS+T2.milliseconds);
   return myms / T2ms;
@@ -1240,7 +1241,7 @@ in milliseconds. If the parameter is true, the value will be a
 string in format year-month-day-hour:minute:second.millisecond
 
 */
-ListExpr DateTime::ToListExpr(bool typeincluded){
+ListExpr DateTime::ToListExpr(const bool typeincluded)const {
   ListExpr value;
   if(type==instanttype)
       value = nl->StringAtom(this->ToString());
@@ -1280,7 +1281,7 @@ void DateTime::Equalize(const DateTime* P2){
 ~IsZero~ returns true iff this
 
 */
-bool DateTime::IsZero(){
+bool DateTime::IsZero()const {
   return day==0 && milliseconds==0;
 }
 
@@ -1290,7 +1291,7 @@ bool DateTime::IsZero(){
 This function returns true if this instnace is before the Null-Day
 
 */
-bool DateTime::LessThanZero(){
+bool DateTime::LessThanZero()const{
    return day<0;
 }
 

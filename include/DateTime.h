@@ -84,7 +84,7 @@ This constructor creates a DateTime instance at the specified
 day, milliseconds and TimeType.
 
 */
-     DateTime(const long Day,const long MilliSeconds,TimeType type);
+     DateTime(const long Day,const long MilliSeconds,const TimeType type);
 
 /*
 ~Constructor~
@@ -124,7 +124,7 @@ This function returns the day part of a duration.
 ~GetDay~ is only defined for duration types.
 
 */
-     long GetDay();
+     long GetDay()const;
 
 /*
 ~GetAllMilliseconds~
@@ -133,7 +133,7 @@ The function ~GetMilliseconds~ returns the time part of the day.
 The result will be in interval [ 0, 86400000 ].
 
 */
-     long GetAllMilliSeconds();
+     long GetAllMilliSeconds()const;
 
 /*
 ~Access Functions~
@@ -143,14 +143,14 @@ In the comment the value range of the result is given.
 All this functions can only applied to instant types.
 
 */
-     int GetGregDay();        // [1..31]
-     int GetMonth();          // [1..12]
-     int GetYear();           //  int / {0}
-     int GetHour();           // [0..23]
-     int GetMinute();         // [0..59]
-     int GetSecond();        // [0..59]
-     int GetMillisecond();   // [0..999]
-     int GetWeekday();       // [0..6] <=> [Monday .. Sunday]
+     int GetGregDay()const;        // [1..31]
+     int GetMonth()const;          // [1..12]
+     int GetYear()const;           //  int / {0}
+     int GetHour()const;           // [0..23]
+     int GetMinute()const;         // [0..59]
+     int GetSecond()const;        // [0..59]
+     int GetMillisecond()const;   // [0..999]
+     int GetWeekday()const;       // [0..6] <=> [Monday .. Sunday]
 
 /*
 ~Destroy~
@@ -186,7 +186,7 @@ This function converts a DateTime into its nested list representation.
 The output depends on the type of this DateTime as well as the argument.
 
 */
-     ListExpr ToListExpr(bool typeincluded);
+     ListExpr ToListExpr(const bool typeincluded)const;
 
 /*
 ~ReadFrom~
@@ -196,7 +196,7 @@ The possible formats are described in {\tt STFormat}, which can be found in
 the {\tt document} directory of {\textsc{SECONDO}}.
 
 */
-     bool ReadFrom(ListExpr LE, bool typeincluded);
+     bool ReadFrom(const ListExpr LE, const bool typeincluded);
 
 /*
 ~ToString~
@@ -217,7 +217,7 @@ day$\mid\mid$millisecond.
 Sets the type of this DateTime. Be careful in using of this function.
 
 */
-      void SetType(TimeType TT);
+      void SetType(const TimeType TT);
 
 /*
 ~GetType~
@@ -225,7 +225,7 @@ Sets the type of this DateTime. Be careful in using of this function.
 This function returns the type of this DateTime;
 
 */
-      TimeType GetType();
+      TimeType GetType()const;
 
 
 /*
@@ -263,7 +263,7 @@ value of the argument. The types of this and P2 have to
 be equal.
 
 */
-     int CompareTo(const DateTime* P2);
+     int CompareTo(const DateTime* P2)const;
 
 /*
 ~Mathematical Functions~
@@ -329,7 +329,7 @@ while the ~+~ operator creates a new one. The allowed timetypes are the
 same like in the ~Add~ function.
 
 */
-    DateTime operator+(const DateTime T2);
+    DateTime operator+(const DateTime T2)const;
 
 
 /*
@@ -339,7 +339,7 @@ This operator computes the difference between two DateTime instances.
 The allowed arguments are the same like in the ~Minus~ function.
 
 */
-    DateTime operator-(const DateTime T2);
+    DateTime operator-(const DateTime T2)const;
 
 /*
 ~Operator /~
@@ -347,15 +347,15 @@ The allowed arguments are the same like in the ~Minus~ function.
 This Operator divides a DateTime by another dateTime
 
 */
-    double operator/(const DateTime T2);
+    double operator/(const DateTime T2)const;
 
 /*
 ~Operators for Comparisions~
 
 */
-    bool operator==(const DateTime T2);
-    bool operator<(const DateTime T2);
-    bool operator>(const DateTime T2);
+    bool operator==(const DateTime T2)const;
+    bool operator<(const DateTime T2)const;
+    bool operator>(const DateTime T2)const;
 
 /*
 ~Abs~
@@ -370,8 +370,8 @@ allowed for an instant type.
 The next two function are defined for any DateTime type.
 
 */
-     bool IsZero();
-     bool LessThanZero();
+     bool IsZero()const;
+     bool LessThanZero()const;
 
 /*
 ~Equalize~
@@ -388,7 +388,7 @@ This functions checks if the combination of the argument values
 build a valid date.
 
 */
-     bool IsValid(int year, int month, int day);
+     bool IsValid(const int year,const int month,const int day)const;
 
 /*
 ~Now~
@@ -424,9 +424,9 @@ an attribute of a relation.
      size_t HashValue();
      void CopyFrom(StandardAttribute* arg);
      DateTime* Clone();
-    void WriteTo( char *dest ) const;
-    void ReadFrom( const char *src );
-    SmiSize SizeOfChars() const;
+     void WriteTo( char *dest ) const;
+     void ReadFrom( const char *src );
+     SmiSize SizeOfChars() const;
     
 
 /*
@@ -438,7 +438,7 @@ After calling this function, {\tt offset} will holds the position
 behind the written data.
 
 */
-     void WriteToSmiRecord(SmiRecord& valueRecord, int& offset);
+     void WriteToSmiRecord(SmiRecord& valueRecord, int& offset)const;
 /*
 ~ReadFromSmiRecord~
 
@@ -456,7 +456,7 @@ This functions splits a duration into two ones at the specified position
 delta in [0,1]. 
 
 */
-  bool Split(double delta, DateTime& Rest);
+  bool Split(const double delta, DateTime& Rest);
 
   private:
     // the data-part of datetime
@@ -466,8 +466,8 @@ delta in [0,1].
     bool canDelete;
     TimeType type; // can be an instant or a duration
     // a few functions for internal use
-    long ToJulian(int year, int month, int day) const;
-    void ToGregorian(long Julian, int &year, int &month, int &day) const;
+    long ToJulian(const int year, const int month,const int day) const;
+    void ToGregorian(const long Julian, int &year, int &month, int &day) const;
 };
 
 namespace datetime{
