@@ -363,8 +363,8 @@ If value 0 is returned, the command was executed without error.
   }
   SecondoSystem::SetAlgebraLevel( level );
 
-  nl->WriteListExpr(list);
-  cout << endl;
+  nl->WriteListExpr(list, cerr);
+  cerr << endl;
   length = nl->ListLength( list );
   if ( length > 1 )
   {
@@ -433,7 +433,7 @@ If value 0 is returned, the command was executed without error.
     else if ( nl->IsEqual( nl->Second( list ), "database" ) )
     {
       if ( nl->IsEqual( first, "create" ) && (length == 3) &&
-           nl->IsAtom( nl->Third( list ) ) && 
+           nl->IsAtom( nl->Third( list ) ) &&
           (nl->AtomType( nl->Third( list ) ) == SymbolType) )
       {
         if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
@@ -442,7 +442,7 @@ If value 0 is returned, the command was executed without error.
         }
         else
         {
-          dbName = nl->SymbolValue( nl->Third( list ) ); 
+          dbName = nl->SymbolValue( nl->Third( list ) );
           if ( SecondoSystem::GetInstance()->CreateDatabase( dbName ) )
           {
             SecondoSystem::GetInstance()->CloseDatabase();
@@ -626,7 +626,7 @@ If value 0 is returned, the command was executed without error.
 
     // --- Type definition
 
-    else if ( nl->IsEqual( first, "type" ) && 
+    else if ( nl->IsEqual( first, "type" ) &&
              (length == 4) && nl->IsAtom( nl->Second( list ) ) && 
              (nl->AtomType( nl->Second( list )) == SymbolType) && 
               nl->IsEqual( nl->Third( list ), "=" ) )
@@ -640,7 +640,7 @@ If value 0 is returned, the command was executed without error.
           SecondoSystem::GetCatalog( level )->ExpandedType( typeExpr );
         if ( SecondoSystem::GetCatalog( level )->
                KindCorrect( typeExpr2, errorInfo ) )
-        { 
+        {
           if ( !SecondoSystem::GetCatalog( level )->
                  InsertType( typeName, typeExpr2 ) )
           {
@@ -761,7 +761,7 @@ If value 0 is returned, the command was executed without error.
 
     // --- Update object command
 
-    else if ( nl->IsEqual( first, "update" ) && (length == 4) && 
+    else if ( nl->IsEqual( first, "update" ) && (length == 4) &&
               nl->IsAtom( nl->Second( list )) &&
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), ":=" ) )
@@ -841,7 +841,7 @@ If value 0 is returned, the command was executed without error.
       else
       {
         errorCode = 6;        // no database open
-      } 
+      }
     }
 
 
