@@ -174,6 +174,11 @@ intstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Create integer stream. An example for creating a stream.
 
+Note that for any operator that produces a stream its arguments are NOT
+evaluated automatically. To get the argument value, the value mapping function
+needs to use ~qp->Request~ to ask the query processor for evaluation explicitly.
+This is illustrated in the value mapping functions below.
+
 */
 {
   struct Range {int current, last;}* range;
@@ -182,12 +187,17 @@ Create integer stream. An example for creating a stream.
   CcInt* i2;
   CcInt* elem;
 
+  Word arg0, arg1;
+
   switch( message )
   {
     case OPEN:
 
-      i1 = ((CcInt*)args[0].addr);
-      i2 = ((CcInt*)args[1].addr);
+      qp->Request(args[0].addr, arg0);
+      qp->Request(args[1].addr, arg0);
+
+      i1 = ((CcInt*)arg0.addr);
+      i2 = ((CcInt*)arg1.addr);
 
       range = new Range;
       range->current = i1->GetIntval();
@@ -331,16 +341,20 @@ operator and also for one calling a parameter function.
 */
 
 const string intstreamSpec =
-  "(<text>(int int) -> (stream int)</text---><text>Creates a stream of integers containing the numbers between the first and the second argument.</text--->)";
+  "(<text>(int int) -> (stream int)</text---><text>Creates a stream of integers"
+  "containing the numbers between the first and the second argument.</text--->)";
 
 const string countSpec =
-  "(<text>((stream x)) -> int</text---><text>Counts the number of elements of a stream.</text--->)";  
+  "(<text>((stream x)) -> int</text---><text>Counts the number of elements of"
+  "a stream.</text--->)";
 
 const string printintstreamSpec =
-  "(<text>((stream x)) -> (stream x)</text---><text>Prints the elements of an integer stream.</text--->)";  
+  "(<text>((stream x)) -> (stream x)</text--->"
+  "<text>Prints the elements of an integer stream.</text--->)";
 
 const string filterSpec =
-  "(<text>((stream x) (map x bool)) -> (stream x)</text---><text>Filters the elements of a stream by a predicate.</text--->)";  
+  "(<text>((stream x) (map x bool)) -> (stream x)</text--->"
+  "<text>Filters the elements of a stream by a predicate.</text--->)";
 
 /*
 Used to explain the signature and the meaning of operators.
