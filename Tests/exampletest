@@ -1,0 +1,144 @@
+# an example test spec for the Secondo TestRunner
+# run with : TestRunner -c MyConfig.config <exampletest
+# (TestRunner can be found in directory UserInterfaces)
+
+# a test specification consists of initial commands,
+# a section of commands setting up the test, a sequence of
+# test cases, and a section of commands cleaning up.  
+# the TestRunner uses directives to specify these sections.
+# directives are specified in comment lines,
+# all comment lines beginning with a directive
+# are interpreted as commands to the TestRunner,
+# non-comment lines are passed to Secondo.
+# the possible directives are
+# SETUP, TESTCASE, YIELDS and TEARDOWN
+# (here i have written the directives in upper case to 
+# avoid confusion, the real directives must be written in
+# lower case). the meanings of those directives are explained 
+# the following commented examples.
+
+
+# before the SETUP directive one can place Secondo commands
+# which may or may not suceed
+delete database mytestdb;
+
+# the SETUP directive may specify the name of the test
+# the SETUP directive must appear exactly once in test spec
+#setup exampletest
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed 
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the 
+# SETUP has failed)
+
+create database mytestdb;
+open database mytestdb;
+e
+
+# the conventions for commands are the same as in SecondoTTYBDB
+
+# make sure that commands are always terminated 
+# (either by a semicolon or by a newline)
+
+(create staedte : (rel(tuple((SName string)(Bev int)(PLZ int)
+(Vorwahl string)(Kennzeichen string)))))
+
+
+(update staedte := ((rel(tuple((SName string)(Bev int)(PLZ int) 
+(Vorwahl string)(Kennzeichen string))))   
+(("Aachen" 239000 5100 "0241" "AC")   
+("Dortmund" 572000 4600 "0231" "DO")
+("Hagen" 206000 5800 "02331" "HA")
+		("Krefeld" 217000 4150 "02151" "KR")    
+		("Muenster" 270000 4400 "0251" "MS")
+		("Nuernberg" 465000 8500 "0911" "N")
+		("Saarbruecken" 187000 6600 "0681" "SB")
+		("Stuttgart" 562000 7000 "0711" "S")
+		("Wiesbaden" 267000 6200 "06121" "WI")
+		("Wuerzburg" 128000 8700 "0931" "WUE")
+		("Wuppertal" 377000 5600 "0202" "W"))))    
+
+# a TESTCASE consists of a TESTCASE declarative followed
+# by a YIELDS declarative followed by a command.
+# multiple or no commands after a YIELD directive
+# will confuse the TestRunner
+
+# the expected output specified by the YIELD declarative
+# is converted to a ListExpr and the TestRunner compares
+# it to Secondo's actual output by calling  
+# NestedList->Equal 
+
+#testcase countTestcase
+#yields (int 11)
+query staedte feed count;
+
+# in the YIELDS directive one can also specify that a command 
+# is expected to result in an errror
+
+#testcase caseDoesMatter
+#yields error
+
+query Staedte count;
+
+#    testcase sumOfStaedte
+
+#     yields (int 3251000)
+query staedte feed sum[Bev]
+
+#testcase 
+#yields     error      
+query Staedte feed avg[Bev]
+
+# directives can be continued by placing a backslash at the end
+# of the line
+
+#    testcase StaedteQuery
+#     yields ((rel(tuple((SName string)(Bev int)(PLZ int)\
+	(Vorwahl string)(Kennzeichen string))))\
+		(("Aachen" 239000 5100 "0241" "AC")\
+		("Dortmund" 572000 4600 "0231" "DO")\
+		("Hagen" 206000 5800 "02331" "HA")\
+		("Krefeld" 217000 4150 "02151" "KR")\
+		("Muenster" 270000 4400 "0251" "MS")\
+		("Nuernberg" 465000 8500 "0911" "N")\
+		("Saarbruecken" 187000 6600 "0681" "SB")\
+		("Stuttgart" 562000 7000 "0711" "S")\
+		("Wiesbaden" 267000 6200 "06121" "WI")\
+		("Wuerzburg" 128000 8700 "0931" "WUE")\
+		("Wuppertal" 377000 5600 "0202" "W")))
+query staedte;
+
+# you do not have to specify a complete result in a YIELD
+# directive, you may also just specify that a command suceeds
+
+#    testcase StaedteQuery2
+#     yields     success          
+query staedte feed avg[Bev];
+
+#testcase Markus's Bug
+#yields success
+(query 1)
+
+# a demonstration of the various kinds of errors which can happen
+
+#testcase UnexpectedError
+#yields success
+query staedte feed;
+
+#testcase UnexpectedSuccess
+#yields error
+query staedte feed consume count;
+
+#testcase UnexpectedResult
+#yields (int 10)
+query staedte feed consume count;
+
+
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+#teardown
+
+close database;
+delete database mytestdb;
+
