@@ -10,11 +10,20 @@ include ../makefile.env
 all: makedirs
 
 .PHONY: makedirs
-makedirs:
+makedirs: makedirsnormal makedirsjni
+
+.PHONY: makedirsnormal
+makedirsnormal:
 	$(MAKE) -C NestedLists
 	$(MAKE) -C Parser
 	$(MAKE) -C Utilities
 	$(MAKE) -C TupleManager
+
+.PHONY: makedirsjni
+makedirsjni:
+ ifeq ($(USE_JNI),true)
+	$(MAKE) -C Jni
+ endif
 
 .PHONY: clean
 clean:
@@ -22,4 +31,5 @@ clean:
 	$(MAKE) -C Parser clean
 	$(MAKE) -C Utilities clean
 	$(MAKE) -C TupleManager clean
+	$(MAKE) -C Jni clean
 
