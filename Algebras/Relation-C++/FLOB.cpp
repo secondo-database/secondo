@@ -86,7 +86,7 @@ Brings a disk lob to memory, i.e., converts a flob in ~InDiskLarge~
 state to a ~InMemory~ state.
 
 */
-char *FLOB::BringToMemory()
+const char *FLOB::BringToMemory()
 {
 #ifdef PERSISTENT_FLOB
 

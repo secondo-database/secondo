@@ -58,7 +58,7 @@ public:
   void  Set( const char *newString );
   void  Set( bool newDefined, const char *newString );
   int TextLength() const;
-  string Get();
+  const char *Get();
 
 /*************************************************************************
 
@@ -155,10 +155,9 @@ int FText::TextLength() const
   return theText.Size() - 1;
 }
 
-string FText::Get()
+const char *FText::Get()
 {
-  string result = theText.BringToMemory();
-  return result;
+  return theText.BringToMemory();
 }
 
 /*
@@ -646,7 +645,7 @@ Value Mapping for the ~contains~ operator with two text operands.
 
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( ftext2->Get().c_str() ));
+  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( ftext2->Get() ));
           //the first argument says the boolean
           //value is defined, the second is the
           //real boolean value)
