@@ -2376,8 +2376,9 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
 
   CHECK_COND(nl->IsAtom(rtreeKeyType), errmsg);
   CHECK_COND(nl->AtomType(rtreeKeyType) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(rtreeKeyType) == "point" ||
-             nl->SymbolValue(rtreeKeyType) == "points", errmsg);
+  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo;
+  CHECK_COND(algMgr->CheckKind("SPATIAL", rtreeKeyType, errorInfo), errmsg);
 
   /* handle rtree type constructor */
   CHECK_COND(nl->IsAtom(rtreeSymbol), errmsg);
