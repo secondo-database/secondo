@@ -9,10 +9,10 @@ import  javax.swing.tree.*;
 import  viewer.HoeseViewer;
 
 
-/** 
+/**
  * A class for editing categories based on swing's JDialog
  * @author  hoese
- * @version 
+ * @version
  */
 public class CategoryEditor extends javax.swing.JDialog {
   /** A link to the main application window */
@@ -26,7 +26,10 @@ public class CategoryEditor extends javax.swing.JDialog {
   /** The internal File-object for the icon */
   private File Iconfile;
 
-  /** Creates new instance of a CategoryEditor 
+ /** a FileChooser to load textures */
+  private static  JFileChooser Texture_FileChooser=new JFileChooser();
+
+ /** Creates new instance of a CategoryEditor
   * @param parent The main application JFrame
   * @param modal True if modal dialog
   * @see <a href="CategoryEditorsrc.html#CategoryEditor1">Source</a>
@@ -48,10 +51,15 @@ public class CategoryEditor extends javax.swing.JDialog {
     pack();
   }
 
+  /** set the directory for textures */
+  public static void setTextureDirectory(File dir){
+     Texture_FileChooser.setCurrentDirectory(dir);
+  }
+
   /**
    * Constructor for editing graph. objects category
    * @param   HoeseViewer aparent
-   * @param   boolean modal 
+   * @param   boolean modal
    * @param   Category Cat actual category to edit
   * @see <a href="CategoryEditorsrc.html#CategoryEditor2">Source</a>
    */
@@ -451,11 +459,9 @@ public class CategoryEditor extends javax.swing.JDialog {
   * @see <a href="CategoryEditorsrc.html#TextureIconBActionPerformed">Source</a>
    */
   private void TextureIconBActionPerformed (java.awt.event.ActionEvent evt) {                   //GEN-FIRST:event_TextureIconBActionPerformed
-    final JFileChooser fc = new JFileChooser(System.getProperty("user.dir")
-        + "/images");
-    int returnVal = fc.showOpenDialog(this);
+    int returnVal = Texture_FileChooser.showOpenDialog(this);
     if (returnVal == JFileChooser.APPROVE_OPTION) {
-      Iconfile = fc.getSelectedFile();
+      Iconfile = Texture_FileChooser.getSelectedFile();
       TextureIconB.setIcon(new ImageIcon(Iconfile.getPath()));
     }
   }             //GEN-LAST:event_TextureIconBActionPerformed

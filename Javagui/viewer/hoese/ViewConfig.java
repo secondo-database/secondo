@@ -59,7 +59,7 @@ public class ViewConfig extends javax.swing.JDialog {
     RefAList = getRefAttrList();
     initComponents();
     pack();
-    setSize(500,300);
+    setSize(500,400);
     setResizable(true);
   }
 

@@ -23,13 +23,13 @@ public LinkAttrCat(HoeseViewer HV){
    AttrList =  new JList(AListModel);
    CListModel = new CatListModel();
    CatList = new JList(CListModel);
-   P.add(AttrList);   
+   P.add(AttrList);
    P.add(CatList);
    JScrollPane SP = new JScrollPane(P);
    JPanel P2 = new JPanel();
    P2.add(ComboBox);
    SetBtn = new JButton("set");
-   P2.add(SetBtn);   
+   P2.add(SetBtn);
 
    CatEditBtn = new JButton("category editor");
    CatEditBtn.addActionListener(new ActionListener(){
@@ -39,13 +39,22 @@ public LinkAttrCat(HoeseViewer HV){
         if(LinkAttrCat.this.HV.Cats.size()!= ComboBox.getItemCount())
           setCategories(LinkAttrCat.this.HV.Cats);
        }});
-       
-   P2.add(CatEditBtn);    
 
+   P2.add(CatEditBtn);
    
+   JPanel P3 = new JPanel();
+   CloseBtn = new JButton("OK");
+   P3.add(CloseBtn);
+
    getContentPane().add(P2,BorderLayout.NORTH);
    getContentPane().add(SP,BorderLayout.CENTER);
+   getContentPane().add(P3,BorderLayout.SOUTH);
    
+   CloseBtn.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent e){
+          LinkAttrCat.this.setVisible(false);
+      }});	  
+
    ListSelectionListener LSL = new ListSelectionListener(){
      public void valueChanged(ListSelectionEvent evt){
         int AttrIndex = AttrList.getSelectedIndex();
@@ -57,40 +66,40 @@ public LinkAttrCat(HoeseViewer HV){
           if(source.equals(CatList))
              AttrList.setSelectedIndex(CatIndex);
         }
-     
+
      }
-   
+
    };
    CatList.addListSelectionListener(LSL);
    AttrList.addListSelectionListener(LSL);
-   
+
    SetBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
          setCat();
-       }});  
-   
+       }});
+
 }
 
 
 /* set the available categories.
    all Categories in v are inserted other
    objects are ignored
- */  
+ */
 public void setCategories(Vector v){
    ComboBox.removeAllItems();
    if(v==null)
       return;
-   Object o;   
+   Object o;
    for(int i=0;i<v.size();i++){
       o=v.get(i);
       if(o instanceof Category)
          ComboBox.addItem(o);
-   }      
+   }
    if(v.size()>0){
      DefaultCategory = (Category) ComboBox.getItemAt(0);
      if(!CListModel.isDefined())
         CListModel.setStandard(DefaultCategory,AListModel.getSize());
-   }  
+   }
 }
 
 
@@ -102,7 +111,7 @@ private int getIndexOf(Category Cat){
         pos = i;
         found = true;
      }
-  return pos;   
+  return pos;
 }
 
 
@@ -118,8 +127,8 @@ public void setDefaultCat(Category Cat){
    if(Cat==null) return;
    if(getIndexOf(Cat)>=0){
       DefaultCategory = Cat;
-      CListModel.setStandard(Cat,AListModel.getSize());  
-   }   
+      CListModel.setStandard(Cat,AListModel.getSize());
+   }
 }
 
 
@@ -135,7 +144,7 @@ private void setCat(){
      MessageBox.showMessage("no attribute value selected");
      return;
   }
-  CListModel.set(TheCat,index);  
+  CListModel.set(TheCat,index);
 }
 
 
@@ -153,14 +162,14 @@ public Category getCategory(ListExpr LE){
           found = true;
           result = (Category)ComboBox.getItemAt(i);
        }
-    return result;   
+    return result;
   }
 }
 
 
 public void setRefName(String Name){
    RefName = Name;
-}   
+}
 public String getRefName(){
    return  RefName;
 }
@@ -172,10 +181,11 @@ private JList CatList;
 private Category DefaultCategory;
 private AttrListModel AListModel;
 private CatListModel CListModel;
-private String RefName=""; // name of attribute 
+private String RefName=""; // name of attribute
 private JButton SetBtn;
 private HoeseViewer HV; // needed to show a CategoryEditor
 private JButton CatEditBtn;
+private JButton CloseBtn;
 
 
 
@@ -184,25 +194,25 @@ private JButton CatEditBtn;
 
 
 private class AttrListModel implements ListModel{
-  
+
   public void addListDataListener(ListDataListener LDL){
      if(LDL!=null && !LDLs.contains(LDL))
         LDLs.add(LDL);
   }
-  
+
   public void removeListDataListener(ListDataListener LDL){
     if(LDL!=null)
        LDLs.remove(LDL);
   }
 
-  
-  
+
+
   public Object getElementAt(int index){
      if(index<0 || index  > Datas.size())
         return null;
-     else return Datas.get(index);   
+     else return Datas.get(index);
   }
-  
+
   /* transform a ListExpr to a simple String */
   private String getListString(ListExpr LE){
      if(LE==null) return "";
@@ -226,8 +236,8 @@ private class AttrListModel implements ListModel{
     String SLE = getListString(LE);
     return Datas.indexOf(SLE);
   }
-  
-  
+
+
   /* reads all entry for the List from given ListExpr */
   public void setDatas(ListExpr LE){
      Datas.clear();
@@ -240,17 +250,17 @@ private class AttrListModel implements ListModel{
           if(!entry.equals(""))
              Datas.add(entry);
      }
-     
-     
+
+
      while(!Rest.isEmpty()){
         entry =  getListString(Rest.first());
         if(!entry.equals("") && !Datas.contains(entry))
            Datas.add(entry);
-        Rest = Rest.rest();   
+        Rest = Rest.rest();
      }
      informLDLs();
   }
-  
+
   public int getSize(){
      return  Datas.size();
   }
@@ -260,10 +270,10 @@ private class AttrListModel implements ListModel{
         Object o = LDLs.get(i);
         ListDataListener LDL = (ListDataListener)o;
         LDL.contentsChanged(new ListDataEvent(this,ListDataEvent.CONTENTS_CHANGED,0,0));
-    }    
+    }
   }
-  
-  
+
+
   private Vector LDLs = new Vector();
   private Vector Datas = new Vector();
 

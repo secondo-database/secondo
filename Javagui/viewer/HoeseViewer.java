@@ -127,6 +127,7 @@ public class HoeseViewer extends SecondoViewer {
   private javax.swing.JMenuItem MIMoveBottom;
   private JMenuItem MIZoomOut;
   private JMenuItem MIZoomMinus;
+  private JMenuItem MIZoomPlus;
   private JRadioButtonMenuItem RBMICustTI;
   private AbstractAction AAZoomOut;
   private AbstractAction AACatEdit;
@@ -155,7 +156,7 @@ public class HoeseViewer extends SecondoViewer {
       System.err.println("Error loading L&F: " + exc);
     }
 
-    init(); 
+    init();
     Cats = new Vector(30, 10);
     context = new ContextPanel(this);
     Cats.add(Category.getDefaultCat());
@@ -172,8 +173,8 @@ public class HoeseViewer extends SecondoViewer {
         } else{
          if(!readAllCats(le))
             MessageBox.showMessage("no categories in file "+FileName);
-        }  
-      }   
+        }
+      }
     }
     initComponents();
 
@@ -183,7 +184,7 @@ public class HoeseViewer extends SecondoViewer {
     actTimeLabel = new JLabel("No Time");
     actTimeLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
     actTimeLabel.setForeground(Color.black);
-   
+
     JToolBar jtb = new JToolBar();
     jtb.putClientProperty("JToolBar.isRollover", Boolean.TRUE);
     jtb.setFloatable(false);
@@ -229,8 +230,8 @@ public class HoeseViewer extends SecondoViewer {
           p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(),p);
         } catch (Exception ex) {}
 
-        MouseKoordLabel.setText(Double.toString(p.getX()).concat("       ").substring(0, 
-            7) + "/" + Double.toString(p.getY()).concat("       ").substring(0, 
+        MouseKoordLabel.setText(Double.toString(p.getX()).concat("       ").substring(0,
+            7) + "/" + Double.toString(p.getY()).concat("       ").substring(0,
             7));
       }
     });
@@ -492,30 +493,33 @@ public class HoeseViewer extends SecondoViewer {
 
     MIsetKontext = jMenuGui.add(AAContext);
 
-    AAZoomOut = new AbstractAction("Zoom out"){ 
+    AAZoomOut = new AbstractAction("Zoom out"){
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         double zf = 1/ZoomFactor;
         ZoomFactor = 1;
         ClipRect = null;
         Point p = GeoScrollPane.getViewport().getViewPosition();
         updateViewParameter();
-        GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf), 
+        GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),
             (int)(p.getY()*zf)));
       }
     };
     MIZoomOut = jMenuGui.add(AAZoomOut);
+    MIZoomOut.setAccelerator(KeyStroke.getKeyStroke("alt Z"));
 
     MIZoomMinus = new JMenuItem("Zoom -");
+    MIZoomMinus.setAccelerator(KeyStroke.getKeyStroke("alt MINUS"));
+
     MIZoomMinus.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         double zf = 0.75;
-        if (ZoomFactor*zf < 1.3) {
+        if (ZoomFactor*zf < 1) {
           zf = 1/ZoomFactor;
           ZoomFactor = 1;
           ClipRect = null;
           Point p = GeoScrollPane.getViewport().getViewPosition();
           updateViewParameter();
-          GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf), 
+          GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),
               (int)(p.getY()*zf)));
           return;
         }
@@ -533,18 +537,65 @@ public class HoeseViewer extends SecondoViewer {
           if (hasBackImage)
             LayerSwitchBar.remove(0);
           if (context.ImagePath != null)
-            addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf, 
-                context.getMapOfs().getY()*zf), 0); 
-          else 
+            addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf,
+                context.getMapOfs().getY()*zf), 0);
+          else
             GraphDisplay.createBackLayer(null, 0, 0);
         }
         Point p = GeoScrollPane.getViewport().getViewPosition();
-        GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf), 
-            (int)(p.getY()*zf)));
+	Rectangle VP = GeoScrollPane.getViewport().getViewRect();
+	int x = (int)p.getX();
+	int y = (int)p.getY();
+	x = (int)(((x+VP.width/2)*zf)-VP.width/2);
+	y = (int)(((y+VP.height/2)*zf)-VP.height/2);
+	//GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
+        GeoScrollPane.getViewport().setViewPosition(new Point(x,y));
         GraphDisplay.repaint();
       }
     });
+
     jMenuGui.add(MIZoomMinus);
+
+
+
+    MIZoomPlus = new JMenuItem("Zoom +");
+    MIZoomPlus.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed (java.awt.event.ActionEvent evt) {
+        double zf = 1.25;
+        ZoomFactor *= zf;
+        double m[] = new double[6];
+        allProjection.getMatrix(m);
+        m[0] *= zf;
+        m[3] *= zf;
+        m[4] *= zf;
+        m[5] *= zf;
+        allProjection = new AffineTransform(m);
+        BBoxDC.setSize((int)(BBoxDC.getWidth()*zf), (int)(BBoxDC.getHeight()*zf));
+        GraphDisplay.updateLayersSize(BBoxDC);
+        if (!context.AutoProjRB.isSelected()) {
+          if (hasBackImage)
+            LayerSwitchBar.remove(0);
+          if (context.ImagePath != null)
+            addSwitch(GraphDisplay.createBackLayer(context.ImagePath, context.getMapOfs().getX()*zf,
+                context.getMapOfs().getY()*zf), 0);
+          else
+            GraphDisplay.createBackLayer(null, 0, 0);
+        }
+        Point p = GeoScrollPane.getViewport().getViewPosition(); // left-top
+	Rectangle VP = GeoScrollPane.getViewport().getViewRect();
+	int x = (int)p.getX();
+	int y = (int)p.getY();
+	x = (int)(((x+VP.width/2)*zf)-VP.width/2);
+	y = (int)(((y+VP.height/2)*zf)-VP.height/2);
+        //GeoScrollPane.getViewport().setViewPosition(new Point((int)(p.getX()*zf),(int)(p.getY()*zf)));
+        GeoScrollPane.getViewport().setViewPosition(new Point(x,y));
+        GraphDisplay.repaint();
+      }
+    });
+
+
+    MIZoomPlus.setAccelerator(KeyStroke.getKeyStroke("alt PLUS"));
+    jMenuGui.add(MIZoomPlus);
 
 
     MILayerMgmt.setText("Layer management");
@@ -1486,7 +1537,7 @@ public boolean canDisplay(SecondoObject o){
         qr = (QueryResult)cb.getSelectedItem();
         //qr.clearSelection();
         qr.setSelectedValue(Obj2sel, true);
-        TextDisplay.ensureSelectedIndexIsVisible();    
+        TextDisplay.ensureSelectedIndexIsVisible();
       }
     }
   }
@@ -1529,7 +1580,7 @@ public boolean canDisplay(SecondoObject o){
     boolean success=true;
     configuration = new Properties();
     try {
-      FileInputStream Cfg = new FileInputStream(CONFIGURATION_FILE); 
+      FileInputStream Cfg = new FileInputStream(CONFIGURATION_FILE);
       configuration.load(Cfg);
       Cfg.close();
       }
@@ -1541,20 +1592,24 @@ public boolean canDisplay(SecondoObject o){
        String CatPath = configuration.getProperty("CATEGORY_PATH");
        if(CatPath!=null)
           FC_Category.setCurrentDirectory(new File(CatPath));
-          
+
        String SessionPath = configuration.getProperty("SESSION_PATH");
        if(SessionPath!=null)
           FC_Session.setCurrentDirectory(new File(SessionPath));
+	  
+       String TexturePath = configuration.getProperty("TEXTURE_PATH");
+       if(TexturePath!=null)
+              CategoryEditor.setTextureDirectory(new File(TexturePath));
     }
-    
+
 
  }
 
 
-  
-/** This class manages animation-events * @see <a href="MainWindowsrc.html#MainWindow">Source</a> 
-   * @see <a href="MainWindowsrc.html#AnimCtrlListener">Source</a> 
-   */ 
+
+/** This class manages animation-events * @see <a href="MainWindowsrc.html#MainWindow">Source</a>
+   * @see <a href="MainWindowsrc.html#AnimCtrlListener">Source</a>
+   */
   class AnimCtrlListener
       implements ActionListener {
     int inc = 1;
@@ -1571,17 +1626,17 @@ public boolean canDisplay(SecondoObject o){
           ListIterator li = TimeObjects.listIterator();
           while (li.hasNext()) {
             Timed t = (Timed)li.next();
-            min = Math.min(Interval.getMinGT(t.getIntervals(), (double)v/1440.0), 
+            min = Math.min(Interval.getMinGT(t.getIntervals(), (double)v/1440.0),
                 min);
           }
           if (min < Integer.MAX_VALUE) {
             TimeSlider.setValue(min);
             AnimTimer.setDelay((1000 - TimeObjects.size() < 50) ? 50 : 1000
                 - TimeObjects.size());
-          } 
-          else 
+          }
+          else
             AnimTimer.stop();
-        } 
+        }
         else {
           inc = dir*TimeSlider.getUnitIncrement();
           TimeSlider.setValue(v + inc);
