@@ -6,26 +6,43 @@
 
 include ../makefile.env
 
-CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
-TESTRULES := \
-	tprefetch\
-	tctable\
-	tpctable\
-	tfilesystem\
-	tprofiles\
-	tsmi\
-	tsock1\
-	tsock2\
-	tsock3\
-	TupleTestBDB\
-	tdlmain\
-	tnestedlist\
-	pnltest\
-	tnlcopy\
-	tparray
 
-TESTFILES := $(addsuffix $(EXEEXT), $(TESTRULES)) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
+# Add the base name of your .cpp file here. The deafult rules should
+# compile and link it, otherwise add special rules
+
+# Nested List and Compact Tables
+TESTNAMES += tctable tpctable tnestedlist
+
+# Some Tools
+TESTNAMES += tfilesystem tprofiles
+
+# Storage Mangement Interface
+TESTNAMES += tsmi tsmi3
+
+# Socket Communication
+TESTNAMES += tsock1 tsock2 tsock3
+
+# Dynamic Library Module 
+TESTNAMES += tdlmain
+
+# Tool for Log Messages 
+TESTNAMES += itlogmsg
+
+# Persistent Array
+#TESTNAMES += tparray
+
+# Prefetch Iterator
+#TESTNAMES += tprefetch
+
+# Tuple Manager
+#TESTNAMES += TupleTestBDB
+
+
+TESTFILES := $(addsuffix $(EXEEXT), $(TESTNAMES)) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
+
+CODE_FILES =$(shell echo *.cpp)
+CODE_DEPENDENCIES = $(patsubst %.cpp, %.dep, $(CODE_FILES))
 
 ifndef file
 OBJECTS = $(TESTFILES)
@@ -37,78 +54,29 @@ endif
 .PHONY: all 
 all:  $(OBJECTS)
 
-.PHONY: copy
-copy: $(OBJECTS)
-	$(CP) $(OBJECTS) $(BINDIR) 
+# create dependencies from include directives
+%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< > $@
 
 
-# --- Storage Management Interface library ---
+CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS) $(myflags)
 
-ifeq ($(shared),yes)
-# ... as shared object
-ifeq ($(platform),win32)
-LDOPT = -Wl,--auto-import
-endif
-endif
+# some default rules
+%$(EXEEXT): %.cpp libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT) libsdbutils.$(LIBEXT)
+	g++ -o $@ $< $(CCFLAGS) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(BDBSMILIB) $(DEFAULTLIB)
+
+%$(EXEEXT): %.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
+%.$(OBJEXT): %.cpp
+	$(CC) -c -o $@ $< $(CCFLAGS)
+
 
 # TupleManager
-SecondoTestFrame.o: SecondoTestFrame.cpp Application.h Profiles.h FileSystem.h SecondoSystem.h SecondoInterface.h SecondoSMI.h NestedList.h DisplayTTY.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
 
 TupleTestBDB$(EXEEXT): SecondoTestFrame.o ../UserInterfaces/DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT)  
 	$(LD) $(EXEFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
-# Test CTable module
-
-tctable$(EXEEXT): tctable.cpp CTable.h CTable.cpp
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) $(DEFAULTLIB)
-
-tpctable$(EXEEXT): tpctable.cpp CTable.h PCTable.cpp
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) -L$(LIBDIR) $(SDBLIB) -lsdbtool $(BDBSMILIB) -lsdbutils $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
-
-# Test Nested List module
-
-tnestedlist$(EXEEXT): tnestedlist.cpp NestedList.h 
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS)  -L$(LIBDIR) $(SDBLIB) -lsdbtool $(BDBSMILIB) -lsdbutils $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
-
-
-# Test filesystem module
-
-tfilesystem$(EXEEXT): tfilesystem.o ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-
-tfilesystem.o: tfilesystem.cpp SecondoConfig.h FileSystem.h
-	$(CC) -c -o  $@ $<  $(CCFLAGS)
-
-# Test profiles module
-
-tprofiles$(EXEEXT): tprofiles.o ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-
-tprofiles.o: tprofiles.cpp Profiles.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-# Test SMI module
-
-tsmi$(EXEEXT): tsmi.o libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
-
-tsmi.o: tsmi.cpp SecondoConfig.h SecondoSMI.h ../StorageManager/SmiBDB.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-tsmi3$(EXEEXT): tsmi3.o libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
-
-tsmi3.o: tsmi3.cpp SecondoConfig.h SecondoSMI.h ../StorageManager/SmiBDB.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-# prefetch testing
-
-tprefetch$(EXEEXT): tprefetch.o libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
-
-tprefetch.o: tprefetch.cpp SecondoConfig.h SecondoSMI.h ../StorageManager/SmiBDB.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
 
 # Test Dynamic Library module
 
@@ -123,51 +91,15 @@ libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT): tdlmain.o tdynlib1.$(DLLOBJEXT) tdy
 	$(LD) $(DLLFLAGS) -o libtdynlib2.$(DLLEXT) $(LDOPT2) tdynlib2.$(DLLOBJEXT) -L. -ltdynlib1 -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 
-tdlmain$(EXEEXT): tdlmain.o
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-
-tdlmain.o: tdlmain.cpp SecondoConfig.h DynamicLibrary.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
 tdynlib1.$(DLLOBJEXT): tdynlib1.cpp
 	$(CC) -c $(DLLPICFLAG) -o tdynlib1.$(DLLOBJEXT) tdynlib1.cpp $(CCFLAGS)
 
 tdynlib2.$(DLLOBJEXT): tdynlib2.cpp
 	$(CC) -c $(DLLPICFLAG) -o tdynlib2.$(DLLOBJEXT) tdynlib2.cpp $(CCFLAGS)
 
-# Test Socket I/O module
 
-tsock1$(EXEEXT): tsock1.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-
-tsock1.o: tsock1.cpp SecondoConfig.h SocketIO.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-tsock2$(EXEEXT): tsock2.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-
-tsock2.o: tsock2.cpp SecondoConfig.h SocketIO.h
-	$(CC) -c -o $@ $< $(CCFLAGS)
-
-tsock3$(EXEEXT): tsock3.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-
-tsock3.o: tsock3.cpp SecondoConfig.h SocketIO.h
-	$(CC) -c -o $@ $<  $(CCFLAGS)
-
-
-# default rule
-%$(EXEEXT) : %.cpp libsdbtool.$(LIBEXT)
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS)  -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-
-# Test Persistent Array Module
-
-tparray$(EXEEXT): tparray.o libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
-
-tparray.o: tparray.cpp PArray.h SecondoConfig.h ../StorageManager/SmiBDB.h SecondoSMI.h
-	$(CC) -c -o $@ $<  $(CCFLAGS) 
+include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:
-	$(RM) *.o *.lo *.a *.so *.dll $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))
+	$(RM) *.$(OBJEXT) $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))
