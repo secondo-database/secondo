@@ -885,32 +885,87 @@ static ListExpr RelProp ()
 */
 typedef CTable<CcTuple*>* Relation;
 
+class CcRel;
+
+class CcRelIT
+{  
+  CTable<CcTuple*>::Iterator rs;
+  CcRel* r; 
+  public :
+    
+  CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r);
+  ~CcRelIT ();
+  CcRelIT& operator=(CcRelIT& right);
+  
+  CcTuple* GetTuple();
+  void Next();
+  bool EndOfScan(); 
+  CcTuple* GetNextTuple();
+    
+};
+
 class CcRel
 {
+  friend class CcRelIT;
+
   private:
 
     int NoOfTuples;
     Relation TupleList;
-    CTable<CcTuple*>::Iterator rs;
 
   public:
 
     CcRel () {NoOfTuples = 0; TupleList = new CTable<CcTuple*>(100);};
     ~CcRel () { delete TupleList; };
-    void    NewScan() {rs = TupleList->Begin();};
-    bool    EndOfScan() {return (rs == TupleList->End());};
-    void    NextScan() {(rs)++;};
-    CcTuple* GetTuple() {return ((CcTuple*)(*rs));};
+    
     void    AppendTuple (CcTuple* t)
     {
       TupleList->Add(t);
       NoOfTuples++;
     };
+    
+    CcRelIT* MakeNewScan()
+    {
+    	return new CcRelIT(TupleList->Begin(), this);
+    }
 
     void    SetNoTuples (int notuples) {NoOfTuples = notuples;};
     int     GetNoTuples () {return NoOfTuples;};
 
 };
+
+CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r) 
+{ 
+	this->rs = rs;
+	this->r = r;	
+}
+
+CcRelIT::~CcRelIT () {};  
+CcTuple* CcRelIT::GetTuple() {return ((CcTuple*)(*rs));};
+void CcRelIT::Next() { rs++; };
+bool CcRelIT::EndOfScan() { return ( rs == (r->TupleList)->End() ); }; 
+CcRelIT& CcRelIT::operator=(CcRelIT& right)
+{
+	rs = right.rs;
+	r = right.r;
+	return (*this);
+	
+};
+    
+CcTuple* CcRelIT::GetNextTuple()
+{
+	if( rs == (r->TupleList)->End() )
+	{
+		return 0;
+	}
+	else
+	{
+		CcTuple* result = *rs;
+		rs++;
+		return result;
+	}
+}
+    
 /*
 
 1.4.2 ~Out~-function of type constructor ~rel~
@@ -920,14 +975,15 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
 {
   CcTuple* t;
   ListExpr l, lastElem, tlist, TupleTypeInfo;
+  
   CcRel* r = (CcRel*)(value.addr);
 
-  r->NewScan();
+  CcRelIT* rit = r->MakeNewScan();
   l = nl->TheEmptyList();
 
-  while (!r->EndOfScan())
+  //cout << "OutRel " << endl;
+  while ( (t = rit->GetNextTuple()) != 0 )
   {
-    t = r->GetTuple();
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
 	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = OutTuple(TupleTypeInfo, SetWord(t));
@@ -938,7 +994,6 @@ ListExpr OutRel(ListExpr typeInfo, Word  value)
     }
     else
       lastElem = nl->Append(lastElem, tlist);
-    r->NextScan();
   }
   return l;
 
@@ -991,6 +1046,7 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
   count = 0;
   rel = new CcRel();
 
+  //cout << "InRel " << endl;
   tuplelist = value;
   TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
 	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
@@ -1029,12 +1085,6 @@ static Word InRel(ListExpr typeInfo, ListExpr value,
       nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
     }
     else rel->SetNoTuples(count);
-
-    rel->NewScan();
-    while (! rel->EndOfScan())
-    {
-      rel->NextScan();
-    }
     return (SetWord((void*)rel));
   }
 
@@ -1055,13 +1105,12 @@ void DeleteRel(Word& w)
   Word v;
 
   r = (CcRel*)w.addr;
-  r->NewScan();
-  while (!r->EndOfScan())
+  //cout << "DeleteRel " << endl;
+  CcRelIT* rit = r->MakeNewScan();
+  while ( (t = rit->GetNextTuple()) != 0 )
   {
-    t = r->GetTuple();
     v = SetWord(t);
     DeleteTuple(v);
-    r->NextScan();
   }
   delete r;
 }
@@ -1480,23 +1529,28 @@ static int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
  CcRel* r;
+ CcRelIT* rit;
 
   switch (message)
   {
     case OPEN :
 
+      //cout << "Feed OPEN " << endl;
       r = ((CcRel*)args[0].addr);
-      r->NewScan();
-      local.addr = r;
+      rit = r->MakeNewScan();
+      
+      local.addr = rit;
       return 0;
 
     case REQUEST :
 
-      r = (CcRel*)local.addr;
-      if (!(r->EndOfScan()))
+      //cout << "Feed REQUEST " << endl;
+      rit = (CcRelIT*)local.addr;
+      if (!(rit->EndOfScan()))
       {
-        result = SetWord(r->GetTuple()->CloneIfNecessary());
-        r->NextScan();
+        //cout << "Tuple: " << (CcTuple)(*(rit->GetTuple())) << endl;
+        result = SetWord(rit->GetTuple()->CloneIfNecessary());
+        rit->Next();
         return YIELD;
       }
       else
@@ -1505,7 +1559,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-
+    
+      //cout << "Feed CLOSE " << endl;
       return 0;
   }
   return 0;
@@ -1574,6 +1629,7 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   Word actual;
   CcRel* rel;
 
+  //cout << "Consume " << endl;
   rel = (CcRel*)((qp->ResultStorage(s)).addr);
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
@@ -1778,11 +1834,13 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case OPEN:
 
+      //cout << "TFilter OPEN " << endl;
       qp->Open (args[0].addr);
       return 0;
 
     case REQUEST:
 
+      //cout << "TFilter REQUEST " << endl;
       funargs = qp->Argument(args[1].addr);
       qp->Request(args[0].addr, elem);
       found = false;
@@ -1812,6 +1870,7 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
 
+      //cout << "TFilter CLOSE " << endl;
       qp->Close(args[0].addr);
       return 0;
   }
@@ -5080,8 +5139,8 @@ int GroupByValueMapping
 
       t = new CcTuple;
       t->SetFree(true);
-      tp->NewScan();
-      s = tp->GetTuple();
+      //tp->NewScan();
+      //s = tp->GetTuple();
 
       for(i = 0; i < numberatt; i++)
       {
@@ -5094,7 +5153,7 @@ int GroupByValueMapping
 
       for(ind = 0; ind < noOffun; ind++)
       {
-        tp->NewScan();
+        //tp->NewScan();
         supplier1 = qp->GetSupplier(value2, ind);
         supplier2 = qp->GetSupplier(supplier1, 1);
         vector = qp->Argument(supplier2);
