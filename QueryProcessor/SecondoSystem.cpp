@@ -26,6 +26,9 @@ August 2002 Ulrich Telle Added methods to set and get the current algebra level.
 
 April 29 2003 Hoffmann Added methods for saving and restoring single objects.
 
+April 2004 Hoffmann Changed some implementation details, so that the list databases 
+command is available under Windows XP.
+
 This module implements those parts of the "Secondo"[3] catalog which
 are independent of the algebra level (descriptive or executable).
 
@@ -76,17 +79,34 @@ Creates a scan on the table of database names and returns the names of existing 
 */
   ListExpr list, lastElem = 0;
   string dbName;
+  char dbNametmp[1024];
   list = nl->TheEmptyList();
-  while (SmiEnvironment::ListDatabases( dbName ))
+  unsigned int i=0, j=0;
+  
+  if (SmiEnvironment::ListDatabases( dbName ))
   {
-    if ( list == nl->TheEmptyList() )
+    while ( i < dbName.length() )
     {
-      list = nl->OneElemList( nl->SymbolAtom( dbName ) );
-      lastElem = list;
-    }
-    else
-    {
-      lastElem = nl->Append( lastElem, nl->SymbolAtom( dbName ) );
+      if ( dbName[i] != '#' )
+      {
+        dbNametmp[j] = dbName[i];
+        j++;
+      }
+      else
+      {
+        dbNametmp[j] = '\0';
+        if ( list == nl->TheEmptyList() )
+        {
+          list = nl->OneElemList( nl->SymbolAtom( dbNametmp ) );
+          lastElem = list;
+        }
+        else
+        {
+          lastElem = nl->Append( lastElem, nl->SymbolAtom( dbNametmp ) );
+        }
+        j = 0;
+      }
+      i++;
     }
   }
   return (list);
