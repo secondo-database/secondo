@@ -1395,7 +1395,8 @@ as an attribute.
     int      Sizeof() ;
     //CRegion*    Clone() ;
     ostream& Print( ostream &os );
-    
+    void     Clear();
+
   private:
 /*
 7.13 Private member functions

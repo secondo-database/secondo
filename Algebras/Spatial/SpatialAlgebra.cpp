@@ -224,7 +224,7 @@ size_t   Point::HashValue()
 }
 
 void  Point::CopyFrom(StandardAttribute* right)
-{ cout<<"classcopy ////////////////////"<<endl;
+{ //cout<<"point copy1 ////////////////////"<<endl;
     
   Point * p = (Point*)right;
   defined = p->IsDefined();
@@ -232,6 +232,7 @@ void  Point::CopyFrom(StandardAttribute* right)
   {
       Set( true, p->GetX(), p->GetY());
   }
+  //cout<<*this<<" .vs. "<<*p<<endl;
 }
 
 int   Point::Compare(Attribute * arg)
@@ -265,8 +266,11 @@ int  Point::Sizeof()
 }
 
 Point*  Point::Clone()
-{  cout<<"classclone ////////////////////"<<endl;
-    return (new Point( *this));
+{  //cout<<"point clone1 ////////////////////"<<endl;
+    Point* newp=new Point( *this);
+    //cout<<*this<<" .vs. "<<*newp<<endl;
+    return (newp);
+    //return (new Point( *this));
 }
 
 ostream& Point::Print( ostream &os )
@@ -571,7 +575,7 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
 */
 static Word
 CreatePoint( const ListExpr typeInfo )
-{
+{ cout<<"create point2"<<endl;
   return (SetWord( new Point() ));
 }
 
@@ -603,7 +607,7 @@ ClosePoint( Word& w )
 */
 static Word
 ClonePoint( const Word& w )
-{ cout<<"typeclone ////////////////////"<<endl;
+{ cout<<"point clone2 ////////////////////"<<endl;
   assert( ((Point *)w.addr)->IsDefined() );
   Point *p = new Point( *((Point *)w.addr) );
   return SetWord( p );
@@ -4444,6 +4448,7 @@ void*  CRegion::GetValue()
 
 size_t   CRegion::HashValue()
 {
+    cout<<"cregion hashvalue1*******"<<endl;
     if(IsEmpty())  return (0);
     unsigned long h=0;
     
@@ -4472,22 +4477,33 @@ size_t   CRegion::HashValue()
     return size_t(h);
 }
 
+void  CRegion::Clear()
+{
+    region->Clear();
+    pos=-1;
+    ordered=true;
+}
+
 void  CRegion::CopyFrom(StandardAttribute* right)
 {
+    //cout<<"cregion copyfrom1*******"<<endl;
     CRegion * cr = (CRegion*)right;
     ordered = true;
     assert( cr->IsOrdered());
-
+    //I think that here the PArray region->should be clear first...DZM
+    Clear();
     for( int i = 0; i < cr->Size(); i++ )
     {
 	CHalfSegment chs;
 	cr->Get( i, chs );
 	region->Put( i, chs );
     }
+    //cout<<*this<<endl<<" .vs. "<<endl<<*cr<<endl;
 }
 
 int   CRegion::Compare(Attribute * arg)
 {
+    cout<<"cregion compare1*******"<<endl;
     int res=0;
     CRegion* cr = (CRegion* )(arg);
     if ( !cr ) return (-2);
@@ -4531,8 +4547,11 @@ int  CRegion::Sizeof()
 
 CRegion*  CRegion::Clone()
 {
-    //cout<<"***********************!"<<endl;
-    return (new CRegion(SecondoSystem::GetLobFile(),  *this));
+    //cout<<"region clone1****!"<<endl;
+    //return (new CRegion(SecondoSystem::GetLobFile(),  *this));
+    CRegion* newr=new CRegion(SecondoSystem::GetLobFile(),  *this);
+    //cout<<*this<<endl<<" .vs. "<<endl<<*newr<<endl;
+    return (newr);
 }
 
 ostream& CRegion::Print( ostream &os )
@@ -4569,6 +4588,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 	for( int i = 0; i< 50; i++ )
 	{
 	    prevcycleMeet[i]=0;
+	    
 	}
 
 	for( int i = 0; i<= region->Size()-1; i++ )
@@ -5172,7 +5192,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 static Word
 CreateRegion( const ListExpr typeInfo )
 {
-  cout << "CreateRegion" << endl;
+  cout << "CreateRegion2" << endl;
 
   return (SetWord( new CRegion(SecondoSystem::GetLobFile() ) ));
 }
@@ -5184,7 +5204,7 @@ CreateRegion( const ListExpr typeInfo )
 static void
 DeleteRegion( Word& w )
 {
-  cout << "DeleteRegion" << endl;
+  cout << "DeleteRegion2" << endl;
 
   CRegion *cr = (CRegion *)w.addr;
   cr->Destroy();
@@ -5199,7 +5219,7 @@ DeleteRegion( Word& w )
 static void
 CloseRegion( Word& w )
 {
-  cout << "CloseRegion" << endl;
+  cout << "CloseRegion2" << endl;
 
   delete (CRegion *)w.addr;
   w.addr = 0;
@@ -5212,7 +5232,7 @@ CloseRegion( Word& w )
 static Word
 CloneRegion( const Word& w )
 {
-  cout << "CloneRegion" << endl;
+  cout << "CloneRegion2" << endl;
 
   CRegion *cr = new CRegion( SecondoSystem::GetLobFile(), *((CRegion *)w.addr) );
   return SetWord( cr );
@@ -5225,6 +5245,8 @@ CloneRegion( const Word& w )
 bool
 OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
+    cout << "Open Region2" << endl;
+
   SmiRecordId recordId;
   valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 );
   CRegion *cr = new CRegion(SecondoSystem::GetLobFile(), recordId );
@@ -5240,7 +5262,8 @@ OpenRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 bool
 SaveRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 {
-
+    cout << "save Region2" << endl;
+    
   CRegion *cr = (CRegion*)value.addr;
   cout << "SaveRegion: " << *cr << endl;
   SmiRecordId recordId = cr->GetRegionRecordId();
@@ -7556,12 +7579,14 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
     CRegion *cr=((CRegion*)args[1].addr);
 
     if (cr->contain(*p))
-    {
+    {	//cout<<"p inside r!!!"<<endl;
+	//cout<<*p<<endl<<*cr<<endl;
 	((CcBool *)result.addr)->Set( true, true);
 	return (0);
     }
     else
-    {
+    {	//cout<<"p NOT inside r!!!"<<endl;
+	//cout<<*p<<endl<<*cr<<endl;
 	((CcBool *)result.addr)->Set( true, false);
 	return (0);
     }
