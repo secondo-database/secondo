@@ -16,6 +16,7 @@ INCFILES=\
         $(INCLUDEDIR)/NestedList.h \
         $(INCLUDEDIR)/QueryProcessor.h \
         $(INCLUDEDIR)/StandardTypes.h \
+	$(INCLUDEDIR)/DateTime.h \
         TemporalAlgebra.h
 
 OBJECTS=\
