@@ -83,17 +83,33 @@ fi
 
 ## Path declarations for the GCC
 
-## Berkeley DB
-BERKELEY_DB_LIB=db_cxx
-if [ -d "$SECONDO_SDK/bdb4252" ]; then
-  export BERKELEY_DB_DIR="$SECONDO_SDK/bdb4252"
+## Berkeley DB - select the most recent library installed 
+## under $SECONDO_SDK
+
+libStr=$(find $SECONDO_SDK -regex ".*libdb_cxx-[0-9\.]*\.a" -printf "%f %P\n" | sort | tail -n1)
+
+# the printf returns "name dir/filename" the important information
+# needs to be extracted by the following commands
+
+if [ "$libStr" != "" ]; then
+
+# libName=${libStr% *}    # remove shortest trailing pattern " *" 
+  libDirName=${libStr#* } # remove shortest leading pattern "* "
+  libDir=${libDirName%/*/*} # remove shortest trailing pattern "/*/*"
+
+  BERKELEY_DB_DIR=${SECONDO_SDK}/$libDir
+  BERKELEY_DB_LIB="db_cxx"
 else
-  export BERKELEY_DB_DIR="$SECONDO_SDK"
+  BERKELEY_DB_DIR="$SECONDO_SDK"
+  # In old windows installtion of SECONDO the library has another
+  # name as in the distribution
   if [ $SECONDO_PLATFORM == "win32" ]; then
-     BERKELEY_DB_LIB=db32
-  fi
+    BERKELEY_DB_LIB=db32
+  else
+    echo -e "\n Warning: I could not find a Berkeley-DB library libdb_cxx* inside ${SECONDO_SDK}\n"
+  fi 
 fi
-export BERKELEY_DB_LIB
+export BERKELEY_DB_LIB BERKELEY_DB_DIR
 
 export BISON_SIMPLE="$SECONDO_SDK/share/bison/bison.simple"
 export PATH=".:$J2SDK_ROOT/bin:$SECONDO_SDK/bin:$COPY_OF_PATH"
