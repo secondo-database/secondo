@@ -358,7 +358,12 @@ If value 0 is returned, the command was executed without error.
               }
             }
             line = inSocketStream.readLine();
-            readResponse = true;
+            if(line!=null)
+	       readResponse = true;
+	    else{
+	       System.out.println( "SecondoInterface: Network Error in method secondo while receiving file." );
+               errorCode.value = 81;
+	    }
           } catch (IOException e) {
             System.out.println( "SecondoInterface: Network Error in method secondo while receiving file." );
             errorCode.value = 81;
@@ -424,7 +429,12 @@ If value 0 is returned, the command was executed without error.
               }
             }
             line = inSocketStream.readLine();
-            readResponse = true;
+	    if(line!=null){
+               readResponse = true;
+	    } else{
+	       System.out.println( "SecondoInterface: Network Error in method secondo while sending file." );
+               errorCode.value = 81;
+	    }
           } catch (IOException e) {
             System.out.println( "SecondoInterface: Network Error in method secondo while sending file." );
             errorCode.value = 81;
@@ -450,7 +460,12 @@ If value 0 is returned, the command was executed without error.
         outSocketStream.flush();
         // Receive result
         line = inSocketStream.readLine();
-        readResponse = true;
+	if(line!=null)
+           readResponse = true;
+	else{
+	   System.out.println( "SecondoInterface: Network Error in method secondo receiving results ." );
+           errorCode.value = 81;
+	}
       } catch (IOException e) {
         System.out.println( "SecondoInterface: Network Error in method secondo receiving results ." );
         errorCode.value = 81;
@@ -459,13 +474,21 @@ If value 0 is returned, the command was executed without error.
     if ( readResponse ) {
       if ( line.compareTo( "<SecondoResponse>" ) == 0 ) {
         String result = "";
+	boolean ok = true;
         try {
           do {
             line = inSocketStream.readLine();
-            if ( line.compareTo( "</SecondoResponse>" ) != 0 ) {
-              result += line;
+	    if(line!=null){
+              if ( line.compareTo( "</SecondoResponse>" ) != 0 ) {
+                 result += line;
+              }
+	    }  
+	    else{
+	      ok = false;
+              System.out.println( "SecondoInterface: Network Error in method secondo reading SecondoResponse." );
+              errorCode.value = 81;
             }
-          } while (line.compareTo( "</SecondoResponse>" ) != 0);
+          } while (ok && line.compareTo( "</SecondoResponse>" ) != 0);
           answerList.readFromString( result );
           errorCode.value = answerList.first().intValue();
           errorPos.value  = answerList.second().intValue();
@@ -480,8 +503,14 @@ If value 0 is returned, the command was executed without error.
         errorCode.value = 80;
         errorMessage.setLength( 0 );
         try {
-          errorMessage.append( inSocketStream.readLine() );
-          line = inSocketStream.readLine();
+	  line = inSocketStream.readLine();
+	  if(line !=null) {
+             errorMessage.append( line );
+             line = inSocketStream.readLine();
+	   } else{
+              System.out.println( "SecondoInterface: Network Error in method secondo reading SecondoError." );
+              errorCode.value = 81;
+	   }
         } catch (IOException e) {
           System.out.println( "SecondoInterface: Network Error in method secondo reading SecondoError." );
           errorCode.value = 81;
