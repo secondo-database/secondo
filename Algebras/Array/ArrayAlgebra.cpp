@@ -4583,8 +4583,8 @@ partjoinselectFun (Word* args, Word& result, int message, Word& local,
 
 const string partjoinselectSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array (mrel t)) (array (mrel u)) ((name1 (map (mrel t) (mrel u) r)) "
-       "... (namen (map (mrel t) (mrel u) r))) int real) -> (array r)</text--->"
+     "( <text>((array (rel t)) (array (rel u)) ((name1 (map (rel t) (rel u) r)) "
+       "... (namen (map (rel t) (rel u) r))) int real) -> (array r)</text--->"
        "<text>_ _ partjoinselect [ funlist ]</text--->"
        "<text>Works like operator partjoin extended by the select algorithm "
        "of operator loopselect.</text--->"
