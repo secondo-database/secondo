@@ -334,6 +334,7 @@ private:
   bool isTemporary;
   SmiKey::KeyDataType keyType;
   SmiKeyedFile* file;
+  SmiFileId fileId;
 
 public:
   BTree(SmiKey::KeyDataType keyType = SmiKey::Unknown, SmiKeyedFile* file = 0)
@@ -348,6 +349,7 @@ public:
         {
           delete file;
           this->file = 0;
+          this->fileId = 0;
           this->keyType = SmiKey::Unknown;
         }
       }
@@ -355,12 +357,14 @@ public:
       {
         isTemporary = false;
         this->file = file;
+        this->fileId = file->GetFileId();
         this->keyType = keyType;
       }
     }
     else
     {
       this->file = 0;
+      this->fileId = 0;
       this->keyType = keyType;
     }
     
@@ -385,16 +389,14 @@ public:
   BTree(SmiRecord& record, SmiKey::KeyDataType keyType)
   {
     SmiSize bytesRead;
-    SmiFileId fileId[2];
-    SmiSize buflen = sizeof(SmiFileId);
     SmiKeyedFile* file = 0;
     bool success;
 
-    bytesRead = record.Read((void*)fileId, 2 * buflen);
-    if(bytesRead == buflen)
+    bytesRead = record.Read(&this->fileId, sizeof(SmiFileId));
+    if(bytesRead == sizeof(SmiFileId))
     {
       file = new SmiKeyedFile(keyType);
-      success = file->Open(fileId[0]);
+      success = file->Open(fileId);
       if(success)
       {
         this->file = file;
@@ -404,12 +406,36 @@ public:
       {
         delete file;
         this->file = 0;
+        this->fileId = 0;
         this->keyType = SmiKey::Unknown;
       }
     }
     else
     {
       this->file = 0;
+      this->fileId = 0;
+      this->keyType = SmiKey::Unknown;
+    }
+  }
+
+  BTree(SmiFileId fileId, SmiKey::KeyDataType keyType)
+  {
+    SmiKeyedFile* file = 0;
+    bool success;
+
+    this->fileId = fileId;
+    file = new SmiKeyedFile(keyType);
+    success = file->Open(this->fileId);
+    if(success)
+    {
+      this->file = file;
+      this->keyType = keyType;
+    }
+    else
+    {
+      delete file;
+      this->file = 0;
+      this->fileId = 0;
       this->keyType = SmiKey::Unknown;
     }
   }
@@ -419,23 +445,31 @@ public:
     return file != 0 && keyType != SmiKey::Unknown;
   }
   
-  bool WriteTo(SmiRecord& record, SmiKey::KeyDataType keyType)
+  bool WriteTo(SmiRecord& record)
   {
     assert(file != 0);
     assert(this->keyType != SmiKey::Unknown);
 
     SmiSize bytesWritten;
-    SmiFileId id;
     SmiSize fileIdLength = sizeof(SmiFileId);
 
-    id = file->GetFileId();
-    bytesWritten = record.Write(&id, fileIdLength);
+    bytesWritten = record.Write(&fileId, fileIdLength);
     if(bytesWritten == fileIdLength)
     {
       isTemporary = false;
       return true;
     }
     return false;
+  }
+
+  void SetPermanent() 
+  {
+    isTemporary = false;
+  }
+
+  void SetTemporary() 
+  {
+    isTemporary = true;
   }
 
   bool SetTypeAndCreate(SmiKey::KeyDataType keyType)
@@ -454,9 +488,11 @@ public:
     {
       delete file;
       file = 0;
+      fileId = 0;
       this->keyType = SmiKey::Unknown;
       return false;
     }
+    fileId = file->GetFileId();
     return true;
   }
 
@@ -486,6 +522,7 @@ public:
     file->Drop();
     delete file;
     file = 0;
+    fileId = 0;
     delete this;
   }
 
@@ -497,6 +534,7 @@ public:
       file->Drop();
       delete file;
       file = 0;
+      fileId = 0;
     }
   }
 
@@ -525,9 +563,14 @@ public:
     return false;
   }
 
-  SmiKeyedFile* GetFile()
+  SmiKeyedFile* GetFile() const
   {
     return this->file;
+  }
+
+  SmiFileId GetFileId() const
+  {
+    return this->fileId;
   }
 
   SmiKey::KeyDataType GetKeyType()
@@ -678,6 +721,13 @@ ListExpr OutBTree(ListExpr typeInfo, Word  value)
   return nl->TheEmptyList();
 }
 
+ListExpr SaveToListBTree(ListExpr typeInfo, Word  value)
+{
+  BTree *btree = (BTree*)value.addr;
+
+  return nl->IntAtom( btree->GetFileId() );
+}
+
 /*
 
 5.2 Function ~CreateBTree~
@@ -702,6 +752,69 @@ Word InBTree(ListExpr typeInfo, ListExpr value,
 {
   assert(false);
   return SetWord(0);
+}
+
+Word RestoreFromListBTree(ListExpr typeInfo, ListExpr value,
+                          int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
+  BTree* btree;
+
+  SmiKey::KeyDataType keyType;
+  ListExpr keyTypeLE;
+  ListExpr algNoLE;
+  ListExpr typeNoLE;
+  int algNumber;
+  int typeNumber;
+  string keyTypeString;
+
+  /* find out key type */
+  keyTypeLE = nl->Third(typeInfo);
+  assert(!nl->IsAtom(keyTypeLE));
+  assert(!nl->IsEmpty(keyTypeLE));
+  assert(nl->ListLength(keyTypeLE) == 2);
+  algNoLE = nl->First(keyTypeLE);
+  typeNoLE = nl->Second(keyTypeLE);
+
+  assert(nl->IsAtom(algNoLE));
+  assert(nl->IsAtom(typeNoLE));
+  assert(nl->AtomType(algNoLE) == IntType);
+  assert(nl->AtomType(typeNoLE) == IntType);
+
+  algNumber = nl->IntValue(algNoLE);
+  typeNumber = nl->IntValue(typeNoLE);
+
+  keyTypeString = alg->Constrs(algNumber, typeNumber);
+
+  if(keyTypeString == "int")
+  {
+    keyType = SmiKey::Integer;
+  }
+  else if(keyTypeString == "string")
+  {
+    keyType = SmiKey::String;
+  }
+  else if(keyTypeString == "real")
+  {
+    keyType = SmiKey::Float;
+  }
+  else
+  {
+    assert(false /* no proper key type given */);
+  }
+
+  SmiFileId fileId = nl->IntValue(value);
+
+  btree = new BTree(fileId, keyType);
+  if(btree->IsInitialized())
+  {
+    return SetWord(btree);
+  }
+  else
+  {
+    delete btree;
+    return SetWord(Address(0));
+  }
 }
 
 /*
@@ -850,7 +963,17 @@ OpenBTree( SmiRecord& valueRecord,
     assert(false /* no proper key type given */);
   }
 
-  btree = new BTree(valueRecord, keyType);
+  SmiSize bytesRead;
+  SmiFileId fileId;
+
+  bytesRead = valueRecord.Read(&fileId, sizeof(SmiFileId));
+  if(bytesRead == sizeof(SmiFileId))
+  {
+    btree = new BTree(fileId, keyType);
+  }
+  else 
+    return false;
+
   if(btree->IsInitialized())
   {
     value = SetWord(btree);
@@ -873,68 +996,8 @@ SaveBTree( SmiRecord& valueRecord,
            const ListExpr typeInfo,
            Word& value )
 {
-  AlgebraManager* alg = SecondoSystem::GetAlgebraManager();
-
-  bool success;
-  BTree* btree;
-
-  ListExpr first;
-  SmiKey::KeyDataType keyType;
-  ListExpr keyTypeLE;
-  ListExpr algNoLE;
-  ListExpr typeNoLE;
-  int algNumber;
-  int typeNumber;
-  string keyTypeString;
-
-  /* find out key type */
-  assert(!nl->IsAtom(typeInfo));
-  assert(!nl->IsEmpty(typeInfo));
-  assert(nl->ListLength(typeInfo) == 1);
-
-  first = nl->First(typeInfo);
-
-  assert(!nl->IsAtom(first));
-  assert(!nl->IsEmpty(first));
-  assert(nl->ListLength(first) == 3);
-
-  keyTypeLE = nl->Third(first);
-  assert(!nl->IsAtom(keyTypeLE));
-  assert(!nl->IsEmpty(keyTypeLE));
-  assert(nl->ListLength(keyTypeLE) == 2);
-  algNoLE = nl->First(keyTypeLE);
-  typeNoLE = nl->Second(keyTypeLE);
-
-  assert(nl->IsAtom(algNoLE));
-  assert(nl->IsAtom(typeNoLE));
-  assert(nl->AtomType(algNoLE) == IntType);
-  assert(nl->AtomType(typeNoLE) == IntType);
-
-  algNumber = nl->IntValue(algNoLE);
-  typeNumber = nl->IntValue(typeNoLE);
-
-  keyTypeString = alg->Constrs(algNumber, typeNumber);
-
-  if(keyTypeString == "int")
-  {
-    keyType = SmiKey::Integer;
-  }
-  else if(keyTypeString == "string")
-  {
-    keyType = SmiKey::String;
-  }
-  else if(keyTypeString == "real")
-  {
-    keyType = SmiKey::Float;
-  }
-  else
-  {
-    assert(false /* no proper key type given */);
-  }
-
-  btree = (BTree*)value.addr;
-  success = btree->WriteTo(valueRecord, keyType);
-  return success;
+  BTree *btree = (BTree*)value.addr;
+  return btree->WriteTo(valueRecord);
 }
 
 /*
@@ -971,7 +1034,7 @@ Word BTreeValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
 */
 TypeConstructor cppbtree( "btree",		BTreeProp,
                           OutBTree,		InBTree,   
-                          0,                    0,
+                          SaveToListBTree,      RestoreFromListBTree,
                           CreateBTree,		DeleteBTree,
 			  OpenBTree,		SaveBTree,
 			  CloseBTree,		CloneBTree,
@@ -1117,6 +1180,7 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
   }
   
   delete iter;
+  btree->SetPermanent();
   return 0;
 }
 /*
