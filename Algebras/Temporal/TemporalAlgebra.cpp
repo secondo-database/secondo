@@ -2929,7 +2929,7 @@ const string TemporalSpecAtInstant  = "( ( \"Signature\" \"Syntax\" \"Meaning\" 
 
 const string TemporalSpecDeftime  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(mint||mreal||mpoint) -> rangereal</text--->"
+                                "( <text>(mint||mreal||mpoint) -> periods</text--->"
                                 "<text> deftime( _ )</text--->"
                                 "<text>get the definetime of the corresponding moving data objects.</text--->"
                                 "<text>deftime(mp1)</text--->"
