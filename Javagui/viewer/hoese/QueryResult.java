@@ -64,6 +64,13 @@ public class QueryResult extends JList {
 	  ((DsplBase)o).getFrame().select(o);
           ((DsplBase)o).getFrame().show(true);
         }
+        if((o instanceof ExternDisplay)){
+            ExternDisplay BG = (ExternDisplay) o;
+            if(!BG.isExternDisplayed()){
+                BG.displayExtern(); 
+            }
+        }
+
         //			((DsplBase)o).getFrame().select(o);
       }
     });
