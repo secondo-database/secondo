@@ -45,6 +45,5 @@ include ../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) *.o
-	$(RM) *.lo
+	$(RM) *.o *.lo
 

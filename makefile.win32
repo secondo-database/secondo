@@ -43,6 +43,8 @@ OBJEXT = o
 LIBEXT = dll
 LDFLAGS = -s -shared
 EXEFLAGS =
+# ... Windows needs special treatment when creating DLLs
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
 else
 PICFLAG =
 OBJEXT = o

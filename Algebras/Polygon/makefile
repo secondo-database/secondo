@@ -3,6 +3,12 @@
 # SECONDO makefile for Polygon Algebra
 #
 # $Log$
+# Revision 1.2  2002/09/26 17:27:14  spieker
+# Problems with make shared=yes, because the polygon algebra references the
+# Tuplemanager and the SMI. Tuplemanager files and libsmi have been added to the
+# rule which creates the shared object.
+# .
+#
 #
 ########################################################################
 
@@ -19,15 +25,14 @@ INCFILES=\
 
 REFFILE=\
 
-
-LIBNAME=libpolygonalgebra
 MODNAME=PolygonAlgebra
+LIBNAME=lib$(MODNAME)
 
 OBJECTS=\
 	$(MODNAME).$(OBJEXT)
 
 .PHONY: all
-all: $(OBJECTS)
+all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 
 buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
@@ -35,20 +40,10 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
 # --- Standard Algebra C++ library ---
 
-# ... Windows needs special treatment when creating DLLs
-ifeq ($(shared),yes)
-ifeq ($(platform),win32)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
-endif
-endif
-
 $(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-ifeq ($(platform),win32)
-	$(CP) $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(BINDIR)/$(LIBNAME).$(LIBEXT)
-endif
 else
 # ... as static library
 	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)

@@ -9,13 +9,11 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-#specs:  Standard-C++/*.spec Relation-C++/*.spec StDb/*.spec
 specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec 	
 	cat $^ > specs
 
 .PHONY: makedirs
 makedirs:
-	$(MAKE) -C Management
 	$(MAKE) -C Standard-C++
 	$(MAKE) -C Function-C++
 	$(MAKE) -C PointRectangle

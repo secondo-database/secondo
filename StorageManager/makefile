@@ -6,119 +6,109 @@
 
 include ../makefile.env
 
-BDBOBJECTS=\
-	smiEnvironment.$(OBJEXT) \
-	smiKey.$(OBJEXT) \
-	bdbKeyedFile.$(OBJEXT) \
-	bdbRecordFile.$(OBJEXT) \
-	bdbFile.$(OBJEXT) \
-	bdbRecord.$(OBJEXT) \
-	bdbEnvironment.$(OBJEXT)
+VPATH = $(INCLUDEDIR):$(LIBDIR)
 
-ORAOBJECTS=\
-	smiEnvironment.$(OBJEXT) \
-	smiKey.$(OBJEXT) \
-	oraKeyedFile.$(OBJEXT) \
-	oraRecordFile.$(OBJEXT) \
-	oraFile.$(OBJEXT) \
-	oraRecord.$(OBJEXT) \
-	oraEnvironment.$(OBJEXT)
+BDBOBJECTSBASENAMES :=\
+	smiEnvironment \
+	smiKey \
+	bdbKeyedFile \
+	bdbRecordFile \
+	bdbFile \
+	bdbRecord \
+	bdbEnvironment
 
-SMIHDR = $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/SmiCodes.h $(INCLUDEDIR)/Profiles.h
-ORASMIHDR = SmiORA.h $(SMIHDR)
-BDBSMIHDR = SmiBDB.h $(SMIHDR)
+ORAOBJECTSBASENAMES :=\
+	smiEnvironment \
+	smiKey \
+	oraKeyedFile \
+	oraRecordFile \
+	oraFile \
+	oraRecord \
+	oraEnvironment
+
+BDBOBJECTS := $(addsuffix .$(OBJEXT), $(BDBOBJECTSBASENAMES)) 
+ORAOBJECTS := $(addsuffix .$(OBJEXT), $(ORAOBJECTSBASENAMES))
+
+SMIHDR := SecondoConfig.h SecondoSMI.h SmiCodes.h Profiles.h
+ORASMIHDR := SmiORA.h $(SMIHDR)
+BDBSMIHDR := SmiBDB.h $(SMIHDR)
+
+# Windows needs special treatment for dynamic libraries!
+# The variable LIBNAME will be used in the LDOPTTOOL variable 
+# which is only defined makefile.win32 included by makefile.env.
+ifeq ($(smitype),ora)
+CCFLAGS := $(PICFLAG) $(OCICPPINCLUDE) $(DEFAULTCCFLAGS)
+ALLOBJ := $(ORAOBJECTS)
+LIBNAME := libsmiora 
+else
+CCFLAGS := $(PICFLAG) $(BDBINCLUDE) $(DEFAULTCCFLAGS)
+ALLOBJ := $(BDBOBJECTS)
+LIBNAME := libsmibdb
+endif
 
 .PHONY: all
-ifeq ($(smitype),ora)
-CCFLAGS= $(PICFLAG) $(OCICPPINCLUDE) $(DEFAULTCCFLAGS)
+all: $(ALLOBJ)
 
-all: $(ORAOBJECTS)
-
-buildlibs: $(LIBDIR)/libsmiora.$(LIBEXT)
-
-else
-CCFLAGS= $(PICFLAG) $(BDBINCLUDE) $(DEFAULTCCFLAGS)
-
-all: $(BDBOBJECTS)
-
-buildlibs: $(LIBDIR)/libsmibdb.$(LIBEXT)
-endif
-
+.PHONY: buildlibs
+buildlibs: $(LIBNAME).$(LIBEXT)
 
 # --- Storage Management Interface library ---
-
-ifeq ($(shared),yes)
-# ... as shared object
-ifeq ($(platform),win32)
-ifeq ($(smitype),ora)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsmiora.$(LIBEXT).a
-else
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsmibdb.$(LIBEXT).a
-endif
-endif
-endif
 
 $(LIBDIR)/libsmibdb.$(LIBEXT): $(BDBOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsmibdb.$(LIBEXT) $(LDOPT) $(BDBOBJECTS) $(BDBLIBDIR) $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-ifeq ($(platform),win32)
-	$(CP) $(LIBDIR)/libsmibdb.$(LIBEXT) $(BINDIR)/libsmibdb.$(LIBEXT)
-endif
+	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(BDBOBJECTS) $(BDBLIBDIR) $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsmibdb.$(LIBEXT) $(BDBOBJECTS)
+	$(AR) -r $@ $(BDBOBJECTS)
 endif
 
 $(LIBDIR)/libsmiora.$(LIBEXT): $(ORAOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsmiora.$(LIBEXT) $(LDOPT) $(ORAOBJECTS) $(OCICPPLIBDIR) $(OCICPPLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-ifeq ($(platform),win32)
-	$(CP) $(LIBDIR)/libsmiora.$(LIBEXT) $(BINDIR)/libsmiora.$(LIBEXT)
-endif
+	$(LD) $(LDFLAGS) -o $@ $(LDOPT) $(ORAOBJECTS) $(OCICPPLIBDIR) $(OCICPPLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsmiora.$(LIBEXT) $(ORAOBJECTS)
+	$(AR) -r $@ $(ORAOBJECTS)
 endif
 
 # --- Storage Management Interface modules ---
 
-smiEnvironment.$(OBJEXT): smiEnvironment.cpp $(SMIHDR) $(INCLUDEDIR)/Messenger.h $(INCLUDEDIR)/FileSystem.h
-	$(CC) -c -o smiEnvironment.$(OBJEXT) smiEnvironment.cpp $(CCFLAGS)
+smiEnvironment.$(OBJEXT): smiEnvironment.cpp $(SMIHDR) Messenger.h FileSystem.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 smiKey.$(OBJEXT): smiKey.cpp $(SMIHDR)
-	$(CC) -c -o smiKey.$(OBJEXT) smiKey.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
-bdbEnvironment.$(OBJEXT): bdbEnvironment.cpp $(BDBSMIHDR)  $(INCLUDEDIR)/FileSystem.h
-	$(CC) -c -o bdbEnvironment.$(OBJEXT) bdbEnvironment.cpp $(CCFLAGS)
+bdbEnvironment.$(OBJEXT): bdbEnvironment.cpp $(BDBSMIHDR)  FileSystem.h
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 bdbFile.$(OBJEXT): bdbFile.cpp $(BDBSMIHDR)
-	$(CC) -c -o bdbFile.$(OBJEXT) bdbFile.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 bdbRecordFile.$(OBJEXT): bdbRecordFile.cpp $(BDBSMIHDR)
-	$(CC) -c -o bdbRecordFile.$(OBJEXT) bdbRecordFile.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 bdbKeyedFile.$(OBJEXT): bdbKeyedFile.cpp $(BDBSMIHDR)
-	$(CC) -c -o bdbKeyedFile.$(OBJEXT) bdbKeyedFile.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 bdbRecord.$(OBJEXT): bdbRecord.cpp $(BDBSMIHDR)
-	$(CC) -c -o bdbRecord.$(OBJEXT) bdbRecord.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 oraEnvironment.$(OBJEXT): oraEnvironment.cpp $(ORASMIHDR)
-	$(CC) -c -o oraEnvironment.$(OBJEXT) oraEnvironment.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 oraFile.$(OBJEXT): oraFile.cpp $(ORASMIHDR)
-	$(CC) -c -o oraFile.$(OBJEXT) oraFile.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 oraRecordFile.$(OBJEXT): oraRecordFile.cpp $(ORASMIHDR)
-	$(CC) -c -o oraRecordFile.$(OBJEXT) oraRecordFile.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 oraKeyedFile.$(OBJEXT): oraKeyedFile.cpp $(ORASMIHDR)
-	$(CC) -c -o oraKeyedFile.$(OBJEXT) oraKeyedFile.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 oraRecord.$(OBJEXT): oraRecord.cpp $(ORASMIHDR)
-	$(CC) -c -o oraRecord.$(OBJEXT) oraRecord.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $<  $(CCFLAGS)
 
 include ../include.dep
 

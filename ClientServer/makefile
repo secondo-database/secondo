@@ -6,6 +6,8 @@
 
 include ../makefile.env
 
+VPATH = $(INCLUDEDIR):$(LIBDIR):$(BINDIR)
+
 OBJECTS=\
 	SocketIO.$(OBJEXT) \
 	SocketAddress.$(OBJEXT) \
@@ -19,19 +21,24 @@ APPLOBJECTS=\
 	SecondoInterfaceCS.o \
 	SecondoServer.o
 
-APPLICATIONS=\
+APPLICATIONS1=\
 	$(BINDIR)/SecondoRegistrar$(EXEEXT) \
 	$(BINDIR)/SecondoListener$(EXEEXT)
 
+ifeq ($(smitype),ora)
+APPLICATIONS = $(APPLICATIONS1) $(BINDIR)/SecondoMonitorORA$(EXEEXT) $(BINDIR)/SecondoServerORA$(EXEEXT)
+else
+APPLICATIONS = $(APPLICATIONS1) $(BINDIR)/SecondoMonitorBDB$(EXEEXT) $(BINDIR)/SecondoServerBDB$(EXEEXT) $(BINDIR)/SecondoCheckpoint$(EXEEXT)
+endif
+
 .PHONY: all
-all: $(OBJECTS) $(APPLOBJECTS)
+all: $(APPLOBJECTS)
+
+.PHONY: socket
+socket: $(OBJECTS)
 
 .PHONY: buildapp
-ifeq ($(smitype),ora)
-buildapp: $(APPLICATIONS) $(BINDIR)/SecondoMonitorORA$(EXEEXT) $(BINDIR)/SecondoServerORA$(EXEEXT)
-else
-buildapp: $(APPLICATIONS) $(BINDIR)/SecondoMonitorBDB$(EXEEXT) $(BINDIR)/SecondoServerBDB$(EXEEXT) $(BINDIR)/SecondoCheckpoint$(EXEEXT)
-endif
+buildapp: $(APPLICATIONS)
 
 CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
 CCXFLAGS= $(DEFAULTCCFLAGS)
@@ -42,63 +49,66 @@ else
 SOCKETIMPL=UnixSocket.cpp
 endif
 
-SocketIO.$(OBJEXT): SocketIO.cpp $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SocketIO.h $(SOCKETIMPL)
+SocketIO.$(OBJEXT): SocketIO.cpp SecondoConfig.h SocketIO.h $(SOCKETIMPL)
 	$(CC) -c -o SocketIO.$(OBJEXT) SocketIO.cpp $(CCFLAGS)
 
-SocketAddress.$(OBJEXT): SocketAddress.cpp $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SocketIO.h
+SocketAddress.$(OBJEXT): SocketAddress.cpp SecondoConfig.h SocketIO.h
 	$(CC) -c -o SocketAddress.$(OBJEXT) SocketAddress.cpp $(CCFLAGS)
 
-SocketRuleSet.$(OBJEXT): SocketRuleSet.cpp $(INCLUDEDIR)/SecondoConfig.h $(INCLUDEDIR)/SocketIO.h
+SocketRuleSet.$(OBJEXT): SocketRuleSet.cpp SecondoConfig.h SocketIO.h
 	$(CC) -c -o SocketRuleSet.$(OBJEXT) SocketRuleSet.cpp $(CCFLAGS)
 
 # --- Client/Server Applications
 
-SecondoMonitor.o: SecondoMonitor.cpp $(INCLUDEDIR)/Application.h  $(INCLUDEDIR)/Processes.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h
-	$(CC) -c -o SecondoMonitor.o SecondoMonitor.cpp $(CCXFLAGS)
+SecondoMonitor.o: SecondoMonitor.cpp Application.h  Processes.h SecondoSMI.h Profiles.h FileSystem.h
+	$(CC) -c -o $@ $< $(CCXFLAGS)
 
-SecondoRegistrar.o: SecondoRegistrar.cpp $(INCLUDEDIR)/Application.h  $(INCLUDEDIR)/Processes.h $(INCLUDEDIR)/SocketIO.h $(INCLUDEDIR)/Profiles.h
-	$(CC) -c -o SecondoRegistrar.o SecondoRegistrar.cpp $(CCXFLAGS)
+SecondoRegistrar.o: SecondoRegistrar.cpp Application.h Processes.h SocketIO.h Profiles.h
+	$(CC) -c -o $@ $< $(CCXFLAGS)
 
-SecondoCheckpoint.o: SecondoCheckpoint.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Processes.h $(INCLUDEDIR)/SocketIO.h $(INCLUDEDIR)/Profiles.h
-	$(CC) -c -o SecondoCheckpoint.o SecondoCheckpoint.cpp $(BDBINCLUDE) $(CCXFLAGS)
+SecondoCheckpoint.o: SecondoCheckpoint.cpp Application.h Processes.h SocketIO.h Profiles.h
+	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCXFLAGS)
 
-SecondoListener.o: SecondoListener.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Processes.h $(INCLUDEDIR)/SocketIO.h $(INCLUDEDIR)/Profiles.h
-	$(CC) -c -o SecondoListener.o SecondoListener.cpp $(CCXFLAGS)
+SecondoListener.o: SecondoListener.cpp Application.h Processes.h SocketIO.h Profiles.h
+	$(CC) -c -o $@ $< $(CCXFLAGS)
 
-SecondoServer.o: SecondoServer.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/SocketIO.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/AlgebraTypes.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/Messenger.h $(INCLUDEDIR)/Profiles.h
-	$(CC) -c -o SecondoServer.o SecondoServer.cpp $(CCXFLAGS)
+SecondoServer.o: SecondoServer.cpp Application.h SocketIO.h Profiles.h AlgebraTypes.h SecondoSystem.h SecondoCatalog.h SecondoInterface.h Messenger.h Profiles.h
+	$(CC) -c -o $@ $< $(CCXFLAGS)
 
-SecondoInterfaceCS.o: SecondoInterfaceCS.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/Profiles.h
-	$(CC) -c -o SecondoInterfaceCS.o SecondoInterfaceCS.cpp $(CCXFLAGS)
+SecondoInterfaceCS.o: SecondoInterfaceCS.cpp SecondoInterface.h Profiles.h
+	$(CC) -c -o $@ $< $(CCXFLAGS)
 	$(CP) SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceCS.o
 
 # --- Link applications
 
-$(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoMonitorBDB$(EXEEXT) SecondoMonitor.o -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoMonitorORA$(EXEEXT) SecondoMonitor.o -L$(LIBDIR) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoRegistrar$(EXEEXT) SecondoRegistrar.o  -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoCheckpoint$(EXEEXT) SecondoCheckpoint.o -L$(LIBDIR) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoListener$(EXEEXT) SecondoListener.o -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT) $(TUPLEMANAGER) 
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerBDB$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(TUPLEMANAGER) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB) 
+$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT)  
+	$(LD) $(EXEFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB) 
 
-$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o $(LIBDIR)/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerORA$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/AlgebraList.o -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) *.o
-	$(RM) *.lo
+	$(RM) $(APPLOBJECTS) $(APPLICATIONS)
+
+.PHONY: clean_socket
+clean_socket:
+	$(RM) $(OBJECTS) 
 

@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.10  2002/11/26 16:12:16  spieker
+# Dependency of static libraries simplified.
+#
 # Revision 1.9  2002/11/26 09:31:23  spieker
 # new object UtilFunctions in tools library added
 #
@@ -14,33 +17,37 @@
 
 include makefile.env
 
-TOOLOBJECTS=\
-	ClientServer/SocketIO.$(OBJEXT) \
-	ClientServer/SocketAddress.$(OBJEXT) \
-	ClientServer/SocketRuleSet.$(OBJEXT) \
-	Tools/NestedLists/NestedList.$(OBJEXT) \
-	Tools/NestedLists/NLLex.$(OBJEXT) \
-	Tools/NestedLists/NLScanner.$(OBJEXT) \
-	Tools/NestedLists/NLParser.$(OBJEXT) \
-	Tools/NestedLists/NLParser.tab.$(OBJEXT) \
-	Tools/Parser/SecLex.$(OBJEXT) \
-	Tools/Parser/SecParser.$(OBJEXT) \
-	Tools/Parser/SecParser.tab.$(OBJEXT) \
-	Tools/Parser/NestedText.$(OBJEXT) \
-	Tools/Utilities/Processes.$(OBJEXT) \
-	Tools/Utilities/Application.$(OBJEXT) \
-	Tools/Utilities/Messenger.$(OBJEXT) \
-	Tools/Utilities/DynamicLibrary.$(OBJEXT) \
-	Tools/Utilities/FileSystem.$(OBJEXT) \
-	Tools/Utilities/Profiles.$(OBJEXT) \
-	Tools/Utilities/UtilFunctions.$(OBJEXT)
+TOOLOBJECTBASENAMES=\
+	ClientServer/SocketIO \
+	ClientServer/SocketAddress \
+	ClientServer/SocketRuleSet \
+	Tools/NestedLists/NestedList \
+	Tools/NestedLists/NLLex \
+	Tools/NestedLists/NLScanner \
+	Tools/NestedLists/NLParser \
+	Tools/NestedLists/NLParser.tab \
+	Tools/Parser/SecLex \
+	Tools/Parser/SecParser \
+	Tools/Parser/SecParser.tab \
+	Tools/Parser/NestedText \
+	Tools/Utilities/Processes \
+	Tools/Utilities/Application \
+	Tools/Utilities/Messenger \
+	Tools/Utilities/DynamicLibrary \
+	Tools/Utilities/FileSystem \
+	Tools/Utilities/Profiles \
+	Tools/Utilities/UtilFunctions
 
-SDBSYSOBJECTS=\
-	Algebras/Management/Algebra.$(OBJEXT) \
-	Algebras/Management/AlgebraManager.$(OBJEXT) \
-	QueryProcessor/QueryProcessor.$(OBJEXT) \
-	QueryProcessor/SecondoSystem.$(OBJEXT) \
-	QueryProcessor/SecondoCatalog.$(OBJEXT)
+SDBSYSOBJECTBASENAMES=\
+	Algebras/Management/Algebra \
+	Algebras/Management/AlgebraManager \
+	QueryProcessor/QueryProcessor \
+	QueryProcessor/SecondoSystem \
+	QueryProcessor/SecondoCatalog
+
+
+TOOLOBJECTS = $(addsuffix .$(OBJEXT), $(TOOLOBJECTBASENAMES))
+SDBSYSOBJECTS = $(addsuffix .$(OBJEXT), $(SDBSYSOBJECTBASENAMES))
 
 ifeq ($(smitype),ora)
 SMILIB=$(ORASMILIB)
@@ -50,14 +57,20 @@ endif
 
 
 .PHONY: all
-all: makedirs buildlibs buildapps
+all: makedirs buildlibs buildalg buildapps
+
+.PHONY: clientserver
+clientserver:
+	$(MAKE) -C ClientServer
+	$(MAKE) -C UserInterfaces client
+	$(MAKE) -C ClientServer buildapp
 
 .PHONY: makedirs
 makedirs:
-	$(MAKE) -C ClientServer
+	$(MAKE) -C ClientServer socket
 	$(MAKE) -C Tools
 	$(MAKE) -C StorageManager
-	$(MAKE) -C Algebras
+	$(MAKE) -C Algebras/Management
 	$(MAKE) -C QueryProcessor
 	$(MAKE) -C UserInterfaces
 
@@ -69,56 +82,44 @@ buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) buildsmi $(LIBDIR)/libsdbsys.$(LIBEXT)
 buildsmi:
 	$(MAKE) -C StorageManager buildlibs
 
+.PHONY: buildalg
+buildalg:
+	$(MAKE) -C Algebras
+
+
 # --- Secondo Database Tools library ---
 
-# ... Windows needs special treatment when creating DLLs
+# Windows needs special treatment for dynamic libraries!
+# The variable LIBNAME will be used in the LDOPTTOOL variable 
+# which is only defined makefile.win32 included by makefile.env.
+LIBNAME=libsdbtool
+$(LIBDIR)/libsdbtool.$(LIBEXT): $(TOOLOBJECTS)
 ifeq ($(shared),yes)
-ifeq ($(platform),win32)
-LDOPTTOOL = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsdbtool.$(LIBEXT).a
-endif
-endif
-
-ifeq ($(shared),yes)
-$(LIBDIR)/libsdbtool.$(LIBEXT): makedirs $(TOOLOBJECTS)
 # ... as shared object
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPTTOOL) $(TOOLOBJECTS) $(DEFAULTLIB)
-ifeq ($(platform),win32)
-	$(CP) $(LIBDIR)/libsdbtool.$(LIBEXT) $(BINDIR)/libsdbtool.$(LIBEXT)
-endif
 else
 # ... as static library
-$(LIBDIR)/libsdbtool.$(LIBEXT): $(TOOLOBJECTS)
 	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
 endif
 
 # --- Secondo Database System library ---
 
-# ... Windows needs special treatment when creating DLLs
+LIBNAME=libsdbsys
+$(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
 ifeq ($(shared),yes)
-ifeq ($(platform),win32)
-LDOPTSYS = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsdbsys.$(LIBEXT).a
-endif
-endif
-
-
-ifeq ($(shared),yes)
-$(LIBDIR)/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
 # ... as shared object
 	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) -L$(LIBDIR) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
-ifeq ($(platform),win32)
-	$(CP) $(LIBDIR)/libsdbsys.$(LIBEXT) $(BINDIR)/libsdbsys.$(LIBEXT)
-endif
 else
 # ... as static library
-$(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
+#$(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
 	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $(SDBSYSOBJECTS)
 endif
+	
 
 # --- Applications
 
 .PHONY: buildapps
-buildapps:
-	$(MAKE) -C ClientServer buildapp
+buildapps: 
 	$(MAKE) -C UserInterfaces buildapp
 
 .PHONY: tests
@@ -143,17 +144,9 @@ secondo.tgz:
 	gzip -S .tgz secondo
 
 
-#.PHONY: install
-#install:
-#	$(MAKE) -C lib install
-
-#.PHONY: save
-#save:
-#	tar cvf SECONDO_`date +%d%m%y`.tar $(LISTSANDTABLESSRC) $(NESTEDLISTSSRC) $(PARSERSRC) $(TUPLEMANAGERSRC) $(ALGEBRAMANAGERSRC) $(QUERYPROCESSORSRC) $(TESTSSRC) $(CLIENTSERVERSRC) $(USERINTERFACESSRC) $(MAKEFILESRC) $(SPECPARSERSRC) $(STORAGEMANAGERSRC) $(ALGEBRAMODULESRC) $(INCLUDEDIR) $(DOCUMENTSDIR) $(FIGURES)
-
 .PHONY: clean
 clean:
-	$(MAKE) -C ClientServer clean
+	$(MAKE) -C ClientServer clean_socket
 	$(MAKE) -C StorageManager clean
 	$(MAKE) -C Tools clean
 	$(MAKE) -C Algebras clean
@@ -164,12 +157,17 @@ clean:
 	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.lo
 	$(RM) $(LIBDIR)/AlgebraList.o $(LIBDIR)/AlgebraList.lo
 
+.PHONY: clean_cs
+clean_cs:
+	$(MAKE) -C ClientServer clean
+	$(MAKE) -C UserInterfaces clean_client	
+
 .PHONY: clean_tests
 clean_tests:
 	$(MAKE) -C Tests clean
 
 .PHONY: clean_all
-clean_all: clean clean_tests
+clean_all: clean clean_tests clean_cs
 
 .PHONY: distclean
 distclean:
@@ -180,15 +178,14 @@ distclean:
 	$(MAKE) -C QueryProcessor distclean
 	$(MAKE) -C UserInterfaces distclean
 
-.PHONY: usage
-usage:
+.PHONY: help
+help:
 	@echo "*** Usage of the SECONDO makefile:"
 	@echo "***"
 	@echo "*** make [shared=yes] [target]"
 	@echo "***"
 	@echo "*** The optional definition shared=yes specifies"
-	@echo "*** that shared libraries are to be built. The"
-	@echo "*** default is to build static libraries."
-	@echo "***"
-	@echo "*** The default target is <all>."
-
+	@echo "*** that shared libraries are built. Make sure that"
+	@echo "*** the ./lib directory is in your LD_LIBRARY_PATH"
+	@echo "*** variable (on windows the PATH variable). Consult"
+	@echo "*** the readme file for deatiled information."
