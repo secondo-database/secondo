@@ -329,6 +329,9 @@ Constructor, but the elements must have a list representation.
 static ListExpr
 ArrayProperty()
 {
+  ListExpr remarkslist = nl->TextAtom();
+  nl->AppendText(remarkslist,"The elements of the array must have a list "
+  "representation.");
   return (nl->TwoElemList(
             nl->FiveElemList(
               nl->StringAtom("Signature"),
@@ -341,8 +344,7 @@ ArrayProperty()
               nl->StringAtom("(array int)"),
               nl->StringAtom("(a1 a2 ... an)"),
               nl->StringAtom("(0 1 2 3)"),
-              nl->StringAtom("The elements of the array must have a list "
-                             "representation."))));
+              remarkslist)));
 }
 
 /*
