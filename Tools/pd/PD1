@@ -2,6 +2,7 @@
 //paragraph [1] Title: [{\Large \bf] [}]
 //[ue] [\"{u}]
 //[us] [\_]
+//[_] [\_]
 
 
 [1] The PD System: Integrating Programs and Documentation
@@ -29,7 +30,7 @@ The file ~pd.header~ is shown in Section 6.1. ~Cat~ is a UNIX system command. Ex
 
 There are further command procedures:
 
-  * ~pdview~ allows one to view a PD file under unix using the ~xdvi~ viewer (after it has been processed by LaTeX). On MS-Windows the previewer is called ~yap~. The viewer is defined in the environment variable ~PD_DVI_VIEWER~.  
+  * ~pdview~ allows one to view a PD file under unix using the ~xdvi~ viewer (after it has been processed by LaTeX). On MS-Windows the previewer is called ~yap~. The viewer is defined in the environment variable ~PD[_]DVI[_]VIEWER~.  
 
   * ~pdshow~ shows a PD file using a postscript viewer defined in the environment variable ~PD[us]PS[us]VIEWER~. This shows embedded figures. However, the quality of the display is not as good as with ~xdvi~.
 
