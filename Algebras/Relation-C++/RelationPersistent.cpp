@@ -394,6 +394,10 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
     }
   }
 
+  // Call the Initialize function for every attribute
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+    attributes[i]->Initialize();
+
   state = Solid;
   return true;
 }
@@ -422,7 +426,6 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
     free( memoryTuple ); memoryTuple = 0;
     return false;
   }
-
   // Read attribute values from memoryTuple.
   char *valuePtr = memoryTuple;
   for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
@@ -474,6 +477,12 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
         tmpFLOB->SetLobFile( lobFile );
       }
     }
+  }
+
+  // Call the Initialize function for every attribute
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+  {
+    attributes[i]->Initialize();
   }
 
   state = Solid;
@@ -575,6 +584,10 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
       }
     }
   }
+
+  // Call the Initialize function for every attribute
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+    attributes[i]->Initialize();
 
   state = Solid;
   return true;
