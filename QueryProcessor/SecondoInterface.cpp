@@ -1042,20 +1042,20 @@ If value 0 is returned, the command was executed without error.
           StartCommand();
           objName = nl->SymbolValue( nl->Second( list ) );
           valueExpr = nl->Fourth( list );
-          SecondoSystem::GetQueryProcessor()->
-            Construct( level, valueExpr, correct, evaluable, defined,
-                       isFunction, tree, resultType );
-          if ( !defined )
+          if ( SecondoSystem::GetCatalog(level)->IsObjectName(objName) )
           {
-            errorCode = 8;      // Undefined object value in expression
+            errorCode = 10;   // identifier is already used
           }
-          else if ( correct )
+          else
           {
-            if ( SecondoSystem::GetCatalog(level)->IsObjectName(objName) )
+            SecondoSystem::GetQueryProcessor()->
+              Construct( level, valueExpr, correct, evaluable, defined,
+                         isFunction, tree, resultType );
+            if ( !defined )
             {
-              errorCode = 10;   // identifier is already used
+              errorCode = 8;      // Undefined object value in expression
             }
-            else
+            else if ( correct )
             {
               if ( evaluable || isFunction )
               {
@@ -1104,10 +1104,10 @@ If value 0 is returned, the command was executed without error.
                 errorCode = 3;   // Expression not evaluable
               }
             }
-          }
-          else
-          {
-            errorCode = 2;    // Error in expression
+            else
+            {
+              errorCode = 2;    // Error in expression
+            }
           }
           FinishCommand( errorCode );
         }
