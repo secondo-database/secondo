@@ -16,7 +16,6 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
-#include <time.h>
 #include <sstream>
 #include <typeinfo>
 #include "RelationAlgebraInfo.h"
