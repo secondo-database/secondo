@@ -2841,8 +2841,8 @@ int theyearfun( Word* args, Word& result, int message, Word& local, Supplier s )
   inst1.SetType(instanttype);
   inst1.Set(intyear, 1, 1, 0, 0, 0, 0);
   inst2.SetType(instanttype);
-  inst2.Set(intyear, 12, 31, 23, 59, 59, 999);
-  Interval<Instant> timeInterval(inst1, inst2, true, true);
+  inst2.Set(intyear+1, 1, 1, 0, 0, 0, 0);
+  Interval<Instant> timeInterval(inst1, inst2, true, false);
   	  
   defrange->Add( timeInterval ); 
       
