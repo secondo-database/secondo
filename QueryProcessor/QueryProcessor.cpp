@@ -1434,6 +1434,12 @@ function index.
           pair = Annotate( level, nl->First( rest ), varnames, vartable, defined,
 		fatherargtypes );
         }
+        if( !nl->IsEmpty( pair ) && 
+            nl->IsAtom( pair ) && 
+            nl->AtomType( pair ) == SymbolType && 
+            nl->SymbolValue( pair ) == "exprerror" )
+          return pair; 
+
         lastElem = nl->Append( lastElem, pair );
         lastType = nl->Append( lastType, nl->Second( pair ) );
         rest = nl->Rest( rest );
