@@ -35,7 +35,7 @@ public class DisplayTimeGraph extends DisplayGraph
       Interval in = (Interval)li.next();
       int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
       int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
-      System.out.println(new String(start + " " + end));
+      //System.out.println(new String(start + " " + end));
       JLabel jc = new JLabel();
       jc.setOpaque(true);
       jc.setBackground(Color.yellow);
