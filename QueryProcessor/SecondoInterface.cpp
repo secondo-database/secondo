@@ -62,6 +62,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SecParser.h"
 #include "TimeTest.h"
+#include "LogMsg.h"
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -1129,9 +1130,12 @@ If value 0 is returned, the command was executed without error.
             Construct( level, nl->Second( list ), correct, evaluable, defined,
                        isFunction, tree, resultType );
 
-	   cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-	   //cerr << nl->reportVectorSizes() << endl;
-
+	   
+	  if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
+	    cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+	    //cerr << nl->reportVectorSizes() << endl;
+          }
+	     
           if ( !defined )
           {
             errorCode = 8;         // Undefined object value
@@ -1150,13 +1154,16 @@ If value 0 is returned, the command was executed without error.
               SecondoSystem::GetQueryProcessor()->
                 Destroy( tree, true );
 
-	       cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
-               cerr << ReportTupleStatistics();
-	       //cerr << nl->reportVectorSizes() << endl;
-               //cerr << ReportRelStatistics();
-               //cerr << ReportRelITStatistics();
-	       //cerr << ReportTupleAttributesInfoStatistics();
-
+	       if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
+	         cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
+                 //cerr << ReportTupleStatistics();
+	         cerr << nl->reportVectorSizes() << endl;
+	       }
+               LOGMSG( "SI:RelStatistics",
+	         //cerr << ReportRelStatistics();
+                 //cerr << ReportRelITStatistics();
+	         //cerr << ReportTupleAttributesInfoStatistics();
+	       )
             }
             else if ( isFunction ) // abstraction or function object
             {
@@ -1244,15 +1251,19 @@ If value 0 is returned, the command was executed without error.
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
  
-#if NL_DEBUG
-  cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
-#endif 
+  LOGMSG( "SI:ResultList",
+    cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
+  )  
 
   // copy result into application specific list container.
   if (resultList) {
+     TimeTest::diffReal(); TimeTest::diffCPU();
      resultList = nl->CopyList(resultList, al);
+     LOGMSG( "SI:CopyListTime",
+        cerr << "Time for calling CopyList: " 
+	     << TimeTest::diffReal() << ", " << TimeTest::diffCPU() << endl;		     
+     )		     
   }
-  cerr << nl->reportVectorSizes() << endl;
   nl->initializeListMemory();
   
 }
