@@ -49,7 +49,7 @@ EXEFLAGS =
 endif
 
 # compilation options for the PROLOG shell
-PLLDFLAGS = -I$(PL_LIB_DIR) -lpl -lreadline -lncurses -lm 
+PLLDFLAGS = -L$(PL_LIB_DIR) -lpl -lreadline -lncurses -lm 
 
 DLLPICFLAG = -fPIC
 DLLOBJEXT = lo
