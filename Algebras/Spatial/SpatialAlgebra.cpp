@@ -293,41 +293,174 @@ static Word
 InPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Point* newpoint;
-
-  if ( nl->ListLength( instance ) == 2 )
-  {
-    ListExpr First = nl->First(instance);
-    ListExpr Second = nl->Second(instance);
-
-    if ( nl->IsAtom(First) && nl->IsAtom(Second) )
+    Point* newpoint;
+    
+    if ( nl->ListLength( instance ) == 2 )
     {
-      Coord x, y;
-
-      correct = true;
-      if( nl->AtomType(First) == IntType )
-        x = nl->IntValue(First);
-      else if( nl->AtomType(First) == RealType )
-        x = nl->RealValue(First);
-      else
-        correct = false;
-
-      if( nl->AtomType(Second) == IntType )
-        y = nl->IntValue(Second);
-      else if( nl->AtomType(Second) == RealType )
-        y = nl->RealValue(Second);
-      else
-        correct = false;
-
-      if( correct )
-      {
-        newpoint = new Point(true, x, y);
-        return SetWord(newpoint);
-      }
+	ListExpr First = nl->First(instance);
+	ListExpr Second = nl->Second(instance);
+	
+	Coord x, y;
+	double xx, yy;
+	
+	//1. processing the first data item
+	correct = true;
+	if ( nl->IsAtom(First))
+	{
+	    if( nl->AtomType(First) == IntType )
+		x = nl->IntValue(First);
+	    else if( nl->AtomType(First) == RealType )
+		x = nl->RealValue(First);
+	    else correct = false;
+	}
+	else if (((nl->ListLength( First ) == 5 )||   
+	              (nl->ListLength( First ) == 6 ))&&
+	              (nl->IsAtom(nl->First(First)))&&
+	              (nl->AtomType(nl->First(First)) == SymbolType)&&
+	              (nl->SymbolValue(nl->First(First))=="rat"))
+	{   //RATIONAL NUMBERS
+	    if (nl->ListLength( First ) == 5 )  //(rat 4 1107 / 10000)
+	    {
+		if  ((nl->IsAtom(nl->Fourth(First)))&&
+		     (nl->AtomType(nl->Fourth(First)) == SymbolType)&&
+		     (nl->SymbolValue(nl->Fourth(First))=="/"))
+		{
+		    if ((nl->IsAtom(nl->Third(First))) &&
+		        (nl->AtomType(nl->Third(First)) == IntType))
+			xx=nl->IntValue(nl->Third(First));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Fifth(First))) &&
+		        (nl->AtomType(nl->Fifth(First)) == IntType))
+			xx=xx / nl->IntValue(nl->Fifth(First));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Second(First))) &&
+		        (nl->AtomType(nl->Second(First)) == IntType))
+			xx=xx + nl->IntValue(nl->Second(First));
+		    else correct = false;
+		}
+		else correct = false;
+	    }
+	    else //(rat - 4 1107 / 10000)
+	    {
+		if  ((nl->IsAtom(nl->Fifth(First)))&&
+		     (nl->AtomType(nl->Fifth(First)) == SymbolType)&&
+		     (nl->SymbolValue(nl->Fifth(First))=="/"))
+		{
+		    if ((nl->IsAtom(nl->Fourth(First))) &&
+		        (nl->AtomType(nl->Fourth(First)) == IntType))
+			xx=nl->IntValue(nl->Fourth(First));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Sixth(First))) &&
+		        (nl->AtomType(nl->Sixth(First)) == IntType))
+			xx=xx / nl->IntValue(nl->Sixth(First));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Third(First))) &&
+		        (nl->AtomType(nl->Third(First)) == IntType))
+			xx=xx + nl->IntValue(nl->Third(First));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Second(First))) &&
+		        (nl->AtomType(nl->Second(First)) == SymbolType)&&
+		        (nl->SymbolValue(nl->Second(First))=="-"))
+			xx=xx * (-1);
+		    else correct = false;
+		}
+		else correct = false;
+	    }
+	    if (correct)
+	    {
+		x=(double)xx;
+	    }
+	}
+	else correct = false;
+	
+	//2. processing the secon data item
+	if ( nl->IsAtom(Second) )
+	{
+	    if( nl->AtomType(Second) == IntType )
+		y = nl->IntValue(Second);
+	    else if( nl->AtomType(Second) == RealType )
+		y = nl->RealValue(Second);
+	    else correct = false;
+	}
+	else if (((nl->ListLength( Second ) == 5 )||   
+	              (nl->ListLength( Second ) == 6 ))&&
+	              (nl->IsAtom(nl->First(Second)))&&
+	              (nl->AtomType(nl->First(Second)) == SymbolType)&&
+	              (nl->SymbolValue(nl->First(Second))=="rat"))
+	{   //RATIONAL NUMBERS
+	    if (nl->ListLength( Second ) == 5 )  //(rat 4 1107 / 10000)
+	    {
+		if  ((nl->IsAtom(nl->Fourth(Second)))&&
+		     (nl->AtomType(nl->Fourth(Second)) == SymbolType)&&
+		     (nl->SymbolValue(nl->Fourth(Second))=="/"))
+		{
+		    if ((nl->IsAtom(nl->Third(Second))) &&
+		        (nl->AtomType(nl->Third(Second)) == IntType))
+			yy=nl->IntValue(nl->Third(Second));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Fifth(Second))) &&
+		        (nl->AtomType(nl->Fifth(Second)) == IntType))
+			yy=yy / nl->IntValue(nl->Fifth(Second));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Second(Second))) &&
+		        (nl->AtomType(nl->Second(Second)) == IntType))
+			yy=yy + nl->IntValue(nl->Second(Second));
+		    else correct = false;
+		}
+		else correct = false;
+	    }
+	    else //(rat - 4 1107 / 10000)
+	    {
+		if  ((nl->IsAtom(nl->Fifth(Second)))&&
+		     (nl->AtomType(nl->Fifth(Second)) == SymbolType)&&
+		     (nl->SymbolValue(nl->Fifth(Second))=="/"))
+		{
+		    if ((nl->IsAtom(nl->Fourth(Second))) &&
+		        (nl->AtomType(nl->Fourth(Second)) == IntType))
+			yy=nl->IntValue(nl->Fourth(Second));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Sixth(Second))) &&
+		        (nl->AtomType(nl->Sixth(Second)) == IntType))
+			yy=yy / nl->IntValue(nl->Sixth(Second));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Third(Second))) &&
+		        (nl->AtomType(nl->Third(Second)) == IntType))
+			yy=yy + nl->IntValue(nl->Third(Second));
+		    else correct = false;
+		    
+		    if ((nl->IsAtom(nl->Second(Second))) &&
+		        (nl->AtomType(nl->Second(Second)) == SymbolType)&&
+		        (nl->SymbolValue(nl->Second(Second))=="-"))
+			yy=yy * (-1);
+		    else correct = false;
+		}
+		else correct = false;
+	    }
+	    if (correct)
+	    {
+		y=(double)yy;
+	    }
+	}
+	else correct = false;
+	
+	//3. create the class object
+	if( correct )
+	{
+	    newpoint = new Point(true, x, y);
+	    return SetWord(newpoint);
+	}
     }
-  }
-  correct = false;
-  return SetWord(Address(0));
+    correct = false;
+    return SetWord(Address(0));
 }
 
 /*
