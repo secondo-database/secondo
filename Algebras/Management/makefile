@@ -6,12 +6,6 @@
 
 include ../../makefile.env
 
-INCFILES=\
-	AlgebraManager.h \
-	Algebra.h \
-	NestedList.h \
-	SecondoSystem.h
-
 OBJECTS=\
 	Algebra.$(OBJEXT) \
 	AlgebraManager.$(OBJEXT) \
@@ -19,19 +13,31 @@ OBJECTS=\
 
 CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 
+CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
+
 .PHONY: all
 all: $(OBJECTS) 
 
-Algebra.$(OBJEXT): Algebra.cpp $(INCFILES)
+# create dependencies from include directives
+%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< > $@
+
+$(LIBDIR)/%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< > $@
+
+%.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
-$(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i $(INCFILES)
+Algebra.$(OBJEXT): Algebra.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
-AlgebraManager.$(OBJEXT): AlgebraManager.cpp AlgebraList.i $(INCFILES)
+$(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
-include ../../include.dep
+AlgebraManager.$(OBJEXT): AlgebraManager.cpp AlgebraList.i
+	$(CC) -c -o $@ $< $(CCFLAGS)
+
+include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:

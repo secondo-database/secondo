@@ -35,6 +35,8 @@ TESTNAMES += itlogmsg
 
 ifdef file
 TESTFILES := $(file)
+else
+TESTFILES := $(TESTNAMES)
 endif
 
 CODE_FILES := $(addsuffix .cpp, $(TESTFILES))

@@ -1,0 +1,66 @@
+# Check if Prolog variables are set and define macros used for
+# compilation of the optimizer.
+ifneq ($(OptMsg),"true")
+ifeq ($(platform),win32)
+
+   ifndef SWI_HOME_DIR
+   $(warning Variable SWI_HOME_DIR not defined. If you want to use the optimizer you have to set it up!)
+   else
+   PL_INCLUDE_DIR := $(SWI_HOME_DIR)/include
+   PL_LIB_DIR := $(SWI_HOME_DIR)/lib
+   optimizer := "true"
+   endif
+
+else
+
+   ifdef PL_INCLUDE_DIR
+     ifdef PL_LIB_DIR
+     optimizer := "true"
+     else
+     $(warning Variable PL_LIB_DIR not defined. If you want to use the optimizer you have to set it up!)
+     endif
+   else
+   $(warning Variable PL_INCLUDE_DIR not defined. If you want to use the optimizer you have to set it up!)
+   endif
+
+
+endif
+
+export PL_LIB_DIR PL_INCLUDE_DIR optimizer
+export OptMsg := "true"
+endif
+
+# compilation options for the PROLOG shell
+ifeq ($(platform),win32)
+PLLDFLAGS := $(PL_LIB_DIR)/libpl.lib -lm
+else
+PLLDFLAGS := -L$(PL_LIB_DIR) -lpl -lreadline -lncurses -lm 
+endif
+
+ifeq ($(optimizer),"true")
+  OPTIMIZER_SERVER = optserver
+endif
+
+
+# define directories for using jpl
+JPL_ROOT := $(BUILDDIR)/Jpl
+JPL_LIB  := $(JPL_ROOT)/lib
+JPL_CLASS_TARGET := $(JPL_LIB)/classes
+JPL_JAVA_SOURCES := $(JPL_ROOT)/jsrc
+JPL_DOC_TARGET := $(JPL_ROOT)/doc
+JPL_CLASSPATH := .:$(JPL_CLASS_TARGET)
+JPL_SRC := $(JPL_ROOT)/src
+# directory which contains SecondoPl.o
+SECONDOPL_DIR := $(BUILDDIR)/UserInterfaces
+
+# define extension and prefix for shared objects
+# define the platform dependent jni include
+JNI_INCLUDE := $(J2SDK_ROOT)/include
+JNI_MD_INCLUDE := $(JNI_INCLUDE)/$(platform)
+ifeq ($(platform),win32)
+   SHARED_EXT=dll
+   JPLDEF := $(JPL_LIB)/jpl.def
+else
+   SHARED_EXT=so
+   SHARED_PREF=lib
+endif

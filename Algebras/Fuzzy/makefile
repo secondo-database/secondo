@@ -7,10 +7,6 @@
 ########################################################################
 
 include ../../makefile.env
-ifeq ($(USE_JNI),true)
-include ../../makefile.jni
-endif
-
 
 # --- List of all needed header files (including indirect dependencies)
 

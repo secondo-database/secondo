@@ -9,7 +9,8 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-SPECFILES = $(shell find . -name "*.spec")
+LS_COMMAND = $(addsuffix /*.spec, $(ALGEBRA_DIRS) $(JNI_ALGEBRA_DIRS) )
+SPECFILES = $(shell ls $(LS_COMMAND))
 
 specs:  $(SPECFILES)
 	cat $^ | sort -b | ./specs.awk
@@ -18,31 +19,20 @@ specs:  $(SPECFILES)
 .PHONY: makedirs
 makedirs: makedirsnormal makedirsjni
 
-# include here algebras without using jni
+# make algebras without using jni
 .PHONY: makedirsnormal
 makedirsnormal:
-	$(MAKE) -C Standard-C++
-	$(MAKE) -C Function-C++
-	$(MAKE) -C PointRectangle
-	$(MAKE) -C StreamExample
-	$(MAKE) -C Relation-C++
-	$(MAKE) -C Date
-	$(MAKE) -C Polygon
-	$(MAKE) -C BTree
-	$(MAKE) -C Range
-	$(MAKE) -C Spatial
-	$(MAKE) -C FText
-	$(MAKE) -C Array
-	$(MAKE) -C RTree 
-	$(MAKE) -C Rectangle 
+	for dir in $(ALGEBRA_DIRS); do \
+          $(MAKE) -C $$dir; \
+	done
 
-# here include algebras using jni
+# make algebras using jni
 .PHONY: makedirsjni
 makedirsjni:
-ifeq ($(USE_JNI),true)
-	$(MAKE) -C Fuzzy all
-	$(MAKE) -C JNIExample all
-	$(MAKE) -C Rose all
+ifeq ($(USE_JNI),"true")
+	for dir in $(JNI_ALGEBRA_DIRS); do \
+          $(MAKE) -C $$dir; \
+	done
 endif
 
 .PHONY buildlibs:
@@ -50,50 +40,28 @@ buildlibs: buildlibsnormal buildlibsjni
 
 .PHONY:buildlibsnormal
 buildlibsnormal:
-	$(MAKE) -C Standard-C++   buildlibs
-	$(MAKE) -C Function-C++   buildlibs
-	$(MAKE) -C PointRectangle buildlibs
-	$(MAKE) -C StreamExample  buildlibs
-	$(MAKE) -C Relation-C++   buildlibs
-	$(MAKE) -C Date           buildlibs
-	$(MAKE) -C Polygon	  buildlibs
-	$(MAKE) -C BTree	  buildlibs
-	$(MAKE) -C Range          buildlibs
-	$(MAKE) -C Spatial        buildlibs
-	$(MAKE) -C FText 	  buildlibs
-	$(MAKE) -C Array 	  buildlibs
-	$(MAKE) -C RTree 	  buildlibs
-	$(MAKE) -C Rectangle 	  buildlibs
-
+	for dir in $(ALGEBRA_DIRS); do \
+          $(MAKE) -C $$dir buildlibs; \
+	done
 
 .PHONY:buildlibsjni
 buildlibsjni:
-ifeq ($(USE_JNI),true)
-	$(MAKE) -C Fuzzy 	  buildlibs
-	$(MAKE) -C JNIExample     buildlibs
-	$(MAKE) -C Rose           buildlibs
+ifeq ($(USE_JNI),"true")
+	for dir in $(JNI_ALGEBRA_DIRS); do \
+          $(MAKE) -C $$dir; \
+        done
 endif
 
 
 .PHONY: clean
 clean:
+	$(MAKE) -C Management clean
 	$(RM) specs
-	$(MAKE) -C Management     clean
-	$(MAKE) -C Standard-C++   clean
-	$(MAKE) -C Function-C++   clean
-	$(MAKE) -C PointRectangle clean
-	$(MAKE) -C StreamExample  clean
-	$(MAKE) -C Relation-C++   clean
-	$(MAKE) -C Date           clean
-	$(MAKE) -C Polygon        clean
-	$(MAKE) -C BTree          clean
-	$(MAKE) -C Range          clean
-	$(MAKE) -C Spatial        clean
-	$(MAKE) -C FText          clean
-	$(MAKE) -C Array	  clean
-	$(MAKE) -C RTree	  clean
-	$(MAKE) -C Rectangle	  clean
-	$(MAKE) -C Fuzzy	  clean
-	$(MAKE) -C JNIExample     clean
-	$(MAKE) -C Rose           clean
-
+	for dir in $(ALGEBRA_DIRS); do \
+          $(MAKE) -C $$dir clean; \
+	done
+ifeq ($(USE_JNI),"true")
+	for dir in $(JNI_ALGEBRA_DIRS); do \
+          $(MAKE) -C $$dir clean; \
+        done
+endif

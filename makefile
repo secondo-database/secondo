@@ -4,90 +4,12 @@
 #
 ########################################################################
 
-include makefile.env
-
-#libsdbtool
-LIB_SDBTOOL_BASENAMES=\
-	Tools/NestedLists/NestedList \
-	Tools/NestedLists/NLLex \
-	Tools/NestedLists/NLScanner \
-	Tools/NestedLists/NLParser \
-	Tools/NestedLists/NLParser.tab \
-	Tools/Parser/SecLex \
-	Tools/Parser/SecParser \
-	Tools/Parser/SecParser.tab \
-	Tools/Parser/NestedText
-
-#libsdbutils
-LIB_SDBUTILS_BASENAMES=\
-	Tools/Utilities/Processes \
-	Tools/Utilities/Application \
-	Tools/Utilities/Messenger \
-	Tools/Utilities/DynamicLibrary \
-	Tools/Utilities/FileSystem \
-	Tools/Utilities/Profiles \
-	Tools/Utilities/UtilFunctions \
-	Tools/Utilities/WinUnix \
-
-#libsdbsocket
-LIB_SDBSOCKET_BASENAMES=\
-	ClientServer/SocketIO \
-	ClientServer/SocketAddress \
-	ClientServer/SocketRuleSet
-
-#libsdbsys
-LIB_SDBSYS_BASENAMES=\
-	Algebras/Management/Algebra \
-	Algebras/Management/AlgebraManager \
-	QueryProcessor/QueryProcessor \
-	QueryProcessor/SecondoSystem \
-	QueryProcessor/SecondoCatalog
-
-
-LIB_SDBTOOL_OBJECTS   = $(addsuffix .$(OBJEXT), $(LIB_SDBTOOL_BASENAMES))
-LIB_SDBUTILS_OBJECTS  = $(addsuffix .$(OBJEXT), $(LIB_SDBUTILS_BASENAMES))
-LIB_SDBSOCKET_OBJECTS = $(addsuffix .$(OBJEXT), $(LIB_SDBSOCKET_BASENAMES))
-LIB_SDBSYS_OBJECTS    = $(addsuffix .$(OBJEXT), $(LIB_SDBSYS_BASENAMES))
-
-ifeq ($(smitype),ora)
-SMILIB=$(ORASMILIB)
-else
-SMILIB=$(BDBSMILIB)
-endif
+include ./makefile.env
 
 .PHONY: all
-all: makedirs $(OPTIMIZER_SERVER) buildlibs buildalg buildapps java checkup 
+all: makedirs buildlibs buildalg buildapps java $(OPTIMIZER_SERVER) checkup 
 
 
-.PHONY: checkup
-checkup: config showjni
-
-.PHONY: config
-config: bin/SecondoConfig.ini Optimizer/SecondoConfig.ini
-
-BIN_INI := $(shell ls bin/SecondoConfig.ini)
-bin/SecondoConfig.ini: bin/SecondoConfig.example
-#	echo -$(BIN_INI)-
-ifdef BIN_INI
-	@echo "Warning: Configuration file $< is newer than $@!"
-else
-	cp $< $@
-endif
-	
-OPT_INI := $(shell ls Optimizer/SecondoConfig.ini)
-Optimizer/SecondoConfig.ini: bin/SecondoConfig.example
-#	echo -$(OPT_INI)-
-ifdef OPT_INI
-	@echo "Warning: Configuration file $< is newer than $@!"
-else
-	cp $< $@
-endif
-
-
-.PHONY: showjni
-showjni:
-	@echo $(JNITEXT)
-	
 .PHONY: javagui
 javagui:
 	$(MAKE) -C Javagui all
@@ -112,98 +34,50 @@ makedirs:
 	$(MAKE) -C UserInterfaces
 
 
+.PHONY: buildalg
+buildalg:
+	$(MAKE) -C Algebras buildlibs
+
+
+.PHONY: buildlibs
+buildlibs: 
+	$(MAKE) -f ./makefile.libs
+
+
 .PHONY: java
 java:
 	$(MAKE) -C Javagui all
 
-.PHONY: TTY checkup
-TTY: makedirs buildlibs buildalg
-	$(MAKE) -C UserInterfaces TTY
 
-.PHONY: TestRunner checkup
-TestRunner: makedirs buildlibs buildalg
-	$(MAKE) -C UserInterfaces TestRunner
+.PHONY: optimizer
+optimizer: optimizer2 optserver checkup
 
-
-.PHONY: optimizer checkup
-optimizer: makedirs buildlibs buildalg
+.PHONY: optimizer2
+optimizer2: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces optimizer
 
 
-.PHONY:optserver
+.PHONY: optserver
 optserver:
 	$(MAKE) -C Jpl all
 	$(MAKE) -C OptServer all
 
-.PHONY: buildlibs
-buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
 
-	$(MAKE) -C Algebras buildlibs
+.PHONY: TTY
+TTY: TTY2 checkup
 
-.PHONY: buildsmilibs
-buildsmilibs:
-	$(MAKE) -C StorageManager buildlibs
-
-.PHONY: buildalg
-buildalg:
-	$(MAKE) -C Algebras
+.PHONY: TTY2
+TTY2: makedirs buildlibs buildalg
+	$(MAKE) -C UserInterfaces TTY
 
 
-# --- Secondo Database Tools library ---
+.PHONY: TestRunner
+TestRunner: TestRunner2 checkup
+	
+.PHONY: TestRunner2
+TestRunner2: makedirs buildlibs buildalg
+	$(MAKE) -C UserInterfaces TestRunner
 
-# Windows needs special treatment for dynamic libraries!
-# The variable LIBNAME will be used in the LDOPTTOOL variable 
-# which is only defined makefile.win32 included by makefile.env.
-
-$(LIBDIR)/libsdbtool.$(LIBEXT): LIBNAME=libsdbtool
-$(LIBDIR)/libsdbtool.$(LIBEXT): $(LIB_SDBTOOL_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(LIB_SDBTOOL_OBJECTS) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $^ 
-endif
-
-# --- Secondo Database Utilities Library ---
-
-LIBNAME=libsdbutils
-$(LIBDIR)/libsdbutils.$(LIBEXT): $(LIB_SDBUTILS_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(LIB_SDBUTILS_OBJECTS) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $^
-endif
-
-# --- Secondo Database System Library ---
-
-$(LIBDIR)/libsdbsys.$(LIBEXT): LIBNAME=libsdbsys
-$(LIBDIR)/libsdbsys.$(LIBEXT): $(LIB_SDBSYS_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(LIB_SDBSYS_OBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $^ 
-endif
-
-
-# --- Secondo Database Socket Library ---
-
-$(LIBDIR)/libsdbsocket.$(LIBEXT): LIBNAME=libsdbsocket
-$(LIBDIR)/libsdbsocket.$(LIBEXT): $(LIB_SDBSOCKET_OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $^ -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $^
-endif
-
-
-# --- Applications
 
 .PHONY: buildapps
 buildapps: 
@@ -221,22 +95,14 @@ ifndef tag
 tag=HEAD
 endif
 
-ifeq ($(platform),win32)
-  NETDEV = /cvs-projects/SECONDO_CD/Windows
-else
-  NETDEV = /cvs-projects/SECONDO_CD/Unix
-endif
-
 .PHONY: dist
 dist:	secondo.tgz
-
 
 secondo.tgz:
 	cvs export -r$(tag) secondo
 	tar -czf  secondo.tgz secondo/*
 	cp secondo.tgz $(NETDEV)
 	rm -r secondo
-
 
 .PHONY: clean
 clean:
@@ -248,10 +114,40 @@ clean:
 	$(MAKE) -C UserInterfaces clean
 	$(MAKE) -C Jpl clean
 	$(MAKE) -C OptServer clean
-	$(RM) $(LIBDIR)/libsdb*.a $(LIBDIR)/libsdb*.so $(LIBDIR)/libsdb*.dll $(LIBDIR)/libsdb*.dll.a
-	$(RM) $(LIBDIR)/libsmi*.a $(LIBDIR)/libsmi*.so $(LIBDIR)/libsmi*.dll $(LIBDIR)/libsmi*.dll.a
-	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.lo
-	$(RM) $(LIBDIR)/AlgebraList.o $(LIBDIR)/AlgebraList.lo
+	$(MAKE) -f ./makefile.libs clean
+
+###
+### Some special rules
+###
+
+.PHONY: checkup
+checkup: config showjni
+
+.PHONY: showjni
+showjni:
+	@echo $(JNITEXT)
+	
+.PHONY: config
+config: bin/SecondoConfig.ini Optimizer/SecondoConfig.ini
+
+BIN_INI := $(shell ls bin/SecondoConfig.ini)
+bin/SecondoConfig.ini: bin/SecondoConfig.example
+#	echo -$(BIN_INI)-
+ifdef BIN_INI
+	@echo "Warning: Configuration file $< is newer than $@!"
+else
+	cp $< $@
+endif
+	
+OPT_INI := $(shell ls Optimizer/SecondoConfig.ini)
+Optimizer/SecondoConfig.ini: bin/SecondoConfig.example
+#	echo -$(OPT_INI)-
+ifdef OPT_INI
+	@echo "Warning: Configuration file $< is newer than $@!"
+else
+	cp $< $@
+endif
+
 
 
 .PHONY: help

@@ -79,6 +79,8 @@ endif
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
+include $(CODE_DEPENDENCIES:.cpp=.dep)
+
 .PHONY: clean
 clean:
-	$(RM) *.dep $(ALLOBJ)
+	$(RM) *.dep $(ALLOBJ) $(LIBDIR)/$(LIBNAME).$(LIBEXT)

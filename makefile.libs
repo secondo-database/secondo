@@ -1,0 +1,123 @@
+# makefile.libs contains rules for creating
+# libraries used by secondo
+#
+# 07.11.2003 M. Spiekermann
+
+include ./makefile.env
+
+#libsdbtool
+LIB_SDBTOOL_BASENAMES=\
+	Tools/NestedLists/NestedList \
+	Tools/NestedLists/NLLex \
+	Tools/NestedLists/NLScanner \
+	Tools/NestedLists/NLParser \
+	Tools/NestedLists/NLParser.tab \
+	Tools/Parser/SecLex \
+	Tools/Parser/SecParser \
+	Tools/Parser/SecParser.tab \
+	Tools/Parser/NestedText
+
+#libsdbutils
+LIB_SDBUTILS_BASENAMES=\
+	Tools/Utilities/Processes \
+	Tools/Utilities/Application \
+	Tools/Utilities/Messenger \
+	Tools/Utilities/DynamicLibrary \
+	Tools/Utilities/FileSystem \
+	Tools/Utilities/Profiles \
+	Tools/Utilities/UtilFunctions \
+	Tools/Utilities/WinUnix \
+
+#libsdbsocket
+LIB_SDBSOCKET_BASENAMES=\
+	ClientServer/SocketIO \
+	ClientServer/SocketAddress \
+	ClientServer/SocketRuleSet
+
+#libsdbsys
+LIB_SDBSYS_BASENAMES=\
+	Algebras/Management/Algebra \
+	Algebras/Management/AlgebraManager \
+	QueryProcessor/QueryProcessor \
+	QueryProcessor/SecondoSystem \
+	QueryProcessor/SecondoCatalog
+
+
+LIB_SDBTOOL_OBJECTS   = $(addsuffix .$(OBJEXT), $(LIB_SDBTOOL_BASENAMES))
+LIB_SDBUTILS_OBJECTS  = $(addsuffix .$(OBJEXT), $(LIB_SDBUTILS_BASENAMES))
+LIB_SDBSOCKET_OBJECTS = $(addsuffix .$(OBJEXT), $(LIB_SDBSOCKET_BASENAMES))
+LIB_SDBSYS_OBJECTS    = $(addsuffix .$(OBJEXT), $(LIB_SDBSYS_BASENAMES))
+
+.PHONY: all
+all: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
+
+
+.PHONY: buildsmilibs
+buildsmilibs:
+	$(MAKE) -C StorageManager buildlibs
+
+
+
+# --- Secondo Database Tools library ---
+
+# Windows needs special treatment for dynamic libraries!
+# The variable LIBNAME will be used in the LDOPTTOOL variable 
+# which is only defined makefile.win32 included by makefile.env.
+
+$(LIBDIR)/libsdbtool.$(LIBEXT): LIBNAME=libsdbtool
+$(LIBDIR)/libsdbtool.$(LIBEXT): $(LIB_SDBTOOL_OBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(LIB_SDBTOOL_OBJECTS) $(DEFAULTLIB)
+else
+# ... as static library
+	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $^ 
+endif
+
+# --- Secondo Database Utilities Library ---
+
+LIBNAME=libsdbutils
+$(LIBDIR)/libsdbutils.$(LIBEXT): $(LIB_SDBUTILS_OBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(LIB_SDBUTILS_OBJECTS) $(DEFAULTLIB)
+else
+# ... as static library
+	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $^
+endif
+
+# --- Secondo Database System Library ---
+
+$(LIBDIR)/libsdbsys.$(LIBEXT): LIBNAME=libsdbsys
+$(LIBDIR)/libsdbsys.$(LIBEXT): $(LIB_SDBSYS_OBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(LIB_SDBSYS_OBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
+else
+# ... as static library
+	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $^ 
+endif
+
+
+# --- Secondo Database Socket Library ---
+
+$(LIBDIR)/libsdbsocket.$(LIBEXT): LIBNAME=libsdbsocket
+$(LIBDIR)/libsdbsocket.$(LIBEXT): $(LIB_SDBSOCKET_OBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $^ -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
+else
+# ... as static library
+	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $^
+endif
+
+.PHONY: clean
+clean:
+	$(RM) $(LIBDIR)/libsdbtool.$(LIBEXT) \
+	      $(LIBDIR)/libsdbutils.$(LIBEXT) \
+	      $(LIBDIR)/libsdbsys.$(LIBEXT) \
+	      $(LIBDIR)/libsdbsocket.$(LIBEXT)
+
+	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.lo
+	$(RM) $(LIBDIR)/AlgebraList.o $(LIBDIR)/AlgebraList.lo
+

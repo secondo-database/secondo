@@ -48,9 +48,6 @@ LDFLAGS =
 EXEFLAGS =
 endif
 
-# compilation options for the PROLOG shell
-PLLDFLAGS = -L$(PL_LIB_DIR) -lpl -lreadline -lncurses -lm 
-
 DLLPICFLAG = -fPIC
 DLLOBJEXT = lo
 DLLEXT = so

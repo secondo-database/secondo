@@ -5,7 +5,6 @@
 ########################################################################
 
 include ../makefile.env
-include ../makefile.jni
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
@@ -17,6 +16,7 @@ APPLICATIONS := $(BINDIR)/SecondoTTY$(SMIUP) \
 # some optional objects and applications
 ifneq ($(smitype),ora)
 APPLOBJECTS += TestRunner.$(OBJEXT)
+APPLICATIONS += TestRunner
 endif
 
 ifeq ($(optimizer),"true")
@@ -37,7 +37,7 @@ APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 all: $(CODE_DEPENDENCIES) $(APPLOBJECTS)
 
 .PHONY: buildapp
-buildapp: $(APPLICATIONS) TestRunner
+buildapp: $(APPLICATIONS)
 
 .PHONY: TestRunner
 TestRunner: $(BINDIR)/TestRunner$(EXEEXT)
@@ -49,7 +49,7 @@ TTYCS: $(BINDIR)/SecondoTTYCS$(EXEEXT)
 TTY: $(BINDIR)/SecondoTTY$(SMIUP)$(EXEEXT)
 
 .PHONY: optimizer
-optimizer: $(OPTDIR)/SecondoPL$(EXEEXT)
+optimizer: $(OPTDIR)/SecondoPL$(EXEEXT) $(OPTDIR)/SecondoPLCS$(EXEEXT)
 
 .PHONY: clean
 clean:

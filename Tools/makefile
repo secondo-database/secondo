@@ -20,7 +20,7 @@ makedirsnormal:
 
 .PHONY: makedirsjni
 makedirsjni:
- ifeq ($(USE_JNI),true)
+ ifeq ($(USE_JNI),"true")
 	$(MAKE) -C Jni
  endif
 

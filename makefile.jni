@@ -1,36 +1,30 @@
-ifeq ($(USE_JNI),true)
 ifeq ($(platform),win32)
-# Please change this settings referring to your local JDK 
-# and MinGW installation.
-JDK_ROOT = C:/Programme/j2sdk1.4.1_02
+# MinGW definitions.
 MINGW_EXTRA = C:/msys/1.0/mingw
 JAVACLASSPATHS = -classpath .:$(JARDIR)/sj.jar
-JAVAC = $(JDK_ROOT)/bin/javac $(JAVACLASSPATHS) -verbose
-JAR = $(JDK_ROOT)/bin/jar
+JAVAC = $(J2SDK_ROOT)/bin/javac $(JAVACLASSPATHS) -verbose
+JAR = $(J2SDK_ROOT)/bin/jar
 JVMINIT_H_DIR = $(SECONDO_BUILD_DIR)/include
 JVMINIT_O_FILE = $(SECONDO_BUILD_DIR)/Tools/Jni/JVMInit.o
-JNIINCLUDE = -I$(JDK_ROOT)/include -I$(JDK_ROOT)/include/win32  -I$(JVMINIT_H_DIR)
+JNIINCLUDE = -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/win32  -I$(JVMINIT_H_DIR)
 LDFLAGS = -mno-cygwin -L$(MINGW_EXTRA)/lib
 JARDIR = .
 DLLTOOL = dlltool
-AS = as
+AS = /mingw/as
 # use this for java sdk 1.2/1.3
-#JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(JDK_ROOT)/jre/bin/classic  -ljvm $(JVMINIT_O_FILE)
+#JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/classic  -ljvm $(JVMINIT_O_FILE)
 # and this for java-sdk 1.4.1
-JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(JDK_ROOT)/jre/bin/client  $(JVMINIT_O_FILE) -ljvm
+JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client  $(JVMINIT_O_FILE) -ljvm
 
 else
-# the name of compiler
+# Linux definitions
 CC= g++
-# the root directory of the java sdk
-SDK_ROOT=/usr/java/j2sdk1.4.2
 
 # directory where i can find the jni.h
-JNI_H_DIR =$(SDK_ROOT)/include
+JNI_H_DIR =$(J2SDK_ROOT)/include
 
 # directory where i can find the libjava.so
-LIBJAVA_DIR =$(SDK_ROOT)/jre/lib/i386
-
+LIBJAVA_DIR =$(J2SDK_ROOT)/jre/lib/i386
 
 # directory of libjvm.so
 LIBJVM_DIR =$(LIBJAVA_DIR)/client
@@ -51,5 +45,9 @@ JNIINCLUDE =  -I$(JNI_H_DIR) -I$(JNI_H_DIR)/$(OS_DIR)  -I$(INCLUDEDIR)
 
 JNILINKOPTS = -L$(LIBJVM_DIR) -I$(LIBVERIFY_DIR) -L$(LIBJAVA_DIR)  -ljava -ljvm -lverify $(JVMINIT_DIR)/JVMInit.o
 
-endif
+JNITEXT=" you try to use jni --- please check the settings in makefile.jni --- \
+          and the setting in  bin/JNI.ini --- \
+          if you work under Linux ensure to add the path of libjava.so \
+	  and ??? to be in LD_LIBRARY_PATH"
+
 endif
