@@ -17,19 +17,27 @@ using namespace std;
 class Base64{
 
 public:
-   Base64(){};
+   Base64();
    ~Base64(){};    
 
-   static void encode(char* buffer, string& text, int size);
+   void encode(char* buffer, string& text, int size);
    /*  encodes size bytes of the buffer into base64 returned as string.  
     *  If finish is true the data will be closed, e.g. padded with "=".
     */ 
-   static bool decode(char* buffer, string text);
+   void decode(istream& in, ostream& out);
+   void encodeStreams(istream& in, ostream& out);
 
 private:
    /* the characters used in the base64 format */
    static char base64Alphabet[];
-
+   
+   bool getNext(char& byte, istream& in);
+   int  getIndex(char b);
+   bool isAllowed(char b);
+ 
+   bool endReached;
+   int  currentPos;
+   int  filled;
 
 };
 
