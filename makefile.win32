@@ -4,8 +4,6 @@
 #
 ########################################################################
 
-# Secondo build directory
-ALGLIB     = -lfunctionalgebra -lstandardalgebra -lpointrectanglealgebra -lstreamexamplealgebra -lrelationalgebra
 
 # System dependent default libraries
 DEFAULTLIB = -lws2_32 -lstdc++
