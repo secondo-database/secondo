@@ -225,6 +225,16 @@ realclean: clean
 	$(MAKE) -C Javagui clean
 	rm $(CONFIG_FILES) 
 
+
+.PHONY: runtests 
+runtests:
+	CM-Scripts/run-tests.sh
+
+
+.PHONY: cvstest
+cvstest:
+	CM-Scripts/cvs-make.sh
+
 ###
 ### Some special rules
 ### Automatic creation of configuration files
