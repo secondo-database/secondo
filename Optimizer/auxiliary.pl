@@ -12,7 +12,10 @@ one argument (the command) and pretty-prints the result.
 Predicate ~pretty\_print~ prints a list L which is assumed to
 be a PROLOG representation of a
 Secondo nested list. That is the case e.g.
-if L is output by the ~secondo~ predicate.
+if L is output by the ~secondo~ predicate. If L is a relation,
+a special output format is used which makes reading the
+output more comfortable. That output format closely resembles
+the output format used by SecondoTTY.
 
 1.1.1 Predicates Auxiliary to Predicate ~pretty\_print~
 
@@ -149,7 +152,7 @@ secondo(X) :-
     write('and error message : '),
     nl,
     write(ErrorString),
-    nl, 
+    nl,
     !,
     fail
   ).
