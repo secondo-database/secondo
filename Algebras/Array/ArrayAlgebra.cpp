@@ -664,7 +664,7 @@ TypeConstructor array (
       TypeConstructor::DummyValueListToModel );
 
 /*
-3 Administration of Functions, Implementation of the Switch- and the Select Algorithm
+3 Handling of Functions, Implementation of the Switch- and the Select Algorithm
 
 3.1 Class ~FunInfo~
 
@@ -1280,7 +1280,7 @@ putFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
 const string putSpec = 
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) t int) -> (array x)</text--->"
+     "( <text>((array t) t int) -> (array t)</text--->"
        "<text>put ( _, _, _ )</text--->"
        "<text>Replaces an element at a given index.</text--->"
        "<text>query put(ai,9,3)</text---> ))";
@@ -1845,7 +1845,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     tuple2->SetFree(false);
 
-    // Determine package and distribute tuple2 to that package.
+    // Determine package and distribute tuple2 into that package.
 
     pkgNrCcInt = (CcInt*)(tuple->GetAttribute(pkgAttr));
     pkgNr = pkgNrCcInt->GetIntval();
