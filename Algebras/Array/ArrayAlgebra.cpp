@@ -36,6 +36,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "TimeTest.h"
 
 namespace {
 
@@ -284,7 +285,7 @@ void DeleteArray(Word& w) {
 
   for (int i=0; i<array->getSize(); i++) {
     Word element = array->getElement(i);
-      (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(element);
+    (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(element);
   }
 
   delete array;
@@ -452,11 +453,11 @@ sizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string sizeSpec = 
-          "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-            "( <text>((array x)) -> int</text--->"
-              "<text>size( _ )</text--->"
-              "<text>Returns the size of an array.</text--->"
-              "<text>query size(ai)</text---> ))";
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>((array x)) -> int</text--->"
+        "<text>size( _ )</text--->"
+        "<text>Returns the size of an array.</text--->"
+        "<text>query size(ai)</text---> ))";
 
 Operator size (
 	"size", 	       	   //name
@@ -560,11 +561,11 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string getSpec = 
-          "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-            "( <text>((array x) int) -> x</text--->"
-              "<text>_ get [ _ ]</text--->"
-              "<text>Returns an element with a given index.</text--->"
-              "<text>query ai get [3]</text---> ))";
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>((array x) int) -> x</text--->"
+        "<text>_ get [ _ ]</text--->"
+        "<text>Returns an element with a given index.</text--->"
+        "<text>query ai get [3]</text---> ))";
 
 Operator get (
 	"get",
@@ -668,11 +669,11 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 const string putSpec = 
-          "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-            "( <text>((array x) x int) -> (array x)</text--->"
-              "<text>_ _ put [ _ ]</text--->"
-              "<text>Replaces an element at a given index.</text--->"
-              "<text>query ai 9 put [3]</text---> ))";
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>((array x) x int) -> (array x)</text--->"
+        "<text>_ _ put [ _ ]</text--->"
+        "<text>Replaces an element at a given index.</text--->"
+        "<text>query ai 9 put [3]</text---> ))";
 
 Operator put (
 	"put",
@@ -684,7 +685,98 @@ Operator put (
 );
 
 /*
-3.4 Operator ~distribute~
+3.4 Operator ~makearray~
+
+This Operator creates an array containing the elements of a given list. 
+Note that all elements must have the same type. The elements are cloned
+before building the array.
+
+The type mapping is
+
+---- (t t ... t) -> (array t)
+----
+
+*/
+static ListExpr
+makearrayTypeMap( ListExpr args )
+{
+  bool sameType = true;
+
+  if (nl->ListLength(args) > 0)
+  {
+
+    ListExpr typeOfElement = nl->First(args);
+    args = nl->Rest(args);
+
+    while (!nl->IsEmpty(args) && sameType) {
+      sameType = nl->Equal(nl->First(args), typeOfElement);
+      args = nl->Rest(args);
+    }
+    
+    if (sameType) {
+      return nl->TwoElemList(nl->SymbolAtom("array"), typeOfElement);
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+makearrayFun (Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = qp->GetNoSons(s);
+
+  Word a[n];
+  ListExpr elemLE;
+
+  int errorPos;
+  ListExpr errorInfo;
+  bool correct;
+
+  for (int i=0; i<n; i++) {
+
+    elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, args[i]);
+    a[i] = (am->InObj(algebraId, typeId))
+                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+
+  return 0;
+}
+
+const string makearraySpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>(t t ... t) -> (array t)</text--->"
+        "<text>makearray ( list )</text--->"
+        "<text>Creates an array containing the elements of a given list. "
+        "The elements are cloned before building the array.</text--->"
+        "<text>let ai = makearray (0,1,2,3)</text---> ))";
+
+Operator makearray (
+	"makearray",
+	makearraySpec,
+	makearrayFun,
+	Operator::DummyModel,
+	simpleSelect,
+	makearrayTypeMap
+);
+
+/*
+3.5 Operator ~distribute~
 
 The operator ~distribute~ builds an array of relations from an incoming stream 
 of tuples. The index of the appropriate relation has to be given by an integer 
@@ -867,10 +959,12 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s) {
 const string distributeSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi) -> "
-       "(array (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... (xn tn)))))</text--->"
+       "(array (rel (tuple ((x1 t1) ... (xi-1 ti-1) (xi+1 ti+1) ... "
+       "(xn tn)))))</text--->"
        "<text>_ distribute [ _ ]</text--->"
-       "<text>Distributes a stream of tuples into an array or relations. The attribute xi "
-       "determines the index of the relation, therefore ti must be int.</text--->"
+       "<text>Distributes a stream of tuples into an array or relations. The "
+       "attribute xi determines the index of the relation, therefore ti must "
+       "be int.</text--->"
        "<text>let prel = plz feed distribute [pkg]</text---> ))";
 
 Operator distribute (
@@ -883,7 +977,7 @@ Operator distribute (
 );
 
 /*
-3.5 Operator ~summarize~
+3.6 Operator ~summarize~
 
 The operator ~summarize~ produces a stream of tuples from an array of 
 relations. The operator reads the tuples of all relations beginning
@@ -979,7 +1073,8 @@ const string summarizeSpec =
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>((array (rel x))) -> (stream x)</text--->"
        "<text>_ summarize</text--->"
-       "<text>Produces a stream of the tuples from all relations in the array.</text--->"
+       "<text>Produces a stream of the tuples from all relations in the "
+       "array.</text--->"
        "<text>query prel summarize consume</text---> ))";
 
 Operator summarize (
@@ -992,7 +1087,53 @@ Operator summarize (
 );
 
 /*
-3.6 Operator ~loop~
+
+3.7 Type Operator ~ELEMENT~
+
+Type operators are used only for inferring argument types of parameter
+functions. They have a type mapping but no evaluation function.
+
+This type operator extracts the type of the elements from an array type 
+given as the first argument.
+
+----    ((array x) ...) -> x
+----
+
+*/
+ListExpr ELEMENTTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) >= 1)
+  {
+    ListExpr first = nl->First(args);
+    if (nl->ListLength(first) == 2)
+    {
+      if (nl->IsEqual(nl->First(first), "array")) {
+        return nl->Second(first);
+      }
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+const string ELEMENTSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+     "( <text>((array x) ... ) -> (x)</text--->"
+       "<text>type operator</text--->"
+       "<text>Extracts the type of the elements from an array type given "
+       "as the first argument.</text--->"
+       "<text>not for use with sos-syntax</text---> ))";
+
+Operator ELEMENT (
+      "ELEMENT",
+      ELEMENTSpec,
+      0,
+      Operator::DummyModel,
+      simpleSelect,
+      ELEMENTTypeMap
+);
+
+/*
+3.8 Operator ~loop~
 
 The Operator ~loop~ evaluates each element of an array with a given function and
 returns an array which contains the resulting values.
@@ -1012,7 +1153,8 @@ loopTypeMap( ListExpr args )
     ListExpr mapDesc = nl->Second(args); 
 
     if (nl->IsEqual(nl->First(arrayDesc), "array") 
-        && nl->IsEqual(nl->First(mapDesc), "map"))
+        && nl->IsEqual(nl->First(mapDesc), "map")
+        && nl->ListLength(mapDesc) == 3)
     {
       if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc)))
       {
@@ -1021,12 +1163,233 @@ loopTypeMap( ListExpr args )
       }
     }
   }
-
   return nl->SymbolAtom("typeerror");
 }
 
 static int
 loopFun (Word* args, Word& result, int message, Word& local, Supplier s) {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Array* array = ((Array*)args[0].addr);
+
+  ArgVectorPointer funargs = qp->Argument(args[1].addr);
+  Word funresult;
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = array->getSize();
+
+  Word a[n];
+
+  ListExpr elemLE;
+
+  int errorPos;
+  ListExpr errorInfo;
+  bool correct;
+
+  for (int i=0; i<n; i++) {
+    (*funargs)[0] = array->getElement(i);
+
+    qp->Request(args[1].addr, funresult);
+
+    elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
+    a[i] = (am->InObj(algebraId, typeId))
+                  (typeOfElement, elemLE, errorPos, errorInfo, correct);
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+
+  return 0;
+}
+
+const string loopSpec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) (map t r)) -> (array r)</text--->"
+       "<text>_ loop [ fun ]</text--->"
+       "<text>Evaluates each element of an array with a given function and "
+       "returns an array which contains the resulting values.</text--->"
+       "<text>query ai loop [fun(i:int)(i*i)]</text---> ))";
+
+Operator loop (
+	"loop",
+	loopSpec,
+	loopFun,
+	Operator::DummyModel,
+	simpleSelect,
+	loopTypeMap
+);
+
+/*
+3.9 Operator ~loop2~
+
+The operator ~loop2~ evaluates each pair of elements from two arrays with 
+a given function and returns an array which contains the resulting values.
+
+The formal specification of type mapping is:
+
+---- ((array t) (array u) (map t u r)) -> (array r)
+----
+
+*/
+static ListExpr
+loop2TypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 3) 
+  {
+    ListExpr firstArrayDesc = nl->First(args);
+    ListExpr secondArrayDesc = nl->Second(args);
+    ListExpr mapDesc = nl->Third(args); 
+
+    if (nl->IsEqual(nl->First(firstArrayDesc), "array") 
+        && nl->IsEqual(nl->First(secondArrayDesc), "array")
+        && nl->IsEqual(nl->First(mapDesc), "map")
+        && nl->ListLength(mapDesc) == 4)
+    {
+      if (nl->Equal(nl->Second(firstArrayDesc), nl->Second(mapDesc))
+          && nl->Equal(nl->Second(secondArrayDesc), nl->Third(mapDesc)))
+      {
+        return nl->TwoElemList(nl->SymbolAtom("array"),
+                               nl->Fourth(mapDesc));
+      }
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s) {
+
+  SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+
+  Array* firstArray = ((Array*)args[0].addr);
+  Array* secondArray = ((Array*)args[1].addr);
+
+  ArgVectorPointer funargs = qp->Argument(args[2].addr);
+  Word funresult;
+
+  ListExpr type = qp->GetType(s);
+  ListExpr typeOfElement = sc->NumericType(nl->Second(type));
+
+  int algebraId;
+  int typeId;
+
+  extractIds(typeOfElement, algebraId, typeId);
+
+  int n = firstArray->getSize();
+  int m = secondArray->getSize();
+
+  Word a[n * m];
+
+  ListExpr elemLE;
+
+  int errorPos;
+  ListExpr errorInfo;
+  bool correct;
+
+  for (int i=0; i<n; i++) {
+    for (int l=0; l<m; l++) {
+      (*funargs)[0] = firstArray->getElement(i);
+      (*funargs)[1] = secondArray->getElement(l);
+
+      qp->Request(args[2].addr, funresult);
+
+      elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
+
+      a[i * m + l] = (am->InObj(algebraId, typeId))
+                          (typeOfElement, elemLE, errorPos, errorInfo, correct);
+    }
+  }
+
+  result = qp->ResultStorage(s);
+
+  ((Array*)result.addr)->initialize(algebraId, typeId, n * m, a);
+
+  return 0;
+}
+
+const string loop2Spec = 
+    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>((array t) (array u) (map t u r)) -> (array r)</text--->"
+       "<text>_ _ loop2 [ fun ]</text--->"
+       "<text>Evaluates each pair of elements from two arrays with a given "
+       "function and returns an array which contains the resulting "
+       "values.</text--->"
+       "<text>query ai al loop2[fun(i:int,l:int)(i+l)]</text---> ))";
+
+Operator loop2 (
+	"loop2",
+	loop2Spec,
+	loop2Fun,
+	Operator::DummyModel,
+	simpleSelect,
+	loop2TypeMap
+);
+
+/*
+3.9 Operator ~sortarray~
+
+The operator ~sortarray~ sorts an array in order of the function values
+of the elements.
+
+The formal specification of type mapping is:
+
+---- ((array t) (map t int)) -> (array t)
+----
+
+First an auxiliary class ~IntPair~ is defined. The aim of this class is to 
+use the standard sort algorithm in the value mapping function.
+
+*/
+class IntPair { 
+  friend bool operator<(const IntPair&, const IntPair&);
+  public : int first, second;
+};
+
+bool operator<(const IntPair& p1, const IntPair& p2) {
+  return (p1.first < p2.first) 
+           || (p1.first == p2.first && p1.second < p2.second);
+}
+
+/*
+Implementation of operator ~sortarray~
+
+*/
+static ListExpr
+sortarrayTypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) 
+  {
+    ListExpr arrayDesc = nl->First(args);
+    ListExpr mapDesc = nl->Second(args); 
+
+    if (nl->IsEqual(nl->First(arrayDesc), "array") 
+        && nl->IsEqual(nl->First(mapDesc), "map")
+        && nl->ListLength(mapDesc) == 3)
+    {
+      if (nl->Equal(nl->Second(arrayDesc), nl->Second(mapDesc))
+          && nl->IsEqual(nl->Third(mapDesc), "int"))
+      {
+        return arrayDesc;
+      }
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+static int
+sortarrayFun (Word* args, Word& result, int message, Word& local, Supplier s) {
 
   SecondoCatalog* sc = SecondoSystem::GetCatalog(ExecutableLevel);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
@@ -1045,6 +1408,8 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s) {
   extractIds(typeOfElement, algebraId, typeId);
 
   int n = array->getSize();
+
+  vector<IntPair> index(n);
   Word a[n];
 
   ListExpr elemLE;
@@ -1058,8 +1423,16 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s) {
 
     qp->Request(args[1].addr, funresult);
 
-    elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
+    index[i].first = ((CcInt*)funresult.addr)->GetIntval();
+    index[i].second = i;
+  }
 
+  sort(index.begin(), index.end());
+
+  for (int i=0; i<n; i++) {
+
+    elemLE = (am->OutObj(algebraId, typeId))
+                     (typeOfElement, array->getElement(index[i].second));
     a[i] = (am->InObj(algebraId, typeId))
                   (typeOfElement, elemLE, errorPos, errorInfo, correct);
   }
@@ -1071,21 +1444,21 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s) {
   return 0;
 }
 
-const string loopSpec = 
+const string sortarraySpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-     "( <text>((array t) (map t r)) -> (array r)</text--->"
-       "<text>_ _ loop</text--->"
-       "<text>Evaluates each element of an array with a given function and returns "
-       "an array which contains the resulting values.</text--->"
-       "<text>query ai square loop</text---> ))";
+     "( <text>((array t) (map t int)) -> (array t)</text--->"
+       "<text>_ sortarray [ fun ]</text--->"
+       "<text>Sorts an array in order of the function values of the "
+       "elements.</text--->"
+       "<text>query ai sortarray[fun(i:int)i]</text---> ))";
 
-Operator loop (
-	"loop",
-	loopSpec,
-	loopFun,
+Operator sortarray (
+	"sortarray",
+	sortarraySpec,
+	sortarrayFun,
 	Operator::DummyModel,
 	simpleSelect,
-	loopTypeMap
+	sortarrayTypeMap
 );
 
 /*
@@ -1104,11 +1477,17 @@ class ArrayAlgebra : public Algebra
     AddOperator( &size );
     AddOperator( &get );
     AddOperator( &put );
+    AddOperator( &makearray );
 
     AddOperator( &distribute );
     AddOperator( &summarize );
 
+    AddOperator( &ELEMENT );
+
     AddOperator( &loop );
+    AddOperator( &loop2 );
+
+    AddOperator( &sortarray );
   }
   ~ArrayAlgebra() {};
 };
