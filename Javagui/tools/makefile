@@ -4,14 +4,16 @@
 
 include ../makefile.inc
 
-CLASSFILES = xxx2secondo.class
+CLASSFILES=xxx2secondo.class MovingPointBuilder.class
 
 .PHONY: all
-all: xxx2secondo.class
+all: $(CLASSFILES)
 
 
-xxx2secondo.class: xxx2secondo.java
-	$(JAVAC) -classpath $(CLASSPATH) xxx2secondo.java
+%.class: %.java
+	$(JAVAC) -classpath $(CLASSPATH) $<
+
+
 
 
 .PHONY: clean
