@@ -324,6 +324,92 @@ Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
 
 /*
 
+5.3 Constructor of the class Tuple. 
+
+Creates a solid tuple and
+reads its data into memory,
+using a prefetching iterator.
+
+*/
+Tuple::Tuple
+  (SmiRecordFile* recfile, 
+  PrefetchingIterator*iter, 
+  SmiRecordFile *lobfile,
+  const TupleAttributes *attributes) 
+{
+  bool ok;
+  
+  // initialize member attributes.
+  Init(attributes);
+  
+  iter->ReadCurrentRecordNumber(diskTupleId);
+  recFile = recfile;
+  lobFile = lobfile;
+  
+  // read tuple header and memory tuple from disk
+  TupleHeader th = {0};
+  char *buf = (char *)malloc(sizeof(TupleHeader));
+  ok = iter->ReadCurrentData(buf, sizeof(TupleHeader), 0);
+  ok = iter->ReadCurrentData(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
+  memcpy(&(th.size), buf, sizeof(int));
+  free(buf);
+  
+  if (ok == false) {
+    error = true;
+    return;
+  }
+  
+  state = SolidRead;
+  
+  // read attribute values from memoryTuple.
+  char *valuePtr = memoryTuple;
+  for (int i = 0; i < attrNum; i++) {
+    memcpy(attribInfo[i].value, valuePtr, attribInfo[i].size);
+    valuePtr = valuePtr + attributes->type[i].size;
+    FLOB *tmpFLOB;
+    for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+      tmpFLOB = attribInfo[i].value->GetFLOB(j);
+      tmpFLOB->lobFile = lobFile;
+    }
+    
+  }
+  
+  if (th.size > 0) {
+    // Determine the size of FLOB data stored in lobFile
+    FLOB *tmpFLOB;
+    extensionSize = 0;
+    
+    for (int i = 0; i < attrNum; i++) {
+      for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+	tmpFLOB = attribInfo[i].value->GetFLOB(j);
+	extensionSize = extensionSize + tmpFLOB->size;
+      }
+    }
+    
+    extensionTuple = 0;
+    // move FLOB data to extension tuple if exists.
+    if (extensionSize > 0) {
+      extensionTuple = (char *)malloc(extensionSize);
+      ok = iter->ReadCurrentData(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
+      
+      char *extensionPtr = extensionTuple;
+      for (int i = 0; i < attrNum; i++) {
+	for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+	  tmpFLOB = attribInfo[i].value->GetFLOB(j);
+	  if (!tmpFLOB->IsLob()) {
+	    extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+	  }	
+	}
+      }				
+    }
+  }
+  
+  if (ok == false) error = true;
+}
+
+
+/*
+
 5.4 Destructor of class Tuple.
 
 previously called Close. 

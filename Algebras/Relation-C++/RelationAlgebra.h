@@ -222,9 +222,30 @@ class CcRelIT
     
 };
 
+#ifdef RELALG_PERSISTENT
+class PrefetchingRelIterator
+{ 
+  friend class CcRel;
+    
+  PrefetchingIterator* iter;
+  CcRel* r;
+   
+  PrefetchingRelIterator(CcRel* r);
+    
+public :
+    
+  ~PrefetchingRelIterator();
+  
+  CcRel* GetRel();  
+  CcTuple* GetCurrentTuple();
+  bool Next();
+};
+#endif /* RELALG_PERSISTENT */
+
 class CcRel
 {
   friend class CcRelIT;
+  friend class PrefetchingRelIterator;
 
   #ifndef RELALG_PERSISTENT
   
@@ -278,6 +299,10 @@ class CcRel
     int GetLobFileId();
 
     CcRelIT* MakeNewScan();
+
+#ifdef RELALG_PERSISTENT
+    PrefetchingRelIterator* MakeNewPrefetchedScan();
+#endif /* RELALG_PERSISTENT */
 
     void SetNoTuples (int);
     int GetNoTuples ();

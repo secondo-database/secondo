@@ -837,6 +837,11 @@ CcRelIT* CcRel::MakeNewScan()
   return result;
 }
 
+PrefetchingRelIterator* CcRel::MakeNewPrefetchedScan()
+{
+  return new PrefetchingRelIterator(this);
+}
+
 CcTuple* CcRel::GetTupleById(SmiRecordId id)
 {
   return (*TupleList)[id];
@@ -851,6 +856,8 @@ int CcRel::GetNoTuples ()
 {
   return NoOfTuples;
 };
+
+
 
 //CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r)
 //{
@@ -963,6 +970,55 @@ CcTuple* CcRelIT::GetNextTuple()
   }
   //else return 0;
 }
+
+PrefetchingRelIterator::PrefetchingRelIterator(CcRel* r)
+{
+  SmiRecordFile* file;
+  
+  this->r = r;
+  file = r->GetRecFile();
+  iter = file->SelectAllPrefetched();
+};
+
+PrefetchingRelIterator::~PrefetchingRelIterator()
+{
+  delete iter;
+};
+  
+CcRel* PrefetchingRelIterator::GetRel()
+{
+  return r;
+};
+
+CcTuple* PrefetchingRelIterator::GetCurrentTuple()
+{
+  Tuple* tuple;
+  
+  TupleAttributesInfo* tai = r->GetTupleAttributesInfo();
+  TupleAttributes* attributes = tai->GetTupleTypeInfo();
+  
+  SmiRecordFile* recfile = r->GetRecFile();
+  SmiRecordFile* lobfile = r->GetLobFile();
+  
+  tuple = new Tuple(recfile, this->iter, lobfile, attributes);
+  
+  return 
+    new CcTuple(tuple, tuple->GetAttrNum(), 
+      CloneAttributesTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()),
+      CloneTupleTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()));
+};
+
+bool PrefetchingRelIterator::Next()
+{
+  if(iter == 0)
+  {
+    return false;
+  }
+  else
+  {
+    return iter->Next();
+  };
+};
 
 ListExpr OutRel(ListExpr typeInfo, Word  value)
 {

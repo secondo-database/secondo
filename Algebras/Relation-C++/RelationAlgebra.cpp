@@ -395,7 +395,11 @@ Word InRel(ListExpr typeInfo, ListExpr value,
       {
         tupleaddr->SetFree(false);
         rel->AppendTuple(tupleaddr);
-        delete tupleaddr;
+        
+#ifdef RELALG_PERSISTENT
+	delete tupleaddr;
+#endif /* RELALG_PERSISTENT */
+	
 	//tupleaddr = 0;
 	
 	//Tuple* mytuple = new Tuple(rel->GetRecFile(),rel->GetRecFileId(),
@@ -848,80 +852,91 @@ static ListExpr FeedTypeMap(ListExpr args)
 4.1.2 Value mapping function of operator ~feed~
 
 */
+
+#ifdef RELALG_PERSISTENT
+/* if you do not want prefetching, comment out the following line */
+//#define FEED_PREFETCH
+#endif
+
 static int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcRel* r;
-  CcRelIT* rit;
+  
+#ifdef FEED_PREFETCH
+  PrefetchingRelIterator* iter;
+#else
+  CcRelIT* iter;
+#endif /* FEED_PREFETCH */
+
   Word argRelation;
   string recFileContext, lobFileContext;
-
 
   switch (message)
   {
     case OPEN :
-
-	//cout << "Feed OPEN " << endl;
-
       qp->Request(args[0].addr, argRelation);
       r = ((CcRel*)argRelation.addr);
 
-      //if ( !(r->GetRecFile()->IsOpen() && r->GetLobFile()->IsOpen()) )
-      //{
-        //recFileContext = r->GetRecFile()->GetContext();
-        //lobFileContext = r->GetRecFile()->GetContext();
-        //r->GetRecFile()->Open( r->GetRecFileId(), recFileContext );
-        //r->GetLobFile()->Open( r->GetLobFileId(), lobFileContext );
-      //}
-       
-      rit = r->MakeNewScan();
+#ifdef FEED_PREFETCH       
+      iter = r->MakeNewPrefetchedScan();
+#else   
+      iter = r->MakeNewScan();
+#endif /* FEED_PREFETCH */
 
-      local.addr = rit;
+      local = SetWord(iter);  
       return 0;
 
     case REQUEST :
-
-	//cout << "Feed REQUEST " << endl;
-
-      rit = (CcRelIT*)local.addr;
-      if (!(rit->EndOfScan()))
+    
+#ifdef FEED_PREFETCH             
+      iter = (PrefetchingRelIterator*)local.addr;
+      if(iter->Next())
       {
-        //cout << "Tuple: " << (CcTuple)(*(rit->GetTuple())) << endl;
-        result = SetWord( rit->GetTuple() );
-	//delete rit->GetTuple();
-        rit->Next();
+        result = SetWord(iter->GetCurrentTuple());
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      };
+#else      
+      iter = (CcRelIT*)local.addr;
+      if (!(iter->EndOfScan()))
+      {
+        result = SetWord(iter->GetTuple());
+        iter->Next();
         return YIELD;
       }
       else
       {
         return CANCEL;
       }
+#endif /* FEED_PREFETCH */
 
     case CLOSE :
-      rit = (CcRelIT*)local.addr;
+
+#ifdef FEED_PREFETCH             
+      iter = (PrefetchingRelIterator*)local.addr;
+#else      
+      iter = (CcRelIT*)local.addr;
+#endif /* FEED_PREFETCH */
       
-      #ifdef RELALG_PERSISTENT
-      
-      if ( rit->GetRel()->GetRecFile()->GetContext() == "RECFILE" )
+#ifdef RELALG_PERSISTENT      
+      if ( iter->GetRel()->GetRecFile()->GetContext() == "RECFILE" )
       {
-        CloseRecFile( rit->GetRel() );
-        CloseLobFile( rit->GetRel() );
+        CloseRecFile(iter->GetRel());
+        CloseLobFile(iter->GetRel());
       }
       else
       {
-        CloseDeleteRecFile( rit->GetRel() );
-        CloseDeleteLobFile( rit->GetRel() );
+        CloseDeleteRecFile(iter->GetRel());
+        CloseDeleteLobFile(iter->GetRel());
       }
-      cout << "RelsCreatedFeed : " << ccRelsCreated << endl;
-      cout << "RelsDeletedFeed : " << ccRelsDeleted << endl;
-      delete rit->GetRel();
+      delete iter->GetRel();
+#endif
       
-      #endif
-      
-      delete rit;
-
-	//cout << "Feed CLOSE " << endl;
-
+      delete iter;
       return 0;
   }
   return 0;
