@@ -4526,8 +4526,6 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
            crely=((CcRel*)rely.addr);
            if (crelyit->EndOfScan())
            {
-	    cout<<"end of rel y...!"<<endl;
-	    
 	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
 	    qp->Request(args[0].addr, tuplex);
 	    if (qp->Received(args[0].addr))
@@ -4540,7 +4538,7 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 	       crely = (CcRel*)(funresult.addr); 
                        crelyit=crely->MakeNewScan();
 	       tupley=SetWord(Address(0));
-	       cout<<"number of tuples in rel y:"<<((CcRel*)rely.addr)->GetNoTuples()<<endl;
+	       //cout<<"number of tuples in rel y:"<<((CcRel*)rely.addr)->GetNoTuples()<<endl;
 	       
  	       localinfo->tuplex=tuplex;
  	       localinfo->rely=rely;
@@ -4554,7 +4552,7 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 	    tupley=SetWord(crelyit->GetTuple());
 	    ctupley=(CcTuple*)tupley.addr;
 	    crelyit->Next();
-	    localinfo->relyit=SetWord(crelyit);   //***save the pointer!
+	    localinfo->relyit=SetWord(crelyit);
 	    local =  SetWord(localinfo);
             }
       } 
