@@ -29,7 +29,7 @@ public class Dsplregion extends DisplayGraph {
       return;
     }
     double koord[] = new double[2];
-    System.out.println(value.writeListExprToString());
+    //System.out.println(value.writeListExprToString());
     areas = new Area();
     while (!value.isEmpty()) {                  // value while
       ListExpr face = value.first();
@@ -105,6 +105,7 @@ public class Dsplregion extends DisplayGraph {
 
 
 }
+
 
 
 

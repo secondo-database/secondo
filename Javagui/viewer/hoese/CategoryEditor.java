@@ -411,7 +411,7 @@ public class CategoryEditor extends javax.swing.JDialog {
   private void CatCBActionPerformed (java.awt.event.ActionEvent evt) {          //GEN-FIRST:event_CatCBActionPerformed
     JComboBox cb = (JComboBox)evt.getSource();
     int i = cb.getSelectedIndex();
-    System.out.println(i);
+    //System.out.println(i);
     if ((i >= 0) && (i < mw.Cats.size())) {
       aktIndex = i;
       Category aktCat = (Category)mw.Cats.elementAt(i);
@@ -600,6 +600,7 @@ public class CategoryEditor extends javax.swing.JDialog {
   private javax.swing.JButton CancelB;
   // End of variables declaration//GEN-END:variables
 }
+
 
 
 
