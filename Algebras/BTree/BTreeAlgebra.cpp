@@ -36,6 +36,12 @@ namespace {
 
 static NestedList* nl;
 
+/* 
+
+Commenting out the following line prevents the usage
+of prefetching iterators in the btree algebra.
+
+*/
 #define BTREE_PREFETCH
 
 /*
