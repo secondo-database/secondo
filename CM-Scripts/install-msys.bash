@@ -71,6 +71,27 @@ if [ ! -d "$mingwdir" ]; then
    exit 2
 fi
 
+printf  "\n* Starting SWI-Prolog Installer ... \n"
+cd "$cdpath/prolog"
+w32pl*.exe
+
+prologdir="$sdk/pl"
+if [ ! -d "$prologdir" ]; then
+   printf  "\n ERROR: Directory $prologdir not found." 
+   printf  "\n        Please install SWI-Prolog into director $prologdir.  \n "
+   exit 6 
+fi
+
+printf  "\n* Starting JAVA Installer ... \n"
+cd "$cdpath/../java"
+j2sdk*windows*.exe
+
+javadir="$sdk/j2sdk1.4.2"
+if [ ! -d "$javadir" ]; then
+   printf  "\n ERROR: Directory $javadir not found." 
+   printf  "\n        Please install JAVA 2 int directory $javadir.  \n "
+   exit 7 
+fi
 printf "\n* Installing unzip ... \n"
 
 sdk="$instpath/secondo-sdk"
@@ -106,6 +127,11 @@ if { ! tar -xzf "$cdpath/secondo-win32.tgz"; }; then
   exit 5
 fi
 
+printf "\n* Compiling Berkeley-DB
+source $HOME/secondo/CM-scripts/setvar.bash $HOME/secondo
+cd $HOME/Win32
+make && "make install"
+
 printf  "\n* Copying configuration files ... \n"
 cd "$HOME/secondo/CM-Scripts"
 cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
@@ -118,27 +144,6 @@ chmod u+x .secondorc .bashrc
 cd "$HOME/secondo/Win32/MSYS"
 cp --backup fstab profile "$msysdir/etc"
 
-printf  "\n* Starting SWI-Prolog Installer ... \n"
-cd "$cdpath/prolog"
-w32pl*.exe
-
-prologdir="$sdk/pl"
-if [ ! -d "$prologdir" ]; then
-   printf  "\n ERROR: Directory $prologdir not found." 
-   printf  "\n        Please install SWI-Prolog into director $prologdir.  \n "
-   exit 6 
-fi
-
-printf  "\n* Starting JAVA Installer ... \n"
-cd "$cdpath/../java"
-j2sdk*windows*.exe
-
-javadir="$sdk/j2sdk1.4.2"
-if [ ! -d "$javadir" ]; then
-   printf  "\n ERROR: Directory $javadir not found." 
-   printf  "\n        Please install JAVA 2 int directory $javadir.  \n "
-   exit 7 
-fi
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"
