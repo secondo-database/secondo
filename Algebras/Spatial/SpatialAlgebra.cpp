@@ -1298,6 +1298,11 @@ int CHalfSegment::operator==(const CHalfSegment& chs) const
     return (chscmp(chs)==0);
 }
 
+int CHalfSegment::operator!=(const CHalfSegment& chs) const
+{
+    return (!(*this==chs));
+}
+
 int CHalfSegment::operator<(const CHalfSegment& chs) const
 {
     return (chscmp(chs)==-1);
@@ -1516,6 +1521,51 @@ const bool CHalfSegment::Contains( const Point& p ) const
              return true;
   else    return false;
 }
+
+const bool CHalfSegment::rayAbove( const Point& p ) const
+{   //this function is useful for deciding whether a point is inside a cycle
+    //so the semantics is decided according to this purpose
+    Coord x, y, xl, yl,xr, yr;
+    x=p.GetX();
+    y=p.GetY();
+    xl= this->GetLP().GetX();
+    yl= this->GetLP().GetY();
+    xr= this->GetRP().GetX();
+    yr= this->GetRP().GetY();
+    
+    bool res=false;
+    
+    if (xl!=xr) 
+    {           // not vertical. vertical lines will not affect the result
+	
+	if ((x==xl) && (yl>y)) 
+	{   //only the left endpoint is checked. in a cycle, if the common point of
+	    //two consecutive edges is above p, then they are counted once.
+	    res=true;
+	}
+	else if ((xl < x) && (x < xr))
+	{   //Here: the problem is with the rational numbers
+	    double k=
+		    ((yr.IsInteger()? yr.IntValue():yr.Value()) -
+		     (yl.IsInteger()? yl.IntValue():yl.Value())) / 
+		    ((xr.IsInteger()? xr.IntValue():xr.Value()) -
+		     (xl.IsInteger()? xl.IntValue():xl.Value())); 
+	    double a=
+		    (yl.IsInteger()? yl.IntValue():yl.Value()) -
+		    k*(xl.IsInteger()? xl.IntValue():xl.Value());
+	    
+	    double y0=
+		    k*(x.IsInteger()? x.IntValue():x.Value())+a; 
+	    
+	    if (y0>(y.IsInteger()?y.IntValue():y.Value()))  
+	    {
+		res=true;
+	    }
+	}
+    }
+    return res;
+}
+
 
 /*
 
@@ -1759,7 +1809,7 @@ CLine::CLine(SmiRecordFile *recordFile, const CLine& cl ) :
   }
 }
 
-CLine::CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true):
+CLine::CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update /*= true*/):
 	 line(new PArray<CHalfSegment>(recordFile, recordId, update ) ),ordered(true)
 {}
 
@@ -2316,7 +2366,7 @@ CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
 }
 
 CRegion::CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, 
-	  bool update = true): region(new PArray<CHalfSegment>
+	  bool update /*= true*/ ): region(new PArray<CHalfSegment>
 	  ( recordFile, recordId, update ) ),ordered(true)
 {}
 
@@ -2636,88 +2686,158 @@ ostream& operator<<( ostream& os, const CRegion& cr )
 
 const bool CRegion::insertOK(const CHalfSegment& chs)
 { 
-    assert(chs.IsDefined());
-    int outcycleRay=0;
-    Coord x=chs.GetLP().GetX();
-    Coord y=chs.GetLP().GetY();
-	    
-    for( int i = 0; i<= region->Size()-1; i++ )
+    //assert(chs.IsDefined());
+    if (chs.IsDefined())
     {
-	CHalfSegment auxchs;
-	region->Get( i, auxchs );
-	
-	if (auxchs.GetLDP())
+	int prevcycleMeet[50];
+	//suppose a face can have at most 50 cycles
+	int prevcyclenum=0;
+	for( int i = 0; i< 50; i++ )
 	{
-	    if (chs.Intersects(auxchs))
+	    prevcycleMeet[i]=0;
+	}
+    
+	for( int i = 0; i<= region->Size()-1; i++ )
+	{           
+	    CHalfSegment auxchs;
+	    region->Get( i, auxchs );
+	    //cout<<auxchs.attr.faceno<<"<<"<<auxchs.attr.cycleno<<"<<"
+	    //<<auxchs.attr.edgeno<<endl;
+	    if (auxchs.GetLDP())
 	    {
-		if ((chs.attr.faceno!=auxchs.attr.faceno)||
-		    (chs.attr.cycleno!=auxchs.attr.cycleno)) 
+		if (chs.Intersects(auxchs))
 		{
-		    cout<<"two cycles intersect with the following edges:";
-		    cout<<auxchs<<" :: "<<chs<<endl;
-		    return false;
-		}
-		else
-		{  
-		    if ((auxchs.GetLP()!=chs.GetLP()) && 
-		        (auxchs.GetLP()!=chs.GetRP()) &&
-		        (auxchs.GetRP()!=chs.GetLP()) &&
-		        (auxchs.GetRP()!=chs.GetRP())) 
+		    if ((chs.attr.faceno!=auxchs.attr.faceno)||
+			(chs.attr.cycleno!=auxchs.attr.cycleno)) 
 		    {
-			cout<<"two edges: " <<auxchs<<" :: "<< chs
-			<<" of the same cycle intersect in middle!"
-			<<endl;
+			cout<<"two cycles intersect with the following edges:";
+			cout<<auxchs<<" :: "<<chs<<endl;
 			return false;
+		    }
+		    else
+		    {  
+			if ((auxchs.GetLP()!=chs.GetLP()) && 
+			    (auxchs.GetLP()!=chs.GetRP()) &&
+			    (auxchs.GetRP()!=chs.GetLP()) &&
+			    (auxchs.GetRP()!=chs.GetRP())) 
+			{
+			    cout<<"two edges: " <<auxchs<<" :: "<< chs
+				    <<" of the same cycle intersect in middle!"
+				    <<endl;
+			    return false;
+			}
+		    }
+		}
+		else 
+		{
+		    if ((chs.attr.cycleno>0) &&    //it is a hole
+			(auxchs.attr.faceno==chs.attr.faceno) && 
+			(auxchs.attr.cycleno!=chs.attr.cycleno))
+		    {  
+			//here: compare whether chs is below auxchs
+			if (auxchs.rayAbove(chs.GetLP()))
+			{
+			    prevcycleMeet[auxchs.attr.cycleno]++; 
+			    if (prevcyclenum < auxchs.attr.cycleno)
+				prevcyclenum=auxchs.attr.cycleno;
+			}
 		    }
 		}
 	    }
-	    else 
+	}
+	
+	if (chs.attr.cycleno>0)
+	{
+	    if  (prevcycleMeet[0] % 2 ==0)
 	    {
-		if (chs.attr.cycleno>0) 
+		cout<<"hole(s) is not inside the outer cycle! "<<endl;
+		return false;
+	    }
+	    for (int i=1; i<=prevcyclenum; i++)
+	    {
+		if (prevcycleMeet[i] % 2 !=0)
 		{
-		    if ((auxchs.attr.faceno==chs.attr.faceno) &&
-		        (auxchs.attr.cycleno==0))
+		    cout<<"one hole is inside another! "<<endl;
+		    return false;
+		}
+	    }
+	}
+	//now we know that the new chs is not inside any other old holes
+	//but the whether any old holes is inside new chs hole is not clear
+	//in the following I will do this check. Be careful that the edges is now
+	//in logic order
+	cout << "processing: faceno, cycleno "<<chs.attr.faceno<<" : "<<chs.attr.cycleno<<" : "<<chs<<endl;
+    }
+    
+    if ((!chs.IsDefined())||((chs.attr.faceno>0) || (chs.attr.cycleno>2)))
+    {          
+	CHalfSegment chsHoleNEnd, chsHoleNStart;
+    
+	int holeNEnd=region->Size()-1;
+	region->Get(holeNEnd, chsHoleNEnd );
+    
+	if  ((chsHoleNEnd.attr.cycleno>1) &&
+	    ((!chs.IsDefined())||
+	    (chs.attr.faceno!=chsHoleNEnd.attr.faceno)||
+	    (chs.attr.cycleno!=chsHoleNEnd.attr.cycleno)))
+	{  //chs start another face or cycle
+	    
+	    cout<<"trigger the test!"<<endl;
+	    
+	    if (chsHoleNEnd.attr.cycleno>1)
+	    {   //if the just finished cycle is the second hole or later, then we should be ensure that 
+	        //any previously defined hole must be inside the just finished hole.
+		
+		int holeNStart=holeNEnd - 1;
+		region->Get(holeNStart, chsHoleNStart );
+
+		while ((chsHoleNStart.attr.faceno==chsHoleNEnd.attr.faceno) && 
+		       (chsHoleNStart.attr.cycleno==chsHoleNEnd.attr.cycleno)&&
+		       (holeNStart>0))
+		{
+		    holeNStart--;
+		    region->Get(holeNStart, chsHoleNStart );
+		}
+		holeNStart++;
+		//holeNStart marks the begining of the last hole;
+	    
+		int prevHolePnt=holeNStart-1;
+		CHalfSegment chsPrevHole, chsLastHole;
+	    
+		bool stillPrevHole = true;
+		while ((stillPrevHole) && (prevHolePnt>=0))
+		{
+		    region->Get(prevHolePnt, chsPrevHole );
+		    prevHolePnt--;
+		
+		    if ((chsPrevHole.attr.faceno!= chsHoleNEnd.attr.faceno)||
+			(chsPrevHole.attr.cycleno<=0))
 		    {
-			//here: compare whether chs is below auxchs
-			Coord xl, yl,xr, yr;
-			xl= auxchs.GetLP().GetX();
-			yl=auxchs.GetLP().GetY();
-			xr= auxchs.GetRP().GetX();
-			yr=auxchs.GetRP().GetY();
-			
-			if (xl!=xr) //not vertical.
-			{   // Vertical lines will not affect the result
-			    if ((x==xl) && (y<yl)) outcycleRay++; 
-			    else if ((x > xl) && (x < xr))
-			    {
-				double k=
-				((yr.IsInteger()? yr.IntValue():yr.Value()) -
-				 (yl.IsInteger()? yl.IntValue():yl.Value())) / 
-				((xr.IsInteger()? xr.IntValue():xr.Value()) -
-				 (xl.IsInteger()? xl.IntValue():xl.Value())); 
-				double a=
-				(yl.IsInteger()? yl.IntValue():yl.Value()) -
-				k*(xl.IsInteger()? xl.IntValue():xl.Value());
-				
-				double y0=
-				k*(x.IsInteger()? x.IntValue():x.Value())+a; 
-				
-				if (y0> (y.IsInteger()? 
-				y.IntValue():y.Value()))  outcycleRay++;
-			    }
+			stillPrevHole=false;
+		    }
+		
+		    //test whether chsPreHole is inside the hole_N;
+		    // if inside, return false;
+		    if (chsPrevHole.GetLDP())
+		    {
+			int holeNMeent=0;
+			for (int i=holeNStart; i<=holeNEnd; i++)
+			{
+			    region->Get(i, chsLastHole );
+			    if ((chsLastHole.GetLDP())&&
+			        (chsLastHole.rayAbove(chsPrevHole.GetLP())))
+				holeNMeent++;
+			}
+			if  (holeNMeent % 2 !=0)
+			{
+			    cout<<"one hole is inside another!!! "<<endl;
+			    return false;
 			}
 		    }
 		}
 	    }
 	}
     }
-    
-    if ((chs.attr.cycleno>0)&&(outcycleRay % 2 ==0))
-    {
-	cout<<"hole(s) is not inside the outer cycle! "<<endl;
-	return false;
-    }
-    
     return true;
 }
 
@@ -2737,6 +2857,8 @@ the state of the region is checked. A valid region must satisfy the following co
 
 6)  any two edges of the same cycle can not intersect each with their middle points. They
 can only intersect with their endpoints;
+
+7)  any hole can not be inside another hole of the same face;
 
 8.2 List Representation
 
@@ -2998,7 +3120,9 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 { 
   cout<<"InRegion"<<endl;
   CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
+  
   cr->StartBulkLoad();
+  
   ListExpr RegionNL = instance;
   ListExpr FaceNL, CycleNL;
   int fcno=-1;
@@ -3124,7 +3248,18 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		  }
 	      }
 	   } 
-      } 
+      }
+      
+      //at last, we need to trigger the test by doing the follwoing
+      //only test, not really insert.
+      CHalfSegment * chs=new CHalfSegment ();
+      chs->SetDefined(false);
+      if (!( cr->insertOK(*chs) ))
+      {
+	  correct=false;
+	  return SetWord( Address(0) );
+      }
+      
       cr->EndBulkLoad();
       correct = true;
       return SetWord( cr );
@@ -4259,8 +4394,27 @@ SpatialIntersects_ll( Word* args, Word& result, int message, Word& local, Suppli
 
 static int
 SpatialIntersects_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{   
+{   //this algorithm is not right. I will modify it soon. DZM
     result = qp->ResultStorage( s );
+    CRegion *cr1, *cr2;
+    CHalfSegment chs1, chs2;
+  
+    cr1=((CRegion*)args[0].addr);
+    cr2=((CRegion*)args[1].addr);
+  
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	for (int j=0; j<cr2->Size(); j++)
+	{    
+	    cr2->Get(j, chs2);
+	    if (chs1.Intersects(chs2)) 
+	    {
+		((CcBool *)result.addr)->Set( true, true );
+		return (0);
+	    }
+	}
+    }
     ((CcBool *)result.addr)->Set( true, false);
     return (0);
 }
