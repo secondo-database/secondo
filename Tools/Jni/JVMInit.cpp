@@ -1,4 +1,4 @@
-/* This module initializes the JNI Environment. 
+/* This module initializes the JNI Environment.
    March, 25th, 2003 by Mirco Guenster and Ismail Zerrad.
    changed 2003-06-17 by Th. Behr
       new ananyse of the jni.ini-file
@@ -14,7 +14,10 @@ using namespace std;
 #endif
 
 #include<JVMInit.h>
-#include<iostream>
+#include <iostream>
+#include <fstream>
+#include <string>
+
 
 const int PATHLENGTH = 1024;
 
@@ -22,6 +25,101 @@ bool JVMInitializer::initialized=false;
 JNIEnv* JVMInitializer::env=0;
 JavaVM* JVMInitializer::jvm=0;
 
+
+/* 1.0 The getIniFile function
+   This function returns the content of system variable JNI_INIT if available.
+   If this variable is not defined, a warning is printted out and a default
+   value is returned.
+*/
+string getIniFile(){
+  char* res = getenv("JNI_INIT");
+  if(res!=0)
+      return res;
+  else{
+     cerr << "JNI_INIT not defined using default: ./JNI.ini" << endl;
+     return "JNI.ini";
+  }
+}
+
+/* 1.0 The getAbsolutePath function
+   If the given string begins with "/", the
+   string  self is returned. Otherwise
+   $SECONDO_BUILD_DIR/String is returned.
+*/
+string getAbsolutePath(string Path){
+  if(Path[0]=='/')
+     return Path;
+  string SecondoHome = getenv("SECONDO_BUILD_DIR");
+  return SecondoHome+"/"+Path;
+}
+
+/* 1.0 The processLine function
+  In this function a single line of the ini file is
+  analyzed.
+*/
+void processLine(const string& inputLine,string& classpath, string& libdir, string& version){
+ // remove comment
+ int comment = inputLine.find("#");
+ string line;
+ if(comment != string::npos){
+    line = inputLine.substr(0,comment);
+ }else
+    line = string(inputLine);
+
+ int len = line.size();
+ // find the first not space character
+ int i=0;
+ while(line[i]==' ' && ++i < len);
+ if(i>=len){
+   return;
+ }
+ if(line[0]!='%') // ignore lines without this switch
+   return;
+
+ string line2 = line.substr(2,line.size());
+ // find the first not space character
+ i=0;
+ len = line2.size();
+ while(line2[i]==' ' && ++i < len);
+ int i2 = len;
+ while(line2[i2]==' ' && --i2 > 0);
+ string line3 = line2.substr(i,i2);
+
+ if(line[1]=='P'){
+   if(classpath.size()>0)
+      classpath +=":";
+   classpath += getAbsolutePath(line3);
+ }
+ if(line[1]=='L')
+    libdir = line3;
+ if(line[1]=='V')
+    version = line3;
+}
+
+
+/* 1.1 The readFile function
+   In this function the file is opened and readed. If the file can't
+   opened or an error occurs in reading this file, readFile will return
+   -1 otherwise 0.
+*/
+int readFile(const string& FileName,string& classpath, string& libpath, string& version){
+  // open the file
+  ifstream infile(FileName.c_str());
+  if(!infile){ // error in opening file
+    return -1;
+  }
+  string line;
+  while(!infile.eof()){
+     getline(infile,line);
+     processLine(line,classpath,libpath,version);
+  }
+  infile.close();
+  return 0;
+}
+
+/* 1.1 The error function
+   This function reports an error message and exists the program.
+*/
 
 static void error(int reason) {
   cerr << "Error during initialization of the JNI Interface: ";
@@ -48,177 +146,90 @@ static int toNumber(char c){
 
 
 JVMInitializer::JVMInitializer() {
-  if(initialized) return;
+  if(initialized) return; // initialize only one time
 
   jint res;
-
-  
-
-  
-  char libdir[PATHLENGTH]; // path to lib
-  char userclasspath[PATHLENGTH]; 
-  char classoption[PATHLENGTH];  
-  char liboption[1024];
-  char outclasspath[PATHLENGTH]; // the output formatted classpath
-
-
-
-  // for information output only.
-  int clpos = 0;
-  int outpos = 0;
-  int libpos =0;
-  FILE *file;
-  int c = 0;
-  int i = 0;
   cout << "Initializing the JNI. " << endl;
-  
-  initialized =false; 
+
+  initialized =false;
   int major=0; // version part
   int minor=0; // version part
   int number=0;
 
-  // read the configuration file which contains 
-  // the jar files which should provided. 
-  file = fopen("JNI.ini", "r");
+  string classpath="";
+  string libpath="";
+  string versionstr="";
+  string FileName = getIniFile();
+  if(readFile(FileName,classpath,libpath,versionstr)!=0)
+     error(1);
 
-  if (file == 0) {
-    error(1);
-  }
-  else {
-    for (i = 0; i < PATHLENGTH; i++) {
-      userclasspath[i] = '\0';
-      outclasspath[i] = '\0';
-      classoption[i] = '\0';
-      liboption[i] = '\0';
-      libdir[i] = '\0';
+  if(versionstr.size()==0){
+    cout << "no version specified using default 1.4" << endl;
+    major = 1;
+    minor = 4;
+  }else{
+    int len = versionstr.size();
+    int i=0;
+    int digit;
+    while(i<len && versionstr[i]!='.'){
+       digit = toNumber(versionstr[i]);
+       if(digit>=0)
+          major = major*10 + digit;
+       i++;
     }
-
-    // contine this while loop until no data can be read from the
-    // configuration file.
-    c=fgetc(file);
-    while (c!=EOF) {
-      //ignore space at begin of line
-      while((c==' ' || c=='\t' )&& c!=EOF && c!='\n')
-          c=fgetc(file);
-
-      // a meanful line (classpath version or libpath) 
-      if(c=='%'){
-        c=fgetc(file);
-        if(c=='L'){ // found the libpath
-           c=fgetc(file);
-           while(c!=EOF && c!= '\n'){
-              libdir[libpos++]=c;
-              c=fgetc(file);
-           }
-        }
-        if(c=='V'){
-           c=fgetc(file);
-           // read the major number
-           while(c!=EOF && c!='\n' && c!='.'){
-              if(c!=' ' && c!='\t'){ // ignore spaces
-                number=toNumber(c);
-                if(number<0) error(3);
-                major = major*10+number;
-              }
-              c=fgetc(file);
-           }
-           // read the minor number
-           if(c=='.'){
-              c=fgetc(file);
-              while(c!=EOF && c!='\n'){
-                if(c!=' ' && c!='\t'){
-                   number=toNumber(c);
-                   if(number<0) error(3);
-                   minor = minor*10+number;
-                }
-                c=fgetc(file);
-              }
-           }
-        } else if(c=='P'){ // found a classpath
-          if (clpos>0){ // add a Path separator
-             userclasspath[clpos++]=PATH_SEPARATOR;
-             outclasspath[outpos++]='\n';
-          }
-          outclasspath[outpos++]='\t';
-          c=fgetc(file);
-          //ignore space at begin of line
-          while(c==' ' && c!=EOF && c!='\n')
-             c=fgetc(file);
-          while(c!=EOF && c!='\n' && c!='#'){
-             userclasspath[clpos++]=c; 
-             outclasspath[outpos++]=c;
-             c=fgetc(file);
-          }
-
-          if(c=='#'){ // comment after line
-             while(c!=EOF && c!='\n')
-                c=fgetc(file);
-          }
-
-          // remove space at end of classpath
-          while(clpos>0 && userclasspath[clpos]==' '){
-              userclasspath[clpos]='\0';
-              clpos--;
-          }
-
-        }
-        else // ignore this line
-           while(c!=EOF && c!= '\n')
-             c=fgetc(file);
-      }
-      else{ // ignore this line
-        while(c!=EOF && c!='\n')
-           c=fgetc(file);
-      }
-      if(c=='\n') c=fgetc(file);
+    i++; // ignore the dot
+    while(i<len){
+       digit = toNumber(versionstr[i]);
+       if(digit >=0)
+          minor = minor*10 + digit;
+       i++;
     }
-    fclose(file);
-    cout << "Searching for JAR archives and class files in:" << endl;
-    cout << outclasspath << endl;
   }
 
-  
+  string classoption ="-Djava.class.path="+classpath;
+  string liboption = "-Djava.library.path="+libpath;
 
-  sprintf(classoption,"%s%s","-Djava.class.path=",userclasspath);
-  sprintf(liboption,"%s%s","-Djava.library.path=",libdir);
 
-  cout<<"set libdir to"<<libdir<<endl;
-  cout<<"set version to"<<major<<"."<<minor<<endl;
-  
+  cout<<"set classpath to" << classpath<<endl;
+  cout<<"set libdir to " << libpath<<endl;
+  cout<<"set version to " << major<<"."<<minor<<endl;
+
   int version = 65536*major+minor;
 
+  char co[classoption.size()+1];
+  sprintf(co,"%s",classoption.c_str());
+  char lo[liboption.size()+1];
+  sprintf(lo,"%s",liboption.c_str());
 
-  #ifdef JNI_VERSION_1_2 
+  #ifdef JNI_VERSION_1_2
      JavaVMInitArgs vm_args;
      JavaVMOption options [2];
-     options[0].optionString =classoption;
-     options[1].optionString =liboption;
+     options[0].optionString =co;
+     options[1].optionString =lo;
      // vm_args.version =version;
      vm_args.version = version;
      vm_args.options =options;
      vm_args.nOptions =2;
      vm_args.ignoreUnrecognized =JNI_TRUE;
-     //Create the Java VM 
+     //Create the Java VM
      res =JNI_CreateJavaVM(&jvm,(void**)&env,&vm_args);
   #else // JNI_Version 1.1
      JDK1_1InitArgs vm_args;
      vm_args.version = version;
-     
+
      JNI_GetDefaultJavaVMInitArgs(&vm_args);
-     //Append USER_CLASSPATH to the default system class path 
-     char classpath[1024];
-     sprintf(classpath,"%s%c%s",
-         vm_args.classpath,PATH_SEPARATOR,userclasspath);
-     vm_args.classpath =userclasspath;
-     //Create the Java VM 
+     //Append USER_CLASSPATH to the default system class path
+     string cp2 = vm_args.classpath+PATH_SEPARATOR+classpath;
+     vm_args.classpath =cp2;
+     //Create the Java VM
      res =JNI_CreateJavaVM(&jvm,(void**)&env,&vm_args);
-  #endif //JNI_VERSION_1_2 
+  #endif //JNI_VERSION_1_2
 
 
   if (res < 0) {
     error(2);
   }
-  
+
 
   initialized = true;
   cout << "JNI initialization finished." << endl;
