@@ -5,7 +5,7 @@
 ########################################################################
 
 # Secondo build directory
-BUILDDIR = $(HOME)/SecBase/secondo_tup
+BUILDDIR = $(SECONDO_BUILD_DIR)
 INCLUDEDIR = $(BUILDDIR)/include
 LIBDIR = $(BUILDDIR)/lib
 BINDIR = $(BUILDDIR)/bin
@@ -17,7 +17,7 @@ ALGLIB     = -lfunctionalgebra -lstandardalgebra -lpointrectanglealgebra -lstrea
 DEFAULTLIB = -lsocket -lnsl -ldl -lstdc++
 
 # Berkeley DB library
-BDBDIR = /export/home/telle/berkeley-db
+BDBDIR = $(BERKELEY_DB_DIR)
 BDBINCLUDE = -I$(BDBDIR)/include
 BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb
@@ -29,7 +29,7 @@ BDBLIB = -ldb_cxx -ldb
 #OCICPPLIB = -locicpp
 
 # Uncomment next line to compile with debugging information:
-#DEBUG = -g
+DEBUG = -g
 
 PLATFORM = solaris
 CC = gcc
@@ -63,7 +63,7 @@ DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I/opt/pdsoft/include -O2 -Wall -D_REENTRANT -B/opt/pdsoft/binutils/bin/
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I/opt/pdsoft/include -Wall -D_REENTRANT -B/opt/pdsoft/binutils/bin/
 
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 
