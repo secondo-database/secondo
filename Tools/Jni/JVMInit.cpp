@@ -62,7 +62,8 @@ string  itself is returned. Otherwise
 string getAbsolutePath(string Path){
   if(Path[0]=='/' | Path[0]=='.')
      return Path;
-  if(PATH_SEPARATOR==';' && Path.size()>1 && Path[1]==':'){ // an absolutte windows path
+  if(PATH_SEPARATOR==';' && Path.size()>1 && Path[1]==':'){
+    // an absolutte windows path
          return Path;
   }
   string SecondoHome = getenv("SECONDO_BUILD_DIR");
@@ -90,10 +91,11 @@ string trim(const string& s){
 /*
 4 The ~processLine~ function
 
-In this function a single line of the ini file isanalyzed.
+In this function a single line of the ini file is analyzed.
 
 */
-void processLine(const string& inputLine,string& classpath, string& libdir, string& version){
+void processLine(const string& inputLine,string& classpath,
+                       string& libdir, string& version){
  // remove comment
  int comment = inputLine.find("#");
  string line;
@@ -134,7 +136,8 @@ opened or an error occurs in reading this file, readFile will return
 -1 otherwise 0.
 
 */
-int readFile(const string& FileName,string& classpath, string& libpath, string& version){
+int readFile(const string& FileName,string& classpath,
+                   string& libpath, string& version){
   // open the file
   ifstream infile(FileName.c_str());
   if(!infile){ // error in opening file
