@@ -800,13 +800,13 @@ TypeConstructor ureal(
 /*
 12 Type Constructor ~upoint~
 
-Type ~upoint~ represents an (tinterval, (x0, x1, y0, y1))-pair. 
+Type ~upoint~ represents an (tinterval, (x0, y0, x1, y1))-pair. 
 
 12.1 List Representation
 
 The list representation of an ~upoint~ is
 
-----    ( timeinterval (x0 x1 y0 y1)) where x0, x1, y0, y1 are real numbers
+----    ( timeinterval (x0 yo x1 y1)) where x0, x1, y0, y1 are real numbers
 ----
 
 For example:
@@ -2194,15 +2194,15 @@ int deftime_mint( Word* args, Word& result, int message, Word& local, Supplier s
   
   //1.get the input and out put objects
   MInt *mint;
-  Range<Instant>* defrange; 
   
+  Range<Instant> *defrange = new Range<Instant>( 0 );
+  //Range<Instant>* defrange=((Range<Instant>*)result.addr);
   mint=((MInt*)args[0].addr);
-  defrange=((Range<Instant>*)result.addr);
   
   //2.get the timeintervals and add them to the result
   ConstTemporalUnit<CcInt> unit;
-  //Interval<Instant> timeinterval;
   
+  defrange->Clear();
   defrange->StartBulkLoad();
   for( int i = 0; i < mint->GetNoComponents(); i++ )
   {
@@ -2210,6 +2210,9 @@ int deftime_mint( Word* args, Word& result, int message, Word& local, Supplier s
       defrange->Add( unit.timeInterval ); 
   }
   defrange->EndBulkLoad( true );
+  //cout<<"&&&&&&&&&&&&"<<endl;
+  defrange->Merge(((Range<Instant>*)result.addr));
+  
   return (0);
 }
 
@@ -2219,10 +2222,11 @@ int deftime_mreal( Word* args, Word& result, int message, Word& local, Supplier 
   
   //1.get the input and out put objects
   MReal *mreal;
-  Range<Instant>* defrange; 
+  //Range<Instant>* defrange; 
   
   mreal=((MReal*)args[0].addr);
-  defrange=((Range<Instant>*)result.addr);
+  //defrange=((Range<Instant>*)result.addr);
+  Range<Instant> *defrange = new Range<Instant>( 0 );
   
   //2.get the timeintervals and add them to the result
   UReal unit;
@@ -2234,6 +2238,8 @@ int deftime_mreal( Word* args, Word& result, int message, Word& local, Supplier 
       defrange->Add( unit.timeInterval ); 
   }
   defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
   return (0);
 }
 
@@ -2243,10 +2249,11 @@ int deftime_mpoint( Word* args, Word& result, int message, Word& local, Supplier
   
   //1.get the input and out put objects
   MPoint *mpoint;
-  Range<Instant>* defrange; 
+  //Range<Instant>* defrange; 
   
   mpoint=((MPoint*)args[0].addr);
-  defrange=((Range<Instant>*)result.addr);
+  //defrange=((Range<Instant>*)result.addr);
+  Range<Instant> *defrange = new Range<Instant>( 0 );
   
   //2.get the timeintervals and add them to the result
   UPoint unit;
@@ -2258,6 +2265,8 @@ int deftime_mpoint( Word* args, Word& result, int message, Word& local, Supplier
       defrange->Add( unit.timeInterval ); 
   }
   defrange->EndBulkLoad( true );
+  
+  defrange->Merge(((Range<Instant>*)result.addr));
   return (0);
 }
 
@@ -2288,10 +2297,8 @@ int trajectory_mp( Word* args, Word& result, int message, Word& local, Supplier 
       mpoint->Get(i, unit );
       
       //3. add the segment to the line value.
-      p1.Set(unit.x0 + unit.x1 * unit.timeInterval.start.GetRealval(), 
-	   unit.y0 + unit.y1 * unit.timeInterval.start.GetRealval()); 
-      p2.Set(unit.x0 + unit.x1 * unit.timeInterval.end.GetRealval(), 
-	   unit.y0 + unit.y1 * unit.timeInterval.end.GetRealval());
+      p1.Set(unit.x0, unit.y0); 
+      p2.Set(unit.x1, unit.y1);
       reschs.Set(true, p1, p2);
       
       *((CLine *)result.addr) += reschs;
@@ -2457,10 +2464,8 @@ int passes_mpoint( Word* args, Word& result, int message, Word& local, Supplier 
   for( int i = 0; i < mpoint->GetNoComponents(); i++ )
   {
       mpoint->Get(i, unit );
-      p1.Set(unit.x0 + unit.x1 * unit.timeInterval.start.GetRealval(), 
-	   unit.y0 + unit.y1 * unit.timeInterval.start.GetRealval()); 
-      p2.Set(unit.x0 + unit.x1 * unit.timeInterval.end.GetRealval(), 
-	   unit.y0 + unit.y1 * unit.timeInterval.end.GetRealval());
+      p1.Set(unit.x0, unit.y0); 
+      p2.Set(unit.x1, unit.y1);
       reschs.Set(true, p1, p2);
       
       if (reschs.Contains(*val)) 

@@ -232,7 +232,7 @@ class Range : public StandardAttribute
 3.3.1 Constructors and Destructor
 
 */
-    Range() {}
+    Range() {ordered=true;}
 /*
 The simple constructor. This constructor should not be used.
 
@@ -309,7 +309,9 @@ is in bulk loads, i.e., in a non-ordered array.
 *Precondition:* ~IsOrdered() == false~
 
 */
-
+    
+    void  Merge(Range<Alpha>* result);
+    
     void Clear();
 /*
 Remove all intervals in the range.
@@ -1027,12 +1029,12 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
 */
     UPoint() {}; 
 	
-    UPoint( Interval<Instant>& interval, const double x0, const double x1, const double y0, const double y1 ): 
+    UPoint( Interval<Instant>& interval, const double x0, const double y0, const double x1, const double y1 ): 
 	    TemporalUnit<Point>( interval ), 
 	    x0( x0 ),
-	    x1( x1 ),
 	    y0( y0 ),
-	    y1( y1)
+	    x1( x1 ),
+	    y1( y1 )
     {}
     
 /*
@@ -1046,8 +1048,11 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
       if( !timeInterval.Contains( t ) )
         return false;
 
-      double x = x0 + x1 * t.GetRealval();
-      double y = y0 + y1 * t.GetRealval();
+      Instant t0=timeInterval.start;
+      Instant t1=timeInterval.end;
+      
+      double x = ((x1 - x0) * (t.GetRealval() - t0.GetRealval())) / (t1.GetRealval() - t0.GetRealval()) + x0;
+      double y = ((y1 - y0) * (t.GetRealval() - t0.GetRealval())) / (t1.GetRealval() - t0.GetRealval()) + y0;
       
       result.Set( x, y );
       return true;
@@ -1088,7 +1093,7 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
   
   UPoint* Clone()
   {
-      return (new UPoint( timeInterval, x0, x1, y0, y1));
+      return (new UPoint( timeInterval, x0,  y0, x1, y1));
   }
   
   void CopyFrom( StandardAttribute* right )
@@ -1098,8 +1103,8 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
       timeInterval.CopyFrom(i->timeInterval);
       
       x0=i->x0;
-      x1=i->x1;
       y0=i->y0;
+      x1=i->x1;
       y1=i->y1;
   }
 
@@ -1120,7 +1125,7 @@ class UPoint : public StandardAttribute, public TemporalUnit<Point>
 
 */
     //private:  (parameters in computing the value inside the time interval)
-    double x0, x1, y0, y1;
+    double x0, y0, x1, y1;
 };
 
 /*
@@ -3191,6 +3196,46 @@ bool Range<Alpha>::IsValid()
   return result;
 }
 
+template <class Alpha>
+void Range<Alpha>::Merge(Range<Alpha>* result)
+{
+  assert( IsOrdered() );
+
+  //Range *result = new Range();
+
+  result->StartBulkLoad();
+  
+  Interval<Alpha> interval, jinterval;
+  int i=0;
+  int j;
+  bool jcont=true;
+  
+  while (i < GetNoComponents()) 
+  {
+      Get( i, interval );
+      
+      j=i+1; jcont=true;
+      while ((j < GetNoComponents()) && jcont)
+      {
+	  Get( j, jinterval );
+	  if (interval.adjacent(jinterval))
+	  {
+	      interval.end=jinterval.end;
+	      interval.rc=jinterval.rc;
+	      j++;
+	  }
+	  else jcont=false;
+      }
+      
+      result->Add( interval );
+      i=j;
+  }
+
+  result->EndBulkLoad( false );
+
+  //return result;
+}
+
 /*
 4.3 TemporalUnit
 
@@ -4886,8 +4931,8 @@ ListExpr OutUPoint( ListExpr typeInfo, Word value )
   //3. get the real function NL (x0 x1 y0 y1)
   ListExpr pointfunList = nl->FourElemList(  
 	  nl->RealAtom( upoint->x0),
+	  nl->RealAtom( upoint->y0),	  
 	  nl->RealAtom( upoint->x1),
-	  nl->RealAtom( upoint->y0),
 	  nl->RealAtom( upoint->y1));
   
   //4. return the final result
