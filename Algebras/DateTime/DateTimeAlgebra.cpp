@@ -46,11 +46,11 @@ The Algebra provides the following operators.
                     & the weekday in a human readable format \\\hline
    leapyear         & int $\rightarrow$ bool
                     & checks for leapyear \\\hline
-year,month,day      & instant $\rightarrow$ int
+yearof,monthof,dayof      & instant $\rightarrow$ int
                     & the date parts of an instant \\\hline
-hour, minute,       & instant $\rightarrow$ int
+hourof, minuteof,       & instant $\rightarrow$ int
                     & the time parts of an instant \\
-second, millisecond &
+secondof, millisecondof &
                     &         \\\hline
 now                 & $\rightarrow$ instant
                     & creates a new instant from the systemtime \\\hline
@@ -1780,21 +1780,21 @@ const string TodaySpec =
 const string DaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" _ day \" "
+   " \" day_of ( _ ) \" "
    "   \"return the day of this instant\" "
    "   \" query T1 day\" ))";
 
 const string MonthSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" _ day \" "
+   " \" month_of ( _ ) \" "
    "   \"return the month of this instant\" "
    "   \" query T1 month\" ))";
 
 const string YearSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" _ day \" "
+   " \" year_of ( _ ) \" "
    "   \"return the year of this instant\" "
    "   \" query T1 year\" ))";
 
@@ -1802,28 +1802,28 @@ const string YearSpec =
 const string HourSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" _  hour\" "
+   " \" hour_of(_)\" "
    "   \"return the hour of this instant\" "
    "   \" query T1 hour\" ))";
 
 const string MinuteSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" _ minute \" "
+   " \"minute_of(_) \" "
    "   \"return the minute of this instant\" "
    "   \" query T1 minute\" ))";
 
 const string SecondSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" _ second \" "
+   " \" second_of ( _ )\" "
    "   \"return the second of this instant\" "
    "   \" query T1 second\" ))";
 
 const string MillisecondSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> int\""
-   " \" _ millisecond \" "
+   " \" millisecondof(_) \" "
    "   \"return the millisecond of this instant\" "
    "   \" query T1 millisecond\" ))";
 
@@ -1873,7 +1873,7 @@ const string MulSpec =
 const string WeekdaySpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \"instant -> string\""
-   " \" _ weekday \" "
+   " \"  weekday_of ( _ ) \" "
    "   \"returns the weekday in human readable format\" "
    "   \" query T weekday\" ))";
 
@@ -1907,7 +1907,7 @@ Operator dt_today(
        VoidInstant);
 
 Operator dt_day(
-       "day", // name
+       "day_of", // name
        DaySpec, // specification
        DayFun,
        Operator::DummyModel,
@@ -1915,7 +1915,7 @@ Operator dt_day(
        InstantInt);
 
 Operator dt_month(
-       "month", // name
+       "month_of", // name
        MonthSpec, // specification
        MonthFun,
        Operator::DummyModel,
@@ -1923,7 +1923,7 @@ Operator dt_month(
        InstantInt);
 
 Operator dt_year(
-       "year", // name
+       "year_of", // name
        YearSpec, // specification
        YearFun,
        Operator::DummyModel,
@@ -1931,7 +1931,7 @@ Operator dt_year(
        InstantInt);
 
 Operator dt_hour(
-       "hour", // name
+       "hour_of", // name
        HourSpec, // specification
        HourFun,
        Operator::DummyModel,
@@ -1939,7 +1939,7 @@ Operator dt_hour(
        InstantInt);
 
 Operator dt_minute(
-       "minute", // name
+       "minute_of", // name
        MinuteSpec, // specification
        MinuteFun,
        Operator::DummyModel,
@@ -1947,7 +1947,7 @@ Operator dt_minute(
        InstantInt);
 
 Operator dt_second(
-       "second", // name
+       "second_of", // name
        SecondSpec, // specification
        SecondFun,
        Operator::DummyModel,
@@ -1955,7 +1955,7 @@ Operator dt_second(
        InstantInt);
 
 Operator dt_millisecond(
-       "millisecond", // name
+       "millisecond_of", // name
        MillisecondSpec, // specification
        MillisecondFun,
        Operator::DummyModel,
@@ -2013,7 +2013,7 @@ Operator dt_mul(
        DurationIntDuration);
 
 Operator dt_weekday(
-       "weekday", // name
+       "weekday_of", // name
        WeekdaySpec, // specification
        WeekdayFun,
        Operator::DummyModel,

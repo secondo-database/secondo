@@ -1,12 +1,11 @@
-operator weekday alias WEEKDAY pattern _ op
+operator weekday_of alias WEEKDAY_OF pattern  op ( _ )
 operator toString alias TOSTRING pattern _ op
 operator leapyear alias LEAPYEAR pattern _ op
-#operator year alias YEAR pattern _ op
-#operator month alias MONTH pattern _ op
-#operator day alias DAY pattern _ op
-operator hour alias HOUR pattern _ op
-operator minute alias MINUTE pattern _ op
-operator second alias SECOND pattern _ op
-operator millisecond alias MILLISECOND pattern _ op
-operator getdate alias GETDATE pattern _ op
-operator time alias TIME pattern _ op
+#operator year_of alias YEAR pattern  op ( _ )
+#operator month_of alias MONTH pattern   op ( _ )
+#operator day_of alias DAY pattern   op ( _ )
+operator hour_of alias HOUR pattern  op ( _ )
+operator minute_of alias MINUTE pattern  op ( _ )
+operator second_of alias SECOND pattern  op ( _ )
+operator millisecond_of alias MILLISECOND pattern  op ( _ )
+

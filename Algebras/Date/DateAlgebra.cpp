@@ -769,7 +769,7 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                         "\"Example\" )"
                              "( <text>(date) -> int</text--->"
-			       "<text>day ( _ )</text--->"
+			       "<text>day_of ( _ )</text--->"
 			       "<text>extract the day info. from a date."
 			       "</text--->"
 			       "<text>query day ( date1 )</text--->"
@@ -778,7 +778,7 @@ const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>(date) -> int</text--->"
-			       "<text>month ( _ )</text--->"
+			       "<text>month_of ( _ )</text--->"
 			       "<text>extract the month info. from a date."
 			       "</text--->"
 			       "<text>query month ( date1 )</text--->"
@@ -787,7 +787,7 @@ const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                              "( <text>(date) -> int</text--->"
-			       "<text>year ( _ )</text--->"
+			       "<text>year_of ( _ )</text--->"
 			       "<text>extract the year info. from a date."
 			       "</text--->"
 			       "<text>query year ( date1 )</text--->"
@@ -832,7 +832,7 @@ The above strings are used to explain the signature and the meaning of operators
 */
 
 Operator day (
-	"day", 			//name
+	"day_of", 			//name
 	DaySpec, 	     	//specification
 	dayFun,			//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
@@ -841,7 +841,7 @@ Operator day (
 );
 
 Operator month (
-	"month", 		//name
+	"month_of", 		//name
 	MonthSpec,	        //specification
 	monthFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
@@ -850,7 +850,7 @@ Operator month (
 );
 
 Operator year (
-	"year", 		//name
+	"year_of", 		//name
 	YearSpec, 		//specification
 	yearFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
