@@ -1210,7 +1210,9 @@ tieFun (Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request(args[1].addr, funresult);
 
     if (funresult.addr != partResult.addr) {
-      (am->DeleteObj(algebraId, typeId))(partResult);
+      if (i>1) {
+        (am->DeleteObj(algebraId, typeId))(partResult);
+      }
       partResult = genericClone(algebraId, typeId, typeOfElement, funresult);
     }
   }
