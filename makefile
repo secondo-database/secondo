@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.24  2003/09/25 15:35:38  spieker
+# Some errors for building the optimizer corrected
+#
 # Revision 1.23  2003/09/25 14:36:36  spieker
 # Clientserver will now also created by calling make without target name.
 #
@@ -111,7 +114,7 @@ SMILIB=$(BDBSMILIB)
 endif
 
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps cs java showjni
+all: makedirs buildlibs buildalg buildapps java showjni
 
 .PHONY: showjni
 showjni:
@@ -230,6 +233,7 @@ endif
 .PHONY: buildapps
 buildapps: 
 	$(MAKE) -C UserInterfaces buildapp
+	$(MAKE) -C ClientServer buildapp
 
 .PHONY: tests
 tests: makedirs buildlibs
