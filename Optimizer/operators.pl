@@ -24,6 +24,8 @@ extendTC(1).
 
 removeTC(1).
 
+projectTC(1).
+
 renameTC(1).
 
 
