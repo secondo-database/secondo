@@ -84,28 +84,33 @@ show-separator:
 # default value for cvs tag 
 
 INSTALL_SCRIPTS := $(net)/scripts/winsetup.sh \
-		$(net)/scripts/libutil.sh
+		   $(net)/scripts/libutil.sh
 
-SRC_FILES := $(net)/win32/secondo-win32.tgz \
-		$(net)/linux/secondo-linux.tgz
+WIN_SRC := $(net)/secondo$(VERSION)-CP1252.zip
+WIN_BIG := $(net)/secondo$(VERSION)-CP1252-withDocAndDB.zip
+
+LIN_SRC := $(net)/secondo$(VERSION)-LAT1.tar.bz2
+LIN_BIG := $(net)/secondo$(VERSION)-LAT1-withDocAndDB.tar.bz2
+
+SRC_FILES := $(WIN_SRC) $(WIN_BIG) $(LIN_SRC) $(LIN_BIG) 
 
 INSTGUIDE_FILES := $(net)/Linux-Installation-Guide.pdf \
- 		$(net)/Windows-Installation-Guide.pdf
+ 		   $(net)/Windows-Installation-Guide.pdf
  
 .PHONY: dist
-dist: tag-version  dist-scripts create-src-tgz $(INSTGUIDE_FILES) min-linux min-win32
+dist: tag-version  dist-scripts src-archives $(INSTGUIDE_FILES) linux-sdk win32-sdk
 
 
 .PHONY: dist-scripts
 dist-scripts: $(net)/installsdk $(INSTALL_SCRIPTS)
 
-.PHONY: min-linux
-min-linux: 
+.PHONY: linux-sdk
+linux-sdk: 
 	rm -f $@
 	cd $(net) && tar -cvzf $@ Linux*Guide.pdf linux scripts installsdk
 
-.PHONY: min-win32
-min-win32:
+.PHONY: win32-sdk
+win32-sdk:
 	rm -f $@
 	cd $(net) && zip -9 -r $@ Win*Guide MSYS-* win32 scripts installsdk 
 
@@ -135,16 +140,37 @@ tag := $(shell echo -n "Secondo-CD-"; date "+%y%m%d")
 tag-version:
 	cvs tag -F $(tag) 
 
-.PHONY: create-src-tgz
-create-src-tgz:
+.PHONY: src-archives
+src-archives:
 	cvs export -d secondo -r$(tag) secondo
 ifeq ($(platform),win32)
 	$(error Target dist not supported on windows!)
 else	
 	rm -rf $(SRC_FILES)
-	tar -czf $(net)/secondo-linux.tgz secondo/*
-	find secondo ! \( -type d -or -path "*javazoom*" -or -name "*.zip" -or -name "*.jar" -or -name  "*.bmp" -or -name "*.gif"  -or -name "*.sxd" -or -name "*.sda" -or -name "*.fig" -or -name "*.canvas" -or -name "*.fm" -or -name "*.book" -or -name "*.pdf" \) -exec recode lat1..cp1252 {} \;
-	tar -czf $(net)/secondo-win32.tgz secondo/*
+	tar -cjf $(LIN_BIG) secondo/*
+	find secondo ! -type d ! -name "opt" ! -name "geo" ! -name ".sda" \
+                     ! -name ".sxd" ! -name ".canvas" ! -path "*/Data/*" ! -name "*.pdf" > SRC_FILES
+	find secondo/Data ! -type d -size -10k >> SRC_FILES
+	tar -cjf $(LIN_SRC) -T SRC_FILES
+	find secondo ! \( \
+          -type d \
+          -or -name "*.zip" \
+          -or -name "*.jar" \
+          -or -name "*.bmp" \
+          -or -name "*.gif" \
+          -or -name "*.jpg" \
+          -or -name "*.sxd" \
+          -or -name "*.sda" \
+          -or -name "*.fig" \
+          -or -name "*.pdf" \
+          -or -name "*.fm" \
+          -or -name "*.book" \
+          -or -name "*.canvas" \
+          -or -path "*javazoom*" \
+        \) \
+        -exec recode lat1..cp1252 {} \;
+	zip -9 -r $(WIN_BIG) secondo/*
+	cat SRC_FILES | zip -9 -r $(WIN_SRC) -@
 endif
 	rm -r secondo
 
