@@ -5,7 +5,7 @@ restore PARTSUPP from partsupp_tbl;
 restore SUPPLIER from supplier_tbl;
 restore CUSTOMER from customer_tbl;
 restore LINEITEM from lineitem_tbl;
-restore ORDERS from oreders_tbl;
+restore ORDERS from orders_tbl;
 restore NATION from nation_tbl;
 restore REGION from region_tbl;
 

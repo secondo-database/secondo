@@ -202,7 +202,7 @@ pr_order(order_t *o, int mode)
 	
      fprintf(fp_o, "(OBJECT ORDERS \n");
      fprintf(fp_o, "  ()");
-     fprintf(fp_o, "  (rel( tuple ( (O_OERDERKEY int) \n");
+     fprintf(fp_o, "  (rel( tuple ( (O_ORDDERKEY int) \n");
      fprintf(fp_o, "                (O_CUSTKEY int) \n");
      fprintf(fp_o, "                (O_ORDERSTATUS string) \n");
      fprintf(fp_o, "                (O_TOTALPRICE real) \n");
@@ -250,12 +250,12 @@ pr_line(order_t *o, int mode)
 
      fprintf(fp_l, "(OBJECT LINEITEM \n");
      fprintf(fp_l, "  ()");
-     fprintf(fp_l, "  (rel( tuple ( (L_OERDERKEY int) \n");
+     fprintf(fp_l, "  (rel( tuple ( (L_ORDERKEY int) \n");
      fprintf(fp_l, "                (L_PARTKEY int) \n");
      fprintf(fp_l, "                (L_SUPPKEY int) \n");
      fprintf(fp_l, "                (L_LINENUMBER int) \n");
      fprintf(fp_l, "                (L_QUANTITY real) \n");
-     fprintf(fp_l, "                (L_EXTENDENPRICE real) \n");
+     fprintf(fp_l, "                (L_EXTENDEDPRICE real) \n");
      fprintf(fp_l, "                (L_DISCOUNT real) \n");
      fprintf(fp_l, "                (L_TAX real) \n");
      fprintf(fp_l, "                (L_RETURNFLAG string) \n");
