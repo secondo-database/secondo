@@ -2672,7 +2672,17 @@ optimize(Query, QueryOut, CostOut) :-
   callLookup(Query, Query2),
   queryToPlan(Query2, Plan, CostOut),
   plan_to_atom(Plan, QueryOut).
- 
+
+/*
+----	sqlToPlan(QueryText, Plan)
+----
+
+Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
+
+*/
+sqlToPlan(QueryText, Plan) :-
+  term_to_atom(sql Query, QueryText),
+  optimize(Query, Plan, _).
 
 
 /*
