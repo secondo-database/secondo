@@ -1,4 +1,25 @@
 /*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
 //paragraph [1] title: [{\Large \bf ]	[}]
 //[ae] [\"{a}]
 //[ue] [\"{u}]
@@ -289,14 +310,15 @@ bool NauticalObject::operator<=( const NauticalObject& object ) const
      return 1;
   else
      return 0;
-/*
+ /*
   if( position.GetX() < object.GetPosition().GetX() )
     return 1;
   else if( position.GetX() == object.GetPosition().GetX() && 
            position.GetY() <= object.GetPosition().GetY() )
     return 1;
   return 0;
-*/
+  
+ */
 }
 
 bool NauticalObject::operator<( const NauticalObject& object ) const
@@ -306,14 +328,15 @@ bool NauticalObject::operator<( const NauticalObject& object ) const
      return 1;
   else
      return 0;
-/*
+ /*
   if( position.GetX() < object.GetPosition().GetX() )
     return 1;
   else if( position.GetX() == object.GetPosition().GetX() && 
            position.GetY() < object.GetPosition().GetY() )
     return 1;
   return 0;
-*/
+  
+ */
 }
 
 bool NauticalObject::operator>=( const NauticalObject& object ) const
@@ -323,14 +346,15 @@ bool NauticalObject::operator>=( const NauticalObject& object ) const
      return 1;
   else
      return 0;
-/*
+ /*
   if( position.GetX() > object.GetPosition().GetX() )
     return 1;
   else if( position.GetX() == object.GetPosition().GetX() && 
            position.GetY() >= object.GetPosition().GetY() )
     return 1;
   return 0;
-*/
+
+ */
 }
 
 bool NauticalObject::operator>( const NauticalObject& object ) const
@@ -340,14 +364,15 @@ bool NauticalObject::operator>( const NauticalObject& object ) const
      return 1;
   else
      return 0;
-/*
+ /*
   if( position.GetX() > object.GetPosition().GetX() )
     return 1;
   else if( position.GetX() == object.GetPosition().GetX() && 
            position.GetY() > object.GetPosition().GetY() )
     return 1;
   return 0;
-*/
+
+ */
 }
 
 ostream& operator<<( ostream& o, const NauticalObject& n )
@@ -362,14 +387,11 @@ ostream& operator<<( ostream& o, const NauticalObject& n )
   return o;
 }
 
-/*
-  ************************************************************************
+ /*
+  ****************************************************************
   The following 10 functions are used for porting points to Tuple.
-  ************************************************************************
+  ****************************************************************
 
-*/
-
-/*
 int NauticalObject::NumOfFLOBs()
 {
   return 1;
@@ -383,7 +405,8 @@ FLOB *NauticalObject::GetFLOB(const int i)
   assert( i >= 0 && i < NumOfFLOBs() );
   return nobject;
 }
-*/
+
+ */
 bool NauticalObject::IsDefined() const
 {
   return defined;
@@ -1875,14 +1898,14 @@ cout << "NauticalMap0" << endl;
   return SetWord(new NauticalMap());
 }
 
-/*
+ /*
 void 
 DeleteNauticalMap( Word& w ) 
 {
 cout << "NauticalMap 1" << endl;
   w.addr = 0;
 }
-*/
+ */
 
 /*
 6.7 ~Delete~-function of type constructor ~network~
@@ -1917,7 +1940,7 @@ cout << "NauticalMap3" << endl;
   return SetWord( Address(0) );
 }
 
-/*
+ /*
 Word
 CloneNauticalMap( const Word& w )
 {
@@ -1956,7 +1979,7 @@ cout << "NauticalMap3" << endl;
 
   return SetWord(newarray);
 }
-*/
+ */
 
 int
 SizeOfNauticalMap()
