@@ -64,16 +64,17 @@ public QueryViewer(){
    SecondoObject[] SOS = RelSplitter.getAllObjects();
    for(int i=0;i<SubViewers.size();i++){
        SV = (SecondoViewer) SubViewers.get(i);
-       for(int j=0;i<SOS.length;j++)
-           SV.removeObject(SOS[i]);
+       for(int j=0;j<SOS.length;j++)
+           SV.removeObject(SOS[j]);
    }
  }
 
  public void removeAll(){
    RelSplitter.removeAll();
    SecondoViewer SV;
-   for(int i=0;i<SubViewers.size();i++)
+   for(int i=0;i<SubViewers.size();i++){
       ((SecondoViewer) SubViewers.get(i)).removeAll();
+   }
  }
 
  public  boolean canDisplay(SecondoObject o){
