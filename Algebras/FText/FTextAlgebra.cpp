@@ -17,19 +17,21 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 */
 
-using namespace std;
+
+#include <string>
+#include <iostream>
 
 #include "StandardAttribute.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h" //needed because we return a CcBool in an op.
-#include <string>
-#include <iostream>
+#include "LogMsg.h"
+
+using namespace std;
 
 static NestedList* nl;
 static QueryProcessor* qp;
-
 
 
 /*
@@ -42,7 +44,6 @@ static QueryProcessor* qp;
 const string typeName="text";
 const bool traces=false;
 typedef string* textType;
-
 
 
 class FText: public StandardAttribute
@@ -87,21 +88,17 @@ private:
 
 FText::FText()
 {
-  if(traces)
-    cout << '\n' <<"Start FText()"<<'\n';
+  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText()"<<'\n'; )
   theText= new string;
-  if(traces)
-    cout <<"End FText()"<<'\n';
+  LOGMSG( "FText:Trace",  cout <<"End FText()"<<'\n'; )
 }
 
 
 FText::~FText()
 {
-  if(traces)
-    cout << '\n' <<"Start ~FText()"<<'\n';
+  LOGMSG( "FText:Trace",  cout << '\n' <<"Start ~FText()"<<'\n'; )
   delete theText;
-  if(traces)
-    cout <<"End ~FText()"<<'\n';
+  LOGMSG( "FText:Trace",  cout <<"End ~FText()"<<'\n'; )
 }
 
 
@@ -122,26 +119,22 @@ bool  FText::SearchText(textType subString)
 
 void FText::Set(textType newString)
 {
-  if(traces)
-    cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n";
+  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n"; )
     
   *theText=*newString;
   defined=true;
   
-  if(traces)
-    cout <<"End Set"<<'\n';
+  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
 void FText::Set(bool newDefined, textType newString)
 {
-  if(traces)
-    cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n";
+  LOGMSG( "FText:Trace", cout << '\n' << "Start Set with *newString='"<<*newString<<"'\n"; )
     
   *theText=*newString;
   defined=newDefined;
   
-  if(traces)
-    cout <<"End Set"<<'\n';
+  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
 int FText::TextLength()
@@ -166,13 +159,11 @@ if we want to use ~text~ as an attribute type in tuple definitions.
 
 FText::FText(bool newDefined, textType newText)
 {
-  if(traces)
-    cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n';
+  LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n'; )
   defined=newDefined;
   theText= new string;
   theText=newText;
-  if(traces)
-    cout <<"End FText(bool newDefined, textType newText)"<<'\n';
+  LOGMSG( "FText:Trace",  cout <<"End FText(bool newDefined, textType newText)"<<'\n'; )
 }
 
 
