@@ -16,7 +16,7 @@ LIB_SDBTOOL_BASENAMES=\
 	Tools/Parser/SecLex \
 	Tools/Parser/SecParser \
 	Tools/Parser/SecParser.tab \
-	Tools/Parser/NestedText 
+	Tools/Parser/NestedText
 
 #libsdbutils
 LIB_SDBUTILS_BASENAMES=\
@@ -56,7 +56,7 @@ SMILIB=$(BDBSMILIB)
 endif
 
 .PHONY: all
-all: makedirs buildlibs buildalg buildapps java checkup 
+all: makedirs $(OPTIMIZER_SERVER) buildlibs buildalg buildapps java checkup 
 
 
 .PHONY: checkup
@@ -90,15 +90,15 @@ showjni:
 	
 .PHONY: javagui
 javagui:
-	$(MAKE) -C Javagui all	
+	$(MAKE) -C Javagui all
 
 .PHONY: clientserver
 clientserver: cs
 
-.PHONY: cs 
+.PHONY: cs
 cs: makedirs buildlibs buildalg checkup
 	$(MAKE) -C ClientServer
-	$(MAKE) -C UserInterfaces TTYCS 
+	$(MAKE) -C UserInterfaces TTYCS
 	$(MAKE) -C ClientServer buildapp
 
 
@@ -111,15 +111,16 @@ makedirs:
 	$(MAKE) -C QueryProcessor
 	$(MAKE) -C UserInterfaces
 
+
 .PHONY: java
 java:
 	$(MAKE) -C Javagui all
 
-.PHONY: TTY checkup 
+.PHONY: TTY checkup
 TTY: makedirs buildlibs buildalg
-	$(MAKE) -C UserInterfaces TTY 
+	$(MAKE) -C UserInterfaces TTY
 
-.PHONY: TestRunner checkup 
+.PHONY: TestRunner checkup
 TestRunner: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces TestRunner
 
@@ -127,7 +128,13 @@ TestRunner: makedirs buildlibs buildalg
 .PHONY: optimizer checkup
 optimizer: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces optimizer
-	
+
+
+.PHONY:optserver
+optserver:
+	$(MAKE) -C Jpl all
+	$(MAKE) -C OptServer all
+
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
 
@@ -239,6 +246,8 @@ clean:
 	$(MAKE) -C Algebras clean
 	$(MAKE) -C QueryProcessor clean
 	$(MAKE) -C UserInterfaces clean
+	$(MAKE) -C Jpl clean
+	$(MAKE) -C OptServer clean
 	$(RM) $(LIBDIR)/libsdb*.a $(LIBDIR)/libsdb*.so $(LIBDIR)/libsdb*.dll $(LIBDIR)/libsdb*.dll.a
 	$(RM) $(LIBDIR)/libsmi*.a $(LIBDIR)/libsmi*.so $(LIBDIR)/libsmi*.dll $(LIBDIR)/libsmi*.dll.a
 	$(RM) $(LIBDIR)/SecondoInterface*.o $(LIBDIR)/SecondoInterface*.lo
