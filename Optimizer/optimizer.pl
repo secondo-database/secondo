@@ -2961,37 +2961,93 @@ to a new object ~X~, using the optimizer.
 */
 
 sql Term :-
-  optimize(Term, Query, Cost),
+  mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
 
 sql(Term, SecondoQueryRest) :-
-  callLookup(Term, Term2),
-  queryToStream(Term2, Plan, Cost),
-  plan_to_atom(Plan, SecondoQuery),
+  mStreamOptimize(Term, SecondoQuery, Cost),
   concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
 
 let(X, Term) :-
-  optimize(Term, Query, Cost),
+  mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command).
 
 let(X, Term, SecondoQueryRest) :-
-  callLookup(Term, Term2),
-  queryToStream(Term2, Plan, Cost),
-  plan_to_atom(Plan, SecondoQuery),
+  mStreamOptimize(Term, SecondoQuery, Cost),
   concat_atom([SecondoQuery, ' ', SecondoQueryRest], '', Query),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
   concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command).
 
+
+/*
+----	streamOptimize(Term, Query, Cost) :-
+----
+
+Optimize the ~Term~ producing an incomplete Secondo query plan ~Query~ 
+returning a stream.
+
+*/
+streamOptimize(Term, Query, Cost) :-
+  callLookup(Term, Term2),
+  queryToStream(Term2, Plan, Cost),
+  plan_to_atom(Plan,  Query).
+
+/*
+----	mOptimize(Term, Query, Cost) :-
+	mStreamOptimize(union [Term], Query, Cost) :-
+----
+
+Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subexpressions to be independently optimized, as in union and intersection queries. ~mStreamOptimize~ is a variant returning a stream.
+
+*/
+
+:-op(800, fx, union).
+:-op(800, fx, intersection).
+
+mOptimize(union Terms, Query, Cost) :-
+  mStreamOptimize(union Terms, Plan, Cost),
+  concat_atom([Plan, 'consume'], '', Query).
+
+mOptimize(intersection Terms, Query, Cost) :-
+  mStreamOptimize(intersection Terms, Plan, Cost),
+  concat_atom([Plan, 'consume'], '', Query).
+
+mOptimize(Term, Query, Cost) :-
+  optimize(Term, Query, Cost).
+
+
+mStreamOptimize(union [Term], Query, Cost) :-
+  streamOptimize(Term, QueryPart, Cost),
+  concat_atom([QueryPart, 'sort rdup '], '', Query).
+
+mStreamOptimize(union [Term | Terms], Query, Cost) :-
+  streamOptimize(Term, Plan1, Cost1),
+  mStreamOptimize(union Terms, Plan2, Cost2),
+  concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query),
+  Cost is Cost1 + Cost2.
+
+mStreamOptimize(intersection [Term], Query, Cost) :-
+  streamOptimize(Term, QueryPart, Cost),
+  concat_atom([QueryPart, 'sort rdup '], '', Query).
+
+mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
+  streamOptimize(Term, Plan1, Cost1),
+  mStreamOptimize(intersection Terms, Plan2, Cost2),
+  concat_atom([Plan1, 'sort rdup ', Plan2, 'mergesec '], '', Query),
+  Cost is Cost1 + Cost2.
+
+mStreamOptimize(Term, Query, Cost) :-
+  streamOptimize(Term, Query, Cost).
 
 
 
