@@ -1865,6 +1865,10 @@ private void cleanMenu(){
 private void getServerInfos(){
 
   ListExpr Algebras = ComPanel.getCommandResult("list algebras");
+  if(Algebras==null){
+     System.err.println("Error in reading algebras from server");
+     return;
+  }
   Algebras = Algebras.second().second();
   AlgebraMenu.removeAll();
   if (Algebras==null){
@@ -1896,12 +1900,12 @@ private void getServerInfos(){
 /* includes all databases in the "open|delete databases" menu */
 public boolean updateDatabases(){
   ListExpr Databases = ComPanel.getCommandResult("list databases");
+  if(Databases==null)
+     return false;
   Databases = Databases.second().second();
   OpenDatabaseMenu.removeAll();
   DeleteDatabaseMenu.removeAll();
   Menu_RestoreDatabase.removeAll();
-  if(Databases==null)
-    return false;
   JMenuItem[] MI_OpenDatabases = new JMenuItem[Databases.listLength()];
   JMenuItem[] MI_DeleteDatabases = new JMenuItem[Databases.listLength()];
   JMenuItem[] MI_RestoreDatabases = new JMenuItem[Databases.listLength()];
