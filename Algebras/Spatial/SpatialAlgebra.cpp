@@ -11340,6 +11340,7 @@ bbox_r( Word* args, Word& result, int message, Word& local, Supplier s )
     maxx=bbox.MaxD(0);
     maxy=bbox.MaxD(1);
     
+    ((CRegion *)result.addr)->Clear();
     ((CRegion *)result.addr)->StartBulkLoad();  //here: to manipulate the result region
 
     Point p1, p2, p3, p4;
