@@ -439,13 +439,19 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExp
         correct = false;
       }
     }
+
     if (!correct)
     {
       errorInfo = nl->Append(errorInfo,
-      nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
+                             nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
+      rel->Delete();
+      return 0;
     }
-    assert( rel->GetNoTuples() == count );
-    return rel;
+    else
+    {
+      assert( rel->GetNoTuples() == count );
+      return rel;
+    }
   }
 }
 
