@@ -1615,7 +1615,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
    	                          }					
 	                         }
 
-      case BIN_LONGLIST      : {  len = 2^32-1 & ReadInt(in);
+      case BIN_LONGLIST      : {  len = 4294967295u & ReadInt(in); // 2^32-1
                                   pos += 4; 
 				  ListExpr LE = 0;
 				  bool ok = ReadBinarySubLists(LE, in, len);
@@ -1751,7 +1751,9 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            } else {
                              len = (typeId == BIN_LIST) ? 2 : 4;
                            }
+                           
                            os.write(pv+4-len,len);
+
                            while( !IsEmpty(list) ){
                              if( !WriteBinaryRec( First(list), os ) ) // error in writing sublist
 			         return false;
