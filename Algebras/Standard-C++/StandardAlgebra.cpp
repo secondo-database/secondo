@@ -11,6 +11,8 @@ March 2002 Ulrich Telle Port to C++
 
 November 9, 2002 RHG Added operators ~randint~ and ~log~. Some other slight revisions.
 
+February 2004, Hoffmann added operators ~relcount~ and ~relcount2~.
+
 \begin{center}
 \footnotesize
 \tableofcontents
@@ -126,6 +128,7 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "SecondoSystem.h" //operator queries
 #include <iostream>
 #include <string>
 #include <math.h>
@@ -1478,6 +1481,26 @@ CcStringMapCcString( ListExpr args )
     arg1 = nl->First( args );
     if ( TypeOfSymbol( arg1 ) == ccstring )
       return (nl->SymbolAtom( "string" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+4.2.11 Type mapping function for the ~relcount~ operator:
+
+string ---> int.
+
+*/
+
+static ListExpr
+CcStringMapCcInt( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if ( TypeOfSymbol( arg1 ) == ccstring )
+      return (nl->SymbolAtom( "int" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -3079,6 +3102,107 @@ CcSetMinus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
+/*
+4.20 Value mapping function of operator ~relcount~
+
+*/
+
+static int
+RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  ListExpr resultType, queryList, resultList, valueList;
+  QueryProcessor* qpp;
+  OpTree tree;
+  AlgebraLevel level;
+  char* relname;
+  bool correct      = false;
+  bool evaluable    = false;
+  bool defined      = false;
+  bool isFunction   = false;
+  
+  result = qp->ResultStorage( s );
+
+  if ( ((CcString*)args[0].addr)->IsDefined() )
+  {
+    // create the query list (count (feed <relname>))
+    relname = (char*)(((CcString*)args[0].addr)->GetStringval());
+    string querystring = "(count(feed " + (string)relname + "))";
+    nl->ReadFromString(querystring, queryList);
+   
+    // construct the operator tree within a new query processor instance
+    // NOTE: variable name for this instance must differ from qp 
+    qpp = new QueryProcessor( nl, SecondoSystem::GetAlgebraManager() );
+    level = SecondoSystem::GetAlgebraLevel();
+    qpp->Construct( level, queryList, correct, 
+      evaluable, defined, isFunction, tree, resultType );
+    if ( !defined )
+    {
+      cout << "object value is undefined" << endl;         
+    }
+    else if ( correct )
+    {
+      if ( evaluable )
+      {
+	// evaluate the operator tree
+        qpp->Eval( tree, result, 1 );
+
+	// create the result list ( type, value )
+        valueList = SecondoSystem::GetCatalog( level )->
+          OutObject( resultType, result );
+        resultList = nl->TwoElemList( resultType, valueList );
+
+	// set the result value and destroy the operator tree
+        ((CcInt *)result.addr)->Set ( true, 
+	  nl->IntValue(nl->Second(resultList)) );
+	qpp->Destroy( tree, false );
+      }
+      else cout << "Operator query not evaluable" << endl;
+    }
+    else cout << "Error in operator query" << endl;
+  }
+  else
+  {
+    ((CcInt *)result.addr)->Set( false, 0 );
+  }
+  delete qpp;
+  return (0);
+}
+
+/*
+4.21 Value mapping function of operator ~relcount2~
+
+*/
+
+static int
+RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  char* relname;
+  string querystring;
+  Word resultword;
+  
+  result = qp->ResultStorage( s );
+
+  if ( ((CcString*)args[0].addr)->IsDefined() )
+  {
+    // create the query list (count (feed <relname>))
+    relname = (char*)(((CcString*)args[0].addr)->GetStringval());
+    querystring = "(count(feed " + (string)relname + "))";
+
+    // the if statement can be simply reduced to:
+    // if ( QueryProcessor::ExecuteQuery(querystring, result) )
+    if ( QueryProcessor::ExecuteQuery(querystring, resultword) )
+    {
+      ((CcInt *)result.addr)->Set( true, 
+      ((CcInt*)resultword.addr)->GetIntval() );
+    }
+    else cout << "Error in executing operator query" << endl;
+  }
+  else
+  {
+    ((CcInt *)result.addr)->Set( false, 0 );
+  }
+  return (0);
+}
 
 /*
 1.10 Operator Model Mappings
@@ -3203,6 +3327,8 @@ ValueMapping ccnotmap[] = { NotFun };
 ValueMapping ccisemptymap[] = { IsEmpty_b, IsEmpty_i, IsEmpty_r, IsEmpty_s };
 ValueMapping ccsetintersectionmap[] = { CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb, CcSetIntersection_ss };
 ValueMapping ccsetminusmap[] = { CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
+ValueMapping ccoprelcountmap[] = { RelcountFun };
+ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 
 ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
@@ -3417,6 +3543,27 @@ const string CCSpecSetMinus  = "( ( \"Signature\" \"Meaning\" )"
 			     "string</text--->"
 			     "<text> Set minus. </text--->"
 			       			      ") )";
+                        
+const string CCSpecRelcount  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>string -> int</text--->"
+             "<text>_ relcount</text--->"
+             "<text>Counts the number of tuples of a relation, "
+             "which is specified by its objectname"
+             " of type string.</text--->"
+             "<text>query \"Staedte\" relcount</text--->"
+             ") )";
+
+const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>string -> int</text--->"
+             "<text>_ relcount2</text--->"
+             "<text>Counts the number of tuples of a relation, "
+             "which is specified by its objectname"
+             " of type string. Uses static method ExecuteQuery"
+             " from class QueryProcessor.</text--->"
+             "<text>query \"Orte\" relcount2</text--->"
+             ") )";                       
 
 Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
@@ -3441,6 +3588,8 @@ Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, CcM
 Operator ccuper( "upper", CCSpecUpper, Upper, Operator::DummyModel, Operator::SimpleSelect, CcStringMapCcString );
 Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, ccsetintersectionmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
 Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
+Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
+Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2, ccnomodelmap, Operator::SimpleSelect, CcStringMapCcInt );
 
 /*
 6 Class ~CcAlgebra~
@@ -3503,6 +3652,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccuper );
     AddOperator( &ccsetintersection );
     AddOperator( &ccsetminus );
+    AddOperator( &ccoprelcount );
+    AddOperator( &ccoprelcount2 );
   }
   ~CcAlgebra1() {};
 };
