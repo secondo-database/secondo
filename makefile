@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.23  2003/09/25 14:36:36  spieker
+# Clientserver will now also created by calling make without target name.
+#
 # Revision 1.22  2003/09/25 13:20:30  spieker
 # Many makefiles were revised in order to generate include dependencies by the compiler.
 #
@@ -148,8 +151,12 @@ TTY: makedirs buildlibs buildalg
 .PHONY: TestRunner showjni
 TestRunner: makedirs buildlibs buildalg
 	$(MAKE) -C UserInterfaces TestRunner
-	
 
+
+.PHONY: optimizer
+optimizer: makedirs buildlibs buildalg
+	$(MAKE) -C UserInterfaces optimizer
+	
 .PHONY: buildlibs
 buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
 
