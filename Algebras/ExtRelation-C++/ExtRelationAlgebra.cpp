@@ -229,31 +229,44 @@ ListExpr SampleTypeMap(ListExpr args)
   ListExpr first ;
   ListExpr minSampleSizeLE;
   ListExpr minSampleRateLE;
+  string argstr1, argstr2, argstr3;
 
   CHECK_COND(nl->ListLength(args) == 3,
     "Operator sample expects a list of length three.");
 
   first = nl->First(args);
+  nl->WriteToString(argstr1, first);  
   minSampleSizeLE = nl->Second(args);
+  nl->WriteToString(argstr2, minSampleSizeLE);
   minSampleRateLE = nl->Third(args);
+  nl->WriteToString(argstr3, minSampleSizeLE);
 
   CHECK_COND(nl->ListLength(first) == 2,
-    "Operator sample expects a relation as first argument.");
+    "Operator sample expects a relation as first argument. "
+    "Operator sample gets '" + argstr1 + "' as first argument.");
   CHECK_COND(TypeOfRelAlgSymbol(nl->First(first)) == rel,
-    "Operator sample expects a relation as first argument.");
+    "Operator sample expects a relation as first argument. "
+    "Operator sample gets '" + argstr1 + "' as first argument.");
 
   CHECK_COND(nl->IsAtom(minSampleSizeLE),
-    "Operator sample expects an int as second argument.")
+    "Operator sample expects an int as second argument."
+    "Operator sample gets '" + argstr2 + "' as second argument. ");    
   CHECK_COND(nl->AtomType(minSampleSizeLE) == SymbolType,
-    "Operator sample expects an int as second argument.")
+    "Operator sample expects an int as second argument."
+    "Operator sample gets '" + argstr2 + "' as second argument. ");
   CHECK_COND(nl->SymbolValue(minSampleSizeLE) == "int",
-    "Operator sample expects an int as second argument.");
+    "Operator sample expects an int as second argument."
+    "Operator sample gets '" + argstr2 + "' as second argument. ");
+    
   CHECK_COND(nl->IsAtom(minSampleRateLE),
-    "Operator sample expects a real as third argument.")
+    "Operator sample expects a real as third argument."
+    "Operator sample gets '" + argstr3 + "' as third argument. ");
   CHECK_COND(nl->AtomType(minSampleRateLE) == SymbolType,
-    "Operator sample expects a real as third argument.")
+    "Operator sample expects a real as third argument."
+    "Operator sample gets '" + argstr3 + "' as third argument. ");
   CHECK_COND(nl->SymbolValue(minSampleRateLE) == "real",
-    "Operator sample expects a real as third argument.");
+    "Operator sample expects a real as third argument."
+    "Operator sample gets '" + argstr3 + "' as third argument. ");
 
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
@@ -431,102 +444,113 @@ ListExpr RemoveTypeMap(ListExpr args)
   int noAttrs, j;
   ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
            lastNumberList, numberList, outlist;
-  string attrname;
+  string attrname, argstr;
   set<int> removeSet;
   removeSet.clear();
 
   firstcall = true;
-  if (nl->ListLength(args) == 2)
+  
+  CHECK_COND(nl->ListLength(args) == 2,
+    "Operator remove expects a list of length two.");
+  
+  first = nl->First(args);
+  second = nl->Second(args);
+  
+  nl->WriteToString(argstr, first);
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
+    "Operator remove expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator remove gets as first argument '" + argstr + "'.");
+    
+  nl->WriteToString(argstr, second);    
+  CHECK_COND((!nl->IsAtom(second)) &&
+             (nl->ListLength(second) > 0),
+    "Operator remove expects as second argument a list with attribute names " 
+    "(ai ... ak), not a single atom and not an empty list.\n"
+    "Operator remove gets '" + argstr + "'.");
+  
+  while (!(nl->IsEmpty(second)))
   {
-    first = nl->First(args);
-    second = nl->Second(args);
+    first2 = nl->First(second);
+    second = nl->Rest(second);
+    nl->WriteToString(argstr, first2);
+    cout << argstr << endl;
 
-    if ((nl->ListLength(first) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-        (nl->ListLength(nl->Second(first)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-        (!nl->IsAtom(second)) &&
-        (nl->ListLength(second) > 0))
+    if (nl->AtomType(first2) == SymbolType)
     {
-      while (!(nl->IsEmpty(second)))
-      {
-  first2 = nl->First(second);
-  second = nl->Rest(second);
-
-  if (nl->AtomType(first2) == SymbolType)
-  {
-    attrname = nl->SymbolValue(first2);
-  }
-  else
-  {
-    ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-    return nl->SymbolAtom("typeerror");
-  }
-
-  j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-  if (j)  removeSet.insert(j);
-  else
-  {
-    ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-    return nl->SymbolAtom("typeerror");
-  }
-      }
-      //*****here: we need to generate new attr list according to removeSet*****
-      ListExpr oldAttrList;
-      int i;
-      i=0;  // i is the index of the old attriblist
-      first = nl->First(args);
-      second = nl->Second(args);
-      oldAttrList=nl->Second(nl->Second(first));
-      //noAttrs = nl->ListLength(oldAttrList) - nl->ListLength(second);  // n-k
-      noAttrs =0;
-      while (!(nl->IsEmpty(oldAttrList)))
-      {
-  i++;
-  first2 = nl->First(oldAttrList);
-  oldAttrList = nl->Rest(oldAttrList);
-
-  if (removeSet.find(i)==removeSet.end())  //the attribute is not in the removal list
-  {
-    noAttrs++;
-    if (firstcall)
-    {
-      firstcall = false;
-      newAttrList = nl->OneElemList(first2);
-      lastNewAttrList = newAttrList;
-      numberList = nl->OneElemList(nl->IntAtom(i));
-      lastNumberList = numberList;
+      attrname = nl->SymbolValue(first2);
     }
     else
     {
-      lastNewAttrList = nl->Append(lastNewAttrList, first2);
-      lastNumberList = nl->Append(lastNumberList, nl->IntAtom(i));
+      nl->WriteToString(argstr, first2);
+      ErrorReporter::ReportError("Operator remove gets '" + argstr + 
+      "' as attributename.\n"
+      "Atrribute name may not be the name of a Secondo object!");
+      return nl->SymbolAtom("typeerror");
+    }
+    
+    j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+    if (j)  removeSet.insert(j);
+    else
+    {
+      nl->WriteToString( argstr, nl->Second(nl->Second(first)) ); 
+      ErrorReporter::ReportError("Attributename '" + attrname + "' is not known.\n"
+      "Known Attribute(s): " + argstr);
+      return nl->SymbolAtom("typeerror");
     }
   }
-      }
+  //*****here: we need to generate new attr list according to removeSet*****
+  ListExpr oldAttrList;
+  int i;
+  i=0;  // i is the index of the old attriblist
+  first = nl->First(args);
+  second = nl->Second(args);
+  oldAttrList=nl->Second(nl->Second(first));
+  //noAttrs = nl->ListLength(oldAttrList) - nl->ListLength(second);  // n-k
+  noAttrs =0;
+  while (!(nl->IsEmpty(oldAttrList)))
+  {
+    i++;
+    first2 = nl->First(oldAttrList);
+    oldAttrList = nl->Rest(oldAttrList);
 
-      // Check whether all new attribute names are distinct
-      // - not yet implemented
-      //check whether the returning list is null
-      if (noAttrs>0)
-      {outlist = nl->ThreeElemList(
-                 nl->SymbolAtom("APPEND"),
-     nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
-     nl->TwoElemList(nl->SymbolAtom("stream"),
-                   nl->TwoElemList(nl->SymbolAtom("tuple"),
-                           newAttrList)));
-      return outlist;
+    if (removeSet.find(i)==removeSet.end())  //the attribute is not in the removal list
+    {
+      noAttrs++;
+      if (firstcall)
+      {
+        firstcall = false;
+        newAttrList = nl->OneElemList(first2);
+        lastNewAttrList = newAttrList;
+        numberList = nl->OneElemList(nl->IntAtom(i));
+        lastNumberList = numberList;
       }
       else
       {
-      ErrorReporter::ReportError(
-  "Incorrect input for operator ~remove~ - trying to remove all attributes.");
-      return nl->SymbolAtom("typeerror");
+        lastNewAttrList = nl->Append(lastNewAttrList, first2);
+        lastNumberList = nl->Append(lastNumberList, nl->IntAtom(i));
       }
     }
   }
-  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
-  return nl->SymbolAtom("typeerror");
+
+  if (noAttrs>0)
+  {
+    outlist = nl->ThreeElemList(
+              nl->SymbolAtom("APPEND"),
+              nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
+              nl->TwoElemList(nl->SymbolAtom("stream"),
+              nl->TwoElemList(nl->SymbolAtom("tuple"),
+                       newAttrList)));
+    return outlist;
+  }
+  else
+  {
+    ErrorReporter::ReportError("Do not remove all attributes!");
+    return nl->SymbolAtom("typeerror");
+  }
 }
 
 /*
@@ -635,24 +659,35 @@ Result type of cancel operation.
 ListExpr CancelTypeMap(ListExpr args)
 {
   ListExpr first, second;
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator cancel expects a list of length two.");
+  
+  first = nl->First(args);
+  second  = nl->Second(args);
+    
+  nl->WriteToString(argstr, first);    
+  CHECK_COND(nl->ListLength(first) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+	     nl->ListLength(nl->Second(first)) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator cancel expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator cancel gets a list with structure '" + argstr + "'.");
 
-    if ( (nl->ListLength(first) == 2)
-  && (nl->ListLength(second) == 3)
-  && (nl->ListLength(nl->Second(first)) == 2)
-  && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-  && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-  && (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)
-  && (TypeOfRelAlgSymbol(nl->Third(second)) == ccbool)
-  && (nl->Equal(nl->Second(first),nl->Second(second)))  )
-    return first;
-  }
-
-  ErrorReporter::ReportError( "Incorrect input for operator cancel.");
-  return nl->SymbolAtom("typeerror");
+  nl->WriteToString(argstr, second);    
+  CHECK_COND(nl->ListLength(second) == 3 &&
+             TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
+             TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
+    "Operator cancel expects as second argument a list with structure " 
+    "(map (tuple ((a1 t1)...(an tn))) bool)\n"
+    "Operator cancel gets a list with structure '" + argstr + "'.");
+    
+  CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
+    "Tuple type in stream is not equal to tuple type in the function.");
+    
+  return first;
 }
 
 /*
@@ -755,33 +790,46 @@ Type mapping for ~extract~ is
 ListExpr ExtractTypeMap( ListExpr args )
 {
   ListExpr first, second, attrtype;
-  string  attrname;
+  string  attrname, argstr;
   int j;
 
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
+  CHECK_COND(nl->ListLength(args) == 2,
+    "Operator extract expects a list of length two.");
+  
+  first = nl->First(args);
+  second = nl->Second(args);
+  
+  nl->WriteToString(argstr, first);
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
+    "Operator extract expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator remove gets as first argument '" + argstr + "'.");
+    
+  nl->WriteToString(argstr, second);    
+  CHECK_COND((nl->IsAtom(second)) &&
+             (nl->AtomType(second) == SymbolType),
+    "Operator extract expects as second argument an atom (attributename).\n" 
+    "Operator extract gets '" + argstr + "'.\n"
+    "Atrributename may not be the name of a Secondo object!");
 
-    if((nl->ListLength(first) == 2  ) &&
-       (TypeOfRelAlgSymbol(nl->First(first)) == stream)  &&
-       (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)  &&
-       (nl->IsAtom(second)) &&
-       (nl->AtomType(second) == SymbolType))
-    {
-      attrname = nl->SymbolValue(second);
-      j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-      if (j)
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->OneElemList(nl->IntAtom(j)), attrtype);
-    }
-    ErrorReporter::ReportError("Incorrect input for operator extract.");
+  attrname = nl->SymbolValue(second);
+  j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+  if (j)
+  {
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+           nl->OneElemList(nl->IntAtom(j)), attrtype);
+  }
+  else
+  {
+    nl->WriteToString( argstr, nl->Second(nl->Second(first)) ); 
+    ErrorReporter::ReportError("Attributename '" + attrname + "' is not known.\n"
+      "Known Attribute(s): " + argstr);
     return nl->SymbolAtom("typeerror");
   }
-  ErrorReporter::ReportError("Incorrect input for operator extract.");
-  return nl->SymbolAtom("typeerror");
 }
-
 /*
 2.7.2 Value mapping function of operator ~extract~
 
@@ -864,29 +912,32 @@ Type mapping for ~head~ is
 ListExpr HeadTypeMap( ListExpr args )
 {
   ListExpr first, second;
+  string argstr;
 
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator head expects a list of length two.");
+  
+  first = nl->First(args);
+  second = nl->Second(args); 
+   
+  nl->WriteToString(argstr, first);  
+  CHECK_COND( ( nl->ListLength(first) == 2 ) &&
+              ( TypeOfRelAlgSymbol( nl->Second(first) ) == stream ) &&
+              ( nl->ListLength( nl->Second(first) ) == 2) &&
+	      (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
+    "Operator head expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator head gets as first argument '" + argstr + "'." );   
+      
+  nl->WriteToString(argstr, second);    
+  CHECK_COND((nl->IsAtom(second)) &&
+             (nl->AtomType(second) == SymbolType) &&
+	     (nl->SymbolValue(second) == "int"),
+    "Operator head expects a second argument of type integer.\n" 
+    "Operator head gets '" + argstr + "'.");
 
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
-      && (nl->IsAtom(second))
-      && (nl->AtomType(second) == SymbolType)
-      && nl->SymbolValue(second) == "int")
-    {
-      return first;
-    }
-    ErrorReporter::ReportError("Incorrect input for operator head.");
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError("Incorrect input for operator head.");
-  return nl->SymbolAtom("typeerror");
+  return first;               
 }
-
 /*
 2.8.3 Value mapping function of operator ~head~
 
@@ -991,45 +1042,74 @@ template<bool isMax> ListExpr
 MaxMinTypeMap( ListExpr args )
 {
   ListExpr first, second, attrtype;
-  string  attrname;
+  string  attrname, argstr, argstrtmp;
   int j;
-  const char* errorMessage =
-    isMax ?
-      "Incorrect input for operator max."
-      : "Incorrect input for operator min.";
-
-  if(nl->ListLength(args) == 2)
+    
+  const char* errorMessage1 =
+  isMax ?
+    "Operator max expects a list of length two."
+  : "Operator min expects a list of length two.";    
+  CHECK_COND(nl->ListLength(args) == 2,
+    errorMessage1);
+      
+  first = nl->First(args);
+  second = nl->Second(args);
+  
+  nl->WriteToString(argstr, first);
+  string errorMessage2 =
+  isMax ?
+    "Operator max expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator max gets as first argument '" + argstr + "'."
+  : "Operator min expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator min gets as first argument '" + argstr + "'.";
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (IsTupleDescription(nl->Second(nl->Second(first)))),
+	     errorMessage2);    
+	       
+  nl->WriteToString(argstr, second);
+  string errorMessage3 =
+  isMax ?
+    "Operator max expects as second argument an atom (attributename).\n" 
+    "Operator max gets '" + argstr + "'.\n"
+    "Atrributename may not be the name of a Secondo object!"
+  : "Operator min expects as second argument an atom (attributename).\n" 
+    "Operator min gets '" + argstr + "'.\n"
+    "Atrributename may not be the name of a Secondo object!";    
+  CHECK_COND((nl->IsAtom(second)) &&
+             (nl->AtomType(second) == SymbolType),
+	     errorMessage3);
+	     
+  attrname = nl->SymbolValue(second);
+  nl->WriteToString(argstr, nl->Second(nl->Second(first)));  
+  j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+  string errorMessage4 =
+    "Attributename '" + attrname + "' is not known.\n"
+    "Known Attribute(s): " + argstr;
+  string errorMessage5 =
+    "Attribute type is not of type real, int, string or bool.";
+  if ( j )  
   {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
-      && (nl->IsAtom(second))
-      && (nl->AtomType(second) == SymbolType))
-    {
-      attrname = nl->SymbolValue(second);
-      j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-
-      if (j > 0
-        && (nl->SymbolValue(attrtype) == "real"
+    CHECK_COND( (nl->SymbolValue(attrtype) == "real"
           || nl->SymbolValue(attrtype) == "string"
           || nl->SymbolValue(attrtype) == "bool"
-          || nl->SymbolValue(attrtype) == "int"))
-      {
-        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->OneElemList(nl->IntAtom(j)), attrtype);
-      }
-    }
-    ErrorReporter::ReportError(errorMessage);
+          || nl->SymbolValue(attrtype) == "int"),
+	  errorMessage5);
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+           nl->OneElemList(nl->IntAtom(j)), attrtype);
+  }
+  else
+  {
+    nl->WriteToString( argstr, nl->Second(nl->Second(first)) );
+    ErrorReporter::ReportError(errorMessage4);
     return nl->SymbolAtom("typeerror");
   }
-  ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
 }
-
 /*
 2.9.2 Value mapping function of operators ~max~ and ~min~
 
