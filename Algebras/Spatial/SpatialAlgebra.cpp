@@ -1809,7 +1809,7 @@ CLine::CLine(SmiRecordFile *recordFile, const CLine& cl ) :
   }
 }
 
-CLine::CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update /*= true*/):
+CLine::CLine(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update):
 	 line(new PArray<CHalfSegment>(recordFile, recordId, update ) ),ordered(true)
 {}
 
@@ -2366,7 +2366,7 @@ CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
 }
 
 CRegion::CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, 
-	  bool update /*= true*/ ): region(new PArray<CHalfSegment>
+	  bool update ): region(new PArray<CHalfSegment>
 	  ( recordFile, recordId, update ) ),ordered(true)
 {}
 
@@ -2628,7 +2628,7 @@ void CRegion::QuickSortRecursive( const int low, const int high )
 
 void CRegion::logicsort()
 {
-//  assert( !IsOrdered() );
+   // assert( !IsOrdered() );
 
   if( Size() > 1 ) 
   {
@@ -2701,8 +2701,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 	{           
 	    CHalfSegment auxchs;
 	    region->Get( i, auxchs );
-	    //cout<<auxchs.attr.faceno<<"<<"<<auxchs.attr.cycleno<<"<<"
-	    //<<auxchs.attr.edgeno<<endl;
+
 	    if (auxchs.GetLDP())
 	    {
 		if (chs.Intersects(auxchs))
@@ -2762,14 +2761,13 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 		}
 	    }
 	}
-	//now we know that the new chs is not inside any other old holes
-	//but the whether any old holes is inside new chs hole is not clear
-	//in the following I will do this check. Be careful that the edges is now
-	//in logic order
-	//cout << "processing: faceno, cycleno "<<chs.attr.faceno<<" : "
-	//<<chs.attr.cycleno<<" : "<<chs<<endl;
     }
-    
+/*
+Now we know that the new half segment is not inside any other previous holes of the 
+same face. However, whether this new hole contains any previous hole of the same 
+face is not clear. In the following we do this kind of check.
+	
+*/
     if ((!chs.IsDefined())||((chs.attr.faceno>0) || (chs.attr.cycleno>2)))
     {          
 	CHalfSegment chsHoleNEnd, chsHoleNStart;
@@ -2781,13 +2779,12 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 	    ((!chs.IsDefined())||
 	    (chs.attr.faceno!=chsHoleNEnd.attr.faceno)||
 	    (chs.attr.cycleno!=chsHoleNEnd.attr.cycleno)))
-	{  //chs start another face or cycle
+	{    //chs start another face or cycle
 	    
 	    cout<<"trigger the test!"<<endl;
 	    
 	    if (chsHoleNEnd.attr.cycleno>1)
-	    {   //if the just finished cycle is the second hole or later, then we should be ensure that 
-	        //any previously defined hole must be inside the just finished hole.
+	    {  	// if the cycle just finished is the second hole or later. 
 		
 		int holeNStart=holeNEnd - 1;
 		region->Get(holeNStart, chsHoleNStart );
@@ -2817,8 +2814,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 			stillPrevHole=false;
 		    }
 		
-		    //test whether chsPreHole is inside the hole_N;
-		    // if inside, return false;
+		    //test whether chsPreHole is inside hole_N;
 		    if (chsPrevHole.GetLDP())
 		    {
 			int holeNMeent=0;
@@ -2843,23 +2839,27 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
 }
 
 /*
-this function check whether a half segment is valid. Whenever a half segment is inserted,
-the state of the region is checked. A valid region must satisfy the following conditions:
+This function check whether a region value is after thr insertion of a new half segment.
+Whenever a half segment is about to be inserted, the state of the region is checked. 
+A valid region must satisfy the following conditions:
 
-1)  any two cycles of the same region must be disconnect;
+1)  any two cycles of the same region must be disconnect, which means that no edges 
+of different cycles can intersect each other;
 
-2)  for a certain cycle, each vertex can only appear once;
+2) edges of the same cycle can only intersect with their endpoints, but no their middle points;
 
-3)  holes must be inside the outer cycle;
+3)  For a certain face, the holes must be inside the outer cycle;
 
-4)  any cycle must be made up of at least 3 edges;
+4)  For a certain face, any two holes can not contain each other;
 
-5)  faces must have the outer cycle, but they can have no holes;
+5)  Faces must have the outer cycle, but they can have no holes;
 
-6)  any two edges of the same cycle can not intersect each with their middle points. They
-can only intersect with their endpoints;
+6)  for a certain cycle, any two vertex can not be the same;
 
-7)  any hole can not be inside another hole of the same face;
+7)  any cycle must be made up of at least 3 edges;
+
+8)  It is allowed that one face is inside another provided that their edges do not intersect.
+
 
 8.2 List Representation
 
