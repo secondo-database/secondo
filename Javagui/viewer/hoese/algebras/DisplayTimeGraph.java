@@ -44,9 +44,9 @@ public class DisplayTimeGraph extends DisplayGraph
           2 : 0, Color.black));
       Dimension d = jc.getPreferredSize();
       jc.setBounds(start, (int)d.getHeight()*0 + 15, end - start, (int)d.getHeight());
-      jc.setToolTipText(LEUtils.convertTimeToString(in.getStart()) + "..." + 
+      jc.setToolTipText(LEUtils.convertTimeToString(in.getStart()) + "..." +
           LEUtils.convertTimeToString(in.getEnd()));
-      jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime), 
+      jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime),
           25));
       jp.add(jc);
     }
@@ -54,7 +54,7 @@ public class DisplayTimeGraph extends DisplayGraph
   }
 
   /** A method of the Timed-Interface
-   * 
+   *
    * @return the global time boundaries [min..max] this instance is defined at
    * @see <a href="DisplayTimeGraphsrc.html#getTimebounds">Source</a>
    */
@@ -67,7 +67,7 @@ public class DisplayTimeGraph extends DisplayGraph
    * @param time A double representing a time
    * @param iv The Time intervals to check
    * @param maps The maps of this instance.
-   * @return A unit of this instance, that is defined at time, or null if not defined 
+   * @return A unit of this instance, that is defined at time, or null if not defined
    * @see <a href="DisplayTimeGraphsrc.html#getMapAt">Source</a>
    */
   public Object getMapAt (double time, Vector iv, Vector maps) {
@@ -82,12 +82,25 @@ public class DisplayTimeGraph extends DisplayGraph
     return  null;
   }
   /** A method of the Timed-Interface
-   * @return The Vector representation of the time intervals this instance is defined at 
+   * @return The Vector representation of the time intervals this instance is defined at
    * @see <a href="DisplayTimeGraphsrc.html#getIntervals">Source</a>
    */
   public Vector getIntervals(){
     return Intervals;
     }
+
+
+  /** returns the first index in Intervals containing t
+    * if not an intervals containing t exists -1 is returned
+    */
+  protected int getTimeIndex(double t,Vector Intervals){
+     for(int i=0;i<Intervals.size();i++)
+        if( ((Interval) Intervals.get(i)).isDefinedAt(t))
+	    return i;
+     return -1;
+  }
+
+
 
 }
 
