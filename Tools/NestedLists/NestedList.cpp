@@ -2006,25 +2006,12 @@ NestedList::DestroyTextScan( TextScan& textScan )
 void
 NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) {
 
-  //int textLength = TextLength(textAtom);
-  
-  /* initialze string object */
-  /*
-  resultStr="";
-  resultStr.resize(textLength);
-  
-  TextScan tscan = CreateTextScan(textAtom);
-  GetText( tscan, textLength, resultStr );
-  DestroyTextScan(tscan);
-  */ 
-
   ostringstream outStream; 
   string textFragment = "";
   while ( GetNextText(textAtom, textFragment, 1024) ) {
      outStream << textFragment;
   }
   resultStr = outStream.str();
-
 
 }
 
