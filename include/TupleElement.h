@@ -26,6 +26,9 @@ April 2002 Ulrich Telle Adjustments for the new Secondo version
 
 October 2003 Victor Almeida added the functions ~Open~ and ~Save~
 
+November 2004 M. Spiekermann. Some uninitialized variables were set to 
+avoid warnings when compiler flag -O2 is used.
+
 1.1 Overview
 
 The ~Tuple Manager~ is an important support component for the relational
@@ -105,7 +108,7 @@ class TupleElement // renamed, previous name: TupleElem
       }
 
       // Move FLOB data to extension tuple
-      char *extensionElement;
+      char *extensionElement = 0;
       if( extensionSize > 0 )
       {
         extensionElement = (char *)malloc( extensionSize );
@@ -158,7 +161,7 @@ class TupleElement // renamed, previous name: TupleElem
       }
 
       // Read the extension size
-      char *extensionElement;
+      char *extensionElement = 0;
       if( extensionSize > 0 )
       {
         extensionElement = (char*)malloc( extensionSize );
