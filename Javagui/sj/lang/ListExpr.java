@@ -209,6 +209,14 @@ public class ListExpr extends Object {
    */
   public static ListExpr cons (ListExpr left, ListExpr right) {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
+    if(DEBUG_MODE){
+       if(left==null || right==null){
+           System.err.println("ListExpr.cons called with an null argument");
+           if(left==null) System.err.println("Left==null");
+           if(right==null) System.err.println("Right==null");
+           new Throwable().printStackTrace();
+       }
+    }
     if (ListExpr.CHECK_PRECONDITIONS) {
       if (right.isAtom()) {
         System.err.println("CHECK PRECONDITIONS: Error when calling the cons() method: the input argument ~right~ does not fulfil the preconditions.");
@@ -233,6 +241,14 @@ public class ListExpr extends Object {
    *Preconditions:* ~lastElement~ is not the empty list and no atom, but is the last element of a list. That is: ~endOfList(LastElem)~ = ~true~, ~isEmpty(lastElement)~ = ~false~, ~isAtom(lastElement)~ = ~false~.
    */
   public static ListExpr append (ListExpr lastElement, ListExpr newSon) {
+    if(DEBUG_MODE){
+       if(lastElement==null || newSon==null){
+           System.err.println("ListExpr.append called with an null argument");
+           if(lastElement==null) System.err.println("lastElement==null");
+           if(newSon==null) System.err.println("newSon==null");
+           new Throwable().printStackTrace();
+       }
+    }
     // It creates a new node ~p~.
     ListExpr p = new ListExpr();
     // If CHECK_PRECONDITIONS is set, it checks the preconditions.
@@ -1628,7 +1644,7 @@ catch(Exception e){
  /*
    3.4.0 The decodeText() method.
    This method returns an inputstream from which can readed the
-   decoded datas in a text atom. The List must be a text atom and
+   decoded data in a text atom. The List must be a text atom and
    must contain base64 coded content
  */
   public InputStream decodeText(){
