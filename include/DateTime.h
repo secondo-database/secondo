@@ -293,6 +293,17 @@ For the ~Mul~ function  the this object must be of type {\tt duration}.
 */
      void Mul(const int factor);
 
+/*
+~Mul~
+
+For the ~Mul~ function  the this object must be of type {\tt duration}.
+Note that the product of a duration with a double value is not robust
+against numeric inaccuracies. This means that $a*d + (1-a)*d == d$
+may be false. (a is a double-constant and d a duration value).
+
+*/
+     void Mul(const double factor);
+
 
 /*
 ~Operator +~
@@ -417,6 +428,16 @@ is adjusted.
 
 */
      void ReadFromSmiRecord(SmiRecord& valueRecord, int& offset);
+
+
+/*
+~Split~
+
+This functions splits a duration into two ones at the specified position
+delta in [0,1]. 
+
+*/
+  bool Split(double delta, DateTime& Rest);
 
   private:
     // the data-part of datetime

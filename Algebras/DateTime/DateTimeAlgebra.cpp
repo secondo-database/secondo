@@ -876,6 +876,24 @@ void DateTime::Save(SmiRecord& valueRecord, const ListExpr typeinfo){
    WriteToSmiRecord(valueRecord,offset);
 }
 
+
+/*
+~Split~
+
+The function ~Split~ splits a duration into two ones.
+
+*/
+bool DateTime::Split(double delta, DateTime& Rest){
+  assert(type==durationtype);
+  assert((delta>=0) && (delta<=1));
+  Rest.Equalize(this);
+  Mul(delta);
+  Rest.Minus(this);
+  return true;
+}
+
+
+
 /*
 ~Compare~
 
@@ -1096,7 +1114,7 @@ void DateTime::Mul(const int factor){
    long ms = milliseconds;
    if(day<0){
        ms -= MILLISECONDS;
-       day++;
+       d++;
    }
    d = d*factor;
    ms = ms*factor;
@@ -1112,6 +1130,43 @@ void DateTime::Mul(const int factor){
    day = d;
    milliseconds=ms;
 }
+
+/*
+~mul~
+
+Computes a multiple of a duration. This function is not
+numerical robust. Use this function only when you know what
+you do.
+
+*/
+void DateTime::Mul(const double factor){
+   assert(type==durationtype);
+   double d = day;
+   double ms = milliseconds;
+   if(day<0.0){
+       ms -= MILLISECONDS;
+       d +=1.0;
+   }
+   d = d*factor;
+   ms = ms*factor;
+
+   double dms = d - (((double)( (long)(day))));
+   d = (double) ((long) day);
+   ms = ms + dms*MILLISECONDS;
+
+   while(ms<0){
+     ms += MILLISECONDS;
+     d = d -1.0;
+   }
+   while(ms>=MILLISECONDS){
+     ms -= MILLISECONDS;
+     d = d + 1.0;
+   }
+
+   day = (long) d;
+   milliseconds=(long) ms;
+}
+
 
 
 /*
