@@ -987,7 +987,8 @@ TupleId TupleBufferIterator::GetTupleId() const
   }
   else
   {
-	return privateTupleBufferIterator->currentTuple;
+	assert( privateTupleBufferIterator->currentTuple > 0 );
+	return privateTupleBufferIterator->currentTuple-1;
   }
 }
 

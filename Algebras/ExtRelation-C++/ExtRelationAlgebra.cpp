@@ -68,19 +68,19 @@ ListExpr GroupTypeMap(ListExpr args)
   ListExpr first;
   ListExpr tupleDesc;
   string argstr;
-  
+
   nl->WriteToString(argstr,args);
   cout << argstr << endl;
-  
+
   CHECK_COND(nl->ListLength(args) >= 1 && !nl->IsAtom(args),
     "Type operator sample expects a list with minimal length one.");
-    
+
   first = nl->First(args);
-  
+
   CHECK_COND(nl->ListLength(first) == 2 && !nl->IsAtom(first),
     "Type operator group: First list in the argument"
     " list must have length two.");
-    
+
   tupleDesc = nl->Second(first);
 
   nl->WriteToString(argstr, first);
@@ -89,10 +89,10 @@ ListExpr GroupTypeMap(ListExpr args)
               (nl->ListLength(tupleDesc) == 2) &&
               TypeOfRelAlgSymbol(nl->First(tupleDesc)) == tuple &&
               IsTupleDescription(nl->Second(tupleDesc)),
-    "Type operator group expects an argument list with structure " 
+    "Type operator group expects an argument list with structure "
     "( (stream (tuple ((a1 t1)...(an tn))))(ai)...(ak) )\n"
     "Type operator group gets as first argument '" + argstr + "'.");
-    
+
   return nl->TwoElemList(
           nl->SymbolAtom("rel"),
           tupleDesc);
@@ -177,7 +177,7 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   }
 
   // Using Windows RAND_MAX is very small (about 2^15) therefore we need to limit the drawSize
-  // to 3/4 (to avoid long runtimes) of this size. 
+  // to 3/4 (to avoid long runtimes) of this size.
   int drawMax = 3*RAND_MAX/4;
   if ( drawSize > drawMax ) {
     drawSize = drawMax;
@@ -187,9 +187,9 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   while(nDrawn < drawSize)
   {
     // 28.04.04 M. Spiekermann.
-    // The calculation of random numbers blow is recommended in the man page 
+    // The calculation of random numbers blow is recommended in the man page
     // documentation of the rand() function.
-    r = (int) ((double)(setSize + 1) * rand()/(RAND_MAX+1.0)); 
+    r = (int) ((double)(setSize + 1) * rand()/(RAND_MAX+1.0));
     if(r == 0)
     {
       continue;
@@ -245,7 +245,7 @@ ListExpr SampleTypeMap(ListExpr args)
     "Operator sample expects a list of length three.");
 
   first = nl->First(args);
-  nl->WriteToString(argstr1, first);  
+  nl->WriteToString(argstr1, first);
   minSampleSizeLE = nl->Second(args);
   nl->WriteToString(argstr2, minSampleSizeLE);
   minSampleRateLE = nl->Third(args);
@@ -260,14 +260,14 @@ ListExpr SampleTypeMap(ListExpr args)
 
   CHECK_COND(nl->IsAtom(minSampleSizeLE),
     "Operator sample expects an int as second argument."
-    "Operator sample gets '" + argstr2 + "' as second argument. ");    
+    "Operator sample gets '" + argstr2 + "' as second argument. ");
   CHECK_COND(nl->AtomType(minSampleSizeLE) == SymbolType,
     "Operator sample expects an int as second argument."
     "Operator sample gets '" + argstr2 + "' as second argument. ");
   CHECK_COND(nl->SymbolValue(minSampleSizeLE) == "int",
     "Operator sample expects an int as second argument."
     "Operator sample gets '" + argstr2 + "' as second argument. ");
-    
+
   CHECK_COND(nl->IsAtom(minSampleRateLE),
     "Operator sample expects a real as third argument."
     "Operator sample gets '" + argstr3 + "' as third argument. ");
@@ -459,29 +459,29 @@ ListExpr RemoveTypeMap(ListExpr args)
   removeSet.clear();
 
   firstcall = true;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator remove expects a list of length two.");
-  
+
   first = nl->First(args);
   second = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
-    "Operator remove expects as first argument a list with structure " 
+    "Operator remove expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator remove gets as first argument '" + argstr + "'.");
-    
-  nl->WriteToString(argstr, second);    
+
+  nl->WriteToString(argstr, second);
   CHECK_COND((!nl->IsAtom(second)) &&
              (nl->ListLength(second) > 0),
-    "Operator remove expects as second argument a list with attribute names " 
+    "Operator remove expects as second argument a list with attribute names "
     "(ai ... ak), not a single atom and not an empty list.\n"
     "Operator remove gets '" + argstr + "'.");
-  
+
   while (!(nl->IsEmpty(second)))
   {
     first2 = nl->First(second);
@@ -496,17 +496,17 @@ ListExpr RemoveTypeMap(ListExpr args)
     else
     {
       nl->WriteToString(argstr, first2);
-      ErrorReporter::ReportError("Operator remove gets '" + argstr + 
+      ErrorReporter::ReportError("Operator remove gets '" + argstr +
       "' as attributename.\n"
       "Atrribute name may not be the name of a Secondo object!");
       return nl->SymbolAtom("typeerror");
     }
-    
+
     j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
     if (j)  removeSet.insert(j);
     else
     {
-      nl->WriteToString( argstr, nl->Second(nl->Second(first)) ); 
+      nl->WriteToString( argstr, nl->Second(nl->Second(first)) );
       ErrorReporter::ReportError("Attributename '" + attrname + "' is not known.\n"
       "Known Attribute(s): " + argstr);
       return nl->SymbolAtom("typeerror");
@@ -670,33 +670,33 @@ ListExpr CancelTypeMap(ListExpr args)
 {
   ListExpr first, second;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator cancel expects a list of length two.");
-  
+
   first = nl->First(args);
   second  = nl->Second(args);
-    
-  nl->WriteToString(argstr, first);    
+
+  nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2 &&
              TypeOfRelAlgSymbol(nl->First(first)) == stream &&
 	     nl->ListLength(nl->Second(first)) == 2 &&
              TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator cancel expects as first argument a list with structure " 
+    "Operator cancel expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator cancel gets a list with structure '" + argstr + "'.");
 
-  nl->WriteToString(argstr, second);    
+  nl->WriteToString(argstr, second);
   CHECK_COND(nl->ListLength(second) == 3 &&
              TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
              TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
-    "Operator cancel expects as second argument a list with structure " 
+    "Operator cancel expects as second argument a list with structure "
     "(map (tuple ((a1 t1)...(an tn))) bool)\n"
     "Operator cancel gets a list with structure '" + argstr + "'.");
-    
+
   CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
     "Tuple type in stream is not equal to tuple type in the function.");
-    
+
   return first;
 }
 
@@ -805,23 +805,23 @@ ListExpr ExtractTypeMap( ListExpr args )
 
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator extract expects a list of length two.");
-  
+
   first = nl->First(args);
   second = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
-    "Operator extract expects as first argument a list with structure " 
+    "Operator extract expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator remove gets as first argument '" + argstr + "'.");
-    
-  nl->WriteToString(argstr, second);    
+
+  nl->WriteToString(argstr, second);
   CHECK_COND((nl->IsAtom(second)) &&
              (nl->AtomType(second) == SymbolType),
-    "Operator extract expects as second argument an atom (attributename).\n" 
+    "Operator extract expects as second argument an atom (attributename).\n"
     "Operator extract gets '" + argstr + "'.\n"
     "Atrributename may not be the name of a Secondo object!");
 
@@ -834,7 +834,7 @@ ListExpr ExtractTypeMap( ListExpr args )
   }
   else
   {
-    nl->WriteToString( argstr, nl->Second(nl->Second(first)) ); 
+    nl->WriteToString( argstr, nl->Second(nl->Second(first)) );
     ErrorReporter::ReportError("Attributename '" + attrname + "' is not known.\n"
       "Known Attribute(s): " + argstr);
     return nl->SymbolAtom("typeerror");
@@ -926,27 +926,27 @@ ListExpr HeadTypeMap( ListExpr args )
 
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator head expects a list of length two.");
-  
+
   first = nl->First(args);
-  second = nl->Second(args); 
-   
-  nl->WriteToString(argstr, first);  
+  second = nl->Second(args);
+
+  nl->WriteToString(argstr, first);
   CHECK_COND( ( nl->ListLength(first) == 2 ) &&
               ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ) &&
               ( nl->ListLength( nl->Second(first) ) == 2) &&
 	      (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
-    "Operator head expects as first argument a list with structure " 
+    "Operator head expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator head gets as first argument '" + argstr + "'." );   
-      
-  nl->WriteToString(argstr, second);    
+    "Operator head gets as first argument '" + argstr + "'." );
+
+  nl->WriteToString(argstr, second);
   CHECK_COND((nl->IsAtom(second)) &&
              (nl->AtomType(second) == SymbolType) &&
 	     (nl->SymbolValue(second) == "int"),
-    "Operator head expects a second argument of type integer.\n" 
+    "Operator head expects a second argument of type integer.\n"
     "Operator head gets '" + argstr + "'.");
 
-  return first;               
+  return first;
 }
 /*
 2.8.3 Value mapping function of operator ~head~
@@ -1054,56 +1054,56 @@ MaxMinTypeMap( ListExpr args )
   ListExpr first, second, attrtype;
   string  attrname, argstr, argstrtmp;
   int j;
-    
+
   const char* errorMessage1 =
   isMax ?
     "Operator max expects a list of length two."
-  : "Operator min expects a list of length two.";    
+  : "Operator min expects a list of length two.";
   CHECK_COND(nl->ListLength(args) == 2,
     errorMessage1);
-      
+
   first = nl->First(args);
   second = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   string errorMessage2 =
   isMax ?
-    "Operator max expects as first argument a list with structure " 
+    "Operator max expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator max gets as first argument '" + argstr + "'."
-  : "Operator min expects as first argument a list with structure " 
+  : "Operator min expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator min gets as first argument '" + argstr + "'.";
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
-	     errorMessage2);    
-	       
+	     errorMessage2);
+
   nl->WriteToString(argstr, second);
   string errorMessage3 =
   isMax ?
-    "Operator max expects as second argument an atom (attributename).\n" 
+    "Operator max expects as second argument an atom (attributename).\n"
     "Operator max gets '" + argstr + "'.\n"
     "Atrributename may not be the name of a Secondo object!"
-  : "Operator min expects as second argument an atom (attributename).\n" 
+  : "Operator min expects as second argument an atom (attributename).\n"
     "Operator min gets '" + argstr + "'.\n"
-    "Atrributename may not be the name of a Secondo object!";    
+    "Atrributename may not be the name of a Secondo object!";
   CHECK_COND((nl->IsAtom(second)) &&
              (nl->AtomType(second) == SymbolType),
 	     errorMessage3);
-	     
+
   attrname = nl->SymbolValue(second);
-  nl->WriteToString(argstr, nl->Second(nl->Second(first)));  
+  nl->WriteToString(argstr, nl->Second(nl->Second(first)));
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
   string errorMessage4 =
     "Attributename '" + attrname + "' is not known.\n"
     "Known Attribute(s): " + argstr;
   string errorMessage5 =
     "Attribute type is not of type real, int, string or bool.";
-  if ( j )  
+  if ( j )
   {
     CHECK_COND( (nl->SymbolValue(attrtype) == "real"
           || nl->SymbolValue(attrtype) == "string"
@@ -1258,56 +1258,56 @@ AvgSumTypeMap( ListExpr args )
   ListExpr first, second, attrtype;
   string  attrname, argstr;
   int j;
-  
+
   const char* errorMessage1 =
   isAvg ?
     "Operator avg expects a list of length two."
-  : "Operator sum expects a list of length two.";    
+  : "Operator sum expects a list of length two.";
   CHECK_COND(nl->ListLength(args) == 2,
     errorMessage1);
-      
+
   first = nl->First(args);
   second = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   string errorMessage2 =
   isAvg ?
-    "Operator avg expects as first argument a list with structure " 
+    "Operator avg expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator avg gets as first argument '" + argstr + "'."
-  : "Operator sum expects as first argument a list with structure " 
+  : "Operator sum expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator sum gets as first argument '" + argstr + "'.";
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
-	     errorMessage2);    
-	       
+	     errorMessage2);
+
   nl->WriteToString(argstr, second);
   string errorMessage3 =
   isAvg ?
-    "Operator max expects as second argument an atom (attributename).\n" 
+    "Operator max expects as second argument an atom (attributename).\n"
     "Operator max gets '" + argstr + "'.\n"
     "Atrributename may not be the name of a Secondo object!"
-  : "Operator min expects as second argument an atom (attributename).\n" 
+  : "Operator min expects as second argument an atom (attributename).\n"
     "Operator min gets '" + argstr + "'.\n"
-    "Atrributename may not be the name of a Secondo object!";    
+    "Atrributename may not be the name of a Secondo object!";
   CHECK_COND((nl->IsAtom(second)) &&
              (nl->AtomType(second) == SymbolType),
 	     errorMessage3);
-	     
+
   attrname = nl->SymbolValue(second);
-  nl->WriteToString(argstr, nl->Second(nl->Second(first)));  
+  nl->WriteToString(argstr, nl->Second(nl->Second(first)));
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
   string errorMessage4 =
     "Attributename '" + attrname + "' is not known.\n"
     "Known Attribute(s): " + argstr;
   string errorMessage5 =
     "Attribute type is not of type real or int.";
-  if ( j )  
+  if ( j )
   {
     CHECK_COND( (nl->SymbolValue(attrtype) == "real"
           || nl->SymbolValue(attrtype) == "int"),
@@ -1513,21 +1513,21 @@ ListExpr SortByTypeMap( ListExpr args )
 
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator sortby expects a list of length two.");
-  
+
   ListExpr streamDescription = nl->First(args);
   ListExpr sortSpecification  = nl->Second(args);
-  
+
   nl->WriteToString(argstr, streamDescription);
 
   CHECK_COND(nl->ListLength(streamDescription) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
              (nl->ListLength(nl->Second(streamDescription)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) == tuple),
-    "Operator sortby expects as first argument a list with structure " 
+    "Operator sortby expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator sortby gets as first argument '" + argstr + "'.");
-    
-  int numberOfSortAttrs = nl->ListLength(sortSpecification); 
+
+  int numberOfSortAttrs = nl->ListLength(sortSpecification);
 
   CHECK_COND(numberOfSortAttrs > 0,
     "Operator sortby: Attribute list may not be enpty!");
@@ -1546,10 +1546,10 @@ ListExpr SortByTypeMap( ListExpr args )
                (nl->AtomType(nl->First(attributeSpecification)) == SymbolType) &&
 	       (nl->IsAtom(nl->Second(attributeSpecification))) &&
                (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType),
-      "Operator sortby expects as second argument a list " 
+      "Operator sortby expects as second argument a list "
       "((ai asc/desc)+)\n"
       "Operator sortby gets a list '" + argstr + "'.");
-      
+
     attrname = nl->SymbolValue(nl->First(attributeSpecification));
     int j = FindAttribute(nl->Second(nl->Second(streamDescription)), attrname, attrtype);
 
@@ -1644,36 +1644,36 @@ IdenticalTypeMap( ListExpr args )
 {
   ListExpr first;
   string argstr;
-  
+
   const char* errorMessage1 =
   isSort ?
     "Operator sort expects a list of length one."
-  : "Operator rdup expects a list of length one."; 
-     
+  : "Operator rdup expects a list of length one.";
+
   CHECK_COND(nl->ListLength(args) == 1,
     errorMessage1);
-      
+
   first = nl->First(args);
-  
+
   nl->WriteToString(argstr, first);
   string errorMessage2 =
   isSort ?
-    "Operator sort expects as argument a list with structure " 
+    "Operator sort expects as argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator sort gets as argument '" + argstr + "'."
-  : "Operator rdup expects as argument a list with structure " 
+  : "Operator rdup expects as argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator rdup gets as argument '" + argstr + "'.";
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
 	     errorMessage2);
-	     
+
   return first;
-}    
+}
 /*
 2.12.2 Specification of operator ~sort~
 
@@ -1813,55 +1813,55 @@ SetOpTypeMap( ListExpr args )
 {
   ListExpr first, second;
   string argstr, argstr2;
-    
+
   string setOpErrorMessages1[] =
   { "Operator mergesec expects a list of length one.",
     "Operator mergediff expects a list of length one.",
     "Operator mergeunion expects a list of length one." };
   CHECK_COND(nl->ListLength(args) == 2,
     setOpErrorMessages1[errorMessageIdx]);
-    
+
   first = nl->First(args);
   second = nl->Second(args);
-      
+
   nl->WriteToString(argstr, first);
   string setOpErrorMessages2[] =
-  { "Operator mergesec expects as first argument a list with structure " 
+  { "Operator mergesec expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergesec gets as first argument '" + argstr + "'.",
-    "Operator mergediff expects as first argument a list with structure " 
+    "Operator mergediff expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergediff gets as first argument '" + argstr + "'.",
-    "Operator mergeunion expects as first argument a list with structure " 
+    "Operator mergeunion expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergeunion gets as first argument '" + argstr + "'." };
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-           (nl->ListLength(nl->Second(first)) == 2) &&        
+           (nl->ListLength(nl->Second(first)) == 2) &&
            (IsTupleDescription(nl->Second(nl->Second(first)))),
            setOpErrorMessages2[errorMessageIdx]);
-    
+
   nl->WriteToString(argstr, second);
   string setOpErrorMessages3[] =
-  { "Operator mergesec expects as second argument a list with structure " 
+  { "Operator mergesec expects as second argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergesec gets as second argument '" + argstr + "'.",
-    "Operator mergediff expects as second argument a list with structure " 
+    "Operator mergediff expects as second argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergediff gets as second argument '" + argstr + "'.",
-    "Operator mergeunion expects as second argument a list with structure " 
+    "Operator mergeunion expects as second argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergeunion gets as second argument '" + argstr + "'." };
   CHECK_COND(nl->ListLength(second) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(second)) == stream) &&
              (nl->ListLength(nl->Second(second)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-	     (nl->ListLength(nl->Second(second)) == 2) &&	
+	     (nl->ListLength(nl->Second(second)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(second)))),
 	     setOpErrorMessages3[errorMessageIdx]);
-	     
+
   nl->WriteToString(argstr, first);
   nl->WriteToString(argstr2, second);
   string setOpErrorMessages4[] =
@@ -1874,7 +1874,7 @@ SetOpTypeMap( ListExpr args )
     "First argument is '" + argstr + "' and second argument is '" + argstr2 + "'." };
   CHECK_COND((nl->Equal(first, second)),
   	      setOpErrorMessages4[errorMessageIdx]);
-	      
+
   return first;
 }
 /*
@@ -2236,78 +2236,78 @@ template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
 {
   ListExpr attrTypeA, attrTypeB, joinAttrDescription;
   ListExpr streamA, streamB, list, list1, list2, outlist;
-  string argstr, argstr2;  
+  string argstr, argstr2;
 
   nl->WriteToString(argstr, args);
   string joinErrorMessages1[] =
-  { "Operator mergejoin expects a list of length four.\n", 
+  { "Operator mergejoin expects a list of length four.\n",
     "Operator sortmergejoin expects a list of length four.\n",
     "Operator hashjoin expects a list of length five.\n" };
   CHECK_COND( nl->ListLength(args) == (expectIntArgument ? 5 : 4),
     joinErrorMessages1[errorMessageIdx]);
-    
-  streamA = nl->First(args); 
+
+  streamA = nl->First(args);
   streamB = nl->Second(args);
-  
+
   nl->WriteToString(argstr, streamA);
   string joinErrorMessages2[] =
-  { "Operator mergejoin expects as first argument a list with structure " 
+  { "Operator mergejoin expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergejoin gets as first argument '" + argstr + "'.",
-    "Operator sortmergejoin expects as first argument a list with structure " 
+    "Operator sortmergejoin expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator sortmergejoin gets as first argument '" + argstr + "'.",
-    "Operator hashjoin expects as first argument a list with structure " 
+    "Operator hashjoin expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator hashjoin gets as first argument '" + argstr + "'." };
   CHECK_COND(nl->ListLength(streamA) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(streamA)) == stream) &&
              (nl->ListLength(nl->Second(streamA)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(streamA))) == tuple) &&
-	     (nl->ListLength(nl->Second(streamA)) == 2) &&	
+	     (nl->ListLength(nl->Second(streamA)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(streamA)))),
-    joinErrorMessages2[errorMessageIdx]);    
+    joinErrorMessages2[errorMessageIdx]);
   list1 = nl->Second(nl->Second(streamA));
 
   nl->WriteToString(argstr, streamB);
   string joinErrorMessages3[] =
-  { "Operator mergejoin expects as second argument a list with structure " 
+  { "Operator mergejoin expects as second argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator mergejoin gets as second argument '" + argstr + "'.",
-    "Operator sortmergejoin expects as second argument a list with structure " 
+    "Operator sortmergejoin expects as second argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator sortmergejoin gets as seond argument '" + argstr + "'.",
-    "Operator hashjoin expects as second argument a list with structure " 
+    "Operator hashjoin expects as second argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator hashjoin gets as second argument '" + argstr + "'." };
   CHECK_COND(nl->ListLength(streamB) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(streamB)) == stream) &&
              (nl->ListLength(nl->Second(streamB)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(streamB))) == tuple) &&
-	     (nl->ListLength(nl->Second(streamB)) == 2) &&	
+	     (nl->ListLength(nl->Second(streamB)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(streamB)))),
-    joinErrorMessages3[errorMessageIdx]);    
+    joinErrorMessages3[errorMessageIdx]);
   list2 = nl->Second(nl->Second(streamB));
-  
+
   nl->WriteToString(argstr, list1);
   nl->WriteToString(argstr2, list2);
   string joinErrorMessages4[] =
   { "Operator mergejoin: Attribute names of first and second argument "
-    "list must be disjoint.\n Attribute names of first list are: '" + 
+    "list must be disjoint.\n Attribute names of first list are: '" +
     argstr + "'.\n Attribute names of second list are: '" + argstr2 + "'.",
     "Operator sortmergejoin: Attribute names of first and second argument "
-    "list must be disjoint.\n Attribute names of first list are: '" + 
+    "list must be disjoint.\n Attribute names of first list are: '" +
     argstr + "'.\n Attribute names of second list are: '" + argstr2 + "'.",
     "Operator hashjoin: Attribute names of first and second argument "
-    "list must be disjoint.\n Attribute names of first list are: '" + 
+    "list must be disjoint.\n Attribute names of first list are: '" +
     argstr + "'.\n Attribute names of second list are: '" + argstr2 + "'." };
   CHECK_COND(AttributesAreDisjoint(list1, list2),
-    joinErrorMessages4[errorMessageIdx]);  
-      
+    joinErrorMessages4[errorMessageIdx]);
+
   list = ConcatLists(list1, list2);
   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-	  
+
   string joinErrorMessages5[] =
   { "Operator mergejoin: Join attributes must be of type SymbolType!\n",
     "Operator sortmergejoin: Join attributes must be of type SymbolType!\n",
@@ -2316,7 +2316,7 @@ template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
                nl->IsAtom(nl->Fourth(args)) &&
                nl->AtomType(nl->Third(args)) == SymbolType &&
                nl->AtomType(nl->Fourth(args)) == SymbolType),
-    joinErrorMessages5[errorMessageIdx]); 
+    joinErrorMessages5[errorMessageIdx]);
 
   string attrAName = nl->SymbolValue(nl->Third(args));
   string attrBName = nl->SymbolValue(nl->Fourth(args));
@@ -2329,9 +2329,9 @@ template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
     "Operator sortmergejoin: First join attribute '" + attrAName + "' is not in "
     "first argument list '" + argstr +"'.\n",
     "Operator hashjoin: First join attribute '" + attrAName + "' is not in "
-    "first argument list '" + argstr +"'.\n" };    
+    "first argument list '" + argstr +"'.\n" };
   CHECK_COND( attrAIndex > 0,
-    joinErrorMessages6[errorMessageIdx]); 
+    joinErrorMessages6[errorMessageIdx]);
   nl->WriteToString(argstr, nl->Second(nl->Second(streamB)));
   string joinErrorMessages7[] =
   { "Operator mergejoin: Second join attribute '" + attrBName + "'is not in "
@@ -2339,30 +2339,30 @@ template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
     "Operator sortmergejoin: Second join attribute '" + attrBName + "'is not in "
     "second argument list '" + argstr +".\n",
     "Operator hashjoin: Second join attribute '" + attrBName + "'is not in "
-    "second argument list '" + argstr +".\n" };    
+    "second argument list '" + argstr +".\n" };
   CHECK_COND( attrBIndex > 0,
-    joinErrorMessages7[errorMessageIdx]); 
+    joinErrorMessages7[errorMessageIdx]);
   string joinErrorMessages8[] =
   { "Operator mergejoin: Type of first join attribute is different"
     " from type of second join argument.\n",
     "Operator sortmergejoin: Type of first join attribute is different"
     " from type of second join argument.\n",
     "Operator hashjoin: Type of first join attribute is different"
-    " from type of second join argument.\n" };    
+    " from type of second join argument.\n" };
   CHECK_COND( nl->Equal(attrTypeA, attrTypeB),
-    joinErrorMessages8[errorMessageIdx]); 
-  
-  if( expectIntArgument ) 
+    joinErrorMessages8[errorMessageIdx]);
+
+  if( expectIntArgument )
   {
     CHECK_COND( nl->SymbolValue(nl->Fifth(args)) == "int",
       "Operator hashjoin: Parameter 'number of buckets' must be of type int.\n" );
   }
-	      
+
   joinAttrDescription =
     nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               joinAttrDescription, outlist);
-}		  
+}
 /*
 2.15.2 Value mapping function of operator ~mergejoin~
 
@@ -2444,15 +2444,15 @@ Operator extrelsortmergejoin(
 );
 
 /*
-2.17 Operator ~hashjoin~
+2.17 Operator ~oldhashjoin~
 
 This operator computes the equijoin two streams via a hash join.
 The user can specify the number of hash buckets.
 
-2.17.1 Value Mapping Function of Operator ~hashjoin~
+2.17.1 Value Mapping Function of Operator ~oldhashjoin~
 
 */
-int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s);
+int OldHashJoin(Word* args, Word& result, int message, Word& local, Supplier s);
 /*
 This function will be implemented differently for the persistent and for
 the main memory relational algebra. Its implementation can be found in
@@ -2484,25 +2484,25 @@ const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
 2.17.3 Definition of Operator ~hashjoin~
 
 */
-Operator extrelhashjoin(
-         "hashjoin",        // name
+Operator extreloldhashjoin(
+         "oldhashjoin",        // name
          HashJoinSpec,     // specification
-         HashJoin,         // value mapping
+         OldHashJoin,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          JoinTypeMap<true, 2>   // type mapping
 );
 
 /*
-2.17 Operator ~newhashjoin~
+2.17 Operator ~hashjoin~
 
 This operator computes the equijoin two streams via a hash join.
 The user can specify the number of hash buckets.
 
-2.17.1 Value Mapping Function of Operator ~newhashjoin~
+2.17.1 Value Mapping Function of Operator ~hashjoin~
 
 */
-int NewHashJoin(Word* args, Word& result, int message, Word& local, Supplier s);
+int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s);
 /*
 This function will be implemented differently for the persistent and for
 the main memory relational algebra. Its implementation can be found in
@@ -2512,10 +2512,10 @@ respectively.
 2.17.3 Definition of Operator ~newhashjoin~
 
 */
-Operator extrelnewhashjoin(
-         "newhashjoin",        // name
+Operator extrelhashjoin(
+         "hashjoin",        // name
          HashJoinSpec,     // specification
-         NewHashJoin,         // value mapping
+         HashJoin,         // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,          // trivial selection function
          JoinTypeMap<true, 2>   // type mapping
@@ -2551,25 +2551,25 @@ ListExpr ExtendTypeMap( ListExpr args )
 
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator extend expects a list of length two.");
-      
+
   first = nl->First(args);
   second  = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator extend expects as first argument a list with structure " 
+    "Operator extend expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator extend gets as first argument '" + argstr + "'." );   
-  
+    "Operator extend gets as first argument '" + argstr + "'." );
+
   CHECK_COND(!(nl->IsAtom(second)) &&
              (nl->ListLength(second) > 0),
     "Operator extend: Second argument list may not be empty or an atom" );
-  
+
   rest = nl->Second(nl->Second(first));
   listn = nl->OneElemList(nl->First(rest));
   lastlistn = listn;
@@ -2586,13 +2586,13 @@ ListExpr ExtendTypeMap( ListExpr args )
     rest = nl->Rest(rest);
     first2 = nl->First(firstr);
     second2 = nl->Second(firstr);
-    
-    nl->WriteToString(argstr, first2);  
+
+    nl->WriteToString(argstr, first2);
     CHECK_COND( (nl->IsAtom(first2)) &&
                 (nl->AtomType(first2) == SymbolType),
-      "Operator extend: Attribute name '" + argstr + 
+      "Operator extend: Attribute name '" + argstr +
       "' is not an atom or not of type SymbolType" );
-      
+
     nl->WriteToString(argstr, second2);
     CHECK_COND( (nl->ListLength(second2) == 3) &&
                 (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
@@ -2600,25 +2600,25 @@ ListExpr ExtendTypeMap( ListExpr args )
       "Operator extend expects a mapping function with list structure"
       " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n. Operator"
       " extend gets a list '" + argstr + "'.\n" );
-      
-    nl->WriteToString(argstr, nl->Second(first));    
+
+    nl->WriteToString(argstr, nl->Second(first));
     nl->WriteToString(argstr2, second2);
     CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator extend: Tuple type in first argument '" + argstr + 
-      "' is different from the argument tuple type '" + argstr2 + 
-      "' in the mapping function" );    
+      "Operator extend: Tuple type in first argument '" + argstr +
+      "' is different from the argument tuple type '" + argstr2 +
+      "' in the mapping function" );
 
     lastlistn = nl->Append(lastlistn,
         (nl->TwoElemList(first2,nl->Third(second2))));
 
     CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator extend: Tuple type in first argument '" + argstr + 
-      "' is different from the argument tuple type '" + argstr2 + 
+      "Operator extend: Tuple type in first argument '" + argstr +
+      "' is different from the argument tuple type '" + argstr2 +
       "' in the mapping function" );
-        
-    nl->WriteToString(argstr, listn);     
+
+    nl->WriteToString(argstr, listn);
     CHECK_COND( (CompareNames(listn)),
-     "Operator extend: Attribute names in list '" 
+     "Operator extend: Attribute names in list '"
      + argstr + "' must be unique." );
   }
   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -2734,7 +2734,7 @@ For instance,
 
         (query (count (loopjoin (rename (feed Staedte) s1) (fun (t1 TUPLE) (filter (feed plz)
                (fun (tuple1 TUPLE) (= (attr t1 SName_s1) (attr tuple1 Ort))))))))
- 
+
 ----
 
 The renaming is necessary whenever the underlying relations have at least one common attribute name
@@ -2750,27 +2750,27 @@ The type mapping function of the loopjoin operation is as follows:
 ListExpr LoopjoinTypeMap(ListExpr args)
 {
   ListExpr first, second;
-  ListExpr list1, list2, list, outlist;  
+  ListExpr list1, list2, list, outlist;
   string argstr, argstr2;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator loopjoin expects a list of length two.");
-      
+
   first = nl->First(args);
   second  = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator loopjoin expects as first argument a list with structure " 
+    "Operator loopjoin expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator loopjoin gets as first argument '" + argstr + "'." );   
+    "Operator loopjoin gets as first argument '" + argstr + "'." );
 
-  nl->WriteToString(argstr, second);  
+  nl->WriteToString(argstr, second);
   CHECK_COND( (nl->ListLength(second) == 3) &&
              (TypeOfRelAlgSymbol(nl->First(second)) == ccmap) &&
              (nl->ListLength(nl->Third(second)) == 2) &&
@@ -2778,31 +2778,31 @@ ListExpr LoopjoinTypeMap(ListExpr args)
              (nl->ListLength(nl->Second(nl->Third(second))) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple),
     "Operator loopjoin expects as second argument a list with length three"
-    " and structure (map (tuple (...)) (stream (tuple (...)))).\n" 
+    " and structure (map (tuple (...)) (stream (tuple (...)))).\n"
     " Operator loopjoin gets as second argument '" + argstr + "'.\n" );
-  
+
   CHECK_COND((nl->Equal(nl->Second(first), nl->Second(second))),
     "Operator loopjoin: Input tuple for mapping and the first argument "
     "tuple must have the same description. " );
 
   list1 = nl->Second(nl->Second(first));
-  list2 = nl->Second(nl->Second(nl->Third(second)));    
-    
-  nl->WriteToString(argstr, list1);  
+  list2 = nl->Second(nl->Second(nl->Third(second)));
+
+  nl->WriteToString(argstr, list1);
   nl->WriteToString(argstr, list2);
-  CHECK_COND( (AttributesAreDisjoint(list1, list2)),   
+  CHECK_COND( (AttributesAreDisjoint(list1, list2)),
   "Attribute names in first and second argument must be disjoint.\n"
   "First argument: '" + argstr + "'.\n"
   "Second argument: '" + argstr2 + "'.\n" );
-  
+
   list = ConcatLists(list1, list2);
   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
   nl->TwoElemList(nl->SymbolAtom("tuple"), list));
   return outlist;
 }
-  
-  
-  
+
+
+
   /*if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
@@ -2812,12 +2812,12 @@ ListExpr LoopjoinTypeMap(ListExpr args)
         (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
         (nl->ListLength(nl->Second(first)) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	
+
         (nl->ListLength(second) == 3) &&
         (TypeOfRelAlgSymbol(nl->First(second)) == ccmap) &&
-	
+
         (nl->Equal(nl->Second(first), nl->Second(second))) &&
-	
+
         (nl->ListLength(nl->Third(second)) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream) &&
         (nl->ListLength(nl->Second(nl->Third(second))) == 2) &&
@@ -2875,7 +2875,7 @@ int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
         (*funargs)[0] = tuplex;
         streamy=args[1];
         qp->Open (streamy.addr);
-      
+
         localinfo = new LoopjoinLocalInfo;
         ListExpr resultType = GetTupleResultType( s );
         localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -3000,7 +3000,7 @@ certain conditions are passed on to the output stream.
 
 For instance,
 
-----    query Staedte feed loopsel [ fun(t1: TUPLE) plz feed filter [ attr(t1, SName) = .Ort ]] count;   
+----    query Staedte feed loopsel [ fun(t1: TUPLE) plz feed filter [ attr(t1, SName) = .Ort ]] count;
 
         (query (count (loopsel (feed Staedte) (fun (t1 TUPLE) (filter (feed plz)
                     (fun (tuple1 TUPLE) (= (attr t1 SName) (attr tuple1 Ort))))))))
@@ -3022,25 +3022,25 @@ LoopselectTypeMap(ListExpr args)
   ListExpr first, second;
   ListExpr list, outlist;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator loopsel expects a list of length two.");
-      
+
   first = nl->First(args);
   second  = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator loopsel expects as first argument a list with structure " 
+    "Operator loopsel expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator loopsel gets as first argument '" + argstr + "'." );   
+    "Operator loopsel gets as first argument '" + argstr + "'." );
 
-  nl->WriteToString(argstr, second);  
+  nl->WriteToString(argstr, second);
   CHECK_COND( (nl->ListLength(second) == 3) &&
              (TypeOfRelAlgSymbol(nl->First(second)) == ccmap) &&
              (nl->ListLength(nl->Third(second)) == 2) &&
@@ -3048,19 +3048,19 @@ LoopselectTypeMap(ListExpr args)
              (nl->ListLength(nl->Second(nl->Third(second))) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple),
     "Operator loopsel expects as second argument a list with length three"
-    " and structure (map (tuple (...)) (stream (tuple (...)))).\n" 
+    " and structure (map (tuple (...)) (stream (tuple (...)))).\n"
     " Operator loopsel gets as second argument '" + argstr + "'.\n" );
-  
+
   CHECK_COND((nl->Equal(nl->Second(first), nl->Second(second))),
     "Operator loopsel: Input tuple for mapping and the first argument "
     "tuple must have the same description. " );
-  
+
   list = nl->Second(nl->Second(nl->Third(second)));
   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
   nl->TwoElemList(nl->SymbolAtom("tuple"), list));
   return outlist;
 }
-  
+
 
   /*if(nl->ListLength(args) == 2)
   {
@@ -3071,7 +3071,7 @@ LoopselectTypeMap(ListExpr args)
         (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
         (nl->ListLength(nl->Second(first)) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	
+
         (nl->ListLength(second) == 3) &&
         (TypeOfRelAlgSymbol(nl->First(second)) == ccmap) &&
         (nl->Equal(nl->Second(first), nl->Second(second))) &&
@@ -3107,11 +3107,11 @@ struct LoopselectLocalInfo
   TupleType *resultTupleType;
 };
 
-int 
+int
 Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   ArgVectorPointer funargs;
-  Word tuplex, tupley, streamy;  
+  Word tuplex, tupley, streamy;
   Tuple* ctuplex;
   Tuple* ctupley;
   LoopselectLocalInfo *localinfo;
@@ -3129,7 +3129,7 @@ Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
         (*funargs)[0] = tuplex;
         streamy = args[1];
         qp->Open(streamy.addr);
-        
+
         // put the information of tuplex and rely into local
         localinfo = new LoopselectLocalInfo;
         ListExpr resultType = GetTupleResultType( s );
@@ -3146,7 +3146,7 @@ Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST:
       if (local.addr ==0) return CANCEL;
-  
+
       // restore localinformation from the local variable.
       localinfo = (LoopselectLocalInfo *) local.addr;
       tuplex = localinfo->tuplex;
@@ -3227,7 +3227,7 @@ const string LoopselectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "which satisfy certain conditions are passed on"
                                " to the output stream.</text--->"
                                "<text>query Staedte feed loopsel [ fun(t1: TUPLE) plz feed "
-                               "filter [ attr(t1, SName) = .Ort ]] count</text--->"   
+                               "filter [ attr(t1, SName) = .Ort ]] count</text--->"
                                ") )";
 /*
 
@@ -3251,86 +3251,86 @@ This operator is implimented by the idea of LOOPJOIN and EXTEND
 The type mapping function of the extendstream operation is as follows:
 
 ----    ((stream (tuple x)) (map (tuple x) (stream (y))))  -> (stream (tuple x * y))
-  where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ... 
+  where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ...
 ----
 
 ----    ((stream (tuple x)) ( (b1 (map (tuple x) (stream (y)))))  -> (stream (tuple x * y))
-  where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ... 
+  where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ...
 ----
 
-For instance, 
+For instance,
 
 ----  query people feed extendstream [parts : components (.name) ] consume;
                   ----------------                            --------------------------------------
               [ (stream(tuple x))              (b1 (map (tuple x) (stream (y1)) ) ) ]    -->   (stream (tuple x + (b1 y)) )
 	                                                                                                                                          ------------
-      where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ... 
-----	   
+      where x = ((x1 t1) ... (xn tn)) and y is a simple data type such as string, integer, or real ...
+----
 
 */
 
 ListExpr ExtendstreamTypeMap(ListExpr args)
-{  
+{
   ListExpr first, second;
   ListExpr listX, listY, list, outlist, errorInfo;
   AlgebraManager* algMgr;
   algMgr = SecondoSystem::GetAlgebraManager();
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   string argstr, argstr2;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator extendstream expects a list of length two.");
-      
+
   first = nl->First(args);
   second  = nl->First(nl->Second(args));
-  
+
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator extendstream expects as first argument a list with structure " 
+    "Operator extendstream expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator extendstream gets as first argument '" + argstr + "'." );   
+    "Operator extendstream gets as first argument '" + argstr + "'." );
 
-  nl->WriteToString(argstr, second);  
+  nl->WriteToString(argstr, second);
   CHECK_COND( (nl->ListLength(second) == 2) &&
      (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == ccmap) &&
      (nl->ListLength(nl->Third(nl->Second(second))) == 2) &&
-     (TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(second)))) == stream),	
+     (TypeOfRelAlgSymbol(nl->First(nl->Third(nl->Second(second)))) == stream),
     "Operator extendstream expects as second argument a list with length two"
-    " and structure (<attrname>(map (tuple (...)) (stream <type(DATA)>))).\n" 
+    " and structure (<attrname>(map (tuple (...)) (stream <type(DATA)>))).\n"
     " Operator extendstream gets as second argument '" + argstr + "'.\n" );
-  
+
   CHECK_COND((nl->Equal(nl->Second(first), nl->Second(nl->Second(second)))),
     "Operator extendstream: Input tuple for mapping and the first argument "
     "tuple must have the same description. " );
-    
-  nl->WriteToString(argstr, 
+
+  nl->WriteToString(argstr,
                    nl->Second(nl->Third(nl->Second(second))));
   CHECK_COND((nl->IsAtom(nl->Second(nl->Third(nl->Second(second)))))  &&
-             (algMgr->CheckKind("DATA", 
+             (algMgr->CheckKind("DATA",
 	       nl->Second(nl->Third(nl->Second(second))), errorInfo)),
     "Operator extendstream: Objects in the second "
-    "stream must be of kind DATA.\n" 
+    "stream must be of kind DATA.\n"
     "Operator extendstream: Objects are of type '" + argstr + "'.\n" );
 
   listX = nl->Second(nl->Second(first));
-      
+
   listY = nl->OneElemList(nl->TwoElemList(
-	  nl->First(second),         
-	  nl->Second(nl->Third(nl->Second(second)))));   
-    
-  nl->WriteToString(argstr, listX);  
+	  nl->First(second),
+	  nl->Second(nl->Third(nl->Second(second)))));
+
+  nl->WriteToString(argstr, listX);
   nl->WriteToString(argstr2, listY);
-  CHECK_COND( (AttributesAreDisjoint(listX, listY)),   
+  CHECK_COND( (AttributesAreDisjoint(listX, listY)),
   "New Attribute name must be different from argument"
   " names in first argument list.\n"
   "First argument list: '" + argstr + "'.\n"
   "New attribute name and type: '" + argstr2 + "'.\n" );
-  
+
   list = ConcatLists(listX, listY);
   outlist = nl->TwoElemList(
     nl->SymbolAtom("stream"),
@@ -3357,37 +3357,37 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
   Tuple* ctuplex;
   Tuple* ctuplexy;
   ExtendstreamLocalInfo *localinfo;
-  
+
   TupleType *resultTupleType;
   ListExpr resultType;
-  
+
   Supplier supplier, supplier2, supplier3;
-  
+
   switch ( message )
   {
     case OPEN:
-      
+
       //1. open the input stream and initiate the arguments
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
       if (qp->Received(args[0].addr))
       {
-	  
+
         //2. compute the result "stream y" from tuple x
         //funargs = qp->Argument(args[1].addr);   //here should be changed to the following...
         supplier = args[1].addr;
-        supplier2 = qp->GetSupplier(supplier, 0); 
+        supplier2 = qp->GetSupplier(supplier, 0);
         supplier3 = qp->GetSupplier(supplier2, 1);
         funargs = qp->Argument(supplier3);
-		  
-        (*funargs)[0] = tuplex; 
- 
+
+        (*funargs)[0] = tuplex;
+
        streamy = SetWord(supplier3);         //originally args[1];  should be changed...
        //qp->Request(supplier3,streamy);  //this way only suits simply data types...not for streams...
- 
+
        qp->Open (streamy.addr);                 //streamY is directly the output of the mapping function
-	
-        //3. save the local information 
+
+        //3. save the local information
         localinfo = new ExtendstreamLocalInfo;
         resultType = GetTupleResultType( s );
         localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -3403,20 +3403,20 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST:
       if (local.addr ==0) return CANCEL;
-      
+
       //1. recover local information
       localinfo=(ExtendstreamLocalInfo *) local.addr;
-      resultTupleType = (TupleType *)localinfo->resultTupleType; 
+      resultTupleType = (TupleType *)localinfo->resultTupleType;
       tuplex=localinfo->tuplex;
       ctuplex=(Tuple*)tuplex.addr;
       streamy=localinfo->streamy;
-      
+
       //2. prepare tupleX and valueY. If valueY is empty, then get next tupleX
       valueY=SetWord(Address(0));
-      while (valueY.addr==0)          
+      while (valueY.addr==0)
       {
         qp->Request(streamy.addr, valueY);
-        if (!(qp->Received(streamy.addr))) 
+        if (!(qp->Received(streamy.addr)))
         {
           qp->Close(streamy.addr);
           ((Tuple*)tuplex.addr)->DeleteIfAllowed();
@@ -3429,13 +3429,13 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
            supplier2 = qp->GetSupplier(supplier, 0);
            supplier3 = qp->GetSupplier(supplier2, 1);
            funargs = qp->Argument(supplier3);
-	
+
             ctuplex=(Tuple*)tuplex.addr;
             (*funargs)[0] = tuplex;
-	    
+
             //streamy=args[1]; //replaced by the following line.
             streamy = SetWord(supplier3);
-	    
+
             qp->Open (streamy.addr);
             valueY=SetWord(Address(0));
 
@@ -3443,7 +3443,7 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
             localinfo->streamy=streamy;
             //resultType = GetTupleResultType( s );
             //localinfo->resultTupleType = new TupleType( nl->Second( resultType ) );
-	    
+
             local =  SetWord(localinfo);
           }
           else  //streamx is exausted
@@ -3458,17 +3458,17 @@ int Extendstream(Word* args, Word& result, int message, Word& local, Supplier s)
           //ctupley=(Tuple*)tupley.addr;
         }
       }
-      
+
       //3. compute tupleXY from tupleX and valueY
       ctuplexy = new Tuple( *localinfo->resultTupleType, true );
       assert( ctuplexy->IsFree() == true );
-      
+
       for( int i = 0; i < ctuplex->GetNoAttributes(); i++ )
 	  ctuplexy->PutAttribute( i, ctuplex->GetAttribute( i )->Clone() );
-      
+
       ctuplexy->PutAttribute( ctuplex->GetNoAttributes(), ((StandardAttribute*)valueY.addr)->Clone() );
       //give valueY to the last attribute
-      
+
       delete (StandardAttribute*)valueY.addr;
       tuplexy = SetWord(ctuplexy);
       result = tuplexy;
@@ -3565,35 +3565,35 @@ ListExpr ConcatTypeMap( ListExpr args )
 {
   ListExpr first, second;
   string argstr, argstr2;
-    
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator concat expects a list of length two.");
-      
+
   first = nl->First(args);
   second  = nl->Second(args);
-  
+
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(first)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (nl->ListLength(nl->Second(first)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator concat expects as first argument a list with structure " 
+    "Operator concat expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator concat gets as first argument '" + argstr + "'." );   
-    
+    "Operator concat gets as first argument '" + argstr + "'." );
+
   nl->WriteToString(argstr, second);
   CHECK_COND(nl->ListLength(second) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
              (nl->ListLength(nl->Second(second)) == 2) &&
              (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-	     (nl->ListLength(nl->Second(second)) == 2) &&	
+	     (nl->ListLength(nl->Second(second)) == 2) &&
 	     (IsTupleDescription(nl->Second(nl->Second(second)))),
-    "Operator concat expects as second argument a list with structure " 
+    "Operator concat expects as second argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator concat gets as second argument '" + argstr + "'." ); 
-      
+    "Operator concat gets as second argument '" + argstr + "'." );
+
   nl->WriteToString(argstr, GetAttrTypeList(nl->Second(nl->Second(first))));
   nl->WriteToString(argstr2, GetAttrTypeList(nl->Second(nl->Second(second))));
   CHECK_COND((nl->Equal(GetAttrTypeList(nl->Second(nl->Second(first))),
@@ -3602,7 +3602,7 @@ ListExpr ConcatTypeMap( ListExpr args )
     "stream must be the same.\n"
     "Tuple type of first stream is '" + argstr + "'.\n"
     "Tuple type of second stream is '" + argstr2 + "'.\n" );
-    
+
   return first;
 }
 /*
@@ -3694,11 +3694,11 @@ Operator extrelconcat (
 Result type of ~groupby~ operation.
 
 ----   Let X = tuple ((x1 t1) ... (xn tn)), R = rel(X):
-       
+
        ( (stream X) (xi1 ... xik) ( (y1 (map R T1)) ... (ym (map R Tm)) )
 
-        -> ( APPEND (m p1 ... pm) (stream (tuple (xj1 tj1)... (xjl tjl) (y1 T1) ... (ym Tm)))) 
-	
+        -> ( APPEND (m p1 ... pm) (stream (tuple (xj1 tj1)... (xjl tjl) (y1 T1) ... (ym Tm))))
+
        with tj,Ti in kind DATA, xi <> xj and k+l=n, pi <> pj and 1 <= pi <= m. This means attributes xi ... xik
        are removed from the stream and attributes y1 ... ym are appended. These new attributes represent
        aggregated values computed by maps of R -> Ti which must have a result type of kind DATA.
@@ -3709,10 +3709,10 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 {
   ListExpr first, second, third;     // list used for analysing input
 	ListExpr listn, lastlistn, listp;  // list used for constructing output
-  
+
   first = second = third = nl->TheEmptyList();
 	listn = lastlistn = listp = nl->TheEmptyList();
-    
+
   string relSymbolStr = "rel";
   string tupleSymbolStr = "tuple";
 
@@ -3723,53 +3723,53 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 
   bool listOk = true;
   listOk = listOk && ( nl->ListLength(args) == 3 );
-	 
+
   if ( listOk ) {
-	
+
     first  = nl->First(args);
     second = nl->Second(args);
     third  = nl->Third(args);
-	
+
     // check input list structure
     listOk = listOk && (nl->ListLength(first) == 2);
 		listOk = listOk && !nl->IsEmpty( third );
 		listOk = listOk && !nl->IsAtom(second) && ( nl->ListLength(second) > 0 );
-	
-	}		
-	
+
+	}
+
 	if( !listOk )
   {
 	  stringstream errMsg;
 		errMsg << "groupby: Invalid input list structure. "
 			     << "The structure should be a three elem list "
-					 << "like (stream (" << tupleSymbolStr 
+					 << "like (stream (" << tupleSymbolStr
 					 << "((x1 t1) ... (xn tn)) (xi1 ... xik) "
 					 << "( (y1 (map R T1)) ... (ym (map R Tm))!";
-										 
-    ErrorReporter::ReportError(errMsg.str());																
+
+    ErrorReporter::ReportError(errMsg.str());
     return nl->SymbolAtom("typeerror");
   }
 
-  ListExpr tuple = nl->First(nl->Second(first)); 
-      
+  ListExpr tuple = nl->First(nl->Second(first));
+
   listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(first)) == stream );
   listOk = listOk && ( nl->AtomType(tuple) == SymbolType );
   listOk = listOk && ( nl->SymbolValue(tuple) == tupleSymbolStr );
-									
+
 	if ( !listOk ) {
-	
-	  ErrorReporter::ReportError( "groupby: Input is not of type (stream " 
+
+	  ErrorReporter::ReportError( "groupby: Input is not of type (stream "
 	                              + tupleSymbolStr + "(...))." );
     return nl->SymbolAtom("typeerror");
-	}								
-				 
-	// list seems to be ok. Extract the grouping attributes 
-	// out of the input stream			 		 
-	
+	}
+
+	// list seems to be ok. Extract the grouping attributes
+	// out of the input stream
+
 	ListExpr rest = second;
         ListExpr lastlistp = nl->TheEmptyList();
 	bool firstcall = true;
-	
+
 	while (!nl->IsEmpty(rest))
 	{
 	  ListExpr attrtype = nl->TheEmptyList();
@@ -3796,17 +3796,17 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 		}
 		else // grouping attribute not in input stream
 		{
-			string errMsg = "groupby: Attribute " + attrname 
-				        + " not present in input stream!"; 
-											
+			string errMsg = "groupby: Attribute " + attrname
+				        + " not present in input stream!";
+
 			ErrorReporter::ReportError(errMsg);
 			return nl->SymbolAtom("typeerror");
 		}
 		rest = nl->Rest(rest);
 	} // end while
-			
-			
-				
+
+
+
 		// compute output tuple with attribute names and their types
 		//loopok = true;
 		rest = third;
@@ -3815,10 +3815,10 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 
 		while (!(nl->IsEmpty(rest))) // check functions y1 .. ym
 		{
-  		// iterate over elements of the 3rd input list 
-			ListExpr firstr = nl->First(rest); 			
+  		// iterate over elements of the 3rd input list
+			ListExpr firstr = nl->First(rest);
 			rest = nl->Rest(rest);
-			
+
 			ListExpr newAttr = nl->First(firstr);
 			ListExpr mapDef = nl->Second(firstr); // (map <InTypeExpr> <OutTypeExpr>)
 			ListExpr mapOut = nl->Third(mapDef);
@@ -3830,59 +3830,59 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 			listOk = listOk && ( nl->AtomType(newAttr) == SymbolType );
 			listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(mapDef)) == ccmap );
 			listOk = listOk && ( nl->Equal(groupType, nl->Second(mapDef)) );
-			 
+
 			if( !listOk ) { // Todo: there could be more fine grained error messages
-				
+
 				ErrorReporter::ReportError("groupby: Function definition is not correct!");
 				return nl->SymbolAtom("typeerror");
-			} 
-						 
-			// Check if mapOut is of kind DATA or if the function returns a typeerror 
-		 
+			}
+
+			// Check if mapOut is of kind DATA or if the function returns a typeerror
+
 			ListExpr typeConstructor = nl->TheEmptyList();
 			if ( nl->IsAtom(mapOut) ) // function returns a simple type
 			{
-				assert( nl->AtomType(mapOut) == SymbolType );		
+				assert( nl->AtomType(mapOut) == SymbolType );
 				typeConstructor = mapOut;
-		
+
 			} else { // function returns a complex type
-	
+
 				typeConstructor = nl->First(mapOut);
 				assert( nl->AtomType(typeConstructor) == SymbolType );
 			}
-	
-			// check if the Type Constructor belongs to KIND DATA   
+
+			// check if the Type Constructor belongs to KIND DATA
 			// If the functions result type is typeerror this check will also fail
 			ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 			AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-	
+
 			if ( !algMgr->CheckKind("DATA", typeConstructor, errorInfo) ) {
 
 				stringstream errMsg;
-				errMsg << "groupby: The aggregate function for attribute \"" 
+				errMsg << "groupby: The aggregate function for attribute \""
 							<< nl->SymbolValue(newAttr) << "\""
-							<< " returns a type which is not usable in tuples." 
-							<< " The type constructor \"" 
+							<< " returns a type which is not usable in tuples."
+							<< " The type constructor \""
 							<< nl->SymbolValue(typeConstructor) << "\""
 							<< " belongs not to kind DATA!"
 							<< ends;
-	 
+
 				ErrorReporter::ReportError(errMsg.str());
 				return nl->SymbolAtom("typeerror");
-	
+
 			}
-			
+
 			lastlistn = nl->Append(lastlistn,(nl->TwoElemList(newAttr,mapOut)));
-			
+
 	} // end of while check functions
-	
-			
+
+
 	if ( !CompareNames(listn) ) { // check if attribute names are uniqe
-	
+
 		ErrorReporter::ReportError("groupby: Attribute names are not unique");
-		return nl->SymbolAtom("typeerror");	
+		return nl->SymbolAtom("typeerror");
 	}
-	
+
 	// Type mapping is correct, return result type.
 	return
 			nl->ThreeElemList(
@@ -3893,7 +3893,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
 					nl->TwoElemList(
 						nl->SymbolAtom(tupleSymbolStr),
 						listn)));
-		
+
 }
 
 
@@ -4117,8 +4117,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
     AddOperator(&extrelsortmergejoin);
+    AddOperator(&extreloldhashjoin);
     AddOperator(&extrelhashjoin);
-    AddOperator(&extrelnewhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelExtendstream);
     AddOperator(&extrelloopsel);

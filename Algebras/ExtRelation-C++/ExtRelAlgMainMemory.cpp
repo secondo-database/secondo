@@ -121,7 +121,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
           sortOrderIsAscending = ((CcBool*)boolWord.addr)->GetBoolval();
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
         };
-        
+
         tupCmpBy = new TupleCompareBy( spec );
         sortMeasurer.Enter();
         sort(tuples->begin(), tuples->end(), *tupCmpBy);
@@ -677,10 +677,10 @@ public:
 };
 
 /*
-2.3.2 Value Mapping Function of Operator ~hashjoin~
+2.3.2 Value Mapping Function of Operator ~oldhashjoin~
 
 */
-int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+int OldHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   HashJoinLocalInfo* localInfo;
   Word attrIndexA;
@@ -717,7 +717,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 2.3.2 Value Mapping Function of Operator ~hashjoin~
 
 */
-int NewHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   HashJoinLocalInfo* localInfo;
   Word attrIndexA;

@@ -824,7 +824,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-2.3 Operator ~hashjoin~
+2.3 Operator ~oldhashjoin~
 
 This operator computes the equijoin two streams via a hash join.
 The user can specify the number of hash buckets.
@@ -838,7 +838,7 @@ CPUTimeMeasurer hashMeasurer;  // measures cost of distributing into buckets and
 CPUTimeMeasurer bucketMeasurer;// measures the cost of producing the tuples in
                                // the result set
 
-class HashJoinLocalInfo
+class OldHashJoinLocalInfo
 {
 private:
   size_t nBuckets;
@@ -997,7 +997,7 @@ public:
   static const size_t MIN_BUCKETS = 1;
   static const size_t DEFAULT_BUCKETS = 97;
 
-  HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
+  OldHashJoinLocalInfo(Word streamA, Word attrIndexAWord,
     Word streamB, Word attrIndexBWord, Word nBucketsWord,
     Supplier s)
   {
@@ -1042,7 +1042,7 @@ public:
     }
   }
 
-  ~HashJoinLocalInfo()
+  ~OldHashJoinLocalInfo()
   {
     ClearBucketsB();
     ClearRelationsB();
@@ -1117,9 +1117,9 @@ public:
 2.3.2 Value Mapping Function of Operator ~hashjoin~
 
 */
-int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+int OldHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  HashJoinLocalInfo* localInfo;
+  OldHashJoinLocalInfo* localInfo;
   Word attrIndexA;
   Word attrIndexB;
   Word nHashBuckets;
@@ -1130,12 +1130,12 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[5].addr, attrIndexA);
       qp->Request(args[6].addr, attrIndexB);
       qp->Request(args[4].addr, nHashBuckets);
-      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
+      localInfo = new OldHashJoinLocalInfo(args[0], attrIndexA,
         args[1], attrIndexB, nHashBuckets, s);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
-      localInfo = (HashJoinLocalInfo*)local.addr;
+      localInfo = (OldHashJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
@@ -1143,7 +1143,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       bucketMeasurer.PrintCPUTimeAndReset(
         "CPU Time for Computing Products of Buckets : ");
 
-      localInfo = (HashJoinLocalInfo*)local.addr;
+      localInfo = (OldHashJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;
   }
@@ -1151,7 +1151,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-2.3 Operator ~newhashjoin~
+2.3 Operator ~hashjoin~
 
 This operator computes the equijoin two streams via a hash join.
 The user can specify the number of hash buckets.
@@ -1159,7 +1159,7 @@ The user can specify the number of hash buckets.
 2.3.1 Auxiliary definitions for value mapping function of operator ~hashjoin~
 
 */
-class NewHashJoinLocalInfo
+class HashJoinLocalInfo
 {
 private:
   size_t nBuckets;
@@ -1270,7 +1270,7 @@ public:
   static const size_t MIN_BUCKETS = 3;
   static const size_t DEFAULT_BUCKETS = 97;
 
-  NewHashJoinLocalInfo(Word streamA, Word attrIndexAWord,
+  HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
     Word streamB, Word attrIndexBWord, Word nBucketsWord,
     Supplier s)
   {
@@ -1312,7 +1312,7 @@ bucket that the tuple coming from A hashes is also initialized.
 */
   }
 
-  ~NewHashJoinLocalInfo()
+  ~HashJoinLocalInfo()
   {
     ClearBucketsB();
     if( !bFitsInMemory )
@@ -1406,9 +1406,9 @@ bucket that the tuple coming from A hashes is also initialized.
 2.3.2 Value Mapping Function of Operator ~hashjoin~
 
 */
-int NewHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  NewHashJoinLocalInfo* localInfo;
+  HashJoinLocalInfo* localInfo;
   Word attrIndexA;
   Word attrIndexB;
   Word nHashBuckets;
@@ -1419,16 +1419,16 @@ int NewHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[5].addr, attrIndexA);
       qp->Request(args[6].addr, attrIndexB);
       qp->Request(args[4].addr, nHashBuckets);
-      localInfo = new NewHashJoinLocalInfo(args[0], attrIndexA,
+      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
         args[1], attrIndexB, nHashBuckets, s);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
-      localInfo = (NewHashJoinLocalInfo*)local.addr;
+      localInfo = (HashJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
-      localInfo = (NewHashJoinLocalInfo*)local.addr;
+      localInfo = (HashJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;
   }
