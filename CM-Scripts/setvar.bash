@@ -103,7 +103,7 @@ export LIBRARY_PATH="$SECONDO_SDK/lib:$SECONDO_BUILD_DIR/lib"
 ## The runtime linker uses different variables on linux and windows
 ##
 if [ $SECONDO_PLATFORM != "win32" ]; then
-   export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib:" 
+   export LD_LIBRARY_PATH=".:$J2SDK_ROOT/jre/lib/i386:$J2SDK_ROOT/jre/lib/i386/client:$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib:$BERKELEY_DB_DIR/lib" 
 else
    export PATH="$PATH:$J2SDK_ROOT/jre/bin/client:$SECONDO_BUILD_DIR/lib:$SECONDO_SDK/lib:$SECONDO_SDK/pl/bin"
 fi
