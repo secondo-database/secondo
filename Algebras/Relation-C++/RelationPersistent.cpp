@@ -1078,7 +1078,7 @@ The third constructor. Opens a previously created relation.
   PrivateRelation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
     noTuples( relDesc.noTuples ),
     totalSize( relDesc.totalSize ),
-    tupleType( nl->Second( nl->First( typeInfo ) ) ),
+    tupleType( nl->Second( typeInfo ) ),
     tupleFile( false, 0 ),
     lobFile( false, 0 )
     {

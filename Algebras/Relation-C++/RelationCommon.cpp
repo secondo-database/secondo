@@ -682,6 +682,43 @@ bool IsTupleDescription( ListExpr a )
 }
 
 /*
+6.7 Function ~IsRelDescription~
+
+Checks wether a ListExpression is of the form
+(rel (tuple ((a1 t1) ... (ai ti)))).
+
+*/
+bool IsRelDescription( ListExpr relDesc )
+{
+  if( nl->ListLength(relDesc) != 2 )
+    return false;
+
+  ListExpr relSymbol = nl->First(relDesc);
+  ListExpr tupleDesc = nl->Second(relDesc);
+
+  if( !nl->IsAtom(relSymbol) ||
+      nl->AtomType(relSymbol) != SymbolType ||
+      nl->SymbolValue(relSymbol) != "rel" )
+    return false;
+
+  if( nl->ListLength(tupleDesc) != 2 )
+    return false;
+
+  ListExpr tupleSymbol = nl->First(tupleDesc);;
+  ListExpr attrList = nl->Second(tupleDesc);
+
+  if( !nl->IsAtom(tupleSymbol) ||
+      nl->AtomType(tupleSymbol) != SymbolType ||
+      nl->SymbolValue(tupleSymbol) != "tuple" )
+    return false;
+
+  if( !IsTupleDescription(attrList) )
+    return false;
+
+  return true;
+}
+
+/*
 6.8 Function ~GetTupleResultType~
 
 This function returns the tuple result type as a list expression
@@ -718,5 +755,35 @@ ListExpr GetTupleResultType( Supplier s )
           nl->SymbolValue( first ) == "stream" );
 
   return SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( result );
+}
+
+/*
+6.9 Function ~CompareSchemas~
+
+This function receives two relation types and compare their schemas.
+It returns true if they are equal, and false otherwise.
+
+*/
+bool CompareSchemas( ListExpr r1, ListExpr r2 )
+{
+  assert( IsRelDescription( r1 ) && IsRelDescription( r2 ) );
+
+  ListExpr attrList1 = nl->Second( nl->Second( r1 ) ),
+           attrList2 = nl->Second( nl->Second( r2 ) );
+
+  if( nl->ListLength( attrList1 ) != nl->ListLength( attrList2 ) )
+    return false;
+
+  for( int i = 0; i < nl->ListLength( attrList1 ); i++ )
+  {
+    ListExpr first1 = nl->First( attrList1 ),
+             first2 = nl->First( attrList2 );
+    attrList1 = nl->Rest( attrList1 );
+    attrList2 = nl->Rest( attrList2 );
+
+    if( nl->SymbolValue( nl->Second( first1 ) ) != nl->SymbolValue( nl->Second( first2 ) ) )
+      return false;
+  }
+  return true;
 }
 

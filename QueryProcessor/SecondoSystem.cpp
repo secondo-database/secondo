@@ -552,6 +552,7 @@ This is done by closing, destroying and recreating the database.
           CloseDatabase();
           DestroyDatabase ( dbname );
           CreateDatabase( dbname );
+
 /*
 Load database types and objects from file named ~filename~.
 
@@ -561,6 +562,7 @@ Load database types and objects from file named ~filename~.
                RestoreCatalog( scExecutable, typesExec, objectsExec, errorInfo ) )
           {
             rc = 0; // Database successfully restored
+
 /*
             if ( !SecondoSystem::CommitTransaction() )
             {
@@ -643,6 +645,7 @@ SecondoSystem::RestoreTypes( SecondoCatalog* sc,
     {
       typeName = nl->SymbolValue( nl->Second( first ) );
       typeExpr = nl->Third( first );
+
       if ( sc->KindCorrect( typeExpr, errorInfo ) )
       {
         if ( !sc->InsertType( typeName, typeExpr ) )
@@ -678,6 +681,7 @@ SecondoSystem::RestoreTypes( SecondoCatalog* sc,
     } // if
     SecondoSystem::CommitTransaction();
   } // while
+
   return (correct);
 }
 
@@ -781,6 +785,7 @@ SecondoSystem::RestoreObjects( SecondoCatalog* sc,
     } // if
     SecondoSystem::CommitTransaction();
   } // while
+
   return (correct);
 }
 

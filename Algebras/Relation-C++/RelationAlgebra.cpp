@@ -559,7 +559,7 @@ RestoreFromListRel(ListExpr typeInfo, ListExpr value,
 */
 void DeleteRel(Word& w)
 {
-  return ((Relation *)w.addr)->Delete();
+  ((Relation *)w.addr)->Delete();
 }
 
 /*
@@ -1934,10 +1934,6 @@ TupleSizeStream(Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-
-  cout << "Total size: " << totalSize << endl
-       << "Count: " << count << endl
-       << "Average size: " << totalSize/count << endl;
 
   ((CcReal*) result.addr)->Set(true, totalSize/count);
   qp->Close(args[0].addr);

@@ -2,35 +2,35 @@
 
 1 The Implementation-Module *SecondoCatalog*
 
-September 1996 Claudia Freundorfer 
+September 1996 Claudia Freundorfer
 
 November 18, 1996 RHG Replaced all calls to ~CatalogManager~ by calls to
-~CTable~. 
+~CTable~.
 
 December 20, 1996 Changed procedures ~OutObject~ and ~GetObjectValue~
-and introduced ~NumericType~. 
+and introduced ~NumericType~.
 
 December 30, 1996 RHG Added procedures ~ExpandedType~ and ~KindCorrect~.
 
-January 7-9, 1997 RHG Major revision for error handling. 
+January 7-9, 1997 RHG Major revision for error handling.
 
-January 13, 1997 RHG Corrected error in procedure ~OpenDatabase~. 
+January 13, 1997 RHG Corrected error in procedure ~OpenDatabase~.
 
 December 23, 1997 RHG Corrected procedure ~LookUpTypeExpr~ to make it
-safe against wrong type expressions. 
+safe against wrong type expressions.
 
 May 15, 1998 RHG Added treatment of models, especially functions
-~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~. 
+~InObjectModel~, ~OutObjectModel~, and ~ValueToObjectModel~.
 
 October 13, 1998 Stefan Dieker ~NumericTypeExpr~ may now be called in
-database state ~dbClosed~, too. 
+database state ~dbClosed~, too.
 
 September 9, 1998 Stefan Dieker Reimplemented functions ~CloseDatabase~
 and ~OpenDatabase~ in such a way that all CTables and NameIndexes used
 for storing object and type information are saved to files and loaded
 from those files, respectively. Now the catalog is semi-persistent, i.e.
 as persistent as provided by the underlying OS, without access being
-save under transactions, logged, and locked. 
+save under transactions, logged, and locked.
 
 October 2002 Ulrich Telle, testMode flag initialization added
 
@@ -51,9 +51,9 @@ Sixth it delivers functions to look up the type constructors and
 operators of the actually loaded algebras. These functions are
 implemented by applying the functions of the lower modules *CTable*,
 *NameIndex*, *AlgebraManager2*, *ObjectListManager* and *ObjectManager*.
-The names of existing databases are stored in a list ~DBTable~. 
+The names of existing databases are stored in a list ~DBTable~.
 
-\tableofcontents 
+\tableofcontents
 
 1.2 Implementation
 
@@ -89,36 +89,36 @@ const SmiSize CE_OBJS_TYPEINFO_START = sizeof( int ) + CE_OBJS_TYPEEXPR_SIZE;
 ~InfoPointer~ is a reference to a record structure ~Info~ that is used
 to store the information about type constructors, operators, database
 objects and types. The same fields can be used for the different kinds
-of stored information: 
+of stored information:
 
   * type constructors: For every type constructor, the fields ~algebraId,
 typeId~ contain the type numbers and algebra numbers of the type name,
-~props~ contains the functionality of the type constructor. 
+~props~ contains the functionality of the type constructor.
 
   * operators: For every operator the fields ~algebraId, typeId~ contain
 the operator numbers and algebra numbers of the operator name and
 ~props~ contains the corresponding operator specification as defined in
-the *SECONDO Project*. 
+the *SECONDO Project*.
 
   * database objects: The fields ~algebraId, typeId~ contain identifiers
 for the type name of the stored object, ~props~ contains the type name
 and type expression in nested list format and ~value~ delivers the
 object value as a word. Field ~valueDefined~ tells whether a value has
 been assigned to the object. Field ~model~ contains the model data
-structure for this object. 
+structure for this object.
 
   * database types: For every database type, the fields ~algebraId,
 typeId~ contain the type numbers and algebra numbers of the type name,
-~props~ contains the corresponding type expression. 
+~props~ contains the corresponding type expression.
 
 */
 
 /**************************************************************************
-3 Functions and Procedures 
+3 Functions and Procedures
 
 3.2 Catalog Management Operations
 
-3.2.1 Database Types   
+3.2.1 Database Types
 
 */
 
@@ -128,8 +128,8 @@ SecondoCatalog::ListTypes()
 /*
 Returns a list of ~types~ of the whole database in the following format:
 
----- (TYPES 
-       (TYPE <type name><type expression>)* 
+---- (TYPES
+       (TYPE <type name><type expression>)*
      )
 ----
 
@@ -168,7 +168,7 @@ Precondition: dbState = dbOpen.
       if ( !typeRecord.Read( typeBuffer, exprSize, CE_TYPES_EXPR_START ) ) continue;
       typeExprString.assign( typeBuffer, exprSize );
       delete []typeBuffer;
-      nl->ReadFromString( typeExprString, typeExpr ); 
+      nl->ReadFromString( typeExprString, typeExpr );
       typeExpr = nl->First( typeExpr );
       if ( typesList == nl->TheEmptyList() )
       {
@@ -187,7 +187,7 @@ Precondition: dbState = dbOpen.
                      nl->ThreeElemList(
                        nl->SymbolAtom( "TYPE" ),
                        nl->SymbolAtom( typeName ),
-                       typeExpr ) ); 
+                       typeExpr ) );
       }
     }
   }
@@ -197,7 +197,7 @@ Precondition: dbState = dbOpen.
     if ( tPos->second.state == EntryInsert ||
          tPos->second.state == EntryUpdate )
     {
-      nl->ReadFromString( tPos->second.typeExpr, typeExpr ); 
+      nl->ReadFromString( tPos->second.typeExpr, typeExpr );
       typeExpr = nl->First( typeExpr );
       if ( typesList == nl->TheEmptyList() )
       {
@@ -216,7 +216,7 @@ Precondition: dbState = dbOpen.
                      nl->ThreeElemList(
                        nl->SymbolAtom( "TYPE" ),
                        nl->SymbolAtom( tPos->first ),
-                       typeExpr ) ); 
+                       typeExpr ) );
       }
     }
   }
@@ -231,7 +231,7 @@ SecondoCatalog::InsertType( const string& typeName, ListExpr typeExpr )
 Inserts a new type named ~typeName~ defined by a list ~typeExpr~ of
 already existing types in the database. Returns ~false~, if the name was
 already defined. If the type name already exists, the procedure has no
-effect. 
+effect.
 
 Precondition: dbState = dbOpen.
 
@@ -391,7 +391,7 @@ SecondoCatalog::TypeUsedByObject( const string& typeName )
 bool
 SecondoCatalog::MemberType( const string& typeName )
 {
-/*                  
+/*
 Returns true iff type with name ~typeName~ is member of the actually opened database.
 
 Precondition: dbState = dbOpen.
@@ -425,7 +425,7 @@ SecondoCatalog::LookUpTypeExpr( const ListExpr typeExpr,
                                 int& algebraId, int& typeId )
 {
 /*
-Returns the algebra identifier ~algebraId~ and the type identifier ~opId~ 
+Returns the algebra identifier ~algebraId~ and the type identifier ~opId~
 and the name ~typeName~ of the outermost type constructor for a given type
 expression ~typeExpr~, if it exists, otherwise an empty string as ~typeName~
 and value 0 for the identifiers.
@@ -476,7 +476,7 @@ Precondition: dbState = dbOpen.
 ListExpr
 SecondoCatalog::GetTypeExpr( const string& typeName )
 {
-/*                        
+/*
 Returns a type expression ~typeExpr~ for a given type name ~typeName~, if exists.
 
 Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
@@ -489,7 +489,7 @@ Precondition: dbState = dbOpen and ~MemberType(typeName)~ delivers TRUE.
   {
     if ( tPos->second.state != EntryDelete )
     {
-      nl->ReadFromString( tPos->second.typeExpr, typeExpr ); 
+      nl->ReadFromString( tPos->second.typeExpr, typeExpr );
       typeExpr = nl->First( typeExpr );
     }
   }
@@ -647,11 +647,11 @@ says that kind ~DATA~ does not match the type expression ~(hello world)~. This i
     return ((am->TypeCheck( algebraId, typeId ))( typeExpr, errorInfo ));
   }
 }
- 
+
 /************************************************************************
 3.1.2 Database Objects
 
-*/                                
+*/
 
 ListExpr
 SecondoCatalog::ListObjects()
@@ -659,8 +659,8 @@ SecondoCatalog::ListObjects()
 /*
 Returns a list of ~objects~ of the whole database in the following format:
 
----- (OBJECTS 
-       (OBJECT <object name>(<type name>) <type expression>)* 
+---- (OBJECTS
+       (OBJECT <object name>(<type name>) <type expression>)*
      )
 ----
 
@@ -711,7 +711,9 @@ Precondition: dbState = dbOpen.
       if ( !oRec.Read( oBuffer, exprSize, CE_OBJS_TYPEINFO_START+nameSize ) ) continue;
       typeExprString.assign( oBuffer, exprSize );
       delete []oBuffer;
-      nl->ReadFromString( typeExprString, typeExpr ); 
+      nl->ReadFromString( typeExprString, typeExpr );
+//VTA - This line must be added
+//      typeExpr = nl->First( typeExpr );
       if ( objectsList == nl->TheEmptyList() )
       {
         objectsList = nl->Cons( nl->FourElemList(
@@ -720,7 +722,7 @@ Precondition: dbState = dbOpen.
                                   nl->OneElemList( nl->SymbolAtom( typeName ) ),
                                   typeExpr ),
                                 nl->TheEmptyList() );
-        lastElem = objectsList; 
+        lastElem = objectsList;
       }
       else
       {
@@ -740,6 +742,8 @@ Precondition: dbState = dbOpen.
          oPos->second.state == EntryUpdate )
     {
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+//VTA - This line must be added
+//      typeExpr = nl->First( typeExpr );
       if ( objectsList == nl->TheEmptyList() )
       {
         objectsList = nl->Cons( nl->FourElemList(
@@ -748,7 +752,7 @@ Precondition: dbState = dbOpen.
                                   nl->OneElemList( nl->SymbolAtom( oPos->second.typeName ) ),
                                   typeExpr ),
                                 nl->TheEmptyList() );
-        lastElem = objectsList; 
+        lastElem = objectsList;
       }
       else
       {
@@ -771,7 +775,7 @@ SecondoCatalog::ListObjectsFull()
 /*
 Returns a list of ~objects~ of the whole database in the following format:
 
----- (OBJECTS 
+---- (OBJECTS
        (OBJECT <object name>(<type name>) <type expression> <value> <model>)*
      )
 ----
@@ -837,7 +841,7 @@ Precondition: dbState = dbOpen.
                                   valueList,
                                   modelList ),
                                 nl->TheEmptyList() );
-        lastElem = objectsList; 
+        lastElem = objectsList;
       }
       else
       {
@@ -859,6 +863,8 @@ Precondition: dbState = dbOpen.
          oPos->second.state == EntryUpdate )
     {
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+//VTA - This line must be added
+//      typeExpr = nl->First( typeExpr );
       if ( oPos->second.valueDefined )
       {
         valueList = OutObject( typeExpr, oPos->second.value );
@@ -885,7 +891,7 @@ Precondition: dbState = dbOpen.
                                   valueList,
                                   modelList ),
                                 nl->TheEmptyList() );
-        lastElem = objectsList; 
+        lastElem = objectsList;
       }
       else
       {
@@ -939,7 +945,7 @@ Precondition: dbState = dbOpen.
   {
     LookUpTypeExpr( typeExpr, typecon, alId, typeId );
   }
-  model = InObjectModel( typeExpr, nl->TheEmptyList(), 1 );    
+  model = InObjectModel( typeExpr, nl->TheEmptyList(), 1 );
             /* generates the undefined model for this type */
   return (InsertObject( objectName, typeName, typeExpr, value, false, model ));
 }
@@ -1059,7 +1065,7 @@ Precondition: dbState = dbOpen.
   }
   return (ok);
 }
-  
+
 Word
 SecondoCatalog::InObject(  const ListExpr typeExpr,
                            const ListExpr valueList,
@@ -1105,7 +1111,7 @@ SecondoCatalog::GetObjectValue( const string& objectName )
 {
 /*
 Returns the value of a locally stored database object with identifier ~objectName~ as list expression ~list~ to show the value to the database user. If the value is undefined, an empty list is returned.
- 
+
 Precondition: dbState = dbOpen.
 
 */
@@ -1120,7 +1126,7 @@ Precondition: dbState = dbOpen.
     cerr << " GetObjectValue: database is closed!" << endl;
     exit( 0 );
   }
-  GetObjectExpr( objectName, typeName, typeExpr, value, defined, model, 
+  GetObjectExpr( objectName, typeName, typeExpr, value, defined, model,
                  hasNamedType );
   if ( defined )
   {
@@ -1289,8 +1295,8 @@ Returns for a given ~value~ of type ~typeExpr~ its model.
 Word
 SecondoCatalog::ValueListToObjectModel( const ListExpr typeExpr,
                                         const ListExpr valueList,
-                                        int& errorPos, 
-                                        ListExpr& errorInfo, 
+                                        int& errorPos,
+                                        ListExpr& errorInfo,
                                         bool& correct )
 {
 /*
@@ -1357,7 +1363,7 @@ SecondoCatalog::GetObject( const string& objectName,
 /*
 Returns the value ~value~ of an object with identifier ~objectName~. ~defined~ tells whether the word contains a meaningful value.
 
-Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
 */
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
@@ -1405,8 +1411,8 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
         if ( objValueFile.SelectRecord( valueRecId, vRec ) )
         {
           ListExpr typeExpr, typeInfo;
-          nl->ReadFromString( typeExprString, typeExpr );  
-          typeInfo = NumericType( typeExpr );
+          nl->ReadFromString( typeExprString, typeExpr );
+          typeInfo = NumericType( nl->First( typeExpr ) );
           am->OpenObj( algebraId, typeId, vRec, typeInfo, value );
           nl->Destroy( typeInfo );
           nl->Destroy( typeExpr );
@@ -1438,7 +1444,7 @@ SecondoCatalog::GetObjectExpr( const string& objectName,
 /*
 Returns the value ~value~, the type name ~typeName~, the type expression ~typeExpr~, and the ~model~ of an object with identifier ~objectName~. ~defined~ tells whether ~value~ contains a defined value. If object has no type name the variable  ~hasTypeName~ is set to FALSE and the procedure returns an empty string as ~typeName~.
 
-Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
 */
   bool ok = false;
@@ -1454,7 +1460,7 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
     {
       typeName    = oPos->second.typeName;
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-      typeExpr = nl->First( typeExpr ); //???
+      typeExpr = nl->First( typeExpr );
       value       = oPos->second.value;
       defined     = oPos->second.valueDefined;
       model       = oPos->second.model;
@@ -1504,9 +1510,7 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
         SmiRecord vRec;
         if ( objValueFile.SelectRecord( valueRecId, vRec ) )
         {
-          ListExpr typeExpr, typeInfo;
-          nl->ReadFromString( typeExprString, typeExpr );  
-          typeInfo = NumericType( typeExpr );
+          ListExpr typeInfo = NumericType( typeExpr );
           am->OpenObj( algebraId, typeId, vRec, typeInfo, value );
           nl->Destroy( typeInfo );
           nl->Destroy( typeExpr );
@@ -1521,8 +1525,6 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
         SmiRecord mRec;
         if ( objModelFile.SelectRecord( modelRecId, mRec ) )
         {
-          ListExpr typeExpr;
-          nl->ReadFromString( typeExprString, typeExpr );  
           am->PersistModel( algebraId, typeId, ReadFrom, mRec, typeExpr, model );
           nl->Destroy( typeExpr );
         }
@@ -1545,10 +1547,10 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 bool
 SecondoCatalog::GetObjectType( const string& objectName, string& typeName )
 {
-/* 
+/*
 Returns the type name ~typeName~ of an object with identifier ~objectName~, if the type name exists and an empty string otherwise.
 
-Precondition: ~IsObjectName(objectName)~ delivers TRUE.  
+Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
 */
   if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
@@ -1611,7 +1613,7 @@ Returns the type expression of an object with identifier ~objectName~.
     if ( oPos->second.state != EntryDelete )
     {
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-      typeExpr = nl->First( typeExpr ); //???
+      typeExpr = nl->First( typeExpr );
     }
     else
     {
@@ -1705,7 +1707,7 @@ new value ~value~. Returns error 1 if object does not exist.
           ObjectDeletion del = am->DeleteObj( oEntry.algebraId, oEntry.typeId );
 
           nl->ReadFromString( oEntry.typeExpr, typeExpr );
-          typeInfo = NumericType( typeExpr );
+          typeInfo = NumericType( nl->First( typeExpr ) );
 
           if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, typeInfo, oldvalue ) )
             del( oldvalue );
@@ -1780,7 +1782,7 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
           ObjectDeletion del = am->DeleteObj( oEntry.algebraId, oEntry.typeId );
 
           nl->ReadFromString( oEntry.typeExpr, typeExpr );
-          typeInfo = NumericType( typeExpr );
+          typeInfo = NumericType( nl->First( typeExpr ) );
 
           if( am->OpenObj( oEntry.algebraId, oEntry.typeId, vRec, typeInfo, oldvalue ) )
             del( oldvalue );
@@ -1810,7 +1812,7 @@ SecondoCatalog::ListTypeConstructors()
 Returns a list of type constructors ~typecons~ of the actually load algebras in the following format:
 
 ---- (
-      (<type constructor name> (<arg 1>..<arg n>) <result>) * 
+      (<type constructor name> (<arg 1>..<arg n>) <result>) *
      )
 ----
 
@@ -1883,13 +1885,13 @@ SecondoCatalog::GetTypeId( const string& typeName,
 /*
 Returns the algebra identifier ~algebraId~ and the type identifier
 ~typeId~ of an existing type constructor or database type with name
-~typeName~. 
+~typeName~.
 
 Precondition: ~IsTypeName(typeName)~ delivers TRUE.
-  
+
 */
   bool found = false;
- 
+
   if ( testMode && !IsTypeName( typeName ) )
   {
     cerr << "  GetTypeId: " << typeName << " is not a valid type name!" << endl;
@@ -1927,7 +1929,7 @@ Precondition: ~IsTypeName(typeName)~ delivers TRUE.
   if ( !found )
   {
     algebraId = 0;
-    typeId    = 0; 
+    typeId    = 0;
   }
   return (found);
 }
@@ -1936,15 +1938,15 @@ string
 SecondoCatalog::GetTypeName( const int algebraId, const int typeId )
 {
 /*
-Looks up the ~typeName~ of a type constructor defined by the algebra identifier ~algebraId~ and the type identifier ~opId~. 
+Looks up the ~typeName~ of a type constructor defined by the algebra identifier ~algebraId~ and the type identifier ~opId~.
 
 */
 
   if ( testMode )
   {
-    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) || 
+    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) ||
         (typeId >= am->ConstrNumber( algebraId )) )
-    { 
+    {
       cerr << "  GetTypeName: No valid type name exists!" << endl;
       exit( 0 );
     }
@@ -1957,7 +1959,7 @@ SecondoCatalog::GetTypeDS( const int algebraId, const int typeId )
 {
 /*
 Looks up the properties ~props~ of a type constructor defined by the
-algebra identifier ~algebraId~ and the type identifier ~opId~. 
+algebra identifier ~algebraId~ and the type identifier ~opId~.
 
 */
   return (am->Props( algebraId, typeId ));
@@ -1990,7 +1992,7 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
 */
   ListExpr opList;
   LocalOperatorCatalog::iterator pos = operators.find( opName );
- 
+
   if (  pos != operators.end() )
   {
     CatalogEntrySet *operatorSet = pos->second;
@@ -2008,7 +2010,7 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
     return opList;
   }
   else
-  { 
+  {
     cerr << "  GetOperatorIds: " << opName << " is not a valid operator name!" << endl;
     exit( 0 );
   }
@@ -2021,12 +2023,12 @@ SecondoCatalog::GetOperatorName( const int algebraId, const int opId )
 Looks for the name of an operator defined by the algebra identifier ~algebraId~
 and the operator identifier ~opId~.
 
-*/ 
+*/
   if ( testMode )
   {
-    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) || 
+    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) ||
         (opId >= am->OperatorNumber( algebraId )) )
-    { 
+    {
       cerr << "   GetOperatorName: No valid operator name exists!" << endl;
       exit( 0 );
     }
@@ -2041,7 +2043,7 @@ SecondoCatalog::GetOperatorSpec( const int algebraId, const int opId )
 Returns the operator specification ~specs~ of an operator defined by the algebra identifier ~algebraId~ and the operator identifier ~opId~ in the following format:
 
 ----
-  ( <operator name>   
+  ( <operator name>
     (<arg type spec 1>..<arg type spec n>)
     <result type spec>
     <syntax>
@@ -2054,14 +2056,14 @@ Returns the operator specification ~specs~ of an operator defined by the algebra
 */
   if ( testMode )
   {
-    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) || 
+    if ( am->IsAlgebraLoaded( algebraId, catalogLevel ) ||
         (opId >= am->OperatorNumber( algebraId )) )
-    { 
+    {
       cerr << " GetOperatorSpec : No valid operator name exists!" << endl;
       exit( 0 );
     }
   }
-  
+
   return (am->Specs( algebraId, opId ));
 }
 
@@ -2072,8 +2074,8 @@ SecondoCatalog::ListOperators()
 Returns a list of operators specifications in the following format:
 
 ----
-(  
-  ( <operator name>   
+(
+  ( <operator name>
     (<arg type spec 1>..<arg type spec n>)
     <result type spec>
     <syntax>
@@ -2081,10 +2083,10 @@ Returns a list of operators specifications in the following format:
     <formula>
     <explaining text>
   )*
-) 
+)
 ----
 This format is based on the formal definition of the syntax of operator
-specifications from [BeG95b, Section3.1]. 
+specifications from [BeG95b, Section3.1].
 
 */
   LocalOperatorCatalog::iterator pos;
@@ -2147,7 +2149,7 @@ SecondoCatalog::ListOperators( int algebraId )
 
 */
 
-SecondoCatalog::SecondoCatalog( const string& name, 
+SecondoCatalog::SecondoCatalog( const string& name,
                                 const AlgebraLevel level )
   : typeCatalogFile( SmiKey::String ), objCatalogFile( SmiKey::String ),
     objValueFile( false ), objModelFile( false ), testMode( false )
@@ -2163,7 +2165,7 @@ SecondoCatalog::SecondoCatalog( const string& name,
   while ( am->NextAlgebraId( level, algebraId ) )
   {
     newEntry.algebraId = algebraId;
-/* 
+/*
 Defines a dictionary for algebra type constructors.
 
 */
@@ -2173,7 +2175,7 @@ Defines a dictionary for algebra type constructors.
       newEntry.entryId = j;
       constructors.insert( make_pair( am->Constrs( algebraId, j ), newEntry ) );
     }
-/* 
+/*
 Defines a dictionary for algebra operators.
 
 */
@@ -2330,7 +2332,8 @@ In this first iteration:
               if ( ok )
               {
                 ListExpr typeExpr;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+                typeExpr = nl->First( typeExpr );
                 am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
                                   WriteTo, mRec,
                                   typeExpr, oPos->second.model );
@@ -2380,7 +2383,8 @@ In this first iteration:
               if ( ok2 )
               {
                 ListExpr typeExpr;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+                typeExpr = nl->First( typeExpr );
                 am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
                                   WriteTo, mRec,
                                   typeExpr, oPos->second.model );
@@ -2418,7 +2422,8 @@ In this first iteration:
               if ( ok )
               {
                 ListExpr typeExpr;
-                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );
+                typeExpr = nl->First( typeExpr );
                 am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
                                   DeleteFrom, mRec,
                                   typeExpr, oPos->second.model );
@@ -2452,9 +2457,9 @@ updated to express their real value. Then they are saved and closed.
 
 * In the deletion, the object is now deleted.
 
-This two iteration process is used because some objects have big 
+This two iteration process is used because some objects have big
 representations and the database sometimes get out of locks in the
-save process. Then, if it occurs, the database state will be 
+save process. Then, if it occurs, the database state will be
 preserved and the objects are created with undefined values.
 
 */
@@ -2478,7 +2483,7 @@ preserved and the objects are created with undefined values.
                 oRec.Write( &oPos->second.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
                 ListExpr typeExpr, typeInfo;
                 nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-                typeInfo = NumericType( typeExpr );
+                typeInfo = NumericType( nl->First( typeExpr ) );
                 am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
                              vRec, typeInfo, oPos->second.value );
                 (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
@@ -2519,7 +2524,7 @@ preserved and the objects are created with undefined values.
               {
                 ListExpr typeExpr, typeInfo;
                 nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-                typeInfo = NumericType( typeExpr );
+                typeInfo = NumericType( nl->First( typeExpr ) );
                 am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
                              vRec, typeInfo, oPos->second.value );
                 (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );

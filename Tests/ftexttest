@@ -14,7 +14,7 @@ e
 (update textrel1 := ((rel(tuple((no int)(t text))))
 (
   (1 <text>Victor Teixeira de Almeida</text--->)
-  (2 <file>SecondoConfig.ini</file--->)
+  (2 <file>JNI.ini</file--->)
 )));
 
 (create textrel2 : (rel(tuple((no int)(s string)))));
@@ -22,7 +22,7 @@ e
 (
   (1 "Victor")
   (2 "nothing")
-  (3 "T1TZWN")
+  (3 "W9uIGZp")
 )));
 
 #testcase Filter1
@@ -30,7 +30,7 @@ e
 query textrel1 feed filter[.t contains "Victor"] project[no] consume;
 
 #testcase Filter2
-#yields (int 5266)
+#yields (int 996)
 query textrel1 feed extend[l: length(.t)] sum[l]
 
 #testcase Join1

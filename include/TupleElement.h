@@ -69,10 +69,10 @@ This class defines several virtual methods which are essential for the
 class TupleElement // renamed, previous name: TupleElem
 {
   public:
-    virtual ~TupleElement() 
+    virtual ~TupleElement()
       {}
 
-    virtual int NumOfFLOBs() 
+    virtual int NumOfFLOBs()
       { return 0; }
 
     virtual FLOB* GetFLOB( const int )
@@ -80,19 +80,20 @@ class TupleElement // renamed, previous name: TupleElem
 
     virtual void Initialize()   {}
 
-    virtual ostream& Print( ostream& os ) 
+    virtual ostream& Print( ostream& os )
       { assert( false ); }
 
     virtual void Save( SmiRecord& valueRecord, const ListExpr typeInfo )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-      int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
-          typeId = nl->IntValue( nl->Second( nl->First( typeInfo ) ) ),
+
+      int algId = nl->IntValue( nl->First( typeInfo ) ),
+          typeId = nl->IntValue( nl->Second( typeInfo ) ),
           size = (algMgr->SizeOfObj(algId, typeId))(),
           offset = 0;
-    
-      // Calculate the extension size 
+
+      // Calculate the extension size
       int extensionSize = 0;
       for( int i = 0; i < NumOfFLOBs(); i++ )
       {
@@ -102,7 +103,7 @@ class TupleElement // renamed, previous name: TupleElem
         else
           extensionSize += tmpFLOB->Size();
       }
-  
+
       // Move FLOB data to extension tuple
       char *extensionElement;
       if( extensionSize > 0 )
@@ -119,8 +120,8 @@ class TupleElement // renamed, previous name: TupleElem
           }
         }
       }
-      
-      // Write the element      
+
+      // Write the element
       valueRecord.Write( this, size, offset );
       offset += size;
 
@@ -136,8 +137,8 @@ class TupleElement // renamed, previous name: TupleElem
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-      int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
-          typeId = nl->IntValue( nl->Second( nl->First( typeInfo ) ) ),
+      int algId = nl->IntValue( nl->First( typeInfo ) ),
+          typeId = nl->IntValue( nl->Second( typeInfo ) ),
           size = (algMgr->SizeOfObj(algId, typeId))(),
           offset = 0;
 

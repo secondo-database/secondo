@@ -13,6 +13,9 @@ e
 (create geo : binfile);
 (update geo := (binfile <file>geo</file--->));
 
+(create jni : binfile);
+(update jni := (binfile <file>JNI.ini</file--->));
+
 (create relFile :
   (rel
     (tuple

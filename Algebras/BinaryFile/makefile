@@ -11,7 +11,8 @@ include ../../makefile.env
 INCFILES=\
 	$(INCLUDEDIR)/Algebra.h \
 	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h
+	$(INCLUDEDIR)/QueryProcessor.h \
+	$(INCLUDEDIR)/TupleElement.h
 
 MODNAME=BinaryFileAlgebra
 LIBNAME=lib$(MODNAME)

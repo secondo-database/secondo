@@ -84,15 +84,15 @@ ListExpr CcTupleProp ()
 {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,"(\"Myers\" 53)");
- 
+
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> MTUPLE"), 
-	                     nl->StringAtom("(mtuple((name string)(age int)))"), 
-			     nl->StringAtom("(<attr1> ... <attrn>)"), 
+            nl->FourElemList(nl->StringAtom("(ident x DATA)+ -> MTUPLE"),
+	                     nl->StringAtom("(mtuple((name string)(age int)))"),
+			     nl->StringAtom("(<attr1> ... <attrn>)"),
 			     examplelist)));
 }
 /*
@@ -301,7 +301,7 @@ format and a pointer to a tuple value, stored in main memory.
 The function returns the tuple value from main memory storage
 in nested list format. The difference between this function and the ~Out~-
 function is that it uses an internal structure and does not make correctness
-tests. 
+tests.
 
 */
 ListExpr SaveToListCcTuple (ListExpr typeInfo, Word  value)
@@ -483,8 +483,8 @@ The ~in~-function of type constructor ~mtuple~ takes as inputs a type
 description (~typeInfo~) of the tuples attribute structure in nested
 list format and the tuple value in nested list format. The function
 returns a pointer to a tuple value, stored in main memory in accordance to
-the tuple value in nested list format. The difference between this function 
-and the ~In~-function is that it uses an internal structure and does not 
+the tuple value in nested list format. The difference between this function
+and the ~In~-function is that it uses an internal structure and does not
 make correctness tests.
 
 */
@@ -687,7 +687,7 @@ void* CastCcTuple(void* addr)
 1.3.3 ~Create~-function of type constructor ~mtuple~
 
 The function is used to allocate memory sufficient for keeping one instance
-of ~mtuple~. 
+of ~mtuple~.
 
 */
 Word CreateCcTuple(const ListExpr typeInfo)
@@ -758,13 +758,13 @@ ListExpr CcRelProp ()
   nl->AppendText(examplelist,"((\"Myers\" 53)(\"Smith\" 21))");
 
   return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"), 
-	                     nl->StringAtom("Example Type List"), 
-			     nl->StringAtom("List Rep"), 
+            nl->FourElemList(nl->StringAtom("Signature"),
+	                     nl->StringAtom("Example Type List"),
+			     nl->StringAtom("List Rep"),
 			     nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("MTUPLE -> MREL"), 
-	               nl->StringAtom("(mrel(mtuple((name string)(age int))))"), 
-		       listreplist, 
+            nl->FourElemList(nl->StringAtom("MTUPLE -> MREL"),
+	               nl->StringAtom("(mrel(mtuple((name string)(age int))))"),
+		       listreplist,
 		       examplelist)));
 }
 
@@ -936,7 +936,7 @@ ListExpr SaveToListCcRel(ListExpr typeInfo, Word value)
 1.3.3 ~Create~-function of type constructor ~mrel~
 
 The function is used to allocate memory sufficient for keeping one instance
-of ~mrel~. 
+of ~mrel~.
 
 */
 Word CreateCcRel(const ListExpr typeInfo)
@@ -1168,7 +1168,7 @@ OpenCcRel( SmiRecord& valueRecord,
   SmiRecordId recId;
   mykey = valueRecord.GetKey();
   if ( ! mykey.GetKey(recId) )
-  { 
+  {
     cout << "\tRelPersistValue: Couldn't get the key!" << endl;
   }
 
@@ -1200,7 +1200,7 @@ OpenCcRel( SmiRecord& valueRecord,
 
   // prepare to cache the value constructed from the list
 
-  if ( key[current] != 0 ) { 
+  if ( key[current] != 0 ) {
     // cout << "I do delete!" << endl;
     DeleteCcRel(cache[current]);
   }
@@ -1215,11 +1215,11 @@ OpenCcRel( SmiRecord& valueRecord,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = RestoreFromListCcRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct); 
+  value = RestoreFromListCcRel( typeInfo, nl->First(valueList), 1, errorInfo, correct);
 
   cache[current++] = value;
   if ( current == cachesize ) current = 0;
-        
+
   if ( errorInfo != 0 )     {
     nl->Destroy( errorInfo );
   }
@@ -1237,7 +1237,7 @@ SaveCcRel( SmiRecord& valueRecord,
   string valueString;
   int valueLength;
 
-  valueList = SaveToListCcRel( nl->First(typeInfo), value );
+  valueList = SaveToListCcRel( typeInfo, value );
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();

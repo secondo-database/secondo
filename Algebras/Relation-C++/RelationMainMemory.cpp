@@ -663,7 +663,7 @@ bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*&
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = Relation::In( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct);
+  value = Relation::In( typeInfo, nl->First(valueList), 1, errorInfo, correct);
 
   cache[current++] = SetWord(value);
   if ( current == cachesize ) current = 0;
@@ -681,7 +681,7 @@ bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
   string valueString;
   int valueLength;
 
-  valueList = Out( nl->First(typeInfo) );
+  valueList = Out( typeInfo );
   valueList = nl->OneElemList( valueList );
   nl->WriteToString( valueString, valueList );
   valueLength = valueString.length();

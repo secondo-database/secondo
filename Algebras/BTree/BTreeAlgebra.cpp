@@ -20,6 +20,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "BTreeAlgebra.h"
 
 #include <iostream>
 #include <string>
@@ -34,14 +35,6 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
-
-/*
-
-Commenting out the following line prevents the usage
-of prefetching iterators in the btree algebra.
-
-*/
-#define BTREE_PREFETCH
 
 /*
 2.2 Type property of type constructor ~btree~
@@ -208,92 +201,81 @@ typedef SmiKeyedFileIterator BTreeFileIteratorT;
 Used to iterate over all record ids fulfilling a certain condition.
 
 */
-class BTreeIterator
+BTreeIterator::BTreeIterator(SmiKey::KeyDataType smiKeyType, BTreeFileIteratorT* iter)
+  : fileIter(iter), keyType(smiKeyType)
 {
-  BTreeFileIteratorT* fileIter;
-  StandardAttribute* key;
-  SmiRecordId id;
-  SmiKey::KeyDataType keyType;
-  SmiKey smiKey;
-  SmiRecord record;
+  assert(
+    keyType == SmiKey::Integer
+    || keyType == SmiKey::String
+    || keyType == SmiKey::Float);
 
-public:
-  BTreeIterator(SmiKey::KeyDataType smiKeyType, BTreeFileIteratorT* iter)
-    : fileIter(iter), keyType(smiKeyType)
+  switch(keyType)
   {
-    assert(
-      keyType == SmiKey::Integer
-      || keyType == SmiKey::String
-      || keyType == SmiKey::Float);
+    case SmiKey::Integer:
+      key = new CcInt();
+      break;
 
-    switch(keyType)
-    {
-      case SmiKey::Integer:
-        key = new CcInt();
-        break;
+    case SmiKey::Float:
+      key = new CcReal();
+      break;
 
-      case SmiKey::Float:
-        key = new CcReal();
-        break;
+    case SmiKey::String:
+      key = new CcString();
+      break;
 
-      case SmiKey::String:
-        key = new CcString();
-        break;
-
-      default:
-        assert(false /* should not reach this */);
-        break;
-    }
+    default:
+      assert(false /* should not reach this */);
+      break;
   }
+}
 
-  ~BTreeIterator()
-  {
-    delete key;
-    delete fileIter;
-  }
+BTreeIterator::~BTreeIterator()
+{
+  delete key;
+  delete fileIter;
+}
 
-  bool Next()
-  {
-    bool received;
+bool BTreeIterator::Next()
+{
+  bool received;
 
 #ifdef BTREE_PREFETCH
-    received = fileIter->Next();
+  received = fileIter->Next();
 #else
-    received = fileIter->Next(smiKey, record);
+  received = fileIter->Next(smiKey, record);
 #endif /* BTREE_PREFETCH */
 
-    if(received)
-    {
+  if(received)
+  {
 
 #ifdef BTREE_PREFETCH
-      fileIter->CurrentKey(smiKey);
+    fileIter->CurrentKey(smiKey);
 #endif /* BTREE_PREFETCH */
 
-      assert(smiKey.GetType() == keyType);
-      KeyToAttr(key, keyType, smiKey);
+    assert(smiKey.GetType() == keyType);
+    KeyToAttr(key, keyType, smiKey);
 
 #ifdef BTREE_PREFETCH
-      return ReadRecordId(fileIter, id);
+    return ReadRecordId(fileIter, id);
 #else
-      return ReadRecordId(record, id);
+    return ReadRecordId(record, id);
 #endif /* BTREE_PREFETCH */
-    }
-    else
-    {
-      return false;
-    }
   }
-
-  StandardAttribute* GetKey()
+  else
   {
-    return key;
+    return false;
   }
+}
 
-  SmiRecordId GetId()
-  {
-    return id;
-  }
-};
+StandardAttribute* BTreeIterator::GetKey()
+{
+  return key;
+}
+
+SmiRecordId BTreeIterator::GetId()
+{
+  return id;
+}
 
 /*
 
@@ -302,82 +284,15 @@ public:
 The key attribute of a btree can be an ~int~, a ~string~, or a ~real~.
 
 */
-class BTree
+BTree::BTree(SmiKey::KeyDataType keyType, SmiKeyedFile* file)
 {
-private:
-  SmiRecordId id;
-  bool isTemporary;
-  SmiKey::KeyDataType keyType;
-  SmiKeyedFile* file;
-  SmiFileId fileId;
-
-public:
-  BTree(SmiKey::KeyDataType keyType = SmiKey::Unknown, SmiKeyedFile* file = 0)
+  if(keyType != SmiKey::Unknown)
   {
-    if(keyType != SmiKey::Unknown)
+    if(file == 0)
     {
-      if(file == 0)
-      {
-        isTemporary = true;
-        file = new SmiKeyedFile(keyType, false);
-        if(!file->Create())
-        {
-          delete file;
-          this->file = 0;
-          this->fileId = 0;
-          this->keyType = SmiKey::Unknown;
-        }
-      }
-      else
-      {
-        isTemporary = false;
-        this->file = file;
-        this->fileId = file->GetFileId();
-        this->keyType = keyType;
-      }
-    }
-    else
-    {
-      this->file = 0;
-      this->fileId = 0;
-      this->keyType = keyType;
-    }
-
-  }
-
-  ~BTree()
-  {
-    if(file != 0)
-    {
-      if(isTemporary)
-      {
-        file->Drop();
-      }
-      else
-      {
-        file->Close();
-      }
-    }
-    delete file;
-  }
-
-  BTree(SmiRecord& record, SmiKey::KeyDataType keyType)
-  {
-    SmiSize bytesRead;
-    SmiKeyedFile* file = 0;
-    bool success;
-
-    bytesRead = record.Read(&this->fileId, sizeof(SmiFileId));
-    if(bytesRead == sizeof(SmiFileId))
-    {
-      file = new SmiKeyedFile(keyType);
-      success = file->Open(fileId);
-      if(success)
-      {
-        this->file = file;
-        this->keyType = keyType;
-      }
-      else
+      isTemporary = true;
+      file = new SmiKeyedFile(keyType, false);
+      if(!file->Create())
       {
         delete file;
         this->file = 0;
@@ -387,20 +302,48 @@ public:
     }
     else
     {
-      this->file = 0;
-      this->fileId = 0;
-      this->keyType = SmiKey::Unknown;
+      isTemporary = false;
+      this->file = file;
+      this->fileId = file->GetFileId();
+      this->keyType = keyType;
     }
   }
-
-  BTree(SmiFileId fileId, SmiKey::KeyDataType keyType)
+  else
   {
-    SmiKeyedFile* file = 0;
-    bool success;
+    this->file = 0;
+    this->fileId = 0;
+    this->keyType = keyType;
+  }
 
-    this->fileId = fileId;
+}
+
+BTree::~BTree()
+{
+  if(file != 0)
+  {
+    if(isTemporary)
+    {
+      file->Drop();
+    }
+    else
+    {
+      file->Close();
+    }
+  }
+  delete file;
+}
+
+BTree::BTree(SmiRecord& record, SmiKey::KeyDataType keyType)
+{
+  SmiSize bytesRead;
+  SmiKeyedFile* file = 0;
+  bool success;
+
+  bytesRead = record.Read(&this->fileId, sizeof(SmiFileId));
+  if(bytesRead == sizeof(SmiFileId))
+  {
     file = new SmiKeyedFile(keyType);
-    success = file->Open(this->fileId);
+    success = file->Open(fileId);
     if(success)
     {
       this->file = file;
@@ -414,280 +357,308 @@ public:
       this->keyType = SmiKey::Unknown;
     }
   }
-
-  bool IsInitialized()
+  else
   {
-    return file != 0 && keyType != SmiKey::Unknown;
+    this->file = 0;
+    this->fileId = 0;
+    this->keyType = SmiKey::Unknown;
   }
+}
 
-  bool WriteTo(SmiRecord& record)
+BTree::BTree(SmiFileId fileId, SmiKey::KeyDataType keyType)
+{
+  SmiKeyedFile* file = 0;
+  bool success;
+
+  this->fileId = fileId;
+  file = new SmiKeyedFile(keyType);
+  success = file->Open(this->fileId);
+  if(success)
   {
-    assert(file != 0);
-    assert(this->keyType != SmiKey::Unknown);
-
-    SmiSize bytesWritten;
-    SmiSize fileIdLength = sizeof(SmiFileId);
-
-    bytesWritten = record.Write(&fileId, fileIdLength);
-    if(bytesWritten == fileIdLength)
-    {
-      isTemporary = false;
-      return true;
-    }
-    return false;
+    this->file = file;
+    this->keyType = keyType;
   }
+  else
+  {
+    delete file;
+    this->file = 0;
+    this->fileId = 0;
+    this->keyType = SmiKey::Unknown;
+  }
+}
 
-  void SetPermanent()
+bool BTree::IsInitialized()
+{
+  return file != 0 && keyType != SmiKey::Unknown;
+}
+
+bool BTree::WriteTo(SmiRecord& record)
+{
+  assert(file != 0);
+  assert(this->keyType != SmiKey::Unknown);
+
+  SmiSize bytesWritten;
+  SmiSize fileIdLength = sizeof(SmiFileId);
+
+  bytesWritten = record.Write(&fileId, fileIdLength);
+  if(bytesWritten == fileIdLength)
   {
     isTemporary = false;
+    return true;
   }
+  return false;
+}
 
-  void SetTemporary()
+void BTree::SetPermanent()
+{
+  isTemporary = false;
+}
+
+void BTree::SetTemporary()
+{
+  isTemporary = true;
+}
+
+bool BTree::SetTypeAndCreate(SmiKey::KeyDataType keyType)
+{
+  assert(
+    keyType == SmiKey::Integer
+    || keyType == SmiKey::String
+    || keyType == SmiKey::Float);
+
+  if (file == 0)
   {
+    assert(this->keyType == SmiKey::Unknown);
+
+    this->keyType = keyType;
     isTemporary = true;
-  }
-
-  bool SetTypeAndCreate(SmiKey::KeyDataType keyType)
-  {
-    assert(
-      keyType == SmiKey::Integer
-      || keyType == SmiKey::String
-      || keyType == SmiKey::Float);
-
-    if (file == 0)
+    file = new SmiKeyedFile(keyType, false);
+    if(!file->Create())
     {
-      assert(this->keyType == SmiKey::Unknown);
-
-      this->keyType = keyType;
-      isTemporary = true;
-      file = new SmiKeyedFile(keyType, false);
-      if(!file->Create())
-      {
-        delete file;
-        file = 0;
-        fileId = 0;
-        this->keyType = SmiKey::Unknown;
-        return false;
-      }
-      fileId = file->GetFileId();
-      return true;
+      delete file;
+      file = 0;
+      fileId = 0;
+      this->keyType = SmiKey::Unknown;
+      return false;
     }
-    else
-    {
-      this->keyType = keyType;
-      isTemporary = true;
-      Truncate();
-      return true;
-    }
+    fileId = file->GetFileId();
+    return true;
   }
-
-  bool Truncate()
+  else
   {
-    assert(file != 0);
-    SmiKeyedFileIterator iter;
-    SmiRecord record;
+    this->keyType = keyType;
+    isTemporary = true;
+    Truncate();
+    return true;
+  }
+}
 
-    if(!file->SelectAll(iter, SmiFile::Update, true))
+bool BTree::Truncate()
+{
+  assert(file != 0);
+  SmiKeyedFileIterator iter;
+  SmiRecord record;
+
+  if(!file->SelectAll(iter, SmiFile::Update, true))
+  {
+    return false;
+  }
+  while(iter.Next(record))
+  {
+    if(!file->DeleteRecord(record.GetKey()))
     {
       return false;
     }
-    while(iter.Next(record))
-    {
-      if(!file->DeleteRecord(record.GetKey()))
-      {
-        return false;
-      }
-    }
-    return true;
   }
+  return true;
+}
 
-  void DeleteDeep()
+void BTree::DeleteDeep()
+{
+  assert(file != 0);
+  file->Drop();
+  delete file;
+  file = 0;
+  fileId = 0;
+  delete this;
+}
+
+void BTree::DeleteFile()
+{
+  if ( file != 0 )
   {
-    assert(file != 0);
+    file->Close();
     file->Drop();
     delete file;
     file = 0;
     fileId = 0;
-    delete this;
   }
+}
 
-  void DeleteFile()
+bool BTree::Append(StandardAttribute* attr, SmiRecordId id)
+{
+  assert(file != 0);
+  SmiRecord record;
+  SmiKey key;
+  bool success;
+
+  if(!attr->IsDefined())
   {
-    if ( file != 0 )
-    {
-      file->Close();
-      file->Drop();
-      delete file;
-      file = 0;
-      fileId = 0;
-    }
-  }
-
-  bool Append(StandardAttribute* attr, SmiRecordId id)
-  {
-    assert(file != 0);
-    SmiRecord record;
-    SmiKey key;
-    bool success;
-
-    if(!attr->IsDefined())
-    {
-      return false;
-    }
-
-    AttrToKey(attr, keyType, key);
-    if(file->InsertRecord(key, record))
-    {
-      success = WriteRecordId(record, id);
-      if(!success)
-      {
-        file->DeleteRecord(key);
-      }
-      return success;
-    }
     return false;
   }
 
-  SmiKeyedFile* GetFile() const
+  AttrToKey(attr, keyType, key);
+  if(file->InsertRecord(key, record))
   {
-    return this->file;
+    success = WriteRecordId(record, id);
+    if(!success)
+    {
+      file->DeleteRecord(key);
+    }
+    return success;
   }
+  return false;
+}
 
-  SmiFileId GetFileId() const
-  {
-    return this->fileId;
-  }
+SmiKeyedFile* BTree::GetFile() const
+{
+  return this->file;
+}
 
-  SmiKey::KeyDataType GetKeyType()
-  {
-    return this->keyType;
-  }
+SmiFileId BTree::GetFileId() const
+{
+  return this->fileId;
+}
 
-  BTreeIterator* ExactMatch(StandardAttribute* key)
-  {
-    SmiKey smiKey;
-    BTreeFileIteratorT* iter;
+SmiKey::KeyDataType BTree::GetKeyType()
+{
+  return this->keyType;
+}
 
-    AttrToKey(key, keyType, smiKey);
+BTreeIterator* BTree::ExactMatch(StandardAttribute* key)
+{
+  SmiKey smiKey;
+  BTreeFileIteratorT* iter;
+
+  AttrToKey(key, keyType, smiKey);
 
 #ifdef BTREE_PREFETCH
-    iter = file->SelectRangePrefetched(smiKey, smiKey);
-    if(iter == 0)
-    {
-      return 0;
-    }
+  iter = file->SelectRangePrefetched(smiKey, smiKey);
+  if(iter == 0)
+  {
+    return 0;
+  }
 #else
-    iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectRange(smiKey, smiKey, *iter, SmiFile::ReadOnly, true))
-    {
-      delete iter;
-      return 0;
-    }
+  iter = new SmiKeyedFileIterator(true);
+  if(!file->SelectRange(smiKey, smiKey, *iter, SmiFile::ReadOnly, true))
+  {
+    delete iter;
+    return 0;
+  }
 #endif /* BTREE_PREFETCH */
 
-    return new BTreeIterator(keyType, iter);
-  }
+  return new BTreeIterator(keyType, iter);
+}
 
-  BTreeIterator* LeftRange(StandardAttribute* key)
-  {
-    SmiKey smiKey;
-    BTreeFileIteratorT* iter;
+BTreeIterator* BTree::LeftRange(StandardAttribute* key)
+{
+  SmiKey smiKey;
+  BTreeFileIteratorT* iter;
 
-    AttrToKey(key, keyType, smiKey);
+  AttrToKey(key, keyType, smiKey);
 
 #ifdef BTREE_PREFETCH
-    iter = file->SelectLeftRangePrefetched(smiKey);
-    if(iter == 0)
-    {
-      return 0;
-    }
+  iter = file->SelectLeftRangePrefetched(smiKey);
+  if(iter == 0)
+  {
+    return 0;
+  }
 #else
-    iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectLeftRange(smiKey, *iter, SmiFile::ReadOnly, true))
-    {
-      delete iter;
-      return 0;
-    }
+  iter = new SmiKeyedFileIterator(true);
+  if(!file->SelectLeftRange(smiKey, *iter, SmiFile::ReadOnly, true))
+  {
+    delete iter;
+    return 0;
+  }
 #endif /* BTREE_PREFETCH */
 
-    return new BTreeIterator(keyType, iter);
-  }
+  return new BTreeIterator(keyType, iter);
+}
 
-  BTreeIterator* RightRange(StandardAttribute* key)
-  {
-    SmiKey smiKey;
-    BTreeFileIteratorT* iter;
+BTreeIterator* BTree::RightRange(StandardAttribute* key)
+{
+  SmiKey smiKey;
+  BTreeFileIteratorT* iter;
 
-    AttrToKey(key, keyType, smiKey);
+  AttrToKey(key, keyType, smiKey);
 
 #ifdef BTREE_PREFETCH
-    iter = file->SelectRightRangePrefetched(smiKey);
-    if(iter == 0)
-    {
-      return 0;
-    }
+  iter = file->SelectRightRangePrefetched(smiKey);
+  if(iter == 0)
+  {
+    return 0;
+  }
 #else
-    iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectRightRange(smiKey, *iter, SmiFile::ReadOnly, true))
-    {
-      delete iter;
-      return 0;
-    }
+  iter = new SmiKeyedFileIterator(true);
+  if(!file->SelectRightRange(smiKey, *iter, SmiFile::ReadOnly, true))
+  {
+    delete iter;
+    return 0;
+  }
 #endif /* BTREE_PREFETCH */
 
-    return new BTreeIterator(keyType, iter);
-  }
+  return new BTreeIterator(keyType, iter);
+}
 
-  BTreeIterator* Range(StandardAttribute* left, StandardAttribute* right)
-  {
-    SmiKey leftSmiKey;
-    SmiKey rightSmiKey;
-    BTreeFileIteratorT* iter;
+BTreeIterator* BTree::Range(StandardAttribute* left, StandardAttribute* right)
+{
+  SmiKey leftSmiKey;
+  SmiKey rightSmiKey;
+  BTreeFileIteratorT* iter;
 
-    AttrToKey(left, keyType, leftSmiKey);
-    AttrToKey(right, keyType, rightSmiKey);
+  AttrToKey(left, keyType, leftSmiKey);
+  AttrToKey(right, keyType, rightSmiKey);
 
 #ifdef BTREE_PREFETCH
-    iter = file->SelectRangePrefetched(leftSmiKey, rightSmiKey);
-    if(iter == 0)
-    {
-      return 0;
-    }
+  iter = file->SelectRangePrefetched(leftSmiKey, rightSmiKey);
+  if(iter == 0)
+  {
+    return 0;
+  }
 #else
-    iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectRange(leftSmiKey, rightSmiKey,
-      *iter, SmiFile::ReadOnly, true))
-    {
-      delete iter;
-      return 0;
-    }
+  iter = new SmiKeyedFileIterator(true);
+  if(!file->SelectRange(leftSmiKey, rightSmiKey,
+    *iter, SmiFile::ReadOnly, true))
+  {
+    delete iter;
+    return 0;
+  }
 #endif /* BTREE_PREFETCH */
 
-    return new BTreeIterator(keyType, iter);
-  }
+  return new BTreeIterator(keyType, iter);
+}
 
-  BTreeIterator* SelectAll()
-  {
-    BTreeFileIteratorT* iter;
+BTreeIterator* BTree::SelectAll()
+{
+  BTreeFileIteratorT* iter;
 
 #ifdef BTREE_PREFETCH
-    iter = file->SelectAllPrefetched();
-    if(iter == 0)
-    {
-      return 0;
-    }
+  iter = file->SelectAllPrefetched();
+  if(iter == 0)
+  {
+    return 0;
+  }
 #else
-    iter = new SmiKeyedFileIterator(true);
-    if(!file->SelectAll(*iter, SmiFile::ReadOnly, true))
-    {
-      delete iter;
-      return 0;
-    }
+  iter = new SmiKeyedFileIterator(true);
+  if(!file->SelectAll(*iter, SmiFile::ReadOnly, true))
+  {
+    delete iter;
+    return 0;
+  }
 #endif /* BTREE_PREFETCH */
 
-    return new BTreeIterator(keyType, iter);
-  }
-};
+  return new BTreeIterator(keyType, iter);
+}
 
 /*
 
@@ -910,12 +881,7 @@ OpenBTree( SmiRecord& valueRecord,
   string keyTypeString;
 
   /* find out key type */
-  assert(!nl->IsAtom(typeInfo));
-  assert(!nl->IsEmpty(typeInfo));
-  assert(nl->ListLength(typeInfo) == 1);
-
-  first = nl->First(typeInfo);
-
+  first = typeInfo;
   assert(!nl->IsAtom(first));
   assert(!nl->IsEmpty(first));
   assert(nl->ListLength(first) == 3);

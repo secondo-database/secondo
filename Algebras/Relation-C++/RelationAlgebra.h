@@ -849,11 +849,21 @@ bool CompareNames(ListExpr list);
 
 5.6 Function ~IsTupleDescription~
 
-Checks wether a ~ListExpr~ is of the form
+Checks whether a ~ListExpr~ is of the form
 ((a1 t1) ... (ai ti)).
 
 */
 bool IsTupleDescription( ListExpr tupleDesc );
+
+/*
+
+5.6 Function ~IsRelDescription~
+
+Checks whether a ~ListExpr~ is of the form
+(rel (tuple ((a1 t1) ... (ai ti)))).
+
+*/
+bool IsRelDescription( ListExpr relDesc );
 
 /*
 5.7 Function ~GetTupleResultType~
@@ -863,5 +873,14 @@ given the Supplier ~s~.
 
 */
 ListExpr GetTupleResultType( Supplier s );
+
+/*
+5.8 Function ~CompareSchemas~
+
+This function takes two relations types and compare their schemas.
+It returns true if they are equal, and false otherwise.
+
+*/
+bool CompareSchemas( ListExpr r1, ListExpr r2 );
 
 #endif // _RELATION_ALGEBRA_H_
