@@ -86,30 +86,33 @@ PCTableTest() {
   CTable<bool> bt( 3, rf );
   bool b1;
   
-  bt.Get(1, b1);
+  Cardinal index1=0, index2=0;
+  index1 = bt.EmptySlot();
   b1 = false;
-  bt.Put(1, b1);
-  
-  bt.Get(2, b1); 
+  bt.Put(index1, b1);
+ 
+  index2 = bt.EmptySlot();
   b1 = true;
-  bt.Put(2, b1);
+  bt.Put(index2, b1);
   
-  cout << "bt[1] false : " << bt[1] << endl;
-  cout << "bt[2] true  : " << bt[2] << endl;
+  cout << "bt[" << index1 << "] false : " << bt[index1] << endl;
+  cout << "bt[" << index2 << "] true  : " << bt[index2] << endl;
   
   CTable<int> ct( 5, rf );
   cout << "size = 5: " << ct.Size() << endl;
  
   int val = 1;
-  ct.Put(2, val);
-  int intRef = ct[2];
+  index2 = ct.EmptySlot();
+  ct.Put(index2, val);
+  int intRef = ct[index2];
   cout << "intRef = 1: " << intRef << endl;
   intRef = 2;
   val = 40;
-  ct.Put(4, val);
-  cout << "ct[2] = 1: " << ct[2] << endl;
+  index1 = ct.EmptySlot();
+  ct.Put(index1, val);
+  cout << "ct[2] = 1: " << ct[index2] << endl;
   cout << "size = 5: " << ct.Size() << endl;
-  cout << "ct[4] = 40: " << ct[4] << endl;
+  cout << "ct[4] = 40: " << ct[index1] << endl;
   
   cout << "1: " << ct.IsValid( 1 ) << endl;
   cout << "2: " << ct.IsValid( 2 ) << endl;
@@ -182,10 +185,8 @@ main() {
   {
     string dbname;
     cout << "*** Start list of databases ***" << endl;
-    while (SmiEnvironment::ListDatabases( dbname ))
-    {
-      cout << dbname << endl;
-    }
+    SmiEnvironment::ListDatabases( dbname );
+    cout << dbname << endl;
     cout << "*** End list of databases ***" << endl;
  
     ok = SmiEnvironment::OpenDatabase( "PARRAY" );   
@@ -217,7 +218,7 @@ main() {
     {
       cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
      
-	rf = new SmiRecordFile(false, 0);
+	rf = new SmiRecordFile(true, 512);
 	ok = rf->Open("parrayfile");
 	cout << "parrayfile opened: " << ok << endl;
 
