@@ -1,5 +1,7 @@
 # Array von Objekten vom Kind DATA
 
+(delete ad);
+
 (create ad : (array date));
 
 (update ad := ((array date) ("2003-01-30" "2003-01-31" "2003-02-01")));
@@ -65,4 +67,5 @@
 # let prel = tenTest feed extend[mod2 : .no mod 2] distribute[mod2];
 
 (query (consume (summarize prel)));
+
 
