@@ -8,15 +8,15 @@ Copyright (C) 1996 Gral Support Team
 
 Februar 1996 Holger Schenk
 
-Textatoms are divided into parts of size 60 and appended to the previously 
-created text atom. If the final pattern of a text atom \verb+</text--->+ 
-can't be matched the text atom is destroyed. A separate list is only 
+Textatoms are divided into parts of size 60 and appended to the previously
+created text atom. If the final pattern of a text atom \verb+</text--->+
+can't be matched the text atom is destroyed. A separate list is only
 creating a text atom and appending the parts to the atom if lexing is O.K.
-There is certainly a better solution, but there is no C-Interface to the 
+There is certainly a better solution, but there is no C-Interface to the
 list module at the moment ..
 
 */
-                        
+
 
 %{
 #include <malloc.h>
@@ -25,6 +25,7 @@ list module at the moment ..
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 using namespace std;
 #include "Base64.h"
@@ -57,28 +58,28 @@ int yyFlexLexer::yylex()
 {
     return 0;
 }
-  
+
 %}
 otherChar      [^\(\)\"A-Za-z0-9_ \t\n]
 letter         [a-zA-Z]
 digit          [0-9]
-ident          {letter}({letter}|{digit}|_)*  
+ident          {letter}({letter}|{digit}|_)*
 math           {otherChar}{otherChar}*
 symbol         {math}|{ident}
 num1	       [-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2	       [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	       {num1}|{num2}
 
-string         \"[^\"]*\"  
+string         \"[^\"]*\"
 
-file		"<file>".*"</file--->"       
+file		"<file>".*"</file--->"
 
 %x TEXT
 %%
 
 <INITIAL>[ \t\n]+       ;
 
-<INITIAL>-?[0-9]+       { 
+<INITIAL>-?[0-9]+       {
                         /* ECHO; printf(" : is an integer\n"); */
                         yylval = nl->IntAtom( atoi( yytext ) );
                         return (ZZINTEGER);
@@ -92,25 +93,24 @@ file		"<file>".*"</file--->"
 			return (ZZREAL);
 		        }
 
-<INITIAL>"TRUE"         { 
+<INITIAL>"TRUE"         {
                  /* ECHO; printf(" : is a boolean\n"); */
                  yylval = nl->BoolAtom( true );
                  return (ZZBOOLEAN);
                }
 
-<INITIAL>"FALSE"        { 
+<INITIAL>"FALSE"        {
                  /* ECHO; printf(" : is a boolean\n"); */
                  yylval = nl->BoolAtom( false );
                  return (ZZBOOLEAN);
                }
 
-<TEXT>"<text>"       {  // change to state TEXT
+<INITIAL>"<text>"       {  // change to state TEXT
                         BEGIN(TEXT);
                         text = new ostringstream();
+		       }
 
-                     }
-
-<TEXT>.|\\n       { text->put( yytext[0] );
+<TEXT>.|\n       { text->put( yytext[0] );
 
                   }
 
@@ -118,11 +118,10 @@ file		"<file>".*"</file--->"
 <TEXT>"</text--->"  {   BEGIN(INITIAL);
                         ListExpr newText = nl->TextAtom();
                         nl->AppendText( newText, text->str() );
-                        delete text; 
+                        delete text;
                         /* pass text node and token to the parser */
                         yylval = newText;
-                        return (ZZTEXT);
-
+		        return (ZZTEXT);
                     }
 
 
@@ -133,14 +132,14 @@ file		"<file>".*"</file--->"
 		   yyleng = MAX_STRING_LENGTH;
                    printf("Warning: string %s was truncated!\n", yytext);
                  }
-		 
+
                  s = strncpy( s, &yytext[1], yyleng-2 );
                  s[yyleng-2] = '\0';
                  yylval = nl->StringAtom( s );
                  return (ZZSTRING);
                }
 
-<INITIAL>{symbol}       { 
+<INITIAL>{symbol}       {
                  /* ECHO; printf(" : is a symbol\n"); */
                  yylval = nl->SymbolAtom( yytext );
                  return (ZZSYMBOL);
@@ -148,20 +147,18 @@ file		"<file>".*"</file--->"
 
 <INITIAL>{file}  { /* files are expanded to base64 encoded text atoms */
 
-                 ListExpr newText = nl->TextAtom(); 
-                 
+                 ListExpr newText = nl->TextAtom();
+
                  string fileNameStr(yytext);
                  fileNameStr = fileNameStr.substr(6,yyleng-16);
-                 ifstream inFile(fileNameStr.c_str(), ios::binary); 
-                 ofstream outFile((fileNameStr+".base64").c_str());                 
-
-                 /*   Read  3/4 of the length of a base64 line (max 72 bytes) into a buffer, 
+                 ifstream inFile(fileNameStr.c_str(), ios::binary);
+                 /*   Read  3/4 of the length of a base64 line (max 72 bytes) into a buffer,
                   *   since base64 uses 4/3 of the binary size.
-                  */ 
+                  */
                  const int inLength = 54;
-                 char buf[inLength+1]; 
+                 char buf[inLength+1];
                  buf[inLength] = 0;
-                 int readFaults = 0;                 
+                 int readFaults = 0;
 
                  string textFragment="";
                  Base64* encoder = new Base64();
@@ -169,20 +166,18 @@ file		"<file>".*"</file--->"
                     inFile.read(buf, inLength);
                     int noBytes = inFile.gcount();
                     if (noBytes != inLength) {
-                     readFaults++; 
-                    } 
+                     readFaults++;
+                    }
                     assert( readFaults <= 1 );
                     encoder->encode(buf, textFragment, noBytes);
-                    
-                    nl->AppendText( newText, textFragment );   
-                    outFile << textFragment;
-                 } while (inFile.good());
-                 delete encoder;                 
+		    nl->AppendText(newText,textFragment);
+		 } while (inFile.good());
+                 delete encoder;
 
                  if (!inFile.eof()) {
                     cerr << "Problems reading file " << fileNameStr << endl;
                     exit(1);
-                 } 
+                 }
 
                  /* pass text node and token to the parser */
                  yylval = newText;
@@ -190,8 +185,8 @@ file		"<file>".*"</file--->"
                }
 
 
-<INITIAL>"("   {  
-                 /* ECHO; printf("\n"); */ 
+<INITIAL>"("   {
+                 /* ECHO; printf("\n"); */
                  return (ZZOPEN);
                }
 
