@@ -28,7 +28,7 @@ class Graph {
     }
     */
     public Graph(ElemList vertices,PairList edges) {
-	v = vertices.copy();
+	v = makeCleanList(vertices.copy());
 	e = makeCleanList(edges.copy());
 	buildSuccListsVE();
     }
@@ -160,11 +160,22 @@ class Graph {
 
     private void depthFirst (int actElem, boolean[] marks, LinkedList compV, LinkedList compE) {
 	marks[actElem] = true;
+
+	//check, whether a vertex has a self-edge.
+	//though this is not relevant for the connected component algo
+	//it is needed for some algorithms in SetOps, e.g. overlapReduce.
+	ListIterator lit = succLists[actElem].listIterator(0);
+	while (lit.hasNext()) {
+	    if (((Vertex)lit.next()).equal(vArr[actElem])) {
+		compE.add(new Edge(vArr[actElem],vArr[actElem]));
+	    }//if
+	}//while
+
 	compV.add(vArr[actElem].copy());
 	//System.out.println("hasUnvisitedSon?");
 	while (hasUnvisitedSon(actElem,marks)) {
 	    int next = nextUnvisitedSon(actElem,marks);
-	    compE.add(new Edge(vArr[actElem].copy(),vArr[next].copy()));
+	    compE.add(new Edge(vArr[actElem],vArr[next]));
 	    depthFirst(next,marks,compV,compE);
 	}//while
     }//end method depthFirst
@@ -216,25 +227,36 @@ class Graph {
 
     private static PairList makeCleanList (PairList plIn) throws WrongTypeException {
 	//since the PairList that is passed to Graph constructor
-	//may have duplicates, which results in double edges
+	//may have duplicates, which result in double edges
 	//these duplicates are removed here
+	//CAUTION: this method may not work properly with all kinds of user-defined objects!
 
 	//first, traverse Pairlist and twist all Pairs that way, that the smaller 
 	//Element is at first position
 	ListIterator lit = plIn.listIterator(0);
+	boolean isSegment = false;
+
+	if (!plIn.isEmpty() && 
+	    ((((ElemPair)plIn.getFirst()).first) instanceof Segment)) isSegment = true;
+
+	ElemPair actPair;
 	while (lit.hasNext()) {
-	    ElemPair actPair = (ElemPair)lit.next();
+	    actPair = (ElemPair)lit.next();
+	    if (isSegment) {
+		((Segment)actPair.first).align();
+		((Segment)actPair.second).align();
+	    }//if
 	    if (actPair.first.compare(actPair.second) == 1) actPair.twist();
 	}//while
-	
+
 	//now sort PairList
 	SetOps.quicksort(plIn);
-	
+
 	//traverse Pairlist and remove all neighbours which are equal
 	lit = plIn.listIterator(0);
 	ListIterator lit2;
 	while (lit.hasNext()) {
-	    ElemPair actPair = (ElemPair)lit.next();
+	    actPair = (ElemPair)lit.next();
 	    lit2 = plIn.listIterator(lit.nextIndex());
 	    while (lit2.hasNext() && ((ElemPair)lit2.next()).equal(actPair)) {
 		lit2.remove();
@@ -242,10 +264,39 @@ class Graph {
 		lit = plIn.listIterator(lit.nextIndex()-1);
 	    }//while
 	}//while
-	
+
 	return plIn;
     }//end method makeCleanList
 		
+
+    private static ElemList makeCleanList (ElemList elIn) throws WrongTypeException {
+	//sinde the ElemList that is passed to Graph constructor
+	//may have duplicates, which result in double vertices
+	//these duplicates are removed here
+	
+	//System.out.println("entering Graph.makeCleanList(ElemList)...");
+
+	//check for segments and align them if necessary (needed for compare)
+	if (!elIn.isEmpty() &&
+	    (((Element)elIn.getFirst()) instanceof Segment)) {
+	    ListIterator lit = elIn.listIterator(0);
+	    Element actEl;
+	    while (lit.hasNext()) {
+		actEl = (Element)lit.next();
+		((Segment)actEl).align();
+		((Segment)actEl).align();
+	    }//while
+	}//if
+
+	ElemList retList = SetOps.rdup(elIn);
+	
+	//System.out.println("leaving Graph.makeCleanList(ElemList).");
+
+	return retList;
+    }//end method makeCleanList
+
+
+
     /* IT SEEMS THAT THESE ARE NOT USED ANYMORE	
     protected ElemListList computeCycles () {
 	//Computes the (minimal) cycles of this and returns them as

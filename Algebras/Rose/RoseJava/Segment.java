@@ -1,6 +1,7 @@
 import java.util.*;
+import java.io.*;
 
-class Segment extends Element {
+class Segment extends Element implements Serializable {
     
     //members
     protected Point startpoint; 

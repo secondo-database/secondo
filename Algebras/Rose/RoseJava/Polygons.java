@@ -1,43 +1,68 @@
 //import java.util.LinkedList;
 import java.util.*;
 import java.lang.reflect.*;
+import java.io.*;
 
-class Polygons extends Element {
+class Polygons extends Element implements Serializable {
     
     //members
-    protected TriList trilist;//list of triangles forming the polygons
-    protected double perimeter;
-    protected double area;
-    protected SegList border; //REMOVE THIS!!!
-    protected Rect bbox;//bounding box
-
-  //constructors
-  public Polygons() {
-    //fill in dummy values
-    this.trilist = new TriList();
-    this.perimeter = 0;
-    this.area = 0;
-    this.border = new SegList();
-    this.bbox = new Rect();
-     
-  }
-
+    private TriList trilist;//list of triangles forming the polygons
+    public boolean perimeterDefined;
+    private double perimeter;
+    public boolean areaDefined;
+    private double area;
+    public boolean borderDefined;
+    private SegList border; //REMOVE THIS!!!
+    public boolean bboxDefined;
+    private Rect bbox;//bounding box
+    
+    //constructors
+    public Polygons() {
+	//fill in dummy values
+	this.trilist = new TriList();
+	this.perimeter = -1;
+	this.area = -1;
+	this.border = new SegList();
+	this.bbox = new Rect();
+	this.perimeterDefined = false;
+	this.areaDefined = false;
+	this.borderDefined = false;
+	this.bboxDefined = false;
+    }
+    
     public Polygons(TriList tl) {
 	this.trilist = (TriList)tl.copy();
-	this.area = computeArea();
-	this.border = computeBorder();
-	this.perimeter = computePerimeter();
-	computeBbox();
-  }
+	//this.area = computeArea();
+	this.area = -1;
+	//this.border = computeBorder();
+	this.border = new SegList();
+	//this.perimeter = computePerimeter();
+	this.perimeter = -1;
+	//computeBbox();
+	this.bbox = new Rect();
+	
+	this.perimeterDefined = false;
+	this.areaDefined = false;
+	this.borderDefined = false;
+	this.bboxDefined = false;
+    }
+    
+    public Polygons(SegList sl) {
+	this.border = (SegList)sl.copy();
+	this.trilist = computeTriangles(sl);
+	//this.area = computeArea();
+	this.area = -1;
+	//this.perimeter = computePerimeter();
+	this.perimeter = -1;
+	//computeBbox();
+	this.bbox = new Rect();
 
-  public Polygons(SegList sl) {
-    this.border = (SegList)sl.copy();
-    this.trilist = computeTriangles(sl);
-    this.area = computeArea();
-    this.perimeter = computePerimeter();
-    computeBbox();
-  }
-
+	this.perimeterDefined = false;
+	this.areaDefined = false;
+	this.borderDefined = true;
+	this.bboxDefined = false;
+    }
+    
     //methods
     private double computeArea(){
 	//coumputes the area of the polygons
@@ -81,6 +106,10 @@ class Polygons extends Element {
     
     public Rect rect() {
 	//returns the bounding box of this.object
+	if (!this.bboxDefined) {
+	    computeBbox();
+	    this.bboxDefined = true;
+	}//if
 	return bbox.copy();
     }//end method rect
 
@@ -100,7 +129,7 @@ class Polygons extends Element {
 	//computes the border of the polygons and returns a SegList of border segments
 	//CAUTION: we use the operation from Algebra.java here!
 	
-	return this.border = (SegList)(Algebra.contour(this.trilist,true,true)).copy();
+	return this.border = ROSEAlgebra.contour(this.trilist,true,true);
     }//end method computeBorder
     
 
@@ -116,6 +145,8 @@ class Polygons extends Element {
 	
 	//System.out.println("\nentering Pol.computeTriangles...");
 	
+	if (border.isEmpty()) return new TriList();
+
 	TriList l = new TriList();
 	PointList borderVerts = new PointList(); //vertices of polygon border
 	PointList xstruct = new PointList(); //x-structure for sweep line algo
@@ -1298,7 +1329,7 @@ class Polygons extends Element {
     //System.out.println();
     //System.out.println("leaving Pol.computeTriangles.");
     return tl;
-  }//end method computeTriangles
+  }//end method comuteTriangles
   
 
     protected static int interval(Point p, LinkedList ystruct) {
@@ -1590,7 +1621,7 @@ class Polygons extends Element {
 		Point int1 = null;
 		if (((Point)actSSE.pointChain.getFirst()).compX((Point)actSSE.pointChain.get(1)) == 0) {
 		    int1 = (Point)actSSE.pointChain.getFirst();
-		    System.out.println("Pol.iv3: vertical element!");
+		    //System.out.println("Pol.iv3: vertical element!");
 		}//if
 		else {
 		    //System.out.println("Pol.iv3: sweepline construction[1]");
@@ -1601,7 +1632,7 @@ class Polygons extends Element {
 		Point int2 = null;
 		if (((Point)actSSE.pointChain.get(actSSE.pointChain.size()-1)).compX((Point)actSSE.pointChain.get(actSSE.pointChain.size()-2)) == 0) {
 		    int2 = (Point)actSSE.pointChain.get(actSSE.pointChain.size()-1);
-		    System.out.println("Pol.iv3: vertical element!");
+		    //System.out.println("Pol.iv3: vertical element!");
 		}//if
 		else {
 		    //--->>>
@@ -1833,23 +1864,39 @@ class Polygons extends Element {
 
     public double area(){
 	//returns the area of the polygons
+	if (!this.areaDefined) {
+	    this.area = computeArea();
+	    this.areaDefined = true;
+	}//if
 	return this.area;
     }//end method get_area
   
     public double perimeter(){
 	//returns the perimeter of the polygons
+	if (!this.perimeterDefined) {
+	    this.perimeter = computePerimeter();
+	    this.perimeterDefined = true;
+	}//if
 	return this.perimeter;
     }//end method get_perimeter
 
   public void set(TriList tlist){
     //sets the triangle list of the polygons
     this.trilist = (TriList)tlist.copy();
+    
+    this.perimeterDefined = false;
+    this.areaDefined = false;
+    this.borderDefined = false;
+    this.bboxDefined = false;
   }//end method set
 
-  public SegList border(){
-    //returns the border of the polygons
-    SegList s = (SegList)this.border.copy();
-    return s;
+    public SegList border(){
+	//returns the border of the polygons
+	if (!this.borderDefined) {
+	    this.border = computeBorder();
+	    this.borderDefined = true;
+	}//if
+	return (SegList)this.border.copy();
   }//end method getBorder
 
   public TriList triangles(){
@@ -1883,7 +1930,10 @@ class Polygons extends Element {
 	pl = PointList.convert(SetOps.rdup(pl));
     }//try
     catch (Exception e) {
+	System.out.println("Exception was thrown in Polygons.vertices:");
 	System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	System.out.println("Exception Cause: "+e.getCause());
+	System.out.println("Exception String: "+e.toString());
 	System.exit(0);
     }//catch
     //System.out.println("Polygons.vertices exit.");
@@ -1906,7 +1956,10 @@ class Polygons extends Element {
 		retVal = retPair.first.dist(retPair.second);
 	    }//try
 	    catch (Exception e) {
+		System.out.println("Exception was thrown in Polygons.dist:");
 		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		System.out.println("Exception cause: "+e.getCause());
+		System.out.println("Exception String: "+e.toString());
 		System.exit(0);
 	    }//catch
 	    return retVal;
@@ -1928,7 +1981,10 @@ class Polygons extends Element {
 		retList = SetOps.join(this.trilist,inPol.trilist,m);
 	    }//try
 	    catch (Exception e) {
+		System.out.println("Exception was thrown in Polygons.print:");
 		System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+		System.out.println("Exceptoin cause: "+e.getCause());
+		System.out.println("Exception string: "+e.toString());
 		System.exit(0);
 	    }//catch
 	    if (retList.isEmpty()) { return false; }
@@ -2188,7 +2244,10 @@ class Polygons extends Element {
 	//The first element is the outer cycle and the 
 	//following elements represent the hole cycles.
 
-	System.out.print("-->computing segments for NestedList conversion...");
+	//System.out.print("-->computing segments for NestedList conversion(Polygons.cyclesSegments)...");
+
+	if (!this.borderDefined) this.border = computeBorder();
+	//System.out.println("actual border("+border.size()+":"); border.print();
 
 	if (this.border.isEmpty()) return new ElemListListList();
 
@@ -2307,7 +2366,7 @@ class Polygons extends Element {
 	    }//while
 	}//while
 
-	System.out.println("done.");
+	//System.out.println("done.");
 
 	return resList;
     }//end method cyclesSegments
@@ -2316,10 +2375,13 @@ class Polygons extends Element {
     public ElemListListList cyclesPoints () {
 	//returns the cycles of this as a ElemListListList
 	//which has points as elements
-	System.out.print("-->computing cycles for NestedList conversion...");
+	//System.out.print("-->computing cycles for NestedList conversion(Polygons.cyclesPoints)...");
 
 	ElemListListList retList = new ElemListListList();
 	ElemListListList cyc = this.cyclesSegments();
+
+	//System.out.println("computed ElemListList using cyclesSegments: "); cyc.print();
+
 	ListIterator lit1 = cyc.listIterator(0);
 	ElemListList actComp;
 	while (lit1.hasNext()) {
@@ -2333,9 +2395,9 @@ class Polygons extends Element {
 		PointList actPL = actCyc.generatePointList();
 		actCompPL.add(actPL);
 	    }//while
-	    retList.add(actCompPL);
+	    retList.add(actCompPL); 
 	}//while
-	System.out.println("done.");
+	//System.out.println("done.");
 	return retList;
     }//end method cyclesPoints
 

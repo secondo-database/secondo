@@ -1,5 +1,6 @@
 import java.lang.reflect.*;
 import java.io.*;
+import java.util.*;
 
 public class Regions implements Serializable{
     //this class implements the Regions value of the ROSE algebra
@@ -11,7 +12,7 @@ public class Regions implements Serializable{
 
     //constructors
     public Regions() {
-	System.out.println("--> constructed an empty REGIONS object");
+	//System.out.println("--> constructed an empty REGIONS object");
 	trilist = new TriList();
 	perimeter = 0;
 	area = 0;
@@ -19,13 +20,13 @@ public class Regions implements Serializable{
 
     public Regions(TriList tl) {
 	//System.out.println("R.const: entered constructor");
-	System.out.print("--> constructing a REGIONS object from triangle list...");
+	//System.out.print("--> constructing a REGIONS object from triangle list("+tl.size()+")...");
 	if (tl.isEmpty()) {
 	    trilist = tl;
 	    perimeter = 0;
 	    area = 0;
 	}//if
-	if(!isRegularTriList(tl)) {
+	else if(!isRegularTriList(tl)) {
 	    System.out.println("Error in Regions: tried to construct bad Region.");
 	    System.exit(0);
 	}//if
@@ -38,38 +39,41 @@ public class Regions implements Serializable{
 	    //area = computeArea();
 	    //System.out.println("R.const: computed area");
 	}//else
-	System.out.println("done");
+	//System.out.println("done"); 
     }
 
     public Regions(SegList sl) {
-	System.out.print("--> constructing a REGIONS object from segment list (size: "+sl.size()+")...");
+	//System.out.print("--> constructing a REGIONS object from segment list (size: "+sl.size()+")...");
+	//System.out.println("\nsegList: "); sl.print();
 	if (sl.isEmpty()) {
 	    trilist = new TriList();
 	    perimeter = 0;
 	    area = 0;
 	}//if
 	else {
-	    System.out.print("triangles...");
+	    //System.out.print("triangles...");
 	    trilist = computeTriList(sl);
 	    //System.out.print("perimeter...");
 	    //perimeter = computePerimeter();
 	    //System.out.print("area...");
 	    //area = computeArea();
-	    System.out.println("done");
+	    //System.out.println("done.");
 	}//else
     }
 
     public Regions(Lines l) {
-	System.out.print("--> constructing a REGIONS object from LINES object...");
+	//System.out.print("--> constructing a REGIONS object from LINES object...");
 	if (l.seglist.isEmpty()) {
 	    trilist = new TriList();
 	    perimeter = 0;
 	    area = 0;
 	}//if
-	trilist = computeTriList(l.seglist);
-	perimeter = computePerimeter();
-	area = computeArea();
-	System.out.println("done");
+	else {
+	    trilist = computeTriList(l.seglist);
+	    //perimeter = computePerimeter();
+	    //area = computeArea();
+	    //System.out.println("done");
+	}//else
     }
 
     //methods
@@ -97,22 +101,6 @@ public class Regions implements Serializable{
 	//untested!!!
 
 	//System.out.println("entering R.isRegularTriList...");
-	
-	/*
-	if (tl.size() > 0) {
-	    TriList tlcop = (TriList)tl.copy();
-	    GFXout g = new GFXout();
-	    Rational fact = RationalFactory.constRational(40);
-	    for (int i = 0; i < tlcop.size(); i++) {
-		((Triangle)tlcop.get(i)).zoom(fact); }
-	    g.initWindow();
-	    g.addList(tlcop);
-	    g.showIt();
-	    try { int data = System.in.read(); }
-	    catch (Exception e) { System.exit(0); }
-	    g.kill();
-	}
-	*/
 
 	Class c = (new Triangle()).getClass();
 	Class[] paramList = new Class[1];
@@ -131,6 +119,7 @@ public class Regions implements Serializable{
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.out.println("Exception Cause: "+e.getCause());
 	    System.out.println("Exception String: "+e.toString());
+	    e.printStackTrace();
 	    System.exit(0);
 	}//catch
 	return false;
@@ -140,9 +129,85 @@ public class Regions implements Serializable{
     protected ElemListListList cyclesPoints() {
 	//returns the cycles of this as an ElemListListList
 	//which has points as elements
+	//System.out.println("entering Regions.cyclesPoints()...trilist.size="+trilist.size());
 	Polygons pol = new Polygons(trilist);
-	return pol.cyclesPoints();
+	ElemListListList elll = pol.cyclesPoints();
+	//System.out.println("\ncomputed ElemListListList: "); elll.print();
+	//System.out.println("leaving Regions.cyclesPoints()...");
+	return elll;
     }//end method cyclesPoints
 
+    
+    public static Regions readFrom(byte[] buffer){
+	try{
+	    ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+	    Regions res = (Regions) ois.readObject();
+	    ois.close();
+	    return res;
+	} catch(Exception e){
+	    return null;
+	}
+    }//end method readFrom
 
+
+    /** this method serializes an object */
+    public  byte[] writeToByteArray(){
+	
+	try{
+	    ByteArrayOutputStream byteout = new ByteArrayOutputStream();
+	    ObjectOutputStream objectout = new ObjectOutputStream(byteout);
+	    objectout.writeObject(this);
+	    objectout.flush();
+	    byte[] res = byteout.toByteArray();
+	    objectout.close();
+	    return  res;
+	} catch(Exception e) { return null; }
+	
+    }//end method writeToByteArray
+
+
+    public int compare (Regions rIn) {
+	//returns 0 if this == pin
+	//as long as elements in sorted lists from the beginning to the
+	//end are equal, traverse through the lists.
+	//When the first elements are found which are not equal, then
+	//return -1 if this has the smaller element
+	//return +1 if rIn has the smaller element
+	//if one list has less elements than the other and the first elements
+	//are equal, then
+	//return -1 if this is shorter than rIn
+	//return +1 if rIn is shorter than this
+
+	//first sort both trilists
+	TriList thiscop = (TriList)this.trilist.clone();
+	TriList rincop = (TriList)this.trilist.clone();
+	
+	SetOps.quicksortX(thiscop);
+	SetOps.quicksortX(rincop);
+
+	ListIterator lit1 = thiscop.listIterator(0);
+	ListIterator lit2 = rincop.listIterator(0);
+	
+	Triangle actT1;
+	Triangle actT2;
+	byte res;
+	while (lit1.hasNext() && lit2.hasNext()) {
+	    actT1 = (Triangle)lit1.next();
+	    actT2 = (Triangle)lit2.next();
+	    res = actT2.compare(actT2);
+	    if (!(res == 0)) return (int)res;
+	}//while
+	if (!lit1.hasNext() && !lit2.hasNext()) return 0;
+	if (!lit1.hasNext()) return -1;
+	else return 1;
+    }//end method compare
+
+
+    public Regions copy () {
+	//return new Regions(this.trilist);
+	Regions nr = new Regions();
+	nr.trilist = TriList.convert(this.trilist.copy());
+	return nr;
+    }//end method copy
+	
 }//end class Regions

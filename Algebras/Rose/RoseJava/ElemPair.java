@@ -1,4 +1,6 @@
-class ElemPair {
+import java.io.*;
+
+class ElemPair implements Serializable {
   //members
   public Element first;
   public Element second;

@@ -407,12 +407,12 @@ class SetOps {
 	
 	//it works as followes:
 	//1. perform overlappingPairs
-	//2. build a graph with vertices: elements and an edge exist between x,y if a pair
-	//(x,y) exists in the result of 1.
+	//2. build a graph with vertices (all elements of el) and edges (an edge exists
+	//   between x,y (of el) if a pair (x,y) exists in the result of 1. (of overlappingPairs))
 	//3. compute the connected components of the graph
 	//4. for each component do the following (recursively):
 	//  - perform method on a pair (x,y)
-	//  - replace pair by method(x,y)
+	//  - replace pair by the result of method(x,y)
 	//  - call ovRed for this component
 	
 	//System.out.println("\nentering SO.overlapReduce(el.size():"+el.size()+")");
@@ -438,25 +438,28 @@ class SetOps {
 	}//catch
 	*/
 	pl = filter(pl,predicate,true);
+	//System.out.println("\npairList:"); pl.print();
 	if (pl.isEmpty()) {
 	    //System.out.println("\npl.isEmpty.");
 	    return el; }
 	Graph g = new Graph(el,pl);
-	//System.out.println("graph:");
-	//g.print();
+	//System.out.println("\ngraph:"); g.print();
 	ConnectedComponentsPair ccp = g.connectedComponents();
-	//System.out.println("\nccp.vertices:");
-	//ccp.compVertices.print();
-	//the pairs from ccE mustn't be computed all at once
+	//System.out.println("connected components: "); ccp.print();
+	//the pairs from ccE must not be computed all at once
 	//so compute the set of pairs that may be computed
 	ccp = g.computeReducedPair(ccp);
-	//System.out.println("\nreducedPair:");
-	//ccp.compEdges.print();
-	//System.out.println("\nreducedPair(vertices):");
-	//ccp.compVertices.print();
 
-	ListIterator litE = ccp.compEdges.listIterator(0);
-	ListIterator litV = ccp.compVertices.listIterator(0);
+	ElemListList vertices = ccp.verticesToElemListList();
+	PairListList edges = ccp.edgesToPairListList();
+
+	//System.out.println("\nreduced pair (vertices): ");
+	//vertices.print();
+	//System.out.println("\nreduced pair(edges): ");
+	//edges.print();
+
+	ListIterator litE = edges.listIterator(0);
+	ListIterator litV = vertices.listIterator(0);
 	PairList actPL;
 	ElemList actEL;
 	ElemList ml = new ElemList();
@@ -475,6 +478,7 @@ class SetOps {
 	}//for i
 	//long time2 = System.currentTimeMillis();
 	//System.out.println("-->elapsed time for overlapReduce("+ovLapPairsMeet+"): "+(time2-time1)+"ms");
+	//System.out.println("returning retList("+retList.size()+")");
 	//System.out.println("leaving SO.overlapReduce.");
 	return rdup(retList);
     }//end method overlapReduce
@@ -719,7 +723,7 @@ class SetOps {
 	//Element[] paramListSM = new Element[2];
 	ElemList paramList1 = new ElemList();
 
-	System.out.println("\nentering SO.map(ljpl,m,m,m)...");
+	//System.out.println("\nentering SO.map(ljpl,m,m,m)...");
 
 	//System.out.println("LeftJoinPairList:");
 	//ljpl.print();
@@ -749,8 +753,8 @@ class SetOps {
 	    actLjp = (LeftJoinPair)lit.next();
 	    //if second list is not empty do the computation
 	    if (!actLjp.elemList.isEmpty()) {
-		System.out.println("\n++++++++++++++++++++++++++++++++++");
-		System.out.println("processing "+lit.nextIndex()+" of "+ljpl.size());
+		//System.out.println("\n++++++++++++++++++++++++++++++++++");
+		//System.out.println("processing "+lit.nextIndex()+" of "+ljpl.size());
 		try {
 		    paramList1.clear();
 		    paramList1.add(actLjp.element);
@@ -775,7 +779,7 @@ class SetOps {
 	    else { retList.add(actLjp.element); }
 	}//for i
 	
-	System.out.println("leaving map(ljpl,m,m,m).");
+	//System.out.println("leaving map(ljpl,m,m,m).");
 	return retList;
     }//end method map
 

@@ -1,6 +1,7 @@
 import java.util.*;
+import java.io.*;
 
-public class ElemList extends LinkedList{
+public class ElemList extends LinkedList implements Serializable {
 
     //members
     

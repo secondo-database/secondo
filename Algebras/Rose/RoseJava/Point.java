@@ -1,4 +1,6 @@
-class Point extends Element{
+import java.io.*;
+
+class Point extends Element implements Serializable {
     
     //members
     public Rational x; //x coordinate

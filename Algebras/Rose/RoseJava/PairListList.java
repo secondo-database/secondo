@@ -1,6 +1,7 @@
 import java.util.*;
+import java.io.*;
 
-public class PairListList extends LinkedList {
+public class PairListList extends LinkedList implements Serializable {
     
     //members
 

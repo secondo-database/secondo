@@ -198,7 +198,7 @@ public class GFXout extends JApplet {
 	    }//if
 
 	    if (e instanceof Polygons) {
-		ListIterator lit2 = ((Polygons)e).trilist.listIterator(0);
+		ListIterator lit2 = ((Polygons)e).triangles().listIterator(0);
 		Triangle t;
 		while (lit2.hasNext()) {
 		    t = (Triangle)lit2.next();

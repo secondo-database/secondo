@@ -19,12 +19,14 @@ public class RationalDouble extends Rational implements Serializable{
     public RationalDouble(Rational r) { this.d = ((RationalDouble)r).d; }
 
     public RationalDouble(int num, int den) {
-	System.out.println("RD.const(i,i): num: "+num+", den: "+den);
+	//System.out.println("RD.const(i,i): num: "+num+", den: "+den);
 	this.d = ((double)num/den);
+	/*
 	System.out.println("RD.const(i,i): this: "+this);
 	System.out.println("RD.const(i,i): d: "+this.d);
 	System.out.println("RD.const(i,i): numerator: "+this.getNumerator());
 	System.out.println("RD.const(i,i): denominator: "+this.getDenominator());
+	*/
     }
     
     //Methods
@@ -35,7 +37,7 @@ public class RationalDouble extends Rational implements Serializable{
 	//we have a loss of precision here!
 	//int dLength = String.valueOf(d).length();
 	int dLength = String.valueOf((int)d).length();
-	System.out.println("dLength: "+dLength+" string: "+String.valueOf(d));
+	//System.out.println("dLength: "+dLength+" string: "+String.valueOf(d));
 	int multiple = 0;
 	if (dLength < 9) {
 	    multiple = 9-dLength;

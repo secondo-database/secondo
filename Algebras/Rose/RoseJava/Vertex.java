@@ -21,5 +21,10 @@ class Vertex {
 	return new Vertex(this.value,this.number);
     }//end method copy
 
+    public boolean equal(Vertex inVer) {
+	if (inVer.value.equal(this.value)) return true;
+	else return false;
+    }//end method equal
+
 }//end class Vertex
     

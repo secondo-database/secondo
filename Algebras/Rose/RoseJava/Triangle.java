@@ -1,8 +1,9 @@
 import java.lang.Math.*;
 import java.util.*;
 import java.lang.reflect.*;
+import java.io.*;
 
-class Triangle extends Element{
+class Triangle extends Element implements Serializable {
 
     //members
     protected Point[] vertices = new Point[3];
@@ -487,31 +488,6 @@ class Triangle extends Element{
     }//end method noPointsInside
 
 
-    /*
-      private static int noSegsCrossed(Triangle tin1,Triangle tin2) {
-      //supportive method for minus
-      //returns the number of segments of tin1
-      //crossed by tin2
-      
-      int number = 0;
-      Segment[] tin1Segs = new Segment[3];
-      Segment[] tin2Segs = new Segment[3];
-      tin1Segs = tin1.getSegs();
-      tin2Segs = tin2.getSegs();
-      
-      for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-      if (tin1Segs[i].intersects(tin2Segs[j])) {
-      number++;
-      break;
-      }//if
-      }//for j
-      }//for i
-      
-      return number;
-      }//end methodnoSegsCrossed
-    */
-
     public TriList intersection (Triangle tin) {
 	//returns the set of triangles resulting from the intersection of t1, t2
 	//System.out.println("entering T.intersection...");
@@ -522,6 +498,10 @@ class Triangle extends Element{
 	if (TriTri_Ops.inside(this,tin)) {
 	    //System.out.println("T.intersection: t1 fully lies inside of t2");
 	    retList.add(this.copy());
+	    return retList;
+	}//if
+	if (TriTri_Ops.inside(tin,this)) {
+	    retList.add(tin.copy());
 	    return retList;
 	}//if
 	if (!this.intersects(tin)) {
@@ -618,16 +598,20 @@ class Triangle extends Element{
 		//System.out.println("this case isn't covered...");
 	    }//else
 	}//for i
-	if (chosenSegs.size() < 3) {
-	    System.out.println("Error in Triangle.intersection: chosenSegs < 3");
-	    System.exit(0);
-	}//if
 
-	//System.out.println("segs chosen...");
-	//System.out.println("chosenSegs:"); chosenSegs.print();
-	//System.out.println("\n\n");
+	//Compute valid partitions of the region.
+	//This is necessary because the triangulation algorithm
+	//cannot compute a triangulation for a region with articulation points.
+	//Hence partitions are computed and afterwards for each partition the
+	//triangulation is computed.
+	
+	ElemListList ell = partitionSegLists(chosenSegs);
+	
 	if (!chosenSegs.isEmpty()) {
-	    retList = (new Polygons(chosenSegs)).triangles();
+	    for (int i = 0; i < ell.size(); i++) {
+		ElemList actList = (ElemList)(ell.get(i));
+		retList.addAll(new Polygons(SegList.convert(actList)).triangles());
+	    }//for i
 	}//if
 
 	//System.out.println("leaving T.intersection.");
@@ -636,7 +620,8 @@ class Triangle extends Element{
 
 
     public TriList plus (Triangle tin) {
-	//returns the set of triangles resulting from adding t2 to t1
+	//returns the set of triangles resulting from addint t2 to t1
+
 	TriList retList = new TriList();
 	if (TriTri_Ops.inside(this,tin)) {
 	    //System.out.println("T.plus: t1 fully lies inside of t2");
@@ -748,10 +733,18 @@ class Triangle extends Element{
 	    }//else
 	}//for i
 
-	//System.out.println("chosenSegs:"); chosenSegs.print();
-	//System.out.println(); System.out.println();
+	//Compute valid partitions of the region.
+	//This is necessary because the triangulatoin algorithm
+	//cannot compute a triangulation for a region with articulation points.
+	//Hence partitions are computed and afterwards for each partition the
+	//triangulatoin is computed.
+	ElemListList ell = partitionSegLists(chosenSegs);
+	
 	if (!chosenSegs.isEmpty()) {
-	    retList = (new Polygons(chosenSegs)).triangles();
+	    for (int i = 0; i < ell.size(); i++) {
+		ElemList actList = (ElemList)(ell.get(i));
+		retList.addAll(new Polygons(SegList.convert(actList)).triangles());
+	    }//for i
 	}//if
 	
 	return retList;
@@ -924,7 +917,7 @@ class Triangle extends Element{
 	//This is necessary because the triangulation algorithm
 	//cannot compute a triangulation for a region with articulation points.
 	//Hence partitions are computed and afterwards for each partition the
-	//triangulation computed.
+	//triangulation is computed.
 	//BUT: if this.inside(tin)=true, don't do this
 	//In this case the result is directly passed to the triangulation algorithm.
 	ElemListList ell = null;

@@ -114,7 +114,7 @@ public class ROSEAlgebra {
 	//comment missing
 	//same as minus(SegList,TriList)
 	
-	System.out.println("entering A.minus(tl,tl).. ");
+	System.out.println("entering ROSEA.minus(tl,tl).. ");
 	System.out.println("tl1.size: "+tl1.size()+", tl2.size: "+tl2.size());
 
 	TriList retList = new TriList();
@@ -201,7 +201,7 @@ public class ROSEAlgebra {
 	//true : use overlapReduce
 	//false : use reduce
 
-	System.out.println("\nentering ROSEA.minimal...");
+	//System.out.println("\nentering ROSEA.minimal...");
 	//SegList retList = sl;
 	
 	//long time1 = System.currentTimeMillis();
@@ -222,7 +222,7 @@ public class ROSEAlgebra {
 	}//catch
 	//long time2 = System.currentTimeMillis();
 	//System.out.println("-->elapsed time for minimal: "+(time2-time1)+"ms");
-	System.out.println("leaving ROSEA.minimal.");
+	//System.out.println("leaving ROSEA.minimal.");
 	return retList;
     }//end method minimal
 
@@ -233,7 +233,7 @@ public class ROSEAlgebra {
 	//true : use overlapReduce
 	//false : use reduce
 
-	System.out.println("\nentering ROSEA.unique...");
+	//System.out.println("\nentering ROSEA.unique...");
 
 	//long time1 = System.currentTimeMillis();
 
@@ -249,11 +249,15 @@ public class ROSEAlgebra {
 	catch (Exception e) {
 	    System.out.println("Exception was thrown in ROSEAlgebra.unique(SegList,boolean):");
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.out.println("Exception cause: "+e.getCause());
+	    System.out.println("Exception string: "+e.toString());
+	    System.out.println("stack trace: ");
+	    e.printStackTrace();
 	    System.exit(0);
 	}//catch
 	//long time2 = System.currentTimeMillis();
 	//System.out.println("-->elapsed time for unique: "+(time2-time1)+"ms");
-	System.out.println("leaving ROSEA.unique.");
+	//System.out.println("leaving ROSEA.unique.");
 	return retList;
     }//end method unique
 
@@ -272,7 +276,7 @@ public class ROSEAlgebra {
 	//uniOverlap = true:  use overlapReduce for minimal
 	//minOverlap = false: use reduce for minimal
 	
-	System.out.println("\nentering ROSEA.contour...");
+	//System.out.println("\nentering ROSEA.contour...");
 	//long time1 = System.currentTimeMillis();
 	Class c = triClass;
 	SegList retList = new SegList();
@@ -284,12 +288,15 @@ public class ROSEAlgebra {
 	catch (Exception e) {
 	    System.out.println("Exception was thrown in ROSEAlgebra.contour(TriList,boolean,boolean):");
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    System.out.println("Exception cause: "+e.getCause());
+	    System.out.println("Exception string: "+e.toString());
+	    System.out.println("stack trace:"); e.printStackTrace();
 	    System.exit(0);
 	}//catch
 	//System.out.println("contour: "); retList.print();
 	//long time2 = System.currentTimeMillis();
 	//System.out.println("-->elapsed time for contour("+minOverlap+","+uniOverlap+"): "+(time2-time1)+"ms");
-	System.out.println("leaving ROSEA.contour.");
+	//System.out.println("leaving ROSEA.contour.");
 	return retList;
     }//end method contour
 
@@ -731,25 +738,10 @@ public class ROSEAlgebra {
 
     public static Regions rr_intersection (Regions r1, Regions r2) {
 	//comment missing
-	long time1 = System.currentTimeMillis();
+	
 	TriList tl1 = r1.trilist;
 	TriList tl2 = r2.trilist;
-
-	/*
-	GFXout gt = new GFXout();
-	Rational fact = RationalFactory.constRational(40);
-	TriList tl1cop = (TriList)tl1.copy();
-	tl1cop.addAll(tl2.copy());
-	for (int i = 0; i < tl1cop.size(); i++) {
-	    ((Triangle)tl1cop.get(i)).zoom(fact); }
-	gt.initWindow();
-	gt.addList(tl1cop);
-	gt.showIt();
-	try { int data = System.in.read(); }
-	catch (Exception e) { System.exit(0); }
-	gt.kill();
-	*/
-
+	
 	TriList retList = new TriList();
 	Class c = triClass;
 	Class[] paramListT = { c };
@@ -759,86 +751,33 @@ public class ROSEAlgebra {
 	    Method m1 = c.getMethod("pintersects",paramListT);
 	    Method m2 = c.getMethod("intersection",paramListT);
 	    System.out.println("RA.rr_intersection: Got methods");
-	    //contourP = contour(TriList.convert(SetOps.map(SetOps.join(tl1,tl2,m1),m2)));
-	    //System.out.println("computed contourP");
 	    PairList pl = SetOps.overlapJoin(tl1,tl2,m1,false);
-	    System.out.println("RA.rr_intersection: overlapJoin finished");
-	    //System.out.println("pairlist:"); pl.print();
-	    System.exit(0);
+	    System.out.println("RA.rr_intersection: overlapJoin finished pl.size:"+pl.size());
+	    
 	    ElemList el = SetOps.map(pl,m2);
 	    System.out.println("RA.rr_intersection: map finished");
-	    //contourP = contour(TriList.convert(el));
-	    //System.out.println("contourP("+contourP.size()+"):"); contourP.print();
-	    //System.exit(0);
-	    /*
-	    GFXout ggi = new GFXout();
-	    ggi.initWindow();
-	    ggi.addList(el.copy());
-	    ggi.showIt();
-	    try { System.in.read(); }
-	    catch (Exception e) { System.exit(0); }
-	    ggi.kill();
-	    */
 	    contourP = contour(TriList.convert(el),false,true);
-	    System.out.println("RA.rr_intersection: contour finished");
-	    /*
-	    System.out.println("contour: ");
-	    contourP.print();
-	    GFXout ggi2 = new GFXout();
-	    ggi2.initWindow();
-	    ggi2.addList(contourP.copy());
-	    ggi2.showIt();
-	    try { System.in.read(); }
-	    catch (Exception e) { System.exit(0); }
-	    ggi2.kill();
-	    */
-	    //System.exit(0);
-
+	    System.out.println("RA.rr_intersection: contourP("+contourP.size()+") computation finished"); //contourP.print();
+	 
 	    //++++++++
 	    //this is the right line:
 	    //+++++++ 
 	    //contourP = contour(TriList.convert(SetOps.map(SetOps.overlapJoin(tl1,tl2,m1,false),m2)),false,true);
 	    
-	    /*
-	    GFXout gg = new GFXout();
-	    gg.initWindow();
-	    gg.addList(el);
-	    //gg.addList(contourP);
-	    gg.showIt();
-	    try { int data = System.in.read(); }
-	    catch (Exception e) { System.exit(0); }
-	    gg.kill();
-	    */
-	    //long time3 = System.currentTimeMillis();
-	    //PairList tl01 = SetOps.join(tl1,tl2,m1);
-	    //long time4 = System.currentTimeMillis();
-	    //System.out.println("elapsed time (join):"+(time4-time3)+"ms");
-	    //System.out.println("join:"); //tl01.print();
-	    //long time1 = System.currentTimeMillis();
-	    //PairList tl02 = SetOps.overlapJoin(tl1,tl2,m1);
-	    //long time2 = System.currentTimeMillis();
-	    //System.out.println("elapsed time (overlapJoin): "+(time2-time1)+"ms");
-	    //System.exit(0);
-	    //System.out.println("ovjoin:"); tl02.print();
-	    //PairList tl03 = SetOps.difference(tl01,tl02);
-	    //System.out.println("diffList:");
-	    //tl03.print();
-	    //System.exit(0);
-	    //System.out.println();
-	    
-	    //return new TriList();
 	    retList = Polygons.computeTriangles(contourP);
-	    System.out.println("RA.rr_intersection: computeTriangles finished");
+	    //System.out.println("RA.rr_intersection: computeTriangles finished");
 	}//try
 	catch (Exception e) {
 	    System.out.println("Exception was thrown in ROSEAlgebra.rr_intersection(Regions,Regions):");
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
+	    e.printStackTrace();
 	    System.exit(0);
-	}//catch
+	}//catch 
 	Regions regret = new Regions(retList);
-	long time2 = System.currentTimeMillis();
-	System.out.println("-->elapsed time for rr_intersection: "+(time2-time1)+"ms");
+	//long time2 = System.currentTimeMillis();
+	//System.out.println("-->elapsed time for rr_intersection: "+(time2-time1)+"ms");
 	return regret;
+	 
     }//end method rr_intersection
 
 
@@ -911,9 +850,24 @@ public class ROSEAlgebra {
 
 
     public static Regions rr_plus (Regions r1, Regions r2) {
-	System.out.println("rr_plus is currently not implemented.");
-	return new Regions();
-    }
+	//comment missing
+	
+	TriList tl1 = r1.trilist;
+	TriList tl2 = r2.trilist;
+	
+	TriList min = minus(tl2,tl1);
+	System.out.println("RA.rr_plus: #triangles after minus: "+min.size());
+
+	TriList sum = TriList.convert(SetOps.disjointUnion(tl1,min));
+	System.out.println("RA.rr_plus: #triangles after disjointUnion: "+sum.size());
+	
+	SegList contour = new SegList();
+	if (sum.size() > 0) {
+	    contour = contour(min,true,true);
+	}//if
+	System.out.println("leaving RA.rr_plus...");
+	return new Regions(contour);
+    }//end method rr_plus
 	
     
     public static Points pp_minus (Points p1, Points p2) {
@@ -991,7 +945,7 @@ public class ROSEAlgebra {
 	*/
 	TriList min = minus(tl1,tl2);
 	System.out.println("ROSEA.rr_minus: elements after minus: "+min.size());
-
+	/*
 	GFXout gt = new GFXout();
 	gt.initWindow();
 	gt.addList(min.copy());
@@ -999,7 +953,7 @@ public class ROSEAlgebra {
 	try { int data = System.in.read(); }
 	catch (Exception e) { System.exit(0); }
 	gt.kill();
-
+	*/
 	SegList cont = new SegList();
 	if (min.size() > 0) {
 	    System.out.println("RA.rr_minus reducing number of triangles...");
@@ -1385,7 +1339,7 @@ public class ROSEAlgebra {
     public static double l_length (Lines l) {
 	//sums up the length of every element of sl
 
-	long time1 = System.currentTimeMillis();
+	//long time1 = System.currentTimeMillis();
 	
 	SegList sl = l.seglist;
 	double retSum = 0;
@@ -1399,8 +1353,8 @@ public class ROSEAlgebra {
 	    System.out.println("Exception: "+e.getClass()+" --- "+e.getMessage());
 	    System.exit(0);
 	}//catch
-	long time2 = System.currentTimeMillis();
-	System.out.println("-->elapsed time for l_length: "+(time2-time1)+"ms");
+	//long time2 = System.currentTimeMillis();
+	//System.out.println("-->elapsed time for l_length: "+(time2-time1)+"ms");
 	return retSum;
     }//end method l_length
   
@@ -1428,13 +1382,13 @@ public class ROSEAlgebra {
     
     public static double r_perimeter (Regions r) {
 	//comment missing
-	long time1 = System.currentTimeMillis();
+	//long time1 = System.currentTimeMillis();
 	
 	TriList tl = r.trilist;
 	double length = l_length(new Lines(contour(tl,true,true)));
 
-	long time2 = System.currentTimeMillis();
-	System.out.println("-->elapsed time for r_perimeter: "+(time2-time1)+"ms");
+	//long time2 = System.currentTimeMillis();
+	//System.out.println("-->elapsed time for r_perimeter: "+(time2-time1)+"ms");
 	return length;
     }//end method r_perimeter
 

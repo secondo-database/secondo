@@ -71,4 +71,27 @@ class ConnectedComponentsPair {
     }//end method verticesToElemListList
 
 
+    public PairListList edgesToPairListList() {
+	//extract the data from LinkedList and returns it as PairListList
+	ListIterator lit1 = compEdges.listIterator(0);
+	ListIterator lit2;
+	LinkedList actCC;
+	PairList actPL;
+	PairListList retList = new PairListList();
+	Edge actEdge;
+	
+	while (lit1.hasNext()) {
+	    actCC = (LinkedList)lit1.next();
+	    lit2 = actCC.listIterator(0);
+	    actPL = new PairList();
+	    while (lit2.hasNext()) {
+		actEdge = (Edge)lit2.next();
+		actPL.add(new ElemPair(actEdge.first.value,actEdge.second.value));
+	    }//while
+	    retList.add(actPL);
+	}//while
+
+	return retList;
+    }//end method edgesToPairListList
+
 }//end class ConnectedComponentsPair
