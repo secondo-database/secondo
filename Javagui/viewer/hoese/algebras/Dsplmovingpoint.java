@@ -144,8 +144,8 @@ public class Dsplmovingpoint extends DisplayTimeGraph {
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
     ispointType = true;         //to create the desired form
-    Intervals = new Vector(10, 5);
-    PointMaps = new Vector(10, 5);
+    Intervals = new Vector(value.listLength()+2);
+    PointMaps = new Vector(value.listLength()+2);
     ScanValue(value);
     if (err) {
       System.out.println("Dsplmovingpoint Error in ListExpr :parsing aborted");
