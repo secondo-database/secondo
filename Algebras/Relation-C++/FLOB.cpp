@@ -328,13 +328,13 @@ void FLOB::SaveToExtensionTuple( void *extensionTuple )
       fd.inMemory.buffer = 0;
       fd.inMemory.freeBuffer = false;
     }
-
-    type = InDiskSmall;
   }
   else
   {
     assert( fd.inMemory.buffer == 0 );
   }
+
+  type = InDiskSmall;
 }
 
 /*
