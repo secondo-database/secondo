@@ -179,6 +179,31 @@ void DateTime::Destroy(){
    canDelete=true;
 }
 
+/*
+~Set~
+
+This function sets an instant to the given values.
+
+*/
+void DateTime::Set(const int year,const int month, const int day,
+            const int hour, const int minute, const int second,
+            const int millisecond){
+
+   assert(type==instanttype);
+   long ms = ((hour*60+minute)*60+second)*1000+millisecond;
+   long d = ToJulian(year,month,day);
+   long dif = ms / MILLISECONDS;
+   ms = ms - dif;
+   d = d + dif;
+   if(ms < 0){
+      ms = ms + MILLISECONDS;
+      d--;
+   }
+   this->day = d;
+   this->milliseconds = ms;
+   this->defined = true;
+}
+
 
 /*
 ~SetType~
@@ -1588,6 +1613,18 @@ ListExpr CheckComparisons(ListExpr args){
   return nl->SymbolAtom("typeerror");
 }
 
+ListExpr TheInstantTM(ListExpr args){
+   int l = nl->ListLength(args);
+   if(l<1 || l>7)
+      return nl->SymbolAtom("typeerror");
+   ListExpr rest = args;
+   while(!nl->IsEmpty(rest)){
+       if(!nl->IsEqual(nl->First(rest),"int"))
+           return nl->SymbolAtom("typeerror");
+       rest = nl->Rest(rest);
+   }
+   return nl->SymbolAtom("instant");
+}
 
 
 /*
@@ -1601,6 +1638,82 @@ int LeapYearFun(Word* args, Word& result, int message,
     DateTime T;
     bool res = T.IsValid(Y->GetIntval(),2,29);
     ((CcBool*) result.addr)->Set(true,res);
+    return 0;
+}
+
+int TheInstantFun_Int1(Word* args, Word& result,
+                      int message, Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Set(((CcInt*)args[0].addr)->GetIntval());
+    return 0;
+}
+
+int TheInstantFun_Int2(Word* args, Word& result, int message,
+                       Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Set(((CcInt*)args[0].addr)->GetIntval(),
+                                   ((CcInt*)args[1].addr)->GetIntval()
+                                  );
+    return 0;
+}
+
+int TheInstantFun_Int3(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Set(((CcInt*)args[0].addr)->GetIntval(),
+                                   ((CcInt*)args[1].addr)->GetIntval(),
+                                   ((CcInt*)args[2].addr)->GetIntval()
+                                  );
+    return 0;
+}
+
+int TheInstantFun_Int4(Word* args, Word& result, int message,
+                       Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Set(((CcInt*)args[0].addr)->GetIntval(),
+                                   ((CcInt*)args[1].addr)->GetIntval(),
+                                   ((CcInt*)args[2].addr)->GetIntval(),
+                                   ((CcInt*)args[3].addr)->GetIntval()
+                                  );
+    return 0;
+}
+
+int TheInstantFun_Int5(Word* args, Word& result, int message,
+                       Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Set(((CcInt*)args[0].addr)->GetIntval(),
+                                   ((CcInt*)args[1].addr)->GetIntval(),
+                                   ((CcInt*)args[2].addr)->GetIntval(),
+                                   ((CcInt*)args[3].addr)->GetIntval(),
+                                   ((CcInt*)args[4].addr)->GetIntval()
+                                  );
+    return 0;
+}
+
+int TheInstantFun_Int6(Word* args, Word& result, int message,
+                       Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Set(((CcInt*)args[0].addr)->GetIntval(),
+                                   ((CcInt*)args[1].addr)->GetIntval(),
+                                   ((CcInt*)args[2].addr)->GetIntval(),
+                                   ((CcInt*)args[3].addr)->GetIntval(),
+                                   ((CcInt*)args[4].addr)->GetIntval(),
+                                   ((CcInt*)args[5].addr)->GetIntval()
+                                  );
+    return 0;
+}
+
+int TheInstantFun_Int7(Word* args, Word& result, int message,
+                       Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    ((DateTime*) result.addr)->Set(((CcInt*)args[0].addr)->GetIntval(),
+                                   ((CcInt*)args[1].addr)->GetIntval(),
+                                   ((CcInt*)args[2].addr)->GetIntval(),
+                                   ((CcInt*)args[3].addr)->GetIntval(),
+                                   ((CcInt*)args[4].addr)->GetIntval(),
+                                   ((CcInt*)args[5].addr)->GetIntval(),
+                                   ((CcInt*)args[6].addr)->GetIntval()
+                                  );
     return 0;
 }
 
@@ -1763,6 +1876,14 @@ const string LeapYearSpec =
    "   \"checks whether the given int is a leap year\" "
    "   \" query 2000 leapyear\" ))";
 
+const string TheInstantSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \" int (x int){0-6} -> instant\""
+   " \" theInstant(_,_,_,_,_,_,_) \" "
+   "   \"creates an instant from the arguments\""
+   " \"arguments are from years down to milliseconds\""
+   "   \" query theInstant(2004,7,17)\" ))";
+
 const string NowSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( \" -> instant\""
@@ -1876,6 +1997,34 @@ const string WeekdaySpec =
    " \"  weekday_of ( _ ) \" "
    "   \"returns the weekday in human readable format\" "
    "   \" query T weekday\" ))";
+
+/*
+4.3 ValueMappings of overloaded Operators
+
+*/
+
+ValueMapping TheInstantValueMap[] = {
+        TheInstantFun_Int1,TheInstantFun_Int2,TheInstantFun_Int3,
+        TheInstantFun_Int4,TheInstantFun_Int5,TheInstantFun_Int6,
+        TheInstantFun_Int7 };
+
+/*
+4.4 Model Mappings
+
+*/
+ModelMapping DummyModel_7[] =
+     {Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
+      Operator::DummyModel,Operator::DummyModel,Operator::DummyModel,
+      Operator::DummyModel};
+
+/*
+4.4 SelectionFunctions
+
+*/
+
+static int TheInstantSelect(ListExpr args){
+  return nl->ListLength(args)-1;
+}
 
 
 /*
@@ -2020,6 +2169,16 @@ Operator dt_weekday(
        Operator::SimpleSelect,
        InstantString);
 
+Operator dt_theInstant(
+       "theInstant",                        // name
+       TheInstantSpec,                 // specification
+       7,                          // number of functions
+       TheInstantValueMap,
+       DummyModel_7,
+       TheInstantSelect,
+       TheInstantTM);
+
+
 /*
 5 Creating the Algebra
 
@@ -2053,6 +2212,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_millisecond);
     AddOperator(&dt_now);
     AddOperator(&dt_today);
+    AddOperator(&dt_theInstant);
 
   }
   ~DateTimeAlgebra() {};

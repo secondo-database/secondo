@@ -102,6 +102,21 @@ argument.
 */
      ~DateTime();
 
+
+
+/*
+~Set~
+
+The Set-Function defined for instants sets the value to the
+specified arguments. Non consistent values, e.g. the 30.2.2004
+are converted into valid values.
+
+*/
+   void Set(const int year,const int month=1, const int day=1,
+            const int hour=0, const int minute=0, const int second=0,
+            const int millisecond=0);
+
+
 /*
 ~GetDay~
 
@@ -452,7 +467,8 @@ delta in [0,1].
 };
 
 namespace datetime{
-Word InInstant( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct );
+Word InInstant( const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutDateTime( ListExpr typeInfo, Word value );
 }
 
