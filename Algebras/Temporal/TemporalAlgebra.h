@@ -777,14 +777,7 @@ associated with time ~t~ in the output argument ~result~.
 3.3.4 Functions to be part of relations
 
 */
-/*    bool IsDefined() const = 0;
-    void SetDefined( bool Defined ) = 0;
-    int Compare( Attribute * arg ) = 0;
-    bool Adjacent( Attribute * arg ) = 0;
-    TemporalUnit<Alpha>* Clone() = 0;
-    size_t HashValue() = 0;
-    void CopyFrom( StandardAttribute* right ) = 0;
-*/    
+  
 /*
 3.5.3 Attributes
 

@@ -42,22 +42,12 @@ be linear and continuous, i.e., isomorphic to the real numbers.
 
 The list representation of an ~instant~ is
 
-----    i 
-----
-
-or 
-
-----    ( instant i )
+----    i  or ( instant i )
 ----
 
 For example:
 
-----    1.0 
-----
-
- or 
- 
- ----    ( instant 1.0 )
+----    1.0  or ( instant 1.0 )
 ----
 
 3.2 function Describing the Signature of the Type Constructor
@@ -1509,12 +1499,10 @@ MappingATypeMapBool( ListExpr args )
     if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" &&
         nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "int" )
 	return (nl->SymbolAtom( "bool" ));
-/*
-    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" &&
-        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "real" )
-	return (nl->SymbolAtom( "bool" ));
-    
-*/
+
+//    if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" &&
+//        nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "real" )
+//	return (nl->SymbolAtom( "bool" ));
     
     if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" &&
         nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "point" )
