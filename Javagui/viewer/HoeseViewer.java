@@ -831,6 +831,12 @@ public void removeObject(SecondoObject o){
 }
 
 
+/** remove all containing objects */
+public void removeAll(){
+  on_jMenu_NewSession(null);
+}
+
+
 /** return true if o is displayed false otherwise */
 public boolean isDisplayed(SecondoObject o){
    QueryResult q = new QueryResult(o.getName(),o.toListExpr());
@@ -1630,6 +1636,7 @@ public boolean canDisplay(SecondoObject o){
   }
     }
 }
+
 
 
 

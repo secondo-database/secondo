@@ -20,6 +20,9 @@ public abstract class SecondoViewer extends JComponent{
  /** removes o from viewer if displayed **/
  public abstract void removeObject(SecondoObject o);
 
+/** remove all containing objects */
+public abstract void removeAll();
+
  /** check if this viewer can display o
    **/
  public abstract boolean canDisplay(SecondoObject o);

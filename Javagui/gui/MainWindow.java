@@ -91,6 +91,7 @@ public Frame getMainFrame(){ return this; }
 /* creates a new MainWindow */
 public MainWindow(String Title){
   super(Title);
+  String StartScript=null;
   setSize(800,600);
   OptionPane = new JOptionPane();
   ServerDlg = new ServerDialog(this); 
@@ -228,8 +229,9 @@ public MainWindow(String Title){
    if(HistoryDirectory!=null)      
       FC_History.setCurrentDirectory(new File(HistoryDirectory));
       
-   
- 
+
+   StartScript = Config.getProperty("STARTSCRIPT");
+    
   } catch(Exception e){
     System.out.println("I can't read the configuration-file: "+CONFIGURATION_FILE);
   }
@@ -239,6 +241,17 @@ public MainWindow(String Title){
       if (!ComPanel.connect()) 
          showMessage("I can't find a Secondo-server");
   }
+  
+  if(StartScript!=null){
+      StartScript = StartScript.trim();
+      System.out.println("execute "+StartScript);
+      if (StartScript.endsWith("-i")){
+         StartScript = StartScript.substring(0,StartScript.length()-2).trim();
+         executeFile(StartScript,true);
+      }
+      else
+         executeFile(StartScript,false);
+   }
   
 }
 
@@ -361,6 +374,7 @@ private void setViewer(SecondoViewer SV){
   * 
   * available commands :
   * exit 
+  * clearAll
   * addViewer <ViewerName>
   * selectViewer <ViewerName>
   * clearHistory
@@ -593,9 +607,12 @@ public boolean execGuiCommand(String command){
      else
          ComPanel.appendText("unknow parameter\n");
      ComPanel.showPrompt();    
+  } else if(command.startsWith("clearAll")){
+     clearAll();
+     //ComPanel.showPrompt();
   }
   else {
-    ComPanel.appendText("unknow gui command \n input \"gui listCommands\" to get a list of available commands");
+    ComPanel.appendText("unknow gui command \n show help to get a list of available commands");
     ComPanel.showPrompt();
     success=false;
   }
@@ -834,10 +851,17 @@ private void createMenuBar(){
    MainMenu = new JMenuBar();
    ProgramMenu = new JMenu("Program");
    MainMenu.add(ProgramMenu);
+   
+   JMenuItem MI_Clear = ProgramMenu.add("new ");
+   MI_Clear.addActionListener(new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+          clearAll();
+      }
+   });
+   
 
    JMenu MI_ExecuteFile = new JMenu("execute file");
    ProgramMenu.add(MI_ExecuteFile);
-   
    MI_ExecuteFile_HaltOnError = new JMenuItem("halt on error");
    MI_ExecuteFile_IgnoreErrors = new JMenuItem("ignore errors");
    MI_ExecuteFile.add(MI_ExecuteFile_HaltOnError);
@@ -1025,6 +1049,14 @@ private void createMenuBar(){
    setJMenuBar(MainMenu); 
 }
 
+
+/** clear the History, the ObjectList and the Content of all Viewers */
+public void clearAll(){
+  ComPanel.clear();
+  OList.clearList();
+  for(int i=0;i<AllViewers.size();i++)
+     ((SecondoViewer) AllViewers.get(i)).removeAll();
+}
 
 
 

@@ -49,6 +49,10 @@ public QueryViewer(){
    RelSplitter.removeObject(o); 
    System.out.println("QueryViewer.removeObject : remove o from Current SubViewer");
  }
+ 
+ public void removeAll(){
+   RelSplitter.removeAll();
+ }
 
  public  boolean canDisplay(SecondoObject o){
     return RelSplitter.canDisplay(o);
@@ -311,3 +315,4 @@ private JMenuItem MI_HideRelation;
 private JOptionPane OptionPane = new JOptionPane();
 
 }
+

@@ -79,6 +79,7 @@ private void init(){
  
  Vector GC = new Vector(20);
  GC.add("gui exit");
+ GC.add("gui clearAll");
  GC.add("gui addViewer <ViewerName>");
  GC.add("gui selectViewer <ViewerName> ");
  GC.add("gui clearHistory");

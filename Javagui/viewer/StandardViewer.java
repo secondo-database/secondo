@@ -103,7 +103,17 @@ public class StandardViewer extends SecondoViewer{
         ComboBox.removeItem(o.getName());
  }
 
- 
+
+ /** remove all containing objects */
+ public void removeAll(){
+     ItemObjects.removeAllElements();
+     ComboBox.removeAllItems();
+     CurrentObject= null;
+     if(VC!=null)
+        VC.removeObject(null);
+     showObject();
+ }    
+
 
  /* returns allways true (this viewer can display all SecondoObjects) */
  public boolean canDisplay(SecondoObject o){
@@ -148,3 +158,4 @@ public class StandardViewer extends SecondoViewer{
 
 
 }
+

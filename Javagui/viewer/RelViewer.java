@@ -166,6 +166,13 @@ public class RelViewer extends SecondoViewer{
        showSelectedObject();
     }
  }
+ 
+ public void removeAll(){
+   ComboBox.removeAllItems();
+   Tables.clear();
+   showSelectedObject();
+ 
+ }
 
  public boolean canDisplay(SecondoObject o){
    ListExpr LE = o.toListExpr();
@@ -220,5 +227,6 @@ public class RelViewer extends SecondoViewer{
 
 
 }
+
 
 

@@ -39,6 +39,13 @@ public void removeObject(SecondoObject o){
   }
 }
 
+public void removeAll(){
+     AllRelations.removeAllItems();
+     CurrentRelation.setModel(dummy);
+}
+
+
+
 public boolean canDisplay(SecondoObject o){
   return Relation.isRelation(o) || (makeRelation(o)!=null);
 }
@@ -307,6 +314,7 @@ private JOptionPane OptionPane = new JOptionPane();
 
 
 }
+
 
 
 

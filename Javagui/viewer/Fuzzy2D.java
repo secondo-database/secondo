@@ -19,7 +19,6 @@ import javax.swing.event.*;
   * is a linear approximatiopn between the Colors used.
   * To display the 3the dimension is also used a ZBuffer.
   */
-
 public class Fuzzy2D extends SecondoViewer implements ApplyListener{
 
 /** creates the new Viewer */
@@ -360,6 +359,16 @@ public void removeObject(SecondoObject o){
     ImgPanel.repaint();
  }
  
+/** remove all objects from this viewer */
+public void removeAll(){
+  Img.removeAll();
+  myPoints.empty();
+  myLines.empty();
+  myTriangles.empty();
+  Img.paint();
+  ImgPanel.repaint();
+}
+ 
  
 /** remove all graphical object with given ID */
 private void removeGraphicalObjects(ID id){
@@ -498,6 +507,7 @@ private BoundingBox2D AutoBB2 = new BoundingBox2D();
 private boolean Proportional = true;
 
 }
+
 
 
 

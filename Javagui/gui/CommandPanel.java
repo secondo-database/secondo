@@ -76,7 +76,6 @@ public class CommandPanel extends JScrollPane {
   
   /** set the focus to the SystemArea */
   public void requestFocus(){
-     System.out.println("requestFoi");
      SystemArea.requestFocus();
   }
 
@@ -114,6 +113,15 @@ public class CommandPanel extends JScrollPane {
   public void clearHistory(){
     History.clear();
   } 
+  
+  
+  /** make clean the TextArea and the History */
+  public void clear(){
+     clearHistory();
+     aktPos=0;
+     SystemArea.setText("");
+     showPrompt();
+  }
 
 
  /**
