@@ -18,6 +18,7 @@ using namespace std;
 
 #include "SecondoInterface.h"
 #include "Profiles.h"
+#include "LogMsg.h"
 
 static istream&
 skipline( istream&  strm )
@@ -470,11 +471,17 @@ If value 0 is returned, the command was executed without error.
           if ( restoreFile )
           {
             iosock << "<SendFileData>" << endl;
+            int lines = 0;
+            cout << "Sending file to server ";
             while (!restoreFile.eof() && !iosock.fail())
             {
               getline( restoreFile, line );
               iosock << line << endl;
+              lines++;
+              if (lines == 10000) 
+                { cout << "."; lines = 0; }
             }
+            cout << " file transmitted. " << endl;
             iosock << "</SendFileData>" << endl;
             restoreFile.close();
           }
@@ -511,25 +518,37 @@ If value 0 is returned, the command was executed without error.
   }
   if ( readResponse )
   {
+    string result = "";
     if ( line == "<SecondoResponse>" )
     {
-      string result = "";
-      do
-      {
-        getline( iosock, line );
-        if ( line != "</SecondoResponse>" )
-        {
-          result += line + "\n";
-        }
-      }
-      while (line != "</SecondoResponse>" && !iosock.fail());      
-      nl->ReadFromString( result, resultList );
-      errorCode = nl->IntValue( nl->First( resultList ) );
-      errorPos  = nl->IntValue( nl->Second( resultList ) );
-      TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
-      nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), errorMessage );
-      nl->DestroyTextScan( ts );
-      resultList = nl->Fourth( resultList );
+      if ( !RTFlag::isActive("Server:BinaryTransfer") ) { // textual data transfer
+	do
+	{
+	  getline( iosock, line );
+	  if ( line != "</SecondoResponse>" )
+	  {
+	    result += line + "\n";
+	  }
+	}
+	while (line != "</SecondoResponse>" && !iosock.fail());      
+	nl->ReadFromString( result, resultList );
+	
+      } else { // binary data transfer
+      
+	nl->ReadBinaryFrom(iosock, resultList);
+	getline( iosock, line );
+	if (line != "</SecondoResponse>" ) {
+	  cerr << "Error: No </SecondoResponse> found after receiving a binary list!" << endl;
+	  errorCode = 80;
+	}  
+      }  
+      
+      	errorCode = nl->IntValue( nl->First( resultList ) );
+	errorPos  = nl->IntValue( nl->Second( resultList ) );
+	TextScan ts = nl->CreateTextScan( nl->Third( resultList ) );
+	nl->GetText( ts, nl->TextLength( nl->Third( resultList ) ), errorMessage );
+	nl->DestroyTextScan( ts );
+	resultList = nl->Fourth( resultList );
     }
     else if ( line == "<SecondoError>" )
     {

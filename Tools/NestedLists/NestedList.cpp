@@ -45,11 +45,15 @@ December 05, 2002 M. Spiekermann methods InitializeListMemory() and CopyList/Cop
 
 April 22, 2003 V. Almeida changed the methods CopyList and Destroy to use iteration instead of recursion.
 
-Jan - May 2003, M. Spiekermann, the Get() and Put() Methods of CTable.h were used to allow switching between
-persistent and in memory implementations of NL without writing special code for both implementations. Uncomment the precompiler directive #define CTABLE_PERSISTENT for support of big nested lists. Currently it is not possible to mix both variants.
+Jan - May 2003, M. Spiekermann. Get() and Put() Methods of CTable.h were used to allow switching between
+persistent and in memory implementations of NL without writing special code for both implementations. 
+Uncomment the precompiler directive #define CTABLE_PERSISTENT for support of big nested lists. 
+Currently it is not possible to mix both alternatives.
 
-December 2003, M. Spiekermann: A new method GetNextText has been introduced and and the
+December 2003, M. Spiekermann. A new method GetNextText has been introduced and and the
 implementation of Text2String was changed in order to use stringstreams. 
+
+Februar 2002, M. Spiekermann. Reading of binary encoded lists was implemented.
 
 1 Introduction
 
@@ -111,6 +115,15 @@ The code in this file will not compile but may be used as starting
 NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardinal ConstEntries,
 		        Cardinal StringEntries, Cardinal TextEntries )
 {
+   // the methods for converting integer and real
+   // values assume the sizes below. These sizes are
+   // widley used on 32bit INTEL/AMD architectures.
+   // Currently, no time will be invested to make the code
+   // machine independent. 
+   assert( sizeof(float) == 4 );
+   assert( sizeof(long) == 4  );
+   assert( sizeof(short) == 2 ); 
+   
    intTable = 0;
    stringTable = 0;
    nodeTable = 0;
@@ -1151,7 +1164,8 @@ within the structure of the list, otherwise, the function result is ~true~.
 
 
 /*
-6.4 WriteBinaryTo
+6.4 WriteBinaryTo: Write a list in binary encoded format into 
+    an output stream
 
 */
 
@@ -1162,110 +1176,524 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
   assert( os.good() );
 
   const byte v[7] = {'b','n','l',0,1,0,0};
-  os << (byte) v[0] << (byte) v[1] << (byte) v[2]
-     << (byte) v[3] << (byte) v[4] << (byte) v[5] << (byte) v[6];
+  os.write((char*)v,7);
   bool ok = WriteBinaryRec(list, os);
   os.flush();
   return ok;
 
 }
 
+/*
+6.4 ReadBinaryFrom: Reconstruct a list from
+    an input stream containing a binary encoded list
+
+*/
+
+bool
+NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
+
+  assert( in.good() );
+
+  char version[8] = {0,0,0,0,0,0,0,0};
+  in.read(version,7);
+  
+  string vStr = string(version);
+  if ( vStr.substr(0,3) != "bnl" ) {
+    cerr << "Error: Input stream is not a binary encoded nested list." << endl;
+    list = 0;
+    return false;
+  } 
+  // version number check ommitted
+
+  bool ok = ReadBinaryRec(list, in);
+  return ok;
+}
+
 
 /*
-6.4 Int2CharArray calculates a char array with
-    the MSB first (big endian) this computation is
-    independent of the machines byte order for a long value.
+6.4 hton (host to network) converts a 'long' value with 
+    LSB (little endian) byte order into the network representation 
+    MSB (big endian). This computation should be independent of the
+    hosts internal representation of a long value.  
 */
 
 char*
-NestedList::Int2CharArray(long value) {
+NestedList::hton(long value) {
 
-   static byte val[4] = {0,0,0,0};
+   static char buffer[4] = {0,0,0,0};
    for (int i=0; i<4; i++) {
-     val[3-i] = (byte) (value & 255);
+     buffer[3-i] = (byte) (value & 255);
      value = value >> 8;
    }
+   return (char*) buffer;
+}
 
-   return (char*) val;
+
+
+// Type IDs for binary encoded lists 
+static const byte BIN_LONGLIST = 0;
+static const byte BIN_INTEGER  = 1;
+static const byte BIN_REAL = 2;
+static const byte BIN_BOOLEAN = 3;
+static const byte BIN_LONGSTRING = 4;
+static const byte BIN_LONGSYMBOL = 5;
+static const byte BIN_LONGTEXT = 6;
+static const byte BIN_LIST = 10;
+static const byte BIN_SHORTLIST = 11;
+static const byte BIN_SHORTINT  = 12;
+static const byte BIN_BYTE = 13;
+static const byte BIN_STRING = 14;
+static const byte BIN_SHORTSTRING = 15;
+static const byte BIN_SYMBOL= 16;
+static const byte BIN_SHORTSYMBOL = 17;
+static const byte BIN_TEXT = 18;
+static const byte BIN_SHORTTEXT = 19;
+
+
+/*
+6.4 GetBinaryType: Determine the binary type ID of a list value
+    depending on the size of the list atom.
+   
+*/
+
+byte
+NestedList::GetBinaryType(ListExpr list) {
+
+  switch( AtomType(list) ) {
+
+  case BoolType     : return  BIN_BOOLEAN;
+  case IntType      : { long v = IntValue(list);
+                        if(v>=-128 && v<=127)
+			   return BIN_BYTE;
+			if(v>=-32768 && v<=32767)
+			   return BIN_SHORTINT;
+			return BIN_INTEGER;
+		      }
+  case RealType     : return BIN_REAL;
+  case SymbolType   : { int len = SymbolValue(list).length();
+                        if(len<256)
+			   return BIN_SHORTSYMBOL;
+			if(len<65536)
+			   return BIN_SYMBOL;
+			return BIN_LONGSYMBOL;
+                      }
+  case StringType   : { int len = StringValue(list).length();
+                        if(len<256)
+			   return BIN_SHORTSTRING;
+			if(len<65536)
+			   return BIN_STRING;
+			return BIN_LONGSTRING;
+		      }
+  case TextType     : { int len = TextLength(list);
+                        if(len<256)
+			   return BIN_SHORTTEXT;
+			if(len<65536)
+			   return BIN_TEXT;
+			return BIN_LONGTEXT;
+                       }
+  case NoAtom        : {int len = ListLength(list);
+                        if(len<256)
+			  return BIN_SHORTLIST;
+			if(len<65536)
+			   return BIN_LIST;
+			return BIN_LONGLIST;
+		       }
+  default : return (byte) 255; 
+	  
+  }
 }
 
 /*
-6.4 WriteBinaryRec
+6.4 ReadInt: This is the counterpart to the function hton. 
+    A 4 byte (signed) integer value is created.
+   
+*/
 
+
+long
+NestedList::ReadInt(istream& in) {
+
+  static char buffer[4] = { 0, 0, 0, 0 };
+  long result = 0;
+  
+  in.read(buffer,4);
+
+  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+    cerr << "Hex-Value: ";
+    for (int i=0; i<4; i++) {
+      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned int) buffer[i] << " ";
+    }
+  }  
+  
+  for (int i=0; i<4; i++) {
+    result = result << 8;
+    result += (unsigned char) 255 & buffer[i];	  
+  }
+  
+  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+    cerr << "   =>  Int-Value: " << result << endl;
+  }
+    
+  return result;
+}
+
+
+/*
+6.4 ReadShort: This is the counterpart to the function hton. 
+    A 2 byte (signed) integer value is created.
+   
+*/
+
+
+short
+NestedList::ReadShort(istream& in) {
+
+  static char buffer[2] = { 0, 0 };
+  short result = 0;
+  
+  in.read(buffer,2);
+
+  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+    cerr << "Hex-Value: ";
+    for (int i=0; i<2; i++) {
+      cerr << setiosflags(ios::showbase | ios::hex) << (unsigned int) buffer[i] << " ";
+    }
+  }  
+  
+  for (int i=0; i<2; i++) {
+    result = result << 8;
+    result += (unsigned char) 255 & buffer[i];	  
+  }
+  
+  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+    cerr << "   =>  Int-Value: " << result << endl;
+  }
+    
+  return result;
+}
+
+/*
+6.4 swap: Convert a 4 byte buffer into reverse order. This is needed to
+    convert float values between little endian an big endian representation. 
+   
+*/
+
+void
+NestedList::swap(char* buffer) {
+
+  char c = buffer[3];
+  
+  buffer[3] = buffer[0];
+  buffer[0] = c;
+  
+  c = buffer[2];
+  buffer[2] = buffer[1];
+  buffer[1] = c;
+}
+
+
+/*
+6.4 ReadString: This function allocates temporarily 
+    a character buffer, reads a given number of characters into it and
+    converts the buffer into a string object. 
+*/
+
+void
+NestedList::ReadString(istream& in, string& outStr, unsigned long length) {
+
+  char* strBuf = new char[length+1];
+  in.read(strBuf, length);
+  strBuf[length]=0;
+  outStr = string(strBuf);
+  delete [] strBuf;
+
+}
+
+
+
+bool 
+NestedList::ReadBinarySubLists(ListExpr& LE, istream& in, unsigned long length) {
+
+  if(length==0) {
+     LE = TheEmptyList();
+     return true;
+  }
+  
+  ListExpr subList = 0;
+  bool ok = ReadBinaryRec(subList, in);
+  if(!ok) // error in reading sublist
+     return false;
+  LE = OneElemList(subList);
+
+  ListExpr Last = LE;
+  ListExpr Next = 0;
+  for(unsigned int i=1; i<length; i++){
+      bool ok = ReadBinaryRec(Next, in);
+      if(!ok) // error in reading sublist
+	  return false;
+      Last = Append(Last,Next);
+  }
+  return true;
+
+}
+
+
+/*
+6.4 ReadBinaryRec: This recursive function reconstructs a list from
+    a stream containing binary encoded list data. 
+
+*/
+bool
+NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
+
+  static unsigned long len = 0;
+  static unsigned long pos = 0;	
+  static string str = "";
+  
+  byte typeId = 255 & in.get();
+  pos++;
+
+  if( RTFlag::isActive("NL:BinaryListDebug") ) {
+    cerr << "TypeId: " << (unsigned int) (255 & typeId) << endl;
+  }
+    
+  switch( typeId ){
+	  
+      case BIN_BOOLEAN        : { result =  BoolAtom( in.get() ? false : true );
+                                  pos++;
+				  return true; 
+				}
+      case BIN_BYTE           : { char c = 0;  
+                                  in.read(&c,1);
+                                  result = IntAtom( c ); 
+                                  pos++;
+				  return true; 
+				}
+      case BIN_SHORTINT       : { result =  IntAtom( ReadShort(in) );
+                                  pos += 2;
+				  return true; 
+				}
+      case BIN_INTEGER        : { result =  IntAtom( ReadInt(in) );
+                                  pos +=4;
+				  return true; 
+				}
+      case BIN_REAL           : {
+ 				 float fval = 0;
+       				 char* fp = (char*) &fval;
+				 in.read(fp, 4);
+                                 pos +=4;
+			         if ( WinUnix::isLittleEndian() ) {
+				    swap(fp);
+				 }
+				 result = RealAtom( fval );
+ 				 return true;
+				} 
+				
+      case BIN_SHORTSTRING    : { len = 255 & in.get();
+				  ReadString(in, str, len);
+                                  pos = pos + 1 + len;
+                                  result = StringAtom( str );
+				  return true;
+                                }
+      case BIN_STRING         : { len = 65535 & ReadShort(in);
+				  ReadString(in, str, len);
+			          pos = pos + 2 + len;
+                                  result = StringAtom( str );
+				  return true;
+				}
+      case BIN_LONGSTRING     : { len = 2^32-1 & ReadInt(in);
+				  ReadString(in, str, len);
+				  pos = pos + 4 + len;
+                                  result = StringAtom( str );
+				  return true;
+	                        }
+      case BIN_SHORTSYMBOL    : { len = 255 & in.get();
+				  ReadString(in, str, len);
+                                  pos = pos + 1 + len;
+                                  result =  SymbolAtom( str );
+				  return true;
+	                        }
+      case BIN_SYMBOL         : { len = 65535 & ReadShort(in);
+				  ReadString(in, str, len);
+                                  pos = pos + 2 + len;
+                                  result =  SymbolAtom( str );
+				  return true;
+	                        }
+      case BIN_LONGSYMBOL     : { len = 2^32-1 & ReadInt(in);
+				  ReadString(in, str, len);
+                                  pos = pos + 4 + len;
+                                  result =  SymbolAtom( str );
+				  return true;
+	                        }
+      case BIN_SHORTTEXT      : { len = 255 & in.get();
+				  ReadString(in, str, len);
+                                  pos = pos + 1 + len;
+				  ListExpr text = TextAtom();
+                                  AppendText(text, str );
+				  result = text;
+				  return true;
+	                        }
+      case BIN_TEXT           : { len = 65535 & ReadShort(in);
+				  ReadString(in, str, len);
+                                  pos = pos + 2 + len;
+				  ListExpr text = TextAtom();
+                                  AppendText(text, str );
+				  result = text;
+				  return true;
+	                        }
+      case BIN_LONGTEXT       : { len = 2^32-1 & ReadInt(in);
+				  ReadString(in, str, len);
+                                  pos = pos + 4 + len;
+				  ListExpr text = TextAtom();
+                                  AppendText(text, str );
+				  result =  text;
+				  return true;
+	                        }
+
+      case BIN_SHORTLIST      : { len = 255 & in.get();
+                                  pos++;
+				  ListExpr LE = 0;
+				  bool ok = ReadBinarySubLists(LE, in, len);
+				  if (!ok) {
+			            result = 0;
+				    return false;
+				  } else {
+				    result = LE;
+				    return true;
+   	                          }
+	                         }
+
+      case BIN_LIST           : { len = 65535 & ReadShort(in);
+                                  pos += 2;
+				  ListExpr LE = 0;
+				  bool ok = ReadBinarySubLists(LE, in, len);
+				  if (!ok) {
+				    result = 0;
+				    return false;
+				  } else {
+				    result = LE;
+				    return true;
+   	                          }					
+	                         }
+
+      case BIN_LONGLIST      : {  len = 2^32-1 & ReadInt(in);
+                                  pos += 4; 
+				  ListExpr LE = 0;
+				  bool ok = ReadBinarySubLists(LE, in, len);
+				  if (!ok) {
+                                    cout << "Error in ReadBinarySubLists(...)!" << endl;
+				    result = 0;
+				    return false;
+				  } else {
+			            result = LE;		  
+				    return true;
+   	                          }				       
+	                        }
+
+
+      default      : { 
+	                cerr << "Error: Unknown binary list type ID: " << (unsigned int) typeId 
+                             << " at position " << pos << endl;
+                        cerr << "Last read string: " << str << endl;
+	                return false;
+		     }
+  }
+
+}
+
+
+/*
+6.4 WriteBinaryRec: This recursive function  writes 
+    lists in binary format to the output stream.
 */
 
 bool
 NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 
-  int strlen = 0;
+  unsigned long strlen = 0;
+  unsigned int len = 0;
   char* pv = 0;
-  NodeRecord nodeRec1;
-  NodeType NT = NoAtom;
 
   os.flush();
   assert( os.good() );
 
-  if ( list != TheEmptyList() ) {
+  byte typeId = GetBinaryType(list);
+  os << typeId;
 
-     nodeTable->Get(list, nodeRec1);
-     NT = nodeRec1.nodeType;
-  }
+      switch( typeId ) {
 
-      switch( NT ) {
-
-          case BoolType:   {
- 		           os << (byte) 3; // write code for record type
+          case BIN_BOOLEAN:   {
 	                   bool b = BoolValue(list);
 			   byte value = (byte) (b?1:0);
 			   os << (byte) value;
 			   return true;
 	  }
-	  case IntType:    {
-                           os << (byte) 1;
+          case BIN_BYTE:
+          case BIN_SHORTINT:
+	  case BIN_INTEGER: 
+          {
 	                   long value = IntValue(list);
-                           pv = Int2CharArray(value);
-                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+                           pv = hton(value);
+                           if (typeId == BIN_BYTE) {
+                             len = 1;
+                           } else {
+                             len = (typeId == BIN_SHORTINT) ? 2 : 4;
+                           }
+                           os.write(pv+4-len,len);
 			   return true;
 	  }
-	  case RealType:   {
-                           os << (byte) 2;
+	  case BIN_REAL:   {
 	                   float value = RealValue(list);
-                           byte val[4] = {0,0,0,0};
-			   byte* pval = val;
-                           memcpy( (void*) val, (void*) &value,4 );
+                           char val[4] = {0,0,0,0};
+                           memcpy( (void*) val, (void*) &value, 4 );
 
 			   if ( WinUnix::isLittleEndian() ) {
-			     byte bigEndianVal[4] = {val[3],val[2],val[1],val[0]};
-			     pval = bigEndianVal;
+			     swap(val);
 			   }
-
-                           os << (byte) pval[0] << (byte) pval[1] << (byte) pval[2] << (byte) pval[3];
+                           os.write(val,4);
 			   return true;
 	  }
-	  case StringType: {
-                           os << (byte) 4;
+          case BIN_SHORTSTRING:
+          case BIN_STRING:
+	  case BIN_LONGSTRING: {
 	                   string value = StringValue(list);
 			   strlen = value.length();
-                           pv = Int2CharArray(strlen);
-                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+                           pv = hton(strlen);
+                           if (typeId == BIN_SHORTSTRING) {
+                             len = 1;
+                           } else {
+                             len = (typeId == BIN_STRING) ? 2 : 4;
+                           }
+                           os.write(pv+4-len,len);
 			   os << value;
 			   return true;
           }
-	  case SymbolType: {
-			   os << (byte) 5;
+          case BIN_SHORTSYMBOL:
+          case BIN_SYMBOL:
+	  case BIN_LONGSYMBOL: {
 	                   string value = SymbolValue(list);
 			   strlen = value.length();
-                           pv = Int2CharArray(strlen);
-                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+                           pv = hton(strlen);
+                           if (typeId == BIN_SHORTSYMBOL) {
+                             len = 1;
+                           } else {
+                             len = (typeId == BIN_SYMBOL) ? 2 : 4;
+                           }
+                           os.write(pv+4-len,len);
 			   os << value;
 			   return true;
 	  }
-	  case TextType:   {
-                           os << (byte) 6;
-	                   //Text2String(list, value); // to do: stream based processing of texts
+          case BIN_SHORTTEXT:
+          case BIN_TEXT:
+	  case BIN_LONGTEXT:   {
 			   strlen = TextLength(list);
-                           pv = Int2CharArray(strlen);
-                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+                           pv = hton(strlen);
+                           if (typeId == BIN_SHORTTEXT) {
+                             len = 1;
+                           } else {
+                             len = (typeId == BIN_TEXT) ? 2 : 4;
+                           }
+                           os.write(pv+4-len,len);
                            string value="";
 			   while ( GetNextText(list, value, 1024) ) {
 			      os << value;
@@ -1273,10 +1701,16 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 			   return true;
           }
 
-	  case NoAtom: {
-                           os << (byte) 0;
-                           pv = Int2CharArray(ListLength(list));
-                           os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
+          case BIN_SHORTLIST:
+          case BIN_LIST:
+	  case BIN_LONGLIST: {
+                           pv = hton(ListLength(list));
+                           if (typeId == BIN_SHORTLIST) {
+                             len = 1;
+                           } else {
+                             len = (typeId == BIN_LIST) ? 2 : 4;
+                           }
+                           os.write(pv+4-len,len);
                            while( !IsEmpty(list) ){
                              if( !WriteBinaryRec( First(list), os ) ) // error in writing sublist
 			         return false;

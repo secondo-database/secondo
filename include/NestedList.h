@@ -31,17 +31,20 @@ October 22, 1996 RHG Made operations ~ListLength~ and ~WriteListExpr~ available.
 
 February 2002 Ulrich Telle Port to C++
 
-November 28, 2002 M. Spiekermann; method reportVectorSizes() added. 
+November 28, 2002 M. Spiekermann. Method reportVectorSizes() added. 
 
-December 05, 2002 M. Spiekermann; methods InitializeListMemory() and CopyList() supplemented.
+December 05, 2002 M. Spiekermann. Methods InitializeListMemory() and CopyList() supplemented.
 
-Aug/Sept 2003 M. Spiekermann. Some often called methods were defined as inline
+Aug/Sept 2003, M. Spiekermann. Some often called methods were defined as inline
 functions to reduce the runtime stack.  Producing a nested list in textual
 format is now done by an ostream object to avoid creating big string objects
 when it is possible to write to a stream (e.g.  cout, file or a TCP/IP
 socket). Moreover, a new method WriteBinaryTo() creates a byte sequence
 representing a nested list which is much smaller than the textual format. All
 this modifications gain a speed up of the client-server communication. 
+
+February 2004, M. Spiekermann. Reading of binary encoded lists was implemented.
+
 
 1.1 Overview
 
@@ -135,7 +138,7 @@ and the following operations:
                        & ExprLength  &            & WriteListExpr   \\
         OneElemList    & Equal       &            & WriteStringTo   \\
         TwoElemList    & IsEqual     & Second     & WriteBinaryTo   \\
-        ThreeElemList  &             & Third                        \\
+        ThreeElemList  &             & Third      & ReadBinaryFrom  \\
         FourElemList   &             & Fourth                       \\
         FiveElemList   &             & Fifth                        \\
         SixElemList    &             & Sixth                        \\
@@ -535,9 +538,10 @@ if the file could not be written properly.
 
 */
   bool ReadFromString( const string& nlChars,
-                       ListExpr& List );
+                       ListExpr& list );
+  bool ReadBinaryFrom( istream& in, ListExpr& list);
 /*
-Like ~ReadFromFile~, but reads a nested list from array ~nlChars~. 
+Like ~ReadFromFile~, but reads a nested list from string ~nlChars~ or istream ~in~. 
 Returns "true"[4] if reading was successful.
 
 */
@@ -800,12 +804,11 @@ Copies a nested list from ~this~ instance to the target instance.
 
  protected:
   const ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
-  bool WriteBinaryRec( ListExpr list, ostream& os );
+  
   void DestroyRecursive ( const ListExpr list );
   void DeleteListMemory();                            // delete CTable pointers
   void PrintTableTexts();
 
-  char* Int2CharArray(long value);
 
   string NodeType2Text( NodeType type );
   string BoolToStr( const bool boolValue );
@@ -822,7 +825,21 @@ Copies a nested list from ~this~ instance to the target instance.
   bool WriteToStringLocal( ostream& nlChars, ListExpr list );
 
  private:
+ 
+  // prototypes for functions used for the binary encoding/decoding of lists
+  bool  WriteBinaryRec( ListExpr list, ostream& os );
+  bool  ReadBinaryRec( ListExpr& result, istream& in );
+  bool  ReadBinarySubLists( ListExpr& LE, istream& in, unsigned long length );
+  short ReadShort( istream& in );  
+  long  ReadInt( istream& in );
+  void  ReadString( istream& in, string& outStr, unsigned long length );
+  
+  byte  GetBinaryType(ListExpr list);
+  char* hton(long value);
+  void  NestedList::swap(char* buffer); 
+  
 
+  
   SmiRecordFile *recFilePtr;
   bool delRecFile;
 

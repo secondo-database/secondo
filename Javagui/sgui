@@ -3,4 +3,4 @@ if [ "$SECONDO_PLATFORM" = "win32" ]
     else CP=".:lib/java_cup_v10i_runtime.jar"
 fi    
 
-java -Xmx80M -classpath $CP gui.MainWindow
+java -Xmx120M -classpath $CP gui.MainWindow

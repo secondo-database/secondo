@@ -52,6 +52,7 @@ main(int argc, char *argv[]) {
          binary = true;
          text = false;
          outText = true;
+         outBinary = false;
          break;
       case '2':
          twoOutputs = true;
@@ -87,10 +88,11 @@ main(int argc, char *argv[]) {
 
    ListExpr list=0;
    if (binary) {
-      //nl.ReadFromFileBinary( inFileStr, list);
-      cout << "Reading Binary files not supported yet!" << endl;
-      exit(1);
+      ifstream inFile(inFileStr.c_str(), ios::binary); 
+      nl.ReadBinaryFrom( inFile, list );
+      cout << "Reading binary encoded list ..." << endl;
    } else {
+      cout << "Reading textual list representation ... " << endl;
       nl.ReadFromFile( inFileStr, list );
    }   
 
@@ -101,7 +103,7 @@ main(int argc, char *argv[]) {
    }
 
    if (outBinary) {
-      string outFileStr = inFileStr + ".bin";
+      string outFileStr = inFileStr + ".bnl";
       cout << endl << "Writing " + outFileStr + " ... " << endl;
       ofstream outFile(outFileStr.c_str(), ios::out|ios::trunc|ios::binary); 
       nl.WriteBinaryTo(list, outFile);   
