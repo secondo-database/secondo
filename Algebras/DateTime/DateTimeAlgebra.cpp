@@ -622,9 +622,9 @@ bool DateTime::ReadFrom(ListExpr LE,const bool typeincluded){
      }
      ListExpr TypeList = nl->First(LE);
      if(!nl->IsEqual(TypeList,"datetime")){
-       if( (type==instanttype) && !nl->IsEqual(TypeList,"instant"));
+       if( (type==instanttype) && !nl->IsEqual(TypeList,"instant"))
           return false;
-       if( (type==durationtype) && !nl->IsEqual(TypeList,"duration"));
+       if( (type==durationtype) && !nl->IsEqual(TypeList,"duration"))
           return false;
      }
      ValueList = nl->Second(LE);
