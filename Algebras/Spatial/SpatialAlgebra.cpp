@@ -4223,6 +4223,46 @@ const SmiRecordId CRegion::GetRegionRecordId() const
   return region->Id();
 }
 
+bool CRegion::contain_old( const Point& p ) const
+{
+    if (!bbox.Contains(p)) return false;
+    
+    int faceISN[100];
+
+    int lastfaceno=-1;
+    for (int i=0; i<100; i++)
+    {
+	faceISN[i]=0;
+    }
+
+    CHalfSegment chs;
+    
+    for (int i=0; i<this->Size(); i++)
+    {
+	this->Get(i, chs);
+	double y0;
+
+	if  ((chs.GetLDP()) &&(chs.Contains(p)))
+	    return true;
+	
+	if ((chs.GetLDP()) &&(chs.rayAbove(p, y0)))
+	{
+	    faceISN[chs.attr.faceno]++;
+	    if (lastfaceno < chs.attr.faceno)
+		lastfaceno=chs.attr.faceno;
+	}
+    }
+    
+    for (int j=0; j<=lastfaceno; j++)
+    {
+	if (faceISN[j] %2 !=0 )
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
 bool CRegion::contain( const Point& p ) const
 {
     //here: if the point is on the border, it is also counted.
@@ -8416,6 +8456,34 @@ SpatialInside_pr( Word* args, Word& result, int message, Word& local, Supplier s
  }
 
 static int
+SpatialInside_pr_old( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+    result = qp->ResultStorage( s );
+
+    Point *p=((Point*)args[0].addr);
+    CRegion *cr=((CRegion*)args[1].addr);
+    
+    if(! cr->BoundingBox().Contains( *p) )  
+    {
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+        
+    if (cr->contain_old(*p))
+    {	//cout<<"p inside r!!!"<<endl;
+	//cout<<*p<<endl<<*cr<<endl;
+	((CcBool *)result.addr)->Set( true, true);
+	return (0);
+    }
+    else
+    {	//cout<<"p NOT inside r!!!"<<endl;
+	//cout<<*p<<endl<<*cr<<endl;
+	((CcBool *)result.addr)->Set( true, false);
+	return (0);
+    }
+ }
+
+static int
 SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
     //point + region --> int
@@ -11620,6 +11688,8 @@ ValueMapping spatialinsidemap[] = 	      { SpatialInside_pps,
 				        SpatialInside_lr,
 				        SpatialInside_rr };
 
+ValueMapping spatialinsideoldmap[] =     { SpatialInside_pr_old};
+
 ValueMapping spatialtouchesmap[] =    { touches_psps,
 				        touches_psl,
 				        touches_lps,
@@ -11835,6 +11905,14 @@ const string SpatialSpecInside  =
 	"<text>query point1 inside line1</text--->"
 	") )";
 
+const string SpatialSpecInsideold  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+	"( <text>(point x region) -> bool</text--->"
+	"<text>_ insideold _</text--->"
+	"<text>Insideold.</text--->"
+	"<text>query point1 insideold region1</text--->"
+	") )";
+
 const string SpatialSpecTouches  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
 	"( <text>(points||line||region x points||line||region) -> bool</text--->"
@@ -12036,6 +12114,10 @@ Operator spatialinside
 	( "inside", SpatialSpecInside, 9, spatialinsidemap, spatialnomodelmap,
 	  insideSelect, GeoGeoMapBool );
 
+Operator spatialinsideold
+	( "insideold", SpatialSpecInsideold, 1, spatialinsideoldmap, spatialnomodelmap,
+	  SimpleSelect, GeoGeoMapBool );
+
 Operator spatialtouches
 	( "touches", SpatialSpecTouches, 9, spatialtouchesmap, spatialnomodelmap,
 	  touches_attached_overlapsSelect, GeoGeoMapBool );
@@ -12146,6 +12228,7 @@ class SpatialAlgebra : public Algebra
     //AddOperator( &spatialgreaterequal );
     AddOperator( &spatialintersects );
     AddOperator( &spatialinside );
+    AddOperator( &spatialinsideold );
     AddOperator( &spatialtouches );  
     AddOperator( &spatialattached );  
     AddOperator( &spatialoverlaps );  
