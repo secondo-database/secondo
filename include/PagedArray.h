@@ -69,6 +69,15 @@ elements of type ~T~.
 
 typedef unsigned long Cardinal;
 
+
+/*
+
+The class Recordbuffer implements a buffer for page oriented access of memory. The interface consists
+of a single 
+
+
+*/
+
 class RecordBuffer
 {
 
@@ -83,7 +92,9 @@ public:
     bufferReplacements(0),
     trace(traceOn)
   {
-    assert( recSize >= bufSize );
+    assert( REC_SIZE >= BUF_SIZE );
+    assert( MAX_BUFFERS >= 1 );
+
     if (trace)
       cout << "BufSize: " << BUF_SIZE << endl;
 
@@ -108,7 +119,8 @@ public:
     for (int i=0; i < MAX_BUFFERS; i++) {
        delete [] (char*) BufInfo[i].bufPtr;
     }
-  
+    recidVec.clear(); 
+ 
   }
 
   void* GetBufPtr(const Cardinal& pageNr, bool &pageChange) {
@@ -421,7 +433,7 @@ writeable( true ),
 canDelete( false ),
 size( 0 ),
 pageRecord( recSize ),
-recordBuf( recSize, recSize, buffers ),
+recordBuf( recSize, recSize, (2*buffers)/pageRecord.slots + 1 ),
 bufPtr(0)
 {
   log.switchedOn = logOn;
@@ -454,7 +466,7 @@ PagedArray<T>::~PagedArray()
     (*log.filePtr) << endl 
                    << "# Total page changes: " << log.pageChangeCounter << endl
                    << "# Total slot accesses: " << log.slotAccessCounter << endl;
-    delete log.filePtr;
+  delete log.filePtr;
   }
 }
 
@@ -474,10 +486,11 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
   // enlarge the array if necessary 
   if (index == size) {
      size = size + pageRecord.slots;
-  } 
+  }
 
   // calculate page number
   pageNo = index / pageRecord.slots;
+
   // cast the buffer pointer 
   bufPtr = (T*) recordBuf.GetBufPtr(pageNo, pageChange); 
 
