@@ -117,8 +117,6 @@ public void disconnect(){
 	  System.out.println("error in closing connection to optimizer-server");
 	}
      }
-  }else{
-    System.out.println("ClientSocket==null");
   }
   ClientSocket = null;
   in  = null;
