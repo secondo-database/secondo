@@ -2176,7 +2176,7 @@ Example:
 
 ----	select [ort, plz]
 	from plz
-	orderby [ort#asc, plz#desc]
+	orderby [ort asc, plz desc]
 ----
 
 This example also shows that the where-clause may be omitted. It is also
@@ -2186,7 +2186,7 @@ possible to combine grouping and ordering:
 	from plz
 	where plz > 40000
 	groupby ort
-	orderby cntplz#desc
+	orderby cntplz desc
 ----
 
 Currently only a basic part of this language has been implemented.
@@ -2753,11 +2753,15 @@ names have been looked up already.
 
 */
 
-queryToPlan(select * from Term, consume(Stream), Cost) :-
-  translate(select * from Term, Stream, select *, Cost), !.
+queryToPlan(Query, consume(Stream), Cost) :-
+  selectClause(Query, *),
+  !,
+  translate(Query, Stream, select *, Cost).
 
-queryToPlan(select count(*) from Term, count(Stream), Cost) :-
-  translate(select count(*) from Term, Stream, select count(*), Cost), !.
+queryToPlan(Query, count(Stream), Cost) :-
+  selectClause(Query, count(*)),
+  !,
+  translate(Query, Stream, select count(*), Cost).
 
 queryToPlan(Query, consume(project(Stream, AttrNames)), Cost) :-
   translate(Query, Stream, select Attrs, Cost), !,
@@ -2776,16 +2780,39 @@ Same as ~queryToPlan~, but returns a stream plan, if possible. To be used for
 
 */
 
-queryToStream(select * from Term,  Stream, Cost) :-
-  translate(select * from Term, Stream, select *, Cost), !.
+queryToStream(Query,  Stream, Cost) :-
+  selectClause(Query, *),
+  translate(Query, Stream, select *, Cost), !.
 
-queryToStream(select count(*) from Term, count(Stream), Cost) :-
-  translate(select count(*) from Term, Stream, select count(*), Cost), !.
+queryToStream(Query, count(Stream), Cost) :-
+  selectClause(Query, count(*)),
+  translate(Query, Stream, select count(*), Cost), !.
 
 queryToStream(Query,  project(Stream, AttrNames), Cost) :-
   translate(Query, Stream, select Attrs, Cost), !,
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNames).
+
+
+
+/*
+----	selectClause(Query, C) :-
+----
+
+The select-clause of the ~Query~ is ~C~.
+
+*/
+selectClause(select * from _, *) :- !.
+
+selectClause(select count(*) from _, count(*)) :- !.
+
+selectClause(select Attrs from _, Attrs) :- !.
+
+selectClause(Query groupby _, C) :- !,
+  selectClause(Query, C).
+
+selectClause(Query orderby _, C) :- !,
+  selectClause(Query, C).
 
 
 
