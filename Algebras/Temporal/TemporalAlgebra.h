@@ -629,7 +629,7 @@ The second constructor.
   {
       Intime<Alpha>* i = (Intime<Alpha>*)right;
       
-      instant.ReadFrom(i->instant.ToDouble() );  //????????
+      instant.Equalize(&(i->instant));  
       
       value.CopyFrom( &i->value ); 
   }
