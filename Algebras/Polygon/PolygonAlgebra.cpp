@@ -33,6 +33,16 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "DBArray.h"
 #include "Attribute.h"
 
+/*
+GNU gcc 3.2 includes the header 'windows.h' from standard headers.
+Therefore we need to change internally the name of the Polygon
+class since Windows defines an API function 'Polygon'.
+
+*/
+#ifdef SECONDO_WIN32
+#define Polygon SecondoPolygon
+#endif
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
