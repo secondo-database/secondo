@@ -33,7 +33,8 @@ enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
 
 const int MaxSizeOfAttr = 10;
 
-//static RelationType TypeOfRelAlgSymbol(ListExpr);
+int findattr( ListExpr list, string attrname, ListExpr& attrtype, NestedList* nl);
+bool IsTupleDescription(ListExpr a, NestedList* nl);
 
 ListExpr TupleProp ();
 

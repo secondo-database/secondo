@@ -75,7 +75,7 @@ is returned and the corresponding datatype is returned in ~attrtype~.
 Otherwise 0 is returned. Used in operator ~attr~.
 
 */
-int findattr( ListExpr list, string attrname, ListExpr& attrtype)
+int findattr( ListExpr list, string attrname, ListExpr& attrtype, NestedList* nl)
 {
   ListExpr first, rest;
   int j;
@@ -132,7 +132,7 @@ Checks wether a ListExpression is of the form
 ((a1 t1) ... (ai ti)).
 
 */
-bool IsTupleDescription(ListExpr a)
+bool IsTupleDescription(ListExpr a, NestedList* nl)
 {
   ListExpr rest = a;
   ListExpr current;
@@ -366,7 +366,7 @@ ListExpr GROUPTypeMap(ListExpr args)
         && (!nl->IsAtom(tupleDesc))
         && (nl->ListLength(tupleDesc) == 2)
         && TypeOfRelAlgSymbol(nl->First(tupleDesc)) == tuple
-        && IsTupleDescription(nl->Second(tupleDesc)))
+        && IsTupleDescription(nl->Second(tupleDesc), nl))
         return
           nl->TwoElemList(
             nl->SymbolAtom("rel"),
@@ -419,7 +419,7 @@ static ListExpr FeedTypeMap(ListExpr args)
 {
   ListExpr first ;
 
-  CHECK_COND(nl->ListLength(args) == 1, 
+  CHECK_COND(nl->ListLength(args) == 1,
     "Operator feed expects a list of length one.");
   first = nl->First(args);
   CHECK_COND(nl->ListLength(first) == 2,
@@ -640,7 +640,7 @@ ListExpr AttrTypeMap(ListExpr args)
         (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(first), attrname, attrtype);
+      j = findattr(nl->Second(first), attrname, attrtype, nl);
       if (j)
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                   nl->OneElemList(nl->IntAtom(j)), attrtype);
@@ -886,7 +886,7 @@ ListExpr ProjectTypeMap(ListExpr args)
     ErrorReporter::ReportError("Incorrect input for operator project.");
     return nl->SymbolAtom("typeerror");
   }
-	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+	j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
 	if (j)
 	{
 	  if (firstcall)
@@ -1641,7 +1641,7 @@ ExtractTypeMap( ListExpr args )
        (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
       if (j)
         return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
           nl->OneElemList(nl->IntAtom(j)), attrtype);
@@ -1746,7 +1746,7 @@ HeadTypeMap( ListExpr args )
     if((nl->ListLength(first) == 2  )
       && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
       && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->IsAtom(second))
       && (nl->AtomType(second) == SymbolType)
       && nl->SymbolValue(second) == "int")
@@ -1870,12 +1870,12 @@ MaxMinTypeMap( ListExpr args )
     if((nl->ListLength(first) == 2  )
       && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
       && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->IsAtom(second))
       && (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
 
       if (j > 0
         && (nl->SymbolValue(attrtype) == "real"
@@ -2037,12 +2037,12 @@ AvgSumTypeMap( ListExpr args )
     if((nl->ListLength(first) == 2  )
       && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
       && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->IsAtom(second))
       && (nl->AtomType(second) == SymbolType))
     {
       attrname = nl->SymbolValue(second);
-      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+      j = findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
 
       if (j > 0
         && (nl->SymbolValue(attrtype) == "real"
@@ -2259,7 +2259,7 @@ SortByTypeMap( ListExpr args )
             && (nl->AtomType(nl->Second(attributeSpecification)) == SymbolType))
           {
             attrname = nl->SymbolValue(nl->First(attributeSpecification));
-            int j = findattr(nl->Second(nl->Second(streamDescription)), attrname, attrtype);
+            int j = findattr(nl->Second(nl->Second(streamDescription)), attrname, attrtype, nl);
             if ((j > 0)
               && ((nl->SymbolValue(nl->Second(attributeSpecification)) == sortAscending)
                   || (nl->SymbolValue(nl->Second(attributeSpecification)) == sortDescending)))
@@ -2513,7 +2513,7 @@ IdenticalTypeMap( ListExpr args )
     if((nl->ListLength(first) == 2  )
       && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
       && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first))))
+      && IsTupleDescription(nl->Second(nl->Second(first)), nl))
     {
       return first;
     }
@@ -2669,7 +2669,7 @@ SetOpTypeMap( ListExpr args )
     if((nl->ListLength(first) == 2  )
       && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
       && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && IsTupleDescription(nl->Second(nl->Second(first)), nl)
       && (nl->Equal(first, second)))
     {
       return first;
@@ -3080,8 +3080,8 @@ template<bool expectIntArgument, int errorMessageIdx> ListExpr JoinTypeMap
     ListExpr joinAttrDescription;
     string attrAName = nl->SymbolValue(nl->Third(args));
     string attrBName = nl->SymbolValue(nl->Fourth(args));
-    int attrAIndex = findattr(nl->Second(nl->Second(streamA)), attrAName, attrTypeA);
-    int attrBIndex = findattr(nl->Second(nl->Second(streamB)), attrBName, attrTypeB);
+    int attrAIndex = findattr(nl->Second(nl->Second(streamA)), attrAName, attrTypeA, nl);
+    int attrBIndex = findattr(nl->Second(nl->Second(streamB)), attrBName, attrTypeB, nl);
     if(attrAIndex <= 0 || attrBIndex <= 0 || !nl->Equal(attrTypeA, attrTypeB))
     {
       goto typeerror;
@@ -4052,7 +4052,7 @@ ListExpr GroupByTypeMap(ListExpr args)
         first2 = nl->First(rest);
         rest = nl->Rest(rest);
         attrname = nl->SymbolValue(first2);
-        j =   findattr(nl->Second(nl->Second(first)), attrname, attrtype);
+        j =   findattr(nl->Second(nl->Second(first)), attrname, attrtype, nl);
         if (j)
         {
           if (!firstcall)
