@@ -384,13 +384,9 @@ string DateTime::ToString(){
     return "undefined";
   }
   if(type==durationtype){ //a duration
-    tmp << day << ".";
-    if(milliseconds<100)
-      tmp << "0";
-    if(milliseconds<10)
-      tmp << "0";
+    tmp << day << ";";
     tmp << milliseconds;
-  }else{ // an instant
+  }else if(type==instanttype){ // an instant
     int day,month,year;
     ToGregorian(this->day,year,month,day);
     tmp << year << "-" << month << "-" << day;
@@ -426,6 +422,8 @@ string DateTime::ToString(){
     if(ms <10)
        tmp << "0";
     tmp << ms;
+  } else{
+    tmp << "unknown type" ;
   }
   return tmp.str();
 }
@@ -996,8 +994,10 @@ ListExpr DateTime::ToListExpr(bool typeincluded){
   if(typeincluded)
      if(type==instanttype)
         return nl->TwoElemList(nl->SymbolAtom("instant"),value);
-     else
+     else if(type==durationtype)
         return nl->TwoElemList(nl->SymbolAtom("duration"),value);
+     else
+        return nl->TwoElemList(nl->SymbolAtom("datetime"),value);
   else
     return value;
 }
