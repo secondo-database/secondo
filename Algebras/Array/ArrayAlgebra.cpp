@@ -1252,7 +1252,7 @@ loopFun (Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request(args[1].addr, funresult);
 
     clock_t c2 = clock();
-    cout << ", used CPU time: " << (c2 - c1) / CLOCKS_PER_SEC 
+    cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
          << " seconds." << endl;
 
     elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
@@ -1364,7 +1364,7 @@ loop2Fun (Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[2].addr, funresult);
 
       clock_t c2 = clock();
-      cout << ", used CPU time: " << (c2 - c1) / CLOCKS_PER_SEC 
+      cout << ", used CPU time: " << (double)(c2 - c1) / CLOCKS_PER_SEC 
            << " seconds." << endl;
 
       elemLE = (am->OutObj(algebraId, typeId))(typeOfElement, funresult);
