@@ -86,41 +86,6 @@ int FLOB::Restore(char *address) {
   return size;
 }
 
-/*
-bool FLOB::SaveToLob() {
- 	if (IsLob()){
-    	size = lob.Size();
-    	start = (char*)malloc(size);
-	    lob.Read(start, size, 0); 
-    	/ Now the actual FLOB is a memory flob. Another
-			call of SaveToLob will create a new lob if the
-			flob is large. This is exactly the behaviour
-			we need: an underlying lob should be copied 
-			when its comprising tuple is copied. *
-		SaveToLob();
-  	}
-
-  	if (size > SWITCH_THRESHOLD) {
-		cout << "(FLOB)";
-    	//SmiRecord newLob;
-
-		//lobFile->AppendRecord(lobId, newLob);
-		lobFile->AppendRecord(lobId, lob);
-    	//newLob.Write(start, size, 0);
-    	//lob = newLob;
-		lob.Write(start, size, 0);
-    	free(start);
-    	start = 0;
-    	//size = 0;
-		size = lob.Size();
-    	return true;
-  	}  
-  	else {
-		return false;
-	}
-}
-*/
-
 bool FLOB::SaveToLob() {
  	if (IsLob()){
     	size = lob.Size();
