@@ -59,6 +59,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include <iostream>
 #include <string>
+#include <stdio.h>
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -267,13 +268,14 @@ ostream& Date::Print(ostream &os)
 
 The list representation of a date is
 
-----	(dd mm yy)
+----	(isdefined dd mm yy)
 ----
 
 2.3 ~In~ and ~Out~ Functions
 
 */
 
+/*
 static ListExpr
 OutDate( ListExpr typeInfo, Word value ) 
 {
@@ -291,7 +293,33 @@ OutDate( ListExpr typeInfo, Word value )
     return (nl->SymbolAtom("undef"));
   }
 }
+*/
 
+//The above ~out~ function is replaced by the following function which takes string as output
+//=======================================================================
+static  ListExpr
+OutDate( ListExpr typeInfo, Word value )
+{
+  Date* date;
+  string outputStr;
+  char buf[100];
+
+  date = (Date*)(value.addr);
+  if (date->IsDefined())
+  { 
+    sprintf(buf, "%d-%02d-%02d", date->GetYear(), date->GetMonth(), date->GetDay());   //eg. "1993-2-12"
+  }
+  else
+  {
+    strcpy(buf,"-");
+  }
+  outputStr = buf;
+  //char* c_string = outputStr.c_str();
+  //cout << outputStr<<endl;
+  return (nl->StringAtom(outputStr));
+}
+
+/*
 static Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -337,6 +365,87 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
 	}
   correct = false;
   return SetWord(Address(0));
+}
+*/
+
+//The above function is replaced by the following function which takes string as input
+//=================================================================
+static Word
+InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
+{ 
+  Date* newdate;
+  string inputStr;
+  char *i, *j;
+  int slash=0;
+  char buf[100];
+  
+  if (nl->IsAtom(instance) && nl->AtomType(instance)==StringType)
+      inputStr= nl->StringValue( instance);
+  else
+  {      cout <<">>>invalid date - not a string type!<<<"<<endl;
+         correct = false;
+         return SetWord(Address(0));
+  }  
+  const char* c_string = inputStr.c_str();
+  if (strcmp(c_string,"-")==0)
+  {
+    correct = true;
+    newdate = new Date(false, 0, 0, 0);
+    return SetWord(newdate);
+  }
+  else   //"1998-02-21" or "1999-2-21"
+  {
+    strcpy(buf, c_string);
+    int bufLen=strlen(buf);
+    for ( i=buf; i<buf+bufLen; i++) 
+    {
+	if (*i=='-') slash++;
+	if ((*i!='-') && ((*i<'0') || (*i>'9'))) 
+	{
+	    cout <<">>>invalid date!<<<"<<endl;
+	    correct = false;
+	    return SetWord(Address(0));
+	}
+    }
+    if (slash!=2) 
+    {
+         cout <<">>>invalid date!<<<"<<endl;
+         correct = false;
+         return SetWord(Address(0));
+    }
+
+    i=buf; j=i;
+    while ((*j!='-') && (j<buf+bufLen))  j++;
+    *j=0;
+    int Year=atoi(i);  //get the year information
+    
+    i=j+1;
+    j=i;
+    while ((*j!='-') && (j<buf+bufLen))  j++;
+    *j=0;
+    int Month=atoi(i);  //get the month information
+    
+    i=j+1;
+    j=i;
+    while ((*j!='-') && (j<buf+bufLen))  j++;
+    *j=0;
+    int Day=atoi(i);  //get the month information
+    
+    //cout<<Year<<"="<<Month<<"="<<Day<<endl;
+    
+    if (isdate(Day, Month, Year))
+    {   
+         correct = true;
+         newdate = new Date(true, Day, Month, Year);
+         return SetWord(newdate);
+    }
+    else  
+    {
+         cout <<">>>invalid date!<<<"<<endl;
+         correct = false;
+         return SetWord(Address(0));
+     }
+  }
 }
 
 /***********************************************************************

@@ -252,7 +252,7 @@ DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
 {
-   ListExpr d, m, y;
+/*   ListExpr d, m, y;
    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
     {
       cout << "UNDEFINED";
@@ -268,6 +268,11 @@ DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
       cout << ",";
       nl->WriteListExpr( y, cout );
    }
+   */
+  if (nl->IsAtom(value) && nl->AtomType(value)==StringType)
+      cout <<nl->StringValue(value);
+  else
+      cout <<"Incorrect Data Format!";
 }
 
 void
