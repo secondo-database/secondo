@@ -450,15 +450,23 @@ append it to the given arguments.
 */
 ListExpr RemoveTypeMap(ListExpr args)
 {
-  bool firstcall;
-  int noAttrs, j;
-  ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
-           lastNumberList, numberList, outlist;
-  string attrname, argstr;
+  bool firstcall = true;
+  int noAttrs=0, j=0;
+  
+  // initialize all ListExpr with the empty list
+  ListExpr first = nl->TheEmptyList();
+  ListExpr second = first, 
+           first2 = first, 
+           attrtype = first, 
+           newAttrList = first,
+           lastNewAttrList = first, 
+           lastNumberList = first, 
+           numberList = first, 
+           outlist = first;
+  
+  string attrname="", argstr="";
   set<int> removeSet;
   removeSet.clear();
-
-  firstcall = true;
 
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator remove expects a list of length two.");
@@ -2857,12 +2865,18 @@ struct LoopjoinLocalInfo
 
 int Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  ArgVectorPointer funargs;
-  Word tuplex, tupley, tuplexy, streamy;
-  Tuple* ctuplex;
-  Tuple* ctupley;
-  Tuple* ctuplexy;
-  LoopjoinLocalInfo *localinfo;
+  ArgVectorPointer funargs = 0;
+  
+  Word tuplex = SetWord(Address(0));
+  Word tupley = SetWord(Address(0));
+  Word tuplexy = SetWord(Address(0));
+  Word streamy = SetWord(Address(0));
+ 
+  Tuple* ctuplex = 0;
+  Tuple* ctupley = 0;
+  Tuple* ctuplexy = 0;
+ 
+  LoopjoinLocalInfo *localinfo = 0;
 
   switch ( message )
   {
@@ -3540,10 +3554,11 @@ Type mapping for ~concat~ is
 */
 ListExpr GetAttrTypeList (ListExpr l)
 {
-  ListExpr first, olist, lastolist, attrlist;
-
-  olist = nl->TheEmptyList();
-  attrlist = l;
+  ListExpr first = nl->TheEmptyList();
+  ListExpr olist = first, 
+           lastolist = first;
+           
+  ListExpr attrlist = l;
   while (!nl->IsEmpty(attrlist))
   {
     first = nl->First(attrlist);
