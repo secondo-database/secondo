@@ -2013,6 +2013,31 @@ Result type of product operation.
 ----
 
 */
+
+bool comparenames(ListExpr list)
+{
+  vector<string> attrnamestrlist;
+  vector<string>::iterator it;
+  ListExpr attrnamelist;
+  int unique;
+  string attrname;
+
+  attrnamelist = list;
+  attrnamestrlist.resize(nl->ListLength(list));
+  it = attrnamestrlist.begin();
+  while (!nl->IsEmpty(attrnamelist))
+  {
+    attrname = nl->SymbolValue(nl->First(nl->First(attrnamelist)));
+    attrnamelist = nl->Rest(attrnamelist);
+    unique = std::count(attrnamestrlist.begin(), attrnamestrlist.end(),
+	                       attrname);
+    *it =  attrname;
+    if (unique) return false;
+    it++;
+  }
+  return true;
+}
+
 ListExpr ProductTypeMap(ListExpr args)
 {
   ListExpr first, second, list, list1, list2, outlist;
@@ -2062,10 +2087,14 @@ ListExpr ProductTypeMap(ListExpr args)
     list = ConcatLists(list1, list2);
     // Check whether all new attribute names are distinct
     // - not yet implemented
-
-    outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-    return outlist;
+    
+    if ( comparenames(list) )
+    {
+      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+        nl->TwoElemList(nl->SymbolAtom("tuple"), list));
+      return outlist;
+    }
+    else return nl->SymbolAtom("typeerror");
   }
   else return nl->SymbolAtom("typeerror");
 }
@@ -4513,31 +4542,6 @@ Type mapping for ~extend~ is
 ----
 
 */
-
-bool comparenames(ListExpr list)
-{
-  vector<string> attrnamestrlist;
-  vector<string>::iterator it;
-  ListExpr attrnamelist;
-  int unique;
-  string attrname;
-
-  attrnamelist = list;
-  attrnamestrlist.resize(nl->ListLength(list));
-  it = attrnamestrlist.begin();
-  while (!nl->IsEmpty(attrnamelist))
-  {
-    attrname = nl->SymbolValue(nl->First(nl->First(attrnamelist)));
-    attrnamelist = nl->Rest(attrnamelist);
-    unique = std::count(attrnamestrlist.begin(), attrnamestrlist.end(),
-	                       attrname);
-    *it =  attrname;
-    if (unique) return false;
-    it++;
-  }
-  return true;
-}
-
 static ListExpr
 ExtendTypeMap( ListExpr args )
 {
