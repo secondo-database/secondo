@@ -1070,6 +1070,19 @@ DateTime DateTime::operator-(const DateTime T2){
    return Result;
 }
 
+/*
+~Operator /~
+
+This Operator divides a DateTime by another dateTime
+
+*/
+double DateTime::operator/(const DateTime T2){
+  double myms = (double)(day*MILLISECONDS+milliseconds);
+  double T2ms =  (double)(T2.day*MILLISECONDS+T2.milliseconds);
+  return myms / T2ms;
+}
+
+
 
 /*
 ~mul~

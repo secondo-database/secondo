@@ -315,6 +315,13 @@ The allowed arguments are the same like in the ~Minus~ function.
 */
     DateTime operator-(const DateTime T2);
 
+/*
+~Operator /~
+
+This Operator divides a DateTime by another dateTime
+
+*/
+    double operator/(const DateTime T2);
 
 /*
 ~Operators for Comparisions~
