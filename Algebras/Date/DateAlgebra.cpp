@@ -491,6 +491,10 @@ This one works for type constructor ~date~ , which is an ``atomic'' type.
 static ListExpr
 DateProperty()
 {
+  ListExpr listreplist = nl->TextAtom();
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(listreplist, "\"<year>-<month>-<day>\"");
+  nl->AppendText(examplelist, "\"2003-09-05\"");
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"), 
 	                     nl->StringAtom("Example Type List"), 
@@ -498,8 +502,8 @@ DateProperty()
 			     nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"), 
 	                     nl->StringAtom("date"), 
-			     nl->StringAtom("\"<year>-<month>-<day>\""), 
-			     nl->StringAtom("\"2003-09-05\""))));
+			     listreplist, 
+			     examplelist)));
 }
 
 /*
