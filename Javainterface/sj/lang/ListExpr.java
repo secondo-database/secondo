@@ -1,7 +1,7 @@
 /******************************************************************************
  //paragraph	[10]	title:		[\centerline{\Large \bf] [}]
  [10] ListExpr.java
- 
+
  March, 1999. Jose Antonio Cotelo Lema.
  ListExpr.java
  Java implementation of the NestedLists tools.
@@ -23,19 +23,19 @@
  - ~writeListExprToString()~: This new method was added to allow the users to get in a String the same result that the original method writeListExpr() sends to the standard output. It was added because a Java user usually will want to show it in a text component (e.g. a TextArea object) instead of the standard output.
  - ~setValueTo(ListExpr list)~: This new method was added to allow the user's methods to modify the content of a ListExpr object passed as parameter.
  Technical notes:
- - A non-atom ListExpr is represented as a list of ListExpr nodes, each of them 
+ - A non-atom ListExpr is represented as a list of ListExpr nodes, each of them
  storing one element of the list, and finished by the ~emptyList~ node (where
  ~value~ and ~next~ are both ~null~). Each element of this list can be either
  an atom or a non-atom ListExpr.
- - An atom ListExpr is represented as a ListExpr node where the ~next~ field 
+ - An atom ListExpr is represented as a ListExpr node where the ~next~ field
  is ~null~ and the ~value~ field stores a non ListExpr object. the object
  stored in ~value~ is one of the following types:
  - For an intAtom ListExpr, ~value~ is an Integer object.
  - For a floatAtom ListEpxr, ~value~ is a Float object.
  - For a boolAtom ListExpr, ~value~ is a Boolean object.
- - For a stringAtom, symbolAtom or textAtom ListExpr, ~value~ is a 
+ - For a stringAtom, symbolAtom or textAtom ListExpr, ~value~ is a
  String object.
- 
+
  This class belongs to the package:
  */
 
@@ -95,7 +95,7 @@ public class ListExpr extends Object {
   public final static int TEXT_ATOM = 6;        // Text atom.
   /*
    3.2 Private fields.
-   The following private fields are defined, and hence they can be accessed only 
+   The following private fields are defined, and hence they can be accessed only
    by the code belonging to this class.
    */
   // Defines if the class must show extra information when errors are detected.
@@ -115,6 +115,10 @@ public class ListExpr extends Object {
   private int type;
   // Here is stored a pointer to the following mode of the ListExpr.
   private ListExpr next;
+  // tag for begin of text
+  private final static String BEGIN_TEXT ="<text>";
+  // tag for end of text
+  private final static String END_TEXT ="</text--->";
 
   /*
    3.3 Class constructors.
@@ -170,7 +174,7 @@ public class ListExpr extends Object {
     result.value = left;
     // And sets the first element of ~right~ as the following element of the list.
     result.next = right;
-    // As the constructor sets a ListExpr to ~NO_ATOM~ type, ~result~ 
+    // As the constructor sets a ListExpr to ~NO_ATOM~ type, ~result~
     // will be a ~NO_ATOM~ type, so we do not need to set the type to it.
     // returns the new ListExpr.
     return  result;
@@ -361,7 +365,7 @@ public class ListExpr extends Object {
           }
         case ListExpr.TEXT_ATOM:
           {
-            chars.append(((String)list.value).toString());
+            chars.append(BEGIN_TEXT+((String)list.value).toString()+END_TEXT);
             return;
           }
       }
@@ -689,7 +693,7 @@ public class ListExpr extends Object {
      of the ~writetoString~ method. The main improvement is that it does not deletes
      the content of the input StringBuffer ~chars~ (it is really needed at start, 
      when writeToString() is called by the user), but only appends the text to it. 
-     In this way the recursive calls can work with the same buffer, avoiding using 
+     In this way the recursive calls can work with the same buffer, avoiding using
      auxiliar buffers in each recursive call.
      */
     int result = 0;
