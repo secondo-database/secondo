@@ -28,7 +28,7 @@ endif
 
 ifeq ($(readline),true)
 RL_COMPILE_FLAG = -DREADLINE
-RL_LD_FLAG = -lreadline
+RL_LD_FLAG = -lreadline -lncurses
 endif
 
 
