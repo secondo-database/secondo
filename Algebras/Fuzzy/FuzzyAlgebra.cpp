@@ -72,8 +72,8 @@ static void error(int line) {
 class CcFPoint: public StandardAttribute{
 public:
    CcFPoint();
-   CcFPoint(int size);
    CcFPoint(const jobject jobj);
+   CcFPoint(const int size);
    ~CcFPoint();
    void Destroy();
    CcFPoint* Clone();
@@ -109,7 +109,7 @@ public:
    CcFPoint* Sharp();
    double Similar(CcFPoint* P);
    CcFPoint* Union(CcFPoint* P);
-
+   void RestoreJavaObjectFromFLOB();
 private:
   jclass cls;  // pointer to the corresponding java class Point.
   jobject obj; // pointer to the corresponding instance
@@ -117,7 +117,6 @@ private:
   FLOB objectData;
   bool canDelete;
   void RestoreFLOBFromJavaObject();
-  void RestoreJavaObjectFromFLOB();
 };
 
 
@@ -150,7 +149,6 @@ class CcFLine : public StandardAttribute{
      CcFPoint* Boundary();
      CcFPoint* CommonPoints(CcFLine * L);
      CcFLine* Difference(CcFLine* L);
-     //CcFLine*[] Faces();
      double ScaleFactor();
      CcFLine* Intersection(CcFLine* L);
      bool IsEmpty();
@@ -168,6 +166,7 @@ class CcFLine : public StandardAttribute{
      CcFLine* Sharp();
      double Similar(CcFLine* L);
      CcFLine* Union(CcFLine* L);
+     void RestoreJavaObjectFromFLOB();
   private:
      jclass cls;
      jobject obj;
@@ -175,7 +174,6 @@ class CcFLine : public StandardAttribute{
      FLOB objectData;
      bool canDelete;
      void RestoreFLOBFromJavaObject();
-     void RestoreJavaObjectFromFLOB();
 };
 
 /* 2.1.3 The wrapper class for java implementation of a fuzzy region */
@@ -230,7 +228,7 @@ public:
    double Similar(const CcFRegion* R);
    // M9Int TopolRelation ???
    CcFRegion* Union(CcFRegion* R);
-
+   void RestoreJavaObjectFromFLOB();
 private:
   jclass cls;  // pointer to the corresponding java class FRegion.
   jobject obj; // pointer to the corresponding instance
@@ -238,8 +236,7 @@ private:
   FLOB objectData;
   bool canDelete;
   void RestoreFLOBFromJavaObject();
-  void RestoreJavaObjectFromFLOB();
-};
+ };
 
 
 /* 2.2 Definition of the class functions.
@@ -254,13 +251,25 @@ private:
  */
 CcFPoint::CcFPoint() {}
 
-
-CcFPoint::CcFPoint(const int size):objectData(size),canDelete(false){}
-
+CcFPoint::CcFPoint(const int size):objectData(size),canDelete(false){
+/*
+  cls = env->FindClass("fuzzyobjects/composite/FPoint");
+  if (cls == 0) {
+    error(__LINE__);
+  }
+  jmethodID mid = env->GetMethodID(cls,"<init>","()V");
+  if(mid==0) error(__LINE__);
+  obj = env->NewObject(cls,mid);
+  if(obj==0) error(__LINE__);
+  canDelete=false;
+  defined=true;
+  RestoreFLOBFromJavaObject();
+  */
+}
 
 
 /* restores the java object from FLOB
- * the FLOB must be exist
+   the FLOB must exists
  */
 void CcFPoint::RestoreFLOBFromJavaObject(){
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
@@ -1386,7 +1395,7 @@ CcFRegion* CcFRegion::Intersection(const CcFRegion* R){
   if(mid==0) error(__LINE__);
   jobject jobj = env->CallObjectMethod(obj,mid,R->obj);
   if(jobj==0) error(__LINE__);
-  return new CcFRegion(jobj); 
+  return new CcFRegion(jobj);
 }
 
 bool CcFRegion::IsEmpty(){
@@ -1897,7 +1906,7 @@ static ListExpr FRegionProperty(){
 /* a type checking function */
 
 /*
-Kind Checking Function
+1.2 Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
 all type constructors  does not have arguments, this is trivial.
@@ -1916,6 +1925,77 @@ static bool CheckFRegion(ListExpr type, ListExpr& errorInfo){
 }
 
 
+/*
+1.1 ~Open~-functions
+1.1.1 ~Open~-function for FPoint
+*/
+bool OpenFPoint(SmiRecord& valueRecord,
+                const ListExpr typeInfo,
+		Word& value){
+   CcFPoint* FP = new CcFPoint(0);
+   FP->Open(valueRecord, typeInfo);
+   FP->RestoreJavaObjectFromFLOB();
+   value = SetWord(FP);
+   return true;
+}
+/* 1.1.1 ~Open~-function for FLine
+*/
+bool OpenFLine(SmiRecord& valueRecord,
+                const ListExpr typeInfo,
+		Word& value){
+   CcFLine* FL = new CcFLine(0);
+   FL->Open(valueRecord, typeInfo);
+   FL->RestoreJavaObjectFromFLOB();
+   value = SetWord(FL);
+   return true;
+}
+
+/* 1.1.1 ~Open~-function fpr FRegion
+*/
+bool OpenFRegion(SmiRecord& valueRecord,
+                 const ListExpr typeInfo,
+		 Word& value){
+   CcFRegion* FR = new CcFRegion(0);
+   FR->Open(valueRecord, typeInfo);
+   FR->RestoreJavaObjectFromFLOB();
+   value = SetWord(FR);
+   return true;
+}
+
+/*
+ 1.2 ~Save~ fucntions
+ 1.2.1 ~Save~-function for FPoint
+*/
+bool SaveFPoint( SmiRecord& valueRecord,
+                 const ListExpr typeInfo,
+		 Word& value)
+{ CcFPoint* FP = (CcFPoint*) value.addr;
+  FP->Save(valueRecord,typeInfo);
+  return true;
+}
+/*
+1.2.2 ~Save~-function for FLine
+*/
+bool SaveFLine( SmiRecord& valueRecord,
+                 const ListExpr typeInfo,
+		 Word& value)
+{
+  CcFLine* FL = (CcFLine*) value.addr;
+  FL->Save(valueRecord,typeInfo);
+  return true;
+}
+/*
+1.2.3 ~Save~-function for FRegion
+*/
+bool SaveFRegion( SmiRecord& valueRecord,
+                  const ListExpr typeInfo,
+		  Word& value)
+{
+  CcFRegion* FR = (CcFRegion*) value.addr;
+  FR->Save(valueRecord,typeInfo);
+  return true;
+}
+
 
 /* sizeOf functions */
 int SizeOfFPoint(){ return sizeof(CcFPoint);}
@@ -1933,14 +2013,14 @@ TypeConstructor ccfpoint
  FPointProperty,   // property function describing signature
  OutFPoint,        // Out function
  InFPoint,         // In function
- 0,        0,      //SaveToList and RestoreFromList functions
+ 0,        0,      // SaveToList and RestoreFromList functions
  CreateFPoint,     // object creation
  DeleteFPoint,     // object deletion
- 0,                // object open
- 0,                // object save
- CloseFPoint,       // object close
- CloneFPoint,       // object clone
- CastFPoint,        // cast function
+ OpenFPoint,       // object open
+ SaveFPoint,       // object save
+ CloseFPoint,      // object close
+ CloneFPoint,      // object clone
+ CastFPoint,       // cast function
  SizeOfFPoint,     // Size of a point
  CheckPoint,       // kind checking function
  0,                // predef. pers. function for model
@@ -1961,16 +2041,16 @@ TypeConstructor ccfregion
    0,        0,                        //SaveToList and RestoreFromList functions
    CreateFRegion,
    DeleteFRegion,
-   0,
-   0,
+   OpenFRegion,
+   SaveFRegion,
    CloseFRegion,
    CloneFRegion,
    CastFRegion,
    SizeOfFRegion,     // Size of a point
    CheckFRegion,
    0,
-   TypeConstructor::DummyInModel, 
-   TypeConstructor::DummyOutModel, 
+   TypeConstructor::DummyInModel,
+   TypeConstructor::DummyOutModel,
    TypeConstructor::DummyValueToModel,
    TypeConstructor::DummyValueListToModel
 );
@@ -1980,16 +2060,15 @@ TypeConstructor ccfregion
 TypeConstructor ccfline
 (
   "fline", FLineProperty,OutFLine,InFLine,0,0,
-  CreateFLine,DeleteFLine,0,0,CloseFLine,
+  CreateFLine,DeleteFLine,
+  OpenFLine,SaveFLine,
+  CloseFLine,
   CloneFLine,CastFLine,SizeOfFLine,CheckFLine,0,
   TypeConstructor::DummyInModel,
   TypeConstructor::DummyOutModel,
   TypeConstructor::DummyValueToModel,
   TypeConstructor::DummyValueListToModel
 );
-
-
-
 
 
 /* type mapping functions */
