@@ -86,6 +86,10 @@ Displays a ~value~ of ~type~ using the defined display functions. Both
 paramaters are given as nested lists.
 
 */
+static void DisplayResult2( ListExpr value );
+/*
+Displays all type constructors and operators, currently registered, in formatted manner.
+*/
  protected:
  private:
   DisplayTTY();
@@ -124,6 +128,14 @@ display function was assigned:
 Is a display function for relations.
 
 */
+static ListExpr ConcatLists ( ListExpr l1, ListExpr l2 ); // concatenates two lists
+static int  MaxHeaderLength( ListExpr type );
+
+static void DisplayDescriptionLines( ListExpr value, int  maxNameLen);
+/*
+Displays a single type constructor or operator formatted, similar display function for relations.
+*/
+
   static int  MaxAttributLength( ListExpr type );
   static void DisplayTuple( ListExpr type,
                             ListExpr numType,
