@@ -33,6 +33,13 @@ TESTNAMES += itlogmsg
 # Prefetch Iterator
 #TESTNAMES += tprefetch
 
+
+# Base64 encoding
+TESTNAMES += base64encoder
+
+# Nested List: Parsing lists and converting from text to binary format
+TESTNAMES += nlchecker 
+
 ifdef file
 TESTFILES := $(file)
 else
