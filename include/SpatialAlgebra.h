@@ -433,7 +433,7 @@ Returns ~true~ if this point set contains the ~ps~ point set and
 */
     int operator!=(const Points&) const;
 /*
-4.4.2 Operation ~union~ (with ~point~)
+4.4.3 Operation ~union~ (with ~point~)
 
 *Precondition:* ~p.IsDefined()~
 
@@ -445,7 +445,7 @@ of this point set.
 */
     Points& operator+=(const Point& p);
 /*
-4.4.3 Operation ~union~ (with ~points~)
+4.4.4 Operation ~union~ (with ~points~)
 
 *Precondition:* 
 
@@ -457,7 +457,7 @@ of this point set and ~m~ is the size of ~ps~.
 */
     Points& operator+=(const Points& ps);
 /*
-4.4.4 Operation ~minus~ (with ~point~)
+4.4.5 Operation ~minus~ (with ~point~)
 
 *Precondition:* ~p.IsDefined() $\&\&$ this.IsOrdered()~
 
@@ -468,7 +468,7 @@ of this point set and ~m~ is the size of ~ps~.
 */
     Points& operator-=(const Point& p);
 /*
-4.4.5 Operation ~inside~
+4.4.6 Operation ~inside~
 
 *Precondition:* ~this.IsOrdered() $\&\&$ ps.IsOrdered()~
 
@@ -479,7 +479,7 @@ of this point set and ~m~ is the size of ~ps~.
 */
     const bool Inside(const Points& ps) const;
 /*
-4.4.6 Operation ~intersects~
+4.4.7 Operation ~intersects~
 
 *Precondition:* ~this.IsOrdered() $\&\&$ ps.IsOrdered()~
 
@@ -489,16 +489,22 @@ of this point set and ~m~ is the size of ~ps~.
 
 */
     const bool Intersects(const Points& ps) const;
-    
+/*
+4.4.8 Object Traversal Functions
+
+*Precondition:* ~this.IsOrdered()~
+
+*Semantics:*  These functions are object traversal functions which is useful when we are 
+using ROSE algebra algorithms (DZM).
+
+*Complexity:* $O(1)$.
+
+*/
     void SelectFirst();
     void SelectNext();
     bool EndOfPt();
     void GetPt( Point& p );
     void InsertPt( Point& p );
-/*
- Added by DZM to comply with ROSE algebra
-  
-*/
 
   private:
 /*
@@ -572,13 +578,16 @@ typedef struct
 /*
 5 Class Half Segment
 
-This class implements the memory representation of the ~halfsegment~ type constructor.
-A ~halfsegment~ value is a pair of points, with a boolean flag indicating the dominating point.
+This class implements the memory representation of  ~halfsegment~. Although ~halfsegment~
+is not an independent type constructor, it is the basic construction unit of the ~line~ and the ~region~
+type constructors.
 
+A ~halfsegment~ value is composed of a pair of points, and a boolean flag indicating the dominating 
+point. The left point is always smaller than the right one.
 
-The name for the class is started with a ~C~ prefix which means that this is a class name. 
-Since very similar names appear in different places with different meaning, it is a good idea
-to put this prefix to eliminate confusion.
+The names for the classes CHalfSegment, CLine, and CRegion are started with a ~C~ prefix, which 
+indicats that the name is for a class.  Since very similar names (class names, parry names, and type names)
+appear in the source code, it is a good idea to put this prefix to reduce the possibility of confusion.
 
 */
 
@@ -590,8 +599,8 @@ class CHalfSegment
 5.1 Constructors and Destructor
 
 A Half Segment is composed of two points which are called ~left point~ LP and ~right point~ RP 
-(LR \verb+<+ RP), and a ~flag~ LDP (~Left Dominating Point~) which tells which point is
-the dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ value.
+(LR \verb+<+ RP), and a ~flag~ LDP (~Left Dominating Point~) which tells which point is the 
+dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~ value.
 
 */
     CHalfSegment(bool Defined, bool LDP, Point& LP, Point& RP);
@@ -600,68 +609,75 @@ the dominating point. The Boolean Flag ~Defined~ allows us to use an ~undifined~
     ~CHalfSegment();
     
 /*
-5.2 Functions Returning Property Values from an Object
+5.2 Functions Reading Property Values from a CHalfSegment Object
+
+*Semantics:* Reading Property values of a half segment.
+
+*Complexity:* $O( 1)$ 
 
 */
     const bool IsDefined() const;
 /*
-returns a boolean value indicating whether the half segment is defined.
+This function returns a boolean value indicating whether the half segment is defined.
 
 */
     const Point&  GetLP() const;
 /*
-returns the left point of the half segment. 
+This function returns the left point of the half segment. 
 
 */
     const Point&  GetRP() const;
 /*
-returns the right point of the half segment. 
+This function returns the right point of the half segment. 
 
 */
     const Point&  GetDPoint() const;
 /*
-returns the dominating point of the half segment. 
+This function returns the dominating point of the half segment. 
 
 */
     const Point&  GetSPoint() const; 
 /*
-returns the secondary point of the half segment. 
+This function returns the secondary point of the half segment. 
 
 */
     const bool GetLDP() const;
 /*
-returns the boolean flag which indicates whether the dominating point is on the 
+This function returns the boolean flag which indicates whether the dominating point is on the 
 left side. 
 
 */
     const attrtype&  GetAttr() const;
 /*
-returns the "attribute" value associated with a half segment. The "attribute" argument is useful when
- we process region values. Currently the "attribute" value is composed of a set of int, but it will soon be 
-implemented as a structure which contain more information.
+This function returns the "attribute" value associated with a half segment. The "attribute" argument is 
+useful when we process region values. 
 
+5.3 Functions Setting Property Values of a CHalfSegment Object
 
-5.3 Functions Setting Property Values of an Object
+*Semantics:* Writing Property values of a half segment.
+
+*Complexity:* $O( 1)$ 
 
 */
     void     Set(bool Defined,  bool LDP, Point& LP, Point& RP);
 /*
-sets the value of a half segment. 
+This function sets the value of a half segment. The parameter LP and RP can ignore the order, and the 
+function will compare the parameter points and put the smaller one to LP and larger one to RP.
 
 */
     void     SetDefined(bool Defined);
 /*
-sets the value of the "defined" argument of a half segment. 
+This function sets the value of the "defined" argument of a half segment. 
 
 */
     void     SetAttr(attrtype& ATTR);
 /*
-sets the value of the "attr" argument of a half segment. 
+This function sets the value of the "attr" argument of a half segment. 
 
 */
     void     SetLDP(bool LDP); 
 /*
-sets the value of the "Left Dominating Point" flag of a half segment. 
+This function sets the value of the "Left Dominating Point" flag of a half segment. 
 
 5.4 Overloaded class operators
 
@@ -676,9 +692,9 @@ sets the value of the "Left Dominating Point" flag of a half segment.
 /*
 5.4.2 Auxiliary Function (~compare~)
 
-*Semantics:* This function make comparison between two halfsegments. These two half segments are compared
-according to the following order: dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations), as 
-indicated in the ROSE paper.
+*Semantics:* This function make comparison between two halfsegments. The rule of the comparison is specified 
+in the ROSE Algebra paper. That is:  the half sgenments will be ordered according to the following values: 
+dominating points -\verb+>+  LDP flages  -\verb+>+ directions (rotations).
 
 *Complexity:* $O( 1 )$ 
 
@@ -697,7 +713,7 @@ indicated in the ROSE paper.
 /*
 5.4.4 Operation $<$ (~less than~)
 
-*Semantics:* $u < v$. It decides whether whether one half segment is less than the other.
+*Semantics:* $u < v$. It decides whether whether one half segment is smaller than the other.
 
 *Complexity:* $O( 1 )$ 
 
@@ -721,60 +737,60 @@ indicated in the ROSE paper.
 /*
 5.6 Intersects Function
 
-*Semantics:*  These intersects functions decide whether two half segments intersect with each other. 
-Since there is no Realm here as a precondition, two half segments may intersect each other in their 
-middle points. 
+*Semantics:*  This group of functions decide whether two half segments intersect with each other. 
+Since there is no Realm here as a precondition, two half segments may intersect each other with
+their middle points. So we defined a lot of different kinds of intersect functions for different purposes. 
 
 *Complexity:* $O( 1 )$ 
 
 */
     const bool Intersects( const CHalfSegment& chs) const;    
 /*
-This first intersects function compute whether two half segments intersect each other. 
+This function is the most common one, and it computes whether two half segments intersect each other, 
+no matter where the intersection is. They can be endpoints or middle points
 
 */
     const bool Intersects( const CHalfSegment& chs, CHalfSegment& reschs) const;
 /*
-This second intersects function compute whether two half segments intersect each other. 
-If they intersect, then the intersected part will be returned so that the function initiates the 
-call can know where they intersect. The intersected part is a segment. If it is a point, the it
-is ignored.
+This function computes whether two half segments intersect each other, and at the same,
+time, it will return the intersected part as a result. The intersected part should be a segment. 
+If it is a point, the it will be ignored.
 
 */
     const bool spintersect( const CHalfSegment& chs, Point& resp) const;
 /*
-This third intersects function (single point intersects) compute whether two half segments 
-intersect each other with a single point, if yes, the intersection point is returned.
+This function (single point intersects) compute whether two half segments intersect each other
+ with a single point, if yes, the intersection point is returned.
 
 */
     const bool overlapintersect( const CHalfSegment& chs, CHalfSegment& reschs ) const;
 /*
-This fourth intersects function compute whether two half segments intersect each other with
-a segment, if yes, the intersection segment is returned.
+This function compute whether two half segments intersect each other with a segment, if yes, 
+the intersection segment is returned.
 
 */
     const bool innerIntersects( const CHalfSegment& chs) const;    
 /*
-This fifth intersects function decides whether two half segments intersect in the following manner:
-a point of the first segment and a innerpoint of the second segment is the same. 
+This function decides whether two half segments intersect in the following manner: a point of 
+the first segment and a innerpoint of the second segment is the same. 
 
 */
     const bool cross( const CHalfSegment& chs ) const;
 /*
-This sixth intersect function, named ~cross~, compute whether two half segments intersect
- with their mid-points. Be aware that endpoints are not considered in computing the results.
+This function computes whether two half segments intersect with their mid-points. Be aware 
+that endpoints are not considered in computing the results.
 
 */    
     const bool crossings( const CHalfSegment& chs, Point& p ) const;
 /*
-This seventh intersect function, named ~crossings~, is ued for the ~crossings~ operator. It 
-computes whether two half segments crossing each other. 
+This function is ued for the ~crossings~ operator. It  computes whether two half segments 
+is crossing each other. 
 
 */
     const bool overlap( const CHalfSegment& chs) const;    
 /*
-This last intersect function, named overlap, computes whether  two half segments overlap 
-each other. If their inner part intersect, then the result is true. 
+This function computes whether  two half segments overlap each other. If their inner part 
+intersect, then the result is true. 
 
 */
     
@@ -782,7 +798,7 @@ each other. If their inner part intersect, then the result is true.
 5.7 Inside Function
 
 *Semantics:* This operation computes whether one half segment is inside another. If segment A is part of 
-another segment B, then we say A is inside B. eg. -------~------~-------.
+another segment B, then we say A is inside B. eg. -------======-------.
 
 *Complexity:* $O( 1 )$ 
 
@@ -814,7 +830,7 @@ useful when we want to decide whether a point is inside a region.
 
 *Precondition:* ~u.IsDefined()~
 
-*Semantics:*  compute the distance between a line segment and a given point
+*Semantics:*  To compute the distance between a line segment and a given point
 
 *Complexity:* $O(1)$ 
 
@@ -857,7 +873,7 @@ These two properties give the left and right point of the half segment.
     public:    
     attrtype attr;
 /*
-This ~attribute~ property is useful if we process region values in a way similar to that indicated in the ROSE
+This ~attribute~ property is useful if we process region values in the way indicated in the ROSE
 paper.
 
 */  
@@ -871,7 +887,9 @@ ostream& operator<<( ostream& o, const CHalfSegment& chs );
 /*
 6 Class Line
 
-This class implements the memory representation of the ~line~ type constructor.
+This class implements the memory representation of the ~line~ type constructor. A line value is
+actually composed of a set of arbitrarily arranged line segments. In the ROSE algebra paper, it
+is called ~lines~. 
 
 */
 
@@ -896,44 +914,48 @@ as a set of sorted halfsegments, which are stored as a PArray.
 /*
 6.2 Functions Reading Property Values from an Object
 
+*Semantics:* Reading Property values of a line value.
+
+*Complexity:* $O( 1)$ 
+
 */    
     const bool IsOrdered() const;
 /*
-decides whether the half segments in the line value is sorted.
+This function decides whether the half segments in the line value is sorted.
 
 */    
     const bool IsEmpty() const;
 /*
-decides whether the line value is empty.
+This function decides whether the line value is empty.
 
 */        
     const int Size() const;
 /*
-returns the number of half segments in the line value.
+This function returns the number of half segments in the line value.
 
 */        
     void Get( const int i, CHalfSegment& chs ) const;
 /*
-reads the ith half segment from the line value.
+This function reads the ith half segment from the line value.
 
 */        
     const SmiRecordId GetLineRecordId() const;
 /*
-gets the Record ID of the PArray which store half segments of the line value.
+This function gets the Record ID of the PArray which store half segments of the line value.
 
 6.3 Bulkload Functions
 
 */        
     void StartBulkLoad();
 /*
-Marks the begin of a bulk load of line relaxing the condition that the half segments must be 
-ordered.
+This function marks the begin of a bulk load of line relaxing the condition that the half segments 
+must be ordered.
 
 */
 
     void EndBulkLoad();
 /*
-Marks the end of a bulk load and sorts the half segments.
+This function marks the end of a bulk load and sorts the half segments.
 
 6.4 Overloaded Class Operators
 
@@ -1061,7 +1083,8 @@ ostream& operator<<( ostream& o, const CLine& cl );
 /*
 7 Class Region
 
-This class implements the memory representation of the ~region~ type constructor.
+This class implements the memory representation of the ~region~ type constructor. A region is 
+composed of a set of faces. Each face consists of a ouer cycle and a groups of holes.
 
 */
 
@@ -1091,30 +1114,34 @@ insertOK() function).
 /*
 7.2 Functions Reading Property Values from an Object
 
+*Semantics:* Reading Property values of a region value.
+
+*Complexity:* $O( 1)$ 
+
 */    
     const bool IsOrdered() const;
 /*
-decides whether the half segments in the region value is sorted.
+This function decides whether the half segments in the region value is sorted.
 
 */
     const bool IsEmpty() const;
 /*
-decides whether the region value is empty.
+This function decides whether the region value is empty.
 
 */        
     const int Size() const;
 /*
-returns the number of half segments in the region value.
+This function returns the number of half segments in the region value.
 
 */      
     void Get( const int i, CHalfSegment& chs ) const;
 /*
-reads the ith half segment from the region value.
+This function reads the ith half segment from the region value.
 
 */            
     const SmiRecordId GetRegionRecordId() const;
 /*
-gets the Record ID of the PArray which store half segments of the line value.
+This function gets the Record ID of the PArray which store half segments of the line value.
 
 7.3 Bulkload Functions
 
@@ -1247,33 +1274,47 @@ half segment is indicated by ~pos~
 update the ~attr~ value of the current half segment from the region value.The current 
 half segment is indicated by ~pos~
 
+7.8 contain function (point)
+
+*Semantics:* This function decides whether a point is inside the region.
+
+*Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
+
 */     
     bool contain( const Point& p ) const;
 /*
-decide whether a point is inside the region.
+7.9 innercontain function
+
+*Semantics:* This function decides whether a point is inside the inner part of the region.
+
+*Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */ 
     bool innercontain( const Point& p ) const;
 /*
-decide whether a point is inside the region and no on the border.
+7.10 contain function (segment)
+
+*Semantics:* This function decides whether a half segment is inside the region.
+
+*Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */   
     bool contain( const CHalfSegment& chs ) const;
 /*
-decide whether a half segment is inside the region.
+7.11 holeedge-contain function
+
+*Semantics:* This function decides whether a half segment is inside a hole edge of the region.
+
+*Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */ 
     bool holeedgecontain( const CHalfSegment& chs ) const;
 /*
-to decide whether a half segment is inside a hole edge of the region.
-
-*/     
-    void logicsort();
-    void logicQuickSortRecursive( const int low, const int high );
-/*
-these two function are used to sort the half segments according to their attributes;
+The following two functions are used to sort the half segments according to their attributes;
 
 */    
+    void logicsort();
+    void logicQuickSortRecursive( const int low, const int high );
     
   private:
 /*
