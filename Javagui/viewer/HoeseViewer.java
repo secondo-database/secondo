@@ -105,6 +105,7 @@ public class HoeseViewer extends SecondoViewer {
 
  /* settings-menu */
   private javax.swing.JMenu jMenuGui;
+  private JMenuItem jMenuBackground;
   private javax.swing.JMenuItem MINewCat;
 
   private JMenu Menu_Prj;
@@ -287,6 +288,7 @@ public class HoeseViewer extends SecondoViewer {
     allProjection = new AffineTransform();
     allProjection.scale(ZoomFactor, ZoomFactor);
     GraphDisplay = new GraphWindow(this);
+    GraphDisplay.setOpaque(true); // needed for background-color
     GraphDisplay.addMouseMotionListener(new MouseMotionListener() {
       public void mouseMoved (MouseEvent e) {
         //Koordinaten in Weltkoordinaten umwandeln
@@ -452,6 +454,21 @@ public class HoeseViewer extends SecondoViewer {
 
  /** Menu Settings */
     jMenuGui = new javax.swing.JMenu();
+    jMenuBackground = jMenuGui.add("Background Color");
+    jMenuBackground.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+	  Color OldBG = GraphDisplay.getBackground();
+	  Color BG = JColorChooser.showDialog(
+                     HoeseViewer.this,
+                     "Choose Background Color",
+		     OldBG
+                     );
+	   if(!OldBG.equals(BG)){
+	      GraphDisplay.setBackground(BG);
+	   }
+	}
+    });
+
     MINewCat = new javax.swing.JMenuItem();
     isAutoCatMI = new javax.swing.JCheckBoxMenuItem();
     jSeparator5 = new javax.swing.JSeparator();
