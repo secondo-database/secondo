@@ -41,15 +41,16 @@ import viewer.SecondoViewer;
  *  @version 0.8beta
  */
 public class JPEGViewer extends SecondoViewer {
-    
+
     private static final String C_JPEG= "jpeg";
     private static final String C_JINFO= "jinfo";
     private static final String C_STRING= "string";
-    
+
     private static final ListExpr JPEG_TYPELIST = ListExpr.symbolAtom("jpeg");
     private static final ListExpr JINFO_TYPELIST = ListExpr.symbolAtom("jinfo");
     /** Holds objectList in the west and jScPicturesPane in the east.*/
-    private JSplitPane jSpMainPanel;
+    //private JSplitPane jSpMainPanel;
+    private JScrollPane jSpMainPanel;
     /** Area where JPEGs are diplayed.*/
     private JScrollPane jScPicturesPane;
     /** The Button holding the icons.*/
@@ -75,7 +76,7 @@ public class JPEGViewer extends SecondoViewer {
     private JPGViewerMetaData jVMDCurrentDisplay = null;
     //    /** The index of the currently focussed <code>SecondoObject</code>. */
     //    private int focussedID=-1;
-    
+
     /** Creates a new instance of JPEGViewer */
     public JPEGViewer() {
         setDebugMode(true);
@@ -84,7 +85,7 @@ public class JPEGViewer extends SecondoViewer {
         initPane();
         //        validate();
     }
-    
+
     /** Initialize the viewers working pane. Create all necessary objects. */
     private void initPane(){
         setLayout(new BorderLayout());
@@ -123,11 +124,12 @@ public class JPEGViewer extends SecondoViewer {
         });
         jScPicturesPane.getViewport().add(iconButton);
         //Put panes together into main panel.
-        jSpMainPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, jTrObjListPane, jScPicturesPane);
+        jSpMainPanel = jScPicturesPane;
+	// new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, jTrObjListPane, jScPicturesPane);
         add(jSpMainPanel, BorderLayout.CENTER);
         resetPane();
     }
-    
+
     private JTree initTreeTest(){
         JTree tree;
         String[][] sampleData = {
@@ -151,7 +153,7 @@ public class JPEGViewer extends SecondoViewer {
     private void resetPane(){
         jCObjChooserDD.setEnabled(true);
         jSpMainPanel.setPreferredSize(new Dimension(600, 400));
-        jSpMainPanel.setDividerLocation(.0001);
+//        jSpMainPanel.setDividerLocation(.0001);
     }
     
     
