@@ -98,7 +98,7 @@ SmiFile::Implementation::CheckDbHandles() {
     bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
     bdbFile   = SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
 		noHandle = false;
-		cerr << "Reallocation of DbHandle called!" << endl;
+		Counter::getRef("SmiFile:Realloc-DBHandles")++;
 	}		
 }	
 

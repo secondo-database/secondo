@@ -21,6 +21,12 @@ up closing files at the end of a query. The problem arised in the ~Array~ algebr
 open many files a remarkable delay between the end of a query and the representation of the result
 was detected. Since a query changes no data on disk syncronisation is not neccessary.
 
+August 26, 2004. M. Spiekermann removed the DB\_PRIVATE flag in the ~Startup~ of the Berkeley-DB Environment.
+This has two reasons. First the Berkeley-DB tools like db\_stat, db\_checkpoint etc. can not operate on
+such environments, and second environments produced by SecondoTTY and the Secondo-Server should now be more
+compatible.
+
+
 */
 
 using namespace std;
@@ -123,7 +129,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   }
 
   instance.impl->dbHandles[idx].handle   = 
-    new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS );
+  new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS );
   instance.impl->dbHandles[idx].inUse    = true;
   instance.impl->dbHandles[idx].nextFree = 0;
   return (idx);
@@ -603,7 +609,7 @@ SmiEnvironment::ListDatabases( string& dbname )
 		
       while (dbcp->get(&key, &data, DB_NEXT) == 0) {
         dbname += (char *)key.get_data();
-	dbname += "#";
+	      dbname += "#";
       }
       dbcp->close();
     }
@@ -623,7 +629,6 @@ string
 SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId, const bool isTemporary )
 {
   ostringstream os;
-//  os << database << PATH_SLASH << "d" << setw(10) << setfill('_') << fileId << ".sdb";
   if ( !isTemporary )
   {
     os << database << PATH_SLASH << "d" << fileId << ".sdb";
@@ -746,6 +751,9 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
   DbEnv* dbenv = instance.impl->bdbEnv;
   DbEnv* dbtmp = instance.impl->tmpEnv;
 
+  assert(dbenv);
+	assert(dbtmp);
+
   configFile = parmFile;
 
   // --- Set the name of the registrar for registering and locking databases
@@ -777,6 +785,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
   {
     cachesize = CACHE_SIZE_MAX;
   }
+	cout << "Setting Cachesize to " << cachesize << " kb." << endl;
   rc = dbenv->set_cachesize( 0, cachesize * 1024, 0 );
 
   // --- Set locking configuration
@@ -846,7 +855,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
       case SmiEnvironment::SingleUserSimple:
         singleUserMode  = true;
         useTransactions = false;
-        flags = DB_PRIVATE  | DB_CREATE | DB_INIT_MPOOL | DB_INIT_LOCK;
+        flags = DB_CREATE | DB_INIT_MPOOL | DB_INIT_LOCK;
 /*
 creates a private environment for the calling process and enables
 automatic recovery during startup. If the environment does not exist,
@@ -858,7 +867,7 @@ Using this mode is not recommended except for read-only databases.
       case SmiEnvironment::SingleUser:
         singleUserMode  = true;
         useTransactions = true;
-        flags = DB_PRIVATE   | DB_CREATE   | DB_RECOVER  |
+        flags = DB_CREATE   | DB_RECOVER  |
                 DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL |
                 DB_INIT_TXN;
 /*
@@ -925,6 +934,8 @@ Transactions, logging and locking are enabled.
     instance.impl->tmpHome = tmpHome.str();
     FileSystem::CreateFolder( tmpHome.str() );
     string bdbTmpHome = instance.impl->bdbHome + PATH_SLASH + tmpHome.str();
+		
+		//rc = dbtmp->set_cachesize( 0, 10*1024*1024, 0);
     rc = dbtmp->open( bdbTmpHome.c_str(),
                       DB_PRIVATE | DB_INIT_MPOOL | DB_CREATE, 0 );
     FileSystem::SetCurrentFolder( oldHome );
@@ -1358,8 +1369,11 @@ SmiEnvironment::AbortTransaction()
 bool
 SmiEnvironment::InitializeDatabase()
 {
-  int rc;
-  string fileName;
+  int rc = 0;
+	string prefix = database+PATH_SLASH;
+  string dbseqFileName = prefix+"sequences";
+	string dbctlFileName = prefix+"filecatalog";
+	string dbidxFileName = prefix+"fileindex";
   DbEnv* dbenv = instance.impl->bdbEnv;
   Db*    dbctl = 0;
   Db*    dbidx = 0;
@@ -1368,8 +1382,7 @@ SmiEnvironment::InitializeDatabase()
 
   Db* dbseq = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
   dbseq->set_re_len( sizeof( SmiFileId ) );
-  fileName = database+PATH_SLASH+"sequences";
-  rc = dbseq->open( 0, fileName.c_str(), 0, DB_QUEUE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
+  rc = dbseq->open( 0, dbseqFileName.c_str(), 0, DB_QUEUE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
   if ( rc == 0 )
   {
     instance.impl->bdbSeq = dbseq;
@@ -1386,8 +1399,7 @@ SmiEnvironment::InitializeDatabase()
     dbctl = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
     dbidx = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 
-    fileName = database+PATH_SLASH+"filecatalog";
-    rc = dbctl->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
+    rc = dbctl->open( 0, dbctlFileName.c_str(), 0, DB_BTREE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalog = dbctl;
@@ -1397,8 +1409,7 @@ SmiEnvironment::InitializeDatabase()
       instance.impl->bdbCatalog = 0;
     }
 
-    fileName = database+PATH_SLASH+"fileindex";
-    rc = dbidx->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
+    rc = dbidx->open( 0, dbidxFileName.c_str(), 0, DB_BTREE, DB_CREATE | Implementation::AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalogIndex = dbidx;
@@ -1427,8 +1438,7 @@ SmiEnvironment::InitializeDatabase()
       delete dbseq;
       instance.impl->bdbSeq = 0;
       Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-      fileName = database+PATH_SLASH+"sequences";
-      dbp->remove( fileName.c_str(), 0, 0 );
+      dbp->remove( dbseqFileName.c_str(), 0, 0 );
       delete dbp;
     }
     if ( dbctl )
@@ -1437,8 +1447,7 @@ SmiEnvironment::InitializeDatabase()
       delete dbctl;
       instance.impl->bdbCatalog = 0;
       Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-      fileName = database+PATH_SLASH+"filecatalog";
-      dbp->remove( fileName.c_str(), 0, 0 );
+      dbp->remove( dbctlFileName.c_str(), 0, 0 );
       delete dbp;
     }
     if ( dbidx )
@@ -1447,8 +1456,7 @@ SmiEnvironment::InitializeDatabase()
       delete dbidx;
       instance.impl->bdbCatalogIndex = 0;
       Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-      fileName = database+PATH_SLASH+"fileindex";
-      dbp->remove( fileName.c_str(), 0, 0 );
+      dbp->remove( dbidxFileName.c_str(), 0, 0 );
       delete dbp;
     }
   }
