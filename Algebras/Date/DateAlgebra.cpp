@@ -677,15 +677,6 @@ operator, we just have to return 0.
 operators ~day~, ~month~, ~year~, ~\verb+<+~, ~=~, ~\verb+>+~, ~thedate~ are all non-overloaded
 operators, therefore we only need to return 0.
 
-*/
-
-
-int
-simpleSelect (ListExpr args ) {return 0;}
-
-
-/*
-  
 3.3 Value Mapping Functions
 
 */
@@ -886,7 +877,7 @@ Operator day (
 	DaySpec, 	     	//specification
 	dayFun,			//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateInt			//type mapping
 );
 
@@ -895,7 +886,7 @@ Operator month (
 	MonthSpec,	        //specification
 	monthFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateInt			//type mapping
 );
 
@@ -904,7 +895,7 @@ Operator year (
 	YearSpec, 		//specification
 	yearFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateInt			//type mapping
 );
 
@@ -913,7 +904,7 @@ Operator earlier (
 	EarlierSpec,		//specification
 	earlierFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateDateBool		//type mapping
 );
 
@@ -922,7 +913,7 @@ Operator opequal (
 	EqualSpec,		//specification
 	equalFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateDateBool		//type mapping
 );
 
@@ -931,7 +922,7 @@ Operator later (
 	LaterSpec,		//specification
 	laterFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	DateDateBool		//type mapping
 );
 
@@ -940,7 +931,7 @@ Operator thedate (
 	DateSpec,		//specification
 	dateFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function
+	Operator::SimpleSelect,		//trivial selection function
 	IntIntIntDate		//type mapping
 );
 /*

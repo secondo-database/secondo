@@ -69,9 +69,18 @@ class TupleElement // renamed, previous name: TupleElem
   virtual ~TupleElement() {}
   virtual int NumOfFLOBs() { return (0); }
   virtual FLOB* GetFLOB( const int ){ cout << "*?????????*" << endl; return (0); }
-  virtual const bool SaveFLOB( const int ){ return (0); }
+  virtual const bool SaveFLOB( const int, SmiRecordFile* ){ return (0); }
   virtual TupleElement* Clone() { return 0; }
   virtual ostream& Print( ostream& os ) { return (os << "??"); }
+  virtual char *GetRootRecord() { return (char *)this; }
+  void SetInsideTuple()
+  {
+    for( int i = 0; i < NumOfFLOBs(); i++ )
+    {
+      FLOB *tmpFLOB = GetFLOB( i );
+      tmpFLOB->SetInsideTuple();
+    }
+  }
 };
 
 ostream& operator<< (ostream &os, TupleElement &attrib);

@@ -6,6 +6,9 @@
 
 [1] Implementation File of Module FLOB
 
+Victor Almeida, 24/04/03. Adapting the class to accept standalone objects
+and objects inside tuples transparently.
+
 Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
 
 Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
@@ -32,17 +35,33 @@ const int FLOB::SWITCH_THRESHOLD = 1024;
 
 2.2 Constructor.
 
+Create a new FLOB from scratch.
+
 */
-FLOB::FLOB(SmiRecordFile *inlobFile) : 
-lobFile(inlobFile),
+FLOB::FLOB() : 
+lobFile(0),
 lob(),
 lobId(0),
 size(0),
 start(0),
 isLob(false),
-insideTuple(false)
+insideTuple(false),
+freeStart(false)
 {
 }
+
+/*
+2.3 Constructor.
+
+Create a new FLOB from scratch and initialize it
+with size ~sz~ if ~alloc~ is true. This ~alloc~
+flag is important because sometimes the tuple
+manager allocates the memory for the FLOB, specially
+when the FLOB stays on the extension of the tuple.
+In these situations, the FLOB does not allocate any
+memory and leaves it to be done by the tuple.
+
+*/
 
 FLOB::FLOB(SmiRecordFile *inlobFile, const SmiRecordId id, const bool update) : 
 lobFile(inlobFile),
@@ -51,7 +70,8 @@ lobId(id),
 size(0),
 start(0),
 isLob(false),
-insideTuple(false)
+insideTuple(false),
+freeStart(true)
 {
   SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
   assert( lobFile->SelectRecord( lobId, lob, at ) );
@@ -69,25 +89,27 @@ insideTuple(false)
 }
 
 /*
+2.4 Constructor.
 
-2.3 Constructor.
-
-Create from scratch.
+Opens a FLOB from a file ~inlobFile~ and record identification ~id~.
+The flag ~update~ tells if the FLOB is being opened for update or
+read only.
 
 */
-FLOB::FLOB(SmiRecordFile *inlobFile, int sz, const bool alloc, const bool update) :
-lobFile(inlobFile),
+FLOB::FLOB(const int sz, const bool alloc, const bool update) :
+lobFile(0),
 lob(),
 lobId(0),
 size(sz),
 start(alloc ? (char *) malloc(sz) : NULL),
 isLob(false),
-insideTuple(false)
+insideTuple(false),
+freeStart(alloc)
 {
 }
 
 /*
-2.4 Destructor. 
+2.5 Destructor. 
 
 Destroy LOB instance.
 
@@ -96,14 +118,14 @@ FLOB::~FLOB() {
   if (start != 0)
   {
     assert( !IsLob() );
-//    free(start);
+    if( freeStart ) free(start);
     start = 0;
   }
 }
 
 /*
 
-2.5 Destroy.
+2.6 Destroy.
 
 Destroy persistent representation.
 
@@ -111,92 +133,106 @@ Destroy persistent representation.
 void FLOB::Destroy() {
   if (start != 0) {
       assert( !IsLob() );
-//      free(start);
+      if( freeStart ) free(start);
       start = 0;
       size = 0;
   }
   else 
   {
-    assert( lobId != 0 );
+    assert( lobFile != 0 && lobId != 0 );
     lobFile->DeleteRecord(lobId);
   }
 }
 
 /*
-2.6 Get
+2.7 Get
 
 Read by copying
 
 */
-void FLOB::Get(int offset, int length, char *target) {
-  if (!IsLob()) {
+void FLOB::Get(const int offset, const int length, char *target) 
+{
+  if (!IsLob()) 
+  {
     assert( start != 0 && offset + length <= size );
     memcpy(target, start + offset, length);
   }
-  else {
-	lobFile->SelectRecord(lobId, lob);
+  else 
+  {
+    assert( lobFile != 0 );
+	  lobFile->SelectRecord(lobId, lob);
     assert( offset + length <= (int)lob.Size() );
     lob.Read(target, length, offset);
   }
 }
 
 /* 
-2.7	Write
+2.8	Write
 
 Write Flob data into source. 
 
 */
-void FLOB::Write(int offset, int length, char *source) {
-	if (!IsLob()) {
-          assert( start != 0 );
-      	  memcpy(start + offset, source, (size - offset < length ? size - offset : length));
+void FLOB::Write(const int offset, const int length, char *source) 
+{
+	if (!IsLob()) 
+  {
+    assert( start != 0 );
+    memcpy(start + offset, source, (size - offset < length ? size - offset : length));
 	}    
-  	else {	
-    	  lobFile->SelectRecord(lobId, lob);
-    	  lob.Write(source, length, offset);
+  else 
+  {	
+    assert( lobFile != 0 );
+    lobFile->SelectRecord(lobId, lob);
+    lob.Write(source, length, offset);
 	}
 }
 
 /* 
-2.8 Size
+2.9 Size
 
 Returns the size of a FLOB.
 
 */
-int FLOB::GetSize() {
-  if (!IsLob())
-    return size;
-  else
-    return lob.Size();
+const int FLOB::GetSize() const  
+{
+  return size;
 }
 
 /*
-2.9 Resize
+2.10 Resize
 
 Resizes the FLOB.
 
 */
-void FLOB::Resize(int newSize) {
-  if (!IsLob()) {
-    // the data is still in memory.
+void FLOB::Resize(const int newSize) 
+{
+  if (!IsLob()) 
+  // the data is still in memory.
+  {
     size = newSize;
     if( start == 0 )
     {
       start = (char *)malloc(size);
+      freeStart = true;
     }
     else
     {
+      assert( freeStart );
       start = (char *)realloc((void *)start, size);
     }
   }
-  else {
-    // the data is saved in a lob.
-    if (newSize <= size) {
+  else 
+  // the data is saved in a lob.
+  {
+    assert( lobFile != 0 && lobId != 0 );
+    if (newSize <= size) 
+    {
       // the data become smaller
       size = newSize;
       lob.Truncate(newSize);
     }
-    else {
+    else 
+    {
       // the data become larger.
       char *data = (char *)malloc(size);
       lob.Read(data, size, 0);
@@ -210,39 +246,43 @@ void FLOB::Resize(int newSize) {
 
   
 /*
-2.10 IsLob
+2.11 IsLob
 
 Returns true, if value stored in underlying LOB, otherwise false.
 
 */ 
-bool FLOB::IsLob() const {
+const bool FLOB::IsLob() const 
+{
   return isLob;
 }
   
 /*
-2.11 Restore
+2.12 Restore
 
 Restore from byte string.
 
 */
-int FLOB::Restore(char *address) {
+const int FLOB::Restore(char *address) 
+{
   start = address;
   return size;
 }
 
 /* 
-2.12 SaveToLob
+2.13 SaveToLob
 
 Switch from Main Memory to LOB Representation 
 if the size of this FLOB exceeds thresholdsize.
 
 */
-bool FLOB::SaveToLob() 
+const bool FLOB::SaveToLob( SmiRecordFile *lobfile ) 
 {
+  lobFile = lobfile;
   if (IsLob())
   {
     size = lob.Size();
     start = (char*)malloc(size);
+    freeStart = true;
     lob.Read(start, size, 0); 
     isLob = false;
       /* Now the actual FLOB is a memory flob. Another
@@ -250,25 +290,21 @@ bool FLOB::SaveToLob()
 	 flob is large. This is exactly the behaviour
 	 we need: an underlying lob should be copied 
 	 when its comprising tuple is copied. */
-    SaveToLob();
+    SaveToLob( lobFile );
   }
 
   if (size > SWITCH_THRESHOLD && insideTuple ) 
   {
-    cout << "(FLOB inside tuple)";
-    SmiRecord newLob;
     isLob = true;
-    lobFile->AppendRecord(lobId, newLob);
-    newLob.Write(start, size, 0);
-    lob = newLob;
-    free(start);
+    lobFile->AppendRecord(lobId, lob);
+    lob.Write(start, size, 0);
+    if( freeStart ) free(start);
     start = 0;
     size = lob.Size();
     return true;
   }  
   else if( !insideTuple ) 
   {
-    cout << "(FLOB stantalone)";
     if( lobId == 0 )
     {
       isLob = true;
@@ -276,6 +312,7 @@ bool FLOB::SaveToLob()
     }
     lob.Write(start, size, 0);
     size = lob.Size();
+    assert( freeStart );
     free(start);
     start = 0;
     return true;
@@ -288,24 +325,24 @@ bool FLOB::SaveToLob()
 }
 
 /*
-2.13 GetLobId
+2.14 GetLobId
 
 Returns the lob record id.
 
 */
-const SmiRecordId FLOB::GetLobId()
+const SmiRecordId FLOB::GetLobId() const
 {
   return lobId;
 }
 
 /*
-2.14 SetInsideTuple
+2.15 SetInsideTuple
 
-Sets this flob to be inside a tuple or not depending on the value of ~it~.
+Sets this flob to be inside a tuple.
 
 */
-void FLOB::SetInsideTuple( const bool it )
+void FLOB::SetInsideTuple()
 {
-  insideTuple = it;
+  insideTuple = true;
 }
 

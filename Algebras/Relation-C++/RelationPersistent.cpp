@@ -62,6 +62,9 @@ the ~SmiRecordId~ will be this identification.
 */
 struct TupleId
 {
+  TupleId():
+    value( 0 )
+    {}
   TupleId( const SmiRecordId id ):
     value( id )
     {}
@@ -275,7 +278,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++) 
     {
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-      attributes[i]->SaveFLOB(j);
+      attributes[i]->SaveFLOB(j, lobFile);
       if( !tmpFLOB->IsLob() ) 
         extensionSize += tmpFLOB->GetSize();
     }
@@ -305,7 +308,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   int offset = 0;
   for( int i = 0; i < tupleType.GetNoAttributes(); i++) 
   {
-    memcpy( &memoryTuple[offset], attributes[i], tupleType.GetAttributeType(i).size );
+    memcpy( &memoryTuple[offset], attributes[i]->GetRootRecord(), tupleType.GetAttributeType(i).size );
     offset += tupleType.GetAttributeType(i).size;
   }
 
@@ -317,7 +320,10 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
 
   state = Solid;
 
-  free( extensionTuple ); extensionTuple = 0;
+  if( extensionSize > 0 )
+  {
+    free( extensionTuple ); extensionTuple = 0;
+  }  
   free( memoryTuple ); memoryTuple = 0;
 
   return rc;
@@ -412,7 +418,6 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
 
   iter->ReadCurrentRecordNumber( tupleId.value );
-  tupleRecord = new SmiRecord();
   tupleFile = tuplefile;
   lobFile = lobfile;
 
@@ -426,7 +431,6 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   if( !ok ) 
   {
     tupleId = 0;
-    delete tupleRecord;
     tupleFile = 0;
     lobFile = 0;
     free( memoryTuple ); memoryTuple = 0;
@@ -441,6 +445,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
     int algId = tupleType.GetAttributeType(i).algId;
     int typeId = tupleType.GetAttributeType(i).typeId;
     attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    attributes[i]->SetInsideTuple();
     valuePtr += tupleType.GetAttributeType(i).size;
   }
 
@@ -448,11 +453,10 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   if( extensionSize > 0 )
   {
     extensionTuple = (char *)malloc( extensionSize );
-    ok = tupleRecord->Read( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && ok;
+    ok = iter->ReadCurrentData( extensionTuple, extensionSize, sizeof(int) + tupleType.GetTotalSize() ) && ok;
     if( !ok )
     {
       tupleId = 0;
-      delete tupleRecord;
       tupleFile = 0;
       lobFile = 0;
       free( memoryTuple ); memoryTuple = 0;
@@ -526,6 +530,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
     int algId = tupleType.GetAttributeType(i).algId;
     int typeId = tupleType.GetAttributeType(i).typeId;
     attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    attributes[i]->SetInsideTuple();
     valuePtr += tupleType.GetAttributeType(i).size;
   }
 
@@ -618,6 +623,7 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
     
   if( privateTuple->attributes[index] != 0 )
     delete privateTuple->attributes[index];
+  attr->SetInsideTuple();  
   privateTuple->attributes[index] = attr;
 }
 
@@ -726,11 +732,11 @@ This struct contains the private attributes of the class ~Relation~.
 */
 struct PrivateRelation
 {
-  PrivateRelation( const ListExpr typeInfo ):
+  PrivateRelation( const ListExpr typeInfo, const bool isTemporary ):
     noTuples( 0 ),
     tupleType( nl->Second( typeInfo ) ),
-    tupleFile( false, 0 ),
-    lobFile( false, 0 ) 
+    tupleFile( false, 0, isTemporary ),
+    lobFile( false, 0, isTemporary ) 
     {
       assert( tupleFile.Create() );
       assert( lobFile.Create() );
@@ -739,11 +745,11 @@ struct PrivateRelation
 The first constructor. Creates an empty relation from a ~typeInfo~.
 
 */
-  PrivateRelation( const TupleType& tupleType ):
+  PrivateRelation( const TupleType& tupleType, const bool isTemporary ):
     noTuples( 0 ),
     tupleType( tupleType ),
-    tupleFile( false, 0 ),
-    lobFile( false, 0 )
+    tupleFile( false, 0, isTemporary ),
+    lobFile( false, 0, isTemporary )
     {
       assert( tupleFile.Create() );
       assert( lobFile.Create() );
@@ -804,12 +810,12 @@ A relation is stored into two files: one for the tuples and another for the larg
 objects (FLOBs) of the tuples.
 
 */
-Relation::Relation( const ListExpr typeInfo ):
-  privateRelation( new PrivateRelation( typeInfo ) )
+Relation::Relation( const ListExpr typeInfo, const bool isTemporary ):
+  privateRelation( new PrivateRelation( typeInfo, isTemporary ) )
   {}
 
-Relation::Relation( const TupleType& tupleType ):
-  privateRelation( new PrivateRelation( tupleType ) )
+Relation::Relation( const TupleType& tupleType, const bool isTemporary ):
+  privateRelation( new PrivateRelation( tupleType, isTemporary ) )
   {}
 
 Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
@@ -883,6 +889,11 @@ RelationIterator *Relation::MakeScan() const
   return new RelationIterator( *this );
 }
 
+RelationIterator *Relation::MakeSortedScan( const TupleCompare* tupleCompare ) const
+{
+  return new RelationIterator( *this, tupleCompare );
+}
+
 #ifdef _PREFETCHING_
 /*
 4.3 Struct ~PrivateRelationIterator~ (using ~PrefetchingIterator~)
@@ -892,11 +903,25 @@ This struct contains the private attributes of the class ~RelationIterator~.
 */
 struct PrivateRelationIterator
 {
-  PrivateRelationIterator( const Relation& rel ):
+  PrivateRelationIterator( const Relation& rel, const TupleCompare* tupleCompare ):
     iterator( rel.privateRelation->tupleFile.SelectAllPrefetched() ),
+    order( tupleCompare == 0 ? 0 : new vector<TupleId>() ),
+    currentTuple( 0 ),
+    tupleCompare( tupleCompare ),
     relation( rel ),
     endOfScan( false )
     {
+      if( tupleCompare != 0 )
+      {
+        while( iterator->Next() )      
+        {
+          TupleId id;
+          iterator->ReadCurrentRecordNumber( id.value );
+          order->push_back( id );
+        }
+        delete iterator;
+        Sort();
+      }
     }
 /*
 The constructor.
@@ -904,7 +929,10 @@ The constructor.
 */
   ~PrivateRelationIterator()
   {
-    delete iterator;
+    if( tupleCompare )
+      delete order;
+    else 
+      delete iterator;
   }
 /*
 The destructor.
@@ -913,6 +941,21 @@ The destructor.
   PrefetchingIterator *iterator;
 /*
 The iterator.
+
+*/
+  vector<TupleId> *order;
+/*
+The order of the tuples to be read. This works for a sorted iterator.
+
+*/
+  unsigned int currentTuple;
+/*
+The current tuple in the order vector. Only used for sorted iteration.
+
+*/
+  const TupleCompare* tupleCompare;
+/*
+The tuple comparison criteria.
 
 */
   const Relation& relation;
@@ -925,6 +968,13 @@ A reference to the relation.
 Stores the state of the iterator.
 
 */
+  private:
+    void Sort();
+    void QuickSortRecursive( const int low, const int high );
+/*
+Functions for sorting the iterator.
+
+*/
 };
 
 /*
@@ -933,8 +983,8 @@ Stores the state of the iterator.
 This class is used for scanning (iterating through) relations.
 
 */
-RelationIterator::RelationIterator( const Relation& relation ):
-  privateRelationIterator( new PrivateRelationIterator( relation ) )
+RelationIterator::RelationIterator( const Relation& relation, const TupleCompare* tupleCompare ):
+  privateRelationIterator( new PrivateRelationIterator( relation, tupleCompare ) )
   {}
 
 RelationIterator::~RelationIterator()
@@ -944,17 +994,35 @@ RelationIterator::~RelationIterator()
 
 Tuple* RelationIterator::GetNextTuple() 
 {
-  if( !privateRelationIterator->iterator->Next() )
+  if( privateRelationIterator->tupleCompare == 0 )
   {
-    privateRelationIterator->endOfScan = true;
-    return 0; 
-  }
+    if( !privateRelationIterator->iterator->Next() )
+    {
+      privateRelationIterator->endOfScan = true;
+      return 0; 
+    }
 
-  Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
-  result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
-                                   &privateRelationIterator->relation.privateRelation->lobFile,
-                                   privateRelationIterator->iterator );
-  return result;
+    Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
+    result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
+                                     &privateRelationIterator->relation.privateRelation->lobFile,
+                                     privateRelationIterator->iterator );
+    return result;
+  }
+  else
+  {
+    if( privateRelationIterator->currentTuple == privateRelationIterator->order->size() )
+    {
+      privateRelationIterator->endOfScan = true;
+      return 0;
+    }  
+   
+    Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
+    result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
+                                     &privateRelationIterator->relation.privateRelation->lobFile,
+                                     (*privateRelationIterator->order)[privateRelationIterator->currentTuple].value );
+    privateRelationIterator->currentTuple++;
+    return result;
+  }
 }
 
 const bool RelationIterator::EndOfScan() 
@@ -970,11 +1038,27 @@ This struct contains the private attributes of the class ~RelationIterator~.
 */
 struct PrivateRelationIterator
 {
-  PrivateRelationIterator( const Relation& rel ):
+  PrivateRelationIterator( const Relation& rel, const TupleCompare *tupleCompare ):
     iterator(),
+    order( tupleCompare == 0 ? 0 : new vector<TupleId>() ),
+    currentTuple( 0 ),
+    tupleCompare( tupleCompare ),
     relation( rel )
     {
       rel.privateRelation->tupleFile.SelectAll( iterator );
+      if( tupleCompare != 0 )
+      {
+        SmiRecord record;
+        while( iterator.Next( record ) )
+        {
+          TupleId id;
+          SmiKey mykey;
+          mykey = record.GetKey();
+          mykey.GetKey( id.value );
+          order->push_back( id );
+        }
+        Sort();
+      }
     }
 /*
 The constructor.
@@ -991,9 +1075,31 @@ The destructor.
 The iterator.
 
 */
+  vector<TupleId> *order;
+/*
+The order of the tuples to be read. This works for a sorted iterator.
+
+*/
+  unsigned int currentTuple;
+/*
+The current tuple in the order vector. Only used for sorted iteration.
+
+*/
+  const TupleCompare* tupleCompare;
+/*
+The tuple comparison criteria.
+
+*/
   const Relation& relation;
 /*
 A reference to the relation.
+
+*/
+  private:
+    void Sort();
+    void QuickSortRecursive( const int low, const int high );
+/*
+Functions for sorting the iterator.
 
 */
 };
@@ -1004,8 +1110,8 @@ A reference to the relation.
 This class is used for scanning (iterating through) relations.
 
 */
-RelationIterator::RelationIterator( const Relation& relation ):
-  privateRelationIterator( new PrivateRelationIterator( relation ) )
+RelationIterator::RelationIterator( const Relation& relation, const TupleCompare* tupleCompare ):
+  privateRelationIterator( new PrivateRelationIterator( relation, tupleCompare ) )
   {}
 
 RelationIterator::~RelationIterator()
@@ -1015,29 +1121,165 @@ RelationIterator::~RelationIterator()
 
 Tuple* RelationIterator::GetNextTuple()
 {
-  SmiRecord *record = new SmiRecord();
-  privateRelationIterator->iterator.Next( *record );
+  if( privateRelationIterator->tupleCompare == 0 )
+  {
+    SmiRecord *record = new SmiRecord();
+    privateRelationIterator->iterator.Next( *record );
 
-  if( EndOfScan() )
-    return 0;
+    if( EndOfScan() )
+      return 0;
 
-  Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
-  delete result->GetPrivateTuple()->tmTuple;
-  result->GetPrivateTuple()->tmTuple =
-    new TMTuple( &privateRelationIterator->relation.privateRelation->tupleFile,
-                 record,
-                 &privateRelationIterator->relation.privateRelation->lobFile,
-                 privateRelationIterator->relation.privateRelation->tupleType );
-  result->SetTupleId( result->GetPrivateTuple()->tmTuple->GetPersistentId() );
-  return result;
+    Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
+    result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
+                                     &privateRelationIterator->relation.privateRelation->lobFile,
+                                     record );
+    return result;
+  }
+  else
+  {
+    if( privateRelationIterator->currentTuple == privateRelationIterator->order->size() )
+      return 0;
+
+    Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
+    result->GetPrivateTuple()->Open( &privateRelationIterator->relation.privateRelation->tupleFile,
+                                     &privateRelationIterator->relation.privateRelation->lobFile,
+                                     (*privateRelationIterator->order)[privateRelationIterator->currentTuple] );
+    privateRelationIterator->currentTuple++;
+    return result;
+
+  }
 }
 
 const bool RelationIterator::EndOfScan()
 {
-  return privateRelationIterator->iterator.EndOfScan();
+  if( privateRelationIterator->tupleCompare != 0 )
+    return ( privateRelationIterator->currentTuple == privateRelationIterator->order->size() );
+  else
+    return privateRelationIterator->iterator.EndOfScan();
 }
 
 #endif // _PREFETCHING_
+
+/*
+4.7 Implementation of class ~PrivateRelationIterator~
+
+Implementation of common functions (sorting functions) of the ~PrivateRelationIterator~ class
+for prefetching and non-prefetching iterators.
+
+*/
+void PrivateRelationIterator::Sort()
+{
+  assert( order != 0 && tupleCompare != 0 );
+  if( order->size() > 1 )
+  {
+    int left = 0, right = order->size() - 1;
+    QuickSortRecursive( left, right );
+  }
+}
+
+void PrivateRelationIterator::QuickSortRecursive( const int low, const int high )
+{
+  int l = low;
+  int h = high;
+  Tuple *tl = 0, *th = 0;
+
+  if (l >= h)
+  {
+    return;
+  }
+  else if( l == h - 1 )
+    // sort a two element list by swapping if necessary
+  {
+    tl = new Tuple( relation.privateRelation->tupleType );
+    tl->GetPrivateTuple()->Open( &relation.privateRelation->tupleFile,
+                                 &relation.privateRelation->lobFile,
+                                 (*order)[l].value );
+
+    th = new Tuple( relation.privateRelation->tupleType );
+    th->GetPrivateTuple()->Open( &relation.privateRelation->tupleFile,
+                                 &relation.privateRelation->lobFile,
+                                 (*order)[h].value );
+
+    if( (*tupleCompare)( th, tl ) )
+    {
+      TupleId aux = (*order)[l];
+      (*order)[l] = (*order)[h];
+      (*order)[h] = aux;
+    }
+    delete tl;
+    delete th;
+    return;
+  }
+
+  // Pick a pivot and move it out of the way
+  Tuple *pivot = new Tuple( relation.privateRelation->tupleType );
+  pivot->GetPrivateTuple()->Open( &relation.privateRelation->tupleFile,
+                                  &relation.privateRelation->lobFile,
+                                  (*order)[(l + h) / 2].value );
+
+  TupleId pivotPos = (*order)[(l + h) / 2];
+  (*order)[(l + h) / 2] = (*order)[h];
+  (*order)[h] = pivotPos;
+
+  while( l < h )
+  {
+    // Search forward from a[lo] until an element is found that
+    // is greater than the pivot or lo >= hi
+    delete tl;
+    tl = new Tuple( relation.privateRelation->tupleType );
+    tl->GetPrivateTuple()->Open( &relation.privateRelation->tupleFile,
+                                 &relation.privateRelation->lobFile,
+                                 (*order)[l].value );
+    while( !(*tupleCompare)( pivot, tl ) && l < h )
+    {
+      l++;
+      delete tl;
+      tl = new Tuple( relation.privateRelation->tupleType );
+      tl->GetPrivateTuple()->Open( &relation.privateRelation->tupleFile,
+                                   &relation.privateRelation->lobFile,
+                                   (*order)[l].value );
+    }
+
+    // Search backward from a[hi] until element is found that
+    // is less than the pivot, or lo >= hi
+    delete th;
+    th = new Tuple( relation.privateRelation->tupleType );
+    th->GetPrivateTuple()->Open( &relation.privateRelation->tupleFile,
+                                 &relation.privateRelation->lobFile,
+                                 (*order)[h].value );
+    while( !(*tupleCompare)( th, pivot ) && l < h )
+    {
+      h--;
+      delete th;
+      th = new Tuple( relation.privateRelation->tupleType );
+      th->GetPrivateTuple()->Open( &relation.privateRelation->tupleFile,
+                                   &relation.privateRelation->lobFile,
+                                   (*order)[h].value );
+    }
+
+    // Swap elements a[lo] and a[hi]
+    if( l < h )
+    {
+      TupleId aux = (*order)[l];
+      (*order)[l] = (*order)[h];
+      (*order)[h] = aux;
+    }
+  }
+
+  // Put the median in the "center" of the list
+  (*order)[high] = (*order)[h];
+  (*order)[h] = pivotPos;
+
+  delete pivot;
+  delete tl;
+  delete th;
+
+  // Recursive calls, elements a[lo0] to a[lo-1] are less than or
+  // equal to pivot, elements a[hi+1] to a[hi0] are greater than
+  // pivot.
+  QuickSortRecursive(low, l-1);
+  QuickSortRecursive(h+1, high);
+}
 
 /*
 5 Auxiliary functions

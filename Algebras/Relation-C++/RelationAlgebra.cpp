@@ -9,7 +9,7 @@ June 1996 Claudia Freundorfer
 
 May 2002 Frank Hoffmann port to C++
 
-November 7, 2002 RHG Corrected the type mapping of ~tcount~.
+November 7, 2002 RHG Corrected the type mapping of ~count~.
 
 November 30, 2002 RHG Introduced a function ~RelPersistValue~ instead of
 ~DefaultPersistValue~ which keeps relations that have been built in memory in a
@@ -638,19 +638,6 @@ TypeConstructor cpprel( "rel",           RelProp,
 
 5 Operators
 
-5.1 Selection function for non-overloaded operators
-
-For non-overloaded operators, the set of value mapping functions consists
-of exactly one element.  Consequently, the selection function of such an
-operator always returns 0.
-
-*/
-static int simpleSelect (ListExpr args) 
-{ 
-  return 0; 
-}
-
-/*
 5.2 Selection function for type operators
 
 The selection function of a type operator always returns -1.
@@ -705,7 +692,7 @@ const string TUPLESpec =
 5.3.3 Definition of operator ~TUPLE~
 
 */
-Operator TUPLE (
+Operator relalgTUPLE (
          "TUPLE",              // name
          TUPLESpec,            // specification
          0,                    // no value mapping
@@ -755,7 +742,7 @@ const string TUPLE2Spec =
 5.4.3 Definition of operator ~TUPLE2~
 
 */
-Operator TUPLE2 (
+Operator relalgTUPLE2 (
          "TUPLE2",             // name
          TUPLE2Spec,           // specification
          0,                    // no value mapping
@@ -815,7 +802,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       r = ((Relation*)argRelation.addr);
       rit = r->MakeScan();
 
-      local.addr = rit;
+      local = SetWord(rit);
       return 0;
 
     case REQUEST :
@@ -854,12 +841,12 @@ Non-overloaded operators are defined by constructing a new instance of
 class ~Operator~, passing all operator functions as constructor arguments.
 
 */
-Operator feed (
+Operator relalgfeed (
           "feed",                // name
           FeedSpec,              // specification
           Feed,                  // value mapping
           Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-          simpleSelect,         // trivial selection function
+          Operator::SimpleSelect,         // trivial selection function
           FeedTypeMap           // type mapping
 );
 
@@ -942,12 +929,12 @@ const string ConsumeSpec =
 5.6.4 Definition of operator ~consume~
 
 */
-Operator consume (
+Operator relalgconsume (
          "consume",            // name
 	 ConsumeSpec,          // specification
 	 Consume,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 ConsumeTypeMap        // type mapping
 );
 /*
@@ -1059,12 +1046,12 @@ const string AttrSpec =
 5.7.4 Definition of operator ~attr~
 
 */
-Operator attr (
+Operator relalgattr (
      "attr",           // name
      AttrSpec,        // specification
      Attr,            // value mapping
      Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-     simpleSelect,         // trivial selection function
+     Operator::SimpleSelect,         // trivial selection function
      AttrTypeMap      // type mapping
 );
 /*
@@ -1081,7 +1068,7 @@ Result type of filter operation.
 ----
 
 */
-template<bool isFilter> ListExpr FilterTypeMap(ListExpr args)
+ListExpr FilterTypeMap(ListExpr args)
 {
   ListExpr first, second;
   if(nl->ListLength(args) == 2)
@@ -1100,10 +1087,7 @@ template<bool isFilter> ListExpr FilterTypeMap(ListExpr args)
     return first;
   }
 
-  ErrorReporter::ReportError(
-    isFilter ?
-      "Incorrect input for operator filter." :
-      "Incorrect input for operator cancel.");
+  ErrorReporter::ReportError( "Incorrect input for operator filter.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -1177,13 +1161,13 @@ const string FilterSpec =
 5.8.4 Definition of operator ~filter~
 
 */
-Operator tfilter (
+Operator relalgfilter (
          "filter",            // name
          FilterSpec,           // specification
          Filter,               // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
-         FilterTypeMap<true>         // type mapping
+         Operator::SimpleSelect,         // trivial selection function
+         FilterTypeMap         // type mapping
 );
 /*
 
@@ -1355,12 +1339,12 @@ const string ProjectSpec =
 5.9.4 Definition of operator ~project~
 
 */
-Operator project (
+Operator relalgproject (
          "project",            // name
          ProjectSpec,          // specification
          Project,              // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         Operator::SimpleSelect,         // trivial selection function
          ProjectTypeMap        // type mapping
 );
 
@@ -1480,6 +1464,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       if(qp->Received(args[1].addr))
       {
         pli->rightRel = new Relation( ((Tuple*)u.addr)->GetTupleType() );
+        pli->iter = pli->rightRel->MakeScan();
       }
       else
       {
@@ -1496,7 +1481,6 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
         qp->Request(args[1].addr, u);
       }
 
-      pli->iter = pli->rightRel->MakeScan();
       ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
       pli->resultTupleType = new TupleType( nl->Second( resultType ) );
 
@@ -1599,24 +1583,24 @@ const string ProductSpec =
 5.10.4 Definition of operator ~product~
 
 */
-Operator product (
+Operator relalgproduct (
          "product",            // name
          ProductSpec,          // specification
          Product,              // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         Operator::SimpleSelect,         // trivial selection function
          ProductTypeMap        // type mapping
 );
 /*
 
-5.11 Operator ~tcount~
+5.11 Operator ~count~
 
 Count the number of tuples within a stream of tuples.
 
 
-5.11.1 Type mapping function of operator ~tcount~
+5.11.1 Type mapping function of operator ~count~
 
-Operator ~tcount~ accepts a stream of tuples and returns an integer.
+Operator ~count~ accepts a stream of tuples and returns an integer.
 
 ----    (stream  (tuple x))                 -> int
 ----
@@ -1645,7 +1629,7 @@ TCountTypeMap(ListExpr args)
 
 /*
 
-5.11.2 Value mapping functions of operator ~tcount~
+5.11.2 Value mapping functions of operator ~count~
 
 */
 static int
@@ -1680,7 +1664,7 @@ TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 
 /*
 
-5.11.3 Specification of operator ~tcount~
+5.11.3 Specification of operator ~count~
 
 */
 const string TCountSpec =
@@ -1689,7 +1673,7 @@ const string TCountSpec =
 
 /*
 
-5.11.4 Selection function of operator ~tcount~
+5.11.4 Selection function of operator ~count~
 
 */
 
@@ -1721,7 +1705,7 @@ TCountSelect( ListExpr args )
 
 /*
 
-5.11.5 Definition of operator ~tcount~
+5.11.5 Definition of operator ~count~
 
 */
 static Word
@@ -1730,14 +1714,14 @@ RelNoModelMapping( ArgVector arg, Supplier opTreeNode )
   return (SetWord( Address( 0 ) ));
 }
 
-ValueMapping tcountmap[] = {TCountStream, TCountRel };
+ValueMapping countmap[] = {TCountStream, TCountRel };
 ModelMapping nomodelmap[] = {RelNoModelMapping, RelNoModelMapping};
 
-Operator tcount (
+Operator relalgcount (
          "count",           // name
          TCountSpec,         // specification
          2,                  // number of value mapping functions
-         tcountmap,          // value mapping functions
+         countmap,          // value mapping functions
          nomodelmap,         // dummy model mapping functions
          TCountSelect,       // trivial selection function
          TCountTypeMap       // type mapping
@@ -1862,12 +1846,12 @@ const string RenameSpec =
 5.12.4 Definition of operator ~rename~
 
 */
-Operator cpprename (
+Operator relalgrename (
          "rename",             // name
          RenameSpec,           // specification
          Rename,               // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         simpleSelect,         // trivial selection function
+         Operator::SimpleSelect,         // trivial selection function
          RenameTypeMap         // type mapping
 );
 
@@ -1891,16 +1875,16 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpptuple );
     AddTypeConstructor( &cpprel );
 
-    AddOperator(&feed);
-    AddOperator(&consume);
-    AddOperator(&TUPLE);
-    AddOperator(&TUPLE2);
-    AddOperator(&attr);
-    AddOperator(&tfilter);
-    AddOperator(&project);
-    AddOperator(&product);
-    AddOperator(&tcount);
-    AddOperator(&cpprename);
+    AddOperator(&relalgfeed);
+    AddOperator(&relalgconsume);
+    AddOperator(&relalgTUPLE);
+    AddOperator(&relalgTUPLE2);
+    AddOperator(&relalgattr);
+    AddOperator(&relalgfilter);
+    AddOperator(&relalgproject);
+    AddOperator(&relalgproduct);
+    AddOperator(&relalgcount);
+    AddOperator(&relalgrename);
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );

@@ -1639,18 +1639,6 @@ Note that a selection function does not need to check the correctness of
 argument types; it has already been checked by the type mapping function that it
 is applied to correct arguments.
 
-5.2.1 Selection function ~SimpleSelect~
-
-Is used for all non-overloaded operators.
-
-*/
-static int
-SimpleSelect( ListExpr args )
-{
-  return (0);
-}
-
-/*
 5.2.2 Selection function ~RangeSelectPredicates~
 
 Is used for the ~inside~ and ~before~ operations.
@@ -1983,18 +1971,18 @@ const string RangeSpecMinimum = "(<text> (range x) -> x</text---><text> Minimum.
 const string RangeSpecMaximum = "(<text> (range x) -> x</text---><text> Maximum. </text--->)";
 const string RangeSpecNoComponents = "(<text> (range x) -> int</text---><text> Number of components. </text--->)";
 
-Operator rangeisempty( "isempty", RangeSpecIsEmpty, 1, rangeisemptymap, rangenomodelmap, SimpleSelect, RangeTypeMapBool1 );
-Operator rangeequal( "=", RangeSpecEqual, 1, rangeequalmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapBool );
-Operator rangenotequal( "#", RangeSpecNotEqual, 1, rangenotequalmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapBool );
-Operator rangeintersects( "intersects", RangeSpecIntersects, 1, rangeintersectsmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapBool );
+Operator rangeisempty( "isempty", RangeSpecIsEmpty, 1, rangeisemptymap, rangenomodelmap, Operator::SimpleSelect, RangeTypeMapBool1 );
+Operator rangeequal( "=", RangeSpecEqual, 1, rangeequalmap, rangenomodelmap, Operator::SimpleSelect, RangeRangeTypeMapBool );
+Operator rangenotequal( "#", RangeSpecNotEqual, 1, rangenotequalmap, rangenomodelmap, Operator::SimpleSelect, RangeRangeTypeMapBool );
+Operator rangeintersects( "intersects", RangeSpecIntersects, 1, rangeintersectsmap, rangenomodelmap, Operator::SimpleSelect, RangeRangeTypeMapBool );
 Operator rangeinside( "inside", RangeSpecInside, 2, rangeinsidemap, rangenomodelmap, RangeSelectPredicates, RangeBaseTypeMapBool1 );
 Operator rangebefore( "before", RangeSpecBefore, 3, rangebeforemap, rangenomodelmap, RangeSelectPredicates, RangeBaseTypeMapBool2 );
-Operator rangeintersection( "intersection", RangeSpecIntersection, 1, rangeintersectionmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
-Operator rangeunion( "union", RangeSpecUnion, 1, rangeunionmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
-Operator rangeminus( "minus", RangeSpecMinus, 1, rangeminusmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapRange );
-Operator rangemin( "minimum", RangeSpecMinimum, 1, rangeminmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
-Operator rangemax( "maximum", RangeSpecMaximum, 1, rangemaxmap, rangenomodelmap, SimpleSelect, RangeTypeMapBase );
-Operator rangenocomponents( "no_components", RangeSpecNoComponents, 1, rangenocomponentsmap, rangenomodelmap, SimpleSelect, RangeTypeMapInt );
+Operator rangeintersection( "intersection", RangeSpecIntersection, 1, rangeintersectionmap, rangenomodelmap, Operator::SimpleSelect, RangeRangeTypeMapRange );
+Operator rangeunion( "union", RangeSpecUnion, 1, rangeunionmap, rangenomodelmap, Operator::SimpleSelect, RangeRangeTypeMapRange );
+Operator rangeminus( "minus", RangeSpecMinus, 1, rangeminusmap, rangenomodelmap, Operator::SimpleSelect, RangeRangeTypeMapRange );
+Operator rangemin( "minimum", RangeSpecMinimum, 1, rangeminmap, rangenomodelmap, Operator::SimpleSelect, RangeTypeMapBase );
+Operator rangemax( "maximum", RangeSpecMaximum, 1, rangemaxmap, rangenomodelmap, Operator::SimpleSelect, RangeTypeMapBase );
+Operator rangenocomponents( "no_components", RangeSpecNoComponents, 1, rangenocomponentsmap, rangenomodelmap, Operator::SimpleSelect, RangeTypeMapInt );
 
 /*
 6 Creating the Algebra

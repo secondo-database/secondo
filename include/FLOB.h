@@ -6,6 +6,9 @@
 
 [1] Header File of Module FLOB
 
+Victor Almeida, 24/04/03. Adapting the class to accept standalone objects 
+and objects inside tuples transparently.
+
 Mirco G[ue]nster, 31/09/02 End of porting to the new SecondoSMI.
 
 Markus Spiekermann, 14/05/02. Begin of porting to the new SecondoSMI.
@@ -41,69 +44,46 @@ whereas a large FLOB is stored into a seperate
 SmiRecord in an SmiFile. 
 
 */
-class FLOB {
-protected:
-	/* This is the tresholdsize for a FLOB. 
-		Whenever the size of this FLOB exceeds
-		the thresholdsize the data will stored
-		in a separate file for lobs.
-	*/
-  	static const int SWITCH_THRESHOLD;
-  
-  	/* In this file the FLOB object will store the data
-		if the FLOB is large. */
-  	SmiRecordFile* lobFile;
-	/* In this record the FLOB object will store the data
-		if the FLOB is large. */
-  	SmiRecord lob;
-	/* This is the number of the record in which the FLOB data
-		is stored if the FLOB is large. */
-  	SmiRecordId lobId;
-  
-  	/* This is the size of memory allocated by start. */
-  	int size;
-	
-	/* This is a pointer to the memory where the data
-		of the FLOB is stored if the FLOB is small. */
-	char *start;
+class FLOB 
+{
 
-        /* This is a flag that tells if the FLOB is a LOB or  
-                is stored in memory */
-        bool isLob;
-
-        /* This is a flag that tells if the FLOB is used inside
-                a tuple of separetely in a Secondo object */
-        bool insideTuple;
-
-public:
+  public:
 /*
-
 3.1 Constructor.
 
+Create a new FLOB from scratch.
+
 */
-  	FLOB(SmiRecordFile* inlobFile);
+  	FLOB();
 	
 /*
-
 3.2 Constructor.
 
-Create from scratch.
+Create a new FLOB from scratch and initialize it
+with size ~sz~ if ~alloc~ is true. This ~alloc~
+flag is important because sometimes the tuple
+manager allocates the memory for the FLOB, specially
+when the FLOB stays on the extension of the tuple.
+In these situations, the FLOB does not allocate any
+memory and leaves it to be done by the tuple.
 
 */
-  	FLOB(SmiRecordFile* inlobFile, int sz, const bool alloc, const bool update);
+  	FLOB( const int sz, const bool alloc, const bool update);
 /*
 
 3.3 Constructor.
 
-Opens a FLOB.
+Opens a FLOB from a file ~inlobFile~ and record identification ~id~.
+The flag ~update~ tells if the FLOB is being opened for update or 
+read only.
 
 */
-  	FLOB(SmiRecordFile* inlobFile, const SmiRecordId id, const bool update);
+  	FLOB( SmiRecordFile* inlobFile, const SmiRecordId id, const bool update);
 
 /*
 3.3 Destructor. 
 
-Destroy LOB instance.
+Deletes the FLOB instance.
 
 */
   	~FLOB();
@@ -112,7 +92,7 @@ Destroy LOB instance.
 
 3.4 Destroy.
 
-Destroy persistent representation
+Destroy the persistent representation of the FLOB.
 
 */
   	void Destroy();
@@ -123,7 +103,7 @@ Destroy persistent representation
 Read by copying
 
 */
-  	void Get(int offset, int length, char *target);
+  	void Get(const int offset, const int length, char *target);
 	
 /* 
 3.6	Write
@@ -131,7 +111,7 @@ Read by copying
 Write Flob data into source. 
 
 */
-  	void Write(int offset, int length, char *source);
+  	void Write(const int offset, const int length, char *source);
 	
 /* 
 3.7 Size
@@ -139,7 +119,7 @@ Write Flob data into source.
 Returns the size of a FLOB.
 
 */
-   	int GetSize();
+   	const int GetSize() const;
   
   
 /*
@@ -148,7 +128,7 @@ Returns the size of a FLOB.
 Resizes the FLOB.
 
 */
-  	void Resize(int size);
+  	void Resize(const int size);
   
   
 /*
@@ -157,7 +137,7 @@ Resizes the FLOB.
 Restore from byte string.
 
 */
-   	int Restore(char *address);
+   	const int Restore(char *address);
 	
 /*
 3.10 IsLob
@@ -165,7 +145,7 @@ Restore from byte string.
 Returns treue, if value stored in underlying LOB, otherwise false.
 
 */
-  	bool IsLob() const;
+  	const bool IsLob() const;
 	
 /* 
 3.11 SaveToLob
@@ -174,21 +154,83 @@ Switch from Main Memory to LOB Representation
 if the size of this FLOB exceeds threshold size.
 
 */
-  	bool SaveToLob();
+  	const bool SaveToLob( SmiRecordFile *lobFile );
 /* 
 3.12 GetLobId 
 
 Returns the lob record id.
 
 */
-  	const SmiRecordId GetLobId();
+  	const SmiRecordId GetLobId() const;
 
 /*
 3.13 SetInsideTuple
 
-Sets this flob to be inside a tuple or not depending on the value of ~it~.
+Sets this flob to be inside a tuple.
 
 */
-        void SetInsideTuple( const bool it = true );
+        void SetInsideTuple();
+
+  protected:
+
+    static const int SWITCH_THRESHOLD;
+/* 
+This is the tresholdsize for a FLOB.  Whenever the size of this FLOB exceeds 
+the thresholdsize the data will stored in a separate file for lobs.
+
+*/
+  
+  	SmiRecordFile* lobFile;
+/* 
+In this file the FLOB object will store the data if the FLOB is large. 
+
+*/
+  	SmiRecord lob;
+/*
+In this record the FLOB object will store the data if the FLOB is large. 
+
+*/
+  	SmiRecordId lobId;
+/* 
+This is the number of the record in which the FLOB data is stored if the 
+FLOB is large. 
+
+*/
+  
+  	int size;
+/* 
+This is the size of memory allocated by start. 
+
+*/
+	
+	  char *start;
+/* 
+This is a pointer to the memory where the data of the FLOB is stored 
+if the FLOB is small. 
+
+*/
+
+    bool isLob;
+/* 
+This is a flag that tells if the FLOB is a LOB or is stored in memory 
+
+*/
+
+    bool insideTuple;
+/* 
+This is a flag that tells if the FLOB is used inside a tuple of 
+separetely in a Secondo object 
+
+*/
+    bool freeStart;
+/*
+The ~start~ pointer is allocated sometimes by the FLOB class and sometimes
+by the Tuple class in the tuple manager. If it is allocated by the FLOB
+class this flag is set and the ~start~ pointer is freed in the destructor,
+otherwise, nothing is done and the deallocation is done by the tuple
+manager itself.
+
+*/
 };
+
 #endif

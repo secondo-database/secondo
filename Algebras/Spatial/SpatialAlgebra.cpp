@@ -1102,18 +1102,6 @@ Note that a selection function does not need to check the correctness of
 argument types; it has already been checked by the type mapping function that it
 is applied to correct arguments.
 
-6.2.1 Selection function ~SimpleSelect~
-
-Is used for all non-overloaded operators.
-
-*/
-static int
-SimpleSelect( ListExpr args ) 
-{
-  return (0);
-}
-
-/*
 6.2.2 Selection function ~SpatialSelectIsEmpty~
 
 It is used for the ~isempty~ operator
@@ -1555,10 +1543,10 @@ const string SpatialSpecInside = "(<text> (points points) -> bool, (line line) -
 Operator spatialisempty( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, spatialnomodelmap, SpatialSelectIsEmpty, SpatialTypeMapBool1 );
 Operator spatialequal( "=", SpatialSpecEqual, 4, spatialequalmap, spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
 Operator spatialnotequal( "#", SpatialSpecNotEqual, 4, spatialnotequalmap, spatialnomodelmap, SpatialSelectCompare, SpatialTypeMapBool );
-Operator spatialless( "<", SpatialSpecLess, 1, spatiallessmap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
-Operator spatiallessequal( "<=", SpatialSpecLessEqual, 1, spatiallessequalmap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
-Operator spatialgreater( ">", SpatialSpecGreater, 1, spatialgreatermap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
-Operator spatialgreaterequal( ">=", SpatialSpecGreaterEqual, 1, spatialgreaterequalmap, spatialnomodelmap, SimpleSelect, SpatialTypeMapBool );
+Operator spatialless( "<", SpatialSpecLess, 1, spatiallessmap, spatialnomodelmap, Operator::SimpleSelect, SpatialTypeMapBool );
+Operator spatiallessequal( "<=", SpatialSpecLessEqual, 1, spatiallessequalmap, spatialnomodelmap, Operator::SimpleSelect, SpatialTypeMapBool );
+Operator spatialgreater( ">", SpatialSpecGreater, 1, spatialgreatermap, spatialnomodelmap, Operator::SimpleSelect, SpatialTypeMapBool );
+Operator spatialgreaterequal( ">=", SpatialSpecGreaterEqual, 1, spatialgreaterequalmap, spatialnomodelmap, Operator::SimpleSelect, SpatialTypeMapBool );
 Operator spatialintersects( "intersects", SpatialSpecIntersects, 3, spatialintersectsmap, spatialnomodelmap, SpatialSelectSets1, SpatialTypeMapBool );
 Operator spatialinside( "inside", SpatialSpecInside, 6, spatialinsidemap, spatialnomodelmap, SpatialSelectSets2, SpatialTypeMapBool );
 

@@ -115,6 +115,32 @@ void TupleType::PutAttributeType( const int index, const AttributeType& attrType
 }
 
 /*
+4 Implementation of the class ~LexicographicalTupleCompare~
+
+*/
+bool LexicographicalTupleCompare::operator()(const Tuple* aConst, const Tuple* bConst) const
+{
+  Tuple* a = (Tuple*)aConst;
+  Tuple* b = (Tuple*)bConst;
+
+  for(int i = 0; i < a->GetNoAttributes(); i++)
+  {
+    if(((Attribute*)a->GetAttribute(i))->Compare(((Attribute*)b->GetAttribute(i))) < 0)
+    {
+      return true;
+    }
+    else
+    {
+      if(((Attribute*)a->GetAttribute(i))->Compare(((Attribute*)b->GetAttribute(i))) > 0)
+      {
+        return false;
+      }
+    }
+  }
+  return false;
+}
+
+/*
 4 Implementation of the class ~Tuple~
 
 */
@@ -149,6 +175,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& err
 
   attrlist =  nl->Second(nl->First(typeInfo));
   valuelist = value;
+
   correct = true;
   if (nl->IsAtom(valuelist))
   {
@@ -194,11 +221,13 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& err
       {
         firstvalue = nl->First(valuelist);
         valuelist = nl->Rest(valuelist);
+
         attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
                  firstvalue, attrno, errorInfo, valueCorrect);
         if (valueCorrect)
         {
           correct = true;
+
           tupleaddr->PutAttribute(attrno - 1, (Attribute *)attr.addr);
           noOfAttrs++;
         }

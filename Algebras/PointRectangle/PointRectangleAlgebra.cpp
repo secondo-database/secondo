@@ -412,18 +412,6 @@ PointRectBool( ListExpr args )
 }
 
 /*
-4.2 Selection Function
-
-Is used to select one of several evaluation functions for an overloaded
-operator, based on the types of the arguments. In case of a non-overloaded
-operator, we just have to return 0.
-
-*/
-
-static int
-simpleSelect (ListExpr args ) { return 0; }
-
-/*
 4.3 Value Mapping Function
 
 */
@@ -494,7 +482,7 @@ Operator intersects (
 	intersectsSpec,         //specification
 	intersectsFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
+	Operator::SimpleSelect,		//trivial selection function 
 	RectRectBool		//type mapping 
 );	
 	
@@ -503,7 +491,7 @@ Operator inside (
 	insideSpec,		//specification
 	insideFun,		//value mapping
 	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	simpleSelect,		//trivial selection function 
+	Operator::SimpleSelect,		//trivial selection function 
 	PointRectBool		//type mapping 
 );	
 /*

@@ -104,9 +104,9 @@ class Operator
             const string& spec,
             const int noF,
             ValueMapping vms[],
-	    ModelMapping mms[],
+	          ModelMapping mms[],
             SelectFunction sf,
-	    TypeMapping tm,
+      	    TypeMapping tm,
             CostMapping cm = Operator::DummyCost );
 /*
 Constructs an operator with ~noF~ overloaded evaluation functions.
@@ -172,6 +172,11 @@ Defines a dummy model mapping function for operators.
 
 */
   static ListExpr DummyCost( ListExpr );
+/*
+Defines a dummy cost mapping function for operators.
+
+*/
+  static int SimpleSelect( ListExpr );
 /*
 Defines a dummy cost mapping function for operators.
 

@@ -22,6 +22,12 @@ Operator::DummyCost( ListExpr )
   return (0);
 }
 
+int
+Operator::SimpleSelect( ListExpr )
+{
+  return (0);
+}
+
 Operator::Operator( const string& nm,
                     const string& spec,
                     const int noF,

@@ -9,6 +9,8 @@ for system catalog files
 
 November 30, 2002 RHG Added function ~GetKey~
 
+April 2003 Ulrich Telle, implemented temporary SmiFiles
+
 */
 
 using namespace std;
@@ -73,21 +75,18 @@ SmiRecord::Read( void* buffer,
     }
     else
     {
-      DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
-      u_int32_t flags = (writable) ? DB_RMW : 0;
+      DbTxn* tid = !smiFile->impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+      u_int32_t flags = (writable && !smiFile->impl->isTemporaryFile) ? DB_RMW : 0;
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
-      if ( writable )
-      {
-        rc = impl->bdbFile->get( tid, &key, &data, flags );
-      }
-      else if ( !smiFile->impl->isSystemCatalogFile )
+      if ( writable || !smiFile->impl->isSystemCatalogFile )
       {
         rc = impl->bdbFile->get( tid, &key, &data, flags );
       }
       else
       {
-        rc = impl->bdbFile->get( 0, &key, &data, DB_DIRTY_READ );
+        flags = (!smiFile->impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+        rc = impl->bdbFile->get( 0, &key, &data, flags );
       }
     }
 
@@ -129,7 +128,7 @@ SmiRecord::Write( const void*   buffer,
     }
     else
     {
-      DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+      DbTxn* tid = !smiFile->impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
@@ -196,7 +195,7 @@ SmiRecord::Truncate( const SmiSize newSize )
       }
       else
       {
-        DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+        DbTxn* tid = !smiFile->impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
         key.set_data( (void*) recordKey.GetAddr() );
         key.set_size( recordKey.keyLength );
         rc = impl->bdbFile->put( tid, &key, &data, 0 );

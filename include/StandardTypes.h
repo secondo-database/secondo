@@ -45,6 +45,9 @@ class CcInt : public StandardAttribute
   CcInt*   Clone() ;
   ostream& Print( ostream &os ) { return (os << intval); }
 
+  static long intsCreated;
+  static long intsDeleted;
+
  private:
   bool defined;
   int  intval;
@@ -73,6 +76,10 @@ class CcReal : public StandardAttribute
   int      Adjacent( Attribute* arg );
   CcReal*  Clone() ;
   ostream& Print( ostream &os ) { return (os << realval); }
+
+  static long realsCreated;
+  static long realsDeleted;
+
  private:
   bool  defined;
   float realval;
@@ -103,6 +110,10 @@ class CcBool : public StandardAttribute
     if (boolval == true) return (os << "TRUE");
     else return (os << "FALSE");
   }
+
+  static long boolsCreated;
+  static long boolsDeleted;
+
  private:
   bool defined;
   bool boolval;
@@ -132,10 +143,16 @@ class CcString : public StandardAttribute
   int       Adjacent( Attribute* arg );
   CcString* Clone() ;
   ostream&  Print( ostream &os ) { return (os << "\"" << stringval << "\""); }
+
+  static long stringsCreated;
+  static long stringsDeleted;
+
  private:
   bool   defined;
   STRING stringval;
 };
+
+ostream& ShowStandardTypesStatistics( const bool reset, ostream& o );
 
 #endif
 

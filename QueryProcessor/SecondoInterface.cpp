@@ -50,6 +50,8 @@ using namespace std;
 #include "FileSystem.h"
 
 #include "RelationAlgebra.h"
+#include "StandardTypes.h"
+
 #include "SecondoSMI.h"
 #include "SecParser.h"
 #include "TimeTest.h"
@@ -1010,8 +1012,6 @@ If value 0 is returned, the command was executed without error.
 	      SecondoSystem::GetQueryProcessor()->
                 Eval( tree, result, 1 );
 
-              Tuple::ShowTupleStatistics( false, cerr );
-
               valueList = SecondoSystem::GetCatalog( level )->
                             OutObject( resultType, result );
               resultList = nl->TwoElemList( resultType, valueList );
@@ -1020,6 +1020,7 @@ If value 0 is returned, the command was executed without error.
 
               cerr << TimeTest::diffReal() << " " << TimeTest::diffCPU() << endl;
               Tuple::ShowTupleStatistics( true, cerr );
+              ShowStandardTypesStatistics( true, cerr );
             }
             else if ( isFunction ) // abstraction or function object
             {

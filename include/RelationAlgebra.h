@@ -338,6 +338,37 @@ ostream& operator <<( ostream& o, Tuple& t );
 /*
 The print function for tuples. Used for debugging purposes
 
+3.6 Class ~TupleCompare~
+
+This abstract class is used for tuple comparisons, for example,
+for ordering a relation.
+
+*/
+class TupleCompare
+{
+  public:
+    virtual ~TupleCompare() {};
+    virtual bool operator()(const Tuple* a, const Tuple* b) const = 0;
+/*
+This operator compares two tuples ~a~ and ~b~.
+
+*/
+};
+
+/*
+3.7 Class ~LexicographicalTupleCompare~
+
+This is a specialization of the abstract class ~TupleCompare~ which 
+compares tuples by their lexicographical order.
+
+*/
+class LexicographicalTupleCompare : public TupleCompare
+{
+  public:
+    bool operator()(const Tuple* aConst, const Tuple* bConst) const;
+};
+
+/*
 4 Type constructor ~rel~
 
 4.1 Class ~Relation~
@@ -348,7 +379,7 @@ This class implements the memory representation of the type constructor ~rel~.
 
 struct RelationDescriptor;
 /*
-Forward declaration of the struct ~RelationDescriptor. This struct will contain
+Forward declaration of the struct ~RelationDescriptor~. This struct will contain
 the necessary information for opening a relation.
 
 */
@@ -371,14 +402,16 @@ Forward declaration of the class ~RelationIterator~ which is needed in the class
 class Relation
 {
   public:
-    Relation( const ListExpr typeInfo );
+    Relation( const ListExpr typeInfo, const bool isTemporary = false );
 /*
-The first constructor. It creates an empty relation from a ~typeInfo~.
+The first constructor. It creates an empty relation from a ~typeInfo~. The flag ~isTemporary~
+can be used to create temporary relations.
 
 */
-    Relation( const TupleType& tupleType );
+    Relation( const TupleType& tupleType, const bool isTemporary = false );
 /*
-The second constructor. It creates an empty relation from a ~tupleType~.
+The second constructor. It creates an empty relation from a ~tupleType~. The flag ~isTemporary~
+can be used to create temporary relations.
 
 */
     Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc );
@@ -452,6 +485,12 @@ Gets the number of tuples in the relation.
 Returns a ~RelationIterator~ for a relation scan.
 
 */
+    RelationIterator *MakeSortedScan( const TupleCompare* tupleCompare ) const;
+/*
+Returns a ~RelationIterator~ for a relation scan sorted by the criterias defined in
+~tupleCompare~.
+
+*/
     PrivateRelation *GetPrivateRelation()
       { return privateRelation; }
 /*
@@ -488,10 +527,11 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class RelationIterator
 {
   public:
-    RelationIterator( const Relation& relation );
+    RelationIterator( const Relation& relation, const TupleCompare *tupleCompare = 0 );
 /*
 The constructor. Creates a ~RelationIterator~ for a given ~relation~ and positions the
-cursor in the first tuple, if exists.
+cursor in the first tuple, if exists. If ~tupleCompare~ is defined, the iterator will
+iterate in a sorted way specified by the ~tupleCompare~ criteria.
 
 */
     ~RelationIterator();

@@ -486,6 +486,7 @@ records of the ~SmiFile~.
 */
  protected:
   SmiFile();
+  SmiFile( const bool isTemporary );
   SmiFile( SmiFile &smiFile );
   ~SmiFile();
   bool CheckName( const string& name );
@@ -888,7 +889,8 @@ class SMI_EXPORT SmiRecordFile : public SmiFile
 {
  public:
   SmiRecordFile( const bool hasFixedLengthRecords,
-                 const SmiSize recordLength = 0 );
+                 const SmiSize recordLength = 0,
+                 const bool isTemporary = false );
 /*
 Creates a handle for an ~SmiRecordFile~. The handle is associated with an
 ~SmiFile~ by means of the ~Create~ or ~Open~ method.
@@ -961,7 +963,8 @@ class SMI_EXPORT SmiKeyedFile : public SmiFile
 {
  public:
   SmiKeyedFile( const SmiKey::KeyDataType keyType,
-                const bool hasUniqueKeys = true );
+                const bool hasUniqueKeys = true,
+                const bool isTemporary = false );
 /*
 Creates a ~SmiFile~ handle for keyed access. The keys have to be of the
 specified type ~keyType~. If ~hasUniqueKeys~ is true, then for each key

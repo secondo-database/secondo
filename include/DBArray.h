@@ -25,12 +25,12 @@ Version: 0.7
 
 August 2002 RHG
 
+April 2003 Victor Almeida chaged the implementation to not use templates.
+
 1.1 Overview
 
 This module offers a generic persistent array implemented on top of the
 FLOB interface.
-
-
 
 1.2 Interface methods
 
@@ -39,8 +39,8 @@ This module offers the following methods:
 [23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
 	[--------]
 	DBArray        		& Get 		& NoComponents	\\  	
-	[tilde]DBArray		& Put		& Id		\\
-	MarkDelete		&		& 		\\
+	[tilde]DBArray		& Put		  & Id		        \\
+	MarkDelete		    &		      & 		          \\
 
 Operations have to follow the protocol shown below:
 
@@ -48,25 +48,31 @@ Operations have to follow the protocol shown below:
 
 1.3 Class ~DBArray~
 
-An instance of the class is a handle to a persistent array of fixed size with
-elements of type ~T~.
+An instance of the class is a handle to a persistent array of fixed size.
+The elements of the array must implement the abstract class ~DBArrayElement~.
 
 */
 
-#ifndef PARRAY_H
-#define PARRAY_H
+#ifndef DBARRAY_H
+#define DBARRAY_H
 
-#include <iostream> 
-#include <cassert>
 #include "SecondoSMI.h"
 #include "FLOB.h"
 
-template<class T>
+class DBArrayElement
+{
+  public:
+    virtual ~DBArrayElement() {}; 
+    virtual char *ToString() const = 0;
+    virtual void FromString( char *str ) = 0;
+};
+
 class DBArray
 {
  public:
 
-  DBArray( SmiRecordFile *file );
+  DBArray( const int elemSize );
+  DBArray( const int elemSize, const int n, const bool alloc, const bool update );
 
 /*
 Creates creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
@@ -75,8 +81,7 @@ array with the argument ~initsize~.
 
 */
   
-  DBArray( SmiRecordFile *file, const SmiRecordId& id, const bool update );
-  DBArray( SmiRecordFile *file, const int n, const bool alloc, const bool update );
+  DBArray( const int elemSize, SmiRecordFile *file, const SmiRecordId& id, const bool update );
 
 /*
 Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
@@ -102,7 +107,7 @@ destruction of the object.
 
 */
 
-  void Put(int const index, const T& elem);
+  void Put(int const index, const DBArrayElement& elem);
 
 /*
 Copies element ~elem~ into the persistent array at index ~index~.
@@ -111,7 +116,7 @@ Copies element ~elem~ into the persistent array at index ~index~.
 
 */
 
-  void Get(int const index, T& elem);
+  void Get(int const index, DBArrayElement& elem);
 
 /*
 Returns the element ~index~ of the array.
@@ -127,7 +132,7 @@ Returns the number of components of this array.
 
 */
 
-  const bool Save();
+  const bool Save( SmiRecordFile *file );
 
 /*
 Saves the array and returns its identifier.
@@ -150,117 +155,10 @@ Returns a pointer to the (FLOB) array.
   bool writeable;
   int noComponents;
   bool canDelete;
+  int elemSize;
   FLOB *array;
 };
 
 
-/*
-2 Implementation of DBArray
-
-Version: 0.7
-
-August 2002 RHG
-
-2.1 Overview
-
-This module offers a generic persistent array implemented on top of the
-FLOB interface.
-
-*/
-
-template<class T>
-DBArray<T>::DBArray( SmiRecordFile *file ) :
-writeable( true ),
-noComponents( 0 ),
-canDelete( false ),
-array( new FLOB( file, sizeof(int), true, true ) )
-{
-  array->Write( 0, sizeof(int), (char *)(&noComponents) );
-}
-
-template<class T>
-DBArray<T>::DBArray( SmiRecordFile *file, const SmiRecordId& id, const bool update ) :
-writeable( update ),
-canDelete( false ),
-array( new FLOB( file, id, update ) )
-{
-  array->Get( 0, sizeof( int ), (char *)(&noComponents) );
-}
-
-template<class T>
-DBArray<T>::DBArray( SmiRecordFile *file, const int n, const bool alloc, const bool update ) :
-writeable( update ),
-noComponents( n ),
-canDelete( false ),
-array( new FLOB( file, sizeof(int) + n * sizeof(T), alloc, update ) )
-{
-  if( alloc )
-    array->Write( 0, sizeof( int ), (char *)(&noComponents) );
-}
-
-template<class T>
-DBArray<T>::~DBArray()
-{
-  if ( canDelete ) 
-  {
-    array->Destroy();
-  }
-  delete array;
-}
-
-template<class T>
-void DBArray<T>::Put(const int index, const T& elem)
-{
-  assert ( writeable );
-  if( noComponents <= index )
-  {
-    noComponents = index + 1;
-    array->Resize( sizeof(int) + noComponents * sizeof(T) );	
-  }
-  array->Write(sizeof(int) + index * sizeof(T), sizeof(T), (char *)(&elem) );
-}
-
-template<class T>
-void DBArray<T>::Get(int const index, T& elem)
-{
-  assert ( 0 <= index && index < noComponents );
-
-  array->Get(sizeof(int) + index * sizeof(T), sizeof(T), (char *)(&elem));
-}
-
-template<class T>
-void DBArray<T>::MarkDelete() 
-{
-  assert( writeable );
-  canDelete = true;
-}
-
-
-template<class T>
-const int DBArray<T>::GetNoComponents() const
-{
-  return noComponents;
-}
-
-
-template<class T>
-const bool DBArray<T>::Save() 
-{ 
-  array->Write( 0, sizeof( int ), (char *)(&noComponents) );
-  return array->SaveToLob();
-}
-
-template<class T>
-const SmiRecordId DBArray<T>::GetRecordId() const 
-{ 
-  return array->GetLobId();
-}
-
-template<class T>
-FLOB *DBArray<T>::GetArray() const 
-{ 
-  return array;
-}
-
-#endif
+#endif //DBARRAY_H
 

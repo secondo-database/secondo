@@ -204,10 +204,12 @@ Within this implementation, we don't use the flag but maintain it in order
 to demonstrate how to handle complex  objects.
 
 */
+long CcInt::intsCreated = 0;
+long CcInt::intsDeleted = 0;
 
-CcInt::CcInt() {};
-CcInt::CcInt( bool d, int v ) { defined = d; intval = v; };
-CcInt::~CcInt() {};
+CcInt::CcInt() { intsCreated++; };
+CcInt::CcInt( bool d, int v ) { defined = d; intval = v; intsCreated++; };
+CcInt::~CcInt() { intsDeleted++; };
 void   CcInt::Set( int v ) { defined = true, intval = v; };
 void   CcInt::Set( bool d, int v ) { defined = d, intval = v; };
 int    CcInt::GetIntval() { return (intval); };
@@ -515,10 +517,12 @@ The following type constructor, ~ccreal~, is defined in the same way as
 ~ccint~.
 
 */
+long CcReal::realsCreated = 0;
+long CcReal::realsDeleted = 0;
 
-CcReal::CcReal(){};
-CcReal::CcReal( bool d, float v ) { defined = d; realval = v; };
-CcReal::~CcReal(){};
+CcReal::CcReal(){ realsCreated++; };
+CcReal::CcReal( bool d, float v ) { defined = d; realval = v; realsCreated++; };
+CcReal::~CcReal() { realsDeleted++; };
 bool    CcReal::IsDefined() { return (defined); };
 void    CcReal::SetDefined(bool defined) { this->defined = defined; };
 float   CcReal::GetRealval() { return (realval);};
@@ -686,10 +690,12 @@ Within this implementation, we don't use the flag but maintain it in order
 to demonstrate how to handle complex  objects.
 
 */
+long CcBool::boolsCreated = 0;
+long CcBool::boolsDeleted = 0;
 
-CcBool::CcBool(){};
-CcBool::CcBool( bool d, int v ){ defined  = d; boolval = v; };
-CcBool::~CcBool(){};
+CcBool::CcBool(){ boolsCreated++; };
+CcBool::CcBool( bool d, int v ){ defined  = d; boolval = v; boolsCreated++; };
+CcBool::~CcBool() { boolsDeleted++; };
 void    CcBool::Set( bool d, bool v ){ defined = d, boolval = v; };
 bool    CcBool::IsDefined() { return defined; };
 void    CcBool::SetDefined(bool defined) { this->defined = defined; };
@@ -916,10 +922,12 @@ TypeConstructor ccBool( "bool",             CcProperty,
 3.5 Type constructor *CcString*
 
 */
+long CcString::stringsCreated = 0;
+long CcString::stringsDeleted = 0;
 
-CcString::CcString() {};
-CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
-CcString::~CcString() {};
+CcString::CcString() { stringsCreated++; };
+CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); stringsCreated++; };
+CcString::~CcString() { stringsDeleted++; };
 bool      CcString::IsDefined() { return (defined); };
 void      CcString::SetDefined(bool defined) { this->defined = defined; };
 STRING*   CcString::GetStringval() { return (&stringval); };
@@ -1435,16 +1443,6 @@ CcMathSelectCompute( ListExpr args )
     return (3);
   return (-1); // This point should never be reached
 }
-
-/*
-4.3.2 Selection function SimpleSelect
-
-Is used for all non-overloaded operators.
-
-*/
-
-int
-SimpleSelect( ListExpr args ) {return (0);}
 
 /*
 4.3.3 Selection function  CcMathSelectCompare
@@ -3164,23 +3162,23 @@ Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccproduct( "*", CCSpecMul, 4,ccproductmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccdivision( "/", CCSpecDiv, 4, ccdivisionmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMapdiv );
-Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, SimpleSelect, CcMathTypeMap1 );
-Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, SimpleSelect, CcMathTypeMap1 );
-Operator ccrandint( "randint", CCSpecRandInt, RandInt, Operator::DummyModel, SimpleSelect, IntInt );
-Operator cclog( "log", CCSpecLog, LogFun, Operator::DummyModel, SimpleSelect, IntInt );
+Operator ccmod( "mod", CCSpecMod, 1, ccmodmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMap1 );
+Operator ccdiv( "div", CCSpecDiv2, 1, ccdivmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMap1 );
+Operator ccrandint( "randint", CCSpecRandInt, RandInt, Operator::DummyModel, Operator::SimpleSelect, IntInt );
+Operator cclog( "log", CCSpecLog, LogFun, Operator::DummyModel, Operator::SimpleSelect, IntInt );
 Operator ccless( "<", CCSpecLT, 6, cclessmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccequal( "=", CCSpecEQ, 6, ccequalmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
 Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap, ccnomodelmap, CcMathSelectCompare, CcMathTypeMapBool );
-Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool3 );
-Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool3 );
-Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool1 );
-Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
-Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, SimpleSelect, CcMathTypeMapBool2 );
+Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool3 );
+Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool3 );
+Operator ccnot( "not", CCSpecNot, 1, ccnotmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool1 );
+Operator ccand( "and", CCSpecAnd, 1, ccandmap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool2 );
+Operator ccor( "or", CCSpecOr, 1, ccormap, ccnomodelmap, Operator::SimpleSelect, CcMathTypeMapBool2 );
 Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap, ccnomodelmap, CcMathSelectIsEmpty, CcMathTypeMapBool4 );
-Operator ccuper( "upper", CCSpecUpper, Upper, Operator::DummyModel, SimpleSelect, CcStringMapCcString );
+Operator ccuper( "upper", CCSpecUpper, Upper, Operator::DummyModel, Operator::SimpleSelect, CcStringMapCcString );
 Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4, ccsetintersectionmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
 Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap, ccnomodelmap, CcMathSelectSet, CcMathTypeMap2 );
 
@@ -3309,4 +3307,20 @@ Here are some example queries:
     Result value TRUE is returned.
 
 */
+
+ostream& ShowStandardTypesStatistics( const bool reset, ostream& o )
+{
+  o << "CcInts    created: " << CcInt::intsCreated << " / deleted: " << CcInt::intsDeleted << endl
+    << "CcReals   created: " << CcReal::realsCreated << " / deleted: " << CcReal::realsDeleted << endl
+    << "CcBools   created: " << CcBool::boolsCreated << " / deleted: " << CcBool::boolsDeleted << endl
+    << "CcStrings created: " << CcString::stringsCreated << " / deleted: " << CcString::stringsDeleted << endl;
+  if( reset )
+  {
+    CcInt::intsCreated = 0; CcInt::intsDeleted = 0;
+    CcReal::realsCreated = 0; CcReal::realsDeleted = 0;
+    CcBool::boolsCreated = 0; CcBool::boolsDeleted = 0;
+    CcString::stringsCreated = 0; CcString::stringsDeleted = 0;
+  }
+  return o;
+}
 

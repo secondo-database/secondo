@@ -90,15 +90,6 @@ bool IsTupleDescription(ListExpr a, NestedList* nl)
 
 /*
 
-2.2 Function ~simpleSelect~
-
-Trivial selection function.
-
-*/
-static int simpleSelect (ListExpr args) { return 0; }
-
-/*
-
 2.2 Type property of type constructor ~btree~
 
 */
@@ -1143,7 +1134,7 @@ Operator createbtree (
           CreateBTreeSpec,              // specification
           CreateBTreeValueMapping,                  // value mapping
           Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-          simpleSelect,         // trivial selection function
+          Operator::SimpleSelect,         // trivial selection function
           CreateBTreeTypeMap           // type mapping
 );
 
@@ -1401,7 +1392,7 @@ Operator exactmatch (
 	 ExactMatchSpec,          // specification
 	 IndexQuery<EXACTMATCH>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<EXACTMATCH>        // type mapping
 );
 
@@ -1427,7 +1418,7 @@ Operator cpprange (
 	 RangeSpec,          // specification
 	 IndexQuery<RANGE>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<RANGE>        // type mapping
 );
 
@@ -1453,7 +1444,7 @@ Operator leftrange (
 	 LeftRangeSpec,          // specification
 	 IndexQuery<LEFTRANGE>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<LEFTRANGE>        // type mapping
 );
 
@@ -1479,7 +1470,7 @@ Operator rightrange (
 	 RightRangeSpec,          // specification
 	 IndexQuery<RIGHTRANGE>,              // value mapping
 	 Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-	 simpleSelect,         // trivial selection function
+	 Operator::SimpleSelect,         // trivial selection function
 	 IndexQueryTypeMap<RIGHTRANGE>        // type mapping
 );
 

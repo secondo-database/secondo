@@ -40,6 +40,7 @@ const SmiError E_SMI_FILE_CREATE       = -1204;
 const SmiError E_SMI_FILE_OPEN         = -1205;
 const SmiError E_SMI_FILE_CLOSE        = -1206;
 const SmiError E_SMI_FILE_KEYEXIST     = -1207;
+const SmiError E_SMI_FILE_ISTEMP       = -1208;
 
 const SmiError E_SMI_RECORD_NOTINIT    = -1251;
 const SmiError E_SMI_RECORD_READ       = -1252;

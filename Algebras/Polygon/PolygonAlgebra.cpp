@@ -53,19 +53,26 @@ extern QueryProcessor *qp;
 2.1 Struct Vertex
 
 */
-struct Vertex
+class Vertex : public DBArrayElement
 {
-  Vertex( int xcoord, int ycoord ):
-    x( xcoord ), y( ycoord )
-    {}
+  public:
+    Vertex( int xcoord, int ycoord ):
+      x( xcoord ), y( ycoord )
+      {}
  
-  Vertex():
-    x( 0 ), y( 0 )
-    {}
-    
-  int x;
-  int y;
-};
+    Vertex():
+      x( 0 ), y( 0 )
+      {}
+  
+    char *ToString() const
+      { return (char *)this; }
+
+    void FromString( char *str )
+      { memcpy( this, str, sizeof(Vertex) ); }
+
+    int x;
+    int y;
+  };
 
 /* 
 
@@ -120,18 +127,19 @@ class Polygon : public Attribute
 {
 	
   public:
-    Polygon( SmiRecordFile *file );
-    Polygon( SmiRecordFile *file, const int n, const int *X, const int *Y );
-    Polygon( SmiRecordFile *file, SmiRecordId id, const bool update = true );
+    Polygon();
+    Polygon( const int n, const int *X, const int *Y );
     Polygon( SmiRecordFile *file, char *rootRecord );
+    Polygon( SmiRecordFile *file, SmiRecordId id, const bool update = true );
     ~Polygon();
     
     int NumOfFLOBs();
     FLOB *GetFLOB(const int i);
-    const bool SaveFLOB(const int i);
+    const bool SaveFLOB(const int i, SmiRecordFile *file);
     int Compare(Attribute*);
     int Adjacent(Attribute*);
     Polygon *Clone();
+    int Sizeof();
     bool IsDefined();
     char *GetRootRecord();
     ostream& Print( ostream& os );
@@ -147,15 +155,16 @@ class Polygon : public Attribute
     Vertex& GetVertex( int i );
     string GetState();
     SmiRecordId GetRecordId();
-    const bool Save();
+    const bool Save(SmiRecordFile *file);
     const bool IsEmpty();
 
     friend ostream& operator <<( ostream& os, Polygon& p );
 
   private:
     PolygonRootRecord *rootRecord;
-    DBArray<Vertex> *vertices;
+    DBArray *vertices;
     PolygonState state;
+    bool deleteRootRecord;
 };
 
 	
@@ -165,16 +174,18 @@ class Polygon : public Attribute
 This first constructor creates a new polygon.
 
 */
-Polygon::Polygon( SmiRecordFile *file ) :
+Polygon::Polygon() :
   rootRecord( new PolygonRootRecord( 0, 0 ) ),
-  vertices( new DBArray<Vertex>( file ) ),
-  state( partial ) 
+  vertices( new DBArray( sizeof( Vertex ) ) ),
+  state( partial ),
+  deleteRootRecord( true ) 
 {}
 
-Polygon::Polygon( SmiRecordFile *file, const int n, const int *X, const int *Y ) :
+Polygon::Polygon( const int n, const int *X, const int *Y ) :
   rootRecord( new PolygonRootRecord( 0, 0 ) ),
-  vertices( new DBArray<Vertex>( file, n, true, true ) ),
-  state( partial ) 
+  vertices( new DBArray( sizeof( Vertex ), n, true, true ) ),
+  state( partial ),
+  deleteRootRecord( true ) 
 {
   for( int i = 0; i < n; i++ )
   {
@@ -195,8 +206,9 @@ be closed.
 */
 Polygon::Polygon( SmiRecordFile *file, SmiRecordId id, const bool update ) :
   rootRecord( NULL ),
-  vertices( new DBArray<Vertex>( file, id, update ) ),
-  state( complete ) 
+  vertices( new DBArray( sizeof(Vertex), file, id, update ) ),
+  state( complete ),
+  deleteRootRecord( true ) 
 {
   rootRecord = new PolygonRootRecord( vertices->GetNoComponents(), id );
 }
@@ -204,13 +216,14 @@ Polygon::Polygon( SmiRecordFile *file, SmiRecordId id, const bool update ) :
 Polygon::Polygon( SmiRecordFile *file, char *r ) :
   rootRecord( NULL ),
   vertices( NULL ),
-  state( complete ) 
+  state( complete ),
+  deleteRootRecord( false ) 
 {
-  rootRecord = new PolygonRootRecord( *((PolygonRootRecord *)r) );
+  rootRecord = (PolygonRootRecord*)r;
   if( rootRecord->recordId == 0 )
-    vertices = new DBArray<Vertex>( file, rootRecord->noVertices, false, true );
+    vertices = new DBArray( sizeof(Vertex), rootRecord->noVertices, false, true );
   else
-    vertices = new DBArray<Vertex>( file, rootRecord->recordId, true );
+    vertices = new DBArray( sizeof(Vertex), file, rootRecord->recordId, true );
 }
 
 /*
@@ -222,9 +235,10 @@ Polygon::Polygon( SmiRecordFile *file, char *r ) :
 */
 Polygon::~Polygon()
 { 
-  assert( state == closed ); 
+//  assert( state == closed ); 
   delete vertices;
-  delete rootRecord;
+  if( deleteRootRecord )
+    delete rootRecord;
 }
     
 /*
@@ -256,10 +270,10 @@ FLOB *Polygon::GetFLOB(const int i)
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-const bool Polygon::SaveFLOB(const int i) 
+const bool Polygon::SaveFLOB(const int i, SmiRecordFile *file ) 
 { 
   assert( i >= 0 && i < NumOfFLOBs() );
-  return Save();
+  return Save( file );
 }
 /*
 2.3.5 Compare
@@ -293,7 +307,7 @@ copy of ~this~.
 Polygon *Polygon::Clone() 
 {
   assert( state == complete );
-  Polygon *p = new Polygon( SecondoSystem::GetFlobFile() );
+  Polygon *p = new Polygon();
   for( int i = 0; i < GetNoVertices(); i++ )
     p->Append( this->GetVertex( i ) );
   p->Complete();
@@ -309,6 +323,14 @@ bool Polygon::IsDefined()
   return true;
 }
 
+/*
+2.3.8 Sizeof 
+
+*/
+int Polygon::Sizeof()
+{
+  return sizeof(PolygonRootRecord);
+}
 /*
 2.3.8 GetRootRecord 
 
@@ -490,10 +512,10 @@ SmiRecordId Polygon::GetRecordId()
 Saves the vertices and returns its record identification (~SmiRecordId~).
 
 */
-const bool Polygon::Save()
+const bool Polygon::Save( SmiRecordFile *file )
 {
   assert( state == complete );
-  bool result = vertices->Save();
+  bool result = vertices->Save( file );
   rootRecord->recordId = vertices->GetRecordId();
   return result;
 }
@@ -501,7 +523,8 @@ const bool Polygon::Save()
 /*
 2.3.18 IsEmpty
 
-Returns if the polygon is empty or not
+Returns if the polygon is empty or not.
+
 */
 const bool Polygon::IsEmpty()
 {
@@ -551,8 +574,6 @@ The list representation of a polygon is
 static ListExpr
 OutPolygon( ListExpr typeInfo, Word value )
 {
-  cout << "Polygon Algebra: Out" << endl;
-
   Polygon* polygon = (Polygon*)(value.addr);
 
   if( polygon->IsEmpty() )
@@ -577,12 +598,11 @@ static Word
 InPolygon( const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  cout << "Polygon Algebra: In" << endl;
-
   Polygon* polygon;
-  ListExpr first = nl->First( instance );
 
-  polygon = new Polygon( SecondoSystem::GetFlobFile() );
+  polygon = new Polygon();
+
+  ListExpr first;
   ListExpr rest = instance;
   while( !nl->IsEmpty( rest ) )
   {
@@ -640,9 +660,7 @@ CheckPolygon( ListExpr type, ListExpr& errorInfo )
 */
 Word CreatePolygon(const ListExpr typeInfo)
 {
-  cout << "Polygon Algebra: Create" << endl;
-
-  Polygon* polygon = new Polygon( SecondoSystem::GetFlobFile() );
+  Polygon* polygon = new Polygon();
   return ( SetWord(polygon) );
 }
 
@@ -652,8 +670,6 @@ Word CreatePolygon(const ListExpr typeInfo)
 */
 void DeletePolygon(Word& w)
 {
-  cout << "Polygon Algebra: Delete" << endl;
-
   Polygon* polygon = (Polygon*)w.addr;
 
   polygon->Destroy();
@@ -669,8 +685,6 @@ OpenPolygon( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-  cout << "Polygon Algebra: Open" << endl;
-
   SmiRecordId recordId;
   SmiSize bytesRead;
 
@@ -695,10 +709,8 @@ SavePolygon( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-  cout << "Polygon Algebra: Save" << endl;
-
   Polygon *polygon = (Polygon*)value.addr;
-  polygon->Save();
+  polygon->Save( SecondoSystem::GetFlobFile() );
   SmiRecordId recordId = polygon->GetRecordId();
   SmiSize bytesWritten;
 
@@ -714,8 +726,6 @@ SavePolygon( SmiRecord& valueRecord,
 */
 void ClosePolygon(Word& w)
 {
-  cout << "Polygon Algebra: Close" << endl;
-
   Polygon* polygon = (Polygon*)w.addr;
   polygon->Close();
   delete polygon;
@@ -727,8 +737,6 @@ void ClosePolygon(Word& w)
 */
 Word ClonePolygon(const Word& w)
 {
-  cout << "Polygon Algebra: Clone" << endl;
-
   return SetWord( ((Polygon*)w.addr)->Clone() );
 }
 
@@ -738,8 +746,6 @@ Word ClonePolygon(const Word& w)
 */
 static int SizeOfPolygon()
 {
-  cout << "Polygon Algebra: SizeOf" << endl;
-
   return sizeof(PolygonRootRecord);
 }
 
