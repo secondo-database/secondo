@@ -115,6 +115,8 @@ public class Base64Decoder{
     public void close() throws IOException{
       if(in!=null)
          in.close();
+      if(rin!=null)
+         rin.close();
     }
 
     public InputStream getInputStream(){
