@@ -568,9 +568,10 @@ NestedList::CopyList(const ListExpr list, const NestedList* target)
   ListExpr result = 0;
 
   if (list == 0)
-  {
     return 0;
-  }
+
+  if( IsEmpty( list ) )
+    return TheEmptyList(); 
 
   CopyStackRecord *sr = new CopyStackRecord( (*nodeTable)[list] );
   nodeRecordStack.push( sr );
@@ -671,13 +672,20 @@ NestedList::CopyList(const ListExpr list, const NestedList* target)
 	  {
   	    sr->ns = Left;
    	    sr = new CopyStackRecord( (*nodeTable)[sr->nr.n.left] );
+            nodeRecordStack.push( sr );
 	  }
 	  else if( sr->nr.n.right )
 	  {
   	    sr->ns = Right;
    	    sr = new CopyStackRecord( (*nodeTable)[sr->nr.n.right] );
+            nodeRecordStack.push( sr );
 	  }
-          nodeRecordStack.push( sr );
+          else
+          {
+            result = sr->le;
+            delete sr;
+            nodeRecordStack.pop();
+          }
         }
         else if( sr->ns == Left )
         {
