@@ -7,6 +7,8 @@
 
 March 2003 Victor Almeida created the new Relational Algebra organization
 
+Oct 2004 M. Spiekermann changed some frequently called ~small~ functions into inline
+functions implemented in the header file.
 
 [TOC]
 
@@ -155,22 +157,30 @@ The second constructor. Creates a tuple type which is a copy of ~tupleType~.
 The destructor.
 
 */
-    const int GetNoAttributes() const;
+    inline const int GetNoAttributes() const { return noAttributes; }
 /*
 Returns the number of attributes of the tuple type.
 
 */
-    const int GetTotalSize() const;
+    inline const int GetTotalSize() const { return totalSize; }
 /*
 Returns the total size of the tuple.
 
 */
-    const AttributeType& GetAttributeType( const int index ) const;
+    inline const AttributeType& GetAttributeType( const int index ) const
+    {
+      assert( index >= 0 && index < noAttributes );
+      return attrTypeArray[index];
+    }
 /*
 Returns the attribute type at ~index~ position.
 
 */
-    void PutAttributeType( const int index, const AttributeType& attrType );
+    inline void PutAttributeType( const int index, const AttributeType& attrType )
+    {
+      assert( index >= 0 && index < noAttributes );
+      attrTypeArray[index] = attrType;
+    }
 /*
 Puts the attribute type ~attrType~ in the position ~index~.
 

@@ -106,28 +106,14 @@ TupleType::~TupleType()
 }
 
 /*
-~GetNoAttributes~ declared as inline function in the header file
+The functions below are declared as inline functions and implemented
+in the header file
 
 */
 //const int TupleType::GetNoAttributes() const
-
-const int TupleType::GetTotalSize() const
-{
-  return totalSize;
-}
-
-/* 
-~GetAttributeType~, declared as inline function in the header file
-
-*/
+//const int TupleType::GetTotalSize() const
 //const AttributeType& TupleType::GetAttributeType( const int index ) const
-
-
-void TupleType::PutAttributeType( const int index, const AttributeType& attrType )
-{
-  assert( index >= 0 && index < noAttributes );
-  attrTypeArray[index] = attrType;
-}
+//void TupleType::PutAttributeType( const int index, const AttributeType& attrType )
 
 /*
 4 Implementation of the class ~LexicographicalTupleCompare~
