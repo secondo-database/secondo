@@ -463,14 +463,17 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   
   memcpy(buf, &(th.size), sizeof(int));
   
-  SmiRecord newTuple;
-  bool rc = tuplefile->AppendRecord(diskTupleId, newTuple);
-  rc = newTuple.Write(buf, sizeof(TupleHeader), 0) && rc;
-  rc = newTuple.Write(memoryTuple, memorySize, sizeof(TupleHeader)) && rc;
-  if (extensionTuple != 0) {
-    rc = newTuple.Write(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && rc;
-  }	
-  diskTuple = newTuple;
+  diskTuple.Truncate(0);
+  bool rc = tuplefile->AppendRecord(diskTupleId, diskTuple);
+  rc = diskTuple.Write(buf, sizeof(TupleHeader), 0) && rc;
+  rc = diskTuple.Write(memoryTuple, memorySize, sizeof(TupleHeader)) && rc;
+
+  if (extensionTuple != 0) 
+  {
+    rc = diskTuple.Write(extensionTuple, extensionSize,
+      sizeof(TupleHeader) + memorySize) && rc;
+  }
+
   state = SolidWrite;
   free(buf);
   
