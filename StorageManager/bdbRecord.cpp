@@ -4,6 +4,8 @@
 
 April 2002 Ulrich Telle
 
+September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for system catalog files
+
 */
 
 using namespace std;
@@ -82,7 +84,7 @@ SmiRecord::Read( void* buffer,
       }
       else
       {
-        rc = impl->bdbFile->get( 0, &key, &data, flags );
+        rc = impl->bdbFile->get( 0, &key, &data, DB_DIRTY_READ );
       }
     }
 
@@ -128,13 +130,7 @@ SmiRecord::Write( const void*   buffer,
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
-      if ( rc == DB_LOCK_DEADLOCK )
-      {
-cout << "*** SmiRecord::Write: DB_LOCK_DEADLOCK ***" << endl;
-        rc = impl->bdbFile->put( tid, &key, &data, 0 );
-      }
     }
-
     if ( rc == 0 )
     {
       if ( offset + numberOfBytes > recordSize )

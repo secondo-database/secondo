@@ -21,6 +21,8 @@
 
 January 2002 Ulrich Telle
 
+September 2002 Ulrich Telle, introduced flag for abort transaction after deadlock
+
 1.1 Overview
 
 The *Storage Management Interface* provides all types and classes needed
@@ -315,6 +317,7 @@ catalog. The function returns "true"[4] if the deletion was successful.
   bool    envClosed;       // Flag if environment is closed
   DbTxn*  usrTxn;          // User transaction handle
   bool    txnStarted;      // User transaction started
+  bool    txnMustAbort;    // Abort transaction after deadlock
   Db*     bdbDatabases;    // Database Catalog handle
   Db*     bdbSeq;          // Sequence handle
   Db*     bdbCatalog;      // Database File Catalog handle

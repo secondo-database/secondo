@@ -4,6 +4,8 @@
 
 April 2002 Ulrich Telle
 
+September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for system catalog files
+
 */
 
 using namespace std;
@@ -66,7 +68,7 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
   else
   {
-    rc = impl->bdbFile->get( 0, &key, &data, 0 );
+    rc = impl->bdbFile->get( 0, &key, &data, DB_DIRTY_READ );
   }
   if ( rc == ENOMEM )
   {

@@ -4,6 +4,8 @@
 
 April 2002 Ulrich Telle
 
+September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls for system catalog files
+
 */
 
 using namespace std;
@@ -47,7 +49,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
   }
   if ( rc == 0 )
   {
@@ -92,7 +94,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    rc = impl->bdbFile->get( 0, &bdbKey, &data, 0 );
+    rc = impl->bdbFile->get( 0, &bdbKey, &data, DB_DIRTY_READ );
   }
   if ( rc == ENOMEM )
   {
@@ -137,7 +139,7 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
   }
   if ( rc == 0 )
   {
@@ -175,7 +177,7 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
   }
   if ( rc == 0 )
   {
@@ -214,7 +216,7 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
   }
   if ( rc == 0 )
   {
@@ -252,7 +254,7 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, 0 );
+    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
   }
   if ( rc == 0 )
   {

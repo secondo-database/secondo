@@ -4,6 +4,8 @@
 
 May 2002 Ulrich Telle
 
+September 2002 Ulrich Telle, abort transaction after deadlock
+
 */
 
 using namespace std;
@@ -44,7 +46,8 @@ string         SmiEnvironment::registrar;
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
 SmiEnvironment::Implementation::Implementation()
-  : bdbHome( "" ), envClosed( false ), usrTxn( 0 ), txnStarted( false ),
+  : bdbHome( "" ), envClosed( false ),
+    usrTxn( 0 ), txnStarted( false ), txnMustAbort( false ),
     bdbDatabases( 0 ), bdbSeq( 0 ), bdbCatalog( 0 ), bdbCatalogIndex( 0 )
 {
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
@@ -669,6 +672,10 @@ SmiEnvironment::SetError( const SmiError smiErr, const int sysErr /* = 0 */ )
   lastError = smiErr;
   if ( sysErr != 0 )
   {
+    if ( sysErr == DB_LOCK_DEADLOCK && instance.impl->txnStarted )
+    {
+      instance.impl->txnMustAbort = true;
+    }
     lastMessage = string("SecondoSMI: ") + DbEnv::strerror( sysErr );
   }
   else
@@ -1154,7 +1161,15 @@ SmiEnvironment::CommitTransaction()
     SmiEnvironment::Implementation::UpdateCatalog( true );
     if ( useTransactions )
     {
-      rc = instance.impl->usrTxn->commit( 0 );
+      if ( instance.impl->txnMustAbort )
+      {
+        instance.impl->usrTxn->abort();
+        rc = DB_LOCK_DEADLOCK;
+      }
+      else
+      {
+        rc = instance.impl->usrTxn->commit( 0 );
+      }
     }
     if ( rc == 0 )
     {
@@ -1169,6 +1184,7 @@ SmiEnvironment::CommitTransaction()
       SetError( E_SMI_TXN_COMMIT, rc );
     }
     instance.impl->txnStarted = false;
+    instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;
     if ( singleUserMode )
     {
@@ -1207,6 +1223,7 @@ SmiEnvironment::AbortTransaction()
       SetError( E_SMI_TXN_ABORT, rc );
     }
     instance.impl->txnStarted = false;
+    instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;
     if ( singleUserMode )
     {
