@@ -242,6 +242,160 @@ and error message are printed.
 
 */
 secondo(X) :-
+  sub_atom(X,0,4,_,S),
+  atom_prefix(S,'open'),	
+  secondo(X, Y),
+  retract(storedDatabaseOpen(_)),
+  assert(storedDatabaseOpen(1)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),!.
+
+secondo(X) :-
+  sub_atom(X,0,4,_,S),
+  atom_prefix(S,'open'),
+  secondo_error_info(ErrorCode, ErrorString),
+  write('Command failed with error code : '),
+  write(ErrorCode),
+  nl,
+  write('and error message : '),
+  nl,
+  write(ErrorString),
+  nl,
+  !,
+  fail.
+
+secondo(X) :-
+  sub_atom(X,0,5,_,S),
+  atom_prefix(S,'close'),	
+  secondo(X, Y),
+  retract(storedDatabaseOpen(_)),
+  assert(storedDatabaseOpen(0)),
+  retract(storedSecondoList(_)),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),!.
+
+secondo(X) :-
+  sub_atom(X,0,5,_,S),
+  atom_prefix(S,'close'),
+  secondo_error_info(ErrorCode, ErrorString),
+  write('Command failed with error code : '),
+  write(ErrorCode),
+  nl,
+  write('and error message : '),
+  nl,
+  write(ErrorString),
+  nl,
+  !,
+  fail.
+  
+secondo(X) :-
+  sub_atom(X,0,6,_,S),
+  atom_prefix(S,'update'),
+  isDatabaseOpen,  
+  secondo(X, Y),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),!.
+
+secondo(X) :-
+  sub_atom(X,0,6,_,S),
+  atom_prefix(S,'update'),
+  isDatabaseOpen,
+  secondo_error_info(ErrorCode, ErrorString),
+  write('Command failed with error code : '),
+  write(ErrorCode),
+  nl,
+  write('and error message : '),
+  nl,
+  write(ErrorString),
+  nl,
+  !,
+  fail.
+
+secondo(X) :-
+  sub_atom(X,0,6,_,S),
+  atom_prefix(S,'derive'),
+  isDatabaseOpen,  
+  secondo(X, Y),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),!.
+
+secondo(X) :-
+  sub_atom(X,0,6,_,S),
+  atom_prefix(S,'derive'),
+  isDatabaseOpen,
+  secondo_error_info(ErrorCode, ErrorString),
+  write('Command failed with error code : '),
+  write(ErrorCode),
+  nl,
+  write('and error message : '),
+  nl,
+  write(ErrorString),
+  nl,
+  !,
+  fail.
+
+secondo(X) :-
+  sub_atom(X,0,3,_,S),
+  atom_prefix(S,'let'),
+  isDatabaseOpen, 
+  secondo(X, Y),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),!.
+
+secondo(X) :-
+  sub_atom(X,0,3,_,S),
+  atom_prefix(S,'let'),
+  isDatabaseOpen, 
+  secondo_error_info(ErrorCode, ErrorString),
+  write('Command failed with error code : '),
+  write(ErrorCode),
+  nl,
+  write('and error message : '),
+  nl,
+  write(ErrorString),
+  nl,
+  !,
+  fail.
+  
+secondo(X) :-
+  sub_atom(X,0,6,_,S),
+  atom_prefix(S,'create'),
+  sub_atom(X,0,15,_,S),
+  not(atom_prefix(S,'create database')),
+  isDatabaseOpen,  
+  secondo(X, Y),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),!.
+
+secondo(X) :-
+  sub_atom(X,0,6,_,S),
+  atom_prefix(S,'delete'),
+  sub_atom(X,0,15,_,S),
+  not(atom_prefix(S,'delete database')),
+  isDatabaseOpen,  
+  secondo(X, Y),
+  retract(storedSecondoList(_)),
+  getSecondoList(_),
+  write('Command succeeded, result:'),
+  nl, nl,
+  show(Y),!.
+  
+secondo(X) :-
   (
     secondo(X, Y),
     write('Command succeeded, result:'),
@@ -279,36 +433,88 @@ in the PROLOG interface via the ~query~ operator. The operators
 ~delete~, ~let~, ~create~, ~open~, and ~update~ work the same way.
 
 */
+isDatabaseOpen :-
+  storedDatabaseOpen(Status),
+  Status = 1, !.
+  
+isDatabaseOpen :-
+  storedDatabaseOpen(Status),
+  Status = 0,
+  write('No database open.'),
+  nl,
+  !,fail.
+
+notIsDatabaseOpen :-
+  storedDatabaseOpen(Status),
+  Status = 0.
 
 query(Query) :-
+  isDatabaseOpen,
   atom(Query),
   atom_concat('query ', Query, QueryText),
   secondo(QueryText).
 
 let(Query) :-
+  isDatabaseOpen,
   atom(Query),
   atom_concat('let ', Query, QueryText),
   secondo(QueryText).
+  %retract(storedSecondoList(_)),
+  %getSecondoList(_).  
+
+derive(Query) :-
+  isDatabaseOpen,
+  atom(Query),
+  atom_concat('derive ', Query, QueryText),
+  secondo(QueryText).
+  %retract(storedSecondoList(_)),
+  %getSecondoList(_). 
 
 create(Query) :-
+  notIsDatabaseOpen,
   atom(Query),
   atom_concat('create ', Query, QueryText),
+  !,
   secondo(QueryText).
 
+create(Query) :-
+  isDatabaseOpen,
+  atom(Query),
+  atom_concat('create ', Query, QueryText),
+  secondo(QueryText),
+  retract(storedSecondoList(_)),
+  getSecondoList(_).
+
 update(Query) :-
+  isDatabaseOpen,
   atom(Query),
   atom_concat('update ', Query, QueryText),
   secondo(QueryText).
-
+  %retract(storedSecondoList(_)),
+  %getSecondoList(_).
+    
 delete(Query) :-
+  notIsDatabaseOpen,
   atom(Query),
   atom_concat('delete ', Query, QueryText),
+  !,
   secondo(QueryText).
+
+delete(Query) :-
+  isDatabaseOpen,
+  atom(Query),
+  atom_concat('delete ', Query, QueryText),
+  secondo(QueryText),
+  retract(storedSecondoList(_)),
+  getSecondoList(_).
 
 open(Query) :-
   atom(Query),
   atom_concat('open ', Query, QueryText),
-  secondo(QueryText).
+  secondo(QueryText),
+  retract(storedDatabaseOpen(_)),
+  assert(storedDatabaseOpen(1)),
+  getSecondoList(_).
 
 :-
   op(800, fx, query),
@@ -316,4 +522,8 @@ open(Query) :-
   op(800, fx, let),
   op(800, fx, create),
   op(800, fx, open),
+  op(800, fx, derive),
   op(800, fx, update).
+  
+:- dynamic(storedDatabaseOpen/1).
+storedDatabaseOpen(0).
