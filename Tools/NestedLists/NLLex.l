@@ -24,6 +24,8 @@ list module at the moment ..
 #include <cstring>
 #include <cstdlib>
 #include <fstream>
+#include <sstream>
+
 using namespace std;
 #include "Base64.h"
 #include "NestedList.h"
@@ -33,16 +35,11 @@ using namespace std;
 #define yylval NLParser::yylval
 
 int yywrap();
-static char *scanErrMsg = "Error: Unexpected end of file while scanning text atom!\n";
-static char *cmpstr = "</text--->";
-static int zeichen;
-static int pos = 0;
-static int tmppos = 0;
-static int textAtomPosition = 0;
 
 const int MAX_STRING_LENGTH = 48;
 char buffer[MAX_STRING_LENGTH+2];
 char *s = buffer;
+ostringstream* text=0;
 
 double f;
 
@@ -76,127 +73,60 @@ string         \"[^\"]*\"
 
 file		"<file>".*"</file--->"       
 
+%x TEXT
 %%
 
-[ \t\n]+       ;
+<INITIAL>[ \t\n]+       ;
 
--?[0-9]+       { 
-                 /* ECHO; printf(" : is an integer\n"); */
-                 yylval = nl->IntAtom( atoi( yytext ) );
-                 return (ZZINTEGER);
-               }
+<INITIAL>-?[0-9]+       { 
+                        /* ECHO; printf(" : is an integer\n"); */
+                        yylval = nl->IntAtom( atoi( yytext ) );
+                        return (ZZINTEGER);
+                        }
 
-{number}       {
-                 /* ECHO; printf(" : is a real\n"); */
-                 f = atof( yytext );
-                 yylval = nl->RealAtom( f );
-                 /* printf("\n Parser reals: %10.3f \n", f); */
-                 return (ZZREAL);
-               }
+<INITIAL>{number}       {
+                        /* ECHO; printf(" : is a real\n"); */
+                        f = atof( yytext );
+                        yylval = nl->RealAtom( f );
+			/* printf("\n Parser reals: %10.3f \n", f); */
+			return (ZZREAL);
+		        }
 
-"TRUE"         { 
+<INITIAL>"TRUE"         { 
                  /* ECHO; printf(" : is a boolean\n"); */
                  yylval = nl->BoolAtom( true );
                  return (ZZBOOLEAN);
                }
 
-"FALSE"        { 
+<INITIAL>"FALSE"        { 
                  /* ECHO; printf(" : is a boolean\n"); */
                  yylval = nl->BoolAtom( false );
                  return (ZZBOOLEAN);
                }
 
-"<text>"       { 
-                 /* Initialization */
-                 string textAtomBuffer = "";
-                 textAtomPosition = 0;
-                 pos = 0;
-                 yylval = nl->TextAtom();
+<TEXT>"<text>"       {  // change to state TEXT
+                        BEGIN(TEXT);
+                        text = new ostringstream();
 
-                 /* Read text until you reach </text---> */
-                 do
-                 { 
-                   zeichen = yyinput();
-                   /* Check if one or more of three special cases fit  */
-                   /* Case 1: textAtomBuffer full?                     */
-                   if ( textAtomPosition == 60 )
-                   {
-                     nl->AppendText( yylval, textAtomBuffer );
-                     /* New empty textAtomBuffer: */
-                     textAtomBuffer = "";
-                     textAtomPosition = 0;
-                   }
-                   /* Case 2: End of file? */
-                   if ( zeichen == 0 )
-                   {
-                     nl->Destroy( yylval );
-                     cerr << scanErrMsg;
-                     exit( 1 );
-                     /* break; */
-                   }
-                   /* Case 3: zeichen = next chararacter in </text--->? */
-                   if ( zeichen == cmpstr[pos] )
-                   {
-                     /* Increase pos, and do not insert zeichen in      */
-                     /* textAtomBuffer                                  */
-                     pos++;
-                   }
-                   /* No special case. In particular, not part of </text--->.*/
-                   else
-                   {
-                     /* Step 1: Special treatment if the last characters 
-                                in front of the current zeichen were the
-                                beginning of </text--->. 
-                        Step 2: Insert zeichen in textAtomBuffer
-                     */
-                     if ( pos != 0 )
-                     {
-                       /* (Step 1:)                                          */
-                       /* Insert in textAtomBuffer the characters which were */
-                       /* beginning of </text---> in the last pos runs of    */
-                       /* the 'while (pos != 10)'-loop.                      */
-                       /* If textAtomBuffer is full, append textAtomBuffer   */
-                       /* to yylval before filling textAtomBuffer with the   */
-                       /* remaining characters (of the beginning of          */
-                       /* </text--->).                                       */
-                       tmppos = pos;
-                       do
-                       {
-                         if ( textAtomPosition < 60 )
-                         {
-                           textAtomBuffer += cmpstr[tmppos - pos];
-                           textAtomPosition++;
-                           pos--;
-                         }
-                         else
-                         {
-                           nl->AppendText(yylval, textAtomBuffer );
-                           /* New empty textAtomBuffer: */
-                           textAtomBuffer = "";
-                           textAtomPosition = 0;
-                         }
-                       }
-                       while (pos != 0);
-                     }  
-                     /* (Step 2:) standard case */
-                     textAtomBuffer += zeichen;
-                     textAtomPosition++;
-                   } /* No special case, not part of </text--->. */
-                 }
-                 while (pos != 10);
+                     }
 
-                 /* At this point </text---> was reached (and not inserted   */
-                 /* in textAtomBuffer).                                      */
-                 if ( textAtomPosition < 60 )
-                 {
-                   nl->AppendText( yylval, textAtomBuffer );
-                 }
-                 return (ZZTEXT);
-               }
+<TEXT>.|\\n       { text->put( yytext[0] );
 
-{}
+                  }
 
-{string}       {
+
+<TEXT>"</text--->"  {   BEGIN(INITIAL);
+                        ListExpr newText = nl->TextAtom();
+                        nl->AppendText( newText, text->str() );
+                        delete text; 
+                        /* pass text node and token to the parser */
+                        yylval = newText;
+                        return (ZZTEXT);
+
+                    }
+
+
+<INITIAL>{string}       {
                  /* ECHO; printf(" : is a string\n"); */
                  if ( yyleng - 2 > MAX_STRING_LENGTH )
                  {
@@ -210,19 +140,18 @@ file		"<file>".*"</file--->"
                  return (ZZSTRING);
                }
 
-{symbol}       { 
+<INITIAL>{symbol}       { 
                  /* ECHO; printf(" : is a symbol\n"); */
                  yylval = nl->SymbolAtom( yytext );
                  return (ZZSYMBOL);
                }
 
-{file}         { /* files are expanded to base64 encoded text atoms */
+<INITIAL>{file}  { /* files are expanded to base64 encoded text atoms */
 
                  ListExpr newText = nl->TextAtom(); 
-             
+                 
                  string fileNameStr(yytext);
                  fileNameStr = fileNameStr.substr(6,yyleng-16);
-                 cout << "Reading binary data from file '" << fileNameStr << "'" << endl;
                  ifstream inFile(fileNameStr.c_str(), ios::binary); 
                  ofstream outFile((fileNameStr+".base64").c_str());                 
 
@@ -232,23 +161,24 @@ file		"<file>".*"</file--->"
                  const int inLength = 54;
                  char buf[inLength+1]; 
                  buf[inLength] = 0;
-                 for (int i=0; i<inLength; i++) { 
-                    buf[i]='A';
-                 }
-                 
+                 int readFaults = 0;                 
+
                  string textFragment="";
+                 Base64* encoder = new Base64();
                  do {
                     inFile.read(buf, inLength);
                     int noBytes = inFile.gcount();
                     if (noBytes != inLength) {
-                      cout << "Only " << noBytes << " read!" << endl;
-                    }
-                    Base64::encode(buf, textFragment, noBytes);
+                     readFaults++; 
+                    } 
+                    assert( readFaults <= 1 );
+                    encoder->encode(buf, textFragment, noBytes);
                     
                     nl->AppendText( newText, textFragment );   
                     outFile << textFragment;
                  } while (inFile.good());
-                 
+                 delete encoder;                 
+
                  if (!inFile.eof()) {
                     cerr << "Problems reading file " << fileNameStr << endl;
                     exit(1);
@@ -260,12 +190,12 @@ file		"<file>".*"</file--->"
                }
 
 
-"("            { 
+<INITIAL>"("   {  
                  /* ECHO; printf("\n"); */ 
                  return (ZZOPEN);
                }
 
-")"            {
+<INITIAL>")"            {
                  /* ECHO; printf("\n"); */
                  return (ZZCLOSE);
                }
