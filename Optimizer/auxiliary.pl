@@ -125,7 +125,83 @@ pretty_print([[rel, [tuple, AttrDescription]], Tuples]) :-
 pretty_print(L) :-
   write_element(L, 0).
 
+/*
 
+1.1.3 Predicate ~display~
+
+----	display(Type, Value) :-
+----
+
+Display the value according to its type description. To be extended when new
+type constructors are added to Secondo.
+
+*/
+
+show([Type, Value]) :-
+  !,
+  display(Type, Value).
+
+show(Y) :-
+  pretty_print(Y),
+  nl.
+
+display(int, N) :-
+  !, 
+  write(N).
+
+display(real, N) :-
+  !, 
+  write(N).
+
+display(bool, N) :-
+  !, 
+  write(N).
+
+display(string, N) :-
+  !,
+  term_to_atom(String, N), 
+  displayString(String).
+
+display([rel, [tuple, Attrs]], Tuples) :-
+  !,
+  nl,
+  max_attr_length(Attrs, AttrLength),
+  displayTuples(Attrs, Tuples, AttrLength).
+
+display(Type, Value) :-
+  write('There is no specific display function for type '), write(Type),
+  write('. '),
+  nl,
+  write('Generic display used. '),
+  nl,
+  write(Value).
+
+
+displayString([]).
+
+displayString([Char | Rest]) :- 
+  put(Char), 
+  displayString(Rest).
+
+displayTuples(_, [], _).
+
+displayTuples(Attrs, [Tuple | Rest], AttrLength) :-
+  displayTuple(Attrs, Tuple, AttrLength),
+  nl,
+  displayTuples(Attrs, Rest, AttrLength).
+
+
+displayTuple([], _, _).
+
+displayTuple([[Name, Type] | Attrs], [Value | Values], AttrNameLength) :-
+  atom_length(Name, NLength),
+  PadLength is AttrNameLength - NLength,
+  write_spaces(PadLength),
+  write(Name),
+  write(' : '),
+  display(Type, Value),
+  nl,
+  displayTuple(Attrs, Values, AttrNameLength).
 
 /*
 
@@ -142,8 +218,8 @@ secondo(X) :-
   (
     secondo(X, Y),
     write('Command succeeded, result:'),
-    nl,
-    pretty_print(Y)
+    nl, nl,
+    show(Y)
   );(
     secondo_error_info(ErrorCode, ErrorString),
     write('Command failed with error code : '),
