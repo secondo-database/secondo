@@ -21,6 +21,9 @@
  *   e.g., jclass jStringHolder
  *
  * ---------------------------------------------------------------------
+ * Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+ * Database Systems for New Applications.
+ 
  * Copyright (c) 1998 Fred Dushin
  * 					  All rights reserved.
  *
