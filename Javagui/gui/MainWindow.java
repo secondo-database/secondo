@@ -198,18 +198,21 @@ public MainWindow(String Title){
   boolean config_file_ok =true;
   if(!CF.exists()){
      System.err.println("Javagui: configuration file not found");
+     System.err.println("searched configuration file: "+CF.getAbsolutePath());
      config_file_ok = false;
   }
 
-  try{
-    FileInputStream CFG = new FileInputStream(CF);
-    Config.load(CFG);
-    CFG.close();
-  } catch(Exception e){
-    config_file_ok = false;
-    if(DEBUG_MODE){
-      System.err.println(e);
-      e.printStackTrace();
+  if(config_file_ok){
+    try{
+      System.out.println("load configuration datas from: "+CF.getAbsolutePath());
+      FileInputStream CFG = new FileInputStream(CF);
+      Config.load(CFG);
+      CFG.close();
+    } catch(Exception e){
+      config_file_ok = false;
+      if(DEBUG_MODE){
+        e.printStackTrace();
+      }
     }
   }
  int maxStringLength=48;
@@ -1555,6 +1558,7 @@ private void cleanMenu(){
 private void getServerInfos(){
 
   ListExpr Algebras = ComPanel.getCommandResult("list algebras");
+  Algebras = Algebras.second().second();
   AlgebraMenu.removeAll();
   if (Algebras==null){
      updateDatabases();
@@ -1585,6 +1589,7 @@ private void getServerInfos(){
 /* includes all databases in the "open|delete databases" menu */
 public boolean updateDatabases(){
   ListExpr Databases = ComPanel.getCommandResult("list databases");
+  Databases = Databases.second().second();
   OpenDatabaseMenu.removeAll();
   DeleteDatabaseMenu.removeAll();
   if(Databases==null)
