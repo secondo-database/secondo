@@ -1,0 +1,31 @@
+# filename Algebras/Fuzzy/makefile
+#
+# last change: 05-2003; Th. Behr
+
+include makefile.inc
+
+.PHONY:all
+all: 
+	(cd fuzzyobjects; make all)
+
+.PHONY: clean
+clean: 
+	(cd fuzzyobjects; make clean)
+	rm -fr $(DOCPATH)
+
+
+.PHONY: doc
+doc:
+	mkdir $(DOCPATH)
+	$(JAVADOC) -d $(DOCPATH) -classpath "$(CLASSPATH)" $(PACKAGES)
+
+# compile java files
+%.class:%.java
+	$(JAVAC) -classpath $(CLASSPATH) $<
+
+
+
+
+
+
+
