@@ -2645,7 +2645,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST:
       localInfo = (SortByLocalInfo*)local.addr;
       tuples = localInfo->tuples;
-      if(localInfo->currentIndex <= tuples->size() - 1)
+      if(localInfo->currentIndex  + 1 <= tuples->size())
       {
         result = SetWord((*tuples)[localInfo->currentIndex]);
         localInfo->currentIndex++;
@@ -2659,7 +2659,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = (SortByLocalInfo*)local.addr;
 
       for(j = localInfo->currentIndex;
-        j <= localInfo->tuples->size() - 1; j++)
+        j + 1 <= localInfo->tuples->size(); j++)
       {
         (*(localInfo->tuples))[j]->DeleteIfAllowed();
       }
