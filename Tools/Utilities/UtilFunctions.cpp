@@ -5,7 +5,9 @@ November 2002 M. Spiekermann, Implementation of TimeTest.
 
 September 2003 M. Spiekermann, Implementation of LogMsg/RTFlags.
 
-December 2003 M. Spiekermann, 
+December 2003 M. Spiekermann, Implementation of class Counter.
+
+July 2004 M. Spiekermann, Implementation of showActiveFlags. 
 
 */
 
@@ -107,20 +109,33 @@ RTFlag::it;
 map<string,bool>
 RTFlag::flagMap;
 
+
+void
+RTFlag::showActiveFlags(ostream& os) {
+
+  os << "Active runtime flags" << endl;
+  for ( it = flagMap.begin(); it != flagMap.end(); it++ ) {
+     os << "  -" << it->first << "-" << endl;
+  }
+
+}
+
 void
 RTFlag::initByString( const string &keyList ) {
 
-   /*  The string contains a comma separated list of keywords which is inserted 
-    *  into a map. 
-    */
+   //  The string contains a comma separated list of
+   //  keywords which is inserted into a map. 
+
    const char* sep = ",";
    int n = keyList.length();
    
-   if (n == 0) return;
+   if (n == 0) {
+     return;
+   }  
 
    char* pbuf = new char[n+1];
    keyList.copy(pbuf,n);
-   pbuf[n] = *sep;
+   pbuf[n] = 0;
 
    char* pkey = 0;  
    pkey=strtok(pbuf,sep);
