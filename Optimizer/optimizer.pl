@@ -701,6 +701,14 @@ In the target language, we use the following operators:
 				where 	Tuple3 = Tuple1 o Tuple2
 					attrname1 occurs in Tuple1
 					attrname2 occurs in Tuple2
+					
+	loopjoin:	stream(Tuple1) x (Tuple1 -> stream(Tuple2)
+				-> stream(Tuple3)
+
+				where 	Tuple3 = Tuple1 o Tuple2
+				
+	exactmatch:	btree(Tuple, AttrType) x rel(Tuple) x AttrType
+				-> stream(Tuple)
 
 	extend:		stream(Tuple1) x (Newname x (Tuple -> Attrtype))+
 				-> stream(Tuple2)
@@ -1080,67 +1088,38 @@ join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :-
 
 /*
 
-Special handling of index joins:
-
-*/
-exactmatchfun(IndexName, arg(N), Attr) =>
-  exactmatchfun(IndexName, rel(Name, *, Case), Attr) :-
-  argument(N, rel(Name, *, Case)),
-  !.
-
-exactmatchfun(IndexName, arg(N), Attr) =>
-  rename(exactmatchfun(IndexName, rel(Name, Var, Case), Attr), Var) :-
-  argument(N, rel(Name, Var, Case)),
-  !.
-
-/*
-
-For index joins we also employ the extend/remove technique
-described below.
+Index joins:
 
 */
 
-join(Arg1, arg(N), pr(X=Y, _, _)) =>
-remove(loopjoin(Arg1Extend, MatchExpr), [attrname(attr(ext_expr, 1, l))]) :-
-  isOfSecond(Attr2, X, Y),
-  isNotOfSecond(LExpr, X, Y),
-  not(LExpr = attr(_, _, _)),
-  argument(N, RelDescription),
-  hasIndex(RelDescription, Attr2, IndexName),
-  Arg1 => Arg1S,
-  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(ext_expr, 1, l)), LExpr)]),
-  exactmatchfun(IndexName, arg(N), attr(ext_expr, 1, l)) =>
-    MatchExpr.
-
-join(arg(N), Arg2, pr(X=Y, _, _)) =>
-remove(loopjoin(Arg2Extend, MatchExpr), [attrname(attr(ext_expr, 2, l))]) :-
-  isOfFirst(Attr1, X, Y),
-  isNotOfFirst(RExpr, X, Y),
-  not(RExpr = attr(_, _, _)),
-  argument(N, RelDescription),
-  hasIndex(RelDescription, Attr1, IndexName),
-  Arg2 => Arg2S,
-  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(ext_expr, 2, l)), RExpr)]),
-  exactmatchfun(IndexName, arg(N), attr(ext_expr, 2, l)) =>
-    MatchExpr.
 
 join(Arg1, arg(N), pr(X=Y, _, _)) => loopjoin(Arg1S, MatchExpr) :-
-  isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
+  isNotOfSecond(Expr1, X, Y),
   argument(N, RelDescription),
   hasIndex(RelDescription, Attr2, IndexName),
   Arg1 => Arg1S,
-  exactmatchfun(IndexName, arg(N), Attr1) =>
-    MatchExpr.
+  exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
 
 join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
   isOfFirst(Attr1, X, Y),
-  isOfSecond(Attr2, X, Y),
+  isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
   hasIndex(RelDescription, Attr1, IndexName),
   Arg2 => Arg2S,
-  exactmatchfun(IndexName, arg(N), Attr2) =>
-    MatchExpr.
+  exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
+
+
+exactmatch(IndexName, arg(N), Expr) =>
+  exactmatch(IndexName, rel(Name, *, Case), Expr) :-
+  argument(N, rel(Name, *, Case)),
+  !.
+
+exactmatch(IndexName, arg(N), Expr) =>
+  rename(exactmatch(IndexName, rel(Name, Var, Case), Expr), Var) :-
+  argument(N, rel(Name, Var, Case)),
+  !.
+
 
 
 /*
@@ -1223,6 +1202,16 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
 	attrname(Attr1), attrname(Attr2), 997)   :-
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
+
+/*
+
+----	isOfFirst(Attr, X, Y)
+	isOfSecond(Attr, X, Y)
+----
+
+~Attr~ equal to either ~X~ or ~Y~ is an attribute of the first(second) relation.
+
+*/
 
 
 isOfFirst(X, X, _) :- X = attr(_, 1, _).
