@@ -25,24 +25,30 @@ SecondoHost=127.0.0.1
 ;;; Port of the Secondo server (default: )
 SecondoPort=1234
 
-;;; Runtime Flags (RTFlags). This key can be used to define a list of runtime
-;;; flags which switch on some special messages (for debugging or profiling) or
-;;; some features like creating binary list formats for CS Communication. 
+;;; Runtime Flags (RTFlags). This key can be used to define a comma separated 
+;;; list of runtime flags which switch on some special messages 
+;;; (for debugging or profiling) or some features like creating binary 
+;;; list formats for CS-communication. Please document new flags otherwise
+;;; this mechanism is not useful.
 ;
-; Server:BinaryTransfer   : This flag controls the generation of binary lists.
-; Server:ResultFile       : If set, a result.bnl file is created on the server side.
-; Server:SendTimeMsg      : Measure the time for writing the result list to the socket object. 
+; Server:BinaryTransfer  : This flag controls the generation of binary lists.
+; Server:ResultFile      : If set, a result.bnl file is created on the server side.
+; Server:SendTimeMsg     : Measure the time for writing the result list to the socket object. 
 ;
-; SI:QueryTime     : Measure cpu and real time used for processing a query.
-; SI:ListMemory    : Show Information about used list memory.
-; SI:RelStatistics : Various statistical information about tuples and relations.
-; SI:ResultList    : Print out nested list of the result before copying it into the applications list memory.
+; SI:NoQueryAnalysis  : Supress to measure cpu-time,real-time, and nested list 
+;                       memory used for processing a query.
+; SI:RelStatistics    : Various statistical information about tuples and relations.
+;                       Note: Currently, this doesn't work!
+; SI:ResultList       : Print out nested list of the result before copying it into 
+;                       the applications list memory.
+; SI:CopyListTime     : Measure the time for copying lists between NL-instances.
 ;
 ; FText:Trace      : Print out messages in methods of the FText algebra. 
 ;
-; Socket:SendStat  : Show how often the requested buffersize could not be transferred and the number of sleep calls; 
+; Socket:SendStat  : Show how often the requested buffersize could not be 
+;                    transferred and the number of sleep calls; 
 ;
-RTFlags=SI:QueryTime
+;RTFlags=SI:NoQueryAnalysis,SI:ResultList
 
 ; --- Berkeley DB Section ---
 ;
