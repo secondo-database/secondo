@@ -75,6 +75,9 @@ public:
     // Tuple. Moreover lexicographical comparison should be done by means of
     // TupleCompareBy and an appropriate sort order specification, 
     Counter::getRef("TupleAndRelPos::less")++;
+    if (!this->tuple || !ref.tuple) {
+      return true;
+    }
     if ( cmpPtr ) {
       return !(*(TupleCompareBy*)cmpPtr)( this->tuple, ref.tuple );
     } else {
@@ -173,7 +176,7 @@ class SortByLocalInfo
         PrioQueue<TupleAndRelPos>* nextRun = &queue[1];
        
         Word wTuple = SetWord(Address(0));
-        size_t i = 0, a = 0, n = 0, r = 0; // counter variables
+        size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
         bool newRelation = true;
 
         qp->Open(stream.addr);
@@ -201,6 +204,7 @@ class SortByLocalInfo
         TupleAndRelPos minTuple(0, tupleCmpBy);
         while(qp->Received(stream.addr)) // consume the stream completely
         {
+          c++; // tuple counter;
           Tuple *t = ((Tuple*)wTuple.addr)->CloneIfNecessary();
           if( t != wTuple.addr ) {
             ((Tuple*)wTuple.addr)->DeleteIfAllowed();
@@ -213,7 +217,7 @@ class SortByLocalInfo
           if ( i < MAX_TUPLES_IN_MEMORY ){ 
            
             currentRun->push(nextTuple);
-            i++; // increment Tuples in memory counter   
+            i++; // increment Tuples in memory counter 
             
           } else { // memory is completely used 
           
@@ -244,13 +248,14 @@ class SortByLocalInfo
                   lastTuple = nextTuple;
                   a++;
                 } else { 
-                  // Append the minimum to the next relation and push
+                  // Append the minimum to the current relation and push
                   // the next tuple into the heap. 
                   AppendToRel(*rel, minTuple);
                   lastTuple = minTuple;
                   minTuple = currentRun->top();
                   currentRun->pop();
                   currentRun->push(nextTuple);
+                  m++;
                 } 
                      
               } else { // nextTuple is smaller, save it for the next relation
@@ -272,10 +277,11 @@ class SortByLocalInfo
                   PrioQueue<TupleAndRelPos> *helpRun = currentRun;
                   currentRun = nextRun;
                   nextRun = helpRun;
-                  ShowPartitionInfo(i,a,n,r);
+                  ShowPartitionInfo(c,a,n,m,r);
                   i=n;
                   a=0;
                   n=0;
+                  m=0;
                 } // end new run               
                 
               } // end next tuple is smaller
@@ -291,11 +297,11 @@ class SortByLocalInfo
               }
 
             } // check if nextTuple can be saved in current relation
-          } // memory is completely used
+          }// memory is completely used
           
           qp->Request(stream.addr, wTuple);
         }
-        ShowPartitionInfo(i,a,n,r);
+        ShowPartitionInfo(c,a,n,m,r);
 
         // delete lastTuple and minTuple if allowed
         if (lastTuple.pos) {
@@ -405,16 +411,17 @@ class SortByLocalInfo
         tp->DeleteIfAllowed();
     }
 
-    void ShowPartitionInfo(int i, int a, int n, int r) {
+    void ShowPartitionInfo(int c, int a, int n, int m, int r) {
 
-      if ( RTFlag::isActive("Stat:SortBy") ) {
+      if ( RTFlag::isActive("Sort:Stat") ) {
 
-        cmsg.info() << "Partition finished: i=" << i 
-                    << ", appended=" << a 
-                    << ", next=" << n
-                    << ", partitions=" << r
-                    << ", queue1: " << queue[1].size() 
-                    << ", queue2: " << queue[2].size() << endl;
+        cmsg.info() << "Partition finished: processed tuples=" << c 
+                    << ", append directly=" << a 
+                    << ", append minimum=" << m 
+                    << ", append next=" << n << "," << endl << "  "
+                    << "materialized partitions=" << r
+                    << ", queue1: " << queue[0].size() 
+                    << ", queue2: " << queue[1].size() << endl;
         cmsg.send();  
       }
     }
