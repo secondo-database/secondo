@@ -1477,7 +1477,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
     
   switch( typeId ){
 	  
-      case BIN_BOOLEAN        : { result =  BoolAtom( in.get() ? false : true );
+      case BIN_BOOLEAN        : { result =  BoolAtom( in.get() ? true : false );
                                   pos++;
 				  return true; 
 				}
