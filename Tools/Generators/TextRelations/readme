@@ -20,7 +20,25 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
-2 README for createTextRelation
+2 createTextRelation
+
+This script creates a SECONDO object. It's a relation with the following schema
+   (rel (tuple ( (filename text) (pdf text) (theText text))))
+The pdf attribute is embedded in a  <file> tag so that the parser of secondo
+loads the content of this file as base64 coded text atom. The text contained in
+this pdf is put into the text attribute using the pdftotext tool. 
+pdftotext is part of the xpdf project. You can download it from 
+    http://www.foolabs.com/xpdf/download.html
+
+The script needs the name of the object as the only argument. Then, it waits 
+for inputs which have to be filenames of pdf documents. After entering a blank
+line, the script will stop its output. You can use the script in a pipe, e.g.
+  find -name "*.pdf" | createPdfRelation MyPdfFiles > MyPdfFilesobj
+
+
+
+
+3 createTextRelation
 
 2.1 Standard Use
 

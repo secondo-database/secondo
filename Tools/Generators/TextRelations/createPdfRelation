@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# This file is part of SECONDO.
+#
+# Copyright (C) 2005, University in Hagen, Department of Computer Science,
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#
+# written, 2005 - Th. Behr
+
+
+
+USAGE="createPdfRelation ObjectName \n"
+
+HEADER="(OBJECT $1 ()  (rel (tuple ( (filename text)(pdf text)(theText text) ))) ("
+END=")())"
+
+
+
+if [ "$#" != "1" ]; then
+    echo "$USAGE" >&2
+    exit
+fi
+
+echo "$HEADER"
+read F
+while [ "$F" ]; do
+   echo -en "( <text>$F</text---> "
+   echo -en "  <file>$F</file--->"
+   echo -en "  <text>"
+   pdftotext -raw "$F" - | sed 's#</text--->#</text-_->#g' 
+   echo -e  "</text--->)"
+   read F
+done     
+
+echo "$END"
