@@ -399,6 +399,16 @@ public class Category
     return  cat;
   }
 
+ /** a Category is identified by name */
+ public boolean equals(Object o){
+    if(! (o instanceof Category))
+       return false;
+    else
+       return name.equals(((Category)o).name);
+ } 
+
+   
+
 
   /**
    * 

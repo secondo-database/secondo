@@ -162,32 +162,38 @@ public class TextWindow extends JPanel {
    * Reads the saved QueryResult from a ListExpr.Used in session-loading.
    * @param le
    * @return True if no error has ocured
-   * @see <a href="TextWindowsrc.html#readAllQueryResults">Source</a> 
    */
   public boolean readAllQueryResults (ListExpr le) {
+
+    if(le.listLength()!=2)
+      return false;
+
     Vector Layers = new Vector(10, 10);
     if (le.first().atomType() != ListExpr.SYMBOL_ATOM)
       return  false;
     if (!le.first().symbolValue().equals("QueryResults"))
       return  false;
     le = le.second();
+    ListExpr Current;
     while (!le.isEmpty()) {
       //Query lesen
-      QueryResult qr = new QueryResult(le.first().first().stringValue(), le.first().second());
-      // parent.CommandDisplay.appendText("Reading Query " + qr.toString() + "...");
+      Current = le.first();
+      QueryResult qr = new QueryResult(Current.first().stringValue(), Current.second());
       if (parent.addQueryResult(qr)) {
-        ListExpr CatList = le.first().third();
-        ListExpr LayerList = le.first().fourth();
+        ListExpr CatList = Current.third();
+        ListExpr LayerList = Current.fourth();
         ListIterator li = qr.getGraphObjects().listIterator();
-        //    System.out.println(qr.getGraphObjects().size()); 
+
         while (li.hasNext()) {
           DsplGraph dg = (DsplGraph)li.next();
           setGOtoLayerPos(Layers, dg, CatList.first().intValue(), LayerList.first().intValue(), 
               LayerList.second().intValue());
+
           CatList = CatList.rest();
           dg.setLabelText(CatList.first().stringValue());
           if (dg.getLabelText().equals(""))
             dg.setLabelText(null);
+
           CatList = CatList.rest();
           dg.getLabPosOffset().setLocation(CatList.first().realValue(), CatList.second().realValue());
           CatList = CatList.rest().rest();

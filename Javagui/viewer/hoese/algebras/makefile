@@ -16,7 +16,6 @@ all: $(CLASSFILES)
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 
-
 .PHONY: clean
 clean:
 	rm -f *.class
