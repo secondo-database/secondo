@@ -1500,7 +1500,7 @@ ListExpr SortByTypeMap( ListExpr args )
 {
   ListExpr attrtype;
   string  attrname, argstr;
-  cout << "InSortby1" << endl;
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator sortby expects a list of length two.");
   
@@ -1508,7 +1508,6 @@ ListExpr SortByTypeMap( ListExpr args )
   ListExpr sortSpecification  = nl->Second(args);
   
   nl->WriteToString(argstr, streamDescription);
-  cout << "InSortby2" << endl;
 
   CHECK_COND(nl->ListLength(streamDescription) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
@@ -1517,7 +1516,6 @@ ListExpr SortByTypeMap( ListExpr args )
     "Operator sortby expects as first argument a list with structure " 
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator sortby gets as first argument '" + argstr + "'.");
-  cout << "InSortby2" << endl;
     
   int numberOfSortAttrs = nl->ListLength(sortSpecification); 
 
@@ -1635,28 +1633,37 @@ template<bool isSort> ListExpr
 IdenticalTypeMap( ListExpr args )
 {
   ListExpr first;
-  const char* errorMessage = isSort ?
-    "Incorrect input for operator sort."
-    : "Incorrect input for operator rdup.";
-
-  if(nl->ListLength(args) == 1)
-  {
-    first = nl->First(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first))))
-    {
-      return first;
-    }
-    ErrorReporter::ReportError(errorMessage);
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError(errorMessage);
-  return nl->SymbolAtom("typeerror");
-}
-
+  string argstr;
+  
+  const char* errorMessage1 =
+  isSort ?
+    "Operator sort expects a list of length one."
+  : "Operator rdup expects a list of length one."; 
+     
+  CHECK_COND(nl->ListLength(args) == 1,
+    errorMessage1);
+      
+  first = nl->First(args);
+  
+  nl->WriteToString(argstr, first);
+  string errorMessage2 =
+  isSort ?
+    "Operator sort expects as argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator sort gets as argument '" + argstr + "'."
+  : "Operator rdup expects as argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator rdup gets as argument '" + argstr + "'.";
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (IsTupleDescription(nl->Second(nl->Second(first)))),
+	     errorMessage2);
+	     
+  return first;
+}    
 /*
 2.12.2 Specification of operator ~sort~
 
@@ -1791,18 +1798,76 @@ These operators compute set operations on two sorted stream.
 2.14.1 Generic Type Mapping for Set Operations
 
 */
-
-const char* setOpErrorMessages[] =
-  { "Incorrect input for operator mergesec.",
-    "Incorrect input for operator mergediff.",
-    "Incorrect input for operator mergeunion." };
-
 template<int errorMessageIdx> ListExpr
 SetOpTypeMap( ListExpr args )
 {
   ListExpr first, second;
+  string argstr, argstr2;
+    
+  string setOpErrorMessages1[] =
+  { "Operator mergesec expects a list of length one.",
+    "Operator mergediff expects a list of length one.",
+    "Operator mergeunion expects a list of length one." };
+  CHECK_COND(nl->ListLength(args) == 2,
+    setOpErrorMessages1[errorMessageIdx]);
+      
+  first = nl->First(args);
+  second = nl->Second(args);
+  
+  nl->WriteToString(argstr, first);
+  string setOpErrorMessages2[] =
+  { "Operator mergesec expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator mergesec gets as first argument '" + argstr + "'.",
+    "Operator mergediff expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator mergediff gets as first argument '" + argstr + "'.",
+    "Operator mergeunion expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator mergeunion gets as first argument '" + argstr + "'." };
+  CHECK_COND(nl->ListLength(first) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+             (nl->ListLength(nl->Second(first)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+	     (nl->ListLength(nl->Second(first)) == 2) &&	
+	     (IsTupleDescription(nl->Second(nl->Second(first)))),
+	     setOpErrorMessages2[errorMessageIdx]);
 
-  if(nl->ListLength(args) == 2)
+  nl->WriteToString(argstr, second);
+  string setOpErrorMessages3[] =
+  { "Operator mergesec expects as second argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator mergesec gets as second argument '" + argstr + "'.",
+    "Operator mergediff expects as second argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator mergediff gets as second argument '" + argstr + "'.",
+    "Operator mergeunion expects as second argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator mergeunion gets as second argument '" + argstr + "'." };
+  CHECK_COND(nl->ListLength(second) == 2  &&
+             (TypeOfRelAlgSymbol(nl->First(second)) == stream) &&
+             (nl->ListLength(nl->Second(second)) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
+	     (nl->ListLength(nl->Second(second)) == 2) &&	
+	     (IsTupleDescription(nl->Second(nl->Second(second)))),
+	     setOpErrorMessages3[errorMessageIdx]);
+	     
+  nl->WriteToString(argstr, first);
+  nl->WriteToString(argstr2, second);
+  string setOpErrorMessages4[] =
+  { "Operator mergesec: Tuple type and attribute names of first"
+    " and second argument must be equal.\n"
+    "First argument is '" + argstr + "' and second argument is '" + argstr2 + "'.",
+    "Operator mergediff: Tuple type and attribute names of first and second argument must be equal.\n"
+    "First argument is '" + argstr + "' and second argument is '" + argstr2 + "'.",
+    "Operator mergeunion: Tuple type and attribute names of first and second argument must be equal.\n"
+    "First argument is '" + argstr + "' and second argument is '" + argstr2 + "'." };
+  CHECK_COND((nl->Equal(first, second)),
+  	      setOpErrorMessages4[errorMessageIdx]);
+	      
+  return first;
+}
+ /* if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
     second = nl->Second(args);
@@ -1820,7 +1885,7 @@ SetOpTypeMap( ListExpr args )
   }
   ErrorReporter::ReportError(setOpErrorMessages[errorMessageIdx]);
   return nl->SymbolAtom("typeerror");
-}
+}*/
 
 /*
 2.14.2 Auxiliary Class for Set Operations
