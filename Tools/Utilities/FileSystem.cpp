@@ -3,11 +3,14 @@
 
 May 2002 Ulrich Telle
 
+Sept 2004 M. Spiekermann. Bugs in ~GetparentFolder~ and ~AppendSlash~ corrected.
+
 */
 
 using namespace std;
 
 #include "SecondoConfig.h"
+#include <iostream>
 
 #ifdef SECONDO_WIN32
 #  include <io.h>
@@ -64,7 +67,11 @@ string
 FileSystem::GetParentFolder( const string& folder, int level /* =1 */)
 {
   string parent = folder;
-  parent.erase( parent.find_last_of(PATH_SLASH[0]) ); 
+  string::size_type n = parent.find_last_of(PATH_SLASH[0]);
+
+  if ( n != string::npos ) { // erase path information
+    parent.erase(n);
+  } 
   
   if (level-1) {
     return GetParentFolder(parent,level-1);
@@ -474,13 +481,11 @@ FileSystem::SearchPath( const string& fileName, string& foundFile )
 void
 FileSystem::AppendSlash( string& pathName )
 {
-  if ( pathName.length() )
+  string::size_type n = pathName.find_last_of(PATH_SLASH[0]);
+
+  if ( n != pathName.length() ) // last character is not a path separator 
   {
-    size_t idx = pathName.length()-1;
-    if ( pathName[idx] != PATH_SLASH[0] )
-    {
-      pathName += PATH_SLASH;
-    }
+    pathName += PATH_SLASH;
   }
 }
 
