@@ -1077,7 +1077,7 @@ ListExpr RemoveTypeMap(ListExpr args)
 	  ErrorReporter::ReportError("Incorrect input for operator ~remove~.");
 	  return nl->SymbolAtom("typeerror");
 	}
-      }       
+      }
       //*****here: we need to generate new attr list according to removeSet*****
       ListExpr oldAttrList;
       int i;
@@ -1398,11 +1398,11 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
           if (qp->Received(args[0].addr))
           {
             local = r;
+            qp->Close(args[1].addr);
             qp->Open(args[1].addr);
             qp->Request(args[1].addr, u);
             if (!qp->Received(args[1].addr)) // second stream is empty
             {
-              qp->Close(args[0].addr);
               return CANCEL;
             }
             else
@@ -1871,28 +1871,23 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   result = SetWord(res);
 
   qp->Open(args[0].addr);
-
   qp->Request(args[0].addr,t);
 
   if (qp->Received(args[0].addr))
   {
     tupleptr = (CcTuple*)t.addr;
     index = (int)((StandardAttribute*)args[2].addr)->GetValue();
-    if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))
-    {
-      res->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
-      tupleptr->DeleteIfAllowed();
-      return 0;
-    }
-    else
-    {
-      tupleptr->DeleteIfAllowed();
-      cout << "extract: index out of range !";
-      return -1;
-    }
+    assert((1 <= index) && (index <= tupleptr->GetNoAttrs()));
+    res->CopyFrom((StandardAttribute*)tupleptr->Get(index - 1));
+    tupleptr->DeleteIfAllowed();
   }
   else
-    return -1;
+  {
+    res->SetDefined(false);
+  }
+
+  qp->Close(args[0].addr);
+  return 0;
 }
 /*
 
@@ -2577,6 +2572,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         tuples->push_back(t);
         qp->Request(args[0].addr,tuple);
       }
+      qp->Close(args[0].addr);
 
       if(lexicographically)
       {
@@ -2584,7 +2580,6 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-        //qp->Request(args[2].addr, intWord);
 	if(requestArgs)
         {
           qp->Request(args[2].addr, intWord);
@@ -2596,7 +2591,6 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         nSortAttrs = (int)((StandardAttribute*)intWord.addr)->GetValue();
         for(i = 1; i <= nSortAttrs; i++)
         {
-          //qp->Request(args[2 * i + 1].addr, intWord);
 	  if(requestArgs)
           {
             qp->Request(args[2 * i + 1].addr, intWord);
@@ -2608,7 +2602,6 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
           sortAttrIndex =
             (int)((StandardAttribute*)intWord.addr)->GetValue();
 
-          //qp->Request(args[2 * i + 2].addr, boolWord);
           if(requestArgs)
           {
             qp->Request(args[2 * i + 2].addr, boolWord);
@@ -2616,7 +2609,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
           else
           {
             boolWord = SetWord(args[2 * i + 2].addr);
-          }	  
+          }
           sortOrderIsAscending =
             (bool*)((StandardAttribute*)boolWord.addr)->GetValue();
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
@@ -3742,6 +3735,7 @@ private:
       buckets[HashTuple(tuple, attrIndex)].push_back(tuple);
       qp->Request(stream.addr, tupleWord);
     }
+    qp->Close(stream.addr);
   }
 
   void ClearBucket(vector<CcTuple*>& bucket)

@@ -156,6 +156,10 @@ e
 query tenTest feed filter[.no > 5] consume count;
 
 #testcase FilterTest2
+#yields (int 0)
+query tenTest feed head[0] filter[.no > 5] consume count;
+
+#testcase FilterTest3
 #yields error
 query StaedteTest feed filter[.SName > 5] consume count;
 
@@ -171,6 +175,10 @@ query realTest feed avg[no];
 #yields error
 query StaedteTest feed avg[SName];
 
+#testcase AverageTest4
+#yields (real undef)
+query realTest feed head[0] avg[no];
+
 #testcase HeadTest1
 #yields ((rel(tuple((no int))))((1)(2)(3)(4)(5)))
 query tenTest feed head[5] consume;
@@ -179,17 +187,29 @@ query tenTest feed head[5] consume;
 #yields ((rel(tuple((no int))))())
 query tenTest feed head[0] consume;
 
-#testcase ConcatTest
+#testcase ConcatTest1
 #yields ((rel(tuple((no int))))((1)(2)(3)(1)(2)(3)))
 query tenTest feed head[3] twentyTest feed head[3] concat consume;
 
-#testcase ExtendTest
+#testcase ConcatTest2
+#yields ((rel(tuple((no int))))((1)(2)(3)))
+query tenTest feed head[0] twentyTest feed head[3] concat consume;
+
+#testcase ExtendTest1
 #yields ((rel(tuple((no int)(mod2 int))))((1 1)(2 0)(3 1)))
 query tenTest feed extend[mod2 : .no mod 2] head[3] consume;
 
-#testcase ExtractTest
+#testcase ExtendTest2
+#yields ((rel(tuple((no int)(mod2 int))))())
+query tenTest feed head[0] extend[mod2 : .no mod 2] head[3] consume;
+
+#testcase ExtractTest1
 #yields (int 239000)
 query StaedteTest feed extract[Bev];
+
+#testcase ExtractTest2
+#yields (int undef)
+query StaedteTest feed head[0] extract[Bev];
 
 #testcase GroupByTest1
 #yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
@@ -199,7 +219,11 @@ query EmployeeTest feed sortby[DeptNr asc] groupby[DeptNr; anz : group feed coun
 #yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
 query EmployeeTest feed sortby[DeptNr asc] groupby[DeptNr; anz : group count] consume;
 
-#testcase HashJoinTest
+#testcase GroupByTest3
+#yields ((rel (tuple ((DeptNr int) (anz int))))())
+query EmployeeTest feed head[0] sortby[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
+
+#testcase HashJoinTest1
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
     (Leader_A string)(DeptNr_A int))))\
     (("Bush" 11 1 "Bush" 1)("Callahan" 1 2 "Myers" 2)("Jones" 14 2 "Myers" 2)))
@@ -208,6 +232,10 @@ query EmployeeTest feed DeptTest feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] s
 #testcase HashJoinTest2
 #yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
 query duplicatesTest feed tenTest feed rename[A] hashjoin[no, no_A, 23] sort rdup consume
+
+#testcase HashJoinTest3
+#yields (int 0)
+query EmployeeTest feed head[0] DeptTest feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] count;
 
 #testcase MergeJoinTest1
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
@@ -219,14 +247,21 @@ query EmployeeTest feed DeptTest feed rename[A] sortmergejoin[DeptNr, DeptNr_A] 
 #yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
 query duplicatesTest feed tenTest feed rename[A] mergejoin[no, no_A] sort rdup consume
 
+#testcase MergeJoinTest3
+#yields (int 0)
+query EmployeeTest feed head[0] DeptTest feed rename[A] sortmergejoin[DeptNr, DeptNr_A] count;
+
 #testcase MaxTest1
 #yields (string "Wuppertal")
 query StaedteTest feed max[SName];
 
 #testcase MaxTest2
+#yields (string undef)
+query StaedteTest feed head[0] max[SName];
+
+#testcase MaxTest3
 #yields (real 9.0)
 query realTest feed max[no];
-
 
 #testcase MinTest1
 #yields (string "Aachen")
@@ -236,7 +271,6 @@ query StaedteTest feed min[SName];
 #yields (real -23.625)
 query realTest feed min[no];
 
-
 #testcase SumTest1
 #yields (int 18612000)
 query StaedteTest feed sum[Bev];
@@ -244,6 +278,10 @@ query StaedteTest feed sum[Bev];
 #testcase SumTest2
 #yields (real -19.625)
 query realTest feed sum[no];
+
+#testcase SumTest3
+#yields (int undef)
+query StaedteTest feed head[0] sum[Bev];
 
 #testcase ProductTest1
 #yields error
@@ -253,17 +291,33 @@ query tenTest feed twentyTest feed product count
 #yields (int 200)
 query tenTest feed twentyTest feed rename[A] product count
 
-#testcase SortTest
+#testcase ProductTest3
+#yields (int 0)
+query tenTest feed twentyTest feed head[0] rename[A] product count
+
+#testcase SortTest1
 #yields (int 200)
 query tenTest feed twentyTest feed rename[A] product sort count
 
-#testcase RdupTest
+#testcase SortTest2
+#yields (int 0)
+query tenTest feed head[0] twentyTest feed rename[A] product sort count
+
+#testcase RdupTest1
 #yields (int 20)
 query twentyTest feed tenTest feed concat sort rdup count
 
-#testcase ProjectTest
+#testcase RdupTest2
+#yields (int 0)
+query twentyTest feed tenTest feed concat sort head[0] rdup count
+
+#testcase ProjectTest1
 #yields (int 20)
 query tenTest feed twentyTest feed rename[A] product project[no_A] sort rdup count
+
+#testcase ProjectTest2
+#yields (int 0)
+query tenTest feed head[0] twentyTest feed rename[A] product project[no_A] sort rdup count
 
 #testcase DiffTest1
 #yields (int 10)
@@ -273,6 +327,14 @@ query twentyTest feed oddTest feed mergediff count
 #yields (int 100)
 query twentyTest feed oddTest feed rename[A] product sort tenTest feed oddTest feed rename[A] product sort mergediff count
 
+#testcase DiffTest3
+#yields (int 20)
+query twentyTest feed oddTest feed head[0] mergediff count
+
+#testcase DiffTest4
+#yields (int 0)
+query twentyTest feed head[0] oddTest feed mergediff count
+
 #testcase SecTest1
 #yields (int 10)
 query twentyTest feed oddTest feed mergesec count
@@ -280,6 +342,10 @@ query twentyTest feed oddTest feed mergesec count
 #testcase SecTest2
 #yields (int 100)
 query twentyTest feed oddTest feed rename[A] product sort tenTest feed oddTest feed rename[A] product sort mergesec count
+
+#testcase SecTest3
+#yields (int 0)
+query twentyTest feed head[0] oddTest feed mergesec count
 
 #testcase UnionTest1
 #yields (int 20)
@@ -289,6 +355,9 @@ query twentyTest feed oddTest feed mergeunion count
 #yields (int 200)
 query twentyTest feed oddTest feed rename[A] product sort tenTest feed oddTest feed rename[A] product sort mergeunion count
 
+#testcase UnionTest3
+#yields (int 10)
+query twentyTest feed head[0] oddTest feed mergeunion count
 
 
 #teardown
