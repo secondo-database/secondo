@@ -9,6 +9,7 @@ include ../makefile.env
 CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
 TESTRULES := \
+	tprefetch\
 	tctable\
 	tfilesystem\
 	tprofiles\
@@ -18,7 +19,7 @@ TESTRULES := \
 	tsock3\
 	TupleTestBDB\
 	tdlmain\
-	tnlcopy
+	tnlcopy\
 	# tnl
 TESTFILES := $(addsuffix $(EXEEXT), $(TESTRULES)) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 
@@ -94,6 +95,14 @@ tsmi3$(EXEEXT): tsmi3.o libsmibdb.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
 tsmi3.o: tsmi3.cpp SecondoConfig.h SecondoSMI.h ../StorageManager/SmiBDB.h
+	$(CC) -c -o $@ $< $(CCFLAGS)
+
+# prefetch testing
+
+tprefetch$(EXEEXT): tprefetch.o libsmibdb.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+
+tprefetch.o: tprefetch.cpp SecondoConfig.h SecondoSMI.h ../StorageManager/SmiBDB.h
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
 # Test Dynamic Library module

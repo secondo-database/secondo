@@ -427,5 +427,82 @@ class SmiRecord::Implementation
   friend class SmiRecord;
 };
 
+/**************************************************************************
+1.3 Class "PrefetchingIteratorImpl"[1]
+
+This class handles all implementation specific aspects of a 
+~PrefetchingIterator~ hiding the implementation details 
+from the user of the ~PrefetchingIterator~ class.
+
+*/
+class PrefetchingIteratorImpl : public PrefetchingIterator
+{
+private:
+  enum SearchT {RANGE, LEFTRANGE, RIGHTRANGE, ALL};
+  enum StateT {INITIAL, PARTIAL_RETRIEVAL, BULK_RETRIEVAL, BROKEN}; 
+  
+  SearchT searchType;
+  StateT state;
+  bool isBTreeIterator;
+  int errorCode;
+/*
+This class explicitly maintains its state. The preceding declarations
+support this state maintenance.
+
+*/
+
+  Dbc* dbc;
+
+  char leftBoundary[SMI_MAX_KEYLEN];
+  char rightBoundary[SMI_MAX_KEYLEN];
+  size_t leftBoundaryLength;
+  size_t rightBoundaryLength;
+
+  char keyBuffer[SMI_MAX_KEYLEN];
+  char* bufferPtr;
+  Dbt keyDbt;
+  Dbt buffer;
+  db_recno_t recordNumber;
+  
+  void* retKey;
+  void* retData;
+  size_t retKeyLength;
+  size_t retDataLength;
+
+  void* p; /* needed and managed by Berkeley DB */
+    
+  bool NewPrefetch();
+  SmiSize BulkCopy(void* data, size_t dataLength, 
+    void* userBuffer, SmiSize nBytes, SmiSize offset);
+  bool RightBoundaryExceeded();
+  void Init(Dbc* dbc, const size_t bufferLength,
+    bool isBTreeIterator);
+
+protected:
+  virtual void GetKeyAddressAndLength(void** addr, SmiSize& length);
+  
+public:
+
+  PrefetchingIteratorImpl(Dbc* dbc, SmiKey::KeyDataType keyType, 
+    const size_t bufferLength = DEFAULT_BUFFER_LENGTH,
+    bool isBTreeIterator = true);
+
+  PrefetchingIteratorImpl(Dbc* dbc, SmiKey::KeyDataType keyType,
+    const char* leftBoundary, size_t leftBoundaryLength,
+    const char* rightBoundary, size_t rightBoundaryLength,
+    const size_t bufferLength = DEFAULT_BUFFER_LENGTH);
+
+  virtual ~PrefetchingIteratorImpl();
+
+  virtual bool Next();
+  SmiSize ReadCurrentData(void* userBuffer, SmiSize nBytes, SmiSize offset = 0);
+  SmiSize ReadCurrentKey(void* userBuffer, SmiSize nBytes, SmiSize offset = 0);
+  void ReadCurrentRecordNumber(SmiRecordId& recordNumber);
+  
+  int ErrorCode();
+
+  static const size_t DEFAULT_BUFFER_LENGTH = 64 * 1024;
+};
+
 #endif
 

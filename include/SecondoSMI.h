@@ -264,6 +264,10 @@ vice versa.
 
 */
 
+class PrefetchingIterator;
+/* Forward declaration */
+
+
 /**************************************************************************
 1.3 Class "SmiKey"[1]
 
@@ -388,6 +392,7 @@ Sets the internal key value to the passed key value, setting also the key type.
   friend class SmiKeyedFile;
   friend class SmiKeyedFileIterator;
   friend class SmiRecord;
+  friend class PrefetchingIterator;
 };
 
 /**************************************************************************
@@ -907,11 +912,20 @@ initialized by this method.
   bool SelectAll( SmiRecordFileIterator& iterator,
                   const SmiFile::AccessType accessType =
                         SmiFile::ReadOnly );
+  
 /*
 Initializes an iterator for sequentially accessing all records of the ~SmiFile~.
 The requested access type - read only or update - has to be specified.
 
 */
+  PrefetchingIterator* SelectAllPrefetched();
+/*
+The same as ~SelectAll~, but returns a ~PrefetchingIterator~.
+
+A ~PrefetchingIterator~ is read-only.
+
+*/
+  
   bool AppendRecord( SmiRecordId& recno,
                      SmiRecord& record );
 /*
@@ -1003,6 +1017,17 @@ but update access and reporting of duplicates may be specified.
 The function returns "true"[4] when the iterator was initialized successfully.
 
 */
+
+  PrefetchingIterator* 
+    SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey);
+/*
+The same as ~SelectRange~, but returns a ~PrefetchingIterator~.
+
+A ~PrefetchingIterator~ is read-only. Duplicates are always
+reported. 
+
+*/
+
   bool SelectLeftRange( const SmiKey& toKey, 
                         SmiKeyedFileIterator& iterator,
                         const SmiFile::AccessType accessType =
@@ -1019,6 +1044,16 @@ but update access and reporting of duplicates may be specified.
 The function returns "true"[4] when the iterator was initialized successfully.
 
 */
+
+  PrefetchingIterator* SelectLeftRangePrefetched(const SmiKey& toKey);
+/*
+The same as ~SelectLeftRange~, but returns a ~PrefetchingIterator~.
+
+A ~PrefetchingIterator~ is read-only. Duplicates are always
+reported. 
+
+*/
+
   bool SelectRightRange( const SmiKey& fromKey, 
                          SmiKeyedFileIterator& iterator,
                          const SmiFile::AccessType accessType =
@@ -1035,6 +1070,16 @@ but update access and reporting of duplicates may be specified.
 The function returns "true"[4] when the iterator was initialized successfully.
 
 */
+
+  PrefetchingIterator* SelectRightRangePrefetched(const SmiKey& fromKey);
+/*
+The same as ~SelectRightRange~, but returns a ~PrefetchingIterator~.
+
+A ~PrefetchingIterator~ is read-only. Duplicates are always
+reported. 
+
+*/
+  
   bool SelectAll( SmiKeyedFileIterator& iterator,
                   const SmiFile::AccessType accessType =
                         SmiFile::ReadOnly,
@@ -1050,6 +1095,16 @@ but update access and reporting of duplicates may be specified.
 The function returns "true"[4] when the iterator was initialized successfully.
 
 */
+
+  PrefetchingIterator* SelectAllPrefetched();
+/*
+The same as ~SelectAll~, but returns a ~PrefetchingIterator~.
+
+A ~PrefetchingIterator~ is read-only. Duplicates are always
+reported. 
+
+*/
+
   bool InsertRecord( const SmiKey& key, SmiRecord& record );
 /*
 Inserts a new record for the given key.
@@ -1228,6 +1283,80 @@ be created as "SmiKey key( keyMappingFunction );"[4].
   SmiKey lastKey;        // End of selected key range
 
   friend class SmiKeyedFile;
+};
+
+/**************************************************************************
+1.3 Class "PrefetchingIterator"[1]
+
+The class ~PrefetchingIterator~ permits efficient read-only iteration over
+an ~SmiKeyedFile~ or an ~SmiRecordFile~. The efficiency is achieved by
+prefetching tuples.
+
+Duplicates are supported and are always output.
+
+*/
+class PrefetchingIterator
+{  
+
+protected:
+
+  SmiKey::KeyDataType keyType;  
+
+  virtual void GetKeyAddressAndLength(void** addr, SmiSize& length) = 0;
+/*
+Returns the address and the length of the current key (represented as
+a binary string). This method makes it possible that an implementation
+of this interface need not be a friend of SmiKey, only this interface
+itself needs to be a friend of SmiKey. This method is called by the 
+method ~CurrentKey~.
+
+*/
+
+public:
+  virtual ~PrefetchingIterator();
+  
+  virtual void CurrentKey(SmiKey& smiKey);
+/*
+Returns the current key.
+
+*/
+
+  virtual bool Next() = 0;
+/*
+Advances the iterator by one tuple. If the iterator cannot be advanced,
+~false~ is returned.
+
+*/
+
+  virtual SmiSize ReadCurrentData(void* userBuffer, 
+    SmiSize nBytes, SmiSize offset = 0) = 0;
+/*
+This method is analogous to the ~Read~ method in ~SmiRecord~. 
+
+*/
+
+  virtual SmiSize ReadCurrentKey(void* userBuffer, 
+    SmiSize nBytes, SmiSize offset = 0) = 0;
+/*
+This method is analogous to the ~Read~ method in ~SmiRecord~, however
+it is not concerned with the data, but with the key of the current tuple.
+This can only be called if the underlying file is an 
+~SmiKeyedFile~.
+
+*/
+
+  virtual void ReadCurrentRecordNumber(SmiRecordId& recordNumber) = 0;
+/*
+Return the id of the current tuple. This can only be called if the 
+underlying file is an ~SmiRecordFile~.
+
+*/
+
+  virtual int ErrorCode() = 0;
+/*
+Return the error code of the last failed database operation.
+
+*/
 };
 
 #endif // SECONDO_SMI_H

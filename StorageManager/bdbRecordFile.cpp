@@ -127,6 +127,26 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
   return (rc == 0);
 }
 
+PrefetchingIterator* 
+SmiRecordFile::SelectAllPrefetched()
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  if(rc == 0)
+  {
+    SmiEnvironment::SetError(E_SMI_OK);
+    return new PrefetchingIteratorImpl(dbc, SmiKey::RecNo, 
+      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, false);
+  }
+  else
+  {
+    SmiEnvironment::SetError(E_SMI_RECORD_SELECTALL, rc);
+    return 0;
+  }
+}
+
 bool
 SmiRecordFile::AppendRecord( SmiRecordId& recno, SmiRecord& record )
 {

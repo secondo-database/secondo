@@ -161,6 +161,28 @@ SmiKeyedFile::SelectRange( const SmiKey& fromKey,
   return (rc == 0);
 }
 
+PrefetchingIterator* 
+SmiKeyedFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  if(rc == 0)
+  {
+    SmiEnvironment::SetError(E_SMI_OK);
+    return new PrefetchingIteratorImpl(dbc, keyDataType, 
+      (const char*)fromKey.GetAddr(), fromKey.keyLength, 
+      (const char*)toKey.GetAddr(), toKey.keyLength, 
+      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
+  }
+  else
+  {
+    SmiEnvironment::SetError(E_SMI_RECORD_SELECT, rc);
+    return 0;
+  }
+}
+
 bool
 SmiKeyedFile::SelectLeftRange( const SmiKey& toKey, 
                                SmiKeyedFileIterator& iterator,
@@ -199,6 +221,28 @@ SmiKeyedFile::SelectLeftRange( const SmiKey& toKey,
   }
   return (rc == 0);
 }
+
+PrefetchingIterator* 
+SmiKeyedFile::SelectLeftRangePrefetched(const SmiKey& toKey)
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  if(rc == 0)
+  {
+    SmiEnvironment::SetError(E_SMI_OK);
+    return new PrefetchingIteratorImpl(dbc, keyDataType, 
+      0, 0, (const char*)toKey.GetAddr(), toKey.keyLength, 
+      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
+  }
+  else
+  {
+    SmiEnvironment::SetError(E_SMI_RECORD_SELECT, rc);
+    return 0;
+  }
+}
+
 
 bool
 SmiKeyedFile::SelectRightRange( const SmiKey& fromKey, 
@@ -239,6 +283,27 @@ SmiKeyedFile::SelectRightRange( const SmiKey& fromKey,
   return (rc == 0);
 }
 
+PrefetchingIterator* 
+SmiKeyedFile::SelectRightRangePrefetched(const SmiKey& fromKey)
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  if(rc == 0)
+  {
+    SmiEnvironment::SetError(E_SMI_OK);
+    return new PrefetchingIteratorImpl(dbc, keyDataType, 
+      (const char*)fromKey.GetAddr(), fromKey.keyLength, 0, 0, 
+      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
+  }
+  else
+  {
+    SmiEnvironment::SetError(E_SMI_RECORD_SELECT, rc);
+    return 0;
+  }
+}
+
 bool
 SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
                          const SmiFile::AccessType accessType
@@ -275,6 +340,25 @@ SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
     SmiEnvironment::SetError( E_SMI_RECORD_SELECT, rc );
   }
   return (rc == 0);
+}
+
+PrefetchingIterator* SmiKeyedFile::SelectAllPrefetched()
+{
+  int rc;
+  DbTxn* tid = SmiEnvironment::instance.impl->usrTxn;
+  Dbc* dbc;
+  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  if(rc == 0)
+  {
+    SmiEnvironment::SetError(E_SMI_OK);
+    return new PrefetchingIteratorImpl(dbc, keyDataType, 
+      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, true);
+  }
+  else
+  {
+    SmiEnvironment::SetError(E_SMI_RECORD_SELECTALL, rc);
+    return 0;
+  }
 }
 
 bool

@@ -16,6 +16,7 @@ using namespace std;
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <sstream>
 
 #include <db_cxx.h>
 #include "SecondoSMI.h"
@@ -729,5 +730,471 @@ SmiFileIterator::Restart()
   return (ok);
 }
 
-/* --- bdbFile.cpp --- */
+PrefetchingIterator::~PrefetchingIterator()
+{
+}
 
+void PrefetchingIterator::CurrentKey(SmiKey& smiKey)
+{
+  void* addr;
+  SmiSize length;
+  
+  GetKeyAddressAndLength(&addr, length);
+  smiKey.SetKey(keyType, addr, length);
+}
+/*
+Get a new bulk of tuples. If that is not possible due to 
+too little memory, the state changes to partial retrieval. 
+
+*/
+bool PrefetchingIteratorImpl::NewPrefetch()
+{  
+  if(state == INITIAL && (searchType == RANGE || searchType == RIGHTRANGE))
+  {
+    memcpy(keyBuffer, leftBoundary, leftBoundaryLength);
+    keyDbt.set_size(leftBoundaryLength);
+    errorCode = dbc->get(&keyDbt, &buffer, DB_SET_RANGE | DB_MULTIPLE_KEY);
+  }
+  else
+  {
+    errorCode = dbc->get(&keyDbt, &buffer, DB_NEXT | DB_MULTIPLE_KEY);
+  }
+  
+  if(errorCode != 0)
+  {
+    if(errorCode == ENOMEM)
+    {
+      Dbt buf;
+      const size_t cBufLength = 10;
+      char cBuf[cBufLength];
+    
+      buf.set_data(cBuf);
+      buf.set_ulen(cBufLength);
+      buf.set_dlen(cBufLength);
+      buf.set_doff(0);
+      buf.set_flags(DB_DBT_PARTIAL | DB_DBT_USERMEM);
+      
+      if(state == INITIAL && (searchType == RANGE || searchType == RIGHTRANGE))
+      {
+        memcpy(keyBuffer, leftBoundary, leftBoundaryLength);
+        keyDbt.set_size(leftBoundaryLength);
+        errorCode = dbc->get(&keyDbt, &buf, DB_SET_RANGE);
+      }
+      else
+      {
+        errorCode = dbc->get(&keyDbt, &buf, DB_NEXT);
+      }
+      
+      if(errorCode == 0)
+      {
+        state = PARTIAL_RETRIEVAL;
+        if(!isBTreeIterator)
+	{
+          recordNumber = *((db_recno_t*)keyBuffer);
+	};
+	SmiEnvironment::SetError(E_SMI_OK);
+        return true;  
+      }
+    }
+    
+    if(errorCode == DB_NOTFOUND)
+    {
+      SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);    
+    }
+    else
+    {
+      SmiEnvironment::SetError(E_SMI_CURSOR_NEXT, errorCode);    
+    };
+    
+    state = BROKEN;
+    return false;
+  }
+   
+  state = BULK_RETRIEVAL; 
+  DB_MULTIPLE_INIT(p, &buffer);
+  return true;
+}
+
+bool PrefetchingIteratorImpl::RightBoundaryExceeded()
+{
+  size_t cmpLength;
+  int rc;
+  void* key;
+  size_t keyLength;
+  
+  long keyLong;
+  long boundaryLong;
+  
+  double keyDouble;
+  double boundaryDouble;
+
+  if(searchType == ALL || searchType == RIGHTRANGE)
+  {
+    return false;
+  }
+
+  assert(rightBoundary != 0);
+
+  switch(state)
+  {
+    case BULK_RETRIEVAL:
+      key = retKey;
+      keyLength = retKeyLength;
+      break;
+
+    case PARTIAL_RETRIEVAL:
+      key = keyDbt.get_data();
+      keyLength = keyDbt.get_size();
+      break;
+
+    case BROKEN:
+      return true;
+
+    default:
+      assert(false);
+  }  
+  
+  /* This is analogous to SmiKey::operator> */
+  switch(keyType)
+  {
+    case SmiKey::Integer:
+      assert(keyLength == sizeof(long));
+      assert(rightBoundaryLength == sizeof(long));
+      memcpy(&keyLong, key, keyLength);
+      memcpy(&boundaryLong, rightBoundary, keyLength);
+      if(keyLong > boundaryLong)
+      {
+        SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);
+        return true;
+      }
+      else
+      {
+        return false;
+      };
+      
+    case SmiKey::Float:
+      assert(keyLength == sizeof(double));
+      assert(rightBoundaryLength == sizeof(double));
+      memcpy(&keyDouble, key, keyLength);
+      memcpy(&boundaryDouble, rightBoundary, keyLength);
+      if(keyDouble > boundaryDouble)
+      {
+        SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);
+        return true;
+      }
+      else
+      {
+	return false;
+      };
+  
+    case SmiKey::String:
+    case SmiKey::Composite:
+    case SmiKey::Unknown:
+      cmpLength = 
+        keyLength > rightBoundaryLength ?
+          rightBoundaryLength:
+          keyLength;
+      rc = memcmp(key, rightBoundary, cmpLength);
+      if(rc > 0 || (rc == 0 && keyLength > rightBoundaryLength))
+      {
+        SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);
+        return true;
+      }
+      else
+      {
+	return false;
+      };
+      
+    default:
+      assert(false);
+      return false;
+  }
+}
+
+void PrefetchingIteratorImpl::Init
+  (Dbc* dbc, const size_t bufferLength, bool isBTreeIterator)
+{
+  bufferPtr = new char[bufferLength];
+  assert(bufferPtr != 0);
+
+  searchType = ALL;
+  
+  buffer.set_data(bufferPtr);
+  buffer.set_ulen(bufferLength);
+  buffer.set_flags(DB_DBT_USERMEM);
+  
+  keyDbt.set_data(keyBuffer);
+  keyDbt.set_ulen(SMI_MAX_KEYLEN);
+  keyDbt.set_flags(DB_DBT_USERMEM);
+  
+  this->dbc = dbc;
+  this->isBTreeIterator = isBTreeIterator;
+  state = INITIAL;
+}
+
+void 
+PrefetchingIteratorImpl::GetKeyAddressAndLength
+  (void** addr, SmiSize& length)
+{
+  if(isBTreeIterator)
+  {
+    switch(state)
+    {
+      case BULK_RETRIEVAL:
+        *addr = retKey;
+        length = retKeyLength;
+        break;
+
+      case PARTIAL_RETRIEVAL:
+        *addr = keyDbt.get_data();
+        length = keyDbt.get_size();
+        break;
+
+      case INITIAL:
+      case BROKEN:
+        assert(false);
+    }
+  }
+  else
+  {
+    *addr = &recordNumber;
+    length = sizeof(SmiRecordId);
+  }
+}
+
+PrefetchingIteratorImpl::PrefetchingIteratorImpl
+  (Dbc* dbc, SmiKey::KeyDataType keyType, 
+  const size_t bufferLength, bool isBTreeIterator)
+{
+  Init(dbc, bufferLength, isBTreeIterator);
+  
+  this->keyType = keyType;
+}
+
+PrefetchingIteratorImpl::PrefetchingIteratorImpl
+  (Dbc* dbc, SmiKey::KeyDataType keyType, const char* leftBoundary, 
+  size_t leftBoundaryLength, const char* rightBoundary, 
+  size_t rightBoundaryLength, const size_t bufferLength)
+{
+  assert(leftBoundaryLength >= 0);
+  assert(leftBoundaryLength <= SMI_MAX_KEYLEN);
+  assert(rightBoundaryLength >= 0);
+  assert(rightBoundaryLength <= SMI_MAX_KEYLEN);
+
+  Init(dbc, bufferLength, true);
+  
+  if(leftBoundary == 0)
+  {
+    if(rightBoundary == 0)
+    {
+      searchType = ALL;
+    }
+    else
+    {
+      searchType = LEFTRANGE;
+    }
+  }
+  else
+  {
+    if(rightBoundary == 0)
+    {
+      searchType = RIGHTRANGE;
+    }
+    else
+    {
+      searchType = RANGE;
+    }
+  }
+  
+  if(leftBoundary != 0)
+  {
+    memcpy(this->leftBoundary, leftBoundary, leftBoundaryLength);
+  }
+  
+  if(rightBoundary != 0)
+  {
+    memcpy(this->rightBoundary, rightBoundary, rightBoundaryLength);
+  }
+  
+  this->leftBoundaryLength = leftBoundaryLength;
+  this->rightBoundaryLength = rightBoundaryLength;
+  
+  this->keyType = keyType;
+}
+
+PrefetchingIteratorImpl::~PrefetchingIteratorImpl()
+{
+  char* bufferPtr;
+  
+  bufferPtr = (char*)buffer.get_data();
+  delete[] bufferPtr;
+
+  assert(dbc->close() != DB_LOCK_DEADLOCK);
+}
+
+bool PrefetchingIteratorImpl::Next()
+{
+  if(state == INITIAL || state == PARTIAL_RETRIEVAL)
+  {
+    if(!NewPrefetch())
+    {
+      return false;
+    }
+  }
+
+  if(state == PARTIAL_RETRIEVAL || state == BROKEN)
+  {
+    return state == PARTIAL_RETRIEVAL && !RightBoundaryExceeded();
+  }
+  
+  if(isBTreeIterator)
+  {  
+    DB_MULTIPLE_KEY_NEXT(p, &buffer, retKey, 
+      retKeyLength, retData, retDataLength);
+  }
+  else
+  {
+    DB_MULTIPLE_RECNO_NEXT(p, &buffer, recordNumber, retData, retDataLength);
+  }
+     
+  if(p == 0)
+  {
+    /* The pointer p is managed by Berkeley DB. ~p == 0~ implies that
+       no tuples could be bulk-retrieved. */
+    if(!NewPrefetch())
+    {
+      return false;
+    }
+    
+    if(state == PARTIAL_RETRIEVAL || state == BROKEN)
+    {
+      return state == PARTIAL_RETRIEVAL  && !RightBoundaryExceeded();
+    }
+
+    if(isBTreeIterator)
+    {   
+      DB_MULTIPLE_KEY_NEXT(p, &buffer, retKey, 
+        retKeyLength, retData, retDataLength);
+    }
+    else
+    {
+      DB_MULTIPLE_RECNO_NEXT(p, &buffer, recordNumber, retData, retDataLength);
+    }
+    
+    if(p != 0  && !RightBoundaryExceeded())
+    {
+      SmiEnvironment::SetError(E_SMI_OK);    
+      return true;
+    }
+    else
+    {
+      SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);    
+      return false;
+    }
+  }
+  else
+  {
+    if(RightBoundaryExceeded())
+    {
+      SmiEnvironment::SetError(E_SMI_CURSOR_ENDOFSCAN);    
+      return false;
+    }
+    else
+    {
+      SmiEnvironment::SetError(E_SMI_OK);    
+      return true;
+    }
+  }
+}
+
+SmiSize PrefetchingIteratorImpl::BulkCopy(void* data, size_t dataLength, 
+  void* userBuffer, SmiSize nBytes, SmiSize offset)
+{
+  char* src = (char*)data;
+  SmiSize nBytesCopied;
+
+  if(offset >= dataLength)
+  {
+    return 0;
+  }
+  else
+  {
+    nBytesCopied = 
+     offset + nBytes > dataLength ? 
+       dataLength - offset :
+       nBytes;
+
+    memcpy(userBuffer, src + offset, nBytesCopied);
+  }
+  return nBytesCopied;
+}
+
+SmiSize PrefetchingIteratorImpl::ReadCurrentData
+  (void* userBuffer, SmiSize nBytes, SmiSize offset)
+{
+  Dbt buf;
+
+  switch(state)
+  {
+    case BULK_RETRIEVAL:
+      return BulkCopy(retData, retDataLength, userBuffer, nBytes, offset);
+      
+    case PARTIAL_RETRIEVAL:
+      buf.set_data(userBuffer);
+      buf.set_flags(DB_DBT_USERMEM | DB_DBT_PARTIAL);
+      buf.set_dlen(nBytes);
+      buf.set_doff(offset);
+      buf.set_ulen(nBytes);
+      errorCode = dbc->get(&keyDbt, &buf, DB_CURRENT);
+      return buf.get_size();
+    
+    case INITIAL:
+      assert(false);
+      return 0;
+
+    case BROKEN: 
+      return 0;
+  }
+  assert(false);
+  return 0;
+}
+
+SmiSize PrefetchingIteratorImpl::ReadCurrentKey
+  (void* userBuffer, SmiSize nBytes, SmiSize offset)
+{
+  assert(isBTreeIterator);
+
+  switch(state)
+  {
+    case BULK_RETRIEVAL:
+      return BulkCopy(retKey, retKeyLength, userBuffer, nBytes, offset);
+      
+    case PARTIAL_RETRIEVAL:
+      assert(keyDbt.get_size() <= keyDbt.get_ulen());
+      return BulkCopy(keyDbt.get_data(), keyDbt.get_size(), 
+        userBuffer, nBytes, offset);
+	
+    case INITIAL:
+      assert(false);
+      return 0;
+      
+    case BROKEN: 
+      return 0;
+  }
+  assert(false);
+  return 0;
+}
+
+void 
+PrefetchingIteratorImpl::ReadCurrentRecordNumber(SmiRecordId& recordNumber)
+{
+  assert(!isBTreeIterator);
+  recordNumber = (SmiRecordId)this->recordNumber;
+}
+
+int PrefetchingIteratorImpl::ErrorCode()
+{
+  return errorCode;
+}
+
+/* --- bdbFile.cpp --- */
