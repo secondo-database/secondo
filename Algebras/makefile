@@ -23,7 +23,7 @@ specs: specs.tmp
 	cat $< | sort -b | ./specs.awk
 	cat $< | ./rm_comment_spec.awk > specs
 
-specs.tmp: $(SPECFILES) ../makefile.algebras ./Management/AlgebraList.i
+specs.tmp: $(SPECFILES) ../makefile.algebras
 	rm -f specs.tmp
 	for file in $(SPECFILES); do \
           if !((cat $$file && echo -e "\n") >> specs.tmp) then \
