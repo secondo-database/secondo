@@ -35,8 +35,8 @@ class since Windows defines an API function 'Rectangle'.
 #define Rectangle SecondoRectangle
 #endif
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 1.2 Dummy Functions

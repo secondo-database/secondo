@@ -15,8 +15,8 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 2.1 Dummy Functions

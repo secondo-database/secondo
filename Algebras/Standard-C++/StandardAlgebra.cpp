@@ -133,8 +133,8 @@ using namespace std;
 #include <unistd.h>
 #include <errno.h>
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 4.1 Type investigation auxiliaries

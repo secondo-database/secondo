@@ -61,8 +61,8 @@ using namespace std;
 #include <string>
 #include <stdio.h>
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 

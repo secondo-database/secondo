@@ -5,6 +5,8 @@ using namespace std;
 #include "NestedList.h"
 #include "SecondoSystem.h"
 
+NestedList *nl;
+QueryProcessor *qp;
 
 /* Member functions of class Operator: */
 
@@ -144,7 +146,6 @@ TypeConstructor::DefaultOpen( SmiRecord& valueRecord,
                               const ListExpr typeInfo,
                               Word& value )
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr valueList = 0;
   string valueString;
   int valueLength;
@@ -171,7 +172,6 @@ TypeConstructor::DefaultSave( SmiRecord& valueRecord,
                               const ListExpr typeInfo,
                               Word& value )
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr valueList;
   string valueString;
   int valueLength;
@@ -193,7 +193,6 @@ TypeConstructor::DefaultPersistModel( const PersistDirection dir,
                                       const ListExpr typeExpr,
                                       Word& model )
 {
-  NestedList* nl = SecondoSystem::GetNestedList();
   ListExpr modelList = 0;
   string modelString;
   int modelLength;

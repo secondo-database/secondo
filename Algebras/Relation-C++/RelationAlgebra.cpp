@@ -35,17 +35,10 @@ file.
 #include "Algebra.h"
 #include "StandardTypes.h"
 
-NestedList* nl;
-QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
-static bool firsttime = true;
-const int cachesize = 20;
-static int current = 0;
-static SmiRecordId key[cachesize];
-static Word cache[cachesize];
 /*
-These global variables are used for caching relations.
-
 3 Type constructor ~tuple~
 
 The list representation of a tuple is:
@@ -108,33 +101,7 @@ in nested list format.
 static ListExpr 
 OutTuple (ListExpr typeInfo, Word  value)
 {
-  int attrno, algebraId, typeId;
-  ListExpr l, lastElem, attrlist, first, valuelist;
-  Tuple* tupleptr;
-
-  tupleptr = (Tuple*)value.addr;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  attrlist = nl->Second(nl->First(typeInfo));
-  attrno = 0;
-  l = nl->TheEmptyList();
-  while (!nl->IsEmpty(attrlist))
-  {
-    first = nl->First(attrlist);
-    attrlist = nl->Rest(attrlist);
-    algebraId = nl->IntValue(nl->First(nl->Second(first)));
-    typeId = nl->IntValue(nl->Second(nl->Second(first)));
-    valuelist = (algM->OutObj(algebraId, typeId))(nl->Rest(first),
-                  SetWord(tupleptr->GetAttribute(attrno)));
-    attrno++;
-    if (l == nl->TheEmptyList())
-    {
-      l = nl->Cons(valuelist, nl->TheEmptyList());
-      lastElem = l;
-    }
-    else
-      lastElem = nl->Append(lastElem, valuelist);
-  }
-  return l;
+  return ((Tuple *)value.addr)->Out( typeInfo );
 }
 
 /*
@@ -166,110 +133,7 @@ static Word
 InTuple(ListExpr typeInfo, ListExpr value,
         int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  int  attrno, algebraId, typeId, noOfAttrs;
-  Word attr;
-  Tuple* tupleaddr;
-  bool valueCorrect;
-  ListExpr first, firstvalue, valuelist, attrlist;
-
-  attrno = 0;
-  noOfAttrs = 0;
-  tupleaddr = new Tuple( nl->First( typeInfo ) );
-
-  attrlist =  nl->Second(nl->First(typeInfo));
-  valuelist = value;
-  correct = true;
-  if (nl->IsAtom(valuelist))
-  {
-    correct = false;
-
-    cout << "Error in reading tuple: an atom instead of a list of values." << endl;
-    cout << "Tuple no." << errorPos << endl;
-    cout << "The tuple is: " << endl;
-    nl->WriteListExpr(value);
-
-    errorInfo = nl->Append(errorInfo,
-      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(1),
-      nl->IntAtom(errorPos)));
-    delete tupleaddr;
-    return SetWord(Address(0));
-  }
-  else
-  {
-    AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-    while (!nl->IsEmpty(attrlist))
-    {
-      first = nl->First(attrlist);
-      attrlist = nl->Rest(attrlist);
-      attrno++;
-      algebraId = nl->IntValue(nl->First(nl->Second(first)));
-      typeId = nl->IntValue(nl->Second(nl->Second(first)));
-      if (nl->IsEmpty(valuelist))
-      {
-        correct = false;
-
-        cout << "Error in reading tuple: list of values is empty." << endl;
-        cout << "Tuple no." << errorPos << endl;
-        cout << "The tuple is: " << endl;
-        nl->WriteListExpr(value);
-
-        errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
-            nl->IntAtom(errorPos)));
-        delete tupleaddr;
-        return SetWord(Address(0));
-
-      }
-      else
-      {
-        firstvalue = nl->First(valuelist);
-        valuelist = nl->Rest(valuelist);
-        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
-                 firstvalue, attrno, errorInfo, valueCorrect);
-        if (valueCorrect)
-        {
-          correct = true;
-          tupleaddr->PutAttribute(attrno - 1, (Attribute*)attr.addr);
-          noOfAttrs++;
-        }
-        else
-        {
-          correct = false;
-
-          cout << "Error in reading tuple: wrong attribute value representation." << endl;
-          cout << "Tuple no." << errorPos << endl;
-          cout << "The tuple is: " << endl;
-          nl->WriteListExpr(value);
-          cout << endl << "The attribute is: " << endl;
-          nl->WriteListExpr(firstvalue);
-          cout << endl;
-
-          errorInfo = nl->Append(errorInfo,
-           nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
-          nl->IntAtom(errorPos), nl->IntAtom(attrno)));
-          delete tupleaddr;
-          return SetWord(Address(0));
-        }
-      }
-    }
-    if (!nl->IsEmpty(valuelist))
-    {
-      correct = false;
-
-      cout << "Error in reading tuple: too many attribute values." << endl;
-      cout << "Tuple no." << errorPos << endl;
-      cout << "The tuple is: " << endl;
-      nl->WriteListExpr(value);
-
-      errorInfo = nl->Append(errorInfo,
-      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(4),
-      nl->IntAtom(errorPos)));
-      delete tupleaddr;
-      return SetWord(Address(0));
-    }
-  }
-  assert( tupleaddr->GetNoAttributes() == noOfAttrs );
-  return (SetWord(tupleaddr));
+  return SetWord( Tuple::In( typeInfo, value, errorPos, errorInfo, correct ) );
 }
 
 /*
@@ -561,30 +425,8 @@ ListExpr RelProp ()
 static ListExpr 
 OutRel(ListExpr typeInfo, Word  value)
 {
-  Tuple* t;
-  ListExpr l, lastElem, tlist, TupleTypeInfo;
-
-  Relation* r = (Relation*)(value.addr);
-
-  RelationIterator* rit = r->MakeScan();
-  l = nl->TheEmptyList();
-
-  //cerr << "OutRel " << endl;
-  while ( (t = rit->GetNextTuple()) != 0 )
-  {
-    TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-          nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
-    tlist = OutTuple(TupleTypeInfo, SetWord(t));
-    if (l == nl->TheEmptyList())
-    {
-      l = nl->Cons(tlist, nl->TheEmptyList());
-      lastElem = l;
-    }
-    else
-      lastElem = nl->Append(lastElem, tlist);
-  }
-  return l;
-  delete rit;
+  cout << "Out-function for Relation" << endl;
+  return ((Relation *)value.addr)->Out( typeInfo );
 }
 /*
 4.3 ~Create~-function of type constructor ~rel~
@@ -596,7 +438,8 @@ of ~rel~.
 static Word 
 CreateRel(const ListExpr typeInfo)
 {
-  Relation* rel = new Relation();
+  cout << "Create-function for Relation" << endl;
+  Relation* rel = new Relation( typeInfo );
   return (SetWord(rel));
 }
 
@@ -613,7 +456,7 @@ added to ~errorInfo~. (This is done by procedure ~InTuple~ called by ~InRel~).
 If any tuple representation is wrong, then ~InRel~ will return ~correct~ as
 FALSE and will itself add an error message of the form
 
-----    (InRelation <errorPos>)
+----    (InRel <errorPos>)
 ----
 
 to ~errorInfo~. The value in ~errorPos~ has to be passed from the environment;
@@ -625,57 +468,8 @@ static Word
 InRel(ListExpr typeInfo, ListExpr value,
       int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  ListExpr tuplelist, TupleTypeInfo, first;
-  Relation* rel;
-  Tuple* tupleaddr;
-  int tupleno, count;
-  bool tupleCorrect;
-
-  correct = true;
-  count = 0;
-  rel = new Relation();
-
-  tuplelist = value;
-  TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-    nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
-  tupleno = 0;
-  if (nl->IsAtom(value))
-  {
-    correct = false;
-    errorInfo = nl->Append(errorInfo,
-    nl->ThreeElemList(nl->IntAtom(70), nl->SymbolAtom("rel"), tuplelist));
-    return SetWord(rel);
-  }
-  else
-  { // increase tupleno
-    while (!nl->IsEmpty(tuplelist))
-    {
-      first = nl->First(tuplelist);
-      tuplelist = nl->Rest(tuplelist);
-      tupleno++;
-      tupleaddr = (Tuple*)(InTuple(TupleTypeInfo, first, tupleno,
-        errorInfo, tupleCorrect).addr);
-
-      if (tupleCorrect)
-      {
-        assert( tupleaddr->IsFree() == false );
-
-        rel->AppendTuple(tupleaddr);
-        count++;
-      }
-      else
-      {
-        correct = false;
-      }
-    }
-    if (!correct)
-    {
-      errorInfo = nl->Append(errorInfo,
-      nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
-    }
-    assert( rel->GetNoTuples() == count );
-    return (SetWord((void*)rel));
-  }
+  cout << "In-function for Relation" << endl;
+  return SetWord( Relation::In( typeInfo, value, errorPos, errorInfo, correct ) );
 }
 
 /*
@@ -684,18 +478,8 @@ InRel(ListExpr typeInfo, ListExpr value,
 */
 void DeleteRel(Word& w)
 {
-  if( !firsttime )
-  {
-    for( int i = 0; i < cachesize; i++ )
-    {
-      if( key[i] != 0 && cache[i].addr == w.addr )
-      {
-        key[i] = 0;
-        break;
-      }
-    }
-  }
-  delete (Relation *)w.addr;
+  cout << "Delete-function for Relation" << endl;
+  return ((Relation *)w.addr)->Delete();
 }
 
 /*
@@ -754,11 +538,8 @@ In this case we will implement one function that does nothing, called
 */
 void CloseRel(Word& w) 
 {
-}
-
-void CacheCloseRel(Word& w)
-{
-  delete (Relation *)w.addr;
+  cout << "Close-function for Relation" << endl;
+  return ((Relation *)w.addr)->Close();
 }
 
 /*
@@ -779,60 +560,8 @@ OpenRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
 {
-  ListExpr valueList;
-  string valueString;
-  int valueLength;
-
-  SmiKey mykey;
-  SmiRecordId recId;
-  mykey = valueRecord.GetKey();
-  if ( !mykey.GetKey(recId) )
-  {
-    cout << "\tRelOpen: Couldn't get the key!" << endl;
-  }
-
-  // initialize
-  if ( firsttime ) {
-    for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
-    firsttime = false;
-  }
-
-  // check whether value was cached
-  bool found = false;
-  int pos;
-  for ( int j = 0; j < cachesize; j++ )
-    if ( key[j]  == recId ) {
-      found = true;
-      pos = j;
-      break;
-    }
-
-  if ( found ) {value = cache[pos]; return true;}
-
-  // prepare to cache the value constructed from the list
-  if ( key[current] != 0 ) {
-    CacheCloseRel(cache[current]);
-  }
-  key[current] = recId;
-
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  bool correct;
-  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
-  char* buffer = new char[valueLength];
-  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
-  valueString.assign( buffer, valueLength );
-  delete []buffer;
-  nl->ReadFromString( valueString, valueList );
-  value = InRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct);
-
-  cache[current++] = value;
-  if ( current == cachesize ) current = 0;
-
-  if ( errorInfo != 0 )     {
-    nl->Destroy( errorInfo );
-  }
-  nl->Destroy( valueList );
-  return (true);
+  cout << "Open-function for Relation" << endl;
+  return Relation::Open( valueRecord, typeInfo, (Relation *)value.addr );
 }
 
 /*
@@ -844,21 +573,8 @@ SaveRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
 {
-  ListExpr valueList;
-  string valueString;
-  int valueLength;
-
-  valueList = OutRel( nl->First(typeInfo), value );
-  valueList = nl->OneElemList( valueList );
-  nl->WriteToString( valueString, valueList );
-  valueLength = valueString.length();
-  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
-
-  value = SetWord(Address(0));
-
-  nl->Destroy( valueList );
-  return (true);
+  cout << "Save-function for Relation" << endl;
+  return ((Relation *)value.addr)->Save( valueRecord, typeInfo );
 }
 
 /*
@@ -921,7 +637,7 @@ TypeConstructor cpprel( "rel",           RelProp,
                         OutRel,          InRel,   	
                         CreateRel, 	 DeleteRel,     
 			OpenRel, 	 SaveRel,	
-                        DummyClose,      CloneRel, 
+                        CloseRel,        CloneRel, 
                         CastRel,         SizeOfRel,
                         CheckRel,        0,
 			RelInModel,      RelOutModel,
@@ -1113,9 +829,10 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case REQUEST :
       rit = (RelationIterator*)local.addr;
-      if (!(rit->EndOfScan()))
+      Tuple *t;
+      if ((t = rit->GetNextTuple()) != 0)
       {
-        result = SetWord(rit->GetNextTuple());
+        result = SetWord(t);
         return YIELD;
       }
       else

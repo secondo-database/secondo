@@ -23,7 +23,7 @@ They provide efficient access to persistent data types in a very easy manner.
 Classes implementing attribute data types have to be subtypes of class
 attribute. Whatever the shape of such derived attribute classes might be,
 their instances can be aggregated and made persistent via instances of class
-Tuple, while the user is (almost) not aware of the additional management
+TMTuple, while the user is (almost) not aware of the additional management
 actions arising from persistency. An example of how to use attributes and
 tuples can be found in ../UserInterfaces/SecondoTestFrame.cpp.
 
@@ -54,6 +54,7 @@ Figure \ref{FigStates} illustrates the relationship of states and operations.
 
 */
 
+#include "RelationAlgebra.h"
 #include "TupleElement.h"
 #include "SecondoSMI.h"
 #include "Algebra.h"
@@ -71,42 +72,11 @@ indicated by a parameter of type OpenMode.
 enum OpenMode {ReadAccess, WriteAccess};
 
 /*
-4.2 AttrType
-
-When opening a tuple, a description of each attribute type
-has to be passed. It is stored in a variable of type *AttributeType*.
+5 Class TMTuple
 
 */
 
-struct AttributeType {
-  int algId;  // Unique algebra id
-  int typeId; // Unique type id
-  int size;   // Size of attribute instance in bytes
-};
-
-/*
-4.3 TupleAttributes
-
-When opening a tuple, a description of the tuple type has to be passed. It is
-stored in a variable of type *TupleAttributes*.
-
-*/
-
-struct TupleAttributes {
-  int totalNumber;      // Number of attributes
-  AttributeType* type;  // Array of attribute type descriptors
-  int totalSize;        // sum of all attrib sizes
-  // Constructor. Sets all member variables, including size
-  TupleAttributes(int noattrs, AttributeType *attrtypes);
-};
-
-
-/*
-5 Class Tuple
-
-*/
-
-class Tuple {
+class TMTuple {
 
 /*
   5.1 Private members:
@@ -122,7 +92,7 @@ private:
      specifically its deleting. */
   struct AttributeInfo {
     /* This pointers refer to the AttributeInfo's of other
-       tuples if exist. See AttrPut method of Tuple. */
+       tuples if exist. See AttrPut method of TMTuple. */
     AttributeInfo *prev;
     AttributeInfo *next;
     
@@ -193,7 +163,7 @@ private:
   char *extensionTuple;
   
   /* initialisation of member variables */
-  void Init(const TupleAttributes *attributes);
+  void Init(const TupleType& attributes);
   
   /* Determine the size of FLOB data stored in lobFile. */
   int CalcSizeOfFLOBData();
@@ -217,7 +187,7 @@ The result of this constructor is a fresh tuple.
 
 */
     
-    Tuple(const TupleAttributes *type);
+    TMTuple(const TupleType& type);
 
 /*
   The second constructor creates a tuple from a given ~record~. 
@@ -226,11 +196,14 @@ The result of this constructor is a fresh tuple.
 
 */
 
-  Tuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecordFile *lobfile, 
-	const TupleAttributes *attributes, SmiFile::AccessType mode);
+  TMTuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecordFile *lobfile, 
+	const TupleType& attributes, SmiFile::AccessType mode);
  
-  Tuple(SmiRecordFile* recfile, PrefetchingIterator* iter, SmiRecordFile *lobfile,
-	     const TupleAttributes *attributes);
+  TMTuple(SmiRecordFile *recfile, SmiRecordId rid, SmiRecord& record, 
+          SmiRecordFile *lobfile, const TupleType& attributes);
+
+  TMTuple(SmiRecordFile* recfile, PrefetchingIterator* iter, SmiRecordFile *lobfile,
+	     const TupleType& attributes);
  
 /*
 5.2 Destructor
@@ -240,7 +213,7 @@ It does *not* destroy the underlying persistent record, if any such record
 exists.
 
 */
-    ~Tuple();
+    ~TMTuple();
 
 /*
 5.3 SaveTo
@@ -320,7 +293,7 @@ refers to that value.
 
 */
 
-  bool AttrPut(int attrno_to, Tuple *tup, int attrno_from);
+  bool AttrPut(int attrno_to, TMTuple *tup, int attrno_from);
 
 /*
 5.10 Get
@@ -372,7 +345,7 @@ if each contained attribute class provides its own *Print()* method.
 
 };
 
-ostream& operator<< (ostream &os, Tuple &tup);
+ostream& operator<< (ostream &os, TMTuple &tup);
 
 #endif
 

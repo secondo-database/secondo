@@ -48,7 +48,7 @@ As an example, a relation cities should be described as
 This file will contain an interface of the memory representation structures (~classes~) for these 
 two type constructors, namely ~Tuple~ and ~Relation~, and some additional ones that will be needed
 for the Relational Algebra, namely ~TupleId~, ~RelationIterator~, ~TupleType~, ~Attribute~ 
-(which is defined inside the file Attribute.h), and ~AttributeType~.
+(which is defined inside the file Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 It is intended to have two implementation of these classes, one with a persistent representation and
 another with a main memory representation. We will call these two Persistent Relation Algebra and
@@ -157,10 +157,9 @@ The destructor.
 Returns the number of attributes of the tuple type.
 
 */
-    TupleType *Concat( const TupleType& t );
+    const int GetTotalSize() const;
 /*
-Returns a new created tuple type which is a concatenation of this tuple type 
-and ~t~.
+Returns the total size of the tuple.
 
 */
     const AttributeType& GetAttributeType( const int index ) const;
@@ -227,6 +226,18 @@ A similar constructor as the above, unless that it takes a list expression ~type
 and first convert it to a ~TupleType~.
 
 */
+    static Tuple *In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
+/*
+Creates a tuple from the ~typeInfo~ and ~value~ information.
+Corresponds to the ~In~-function of type constructor ~tuple~.
+
+*/
+    ListExpr Out( ListExpr typeInfo );
+/*
+Writes a tuple into a ~ListExpr~ format.
+Corresponds to the ~Out~-function of type constructor ~tuple~.
+
+*/
     ~Tuple();
 /*
 The destructor.
@@ -286,6 +297,12 @@ Deletes the tuple if it is allowed.
 *Need some more explanations about whether it is allowed or not.*
 
 */
+    PrivateTuple *GetPrivateTuple()
+      { return privateTuple; }
+/*
+Function to give outside access to the private part of the tuple class.
+
+*/
   private:
 
     PrivateTuple *privateTuple;
@@ -301,6 +318,13 @@ The private attributes of the class ~Tuple~.
 4.1 Class ~Relation~
 
 This class implements the memory representation of the type constructor ~rel~.
+
+*/
+
+struct RelationDescriptor;
+/*
+Forward declaration of the struct ~RelationDescriptor. This struct will contain
+the necessary information for opening a relation.
 
 */
 
@@ -322,9 +346,50 @@ Forward declaration of the class ~RelationIterator~ which is needed in the class
 class Relation
 {
   public:
-    Relation();
+    Relation( const ListExpr typeInfo );
 /*
-The constructor. It creates an empty relation.
+The first constructor. It creates an empty relation.
+
+*/
+    Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc );
+/*
+The second constructor. It opens a previously created relation.
+
+*/
+    static Relation *In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
+/*
+Creates a relation from the ~typeInfo~ and ~value~ information.
+Corresponds to the ~In~-function of type constructor ~rel~.
+
+*/
+    ListExpr Out( ListExpr typeInfo );
+/*
+Writes a relation into a ~ListExpr~ format.
+Corresponds to the ~Out~-function of type constructor ~rel~.
+
+*/
+    static bool Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value );
+/*
+Opens a relation.
+Corresponds to the ~Open~-function of type constructor ~rel~.
+
+*/
+    bool Save( SmiRecord& valueRecord, const ListExpr typeInfo );
+/*
+Saves a relation.
+Corresponds to the ~Save~-function of type constructor ~rel~.
+
+*/
+    void Close();
+/*
+Closes a relation.
+Corresponds to the ~Close~-function of type constructor ~rel~.
+
+*/
+    void Delete();
+/*
+Deletes a relation.
+Corresponds to the ~Delete~-function of type constructor ~rel~.
 
 */
     ~Relation();
@@ -337,7 +402,7 @@ The destructor.
 Appends a tuple to the relation.
 
 */
-    const Tuple* GetTuple( const TupleId& tupleId ) const;
+//    Tuple* GetTuple( const TupleId& tupleId ) const;
 /*
 Returns the tuple identified by ~tupleId~.
 
@@ -357,6 +422,13 @@ Gets the number of tuples in the relation.
 Returns a ~RelationIterator~ for a relation scan.
 
 */
+    PrivateRelation *GetPrivateRelation()
+      { return privateRelation; }
+/*
+Function to give outside access to the private part of the relation class.
+
+*/
+
     friend class RelationIterator;
     friend struct PrivateRelationIterator;
 
@@ -397,19 +469,29 @@ cursor in the first tuple, if exists.
 The destructor.
 
 */
-    Tuple *GetNextTuple() const;
+//    Tuple *GetTuple();
+/*
+Retrieves the tuple in the current position of the iterator. Returns NULL if the cursor 
+is in the end of a relation.
+
+*/
+    Tuple *GetNextTuple();
 /*
 Retrieves the tuple in the current position of the iterator and moves the cursor forward 
 to the next tuple. Returns NULL if the cursor is in the end of a relation.
 
 */
-    const bool EndOfScan() const;
+//    void Next();
+/*
+Moves the cursor forward to the next tuple. 
+
+*/
+    const bool EndOfScan();
 /*
 Tells if the cursor is in the end of a relation.
 
 */
   private:
-  
     PrivateRelationIterator *privateRelationIterator;
 /*
 The private attributes of the class ~RelationIterator~.
@@ -488,5 +570,14 @@ void Concat (Word r, Word s, Word& t);
 */
 bool CompareNames(ListExpr list);
 
+/*
+
+5.6 Function ~IsTupleDescription~
+
+Checks wether a ~ListExpr~ is of the form
+((a1 t1) ... (ai ti)).
+
+*/
+bool IsTupleDescription( ListExpr tupleDesc );
 
 #endif // _RELATION_ALGEBRA_H_

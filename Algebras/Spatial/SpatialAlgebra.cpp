@@ -26,8 +26,8 @@ using namespace std;
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 3 Type investigation auxiliaries

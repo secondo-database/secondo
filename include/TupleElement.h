@@ -65,27 +65,13 @@ This class defines several virtual methods which are essential for the
 class TupleElement // renamed, previous name: TupleElem
 {
  public:
-  TupleElement(){};
-  virtual ~TupleElement() {};
-  virtual int NumOfFLOBs() { return (0); };
-  virtual FLOB* GetFLOB( const int ){ cout << "*?????????*" << endl; return (0); };
-  virtual const bool SaveFLOB( const int ){ return (0); };
-  virtual inline char *GetRootRecord()
-    { return (char *)this; }
-  virtual ostream& Print( ostream& os ) { return (os << "??"); };
-  void SetInsideTuple( const bool it = true )
-  {
-    insideTuple = it;
-    for( int i = 0; i < NumOfFLOBs(); i++ )
-    {
-      FLOB *tmpFLOB = GetFLOB( i );
-      tmpFLOB->SetInsideTuple( it );
-    }
-  }
-  
- protected:
-  bool insideTuple;
-
+  TupleElement(){}
+  virtual ~TupleElement() {}
+  virtual int NumOfFLOBs() { return (0); }
+  virtual FLOB* GetFLOB( const int ){ cout << "*?????????*" << endl; return (0); }
+  virtual const bool SaveFLOB( const int ){ return (0); }
+  virtual TupleElement* Clone() { return 0; }
+  virtual ostream& Print( ostream& os ) { return (os << "??"); }
 };
 
 ostream& operator<< (ostream &os, TupleElement &attrib);

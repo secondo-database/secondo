@@ -20,13 +20,30 @@ an array of attributes and the ~rel~ is an array of tuples.
 2 Defines, includes, and constants
 
 */
+#ifndef RELALG_PERSISTENT
+/*
+This ~RELALG_PERSISTENT~ defines which kind of relational algebra is to be compiled.
+If it is set, the persistent version of the relational algebra will be compiled, and
+otherwise, the main memory version will be compiled.
+
+*/
+
+using namespace std;
+
 #include "RelationAlgebra.h"
 #include "CTable.h"
 #include "SecondoSystem.h"
 
 extern NestedList *nl;
 
+bool firsttime = true;
+const int cachesize = 20;
+int current = 0;
+SmiRecordId key[cachesize];
+Word cache[cachesize];
 /*
+These global variables are used for caching relations.
+
 3 Type constructor ~tuple~
 
 3.1 Class ~TupleId~
@@ -241,11 +258,13 @@ This struct contains the private attributes of the class ~Relation~.
 */
 struct PrivateRelation
 {
-  PrivateRelation():
+  PrivateRelation( const ListExpr typeInfo ):
     noTuples( 0 ),
+    tupleType( nl->Second( typeInfo ) ),
     tupleArray( new CTable<Tuple*>( 100 ) ),
     currentId( 1 )
-    {}
+    {
+    }
 /*
 The constructor. 
 
@@ -258,6 +277,11 @@ The constructor.
   int noTuples;
 /*
 Contains the number of tuples in the relation.
+
+*/
+  TupleType tupleType;
+/*
+Contains the tuple type.
 
 */
   CTable<Tuple*>* tupleArray;
@@ -280,20 +304,120 @@ This class implements the memory representation of the type constructor ~rel~.
 It is simply an array of tuples.
 
 */
-Relation::Relation():
-  privateRelation( new PrivateRelation() )
+Relation::Relation( const ListExpr typeInfo ):
+  privateRelation( new PrivateRelation( typeInfo ) )
   {}
+
+Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
+  privateRelation( new PrivateRelation( typeInfo ) )
+  {
+    // This main memory version of the relational algebra does not need to open
+    // relations, they are always created from the scratch.
+    assert( 0 );
+  }
 
 Relation::~Relation()
 {
-  RelationIterator *iter = MakeScan();
-  while( !iter->EndOfScan() )
+  // First delete the relation from the cache ...
+  if( !firsttime )
   {
-    Tuple *t = iter->GetNextTuple();
-    delete t;
+    for( int i = 0; i < cachesize; i++ )
+    {
+      if( key[i] != 0 && cache[i].addr == this )
+      {
+        key[i] = 0;
+        break;
+      }
+    }
   }
+
+  // then delete the relation itself.
+  RelationIterator *iter = MakeScan();
+  Tuple *t;
+  while( (t = iter->GetNextTuple()) != 0 )
+    delete t;
   delete iter;    
   delete privateRelation;
+}
+
+bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value )
+{
+  ListExpr valueList;
+  string valueString;
+  int valueLength;
+
+  SmiKey mykey;
+  SmiRecordId recId;
+  mykey = valueRecord.GetKey();
+  if ( !mykey.GetKey(recId) )
+  {
+    cout << "\tRelOpen: Couldn't get the key!" << endl;
+  }
+
+  // initialize
+  if ( firsttime ) {
+    for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
+    firsttime = false;
+  }
+
+  // check whether value was cached
+  for ( int j = 0; j < cachesize; j++ )
+    if ( key[j]  == recId ) 
+    {
+      value = (Relation *)cache[j].addr; 
+      return true;
+    }
+
+  // prepare to cache the value constructed from the list
+  if ( key[current] != 0 ) {
+    delete (Relation *)cache[current].addr;
+  }
+  key[current] = recId;
+
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+  bool correct;
+  valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+  char* buffer = new char[valueLength];
+  valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+  valueString.assign( buffer, valueLength );
+  delete []buffer;
+  nl->ReadFromString( valueString, valueList );
+  value = Relation::In( nl->First(typeInfo), nl->First(valueList), 1, errorInfo, correct);
+
+  cache[current++] = SetWord(value);
+  if ( current == cachesize ) current = 0;
+
+  if ( errorInfo != 0 )     {
+    nl->Destroy( errorInfo );
+  }
+  nl->Destroy( valueList );
+  return (true);
+}
+
+bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
+{
+  ListExpr valueList;
+  string valueString;
+  int valueLength;
+
+  valueList = Out( nl->First(typeInfo) );
+  valueList = nl->OneElemList( valueList );
+  nl->WriteToString( valueString, valueList );
+  valueLength = valueString.length();
+  valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
+  valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+
+  nl->Destroy( valueList );
+  return (true);
+}
+
+void Relation::Close()
+{
+}
+
+void Relation::Delete()
+{
+  delete this;
 }
 
 void Relation::AppendTuple( Tuple *tuple )
@@ -303,10 +427,10 @@ void Relation::AppendTuple( Tuple *tuple )
   privateRelation->noTuples += 1;
 }
 
-const Tuple* Relation::GetTuple( const TupleId& tupleId ) const
-{
-  return (*privateRelation->tupleArray)[ tupleId.value ];
-}
+//Tuple* Relation::GetTuple( const TupleId& tupleId ) const
+//{
+//  return (*privateRelation->tupleArray)[ tupleId.value ];
+//}
 
 void Relation::Clear()
 {
@@ -379,7 +503,16 @@ RelationIterator::~RelationIterator()
   delete privateRelationIterator;
 }
 
-Tuple* RelationIterator::GetNextTuple() const 
+//Tuple* RelationIterator::GetTuple()  
+//{
+//  if( EndOfScan() )
+//    return NULL;
+//
+//  Tuple *result = *privateRelationIterator->iterator;
+//  return result; 
+//}
+
+Tuple* RelationIterator::GetNextTuple()  
 {
   if( EndOfScan() )
     return NULL;
@@ -389,8 +522,14 @@ Tuple* RelationIterator::GetNextTuple() const
   return result; 
 }
 
-const bool RelationIterator::EndOfScan() const
+//void RelationIterator::Next() 
+//{
+//  privateRelationIterator->iterator++;
+//}
+
+const bool RelationIterator::EndOfScan() 
 {
   return privateRelationIterator->iterator.EndOfScan();
 }
 
+#endif

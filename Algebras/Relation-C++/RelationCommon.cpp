@@ -91,17 +91,9 @@ const int TupleType::GetNoAttributes() const
   return noAttributes;
 }
 
-TupleType *TupleType::Concat( const TupleType& t )
+const int TupleType::GetTotalSize() const
 {
-  int noAttrs = this->GetNoAttributes() + t.GetNoAttributes();
-  AttributeType *attrTypes = new AttributeType[noAttrs]; 
-
-  for( int i = 0; i < this->GetNoAttributes(); i++ )
-    attrTypes[i] = this->GetAttributeType( i );
-  for( int i = 0; i < t.GetNoAttributes(); i++ )
-    attrTypes[this->GetNoAttributes()+i] = t.GetAttributeType( i );
-
-  return new TupleType( noAttrs, attrTypes );
+  return totalSize;
 }
 
 const AttributeType& TupleType::GetAttributeType( const int index ) const
@@ -117,9 +109,235 @@ void TupleType::PutAttributeType( const int index, const AttributeType& attrType
 }
 
 /*
-4 Auxilary Functions
+4 Implementation of the class ~Tuple~
 
-4.1 Function ~TypeOfRelAlgSymbol~
+*/
+Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  int  attrno, algebraId, typeId, noOfAttrs;
+  Word attr;
+  Tuple* tupleaddr;
+  bool valueCorrect;
+  ListExpr first, firstvalue, valuelist, attrlist;
+
+  attrno = 0;
+  noOfAttrs = 0;
+  tupleaddr = new Tuple( nl->First( typeInfo ) );
+
+  attrlist =  nl->Second(nl->First(typeInfo));
+  valuelist = value;
+  correct = true;
+  if (nl->IsAtom(valuelist))
+  {
+    correct = false;
+
+    cout << "Error in reading tuple: an atom instead of a list of values." << endl;
+    cout << "Tuple no." << errorPos << endl;
+    cout << "The tuple is: " << endl;
+    nl->WriteListExpr(value);
+
+    errorInfo = nl->Append(errorInfo,
+      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(1),
+      nl->IntAtom(errorPos)));
+    delete tupleaddr;
+    return 0;
+  }
+  else
+  {
+    AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+    while (!nl->IsEmpty(attrlist))
+    {
+      first = nl->First(attrlist);
+      attrlist = nl->Rest(attrlist);
+      attrno++;
+      algebraId = nl->IntValue(nl->First(nl->Second(first)));
+      typeId = nl->IntValue(nl->Second(nl->Second(first)));
+      if (nl->IsEmpty(valuelist))
+      {
+        correct = false;
+
+        cout << "Error in reading tuple: list of values is empty." << endl;
+        cout << "Tuple no." << errorPos << endl;
+        cout << "The tuple is: " << endl;
+        nl->WriteListExpr(value);
+
+        errorInfo = nl->Append(errorInfo,
+          nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(2),
+            nl->IntAtom(errorPos)));
+        delete tupleaddr;
+        return 0;
+      }
+      else
+      {
+        firstvalue = nl->First(valuelist);
+        valuelist = nl->Rest(valuelist);
+        attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
+                 firstvalue, attrno, errorInfo, valueCorrect);
+        if (valueCorrect)
+        {
+          correct = true;
+          tupleaddr->PutAttribute(attrno - 1, (Attribute *)attr.addr);
+          noOfAttrs++;
+        }
+        else
+        {
+          correct = false;
+
+          cout << "Error in reading tuple: wrong attribute value representation." << endl;
+          cout << "Tuple no." << errorPos << endl;
+          cout << "The tuple is: " << endl;
+          nl->WriteListExpr(value);
+          cout << endl << "The attribute is: " << endl;
+          nl->WriteListExpr(firstvalue);
+          cout << endl;
+
+          errorInfo = nl->Append(errorInfo,
+           nl->FiveElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(3),
+          nl->IntAtom(errorPos), nl->IntAtom(attrno)));
+          delete tupleaddr;
+          return 0;
+        }
+      }
+    }
+    if (!nl->IsEmpty(valuelist))
+    {
+      correct = false;
+
+      cout << "Error in reading tuple: too many attribute values." << endl;
+      cout << "Tuple no." << errorPos << endl;
+      cout << "The tuple is: " << endl;
+      nl->WriteListExpr(value);
+
+      errorInfo = nl->Append(errorInfo,
+      nl->FourElemList(nl->IntAtom(71), nl->SymbolAtom("tuple"), nl->IntAtom(4),
+      nl->IntAtom(errorPos)));
+      delete tupleaddr;
+      return 0;
+    }
+  }
+  assert( tupleaddr->GetNoAttributes() == noOfAttrs );
+  return tupleaddr;
+}
+
+ListExpr Tuple::Out( ListExpr typeInfo )
+{
+  int attrno, algebraId, typeId;
+  ListExpr l, lastElem, attrlist, first, valuelist;
+
+  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
+  attrlist = nl->Second(nl->First(typeInfo));
+  attrno = 0;
+  l = nl->TheEmptyList();
+  while (!nl->IsEmpty(attrlist))
+  {
+    first = nl->First(attrlist);
+    attrlist = nl->Rest(attrlist);
+    algebraId = nl->IntValue(nl->First(nl->Second(first)));
+    typeId = nl->IntValue(nl->Second(nl->Second(first)));
+
+    Attribute *attr = GetAttribute( attrno );
+    valuelist = (algM->OutObj(algebraId, typeId))(nl->Rest(first), SetWord(attr));
+    attrno++;
+    if (l == nl->TheEmptyList())
+    {
+      l = nl->Cons(valuelist, nl->TheEmptyList());
+      lastElem = l;
+    }
+    else
+      lastElem = nl->Append(lastElem, valuelist);
+  }
+  return l;
+}
+
+/*
+5 Implementation of the class ~Relation~
+
+*/
+Relation *Relation::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  ListExpr tuplelist, TupleTypeInfo, first;
+  Relation* rel;
+  Tuple* tupleaddr;
+  int tupleno, count;
+  bool tupleCorrect;
+
+  correct = true;
+  count = 0;
+
+  rel = new Relation( typeInfo );
+
+  tuplelist = value;
+  TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
+    nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+  tupleno = 0;
+  if (nl->IsAtom(value))
+  {
+    correct = false;
+    errorInfo = nl->Append(errorInfo,
+    nl->ThreeElemList(nl->IntAtom(70), nl->SymbolAtom("rel"), tuplelist));
+    return rel;
+  }
+  else
+  { // increase tupleno
+    while (!nl->IsEmpty(tuplelist))
+    {
+      first = nl->First(tuplelist);
+      tuplelist = nl->Rest(tuplelist);
+      tupleno++;
+      tupleaddr = Tuple::In(TupleTypeInfo, first, tupleno, errorInfo, tupleCorrect);
+
+      if (tupleCorrect)
+      {
+        assert( tupleaddr->IsFree() == false );
+
+        rel->AppendTuple(tupleaddr);
+        count++;
+      }
+      else
+      {
+        correct = false;
+      }
+    }
+    if (!correct)
+    {
+      errorInfo = nl->Append(errorInfo,
+      nl->TwoElemList(nl->IntAtom(72), nl->SymbolAtom("rel")));
+    }
+    assert( rel->GetNoTuples() == count );
+    return rel;
+  }
+}
+
+ListExpr Relation::Out( ListExpr typeInfo )
+{
+  Tuple* t;
+  ListExpr l, lastElem, tlist, TupleTypeInfo;
+
+  RelationIterator* rit = MakeScan();
+  l = nl->TheEmptyList();
+
+  //cerr << "OutRel " << endl;
+  while ( (t = rit->GetNextTuple()) != 0 )
+  {
+    TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
+          nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+    tlist = t->Out(TupleTypeInfo);
+    if (l == nl->TheEmptyList())
+    {
+      l = nl->Cons(tlist, nl->TheEmptyList());
+      lastElem = l;
+    }
+    else
+      lastElem = nl->Append(lastElem, tlist);
+  }
+  delete rit;
+  return l;
+}
+
+/*
+6 Auxilary Functions
+
+6.1 Function ~TypeOfRelAlgSymbol~
 
 Transforms a list expression ~symbol~ into one of the values of
 type ~RelationType~. ~Symbol~ is allowed to be any list. If it is not one
@@ -143,7 +361,7 @@ RelationType TypeOfRelAlgSymbol (ListExpr symbol)
 }
 
 /*
-3.2 Function ~FindAttribute~
+6.2 Function ~FindAttribute~
 
 Here ~list~ should be a list of pairs of the form (~name~,~datatype~).
 The function ~FindAttribute~ determines whether ~attrname~ occurs as one of
@@ -184,7 +402,7 @@ int FindAttribute( ListExpr list, string attrname, ListExpr& attrtype)
 }
 
 /*
-3.3 Function ~ConcatLists~
+6.3 Function ~ConcatLists~
 
 Concatenates two lists.
 
@@ -202,7 +420,7 @@ ListExpr ConcatLists( ListExpr list1, ListExpr list2)
 }
 
 /*
-3.5 Function ~AttributesAreDisjoint~
+6.4 Function ~AttributesAreDisjoint~
 
 Checks wether two ListExpressions are of the form
 ((a1 t1) ... (ai ti)) and ((b1 d1) ... (bj dj))
@@ -257,7 +475,7 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
 }
 
 /*
-3.6 Function ~Concat~
+6.5 Function ~Concat~
 
 Copies the attribute values of two tuples
 (words) ~r~ and ~s~ into tuple (word) ~t~.
@@ -289,7 +507,7 @@ void Concat (Word r, Word s, Word& t)
 }
 
 /*
-3.7 Function ~CompareNames~
+6.6 Function ~CompareNames~
 
 */
 bool CompareNames(ListExpr list)
@@ -316,4 +534,34 @@ bool CompareNames(ListExpr list)
   return true;
 }
 
+/*
+6.7 Function ~IsTupleDescription~
+
+Checks wether a ListExpression is of the form
+((a1 t1) ... (ai ti)).
+
+*/
+bool IsTupleDescription( ListExpr a )
+{
+  ListExpr rest = a;
+  ListExpr current;
+
+  while(!nl->IsEmpty(rest))
+  {
+    current = nl->First(rest);
+    rest = nl->Rest(rest);
+    if((nl->ListLength(current) == 2)
+      && (nl->IsAtom(nl->First(current)))
+      && (nl->AtomType(nl->First(current)) == SymbolType)
+      && (nl->IsAtom(nl->Second(current)))
+      && (nl->AtomType(nl->Second(current)) == SymbolType))
+    {
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return true;
+}
 

@@ -13,8 +13,9 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-        ./SpatialAlgebra.h \
-        ./Rational.h
+        $(INCLUDEDIR)/SpatialAlgebra.h \
+        $(INCLUDEDIR)/Rational.h \
+        $(INCLUDEDIR)/DBArray.h
 
 MODNAME=SpatialAlgebra
 LIBNAME=lib$(MODNAME)

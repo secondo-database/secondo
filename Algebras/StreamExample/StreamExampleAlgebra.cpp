@@ -27,9 +27,8 @@ using namespace std;
 #include <string>
 #include <iostream>		//for testing
 
-static NestedList* nl;
-static QueryProcessor* qp;
-
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 

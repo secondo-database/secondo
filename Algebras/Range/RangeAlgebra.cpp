@@ -24,8 +24,8 @@ using namespace std;
 #include "StandardTypes.h"
 #include "RangeAlgebra.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 3 Type Constructor ~range~

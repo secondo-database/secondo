@@ -10,6 +10,7 @@
 2 Auxiliary Functions
 
 */
+using namespace std;
 
 #include "Algebra.h"
 #include "AlgebraManager.h"
@@ -31,9 +32,8 @@
 #include <sstream>
 #include <typeinfo>
 
-namespace {
-
-static NestedList* nl;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /* 
 
@@ -995,7 +995,6 @@ static ListExpr CreateBTreeTypeMap(ListExpr args)
 {
   string attrName;
   char* errmsg = "Incorrect input for operator createbtree.";
-  NestedList* nl = SecondoSystem::GetNestedList();
   int attrIndex;
   ListExpr attrType;
 
@@ -1513,7 +1512,7 @@ Algebra*
 InitializeBTreeAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
+  qp = qpRef;
   return (&btreealgebra);
 }
 
-}

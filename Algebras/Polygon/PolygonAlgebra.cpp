@@ -33,8 +33,8 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "DBArray.h"
 #include "Attribute.h"
 
-static NestedList* nl;
-static QueryProcessor* qp;
+extern NestedList* nl;
+extern QueryProcessor *qp;
 
 /*
 

@@ -21,7 +21,17 @@ March 2003 Victor Almeida created the new Relational Algebra organization
 
 [TOC]
 
-1 Includes, Constants, Globals, Enumerations
+1 Overview
+
+The Relational Algebra basically implements two type constructors, namely ~tuple~ and ~rel~.
+More information about the Relational Algebra can be found in the RelationAlgebra.h header
+file.
+
+This file contains the implementation of the Persistent Relational Algebra, where the
+type constructors ~tuple~ and ~rel~ are kept in secondary memory. This implementation uses
+the Tuple Manager.
+
+2 Includes, Constants, Globals, Enumerations
 
 */
 #ifdef RELALG_PERSISTENT
@@ -35,1230 +45,498 @@ otherwise, the main memory version will be compiled.
 using namespace std;
 
 #include "RelationAlgebra.h"
+#include "TMTuple.h"
 
-int ccTuplesCreated = 0;
-int ccTuplesDeleted = 0;
-int ccRelsCreated = 0;
-int ccRelsDeleted = 0;
-int ccRelITsCreated = 0;
-int ccRelITsDeleted = 0;
-int ccTupleAttributesInfoCreated = 0;
-int ccTupleAttributesInfoDeleted = 0;
-
-ListExpr AttrTypeList = nl->TheEmptyList();
+extern NestedList *nl;
 
 /*
-2 Type constructor ~tuple~
+3 Type constructor ~tuple~
 
-The list representation of a tuple is:
+3.1 Class ~TupleId~
 
-----    (<attrrep 1> ... <attrrep n>)
-----
-
-Typeinfo is:
-
-----    (<NumericType(<type exression>)> <number of attributes>)
-----
-
-
-For example, for
-
-----    (tuple
-                (
-                        (name string)
-                        (age int)))
-----
-
-the typeinfo is
-
-----    (
-                (2 2)
-                        (
-                                (name (1 4))
-                                (age (1 1)))
-                2)
-----
-
-The typeinfo list consists of three lists. The first list is a
-pair (AlgebraID, Constructor ID). The second list represents the
-attributelist of the tuple. This list is a sequence of pairs (attribute
-name (AlgebraID ConstructorID)). Here the ConstructorID is the identificator
-of a standard data type, e.g. int. The third list is an atom and counts the
-number of the tuple's attributes.
-
-2.1 Type property of type constructor ~tuple~
+This class implements the unique identification for tuples inside a relation. Once a relation
+is persistent in an ~SmiFile~ and each tuple is stored in a different ~SmiRecord~ of this file, 
+the ~SmiRecordId~ will be this identification.
 
 */
-ListExpr TupleProp ()
+struct TupleId
 {
-  return (nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("plus"),
-          nl->TwoElemList(nl->SymbolAtom("ident"), nl->SymbolAtom("DATA"))),
-          nl->SymbolAtom("TUPLE")));
-}
+  TupleId( const SmiRecordId id ):
+    value( id )
+    {}
+  TupleId( const TupleId& id ):
+    value( id.value )
+    {}
+/*
+The constructors.
+
+*/
+  const TupleId& operator= ( const TupleId& id )
+    { value = id.value; return *this; }
+  const TupleId& operator+= ( const TupleId& id )
+    { value += id.value; return *this; }
+  const TupleId& operator-= ( const TupleId& id )
+    { value -= id.value; return *this; }
+  const TupleId& operator++ ()
+    { value++; return *this; }
+  TupleId operator++ (int)
+    { TupleId result = *this; result += 1; return result; }
+  const TupleId& operator-- ()
+    { value--; return *this; }
+  TupleId operator-- (int)
+    { TupleId result = *this; result -= 1; return result; }
+  int operator==( const TupleId& id ) const
+  { return value == id.value; }
+  int operator!=( const TupleId& id ) const
+  { return value != id.value; }
+  int operator<=( const TupleId& id ) const
+  { return value <= id.value; }
+  int operator>=( const TupleId& id ) const
+  { return value >= id.value; }
+  int operator<( const TupleId& id ) const
+  { return value < id.value; }
+  int operator>( const TupleId& id ) const
+  { return value > id.value; }
+/*
+Operator redefinitions.
+
+*/
+  SmiRecordId value;
+/*
+The ~id~ value.
+
+*/
+};
 
 /*
+3.2 Struct ~PrivateTuple~
 
-2.2 Main memory representation
-
-Each instance of the class defined below will be the main memory
-representation of a value of type ~tuple~.
-
-(Figure needs to be redrawn. It doesn't display or print properly.)
-
-Figure 1: Main memory representation of a tuple (class ~CcTuple~) [tuple.eps]
-
-2.2.1 Private part of class ~CcTuple~
+This struct contains the private attributes of the class ~Tuple~.
 
 */
 struct PrivateTuple
 {
-  int NoOfAttr;
-  Attribute* AttrList [MaxSizeOfAttr];
+  PrivateTuple( const TupleType& tupleType, const bool isFree ):
+    tupleId( 0 ),
+    tupleType( new TupleType( tupleType ) ),
+    tmTuple( new TMTuple( tupleType ) ),
+    isFree( isFree )
+    {
 
-  /* if a tuple is free, then a stream receiving the tuple can delete or
-     reuse it */
+    }
+/*
+The constructor.
+
+*/
+  PrivateTuple( const ListExpr typeInfo, const bool isFree ):
+    tupleId( 0 ),
+    tupleType( new TupleType( typeInfo ) ),
+    tmTuple( new TMTuple( *tupleType ) ),
+    isFree( isFree )
+    {
+    }
+/*
+The constructor.
+
+*/
+  ~PrivateTuple()
+  {
+    delete tmTuple;
+    delete tupleType;
+  }
+/*
+The destructor.
+
+*/
+  TupleId tupleId;
+/*
+The unique identification of the tuple inside a relation.
+
+*/
+  TupleType *tupleType;
+/*
+Stores the tuple type.
+
+*/
+  TMTuple *tmTuple;
+/*
+The tuple from the Tuple Manager.
+
+*/
   bool isFree;
-  SmiRecordId id;
+/*
+A flag that tells if a tuple is free for deletion. If a tuple is free, then a stream receiving
+the tuple can delete or reuse it
+
+*/
 };
 
-void CloseRecFile (CcRel* r)
+/*
+3.3 Implementation of the class ~Tuple~
+
+This class implements the persistent representation of the type constructor ~tuple~. 
+A tuple contains a pointer to a ~TMTuple~ from the Tuple Manager. For more information
+about tuples in the TupleManager see the file TMTuple.h.
+
+*/
+Tuple::Tuple( const TupleType& tupleType, const bool isFree ):
+  privateTuple( new PrivateTuple( tupleType, isFree ) )
+  {}
+
+Tuple::Tuple( const ListExpr typeInfo, const bool isFree ):
+  privateTuple( new PrivateTuple( typeInfo, isFree ) )
+  {}
+
+Tuple::~Tuple()
 {
-  SmiRecordFile* myrecfile = r->GetRecFile();
-  myrecfile->Close();
-  //myrecfile->Drop();
-  delete myrecfile;
-  myrecfile = 0;
+  delete privateTuple;
 }
 
-void CloseDeleteRecFile (CcRel* r)
+const TupleId& Tuple::GetTupleId() const
 {
-  SmiRecordFile* myrecfile = r->GetRecFile();
-  //myrecfile->Close();
-  myrecfile->Drop();
-  delete myrecfile;
-  myrecfile = 0;
+  return privateTuple->tupleId;
 }
 
-void CloseLobFile (CcRel* r)
+void Tuple::SetTupleId( const TupleId& tupleId )
 {
-  SmiRecordFile* myrecfile2 = r->GetLobFile();
-  myrecfile2->Close();
-  //myrecfile2->Drop();
-  delete myrecfile2;
-  myrecfile2 = 0;
+  privateTuple->tupleId = tupleId;
 }
 
-void CloseDeleteLobFile (CcRel* r)
+Attribute* Tuple::GetAttribute( const int index ) const
 {
-  SmiRecordFile* myrecfile2 = r->GetLobFile();
-  //myrecfile2->Close();
-  myrecfile2->Drop();
-  delete myrecfile2;
-  myrecfile2 = 0;  
+  return (Attribute *)privateTuple->tmTuple->Get( index );
 }
 
-TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
+void Tuple::PutAttribute( const int index, Attribute* attr )
 {
-  ListExpr attrlist, valuelist,first,firstvalue, errorInfo, lastElem;
-  Word attr;
-  int algebraId, typeId, noofattrs;
-  attrTypes = new AttributeType[nl->ListLength(value)];
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  bool valueCorrect;
+  assert( index >= 0 && index < privateTuple->tupleType->GetNoAttributes() );
+  privateTuple->tmTuple->Put( index, attr );
+}
 
-  //nl->WriteToFile("/dev/tty", typeInfo);
-  //nl->WriteToFile("/dev/tty", value);
+const int Tuple::GetNoAttributes() const
+{
+  return privateTuple->tupleType->GetNoAttributes();
+}
 
-  attrlist = nl->Second(typeInfo);
-  valuelist = value;
-  noofattrs = 0;
+const TupleType& Tuple::GetTupleType() const
+{
+  return *(privateTuple->tupleType);
+}
 
-  while (!nl->IsEmpty(attrlist))
+const bool Tuple::IsFree() const
+{
+  return privateTuple->isFree;
+}
+
+Tuple *Tuple::Clone( const bool isFree ) const
+{
+  Tuple *result = new Tuple( this->GetTupleType(), isFree );
+  for( int i = 0; i < this->GetNoAttributes(); i++ )
   {
-    first = nl->First(attrlist);
-    attrlist = nl->Rest(attrlist);
-
-    algebraId = nl->IntValue(nl->First(nl->Second(first)));
-    typeId = nl->IntValue(nl->Second(nl->Second(first)));
-
-    firstvalue = nl->First(valuelist);
-    valuelist = nl->Rest(valuelist);
-    attr = (algM->InObj(algebraId, typeId))(nl->Second(first),
-              firstvalue, 0, errorInfo, valueCorrect);
-    if (valueCorrect)
-    {
-      AttributeType attrtype = { algebraId, typeId, ((Attribute*)attr.addr)->Sizeof() };
-      if (AttrTypeList == nl->TheEmptyList())
-      {
-        AttrTypeList = nl->Cons(nl->ThreeElemList(nl->IntAtom(algebraId),nl->IntAtom(typeId),
-	  nl->IntAtom(((Attribute*)attr.addr)->Sizeof())), nl->TheEmptyList());
-        lastElem = AttrTypeList;
-      }
-      else
-        lastElem = nl->Append(lastElem, nl->ThreeElemList(nl->IntAtom(algebraId),
-	  nl->IntAtom(typeId), nl->IntAtom(((Attribute*)attr.addr)->Sizeof())));
-
-      //nl->WriteToFile("/dev/tty", AttrTypeList);
-      attrTypes[noofattrs] = attrtype;
-      noofattrs++;
-    }
-  }
-  tupleType = new TupleAttributes(noofattrs, attrTypes);
-  ccTupleAttributesInfoCreated++;
-};
-
-TupleAttributesInfo::TupleAttributesInfo (ListExpr persInfo)
-{
-  ListExpr persInfoList,first;
-  int algebraId, typeId, noofattrs, size;
-  
-  attrTypes = new AttributeType[nl->ListLength(persInfo)];
-
-  //nl->WriteToFile("/dev/tty", persInfo);
-
-  persInfoList = persInfo;
-  noofattrs = 0;
-
-  while (!nl->IsEmpty(persInfoList))
-  {
-    first = nl->First(persInfoList);
-    persInfoList = nl->Rest(persInfoList);
-
-    algebraId = nl->IntValue(nl->First(first));
-    typeId = nl->IntValue(nl->Second(first));
-    size = nl->IntValue(nl->Third(first));
-
-    AttributeType attrtype = { algebraId, typeId, size };
-    attrTypes[noofattrs] = attrtype;
-    noofattrs++;
-  }
-  tupleType = new TupleAttributes(noofattrs, attrTypes);
-  ccTupleAttributesInfoCreated++;
-};
-
-TupleAttributesInfo::TupleAttributesInfo (ListExpr value, int attrno)
-{
-  ListExpr first;
-  string attrname;
-  int algId, typeId;
-  StandardAttribute* attr;
-  Word createdObject;
-  
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  SecondoCatalog* sc = SecondoSystem::GetCatalog( ExecutableLevel );
-
-  attrTypes = new AttributeType[attrno];
-  for (int i = 0; i < attrno; i++)
-  {
-    first = nl->First(value);
-    value = nl->Rest(value);
-    if (nl->IsAtom(nl->Second(first)))
-    {
-      attrname = nl->SymbolValue(nl->Second(first));
-      sc->GetTypeId( attrname, algId, typeId );
-    }
-    createdObject = algM->CreateObj(algId, typeId)(0);
-    attr = (StandardAttribute*)createdObject.addr;
-    AttributeType attrtype = { algId, typeId, attr->Sizeof() };
-    attrTypes[i] = attrtype;
-  }
-  tupleType = new TupleAttributes(attrno, attrTypes);
-  ccTupleAttributesInfoCreated++;
-};
-  
-TupleAttributesInfo::TupleAttributesInfo (TupleAttributes* ta, AttributeType* at)
-{
-  attrTypes = at;
-  tupleType = ta;
-  ccTupleAttributesInfoCreated++;
-}
-
-TupleAttributesInfo::~TupleAttributesInfo ()
-{
-  delete[] attrTypes;
-  delete tupleType;
-  ccTupleAttributesInfoDeleted++;
-};
-
-TupleAttributes* TupleAttributesInfo::GetTupleTypeInfo () { 
-return tupleType;
-};
-
-AttributeType* TupleAttributesInfo::GetAttributesTypeInfo () {return attrTypes;};
-
-AttributeType* CloneAttributesTypeInfo ( TupleAttributesInfo* tuai, int attrno )
-{
-  AttributeType* at = new AttributeType [attrno];
-  for (int i = 0; i < attrno; i++)
-  {
-    at[i] = (tuai->GetAttributesTypeInfo())[i];
-  }
-  return at;
-}
-
-AttributeType* CloneAttributesType ( AttributeType* attrt, int attrno )
-{
-  AttributeType* at = new AttributeType [attrno];
-  for (int i = 0; i < attrno; i++)
-  {
-    at[i] = attrt[i];
-  }
-  return at;
-}
-
-TupleAttributes* CloneTupleTypeInfo ( TupleAttributesInfo* tuai, int attrno )
-{
-  AttributeType* at = new AttributeType [attrno];
-  for (int i = 0; i < attrno; i++)
-  {
-    at[i] = (tuai->GetAttributesTypeInfo())[i];
-  }
-  return new TupleAttributes(attrno, at);
-}
-
-TupleAttributes* CloneTupleType ( AttributeType* attrt, int attrno )
-{
-  AttributeType* at = new AttributeType [attrno];
-  for (int i = 0; i < attrno; i++)
-  {
-    at[i] = attrt[i];
-  }
-  return new TupleAttributes(attrno, at);
-}
-
-ListExpr TupleProp ()
-{
-  return (nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("plus"),
-          nl->TwoElemList(nl->SymbolAtom("ident"), nl->SymbolAtom("DATA"))),
-          nl->SymbolAtom("TUPLE")));
-}
-
-CcTuple::CcTuple ()
-{
-  NoOfAttr = 0;
-  AttrList = 0;
-  attrTypes = 0;
-  tupleType = 0;
-  ccTuplesCreated++;
-};
-
-CcTuple::CcTuple ( TupleAttributes* attributes, AttributeType* at )
-{
-  NoOfAttr = 0;
-  AttrList = new Tuple ( attributes );
-  attrTypes = at;
-  tupleType = attributes;
-  ccTuplesCreated++;
-};
-
-CcTuple::CcTuple ( Tuple* t, int noattrs, AttributeType* at, TupleAttributes* tt )
-{
-  NoOfAttr = noattrs;
-  AttrList = t;
-  attrTypes = at;
-  tupleType = tt;
-  ccTuplesCreated++;
-};
-
-CcTuple::~CcTuple ()
-{
-  delete AttrList;
-  AttrList = 0;
-  ccTuplesDeleted++;
-};
-
-void CcTuple::PutTuple(Tuple* tuple) { AttrList = tuple; }
-
-void CcTuple::PutAttrTypes(AttributeType* at) { attrTypes = at; }
-
-void CcTuple::SetAttrType(int i, int j, AttributeType* at) { attrTypes[i] = at[j]; }
-
-void CcTuple::PutTupleType(TupleAttributes* ta) { tupleType = ta; }
-
-TupleAttributes* CcTuple::GetTupleAttributes () { return tupleType; };
-
-AttributeType* CcTuple::GetAttributeType () { return attrTypes; };
-
-Tuple* CcTuple::GetTuple () { return AttrList; };
-
-Attribute* CcTuple::Get (int index) {return (Attribute*)AttrList->Get(index);};
-
-void  CcTuple::Put (int index, Attribute* attr) {AttrList->Put(index, attr);};
-
-void  CcTuple::SetNoAttrs (int noattr) {NoOfAttr = noattr;};
-
-int   CcTuple::GetNoAttrs () {return NoOfAttr;};
-
-bool CcTuple::IsFree() { return isFree; }
-
-void CcTuple::SetFree(bool b) { isFree = b; }
-
-SmiRecordId CcTuple::GetId()
-{
-  return id;
-}
-
-void CcTuple::SetId(SmiRecordId id)
-{
-  this->id = id;
-}
-
-
-CcTuple* CcTuple::Clone()
-{
-  CcTuple* result = new CcTuple();
-  result->SetFree(true);
-  result->SetNoAttrs(GetNoAttrs());
-  //result->PutTupleType(GetTupleAttributes());
-  result->PutTupleType( CloneTupleType(GetAttributeType(),GetNoAttrs()) );
-  //result->PutAttrTypes(GetAttributeType()); 
-  result->PutAttrTypes( CloneAttributesType(GetAttributeType(),GetNoAttrs()) );  
-  result->PutTuple(new Tuple(GetTupleAttributes()));
-  for(int i = 0; i < GetNoAttrs(); i++)
-  {
-    Attribute* attr = ((Attribute*)Get(i))->Clone();
-    result->Put(i, attr);
+    Attribute *attr = GetAttribute( i )->Clone();
+    result->PutAttribute( i, attr );
   }
   return result;
 }
 
-CcTuple* CcTuple::CloneIfNecessary()
+Tuple *Tuple::CloneIfNecessary()
 {
-  //if(IsFree())
-  //{
+  if( IsFree() )
     return this;
-  //}
-  //else
-  //{
-    //return Clone();
-  //}
-}
-
-void CcTuple::DeleteIfAllowed()
-{
-  //if(IsFree())
-  //{
-    //for(int i = 0; i < GetNoAttrs(); i++)
-    //{
-      //Attribute* attr = (Attribute*)Get(i);
-      //delete attr;
-    //}
-    delete this;
-  //}
-}
-/*
-
-The next function supports writing objects of class CcTuple to standard
-output. It is only needed for internal tests.
-
-*/
-ostream& operator<<(ostream& os, CcTuple t)
-{
-  TupleElement* attr;
-
-  os << "(";
-  for (int i=0; i < t.GetNoAttrs(); i++)
-  {
-    attr = (TupleElement*)t.Get(i);
-    attr->Print(os);
-    if (i < (t.GetNoAttrs() - 1)) os << ",";
-  }
-  os << ")";
-  return os;
-}
-/*
-
-The lexicographical order on CcTuple. To be used in conjunction with
-STL algorithms.
-
-*/
-bool LexicographicalCcTupleCmp::operator()(const CcTuple* aConst, const CcTuple* bConst) const
-{
-  CcTuple* a = (CcTuple*)aConst;
-  CcTuple* b = (CcTuple*)bConst;
-
-
-  for(int i = 0; i < a->GetNoAttrs(); i++)
-  {
-    if(((Attribute*)a->Get(i))->Compare(((Attribute*)b->Get(i))) < 0)
-    {
-      return true;
-    }
-    else
-    {
-      if(((Attribute*)a->Get(i))->Compare(((Attribute*)b->Get(i))) > 0)
-      {
-        return false;
-      }
-    }
-  }
-  return false;
-}
-
-string
-ReportTupleStatistics()
-{
-  ostringstream buf;
-  buf << ccTuplesCreated << " tuples created, "
-      << ccTuplesDeleted << " tuples deleted, difference is "
-      << (ccTuplesCreated - ccTuplesDeleted) << "." << endl;
-
-  ccTuplesCreated = 0;
-  ccTuplesDeleted = 0;
-  return buf.str();
-}
-
-string
-ReportRelStatistics()
-{
-  ostringstream buf;
-  buf << ccRelsCreated << " relations created, "
-      << ccRelsDeleted << " relations deleted, difference is "
-      << (ccRelsCreated - ccRelsDeleted) << "." << endl;
-
-  ccRelsCreated = 0;
-  ccRelsDeleted = 0;
-  return buf.str();
-}
-
-string
-ReportRelITStatistics()
-{
-  ostringstream buf;
-  buf << ccRelITsCreated << " relationits created, "
-      << ccRelITsDeleted << " relationits deleted, difference is "
-      << (ccRelITsCreated - ccRelITsDeleted) << "." << endl;
-
-  ccRelITsCreated = 0;
-  ccRelITsDeleted = 0;
-  return buf.str();
-}
-
-string
-ReportTupleAttributesInfoStatistics()
-{
-  ostringstream buf;
-  buf << ccTupleAttributesInfoCreated << " tupleattributesinfos created, "
-      << ccTupleAttributesInfoDeleted << " tupleattributesinfos deleted, difference is "
-      << (ccTupleAttributesInfoCreated - ccTupleAttributesInfoDeleted) << "." << endl;
-
-  ccTupleAttributesInfoCreated = 0;
-  ccTupleAttributesInfoDeleted = 0;
-  return buf.str();
-}
-
-void Concat (Word r, Word s, Word& t)
-{
-  int rnoattrs, snoattrs, tnoattrs;
-  //Attribute* attr;
-  AttributeType* attrTypes;
-  TupleAttributes* tupleType;
-  Tuple* tuple;
-
-  rnoattrs = ((CcTuple*)r.addr)->GetNoAttrs();
-  snoattrs = ((CcTuple*)s.addr)->GetNoAttrs();
-
-  ((CcTuple*)t.addr)->SetNoAttrs(rnoattrs + snoattrs);
-  
-  //attrTypes = new AttributeType[ rnoattrs + snoattrs ];
-  ((CcTuple*)t.addr)->PutAttrTypes( new AttributeType[ rnoattrs + snoattrs ] );
-  
-  for (int i = 1; i <= rnoattrs; i++)
-  {
-    ((CcTuple*)t.addr)->SetAttrType(i-1, i-1, ((CcTuple*)r.addr)->GetAttributeType());
-  }
-  
-  for (int j = (rnoattrs+1); j <= (rnoattrs + snoattrs); j++)
-  {
-    //attrTypes[j-1] = (((CcTuple*)s.addr)->GetAttributeType())[j - rnoattrs - 1] ;
-    ((CcTuple*)t.addr)->SetAttrType(j-1, j-rnoattrs-1, 
-      ((CcTuple*)s.addr)->GetAttributeType());
-  }
-  
-  //tupleType = new TupleAttributes(rnoattrs + snoattrs, attrTypes);
-  ((CcTuple*)t.addr)->PutTupleType( new TupleAttributes(rnoattrs + snoattrs, 
-    ((CcTuple*)t.addr)->GetAttributeType()) );
-  
-  //tuple = new Tuple ( tupleType );
-  ((CcTuple*)t.addr)->PutTuple( new Tuple(((CcTuple*)t.addr)->GetTupleAttributes()) );
-  
-  for (int i = 1; i <= rnoattrs; i++)
-  {
-  
-    //tuple->Put( (i-1), ((CcTuple*)r.addr)->Get(i-1) );
-    (((CcTuple*)t.addr)->GetTuple())->Put( (i-1),
-      (((CcTuple*)r.addr)->Get(i-1))->Clone() );
-    
-   // attr = ((CcTuple*)r.addr)->Get(i - 1);
-   // ((CcTuple*)t.addr)->Put((i - 1), ((StandardAttribute*)attr)->Clone());
-  }
-  
-  for (int j = (rnoattrs + 1); j <= (rnoattrs + snoattrs); j++)
-  {
-    //tuple->Put( (j-1), ((CcTuple*)s.addr)->Get(j - rnoattrs - 1) );
-    (((CcTuple*)t.addr)->GetTuple())->Put( (j-1),
-      (((CcTuple*)s.addr)->Get(j-rnoattrs-1))->Clone() );
-
-    //attr = ((CcTuple*)s.addr)->Get(j - rnoattrs - 1);
-    //((CcTuple*)t.addr)->Put((j - 1), ((StandardAttribute*)attr)->Clone());
-  }
-  
-  //cout << *(((CcTuple*)t.addr)->GetTuple()) << endl;
-  
-  //((CcTuple*)t.addr)->PutTuple(tuple);
-  //((CcTuple*)t.addr)->PutAttrTypes(attrTypes);
-  //((CcTuple*)t.addr)->PutTupleType(tupleType);
-  
-  //t = SetWord ( new CcTuple( tuple, (rnoattrs + snoattrs), attrTypes, tupleType ) );
-}
-
-/*
-
-1.3.2 ~Out~-function of type constructor ~tuple~
-
-The ~out~-function of type constructor ~tuple~ takes as inputs a type
-description (~typeInfo~) of the tuples attribute structure in nested list
-format and a pointer to a tuple value, stored in main memory.
-The function returns the tuple value from main memory storage
-in nested list format.
-
-*/
-ListExpr OutTuple (ListExpr typeInfo, Word  value)
-{
-  int attrno, algebraId, typeId;
-  ListExpr l, lastElem, attrlist, first, valuelist;
-  CcTuple* tupleptr;
-
-  tupleptr = (CcTuple*)value.addr;
-  AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
-  attrlist = nl->Second(nl->First(typeInfo));
-  attrno = 0;
-  l = nl->TheEmptyList();
-  while (!nl->IsEmpty(attrlist))
-  {
-    first = nl->First(attrlist);
-    attrlist = nl->Rest(attrlist);
-    algebraId = nl->IntValue(nl->First(nl->Second(first)));
-    typeId = nl->IntValue(nl->Second(nl->Second(first)));
-    valuelist = (algM->OutObj(algebraId, typeId))(nl->Rest(first),
-                  SetWord(tupleptr->Get(attrno)));
-    attrno++;
-    if (l == nl->TheEmptyList())
-    {
-      l = nl->Cons(valuelist, nl->TheEmptyList());
-      lastElem = l;
-    }
-    else
-      lastElem = nl->Append(lastElem, valuelist);
-  }
-  return l;
-}
-
-void DeleteTuple(Word& w)
-{
-  CcTuple* tupleptr;
-  int attrno;
-  tupleptr = (CcTuple*)w.addr;
-  attrno = tupleptr->GetNoAttrs();
-  for (int i = 0; i <= (attrno - 1); i++)
-  {
-    delete (TupleElement*)tupleptr->Get(i);
-  }
-  delete tupleptr;
-}
-
-bool CheckTuple(ListExpr type, ListExpr& errorInfo)
-{
-  vector<string> attrnamelist;
-  ListExpr attrlist, pair;
-  string attrname;
-  bool correct, ckd;
-  int unique;
-  vector<string>::iterator it;
-  AlgebraManager* algMgr;
-
-  if ((nl->ListLength(type) == 2) && (nl->IsEqual(nl->First(type), "tuple",
-       true)))
-  {
-    attrlist = nl->Second(type);
-    if (nl->IsEmpty(attrlist))
-    {
-      errorInfo = nl->Append(errorInfo,
-        nl->ThreeElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(1)));
-      return false;
-    }
-    if (nl->IsAtom(attrlist))
-    {
-      errorInfo = nl->Append(errorInfo,
-        nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(2),
-        attrlist));
-      return false;
-    }
-    algMgr = SecondoSystem::GetAlgebraManager();
-    attrnamelist.resize(MaxSizeOfAttr);
-    it = attrnamelist.begin();
-    unique = 0;
-    correct = true;
-    while (!nl->IsEmpty(attrlist))
-    {
-      pair = nl->First(attrlist);
-      attrlist = nl->Rest(attrlist);
-      if (nl->ListLength(pair) == 2)
-      {
-        if ((nl->IsAtom(nl->First(pair))) &&
-          (nl->AtomType(nl->First(pair)) == SymbolType))
-        {
-          attrname = nl->SymbolValue(nl->First(pair));
-          unique = std::count(attrnamelist.begin(), attrnamelist.end(),
-                         attrname);
-          if (unique > 0)
-          {
-            errorInfo = nl->Append(errorInfo,
-             nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-               nl->IntAtom(3), nl->First(pair)));
-            correct = false;
-          }
-          *it = attrname;
-          ckd =  algMgr->CheckKind("DATA", nl->Second(pair), errorInfo);
-          if (!ckd)
-          {
-            errorInfo = nl->Append(errorInfo,
-              nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-                nl->IntAtom(6),nl->Second(pair)));
-          }
-          correct = correct && ckd;
-        }
-	else
-        {
-          errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(4),nl->First(pair)));
-          correct = false;
-        }
-      }
-      else
-      {
-        errorInfo = nl->Append(errorInfo,
-          nl->FourElemList(nl->IntAtom(61), nl->SymbolAtom("TUPLE"),
-          nl->IntAtom(5),pair ));
-        correct = false;
-      }
-      it++;
-    }
-    return correct;
-  }
   else
+    return this->Clone( false );
+}
+
+void Tuple::DeleteIfAllowed()
+{
+  if( IsFree() )
+    delete this;
+}
+
+/*
+4 Type constructor ~rel~
+
+4.2 Struct ~RelationDescriptor~
+
+This struct contains necessary information for opening a relation.
+
+*/
+struct RelationDescriptor
+{
+  RelationDescriptor( const int noTuples, const SmiFileId tId, const SmiFileId lId ):
+    noTuples( noTuples ),
+    tupleFileId( tId ),
+    lobFileId( lId )
+    {}
+/*
+The constructor.
+
+*/
+  int noTuples;
+/*
+The quantity of tuples inside the relation.
+
+*/
+  SmiFileId tupleFileId;
+/*
+The tuple's file identification.
+
+*/
+  SmiFileId lobFileId;
+/*
+The LOB's file identification.
+
+*/
+};
+
+/*
+4.1 Struct ~PrivateRelation~
+
+This struct contains the private attributes of the class ~Relation~.
+
+*/
+struct PrivateRelation
+{
+  PrivateRelation( const ListExpr typeInfo ):
+    noTuples( 0 ),
+    tupleType( nl->Second( typeInfo ) ),
+    tupleFile( false, 0 ),
+    lobFile( false, 0 ) 
+    {
+      assert( tupleFile.Create() );
+      assert( lobFile.Create() );
+    }
+/*
+The first constructor. Creates an empty relation.
+
+*/
+  PrivateRelation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
+    noTuples( relDesc.noTuples ),
+    tupleType( nl->Second( nl->First( typeInfo ) ) ),
+    tupleFile( false, 0 ),
+    lobFile( false, 0 ) 
+    {
+      assert( tupleFile.Open( relDesc.tupleFileId ) );
+      assert( lobFile.Open( relDesc.lobFileId ) );
+    }
+/*
+The second constructor. Opens a previously created relation.
+
+*/
+  ~PrivateRelation()
   {
-    errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("TUPLE"), type));
-    return false;
+    assert( tupleFile.Close() );
+    assert( lobFile.Close() );
   }
-}
+/*
+The destuctor.
 
-void* CastTuple(void* addr)
-{
-  return ( 0 );
-}
+*/
+  int noTuples;
+/*
+Contains the number of tuples in the relation.
 
-Word CreateTuple(int Size)
-{
-  CcTuple* tup;
-  tup = new CcTuple();
-  return (SetWord(tup));
-}
+*/
+  TupleType tupleType;
+/*
+Stores the tuple type for every tuple of this relation.
 
-Word TupleInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
+*/
+  SmiRecordFile tupleFile;
+/*
+The file to store tuples.
 
-ListExpr TupleOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
+*/
+  SmiRecordFile lobFile;
+/*
+The file to store FLOBs
 
-Word TupleValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word TupleValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr RelProp ()
-{
-  return (nl->TwoElemList(nl->OneElemList(nl->SymbolAtom("TUPLE")),
-          nl->SymbolAtom("REL")));
-}
-
-TupleAttributesInfo* CcRel::globreltai = 0;
-
-CcRel::CcRel () 
-{
-  NoOfTuples = 0; 
-  reltai = 0;
-  TupleList = new CTable<CcTuple*>(100);
-  recFile = new SmiRecordFile(false);
-  recFile->Create("TEMPRECFILE");
-  recFileId = recFile->GetFileId();
-  //bool openrecfile = recFile->Open(recFileId, "RECFILE");
-  
-  lobFile = new SmiRecordFile(false);
-  //bool openlobfile = lobFile->Open("LOBFILE");
-  lobFile->Create("TEMPLOBFILE");
-  lobFileId = lobFile->GetFileId();
-  ccRelsCreated++;
+*/
 };
 
-CcRel::CcRel ( ListExpr ti, ListExpr v ) 
+/*
+4.2 Implementation of the class ~Relation~
+
+This class implements the persistent representation of the type constructor ~rel~.
+A relation is stored into two files: one for the tuples and another for the large
+objects (FLOBs) of the tuples.
+
+*/
+Relation::Relation( const ListExpr typeInfo ):
+  privateRelation( new PrivateRelation( typeInfo ) )
+  {}
+
+Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc ):
+  privateRelation( new PrivateRelation( typeInfo, relDesc ) )
+  {}
+
+Relation::~Relation()
 {
-  NoOfTuples = 0; 
-  reltai = 0;
-  globreltai = new TupleAttributesInfo(ti, v);
-  TupleList = new CTable<CcTuple*>(100);
-  recFile = new SmiRecordFile(false);
-  recFile->Create("RECFILE");
-  recFileId = recFile->GetFileId();
-  //bool openrecfile = recFile->Open(recFileId, "RECFILE");
-  
-  lobFile = new SmiRecordFile(false);
-  //bool openlobfile = lobFile->Open("LOBFILE");
-  lobFile->Create("LOBFILE");
-  lobFileId = lobFile->GetFileId();
-  ccRelsCreated++;
+  delete privateRelation;
+}
+
+bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value )
+{
+  SmiFileId tupleId, lobId;
+  int noTuples;
+  valueRecord.Read( &tupleId, sizeof( SmiFileId ), 0 );
+  valueRecord.Read( &lobId, sizeof( SmiFileId ), sizeof( SmiFileId ) );
+  valueRecord.Read( &noTuples, sizeof( int ), 2 * sizeof( SmiFileId ) );
+
+  RelationDescriptor relDesc( noTuples, tupleId, lobId );
+  value = new Relation( typeInfo, relDesc );
+
+  return true;
+}
+
+bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
+{
+  SmiFileId tupleId = privateRelation->tupleFile.GetFileId(), 
+            lobId = privateRelation->lobFile.GetFileId();
+  valueRecord.Write( &tupleId, sizeof( SmiFileId ), 0 );
+  valueRecord.Write( &lobId, sizeof( SmiFileId ), sizeof( SmiFileId ) );
+  valueRecord.Write( &(privateRelation->noTuples), sizeof( int ), 2 * sizeof( SmiFileId ) );
+
+  return true;
+}
+
+void Relation::Close()
+{
+  delete this;
+}
+
+void Relation::Delete()
+{
+  privateRelation->tupleFile.Drop();
+  privateRelation->lobFile.Drop();
+  delete this;
+}
+
+void Relation::AppendTuple( Tuple *tuple )
+{
+  tuple->GetPrivateTuple()->tmTuple->SaveTo( &privateRelation->tupleFile, &privateRelation->lobFile );
+  privateRelation->noTuples += 1;
+}
+
+//Tuple* Relation::GetTuple( const TupleId& tupleId ) const
+//{
+//  Tuple *t = new Tuple( *privateRelation->tupleType );
+//  t->GetPrivateTuple()->tmTuple = new TMTuple( &privateRelation->tupleFile, tupleId.value, 
+//                                               &privateRelation->flobFile, *privateRelation->tupleType, 
+//                                               SmiFile::ReadOnly );
+//  return t;
+//}
+
+void Relation::Clear()
+{
+  privateRelation->noTuples = 0;
+  assert( privateRelation->tupleFile.Drop() );
+  assert( privateRelation->tupleFile.Create() );
+  assert( privateRelation->lobFile.Drop() );
+  assert( privateRelation->lobFile.Create() );
+}
+
+const int Relation::GetNoTuples() const
+{
+  return privateRelation->noTuples;
+}
+
+RelationIterator *Relation::MakeScan() const
+{
+  return new RelationIterator( *this );
+}
+
+/*
+4.3 Struct ~PrivateRelationIterator~
+
+This struct contains the private attributes of the class ~RelationIterator~.
+
+*/
+struct PrivateRelationIterator
+{
+  PrivateRelationIterator( const Relation& rel ):
+    iterator(),
+    relation( rel )
+    {
+      assert( rel.privateRelation->tupleFile.IsOpen() );
+      rel.privateRelation->tupleFile.SelectAll( iterator ); 
+    }
+/*
+The constructor.
+
+*/
+  SmiRecordFileIterator iterator;
+/*
+The iterator.
+
+*/
+  const Relation& relation;
+/*
+A reference to the relation.
+
+*/
 };
 
-CcRel::CcRel ( int rfi, int lfi, TupleAttributesInfo* t, int noTuples )
+/*
+4.4 Implementation of the class ~RelationIterator~
+
+This class is used for scanning (iterating through) relations.
+
+*/
+RelationIterator::RelationIterator( const Relation& relation ):
+  privateRelationIterator( new PrivateRelationIterator( relation ) )
+  {}
+
+RelationIterator::~RelationIterator()
 {
-  NoOfTuples = noTuples; 
-  reltai = t;
-  //TupleList = new CTable<CcTuple*>(100);
-  recFile = new SmiRecordFile(false);
-  recFile->Open(rfi, "RECFILE");
-  recFileId = rfi;
-  lobFile = new SmiRecordFile(false);
-  lobFile->Open(lfi, "LOBFILE");
-  lobFileId = lfi;
-  ccRelsCreated++;
-};
-
-CcRel::~CcRel () 
-{ 
-  //delete TupleList;
-  //recFile->Close();
-  //delete recFile;
-  //lobFile->Close();
-  //delete lobFile;
-
-  //delete recFile;
-  //delete lobFile;
-  delete reltai;
-  ccRelsDeleted++; 
-};
-
-TupleAttributesInfo* CcRel::GetTupleAttributesInfo ()
-{
-  return reltai;
+  delete privateRelationIterator;
 }
 
-void CcRel::SetRelTupleAttributesInfo ( TupleAttributesInfo* ta )
+/*
+Tuple* RelationIterator::GetNextTuple() 
 {
-  reltai = ta;
+  if( privateRelationIterator->lastTuple != 0 )
+  {
+    delete privateRelationIterator->lastTuple;
+    privateRelationIterator->lastTuple = 0;
+  }
+
+  SmiRecord record;
+  SmiRecordId recordId;
+  privateRelationIterator->iterator.Next( recordId, record );
+
+  privateRelationIterator->lastTuple = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
+  delete privateRelationIterator->lastTuple->GetPrivateTuple()->tmTuple;
+  privateRelationIterator->lastTuple->GetPrivateTuple()->tmTuple = 
+    new TMTuple( &privateRelationIterator->relation.privateRelation->tupleFile,
+                 recordId, record,
+                 &privateRelationIterator->relation.privateRelation->lobFile,
+                 privateRelationIterator->relation.privateRelation->tupleType );
+  return privateRelationIterator->lastTuple;
 }
+*/
 
-bool CcRel::OpenRecFile ()
+Tuple* RelationIterator::GetNextTuple() 
 {
-  return recFile->Open ( lobFileId, "RECFILE" );
-}
+  SmiRecord record;
+  SmiRecordId recordId;
+  privateRelationIterator->iterator.Next( recordId, record );
+  if( EndOfScan() )
+    return 0; 
 
-bool CcRel::OpenLobFile ()
-{
-  return lobFile->Open ( recFileId, "LOBFILE");
-}
-
-void CcRel::CloseRecFile ()
-{
-  recFile->Close();
-}
-
-void CcRel::CloseLobFile ()
-{
-  lobFile->Close();
-}
-
-void CcRel::AppendTuple (CcTuple* t)
-{
-  //TupleList->Add(t);
-  (t->GetTuple())->SaveTo(recFile, lobFile);
-  //delete t;
-  //t = 0;
-  NoOfTuples++;
-};
-
-SmiRecordFile* CcRel::GetRecFile() { return recFile; };
-int CcRel::GetRecFileId() { return recFileId; };
-SmiRecordFile* CcRel::GetLobFile() { return lobFile; };
-int CcRel::GetLobFileId() { return lobFileId; };
-
-CcRelIT* CcRel::MakeNewScan()
-{ 
-  CcRelIT* result; 
-  result = new CcRelIT();
-
-  SmiRecordFileIterator* it = new SmiRecordFileIterator();
-  (this->GetRecFile())->SelectAll(*it, SmiFile::ReadOnly);
-  it->Next(result->actualrecid, result->actualrec);
-  result->r = this;
-  result->rs = it;
+  Tuple *result = new Tuple( privateRelationIterator->relation.privateRelation->tupleType );
+  delete result->GetPrivateTuple()->tmTuple;
+  result->GetPrivateTuple()->tmTuple = 
+    new TMTuple( &privateRelationIterator->relation.privateRelation->tupleFile,
+                 recordId, record,
+                 &privateRelationIterator->relation.privateRelation->lobFile,
+                 privateRelationIterator->relation.privateRelation->tupleType );
   return result;
 }
 
-PrefetchingRelIterator* CcRel::MakeNewPrefetchedScan()
+const bool RelationIterator::EndOfScan() 
 {
-  return new PrefetchingRelIterator(this);
-}
-
-CcTuple* CcRel::GetTupleById(SmiRecordId id)
-{
-  return (*TupleList)[id];
-}
-
-void CcRel::SetNoTuples (int notuples) 
-{
-  NoOfTuples = notuples;
-};
-
-int CcRel::GetNoTuples () 
-{
-  return NoOfTuples;
-};
-
-
-
-//CcRelIT::CcRelIT (CTable<CcTuple*>::Iterator rs, CcRel* r)
-//{
-  //this->rs = rs;
-  //this->r = r;
-//}
-CcRelIT::CcRelIT ()
-{
-  this->rs = 0;
-  this->r = 0;
-  this->actualrecid = 0;
-  ccRelITsCreated++;
-}
-
-CcRelIT::CcRelIT (SmiRecordFileIterator* rs, CcRel* r, SmiRecordId recid,
-                    SmiRecord rec)
-{
-  //(r->GetRecFile())->SelectAll(*rs, SmiFile::ReadOnly);
-  this->rs = rs;
-  this->r = r;
-  this->actualrec = rec;
-  this->actualrecid = recid;
-  ccRelITsCreated++;
-}
-
-CcRelIT::~CcRelIT () 
-{ 
-  if (rs) { delete rs; rs = 0; };
-  ccRelITsDeleted++;
-  //if (r) { delete r; r = 0; };
-};
-
-CcRel* CcRelIT::GetRel()
-{
-  return r;
-}
-
-CcTuple* CcRelIT::GetTuple() 
-{
-  SmiRecord rec;
-  Tuple* tuple;
-  
-  if ( rs->EndOfScan() ) return 0;
-  
-  else
-  {
-    tuple = new Tuple (r->GetRecFile(), this->actualrecid, r->GetLobFile(),
-      ((r->GetTupleAttributesInfo())->GetTupleTypeInfo()), SmiFile::ReadOnly);
-      //tai->GetTupleTypeInfo(), SmiFile::ReadOnly);
-
-      
-    return ( new CcTuple( tuple, tuple->GetAttrNum(), 
-      //(r->GetTupleAttributesInfo())->GetAttributesTypeInfo(),
-      CloneAttributesTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()),
-      CloneTupleTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()))  );
-      //(r->GetTupleAttributesInfo())->GetTupleTypeInfo()) );
-      //tai->GetAttributesTypeInfo()) );
-  }
-};
-
-void CcRelIT::Next() 
-{ 
-  if ( rs->Next(actualrecid, actualrec) )
-  {
-  }  
-};
-
-//bool CcRelIT::EndOfScan() { return ( rs == (r->TupleList)->End() ); };
-bool CcRelIT::EndOfScan() 
-{
-  return ( rs->EndOfScan() ); 
-};
-
-CcRelIT& CcRelIT::operator=(CcRelIT& right)
-{
-  rs = right.rs;
-  r = right.r;
-  return (*this);
-
-};
-
-CcTuple* CcRelIT::GetNextTuple()
-{
-  //SmiRecord rec;
-  //SmiRecordId recId;
-  Tuple* tuple;
-  
-  if ( rs->EndOfScan() ) return 0;
-  
-  //if ( rs->Next(recId, rec) )
-  else
-  {
-    tuple = new Tuple (r->GetRecFile(), this->actualrecid, r->GetLobFile(),
-      (r->GetTupleAttributesInfo())->GetTupleTypeInfo(), SmiFile::ReadOnly);
-    //tuple = new Tuple (r->GetRecFile(), recId, r->GetLobFile(),
-      //tai->GetTupleAttributesInfo(), SmiFile::ReadOnly);
-
-    //cout << " Contents of GetNextTuple() " << *tuple << endl;
-    rs->Next(this->actualrecid, this->actualrec);
-    /*if ( rs->Next(recId, rec) )
-    {
-      this->actualrec = rec;
-      this->actualrecid = recId;
-    }*/
-    return ( new CcTuple( tuple, tuple->GetAttrNum(), 
-      //(r->GetTupleAttributesInfo())->GetAttributesTypeInfo(),
-      CloneAttributesTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()),
-      CloneTupleTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()))  );
-      //(r->GetTupleAttributesInfo())->GetTupleTypeInfo()) );
-  }
-  //else return 0;
-}
-
-PrefetchingRelIterator::PrefetchingRelIterator(CcRel* r)
-{
-  SmiRecordFile* file;
-  
-  this->r = r;
-  file = r->GetRecFile();
-  iter = file->SelectAllPrefetched();
-};
-
-PrefetchingRelIterator::~PrefetchingRelIterator()
-{
-  delete iter;
-};
-  
-CcRel* PrefetchingRelIterator::GetRel()
-{
-  return r;
-};
-
-CcTuple* PrefetchingRelIterator::GetCurrentTuple()
-{
-  Tuple* tuple;
-  
-  TupleAttributesInfo* tai = r->GetTupleAttributesInfo();
-  TupleAttributes* attributes = tai->GetTupleTypeInfo();
-  
-  SmiRecordFile* recfile = r->GetRecFile();
-  SmiRecordFile* lobfile = r->GetLobFile();
-  
-  tuple = new Tuple(recfile, this->iter, lobfile, attributes);
-  
-  return 
-    new CcTuple(tuple, tuple->GetAttrNum(), 
-      CloneAttributesTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()),
-      CloneTupleTypeInfo( r->GetTupleAttributesInfo(), tuple->GetAttrNum()));
-};
-
-bool PrefetchingRelIterator::Next()
-{
-  if(iter == 0)
-  {
-    return false;
-  }
-  else
-  {
-    return iter->Next();
-  };
-};
-
-ListExpr OutRel(ListExpr typeInfo, Word  value)
-{
-  CcTuple* t;
-  ListExpr l, lastElem, tlist, TupleTypeInfo;
-  
-  cout << "OutRel " << endl;
-  
-  CcRel* r = (CcRel*)(value.addr);
-
-  CcRelIT* rit = r->MakeNewScan();
-  l = nl->TheEmptyList();
-
-  while ( (t = rit->GetNextTuple()) != 0 )
-  {
-    TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
-	  nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
-    tlist = OutTuple(TupleTypeInfo, SetWord(t));
-    
-    #ifdef RELALG_PERSISTENT
-    
-    delete t;
-    
-    #endif
-    
-    if (l == nl->TheEmptyList())
-    {
-      l = nl->Cons(tlist, nl->TheEmptyList());
-      lastElem = l;
-    }
-    else
-      lastElem = nl->Append(lastElem, tlist);
-    //nl->WriteToFile("/dev/tty", l);
-  }
-  
-  //SmiRecordFile* srf = r->GetRecFile();
-  //cout << srf->GetContext() << endl;
-  if ( ((r->GetRecFile())->GetContext()) == "TEMPRECFILE" )
-  {    
-    CloseDeleteRecFile(r);
-    CloseDeleteLobFile(r);
-    cout << "RelsCreatedOutRel : " << ccRelsCreated << endl;
-    cout << "RelsDeletedOutRel : " << ccRelsDeleted << endl;
-    //delete r;
-
-  }
-  else
-  {
-    CloseRecFile(r);
-    CloseLobFile(r);
-    cout << "RelsCreatedOutRel : " << ccRelsCreated << endl;
-    cout << "RelsDeletedOutRel : " << ccRelsDeleted << endl;
-    delete r;
-  }
-    
-  //if (r) { delete r; r = 0; }
-  delete rit;
-  //delete tai;
-  //tai = 0;
-  //l = nl->OneElemList(nl->FiveElemList(nl->StringAtom("Berlin"),
-    //nl->IntAtom(1859000),nl->IntAtom(1000),nl->StringAtom("030"),nl->StringAtom("B")));
-  //delete r;
-  //nl->WriteToFile("/dev/tty",l);
-  return l;
-}
-
-Word CreateRel(int Size)
-{
-  cout << "CreateRel " << endl;
-  CcRel* rel = new CcRel();
-  return (SetWord(rel));
-}
-
-/*void DeleteRel(Word& w)
-{
-  cout << "DeleteRel " << endl;
-  if(w.addr == 0)
-  {
-    return;
-  }
-  
-  #ifndef RELALG_PERSISTENT
-
-  CcTuple* t;
-  CcRel* r;
-  Word v;
-
-  r = (CcRel*)w.addr;
-  cout << "DeleteRel " << endl;
-  CcRelIT* rit = r->MakeNewScan();
-  while ( (t = rit->GetNextTuple()) != 0 )
-  {
-    v = SetWord(t);
-    DeleteTuple(v);
-  }
-  delete rit;
-  delete r;
-  
-  #else
-  
-  CcRel* r;
-
-  r = (CcRel*)w.addr;
-  SmiRecordFile* rf = r->GetRecFile();
-  rf->Close();
-  delete rf;
-  SmiRecordFile* lf = r->GetLobFile();
-  lf->Close();
-  delete lf;
-
-  delete r;
-  
-  #endif  
-}*/
-
-bool CheckRel(ListExpr type, ListExpr& errorInfo)
-{
-  AlgebraManager* algMgr;
-
-  if ((nl->ListLength(type) == 2) && nl->IsEqual(nl->First(type), "rel"))
-  {
-    algMgr = SecondoSystem::GetAlgebraManager();
-    return (algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo));
-  }
-  else
-  {
-    errorInfo = nl->Append(errorInfo,
-      nl->ThreeElemList(nl->IntAtom(60), nl->SymbolAtom("REL"), type));
-    return false;
-  }
-}
-
-void* CastRel(void* addr)
-{
-  return ( 0 );
-}
-
-Word RelInModel( ListExpr typeExpr, ListExpr list, int objNo )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-ListExpr RelOutModel( ListExpr typeExpr, Word model )
-{
-  return (0);
-}
-
-Word RelValueToModel( ListExpr typeExpr, Word value )
-{
-  return (SetWord( Address( 0 ) ));
-}
-
-Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
-                       const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = true;
-  return (SetWord( Address( 0 ) ));
+  return privateRelationIterator->iterator.EndOfScan();
 }
 
 #endif
-

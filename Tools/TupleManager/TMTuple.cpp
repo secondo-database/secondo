@@ -23,7 +23,7 @@ For an overview see also Tuple.h.
 */
 
 #include <iostream>
-#include "Tuple.h"
+#include "TMTuple.h"
 #include "SecondoSystem.h"
 
 /*
@@ -67,7 +67,7 @@ For an overview see also Tuple.h.
 3.1 constructor of Tuple::AttribInfo. 
 
 */
-Tuple::AttributeInfo::AttributeInfo(){
+TMTuple::AttributeInfo::AttributeInfo(){
   destruct = changed = false; 
   prev = 0; next = 0;
   value = 0; size = 0;
@@ -76,12 +76,12 @@ Tuple::AttributeInfo::AttributeInfo(){
 
 /*
  
-3.2 Tuple::AttributeInfo::incRefCount
+3.2 TMTuple::AttributeInfo::incRefCount
 
 increase RefCount in all AttributeInfos referring to the TupleElement value 
 
 */
-void Tuple::AttributeInfo::incRefCount() {
+void TMTuple::AttributeInfo::incRefCount() {
   AttributeInfo *ai = this;
   
   if (ai->next != 0) {
@@ -103,13 +103,13 @@ void Tuple::AttributeInfo::incRefCount() {
 
 /*
 
-3.3 Tuple::AttributeInfo::decRefCount
+3.3 TMTuple::AttributeInfo::decRefCount
  
 decrease RefCount in all AttributeInfos
 referring to the TupleElement value 
 
 */
-void Tuple::AttributeInfo::decRefCount() {
+void TMTuple::AttributeInfo::decRefCount() {
   AttributeInfo *ai = this;
   
   if (ai->next != 0) {
@@ -132,13 +132,13 @@ void Tuple::AttributeInfo::decRefCount() {
 
 /*
  
-3.4 Tuple::AttributeInfo::deleteValue
+3.4 TMTuple::AttributeInfo::deleteValue
 
 delete value in all AttributeInfos referring 
 to the TupleElement value. 
 
 */
-void Tuple::AttributeInfo::deleteValue() {
+void TMTuple::AttributeInfo::deleteValue() {
   AttributeInfo *ai = this;
   // delete this value
   delete value;
@@ -163,23 +163,7 @@ void Tuple::AttributeInfo::deleteValue() {
 
 /*
 
-4 TupleAttributes
-
-constructor. Sets all member variables, including size. 
-
-*/
-TupleAttributes::TupleAttributes(int noAttrs, AttributeType *attrTypes) {
-  totalNumber = noAttrs;
-  type = attrTypes;
-  totalSize = 0;
-  for (int i = 0; i < noAttrs; i++) {
-    totalSize = totalSize + attrTypes[i].size;
-  }
-}
-
-/*
-
-5 Tuple
+5 TMTuple
 
 */
 
@@ -191,14 +175,15 @@ This method is used by all constructors of the class tuple.
 It initializes all members of a tuple.
 	
 */
-void Tuple::Init(const TupleAttributes *attributes) {
+void TMTuple::Init(const TupleType& tupleType) 
+{
   diskTupleId = 0;
   lobFile = 0;
   recFile = 0;
   attribInfo = 0;
   state = Fresh;
-  attrNum = attributes->totalNumber;
-  memorySize = attributes->totalSize;
+  attrNum = tupleType.GetNoAttributes();
+  memorySize = tupleType.GetTotalSize();
   extensionSize = 0;
   error = false;
   
@@ -206,13 +191,13 @@ void Tuple::Init(const TupleAttributes *attributes) {
   algM = SecondoSystem::GetAlgebraManager();
 
   // allocate memory for tuple representation
-  memoryTuple = (char *)malloc(attributes->totalSize);
+  memoryTuple = (char *)malloc(memorySize);
   extensionTuple = 0;
   
   // copy attribute info
   attribInfo = new AttributeInfo[attrNum];
   for (int i = 0; i < attrNum; i++) {
-    int actSize = attributes->type[i].size;
+    int actSize = tupleType.GetAttributeType(i).size;
     attribInfo[i].size = actSize;
     attribInfo[i].value = (TupleElement *)NULL;
     attribInfo[i].destruct = false;
@@ -222,14 +207,15 @@ void Tuple::Init(const TupleAttributes *attributes) {
 
 /*
 
-5.2 Constructor of the class Tuple. 
+5.2 Constructor of the class TMTuple. 
 
 Creates a fresh tuple.
 
 */
-Tuple::Tuple(const TupleAttributes *attributes) {
+TMTuple::TMTuple(const TupleType& tupleType) 
+{
   // initialize member attributes.
-  Init(attributes);
+  Init(tupleType);
   
   // this tuple is not persistent yet.	
   state = Fresh;
@@ -237,16 +223,87 @@ Tuple::Tuple(const TupleAttributes *attributes) {
 
 /*
 
-5.3 Constructor of the class Tuple. 
+5.3 Constructor of the class TMTuple. 
 
 Creates a solid tuple and
 reads its data into memory.
 
 */
-Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
-	     const TupleAttributes *attributes, SmiFile::AccessType mode) {
+TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecord& record, 
+                 SmiRecordFile *lobfile, const TupleType& tupleType)
+{
   // initialize member attributes.
-  Init(attributes);
+  Init(tupleType);
+
+  diskTupleId = rid;
+  recFile = recfile;
+  lobFile = lobfile;
+
+  // read tuple header and memory tuple from disk
+  bool ok = true;
+  diskTuple = record;
+  TupleHeader th = {0};
+  char *buf = (char *)malloc(sizeof(TupleHeader));
+  ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
+  ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
+  memcpy(&(th.size), buf, sizeof(int));
+  free(buf);
+
+  if (ok == false) {
+    error = true;
+    return;
+  }
+
+  state = SolidRead;
+
+  // read attribute values from memoryTuple.
+  char *valuePtr = memoryTuple;
+  for (int i = 0; i < attrNum; i++) {
+    int algId = tupleType.GetAttributeType(i).algId;
+    int typeId = tupleType.GetAttributeType(i).typeId;
+    attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    valuePtr = valuePtr + tupleType.GetAttributeType(i).size;
+  }
+
+  if (th.size > 0) {
+    // Determine the size of FLOB data stored in lobFile
+    FLOB *tmpFLOB;
+    extensionSize = 0;
+
+    for (int i = 0; i < attrNum; i++) {
+      for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+        tmpFLOB = attribInfo[i].value->GetFLOB(j);
+        extensionSize = extensionSize + tmpFLOB->GetSize();
+      }
+    }
+
+    extensionTuple = 0;
+    // move FLOB data to extension tuple if exists.
+    if (extensionSize > 0) {
+      extensionTuple = (char *)malloc(extensionSize);
+      ok = diskTuple.Read(extensionTuple, extensionSize, sizeof(TupleHeader) + memorySize) && ok;
+
+      char *extensionPtr = extensionTuple;
+      for (int i = 0; i < attrNum; i++) {
+        for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
+          tmpFLOB = attribInfo[i].value->GetFLOB(j);
+          if (!tmpFLOB->IsLob()) {
+            extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+          }
+        }
+      }
+    }
+  }
+
+  if (ok == false) error = true;
+}
+
+
+TMTuple::TMTuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
+	     const TupleType& tupleType, SmiFile::AccessType mode) 
+{
+  // initialize member attributes.
+  Init(tupleType);
   
   diskTupleId = rid;
   recFile = recfile;
@@ -275,11 +332,10 @@ Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
   // read attribute values from memoryTuple.
   char *valuePtr = memoryTuple;
   for (int i = 0; i < attrNum; i++) {
-    int algId = attributes->type[i].algId;
-    int typeId = attributes->type[i].typeId;
+    int algId = tupleType.GetAttributeType(i).algId;
+    int typeId = tupleType.GetAttributeType(i).typeId;
     attribInfo[i].value = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
-    attribInfo[i].value->SetInsideTuple();
-    valuePtr = valuePtr + attributes->type[i].size;
+    valuePtr = valuePtr + tupleType.GetAttributeType(i).size;
   }
   
   if (th.size > 0) {
@@ -317,12 +373,12 @@ Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
 
 /*
 
-5.4 Destructor of class Tuple.
+5.4 Destructor of class TMTuple.
 
 previously called Close. 
 
 */
-Tuple::~Tuple() {
+TMTuple::~TMTuple() {
   if (memoryTuple != 0) free(memoryTuple);
   
   // delete attributes
@@ -371,7 +427,7 @@ Tuple::~Tuple() {
 Determine the size of FLOB data stored in lobFile.
 
 */
-int Tuple::CalcSizeOfFLOBData() {
+int TMTuple::CalcSizeOfFLOBData() {
   FLOB *tmpFLOB;
   int result = 0;
   for (int i = 0; i < attrNum; i++) {
@@ -393,7 +449,7 @@ int Tuple::CalcSizeOfFLOBData() {
 move FLOB data to extension tuple. 
 
 */
-char *Tuple::MoveFLOBDataToExtensionTuple() {
+char *TMTuple::MoveFLOBDataToExtensionTuple() {
   char *result = (char *)malloc(extensionSize);
   char *extensionPtr = result;
   FLOB *tmpFLOB;
@@ -416,10 +472,10 @@ char *Tuple::MoveFLOBDataToExtensionTuple() {
 move external attribue values to memory tuple 
 
 */
-void Tuple::MoveExternalAttributeToMemoryTuple() {
+void TMTuple::MoveExternalAttributeToMemoryTuple() {
   int offset = 0;
   for (int i = 0; i < attrNum; i++) {
-    memcpy(&memoryTuple[offset], attribInfo[i].value->GetRootRecord(), attribInfo[i].size);
+    memcpy(&memoryTuple[offset], attribInfo[i].value, attribInfo[i].size);
     attribInfo[i].changed = false;
     offset = offset + attribInfo[i].size;
   }
@@ -434,7 +490,7 @@ saves a *fresh* tuple to file tuplefile. FLOBs which are larger than
 the thresholdsize are stored separately to file lobfile. 
 
 */
-bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
+bool TMTuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   if (error == true) return false;
   
   lobFile = lobfile;
@@ -477,7 +533,7 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
 saves a *solid* tuple to its files.
 
 */
-bool Tuple::Save() {
+bool TMTuple::Save() {
   if (error == true) return false;
 	
   // to make fresh tuple persistent use SaveTo instead.
@@ -527,7 +583,7 @@ that tuple record.
 
 
 */
-bool Tuple::Destroy() {
+bool TMTuple::Destroy() {
   if (error == true) return false;
   bool rc = recFile->DeleteRecord(diskTupleId);
   diskTupleId = 0;
@@ -551,7 +607,7 @@ separately by the user. For an automatic deletion of ~value~ during
 deletion of tuple see DelPut.
   
 */
-bool Tuple::Put(int attrno, TupleElement *value) {
+bool TMTuple::Put(int attrno, TupleElement *value) {
   if (error == true) return false;
   bool succ = false;
   if ((attrno < attrNum) && (attrno >= 0)) {
@@ -563,7 +619,6 @@ bool Tuple::Put(int attrno, TupleElement *value) {
       attribInfo[attrno].deleteValue();
     }
     attribInfo[attrno].value = value;
-    attribInfo[attrno].value->SetInsideTuple();
     attribInfo[attrno].incRefCount();
     attribInfo[attrno].destruct = false;
     attribInfo[attrno].prev = 0;
@@ -591,7 +646,7 @@ when executing the ~Close~ operation.
 to be changed as the close operation is now the destructor.
 
 */
-bool Tuple::DelPut(int attrno, TupleElement *value) {
+bool TMTuple::DelPut(int attrno, TupleElement *value) {
   if (error == true) return false;
   bool succ = false;
   if ( (attrno < attrNum) && (attrno >= 0) ) {
@@ -603,7 +658,6 @@ bool Tuple::DelPut(int attrno, TupleElement *value) {
       attribInfo[attrno].deleteValue();
     }
     attribInfo[attrno].value = value;
-    attribInfo[attrno].value->SetInsideTuple();
     attribInfo[attrno].destruct = true;
     attribInfo[attrno].prev = 0;
     attribInfo[attrno].next = 0;
@@ -624,7 +678,7 @@ This can be used to assign attribute values belonging to other
 tuples or data structures.
   
 */
-bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
+bool TMTuple::AttrPut(int attrno_to, TMTuple *tup, int attrno_from) {
   if (error == true) return false;
   bool succ = false;
   	if (
@@ -633,7 +687,7 @@ bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 	    (attrno_from < tup->attrNum) && 
 	    (attrno_from >= 0)) {
 	  // attribute number of this tuple and 
-	  // the attribute number of Tuple *tup are correct.
+	  // the attribute number of TMTuple *tup are correct.
 	  if ((attribInfo[attrno_to].destruct == true) && 
 	      (attribInfo[attrno_to].refCount == 0)) {
 	    // the old value of this tuple was put by DelPut before,
@@ -668,7 +722,7 @@ bool Tuple::AttrPut(int attrno_to, Tuple *tup, int attrno_from) {
 returns the ith element of a tuple.
 
 */
-TupleElement* Tuple::Get(int attrno) {
+TupleElement* TMTuple::Get(int attrno) {
   return ((attrno >= 0 && attrno < attrNum && error == false) ? attribInfo[attrno].value : 0);
 }
 
@@ -679,7 +733,7 @@ destructs the ith element of a tuple.
 
 */
 
-bool Tuple::destruct(int attrno) {
+bool TMTuple::destruct(int attrno) {
   return ((attrno >= 0 && attrno < attrNum) ? attribInfo[attrno].destruct : false);
 }
 
@@ -688,7 +742,7 @@ bool Tuple::destruct(int attrno) {
 5.16 GetAttrNum
 
 */
-int Tuple::GetAttrNum(){ 
+int TMTuple::GetAttrNum(){ 
   return attrNum;
 }
 
@@ -697,7 +751,7 @@ int Tuple::GetAttrNum(){
 5.17 GetSize
 
 */
-int Tuple::GetSize() {
+int TMTuple::GetSize() {
   return memorySize; 
 };
 
@@ -705,7 +759,7 @@ int Tuple::GetSize() {
 5.18 Print
 
 */
-ostream &Tuple::Print(ostream &os) {
+ostream &TMTuple::Print(ostream &os) {
   os << "(";
   
   if (error == true) {
@@ -724,7 +778,7 @@ ostream &Tuple::Print(ostream &os) {
 5.19 operator<<
 
 */
-ostream& operator<< (ostream &os, Tuple &tup) {
+ostream& operator<< (ostream &os, TMTuple &tup) {
   return tup.Print(os);
 }
 
