@@ -1521,9 +1521,10 @@ changed shortly.
 cost(product(X, Y), _, S, C) :-
   cost(X, 1, SizeX, CostX),
   cost(Y, 1, SizeY, CostY),
-  productTC(A),
+  productTC(A, B),
   S is SizeX * SizeY,
-  C is CostX + SizeX * CostY + S * A.
+  C is CostX + CostY + SizeY * B + S * A.
+
 
 cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
   cost(Rel, 1, RelSize, _),
