@@ -1368,7 +1368,12 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
         SmiRecord vRec;
         if ( objValueFile.SelectRecord( valueRecId, vRec ) )
         {
-          am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeExprString, value );
+          ListExpr typeExpr, typeInfo;
+          nl->ReadFromString( typeExprString, typeExpr );  
+          typeInfo = NumericType( typeExpr );
+          am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeInfo, value );
+          nl->Destroy( typeInfo );
+          nl->Destroy( typeExpr );
         }
       }
       else
@@ -1463,7 +1468,12 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
         SmiRecord vRec;
         if ( objValueFile.SelectRecord( valueRecId, vRec ) )
         {
-          am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeExprString, value );
+          ListExpr typeExpr, typeInfo;
+          nl->ReadFromString( typeExprString, typeExpr );  
+          typeInfo = NumericType( typeExpr );
+          am->PersistValue( algebraId, typeId, ReadFrom, vRec, typeInfo, value );
+          nl->Destroy( typeInfo );
+          nl->Destroy( typeExpr );
         }
       }
       else
@@ -1475,7 +1485,10 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
         SmiRecord mRec;
         if ( objModelFile.SelectRecord( modelRecId, mRec ) )
         {
-          am->PersistModel( algebraId, typeId, ReadFrom, mRec, typeExprString, model );
+          ListExpr typeExpr;
+          nl->ReadFromString( typeExprString, typeExpr );  
+          am->PersistModel( algebraId, typeId, ReadFrom, mRec, typeExpr, model );
+          nl->Destroy( typeExpr );
         }
       }
       ok = true;
@@ -2025,9 +2038,14 @@ SecondoCatalog::CleanUp( const bool revert )
               ok = objValueFile.AppendRecord( oPos->second.valueRecordId, vRec );
               if ( ok )
               {
+                ListExpr typeExpr, typeInfo;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
+                typeInfo = NumericType( typeExpr );
                 am->PersistValue( oPos->second.algebraId, oPos->second.typeId,
                                   WriteTo, vRec,
-                                  oPos->second.typeExpr, oPos->second.value );
+                                  typeInfo, oPos->second.value );
+                nl->Destroy( typeInfo );
+                nl->Destroy( typeExpr );
               }
             }
             oRec.Write( &oPos->second.valueRecordId, sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
@@ -2035,12 +2053,15 @@ SecondoCatalog::CleanUp( const bool revert )
             if ( oPos->second.model.addr != 0 )
             {
               SmiRecord mRec;
-              ok = objValueFile.AppendRecord( oPos->second.modelRecordId, mRec );
+              ok = objModelFile.AppendRecord( oPos->second.modelRecordId, mRec );
               if ( ok )
               {
+                ListExpr typeExpr;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
                 am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
                                   WriteTo, mRec,
-                                  oPos->second.typeExpr, oPos->second.model );
+                                  typeExpr, oPos->second.model );
+                nl->Destroy( typeExpr );
               }
             }
             oRec.Write( &oPos->second.modelRecordId, sizeof( SmiRecordId ), CE_OBJS_MODEL_RECID );
@@ -2086,9 +2107,14 @@ SecondoCatalog::CleanUp( const bool revert )
               }
               if ( ok2 )
               {
+                ListExpr typeExpr, typeInfo;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
+                typeInfo = NumericType( typeExpr );
                 am->PersistValue( oPos->second.algebraId, oPos->second.typeId,
                                   WriteTo, vRec,
-                                  oPos->second.typeExpr, oPos->second.value );
+                                  typeInfo, oPos->second.value );
+                nl->Destroy( typeInfo );
+                nl->Destroy( typeExpr );
               }
             }
             oRec.Write( &oPos->second.valueRecordId, sizeof( int ), CE_OBJS_VALUE_RECID );
@@ -2106,9 +2132,12 @@ SecondoCatalog::CleanUp( const bool revert )
               }
               if ( ok2 )
               {
+                ListExpr typeExpr;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
                 am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
                                   WriteTo, mRec,
-                                  oPos->second.typeExpr, oPos->second.model );
+                                  typeExpr, oPos->second.model );
+                nl->Destroy( typeExpr );
               }
             }
             oRec.Write( &oPos->second.modelRecordId, sizeof( int ), CE_OBJS_MODEL_RECID );

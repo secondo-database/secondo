@@ -22,6 +22,8 @@
 
 May 2002 Ulrich Telle Port to C++
 
+August 2002 Ulrich Telle Added methods to set and get the current algebra level.
+
 This module implements those parts of the "Secondo"[3] catalog which
 are independent of the algebra level (descriptive or executable).
 
@@ -592,6 +594,7 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   queryProcessor = new QueryProcessor( nl, algebraManager );
   scDescriptive  = 0;
   scExecutable   = 0;
+  currentLevel   = UndefinedLevel;
   initialized    = false;
   testMode       = true; // At least during the programming and test phase
   secondoSystem  = this;
@@ -663,6 +666,18 @@ QueryProcessor*
 SecondoSystem::GetQueryProcessor()
 {
   return (secondoSystem->queryProcessor);
+}
+
+void
+SecondoSystem::SetAlgebraLevel( const AlgebraLevel level )
+{
+  secondoSystem->currentLevel = level;
+}
+
+AlgebraLevel
+SecondoSystem::GetAlgebraLevel()
+{
+  return (secondoSystem->currentLevel);
 }
 
 SecondoCatalog*

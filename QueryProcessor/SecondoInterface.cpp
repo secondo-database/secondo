@@ -22,6 +22,8 @@ SMI\_Commit(), respectively.
 
 April 2002 Ulrich Telle Port to C++
 
+August 2002 Ulrich Telle Set the current algebra level for SecondoSystem.
+
 \tableofcontents
 
 */
@@ -349,6 +351,7 @@ If value 0 is returned, the command was executed without error.
   {
     return;
   }
+  SecondoSystem::SetAlgebraLevel( level );
   length = nl->ListLength( list );
   if ( length > 1 )
   {
@@ -938,6 +941,7 @@ If value 0 is returned, the command was executed without error.
   {
     nl->WriteToFile( resultFileName, resultList );
   }
+  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
 }
 
 /*
@@ -947,11 +951,13 @@ If value 0 is returned, the command was executed without error.
 ListExpr
 SecondoInterface::NumericTypeExpr( const AlgebraLevel level, const ListExpr type )
 {
+  SecondoSystem::SetAlgebraLevel( level );
   ListExpr list = nl->TheEmptyList();
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
     list = SecondoSystem::GetCatalog( level )->NumericType( type );
   }
+  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (list);
 }
 
@@ -960,8 +966,11 @@ SecondoInterface::GetTypeId( const AlgebraLevel level,
                              const string& name,
                              int& algebraId, int& typeId )
 {
-  return (SecondoSystem::GetCatalog( level )->
-            GetTypeId( name, algebraId, typeId ));
+  SecondoSystem::SetAlgebraLevel( level );
+  bool ok = SecondoSystem::GetCatalog( level )->
+              GetTypeId( name, algebraId, typeId );
+  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
+  return (ok);
 }
 
 bool
@@ -970,6 +979,7 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
                                   int& algebraId, int& typeId )
 {
   bool ok = false;
+  SecondoSystem::SetAlgebraLevel( level );
   name = "";
   algebraId = 0;
   typeId = 0;
@@ -978,6 +988,7 @@ SecondoInterface::LookUpTypeExpr( const AlgebraLevel level,
     ok = SecondoSystem::GetCatalog( level )->
            LookUpTypeExpr( type, name, algebraId, typeId );
   }
+  SecondoSystem::SetAlgebraLevel( UndefinedLevel );
   return (ok);
 }
 

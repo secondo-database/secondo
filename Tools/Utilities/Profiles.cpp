@@ -8,6 +8,10 @@ using namespace std;
 #include <stdio.h>
 #include "Profiles.h"
 
+#ifdef SECONDO_WIN32
+#include <windows.h>
+#endif
+
 static bool              CmpSec( const string& line, const string& appName );
 static string::size_type CmpKey( const string& line, const string& keyName );
 

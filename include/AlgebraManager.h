@@ -42,6 +42,9 @@ and procedure ~InitKinds~.
 
 April 2002 Ulrich Telle Port to C++, complete revision
 
+August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
+using nested lists for the type instead of the string representation.
+
 1.1 Overview
  
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -238,7 +241,7 @@ Is the type of a selection function.
 
 typedef bool (*PersistFunction)( PersistDirection dir,
                                  SmiRecord& valueRecord,
-                                 const string& type,
+                                 const ListExpr typeExpr,
                                  Word& value );
 /*
 Is the type of a function for object value and model persistence.
@@ -632,11 +635,11 @@ Returns the address of the type casting function of type constructor
   bool PersistValue( const int algebraId, const int typeId,
                      const PersistDirection dir,
                      SmiRecord& valueRecord,
-                     const string& type, Word& value );
+                     const ListExpr typeInfo, Word& value );
   bool PersistModel( const int algebraId, const int typeId,
                      const PersistDirection dir,
                      SmiRecord& modelRecord,
-                     const string& type, Word& model );
+                     const ListExpr typeExpr, Word& model );
 /*
 Save or restore object or model values for objects of type as
 constructed by type constructor ~typeId~ of algebra ~algebraId~.

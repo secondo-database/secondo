@@ -142,15 +142,13 @@ Operator::CallCostMapping( ListExpr argList )
 bool
 TypeConstructor::DefaultPersistValue( const PersistDirection dir,
                                       SmiRecord& valueRecord,
-                                      const string& type, Word& value )
+                                      const ListExpr typeInfo,
+                                      Word& value )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
-  ListExpr typeExpr, valueList, typeInfo;
+  ListExpr valueList;
   string valueString;
   int valueLength;
-  
-  nl->ReadFromString( type, typeExpr );
-  typeInfo = SecondoSystem::GetCatalog(ExecutableLevel)->NumericType(typeExpr);
   
   if ( dir == ReadFrom )
   {
@@ -178,20 +176,19 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
     valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
   }
   nl->Destroy( valueList );
-  nl->Destroy( typeExpr );
   return (true);
 }
 
 bool
 TypeConstructor::DefaultPersistModel( const PersistDirection dir,
                                       SmiRecord& modelRecord,
-                                      const string& type, Word& model )
+                                      const ListExpr typeExpr,
+                                      Word& model )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
-  ListExpr typeExpr, modelList;
+  ListExpr modelList;
   string modelString;
   int modelLength;
-  nl->ReadFromString( type, typeExpr );  
   if ( dir == ReadFrom )
   {
     modelRecord.Read( &modelLength, sizeof( modelLength ), 0 );
@@ -211,14 +208,14 @@ TypeConstructor::DefaultPersistModel( const PersistDirection dir,
     modelRecord.Write( modelString.data(), modelString.length(), sizeof( modelLength ) );
   }
   nl->Destroy( modelList );
-  nl->Destroy( typeExpr );
   return (true);
 }
 
 bool
 TypeConstructor::DummyPersistValue( const PersistDirection dir,
                                     SmiRecord& valueRecord,
-                                    const string& type, Word& value )
+                                    const ListExpr typeInfo,
+                                    Word& value )
 {
   return (true);
 }
@@ -226,7 +223,8 @@ TypeConstructor::DummyPersistValue( const PersistDirection dir,
 bool
 TypeConstructor::DummyPersistModel( const PersistDirection dir,
                                     SmiRecord& modelRecord,
-                                    const string& type, Word& model )
+                                    const ListExpr typeExpr,
+                                    Word& model )
 {
   return (true);
 }
@@ -338,30 +336,32 @@ TypeConstructor::Delete( Word& w )
 bool
 TypeConstructor::PersistValue( PersistDirection dir,
                                SmiRecord& valueRecord,
-                               const string& type, Word& value )
+                               const ListExpr typeInfo,
+                               Word& value )
 {
   if ( persistValueFunc != 0 )
   {
-    return ((*persistValueFunc)( dir, valueRecord, type, value ));
+    return ((*persistValueFunc)( dir, valueRecord, typeInfo, value ));
   }
   else
   {
-    return (DefaultPersistValue( dir, valueRecord, type, value ));
+    return (DefaultPersistValue( dir, valueRecord, typeInfo, value ));
   }
 }
 
 bool
 TypeConstructor::PersistModel( PersistDirection dir,
                                SmiRecord& modelRecord,
-                               const string& type, Word& model )
+                               const ListExpr typeExpr,
+                               Word& model )
 {
   if ( persistModelFunc != 0 )
   {
-    return ((*persistModelFunc)( dir, modelRecord, type, model ));
+    return ((*persistModelFunc)( dir, modelRecord, typeExpr, model ));
   }
   else
   {
-    return (DefaultPersistModel( dir, modelRecord, type, model ));
+    return (DefaultPersistModel( dir, modelRecord, typeExpr, model ));
   }
 }
 

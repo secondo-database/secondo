@@ -22,6 +22,8 @@
 
 May 2002 Ulrich Telle Port to C++
 
+August 2002 Ulrich Telle Added methods to set and get the current algebra level.
+
 1.1 Overview
 
 This module implements those parts of the "Secondo"[3] catalog which
@@ -48,8 +50,8 @@ The class ~SecondoSystem~ provides the following methods:
         ShutDown          & OpenDatabase        & GetDatabaseName \\
         GetAlgebraManager & CloseDatabase       &  \\
         GetQueryProcessor & SaveDatabase        &  \\
-        GetCatalog        & RestoreDatabase     &  \\
-        GetNestedList     &                     &  \\
+        GetCatalog        & RestoreDatabase     & SetAlgebraLevel \\
+        GetNestedList     &                     & GetAlgebraLevel \\
 
 1.4 Imports
 
@@ -212,6 +214,16 @@ Returns a reference to the associated algebra manager.
 Returns a reference to the associated query processor.
 
 */
+  static void SetAlgebraLevel( const AlgebraLevel level );
+/*
+Sets the current algebra ~level~.
+
+*/
+  static AlgebraLevel GetAlgebraLevel();
+/*
+Returns the current algebra level.
+
+*/
   static SecondoCatalog* GetCatalog( const AlgebraLevel level );
 /*
 Returns a reference to the "Secondo"[3] catalog of the specified
@@ -260,9 +272,10 @@ Are internal methods for restoring a database.
   QueryProcessor* queryProcessor;
   SecondoCatalog* scDescriptive;
   SecondoCatalog* scExecutable;
+  AlgebraLevel    currentLevel;
 
-  bool testMode;
-  bool initialized;
+  bool            testMode;
+  bool            initialized;
 };
 
 #endif

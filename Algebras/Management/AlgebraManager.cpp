@@ -337,20 +337,20 @@ bool
 AlgebraManager::PersistValue( const int algebraId, const int typeId,
                               const PersistDirection dir,
                               SmiRecord& valueRecord,
-                              const string& type, Word& value )
+                              const ListExpr typeInfo, Word& value )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )->
-    PersistValue( dir, valueRecord, type, value ));
+    PersistValue( dir, valueRecord, typeInfo, value ));
 }
 
 bool
 AlgebraManager::PersistModel( const int algebraId, const int typeId,
                               const PersistDirection dir,
                               SmiRecord& modelRecord,
-                              const string& type, Word& model )
+                              const ListExpr typeExpr, Word& model )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId )->
-    PersistModel( dir, modelRecord, type, model ));
+    PersistModel( dir, modelRecord, typeExpr, model ));
 }
 
 InModelFunction

@@ -21,6 +21,9 @@
 
 May 2002 Ulrich Telle Port to C++
 
+August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
+using nested lists for the type instead of the string representation.
+
 1.1 Overview
 
 A snapshot of a working "Secondo"[3] system will show a collection of algebras,
@@ -276,19 +279,19 @@ constructor.
 */
   bool     PersistValue( const PersistDirection dir,
                          SmiRecord& valueRecord,
-                         const string& type,
+                         const ListExpr typeInfo,
                          Word& value );
   bool     PersistModel( const PersistDirection dir,
                          SmiRecord& modelRecord,
-                         const string& type,
+                         const ListExpr typeExpr,
                          Word& model );
   bool     DefaultPersistValue( const PersistDirection dir,
                                 SmiRecord& valueRecord,
-                                const string& type,
+                                const ListExpr typeInfo,
                                 Word& value );
   bool     DefaultPersistModel( const PersistDirection dir,
                                 SmiRecord& modelRecord,
-                                const string& type,
+                                const ListExpr typeExpr,
                                 Word& model );
 /*
 Are methods to support persistence for objects and models according to the type
@@ -311,11 +314,11 @@ by the algebra module.
 */
   static bool DummyPersistValue( const PersistDirection dir,
                                  SmiRecord& valueRecord,
-                                 const string& type,
+                                 const ListExpr typeInfo,
                                  Word& value );
   static bool DummyPersistModel( const PersistDirection dir,
                                  SmiRecord& modelRecord,
-                                 const string& type,
+                                 const ListExpr typeExpr,
                                  Word& model );
   static Word DummyInModel( ListExpr typeExpr,
                             ListExpr list,
