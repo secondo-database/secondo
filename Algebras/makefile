@@ -32,6 +32,7 @@ makedirs:
 	$(MAKE) -C BTree          
 	$(MAKE) -C Date
 	$(MAKE) -C Polygon
+	$(MAKE) -C Spatial
 
 buildlibs:
 	$(MAKE) -C Standard-C++  	buildlibs
@@ -43,6 +44,7 @@ buildlibs:
 	$(MAKE) -C BTree	 	buildlibs
 	$(MAKE) -C Date           	buildlibs
 	$(MAKE) -C Polygon	  	buildlibs
+	$(MAKE) -C Spatial	  	buildlibs
 
 .PHONY: clean
 clean:
@@ -57,4 +59,5 @@ clean:
 	$(MAKE) -C BTree	 	clean
 	$(MAKE) -C Date           	clean
 	$(MAKE) -C Polygon        	clean
+	$(MAKE) -C Spatial        	clean
 	

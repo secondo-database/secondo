@@ -552,7 +552,7 @@ SizeOfDate()
 }
 
 void*
-CastDate( void* addr, SmiRecordFile* )
+CastDate( void* addr )
 {
   return (new (addr) Date);
 }

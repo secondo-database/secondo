@@ -765,7 +765,7 @@ bool CheckBTree(ListExpr type, ListExpr& errorInfo)
   return true;
 }
 
-void* CastBTree(void* addr, SmiRecordFile*)
+void* CastBTree(void* addr)
 {
   return ( 0 );
 }
@@ -954,7 +954,7 @@ TypeConstructor cppbtree( "btree",		BTreeProp,
 6.1 Type Mapping of operator ~createbtree~
 
 */
-static ListExpr CreateBTreeTypeMap(ListExpr args)
+ListExpr CreateBTreeTypeMap(ListExpr args)
 {
   string attrName;
   char* errmsg = "Incorrect input for operator createbtree.";
@@ -1016,7 +1016,7 @@ static ListExpr CreateBTreeTypeMap(ListExpr args)
 6.2 Value mapping function of operator ~createbtree~
 
 */
-static int
+int
 CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   QueryProcessor* qp = SecondoSystem::GetQueryProcessor();
@@ -1243,7 +1243,7 @@ struct IndexQueryLocalInfo
 
 */
 template<int operatorId>
-static int
+int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   QueryProcessor* qp = SecondoSystem::GetQueryProcessor();

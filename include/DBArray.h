@@ -36,9 +36,9 @@ FLOB interface.
 
 This module offers the following methods:
 
-[23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
+[23]	Creation/Removal 	& Access   	& Inquiries	\\
 	[--------]
-	DBArray        		& Get 		& NoComponents	\\  	
+	DBArray        		& Get 		& NoComponents	\\
 	[tilde]DBArray		& Put		  & Id		        \\
 	MarkDelete		    &		      & 		          \\
 
@@ -49,114 +49,156 @@ Operations have to follow the protocol shown below:
 1.3 Class ~DBArray~
 
 An instance of the class is a handle to a persistent array of fixed size.
-The elements of the array must implement the abstract class ~DBArrayElement~.
 
 */
 
 #ifndef DBARRAY_H
 #define DBARRAY_H
 
-#include "SecondoSMI.h"
+#include <vector>
+#include <algorithm>
 #include "FLOB.h"
 
-class DBArrayElement
+using namespace std;
+
+template<class DBArrayElement>
+class DBArray : public FLOB
 {
   public:
-    virtual ~DBArrayElement() {}; 
-    virtual char *ToString() const = 0;
-    virtual void FromString( char *str ) = 0;
-};
 
-class DBArray
-{
- public:
-
-  DBArray( const int elemSize );
-  DBArray( const int elemSize, const int n, const bool alloc, const bool update );
+    DBArray( int n = 0 ):
+      FLOB( n * sizeof( DBArrayElement ) ),
+      nElements( 0 ),
+      maxElements( n )
+      {}
 
 /*
-Creates creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
-persistent array. One can define an initial size of the persistent
-array with the argument ~initsize~. 
-
 */
-  
-  DBArray( const int elemSize, SmiRecordFile *file, const SmiRecordId& id, const bool update );
+
+    ~DBArray()
+      {}
 
 /*
-Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
-value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-only.
-
 */
+    void Resize( const int newSize )
+    {
+      assert( nElements <= maxElements );
+      assert( newSize > 0 );
 
-  ~DBArray();
+      if( newSize < nElements )
+        nElements = newSize;
 
-/*
-Destroys the handle. If the array is marked for deletion, then it also destroys the
-persistent array.
+      maxElements = newSize;
+      FLOB::Resize( newSize * sizeof( DBArrayElement ) );
 
-*/
+      assert( FLOB::Size() % sizeof( DBArrayElement ) == 0 );
+      assert( maxElements == FLOB::Size() / (int)sizeof( DBArrayElement ) );
+    }
 
-  void MarkDelete();
+    void Append( const DBArrayElement& elem )
+    {
+      Put( nElements, elem );
+    }
 
-/*
-Marks the persistent array for deletion. It will be permanently deleted on the 
-destruction of the object.
+    void Put( int index, const DBArrayElement& elem )
+    {
+      assert( index >= 0 );
 
-*Precondition:* The array must be opened in update mode.
+      if( index < nElements )
+      {
+        FLOB::Put( index * sizeof( DBArrayElement ),
+                   sizeof( DBArrayElement ),
+                   (char*)&elem );
+      }
+      else
+      {
+        assert( nElements <= maxElements );
 
-*/
+        nElements = index + 1;
+        if( nElements > maxElements )
+        {
+          maxElements = nElements;
+          FLOB::Resize( maxElements * sizeof( DBArrayElement ) );
+        }
 
-  void Put(int const index, const DBArrayElement& elem);
+        FLOB::Put( index * sizeof( DBArrayElement ),
+                   sizeof( DBArrayElement ),
+                   (char*)&elem );
+
+        assert( FLOB::Size() % sizeof( DBArrayElement ) == 0 );
+        assert( maxElements == FLOB::Size() / (int)sizeof( DBArrayElement ) );
+      }
+    }
 
 /*
 Copies element ~elem~ into the persistent array at index ~index~.
 
-*Precondition:* 0 [<=] ~index~ [<=] ~noComponents~ - 1. The array must be opened in update mode.
+*Precondition:* 0 [<=] ~index~.
 
 */
 
-  void Get(int const index, DBArrayElement& elem);
+    void Get( int index, DBArrayElement& elem )
+    {
+      assert( index >= 0 && index < nElements );
+      FLOB::Get( index * sizeof( DBArrayElement ),
+                 sizeof( DBArrayElement ),
+                 (char*)&elem );
+    }
 
 /*
 Returns the element ~index~ of the array.
 
-*Precondition:* 0 [<=] ~index~ [<=] ~noComponents~ - 1. 
+*Precondition:* 0 [<=] ~index~ [<=] ~noComponents~ - 1.
 
 */
 
-  const int GetNoComponents() const;
+    int Size() const
+    {
+      return nElements;
+    }
 
 /*
 Returns the number of components of this array.
 
 */
 
-  const bool Save( SmiRecordFile *file );
+    void Sort( bool (*cmp)(const DBArrayElement&, const DBArrayElement&) )
+    {
+      if( nElements <= 1 )
+        return;
 
+      vector<DBArrayElement> aux;
+      for( int i = 0; i < nElements; i++ )
+      {
+        DBArrayElement elem;
+        Get( i, elem );
+        aux.push_back( elem );
+      }
+
+      sort( aux.begin(), aux.end(), cmp );
+
+      for( int i = 0; i < nElements; i++ )
+      {
+        Put( i, aux[i] );
+      }
+    } 
 /*
-Saves the array and returns its identifier.
+Sorts the database array given the ~cmp~ comparison criteria. The 
+sort is done in memory using an STL vector.
 
 */
+  private:
 
-  const SmiRecordId GetRecordId() const;
+    int nElements;
 /*
-Returns the record identifier of this array.
+Store the number of elements inserted in the array.
 
 */
-
-  FLOB *GetArray() const;
+    int maxElements;
 /*
-Returns a pointer to the (FLOB) array.
+Store the total number of elements that can be added to the array.
 
 */
-
- private:
-  bool writeable;
-  int noComponents;
-  bool canDelete;
-  int elemSize;
-  FLOB *array;
 };
 
 

@@ -98,7 +98,7 @@ The function returns the tuple value from main memory storage
 in nested list format.
 
 */
-static ListExpr 
+ListExpr 
 OutTuple (ListExpr typeInfo, Word  value)
 {
   return ((Tuple *)value.addr)->Out( typeInfo );
@@ -129,7 +129,7 @@ relation list (passed by ~InRelation~).
 
 
 */
-static Word 
+Word 
 InTuple(ListExpr typeInfo, ListExpr value,
         int errorPos, ListExpr& errorInfo, bool& correct)
 {
@@ -183,7 +183,7 @@ following error codes:
 ----
 
 */
-static bool 
+bool 
 CheckTuple(ListExpr type, ListExpr& errorInfo)
 {
   vector<string> attrnamelist;
@@ -279,8 +279,8 @@ objects from the disk by the ~TupleManager~. Since tuples are not part of relati
 the implementation of this function is not necessary.
 
 */
-static void* 
-CastTuple(void* addr, SmiRecordFile*)
+void* 
+CastTuple(void* addr)
 {
   return ( 0 );
 }
@@ -292,7 +292,7 @@ This function is used to allocate memory sufficient for keeping one instance
 of ~tuple~. 
 
 */
-static Word 
+Word 
 CreateTuple(const ListExpr typeInfo)
 {
   Tuple *tup = new Tuple( nl->Second( typeInfo ) );
@@ -317,7 +317,7 @@ void CloseTuple(Word& w)
 This function creates a cloned tuple.
 
 */
-static Word 
+Word 
 CloneTuple(const Word& w) 
 { 
   return SetWord( ((Tuple *)w.addr)->Clone() ); 
@@ -331,7 +331,7 @@ Since tuples are not part of a relation, the implementation of this function
 is not necessary.
 
 */
-static int 
+int 
 SizeOfTuple() 
 { 
   return 0; 
@@ -341,25 +341,25 @@ SizeOfTuple()
 3.11 ~Model~-functions of type constructor ~tuple~
 
 */
-static Word 
+Word 
 TupleInModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static ListExpr 
+ListExpr 
 TupleOutModel( ListExpr typeExpr, Word model )
 {
   return (0);
 }
 
-static Word 
+Word 
 TupleValueToModel( ListExpr typeExpr, Word value )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static Word 
+Word 
 TupleValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
                        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -420,7 +420,7 @@ ListExpr RelProp ()
 4.2 ~Out~-function of type constructor ~rel~
 
 */
-static ListExpr 
+ListExpr 
 OutRel(ListExpr typeInfo, Word  value)
 {
   return ((Relation *)value.addr)->Out( typeInfo );
@@ -432,7 +432,7 @@ The function is used to allocate memory sufficient for keeping one instance
 of ~rel~. 
 
 */
-static Word 
+Word 
 CreateRel(const ListExpr typeInfo)
 {
   Relation* rel = new Relation( typeInfo );
@@ -460,7 +460,7 @@ probably it is the position of the relation object in the list of
 database objects.
 
 */
-static Word 
+Word 
 InRel(ListExpr typeInfo, ListExpr value,
       int errorPos, ListExpr& errorInfo, bool& correct)
 {
@@ -492,7 +492,7 @@ Hence the type expression must have the form
 and ~x~ must be a type of kind TUPLE.
 
 */
-static bool 
+bool 
 CheckRel(ListExpr type, ListExpr& errorInfo)
 {
   AlgebraManager* algMgr;
@@ -514,8 +514,8 @@ CheckRel(ListExpr type, ListExpr& errorInfo)
 4.7 ~Cast~-function of type constructor ~rel~
 
 */
-static void* 
-CastRel(void* addr, SmiRecordFile*)
+void* 
+CastRel(void* addr)
 {
   return ( 0 );
 }
@@ -548,7 +548,7 @@ have been built in memory. The cache basically stores pairs (~recordId~,
 the cached relation value is returned instead of building a new one.
 
 */
-static bool
+bool
 OpenRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
@@ -560,7 +560,7 @@ OpenRel( SmiRecord& valueRecord,
 4.10 ~Save~-function of type constructor ~rel~
 
 */
-static bool
+bool
 SaveRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
@@ -572,7 +572,7 @@ SaveRel( SmiRecord& valueRecord,
 4.11 ~Sizeof~-function of type constructor ~rel~
 
 */
-static int 
+int 
 SizeOfRel() 
 { 
   return 0; 
@@ -582,7 +582,7 @@ SizeOfRel()
 4.12 ~Clone~-function of type constructor ~rel~
 
 */
-static Word
+Word
 CloneRel(const Word& w)
 {
   return SetWord( Address(0) );
@@ -643,7 +643,7 @@ TypeConstructor cpprel( "rel",           RelProp,
 The selection function of a type operator always returns -1.
 
 */
-static int typeOperatorSelect(ListExpr args) 
+int typeOperatorSelect(ListExpr args) 
 { 
   return -1; 
 }
@@ -769,7 +769,7 @@ Result type of feed operation.
 ----
 
 */
-static ListExpr FeedTypeMap(ListExpr args)
+ListExpr FeedTypeMap(ListExpr args)
 {
   ListExpr first ;
 
@@ -787,7 +787,7 @@ static ListExpr FeedTypeMap(ListExpr args)
 5.5.2 Value mapping function of operator ~feed~
 
 */
-static int
+int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r;
@@ -885,7 +885,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
 5.6.2 Value mapping function of operator ~consume~
 
 */
-static int
+int
 Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word actual;
@@ -1011,7 +1011,7 @@ in the function ~AttributeTypeMap~ to determine the attribute
 number ~args[2]~ .
 
 */
-static int
+int
 Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Tuple* tupleptr;
@@ -1096,7 +1096,7 @@ ListExpr FilterTypeMap(ListExpr args)
 5.8.2 Value mapping function of operator ~filter~
 
 */
-static int
+int
 Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool found;
@@ -1269,7 +1269,7 @@ ListExpr ProjectTypeMap(ListExpr args)
 5.9.2 Value mapping function of operator ~project~
 
 */
-static int
+int
 Project(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 
@@ -1444,7 +1444,7 @@ struct ProductLocalInfo
   TupleBufferIterator *iter;
 };
 
-static int
+int
 Product(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word r, u;
@@ -1642,7 +1642,7 @@ TCountTypeMap(ListExpr args)
 5.11.2 Value mapping functions of operator ~count~
 
 */
-static int
+int
 TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word elem;
@@ -1662,7 +1662,7 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-static int
+int
 TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
@@ -1687,7 +1687,7 @@ const string TCountSpec =
 
 */
 
-static int
+int
 TCountSelect( ListExpr args )
 {
   ListExpr first ;
@@ -1718,7 +1718,7 @@ TCountSelect( ListExpr args )
 5.11.5 Definition of operator ~count~
 
 */
-static Word
+Word
 RelNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
   return (SetWord( Address( 0 ) ));
@@ -1751,7 +1751,7 @@ Type mapping for ~rename~ is
 ----
 
 */
-static ListExpr
+ListExpr
 RenameTypeMap( ListExpr args )
 {
   ListExpr first, first2, second, rest, listn, lastlistn;
@@ -1810,7 +1810,7 @@ RenameTypeMap( ListExpr args )
 5.12.2 Value mapping function of operator ~rename~
 
 */
-static int
+int
 Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t;

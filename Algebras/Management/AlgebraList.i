@@ -31,5 +31,5 @@ ALGEBRA_INCLUDE(7,PolygonAlgebra,Executable)
 ALGEBRA_INCLUDE(8,DateAlgebra,Executable)
 ALGEBRA_INCLUDE(9,BTreeAlgebra,Executable)
 //ALGEBRA_INCLUDE(10,RangeAlgebra,Executable)
-//ALGEBRA_INCLUDE(11,SpatialAlgebra,Executable)
+ALGEBRA_INCLUDE(11,SpatialAlgebra,Executable)
 

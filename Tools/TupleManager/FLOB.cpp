@@ -35,113 +35,46 @@ const int FLOB::SWITCH_THRESHOLD = 1024;
 
 2.2 Constructor.
 
-Create a new FLOB from scratch.
+Create a new InMemory FLOB and initializes it with
+size ~sz~.
 
 */
-FLOB::FLOB() : 
-lobFile(0),
-lob(),
-lobId(0),
-size(0),
-start(0),
-isLob(false),
-insideTuple(false),
-freeStart(false)
+FLOB::FLOB( int sz ) :
+type( InMemory )
 {
-}
-
-/*
-2.3 Constructor.
-
-Create a new FLOB from scratch and initialize it
-with size ~sz~ if ~alloc~ is true. This ~alloc~
-flag is important because sometimes the tuple
-manager allocates the memory for the FLOB, specially
-when the FLOB stays on the extension of the tuple.
-In these situations, the FLOB does not allocate any
-memory and leaves it to be done by the tuple.
-
-*/
-
-FLOB::FLOB(SmiRecordFile *inlobFile, const SmiRecordId id, const bool update) : 
-lobFile(inlobFile),
-lob(),
-lobId(id),
-size(0),
-start(0),
-isLob(false),
-insideTuple(false),
-freeStart(true)
-{
-  SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  assert( lobFile->SelectRecord( lobId, lob, at ) );
-  size = lob.Size(); 
-  if( size <= SWITCH_THRESHOLD )
+  size = sz;
+  if( sz > 0 )
   {
-    isLob = false;
-    start = (char *)malloc( size );
-    lob.Read(start, size, 0);
+    fd.inMemory.buffer = (char*)malloc( sz );
+    fd.inMemory.freeBuffer = true;
   }
   else
   {
-    isLob = true;
+    fd.inMemory.buffer = 0;
+    fd.inMemory.freeBuffer = false;
   }
 }
 
 /*
-2.4 Constructor.
-
-Opens a FLOB from a file ~inlobFile~ and record identification ~id~.
-The flag ~update~ tells if the FLOB is being opened for update or
-read only.
-
-*/
-FLOB::FLOB(const int sz, const bool alloc, const bool update) :
-lobFile(0),
-lob(),
-lobId(0),
-size(sz),
-start(alloc ? (char *) malloc(sz) : NULL),
-isLob(false),
-insideTuple(false),
-freeStart(alloc)
-{
-}
-
-/*
-2.5 Destructor. 
+2.5 Destructor.
 
 Destroy LOB instance.
 
 */
-FLOB::~FLOB() {
-  if (start != 0)
+FLOB::~FLOB()
+{
+  if( type == InMemory )
   {
-    assert( !IsLob() );
-    if( freeStart ) free(start);
-    start = 0;
+    if( fd.inMemory.freeBuffer )
+      free( fd.inMemory.buffer );
   }
-}
-
-/*
-
-2.6 Destroy.
-
-Destroy persistent representation.
-
-*/
-void FLOB::Destroy() {
-  if (start != 0) {
-      assert( !IsLob() );
-      if( freeStart ) free(start);
-      start = 0;
-      size = 0;
-  }
-  else 
+#ifdef PERSISTENT_FLOB
+  if( type == InDiskMemory )
   {
-    assert( lobFile != 0 && lobId != 0 );
-    lobFile->DeleteRecord(lobId);
+    if( fd.inDiskMemory.pageId != -1 )
+      free( fd.inDiskMemory.pageBuffer );
   }
+#endif
 }
 
 /*
@@ -150,52 +83,351 @@ void FLOB::Destroy() {
 Read by copying
 
 */
-void FLOB::Get(const int offset, const int length, char *target) 
+void FLOB::Get( int offset, int length, char *target )
 {
-  if (!IsLob()) 
+  assert( type != Destroyed );
+
+  if( type == InMemory )
   {
-    assert( start != 0 && offset + length <= size );
-    memcpy(target, start + offset, length);
+    assert( fd.inMemory.buffer != 0 && offset + length <= size );
+    memcpy( target, fd.inMemory.buffer + offset, length );
   }
-  else 
+  else if( type == InDiskLarge )
   {
-    assert( lobFile != 0 );
-	  lobFile->SelectRecord(lobId, lob);
-    assert( offset + length <= (int)lob.Size() );
-    lob.Read(target, length, offset);
+    assert( fd.inDiskLarge.lobFile != 0 &&
+            fd.inDiskLarge.lobId != 0 );
+
+#ifdef PERSISTENT_FLOB
+
+    SmiRecordFile *lobFile = fd.inDiskLarge.lobFile;
+    SmiRecordId lobId = fd.inDiskLarge.lobId;
+
+    type = InDiskMemory;
+    fd.inDiskMemory.lobFile = lobFile;
+    fd.inDiskMemory.lobId = lobId;
+    fd.inDiskMemory.pageBuffer = 0;
+    fd.inDiskMemory.pageId = -1;
+
+    Get( offset, length, target );
+
+#else
+
+    char *buffer = (char*) malloc( size );
+    SmiRecord lobRecord;
+    assert( fd.inDiskLarge.lobFile->SelectRecord( fd.inDiskLarge.lobId, lobRecord ) );
+    lobRecord.Read( buffer, size, 0 );
+
+    type = InMemory;
+    fd.inMemory.buffer = buffer;
+    fd.inMemory.freeBuffer = true;
+
+    Get( offset, length, target );
+
+#endif
+
   }
+
+#ifdef PERSISTENT_FLOB
+  else if( type == InDiskMemory )
+  {
+    assert( length < SWITCH_THRESHOLD );
+    assert( fd.inDiskMemory.lobFile != 0 && fd.inDiskMemory.lobId != 0 );
+
+    if( fd.inDiskMemory.pageId == -1 )
+    {
+      SmiRecord lobRecord;
+      assert( fd.inDiskMemory.lobFile->SelectRecord( fd.inDiskMemory.lobId, lobRecord ) );
+
+      assert( fd.inDiskMemory.pageBuffer == 0 );
+      fd.inDiskMemory.pageId = offset / SWITCH_THRESHOLD;
+      if( offset + SWITCH_THRESHOLD > (int)lobRecord.Size() )
+        // This is the last page 
+      {
+        fd.inDiskMemory.pageBuffer = (char*) malloc( lobRecord.Size() - (fd.inDiskMemory.pageId * SWITCH_THRESHOLD) );
+        lobRecord.Read( fd.inDiskMemory.pageBuffer, 
+                         lobRecord.Size() - (fd.inDiskMemory.pageId * SWITCH_THRESHOLD), 
+                         fd.inDiskMemory.pageId * SWITCH_THRESHOLD );
+      }
+      else
+      {
+        fd.inDiskMemory.pageBuffer = (char*) malloc( SWITCH_THRESHOLD );
+        lobRecord.Read( fd.inDiskMemory.pageBuffer, SWITCH_THRESHOLD, fd.inDiskMemory.pageId * SWITCH_THRESHOLD );
+      }
+
+      Get( offset, length, target ); 
+    }
+    else
+      // There is one page allocated in the structure
+    {
+      if( offset >= fd.inDiskMemory.pageId * SWITCH_THRESHOLD &&
+          offset < fd.inDiskMemory.pageId * SWITCH_THRESHOLD + SWITCH_THRESHOLD )
+        // The offset is between the page that is in memory
+      {
+        int insidePageOffset = offset % SWITCH_THRESHOLD;
+        if( insidePageOffset + length <= SWITCH_THRESHOLD )
+          // The element is completely covered by the page
+        {
+          memcpy( target, fd.inDiskMemory.pageBuffer + insidePageOffset, length );
+        }
+        else
+          // We need to read the first part of the element and then the next in the next page
+        {
+          memcpy( target, fd.inDiskMemory.pageBuffer + insidePageOffset, (SWITCH_THRESHOLD - insidePageOffset) );
+
+          assert( fd.inDiskMemory.pageBuffer != 0 );
+          free( fd.inDiskMemory.pageBuffer );
+          fd.inDiskMemory.pageBuffer = 0;
+          fd.inDiskMemory.pageId = -1;
+
+          Get( offset + (SWITCH_THRESHOLD - insidePageOffset), 
+               length - (SWITCH_THRESHOLD - insidePageOffset), 
+               target + (SWITCH_THRESHOLD - insidePageOffset) );
+        }
+      }
+      else
+        // It is needed to allocate another page
+      { 
+        assert( fd.inDiskMemory.pageBuffer != 0 );
+        free( fd.inDiskMemory.pageBuffer ); 
+        fd.inDiskMemory.pageBuffer = 0;
+        fd.inDiskMemory.pageId = -1;
+
+        Get( offset, length, target );
+      }
+    }
+  }
+#endif
+  else
+    assert( false );
 }
 
-/* 
-2.8	Write
+/*
+2.8	Put
 
-Write Flob data into source. 
+Write Flob data into source.
 
 */
-void FLOB::Write(const int offset, const int length, char *source) 
+void FLOB::Put( int offset, int length, char *source)
 {
-	if (!IsLob()) 
+  assert( type != Destroyed );
+
+  if( type == InMemory )
   {
-    assert( start != 0 );
-    memcpy(start + offset, source, (size - offset < length ? size - offset : length));
-	}    
-  else 
-  {	
-    assert( lobFile != 0 );
-    lobFile->SelectRecord(lobId, lob);
-    lob.Write(source, length, offset);
-	}
+    assert( fd.inMemory.buffer != 0 && offset + length <= size );
+    memcpy( fd.inMemory.buffer + offset, source, length );
+  }
+  else if( type == InDiskLarge )
+  {
+    assert( fd.inDiskLarge.lobFile != 0 &&
+            fd.inDiskLarge.lobId != 0 );
+
+#ifdef PERSISTENT_FLOB
+
+    SmiRecordFile *lobFile = fd.inDiskLarge.lobFile;
+    SmiRecordId lobId = fd.inDiskLarge.lobId;
+
+    type = InDiskMemory;
+    fd.inDiskMemory.lobFile = lobFile;
+    fd.inDiskMemory.lobId = lobId;
+    fd.inDiskMemory.pageBuffer = 0;
+    fd.inDiskMemory.pageId = -1;
+
+    Put( offset, length, source );
+
+#else
+
+    char *buffer = (char*) malloc( size );
+    SmiRecord lobRecord;
+    assert( fd.inDiskLarge.lobFile->SelectRecord( fd.inDiskLarge.lobId, lobRecord ) );
+    lobRecord.Read( buffer, size, 0 );
+
+    type = InMemory;
+    fd.inMemory.buffer = buffer;
+    fd.inMemory.freeBuffer = true;
+
+    Put( offset, length, source );
+
+#endif
+
+  }
+#ifdef PERSISTENT_FLOB
+  else if( type == InDiskMemory )
+  {
+    assert( length < SWITCH_THRESHOLD );
+    assert( fd.inDiskMemory.lobFile != 0 && fd.inDiskMemory.lobId != 0 );
+
+    SmiRecord lobRecord;
+    assert( fd.inDiskMemory.lobFile->SelectRecord( fd.inDiskMemory.lobId, lobRecord ) );
+
+    if( fd.inDiskMemory.pageId == -1 )
+    {
+      assert( fd.inDiskMemory.pageBuffer == 0 );
+      fd.inDiskMemory.pageId = offset / SWITCH_THRESHOLD;
+
+      if( offset + SWITCH_THRESHOLD > (int)lobRecord.Size() )
+        // This is the last page
+      {
+        fd.inDiskMemory.pageBuffer = (char*) malloc( lobRecord.Size() - (fd.inDiskMemory.pageId * SWITCH_THRESHOLD) );
+        lobRecord.Read( fd.inDiskMemory.pageBuffer,
+                         lobRecord.Size() - (fd.inDiskMemory.pageId * SWITCH_THRESHOLD),
+                         fd.inDiskMemory.pageId * SWITCH_THRESHOLD );
+      }
+      else
+      {
+        fd.inDiskMemory.pageBuffer = (char*) malloc( SWITCH_THRESHOLD );
+        lobRecord.Read( fd.inDiskMemory.pageBuffer, 
+                         SWITCH_THRESHOLD, 
+                         fd.inDiskMemory.pageId * SWITCH_THRESHOLD );
+      }
+      Put( offset, length, source );
+    }
+    else
+      // There is one page allocated in the structure
+    {
+      if( offset >= fd.inDiskMemory.pageId * SWITCH_THRESHOLD &&
+          offset < fd.inDiskMemory.pageId * SWITCH_THRESHOLD + SWITCH_THRESHOLD )
+        // The offset is between the page that is in memory
+      {
+        int insidePageOffset = offset % SWITCH_THRESHOLD;
+        if( insidePageOffset + length <= SWITCH_THRESHOLD )
+          // The element is completely covered by the page
+        {
+          memcpy( fd.inDiskMemory.pageBuffer + insidePageOffset, source, length );
+        }
+        else
+          // We need to read the first part of the element and then the next in the next page
+        {
+          memcpy( fd.inDiskMemory.pageBuffer + insidePageOffset, source, (SWITCH_THRESHOLD - insidePageOffset) );
+
+          assert( fd.inDiskMemory.pageBuffer != 0 );
+          free( fd.inDiskMemory.pageBuffer ); 
+          fd.inDiskMemory.pageBuffer = 0;
+          fd.inDiskMemory.pageId = -1;
+
+          Put( offset + (SWITCH_THRESHOLD - insidePageOffset),
+               length - (SWITCH_THRESHOLD - insidePageOffset),
+               source + (SWITCH_THRESHOLD - insidePageOffset) );
+        }
+      }
+      else
+        // It is needed to allocate another page
+      {
+        assert( fd.inDiskMemory.pageBuffer != 0 );
+        free( fd.inDiskMemory.pageBuffer );
+        fd.inDiskMemory.pageBuffer = 0;
+        fd.inDiskMemory.pageId = -1;
+
+        Put( offset, length, source );
+      }
+    }
+  }
+#endif
+  else
+    assert( false );
 }
 
-/* 
+/*
 2.9 Size
 
 Returns the size of a FLOB.
 
 */
-const int FLOB::GetSize() const  
+int FLOB::Size() const
 {
   return size;
+}
+
+/*
+2.10 Destroy 
+
+Destroys the physical representation of the FLOB.
+
+*/
+void FLOB::Destroy()
+{
+  assert( type != Destroyed );
+
+  if( type == InMemory )
+  {
+    if( size > 0 )
+    {
+      assert( fd.inMemory.buffer != 0 );
+      if( fd.inMemory.freeBuffer )
+        free( fd.inMemory.buffer );
+    }
+  }
+  else if( type == InDiskLarge )
+  {
+    assert( size > SWITCH_THRESHOLD );
+    assert( fd.inDiskLarge.lobFile != 0 && fd.inDiskLarge.lobId != 0 );
+
+    assert( fd.inDiskLarge.lobFile->DeleteRecord( fd.inDiskLarge.lobId ) );
+  }
+#ifdef PERSISTENT_FLOB
+  else if( type == InDiskMemory )
+  {
+    assert( size > SWITCH_THRESHOLD );
+    assert( fd.inDiskMemory.lobFile != 0 && fd.inDiskMemory.lobId != 0 );
+
+    if( fd.inDiskMemory.pageId >= 0 )
+    {
+      assert( fd.inDiskMemory.pageBuffer != 0 );
+      free( fd.inDiskMemory.pageBuffer );
+      fd.inDiskMemory.pageId = 0;
+    }
+     
+    assert( fd.inDiskMemory.lobFile->DeleteRecord( fd.inDiskMemory.lobId ) );
+  }
+#endif
+  size = 0;
+  type = Destroyed;
+}
+
+/*
+2.10 Clear 
+
+Clears the FLOB.
+
+*/
+void FLOB::Clear()
+{
+  assert( type != Destroyed );
+
+  if( type == InMemory )
+  {
+    if( size > 0 )
+    {
+      if( fd.inMemory.freeBuffer == true )
+      {
+        free( fd.inMemory.buffer ); 
+        fd.inMemory.buffer = 0;
+      }
+    }
+  }
+#ifdef PERSISTENT_FLOB
+  else if( type == InDiskMemory )
+  {
+    if( fd.inDiskMemory.pageId >= 0 )
+    {
+      assert( fd.inDiskMemory.pageBuffer != 0 );
+      free( fd.inDiskMemory.pageBuffer ); 
+      fd.inDiskMemory.pageBuffer = 0;
+      fd.inDiskMemory.pageId = -1;
+    }
+    assert( fd.inDiskMemory.lobFile != 0 && fd.inDiskMemory.lobId != 0 );
+
+    SmiRecord lobRecord;
+    assert( fd.inDiskMemory.lobFile->SelectRecord( fd.inDiskMemory.lobId, lobRecord ) );
+
+    lobRecord.Truncate( 0 );
+  }
+#endif
+  else
+    // This code cannot be reached because the other
+    // cases are not implemented yet.
+    assert( false );
+
+  size = 0;
 }
 
 /*
@@ -204,145 +436,183 @@ const int FLOB::GetSize() const
 Resizes the FLOB.
 
 */
-void FLOB::Resize(const int newSize) 
+void FLOB::Resize( int newSize )
 {
-  if (!IsLob()) 
-  // the data is still in memory.
+  assert( type != Destroyed );
+  assert( newSize > 0 );
+
+  if( type == InMemory )
   {
-    size = newSize;
-    if( start == 0 )
+    if( size == 0 )
     {
-      start = (char *)malloc(size);
-      freeStart = true;
+      fd.inMemory.freeBuffer = true;
+      fd.inMemory.buffer = (char *) malloc( newSize );
+    }
+    else if( fd.inMemory.freeBuffer == true )
+    {
+      fd.inMemory.buffer = (char *)realloc( fd.inMemory.buffer, newSize ); 
     }
     else
-    {
-      assert( freeStart );
-      start = (char *)realloc((void *)start, size);
-    }
+      // This code cannot be reached because the other
+      // cases are not implemented yet.
+      assert( false );
   }
-  else 
-  // the data is saved in a lob.
+#ifdef PERSISTENT_FLOB
+  else if( type == InDiskMemory )
   {
-    assert( lobFile != 0 && lobId != 0 );
-    if (newSize <= size) 
+    if( size != newSize )
     {
-      // the data become smaller
-      size = newSize;
-      lob.Truncate(newSize);
-    }
-    else 
-    {
-      // the data become larger.
-      char *data = (char *)malloc(size);
-      lob.Read(data, size, 0);
-      realloc((void *)data, newSize);
-      lob.Write(data, newSize, 0);
-      size = newSize;
-      free(data);
+      if( fd.inDiskMemory.pageId >= 0 ) 
+      {
+        assert( fd.inDiskMemory.pageBuffer != 0 );
+        free( fd.inDiskMemory.pageBuffer );
+        fd.inDiskMemory.pageBuffer = 0;
+        fd.inDiskMemory.pageId = -1;
+      }
+      char zero = 0;
+       
+      assert( fd.inDiskMemory.lobFile != 0 && fd.inDiskMemory.lobId != 0 );
+
+      SmiRecord lobRecord;
+      assert( fd.inDiskMemory.lobFile->SelectRecord( fd.inDiskMemory.lobId, lobRecord ) );
+
+      if( size > newSize ) 
+        lobRecord.Write( &zero, 1, newSize - 1 );
+      else if( size < newSize )
+        lobRecord.Truncate( newSize );
     }
   }
+#endif
+  else
+    // This code cannot be reached because the other
+    // cases are not implemented yet.
+    assert( false );
+
+  size = newSize;
 }
 
-  
+/*
+2.10 SetLobFile
+
+*/
+void FLOB::SetLobFile( SmiRecordFile* lobFile )
+{
+  assert( type == InDiskLarge && fd.inDiskLarge.lobFile == 0 && fd.inDiskLarge.lobId != 0 );
+  fd.inDiskLarge.lobFile = lobFile;
+}
+
+/*
+2.10 SaveToLob
+
+*/
+void FLOB::SaveToLob( SmiRecordFile& lobFile )
+{
+#ifdef PERSISTENT_FLOB
+  if( type == InDiskMemory )
+  {
+    if( fd.inDiskMemory.pageId >= 0 )
+      free( fd.inDiskMemory.pageBuffer );
+
+    SmiRecordId lobId = fd.inDiskMemory.lobId;
+
+    type = InDiskLarge;
+    fd.inDiskLarge.lobFile = 0;
+    fd.inDiskLarge.lobId = lobId;
+  }
+  else
+  {
+#endif
+  assert( type == InMemory && size > SWITCH_THRESHOLD );
+
+  SmiRecordId lobId;
+  SmiRecord lob;
+  assert( lobFile.AppendRecord( lobId, lob ) );
+
+  lob.Write( fd.inMemory.buffer, size, 0 );
+
+  if( fd.inMemory.freeBuffer )
+  {
+    free( fd.inMemory.buffer );
+    fd.inMemory.buffer = 0;
+    fd.inMemory.freeBuffer = false;
+  }
+
+  type = InDiskLarge;
+  fd.inDiskLarge.lobFile = 0;
+  fd.inDiskLarge.lobId = lobId;
+#ifdef PERSISTENT_FLOB
+  }
+#endif
+}
+
+/*
+2.10 SaveToExtensionTuple
+
+*/
+void FLOB::SaveToExtensionTuple( char *extensionTuple )
+{
+  assert( type == InMemory && size <= SWITCH_THRESHOLD );
+
+  Get( 0, size, extensionTuple );
+
+  if( fd.inMemory.freeBuffer )
+  {
+    free( fd.inMemory.buffer );
+    fd.inMemory.buffer = 0;
+    fd.inMemory.freeBuffer = false;
+  }
+
+  type = InDiskSmall;
+}
+
 /*
 2.11 IsLob
 
 Returns true, if value stored in underlying LOB, otherwise false.
 
-*/ 
-const bool FLOB::IsLob() const 
+*/
+bool FLOB::IsLob() const
 {
-  return isLob;
+  assert( type != Destroyed );
+
+  if( type == InDiskLarge )
+  {
+    assert( size > SWITCH_THRESHOLD );
+    return true;
+  }
+  else if( type == InMemory && size > SWITCH_THRESHOLD )
+    return true;
+#ifdef PERSISTENT_FLOB
+  else if( type == InDiskMemory )
+  {
+    assert( size > SWITCH_THRESHOLD );
+    return true;
+  }
+#endif
+  return false;
 }
-  
+
+/*
+2.12 GetType
+
+*/
+FLOB_Type FLOB::GetType() const
+{
+  return type;
+}
+
 /*
 2.12 Restore
 
 Restore from byte string.
 
 */
-const int FLOB::Restore(char *address) 
+void FLOB::Restore( char *newBuffer )
 {
-  start = address;
-  return size;
-}
+  assert( type == InDiskSmall );
 
-/* 
-2.13 SaveToLob
-
-Switch from Main Memory to LOB Representation 
-if the size of this FLOB exceeds thresholdsize.
-
-*/
-const bool FLOB::SaveToLob( SmiRecordFile *lobfile ) 
-{
-  lobFile = lobfile;
-  if (IsLob())
-  {
-    size = lob.Size();
-    start = (char*)malloc(size);
-    freeStart = true;
-    lob.Read(start, size, 0); 
-    isLob = false;
-      /* Now the actual FLOB is a memory flob. Another
-         call of SaveToLob will create a new lob if the
-	 flob is large. This is exactly the behaviour
-	 we need: an underlying lob should be copied 
-	 when its comprising tuple is copied. */
-    SaveToLob( lobFile );
-  }
-
-  if (size > SWITCH_THRESHOLD && insideTuple ) 
-  {
-    isLob = true;
-    lobFile->AppendRecord(lobId, lob);
-    lob.Write(start, size, 0);
-    if( freeStart ) free(start);
-    start = 0;
-    size = lob.Size();
-    return true;
-  }  
-  else if( !insideTuple ) 
-  {
-    if( lobId == 0 )
-    {
-      isLob = true;
-      lobFile->AppendRecord(lobId, lob);
-    }
-    lob.Write(start, size, 0);
-    size = lob.Size();
-    assert( freeStart );
-    free(start);
-    start = 0;
-    return true;
-  }  
-  else 
-  {
-    assert( !IsLob() );
-    return false;
-  }
-}
-
-/*
-2.14 GetLobId
-
-Returns the lob record id.
-
-*/
-const SmiRecordId FLOB::GetLobId() const
-{
-  return lobId;
-}
-
-/*
-2.15 SetInsideTuple
-
-Sets this flob to be inside a tuple.
-
-*/
-void FLOB::SetInsideTuple()
-{
-  insideTuple = true;
+  type = InMemory;
+  fd.inMemory.buffer = newBuffer;
+  fd.inMemory.freeBuffer = false;
 }
 

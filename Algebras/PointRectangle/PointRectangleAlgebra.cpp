@@ -44,7 +44,7 @@ extern QueryProcessor *qp;
 Not interesting, but needed in the definition of a type constructor.
 
 */
-static void* DummyCast( void* addr, SmiRecordFile* ) {return (0);}
+void* DummyCast( void* addr ) {return (0);}
 /*
 2 Type Constructor ~point~
 
@@ -92,7 +92,7 @@ The list representation of a point is
 
 */
 
-static ListExpr
+ListExpr
 OutPoint( ListExpr typeInfo, Word value )
 {
   Point* point;
@@ -100,7 +100,7 @@ OutPoint( ListExpr typeInfo, Word value )
   return nl->TwoElemList(nl->IntAtom(point->GetX()), nl->IntAtom(point->GetY()));
 }
 
-static Word
+Word
 InPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -123,33 +123,33 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
-static Word
+Word
 CreatePoint( const ListExpr typeInfo ) 
 {
   return (SetWord( new Point( 0, 0 ) ));
 }
 
-static void
+void
 DeletePoint( Word& w ) 
 {
   delete (Point *)w.addr;
   w.addr = 0;
 }
  
-static void
+void
 ClosePoint( Word& w ) 
 {
   delete (Point *)w.addr;
   w.addr = 0;
 }
  
-static Word
+Word
 ClonePoint( const Word& w ) 
 {
   return SetWord( ((Point *)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfPoint()
 {
   return sizeof(Point);
@@ -163,7 +163,7 @@ for all ``atomic'' types.
 
 */
 
-static ListExpr
+ListExpr
 PointRectangleProperty()
 {
   return (nl->TwoElemList(
@@ -178,7 +178,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~point~ does not have arguments, this is trivial.
 
 */
-static bool
+bool
 CheckPoint( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "point" ));
@@ -267,7 +267,7 @@ The list representation of a rectangle is
 ----
 
 */
-static ListExpr
+ListExpr
 OutRectangle( ListExpr typeInfo, Word value )
 {
   Rectangle* rectangle;
@@ -279,7 +279,7 @@ OutRectangle( ListExpr typeInfo, Word value )
     nl->IntAtom(rectangle->GetYTop())		);
 }
 
-static Word
+Word
 InRectangle( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -314,33 +314,33 @@ InRectangle( const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
-static Word
+Word
 CreateRectangle( const ListExpr typeInfo )
 {
   return (SetWord( new Rectangle( 0, 0, 0, 0 ) ));
 }
 
-static void
+void
 DeleteRectangle( Word& w )
 {
   delete (Rectangle *)w.addr;
   w.addr = 0;
 }
 
-static void
+void
 CloseRectangle( Word& w )
 {
   delete (Rectangle *)w.addr;
   w.addr = 0;
 }
 
-static Word
+Word
 CloneRectangle( const Word& w ) 
 {
   return SetWord( ((Rectangle *)w.addr)->Clone() );
 }
 
-static int
+int
 SizeOfRectangle()
 {
   return sizeof(Rectangle);
@@ -357,7 +357,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~rectangle~ does not have arguments, this is trivial.
 
 */
-static bool
+bool
 CheckRectangle( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "rectangle" ));
@@ -383,7 +383,7 @@ returns a list expression for the result type, otherwise the symbol
 
 */
 
-static ListExpr
+ListExpr
 RectRectBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -397,7 +397,7 @@ RectRectBool( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
-static ListExpr
+ListExpr
 PointRectBool( ListExpr args )
 {
   ListExpr arg1, arg2;
@@ -415,7 +415,7 @@ PointRectBool( ListExpr args )
 4.3 Value Mapping Function
 
 */
-static int
+int
 intersectsFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Intersects predicate for two rectangles.
@@ -436,7 +436,7 @@ Intersects predicate for two rectangles.
   return 0;
 }
 
-static int
+int
 insideFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 Inside predicate for point and rectangle.

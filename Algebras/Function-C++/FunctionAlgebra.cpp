@@ -23,31 +23,31 @@ extern QueryProcessor *qp;
 
 */
 
-static ListExpr
+ListExpr
 FunctionProperty()
 {
   return (nl->TheEmptyList());
 }
 
-static Word
+Word
 DummyInModel( ListExpr typeExpr, ListExpr list, int objNo )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static ListExpr
+ListExpr
 DummyOutModel( ListExpr typeExpr, Word model )
 {
   return (0);
 }
 
-static Word
+Word
 DummyValueToModel( ListExpr typeExpr, Word value )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static Word
+Word
 DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
                        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -55,25 +55,25 @@ DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
   return (SetWord( Address( 0 ) ));
 }
 
-static Word
+Word
 NoSpace( const ListExpr typeInfo )
 {
   return (SetWord( Address( 0 ) ));
 }
 
-static void
+void
 DoNothing( Word& w )
 {
   w.addr = 0;
 }
 
-static Word
+Word
 CloneNothing( const Word& w )
 {
   return SetWord( Address(0) );
 }
 
-static int
+int
 SizeOfNothing()
 {
   return 0;
@@ -83,7 +83,7 @@ SizeOfNothing()
 2.2 The Functions Needed
 
 */
-static Word
+Word
 InMap( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -96,19 +96,19 @@ query processor.
   return (SetWord( instance ));
 }
 
-static ListExpr
+ListExpr
 OutMap( ListExpr typeInfo, Word value )
 {
   return (value.list);
 }
 
-static void*
-DummyCast( void* addr, SmiRecordFile* )
+void*
+DummyCast( void* addr )
 {
   return (0);
 }
 
-static bool
+bool
 CheckMap( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( nl->First( type ), "map" ));

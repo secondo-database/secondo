@@ -56,7 +56,6 @@ in the algebras.
 
 */
   virtual void CopyFrom(StandardAttribute* right) = 0;
-  virtual void SetDefined(bool defined) = 0;
 };
 
 #endif

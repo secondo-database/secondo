@@ -45,7 +45,7 @@ extern QueryProcessor* qp;
 The selection function of a type operator always returns -1.
 
 */
-int typeOperatorSelect(ListExpr args) 
+int exttypeOperatorSelect(ListExpr args) 
 { 
   return -1; 
 }
@@ -102,7 +102,7 @@ Operator extrelgroup (
          GroupSpec,            // specification
          0,                    // no value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
-         typeOperatorSelect,   // trivial selection function
+         exttypeOperatorSelect,   // trivial selection function
          GroupTypeMap          // type mapping
 );
 

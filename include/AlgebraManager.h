@@ -310,7 +310,7 @@ typedef void (*ObjectClose)( Word& object );
 
 typedef Word (*ObjectClone)( const Word& object ); 
 
-typedef void* (*ObjectCast)( void*, SmiRecordFile* );
+typedef void* (*ObjectCast)( void* );
 
 typedef int (*ObjectSizeof)(); 
 

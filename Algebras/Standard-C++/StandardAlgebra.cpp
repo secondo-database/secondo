@@ -353,7 +353,7 @@ SizeOfCcInt()
 */
 
 void*
-CastInt( void* addr, SmiRecordFile* )
+CastInt( void* addr )
 {
   CcInt::intsCreated--;
   return (new (addr) CcInt);
@@ -655,7 +655,7 @@ SizeOfCcReal()
 */
 
 void*
-CastReal( void* addr, SmiRecordFile* )
+CastReal( void* addr )
 {
   CcReal::realsCreated--;
   return new (addr) CcReal;
@@ -830,7 +830,7 @@ SizeOfCcBool()
 */
 
 void*
-CastBool( void* addr, SmiRecordFile* )
+CastBool( void* addr )
 {
   CcBool::boolsCreated--;
   return (new (addr) CcBool);
@@ -1103,7 +1103,7 @@ SizeOfCcString()
 */
 
 void*
-CastString( void* addr, SmiRecordFile* )
+CastString( void* addr )
 {
   CcString::stringsCreated--;
   return (new (addr) CcString);

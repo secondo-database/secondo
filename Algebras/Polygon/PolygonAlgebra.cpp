@@ -7,9 +7,9 @@
 
 January 2003 VTA
 
-This ~polygon~ example algebra is intended as a documentation of the state diagram of objects inside the Secondo system. This state diagram shown in Figure 1 is needed because objects can have some persistent part handled by its own algebra. 
+This ~polygon~ example algebra is intended as a documentation of the state diagram of objects inside the Secondo system. This state diagram shown in Figure 1 is needed because objects can have some persistent part handled by its own algebra.
 Every object in the Secondo system must have a memory part and may have a persistent part not handled by the Secondo system, but by the algebra from which the object belongs.
-In this algebra, the vertices of the polygon are persistent using a ~DBArray~ (from Persistent Array) structure. 
+In this algebra, the vertices of the polygon are persistent using a ~DBArray~ (from Persistent Array) structure.
 
 In this way, objects, when they exist in the Secondo system, can stay into two states: \emph{opened} and \emph{closed}. Figure 1 shows the state diagram for objects in the Secondo system. When an object is in ~opened~ state, it has the memory part already loaded into memory and the files/records needed for the persistent part (if used) are opened and ready for use. When an object is in ~closed~ state the files/records needed for the persistent part are closed and the memory part is freed.
 
@@ -53,28 +53,23 @@ extern QueryProcessor *qp;
 2.1 Struct Vertex
 
 */
-class Vertex : public DBArrayElement
+struct Vertex
 {
   public:
     Vertex( int xcoord, int ycoord ):
       x( xcoord ), y( ycoord )
       {}
- 
+
     Vertex():
       x( 0 ), y( 0 )
       {}
-  
-    char *ToString() const
-      { return (char *)this; }
-
-    void FromString( char *str )
-      { memcpy( this, str, sizeof(Vertex) ); }
 
     int x;
     int y;
+    char ch;
   };
 
-/* 
+/*
 
 2.2 Class Edge
 
@@ -97,184 +92,128 @@ class Edge
     Vertex end;
 };
 
-enum PolygonState { partial, complete, closed };
-
-/*
-2.3 Struct ~PolygonRootRecord~
-
-*/
-struct PolygonRootRecord
-{
-  PolygonRootRecord( int n, SmiRecordId id ):
-    noVertices( n ), 
-    recordId( id )
-    {}
-  PolygonRootRecord( const PolygonRootRecord& r ):
-    noVertices( r.noVertices ), 
-    recordId( r.recordId )
-    {}
-
-  int noVertices;
-  SmiRecordId recordId;
-};
+enum PolygonState { partial, complete };
 
 /*
 
 2.3 Class Polygon
 
 */
-class Polygon : public Attribute 
+class Polygon : public Attribute
 {
-	
+
   public:
     Polygon();
     Polygon( const int n, const int *X, const int *Y );
-    Polygon( SmiRecordFile *file, char *rootRecord );
-    Polygon( SmiRecordFile *file, SmiRecordId id, const bool update = true );
     ~Polygon();
-    
+
     int NumOfFLOBs();
     FLOB *GetFLOB(const int i);
-    const bool SaveFLOB(const int i, SmiRecordFile *file);
     int Compare(Attribute*);
     int Adjacent(Attribute*);
     Polygon *Clone();
     int Sizeof();
     bool IsDefined();
-    char *GetRootRecord();
+    void SetDefined( bool defined );
     ostream& Print( ostream& os );
 
     void Append( Vertex& v );
     void Complete();
     bool Correct();
-    void Close();
     void Destroy();
-    int GetNoEdges();
-    int GetNoVertices() { return GetNoEdges(); };
+    int GetNoEdges() { return GetNoVertices(); }
+    int GetNoVertices();
     Edge& GetEdge( int i );
     Vertex& GetVertex( int i );
     string GetState();
-    SmiRecordId GetRecordId();
-    const bool Save(SmiRecordFile *file);
     const bool IsEmpty();
 
     friend ostream& operator <<( ostream& os, Polygon& p );
 
   private:
-    PolygonRootRecord *rootRecord;
-    DBArray *vertices;
+    DBArray<Vertex> vertices;
     PolygonState state;
-    bool deleteRootRecord;
 };
 
-	
-/* 
+/*
+2.3.18 Print functions
+
+*/
+ostream& operator<<(ostream& os, Vertex& v)
+{
+  os << "(" << v.x << "," << v.y << ")";
+  return os;
+}
+
+
+ostream& operator<<(ostream& os, Polygon& p)
+{
+  os << " State: " << p.GetState()
+     << "<";
+
+  for(int i = 0; i < p.GetNoVertices(); i++)
+    os << p.GetVertex( i ) << " ";
+
+  os << ">";
+
+  return os;
+}
+
+/*
 2.3.1 Constructors.
 
 This first constructor creates a new polygon.
 
 */
 Polygon::Polygon() :
-  rootRecord( new PolygonRootRecord( 0, 0 ) ),
-  vertices( new DBArray( sizeof( Vertex ) ) ),
-  state( partial ),
-  deleteRootRecord( true ) 
+  vertices(),
+  state( partial )
 {}
 
 Polygon::Polygon( const int n, const int *X, const int *Y ) :
-  rootRecord( new PolygonRootRecord( 0, 0 ) ),
-  vertices( new DBArray( sizeof( Vertex ), n, true, true ) ),
-  state( partial ),
-  deleteRootRecord( true ) 
+  vertices( n ),
+  state( partial )
 {
   for( int i = 0; i < n; i++ )
   {
     Vertex v( X[i], Y[i] );
     Append( v );
   }
-  Complete();  
-}
-
-/*
-
-This second constructor opens a polygon stored in
-a file with ~id~ as record identification. The
-state of the polygon created is ~complete~ because
-it is necessary to be completed for a polygon to
-be closed.
-
-*/
-Polygon::Polygon( SmiRecordFile *file, SmiRecordId id, const bool update ) :
-  rootRecord( NULL ),
-  vertices( new DBArray( sizeof(Vertex), file, id, update ) ),
-  state( complete ),
-  deleteRootRecord( true ) 
-{
-  rootRecord = new PolygonRootRecord( vertices->GetNoComponents(), id );
-}
-
-Polygon::Polygon( SmiRecordFile *file, char *r ) :
-  rootRecord( NULL ),
-  vertices( NULL ),
-  state( complete ),
-  deleteRootRecord( false ) 
-{
-  rootRecord = (PolygonRootRecord*)r;
-  if( rootRecord->recordId == 0 )
-    vertices = new DBArray( sizeof(Vertex), rootRecord->noVertices, false, true );
-  else
-    vertices = new DBArray( sizeof(Vertex), file, rootRecord->recordId, true );
+  Complete();
 }
 
 /*
 
 2.3.2 Destructor.
 
-*Precondition* ~state == closed~.
-
 */
 Polygon::~Polygon()
-{ 
-//  assert( state == closed ); 
-  delete vertices;
-  if( deleteRootRecord )
-    delete rootRecord;
+{
 }
-    
+
 /*
 2.3.3 NumOfFLOBs.
 
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-int Polygon::NumOfFLOBs() 
+int Polygon::NumOfFLOBs()
 {
-  return 1; 
+  return 1;
 }
-	
+
 /*
 2.3.4 GetFLOB
 
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-FLOB *Polygon::GetFLOB(const int i) 
-{ 
+FLOB *Polygon::GetFLOB(const int i)
+{
   assert( i >= 0 && i < NumOfFLOBs() );
-  return vertices->GetArray();
+  return &vertices;
 }
-    
-/*
-2.3.4 SaveFLOB 
 
-Not yet implemented. Needed to be a tuple attribute.
-
-*/
-const bool Polygon::SaveFLOB(const int i, SmiRecordFile *file ) 
-{ 
-  assert( i >= 0 && i < NumOfFLOBs() );
-  return Save( file );
-}
 /*
 2.3.5 Compare
 
@@ -282,10 +221,10 @@ Not yet implemented. Needed to be a tuple attribute.
 
 */
 int Polygon::Compare(Attribute*)
-{ 
-  return 0; 
+{
+  return 0;
 }
-	
+
 /*
 2.3.5 Adjacent
 
@@ -293,18 +232,18 @@ Not yet implemented. Needed to be a tuple attribute.
 
 */
 int Polygon::Adjacent(Attribute*)
-{ 
-  return 0; 
+{
+  return 0;
 }
 
 /*
 2.3.7 Clone
 
-Returns a new created polygon (clone) which is a 
+Returns a new created polygon (clone) which is a
 copy of ~this~.
 
 */
-Polygon *Polygon::Clone() 
+Polygon *Polygon::Clone()
 {
   assert( state == complete );
   Polygon *p = new Polygon();
@@ -313,7 +252,7 @@ Polygon *Polygon::Clone()
   p->Complete();
   return p;
 }
-	
+
 /*
 2.3.8 IsDefined
 
@@ -324,24 +263,15 @@ bool Polygon::IsDefined()
 }
 
 /*
-2.3.8 Sizeof 
+2.3.8 SetDefined
 
 */
-int Polygon::Sizeof()
+void Polygon::SetDefined( bool defined )
 {
-  return sizeof(PolygonRootRecord);
-}
-/*
-2.3.8 GetRootRecord 
-
-*/
-char *Polygon::GetRootRecord()
-{
-  return (char *)rootRecord;
 }
 
 /*
-2.3.8 Print 
+2.3.8 Print
 
 */
 ostream& Polygon::Print( ostream& os )
@@ -360,7 +290,7 @@ Appends a vertex ~v~ at the end of the polygon.
 void Polygon::Append( Vertex& v )
 {
   assert( state == partial );
-  vertices->Put( rootRecord->noVertices++, v );
+  vertices.Append( v );
 }
 
 /*
@@ -389,20 +319,6 @@ bool Polygon::Correct()
 }
 
 /*
-2.3.12 Close
-
-Turns the polygon into the ~closed~ state.
-
-*Precondition* ~state == complete~.
-
-*/
-void Polygon::Close()
-{
-  assert( state == complete );
-  state = closed;
-}
-
-/*
 2.3.13 Destroy
 
 Turns the polygon into the ~closed~ state destroying the
@@ -414,8 +330,6 @@ vertices array.
 void Polygon::Destroy()
 {
   assert( state == complete );
-  vertices->MarkDelete();
-  state = closed;
 }
 
 /*
@@ -426,10 +340,9 @@ Returns the number of edges of the polygon.
 *Precondition* ~state == complete~.
 
 */
-int Polygon::GetNoEdges()
+int Polygon::GetNoVertices()
 {
-  assert( state == complete );
-  return rootRecord->noVertices;
+  return vertices.Size();
 }
 
 /*
@@ -446,7 +359,7 @@ Vertex& Polygon::GetVertex( int i )
   assert( 0 <= i && i < GetNoVertices() );
 
   static Vertex v;
-  vertices->Get( i, v );
+  vertices.Get( i, v );
 
   return v;
 }
@@ -465,8 +378,8 @@ Edge& Polygon::GetEdge( int i )
   assert( 0 <= i && i < GetNoVertices() );
 
   Vertex v, w;
-  vertices->Get( i, v );
-  vertices->Get( i+1, w );
+  vertices.Get( i, v );
+  vertices.Get( i+1, w );
 
   static Edge e( v, w );
 
@@ -487,38 +400,10 @@ string Polygon::GetState()
       return "partial";
     case complete:
       return "complete";
-    case closed:
-      return "closed";
   }
   return "";
 }
 
-
-/*
-2.3.17 GetRecordId
-
-Returns the record identification (~SmiRecordId~) of the
-vertices array.
-
-*/
-SmiRecordId Polygon::GetRecordId()
-{
-  return vertices->GetRecordId();
-}
-
-/*
-2.3.17 Save
-
-Saves the vertices and returns its record identification (~SmiRecordId~).
-
-*/
-const bool Polygon::Save( SmiRecordFile *file )
-{
-  assert( state == complete );
-  bool result = vertices->Save( file );
-  rootRecord->recordId = vertices->GetRecordId();
-  return result;
-}
 
 /*
 2.3.18 IsEmpty
@@ -528,34 +413,9 @@ Returns if the polygon is empty or not.
 */
 const bool Polygon::IsEmpty()
 {
+  assert( state == complete );
   return GetNoVertices() == 0;
 }
-
-/*
-2.3.18 Print functions
-
-*/
-ostream& operator<<(ostream& os, Vertex& v)
-{
-  os << "(" << v.x << "," << v.y << ")";
-  return os;
-}
-
-
-ostream& operator<<(ostream& os, Polygon& p)
-{
-  os << "RecordId: " << p.GetRecordId() 
-     << " State: " << p.GetState()
-     << "<";
-
-  for(int i = 0; i < p.GetNoVertices(); i++)
-    os << p.GetVertex( i ) << " ";
-
-  os << ">";
-  
-  return os;
-}
-
 
 /*
 3 Polygon Algebra.
@@ -571,7 +431,7 @@ The list representation of a polygon is
 
 */
 
-static ListExpr
+ListExpr
 OutPolygon( ListExpr typeInfo, Word value )
 {
   Polygon* polygon = (Polygon*)(value.addr);
@@ -594,7 +454,7 @@ OutPolygon( ListExpr typeInfo, Word value )
   }
 }
 
-static Word
+Word
 InPolygon( const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -606,10 +466,10 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
   ListExpr rest = instance;
   while( !nl->IsEmpty( rest ) )
   {
-    first = nl->First( rest ); 
+    first = nl->First( rest );
     rest = nl->Rest( rest );
 
-    if( nl->ListLength( first ) == 2 && 
+    if( nl->ListLength( first ) == 2 &&
         nl->IsAtom( nl->First( first ) ) && nl->AtomType( nl->First( first ) ) == IntType &&
         nl->IsAtom( nl->Second( first ) ) && nl->AtomType( nl->Second( first ) ) == IntType )
     {
@@ -632,7 +492,7 @@ InPolygon( const ListExpr typeInfo, const ListExpr instance,
 
 */
 
-static ListExpr
+ListExpr
 PolygonProperty()
 {
   return (nl->TwoElemList(
@@ -647,7 +507,7 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~polygon~ does not have arguments, this is trivial.
 
 */
-static bool
+bool
 CheckPolygon( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "polygon" ));
@@ -655,7 +515,7 @@ CheckPolygon( ListExpr type, ListExpr& errorInfo )
 
 /*
 
-3.5 ~Create~-function 
+3.5 ~Create~-function
 
 */
 Word CreatePolygon(const ListExpr typeInfo)
@@ -685,19 +545,10 @@ OpenPolygon( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-  SmiRecordId recordId;
-  SmiSize bytesRead;
-
-  if( ( bytesRead = valueRecord.Read( &recordId, sizeof( SmiRecordId ), 0 ) ) != sizeof( SmiRecordId ) )
-  {
-    value = SetWord( Address(0) );
-    return (false);
-  }
-
-  Polygon *polygon = new Polygon( SecondoSystem::GetFlobFile(), recordId );
-  value = SetWord( polygon );
-
-  return (true);
+  Polygon *p = new Polygon();
+  p->Open( valueRecord, typeInfo );
+  value = SetWord( p );
+  return true;
 }
 
 /*
@@ -709,15 +560,9 @@ SavePolygon( SmiRecord& valueRecord,
              const ListExpr typeInfo,
              Word& value )
 {
-  Polygon *polygon = (Polygon*)value.addr;
-  polygon->Save( SecondoSystem::GetFlobFile() );
-  SmiRecordId recordId = polygon->GetRecordId();
-  SmiSize bytesWritten;
-
-  if( ( bytesWritten = valueRecord.Write( &recordId, sizeof( SmiRecordId ), 0 ) ) != sizeof( SmiRecordId ) )
-    return (false);
-  
-  return (true);
+  Polygon *p = (Polygon *)value.addr;
+  p->Save( valueRecord, typeInfo );
+  return true;
 }
 
 /*
@@ -727,7 +572,6 @@ SavePolygon( SmiRecord& valueRecord,
 void ClosePolygon(Word& w)
 {
   Polygon* polygon = (Polygon*)w.addr;
-  polygon->Close();
   delete polygon;
 }
 
@@ -744,18 +588,20 @@ Word ClonePolygon(const Word& w)
 3.9 ~SizeOf~-function
 
 */
-static int SizeOfPolygon()
+int SizeOfPolygon()
 {
-  return sizeof(PolygonRootRecord);
+  return sizeof(Polygon);
 }
 
 /*
 3.10 ~Cast~-function
 
 */
-void* CastPolygon(void* addr, SmiRecordFile *file)
+void* CastPolygon(void* addr)
 {
-  return ( new Polygon( file, (char *)addr ) );
+  Polygon *p = (Polygon *)addr;
+  return (void*)p;
+//  return (new (addr) Polygon);
 }
 
 /*
@@ -767,7 +613,8 @@ TypeConstructor polygon(
         PolygonProperty,			//property function describing signature
         OutPolygon,	InPolygon,		//Out and In functions
         CreatePolygon,  DeletePolygon,		//object creation and deletion
-        OpenPolygon, SavePolygon,               //object open and save 
+//        0, 0,
+        OpenPolygon, SavePolygon,               //object open and save
         ClosePolygon, ClonePolygon,		//object close and clone
         CastPolygon,                    	//cast function
         SizeOfPolygon,                          //sizeof function
@@ -782,10 +629,10 @@ TypeConstructor polygon(
 4 PolygonAlgebra
 
 */
-class PolygonAlgebra : public Algebra 
+class PolygonAlgebra : public Algebra
 {
   public:
-    PolygonAlgebra() : Algebra() 
+    PolygonAlgebra() : Algebra()
     {
       AddTypeConstructor( &polygon );
 
@@ -796,7 +643,7 @@ class PolygonAlgebra : public Algebra
 
 PolygonAlgebra polygonAlgebra;
 
-/* 
+/*
 
 5 Initialization
 
@@ -804,7 +651,7 @@ PolygonAlgebra polygonAlgebra;
 
 extern "C"
 Algebra*
-InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef) 
+InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;

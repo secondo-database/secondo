@@ -107,7 +107,7 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
       assert( extensionTuple == 0 );
       // This was a fresh tuple saved. In this way, the attributes were
       // created outside the tuple and inserted in the tuple using the
-      // ~PutAttribute~ method. They must be deleted.
+      // ~PutAttribute~ method. In this way, they must be deleted.
       for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
         delete attributes[i];
     }
@@ -211,20 +211,22 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   tupleFile = tuplefile;
   tupleRecord = new SmiRecord();
 
-  // Calculate the size of FLOB data
+  // Calculate the size of the small FLOB data which will be saved together
+  // with the tuple attributes and save the LOBs in the lobFile.
   int extensionSize = 0;
   for( int i = 0; i < tupleType.GetNoAttributes(); i++)
   {
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-      attributes[i]->SaveFLOB(j, lobFile);
       if( !tmpFLOB->IsLob() )
-        extensionSize += tmpFLOB->GetSize();
+        extensionSize += tmpFLOB->Size();
+      else
+        tmpFLOB->SaveToLob( *lobFile );
     }
   }
 
-  // Move FLOB data to extension tuple
+  // Move FLOB data to extension tuple.
   if( extensionSize > 0 )
   {
     extensionTuple = (char *)malloc(extensionSize);
@@ -236,8 +238,8 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
         FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
         if( !tmpFLOB->IsLob() )
         {
-          tmpFLOB->Get(0, tmpFLOB->GetSize(), extensionPtr);
-          extensionPtr += tmpFLOB->GetSize();
+          tmpFLOB->SaveToExtensionTuple( extensionPtr );
+          extensionPtr += tmpFLOB->Size();
         }
       }
     }
@@ -248,7 +250,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   int offset = 0;
   for( int i = 0; i < tupleType.GetNoAttributes(); i++)
   {
-    memcpy( &memoryTuple[offset], attributes[i]->GetRootRecord(), tupleType.GetAttributeType(i).size );
+    memcpy( &memoryTuple[offset], attributes[i], tupleType.GetAttributeType(i).size );
     offset += tupleType.GetAttributeType(i).size;
   }
 
@@ -279,8 +281,8 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
 
   tupleId = rid;
   tupleRecord = new SmiRecord();
-  tupleFile = tuplefile;
-  lobFile = lobfile;
+  this->tupleFile = tuplefile;
+  this->lobFile = lobfile;
 
   // read tuple header and memory tuple from disk
   bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord );
@@ -316,7 +318,7 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   {
     int algId = tupleType.GetAttributeType(i).algId;
     int typeId = tupleType.GetAttributeType(i).typeId;
-    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
+    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr);
     valuePtr += tupleType.GetAttributeType(i).size;
   }
 
@@ -343,7 +345,23 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
       {
         FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
         if( !tmpFLOB->IsLob() )
-          extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+        {
+          tmpFLOB->Restore( extensionPtr );
+          extensionPtr = extensionPtr + tmpFLOB->Size();
+        }
+      }
+    }
+  }
+
+  // Sets the lobFile for all lobs
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+  {
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
+    {
+      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+      if( tmpFLOB->IsLob() )
+      {
+        tmpFLOB->SetLobFile( lobFile );
       }
     }
   }
@@ -358,8 +376,8 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   AlgebraManager* algM = SecondoSystem::GetAlgebraManager();
 
   iter->ReadCurrentRecordNumber( tupleId );
-  tupleFile = tuplefile;
-  lobFile = lobfile;
+  this->tupleFile = tuplefile;
+  this->lobFile = lobfile;
 
 
   int extensionSize = 0;
@@ -377,15 +395,13 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
     return false;
   }
 
-
   // Read attribute values from memoryTuple.
   char *valuePtr = memoryTuple;
   for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
   {
     int algId = tupleType.GetAttributeType(i).algId;
     int typeId = tupleType.GetAttributeType(i).typeId;
-    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
-    attributes[i]->SetInsideTuple();
+    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr);
     valuePtr += tupleType.GetAttributeType(i).size;
   }
 
@@ -411,7 +427,23 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
       {
         FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
         if( !tmpFLOB->IsLob() )
-          extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+        {
+          tmpFLOB->Restore( extensionPtr );
+          extensionPtr = extensionPtr + tmpFLOB->Size();
+        }
+      }
+    }
+  }
+
+  // Sets the lobFile for all lobs
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+  {
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
+    {
+      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+      if( tmpFLOB->IsLob() )
+      {
+        tmpFLOB->SetLobFile( lobFile );
       }
     }
   }
@@ -431,9 +463,9 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
   SmiKey key;
   key = record->GetKey();
   key.GetKey( tupleId );
-  tupleRecord = record;
-  tupleFile = tuplefile;
-  lobFile = lobfile;
+  this->tupleRecord = record;
+  this->tupleFile = tuplefile;
+  this->lobFile = lobfile;
 
   // read tuple header and memory tuple from disk
   bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord );
@@ -462,15 +494,13 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
     return false;
   }
 
-
   // Read attribute values from memoryTuple.
   char *valuePtr = memoryTuple;
   for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
   {
     int algId = tupleType.GetAttributeType(i).algId;
     int typeId = tupleType.GetAttributeType(i).typeId;
-    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr, lobFile);
-    attributes[i]->SetInsideTuple();
+    attributes[i] = (TupleElement *) (*(algM->Cast(algId, typeId)))(valuePtr);
     valuePtr += tupleType.GetAttributeType(i).size;
   }
 
@@ -497,7 +527,23 @@ const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
       {
         FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
         if( !tmpFLOB->IsLob() )
-          extensionPtr = extensionPtr + tmpFLOB->Restore(extensionPtr);
+        {
+          tmpFLOB->Restore( extensionPtr );
+          extensionPtr = extensionPtr + tmpFLOB->Size();
+        }
+      }
+    }
+  }
+
+  // Sets the lobFile for all lobs
+  for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+  {
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
+    {
+      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+      if( tmpFLOB->IsLob() )
+      {
+        tmpFLOB->SetLobFile( lobFile );
       }
     }
   }
@@ -563,7 +609,6 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
 
   if( privateTuple->attributes[index] != 0 )
     delete privateTuple->attributes[index];
-  attr->SetInsideTuple();
   privateTuple->attributes[index] = attr;
 }
 
@@ -576,7 +621,7 @@ const long Tuple::GetMemorySize() const
     {
       FLOB *tmpFLOB = privateTuple->attributes[i]->GetFLOB(j);
       if( !tmpFLOB->IsLob() )
-        extensionSize += tmpFLOB->GetSize();
+        extensionSize += tmpFLOB->Size();
     }
   }
   return privateTuple->tupleType.GetTotalSize() + extensionSize;
@@ -638,7 +683,7 @@ void Tuple::Delete()
 This class is used to collect tuples for sorting, for example, or
 to do a cartesian product. In this persistent version, if the buffer
 is small it will be stored in memory and if it is large, it will be
-stored into a disk file. 
+stored into a disk file.
 
 3.9.1 Struct ~PrivateTupleBuffer~
 
@@ -656,7 +701,7 @@ The constructor.
 */
   ~PrivateTupleBuffer()
   {
-    if( !inMemory ) 
+    if( !inMemory )
       diskBuffer->Delete();
     else
     {
@@ -745,7 +790,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
   // first tuple being inserted in the buffer.
   {
     privateTupleBuffer->MAX_TUPLES_IN_MEMORY = PrivateTupleBuffer::MAX_MEMORY_SIZE / t->GetMemorySize();
-  }  
+  }
 
   if( privateTupleBuffer->inMemory )
   {
@@ -771,7 +816,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
       privateTupleBuffer->diskBuffer->AppendTuple( t );
       privateTupleBuffer->inMemory = false;
     }
-  }  
+  }
   else
   {
     privateTupleBuffer->diskBuffer->AppendTuple( t );
@@ -814,7 +859,7 @@ A pointer to the tuple buffer.
 */
   size_t currentTuple;
 /*
-The current tuple if it is in memory. 
+The current tuple if it is in memory.
 
 */
   RelationIterator *diskIterator;

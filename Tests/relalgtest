@@ -400,3 +400,5 @@ query Staedte sample[0, 1.0] count
 #teardown
 close database;
 delete database relalgtest;
+
+query world feed filter[.NAME = "Brazil"] {a} world feed filter[.CONTINENT = "South America"] {b} product filter[.geoData_a touches .geoData_b] project[NAME_a, NAME_b] filter[.NAME_a # .NAME_b] consume

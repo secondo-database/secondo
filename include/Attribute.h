@@ -46,6 +46,7 @@ version.
 #ifndef ATTRIBUTE_H
 #define ATTRIBUTE_H
 
+#include "SecondoSMI.h"
 #include "TupleElement.h"
 
 class Attribute : public TupleElement
@@ -55,6 +56,7 @@ class Attribute : public TupleElement
   virtual int        Adjacent( Attribute *attrib ) = 0;
   virtual Attribute* Clone()     = 0;
   virtual bool       IsDefined() = 0;
+  virtual void       SetDefined(bool defined) = 0;
 };
 
 #endif
