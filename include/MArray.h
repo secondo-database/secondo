@@ -19,7 +19,7 @@
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: PArray
+1 Header File: MArray
 
 Version: 0.7
 
@@ -38,35 +38,36 @@ This module offers the following methods:
 
 [23]	Creation/Removal 	& Access   	& Inquiries	\\ 	
 	[--------]
-	PArray        		& Get 		& Size		\\  	
-	[tilde]PArray		& Put		& Id		\\
+	MArray        		& Get 		& Size		\\  	
+	[tilde]MArray		& Put		& Id		\\
 	MarkDelete		&		& 		\\
 
 Operations have to follow the protocol shown below:
 
 		Figure 1: Protocol [Protocol.eps]
 
-1.3 Class ~PArray~
+1.3 Class ~MArray~
 
 An instance of the class is a handle to a persistent array of fixed size with
 elements of type ~T~.
 
 */
 
-#ifndef PARRAY_H
-#define PARRAY_H
+#ifndef MARRAY_H
+#define MARRAY_H
 
-#ifdef RELALG_PERSISTENT
-
-#include "SecondoSMI.h"
+#include <iostream> 
+#include <cassert>
+#include <vector>
+#include <algorithm>
 #include "GArray.h"
 
 template<class T>
-class PArray : public GArray<T>
+class MArray : public GArray<T>
 {
  public:
 
-  PArray( SmiRecordFile *parrays, const int initsize = 0 );
+  MArray( SmiRecordFile *parrays, const int initsize = 0 );
 /*
 Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
 persistent array. One can define an initial size of the persistent
@@ -74,14 +75,20 @@ array with the argument ~initsize~.
 
 */
 
-  PArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update = true );
+  MArray( const int initsize = 0 );
+/*
+Create a new memory version of the MArray. It is used for temporary arrays.
+
+*/
+  
+  MArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update = true );
 /*
 Opens the ~SmiRecordFile~ and the ~SmiRecord~ for the persistent array. The boolean 
 value ~update~ indicates if open mode: ~true~ for update and ~false~ for read-only.
 
 */
 
-  ~PArray();
+  ~MArray();
 /*
 Destroys the handle. If the array is marked for deletion, then it also destroys the
 persistent array.
@@ -118,26 +125,13 @@ Returns the element ~index~ of the array.
 Clears the persistent array.
 
 */
-  
-  void Sort( bool (*cmp)(const T&, const T&) ) 
+
+  void Sort( bool (*cmp)(const T&, const T&) )  
   {
     if( size <= 1 ) 
       return;
 
-    vector<T> aux;
-    for( int i = 0; i < size; i++ )
-    {
-      T t;
-      Get( i, t );
-      aux.push_back( t );
-    }
-
-    sort( aux.begin(), aux.end(), cmp );
-
-    for( int i = 0; i < size; i++ )
-    {
-      Put( i, aux[i] );
-    }
+    sort( marray->begin(), marray->end(), cmp );
   }
 /*
 Sorts the persisten array given the ~cmp~ comparison criteria.
@@ -159,17 +153,14 @@ Returns the identifier of this array.
  private:
 
   bool writeable;
-  SmiRecord record;
-  SmiRecordId recid;
   int size;
-  bool canDelete;
-  SmiRecordFile *parrays;
+  vector<T> *marray;
 
 };
 
 
 /*
-2 Implementation of PArray
+2 Implementation of MArray
 
 Version: 0.7
 
@@ -183,100 +174,82 @@ SecondoSMI interface.
 */
 
 template<class T>
-PArray<T>::PArray( SmiRecordFile *parrays, const int initsize ) :
+MArray<T>::MArray( SmiRecordFile *parrays, const int initsize ) :
 writeable( true ),
-recid( 0 ),
 size( 0 ),
-canDelete( false ),
-parrays( parrays )
+marray( new vector<T>( initsize ) )
 {
-  parrays->AppendRecord( recid, record );
-  record.Write( &size, sizeof(int), 0 );
-
-  int nil = 0;
-  record.Write( &nil, sizeof(int), sizeof(int) + initsize * sizeof(T) - sizeof(int) );
 }
 
 template<class T>
-PArray<T>::PArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update ) :
-writeable( update ),
-canDelete( false ),
-parrays( parrays )
+MArray<T>::MArray( const int initsize ) :
+writeable( true ),
+size( 0 ),
+marray( new vector<T>( initsize ) )
 {
-  SmiFile::AccessType at = update ? SmiFile::Update : SmiFile::ReadOnly;
-  assert( parrays->SelectRecord( id, record, at ) );
-  recid = id;
-  record.Read( &size, sizeof( int ) );
 }
 
 template<class T>
-PArray<T>::~PArray()
+MArray<T>::MArray( SmiRecordFile *parrays, const SmiRecordId& id, const bool update ) 
 {
-  if ( canDelete ) 
-  {
-    parrays->DeleteRecord( recid );
-  }
-  else if ( writeable )
-  {
-    record.Write( &size, sizeof( int ) );
-  }
+  assert( false );
 }
 
 template<class T>
-void PArray<T>::Clear()
+MArray<T>::~MArray()
 {
-  record.Truncate( 0 );
+  delete marray;  
+}
+
+template<class T>
+void MArray<T>::Clear()
+{
+  marray->clear();
   size = 0;
 }
 
 template<class T>
-void PArray<T>::Put(const int index, const T& elem)
+void MArray<T>::Put(const int index, const T& elem)
 {
   assert ( writeable );
   
   if ( size <= index ) 
+  {
     size = index + 1;
+    marray->resize( size );
+  }
 
-  record.Write(&elem, sizeof(T), sizeof(int) + index * sizeof(T));
+  (*marray)[index] = elem;
 }
 
 
 template<class T>
-void PArray<T>::Get(int const index, T& elem)
+void MArray<T>::Get(int const index, T& elem)
 {
   assert ( 0 <= index && index < size );
 
-  record.Read(&elem, sizeof(T), sizeof(int) + index * sizeof(T));
+  elem = (*marray)[index];
 }
 
 template<class T>
-void PArray<T>::MarkDelete() 
+void MArray<T>::MarkDelete() 
 {
   assert( writeable );
-  canDelete = true;
 }
 
 
 template<class T>
-const int PArray<T>::Size() const
+const int MArray<T>::Size() const
 {
   return size;
 }
 
 
 template<class T>
-const SmiRecordId PArray<T>::Id() const 
+const SmiRecordId MArray<T>::Id() const 
 { 
-  return recid;
+  return 0;
 }
 
-#else // RELALG_PERSISTENT
-
-#include "MArray.h"
-
-#define PArray MArray
-
-#endif // RELALG_PERSISTENT
-
-#endif // PARRAY_H
+#endif
 

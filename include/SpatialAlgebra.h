@@ -573,7 +573,7 @@ as an attribute.
 4.6 Atrtibutes
 
 */
-    PArray<Point>* points;
+    GArray<Point>* points;
 /*
 The persisten array of points.
 
@@ -1105,7 +1105,6 @@ as an attribute.
 
 */
     void Sort();
-    void QuickSortRecursive( const int low, const int high );
 /*
 Sorts (quick-sort algorithm) the persistent array of half segments in the line value.
 
@@ -1118,7 +1117,7 @@ returns its position. Returns -1 if the half segment is not found.
 6.8 Atrtibutes
 
 */
-    PArray<CHalfSegment>* line;
+    GArray<CHalfSegment>* line;
 /*
 The persisten array of half segments.
 
@@ -1375,7 +1374,6 @@ The following two functions are used to sort the half segments according to thei
 
 */    
     void logicsort();
-    void logicQuickSortRecursive( const int low, const int high );
     
 /*
 7.12 Functions needed to import the the ~Region~ data type to tuple 
@@ -1403,7 +1401,6 @@ as an attribute.
 
 */    
     void Sort();
-    void QuickSortRecursive( const int low, const int high );
 /*
 sorts (quick-sort algorithm) the persistent array of half segments in the region value.
 
@@ -1416,7 +1413,7 @@ returns its position. Returns -1 if the half segment is not found.
 7.14 Atrtibutes
 
 */    
-    PArray<CHalfSegment>* region;
+    GArray<CHalfSegment>* region;
     
 /*
 The persisten array of half segments.
