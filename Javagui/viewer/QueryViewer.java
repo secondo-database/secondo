@@ -21,7 +21,7 @@ public QueryViewer(){
 
   // build the MenuExtension
   MenuExtension = new MenuVector();
-  SubViewersMenu = new JMenu("SubViewers"); 
+  SubViewersMenu = new JMenu("SubViewers");
   ShowMenu = new JMenu("show");
   createShowMenu();
   MenuExtension.addMenu(SubViewersMenu);
@@ -30,9 +30,9 @@ public QueryViewer(){
 
 
 //#####  SecondoViewer-Methods ######
- public String getName(){ 
+ public String getName(){
     return "Query-Viewer";
- } 
+ }
 
 
  public boolean addObject(SecondoObject o){
@@ -40,18 +40,26 @@ public QueryViewer(){
      return false;
    else{
       RelSplitter.addObject(o);
-      SecondoViewer Cur = getCurrentViewer();
       return true;
    }
  }
 
  public void removeObject(SecondoObject o){
-   RelSplitter.removeObject(o); 
-   System.out.println("QueryViewer.removeObject : remove o from Current SubViewer");
+   RelSplitter.removeObject(o);
+   SecondoViewer SV;
+   SecondoObject[] SOS = RelSplitter.getAllObjects();
+   for(int i=0;i<SubViewers.size();i++){
+       SV = (SecondoViewer) SubViewers.get(i);
+       for(int j=0;i<SOS.length;j++)
+           SV.removeObject(SOS[i]);
+   }
  }
- 
+
  public void removeAll(){
    RelSplitter.removeAll();
+   SecondoViewer SV;
+   for(int i=0;i<SubViewers.size();i++)
+      ((SecondoViewer) SubViewers.get(i)).removeAll();
  }
 
  public  boolean canDisplay(SecondoObject o){
@@ -59,14 +67,12 @@ public QueryViewer(){
  }
 
  public boolean isDisplayed(SecondoObject o){
-   System.out.println("QueryViewer.isDisplayed : ask SubViewer");
-   return RelSplitter.isDisplayed(o);
+    return RelSplitter.isDisplayed(o);
  }
 
 
  public boolean selectObject(SecondoObject O){
-    System.out.println("QueryViewer.selectObject not implemented");
-    return true;
+    return RelSplitter.selectObject(O);
  }
 
  /** get the MenuExtension for MainWindow
@@ -102,8 +108,9 @@ public void selectObject(Object Sender,SecondoObject SO){
 
 /** this method should be invoked from viewer if the menu is changed **/
 public void updateMenu(){
-   System.out.println("QueryViewer.updateMenu not implemented");
+    computeMenuExtension();
 }
+
 
 public Frame getMainFrame(){
   if (VC==null)
@@ -113,7 +120,8 @@ public Frame getMainFrame(){
 }
 
 public void updateObject(SecondoObject SO){
-   System.out.println("QueryViewer.updateObject not implemented");
+   if(VC!=null)
+       VC.updateObject(SO);
 }
 
 
@@ -143,7 +151,7 @@ public void setViewerControl(ViewerControl VC){
 
 /** get all Viewers from VC and set first viewer*/
 private void updateViewers(){
-   SubViewers.clear();  
+   SubViewers.clear();
    SubViewersMenu.removeAll();
    if(VC!=null){
      SecondoViewer[] Vs= VC.getViewers();
@@ -166,7 +174,7 @@ private void updateViewers(){
               }
             });
           }
-     } 
+     }
      VC.updateMenu();
    }
    selectViewerIndex(0);
@@ -209,7 +217,7 @@ private void computeMenuExtension(){
       if(ME!=null)
          for(int i=0;i<ME.getSize();i++)
             MenuExtension.addMenu(ME.get(i));
-   } 
+   }
    if(VC!=null)
       VC.updateMenu();
 }
@@ -228,12 +236,12 @@ public void createShowMenu(){
   MI_ShowSelectedObject = ShowMenu.add("show selected object");
   MI_ShowSelectedAttribut = ShowMenu.add("show selected attribut");
   MI_ShowAllObjects = ShowMenu.add("show all objects");
-  ShowMenu.addSeparator(); 
+  ShowMenu.addSeparator();
   MI_ShowSelectedTuple = ShowMenu.add("show selected Tuple");
-  MI_ShowAllTuples = ShowMenu.add("show all Tuples"); 
+  MI_ShowAllTuples = ShowMenu.add("show all Tuples");
   ShowMenu.addSeparator();
   MI_ShowRelation = ShowMenu.add("show relation");
-   
+
   ActionListener ShowListener = new ActionListener(){
     public void actionPerformed(ActionEvent evt){
         Object Source = evt.getSource();
@@ -260,8 +268,8 @@ public void createShowMenu(){
              SecondoObject[] SOs = RelSplitter.getAllObjects();
              SecondoViewer CV = getCurrentViewer();
              for(int i=0;i<SOs.length;i++)
-                 CV.addObject(SOs[i]);         
-            
+                 CV.addObject(SOs[i]);
+
         } else if(Source.equals(MI_ShowSelectedTuple)){
            SecondoObject SOs = RelSplitter.getSelectedTuple();
            if(SOs==null)
@@ -284,8 +292,8 @@ public void createShowMenu(){
 
   MI_ShowSelectedObject.addActionListener(ShowListener);
   MI_ShowSelectedAttribut.addActionListener(ShowListener);
-  MI_ShowRelation.addActionListener(ShowListener);  
-  MI_ShowAllObjects.addActionListener(ShowListener);  
+  MI_ShowRelation.addActionListener(ShowListener);
+  MI_ShowAllObjects.addActionListener(ShowListener);
   MI_ShowSelectedTuple.addActionListener(ShowListener);
   MI_ShowAllTuples.addActionListener(ShowListener);
 

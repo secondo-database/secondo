@@ -31,7 +31,7 @@ public class Dsplregion extends DisplayGraph {
          ListExpr Face = TMP.first();
 	 TMP = TMP.rest();
          while(!Face.isEmpty()){
-	    no = no+Face.first().listLength()+1;
+	    no = no+Face.first().listLength()+2;
             Face = Face.rest();
 	 }
      }

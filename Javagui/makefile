@@ -16,7 +16,7 @@ help:
 	@echo "make all      -> compile all gui-components and know viewers"
 	@echo "make doc      -> call javadoc, run make all first"
 	@echo "make clean    -> remove all .class files and the documentation"
-	@echo "make mrproper -> clean + make mrproper Javainterface"
+	@echo "make mrproper -> cleans all created files"
 
 
 .PHONY: doc # creates the documentation
@@ -27,31 +27,33 @@ doc:
 
 .PHONY: makedirs
 makedirs:
-	(cd ../Javainterface;make all)
-	(cd communication;make all)
-	(cd extern;make all)
-	(cd components;make all)
-	(cd viewer;make all)
-	(cd project;make all);
-	(cd gui;make all)
-	(cd viewer;make viewers)
+	make -C sj all
+	make -C communication all
+	make -C extern all
+	make -C components all
+	make -C viewer all
+	make -C project all
+	make -C gui all
+	make -C viewer viewers
+	make -C tools all
 
 .PHONY: clean # removes the documentation and all .class files
 clean:
-	rm -f  *.class
-	(cd ../Javainterface; make clean)
-	(cd extern; make clean)
-	(cd viewer; make clean)
-	(cd gui; make clean)
-	(cd project; make clean)	
-	(cd components;make clean)
-	(cd communication;make clean)
+	make -C sj clean
+	make -C communication clean
+	make -C components clean
+	make -C extern clean
+	make -C gui clean
+	make -C project clean
+	make -C tools clean
+	make -C viewer clean
+	make -C java_cup clean
 	(rm -f ./doc/* -r)
 	(rm -fr doc)
 
 .PHONY: mrproper
 mrproper: clean
-	(cd ../Javainterface;make mrproper)
+	(make -C sj mrproper)
 
 
 .PHONY: cleangui

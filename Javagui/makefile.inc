@@ -14,17 +14,20 @@ endif
 
 SECONDOPATH = $(SECONDO_BUILD_DIR)
 
-JAVAINTERFACEPATH = $(SECONDOPATH)/Javainterface
 GUIPATH = $(SECONDOPATH)/Javagui
 
-CLASSPATH = ".:$(JAVAINTERFACEPATH):$(GUIPATH)"
+JLEXCLASSESPATH := $(GUIPATH)/lib/JLex_v1.2.3.zip
+CUPCLASSESPATH = $(GUIPATH)/lib/java_cup_v10i.zip
+CUPCLASSESRUNTIME = $(GUIPATH)/lib/java_cup/v10i_runtime.jar
+
+CLASSPATH = $(GUIPATH)
 
 DOCPATH = ./doc
 
-GUIPACKAGE = gui gui.idmanager
+GUIPACKAGE = gui gui.idmanager project communication extern
 
 # the viewerpackages
-# if you insert a new viewer extend this 
+# if you insert a new viewer extend this
 #
 VIEWERMAINPACKAGE = viewer
 HOESEVIEWERPACKAGE = viewer.hoese viewer.hoese.algebras

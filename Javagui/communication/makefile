@@ -4,12 +4,12 @@
 
 include ../makefile.inc
 
-.PHONY: all #creates the gui and all know viewers
+.PHONY: all
 all:
 	(cd optimizer;make all)
 
 
-.PHONY: clean # removes the documentation and all .class files
+.PHONY: clean 
 clean:
 	(cd optimizer; make clean)
 
