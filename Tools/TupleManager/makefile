@@ -27,9 +27,4 @@ Tuple.o: Tuple.cpp $(INCLUDEDIR)/Tuple.h $(INCLUDEDIR)/Algebra.h $(INCLUDEDIR)/S
 	$(CC) $(CFLAGS) -c Tuple.cpp $(CCFLAGS)
 
 clean: 
-	$(RM) *.o
-	$(RM) *.lo
-	$(RM) *.a
-	$(RM) *.so
-	$(RM) *.dll
-	$(RM) *~
+	$(RM) *.o *.lo *.a *.so *.dll *~

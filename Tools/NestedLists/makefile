@@ -34,7 +34,7 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 	$(CC) -c -o $@ $< $(CCFLAGS)
 
 NestedList.$(OBJEXT):
-	$(CC) -c -o $@ $< $(CCFLAGS) -finline-functions
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 NLParser.tab.cpp NLParser.tab.hpp: NLParser.y
 	$(YACC) -d -p __NLParser__ -o NLParser.tab.c NLParser.y
@@ -63,9 +63,6 @@ NLLex.cpp: NLLex.l
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)
 
-#include ../../include.dep
-
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) $(CODE_DEPENDENCIES) NLParser.tab.hpp NLParser.tab.cpp
-
+	$(RM) $(OBJECTS) *.dep NLParser.tab.hpp NLParser.tab.cpp

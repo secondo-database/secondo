@@ -1,6 +1,6 @@
 ########################################################################
 #
-# SECONDO makefile for utility modules
+# SECONDO makefile for client server modules 
 #
 ########################################################################
 
@@ -8,105 +8,91 @@ include ../makefile.env
 include ../makefile.jni
 
 OBJECTS=\
-	SocketIO.$(OBJEXT) \
-	SocketAddress.$(OBJEXT) \
-	SocketRuleSet.$(OBJEXT)
+	SocketIO \
+	SocketAddress \
+	SocketRuleSet
 
 APPLOBJECTS=\
-	SecondoMonitor.o \
-	SecondoRegistrar.o \
-	SecondoCheckpoint.o \
-	SecondoListener.o \
-	$(LIBDIR)/SecondoInterfaceCS.o \
-	SecondoServer.o
+	SecondoMonitor \
+	SecondoRegistrar \
+	SecondoCheckpoint \
+	SecondoListener \
+	SecondoServer
 
-APPLICATIONS1=\
+APPLOBJECTS += $(LIBDIR)/SecondoInterfaceCS
+
+ALL_OBJECTS = $(addsuffix .$(OBJEXT), $(OBJECTS) $(APPLOBJECTS))
+CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(ALL_OBJECTS))
+
+APPLICATIONS =\
 	$(BINDIR)/SecondoRegistrar$(EXEEXT) \
-	$(BINDIR)/SecondoListener$(EXEEXT)
+	$(BINDIR)/SecondoListener$(EXEEXT) \
+	$(BINDIR)/SecondoMonitor$(SMIUP)$(EXEEXT) \
+	$(BINDIR)/SecondoServer$(SMIUP)$(EXEEXT)
 
-ifeq ($(smitype),ora)
-APPLICATIONS = $(APPLICATIONS1) $(BINDIR)/SecondoMonitorORA$(EXEEXT) $(BINDIR)/SecondoServerORA$(EXEEXT)
-else
-APPLICATIONS = $(APPLICATIONS1) $(BINDIR)/SecondoMonitorBDB$(EXEEXT) $(BINDIR)/SecondoServerBDB$(EXEEXT) $(BINDIR)/SecondoCheckpoint$(EXEEXT)
+ifneq ($(smitype),ora)
+APPLICATIONS += $(BINDIR)/SecondoCheckpoint$(EXEEXT)
 endif
 
-.PHONY: all
-all: $(APPLOBJECTS)
+CCFLAGS := $(DEFAULTCCFLAGS)
 
-.PHONY: socket
-socket: $(OBJECTS)
+.PHONY: all
+all: $(ALL_OBJECTS) 
 
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
 
-CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
-CCXFLAGS= $(DEFAULTCCFLAGS)
+# create dependencies from include directives
+%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< > $@
 
-ifeq ($(platform),win32)
-SOCKETIMPL=Win32Socket.cpp
-else
-SOCKETIMPL=UnixSocket.cpp
-endif
+$(LIBDIR)/%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< > $@
 
-SocketIO.$(OBJEXT): SocketIO.cpp SecondoConfig.h SocketIO.h $(SOCKETIMPL)
-	$(CC) -c -o SocketIO.$(OBJEXT) SocketIO.cpp $(CCFLAGS)
+%.$(OBJEXT): %.cpp
+	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCFLAGS) $(JNIINCLUDE)
 
-SocketAddress.$(OBJEXT): SocketAddress.cpp SecondoConfig.h SocketIO.h
-	$(CC) -c -o SocketAddress.$(OBJEXT) SocketAddress.cpp $(CCFLAGS)
+$(LIBDIR)/%.$(OBJEXT): %.cpp
+	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCFLAGS) $(JNIINCLUDE)
 
-SocketRuleSet.$(OBJEXT): SocketRuleSet.cpp SecondoConfig.h SocketIO.h
-	$(CC) -c -o SocketRuleSet.$(OBJEXT) SocketRuleSet.cpp $(CCFLAGS)
-
-# --- Client/Server Applications
-
-SecondoMonitor.o: SecondoMonitor.cpp Application.h  Processes.h SecondoSMI.h Profiles.h FileSystem.h
-	$(CC) -c -o $@ $< $(CCXFLAGS)
-
-SecondoRegistrar.o: SecondoRegistrar.cpp Application.h Processes.h SocketIO.h Profiles.h
-	$(CC) -c -o $@ $< $(CCXFLAGS)
-
-SecondoCheckpoint.o: SecondoCheckpoint.cpp Application.h Processes.h SocketIO.h Profiles.h
-	$(CC) -c -o $@ $< $(BDBINCLUDE) $(CCXFLAGS)
-
-SecondoListener.o: SecondoListener.cpp Application.h Processes.h SocketIO.h Profiles.h
-	$(CC) -c -o $@ $< $(CCXFLAGS)
-
-SecondoServer.o: SecondoServer.cpp Application.h SocketIO.h Profiles.h AlgebraTypes.h SecondoSystem.h SecondoCatalog.h SecondoInterface.h Messenger.h Profiles.h
-	$(CC) -c -o $@ $< $(CCXFLAGS) $(JNIINCLUDE)
-
-$(LIBDIR)/SecondoInterfaceCS.o: SecondoInterfaceCS.cpp SecondoInterface.h Profiles.h
-	$(CC) -c -o $@ $< $(CCXFLAGS)
 
 # --- Link applications
+SERVER_OBJECTS = SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) 
 
-$(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoMonitorBDB$(EXEEXT): $(SECLIBFILES)
+$(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
-$(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoRegistrar$(EXEEXT): $(SECLIBFILES)
+$(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
-$(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoCheckpoint$(EXEEXT): $(SECLIBFILES)
+$(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
-$(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoListener$(EXEEXT): $(SECLIBFILES)
+$(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
-$(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerBDB$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) 
+$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
 
-$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT)  
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB) $(JNILINKOPTS)
+# Oracle SMI
+$(BINDIR)/SecondoMonitorORA$(EXEEXT): $(SECLIBFILES) 
+$(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $< $(LD_LINK_LIBS)
 
-$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDLFAGS) -o $@ $(filter %.o,$^) -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
 
-include ../include.dep
+$(BINDIR)/SecondoServerORA$(EXEEXT): $(ALGLIBFILES) $(SECLIBFILES) 
+$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(SERVER_OBJECTS) 
+	$(LD) $(EXEFLAGS) $(LDLFAGS) -o $@ $(filter %.o,$^) $(LD_LINK_LIBS_ALG)
+
+
+include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:
-	$(RM) $(APPLOBJECTS) $(APPLICATIONS)
-
-.PHONY: clean_socket
-clean_socket:
-	$(RM) $(OBJECTS) 
+	$(RM) *.dep $(ALL_OBJECTS) $(APPLICATIONS)
 

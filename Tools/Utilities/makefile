@@ -37,5 +37,5 @@ include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:
-	$(RM) $(OBJECTS) $(CODE_DEPENDENCIES)
+	$(RM) $(OBJECTS) *.dep 
 

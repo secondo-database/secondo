@@ -8,75 +8,85 @@ include ../makefile.env
 include ../makefile.jni
 
 APPLOBJECTS := \
-	SecondoTTY.o \
-	DisplayTTY.o
+	SecondoTTY.$(OBJEXT) \
+	DisplayTTY.$(OBJEXT)
 
 
-ifeq ($(smitype),ora)
-APPLICATIONS = $(BINDIR)/SecondoTTYORA
-else
-APPLICATIONS = $(BINDIR)/SecondoTTYBDB
-APPLOBJECTS += TestRunner.o
+APPLICATIONS = $(BINDIR)/SecondoTTY$(SMIUP)
+ifneq ($(smitype),ora)
+APPLOBJECTS += TestRunner.$(OBJEXT)
 endif
 
 ifeq ($(optimizer),"true")
 APPLICATIONS += $(OPTDIR)/SecondoPL
-APPLOBJECTS += SecondoPL.o
+APPLOBJECTS += SecondoPL.$(OBJEXT)
 endif
+
+
+CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
 
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 
 
 .PHONY: all
-all: $(APPLOBJECTS)
+all: $(CODE_DEPENDENCIES) $(APPLOBJECTS)
 
 .PHONY: buildapp
-buildapp: $(APPLICATIONS) testrunner
+buildapp: $(APPLICATIONS) TestRunner
 
-.PHONY: testrunner
-testrunner: $(BINDIR)/TestRunner$(EXEEXT)
+.PHONY: TestRunner 
+TestRunner: $(BINDIR)/TestRunner$(EXEEXT)
 
-.PHONY: client
-client: $(BINDIR)/SecondoTTYCS$(EXEEXT)
+.PHONY: TTYCS 
+TTYCS: $(BINDIR)/SecondoTTYCS$(EXEEXT)
 
-CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
-CCXFLAGS= $(DEFAULTCCFLAGS)
+.PHONY: TTY 
+TTY: $(BINDIR)/SecondoTTY$(SMIUP)
 
-# --- User Interface Applications
-SecondoTTY.o: SecondoTTY.cpp Application.h Profiles.h FileSystem.h SecondoSystem.h SecondoInterface.h SecondoSMI.h NestedList.h DisplayTTY.h
-	$(CC) -c -o $@ $< $(CCXFLAGS) $(JNIINCLUDE)
+.PHONY: OPT 
+OPT: $(OPTDIR)/SecondoPL
 
-DisplayTTY.o: DisplayTTY.cpp DisplayTTY.h SecondoInterface.h AlgebraTypes.h
-	$(CC) -c -o $@ $< $(CCXFLAGS)
+CCFLAGS= $(DEFAULTCCFLAGS)
 
-TestRunner.o: TestRunner.cpp Application.h Profiles.h FileSystem.h SecondoSystem.h SecondoInterface.h SecondoSMI.h NestedList.h DisplayTTY.h
-	$(CC) -c -o $@ $< $(CCXFLAGS) $(JNIINCLUDE)
+# create dependencies from include directives
+%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< > $@
 
-SecondoPL.o: SecondoPL.cpp Application.h Profiles.h FileSystem.h SecondoSystem.h SecondoInterface.h SecondoSMI.h NestedList.h DisplayTTY.h
-	$(CC) -c -o $@ $< $(PLINCLUDEFLAGS) $(CCXFLAGS) 
+%.$(OBJEXT): %.cpp
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE)
 
 
-# --- Link applications
-$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+#  Rules for linkage 
 
-$(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB) $(JNILINKOPTS) $(JNIINCLUDE)
+APP_OBJECTS :=  DisplayTTY.o SecondoInterfaceGeneral.o AlgebraList.o
 
-$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(BDBLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+$(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
+$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS) $(TUPLEMANAGER) 
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
-$(BINDIR)/TestRunner$(EXEEXT): TestRunner.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
 
-$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o DisplayTTY.o SecondoInterface.o SecondoInterfaceGeneral.o AlgebraList.o $(TUPLEMANAGER) libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) $(ALGLIBFILES)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(PLLDFLAGS) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB) $(JNIINCLUDE) $(JNILINKOPTS)
+$(BINDIR)/SecondoTTYORA$(EXEEXT):  $(SECLIBSFILES) $(ALGLIBFILES)
+$(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
 
-include ../include.dep
+$(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
+$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o 
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) 
+
+ 
+$(BINDIR)/TestRunner$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) 
+$(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS) $(TUPLEMANAGER)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+
+
+$(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS) $(TUPLEMANAGER) 
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+
+include $(CODE_DEPENDENCIES:.cpp=.dep)
 
 .PHONY: clean
 clean:
-	$(RM) $(APPLOBJECTS) $(APPLICATIONS)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS)
 
-.PHONY: clean_client
-	$(BINDIR)/SecondoTTYCS$(EXEEXT)
+.PHONY: clean_cs
+	$(RM) $(BINDIR)/SecondoTTYCS$(EXEEXT)

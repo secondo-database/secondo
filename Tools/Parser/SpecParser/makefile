@@ -9,7 +9,7 @@ include ../../../makefile.env
 all: Lexer$(EXEEXT) Parser$(EXEEXT)
 
 lex.yy.cpp: SpecLex.l
-	$(LEX) -olex.yy.cpp SpecLex.l
+	$(LEX) -o lex.yy.cpp SpecLex.l
 
 SpecParser.tab.hpp SpecParser.tab.cpp: SpecParser.y
 	$(YACC) -d -o SpecParser.tab.cpp SpecParser.y

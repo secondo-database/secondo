@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.21  2003/09/10 13:45:54  spieker
+# New object added.
+#
 # Revision 1.20  2003/08/20 18:14:55  spieker
 # some macro names are changed.
 #
@@ -52,7 +55,8 @@
 
 include makefile.env
 
-TOOLOBJECTS_BASENAMES=\
+#libsdbtool
+LIB_SDBTOOL_BASENAMES=\
 	Tools/NestedLists/NestedList \
 	Tools/NestedLists/NLLex \
 	Tools/NestedLists/NLScanner \
@@ -63,8 +67,8 @@ TOOLOBJECTS_BASENAMES=\
 	Tools/Parser/SecParser.tab \
 	Tools/Parser/NestedText 
 
-
-UTILOBJECTS_BASENAMES=\
+#libsdbutils
+LIB_SDBUTILS_BASENAMES=\
 	Tools/Utilities/Processes \
 	Tools/Utilities/Application \
 	Tools/Utilities/Messenger \
@@ -73,13 +77,15 @@ UTILOBJECTS_BASENAMES=\
 	Tools/Utilities/Profiles \
 	Tools/Utilities/UtilFunctions \
 	Tools/Utilities/WinUnix \
+
+#libsdbsocket
+LIB_SDBSOCKET_BASENAMES=\
 	ClientServer/SocketIO \
 	ClientServer/SocketAddress \
 	ClientServer/SocketRuleSet
 
-
-
-SDBSYSOBJECTS_BASENAMES=\
+#libsdbsys
+LIB_SDBSYS_BASENAMES=\
 	Algebras/Management/Algebra \
 	Algebras/Management/AlgebraManager \
 	QueryProcessor/QueryProcessor \
@@ -87,9 +93,10 @@ SDBSYSOBJECTS_BASENAMES=\
 	QueryProcessor/SecondoCatalog
 
 
-TOOLOBJECTS = $(addsuffix .$(OBJEXT), $(TOOLOBJECTS_BASENAMES))
-UTILOBJECTS = $(addsuffix .$(OBJEXT), $(UTILOBJECTS_BASENAMES))
-SDBSYSOBJECTS = $(addsuffix .$(OBJEXT), $(SDBSYSOBJECTS_BASENAMES))
+LIB_SDBTOOL_OBJECTS   = $(addsuffix .$(OBJEXT), $(LIB_SDBTOOL_BASENAMES))
+LIB_SDBUTILS_OBJECTS  = $(addsuffix .$(OBJEXT), $(LIB_SDBUTILS_BASENAMES))
+LIB_SDBSOCKET_OBJECTS = $(addsuffix .$(OBJEXT), $(LIB_SDBSOCKET_BASENAMES))
+LIB_SDBSYS_OBJECTS    = $(addsuffix .$(OBJEXT), $(LIB_SDBSYS_BASENAMES))
 
 ifeq ($(smitype),ora)
 SMILIB=$(ORASMILIB)
@@ -98,42 +105,54 @@ SMILIB=$(BDBSMILIB)
 endif
 
 .PHONY: all
-all: showjni makedirs buildlibs buildalg buildapps showjavagui
+all: makedirs buildlibs buildalg buildapps java showjni
 
 .PHONY: showjni
 showjni:
 	@echo $(JNITEXT)
 	
-.PHONY: showjavagui
-showjavagui:
-	@echo "if you want to use the java based gui"
-	@echo "enter make javagui"
-
 .PHONY: javagui
 javagui:
 	$(MAKE) -C Javagui all	
 
 .PHONY: clientserver
-clientserver:
+clientserver: cs
+
+.PHONY: cs 
+cs: makedirs buildlibs buildalg
 	$(MAKE) -C ClientServer
-	$(MAKE) -C UserInterfaces client
+	$(MAKE) -C UserInterfaces TTYCS 
 	$(MAKE) -C ClientServer buildapp
 
 .PHONY: makedirs
 makedirs:
-	$(MAKE) -C ClientServer socket
+	$(MAKE) -C ClientServer
 	$(MAKE) -C Tools
 	$(MAKE) -C StorageManager
 	$(MAKE) -C Algebras/Management
 	$(MAKE) -C QueryProcessor
 	$(MAKE) -C UserInterfaces
 
+.PHONY: java
+java:
+	$(MAKE) -C Javagui all
+
+.PHONY: TTY showjni 
+TTY: makedirs buildlibs buildalg
+	$(MAKE) -C UserInterfaces TTY 
+
+.PHONY: TestRunner showjni
+TestRunner: makedirs buildlibs buildalg
+	$(MAKE) -C UserInterfaces TestRunner
+	
+
 .PHONY: buildlibs
-buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmi $(LIBDIR)/libsdbsys.$(LIBEXT)
+buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbutils.$(LIBEXT) buildsmilibs $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIBDIR)/libsdbsocket.$(LIBEXT)
+
 	$(MAKE) -C Algebras buildlibs
 
-.PHONY: buildsmi
-buildsmi:
+.PHONY: buildsmilibs
+buildsmilibs:
 	$(MAKE) -C StorageManager buildlibs
 
 .PHONY: buildalg
@@ -148,39 +167,52 @@ buildalg:
 # which is only defined makefile.win32 included by makefile.env.
 
 $(LIBDIR)/libsdbtool.$(LIBEXT): LIBNAME=libsdbtool
-$(LIBDIR)/libsdbtool.$(LIBEXT): $(TOOLOBJECTS)
+$(LIBDIR)/libsdbtool.$(LIBEXT): $(LIB_SDBTOOL_OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(TOOLOBJECTS) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPT) $(LIB_SDBTOOL_OBJECTS) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIB_SDBTOOL_OBJECTS)
 endif
 
-# --- Secondo Database util library ---
+# --- Secondo Database Utilities Library ---
 
 LIBNAME=libsdbutils
-$(LIBDIR)/libsdbutils.$(LIBEXT): $(UTILOBJECTS)
+$(LIBDIR)/libsdbutils.$(LIBEXT): $(LIB_SDBUTILS_OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(UTILOBJECTS) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbutils.$(LIBEXT) $(LDOPTTOOL) $(LIB_SDBUTILS_OBJECTS) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $(UTILOBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbutils.$(LIBEXT) $(LIB_SDBUTILS_OBJECTS)
 endif
 
-# --- Secondo Database System library ---
+# --- Secondo Database System Library ---
 
 $(LIBDIR)/libsdbsys.$(LIBEXT): LIBNAME=libsdbsys
-$(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
+$(LIBDIR)/libsdbsys.$(LIBEXT): $(LIB_SDBSYS_OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(SDBSYSOBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPT) $(LIB_SDBSYS_OBJECTS) -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
-	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $(SDBSYSOBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $(LIB_SDBSYS_OBJECTS)
 endif
-	
+
+
+# --- Secondo Database Socket Library ---
+
+$(LIBDIR)/libsdbsocket.$(LIBEXT): LIBNAME=libsdbsocket
+$(LIBDIR)/libsdbsocket.$(LIBEXT): $(LIB_SDBSOCKET_OBJECTS)
+ifeq ($(shared),yes)
+# ... as shared object
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $^ -L$(LIBDIR) $(BDBSMILIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
+else
+# ... as static library
+	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $^
+endif
+
 
 # --- Applications
 
@@ -189,7 +221,7 @@ buildapps:
 	$(MAKE) -C UserInterfaces buildapp
 
 .PHONY: tests
-tests: buildlibs
+tests: makedirs buildlibs
 	$(MAKE) -C Tests
 
 
@@ -218,7 +250,7 @@ secondo.tgz:
 
 .PHONY: clean
 clean:
-	$(MAKE) -C ClientServer clean_socket
+	$(MAKE) -C ClientServer clean
 	$(MAKE) -C StorageManager clean
 	$(MAKE) -C Tools clean
 	$(MAKE) -C Algebras clean
@@ -232,7 +264,7 @@ clean:
 .PHONY: clean_cs
 clean_cs:
 	$(MAKE) -C ClientServer clean
-	$(MAKE) -C UserInterfaces clean_client	
+	$(MAKE) -C UserInterfaces clean_cs	
 
 .PHONY: clean_tests
 clean_tests:
@@ -241,14 +273,6 @@ clean_tests:
 .PHONY: clean_all
 clean_all: clean clean_tests clean_cs
 
-.PHONY: distclean
-distclean:
-	$(MAKE) -C ClientServer distclean
-	$(MAKE) -C StorageManager distclean
-	$(MAKE) -C Tools distclean
-	$(MAKE) -C Algebras distclean
-	$(MAKE) -C QueryProcessor distclean
-	$(MAKE) -C UserInterfaces distclean
 
 .PHONY: help
 help:

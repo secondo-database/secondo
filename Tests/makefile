@@ -63,10 +63,10 @@ CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS) $(myflags)
 
 # some default rules
 %$(EXEEXT): %.cpp libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT) libsdbutils.$(LIBEXT)
-	g++ -o $@ $< $(CCFLAGS) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(BDBSMILIB) $(BDBLIB) $(DEFAULTLIB)
+	g++ -o $@ $< $(CCFLAGS) -L$(LIBDIR) $(BDBLIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(TOOLLIB) $(BDBSMILIB) $(BDBLIB) $(DEFAULTLIB)
 
 %$(EXEEXT): %.o libsdbtool.$(LIBEXT) libsdbsys.$(LIBEXT) libsmibdb.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(BDBLIBDIR) $(BDBSMILIB) $(TOOLLIB)  $(BDBLIB) $(DEFAULTLIB)
 
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS)
