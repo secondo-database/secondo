@@ -662,7 +662,7 @@ If value 0 is returned, the command was executed without error.
               errorCode = 29;  // error in list structure in file
               break;
             case 4:
-              errorCode = 24;  // error in type or object definitions in file
+              errorCode = 24;  // error in object definition in file
               resultList = errorList;
               break;
             default:
