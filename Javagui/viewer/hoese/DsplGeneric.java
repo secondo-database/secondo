@@ -129,6 +129,24 @@ public class DsplGeneric implements DsplBase,DsplSimple {
     return  selected;
   }
 
+  /**
+    * Checks whether LE described an undefined value.
+    */
+  public static boolean isUndefined(ListExpr LE){
+    if(LE==null)
+       return true;
+    if(LE.atomType()==LE.SYMBOL_ATOM){
+       String v = LE.symbolValue();
+       return v.equals("undef") || v.equals("undefined");
+    }
+    if(LE.listLength()==1 && LE.first().atomType()==LE.SYMBOL_ATOM){
+       String v = LE.first().symbolValue();
+       return v.equals("undef") || v.equals("undefined");
+    }
+    return false;
+  }
+
+
   private static Class theClass = new DsplGeneric().getClass();
 
 }

@@ -100,21 +100,25 @@ public class Dsplpoint extends DisplayGraph {
   public void init (ListExpr type, ListExpr value, QueryResult qr) {
     AttrName = type.symbolValue();
     ispointType = true;         //to create the desired form
+    if(isUndefined(value)){
+       qr.addEntry(new String("" + AttrName + ": undefined"));
+       return;
+    }
     ScanValue(value);
     if (err) {
       System.out.println("Error in ListExpr :parsing aborted");
       qr.addEntry(new String("(" + AttrName + ": GA(point))"));
       return;
-    } 
-    else 
+    }
+    else
       qr.addEntry(this);
   }
-  /** 
+  /**
    * @return A rectangle with height=0 and width=0
    * @see <a href="Dsplpointsrc.html#getBounds">Source</a>
    */
   public Rectangle2D.Double getBounds () {
-    return  new Rectangle2D.Double(point.getX(), point.getY(), 0, 0); 
+    return  new Rectangle2D.Double(point.getX(), point.getY(), 0, 0);
   }
 
 }
