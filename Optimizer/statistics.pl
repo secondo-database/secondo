@@ -15,6 +15,8 @@ card(ten, 10).
 card(ten_sample, 10).
 card(thousand, 1000).
 card(thousand_sample, 89).
+card(orte, 506).
+card(orte_sample, 100).
 
 
 
