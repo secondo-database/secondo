@@ -90,6 +90,8 @@ Algebra implementation figure below.
 #define _RELATION_ALGEBRA_H_
 
 #include <iostream>
+#include <map>
+
 #include "Algebra.h"
 #include "StandardAttribute.h"
 #include "NestedList.h"
@@ -314,13 +316,9 @@ Sets the tuple unique ~id~ of the tuple. This function is necessary because at t
 construction time, the tuple does not know its id.
 
 */
-    inline Attribute* GetAttribute( const int index ) const {
-
+    inline Attribute* GetAttribute( const int index ) const 
+    {
 #ifdef RELALG_PERSISTENT        
-      // asertions below removed for performance improvement 
-      //assert( index >= 0 && index < GetNoAttributes() );
-      //assert( privateTuple->attributes[index] != 0 );
-
       return (Attribute *)privateTuple->attributes[index];
 #else
       return privateTuple->attrArray[ index ];
@@ -358,19 +356,20 @@ LOBs.
 Returns the number of attributes of the tuple.
 
 */
-    inline const TupleType& GetTupleType() const {
+    inline const TupleType& GetTupleType() const 
+    {
 #ifdef RELALG_PERSISTENT 
       return privateTuple->tupleType;
 #else
       return *(privateTuple->tupleType);
 #endif
-
     }
 /*
 Returns the tuple type.
 
 */
-    inline const bool IsFree() const {
+    inline const bool IsFree() const 
+    {
       return privateTuple->isFree;
     }
 /*
@@ -378,7 +377,8 @@ Returns if a tuple is free.
 *Need some more explanations about why it is used.*
 
 */
-    inline void SetFree( const bool onoff ) {
+    inline void SetFree( const bool onoff ) 
+    {
       privateTuple->isFree = onoff;
     }
 /*
@@ -395,26 +395,24 @@ Create a new tuple which is a clone of this tuple.
 Creates a new memory tuple which is a clone of this tuple.
 
 */
-    inline Tuple *CloneIfNecessary() {
-
+    inline Tuple *CloneIfNecessary() 
+    {
       if( privateTuple->isFree )
         return this;
       else
         return this->Clone( false );
     }
 /*
-Calls the ~Clone~ function if the flag if it is necessary.
-*Need some more explanations about whether it is necessary or not.*
+Calls the ~Clone~ function if it is a free tuple.
 
 */
-    inline void DeleteIfAllowed() {
-      
+    inline void DeleteIfAllowed() 
+    {
       if( privateTuple->isFree )
         delete this;
     }
 /*
-Deletes the tuple if it is allowed.
-*Need some more explanations about whether it is allowed or not.*
+Deletes the tuple if it is allowed, i.e., a free tuple.
 
 */
     inline PrivateTuple *GetPrivateTuple()
@@ -752,9 +750,11 @@ This class implements the memory representation of the type constructor ~rel~.
 */
 
 struct RelationDescriptor;
+class RelationDescriptorCompare;
 /*
-Forward declaration of the struct ~RelationDescriptor~. This struct will contain
-the necessary information for opening a relation.
+Forward declaration of the struct ~RelationDescriptor~ and the comparison class
+~RelationDescriptorCompare~. These classes will contain the necessary information 
+for opening a relation.
 
 */
 
@@ -792,6 +792,17 @@ The fourth constructor. It opens a previously created relation using the ~typeIn
 the ~tupleType~. The flag ~isTemporary~ can be used to open temporary created relations.
 
 */
+    ~Relation();
+/*
+The destructor.
+
+*/
+    static Relation *GetRelation( const RelationDescriptor& d );
+/*
+Given a relation descriptor, finds if there is an opened relation with that descriptor and retrieves 
+its memory representation pointer. 
+
+*/
     static Relation *In( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct );
 /*
 Creates a relation from the ~typeInfo~ and ~value~ information.
@@ -814,7 +825,7 @@ Corresponds to the ~Out~-function of type constructor ~rel~.
 Acts as the ~Out~ function, but uses internal representation for the objects.
 
 */
-    static bool Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Relation*& value );
+    static Relation *Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo );
 /*
 Opens a relation.
 Corresponds to the ~Open~-function of type constructor ~rel~.
@@ -842,11 +853,6 @@ Corresponds to the ~Delete~-function of type constructor ~rel~.
 /*
 Clones a relation.
 Corresponds to the ~Clone~-function of type constructor ~rel~.
-
-*/
-    ~Relation();
-/*
-The destructor.
 
 */
     void AppendTuple( Tuple *tuple );
@@ -896,6 +902,12 @@ Function to give outside access to the private part of the relation class.
 The private attributes of the class ~Relation~.
 
 */
+    static map<RelationDescriptor, Relation*, RelationDescriptorCompare> pointerTable;
+/*
+A table containing all opened relations indexed by relation descriptors.
+
+*/
+
 };
 
 /*

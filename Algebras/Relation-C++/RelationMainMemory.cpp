@@ -440,35 +440,53 @@ value is auto-incremented at each append of a new tuple.
 };
 
 /*
+4.1 Implementation of the classes ~RelationDescriptor~ and ~RelationDescriptorCompare~
+
+These classes are only used for the Persistend Relational Algebra.
+
+*/
+struct RelationDescriptor
+{};
+
+class RelationDescriptorCompare
+{
+  public:
+    bool operator()( const RelationDescriptor&, const RelationDescriptor& ) const
+    { return false; }
+};
+
+/*
 4.2 Implementation of the class ~Relation~
 
 This class implements the memory representation of the type constructor ~rel~.
 It is simply an array of tuples.
 
 */
+map<RelationDescriptor, Relation*, RelationDescriptorCompare> Relation::pointerTable;
+
 Relation::Relation( const ListExpr typeInfo, const bool isTemporary ):
-  privateRelation( new PrivateRelation( typeInfo ) )
-  {}
+privateRelation( new PrivateRelation( typeInfo ) )
+{}
 
 Relation::Relation( const TupleType& tupleType, const bool isTemporary ):
-  privateRelation( new PrivateRelation( tupleType ) )
-  {}
+privateRelation( new PrivateRelation( tupleType ) )
+{}
 
 Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
-  privateRelation( new PrivateRelation( typeInfo ) )
-  {
-    // This main memory version of the relational algebra does not need to open
-    // relations, they are always created from the scratch.
-    assert( 0 );
-  }
+privateRelation( new PrivateRelation( typeInfo ) )
+{
+  // This main memory version of the relational algebra does not need to open
+  // relations, they are always created from the scratch.
+  assert( 0 );
+}
 
 Relation::Relation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary ):
-  privateRelation( new PrivateRelation( tupleType ) )
-  {
-    // This main memory version of the relational algebra does not need to open
-    // relations, they are always created from the scratch.
-    assert( 0 );
-  }
+privateRelation( new PrivateRelation( tupleType ) )
+{
+  // This main memory version of the relational algebra does not need to open
+  // relations, they are always created from the scratch.
+  assert( 0 );
+}
 
 Relation::~Relation()
 {
@@ -492,6 +510,13 @@ Relation::~Relation()
     delete t;
   delete iter;
   delete privateRelation;
+}
+
+Relation *Relation::GetRelation( const RelationDescriptor& d )
+{
+  // This main memory version of the relational algebra does not open relations.
+  // Thus, this function always return a null pointer.
+  return 0;
 }
 
 Relation *Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
@@ -555,8 +580,8 @@ ListExpr Relation::SaveToList( ListExpr typeInfo )
   return l;
 }
 
-bool Relation::Open( SmiRecord& valueRecord, size_t& offset, 
-                     const ListExpr typeInfo, Relation*& value )
+Relation *Relation::Open( SmiRecord& valueRecord, size_t& offset, 
+                          const ListExpr typeInfo )
 {
   ListExpr valueList;
   string valueString;
@@ -578,8 +603,7 @@ bool Relation::Open( SmiRecord& valueRecord, size_t& offset,
   for ( int j = 0; j < cachesize; j++ )
     if ( key[j]  == recId )
     {
-      value = (Relation *)cache[j].addr;
-      return true;
+      return (Relation *)cache[j].addr;
     }
 
   // prepare to cache the value constructed from the list
@@ -597,15 +621,16 @@ bool Relation::Open( SmiRecord& valueRecord, size_t& offset,
   valueString.assign( buffer, valueLength );
   delete []buffer;
   nl->ReadFromString( valueString, valueList );
-  value = Relation::In( typeInfo, nl->First(valueList), 1, errorInfo, correct);
+  Relation *result = Relation::In( typeInfo, nl->First(valueList), 1, errorInfo, correct );
 
-  cache[current++] = SetWord(value);
+  cache[current++] = SetWord(result);
   if ( current == cachesize ) current = 0;
 
   if ( errorInfo != 0 )     
     nl->Destroy( errorInfo );
   nl->Destroy( valueList );
-  return (true);
+
+  return result;
 }
 
 bool Relation::Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )

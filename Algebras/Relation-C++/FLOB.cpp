@@ -42,6 +42,7 @@ Stefan Dieker, 03/05/98
 #include "FLOB.h"
 #include <iostream>
 #include <stdlib.h>
+#include <cassert>
 
 /*
 

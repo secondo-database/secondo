@@ -661,7 +661,8 @@ OpenRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
 {
-  return Relation::Open( valueRecord, offset, typeInfo, (Relation *)value.addr );
+  value = SetWord( Relation::Open( valueRecord, offset, typeInfo ) );
+  return value.addr != 0;
 }
 
 /*

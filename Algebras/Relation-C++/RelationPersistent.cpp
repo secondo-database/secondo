@@ -570,7 +570,7 @@ ListExpr Tuple::SaveToList( ListExpr typeInfo )
 
 const TupleId& Tuple::GetTupleId() const
 {
-  return (TupleId)privateTuple->tupleId;
+  return (TupleId&)privateTuple->tupleId;
 }
 
 void Tuple::SetTupleId( const TupleId& tupleId )
@@ -902,7 +902,19 @@ The first constructor.
 The copy constructor.
 
 */
+  inline RelationDescriptor& operator=( const RelationDescriptor& d )
+  {
+    noTuples = d.noTuples;
+    totalSize = d.totalSize;
+    tupleFileId = d.tupleFileId;
+    lobFileId = d.lobFileId;
+    return *this;
+  }
+/*
+Redefinition of the assignement operator.
 
+*/
+  
   int noTuples;
 /*
 The quantity of tuples inside the relation.
@@ -923,6 +935,25 @@ The tuple's file identification.
 The LOB's file identification.
 
 */
+};
+
+/*
+4.2 Class ~RelationDescriptorCompare~
+
+*/
+class RelationDescriptorCompare
+{
+  public:
+    inline const bool operator()( const RelationDescriptor& d1, const RelationDescriptor d2 )
+    {
+      if( d1.tupleFileId < d2.tupleFileId )
+        return true;
+      else if( d1.tupleFileId == d2.tupleFileId &&
+               d1.lobFileId == d2.lobFileId )
+        return true;
+      else 
+        return false;
+    }
 };
 
 /*
@@ -1046,25 +1077,56 @@ A relation is stored into two files: one for the tuples and another for the larg
 objects (FLOBs) of the tuples.
 
 */
+map<RelationDescriptor, Relation*, RelationDescriptorCompare> Relation::pointerTable;
+
 Relation::Relation( const ListExpr typeInfo, const bool isTemporary ):
-  privateRelation( new PrivateRelation( typeInfo, isTemporary ) )
-  {}
+privateRelation( new PrivateRelation( typeInfo, isTemporary ) )
+{
+  RelationDescriptor d( privateRelation->noTuples,
+                        privateRelation->totalSize,
+                        privateRelation->tupleFile.GetFileId(),
+                        privateRelation->lobFile.GetFileId() );
+  if( pointerTable.find( d ) == pointerTable.end() )
+    pointerTable.insert( make_pair( d, this ) );
+}
 
 Relation::Relation( const TupleType& tupleType, const bool isTemporary ):
-  privateRelation( new PrivateRelation( tupleType, isTemporary ) )
-  {}
+privateRelation( new PrivateRelation( tupleType, isTemporary ) )
+{
+  RelationDescriptor d( privateRelation->noTuples,
+                        privateRelation->totalSize,
+                        privateRelation->tupleFile.GetFileId(),
+                        privateRelation->lobFile.GetFileId() );
+  if( pointerTable.find( d ) == pointerTable.end() )
+    pointerTable.insert( make_pair( d, this ) );
+}
 
 Relation::Relation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary ):
-  privateRelation( new PrivateRelation( tupleType, relDesc, isTemporary ) )
-  {}
+privateRelation( new PrivateRelation( tupleType, relDesc, isTemporary ) )
+{
+  if( pointerTable.find( relDesc ) == pointerTable.end() )
+    pointerTable.insert( make_pair( relDesc, this ) );
+}
 
 Relation::Relation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
-  privateRelation( new PrivateRelation( typeInfo, relDesc, isTemporary ) )
-  {}
+privateRelation( new PrivateRelation( typeInfo, relDesc, isTemporary ) )
+{
+  if( pointerTable.find( relDesc ) == pointerTable.end() )
+    pointerTable.insert( make_pair( relDesc, this ) );
+}
 
 Relation::~Relation()
 {
   delete privateRelation;
+}
+
+Relation *Relation::GetRelation( const RelationDescriptor& d )
+{
+  map<RelationDescriptor, Relation*>::iterator i = pointerTable.find( d );
+  if( i == pointerTable.end() )
+    return 0;
+  else
+    return i->second;
 }
 
 Relation *Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
@@ -1084,7 +1146,7 @@ ListExpr Relation::SaveToList( ListExpr typeInfo )
                            nl->IntAtom( privateRelation->lobFile.GetFileId() ) );
 }
 
-bool Relation::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo, Relation*& value )
+Relation *Relation::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
 {
   SmiFileId tupleId, lobId;
   int noTuples;
@@ -1099,9 +1161,7 @@ bool Relation::Open( SmiRecord& valueRecord, size_t& offset, const ListExpr type
   offset += sizeof( double );
 
   RelationDescriptor relDesc( noTuples, totalSize, tupleId, lobId );
-  value = new Relation( typeInfo, relDesc );
-
-  return true;
+  return new Relation( typeInfo, relDesc );
 }
 
 bool Relation::Save( SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo )
