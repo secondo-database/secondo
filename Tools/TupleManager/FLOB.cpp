@@ -51,7 +51,7 @@ void FLOB::Write(int offset, int length, char *source) {
     	memcpy(start + offset, source, (size - offset < length ? size - offset : length));
 	}    
   	else {	
-    	lobFile->AppendRecord(lobId, lob);
+    	lobFile->SelectRecord(lobId, lob);
     	lob.Write(source, length, offset);
 	}
 }
@@ -63,18 +63,30 @@ int FLOB::Size() {
     return lob.Size();
 }
 
-/* 
- * to be worked out later
- * 
-void FLOB::Resize(int size)
-{
-  if (start)
-    start = (char*)realloc(start, size);
-  else
-    lob.Resize(size);
-  this->size = size;
+void FLOB::Resize(int newSize) {
+  	if (start != 0) {
+		// the data is still in memory.
+		size = newSize;
+    	realloc((void *)start, size);
+	}
+  	else {
+		// the data is saved in a lob.
+		if (newSize <= size) {
+			// the data become smaller
+			size = newSize;
+    		lob.Truncate(newSize);
+		}
+		else {
+			// the data become larger.
+			char *data = (char *)malloc(size);
+			lob.Read(data, size, 0);
+			realloc((void *)data, newSize);
+			lob.Write(data, newSize, 0);
+			size = newSize;
+		}
+	}
 }
-*/
+
 
 bool FLOB::IsLob() {
   if (start != 0) return false; else return true;
