@@ -59,7 +59,7 @@ Below are a bunch of constants that will govern
 some decisions that have to be made when inserting or
 deleting a node into the R-tree. By setting this flags
 in a particular pattern, it should be possible to obtain
-assorted flavors of R-tree and R*-tree behaviours.
+assorted flavors of R-tree and RStar-tree behaviours.
 
 */
 
@@ -70,13 +70,13 @@ Makes the insertion algorithm behave differently when next to the
 bottom-most level of the tree, in that it will try to minimize
 leaf node overlap instead of minimizing area enlargement (as is done
 with the upper levels).
-Used in R*-trees.
+Used in RStar-trees.
 
 */
 
 const int leafnode_subset_max = 32;
 /*
-If minimize_leafnode_overlap is set, this variable determines
+If minimize\_leafnode\_overlap is set, this variable determines
 how many of the leafnodes will actually be checked (Kriegel et al
 recommend 32). This set is chosed amongst the leafnodes that
 result in least area enlargement.
@@ -87,8 +87,8 @@ const int do_forced_reinsertion = 1;
 /*
 Checked while trying to insert an entry into a full leaf node. If set,
 some of the entries of the leaf node (governed by variable
-forced_reinsertion_percent below) will be reinserted into the tree.
-Used in R*-trees.
+forced\_reinsertion\_percent below) will be reinserted into the tree.
+Used in RStar-trees.
 
 */
 
@@ -96,7 +96,7 @@ const int forced_reinsertion_percent = 30;
 /*
 A number between 0 and 100 that indicates the percentage full leaf node
 entries that will be reinserted if the node overflows.
-Used in R*-trees.
+Used in RStar-trees.
 
 Only one of the three next flags below should be set
 
@@ -108,6 +108,7 @@ Used in standard R-trees
 
 */
 const int do_quadratic_split = 0;
+
 /*
 If set, Guttman's quadratic split algorithm is performed.
 Used in standard R-trees
@@ -117,9 +118,9 @@ const int do_axis_split = 1;
 /*
 If set, Krigel et al's axis split algorithm is performed.
 
-3 Struct ~R_TreeEntry~
+3 Struct ~R\_TreeEntry~
 
-This struct will store an entry inside a node of the R_Tree.
+This struct will store an entry inside a node of the R\_Tree.
 
 */
 struct R_TreeEntry
@@ -167,7 +168,7 @@ ostream& operator<< ( ostream& o, const R_TreeEntry& e )
 }
 
 /*
-4 Class R_TreeNode
+4 Class R\_TreeNode
 
 This is a node in the R-Tree.
 
@@ -318,13 +319,13 @@ Flag that tells whether this is a leaf node
 
     int minEntries;
 /*
-Min # of entries per node.
+Min \# of entries per node.
 
 */
 
     int maxEntries;
 /*
-Max # of entries per node.
+Max \# of entries per node.
 
 */
 
@@ -467,7 +468,7 @@ void R_TreeNode::LinearPickSeeds( int& seed1, int& seed2 ) const
 
   for( int i = 0; i < count; i++ )
   {
-    for( int d = 0; d < 2; d++ )
+    for( int d = 0; d < nDim; d++ )
     {
       if( entry[ i ].box.MinD( d ) > maxMinVal[ d ] )
       {
@@ -489,7 +490,7 @@ void R_TreeNode::LinearPickSeeds( int& seed1, int& seed2 ) const
     }
   }
 
-  for( int d = 0; d < 2; d++ )
+  for( int d = 0; d < nDim; d++ )
   {
     assert( maxMinNode[ d ] != -1 && minMaxNode[ d ] != -1 );
     assert( maxVal[ d ] > minVal[ d ] );
@@ -504,6 +505,15 @@ void R_TreeNode::LinearPickSeeds( int& seed1, int& seed2 ) const
   assert( bestD != -1 );
   seed1 = maxMinNode[ bestD ];
   seed2 = minMaxNode[ bestD ];
+
+  if( seed1 == seed2)
+  {
+    if( seed2 == 0 ) 
+      seed2++;
+    else 
+      seed2--;
+  }
+
   assert( seed1 != seed2 );
 }
 
@@ -534,6 +544,7 @@ void R_TreeNode::QuadraticPickSeeds( int& seed1, int& seed2 ) const
     }
   }
 
+  assert( seed1 != seed2 );
   delete [] area;
 }
 
@@ -649,7 +660,7 @@ void R_TreeNode::Split( R_TreeNode& n1, R_TreeNode& n2 )
     // Make sure n1 and n2 are ok
 
   if( do_axis_split )
-  { // Do R*-Tree style split
+  { // Do RStar-Tree style split
     int *sortedEntry[ 2*nDim ] = { NULL }; // Arrays of sorted entries
     struct StatStruct
     {
@@ -996,7 +1007,7 @@ ostream& operator<<( ostream& o, const R_TreeNode& nod )
 }
 
 /*
-5 Class R_Tree
+5 Class R\_Tree
 
 This class implements the R-Tree.
 
@@ -1113,7 +1124,7 @@ are at leaf nodes or not.
 
     R_TreeNode& Root();
 /*
-Loads ~nodePtr with the root node and returns it.
+Loads ~nodePtr~ with the root node and returns it.
 
 */
 
@@ -1448,7 +1459,7 @@ void R_Tree::LocateBestNode( const R_TreeEntry& entry, int level )
     { // Best node is the one that gives minimum overlap. However,
       // we should only take into consideration the k nodes that
       // result in least enlargement, where k is given by
-      // leafnode_subset_max.
+      // leafnode\_subset\_max.
       SortedArray enlargeList( MaxEntries() + 1 );
       int i, j, k;
 
@@ -1677,7 +1688,7 @@ void R_Tree::InsertEntry( const R_TreeEntry& entry )
         UpdateBox();
 
         // Reinsert remaining entries( using "close reinsert" --
-        // see R*tree paper, pg 327)
+        // see RStar-tree paper, pg 327)
         while( !distSort.empty() )
         {
           int entryNo = distSort.pop();
@@ -1840,7 +1851,7 @@ bool R_Tree::Next( R_TreeEntry& result )
 }
 
 ostream& operator<<( ostream& o, R_Tree& rt )
-// Dump R_Tree onto a text stream( for debugging)
+// Dump R\_Tree onto a text stream( for debugging)
 {
   rt.GotoLevel( 0 );
   rt.currEntry = 0;
