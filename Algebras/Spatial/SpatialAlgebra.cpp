@@ -5405,7 +5405,7 @@ void CRegion::SetPartnerNo()
     GetHs( chs );
     if (chs.GetLDP())
     {
-      //store at position partno of the partner array the position of the left half segment
+      //store at position partnerno of the partner array the position of the left half segment
       //in the half segment array
       pa[chs.attr.partnerno]=i;
     }
@@ -5499,14 +5499,14 @@ EdgePoint* EdgePoint::GetEdgePoint(const Point &p,const Point &p2,bool insideAbo
   {
     if (insideAbove)
     {
-      if ( (p.GetX()-p2.GetX())>0 ) //p2.x is located to left of p.x
+      if ( (p.GetX()-p2.GetX())>0 ) //p2.x is located to the left of p.x
         direction =  false; //RIGHT
       else
         direction =  true; //LEFT
     }
     else
     {
-      if ( (p.GetX()-p2.GetX())>0 )//p2.x is located to left of p.x
+      if ( (p.GetX()-p2.GetX())>0 )//p2.x is located to the right of p.x
         direction =  true; //LEFT
       else
         direction =  false; //RIGHT
@@ -5869,7 +5869,7 @@ bool CRegion::ClippedHSOnEdge(const Rectangle<2> &window,const CHalfSegment &chs
                              bool clippingIn,vector<EdgePoint> pointsOnEdge[4])
 {
 //This function returns true if the segment lies on one of the window's edge.
-// The clipped half segments that lie on the edges must be rejected accordingly
+// The clipped half segments that lie on the edges must be rejected according to
 // the kind of clipping (returning the portion of the region that is inside the
 // region or the portion that is outside).
 
@@ -7374,7 +7374,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 
           Point *currvertex,p1,p2,firstP;
 
-          //This region has the goal to store the half segments of
+          //This function has the goal to store the half segments of
           //the cycle that is been treated. When the cycle's computation
           //is terminated the region rDir will be used to compute the insideAbove
           //attribute of the half segments of this cycle.
@@ -7491,7 +7491,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
               bool insideAbove;
               cr->Get(h,chsIA);
               /*
-                The test for adjusting the inside above can be descrived
+                The test for adjusting the inside above can be described
                 as above, but was implemented in a different way that
                 produces the same result.
                 if ( (direction  && chsIA.attr.insideAbove) ||
@@ -7507,7 +7507,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
                   true;
 
               */
-               if (direction == chsIA.attr.insideAbove)
+              if (direction == chsIA.attr.insideAbove)
                 insideAbove = false;
               else
                 insideAbove = true;
@@ -7534,9 +7534,6 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
             //After the end of the first cycle of the face, all the following cycles are
             //holes, then isCycle is set to false.
             isCycle = false;
-
-            //BookMark1
-
 
           }
           else

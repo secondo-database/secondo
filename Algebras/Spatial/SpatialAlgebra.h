@@ -1640,7 +1640,7 @@ void WindowClippingOut(const Rectangle<2> &window,CRegion &clippedRegion);
 
 This function returns the clipped half segments resulting from the clipping of a
 region to a clip window. It calls the ~GetClippedHSIn~ in order to get the clipped
-half segments that within the window, or ~GetClippedHSOut~ in order to get
+half segments that are within the window, or ~GetClippedHSOut~ in order to get
 the clipped half segments thar are outside the window. Afterwards it calls the
 function ~CreateNewSegments~ to create the new half segments resulting from the connection
 of the points that lies on the window's edges. Finally, it calls the function
