@@ -49,7 +49,6 @@ class FText: public StandardAttribute
 {
 public:
 
-  FText(bool newDefined, textType newText);
   FText();
   ~FText();
 
@@ -67,6 +66,7 @@ public:
 
 *************************************************************************/
 
+  FText(bool newDefined, textType newText);
   bool     IsDefined();
   void     SetDefined(bool newDefined);
   void*    GetValue();
@@ -82,18 +82,6 @@ private:
   textType theText;
   bool defined;
 };
-
-
-FText::FText(bool newDefined, textType newText)
-{
-  if(traces)
-    cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n';
-  defined=newDefined;
-  theText= new string;
-  theText=newText;
-  if(traces)
-    cout <<"End FText(bool newDefined, textType newText)"<<'\n';
-}
 
 
 FText::FText()
@@ -161,6 +149,18 @@ if we want to use ~text~ as an attribute type in tuple definitions.
 
 */
 
+FText::FText(bool newDefined, textType newText)
+{
+  if(traces)
+    cout << '\n' <<"Start FText(bool newDefined, textType newText)"<<'\n';
+  defined=newDefined;
+  theText= new string;
+  theText=newText;
+  if(traces)
+    cout <<"End FText(bool newDefined, textType newText)"<<'\n';
+}
+
+
 bool FText::IsDefined()
 {
   return (defined);
@@ -226,10 +226,13 @@ int FText::Compare(Attribute * arg)
     return -2;
 
   textType pstr=f->GetFText();
-  if ( *theText==*pstr)
-    return 0;
-  else
-    return 0;
+  if ( *theText<*pstr)
+    return -1;
+    
+  if ( *theText>*pstr)  
+  	return 1;
+
+  return 0;
 }
 
 
