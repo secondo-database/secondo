@@ -872,15 +872,19 @@ Result type of feed operation.
 */
 ListExpr FeedTypeMap(ListExpr args)
 {
-  ListExpr first ;
+  ListExpr first;
+  string argstr;
 
   CHECK_COND(nl->ListLength(args) == 1,
     "Operator feed expects a list of length one.");
   first = nl->First(args);
+  nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2,
-    "Operator feed expects an argument of type relation.");
+    "Operator feed expects an argument of type relation.\n"
+    "Operator feed gets an argument of type '" + argstr + "'.");	
   CHECK_COND(TypeOfRelAlgSymbol(nl->First(first)) == rel,
-    "Operator feed expects an argument of type relation.");
+    "Operator feed expects an argument of type relation.\n"
+    "Operator feed gets an argument of type '" + argstr + "'.");	
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 /*
@@ -974,8 +978,27 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
 ListExpr ConsumeTypeMap(ListExpr args)
 {
   ListExpr first ;
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 1,
+    "Operator consume expects a list of length one.");
+  first = nl->First(args);
+  nl->WriteToString(argstr, first);
+  CHECK_COND(((nl->ListLength(first) == 2) &&
+             (TypeOfRelAlgSymbol(nl->First(first)) == stream)),
+    "Operator consume expects an argument of type (stream(tuple"
+    "((a1 t1)...(an tn)))).\n"
+    "Operator consume gets an argument of type '" + argstr + "'.");
+  CHECK_COND( (!(nl->IsAtom(nl->Second(first)) ||
+                 nl->IsEmpty(nl->Second(first))) &&
+              (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),     
+    "Operator consume expects an argument of type (stream(tuple"
+    "((a1 t1)...(an tn)))).\n"
+    "Operator consume gets an argument of type '" + argstr + "'.");
+  return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
+	
 
-  if(nl->ListLength(args) == 1)
+  /*if(nl->ListLength(args) == 1)
   {
     first = nl->First(args);
     if ((nl->ListLength(first) == 2) &&
@@ -985,7 +1008,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
       return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
   }
   ErrorReporter::ReportError("Incorrect input for operator consume.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");*/
 }
 /*
 
@@ -1181,24 +1204,36 @@ Result type of filter operation.
 ListExpr FilterTypeMap(ListExpr args)
 {
   ListExpr first, second;
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
+  string argstr;
+  
+//((stream (tuple ((no int)))) (map (tuple ((no int))) bool))  
 
-    if ( (nl->ListLength(first) == 2)
-	&& (nl->ListLength(second) == 3)
-	&& (nl->ListLength(nl->Second(first)) == 2)
-	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)
-	&& (TypeOfRelAlgSymbol(nl->Third(second)) == ccbool)
-	&& (nl->Equal(nl->Second(first),nl->Second(second)))	)
-    return first;
-  }
+  CHECK_COND(nl->ListLength(args) == 2,
+    "Operator filter expects a list of length two.");
 
-  ErrorReporter::ReportError( "Incorrect input for operator filter.");
-  return nl->SymbolAtom("typeerror");
+  first = nl->First(args);
+  second  = nl->Second(args);
+    
+  nl->WriteToString(argstr, first);    
+  CHECK_COND(nl->ListLength(first) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator filter expects a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator filter gets a list with structure '" + argstr + "'.");
+
+  nl->WriteToString(argstr, second);    
+  CHECK_COND(nl->ListLength(second) == 3 &&
+             TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
+             TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
+    "Operator filter expects a list with structure " 
+    "(map (tuple ((no int))) bool)\n"
+    "Operator filter gets a list with structure '" + argstr + "'.");
+    
+  CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
+    "Tuple type in stream is not equal to tuple type in the function.");
+
+  return first;
 }
 
 /*
@@ -1314,73 +1349,81 @@ ListExpr ProjectTypeMap(ListExpr args)
   int noAttrs, j;
   ListExpr first, second, first2, attrtype, newAttrList, lastNewAttrList,
            lastNumberList, numberList, outlist;
-  string attrname;
-
+  string attrname, argstr;
+  
   firstcall = true;
-  if (nl->ListLength(args) == 2)
+  
+  CHECK_COND(nl->ListLength(args) == 2,
+    "Operator project expects a list of length two.");
+  
+  first = nl->First(args);
+  second = nl->Second(args);
+    
+  nl->WriteToString(argstr, first);  
+  CHECK_COND(nl->ListLength(first) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+	     nl->ListLength(nl->Second(first)) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator project expects a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator project gets a list with structure '" + argstr + "'.");
+    
+  nl->WriteToString(argstr, second);    
+  CHECK_COND(nl->ListLength(second) > 0 &&
+             !nl->IsAtom(second),
+    "Operator project expects a list with attributenames " 
+    "(ai...aj)\n"
+    "Operator project gets a list '" + argstr + "'.");
+ 
+  noAttrs = nl->ListLength(second);
+  while (!(nl->IsEmpty(second)))
   {
-    first = nl->First(args);
-    second = nl->Second(args);
-
-    if ((nl->ListLength(first) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-	(nl->ListLength(nl->Second(first)) == 2) &&
-	(TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-	(!nl->IsAtom(second)) &&
-	(nl->ListLength(second) > 0))
+    first2 = nl->First(second);
+    second = nl->Rest(second);
+    if (nl->AtomType(first2) == SymbolType)
     {
-      noAttrs = nl->ListLength(second);
-      while (!(nl->IsEmpty(second)))
+      attrname = nl->SymbolValue(first2);
+    }
+    else
+    {
+      ErrorReporter::ReportError("Attributename in the list is not of symbol type.");
+      return nl->SymbolAtom("typeerror");
+    }
+    j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+    if (j)
+    {
+      if (firstcall)
       {
-        first2 = nl->First(second);
-	second = nl->Rest(second);
-	if (nl->AtomType(first2) == SymbolType)
-	{
-	  attrname = nl->SymbolValue(first2);
-	}
-	else
-        {
-          ErrorReporter::ReportError("Incorrect input for operator project.");
-          return nl->SymbolAtom("typeerror");
-        }
-	j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-	if (j)
-	{
-	  if (firstcall)
-	  {
-	    firstcall = false;
-	    newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
-	    lastNewAttrList = newAttrList;
-	    numberList = nl->OneElemList(nl->IntAtom(j));
-	    lastNumberList = numberList;
-	  }
-	  else
-	  {
-	    lastNewAttrList =
-	      nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
-	    lastNumberList =
-	      nl->Append(lastNumberList, nl->IntAtom(j));
-	  }
-	}
-	else
-  {
-    ErrorReporter::ReportError("Incorrect input for operator project.");
-    return nl->SymbolAtom("typeerror");
-  }
+        firstcall = false;
+	newAttrList = nl->OneElemList(nl->TwoElemList(first2, attrtype));
+	lastNewAttrList = newAttrList;
+	numberList = nl->OneElemList(nl->IntAtom(j));
+	lastNumberList = numberList;
       }
-      // Check whether all new attribute names are distinct
-      // - not yet implemented
-      outlist = nl->ThreeElemList(
+      else
+      {
+        lastNewAttrList =
+	  nl->Append(lastNewAttrList, nl->TwoElemList(first2, attrtype));
+	lastNumberList =
+	  nl->Append(lastNumberList, nl->IntAtom(j));
+      }
+    }
+    else
+    {
+      ErrorReporter::ReportError("Operator project: Attributename '" + attrname + 
+	"' is not a known attributename in the tuple stream.");
+          return nl->SymbolAtom("typeerror");
+    }
+  }
+  // Check whether all new attribute names are distinct
+  // - not yet implemented
+  outlist = nl->ThreeElemList(
                  nl->SymbolAtom("APPEND"),
 		 nl->TwoElemList(nl->IntAtom(noAttrs), numberList),
 		 nl->TwoElemList(nl->SymbolAtom("stream"),
 		               nl->TwoElemList(nl->SymbolAtom("tuple"),
 			                     newAttrList)));
-      return outlist;
-    }
-  }
-  ErrorReporter::ReportError("Incorrect input for operator project.");
-  return nl->SymbolAtom("typeerror");
+  return outlist;
 }
 /*
 
@@ -1490,66 +1533,49 @@ Result type of product operation.
 ListExpr ProductTypeMap(ListExpr args)
 {
   ListExpr first, second, list, list1, list2, outlist;
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 2,
+    "Operator product expects a list of length two.");
 
-  if (nl->ListLength(args) == 2)
-  {
-    first = nl->First(args); second = nl->Second(args);
+  first = nl->First(args); second = nl->Second(args);
 
-    // Check first argument and extract list1
-    if (nl->ListLength(first) == 2)
-    {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      {
-        if (nl->ListLength(nl->Second(first)) == 2)
-        {
-          if (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-          {
-            list1 = nl->Second(nl->Second(first));
-          }
-          else goto typeerror;
-        }
-        else goto typeerror;
-      }
-      else goto typeerror;
-    }
-    else goto typeerror;
+  nl->WriteToString(argstr, first);  
+  CHECK_COND(nl->ListLength(first) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(first)) == stream &&
+	     nl->ListLength(nl->Second(first)) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
+    "Operator product expects a first list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator product gets a first list with structure '" + argstr + "'.");
+    
+  list1 = nl->Second(nl->Second(first));
 
-    // Check second argument and extract list2
-    if (nl->ListLength(second) == 2)
-    {
-      if (TypeOfRelAlgSymbol(nl->First(second)) == stream)
-      {
-        if (nl->ListLength(nl->Second(second)) == 2)
-        {
-          if (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple)
-          {
-            list2 = nl->Second(nl->Second(second));
-          }
-          else goto typeerror;
-        }
-        else goto typeerror;
-      }
-      else goto typeerror;
-    }
-    else goto typeerror;
+    nl->WriteToString(argstr, second);  
+  CHECK_COND(nl->ListLength(second) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(second)) == stream &&
+	     nl->ListLength(nl->Second(second)) == 2 &&
+             TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
+    "Operator product expects a second list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator product gets a second list with structure '" + argstr + "'.");
 
-    list = ConcatLists(list1, list2);
+  list2 = nl->Second(nl->Second(second));
+  list = ConcatLists(list1, list2);
     // Check whether all new attribute names are distinct
     // - not yet implemented
-
-    if ( CompareNames(list) )
-    {
-      outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-        nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-      return outlist;
-    }
-    else goto typeerror;
+  if ( CompareNames(list) )
+  {
+    outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+    nl->TwoElemList(nl->SymbolAtom("tuple"), list));
+    return outlist;
   }
-  else goto typeerror;
-
-typeerror:
-  ErrorReporter::ReportError("Incorrect input for operator product.");
-  return nl->SymbolAtom("typeerror");
+  else
+  {
+    ErrorReporter::ReportError("Operator product: found doubly "
+      "defined attributenames in concatenated list.\n");
+    return nl->SymbolAtom("typeerror");
+  }
 }
 /*
 
@@ -1786,7 +1812,6 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   while ( qp->Received(args[0].addr) )
   {
     ((Tuple*)elem.addr)->DeleteIfAllowed();
-    count++;
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
