@@ -1,26 +1,29 @@
 # Configuration file for the Hoese Viewer
 
-#the path for sessions at start
-SESSION_PATH /home/behr/SecondoObjects/hoese/sessions
+# set the session path if you don't like use default
+#SESSION_PATH /home/behr/SecondoObjects/hoese/sessions
 
 #the path for categories at start
-CATEGORY_PATH /home/behr/SecondoObjects/hoese/Categories
+#CATEGORY_PATH /home/behr/SecondoObjects/hoese/Categories
 
 #the path for textures at start
-TEXTURE_PATH /home/behr/SecondoObjects/Textures
+#TEXTURE_PATH /home/behr/SecondoObjects/Textures
 
 #the path for references attribute values -> categorynames
-REFERENCE_PATH = /home/behr/SecondoObjects/hoese/References
+#REFERENCE_PATH = /home/behr/SecondoObjects/hoese/References
+
 
 #the standard references to load at start
-STD_REFERENCE = /home/behr/SecondoObjects/hoese/References/Osnabrueck.ref
+STD_REFERENCE = Osnabrueck.ref
 
 #Standard Categories loaded at start
-#you can enter more then one CategorieFiles separated by space 
-StandardCats= /home/behr/SecondoObjects/hoese/Categories/Osnabrueck.cat
+#you can enter more then one CategorieFiles separated by space
+StandardCats= Osnabrueck.cat
 
-#define available projections
-PROJECTIONS Mercator Sinusoidal Miller_Cylindrical
+
+#Projections to load
+PROJECTIONS Mercator Sinusoidal Miller_Cylindrical Cylindrical PolyConic Orthographic
+
 
 #Icons
 ImportIcon=res/Import.gif

@@ -1,16 +1,39 @@
+# set the name of Secondo-Server
 SERVERNAME localhost
+
+# set the port address of Secondo-Server
 SERVERPORT 1234
 
-KNOWN_VIEWERS StandardViewer RelViewer HoeseViewer  
+# set the viewers to load automatical at start
+KNOWN_VIEWERS StandardViewer RelViewer HoeseViewer
 
-START_CONNECTION true 
+# set to true if you want to connect to secondo-server at start
+START_CONNECTION true
+
+# specify the secondo directory
+# default is the directory over Javagui
+#SECONDO_HOME_DIR = /home/behr/secondo
 
 
-OBJECT_DIRECTORY /home/behr/SecondoObjects
+# set directory for load/save objects 
+# if you want to change the standard
+#OBJECT_DIRECTORY /home/behr/SecondoObjects
 
-HISTORY_DIRECTORY /home/behr/histories
+# set directory for load/save histories 
+# if you want to change the standard
+#HISTORY_DIRECTORY /home/behr/histories
 
+
+# you can execute a file at start
+# this file contains a single command in a line
+# a example is  a saved history
 # STARTSCRIPT <file> [-i] 
 # -i stand for ignore errors
 #STARTSCRIPT = /home/behr/testHistory -i
 
+# set font size for CommandPanel
+COMMAND_FONTSIZE 14
+
+
+# set font size for ObjectList
+LIST_FONTSIZE 12

@@ -156,6 +156,7 @@ public class HoeseViewer extends SecondoViewer {
   TimeInputDialog TimeInput = new TimeInputDialog(this.getMainFrame());
 
   private String TexturePath;
+  private String CatPath;
   private String FileSeparator;
 
 
@@ -188,14 +189,18 @@ public class HoeseViewer extends SecondoViewer {
     if (Catfiles != null) {
       StringTokenizer ST = new StringTokenizer(Catfiles," \n\t");
       while(ST.hasMoreTokens()){
-        String FileName = ST.nextToken().trim();
+        String FileName = CatPath+ST.nextToken().trim();
         ListExpr le = new ListExpr();
-        if(le.readFromFile(Catfiles)!=0){
-           System.out.println("i can't load the file "+FileName);
-        } else{
-         if(!readAllCats(le))
-           System.out.println("no categories in file "+FileName);
-        }
+	File F1 = new File(FileName);
+	if(!F1.exists()){
+	   System.out.println("i can't find the StandardCategoryFile "+FileName);
+	}else
+           if(le.readFromFile(FileName)!=0){
+              System.out.println("i can't load the file "+FileName);
+           } else{
+             if(!readAllCats(le))
+               System.out.println("no categories in file "+FileName);
+           }
       }
     }
 
@@ -1770,42 +1775,95 @@ public boolean canDisplay(SecondoObject o){
        success=false;
     }
     if(success){
-       String CatPath = configuration.getProperty("CATEGORY_PATH");
-       if(CatPath!=null)
+       CatPath="";
+       String SessionPath="";
+       String ReferencePath ="";
+       TexturePath ="";
+
+       String SecondoHome = configuration.getProperty("SECONDO_HOME");
+       if(SecondoHome==null){
+           String T = (new File("")).getAbsolutePath();
+	   T = T.substring(0,T.length()-8)+FileSeparator;
+           if(! (new File(T)).exists())
+	      SecondoHome ="";
+	   else
+	      SecondoHome =T;
+       }
+
+       String HoeseHome = SecondoHome+"Data"+FileSeparator+"Guidatas"+FileSeparator+"hoese"+FileSeparator;
+       CatPath = HoeseHome+"categories";
+       SessionPath = HoeseHome+"sessions";
+       TexturePath = HoeseHome+"textures";
+       ReferencePath = HoeseHome+"references";
+
+
+
+       // set special category path
+       String TmpCatPath = configuration.getProperty("CATEGORY_PATH");
+       if(TmpCatPath!=null)
+          CatPath = TmpCatPath.trim();
+	  
+       if(!CatPath.endsWith(FileSeparator))
+ 	   CatPath += FileSeparator;
+
+
+       File F;
+       F = new File(CatPath);
+       if(!F.exists())
+          System.out.println("wrong categorypath "+CatPath);
+       else
           FC_Category.setCurrentDirectory(new File(CatPath));
 
-       String SessionPath = configuration.getProperty("SESSION_PATH");
-       if(SessionPath!=null)
+
+
+       String TMPSessionPath = configuration.getProperty("SESSION_PATH");
+       if(TMPSessionPath!=null)
+           SessionPath = TMPSessionPath.trim();
+       F = new File(SessionPath);
+       if(!F.exists())
+          System.out.println("wrong SessionPath "+SessionPath);
+       else
           FC_Session.setCurrentDirectory(new File(SessionPath));
 
-       TexturePath = configuration.getProperty("TEXTURE_PATH");
-       if(TexturePath!=null){
-           TexturePath = TexturePath.trim();
-	   if(!TexturePath.endsWith(FileSeparator))
-	      TexturePath = TexturePath+FileSeparator;
 
-	   File F = new File(TexturePath);
-	   if(!F.exists()){
-                 System.out.println("the TEXTURE_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
-		 System.out.println("please set this variable to a existing non relative pathname");
-	   }else{
-	       CategoryEditor.setTextureDirectory(new File(TexturePath));
-	       System.out.println("set TexturePath to "+TexturePath);
-	       Category.setTexturePath(TexturePath);
-	   }
-        } else{
-	  System.out.println("TEXTURE_PATH is not defined in "+CONFIGURATION_FILE);
+
+       String TMPTexturePath = configuration.getProperty("TEXTURE_PATH");
+       if(TMPTexturePath!=null)
+          TexturePath = TMPTexturePath.trim();
+
+       if(!TexturePath.endsWith(FileSeparator))
+	   TexturePath += FileSeparator;
+
+       F = new File(TexturePath);
+       if(!F.exists()){
+          System.out.println("the TEXTURE_PATH in "+CONFIGURATION_FILE+" is setted to a non existing Path");
 	  System.out.println("please set this variable to a existing non relative pathname");
-	}
-
-       String ReferencePath = configuration.getProperty("REFERENCE_PATH");
-       if(ReferencePath!=null){
-         FC_References.setCurrentDirectory(new File(ReferencePath));
+       }else{
+	  CategoryEditor.setTextureDirectory(new File(TexturePath));
+	  System.out.println("set TexturePath to "+TexturePath);
+	  Category.setTexturePath(TexturePath);
        }
+
+
+
+       String TMPReferencePath = configuration.getProperty("REFERENCE_PATH");
+       if(TMPReferencePath!=null)
+         ReferencePath = TMPReferencePath;
+
+       if(!ReferencePath.endsWith(FileSeparator))
+           ReferencePath += FileSeparator;
+
+
+       F = new File(ReferencePath);
+       if(!F.exists())
+          System.out.println("wrong ReferencePath "+ReferencePath);
+       else
+          FC_References.setCurrentDirectory(new File(ReferencePath));
+
 
        String StdRef = configuration.getProperty("STD_REFERENCE");
        if(StdRef!=null){
-         File F = new File(StdRef);
+         F = new File(ReferencePath+StdRef);
 	 if(!F.exists())
 	   System.out.println("the Reference-File "+StdRef+" not exists");
 	 else
@@ -1828,7 +1886,7 @@ public boolean canDisplay(SecondoObject o){
 	     }
 	  }
 	  if(!ok){
-	    MessageBox.showMessage("not all projections loaded \n erroprs in \n"+Errors);
+	    MessageBox.showMessage("not all projections loaded \n errors in \n"+Errors);
 	  }
 
 

@@ -131,13 +131,13 @@ public MainWindow(String Title){
 
   addWindowListener(new WindowAdapter(){
        public void windowClosing(WindowEvent evt){
-        ComPanel.disconnect(); 
+        ComPanel.disconnect();
         System.exit(0);
        }
   });
 
   PriorityDlg = new PriorityDialog(this);
- 
+
   createMenuBar();
   CurrentViewer = null;
   ViewerMenuItems = new Vector(10);
@@ -199,7 +199,7 @@ public MainWindow(String Title){
        }
     }
 
-    
+
     String FontSize = Config.getProperty("COMMAND_FONTSIZE");
     if(FontSize==null)
        System.out.println("COMMAND_FONTSIZE NOT found in "+CONFIGURATION_FILE);
@@ -260,16 +260,47 @@ public MainWindow(String Title){
         }
    }
 
-   ObjectDirectory= Config.getProperty("OBJECT_DIRECTORY");
-   if(ObjectDirectory!=null){
-      OList.setObjectDirectory(new  File(ObjectDirectory));
-   }
-   else
-      ObjectDirectory=".";
 
-   String HistoryDirectory= Config.getProperty("HISTORY_DIRECTORY");
-   if(HistoryDirectory!=null)
-      FC_History.setCurrentDirectory(new File(HistoryDirectory));
+   String FS = System.getProperty("file.separator");
+   if(FS==null){
+      System.out.println("error in reading file separator");
+      FS="/";
+   }
+
+
+   String SecondoHomeDir = Config.getProperty("SECONDO_HOME_DIR");
+   String HistoryDirectory="";
+
+   if(SecondoHomeDir==null){
+     File F = new File("");
+     String TMP = F.getAbsolutePath();
+     TMP = TMP.substring(0,TMP.length()-8); // remove Javagui/
+     F = new File(TMP);
+     if(F.exists())
+        SecondoHomeDir = F.getAbsolutePath();
+   }
+
+   if(SecondoHomeDir!=null){
+      ObjectDirectory = SecondoHomeDir+FS+"Data"+FS+"Guidatas"+FS+"gui"+FS+"objects";
+      HistoryDirectory = SecondoHomeDir+FS+"Data"+FS+"Guidatas"+FS+"gui"+FS+"histories";
+   }
+
+
+   String TMPObjectDirectory= Config.getProperty("OBJECT_DIRECTORY");
+   if(TMPObjectDirectory!=null){
+      ObjectDirectory = TMPObjectDirectory.trim();
+   }
+
+   String TMPHistoryDirectory= Config.getProperty("HISTORY_DIRECTORY");
+   if(TMPHistoryDirectory!=null)
+        HistoryDirectory = TMPHistoryDirectory;
+
+
+   System.out.println("set objectdirectory to "+ObjectDirectory);
+   System.out.println("set historydirectory to "+ObjectDirectory);
+
+   OList.setObjectDirectory(new File(ObjectDirectory));
+   FC_History.setCurrentDirectory(new File(HistoryDirectory));
 
 
    StartScript = Config.getProperty("STARTSCRIPT");
@@ -294,7 +325,7 @@ public MainWindow(String Title){
       else
          executeFile(StartScript,false);
    }
-   
+
 
 
    int fs = OList.getFontSize();
@@ -324,7 +355,7 @@ public void removeViewerChangeListener(ViewerChangeListener VCL){
 }
 
 
-/** send a viewerChanged Message to all 
+/** send a viewerChanged Message to all
   * registred ViewerChangeListener
   */
 private void viewersChanged(){
