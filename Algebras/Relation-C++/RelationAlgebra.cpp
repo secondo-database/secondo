@@ -3458,7 +3458,7 @@ struct SortByLocalInfo
   size_t currentIndex;
 };
 
-template<bool lexicographically> int
+template<bool lexicographically, bool requestArgs> int
 SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word tuple;
@@ -3495,15 +3495,36 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-        qp->Request(args[2].addr, intWord);
+        if(requestArgs)
+        {
+          qp->Request(args[2].addr, intWord);
+        }
+        else
+        {
+          intWord = SetWord(args[2].addr);
+        }
         nSortAttrs = (int)((StandardAttribute*)intWord.addr)->GetValue();
         for(i = 1; i <= nSortAttrs; i++)
         {
-          qp->Request(args[2 * i + 1].addr, intWord);
+          if(requestArgs)
+          {
+            qp->Request(args[2 * i + 1].addr, intWord);
+          }
+          else
+          {
+            intWord = SetWord(args[2 * i + 1].addr);
+          }
           sortAttrIndex =
             (int)((StandardAttribute*)intWord.addr)->GetValue();
 
-          qp->Request(args[2 * i + 2].addr, boolWord);
+          if(requestArgs)
+          {
+            qp->Request(args[2 * i + 2].addr, boolWord);
+          }
+          else
+          {
+            boolWord = SetWord(args[2 * i + 2].addr);
+          }
           sortOrderIsAscending =
             (bool*)((StandardAttribute*)boolWord.addr)->GetValue();
           spec.push_back(pair<int, bool>(sortAttrIndex, sortOrderIsAscending));
@@ -3563,7 +3584,7 @@ const string SortBySpec =
 Operator sortBy (
          "sortby",             // name
          SortBySpec,           // specification
-         SortBy<false>,               // value mapping
+         SortBy<false, true>,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
          SortByTypeMap         // type mapping
@@ -3627,7 +3648,7 @@ const string SortSpec =
 Operator cppsort (
          "sort",             // name
          SortSpec,           // specification
-         SortBy<true>,               // value mapping
+         SortBy<true, true>,               // value mapping
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
          IdenticalTypeMap<true>         // type mapping
@@ -4257,7 +4278,7 @@ private:
     }
     else
     {
-      int errorCode = SortBy<true>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
+      int errorCode = SortBy<false, false>(aArgs, aResult, REQUEST, streamALocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -4282,7 +4303,7 @@ private:
     }
     else
     {
-      int errorCode = SortBy<true>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
+      int errorCode = SortBy<false, false>(bArgs, bResult, REQUEST, streamBLocalInfo, 0);
       yield = (errorCode == YIELD);
     }
 
@@ -4437,8 +4458,8 @@ public:
     {
       SetArgs(aArgs, streamA, attrIndexA);
       SetArgs(bArgs, streamB, attrIndexB);
-      SortBy<true>(aArgs, aResult, OPEN, streamALocalInfo, 0);
-      SortBy<true>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
+      SortBy<false, false>(aArgs, aResult, OPEN, streamALocalInfo, 0);
+      SortBy<false, false>(bArgs, bResult, OPEN, streamBLocalInfo, 0);
     }
 
     nextATuple();
@@ -4454,8 +4475,8 @@ public:
     }
     else
     {
-      SortBy<true>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
-      SortBy<true>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
+      SortBy<false, false>(aArgs, aResult, CLOSE, streamALocalInfo, 0);
+      SortBy<false, false>(bArgs, bResult, CLOSE, streamBLocalInfo, 0);
     };
   }
 
