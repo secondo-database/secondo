@@ -1,3 +1,4 @@
+{ident}		{
 /*
 ---- 
 This file is part of SECONDO.
@@ -21,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-{ident}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZIDENTIFIER;}
+yylval = NestedText::Atom( yytext, yyleng ); return ZZIDENTIFIER;}
 
 .		{yylval = NestedText::Atom( yytext, yyleng ); return yytext[0];}
 
