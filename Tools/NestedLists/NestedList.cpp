@@ -39,6 +39,10 @@ October 12, 1998 Stefan Dieker. The name of the temporary file created by ~ReadF
 
 December 1, 2001 Ulrich Telle Port to C++
 
+November 28, 2002 M. Spiekermann coding of reportVectorSizes(). 
+
+December 05, 2002 M. Spiekermann methods InitializeListMemory() and CopyList/CopyRecursive implemented.
+
 1 Introduction
 
 A nested list is represented by four stable tables called ~Nodes~, ~Ints~, 
@@ -76,14 +80,45 @@ nested list. Only if ~doDestroy~ is ~true~, nested lists are destroyed.
 
 */
 
-NestedList::NestedList( int initialEntries )
-  : nodeTable( initialEntries ),   intTable( initialEntries ),
-    stringTable( initialEntries ), textTable( initialEntries )
+NestedList::NestedList( Cardinal NodeEntries, Cardinal ConstEntries,
+		        Cardinal StringEntries, Cardinal TextEntries )  
 {
+   intTable = 0;
+   stringTable = 0;
+   nodeTable = 0;
+   textTable = 0;
+   initializeListMemory(NodeEntries, ConstEntries, StringEntries, TextEntries);
 }
+
 
 NestedList::~NestedList()
 {
+   deleteListMemory();
+}
+
+void
+NestedList::deleteListMemory()
+{
+   if(intTable && stringTable && nodeTable && textTable)
+   {
+     delete intTable; intTable = 0;
+     delete stringTable; stringTable = 0;
+     delete nodeTable; nodeTable = 0;
+     delete textTable; textTable = 0;
+   }
+}
+
+
+void
+NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
+		                  Cardinal StringEntries, Cardinal TextEntries ) 
+{   
+   deleteListMemory();
+   
+   nodeTable   = new CTable<NodeRecord>(NodeEntries);
+   intTable    = new CTable<Constant>(ConstEntries);
+   stringTable = new CTable<StringRecord>(StringEntries);
+   textTable   = new CTable<TextRecord>(TextEntries);
 }
 
 /*
@@ -100,13 +135,13 @@ NestedList::PrintTableTexts()
 {
   Cardinal i, numEntries;
 
-  numEntries = textTable.NoEntries();
+  numEntries = textTable->NoEntries();
   cout << "/////////////////////////////////////////////////////////////" << endl;
   for ( i = 1; i <= numEntries; i++ )
   {
-    if ( textTable.IsValid( i ) )
+    if ( textTable->IsValid( i ) )
     {
-      TextRecord& entry = textTable[i];
+      TextRecord& entry = (*textTable)[i];
       cout << endl << "Index: " << i;
       cout << endl << "Field: " << entry.field;
       cout << endl << "Next:  " << entry.next << endl;
@@ -161,19 +196,19 @@ NestedList::Cons( const ListExpr left, const ListExpr right )
 {
   assert( !IsAtom( right ) );
 
-  Cardinal newNode = nodeTable.EmptySlot();
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  Cardinal newNode = nodeTable->EmptySlot();
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
   newNodeRef.nodeType = NoAtom;
   newNodeRef.n.left     = left;
   newNodeRef.n.right    = right;
   newNodeRef.n.isRoot   = true;
   if ( !(IsAtom( left ) || IsEmpty( left )) )
   {
-    nodeTable[left].n.isRoot = false;
+    (*nodeTable)[left].n.isRoot = false;
   }
   if ( !IsEmpty( right ) )
   {
-    nodeTable[right].n.isRoot = false;
+    (*nodeTable)[right].n.isRoot = false;
   }
   return (newNode);
 }
@@ -187,12 +222,12 @@ ListExpr
 NestedList::Append ( const ListExpr lastElem,
                      const ListExpr newSon )
 {
-  assert( !IsAtom( lastElem ) && IsEmpty( nodeTable[lastElem].n.right ) );
+  assert( !IsAtom( lastElem ) && IsEmpty( (*nodeTable)[lastElem].n.right ) );
 
-  Cardinal newNode = nodeTable.EmptySlot();
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  Cardinal newNode = nodeTable->EmptySlot();
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
 
-  nodeTable[lastElem].n.right = newNode;
+  (*nodeTable)[lastElem].n.right = newNode;
   newNodeRef.nodeType = NoAtom;
   newNodeRef.n.left     = newSon;
   newNodeRef.n.right    = 0;
@@ -200,7 +235,7 @@ NestedList::Append ( const ListExpr lastElem,
 
   if ( !(IsAtom( newSon ) || IsEmpty( newSon )) )
   {
-    nodeTable[newSon].n.isRoot = false;
+    (*nodeTable)[newSon].n.isRoot = false;
   }
   return (newNode);
 }
@@ -213,7 +248,7 @@ NestedList::Append ( const ListExpr lastElem,
 void
 NestedList::Destroy ( const ListExpr list )
 {
-  if ( !IsEmpty( list ) && !IsAtom( list ) && nodeTable[list].n.isRoot )
+  if ( !IsEmpty( list ) && !IsAtom( list ) && (*nodeTable)[list].n.isRoot )
   {
     if ( doDestroy )
     {
@@ -234,47 +269,47 @@ NestedList::DestroyRecursive ( const ListExpr list )
 
   if ( !IsEmpty( list ) )
   {
-    if ( nodeTable.IsValid( list ) )
+    if ( nodeTable->IsValid( list ) )
     {       /* node not yet destroyed */
-      NodeRecord& listRef = nodeTable[list];
+      NodeRecord& listRef = (*nodeTable)[list];
       switch (listRef.nodeType)
       {
         case NoAtom:
           DestroyRecursive( listRef.n.left );
           DestroyRecursive( listRef.n.right );
-          nodeTable.Remove( list );
+          nodeTable->Remove( list );
           break;
         case IntType:
         case RealType:
         case BoolType:
-          intTable.Remove( listRef.a.index);
-          nodeTable.Remove( list );
+          intTable->Remove( listRef.a.index);
+          nodeTable->Remove( list );
           break;
         case StringType:
         case SymbolType:
           if ( listRef.s.first  != 0 )
           {
-            stringTable.Remove( listRef.s.first );
+            stringTable->Remove( listRef.s.first );
           }
           if ( listRef.s.second != 0 )
           {
-            stringTable.Remove( listRef.s.second );
+            stringTable->Remove( listRef.s.second );
           }
           if ( listRef.s.third  != 0 )
           {
-            stringTable.Remove( listRef.s.third );
+            stringTable->Remove( listRef.s.third );
           }
-          nodeTable.Remove( list );
+          nodeTable->Remove( list );
           break;
         case TextType:
           elem = listRef.t.start;
           while ( elem != 0 )
           {
-            nextElem = textTable[elem].next;
-            textTable.Remove( elem );
+            nextElem = (*textTable)[elem].next;
+            textTable->Remove( elem );
             elem = nextElem;
           }
-          nodeTable.Remove( list );
+          nodeTable->Remove( list );
           break;
       }
     }
@@ -366,7 +401,7 @@ NestedList::IsAtom( const ListExpr list )
   }
   else
   { 
-    return (nodeTable[list].nodeType != NoAtom);   
+    return ((*nodeTable)[list].nodeType != NoAtom);   
   }
 }
 
@@ -493,6 +528,110 @@ Test for deep equality of two nested lists
   }
 }
 
+
+const ListExpr
+NestedList::CopyList(const ListExpr list, const NestedList* target)
+{
+   return CopyRecursive(list, target);
+}
+
+
+const ListExpr
+NestedList::CopyRecursive(const ListExpr list, const NestedList* target)
+{ 
+   ListExpr newnode = 0; 
+   CTable<NodeRecord> *pnT_target = target->nodeTable; 
+     
+   if (list == 0) {
+     return 0;
+   }
+   
+   NodeRecord& listRef = (*nodeTable)[list];
+
+      switch (listRef.nodeType)
+      {
+        case NoAtom: {
+	  ListExpr left = 0, right = 0; 
+			     
+	  if (listRef.n.left) {
+          left = CopyRecursive( listRef.n.left, target );
+	  }
+	  if (listRef.n.right) {
+          right = CopyRecursive( listRef.n.right, target );
+	  }
+	  
+	  // create a new node record in the target list and link it
+	  // with the left and right subtrees.
+	  newnode = pnT_target->Add( listRef );
+	  (*pnT_target)[newnode].n.left = left;
+	  (*pnT_target)[newnode].n.right = right;
+          
+	  break; }
+        case IntType:
+        case RealType:
+        case BoolType: {
+	  ListExpr newconst = 0;
+			       
+	  // create a new constant and node records in the target list. 
+	  newconst = target->intTable->Add( (*intTable)[listRef.a.index] );
+	  newnode = pnT_target->Add( listRef );
+	  (*pnT_target)[newnode].a.index = newconst;
+	  }
+          break;
+        case StringType:
+        case SymbolType: {
+          CTable<StringRecord>  *psT_target = target->stringTable;				 
+	  ListExpr newstr = 0;
+	  StringRecord sRec;
+	  
+	  newnode = pnT_target->Add(listRef);
+	  if (listRef.s.third) {
+	    sRec = (*stringTable)[listRef.s.third];
+	    newstr = psT_target->Add(sRec);
+	    (*pnT_target)[newnode].s.third = newstr;	    
+	  }
+	  if (listRef.s.second) {
+	    sRec = (*stringTable)[listRef.s.second];
+	    newstr = psT_target->Add(sRec);
+	    (*pnT_target)[newnode].s.second = newstr;	  
+	  }
+	  if (listRef.s.first) {
+	    sRec = (*stringTable)[listRef.s.first];
+	    newstr = psT_target->Add(sRec);
+	    (*pnT_target)[newnode].s.first = newstr;	
+	  }
+			           
+          break; }
+        case TextType: {
+          
+	  ListExpr newtext=0, newstart=0, tnext=0, tlast=0;
+	  TextRecord tRec;
+	  
+	  newnode = pnT_target->Add(listRef);
+	  tRec = (*textTable)[listRef.t.start];
+	  newstart = target->textTable->Add(tRec);
+	  (*pnT_target)[newnode].t.start = newstart;
+	  (*pnT_target)[newnode].t.last = newstart;
+	  	  
+	  ListExpr tCurrent = listRef.t.start;
+          while ( (tnext = (*textTable)[tCurrent].next) != 0 ) 
+	  {
+	    tRec = (*textTable)[tnext];	  
+	    newtext = target->textTable->Add(tRec);	    
+	    (*target->textTable)[newtext].next = 0;
+	    tlast = (*pnT_target)[newnode].t.last;
+	    (*target->textTable)[tlast].next = newtext; 
+	    (*pnT_target)[newnode].t.last = newtext;  
+	    tCurrent = tnext;
+          }
+	  
+          break; }
+	default:
+	  break;
+      }
+   return newnode;
+}
+
 bool
 NestedList::IsEqual( const ListExpr atom, const string& str,
                      const bool caseSensitive )
@@ -568,7 +707,7 @@ Internal procedure *WriteAtom*
 void
 NestedList::WriteAtom( const ListExpr atom, bool toScreen )
 {
-  NodeRecord& nodeRef = nodeTable[atom];
+  NodeRecord& nodeRef = (*nodeTable)[atom];
   switch (nodeRef.nodeType)
   {
     case IntType:
@@ -779,7 +918,7 @@ within the structure of the list, otherwise, the function result is ~true~.
   }
   else if ( IsAtom ( list ) )
   {
-    NodeRecord& nodeRef = nodeTable[list];
+    NodeRecord& nodeRef = (*nodeTable)[list];
     switch ( nodeRef.nodeType )
     {
       case IntType:
@@ -880,7 +1019,7 @@ ListExpr
 NestedList::First( const ListExpr list )
 {
   assert( !IsEmpty( list ) && !IsAtom( list ) );
-  return (nodeTable[list].n.left);    
+  return ((*nodeTable)[list].n.left);    
 }
 
 /*
@@ -892,7 +1031,7 @@ ListExpr
 NestedList::Rest( const ListExpr list )
 {
   assert( !IsEmpty( list ) && !IsAtom( list ) );
-  return (nodeTable[list].n.right);
+  return ((*nodeTable)[list].n.right);
 }
 
 /*
@@ -1006,14 +1145,14 @@ NestedList::Sixth( const ListExpr list )
 ListExpr
 NestedList::IntAtom( const long  value )
 {
-  Cardinal newNode    = nodeTable.EmptySlot();
-  Cardinal newIntNode = intTable.EmptySlot();
+  Cardinal newNode    = nodeTable->EmptySlot();
+  Cardinal newIntNode = intTable->EmptySlot();
 
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
   newNodeRef.nodeType = IntType;
   newNodeRef.a.index  = newIntNode;
 
-  intTable[newIntNode].intValue = value;
+  (*intTable)[newIntNode].intValue = value;
 
   return (newNode);
 }
@@ -1026,14 +1165,14 @@ NestedList::IntAtom( const long  value )
 ListExpr
 NestedList::RealAtom( const double value )
 {
-  Cardinal newNode    = nodeTable.EmptySlot();
-  Cardinal newIntNode = intTable.EmptySlot();
+  Cardinal newNode    = nodeTable->EmptySlot();
+  Cardinal newIntNode = intTable->EmptySlot();
 
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
   newNodeRef.nodeType = RealType;
   newNodeRef.a.index  = newIntNode;
 
-  intTable[newIntNode].realValue = value;
+  (*intTable)[newIntNode].realValue = value;
 
   return (newNode);
 }
@@ -1046,14 +1185,14 @@ NestedList::RealAtom( const double value )
 ListExpr
 NestedList::BoolAtom( const bool value )
 {
-  Cardinal newNode    = nodeTable.EmptySlot();
-  Cardinal newIntNode = intTable.EmptySlot();
+  Cardinal newNode    = nodeTable->EmptySlot();
+  Cardinal newIntNode = intTable->EmptySlot();
 
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
   newNodeRef.nodeType = BoolType;
   newNodeRef.a.index  = newIntNode;
 
-  intTable[newIntNode].boolValue = value;
+  (*intTable)[newIntNode].boolValue = value;
 
   return (newNode);
 }
@@ -1067,34 +1206,34 @@ ListExpr
 NestedList::StringAtom( const string& value )
 {
   assert( value.length() <= 3*STRINGSIZE );
-  Cardinal newNode       = nodeTable.EmptySlot();
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  Cardinal newNode       = nodeTable->EmptySlot();
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
   newNodeRef.nodeType    = StringType;
   newNodeRef.s.strLength = ((value.length() <= 3*STRINGSIZE) ? value.length() : 3*STRINGSIZE);
 
   if ( value.length() <= STRINGSIZE )
   {
-    newNodeRef.s.first  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.first].field, STRINGSIZE );
+    newNodeRef.s.first  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.first].field, STRINGSIZE );
     newNodeRef.s.second = TheEmptyList();
     newNodeRef.s.third  = TheEmptyList();
   }
   else if ( value.length() <= 2*STRINGSIZE )
   {
-    newNodeRef.s.first  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.first].field, STRINGSIZE );
-    newNodeRef.s.second = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
+    newNodeRef.s.first  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.first].field, STRINGSIZE );
+    newNodeRef.s.second = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
     newNodeRef.s.third  = TheEmptyList();
   }
   else
   {
-    newNodeRef.s.first  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.first].field, STRINGSIZE );
-    newNodeRef.s.second = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
-    newNodeRef.s.third  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.third].field, STRINGSIZE, 2*STRINGSIZE );
+    newNodeRef.s.first  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.first].field, STRINGSIZE );
+    newNodeRef.s.second = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
+    newNodeRef.s.third  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.third].field, STRINGSIZE, 2*STRINGSIZE );
   }
   return (newNode);
 }
@@ -1108,34 +1247,34 @@ ListExpr
 NestedList::SymbolAtom( const string& value )
 {
 //  assert( value.length() <= 3*STRINGSIZE );
-  Cardinal newNode       = nodeTable.EmptySlot();
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  Cardinal newNode       = nodeTable->EmptySlot();
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
   newNodeRef.nodeType    = SymbolType;
   newNodeRef.s.strLength = ((value.length() <= 3*STRINGSIZE) ? value.length() : 3*STRINGSIZE);
 
   if ( value.length() <= STRINGSIZE )
   {
-    newNodeRef.s.first  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.first].field, STRINGSIZE );
+    newNodeRef.s.first  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.first].field, STRINGSIZE );
     newNodeRef.s.second = TheEmptyList();
     newNodeRef.s.third  = TheEmptyList();
   }
   else if ( value.length() <= 2*STRINGSIZE )
   {
-    newNodeRef.s.first  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.first].field, STRINGSIZE );
-    newNodeRef.s.second = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
+    newNodeRef.s.first  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.first].field, STRINGSIZE );
+    newNodeRef.s.second = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
     newNodeRef.s.third  = TheEmptyList();
   }
   else
   {
-    newNodeRef.s.first  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.first].field, STRINGSIZE );
-    newNodeRef.s.second = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
-    newNodeRef.s.third  = stringTable.EmptySlot();
-    value.copy( stringTable[newNodeRef.s.third].field, STRINGSIZE, 2*STRINGSIZE );
+    newNodeRef.s.first  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.first].field, STRINGSIZE );
+    newNodeRef.s.second = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.second].field, STRINGSIZE, STRINGSIZE );
+    newNodeRef.s.third  = stringTable->EmptySlot();
+    value.copy( (*stringTable)[newNodeRef.s.third].field, STRINGSIZE, 2*STRINGSIZE );
   }
   return (newNode);
 }
@@ -1148,15 +1287,15 @@ NestedList::SymbolAtom( const string& value )
 ListExpr
 NestedList::TextAtom()
 {
-  Cardinal newNode     = nodeTable.EmptySlot();
+  Cardinal newNode     = nodeTable->EmptySlot();
 
-  NodeRecord& newNodeRef = nodeTable[newNode];
+  NodeRecord& newNodeRef = (*nodeTable)[newNode];
   newNodeRef.nodeType = TextType;
-  newNodeRef.t.start  = textTable.EmptySlot();
+  newNodeRef.t.start  = textTable->EmptySlot();
   newNodeRef.t.last   = newNodeRef.t.start;
   newNodeRef.t.length = 0;
 
-  TextRecord& newTextNodeRef = textTable[newNodeRef.t.start];
+  TextRecord& newTextNodeRef = (*textTable)[newNodeRef.t.start];
   newTextNodeRef.next  = TheEmptyList();
   memset( newTextNodeRef.field, 0, MaxFragmentLength );
 
@@ -1174,8 +1313,8 @@ NestedList::AppendText( const ListExpr atom,
 {
   assert( AtomType( atom ) == TextType );
 
-  NodeRecord& atomContent  = nodeTable[atom];
-  TextRecord* lastFragment = &textTable[atomContent.t.last];
+  NodeRecord& atomContent  = (*nodeTable)[atom];
+  TextRecord* lastFragment = &(*textTable)[atomContent.t.last];
 
   Cardinal lastFragmentLength, emptyFragmentLength; 
   for ( lastFragmentLength = 0; 
@@ -1221,12 +1360,12 @@ empty or it is filled with up to MaxFragmentLength-1 characters.
 
     while ( textLength > 0 )
     {
-      newFragmentID = textTable.EmptySlot ();
-      newFragment   = &textTable[newFragmentID];
+      newFragmentID = textTable->EmptySlot ();
+      newFragment   = &(*textTable)[newFragmentID];
       memset( newFragment->field, 0, MaxFragmentLength );
       newFragment->next  = TheEmptyList();
 
-      lastFragment = &textTable[atomContent.t.last];
+      lastFragment = &(*textTable)[atomContent.t.last];
       lastFragment->next  = newFragmentID;
 
       emptyFragmentLength = (textLength <= MaxFragmentLength) ? textLength : MaxFragmentLength;
@@ -1250,7 +1389,7 @@ long
 NestedList::IntValue( const ListExpr atom )
 {
   assert( AtomType( atom ) == IntType );
-  return (intTable[nodeTable[atom].a.index].intValue);
+  return ((*intTable)[(*nodeTable)[atom].a.index].intValue);
 }
 
 /*
@@ -1262,7 +1401,7 @@ double
 NestedList::RealValue( const ListExpr atom )
 {
   assert( AtomType( atom ) == RealType );
-  return (intTable[nodeTable[atom].a.index].realValue);
+  return ((*intTable)[(*nodeTable)[atom].a.index].realValue);
 }
 
 /*
@@ -1274,7 +1413,7 @@ bool
 NestedList::BoolValue( const ListExpr atom )
 {
   assert( AtomType( atom ) == BoolType );
-  return (intTable[nodeTable[atom].a.index].boolValue);
+  return ((*intTable)[(*nodeTable)[atom].a.index].boolValue);
 }
 
 /*
@@ -1286,22 +1425,22 @@ string
 NestedList::StringValue( const ListExpr atom )
 {
   assert( AtomType( atom ) == StringType );
-  NodeRecord& atomRef = nodeTable[atom];
+  NodeRecord& atomRef = (*nodeTable)[atom];
   string outString( "" );
   if ( atomRef.s.strLength <= STRINGSIZE )
   {
-    outString.append( stringTable[atomRef.s.first].field, atomRef.s.strLength );
+    outString.append( (*stringTable)[atomRef.s.first].field, atomRef.s.strLength );
   }
   else if ( atomRef.s.strLength <= 2*STRINGSIZE )
   {
-    outString.append( stringTable[atomRef.s.first].field,  STRINGSIZE );
-    outString.append( stringTable[atomRef.s.second].field, atomRef.s.strLength - STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.first].field,  STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.second].field, atomRef.s.strLength - STRINGSIZE );
   }
   else
   {
-    outString.append( stringTable[atomRef.s.first].field,  STRINGSIZE );
-    outString.append( stringTable[atomRef.s.second].field, STRINGSIZE );
-    outString.append( stringTable[atomRef.s.third].field,  atomRef.s.strLength - 2*STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.first].field,  STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.second].field, STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.third].field,  atomRef.s.strLength - 2*STRINGSIZE );
   }
   return (outString);
 }
@@ -1315,22 +1454,22 @@ string
 NestedList::SymbolValue( const ListExpr atom )
 {
   assert( AtomType( atom ) == SymbolType );
-  NodeRecord& atomRef = nodeTable[atom];
+  NodeRecord& atomRef = (*nodeTable)[atom];
   string outString( "" );
   if ( atomRef.s.strLength <= STRINGSIZE )
   {
-    outString.append( stringTable[atomRef.s.first].field, atomRef.s.strLength );
+    outString.append( (*stringTable)[atomRef.s.first].field, atomRef.s.strLength );
   }
   else if ( atomRef.s.strLength <= 2*STRINGSIZE )
   {
-    outString.append( stringTable[atomRef.s.first].field,  STRINGSIZE );
-    outString.append( stringTable[atomRef.s.second].field, atomRef.s.strLength - STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.first].field,  STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.second].field, atomRef.s.strLength - STRINGSIZE );
   }
   else
   {
-    outString.append( stringTable[atomRef.s.first].field,  STRINGSIZE );
-    outString.append( stringTable[atomRef.s.second].field, STRINGSIZE );
-    outString.append( stringTable[atomRef.s.third].field,  atomRef.s.strLength - 2*STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.first].field,  STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.second].field, STRINGSIZE );
+    outString.append( (*stringTable)[atomRef.s.third].field,  atomRef.s.strLength - 2*STRINGSIZE );
   }
   return (outString);
 }
@@ -1348,7 +1487,7 @@ NestedList::CreateTextScan (const ListExpr atom )
   assert( AtomType( atom ) == TextType );
 
   TextScan textScan = new TextScanRecord;
-  textScan->currentFragment = nodeTable[atom].t.start;
+  textScan->currentFragment = (*nodeTable)[atom].t.start;
   textScan->currentPosition = 0;
 
   return (textScan);
@@ -1364,7 +1503,7 @@ NestedList::GetText ( TextScan       textScan,
                       const Cardinal noChars,
                       string&        textBuffer )
 {
-  TextRecord& fragment = textTable[textScan->currentFragment];
+  TextRecord& fragment = (*textTable)[textScan->currentFragment];
   Cardinal fragmentLength, fragmentRestLength;
 
   if ( fragment.next == 0 )
@@ -1428,7 +1567,7 @@ Cardinal
 NestedList::TextLength ( const ListExpr textAtom )
 {
   assert( AtomType( textAtom ) == TextType );
-  return (nodeTable[textAtom].t.length);
+  return ((*nodeTable)[textAtom].t.length);
 }
 
 /*
@@ -1445,7 +1584,7 @@ NestedList::EndOfText( const TextScan textScan )
   }
   else
   {
-    TextRecord& fragment = textTable[textScan->currentFragment];
+    TextRecord& fragment = (*textTable)[textScan->currentFragment];
     Cardinal fragmentLength;
     for ( fragmentLength = 0; 
           fragmentLength < MaxFragmentLength &&
@@ -1485,9 +1624,13 @@ NestedList::AtomType (const ListExpr atom )
   }
   else
   {
-    return (nodeTable[atom].nodeType);
+    return ((*nodeTable)[atom].nodeType);
   } 
 }
+
+/*
+11 ReportVectorSizes
+*/
 
 const string
 NestedList::reportVectorSizes() {
@@ -1495,11 +1638,11 @@ NestedList::reportVectorSizes() {
   ostringstream report;
  
   report << "List memory (slots/used): " 
-	 << "nodes " << nodeTable.Size() << "/" << nodeTable.NoEntries() << ", " 
- 	 << "int " << intTable.Size() << "/" << intTable.NoEntries() << ", " 
-	 << "str " << stringTable.Size() << "/" <<  stringTable.NoEntries() << ". "
+	 << "nodes " << nodeTable->Size() << "/" << nodeTable->NoEntries() << ", " 
+ 	 << "int " << intTable->Size() << "/" << intTable->NoEntries() << ", " 
+	 << "str " << stringTable->Size() << "/" <<  stringTable->NoEntries() << ". "
          << endl << "Total " 
-	 << nodeTable.totalMemory() + intTable.totalMemory() + stringTable.totalMemory()
+	 << nodeTable->totalMemory() + intTable->totalMemory() + stringTable->totalMemory()
          << " Bytes." << endl;
 	 
   return report.str();

@@ -32,6 +32,8 @@ February 2002 Ulrich Telle Port to C++
 
 November 28, 2002 M. Spiekermann method reportVectorSizes() added. 
 
+December 05, 2002 M. Spiekermann methods InitializeListMemory() and CopyList() supplemented.
+
 1.1 Overview
 
 A ~nested list~ can be viewed in two different ways. The first is to consider
@@ -159,7 +161,7 @@ Nested lists are represented by four compact tables called
 member variables of the nested list container class ~NestedList~.
 
 */
-const int INITIAL_ENTRIES = 50;
+const int INITIAL_ENTRIES = 10000;
 /*
 Specifies the default size of the compact tables. This value can be overwritten
 in the constructor.
@@ -315,7 +317,10 @@ text atom.
 class NestedList
 {
  public:
-  NestedList( int initialEntries = INITIAL_ENTRIES );
+  NestedList( Cardinal NodeEntries = 2*INITIAL_ENTRIES,
+	      Cardinal ConstEntries = INITIAL_ENTRIES, 
+	      Cardinal StringEntries = INITIAL_ENTRIES,
+	      Cardinal TextEntries = 50 );
 /*
 Creates an instance of a nested list container. The compact tables which
 store the nodes of nested lists reserve initially memory for holding at
@@ -642,10 +647,34 @@ value 'NoAtom'.
 /*
 Reports the slot numbers and allocated memory of all
 private CTable members and the underlying vector classes.
+
+1.3.12 New Initialization of List Memory
+
+*/
+
+  void initializeListMemory( Cardinal NodeEntries = 2*INITIAL_ENTRIES,
+		             Cardinal ConstEntries = INITIAL_ENTRIES, 
+		             Cardinal StringEntries = INITIAL_ENTRIES,
+			     Cardinal TextEntries = 50 );
+
+/*
+Creates new CTable Objects with the given size and deletes the old ones.
+The default values are tuning parameters and reflect values which are
+useful in the present state of SECONDO.
+
+1.3.13 Copying of Lists
 */
   
+  const ListExpr CopyList( const ListExpr list, const NestedList* target );
+  
+/*
+Copies a nested list from this instance to the target instance.
+*/
+
  protected:
+  const ListExpr CopyRecursive( const ListExpr list, const NestedList* target );
   void DestroyRecursive ( const ListExpr list );
+  void deleteListMemory(); // delete CTable pointers
   void PrintTableTexts();
   string NodeType2Text( NodeType type );
   string BoolToStr( const bool boolValue );
@@ -657,10 +686,10 @@ private CTable members and the underlying vector classes.
   void WriteAtom( const ListExpr atom, bool toScreen );
   bool WriteToStringLocal( string& nlChars, ListExpr list );
  private:
-  CTable<NodeRecord>   nodeTable;   // nodes
-  CTable<Constant>     intTable;    // ints;
-  CTable<StringRecord> stringTable; // strings
-  CTable<TextRecord>   textTable  ; // texts
+  CTable<NodeRecord>   *nodeTable;   // nodes
+  CTable<Constant>     *intTable;    // ints;
+  CTable<StringRecord> *stringTable; // strings
+  CTable<TextRecord>   *textTable  ; // texts
   ostream*             outStream;
   static bool          doDestroy;
 /*
