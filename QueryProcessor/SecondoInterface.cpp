@@ -1124,15 +1124,16 @@ If value 0 is returned, the command was executed without error.
   
   LOGMSG( "SI:CommandTime",
 	
-	  int nr = Counter::getRef("CmdNr")++;
-		cmsg.file("cmd-idx.log") << nr << ": " << commandText << endl;
-		cmsg.send();
-	  cmsg.file("cmd-real.log") << nr << " " << cmdTime.diffSecondsReal() << endl;
-		cmsg.send();						
-	  cmsg.file("cmd-cpu.log") << nr << " " << cmdTime.diffSecondsCPU() << endl;
-		cmsg.send();								
+    static int nr = 0;
+    nr++;
+    cmsg.file("cmd-idx.log") << nr << ": " << commandText << endl;
+    cmsg.send();
+    cmsg.file("cmd-real.log") << nr << " " << cmdTime.diffSecondsReal() << endl;
+    cmsg.send();						
+    cmsg.file("cmd-cpu.log") << nr << " " << cmdTime.diffSecondsCPU() << endl;
+    cmsg.send();								
     cmsg.info() << endl << "Command " << cmdTime.diffTimes() << endl;
-		cmsg.send();
+    cmsg.send();
   )
   
 }
@@ -1264,7 +1265,7 @@ SI_Error
 SecondoInterface::Command_Derive( const AlgebraLevel level, const ListExpr list )
 {
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
-	SecondoSystem& sys = *SecondoSystem::GetInstance();
+  SecondoSystem& sys = *SecondoSystem::GetInstance();
   NestedList& nl = *SecondoSystem::GetNestedList();
 	
   SI_Error errorCode = ERR_NO_ERROR;
