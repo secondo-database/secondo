@@ -1,4 +1,5 @@
 operator count alias COUNT pattern _ op
+operator tuplesize alias TUPLESIZE pattern _ op
 operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
 operator attr alias ATTR pattern op (_, _)

@@ -119,7 +119,7 @@ OutTuple (ListExpr typeInfo, Word  value)
 
 The ~SaveToList~-function should act as the ~Out~-function
 but using internal representation of the objects. It is called
-by the default persistence mechanism to store the objects in 
+by the default persistence mechanism to store the objects in
 the database.
 
 */
@@ -1876,6 +1876,121 @@ Operator relalgcount (
          TCountSelect,       // trivial selection function
          TCountTypeMap       // type mapping
 );
+
+/*
+
+5.11 Operator ~tuplesize~
+
+Reports the average size of the tuples in a relation. This operator is
+useful for the optimizer, but it is usable as an operator itself.
+
+5.11.1 Type mapping function of operator ~tuplesize~
+
+Operator ~tuplesize~ accepts a stream of tuples and returns an integer.
+
+----    (stream  (tuple x))                 -> real
+----
+
+*/
+ListExpr
+TupleSizeTypeMap(ListExpr args)
+{
+  ListExpr first;
+
+  if( nl->ListLength(args) == 1 )
+  {
+    first = nl->First(args);
+    if ( (nl->ListLength(first) == 2) && nl->ListLength(nl->Second(first)) == 2  )
+    {
+      if ( ( TypeOfRelAlgSymbol(nl->First(first)) == stream
+             || TypeOfRelAlgSymbol(nl->First(first)) == rel ) &&
+           TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple )
+        return nl->SymbolAtom("real");
+    }
+  }
+  ErrorReporter::ReportError("Incorrect input for operator tuplesize.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+
+5.11.2 Value mapping functions of operator ~count~
+
+*/
+int
+TupleSizeStream(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word elem;
+  int count = 0;
+  float totalSize = 0;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) )
+  {
+    totalSize += ((Tuple*)elem.addr)->GetTotalSize();
+    count++;
+    ((Tuple*)elem.addr)->DeleteIfAllowed();
+    qp->Request(args[0].addr, elem);
+  }
+  result = qp->ResultStorage(s);
+
+  cout << "Total size: " << totalSize << endl
+       << "Count: " << count << endl
+       << "Average size: " << totalSize/count << endl;
+
+  ((CcReal*) result.addr)->Set(true, totalSize/count);
+  qp->Close(args[0].addr);
+  return 0;
+}
+
+int
+TupleSizeRel(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Relation* rel = (Relation*)args[0].addr;
+  result = qp->ResultStorage(s);
+  ((CcReal*) result.addr)->Set(true, (float)rel->GetTotalSize()/rel->GetNoTuples());
+  return 0;
+}
+
+
+/*
+
+5.11.3 Specification of operator ~tuplesize~
+
+*/
+const string TupleSizeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" ) "
+                              "( <text>((stream/rel (tuple x))) -> real"
+                              "</text--->"
+                              "<text>_ tuplesize</text--->"
+                              "<text>Return the average size of the tuples within a stream "
+                              "or a relation.</text--->"
+                              "<text>query cities tuplesize or query cities "
+                              "feed tuplesize</text--->"
+                              ") )";
+
+/*
+
+5.11.4 Selection function of operator ~tuplesize~
+
+This function is the same as for the ~count~ operator.
+
+5.11.5 Definition of operator ~tuplesize~
+
+*/
+ValueMapping tuplesizemap[] = {TupleSizeStream, TupleSizeRel };
+
+Operator relalgtuplesize (
+         "tuplesize",           // name
+         TupleSizeSpec,         // specification
+         2,                  // number of value mapping functions
+         tuplesizemap,          // value mapping functions
+         nomodelmap,         // dummy model mapping functions
+         TCountSelect,       // trivial selection function
+         TupleSizeTypeMap       // type mapping
+);
+
 /*
 
 5.12 Operator ~rename~
@@ -2020,7 +2135,7 @@ Operator relalgrename (
 /*
 5.13 Operator ~mconsume~
 
-Collects objects from a stream of tuples into a 
+Collects objects from a stream of tuples into a
 main memory relation using the ~mrel~ type constructor
 of the old relational algebra.
 
@@ -2029,7 +2144,7 @@ the new relational algebra to the old one.
 
 5.6.1 Type mapping function of operator ~mconsume~
 
-Operator ~mconsume~ accepts a stream of tuples and returns a 
+Operator ~mconsume~ accepts a stream of tuples and returns a
 main memory relation.
 
 
@@ -2049,7 +2164,7 @@ ListExpr MConsumeTypeMap(ListExpr args)
         (nl->ListLength(nl->Second(first)) == 2) &&
         (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple))
     {
-      return nl->TwoElemList(nl->SymbolAtom("mrel"), 
+      return nl->TwoElemList(nl->SymbolAtom("mrel"),
                              nl->TwoElemList(nl->SymbolAtom("mtuple"),
                                              nl->Second(nl->Second(first))));
     }
@@ -2148,6 +2263,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgproject);
     AddOperator(&relalgproduct);
     AddOperator(&relalgcount);
+    AddOperator(&relalgtuplesize);
     AddOperator(&relalgrename);
     AddOperator(&relalgmconsume);
 

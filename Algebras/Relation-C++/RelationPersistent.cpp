@@ -146,9 +146,10 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
 The destructor.
 
 */
-  const bool Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile );
+  const int Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile );
 /*
-Saves a fresh tuple into ~tuplefile~ and ~lobfile~.
+Saves a fresh tuple into ~tuplefile~ and ~lobfile~. Returns the total size of
+the tuple saved.
 
 */
   const bool Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile,
@@ -223,7 +224,7 @@ Stores the extension (small FLOBs) in memory.
 */
 };
 
-const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
+const int PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile )
 {
   assert( state == Fresh &&
           lobFile == 0 && tupleFile == 0 && tupleRecord == 0 &&
@@ -232,6 +233,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   lobFile = lobfile;
   tupleFile = tuplefile;
   tupleRecord = new SmiRecord();
+  int tupleSize = 0;
 
   // Calculate the size of the small FLOB data which will be saved together
   // with the tuple attributes and save the LOBs in the lobFile.
@@ -241,6 +243,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
       FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+      tupleSize += tmpFLOB->Size();
       if( !tmpFLOB->IsLob() )
         extensionSize += tmpFLOB->Size();
       else
@@ -268,6 +271,7 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   }
 
   // Move external attributes to memory tuple
+  tupleSize += tupleType.GetTotalSize();
   memoryTuple = (char *)malloc( tupleType.GetTotalSize() );
   int offset = 0;
   for( int i = 0; i < tupleType.GetNoAttributes(); i++)
@@ -290,7 +294,9 @@ const bool PrivateTuple::Save( SmiRecordFile *tuplefile, SmiRecordFile *lobfile 
   }
   free( memoryTuple ); memoryTuple = 0;
 
-  return rc;
+  if( !rc )
+    return 0;
+  return tupleSize;
 }
 
 const bool PrivateTuple::Open( SmiRecordFile *tuplefile, SmiRecordFile *lobfile, SmiRecordId rid )
@@ -644,9 +650,10 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
   privateTuple->attributes[index] = attr;
 }
 
-const long Tuple::GetMemorySize() const
+const int Tuple::GetMemorySize() const
 {
-  long extensionSize = 0;
+  int extensionSize = 0;
+
   for( int i = 0; i < privateTuple->tupleType.GetNoAttributes(); i++)
   {
     for( int j = 0; j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
@@ -657,6 +664,20 @@ const long Tuple::GetMemorySize() const
     }
   }
   return privateTuple->tupleType.GetTotalSize() + extensionSize;
+}
+
+const int Tuple::GetTotalSize() const
+{
+  int totalSize = privateTuple->tupleType.GetTotalSize();
+
+  for( int i = 0; i < privateTuple->tupleType.GetNoAttributes(); i++)
+  {
+    for( int j = 0; j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
+    {
+      totalSize += privateTuple->attributes[i]->GetFLOB(j)->Size();
+    }
+  }
+  return totalSize;
 }
 
 const int Tuple::GetNoAttributes() const
@@ -714,7 +735,8 @@ struct PrivateTupleBuffer
   PrivateTupleBuffer():
     diskBuffer( 0 ),
     MAX_TUPLES_IN_MEMORY( 0 ),
-    inMemory( true )
+    inMemory( true ),
+    totalSize( 0 )
     {}
 /*
 The constructor.
@@ -759,6 +781,11 @@ The number of tuples that should fit in memory.
 A flag that tells if the buffer fit in memory or not.
 
 */
+  double totalSize;
+/*
+The total size occupied by the tuples in the buffer.
+
+*/
 };
 
 /*
@@ -781,6 +808,14 @@ const int TupleBuffer::GetNoTuples() const
     return privateTupleBuffer->memoryBuffer.size();
   else
     return privateTupleBuffer->diskBuffer->GetNoTuples();
+}
+
+const double TupleBuffer::GetTotalSize() const
+{
+  if( privateTupleBuffer->inMemory )
+    return privateTupleBuffer->totalSize;
+  else
+    return privateTupleBuffer->diskBuffer->GetTotalSize();
 }
 
 const bool TupleBuffer::IsEmpty() const
@@ -819,6 +854,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
     {
       t->SetFree( false );
       privateTupleBuffer->memoryBuffer.push_back( t );
+      privateTupleBuffer->totalSize += t->GetTotalSize();
     }
     else
     {
@@ -834,13 +870,14 @@ void TupleBuffer::AppendTuple( Tuple *t )
       }
 
       privateTupleBuffer->memoryBuffer.clear();
+      privateTupleBuffer->totalSize = 0;
       privateTupleBuffer->diskBuffer->AppendTuple( t );
       privateTupleBuffer->inMemory = false;
     }
   }
   else
   {
-    privateTupleBuffer->diskBuffer->AppendTuple( t );
+    return privateTupleBuffer->diskBuffer->AppendTuple( t );
   }
 }
 
@@ -931,8 +968,10 @@ This struct contains necessary information for opening a relation.
 */
 struct RelationDescriptor
 {
-  RelationDescriptor( const int noTuples, const SmiFileId tId, const SmiFileId lId ):
+  RelationDescriptor( const int noTuples, const double totalSize,
+                      const SmiFileId tId, const SmiFileId lId ):
     noTuples( noTuples ),
+    totalSize( totalSize ),
     tupleFileId( tId ),
     lobFileId( lId )
     {}
@@ -942,6 +981,7 @@ The first constructor.
 */
   RelationDescriptor( const RelationDescriptor& desc ):
     noTuples( desc.noTuples ),
+    totalSize( desc.totalSize ),
     tupleFileId( desc.tupleFileId ),
     lobFileId( desc.lobFileId )
     {}
@@ -953,6 +993,11 @@ The copy constructor.
   int noTuples;
 /*
 The quantity of tuples inside the relation.
+
+*/
+  double totalSize;
+/*
+The total size occupied by the tuples in the relation.
 
 */
   SmiFileId tupleFileId;
@@ -977,6 +1022,7 @@ struct PrivateRelation
 {
   PrivateRelation( const ListExpr typeInfo, const bool isTemporary ):
     noTuples( 0 ),
+    totalSize( 0 ),
     tupleType( nl->Second( typeInfo ) ),
     tupleFile( false, 0, isTemporary ),
     lobFile( false, 0, isTemporary )
@@ -990,6 +1036,7 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
 */
   PrivateRelation( const TupleType& tupleType, const bool isTemporary ):
     noTuples( 0 ),
+    totalSize( 0 ),
     tupleType( tupleType ),
     tupleFile( false, 0, isTemporary ),
     lobFile( false, 0, isTemporary )
@@ -1003,6 +1050,7 @@ The second constructor. Creates an empty relation from a ~tupleType~.
 */
   PrivateRelation( const TupleType& tupleType, const RelationDescriptor& relDesc, const bool isTemporary ):
     noTuples( relDesc.noTuples ),
+    totalSize( relDesc.totalSize ),
     tupleType( tupleType ),
     tupleFile( false, 0, isTemporary ),
     lobFile( false, 0, isTemporary )
@@ -1016,6 +1064,7 @@ The third constructor. Opens a previously created relation.
 */
   PrivateRelation( const ListExpr typeInfo, const RelationDescriptor& relDesc, const bool isTemporary ):
     noTuples( relDesc.noTuples ),
+    totalSize( relDesc.totalSize ),
     tupleType( nl->Second( nl->First( typeInfo ) ) ),
     tupleFile( false, 0 ),
     lobFile( false, 0 )
@@ -1040,6 +1089,11 @@ The destuctor.
   int noTuples;
 /*
 Contains the number of tuples in the relation.
+
+*/
+  double totalSize;
+/*
+Stores the total size occupied by the tuples in the relation.
 
 */
   TupleType tupleType;
@@ -1091,27 +1145,31 @@ Relation::~Relation()
 Relation *Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, int errorPos, ListExpr& errorInfo, bool& correct )
 {
   RelationDescriptor relDesc( nl->IntValue( nl->First( value ) ),
-                              nl->IntValue( nl->Second( value ) ),
-                              nl->IntValue( nl->Third( value ) ) );
+                              nl->RealValue( nl->Second( value ) ),
+                              nl->IntValue( nl->Third( value ) ),
+                              nl->IntValue( nl->Fourth( value ) ));
   return new Relation( typeInfo, relDesc );
 }
 
 ListExpr Relation::SaveToList( ListExpr typeInfo )
 {
-  return nl->ThreeElemList( nl->IntAtom( privateRelation->tupleFile.GetFileId() ),
-                            nl->IntAtom( privateRelation->lobFile.GetFileId() ),
-                            nl->IntAtom( privateRelation->noTuples ) );
+  return nl->FourElemList( nl->IntAtom( privateRelation->noTuples ),
+                           nl->RealAtom( privateRelation->totalSize ),
+                           nl->IntAtom( privateRelation->tupleFile.GetFileId() ),
+                           nl->IntAtom( privateRelation->lobFile.GetFileId() ) );
 }
 
 bool Relation::Open( SmiRecord& valueRecord, const ListExpr typeInfo, Relation*& value )
 {
   SmiFileId tupleId, lobId;
   int noTuples;
+  double totalSize;
   valueRecord.Read( &tupleId, sizeof( SmiFileId ), 0 );
   valueRecord.Read( &lobId, sizeof( SmiFileId ), sizeof( SmiFileId ) );
   valueRecord.Read( &noTuples, sizeof( int ), 2 * sizeof( SmiFileId ) );
+  valueRecord.Read( &totalSize, sizeof( double ), 2 * sizeof( SmiFileId ) + sizeof(int) );
 
-  RelationDescriptor relDesc( noTuples, tupleId, lobId );
+  RelationDescriptor relDesc( noTuples, totalSize, tupleId, lobId );
   value = new Relation( typeInfo, relDesc );
 
   return true;
@@ -1124,6 +1182,7 @@ bool Relation::Save( SmiRecord& valueRecord, const ListExpr typeInfo )
   valueRecord.Write( &tupleId, sizeof( SmiFileId ), 0 );
   valueRecord.Write( &lobId, sizeof( SmiFileId ), sizeof( SmiFileId ) );
   valueRecord.Write( &(privateRelation->noTuples), sizeof( int ), 2 * sizeof( SmiFileId ) );
+  valueRecord.Write( &(privateRelation->totalSize), sizeof( double ), 2 * sizeof( SmiFileId ) + sizeof(int) );
 
   return true;
 }
@@ -1144,13 +1203,15 @@ void Relation::Delete()
 
 void Relation::AppendTuple( Tuple *tuple )
 {
-  tuple->GetPrivateTuple()->Save( &privateRelation->tupleFile, &privateRelation->lobFile );
+  privateRelation->totalSize +=
+    tuple->GetPrivateTuple()->Save( &privateRelation->tupleFile, &privateRelation->lobFile );
   privateRelation->noTuples += 1;
 }
 
 void Relation::Clear()
 {
   privateRelation->noTuples = 0;
+  privateRelation->totalSize = 0;
   privateRelation->tupleFile.Close();
   assert( privateRelation->tupleFile.Drop() );
   assert( privateRelation->tupleFile.Create() );
@@ -1171,6 +1232,11 @@ Tuple *Relation::GetTuple( const TupleId& id ) const
 const int Relation::GetNoTuples() const
 {
   return privateRelation->noTuples;
+}
+
+const double Relation::GetTotalSize() const
+{
+  return privateRelation->totalSize;
 }
 
 RelationIterator *Relation::MakeScan() const

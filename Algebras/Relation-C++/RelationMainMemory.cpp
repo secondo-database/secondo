@@ -241,6 +241,36 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
   privateTuple->attrArray[ index ] = attr;
 }
 
+const int Tuple::GetMemorySize() const
+{
+  int extensionSize = 0;
+
+  for( int i = 0; i < privateTuple->tupleType->GetNoAttributes(); i++)
+  {
+    for( int j = 0; j < privateTuple->attrArray[i]->NumOfFLOBs(); j++)
+    {
+      FLOB *tmpFLOB = privateTuple->attrArray[i]->GetFLOB(j);
+      if( !tmpFLOB->IsLob() )
+        extensionSize += tmpFLOB->Size();
+    }
+  }
+  return privateTuple->tupleType->GetTotalSize() + extensionSize;
+}
+
+const int Tuple::GetTotalSize() const
+{
+  int totalSize = privateTuple->tupleType->GetTotalSize();
+
+  for( int i = 0; i < privateTuple->tupleType->GetNoAttributes(); i++)
+  {
+    for( int j = 0; j < privateTuple->attrArray[i]->NumOfFLOBs(); j++)
+    {
+      totalSize += privateTuple->attrArray[i]->GetFLOB(j)->Size();
+    }
+  }
+  return totalSize;
+}
+
 const int Tuple::GetNoAttributes() const
 {
   return privateTuple->tupleType->GetNoAttributes();
@@ -291,11 +321,21 @@ will be in memory, i.e., the buffer will be an array of tuples.
 */
 struct PrivateTupleBuffer
 {
+  PrivateTupleBuffer() :
+    totalSize( 0 )
+    {}
+
   vector<Tuple*> buffer;
 /*
 The buffer which is a ~vector~ from STL.
 
 */
+  double totalSize;
+/*
+The total size of the buffer in bytes.
+
+*/
+
 };
 
 /*
@@ -317,6 +357,11 @@ const int TupleBuffer::GetNoTuples() const
   return privateTupleBuffer->buffer.size();
 }
 
+const double TupleBuffer::GetTotalSize() const
+{
+  return privateTupleBuffer->totalSize;
+}
+
 const bool TupleBuffer::IsEmpty() const
 {
   return privateTupleBuffer->buffer.empty();
@@ -327,11 +372,13 @@ void TupleBuffer::Clear()
   for( size_t i = 0; i < privateTupleBuffer->buffer.size(); i++ )
     delete privateTupleBuffer->buffer[i];
   privateTupleBuffer->buffer.clear();
+  privateTupleBuffer->totalSize = 0;
 }
 
 void TupleBuffer::AppendTuple( Tuple *t )
 {
   privateTupleBuffer->buffer.push_back( t );
+  privateTupleBuffer->totalSize += t->GetTotalSize();
 }
 
 TupleBufferIterator *TupleBuffer::MakeScan() const
@@ -402,6 +449,7 @@ struct PrivateRelation
 {
   PrivateRelation( const ListExpr typeInfo ):
     noTuples( 0 ),
+    totalSize( 0 ),
     tupleType( nl->Second( typeInfo ) ),
     tupleArray( new CTable<Tuple*>( 100 ) ),
     currentId( 1 )
@@ -413,6 +461,7 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
 */
   PrivateRelation( const TupleType& tupleType ):
     noTuples( 0 ),
+    totalSize( 0 ),
     tupleType( tupleType ),
     tupleArray( new CTable<Tuple*>( 100 ) ),
     currentId( 1 )
@@ -430,6 +479,11 @@ The second constructor. Creates an empty relation from a ~tupleType~.
   int noTuples;
 /*
 Contains the number of tuples in the relation.
+
+*/
+  double totalSize;
+/*
+Contains the total size of the relation.
 
 */
   TupleType tupleType;
@@ -652,6 +706,7 @@ void Relation::AppendTuple( Tuple *tuple )
   tuple->SetTupleId( privateRelation->currentId++ );
   privateRelation->tupleArray->Add( tuple );
   privateRelation->noTuples += 1;
+  privateRelation->totalSize += tuple->GetTotalSize();
 }
 
 Tuple* Relation::GetTuple( const TupleId& tupleId ) const
@@ -673,6 +728,7 @@ void Relation::Clear()
   delete privateRelation->tupleArray;
   privateRelation->currentId = 1;
   privateRelation->noTuples = 0;
+  privateRelation->totalSize = 0;
   privateRelation->tupleArray = new CTable<Tuple*>( 100 );
 
 }
@@ -680,6 +736,11 @@ void Relation::Clear()
 const int Relation::GetNoTuples() const
 {
   return privateRelation->noTuples;
+}
+
+const double Relation::GetTotalSize() const
+{
+  return privateRelation->totalSize;
 }
 
 RelationIterator *Relation::MakeScan() const

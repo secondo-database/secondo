@@ -284,9 +284,15 @@ Returns the attribute at position ~index~ inside the tuple.
 Puts an attribute in the position ~index~ inside the tuple.
 
 */
-    const long GetMemorySize() const;
+    const int GetMemorySize() const;
 /*
 Returns the size of the memory (in bytes) used by the tuple.
+
+*/
+    const int GetTotalSize() const;
+/*
+Returns the total size of the tuple taking into consideration the tuple and the
+LOBs.
 
 */
     const int GetNoAttributes() const;
@@ -439,6 +445,7 @@ class GenericRelation
   public:
     virtual ~GenericRelation() {};
     virtual const int GetNoTuples() const = 0;
+    virtual const double GetTotalSize() const = 0;
     virtual void Clear() = 0;
     virtual void AppendTuple( Tuple *t ) = 0;
     virtual GenericRelationIterator *MakeScan() const = 0;
@@ -520,6 +527,11 @@ tuples.
 Returns the number of tuples in the buffer.
 
 */
+    const double GetTotalSize() const;
+/*
+Returns the total size of the relation in bytes.
+
+*/
     const bool IsEmpty() const;
 /*
 Checks if the tuple buffer is empty or not.
@@ -532,7 +544,7 @@ Deletes (if allowed) all tuples and also clears the buffer.
 */
     void AppendTuple( Tuple *t );
 /*
-Appends a tuple to the buffer.
+Appends a tuple to the buffer. Returns the size in bytes occupied by the tuple.
 
 */
     TupleBufferIterator *MakeScan() const;
@@ -716,7 +728,7 @@ The destructor.
 */
     void AppendTuple( Tuple *tuple );
 /*
-Appends a tuple to the relation.
+Appends a tuple to the relation. Returns the size in bytes occupied by the tuple.
 
 */
     Tuple* GetTuple( const TupleId& tupleId ) const;
@@ -732,6 +744,11 @@ Clears (empties) a relation removing all its tuples.
     const int GetNoTuples() const;
 /*
 Gets the number of tuples in the relation.
+
+*/
+    const double GetTotalSize() const;
+/*
+Returns the total size of the relation in bytes.
 
 */
     RelationIterator *MakeScan() const;
