@@ -8,22 +8,37 @@ include ../makefile.env
 
 CCFLAGS := -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
-TESTRULES := tctable tfilesystem tprofiles tsmi tsock1 tsock2 tsock3 TupleTestBDB tdlmain # tnl
-TESTFILES := $(addsuffix $(EXEEXT), $(subst test,t, $(TESTRULES))) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
+TESTRULES := \
+	tctable\
+	tfilesystem\
+	tprofiles\
+	tsmi\
+	tsock1\
+	tsock2\
+	tsock3\
+	TupleTestBDB\
+	tdlmain\
+	tnlcopy
+	# tnl
+TESTFILES := $(addsuffix $(EXEEXT), $(TESTRULES)) libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
+
+ifndef file
+OBJECTS = $(TESTFILES)
+else
+OBJECTS = $(file)$(EXEEXT)
+endif
 
 
 .PHONY: all 
-all:  copy
+all:  $(OBJECTS)
 
 .PHONY: copy
-copy: $(TESTFILES)
-	$(CP) $(TESTFILES) $(BINDIR) 
+copy: $(OBJECTS)
+	$(CP) $(OBJECTS) $(BINDIR) 
 
-.PHONY: file
-file: $(file)$(EXEEXT)
 	
-$(file)$(EXEEXT) : $(file).cpp
-	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) $(DEFAULTLIB)
+$(file)$(EXEEXT) : $(file).cpp libsdbtool.$(LIBEXT)
+	$(CC) -o $@ $<  $(DEFAULTCCFLAGS) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB) 
 
 # --- Storage Management Interface library ---
 
@@ -118,7 +133,7 @@ tsock2$(EXEEXT): tsock2.o libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 tsock2.o: tsock2.cpp SecondoConfig.h SocketIO.h
-	$(CC) -c -o $@ $< tsock2.o tsock2.cpp $(CCFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS)
 
 tsock3$(EXEEXT): tsock3.o libsdbtool.$(LIBEXT)
 	$(LD) $(EXEFLAGS) -o $@ $< -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
@@ -128,4 +143,4 @@ tsock3.o: tsock3.cpp SecondoConfig.h SocketIO.h
 
 .PHONY: clean
 clean:
-	$(RM) *.o *.lo *.a *.so *.dll *.exe $(addprefix $(BINDIR)/,$(TESTFILES))
+	$(RM) *.o *.lo *.a *.so *.dll $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))
