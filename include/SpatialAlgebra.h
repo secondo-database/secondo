@@ -333,18 +333,18 @@ class Points: public StandardAttribute
 There are three ways of constructing a point set:
 
 */
-    Points( SmiRecordFile *recordFile );
+    Points( SmiRecordFile *recordFile, const int initsize = 0, const bool isTemporary = false );
 /*
 The first one receives no arguments and constructs an empty point set.
 
 */
-    Points( SmiRecordFile *recordFile, const Points& ps );
+    Points( SmiRecordFile *recordFile, const Points& ps, const int initsize = 0, const bool isTemporary = false);
 /*
 The second one receives another point set ~ps~ as argument and constructs a point
 set which is a copy of ~ps~.
 
 */
-    Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true );
+    Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true, const int initsize = 0, const bool isTemporary = false);
 /* 
 The third and the last one receives a ~recordId~ and a flag ~update~ as arguments.
 This constructor is applied not to create a new point set, but to read it from
@@ -1162,11 +1162,10 @@ insertOK() function).
 
 */    
     
-    CRegion(SmiRecordFile *recordFile);
-    CRegion(SmiRecordFile *recordFile, const CRegion& cr );
-    CRegion(const CRegion& cr, SmiRecordFile *recordFile );
-    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, 
-	     bool update = true );
+    CRegion(SmiRecordFile *recordFile, const int initsize = 0, const bool isTemporary = false );
+    CRegion(SmiRecordFile *recordFile, const CRegion& cr, const int initsize = 0, const bool isTemporary = false);
+    CRegion(const CRegion& cr, SmiRecordFile *recordFile , const int initsize = 0, const bool isTemporary = false );
+    CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update = true, const int initsize = 0, const bool isTemporary = false);
     void Destroy();
     ~CRegion();
     

@@ -224,7 +224,8 @@ size_t   Point::HashValue()
 }
 
 void  Point::CopyFrom(StandardAttribute* right)
-{
+{ cout<<"classcopy ////////////////////"<<endl;
+    
   Point * p = (Point*)right;
   defined = p->IsDefined();
   if (defined)
@@ -264,7 +265,7 @@ int  Point::Sizeof()
 }
 
 Point*  Point::Clone()
-{
+{  cout<<"classclone ////////////////////"<<endl;
     return (new Point( *this));
 }
 
@@ -365,6 +366,7 @@ The list representation of a point is
 static ListExpr
 OutPoint( ListExpr typeInfo, Word value )
 {
+  //  cout <<"OutPoint ##############"<<endl;
   Point* point = (Point*)(value.addr);
   if( point->IsDefined() )
   {
@@ -391,7 +393,8 @@ OutPoint( ListExpr typeInfo, Word value )
 static Word
 InPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
-{
+{ 
+    //cout <<"InPoint ##############"<<endl;
     Point* newpoint;
     
     if ( nl->ListLength( instance ) == 2 )
@@ -600,7 +603,7 @@ ClosePoint( Word& w )
 */
 static Word
 ClonePoint( const Word& w )
-{
+{ cout<<"typeclone ////////////////////"<<endl;
   assert( ((Point *)w.addr)->IsDefined() );
   Point *p = new Point( *((Point *)w.addr) );
   return SetWord( p );
@@ -651,13 +654,14 @@ void* CastPoint(void* addr)
 
 */
 TypeConstructor point(
-	"point",			//name
+	"point",				//name
 	PointProperty,			//property function describing signature
-        OutPoint,   	InPoint,	//Out and In functions
+	OutPoint,   	InPoint,		//Out and In functions
 	CreatePoint,	DeletePoint,	//object creation and deletion
-        0, 0, ClosePoint, ClonePoint,   //object open, save, close, and clone
+	0, 0, 				//open and save functions	
+	ClosePoint, ClonePoint,   		//object close, and clone
 	CastPoint,			//cast function
-	CheckPoint,	                //kind checking function
+	CheckPoint,	                	//kind checking function
 	0, 				//predef. pers. function for model
         TypeConstructor::DummyInModel,
         TypeConstructor::DummyOutModel,
@@ -673,13 +677,13 @@ A ~points~ value is a finite set of points.
 5.1 Implementation of the class ~Points~
 
 */
-Points::Points( SmiRecordFile *recordFile ) :
-  points( new PArray<Point>( recordFile ) ),
+Points::Points( SmiRecordFile *recordFile, const int initsize, const bool isTemporary ) :
+	points( isTemporary ? new PArray<Point>( initsize ) : new PArray<Point>( recordFile ) ),
   ordered( true )
 {}
 
-Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
-  points( new PArray<Point>( recordFile ) ),
+Points::Points( SmiRecordFile *recordFile, const Points& ps , const int initsize, const bool isTemporary) :
+  points( isTemporary ? new PArray<Point>( initsize ) : new PArray<Point>( recordFile ) ),
   ordered( true )
 {
   assert( ps.IsOrdered() );
@@ -692,8 +696,8 @@ Points::Points( SmiRecordFile *recordFile, const Points& ps ) :
   }
 }
 
-Points::Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update ):
-  points( new PArray<Point>( recordFile, recordId, update ) ),
+Points::Points( SmiRecordFile *recordFile, const SmiRecordId recordId, bool update, const int initsize, const bool isTemporary):
+  points( isTemporary ? new PArray<Point>( initsize ) : new PArray<Point>( recordFile, recordId, update ) ),
   ordered( true )
   {}
 
@@ -1426,10 +1430,10 @@ void* CastPoints(void* addr)
 TypeConstructor points(
 	"points",			//name
 	PointsProperty, 		//property function describing signature
-        OutPoints,   	InPoints,	//Out and In functions
+	OutPoints,   	InPoints,	//Out and In functions
 	CreatePoints,	DeletePoints,	//object creation and deletion
-        OpenPoints, 	SavePoints,    	// object open and save
-        ClosePoints, 	ClonePoints,   	//object close and clone
+	OpenPoints, 	SavePoints,    	// object open and save
+	ClosePoints, 	ClonePoints,   	//object close and clone
 	CastPoints,			//cast function
 	CheckPoints,	                //kind checking function
 	0, 				//predef. pers. function for model
@@ -1749,6 +1753,31 @@ int CHalfSegment::logicgreater(const CHalfSegment& chs) const
 	}
     }
 }
+
+class HalfSegmentCompare
+{
+  public:
+    bool operator()(const CHalfSegment& chsa, const CHalfSegment& chsb) const
+    {
+      if( chsa < chsb )
+        return true;
+      else
+        return false;
+    }
+};
+
+class HalfSegmentLogCompare
+{
+  public:
+    bool operator()(const CHalfSegment& chsa, const CHalfSegment& chsb) const
+    {
+      if( chsa.logicless(chsb))
+        return true;
+      else
+        return false;
+    }
+};
+
 /*
 6.1.5 Overloaded Output Function
 
@@ -3392,11 +3421,10 @@ void CLine::Sort()
 {
   assert( !IsOrdered() );
 
-  if( Size() > 1 )
-  {
-    int low = 0, high = Size() - 1;
-    QuickSortRecursive( low, high );
-  }
+  HalfSegmentCompare cmp;
+  line->Sort<HalfSegmentCompare>( cmp );
+
+  ordered = true;
 }
 
 void CLine::QuickSortRecursive( const int low, const int high )
@@ -3595,7 +3623,7 @@ The list representation of a line is
 static ListExpr
 OutLine( ListExpr typeInfo, Word value )
 {
-  //cout<<"OUTLINE"<<endl;
+    cout<<"OUTLINE##################"<<endl;
     
   ListExpr result, last;
   CHalfSegment chs;
@@ -3646,6 +3674,7 @@ OutLine( ListExpr typeInfo, Word value )
 static Word
 InLine( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+    cout<<"Inline###########"<<endl;
   CLine* cl = new CLine( SecondoSystem::GetLobFile());
   CHalfSegment * chs;
   cl->StartBulkLoad();
@@ -3855,13 +3884,14 @@ insertOK() function).
 
 */
 
-CRegion::CRegion(SmiRecordFile *recordFile) :
-	region( new PArray<CHalfSegment>(recordFile) ),
+CRegion::CRegion(SmiRecordFile *recordFile, const int initsize, const bool isTemporary) :
+	region( isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>(recordFile) ),
 	ordered( true )
 {}
 
-CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
-	region( new PArray<CHalfSegment>(recordFile) ), ordered( true )
+CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr, const int initsize, const bool isTemporary) :
+	region( isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>(recordFile) ), 
+	ordered( true )
 {
   assert( cr.IsOrdered());
 
@@ -3873,8 +3903,9 @@ CRegion::CRegion(SmiRecordFile *recordFile, const CRegion& cr ) :
   }
 }
 
-CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
-	  region( new PArray<CHalfSegment>(recordFile) ), ordered( false )
+CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile, const int initsize, const bool isTemporary ) :
+	  region( isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>(recordFile) ), 
+	  ordered( false )
 {
     //  assert( cr.IsOrdered());
     int j=0;
@@ -3890,9 +3921,10 @@ CRegion::CRegion(const CRegion& cr, SmiRecordFile *recordFile ) :
     }
 }
 
-CRegion::CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId,
-	  bool update ): region(new PArray<CHalfSegment>
-	  ( recordFile, recordId, update ) ),ordered(true)
+CRegion::CRegion(SmiRecordFile *recordFile, const SmiRecordId recordId, bool update, 
+	  const int initsize, const bool isTemporary ): 
+	  region(isTemporary ? new PArray<CHalfSegment>( initsize ) : new PArray<CHalfSegment>( recordFile, recordId, update ) ),
+	  ordered(true)
 {}
 
 void CRegion::Destroy()
@@ -4282,11 +4314,10 @@ void CRegion::Sort()
 {
   assert( !IsOrdered() );
 
-  if( Size() > 1 )
-  {
-    int low = 0, high = Size() - 1;
-    QuickSortRecursive( low, high );
-  }
+  HalfSegmentCompare cmp;
+  region->Sort<HalfSegmentCompare>( cmp );
+
+  ordered = true;
 }
 
 void CRegion::QuickSortRecursive( const int low, const int high )
@@ -4325,12 +4356,10 @@ void CRegion::QuickSortRecursive( const int low, const int high )
 void CRegion::logicsort()
 {
 
+  HalfSegmentLogCompare lcmp;
+  region->Sort<HalfSegmentLogCompare>( lcmp );
 
-  if( Size() > 1 )
-  {
-    int low = 0, high = Size() - 1;
-    logicQuickSortRecursive( low, high );
-  }
+  ordered = true;
 }
 
 void CRegion::logicQuickSortRecursive( const int low, const int high )
@@ -4520,7 +4549,7 @@ const bool CRegion::insertOK(const CHalfSegment& chs)
     CHalfSegment auxchs;
     double dummyy0;
 
-    //return true;  //the check is closed temporarily to import data.
+    return true;  //the check is closed temporarily to import data.
     
     if (chs.IsDefined())
     {
@@ -4718,7 +4747,7 @@ The list representation of a region is
 static ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
-    //cout<<"OutRegion"<<endl;
+    cout<<"OutRegion#############"<<endl;
     CRegion* cr = (CRegion*)(value.addr);
     if( cr->IsEmpty() )
     {
@@ -4726,7 +4755,10 @@ OutRegion( ListExpr typeInfo, Word value )
     }
     else
     {
-	CRegion *RCopy=new CRegion(*cr, SecondoSystem::GetLobFile());
+	//CRegion *RCopy=new CRegion(*cr, SecondoSystem::GetLobFile());
+	//*******************************************************************************
+	CRegion *RCopy=new CRegion(*cr, SecondoSystem::GetLobFile(), 0, false);
+	
 	RCopy->logicsort();
 
 	CHalfSegment chs, chsnext;
@@ -4961,7 +4993,7 @@ OutRegion( ListExpr typeInfo, Word value )
 static Word
 InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  //cout<<"InRegion"<<endl;
+    cout<<"InRegion#############"<<endl;
   CRegion* cr = new CRegion(SecondoSystem::GetLobFile());
 
   cr->StartBulkLoad();
@@ -5016,8 +5048,10 @@ InRegion( const ListExpr typeInfo, const ListExpr instance, const int errorPos, 
 		  ListExpr flagedSeg, currPoint;
 		  CycleNL = nl->Rest( CycleNL );
 
-		  Points *cyclepoints= new Points(SecondoSystem::GetLobFile());
-
+		  //Points *cyclepoints= new Points(SecondoSystem::GetLobFile());
+		  //***************************************************************************
+		  Points *cyclepoints= new Points(SecondoSystem::GetLobFile(), 0, false);
+		  
 		  Point *currvertex;
 
 
