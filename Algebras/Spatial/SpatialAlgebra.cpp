@@ -11526,7 +11526,7 @@ commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 	((CLine *)result.addr)->Clear();
 	return (0);
     }
-    
+    ((CLine *)result.addr)->Clear();
     ((CLine *)result.addr)->StartBulkLoad();
     for (int i=0; i<cr1->Size(); i++)
     {
@@ -11580,6 +11580,7 @@ commonborder_Scan_rr( Word* args, Word& result, int message, Word& local, Suppli
 	return (0);
     }
     
+    ((CLine *)result.addr)->Clear();
     ((CLine *)result.addr)->StartBulkLoad();
 
     object obj;
