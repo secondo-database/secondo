@@ -428,20 +428,29 @@ If value 0 is returned, the command was executed without error.
             (list.fourth().atomType() == ListExpr.SYMBOL_ATOM) &&
              list.fourth().symbolValue().equals( "from" ) &&
              list.fifth().isAtom() &&
-            (list.fifth().atomType() == ListExpr.SYMBOL_ATOM) )
+            ((list.fifth().atomType() == ListExpr.SYMBOL_ATOM) |
+	      (list.fifth().atomType() == ListExpr.STRING_ATOM)|
+	      (list.fifth().atomType() == ListExpr.TEXT_ATOM)) )
         {
-          filename = list.fifth().symbolValue();
-          try {
-            outSocketStream.write( "<DbRestore>\n" +
-                                   list.third().symbolValue() + " " + filename +
+          ListExpr FNameList = list.fifth();
+	  int FNameType = FNameList.atomType();
+
+	  switch(FNameType){
+	     case ListExpr.SYMBOL_ATOM : filename= FNameList.symbolValue();break;
+	     case ListExpr.STRING_ATOM : filename= FNameList.stringValue();break;
+	     default : filename = FNameList.textValue();
+	  }
+	  try {
+	    outSocketStream.write( "<DbRestore>\n" +
+                                   list.third().symbolValue() + " " + "Javagui" +
                                    "\n</DbRestore>\n" );
             outSocketStream.flush();
             line = inSocketStream.readLine();
 	    if(line==null) throw new IOException();
             if ( line.compareTo( "<SendFile>" ) == 0 )
             {
-              filename = inSocketStream.readLine();
-	      if(filename==null) throw new IOException();
+              String filename2 = inSocketStream.readLine();
+	      if(filename2==null) throw new IOException();
               line = inSocketStream.readLine();  // Hope it is '</SendFile>'
               BufferedReader restoreFile = null;
               try {

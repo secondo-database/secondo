@@ -134,6 +134,7 @@ private String ObjectDirectory ="./"; // where search for Objects
 
 private JFileChooser FC_History = new JFileChooser();
 private JFileChooser FC_ExecuteFile = new JFileChooser();
+private JFileChooser FC_Database = new JFileChooser();
 private PriorityDialog PriorityDlg;
 
 
@@ -362,6 +363,7 @@ public MainWindow(String Title){
 
    String SecondoHomeDir = Config.getProperty("SECONDO_HOME_DIR");
    String HistoryDirectory="";
+   String DatabaseDirectory="";
 
    if(SecondoHomeDir==null){
      File F = new File("");
@@ -383,12 +385,18 @@ public MainWindow(String Title){
    if(SecondoHomeDir!=null){
       ObjectDirectory = SecondoHomeDir+FS+"Data"+FS+"Guidatas"+FS+"gui"+FS+"objects";
       HistoryDirectory = SecondoHomeDir+FS+"Data"+FS+"Guidatas"+FS+"gui"+FS+"histories";
+      DatabaseDirectory = SecondoHomeDir+FS+"Data"+FS+"Databases";
    }
 
 
    String TMPObjectDirectory= Config.getProperty("OBJECT_DIRECTORY");
    if(TMPObjectDirectory!=null){
       ObjectDirectory = TMPObjectDirectory.trim();
+   }
+   
+   String TMPDatabaseDirectory= Config.getProperty("OBJECT_DIRECTORY");
+   if(TMPDatabaseDirectory!=null){
+      DatabaseDirectory = TMPObjectDirectory.trim();
    }
 
    String TMPHistoryDirectory= Config.getProperty("HISTORY_DIRECTORY");
@@ -397,10 +405,12 @@ public MainWindow(String Title){
 
 
    System.out.println("set objectdirectory to "+ObjectDirectory);
-   System.out.println("set historydirectory to "+ObjectDirectory);
+   System.out.println("set historydirectory to "+HistoryDirectory);
+   System.out.println("set databasedirectory to "+DatabaseDirectory);
 
    OList.setObjectDirectory(new File(ObjectDirectory));
    FC_History.setCurrentDirectory(new File(HistoryDirectory));
+   FC_Database.setCurrentDirectory(new File(DatabaseDirectory));
 
 
    StartScript = Config.getProperty("STARTSCRIPT");
@@ -1726,10 +1736,18 @@ public boolean updateDatabases(){
     MI_RestoreDatabases[index] = new JMenuItem(Name);
     MI_RestoreDatabases[index].addActionListener(new ActionListener(){
                            public void actionPerformed(ActionEvent evt){
-			      ComPanel.showPrompt();
-			      String cmd = "restore database "+((JMenuItem)evt.getSource()).getText() +
-			                   " from <filename>";
-			      MainWindow.this.ComPanel.appendText(cmd);
+			      String cmd_part1 = "restore database "+((JMenuItem)evt.getSource()).getText() + " from ";
+			      FC_Database.setDialogTitle(cmd_part1);
+			      if(FC_Database.showOpenDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
+			         String FName = FC_Database.getSelectedFile().getAbsolutePath();
+				 String cmd = FName.length()<48 ? cmd_part1 +"\""+FName+"\"" 
+				                                : cmd_part1+ "<text>"+FName+"</text--->";
+				 if(MainWindow.this.ComPanel.execUserCommand(cmd))
+				    MessageBox.showMessage("restoring database successful");
+				 else
+                                    MessageBox.showMessage("restoring database failed");
+			         MainWindow.this.ComPanel.showPrompt();
+			      }
 			   }});
 
     MI_DeleteDatabases[index] = new JMenuItem(Name);
