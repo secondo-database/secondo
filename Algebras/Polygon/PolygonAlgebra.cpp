@@ -7,6 +7,7 @@ static QueryProcessor* qp;
 
 #include "Tuple.h"
 #include "Attribute.h"
+#include "FLOB.h"
 
 struct Point { int x; int y; };
 
