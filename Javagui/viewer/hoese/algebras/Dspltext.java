@@ -101,12 +101,11 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
          } else{  // long plain text
                Entry = T+" : "+ Text.substring(0,MAX_DIRECT_DISPLAY_LENGTH-4)+" ...";
          }
-        }else if(Type==HTML_TYPE){
+     }else if(Type==HTML_TYPE){
            Entry = T + " : <html> ...";
-        } else if(Type==RTF_TYPE){
-           Entry =  T + " : RTF ...";
-        }
-        qr.addEntry(this);
+     } else if(Type==RTF_TYPE){
+         Entry =  T + " : RTF ...";
+     }
 
      qr.addEntry(this);
      return;
@@ -128,29 +127,42 @@ public boolean isExternDisplayed(){
   * depending on some keywords 
   **/
 private void computeType(String Text){
-  if(Text.startsWith("{\rtf")){
-     Type = RTF_TYPE;
-     return;
-  }
-  else{
-     // search for <html at the begin of the document ignoring cases
+     // search for <html or { *\rtf at the begin of the document ignoring cases
      for(int i=0;i<Text.length()-5;i++){ 
          char c = Text.charAt(i);
-         if(Text.charAt(i)=='<'){
+         if(c=='<'){
              String T = Text.substring(i,i+5).toLowerCase();
              if(T.equals("<html"))
                  Type = HTML_TYPE;
              else
                  Type = PLAIN_TYPE;
              return; 
-         } else{
+         } else if(c=='{'){ // possible rtf format
+           // search for the next non-whitespace
+           for(int j=i+1;j<Text.length()-4;j++){
+
+                c = Text.charAt(j);
+                if(!isWhiteSpace(c)){
+                   String test = Text.substring(j,j+4);
+                   if("\\rtf".equals(test))
+                       Type = RTF_TYPE;
+                    else
+                       Type = PLAIN_TYPE;
+                    return;
+                }
+           }
+           Type = PLAIN_TYPE; // no \rtf found
+           return;
+         } 
+         else{
              if(!isWhiteSpace(c)){ // not an html document
                 Type = PLAIN_TYPE;
                 return;
              }
          }
      }  
-  }  
+   // only whitespaces in text
+   Type = PLAIN_TYPE; 
 }
 
 
