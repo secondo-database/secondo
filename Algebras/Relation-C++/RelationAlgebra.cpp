@@ -1430,7 +1430,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
       if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
         return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
     }
-  } 
+  }
   return nl->SymbolAtom("typeerror");
 }
 /*
@@ -2876,7 +2876,7 @@ in ascending (asc) or descending (desc) order with regard to that attribute.
 Type mapping for ~sortBy~ is
 
 ----	((stream (tuple ((x1 t1)...(xn tn))) ((xi1 asc/desc) ... (xij asc/desc))) 	-> (stream (tuple ((x1 t1)...(xn tn)))
-							APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc) ti)
+							APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc)
 ----
 
 */
@@ -3265,7 +3265,7 @@ SetOpTypeMap( ListExpr args )
 
 /*
 
-7.3.2 Auxiliary Classs for Set Operations
+7.3.2 Auxiliary Class for Set Operations
 
 */
 
@@ -3507,7 +3507,7 @@ const string MergeDiffSpec =
   "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text---><text>Computes the difference of two sorted streams.</text--->)";
 /*
 
-4.1.3 Definition of Operator ~mergesec~
+4.1.3 Definition of Operator ~mergediff~
 
 */
 Operator cppmergediff(
@@ -3552,14 +3552,14 @@ Type mapping for ~mergejoin~ is
 
 ----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj)
 
-      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym tm)))) APPEND (i j)
+      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)))) APPEND (i j)
 ----
 
 Type mapping for ~hashjoin~ is
 
 ----	((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj int)
 
-      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym tm)))) APPEND (i j)
+      -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)))) APPEND (i j)
 ----
 
 
@@ -4297,7 +4297,7 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 	return YIELD;
       }
       else return CANCEL;
-      
+
     case CLOSE :
 
       qp->Close(args[0].addr);
@@ -4706,7 +4706,7 @@ int GroupByValueMapping
 
 */
 const string GroupBySpec =
-  "(<text>((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjm)))</text---><text>Groups a relation according to attributes ai1, ..., aik and feeds the groups to other functions. The results of those functions are appended to the grouping attributes.</text--->)";
+  "(<text>((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjl)))</text---><text>Groups a relation according to attributes ai1, ..., aik and feeds the groups to other functions. The results of those functions are appended to the grouping attributes.</text--->";
 
 /*
 
