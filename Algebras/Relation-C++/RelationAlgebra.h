@@ -26,6 +26,9 @@ extern QueryProcessor* qp;
 extern int ccTuplesCreated;
 extern int ccTuplesDeleted;
 
+extern TypeConstructor cpptuple;
+extern TypeConstructor cpprel;
+
 enum RelationType { rel, tuple, stream, ccmap, ccbool, error };
 
 const int MaxSizeOfAttr = 10;

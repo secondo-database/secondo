@@ -992,6 +992,36 @@ Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
   correct = true;
   return (SetWord( Address( 0 ) ));
 }
+/*
+
+5 Defnition of type constructor ~tuple~
+
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
+name and the eleven functions previously defined.
+
+*/
+TypeConstructor cpptuple( "tuple",           TupleProp,
+                          OutTuple,          InTuple,     CreateTuple,
+                          DeleteTuple,       CastTuple,   CheckTuple,
+			  0,                 0,
+			  TupleInModel,      TupleOutModel,
+			  TupleValueToModel, TupleValueListToModel );
+/*
+
+5 Definition of type constructor ~rel~
+
+Eventually a type constructor is created by defining an instance of
+class ~TypeConstructor~. Constructor's arguments are the type constructor's
+name and the eleven functions previously defined.
+
+*/
+TypeConstructor cpprel( "rel",           RelProp,
+                        OutRel,          InRel,   CreateRel,
+                        DeleteRel,       CastRel,   CheckRel,
+			RelPersistValue, 0,
+			RelInModel,      RelOutModel,
+			RelValueToModel, RelValueListToModel );
 
 #endif
 
