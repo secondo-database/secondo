@@ -253,7 +253,7 @@ RangeIntProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("int -> RANGE"),
+            nl->FiveElemList(nl->StringAtom("-> RANGE"),
                              nl->StringAtom("(rangeint) "),
                              nl->StringAtom("( (b1 e1 lci rci) ... "
                              "(bn en lci rci) )"),
@@ -331,7 +331,7 @@ RangeRealProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("real -> RANGE"),
+            nl->FiveElemList(nl->StringAtom("-> RANGE"),
                              nl->StringAtom("(rangereal) "),
                              nl->StringAtom("( (b1 e1 lci rci) ... "
                              "(bn en lci rci) )"),
@@ -411,7 +411,7 @@ PeriodsProperty()
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List"),
                              nl->StringAtom("Remarks")),
-            nl->FiveElemList(nl->StringAtom("instant -> RANGE"),
+            nl->FiveElemList(nl->StringAtom("-> RANGE"),
                              nl->StringAtom("(periods) "),
                              nl->StringAtom("( (b1 e1 lci rci) ... "
                              "(bn en lci rci) )"),
@@ -483,7 +483,7 @@ IntimeIntProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("int -> TEMPORAL"),
+            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
                              nl->StringAtom("(intimeint) "),
                              nl->StringAtom("( (inst val) "),
                              nl->StringAtom("( ((instant 0.5) 1 )"))));
@@ -551,7 +551,7 @@ IntimeRealProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("real -> TEMPORAL"),
+            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
                              nl->StringAtom("(intimereal) "),
                              nl->StringAtom("( (inst val) "),
                              nl->StringAtom("( ((instant 0.5) 1.0 )"))));
@@ -619,7 +619,7 @@ IntimePointProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("point -> TEMPORAL"),
+            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
                              nl->StringAtom("(intimepoint) "),
                              nl->StringAtom("(instant point) "),
                              nl->StringAtom("( 0.5 (1.0 2.0) )"))));
@@ -687,7 +687,7 @@ ConstIntProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("int -> UNIT"),
+            nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(constint) "),
                              nl->StringAtom("(timeInterval int) "),
                              nl->StringAtom("( (6.37 9.9 FALSE FALSE) 1 )"))));
@@ -757,7 +757,7 @@ UrealProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom(" real -> UNIT"),
+            nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(ureal) "),
                              nl->StringAtom("( timeInterval (real1 real2 real3 bool)) "),
                              nl->StringAtom("( (6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 TRUE) )"))));
@@ -825,7 +825,7 @@ UPointProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom(" point -> UNIT"),
+            nl->FourElemList(nl->StringAtom("-> UNIT"),
                              nl->StringAtom("(upoint) "),
                              nl->StringAtom("( timeInterval (real1 real2 real3 real4) ) "),
                              nl->StringAtom("( (6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 2.1) )"))));
@@ -893,7 +893,7 @@ MPointProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom(" upoint -> MAPPING"),
+            nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mpoint) "),
                              nl->StringAtom("( upoint1 upoint2 ... upointn) "),
                              nl->StringAtom("( ((6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 2.1)) ...)"))));
@@ -959,7 +959,7 @@ MIntProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("constint -> MAPPING"),
+            nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mint) "),
                              nl->StringAtom("( constTempUnitInt1 constTempUnitInt2 ... constTempUnitIntn) "),
                              nl->StringAtom("( ( (6.37 9.9 FALSE FALSE) 1)  ((9.9 19.9 FALSE FALSE) 2)...)"))));
@@ -1027,7 +1027,7 @@ MRealProperty()
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom(" ureal -> MAPPING"),
+            nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mreal) "),
                              nl->StringAtom("( ureal1 ureal2 ... urealn) "),
                              nl->StringAtom("( ((6.37 9.9 FALSE FALSE) (1.0 2.2 2.5 FALSE)) ...)"))));
