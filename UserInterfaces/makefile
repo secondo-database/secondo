@@ -6,40 +6,31 @@
 
 include ../makefile.env
 
-APPLOBJECTS=\
+APPLOBJECTS := \
 	SecondoTTY.o \
-	DisplayTTY.o \
-	TestRunner.o
-	
-# this list is used for cleaning applications.
-# Add new applications here which have not a
-# cleaning rule of their own.
-ALLAPPLICATIONS := \
-	$(BINDIR)/SecondoTTYORA\
-	$(BINDIR)/SecondoTTYBDB\
-	$(BINDIR)/TestRunner\
-	
-	
-ALLAPPLICATIONS := $(addsuffix $(EXEEXT), $(ALLAPPLICATIONS))
+	DisplayTTY.o
+
 
 ifeq ($(smitype),ora)
-APPLICATION = $(BINDIR)/SecondoTTYORA$(EXEEXT)
+APPLICATIONS = $(BINDIR)/SecondoTTYORA
 else
-APPLICATION = $(BINDIR)/SecondoTTYBDB$(EXEEXT)
+APPLICATIONS = $(BINDIR)/SecondoTTYBDB $(BINDIR)/TestRunner
+APPLOBJECTS += TestRunner.o
 endif
+
+ifeq ($(optimizer),"true")
+APPLICATIONS += $(OPTDIR)/SecondoPL
+APPLOBJECTS += SecondoPL.o
+endif
+
+APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 
 
 .PHONY: all
 all: $(APPLOBJECTS)
 
 .PHONY: buildapp
-buildapp: $(APPLICATION) testrunner
-
-.PHONY: testrunner
-testrunner: $(BINDIR)/TestRunner$(EXEEXT)
-
-.PHONY: secondopl
-secondopl: $(OPTDIR)/SecondoPL$(EXEEXT)
+buildapp: $(APPLICATIONS)
 
 .PHONY: client
 client: $(BINDIR)/SecondoTTYCS$(EXEEXT)
@@ -81,12 +72,4 @@ include ../include.dep
 
 .PHONY: clean
 clean:
-	$(RM) $(APPLOBJECTS) $(ALLAPPLICATIONS)
-
-.PHONY: clean_client
-clean_client:
-	$(RM) $(BINDIR)/SecondoTTYCS$(EXEEXT)
-
-.PHONY: clean_secondopl
-clean_secondopl:
-	$(RM) $(OPTDIR)/SecondoPL$(EXEEXT) SecondoPL.o
+	$(RM) $(APPLOBJECTS) $(APPLICATIONS)

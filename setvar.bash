@@ -61,7 +61,8 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
 
 else 
 
-   # windows use \ as separator	
+   # windows 
+   # for the next variable use \ as separator	
    export SWI_HOME_DIR="C:\Programme\pl"
 fi
 
@@ -75,6 +76,5 @@ if [ $SECONDO_PLATFORM != "win32" ]; then
    export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin"
    export LD_LIBRARY_PATH="$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR" 
 else
-   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin:$SECONDO_BUILD_DIR/lib:$SWI_HOME_DIR/bin"
-#export LD_LIBRARY_PATH="$COPY_OF_LD_PATH:$SECONDO_BUILD_DIR/lib:$BERKELEY_DB_DIR/lib:$PL_LIBRARY_DIR"
+   export PATH="$COPY_OF_PATH:$SECONDO_BUILD_DIR/bin:$SECONDO_BUILD_DIR/lib:$SWI_HOME_DIR\\bin"
 fi
