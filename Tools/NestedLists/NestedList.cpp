@@ -1297,7 +1297,6 @@ static const byte BIN_SHORTTEXT = 19;
 
 byte
 NestedList::GetBinaryType(ListExpr list) {
-
   switch( AtomType(list) ) {
 
   case BoolType     : return  BIN_BOOLEAN;
@@ -1633,7 +1632,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in) {
       default      : { 
 	                cerr << "Error: Unknown binary list type ID: " << (unsigned int) typeId 
                              << " at position " << pos << endl;
-                        cerr << "Last read string: " << str << endl;
+                        //cerr << "Last read string: " << str << endl;
 	                return false;
 		     }
   }
@@ -2282,60 +2281,32 @@ NestedList::GetText ( TextScan       textScan,
                       const Cardinal noChars,
                       string&        textBuffer )
 {
+  unsigned int pos=0; // position in text
   TextRecord fragment;
   (*textTable).Get(textScan->currentFragment, fragment);
-  Cardinal fragmentLength, fragmentRestLength;
-
-  if ( fragment.next == 0 )
-  {
-    fragmentLength = UsedBytesOfTextFragment(fragment);
+  Cardinal fragmentRestLength;
+  unsigned int BytesToCopy;
+  while(fragment.next && pos<noChars){
+      fragmentRestLength = TextFragmentSize-textScan->currentPosition;
+      BytesToCopy = min(noChars-pos,fragmentRestLength);
+      textBuffer.append(&fragment.field[textScan->currentPosition],BytesToCopy);
+      pos += BytesToCopy;
+      if(pos<noChars){ // get the next Fragment
+         textScan->currentFragment = fragment.next;
+         textScan->currentPosition = 0;
+         (*textTable).Get(textScan->currentFragment,fragment);
+      }else{
+        textScan->currentPosition += BytesToCopy;
+      }
   }
-  else
-  {
-    fragmentLength = TextFragmentSize;
+  if(pos<noChars){ // copy the content of the last fragment into the buffer
+     fragmentRestLength = UsedBytesOfTextFragment(fragment) -
+                             textScan->currentPosition;
+     BytesToCopy = min(noChars-pos,fragmentRestLength);
+     textBuffer.append(&fragment.field[textScan->currentPosition],BytesToCopy);
+     textScan->currentPosition += BytesToCopy;
   }
-  fragmentRestLength = fragmentLength - textScan->currentPosition;
-
-  if ( noChars <= fragmentRestLength )
-  {
-    /* Enough text in the current fragment */
-    textBuffer.append( &fragment.field[textScan->currentPosition], noChars );
-    (*textTable).Put(textScan->currentFragment, fragment);
-
-    /* Increase values of Scan and Pos */
-    textScan->currentPosition += noChars;
-
-    /* Treat a special case: */
-    if ( textScan->currentPosition >= TextFragmentSize )
-    {
-      textScan->currentFragment = fragment.next;
-      textScan->currentPosition = 0;
-    }
-  }
-  else
-  {
-    // Not enough text in the current fragment
-    // Return as much text of the current fragment as possible
-    textBuffer.append( &fragment.field[textScan->currentPosition], fragmentRestLength );
-    (*textTable).Put(textScan->currentFragment, fragment);
-
-    /* Increase values of Scan and Pos */
-    textScan->currentPosition += fragmentRestLength;
-
-    if ( textScan->currentPosition >= TextFragmentSize )
-    {
-      textScan->currentFragment = fragment.next;
-      textScan->currentPosition = 0;
-    }
-
-    /* Get more text if there are more fragments */
-    if ( fragment.next != 0 )
-    {
-      /* Recursive call (with scan pointing to next fragment) */
-      GetText( textScan, noChars - fragmentRestLength, textBuffer );
-    }
-  }
-}
+}  
 
 /*
 9.6.3 TextLength 
