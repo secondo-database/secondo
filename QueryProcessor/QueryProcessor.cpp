@@ -1743,7 +1743,8 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
 	if ( traceMode ) {
 		cout << "Type mapping for operator " << operatorSymbolStr << ":" << endl;
 	}								
-	string typeErrorMsg = "";
+	string typeErrorMsg = "Possible type mapping errors for operator " 
+                        + operatorSymbolStr + ":\n";
 	do // Overloading: test operator candidates 
 	{
 		alId = nl->IntValue( nl->First( nl->First( opList ) ) );
@@ -1773,7 +1774,10 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
 		if ( !ErrorReporter::TypeMapError ) {
 			string msg = "";
 			ErrorReporter::GetErrorMessage(msg); // remove errors produced by testing operators
-			typeErrorMsg += "\n-- " + algName + ": " + msg;
+      if ( msg == "" ) {
+        msg = "<No error message specified>";
+      }
+			typeErrorMsg += "\n-- " + algName + ": " + msg + "\n";
 		}
 
 		opList = nl->Rest( opList );
@@ -1794,7 +1798,7 @@ QueryProcessor::TestOverloadedOperators( const string& operatorSymbolStr,
 				&& nl->SymbolValue( resultType ) == "typeerror" ) 
 	{
 		ErrorReporter::TypeMapError = true; 
-		ErrorReporter::ReportError("Possible type mapping Errors:\n" + typeErrorMsg);	
+		ErrorReporter::ReportError(typeErrorMsg);	
 	}
 	
 	/*   use the operator's selection function to get the index 
