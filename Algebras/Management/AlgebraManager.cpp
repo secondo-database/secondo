@@ -388,15 +388,15 @@ AlgebraManager::CheckKind( const string& kindName,
                            const ListExpr type,
                            ListExpr& errorInfo )
 {
-  ListExpr typeErrors = nl->OneElemList( nl->TheEmptyList() );
+  ListExpr tempErrorInfo = errorInfo;
   multimap<string,TypeCheckFunction>::iterator pos;
   for ( pos  = kindTable.lower_bound( kindName );
         pos != kindTable.upper_bound( kindName );
         pos++ )
   {
-    if ( (pos->second)( type, typeErrors ) )
+    if ( (pos->second)( type, errorInfo ) )
     {
-      errorInfo = nl->TheEmptyList();
+      errorInfo = tempErrorInfo;
       return (true);
     }
   }

@@ -152,7 +152,7 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
   
   if ( dir == ReadFrom )
   {
-    ListExpr errorInfo = 0;     
+    ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
     bool correct;
     valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
     char* buffer = new char[valueLength];

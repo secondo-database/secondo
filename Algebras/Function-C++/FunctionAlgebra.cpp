@@ -52,7 +52,6 @@ DummyValueListToModel( const ListExpr typeExpr, const ListExpr valueList,
                        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   correct = true;
-  errorInfo = 0;
   return (SetWord( Address( 0 ) ));
 }
 

@@ -4,6 +4,8 @@
 
 April 2002 Ulrich Telle
 
+September 2002 Ulrich Telle, mssing fileId in Open method fixed
+
 */
 
 using namespace std;
@@ -312,6 +314,7 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
       *point = '\0';
       fileContext = entry.fileName;
       fileName = ++point;
+      this->fileId = fileId;
     }
     else
     {

@@ -413,7 +413,6 @@ IntListToIntSetModel( const ListExpr typeExpr, const ListExpr valueList,
   IntSetModel* model = new IntSetModel;
   model->constOrSet = Const;
   model->value = nl->IntValue( valueList );
-  errorInfo = nl->TheEmptyList();
   correct = true;
   return (SetWord( model ));
 }
@@ -686,7 +685,6 @@ BoolListToBoolSetModel( const ListExpr typeExpr, const ListExpr valueList,
 {
   BoolSetModel* result = new BoolSetModel;
   *result = (nl->BoolValue( valueList )) ? 1.0 : 0.0;
-  errorInfo = nl->TheEmptyList();
   correct = true;
   return (SetWord( result ));
 }
