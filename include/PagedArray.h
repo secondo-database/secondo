@@ -259,11 +259,10 @@ private:
   int RoundRobin() {
 
     static int nextBuf=0;
-    if ( nextBuf == MAX_BUFFERS-1 ) {
+    nextBuf++;
+    if ( nextBuf >= MAX_BUFFERS ) {
        nextBuf=0;
-    } else {
-       nextBuf++;
-    }
+    } 
     return nextBuf;
   }
 
