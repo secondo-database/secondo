@@ -14,9 +14,6 @@ DEFAULTLIB = -lpthread -lm -ldl -lstdc++
 # and there is a dependency to the pthread library which doesn't appear on older
 # Linux Systems. Maybe the reason is the change from Linux Kernel 2.4 to 2.6. 
 
-# Berkeley DB library
-BDBLIB = -ldb_cxx -ldb
-
 # macros for some frequently used commands
 CC := gcc
 LD := gcc

@@ -83,7 +83,18 @@ fi
 
 ## Path declarations for the GCC
 
-export BERKELEY_DB_DIR="$SECONDO_SDK"
+## Berkeley DB
+BERKELEY_DB_LIB=db_cxx
+if [ -d "$SECONDO_SDK/bdb4252" ]; then
+  export BERKELEY_DB_DIR="$SECONDO_SDK/bdb4252"
+else
+  export BERKELEY_DB_DIR="$SECONDO_SDK"
+  if [ $SECONDO_PLATFORM == "win32" ]; then
+     BERKELEY_DB_LIB=db32
+  fi
+fi
+export BERKELEY_DB_LIB
+
 export BISON_SIMPLE="$SECONDO_SDK/share/bison/bison.simple"
 export PATH=".:$J2SDK_ROOT/bin:$SECONDO_SDK/bin:$COPY_OF_PATH"
 export CPLUS_INCLUDE_PATH="$SECONDO_SDK/include"
