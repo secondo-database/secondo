@@ -144,7 +144,7 @@ bool FLOB::SaveToLob() {
     	lob = newLob;
     	free(start);
     	start = 0;
-    	size = 0;
+    	size = lob.Size();
     	return true;
   	}  
   	else {
