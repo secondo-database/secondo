@@ -22,6 +22,9 @@ November 7, 2002 RHG Extended the definition of ~function~ and of ~valueexpr~ to
 function definitions and function calls with 0 parameters; these are translated to functions
 with an integer parameter and which are called with 0.
 
+November 22, 2002 RHG Discovered that the query processor can handle functions with 0
+parameters; hence translated definitions and function calls directly to use 0 parameters.
+
 */
 
 %%
@@ -168,7 +171,7 @@ function	: FUN '(' args ')' valueexpr
   					    NestedText::Concat($5, NestedText::AtomC(")") ))));}
 		| FUN '(' ')' valueexpr
 				{$$ =   NestedText::Concat(
-					  NestedText::AtomC("(fun (n int) "),
+					  NestedText::AtomC("(fun "),
   					  NestedText::Concat($4, NestedText::AtomC(")")) );}
 		;
 
@@ -257,7 +260,7 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 		| IDENTIFIER '(' ')'
 			{$$ = NestedText::Concat(
 				NestedText::AtomC("("),
-				NestedText::Concat($1, NestedText::AtomC(" 0)")) );}
+				NestedText::Concat($1, NestedText::AtomC(")")) );}
 		| attribute				{$$ = $1;}
 		| attribute2				{$$ = $1;}
 		| '(' valueexpr ')'			{$$ = $2;}
