@@ -174,7 +174,8 @@ display(Type, Value) :-
   nl,
   write('Generic display used. '),
   nl,
-  write(Value).
+  pretty_print(Value),
+  nl.
 
 
 displayString([]).
