@@ -110,7 +110,7 @@ Application::Application( int argc, const char** argv )
 #ifndef SECONDO_WIN32
   // --- Trap all signals that would terminate the program by default anyway.
   signal( SIGHUP,    Application::AbortOnSignalHandler );
-  signal( SIGINT,    Application::AbortOnSignalHandler );
+  /*signal( SIGINT,    Application::AbortOnSignalHandler );*/
   signal( SIGQUIT,   Application::AbortOnSignalHandler );
   signal( SIGILL,    Application::AbortOnSignalHandler );
   signal( SIGABRT,   Application::AbortOnSignalHandler );
