@@ -4,7 +4,7 @@
 
 include ../makefile.inc
 
-CLASSFILES=xxx2secondo.class xxx2secdb.class MovingPointBuilder.class Base64Encoder.class Base64Decoder.class Base64.class DupRemover.class PeriodicPointBuilder.class PeriodExtractor.class
+CLASSFILES=xxx2secondo.class xxx2secdb.class MovingPointBuilder.class Base64Encoder.class Base64Decoder.class Base64.class DupRemover.class PeriodicPointBuilder.class
 
 
 .PHONY: all 
