@@ -4231,6 +4231,9 @@ bool CRegion::contain( const Point& p ) const
     }
 
     CHalfSegment chs;
+
+    //cout<<"============================================"<<endl;
+    //cout<<"number of chs in the region: "<<this->Size()<<endl;
     
     //cout<<"!!!the region value is!!!: "<<endl;
     //for (int i=0; i<this->Size(); i++)
@@ -4270,6 +4273,8 @@ bool CRegion::contain( const Point& p ) const
     
     //1. find the right place by binary search
     startpos = Position( p );  
+    //int chsVisited2 = int(((log (this->Size())) / (log (2))) + 0.5);
+    int chsVisiteds=0;
     
     if ( startpos == -1 ) 	//p is smallest
 	return false;
@@ -4285,6 +4290,7 @@ bool CRegion::contain( const Point& p ) const
     while ((continuemv) && (i>=0))
     {
 	region->Get( i, chs );
+	chsVisiteds++;
 	
 	if (chs.GetDPoint().GetX() == p.GetX())
 	{
@@ -4300,6 +4306,7 @@ bool CRegion::contain( const Point& p ) const
 			lastfaceno=chs.attr.faceno;
 		}
 	    }
+
 	i--;
 	}
 	else continuemv=false;
@@ -4319,6 +4326,8 @@ bool CRegion::contain( const Point& p ) const
     while (( i>=0)&&(touchedNo<coverno))
     {
 	this->Get(i, chs);
+	chsVisiteds++;
+		
 	if  (chs.Contains(p))  return true;
 	
 	if ((chs.GetLDP())&&((chs.GetLP().GetX() <= p.GetX())&&(p.GetX() <= chs.GetRP().GetX()) ))
@@ -4339,7 +4348,7 @@ bool CRegion::contain( const Point& p ) const
 	
 	i--;  //the iterator
     }
-    //cout<<"stop at: "<<chs<<endl;
+    //cout<<"number of chs actually checked: "<<chsVisited2<<" + "<<chsVisiteds<<endl;
     // ================= End of the new method =================
     
     for (int j=0; j<=lastfaceno; j++)
@@ -4893,7 +4902,7 @@ int  CRegion::Sizeof()
 
 CRegion*  CRegion::Clone()
 {
-    //cout<<"region clone1****!"<<endl;
+    //cout<<"CRegion Clone****"<<endl;
     //return (new CRegion(SecondoSystem::GetLobFile(),  *this));
     CRegion* newr=new CRegion(SecondoSystem::GetLobFile(),  *this);
     //cout<<*this<<endl<<" .vs. "<<endl<<*newr<<endl;
@@ -5705,7 +5714,7 @@ CloseRegion( Word& w )
 static Word
 CloneRegion( const Word& w )
 {
-//  cout << "CloneRegion" << endl;
+  //cout << "CloneRegion" << endl;
 
   CRegion *cr = new CRegion( SecondoSystem::GetLobFile(), *((CRegion *)w.addr) );
   return SetWord( cr );
@@ -7418,6 +7427,24 @@ nocomponentsSelect( ListExpr args )
   
   if (TypeOfSymbol( arg1 ) == stregion)
       return (2);   
+  
+  return (-1); // This point should never be reached
+}
+
+/*
+10.3.16 Selection function ~nohalfsegSelect~
+
+This select function is used for the ~nocomponents~ operator.
+
+*/
+
+static int
+nohalfsegSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if (TypeOfSymbol( arg1 ) == stregion)
+      return (0);   
   
   return (-1); // This point should never be reached
 }
@@ -11027,6 +11054,21 @@ nocomponents_r( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+10.4.22 Value mapping functions of operator ~nohalfseg~
+
+*/
+static int
+nohalfseg_r( Word* args, Word& result, int message, Word& local, Supplier s )
+{ 
+    result = qp->ResultStorage( s );
+
+    CRegion *cr=((CRegion*)args[0].addr);
+     
+    ((CcInt *)result.addr)->Set( true, (int) (cr->Size()));
+    return (0);
+}
+
+/*
 10.4.23 Value mapping functions of operator ~size~
 
 */
@@ -11370,6 +11412,9 @@ ValueMapping nocomponentsmap[] =   { nocomponents_ps,
 				       nocomponents_r,
 				      };
 
+ValueMapping nohalfsegmap[] =      {     nohalfseg_r
+				};
+
 ValueMapping sizemap[] = 	      { size_l
 				      };
 
@@ -11581,6 +11626,14 @@ const string SpatialSpecNocomponents  =
 	"<text>query nocomponents(region)</text--->"
 	") )";
 
+const string SpatialSpecNohalfseg  =
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(region) -> int</text--->"
+	"<text> nohalfseg( _ )</text--->"
+	"<text>return the number of half segments of a region.</text--->"
+	"<text>query nohalfseg(region)</text--->"
+	") )";
+
 const string SpatialSpecSize  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 	"( <text>(line) -> real</text--->"
@@ -11696,6 +11749,10 @@ Operator spatialnocomponents
 	( "nocomponents", SpatialSpecNocomponents, 3, nocomponentsmap, spatialnomodelmap,
 	  nocomponentsSelect, nocomponentsMap );
 
+Operator spatialnohalfseg
+	( "nohalfseg", SpatialSpecNohalfseg, 1, nohalfsegmap, spatialnomodelmap,
+	  nohalfsegSelect,  nocomponentsMap);
+
 Operator spatialsize
 	( "size", SpatialSpecSize, 1, sizemap, spatialnomodelmap,
 	  sizeSelect, sizeMap );
@@ -11753,6 +11810,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialdistance );
     AddOperator( &spatialdirection );
     AddOperator( &spatialnocomponents );
+    AddOperator( &spatialnohalfseg );
     AddOperator( &spatialsize );
   }
   ~SpatialAlgebra() {};
