@@ -152,33 +152,13 @@ file		"<file>".*"</file--->"
                  string fileNameStr(yytext);
                  fileNameStr = fileNameStr.substr(6,yyleng-16);
                  ifstream inFile(fileNameStr.c_str(), ios::binary);
-                 /*   Read  3/4 of the length of a base64 line (max 72 bytes) into a buffer,
-                  *   since base64 uses 4/3 of the binary size.
-                  */
-                 const int inLength = 54;
-                 char buf[inLength+1];
-                 buf[inLength] = 0;
-                 int readFaults = 0;
 
-                 string textFragment="";
                  Base64* encoder = new Base64();
-                 do {
-                    inFile.read(buf, inLength);
-                    int noBytes = inFile.gcount();
-                    if (noBytes != inLength) {
-                     readFaults++;
-                    }
-                    assert( readFaults <= 1 );
-                    encoder->encode(buf, textFragment, noBytes);
-		    nl->AppendText(newText,textFragment);
-		 } while (inFile.good());
-                 delete encoder;
-
-                 if (!inFile.eof()) {
-                    cerr << "Problems reading file " << fileNameStr << endl;
-                    exit(1);
-                 }
-
+                 
+                 stringstream textStream;
+                 encoder->encodeStream(inFile, textStream);
+                 nl->AppendText(newText,textStream.str());
+                 
                  /* pass text node and token to the parser */
                  yylval = newText;
                  return (ZZTEXT);

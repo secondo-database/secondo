@@ -3,6 +3,7 @@
 #include <string>
 #include <Base64.h>
 #include <iostream>
+#include <sstream>
 
 char 
 Base64::base64Alphabet[] = {'A','B','C','D','E','F','G','H','I','J','K',
@@ -71,7 +72,7 @@ Base64::getNext(char& byte, istream& in) {
       while( !in.eof() && !isAllowed(ch) ) { // override not allowed bytes
 	in.get(ch);
       }
-      if( in.eof() && (i<4) ) { // not a full quadrupel found
+      if( in.eof() && (i>0) ) { // not a full quadrupel found
 	  cerr << "Base64::decode - unexpected end of input!" << endl;
 	  exit(1);
       }
@@ -113,7 +114,7 @@ Base64::getNext(char& byte, istream& in) {
 }
 
 void
-Base64::decode(istream& in, ostream& out) {
+Base64::decodeStream(istream& in, ostream& out) {
        
   char ch = 0;
   while ( getNext(ch, in) ) {
@@ -133,10 +134,8 @@ Base64::decode(istream& in, ostream& out) {
 }
 
 
-
-
 void
-Base64::encode(char* buffer, string& text, int length) {
+Base64::encode2(char* buffer, string& text, int length) {
 
   assert (length <= 54 ); // 54 * 4/3 = 72, a linebreak is only inserted after 72 bytes
 
@@ -180,7 +179,7 @@ Base64::encode(char* buffer, string& text, int length) {
 }
 
 void
-Base64::encodeStreams(istream& in, ostream& out) {
+Base64::encodeStream(istream& in, ostream& out) {
 
   string textFragment="";
   const int inLength = 54; 
@@ -196,10 +195,41 @@ Base64::encodeStreams(istream& in, ostream& out) {
        readFaults++;
     }
     assert( readFaults <= 1 );
-    encode(buf, textFragment, noBytes);
+    encode2(&(buf[0]), textFragment, noBytes);
     
     out << textFragment;
 
  } while (in.good());
 
+
 }
+
+void
+Base64::encode(char* bytes, int size, string& base64) {
+
+  stringstream byteStream;
+  stringstream base64Stream;
+  
+  byteStream.write(bytes, size);
+  encodeStream(byteStream, base64Stream);
+  base64=base64Stream.str();
+
+}
+
+
+int
+Base64::decode(string& text, char* bytes) {
+
+  stringstream base64Stream;
+  stringstream byteStream;
+  
+  base64Stream << text;
+  decodeStream(base64Stream, byteStream);  
+  
+  string byteStr = byteStream.str();
+  int length=byteStr.length();
+  strncpy(bytes, byteStream.str().c_str(), length);
+
+  return length;
+}
+
