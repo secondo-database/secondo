@@ -18,7 +18,7 @@ PACKAGES = fuzzyobjects fuzzyobjects.basic fuzzyobjects.simple fuzzyobjects.comp
 
 FUZZYOBJECT_PATH = $(SECONDO_BUILD_DIR)/Algebras/Fuzzy
 
-JAVAINTERFACE_PATH = $(SECONDO_BUILD_DIR)/Javainterface
+JAVAINTERFACE_PATH = $(SECONDO_BUILD_DIR)/Javagui/sj
 
 CLASSPATH=".:$(FUZZYOBJECT_PATH):$(JAVAINTERFACE_PATH)"
 
