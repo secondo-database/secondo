@@ -144,7 +144,7 @@ public boolean readFromListExpr(ListExpr LE){
    ListExpr LE2 = LE.second();
    ListExpr LE3 = LE.third();
    int x,y;
-   float z;
+   double z;
    if(LE1.isAtom() && LE1.atomType()==ListExpr.INT_ATOM){
       x = LE1.intValue();
     }
