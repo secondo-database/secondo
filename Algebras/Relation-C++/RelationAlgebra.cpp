@@ -2827,6 +2827,7 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   bool definedValueFound = false;
   Word currentTupleWord;
   StandardAttribute* extremum = (StandardAttribute*)(qp->ResultStorage(s)).addr;
+  extremum->SetDefined(false);
   result = SetWord(extremum);
 
   assert(args[2].addr != 0);
@@ -2869,15 +2870,7 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   }
   qp->Close(args[0].addr);
 
-  if(definedValueFound)
-  {
-    return 0;
-  }
-  else
-  {
-    cout << "No defined value found.\n";
-    return -1;
-  }
+  return 0;
 }
 /*
 
@@ -3075,8 +3068,9 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
   }
   else
   {
-    cout << "No defined value found.\n";
-    return -1;
+    ((StandardAttribute*)qp->ResultStorage(s).addr)->SetDefined(false);
+    result = qp->ResultStorage(s);
+    return 0;
   }
 }
 

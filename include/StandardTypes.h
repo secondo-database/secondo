@@ -4,7 +4,7 @@
 //[oe] [\"o]
  
 1 Header File: Standard Data Types 
- 
+
 December 1998 Friedhelm Becker
  
 1.1 Overview
@@ -26,13 +26,14 @@ are the data types which are provided by the Standardalgebra.
 */
 
 
-class CcInt : public StandardAttribute	
+class CcInt : public StandardAttribute
 {
  public:
   CcInt();
   CcInt( bool d, int v );
   ~CcInt();
   bool     IsDefined();
+  void     SetDefined(bool defined);
   int      GetIntval();
   void*    GetValue();
   void     Set( int v );
@@ -53,13 +54,14 @@ class CcInt : public StandardAttribute
 
 */
 
-class CcReal : public StandardAttribute	
+class CcReal : public StandardAttribute
 {
  public:
   CcReal();
   CcReal( bool d, float v );
   ~CcReal();
   bool     IsDefined();
+  void     SetDefined(bool defined);
   float    GetRealval();
   void*    GetValue();
   void     Set( float v );
@@ -87,6 +89,7 @@ class CcBool : public StandardAttribute
   CcBool( bool d, int v );
   ~CcBool();
   bool     IsDefined();
+  void     SetDefined(bool defined);
   bool     GetBoolval();
   void*    GetValue();
   void     Set( bool d, bool v );
@@ -118,6 +121,7 @@ class CcString : public StandardAttribute
   CcString( bool d, const STRING* v );
   ~CcString();
   bool      IsDefined();
+  void      SetDefined(bool defined);
   STRING*   GetStringval();
   void*     GetValue();
   void      Set( bool d, const STRING* v );

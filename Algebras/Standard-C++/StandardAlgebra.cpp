@@ -59,7 +59,7 @@ Following operators are defined:
         real x real --> real
 ----
 
-  * mod (remainder) 
+  * mod (remainder)
 
 ----    int x int --> int
 ----
@@ -106,7 +106,7 @@ it).
 ----    bool  --> bool
 ----
 
-  * or, and 
+  * or, and
 
 ----    bool x bool --> bool
 ----
@@ -213,6 +213,7 @@ void   CcInt::Set( bool d, int v ) { defined = d, intval = v; };
 int    CcInt::GetIntval() { return (intval); };
 void*  CcInt::GetValue() { return (void *)intval;};
 bool   CcInt::IsDefined() { return (defined); };
+void   CcInt::SetDefined(bool defined) { this->defined = defined; };
 int    CcInt::Sizeof() { return (sizeof(CcInt)); };
 CcInt* CcInt::Clone() { return (new CcInt( *this )); };
 size_t CcInt::HashValue() { return (defined ? intval : 0); };
@@ -226,7 +227,19 @@ void CcInt::CopyFrom(StandardAttribute* right)
 
 int    CcInt::Compare( Attribute* arg )
 {
-//        CcInt* p = dynamic_cast< CcInt* >(arg);
+  if(!IsDefined() && !arg->IsDefined())
+  {
+    return 0;
+  }
+  if(!IsDefined())
+  {
+    return -1;
+  }
+  if(!arg->IsDefined())
+  {
+    return 1;
+  }
+
   CcInt* p =  (CcInt*)(arg);
   if ( !p )                 return (-2);
   if ( intval < p->intval ) return (-1);
@@ -467,6 +480,7 @@ CcReal::CcReal(){};
 CcReal::CcReal( bool d, float v ) { defined = d; realval = v; };
 CcReal::~CcReal(){};
 bool    CcReal::IsDefined() { return (defined); };
+void    CcReal::SetDefined(bool defined) { this->defined = defined; };
 float   CcReal::GetRealval() { return (realval);};
 void*   CcReal::GetValue() { return ((void*)-1); };
 void    CcReal::Set( float v ) { defined = true, realval = v; };
@@ -500,7 +514,19 @@ void CcReal::CopyFrom(StandardAttribute* right)
 
 int     CcReal::Compare( Attribute * arg )
 {
-   //     CcReal* p = dynamic_cast< CcReal* >(arg);
+  if(!IsDefined() && !arg->IsDefined())
+  {
+    return 0;
+  }
+  if(!IsDefined())
+  {
+    return -1;
+  }
+  if(!arg->IsDefined())
+  {
+    return 1;
+  }
+
   CcReal* p = (CcReal* )(arg);
   if ( !p )                    return (-2);
   if ( realval < p-> realval ) return (-1);
@@ -590,6 +616,7 @@ CcBool::CcBool( bool d, int v ){ defined  = d; boolval = v; };
 CcBool::~CcBool(){};
 void    CcBool::Set( bool d, bool v ){ defined = d, boolval = v; };
 bool    CcBool::IsDefined() { return defined; };
+void    CcBool::SetDefined(bool defined) { this->defined = defined; };
 bool    CcBool::GetBoolval() { return boolval; };
 void*   CcBool::GetValue() { return (void *)boolval; };
 int     CcBool::Sizeof() { return sizeof(CcBool); };
@@ -605,7 +632,19 @@ void CcBool::CopyFrom(StandardAttribute* right)
 
 int     CcBool::Compare(Attribute* arg)
 {
-   //     CcBool* p = dynamic_cast< CcBool* >(arg);
+  if(!IsDefined() && !arg->IsDefined())
+  {
+    return 0;
+  }
+  if(!IsDefined())
+  {
+    return -1;
+  }
+  if(!arg->IsDefined())
+  {
+    return 1;
+  }
+
   CcBool* p = (CcBool*)(arg);
   if ( !p )                    return (-2);
   if ( boolval < p-> boolval ) return (-1);
@@ -770,6 +809,7 @@ CcString::CcString() {};
 CcString::CcString( bool d, const STRING* v ) { defined = d; strcpy( stringval, *v); };
 CcString::~CcString() {};
 bool      CcString::IsDefined() { return (defined); };
+void      CcString::SetDefined(bool defined) { this->defined = defined; };
 STRING*   CcString::GetStringval() { return (&stringval); };
 void*     CcString::GetValue() { return ((void*) &stringval); };
 int       CcString::Sizeof() { return (sizeof(CcString)); };
@@ -801,7 +841,19 @@ void CcString::CopyFrom(StandardAttribute* right)
 
 int       CcString::Compare( Attribute* arg )
 {
-   //     CcString* p = dynamic_cast< CcString* >(arg);
+  if(!IsDefined() && !arg->IsDefined())
+  {
+    return 0;
+  }
+  if(!IsDefined())
+  {
+    return -1;
+  }
+  if(!arg->IsDefined())
+  {
+    return 1;
+  }
+  
   CcString* p = (CcString*)(arg);
   if ( !p ) return (-2);
   if ( strcmp(stringval , p->stringval) < 0) return (-1);
@@ -2249,7 +2301,7 @@ CcDiff_ri( Word* args, Word& result, int message, Word& local, Supplier s )
   }
   return (0);
 }
- 
+
 static int
 CcDiff_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 {
