@@ -50,7 +50,7 @@ RC_FILES := $(HOME)/.secondorc \
 .PHONY: update-environment 
 update-environment: show-separator $(SCRIPT_FILES) $(RC_FILES) show-update-msg
 ifeq ($(platform),win32)
-	$(MAKE) -C Win32/MSYS config
+	@echo "-e Creating mount point /mingw if necessary. \n"	
 endif
 
 UPDATE_MSG := "\n\

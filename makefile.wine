@@ -1,9 +1,12 @@
 ############################################################
 #
 # SECONDO makefile definitions for Windows and MinGW gcc
+# runnig through wine
 #
 ############################################################
 
+# Note: this is experimental and may not work. Moreover
+# you have to configure wine
 
 # System dependent default libraries
 DEFAULTLIB = -lws2_32 -lm -lstdc++
