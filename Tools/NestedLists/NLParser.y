@@ -15,6 +15,10 @@ February 2002 Ulrich Telle Port to C++
 #include <stdio.h>
 #include "NestedList.h"
 #include "NLParser.h"
+ 
+ // Stack Size for the Parser - by default only 200.
+#define YYINITDEPTH 10000
+
 %}
 
 %token INTEGER REAL BOOLEAN SYMBOL STRING TEXT OPEN CLOSE 
