@@ -4,6 +4,10 @@
 #
 ########################################################################
 
+# Note: This will not be maintained any longer
+# M. Spiekermann 26.01.04
+
+
 # System dependent default libraries
 DEFAULTLIB = -lsocket -lnsl -lm -ldl -lstdc++ #-lc
 
