@@ -73,7 +73,7 @@ CTable<T>::Size()
 template<typename T>
 
 void
-CTable<T>::totalMemory(Cardinal &mem, Cardinal &pageChanges) {
+CTable<T>::totalMemory(Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAccess) {
  
  T* ptrT = 0;
  bool* ptrb = 0;
@@ -84,6 +84,7 @@ CTable<T>::totalMemory(Cardinal &mem, Cardinal &pageChanges) {
   
  mem = (Cardinal)(dT * table.capacity()) + (db * valid.capacity());
  pageChanges = 0;
+ slotAccess = 0;
 }
 
 

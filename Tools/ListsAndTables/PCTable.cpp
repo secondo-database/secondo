@@ -168,7 +168,7 @@ CTable<T>::MarkDelete() {
 template<typename T>
 
 void
-CTable<T>::totalMemory( Cardinal &mem, Cardinal &pageChanges ) {
+CTable<T>::totalMemory( Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAccess ) {
  
  T* ptrT = 0;
  bool* ptrb = 0;
@@ -178,7 +178,8 @@ CTable<T>::totalMemory( Cardinal &mem, Cardinal &pageChanges ) {
  long db = ((long)++ptrb);
   
  mem = (Cardinal)((dT + db) * elemCount);
- pageChanges = table->PageChanges() + valid->PageChanges(); 
+ pageChanges = table->PageChanges(); 
+ slotAccess = table->SlotAccess();
 }
 
 

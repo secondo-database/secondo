@@ -232,12 +232,14 @@ Destroys ~CTable~, releasing its storage.
 */
 
   Cardinal Size();
-  void totalMemory(Cardinal &mem, Cardinal &pageChanges);
+  void totalMemory(Cardinal &mem, Cardinal &pageChanges, Cardinal &slotAccess );
 
 /* 
 
 Size() returns the size (number of slots) of the table. The method
 totalMemory() calculates the allocated memory via pointer arithmetic. 
+The number of page changes and slot accesses are interesting when using
+the persistent implementation.
 
 */
 

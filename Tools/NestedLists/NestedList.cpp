@@ -70,6 +70,11 @@ using namespace std;
 #include "CharTransform.h"
 #include "NLParser.h"
 #include "string.h"
+#include "WinUnix.h"
+
+
+// used in PagedArray.h
+unsigned int FileCtr = 0;
 
 /*
 3 Preliminaries
@@ -116,11 +121,11 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardin
 
 NestedList::~NestedList()
 {
-   deleteListMemory();
+   DeleteListMemory();
 }
 
 void
-NestedList::deleteListMemory()
+NestedList::DeleteListMemory()
 {
    if (intTable && stringTable && nodeTable && textTable)
    {
@@ -132,7 +137,6 @@ NestedList::deleteListMemory()
 
    if ( delRecFile ) {
 
-     assert( recFilePtr->Close() );
      delete recFilePtr;      
    }
 }
@@ -148,7 +152,10 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
 
      if (!recFilePtr) {
 
-       recFilePtr = new SmiRecordFile(true, PAGED_ARRAY_RECSIZE, true);
+       int pageSize = WinUnix::getPageSize() - 100;
+       assert( pageSize > 100 );       
+
+       recFilePtr = new SmiRecordFile(true, pageSize, true);
        
        if ( !(recFilePtr->Create()) ) {
          string errMsg;
@@ -164,7 +171,7 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
       stringTable = new CTable<StringRecord>(StringEntries, recFilePtr);
       textTable   = new CTable<TextRecord>(TextEntries, recFilePtr);
 #else
-      deleteListMemory();
+      DeleteListMemory();
       
       nodeTable   = new CTable<NodeRecord>(NodeEntries);
       intTable    = new CTable<Constant>(ConstEntries);
@@ -1124,7 +1131,7 @@ NestedList::ToString( const ListExpr list )
 }
 
 /*
-6.4.2 WritToString
+6.4.2 WriteToString
 
 */
 
@@ -1226,6 +1233,115 @@ within the structure of the list, otherwise, the function result is ~true~.
   /* This point in the function is only reached if no error occurred before. */
   return (true);
 }
+
+/*
+6.4 WriteBinaryTo
+
+*/
+
+
+bool 
+NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
+  
+  assert( os.good() );
+
+  byte val[4] = {0,1,0,0};
+  os << "bnl";
+  os.write( val,4 ); 
+  bool ok = WriteBinaryRec(list, os);
+  os.flush();
+  return ok;
+
+}
+
+
+/*
+6.4 WriteBinaryRec
+
+*/
+
+byte* 
+NestedList::Int2CharArray(long value) {
+   
+   static byte val[4] = {0,0,0,0};
+   for (int i=0; i<4; i++) {
+     val[3-i] = (byte) (value & 255);
+     value = value >> 8;
+   }
+   
+   return val;
+}
+
+bool
+NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
+
+
+  NodeRecord nodeRec1;
+  nodeTable->Get(list, nodeRec1);
+
+  NodeType NT = nodeRec1.nodeType; 
+
+      switch( NT ) {
+
+          case BoolType: { 
+ 		          os << (byte) 3; // write code for record type
+	                  bool b = BoolValue(list);
+			  byte value = (byte) (b?1:0);
+			  os << (byte) value; 
+			  return true;
+	  }
+	  case IntType: {
+                          os << (byte) 1; 
+	                  long value = IntValue(list);
+			  os.write( Int2CharArray(value),4 ); 
+			  return true;
+	  }
+	  case RealType: {
+                           os << (byte) 2;
+	                   float value = RealValue(list);
+                           byte val[4] = {0,0,0,0};
+                           memcpy((void*) val, (void*) &value,4);
+			   os.write(val,4); 
+			   return true;
+	  }
+	  case StringType: {
+                           os << (byte) 4;
+	                   string value = StringValue(list);
+			   os.write( Int2CharArray(value.length()),4 );
+                           os << value;
+			   return true;
+          }
+	  case SymbolType: {
+			   os << (byte) 5;
+	                   string value = SymbolValue(list);
+			   os.write( Int2CharArray(value.length()),4 );
+                           os << value;
+			   return true;
+	  }
+	  case TextType: {
+                           os << (byte) 6;
+	                   string value = Text2String(list);
+			   os.write( Int2CharArray(value.length()),4 );
+			   os << value;
+			   return true;
+          }
+
+	  case NoAtom: { 
+                           os << (byte) 0;
+	                   os.write( Int2CharArray(ListLength(list)),4 );
+                           while( !IsEmpty(list) ){
+                             if( !WriteBinaryRec( First(list), os ) ) // error in writing sublist
+			         return false;
+                             list=Rest(list);
+			   }
+                           return true;
+	  }
+	  default: return false;
+      }
+
+}
+
+
 
 /*
 6.5 WriteListExpr
@@ -1786,7 +1902,8 @@ NestedList::SymbolValue( const ListExpr atom )
 
 */
 
-TextScan NestedList::CreateTextScan (const ListExpr atom )
+TextScan 
+NestedList::CreateTextScan (const ListExpr atom )
 {
   assert( AtomType( atom ) == TextType );
 
@@ -1796,6 +1913,9 @@ TextScan NestedList::CreateTextScan (const ListExpr atom )
 
   return (textScan);
 }
+
+
+
 
 /*
 9.6.2 GetText
@@ -1927,6 +2047,22 @@ NestedList::DestroyTextScan( TextScan& textScan )
 }
 
 /*
+
+9.6.1 Text2String
+*/
+
+string
+NestedList::Text2String( const ListExpr& textAtom ) {
+
+  string result("");
+  TextScan tscan = CreateTextScan(textAtom);
+  GetText( tscan, TextLength(textAtom), result);
+  DestroyTextScan(tscan);  
+
+  return result;
+}
+
+/*
 10 AtomType
 
 */
@@ -1953,16 +2089,16 @@ NestedList::reportVectorSizes() {
 
   ostringstream report;
 
-  Cardinal pageChanges[4], memSize[4];
+  Cardinal pageChanges[4], memSize[4], slotAccess[4];
   
-  nodeTable->totalMemory(memSize[0], pageChanges[0]);
-  intTable->totalMemory(memSize[1], pageChanges[1]);
-  stringTable->totalMemory(memSize[2], pageChanges[2]);
+    nodeTable->totalMemory(memSize[0], pageChanges[0], slotAccess[0]);
+     intTable->totalMemory(memSize[1], pageChanges[1], slotAccess[1]);
+  stringTable->totalMemory(memSize[2], pageChanges[2], slotAccess[2]);
 
-  report << "List memory info - slots/used/pageChanges(table+valid): "
-	 << "nodes " << nodeTable->Size()   << "/" << nodeTable->NoEntries()   << "/" << pageChanges[0] << ", "
- 	 << "int "   << intTable->Size()    << "/" << intTable->NoEntries()    << "/" << pageChanges[1] << ", "
-	 << "str "   << stringTable->Size() << "/" << stringTable->NoEntries() << "/" << pageChanges[2] << ". "
+  report << "List memory info - slots/used - pageChanges/slotAccesses: "
+	 << "nodes " << nodeTable->Size()   << "/" << nodeTable->NoEntries()   << " - " << pageChanges[0] << "/" << slotAccess[0] << ", "
+ 	 << "int "   << intTable->Size()    << "/" << intTable->NoEntries()    << " - " << pageChanges[1] << "/" << slotAccess[1] << ", " 
+	 << "str "   << stringTable->Size() << "/" << stringTable->NoEntries() << " - " << pageChanges[2] << "/" << slotAccess[2] << ". "
          << endl 
          << "Total " << memSize[0] + memSize[1] + memSize[2]  << " Bytes." << endl;
 
