@@ -2174,6 +2174,7 @@ We introduce ~select~, ~from~, ~where~, and ~as~ as PROLOG operators:
 
 */
 
+:- op(990, fx, sql).
 :- op(950, fx, select).
 :- op(960, xfx, from).
 :- op(950, xfx, where).
@@ -2902,7 +2903,6 @@ called to execute it.
 
 */
 
-:- op(990, fx, sql).
 
 sql Term :-
   optimize(Term, Query, Cost),
