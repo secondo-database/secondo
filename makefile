@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.20  2003/08/20 18:14:55  spieker
+# some macro names are changed.
+#
 # Revision 1.19  2003/07/25 13:00:24  behr
 # add the target javagui
 #
@@ -69,6 +72,7 @@ UTILOBJECTS_BASENAMES=\
 	Tools/Utilities/FileSystem \
 	Tools/Utilities/Profiles \
 	Tools/Utilities/UtilFunctions \
+	Tools/Utilities/WinUnix \
 	ClientServer/SocketIO \
 	ClientServer/SocketAddress \
 	ClientServer/SocketRuleSet
