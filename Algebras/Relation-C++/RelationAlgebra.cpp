@@ -1779,8 +1779,26 @@ ListExpr
 TCountTypeMap(ListExpr args)
 {
   ListExpr first;
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 1,
+  "Operator count expects a list of length one.");
 
-  if( nl->ListLength(args) == 1 )
+  first = nl->First(args);
+  
+  nl->WriteToString(argstr, first);    
+  CHECK_COND(  nl->ListLength(first) == 2 && 
+               nl->ListLength(nl->Second(first)) == 2 &&
+	       (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
+	       TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
+               TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
+  "Operator count expects a list with structure " 
+  "(stream (tuple ((a1 t1)...(an tn)))) or (rel (tuple ((a1 t1)...(an tn))))\n"
+  "Operator count gets a list with structure '" + argstr + "'.");
+  
+  return nl->SymbolAtom("int");
+
+  /*if( nl->ListLength(args) == 1 )
   {
     first = nl->First(args);
     if ( (nl->ListLength(first) == 2) && nl->ListLength(nl->Second(first)) == 2  )
@@ -1792,7 +1810,7 @@ TCountTypeMap(ListExpr args)
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator count.");
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom("typeerror");*/
 }
 
 
@@ -1813,6 +1831,7 @@ TCountStream(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     ((Tuple*)elem.addr)->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
+    count++;
   }
   result = qp->ResultStorage(s);
   ((CcInt*) result.addr)->Set(true, count);
