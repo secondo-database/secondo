@@ -79,8 +79,10 @@ private boolean readValue(Head H,ListExpr ValueList){
   WholeRelation = null;
   TupleType = ListExpr.theEmptyList();
   boolean ok = true;
+  int T_no = 0;
   while(Rest.listLength()>0 && ok){
     NextTuple = Rest.first();
+    T_no++;
     Rest = Rest.rest();
     if(NextTuple.listLength()!=H.getSize())  // wrong tuplelength
        ok = false;
@@ -93,7 +95,7 @@ private boolean readValue(Head H,ListExpr ValueList){
           ListExpr Type = ListExpr.symbolAtom( H.get(No).Type);
           SO.fromList(ListExpr.twoElemList(Type,NextTuple.first()));
           String aName = computeObjectName(H.get(No).Name,H.get(No).Type,NextTuple.first());
-          SO.setName(Name+"::"+aName);
+          SO.setName(Name+"::"+aName+"::"+T_no);
           NextTuple = NextTuple.rest();
           SecondoObjects.add(SO);
           No++;
@@ -109,11 +111,12 @@ private boolean readValue(Head H,ListExpr ValueList){
 }
 
 
+
 /** computes a short Name for a object */
 private String computeObjectName(String name,String type,ListExpr value){
   int len = head.getMaxNameLength();
   String Name="";
-  for(int i=0;i<len+1;i++)
+  for(int i=0;i<len+1-name.length();i++)
      Name = Name+" ";
   Name += name+" ";
 
@@ -233,7 +236,7 @@ public int getTupleCount(){
      return SecondoObjects.size()/head.getSize();
 }
 
-/* returns the number of objects in a tuple 
+/* returns the number of objects in a tuple
  * if this relation not initialized -1 is returned
  */
 public int getTupleSize(){
@@ -243,8 +246,8 @@ public int getTupleSize(){
      return head.getSize();
 }
 
-/* returns the number of all containing objects 
- * if this relation not initialized -1 is returned 
+/* returns the number of all containing objects
+ * if this relation not initialized -1 is returned
  */
 public int getSize(){
   if(!initialized)

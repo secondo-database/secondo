@@ -37,7 +37,10 @@ public Object getElementAt(int index){
    else{
      int seps = index / (TupleSize+1);
      String S = Rel.get(index-seps-1).getName(); 
-     return S.substring(Rel.toString().length()+2,S.length());
+     S=S.substring(Rel.toString().length()+2,S.length());
+     int lastIndex = S.lastIndexOf("::");
+     S = S.substring(0,lastIndex);
+     return S;
    }
 }
 

@@ -75,24 +75,24 @@ public boolean readFromRelTypeLE(ListExpr LE){
        ListExpr TypeList = EntryList.second();
        if(! (NameList.isAtom() && NameList.atomType()==ListExpr.SYMBOL_ATOM)){
           ok =false;
-       } 
+       }
        if(!( TypeList.isAtom() && TypeList.atomType()==ListExpr.SYMBOL_ATOM)){
           ok = false;
        }
        if(ok){
           V.add(new HeadEntry(NameList.symbolValue(),TypeList.symbolValue() ) );
           MaxTypeLength = Math.max(MaxTypeLength,TypeList.symbolValue().length());
-	    MaxNameLength = Math.max(MaxNameLength,NameList.symbolValue().length());
+	  MaxNameLength = Math.max(MaxNameLength,NameList.symbolValue().length());
        }
-     }    
-     TupleValue = TupleValue.rest();      
+     }
+     TupleValue = TupleValue.rest();
   }
   if(!ok){
      V.clear();
      MaxNameLength = 0;
      MaxTypeLength = 0;
   }
-  return ok; 
+  return ok;
 }
 
 public int getSize(){

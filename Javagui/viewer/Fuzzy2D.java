@@ -52,21 +52,21 @@ public Fuzzy2D(){
 
    ((Graphics2D)Img.getGraphics()).setBackground(new Color(255,255,255));
    ImgPanel.repaint();
-   
+
    // build the MenuExtension
    JMenuItem MI_ShowSettings = ObjectMenu.add("settings");
    MI_ShowSettings.addActionListener(new ActionListener(){
     public void actionPerformed(ActionEvent evt){
-      showObjectSettings(); 
+      showObjectSettings();
     }
    });
-   
+
    JMenuItem MI_HideSelectedObject=ObjectMenu.add("hide");
    MI_HideSelectedObject.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
          hideSelectedObject();
       }
-   });   
+   });
 
    JMenuItem MI_ShowViewConfig = ViewMenu.add("settings");
    MI_ShowViewConfig.addActionListener(new ActionListener(){
@@ -74,22 +74,22 @@ public Fuzzy2D(){
         showViewSettings();
       }
    });
-   
-  
-  
+
+
+
    JMenuItem MI_AutoBB = ViewMenu.add("automatic bounding box");
    MI_AutoBB.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
       if(!AutoBoundingBox){
          AutoBoundingBox=true;
          update();
-      
+
       }
    }});
-      
+
    MenuExtension.addMenu(ObjectMenu);
    MenuExtension.addMenu(ViewMenu);
-   
+
    MouseInputListener MIL=new MouseInputAdapter(){
        public void mouseMoved(MouseEvent evt){
           double[] wc = Img.getWorld(evt.getX(),evt.getY());
@@ -206,7 +206,7 @@ private void hideSelectedObject(){
     Img.paint();
     ImgPanel.repaint();
     if(VC!=null)
-       VC.removeObject(null); 
+       VC.removeObject(null);
 }
 
 
@@ -234,17 +234,17 @@ public void apply(Object source){
      Img.paintBorders(View.getBorderPaint());
      Img.setPointSize(View.getPointSize());
      update();
-  }   
+  }
 }
 
- 
+
 /** adds a SecondoObject to this viewer */
 public boolean addObject(SecondoObject o){
    int index = getIndexOf(o);
    if(index>=0){ // object allready displayed
      ComboBox.setSelectedIndex(index);
      return true;
-   }  
+   }
 
    ListExpr LE = o.toListExpr();
    if(LE.listLength()!=2)
@@ -275,19 +275,19 @@ public boolean addObject(SecondoObject o){
        if(LV!=null)
           for(int i=0;i<LV.getSize();i++)
              myLines.append(LV.get(i));
-       update();      
+       update();
        ComboBox.setSelectedIndex(ComboBox.getItemCount()-1);
        return true;
    } else if(TypeName.equals("fregion")){
        FRegion3D R3D = new FRegion3D();
        if(!R3D.readFromSecondoObject(o))
           return false;
-       Triangle3DVector TV = R3D.getTriangles();        
+       Triangle3DVector TV = R3D.getTriangles();
        ComboBox.addItem(R3D);
        if(TV!=null)
           for(int i=0;i<TV.getSize();i++)
              myTriangles.append(TV.get(i));
-       update();      
+       update();
        ComboBox.setSelectedIndex(ComboBox.getItemCount()-1);
        return true;
    } else
@@ -301,12 +301,12 @@ private void showViewSettings(){
   if(View==null){
       View = new ViewConfig(VC.getMainFrame());
       View.addApplyListener(this);
-  }    
-      
+  }
+
   if(AutoBoundingBox){
      BB2.readFrom(BB3);
      View.setBoundingBox(BB2);
-  }   
+  }
   View.setBorderPaint(Img.isPaintingBorders());
   View.setProportional(Proportional);
   View.setBorderSize(BorderSize);
@@ -315,14 +315,14 @@ private void showViewSettings(){
   View.setVisible(true);
 }
 
- 
+
 /** inserts all points, lines and triangles from O */
 private void addGraphicalObjects(Object3D O){
     Triangle3DVector Trs = O.getTriangles();
     if(Trs!=null)
        for(int i=0;i<Trs.getSize();i++)
           myTriangles.append(Trs.get(i));
-       
+
     Line3DVector Lns = O.getLines();
     if(Lns!=null)
        for(int i=0;i<Lns.getSize();i++)
@@ -343,24 +343,27 @@ private void computeBoundingBox(){
       if(i==0)
           BB3.equalize(O3D.getBoundingBox());
       else
-         BB3.extend(O3D.getBoundingBox());         
+         BB3.extend(O3D.getBoundingBox());
    }
 }
 
 
 /** remove the given Object from this viewer*/
 public void removeObject(SecondoObject o){
-    ID id = o.getID();
+   removeAll();
+   /* ID id = o.getID();
     removeGraphicalObjects(id);
     int index = getIndexOf(o);
     if(index>=0)
        ComboBox.removeItemAt(index);
     Img.paint();
     ImgPanel.repaint();
+    */
  }
- 
+
 /** remove all objects from this viewer */
 public void removeAll(){
+  ComboBox.removeAllItems();
   Img.removeAll();
   myPoints.empty();
   myLines.empty();
@@ -368,7 +371,7 @@ public void removeAll(){
   Img.paint();
   ImgPanel.repaint();
 }
- 
+
  
 /** remove all graphical object with given ID */
 private void removeGraphicalObjects(ID id){

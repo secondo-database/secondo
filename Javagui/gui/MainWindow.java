@@ -1898,6 +1898,7 @@ public boolean updateDatabases(){
   Databases = Databases.second().second();
   OpenDatabaseMenu.removeAll();
   DeleteDatabaseMenu.removeAll();
+  Menu_RestoreDatabase.removeAll();
   if(Databases==null)
     return false;
   JMenuItem[] MI_OpenDatabases = new JMenuItem[Databases.listLength()];
