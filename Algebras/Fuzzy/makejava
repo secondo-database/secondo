@@ -5,7 +5,8 @@
 include makefile.inc
 
 .PHONY:all
-all: 
+all:
+	(cd $(JAVAINTERFACE_PATH); make all)
 	(cd fuzzyobjects; make all)
 
 .PHONY: clean
