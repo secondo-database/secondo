@@ -3888,7 +3888,8 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "<text>ifthenelse(_, _, _)</text--->"
              "<text>Returns the second argument, if the boolean value expression, given"
              " as a first argument, can be evaluated to true."
-             " If not, the operator returns the third argument.</text--->"
+             " If not, the operator returns the third argument."
+	     " NOTE: The second and the third argument must be of the same type T.</text--->"
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],[const string value \"greater\"])</text--->"
              ") )";
    
