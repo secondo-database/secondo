@@ -715,12 +715,19 @@ Creates a text scan. Current position is 0 (the first character in the ~atom~).
 */
   void GetText( TextScan textScan, const Cardinal noChars,
                 string& textBuffer );
+  bool GetNextText(const ListExpr textAtom, string& textFragment, const int size);
+
+
 /*
 Copies ~noChars~ characters, starting from the current position in the ~scan~
 and appends them to the string ~textBuffer~.
 
 The text behind the current position of the ~scan~ may be shorter than ~noChars~.
 In this case, all characters behind the current ~scan~ position are copied.
+
+The second alternative of iteration returns true while ~size~ characters are in the
+text. The size can not be changed during subseqent calls. The function returns false
+when the text ends and the next call of the function will restart the iteration.
 
 */
   bool EndOfText( const TextScan textScan );

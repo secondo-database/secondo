@@ -867,22 +867,11 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
         {
           *outStream << "<text>";
         }
-        const int textFragmentLength = 80;
-        string textFragment;
-        int textLength = TextLength( atom );
-        TextScan textScan = CreateTextScan( atom );
-        while (textFragmentLength < textLength)
-        {
-          textFragment = "";
-          GetText( textScan, textFragmentLength, textFragment );
-          *outStream << textFragment;
-          textLength -= textFragmentLength;
+        string textFragment = "";
+        while ( GetNextText(atom, textFragment, 1024) ) {
+           *outStream << textFragment;
         }
-        /* The remaining text fits into array text_fragment); */
-        textFragment = "";
-        GetText ( textScan, textLength, textFragment );
-        *outStream << textFragment;
-        DestroyTextScan ( textScan );
+
         if ( !toScreen )
         {
           *outStream << "</text--->";
@@ -967,7 +956,7 @@ NestedList::WriteToFile( const string& fileName, const ListExpr list )
   if ( outFile )
   {
     outStream = &outFile;
-//    outStream.rdbuf( outFile.rdbuf() );
+    //outStream.rdbuf( outFile.rdbuf() );
     /* bool afterList = */ WriteList( list, 0, false, false );
     *outStream << endl;
     outFile.close();
@@ -1045,7 +1034,7 @@ NestedList::WriteToString( string& nlChars, const ListExpr list )
 
 
 /*
-6.4.2 WritStringTo
+6.4.2 WriteStringTo
 
 Write a list in its textual representation into an ostream object
 
@@ -1106,16 +1095,26 @@ within the structure of the list, otherwise, the function result is ~true~.
         break;
       case TextType: // ToDo replace tempText with a loop which writes small fragments into nlChars
         {
+          /*
           TextScan textScan = CreateTextScan( list );
           string tempText = "";
+
+          GetText( textScan, TextLength( list ), tempText );
+          DestroyTextScan( textScan );
+          nlChars << ("<text>" + tempText + "</text--->");
+          */
 
           if ( RTFlag::isActive("NL:TextLength") ) {
 	     cerr << "list, TextLength( list ): " << list << "," << TextLength( list ) << endl;
           }
 
-          GetText( textScan, TextLength( list ), tempText );
-          DestroyTextScan( textScan );
-          nlChars << ("<text>" + tempText + "</text--->");
+          nlChars << "<text>"; 
+          string textFragment = "";
+          while ( GetNextText(list, textFragment, 1024) ) {
+             nlChars << textFragment;
+          }
+          nlChars << "</text--->";
+
         }
         break;
       default:
@@ -1161,7 +1160,6 @@ NestedList::WriteBinaryTo(ListExpr list, ostream& os) {
   assert( os.good() );
 
   const byte v[7] = {'b','n','l',0,1,0,0};
-  //os.write( (const char*)v,7 );
   os << (byte) v[0] << (byte) v[1] << (byte) v[2]
      << (byte) v[3] << (byte) v[4] << (byte) v[5] << (byte) v[6];
   bool ok = WriteBinaryRec(list, os);
@@ -1225,7 +1223,6 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 	                   long value = IntValue(list);
                            pv = Int2CharArray(value);
                            os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
-			   //os.write( Int2CharArray(value),4 );
 			   return true;
 	  }
 	  case RealType:   {
@@ -1241,7 +1238,6 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 			   }
 
                            os << (byte) pval[0] << (byte) pval[1] << (byte) pval[2] << (byte) pval[3];
-			   //os.write( (const char*)pval,4 );
 			   return true;
 	  }
 	  case StringType: {
@@ -1251,8 +1247,6 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            pv = Int2CharArray(strlen);
                            os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
 			   os << value;
-			   //os.write( Int2CharArray(strlen),4 );
-                           //os.write( value.data(),strlen );
 			   return true;
           }
 	  case SymbolType: {
@@ -1262,20 +1256,18 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            pv = Int2CharArray(strlen);
                            os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
 			   os << value;
-			   //os.write( Int2CharArray(strlen),4 );
-                           //os.write( value.data(),strlen );
 			   return true;
 	  }
 	  case TextType:   {
                            os << (byte) 6;
-                           string value="";
-	                   Text2String(list, value); // to do: stream based processing of texts
-			   strlen = value.length();
+	                   //Text2String(list, value); // to do: stream based processing of texts
+			   strlen = TextLength(list);
                            pv = Int2CharArray(strlen);
                            os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
-			   os << value;
-			   //os.write( Int2CharArray(strlen),4 );
-                           //os.write( value.data(),strlen );
+                           string value="";
+			   while ( GetNextText(list, value, 1024) ) {
+			      os << value;
+			   }
 			   return true;
           }
 
@@ -1283,7 +1275,6 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
                            os << (byte) 0;
                            pv = Int2CharArray(ListLength(list));
                            os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
-	                   //os.write( Int2CharArray(ListLength(list)),4 );
                            while( !IsEmpty(list) ){
                              if( !WriteBinaryRec( First(list), os ) ) // error in writing sublist
 			         return false;
@@ -1939,6 +1930,59 @@ NestedList::EndOfText( const TextScan textScan )
   }
 }
 
+
+/*
+9.6.5 Alternative function for iteration over text atoms. This
+      was implemented, since EndOfText has not been used.
+
+*/
+
+bool
+NestedList::GetNextText(const ListExpr textAtom, string& textFragment, const int size) {
+
+
+  static bool first = true;
+  static bool last = false;
+  static int textLength = 0;
+  static TextScan textScan;
+  static int textFragmentLength = 0;
+  static ListExpr atom = 0;
+
+  if (last) { // end of text reached ?
+    textFragment = "";
+    DestroyTextScan ( textScan );
+    first = true;
+    last = false;
+    return false;
+  }
+  
+  if (first) { // initialize status variables
+    atom = textAtom;
+    textFragmentLength = size;
+    textLength = TextLength( atom );
+    textScan = CreateTextScan( atom );
+    textFragment.resize(size);
+    first = false;
+  }        
+
+  assert ( (size == textFragmentLength) && (atom == textAtom) );
+
+  textFragment="";
+  /*  Write the text atom to the output stream in chunks of size textFragmentLength */
+  if (textFragmentLength < textLength)
+  {
+    GetText( textScan, textFragmentLength, textFragment );
+    textLength -= textFragmentLength;
+    return true;
+  } else {
+    GetText ( textScan, textLength, textFragment );
+    last = true; // end of text reached
+    return true;
+  }
+
+
+}
+
 /*
 9.6.5 DestroyTextScan
 
@@ -1962,9 +2006,14 @@ NestedList::DestroyTextScan( TextScan& textScan )
 void
 NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) {
 
+  int textLength = TextLength(textAtom);
+  
+  /* initialze string object */
   resultStr="";
+  resultStr.resize(textLength);
+  
   TextScan tscan = CreateTextScan(textAtom);
-  GetText( tscan, TextLength(textAtom), resultStr );
+  GetText( tscan, textLength, resultStr );
   DestroyTextScan(tscan);
 
 }
