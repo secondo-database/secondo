@@ -1151,10 +1151,9 @@ bool IsRangeAtom( const ListExpr atom )
 }
 
 bool IsOfRangeType( const ListExpr type, const ListExpr range )
-{
+{ 
   assert( IsRangeAtom( range ) );
-  if( nl->IsAtom( type ) &&
-      nl->AtomType( type ) == SymbolType &&
+  if( nl->IsAtom( type ) && nl->AtomType( type ) == SymbolType &&
       ( nl->SymbolValue( range ) == string("range") + nl->SymbolValue( type ) ||
         nl->SymbolValue( range ) == string("periods") && nl->SymbolValue( type ) == string("instant") ) )
     return true;
@@ -1386,7 +1385,7 @@ IntimeTypeMapInstant( ListExpr args )
 }
 
 /*
-16.1.7 Type mapping function Mapping x Instant -->Intime
+16.1.7 Type mapping function Mapping x Instant -- Intime
 
 It is for the operator ~atinstant~.
 
@@ -1412,6 +1411,50 @@ MappingInstantTypeMapIntime( ListExpr args )
         nl->IsAtom( arg2 ) && nl->AtomType( arg2 ) == SymbolType && nl->SymbolValue( arg2 ) == "instant" )
 	return (nl->SymbolAtom( "intimepoint" ));
   }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+16.1.8 Type mapping function Mapping -- RangeReal (RangeInstant)
+
+It is for the operator ~deftime~.
+
+*/
+ListExpr
+MappingTypeMapRangeInstant( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    
+    if    (( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )||
+           ( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal")||
+           ( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint"))
+	return (nl->SymbolAtom( "rangereal" ));  //maybe rangeinstant...
+  }
+  
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
+16.1.8 Type mapping function Mapping(point) -- line
+
+It is for the operator ~trajectory~.
+
+*/
+ListExpr
+MPointTypeMapLine( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    
+    if    ( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
+	return (nl->SymbolAtom( "line")); 
+  }
+  
   return (nl->SymbolAtom( "typeerror" ));
 }
 
@@ -1454,7 +1497,12 @@ RangeSelectPredicates( ListExpr args )
   assert( false );
   return (-1); // This point should never be reached
 }
+/*
+16.2.2 Selection function ~TemporalSelectAtinstant~
 
+Is used for the ~atinstant~ operations.
+
+*/
 int
 TemporalSelectAtInstant( ListExpr args )
 {
@@ -1482,6 +1530,29 @@ TemporalSelectAtInstant( ListExpr args )
 }
 
 /*
+16.2.3 Selection function ~TemporalSelectDeftime~
+
+Is used for the ~deftime~ operations.
+
+*/
+int
+TemporalSelectDeftime( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mint" )
+      return (0);
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mreal" )
+      return (1);
+  
+  if( nl->IsAtom( arg1 ) && nl->AtomType( arg1 ) == SymbolType && nl->SymbolValue( arg1 ) == "mpoint" )
+      return (2);	
+  
+  return (-1); // This point should never be reached
+}
+
+/*
 16.3 Value mapping functions
 
 A value mapping function implements an operator's main functionality: it takes
@@ -1490,7 +1561,7 @@ one value mapping function. In the case of overloaded operators there are
 several value mapping functions, one for each possible combination of input
 parameter types.
 
-6.3.1 Value mapping functions of operator ~isempty~
+16.3.1 Value mapping functions of operator ~isempty~
 
 */
 int InstantIsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -1600,7 +1671,7 @@ int RangeNotEqual_rr( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
-16.3.3 Value mapping functions of operator $<$
+16.3.4 Value mapping functions of operator $<$
 
 */
 int
@@ -1623,7 +1694,7 @@ InstantLess( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.3 Value mapping functions of operator $<=$
+16.3.5 Value mapping functions of operator $<=$
 
 */
 int
@@ -1646,7 +1717,7 @@ InstantLessEqual( Word* args, Word& result, int message, Word& local, Supplier s
 }
 
 /*
-16.3.3 Value mapping functions of operator $>$
+16.3.6 Value mapping functions of operator $>$
 
 */
 int
@@ -1669,7 +1740,7 @@ InstantGreater( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.3 Value mapping functions of operator $>=$
+16.3.7 Value mapping functions of operator $>=$
 
 */
 int
@@ -1692,7 +1763,7 @@ InstantGreaterEqual( Word* args, Word& result, int message, Word& local, Supplie
 }
 
 /*
-16.3.4 Value mapping functions of operator ~intersects~
+16.3.8 Value mapping functions of operator ~intersects~
 
 */
 template <class Alpha>
@@ -1711,7 +1782,7 @@ int RangeIntersects_rr( Word* args, Word& result, int message, Word& local, Supp
 }
 
 /*
-16.3.5 Value mapping functions of operator ~inside~
+16.3.9 Value mapping functions of operator ~inside~
 
 */
 template <class Alpha>
@@ -1745,7 +1816,7 @@ int RangeInside_ar( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-16.3.6 Value mapping functions of operator ~before~
+16.3.10 Value mapping functions of operator ~before~
 
 */
 template <class Alpha>
@@ -1794,7 +1865,7 @@ int RangeBefore_ra( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-16.3.7 Value mapping functions of operator ~intersection~
+16.3.11 Value mapping functions of operator ~intersection~
 
 */
 template <class Alpha>
@@ -1806,7 +1877,7 @@ int RangeIntersection_rr( Word* args, Word& result, int message, Word& local, Su
 }
 
 /*
-16.3.8 Value mapping functions of operator ~union~
+16.3.12 Value mapping functions of operator ~union~
 
 */
 template <class Alpha>
@@ -1818,7 +1889,7 @@ int RangeUnion_rr( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-16.3.9 Value mapping functions of operator ~minus~
+16.3.13 Value mapping functions of operator ~minus~
 
 */
 template <class Alpha>
@@ -1830,7 +1901,7 @@ int RangeMinus_rr( Word* args, Word& result, int message, Word& local, Supplier 
 }
 
 /*
-16.3.10 Value mapping functions of operator ~min~
+16.3.14 Value mapping functions of operator ~min~
 
 */
 template <class Alpha>
@@ -1850,7 +1921,7 @@ int RangeMinimum_r( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-16.3.11 Value mapping functions of operator ~max~
+16.3.15 Value mapping functions of operator ~max~
 
 */
 template <class Alpha>
@@ -1870,7 +1941,7 @@ int RangeMaximum_r( Word* args, Word& result, int message, Word& local, Supplier
 }
 
 /*
-16.3.12 Value mapping functions of operator ~no\_components~
+16.3.16 Value mapping functions of operator ~no\_components~
 
 */
 template <class Alpha>
@@ -1882,7 +1953,7 @@ int RangeNoComponents_r( Word* args, Word& result, int message, Word& local, Sup
 }
 
 /*
-16.3.11 Value mapping functions of operator ~inst~
+16.3.17 Value mapping functions of operator ~inst~
 
 */
 template <class Alpha>
@@ -1894,7 +1965,7 @@ int IntimeInst( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.11 Value mapping functions of operator ~val~
+16.3.18 Value mapping functions of operator ~val~
 
 */
 template <class Alpha>
@@ -1906,7 +1977,7 @@ int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-16.3.11 Value mapping functions of operator ~atinstant~
+16.3.19 Value mapping functions of operator ~atinstant~
 
 */
 int atinstant_mint( Word* args, Word& result, int message, Word& local, Supplier s )
@@ -1985,6 +2056,125 @@ int atinstant_mpoint( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
+16.3.20 Value mapping functions of operator ~deftime~
+
+*/
+int deftime_mint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mint --> range(real) note: maybe later range(instant)
+  result = qp->ResultStorage( s );
+  
+  //1.get the input and out put objects
+  MInt *mint;
+  Range<Instant>* defrange; 
+  
+  mint=((MInt*)args[0].addr);
+  defrange=((Range<Instant>*)result.addr);
+  
+  //2.get the timeintervals and add them to the result
+  ConstTemporalUnit<CcInt> unit;
+  //Interval<Instant> timeinterval;
+  
+  defrange->StartBulkLoad();
+  for( int i = 0; i < mint->GetNoComponents(); i++ )
+  {
+      mint->Get(i, unit );
+      defrange->Add( unit.timeInterval ); 
+  }
+  defrange->EndBulkLoad( true );
+  return (0);
+}
+
+int deftime_mreal( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mreal --> range(real) note: maybe later range(instant)
+  result = qp->ResultStorage( s );
+  
+  //1.get the input and out put objects
+  MReal *mreal;
+  Range<Instant>* defrange; 
+  
+  mreal=((MReal*)args[0].addr);
+  defrange=((Range<Instant>*)result.addr);
+  
+  //2.get the timeintervals and add them to the result
+  UReal unit;
+  
+  defrange->StartBulkLoad();
+  for( int i = 0; i < mreal->GetNoComponents(); i++ )
+  {
+      mreal->Get(i, unit );
+      defrange->Add( unit.timeInterval ); 
+  }
+  defrange->EndBulkLoad( true );
+  return (0);
+}
+
+int deftime_mpoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // mpoint --> range(real) note: maybe later range(instant)
+  result = qp->ResultStorage( s );
+  
+  //1.get the input and out put objects
+  MPoint *mpoint;
+  Range<CcReal>* defrange; 
+  
+  mpoint=((MPoint*)args[0].addr);
+  defrange=((Range<CcReal>*)result.addr);
+  
+  //2.get the timeintervals and add them to the result
+  UPoint unit;
+  
+  defrange->StartBulkLoad();
+  for( int i = 0; i < mpoint->GetNoComponents(); i++ )
+  {
+      mpoint->Get(i, unit );
+      defrange->Add( unit.timeInterval ); 
+  }
+  defrange->EndBulkLoad( true );
+  return (0);
+}
+
+/*
+16.3.21 Value mapping functions of operator ~trajectory~
+
+*/
+int trajectory_mp( Word* args, Word& result, int message, Word& local, Supplier s )
+{ // moving(point) --> line
+  result = qp->ResultStorage( s );
+  
+  //1.get the input and out put objects
+  MPoint *mpoint;
+  CLine *line; 
+  CHalfSegment reschs;
+  Point p1, p2;
+  
+  mpoint=((MPoint*)args[0].addr);
+  line=((CLine*)result.addr);
+  
+  //2.get the halfsegment and add it to the result
+  UPoint unit;
+
+  line->Clear();  //this line should not be forgotten...
+  line->StartBulkLoad();
+  for( int i = 0; i < mpoint->GetNoComponents(); i++ )
+  {
+      mpoint->Get(i, unit );
+      
+      //3. add the segment to the line value.
+      p1.Set(unit.x0 + unit.x1 * unit.timeInterval.start.GetRealval(), 
+	   unit.y0 + unit.y1 * unit.timeInterval.start.GetRealval()); 
+      p2.Set(unit.x0 + unit.x1 * unit.timeInterval.end.GetRealval(), 
+	   unit.y0 + unit.y1 * unit.timeInterval.end.GetRealval());
+      reschs.Set(true, p1, p2);
+      
+      *((CLine *)result.addr) += reschs;
+      reschs.SetLDP(false);
+      *((CLine *)result.addr) += reschs;
+  }
+  line->EndBulkLoad( );
+  return (0);
+}
+
+
+/*
 16.4 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -2041,6 +2231,13 @@ ValueMapping atinstantmap[] =   {  atinstant_mint,
 			     atinstant_mreal,
 			     atinstant_mpoint,
 			   };
+
+ValueMapping deftimemap[] =   {  deftime_mint,
+			     deftime_mreal,
+			     deftime_mpoint,
+			   };
+
+ValueMapping trajectorymap[] =   {  trajectory_mp  };
 
 Word TemporalNoModelMapping( ArgVector arg, Supplier opTreeNode )
 {
@@ -2219,6 +2416,22 @@ const string TemporalSpecAtInstant  = "( ( \"Signature\" \"Syntax\" \"Meaning\" 
                                 "<text>_ atinstant _ </text--->"
                                 "<text>get the Intime value corresponding to the instant.</text--->"
                                 "<text>mpoint1 at instant 21.2</text--->"
+                                ") )";
+
+const string TemporalSpecDeftime  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(mint||mreal||mpoint) -> rangereal</text--->"
+                                "<text> deftime( _ )</text--->"
+                                "<text>get the definetime of the corresponding moving data objects.</text--->"
+                                "<text>deftime(mp1)</text--->"
+                                ") )";
+
+const string TemporalSpecTrajectory  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(mpoint -> line</text--->"
+                                "<text> trajectory( _ )</text--->"
+                                "<text>get the trajectory of the corresponding moving data objects.</text--->"
+                                "<text>trajectory(mp1)</text--->"
                                 ") )";
 
 /*
@@ -2513,6 +2726,22 @@ Operator atinstant( "atinstant",
                         TemporalSelectAtInstant,
                         MappingInstantTypeMapIntime );
 
+Operator deftime( "deftime",
+                        TemporalSpecDeftime,
+                        3,
+                        deftimemap,
+                        temporalnomodelmap,
+                        TemporalSelectDeftime,
+                        MappingTypeMapRangeInstant );
+
+ 
+Operator trajectory( "trajectory",
+                                TemporalSpecTrajectory,
+                                1,
+                                trajectorymap,
+                                rangenomodelmap,
+                                Operator::SimpleSelect,
+                                MPointTypeMapLine);
 /*
 6 Creating the Algebra
 
@@ -2600,6 +2829,8 @@ class TemporalAlgebra : public Algebra
     AddOperator( &intimerealinst );
     AddOperator( &intimerealval );
     AddOperator( &atinstant);
+    AddOperator( &deftime);
+    AddOperator( &trajectory);
   }
   ~TemporalAlgebra() {};
 };
