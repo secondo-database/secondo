@@ -58,7 +58,8 @@ February 27, 2004  M. Spiekermann. A problem with the tiles operator was fixed. 
 
 // runtime switches for trace messages to be configured in SecondoConfig.ini
 #include "LogMsg.h"
-static const string JPEG_RT_DEBUG = "JPEGAlgebra:Debug";
+
+extern const string JPEG_RT_DEBUG = "JpegAlgebra:Debug"; // used as identifier for trace Messages 
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -117,12 +118,12 @@ srcConnected(false)
   ++numJpegsAlive;
   ++jpegCounter;
 
-  #ifdef DEBUGJPEG
-  cout << "\nGeneral Constructor JPEG(int). alive (w/o casts): "
+  if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
+  cout << endl << "General Constructor JPEG(int). alive (w/o casts): "
        << numJpegsAlive
        << "   c'str-calls: " << jpegCounter <<  "   including casts: "
        << castJPEGs << endl;
-  #endif
+  }
   
   InitializeBrightnessDistribution(); // initialize Array []   with 0.0;
   InitializeRGBDistribution();	      // initialize Array [][] with 0.0;
@@ -145,9 +146,8 @@ bool JPEG::InitializeJPEG()
   src = new JPEGSourceMgr(this); // sets connection to JPEG.
   srcConnected = (src != 0);
 
-  #ifdef DEBUGJPEG
-  cout << "\nJPEG::InitializeJPEG() after JPEGSourceMgr(this)" << endl;
-  #endif
+  if ( RTFlag::isActive(JPEG_RT_DEBUG) )
+  cout << endl << "JPEG::InitializeJPEG() after JPEGSourceMgr(this)" << endl;
 
   // Two steps in construction required. The second one is init(), which :
   // (a) scans FLOB.
@@ -198,11 +198,11 @@ JPEG::~JPEG()
   }
 
   --numJpegsAlive;
-  #ifdef DEBUGJPEG
+  if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
   cout << "Destructor ~JPEG(). w/o casts alive: "
        << numJpegsAlive << "   c'str-calls: "
        << jpegCounter   << endl;
-  #endif
+  }
 
   // defined destroyed with *this
 }
@@ -1229,10 +1229,12 @@ InJPEG( const ListExpr typeInfo, const ListExpr instance,
     correct = jpegFile->InitializeJPEG();
     // 'defined' == correct. This is set in InitializeJPEG() or earlier.
 
+    if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
     cout << "\nParsing of Picture, result:\n"                     << *jpegFile
          << "Colorspace:"       << jpegFile->GetColorSpace("")      << endl
          << "Color Components:" << jpegFile->Get_cinfo()->num_components
          << endl << endl;
+    }
 
     if (correct)
       return SetWord( jpegFile );
@@ -2231,10 +2233,14 @@ TilesFun( Word*  args,  Word& result, int  message,
             return 0;
           }
 
+          // M. Spiekermann: Tile() is enclosed in InitializeJpeg() and DropSrcMgr() otherwise
+          // all Tiles contain the same picture data. 
+          injpeg->InitializeJPEG();
           if ( !injpeg->Tile(outjpeg, c*xdist, r*ydist, xdist, ydist) ) {
             cerr << "Error: Problems with injepeg->Tile" << endl;
           } 
-
+          injpeg->DropSrcMgr();
+ 
           // M. Spiekermann: This is not the idea of stream processing. Stream processing is used
           // to save memory hence data should only be loaded into memory when it is
           // requested.
@@ -4088,15 +4094,19 @@ class JPEGAlgebra : public Algebra
   }
   ~JPEGAlgebra() {
 
-    cout << "\nDestructor JPEGAlgebra. ";
-    printStatistics();
+    if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
+      cout << "\nDestructor JPEGAlgebra. ";
+      printStatistics();
+    }
 
     if (jpegAlgGlobalError)
       cerr << "\n\nERROR: There has occured an error inside JPEGAlgebra:"
            <<   "\n       may be serious or not .... \n\n";
     else
-      cout << "\n\nJPEGAlgebra worked without an error found,  :)))\n"
-                  "(User errors not counted, nor SecondoSystem-faults)\n\n";
+      if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
+        cout << "\n\nJPEGAlgebra worked without an error found,  :)))\n"
+                    "(User errors not counted, nor SecondoSystem-faults)\n\n";
+      }
   };
 
   void printStatistics()

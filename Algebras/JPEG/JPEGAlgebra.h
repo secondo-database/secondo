@@ -306,6 +306,7 @@ attribute type in tuple definitions.
   void          CopyFrom  (StandardAttribute* right);
   ostream&      Print     ( ostream &os );
 
+
 /*
 Private Attributes of the class ~JINFO~.
 
@@ -319,6 +320,7 @@ Private Attributes of the class ~JINFO~.
   int      numComponents;
   double   cDistribution[256][4];
   ListExpr picture;
+
 };
 
 #endif

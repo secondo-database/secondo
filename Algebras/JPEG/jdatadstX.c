@@ -13,6 +13,7 @@ eXtended for use with flobs by Ulrich Neumann.
 //#include "jinclude.h"
 #include "jpeglib.h"
 #include "jerror.h"
+#include "LogMsg.h"
 
 // Expanded data destination object for FLOB output
 typedef struct {
@@ -76,16 +77,20 @@ term_flob_destination (j_compress_ptr store_info)
   // Write any data remaining in the buffer
   if (datacount > 0)
   {
-    cout << "\nterm_flob_destination(), writing " << datacount
-         << " additional bytes.\n";
+    if ( RTFlag::isActive(JPEG_RT_DEBUG) ) {
+      cout << endl << "term_flob_destination(), writing " << datacount
+           << " additional bytes." << endl;
+    }
 
     my_dest_flob_ptr dest = (my_dest_flob_ptr) store_info->dest;
     dest->flob->Put(dest->offset, datacount, dest->buffer);
 
     dest->offset = dest->offset + datacount;
   }
+ 
+  if ( RTFlag::isActive(JPEG_RT_DEBUG) )
+    cout << endl << "Correcting flobsize" << endl;
 
-  cout << "\nCorrecting flobsize\n";
   dest->flob->Resize(dest->offset);
   
   // Make sure we wrote the output file OK

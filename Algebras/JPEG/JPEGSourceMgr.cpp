@@ -28,7 +28,11 @@ January 08/09  2004    Neumann
 
 *******************************************************************************/
 
+#include <string>
+
 using namespace std;
+
+extern const string JPEG_RT_DEBUG;
 
 #include "JPEGSourceMgr.h"
 #include "JPEGAlgebra.h"

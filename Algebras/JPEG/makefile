@@ -8,16 +8,32 @@ include ../../makefile.env
 
 # --- List of all needed header files (including indirect dependencies)
 
-INCFILES=\
-	$(INCLUDEDIR)/Algebra.h \
-	$(INCLUDEDIR)/NestedList.h \
-	$(INCLUDEDIR)/QueryProcessor.h  
+#INCFILES=\
+#	$(INCLUDEDIR)/Algebra.h \
+#	$(INCLUDEDIR)/NestedList.h \
+#	$(INCLUDEDIR)/QueryProcessor.h  
 
 MODNAME=JPEGAlgebra
 LIBNAME=lib$(MODNAME)
 
 OBJECTS=\
-	$(MODNAME).$(OBJEXT) JPEGSourceMgr.$(OBJEXT)
+	JPEGSourceMgr.$(OBJEXT) $(MODNAME).$(OBJEXT)
+
+CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
+
+#CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
+
+
+.PHONY: all
+all: $(CODE_DEPENDENCIES) $(OBJECTS)
+
+# create dependencies from include directives
+%.dep: %.cpp
+	$(CC) -MM $(CCFLAGS) $< -o $@
+
+%.$(OBJEXT): %.cpp 
+	$(CC) -c -o $@ $< $(CCFLAGS)
+
 
 .PHONY: all
 all: $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS) 
@@ -39,12 +55,13 @@ endif
 
 # --- JPEG Algebra C++ library modules ---
 
-JPEGSourceMgr.$(OBJEXT): JPEGSourceMgr.cpp $(INCFILES)
-	$(CC) -c -o JPEGSourceMgr.$(OBJEXT) JPEGSourceMgr.cpp $(CCFLAGS)
-$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
-	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
+#JPEGSourceMgr.$(OBJEXT): JPEGSourceMgr.cpp $(INCFILES)
+#	$(CC) -c -o JPEGSourceMgr.$(OBJEXT) JPEGSourceMgr.cpp $(CCFLAGS)
+#$(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
+#	$(CC) -c -o $(MODNAME).$(OBJEXT) $(MODNAME).cpp $(CCFLAGS)
 
-include ../../include.dep
+include $(CODE_DEPENDENCIES:.cpp=.dep)
+#include ../../include.dep
 
 .PHONY: docu
 docu: JPEGAlgebraDocu.pd
