@@ -747,10 +747,17 @@ plan_to_atom(res(N), Result) :-
   atom_concat(Res1, ') ', Result),
   !.
 
+
+plan_to_atom(Term, Result) :-
+    is_list(Term), Term = [First | _], atomic(First), !,
+    atom_codes(TermRes, Term),
+    concat_atom(['"', TermRes, '"'], '', Result).
+
 /*
 Lists:
 
 */
+
 
 plan_to_atom([X], AtomX) :-
   plan_to_atom(X, AtomX),
@@ -761,6 +768,7 @@ plan_to_atom([X | Xs], Result) :-
   plan_to_atom(Xs, XsAtom),
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
+
 
 /*
 Operators:
@@ -879,10 +887,6 @@ plan_to_atom(X # Y, Result) :-
   concat_atom([XRes, ' # ', YRes], '', Result),
   !.
 
-plan_to_atom(Term, Result) :-
-    is_list(Term),
-    atom_codes(TermRes, Term),
-    concat_atom(['"', TermRes, '"'], '', Result).
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
@@ -919,7 +923,7 @@ plan_to_atom(X, Result) :-
   atomic(X),
   term_to_atom(X, Result),
   !.
-  
+
 plan_to_atom(X, _) :-
   write('Error while converting term: '),
   write(X),
