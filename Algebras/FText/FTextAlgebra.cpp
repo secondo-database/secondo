@@ -704,7 +704,7 @@ const string lengthSpec =
     "("
     "<text>("+typeName+" ) -> int</text--->"
     "<text>length ( _ )</text--->"
-    "<text>("+typeName+") -> int</text---><text>length returns the length of "+typeName+".</text--->"
+    "<text>length returns the length of "+typeName+".</text--->"
     ")"
   ")";
 
