@@ -335,8 +335,8 @@ class CcTuple
 
   public:
 
-    CcTuple () 
-    { 
+    CcTuple ()
+    {
       NoOfAttr = 0;
       for (int i=0; i < MaxSizeOfAttr; i++)
         AttrList[i] = 0;
@@ -347,26 +347,6 @@ class CcTuple
     void  Put (int index, void* attr) {AttrList[index] = attr;};
     void  SetNoAttrs (int noattr) {NoOfAttr = noattr;};
     int   GetNoAttrs () {return NoOfAttr;};
-
-/*
-
-Function ~CopyFrom~ copies the contents of ~right~ into
-~this~. In doing so it assumes that the first ~right->GetNoAttrs()~
-attributes of ~right~ and ~this~ are of the same type and are instances of
-StandardAttribute. No memory is allocated for copying.
-
-*/
-    void CopyFrom(CcTuple* right)
-    {
-      int i;
-
-      for(i = 0; i < right->GetNoAttrs(); i++)
-      {
-        StandardAttribute* rattr = (StandardAttribute*)right->Get(i);
-        StandardAttribute* attr = (StandardAttribute*)Get(i);
-        attr->CopyFrom(rattr);
-      }
-    }
 
     friend
     ostream& operator<<(ostream& s, CcTuple t);
@@ -431,7 +411,7 @@ public:
 
 The ~out~-function of type constructor ~tuple~ takes as inputs a type 
 description (~typeInfo~) of the tuples attribute structure in nested list
-format and a pointer to a tuple value, stored in main memory. 
+format and a pointer to a tuple value, stored in main memory.
 The function returns the tuple value from main memory storage 
 in nested list format.
 
@@ -2163,8 +2143,7 @@ static int
 TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   CcRel* rel = (CcRel*)args[0].addr;
-  /*result = qp->ResultStorage(s);*/
-  result = SetWord(new CcInt);
+  result = qp->ResultStorage(s);
   ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
   return 0;
 }
