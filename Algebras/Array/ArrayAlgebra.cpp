@@ -520,7 +520,7 @@ sizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string sizeSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>((array x)) -> int</text--->"
-        "<text>size( _ )</text--->"
+        "<text>size ( _ )</text--->"
         "<text>Returns the size of an array.</text--->"
         "<text>query size(ai)</text---> ))";
 
@@ -633,9 +633,9 @@ getFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string getSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>((array x) int) -> x</text--->"
-        "<text>_ get [ _ ]</text--->"
+        "<text>get ( _, _ )</text--->"
         "<text>Returns an element with a given index.</text--->"
-        "<text>query ai get [3]</text---> ))";
+        "<text>query get(ai,3)</text---> ))";
 
 Operator get (
 	"get",
@@ -747,9 +747,9 @@ putFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string putSpec = 
     "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>((array x) x int) -> (array x)</text--->"
-        "<text>_ _ put [ _ ]</text--->"
+        "<text>put ( _, _, _ )</text--->"
         "<text>Replaces an element at a given index.</text--->"
-        "<text>query ai 9 put [3]</text---> ))";
+        "<text>query put(ai,9,3)</text---> ))";
 
 Operator put (
 	"put",
@@ -1090,9 +1090,8 @@ summarizeTypeMap( ListExpr args )
 static int
 summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  struct ArrayIterator{int current; CcRelIT* rit;}* ait;
+  struct ArrayIterator{int current; Array* array; CcRelIT* rit;}* ait;
 
-  Array* array;
   CcRel* r;
   Word argArray;
   Word element;
@@ -1101,6 +1100,9 @@ summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
       ait = new ArrayIterator;
       ait->current = -1;
+      qp->Request(args[0].addr, argArray);
+      ait->array = (Array*)argArray.addr;
+
       local.addr = ait;
       return 0;
 
@@ -1108,12 +1110,9 @@ summarizeFun (Word* args, Word& result, int message, Word& local, Supplier s)
       ait = (ArrayIterator*)local.addr;
 
       if (ait->current < 0 || ait->rit->EndOfScan()) {
-        qp->Request(args[0].addr, argArray);
-        array = (Array*)argArray.addr;
-      
         while (ait->current < 0 
-           || (ait->rit->EndOfScan() && ait->current < array->getSize()-1)) {
-          element = array->getElement(++(ait->current));
+               || (ait->rit->EndOfScan() && ait->current < ait->array->getSize()-1)) {
+          element = ait->array->getElement(++(ait->current));
           r = (CcRel*)element.addr;
           ait->rit = r->MakeNewScan();
         }
