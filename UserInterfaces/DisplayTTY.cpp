@@ -250,6 +250,21 @@ DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 void
+DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
+{
+   ListExpr d, m, y;
+   
+    d =  nl->First( value ) ;
+    m =  nl->Second( value ) ;
+    y = nl->Third( value );  
+    nl->WriteListExpr( d, cout );
+    cout << ", ";
+    nl->WriteListExpr( m, cout );
+    cout << ", ";
+    nl->WriteListExpr( y, cout );
+}
+
+void
 DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 {
   int algebraId, typeId;
@@ -280,5 +295,6 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "rel",    &DisplayRelation );
   InsertDisplayFunction( "tuple",  &DisplayTuples );
   InsertDisplayFunction( "map",    &DisplayFun );
+  InsertDisplayFunction( "date",    &DisplayDate );
 }
 
