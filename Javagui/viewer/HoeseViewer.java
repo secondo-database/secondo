@@ -1740,6 +1740,8 @@ public boolean canDisplay(SecondoObject o){
     public void mouseMoved (MouseEvent e) {}
 
     public void mouseClicked (MouseEvent e) {
+      if (!((e.getModifiers() & InputEvent.BUTTON1_MASK) == InputEvent.BUTTON1_MASK))
+         return;
       Point2D.Double p = new Point2D.Double();
       try {
         p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(), p);
