@@ -714,6 +714,43 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
+2.3.2 Value Mapping Function of Operator ~hashjoin~
+
+*/
+int NewHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  HashJoinLocalInfo* localInfo;
+  Word attrIndexA;
+  Word attrIndexB;
+  Word nHashBuckets;
+
+  switch(message)
+  {
+    case OPEN:
+      qp->Request(args[5].addr, attrIndexA);
+      qp->Request(args[6].addr, attrIndexB);
+      qp->Request(args[4].addr, nHashBuckets);
+      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
+        args[1], attrIndexB, nHashBuckets, s);
+      local = SetWord(localInfo);
+      return 0;
+    case REQUEST:
+      localInfo = (HashJoinLocalInfo*)local.addr;
+      result = SetWord(localInfo->NextResultTuple());
+      return result.addr != 0 ? YIELD : CANCEL;
+    case CLOSE:
+      hashMeasurer.PrintCPUTimeAndReset("CPU Time for Hashing Tuples : ");
+      bucketMeasurer.PrintCPUTimeAndReset(
+        "CPU Time for Computing Products of Buckets : ");
+
+      localInfo = (HashJoinLocalInfo*)local.addr;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+
+/*
 3 Initialization of the templates
 
 The compiler cannot expand these template functions.

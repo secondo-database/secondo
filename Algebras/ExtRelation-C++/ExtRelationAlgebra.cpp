@@ -2494,6 +2494,34 @@ Operator extrelhashjoin(
 );
 
 /*
+2.17 Operator ~newhashjoin~
+
+This operator computes the equijoin two streams via a hash join.
+The user can specify the number of hash buckets.
+
+2.17.1 Value Mapping Function of Operator ~newhashjoin~
+
+*/
+int NewHashJoin(Word* args, Word& result, int message, Word& local, Supplier s);
+/*
+This function will be implemented differently for the persistent and for
+the main memory relational algebra. Its implementation can be found in
+the files ExtRelAlgPersistent.cpp and ExtRelAlgMainMemory.cpp,
+respectively.
+
+2.17.3 Definition of Operator ~newhashjoin~
+
+*/
+Operator extrelnewhashjoin(
+         "newhashjoin",        // name
+         HashJoinSpec,     // specification
+         NewHashJoin,         // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         Operator::SimpleSelect,          // trivial selection function
+         JoinTypeMap<true, 2>   // type mapping
+);
+
+/*
 2.18 Operator ~extend~
 
 Extends each input tuple by new attributes as specified in the parameter list.
@@ -4090,6 +4118,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergejoin);
     AddOperator(&extrelsortmergejoin);
     AddOperator(&extrelhashjoin);
+    AddOperator(&extrelnewhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelExtendstream);
     AddOperator(&extrelloopsel);

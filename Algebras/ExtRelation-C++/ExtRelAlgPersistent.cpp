@@ -832,7 +832,334 @@ The user can specify the number of hash buckets.
 2.3.1 Auxiliary definitions for value mapping function of operator ~hashjoin~
 
 */
+
+CPUTimeMeasurer hashMeasurer;  // measures cost of distributing into buckets and
+                               // of computing products of buckets
+CPUTimeMeasurer bucketMeasurer;// measures the cost of producing the tuples in
+                               // the result set
+
 class HashJoinLocalInfo
+{
+private:
+  size_t nBuckets;
+  size_t MAX_TUPLES_IN_BUCKET;
+
+  int attrIndexA;
+  int attrIndexB;
+
+  Word streamA;
+  Word streamB;
+
+  Word tupleA;
+  vector< vector<Tuple*> > bucketsB;
+  vector<Tuple*>::iterator iterTuplesBucketB;
+
+  vector<Relation*> relBucketsB;
+  RelationIterator* iterTuplesRelBucketB;
+
+  size_t hashA;
+
+  TupleType *resultTupleType;
+
+  int CompareTuples(Tuple* a, Tuple* b)
+  {
+    /* tuples with NULL-Values in the join attributes
+       are never matched with other tuples. */
+    if(!((Attribute*)a->GetAttribute(attrIndexA))->IsDefined())
+    {
+      return -1;
+    }
+    if(!((Attribute*)b->GetAttribute(attrIndexB))->IsDefined())
+    {
+      return 1;
+    }
+
+    return ((Attribute*)a->GetAttribute(attrIndexA))->
+      Compare((Attribute*)b->GetAttribute(attrIndexB));
+  }
+
+  size_t HashTuple(Tuple* tuple, int attrIndex)
+  {
+    return (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() % nBuckets);
+  }
+
+  void SaveTo( vector<Tuple*>& bucket, Relation *rel )
+  {
+    vector<Tuple*>::iterator iter = bucket.begin();
+    while( iter != bucket.end() )
+    {
+      Tuple *t = (*iter)->CloneIfNecessary();
+      rel->AppendTuple( t );
+      t->DeleteIfAllowed();
+      iter++;
+    }
+  }
+
+  int ReadFrom( RelationIterator *iter, vector<Tuple*>& bucket )
+  {
+    size_t i = 0;
+    Tuple *t;
+
+    while( i < MAX_TUPLES_IN_BUCKET && (t = iter->GetNextTuple()) != 0 )
+    {
+      t->SetFree( false );
+      bucket.push_back( t );
+      i++;
+    }
+    return i;
+  }
+
+  void ClearBucket( vector<Tuple*>& bucket )
+  {
+    vector<Tuple*>::iterator i = bucket.begin();
+    while( i != bucket.end() )
+    {
+      delete (*i);
+      i++;
+    }
+    bucket.clear();
+  }
+
+  void FillHashBucketsB()
+  {
+    Word tupleWord;
+    qp->Open(streamB.addr);
+    qp->Request(streamB.addr, tupleWord);
+
+    if(qp->Received(streamB.addr))
+    {
+      Tuple *tupleB = (Tuple*)tupleWord.addr;
+//      MAX_TUPLES_IN_BUCKET = qp->MemoryAvailableForOperator() / ( nBuckets * tupleB->GetMemorySize() );
+      MAX_TUPLES_IN_BUCKET = 16 * 1024 * 1024 / ( nBuckets * tupleB->GetMemorySize() );
+      cout << "HashJoin.MAX_TUPLES_IN_BUCKET: " << MAX_TUPLES_IN_BUCKET << endl;
+    }
+
+    while(qp->Received(streamB.addr))
+    {
+      hashMeasurer.Enter();
+
+      Tuple* tupleB = ((Tuple*)tupleWord.addr)->CloneIfNecessary();
+      ((Tuple*)tupleWord.addr)->DeleteIfAllowed();
+      size_t hashB = HashTuple(tupleB, attrIndexB);
+
+      if( bucketsB[hashB].size() == MAX_TUPLES_IN_BUCKET )
+      {
+        relBucketsB[hashB] = new Relation( tupleB->GetTupleType(), true );
+        SaveTo( bucketsB[hashB], relBucketsB[hashB] );
+        ClearBucket( bucketsB[hashB] );
+      }
+
+      if( relBucketsB[hashB] == 0 )
+      {
+        tupleB->SetFree( false );
+        bucketsB[hashB].push_back( tupleB );
+      }
+      else
+      {
+        relBucketsB[hashB]->AppendTuple( tupleB );
+        tupleB->DeleteIfAllowed();
+      }
+      hashMeasurer.Exit();
+
+      qp->Request(streamB.addr, tupleWord);
+    }
+    qp->Close(streamB.addr);
+  }
+
+  void ClearBucketsB()
+  {
+    vector< vector<Tuple*> >::iterator iterBuckets = bucketsB.begin();
+
+    while(iterBuckets != bucketsB.end() )
+    {
+      ClearBucket( *iterBuckets );
+      iterBuckets++;
+    }
+  }
+
+  void ClearRelationsB()
+  {
+    delete iterTuplesRelBucketB;
+
+    vector< Relation* >::iterator iterBuckets = relBucketsB.begin();
+
+    while(iterBuckets != relBucketsB.end() )
+    {
+      if( (*iterBuckets) != 0 )
+        delete *iterBuckets;
+      iterBuckets++;
+    }
+
+  }
+
+public:
+  static const size_t MAX_BUCKETS = 257;
+  static const size_t MIN_BUCKETS = 1;
+  static const size_t DEFAULT_BUCKETS = 97;
+
+  HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
+    Word streamB, Word attrIndexBWord, Word nBucketsWord,
+    Supplier s)
+  {
+    this->streamA = streamA;
+    this->streamB = streamB;
+
+    ListExpr resultType = SecondoSystem::GetCatalog( ExecutableLevel )->NumericType( qp->GetType( s ) );
+    resultTupleType = new TupleType( nl->Second( resultType ) );
+
+    attrIndexA = ((CcInt*)attrIndexAWord.addr)->GetIntval() - 1;
+    attrIndexB = ((CcInt*)attrIndexBWord.addr)->GetIntval() - 1;
+    nBuckets = ((CcInt*)nBucketsWord.addr)->GetIntval();
+    if(nBuckets < MIN_BUCKETS)
+    {
+      nBuckets = MIN_BUCKETS;
+    }
+    else if(nBuckets > MAX_BUCKETS)
+    {
+      nBuckets = MAX_BUCKETS;
+    }
+
+    hashMeasurer.Enter();
+
+    bucketsB.resize(nBuckets);
+    relBucketsB.resize(nBuckets);
+
+    for(size_t i = 0; i < nBuckets; i++ )
+      relBucketsB[i] = 0;
+
+    iterTuplesRelBucketB = 0;
+
+    hashMeasurer.Exit();
+
+    FillHashBucketsB();
+
+    qp->Open(streamA.addr);
+    qp->Request( streamA.addr, tupleA );
+    if( qp->Received(streamA.addr) )
+    {
+      hashA = HashTuple((Tuple*)tupleA.addr, attrIndexA);
+      iterTuplesBucketB = bucketsB[hashA].begin();
+    }
+  }
+
+  ~HashJoinLocalInfo()
+  {
+    ClearBucketsB();
+    ClearRelationsB();
+    qp->Close(streamA.addr);
+    delete resultTupleType;
+  }
+
+  Tuple* NextTupleB( size_t hashA )
+  {
+    if( iterTuplesBucketB != bucketsB[hashA].end() )
+    {
+      Tuple *result = *iterTuplesBucketB;
+      iterTuplesBucketB++;
+      return result;
+    }
+
+    if( relBucketsB[hashA] != 0 )
+    {
+      if( iterTuplesRelBucketB == 0 )
+        iterTuplesRelBucketB = relBucketsB[hashA]->MakeScan();
+
+      if( !bucketsB[hashA].empty() )
+        ClearBucket( bucketsB[hashA] );
+
+      if( ReadFrom( iterTuplesRelBucketB, bucketsB[hashA] ) == 0 )
+      {
+        delete iterTuplesRelBucketB;
+        iterTuplesRelBucketB = 0;
+        return 0;
+      }
+
+      iterTuplesBucketB = bucketsB[hashA].begin();
+
+      return NextTupleB( hashA );
+    }
+
+    iterTuplesRelBucketB = 0;
+    return 0;
+  }
+
+  Tuple* NextResultTuple()
+  {
+    Tuple *result;
+
+    while( tupleA.addr != 0 )
+    {
+      Tuple *tupleB;
+      while( (tupleB = NextTupleB( hashA )) != 0 )
+      {
+        if( CompareTuples( (Tuple *)tupleA.addr, tupleB ) == 0 )
+        {
+          result = new Tuple( *resultTupleType, true );
+          Concat( (Tuple *)tupleA.addr, tupleB, result );
+
+          return result;
+        }
+      }
+      ((Tuple*)tupleA.addr)->DeleteIfAllowed();
+
+      qp->Request( streamA.addr, tupleA );
+      if( qp->Received(streamA.addr) )
+      {
+        hashA = HashTuple((Tuple*)tupleA.addr, attrIndexA);
+        iterTuplesBucketB = bucketsB[hashA].begin();
+      }
+    }
+    return 0;
+  }
+};
+
+/*
+2.3.2 Value Mapping Function of Operator ~hashjoin~
+
+*/
+int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  HashJoinLocalInfo* localInfo;
+  Word attrIndexA;
+  Word attrIndexB;
+  Word nHashBuckets;
+
+  switch(message)
+  {
+    case OPEN:
+      qp->Request(args[5].addr, attrIndexA);
+      qp->Request(args[6].addr, attrIndexB);
+      qp->Request(args[4].addr, nHashBuckets);
+      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
+        args[1], attrIndexB, nHashBuckets, s);
+      local = SetWord(localInfo);
+      return 0;
+    case REQUEST:
+      localInfo = (HashJoinLocalInfo*)local.addr;
+      result = SetWord(localInfo->NextResultTuple());
+      return result.addr != 0 ? YIELD : CANCEL;
+    case CLOSE:
+      hashMeasurer.PrintCPUTimeAndReset("CPU Time for Hashing Tuples : ");
+      bucketMeasurer.PrintCPUTimeAndReset(
+        "CPU Time for Computing Products of Buckets : ");
+
+      localInfo = (HashJoinLocalInfo*)local.addr;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+
+/*
+2.3 Operator ~newhashjoin~
+
+This operator computes the equijoin two streams via a hash join.
+The user can specify the number of hash buckets.
+
+2.3.1 Auxiliary definitions for value mapping function of operator ~hashjoin~
+
+*/
+class NewHashJoinLocalInfo
 {
 private:
   size_t nBuckets;
@@ -943,7 +1270,7 @@ public:
   static const size_t MIN_BUCKETS = 3;
   static const size_t DEFAULT_BUCKETS = 97;
 
-  HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
+  NewHashJoinLocalInfo(Word streamA, Word attrIndexAWord,
     Word streamB, Word attrIndexBWord, Word nBucketsWord,
     Supplier s)
   {
@@ -985,7 +1312,7 @@ bucket that the tuple coming from A hashes is also initialized.
 */
   }
 
-  ~HashJoinLocalInfo()
+  ~NewHashJoinLocalInfo()
   {
     ClearBucketsB();
     if( !bFitsInMemory )
@@ -1079,9 +1406,9 @@ bucket that the tuple coming from A hashes is also initialized.
 2.3.2 Value Mapping Function of Operator ~hashjoin~
 
 */
-int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
+int NewHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  HashJoinLocalInfo* localInfo;
+  NewHashJoinLocalInfo* localInfo;
   Word attrIndexA;
   Word attrIndexB;
   Word nHashBuckets;
@@ -1092,16 +1419,16 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Request(args[5].addr, attrIndexA);
       qp->Request(args[6].addr, attrIndexB);
       qp->Request(args[4].addr, nHashBuckets);
-      localInfo = new HashJoinLocalInfo(args[0], attrIndexA,
+      localInfo = new NewHashJoinLocalInfo(args[0], attrIndexA,
         args[1], attrIndexB, nHashBuckets, s);
       local = SetWord(localInfo);
       return 0;
     case REQUEST:
-      localInfo = (HashJoinLocalInfo*)local.addr;
+      localInfo = (NewHashJoinLocalInfo*)local.addr;
       result = SetWord(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
-      localInfo = (HashJoinLocalInfo*)local.addr;
+      localInfo = (NewHashJoinLocalInfo*)local.addr;
       delete localInfo;
       return 0;
   }

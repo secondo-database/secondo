@@ -22,6 +22,7 @@ operator sortby alias SORTBY pattern _ op [list]
 operator mergejoin alias MERGEJOIN pattern _ _ op [_, _]
 operator sortmergejoin alias SORTMERGEJOIN pattern _ _ op [_, _]
 operator hashjoin alias HASHJOIN pattern _ _ op [_, _, _]
+operator newhashjoin alias NEWHASHJOIN pattern _ _ op [_, _, _]
 
 operator loopjoin alias LOOPJOIN pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator loopsel alias LOOPSEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
