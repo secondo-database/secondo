@@ -34,6 +34,8 @@
 %P ../Javagui/lib/java_cup_v10k.zip
 %P ../Javagui/lib/java_cup_v10k_runtime.jar
 %P ../Javagui/lib/visualrt.zip
+%P ../Javagui
+%P ../Tools/Jni
 %P ../Algebras/Rose/RoseJava
 %P ../Algebras/Fuzzy
 
