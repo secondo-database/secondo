@@ -42,7 +42,7 @@ testspecs:
             exit 1; \
           fi \
         done
-	@rm -f tokens yaccrules1 yaccrules2
+	@rm -f tokens lexrules yaccrules1 yaccrules2
 
 
 .PHONY:buildlibs
