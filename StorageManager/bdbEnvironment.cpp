@@ -43,6 +43,12 @@ using namespace std;
 #include <windows.h>
 #endif
 
+#ifndef NL_PERSISTENT
+static u_int32_t AutoCommitFlag = DB_AUTO_COMMIT; 
+#else
+static u_int32_t AutoCommitFlag = 0; 
+#endif
+
 /* --- Prototypes of internal functions --- */
 
 static int getfilename( Db* dbp, const Dbt* pkey, const Dbt* pdata, Dbt* skey );
@@ -644,7 +650,7 @@ SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
   buf[len] = '\0';
   Dbt key(buf, len + 1);
   Dbt data(buf, len + 1);
-  rc = dbctl->put(0, &key, &data, DB_NOOVERWRITE | DB_AUTO_COMMIT);
+  rc = dbctl->put(0, &key, &data, DB_NOOVERWRITE | AutoCommitFlag);
   ok = (rc == 0);
   return (ok);
 }
@@ -665,7 +671,7 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
     buf[len] = '\0';
     Dbt key(buf, len + 1);
 
-    rc = dbctl->del( 0, &key, DB_AUTO_COMMIT );
+    rc = dbctl->del( 0, &key, AutoCommitFlag );
 
     ok = (rc == 0);
   }
@@ -813,7 +819,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
       case SmiEnvironment::SingleUserSimple:
         singleUserMode  = true;
         useTransactions = false;
-        flags = DB_PRIVATE  | DB_CREATE | DB_INIT_MPOOL;
+        flags = DB_PRIVATE  | DB_CREATE | DB_INIT_MPOOL | DB_INIT_LOCK;
 /*
 creates a private environment for the calling process and enables
 automatic recovery during startup. If the environment does not exist,
@@ -864,7 +870,7 @@ Transactions, logging and locking are enabled.
     // --- Open Database Catalog
 
     Db* dbctlg = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-    rc = dbctlg->open( 0, "databases", 0, DB_BTREE, DB_CREATE | DB_AUTO_COMMIT, 0 );
+    rc = dbctlg->open( 0, "databases", 0, DB_BTREE, DB_CREATE | AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbDatabases = dbctlg;
@@ -1325,7 +1331,7 @@ SmiEnvironment::InitializeDatabase()
   Db* dbseq = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
   dbseq->set_re_len( sizeof( SmiFileId ) );
   fileName = database+PATH_SLASH+"sequences";
-  rc = dbseq->open( 0, fileName.c_str(), 0, DB_QUEUE, DB_CREATE | DB_AUTO_COMMIT, 0 );
+  rc = dbseq->open( 0, fileName.c_str(), 0, DB_QUEUE, DB_CREATE | AutoCommitFlag, 0 );
   if ( rc == 0 )
   {
     instance.impl->bdbSeq = dbseq;
@@ -1343,7 +1349,7 @@ SmiEnvironment::InitializeDatabase()
     dbidx = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 
     fileName = database+PATH_SLASH+"filecatalog";
-    rc = dbctl->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | DB_AUTO_COMMIT, 0 );
+    rc = dbctl->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalog = dbctl;
@@ -1354,7 +1360,7 @@ SmiEnvironment::InitializeDatabase()
     }
 
     fileName = database+PATH_SLASH+"fileindex";
-    rc = dbidx->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | DB_AUTO_COMMIT, 0 );
+    rc = dbidx->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalogIndex = dbidx;
@@ -1367,7 +1373,7 @@ SmiEnvironment::InitializeDatabase()
     // --- Associate the secondary key with the primary key
     if ( rc == 0 )
     {
-      rc = dbctl->associate( 0, dbidx, getfilename, DB_AUTO_COMMIT );
+      rc = dbctl->associate( 0, dbidx, getfilename, AutoCommitFlag );
     }
   }
 
