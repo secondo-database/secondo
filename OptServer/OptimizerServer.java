@@ -8,6 +8,7 @@ import jpl.Query;
 import jpl.Term;
 import jpl.Variable;
 import jpl.fli.*;
+import jpl.Compound;
 
 
 public class OptimizerServer extends Thread{
@@ -57,37 +58,17 @@ public class OptimizerServer extends Thread{
     }
 
 
-    /** invokes a prolog predicate */
-    synchronized private static boolean command(String cmd, PL_Parameter[] args,Vector results){
+    /** invokes a prolog predicate
+      * all terms in variables must be contained in arguments
+      * variables and results can be null if no result is desired
+      */
+    synchronized private static boolean command(Query pl_query, NamedVariable[] variables,Vector results){
+      if(pl_query==null)
+         return false;
       try{
-
-          if(trace){
-	     System.out.print("invoke command("+cmd+" , ");
-	     for(int i=0;i<args.length;i++)
-	        System.out.print(args[i]+" , ");
-	     System.out.println("(...)");
-	  }
-	 Term[] pl_args= new Term[args.length];
-	 Vector tmpVars = new Vector(args.length); // use a variable only one time
-         PL_Parameter VP;
-	 int index;
-         for(int i=0;i<args.length;i++){
-	     if(!args[i].isVariable()){ // an atom dont't need a special treatment
-                pl_args[i] = args[i].getTerm();
-	     }else{
-                VP = args[i];
-		if((index=tmpVars.indexOf(VP))>=0){ // variable already used
-                   pl_args[i] = ((PL_Parameter)tmpVars.get(i)).getTerm();
-		}else{ // a new variable
-                    tmpVars.add(VP);
-		    pl_args[i]=VP.getTerm();
-		}
-	     }
+	 if(trace){
+	   System.out.println("execute query: "+pl_query);
 	 }
-
-
-	 Query pl_query = new Query(new Atom(cmd),pl_args);
-
 	 String ret ="";
          int number =0; // the number of solutions
 	 if(results!=null)
@@ -97,11 +78,11 @@ public class OptimizerServer extends Thread{
 	    Hashtable solution = pl_query.nextSolution();
 	    if(results!=null){
 	       ret = "";
-               if(tmpVars.size()==0)
+               if(variables==null || variables.length==0)
 	           results.add("yes");
 	       else{
-	          for(int i=0;i<tmpVars.size();i++){
-	              PL_Parameter P = (PL_Parameter)tmpVars.get(i);
+	          for(int i=0;i<variables.length;i++){
+	              NamedVariable P = variables[i];
 		      if (i>0) ret += " $$$ ";
 	              ret += ( P.getName() + " = " + solution.get(P.getVariable()));
 	          }
@@ -111,13 +92,26 @@ public class OptimizerServer extends Thread{
          }
          if(number == 0){
             if(trace)
-	       System.out.println("no solution found for' "+cmd +"<"+args.length+">");
+	       System.out.println("no solution found for' "+pl_query.atom() +"/"+pl_query.args().length);
 	    return false;
-         } else
-             return true;
+         } else{
+             // check if a new database is opened
+	     if(pl_query.atom().toString().equals("secondo") & pl_query.args().length>0){
+                String first = pl_query.args()[0].toString().trim();
+                if(first.startsWith("open ") && first.indexOf(" database ")>0){
+		   int lastindex = first.lastIndexOf(" ");
+		   openedDatabase = first.substring(lastindex).trim();
+		   if(trace){
+		      System.out.println("open database "+ openedDatabase);
+		      showPrompt();
+		   }
+		}
+	     }
+	     return true;
+        }
 	} catch(Exception e){
 	   if(trace)
-              System.out.println("exception in calling the "+cmd+"-predicate"+e);
+              System.out.println("exception in calling the "+pl_query.atom()+"-predicate"+e);
 	   return false;
 	}
     }
@@ -127,63 +121,33 @@ public class OptimizerServer extends Thread{
       * <br> then the given command is executed
       * all Solutions are stored into the Vector Solution
       */
-    private static boolean execute(String command,Vector Solution){
+    private synchronized static boolean execute(String command,Vector Solution){
+          if(Solution!=null)
+	      Solution.clear();
+	      
+	  // clients should not have the possibility
+	  // to shut down the Optimizer-Server
+	  command = command.trim();
+	  if(command.startsWith("halt ") || command.equals("halt"))
+	     return false;
 
-       // first split command and arguments
-       int Pos = 0;
-       int length = command.length();
-       char c = ' ';
-       String CurString="";
-       java.util.Vector V = new java.util.Vector();
-       while(Pos<length){
-          while( Pos<length && (c = command.charAt(Pos))==' ') // ignore spaces
-	      Pos++;
-	  if(c=='\"'){
-	     CurString+=c;;
-	     Pos++; // found a string
-             while(Pos<length && (c=command.charAt(Pos))!='\"') {
-	        CurString += c;
-		Pos++;
-	     }
-	     Pos++;
-	     CurString +=c;
-	     V.add(CurString);
-	     CurString ="";
-	  }else if(c=='\''){
-             Pos++; // found a string
-             while(Pos<length && (c=command.charAt(Pos))!='\'') {
-	        CurString += c;
-		Pos++;
-	     }
-	     Pos++;
-	     V.add(CurString);
-	     CurString ="";
+	  Vector TMPVars = new Vector();
+	  if(trace){
+	    System.out.println("analyse command: "+command);
 	  }
-	  else{
-             while(Pos<length && (c=command.charAt(Pos))!=' ' && c!='"'){
-	        CurString +=c;
-		Pos++;
-	     }
-	     V.add(CurString);
-	     CurString="";
+	  Query pl_query = Parser.parse(command,TMPVars);
+          if(pl_query==null){
+	     if(trace)
+	        System.out.println("error in parsing command: "+command);
+             return  false;
 	  }
-       }
 
+	  NamedVariable[] variables = new NamedVariable[TMPVars.size()];
+	  for(int i=0;i<TMPVars.size();i++)
+	       variables[i] = (NamedVariable) TMPVars.get(i);
 
-       if(V.size()<1){
-          if(trace)
-	     System.out.println("execute is invoked with a empty command");
-	  return false;
-       }else{
-          String cmd = (String) V.get(0);
-	  PL_Parameter[] args = new PL_Parameter[V.size()-1];
-	  for(int i=0;i<args.length;i++){
-	      args[i]= new PL_Parameter((String)V.get(i+1));
+          boolean res = command(pl_query,variables,Solution);
 
-	   }
-
-          boolean res = command(cmd,args,Solution);
-	  
 	  if(res & trace & Solution!=null){ // successful
              if(Solution.size()==0)
 	        System.out.println("Yes");
@@ -195,9 +159,7 @@ public class OptimizerServer extends Thread{
 
 	  }
 	  return res;
-       }
-
-    }
+     }
 
 
 
@@ -248,21 +210,20 @@ public class OptimizerServer extends Thread{
     private synchronized boolean useDatabase(String Name){
        if(openedDatabase.equals(Name))
           return true;
-       PL_Parameter[] arg = new PL_Parameter[1];
+       Term[] arg = new Term[1];
        if(!openedDatabase.equals("")){
-          arg[0] = new PL_Parameter("close database");
-          command("secondo",arg,null);
+          if(trace)
+	     System.out.println("close the opened database");
+	  arg[0] = new Atom("close database");
+	  Query Q = new Query(new Atom("secondo"),arg);
+          command(Q,null,null);
        }
-       arg[0] = new PL_Parameter("open database "+Name);
-       return command("secondo",arg,null);
+       
+       arg[0] = new Atom("open database "+Name);
+       Query Q_open = new Query(new Atom("secondo"),arg);
+       showPrompt();
+       return command(Q_open,null,null);
    }
-
-
-
-
-
-
-
 
 
 
@@ -490,7 +451,6 @@ public class OptimizerServer extends Thread{
       private BufferedWriter out;
       private boolean running;
       private Socket S;
-
     }
 
 
@@ -616,6 +576,8 @@ public class OptimizerServer extends Thread{
        }catch(Exception e){
           OS.running = false;
 	  System.out.println("error in reading commands");
+	  if(trace)
+	     e.printStackTrace();
        }
        try{
           JPL.halt();
@@ -626,88 +588,20 @@ public class OptimizerServer extends Thread{
    }
 
 
-   private static class PL_Parameter{
-      /* creates a new PL_Parameter */
-      public PL_Parameter(String Name){
-        this.name=Name.trim();
-        if(isUpperCase(name.charAt(0)) && !(name.indexOf(' ')>=0)){
-	  isVar=true;
-	  atomValue=null;
-	  varValue = new Variable();
-	} else{
-	   isVar=false;
-	   varValue=null;
-	   atomValue= new Atom(name);
-	}
-      }
-
-      /** returns true if this parameter is a variable */
-      public boolean isVariable(){
-         return isVar;
-      }
-
-      /** returns the atom.Value of this parameter
-        * if it's a variable null is returned
-	*/
-      public Atom getAtom(){
-         return atomValue;
-      }
-
-      /** returns the variable of this parameter
-        * if it's a atom null is returned
-	*/
-      public Variable getVariable(){
-         return varValue;
-      }
 
 
-      /** returns the name of this parameter*/
-      public String getName(){
-         return name;
-      }
-
-      /** returns true if the parameters are equal
-        */
-      public boolean equals(Object o){
-         if(o==null | !(o instanceof PL_Parameter))
-	    return false;
-	 return name.equals( ((PL_Parameter) o).name);
-      }
-
-      /** returns the variable-value if it's a variable,
-        * otherwise the atom-value is returned
-	*/
-      public Term getTerm(){
-        if(isVar)
-	  return  varValue;
-	else
-	   return atomValue;
-      }
-
-      /** returns true if c in A-Z */
-      private boolean isUpperCase(char c){
-        return c>='A' && c <='Z';
-      }
-      
-      public String toString(){
-         return name;
-      }
-
-      private String name;
-      private boolean isVar;
-      private Variable varValue;
-      private Atom atomValue;
-
-   }
-
-
+   private static PrologParser Parser = new PrologParser();
    private boolean optimizer_loaded = false;
    private int PortNr = 1235;
    private static int Clients = 0;
    private ServerSocket SS;
    private boolean running;
-   private String openedDatabase ="";
+   private static String openedDatabase ="";
    private static boolean trace = true;
    private Object SyncObj = new Object();
 
 }
+
+
+
+
