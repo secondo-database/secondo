@@ -18,6 +18,7 @@
 :- op(800, xfx, inside).
 :- op(800, xfx, intersects).
 :- op(800, xfx, touches).
+:- op(800, xfx, or).
 
 /*
 
