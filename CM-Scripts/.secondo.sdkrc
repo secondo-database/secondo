@@ -2,9 +2,9 @@
 #
 # Feb 2005. M. Spiekermann
 
-#CVS
+# CVS Configuration
 export CVSROOT=":pserver:myaccount@zeppelin.fernuni-hagen.de:2401/home/cvsroot"
 
-#Berkeley DB
-export BERKELEY_DB_DIR=${SECONDO_SDK}/bdb4252
+# Berkeley DB
+export BERKELEY_DB_DIR=${SECONDO_SDK}
 

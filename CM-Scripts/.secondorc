@@ -25,7 +25,14 @@ fi
 
 # define important base directories
 sdkDir=${prefix}/secondo-sdk
+if [ "$1" != "" ]; then
+sdkDir=$1
+fi
+
 buildDir=${HOME}/secondo
+if [ "$2" != "" ]; then
+buildDir=$2
+fi
 
 ok="true"
 if ! [ -d $buildDir ]; then
@@ -35,7 +42,7 @@ if ! [ -d $buildDir ]; then
 fi
 
 if ! [ -d $sdkDir ]; then
-  printf "%s"   "Error: I assume the SECONDO development tools are in \"${buildDir}\" "
+  printf "%s"   "Error: I assume the SECONDO development tools are in \"${sdkDir}\" "
   printf "%s\n" "but this directory is not present!"
   ok="false" 
 fi

@@ -14,3 +14,5 @@ export J2SDK_ROOT="$SECONDO_SDK/j2sdk1.4.2_01"
 export PD_DVI_VIEWER=xdvi
 export PD_PS_VIEWER=gv
 
+#Readline support
+export readline=true
