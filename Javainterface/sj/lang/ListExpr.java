@@ -630,7 +630,7 @@ public class ListExpr extends Object {
      DOS.writeShort(1);
      DOS.writeShort(1);
      boolean ok = writeBinaryRec(this,DOS);
-     DOS.close();
+     DOS.flush();
      return ok;
    } catch(Exception e){
      if(DEBUG_MODE)
@@ -861,6 +861,10 @@ public static ListExpr readBinaryFrom(InputStream In){
     return LE;
  }
  catch(Exception e){
+   if(DEBUG_MODE){
+      System.out.println(e);
+      e.printStackTrace();
+   }
    return null;
  }
 }
@@ -900,7 +904,7 @@ try{
                                 }
       case BIN_STRING         : { int len = getPositiveInt(in.readShort());
                                   return stringAtom(in.readString(len));
-				} 
+				}
       case BIN_LONGSTRING     : {  int len = in.readInt();
 	                           return ListExpr.stringAtom(in.readString(len));
 	                        }
@@ -978,11 +982,17 @@ try{
 	                         }
 
 
-	  default      : return null;
+	  default      : { if(DEBUG_MODE)
+	                       System.out.println("unknow binary list type");
+	                   return null;}
   }
 
 }
 catch(Exception e){
+  if(DEBUG_MODE){
+    System.out.println(e);
+    e.printStackTrace();
+  }
   return null;
 }
 
