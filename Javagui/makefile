@@ -15,8 +15,8 @@ help:
 
 .PHONY: doc # creates the documentation
 doc:
-	$(mkdir $(DOCPATH))
-	$(JAVADOC) -d $(DOCPATH) -classpath ".;$(JAVAINTERFACEPATH)" $(GUIPACKAGE) $(VIEWERPACKAGES)
+	$(shell mkdir $(DOCPATH))
+	$(JAVADOC) -d $(DOCPATH) -classpath "$(CLASSPATH)" $(GUIPACKAGE) $(VIEWERPACKAGES)
 
 .PHONY: all #creates the gui and all know viewers
 all:
@@ -45,3 +45,4 @@ mrproper: clean
 .PHONY: cleangui
 cleangui:
 	(cd gui;make clean)
+
