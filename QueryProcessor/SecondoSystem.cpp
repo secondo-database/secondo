@@ -275,6 +275,7 @@ Precondition: dbState = dbOpen.
     if ( defined )
     {
       valueList = scExecutable->OutObject( typeExpr, value );
+      scExecutable->CloseObject( typeExpr, value );
     }
     else
     {
@@ -300,6 +301,7 @@ Precondition: dbState = dbOpen.
       if ( defined )
       {
         valueList = scDescriptive->OutObject( typeExpr, value );
+	scExecutable->CloseObject( typeExpr, value );
       }
       else
       {
