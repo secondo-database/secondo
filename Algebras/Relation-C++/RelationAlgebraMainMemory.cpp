@@ -647,15 +647,19 @@ the type info is
 */
 ListExpr RelProp ()
 {
+  ListExpr listreplist = nl->TextAtom();
+  nl->AppendText(listreplist,"(<tuple>*)where <tuple> is "
+  "(<attr1> ... <attrn>)");
+
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"), 
 	                     nl->StringAtom("Example Type List"), 
 			     nl->StringAtom("List Rep"), 
 			     nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("TUPLE -> REL"), 
-	                     nl->StringAtom("(rel(tuple((name string)(age int))))"), 
-			     nl->StringAtom("(<tuple>*)where <tuple> is (<attr1> ... <attrn>)"), 
-			     nl->StringAtom("((\"Myers\" 53)(\"Smith\" 21))"))));
+	               nl->StringAtom("(rel(tuple((name string)(age int))))"), 
+		       listreplist, 
+		       nl->StringAtom("((\"Myers\" 53)(\"Smith\" 21))"))));
 }
 
 CcRel::CcRel ()

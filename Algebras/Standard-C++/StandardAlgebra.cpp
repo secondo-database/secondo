@@ -234,7 +234,9 @@ int    CcInt::Compare( Attribute* arg )
   return (0);
 };
 /*
+
 The next function defines the type property of type constructor ~CcInt~.
+
 */
 static ListExpr
 CcIntProperty()
@@ -259,6 +261,7 @@ int CcInt::Adjacent( Attribute* arg )
 }
 
 /*
+
 Now we define a function, ~OutInt~, that takes as inputs a type description
 and a pointer to a value of this type. The representation of this value in
 nested list format is returned.
@@ -285,6 +288,7 @@ OutCcInt( ListExpr typeinfo, Word value )
 }
 
 /*
+
 The function ~InInt~ provides a functionality complementary to ~OutInt~:
 A pointer to a value's main memory representation is returned. It is calculated
 by taking the value's nested list representation and its type description as
@@ -572,7 +576,9 @@ int     CcReal::Compare( Attribute * arg )
   return (0);
 };
 /*
+
 The next function defines the type property of type constructor ~CcReal~.
+
 */
 static ListExpr
 CcRealProperty()
@@ -585,7 +591,8 @@ CcRealProperty()
             nl->FourElemList(nl->StringAtom("-> DATA"), 
 	                     nl->StringAtom("real"), 
 			     nl->StringAtom("(<realvalue>)"), 
-			     nl->StringAtom("12.0 or -1.342 or 14e-3 or .23"))));
+			     nl->StringAtom("12.0 or -1.342 or 14e-3 "
+			     "or .23"))));
 }
 
 int CcReal::Adjacent( Attribute *arg )
@@ -737,7 +744,9 @@ int     CcBool::Compare(Attribute* arg)
   return (0);
 };
 /*
+
 The next function defines the type property of type constructor ~CcBool~.
+
 */
 static ListExpr
 CcBoolProperty()
@@ -995,7 +1004,9 @@ int       CcString::Compare( Attribute* arg )
   // return (stringval.compare( p->stringval ));
 };
 /*
+
 The next function defines the type property of type constructor ~CcString~.
+
 */
 static ListExpr
 CcStringProperty()
@@ -1008,7 +1019,8 @@ CcStringProperty()
             nl->FourElemList(nl->StringAtom("-> DATA"), 
 	                     nl->StringAtom("string"), 
 			     nl->StringAtom("(<stringvalue>)"), 
-			     nl->StringAtom("\"A piece of text up to 48 characters\""))));
+			     nl->StringAtom("\"A piece of text up to 48 "
+			     "characters\""))));
 }
 
 int CcString::Adjacent( Attribute* arg )
@@ -3166,163 +3178,214 @@ ModelMapping ccnomodelmap[] = { CcNoModelMapping, CcNoModelMapping, CcNoModelMap
 ModelMapping ccgtmodelmap[] = { IiGreaterModel, CcNoModelMapping, CcNoModelMapping,
                                 CcNoModelMapping, CcNoModelMapping, CcNoModelMapping };
 
-//const string CCSpecAdd  = "(<text> (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real </text---><text> Addition. </text--->)";
-const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real</text--->
-			       <text>_ + _</text--->
-			       <text>Addition.</text--->
-			       <text>query -1.2 + 7</text--->
-			      ) )";
-//const string CCSpecSub  = "(<text> (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real</text---><text> Subtraction. </text--->)";
-const string CCSpecSub  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real</text--->
-			       <text>_ - _</text--->
-			       <text>Subtraction</text--->
-			       <text>query -.2 - 4</text--->
-			      ) )";   
-//const string CCSpecMul  = "(<text> (int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real</text---><text> Multiplication. </text--->)";
-const string CCSpecMul  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real</text--->
-			       <text>_ * _</text--->
-			       <text>Multiplication.</text--->
-			       <text>query 5 * 1.4 </text--->
-			      ) )"; 
-//const string CCSpecDiv  = "(<text> (int int) -> real, (int real) -> real, (real int) -> real, (real real) -> real</text---><text> Division. </text--->)";
-const string CCSpecDiv  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> real, (int real) -> real, (real int) -> real, (real real) -> real</text--->
-			       <text>_ / _</text--->
-			       <text>Division.</text--->
-			       <text>query 5 / 2 </text--->
-			      ) )";
-//const string CCSpecMod  = "(<text> (int int) -> int</text---><text> Modulo. </text--->)";
-const string CCSpecMod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> int</text--->
-			       <text>_ mod _</text--->
-			       <text>Modulo.</text--->
-			       <text>query 8 mod 3 </text--->
-			      ) )";
-//const string CCSpecDiv2 = "(<text> (int int) -> int</text---><text> Integer Division. </text--->)";
-const string CCSpecDiv2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> int</text--->
-			       <text>_ div _</text--->
-			       <text>Integer Division.</text--->
-			       <text>query 5 div 2 </text--->
-			      ) )";
-//const string CCSpecRandInt  = "(<text> int -> int </text---><text> Returns a random integer between 0 and arg-1, for arg > 1.</text--->)";
-const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>int -> int </text--->
-			       <text>randint ( _ )</text--->
-			       <text>Returns a random integer between 0 and arg-1, for arg > 1.</text--->
-			       <text>query randint (9)</text--->
-			      ) )";
-//const string CCSpecLog  = "(<text> int -> int </text--->)";
-const string CCSpecLog  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>int -> int </text--->
-			       <text>log ( _ )</text--->
-			       <text>Computes a random integer within the range [0, arg-1]. The argument must be greater than 0. Otherwise it is set to 2.</text--->
-			       <text>query log (256)</text--->
-			      ) )";
-//const string CCSpecLT   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Less. </text--->)";
-const string CCSpecLT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text--->
-			       <text>_ < _</text--->
-			       <text>Less.</text--->
-			       <text>query \"house\" < \"hotel\"</text--->
-			      ) )";
-//const string CCSpecLE   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Less or equal. </text--->)";
-const string CCSpecLE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text--->
-			       <text>_ <= _</text--->
-			       <text>Less or equal.</text--->
-			       <text>query 8.2 <= 8.2</text--->
-			      ) )";
-//const string CCSpecGT   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Greater. </text--->)";
-const string CCSpecGT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text--->
-			       <text>_ > _</text--->
-			       <text>Greater.</text--->
-			       <text>query 3 > 4.1</text--->
-			      ) )";
-//const string CCSpecGE   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Greater or equal. </text--->)";
-const string CCSpecGE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text--->
-			       <text>_ >= _</text--->
-			       <text>Greater or equal.</text--->
-			       <text>query 3 >= 5</text--->
-			      ) )";
-//const string CCSpecEQ   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Equal. </text--->)";
-const string CCSpecEQ  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text--->
-			       <text>_ = _</text--->
-			       <text>Equal.</text--->
-			       <text>query 2.1 = 2.01</text--->
-			      ) )";
-//const string CCSpecNE   = "(<text> (int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text---><text> Not equal. </text--->)";
-const string CCSpecNE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool</text--->
-			       <text>_ # _</text--->
-			       <text>Not equal.</text--->
-			       <text>query 2.1 # 2.01</text--->
-			      ) )";
-//const string CCSpecBeg  = "(<text> (string string) -> bool</text---><text> Starts. </text--->)";
-const string CCSpecBeg  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(string string) -> bool</text--->
-			       <text>_ starts _</text--->
-			       <text>Starts.</text--->
-			       <text>query \"starts\" starts \"st\"</text--->
-			      ) )";
-//const string CCSpecCon  = "(<text> (string string) -> bool</text---><text> Contains. </text--->)";
-const string CCSpecCon  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(string string) -> bool</text--->
-			       <text>_ contains _</text--->
-			       <text>Contains.</text--->
-			       <text>query \"contains\" contains \"tai\"</text--->
-			      ) )";
-//const string CCSpecNot  = "(<text> bool -> bool</text---><text> Logical Not. </text--->)";
-const string CCSpecNot  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>bool -> bool</text--->
-			       <text>not ( _ )</text--->
-			       <text>Logical Not.</text--->
-			       <text>query not ( 4=4 )</text--->
-			      ) )";
-//const string CCSpecAnd  = "(<text> (bool bool) -> bool</text---><text> Logical And. </text--->)";
-const string CCSpecAnd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(bool bool) -> bool</text--->
-			       <text>_ and _</text--->
-			       <text>Logical And.</text--->
-			       <text>query (8 = 8) and (3 < 4)</text--->
-			      ) )";
-//const string CCSpecOr   = "(<text> (bool bool) -> bool</text---><text> Logical Or. </text--->)";
-const string CCSpecOr  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(bool bool) -> bool</text--->
-			       <text>_ or _</text--->
-			       <text>Logical Or.</text--->
-			       <text>query (3 <= 4) or (\"hotel\" > \"house\")</text--->
-			      ) )";
-//const string CCSpecIsEmpty   = "(<text> bool -> bool, int -> bool, real -> bool, string -> bool</text---><text> Returns whether the value is defined or not. </text--->)";
-const string CCSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>bool -> bool, int -> bool, real -> bool, string -> bool</text--->
-			       <text>isempty ( _ )</text--->
-			       <text>Returns whether the value is defined or not.</text--->
-			       <text>query isempty ( 8 )</text--->
-			      ) )";
-//const string CCSpecUpper   = "(<text> (string) -> string</text---><text> Returns a string immediately upper to the original one. </text--->)";
-const string CCSpecUpper  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>string -> string</text--->
-			       <text>upper ( _ )</text--->
-			       <text>Returns a string immediately upper to the original one.</text--->
-			       <text>query upper ( \"hello\" )</text--->
-			      ) )";
-//const string CCSpecSetIntersection   = "(<text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text---><text> Set intersection. </text--->)";
-const string CCSpecSetIntersection  = "( ( \"Signature\" \"Meaning\" )
-                             ( <text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text--->
-			       <text> Set intersection. </text--->
-			       			      ) )";
-//const string CCSpecSetMinus   = "(<text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text---><text> Set minus. </text--->)";
-const string CCSpecSetMinus  = "( ( \"Signature\" \"Meaning\" )
-                             ( <text> (int int) -> int, (real real) -> real, (bool bool) -> bool, (string string) -> string</text--->
-			       <text> Set minus. </text--->
-			       			      ) )";
+
+const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )" 
+                          "( <text>(int int) -> int, (int real) -> real, "
+			  "(real int)"
+			  " -> real, (real real) -> real</text--->"
+			       "<text>_ + _</text--->"
+			       "<text>Addition.</text--->"
+			       "<text>query -1.2 + 7</text--->"
+			      ") )";
+
+const string CCSpecSub  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                          "( <text>(int int) -> int, (int real) -> real, "
+			  "(real int) -> real, (real real) -> real</text--->"
+			       "<text>_ - _</text--->"
+			       "<text>Subtraction</text--->"
+			       "<text>query -.2 - 4</text--->"
+			      ") )";   
+
+const string CCSpecMul  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                          "( <text>(int int) -> int, (int real) -> real, "
+			  "(real int) -> real, (real real) -> real</text--->"
+			       "<text>_ * _</text--->"
+			       "<text>Multiplication.</text--->"
+			       "<text>query 5 * 1.4 </text--->"
+			      ") )"; 
+
+const string CCSpecDiv  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                          "( <text>(int int) -> real, (int real) -> real, "
+			  "(real int) -> real, (real real) -> real</text--->"
+			       "<text>_ / _</text--->"
+			       "<text>Division.</text--->"
+			       "<text>query 5 / 2 </text--->"
+			      ") )";
+
+const string CCSpecMod  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                             "( <text>(int int) -> int</text--->"
+			       "<text>_ mod _</text--->"
+			       "<text>Modulo.</text--->"
+			       "<text>query 8 mod 3 </text--->"
+			      ") )";
+
+const string CCSpecDiv2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" )"
+                             "( <text>(int int) -> int</text--->"
+			       "<text>_ div _</text--->"
+			       "<text>Integer Division.</text--->"
+			       "<text>query 5 div 2 </text--->"
+			      ") )";
+			      
+const string CCSpecRandInt  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" )"
+                             "( <text>int -> int </text--->"
+			       "<text>randint ( _ )</text--->"
+			       "<text>Returns a random integer between 0 and "
+			       "arg-1, for arg > 1.</text--->"
+			       "<text>query randint (9)</text--->"
+			      ") )";
+			      
+const string CCSpecLog  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                             "( <text>int -> int </text--->"
+			       "<text>log ( _ )</text--->"
+			       "<text>Computes a random integer within the "
+			       "range [0, arg-1]. The argument must be greater"
+			       "than 0. Otherwise it is set to 2.</text--->"
+			       "<text>query log (256)</text--->"
+			      ") )";
+
+const string CCSpecLT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                         "( <text>(int int) -> bool, (int real) -> bool, "
+			 "(real int) -> bool, (real real) -> bool, (bool bool)"
+			 " -> bool, (string string) -> bool</text--->"
+			       "<text>_ < _</text--->"
+			       "<text>Less.</text--->"
+			       "<text>query \"house\" < \"hotel\"</text--->"
+			      ") )";
+
+const string CCSpecLE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                         "( <text>(int int) -> bool, (int real) -> bool, "
+			 "(real int) -> bool, (real real) -> bool, (bool bool)"
+			 " -> bool, (string string) -> bool</text--->"
+			       "<text>_ <= _</text--->"
+			       "<text>Less or equal.</text--->"
+			       "<text>query 8.2 <= 8.2</text--->"
+			      ") )";
+
+const string CCSpecGT  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                         "( <text>(int int) -> bool, (int real) -> bool, "
+			 "(real int) -> bool, (real real) -> bool, (bool bool)"
+			 " -> bool, (string string) -> bool</text--->"
+			       "<text>_ > _</text--->"
+			       "<text>Greater.</text--->"
+			       "<text>query 3 > 4.1</text--->"
+			      ") )";
+
+const string CCSpecGE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                         "( <text>(int int) -> bool, (int real) -> bool, "
+			 "(real int) -> bool, (real real) -> bool, (bool bool)"
+			 " -> bool, (string string) -> bool</text--->"
+			       "<text>_ >= _</text--->"
+			       "<text>Greater or equal.</text--->"
+			       "<text>query 3 >= 5</text--->"
+			      ") )";
+
+const string CCSpecEQ  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                         "( <text>(int int) -> bool, (int real) -> bool, "
+			 "(real int) -> bool, (real real) -> bool, (bool bool)"
+			 " -> bool, (string string) -> bool</text--->"
+			       "<text>_ = _</text--->"
+			       "<text>Equal.</text--->"
+			       "<text>query 2.1 = 2.01</text--->"
+			      ") )";
+			      
+const string CCSpecNE  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                         "( <text>(int int) -> bool, (int real) -> bool, "
+			 "(real int) -> bool, (real real) -> bool, (bool bool)"
+			 " -> bool, (string string) -> bool</text--->"
+			       "<text>_ # _</text--->"
+			       "<text>Not equal.</text--->"
+			       "<text>query 2.1 # 2.01</text--->"
+			      ") )";
+
+const string CCSpecBeg  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                             "( <text>(string string) -> bool</text--->"
+			       "<text>_ starts _</text--->"
+			       "<text>Starts.</text--->"
+			       "<text>query \"starts\" starts \"st\"</text--->"
+			      ") )";
+
+const string CCSpecCon  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                             "( <text>(string string) -> bool</text--->"
+			       "<text>_ contains _</text--->"
+			       "<text>Contains.</text--->"
+			    "<text>query \"contains\" contains \"tai\""
+			    "</text--->"
+			      ") )";
+			      
+const string CCSpecNot  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                             "( <text>bool -> bool</text--->"
+			       "<text>not ( _ )</text--->"
+			       "<text>Logical Not.</text--->"
+			       "<text>query not ( 4=4 )</text--->"
+			     " ) )";
+			     
+const string CCSpecAnd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                          "( <text>(bool bool) -> bool</text--->"
+			       "<text>_ and _</text--->"
+			       "<text>Logical And.</text--->"
+			       "<text>query (8 = 8) and (3 < 4)</text--->"
+			      ") )";
+
+const string CCSpecOr  = "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+                         "\"Example\" )"
+                             "( <text>(bool bool) -> bool</text--->"
+			       "<text>_ or _</text--->"
+			       "<text>Logical Or.</text--->"
+			       "<text>query (3 <= 4) or (\"hotel\" > "
+			       "\"house\")"
+			       "</text--->"
+			       ") )";
+
+const string CCSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" )"
+                             "( <text>bool -> bool, int -> bool, real -> bool,"
+			     " string -> bool</text--->"
+			     "<text>isempty ( _ )</text--->"
+			     "<text>Returns whether the value is defined or "
+			     "not.</text--->"
+			       "<text>query isempty ( 8 )</text--->"
+			      ") )";
+
+const string CCSpecUpper  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>string -> string</text--->"
+			       "<text>upper ( _ )</text--->"
+			       "<text>Returns a string immediately upper to"
+			       " the original one.</text--->"
+			       "<text>query upper ( \"hello\" )</text--->"
+			       ") )";
+
+const string CCSpecSetIntersection  = "( ( \"Signature\" \"Meaning\" )"
+                             "( <text> (int int) -> int, (real real) -> real, "
+			     "(bool bool) -> bool, (string string) -> "
+			     "string</text--->"
+			     "<text> Set intersection. </text--->"
+			     ") )";
+
+const string CCSpecSetMinus  = "( ( \"Signature\" \"Meaning\" )"
+                             "( <text> (int int) -> int, (real real) -> real, "
+			     "(bool bool) -> bool, (string string) -> "
+			     "string</text--->"
+			     "<text> Set minus. </text--->"
+			       			      ") )";
 
 Operator ccplus( "+", CCSpecAdd, 4, ccplusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );
 Operator ccminus( "-", CCSpecSub, 4, ccminusmap, ccnomodelmap, CcMathSelectCompute, CcMathTypeMap );

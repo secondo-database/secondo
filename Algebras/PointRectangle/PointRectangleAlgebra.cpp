@@ -141,7 +141,8 @@ PointProperty()
 	                     nl->StringAtom("point"), 
 			     nl->StringAtom("(<x> <y>)"), 
 			     nl->StringAtom("(-3 15)"),
-			     nl->StringAtom("x- and y-coordinates must be of type int."))));
+			     nl->StringAtom("x- and y-coordinates must be "
+			     "of type int."))));
 }
 static Word
 CreatePoint( const ListExpr typeInfo ) 
@@ -186,7 +187,8 @@ RectangleProperty()
 	                     nl->StringAtom("rectangle"), 
 			     nl->StringAtom("(<xleft> <xright> <ybottom> <ytop>)"), 
 			     nl->StringAtom("(4 12 8 2)"),
-			     nl->StringAtom("all coordinates must be of type int."))));
+			     nl->StringAtom("all coordinates must be of "
+			     "type int."))));
 }
 
 /*

@@ -75,11 +75,16 @@ static int simpleSelect (ListExpr args) { return 0; }
 static ListExpr
 BTreeProp()
 {
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,"<relation> createbtree [<attrname>] where "
+  "<attrname> is the key");
+
   return (nl->TwoElemList(
             nl->TwoElemList(nl->StringAtom("Creation"), 
 			     nl->StringAtom("Example Creation")),    
-            nl->TwoElemList(nl->StringAtom("<relation> createbtree [<attrname>] where <attrname> is the key"), 
-			     nl->StringAtom("(let mybtree = ten createbtree [no])"))));      
+            nl->TwoElemList(examplelist, 
+			     nl->StringAtom("(let mybtree = ten "
+			     "createbtree [no])"))));      
 }
 
 /*
@@ -1097,17 +1102,18 @@ CreateBTreeValueMapping(Word* args, Word& result, int message, Word& local, Supp
 6.3 Specification of operator ~createbtree~
 
 */
-//const string CreateBTreeSpec =
-//"(<text>((rel (tuple ((x1 t1)...(xn tn)))) xi) -> "
-//"(btree (tuple ((x1 t1)...(xn tn))) ti)</text--->"
-//"<text>Creates a btree. The key type ti must be "
-//"either string or int or real.</text--->)";
-const string CreateBTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((rel (tuple ((x1 t1)...(xn tn)))) xi) -> (btree (tuple ((x1 t1)...(xn tn))) ti)</text--->
-			       <text>_ createbtree [ _ ]</text--->
-			       <text>Creates a btree. The key type ti must be either string or int or real.</text--->
-			       <text>let mybtree = ten createbtree [nr]</text--->
-			      ) )";
+const string CreateBTreeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>((rel (tuple ((x1 t1)...(xn tn))))"
+				" xi)"
+				" -> (btree (tuple ((x1 t1)...(xn tn))) ti)"
+				"</text--->"
+			        "<text>_ createbtree [ _ ]</text--->"
+			        "<text>Creates a btree. The key type ti must"
+				" be either string or int or real.</text--->"
+			        "<text>let mybtree = ten createbtree [nr]"
+				"</text--->"
+			        ") )";
 /*
 
 6.4 Definition of operator ~createbtree~
@@ -1359,18 +1365,21 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 6.7 Specification of operator ~exactmatch~
 
 */
-//const string ExactMatchSpec =
-//"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
-//" (rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
-//"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
-//"<text>Uses the given btree to find all tuples in the given "
-//"relation with .xi = argument value.</text--->)";
-const string ExactMatchSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))</text--->
-			       <text>_ _ exactmatch [ _ ]</text--->
-			       <text>Uses the given btree to find all tuples in the given relation with .xi = argument value.</text--->
-			       <text>query citiesNameInd cities exactmatch [\"Berlin\"] consume; where citiesNameInd is e.g. created with 'let citiesNameInd = cities createbtree [name]'</text--->
-			      ) )";
+const string ExactMatchSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
+                               " \"Example\" )"
+                             "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
+			     " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) ->"
+			     " (stream (tuple ((x1 t1)...(xn tn))))"
+			     "</text--->"
+			     "<text>_ _ exactmatch [ _ ]</text--->"
+			     "<text>Uses the given btree to find all tuples"
+			     " in the given relation with .xi = argument "
+			     "value.</text--->"
+			     "<text>query citiesNameInd cities exactmatch"
+			     " [\"Berlin\"] consume; where citiesNameInd "
+			     "is e.g. created with 'let citiesNameInd = "
+			     "cities createbtree [name]'</text--->"
+			      ") )";
 /*
 
 6.8 Definition of operator ~exactmatch~
@@ -1390,18 +1399,19 @@ Operator exactmatch (
 6.9 Specification of operator ~range~
 
 */
-//const string RangeSpec =
-//"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
-//" (rel (tuple ((x1 t1)...(xn tn)))) ti ti) -> "
-//"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
-//"<text>Uses the given btree to find all tuples in the given "
-//"relation with .xi >= argument value 1 and .xi <= argument value 2.</text--->)";
-const string RangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti ti) -> (stream (tuple ((x1 t1)...(xn tn))))</text--->
-			       <text>_ _ range [ _ , _ ]</text--->
-			       <text>Uses the given btree to find all tuples in the given relation with .xi >= argument value 1 and .xi <= argument value 2.</text--->
-			       <text>query tenNoInd ten range[5, 7] consume</text--->
-			      ) )";
+const string RangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                          "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
+			  " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti ti)"
+			  " -> (stream (tuple ((x1 t1)...(xn tn))))"
+			  "</text--->"
+			  "<text>_ _ range [ _ , _ ]</text--->"
+			  "<text>Uses the given btree to find all tuples "
+			  "in the given relation with .xi >= argument value 1"
+			  " and .xi <= argument value 2.</text--->"
+			  "<text>query tenNoInd ten range[5, 7] consume"
+			  "</text--->"
+			  "   ) )";
 
 /*
 
@@ -1422,18 +1432,23 @@ Operator cpprange (
 6.11 Specification of operator ~leftrange~
 
 */
-//const string LeftRangeSpec =
-//"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
-//" (rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
-//"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
-//"<text>Uses the given btree to find all tuples in the given "
-//"relation with .xi <= argument value.</text--->)";
-const string LeftRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))</text--->
-			       <text>_ _ leftrange [ _ ]</text--->
-			       <text>Uses the given btree to find all tuples in the given relation with .xi <= argument value.</text--->
-			       <text>query citiesNameInd cities leftrange[\"Hagen\"] consume; where citiesNameInd is e.g. created with 'let citiesNameInd = cities createbtree [name]'</text--->
-			      ) )";
+const string LeftRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" ) "
+                              "( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
+			      "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> " 
+			      "(stream"
+			      " (tuple ((x1 t1)...(xn tn))))</text--->"
+			      "<text>_ _ leftrange [ _ ]</text--->"
+			      "<text>Uses the given btree to find all tuples"
+			      " in the given relation with .xi <= argument "
+			      "value</text--->"
+			      "<text>query citiesNameInd cities leftrange"
+			      "[\"Hagen\"]"
+			      " consume; where citiesNameInd is e.g. created "
+			      "with "
+			      "'let citiesNameInd = cities createbtree [name]'"
+			      "</text--->"
+			      ") )";
 /*
 
 6.12 Definition of operator ~leftrange~
@@ -1453,18 +1468,26 @@ Operator leftrange (
 6.13 Specification of operator ~rightrange~
 
 */
-//const string RightRangeSpec =
-//"(<text>((btree (tuple ((x1 t1)...(xn tn))) ti)"
-//" (rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
-//"(stream (tuple ((x1 t1)...(xn tn))))</text--->"
-//"<text>Uses the given btree to find all tuples in the given "
-//"relation with .xi >= argument value.</text--->)";
-const string RightRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((btree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))</text--->
-			       <text>_ _ rightrange [ _ ]</text--->
-			       <text>Uses the given btree to find all tuples in the given relation with .xi >= argument value.</text--->
-			       <text>query citiesNameInd cities rightrange[ 6 ] consume; where citiesNameInd is e.g. created with 'let citiesNameInd = cities createbtree [name]'</text--->
-			      ) )";
+const string RightRangeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" ) "
+                               "( <text>((btree (tuple ((x1 t1)...(xn tn)))"
+			       " ti)"
+			       "(rel (tuple ((x1 t1)...(xn tn)))) ti) -> "
+			       "(stream"
+			       " (tuple ((x1 t1)...(xn tn))))</text--->"
+			       "<text>_ _ rightrange [ _ ]</text--->"
+			       "<text>Uses the given btree to find all tuples"
+			       " in the"
+			       " given relation with .xi >= argument value."
+			       "</text--->"
+			       "<text>query citiesNameInd cities rightrange"
+			       "[ 6 ] "
+			       "consume; where citiesNameInd is e.g. created"
+			       " with "
+			       "'let citiesNameInd = cities createbtree "
+			       "[name]'"
+			       "</text--->"
+			       ") )";
 /*
 
 6.14 Definition of operator ~rightrange~

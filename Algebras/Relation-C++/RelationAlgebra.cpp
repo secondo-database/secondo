@@ -332,16 +332,16 @@ ListExpr TUPLETypeMap(ListExpr args)
 4.1.3 Specification of operator ~TUPLE~
 
 */
-//const string TUPLESpec =
-  //"(<text>((stream x)...) -> x, ((rel x)...) -> x</text--->"
-  //"<text>Extract tuple type from a stream or relation type "
-  //"given as the first argument.</text--->)";
-const string TUPLESpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" ) 
-                             ( <text>((stream x)...) -> x, ((rel x)...) -> x</text--->
-			       <text>type operator</text--->
-			       <text>Extract tuple type from a stream or relation type given as the first argument.</text--->
-			       <text>not for use with sos-syntax</text--->
-			      ) )";
+const string TUPLESpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Remarks\" ) "
+                          "( <text>((stream x)...) -> x, ((rel x)...) -> "
+			  "x</text--->"
+			  "<text>type operator</text--->"
+			  "<text>Extract tuple type from a stream or "
+			  "relation type given as the first argument."
+			  "</text--->"
+			  "<text>not for use with sos-syntax</text--->"
+			  "  ) )";
 /*
 
 4.1.3 Definition of operator ~TUPLE~
@@ -388,16 +388,16 @@ ListExpr TUPLE2TypeMap(ListExpr args)
 4.1.3 Specification of operator ~TUPLE2~
 
 */
-//const string TUPLE2Spec =
-  //"(<text>((stream x) (stream y) ...) -> y, ((rel x) (rel y) ...) -> "
-  //"y</text---><text>Extract tuple type from a stream or relation type "
-  //"given as the second argument.</text--->)";
-const string TUPLE2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" ) 
-                             ( <text><text>((stream x) (stream y) ...) -> y, ((rel x) (rel y) ...) -> y</text--->
-			       <text>type operator</text--->
-			       <text>Extract tuple type from a stream or relation type given as the second argument.</text--->
-			       <text>not for use with sos-syntax</text--->
-			      ) )";
+const string TUPLE2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Remarks\" ) "
+                           "( <text><text>((stream x) (stream y) ...) -> y, "
+			   "((rel x) (rel y) ...) -> y</text--->"
+			   "<text>type operator</text--->"
+			   "<text>Extract tuple type from a stream or "
+			   "relation"
+			   " type given as the second argument.</text--->"
+			   "<text>not for use with sos-syntax</text--->"
+			   ") )";
 /*
 
 4.1.3 Definition of operator ~TUPLE2~
@@ -454,15 +454,13 @@ ListExpr GroupTypeMap(ListExpr args)
 4.1.3 Specification of operator ~Group~
 
 */
-//const string GroupSpec =
-  //"(<text>((stream x)) -> (rel x)</text---><text>Maps stream type to a rel "
-  //"type.</text--->)";
-const string GroupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" ) 
-                             ( <text>((stream x)) -> (rel x)</text--->
-			       <text>type operator</text--->
-			       <text>Maps stream type to a rel.</text--->
-			       <text>not for use with sos-syntax</text--->
-			      ) )";
+const string GroupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Remarks\" ) "
+                          "( <text>((stream x)) -> (rel x)</text--->"
+			  "<text>type operator</text--->"
+			  "<text>Maps stream type to a rel.</text--->"
+			  "<text>not for use with sos-syntax</text--->"
+			  ") )";
 /*
 
 4.1.3 Definition of operator ~group~
@@ -556,15 +554,14 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~feed~
 
 */
-//const string FeedSpec =
-  //"(<text>(rel x) -> (stream x)</text---><text>Produces a stream from a "
-  //"relation by scanning the relation tuple by tuple.</text--->)";
-const string FeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(rel x) -> (stream x)</text--->
-			       <text>_ feed</text--->
-			       <text>Produces a stream from a relation by scanning the relation tuple by tuple.</text--->
-			       <text>query cities feed consume</text--->
-			      ) )";
+const string FeedSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>(rel x) -> (stream x)</text--->"
+			 "<text>_ feed</text--->"
+			 "<text>Produces a stream from a relation by "
+			 "scanning the relation tuple by tuple.</text--->"
+			 "<text>query cities feed consume</text--->"
+			 ") )";
 /*
 
 4.1.3 Definition of operator ~feed~
@@ -852,18 +849,18 @@ Sample(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~sample~
 
 */
-//const string SampleSpec =
-  //"(<text>(rel x) int real -> (stream x)</text--->"
-  //"<text>Produces a random sample of a relation. The sample size is "
-  //"min(relSize, max(s, t * relSize)), where relSize is the "
-  //"size of the argument relation, s is the second argument, "
-  //"and t the third.</text--->)";
-const string SampleSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(rel x) int real -> (stream x)</text--->
-			       <text>_ sample [ _  , _ ]</text--->
-			       <text>Produces a random sample of a relation. The sample size is min(relSize, max(s, t * relSize)), where relSize is the size of the argument relation, s is the second argument, and t the third.</text--->
-			       <text>query cities sample[0, 0.45] count</text--->
-			      ) )";
+const string SampleSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>(rel x) int real -> (stream x)"
+			   "</text--->"
+			   "<text>_ sample [ _  , _ ]</text--->"
+			   "<text>Produces a random sample of a relation."
+			   " The sample size is min(relSize, "
+			   "max(s, t * relSize)), where relSize is the size"
+			   " of the argument relation, s is the second "
+			   "argument, and t the third.</text--->"
+			  "<text>query cities sample[0, 0.45] count</text--->"
+			   ") )";
 
 /*
 
@@ -955,15 +952,14 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~consume~
 
 */
-//const string ConsumeSpec =
-  //"(<text>(stream x) -> (rel x)</text---><text>Collects objects from a stream "
-  //"into a relation.</text--->)";
-const string ConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(stream x) -> (rel x)</text--->
-			       <text>_ consume</text--->
-			       <text>Collects objects from a stream.</text--->
-			       <text>query cities feed consume</text--->
-			      ) )";
+const string ConsumeSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" ) "
+                            "( <text>(stream x) -> (rel x)</text--->"
+			    "<text>_ consume</text--->"
+			    "<text>Collects objects from a stream."
+			    "</text--->"
+			    "<text>query cities feed consume</text--->"
+			    ") )";
 /*
 
 4.1.3 Definition of operator ~consume~
@@ -1077,16 +1073,15 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~attr~
 
 */
-//const string AttrSpec =
-  //"(<text>((tuple ((x1 t1)...(xn tn))) xi)  -> ti)</text--->"
-  //"<text>Returns the value of an attribute at a given position "
-  //"in a tuple object.</text--->)";
-const string AttrSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" ) 
-                             ( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> ti)</text--->
-			       <text>attr ( _ , _ )</text--->
-			       <text>Returns the value of an attribute at a given position.</text--->
-			       <text>not for use with sos-syntax</text--->
-			      ) )";
+const string AttrSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Remarks\" ) "
+                         "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
+			 "ti)</text--->"
+			 "<text>attr ( _ , _ )</text--->"
+			 "<text>Returns the value of an attribute at a "
+			 "given position.</text--->"
+			 "<text>not for use with sos-syntax</text--->"
+			 ") )";
 /*
 
 4.1.3 Definition of operator ~attr~
@@ -1207,16 +1202,17 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~filter~
 
 */
-//const string FilterSpec =
-  //"(<text>((stream x) (map x bool)) -> (stream x)</text---><text>Only "
-  //"tuples, fulfilling a certain condition are passed on to "
-  //"the output stream.</text--->)";
-const string FilterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream x) (map x bool)) -> (stream x)</text--->
-			       <text>_ filter [ fun ]</text--->
-			       <text>Only tuples, fulfilling a certain condition are passed on to the output stream.</text--->
-			       <text>query cities feed filter [.population > 500000] consume</text--->
-			      ) )";
+const string FilterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream x) (map x bool)) -> "
+			   "(stream x)</text--->"
+			   "<text>_ filter [ fun ]</text--->"
+			   "<text>Only tuples, fulfilling a certain "
+	                   "condition are passed on to the output "
+			   "stream.</text--->"
+                           "<text>query cities feed filter "
+			   "[.population > 500000] consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~filter~
@@ -1392,16 +1388,17 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~project~
 
 */
-//const string ProjectSpec =
-  //"(<text>((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream "
-  //"(tuple ((ai1 Ti1) ... (aik Tik))))</text---><text>Produces a projection "
-  //"tuple for each tuple of its input stream.</text--->)";
-const string ProjectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))</text--->
-			       <text>_ project [ list ]</text--->
-			       <text>Produces a projection tuple for each tuple of its input stream.</text--->
-			       <text>query cities feed project[cityname, population] consume</text--->
-			      ) )";
+const string ProjectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" ) "
+                            "( <text>((stream (tuple ((x1 T1) ... "
+			    "(xn Tn)))) (ai1 ... aik)) -> (stream (tuple"
+			    " ((ai1 Ti1) ... (aik Tik))))</text--->"
+			    "<text>_ project [ list ]</text--->"
+			    "<text>Produces a projection tuple for each "
+			    "tuple of its input stream.</text--->"
+			    "<text>query cities feed project[cityname, "
+			    "population] consume</text--->"
+			      ") )";
 
 /*
 
@@ -1599,16 +1596,18 @@ Remove(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~remove~
 
 */
-//const string RemoveSpec =
-  //"(<text>((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream "
-  //"(tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))</text---><text>Produces a removal "
-  //"tuple for each tuple of its input stream.</text--->)";
-const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))</text--->
-			       <text>_ remove [list]</text--->
-			       <text>Produces a removal tuple for each tuple of its input stream.</text--->
-			       <text>query cities feed remove[zipcode] consume</text--->
-			      ) )";
+const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream (tuple ((x1 T1) ... "
+			   "(xn Tn)))) (ai1 ... aik)) -> (stream "
+			   "(tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))"
+			   "</text--->"
+			   "<text>_ remove [list]</text--->"
+			   "<text>Produces a removal tuple for each "
+			   "tuple of its input stream.</text--->"
+			   "<text>query cities feed remove[zipcode] "
+			   "consume</text--->"
+			      ") )";
 
 /*
 
@@ -1895,16 +1894,17 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~product~
 
 */
-//const string ProductSpec =
-  //"(<text>((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) -> "
-  //"(stream (tuple (x1 ... xn y1 ... ym)))</text---><text>Computes a Cartesian "
-  //"product stream from its two argument streams.</text--->)";
-const string ProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) -> (stream (tuple (x1 ... xn y1 ... ym)))</text--->
-			       <text>_ _ product</text--->
-			       <text>Computes a Cartesian product stream from its two argument streams.</text--->
-			       <text>query ten feed twenty feed product count</text--->
-			      ) )";
+const string ProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+                            "\"Example\" ) "
+                            "( <text>((stream (tuple (x1 ... xn))) (stream "
+			    "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
+			    "... xn y1 ... ym)))</text--->"
+			    "<text>_ _ product</text--->"
+			    "<text>Computes a Cartesian product stream from "
+			    "its two argument streams.</text--->"
+			    "<text>query ten feed twenty feed product count"
+			    "</text--->"
+			     " ) )";
 /*
 
 4.1.3 Definition of operator ~product~
@@ -1989,16 +1989,17 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~cancel~
 
 */
-//const string CancelSpec =
-  //"(<text>((stream x) (map x bool)) -> (stream x)</text---><text>Transmits "
-  //"tuple from its input stream to its output stream until a tuple arrives "
-  //"fulfilling some condition.</text--->)";
-const string CancelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream x) (map x bool)) -> (stream x)</text--->
-			       <text>_ cancel [ fun ]</text--->
-			       <text>Transmits tuple from its input stream to its output stream until a tuple arrives fulfilling some condition.</text--->
-			       <text>query cities feed cancel [.cityname = \"Dortmund\"] consume</text--->
-			      ) )";
+const string CancelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream x) (map x bool)) -> "
+			   "(stream x)</text--->"
+			   "<text>_ cancel [ fun ]</text--->"
+			   "<text>Transmits tuple from its input stream "
+			   "to its output stream until a tuple arrives "
+			   "fulfilling some condition.</text--->"
+			   "<text>query cities feed cancel [.cityname = "
+			   "\"Dortmund\"] consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~cancel~
@@ -2090,15 +2091,16 @@ TCountRel(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~tcount~
 
 */
-//const string TCountSpec =
-  //"(<text>((stream/rel (tuple x))) -> int</text---><text>Count number of tuples "
-  //"within a stream or a relation of tuples.</text--->)";
-const string TCountSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream/rel (tuple x))) -> int</text--->
-			       <text>_ count</text--->
-			       <text>Count number of tuples within a stream or a relation of tuples.</text--->
-			       <text>query cities count or query cities feed count</text--->
-			      ) )";
+const string TCountSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream/rel (tuple x))) -> int"
+			   "</text--->"
+			   "<text>_ count</text--->"
+			   "<text>Count number of tuples within a stream "
+			   "or a relation of tuples.</text--->"
+			   "<text>query cities count or query cities "
+			   "feed count</text--->"
+			      ") )";
 /*
 
 4.3.1 Selection function of operator ~tcount~
@@ -2264,17 +2266,21 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~rename~
 
 */
-//const string RenameSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, "
-  //"... ,anar:dn)))</text---><text>Renames all attribute names by adding them "
-  //"with the postfix passed as parameter. NOTE: parameter must "
-  //"be of symbol type.</text--->)";
-const string RenameSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))</text--->
-			       <text>_ rename [ _ ] or just _ { _ }</text--->
-			       <text>Renames all attribute names by adding them with the postfix passed as parameter. NOTE: parameter must be of symbol type.</text--->
-			       <text>query ten feed rename [ r1 ] consume or query ten feed {r1} consume, the result has format e.g. n_r1</text--->
-			      ) )";
+const string RenameSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream (tuple([a1:d1, ... ,"
+			   "an:dn)))ar) -> (stream (tuple([a1ar:d1, "
+			   "... ,anar:dn)))</text--->"
+			   "<text>_ rename [ _ ] or just _ { _ }"
+			   "</text--->"
+			   "<text>Renames all attribute names by adding"
+			   " them with the postfix passed as parameter. "
+			   "NOTE: parameter must be of symbol type."
+			   "</text--->"
+			   "<text>query ten feed rename [ r1 ] consume "
+			   "or query ten feed {r1} consume, the result "
+			   "has format e.g. n_r1</text--->"
+			      ") )";
 
 /*
 
@@ -2380,16 +2386,17 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~extract~
 
 */
-//const string ExtractSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
-  //"<text>Returns the value of attribute ai of the first tuple in the "
-  //"input stream.</text--->)";
-const string ExtractSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->
-			       <text>_ extract [ _ ]</text--->
-			       <text>Returns the value of attribute ai of the first tuple in the input stream.</text--->
-			       <text>query cities feed extract [population]</text--->
-			      ) )";
+const string ExtractSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" ) "
+                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+			    "))) x ai) -> di</text--->"
+			    "<text>_ extract [ _ ]</text--->"
+			    "<text>Returns the value of attribute ai of "
+			    "the first tuple in the input stream."
+			    "</text--->"
+			    "<text>query cities feed extract [population]"
+			    "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~extract~
@@ -2505,16 +2512,17 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~head~
 
 */
-//const string HeadSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x int) -> (stream "
-  //"(tuple([a1:d1, ... ,an:dn])))</text---><text>Returns the first n tuples "
-  //"in the input stream.</text--->)";
-const string HeadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x int) -> (stream (tuple([a1:d1, ... ,an:dn])))</text--->
-			       <text>_ head [ _ ]</text--->
-			       <text>Returns the first n tuples in the input stream.</text--->
-			       <text>query cities feed head[10] consume</text--->
-			      ) )";
+const string HeadSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+			 "))) x int) -> (stream (tuple([a1:d1, ... ,"
+			 "an:dn])))</text--->"
+			 "<text>_ head [ _ ]</text--->"
+			 "<text>Returns the first n tuples in the input "
+			 "stream.</text--->"
+			 "<text>query cities feed head[10] consume"
+			 "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~head~
@@ -2647,16 +2655,16 @@ MaxMinValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
 4.1.3 Specification of operator ~max~
 
 */
-//const string MaxOpSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
-  //"<text>Returns the maximum value of attribute ai over the input "
-  //"stream.</text--->)";
-const string MaxOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->
-			       <text>_ _ mergesec</text--->
-			       <text>Returns the maximum value of attribute ai over the input stream.</text--->
-			       <text>query cities feed max [ cityname ]</text--->
-			      ) )";
+const string MaxOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" ) "
+                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+			  "))) x ai) -> di</text--->"
+			  "<text>_ _ mergesec</text--->"
+			  "<text>Returns the maximum value of attribute "
+			  "ai over the input stream.</text--->"
+			  "<text>query cities feed max [ cityname ]"
+			  "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~max~
@@ -2676,16 +2684,16 @@ Operator cppmax (
 4.1.3 Specification of operator ~min~
 
 */
-//const string MinOpSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
-  //"<text>Returns the minimum value of attribute ai over the input "
-  //"stream.</text--->)";
-const string MinOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->
-			       <text>_ min [ _ ]</text--->
-			       <text>Returns the minimum value of attribute ai over the input stream.</text--->
-			       <text>query cities feed min [ cityname ]</text--->
-			      ) )";
+const string MinOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" ) "
+                          "( <text>((stream (tuple([a1:d1, ... ,an:dn])))"
+			  " x ai) -> di</text--->"
+			  "<text>_ min [ _ ]</text--->"
+			  "<text>Returns the minimum value of attribute ai "
+			  "over the input stream.</text--->"
+			  "<text>query cities feed min [ cityname ]"
+			  "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~min~
@@ -2868,16 +2876,16 @@ AvgSumValueMapping(Word* args, Word& result, int message, Word& local, Supplier 
 4.1.3 Specification of operator ~avg~
 
 */
-//const string AvgOpSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real</text--->"
-  //"<text>Returns the average value of attribute ai over the "
-  //"input stream.</text--->)";
-const string AvgOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> real</text--->
-			       <text>_ avg [ _ ]</text--->
-			       <text>Returns the average value of attribute ai over the input stream.</text--->
-			       <text>query cities feed avg [population]</text--->
-			      ) )";
+const string AvgOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" ) "
+                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+			  "))) x ai) -> real</text--->"
+			  "<text>_ avg [ _ ]</text--->"
+			  "<text>Returns the average value of attribute "
+			  "ai over the input stream.</text--->"
+			  "<text>query cities feed avg [population]"
+			  "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~avg~
@@ -2897,16 +2905,16 @@ Operator cppavg (
 4.1.3 Specification of operator ~sum~
 
 */
-//const string SumOpSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->"
-  //"<text>Returns the sum of the values of attribute ai over the "
-  //"input stream.</text--->)";
-const string SumOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di</text--->
-			       <text>_ sum [ _ ]</text--->
-			       <text>Returns the sum of the values of attribute ai over the input stream.</text--->
-			       <text>query cities feed sum[population]</text--->
-			      ) )";
+const string SumOpSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" ) "
+                          "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+			  "))) x ai) -> di</text--->"
+			  "<text>_ sum [ _ ]</text--->"
+			  "<text>Returns the sum of the values of attribute"
+			  " ai over the input stream.</text--->"
+			  "<text>query cities feed sum[population]"
+			  "</text--->"
+			      ") )";
 
 /*
 
@@ -3188,17 +3196,17 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~sortBy~
 
 */
-//const string SortBySpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... "
-  //"(xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text--->"
-  //"<text>Sorts input stream according to a list of attributes "
-  //"ai1 ... aij.</text--->)";
-const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text--->
-			       <text>_ sortby [list]</text--->
-			       <text>Sorts input stream according to a list of attributes ai1 ... aij.</text--->
-			       <text>query employee feed sortby[DeptNo asc] consume</text--->
-			      ) )";
+const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream (tuple([a1:d1, ... ,an:dn])))"
+			   " ((xi1 asc/desc) ... (xij asc/desc))) -> "
+			   "(stream (tuple([a1:d1, ... ,an:dn])))</text--->"
+			   "<text>_ sortby [list]</text--->"
+			   "<text>Sorts input stream according to a list "
+			   "of attributes ai1 ... aij.</text--->"
+			   "<text>query employee feed sortby[DeptNo asc] "
+			   "consume</text--->"
+			      ") )";
 
 /*
 
@@ -3260,16 +3268,16 @@ IdenticalTypeMap( ListExpr args )
 4.1.3 Specification of operator ~sort~
 
 */
-//const string SortSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> "
-  //"(stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Sorts input "
-  //"stream lexicographically.</text--->)";
-const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text--->
-			       <text>_ sort</text--->
-			       <text>Sorts input stream lexicographically.</text--->
-			       <text>query cities feed sort consume</text--->
-			      ) )";
+const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+			 ")))) -> (stream (tuple([a1:d1, ... ,an:dn])))"
+			 "</text--->"
+			 "<text>_ sort</text--->"
+			 "<text>Sorts input stream lexicographically."
+			 "</text--->"
+		    "<text>query cities feed sort consume</text--->"
+			      ") )";
 
 /*
 
@@ -3361,16 +3369,17 @@ RdupValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~rdup~
 
 */
-//const string RdupSpec =
-  //"(<text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream "
-  //"(tuple([a1:d1, ... ,an:dn])))</text---><text>Removes duplicates from a "
-  //"sorted stream.</text--->)";
-const string RdupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))</text--->
-			       <text>_ rdup</text--->
-			       <text>Removes duplicates from a sorted stream.</text--->
-			       <text>query twenty feed ten feed concat sort rdup consume</text--->
-			      ) )";
+const string RdupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple([a1:d1, ... ,an:dn]))))"
+			 " -> (stream (tuple([a1:d1, ... ,an:dn])))"
+			 "</text--->"
+			 "<text>_ rdup</text--->"
+			 "<text>Removes duplicates from a sorted "
+			 "stream.</text--->"
+			 "<text>query twenty feed ten feed concat sort "
+			 "rdup consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~rdup~
@@ -3674,16 +3683,18 @@ SetOpValueMapping(Word* args, Word& result, int message, Word& local, Supplier s
 4.1.3 Specification of Operator ~mergesec~
 
 */
-//const string MergeSecSpec =
-  //"(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple "
-  //"((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))"
-  //"</text---><text>Computes the intersection of two sorted streams.</text--->)";
-const string MergeSecSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text--->
-			       <text>_ _ mergesec</text--->
-			       <text>Computes the intersection of two sorted streams.</text--->
-			       <text>query twenty feed oddtwenty feed mergesec consume</text--->
-			      ) )";
+const string MergeSecSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple ((x1 t1) ... "
+			 "(xn tn)))) stream (tuple ((x1 t1) ... (xn tn)"
+			 ")))) -> (stream (tuple ((x1 t1) ... (xn tn))))"
+			 "</text--->"
+			 "<text>_ _ mergesec</text--->"
+			 "<text>Computes the intersection of two sorted "
+			 "streams.</text--->"
+			 "<text>query twenty feed oddtwenty feed mergesec"
+			 " consume</text--->"
+			 ") )";
 /*
 
 4.1.3 Definition of Operator ~mergesec~
@@ -3703,16 +3714,18 @@ Operator cppmergesec(
 4.1.3 Specification of Operator ~mergediff~
 
 */
-//const string MergeDiffSpec =
-  //"(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) "
-  //"... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text--->"
-  //"<text>Computes the difference of two sorted streams.</text--->)";
-const string MergeDiffSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text--->
-			       <text>_ _ mergediff</text--->
-			       <text>Computes the difference of two sorted streams.</text--->
-			       <text>query twenty feed oddtwenty feed mergediff consume</text--->
-			      ) )";
+const string MergeDiffSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" ) "
+                             "( <text>((stream (tuple ((x1 t1) ... (xn tn)"
+			     "))) stream (tuple ((x1 t1) ... (xn tn))))) ->"
+			     " (stream (tuple ((x1 t1) ... (xn tn))))"
+			     "</text--->"
+			     "<text>_ _ mergediff</text--->"
+			     "<text>Computes the difference of two sorted "
+			     "streams.</text--->"
+			     "<text>query twenty feed oddtwenty feed"
+			     " mergediff consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of Operator ~mergediff~
@@ -3732,16 +3745,17 @@ Operator cppmergediff(
 4.1.3 Specification of Operator ~mergeunion~
 
 */
-//const string MergeUnionSpec =
-  //"(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple "
-  //"((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))"
-  //"</text---><text>Computes the union of two sorted streams.</text--->)";
-const string MergeUnionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text--->
-			       <text>_ _ mergeunion</text--->
-			       <text>Computes the union of two sorted streams.</text--->
-			       <text>query twenty feed oddtwenty feed mergeunion consume</text--->
-			      ) )";
+const string MergeUnionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" ) "
+                         "( <text>((stream (tuple ((x1 t1) ... (xn tn))))" 
+			 "stream (tuple ((x1 t1) ... (xn tn))))) -> (stream"
+			 " (tuple ((x1 t1) ... (xn tn))))</text--->"
+			 "<text>_ _ mergeunion</text--->"
+			 "<text>Computes the union of two sorted streams."
+			 "</text--->"
+			 "<text>query twenty feed oddtwenty feed "
+			 "mergeunion consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of Operator ~mergeunion~
@@ -4207,17 +4221,21 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~mergejoin~
 
 */
-//const string MergeJoinSpec =
-  //"(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) "
-  //"... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... "
-  //"(ym dm))))</text---><text>Computes the equijoin two streams. Expects that "
-  //"input streams are sorted.</text--->)";
-const string MergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text--->
-			       <text>_ _ mergejoin [_, _]</text--->
-			       <text>Computes the equijoin two streams. Expects that input streams are sorted.</text--->
-			       <text>query duplicates feed ten feed rename[A] mergejoin[no, no_A] sort rdup consume</text--->
-			      ) )";
+const string MergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" ) "
+                             "( <text>((stream (tuple ((x1 t1) ... "
+			     "(xn tn)))) (stream (tuple ((y1 d1) ... "
+			     "(ym dm)))) xi yj) -> (stream (tuple ((x1 t1)"
+			     " ... (xn tn) (y1 d1) ... (ym dm))))"
+			     "</text--->"
+			     "<text>_ _ mergejoin [_, _]</text--->"
+			     "<text>Computes the equijoin two streams. "
+			     "Expects that input streams are sorted."
+			     "</text--->"
+			     "<text>query duplicates feed ten feed "
+			     "rename[A] mergejoin[no, no_A] sort rdup "
+			     "consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~mergejoin~
@@ -4241,17 +4259,20 @@ This operator sorts two input streams and computes their equijoin.
 4.1.3 Specification of operator ~sortmergejoin~
 
 */
-//const string SortMergeJoinSpec =
-  //"(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple "
-  //"((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) "
-  //"(y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two "
-  //"streams.</text--->)";
-const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text--->
-			       <text>_ _ sortmergejoin [ _ , _ ]</text--->
-			       <text>Computes the equijoin two streams.</text--->
-			       <text>query duplicates feed ten feed mergejoin[no, nr] consume</text--->
-			      ) )";
+const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
+                                  "\"Meaning\" \"Example\" ) "
+                             "( <text>((stream (tuple ((x1 t1) ... "
+			     "(xn tn)))) (stream (tuple ((y1 d1) ..."
+			     " (ym dm)))) xi yj) -> (stream (tuple "
+			     "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
+			     ")))</text--->"
+			     "<text>_ _ sortmergejoin [ _ , _ ]"
+			     "</text--->"
+			     "<text>Computes the equijoin two streams."
+			     "</text--->"
+			     "<text>query duplicates feed ten feed "
+			     "mergejoin[no, nr] consume</text--->"
+			      ") )";
 
 /*
 
@@ -4493,18 +4514,23 @@ HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of Operator ~hashjoin~
 
 */
-//const string HashJoinSpec =
-  //"(<text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple "
-  //"((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... "
-  //"(xn tn) (y1 d1) ... (ym dm))))</text---><text>Computes the equijoin two "
-  //"streams via a hash join. The number of hash buckets is given by the "
-  //"parameter nBuckets.</text--->)";
-const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))</text--->
-			       <text> _ _ hashjoin [ _ , _ , _ ]</text--->
-			       <text>Computes the equijoin two streams via a hash join. The number of hash buckets is given by the parameter nBuckets.</text--->
-			       <text>query Employee feed Dept feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] sort consume</text--->
-			      ) )";
+const string HashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
+                             "\"Meaning\" \"Example\" ) "
+                          "( <text>((stream (tuple ((x1 t1) ... "
+			  "(xn tn)))) (stream (tuple ((y1 d1) ... "
+			  "(ym dm)))) xi yj nbuckets) -> (stream "
+			  "(tuple ((x1 t1) ... (xn tn) (y1 d1) ..."
+			  " (ym dm))))</text--->"
+			  "<text> _ _ hashjoin [ _ , _ , _ ]"
+			  "</text--->"
+			  "<text>Computes the equijoin two streams "
+			  "via a hash join. The number of hash buckets"
+			  " is given by the parameter nBuckets."
+			  "</text--->"
+			  "<text>query Employee feed Dept feed "
+			  "rename[A] hashjoin[DeptNr, DeptNr_A, 17] "
+			  "sort consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of Operator ~hashjoin~
@@ -4672,17 +4698,20 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~extend~
 
 */
-//const string ExtendSpec =
-  //"(<text>(stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> "
-  //"dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))</text---><text>Extends "
-  //"each input tuple by new attributes as specified in the parameter "
-  //"list.</text--->)";
-const string ExtendSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(stream(tuple(x)) x [(a1, (tuple(x) -> d1)) ... (an, (tuple(x) -> dn))] -> stream(tuple(x@[a1:d1, ... , an:dn])))</text--->
-			       <text>_ extend [funlist]</text--->
-			       <text>Extends each input tuple by new attributes as specified in the parameter list.</text--->
-			       <text>query ten feed extend [mult5 : .nr * 5, mod2 : .nr mod 2] consume</text--->
-			      ) )";
+const string ExtendSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>(stream(tuple(x)) x [(a1, (tuple(x)"
+			   " -> d1)) ... (an, (tuple(x) -> dn))] -> "
+			   "stream(tuple(x@[a1:d1, ... , an:dn])))"
+			   "</text--->"
+			   "<text>_ extend [funlist]</text--->"
+			   "<text>Extends each input tuple by new "
+			   "attributes as specified in the parameter"
+			   " list.</text--->"
+			   "<text>query ten feed extend [mult5 : "
+			   ".nr * 5, mod2 : .nr mod 2] consume"
+			   "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~extend~
@@ -4870,16 +4899,18 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~loopjoin~
 
 */
-//const string LoopjoinSpec =
-  //"(<text>((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)</text---><text> Only"
-  //" tuples in the cartesian product which satisfy certain conditions are passed "
-  //"on to the output stream.</text--->)";
-const string LoopjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)</text--->
-			       <text>_ loopjoin [ fun ]</text--->
-			       <text>Only tuples in the cartesian product which satisfy certain conditions are passed on to the output stream.</text--->
-			       <text>query cities feed loopjoin [five feed filter [.no > 2]] consume</text--->
-			      ) )";
+const string LoopjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                             "\"Example\" ) "
+                        "( <text>((stream tuple1) (map tuple1 "
+			"rel(tuple2))) -> (stream tuple1*tuple2)"
+			"</text--->"
+			"<text>_ loopjoin [ fun ]</text--->"
+			"<text>Only tuples in the cartesian product "
+			"which satisfy certain conditions are passed on"
+			" to the output stream.</text--->"
+			"<text>query cities feed loopjoin [five feed "
+			"filter [.no > 2]] consume</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~loopjoin~
@@ -5083,16 +5114,17 @@ Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~loopjoinrel~
 
 */
-//const string LoopjoinrelSpec =
-  //"(<text>((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)</text---><text> Only"
-  //" tuples in the cartesian product which satisfy certain conditions are passed on "
-  //"to the output stream.</text--->)";
-const string LoopjoinrelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)</text--->
-			       <text>_ loopjoin [ fun ]</text--->
-			       <text>Only tuples in the cartesian product which satisfy certain conditions are passed on to the output stream.</text--->
-			       <text>query cities feed loopjoin [ five ] consume</text--->
-			      ) )";
+const string LoopjoinrelSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                      "( <text>((stream tuple1) (map tuple1 rel(tuple2))) "
+		      "-> (stream tuple1*tuple2)</text--->"
+		      "<text>_ loopjoin [ fun ]</text--->"
+		      "<text>Only tuples in the cartesian product which "
+		      "satisfy certain conditions are passed on to the "
+		      "output stream.</text--->"
+		      "<text>query cities feed loopjoin [ five ] consume"
+		      "</text--->"
+			     " ) )";
 /*
 
 4.1.3 Definition of operator ~loopjoinrel~
@@ -5232,16 +5264,16 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 4.1.3 Specification of operator ~concat~
 
 */
-//const string ConcatSpec =
-  //"(<text>((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... "
-  //"bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))</text---><text>Union "
-  //"(without duplicate removal.</text--->)";
-const string ConcatSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple (a1:d1 ... an:dn))) (stream (tuple (b1:d1 ... bn:dn)))) -> (stream (tuple (a1:d1 ... an:dn)))</text--->
-			       <text>_ _ concat</text--->
-			       <text>Union.</text--->
-			       <text>query ten feed five feed concat consume</text--->
-			      ) )";
+const string ConcatSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                     "( <text>((stream (tuple (a1:d1 ... an:dn))) "
+		     "(stream (tuple (b1:d1 ... bn:dn)))) -> (stream"
+		     " (tuple (a1:d1 ... an:dn)))</text--->"
+		     "<text>_ _ concat</text--->"
+		     "<text>Union.</text--->"
+		     "<text>query ten feed five feed concat consume"
+		     "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~concat~
@@ -5506,19 +5538,22 @@ int GroupByValueMapping
 4.1.3 Specification of operator ~groupby~
 
 */
-//const string GroupBySpec =
-  //"(<text>((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun "
-  //"(rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple "
-  //"(a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... "
-  //"bjl)))</text---><text>Groups a relation according to attributes "
-  //"ai1, ..., aik and feeds the groups to other functions. The results of those "
-  //"functions are appended to the grouping attributes.</text--->)";
-const string GroupBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream (tuple (a1:d1 ... an:dn))) (ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1 ... an:dn))) (_))) ... (bjl (fun (rel (tuple (a1:d1 ... an:dn))) (_))))) -> (stream (tuple (ai1:di1 ... aik:dik bj1 ... bjl)))</text--->
-			       <text>_ groupby [list; funlist]</text--->
-			       <text>Groups a relation according to attributes ai1, ..., aik and feeds the groups to other functions. The results of those functions are appended to the grouping attributes.</text--->
-			       <text>query Employee feed sortby[DeptNr asc] groupby[DeptNr; anz : group feed count] consume</text--->
-			      ) )";
+const string GroupBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" ) "
+                      "( <text>((stream (tuple (a1:d1 ... an:dn))) "
+		      "(ai1 ... aik) ((bj1 (fun (rel (tuple (a1:d1"
+		      " ... an:dn))) (_))) ... (bjl (fun (rel (tuple"
+		      " (a1:d1 ... an:dn))) (_))))) -> (stream (tuple"
+		      " (ai1:di1 ... aik:dik bj1 ... bjl)))</text--->"
+		      "<text>_ groupby [list; funlist]</text--->"
+		      "<text>Groups a relation according to attributes "
+		      "ai1, ..., aik and feeds the groups to other "
+		      "functions. The results of those functions are "
+		      "appended to the grouping attributes.</text--->"
+		      "<text>query Employee feed sortby[DeptNr asc] "
+		      "groupby[DeptNr; anz : group feed count] consume"
+		      "</text--->"
+			      ") )";
 /*
 
 4.1.3 Definition of operator ~groupby~

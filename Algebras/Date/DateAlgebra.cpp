@@ -347,29 +347,6 @@ The list representation of a date is
 2.3 ~In~ and ~Out~ Functions
 
 */
-
-/*
-static ListExpr
-OutDate( ListExpr typeInfo, Word value ) 
-{
-  Date* date;
-  date = (Date*)(value.addr);
-  if (date->IsDefined())
-  {
-    return (nl->FourElemList(nl->BoolAtom(date->IsDefined()),
-            nl->IntAtom(date->GetDay()),
-	    nl->IntAtom(date->GetMonth()),
-	    nl->IntAtom(date->GetYear())));
-  }
-  else
-  {
-    return (nl->SymbolAtom("undef"));
-  }
-}
-*/
-
-//The above ~out~ function is replaced by the following function which takes string as output
-//=======================================================================
 static  ListExpr
 OutDate( ListExpr typeInfo, Word value )
 {
@@ -390,57 +367,6 @@ OutDate( ListExpr typeInfo, Word value )
   return (nl->StringAtom(outputStr));
 }
 
-/*
-static Word
-InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  Date* newdate;
-
-  if (nl->IsAtom(instance) && nl->AtomType(instance)==SymbolType && nl->SymbolValue(instance)=="undef")
-  {
-    correct = true;
-    newdate = new Date(false, 0, 0, 0);
-    return SetWord(newdate);
-  }
-  else if ( nl->ListLength( instance ) == 4 )
-         {
-           ListExpr First = nl->First(instance);
-           ListExpr Second = nl->Second(instance);
-           ListExpr Third = nl->Third(instance);
-           ListExpr Fourth = nl->Fourth(instance);
-              
-	   if ( nl->IsAtom(First) && nl->AtomType(First) == BoolType &&
-                nl->IsAtom(Second) && nl->AtomType(Second) == IntType &&
-                nl->IsAtom(Third) && nl->AtomType(Third) == IntType &&
-                nl->IsAtom(Fourth) && nl->AtomType(Fourth) == IntType)
-            {
-              bool Defined=nl->BoolValue(First);
-              int Day=nl->IntValue(Second);
-              int Month=nl->IntValue(Third);
-              int Year=nl->IntValue(Fourth);
-
-              if ((!Defined)||((Defined) && isdate(Day, Month, Year)))
-               {
-                 correct = true;
-                 newdate = new Date(nl->BoolValue(First),
-		                    nl->IntValue(Second),
-				    nl->IntValue(Third),
-				    nl->IntValue(Fourth));
-	         return SetWord(newdate);
-               }
-  	      else
-               {
-		 cout <<">>>invalid date!<<<"<<endl;
-               }
-	    }
-	}
-  correct = false;
-  return SetWord(Address(0));
-}
-*/
-
-//The above ~in~ function is replaced by the following function which takes string as input
-//=====================================================================
 static Word
 InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
 { 
@@ -859,67 +785,65 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 
-//const string DaySpec =
-  //"(<text>(date) -> int</text---><text>extract the day info. from a date.</text--->)";
-const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(date) -> int</text--->
-			       <text>day ( _ )</text--->
-			       <text>extract the day info. from a date.</text--->
-			       <text>query day ( date1 )</text--->
-			      ) )";
+const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                        "\"Example\" )" 
+                             "( <text>(date) -> int</text--->"
+			       "<text>day ( _ )</text--->"
+			       "<text>extract the day info. from a date."
+			       "</text--->"
+			       "<text>query day ( date1 )</text--->"
+			       ") )";
 
-//const string MonthSpec =
-  //"(<text>(date) -> int</text---><text>extract the month info. from a date.</text--->)";
-const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(date) -> int</text--->
-			       <text>month ( _ )</text--->
-			       <text>extract the month info. from a date.</text--->
-			       <text>query month ( date1 )</text--->
-			      ) )";
+const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )" 
+                             "( <text>(date) -> int</text--->"
+			       "<text>month ( _ )</text--->"
+			       "<text>extract the month info. from a date."
+			       "</text--->"
+			       "<text>query month ( date1 )</text--->"
+			       ") )";
 
-//const string YearSpec =
-  //"(<text>(date) -> int</text---><text>extract the year info. from a date.</text--->)";
-const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(date) -> int</text--->
-			       <text>year ( _ )</text--->
-			       <text>extract the year info. from a date.</text--->
-			       <text>query year ( date1 )</text--->
-			      ) )";
+const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )" 
+                             "( <text>(date) -> int</text--->"
+			       "<text>year ( _ )</text--->"
+			       "<text>extract the year info. from a date."
+			       "</text--->"
+			       "<text>query year ( date1 )</text--->"
+			       ") )";
 
-//con//st string EarlierSpec =
-  //"//(<text>(date date) -> bool</text---><text>earlier predicate.</text--->)";
-const string EarlierSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(date date) -> bool</text--->
-			       <text>_ < _</text--->
-			       <text>Earlier predicate.</text--->
-			       <text>query date1 < date2</text--->
-			      ) )";
-//const string EqualSpec =
-  //"(<text>(date date) -> bool</text---><text>equal predicate.</text--->)";
-const string EqualSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(date date) -> bool</text--->
-			       <text>_ = _</text--->
-			       <text>Equal predicate.</text--->
-			       <text>query date1 = date2</text--->
-			      ) )";
+const string EarlierSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(date date) -> bool</text--->"
+			      " <text>_ < _</text--->"
+			       "<text>Earlier predicate.</text--->"
+			       "<text>query date1 < date2</text--->"
+			       ") )";
+const string EqualSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                             "( <text>(date date) -> bool</text--->"
+			       "<text>_ = _</text--->"
+			       "<text>Equal predicate.</text--->"
+			       "<text>query date1 = date2</text--->"
+			       ") )";
 
-//const string LaterSpec =
-  //"(<text>(date date) -> bool</text---><text>later predicate.</text--->)";
-const string LaterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(date date) -> bool</text--->
-			       <text>_ > _</text--->
-			       <text>Later predicate.</text--->
-			       <text>query date1 > date2</text--->
-			      ) )";
+const string LaterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                          "\"Example\" )"
+                             "( <text>(date date) -> bool</text--->"
+			       "<text>_ > _</text--->"
+			       "<text>Later predicate.</text--->"
+			       "<text>query date1 > date2</text--->"
+			       ") )";
 
-//const string DateSpec =
-  //("(<text>(int int int) -> date</text---><text>to generate a date. </text--->)";
-const string DateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )
-                             ( <text>(int int int) -> date</text--->
-			       <text>thedate ( <day>, <month>, <year> ) where <day>, <month> and <year> are of type int</text--->
-			       <text>to generate a date.</text--->
-			       <text>let date1 = thedate(5,4,2003)</text--->
-			      ) )";
+const string DateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                             "( <text>(int int int) -> date</text--->"
+			     "<text>thedate ( <day>, <month>, <year> ) where"
+			     " <day>, <month> and <year> are of type int"
+			     "</text--->"
+			     "<text>To generate a date.</text--->"
+			     "<text>let date1 = thedate(5,4,2003)</text--->"
+			      ") )";
 
 /*
 The above strings are used to explain the signature and the meaning of operators.

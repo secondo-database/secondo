@@ -400,17 +400,13 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
 
 */
 
-//static ListExpr
-//FTextProperty()
-//{
-  //return (nl->TwoElemList(
-    //nl->OneElemList( nl->SymbolAtom( "" ) ),
-    //nl->SymbolAtom("DATA") ));
-//}
-
 static ListExpr
 FTextProperty()
 {
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,"<text>A text, which can be longer "
+  "than 48 chararcters<text--->");
+
   return (nl->TwoElemList(
          nl->FourElemList(nl->StringAtom("Signature"), 
 	                  nl->StringAtom("Example Type List"), 
@@ -419,8 +415,7 @@ FTextProperty()
          nl->FourElemList(nl->StringAtom("-> DATA"), 
 	                  nl->StringAtom("text"), 
 			  nl->StringAtom("(<textvalue>)"), 
-			  nl->StringAtom("<text>A text, which can be longer "
-			  "than 48 chararcters<text--->"))));
+			  examplelist)));
 }
 
 /*
@@ -660,7 +655,7 @@ public:
     ftext.AssociateKind("DATA");
     AddOperator( &ftextsearch );
     AddOperator( &ftextlength );
-    cout <<"End FTextAlgebra() : Algebra()"<<'\n';
+    //cout <<"End FTextAlgebra() : Algebra()"<<'\n';
   }
 
   ~FTextAlgebra() {};

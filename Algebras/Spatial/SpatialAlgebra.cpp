@@ -2361,16 +2361,16 @@ static ListExpr
 LineProperty()
 {
   return (nl->TwoElemList(
-            nl->FourElemList(
-		    nl->StringAtom("Signature"), 
-		    nl->StringAtom("Example Type List"), 
-		    nl->StringAtom("List Rep"), 
-		    nl->StringAtom("Example List")),
-            nl->FourElemList(
-		    nl->StringAtom("-> DATA"), 
-		    nl->StringAtom("line"), 
-		    nl->StringAtom("(<segment>*) where segment is (<x1><y1><x2><y2>)"), 
-		    nl->StringAtom("( (1 1 2 2)(3 3 4 4) )"))));
+  
+            nl->FourElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("line"), 
+			     nl->StringAtom("(<segment>*) where segment is "
+			     "(<x1><y1><x2><y2>)"), 
+			     nl->StringAtom("( (1 1 2 2)(3 3 4 4) )"))));
 }
 
 /*
@@ -3615,22 +3615,25 @@ SaveRegion( SmiRecord& valueRecord, const ListExpr typeInfo, Word& value )
 static ListExpr
 RegionProperty()
 {
+  ListExpr listreplist = nl->TextAtom();
+  nl->AppendText(listreplist,"(<face>*) where face is (<outercycle><holecycle>*); "
+  "<outercycle> and <holecycle> are <points>*");
+  ListExpr remarkslist = nl->TextAtom();
+  nl->AppendText(remarkslist,"all <holecycle> must be completely within "
+  "<outercycle>.");
+
   return (nl->TwoElemList(
-            nl->FiveElemList(
-		    nl->StringAtom("Signature"), 
-		    nl->StringAtom("Example Type List"), 
-		    nl->StringAtom("List Rep"), 
-		    nl->StringAtom("Example List"),
-		    nl->StringAtom("Remarks")),			     
-            nl->FiveElemList(
-		    nl->StringAtom("-> DATA"), 
-		    nl->StringAtom("region"), 
-		    nl->StringAtom("(<face>*) where face is 
-				   (<outercycle><holecycle>*); <outercycle> 
-				   and <holecycle> are <points>*"), 
-		    nl->StringAtom("( ((3 0)(10 1)(3 1))((3.1 0.1)(3.1 0.9)(6 0.8)) )"),
-		    nl->StringAtom("all <holecycle> must be completely 
-				   within <outercycle>."))));			     
+            nl->FiveElemList(nl->StringAtom("Signature"), 
+	                     nl->StringAtom("Example Type List"), 
+			     nl->StringAtom("List Rep"), 
+			     nl->StringAtom("Example List"),
+			     nl->StringAtom("Remarks")),			     
+            nl->FiveElemList(nl->StringAtom("-> DATA"), 
+	                     nl->StringAtom("region"), 
+			     listreplist, 
+			     nl->StringAtom("( ((3 0)(10 1)(3 1))((3.1 0.1)"
+			     "(3.1 0.9)(6 0.8)) )"),
+			     remarkslist)));			     
 }
 
 /*
@@ -4921,81 +4924,81 @@ ModelMapping spatialnomodelmap[] = { SpatialNoModelMapping,
 				       SpatialNoModelMapping };
 
 const string SpatialSpecIsEmpty  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>point -> bool, points -> bool, line -> bool, 
-	     region -> bool</text---> <text>isempty ( _ )</text--->
-	     <text>Returns whether the value is defined or not.</text--->
-	     <text>query isempty ( line1 )</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>point -> bool, points -> bool, line -> bool," 
+	     "region -> bool</text---> <text>isempty ( _ )</text--->"
+	     "<text>Returns whether the value is defined or not.</text--->"
+	     "<text>query isempty ( line1 )</text--->"
+	     ") )";
 
 const string SpatialSpecEqual  =
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point point) -> bool, (points points) -> bool, 
-	     (line line) -> bool, (region region) -> bool</text--->
-	     <text>_ = _</text--->
-	     <text>Equal.</text--->
-	     <text>query point1 = point2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(point point) -> bool, (points points) -> bool, "
+	     "(line line) -> bool, (region region) -> bool</text--->"
+	     "<text>_ = _</text--->"
+	     "<text>Equal.</text--->"
+	     "<text>query point1 = point2</text--->"
+	     ") )";
 
 const string SpatialSpecNotEqual  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point point) -> bool</text--->
-	     <text>_ # _</text--->
-	     <text>Not equal.</text--->
-	     <text>query point1 # point2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(point point) -> bool</text--->"
+	     "<text>_ # _</text--->"
+	     "<text>Not equal.</text--->"
+	     "<text>query point1 # point2</text--->"
+	     ") )";
 
 const string SpatialSpecLess  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point point) -> bool</text--->
-	     <text>_ < _</text--->
-	     <text>Less than.</text--->
-	     <text>query point1 < point2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(point point) -> bool</text--->"
+	     "<text>_ < _</text--->"
+	     "<text>Less than.</text--->"
+	     "<text>query point1 < point2</text--->"
+	     ") )";
 
 const string SpatialSpecLessEqual  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point point) -> bool</text--->
-	     <text>_ <= _</text--->
-	     <text>Equal or less than.</text--->
-	     <text>query point1 <= point2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(point point) -> bool</text--->"
+	     "<text>_ <= _</text--->"
+	     "<text>Equal or less than.</text--->"
+	     "<text>query point1 <= point2</text--->"
+	     ") )";
 
 const string SpatialSpecGreater  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point point) -> bool</text--->
-	     <text>_ > _</text--->
-	     <text>Greater than.</text--->
-	     <text>query point1 > point2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(point point) -> bool</text--->"
+	     "<text>_ > _</text--->"
+	     "<text>Greater than.</text--->"
+	     "<text>query point1 > point2</text--->"
+	     ") )";
 
 
 const string SpatialSpecGreaterEqual  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point point) -> bool</text--->
-	     <text>_ >= _</text--->
-	     <text>Equal or greater than.</text--->
-	     <text>query point1 >= point2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(point point) -> bool</text--->"
+	     "<text>_ >= _</text--->"
+	     "<text>Equal or greater than.</text--->"
+	     "<text>query point1 >= point2</text--->"
+	     ") )";
 
 const string SpatialSpecIntersects  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(points points) -> bool, (line line) -> bool, 
-	     (region region) -> bool</text--->
-	     <text>_ intersects _</text--->
-	     <text>Intersects.</text--->
-	     <text>query point1 intersects point2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(points points) -> bool, (line line) -> bool, "
+	     "(region region) -> bool</text--->"
+	     "<text>_ intersects _</text--->"
+	     "<text>Intersects.</text--->"
+	     "<text>query point1 intersects point2</text--->"
+	     ") )";
 
 const string SpatialSpecInside  = 	
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(points points) -> bool, (line line) -> bool, 
-	     (region region) -> bool, (point points) -> bool, 
-	     (point line) -> bool, (point region) -> bool</text--->
-	     <text>_ inside _</text--->
-	     <text>Inside.</text--->
-	     <text>query point1 inside line1</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
+	   "( <text>(points points) -> bool, (line line) -> bool, "
+	     "(region region) -> bool, (point points) -> bool, "
+	     "(point line) -> bool, (point region) -> bool</text--->"
+	     "<text>_ inside _</text--->"
+	     "<text>Inside.</text--->"
+	     "<text>query point1 inside line1</text--->"
+	     ") )";
 			      
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, 

@@ -1,6 +1,8 @@
 /*
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 
+//[alpha] [$\alpha$]
+
 [1] Header File of the Range Algebra
 
 February, 2002 Victor Teixeira de Almeida
@@ -9,7 +11,7 @@ February, 2002 Victor Teixeira de Almeida
 
 This implementation file essentially contains the implementation of the classes 
 ~Interval~ and ~Range~. The class ~Range~ corresponds to the memory representation of the type
-constructor ~range($\alpha$)~. The class ~Interval~ is used by the class ~Range~.
+constructor ~range [alpha]~. The class ~Interval~ is used by the class ~Range~.
 
 For more detailed information see RangeAlgebra.h.
 
@@ -28,9 +30,10 @@ static NestedList* nl;
 static QueryProcessor* qp;
 
 /*
+
 3 Type Constructor ~range~
 
-This type constructor implements the carrier set for ~range($\alpha$)~.
+This type constructor implements the carrier set for ~range [alpha]~.
 
 3.1 Implementation of class ~Range~
 
@@ -1332,7 +1335,9 @@ static ListExpr
 RangeProperty()
 {
   ListExpr remarkslist = nl->TextAtom();
-  nl->AppendText(remarkslist,"BASE is either int, real, bool or string; lci means left closed interval, rci respectively right closed interval, e.g. (0 1 TRUE FALSE) means the range [0, 1[");
+  nl->AppendText(remarkslist,"BASE is either int, real, bool or string; "
+  "lci means left closed interval, rci respectively right closed interval,"
+  " e.g. (0 1 TRUE FALSE) means the range [0, 1[");
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"), 
 	                     nl->StringAtom("Example Type List"), 
@@ -1340,9 +1345,12 @@ RangeProperty()
 			     nl->StringAtom("Example List"),
 			     nl->StringAtom("Remarks")),			     
             nl->FiveElemList(nl->StringAtom("BASE -> RANGE"), 
-	                     nl->StringAtom("(range <basetype>), e.g. (range int)"), 
-			     nl->StringAtom("( (b1 e1 lci rci) ... (bn en lci rci) )"), 
-			     nl->StringAtom("( (0 1 TRUE FALSE)(2 5 TRUE TRUE) )"),
+	                     nl->StringAtom("(range <basetype>), e.g. "
+			     "(range int)"), 
+			     nl->StringAtom("( (b1 e1 lci rci) ... "
+			     "(bn en lci rci) )"), 
+			     nl->StringAtom("( (0 1 TRUE FALSE)"
+			     "(2 5 TRUE TRUE) )"),
 			     remarkslist)));			     
 }
 
@@ -1973,90 +1981,105 @@ ModelMapping rangenomodelmap[] = { RangeNoModelMapping, RangeNoModelMapping,
                                    RangeNoModelMapping, RangeNoModelMapping,
                                    RangeNoModelMapping, RangeNoModelMapping };
 
-//const string RangeSpecIsEmpty = "(<text> (range x) -> bool</text---><text> Returns whether the range is empty or not. </text--->)";
-const string RangeSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(range x) -> bool</text--->
-			       <text>isempty ( _ )</text--->
-			       <text>Returns whether the range is empty or not.</text--->
-			       <text>query isempty ( range1 )</text--->
-			      ) )";
-//const string RangeSpecEqual = "(<text> ( (range x) (range x) ) -> bool</text---><text> Equal. </text--->)";
-const string RangeSpecEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> bool</text--->
-			       <text>_ = _</text--->
-			       <text>Equal.</text--->
-			       <text>query range1 = range2</text--->
-			      ) )";
-//const string RangeSpecNotEqual = "(<text> ( (range x) (range x) ) -> bool</text---><text> Not equal. </text--->)";
-const string RangeSpecNotEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> bool</text--->
-			       <text>_ # _</text--->
-			       <text>Not equal.</text--->
-			       <text>query range1 # range2</text--->
-			      ) )";
-//const string RangeSpecIntersects = "(<text> ( (range x) (range x) ) -> bool</text---><text> Intersects. </text--->)";
-const string RangeSpecIntersects  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> bool</text--->
-			       <text>_ intersects _</text--->
-			       <text>Intersects.</text--->
-			       <text>query range1 intersects range2</text--->
-			      ) )";
-//const string RangeSpecInside = "(<text> ( (range x) (range x) ) -> bool, ( x (range x) ) -> bool</text---><text> Inside. </text--->)";
-const string RangeSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> bool, ( x (range x) ) -> bool</text--->
-			       <text>_ inside _</text--->
-			       <text>Inside.</text--->
-			       <text>query 5 inside range1</text--->
-			      ) )";
-//const string RangeSpecBefore = "(<text> ( (range x) (range x) ) -> bool, ( x (range x) ) -> bool, ( (range x) x ) -> bool</text---><text> Inside. </text--->)";
-const string RangeSpecBefore  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> bool, ( x (range x) ) -> bool, ( (range x) x ) -> bool</text--->
-			       <text>_ before _</text--->
-			       <text>Before.</text--->
-			       <text>query 5 before range1</text--->
-			      ) )";
-//const string RangeSpecIntersection = "(<text> ( (range x) (range x) ) -> (range x)</text---><text> Intersection. </text--->)";
-const string RangeSpecIntersection  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> (range x)</text--->
-			       <text>_ intersection _</text--->
-			       <text>Intersection.</text--->
-			       <text>query range1 intersection range2</text--->
-			      ) )";
-//const string RangeSpecUnion = "(<text> ( (range x) (range x) ) -> (range x)</text---><text> Union. </text--->)";
-const string RangeSpecUnion  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> (range x)</text--->
-			       <text>_ union _</text--->
-			       <text>Union.</text--->
-			       <text>query range1 union range2</text--->
-			      ) )";
-//const string RangeSpecMinus = "(<text> ( (range x) (range x) ) -> (range x)</text---><text> Minus. </text--->)";
-const string RangeSpecMinus  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>( (range x) (range x) ) -> (range x)</text--->
-			       <text>_ minus _</text--->
-			       <text>Minus.</text--->
-			       <text>query range1 minus range2</text--->
-			      ) )";
-//const string RangeSpecMinimum = "(<text> (range x) -> x</text---><text> Minimum. </text--->)";
-const string RangeSpecMinimum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(range x) -> x</text--->
-			       <text>minimum ( _ )</text--->
-			       <text>Minimum.</text--->
-			       <text>minimum ( range1 )</text--->
-			      ) )";
-//const string RangeSpecMaximum = "(<text> (range x) -> x</text---><text> Maximum. </text--->)";
-const string RangeSpecMaximum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(range x) -> x</text--->
-			       <text>maximum ( _ )</text--->
-			       <text>Maximum.</text--->
-			       <text>maximum ( range1 )</text--->
-			      ) )";
-//const string RangeSpecNoComponents = "(<text> (range x) -> int</text---><text> Number of components. </text--->)";
-const string RangeSpecNoComponents  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(range x) -> int</text--->
-			       <text>no_components ( _ )</text--->
-			       <text>Number of components.</text--->
-			       <text>no_components ( range1 )</text--->
-			      ) )";
+const string RangeSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                             "( <text>(range x) -> bool</text--->"
+			       "<text>isempty ( _ )</text--->"
+			       "<text>Returns whether the range is empty or "
+			       "not.</text--->"
+			       "<text>query isempty ( range1 )</text--->"
+			       ") )";
+
+const string RangeSpecEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" )"
+                            "( <text>( (range x) (range x) ) -> bool</text--->"
+			       "<text>_ = _</text--->"
+			       "<text>Equal.</text--->"
+			       "<text>query range1 = range2</text--->"
+			      ") )";
+
+const string RangeSpecNotEqual  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                  "\"Example\" ) "
+                             "( <text>( (range x) (range x) ) -> bool</text--->"
+			       "<text>_ # _</text--->"
+			       "<text>Not equal.</text--->"
+			       "<text>query range1 # range2</text--->"
+			      ") )";
+
+const string RangeSpecIntersects  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                    "\"Example\" ) "
+                             "( <text>( (range x) (range x) ) -> bool</text--->"
+			       "<text>_ intersects _</text--->"
+			       "<text>Intersects.</text--->"
+			       "<text>query range1 intersects range2</text--->"
+			      ") )";
+
+const string RangeSpecInside  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                             "( <text>( (range x) (range x) ) -> bool," 
+			     "( x (range x) ) -> bool</text--->"
+			       "<text>_ inside _</text--->"
+			       "<text>Inside.</text--->"
+			       "<text>query 5 inside range1</text--->"
+			      ") )";
+
+const string RangeSpecBefore  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) " 
+                             "( <text>( (range x) (range x) ) -> bool, "
+			     "( x (range x) ) -> bool, ( (range x) x ) -> "
+			     "bool</text--->"
+			       "<text>_ before _</text--->"
+			       "<text>Before.</text--->"
+			       "<text>query 5 before range1</text--->"
+			      ") )";
+
+const string RangeSpecIntersection  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                      "\"Example\" ) "
+                         "( <text>( (range x) (range x) ) -> (range x)</text--->"
+			       "<text>_ intersection _</text--->"
+			       "<text>Intersection.</text--->"
+			       "<text>query range1 intersection range2</text--->"
+			      ") )";
+
+const string RangeSpecUnion  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" ) "
+                         "( <text>( (range x) (range x) ) -> (range x)</text--->"
+			       "<text>_ union _</text--->"
+			       "<text>Union.</text--->"
+			       "<text>query range1 union range2</text--->"
+			      ") )";
+
+const string RangeSpecMinus  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                               "\"Example\" ) "
+                          "( <text>( (range x) (range x) ) -> (range x)</text--->"
+			       "<text>_ minus _</text--->"
+			       "<text>Minus.</text--->"
+			       "<text>query range1 minus range2</text--->"
+			      ") )";
+
+const string RangeSpecMinimum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                             "( <text>(range x) -> x</text--->"
+			       "<text>minimum ( _ )</text--->"
+			       "<text>Minimum.</text--->"
+			       "<text>minimum ( range1 )</text--->"
+			      ") )";
+
+const string RangeSpecMaximum  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                 "\"Example\" ) "
+                             "( <text>(range x) -> x</text--->"
+			       "<text>maximum ( _ )</text--->"
+			       "<text>Maximum.</text--->"
+			       "<text>maximum ( range1 )</text--->"
+			      ") )";
+
+const string RangeSpecNoComponents  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                      "\"Example\" ) "
+                             "( <text>(range x) -> int</text--->"
+			       "<text>no_components ( _ )</text--->"
+			       "<text>Number of components.</text--->"
+			       "<text>no_components ( range1 )</text--->"
+			      ") )";
 
 Operator rangeisempty( "isempty", RangeSpecIsEmpty, 1, rangeisemptymap, rangenomodelmap, SimpleSelect, RangeTypeMapBool1 );
 Operator rangeequal( "=", RangeSpecEqual, 1, rangeequalmap, rangenomodelmap, SimpleSelect, RangeRangeTypeMapBool );

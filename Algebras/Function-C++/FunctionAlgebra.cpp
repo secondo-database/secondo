@@ -22,13 +22,18 @@ static QueryProcessor* qp;
 2.1 Dummy Functions
 
 The next function defines the type property of type constructor ~map~.
+
 */
 static ListExpr
 FunctionProperty()
 {
+  ListExpr remarkslist = nl->TextAtom();
+  nl->AppendText(remarkslist,"Stores list expressions defining functions "
+  "(internal use).");
+
   return (nl->TwoElemList(
             nl->OneElemList(nl->StringAtom("Remarks")),
-            nl->OneElemList(nl->StringAtom("Stores list expressions defining functions (internal use)."))));
+            nl->OneElemList(remarkslist)));
 }
 
 static Word

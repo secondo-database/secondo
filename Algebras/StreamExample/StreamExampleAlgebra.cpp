@@ -349,42 +349,46 @@ operator and also for one calling a parameter function.
 
 */
 
-//const string intstreamSpec =
-  //"(<text>(int int) -> (stream int)</text---><text>Creates a stream of integers"
-  //"containing the numbers between the first and the second argument.</text--->)";
-const string intstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>(int int) -> (stream int)</text--->
-			       <text>intstream ( _ , _ ) [ fun ]</text--->
-			       <text>Creates a stream of integers containing the numbers between the first and the second argument.</text--->
-			       <text>query intstream (1,10) printintstream count</text--->
-			      ) )";
-//const string countSpec =
-  //"(<text>((stream x)) -> int</text---><text>Counts the number of elements of"
-  //"allo stream.</text--->)";
-const string countSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream x)) -> int</text--->
-			       <text>_ count</text--->
-			       <text>Counts the number of elements of a stream.</text--->
-			       <text>query intstream (1,10) count</text--->
-			      ) )";
-//const string printintstreamSpec =
-  //"(<text>((stream x)) -> (stream x)</text--->"
-  //"<text>Prints the elements of an integer stream.</text--->)";
-const string printintstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream x)) -> (stream x)</text--->
-			       <text>_ printintstream</text--->
-			       <text>Prints the elements of an integer stream.</text--->
-			       <text>query intstream (1,10) printintstream count</text--->
-			      ) )";
-//const string filterSpec =
-  //"(<text>((stream x) (map x bool)) -> (stream x)</text--->"
-  //"<text>Filters the elements of a stream by a predicate.</text--->)";
-const string filterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-                             ( <text>((stream x) (map x bool)) -> (stream x)</text--->
-			       <text>_ filter [ fun ]</text--->
-			       <text>Filters the elements of a stream by a predicate.</text--->
-			       <text>query intstream (1,10) filter[. > 7] printintstream count</text--->
-			      ) )";
+const string intstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                              "\"Example\" ) "
+                             "( <text>(int int) -> (stream int)</text--->"
+			    "<text>intstream ( _ , _ ) [ fun ]</text--->"
+			    "<text>Creates a stream of integers containing "
+			    "the numbers between the first and the second "
+			    "argument.</text--->"
+			    "<text>query intstream (1,10) printintstream "
+			    "count</text--->"
+			      ") )";
+
+const string countSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" " 
+                          "\"Example\" ) "
+                             "( <text>((stream x)) -> int</text--->"
+			     "<text>_ count</text--->"
+			     "<text>Counts the number of elements of a "
+			     "stream.</text--->"
+			     "<text>query intstream (1,10) count</text--->"
+			     ") )";
+
+const string printintstreamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                   "\"Example\" ) "
+                            "( <text>((stream x)) -> (stream x)</text--->"
+			    "<text>_ printintstream</text--->"
+			    "<text>Prints the elements of an integer "
+			    "stream.</text--->"
+			    "<text>query intstream (1,10) printintstream "
+			    "count</text--->"
+			    ") )";
+
+const string filterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                           "\"Example\" ) "
+                           "( <text>((stream x) (map x bool)) -> (stream x)"
+			   "</text--->"
+			   "<text>_ filter [ fun ]</text--->"
+			   "<text>Filters the elements of a stream by a "
+			   "predicate.</text--->"
+			   "<text>query intstream (1,10) filter[. > 7] "
+			   "printintstream count</text--->"
+			      ") )";
 /*
 Used to explain the signature and the meaning of operators.
 
