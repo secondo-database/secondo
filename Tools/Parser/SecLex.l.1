@@ -73,5 +73,6 @@ operators	{yylval = NestedText::Atom( yytext, yyleng ); return OPERATORS;}
 types		{yylval = NestedText::Atom( yytext, yyleng ); return TYPES;}
 objects		{yylval = NestedText::Atom( yytext, yyleng ); return OBJECTS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return DOUBLE;}
-"="		{return EQ;}
+"="		{yylval = NestedText::Atom( yytext, yyleng ); return EQ;}
+value		{yylval = NestedText::Atom( yytext, yyleng ); return VALUE;}
 

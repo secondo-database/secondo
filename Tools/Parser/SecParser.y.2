@@ -137,9 +137,12 @@ typeexpr	:	constructor	{$$ = $1;}
 
 		|	'[' ']'		{$$ = NestedText::AtomC("()");}
 
-		|	typeexpr ':' typeexpr	{$$ = NestedText::Concat(NestedText::AtomC("("),
-						NestedText::Concat($1, NestedText::Concat(NestedText::AtomC(" "),
-						NestedText::Concat($3,  NestedText::AtomC(")")))));}
+		|	typeexpr ':' typeexpr	{$$ = 
+NestedText::Concat(NestedText::AtomC("("),
+						NestedText::Concat($1, 
+NestedText::Concat(NestedText::AtomC(" "),
+						NestedText::Concat($3,  
+NestedText::AtomC(")")))));}
 		;
 
 constructor	:	IDENTIFIER	{$$ = $1;}
@@ -150,7 +153,8 @@ constructor	:	IDENTIFIER	{$$ = $1;}
 typeexprs	:	typeexpr	{$$ = $1;}
 		|	typeexprs ',' typeexpr	
 					{$$ = NestedText::Concat($1, 
-						NestedText::Concat(NestedText::AtomC(" "), $3));}
+						NestedText::Concat(NestedText::AtomC(" "), 
+$3));}
 		;
 
 /* valueexpr, general part */
@@ -168,7 +172,8 @@ function	: FUN '(' args ')' valueexpr
 				{$$ = NestedText::Concat(NestedText::AtomC("(fun "),
 					NestedText::Concat($3,
  					  NestedText::Concat (NestedText::AtomC(" "),
-  					    NestedText::Concat($5, NestedText::AtomC(")") ))));}
+  					    NestedText::Concat($5, NestedText::AtomC(")") 
+))));}
 		| FUN '(' ')' valueexpr
 				{$$ =   NestedText::Concat(
 					  NestedText::AtomC("(fun "),
@@ -179,12 +184,14 @@ arg		: IDENTIFIER ':' typeexpr
 				{$$ = NestedText::Concat(NestedText::AtomC("("),
 					NestedText::Concat($1,
 					  NestedText::Concat(NestedText::AtomC(" "),
-					    NestedText::Concat($3, NestedText::AtomC(")") ))));}
+					    NestedText::Concat($3, NestedText::AtomC(")") 
+))));}
 		;
 
 args		: arg		{$$ = $1;}
 		| args ',' arg	{$$ = NestedText::Concat($1, 
-					      	NestedText::Concat(NestedText::AtomC(" "), $3));}
+					      	NestedText::Concat(NestedText::AtomC(" "), 
+$3));}
 		;
 
 
@@ -214,9 +221,11 @@ nestedlist	: atom			{$$ = $1;}
 
 rest		: ')'			{$$ = $1;}
 		| atom rest		{$$ = NestedText::Concat($1, 
-						NestedText::Concat(NestedText::AtomC(" "), $2));}
+						NestedText::Concat(NestedText::AtomC(" "), 
+$2));}
 		| nestedlist rest	{$$ = NestedText::Concat($1, 
-						NestedText::Concat(NestedText::AtomC(" "), $2));}
+						NestedText::Concat(NestedText::AtomC(" "), 
+$2));}
 		;
 
 atom		: constant		{$$ = $1;}
@@ -231,7 +240,8 @@ list		: elems			{$$ = NestedText::Concat(NestedText::AtomC("("),
 elems		: 			{$$ = NestedText::AtomC("");}
 		| elem			{$$ = $1;}
 		| elems ',' elem	{$$ = NestedText::Concat($1,
-						NestedText::Concat(NestedText::AtomC(" "), $3));}
+						NestedText::Concat(NestedText::AtomC(" "), 
+$3));}
 		;
 
 elem		: valueexpr		{$$ = $1;}
@@ -264,11 +274,11 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 		| attribute				{$$ = $1;}
 		| attribute2				{$$ = $1;}
 		| '(' valueexpr ')'			{$$ = $2;}
-		| '[' typeexpr CONST nestedlist ']'
+		| '[' CONST typeexpr VALUE nestedlist ']'
 			{$$ = NestedText::Concat(NestedText::AtomC("("),
-				NestedText::Concat($2,
+				NestedText::Concat($3,
 				NestedText::Concat(NestedText::AtomC(" "),
-				NestedText::Concat($4,				
+				NestedText::Concat($5,				
 					NestedText::AtomC(")")	))));}
 		| '[' list ']'				{$$ = $2;}
 
@@ -296,4 +306,5 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 
 
 /* algebra specific part */
+
 
