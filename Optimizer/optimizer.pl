@@ -780,6 +780,11 @@ plan_to_atom(feed(X), Result) :-
   atom_concat(ResX, 'feed ', Result),
   !.
 
+plan_to_atom(sample(Rel, S, T), Result) :-
+  plan_to_atom(Rel, ResRel),
+  concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
+  !.
+
 plan_to_atom(consume(X), Result) :-
   plan_to_atom(X, ResX),
   atom_concat(ResX, 'consume ', Result),
