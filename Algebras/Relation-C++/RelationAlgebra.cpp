@@ -13,6 +13,10 @@ May 2002 Frank Hoffmann port to C++
 
 November 7, 2002 RHG Corrected the type mapping of ~tcount~.
 
+November 30, 2002 RHG Introduced a function ~RelPersistValue~ instead of
+~DefaultPersistValue~ which keeps relations that have been built in memory in a
+small cache, so that they need not be rebuilt from then on.
+
 [TOC]
 
 1 Includes, Constants, Globals, Enumerations
@@ -1027,6 +1031,112 @@ static void* CastRel(void* addr)
 }
 /*
 
+
+3.2.5 ~PersistFunction~ of type constructor ~rel~
+
+This is a slightly modified version of the function ~DefaultPersistValue~ (from
+~Algebra~) which creates the relation from the SmiRecord only if it does not
+yet exist.
+
+The idea is to maintain a cache containing the relation representations that
+have been built in memory. The cache basically stores pairs (recordId, relation
+value). If the record Id passed to this function is found, the cached relation
+value is returned instead of building a new one.
+
+*/
+
+bool
+RelPersistValue( const PersistDirection dir,
+		SmiRecord& valueRecord,
+		const ListExpr typeInfo,
+		Word& value )
+{
+  NestedList* nl = SecondoSystem::GetNestedList();
+  ListExpr valueList;
+  string valueString;
+  int valueLength;
+  
+  if ( dir == ReadFrom )
+  {
+    SmiKey mykey;
+    SmiRecordId recId;
+    mykey = valueRecord.GetKey();
+    if ( ! mykey.GetKey(recId) ) cout << "
+	RelPersistValue: Couldn't get the key!" << endl;
+
+    // cout << "the record number is: " << recId << endl;
+
+    static bool firsttime = true;
+    const int cachesize = 20;
+    static int current = 0;
+    static SmiRecordId key[cachesize];
+    static Word cache[cachesize];
+
+    // initialize
+
+    if ( firsttime ) {
+      for ( int i = 0; i < cachesize; i++ ) { key[i] = 0; }
+      firsttime = false;
+    }
+
+    // check whether value was cached
+
+    bool found = false;
+    int pos;
+    for ( int j = 0; j < cachesize; j++ )
+      if ( key[j]  == recId ) {
+	found = true; 
+	pos = j;
+        break;
+      }
+    
+    if ( found ) {value = cache[pos]; return true;}
+
+    // prepare to cache the value constructed from the list
+
+    if ( key[current] != 0 ) { 
+      	// cout << "I do delete!" << endl;
+      DeleteRel(cache[current]);
+    }
+
+    key[current] = recId;
+
+    ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+    bool correct;
+    valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+    char* buffer = new char[valueLength];
+    valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+    valueString.assign( buffer, valueLength );
+    delete []buffer;
+    nl->ReadFromString( valueString, valueList );
+    value = InRel( nl->First(typeInfo), nl->First(valueList), 1, errorInfo,
+	correct); 
+
+    cache[current++] = value;
+    if ( current == cachesize ) current = 0;
+        
+    if ( errorInfo != 0 )     {
+      nl->Destroy( errorInfo );
+    }
+  }
+  else // WriteTo
+  {
+    valueList = OutRel( nl->First(typeInfo), value );
+    valueList = nl->OneElemList( valueList );
+    nl->WriteToString( valueString, valueList );
+    valueLength = valueString.length();
+    valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
+    valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+
+    value = SetWord(Address(0));
+  }
+  nl->Destroy( valueList );
+  return (true);
+}
+
+
+/*
+
 3.2.5 ~Model~-functions of type constructor ~rel~
 
 */
@@ -1053,7 +1163,7 @@ static Word RelValueListToModel( const ListExpr typeExpr, const ListExpr valueLi
 }
 /*
 
-1.3.5 Defnition of type constructor ~tuple~
+1.3.5 Definition of type constructor ~rel~
 
 Eventually a type constructor is created by defining an instance of
 class ~TypeConstructor~. Constructor's arguments are the type constructor's
@@ -1063,7 +1173,7 @@ name and the eleven functions previously defined.
 TypeConstructor cpprel( "rel",           RelProp,
                         OutRel,          InRel,   CreateRel,
                         DeleteRel,       CastRel,   CheckRel,
-			0, 0,
+			RelPersistValue, 0,
 			RelInModel,      RelOutModel,
 			RelValueToModel, RelValueListToModel );
 /*
