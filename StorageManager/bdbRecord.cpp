@@ -4,7 +4,7 @@
 
 April 2002 Ulrich Telle
 
-September 2002 Ulrich Telle, fixed flag (DB_DIRTY_READ) in Berkeley DB calls
+September 2002 Ulrich Telle, fixed flag (DB\_DIRTY\_READ) in Berkeley DB calls
 for system catalog files
 
 November 30, 2002 RHG Added function ~GetKey~
@@ -57,6 +57,9 @@ SmiRecord::Read( void* buffer,
                  const SmiSize numberOfBytes,
                  const SmiSize offset /* = 0 */ )
 {
+  static long int& ctr = Counter::getRef("SmiRecord::Read");
+  ctr++;
+
   int rc = 0;
   int actRead = 0;
 
@@ -90,7 +93,6 @@ SmiRecord::Read( void* buffer,
         rc = impl->bdbFile->get( 0, &key, &data, flags );
       }
     }
-    Counter::getRef("SmiRecord::Read")++;
 
     if ( rc == 0 )
     {
@@ -115,6 +117,9 @@ SmiRecord::Write( const void*   buffer,
                   const SmiSize numberOfBytes, 
                   const SmiSize offset /* = 0 */ )
 {
+  static long int& ctr = Counter::getRef("SmiRecord::Write");
+  ctr++;
+
   int rc = 0;
   if ( initialized && writable )
   {
@@ -135,7 +140,6 @@ SmiRecord::Write( const void*   buffer,
       key.set_size( recordKey.keyLength );
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
     }
-    Counter::getRef("SmiRecord::Write")++;
     if ( rc == 0 )
     {
       if ( offset + numberOfBytes > recordSize )

@@ -659,6 +659,9 @@ SmiFileIterator::~SmiFileIterator()
 bool
 SmiFileIterator::Next( SmiRecord& record )
 {
+  static long int& ctr = Counter::getRef("SmiFileIterator::Next");
+  ctr++;
+   
   static char keyData[SMI_MAX_KEYLEN];
   bool ok = false;
   if ( opened )
