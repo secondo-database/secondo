@@ -2271,11 +2271,14 @@ callLookup(Query, Query2) :-
   newQuery,
   lookup(Query, Query2), !.
 
-newQuery :- not(clearVariables), not(clearQueryRelations).
+newQuery :- not(clearVariables), not(clearQueryRelations), 
+  not(clearQueryAttributes).
 
 clearVariables :- retract(variable(_, _)), fail.
 
 clearQueryRelations :- retract(queryRel(_, _)), fail.
+
+clearQueryAttributes :- retract(queryAttr(_)), fail.
 
 /*
 
@@ -2361,7 +2364,8 @@ Translate and store a single relation definition.
 
 :- dynamic
   variable/2,
-  queryRel/2.
+  queryRel/2,
+  queryAttr/1.
 
 lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
   relation(Rel, _), !,
@@ -2431,12 +2435,23 @@ lookupAttr(Attr, Attr2) :-
   isAttribute(Attr, Rel), !,
   spelled(Rel:Attr, Attr2).
 
-lookupAttr(*, *).
+lookupAttr(*, *) :- !.
 
-lookupAttr(count(*), count(*)).
+lookupAttr(count(*), count(*)) :- !.
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
-  lookupAttr(Expr, Expr2).
+  lookupAttr(Expr, Expr2),
+  not(queryAttr(attr(Name, 0, u))),
+  !,
+  assert(queryAttr(attr(Name, 0, u))).
+
+lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
+  lookupAttr(Expr, Expr2),
+  queryAttr(attr(Name, 0, u)),
+  !,
+  write('***** Error: attribute name '), write(Name), 
+  write(' doubly defined in query.'),
+  nl.
 
 lookupAttr(Term, Term2) :-
   compound(Term),
@@ -2445,6 +2460,10 @@ lookupAttr(Term, Term2) :-
   lookupAttr(Arg1, Res1),
   functor(Term2, Op, 1),
   arg(1, Term2, Res1).
+
+lookupAttr(Name, attr(Name, 0, u)) :-
+  queryAttr(attr(Name, 0, u)),
+  !.
 
 lookupAttr(Name, Name) :-
   write('Error in attribute list: could not recognize '), write(Name), nl, fail.
