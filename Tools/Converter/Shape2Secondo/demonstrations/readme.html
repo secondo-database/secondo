@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+
+<HEAD>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<META NAME="GENERATOR" Content="Visual Page 2.0 for Windows">
+	<META NAME="Author" Content="Linda Oxnard">
+	<TITLE>GeoTools demos, examples and tutorials package</TITLE>
+</HEAD>
+
+<BODY>
+
+<H1>GeoTools Demos and Tutorials Package</H1>
+<P><A HREF="#Introduction">Introduction</A><BR>
+<A HREF="#Overview">Overview of files</A><BR>
+<A HREF="#Requirements">Requirements</A><BR>
+<A HREF="#Demonstrations">Demonstrations</A></P>
+<H2><A NAME="Introduction"></A>Introduction</H2>
+<P>The GeoTools open source java mapping toolkit is a flexible library of routines and objects that can be used
+to build interactive web-based applets, as well as stand alone applications.</P>
+<P>The GeoTools package is not an application in its own right, however, only a toolkit. So, in order to place
+a map on the web, or into an application, small amounts of additional code are required.</P>
+<P>This package aims to provide a suite of small applets that can either be used 'as is', or as a starting point
+for more advanced programs. (Alternatively, you might just want to cannibalise bits out of each one).</P>
+<H2><A NAME="Overview"></A>Overview of files</H2>
+<P>This directory contains everything you need to get started with GeoTools, including the latest release of GeoTools
+together with support files, sample maps and example web pages.</P>
+<P>In the directory that you find this file in, you will see a series of examples. For each there are three files:
+an <B>.html</B>, a <B>.java</B> and a <B>.class</B> file (e.g. Example1.html, Example1.java and Example1.class).</P>
+<P>You will also find two directories: one called <B>maps</B>, which contains the maps used in the examples, and
+one called <B>jars</B>, which contains the GeoTools toolkit itself and some support files that it uses.</P>
+<P>So, in total, we have:</P>
+
+<UL>
+	<LI>readme.html - this file
+	<LI>example1.html - a web page which contains a demo
+	<LI>example1.java - the source code for a demo
+	<LI>example1.class - the compiled (ready to use) version of a demo
+	<LI>...
+	<UL>
+		<LI>jars/geotools.jar - The GeoTools toolkit
+		<LI>jars/support.jar - Some extra code that supports GeoTools
+		<LI>jars/collections.jar - A standard extension from sun for java 1.1
+	</UL>
+	<LI>
+	<UL>
+		<LI>maps/statepop.zip - a simple map of the US used by the demos
+	</UL>
+</UL>
+
+<H2><A NAME="Requirements"></A>Requirements</H2>
+<P>Java 1.1 or later: either on its own or built into a browser. You will find Java built into most modern browsers
+by default.</P>
+<P>
+<H2><A NAME="Demonstrations"></A>Demonstrations</H2>
+<P>The following demonstrations have been put together with the aim of providing clear examples of GeoTools usage.
+As a result, there is a minimum of non-GeoTools related code. For example, code for error handling is not as much
+in evidence as would normally be the case.</P>
+<P>If you are a non-programmer, then you will probably only be interested in the html files. Try each demo and
+see which one does what you need. As the demos progress, they add more features. In order to use your own maps,
+you will need to modify the tags in the html file. You should not need to worry about the code found in the .java
+files yet.</P>
+<P>Each demonstration listed below takes the following format:</P>
+<H3>Title - the name of the demo</H3>
+<P>Link - an active link which will take you to a page which shows the demo running</P>
+<P><B>Description: </B>- a quick overview of what the demo does</P>
+<P><B>Customizing: -</B>a list of things which can be changed from the html tags without the need to re-program
+anything</P>
+<P><B>Key classes: -</B>a list of GeoTools components that were introduced for the first time in this demo. Don't
+worry about this if you are not a programmer</P>
+<P>Right, on with the show...</P>
+<P>
+<H3>Example 1</H3>
+<P><A HREF="Example1.html">View</A></P>
+<P><B>Description:</B></P>
+<P>A very simple applet that shows how a shapefile can be read and displayed in an applet along with a standard
+toolbar.</P>
+<P><B>Customizing:</B></P>
+<P>The applet tag contains a single param tag ('shapefile') that specifies the relative address of the shapefile
+to load.</P>
+<P><B>Key classes introduced</B></P>
+<P>geotools.ShapefileReader<BR>
+geotools.Theme<BR>
+geotools.Viewer<BR>
+widgets.ToolBar</P>
+<H3></H3>
+<H3>Example 2</H3>
+<P><A HREF="Example2.html">View</A></P>
+<P><B>Description:</B></P>
+<P>An extension of Example1 that shows how to set up tooltips</P>
+<P><B>Customizing:</B></P>
+<P>The applet tag contains two tags :<BR>
+'shapefile' - the relative address of the shapefile to load<BR>
+'tooltip' - the name of the column to pull the tooltips from</P>
+<P><B>Key classes introduced:</B></P>
+<P>geotools.GeoData</P>
+<P>
+<H3>Example 3</H3>
+<P><A HREF="Example3.html">View</A></P>
+<P><B>Description:</B></P>
+<P>An extension of Example2 that shows how to shade a map</P>
+<P><B>Customizing:</B></P>
+<P>The applet tag contains three tags:<BR>
+'shapefile' - the relative address of the shapefile to load<BR>
+'tooltip' - the name of the column to pull the tooltips from<BR>
+'shadeby' - the name of a data column</P>
+<P><B>Key classes introduced:</B></P>
+<P>geotools.Shader<BR>
+geotools.ClassificationShader<BR>
+geotools.Key</P>
+<H3>Example 4</H3>
+<P><A HREF="Example4.html">View</A></P>
+<P><B>Description:</B></P>
+<P>A simple extension of Example3, introducing a new navigation widget</P>
+<P><B>Customizing:</B></P>
+<P>The applet tag contains three tags:<BR>
+'shapefile' - the relative address of the shapefile to load<BR>
+'tooltip' - the name of the column to pull the tooltips from<BR>
+'shadeby' - the name of a data column</P>
+<P><B>Key classes introduced</B></P>
+<P>widgets.ZoomLevelPicker</P>
+<H3>ImageExample</H3>
+<P><A HREF="ImageExample.html">View</A><A HREF="GraphApplet.html"></A></P>
+
+<P><B>Description:</B></P>
+
+<P>A simple applet which shows how to use an image layer</P>
+
+<P><B>Customizing:</B></P>
+
+<P>The applet tag contains only two tags:<BR>
+param name=&quot;image&quot; value=&quot;nameOfImageFile&quot;<BR>
+param name=&quot;bounds&quot; value=&quot;x,y,width,height&quot;<BR>
+</P>
+
+<P><B>Key classes introduced:</B></P>
+
+<P>uk.ac.leeds.ccg.raster.ImageLayer</P>
+<H3>GraphApplet Example</H3>
+<P><A HREF="GraphApplet.html">View</A></P>
+<P><B>Description:</B></P>
+<P>A fairly complete applet showing how a map and graph can be linked through a highlight manager.</P>
+<P><B>Customizing:</B></P>
+<P>The applet tag contains a large number of tags:<BR>
+param name=&quot;shapefile&quot; value=&quot;nameOfShapefileWithoutExtension&quot;<BR>
+param name=&quot;tooltip&quot; value=&quot;nameOfColumn&quot;<BR>
+param name=&quot;groups&quot; value=&quot;numberOfGroups&quot;<BR>
+param name=&quot;groupXcol&quot; value=&quot;nameOfColumn&quot; // for each group<BR>
+param name=&quot;groupXcolor&quot; value=&quot;#rrggbb hex colour reference&quot;<BR>
+param name=&quot;groupXname&quot; value=&quot;Description of group&quot;</P>
+
+<P><B>Key classes introduced:</B></P>
+
+<P>widgets.PieChart<BR>
+geotools.GeoLabel<BR>
+geotools.HighlightManager
+
+</BODY>
+
+</HTML>
