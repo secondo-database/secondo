@@ -197,6 +197,12 @@ Returns ~true~ if this interval is before the interval ~i~ and ~false~ otherwise
 /*
 Returns ~true~ if this interval is before/after the value ~a~ and ~false~ otherwise.
 
+*/
+
+  void Intersection( Interval<Alpha>& i, Interval<Alpha>& result );
+/*
+Return the intersection of this interval and ~i~ into ~result~.
+
 3.2.3 Attributes
 
 */
@@ -813,6 +819,16 @@ Checks if inside the unit the function passes by the value ~val~.
 Returns a unit restricted to the parts where the temporal function is equal
 to ~val~.
 
+*/
+
+  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<Alpha>& result )
+  {
+    timeInterval.Intersection( i, result.timeInterval );
+  }
+
+/*
+Returns a unit restricted to the time interval ~i~.
+
 3.3.4 Functions to be part of relations
 
 */
@@ -963,10 +979,16 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
     if( constValue.Compare( &val ) == 0 )
     {
-      result.CopyFrom( this );
+      ((ConstTemporalUnit<Alpha>*)&result)->CopyFrom( this );
       return true;
     }
     return false;
+  }
+
+  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<Alpha>& result )
+  {
+    TemporalUnit<Alpha>::AtInterval( i, result );
+    ((ConstTemporalUnit<Alpha>*)&result)->constValue.CopyFrom( &constValue );
   }
  
 /*
@@ -1113,6 +1135,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void TemporalFunction( Instant& t, CcReal& result );
   virtual bool Passes( CcReal& val );
   virtual bool At( CcReal& val, TemporalUnit<CcReal>& result );
+  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result );
 
 /*
 3.7.3 Functions to be part of relations
@@ -1247,6 +1270,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void TemporalFunction( Instant& t, Point& result );
   virtual bool Passes( Point& val );
   virtual bool At( Point& val, TemporalUnit<Point>& result );
+  virtual void AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result );
 
 /*
 3.8.3 Functions to be part of relations
@@ -1496,6 +1520,19 @@ number of units of the mapping ~Y~.
     void AtInstant( Instant& t, Intime<Alpha>& result );
 
 /*
+3.10.5.3 Operation ~atperiods~
+
+*Precondition:* ~X.IsOrdered() \&\& Y.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( m + n )$, where ~n~ is the number of units of this mapping ~X~
+and ~m~ is the number of intervals of the periods ~Y~
+
+*/
+    void AtPeriods( Periods& periods, Mapping<Unit, Alpha>& result );
+
+/*
 3.10.5.3 Operation ~present~
 
 *Precondition:* ~X.IsOrdered()~
@@ -1506,6 +1543,7 @@ number of units of the mapping ~Y~.
 
 */
     bool Present( Instant& t );
+    bool Present( Periods& periods );
 
 /*
 3.10.5.3 Operation ~passes~
@@ -1824,8 +1862,10 @@ bool Interval<Alpha>::Before( Interval<Alpha>& i )
 {
   assert( IsValid() && i.IsValid() );
 
-  return ( Before( i.start ) ||
-           ( !Before( i.start ) && end.Compare( &i.start ) && rc == true ) );
+  if( Before( i.start ) )
+    return true;
+
+  return end.Compare( &i.start ) == 0 && i.lc == false;
 }
 
 template <class Alpha>
@@ -1833,7 +1873,7 @@ bool Interval<Alpha>::Before( Alpha& a )
 {
   assert( IsValid() && a.IsDefined() );
 
-  return ( end.Compare( &a ) <= 0 ||
+  return ( end.Compare( &a ) < 0 ||
            ( end.Compare( &a ) == 0 && rc == false ) );
 }
 
@@ -1842,8 +1882,57 @@ bool Interval<Alpha>::After( Alpha& a )
 {
   assert( IsValid() && a.IsDefined() );
 
-  return ( start.Compare( &a ) >= 0 ||
+  return ( start.Compare( &a ) > 0 ||
            ( start.Compare( &a ) == 0 && lc == false ) );
+}
+
+template <class Alpha>
+void Interval<Alpha>::Intersection( Interval<Alpha>& i, Interval<Alpha>& result ) 
+{
+  assert( IsValid() && i.IsValid() );
+  assert( Intersects( i ) );
+
+  if( Inside( i ) )
+    result = *this;
+  else if( i.Inside( *this ) )
+    result = i;
+  else
+    // Normal intersection
+  {
+    int comp = start.Compare( &i.start );
+    if( comp < 0 )
+    {
+      result.start.CopyFrom( &start );
+      result.lc = true;
+    }
+    else if( comp == 0 )
+    {
+      result.start.CopyFrom( &i.start );
+      result.lc = lc || i.lc;
+    }
+    else
+    {
+      result.start.CopyFrom( &start );
+      result.lc = true;
+    }
+
+    comp = end.Compare( &i.end );
+    if( comp > 0 )
+    {
+      result.end.CopyFrom( &i.end );
+      result.rc = true;
+    }
+    else if( comp == 0 )
+    {
+      result.end.CopyFrom( &i.end );
+      result.rc = rc || i.rc;
+    }
+    else
+    {
+      result.end.CopyFrom( &this->end );
+      result.rc = true;
+    }
+  }
 }
 
 /*
@@ -3589,6 +3678,87 @@ void Mapping<Unit, Alpha>::AtInstant( Instant& t, Intime<Alpha>& result )
 }
 
 template <class Unit, class Alpha>
+void Mapping<Unit, Alpha>::AtPeriods( Periods& periods, Mapping<Unit, Alpha>& result )
+{
+  assert( IsOrdered() && periods.IsOrdered() );
+  result.Clear();
+
+  if( IsEmpty() || periods.IsEmpty() )
+    return;
+
+  result.StartBulkLoad();
+
+  Unit unit;
+  Interval<Instant> interval;
+  int i = 0, j = 0;
+  Get( i, unit );
+  periods.Get( j, interval );
+
+  while( 1 )
+  {
+    if( unit.timeInterval.Before( interval ) )
+    {
+      if( ++i == GetNoComponents() )
+        break;
+      Get( i, unit );
+    }
+    else if( interval.Before( unit.timeInterval ) )
+    {
+      if( ++j == periods.GetNoComponents() )
+        break;
+      periods.Get( j, interval );
+    }
+    else
+    {
+      Unit r;
+      unit.AtInterval( interval, r );
+      result.Add( r );
+
+      if( interval.end == unit.timeInterval.end ) 
+      {
+        if( interval.rc == unit.timeInterval.rc )
+        {
+          if( ++i == GetNoComponents() )
+            break;
+          Get( i, unit );
+          if( ++j == periods.GetNoComponents() )
+            break;
+          periods.Get( j, interval );
+        }
+        else if( interval.rc == true )
+        {
+          if( ++j == periods.GetNoComponents() )
+            break;
+          periods.Get( j, interval );
+        }
+        else
+        {
+          assert( unit.timeInterval.rc == true );
+          if( ++i == GetNoComponents() )
+            break;
+          Get( i, unit );
+        }
+      }
+      else if( interval.end > unit.timeInterval.end )
+      {
+        if( ++i == GetNoComponents() )
+          break;
+        Get( i, unit );
+      }
+      else
+      {
+        assert( interval.end < unit.timeInterval.end );
+        if( ++j == periods.GetNoComponents() )
+          break;
+        periods.Get( j, interval );
+      }
+    }
+  }
+  
+  result.EndBulkLoad( false );
+}
+
+template <class Unit, class Alpha>
 bool Mapping<Unit, Alpha>::Present( Instant& t )
 {
   assert( t.IsDefined() && IsOrdered() );
@@ -3598,6 +3768,17 @@ bool Mapping<Unit, Alpha>::Present( Instant& t )
   if( pos == -1 )  //not contained in any unit
     return false;
   return true;
+}
+
+template <class Unit, class Alpha>
+bool Mapping<Unit, Alpha>::Present( Periods& t )
+{
+  assert( t.IsOrdered() && IsOrdered() );
+
+  Periods defTime( 0 );
+  DefTime( defTime );
+
+  return t.Inside( defTime );
 }
 
 template <class Unit, class Alpha>

@@ -85,13 +85,19 @@ bool UReal::At( CcReal& val, TemporalUnit<CcReal>& result )
   return false;
 }
 
+void UReal::AtInterval( Interval<Instant>& i, TemporalUnit<CcReal>& result )
+  // VTA - Not implemented yet
+{
+}
+
 /*
 3.1 Class ~UPoint~
 
 */
 void UPoint::TemporalFunction( Instant& t, Point& result )
 {
-  assert( t.IsDefined() && timeInterval.Contains( t ) );
+  assert( t.IsDefined() );
+  assert( timeInterval.Contains( t ) );
 
   if( t == timeInterval.start )
     result = p0;
@@ -124,8 +130,8 @@ would then be very hard to return a true for this function.
 */
   assert( p.IsDefined() );
 
-  if( AlmostEqual( p, p0 ) || 
-      AlmostEqual( p, p1 ) ) 
+  if( timeInterval.lc && AlmostEqual( p, p0 ) || 
+      timeInterval.rc && AlmostEqual( p, p1 ) ) 
     return true;
 
   if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
@@ -150,8 +156,8 @@ would then be very hard to return a true for this function.
            k2 = ( p1.GetX() - p0.GetX() ) / ( p1.GetY() - p0.GetY() );
 
     if( AlmostEqual( k1, k2 ) &&
-        ( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
-          ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) ) )
+        ( ( p0.GetX() < p.GetX() && p1.GetX() > p.GetX() ) ||
+          ( p0.GetX() > p.GetX() && p1.GetX() < p.GetX() ) ) )
       return true;
   }
   return false;
@@ -166,10 +172,33 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   assert( p.IsDefined() );
   UPoint *pResult = (UPoint*)&result;
 
-  if( AlmostEqual( p, p0 ) ||
+  if( AlmostEqual( p, p0 ) &&
       AlmostEqual( p, p1 ) )
   {
     result = *this;
+    return true;
+  }
+
+  if( AlmostEqual( p, p0 ) )
+  {
+    if( !timeInterval.lc )
+      return false;
+
+    Interval<Instant> interval( timeInterval.start, timeInterval.start, true, true );
+    UPoint unit( interval, p, p );
+    *pResult = unit;
+    return true;
+  }
+
+  
+  if( AlmostEqual( p, p1 ) )
+  {
+    if( !timeInterval.rc )
+      return false;
+
+    Interval<Instant> interval( timeInterval.end, timeInterval.end, true, true );
+    UPoint unit( interval, p, p );
+    *pResult = unit;
     return true;
   }
 
@@ -225,6 +254,23 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   }
   
   return false;
+}
+
+void UPoint::AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result )
+{
+  TemporalUnit<Point>::AtInterval( i, result );
+
+  UPoint *pResult = (UPoint*)&result;
+
+  if( timeInterval.start == result.timeInterval.start )
+    pResult->p0 = p0;
+  else
+    TemporalFunction( result.timeInterval.start, pResult->p0 );
+
+  if( timeInterval.end == result.timeInterval.end )
+    pResult->p1 = p1;
+  else
+    TemporalFunction( result.timeInterval.end, pResult->p1 );
 }
 
 /*
@@ -1944,6 +1990,38 @@ MovingInstantTypeMapIntime( ListExpr args )
 }
 
 /*
+16.1.7 Type mapping function ~MovingPeriodsTypeMapMoving~
+
+It is for the operator ~atperiods~.
+
+*/
+ListExpr
+MovingPeriodsTypeMapMoving( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "periods" ) )
+    {
+      if( nl->IsEqual( arg1, "mbool" ) )
+        return nl->SymbolAtom( "mbool" );
+
+      if( nl->IsEqual( arg1, "mint" ) )
+        return nl->SymbolAtom( "mint" );
+
+      if( nl->IsEqual( arg1, "mreal" ) )
+        return nl->SymbolAtom( "mreal" );
+
+      if( nl->IsEqual( arg1, "mpoint" ) )
+        return nl->SymbolAtom( "mpoint" );
+    }
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 16.1.8 Type mapping function ~MovingTypeMapRange~
 
 It is for the operator ~deftime~.
@@ -1985,20 +2063,21 @@ MovingTypeMapSpatial( ListExpr args )
 }
 
 /*
-16.1.9 Type mapping function ~MovingInstantTypeMapBool~
+16.1.9 Type mapping function ~MovingInstantPeriodsTypeMapBool~
 
 It is for the operator ~present~.
 
 */
 ListExpr
-MovingInstantTypeMapBool( ListExpr args )
+MovingInstantPeriodsTypeMapBool( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
   {
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "instant" ) )
+    if( nl->IsEqual( arg2, "instant" ) ||
+        nl->IsEqual( arg2, "periods" ) )
     {
       if( nl->IsEqual( arg1, "mbool" ) ||
           nl->IsEqual( arg1, "mint" ) ||
@@ -2395,7 +2474,8 @@ IntimeSimpleSelect( ListExpr args )
 /*
 16.2.3 Selection function ~MovingSimpleSelect~
 
-Is used for the ~deftime~, ~initial~, ~final~, ~inst~, ~val~, ~atinstant~, ~present~  operations.
+Is used for the ~deftime~, ~initial~, ~final~, ~inst~, ~val~, ~atinstant~,
+~atperiods~  operations.
 
 */
 int
@@ -2414,6 +2494,45 @@ MovingSimpleSelect( ListExpr args )
 
   if( nl->SymbolValue( arg1 ) == "mpoint" )
     return 3;
+
+  return -1; // This point should never be reached
+}
+
+/*
+16.2.3 Selection function ~MovingInstantPeriodsSelect~
+
+Is used for the ~present~ operations.
+
+*/
+int
+MovingInstantPeriodsSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+
+  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "instant" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "instant" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "instant" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue( arg2 ) == "instant" )
+    return 3;
+
+  if( nl->SymbolValue( arg1 ) == "mbool" && nl->SymbolValue( arg2 ) == "periods" )
+    return 4;
+
+  if( nl->SymbolValue( arg1 ) == "mint" && nl->SymbolValue( arg2 ) == "periods" )
+    return 5;
+
+  if( nl->SymbolValue( arg1 ) == "mreal" && nl->SymbolValue( arg2 ) == "periods" )
+    return 6;
+
+  if( nl->SymbolValue( arg1 ) == "mpoint" && nl->SymbolValue( arg2 ) == "periods" )
+    return 7;
 
   return -1; // This point should never be reached
 }
@@ -2865,6 +2984,18 @@ int MappingAtInstant( Word* args, Word& result, int message, Word& local, Suppli
 }
 
 /*
+16.3.19 Value mapping functions of operator ~atperiods~
+
+*/
+template <class Mapping>
+int MappingAtPeriods( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((Mapping*)args[0].addr)->AtPeriods( *((Periods*)args[1].addr), *((Mapping*)result.addr) );
+  return 0;
+}
+
+/*
 16.3.20 Value mapping functions of operator ~deftime~
 
 */
@@ -2896,7 +3027,7 @@ int MPointTrajectory( Word* args, Word& result, int message, Word& local, Suppli
 
 */
 template <class Mapping>
-int MappingPresent( Word* args, Word& result, int message, Word& local, Supplier s )
+int MappingPresent_i( Word* args, Word& result, int message, Word& local, Supplier s )
 { 
   result = qp->ResultStorage( s );
   
@@ -2910,6 +3041,24 @@ int MappingPresent( Word* args, Word& result, int message, Word& local, Supplier
   else
     ((CcBool *)result.addr)->Set( true, false );
     
+  return 0;
+}
+
+template <class Mapping>
+int MappingPresent_p( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Mapping *m = ((Mapping*)args[0].addr);
+  Periods* periods = ((Periods*)args[1].addr);
+
+  if( periods->IsEmpty() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( m->Present( *periods ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
   return 0;
 }
 
@@ -3381,6 +3530,11 @@ ValueMapping temporalatinstantmap[] = { MappingAtInstant<MBool, CcBool>,
                                         MappingAtInstant<MReal, CcReal>,
                                         MappingAtInstant<MPoint, Point> };
 
+ValueMapping temporalatperiodsmap[] = { MappingAtPeriods<MBool>,
+                                        MappingAtPeriods<MInt>,
+                                        MappingAtPeriods<MReal>,
+                                        MappingAtPeriods<MPoint> };
+
 ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
                                       MappingDefTime<MInt>,
                                       MappingDefTime<MReal>,
@@ -3388,10 +3542,14 @@ ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
 
 ValueMapping temporaltrajectorymap[] = { MPointTrajectory };
 
-ValueMapping temporalpresentmap[] = { MappingPresent<MBool>,
-		                      MappingPresent<MInt>,
-		                      MappingPresent<MReal>,
-			              MappingPresent<MPoint> };
+ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
+		                      MappingPresent_i<MInt>,
+		                      MappingPresent_i<MReal>,
+			              MappingPresent_i<MPoint>,
+                                      MappingPresent_p<MBool>,
+                                      MappingPresent_p<MInt>,
+                                      MappingPresent_p<MReal>,
+                                      MappingPresent_p<MPoint> };
 
 ValueMapping temporalpassesmap[] = { MappingPasses<MBool, CcBool>,
                                      MappingPasses<MInt, CcInt>,
@@ -3601,6 +3759,14 @@ const string TemporalSpecAtInstant  = "( ( \"Signature\" \"Syntax\" \"Meaning\" 
                                 "<text>mpoint1 atinstant instant1</text--->"
                                 ") )";
 
+const string TemporalSpecAtPeriods  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(moving(x) instant) -> intime(x)</text--->"
+                                "<text>_ atperiods _ </text--->"
+                                "<text>restrict the movement to the given periods.</text--->"
+                                "<text>mpoint1 atperiods periods1</text--->"
+                                ") )";
+
 const string TemporalSpecDefTime  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
                                 "( <text>moving(x) -> periods</text--->"
@@ -3619,9 +3785,9 @@ const string TemporalSpecTrajectory  = "( ( \"Signature\" \"Syntax\" \"Meaning\"
 
 const string TemporalSpecPresent  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
-                                "( <text>(moving(x) instant) -> bool</text--->"
+                                "( <text>(moving(x) instant) -> bool, (moving(x) periods) -> bool</text--->"
                                 "<text>_ present _ </text--->"
-                                "<text>whether the object is present at the given instant.</text--->"
+                                "<text>whether the object is present at the given instant or period.</text--->"
                                 "<text>mpoint1 present instant1</text--->"
                                 ") )";
 
@@ -3877,6 +4043,14 @@ Operator temporalatinstant( "atinstant",
                             MovingSimpleSelect,
                             MovingInstantTypeMapIntime );
 
+Operator temporalatperiods( "atperiods",
+                            TemporalSpecAtPeriods,
+                            4,
+                            temporalatperiodsmap,
+                            temporalnomodelmap,
+                            MovingSimpleSelect,
+                            MovingPeriodsTypeMapMoving );
+
 Operator temporaldeftime( "deftime",
                           TemporalSpecDefTime,
                           4,
@@ -3895,11 +4069,11 @@ Operator temporaltrajectory( "trajectory",
 
 Operator temporalpresent( "present",
                           TemporalSpecPresent,
-                          4,
+                          8,
                           temporalpresentmap,
                           temporalnomodelmap,
-                          MovingSimpleSelect,
-                          MovingInstantTypeMapBool);
+                          MovingInstantPeriodsSelect,
+                          MovingInstantPeriodsTypeMapBool);
 
 Operator temporalpasses( "passes",
                          TemporalSpecPasses,
@@ -4079,6 +4253,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalinst );
     AddOperator( &temporalval );
     AddOperator( &temporalatinstant);
+    AddOperator( &temporalatperiods);
     AddOperator( &temporaldeftime);
     AddOperator( &temporaltrajectory);
     AddOperator( &temporalpresent);
