@@ -127,6 +127,38 @@ ListExpr ConcatLists( ListExpr list1, ListExpr list2)
 
 /*
 
+5.6 Function ~IsTupleDescription~
+
+Checks wether a ListExpression is of the form
+((a1 t1) ... (ai ti)).
+
+*/
+bool IsTupleDescription(ListExpr a)
+{
+  ListExpr rest = a;
+  ListExpr current;
+
+  while(!nl->IsEmpty(rest))
+  {
+    current = nl->First(rest);
+    rest = nl->Rest(rest);
+    if((nl->ListLength(current) == 2)
+      && (nl->IsAtom(nl->First(current)))
+      && (nl->AtomType(nl->First(current)) == SymbolType)
+      && (nl->IsAtom(nl->Second(current)))
+      && (nl->AtomType(nl->Second(current)) == SymbolType))
+    {
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+
 5.6 Function ~AttributesAreDisjoint~
 
 Checks wether two ListExpressions are of the form
@@ -238,7 +270,7 @@ Each instance of the class defined below will be the main memory representation 
 */
 class TupleAttributesInfo
 {
-   
+
     TupleAttributes* tupleType;
     AttributeType* attrTypes;
     
@@ -267,7 +299,7 @@ TupleAttributesInfo::TupleAttributesInfo (ListExpr typeInfo, ListExpr value)
   nl->WriteToFile("/dev/tty",attrlist);
   nl->WriteToFile("/dev/tty",valuelist);
   noofattrs = 0;
-      
+
   while (!nl->IsEmpty(attrlist))
   {
     first = nl->First(attrlist);
@@ -1877,7 +1909,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       
     case CLOSE :
-    
+
       qp->Close(args[0].addr); 
       qp->Close(args[1].addr);
       return 0;
@@ -1956,7 +1988,7 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
 	}
       }
       else return CANCEL;
-      
+
     case CLOSE :
 
       qp->Close(args[0].addr);
@@ -2149,9 +2181,9 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 	return YIELD;
       }
       else return CANCEL;
-      
+
     case CLOSE :
-    
+
       qp->Close(args[0].addr);
       return 0;
   }
@@ -2198,7 +2230,7 @@ ExtractTypeMap( ListExpr args )
   ListExpr first, second, attrtype;
   string  attrname;
   int j;
-  
+
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
@@ -2233,22 +2265,22 @@ Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   Word t;
   CcTuple* tupleptr;
   int index;
-  
+
   qp->Open(args[0].addr);
 
   qp->Request(args[0].addr,t);
-  
+
   if (qp->Received(args[0].addr))
-  {  
+  {
     tupleptr = (CcTuple*)t.addr;
     index = (int)((StandardAttribute*)args[2].addr)->GetValue();
-    if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))   
+    if ((1 <= index) && (index <= tupleptr->GetNoAttrs()))
     {
       result = SetWord(tupleptr->Get(index - 1));
       return 0;
     }
     else
-    { 
+    {
       cout << "extract: index out of range !";
       return -1;
     }
@@ -2275,6 +2307,104 @@ Operator cppextract (
          Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
          simpleSelect,          // trivial selection function
          ExtractTypeMap         // type mapping
+);
+
+/*
+
+7.3 Operator ~head~
+
+This operator fetches the first n tuples from a stream.
+
+7.3.1 Type mapping function of operator ~head~
+
+Type mapping for ~head~ is
+
+----	((stream (tuple ((x1 t1)...(xn tn))) int) 	->
+							((stream (tuple ((x1 t1)...(xn tn))))
+----
+
+*/
+static ListExpr
+HeadTypeMap( ListExpr args )
+{
+  ListExpr first, second;
+
+  if(nl->ListLength(args) == 2)
+  {
+    first = nl->First(args);
+    second  = nl->Second(args);
+
+    if((nl->ListLength(first) == 2  )
+      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
+      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+      && IsTupleDescription(nl->Second(nl->Second(first)))
+      && (nl->IsAtom(second))
+      && (nl->AtomType(second) == SymbolType)
+      && nl->SymbolValue(second) == "int")
+    {
+      return first;
+    }
+    return nl->SymbolAtom("typeerror");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+/*
+
+4.1.2 Value mapping function of operator ~head~
+
+*/
+static int
+Head(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  int maxTuples;
+
+  switch(message)
+  {
+    case OPEN:
+      qp->Open(args[0].addr);
+      local.ival = 0;
+      return 0;
+    case REQUEST:
+      maxTuples = (int)((StandardAttribute*)args[1].addr)->GetValue();
+      if(local.ival >= maxTuples)
+      {
+        return CANCEL;
+      }
+
+      qp->Request(args[0].addr, result);
+      if(qp->Received(args[0].addr))
+      {
+        local.ival++;
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    case CLOSE:
+      qp->Close(args[0].addr);
+      return 0;
+  }
+}
+/*
+
+4.1.3 Specification of operator ~head~
+
+*/
+const string HeadSpec =
+  "(<text>((stream (tuple([a1:d1, ... ,an:dn]))) x int) -> (stream (tuple([a1:d1, ... ,an:dn])))</text---><text>Returns the first n tuples in the input stream.</text--->)";
+/*
+
+4.1.3 Definition of operator ~head~
+
+*/
+Operator cpphead (
+         "head",             // name
+         HeadSpec,           // specification
+         Head,               // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         HeadTypeMap         // type mapping
 );
 
 /*
@@ -3278,7 +3408,7 @@ static int
 Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t;
-  
+
   switch (message)
   {
     case OPEN :
@@ -3372,6 +3502,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppextract);
     AddOperator(&cppextend);
     AddOperator(&cppconcat);
+    AddOperator(&cpphead);
     AddOperator(&sortBy);
     AddOperator(&equiMergeJoinOperator);
     AddOperator(&equiHashJoinOperator);
