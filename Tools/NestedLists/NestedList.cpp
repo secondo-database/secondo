@@ -1268,7 +1268,8 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) {
 	  }
 	  case TextType:   {
                            os << (byte) 6;
-	                   string value = Text2String(list); // to do: stream based processing of texts
+                           string value="";
+	                   Text2String(list, value); // to do: stream based processing of texts
 			   strlen = value.length();
                            pv = Int2CharArray(strlen);
                            os << (byte) pv[0] << (byte) pv[1] << (byte) pv[2] << (byte) pv[3];
@@ -1958,15 +1959,14 @@ NestedList::DestroyTextScan( TextScan& textScan )
 9.6.1 Text2String
 */
 
-string
-NestedList::Text2String( const ListExpr& textAtom ) {
+void
+NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) {
 
-  string result("");
+  resultStr="";
   TextScan tscan = CreateTextScan(textAtom);
-  GetText( tscan, TextLength(textAtom), result);
+  GetText( tscan, TextLength(textAtom), resultStr );
   DestroyTextScan(tscan);
 
-  return result;
 }
 
 /*

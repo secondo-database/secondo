@@ -742,10 +742,10 @@ Returns the number of characters of ~textAtom~.
 
 */
 
-string Text2String( const ListExpr& textAtom );
+void Text2String( const ListExpr& textAtom, string& resultStr );
 
 /*
-Returns the text as a C++ string object
+Transforms the text atom into C++ string object 
 
 1.3.10 Atom Test
 
