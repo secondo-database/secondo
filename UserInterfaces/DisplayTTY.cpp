@@ -277,8 +277,8 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "real",   &DisplayReal );
   InsertDisplayFunction( "bool",   &DisplayBoolean );
   InsertDisplayFunction( "string", &DisplayString );
-//  InsertDisplayFunction( "rel",    &DisplayRelation );
-//  InsertDisplayFunction( "tuple",  &DisplayTuples );
+  InsertDisplayFunction( "rel",    &DisplayRelation );
+  InsertDisplayFunction( "tuple",  &DisplayTuples );
   InsertDisplayFunction( "map",    &DisplayFun );
 }
 
