@@ -160,6 +160,10 @@ Are display functions for tuples.
   static void DisplayString( ListExpr type,
                              ListExpr numType,
                              ListExpr value );
+  static void DisplayText( ListExpr type,
+                             ListExpr numType,
+                             ListExpr value );
+
 /*
 Are display functions for the types of the standard algebra.
 

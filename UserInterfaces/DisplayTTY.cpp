@@ -263,6 +263,64 @@ DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 void
+DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
+{
+  string printstr, line, restline;
+  int lastblank, position;
+  bool lastline;
+  
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && 
+    nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  } 
+  else
+  {
+    TextScan txtscan = nl->CreateTextScan(nl->First(value));
+    nl->GetText(txtscan, nl->TextLength(nl->First(value)),printstr);
+    position = 0;
+    lastblank = -1;
+    line = "";
+    for (unsigned i = 1; i <= printstr.length(); i++)
+    {
+      line += printstr[i-1];
+      if (printstr[i-1] == ' ') lastblank = position;
+      position++;
+      lastline = ( i == printstr.length() );
+      if ( position == LINELENGTH || lastline || (printstr[i-1] == '\n') ) 
+      {
+        if ( lastline || (printstr[i-1] == '\n') )
+	{
+	  cout << line << endl;
+	  line = "";
+	  lastblank = -1;
+	  position = 0;
+	}	      
+        else
+	{
+          if ( lastblank > 0 )
+	  {
+	    cout << line.substr(0, lastblank) << endl;
+	    restline = line.substr(lastblank+1, position);
+	    line = "";
+	    line += restline;
+	    lastblank = -1;
+	    position = line.length();
+	  }
+	  else
+	  {
+	    cout << line << endl;
+	    line = "";
+	    lastblank = -1;
+	    position = 0;
+	  }	
+	}
+      }
+    }
+  }
+}
+
+void
 DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
 {
   cout << "Function type: ";
@@ -486,5 +544,6 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "tuple",  &DisplayTuples );
   InsertDisplayFunction( "map",    &DisplayFun );
   InsertDisplayFunction( "date",    &DisplayDate );
+  InsertDisplayFunction( "text",    &DisplayText );
 }
 
