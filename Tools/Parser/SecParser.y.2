@@ -39,6 +39,8 @@ for example
 February 3, 2003 RHG Added translation of counters of the form e.g. ``{5}'' and
 a ``list counters'' command.
 
+May 19, 2003 RHG Added missing syntax '..' to refer to the second implicit argument.
+
 */
 
 %%
@@ -160,12 +162,9 @@ typeexpr	:	constructor	{$$ = $1;}
 
 		|	'[' ']'		{$$ = NestedText::AtomC("()");}
 
-		|	typeexpr ':' typeexpr	{$$ = 
-NestedText::Concat(NestedText::AtomC("("),
-						NestedText::Concat($1, 
-NestedText::Concat(NestedText::AtomC(" "),
-						NestedText::Concat($3,  
-NestedText::AtomC(")")))));}
+		|	typeexpr ':' typeexpr	{$$ = NestedText::Concat(NestedText::AtomC("("),
+						NestedText::Concat($1, NestedText::Concat(NestedText::AtomC(" "),
+						NestedText::Concat($3,  NestedText::AtomC(")")))));}
 		;
 
 constructor	:	ZZIDENTIFIER	{$$ = $1;}
@@ -176,8 +175,7 @@ constructor	:	ZZIDENTIFIER	{$$ = $1;}
 typeexprs	:	typeexpr	{$$ = $1;}
 		|	typeexprs ',' typeexpr	
 					{$$ = NestedText::Concat($1, 
-						NestedText::Concat(NestedText::AtomC(" "), 
-$3));}
+						NestedText::Concat(NestedText::AtomC(" "), $3));}
 		;
 
 /* valueexpr, general part */
@@ -195,8 +193,7 @@ function	: ZZFUN '(' args ')' valueexpr
 				{$$ = NestedText::Concat(NestedText::AtomC("(fun "),
 					NestedText::Concat($3,
  					  NestedText::Concat (NestedText::AtomC(" "),
-  					    NestedText::Concat($5, NestedText::AtomC(")") 
-))));}
+  					    NestedText::Concat($5, NestedText::AtomC(")") ))));}
 		| ZZFUN '(' ')' valueexpr
 				{$$ =   NestedText::Concat(
 					  NestedText::AtomC("(fun "),
@@ -207,14 +204,12 @@ arg		: ZZIDENTIFIER ':' typeexpr
 				{$$ = NestedText::Concat(NestedText::AtomC("("),
 					NestedText::Concat($1,
 					  NestedText::Concat(NestedText::AtomC(" "),
-					    NestedText::Concat($3, NestedText::AtomC(")") 
-))));}
+					    NestedText::Concat($3, NestedText::AtomC(")") ))));}
 		;
 
 args		: arg		{$$ = $1;}
 		| args ',' arg	{$$ = NestedText::Concat($1, 
-					      	NestedText::Concat(NestedText::AtomC(" "), 
-$3));}
+					      	NestedText::Concat(NestedText::AtomC(" "), $3));}
 		;
 
 
@@ -244,11 +239,9 @@ nestedlist	: atom			{$$ = $1;}
 
 rest		: ')'			{$$ = $1;}
 		| atom rest		{$$ = NestedText::Concat($1, 
-						NestedText::Concat(NestedText::AtomC(" "), 
-$2));}
+						NestedText::Concat(NestedText::AtomC(" "), $2));}
 		| nestedlist rest	{$$ = NestedText::Concat($1, 
-						NestedText::Concat(NestedText::AtomC(" "), 
-$2));}
+						NestedText::Concat(NestedText::AtomC(" "), $2));}
 		;
 
 atom		: constant		{$$ = $1;}
@@ -263,8 +256,7 @@ list		: elems			{$$ = NestedText::Concat(NestedText::AtomC("("),
 elems		: 			{$$ = NestedText::AtomC("");}
 		| elem			{$$ = $1;}
 		| elems ',' elem	{$$ = NestedText::Concat($1,
-						NestedText::Concat(NestedText::AtomC(" "), 
-$3));}
+						NestedText::Concat(NestedText::AtomC(" "), $3));}
 		;
 
 elem		: valueexpr		{$$ = $1;}
@@ -307,9 +299,11 @@ valueexpr	: ZZIDENTIFIER				{$$ = $1;}
 
 		| '.'					{$$ = NestedText::AtomC(param);}
 
-		| ZZTUPLE					{$$ = NestedText::AtomC(param);}
+		| ZZDOUBLE 				{$$ = NestedText::AtomC(param2);}
 
-		| ZZGROUP					{$$ = NestedText::AtomC(param);}
+		| ZZTUPLE				{$$ = NestedText::AtomC(param);}
+
+		| ZZGROUP				{$$ = NestedText::AtomC(param);}
 
 		| valueexpr ZZEQ valueexpr
 			{$$ = NestedText::Concat(NestedText::AtomC("(="), 
