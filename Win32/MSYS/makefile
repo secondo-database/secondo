@@ -7,9 +7,9 @@ SCRIPT_DIR=../../CM-Scripts
 	
 # Configuration files for MSYS
 .PHONY: config
-config: config /etc/profile /etc/fstab
+config: /etc/fstab $(HOME)/.profile 
 
-/etc/profile: profile
+$(HOME)/.profile: $(SCRIPT_DIR)/.profile
 	cp --backup $< $@
 
 /etc/fstab: fstab

@@ -11,7 +11,7 @@ all: makedirs buildlibs buildalg buildapps $(OPTIMIZER_SERVER) java2 checkup
 
 # Rules for copying configuration scripts
 SCRIPT_DIR = ./CM-Scripts
-SCRIPT_FILES = $(SECONDO_SDK)/bin/setvar.bash $(SECONDO_SDK)/bin/catvar.sh $(HOME)/.secondorc
+SCRIPT_FILES = $(SECONDO_SDK)/bin/setvar.bash $(SECONDO_SDK)/bin/catvar.sh $(HOME)/.secondorc $(HOME)/.bashrc-sample
 
 .PHONY: update-environment 
 update-environment: $(SCRIPT_FILES)
