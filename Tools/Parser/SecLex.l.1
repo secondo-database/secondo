@@ -73,6 +73,7 @@ constructors	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCONSTRUCTORS
 operators	{yylval = NestedText::Atom( yytext, yyleng ); return ZZOPERATORS;}
 types		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPES;}
 objects		{yylval = NestedText::Atom( yytext, yyleng ); return ZZOBJECTS;}
+object		{yylval = NestedText::Atom( yytext, yyleng ); return ZZOBJECT;}
 counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZEQ;}
