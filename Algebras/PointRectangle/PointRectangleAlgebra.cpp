@@ -407,7 +407,8 @@ Inside predicate for point and rectangle.
 */
 
 const string intersectsSpec =
-  "(<text>(rectangle rectangle) -> bool</text---><text>Intersection predicate for two rectangles.</text--->)";
+  "(<text>(rectangle rectangle) -> bool</text---><text>Intersection predicate for two 
+rectangles.</text--->)";
 
 const string insideSpec =
   "(<text>(point rectangle) -> bool</text---><text>Inside predicate.</text--->)";
@@ -484,4 +485,5 @@ InitializePointRectangleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (&pointRectangleAlgebra);
 }
+
 

@@ -2225,7 +2225,6 @@ Optimize ~Query~ and print the best ~Plan~.
 */
 
 optimize(Query) :-
-  write(Query), nl, nl,
   Query = (select _ from _ where _),
   translate(Query,
     select _ from Rels2 where Preds2),
@@ -2234,7 +2233,7 @@ optimize(Query) :-
 
 optimize(Query, QueryOut, CostOut) :-
   Query = (select * from _ where _), !,
-  write(Query), nl, nl,
+  nl,
   translate(Query,
     select _ from Rels2 where Preds2),
   pog(Rels2, Preds2, _, _),
@@ -2243,7 +2242,7 @@ optimize(Query, QueryOut, CostOut) :-
 
 optimize(Query, QueryOut, CostOut) :-
   Query = (select count(*) from _ where _), !,
-  write(Query), nl, nl,
+  nl,
   translate(Query,
     select _ from Rels2 where Preds2),
   pog(Rels2, Preds2, _, _),
@@ -2471,7 +2470,9 @@ called to execute it.
 :- op(980, fx, sql).
 
 sql Term :-
-  optimize(Term, Query, _),
+  optimize(Term, Query, Cost),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query).
 
 
