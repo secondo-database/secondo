@@ -201,23 +201,23 @@ query EmployeeTest feed sortby[DeptNr asc] groupby[DeptNr; anz : group count] co
 
 #testcase HashJoinTest
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
-    (LeaderA string)(DeptNrA int))))\
+    (Leader_A string)(DeptNr_A int))))\
     (("Bush" 11 1 "Bush" 1)("Callahan" 1 2 "Myers" 2)("Jones" 14 2 "Myers" 2)))
-query EmployeeTest feed DeptTest feed rename[A] hashjoin[DeptNr, DeptNrA, 17] sort head[3] consume;
+query EmployeeTest feed DeptTest feed rename[A] hashjoin[DeptNr, DeptNr_A, 17] sort head[3] consume;
 
 #testcase HashJoinTest2
-#yields ((rel(tuple((no int)(noA int))))((1 1)(6 6)(7 7)(9 9)))
-query duplicatesTest feed tenTest feed rename[A] hashjoin[no, noA, 23] sort rdup consume
+#yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
+query duplicatesTest feed tenTest feed rename[A] hashjoin[no, no_A, 23] sort rdup consume
 
 #testcase MergeJoinTest1
 #yields ((rel(tuple((EName string)(EmpNr int)(DeptNr int)\
-    (LeaderA string)(DeptNrA int))))\
+    (Leader_A string)(DeptNr_A int))))\
     (("Bush" 11 1 "Bush" 1)("Callahan" 1 2 "Myers" 2)("Jones" 14 2 "Myers" 2)))
-query EmployeeTest feed DeptTest feed rename[A] sortmergejoin[DeptNr, DeptNrA] sort head[3] consume;
+query EmployeeTest feed DeptTest feed rename[A] sortmergejoin[DeptNr, DeptNr_A] sort head[3] consume;
 
 #testcase MergeJoinTest2
-#yields ((rel(tuple((no int)(noA int))))((1 1)(6 6)(7 7)(9 9)))
-query duplicatesTest feed tenTest feed rename[A] mergejoin[no, noA] sort rdup consume
+#yields ((rel(tuple((no int)(no_A int))))((1 1)(6 6)(7 7)(9 9)))
+query duplicatesTest feed tenTest feed rename[A] mergejoin[no, no_A] sort rdup consume
 
 #testcase MaxTest1
 #yields (string "Wuppertal")
@@ -263,7 +263,7 @@ query twentyTest feed tenTest feed concat sort rdup count
 
 #testcase ProjectTest
 #yields (int 20)
-query tenTest feed twentyTest feed rename[A] product project[noA] sort rdup count
+query tenTest feed twentyTest feed rename[A] product project[no_A] sort rdup count
 
 #testcase DiffTest1
 #yields (int 10)
