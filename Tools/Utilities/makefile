@@ -14,7 +14,8 @@ OBJECTS=\
 	Profiles.$(OBJEXT) \
 	FileSystem.$(OBJEXT) \
 	UtilFunctions.$(OBJEXT) \
-	WinUnix.$(OBJEXT)
+	WinUnix.$(OBJEXT) \
+	Base64.$(OBJEXT)
 
 
 CODE_DEPENDENCIES = $(patsubst %.$(OBJEXT), %.dep, $(OBJECTS))
