@@ -1688,6 +1688,18 @@ The constructor. Initializes space for ~n~ elements.
 */
   void Trajectory( CLine& line );
 
+/*
+3.10.5.3 Operation ~distance~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
+
+*/
+  void Distance( Point& p, MReal& result );
+
 };
 
 /*
@@ -1902,7 +1914,7 @@ void Interval<Alpha>::Intersection( Interval<Alpha>& i, Interval<Alpha>& result 
     int comp = start.Compare( &i.start );
     if( comp < 0 )
     {
-      result.start.CopyFrom( &start );
+      result.start.CopyFrom( &i.start );
       result.lc = true;
     }
     else if( comp == 0 )

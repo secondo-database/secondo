@@ -269,12 +269,20 @@ void UPoint::AtInterval( Interval<Instant>& i, TemporalUnit<Point>& result )
   UPoint *pResult = (UPoint*)&result;
 
   if( timeInterval.start == result.timeInterval.start )
+  {
     pResult->p0 = p0;
+    pResult->timeInterval.start = timeInterval.start;
+    pResult->timeInterval.lc = pResult->timeInterval.lc && timeInterval.lc;
+  }
   else
     TemporalFunction( result.timeInterval.start, pResult->p0 );
 
   if( timeInterval.end == result.timeInterval.end )
+  {
     pResult->p1 = p1;
+    pResult->timeInterval.end = timeInterval.end;
+    pResult->timeInterval.rc = pResult->timeInterval.rc && timeInterval.rc;
+  }
   else
     TemporalFunction( result.timeInterval.end, pResult->p1 );
 }
@@ -302,6 +310,27 @@ void MPoint::Trajectory( CLine& line )
     line += chs;
   }
   line.EndBulkLoad();
+}
+
+void MPoint::Distance( Point& p, MReal& result )
+{
+//  CHalfSegment chs;
+//
+//  UPoint unit;
+//
+//  line.Clear();
+//  line.StartBulkLoad();
+//  for( int i = 0; i < GetNoComponents(); i++ )
+//  {
+//    Get( i, unit );
+//
+//    CHalfSegment chs( true, true, unit.p0, unit.p1 );
+//    line += chs;
+//
+//    chs.SetLDP( false );
+//    line += chs;
+//  }
+//  line.EndBulkLoad();
 }
 
 /*
@@ -2180,6 +2209,26 @@ MovingTypeMapIntime( ListExpr args )
 }
 
 /*
+16.1.11 Type mapping function ~MovingTypeMapeIntime~
+
+It is for the operators ~initial~ and ~final~.
+
+*/
+ListExpr
+MovingBaseTypeMapMReal( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" ) )
+      return nl->SymbolAtom( "mreal" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 16.1.12 Type Mapping Function ~MovingTypeMapUnits~ 
 
 It is used for the operator ~units~ 
@@ -3135,6 +3184,17 @@ int MappingAt( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
+16.3.21 Value mapping functions of operator ~distance~
+
+*/
+int MPointDistance( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  ((MPoint*)args[0].addr)->Distance( *((Point*)args[1].addr), *((MReal*)result.addr) );
+  return 0;
+}
+
+/*
 16.3.25 Value mapping functions of operator ~units~
 
 */
@@ -3578,6 +3638,8 @@ ValueMapping temporalatmap[] = { MappingAt<MBool, UBool, CcBool>,
                                  MappingAt<MReal, UReal, CcReal>,
                                  MappingAt<MPoint, UPoint, Point> };
 
+ValueMapping temporaldistancemap[] = { MPointDistance };
+
 ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,
                                     MappingUnits<MBool, UBool>,
                                     MappingUnits<MReal, UReal>,
@@ -3828,6 +3890,14 @@ const string TemporalSpecAt = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "<text> _ at _ </text--->"
                                 "<text>restrict the movement at the times where the equality occurs.</text--->"
                                 "<text>mpoint1 at point1</text--->"
+                                ") )";
+
+const string TemporalSpecDistance = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                                "\"Example\" ) "
+                                "( <text>(mpoint point) -> mreal</text--->"
+                                "<text> distance( _, _ ) </text--->"
+                                "<text>returns the moving distance</text--->"
+                                "<text>distance( mpoint1, point1 )</text--->"
                                 ") )";
 
 const string TemporalSpecUnits  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -4114,6 +4184,14 @@ Operator temporalat( "at",
                      MovingBaseSelect,
                      MovingBaseTypeMapMoving );
 
+Operator temporaldistance( "distance",
+                           TemporalSpecDistance,
+                           1,
+                           temporaldistancemap,
+                           temporalnomodelmap,
+                           Operator::SimpleSelect,
+                           MovingBaseTypeMapMReal );
+
 Operator temporalunits( "units",
                         TemporalSpecUnits,
                         4,
@@ -4270,6 +4348,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalunits);
 
     AddOperator( &temporalat);
+    AddOperator( &temporaldistance);
 
     AddOperator( &temporaltheyear);
     AddOperator( &temporalthemonth);
