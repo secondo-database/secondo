@@ -1,0 +1,25 @@
+# Configuration file for the JNI interface.
+#
+# last change : 2003-06-17 - Th. Behr
+#
+  # add a classpath by a line starting with %P
+  # set the lib directory by a line starting with %L
+  # set the Java-Version by a line starting with %V in the form major.minor
+  # all other lines are ignored
+
+# set a lot of classpathes
+
+%P C:\secondo\Algebras\JNIExample\JNIExampleAlgebra.jar
+%P C:\secondo\Javainterface
+%P C:\secondo\Javainterface\lib\JLex_v1.2.5.zip
+%P C:\secondo\Javainterface\lib\java_cup_v10k.zip
+%P C:\secondo\Javainterface\lib\java_cup_v10k_runtime.jar    
+%P C:\secondo\Javainterface\lib\visualrt.zip
+%P C:\secondo\Algebras\Rose\RoseJava
+%P C:\secondo\Algebras\Fuzzy     
+
+   # set the lib path
+%L C:\Programme\j2sdk1.4.1_02\jre\bin\client
+
+   # set the version number 
+%V 1.4
