@@ -4934,6 +4934,207 @@ Operator OLoopjoin (
 
 /*
 
+7.4 Operator ~loopselect~
+
+This operator is similar to the ~loopjoin~ operator except that it only returns the inner tuple 
+(instead of the concatination of two tuples). Tuples in the cartesian product which satisfy 
+certain conditions are passed on to the output stream.
+
+For instance, 
+
+----	query Staedte feed loopselect [plz feed filter [.Ort=.SName] ] consume;
+    
+    	(query (consume (loopselect (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
+		(fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
+----
+
+7.4.1 Type mapping function of operator ~loopselect~
+
+The type mapping function of the loopjoin operation is as follows:
+
+----    ((stream (tuple x)) (map (tuple x) (stream (tuple y))))  -> (stream (tuple y))
+	where x = ((x1 t1) ... (xn tn)) and y = ((y1 d1) ... (ym dm))
+----
+
+*/
+ListExpr LoopselectTypeMap(ListExpr args)
+{
+  ListExpr first, second;
+  ListExpr list1, list2, outlist;
+  
+  if(nl->ListLength(args) == 2)
+  {
+    first = nl->First(args);
+    second  = nl->Second(args);
+
+    if 	    ( (nl->ListLength(first) == 2)
+	&& (TypeOfRelAlgSymbol(nl->First(first)) == stream)	   
+	&& (nl->ListLength(nl->Second(first)) == 2)
+	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
+	&& (nl->ListLength(second) == 3)
+	&& (TypeOfRelAlgSymbol(nl->First(second)) == ccmap)
+	&& (nl->Equal(nl->Second(first), nl->Second(second)))
+	&& (nl->ListLength(nl->Third(second)) == 2)
+	&& (TypeOfRelAlgSymbol(nl->First(nl->Third(second))) == stream)
+	&& (nl->ListLength(nl->Second(nl->Third(second))) == 2)	
+	&& (TypeOfRelAlgSymbol(nl->First(nl->Second(nl->Third(second)))) == tuple) )
+	{
+                   list1 = nl->Second(nl->Second(first));
+                   list2 = nl->Second(nl->Second(nl->Third(second)));
+	   if(!AttributesAreDisjoint(list1, list2))
+	   {
+	       goto typeerror;
+	   }
+	   //list = ConcatLists(list1, list2);
+	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+		nl->TwoElemList(nl->SymbolAtom("tuple"), list2));
+  	   return outlist;
+	}
+    else goto typeerror;
+  }
+ else goto typeerror;
+  
+typeerror:
+  ErrorReporter::ReportError("Incorrect input for operator loopselect.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+
+4.1.2 Value mapping function of operator ~loopjoin~
+
+*/
+
+struct LoopselectLocalInfo
+{
+    Word tuplex;
+    Word streamy;
+};
+
+static int
+Loopselect(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  ArgVectorPointer funargs;  
+  Word tuplex, tupley, streamy;  //tuplexy
+  CcTuple* ctuplex;
+  CcTuple* ctupley;
+  //CcTuple* ctuplexy;
+  LoopselectLocalInfo *localinfo;
+  
+  switch ( message )
+  {
+    case OPEN:  
+      //1.open the stream and initiate the variables
+      qp->Open (args[0].addr);
+      qp->Request(args[0].addr, tuplex);
+      if (qp->Received(args[0].addr))
+      {  
+      //2>>> here: compute the rely which corresponding to tuplex
+          funargs = qp->Argument(args[1].addr);
+          (*funargs)[0] = tuplex;
+          streamy=args[1];
+          qp->Open (streamy.addr);
+     //3>>> here: put the information of tuplex and rely into local
+           localinfo=new LoopselectLocalInfo; 
+           localinfo->tuplex=tuplex;
+           localinfo->streamy=streamy;
+           local = SetWord(localinfo);
+      }
+      else 
+      {
+           local = SetWord(Address(0));
+       }
+      return 0;
+
+    case REQUEST:
+      if (local.addr ==0) return CANCEL;
+      //1>>>>>>restore localinformation from the local variable.
+      localinfo=(LoopselectLocalInfo *) local.addr;
+      tuplex=localinfo->tuplex;
+      ctuplex=(CcTuple*)tuplex.addr;
+      streamy=localinfo->streamy;
+      //2>>>>>> prepare tuplex and tupley for processing. if rely is exausted: fetch next tuplex.
+      tupley=SetWord(Address(0));
+      while (tupley.addr==0)
+      {
+           qp->Request(streamy.addr, tupley);
+           if (!(qp->Received(streamy.addr)))
+             {
+	    qp->Close(streamy.addr);
+	    ((CcTuple*)tuplex.addr)->DeleteIfAllowed();
+	    qp->Request(args[0].addr, tuplex);
+	    if (qp->Received(args[0].addr))
+	    {
+                       funargs = qp->Argument(args[1].addr);
+	       ctuplex=(CcTuple*)tuplex.addr;
+	       (*funargs)[0] = tuplex;
+                       streamy=args[1];
+                       qp->Open (streamy.addr);
+	       tupley=SetWord(Address(0));
+	       
+ 	       localinfo->tuplex=tuplex;
+ 	       localinfo->streamy=streamy;
+	       local =  SetWord(localinfo);
+	   }
+	   else return CANCEL; 
+           }
+          else
+           {
+	    ctupley=(CcTuple*)tupley.addr;
+            }
+      } 
+      //3>>>>>> compute tuplexy.
+      //ctuplexy = new CcTuple();
+      //ctuplexy->SetFree(true);
+      //tuplexy = SetWord(ctuplexy);
+      //Concat(tuplex, tupley, tuplexy);
+      //((CcTuple*)tupley.addr)->DeleteIfAllowed();
+      result = tupley;
+      return YIELD;
+
+    case CLOSE:
+      qp->Close(args[0].addr); 
+      localinfo=(LoopselectLocalInfo *) local.addr;
+      delete localinfo;
+      return 0;
+  }
+  
+  return 0;
+}
+/*
+
+4.1.3 Specification of operator ~loopjoin~
+
+*/
+const string LoopselectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                             "\"Example\" ) "
+                        "( <text>((stream tuple1) (map tuple1 "
+			"rel(tuple2))) -> (stream tuple2)"
+			"</text--->"
+			"<text>_ loopselect [ fun ]</text--->"
+			"<text>Only tuples in the cartesian product "
+			"which satisfy certain conditions are passed on"
+			" to the output stream.</text--->"
+			"<text>query cities feed loopselect [five feed "
+			"filter [.no > 2]] consume</text--->"
+			      ") )";
+/*
+
+4.1.3 Definition of operator ~loopjoin~
+
+*/
+Operator OLoopselect (
+         "loopsel",	           		// name
+         LoopselectSpec,         		// specification
+         Loopselect,               		// value mapping
+         Operator::DummyModel, 	// dummy model mapping, defines in Algebra.h
+         simpleSelect,         		// trivial selection function
+         LoopselectTypeMap	         	// type mapping
+);
+
+
+/*
+
 7.3 Operator ~loopjoinrel~
 
 This operator will fulfill a join of two relations. Tuples in the cartesian product which satisfy certain 
@@ -5668,6 +5869,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&cppmergeunion);
     AddOperator(&MergeJoinOperator);
     AddOperator(&OLoopjoin);
+    AddOperator(&OLoopselect);
     AddOperator(&OLoopjoinrel);
     AddOperator(&SortMergeJoinOperator);
     AddOperator(&HashJoinOperator);
