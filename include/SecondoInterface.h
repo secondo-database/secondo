@@ -927,6 +927,8 @@ Sets the debug level of the query processor.
  private:
   void StartCommand();
   void FinishCommand( int& errorCode );
+	
+	int Command_Query(const AlgebraLevel level, ListExpr list, ListExpr& result, string& errorMessage);
 
   bool        initialized;       // state of interface
   bool        activeTransaction; // state of transaction block

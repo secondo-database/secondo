@@ -23,6 +23,9 @@ April 2002 Ulrich Telle
 
 November 30, 2002 RHG Added function ~GetKey~.
 
+Aug 18, 2004. M. Spiekermann added ~Setflag\_NOSYNC~ to speed up closing files 
+at the end of a query. 
+
 1.1 Overview
 
 The *Storage Management Interface* provides all types and classes needed
@@ -644,6 +647,15 @@ Stores the identification ~uid~ of the current user in the ~SmiEnvironment~.
 In a future extension it may be used for user management and access control.
 
 */
+
+  static void SetFlag_NOSYNC(const bool value) { dontSyncDiskCache = value; }
+/*
+Indicates that the cache in memory and the files on disk need no syncronisation.
+In the Berkeley-DB Implementation this is used to speed up the DB-close() API call
+at the end of a query which does no modifications to the stored data. 
+
+*/
+
   static bool BeginTransaction();
   static bool CommitTransaction();
   static bool AbortTransaction();
@@ -753,6 +765,8 @@ or if the application runs in single user mode.
   static bool           smiStarted;  // Flag SMI initialized
   static bool           singleUserMode;
   static bool           useTransactions;
+	static bool						dontSyncDiskCache; // used in the Berkeley-DB Implementation
+		
   static string         configFile;  // Name of config file
   static string         uid;         // ID of Secondo user
   static bool           dbOpened;    // Flag database opened

@@ -51,6 +51,9 @@ objects via a more or less complex value expression. The information about depen
 system tables (relation objects). The save database command omits to save list expressions for those objects.
 After restoring all saved objects the derived objects are rebuild in the restore database command.
 
+August 2004, M. Spiekermann. The implementation of the query command has been moved into a separate function.
+Other commands will follow in order to shorten the very large implementation of function ~Secondo~ 
+
 \tableofcontents
 
 */
@@ -350,9 +353,9 @@ If value 0 is returned, the command was executed without error.
 
 */
 
-  ListExpr first,     list,       typeExpr,  resultType,
-           valueList, modelList, valueExpr,
+  ListExpr first, list, typeExpr,resultType, modelList, valueExpr,
            typeExpr2, errorList,  errorInfo, functionList;
+					 
   string filename, dbName, objName, typeName;
   Word result;
   OpTree tree;
@@ -992,8 +995,7 @@ If value 0 is returned, the command was executed without error.
         StartCommand();
         objName = nl->SymbolValue( nl->Second( list ) );
         typeExpr = nl->Fourth( list );
-        typeExpr2 =
-        ctlg.ExpandedType( typeExpr );
+        typeExpr2 = ctlg.ExpandedType( typeExpr );
         typeName = "";
         if ( ctlg.KindCorrect( typeExpr2, errorInfo ) )
         {
@@ -1248,91 +1250,7 @@ If value 0 is returned, the command was executed without error.
 
     else if ( nl->IsEqual( first, "query" ) && (length == 2) )
     {
-      if ( sys.IsDatabaseOpen() )
-      {
-        if ( level == DescriptiveLevel )
-        {
-          errorCode = ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  // Command not yet implemented at this level
-        }
-        else
-        {
-          Counter::getRef("SmiRecord::Write")=0;
-          Counter::getRef("SmiRecord::Read")=0;
-          
-          StartCommand();
-
-	  StopWatch queryTime;
-	  cerr << "Analyze query ..." << endl;;
-
-          qp.Construct( level, nl->Second( list ), correct, evaluable, defined,
-                        isFunction, tree, resultType );
-
-
-	  if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-	    cerr << "Analyze " << queryTime.diffTimes() << endl;
-	    queryTime.start();
-	    //cerr << nl->ReportTableSizes() << endl;
-          }
-
-          if ( !defined )
-          {
-            errorCode = ERR_UNDEF_OBJ_VALUE;         // Undefined object value
-          }
-          else if ( correct )
-          {
-            if ( evaluable )
-            {
-              cerr << "Execute ..." << endl;
-
-	      qp.Eval( tree, result, 1 );
-              valueList = ctlg.OutObject( resultType, result );
-              resultList = nl->TwoElemList( resultType, valueList );
-              qp.Destroy( tree, true );
-
-	       if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
-	         cerr << "Execute "<< queryTime.diffTimes() << endl;
-	         cerr << nl->ReportTableSizes() << endl;
-	       }
-               if (RTFlag::isActive("SI:PrintCounters")) {
-                 Counter::reportValues();
-               }
-
-               LOGMSG( "SI:Statistics", Tuple::ShowTupleStatistics( true, cout ); )
-               LOGMSG( "SI:Statistics", ShowStandardTypesStatistics( true, cout ); )
-            }
-            else if ( isFunction ) // abstraction or function object
-            {
-              if ( nl->IsAtom( nl->Second( list ) ) )  // function object
-              {
-                functionList = ctlg.GetObjectValue( nl->SymbolValue( nl->Second( list ) ) );
-                resultList = nl->TwoElemList( resultType, functionList );
-              }
-              else
-              {
-                resultList = nl->TwoElemList( resultType, nl->Second( list ) );
-              }
-            }
-            else
-            {
-              ErrorReporter::GetErrorMessage(errorMessage);
-							ErrorReporter::Reset();
-              errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable
-							
-            }
-          }
-          else
-          {
-            ErrorReporter::GetErrorMessage(errorMessage);
-						ErrorReporter::Reset();
-            errorCode = ERR_IN_QUERY_EXPR;    // Error in query
-          }
-          FinishCommand( errorCode );
-        }
-      }
-      else
-      {
-        errorCode = ERR_NO_DATABASE_OPEN;        // no database open
-      }
+		  errorCode = Command_Query( level, list, resultList, errorMessage );		
     }
 
     // --- Model command
@@ -1385,6 +1303,13 @@ If value 0 is returned, the command was executed without error.
   }
   SecondoSystem::SetAlgebraLevel( UndefinedLevel );
 
+
+  if (RTFlag::isActive("SI:PrintCounters")) {
+    Counter::reportValues();
+		Counter::resetAll();
+  }
+
+
   LOGMSG( "SI:ResultList",
     cerr << endl << "### Result List before copying: " << nl->ToString(resultList) << endl;
   )
@@ -1407,6 +1332,120 @@ If value 0 is returned, the command was executed without error.
   )
   
 }
+
+
+/*
+1.2 Implementation of commands
+
+1.2.1 query
+
+*/
+
+int 
+SecondoInterface::Command_Query( const AlgebraLevel level,
+                                 ListExpr list, 
+                                 ListExpr& resultList,
+																 string& errorMessage )
+{
+  QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
+  SecondoCatalog& ctlg = *SecondoSystem::GetCatalog(level);
+  SecondoSystem& sys = *SecondoSystem::GetInstance();
+  NestedList& nl = *SecondoSystem::GetNestedList();
+	
+  int errorCode = 0;
+	bool correct = false;
+	bool evaluable = false;
+	bool defined = false;
+	bool isFunction = false;
+	
+	Word result;
+	OpTree tree; 
+
+  ListExpr resultType = nl.TheEmptyList();
+
+	if ( !sys.IsDatabaseOpen() )
+	{
+     return ERR_NO_DATABASE_OPEN;  // no database open
+  }
+  
+	if ( level == DescriptiveLevel ) // Command not yet implemented at this level
+  {
+		 return ERR_CMD_NOT_IMPL_AT_THIS_LEVEL;  
+	} 
+							
+	StartCommand();
+
+	StopWatch queryTime;
+	cerr << "Analyze query ..." << endl;;
+
+	qp.Construct( level, nl.Second( list ), correct, evaluable, defined,
+								isFunction, tree, resultType );
+
+
+	if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
+		cerr << "Analyze " << queryTime.diffTimes() << endl;
+		queryTime.start();
+		//cerr << nl->ReportTableSizes() << endl;
+	}
+
+	if ( !defined ) // Undefined object value
+	{
+		return ERR_UNDEF_OBJ_VALUE;  
+	}
+	
+	if ( !correct ) // Error in query
+	{
+		ErrorReporter::GetErrorMessage(errorMessage); 
+		ErrorReporter::Reset();
+		errorCode = ERR_IN_QUERY_EXPR; 
+	}
+
+	if ( evaluable )
+	{
+		 cerr << "Execute ..." << endl;
+
+		 qp.Eval( tree, result, 1 );
+		 
+		 ListExpr valueList = ctlg.OutObject( resultType, result );
+		 resultList = nl.TwoElemList( resultType, valueList );
+		 
+		 qp.Destroy( tree, true );
+
+		 if (!RTFlag::isActive("SI:NoQueryAnalysis")) {
+			 cerr << "Execute "<< queryTime.diffTimes() << endl;
+			 cerr << nl.ReportTableSizes() << endl;
+		 }
+
+		 LOGMSG( "SI:Statistics", Tuple::ShowTupleStatistics( true, cout ); )
+		 LOGMSG( "SI:Statistics", ShowStandardTypesStatistics( true, cout ); )
+	}
+	else if ( isFunction ) // abstraction or function object
+	{
+	  ListExpr second = nl.Second( list );
+		if ( nl.IsAtom( second ) )  // function object
+		{
+			ListExpr valueList = ctlg.GetObjectValue( nl.SymbolValue( second ) );
+			resultList = nl.TwoElemList( resultType, valueList );
+		}
+		else
+		{
+			resultList = nl.TwoElemList( resultType, second );
+		}
+	}
+	else
+	{
+		ErrorReporter::GetErrorMessage(errorMessage);
+		ErrorReporter::Reset();
+		errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable		
+	}
+	
+	SmiEnvironment::SetFlag_NOSYNC(true);
+	FinishCommand( errorCode );
+	SmiEnvironment::SetFlag_NOSYNC(false);
+	
+	return errorCode;
+}
+
 
 /*
 1.3 Procedure ~NumericTypeExpr~
