@@ -6,6 +6,6 @@ package gui;
 public class Environment{
 
 
-public boolean DEBUG_MODE = true;
+public static boolean DEBUG_MODE = true;
 
 }
