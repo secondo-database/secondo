@@ -325,24 +325,37 @@ public void showAll(){
 
 
 
-/** load a new Object from a file into Objectlist **/
-public boolean loadObject(){
-       boolean loaded = false;
+/** load a new Object from a file into Objectlist 
+  * @return number of loaded Objects 
+  */
+public int loadObject(){
+       int number = 0;
+       File CurrentDir = FileChooser.getCurrentDirectory();
+       FileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+       FileChooser.setSelectedFile(CurrentDir);
+       FileChooser.setCurrentDirectory(CurrentDir);
+       FileChooser.setMultiSelectionEnabled(true);
+       FileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
        if (FileChooser.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
-           File F = FileChooser.getSelectedFile();
-           String FullFileName=F.getPath();
-           ListExpr LE = new ListExpr();        
-           if (LE.readFromFile(FullFileName)!=0)
-               showMessage("cannot load this file (not an SecondoObject ?");
-           else{
-               SecondoObject SO = new SecondoObject(IDManager.getNextID());
-               SO.setName("File :"+F.getName());
-               SO.fromList(LE); 
-               addEntry(SO);
-               loaded = true;
+           File[] Fs = FileChooser.getSelectedFiles();
+           for(int i=0;i<Fs.length;i++){
+              File F = Fs[i];
+              String FullFileName=F.getPath();
+              ListExpr LE = new ListExpr();  
+              try{      
+                if (LE.readFromFile(FullFileName)!=0)
+                    showMessage("cannot load the file "+F.getName());
+                else{
+                    SecondoObject SO = new SecondoObject(IDManager.getNextID());
+                    SO.setName("File :"+F.getName());
+                    SO.fromList(LE); 
+                    addEntry(SO);
+                    number++;
+                }
+              } catch(Exception e){}
            }
        }
-       return loaded;
+       return number;
 }
 
 /** save the selected Object into a File */
@@ -352,14 +365,23 @@ public boolean saveSelectedObject(){
   if (index<0){
       showMessage("no item selected");
   } 
-  else
+  else{
+File CurrentDir = FileChooser.getCurrentDirectory();
+
+       FileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+       FileChooser.setSelectedFile(CurrentDir);
+       FileChooser.setCurrentDirectory(CurrentDir);
+       FileChooser.setMultiSelectionEnabled(false);
+       FileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+ 
       if (FileChooser.showSaveDialog(ObjectList.this)==JFileChooser.APPROVE_OPTION){
           File F = FileChooser.getSelectedFile();
           String FullFileName=F.getPath();
           SecondoObject SO = (SecondoObject) Objects.get(index);
           ListExpr LE = SO.toListExpr();
           saved = LE.writeToFile(FullFileName)==0; 
-       } 
+       }
+  } 
   return saved;
  }
 
