@@ -14,6 +14,8 @@
 
 December 2003 M. Spiekermann 
 
+August 2004 M. Spiekermann. Implemented class ~CMsg~
+
 1.1 Overview
 
 This file declares a class ~RTFlag~ (Runtime Flag) and a preprocessor Macro
@@ -38,6 +40,30 @@ All flags should be documented in the configuration file. However, the
 mechanism is quite simple, take care to use the same string constants in your
 code and in the configuration file otherwise you will get in trouble. 
 
+Sending information to ~cout~ or ~cerr~ is not a good idea, since in a 
+client server setup these information will not transfered to the client. Hence
+a global message object ~cmsg~ of class ~CMsg~ will be used as transmitter for
+messages. There are four methods which return the reference to an ostream object.
+Additonally, you can easily send data to a file. Currently, the messages are not
+send to a client via the socket communication but this can easily be integrated
+later.
+
+Here are some examples how to use the interface:
+
+---- cmsg.info() << "Non critical information send to cout" << endl;
+     cmsg.send();
+		 cmsg.warning() << "More critical information send to cout" << endl;
+		 cmsg.send();
+		 cmsg.error() << "Error information send to cerr" << endl;
+		 cmsg.send();
+		 cmsg.file() << "Information send to the file secondo.log" << endl;
+		 cmsg.send();
+		 cmsg.file("my-logfile.log") << Information send to my-logfile.log" << endl;
+----
+
+Before changing the output channel it is important to clear the messsage buffer with
+the ~send~ method.
+
 */
 
 
@@ -46,6 +72,9 @@ code and in the configuration file otherwise you will get in trouble.
 
 #include <map>
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -76,5 +105,87 @@ private:
   static map<string,bool>::iterator it;
 
 };
+
+
+class CMsg {
+
+public:
+  
+	CMsg() : 
+	stdOutput(1), 
+	fp(new ofstream()),
+	logFileStr("secondo.log")
+  {
+	  files[logFileStr] = fp;
+		fp->open(logFileStr.c_str()); 
+  }
+	~CMsg() // close open files
+	{
+		for ( map<string,ofstream*>::iterator it = files.begin();
+	        it != files.end();
+					it++ )
+		{
+		   it->second->close();
+			 delete it->second;
+		}			
+	}
+
+	ostream& file() 
+	{
+	  fp = files[logFileStr]; 
+		stdOutput = 3;	
+		return buffer; 
+	}
+	ostream& file(const string& fileName) 
+	{ 
+	  map<string,ofstream*>::iterator it = files.find(fileName);
+		
+		if  ( it != files.end() ) {
+		
+		  fp = it->second;
+			
+	  } else {
+		
+		  fp = new ofstream();
+			files[fileName] = fp;
+      fp->open(fileName.c_str());
+	  }
+		stdOutput = 3;	  
+		return buffer; 
+  }
+	ostream& info()    { stdOutput = 1; return buffer; }
+	ostream& warning() { stdOutput = 1; return buffer; }
+	ostream& error()   { stdOutput = 2; return buffer; }	
+  void send() {
+	
+	  if ( stdOutput == 3 ) {
+		  (*fp) << buffer.str();
+    }
+		else {
+		
+		  if ( stdOutput == 1) {
+		   cout << buffer.str();
+		  } 
+		  else {
+		   cerr << buffer.str();
+		  }
+		}
+		buffer.str("");
+		buffer.clear();
+		stdOutput = 1;		
+	}
+
+private:
+
+  int stdOutput;
+	ofstream* fp;
+	stringstream buffer;
+	const string logFileStr;
+	map<string,ofstream*> files;
+
+};
+
+// defined in SecondoInterfaceGeneral.cpp
+extern CMsg cmsg;
 
 #endif
