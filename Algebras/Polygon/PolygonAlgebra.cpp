@@ -32,6 +32,11 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "SecondoSystem.h"
 #include "PArray.h"
 
+
+#ifdef SECONDO_WIN32
+#define Polygon SecondoPolygon
+#endif
+
 static NestedList* nl;
 static QueryProcessor* qp;
 
