@@ -8,7 +8,7 @@ include ../makefile.inc
 
 
 .PHONY: all  # compile Menuvector and SecondoViewer
-all: MenuVector.class SecondoViewer.class MessageBox.class
+all: viewers MenuVector.class SecondoViewer.class MessageBox.class
 
 
 # add below new Viewer classes or subdirectories to compile
