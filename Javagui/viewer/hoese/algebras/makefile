@@ -33,7 +33,7 @@ all: $(CLASSFILES)
 	make -C periodic all
 
 %.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+	$(JAVAC) -classpath $(CLASSPATH):$(JARS) $<
 
 
 .PHONY: clean

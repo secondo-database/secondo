@@ -27,6 +27,8 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.text.EditorKit;
+import tools.Base64Decoder;
+import org.jpedal.*;
 
 
 /**
@@ -86,6 +88,8 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
            Entry = T + " : <html> ...";
      } else if(Type==RTF_TYPE){
          Entry =  T + " : RTF ...";
+     } else if(Type==PDF_TYPE){
+         Entry = T + " : PDF ...";
      }
 
      qr.addEntry(this);
@@ -135,6 +139,10 @@ private boolean checkForHtml(String Text,int offset){
   * depending on some keywords 
   **/
 private void computeType(String Text){
+     if(Text.startsWith("JVBE") ){ // base 64 encodes "%PD"
+         Type = PDF_TYPE;
+         return;
+     }
      // search for <html or { *\rtf at the begin of the document ignoring cases
      for(int i=0;i<Text.length()-5;i++){ 
          char c = Text.charAt(i);
@@ -187,6 +195,7 @@ private int Type; // contains the type which is the text (probably)
 private static final int PLAIN_TYPE=0;
 private static final int HTML_TYPE=1;
 private static final int RTF_TYPE=2;
+private static final int PDF_TYPE=3;
 
 private static final int MAX_DIRECT_DISPLAY_LENGTH = 30;
 
@@ -205,7 +214,7 @@ public TextViewerFrame(){
       EKRtf = Display.createEditorKitForContentType("text/rtf");
   }
 
-  JScrollPane ScrollPane = new JScrollPane(Display);
+  ScrollPane = new JScrollPane(Display);
   getContentPane().add(ScrollPane,BorderLayout.CENTER);
   CloseBtn = new JButton("Close");
   CloseBtn.addActionListener(new ActionListener(){
@@ -215,18 +224,29 @@ public TextViewerFrame(){
        }
   } );
   
+
+  // create the pdf viewer
+  if(pdf_viewer==null){
+    try{
+       pdf_viewer = new PDFPanel();
+    }catch(Exception e){
+      System.err.println("cannot initialize pdf-viewer");
+    }
+  }
+
   PlainBtn = new JButton("plain");
   HtmlBtn = new JButton("html");
   RtfBtn = new JButton("rtf"); 
+  PdfBtn = new JButton("pdf");
 
   ActionListener FormatSwitcher = new ActionListener(){
      public void actionPerformed(ActionEvent evt){
          Object src = evt.getSource();
          // get the text if it is editable 
-         if(TextViewerFrame.this.Display.isEditable()){
+         if(TextViewerFrame.this.Display.isEditable()&&!ISPDF){
               TextViewerFrame.this.TheText = TextViewerFrame.this.Display.getText();
          }
-
+         Container CP=TextViewerFrame.this.getContentPane();
          if(TextViewerFrame.this.PlainBtn.equals(src)){
               TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.this.EKPlain);
               TextViewerFrame.this.Display.setEditable(true);
@@ -236,6 +256,15 @@ public TextViewerFrame(){
               TextViewerFrame.this.PlainBtn.setEnabled(false);
               TextViewerFrame.this.HtmlBtn.setEnabled(true);
               TextViewerFrame.this.RtfBtn.setEnabled(true);
+              TextViewerFrame.this.PdfBtn.setEnabled(true);
+              if(TextViewerFrame.this.ISPDF){
+                 CP.remove(pdf_viewer);
+                 CP.add(ScrollPane,BorderLayout.CENTER);
+                 ISPDF=false;
+                 TextViewerFrame.this.invalidate();
+                 TextViewerFrame.this.validate();
+                 TextViewerFrame.this.repaint(); 
+              }
          } else
          if(TextViewerFrame.this.HtmlBtn.equals(src)){
             try{
@@ -247,6 +276,15 @@ public TextViewerFrame(){
               TextViewerFrame.this.PlainBtn.setEnabled(true);
               TextViewerFrame.this.HtmlBtn.setEnabled(false);
               TextViewerFrame.this.RtfBtn.setEnabled(true);
+              TextViewerFrame.this.PdfBtn.setEnabled(true);
+              if(TextViewerFrame.this.ISPDF){
+                 CP.remove(pdf_viewer);
+                 CP.add(ScrollPane,BorderLayout.CENTER);
+                 ISPDF=false;
+                 TextViewerFrame.this.invalidate();
+                 TextViewerFrame.this.validate();
+                 TextViewerFrame.this.repaint(); 
+              }
             }catch(Exception e){
                setToPlainBecauseError();
             }
@@ -261,9 +299,38 @@ public TextViewerFrame(){
               TextViewerFrame.this.PlainBtn.setEnabled(true);
               TextViewerFrame.this.HtmlBtn.setEnabled(true);
               TextViewerFrame.this.RtfBtn.setEnabled(false);
+              TextViewerFrame.this.PdfBtn.setEnabled(true);
+              if(TextViewerFrame.this.ISPDF){
+                 CP.remove(pdf_viewer);
+                 CP.add(ScrollPane,BorderLayout.CENTER);
+                 ISPDF=false;
+                 TextViewerFrame.this.invalidate();
+                 TextViewerFrame.this.validate();
+                 TextViewerFrame.this.repaint(); 
+              }
             } catch(Exception e){
               setToPlainBecauseError(); 
             }
+         }else
+         if(TextViewerFrame.this.PdfBtn.equals(src)){
+             byte[]  content = Base64Decoder.decode(TheText);
+             if(pdf_viewer.setPdfData(content)){   
+                TextViewerFrame.this.PlainBtn.setEnabled(true);
+                TextViewerFrame.this.HtmlBtn.setEnabled(true);
+                TextViewerFrame.this.RtfBtn.setEnabled(true);
+                TextViewerFrame.this.PdfBtn.setEnabled(false);
+                if(!TextViewerFrame.this.ISPDF ){
+                    CP.remove(ScrollPane);
+                    CP.add(pdf_viewer,BorderLayout.CENTER);
+                    ISPDF=true;
+                    TextViewerFrame.this.invalidate();
+                    TextViewerFrame.this.validate();
+                    TextViewerFrame.this.repaint(); 
+                }
+             }else {
+                setToPlainBecauseError();
+             }
+
          }
 
      }
@@ -272,6 +339,7 @@ public TextViewerFrame(){
   PlainBtn.addActionListener(FormatSwitcher);
   HtmlBtn.addActionListener(FormatSwitcher);
   RtfBtn.addActionListener(FormatSwitcher);
+  PdfBtn.addActionListener(FormatSwitcher);
 
   JPanel ControlPanel = new JPanel(new GridLayout(2,1));
   JPanel FormatPanel = new JPanel();
@@ -279,6 +347,7 @@ public TextViewerFrame(){
   FormatPanel.add(PlainBtn);
   FormatPanel.add(HtmlBtn);
   FormatPanel.add(RtfBtn); 
+  FormatPanel.add(PdfBtn);
   ControlPanel.add(FormatPanel);
   ControlPanel.add(CloseBtn);
 
@@ -293,12 +362,22 @@ private void setToPlainBecauseError(){
     
     Display.setEditorKit(EKPlain);
     Display.setEditable(true);
+    TheText = Source.theList.textValue();
     Display.setText(TheText);
     Display.setCaretPosition(0);
     Source.Type = Dspltext.PLAIN_TYPE;
     PlainBtn.setEnabled(false);
     HtmlBtn.setEnabled(true);
     RtfBtn.setEnabled(true);
+    PdfBtn.setEnabled(true);
+    if(ISPDF){
+       getContentPane().remove(pdf_viewer); 
+       getContentPane().add(ScrollPane,BorderLayout.CENTER);
+       ISPDF=false;
+       invalidate();
+       validate();
+       repaint();
+    } 
 }
 
 public void setSource(Dspltext S){
@@ -306,6 +385,7 @@ public void setSource(Dspltext S){
     PlainBtn.setEnabled(true);
     HtmlBtn.setEnabled(true);
     RtfBtn.setEnabled(true);
+    PdfBtn.setEnabled(true);
     if(S.Type==S.PLAIN_TYPE){
        Display.setEditorKit(EKPlain);
        PlainBtn.setEnabled(false);
@@ -320,17 +400,143 @@ public void setSource(Dspltext S){
        Display.setEditable(false); 
     }
     TheText = S.theList.textValue();
-    try{
-       Display.setText(TheText);
-    } catch(Exception e){
-      setToPlainBecauseError(); 
+    if(S.Type!=PDF_TYPE){
+       try{
+          Display.setText(TheText);
+       } catch(Exception e){
+         setToPlainBecauseError(); 
+       }
+        Display.setCaretPosition(0);// go to top 
+       if(ISPDF){
+          ISPDF=false;
+          getContentPane().remove(pdf_viewer);
+          getContentPane().add(ScrollPane,BorderLayout.CENTER);
+          invalidate();validate();repaint();
+       }
+    } else{
+       try{
+          byte[] content = Base64Decoder.decode(TheText);
+          pdf_viewer.setPdfData(content);
+          PdfBtn.setEnabled(false);
+          if(!ISPDF){
+             getContentPane().remove(ScrollPane);
+             getContentPane().add(pdf_viewer,BorderLayout.CENTER);
+             ISPDF=true;
+             invalidate();validate();repaint();
+           }
+       }catch(Exception e){
+          e.printStackTrace();
+          setToPlainBecauseError();
+       }
     }
-    Display.setCaretPosition(0);// go to top 
 }
 
 public Dspltext getSource(){
      return Source;
 }
+
+private class PDFPanel extends JPanel{
+
+public PDFPanel(){
+     super();
+     setLayout(new BorderLayout());
+     JPanel CommandPanel = new JPanel();
+     CommandPanel.add(FirstBtn);
+     CommandPanel.add(PrevBtn);
+     CommandPanel.add(NextBtn);
+     CommandPanel.add(LastBtn);
+     ScrollPane = new JScrollPane(CurrentPage);
+     add(ScrollPane,BorderLayout.CENTER);
+     add(CommandPanel,BorderLayout.SOUTH);
+     ActionListener Control= new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+            Object src = evt.getSource();
+            if(!dataAvailable)
+               return;
+            int newpage = page;
+            if(src.equals(FirstBtn)){
+                newpage = 1;
+            } else if(src.equals(PrevBtn)&& page>1){
+                newpage = page -1;
+            } else if(src.equals(NextBtn) && page < NumberOfPages){
+                newpage = page+1;
+            } else if(src.equals(LastBtn)){
+                newpage=NumberOfPages;
+            }
+            if(newpage!=page){
+               page=newpage;
+               try{
+                  CurrentPage.setImage(pdf_decoder.getPageAsImage(page));
+                  PDFPanel.this.repaint(); 
+               } catch(Exception e){
+                  e.printStackTrace();
+                  CurrentPage.setImage(null);
+                  PDFPanel.this.repaint();
+               }
+           }
+        }
+     };
+     FirstBtn.addActionListener(Control);
+     PrevBtn.addActionListener(Control);
+     NextBtn.addActionListener(Control);
+     LastBtn.addActionListener(Control);
+     pdf_decoder.setExtractionMode(0,300,2);
+}
+
+
+private class PicturePanel extends JPanel{
+         public void paint(Graphics g){
+              if(image!=null)
+                   g.drawImage(image,0,0,null);
+         }
+         public Dimension getPreferredSize(){
+            return MyDimension;
+         }          
+         public Dimension getMinimumSize(){
+            return MyDimension;
+         }
+         public void setImage(Image image){
+             this.image = image;
+             if(image!=null){
+                MyDimension.width = image.getWidth(null);
+                MyDimension.height = image.getHeight(null);
+             }else{
+                MyDimension.width=MyDimension.height=10;
+             }
+         }
+         Image image;
+         Dimension MyDimension = new Dimension();
+     };
+
+private PicturePanel CurrentPage= new PicturePanel();
+
+public boolean setPdfData(byte[] data){
+   try{
+       pdf_decoder.openPdfArray(data);
+       NumberOfPages = pdf_decoder.getPageCount();
+       dataAvailable=true;
+       CurrentPage.setImage(pdf_decoder.getPageAsImage(1));
+       page = 1;
+       return true;
+   } catch(Exception e){
+       NumberOfPages = -1;
+       dataAvailable=false;
+       return false;
+   }
+} 
+private PdfDecoder pdf_decoder=new PdfDecoder();
+private JScrollPane ScrollPane;
+private JButton FirstBtn = new JButton("|<");
+private JButton PrevBtn = new JButton("<");
+private JButton NextBtn = new JButton(">");
+private JButton LastBtn = new JButton(">|");
+private JLabel  Pages  = new JLabel("# pages ");
+private int NumberOfPages=-1;
+private boolean dataAvailable = false;
+private int page; // the number of the current page
+
+}
+
 
 private JEditorPane Display;
 private JButton CloseBtn;
@@ -338,10 +544,15 @@ private Dspltext Source;
 private JButton PlainBtn;
 private JButton HtmlBtn;
 private JButton RtfBtn;
+private JButton PdfBtn;
 private String TheText;
 private static EditorKit EKPlain=null;
 private static EditorKit EKHtml=null;
 private static EditorKit EKRtf=null;
+private static JScrollPane ScrollPane;
+private static PDFPanel pdf_viewer;     // Panel for displaying pdf contents
+private JPanel TextPanel = new JPanel();  // Panel for displaying plain text, html and rtf content
+private boolean ISPDF = false;
 
 }
 
