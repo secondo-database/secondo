@@ -4,6 +4,8 @@
 
 April 2002 Ulrich Telle
 
+November 30, 2002 RHG Added function ~GetKey~.
+
 */
 
 #include <string>
@@ -128,6 +130,12 @@ SmiSize
 SmiRecord::Size()
 {
   return (recordSize);
+}
+
+SmiKey
+SmiRecord::GetKey()
+{
+  return recordKey;
 }
 
 bool
