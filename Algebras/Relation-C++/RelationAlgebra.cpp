@@ -1477,7 +1477,8 @@ ListExpr RemoveTypeMap(ListExpr args)
       }
       else
       {
-      ErrorReporter::ReportError("Incorrect input for operator ~remove~ - trying to remove all attributes.");
+      ErrorReporter::ReportError(
+	"Incorrect input for operator ~remove~ - trying to remove all attributes.");
       return nl->SymbolAtom("typeerror");
       }
     }
@@ -4518,9 +4519,11 @@ conditions are passed on to the output stream.
 
 For instance, 
 
-    query Staedte feed loopjoin [plz feed filter [.Ort=.SName] ] consume;
+----	query Staedte feed loopjoin [plz feed filter [.Ort=.SName] ] consume;
     
-    (query (consume (loopjoin (feed tryrel) (fun (t1 TUPLE) (filter (feed null) (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
+    	(query (consume (loopjoin (feed tryrel) (fun (t1 TUPLE) (filter (feed null)
+		(fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
+----
 
 7.3.1 Type mapping function of operator ~loopjoin~
 
@@ -4560,7 +4563,8 @@ ListExpr LoopjoinTypeMap(ListExpr args)
 	       goto typeerror;
 	   }
 	   list = ConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"), nl->TwoElemList(nl->SymbolAtom("tuple"), list));
+	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+		nl->TwoElemList(nl->SymbolAtom("tuple"), list));
   	   return outlist;
 	}
     else goto typeerror;
@@ -4681,7 +4685,8 @@ Loopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string LoopjoinSpec =
   "(<text>((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)</text---><text> Only"
-  " tuples in the cartesian product which satisfy certain conditions are passed on to the output stream.</text--->)";
+  " tuples in the cartesian product which satisfy certain conditions are passed "
+  "on to the output stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~loopjoin~
@@ -4705,9 +4710,11 @@ conditions are passed on to the output stream.
 
 For instance, 
 
-    query Staedte feed loopjoinrel [plz feed filter [.Ort=.SName] consume] consume;
+----    query Staedte feed loopjoinrel [plz feed filter [.Ort=.SName] consume] consume;
     
-    (query (consume (loopjoinrel (feed tryrel) (fun (t1 TUPLE) (consume filter (feed null) (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
+    	(query (consume (loopjoinrel (feed tryrel) (fun (t1 TUPLE)
+		(consume filter (feed null) (fun t2 TUPLE) (= (attr t1 name) (attr t2 pname)))))))
+----
 
 7.3.1 Type mapping function of operator ~loopjoinrel~
 
@@ -4747,7 +4754,8 @@ ListExpr LoopjoinrelTypeMap(ListExpr args)
 	       goto typeerror;
 	   }
 	   list = ConcatLists(list1, list2);
-	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"), nl->TwoElemList(nl->SymbolAtom("tuple"), list));
+	   outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+		nl->TwoElemList(nl->SymbolAtom("tuple"), list));
   	   return outlist;
 	}
     else goto typeerror;
@@ -4884,7 +4892,8 @@ Loopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string LoopjoinrelSpec =
   "(<text>((stream tuple1) (map tuple1 rel(tuple2))) -> (stream tuple1*tuple2)</text---><text> Only"
-  " tuples in the cartesian product which satisfy certain conditions are passed on to the output stream.</text--->)";
+  " tuples in the cartesian product which satisfy certain conditions are passed on "
+  "to the output stream.</text--->)";
 /*
 
 4.1.3 Definition of operator ~loopjoinrel~
