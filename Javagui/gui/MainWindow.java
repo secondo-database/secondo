@@ -239,6 +239,7 @@ public MainWindow(String Title){
       if (!ComPanel.connect()) 
          showMessage("I can't find a Secondo-server");
   }
+  
 }
 
 
@@ -285,6 +286,7 @@ private void addViewer(SecondoViewer NewViewer){
 }
 
 
+/** returns all loaded viewers */
 public SecondoViewer[] getViewers(){
    SecondoViewer[] Viewers = new SecondoViewer[AllViewers.size()];
    for(int i=0;i<AllViewers.size();i++)
@@ -363,6 +365,7 @@ private void setViewer(SecondoViewer SV){
   * selectViewer <ViewerName>
   * clearHistory
   * saveHistory
+  * loadHistory [-r]
   * showObject <ObjectName>
   * hideObject <ObjectName>
   * removeObject <ObjectName>
@@ -581,6 +584,15 @@ public boolean execGuiCommand(String command){
      ComPanel.showPrompt();   
   } else if(command.startsWith("saveHistory")){
      saveHistory();
+  } else if(command.startsWith("loadHistory")){
+     String Param = command.substring(11).trim();
+     if(Param.equals(""))
+        loadHistory(false);
+     else if(Param.equals("-r"))
+         loadHistory(true);
+     else
+         ComPanel.appendText("unknow parameter\n");
+     ComPanel.showPrompt();    
   }
   else {
     ComPanel.appendText("unknow gui command \n input \"gui listCommands\" to get a list of available commands");
@@ -676,6 +688,7 @@ public static void main(String[] args){
   System.setErr(System.out); 
   MainWindow SecGui = new MainWindow("Secondo-GUI");
   SecGui.setVisible(true);
+  SecGui.ComPanel.requestFocus();
 }
 
 
@@ -1021,7 +1034,7 @@ private void createMenuBar(){
   */
 public void loadHistory(boolean replace){
 
-  if(FC_History.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+  if(FC_History.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
       // first try to load the file content  
       boolean ok = true;
       Vector TMP=new Vector();
@@ -1183,6 +1196,7 @@ class Command_Listener implements ActionListener{
 
 
 }
+
 
 
 

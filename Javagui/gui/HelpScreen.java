@@ -82,6 +82,9 @@ private void init(){
  GC.add("gui addViewer <ViewerName>");
  GC.add("gui selectViewer <ViewerName> ");
  GC.add("gui clearHistory");
+ GC.add("gui loadHistory [-r]");
+ GC.add("    -r : replace the actual history");
+ GC.add("gui saveHistory");
  GC.add("gui showObject <ObjectName>");
  GC.add("gui showAll");
  GC.add("gui hideObject <ObjectName>");
@@ -101,11 +104,11 @@ private void init(){
  GC.add("gui onlyViewer ");
  GC.add("gui executeFile [-i] filename");
  GC.add("    -i = ignore errors");
- GC.add("gui listCommands ");
  GuiCommands = new JList(GC);
 }
 
 
 }
+
 
 

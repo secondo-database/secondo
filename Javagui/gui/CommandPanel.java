@@ -74,7 +74,13 @@ public class CommandPanel extends JScrollPane {
     return Secondointerface.isConnected();
   }
   
+  /** set the focus to the SystemArea */
+  public void requestFocus(){
+     System.out.println("requestFoi");
+     SystemArea.requestFocus();
+  }
 
+  
   /**
    * Add code to the end of the textarea.
    * @param txt Text to append.
@@ -329,6 +335,7 @@ public class CommandPanel extends JScrollPane {
   }
 
 }
+
 
 
 
