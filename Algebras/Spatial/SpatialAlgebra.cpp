@@ -4363,7 +4363,7 @@ bool CRegion::contain( const Point& p ) const
     return false;
 }
 
-bool CRegion::contain( const Point& p, int &pathlength, int & scanned ) const
+bool CRegion::containpr( const Point& p, int &pathlength, int & scanned ) const
 {
     //here: if the point is on the border, it is also counted.
     
@@ -8437,7 +8437,7 @@ SpatialInside_pathlength_pr( Word* args, Word& result, int message, Word& local,
 	return (0);
     }
     
-    cr->contain(*p, pathlength, scanned);
+    cr->containpr(*p, pathlength, scanned);
     
     ((CcInt *)result.addr)->Set( true, pathlength);
     return (0);
@@ -8464,7 +8464,7 @@ SpatialInside_scanned_pr( Word* args, Word& result, int message, Word& local, Su
 	return (0);
     }
     
-    cr->contain(*p, pathlength, scanned);
+    cr->containpr(*p, pathlength, scanned);
     
     ((CcInt *)result.addr)->Set( true, scanned);
     return (0);
