@@ -8,4 +8,4 @@ if { ! pd2dvi $1; }; then
    exit 1
 fi
 
-dvipdfm -o "$1.pdf" "$1.dvi"
+dvipdfm -p a4 -o "$1.pdf" "$1.dvi"
