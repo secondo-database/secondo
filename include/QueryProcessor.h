@@ -1,9 +1,13 @@
 /*
 //paragraph    [10]    title:           [{\Large \bf ] [}]
-//paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     [\end{tabular}\end{quote}]
-//paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    [\end{tabular}\end{quote}]
-//paragraph    [23]    table3columns:   [\begin{quote}\begin{tabular}{lll}]   [\end{tabular}\end{quote}]
-//paragraph    [24]    table4columns:   [\begin{quote}\begin{tabular}{llll}]  [\end{tabular}\end{quote}]
+//paragraph    [21]    table1column:    [\begin{quote}\begin{tabular}{l}]     
+[\end{tabular}\end{quote}]
+//paragraph    [22]    table2columns:   [\begin{quote}\begin{tabular}{ll}]    
+[\end{tabular}\end{quote}]
+//paragraph    [23]    table3columns:   [\begin{quote}\begin{tabular}{lll}]   
+[\end{tabular}\end{quote}]
+//paragraph    [24]    table4columns:   [\begin{quote}\begin{tabular}{llll}]  
+[\end{tabular}\end{quote}]
 //[--------]    [\hline]
 //characters    [1]    verbatim:   [$]    [$]
 //characters    [2]    formula:    [$]    [$]
@@ -477,7 +481,7 @@ Construct operator tree recursively for a given annotated ~expr~. See
   vector<Word> models;
   vector<ArgVectorPointer> argVectors; // MAXFUNCTIONS = 30
 
-  static const int NO_COUNTERS = 15;
+  static const int NO_COUNTERS = 16;
 
   int counter[NO_COUNTERS];	
 };
@@ -510,4 +514,5 @@ public:
 };
 
 #endif
+
 
