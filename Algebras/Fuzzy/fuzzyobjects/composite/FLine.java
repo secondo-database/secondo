@@ -1205,8 +1205,8 @@ if (maxMy >0 && maxFromFL>0){
 
    int compareResult;
 
-   while(my<maxMy && fromFL<maxFromFL){  // both sets have unprocessed elements
-
+   while(my<maxMy && fromFL<maxFromFL){
+       // both sets have unprocessed elements
       compareResult = myFirst.basic().compareTo(FLFirst.basic());
       if(compareResult < 0) {
          processElements(myFirst,SF,null,FL.SF,result,op);
@@ -1826,9 +1826,11 @@ public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr SFList = LE.first();
-  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM || SFList.atomType()==ListExpr.REAL_ATOM)))
+  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM ||
+         SFList.atomType()==ListExpr.REAL_ATOM)))
      return false;
-  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() : SFList.realValue();
+  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() :
+            SFList.realValue();
   if(z<=0)
      return false;
   this.SF = z;
@@ -1873,7 +1875,8 @@ public boolean readFromListString(String List){
   */
 public static FLine readFrom(byte[] buffer){
    try{
-      ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+      ObjectInputStream ois = new ObjectInputStream(
+                                  new ByteArrayInputStream(buffer));
       FLine res = (FLine) ois.readObject();
       ois.close();
       return res;
@@ -1887,7 +1890,8 @@ public static FLine readFrom(byte[] buffer){
 public  byte[] writeToByteArray(){
 
   try{
-     ByteArrayOutputStream byteout = new ByteArrayOutputStream(fSeg.getSize()*16+25);
+     ByteArrayOutputStream byteout;
+     byteout = new ByteArrayOutputStream(fSeg.getSize()*16+25);
      ObjectOutputStream objectout = new ObjectOutputStream(byteout);
      objectout.writeObject(this);
      objectout.flush();
@@ -1901,16 +1905,18 @@ public  byte[] writeToByteArray(){
 
 /** computes a hash-value for this FPoint */
 public int getHashValue(){
-  return Math.abs((BB.getMaxX()-BB.getMinX())*(BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
+  return Math.abs((BB.getMaxX()-BB.getMinX())*
+                  (BB.getMaxY()-BB.getMinY())+BB.getMinX()
+		  +BB.getMinY());
 }
 
 
 
 // define constants for the operators
-private static final int UNION = 0;             // union based on max
+private static final int UNION = 0;        // union based on max
 private static final int INTERSECTION=1;   // difference based on min
-private static final int ADD=2;                 // addition with cut if >1
-private static final int SUBTRACT=3;            // substraction with cut if<0
+private static final int ADD=2;            // addition with cut if >1
+private static final int SUBTRACT=3;       // substraction with cut if<0
 
 private static final int SCALEDUNION=4;
 private static final int SCALEDINTERSECTION=5;
@@ -1918,7 +1924,8 @@ private static final int SCALEDADD=6;
 private static final int SCALEDDIFFERENCE=7;
 
 
-private static final int SHARPINTERSECTION=8;  // == intersection(sharp(L1),sharp(L2))
+private static final int SHARPINTERSECTION=8;
+// == intersection(sharp(L1),sharp(L2))
 
 } // FLine;
 

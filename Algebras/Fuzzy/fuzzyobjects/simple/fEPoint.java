@@ -155,7 +155,8 @@ public boolean readFromListExpr(ListExpr LE){
     else
       return false;
 
-    if(LE3.isAtom() && ( LE3.atomType()==ListExpr.INT_ATOM | LE3.atomType()==ListExpr.REAL_ATOM))
+    if(LE3.isAtom() && ( LE3.atomType()==ListExpr.INT_ATOM |
+       LE3.atomType()==ListExpr.REAL_ATOM))
        if (LE3.atomType()==ListExpr.INT_ATOM){
           z=LE3.intValue();
        }

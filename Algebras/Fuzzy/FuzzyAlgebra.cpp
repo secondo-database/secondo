@@ -15,10 +15,11 @@
 
 The FuzzyAlgebra provides three datatypes: fpoint, fline and fregion
 as well as a lot of operators. The datatypes are described in
-"Modellierung, Implementierung und Visualisierung unscharfer raeumlicher Objekte"
+"Modellierung, Implementierung und Visualisierung unscharfer raeumlicher
+ Objekte"
 The implementation of the datatypes and operators is based on Java-Code.
-Its needed to use the Java-SDK ver. 1.4.2 or higher because some bugs in previous
-versions.
+Its needed to use the Java-SDK ver. 1.4.2 or higher because some bugs in
+previous versions.
 
 \end{abstract}
 
@@ -437,7 +438,8 @@ void CcFPoint::CopyFrom(StandardAttribute* right){
 
 */
 int CcFPoint::Compare(Attribute * arg){
-  jmethodID mid = env->GetMethodID(cls,"compareTo","(Lfuzzyobjects/composite/FPoint;)I");
+  jmethodID mid = env->GetMethodID(cls,"compareTo",
+                                   "(Lfuzzyobjects/composite/FPoint;)I");
   if(mid == 0){
       error(__LINE__);
   }
@@ -520,8 +522,9 @@ about this operators, please refer to the Java code.
 */
 
 CcFPoint* CcFPoint::Add(CcFPoint* P){
-  jmethodID mid = env->GetMethodID(cls,"add",
-                       "(Lfuzzyobjects/composite/FPoint;)Lfuzzyobjects/composite/FPoint;");
+  jmethodID mid;
+  mid = env->GetMethodID(cls,"add",
+       "(Lfuzzyobjects/composite/FPoint;)Lfuzzyobjects/composite/FPoint;");
   if(mid==0) error(__LINE__);
   jobject res = env->CallObjectMethod(obj,mid,P->obj);
   if(res==0) error(__LINE__);
@@ -973,7 +976,8 @@ static jobject ListExprToFTriangle(ListExpr LE){
   if(cls==0) error(__LINE__);
   jmethodID mid;
   mid = env->GetMethodID(cls,"<init>",
-    "(Lfuzzyobjects/simple/fEPoint;Lfuzzyobjects/simple/fEPoint;Lfuzzyobjects/simple/fEPoint;)V");
+    "(Lfuzzyobjects/simple/fEPoint;Lfuzzyobjects/simple/fEPoint;"
+    "Lfuzzyobjects/simple/fEPoint;)V");
   if(mid==0) error(__LINE__);
   ListExpr P1L = nl->First(LE);
   jobject P1 = ListExprTofEPoint(P1L);
@@ -1622,7 +1626,8 @@ double CcFRegion::GetScaleFactor(){
 }
 
 CcFRegion* CcFRegion::Holes(){
-  jmethodID mid = env->GetMethodID(cls,"holes","()Lfuzzyobjects/composite/FRegion;");
+  jmethodID mid;
+  mid = env->GetMethodID(cls,"holes","()Lfuzzyobjects/composite/FRegion;");
   if(mid==0) error(__LINE__);
   jobject jobj = env->CallObjectMethod(obj,mid);
   if(jobj==0) error(__LINE__);
@@ -3448,10 +3453,12 @@ const string boundary_spec=
 const string commonpoints_spec=
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
       "\"Example\" )"
-      "( <text>(fline,fline) -> fpoint , (fregion,fregion) -> fpoint </text--->"
+      "( <text>(fline,fline) -> fpoint , (fregion,fregion) ->"
+      " fpoint </text--->"
       "<text>commonpoints(fo) where fo is of type fline or fregion"
       "</text--->"
-      "<text> get all common points which are not part of a common segment </text--->"
+      "<text> get all common points which are not part of a common"
+      " segment </text--->"
       "<text>commonpoints(r1,r2)</text--->"
       ") )";
 
@@ -3493,7 +3500,8 @@ const string basicsimilar_spec=
       "<text>basicsimilar(o1,o2) where o1,o2 are of same fuzzy type "
       " in{fpoint,fline,fregion} "
       "</text--->"
-      "<text> get a real value in [0,1] describing the similarity of 2 fuzzy objects </text--->"
+      "<text> get a real value in [0,1] describing the similarity of"
+      " 2 fuzzy objects </text--->"
       "<text>basicsimilar(r1,r2)</text--->"
       ") )";
 
@@ -3526,8 +3534,8 @@ const string difference_spec=
       " (fpoint,fpoint)-> fpoint</text--->"
       "<text>difference(o1,o2)"
       "</text--->"
-      "<text> returns the difference of 2 fuzzy objects excluding the scalefactor"
-      "</text--->"
+      "<text> returns the difference of 2 fuzzy objects excluding"
+      " the scalefactor </text--->"
       "<text>difference(r1,r2)</text--->"
       ") )";
 
@@ -3558,10 +3566,9 @@ const string intersection_spec=
       "\"Example\" )"
       "( <text>(fregion,fregion) -> fregion, (fline,fline) -> fline "
       " (fpoint,fpoint)-> fpoint</text--->"
-      "<text>intersection(o1,o2)"
-      "</text--->"
-      "<text> returns the intersection of 2 fuzzy objects excluding the scalefactor"
-      "</text--->"
+      "<text>intersection(o1,o2) </text--->"
+      "<text> returns the intersection of 2 fuzzy objects"
+      " excluding the scalefactor </text--->"
       "<text>intersection(r1,r2)</text--->"
       ") )";
 
@@ -3580,10 +3587,9 @@ const string maxz_spec=
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
       "\"Example\" )"
       "( <text> fobject -> bool</text--->"
-      "<text>maxvalue(o1)"
-      "</text--->"
-      "<text> returns the maximum membership value containing in the basic of o1"
-      "</text--->"
+      "<text>maxvalue(o1) </text--->"
+      "<text> returns the maximum membership value"
+      " containing in the basic of o1 </text--->"
       "<text>maxvalue(r1)</text--->"
       ") )";
 
@@ -3591,10 +3597,9 @@ const string minz_spec=
       "( ( \"Signature\" \"Syntax\" \"Meaning\" "
       "\"Example\" )"
       "( <text> fobject -> bool</text--->"
-      "<text>minvalue(o1)"
-      "</text--->"
-      "<text> returns the minimum membership value containing in the basic of o1"
-      "</text--->"
+      "<text>minvalue(o1) </text--->"
+      "<text> returns the minimum membership value"
+      " containing in the basic of o1 </text--->"
       "<text>minvalue(r1)</text--->"
       ") )";
 
@@ -3649,7 +3654,8 @@ const string scaleddifference_spec=
       "<text>scaled_difference( o1 ,o2 ) where"
       " o1, o2   are of type fline,fpoint or fregion (the same type)"
       "</text--->"
-      "<text>returns the difference of two fuzzy objects including scalefactor</text--->"
+      "<text>returns the difference of two fuzzy objects"
+      " including scalefactor</text--->"
       "<text>scaled_difference(r1,r2)</text--->"
       ") )";
 
@@ -3660,7 +3666,8 @@ const string scaledintersection_spec=
       "<text>scaled_intersection( o1 ,o2 ) where"
       " o1, o2   are of type fline,fpoint or fregion (the same type)"
       "</text--->"
-      "<text>returns the intersection of two fuzzy objects including scalefactor</text--->"
+      "<text>returns the intersection of two fuzzy objects"
+      " including scalefactor</text--->"
       "<text>scaled_intersection(r1,r2)</text--->"
       ") )";
 
@@ -3671,7 +3678,8 @@ const string scaledunion_spec=
       "<text>scaled_union( o1 ,o2 ) where"
       " o1, o2   are of type fline,fpoint or fregion (the same type)"
       "</text--->"
-      "<text>returns the union of two fuzzy objects including scalefactor</text--->"
+      "<text>returns the union of two fuzzy objects including"
+      " scalefactor</text--->"
       "<text>scaled_uion(r1,r2)</text--->"
       ") )";
 
@@ -3682,7 +3690,8 @@ const string union_spec=
       "<text>union( o1 ,o2 ) where"
       " o1, o2   are of type fline,fpoint or fregion (the same type)"
       "</text--->"
-      "<text>returns the union of two fuzzy objects excluding scalefactor</text--->"
+      "<text>returns the union of two fuzzy objects excluding "
+      "scalefactor</text--->"
       "<text>union(r1,r2)</text--->"
       ") )";
 
@@ -3705,7 +3714,8 @@ const string similar_spec=
       "<text>similar(o1,o2) where o1,o2 are of same fuzzy type "
       " in{fpoint,fline,fregion} "
       "</text--->"
-      "<text> get a real value in [0,1] describing the similarity of 2 fuzzy objects </text--->"
+      "<text> get a real value in [0,1] describing the similarity"
+      " of 2 fuzzy objects </text--->"
       "<text>similar(r1,r2)</text--->"
       ") )";
 

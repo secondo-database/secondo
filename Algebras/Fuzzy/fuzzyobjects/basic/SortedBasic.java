@@ -92,7 +92,8 @@ else
    if ( BO.compareTo( (BasicObject) V.get(0) ) <0)  // the first element
       V.add(0,BO);
    else
-      if( BO.compareTo( (BasicObject) V.get(V.size()-1) ) >0 )   // last Element
+      if( BO.compareTo( (BasicObject) V.get(V.size()-1) ) >0 )
+         // last Element
          V.add(BO);
       else{
          // search insertPosition

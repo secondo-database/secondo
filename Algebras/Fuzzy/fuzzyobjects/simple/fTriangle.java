@@ -359,7 +359,8 @@ public ListExpr toListExpr(){
   fEPoint P1 = new fEPoint(CP_1,Z1);
   fEPoint P2 = new fEPoint(CP_2,Z2);
   fEPoint P3 = new fEPoint(CP_3,Z3);
-  return ListExpr.threeElemList(P1.toListExpr(),P2.toListExpr(),P3.toListExpr());
+  return ListExpr.threeElemList(P1.toListExpr(),P2.toListExpr(),
+                                P3.toListExpr());
 }
 
 
@@ -372,20 +373,21 @@ public boolean readFromListExpr(ListExpr LE){
   fEPoint P1 = new fEPoint(0,0,0);
   fEPoint P2 = new fEPoint(0,0,0);
   fEPoint P3 = new fEPoint(0,0,0);
-  if(!( P1.readFromListExpr(LE.first()) && P2.readFromListExpr(LE.second()) && 
-        P3.readFromListExpr(LE.third()) ))
-     return false; 
+  if(!( P1.readFromListExpr(LE.first()) && P2.readFromListExpr(LE.second())
+        && P3.readFromListExpr(LE.third()) ))
+     return false;
   BasicPoint BP1 = (BasicPoint) P1.basic();
   BasicPoint BP2 = (BasicPoint) P2.basic();
   BasicPoint BP3 = (BasicPoint) P3.basic();
-  if (! (BP1.neightbooring(BP2) && BP1.neightbooring(BP3) && BP2.neightbooring(BP3)))
+  if (! (BP1.neightbooring(BP2) && BP1.neightbooring(BP3) &&
+         BP2.neightbooring(BP3)))
      return false;
-  
+
   this.CP_1 = BP1;
   this.CP_2 = BP2;
   this.CP_3 = BP3;
   this.Z1 = P1.getZ();
-  this.Z2 = P2.getZ();  
+  this.Z2 = P2.getZ();
   this.Z3 = P3.getZ();
   return true;
 }

@@ -29,8 +29,8 @@ int Plength = P.Points.size();
 if( Plength==0)
   return true;           // no change this SimplePath
 
-if (length>1 &&
-    ((BasicPoint)Points.get(0)).equals((BasicPoint)Points.get(length-1)))  // a circle?
+if (length>1 &&              // a circle?
+    ((BasicPoint)Points.get(0)).equals((BasicPoint)Points.get(length-1)))
     return false;
 
 BasicPoint OldLast  = (BasicPoint)(Points.get(length-1));

@@ -1432,9 +1432,11 @@ public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr SFList = LE.first();
-  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM || SFList.atomType()==ListExpr.REAL_ATOM)))
+  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM ||
+         SFList.atomType()==ListExpr.REAL_ATOM)))
      return false;
-  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() : SFList.realValue();
+  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() :
+                                                   SFList.realValue();
   if(z<=0)
      return false;
   this.SF = z;
@@ -1466,7 +1468,8 @@ public boolean readFromListExpr(ListExpr LE){
   */
 public static FPoint readFrom(byte[] buffer){
    try{
-      ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+      ObjectInputStream ois;
+      ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
       FPoint res = (FPoint) ois.readObject();
       ois.close();
       return res;
@@ -1480,7 +1483,8 @@ public static FPoint readFrom(byte[] buffer){
 public  byte[] writeToByteArray(){
 
   try{
-     ByteArrayOutputStream byteout = new ByteArrayOutputStream(feP.getSize()*16+25);
+     ByteArrayOutputStream byteout;
+     byteout = new ByteArrayOutputStream(feP.getSize()*16+25);
      ObjectOutputStream objectout = new ObjectOutputStream(byteout);
      objectout.writeObject(this);
      objectout.flush();
@@ -1494,11 +1498,14 @@ public  byte[] writeToByteArray(){
 
 /** computes a hash-value for this FPoint */
 public int getHashValue(){
-  return Math.abs((BB.getMaxX()-BB.getMinX())*(BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
+  return Math.abs((BB.getMaxX()-BB.getMinX())*
+                  (BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
 }
 
 
-/** save the byte representation of this object in a file, for debugging only */
+/** save the byte representation of this object in a file,
+  *for debugging only
+  */
 public void save(){
   String FileName = "fpoint"+no;
   try{

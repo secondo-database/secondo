@@ -254,17 +254,25 @@ public BasicPoint[] getNeightboors(){
          candidates[1] = new BasicPoint(x  ,y-b);
          candidates[2] = new BasicPoint(x+a,y  );
          candidates[3] = new BasicPoint(x  ,y+b);
-         candidates[4] = new BasicPoint(x-(int)(0.5*(double)a), y-(int)(0.5*(double)b));
-         candidates[5] = new BasicPoint(x+(int)(0.5*(double)a), y-(int)(0.5*(double)b));
-         candidates[6] = new BasicPoint(x-(int)(0.5*(double)a), y+(int)(0.5*(double)b));
-         candidates[7] = new BasicPoint(x+(int)(0.5*(double)a), y+(int)(0.5*(double)b));
+         candidates[4] = new BasicPoint(x-(int)(0.5*(double)a),
+	                                y-(int)(0.5*(double)b));
+         candidates[5] = new BasicPoint(x+(int)(0.5*(double)a),
+	                                y-(int)(0.5*(double)b));
+         candidates[6] = new BasicPoint(x-(int)(0.5*(double)a),
+	                                y+(int)(0.5*(double)b));
+         candidates[7] = new BasicPoint(x+(int)(0.5*(double)a),
+	                                y+(int)(0.5*(double)b));
       }
       else {  // a Point in the middle of a X
          candidates = new BasicPoint[4];
-         candidates[0] = new BasicPoint(x-(int)(0.5*(double)a), y-(int)(0.5*(double)b));
-         candidates[1] = new BasicPoint(x+(int)(0.5*(double)a), y-(int)(0.5*(double)b));
-         candidates[2] = new BasicPoint(x-(int)(0.5*(double)a), y+(int)(0.5*(double)b));
-         candidates[3] = new BasicPoint(x+(int)(0.5*(double)a), y+(int)(0.5*(double)b));
+         candidates[0] = new BasicPoint(x-(int)(0.5*(double)a),
+	                                y-(int)(0.5*(double)b));
+         candidates[1] = new BasicPoint(x+(int)(0.5*(double)a),
+	                                y-(int)(0.5*(double)b));
+         candidates[2] = new BasicPoint(x-(int)(0.5*(double)a),
+	                                y+(int)(0.5*(double)b));
+         candidates[3] = new BasicPoint(x+(int)(0.5*(double)a),
+ 	                                y+(int)(0.5*(double)b));
       }
      return candidates;
    } // isValid

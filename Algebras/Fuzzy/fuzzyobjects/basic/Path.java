@@ -145,9 +145,11 @@ boolean overlappingLine = false;
 BasicSegment FromThis;
 BasicSegment FromExtend;
 for(int i=0;i<length-1;i++){
-   FromThis = new BasicSegment((BasicPoint)Points.get(i),(BasicPoint)Points.get(i+1));
+   FromThis = new BasicSegment((BasicPoint)Points.get(i),
+                               (BasicPoint)Points.get(i+1));
    for(int j=0;j<Plength-1;j++) {
-       FromExtend = new BasicSegment((BasicPoint)P.Points.get(j),(BasicPoint)P.Points.get(j+1));
+       FromExtend = new BasicSegment((BasicPoint)P.Points.get(j),
+                                     (BasicPoint)P.Points.get(j+1));
        if(FromThis.equals(FromExtend))
           overlappingLine = true;
    }
@@ -200,7 +202,8 @@ boolean overlappingLine = false;
 BasicSegment BS = new BasicSegment((BasicPoint)Points.get(size-1),BP);
 BasicSegment BS_old;
 for(int i=0;i<size-1;i++){
-  BS_old = new BasicSegment((BasicPoint)Points.get(i),(BasicPoint)Points.get(i-1));
+  BS_old = new BasicSegment((BasicPoint)Points.get(i),
+                            (BasicPoint)Points.get(i-1));
   if( BS.equals(BS_old))
     overlappingLine = true;
 }

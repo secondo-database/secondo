@@ -566,7 +566,8 @@ public FRegion sharp(){
  FRegion result = new FRegion(1);
  fTriangle CurrentTriangle;
  for(int i=0;i<fTs.getSize();i++){
-   CurrentTriangle = new fTriangle( (BasicTriangle) ((fTriangle) fTs.get(i)).basic(),1,1,1);
+   CurrentTriangle = new fTriangle( (BasicTriangle) ((fTriangle)
+                                     fTs.get(i)).basic(),1,1,1);
    result.add(CurrentTriangle);
  }
   return result;
@@ -608,7 +609,8 @@ private void getComponent(fTriangle FT, FRegion result){
 
  for (int i=0;i<Neightboors.length;i++) {
     if(result.fTs.getPos(Neightboors[i])<0){      // not in result 
-      fTriangle NB = (fTriangle) fTs.search(Neightboors[i]);  // in current Region ?
+      fTriangle NB = (fTriangle) fTs.search(Neightboors[i]);
+       // in current Region ?
       if(NB!=null){
         getComponent(NB,result);
       }
@@ -740,7 +742,8 @@ while(!allready){
 
   if(!allready){
     double Z1=0,Z2=0,Z3=0;
-    BasicTriangle BT = (BasicTriangle) ((fTriangle) allSmallest.get(0)).basic();
+    BasicTriangle BT = (BasicTriangle) (
+                            (fTriangle) allSmallest.get(0)).basic();
     fTriangle CT;
     for(int i=0;i<allSmallest.size();i++){
        // update numbers
@@ -819,7 +822,8 @@ while(!allready){
 
   if(!allready){
     double Z1=0,Z2=0,Z3=0;
-    BasicTriangle BT = (BasicTriangle) ((fTriangle) allSmallest.get(0)).basic();
+    BasicTriangle BT = (BasicTriangle) ((fTriangle)
+                                allSmallest.get(0)).basic();
     fTriangle CT;
     for(int i=0;i<allSmallest.size();i++){
        // update numbers
@@ -1069,7 +1073,8 @@ private SimplePath[] splitLine(FLine L){
            if(!ready) {
              do{
                 BasicPoint BP = nextPath.getLastPoint();
-                BasicSegment[] ConnectedSegment = BasicSegment.getSegments(BP);
+                BasicSegment[] ConnectedSegment;
+		ConnectedSegment = BasicSegment.getSegments(BP);
                 int k=-1;
                 int foundPos;
                 BasicSegment BS;
@@ -1517,11 +1522,9 @@ if(maxFromFR>0)
 if (maxMy >0 && maxFromFR>0){
    myFirst = (fTriangle) fTs.get(my);    
    FRFirst = (fTriangle) FR.fTs.get(fromFR);
-
    int compareResult;
-
-   while(my<maxMy && fromFR<maxFromFR){  // both sets have unprocessed elements
-
+   while(my<maxMy && fromFR<maxFromFR){
+      // both sets have unprocessed elements
       compareResult = myFirst.basic().compareTo(FRFirst.basic());
       if(compareResult < 0) {
          processElements(myFirst,SF,null,FR.SF,result,op);
@@ -1775,11 +1778,12 @@ return null;
   *             basic as BS.
   *             <ul>
   *                <li> result[2] where is the cross point </li>
-  *                <li> result[3] the membershipvalue over the cross point </li>
+  *                <li> result[3] the membershipvalue over the cross
+  *                     point </li>
   *            </ul>
   *        </li>
   *      </ul>
-  */             
+  */
 double[] getValues(BasicSegment BS){
 
 double[] result;
@@ -2069,9 +2073,11 @@ public boolean readFromListExpr(ListExpr LE){
   if(LE.listLength()!=2)
      return false;
   ListExpr SFList = LE.first();
-  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM || SFList.atomType()==ListExpr.REAL_ATOM)))
+  if( !( SFList.isAtom() && (SFList.atomType()==ListExpr.INT_ATOM ||
+         SFList.atomType()==ListExpr.REAL_ATOM)))
      return false;
-  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() : SFList.realValue();
+  double z= SFList.atomType()==ListExpr.INT_ATOM ? SFList.intValue() :
+                               SFList.realValue();
   if(z<=0)
      return false;
   this.SF = z;
@@ -2100,8 +2106,9 @@ public String toListString(){
 }
 
 
-/** read the FRegion from a String representation of a ListExpr 
-  * @return true if List is a String of a ListExpr containing a correct FRegion
+/** read the FRegion from a String representation of a ListExpr
+  * @return true if List is a String of a ListExpr containing
+  * a correct FRegion
   */
 public boolean readFromListString(String List){
   ListExpr LE = new ListExpr();
@@ -2118,7 +2125,8 @@ public boolean readFromListString(String List){
   */
 public static FRegion readFrom(byte[] buffer){
    try{
-      ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
+      ObjectInputStream ois;
+      ois = new ObjectInputStream(new ByteArrayInputStream(buffer));
       FRegion res = (FRegion) ois.readObject();
       ois.close();
       return res;
@@ -2132,7 +2140,8 @@ public static FRegion readFrom(byte[] buffer){
 public  byte[] writeToByteArray(){
 
   try{
-     ByteArrayOutputStream byteout = new ByteArrayOutputStream(fTs.getSize()*16+25);
+     ByteArrayOutputStream byteout;
+     byteout = new ByteArrayOutputStream(fTs.getSize()*16+25);
      ObjectOutputStream objectout = new ObjectOutputStream(byteout);
      objectout.writeObject(this);
      objectout.flush();
@@ -2146,7 +2155,8 @@ public  byte[] writeToByteArray(){
 
 /** computes a hash-value for this FPoint */
 public int getHashValue(){
-  return Math.abs((BB.getMaxX()-BB.getMinX())*(BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
+  return Math.abs((BB.getMaxX()-BB.getMinX())*
+                  (BB.getMaxY()-BB.getMinY())+BB.getMinX()+BB.getMinY());
 }
 
 
