@@ -9,6 +9,15 @@ SETVAR_SCRIPT_DIR=../..
 all: $(NETDEV)/etc.tgz $(NETDEV)/install.bash
 
 
+.PHONY: install
+install: /etc/setvar.bash /etc/profile
+
+/etc/setvar.bash: ../../setvar.bash
+	cp --backup $< $@
+
+/etc/profile: profile
+	cp --backup $< $@
+
 $(NETDEV)/install.bash: install.bash
 	cp $< $@
 
