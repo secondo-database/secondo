@@ -27,7 +27,9 @@
 
 [Environment]
 # Home directory of Secondo database, in fact the place where the Berkeley DB will
-# store all record files used by Secondo.
+# store all record files used by Secondo. Note: By default, the directory /home/secondo-databases
+# is used for the Berkeley DB files. A directory different from this will be used iff it is 
+# specified below AND it exists!
 # Note: On windows you need absolute path names, e.g.
 # C:\msys\1.0\home\user\secondo-dbtest 
 SecondoHome=/home/databases1
