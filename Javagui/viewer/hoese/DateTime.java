@@ -107,6 +107,25 @@ public static String getListString(int Days,int msecs){
   return res;
 }
 
+public static String getListStringOld(int Days,int msecs){
+   if(Days<0 && msecs>0)
+      Days--;
+  int[] Greg = JulianDate.fromJulian(Days);
+  String res = "(datetime "+Greg[2]+" "+Greg[1]+" "+Greg[0]+"  ";
+  int rest = msecs;
+  int ms = rest%1000;
+  rest = rest/1000;
+  int sec = rest%60;
+  rest = rest /60;
+  int min = rest%60;
+  rest = rest/60;
+  int hour=rest;
+  res = res+hour+" ";
+  res=res+min+" ";
+  res=res+sec+" ";
+  res = res+ms +")";
+  return res;
+}
 
 /** returns a String representation for the given time */
 public static String getListString(double time){
@@ -114,6 +133,14 @@ public static String getListString(double time){
   int rest = getMilliSecs(time);
   return getListString(Days,rest);
 }
+
+/** returns a String representation for the given time */
+public static String getListStringOld(double time){
+  int Days = (int)time;
+  int rest = getMilliSecs(time);
+  return getListStringOld(Days,rest);
+}
+
 
 
 /** returns an array containing the day and the milliseconds of this day
