@@ -16,7 +16,7 @@ APPLOBJECTS=\
 	SecondoRegistrar.o \
 	SecondoCheckpoint.o \
 	SecondoListener.o \
-	SecondoInterfaceCS.o \
+	$(LIBDIR)/SecondoInterfaceCS.o \
 	SecondoServer.o
 
 APPLICATIONS1=\
@@ -73,9 +73,8 @@ SecondoListener.o: SecondoListener.cpp Application.h Processes.h SocketIO.h Prof
 SecondoServer.o: SecondoServer.cpp Application.h SocketIO.h Profiles.h AlgebraTypes.h SecondoSystem.h SecondoCatalog.h SecondoInterface.h Messenger.h Profiles.h
 	$(CC) -c -o $@ $< $(CCXFLAGS)
 
-SecondoInterfaceCS.o: SecondoInterfaceCS.cpp SecondoInterface.h Profiles.h
+$(LIBDIR)/SecondoInterfaceCS.o: SecondoInterfaceCS.cpp SecondoInterface.h Profiles.h
 	$(CC) -c -o $@ $< $(CCXFLAGS)
-	$(CP) SecondoInterfaceCS.o $(LIBDIR)/SecondoInterfaceCS.o
 
 # --- Link applications
 
