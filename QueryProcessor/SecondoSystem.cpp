@@ -146,7 +146,7 @@ Precondition: dbState = dbClosed.
   bool ok = false;
   if ( SmiEnvironment::IsDatabaseOpen() )
   {
-    cerr << " CreateDatabase: database is already open!" << endl;
+    cerr << " DestroyDatabase: database is already open!" << endl;
   }
   else
   {
@@ -362,17 +362,34 @@ Tests the syntax of the database file named ~filename~.
                   nl->IsEqual( nl->First( objectsExec ), "OBJECTS" ) )
         {
 /*
+Before restoring the database we need to get a completely empty database.
+This is done by closing, destroying and recreating the database.
+
+*/
+          CloseDatabase();
+          DestroyDatabase ( dbname );
+          CreateDatabase( dbname );
+/*
 Load database types and objects from file named ~filename~.
 
 */
+          SecondoSystem::BeginTransaction();
           if ( RestoreCatalog( scDescriptive, typesDesc, objectsDesc, errorInfo ) &&
                RestoreCatalog( scExecutable, typesExec, objectsExec, errorInfo ) )
           {
             rc = 0; // Database successfully restored
+            if ( !SecondoSystem::CommitTransaction() )
+            {
+              rc = 23;
+            }
           }
           else
           {
             rc = 5; // Error in types or objects
+            if ( !SecondoSystem::AbortTransaction() )
+            {
+              rc = 23;
+            }
           }
         }
         else

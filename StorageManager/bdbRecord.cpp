@@ -110,7 +110,6 @@ SmiRecord::Write( const void*   buffer,
                   const SmiSize offset /* = 0 */ )
 {
   int rc = 0;
-
   if ( initialized && writable )
   {
     Dbt key;
@@ -129,6 +128,11 @@ SmiRecord::Write( const void*   buffer,
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
       rc = impl->bdbFile->put( tid, &key, &data, 0 );
+      if ( rc == DB_LOCK_DEADLOCK )
+      {
+cout << "*** SmiRecord::Write: DB_LOCK_DEADLOCK ***" << endl;
+        rc = impl->bdbFile->put( tid, &key, &data, 0 );
+      }
     }
 
     if ( rc == 0 )

@@ -24,6 +24,8 @@ April 2002 Ulrich Telle Port to C++
 
 August 2002 Ulrich Telle Set the current algebra level for SecondoSystem.
 
+September 2002 Ulrich Telle Close database after creation.
+
 \tableofcontents
 
 */
@@ -430,7 +432,11 @@ If value 0 is returned, the command was executed without error.
         else
         {
           dbName = nl->SymbolValue( nl->Third( list ) ); 
-          if ( !SecondoSystem::GetInstance()->CreateDatabase( dbName ) )
+          if ( SecondoSystem::GetInstance()->CreateDatabase( dbName ) )
+          {
+            SecondoSystem::GetInstance()->CloseDatabase();
+          }
+          else
           {
             errorCode = 10;   // identifier already used
           }
