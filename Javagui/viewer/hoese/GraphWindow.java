@@ -182,7 +182,7 @@ public class GraphWindow extends JLayeredPane
             VCfg = new ViewConfig(mw,aname);
             Query.addViewConfig(VCfg);
         }   
-        VCfg.show();
+        VCfg.setVisible(true);
       }
     }
   }
@@ -274,6 +274,7 @@ public class GraphWindow extends JLayeredPane
     }
   }
 }
+
 
 
 
