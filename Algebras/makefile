@@ -11,7 +11,7 @@ all: makedirs specs
 
 specs:  Standard-C++/*.spec Relation-C++/*.spec PointRectangle/*.spec StreamExample/*.spec MovingObjectsInNetworks/*.spec 	
 	cat $^ | sort -b -u | ./specs.awk 
-	cat $^ > specs
+	cat $^ | ./rm_comment_spec.awk > specs
 
 .PHONY: makedirs
 makedirs:
