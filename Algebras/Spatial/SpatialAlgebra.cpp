@@ -3618,6 +3618,9 @@ RegionProperty()
   ListExpr listreplist = nl->TextAtom();
   nl->AppendText(listreplist,"(<face>*) where face is (<outercycle><holecycle>*); "
   "<outercycle> and <holecycle> are <points>*");
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,"(((3 0)(10 1)(3 1))((3.1 0.1)"
+			     "(3.1 0.9)(6 0.8)))");  
   ListExpr remarkslist = nl->TextAtom();
   nl->AppendText(remarkslist,"all <holecycle> must be completely within "
   "<outercycle>.");
@@ -3631,8 +3634,7 @@ RegionProperty()
             nl->FiveElemList(nl->StringAtom("-> DATA"), 
 	                     nl->StringAtom("region"), 
 			     listreplist, 
-			     nl->StringAtom("( ((3 0)(10 1)(3 1))((3.1 0.1)"
-			     "(3.1 0.9)(6 0.8)) )"),
+			     examplelist,
 			     remarkslist)));			     
 }
 
