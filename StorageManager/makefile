@@ -34,11 +34,11 @@ BDBSMIHDR = SmiBDB.h $(SMIHDR)
 ifeq ($(smitype),ora)
 CCFLAGS= $(PICFLAG) $(OCICPPINCLUDE) $(DEFAULTCCFLAGS)
 
-all: libsmiora.$(LIBEXT)
+all: $(LIBDIR)/libsmiora.$(LIBEXT)
 else
 CCFLAGS= $(PICFLAG) $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
-all: libsmibdb.$(LIBEXT)
+all: $(LIBDIR)/libsmibdb.$(LIBEXT)
 endif
 
 
@@ -48,41 +48,35 @@ ifeq ($(shared),yes)
 # ... as shared object
 ifeq ($(platform),win32)
 ifeq ($(smitype),ora)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,libsmiora.$(LIBEXT).a
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsmiora.$(LIBEXT).a
 else
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,libsmibdb.$(LIBEXT).a
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsmibdb.$(LIBEXT).a
 endif
 endif
 endif
 
-libsmibdb.$(LIBEXT): $(BDBOBJECTS)
+$(LIBDIR)/libsmibdb.$(LIBEXT): $(BDBOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o libsmibdb.$(LIBEXT) $(LDOPT) $(BDBOBJECTS) $(BDBLIBDIR) $(BDBLIB) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-	$(CP) libsmibdb.$(LIBEXT) ../lib/libsmibdb.$(LIBEXT)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsmibdb.$(LIBEXT) $(LDOPT) $(BDBOBJECTS) $(BDBLIBDIR) $(BDBLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) libsmibdb.$(LIBEXT) ../bin/libsmibdb.$(LIBEXT)
-	$(CP) libsmibdb.$(LIBEXT).a ../lib/libsmibdb.$(LIBEXT).a
+	$(CP) $(LIBDIR)/libsmibdb.$(LIBEXT) $(BINDIR)/libsmibdb.$(LIBEXT)
 endif
 else
 # ... as static library
-	$(AR) -r libsmibdb.$(LIBEXT) $(BDBOBJECTS)
-	$(CP) libsmibdb.$(LIBEXT) ../lib/libsmibdb.$(LIBEXT)
+	$(AR) -r $(LIBDIR)/libsmibdb.$(LIBEXT) $(BDBOBJECTS)
 endif
 
-libsmiora.$(LIBEXT): $(ORAOBJECTS)
+$(LIBDIR)/libsmiora.$(LIBEXT): $(ORAOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o libsmiora.$(LIBEXT) $(LDOPT) $(ORAOBJECTS) $(OCICPPLIBDIR) $(OCICPPLIB) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
-	$(CP) libsmiora.$(LIBEXT) ../lib/libsmiora.$(LIBEXT)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsmiora.$(LIBEXT) $(LDOPT) $(ORAOBJECTS) $(OCICPPLIBDIR) $(OCICPPLIB) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) libsmiora.$(LIBEXT) ../bin/libsmiora.$(LIBEXT)
-	$(CP) libsmiora.$(LIBEXT).a ../lib/libsmiora.$(LIBEXT).a
+	$(CP) $(LIBDIR)/libsmiora.$(LIBEXT) $(BINDIR)/libsmiora.$(LIBEXT)
 endif
 else
 # ... as static library
-	$(AR) -r libsmiora.$(LIBEXT) $(ORAOBJECTS)
-	$(CP) libsmiora.$(LIBEXT) ../lib/libsmiora.$(LIBEXT)
+	$(AR) -r $(LIBDIR)/libsmiora.$(LIBEXT) $(ORAOBJECTS)
 endif
 
 # --- Storage Management Interface modules ---

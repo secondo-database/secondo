@@ -655,7 +655,7 @@ expression have defined values.
   if ( debugMode )
   {
     cout << endl << "*** AnnotateX Begin ***" << endl;
-    nl->WriteListExpr( list );
+    nl->WriteListExpr( list, cout );
     cout << endl << "*** AnnotateX End ***" << endl;
   }
   return (list);
@@ -949,9 +949,9 @@ function index.
   if ( traceMode )
   {
     cout << "Annotate applied to: " << endl;
-    nl->WriteListExpr( expr );
+    nl->WriteListExpr( expr, cout );
     cout << endl << "argument types passed from father: " << endl;
-    nl->WriteListExpr( fatherargtypes );
+    nl->WriteListExpr( fatherargtypes, cout );
     cout << endl;
   }
   if ( nl->IsEmpty( expr ) )
@@ -1332,13 +1332,19 @@ for a given ~expr~ (+ 3 10).
             case QP_FUNCTION:
             {
               signature = nl->Rest( nl->Second( nl->First( list ) ) );
-
-              /* cerr << "signature: "; nl->WriteListExpr( signature ); cerr << endl; */
-        
+              if ( traceMode )
+              {
+                cout << "signature: ";
+                nl->WriteListExpr( signature, cout );
+                cout << endl;
+              }
               typeList = nl->Rest( typeList );
-
-              /* cerr << "typeList: "; nl->WriteListExpr( typeList ); cerr << endl; */
-
+              if ( traceMode )
+              {
+                cout << "typeList: ";
+                nl->WriteListExpr( typeList, cout );
+                cout << endl;
+              }
               if ( nl->ListLength( signature ) == (nl->ListLength( typeList ) +1) )
               {
                 while (!nl->IsEmpty( typeList ))
@@ -1353,18 +1359,24 @@ for a given ~expr~ (+ 3 10).
                   }
                 }
                 resultType = nl->First( signature );
-
-                /* cerr << "resultType: "; nl->WriteListExpr( resultType ); cerr << endl; */
-
+                if ( traceMode )
+                {
+                  cout << "resultType: ";
+                  nl->WriteListExpr( resultType, cout );
+                  cout << endl;
+                }
                 result = nl->TwoElemList(
                            nl->ThreeElemList(
                              nl->SymbolAtom( "none" ),
                              nl->SymbolAtom( "applyfun" ),
                              list ),
                            resultType );
-
-                /* cerr << "result: "; nl->WriteListExpr( result ); cerr << endl; */
-
+                if ( traceMode )
+                {
+                  cout << "result: ";
+                  nl->WriteListExpr( result, cout );
+                  cout << endl;
+                }
                 return (result);
               }
               else
@@ -1375,13 +1387,19 @@ for a given ~expr~ (+ 3 10).
             case QP_ABSTRACTION:
             {
               signature = nl->Rest( nl->Second( nl->First( list ) ) );
-
-              /* cerr << "signature: "; nl->WriteListExpr(signature); cerr << endl; */
-        
+              if ( traceMode )
+              {
+                cout << "signature: ";
+                nl->WriteListExpr( signature, cout );
+                cout << endl;
+              }
               typeList = nl->Rest( typeList );
-
-              /* cerr << "typeList: "; nl->WriteListExpr( typeList ); cerr << endl; */
-
+              if ( traceMode )
+              {
+                cout << "typeList: ";
+                nl->WriteListExpr( typeList, cout );
+                cout << endl;
+              }
               if ( nl->ListLength( signature ) == (nl->ListLength( typeList ) +1) )
               {
                 while (!nl->IsEmpty( typeList ))
@@ -1396,18 +1414,24 @@ for a given ~expr~ (+ 3 10).
                   }
                 }
                 resultType = nl->First( signature );
-
-                /* cerr << "resultType: "; nl->WriteListExpr( resultType ); cerr << endl; */
-
+                if ( traceMode )
+                {
+                  cout << "resultType: ";
+                  nl->WriteListExpr( resultType, cout );
+                  cout << endl;
+                }
                 result = nl->TwoElemList(
                            nl->ThreeElemList(
                              nl->SymbolAtom( "none" ),
                              nl->SymbolAtom( "applyabs" ),
                              list ),
                            resultType );
-
-                /* cerr << "result: "; nl->WriteListExpr( result ); cerr << endl; */
-
+                if ( traceMode )
+                {
+                  cout << "result: ";
+                  nl->WriteListExpr( result, cout );
+                  cout << endl;
+                }
                 return (result);
               }
               else
@@ -1489,7 +1513,7 @@ arguments preceding this function argument in an operator application.
   if ( traceMode )
   {
     cout << "AnnotateFunction applied to: " << endl;
-    nl->WriteListExpr( expr );
+    nl->WriteListExpr( expr, cout );
     cout << endl;
   }
   if ( nl->IsEmpty( expr ))
@@ -1610,7 +1634,7 @@ QueryProcessor::SubtreeX( const AlgebraLevel level,
   {
     cout << endl << "*** SubtreeX Begin ***" << endl;
     ListExpr treeList = ListOfTree( resultTree );
-    nl->WriteListExpr( treeList );
+    nl->WriteListExpr( treeList, cout );
     nl->Destroy( treeList );
     cout << endl << "*** SubtreeX End ***" << endl;
   }
@@ -1637,7 +1661,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
   if ( traceMode )
   {
     cout << "subtree applied to: " << endl;
-    nl->WriteListExpr( expr );
+    nl->WriteListExpr( expr, cout );
     cout << endl;
   }
 
@@ -1988,13 +2012,20 @@ the moment.
         { /* abstraction application */
           /*
           ArgVectorPointer absArgs;
-          cerr << "The tree is: " << endl;
-          nl->WriteListExpr( ListOfTree( tree ) ); cerr << endl;
+          if ( traceMode )
+          {
+            cout << "The tree is: " << endl;
+            nl->WriteListExpr( ListOfTree( tree ), cout );
+            cout << endl;
+          }
           absArgs = argument(tree->u.op.sons[0] );
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             absArgs[i-1] = arg[i];
-            cerr << "argument " << i-1 << " is" << ((int) arg[i]) << endl;
+            if ( traceMode )
+            {
+              cout << "argument " << i-1 << " is" << ((int) arg[i]) << endl;
+            }
           }
           */
           Eval( tree->u.op.sons[0], result, message );

@@ -147,6 +147,7 @@ The operations are defined below.
 #define NESTED_LIST_H
 
 #include <string>
+#include <iostream>
 #include "CTable.h"
 /*
 Nested lists are represented by four compact tables called
@@ -472,6 +473,7 @@ if writing was successful, ~false~ if the string could not be written properly.
 
 */
 
+  void WriteListExpr( ListExpr list, ostream& ostr );
   void WriteListExpr( ListExpr list );
 /*
 write ~list~ indented by level to standard output.

@@ -847,6 +847,18 @@ within the structure of the list, otherwise, the function result is ~true~.
 */
 
 void
+NestedList::WriteListExpr( const ListExpr list, ostream& ostr )
+/*
+Write ~list~ indented by level to standard output.
+
+*/
+{
+  outStream = &ostr;
+  /* bool after = */ WriteList( list, 0, false, true );
+  outStream = 0;
+}
+
+void
 NestedList::WriteListExpr( const ListExpr list )
 /*
 Write ~list~ indented by level to standard output.

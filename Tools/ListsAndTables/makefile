@@ -11,8 +11,8 @@ include ../../makefile.$(platform)
 
 .PHONY: all
 all:
-	$(CP) CTable.h ../../include
-	$(CP) CTable.cpp ../../include
+	$(CP) CTable.h $(INCLUDEDIR)
+	$(CP) CTable.cpp $(INCLUDEDIR)
 
 .PHONY: clean
 clean:

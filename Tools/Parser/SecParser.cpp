@@ -56,7 +56,7 @@ SecParser::Text2List( const string& inputString, string& outputString, string& e
   {
     errors = "";
   }
-  cerr << outputString;
+//  cerr << outputString;
 
   return (error);
 }

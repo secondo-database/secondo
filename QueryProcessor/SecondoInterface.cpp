@@ -146,6 +146,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                                               : SmiEnvironment::SingleUser,
                                   parmFile, cout ) )
     {
+      SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
       cout << "completed." << endl;
       ok = true;
     }
@@ -182,8 +183,17 @@ SecondoInterface::Terminate()
   if ( initialized )
   {
     cout << "Terminating Secondo system ...";
-//  SecondoInterface::Secondo( "close database", 0, 0, 0, 0, &ResultList,
-//                             &ErrCode, &ErrPos, &ErrMess );
+    // --- Abort open transaction, if there is an open transaction
+    if ( activeTransaction )
+    {
+      SecondoSystem::AbortTransaction();
+      activeTransaction = false;
+    }
+    // --- Close database, if one is open
+    if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
+    {
+      SecondoSystem::GetInstance()->CloseDatabase();
+    }
     if ( SecondoSystem::ShutDown() )
     {
       cout << "completed." << endl;

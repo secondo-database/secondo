@@ -25,7 +25,7 @@ OBJECTS=\
 .PHONY: all
 all: $(OBJECTS)
 
-buildlibs: ../../lib/$(LIBNAME).$(LIBEXT)
+buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 
@@ -34,20 +34,20 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 # ... Windows needs special treatment when creating DLLs
 ifeq ($(shared),yes)
 ifeq ($(platform),win32)
-LDOPT = -Wl,--export-dynamic -Wl,--out-implib,../../lib/$(LIBNAME).$(LIBEXT).a
+LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
 endif
 endif
 
-../../lib/$(LIBNAME).$(LIBEXT): $(OBJECTS)
+$(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o ../../lib/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(LIBDIR) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) -L$(LIBDIR) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) ../../lib/$(LIBNAME).$(LIBEXT) ../../bin/$(LIBNAME).$(LIBEXT)
+	$(CP) $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(BINDIR)/$(LIBNAME).$(LIBEXT)
 endif
 else
 # ... as static library
-	$(AR) -r ../../lib/$(LIBNAME).$(LIBEXT) $(OBJECTS)
+	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)
 endif
 
 # --- Function Algebra C++ library modules ---

@@ -23,17 +23,17 @@ APPLOBJECTS=\
 	SecondoServer.o
 
 APPLICATIONS=\
-	../bin/SecondoRegistrar$(EXEEXT) \
-	../bin/SecondoListener$(EXEEXT)
+	$(BINDIR)/SecondoRegistrar$(EXEEXT) \
+	$(BINDIR)/SecondoListener$(EXEEXT)
 
 .PHONY: all
 all: $(OBJECTS) $(APPLOBJECTS)
 
 .PHONY: buildapp
 ifeq ($(smitype),ora)
-buildapp: $(APPLICATIONS) ../bin/SecondoMonitorORA$(EXEEXT) ../bin/SecondoServerORA$(EXEEXT)
+buildapp: $(APPLICATIONS) $(BINDIR)/SecondoMonitorORA$(EXEEXT) $(BINDIR)/SecondoServerORA$(EXEEXT)
 else
-buildapp: $(APPLICATIONS) ../bin/SecondoMonitorBDB$(EXEEXT) ../bin/SecondoServerBDB$(EXEEXT) ../bin/SecondoCheckpoint$(EXEEXT)
+buildapp: $(APPLICATIONS) $(BINDIR)/SecondoMonitorBDB$(EXEEXT) $(BINDIR)/SecondoServerBDB$(EXEEXT) $(BINDIR)/SecondoCheckpoint$(EXEEXT)
 endif
 
 CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
@@ -73,30 +73,30 @@ SecondoServer.o: SecondoServer.cpp $(INCLUDEDIR)/Application.h $(INCLUDEDIR)/Soc
 
 SecondoInterfaceCS.o: SecondoInterfaceCS.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/Profiles.h
 	$(CC) -c -o SecondoInterfaceCS.o SecondoInterfaceCS.cpp $(CCXFLAGS)
-	$(CP) SecondoInterfaceCS.$(OBJEXT) ../lib/SecondoInterfaceCS.$(OBJEXT)
+	$(CP) SecondoInterfaceCS.$(OBJEXT) $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT)
 
 # --- Link applications
 
-../bin/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoMonitorBDB$(EXEEXT) SecondoMonitor.o $(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoMonitorBDB$(EXEEXT): SecondoMonitor.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoMonitorBDB$(EXEEXT) SecondoMonitor.o -L$(LIBDIR) $(BDBSMILIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
-../bin/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoMonitorORA$(EXEEXT) SecondoMonitor.o $(LIBDIR) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoMonitorORA$(EXEEXT): SecondoMonitor.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoMonitorORA$(EXEEXT) SecondoMonitor.o -L$(LIBDIR) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
 
-../bin/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoRegistrar$(EXEEXT) SecondoRegistrar.o  $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoRegistrar$(EXEEXT): SecondoRegistrar.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoRegistrar$(EXEEXT) SecondoRegistrar.o  -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-../bin/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoCheckpoint$(EXEEXT) SecondoCheckpoint.o $(LIBDIR) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoCheckpoint$(EXEEXT): SecondoCheckpoint.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoCheckpoint$(EXEEXT) SecondoCheckpoint.o -L$(LIBDIR) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
-../bin/SecondoListener$(EXEEXT): SecondoListener.o ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoListener$(EXEEXT) SecondoListener.o $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoListener$(EXEEXT): SecondoListener.o $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoListener$(EXEEXT) SecondoListener.o -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-../bin/SecondoServerBDB$(EXEEXT): SecondoServer.o ../lib/SecondoInterface.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT) ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoServerBDB$(EXEEXT) SecondoServer.o ../lib/SecondoInterface.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerBDB$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerBDB$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) -L$(LIBDIR) $(SDBLIB) $(BDBSMILIB) $(ALGLIB) $(TOOLLIB) $(BDBLIBDIR) $(BDBLIB) $(DEFAULTLIB)
 
-../bin/SecondoServerORA$(EXEEXT): SecondoServer.o ../lib/SecondoInterface.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT) ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoServerORA$(EXEEXT) SecondoServer.o ../lib/SecondoInterface.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoServerORA$(EXEEXT): SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoServerORA$(EXEEXT) SecondoServer.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) -L$(LIBDIR) $(SDBLIB) $(ORASMILIB) $(ALGLIB) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 

@@ -114,9 +114,9 @@ DisplayTTY::DisplayGeneric( ListExpr type, ListExpr numType, ListExpr value )
 {
   cout << "No specific display function defined. Generic function used." << endl;
   cout << "Type: ";
-  nl->WriteListExpr( type );
+  nl->WriteListExpr( type, cout );
   cout << endl << "Value: ";
-  nl->WriteListExpr( value );
+  nl->WriteListExpr( value, cout );
 }
 
 void
@@ -243,9 +243,9 @@ void
 DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
 {
   cout << "Function type: ";
-  nl->WriteListExpr( type );
+  nl->WriteListExpr( type, cout );
   cout << endl << "Function value: ";
-  nl->WriteListExpr( value );
+  nl->WriteListExpr( value, cout );
   cout << endl;
 }
 

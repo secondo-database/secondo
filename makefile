@@ -56,7 +56,7 @@ makedirs:
 	$(MAKE) -C QueryProcessor
 	$(MAKE) -C UserInterfaces
 
-buildlibs: lib/libsdbtool.$(LIBEXT) lib/libsdbsys.$(LIBEXT)
+buildlibs: $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
 	$(MAKE) -C Algebras buildlibs
 
 # --- Secondo Database Tools library ---
@@ -64,20 +64,20 @@ buildlibs: lib/libsdbtool.$(LIBEXT) lib/libsdbsys.$(LIBEXT)
 # ... Windows needs special treatment when creating DLLs
 ifeq ($(shared),yes)
 ifeq ($(platform),win32)
-LDOPTTOOL = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbtool.$(LIBEXT).a
+LDOPTTOOL = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsdbtool.$(LIBEXT).a
 endif
 endif
 
-lib/libsdbtool.$(LIBEXT): makedirs $(TOOLOBJECTS)
+$(LIBDIR)/libsdbtool.$(LIBEXT): makedirs $(TOOLOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o lib/libsdbtool.$(LIBEXT) $(LDOPTTOOL) $(TOOLOBJECTS) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbtool.$(LIBEXT) $(LDOPTTOOL) $(TOOLOBJECTS) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) lib/libsdbtool.$(LIBEXT) bin/libsdbtool.$(LIBEXT)
+	$(CP) $(LIBDIR)/libsdbtool.$(LIBEXT) $(BINDIR)/libsdbtool.$(LIBEXT)
 endif
 else
 # ... as static library
-	$(AR) -r lib/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbtool.$(LIBEXT) $(TOOLOBJECTS)
 endif
 
 # --- Secondo Database System library ---
@@ -85,20 +85,20 @@ endif
 # ... Windows needs special treatment when creating DLLs
 ifeq ($(shared),yes)
 ifeq ($(platform),win32)
-LDOPTSYS = -Wl,--export-dynamic -Wl,--out-implib,lib/libsdbsys.$(LIBEXT).a
+LDOPTSYS = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/libsdbsys.$(LIBEXT).a
 endif
 endif
 
-lib/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
+$(LIBDIR)/libsdbsys.$(LIBEXT): makedirs $(SDBSYSOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o lib/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) $(LIBDIR) $(ALGLIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/libsdbsys.$(LIBEXT) $(LDOPTSYS) $(SDBSYSOBJECTS) -L$(LIBDIR) $(ALGLIB) $(SMILIB) $(TOOLLIB) $(DEFAULTLIB)
 ifeq ($(platform),win32)
-	$(CP) lib/libsdbsys.$(LIBEXT) bin/libsdbsys.$(LIBEXT)
+	$(CP) $(LIBDIR)/libsdbsys.$(LIBEXT) $(BINDIR)/libsdbsys.$(LIBEXT)
 endif
 else
 # ... as static library
-	$(AR) -r lib/libsdbsys.$(LIBEXT) $(SDBSYSOBJECTS)
+	$(AR) -r $(LIBDIR)/libsdbsys.$(LIBEXT) $(SDBSYSOBJECTS)
 endif
 
 # --- Applications

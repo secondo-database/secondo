@@ -14,16 +14,16 @@ APPLOBJECTS=\
 	DisplayTTY.$(OBJEXT)
 
 APPLICATIONS=\
-	../bin/SecondoTTYCS$(EXEEXT)
+	$(BINDIR)/SecondoTTYCS$(EXEEXT)
 
 .PHONY: all
 all: $(APPLOBJECTS)
 
 .PHONY: buildapp
 ifeq ($(smitype),ora)
-buildapp: $(APPLICATIONS) ../bin/SecondoTTYORA$(EXEEXT)
+buildapp: $(APPLICATIONS) $(BINDIR)/SecondoTTYORA$(EXEEXT)
 else
-buildapp: $(APPLICATIONS) ../bin/SecondoTTYBDB$(EXEEXT)
+buildapp: $(APPLICATIONS) $(BINDIR)/SecondoTTYBDB$(EXEEXT)
 endif
 
 CCFLAGS=  $(PICFLAG) $(DEFAULTCCFLAGS)
@@ -39,14 +39,14 @@ DisplayTTY.o: DisplayTTY.cpp $(INCLUDEDIR)/DisplayTTY.h $(INCLUDEDIR)/SecondoInt
 
 # --- Link applications
 
-../bin/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o ../lib/SecondoInterface.$(OBJEXT) ../lib/libsdbtool.$(LIBEXT) ../lib/libsdbsys.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoTTYBDB$(EXEEXT) SecondoTTY.o DisplayTTY.o ../lib/SecondoInterface.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTTYBDB$(EXEEXT) SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(BDBSMILIB) $(BDBLIBDIR) $(BDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 
-../bin/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o ../lib/SecondoInterface.$(OBJEXT) ../lib/libsdbtool.$(LIBEXT) ../lib/libsdbsys.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoTTYORA$(EXEEXT) SecondoTTY.o DisplayTTY.o ../lib/SecondoInterface.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/libsdbtool.$(LIBEXT) $(LIBDIR)/libsdbsys.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTTYORA$(EXEEXT) SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) -L$(LIBDIR) $(SDBLIB) $(ALGLIB) $(ORASMILIB) $(TOOLLIB) $(DEFAULTLIB)
 
-../bin/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o ../lib/SecondoInterfaceCS.$(OBJEXT) ../lib/libsdbtool.$(LIBEXT)
-	$(LD) $(EXEFLAGS) -o ../bin/SecondoTTYCS$(EXEEXT) SecondoTTY.o DisplayTTY.o ../lib/SecondoInterfaceCS.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
+$(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT) $(LIBDIR)/libsdbtool.$(LIBEXT)
+	$(LD) $(EXEFLAGS) -o $(BINDIR)/SecondoTTYCS$(EXEEXT) SecondoTTY.o DisplayTTY.o $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
 include ../include.dep
 

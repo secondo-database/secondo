@@ -12,7 +12,8 @@
 # Secondo build directory
 BUILDDIR = /export/home/telle/Secondo-Neu
 INCLUDEDIR = $(BUILDDIR)/include
-LIBDIR = -L$(BUILDDIR)/lib
+LIBDIR = $(BUILDDIR)/lib
+BINDIR = $(BUILDDIR)/bin
 BDBSMILIB  = -lsmibdb
 ORASMILIB  = -lsmiora
 TOOLLIB    = -lsdbtool

@@ -368,7 +368,7 @@ SecondoTTY::TypeOutputList ( ListExpr list )
   else
   {
     cout << "=> Result:" << endl;
-    nl->WriteListExpr( list );
+    nl->WriteListExpr( list, cout );
     cout << endl;
   }
 }
@@ -415,7 +415,7 @@ SecondoTTY::WriteErrorList ( ListExpr list )
     list = nl->Rest( list );
     while (!nl->IsEmpty( list ))
     {
-      nl->WriteListExpr( nl->First( list ) );
+      nl->WriteListExpr( nl->First( list ), cout );
       errorCode = nl->IntValue( nl->First( nl->First( list ) ) );
       errorText = si->GetErrorMessage( errorCode );
       cout << "=> " << errorText << endl;
@@ -615,6 +615,7 @@ SecondoTTY::CheckConfiguration()
       {
         cout << "  having option value: '" << argValue << "'." << endl;
       }
+      cout << "Use option -? or --help to get information about available options." << endl;
       ok = false;
     }
     i++;

@@ -10,9 +10,9 @@ include ../makefile.$(platform)
 .SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 
 INCFILES=\
-	../include/AlgebraManager.h \
-	../include/Algebra.h \
-	../include/NestedList.h
+	$(INCLUDEDIR)/AlgebraManager.h \
+	$(INCLUDEDIR)/Algebra.h \
+	$(INCLUDEDIR)/NestedList.h
 
 OBJECTS=\
 	QueryProcessor.$(OBJEXT) \
@@ -37,11 +37,11 @@ SecondoSystem.$(OBJEXT): SecondoSystem.cpp $(INCLUDEDIR)/SecondoSystem.h $(INCLU
 
 SecondoInterface.$(OBJEXT): SecondoInterface.cpp $(INCLUDEDIR)/SecondoInterface.h $(INCLUDEDIR)/SecondoSystem.h $(INCLUDEDIR)/SecondoCatalog.h $(INCLUDEDIR)/QueryProcessor.h $(INCLUDEDIR)/Profiles.h $(INCLUDEDIR)/FileSystem.h $(INCLUDEDIR)/SecondoSMI.h $(INCLUDEDIR)/SecParser.h
 	$(CC) -c -o SecondoInterface.$(OBJEXT) SecondoInterface.cpp $(CCFLAGS)
-	$(CP) SecondoInterface.$(OBJEXT) ../lib/SecondoInterface.$(OBJEXT)
+	$(CP) SecondoInterface.$(OBJEXT) $(LIBDIR)/SecondoInterface.$(OBJEXT)
 
 SecondoInterfaceGeneral.$(OBJEXT): SecondoInterfaceGeneral.cpp $(INCLUDEDIR)/SecondoInterface.h
 	$(CC) -c -o SecondoInterfaceGeneral.$(OBJEXT) SecondoInterfaceGeneral.cpp $(CCFLAGS)
-	$(CP) SecondoInterfaceGeneral.$(OBJEXT) ../lib/SecondoInterfaceGeneral.$(OBJEXT)
+	$(CP) SecondoInterfaceGeneral.$(OBJEXT) $(LIBDIR)/SecondoInterfaceGeneral.$(OBJEXT)
 
 include ../include.dep
 
