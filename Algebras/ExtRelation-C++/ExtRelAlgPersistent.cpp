@@ -102,7 +102,7 @@ class SortByLocalInfo
         {
           Tuple *t = ((Tuple*)wTuple.addr)->CloneIfNecessary();
           if( t != wTuple.addr )
-            ((Tuple*)wTuple.addr)->Delete();
+            ((Tuple*)wTuple.addr)->DeleteIfAllowed();
 
           t->SetFree( false );
           tuples.push_back( t );
@@ -709,12 +709,12 @@ public:
             Tuple *t = tupleA->CloneIfNecessary();
             relationA->AppendTuple( t );
             if( t != tupleA )
-              t->Delete();
+              t->DeleteIfAllowed();
             tupleA->DeleteIfAllowed();
           }
           tupleA = NextATuple();
         }
-        equalTupleB->Delete();
+        equalTupleB->DeleteIfAllowed();
         indexA = 0;
 
         if( bucketA.size() == 0 )
@@ -740,12 +740,12 @@ public:
             Tuple *t = tupleB->CloneIfNecessary();
             relationB->AppendTuple( t );
             if( t != tupleB )
-              t->Delete();
+              t->DeleteIfAllowed();
             tupleB->DeleteIfAllowed();
           }
           tupleB = NextBTuple();
         }
-        equalTupleA->Delete();
+        equalTupleA->DeleteIfAllowed();
         indexB = 0;
 
         if( bucketB.size() == 0 )
@@ -903,7 +903,7 @@ private:
       Tuple *t =  (*iter)->CloneIfNecessary();
       rel->AppendTuple( t );
       if( t != *iter )
-        t->Delete();
+        t->DeleteIfAllowed();
       iter++;
     }
   }
@@ -967,7 +967,7 @@ private:
         Tuple *t = tupleB->CloneIfNecessary();
         relBucketsB[hashB]->AppendTuple( t );
         if( t != tupleB )
-          t->Delete();
+          t->DeleteIfAllowed();
         tupleB->DeleteIfAllowed();
       }
       hashMeasurer.Exit();
