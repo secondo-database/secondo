@@ -235,7 +235,6 @@ If value 0 is returned, the command was executed without error.
   }
 
   string::size_type posDatabase = cmdText.find( "database" );
-  string::size_type posObject   = cmdText.find( "object" );
   string::size_type posSave     = cmdText.find( "save" );
   string::size_type posRestore  = cmdText.find( "restore" );
   string::size_type posTo       = cmdText.find( "to" );
@@ -375,10 +374,10 @@ If value 0 is returned, the command was executed without error.
     }
   }
   
-  else if ( posObject   != string::npos &&
-            posRestore  != string::npos &&
+  else if ( posRestore  != string::npos &&
+            posDatabase == string::npos &&
             posFrom     != string::npos &&
-            posRestore < posObject && posObject < posFrom )
+            posRestore < posFrom )
   {
     if ( commandLevel == 1 || commandLevel == 3 )
     {
@@ -386,18 +385,17 @@ If value 0 is returned, the command was executed without error.
     }
     if ( nl->ReadFromString( cmdText, list ) )
     {
-      if ( nl->ListLength( list ) == 5 &&
+      if ( nl->ListLength( list ) == 4 &&
            nl->IsEqual( nl->First( list ), "restore" ) && 
-           nl->IsEqual( nl->Second( list ), "object" ) &&
-           nl->IsAtom( nl->Third( list )) && 
-          (nl->AtomType( nl->Third( list )) == SymbolType) &&
-           nl->IsEqual( nl->Fourth( list ), "from" ) &&
-           nl->IsAtom( nl->Fifth( list )) && 
-          (nl->AtomType( nl->Fifth( list )) == SymbolType) )
+           nl->IsAtom( nl->Second( list )) && 
+          (nl->AtomType( nl->Second( list )) == SymbolType) &&
+           nl->IsEqual( nl->Third( list ), "from" ) &&
+           nl->IsAtom( nl->Fourth( list )) && 
+          (nl->AtomType( nl->Fourth( list )) == SymbolType) )
       {
-        filename = nl->SymbolValue( nl->Fifth( list ) ); 
+        filename = nl->SymbolValue( nl->Fourth( list ) ); 
         iosock << "<ObjectRes>" << endl
-               << nl->SymbolValue( nl->Third( list ) )
+               << nl->SymbolValue( nl->Second( list ) )
                << " " << filename << endl
                << "</ObjectRes>" << endl;
         getline( iosock, line );
@@ -427,7 +425,7 @@ If value 0 is returned, the command was executed without error.
       }
       else
       {
-        // Not a valid 'restore database' command
+        // Not a valid 'restore object' command
         errorCode = 1;
       }
     }

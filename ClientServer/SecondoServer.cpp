@@ -347,7 +347,7 @@ SecondoServer::CallObjectRestore()
     serverFileName = os.str();
     if ( ReceiveFile( clientFileName, serverFileName ) )
     {
-      string cmdText = "(restore object " + objName +
+      string cmdText = "(restore " + objName +
                        " from " + serverFileName + ")";
       ListExpr commandLE = nl->TheEmptyList();
       ListExpr resultList = nl->TheEmptyList();
