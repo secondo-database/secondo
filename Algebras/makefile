@@ -9,17 +9,9 @@ include ../makefile.env
 .PHONY: all
 all: makedirs specs
 
-specs:  Standard-C++/*.spec \
-        Relation-C++/*.spec \
-        PointRectangle/*.spec \
-        StreamExample/*.spec \
-        BTree/*.spec \
-        Range/*.spec \
-        Spatial/*.spec \
-        FText/*.spec \
-        Array/*.spec \
-        RTree/*.spec
-	Rectangle/*.spec \
+SPECFILES = $(shell find . -name "*.spec")
+
+specs:  $(SPECFILES)
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
