@@ -74,7 +74,7 @@ install:
 
 .PHONY: berkeley_db
 $(BDBLIB_OBJECTS):
-	chmod -R u+w $(BDB_BUILD_DIR)
+	@chmod -R u+w $(BDB_BUILD_DIR)
 	$(CP) $(NEW_BDB_FILES) $(BDB_BUILD_DIR)
 	make -C $(BDB_BUILD_DIR) -f $(MAKEFILE_BDB)
 

@@ -34,7 +34,7 @@ Algebra.$(OBJEXT): Algebra.cpp
 ifeq ($(alg),auto)
 AlgebraList.i: AlgebraList.i.cfg $(BUILDDIR)/makefile.algebras
 	rm -f $@
-	chmod 755 ./alg.bash && ./alg.bash $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
+	@chmod 755 ./alg.bash && ./alg.bash $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
 else
 AlgebraList.i: AlgebraList.i.cfg
 	$(cp-config-file)

@@ -95,6 +95,7 @@ ifeq ($(optimizer),"true")
 	@echo -e "\n *** Building JPL and the optimizer server *** \n"
 	$(MAKE) -C Jpl all
 	$(MAKE) -C OptServer all
+	@chmod ugo+x Optimizer/StartOptServer
 endif
 
 

@@ -9,7 +9,7 @@ include ./makefile.inc
 
 .PHONY: all #creates the gui and all known viewers
 all: makedirs
-	chmod ugo+x sgui
+	@chmod ugo+x sgui
 
 
 .PHONY: help
