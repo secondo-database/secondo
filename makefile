@@ -98,7 +98,7 @@ TestRunner2: makedirs buildlibs buildalg
 
 .PHONY: buildapps
 buildapps: 
-	@echo -f "\n *** Linking Applications *** \n"
+	@echo -e "\n *** Linking Applications *** \n"
 	$(MAKE) -C UserInterfaces buildapp
 	$(MAKE) -C ClientServer buildapp
 
