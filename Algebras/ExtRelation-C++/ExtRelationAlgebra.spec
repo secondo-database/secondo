@@ -10,8 +10,8 @@ operator concat alias CONCAT pattern _ _ op
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator rdup alias RDUP pattern _ op
 operator sort alias SORT pattern _ op
-operator extend alias EXTEND pattern _ op [funlist] implicit parameter tuple type TUPLE
-operator extendstream alias EXTENDSTREAM pattern _ op [fun] implicit parameter tuple type TUPLE
+operator extend alias EXTEND pattern _ op [ funlist ] implicit parameter tuple type TUPLE
+operator extendstream alias EXTENDSTREAM pattern _ op [ funlist ] implicit parameter tuple type TUPLE
 
 operator groupby alias GROUPBY pattern _ op [list; funlist] implicit parameter group type GROUP
 operator mergesec alias MERGESEC pattern _ _ op
