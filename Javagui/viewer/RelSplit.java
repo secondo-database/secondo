@@ -21,8 +21,8 @@ public boolean addObject(SecondoObject o){
     SecondoObject Rel = makeRelation(o);
     if(Rel!=null){
        return addRelation(Rel);
-    } 
-    else 
+    }
+    else
        return false;
   }
 }
@@ -283,8 +283,11 @@ public Dimension getPreferredSize(){
 
 public boolean addRelation(SecondoObject SO){
   Relation R=new Relation();
-  if (!R.readFromSecondoObject(SO))
+  if (!R.readFromSecondoObject(SO)){
+    if(DEBUG_MODE)
+      System.err.println("Relation.readFromSecondoObject failed ");
     return false;
+  }
   else{
     try{
        RelationListModel RLM = new RelationListModel(R);
@@ -293,6 +296,8 @@ public boolean addRelation(SecondoObject SO){
        return true;
     }
     catch(Exception e){
+       if(DEBUG_MODE)
+          e.printStackTrace(); 
        return false;
     }    
   }
