@@ -3,6 +3,9 @@
 # SECONDO Makefile
 #
 # $Log$
+# Revision 1.16  2003/04/09 12:49:53  spieker
+# Rule dist modified.
+#
 # Revision 1.15  2003/04/09 12:19:53  spieker
 # New target dist creates tar.gz files of the secondo source code
 #
@@ -67,13 +70,6 @@ SDBSYSOBJECTBASENAMES=\
 TOOLOBJECTS = $(addsuffix .$(OBJEXT), $(TOOLOBJECTBASENAMES))
 SDBSYSOBJECTS = $(addsuffix .$(OBJEXT), $(SDBSYSOBJECTBASENAMES))
 
-ifeq ($(smitype),ora)
-SMILIB=$(ORASMILIB)
-else
-SMILIB=$(BDBSMILIB)
-endif
-
-
 .PHONY: all
 all: makedirs buildlibs buildalg buildapps
 
@@ -110,7 +106,8 @@ buildalg:
 # Windows needs special treatment for dynamic libraries!
 # The variable LIBNAME will be used in the LDOPTTOOL variable 
 # which is only defined makefile.win32 included by makefile.env.
-LIBNAME=libsdbtool
+
+$(LIBDIR)/libsdbtool.$(LIBEXT): LIBNAME=libsdbtool
 $(LIBDIR)/libsdbtool.$(LIBEXT): $(TOOLOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
@@ -122,7 +119,7 @@ endif
 
 # --- Secondo Database System library ---
 
-LIBNAME=libsdbsys
+$(LIBDIR)/libsdbsys.$(LIBEXT): LIBNAME=libsdbsys
 $(LIBDIR)/libsdbsys.$(LIBEXT): $(SDBSYSOBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object

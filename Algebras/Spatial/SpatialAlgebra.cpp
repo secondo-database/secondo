@@ -5596,30 +5596,30 @@ const string SpatialSpecIntersects  =
 	     ") )";
 
 const string SpatialSpecInside  = 	
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(points points) -> bool, (line line) -> bool, 
-	     (region region) -> bool, (point points) -> bool, 
-	     (point line) -> bool, (point region) -> bool</text--->
-	     <text>_ inside _</text--->
-	     <text>Inside.</text--->
-	     <text>query point1 inside line1</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+	  "( <text>(points points) -> bool, (line line) -> bool, "
+	    "(region region) -> bool, (point points) -> bool, "
+	    "(point line) -> bool, (point region) -> bool</text--->"
+	    "<text>_ inside _</text--->"
+	    "<text>Inside.</text--->"
+	    "<text>query point1 inside line1</text--->"
+	    ") )";
 
 const string SpatialSpecOnBorder  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point line or region) -> bool</text--->
-	     <text>_ onborder _</text--->
-	     <text>on endpoints or on border edges.</text--->
-	     <text>query point onborder line</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	  "( <text>(point line or region) -> bool</text--->"
+	    "<text>_ onborder _</text--->"
+	    "<text>on endpoints or on border edges.</text--->"
+	    "<text>query point onborder line</text--->"
+	    ") )";
 			      
 const string SpatialSpecInInterior  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point line or region) -> bool</text--->
-	     <text>_ ininterior _</text--->
-	     <text>in interior of a line or region.</text--->
-	     <text>query point ininterior region</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	  "( <text>(point line or region) -> bool</text--->"
+	    "<text>_ ininterior _</text--->"
+	    "<text>in interior of a line or region.</text--->"
+	    "<text>query point ininterior region</text--->"
+	    ") )";
 
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, 

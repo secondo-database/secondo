@@ -3,6 +3,11 @@
 # SECONDO makefile for Polygon Algebra
 #
 # $Log$
+# Revision 1.4  2003/04/03 09:35:27  valmeida
+#
+# Correcting a bug in the PArray organization. Now the SecondoSystem is
+# responsible to opening and closing a LOB file which the PArrays will use.
+#
 # Revision 1.3  2002/11/27 20:31:04  spieker
 # Rules for generation of libraries were revised. Many rules are written
 # in a short manner by use of VPATH and automatic variables $@ and $<.
@@ -49,7 +54,7 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 $(LIBDIR)/$(LIBNAME).$(LIBEXT): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
-	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
+	$(LD) $(LDFLAGS) -o $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(SMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
 else
 # ... as static library
 	$(AR) -r $(LIBDIR)/$(LIBNAME).$(LIBEXT) $(OBJECTS)

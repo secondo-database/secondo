@@ -25,7 +25,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h" //needed because we return a CcBool in an op.
 #include <string>
-#include <iostream.h>
+#include <iostream>
 
 static NestedList* nl;
 static QueryProcessor* qp;
