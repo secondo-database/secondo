@@ -233,7 +233,10 @@ SecondoInterface::Terminate()
     }
     initialized = false;
     activeTransaction = false;
+    delete nl;
     nl = 0;
+    delete al;
+    al = 0;
     server = 0;
   }
   else
