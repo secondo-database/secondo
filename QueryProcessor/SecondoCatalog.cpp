@@ -1762,9 +1762,9 @@ SecondoCatalog::GetOperatorIds( const string& opName )
 {
 /*
 Returns the algebra identifier ~algebraId~ and the operator identifier
-~opId~ of an existing ~opName~. 
+~opId~ of an existing ~opName~.
 
-Precondition: ~IsOperatorName( opName)~ delivers TRUE.  
+Precondition: ~IsOperatorName( opName)~ delivers TRUE.
 
 */
   ListExpr opList;
@@ -1777,11 +1777,12 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
 
     opList = nl->OneElemList(
                nl->TwoElemList( nl->IntAtom( operatorSetIterator->algebraId ), nl->IntAtom( operatorSetIterator->entryId ) ) );
+    ListExpr last = opList;
 
     while ( ++operatorSetIterator != operatorSet->end() )
     {
-      nl->Append( opList,
-                  nl->TwoElemList( nl->IntAtom( operatorSetIterator->algebraId ), nl->IntAtom( operatorSetIterator->entryId ) ) );
+      last = nl->Append( last,
+                         nl->TwoElemList( nl->IntAtom( operatorSetIterator->algebraId ), nl->IntAtom( operatorSetIterator->entryId ) ) );
     }
     return opList;
   }
