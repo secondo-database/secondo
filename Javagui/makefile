@@ -20,7 +20,7 @@ help:
 
 
 .PHONY: doc # creates the documentation
-doc: removedoc 
+doc: removedoc
 	$(JAVADOC) -d $(DOCPATH) -classpath $(CLASSPATH) $(shell find -name "*.class"  | sed "s#/[^/]*\.class##g"  | sed "s#/[^/]*\.class##g" | sed "s#^\./##g"  | sed "s#/#.#g" | java tools.DupRemover)
 
 
@@ -41,6 +41,7 @@ makedirs:
 	make -C viewer all
 	make -C project all
 	make -C gui all
+	make -C javazoom all
 	make -C viewer viewers
 	make -C tools all
 
@@ -53,6 +54,7 @@ clean:
 	make -C gui clean
 	make -C project clean
 	make -C tools clean
+	make -C javazoom clean
 	make -C viewer clean
 	make -C java_cup clean
 	(rm -f ./doc/* -r)
