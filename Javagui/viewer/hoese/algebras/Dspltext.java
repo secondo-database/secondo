@@ -122,6 +122,33 @@ public boolean isExternDisplayed(){
 }
 
 
+private boolean checkForHtml(String Text,int offset){
+    int restlength = Text.length()-offset-1;
+    if(restlength<4)
+      return false;
+    String tag = Text.substring(offset,offset+5).toLowerCase();
+    if("<html".equals(tag))
+       return true;
+    // search for "<html ignoring case
+    int max = Text.length();
+    int index = offset+1;
+    int state = 1;
+    boolean found = false;
+    while(!found && index<max-5){
+        char c = Text.charAt(index);
+        index++;
+        switch(state){
+            case 1 : if(c=='<') state = 2;break;
+            case 2 : if(c=='h' || c=='H') state=3; else state=1; break;
+            case 3 : if(c=='t' || c=='T') state=4; else state=1; break;
+            case 4 : if(c=='m' || c=='M') state=5; else state=1; break;
+            case 5 : if(c=='l' || c=='L') found=true; else state=1; break;
+            default: System.err.println("Undefined state");
+        }
+        if(c=='<') state = 2; 
+    }  
+    return found;
+}
 
 /** sets the type of this Text 
   * depending on some keywords 
@@ -131,12 +158,11 @@ private void computeType(String Text){
      for(int i=0;i<Text.length()-5;i++){ 
          char c = Text.charAt(i);
          if(c=='<'){
-             String T = Text.substring(i,i+5).toLowerCase();
-             if(T.equals("<html"))
-                 Type = HTML_TYPE;
-             else
-                 Type = PLAIN_TYPE;
-             return; 
+              if(checkForHtml(Text,i))
+                  Type=HTML_TYPE;
+              else
+                  Type=PLAIN_TYPE;
+              return;
          } else if(c=='{'){ // possible rtf format
            // search for the next non-whitespace
            for(int j=i+1;j<Text.length()-4;j++){
@@ -230,6 +256,7 @@ public TextViewerFrame(){
               TextViewerFrame.this.RtfBtn.setEnabled(true);
          } else
          if(TextViewerFrame.this.HtmlBtn.equals(src)){
+            try{
               TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.this.EKHtml);
               TextViewerFrame.this.Display.setEditable(false);
               TextViewerFrame.this.Display.setText(TextViewerFrame.this.TheText);
@@ -238,8 +265,12 @@ public TextViewerFrame(){
               TextViewerFrame.this.PlainBtn.setEnabled(true);
               TextViewerFrame.this.HtmlBtn.setEnabled(false);
               TextViewerFrame.this.RtfBtn.setEnabled(true);
+            }catch(Exception e){
+               setToPlainBecauseError();
+            }
          }else
          if(TextViewerFrame.this.RtfBtn.equals(src)){
+            try{
               TextViewerFrame.this.Display.setEditorKit(TextViewerFrame.this.EKRtf);
               TextViewerFrame.this.Display.setEditable(false);
               TextViewerFrame.this.Display.setText(TextViewerFrame.this.TheText);
@@ -248,6 +279,9 @@ public TextViewerFrame(){
               TextViewerFrame.this.PlainBtn.setEnabled(true);
               TextViewerFrame.this.HtmlBtn.setEnabled(true);
               TextViewerFrame.this.RtfBtn.setEnabled(false);
+            } catch(Exception e){
+              setToPlainBecauseError(); 
+            }
          }
 
      }
@@ -270,6 +304,21 @@ public TextViewerFrame(){
   setSize(640,480); 
 }
 
+
+private void setToPlainBecauseError(){
+    JOptionPane.showMessageDialog(null,"Cannot show the text in specified format\n"+
+                                       ", switch to plain text","Error",JOptionPane.ERROR_MESSAGE);
+    
+    Display.setEditorKit(EKPlain);
+    Display.setEditable(true);
+    Display.setText(TheText);
+    Display.setCaretPosition(0);
+    Source.Type = Dspltext.PLAIN_TYPE;
+    PlainBtn.setEnabled(false);
+    HtmlBtn.setEnabled(true);
+    RtfBtn.setEnabled(true);
+}
+
 public void setSource(Dspltext S){
     Source = S;
     PlainBtn.setEnabled(true);
@@ -289,7 +338,11 @@ public void setSource(Dspltext S){
        Display.setEditable(false); 
     }
     TheText = S.Text;
-    Display.setText(TheText);
+    try{
+       Display.setText(TheText);
+    } catch(Exception e){
+      setToPlainBecauseError(); 
+    }
     Display.setCaretPosition(0);// go to top 
 }
 
