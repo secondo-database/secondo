@@ -368,6 +368,10 @@ public MainWindow(String Title){
    }
    Environment.DEBUG_MODE = DEBUG_MODE;
 
+   String Measure_Time = Config.getProperty("MEASURE_TIME");
+   Environment.MEASURE_TIME=Measure_Time!=null &&
+                            Measure_Time.toLowerCase().trim().equals("true");
+
 
    String FS = System.getProperty("file.separator");
    if(FS==null){

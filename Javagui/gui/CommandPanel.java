@@ -567,7 +567,13 @@ public class CommandPanel extends JScrollPane {
      SelectClause = command.substring(SelectClauseInterval.min,SelectClauseInterval.max);
 
      // optimize the select-clause
+     long starttime=0;
+     if(Environment.MEASURE_TIME)
+        starttime = System.currentTimeMillis();
      String opt = OptInt.optimize_execute(SelectClause,OpenedDatabase,Err,false);
+     if(Environment.MEASURE_TIME){
+        System.out.println("used time to optimize query: "+(System.currentTimeMillis()-starttime)+" ms");
+     }
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
         appendText("\nerror in optimization of this query");
         showPrompt();
@@ -611,7 +617,12 @@ public class CommandPanel extends JScrollPane {
 	  showPrompt();
 	  return false;
        }
+       long starttime=0;
+       if(Environment.MEASURE_TIME)
+          starttime = System.currentTimeMillis();
        String answer = sendToOptimizer(command.substring(10));
+       if(Environment.MEASURE_TIME)
+          System.out.println("used time for optimizing: "+(System.currentTimeMillis()-starttime)+" ms");
        if(answer==null){
           appendText("\nerror in optimizer command");
 	  showPrompt();
@@ -649,13 +660,20 @@ public class CommandPanel extends JScrollPane {
          command = optimize(command);
 	 if(command.equals("")) return false;
 	 appendText("\n" + command + "...");
-         
+         long starttime=0;
+	 if(Environment.MEASURE_TIME)
+	    starttime = System.currentTimeMillis();
+
 	 Secondointerface.secondo(command,           //Command to execute.
          ListExpr.theEmptyList(),                    // we don't use it here.
          commandLevel, true,         // command as text.
          false,      // result as ListExpr.
          resultList, errorCode, errorPos, errorMessage);
-         RV.processResult(command,resultList,errorCode,errorPos,errorMessage);
+
+         if(Environment.MEASURE_TIME)
+            System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+
+	 RV.processResult(command,resultList,errorCode,errorPos,errorMessage);
          boolean success = errorCode.value==0;
 	 if(success)
 	   informListeners(command);
@@ -698,13 +716,19 @@ public class CommandPanel extends JScrollPane {
       // use is EXEC_COMMAND_SOS_SYNTAX.
       commandLevel = Secondointerface.EXEC_COMMAND_SOS_SYNTAX;
     }
+    long starttime=0;
+    if(Environment.MEASURE_TIME)
+        starttime = System.currentTimeMillis();
 
-    // Executes the remote command.
+     // Executes the remote command.
     Secondointerface.secondo(command,           //Command to execute.
                       ListExpr.theEmptyList(),                    // we don't use it here.
                       commandLevel, true,         // command as text.
                       false,      // result as ListExpr.
                       resultList, errorCode, errorPos, errorMessage);
+    if(Environment.MEASURE_TIME)
+       System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+
     int res = errorCode.value;
     if(res==0)
        informListeners(command);
@@ -740,12 +764,19 @@ public class CommandPanel extends JScrollPane {
       commandLevel = Secondointerface.EXEC_COMMAND_SOS_SYNTAX;
     }
 
+    long starttime=0;
+    if(Environment.MEASURE_TIME)
+       starttime = System.currentTimeMillis();
+
     // Executes the remote command.
     Secondointerface.secondo(command,           //Command to execute.
                       ListExpr.theEmptyList(),                    // we don't use it here.
                       commandLevel, true,         // command as text.
                       false,      // result as ListExpr.
                       resultList, errorCode, errorPos, errorMessage);
+    if(Environment.MEASURE_TIME)
+       System.out.println("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
+
     if(errorCode.value!=0){
        if(!Secondointerface.isConnected())
           informListeners("disconnect");
@@ -846,7 +877,7 @@ public class CommandPanel extends JScrollPane {
      }
   }
 
-  
+
 
 
 
@@ -1032,7 +1063,7 @@ public class CommandPanel extends JScrollPane {
       }
     }
   }
-  
+
   class Interval{
      public Interval(int x, int y){
         min=x;
