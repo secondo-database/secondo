@@ -1,4 +1,7 @@
 /******************************************************************************
+
+1 Licence
+
 ---- 
 This file is part of SECONDO.
 
@@ -26,12 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  March, 1999. Jose Antonio Cotelo Lema.
  ListExpr.java
  Java implementation of the NestedLists tools.
- \tableofcontents
- ***************************************************************************** *
- * formatted with JxBeauty (c) johann.langhofer@nextra.at
- */
-/*
- 1 Overview.
+\tableofcontents
+ 
+1 Overview.
  This is the implementation of the ListExpr class.
  This class implements the Java version of the NestedLists tool, builded fully in Java.
  The original interface was maintained. The main diferences are::
@@ -67,15 +67,20 @@ package  sj.lang;
  to which belong all the base classes of SecondoJava.
  */
 /*
- 2 Included files.
- This class uses some external classes and packages what are neded for the correct compiling and execution of this class.
- 2.1 External classes.
- The following external classes what are not part of the Java Development Kit are used.
+2 Included files.
+
+This class uses some external classes and packages what are neded for the correct compiling and execution of this class.
+
+2.1 External classes.
+
+The following external classes what are not part of the Java Development Kit are used.
+
  */
 import  java_cup.runtime.Symbol;
 import  sj.lang.JavaListExpr.NLParser;
 /*
- 2.2 External packages.
+2.2 External packages.
+
  The following packages being part of the Java Development Kit are used.
  */
 
@@ -126,6 +131,9 @@ public class ListExpr extends Object {
   public final static int BIN_TEXT = 18;
   public final static int BIN_SHORTTEXT=19;
 
+
+
+
     /*
    3.2 Private fields.
    The following private fields are defined, and hence they can be accessed only
@@ -158,10 +166,30 @@ public class ListExpr extends Object {
   // should ever be null if not a file is readed
   private static String CurrentDir=null;
 
+  
+
+  /*
+    The following variabled are required for external storing of
+    big text atoms. 
+  */ 
+  // The FileName is used for external storing of textatoms
+  // Each textAtom will handle a single file
+  // if File is != 0 , the text is stored external
+  private File ExtFile=null;
+
+  // Begin of a temporal file name
+  private static final String TMPSTART="TMP_"; 
+  // variable for generating a new temporaly filename
+  private static int LastUsedFileNumber=0;
+  // Directory for storing temporaly files
+  private static String TEMPDIR =".";
+  private static int MAX_INTERNAL_TEXT_LENGTH = 256;
+  private static boolean USE_PERSISTENT_TEXT = false;
 
   /*
    3.3 Class constructors.
-   The following class constructors is defined for constructing new ListExpr nodes. It will return an empty list.
+   
+  The following class constructors is defined for constructing new ListExpr nodes. It will return an empty list.
    */
   public ListExpr () {
     // creates a new ListExpr node, being an empty list.
@@ -190,6 +218,61 @@ public class ListExpr extends Object {
   public static String getDirectory(){
       return CurrentDir;
   }
+
+
+  /** Sets the directory for storing temporal objects
+  */
+  public static void setTempDir(String DirName){
+     if(!DirName.endsWith("/"))
+       DirName+="/";
+     File F = new File(DirName);
+     if(F.exists()){
+        TEMPDIR = DirName;
+     } else{
+        if(!F.mkdirs()){
+           System.out.println("cannot create directory "+DirName+"for temporal storing of text atoms");
+           System.out.println("Directory name remains unchanged. ");
+        }else{
+           TEMPDIR=DirName;
+        } 
+     }
+  }
+
+
+  /** If the parameter is true, text atoms with a minimum length of
+    * MAX_INTERNAL_TEXT_LENGTH are stored into a file.
+    */
+  public static void usePersistentText(boolean enabled){
+     USE_PERSISTENT_TEXT = enabled;
+  }
+
+  /** Sets the value of the maximum text length handled in main memory */
+  public static boolean setMaxInternalTextLength(int length){
+     if(length<1)
+        return false;
+     MAX_INTERNAL_TEXT_LENGTH = length;
+     return true; 
+  } 
+
+  /** returns the length of a text atom 
+    * If this list is not a text atom 0 is returned.
+    */
+  public int getTextLength(){
+     if(type!=TEXT_ATOM)
+        return -1;
+     if(ExtFile!=null)
+         return (int)ExtFile.length();
+     else
+         return ((String)value).length();
+  }
+
+  /** Returns true if the value of this list is 
+    * in the main memory
+    */
+   public boolean isInMemory(){
+      return (type!=TEXT_ATOM) || (ExtFile==null);
+   } 
+
 
 
   /*
@@ -292,6 +375,22 @@ public class ListExpr extends Object {
   public void destroy () {
   // It does nothing.
   }
+
+  /** This function is called when the virtual machine 
+    * detrect that no more references refer to this list.
+    * In the case of an external TextAtom, we delete its temporal file.
+    */
+  protected void finalize() throws Throwable{ 
+    if(ExtFile!=null){
+      if(!ExtFile.delete()){
+          if(DEBUG_MODE){
+              System.err.println("cannot delete temporal file "+ExtFile);
+          }
+      }
+    }
+    super.finalize(); 
+  }
+
 
   /*
    3.4.6 The isEmpty() method.
@@ -466,7 +565,7 @@ public class ListExpr extends Object {
           }
         case ListExpr.TEXT_ATOM:
           {
-            chars.append(BEGIN_TEXT+((String)list.value).toString()+END_TEXT);
+            chars.append(BEGIN_TEXT+list.textValue()+END_TEXT);
             return;
           }
       }
@@ -676,7 +775,7 @@ public class ListExpr extends Object {
           }
         case ListExpr.TEXT_ATOM:
           {
-            file.write("<text>" + ((String)list.value).toString() + "</text--->");
+            file.write("<text>" + list.textValue() + "</text--->");
             return;
           }
       }
@@ -1250,7 +1349,7 @@ catch(Exception e){
           }
         case ListExpr.TEXT_ATOM:
           {
-            chars.append("<text>" + ((String)list.value).toString() + "</text--->");
+            chars.append("<text>" + list.textValue() + "</text--->");
             return  0;
           }
       }
@@ -1508,10 +1607,53 @@ catch(Exception e){
    */
   public static ListExpr textAtom (String value) {
     ListExpr result = new ListExpr();
-    result.value = new String(value);
-    result.type = ListExpr.TEXT_ATOM;
+    result.type = TEXT_ATOM;
+    result.setText(value);
     return  result;
   }
+
+  /** This method sets the content of an exiisting text atom */
+  public void setText(String value){
+    if (CHECK_PRECONDITIONS) {
+      if (atomType() != ListExpr.TEXT_ATOM) {
+        System.err.println("CHECK PRECONDITIONS:");
+        System.err.println("   Error when calling the setText() method: ");
+        System.err.println("   the ListExpr object is not a text atom.");
+      }
+    }
+    if(value.length()>MAX_INTERNAL_TEXT_LENGTH && USE_PERSISTENT_TEXT){
+        // create a new File for this textAtom;
+        if(ExtFile==null){  // create a new  file
+           do{
+              ExtFile = new File( TEMPDIR+TMPSTART+LastUsedFileNumber);
+              LastUsedFileNumber++;
+           }while(ExtFile.exists());
+        }
+        ExtFile.deleteOnExit();// ensure to delete this file  
+        DataOutputStream out = null;
+        try{ // write Text into the File
+            out = new DataOutputStream( 
+                          new BufferedOutputStream(
+                              new FileOutputStream(ExtFile)));
+            out.writeBytes(value);
+            out.flush();
+            out.close();
+            this.value = null;  
+        }catch(Exception e){
+            if(DEBUG_MODE){
+                e.printStackTrace();
+            }
+            System.err.println("Error in writing temporal file of text atom");
+            System.err.println("Using main memory to store text!");
+            ExtFile=null;
+            this.value = value;
+        }
+        
+    }else { // main memory based
+        this.value = new String(value);
+    }
+  }
+
 
   /*
    3.4.26 the appendText() method.
@@ -1533,11 +1675,11 @@ catch(Exception e){
       }
     }
     // Copies the content of this text atom to a StringBuffer.
-    StringBuffer aux = new StringBuffer((String)this.value);
+    StringBuffer aux = new StringBuffer(textValue());
     // Appends to it the new portion of string.
     aux.append(text.substring(startPos, startPos + length));
     // Stores in value the resulting string.
-    this.value = aux.toString();
+    setText(aux.toString());
     return;
   }
 
@@ -1644,12 +1786,35 @@ catch(Exception e){
    */
   public String textValue () {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
-    if (ListExpr.CHECK_PRECONDITIONS) {
-      if (this.atomType() != ListExpr.TEXT_ATOM) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the textValue() method: the ListExpr object does not fulfil the preconditions.");
+    if (CHECK_PRECONDITIONS) {
+      if (atomType() != TEXT_ATOM) {
+        System.err.println("CHECK PRECONDITIONS:");
+        System.err.println(" Error when calling the textValue() method:");
+        System.err.println(" the ListExpr object is not a text atom.");
       }
     }
-    return  (String)this.value;
+    if(ExtFile==null){ // main memory based
+       return  (String)this.value;
+    }else{
+       try{
+         int len = (int)ExtFile.length();
+         byte[] content = new byte[(int)len];
+         BufferedInputStream in = new BufferedInputStream(new FileInputStream(ExtFile));
+         int pos = 0; 
+         while(pos<len){
+             pos += in.read(content,pos,len-pos);
+         }
+         String res = new String(content);
+         in.close(); 
+         return res;
+       }catch(Exception e){
+          if(DEBUG_MODE)
+            e.printStackTrace();
+          System.err.println("Cannot load a TextAtom value from its temporal file ");
+          System.err.println(" empty String is returned");
+          return ""; 
+       }
+    }
   }
 
   /*
@@ -1660,12 +1825,17 @@ catch(Exception e){
    */
   public int textLength () {
     //if CHECK_PRECONDITIONS is set, it checks the preconditions.
-    if (ListExpr.CHECK_PRECONDITIONS) {
-      if (this.atomType() != ListExpr.TEXT_ATOM) {
-        System.err.println("CHECK PRECONDITIONS: Error when calling the textLength() method: the ListExpr object does not fulfil the preconditions.");
+    if (CHECK_PRECONDITIONS) {
+      if (atomType() != TEXT_ATOM) {
+        System.err.println("CHECK PRECONDITIONS:");
+        System.err.println("    Error when calling the textLength() method:");
+        System.err.println("    the ListExpr object is not a textAtom.");
       }
     }
-    return  ((String)this.value).length();
+    if(ExtFile==null)
+       return  ((String)this.value).length();
+    else
+       return (int) ExtFile.length();
   }
 
 
@@ -1760,6 +1930,14 @@ catch(Exception e){
        return false;
     if(!(value==null) && (LE.value==null))
        return false;
+   
+    // special treatment for text atoms 
+    if(type==TEXT_ATOM){
+       String S1 = textValue();
+       String S2 = LE.textValue();
+       return S1.equals(S2);
+    } 
+
     if(value==null && LE.value==null)
        return true;
     else{ // both value members are not null
@@ -1836,7 +2014,7 @@ catch(Exception e){
    must contain base64 coded content
  */
   public InputStream decodeText(){
-      Base64Decoder BD = new Base64Decoder(new StringReader((String)this.value));
+      Base64Decoder BD = new Base64Decoder(new StringReader(textValue()));
       return BD.getInputStream();
   }
   /*

@@ -61,4 +61,9 @@ OPTIMIZER_PORT 1235
 #enable optimizer at start (true or false)
 ENABLE_OPTIMIZER true
 
+#enable persitent storing of text atoms
+USE_PERSISTENT_TEXT true
 
+#set the maximum size of a text atom managed in main memory
+#only meaningful if USE_PERSISTENT_TEXT is enabled
+MAX_INTERNAL_TEXT_LENGTH 1024

@@ -418,6 +418,42 @@ public MainWindow(String Title){
       use_binary_lists = true;
    ComPanel.useBinaryLists(use_binary_lists);
 
+   
+   String TMPDIR = Config.getProperty("TMP_DIR");
+   File TMPF = new File("tmp");
+   if(TMPDIR!=null){
+      TMPF = new File(TMPDIR);
+   } 
+   ListExpr.setTempDir(TMPF.getAbsolutePath());
+
+   String USE_PERSISTENT_TEXT = Config.getProperty("USE_PERSISTENT_TEXT");
+   boolean persistentText = false;
+   if(USE_PERSISTENT_TEXT!=null){
+       USE_PERSISTENT_TEXT=USE_PERSISTENT_TEXT.toLowerCase().trim();
+       persistentText = USE_PERSISTENT_TEXT.equals("true");
+   } 
+   ListExpr.usePersistentText(persistentText);
+
+   String MAX_INTERNAL_TEXT_LENGTH = Config.getProperty("MAX_INTERNAL_TEXT_LENGTH");
+   int maxTextLength = 256;
+   if(MAX_INTERNAL_TEXT_LENGTH!=null){
+       try{
+          int tmpMaxTextLength = Integer.parseInt(MAX_INTERNAL_TEXT_LENGTH.trim());
+          if(tmpMaxTextLength<1){
+
+          } else{
+             maxTextLength=tmpMaxTextLength;
+             if(persistentText){
+                System.out.println("Swap texts with length greater than "+maxTextLength+" to file");
+             }
+          }
+       }catch(Exception e){
+           System.err.println("MAX_INTERNAL_STRING_LENGTH must be an positive integer");
+           System.err.println(" the actual value is :"+MAX_INTERNAL_TEXT_LENGTH);
+           System.err.println(" use default value   :"+maxTextLength);
+       }
+   } 
+   ListExpr.setMaxInternalTextLength(maxTextLength);
 
 
    if(SecondoHomeDir!=null){

@@ -37,7 +37,6 @@ public class Dspltext extends DsplGeneric implements ExternDisplay{
  /** Creates a new Instance of this.
    */ 
 public  Dspltext(){
-   Text = "";
    if(Display==null){
       Display = new TextViewerFrame();
    }
@@ -48,29 +47,7 @@ public  Dspltext(){
   * pop up a window
   **/
 public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     if (value.listLength()==1)// Textatom within a list
-         value = value.first();
-     if(value.atomType()!=ListExpr.TEXT_ATOM)
-        qr.addEntry(new String(type.symbolValue()) + ": error in value ");
-     else{
-        Text = value.textValue();
-        computeType(Text);
-        if(Type==PLAIN_TYPE){
-           if(Text.length()<=MAX_DIRECT_DISPLAY_LENGTH){ // short Text
-               Entry = type.symbolValue()+" : "+ Text;
-               qr.addEntry(Entry);
-               return; 
-           } else{  // long plain text
-               Entry = type.symbolValue()+" : "+ Text.substring(0,MAX_DIRECT_DISPLAY_LENGTH-4)+" ...";
-           }
-        }else if(Type==HTML_TYPE){
-           Entry = type.symbolValue()+ " : <html> ...";
-        } else if(Type==RTF_TYPE){
-           Entry =  type.symbolValue() + " : RTF ...";
-        }
-        qr.addEntry(this);
-     }
-     return;
+     init(type,0,value,0,qr);
 }
   
 
@@ -85,12 +62,16 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
 
      if (value.listLength()==1)
      value = value.first();
-     if(value.atomType()!=ListExpr.TEXT_ATOM)
+     if(value.atomType()!=ListExpr.TEXT_ATOM){
         V =  "error in value ";
-     else
+        theList = ListExpr.textAtom(V);
+     }
+     else{
         V =  value.textValue();
+        theList = value;
+     }
      T=extendString(T,typewidth);
-     Text = V;
+     String Text = V;
      computeType(Text);
 
      if(Type==PLAIN_TYPE){
@@ -198,8 +179,8 @@ private static boolean isWhiteSpace(char c){
 
 
 private static TextViewerFrame Display=null; 
-private String Text;
 private String Entry;
+private ListExpr theList;
 
 private int Type; // contains the type which is the text (probably)
 
@@ -229,6 +210,7 @@ public TextViewerFrame(){
   CloseBtn = new JButton("Close");
   CloseBtn.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
+            TheText=null;
             TextViewerFrame.this.setVisible(false);
        }
   } );
@@ -337,7 +319,7 @@ public void setSource(Dspltext S){
        RtfBtn.setEnabled(false);
        Display.setEditable(false); 
     }
-    TheText = S.Text;
+    TheText = S.theList.textValue();
     try{
        Display.setText(TheText);
     } catch(Exception e){
