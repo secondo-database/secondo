@@ -11557,6 +11557,7 @@ commonborder_rr( Word* args, Word& result, int message, Word& local, Supplier s 
 /*
 110.4.25 Value mapping functions of operator ~commomborder~
 Implementation with Spatial Scan
+
 */
 
 static int
