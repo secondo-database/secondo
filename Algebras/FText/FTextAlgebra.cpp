@@ -405,7 +405,7 @@ FTextProperty()
 {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,"<text>A text, which can be longer "
-  "than 48 chararcters<text--->");
+  "than 48 chararcters</text--->");
 
   return (nl->TwoElemList(
          nl->FourElemList(nl->StringAtom("Signature"), 
