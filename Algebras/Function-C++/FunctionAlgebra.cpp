@@ -18,6 +18,8 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+namespace FunctionAlgebra{
+
 /*
 2.1 Dummy Functions
 
@@ -176,3 +178,4 @@ InitializeFunctionAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   return (&functionAlgebra);
 }
 
+} // end of namespace FunctionAlgebra
