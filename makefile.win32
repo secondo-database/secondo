@@ -5,21 +5,12 @@
 ########################################################################
 
 # Secondo build directory
-BUILDDIR = $(SECONDO_BUILD_DIR)
-INCLUDEDIR = $(BUILDDIR)/include
-LIBDIR = $(BUILDDIR)/lib
-BINDIR = $(BUILDDIR)/bin
-BDBSMILIB  = -lsmibdb
-ORASMILIB  = -lsmiora
-TOOLLIB    = -lsdbtool
-SDBLIB     = -lsdbsys
 ALGLIB     = -lfunctionalgebra -lstandardalgebra -lpointrectanglealgebra -lstreamexamplealgebra -lrelationalgebra
 
 # System dependent default libraries
 DEFAULTLIB = -lws2_32 -lstdc++
 
 # Berkeley DB library
-BDBDIR = $(BERKELEY_DB_DIR)
 BDBINCLUDE = -I$(BDBDIR)/include -I$(BDBDIR)/build_win32
 BDBLIBDIR = -L$(BDBDIR)/build_win32
 BDBLIB = -ldb32
@@ -68,6 +59,4 @@ DLLEXT = dll
 DLLFLAGS = -s -shared
 
 DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -mconsole -Wall -D_REENTRANT
-
-.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
 

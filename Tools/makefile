@@ -4,9 +4,7 @@
 #
 ########################################################################
 
-include ../makefile.config
-ifdef platform
-include ../makefile.$(platform)
+include ../makefile.env
 
 .PHONY: all
 all: makedirs
@@ -24,10 +22,4 @@ clean:
 	$(MAKE) -C Parser clean
 	$(MAKE) -C Utilities clean
 	$(MAKE) -C TupleManager clean
-
-else
-# Platform not specified
-.DEFAULT:
-	@echo *** Platform not specified in makefile.config
-endif
 

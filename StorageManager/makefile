@@ -4,9 +4,7 @@
 #
 ########################################################################
 
-include ../makefile.config
-ifdef platform
-include ../makefile.$(platform)
+include ../makefile.env
 
 BDBOBJECTS=\
 	smiEnvironment.$(OBJEXT) \
@@ -131,10 +129,4 @@ clean:
 	$(RM) -f *.a
 	$(RM) -f *.so
 	$(RM) -f *.dll
-
-else
-# Platform not specified
-.DEFAULT:
-	@echo *** Platform not specified in makefile.config
-endif
 

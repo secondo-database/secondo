@@ -4,20 +4,10 @@
 #
 ########################################################################
 
-# Secondo build directory
-BUILDDIR = $(SECONDO_BUILD_DIR)
-INCLUDEDIR = $(BUILDDIR)/include
-LIBDIR = $(BUILDDIR)/lib
-BINDIR = $(BUILDDIR)/bin
-BDBSMILIB  = -lsmibdb
-ORASMILIB  = -lsmiora
-TOOLLIB    = -lsdbtool
-SDBLIB     = -lsdbsys
-ALGLIB     = -lfunctionalgebra -lstandardalgebra -lpointrectanglealgebra -lstreamexamplealgebra -lrelationalgebra
+# System dependent default libraries
 DEFAULTLIB = -lsocket -lnsl -ldl -lstdc++
 
 # Berkeley DB library
-BDBDIR = $(BERKELEY_DB_DIR)
 BDBINCLUDE = -I$(BDBDIR)/include
 BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb
@@ -29,7 +19,7 @@ BDBLIB = -ldb_cxx -ldb
 #OCICPPLIB = -locicpp
 
 # Uncomment next line to compile with debugging information:
-DEBUG = -g
+DEBUG = -ggdb
 
 PLATFORM = solaris
 CC = gcc
@@ -64,6 +54,3 @@ DLLEXT = so
 DLLFLAGS = -s -shared
 
 DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -I/opt/pdsoft/include -Wall -D_REENTRANT -B/opt/pdsoft/binutils/bin/
-
-.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
-

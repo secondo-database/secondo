@@ -4,9 +4,7 @@
 #
 ########################################################################
 
-include ../makefile.config
-ifdef platform
-include ../makefile.$(platform)
+include ../makefile.env
 
 CCFLAGS= -I../StorageManager $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
@@ -141,10 +139,4 @@ clean:
 	$(RM) *.a
 	$(RM) *.so
 	$(RM) *.dll
-
-else
-# Platform not specified
-.DEFAULT:
-	@echo *** Platform not specified in makefile.config
-endif
 

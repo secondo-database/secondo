@@ -4,9 +4,7 @@
 #
 ########################################################################
 
-include ../makefile.config
-ifdef platform
-include ../makefile.$(platform)
+include ../makefile.env
 
 .PHONY: all
 all: makedirs specs
@@ -42,10 +40,4 @@ clean:
 	$(MAKE) -C PointRectangle clean
 	$(MAKE) -C StreamExample clean
 	$(MAKE) -C Relation-C++ clean
-
-else
-# Platform not specified
-.DEFAULT:
-	@echo *** Platform not specified in makefile.config
-endif
 

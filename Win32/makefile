@@ -4,13 +4,11 @@
 #
 ########################################################################
 
-include ../makefile.config
-ifdef platform
-include ../makefile.$(platform)
-.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
+include ../makefile.env
 
 OCIDLLHOME=$(ORACLEHOME)/bin
-BDBDIR1=$(BDBDIR)
+BDBDIR=$(BERKELEY_DB_DIR)
+LIBDIR=$(SECONDO_BUILD_DIR)/lib
 
 .PHONY: all
 ifeq ($(smitype),ora) 
@@ -22,16 +20,16 @@ endif
 # --- Berkeley DB
 
 $(LIBDIR)/libdb32.a:
-	$(CP) BerkeleyDB/db.h $(BDBDIR1)/build_win32/db.h
-	$(CP) BerkeleyDB/db_config.h $(BDBDIR1)/build_win32/db_config.h
-	$(CP) BerkeleyDB/cxx_common.h $(BDBDIR1)/include/cxx_common.h
-	$(CP) BerkeleyDB/libdb32.mingw $(BDBDIR1)/build_win32/libdb32.mingw
-	$(CP) BerkeleyDB/os_rename.c $(BDBDIR1)/os_win32/os_rename.c
-	make -C $(BDBDIR1)/build_win32 -f libdb32.mingw
-	$(CP) $(BDBDIR1)/build_win32/libdb32.a $(LIBDIR)/libdb32.a
-	$(CP) $(BDBDIR1)/build_win32/libdb32.dll $(LIBDIR)/libdb32.dll
-	$(CP) $(BDBDIR1)/build_win32/libdb32.dll $(BINDIR)/libdb32.dll
-	$(CP) $(BDBDIR1)/build_win32/libdb32.dll.a $(LIBDIR)/libdb32.dll.a
+	$(CP) BerkeleyDB/db.h $(BDBDIR)/build_win32/db.h
+	$(CP) BerkeleyDB/db_config.h $(BDBDIR)/build_win32/db_config.h
+	$(CP) BerkeleyDB/cxx_common.h $(BDBDIR)/include/cxx_common.h
+	$(CP) BerkeleyDB/libdb32.mingw $(BDBDIR)/build_win32/libdb32.mingw
+	$(CP) BerkeleyDB/os_rename.c $(BDBDIR)/os_win32/os_rename.c
+	make -C $(BDBDIR)/build_win32 -f libdb32.mingw
+	$(CP) $(BDBDIR)/build_win32/*.h $(BDBDIR)/include
+	$(CP) $(BDBDIR)/build_win32/libdb32.a $(LIBDIR)/libdb32.a
+	$(CP) $(BDBDIR)/build_win32/libdb32.dll $(LIBDIR)/libdb32.dll
+	$(CP) $(BDBDIR)/build_win32/libdb32.dll.a $(LIBDIR)/libdb32.dll.a
 
 # --- Oracle OCI
 
@@ -61,10 +59,5 @@ clean:
 	$(RM) *.def
 	$(RM) *.a
 	$(RM) *.dll
-
-else
-# Platform not specified
-all:
-	@echo *** Platform not specified in makefile.config
-endif
+	$(RM) ../
 

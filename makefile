@@ -4,12 +4,7 @@
 #
 ########################################################################
 
-# Include platform specification
-include makefile.config
-
-# Check whether platform is specified
-ifdef platform
-include makefile.$(platform)
+include makefile.env
 
 TOOLOBJECTS=\
 	ClientServer/SocketIO.$(OBJEXT) \
@@ -43,6 +38,9 @@ SMILIB=$(ORASMILIB)
 else
 SMILIB=$(BDBSMILIB)
 endif
+
+# communicate variables to the sub-makes
+export
 
 .PHONY: all
 all: makedirs buildlibs buildapps
@@ -152,27 +150,15 @@ distclean:
 	$(MAKE) -C QueryProcessor distclean
 	$(MAKE) -C UserInterfaces distclean
 
+.PHONY: usage
 usage:
-	@echo *** Usage of the SECONDO makefile:
-	@echo ***
-	@echo *** make [shared=yes] [target]
-	@echo ***
-	@echo *** The optional definition shared=yes specifies
-	@echo *** that shared libraries are to be built. The
-	@echo *** default is to build static libraries.
-	@echo ***
-	@echo *** The default target is <all>.
-
-else
-# Platform NOT specified in make configuration file
-usage:
-	@echo *** Usage of the SECONDO makefile:
-	@echo ***
-	@echo *** In the make configuration file makefile.config
-	@echo *** exactly one platform definition must be uncommented:
-	@echo ***
-	@echo *** platform: win32    - Build SECONDO for 32-Bit-Windows
-	@echo ***           linux    - Build SECONDO for Linux
-	@echo ***           solaris  - Build SECONDO for Solaris
-endif
+	@echo "*** Usage of the SECONDO makefile:"
+	@echo "***"
+	@echo "*** make [shared=yes] [target]"
+	@echo "***"
+	@echo "*** The optional definition shared=yes specifies"
+	@echo "*** that shared libraries are to be built. The"
+	@echo "*** default is to build static libraries."
+	@echo "***"
+	@echo "*** The default target is <all>."
 

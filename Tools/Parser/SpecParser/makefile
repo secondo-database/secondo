@@ -4,9 +4,7 @@
 #
 ########################################################################
 
-include ../../../makefile.config
-ifdef platform
-include ../../../makefile.$(platform)
+include ../../../makefile.env
 
 all: Lexer$(EXEEXT) Parser$(EXEEXT)
 
@@ -30,10 +28,4 @@ clean:
 	$(RM) *.lo
 	$(RM) SpecParser.tab.hpp SpecParser.tab.cpp lex.yy.cpp
 	$(RM) Lexer$(EXEEXT) Parser$(EXEEXT)
-
-else
-# Platform not specified
-.DEFAULT:
-	@echo *** Platform not specified in makefile.config
-endif
 

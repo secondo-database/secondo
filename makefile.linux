@@ -4,20 +4,10 @@
 #
 ########################################################################
 
-# Secondo build directory
-BUILDDIR   = /change/me/Secondo
-INCLUDEDIR = $(BUILDDIR)/include
-LIBDIR     = $(BUILDDIR)/lib
-BINDIR     = $(BUILDDIR)/bin
-BDBSMILIB  = -lsmibdb
-ORASMILIB  = -lsmiora
-TOOLLIB    = -lsdbtool
-SDBLIB     = -lsdbsys
-ALGLIB     = -lfunctionalgebra -lstandardalgebra
+# System dependent default libraries
 DEFAULTLIB = -ldl -lstdc++
 
 # Berkeley DB library
-BDBDIR = /change/me/BerkeleyDB.4.0
 BDBINCLUDE = -I$(BDBDIR)/include
 BDBLIBDIR = -L$(BDBDIR)/lib
 BDBLIB = -ldb_cxx -ldb
@@ -29,7 +19,7 @@ BDBLIB = -ldb_cxx -ldb
 #OCICPPLIB = -locicpp
 
 # Uncomment next line to compile with debugging information:
-#DEBUG = -g
+DEBUG = -ggdb
 
 PLATFORM = linux
 CC = gcc
@@ -63,7 +53,4 @@ DLLOBJEXT = lo
 DLLEXT = so
 DLLFLAGS = -s -shared
 
-DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -O2 -Wall -D_REENTRANT
-
-.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
-
+DEFAULTCCFLAGS = $(DEBUG) -I. -I$(INCLUDEDIR) -Wall -D_REENTRANT

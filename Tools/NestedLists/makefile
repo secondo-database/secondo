@@ -4,10 +4,7 @@
 #
 ########################################################################
 
-include ../../makefile.config
-ifdef platform
-include ../../makefile.$(platform)
-.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
+include ../../makefile.env
 
 OBJECTS=\
 	NLLex.$(OBJEXT) \
@@ -64,10 +61,4 @@ clean:
 	$(RM) *.o
 	$(RM) *.lo
 	$(RM) NLLex.cpp NLParser.tab.hpp NLParser.tab.cpp
-
-else
-# Platform not specified
-all:
-	@echo *** Platform not specified in makefile.config
-endif
 

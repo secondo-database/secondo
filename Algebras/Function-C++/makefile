@@ -4,10 +4,7 @@
 #
 ########################################################################
 
-include ../../makefile.config
-ifdef platform
-include ../../makefile.$(platform)
-.SUFFIXES: .exe .res .a .o .c .cpp .cc .cxx .m .rc .p .f .F .r .y .l .s .S .def .h
+include ../../makefile.env
 
 # --- List of all needed header files (including indirect dependencies)
 
@@ -62,10 +59,4 @@ clean:
 	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
 	$(RM) *.o
 	$(RM) *.lo
-
-else
-# Platform not specified
-all:
-	@echo *** Platform not specified in makefile.config
-endif
 

@@ -1,6 +1,10 @@
-include ../../makefile.config
-ifdef platform
-include ../../makefile.$(platform)
+########################################################################
+#
+# SECONDO makefile for the tuple manager
+#
+########################################################################
+
+include ../../makefile.env
 
 CCFLAGS= -I$(INCLUDEDIR) $(BDBINCLUDE) $(DEFAULTCCFLAGS)
 
@@ -28,8 +32,3 @@ clean:
 	$(RM) *.a
 	$(RM) *.so
 	$(RM) *.dll
-else
-# Platform not specified
-.DEFAULT:
-	@echo *** Platform not specified in makefile.config
-endif

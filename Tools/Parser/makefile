@@ -4,9 +4,7 @@
 #
 ########################################################################
 
-include ../../makefile.config
-ifdef platform
-include ../../makefile.$(platform)
+include ../../makefile.env
 
 OBJECTS =\
 	SecLex.$(OBJEXT) \
@@ -61,10 +59,4 @@ clean:
 	$(RM) *.lo
 	$(RM) $(OBJECTS) SecLex.cpp SecParser.tab.cpp SecParser.tab.hpp
 	$(RM) lexrules tokens yaccrules1 yaccrules2 SecLex.l SecParser.y
-
-else
-# Platform not specified
-.DEFAULT:
-	@echo *** Platform not specified in makefile.config
-endif
 
