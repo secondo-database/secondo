@@ -2,6 +2,7 @@ package viewer.hoese.algebras.periodic;
 
 import sj.lang.ListExpr;
 import viewer.hoese.DateTime;
+import gui.Environment;
 
 /** This class provides an abstraction of time
   */
