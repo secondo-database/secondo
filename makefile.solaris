@@ -28,7 +28,7 @@ AR = ar
 RANLIB = ranlib
 CP = cp
 RM = rm -f
-LEXPREFIX = /export/home/spiekermann/local_install
+LEXPREFIX = /opt/local_install
 LEX = $(LEXPREFIX)/bin/flex
 YACC = bison
 
