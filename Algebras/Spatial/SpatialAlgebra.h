@@ -77,7 +77,7 @@ precision (~Rational~).
 3 Auxiliary Functions
 
 */
-const double FACTOR = 0.0000001;
+const double FACTOR = 0.0001;
 
 class Point;
 
@@ -612,7 +612,7 @@ as an attribute.
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
     size_t   HashValue();
-    void	   CopyFrom(StandardAttribute* right);
+    void     CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
     bool     Adjacent(Attribute * arg);
     int      Sizeof() const;
@@ -1177,7 +1177,7 @@ as an attribute.
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
     size_t   HashValue();
-    void	   CopyFrom(StandardAttribute* right);
+    void     CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
     bool     Adjacent(Attribute * arg);
     int      Sizeof() const;
@@ -1480,7 +1480,7 @@ as an attribute.
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
     size_t   HashValue();
-    void	   CopyFrom(StandardAttribute* right);
+    void     CopyFrom(StandardAttribute* right);
     int      Compare(Attribute * arg);
     bool     Adjacent(Attribute * arg);
     int      Sizeof() const;
