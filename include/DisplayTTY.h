@@ -92,6 +92,7 @@ static void DisplayResult2( ListExpr value );
 Displays all type constructors and operators, currently registered, in formatted manner.
 Displays all type constructors and operators for a single, included algebra in
 formatted manner.
+
 */
  protected:
  private:
@@ -131,12 +132,14 @@ display function was assigned:
 Is a display function for relations.
 
 */
-static ListExpr ConcatLists ( ListExpr l1, ListExpr l2 ); // concatenates two lists
+// concatenates two lists
+static ListExpr ConcatLists ( ListExpr l1, ListExpr l2 );
 static int  MaxHeaderLength( ListExpr type );
 
 static void DisplayDescriptionLines( ListExpr value, int  maxNameLen);
 /*
 Displays a single type constructor or operator formatted, similar display function for relations.
+
 */
 
   static int  MaxAttributLength( ListExpr type );
@@ -201,7 +204,16 @@ Are display functions for tuples.
  static void DisplayMidi( ListExpr type,
 			  ListExpr numType,
 			  ListExpr value );
- 
+
+ static void DisplayInstant( ListExpr type,
+			  ListExpr numType,
+			  ListExpr value );
+
+ static void DisplayDuration( ListExpr type,
+			  ListExpr numType,
+			  ListExpr value );
+
+
 /* Returns the numeric value of a ListExpr containing a IntAtom, a RealAtom
    or a list representing a rational number */
    static double getNumeric(ListExpr value, bool &err);

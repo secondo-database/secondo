@@ -40,14 +40,14 @@ using namespace std;
 #include "Base64.h"
 
 #define LINELENGTH 80
-/*1.3 Managing display functions
+/*
+1.3 Managing display functions
 
 The map *displayFunctions* holds all existing display functions. It
 is indexed by a string created from the algebraId and the typeId of
 the corresponding type constructor.
 
 */
-
 SecondoInterface* DisplayTTY::si = 0;
 NestedList*       DisplayTTY::nl = 0;
 map<string,DisplayFunction> DisplayTTY::displayFunctions;
@@ -114,7 +114,8 @@ and subvalue, respectively.
 void
 DisplayTTY::DisplayGeneric( ListExpr type, ListExpr numType, ListExpr value )
 {
-  cout << "No specific display function defined. Generic function used." << endl;
+  cout << "No specific display function defined.";
+  cout << " Generic function used." << endl;
   cout << "Type: ";
   nl->WriteListExpr( type, cout );
   cout << endl << "Value: ";
@@ -217,7 +218,8 @@ DisplayTTY::DisplayTuples( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
 {
-  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
   }
@@ -230,7 +232,8 @@ DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
 {
-  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
   }
@@ -243,7 +246,8 @@ DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
 {
-  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
   }
@@ -263,7 +267,8 @@ DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
 void
 DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
 {
-  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
   {
     cout << "UNDEFINED";
   }
@@ -402,8 +407,10 @@ double DisplayTTY::getNumeric(ListExpr value, bool &err){
 	}
         value= nl->Rest(value);
       }
-      if(nl->AtomType(nl->First(value))==IntType && nl->AtomType(nl->Second(value))==IntType &&
-         nl->AtomType(nl->Third(value))==SymbolType && nl->SymbolValue(nl->Third(value))=="/" &&
+      if(nl->AtomType(nl->First(value))==IntType &&
+         nl->AtomType(nl->Second(value))==IntType &&
+         nl->AtomType(nl->Third(value))==SymbolType &&
+	 nl->SymbolValue(nl->Third(value))=="/" &&
 	 nl->AtomType(nl->Fourth(value))==IntType){
 	    err=false;
 	    double intpart = nl->IntValue(nl->First(value));
@@ -500,7 +507,8 @@ DisplayTTY::DisplayRect( ListExpr type, ListExpr numType, ListExpr value)
 void
 DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
 {
-    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+        nl->SymbolValue( value ) == "undef" )
 	cout << "UNDEFINED";
     else
 	cout << "mp3 file";
@@ -509,7 +517,8 @@ DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
 void
 DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
 {
-    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+        nl->SymbolValue( value ) == "undef" )
     {
 	cout << "UNDEFINED";
     }
@@ -529,7 +538,8 @@ DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
 	else
 	{
 	    cout << "Track   : " << nl->IntValue (nl->Sixth (value)) << endl;
-	    cout << "Genre   : " << nl->StringValue (nl->Sixth (nl->Rest (value))) << endl;
+	    cout << "Genre   : ";
+	    cout << nl->StringValue (nl->Sixth (nl->Rest (value))) << endl;
 	}
     }
 }
@@ -537,7 +547,8 @@ DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
 void
 DisplayTTY::DisplayLyrics( ListExpr type, ListExpr numType, ListExpr value)
 {
-    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+        nl->SymbolValue( value ) == "undef" )
     {
 	cout << "UNDEFINED";
     }
@@ -582,7 +593,8 @@ DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
      int No = 1;
      cout << "*************** BEGIN ARRAY ***************" << endl;
      while( !nl->IsEmpty(value)){
-        cout << "--------------- Field No: " << No++ << " ---------------" << endl;
+        cout << "--------------- Field No: ";
+	cout << No++ << " ---------------" << endl;
         CallDisplayFunction(idpair,AType,ANumType,nl->First(value));
 	cout << endl;
 	value = nl->Rest(value);
@@ -591,6 +603,59 @@ DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
 
   }
 }
+
+void
+DisplayTTY::DisplayInstant( ListExpr type, ListExpr numType, ListExpr value )
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else
+  {
+    cout << nl->StringValue( value );
+  }
+}
+
+void
+DisplayTTY::DisplayDuration( ListExpr type, ListExpr numType, ListExpr value )
+{
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
+  else
+  { bool written = false;
+    if(nl->ListLength(value)==2){
+      if( (nl->AtomType(nl->First(value))==IntType) &&
+          (nl->AtomType(nl->Second(value))==IntType)){
+         int dv  = nl->IntValue(nl->First(value));
+	 int msv = nl->IntValue(nl->Second(value));
+	 written = true;
+	 if( (dv==0) && (msv==0)){
+              cout << "0ms";
+	 }else{
+	   if(dv>0){
+	       cout << dv << " days";
+	       if(msv>0)
+	           cout <<" + ";
+	   }
+           if(msv > 0)
+	       cout << msv <<" ms";
+	 }
+
+      }
+    }
+    if(!written){
+       cout << "unknown list format for duration; using nested list output:";
+       nl->WriteListExpr(value);
+    }
+  }
+}
+
+
 
 void
 DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
@@ -893,5 +958,7 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "id3",     &DisplayID3);
   InsertDisplayFunction( "lyrics",  &DisplayLyrics);
   InsertDisplayFunction( "midi",    &DisplayMidi);
+  InsertDisplayFunction( "instant", &DisplayInstant);
+  InsertDisplayFunction( "duration",&DisplayDuration);
 }
 
