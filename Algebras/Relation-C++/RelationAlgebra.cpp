@@ -803,7 +803,7 @@ const string GROUPSpec =
 4.1.3 Definition of operator ~GROUP~
 
 */
-Operator GROUP (
+Operator GROUPOP (
          "GROUP",              // name
          GROUPSpec,            // specification
          0,                    // no value mapping
@@ -6115,7 +6115,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&sample);
     AddOperator(&consume);
     AddOperator(&TUPLE);
-    AddOperator(&GROUP);
+    AddOperator(&GROUPOP);
     AddOperator(&TUPLE2);
     AddOperator(&attr);
     AddOperator(&tfilter);
