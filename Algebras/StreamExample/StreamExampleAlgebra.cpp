@@ -229,6 +229,8 @@ This is illustrated in the value mapping functions below.
       delete range;
       return 0;
   }
+  /* should not happen */
+  return -1;
 }
 
 static int
@@ -251,7 +253,7 @@ Count the number of elements in a stream. An example for consuming a stream.
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, count);		
+  ((CcInt*) result.addr)->Set(true, count);
 
   qp->Close(args[0].addr);
 
@@ -291,6 +293,8 @@ Print the elements of an integer stream. An example for a pure stream operator
       qp->Close(args[0].addr);
       return 0;
   }
+  /* should not happen */
+  return -1;
 }
 
 static int
@@ -336,6 +340,8 @@ operator and also for one calling a parameter function.
       qp->Close(args[0].addr);
       return 0;
   }
+  /* should not happen */
+  return -1;
 }
 
 /*

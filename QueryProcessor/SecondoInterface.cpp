@@ -609,7 +609,7 @@ If value 0 is returned, the command was executed without error.
           resultList =
             SecondoSystem::GetCatalog( level )->ListTypes();
           FinishCommand( errorCode );
-        }                    
+        }
       }
       else if ( nl->IsEqual( nl->Second( list ), "objects" ) )
       {
@@ -889,7 +889,7 @@ If value 0 is returned, the command was executed without error.
               if ( evaluable || isFunction )
 		  {
 		    typeName = "";
- 		    bool b = SecondoSystem::GetCatalog(level)->
+ 		    SecondoSystem::GetCatalog(level)->
 		        CreateObject(objName, typeName, resultType, 0);
 		  }
 		  if ( evaluable )
