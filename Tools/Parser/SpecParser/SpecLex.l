@@ -17,12 +17,16 @@ extern int yylval;
 letter         [a-zA-Z]
 digit          [0-9]
 ident          {letter}({letter}|{digit}|_)*  
-otherChar      [^\(\)\"A-Za-z0-9 \[\]\_\,\;]
-math           {otherChar}{otherChar}*
+otherChar      [^\(\)\"A-Za-z0-9 \[\]\_\,\;\n\t]
+math           {otherChar}{1,20}
+comment        ^#.*
+space	       [ \t\n]+
+
 
 %%
 
-[ \t\n]+  	;
+{comment}       {return ZZCOMMENT;} 
+{space}  	; /* ignore spaces */
 
 fun		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFUN;}
 operator	{return ZZOPERATOR;}
@@ -40,8 +44,9 @@ funlist		{return ZZFUNLIST;}
 
 {ident}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZIDENTIFIER;}
 {math}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZSYMBOL;}
+.               {yylval = NestedText::Atom( yytext, yyleng ); return yytext[0];}
 
-.		{yylval = NestedText::Atom( yytext, yyleng ); return yytext[0];}
+
 
 %%
 int yywrap() { return 1; }

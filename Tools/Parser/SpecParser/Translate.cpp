@@ -8,8 +8,7 @@ int yyparse();
 
 int main()
 {
-  int error;
-  error = yyparse();
-  return (0);
+  int error = yyparse();
+  return (error);
 }
 

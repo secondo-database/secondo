@@ -17,6 +17,8 @@ under Windows.
 #define ZZTRUE 1;
 #define ZZFALSE 0;
 
+#define YYERROR_VERBOSE
+
 extern int yylex();
 
 string operator1, token, parameter, type, parameter2, type2;
@@ -30,17 +32,17 @@ int hasfunction, hasfunctionlist;
 
 void yyerror( char* s )
 {
-  cout << s;
+  cerr << endl << s << endl << endl;
 }
 %}
 
 %token 	ZZIDENTIFIER, ZZSYMBOL, ZZOPERATOR, ZZPATTERN, ZZFUN, ZZOP, ZZINFIXOP, ZZALIAS, ZZLIST,
-	ZZIMPLICIT, ZZPARAMETER, ZZPARAMETERS, ZZTYPE, ZZTYPES, ZZFUNLIST
+	ZZIMPLICIT, ZZPARAMETER, ZZPARAMETERS, ZZTYPE, ZZTYPES, ZZFUNLIST, ZZEMPTY, ZZCOMMENT
 	
 
 %%
 
-specfile	:		{lexrules = fopen("lexrules", "w");
+specfile	:               {lexrules = fopen("lexrules", "w");
 				tokens = fopen("tokens", "w");
 				yaccrules1 = fopen("yaccrules1", "w");
 				yaccrules2 = fopen("yaccrules2", "w");}
@@ -51,11 +53,15 @@ specfile	:		{lexrules = fopen("lexrules", "w");
 				fprintf(yaccrules1, "\t\t;\n\n");
 				fclose(yaccrules1);
 				fclose(yaccrules2);}
+		|
 		;
 
 specs		: spec
-		| specs spec 
+		| ZZCOMMENT
+		| specs spec
+		| specs ZZCOMMENT
 		;
+
 
 spec		: ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN 
 			{hasfunction = ZZFALSE; hasfunctionlist = ZZFALSE;

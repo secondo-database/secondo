@@ -17,8 +17,8 @@ CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS)
 all: useddirectories $(OBJECTS) 
 
 useddirectories: 
-	$(MAKE) -C ../../Algebras specs
 	$(MAKE) -C SpecParser
+	$(MAKE) -C ../../Algebras specs
 
 SecLex.$(OBJEXT): SecLex.cpp SecParser.tab.hpp NestedText.h
 	$(CC) -c -o SecLex.$(OBJEXT) SecLex.cpp $(CCFLAGS)

@@ -13,41 +13,47 @@ endif
 
 
 .PHONY: all
-all: makedirs specs
+all: buildlibs
 
 LS_COMMAND = $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) )
-SPECFILES = $(shell ls $(LS_COMMAND))
+#SPECFILES = $(shell ls $(LS_COMMAND))
 
-specs: specs.tmp 
-	chmod u+x *.awk
-	cat $< | sort -b | ./specs.awk
-	cat $< | ./rm_comment_spec.awk > specs
 
-specs.tmp: $(SPECFILES) ../makefile.algebras
-	rm -f specs.tmp
-	for file in $(SPECFILES); do \
-          if !((cat $$file && echo -e "\n") >> specs.tmp) then \
+specs: testspecs $(SPECFILES) ../makefile.algebras
+	@chmod u+x *.awk
+	@rm -f specs
+	@for file in */*.spec; do \
+          if !((cat $$file && echo -e "\n# file $$file \n") >> specs) then \
             exit 1; \
           fi \
         done
+	cat $@ | sort -b | ./specs.awk
+	@echo -e "\n *** Master spec file specs succesfully concatenated. ***\n"
 
 
-.PHONY: makedirs
-makedirs:
-	for dir in $(ALL_ALGEBRA_DIRS); do \
-          if !($(MAKE) -C $$dir) then \
+PARSERDIR := ../Tools/Parser/SpecParser
+.PHONY: testspecs
+testspecs:
+	@echo -e "\n *** Testing correctness of spec files ***\n";
+	@for file in */*.spec; do \
+          echo -e "checking $$file ... "; \
+          if !($(PARSERDIR)/Parser < $$file &> /dev/null) then \
+            $(PARSERDIR)/Parser2 < $$file \
             exit 1; \
           fi \
         done
+	@rm -f tokens yaccrules1 yaccrules2
 
 
 .PHONY:buildlibs
 buildlibs:
+	@echo -e "\n *** Building algebra libs ***\n";
 	for dir in $(ALL_ALGEBRA_DIRS); do \
           if !($(MAKE) -C $$dir) then \
             exit 1; \
           fi \
         done
+	@echo -e "\n *** Algebra libs successfully created ***\n";
 
 
 .PHONY: clean
