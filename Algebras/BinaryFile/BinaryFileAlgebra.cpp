@@ -6,7 +6,7 @@
 
 December 2003 VTA
 
-This is a little example of the usage of the Base 64 converting tool and 
+This is a little example of the usage of the Base 64 converting tool and
 also FLOBs. The algebra intends to store the contents of a binary file.
 An operator to save the contents into a file is provided.
 
@@ -146,7 +146,8 @@ void BinaryFile::Encode( string& textBytes )
   Base64 b;
   char *bytes = (char *)malloc( binData.Size() );
   binData.Get( 0, binData.Size(), bytes );
-  b.encode( bytes, binData.Size(), textBytes ); 
+  b.encode( bytes, binData.Size(), textBytes );
+  free( bytes );
 }
 
 void BinaryFile::Decode( string& textBytes )
@@ -154,8 +155,8 @@ void BinaryFile::Decode( string& textBytes )
   Base64 b;
   int sizeDecoded = b.sizeDecoded( textBytes.size() );
   char *bytes = (char *)malloc( sizeDecoded );
- 
-  int result = b.decode( textBytes, bytes ); 
+
+  int result = b.decode( textBytes, bytes );
 
   assert( result <= sizeDecoded );
 
@@ -192,7 +193,7 @@ and
 ----	( <text>filename</text---> )
 ----
 If first representation is used, then the contents of a file is read
-into the second representation. This is done automatically by the 
+into the second representation. This is done automatically by the
 Secondo parser.
 
 2.3 ~Out~-Function
@@ -205,10 +206,10 @@ OutBinaryFile( ListExpr typeInfo, Word value )
 
   BinaryFile *binFile = (BinaryFile *)value.addr;
   string encoded;
-  binFile->Encode( encoded ); 
+  binFile->Encode( encoded );
 
   nl->AppendText( result, encoded );
-  
+
   return result;
 }
 
@@ -224,7 +225,7 @@ InBinaryFile( const ListExpr typeInfo, const ListExpr instance,
 
   if( nl->IsAtom( instance ) &&
       nl->AtomType( instance ) == TextType )
-  {  
+  {
     string encoded;
     nl->Text2String( instance, encoded );
     binFile->Decode( encoded );
@@ -362,7 +363,7 @@ Saves the bynary contents of into a file.
 
 5.6.1 Type mapping function of operator ~saveto~
 
-Operator ~saveto~ accepts a binary file object and a string representing 
+Operator ~saveto~ accepts a binary file object and a string representing
 the name of the file, and returns a boolean meaning success or not.
 
 ----    (binfile string)               -> bool
@@ -445,8 +446,8 @@ class BinaryFileAlgebra : public Algebra
   {
     AddTypeConstructor( &binfile );
 
-    binfile.AssociateKind("DATA");   	  
-    binfile.AssociateKind("FILE");   	  
+    binfile.AssociateKind("DATA");
+    binfile.AssociateKind("FILE");
 
     AddOperator( &saveto );
 
