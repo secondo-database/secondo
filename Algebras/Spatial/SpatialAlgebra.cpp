@@ -116,8 +116,8 @@ const bool Point::IsDefined() const
 
 Point& Point::operator=( const Point& p )
 {
-  assert( p.IsDefined() );
-  defined = true;
+  //assert( p.IsDefined() );
+  defined = p.IsDefined();
   x = p.GetX();
   y = p.GetY();
 
@@ -641,7 +641,17 @@ Points& Points::operator+=(const Point& p)
 
   if( !IsOrdered() )
   {
-    points->Put( points->Size(), p );
+      bool found=false;
+      Point auxp;
+      
+      for( int i = 0; ((i < points->Size())&&(!found)); i++ )
+      {
+	  points->Get( i, auxp );
+	  if (auxp==p) found=true;
+      }
+    
+      if (!found)
+	  points->Put( points->Size(), p );
   }
   else
   {
@@ -2722,7 +2732,16 @@ CLine& CLine::operator+=(const CHalfSegment& chs)
 
   if( !IsOrdered() )
   {
-    line->Put( line->Size(), chs);
+      bool found=false;
+      CHalfSegment auxchs;
+      
+      for( int i = 0; ((i < line->Size())&&(!found)); i++ )
+      {
+	  line->Get( i, auxchs );
+	  if (auxchs==chs) found=true;
+      }
+    
+      if (!found)  line->Put( line->Size(), chs);
   }
   else
   {
@@ -3456,7 +3475,7 @@ CRegion& CRegion::operator+=(const CHalfSegment& chs)
 
   if( !IsOrdered() )
   {
-    region->Put( region->Size(), chs);
+      region->Put( region->Size(), chs);
   }
   else
   {
