@@ -87,6 +87,16 @@ day, milliseconds and TimeType.
      DateTime(const long Day,const long MilliSeconds,TimeType type);
 
 /*
+~Constructor~
+
+This Constructor creates a DateTime taking its values from the
+argument.
+
+*/
+
+     DateTime(const DateTime& DT);
+
+/*
 ~Destructor~
 
 */
@@ -228,7 +238,7 @@ The ~GetDouble~ function returns this DateTime instance as an
 double value.
 
 */
-     double ToDouble();
+    double ToDouble() const;
 
 /*
 ~CompareTo~
@@ -238,7 +248,7 @@ value of the argument. The types of this and P2 have to
 be equal.
 
 */
-     int CompareTo(DateTime* P2);
+     int CompareTo(const DateTime* P2);
 
 /*
 ~Mathematical Functions~
@@ -259,7 +269,7 @@ Add can be used for following signatures:\\
 
 */
 
-     void Add(DateTime* P2);
+     void Add(const DateTime* P2);
 
 /*
 ~Minus~
@@ -273,7 +283,7 @@ The allowed signatures for Minus are:\\
 \end{tabular}
 
 */
-     void Minus(DateTime* P2);
+     void Minus(const DateTime* P2);
 
 /*
 ~Mul~
@@ -281,7 +291,47 @@ The allowed signatures for Minus are:\\
 For the ~Mul~ function  the this object must be of type {\tt duration}.
 
 */
-     void Mul(int factor);
+     void Mul(const int factor);
+
+
+/*
+~Operator +~
+
+The Operator ~+~ provides the same functionality like the ~Add~ function.
+The difference is that the ~Add~ function changes the calling instance
+while the ~+~ operator creates a new one. The allowed timetypes are the
+same like in the ~Add~ function.
+
+*/
+    DateTime operator+(const DateTime T2);
+
+
+/*
+~Operator -~
+
+This operator computes the difference between two DateTime instances.
+The allowed arguments are the same like in the ~Minus~ function.
+
+*/
+    DateTime operator-(const DateTime T2);
+
+
+/*
+~Operators for Comparisions~
+
+*/
+    bool operator==(const DateTime T2);
+    bool operator<(const DateTime T2);
+    bool operator>(const DateTime T2);
+
+/*
+~Abs~
+
+This Funtion computes the absolute value of a Duration. ~Abs~ is not
+allowed for an instant type.
+
+*/
+   void Abs();
 
 /*
 The next two function are defined for any DateTime type.
@@ -297,7 +347,7 @@ When this function is called this DateTime instance takes its value
 from the argument.
 
 */
-     void Equalize(DateTime* P2);
+     void Equalize(const DateTime* P2);
 /*
 ~IsValid~
 
@@ -372,4 +422,5 @@ is adjusted.
     long ToJulian(int year, int month, int day);
     void ToGregorian(long Julian, int &year, int &month, int &day);
 };
+
 

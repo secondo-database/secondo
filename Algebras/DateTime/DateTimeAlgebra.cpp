@@ -115,7 +115,7 @@ static int GetValue(char c){
 
 
 /*
-4.2 The Implementation of the Class DateTime
+2 The Implementation of the Class DateTime
 
 ~The Standard Constructor~
 
@@ -159,6 +159,17 @@ DateTime::DateTime(const long Day,const long MilliSeconds,TimeType type){
    defined = true;
    canDelete=false;
    this->type = type;
+}
+
+/*
+~Constructor~
+
+This conmstructor creates a DateTime with the same value like the
+argument.
+
+*/
+DateTime::DateTime(const DateTime& DT){
+   Equalize(&DT);
 }
 
 /*
@@ -385,7 +396,7 @@ This function converts this Time instance to the corresponding
 double value;
 
 */
-double DateTime::ToDouble(){
+   double DateTime::ToDouble() const{
    return (double)day + (double)milliseconds/MILLISECONDS;
 }
 
@@ -752,7 +763,7 @@ The result will be:
 The types of the arguments has to be equals.
 
 */
-int DateTime::CompareTo(DateTime* P2){
+int DateTime::CompareTo(const DateTime* P2){
    assert(type==P2->type);
    if(!defined && !P2->defined)
       return 0;
@@ -767,6 +778,23 @@ int DateTime::CompareTo(DateTime* P2){
    if(milliseconds>P2->milliseconds) return 1;
    return 0;
 }
+
+/*
+~Operators for Comparisons~
+
+*/
+bool DateTime::operator==(const DateTime T2){
+  return CompareTo(&T2)==0;
+}
+
+bool DateTime::operator<(const DateTime T2){
+  return CompareTo(&T2)<0;
+}
+
+bool DateTime::operator>(const DateTime T2){
+  return CompareTo(&T2)>0;
+}
+
 
 /*
 ~Clone~
@@ -934,22 +962,57 @@ void DateTime::CopyFrom(StandardAttribute* arg){
 ~add~
 
 Adds P2 to this instance. P2 remains unchanged.
-The add- function requires least one argument to be
-a duration type. 
+The ~Add~ function requires least one argument to be
+a duration type.
 
 */
-void DateTime::Add(DateTime* P2){
+void DateTime::Add(const DateTime* P2){
    assert(type==durationtype || P2->type==durationtype);
-   day += P2->day;
-   milliseconds += P2->milliseconds;
-   if(milliseconds>MILLISECONDS){
-      long dif = milliseconds/MILLISECONDS;
-      day += dif;
-      milliseconds -= dif*MILLISECONDS;
+   long d1 = day;
+   long d2 = P2->day;
+   long ms1 = milliseconds;
+   long ms2 = P2->milliseconds;
+   // transform negative values
+   if(d1<0){
+      ms1 -= MILLISECONDS;
+      d1++;
    }
+   if(d2<0){
+      ms2 -= MILLISECONDS;
+      d2++;
+   }
+   long d = d1+d2;
+   long ms = ms1+ms2;
+
+   while(ms<0){ // this loop is excuted maximum two times
+     d--;
+     ms += MILLISECONDS;
+   }
+   while(ms>=MILLISECONDS){  // this is executed maximum one times
+     d++;
+     ms -= MILLISECONDS;
+   }
+   day = d;
+   milliseconds = ms;
    if(P2->type==instanttype)
       type = instanttype;
 }
+
+
+/*
+~Operator +~
+
+This operator has the same functionality like the ~Add~ function
+returning the result in a new instance.
+
+*/
+DateTime DateTime::operator+(const DateTime T2){
+   DateTime Result(*this);
+   Result.Add(&T2);
+   return Result;
+}
+
+
 
 /*
 ~minus~
@@ -960,18 +1023,52 @@ has also to be a duration. Its possible that this function changes
 the type of this instance.
 
 */
-void DateTime::Minus(DateTime* P2){
+void DateTime::Minus(const DateTime* P2){
    assert(type==instanttype || P2->type==durationtype);
-
-   day -= P2->day;
-   milliseconds -= P2->milliseconds;
-   if(milliseconds<0){
-      day--;
-      milliseconds = MILLISECONDS+milliseconds; //note ms<0
+   long d1 = day;
+   long d2 = P2->day;
+   long ms1 = milliseconds;
+   long ms2 = P2->milliseconds;
+   // transform negative values
+   if(d1<0){
+      ms1 -= MILLISECONDS;
+      d1++;
    }
+   if(d2<0){
+      ms2 -= MILLISECONDS;
+      d2++;
+   }
+   long d = d1-d2;
+   long ms = ms1-ms2;
+
+   while(ms<0){ // this loop is excuted maximum two times
+     d--;
+     ms += MILLISECONDS;
+   }
+   while(ms>=MILLISECONDS){  // this is executed maximum one times
+     d++;
+     ms -= MILLISECONDS;
+   }
+   day = d;
+   milliseconds = ms;
+
    if(type==instanttype && P2->type==instanttype)
       type = durationtype;
 }
+
+/*
+~Operator -~
+
+This operator has the same functionality like the ~Minus~ function
+returning the result in a new instance.
+
+*/
+DateTime DateTime::operator-(const DateTime T2){
+   DateTime Result(*this);
+   Result.Minus(&T2);
+   return Result;
+}
+
 
 /*
 ~mul~
@@ -979,16 +1076,47 @@ void DateTime::Minus(DateTime* P2){
 Computes a multiple of a duration.
 
 */
-void DateTime::Mul(int factor){
+void DateTime::Mul(const int factor){
    assert(type==durationtype);
-   day = day*factor;
-   milliseconds = milliseconds*factor;
-   if(milliseconds>MILLISECONDS){
-      long dif = milliseconds/MILLISECONDS;
-      day += dif;
-      milliseconds -= dif*MILLISECONDS;
+   long d = day;
+   long ms = milliseconds;
+   if(day<0){
+       ms -= MILLISECONDS;
+       day++;
    }
+   d = d*factor;
+   ms = ms*factor;
+   if(ms<0 || ms>=MILLISECONDS){
+      long tmp = ms/MILLISECONDS;
+      ms = ms-tmp*MILLISECONDS;
+      d=d+tmp;
+      if(ms<0){
+         ms += MILLISECONDS;
+         d--;
+      }
+   }
+   day = d;
+   milliseconds=ms;
 }
+
+
+/*
+~Abs~
+
+~Abs~ compute the absolute value of a duration.
+
+*/
+  void DateTime::Abs(){
+     assert(type=instanttype);
+     if(day<0){
+        day = day*-1;
+        if(milliseconds!=0){
+           day--;
+           milliseconds = MILLISECONDS-milliseconds;
+        }
+     }
+  }
+
 
 /*
 ~ToListExpr~
@@ -1029,7 +1157,7 @@ This function changes the value of this Time instance to be equal to
 P2.
 
 */
-void DateTime::Equalize(DateTime* P2){
+void DateTime::Equalize(const DateTime* P2){
    day = P2->day;
    milliseconds = P2->milliseconds;
    defined = P2->defined;
@@ -1055,7 +1183,6 @@ This function returns true if this instnace is before the Null-Day
 bool DateTime::LessThanZero(){
    return day<0;
 }
-
 
 /*
 2 Algebra Functions
@@ -1454,10 +1581,8 @@ int AddFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
-    DateTime* TRes = T1->Clone();
-    TRes->Add(T2);
-    ((DateTime*) result.addr)->Equalize(TRes);
-    delete TRes;
+    DateTime TRes = (*T1) + (*T2);
+    ((DateTime*) result.addr)->Equalize(&TRes);
     return 0;
 }
 
@@ -1465,10 +1590,8 @@ int MinusFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
-    DateTime* TRes = T1->Clone();
-    TRes->Minus(T2);
-    ((DateTime*) result.addr)->Equalize(TRes);
-    delete TRes;
+    DateTime TRes = (*T1)-(*T2);
+    ((DateTime*) result.addr)->Equalize(&TRes);
     return 0;
 }
 
@@ -1476,7 +1599,7 @@ int EqualsFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
-    bool res = T1->CompareTo(T2)==0;
+    bool res = (*T1) == (*T2);
     ((CcBool*) result.addr)->Set(true,res);
     return 0;
 }
@@ -1485,7 +1608,7 @@ int BeforeFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
-    bool res = T1->CompareTo(T2)<0;
+    bool res = (*T1) < (*T2);
     ((CcBool*) result.addr)->Set(true,res);
     return 0;
 }
@@ -1494,7 +1617,7 @@ int AfterFun(Word* args, Word& result, int message, Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime* T1 = (DateTime*) args[0].addr;
     DateTime* T2 = (DateTime*) args[1].addr;
-    bool res = T1->CompareTo(T2)>0;
+    bool res = (*T1) > (*T2);
     ((CcBool*) result.addr)->Set(true,res);
     return 0;
 }
