@@ -1209,7 +1209,7 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
   rc = WaitForSingleObject( signalHandle[RTT], timeout*maxAttempts*MILLISECOND );
   if ( rc != WAIT_OBJECT_0 )
   {
-    error_code = rc == WAIT_TIMEOUT ? EC_TIMEOUT_EXPIRED : GetLastError();
+    error_code = (rc == WAIT_TIMEOUT) ? EC_TIMEOUT_EXPIRED : GetLastError();
     Close();
     lastError = error_code;
     return (false);

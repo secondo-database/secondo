@@ -82,11 +82,6 @@ SecondoCheckpoint::Execute()
   while (!ShouldAbort())
   {
     rc = bdbEnv->txn_checkpoint( 0, minutes, 0 );
-    while (rc == DB_INCOMPLETE)
-    {
-      Application::Sleep( 2 );
-      rc = bdbEnv->txn_checkpoint( 0, 0, 0 );
-    }
     if ( rc != 0 ) break;
     for ( u_int32_t sec = 0; !ShouldAbort() && sec < seconds; sec += 5 )
     {

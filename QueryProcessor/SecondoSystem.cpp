@@ -130,6 +130,7 @@ Precondition: DBState = dbClosed.
       }
     }
   }
+cout << "Return SmiEnvironment::CreateDatabase" << endl;
   return (ok);
 }
 

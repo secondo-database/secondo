@@ -12,7 +12,7 @@ class NLScanner;
 class NLParser
 {
  public:
-  NLParser( NestedList* nestedList, istream* ip = 0, ostream* op = 0 );
+  NLParser( NestedList* nestedList, std::istream* ip = 0, std::ostream* op = 0 );
   virtual ~NLParser();
   int         yyparse();
   ListExpr    GetNestedList() { return listExpression; }
@@ -21,8 +21,8 @@ class NLParser
   stack<ListExpr> lists;
   int         yylex(); //inline int NLParser::yylex() { return (GetLexer()->yylex()); }
   void        yyerror( char* );
-  istream*    isp;  // istream being parsed
-  ostream*    osp;  // ostream being output to
+  std::istream*    isp;  // istream being parsed
+  std::ostream*    osp;  // ostream being output to
   NLScanner*  lex;  // Lexical analyzer to use;
   NestedList* nl;
 

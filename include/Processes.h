@@ -59,7 +59,7 @@ The class ~ProcessFactory~ offers the following routines:
         ShutDown        & WaitForProcess    & IsProcessTerminated \\
         GetInstance     & WaitForAll        & GetExitCode         \\
                         & SignalProcess     & GetRealProcessId    \\
-                        & SignalRealProcess &                     \\
+                        & SignalRealProcess & SetDirectory        \\
                         & Sleep             &                     \\
 
 1.3 Imports, Constants, Types
@@ -127,6 +127,7 @@ of two possible user specified actions.
 */
 
 class ProcessFactory;
+
 /*
 Forward declaration of class ~ProcessFactory~
 
@@ -235,6 +236,11 @@ child process table, i.e. the maximal number of concurrent child processes.
 Shuts down the process factory.
 
 */
+  static void SetDirectory( const string& directory );
+/*
+sets the directory to be used for the nexed spawned process.
+
+*/
   static bool SpawnProcess( const string& programpath,
                             const string& arguments,
                             int& processId,
@@ -339,6 +345,7 @@ Returns a reference to the single instance of the process factory.
   ProcessFactory( ProcessFactory& );
 
   static ProcessFactory* instance;
+  string processDirectory;
   vector<Process> processList;
   int  maxChilds;
   bool reuseTerminatedEntries;

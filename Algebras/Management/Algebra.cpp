@@ -146,34 +146,44 @@ TypeConstructor::DefaultPersistValue( const PersistDirection dir,
                                       Word& value )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
-  ListExpr valueList;
+  ListExpr valueList = 0;
   string valueString;
   int valueLength;
   
-  if ( dir == ReadFrom )
+  switch ( dir )
   {
-    ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-    bool correct;
-    valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
-    char* buffer = new char[valueLength];
-    valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
-    valueString.assign( buffer, valueLength );
-    delete []buffer;
-    nl->ReadFromString( valueString, valueList );
-    value = In( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
-    if ( errorInfo != 0 )
+    case ReadFrom:
     {
-      nl->Destroy( errorInfo );
+      ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+      bool correct;
+      valueRecord.Read( &valueLength, sizeof( valueLength ), 0 );
+      char* buffer = new char[valueLength];
+      valueRecord.Read( buffer, valueLength, sizeof( valueLength ) );
+      valueString.assign( buffer, valueLength );
+      delete []buffer;
+      nl->ReadFromString( valueString, valueList );
+      value = In( nl->First(typeInfo), nl->First( valueList ), 1, errorInfo, correct );
+      if ( errorInfo != 0 )
+      {
+        nl->Destroy( errorInfo );
+      }
     }
-  }
-  else // WriteTo
-  {
-    valueList = Out( nl->First(typeInfo), value );
-    valueList = nl->OneElemList( valueList );
-    nl->WriteToString( valueString, valueList );
-    valueLength = valueString.length();
-    valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
-    valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+    break;
+    case WriteTo:
+    {
+      valueList = Out( nl->First(typeInfo), value );
+      valueList = nl->OneElemList( valueList );
+      nl->WriteToString( valueString, valueList );
+      valueLength = valueString.length();
+      valueRecord.Write( &valueLength, sizeof( valueLength ), 0 );
+      valueRecord.Write( valueString.data(), valueString.length(), sizeof( valueLength ) );
+    }
+    break;
+    case DeleteFrom:
+    {
+      // Nothing needs to be done in this case
+    }
+    break;
   }
   nl->Destroy( valueList );
   return (true);
@@ -186,26 +196,36 @@ TypeConstructor::DefaultPersistModel( const PersistDirection dir,
                                       Word& model )
 {
   NestedList* nl = SecondoSystem::GetNestedList();
-  ListExpr modelList;
+  ListExpr modelList = 0;
   string modelString;
   int modelLength;
-  if ( dir == ReadFrom )
+  switch ( dir )
   {
-    modelRecord.Read( &modelLength, sizeof( modelLength ), 0 );
-    char* buffer = new char[modelLength];
-    modelRecord.Read( buffer, modelLength, sizeof( modelLength ) );
-    modelString.assign( buffer, modelLength );
-    delete []buffer;
-    nl->ReadFromString( modelString, modelList );
-    model = InModel( typeExpr, modelList, 1 );
-  }
-  else
-  {
-    modelList = OutModel( typeExpr, model );
-    nl->WriteToString( modelString, modelList );
-    modelLength = modelString.length();
-    modelRecord.Write( &modelLength, sizeof( modelLength ), 0 );
-    modelRecord.Write( modelString.data(), modelString.length(), sizeof( modelLength ) );
+    case ReadFrom:
+    {
+      modelRecord.Read( &modelLength, sizeof( modelLength ), 0 );
+      char* buffer = new char[modelLength];
+      modelRecord.Read( buffer, modelLength, sizeof( modelLength ) );
+      modelString.assign( buffer, modelLength );
+      delete []buffer;
+      nl->ReadFromString( modelString, modelList );
+      model = InModel( typeExpr, modelList, 1 );
+    }
+    break;
+    case WriteTo:
+    {
+      modelList = OutModel( typeExpr, model );
+      nl->WriteToString( modelString, modelList );
+      modelLength = modelString.length();
+      modelRecord.Write( &modelLength, sizeof( modelLength ), 0 );
+      modelRecord.Write( modelString.data(), modelString.length(), sizeof( modelLength ) );
+    }
+    break;
+    case DeleteFrom:
+    {
+      // Nothing needs to be done in this case
+    }
+    break;
   }
   nl->Destroy( modelList );
   return (true);

@@ -20,6 +20,7 @@ C/C++ programs are interpreted correctly.
 
 #define yylval xxlval
 extern int yylval;
+int yywrap();
 
 #define YY_NO_UNPUT
 %}
@@ -36,44 +37,44 @@ string         \"[^\"]*\"
 
 [ \t\n]+  	;
 
--?[0-9]+  	{yylval = NestedText::Atom( yytext, yyleng ); return INTEGER;}
-{number}	{yylval = NestedText::Atom( yytext, yyleng ); return REAL;}
-TRUE  		{yylval = NestedText::Atom( yytext, yyleng ); return BOOLEAN;}
-FALSE		{yylval = NestedText::Atom( yytext, yyleng ); return BOOLEAN;}
-{string} 	{yylval = NestedText::Atom( yytext, yyleng ); return STRING;}
-fun		{yylval = NestedText::Atom( yytext, yyleng ); return FUN;}
-const		{yylval = NestedText::Atom( yytext, yyleng ); return CONST;}
-tuple		{yylval = NestedText::Atom( yytext, yyleng ); return TUPLE;}
-group		{yylval = NestedText::Atom( yytext, yyleng ); return GROUP;}
+-?[0-9]+  	{yylval = NestedText::Atom( yytext, yyleng ); return ZZINTEGER;}
+{number}	{yylval = NestedText::Atom( yytext, yyleng ); return ZZREAL;}
+TRUE  		{yylval = NestedText::Atom( yytext, yyleng ); return ZZBOOLEAN;}
+FALSE		{yylval = NestedText::Atom( yytext, yyleng ); return ZZBOOLEAN;}
+{string} 	{yylval = NestedText::Atom( yytext, yyleng ); return ZZSTRING;}
+fun		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFUN;}
+const		{yylval = NestedText::Atom( yytext, yyleng ); return ZZCONST;}
+tuple		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTUPLE;}
+group		{yylval = NestedText::Atom( yytext, yyleng ); return ZZGROUP;}
 
-type		{yylval = NestedText::Atom( yytext, yyleng ); return TYPE;}
-delete		{yylval = NestedText::Atom( yytext, yyleng ); return DELETE;}
-create		{yylval = NestedText::Atom( yytext, yyleng ); return CREATE;}
-update		{yylval = NestedText::Atom( yytext, yyleng ); return UPDATE;}
-":="		{yylval = NestedText::Atom( yytext, yyleng ); return ASSIGN;}
-query		{yylval = NestedText::Atom( yytext, yyleng ); return QUERY;}
-model           {yylval = NestedText::Atom( yytext, yyleng ); return MODEL;}
-let		{yylval = NestedText::Atom( yytext, yyleng ); return LET;}
-persistent	{yylval = NestedText::Atom( yytext, yyleng ); return PERSISTENT;}
-begin		{yylval = NestedText::Atom( yytext, yyleng ); return BEGIN1;}
-transaction	{yylval = NestedText::Atom( yytext, yyleng ); return TRANSACTION;}
-commit		{yylval = NestedText::Atom( yytext, yyleng ); return COMMIT;}
-abort		{yylval = NestedText::Atom( yytext, yyleng ); return ABORT;}
-database	{yylval = NestedText::Atom( yytext, yyleng ); return DATABASE;}
-open		{yylval = NestedText::Atom( yytext, yyleng ); return OPEN;}
-close		{yylval = NestedText::Atom( yytext, yyleng ); return CLOSE;}
-save		{yylval = NestedText::Atom( yytext, yyleng ); return SAVE;}
-to		{yylval = NestedText::Atom( yytext, yyleng ); return TO;}
-restore		{yylval = NestedText::Atom( yytext, yyleng ); return RESTORE;}
-from		{yylval = NestedText::Atom( yytext, yyleng ); return FROM;}
-list		{yylval = NestedText::Atom( yytext, yyleng ); return LIST;}
-databases	{yylval = NestedText::Atom( yytext, yyleng ); return DATABASES;}
-constructors	{yylval = NestedText::Atom( yytext, yyleng ); return CONSTRUCTORS;}
-operators	{yylval = NestedText::Atom( yytext, yyleng ); return OPERATORS;}
-types		{yylval = NestedText::Atom( yytext, yyleng ); return TYPES;}
-objects		{yylval = NestedText::Atom( yytext, yyleng ); return OBJECTS;}
-counters	{yylval = NestedText::Atom( yytext, yyleng ); return COUNTERS;}
-".."		{yylval = NestedText::Atom( yytext, yyleng ); return DOUBLE;}
-"="		{yylval = NestedText::Atom( yytext, yyleng ); return EQ;}
-value		{yylval = NestedText::Atom( yytext, yyleng ); return VALUE;}
+type		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPE;}
+delete		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDELETE;}
+create		{yylval = NestedText::Atom( yytext, yyleng ); return ZZCREATE;}
+update		{yylval = NestedText::Atom( yytext, yyleng ); return ZZUPDATE;}
+":="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZASSIGN;}
+query		{yylval = NestedText::Atom( yytext, yyleng ); return ZZQUERY;}
+model           {yylval = NestedText::Atom( yytext, yyleng ); return ZZMODEL;}
+let		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET;}
+persistent	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPERSISTENT;}
+begin		{yylval = NestedText::Atom( yytext, yyleng ); return ZZBEGIN1;}
+transaction	{yylval = NestedText::Atom( yytext, yyleng ); return ZZTRANSACTION;}
+commit		{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOMMIT;}
+abort		{yylval = NestedText::Atom( yytext, yyleng ); return ZZABORT;}
+database	{yylval = NestedText::Atom( yytext, yyleng ); return ZZDATABASE;}
+open		{yylval = NestedText::Atom( yytext, yyleng ); return ZZOPEN;}
+close		{yylval = NestedText::Atom( yytext, yyleng ); return ZZCLOSE;}
+save		{yylval = NestedText::Atom( yytext, yyleng ); return ZZSAVE;}
+to		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTO;}
+restore		{yylval = NestedText::Atom( yytext, yyleng ); return ZZRESTORE;}
+from		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFROM;}
+list		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLIST;}
+databases	{yylval = NestedText::Atom( yytext, yyleng ); return ZZDATABASES;}
+constructors	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCONSTRUCTORS;}
+operators	{yylval = NestedText::Atom( yytext, yyleng ); return ZZOPERATORS;}
+types		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTYPES;}
+objects		{yylval = NestedText::Atom( yytext, yyleng ); return ZZOBJECTS;}
+counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
+".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
+"="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZEQ;}
+value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
 

@@ -19,7 +19,7 @@ class NLScanner: public yyFlexLexer
     cantRead,
   };
                 
-  NLScanner( NestedList* nestedList, istream* yyin = 0, ostream* yyout = 0 );
+  NLScanner( NestedList* nestedList, std::istream* yyin = 0, std::ostream* yyout = 0 );
 /*
   string const &lastFile()
   {

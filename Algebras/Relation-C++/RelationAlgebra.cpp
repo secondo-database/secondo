@@ -402,18 +402,18 @@ Operator TUPLE2 (
 
 /*
 
-6.1 Type Operator ~GROUP~
+6.1 Type Operator ~Group~
 
 Type operators are used only for inferring argument types of parameter
 functions. They have a type mapping but no evaluation function.
 
-6.1.1 Type mapping function of operator ~GROUP~
+6.1.1 Type mapping function of operator ~group~
 
 ----  ((stream x))                -> (rel x)
 ----
 
 */
-ListExpr GROUPTypeMap(ListExpr args)
+ListExpr GroupTypeMap(ListExpr args)
 {
   ListExpr first;
   ListExpr tupleDesc;
@@ -439,24 +439,24 @@ ListExpr GROUPTypeMap(ListExpr args)
 }
 /*
 
-4.1.3 Specification of operator ~GROUP~
+4.1.3 Specification of operator ~Group~
 
 */
-const string GROUPSpec =
+const string GroupSpec =
   "(<text>((stream x)) -> (rel x)</text---><text>Maps stream type to a rel "
   "type.</text--->)";
 /*
 
-4.1.3 Definition of operator ~GROUP~
+4.1.3 Definition of operator ~group~
 
 */
-Operator GROUP (
+Operator group (
          "GROUP",              // name
-         GROUPSpec,            // specification
+         GroupSpec,            // specification
          0,                    // no value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          typeOperatorSelect,   // trivial selection function
-         GROUPTypeMap          // type mapping
+         GroupTypeMap          // type mapping
 );
 
 /*
@@ -5369,7 +5369,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&sample);
     AddOperator(&consume);
     AddOperator(&TUPLE);
-    AddOperator(&GROUP);
+    AddOperator(&group);
     AddOperator(&TUPLE2);
     AddOperator(&attr);
     AddOperator(&tfilter);

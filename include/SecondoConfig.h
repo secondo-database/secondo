@@ -64,8 +64,12 @@ endian byte order architecture. Otherwise ~\#undef~ this symbol.
    // Define Windows version for WINVER and _WIN32_WINNT
    // 0x0400 = Windows NT 4.0
    // 0x0500 = Windows 2000 (NT based)
+#ifndef WINVER 
 #  define WINVER       0x0400
-#  define _WIN32_WINNT 0x0400
+#endif
+#ifndef _WIN32_WINNT
+#  define _WIN32_WINNT WINVER 
+#endif
 #  define WIN32_LEAN_AND_MEAN
 //#  include <windows.h>
 /*

@@ -9,7 +9,7 @@
 DEFAULTLIB = -lws2_32 -lstdc++
 
 # Berkeley DB library
-BDBINCLUDE = -I$(BDBDIR)/include -I$(BDBDIR)/build_win32
+BDBINCLUDE = -I$(BDBDIR)/dbinc -I$(BDBDIR)/build_win32
 BDBLIBDIR = -L$(BDBDIR)/build_win32
 BDBLIB = -ldb32
 

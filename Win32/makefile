@@ -15,7 +15,7 @@ MODIFIED_BDB_FILES = \
 		 db.h \
 		 db_config.h \
 		 cxx_common.h \
-		 os_rename.c 
+		 rijndael-api-fst.h 
 
 MAKEFILE_BDB = libdb32.mingw
 MAKEFILE_OCI = libocicpp.mingw
@@ -61,7 +61,7 @@ utilities:
 
 .PHONY: install
 install:
-	$(CP) $(BDB_BUILD_DIR)/*.h $(BDBDIR)/include
+	$(CP) $(BDB_BUILD_DIR)/*.h $(BDBDIR)/dbinc
 	$(CP) $(BDBLIB_OBJECTS) $(LIBDIR)
 	$(CP) $(addprefix $(BDB_BUILD_DIR)/, $(UTILITIES)) $(BUILDDIR)/bin
 

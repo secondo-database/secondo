@@ -437,6 +437,17 @@ public:
     delete this;
   }
 
+  void DeleteFile()
+  {
+    if ( file != 0 )
+    {
+      file->Close();
+      file->Drop();
+      delete file;
+      file = 0;
+    }
+  }
+
   bool Append(StandardAttribute* attr, SmiRecordId id)
   {
     assert(file != 0);
@@ -704,26 +715,39 @@ BTreePersistValue( const PersistDirection dir,
     assert(false /* no proper key type given */);
   }
 
-  if(dir == ReadFrom)
+  switch (dir)
   {
-    btree = new BTree(valueRecord, keyType);
-    if(btree->IsInitialized())
+    case ReadFrom:
     {
-      value = SetWord(btree);
+      btree = new BTree(valueRecord, keyType);
+      if(btree->IsInitialized())
+      {
+        value = SetWord(btree);
+        return true;
+      }
+      else
+      {
+        delete btree;
+        return false;
+      }
+    }
+    break;
+    case WriteTo:
+    {
+      btree = (BTree*)value.addr;
+      success = btree->WriteTo(valueRecord, keyType);
+      return success;
+    }
+    break;
+    case DeleteFrom:
+    {
+      btree = (BTree*)value.addr;
+      btree->DeleteFile();
       return true;
     }
-    else
-    {
-      delete btree;
-      return false;
-    }
+    break;
   }
-  else
-  {
-    btree = (BTree*)value.addr;
-    success = btree->WriteTo(valueRecord, keyType);
-    return success;
-  }
+  return false;
 }
 
 /*

@@ -20,15 +20,17 @@ list module at the moment ..
 
 %{
 #include <malloc.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+using namespace std;
 #include "NestedList.h"
 #include "NLParser.h"
 #include "NLParser.tab.hpp"
 
 #define yylval NLParser::yylval
 
+int yywrap();
 static char *scanErrMsg = "Error: Unexpected end of file while scanning text atom!\n";
 static char *cmpstr = "</text--->";
 static int zeichen;
@@ -76,7 +78,7 @@ string         \"[^\"]*\"
 -?[0-9]+       { 
                  /* ECHO; printf(" : is an integer\n"); */
                  yylval = nl->IntAtom( atoi( yytext ) );
-                 return (INTEGER);
+                 return (ZZINTEGER);
                }
 
 {number}       {
@@ -84,19 +86,19 @@ string         \"[^\"]*\"
                  f = atof( yytext );
                  yylval = nl->RealAtom( f );
                  /* printf("\n Parser reals: %10.3f \n", f); */
-                 return (REAL);
+                 return (ZZREAL);
                }
 
 "TRUE"         { 
                  /* ECHO; printf(" : is a boolean\n"); */
                  yylval = nl->BoolAtom( true );
-                 return (BOOLEAN);
+                 return (ZZBOOLEAN);
                }
 
 "FALSE"        { 
                  /* ECHO; printf(" : is a boolean\n"); */
                  yylval = nl->BoolAtom( false );
-                 return (BOOLEAN);
+                 return (ZZBOOLEAN);
                }
 
 "<text>"       { 
@@ -184,7 +186,7 @@ string         \"[^\"]*\"
                  {
                    nl->AppendText( yylval, textAtomBuffer );
                  }
-                 return (TEXT);
+                 return (ZZTEXT);
                }
 
 {string}       {
@@ -198,24 +200,24 @@ string         \"[^\"]*\"
                    s = strncpy( s, &yytext[1], yyleng-2 );
                    s[yyleng-2] = '\0';
                    yylval = nl->StringAtom( s );
-                   return (STRING);
+                   return (ZZSTRING);
                  }
                }
 
 {symbol}       { 
                  /* ECHO; printf(" : is a symbol\n"); */
                  yylval = nl->SymbolAtom( yytext );
-                 return (SYMBOL);
+                 return (ZZSYMBOL);
                }
 
 "("            { 
                  /* ECHO; printf("\n"); */ 
-                 return (OPEN);
+                 return (ZZOPEN);
                }
 
 ")"            {
                  /* ECHO; printf("\n"); */
-                 return (CLOSE);
+                 return (ZZCLOSE);
                }
 
 .              { 

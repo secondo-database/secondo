@@ -62,7 +62,7 @@ DynamicLibrary::Unload()
   if ( IsLoaded() )
   {
 #ifdef SECONDO_WIN32
-    ok = ::FreeLibrary( static_cast<HINSTANCE>(libraryHandle) );
+    ok = (::FreeLibrary( static_cast<HINSTANCE>(libraryHandle) ) != 0);
     libraryHandle = 0;
 #else
     ok = ::dlclose( libraryHandle ) == 0;
@@ -107,8 +107,8 @@ DynamicLibrary::GetFunctionAddress( const string& functionName )
   if ( IsLoaded() )
   {
 #ifdef SECONDO_WIN32
-    functionAddr = ::GetProcAddress( static_cast<HINSTANCE>(libraryHandle),
-                                     functionName.c_str());
+    functionAddr = (void*) ::GetProcAddress( static_cast<HINSTANCE>(libraryHandle),
+                                             functionName.c_str());
 #else
     functionAddr = ::dlsym( libraryHandle, functionName.c_str() );
 #endif

@@ -3,14 +3,16 @@ August 10, 2000 RHG Increased lengths of all symbols (and in copyout) to 40.
 
 March 2002 Ulrich Telle Port to C++, new version of NestedText
 
+February 2003 Ulrich Telle, adjusted for GNU C++ version 3.2
+
 */
 
 %{
 #include <string>
 #include <stdio.h>
 #include "NestedText.h"
-#define TRUE 1;
-#define FALSE 0;
+#define ZZTRUE 1;
+#define ZZFALSE 0;
 
 extern int yylex();
 
@@ -29,8 +31,8 @@ void yyerror( char* s )
 }
 %}
 
-%token 	IDENTIFIER, SYMBOL, OPERATOR, PATTERN, FUN, OP, INFIXOP, ALIAS, LIST,
-	IMPLICIT, PARAMETER, PARAMETERS, TYPE, TYPES, FUNLIST
+%token 	ZZIDENTIFIER, ZZSYMBOL, ZZOPERATOR, ZZPATTERN, ZZFUN, ZZOP, ZZINFIXOP, ZZALIAS, ZZLIST,
+	ZZIMPLICIT, ZZPARAMETER, ZZPARAMETERS, ZZTYPE, ZZTYPES, ZZFUNLIST
 	
 
 %%
@@ -52,8 +54,8 @@ specs		: spec
 		| specs spec 
 		;
 
-spec		: OPERATOR name ALIAS IDENTIFIER PATTERN 
-			{hasfunction = FALSE; hasfunctionlist = FALSE;
+spec		: ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN 
+			{hasfunction = ZZFALSE; hasfunctionlist = ZZFALSE;
 			NestedText::CopyOut($2, operator1);
 			NestedText::CopyOut($4, token);
 			if (issymbol)
@@ -85,8 +87,8 @@ spec		: OPERATOR name ALIAS IDENTIFIER PATTERN
 		  implicit
 		;
 
-name		: IDENTIFIER	{$$ = $1; issymbol = FALSE;}
-		| SYMBOL	{$$ = $1; issymbol = TRUE;}
+name		: ZZIDENTIFIER	{$$ = $1; issymbol = ZZFALSE;}
+		| ZZSYMBOL	{$$ = $1; issymbol = ZZTRUE;}
 		;
 
 
@@ -95,27 +97,27 @@ pattern		: prefix
 		| postfix
 		;
 
-prefix		: OP '(' 			
+prefix		: ZZOP '(' 			
 			{fprintf(yaccrules1, "%s '('", token.c_str());
 			n++; n++;}
 
 		  simpleargscomma ')'
 			{fprintf(yaccrules1, " ')'"/*, token.c_str()*/);}
 
-		| OP '_'
+		| ZZOP '_'
 			{fprintf(yaccrules1, "%s valueexpr", token.c_str());
 			i = 1; pos[1]=2;}
 		;
 
-infix		: '_' INFIXOP '_'	
+infix		: '_' ZZINFIXOP '_'	
 			{fprintf(yaccrules1, "valueexpr %s valueexpr", token.c_str());
 			i = 2; pos[1]=1; pos[2]=3;}
 		;
 
-postfix		: simpleargsblank OP		
+postfix		: simpleargsblank ZZOP		
 			{fprintf(yaccrules1, " %s", token.c_str());}
 
-		| simpleargsblank OP '[' 	
+		| simpleargsblank ZZOP '[' 	
 			{fprintf(yaccrules1, " %s '['", token.c_str());
 			n++; n++;}
 
@@ -150,12 +152,12 @@ arguments	: sublist
 		;
 
 sublist		: argscomma
-		| LIST
+		| ZZLIST
 			{fprintf(yaccrules1, " list");
 			i++; n++; pos[i]=n;}
-		| FUNLIST
+		| ZZFUNLIST
 			{fprintf(yaccrules1, " %sfunlist", operator1.c_str());
-			i++; n++; pos[i]=n; hasfunctionlist = TRUE;}
+			i++; n++; pos[i]=n; hasfunctionlist = ZZTRUE;}
 		;
 
 argscomma	: arg
@@ -169,14 +171,14 @@ arg		: '_'
 			{fprintf(yaccrules1, " valueexpr");
 			i++; n++; pos[i]=n;}
 
-		| FUN
+		| ZZFUN
 			{fprintf(yaccrules1, " %sfun", operator1.c_str());
-			i++; n++; pos[i]=n; hasfunction = TRUE;}
+			i++; n++; pos[i]=n; hasfunction = ZZTRUE;}
 		;
 
 
 
-implicit	: IMPLICIT rest
+implicit	: ZZIMPLICIT rest
 
 		|
 			{if (hasfunction) {
@@ -221,7 +223,7 @@ filterfun	: 	{paramno++;
 
 */
 
-rest		: PARAMETER IDENTIFIER TYPE IDENTIFIER
+rest		: ZZPARAMETER ZZIDENTIFIER ZZTYPE ZZIDENTIFIER
 			{NestedText::CopyOut($2, parameter);
 			NestedText::CopyOut($4, type);
 			if (hasfunction) {
@@ -386,7 +388,7 @@ loopjoinfun	: 	{paramno++;
 
 
 
-		| PARAMETERS IDENTIFIER ',' IDENTIFIER TYPES IDENTIFIER ',' IDENTIFIER
+		| ZZPARAMETERS ZZIDENTIFIER ',' ZZIDENTIFIER ZZTYPES ZZIDENTIFIER ',' ZZIDENTIFIER
 			{NestedText::CopyOut($2, parameter); 
 			NestedText::CopyOut($4, parameter2);
 			NestedText::CopyOut($6, type);

@@ -4,7 +4,9 @@
 
 April 2002 Ulrich Telle
 
-September 2002 Ulrich Telle, mssing fileId in Open method fixed
+September 2002 Ulrich Telle, missing fileId in Open method fixed
+
+February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
 
 */
 
@@ -139,7 +141,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      rc = impl->bdbFile->open( bdbName.c_str(), 0, bdbType, DB_CREATE, 0 );
+      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_CREATE | DB_DIRTY_READ | DB_AUTO_COMMIT, 0 );
       if ( rc == 0 )
       {
         SmiDropFilesEntry entry;
@@ -254,7 +256,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      rc = impl->bdbFile->open( bdbName.c_str(), 0, bdbType, DB_CREATE | DB_DIRTY_READ, 0 );
+      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_CREATE | DB_DIRTY_READ | DB_AUTO_COMMIT, 0 );
       if ( rc == 0 )
       {
         if ( !existing )
@@ -370,7 +372,7 @@ SmiFile::Open( const SmiFileId fileId, const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      rc = impl->bdbFile->open( bdbName.c_str(), 0, bdbType, 0, 0 );
+      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, DB_DIRTY_READ | DB_AUTO_COMMIT, 0 );
       if ( rc == 0 )
       {
         SmiEnvironment::SetError( E_SMI_OK );

@@ -29,6 +29,7 @@ ProcessFactory::ProcessFactory( const bool reuseTerminated /* = true */,
   : processList( maxChildProcesses ), maxChilds( maxChildProcesses ),
     reuseTerminatedEntries( reuseTerminated )
 {
+  processDirectory = "";
 #ifndef SECONDO_WIN32
   // --- Always trap the SIGCHLD signal to avoid zombie processes
   signal( SIGCHLD, ProcessFactory::ChildTerminationHandler );
@@ -63,6 +64,12 @@ ProcessFactory::ShutDown()
   return (instance == 0);
 }
 
+void
+ProcessFactory::SetDirectory( const string& directory )
+{
+  instance->processDirectory = directory;
+}
+
 bool
 ProcessFactory::SpawnProcess( const string& programpath,
                               const string& arguments,
@@ -86,7 +93,6 @@ ProcessFactory::SpawnProcess( const string& programpath,
       break;
     }
   }
-
   if ( idx >= instance->maxChilds && instance->reuseTerminatedEntries )
   {
     for ( idx = 0; idx < instance->maxChilds; idx++)
@@ -149,6 +155,11 @@ ProcessFactory::SpawnProcess( const string& programpath,
   localArgs.copy( argsbuf, localArgs.length() );
   argsbuf[localArgs.length()] = 0;
 
+  LPCTSTR processDir = NULL;
+  if (instance->processDirectory.length() > 0 )
+  {
+    processDir = instance->processDirectory.c_str();
+  }
   success = CreateProcess( pathbuf.c_str(),
                            argsbuf,
                            NULL,        // default process security attr
@@ -156,7 +167,7 @@ ProcessFactory::SpawnProcess( const string& programpath,
                            TRUE,        // inherit handles
                            createFlags, // creation control flags
                            0,           // environment variable block
-                           0,           // current directory is that of parent
+                           processDir,  // current directory is that of parent
                            &startInfo,  // startup info block
                            &processInfo);
   delete argsbuf;
@@ -349,6 +360,10 @@ A session without a control tty can only have background jobs.
       rc = tcsetpgrp( ctty, pgrp );
       sigprocmask( SIG_SETMASK, &oldsigs, NULL );
     }
+    if (instance->processDirectory.length() > 0 )
+    {
+      chdir( instance->processDirectory.c_str() );
+    }
     execv( spath, argv );
     exit( -3 );  // only reached if exec() failed
   }
@@ -379,6 +394,7 @@ A session without a control tty can only have background jobs.
   }
   Sleep( 0 );
 #endif
+  instance->processDirectory = "";
   processId = idx * (instance->maxChilds+1) + instance->processList[idx].cycle;
   return (true);
 }
@@ -504,6 +520,7 @@ ProcessFactory::WaitForProcess( const int processId )
   bool ok = false;
   int index = processId / (instance->maxChilds+1);
   int cycle = processId % (instance->maxChilds+1);
+
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {

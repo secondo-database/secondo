@@ -2,7 +2,6 @@
 //paragraph [1] title: [{\Large \bf ]	[}]
 
 
-
 [1] PointRectangle Algebra
 
 July 2002 RHG
@@ -25,6 +24,16 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"	//needed because we return a CcBool in an op.
 #include <string>
+
+/*
+GNU gcc 3.2 includes the header 'windows.h' from standard headers.
+Therefore we need to change internally the name of the Rectangle
+class since Windows defines an API function 'Rectangle'.
+
+*/
+#ifdef SECONDO_WIN32
+#define Rectangle SecondoRectangle
+#endif
 
 static NestedList* nl;
 static QueryProcessor* qp;
@@ -407,8 +416,7 @@ Inside predicate for point and rectangle.
 */
 
 const string intersectsSpec =
-  "(<text>(rectangle rectangle) -> bool</text---><text>Intersection predicate for two 
-rectangles.</text--->)";
+  "(<text>(rectangle rectangle) -> bool</text---><text>Intersection predicate for two rectangles.</text--->)";
 
 const string insideSpec =
   "(<text>(point rectangle) -> bool</text---><text>Inside predicate.</text--->)";

@@ -27,7 +27,7 @@ structure avoids to create nodes which were only used in the construction proces
 
 %}
 
-%token INTEGER REAL BOOLEAN SYMBOL STRING TEXT OPEN CLOSE 
+%token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE 
 %%
 
 ok : list { 
@@ -37,11 +37,11 @@ ok : list {
    ;
 
 
-list	: OPEN rest 	{$$ = $2;}
+list	: ZZOPEN rest 	{$$ = $2;}
 	;
 
-rest	: CLOSE		{$$ = nl->TheEmptyList();}
-	| seq CLOSE	{$$ = lists.top(); lists.pop();}
+rest	: ZZCLOSE		{$$ = nl->TheEmptyList();}
+	| seq ZZCLOSE	{$$ = lists.top(); lists.pop();}
 	;
 
 seq	: first		{$$ = $1; lists.push($1);}
@@ -57,12 +57,12 @@ elem	: atom		{$$ = $1;}
 	; 
 
 
-atom : INTEGER     {$$ = $1;}
-     | REAL        {$$ = $1; /* printf("Index of Nodes: %d\n",$1); */}
-     | BOOLEAN     {$$ = $1;}
-     | SYMBOL      {$$ = $1;}
-     | STRING      {$$ = $1;}
-     | TEXT        {$$ = $1;}
+atom : ZZINTEGER    {$$ = $1;}
+     | ZZREAL       {$$ = $1; /* printf("Index of Nodes: %d\n",$1); */}
+     | ZZBOOLEAN    {$$ = $1;}
+     | ZZSYMBOL     {$$ = $1;}
+     | ZZSTRING     {$$ = $1;}
+     | ZZTEXT       {$$ = $1;}
      ;
 
 %%

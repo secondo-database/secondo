@@ -6,6 +6,8 @@ May 2002 Ulrich Telle
 
 September 2002 Ulrich Telle, abort transaction after deadlock
 
+February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
+
 */
 
 using namespace std;
@@ -633,7 +635,7 @@ SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
     char ch;
     Dbt data( (void*) &ch, 0 );
 
-    rc = dbctl->put( 0, &key, &data, DB_NOOVERWRITE );
+    rc = dbctl->put( 0, &key, &data, DB_NOOVERWRITE | DB_AUTO_COMMIT );
     ok = (rc == 0);
   }
   return (ok);
@@ -650,7 +652,7 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
   {
     Dbt key( (void*) dbname.c_str(), dbname.length() );
 
-    rc = dbctl->del( 0, &key, 0 );
+    rc = dbctl->del( 0, &key, DB_AUTO_COMMIT );
     ok = (rc == 0);
   }
   return (ok);
@@ -823,7 +825,7 @@ Transactions, logging and locking are enabled.
     // --- Open Database Catalog
 
     Db* dbctlg = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-    rc = dbctlg->open( "databases", 0, DB_BTREE, DB_CREATE, 0 );
+    rc = dbctlg->open( 0, "databases", 0, DB_BTREE, DB_CREATE | DB_AUTO_COMMIT, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbDatabases = dbctlg;
@@ -1188,7 +1190,7 @@ SmiEnvironment::CommitTransaction()
     instance.impl->usrTxn = 0;
     if ( singleUserMode )
     {
-      instance.impl->bdbEnv->txn_checkpoint( 0, instance.impl->minutes, 0 );
+      instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
     }
   }
   else
@@ -1227,7 +1229,7 @@ SmiEnvironment::AbortTransaction()
     instance.impl->usrTxn = 0;
     if ( singleUserMode )
     {
-      instance.impl->bdbEnv->txn_checkpoint( 0, instance.impl->minutes, 0 );
+      instance.impl->bdbEnv->txn_checkpoint( 0, 0, 0 );
     }
   }
   else
@@ -1252,7 +1254,7 @@ SmiEnvironment::InitializeDatabase()
   Db* dbseq = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
   dbseq->set_re_len( sizeof( SmiFileId ) );
   fileName = database+PATH_SLASH+"sequences";
-  rc = dbseq->open( fileName.c_str(), 0, DB_QUEUE, DB_CREATE, 0 );
+  rc = dbseq->open( 0, fileName.c_str(), 0, DB_QUEUE, DB_CREATE | DB_AUTO_COMMIT, 0 );
   if ( rc == 0 )
   {
     instance.impl->bdbSeq = dbseq;
@@ -1270,7 +1272,7 @@ SmiEnvironment::InitializeDatabase()
     dbidx = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 
     fileName = database+PATH_SLASH+"filecatalog";
-    rc = dbctl->open( fileName.c_str(), 0, DB_BTREE, DB_CREATE, 0 );
+    rc = dbctl->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | DB_AUTO_COMMIT, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalog = dbctl;
@@ -1281,7 +1283,7 @@ SmiEnvironment::InitializeDatabase()
     }
 
     fileName = database+PATH_SLASH+"fileindex";
-    rc = dbidx->open( fileName.c_str(), 0, DB_BTREE, DB_CREATE, 0 );
+    rc = dbidx->open( 0, fileName.c_str(), 0, DB_BTREE, DB_CREATE | DB_AUTO_COMMIT, 0 );
     if ( rc == 0 )
     {
       instance.impl->bdbCatalogIndex = dbidx;
@@ -1294,7 +1296,7 @@ SmiEnvironment::InitializeDatabase()
     // --- Associate the secondary key with the primary key
     if ( rc == 0 )
     {
-      rc = dbctl->associate( dbidx, getfilename, 0 );
+      rc = dbctl->associate( 0, dbidx, getfilename, DB_AUTO_COMMIT );
     }
   }
 

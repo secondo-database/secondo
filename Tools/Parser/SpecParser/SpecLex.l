@@ -24,22 +24,22 @@ math           {otherChar}{otherChar}*
 
 [ \t\n]+  	;
 
-fun		{yylval = NestedText::Atom( yytext, yyleng ); return FUN;}
-operator	{return OPERATOR;}
-pattern		{return PATTERN;}
-op		{return OP;}
-infixop		{return INFIXOP;}
-alias		{return ALIAS;}
-list		{return LIST;}
-implicit	{return IMPLICIT;}
-parameter	{return PARAMETER;}
-parameters	{return PARAMETERS;}
-type		{return TYPE;}
-types		{return TYPES;}
-funlist		{return FUNLIST;}
+fun		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFUN;}
+operator	{return ZZOPERATOR;}
+pattern		{return ZZPATTERN;}
+op		{return ZZOP;}
+infixop		{return ZZINFIXOP;}
+alias		{return ZZALIAS;}
+list		{return ZZLIST;}
+implicit	{return ZZIMPLICIT;}
+parameter	{return ZZPARAMETER;}
+parameters	{return ZZPARAMETERS;}
+type		{return ZZTYPE;}
+types		{return ZZTYPES;}
+funlist		{return ZZFUNLIST;}
 
-{ident}		{yylval = NestedText::Atom( yytext, yyleng ); return IDENTIFIER;}
-{math}		{yylval = NestedText::Atom( yytext, yyleng ); return SYMBOL;}
+{ident}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZIDENTIFIER;}
+{math}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZSYMBOL;}
 
 .		{yylval = NestedText::Atom( yytext, yyleng ); return yytext[0];}
 

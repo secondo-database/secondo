@@ -45,6 +45,9 @@ April 2002 Ulrich Telle Port to C++, complete revision
 August 2002 Ulrich Telle Changed ~PersistValue~ and ~PersistModel~ interface
 using nested lists for the type instead of the string representation.
 
+February 2003 Ulrich Telle Introduced new mode ~DeleteFrom~ for the
+~PersistValue~ and ~PersistModel~ interface
+
 1.1 Overview
  
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -189,10 +192,11 @@ Are constants for stream processing.
 
 */
 
-enum PersistDirection { ReadFrom, WriteTo };
+enum PersistDirection { ReadFrom, WriteTo, DeleteFrom };
 /*
 Defines whether the methods managing the persistence of object values and models
-are persisting an object ("WriteTo"[4]) or restoring an object ("ReadFrom"[4]).
+are persisting an object ("WriteTo"[4]), restoring an object ("ReadFrom"[4]),
+or deleting an object ("DeleteFrom"[4]).
 
 */
 /*

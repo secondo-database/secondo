@@ -2199,9 +2199,40 @@ SecondoCatalog::CleanUp( const bool revert )
         {
           if ( objCatalogFile.DeleteRecord( SmiKey( oPos->first ) ) )
           {
+            if ( oPos->second.valueRecordId != 0 &&
+                 oPos->second.valueDefined )
+            {
+              SmiRecord vRec;
+              ok = objValueFile.SelectRecord( oPos->second.valueRecordId, vRec );
+              if ( ok )
+              {
+                ListExpr typeExpr, typeInfo;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
+                typeInfo = NumericType( typeExpr );
+                am->PersistValue( oPos->second.algebraId, oPos->second.typeId,
+                                  DeleteFrom, vRec,
+                                  typeInfo, oPos->second.value );
+                nl->Destroy( typeInfo );
+                nl->Destroy( typeExpr );
+              }
+            }
             if ( oPos->second.valueRecordId != 0 )
             {
               objValueFile.DeleteRecord( oPos->second.valueRecordId );
+            }
+            if ( oPos->second.modelRecordId != 0 )
+            {
+              SmiRecord mRec;
+              ok = objModelFile.SelectRecord( oPos->second.modelRecordId, mRec );
+              if ( ok )
+              {
+                ListExpr typeExpr;
+                nl->ReadFromString( oPos->second.typeExpr, typeExpr );  
+                am->PersistModel( oPos->second.algebraId, oPos->second.typeId,
+                                  DeleteFrom, mRec,
+                                  typeExpr, oPos->second.model );
+                nl->Destroy( typeExpr );
+              }
             }
             if ( oPos->second.modelRecordId != 0 )
             {
@@ -2212,6 +2243,10 @@ SecondoCatalog::CleanUp( const bool revert )
           {
             ok = false;
           }
+        }
+        if ( oPos->second.valueDefined )
+        {
+          (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))( oPos->second.value );
         }
         break;
       }

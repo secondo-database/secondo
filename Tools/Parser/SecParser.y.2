@@ -15,16 +15,15 @@ for example,
 
 March 2002 Ulrich Telle Port to C++
 
-November 5, 2002 RHG Added the cases ~function~ and ~IDENTIFIER '(' elems ')'
-~ to ~valueexpr~ to support function definitions and function calls.
+November 5, 2002 RHG Added the cases ~function~ and ~IDENTIFIER '(' elems ')' ~ to
+~valueexpr~ to support function definitions and function calls.
 
-November 7, 2002 RHG Extended the definition of ~function~ and of ~valueexpr~
-to support function definitions and function calls with 0 parameters; these are
-translated to functions with an integer parameter and which are called with 0.
+November 7, 2002 RHG Extended the definition of ~function~ and of ~valueexpr~ to support
+function definitions and function calls with 0 parameters; these are translated to functions
+with an integer parameter and which are called with 0.
 
-November 22, 2002 RHG Discovered that the query processor can handle
-functions with 0 parameters; hence translated definitions and function calls
-directly to use 0 parameters.
+November 22, 2002 RHG Discovered that the query processor can handle functions with 0
+parameters; hence translated definitions and function calls directly to use 0 parameters.
 
 December 12, 2002 RHG Changed the notation for constants once more so that
 relation constants can be parsed correctly. The new notation is
@@ -39,8 +38,6 @@ for example
 
 February 3, 2003 RHG Added translation of counters of the form e.g. ``{5}'' and
 a ``list counters'' command.
-
-
 
 */
 
@@ -58,81 +55,81 @@ command		:	basic
 		|	inquiries
 		;	
 
-basic		:	TYPE IDENTIFIER EQ typeexpr
+basic		:	ZZTYPE ZZIDENTIFIER ZZEQ typeexpr
 				{PRINTF("(type "); PRINT($2); 
 				PRINTF(" = "); PRINT($4); PRINTF(")\n");}
-		|	DELETE TYPE IDENTIFIER	
+		|	ZZDELETE ZZTYPE ZZIDENTIFIER	
 				{PRINTF("(delete type "); PRINT($3); 
 				PRINTF(")\n");}
-		|	CREATE IDENTIFIER ':' typeexpr
+		|	ZZCREATE ZZIDENTIFIER ':' typeexpr
 				{PRINTF("(create "); PRINT($2); 
 				PRINTF(" : "); PRINT($4); PRINTF(")\n");}
 
 		|		{paramno=0; depth =0;}
-			UPDATE IDENTIFIER ASSIGN valueexpr
+			ZZUPDATE ZZIDENTIFIER ZZASSIGN valueexpr
 				{PRINTF("(update "); PRINT($3); 
 				PRINTF(" := "); PRINT($5); PRINTF(")\n");}
-		|	DELETE IDENTIFIER
+		|	ZZDELETE ZZIDENTIFIER
 				{PRINTF("(delete "); PRINT($2); 
 				PRINTF(")\n");}
 
 		|		{paramno=0; depth =0;}
-			QUERY valueexpr
+			ZZQUERY valueexpr
 				{PRINTF("(query "); PRINT($3); 
 				PRINTF(")\n");}
 
                 |               {paramno=0; depth =0;}
-                        MODEL valueexpr
+                        ZZMODEL valueexpr
                                 {PRINTF("(model "); PRINT($3);
                                 PRINTF(")\n");}
  
 		|		{paramno=0; depth =0;}
-			LET IDENTIFIER EQ valueexpr
+			ZZLET ZZIDENTIFIER ZZEQ valueexpr
 				{PRINTF("(let "); PRINT($3); 
 				PRINTF(" = "); PRINT($5); PRINTF(")\n");}
-		|	PERSISTENT IDENTIFIER
+		|	ZZPERSISTENT ZZIDENTIFIER
 				{PRINTF("(persistent "); PRINT($2); 
 				PRINTF(")\n");}
 		;
 
-transaction	:	BEGIN1 TRANSACTION
+transaction	:	ZZBEGIN1 ZZTRANSACTION
 				{PRINTF("(begin transaction)\n");}
-		|	COMMIT TRANSACTION
+		|	ZZCOMMIT ZZTRANSACTION
 				{PRINTF("(commit transaction)\n");}
-		|	ABORT TRANSACTION
+		|	ZZABORT ZZTRANSACTION
 				{PRINTF("(abort transaction)\n");}
 		;
 
-database	:	CREATE DATABASE IDENTIFIER
+database	:	ZZCREATE ZZDATABASE ZZIDENTIFIER
 				{PRINTF("(create database "); PRINT($3); 
 				PRINTF(")\n");}
-		|	DELETE DATABASE IDENTIFIER
+		|	ZZDELETE ZZDATABASE ZZIDENTIFIER
 				{PRINTF("(delete database "); PRINT($3); 
 				PRINTF(")\n");}
-		|	OPEN DATABASE IDENTIFIER
+		|	ZZOPEN ZZDATABASE ZZIDENTIFIER
 				{PRINTF("(open database "); PRINT($3); 
 				PRINTF(")\n");}
-		|	CLOSE DATABASE 
+		|	ZZCLOSE ZZDATABASE 
 				{PRINTF("(close database)\n");}
-		|	SAVE DATABASE TO IDENTIFIER
+		|	ZZSAVE ZZDATABASE ZZTO ZZIDENTIFIER
 				{PRINTF("(save database to "); PRINT($4); 
 				PRINTF(")\n");}
-		|	RESTORE DATABASE IDENTIFIER FROM IDENTIFIER
+		|	ZZRESTORE ZZDATABASE ZZIDENTIFIER ZZFROM ZZIDENTIFIER
 				{PRINTF("(restore database "); PRINT($3); 
 				PRINTF(" from "); PRINT($5); PRINTF(")\n");}
 		;
 
-inquiries	:	LIST DATABASES
+inquiries	:	ZZLIST ZZDATABASES
 				{PRINTF("(list databases)\n");}
-		|	LIST TYPE CONSTRUCTORS
+		|	ZZLIST ZZTYPE ZZCONSTRUCTORS
 				{PRINTF("(list type constructors)\n");}
-		|	LIST OPERATORS
+		|	ZZLIST ZZOPERATORS
 				{PRINTF("(list operators)\n");}
-		|	LIST TYPES
+		|	ZZLIST ZZTYPES
 				{PRINTF("(list types)\n");}
-		|	LIST OBJECTS
+		|	ZZLIST ZZOBJECTS
 				{PRINTF("(list objects)\n");}
-		|	LIST COUNTERS
+		|	ZZLIST ZZCOUNTERS
 				{PRINTF("(list counters)\n");}
 		;
 
@@ -164,9 +161,9 @@ NestedText::Concat(NestedText::AtomC(" "),
 NestedText::AtomC(")")))));}
 		;
 
-constructor	:	IDENTIFIER	{$$ = $1;}
-		|	TUPLE		{$$ = $1;}
-		|	GROUP		{$$ = $1;}
+constructor	:	ZZIDENTIFIER	{$$ = $1;}
+		|	ZZTUPLE		{$$ = $1;}
+		|	ZZGROUP		{$$ = $1;}
 		;
 
 typeexprs	:	typeexpr	{$$ = $1;}
@@ -187,19 +184,19 @@ namedfunction	: naming function
 		| function		{$$ = $1;}
 		;
 
-function	: FUN '(' args ')' valueexpr
+function	: ZZFUN '(' args ')' valueexpr
 				{$$ = NestedText::Concat(NestedText::AtomC("(fun "),
 					NestedText::Concat($3,
  					  NestedText::Concat (NestedText::AtomC(" "),
   					    NestedText::Concat($5, NestedText::AtomC(")") 
 ))));}
-		| FUN '(' ')' valueexpr
+		| ZZFUN '(' ')' valueexpr
 				{$$ =   NestedText::Concat(
 					  NestedText::AtomC("(fun "),
   					  NestedText::Concat($4, NestedText::AtomC(")")) );}
 		;
 
-arg		: IDENTIFIER ':' typeexpr
+arg		: ZZIDENTIFIER ':' typeexpr
 				{$$ = NestedText::Concat(NestedText::AtomC("("),
 					NestedText::Concat($1,
 					  NestedText::Concat(NestedText::AtomC(" "),
@@ -214,7 +211,7 @@ $3));}
 		;
 
 
-attribute	: '.' IDENTIFIER
+attribute	: '.' ZZIDENTIFIER
 			{$$ = NestedText::Concat(NestedText::AtomC("(attr "),
 				NestedText::Concat(NestedText::AtomC(param),
 				NestedText::Concat(NestedText::AtomC(" "),
@@ -222,7 +219,7 @@ attribute	: '.' IDENTIFIER
 					NestedText::AtomC(")")	))));}
 		;
 
-attribute2	: DOUBLE IDENTIFIER
+attribute2	: ZZDOUBLE ZZIDENTIFIER
 			{$$ = NestedText::Concat(NestedText::AtomC("(attr "),
 				NestedText::Concat(NestedText::AtomC(param2),
 				NestedText::Concat(NestedText::AtomC(" "),
@@ -231,7 +228,7 @@ attribute2	: DOUBLE IDENTIFIER
 		;
 
 
-constant	: INTEGER | REAL | STRING | BOOLEAN
+constant	: ZZINTEGER | ZZREAL | ZZSTRING | ZZBOOLEAN
 		; 
 
 nestedlist	: atom			{$$ = $1;}
@@ -248,7 +245,7 @@ $2));}
 		;
 
 atom		: constant		{$$ = $1;}
-		| IDENTIFIER		{$$ = $1;}
+		| ZZIDENTIFIER		{$$ = $1;}
 		;
 
 list		: elems			{$$ = NestedText::Concat(NestedText::AtomC("("), 
@@ -273,27 +270,27 @@ elem		: valueexpr		{$$ = $1;}
 		| namedfunction		{$$ = $1;}
 		;
 
-naming		: IDENTIFIER ':'	{$$ = $1;}
+naming		: ZZIDENTIFIER ':'	{$$ = $1;}
 		;
 
 		
-valueexpr	: IDENTIFIER				{$$ = $1;}
+valueexpr	: ZZIDENTIFIER				{$$ = $1;}
 		| constant				{$$ = $1;}
 		| function				{$$ = $1;}
-		| IDENTIFIER '(' elems ')'
+		| ZZIDENTIFIER '(' elems ')'
 			{$$ = NestedText::Concat(NestedText::AtomC("("),
 				NestedText::Concat($1,
 				NestedText::Concat(NestedText::AtomC(" "),
 				NestedText::Concat($3,				
 					NestedText::AtomC(")")	))));}
-		| IDENTIFIER '(' ')'
+		| ZZIDENTIFIER '(' ')'
 			{$$ = NestedText::Concat(
 				NestedText::AtomC("("),
 				NestedText::Concat($1, NestedText::AtomC(")")) );}
 		| attribute				{$$ = $1;}
 		| attribute2				{$$ = $1;}
 		| '(' valueexpr ')'			{$$ = $2;}
-		| '[' CONST typeexpr VALUE nestedlist ']'
+		| '[' ZZCONST typeexpr ZZVALUE nestedlist ']'
 			{$$ = NestedText::Concat(NestedText::AtomC("("),
 				NestedText::Concat($3,
 				NestedText::Concat(NestedText::AtomC(" "),
@@ -303,11 +300,11 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 
 		| '.'					{$$ = NestedText::AtomC(param);}
 
-		| TUPLE					{$$ = NestedText::AtomC(param);}
+		| ZZTUPLE					{$$ = NestedText::AtomC(param);}
 
-		| GROUP					{$$ = NestedText::AtomC(param);}
+		| ZZGROUP					{$$ = NestedText::AtomC(param);}
 
-		| valueexpr EQ valueexpr
+		| valueexpr ZZEQ valueexpr
 			{$$ = NestedText::Concat(NestedText::AtomC("(="), 
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($1,
@@ -315,7 +312,7 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 				NestedText::Concat($3,
 				NestedText::AtomC(")")     )))));}
 
-		| valueexpr '{' IDENTIFIER '}'
+		| valueexpr '{' ZZIDENTIFIER '}'
 			{$$ = NestedText::Concat(NestedText::AtomC("(rename"), 
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($1,
@@ -323,7 +320,7 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 				NestedText::Concat($3,
 				NestedText::AtomC(")")     )))));}
 
-		| valueexpr '{' INTEGER '}'
+		| valueexpr '{' ZZINTEGER '}'
 			{$$ = NestedText::Concat(NestedText::AtomC("(counter"), 
 				NestedText::Concat(NestedText::AtomC(" "), 
 				NestedText::Concat($3,
@@ -331,7 +328,5 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 				NestedText::Concat($1,
 				NestedText::AtomC(")")     )))));}
 
-
 /* algebra specific part */
-
 
