@@ -126,6 +126,7 @@ class NLToken extends Symbol implements NLSymbol{
 %line
 
 
+
 %eofval{
   // If it detects the end of file (EOF) returns the EOF token.
   return(new NLToken(NLToken.EOF, null, yychar+1, yyline+1));
@@ -147,7 +148,7 @@ class NLToken extends Symbol implements NLSymbol{
 
 
 
-otherChar   =   [^\(\)\"A-Za-z0-9_" "\a\b\f\n\r\t\v]
+otherChar   =   [^\(\)\"A-Za-z0-9_" "\b\f\n\r\t]
 letter      =   [a-zA-Z]
 digit       =   [0-9]
 ident       =   {letter}({letter}|{digit}|_)*
@@ -162,7 +163,7 @@ filename    =   "<file>".*"</file--->"
 
 
 
-<YYINITIAL> [" "\a\b\f\n\r\t\v]+       {}
+<YYINITIAL> [" "\b\f\n\r\t]+       {}
 
 <YYINITIAL> -?[0-9]+       {
                   // The token is an ~intAtom~.
