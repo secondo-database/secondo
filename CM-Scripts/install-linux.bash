@@ -17,19 +17,36 @@ printf "\n* Installing from "
 printf "\n* '$cdpath' to '$instpath' \n" 
 
 printf "\n* Installing Java SDK ... this needs some user interaction"
-printf" \n* all other tools will be compiled and installed without questions"
+printf" \n* all other tools will be compiled and installed silently"
 
 cd "sdk"
 "$cdpath/java/j2sdk*.bin"
 
-printf "\n* Uncompressing archives ... "
-
 cd "$temp"
-tar -xzf "$cdpath/gcc-core*.tgz"
-tar -xzf "$cdpath/gcc-g++*.tgz"
-tar -xzf "$cdpath/../bdb/db-*.tgz"
-tar -xzf "$cdpath/prolog/pl-*.tgz"
-tar -xzf "$cdpath/prolog/readline-*.tgz"
+printf "\n\n* Uncompressing archives ... \n"
+
+for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
+  zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
+  gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
+  for file in $zipFiles; do
+    printf "\n  processing $file ..."
+    if { ! unzip -q -o $file; }; then
+      exit 1
+    fi
+  done
+  for file in $gzFiles; do
+    printf "\n  processing $file ..."
+    if { ! tar -xzf $file; }; then
+      exit 2 
+    fi
+  done
+done
+
+cd "$HOME"
+printf "\n\n  Uncompressing SECONDO source files ... \n"
+if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
+  exit 3
+fi
 
 cd "$HOME"
 tar -xzf "$cdpath/secondo.tgz"
@@ -62,9 +79,12 @@ make
 
 
 printf  "\n* Copying configuration files ... \n"
-cd "$instpath/secondo"
-chmod u+x setvar.bash catvar secondo-bashrc
-cp setvar.bash catvar "$instpath/secondo-sdk/bin"
-cp secondo-bashrc "$HOME"
+cd "$HOME/secondo/CM-Scripts"
+cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
+cp --backup .secondorc .bashrc-sample "$HOME"
+cd "$instpath/secondo-sdk/bin"
+chmod u+x setvar.bash catvar.sh 
+cd "$HOME"
+chmod u+x .secondorc .bashrc
 
-printf  "\n* Proceed with the installation guide ... \n"
+printf  "\n\n* Proceed with the installation guide ... \n"

@@ -19,7 +19,7 @@ export SECONDO_SDK="$SECONDO_PREFIX/secondo-sdk"
 
 alias setvar='source $SECONDO_SDK/bin/setvar.bash' 
 alias catvar='$SECONDO_SDK/bin/catvar.sh' 
-alias jcvs='java -jar /home/secondo/secondo-sdk/jCVS-5.2.2/jars/jcvsii.jar'
+alias jcvs='java -jar $SECONDO_SDK/jCVS-5.2.2/jars/jcvsii.jar'
 alias cvs-info='cvs -nq update | grep "[A-Z]"'
 
 source $SECONDO_SDK/bin/setvar.bash $HOME/secondo

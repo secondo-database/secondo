@@ -62,12 +62,12 @@ printf "\n\n* Installing unzip ..."
 
 install -d "$instpath/secondo-sdk/bin"
 cd "$instpath/secondo-sdk/bin"
-"$cdpath/non-gnu/unzip/unz550xN.exe"
+"$cdpath/non-gnu/unzip/unz550xN.exe > /dev/null"
 export PATH="$instpath/secondo-sdk/bin:$instpath/secondo-sdk/lib:$PATH"
 unzip -q -o "$cdpath/non-gnu/unzip/zip23xN.zip"
 
 cd "$instpath/secondo-sdk"
-printf "\n\n* Uncompressing archives ... "
+printf "\n\n* Uncompressing archives ... \n"
 
 for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
   zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
@@ -87,7 +87,7 @@ for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
 done
 
 cd "$HOME"
-printf "\n  Uncompressing SECONDO source files ..."
+printf "\n\n  Uncompressing SECONDO source files ... \n"
 if { ! tar -xzf "$cdpath/secondo.tgz"; }; then
   exit 3
 fi
@@ -106,7 +106,9 @@ cp --backup fstab profile "$msysdir/etc"
 
 cd "$cdpath/prolog"
 w32pl5010.exe
-cd $cdpath
+
+cd "$cdpath/java"
+j2sdk-1_4_2-windows-i586.exe
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"
