@@ -3,6 +3,7 @@
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[->] [$\rightarrow$]
 //[TOC] [\tableofcontents]
+//[_] [\_]
 
 [1] Implementation of the Date Algebra
 
@@ -15,7 +16,7 @@ December 11-26, 2002 Zhiming Ding
 
 1 Preliminaries
 
-This algebra provides one type constructor ~date~, and seven operators: \verb+<+ , = , \verb+>+, ~year~, ~month~, ~day~, and ~thedate~.
+This algebra provides one type constructor ~date~, and seven operators: \verb+<+ , = , \verb+>+, ~year[_]of~, ~month[_]of~, ~day[_]of~, and ~thedate~.
 
 Signatures of these operators are listed below:
 
@@ -26,7 +27,7 @@ Signatures of these operators are listed below:
         compare two dates.
 
 
-  * year, month, day
+  * year[_]of, month[_]of, day[_]of
 
 ----    date -> int
 ----
@@ -40,7 +41,7 @@ Signatures of these operators are listed below:
         generates a date according to the specified year, month, and day information
 
 
-The algerbra provides basic checks on the validity of a date. For instance, Fabruary in leap years
+The algebra provides basic checks on the validity of a date. For instance, Fabruary in leap years
 (every 4 years except 100th year, and every 400th year) has 29 days, and Fabruary in normal years only
 has 28 days.
 
@@ -80,27 +81,27 @@ bool isdate(int  Day, int Month, int Year)
     bool leapyear;
     int daysinmonth;
     if  (((Year % 4==0) && (Year % 100!=0)) || (Year % 400==0))
-    	leapyear=true; else leapyear=false;
+            leapyear=true; else leapyear=false;
     if ((Month<1)||(Month>12)) res=false;
-	  else
-	  {
-	    switch (Month)
-	      {
-	  	  case 1:
-  		  case 3:
-  		  case 5:
-		  case 7:
-  		  case 8:
-  		  case 10:
-  		  case 12: daysinmonth=31; break;
- 		  case 4:
-          	  case 6:
-          	  case 9:
-          	  case 11: daysinmonth=30; break;
- 	      	  case 2:  if (leapyear) daysinmonth=29; else daysinmonth=28;
-	      }
-	    if ((Day<1)||(Day>daysinmonth)) res=false;
-	  }
+        else
+        {
+         switch (Month)
+          {
+            case 1:
+            case 3:
+            case 5:
+            case 7:
+            case 8:
+            case 10:
+            case 12: daysinmonth=31; break;
+            case 4:
+            case 6:
+            case 9:
+            case 11: daysinmonth=30; break;
+            case 2:  if (leapyear) daysinmonth=29; else daysinmonth=28;
+           }
+           if ((Day<1)||(Day>daysinmonth)) res=false;
+        }
     return res;
 }
 
@@ -139,7 +140,7 @@ class Date: public StandardAttribute
   bool     IsDefined() const;
   void     SetDefined(bool Defined);
   size_t   HashValue();
-  void	   CopyFrom(StandardAttribute* right);
+  void           CopyFrom(StandardAttribute* right);
   int      Compare(Attribute * arg);
   bool     Adjacent(Attribute * arg);
   Date*    Clone();
@@ -227,19 +228,19 @@ int Date::Compare(Attribute * arg)
 
  if (!IsDefined() && !(arg->IsDefined()))  res=0;
  else if (!IsDefined())  res=-1;
-      else  if (!(arg->IsDefined())) res=1;
-            else
-             {
-              if ((this->GetYear()) > (d->GetYear())) res=1;
-              else if ((this->GetYear()) < (d->GetYear())) res=-1;
-                   else
-                      if ((this->GetMonth())>(d->GetMonth())) res=1;
-                      else if ((this->GetMonth())<(d->GetMonth())) res=-1;
-                           else
-                              if ((this->GetDay())>(d->GetDay())) res=1;
-                              else if ((this->GetDay())<(d->GetDay())) res=1;
-                                   else res=0;
-            }
+    else  if (!(arg->IsDefined())) res=1;
+       else
+       {
+         if ((this->GetYear()) > (d->GetYear())) res=1;
+         else if ((this->GetYear()) < (d->GetYear())) res=-1;
+              else
+                 if ((this->GetMonth())>(d->GetMonth())) res=1;
+                 else if ((this->GetMonth())<(d->GetMonth())) res=-1;
+                      else
+                         if ((this->GetDay())>(d->GetDay())) res=1;
+                         else if ((this->GetDay())<(d->GetDay())) res=1;
+                              else res=0;
+       }
   return (res);
 }
 
@@ -257,20 +258,20 @@ void Date::successor(Date *d, Date *s)
     else  leapyear=false;
 
    switch (Month)
-	{
-	  case 1:
- 	  case 3:
- 	  case 5:
-	  case 7:
- 	  case 8:
- 	  case 10:
- 	  case 12: daysinmonth=31; break;
- 	  case 4:
-          	  case 6:
-          	  case 9:
-          	  case 11: daysinmonth=30; break;
-       	  case 2:  if (leapyear) daysinmonth=29; else daysinmonth=28;
-	}
+      {
+          case 1:
+          case 3:
+          case 5:
+          case 7:
+          case 8:
+          case 10:
+          case 12: daysinmonth=31; break;
+          case 4:
+          case 6:
+          case 9:
+          case 11: daysinmonth=30; break;
+          case 2:  if (leapyear) daysinmonth=29; else daysinmonth=28;
+      }
     if ((Day<daysinmonth))
            Day++;
     else //==
@@ -278,10 +279,10 @@ void Date::successor(Date *d, Date *s)
            Day=1;
             if (Month<12) Month++;
             else
-	    {
-		Month=1;
-		Year++;
-                    }
+            {
+                Month=1;
+                Year++;
+            }
     }
     s->year=Year; s->month=Month; s->day=Day; s->defined=true;
 //    cout<<"NewDate"<<Year<<":"<<Month<<":"<<Day<<endl;
@@ -290,25 +291,27 @@ void Date::successor(Date *d, Date *s)
 bool Date::Adjacent(Attribute *arg)
 {
   Date *d = (Date *)arg;
-  if( this->Compare( d ) == 0 ) return 1;                 //both undefined or they are equal
+  if( this->Compare( d ) == 0 ) return 1;  //both undefined or they are equal
 
-  if (!IsDefined() || !(arg->IsDefined()))  return 0;  //one is undefined and another defined
-  else					  //both defined and they are not equal
+  if (!IsDefined() || !(arg->IsDefined())) 
+     //one is undefined and another defined
+     return 0;
+  else      //both defined and they are not equal
   {
       Date * auxdate=new Date();
 
       successor(this, auxdate);
       if (auxdate->Compare(d)==0)
       {
-	  delete auxdate;
-	  return 1;
+          delete auxdate;
+          return 1;
       }
 
       successor(d, auxdate);
       if (this->Compare(auxdate)==0)
       {
-	  delete auxdate;
-	  return 1;
+          delete auxdate;
+          return 1;
       }
       delete auxdate;
       return 0;
@@ -329,7 +332,7 @@ ostream& Date::Print(ostream &os)
 
 The list representation of a date is
 
-----	(isdefined dd mm yy)
+----        (isdefined dd mm yy)
 ----
 
 2.3 ~In~ and ~Out~ Functions
@@ -345,7 +348,8 @@ OutDate( ListExpr typeInfo, Word value )
   date = (Date*)(value.addr);
   if (date->IsDefined())
   {
-    sprintf(buf, "%d-%02d-%02d", date->GetYear(), date->GetMonth(), date->GetDay());   //eg. "1993-02-01"
+    sprintf(buf, "%d-%02d-%02d", date->GetYear(), 
+            date->GetMonth(), date->GetDay());   //eg. "1993-02-01"
   }
   else
   {
@@ -356,7 +360,8 @@ OutDate( ListExpr typeInfo, Word value )
 }
 
 Word
-InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, ListExpr& errorInfo, bool& correct )
+InDate( const ListExpr typeInfo, const ListExpr instance, 
+        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Date* newdate;
   string inputStr;
@@ -385,13 +390,13 @@ InDate( const ListExpr typeInfo, const ListExpr instance, const int errorPos, Li
     //basic check on date format
     for ( i=buf; i<buf+bufLen; i++)
     {
-	if (*i=='-') slash++;
-	if ((*i!='-') && ((*i<'0') || (*i>'9')))
-	{
-	    cout <<">>>invalid date!<<<"<<endl;
-	    correct = false;
-	    return SetWord(Address(0));
-	}
+        if (*i=='-') slash++;
+        if ((*i!='-') && ((*i<'0') || (*i>'9')))
+        {
+            cout <<">>>invalid date!<<<"<<endl;
+            correct = false;
+            return SetWord(Address(0));
+        }
     }
     if (slash!=2)
     {
@@ -491,13 +496,13 @@ DateProperty()
   nl->AppendText(examplelist, "\"2003-09-05\"");
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
-	                     nl->StringAtom("Example Type List"),
-			     nl->StringAtom("List Rep"),
-			     nl->StringAtom("Example List")),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
             nl->FourElemList(nl->StringAtom("-> DATA"),
-	                     nl->StringAtom("date"),
-			     listreplist,
-			     examplelist)));
+                             nl->StringAtom("date"),
+                             listreplist,
+                             examplelist)));
 }
 
 /*
@@ -520,20 +525,20 @@ CheckDate( ListExpr type, ListExpr& errorInfo )
 
 */
 TypeConstructor date(
-	"date",		            	    //name
-	DateProperty, 		            //property function describing signature
-	OutDate,  InDate,		    //Out and In functions
-        0,        0,                        //SaveToList and RestoreFromList functions
-	CreateDate, DeleteDate,		    //object creation and deletion
-        0, 0, CloseDate, CloneDate,	    //object open, save, close, and clone
-	CastDate,  		            //cast function
-        SizeOfDate,			    //sizeof function
-	CheckDate,			    //kind checking function
-	0, 				    //predef. pers. function for model
-	TypeConstructor::DummyInModel,
-	TypeConstructor::DummyOutModel,
-	TypeConstructor::DummyValueToModel,
-	TypeConstructor::DummyValueListToModel );
+        "date",                      //name
+        DateProperty,                //property function describing signature
+        OutDate,  InDate,            //Out and In functions
+        0,        0,                 //SaveToList and RestoreFromList functions
+        CreateDate, DeleteDate,      //object creation and deletion
+        0, 0, CloseDate, CloneDate,  //object open, save, close, and clone
+        CastDate,                    //cast function
+        SizeOfDate,                  //sizeof function
+        CheckDate,                   //kind checking function
+        0,                           //predef. pers. function for model
+        TypeConstructor::DummyInModel,
+        TypeConstructor::DummyOutModel,
+        TypeConstructor::DummyValueToModel,
+        TypeConstructor::DummyValueListToModel );
 
 
 
@@ -589,7 +594,7 @@ IntIntIntDate( ListExpr args )
     arg3 = nl->Third(args);
     if ( nl->IsEqual(arg1, "int") &&
          nl->IsEqual(arg2, "int") &&
-	 nl->IsEqual(arg3, "int"))
+         nl->IsEqual(arg3, "int"))
       return nl->SymbolAtom("date");
   }
   return nl->SymbolAtom("typeerror");
@@ -659,17 +664,17 @@ earlierFun (Word* args, Word& result, int message, Word& local, Supplier s)
   if (!(d1->IsDefined()) && !(d2->IsDefined())) res=false;
   else if (!(d1->IsDefined()) && (d2->IsDefined())) res=true;
        else if ((d1->IsDefined()) && !(d2->IsDefined())) res=false;
- 	    else
-	       { if ((d1->GetYear()) > (d2->GetYear())) res=false;
- 		 else if ((d1->GetYear()) < (d2->GetYear())) res=true;
-		      else
-			if ((d1->GetMonth())>(d2->GetMonth())) res=false;
-			else if ((d1->GetMonth())<(d2->GetMonth())) res=true;
-			     else
-				if ((d1->GetDay())>=(d2->GetDay()))
-				     res=false;
-				else res=true;
-		}
+             else
+               { if ((d1->GetYear()) > (d2->GetYear())) res=false;
+                  else if ((d1->GetYear()) < (d2->GetYear())) res=true;
+                      else
+                        if ((d1->GetMonth())>(d2->GetMonth())) res=false;
+                        else if ((d1->GetMonth())<(d2->GetMonth())) res=true;
+                             else
+                                if ((d1->GetDay())>=(d2->GetDay()))
+                                     res=false;
+                                else res=true;
+                }
 
   ((CcBool*)result.addr)->Set(true, res);
   return 0;
@@ -687,11 +692,11 @@ equalFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
   if (!(d1->IsDefined()) && !(d2->IsDefined())) res=true;
   else  if ((d1->IsDefined()) && (d2->IsDefined()) &&
-	    (d1->GetYear() == d2->GetYear()) &&
-	    (d1->GetMonth()== d2->GetMonth()) &&
-	    (d1->GetDay()  == d2->GetDay()))
-	     res=true;
-	else res=false;
+            (d1->GetYear() == d2->GetYear()) &&
+            (d1->GetMonth()== d2->GetMonth()) &&
+            (d1->GetDay()  == d2->GetDay()))
+             res=true;
+        else res=false;
 
   ((CcBool*)result.addr)->Set(true, res);
   return 0;
@@ -710,18 +715,18 @@ laterFun (Word* args, Word& result, int message, Word& local, Supplier s)
   if (!(d1->IsDefined()) && !(d2->IsDefined())) res=false;
   else if (!(d1->IsDefined()) && (d2->IsDefined())) res=false;
        else if ((d1->IsDefined()) && !(d2->IsDefined())) res=true;
-	    else
-	       {
-	        if ((d1->GetYear()) > (d2->GetYear())) res=true;
-		else if ((d1->GetYear()) < (d2->GetYear())) res=false;
-		     else
-			if ((d1->GetMonth())>(d2->GetMonth())) res=true;
-			else if ((d1->GetMonth())<(d2->GetMonth())) res=false;
-			     else
-				if ((d1->GetDay())<=(d2->GetDay()))
-				     res=false;
-				else res=true;
-		}
+            else
+               {
+                if ((d1->GetYear()) > (d2->GetYear())) res=true;
+                else if ((d1->GetYear()) < (d2->GetYear())) res=false;
+                     else
+                        if ((d1->GetMonth())>(d2->GetMonth())) res=true;
+                        else if ((d1->GetMonth())<(d2->GetMonth())) res=false;
+                             else
+                                if ((d1->GetDay())<=(d2->GetDay()))
+                                     res=false;
+                                else res=true;
+                }
 
   ((CcBool*)result.addr)->Set(true, res);
    return 0;
@@ -769,62 +774,62 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string DaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                         "\"Example\" )"
                              "( <text>(date) -> int</text--->"
-			       "<text>day_of ( _ )</text--->"
-			       "<text>extract the day info. from a date."
-			       "</text--->"
-			       "<text>query day_of ( date1 )</text--->"
-			       ") )";
+                               "<text>day_of ( _ )</text--->"
+                               "<text>extract the day info. from a date."
+                               "</text--->"
+                               "<text>query day_of ( date1 )</text--->"
+                               ") )";
 
 const string MonthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>(date) -> int</text--->"
-			       "<text>month_of ( _ )</text--->"
-			       "<text>extract the month info. from a date."
-			       "</text--->"
-			       "<text>query month_of ( date1 )</text--->"
-			       ") )";
+                               "<text>month_of ( _ )</text--->"
+                               "<text>extract the month info. from a date."
+                               "</text--->"
+                               "<text>query month_of ( date1 )</text--->"
+                               ") )";
 
 const string YearSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                              "( <text>(date) -> int</text--->"
-			       "<text>year_of ( _ )</text--->"
-			       "<text>extract the year info. from a date."
-			       "</text--->"
-			       "<text>query year_of ( date1 )</text--->"
-			       ") )";
+                               "<text>year_of ( _ )</text--->"
+                               "<text>extract the year info. from a date."
+                               "</text--->"
+                               "<text>query year_of ( date1 )</text--->"
+                               ") )";
 
 const string EarlierSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(date date) -> bool</text--->"
-			      " <text>_ < _</text--->"
-			       "<text>Earlier predicate.</text--->"
-			       "<text>query date1 < date2</text--->"
-			       ") )";
+                              " <text>_ < _</text--->"
+                               "<text>Earlier predicate.</text--->"
+                               "<text>query date1 < date2</text--->"
+                               ") )";
 const string EqualSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>(date date) -> bool</text--->"
-			       "<text>_ = _</text--->"
-			       "<text>Equal predicate.</text--->"
-			       "<text>query date1 = date2</text--->"
-			       ") )";
+                               "<text>_ = _</text--->"
+                               "<text>Equal predicate.</text--->"
+                               "<text>query date1 = date2</text--->"
+                               ") )";
 
 const string LaterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
                              "( <text>(date date) -> bool</text--->"
-			       "<text>_ > _</text--->"
-			       "<text>Later predicate.</text--->"
-			       "<text>query date1 > date2</text--->"
-			       ") )";
+                               "<text>_ > _</text--->"
+                               "<text>Later predicate.</text--->"
+                               "<text>query date1 > date2</text--->"
+                               ") )";
 
 const string DateSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
                              "( <text>(int int int) -> date</text--->"
-			     "<text>thedate ( <day>, <month>, <year> ) where"
-			     " <day>, <month> and <year> are of type int"
-			     "</text--->"
-			     "<text>To generate a date.</text--->"
-			     "<text>let date1 = thedate(5,4,2003)</text--->"
-			      ") )";
+                             "<text>thedate ( <day>, <month>, <year> ) where"
+                             " <day>, <month> and <year> are of type int"
+                             "</text--->"
+                             "<text>To generate a date.</text--->"
+                             "<text>let date1 = thedate(5,4,2003)</text--->"
+                              ") )";
 
 /*
 The above strings are used to explain the signature and the meaning of operators.
@@ -832,66 +837,66 @@ The above strings are used to explain the signature and the meaning of operators
 */
 
 Operator day (
-	"day_of", 			//name
-	DaySpec, 	     	//specification
-	dayFun,			//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	Operator::SimpleSelect,		//trivial selection function
-	DateInt			//type mapping
+        "day_of",                     //name
+        DaySpec,                      //specification
+        dayFun,                      //value mapping
+        Operator::DummyModel,        //dummy model mapping, defined in Algebra.h
+        Operator::SimpleSelect,      //trivial selection function
+        DateInt                      //type mapping
 );
 
 Operator month (
-	"month_of", 		//name
-	MonthSpec,	        //specification
-	monthFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	Operator::SimpleSelect,		//trivial selection function
-	DateInt			//type mapping
+        "month_of",                 //name
+        MonthSpec,                  //specification
+        monthFun,                   //value mapping
+        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
+        Operator::SimpleSelect,     //trivial selection function
+        DateInt                     //type mapping
 );
 
 Operator year (
-	"year_of", 		//name
-	YearSpec, 		//specification
-	yearFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	Operator::SimpleSelect,		//trivial selection function
-	DateInt			//type mapping
+        "year_of",                  //name
+        YearSpec,                   //specification
+        yearFun,                    //value mapping
+        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
+        Operator::SimpleSelect,     //trivial selection function
+        DateInt                     //type mapping
 );
 
 Operator earlier (
-	"<", 			//name
-	EarlierSpec,		//specification
-	earlierFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	Operator::SimpleSelect,		//trivial selection function
-	DateDateBool		//type mapping
+        "<",                        //name
+        EarlierSpec,                //specification
+        earlierFun,                 //value mapping
+        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
+        Operator::SimpleSelect,     //trivial selection function
+        DateDateBool                //type mapping
 );
 
 Operator opequal (
-	"=", 			//name
-	EqualSpec,		//specification
-	equalFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	Operator::SimpleSelect,		//trivial selection function
-	DateDateBool		//type mapping
+        "=",                        //name
+        EqualSpec,                  //specification
+        equalFun,                   //value mapping
+        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
+        Operator::SimpleSelect,     //trivial selection function
+        DateDateBool                //type mapping
 );
 
 Operator later (
-	">", 			//name
-	LaterSpec,		//specification
-	laterFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	Operator::SimpleSelect,		//trivial selection function
-	DateDateBool		//type mapping
+        ">",                        //name
+        LaterSpec,                  //specification
+        laterFun,                   //value mapping
+        Operator::DummyModel,       //dummy model mapping, defined in Algebra.h
+        Operator::SimpleSelect,     //trivial selection function
+        DateDateBool                //type mapping
 );
 
 Operator thedate (
-	"thedate", 		//name
-	DateSpec,		//specification
-	dateFun,		//value mapping
-	Operator::DummyModel,	//dummy model mapping, defined in Algebra.h
-	Operator::SimpleSelect,		//trivial selection function
-	IntIntIntDate		//type mapping
+        "thedate",                 //name
+        DateSpec,                  //specification
+        dateFun,                   //value mapping
+        Operator::DummyModel,      //dummy model mapping, defined in Algebra.h
+        Operator::SimpleSelect,    //trivial selection function
+        IntIntIntDate              //type mapping
 );
 /*
 
@@ -956,10 +961,10 @@ InitializeDateAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 
 We need to write the following DateAlgebra.spec file to indicate the syntax of the operations in the date algebra:
 
-----    operator year alias YEAR pattern op ( _ )
-	operator month alias MONTH pattern op ( _ )
-	operator day alias DAY pattern op ( _ )
-	operator thedate alias THEDATE pattern op ( _, _, _ )
+----    operator year[_]of alias YEAR[_]OF pattern op ( _ )
+        operator month[_]of alias MONTH[_]OF pattern op ( _ )
+        operator day[_]of alias DAY[_]OF pattern op ( _ )
+        operator thedate alias THEDATE pattern op ( _, _, _ )
 ----
 
 //[->] [$\rightarrow$]
@@ -970,27 +975,27 @@ We need to add the following display function into DisplayTTY.h and DisplayTTY.c
 (under the secondo/UserInterface/ subdirectary) to display date correctly:
 
 ----    void
-	DisplayTTY::DisplayDate(ListExpr type,ListExpr numType,ListExpr value)
-	{
-   	  ListExpr d, m, y;
-   	  if( nl->IsAtom( value ) &&
-	      nl->AtomType( value ) == SymbolType &&
-	      nl->SymbolValue( value ) == "undef" )
-    	  {
-      	      cout << "UNDEFINED";
-    	  }
-   	  else
-   	  {
-      	      d =  nl->Second( value ) ;
-      	      m =  nl->Third( value ) ;
-      	      y = nl->Fourth( value );
-      	      nl->WriteListExpr( d, cout );
-      	      cout << ",";
-      	      nl->WriteListExpr( m, cout );
-      	      cout << ",";
-      	      nl->WriteListExpr( y, cout );
-   	  }
-	}
+        DisplayTTY::DisplayDate(ListExpr type,ListExpr numType,ListExpr value)
+        {
+             ListExpr d, m, y;
+             if( nl->IsAtom( value ) &&
+              nl->AtomType( value ) == SymbolType &&
+              nl->SymbolValue( value ) == "undef" )
+              {
+                    cout << "UNDEFINED";
+              }
+             else
+             {
+                    d =  nl->Second( value ) ;
+                    m =  nl->Third( value ) ;
+                    y = nl->Fourth( value );
+                    nl->WriteListExpr( d, cout );
+                    cout << ",";
+                    nl->WriteListExpr( m, cout );
+                    cout << ",";
+                    nl->WriteListExpr( y, cout );
+             }
+        }
 ----
 
 */
