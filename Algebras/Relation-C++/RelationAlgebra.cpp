@@ -375,9 +375,6 @@ class ~TypeConstructor~. Constructor's arguments are the type constructor's
 name and the eleven functions previously defined.
 
 */
-void DummyClose(Word& w) {}
-void DummyDelete(Word& w) {}
- 
 TypeConstructor cpptuple( "tuple",           	TupleProp,
                           OutTuple,          	InTuple,		
                           CreateTuple,		DeleteTuple,       	
@@ -919,8 +916,9 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     Tuple* tuple = ((Tuple*)actual.addr)->CloneIfNecessary();
     rel->AppendTuple(tuple);
-    if( tuple != actual.addr ) tuple->Delete();
-    ((Tuple*)actual.addr)->DeleteIfAllowed();
+    if( tuple != actual.addr ) 
+      ((Tuple*)actual.addr)->DeleteIfAllowed();
+    tuple->Delete();
 
     qp->Request(args[0].addr, actual);
   }
@@ -1062,7 +1060,7 @@ const string AttrSpec =
 
 */
 Operator attr (
-         "attr",           // name
+     "attr",           // name
      AttrSpec,        // specification
      Attr,            // value mapping
      Operator::DummyModel, // dummy model mapping, defines in Algebra.h

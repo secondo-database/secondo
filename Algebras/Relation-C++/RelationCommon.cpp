@@ -312,9 +312,7 @@ Relation *Relation::In( ListExpr typeInfo, ListExpr value, int errorPos, ListExp
       if (tupleCorrect)
       {
         assert( tupleaddr->IsFree() == false );
-
         rel->AppendTuple(tupleaddr);
-
         assert( tupleaddr->IsFree() == false );
         tupleaddr->DeleteIfAllowed();
 
@@ -349,7 +347,7 @@ ListExpr Relation::Out( ListExpr typeInfo )
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
           nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = t->Out(TupleTypeInfo);
-    t->DeleteIfAllowed();
+    t->Delete();
     if (l == nl->TheEmptyList())
     {
       l = nl->Cons(tlist, nl->TheEmptyList());

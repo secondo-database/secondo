@@ -116,7 +116,8 @@ struct PrivateTuple
     attrArray( new (Attribute*)[tupleType.GetNoAttributes()] ),
     isFree( isFree )
     {
-      
+      for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+        attrArray[i] = 0; 
     }
 /*
 The constructor.
@@ -128,6 +129,8 @@ The constructor.
     attrArray( new (Attribute*)[tupleType->GetNoAttributes()] ),
     isFree( isFree )
     {
+      for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
+        attrArray[i] = 0; 
     }
 /*
 The constructor.
