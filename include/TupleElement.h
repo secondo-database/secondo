@@ -46,10 +46,14 @@ actions arising from persistency.
 typedef void* Address;
 #endif
 
+#include "FLOB.h"
+/*
 #ifndef TYPE_FLOB_DEFINED
 #define TYPE_FLOB_DEFINED
 typedef void FLOB;
 #endif
+*/
+
 /*
 Are type definitions for a generic address pointer and for a ~fake large object~.
 
@@ -71,6 +75,8 @@ class TupleElement // renamed, previous name: TupleElem
   virtual FLOB*    GetFLOB( int ){ return (0); };
   virtual ostream& Print( ostream& os ) { return (os << "??"); };
 };
+
+ostream& operator<< (ostream &os, TupleElement &attrib);
 
 #endif
 
