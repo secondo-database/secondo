@@ -292,10 +292,12 @@ const unsigned char MAX_STRINGSIZE = 3 * STRINGSIZE;
 const unsigned char StringFragmentSize = STRINGSIZE - sizeof(StringsEntry);
 const unsigned char STRING_INTERNAL_SIZE = 2*sizeof(TextsEntry);
 
+typedef char StringAtomCharVec[MAX_STRINGSIZE+1];
+
 struct StringRecord 
 { 
   StringsEntry next;
-  char         field[StringFragmentSize]; 
+  char field[StringFragmentSize]; 
 };
 /*
 Symbols and strings with a maximum size of "3\times STRINGSIZE"[2] characters
@@ -689,6 +691,14 @@ corresponding atom:
   ListExpr BoolAtom( const bool value );
   ListExpr StringAtom( const string& value, bool isString=true );
   ListExpr SymbolAtom( const string& value );
+
+  ListExpr inline SetStringAtom( const StringAtomCharVec& value) { 
+    return StringAtom( string(value) ); 
+  };
+  ListExpr inline SetSymbolAtom( const StringAtomCharVec& value) { 
+    return StringAtom( string(value) ); 
+  };
+
 /*
 Note: ~Symbols~ and ~Strings~ are character sequences up to 3[star]STRINGSIZE.
 SymbolAtom is only a wrapper which calls Stringatom(value,false) to avoid

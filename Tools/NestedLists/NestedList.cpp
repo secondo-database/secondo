@@ -1968,6 +1968,7 @@ NestedList::SymbolAtom( const string& value )
   return (newNode);
 }
 
+
 /*
 8.6 TextAtom
 
