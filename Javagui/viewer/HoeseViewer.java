@@ -1045,6 +1045,8 @@ public void removeAll(){
 
 /** return true if o is displayed false otherwise */
 public boolean isDisplayed(SecondoObject o){
+   if(!canDisplay(o))
+      return false;
    QueryResult q = new QueryResult(o.getName(),o.toListExpr());
    int index = getQueryIndex(q);
    return index>=0;
