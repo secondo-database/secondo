@@ -518,7 +518,7 @@ Word RestoreFromListTuple(ListExpr typeInfo, ListExpr value,
     firstvalue = nl->First(valuelist);
     valuelist = nl->Rest(valuelist);
 
-    attr = (algM->InObj(algebraId, typeId))(nl->Rest(first),
+    attr = (algM->RestoreFromListObj(algebraId, typeId))(nl->Rest(first),
             firstvalue, attrno, errorInfo, valueCorrect);
 
     assert(valueCorrect);
@@ -526,6 +526,7 @@ Word RestoreFromListTuple(ListExpr typeInfo, ListExpr value,
     noOfAttrs++;
   }
   tupleaddr->SetNoAttrs(noOfAttrs);
+  correct = true;
   return (SetWord(tupleaddr));
 }
 
@@ -1059,6 +1060,7 @@ Word RestoreFromListRel(ListExpr typeInfo, ListExpr value,
     count++;
   }
   rel->SetNoTuples(count);
+  correct = true;
   return (SetWord((void*)rel));
 }
 
