@@ -7859,141 +7859,141 @@ const string SpatialSpecIsEmpty  =
 
 const string SpatialSpecEqual  =
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(point point) -> bool, (points points) -> bool, "
-	     "(line line) -> bool, (region region) -> bool</text--->"
-	     "<text>_ = _</text--->"
-	     "<text>Equal.</text--->"
-	     "<text>query point1 = point2</text--->"
-	     ") )";
+	"( <text>(point point) -> bool, (points points) -> bool, "
+	"(line line) -> bool, (region region) -> bool</text--->"
+	"<text>_ = _</text--->"
+	"<text>Equal.</text--->"
+	"<text>query point1 = point2</text--->"
+	") )";
 
 const string SpatialSpecNotEqual  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(point point) -> bool</text--->"
-	     "<text>_ # _</text--->"
-	     "<text>Not equal.</text--->"
-	     "<text>query point1 # point2</text--->"
-	     ") )";
+	"( <text>(point point) -> bool</text--->"
+	"<text>_ # _</text--->"
+	"<text>Not equal.</text--->"
+	"<text>query point1 # point2</text--->"
+	") )";
 
 const string SpatialSpecLess  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(point point) -> bool</text--->"
-	     "<text>_ < _</text--->"
-	     "<text>Less than.</text--->"
-	     "<text>query point1 < point2</text--->"
-	     ") )";
+	"( <text>(point point) -> bool</text--->"
+	"<text>_ < _</text--->"
+	"<text>Less than.</text--->"
+	"<text>query point1 < point2</text--->"
+	") )";
 
 const string SpatialSpecLessEqual  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(point point) -> bool</text--->"
-	     "<text>_ <= _</text--->"
-	     "<text>Equal or less than.</text--->"
-	     "<text>query point1 <= point2</text--->"
-	     ") )";
+	"( <text>(point point) -> bool</text--->"
+	"<text>_ <= _</text--->"
+	"<text>Equal or less than.</text--->"
+	"<text>query point1 <= point2</text--->"
+	") )";
 
 const string SpatialSpecGreater  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(point point) -> bool</text--->"
-	     "<text>_ > _</text--->"
-	     "<text>Greater than.</text--->"
-	     "<text>query point1 > point2</text--->"
-	     ") )";
+	"( <text>(point point) -> bool</text--->"
+	"<text>_ > _</text--->"
+	"<text>Greater than.</text--->"
+	"<text>query point1 > point2</text--->"
+	") )";
 
 
 const string SpatialSpecGreaterEqual  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(point point) -> bool</text--->"
-	     "<text>_ >= _</text--->"
-	     "<text>Equal or greater than.</text--->"
-	     "<text>query point1 >= point2</text--->"
-	     ") )";
+	"( <text>(point point) -> bool</text--->"
+	"<text>_ >= _</text--->"
+	"<text>Equal or greater than.</text--->"
+	"<text>query point1 >= point2</text--->"
+	") )";
 
 const string SpatialSpecIntersects  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )" 
-	   "( <text>(geo x geo) -> bool </text--->"
-	     "<text>_ intersects _</text--->"
-	     "<text>Intersects.</text--->"
-	     "<text>query region1 intersects region2</text--->"
-	     ") )";
+	"( <text>(geo x geo) -> bool </text--->"
+	"<text>_ intersects _</text--->"
+	"<text>Intersects.</text--->"
+	"<text>query region1 intersects region2</text--->"
+	") )";
 
 const string SpatialSpecInside  = 	
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-	  "( <text>(geo x geoset) -> bool</text--->"
-	    "<text>_ inside _</text--->"
-	    "<text>Inside.</text--->"
-	    "<text>query point1 inside line1</text--->"
-	    ") )";
+	"( <text>(geo x geoset) -> bool</text--->"
+	"<text>_ inside _</text--->"
+	"<text>Inside.</text--->"
+	"<text>query point1 inside line1</text--->"
+	") )";
 
 const string SpatialSpecOnBorder  = 
 	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-	  "( <text>(point line or region) -> bool</text--->"
-	    "<text>_ onborder _</text--->"
-	    "<text>on endpoints or on border edges.</text--->"
-	    "<text>query point onborder line</text--->"
-	    ") )";
+	"( <text>(point line or region) -> bool</text--->"
+	"<text>_ onborder _</text--->"
+	"<text>on endpoints or on border edges.</text--->"
+	"<text>query point onborder line</text--->"
+	") )";
 			      
 const string SpatialSpecInInterior  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point line or region) -> bool</text--->
-	     <text>_ ininterior _</text--->
-	     <text>in interior of a line or region.</text--->
-	     <text>query point ininterior region</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(point line or region) -> bool</text--->"
+	"<text>_ ininterior _</text--->"
+	"<text>in interior of a line or region.</text--->"
+	"<text>query point ininterior region</text--->"
+	") )";
 
 const string SpatialSpecIntersection  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text> (a b) -> a </text--->
-	     <text>_ intersection _</text--->
-	     <text>intersection of two sets.</text--->
-	     <text>query point intersection region</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text> (a b) -> a </text--->"
+	"<text>_ intersection _</text--->"
+	"<text>intersection of two sets.</text--->"
+	"<text>query point intersection region</text--->"
+	") )";
 
 const string SpatialSpecMinus  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(a b) ->a</text--->
-	     <text>_ minus _</text--->
-	     <text>minus of two sets.</text--->
-	     <text>query points minus point</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(a b) ->a</text--->"
+	"<text>_ minus _</text--->"
+	"<text>minus of two sets.</text--->"
+	"<text>query points minus point</text--->"
+	") )";
 
 const string SpatialSpecUnion  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(a b) ->c</text--->
-	     <text>_ union _</text--->
-	     <text>union of two sets.</text--->
-	     <text>query points union point</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(a b) ->c</text--->"
+	"<text>_ union _</text--->"
+	"<text>union of two sets.</text--->"
+	"<text>query points union point</text--->"
+	") )";
 
 const string SpatialSpecCrossings  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(line line) ->points</text--->
-	     <text>_ crossings _</text--->
-	     <text>crossing points of two line.</text--->
-	     <text>query line1 crossings line2</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(line line) ->points</text--->"
+	"<text>_ crossings _</text--->"
+	"<text>crossing points of two line.</text--->"
+	"<text>query line1 crossings line2</text--->"
+	") )";
 
 const string SpatialSpecSingle  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(points) ->point</text--->
-	     <text> single _</text--->
-	     <text>transform a single-element points value to point value.</text--->
-	     <text>query single points</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(points) ->point</text--->"
+	"<text> single _</text--->"
+	"<text>transform a single-element points value to point value.</text--->"
+	"<text>query single points</text--->"
+	") )";
 
 const string SpatialSpecDistance  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point x point) ->real</text--->
-	     <text> _distance _</text--->
-	     <text>get the distance from a point to a spatial object.</text--->
-	     <text>query distance(p, l)</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(point x point) ->real</text--->"
+	"<text> _distance _</text--->"
+	"<text>get the distance from a point to a spatial object.</text--->"
+	"<text>query distance(p, l)</text--->"
+	") )";
 
 const string SpatialSpecDirection  = 
-	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) 
-	   ( <text>(point x point) ->real</text--->
-	     <text> _direction _</text--->
-	     <text>get the direction from a point to another point.</text--->
-	     <text>query direction(p1, p2)</text--->
-	     ) )";
+	"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+	"( <text>(point x point) ->real</text--->"
+	"<text> _direction _</text--->"
+	"<text>get the direction from a point to another point.</text--->"
+	"<text>query direction(p1, p2)</text--->"
+	") )";
 
 Operator spatialisempty
 	( "isempty", SpatialSpecIsEmpty, 4, spatialisemptymap, 
