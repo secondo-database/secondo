@@ -544,7 +544,7 @@ bool Rectangle<dim>::Proper() const
 template <unsigned dim>
 ListExpr OutRectangle( ListExpr typeInfo, Word value )
 {
-  Rectangle<dim>* r = (Rectangle<dim>*)(value.addr);
+  Rectangle<dim> *r = (Rectangle<dim>*)value.addr;
   if( r->IsDefined() )
   {
     ListExpr result = nl->OneElemList( nl->RealAtom( r->MinD(0) ) ),
@@ -576,6 +576,7 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
 
   if( nl->ListLength( instance ) == 2 * dim )
   {
+    correct = true;
     double min[dim], max[dim];
 
     for( unsigned i = 0; i < dim; i++ )
