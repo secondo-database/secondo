@@ -45,9 +45,34 @@ $(MODNAME).$(OBJEXT): $(MODNAME).cpp $(INCFILES)
 
 include ../../include.dep
 
+
+.PHONY:pdf
+pdf: DateTimeAlgebra.pdf
+
+DateTimeAlgebra.pdf: DateTimeAlgebra.cpp.dvi
+	dvipdfm -p a4 -o DateTimeAlgebra.pdf DateTimeAlgebra.cpp.dvi
+
+
+
+.PHONY:dvi
+dvi: DateTimeAlgebra.cpp.dvi
+
+
+DateTimeAlgebra.cpp.dvi: DateTimeAlgebra.cpp.tex
+	latex DateTimeAlgebra.cpp.tex
+	latex DateTimeAlgebra.cpp.tex
+	latex DateTimeAlgebra.cpp.tex
+
+DateTimeAlgebra.cpp.tex: DateTimeAlgebra.cpp
+	pd2tex DateTimeAlgebra.cpp
+
+
 .PHONY: clean
-clean:
+clean: cleanpdf
 	$(RM) $(LIBDIR)/$(LIBNAME).a $(LIBDIR)/$(LIBNAME).so $(LIBDIR)/$(LIBNAME).dll $(LIBDIR)/$(LIBNAME).dll.a
 	$(RM) *.o
 	$(RM) *.lo
 
+.PHONY: cleanpdf
+cleanpdf:
+	$(RM) *.toc *.log *.tex *.dvi *.aux *.pdf
