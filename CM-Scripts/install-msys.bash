@@ -10,8 +10,12 @@ if [ "$1" = "" ]; then
    printf "\n* Using default installation $instpath \n"
 else if [ "$1" = "testmode" ]; then
      printf "\n* Running Test Mode! \n"
+     #create directory structure
      instpath="$HOME/SANDBOX-DRV-C"
+     HOME="$instpath/msys/1.0/home/dummy"
+     install -d "$instpath/msys/1.0/home/dummy"
      install -d "$instpath/msys/1.0"
+     install -d "$instpath/msys/1.0/etc"
      install -d "$instpath/mingw"
      install -d "$instpath/secondo-sdk"
      install -d "$instpath/secondo"
@@ -56,15 +60,15 @@ mkdir "$msysdir/mingw"
 
 printf "\n\n* Installing unzip ..."
 
-cd "$instpath/secondo-sdk"
-echo "$cdpath/non-gnu/unz550xN"
+cd "$instpath/secondo-sdk/bin"
+"$cdpath/non-gnu/unzip/unz550xN.exe"
 export PATH="$instpath/secondo-sdk/bin:$instpath/secondo-sdk/lib:$PATH"
 
 printf "\n\n* Uncompressing archives ... "
 
-for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs $cdpath; do
+for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs; do
   zipFiles=$(find $folder -maxdepth 1 -name "*.zip")
-  gzFiles=$(find $folder -maxdepth 1 -name "*.gz")
+  gzFiles=$(find $folder -maxdepth 1 -name "*.*gz")
   for file in $zipFiles; do
     printf "\n  processing $file ..."
     unzip -q -o $file
@@ -75,17 +79,26 @@ for folder in $cdpath/gnu $cdpath/non-gnu $cdpath/../java/cvs $cdpath; do
   done
 done
 
+cd "$instpath"
+printf "\n  Uncompressing SECONDO source files ..."
+tar -xzf "$cdpath/secondo.tgz"
+
 printf  "\n\n* Copying configuration files ... \n"
 cd "$instpath/secondo/CM-Scripts"
-chmod u+x setvar.bash catvar .secondorc .bashrc-sample
-cp --backup setvar.bash catvar "$instpath/secondo-sdk/bin"
+cp --backup setvar.bash catvar.sh "$instpath/secondo-sdk/bin"
 cp --backup .secondorc .bashrc-sample "$HOME"
 cp --backup .bashrc-sample "$HOME/.bashrc"
+cd "$instpath/secondo-sdk/bin"
+chmod u+x setvar.bash catvar.sh 
+cd "$HOME"
+chmod u+x .secondorc .bashrc
+cd "$cdpath"
+cp --backup fstab profile "$msysdir/etc"
 
-cd "$cdpath" 
-cp --backup fstab profile /etc
+"$cdpath/prolog/w32pl5010.exe"
 
 printf  "\n* MSYS Configuration and file extraction has been finished."
 printf  "\n* Close all open MSYS windows and open a new one, otherwise"
-printf  "\n* the new configuration will not be read. \n"
+printf  "\n* the new configuration will not be read. Proceed with the "
+printf  "\n* Installation Guide. \n"
 

@@ -55,7 +55,7 @@ export SECONDO_CONFIG="$1/bin/SecondoConfig.ini"
 
 export JNI_INIT="$1/bin/JNI.ini"
 
-export CVSROOT=":pserver:$SEC_CVS_USER@zeppelin.fernuni-hagen.de:2401/home/cvsroot"
+export CVSROOT=":pserver:$SECONDO_CVS_USER@zeppelin.fernuni-hagen.de:2401/home/cvsroot"
 
 if [ $SECONDO_PLATFORM != "win32" ]; then 
    
