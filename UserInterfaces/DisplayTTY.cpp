@@ -253,15 +253,22 @@ void
 DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
 {
    ListExpr d, m, y;
-   
-    d =  nl->First( value ) ;
-    m =  nl->Second( value ) ;
-    y = nl->Third( value );  
-    nl->WriteListExpr( d, cout );
-    cout << ", ";
-    nl->WriteListExpr( m, cout );
-    cout << ", ";
-    nl->WriteListExpr( y, cout );
+    cout <<"---DISPLAYTTY---" << endl;    
+   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType && nl->SymbolValue( value ) == "undef" )
+    {
+      cout << "UNDEFINED";
+    }
+   else
+   {
+      d =  nl->Second( value ) ;
+      m =  nl->Third( value ) ;
+      y = nl->Fourth( value );  
+      nl->WriteListExpr( d, cout );
+      cout << ",";
+      nl->WriteListExpr( m, cout );
+      cout << ",";
+      nl->WriteListExpr( y, cout );
+   }
 }
 
 void
@@ -280,7 +287,7 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
     CallDisplayFunction( numType, type, numType, value );
   }
   nl->Destroy( numType );
-  cout << endl;
+  cout << endl;         
 }
 
 void
