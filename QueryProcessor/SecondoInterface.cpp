@@ -354,6 +354,9 @@ If value 0 is returned, the command was executed without error.
     return;
   }
   SecondoSystem::SetAlgebraLevel( level );
+
+  nl->WriteListExpr(list);
+  cout << endl;
   length = nl->ListLength( list );
   if ( length > 1 )
   {
