@@ -907,6 +907,13 @@ plan_to_atom(fun(Params, Expr), Result) :-
   !.
 
 
+plan_to_atom(attribute(X, Y), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
+  !.
+
+
 
 /*
 Sort orders and attribute names.
@@ -1562,6 +1569,10 @@ cost(loopjoin(X, Y), Sel, S, Cost) :-
   S is SizeX * SizeY,
   loopjoinTC(C),
   Cost is C * SizeX + CostX + SizeX * CostY.
+
+cost(fun(_, X), Sel, Size, Cost) :-
+  cost(X, Sel, Size, Cost).
+
 
 
 /*
