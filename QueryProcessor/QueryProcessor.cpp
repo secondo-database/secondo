@@ -452,6 +452,52 @@ struct OpNode
       int		counterNo;	
     } op;
   } u;
+  OpNode(OpNodeType type = Operator) : 
+    evaluable(false),
+    typeExpr(0),
+    nodeLevel(ExecutableLevel),
+    nodetype(type),
+    isRoot(false)
+  {
+    switch ( nodetype )
+    {
+      case Object :
+      {
+        u.dobj.value = SetWord(Address(0));
+        u.dobj.valNo = 0;        
+        u.dobj.model = SetWord(Address(0));
+        u.dobj.isConstant = false;
+        break;
+      }
+      case IndirectObject :
+      {
+        u.iobj.vector = 0;
+        u.iobj.funNumber = 0;   
+        u.iobj.argIndex = 0;
+        break;
+      }
+      case Operator :
+      {
+        u.op.algebraId = 0;
+        u.op.opFunId = 0;
+        u.op.noSons = 0;
+        u.op.isFun = false;
+        u.op.funArgs = 0;
+        u.op.funNo  = 0;    
+        u.op.isStream = false;
+        u.op.local = SetWord(Address(0));
+        u.op.received = false;
+        u.op.resultAlgId = 0;
+        u.op.resultTypeId = 0;
+        u.op.resultWord = SetWord(Address(0));
+        u.op.subtreeModel = SetWord(Address(0));
+        u.op.counterNo = 0;
+        break;	
+      }
+      default :
+      { assert( false ); }
+    }
+  }
 };
 
 /*
@@ -2289,7 +2335,7 @@ QueryProcessor::Subtree( const AlgebraLevel level,
       node->u.op.funNo = 0;
       node->u.op.isStream = false;
       node->u.op.resultAlgId = 0;
-			node->u.op.counterNo = 0;
+      node->u.op.counterNo = 0;
       return (node);
     }
     case QP_COUNTERDEF:
