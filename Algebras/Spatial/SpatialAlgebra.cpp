@@ -8856,7 +8856,7 @@ overlaps_rl( Word* args, Word& result, int message, Word& local, Supplier s )
 
 static int
 overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
-{  //Should be modified...............
+{  
     result = qp->ResultStorage( s );
     CRegion *cr1, *cr2;
     CHalfSegment chs1, chs2;
@@ -8870,6 +8870,7 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 	return (0);
     }
 
+    //1. do normal check according to the edges
     for (int i=0; i<cr1->Size(); i++)
     {
 	cr1->Get(i, chs1);
@@ -8885,16 +8886,18 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 			((CcBool *)result.addr)->Set( true, true );
 			return (0);
 		    }
-
-		    if ((cr2->innercontain(chs1.GetLP()))||
-		        (cr2->innercontain(chs1.GetRP()))||
-		        (cr1->innercontain(chs2.GetRP()))||
-		        (cr1->innercontain(chs2.GetRP())))
-		    {
-			((CcBool *)result.addr)->Set( true, true );
-			return (0);
-		    }
 		    
+		    //This part is moved out of the loop to speed up the process
+		    //if ((cr2->innercontain(chs1.GetLP()))||
+		    //    (cr2->innercontain(chs1.GetRP()))||
+		    //    (cr1->innercontain(chs2.GetLP()))||
+		    //    (cr1->innercontain(chs2.GetRP())))
+		    //{
+		    //	((CcBool *)result.addr)->Set( true, true );
+		    //	return (0);
+		    //   }
+		   
+		    		    
 		    if (chs1==chs2)
 		    {
 			Point tryp;
@@ -8945,6 +8948,37 @@ overlaps_rr( Word* args, Word& result, int message, Word& local, Supplier s )
 	    }
 	}
     }
+    
+    //2. check the cases of Tong-Xin-Yuan
+    for (int i=0; i<cr1->Size(); i++)
+    {
+	cr1->Get(i, chs1);
+	if (chs1.GetLDP())
+	{
+	    if ((cr2->innercontain(chs1.GetLP()))||
+		(cr2->innercontain(chs1.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true );
+		return (0);
+	    }
+	}
+    }
+    
+    for (int j=0; j<cr2->Size(); j++)
+    {
+	cr2->Get(j, chs2);
+	if (chs2.GetLDP())
+	{
+	    if ((cr1->innercontain(chs2.GetLP()))||
+		(cr1->innercontain(chs2.GetRP())))
+	    {
+		((CcBool *)result.addr)->Set( true, true );
+		return (0);
+	    }
+	}
+    }
+    
+    //3. else False
     ((CcBool *)result.addr)->Set( true, false);
     return (0);    
 }
