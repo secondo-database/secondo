@@ -868,6 +868,7 @@ NestedList::ReadFromString( const string& nlChars, ListExpr& list )
 
   bool success = false;
   list = 0;
+  assert(!(nlChars == ""));
   istringstream inString( nlChars );
   if ( inString )
   {
