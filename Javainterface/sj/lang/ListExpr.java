@@ -99,7 +99,7 @@ public class ListExpr extends Object {
    by the code belonging to this class.
    */
   // Defines if the class must show extra information when errors are detected.
-  private static final boolean DEBUG_MODE = true;
+  private static boolean DEBUG_MODE = true;
   // Defines if the class must check the preconditions and shows extra information when an input that does not fulfil the preconditions is detected.
   private static final boolean CHECK_PRECONDITIONS = true;
   // The ~emptyList~ object.
@@ -135,6 +135,14 @@ public class ListExpr extends Object {
    3.4 Public methods.
    The following public methods are defined to access to the ListExpr objects, and hence they can be used by the user code.
    */
+  /*
+    3.4.0 The ~setDebugMode~ method.
+    if the debug mode is enabled then additional informations are printed
+    when an error is occured. */
+  public static void setDebugMode(boolean enabled){
+    DEBUG_MODE = enabled;
+  }
+
   /*
    3.4.1 The ~setValueTo~ method.
    This new method was added to allow the user's methods to modify the content of a ListExpr object passed as parameter. It gets as parameter a ListExpr ~list~ and modifies the content of this object to be acopy of the ~list~ ListExpr.
