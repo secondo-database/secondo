@@ -55,7 +55,8 @@ public class ViewConfig extends javax.swing.JDialog {
     RefAList = getRefAttrList();
     initComponents();
     pack();
-    setResizable(false);
+    setSize(500,300);
+    setResizable(true);
   }
 
   /**
@@ -86,6 +87,7 @@ public class ViewConfig extends javax.swing.JDialog {
    * initialize the dialog.
    */
   private void initComponents () {              //GEN-BEGIN:initComponents
+
     GALabel = new javax.swing.JLabel();
     VCLabel = new javax.swing.JLabel();
     CatCB = new javax.swing.JComboBox(mw.Cats);
@@ -114,7 +116,6 @@ public class ViewConfig extends javax.swing.JDialog {
     LabelAttrCB.setSelectedIndex(-1);
     RendPosCB = new javax.swing.JComboBox();
     getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
-    //	setSize(300,300);
     InfoPanel = new JPanel();
     InfoPanel.setBorder(LineBorder.createGrayLineBorder());
     InfoPanel.setPreferredSize(new Dimension(400, 130));
@@ -122,16 +123,18 @@ public class ViewConfig extends javax.swing.JDialog {
     NavPanel.setBorder(LineBorder.createGrayLineBorder());
     NavPanel.setPreferredSize(new Dimension(300, 100));
     RefPanel = new JPanel();
-    RefPanel.setBorder(LineBorder.createGrayLineBorder());
+    //RefPanel.setBorder(LineBorder.createGrayLineBorder());
     RefPanel.setVisible(false);
-    RefPanel.setPreferredSize(new Dimension(300, 100));
+    //RefPanel.setPreferredSize(new Dimension(300, 100));
     GALabel.setText("Attribute: ");
-    InfoPanel.add(GALabel);
+    InfoPanel.setLayout(new GridLayout(4,1));
+    JPanel FirstRow = new JPanel();
+    FirstRow.add(GALabel);
     GAAttrName = new JLabel(AttrName);
-    InfoPanel.add(GAAttrName);
-    InfoPanel.add(Box.createHorizontalStrut(30));
+    FirstRow.add(GAAttrName);
+    FirstRow.add(Box.createHorizontalStrut(30));
     VCLabel.setText("View Category:");
-    InfoPanel.add(VCLabel);
+    FirstRow.add(VCLabel);
     JButton ShowCEB = new JButton("..");
     ShowCEB.setPreferredSize(new Dimension(15, 20));
     ShowCEB.addActionListener(new java.awt.event.ActionListener() {
@@ -142,25 +145,37 @@ public class ViewConfig extends javax.swing.JDialog {
         //			((DsplBase)o).getFrame().select(o);	
       }
     });
-    InfoPanel.add(CatCB);
-    InfoPanel.add(ShowCEB);
+    FirstRow.add(CatCB);
+    FirstRow.add(ShowCEB);
+    InfoPanel.add(FirstRow);
+
+    JPanel SecondRow = new JPanel();
     LTLabel.setText("Label Text:");
-    InfoPanel.add(LTLabel);
+    SecondRow.add(LTLabel);
     LabelText.setColumns(10);
-    InfoPanel.add(LabelText);
+    SecondRow.add(LabelText);
     LALabel.setText("Labelattribute");
-    InfoPanel.add(LALabel);
-    InfoPanel.add(LabelAttrCB);
-    InfoPanel.add(new JLabel("Label Offset X Y"));
-    InfoPanel.add(LabXOffText);
-    InfoPanel.add(LabYOffText);
+    SecondRow.add(LALabel);
+    SecondRow.add(LabelAttrCB);
+    InfoPanel.add(SecondRow);
+
+    JPanel ThirdRow = new JPanel();
+    ThirdRow.add(new JLabel("Label Offset X Y"));
+    ThirdRow.add(LabXOffText);
+    ThirdRow.add(LabYOffText);
+    InfoPanel.add(ThirdRow);
+
+    JPanel FourthRow = new JPanel();
     RefDepCBo.setText("Reference dependant Rendering");
     RefDepCBo.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         RefDepCBoActionPerformed(evt);
       }
     });
-    InfoPanel.add(RefDepCBo);
+    FourthRow.add(RefDepCBo);
+    InfoPanel.add(FourthRow);
+
+
     SingleTupelCBo.setText("Single Tuple");
     SingleTupelCBo.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
@@ -180,7 +195,9 @@ public class ViewConfig extends javax.swing.JDialog {
         }
       }
     });
-    NavPanel.add(SingleTupelCBo);
+
+    JPanel NavRow1 = new JPanel();
+    NavRow1.add(SingleTupelCBo);
     NeTuB.setText("Next Tuple");
     NeTuB.setEnabled(false);
     NeTuB.addActionListener(new java.awt.event.ActionListener() {
@@ -196,11 +213,16 @@ public class ViewConfig extends javax.swing.JDialog {
         PrTuBActionPerformed(evt);
       }
     });
-    NavPanel.add(PrTuB);
-    NavPanel.add(NeTuB);
-    NavPanel.add(Box.createHorizontalStrut(60));
+    NavRow1.add(PrTuB);
+    NavPanel.setLayout(new GridLayout(3,1));
+    NavRow1.add(NeTuB);
+
+    NavPanel.add(NavRow1);
+
+    JPanel NavRow2 = new JPanel();
+    NavRow2.add(Box.createHorizontalStrut(60));
     TupNrLabel = new JLabel("Tuples: " + TupelCount);
-    NavPanel.add(TupNrLabel);
+    NavRow2.add(TupNrLabel);
     ApplyTuB.setText("Apply Tuple");
     ApplyTuB.setEnabled(false);
     ApplyTuB.addActionListener(new java.awt.event.ActionListener() {
@@ -219,7 +241,8 @@ public class ViewConfig extends javax.swing.JDialog {
           AktGO.setLabelText(LabelText.getText());
       }
     });
-    NavPanel.add(ApplyTuB);
+    NavRow2.add(ApplyTuB);
+    NavPanel.add(NavRow2);
     GATuB.setText("Get Attribute");
     GATuB.setEnabled(false);
     GATuB.addActionListener(new java.awt.event.ActionListener() {
@@ -233,15 +256,20 @@ public class ViewConfig extends javax.swing.JDialog {
         }
       }
     });
-    NavPanel.add(GATuB);
+    JPanel NavRow3 = new JPanel();
+    NavRow3.add(GATuB);
+    NavPanel.add(NavRow3);
     // RefDepCBo.setText ("jCheckBox1");
     RALabel.setText("Reference attribute");
-    RefPanel.add(RALabel);
-    RefPanel.add(Box.createHorizontalStrut(40));
+    
+    JPanel P = new JPanel();
+    P.setLayout(new GridLayout(3,2));
+    P.add(RALabel);
+    //P.add(Box.createHorizontalStrut(40));
     RTLabel.setText("Rendering Type");
-    RefPanel.add(RTLabel);
-    RefPanel.add(Box.createHorizontalStrut(60));
-    RefPanel.add(RefAttrCB);
+    P.add(RTLabel);
+    //P.add(Box.createHorizontalStrut(60));
+    P.add(RefAttrCB);
     RendTypeCB.addItem(new String("Solid Gray Values"));
     RendTypeCB.addItem(new String("Solid Red Values"));
     RendTypeCB.addItem(new String("Solid Green Values"));
@@ -250,19 +278,21 @@ public class ViewConfig extends javax.swing.JDialog {
     RendTypeCB.addItem(new String("Standard Palette"));
     searchForCalcCats();
     searchForImageDirs();
-    RefPanel.add(RendTypeCB);
-    RefPanel.add(Box.createHorizontalStrut(60));
+    P.add(RendTypeCB);
+    //P.add(Box.createHorizontalStrut(60));
     NGLabel.setText("No. of different groups");
-    RefPanel.add(NGLabel);
+    P.add(NGLabel);
     NoText.setColumns(4);
     NoText.setText("16");
-    RefPanel.add(NoText);
+    P.add(NoText);
     OKB.setText("OK");
     OKB.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed (java.awt.event.ActionEvent evt) {
         OKBActionPerformed(evt);
       }
     });
+    RefPanel.add(P);
+    
     ButPanel = new JPanel();
     ButPanel.add(OKB);
     CancelB.setText("Cancel");
@@ -612,6 +642,8 @@ public class ViewConfig extends javax.swing.JDialog {
   private static int VariantNr = 0;
   // End of variables declaration//GEN-END:variables
 }
+
+
 
 
 
