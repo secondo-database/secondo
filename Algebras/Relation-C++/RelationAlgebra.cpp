@@ -460,10 +460,10 @@ static Word InTuple(ListExpr typeInfo, ListExpr value,
   Word attr;
   CcTuple* tupleaddr;
   bool valueCorrect;
-  ListExpr first, firstvalue, valuelist, attrlist, typeInfo99;
+  ListExpr first, firstvalue, valuelist, attrlist;
 
   //nl->WriteToFile("/dev/tty",typeInfo);
- // nl->WriteToFile("/dev/tty",nl->First(typeInfo));  
+ // nl->WriteToFile("/dev/tty",nl->First(typeInfo));
   //nl->WriteToFile("/dev/tty",value);
   //typeInfo99 = nl->First(typeInfo);
   //nl->WriteToFile("/dev/tty",typeInfo99);
@@ -1380,6 +1380,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       //delete rs;
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -1426,7 +1427,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
     first = nl->First(args);
     if(nl->ListLength(first) == 2)
     {
-      if (TypeOfRelAlgSymbol(nl->First(first)) == stream) 
+      if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
         return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
     }
   } 
@@ -1664,6 +1665,7 @@ Filter(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -1822,6 +1824,7 @@ Project(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -2013,13 +2016,14 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 	  else return CANCEL; // first stream exhausted
 	}
       }
-      
+
     case CLOSE :
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
       return 0;
   }   
+  return 0;
 }
 /*
 
@@ -2100,6 +2104,7 @@ Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -2213,7 +2218,7 @@ Type mapping for ~rename~ is
 static ListExpr
 RenameTypeMap( ListExpr args )
 {
-  ListExpr first, first2, second, attrtype, rest, listn, lastlistn;
+  ListExpr first, first2, second, rest, listn, lastlistn;
   string  attrname;
   string  attrnamen;
   bool firstcall = true;
@@ -2222,7 +2227,7 @@ RenameTypeMap( ListExpr args )
   {
     first = nl->First(args);
     second  = nl->Second(args);
-			
+
     if((nl->ListLength(first) == 2  ) &&
     	(TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
 	(TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
@@ -2293,6 +2298,7 @@ Rename(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -2491,6 +2497,7 @@ Head(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -4182,13 +4189,13 @@ bool comparenames(ListExpr list)
 static ListExpr
 ExtendTypeMap( ListExpr args )
 {
-  ListExpr first, second, third, rest, listn, errorInfo,
+  ListExpr first, second, rest, listn, errorInfo,
            lastlistn, first2, second2, firstr, outlist;
-  bool loopok, ckd;
+  bool loopok;
   AlgebraManager* algMgr;
-  
-  algMgr = SecondoSystem::GetAlgebraManager(); 
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));  
+
+  algMgr = SecondoSystem::GetAlgebraManager();
+  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(nl->ListLength(args) == 2)
   {
     first = nl->First(args);
@@ -4296,6 +4303,7 @@ Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -4333,8 +4341,8 @@ Type mapping for ~concat~ is
 */
 ListExpr GetAttrTypeList (ListExpr l)
 {
-  ListExpr first, rest, olist, lastolist, attrlist;
-  
+  ListExpr first, olist, lastolist, attrlist;
+
   olist = nl->TheEmptyList();
   attrlist = l;
   while (!nl->IsEmpty(attrlist))
@@ -4421,12 +4429,13 @@ Concat(Word* args, Word& result, int message, Word& local, Supplier s)
       else return CANCEL;
 
     case CLOSE :
-    
+
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
       delete (CcInt*)local.addr;
       return 0;
   }
+  return 0;
 }
 /*
 
@@ -4448,29 +4457,6 @@ Operator cppconcat (
          simpleSelect,          // trivial selection function
          ConcatTypeMap          // type mapping
 );
-
-bool IsKindData(ListExpr type)
-/*
-5.2 IsKindData
-
-This function returns true if the type constructor represented by ~type~ is associated with the kind ~DATA~, otherwise returns false.
-
-*/
-{
-  bool result;
-  ListExpr errorInfo;// = nl->TheEmptyList();
-
-  AlgebraManager* algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
-
-  //result = algMgr->CheckKind(string("DATA"), type, errorInfo);
-  // The error message is ignored and its nested list destroyed.
-  if ((!nl->IsEmpty(errorInfo)) && (!nl->IsAtom(errorInfo))){ // required by Destroy.
-    nl->Destroy(errorInfo);
-  }
-  return true;//result;
-}
-
 
 /*
 
@@ -4547,8 +4533,8 @@ ListExpr GroupByTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->SymbolAtom("rel"),
           nl->Second(first));
-      nl->WriteToString(listString, groupType);
-      cout << "Group Type : " << listString << "\n";
+      /*nl->WriteToString(listString, groupType);
+      cout << "Group Type : " << listString << "\n";*/
 
       while (!(nl->IsEmpty(rest)))
       {
@@ -4558,18 +4544,17 @@ ListExpr GroupByTypeMap(ListExpr args)
         first2 = nl->First(firstr);
         second2 = nl->Second(firstr);
 
-        nl->WriteToString(listString, first2);
+        /*nl->WriteToString(listString, first2);
         cout << "Third List, First : " << listString << "\n";
         nl->WriteToString(listString, second2);
         cout << "Third List, Second : " << listString << "\n";
         nl->WriteToString(listString, first);
-        cout << "First List, Second : " << listString << "\n";
+        cout << "First List, Second : " << listString << "\n";*/
 
         if((nl->IsAtom(first2)) &&
           (nl->ListLength(second2) == 3) &&
           (nl->AtomType(first2) == SymbolType) &&
           (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-          (true/*IsKindData(nl->Third(second2))*/) &&
           (nl->Equal(groupType, nl->Second(second2))))
         {
           lastlistn = nl->Append(lastlistn,
@@ -4579,16 +4564,10 @@ ListExpr GroupByTypeMap(ListExpr args)
           loopok = false;
         }
       }
-    nl->WriteToString(listString, listp);
+    /*nl->WriteToString(listString, listp);
     cout << "ListN : " << listString << "\n";
     nl->WriteToString(listString, listn);
-    cout << "ListP : " << listString << "\n";
-
-    nl->WriteListExpr(nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-              nl->SymbolAtom("tuple"),
-              listn)), cout);
+    cout << "ListP : " << listString << "\n";*/
 
     if ((loopok) && (comparenames(listn)))
     {
@@ -4718,6 +4697,7 @@ int GroupByValueMapping
       qp->Close(args[0].addr);
       return 0;
   }
+  return 0;
 }
 
 /*
