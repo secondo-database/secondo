@@ -1,3 +1,10 @@
+/*
+
+1 Implementation of Class SmiKey 
+
+May 2002 Ulrich Telle
+
+*/
 using namespace std;
 
 #include <string>
@@ -7,8 +14,6 @@ using namespace std;
 
 #include "SecondoSMI.h"
 #include "SmiCodes.h"
-
-/* --- Implementation of class SmiKey --- */
 
 SmiKey::SmiKey( MapKeyFunc mapKey /* = 0 */ )
 {
@@ -46,7 +51,7 @@ SmiKey::SmiKey( const void* key, const SmiSize keyLen, MapKeyFunc mapKey )
   SetKey( key, keyLen, mapKey );
 }
 
-SmiKey::SmiKey( SmiKey& other )
+SmiKey::SmiKey( const SmiKey& other )
 {
   keyType   = other.keyType;
   keyLength = other.keyLength;

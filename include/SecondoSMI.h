@@ -310,7 +310,7 @@ is called to unmap the byte string to the user-defined key structure.
   SmiKey( const string& key );
   SmiKey( const void* key, const SmiSize keyLen,
           MapKeyFunc mapKey );
-  SmiKey( SmiKey& other );
+  SmiKey( const SmiKey& other );
 /*
 Creates a key with a type according to the constructor argument.
 

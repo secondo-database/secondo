@@ -8,6 +8,7 @@
 [TOC]
 
 1 Defines and Includes
+
 */
 #ifndef _BTREE_ALGEBRA_H_
 #define _BTREE_ALGEBRA_H_
@@ -41,19 +42,17 @@ Used to iterate over all record ids fulfilling a certain condition.
 class BTreeIterator
 {
   public:
-    BTreeIterator(SmiKey::KeyDataType smiKeyType, BTreeFileIteratorT* iter);
+    BTreeIterator(BTreeFileIteratorT* iter);
 
     ~BTreeIterator();
 
     bool Next();
-    StandardAttribute* GetKey();
-    SmiRecordId GetId();
+    const SmiKey* GetKey() const;
+    SmiRecordId GetId() const;
 
   private:
     BTreeFileIteratorT* fileIter;
-    StandardAttribute* key;
     SmiRecordId id;
-    SmiKey::KeyDataType keyType;
     SmiKey smiKey;
     SmiRecord record;
 };
@@ -68,23 +67,25 @@ The key attribute of a btree can be an ~int~, a ~string~, or a ~real~.
 class BTree
 {
   public:
-    BTree(SmiKey::KeyDataType keyType = SmiKey::Unknown, SmiKeyedFile* file = 0);
-    BTree(SmiRecord& record, SmiKey::KeyDataType keyType);
-    BTree(SmiFileId fileId, SmiKey::KeyDataType keyType);
+    BTree(SmiKey::KeyDataType keyType = SmiKey::Unknown, 
+          MapKeyFunc mapKeyFunc = 0, SmiKeyedFile* file = 0);
+    BTree(SmiRecord& record, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc = 0);
+    BTree(SmiFileId fileId, SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc = 0);
     ~BTree();
 
     bool IsInitialized();
     bool WriteTo(SmiRecord& record);
     void SetPermanent();
     void SetTemporary();
-    bool SetTypeAndCreate(SmiKey::KeyDataType keyType);
+    bool SetTypeAndCreate(SmiKey::KeyDataType keyType, MapKeyFunc mapKeyFunc);
     bool Truncate();
     void DeleteDeep();
     void DeleteFile();
-    bool Append(StandardAttribute* attr, SmiRecordId id);
+    bool Append(const SmiKey& key, SmiRecordId id);
     SmiKeyedFile* GetFile() const;
     SmiFileId GetFileId() const;
     SmiKey::KeyDataType GetKeyType();
+    MapKeyFunc GetMapKeyFunc();
     
     BTreeIterator* ExactMatch(StandardAttribute* key);
     BTreeIterator* LeftRange(StandardAttribute* key);
@@ -96,6 +97,7 @@ class BTree
     SmiRecordId id;
     bool isTemporary;
     SmiKey::KeyDataType keyType;
+    MapKeyFunc mapKeyFunc;
     SmiKeyedFile* file;
     SmiFileId fileId;
 };
