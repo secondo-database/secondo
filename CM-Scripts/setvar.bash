@@ -86,7 +86,7 @@ fi
 ## Berkeley DB - select the most recent library installed 
 ## under $SECONDO_SDK
 
-libStr=$(find $SECONDO_SDK -regex ".*libdb_cxx-[0-9\.]*\.a" -printf "%f %P\n" | sort | tail -n1)
+libStr=$(find $SECONDO_SDK -regex ".*libdb_cxx-[0-9\.]*\.a" -printf "%f %p\n" | sort | tail -n1)
 
 # the printf returns "name dir/filename" the important information
 # needs to be extracted by the following commands
@@ -97,7 +97,7 @@ if [ "$libStr" != "" ]; then
   libDirName=${libStr#* } # remove shortest leading pattern "* "
   libDir=${libDirName%/*/*} # remove shortest trailing pattern "/*/*"
 
-  BERKELEY_DB_DIR=${SECONDO_SDK}/$libDir
+  BERKELEY_DB_DIR=$libDir
   BERKELEY_DB_LIB="db_cxx"
 else
   BERKELEY_DB_DIR="$SECONDO_SDK"
