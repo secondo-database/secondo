@@ -565,7 +565,6 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes,
 	CcReal *real1;
 	CcInt *int1;
 	CcBool *bool1;
-	CcString *string1;
 	CcPolygon* polygon1;
 	SmiRecordId recId;
 
@@ -611,9 +610,7 @@ void SecondoTestFrame::Test06(const TupleAttributes *attributes,
 	myTuple->SaveTo(recFile, lobFile);
 	recId = myTuple->GetPersistentId();
 	cout << "\tnew Persistent id = " << recId << endl;
-	lobFile->Close();
-	
-	delete string1;
+
 	delete polygon1;
 	delete real1;
 	delete int1;
@@ -718,6 +715,12 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes,
 	recId = myTuple2->GetPersistentId();
 	cout << ", Persistent id = " << recId << endl;
 	
+	cout << "****************" << endl;
+	delete myTuple2;
+	cout << "(I)" << *myTuple << endl;
+	delete myTuple;
+	cout << "****************" << endl;
+	
 	
 	delete polygon1;
 	delete polygon2;
@@ -725,8 +728,8 @@ void SecondoTestFrame::Test07(const TupleAttributes *attributes,
 	delete[] X;
 	delete[] Y;
 	
-	delete myTuple2;
-	delete myTuple;
+	//delete myTuple2;
+	//delete myTuple;
 }
 
 
@@ -796,7 +799,7 @@ void SecondoTestFrame::Test08(const TupleAttributes *attributes,
 	delete myTuple;
 }
 
-//
+
 
 /*
 1 Execute
