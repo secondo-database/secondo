@@ -47,7 +47,13 @@ Base64::isAllowed(char b){
   return getIndex(b)>=0;
 }
 
+/*
 
+The getNext function should be reimplemented using a buffer
+for the input in order to reduce function calls of getNext 
+and istream.get
+
+*/ 
 bool
 Base64::getNext(char& byte, istream& in) {
  
@@ -84,14 +90,11 @@ Base64::getNext(char& byte, istream& in) {
      inbuffer[i] = ch;  //store value
   }
 
-  //cerr << k << ": " << inbuffer << endl;
-  //k++;
-
   // cat inbuffer
   int all =  (getIndex(inbuffer[0])<<18) +
-	    (getIndex(inbuffer[1])<<12) +
-	    (getIndex(inbuffer[2])<<6)  +
-	     getIndex(inbuffer[3]);
+	     (getIndex(inbuffer[1])<<12) +
+	     (getIndex(inbuffer[2])<<6)  +
+	      getIndex(inbuffer[3]);
 
   // extract outbytes
   for(int i=2;i>=0;i--){
@@ -121,7 +124,11 @@ Base64::decodeStream(istream& in, ostream& out) {
   while ( getNext(ch, in) ) {
      out.put(ch);
   }
-  /*
+  /* 
+  Calling in.eof() after the last call to in.eof() yields true
+  seems to be a problem. If the code below will be translated a
+  portion of data at the end of the ostream will be lost.
+
   if( !in.eof() ) {
     ios_base::iostate s = in.rdstate();
     cerr << "End of input stream not reached!" << endl;
@@ -138,7 +145,8 @@ Base64::decodeStream(istream& in, ostream& out) {
 void
 Base64::encode2(char* buffer, string& text, int length) {
 
-  assert (length <= 54 ); // 54 * 4/3 = 72, a linebreak is only inserted after 72 bytes
+  assert (length <= 54 ); 
+  // 54 bytes of binary data are expanded to 54 * 4/3 = 72 letters of the base64 alphabet.
 
   static char resultbuffer[73];
   
