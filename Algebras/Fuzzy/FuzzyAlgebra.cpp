@@ -55,7 +55,8 @@ the Java Development Kit (JDK).
 
 static void error(int line) {
   cerr << "Error in FuzzyAlgebra.cpp in line: " << line << "." << endl;
-  env->ExceptionDescribe();
+  if(env->ExceptionOccurred())
+     env->ExceptionDescribe();
   exit(1);
 }
 
@@ -89,6 +90,7 @@ public:
    jobject GetObject();
     // the methods for operators
    CcFPoint* Add(CcFPoint* P);
+   CcFPoint* Setsf(const double sf);
    CcFPoint* AlphaCut(double alpha, bool strong);
    double BasicCard();
    double BasicSimilar(CcFPoint* P);
@@ -143,6 +145,7 @@ class CcFLine : public StandardAttribute{
      ListExpr toListExpr();
      // functions for operators
      CcFLine* Add(CcFLine* L);
+     CcFLine* Setsf(const double sf);
      CcFLine* AlphaCut(double alpha,bool strong);
      double BasicLength();
      double BasicSimilar(CcFLine* L);
@@ -199,6 +202,7 @@ public:
 
    // the methods for algebra operators
    CcFRegion* Add(const CcFRegion* R);
+   CcFRegion* Setsf(const double sf);
    CcFRegion* AlphaCut(double alpha, bool strong);
    double Area();
    double Area3D();
@@ -446,6 +450,17 @@ CcFPoint* CcFPoint::Add(CcFPoint* P){
   if(res==0) error(__LINE__);
   return new CcFPoint(res);
 }
+
+CcFPoint* CcFPoint::Setsf(const double sf){
+   jmethodID mid= env->GetMethodID(cls,"copy","()Lfuzzyobjects/composite/FPoint;");
+   if(mid==0) error(__LINE__);
+   jobject clone = env->CallObjectMethod(obj,mid);
+   mid = env->GetMethodID(cls,"setSF","(D)Z");
+   if(mid==0) error(__LINE__);
+   env->CallBooleanMethod(clone,mid,sf);
+   return new CcFPoint(clone);
+}
+
 
 CcFPoint* CcFPoint::AlphaCut(double alpha, bool strong){
   jmethodID mid = env->GetMethodID(cls,"alphaCut","(DZ)Lfuzzyobjects/composite/FPoint;");
@@ -917,6 +932,17 @@ CcFLine* CcFLine::Add(CcFLine* L){
    return new CcFLine(res);
 }
 
+CcFLine* CcFLine::Setsf(const double sf){
+   jmethodID mid= env->GetMethodID(cls,"copy","()Lfuzzyobjects/composite/FLine;");
+   if(mid==0) error(__LINE__);
+   jobject clone = env->CallObjectMethod(obj,mid);
+   mid = env->GetMethodID(cls,"setSF","(D)Z");
+   if(mid==0) error(__LINE__);
+   env->CallBooleanMethod(clone,mid,sf);
+   return new CcFLine(clone);
+}
+
+
 CcFLine* CcFLine::AlphaCut(double alpha,bool strong){
    jmethodID mid = env->GetMethodID(cls,"alphaCut","(DZ)Lfuzzyobjects/composite/FLine;");
    if(mid==0) error(__LINE__);
@@ -1280,6 +1306,16 @@ CcFRegion* CcFRegion::Add(const CcFRegion* R){
   return new CcFRegion(jobj);
 }
 
+CcFRegion* CcFRegion::Setsf(const double sf){
+   jmethodID mid= env->GetMethodID(cls,"copy","()Lfuzzyobjects/composite/FRegion;");
+   if(mid==0) error(__LINE__);
+   jobject clone = env->CallObjectMethod(obj,mid);
+   mid = env->GetMethodID(cls,"setSF","(D)Z");
+   if(mid==0) error(__LINE__);
+   env->CallBooleanMethod(clone,mid,sf);
+   return new CcFRegion(clone);
+}
+
 CcFRegion* CcFRegion::AlphaCut(double alpha, bool strong){
   jmethodID mid=env->GetMethodID(cls,"alphaCut","(DZ)Lfuzzyobjects/composite/FRegion;");
   if(mid==0) error(__LINE__);
@@ -1360,7 +1396,7 @@ CcFRegion* CcFRegion::Difference(const CcFRegion* R){
   if(mid==0) error(__LINE__);
   jobject jobj = env->CallObjectMethod(obj,mid,R->obj);
   if(jobj==0) error(__LINE__);
-  return new CcFRegion(jobj); 
+  return new CcFRegion(jobj);
 }
 
 /*
@@ -1376,7 +1412,7 @@ double CcFRegion::GetScaleFactor(){
    jmethodID mid = env->GetMethodID(cls,"getSF","()D");
    if(mid==0) error(__LINE__);
    jdouble res = env->CallDoubleMethod(obj,mid);
-   return res; 
+   return res;
 }
 
 CcFRegion* CcFRegion::Holes(){
@@ -2137,7 +2173,7 @@ static ListExpr FPointReal(ListExpr args){
      ListExpr arg1 = nl->First(args);
      if(nl->IsEqual(arg1,"fpoint"))
         return nl->SymbolAtom("real");
-  } 
+  }
   return nl->SymbolAtom("typeerror");
 }
 
@@ -2146,8 +2182,23 @@ static ListExpr FLineReal(ListExpr args){
      ListExpr arg1 = nl->First(args);
      if(nl->IsEqual(arg1,"fline"))
         return nl->SymbolAtom("real");
-  } 
+  }
   return nl->SymbolAtom("typeerror");
+}
+
+static ListExpr FOiRealFOi(ListExpr args){
+   if(nl->ListLength(args)==2){
+      if(nl->IsEqual(nl->Second(args),"real")){
+         ListExpr f = nl->First(args);
+         if(nl->IsEqual(f,"fpoint"))
+	    return nl->SymbolAtom("fpoint");
+         if(nl->IsEqual(f,"fline"))
+	    return nl->SymbolAtom("fline");
+         if(nl->IsEqual(f,"fregion"))
+	    return nl->SymbolAtom("fregion");
+      }
+    }
+   return nl->SymbolAtom("typeerror");
 }
 
 
@@ -2245,11 +2296,11 @@ static ListExpr FRegionFRegion(ListExpr args){
 
 static ListExpr FRegionReal(ListExpr args){
   if(nl->ListLength(args)==1){
-    ListExpr arg = nl->First(args); 
+    ListExpr arg = nl->First(args);
     if(nl->IsEqual(arg,"fregion"))
        return nl->SymbolAtom("real");
   }
-  return nl->SymbolAtom("typeerror");   
+  return nl->SymbolAtom("typeerror");
 }
 
 static ListExpr FRegionFLine(ListExpr args){
@@ -2258,7 +2309,7 @@ static ListExpr FRegionFLine(ListExpr args){
      if (nl->IsEqual(arg,"fregion"))
        return nl->SymbolAtom("fline");
   }
-  return nl->SymbolAtom("typeerror");   
+  return nl->SymbolAtom("typeerror");
 }
 
 static ListExpr FRegionFRegionFLine(ListExpr args){
@@ -2269,7 +2320,7 @@ static ListExpr FRegionFRegionFLine(ListExpr args){
         && nl->IsEqual(arg2,"fregion"))
           return nl->SymbolAtom("fline");
   }
-  return nl->SymbolAtom("typeerror");   
+  return nl->SymbolAtom("typeerror");
 }
 
 
@@ -2285,9 +2336,20 @@ static int Add_PP(Word* args, Word& result, int message, Word& local, Supplier s
   CcFPoint* P1 = (CcFPoint*) args[0].addr;
   CcFPoint* P2 = (CcFPoint*) args[1].addr;
   // get the result
-  result.addr = P1->Add(P2);  
+  result.addr = P1->Add(P2);
   return 0;
 }
+
+static int setSF_P (Word* args, Word& result, int message, Word& local, Supplier s){
+   // initialize result
+   result = qp->ResultStorage(s);
+   // get arguments
+   CcFPoint* P = (CcFPoint *) args[0].addr;
+   double sf = ((CcReal*) args[1].addr)->GetRealval();
+   result.addr = P->Setsf(sf);
+   return 0;
+}
+
 
 static int AlphaCut_P(Word* args, Word& result, int message, Word& local, Supplier s){
    result = qp->ResultStorage(s);
@@ -2325,7 +2387,7 @@ static int Difference_PP(Word* args, Word& result, int message, Word& local, Sup
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
    result.addr= P1->Difference(P2);
-   return 0; 
+   return 0;
 }
 
 static int ScaleFactor_P(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2340,7 +2402,7 @@ static int Intersection_PP(Word* args, Word& result, int message, Word& local, S
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
    result.addr= P1->Intersection(P2);
-   return 0; 
+   return 0;
 }
 
 static int IsEmpty_P(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2398,7 +2460,7 @@ static int ScaledAdd_PP(Word* args, Word& result, int message, Word& local, Supp
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
    result.addr= P1->ScaledAdd(P2);
-   return 0; 
+   return 0;
 }
 
 static int ScaledDifference_PP(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2406,7 +2468,7 @@ static int ScaledDifference_PP(Word* args, Word& result, int message, Word& loca
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
    result.addr= P1->ScaledDifference(P2);
-   return 0; 
+   return 0;
 }
 
 static int ScaledIntersection_PP(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2414,7 +2476,7 @@ static int ScaledIntersection_PP(Word* args, Word& result, int message, Word& lo
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
    result.addr= P1->ScaledIntersection(P2);
-   return 0; 
+   return 0;
 }
 
 static int ScaledUnion_PP(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2422,14 +2484,14 @@ static int ScaledUnion_PP(Word* args, Word& result, int message, Word& local, Su
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
    result.addr= P1->ScaledUnion(P2);
-   return 0; 
+   return 0;
 }
 
 static int Sharp_P(Word* args, Word& result, int message, Word& local, Supplier s){
    result = qp->ResultStorage(s);
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    result.addr= P1->Sharp();
-   return 0; 
+   return 0;
 }
 
 
@@ -2438,15 +2500,15 @@ static int Union_PP(Word* args, Word& result, int message, Word& local, Supplier
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
    result.addr= P1->Union(P2);
-   return 0; 
+   return 0;
 }
 
 static int Similar_PP(Word* args, Word& result, int message, Word& local, Supplier s){
    result = qp->ResultStorage(s);
    CcFPoint* P1 = (CcFPoint*) args[0].addr;
    CcFPoint* P2 = (CcFPoint*) args[1].addr;
-   ((CcReal*)result.addr)->Set(true,P1->Similar(P2));   
-   return 0; 
+   ((CcReal*)result.addr)->Set(true,P1->Similar(P2));
+   return 0;
 }
 
 
@@ -2460,13 +2522,24 @@ static int Add_LL(Word* args, Word& result, int message, Word& local, Supplier s
   return 0;
 }
 
+static int setSF_L (Word* args, Word& result, int message, Word& local, Supplier s){
+   // initialize result
+   result = qp->ResultStorage(s);
+   // get arguments
+   CcFLine* L = (CcFLine *) args[0].addr;
+   double sf = ((CcReal*) args[1].addr)->GetRealval();
+   result.addr = L->Setsf(sf);
+   return 0;
+}
+
+
 static int AlphaCut_L(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
   CcFLine* L1 = (CcFLine*) args[0].addr;
   double alpha = ((CcReal*)args[1].addr)->GetRealval();
   bool strong = ((CcBool*)args[2].addr)->GetBoolval();
   result.addr = L1->AlphaCut(alpha,strong);
-  return 0; 
+  return 0;
 }
 
 static int BasicLength_L(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2489,7 +2562,7 @@ static int Boundary_L(Word* args, Word& result, int message, Word& local, Suppli
   CcFLine* L1 = (CcFLine*) args[0].addr;
   result.addr = L1->Boundary();
   return  0;
-} 
+}
 
 static int CommonPoints_LL(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2497,7 +2570,7 @@ static int CommonPoints_LL(Word* args, Word& result, int message, Word& local, S
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->CommonPoints(L2);
   return  0;
-} 
+}
 
 
 static int Difference_LL(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2506,7 +2579,7 @@ static int Difference_LL(Word* args, Word& result, int message, Word& local, Sup
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->Difference(L2);
   return  0;
-} 
+}
 
 static int ScaleFactor_L(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2521,7 +2594,7 @@ static int Intersection_LL(Word* args, Word& result, int message, Word& local, S
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->Intersection(L2);
   return  0;
-} 
+}
 
 static int IsEmpty_L(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2592,7 +2665,7 @@ static int ScaledAdd_LL(Word* args, Word& result, int message, Word& local, Supp
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->ScaledAdd(L2);
   return  0;
-} 
+}
 
 static int ScaledDifference_LL(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2600,7 +2673,7 @@ static int ScaledDifference_LL(Word* args, Word& result, int message, Word& loca
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->ScaledDifference(L2);
   return  0;
-} 
+}
 
 static int ScaledIntersection_LL(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2608,7 +2681,7 @@ static int ScaledIntersection_LL(Word* args, Word& result, int message, Word& lo
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->ScaledIntersection(L2);
   return  0;
-} 
+}
 
 static int ScaledUnion_LL(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2616,7 +2689,7 @@ static int ScaledUnion_LL(Word* args, Word& result, int message, Word& local, Su
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->ScaledUnion(L2);
   return  0;
-} 
+}
 
 static int Union_LL(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2624,7 +2697,7 @@ static int Union_LL(Word* args, Word& result, int message, Word& local, Supplier
   CcFLine* L2 = (CcFLine*)args[1].addr;
   result.addr = L1->Union(L2);
   return  0;
-} 
+}
 
 static int Similar_LL(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2632,8 +2705,8 @@ static int Similar_LL(Word* args, Word& result, int message, Word& local, Suppli
   CcFLine* L2 = (CcFLine*)args[1].addr;
   ((CcReal*)result.addr)->Set(true,L1->Similar(L2));
   return  0;
-} 
- 
+}
+
 static int Sharp_L(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
   CcFLine* L1 = (CcFLine*) args[0].addr;
@@ -2654,9 +2727,20 @@ static int Add_RR (Word* args, Word& result, int message, Word& local, Supplier 
   CcFRegion* R1 = (CcFRegion*) args[0].addr;
   CcFRegion* R2 = (CcFRegion*) args[1].addr;
   // get the result
-  result.addr = R1->Add(R2);  
+  result.addr = R1->Add(R2);
   return 0;
 }
+
+static int setSF_R (Word* args, Word& result, int message, Word& local, Supplier s){
+   // initialize result
+   result = qp->ResultStorage(s);
+   // get arguments
+   CcFRegion* R = (CcFRegion *) args[0].addr;
+   double sf = ((CcReal*) args[1].addr)->GetRealval();
+   result.addr = R->Setsf(sf);
+   return 0;
+}
+
 
 static int AlphaCut_R (Word* args, Word& result, int message, Word& local, Supplier s){
    // initialize result
@@ -2722,7 +2806,7 @@ static int CommonLines_RR (Word* args, Word& result, int message, Word& local, S
   result = qp->ResultStorage(s);
   CcFRegion* R1 = (CcFRegion*) args[0].addr;
   CcFRegion* R2 = (CcFRegion*) args[1].addr;
-  CcFLine* L = R1->CommonLines(R2); 
+  CcFLine* L = R1->CommonLines(R2);
   result.addr=L;
   return 0;
 }
@@ -2731,7 +2815,7 @@ static int CommonPoints_RR (Word* args, Word& result, int message, Word& local, 
   result = qp->ResultStorage(s);
   CcFRegion* R1 = (CcFRegion*) args[0].addr;
   CcFRegion* R2 = (CcFRegion*) args[1].addr;
-  CcFPoint* L = R1->CommonPoints(R2); 
+  CcFPoint* L = R1->CommonPoints(R2);
   result.addr=L;
   return 0;
 }
@@ -2742,7 +2826,7 @@ static int Difference_RR (Word* args, Word& result, int message, Word& local, Su
   CcFRegion* R2 = (CcFRegion*) args[1].addr;
   CcFRegion* R3 = R1->Difference(R2);
   result.addr=R3;
-  return 0; 
+  return 0;
 }
 
 /*
@@ -2902,16 +2986,16 @@ static int Similar_RR (Word* args, Word& result, int message, Word& local, Suppl
 
 /* the selection functions */
 
-/* the selection function for non overloading operators 
+/* the selection function for non overloading operators
    like area length cardinality
 */
 static int simpleSelect (ListExpr args ){
-  return 0; 
+  return 0;
 }
 
 /* The selection function for overloading operators.
-   All operators are unifique determined by the 
-   first argument of this operator. So we contain 
+   All operators are unifique determined by the
+   first argument of this operator. So we contain
    a simple selection function
  */
 static int fuzzySelect(ListExpr args){
@@ -2922,11 +3006,11 @@ static int fuzzySelect(ListExpr args){
   if(nl->IsEqual(A,"fline")) return 2;
   return -1;
 }
-   
+
 
 /* The selection function for operators which can only applied
    to flines und fregions (i.e. CommonPoints and Boundary).
-   The first argument determines the function number 
+   The first argument determines the function number
 */
 static int RLSelect(ListExpr args){
   if(nl->ListLength(args)<1) return -1;
@@ -2935,11 +3019,11 @@ static int RLSelect(ListExpr args){
   if(nl->IsEqual(First,"fline")) return 1;
   return -1; // this point should never be reached
 }
-   
+
 
 /* Define ValueMappings for overloaded Operators */
 
-  ValueMapping AddMap[] = {Add_PP,Add_RR,Add_LL};  
+  ValueMapping AddMap[] = {Add_PP,Add_RR,Add_LL};
   ValueMapping AlphaCutMap[] = {AlphaCut_P,AlphaCut_R,AlphaCut_L};
   ValueMapping BasicSimilarMap[] = {BasicSimilar_PP,BasicSimilar_RR,BasicSimilar_LL};
   ValueMapping DifferenceMap[] = {Difference_PP,Difference_RR,Difference_LL};
@@ -2960,6 +3044,7 @@ static int RLSelect(ListExpr args){
   ValueMapping UnionMap[] ={Union_PP,Union_RR,Union_LL};
   ValueMapping BoundaryMap[] ={Boundary_R,Boundary_L};
   ValueMapping CommonPointsMap[] = {CommonPoints_RR,CommonPoints_LL};
+  ValueMapping setSFMap[] = {setSF_P, setSF_R, setSF_L};
 
 
 
@@ -2973,6 +3058,15 @@ const string add_spec="( ( \"Signature\" \"Syntax\" \"Meaning\" "
 			     "<text>To add two fuzzy objects</text--->"
 			     "<text>add(r1,r2)</text--->"
 			      ") )";
+
+const string setsf_spec="( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" )"
+                             "( <text>(fuzzyobjects_i real) -> fuzzyobject_i</text--->"
+			     "<text>setsf( o, real ),where real has to be greater than 0</text--->"
+			     "<text>sets the scale factor</text--->"
+			     "<text>setsf(reg,200.0)</text--->"
+			      ") )";
+
 
 const string basiccard_spec="( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" )"
@@ -3327,8 +3421,19 @@ Operator op_add
  3,                     // number of functions
  AddMap,			//value mapping
  Model_3,	      	//dummy model mapping
- fuzzySelect,		//selection function 
- FOiFOiFOi		//type mapping 
+ fuzzySelect,		//selection function
+ FOiFOiFOi		//type mapping
+);
+
+Operator op_setsf
+(
+  "set_sf",
+  setsf_spec,
+  3,
+  setSFMap,
+  Model_3,
+  fuzzySelect,
+  FOiRealFOi
 );
 
 
@@ -3339,8 +3444,8 @@ Operator op_alphacut
  3,
  AlphaCutMap,	//value mapping
  Model_3,	  	//dummy model mapping, defined in Algebra.h
- fuzzySelect,	//trivial selection function 
- FOiRealBoolFOi	//type mapping 
+ fuzzySelect,	//trivial selection function
+ FOiRealBoolFOi	//type mapping
 );
 
 
@@ -3350,8 +3455,8 @@ Operator op_basiccard
  basiccard_spec,  		//specification ....
  BasicCard_P,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FPointReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FPointReal		//type mapping
 );
 
 Operator op_cardinality
@@ -3360,8 +3465,8 @@ Operator op_cardinality
  cardinality_spec,  		//specification ....
  Cardinality_P,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FPointReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FPointReal		//type mapping
 );
 
 Operator op_length3d
@@ -3370,8 +3475,8 @@ Operator op_length3d
  length3d_spec,  		//specification ....
  Length3D_L,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FLineReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FLineReal		//type mapping
 );
 
 Operator op_length
@@ -3380,8 +3485,8 @@ Operator op_length
  length_spec,  		//specification ....
  Length_L,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FLineReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FLineReal		//type mapping
 );
 
 Operator op_basiclength
@@ -3390,8 +3495,8 @@ Operator op_basiclength
  basiclength_spec,  		//specification ....
  BasicLength_L,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FLineReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FLineReal		//type mapping
 );
 
 Operator op_area
@@ -3400,8 +3505,8 @@ Operator op_area
  area_spec,  		//specification ....
  Area_R,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FRegionReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FRegionReal		//type mapping
 );
 
 Operator op_area3d
@@ -3410,8 +3515,8 @@ Operator op_area3d
  area3d_spec,  		//specification ....
  Area3D_R,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FRegionReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FRegionReal		//type mapping
 );
 
 Operator op_basicarea
@@ -3420,8 +3525,8 @@ Operator op_basicarea
  basicarea_spec,  		//specification ....
  BasicArea_R,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FRegionReal		//type mapping 
+ simpleSelect,			//trivial selection function
+ FRegionReal		//type mapping
 );
 
 Operator op_basicsimilar
@@ -3431,8 +3536,8 @@ Operator op_basicsimilar
  3,
  BasicSimilarMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiReal		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiReal		//type mapping
 );
 
 Operator op_boundary
@@ -3442,8 +3547,8 @@ Operator op_boundary
  2,
  BoundaryMap,		//value mapping
  Model_2,	       	//dummy model mapping, defined in Algebra.h
- RLSelect,			//trivial selection function 
- BoundaryTypeMap		//type mapping 
+ RLSelect,			//trivial selection function
+ BoundaryTypeMap		//type mapping
 );
 
 
@@ -3453,8 +3558,8 @@ Operator op_contour
  contour_spec,  		//specification ....
  Contour_R,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FRegionFLine		//type mapping 
+ simpleSelect,			//trivial selection function
+ FRegionFLine		//type mapping
 );
 
 Operator op_commonlines
@@ -3463,8 +3568,8 @@ Operator op_commonlines
  commonlines_spec,  		//specification ....
  CommonLines_RR,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FRegionFRegionFLine		//type mapping 
+ simpleSelect,			//trivial selection function
+ FRegionFRegionFLine		//type mapping
 );
 
 Operator op_commonpoints
@@ -3474,8 +3579,8 @@ Operator op_commonpoints
  2,
  CommonPointsMap,			//value mapping
  Model_2,		//dummy model mapping, defined in Algebra.h
- RLSelect,			//trivial selection function 
- CommonPointsTypeMap		//type mapping 
+ RLSelect,			//trivial selection function
+ CommonPointsTypeMap		//type mapping
 );
 
 Operator op_difference
@@ -3485,8 +3590,8 @@ Operator op_difference
  3,
  DifferenceMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiFOi		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiFOi		//type mapping
 );
 
 
@@ -3497,8 +3602,8 @@ Operator op_scalefactor
  3,
  ScaleFactorMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOReal		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOReal		//type mapping
 );
 
 Operator op_holes
@@ -3507,8 +3612,8 @@ Operator op_holes
  holes_spec,  		//specification ....
  Holes_R,			//value mapping
  Operator::DummyModel,		//dummy model mapping, defined in Algebra.h
- simpleSelect,			//trivial selection function 
- FRegionFRegion		//type mapping 
+ simpleSelect,			//trivial selection function
+ FRegionFRegion		//type mapping
 );
 
 Operator op_intersection
@@ -3518,8 +3623,8 @@ Operator op_intersection
   3,
  IntersectionMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiFOi		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiFOi		//type mapping
 );
 
 Operator op_isempty
@@ -3529,8 +3634,8 @@ Operator op_isempty
  3,
  IsEmptyMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOBool		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOBool		//type mapping
 );
 
 Operator op_maxv
@@ -3540,8 +3645,8 @@ Operator op_maxv
  3,
  MaxValueMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOReal		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOReal		//type mapping
 );
 
 
@@ -3552,8 +3657,8 @@ Operator op_minv
  3,
  MinValueMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOReal		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOReal		//type mapping
 );
 
 
@@ -3565,7 +3670,7 @@ Operator op_max_value_at
  MaxValueAtMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
  fuzzySelect,			//trivial selection function
- FORealRealReal		//type mapping 
+ FORealRealReal		//type mapping
 );
 
 Operator op_mid_value_at
@@ -3575,8 +3680,8 @@ Operator op_mid_value_at
  3,
  MidValueAtMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FORealRealReal		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FORealRealReal		//type mapping
 );
 
 Operator op_min_value_at
@@ -3586,8 +3691,8 @@ Operator op_min_value_at
  3,
  MinValueAtMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FORealRealReal		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FORealRealReal		//type mapping
 );
 
 
@@ -3599,7 +3704,7 @@ Operator op_scaled_add
  ScaledAddMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
  fuzzySelect,			//trivial selection function
- FOiFOiFOi		//type mapping 
+ FOiFOiFOi		//type mapping
 );
 
 Operator op_scaled_difference
@@ -3609,8 +3714,8 @@ Operator op_scaled_difference
  3,
  ScaledDifferenceMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiFOi		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiFOi		//type mapping
 );
 
 Operator op_scaled_intersection
@@ -3620,8 +3725,8 @@ Operator op_scaled_intersection
  3,
  ScaledIntersectionMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiFOi		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiFOi		//type mapping
 );
 
 Operator op_scaled_union
@@ -3631,8 +3736,8 @@ Operator op_scaled_union
  3,
  ScaledUnionMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiFOi		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiFOi		//type mapping
 );
 
 Operator op_union
@@ -3642,8 +3747,8 @@ Operator op_union
  3,
  UnionMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiFOi		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiFOi		//type mapping
 );
 
 
@@ -3654,8 +3759,8 @@ Operator op_sharp
  3,
  SharpMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOi		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOi		//type mapping
 );
 
 Operator op_similar
@@ -3665,8 +3770,8 @@ Operator op_similar
  3,
  SimilarMap,			//value mapping
  Model_3,		//dummy model mapping, defined in Algebra.h
- fuzzySelect,			//trivial selection function 
- FOiFOiReal		//type mapping 
+ fuzzySelect,			//trivial selection function
+ FOiFOiReal		//type mapping
 );
 
 
@@ -3681,8 +3786,8 @@ class FuzzyAlgebra : public Algebra
   {
     AddTypeConstructor( &ccfpoint );
 
-    ccfpoint.AssociateKind("DATA");  
- 
+    ccfpoint.AssociateKind("DATA");
+
     AddTypeConstructor(&ccfregion);
     ccfregion.AssociateKind("DATA");
 
@@ -3690,6 +3795,7 @@ class FuzzyAlgebra : public Algebra
     ccfline.AssociateKind("DATA");
 
     AddOperator(&op_add);
+    AddOperator(&op_setsf);
     AddOperator(&op_alphacut);
     AddOperator(&op_area);
     AddOperator(&op_area3d);
@@ -3725,7 +3831,7 @@ class FuzzyAlgebra : public Algebra
   ~FuzzyAlgebra() {};
 };
 
-FuzzyAlgebra fuzzyAlgebra; 
+FuzzyAlgebra fuzzyAlgebra;
 
 
 /*
