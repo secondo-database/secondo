@@ -13,7 +13,6 @@ LS_COMMAND = $(addsuffix /*.spec, $(ALGEBRA_DIRS) $(JNI_ALGEBRA_DIRS) )
 SPECFILES = $(shell ls $(LS_COMMAND))
 
 specs:  $(SPECFILES)
-	chmod u+x *.awk
 	cat $^ | sort -b | ./specs.awk
 	cat $^ | ./rm_comment_spec.awk > specs
 
@@ -25,16 +24,20 @@ makedirs: makedirsnormal makedirsjni
 .PHONY: makedirsnormal
 makedirsnormal:
 	for dir in $(ALGEBRA_DIRS); do \
-          $(MAKE) -C $$dir; \
-	done
+          if !($(MAKE) -C $$dir) then \
+            exit 1; \
+          fi \
+        done
 
 # make algebras using jni
 .PHONY: makedirsjni
 makedirsjni:
 ifeq ($(USE_JNI),"true")
 	for dir in $(JNI_ALGEBRA_DIRS); do \
-          $(MAKE) -C $$dir; \
-	done
+          if !($(MAKE) -C $$dir) then \
+            exit 1; \
+          fi \
+        done
 endif
 
 .PHONY buildlibs:
@@ -43,14 +46,18 @@ buildlibs: buildlibsnormal buildlibsjni
 .PHONY:buildlibsnormal
 buildlibsnormal:
 	for dir in $(ALGEBRA_DIRS); do \
-          $(MAKE) -C $$dir buildlibs; \
-	done
+          if !($(MAKE) -C $$dir) then \
+            exit 1; \
+          fi \
+        done
 
 .PHONY:buildlibsjni
 buildlibsjni:
 ifeq ($(USE_JNI),"true")
 	for dir in $(JNI_ALGEBRA_DIRS); do \
-          $(MAKE) -C $$dir; \
+          if !($(MAKE) -C $$dir) then \
+            exit 1; \
+          fi \
         done
 endif
 
@@ -59,5 +66,7 @@ CLEANDIRS = $(shell find . -type d -maxdepth 1 ! -name "CVS" -and ! -name ".")
 clean:
 	$(RM) specs
 	for dir in $(CLEANDIRS); do \
-          $(MAKE) -C $$dir clean; \
-	done
+          if !($(MAKE) -C $$dir clean) then \
+            exit 1; \
+          fi \
+        done
