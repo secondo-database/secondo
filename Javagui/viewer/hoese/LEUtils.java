@@ -5,6 +5,7 @@ package  viewer.hoese;
 //import generic.Interval;
 import  sj.lang.ListExpr;
 import viewer.HoeseViewer;
+import gui.Environment;
 
 
 /**
@@ -18,15 +19,18 @@ public class LEUtils {
   **/
   public static Double readInstant (ListExpr le) {
       ListExpr value;
+
       if(le.listLength()==2){ // check for type
          if(le.first().atomType()==le.SYMBOL_ATOM &&
 	      ( le.first().symbolValue().equals("instant") ||
-	        le.first().symbolValue().equals("datetime")))
-		value = le.rest();	  // read over the type
-         else
+	        le.first().symbolValue().equals("datetime"))){
+                value = le.second();	  // read over the type
+
+         } else
 	     value = le;
       } else
          value = le;
+
 
       // string representation
       if(value.atomType()==value.STRING_ATOM){
@@ -188,17 +192,36 @@ public class LEUtils {
    * @param le A listexpr with an interval
    * @return A Interval object with the sart- and endtime  or null if an error occured
    * @see generic.Interval
-   * @see <a href="LEUtilssrc.html#readInterval">Source</a>
    */
   public static Interval readInterval (ListExpr le) {
-    if (le.listLength() != 4)
+    if (le.listLength() != 4){
+      if(Environment.DEBUG_MODE){
+         System.err.println("wrong listlength for interval (needed is 4) :" + le.listLength());
+      }
       return  null;
+    }
     Double start = readInstant(le.first());
+    if(start==null){
+       if(Environment.DEBUG_MODE){
+          System.err.println("Error in reading start - instant ");
+       }
+       return null;
+    }
     Double end = readInstant(le.second());
+    if(end==null){
+       if(Environment.DEBUG_MODE){
+          System.err.println("Error in reading end instant ");
+       }
+       return null;
+    }
     //System.out.println("start:"+start+" end:"+end);
-    if ((start == null) || (end == null) || (le.third().atomType() != ListExpr.BOOL_ATOM)
-        || (le.fourth().atomType() != ListExpr.BOOL_ATOM))
+    if ((le.third().atomType() != ListExpr.BOOL_ATOM)
+        || (le.fourth().atomType() != ListExpr.BOOL_ATOM)){
+      if(Environment.DEBUG_MODE){
+         System.err.println("not boolean atoms for lefttclosed or rightclosed");
+      }
       return  null;
+    }
     boolean leftcl = le.third().boolValue();
     boolean rightcl = le.fourth().boolValue();
     return  new Interval(start.doubleValue(), end.doubleValue(), leftcl, rightcl);
