@@ -77,8 +77,7 @@ has to be passed. It is stored in a variable of type *AttrType*.
 
 */
 
-struct AttributeType
-{
+struct AttributeType {
     int algId;  // Unique algebra id
     int typeId; // Unique type id
     int size;   // Size of attribute instance in bytes
@@ -92,17 +91,13 @@ stored in a variable of type *TupleType*.
 
 */
 
-struct TupleAttributes
-{
+struct TupleAttributes {
     int totalNumber;      // Number of attributes
     AttributeType* type;  // Array of attribute type descriptors
     int totalSize;        // sum of all attrib sizes
-    TupleAttributes(int noattrs,  
-	      AttributeType *attrtypes);  // Constructor. Sets all member variables, including size. 
+    // Constructor. Sets all member variables, including size
+    TupleAttributes(int noattrs, AttributeType *attrtypes);
 };
-
-
-
 
 /*
 1.5 Class TupleElement
@@ -126,19 +121,23 @@ class Tuple {
 
 */
 
+
+	friend class FLOB;
+
 private:
 	
 	/* An AttributeInfo manages one attribute of a tuple,
-		especially deleting a tuple attribute. */
+		specifically its deleting. */
     struct AttributeInfo {
     	/* This pointer refers to the "parent" AttributeInfo of another
 			tuple if exists. See AttrPut method of Tuple. */
 		AttributeInfo *parent;
 		
 		/* keine Ahnung. */
-		bool defined;
+		//bool defined;
+		
 		/* destruct determines wheather the TupleElement* value should 
-			deleted if refCounter = 0 */
+			deleted if there is no reference at all. */
 		bool destruct;
 		
 		/* changed determines wheather this attribute differ from its 
@@ -155,8 +154,9 @@ private:
 		int size;
 
 		/* simple Constructor. */
-		AttributeInfo(){ 
-			defined = destruct = changed = false;
+		AttributeInfo(){
+			destruct = changed = false; 
+			//defined = destruct = changed = false;
 			parent = 0; value = 0; size = 0;
 			refCount = 0;
 		}
@@ -184,6 +184,7 @@ private:
 		
 		/* A help method for above one. */
 		void deleteValue2() {
+			// The value pointer points to a memory area witch is already deleted.
 			value = 0;
 			if (parent != 0) parent->deleteValue2();
 		}
@@ -196,30 +197,25 @@ private:
 	    SmiFileId lobFileId; 
     };
 
-	//int refCount;					// References to this tuple.
     SmiRecord diskTuple;           	// Membervar which represents an disktuple.
     SmiRecordId diskTupleId; 		// Record that persistently holds the tuple value.
     SmiRecordFile* lobFile;     	// Reference to a File which contains LOBs.
-    SmiRecordFile* recFile;			// Reference to a File which contains tuples.   
+    SmiRecordFile* recFile;			// Reference to a File which contains tuples.  
+    bool lobFileOpened;				// ... 
     int attrNum;                	// Number of attribs. 
     AttributeInfo *attribInfo;  	// Sizes of attrib values. 
-    AlgebraManager* algM;       	// Reference To Algebramanagers. 
+    AlgebraManager* algM;       	// Reference to Algebramanagers. 
     TupleState state;    			// State of the tuple (Fresh, SolidWrite, SolidRead)
-    char *coreTuple;				// Reference to the core of the tuple.
-    int coreSize;					// Size of the core tuple.
-    int totalSize;					// Size of the amount of core and disk tuple.
+    int memorySize;					// Size of the amount of core tuple.
     char *memoryTuple;				// Used to load temporarily the disk tuple into memory.
+   	int extensionSize;				// Size of the amount of extension tuple.
+	char *extensionTuple;			// Used to load temporarily the extension 
+									// of a disk tuple into memory.
 
-	/* */
-   	void Unput(int attrno, AttributeInfo *attrInfo = 0);
-    
-    /* */
-    void Unput_NoDel(int attrno, AttributeInfo *attrInfo = 0);
-    
-    /* Copies the content of a TupleHeader into a buffer. */
+    /* Copies the content of a TupleHeader into a char buffer. */
 	void TupleHeaderToBuffer(TupleHeader *th, char *str);
 
-	/* Recovers the data of a TupleHeader from a buffer. */
+	/* Recovers the data of a TupleHeader from a char buffer. */
 	void BufferToTupleHeader(char *str, TupleHeader *th);
 	
 	/* for debug purposes. */
@@ -232,7 +228,7 @@ private:
 	void Tuple::printMemoryTuple();
 
    	/* initialisation of member variables */
-    void Init();
+    void Init(const TupleAttributes *attributes);
 
 public:
 
@@ -247,7 +243,8 @@ new tuple instance based on a tuple type description.
     Tuple(const TupleAttributes *type);
 
 /*
-  The second constructor creates a tuple from a given ~record~. The type description of the tuple also has to be supplied in ~type~. 
+  The second constructor creates a tuple from a given ~record~. 
+  The type description of the tuple also has to be supplied in ~type~. 
   After this tuple creation, the tuple can be changed or not depending on ~mode~.
 
 */
