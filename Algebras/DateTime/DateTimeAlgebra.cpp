@@ -1397,7 +1397,7 @@ ListExpr InstantProperty(){
                 nl->StringAtom("-> Data"),
                 nl->StringAtom("instant"),
                 nl->StringAtom("string"),
-                nl->StringAtom("2004-4-12"),
+                nl->StringAtom("2004-4-12-8:03:32.645"),
                 nl->StringAtom("This type represents a point of time")
          )));
 }
