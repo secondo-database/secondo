@@ -1,0 +1,15 @@
+(create sk3 : (nmap(rel(tuple((object nobject) (no int)))))); 
+(update sk3:= ((nmap(rel(tuple((object nobject) (no int)))))((("Boje" (1.0 2.0) 1)))));
+(create naut : nobject);
+(update naut := (nobject("boje" (1.0 2.0))));
+(create sk4 : (nmap(rel(tuple((object nobject) ))))); 
+(update sk4:= ((nmap(rel(tuple((object nobject) ))))(((("Boje" (1.0 2.0)) )))));
+(create sk5 : (nmap(rel(tuple((object nobject) (no int) ))))); 
+(update sk5:= ((nmap(rel(tuple((object nobject) (no int)))))(((("Boje" (1.0 2.0)) 1) ))));
+
+(create nauts : nobjects);
+(update nauts := (nobjects(("boje1" (1.0 2.0))("boje2" (1.0 2.0)))));
+(create sk6 : (nmap(rel(tuple((object nobjects) ))))); 
+(update sk6:= ((nmap(rel(tuple((object nobjects) ))))((( (("Boje" (1.0 2.0)) ("boje2" (1.0 2.0))) )))));
+(create sk7 : (nmap(rel(tuple((object nobjects) (no int) ))))); 
+(update sk7:= ((nmap(rel(tuple((object nobjects) (no int) ))))((( (("Boje" (1.0 2.0)) ("boje2" (1.0 2.0))) 1) ((("Boje3" (1.0 4.0)) ("boje4" (1.0 5.0))) 2)))));
