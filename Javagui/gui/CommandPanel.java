@@ -49,7 +49,9 @@ public class CommandPanel extends JScrollPane {
     KeyStroke key = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0);
     keymap.addActionForKeyStroke(key, keymap.getDefaultAction());
     setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-    showPrompt();
+    appendText("Sec>"); // show the initially prompt
+    aktPos = SystemArea.getText().length();
+    SystemArea.setCaretPosition(aktPos);
     setViewportView(SystemArea);
     SystemArea.setFont(new Font("Monospaced",Font.PLAIN,18));
   }
@@ -121,9 +123,11 @@ public class CommandPanel extends JScrollPane {
    * @see <a href="CommandPanelsrc.html#showPrompt">Source</a>
    */
   public void showPrompt () {
-    appendText("\nSec>");
-    aktPos = SystemArea.getText().length();
-    SystemArea.setCaretPosition(aktPos);
+    if(aktPos!=SystemArea.getText().length()){ // no prompt in the moment
+       appendText("\nSec>");
+       aktPos = SystemArea.getText().length();
+       SystemArea.setCaretPosition(aktPos);
+    }
   }
 
 
@@ -144,7 +148,9 @@ public class CommandPanel extends JScrollPane {
      clearHistory();
      aktPos=0;
      SystemArea.setText("");
-     showPrompt();
+     appendText("Sec>"); // show the first prompt
+     aktPos = SystemArea.getText().length();
+     SystemArea.setCaretPosition(aktPos);;
   }
 
 
@@ -199,7 +205,7 @@ public class CommandPanel extends JScrollPane {
          return errorCode.value==0;
     }
     else{
-      appendText("\n you are not connected to SecondoServer \n");
+      appendText("\n you are not connected to SecondoServer");
       showPrompt();
       return false;
     }
