@@ -35,7 +35,7 @@ public static int getDays(double time){
 }
 
 public static double getTime(int Days, int msecs){
-  return Days+msecs/86400000;
+  return Days+(double)msecs/86400000.0;
 }
 
 public static String getString(int Days,int msecs){
