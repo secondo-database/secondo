@@ -131,8 +131,6 @@ NestedList::NestedList( SmiRecordFile* ptr2RecFile, Cardinal NodeEntries, Cardin
    stringTable = 0;
    nodeTable = 0;
    textTable = 0;
-   delRecFile = false;
-   recFilePtr = ptr2RecFile;
    initializeListMemory(NodeEntries, ConstEntries, StringEntries, TextEntries);
 }
 
@@ -145,17 +143,12 @@ NestedList::~NestedList()
 void
 NestedList::DeleteListMemory()
 {
-   if (intTable && stringTable && nodeTable && textTable)
-   {
+   if (intTable && stringTable && nodeTable && textTable) {
+
      delete intTable; intTable = 0;
      delete stringTable; stringTable = 0;
      delete nodeTable; nodeTable = 0;
      delete textTable; textTable = 0;
-   }
-
-   if ( delRecFile ) {
-
-     delete recFilePtr;
    }
 }
 
@@ -165,37 +158,14 @@ NestedList::initializeListMemory( Cardinal NodeEntries, Cardinal ConstEntries,
 		                  Cardinal StringEntries, Cardinal TextEntries )
 {
    //cout << endl << "### NestedList::initializeListMemory" << endl;
+   DeleteListMemory();
 
 #ifdef CTABLE_PERSISTENT
-
-     if (!recFilePtr) {
-
-       const int fragSize = 100;
-       int pageSize = WinUnix::getPageSize();
-       if ( !((pageSize - fragSize) > sizeof(NodeRecord)) ) {
-         cerr << "NestedList Error: The systems pagesize ( "
-              << pageSize << " Bytes ) is to small!" << endl;
-         exit(1);
-       }
-
-       recFilePtr = new SmiRecordFile(true, pageSize-fragSize, true);
-
-       if ( !(recFilePtr->Create()) ) {
-         string errMsg;
-         SmiError errCode = SmiEnvironment::GetLastErrorCode(errMsg);
-	   cerr << "SmiError: " << "SmiErrorCode " << errCode << " Msg: " << errMsg << endl;
-         exit(0);
-       }
-       delRecFile = true;
-     }
-
-      nodeTable   = new CTable<NodeRecord>(NodeEntries / 10, recFilePtr);
-      intTable    = new CTable<Constant>(ConstEntries / 10, recFilePtr);
-      stringTable = new CTable<StringRecord>(StringEntries / 10, recFilePtr);
-      textTable   = new CTable<TextRecord>(TextEntries / 10, recFilePtr);
+      nodeTable   = new CTable<NodeRecord>(NodeEntries / 10);
+      intTable    = new CTable<Constant>(ConstEntries / 100);
+      stringTable = new CTable<StringRecord>(StringEntries / 100);
+      textTable   = new CTable<TextRecord>(TextEntries / 100);
 #else
-      DeleteListMemory();
-
       nodeTable   = new CTable<NodeRecord>(NodeEntries);
       intTable    = new CTable<Constant>(ConstEntries);
       stringTable = new CTable<StringRecord>(StringEntries);

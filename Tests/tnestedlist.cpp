@@ -117,8 +117,8 @@ int
 TestNLCopy()
 {
    int testcase = 0;
-   NestedList listA(rf,10,10,10,10);
-   NestedList listB(rf,10,10,10,10);
+   NestedList listA(rf,1000,1000,1000,1000);
+   NestedList listB(rf,1000,1000,1000,1000);
 
    cout << endl << "### Copy lists between two C++ NestedList-Objects" << endl;
 
@@ -282,7 +282,7 @@ TestBasicOperations()
    Cardinal Position;
 
    
-   NestedList nl(rf,10,10,10,10);
+   NestedList nl(rf,1000,1000,1000,1000);
 
 /******************************************************************************
 
@@ -551,29 +551,19 @@ void
 TestInputOutput() {
 
 
-   NestedList nl(rf,10,10,10,10);
+   NestedList nl(rf,1000,1000,1000,1000);
 
-   //cout << endl << "Reading and writing file geo ..." << endl;
-   //ErrorVar = nl.ReadFromFile ("geo.nl", ListExpr8);
+   cout << endl << "Reading file geo ..." << endl;
 
-   string fileBaseName = "ListOperators";
-   string fileIn = fileBaseName;
-   string fileOut = filePrefix + fileBaseName;
+   ListExpr geoList = nl.TheEmptyList();
+   nl.ReadFromFile("geo.nl", geoList);
+
+   string fileBaseName = "";
+   string fileIn = ""; 
+   string fileOut = "";
    string outname = "";
 
    ListExpr list = 0;
-
-/*
-   cout << endl << "Reading " + fileIn+".nl" << endl;
-   nl.ReadFromFile( fileIn+".nl", list );
-   cout << endl << "Writing " + fileOut+".nl" << endl;
-   nl.WriteToFile( fileOut+".nl", list );
-   
-   cout << endl << "Writing " + fileOut+".bnl" << endl;
-   outname = fileOut+".bnl";
-   ofstream outFile1(outname.c_str()); 
-   nl.WriteBinaryTo(list, outFile1);   
-*/
 
    fileIn = fileBaseName ="simpleList";
    fileOut = filePrefix + fileBaseName;
@@ -659,18 +649,6 @@ TestRun_Persistent() {
    assert( openDB("PARRAY") ); 
    //cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
    
-   
-   rf = new SmiRecordFile(true, WinUnix::getPageSize()-100, true);
-   if ( !(rf->Create()) ) {
-   string errMsg;
-   SmiError errCode = SmiEnvironment::GetLastErrorCode(errMsg);
-     cerr << "SmiError: " << "SmiErrorCode " << errCode << " Msg: " << errMsg << endl;
-   exit(0);
-   } else {
-     cout << "SmiRecordFile created!" << endl;
-   }
-  
-   //ConcatLists_bug();  
    pause();
    TestBasicOperations();
    
@@ -684,9 +662,6 @@ TestRun_Persistent() {
    
    //cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
    
-   assert( rf->Close() );
-   delete rf;      
-   rf = 0;
    assert( closeDB() );
 
    pause();

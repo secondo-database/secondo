@@ -180,36 +180,21 @@ public:
 
 */
 
-#ifndef CTABLE_PERSISTENT
   CTable( Cardinal const count );
-#else
-  CTable( Cardinal const count, SmiRecordFile* ptr2RecFile = 0);
-#endif
+  ~CTable(); 
+  string MemoryModel();
 
-   string MemoryModel();
 /* 
 
-Creates a table with ~count~ slots. If the table
-needs to grow it does so automatically. The second constructor
-creates an handle for an CTable which is already stored on disk.
-The flag indicates if the CTable is read-only or not. It was not
-possible to declare it as default argument, because SmiRecordId and
-Cardinal have the same typdefs.
+~CTable~ Creates a table with ~count~ slots. In the persistent
+version count indicates the number of record buffers. Hence it should
+be smaller e.g. count/ (pagesize/sizeof(T)). 
 
 MemoryModel returns the values "PERSISTENT" or "NON-PERSISTENT".
 
 */
 
-  ~CTable(); 
-
-/* 
-
-Destroys ~CTable~, releasing its storage.
-
-*/
-
 /************************************
-
 
 
 3.2.1 Size Info
@@ -560,9 +545,6 @@ private:
    Cardinal highestValid;	
   };
  
-  SmiRecordFile* ptr2RecFile;  // Create anonymous SmiFile if needed.
-  bool doRecFilePtrDelete;
-
   bool setFALSE;     // variables needed for the PArray.Put(int index, T& elem) method
   bool setTRUE;
   T* dummyElem;

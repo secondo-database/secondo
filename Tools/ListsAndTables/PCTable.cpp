@@ -19,7 +19,6 @@ presented here may be used as a first draft when implementing such a constructor
 
 
 
-
 /*
 
 1.1 Constructor/Destructor of a CTable 
@@ -27,6 +26,7 @@ presented here may be used as a first draft when implementing such a constructor
 */
 
 #include <typeinfo>
+#include "WinUnix.h"
 
 
 template<typename T>
@@ -45,14 +45,13 @@ CTable<T>::initialize() {
 
   setTRUE = true;
   setFALSE = false;
-  doRecFilePtrDelete = false;
 
 }
 
 
 template<typename T>
 
-CTable<T>::CTable(  Cardinal const count, SmiRecordFile* _ptr2RecFile /* = 0 */) : 
+CTable<T>::CTable(  Cardinal const count ) : 
  dummyElem(new T()),
  elemCount(0), 
  leastFree(1),  
@@ -60,23 +59,16 @@ CTable<T>::CTable(  Cardinal const count, SmiRecordFile* _ptr2RecFile /* = 0 */)
 {
 
  initialize(); 
- ptr2RecFile = _ptr2RecFile;
-
- if (ptr2RecFile == 0) {
-     bool ok = false;
-     ptr2RecFile = new SmiRecordFile(true,1024,true);
-     ok = ptr2RecFile->Create();
-     doRecFilePtrDelete = true;
-     assert( ok == true ); 
-  }
 
   //cout << endl << "### CTable<T>::CTable(" << endl 
   //             << "ptr2RecFile: " << (void*) ptr2RecFile << endl;
 
   // In this implementation of CTable the total slot size grows one by
   // one, hence count is used to define the initial buffer size.
-  table = new PagedArray<T>(ptr2RecFile, count, true);
-  valid = new PagedArray<bool>(ptr2RecFile, count, true);
+  // There seems to be some administration data for each record, since 
+  // Berkeley-DB cannot create records of the full pagesize.
+  table = new PagedArray<T>(WinUnix::getPageSize()-100, count, true);
+  valid = new PagedArray<bool>(WinUnix::getPageSize()-100, count, true);
 
 }
 
@@ -88,10 +80,6 @@ CTable<T>::~CTable() {
   delete table;
   delete valid;
 
-  if (doRecFilePtrDelete) {
-    ptr2RecFile->Close();
-    delete ptr2RecFile;
-  }
 }
 
 

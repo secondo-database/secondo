@@ -27,7 +27,7 @@ RecordBufferTest() {
 
   const int MaxPage=10;
   cout << "Tests for the Record Buffer" << endl;
-  RecordBuffer rb(rf, 200, 4, true);
+  RecordBuffer rb(512, 200, 4, true);
   
   cout << "Show the buffer addresses for " << MaxPage << "pages " << endl;
   for (int i=0; i<MaxPage; i++) {
@@ -57,7 +57,7 @@ bool
 PArrayTest() {
 	
   cout << "Tests for the PArray template class!" << endl << endl;
-  PagedArray<int> pa(rf,true);
+  PagedArray<int> pa(1024, true);
 
   int max = 1000000;
   cout << "Storing numbers from 1 to " << max << ", read back, and sum them up ... " << endl;
@@ -90,7 +90,7 @@ PCTableTest() {
   test = false;
   cout << "false : " << test << endl;
   
-  CTable<bool> bt( 3, rf );
+  CTable<bool> bt( 3 );
   bool b1;
   
   Cardinal index1=0, index2=0;
@@ -105,7 +105,7 @@ PCTableTest() {
   cout << "bt[" << index1 << "] false : " << bt[index1] << endl;
   cout << "bt[" << index2 << "] true  : " << bt[index2] << endl;
   
-  CTable<int> ct( 5, rf );
+  CTable<int> ct( 5 );
   cout << "size = 5: " << ct.Size() << endl;
  
   int val = 1;
@@ -224,18 +224,6 @@ main() {
     {
       //cout << "Begin Transaction: " << SmiEnvironment::BeginTransaction() << endl;
     
-      int recSize=512;
- 
-      rf = new SmiRecordFile(true, recSize, true);
-      if ( !(rf->Create()) ) {
-       string errMsg;
-       SmiError errCode = SmiEnvironment::GetLastErrorCode(errMsg);
-	 cerr << "SmiError: " << "SmiErrorCode " << errCode << " Msg: " << errMsg << endl;
-       exit(0);
-      } else {
-       cout << "Temporary SmiRecordFile (recSize=" << recSize << ") created!" << endl;
-      }
-
       pause();
       RecordBufferTest(); 
       pause();
@@ -243,7 +231,6 @@ main() {
       pause();
       PCTableTest();
       
-      rf->Close();
       //cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
       cout << "*** Closing Database ***" << endl;
       if ( SmiEnvironment::CloseDatabase() )

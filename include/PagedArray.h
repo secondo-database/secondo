@@ -73,17 +73,19 @@ class RecordBuffer
 {
 
 public:
-  RecordBuffer(SmiRecordFile* bdbFile, int bufSize, int maxBuffers=4, bool traceOn=false) : 
+  RecordBuffer(const int recSize, const int bufSize, const int maxBuffers=4, const bool traceOn=false) : 
+    REC_SIZE(recSize),
     BUF_SIZE(bufSize),
     MAX_BUFFERS(maxBuffers),
-    filePtr(bdbFile),
+    filePtr(0),
     maxPageNr(0),
     BufInfo(MAX_BUFFERS),
     bufferReplacements(0),
     trace(traceOn)
   {
+    assert( recSize >= bufSize );
     if (trace)
-    cout << "BufSize: " << BUF_SIZE << endl;
+      cout << "BufSize: " << BUF_SIZE << endl;
 
     for (int i=0; i < MAX_BUFFERS; i++) { // initialize the buffer
 
@@ -97,6 +99,11 @@ public:
 
 
   ~RecordBuffer() {
+
+    if (filePtr) {
+      filePtr->Close();
+      delete filePtr;
+    }
 
     for (int i=0; i < MAX_BUFFERS; i++) {
        delete [] (char*) BufInfo[i].bufPtr;
@@ -130,27 +137,33 @@ public:
      if ( (pageNr < maxPageNr) && (recidVec[pageNr].index >= 0) ) {
  
        bufNr = recidVec[pageNr].index;
+       assert( (bufNr >= 0) && (bufNr < MAX_BUFFERS) );
 
      } else { // not in buffer
-     
+    
+       // if no record file was created, open a file.
+       if ( filePtr == 0 ) {
+	     bool ok = false;
+	     filePtr = new SmiRecordFile(true,REC_SIZE,true);
+	     ok = filePtr->Create();
+	     assert( ok == true ); 
+       }
+
        // select buffer number to replace
        bufNr = RoundRobin();
+       assert( (bufNr >= 0) && (bufNr < MAX_BUFFERS) );
        Replace(bufNr, pageNr);
        pageChange=true;
 
      }
     
-     if ( !(bufNr >= 0 && bufNr < MAX_BUFFERS) ) {
-       cout << "bufNr: " << bufNr << " out of range!" << endl;
-       assert( bufNr >= 0 && bufNr < MAX_BUFFERS );
-     }
-
      return (void*) BufInfo[bufNr].bufPtr;
    }
 
 
 private:
 
+  int REC_SIZE;
   int BUF_SIZE;
   int MAX_BUFFERS;
 
@@ -195,8 +208,7 @@ private:
 
   void Replace(const int bufNr, const Cardinal pageNr) { 
 
-    assert( (pageNr <= (maxPageNr+1)) && (pageNr >= 0) );
-    assert( (bufNr >= 0) && (bufNr < MAX_BUFFERS) );
+    assert( (pageNr <= maxPageNr) && (pageNr >= 0) );
 
     void* bufPtr = BufInfo[bufNr].bufPtr;
     // write bufNr to disk
@@ -218,9 +230,11 @@ private:
     recInfo.id = recId;
     
     // Read record into memory
-    if ( pageNr >= maxPageNr ) { // a new entry in the page table is needed 
+    if ( pageNr == maxPageNr ) { // a new entry in the page table is needed 
 
       BufInfo[bufNr].recExists = false;
+      BufInfo[bufNr].recId = 0;
+      BufInfo[bufNr].pageNr = pageNr;
       recidVec.push_back( RecordInfo(0, bufNr) );
       maxPageNr++;
 
@@ -230,15 +244,15 @@ private:
       assert( filePtr->SelectRecord( recidVec[pageNr].id, record, SmiFile::Update ) );
       record.Read( bufPtr, BUF_SIZE, 0);
       BufInfo[bufNr].recExists = true;
-      recidVec[pageNr].index = bufNr;
+      BufInfo[bufNr].pageNr = pageNr;
       BufInfo[bufNr].recId = recidVec[pageNr].id;
+      recidVec[pageNr].index = bufNr;
     }
 
     if (trace) {
       cout << "MaxPageNr: " << maxPageNr << ", pageNr: " << pageNr << ", index: " << bufNr << endl; 
     }
  
-    BufInfo[bufNr].pageNr = pageNr;
     bufferReplacements++;
   }
 
@@ -263,7 +277,7 @@ class PagedArray
 {
  public:
 
-  PagedArray( SmiRecordFile *parrays, const int buffers=4, bool logon=false );
+  PagedArray( const int recSize, const int buffers=4, const bool logon=false );
 
 /*
 Creates a new ~SmiRecord~ on the ~SmiRecordFile~ for this
@@ -403,12 +417,12 @@ top of the SecondoSMI interface.
 
 
 template<class T>
-PagedArray<T>::PagedArray( SmiRecordFile *parrays, const int buffers /*=4*/,  bool logOn /*=false*/) :
+PagedArray<T>::PagedArray( const int recSize, const int buffers /*=4*/,  const bool logOn /*=false*/) :
 writeable( true ),
 canDelete( false ),
 size( 0 ),
-pageRecord( parrays->GetRecordLength() ),
-recordBuf( parrays, pageRecord.size, buffers ),
+pageRecord( recSize ),
+recordBuf( recSize, recSize, buffers ),
 bufPtr(0)
 {
   log.switchedOn = logOn;
@@ -422,10 +436,12 @@ bufPtr(0)
     FileCtr++;
     log.fileName << "PagedArray_" << typeid(T).name() << "_" << FileCtr << "_" << pageRecord.slots << ".log" << ends; 
     log.filePtr = new ofstream( log.fileName.str().c_str() );  
-    (*log.filePtr) << "# slotsize:   " << pageRecord.slotSize << endl
+    (*log.filePtr) << "# file " << log.fileName.str() << endl
+                   << "# " << endl
+                   << "# slotsize:   " << pageRecord.slotSize << endl
+                   << "# slots   :   " << pageRecord.slots << endl
                    << "# pagesize:   " << pageRecord.size << endl
-                   << "#             " << endl
-                   << "# index | changes in page buffer | page/index on page" << endl << endl;
+                   << "#             " << endl;
   }
 
 }
@@ -456,9 +472,8 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
   static Cardinal pageNo = 0;
   bool pageChange = false;
  
-
   // enlarge the array if necessary 
-  if (index >= size) {
+  if (index == size) {
      size = size + pageRecord.slots;
   } 
 
@@ -472,10 +487,10 @@ void PagedArray<T>::GetSlot(Cardinal const index, int &slot )
   
 
   if ( log.switchedOn ) {
-     log.slotAccessCounter++;
-     if ( pageChange ) {
-        *(log.filePtr) << " | " << pageNo << "/" << slot << endl; 
+     if (pageChange) { 
+       log.pageChangeCounter++;
      }
+     log.slotAccessCounter++;
   }
 
 }
@@ -488,22 +503,22 @@ void PagedArray<T>::Put(Cardinal const index, T& elem)
   static int slot = 0;
 
   assert ( writeable );
-  assert ( index <= size );
+  assert ( (0 <= index) && (index <= size) );
 
   GetSlot(index, slot);
   bufPtr[slot] = elem;
-  if ( log.switchedOn ) {
-    *(log.filePtr) << "w(" << index << "," << &(bufPtr[slot]) << ")" << endl; 
-    string typeName(typeid(elem).name());
-    if ( index == 1 && typeName.find("Node") ) {
-      *(log.filePtr) << "v(1,nodetype:";
-      for (unsigned int i=0; i<sizeof(T); i++ ) {
-         char s = *(((char*) &bufPtr[slot]) + i);
-         *(log.filePtr) << (255 & (unsigned int) s) << " ";
-      }
-      *(log.filePtr) << ")" << endl;
-    }
-  }
+  //if ( log.switchedOn ) {
+    //*(log.filePtr) << "w(" << index << "," << &(bufPtr[slot]) << ")" << endl; 
+    //string typeName(typeid(elem).name());
+    //if ( index == 1 && typeName.find("Node") ) {
+    //  *(log.filePtr) << "v(1,nodetype:";
+    //  for (unsigned int i=0; i<sizeof(T); i++ ) {
+    //     char s = *(((char*) &bufPtr[slot]) + i);
+    //     *(log.filePtr) << (255 & (unsigned int) s) << " ";
+    //  }
+    //  *(log.filePtr) << ")" << endl;
+  //  }
+  //}
 }
 
 
@@ -512,12 +527,13 @@ void PagedArray<T>::Get(Cardinal const index, T& elem)
 {
   static int slot = 0;
   
-  assert ( 0 <= index && index < size );
+  assert ( (0 <= index) && (index < size) );
   
   GetSlot(index, slot); 
   // reinitialize type T at a given address
   elem = *( new(&(bufPtr[slot])) T );
-  if ( log.switchedOn ) {
+
+  /*  if ( log.switchedOn ) {
     
     *(log.filePtr) << "r(" << index << "," << &(bufPtr[slot]) << ")" << endl; 
     string typeName(typeid(elem).name());
@@ -529,7 +545,7 @@ void PagedArray<T>::Get(Cardinal const index, T& elem)
       }
       *(log.filePtr) << ")" << endl;
     }
-  }
+  } */
 }
 
 template<class T>

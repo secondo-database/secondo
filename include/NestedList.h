@@ -864,11 +864,6 @@ Copies a nested list from ~this~ instance to the target instance.
   char* hton(long value);
   void  NestedList::swap(char* buffer); 
   
-
-  
-  SmiRecordFile *recFilePtr;
-  bool delRecFile;
-
   CTable<NodeRecord>   *nodeTable;   // nodes
   CTable<Constant>     *intTable;    // ints;
   CTable<StringRecord> *stringTable; // strings
