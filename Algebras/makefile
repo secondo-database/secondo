@@ -53,16 +53,10 @@ ifeq ($(USE_JNI),"true")
         done
 endif
 
-
+CLEANDIRS = $(shell find . -type d -maxdepth 1 ! -name "CVS" -and ! -name ".")
 .PHONY: clean
 clean:
-	$(MAKE) -C Management clean
 	$(RM) specs
-	for dir in $(ALGEBRA_DIRS); do \
+	for dir in $(CLEANDIRS); do \
           $(MAKE) -C $$dir clean; \
 	done
-ifeq ($(USE_JNI),"true")
-	for dir in $(JNI_ALGEBRA_DIRS); do \
-          $(MAKE) -C $$dir clean; \
-	done
-endif
