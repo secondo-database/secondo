@@ -67,6 +67,22 @@ public class LEUtils {
       if(value.isEmpty())
          return null;
 
+      //check for date in format (date day month year)
+      if(value.listLength()==4 &&
+         value.first().atomType()==ListExpr.SYMBOL_ATOM &&
+         value.first().symbolValue().equals("date")){
+         System.err.println("Deprecated version of instant (date day month year");
+         value=value.rest(); //ignore "date"
+         if(value.first().atomType()!=ListExpr.INT_ATOM ||
+            value.second().atomType()!=ListExpr.INT_ATOM ||
+            value.third().atomType()!=ListExpr.INT_ATOM)
+           return null;
+         return new Double(convertDateTime2Double(value.first().intValue(),
+                                                  value.second().intValue(),
+                                                  value.third().intValue(),0,0,0,0)); 
+      }
+
+
       // check for an deprecated data version
       if(value.first().atomType()==value.SYMBOL_ATOM &&
          value.first().symbolValue().equals("datetime")){
@@ -204,6 +220,7 @@ public class LEUtils {
     if(start==null){
        if(Environment.DEBUG_MODE){
           System.err.println("Error in reading start - instant ");
+          System.out.println(le.first().writeListExprToString());
        }
        return null;
     }
