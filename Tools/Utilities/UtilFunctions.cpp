@@ -154,9 +154,12 @@ RTFlag::flagMap;
 void
 RTFlag::showActiveFlags(ostream& os) {
 
-  os << "Active runtime flags" << endl;
+  os << "Active runtime flags:" << endl;
+  if ( flagMap.size() == 0 ) {
+    os << "  -none- " << endl;
+  }
   for ( it = flagMap.begin(); it != flagMap.end(); it++ ) {
-     os << "  -" << it->first << "-" << endl;
+    os << "  -" << it->first << "-" << endl;
   }
 
 }
