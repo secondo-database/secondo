@@ -29,6 +29,7 @@ public class CommandPanel extends JScrollPane {
   private int aktPos;
   private Vector History=new Vector(50,10);
   private ESInterface Secondointerface;
+  private ReturnKeyAdapter ReturnKeyListener;
 
   /**
    * The constructor sets up the internal textarea.
@@ -41,7 +42,8 @@ public class CommandPanel extends JScrollPane {
     SystemArea = new JTextArea();
     SystemArea.setLineWrap(true);
     SystemArea.setWrapStyleWord(true);
-    SystemArea.addKeyListener(new ReturnKeyAdapter());
+    ReturnKeyListener = new ReturnKeyAdapter();
+    SystemArea.addKeyListener(ReturnKeyListener);
     SystemArea.addCaretListener(new BoundMoveListener());
     Keymap keymap = SystemArea.getKeymap();
     KeyStroke key = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0);
@@ -104,7 +106,7 @@ public class CommandPanel extends JScrollPane {
 
   /* delete all entrys in the history */
   public void clearHistory(){
-    History = new Vector(50,10);
+    History.clear();
   } 
 
 
@@ -234,7 +236,33 @@ public class CommandPanel extends JScrollPane {
   public void disconnect(){
      Secondointerface.terminate();
   }
-
+  
+  
+  
+  /** returns the size if the history*/
+  public int getHistorySize(){
+     return History.size();
+  }
+  
+  /** returns the entry on pos i in the history,
+    * if index i dont exists then null is returned
+    */
+  public String getHistoryEntryAt(int i){
+    if(i<0)
+      return null;
+    if(i>=History.size())
+      return null;
+    return (String)History.get(i);  
+  
+  }
+  
+  public void addToHistory(String S){
+    if(S!=null){
+       History.add(S);
+       ReturnKeyListener.HistoryPos=History.size();
+    }
+  }
+  
 
   class ReturnKeyAdapter extends KeyAdapter {
     int HistoryPos;

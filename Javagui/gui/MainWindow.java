@@ -35,6 +35,12 @@ private MenuVector CurrentMenuVector;
 /* the Menubar with Menuitems */
 private JMenuBar MainMenu;
 private JMenu ProgramMenu;
+private JMenuItem MI_ExecuteFile_HaltOnError;
+private JMenuItem MI_ExecuteFile_IgnoreErrors;
+private JMenuItem MI_SaveHistory;
+private JMenuItem MI_ClearHistory;
+private JMenuItem MI_ExtendHistory;
+private JMenuItem MI_ReplaceHistory;
 private JMenuItem MI_Close;  
 
 private JMenu ServerMenu;
@@ -66,6 +72,11 @@ private MenuListener BlendOutList; // a Menu cannot overlap a List ??
 
 
 private String ObjectDirectory ="./"; // where search for Objects
+
+
+
+private JFileChooser FC_History = new JFileChooser();
+private JFileChooser FC_ExecuteFile = new JFileChooser();
 
 
 /* display a message in a new frame */
@@ -115,20 +126,6 @@ public MainWindow(String Title){
   });
 
   createMenuBar();
-  // blend out the ObjectList
-  BlendOutList = new MenuListener(){
-                        public void menuCanceled(MenuEvent evt){
-                            OList.showList();
-                        }
-                        public void menuDeselected(MenuEvent evt){
-                            OList.showList();
-                        }
-                        public void menuSelected(MenuEvent evt){
-                            OList.showNothing();
-                        }}; 
-  ServerMenu.addMenuListener(BlendOutList); 
-  Viewers.addMenuListener(BlendOutList); 
-
 
   CurrentViewer = null;
   ViewerMenuItems = new Vector(10);
@@ -357,6 +354,7 @@ private void setViewer(SecondoViewer SV){
   * addViewer <ViewerName>
   * selectViewer <ViewerName>
   * clearHistory
+  * saveHistory
   * showObject <ObjectName>
   * hideObject <ObjectName>
   * removeObject <ObjectName>
@@ -489,12 +487,13 @@ public boolean execGuiCommand(String command){
       ComPanel.showPrompt();
   }
   else if(command.startsWith("connect")){
-    if(ComPanel.connect())
-       ComPanel.appendText("you are connected to a secondo server");
-    else{
-       ComPanel.appendText("i can't connect to secondo server (are the settings correct?)");
-       success=false;
-    }   
+    if(!ComPanel.isConnected());
+       if(ComPanel.connect())
+          ComPanel.appendText("you are connected to a secondo server");
+       else{
+          ComPanel.appendText("i can't connect to secondo server (are the settings correct?)");
+          success=false;
+       }   
     ComPanel.showPrompt();
   }  
   else if(command.startsWith("disconnect")){
@@ -529,29 +528,6 @@ public boolean execGuiCommand(String command){
   } else if(command.startsWith("onlyViewer")){
      onlyViewerSwitch();
      ComPanel.showPrompt();
-  } else if(command.startsWith("listCommands")){
-      ComPanel.appendText(" *** the know gui commands ***\n");
-      ComPanel.appendText("gui exit\n");
-      ComPanel.appendText("gui addViewer <ViewerName>\n");
-      ComPanel.appendText("gui selectViewer <ViewerName> \n");
-      ComPanel.appendText("gui clearHistory\n");
-      ComPanel.appendText("gui showObject <ObjectName>\n");
-      ComPanel.appendText("gui showAll\n");
-      ComPanel.appendText("gui hideObject <ObjectName>\n");
-      ComPanel.appendText("gui hideAll\n");
-      ComPanel.appendText("gui removeObject <ObjectName>\n");
-      ComPanel.appendText("gui clearObjectList \n");
-      ComPanel.appendText("gui saveObject <ObjectName> \n");
-      ComPanel.appendText("gui loadObject \n");
-      ComPanel.appendText("gui storeObject <ObjectName>\n");
-      ComPanel.appendText("gui connect \n");
-      ComPanel.appendText("gui disconnect \n");
-      ComPanel.appendText("gui serverSettings \n");
-      ComPanel.appendText("gui renameObject <oldName> -> <newName> \n");
-      ComPanel.appendText("gui onlyViewer \n");
-      ComPanel.appendText("gui listCommands \n");
-      ComPanel.appendText(" ==> Note : all commands and names are case sensitive \n");
-      ComPanel.showPrompt();
   } else if(command.startsWith("hideAll")){
     OList.hideAll(); 
     ComPanel.showPrompt();
@@ -595,6 +571,8 @@ public boolean execGuiCommand(String command){
      else
         ComPanel.appendText("i can't load this object");
      ComPanel.showPrompt();   
+  } else if(command.startsWith("saveHistory")){
+     saveHistory();
   }
   else {
     ComPanel.appendText("unknow gui command \n input \"gui listCommands\" to get a list of available commands");
@@ -636,6 +614,13 @@ private int executeFile(String FileName,boolean ignoreErrors){
     System.out.println(e);
     e.printStackTrace();
     errors++;
+  }
+  finally{
+    try{
+      if(BR!=null)
+        BR.close();
+    }
+    catch(Exception e){}
   }
   return errors;
 
@@ -828,12 +813,68 @@ private void createMenuBar(){
    MainMenu = new JMenuBar();
    ProgramMenu = new JMenu("Program");
    MainMenu.add(ProgramMenu);
+
+   JMenu MI_ExecuteFile = new JMenu("execute file");
+   ProgramMenu.add(MI_ExecuteFile);
+   
+   MI_ExecuteFile_HaltOnError = new JMenuItem("halt on error");
+   MI_ExecuteFile_IgnoreErrors = new JMenuItem("ignore errors");
+   MI_ExecuteFile.add(MI_ExecuteFile_HaltOnError);
+   MI_ExecuteFile.add(MI_ExecuteFile_IgnoreErrors);
+   
+   ActionListener ExecuteListener= new ActionListener(){
+      public void actionPerformed(ActionEvent evt){
+         if(FC_ExecuteFile.showSaveDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
+            Object Source = evt.getSource();
+            if(Source.equals(MI_ExecuteFile_HaltOnError))
+                executeFile(FC_ExecuteFile.getSelectedFile().getPath(),false);
+            else
+                executeFile(FC_ExecuteFile.getSelectedFile().getPath(),true);
+         }
+      }
+   };
+
+   MI_ExecuteFile_HaltOnError.addActionListener(ExecuteListener);
+   MI_ExecuteFile_IgnoreErrors.addActionListener(ExecuteListener);
+   
+
+   JMenu HistoryMenu = new JMenu("history");
+   ProgramMenu.add(HistoryMenu);
+   MI_SaveHistory=HistoryMenu.add("save history");
+   MI_ClearHistory=HistoryMenu.add("clear history");
+   JMenu LoadHistoryMenu = new JMenu("load");
+   HistoryMenu.add(LoadHistoryMenu);
+   MI_ExtendHistory = LoadHistoryMenu.add("append");
+   MI_ReplaceHistory = LoadHistoryMenu.add("replace");
+   
+
+   ActionListener HistoryListener = new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          Object Source = evt.getSource();
+          if(Source.equals(MI_ClearHistory))
+              ComPanel.clearHistory();
+          else if(Source.equals(MI_SaveHistory))
+             saveHistory();
+          else if(Source.equals(MI_ExtendHistory))
+             loadHistory(false);
+          else if(Source.equals(MI_ReplaceHistory))
+             loadHistory(true);             
+       }
+   };    
+   
+   MI_SaveHistory.addActionListener(HistoryListener);
+   MI_ClearHistory.addActionListener(HistoryListener);
+   MI_ExtendHistory.addActionListener(HistoryListener);
+   MI_ReplaceHistory.addActionListener(HistoryListener);
+       
+   
    MI_Close = ProgramMenu.add("Exit");
    MI_Close.addActionListener( new ActionListener(){
      public void actionPerformed(ActionEvent E){
         ComPanel.disconnect();
         System.exit(0);
      }});
+     
 
    ServerMenu = new JMenu("Server");
    ServerMenu.addMenuListener(new MenuListener(){
@@ -964,6 +1005,48 @@ private void createMenuBar(){
 }
 
 
+
+
+/** load a new History,
+  * if replace is true, the old History is make clear before
+  * load the new History
+  */
+public void loadHistory(boolean replace){
+
+  if(FC_History.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+      // first try to load the file content  
+      boolean ok = true;
+      Vector TMP=new Vector();
+      BufferedReader BR=null;
+      try{
+        BR = new BufferedReader(new FileReader(FC_History.getSelectedFile()));
+        String Line = BR.readLine();
+        while(Line!=null){
+           TMP.add(Line);
+           Line = BR.readLine(); 
+        }
+      } catch(Exception e){
+        ComPanel.appendText("load history failed \n");
+        ok = false;
+      }
+      finally{
+        try{
+          if(BR!=null)
+             BR.close();
+         }catch(Exception e){}    
+      }
+      if(ok){
+        if(replace)
+           ComPanel.clearHistory();
+        for(int i=0;i<TMP.size();i++)
+           ComPanel.addToHistory((String)TMP.get(i));
+      }
+  }
+}
+
+
+
+
 /** switch to display 
   * only the viewer or viewer commandpanel and objectlist */
 public void onlyViewerSwitch(){
@@ -1012,6 +1095,34 @@ private void showServerSettings(){
           }
        } 
 }
+
+
+/** open a FileChooser and save the current History to the
+  * selected File
+  */
+private void saveHistory(){
+    if(FC_History.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+       File F = FC_History.getSelectedFile();
+       FileWriter FW =null;
+       try{
+          FW = new FileWriter(F);
+          for(int i=0;i<ComPanel.getHistorySize();i++)
+              FW.write(ComPanel.getHistoryEntryAt(i)+"\n");
+       }       
+       catch(Exception e){
+          ComPanel.appendText("IO error");
+       }
+       finally{
+         try{
+          if(FW!=null)
+             FW.close();
+         }
+         catch(Exception e2){}
+       }
+           
+    }
+}
+
 
 
 /* cleans the MenuBar (MenuBar without Viewer-Extension */
