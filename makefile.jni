@@ -16,7 +16,7 @@ JNILINKOPTS = $(JNIINCLUDE) $(LDFLAGS) -L. -L$(J2SDK_ROOT)/jre/bin/client -ljvm
 
 else
 # Linux definitions
-CC= g++
+#CC= g++
 
 # directory where i can find the jni.h
 JNI_H_DIR =$(J2SDK_ROOT)/include
