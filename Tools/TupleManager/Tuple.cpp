@@ -34,8 +34,6 @@ void Tuple::Init(const TupleAttributes *attributes) {
 	diskTupleId = 0;
 	lobFile = 0;
 	recFile = 0;
-	lobFileOpened = false;
-	lobFileAllocated = false;
 	attribInfo = 0;
 	state = Fresh;
 	attrNum = attributes->totalNumber;
@@ -75,12 +73,14 @@ Tuple::Tuple(const TupleAttributes *attributes) {
 }
 
 /* Creates a solid tuple. Reads its data into memory. */
-Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttributes *attributes, SmiFile::AccessType mode) : diskTuple() {
+Tuple::Tuple(SmiRecordFile* recfile, SmiRecordId rid, SmiRecordFile *lobfile,
+				const TupleAttributes *attributes, SmiFile::AccessType mode) {
 	// initialize member attributes.
 	Init(attributes);
 	
   	diskTupleId = rid;
   	recFile = recfile;
+	lobFile = lobfile;
 	
 	// read tuple header and memory tuple from disk
 	bool ok = recFile->SelectRecord(diskTupleId, diskTuple, mode);
@@ -88,25 +88,13 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 		error = true;
 		return;
 	}
-	TupleHeader th = {0, 0};
+	TupleHeader th = {0};
 	char *buf = (char *)malloc(sizeof(TupleHeader));
   	ok = diskTuple.Read(buf, sizeof(TupleHeader), 0);
 	ok = diskTuple.Read(memoryTuple, memorySize, sizeof(TupleHeader)) && ok;
 	memcpy(&(th.size), buf, sizeof(int));
-	memcpy(&(th.lobFileId), buf + sizeof(int), sizeof(SmiFileId));
   	free(buf);
 		
-	if (ok == false) {
-		error = true;
-		return;
-	}
-	
-	// open lobFile.
-	lobFile = new SmiRecordFile(false);
-	lobFileOpened = lobFile->Open(th.lobFileId);
-	ok = lobFileOpened;
-	lobFileAllocated = true;
-
 	if (ok == false) {
 		error = true;
 		return;
@@ -121,13 +109,12 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 		valuePtr = valuePtr + attributes->type[i].size;
 		FLOB *tmpFLOB;
 		for (int j = 0; j < attribInfo[i].value->NumOfFLOBs(); j++) {
-			TupleElement *tupleelem = attribInfo[i].value;
-			tmpFLOB = tupleelem->GetFLOB(j);
+			tmpFLOB = attribInfo[i].value->GetFLOB(j);
 			tmpFLOB->lobFile = lobFile;
 		}
 
 	}
-	
+
 	if (th.size > 0) {
 		// Determine the size of FLOB data stored in lobFile
 		FLOB *tmpFLOB;
@@ -163,12 +150,6 @@ Tuple::Tuple(SmiRecordFile *recfile, const SmiRecordId rid, const TupleAttribute
 
 /* previously called Close. */
 Tuple::~Tuple() {
-	if (lobFile != 0) {
-		if (lobFileOpened == true) lobFile->Close();
-		if (lobFileAllocated == true) delete lobFile;
-		lobFileOpened = false;		
-	}
-	
   	if (memoryTuple != 0) free(memoryTuple);
   
   	// delete attributes
@@ -234,17 +215,8 @@ void Tuple::MoveExternalAttributeToMemoryTuple() {
 bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
   	if (error == true) return false;
   
-  	// close the old lobfile and delete the old lobfile value,
-	// if the tuple manager created it.
-  	if (lobFile != 0) {
-		if (lobFileOpened == true) lobFile->Close();
-		if (lobFileAllocated == true) delete lobFile;
-	}
-  
   	lobFile = lobfile;
   	recFile = tuplefile;
-	lobFileOpened = false;
-	lobFileAllocated = false;
 	extensionSize = CalcSizeOfFLOBData();
 
 
@@ -257,11 +229,10 @@ bool Tuple::SaveTo(SmiRecordFile *tuplefile, SmiRecordFile *lobfile) {
 	MoveExternalAttributeToMemoryTuple();
 	
   	/* Store memory tuple to disk tuple */
-  	TupleHeader th = {extensionSize, lobFile->GetFileId()};
+  	TupleHeader th = {extensionSize};
   	char *buf = (char *)malloc(sizeof(TupleHeader));
 	
 	memcpy(buf, &(th.size), sizeof(int));
-	memcpy(buf + sizeof(int), &(th.lobFileId), sizeof(SmiFileId));
 	
   	SmiRecord newTuple;
   	bool rc = tuplefile->AppendRecord(diskTupleId, newTuple);
