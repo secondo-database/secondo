@@ -36,9 +36,8 @@ buildlibs: $(LIBDIR)/$(LIBNAME).$(LIBEXT)
 CCFLAGS= $(PICFLAG) $(DEFAULTCCFLAGS) -I.
 
 #This define RELALG_PERSISTENT is used to compile the Persistent Relational Algebra.
-#Uncomment this line below to change it to the Main Memory Relational Algebra.
+#comment this line below to change it to the Main Memory Relational Algebra.
 CCFLAGS+= -DRELALG_PERSISTENT 
-#CCFLAGS+= -DRELALG_PERSISTENT -DPERSISTENT_FLOB
 
 #The define _PREFETCHING_ is used to use Prefetching Iterators instead or normal
 #ones and is used only for testing purposes. It will be removed in later versions.
