@@ -62,7 +62,7 @@ javagui: java2
 clientserver: cs
 
 .PHONY: cs
-cs: makedirs buildlibs buildalg checkup
+cs: makedirs buildlibs buildalg update-config
 	$(MAKE) -C ClientServer
 	$(MAKE) -C UserInterfaces TTYCS
 	$(MAKE) -C ClientServer buildapp
@@ -94,7 +94,7 @@ buildlibs:
 
 
 .PHONY: java
-java: java2 checkup
+java: java2 update-config
 
 .PHONY: java2
 java2:
@@ -103,7 +103,7 @@ java2:
 
 
 .PHONY: optimizer
-optimizer: optimizer2 optserver checkup
+optimizer: optimizer2 optserver update-config
 
 .PHONY: optimizer2
 optimizer2: makedirs buildlibs buildalg
@@ -121,7 +121,7 @@ endif
 
 
 .PHONY: TTY
-TTY: TTY2 checkup
+TTY: TTY2 update-config
 
 .PHONY: TTY2
 TTY2: makedirs buildlibs buildalg
@@ -129,7 +129,7 @@ TTY2: makedirs buildlibs buildalg
 
 
 .PHONY: TestRunner
-TestRunner: TestRunner2 checkup
+TestRunner: TestRunner2 update-config
 	
 .PHONY: TestRunner2
 TestRunner2: makedirs buildlibs buildalg
