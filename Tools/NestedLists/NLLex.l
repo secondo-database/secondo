@@ -39,8 +39,7 @@ using namespace std;
 
 int yywrap();
 
-const int MAX_STRING_LENGTH = 48;
-char buffer[MAX_STRING_LENGTH+2];
+char buffer[MAX_STRINGSIZE+1];
 char *s = buffer;
 ostringstream* text=0;
 
@@ -137,9 +136,9 @@ file		"<file>"[^<\n]+"</file--->"
 
 <INITIAL>{string}       {
 			/* ECHO; printf(" : is a string\n"); */
-			if ( yyleng - 2 > MAX_STRING_LENGTH )
+			if ( yyleng - 2 > MAX_STRINGSIZE )
 			{
-			  yyleng = MAX_STRING_LENGTH;
+			  yyleng = MAX_STRINGSIZE + 2;
 			  printf("Warning: string %s was truncated!\n", yytext);
 			}
 
