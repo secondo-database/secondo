@@ -304,7 +304,7 @@ void CloseArray( Word& w ) {
 
   for (int i=0; i<array->getSize(); i++) {
     Word element = array->getElement(i);
-    (am->DeleteObj(array->getElemAlgId(),array->getElemTypeId()))(element);
+    (am->CloseObj(array->getElemAlgId(),array->getElemTypeId()))(element);
   }
 
   delete array;
@@ -312,10 +312,11 @@ void CloseArray( Word& w ) {
 }
 
 void DeleteArray(Word& w) {
-// Because the array has a main memory representation, the Deletion function
-// is identical to the Close function.
 
-  CloseArray(w);
+  Array* array = (Array*)w.addr;
+
+  delete array;
+  w.addr = 0;
 }
 
 /*
