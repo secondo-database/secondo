@@ -19,12 +19,18 @@
 
 # Configuration file for the JNI interface.
 #
-# last change : 2003-06-17 - Th. Behr
+# Changes:
 #
-  # add a classpath by a line starting with %P
-  # set the lib directory by a line starting with %L
-  # set the Java-Version by a line starting with %V in the form major.minor
-  # all other lines are ignored
+# 2003-06-17 - Th. Behr
+#
+# add a classpath by a line starting with %P
+# set the lib directory by a line starting with %L
+# set the Java-Version by a line starting with %V in the form major.minor
+# all other lines are ignored
+#
+# 2005-04-04 - M. Spiekermann
+#
+# Parameter %M introduced
 
 # set a lot of classpathes
 
@@ -39,8 +45,11 @@
 %P ../Algebras/Rose/RoseJava
 %P ../Algebras/Fuzzy
 
-   # set the lib path
+# set the lib path
 %L ../../secondo-sdk/j2sdk1.4.2_01/jre/bin/client
 
-   # set the version number 
+# set the version number 
 %V 1.4
+
+# set maximum heap memory (%M Megabytes will be used)
+%M 64

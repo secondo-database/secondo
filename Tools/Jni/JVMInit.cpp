@@ -30,6 +30,9 @@ This module initializes the JNI Environment. \\
    changed 2003-06-17 by Th. Behr \\
       new analyse of the jni.ini-file \\
       make compatible with new java-version 1.4 \\
+   changed 2005-04-04 by M. Spiekermann \\
+      new parameter M in jni.ini introduced wich \\
+      defined the maximum heap size of the VM in megabytes \\
 \end{center}
 
 */
@@ -115,7 +118,7 @@ In this function a single line of the ini file is analyzed.
 
 */
 void processLine(const string& inputLine,string& classpath,
-                       string& libdir, string& version){
+                       string& libdir, string& version, string& heapMem){
  // remove comment
  int comment = inputLine.find("#");
  string line;
@@ -144,6 +147,8 @@ void processLine(const string& inputLine,string& classpath,
     libdir = line3;
  if(line[1]=='V')
     version = line3;
+ if(line[1]=='M')
+    heapMem = line3;
 }
 
 
@@ -157,7 +162,7 @@ opened or an error occurs in reading this file, readFile will return
 
 */
 int readFile(const string& FileName,string& classpath,
-                   string& libpath, string& version){
+                   string& libpath, string& version, string& heapMem){
   // open the file
   ifstream infile(FileName.c_str());
   if(!infile){ // error in opening file
@@ -166,7 +171,7 @@ int readFile(const string& FileName,string& classpath,
   string line;
   while(!infile.eof()){
      getline(infile,line);
-     processLine(line,classpath,libpath,version);
+     processLine(line,classpath,libpath,version,heapMem);
   }
   infile.close();
   return 0;
@@ -231,8 +236,9 @@ JVMInitializer::JVMInitializer() {
   string classpath="";
   string libpath="";
   string versionstr="";
+  string heapMemStr="";
   string FileName = getIniFile();
-  if(readFile(FileName,classpath,libpath,versionstr)!=0)
+  if(readFile(FileName,classpath,libpath,versionstr,heapMemStr)!=0)
      error(1);
 
   if(versionstr.size()==0){
@@ -262,15 +268,13 @@ JVMInitializer::JVMInitializer() {
 // the JNI Enhancement, Introduced in version 1.2 of the 
 // JavaTM 2 SDK.
 // Copyright (1995-1999) by Sun Microsystems Inc.
-
-Site: http://java.sun.com/j2se/1.4.2/docs/guide/jni/jni-12.html#invo
+//
+// Site: http://java.sun.com/j2se/1.4.2/docs/guide/jni/jni-12.html#invo
 
   string classoption ="-Djava.class.path="+classpath;
   string liboption = "-Djava.library.path="+libpath;
+  string mem_mx_option = "-Xmx" + heapMemStr + "M"; 
 
-
-  cout<<"set classpath to" << classpath<<endl;
-  cout<<"set libdir to " << libpath<<endl;
   cout<<"set version to " << major<<"."<<minor<<endl;
 
   int version = 65536*major+minor;
@@ -279,16 +283,27 @@ Site: http://java.sun.com/j2se/1.4.2/docs/guide/jni/jni-12.html#invo
   sprintf(co,"%s",classoption.c_str());
   char lo[liboption.size()+1];
   sprintf(lo,"%s",liboption.c_str());
+  char mo[mem_mx_option.size()+1];
+  sprintf(mo,"%s",mem_mx_option.c_str());
 
+  const unsigned int VM_MAXOPT = 3;
   #ifdef JNI_VERSION_1_2
      JavaVMInitArgs vm_args;
-     JavaVMOption options [2];
-     options[0].optionString =co;
-     options[1].optionString =lo;
+
+     JavaVMOption options [VM_MAXOPT];
+     options[0].optionString = co;
+     options[1].optionString = lo;
+     options[2].optionString = mo;
+
+     cout << "VM Options: " << endl;
+     for (int i=0; i<VM_MAXOPT; i++) 
+     {
+       cout << "  " << options[i].optionString << endl;
+     }
      // vm_args.version =version;
      vm_args.version = version;
-     vm_args.options =options;
-     vm_args.nOptions =2;
+     vm_args.options = options;
+     vm_args.nOptions = VM_MAXOPT;
      vm_args.ignoreUnrecognized =JNI_TRUE;
      //Create the Java VM
      res =JNI_CreateJavaVM(&jvm,(void**)&env,&vm_args);
