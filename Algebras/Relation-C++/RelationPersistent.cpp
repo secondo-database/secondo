@@ -136,6 +136,12 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
     }
     else
     {
+      for( int i = 0; i < tupleType.GetNoAttributes(); i++)
+      {
+        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+          attributes[i]->GetFLOB(j)->Clear();
+      }
+
       free( memoryTuple );
       if( extensionTuple != 0 )
         free( extensionTuple );
