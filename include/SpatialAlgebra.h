@@ -568,7 +568,7 @@ as an attribute.
     int      Sizeof() ;
     Points*    Clone() ;
     ostream& Print( ostream &os );
-    
+    void     Clear();
 /*
 4.6 Atrtibutes
 
@@ -1098,7 +1098,7 @@ as an attribute.
     int      Sizeof() ;
     //CLine*    Clone() ;
     ostream& Print( ostream &os );
-    
+    void     Clear();
   private:
 /*
 6.7 Private member functions
