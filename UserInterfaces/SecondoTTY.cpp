@@ -2,13 +2,13 @@
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
 pace}
 \centerline{\LARGE \bf  SecondoTTY}
- 
+
 \centerline{Friedhelm Becker , Dec1997}
 
 Changes:
 
 July 1999: Jose Antonio Cotelo Lema: changes in the code and interface of the
-Gettext() and getline() functions, to allow input commands of arbitrary size. 
+Gettext() and getline() functions, to allow input commands of arbitrary size.
 
 \begin{center}
 \footnotesize
@@ -21,19 +21,24 @@ This is the TTY-Interface of Secondo. It makes it possible to enter queries
 to Secondo and returns the output from Secondo. Input can be from  keyboard
 or from file. In the latter you must enter ~uf~ or ~use file~ and
 then you will be prompted for the filename.
- 
+
 2 Includes and defines
 
 */
 
 using namespace std;
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <ctype.h>
+
+#ifdef READLINE
+  #include <stdio.h>
+  #include <readline/readline.h>
+  #include <readline/history.h>
+#endif
 
 #include "Application.h"
 #include "Profiles.h"
@@ -78,6 +83,7 @@ class SecondoTTY : public Application
   string            iFileName;
   string            oFileName;
   string            cmd;
+  string            prompt;
   bool              isStdInput;
   bool              quit;
   NestedList*       nl;
@@ -276,11 +282,21 @@ SecondoTTY::ShowPrompt( const bool first )
     }
     if ( first )
     {
-      cout << level << " Secondo => ";  // First line of command
+      prompt = level+" Secondo => ";
+      #ifdef READLINE
+         rl_set_prompt(prompt.c_str());
+      #else
+         cout << prompt;  // First line of command
+      #endif
     }
     else
     {
-      cout << level << " Secondo -> ";  // Continuation line of command
+      prompt = level + " Secondo -> ";
+      #ifdef READLINE
+         rl_set_prompt(prompt.c_str());
+      #else
+         cout <<  prompt; // Continuation line of command
+      #endif
     }
   }
 }
@@ -312,7 +328,12 @@ SecondoTTY::GetCommand()
   {
     line = "";
     ShowPrompt( first );
-    getline( cin, line );
+    #ifdef READLINE
+      if(isStdInput)
+         line = string(readline(prompt.c_str()));
+      else
+    #endif
+         getline( cin, line );
     if ( line.length() > 0 )
     {
       if ( !isStdInput )           // Echo input if not standard input
@@ -347,6 +368,23 @@ SecondoTTY::GetCommand()
       first = true;
     }
   }
+  // remove spaces from the end of cmd
+  int end = cmd.find_last_not_of(" \t")+1;
+  cmd = cmd.substr(0,end);
+  #ifdef READLINE
+     if(complete && (cmd.length()>0)){
+        // get the last entry from the history if avaiable
+        int noe = where_history();
+	string last = "";
+	if(noe){
+           HIST_ENTRY* he = history_get(noe);
+	   if(he)
+	       last = string(he->line);
+	}
+	if(last!=cmd)
+          add_history(cmd.c_str());
+       }
+  #endif
   return (complete);
 }
 
@@ -404,23 +442,23 @@ SecondoTTY::TypeOutputListFormatted ( ListExpr list )
     DisplayTTY::DisplayResult2( list );
     cout << endl;
   }
-}    
+}
 
 /*
 9 ShowQueryResult
 
 This function prints the result of a query by calling DisplayTTY,
 which writes the result in a file.  This file is then printed by
-this function. The filename is given to DisplayTTY by this function. 
+this function. The filename is given to DisplayTTY by this function.
 
 */
 
 void
 SecondoTTY::ShowQueryResult( ListExpr list )
 {
-  if ( nl->IsEmpty( list ) || 
+  if ( nl->IsEmpty( list ) ||
        (nl->ListLength( list ) != 2) ||
-       ( (nl->ListLength( list ) == 2) && (nl->IsEmpty(nl->Second( list ))) ) 
+       ( (nl->ListLength( list ) == 2) && (nl->IsEmpty(nl->Second( list ))) )
      )
   {
     cout << "=> []" << endl;
@@ -504,7 +542,7 @@ SecondoTTY::CallSecondo()
   else
   {
     si->Secondo( cmd, cmdList, levelOffset+1, false, false,
-                 outList, errorCode, errorPos, errorMessage ); 
+                 outList, errorCode, errorPos, errorMessage );
   }
   if ( errorCode > 0 )
   {
@@ -577,9 +615,9 @@ SecondoTTY::CallSecondo2()
 
 This is the function where everything is done. If one wants to use the
 sotrage manager provided by SHORE, one should struture its program
-like this. Since using SHORE makes necessary to be on top of a thread, 
+like this. Since using SHORE makes necessary to be on top of a thread,
 we cannot just initiate the storage manager and then keep in the same
-function. Using SHORE we must use this workaround. Call the initiation 
+function. Using SHORE we must use this workaround. Call the initiation
 method from the main function, and then we know that the functions
 SecondoMain will be "called back"
 
@@ -791,21 +829,21 @@ SecondoTTY::Execute()
     streambuf* oldOutputBuffer = 0;
     ifstream fileInput;
     ofstream fileOutput;
-       
+
     si = new SecondoInterface();
     if ( si->Initialize( user, pswd, host, port, parmFile ) )
     {
       //set AlgebraLevel and LogMsg prefixes
       string algLevelStr = SmiProfile::GetParameter( "Environment", "AlgebraLevel", "Descriptive", parmFile );
-    
+
       char chLevel = toupper( (algLevelStr.data())[0] );
       switch (chLevel) {
        case 'E': currentLevel = ExecutableLevel; break;
        case 'D': currentLevel = DescriptiveLevel; break;
        case 'H': currentLevel = HybridLevel; break;
-       default:  currentLevel = DescriptiveLevel; 
+       default:  currentLevel = DescriptiveLevel;
       }
-	    
+
       if ( iFileName.length() > 0 )
       {
         fileInput.open( iFileName.c_str() );
@@ -867,6 +905,9 @@ int
 main( const int argc, const char* argv[] )
 {
   SecondoTTY* appPointer = new SecondoTTY( argc, argv );
+#ifdef READLINE
+  rl_initialize();
+#endif
   int rc = appPointer->Execute();
   delete appPointer;
 

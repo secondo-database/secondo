@@ -26,6 +26,12 @@ APPLOBJECTS += SecondoPL.$(OBJEXT)
 CCFLAGS += $(PLINCLUDEFLAGS)
 endif
 
+ifeq ($(readline),true)
+RL_COMPILE_FLAG = -DREADLINE
+RL_LD_FLAG = -lreadline
+endif
+
+
 CODE_DEPENDENCIES := $(patsubst %.$(OBJEXT), %.dep, $(APPLOBJECTS))
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
 
@@ -61,13 +67,13 @@ clean:
 # create dependencies from include directives
 
 CCFLAGS += $(DEFAULTCCFLAGS)
-CCFLAGS += -fPIC 
+CCFLAGS += -fPIC
 
 %.dep: %.cpp
 	$(CC) -MM $(CCFLAGS) $< > $@
 
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE)
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(RL_COMPILE_FLAG)
 
 
 #  Rules for linkage
@@ -76,29 +82,29 @@ APP_OBJECTS :=  DisplayTTY.o SecondoInterfaceGeneral.o AlgebraList.o
 
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYBDB$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 
 
 $(BINDIR)/SecondoTTYORA$(EXEEXT):  $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/SecondoTTYORA$(EXEEXT): SecondoTTY.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 
 $(BINDIR)/SecondoTTYCS$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoTTYCS$(EXEEXT): SecondoTTY.o DisplayTTY.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(RL_LD_FLAG)
 
 $(BINDIR)/TestRunner$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(BINDIR)/TestRunner$(EXEEXT): TestRunner.o SecondoInterface.o  $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG)
 
 
 $(OPTDIR)/SecondoPL$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES)
 $(OPTDIR)/SecondoPL$(EXEEXT): SecondoPL.o SecondoInterface.o $(APP_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(PLLDFLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 $(OPTDIR)/SecondoPLCS$(EXEEXT): $(SECLIBFILES)
 $(OPTDIR)/SecondoPLCS$(EXEEXT): SecondoPL.o SecondoInterfaceCS.o SecondoInterfaceGeneral.o
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(PLLDFLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(PLLDFLAGS) $(RL_LD_FLAG)
 
 
 include $(CODE_DEPENDENCIES:.cpp=.dep)
