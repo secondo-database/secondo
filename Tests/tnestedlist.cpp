@@ -27,12 +27,18 @@ In this module the nested list functions from the module NestedList are called t
 ******************************************************************************/
 
 #include <string>
+#include <iostream>
+#include <fstream>
+
 #include "NestedList.h"
 #include "SecondoSMI.h"
 
 namespace {
 
 SmiRecordFile* rf = 0;
+
+const string filePrefix = "testout-";
+
 
 /******************************************************************************
 
@@ -334,7 +340,7 @@ TestBasicOperations()
      SymbolValue2 = nl.SymbolValue (SymbolAtomVar);
      cout << SymbolValue2 << endl << endl;
    }
-
+  cout.flush();  
 
 /****************************************************************************** 
 
@@ -455,35 +461,6 @@ The following steps are executed with a small list expression.
    cout << "Small list- String test. SmallList = ";
    cout << String3 << endl << endl;
 
-/*
-
-4.3.2 In-/Output of a complex list expression
-
-The complex list expression is saved in the file ~testin-simple~.
-The following five steps are executed:
-
-File [->] ListExpr [->] File 
-File [->] ListExpr [->] String [->] File
-
-*/
-
-   cout << endl << "Reading and writing file geo ..." << endl;
-   ErrorVar = nl.ReadFromFile ("geo.nl", ListExpr8);
-   ErrorVar = nl.WriteToFile ("geo_write.nl", ListExpr8);
-
-   //ErrorVar = nl.WriteToString (String1, ListExpr8);
-   //ErrorVar = nl.ReadFromString (String1, ListExpr9);
-   //ErrorVar = nl.WriteToFile ("testout_simple2", ListExpr9);
-
-   cout << endl << "Reading and writing operator lists ..." << endl;
-   ListExpr ListConcat = 0;
-   nl.ReadFromFile("ListOperators.nl", ListConcat);
-   nl.WriteToFile("ListOperators_write.nl", ListConcat);
-   
-   ListExpr List2list = 0;
-   nl.ReadFromFile("2lists.nl", List2list);
-   nl.WriteToFile("2lists_write.nl", List2list);
-   
 
 /*
 
@@ -529,6 +506,64 @@ File [->] ListExpr [->] String [->] File
 
    return (0);
 }
+
+/*
+
+4.3.2 In-/Output of a complex list expression
+
+The complex list expression is saved in the file ~testin-simple~.
+The following five steps are executed:
+
+File [->] ListExpr [->] File 
+File [->] ListExpr [->] String [->] File
+
+*/
+
+void
+TestInputOutput() {
+
+
+   NestedList nl(rf,10,10,10,10);
+
+   //cout << endl << "Reading and writing file geo ..." << endl;
+   //ErrorVar = nl.ReadFromFile ("geo.nl", ListExpr8);
+
+   string fileBaseName = "ListOperators";
+   string fileIn = fileBaseName;
+   string fileOut = filePrefix + fileBaseName;
+   string outname = "";
+
+   ListExpr list = 0;
+
+/*
+   cout << endl << "Reading " + fileIn+".nl" << endl;
+   nl.ReadFromFile( fileIn+".nl", list );
+   cout << endl << "Writing " + fileOut+".nl" << endl;
+   nl.WriteToFile( fileOut+".nl", list );
+   
+   cout << endl << "Writing " + fileOut+".bnl" << endl;
+   outname = fileOut+".bnl";
+   ofstream outFile1(outname.c_str()); 
+   nl.WriteBinaryTo(list, outFile1);   
+*/
+
+   fileIn = fileBaseName ="simpleList";
+   fileOut = filePrefix + fileBaseName;
+
+   cout << endl << "Reading " + fileIn+".nl" << endl;
+   nl.ReadFromFile( fileIn+".nl", list );
+   cout << endl << "Writing " + fileOut+".nl" << endl;
+   nl.WriteToFile( fileOut+".nl", list );
+
+   cout << endl << "Writing " + fileOut+".bnl" << endl;
+   outname = fileOut+".bnl";
+   ofstream outFile2(outname.c_str()); 
+   nl.WriteBinaryTo(list, outFile2);   
+
+   outFile2.close();  
+
+}
+
 
 bool
 openDB(string dbname ) {
@@ -613,7 +648,10 @@ TestRun_Persistent() {
  
    //assert( closeDB() );
    //assert( openDB("PARRAY2") );   
-   
+  
+   pause();
+   TestInputOutput();
+ 
    pause();
    TestBasicOperations();
    
@@ -645,6 +683,8 @@ int
 TestRun_MainMemory() {
    
    bool ok = true;
+   
+   cout << endl << "Test run main memory" << endl;
    
    pause();
    TestBasicOperations();

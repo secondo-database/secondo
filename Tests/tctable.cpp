@@ -1,4 +1,6 @@
 #include <string>
+#include <iostream>
+
 #include "CTable.h"
 
 using namespace std;
