@@ -895,7 +895,7 @@ NestedList::WriteAtom( const ListExpr atom, bool toScreen )
           string textFragment = "";
           TextScan textScan = CreateTextScan( atom );
           GetText( textScan, 48, textFragment );
-          *outStream << textFragment << " ... (only 48 of text atom)";          
+          *outStream << textFragment << " ... (text atom truncated after 48 bytes)";          
           DestroyTextScan ( textScan );
  
         }

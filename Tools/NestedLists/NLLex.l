@@ -169,12 +169,16 @@ file		"<file>"[^<\n]+"</file--->"
 
 		 inFile.open(fileNameStr.c_str(), ios::binary);
 		 if ( !inFile.is_open() ) {
-		    cerr << "can not open file '" << fileNameStr << "'" << endl; 
-                    exit(1);
+
+		    cerr << "can not open file '" << fileNameStr << "'" << endl;
+                    return (ZZNOFILE);
+
+                 } else {
+
+		   Base64* encoder = new Base64();
+		   encoder->encodeStream(inFile, textStream);
+                   delete encoder;
                  }
-		 Base64* encoder = new Base64();
-		 encoder->encodeStream(inFile, textStream);
-                 delete encoder;
 
 		 nl->AppendText(newText,textStream.str());
 		 

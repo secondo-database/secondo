@@ -27,7 +27,7 @@ structure avoids to create nodes which were only used in the construction proces
 
 %}
 
-%token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE 
+%token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZNOFILE
 %%
 
 ok : list { 
