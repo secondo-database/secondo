@@ -4,7 +4,7 @@
 //[TOC] [\tableofcontents]
 
 Oct 2004. M. Spiekermann. The SortByLocalInfo was revised, since it doesn't
-work for relations not fitting into memory. Moreover some minor performance tuning 
+work for relations not fitting into memory. Moreover some minor performance tuning
 was made (fixed size for the vector of tuples).
 
 [1] Implementation of the Module Extended Relation Algebra for Persistent storage
@@ -100,8 +100,8 @@ class SortByLocalInfo
           MAX_TUPLES_IN_MEMORY = 16 * 1024 * 1024 / ((Tuple*)wTuple.addr)->GetMemorySize();
           cout << "Sort.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
 
-          // assign a proper size to avoid dynamic resizing 
-          //tuples.reserve(MAX_TUPLES_IN_MEMORY); 
+          // assign a proper size to avoid dynamic resizing
+          //tuples.reserve(MAX_TUPLES_IN_MEMORY);
         }
 
         while(qp->Received(stream.addr)) // consume the stream completely
@@ -135,7 +135,7 @@ class SortByLocalInfo
 
         // the last (or only) partition having less than MAX_TUPLES
         //tuples.resize(i-1);
-        if( lexicographic ) { 
+        if( lexicographic ) {
           //cout << "sort last partition" << endl;
           sort(tuples.begin(), tuples.end(), *lexiTupleCmp );
         } else {
@@ -1386,7 +1386,7 @@ bucket that the tuple coming from A hashes is also initialized.
 
   Tuple* NextResultTuple()
   {
-    do
+    while( tupleA != 0 )
     {
       while( iterTuplesBucketB != bucketsB[hashA].end() )
       {
@@ -1413,7 +1413,7 @@ bucket that the tuple coming from A hashes is also initialized.
           NextTupleA();
         }
       }
-    } while( tupleA != 0 );
+    }
 
     return 0;
   }
