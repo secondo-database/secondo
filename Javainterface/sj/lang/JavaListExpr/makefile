@@ -8,7 +8,7 @@ SCANERJAVAFILES = NLJLex.l.java
 SCANERCLASSES = NLToken.class NLTokenizer.class
 
 PARSERJAVAFILES = NLParser.java NLSymbol.java
-PARSERCLASSES = NLParser.class NLSymbol.class
+PARSERCLASSES = NLParser.class NLSymbol.class Stack.class
 
 GENERATEDJAVAFILES = $(SCANERJAVAFILES) $(PARSERJAVAFILES)
 
@@ -20,7 +20,7 @@ CUP_CLASS = java_cup.Main
 all: ../ListExpr.class
 
 
-../ListExpr.class: ../ListExpr.java $(GENERATEDJAVAFILES) $(SCANERCLASSES) $(PARSERCLASSES) 
+../ListExpr.class: ../ListExpr.java $(GENERATEDJAVAFILES) $(SCANERCLASSES) $(PARSERCLASSES)
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH) -d $(JAVAINTERFACEDIR) $<
 
 
@@ -34,7 +34,10 @@ NLParser.java NLSymbol.java: NLParser.cup
 
 NLParser.class NLSymbol.class: NLParser.java NLSymbol.java ../ListExpr.java
 # It generates the files NLParser.class and NLSymbol.class
-	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH) -d $(JAVAINTERFACEDIR) $+ 
+	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH) -d $(JAVAINTERFACEDIR) $+
+
+Stack.class: Stack.java
+	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH) -d $(JAVAINTERFACEDIR) Stack.java
 
 NLToken.class NLTokenizer.class: NLJLex.l.java ../ListExpr.java
 # It generates the files NLToken.class and NLTokenizer.class

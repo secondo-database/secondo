@@ -10,7 +10,6 @@ June 1999: added to the package sj.lang.JavaListExpr
   package sj.lang.JavaListExpr;
   ////////////// IMPORTS //////////////////////
   import java.io.Reader;
-  import java.util.Vector;
   import sj.lang.ListExpr;
   import sj.lang.JavaListExpr.NLTokenizer;
 
@@ -65,7 +64,7 @@ terminal      TT_OPEN_PAR, TT_CLOSE_PAR;
 
   // Non Terminals.
 non terminal ListExpr list_expr, ok;
-non terminal Vector   list_expr_seq;
+non terminal Stack   list_expr_seq;
 
 
 /////////////////////// RULES /////////////////////////
@@ -78,12 +77,11 @@ non terminal Vector   list_expr_seq;
          :};
 // Rule 1
 list_expr ::= TT_OPEN_PAR list_expr_seq:listSeq TT_CLOSE_PAR  {:
-                 // It takes the vector in ~listSeq~ and builds the 
+                 // It takes the Stack in ~listSeq~ and builds the
                  // equivalent ListExpr.
                  ListExpr auxList = ListExpr.theEmptyList();
-                 for(int index= listSeq.size()-1; index>=0; index--){
-                   auxList= ListExpr.cons((ListExpr)listSeq.elementAt(index), auxList);
-                 }
+		 while(!listSeq.isEmpty())
+                    auxList= ListExpr.cons((ListExpr)listSeq.pop(), auxList);
                  RESULT = auxList;
               :};
 // Rule 2
@@ -112,18 +110,18 @@ list_expr ::= TT_TEXT_ATOM:atom {:
               :};
 // Rule 8
 list_expr_seq ::= list_expr_seq:listSeq list_expr:listExpr {:
-                    // The value of a ~list_expr_seq~ is stored as a vector,
+                    // The value of a ~list_expr_seq~ is stored as a stack,
                     // because for using the ~cons()~ method of the ~ListExpr~
                     // class we need to use the elements in reverse order to
                     // the one with which we get them. So we store all them
                     // and when we find apply the rule 1 we build the
-                    // equivalent ListExpr value. 
-                    listSeq.addElement(listExpr);
+                    // equivalent ListExpr value.
+                    listSeq.push(listExpr);
                     RESULT = listSeq;
                   :};
 // Rule 8
 list_expr_seq ::= {:
-		    RESULT = new Vector();
+		    RESULT = new Stack();
                   :};
 
 /*  ///////////////////////////////
