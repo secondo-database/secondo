@@ -223,7 +223,8 @@ public class DisplayGraph extends DsplGeneric
     //if (! isActual())  RenderObject =createRenderObject();
     if (RenderObject == null)
       return  false;
-    return  RenderObject.contains(xpos, ypos);
+    Rectangle2D.Double r = new Rectangle2D.Double(xpos - 2.0*scalex, ypos - 2.0*scaley, 4.0*scalex, 4.0*scaley);
+    return RenderObject.intersects(r);
   }
   /** The text representation of this object
    * @see <a href="DisplayGraphsrc.html#toString">Source</a>
