@@ -1607,6 +1607,7 @@ half segment is indicated by ~pos~
 *Complexity:* $O( n )$  where ~n~ is the number of segments of the region.
 
 */     
+    bool contain_old( const Point& p ) const;
     bool contain( const Point& p ) const;
     bool containpr( const Point& p, int &pathlength, int & scanned ) const;
 /*
