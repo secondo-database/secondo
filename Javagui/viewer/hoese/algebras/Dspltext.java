@@ -58,7 +58,7 @@ public  Dspltext(){
           qr.addEntry(Entry); // because we add an string the extern display fucntions are
                          // not called
         } else{ // big text atom -> enable external view
-           Entry = type.symbolValue()+" : double click to display";
+           Entry = type.symbolValue()+" : "+Text.substring(0,MAX_DIRECT_DISPLAY_LENGTH-4)+" ...";
            qr.addEntry(this);
         }
      }
@@ -88,7 +88,7 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
         Entry = T + " : "+ V ;
         qr.addEntry(Entry);
      } else{
-         Entry = T+" : double click to display";
+         Entry = T+" : "+Text.substring(0,MAX_DIRECT_DISPLAY_LENGTH-4)+" ..."; 
          qr.addEntry(this);
      }
      return;
@@ -146,7 +146,7 @@ private Dspltext Source;
 
 }
 
-private final int MAX_DIRECT_DISPLAY_LENGTH=20;
+private final int MAX_DIRECT_DISPLAY_LENGTH=30;
 
 }
 
