@@ -2527,6 +2527,20 @@ sql Term :-
   query(Query).
 
 
+bestPlanCount :-
+  bestPlan(P, _),
+  plan_to_atom(P, S),
+  atom_concat(S, ' count', Q),
+  nl, write(Q), nl,
+  query(Q).
+
+bestPlanConsume :-
+  bestPlan(P, _),
+  plan_to_atom(P, S),
+  atom_concat(S, ' consume', Q),
+  nl, write(Q), nl,
+  query(Q).
+
 
 
 
