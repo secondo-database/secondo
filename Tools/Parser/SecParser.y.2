@@ -15,8 +15,12 @@ for example,
 
 March 2002 Ulrich Telle Port to C++
 
-November 5, 2002 RHG Added the cases "function" and "IDENTIFIER '(' elems ')' " to
+November 5, 2002 RHG Added the cases ~function~ and ~IDENTIFIER '(' elems ')' ~ to
 ~valueexpr~ to support function definitions and function calls.
+
+November 7, 2002 RHG Extended the definition of ~function~ and of ~valueexpr~ to support
+function definitions and function calls with 0 parameters; these are translated to functions
+with an integer parameter and which are called with 0.
 
 */
 
@@ -162,6 +166,10 @@ function	: FUN '(' args ')' valueexpr
 					NestedText::Concat($3,
  					  NestedText::Concat (NestedText::AtomC(" "),
   					    NestedText::Concat($5, NestedText::AtomC(")") ))));}
+		| FUN '(' ')' valueexpr
+				{$$ =   NestedText::Concat(
+					  NestedText::AtomC("(fun (n int) "),
+  					  NestedText::Concat($4, NestedText::AtomC(")")) );}
 		;
 
 arg		: IDENTIFIER ':' typeexpr
@@ -246,6 +254,10 @@ valueexpr	: IDENTIFIER				{$$ = $1;}
 				NestedText::Concat(NestedText::AtomC(" "),
 				NestedText::Concat($3,				
 					NestedText::AtomC(")")	))));}
+		| IDENTIFIER '(' ')'
+			{$$ = NestedText::Concat(
+				NestedText::AtomC("("),
+				NestedText::Concat($1, NestedText::AtomC(" 0)")) );}
 		| attribute				{$$ = $1;}
 		| attribute2				{$$ = $1;}
 		| '(' valueexpr ')'			{$$ = $2;}
