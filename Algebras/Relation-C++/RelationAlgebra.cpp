@@ -769,7 +769,7 @@ ListExpr TUPLETypeMap(ListExpr args)
   "(rel(tuple((a1 t1)...(an tn)))) or (stream(tuple((a1 t1)...(an tn)))).\n"
   "Type operator TUPLE gets an argument '" + argstr + "'." );
 
-  return nl->SymbolAtom("typeerror");
+  return nl->Second(first);
 }
 /*
 
@@ -1109,7 +1109,7 @@ ListExpr AttrTypeMap(ListExpr args)
   ListExpr first, second, attrtype;
   string  attrname, argstr;
   int j;
-  
+
   nl->WriteToString(argstr, args); 
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator attr expects a list of length two.");
@@ -1125,8 +1125,8 @@ ListExpr AttrTypeMap(ListExpr args)
   second  = nl->Second(args); 
   nl->WriteToString(argstr, second);   
   CHECK_COND( nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
-  "Operator attr expects as second argument a symbol atom (attributename)\n" 
-  "Operator rename gets '" + argstr + "'.");
+  "Operator attr expects as second argument a symbol atom (attributename).\n" 
+  "Operator attr gets '" + argstr + "'.");
 
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(first), attrname, attrtype);
@@ -1211,9 +1211,9 @@ ListExpr FilterTypeMap(ListExpr args)
   ListExpr first, second;
   string argstr;
   
-  nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator filter expects a list of length two.");
+  
   first = nl->First(args);
   second  = nl->Second(args);
     

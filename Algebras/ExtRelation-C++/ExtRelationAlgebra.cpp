@@ -864,27 +864,30 @@ Type mapping for ~head~ is
 ListExpr HeadTypeMap( ListExpr args )
 {
   ListExpr first, second;
-
-  if(nl->ListLength(args) == 2)
-  {
-    first = nl->First(args);
-    second  = nl->Second(args);
-
-    if((nl->ListLength(first) == 2  )
-      && (TypeOfRelAlgSymbol(nl->First(first)) == stream)
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)
-      && IsTupleDescription(nl->Second(nl->Second(first)))
-      && (nl->IsAtom(second))
-      && (nl->AtomType(second) == SymbolType)
-      && nl->SymbolValue(second) == "int")
-    {
-      return first;
-    }
-    ErrorReporter::ReportError("Incorrect input for operator head.");
-    return nl->SymbolAtom("typeerror");
-  }
-  ErrorReporter::ReportError("Incorrect input for operator head.");
-  return nl->SymbolAtom("typeerror");
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator head expects a list of length two.");
+  
+  first = nl->First(args);
+  second = nl->Second(args); 
+   
+  nl->WriteToString(argstr, first);  
+  CHECK_COND( ( nl->ListLength(first) == 2 ) &&
+              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ) &&
+              ( nl->ListLength( nl->Second(first) ) == 2) &&
+	      (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
+    "Operator head expects as first argument a list with structure " 
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator head gets as first argument '" + argstr + "'." );   
+      
+  nl->WriteToString(argstr, second);    
+  CHECK_COND((nl->IsAtom(second)) &&
+             (nl->AtomType(second) == SymbolType) &&
+	     (nl->SymbolValue(second) == "int"),
+    "Operator head expects a second argument of type integer.\n" 
+    "Operator head gets '" + argstr + "'.");
+  return first;
 }
 
 /*
