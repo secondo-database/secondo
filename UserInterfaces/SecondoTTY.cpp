@@ -797,9 +797,6 @@ SecondoTTY::Execute()
     {
       //set AlgebraLevel and LogMsg prefixes
       string algLevelStr = SmiProfile::GetParameter( "Environment", "AlgebraLevel", "Descriptive", parmFile );
-      string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );
-    
-      RTFlag::initByString(logMsgList);
     
       char chLevel = toupper( (algLevelStr.data())[0] );
       switch (chLevel) {

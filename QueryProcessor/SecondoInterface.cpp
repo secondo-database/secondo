@@ -84,17 +84,31 @@ extern AlgebraListEntry& GetAlgebraEntry( const int j );
 static SecondoSystem* ss = 0;
 
 /**************************************************************************
-3.1 The Secondo Procedure
+
+1 Implementation of class SecondoInterface
 
 */
 
 int
 DerivedObj::ObjRecord::id = 0;
 
+/*
+
+1.1 Constructor
+
+*/
+
 SecondoInterface::SecondoInterface()
   : initialized( false ), activeTransaction( false ), nl( 0 ), server( 0 ), derivedObjPtr(0)
 {
 }
+
+
+/*
+
+1.2 Destructor
+
+*/
 
 SecondoInterface::~SecondoInterface()
 {
@@ -103,6 +117,13 @@ SecondoInterface::~SecondoInterface()
     Terminate();
   }
 }
+
+
+/*
+
+1.3 Initialize method
+
+*/
 
 bool
 SecondoInterface::Initialize( const string& user, const string& pswd,
@@ -167,6 +188,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       }
     }
 
+    // initialize runtime flags
+    string logMsgList = SmiProfile::GetParameter( "Environment", "RTFlags", "", parmFile );    
+    RTFlag::initByString(logMsgList);
+    RTFlag::showActiveFlags(cout);
+
     string value, foundValue;
     if ( SmiProfile::GetParameter( "Environment", "SecondoHome", "", parmFile ) == "")
     {
@@ -186,14 +212,19 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   if ( ok )
   {
     // --- Check storage management interface
+    SmiEnvironment::RunMode mode =  SmiEnvironment::SingleUser;
+    if ( RTFlag::isActive("SMI:NoTransactions") ) {
+       
+       mode = SmiEnvironment::SingleUserSimple;
+       cout << "Setting mode to SingleUserSimple" << endl;
+       
+    } else { // Transactions and logging are used
+    
+       mode = (multiUser) ? SmiEnvironment::MultiUser : SmiEnvironment::SingleUser;
+    }                   
+    
     cout << "Initializing storage management interface ... ";
-    if ( SmiEnvironment::StartUp( (multiUser) ? SmiEnvironment::MultiUser
-#ifdef NL_PERSISTENT
-                                              : SmiEnvironment::SingleUserSimple,
-#else
-                                              : SmiEnvironment::SingleUser,
-#endif					      
-                                  parmFile, cout ) )
+    if ( SmiEnvironment::StartUp( mode, parmFile, cout ) )
     {
       SmiEnvironment::SetUser( user ); // TODO: Check for valid user/pswd
       cout << "completed." << endl;
@@ -227,6 +258,14 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   initialized = ok;
   return (ok);
 }
+
+
+/*
+
+1.4 Terminate method
+
+*/
+
 
 void
 SecondoInterface::Terminate()
@@ -283,6 +322,13 @@ SecondoInterface::Terminate()
   }
 }
 
+
+/*
+
+1.5 The Secondo method. The Interface for applications.
+
+*/
+
 void
 SecondoInterface::Secondo( const string& commandText,
                            const ListExpr commandLE,
@@ -296,6 +342,7 @@ SecondoInterface::Secondo( const string& commandText,
                            const string& resultFileName /* = "SecondoResult" */ )
 {
 /*
+
 ~Secondo~ reads a command and executes it; it possibly returns a result.
 The command is one of a set of SECONDO commands.
 
@@ -1425,8 +1472,10 @@ SecondoInterface::FinishCommand( int& errorCode )
 {
   if ( !activeTransaction )
   {
+    //cout << "!activeTransaction" << endl;
     if ( errorCode == 0 )
     {
+      //cout << "CommitTransaction" << endl;
       if ( !SecondoSystem::CommitTransaction() )
       {
         errorCode = 23;
@@ -1440,6 +1489,7 @@ SecondoInterface::FinishCommand( int& errorCode )
       }
     }
   }
+  //cout << "Command Finished" << endl;
 }
 
 
