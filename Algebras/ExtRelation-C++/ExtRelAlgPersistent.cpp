@@ -75,8 +75,6 @@ class PairTupleCompareBy
 class SortByLocalInfo
 {
   public:
-    static const size_t MAX_MEMORY_SIZE = 33554432;
-
     SortByLocalInfo( Word stream, const bool lexicographic, TupleCompare *tupleCmp ):
       stream( stream ),
       currentIndex( 0 ),
@@ -94,15 +92,15 @@ class SortByLocalInfo
         if(qp->Received(stream.addr))
         {
           tupleType = new TupleType( ((Tuple*)wTuple.addr)->GetTupleType() );
-          MAX_TUPLES_IN_MEMORY = MAX_MEMORY_SIZE / ((Tuple*)wTuple.addr)->GetMemorySize();
+//          MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ((Tuple*)wTuple.addr)->GetMemorySize();
+          MAX_TUPLES_IN_MEMORY = 16 * 1024 * 1024 / ((Tuple*)wTuple.addr)->GetMemorySize();
           cout << "Sort.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
         }
 
         while(qp->Received(stream.addr))
         {
           Tuple *t = ((Tuple*)wTuple.addr)->CloneIfNecessary();
-          if( t != wTuple.addr )
-            ((Tuple*)wTuple.addr)->DeleteIfAllowed();
+          ((Tuple*)wTuple.addr)->DeleteIfAllowed();
 
           t->SetFree( false );
           tuples.push_back( t );
@@ -162,13 +160,13 @@ class SortByLocalInfo
       {
         assert( relations.empty() );
         for( size_t i = 0; i < tuples.size(); i++ )
-          tuples[i]->Delete();
+          delete tuples[i];
       }
 
       for( size_t i = 0; i < relations.size(); i++ )
       {
         delete relations[i].second;
-        relations[i].first->Delete();
+        delete relations[i].first;
       }
       delete tupleType;
     }
@@ -222,7 +220,7 @@ class SortByLocalInfo
       {
         Tuple *t =  (*iter)->CloneIfNecessary();
         rel.AppendTuple( t );
-        t->Delete();
+        t->DeleteIfAllowed();
         iter++;
       }
     }
@@ -230,7 +228,7 @@ class SortByLocalInfo
     void ClearMemory()
     {
       for( size_t i = 0; i < tuples.size(); i++ )
-        tuples[i]->Delete();
+        delete tuples[i];
       tuples.clear();
     }
 
@@ -467,7 +465,7 @@ private:
       Tuple *t =  (*iter)->CloneIfNecessary();
       rel->AppendTuple( t );
       if( t != *iter )
-        t->Delete();
+        t->DeleteIfAllowed();
       iter++;
     }
   }
@@ -499,8 +497,6 @@ private:
 
   size_t MAX_TUPLES_IN_MEMORY;
 public:
-  static const size_t MAX_MEMORY_SIZE = 33554432;
-
   MergeJoinLocalInfo(Word streamA, Word attrIndexA,
     Word streamB, Word attrIndexB, bool expectSorted,
     Supplier s)
@@ -546,7 +542,8 @@ public:
       long sizeTupleA = tupleA->GetMemorySize(),
            sizeTupleB = tupleB->GetMemorySize(),
            tupleSize = sizeTupleA > sizeTupleB ? sizeTupleA : sizeTupleB;
-      MAX_TUPLES_IN_MEMORY = MAX_MEMORY_SIZE / ( 2 * tupleSize );
+//      MAX_TUPLES_IN_MEMORY = qp->MemoryAvailableForOperator() / ( 2 * tupleSize );
+      MAX_TUPLES_IN_MEMORY = 16 * 1024 * 1024 / ( 2 * tupleSize );
       cout << "Merge.MAX_TUPLES_IN_MEMORY: " << MAX_TUPLES_IN_MEMORY << endl;
     }
   }
@@ -896,10 +893,9 @@ private:
     vector<Tuple*>::iterator iter = bucket.begin();
     while( iter != bucket.end() )
     {
-      Tuple *t =  (*iter)->CloneIfNecessary();
+      Tuple *t = (*iter)->CloneIfNecessary();
       rel->AppendTuple( t );
-      if( t != *iter )
-        t->DeleteIfAllowed();
+      t->DeleteIfAllowed();
       iter++;
     }
   }
@@ -911,6 +907,7 @@ private:
 
     while( i < MAX_TUPLES_IN_BUCKET && (t = iter->GetNextTuple()) != 0 )
     {
+      t->SetFree( false );
       bucket.push_back( t );
       i++;
     }
@@ -922,8 +919,7 @@ private:
     vector<Tuple*>::iterator i = bucket.begin();
     while( i != bucket.end() )
     {
-      Tuple *t = *i;
-      t->Delete();
+      delete (*i);
       i++;
     }
     bucket.clear();
@@ -938,7 +934,8 @@ private:
     if(qp->Received(streamB.addr))
     {
       Tuple *tupleB = (Tuple*)tupleWord.addr;
-      MAX_TUPLES_IN_BUCKET = MAX_MEMORY_SIZE / ( nBuckets * tupleB->GetMemorySize() );
+//      MAX_TUPLES_IN_BUCKET = qp->MemoryAvailableForOperator() / ( nBuckets * tupleB->GetMemorySize() );
+      MAX_TUPLES_IN_BUCKET = 16 * 1024 * 1024 / ( nBuckets * tupleB->GetMemorySize() );
       cout << "HashJoin.MAX_TUPLES_IN_BUCKET: " << MAX_TUPLES_IN_BUCKET << endl;
     }
 
@@ -946,7 +943,8 @@ private:
     {
       hashMeasurer.Enter();
 
-      Tuple* tupleB = (Tuple*)tupleWord.addr;
+      Tuple* tupleB = ((Tuple*)tupleWord.addr)->CloneIfNecessary();
+      ((Tuple*)tupleWord.addr)->DeleteIfAllowed();
       size_t hashB = HashTuple(tupleB, attrIndexB);
 
       if( bucketsB[hashB].size() == MAX_TUPLES_IN_BUCKET )
@@ -957,13 +955,13 @@ private:
       }
 
       if( relBucketsB[hashB] == 0 )
+      {
+        tupleB->SetFree( false );
         bucketsB[hashB].push_back( tupleB );
+      }
       else
       {
-        Tuple *t = tupleB->CloneIfNecessary();
-        relBucketsB[hashB]->AppendTuple( t );
-        if( t != tupleB )
-          t->DeleteIfAllowed();
+        relBucketsB[hashB]->AppendTuple( tupleB );
         tupleB->DeleteIfAllowed();
       }
       hashMeasurer.Exit();
@@ -993,7 +991,7 @@ private:
     while(iterBuckets != relBucketsB.end() )
     {
       if( (*iterBuckets) != 0 )
-        (*iterBuckets)->Delete();
+        delete *iterBuckets;
       iterBuckets++;
     }
 
@@ -1003,8 +1001,6 @@ public:
   static const size_t MAX_BUCKETS = 257;
   static const size_t MIN_BUCKETS = 1;
   static const size_t DEFAULT_BUCKETS = 97;
-
-  static const size_t MAX_MEMORY_SIZE = 33554432;
 
   HashJoinLocalInfo(Word streamA, Word attrIndexAWord,
     Word streamB, Word attrIndexBWord, Word nBucketsWord,

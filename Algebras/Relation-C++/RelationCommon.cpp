@@ -469,7 +469,7 @@ ListExpr Relation::Out( ListExpr typeInfo )
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
           nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = t->Out(TupleTypeInfo);
-    t->Delete();
+    t->DeleteIfAllowed();
     if (l == nl->TheEmptyList())
     {
       l = nl->Cons(tlist, nl->TheEmptyList());

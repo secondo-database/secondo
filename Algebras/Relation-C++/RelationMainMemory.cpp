@@ -305,10 +305,6 @@ void Tuple::DeleteIfAllowed()
     delete this;
 }
 
-void Tuple::Delete()
-{
-}
-
 /*
 3.9 Class ~TupleBuffer~
 
@@ -342,15 +338,10 @@ The total size of the buffer in bytes.
 3.9.2 Implementation of the class ~TupleBuffer~
 
 */
-TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
+TupleBuffer::TupleBuffer():
 privateTupleBuffer( new PrivateTupleBuffer() )
 {
 }
-/*
-The variable ~maxMemorySize~ is used only for the Persistent Relational
-Algebra. Here it is ignored. 
-
-*/
 
 TupleBuffer::~TupleBuffer()
 {
@@ -625,7 +616,6 @@ ListExpr Relation::SaveToList( ListExpr typeInfo )
     TupleTypeInfo = nl->TwoElemList(nl->Second(typeInfo),
           nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = t->SaveToList(TupleTypeInfo);
-    t->Delete();
     if (l == nl->TheEmptyList())
     {
       l = nl->Cons(tlist, nl->TheEmptyList());
@@ -718,8 +708,24 @@ void Relation::Delete()
   delete this;
 }
 
+Relation *Relation::Clone()
+{
+  Relation *r = new Relation( privateRelation->tupleType );
+
+  Tuple *t;
+  RelationIterator *iter = MakeScan();
+  while( (t = iter->GetNextTuple()) != 0 )
+  {
+    r->AppendTuple( t->Clone() );
+  }
+  delete iter;
+
+  return r;
+}
+
 void Relation::AppendTuple( Tuple *tuple )
 {
+  tuple->SetFree( false );
   tuple->SetTupleId( privateRelation->currentId++ );
   privateRelation->tupleArray->Add( tuple );
   privateRelation->noTuples += 1;

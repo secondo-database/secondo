@@ -728,11 +728,6 @@ void Tuple::DeleteIfAllowed()
     delete this;
 }
 
-void Tuple::Delete()
-{
-  delete this;
-}
-
 /*
 3.9 Class ~TupleBuffer~
 
@@ -747,8 +742,8 @@ stored into a disk file.
 struct PrivateTupleBuffer
 {
   PrivateTupleBuffer( const size_t maxMemorySize ):
-		MAX_MEMORY_SIZE( maxMemorySize ),
-		diskBuffer( 0 ),
+    MAX_MEMORY_SIZE( maxMemorySize ),
+    diskBuffer( 0 ),
     MAX_TUPLES_IN_MEMORY( 0 ),
     inMemory( true ),
     totalSize( 0 )
@@ -764,7 +759,7 @@ The constructor.
     else
     {
       for( size_t i = 0; i < memoryBuffer.size(); i++ )
-        memoryBuffer[i]->Delete();
+        delete memoryBuffer[i];
     }
   }
 /*
@@ -846,7 +841,7 @@ void TupleBuffer::Clear()
   if( privateTupleBuffer->inMemory )
   {
     for( size_t i = 0; i < privateTupleBuffer->memoryBuffer.size(); i++ )
-      privateTupleBuffer->memoryBuffer[i]->Delete();
+      delete privateTupleBuffer->memoryBuffer[i];
     privateTupleBuffer->memoryBuffer.clear();
   }
   else
@@ -857,11 +852,11 @@ void TupleBuffer::Clear()
 
 void TupleBuffer::AppendTuple( Tuple *t )
 {
+  t->SetFree( true );
   if( privateTupleBuffer->MAX_TUPLES_IN_MEMORY == 0 )
   // first tuple being inserted in the buffer.
   {
-    privateTupleBuffer->MAX_TUPLES_IN_MEMORY = 
-		  privateTupleBuffer->MAX_MEMORY_SIZE / t->GetMemorySize();
+    privateTupleBuffer->MAX_TUPLES_IN_MEMORY = privateTupleBuffer->MAX_MEMORY_SIZE / t->GetMemorySize();
   }
 
   if( privateTupleBuffer->inMemory )
@@ -879,9 +874,8 @@ void TupleBuffer::AppendTuple( Tuple *t )
       vector<Tuple*>::iterator iter = privateTupleBuffer->memoryBuffer.begin();
       while( iter != privateTupleBuffer->memoryBuffer.end() )
       {
-        Tuple *t1 =  (*iter)->CloneIfNecessary();
-        privateTupleBuffer->diskBuffer->AppendTuple( t1 );
-        t1->Delete();
+        privateTupleBuffer->diskBuffer->AppendTuple( *iter );
+        delete *iter;
         iter++;
       }
 
@@ -980,7 +974,7 @@ Tuple *TupleBufferIterator::GetNextTuple()
 
     Tuple *result = privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->memoryBuffer[privateTupleBufferIterator->currentTuple];
     privateTupleBufferIterator->currentTuple++;
-
+    assert( !result->IsFree() );
     return result;
   }
 }
@@ -1252,8 +1246,27 @@ void Relation::Delete()
   delete this;
 }
 
+Relation *Relation::Clone()
+{
+  Relation *r = new Relation( privateRelation->tupleType );
+
+  Tuple *t;
+  RelationIterator *iter = MakeScan();
+  while( (t = iter->GetNextTuple()) != 0 )
+  {
+    Tuple *insT = t->CloneIfNecessary();
+    r->AppendTuple( insT );
+    insT->DeleteIfAllowed();
+    t->DeleteIfAllowed();
+  }
+  delete iter;
+
+  return r;
+}
+
 void Relation::AppendTuple( Tuple *tuple )
 {
+  tuple->SetFree( true );
   privateRelation->totalSize +=
     tuple->GetPrivateTuple()->Save( &privateRelation->tupleFile, &privateRelation->lobFile );
   privateRelation->noTuples += 1;
@@ -1374,6 +1387,7 @@ Tuple* RelationIterator::GetNextTuple()
                                    &privateRelationIterator->relation.privateRelation->lobFile,
                                    privateRelationIterator->iterator );
   privateRelationIterator->currentTupleId = result->GetTupleId();
+  result->SetFree( true );
   return result;
 }
 

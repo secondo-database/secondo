@@ -17,7 +17,7 @@ INCFILES=\
         $(INCLUDEDIR)/QueryProcessor.h \
         $(INCLUDEDIR)/StandardTypes.h \
 	$(INCLUDEDIR)/DateTime.h \
-        TemporalAlgebra.h
+        ./TemporalAlgebra.h
 
 OBJECTS=\
 	$(MODNAME).$(OBJEXT)

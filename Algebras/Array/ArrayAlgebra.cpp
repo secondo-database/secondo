@@ -1970,7 +1970,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 		
     relPkg[pkgNr]->AppendTuple(tuple2);
 		
-    tuple2->Delete(); // free memory
+    tuple2->DeleteIfAllowed(); // free memory
 	
     qp->Request(args[0].addr, actual);
   }

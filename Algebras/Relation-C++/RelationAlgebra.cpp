@@ -671,7 +671,7 @@ SizeOfRel()
 Word
 CloneRel(const Word& w)
 {
-  return SetWord( Address(0) );
+  return SetWord( ((Relation*)w.addr)->Clone() );
 }
 
 /*
@@ -1032,7 +1032,7 @@ Consume(Word* args, Word& result, int message, Word& local, Supplier s)
     rel->AppendTuple(tuple);
     if( tuple != actual.addr )
       ((Tuple*)actual.addr)->DeleteIfAllowed();
-    tuple->Delete();
+    tuple->DeleteIfAllowed();
 
     qp->Request(args[0].addr, actual);
   }
@@ -1621,7 +1621,8 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if(qp->Received(args[1].addr))
       {
-        pli->rightRel = new TupleBuffer();
+//        pli->rightRel = new TupleBuffer( qp->MemoryAvailableForOperator() );
+        pli->rightRel = new TupleBuffer( 2 * 1024 * 1024 );
       }
       else
       {
@@ -1633,6 +1634,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
         Tuple *t = ((Tuple*)u.addr)->CloneIfNecessary();
         pli->rightRel->AppendTuple( t );
         ((Tuple*)u.addr)->DeleteIfAllowed();
+        t->DeleteIfAllowed();
         qp->Request(args[1].addr, u);
       }
 
@@ -1676,6 +1678,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
           assert( resultTuple->IsFree() );
 
           Concat(pli->currentTuple, rightTuple, resultTuple);
+          rightTuple->DeleteIfAllowed();
           result = SetWord(resultTuple);
           productMeasurer.Exit();
           return YIELD;
@@ -1699,6 +1702,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
             assert( resultTuple->IsFree() );
 
             Concat(pli->currentTuple, rightTuple, resultTuple);
+            rightTuple->DeleteIfAllowed();
             result = SetWord(resultTuple);
             productMeasurer.Exit();
             return YIELD;
@@ -1763,8 +1767,11 @@ Operator relalgproduct (
          Product,              // value mapping
          Operator::DummyModel, // dummy model mapping, defines in Algebra.h
          Operator::SimpleSelect,         // trivial selection function
-         ProductTypeMap        // type mapping
+         ProductTypeMap,        // type mapping
+         Operator::DummyCost   // cost function
+//         true                   // needs large amounts of memory
 );
+
 /*
 
 5.11 Operator ~count~

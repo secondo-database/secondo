@@ -155,9 +155,7 @@ The second constructor. Creates a tuple type which is a copy of ~tupleType~.
 The destructor.
 
 */
-    inline const int GetNoAttributes() const { return noAttributes; }
-
-
+    const int GetNoAttributes() const;
 /*
 Returns the number of attributes of the tuple type.
 
@@ -167,12 +165,7 @@ Returns the number of attributes of the tuple type.
 Returns the total size of the tuple.
 
 */
-    inline const AttributeType& GetAttributeType( const int index ) const
-		{
-      assert( index >= 0 && index < noAttributes );
-      return attrTypeArray[index];
-    }
-
+    const AttributeType& GetAttributeType( const int index ) const;
 /*
 Returns the attribute type at ~index~ position.
 
@@ -343,12 +336,6 @@ Calls the ~Clone~ function if the flag if it is necessary.
 /*
 Deletes the tuple if it is allowed.
 *Need some more explanations about whether it is allowed or not.*
-
-*/
-    void Delete();
-/*
-Deletes the tuple.
-*Need some more explanations.*
 
 */
     PrivateTuple *GetPrivateTuple()
@@ -526,12 +513,9 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class TupleBuffer : public GenericRelation
 {
   public:
-    TupleBuffer( const size_t maxMemorySize = 2097152 );
+    TupleBuffer( const size_t maxMemorySize = 33554432 );
 /*
-The constructor. Creates an empty tuple buffer. The variable ~maxMemorySize~ does
-not allocate memory, it serves only for the Persistent Relational Algebra to set
-the maximum memory used in the buffer. If more space is needed then the buffer will
-be written to disk.
+The constructor. Creates an empty tuple buffer.
 
 */
     ~TupleBuffer();
@@ -736,6 +720,12 @@ Corresponds to the ~Close~-function of type constructor ~rel~.
 /*
 Deletes a relation.
 Corresponds to the ~Delete~-function of type constructor ~rel~.
+
+*/
+    Relation *Clone();
+/*
+Clones a relation.
+Corresponds to the ~Clone~-function of type constructor ~rel~.
 
 */
     ~Relation();
