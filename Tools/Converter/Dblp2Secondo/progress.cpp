@@ -1,6 +1,12 @@
 /*
-  Tool for displaying of progress of processing of a text file.
-  The input is taken from stdin
+1 Progress.cpp
+
+This little prrogram counts the lines coming from stdin.
+After a number of lines (given as argument or 1000 as default),
+a dot is written to stdout. This can be useful for the user while
+processing large text files. The standard application will be in a
+pipe together with the tee command.
+
 */
 
 #include <iostream>
@@ -8,7 +14,7 @@ using namespace std;
 
 int main(int argc , char* argv[]){
    long number = 0;
-   if(argc=1)
+   if(argc==2)
      number = atol(argv[1]);
    else
      number = 1000; // default
