@@ -1,6 +1,7 @@
 
 
 include ../../../makefile.env
+include ../../../Javagui/makefile.inc
 
 CLASSES = AlgebraType.class AlgebraWriter.class ClassMethod.class 
 CLASSES += Environment.class FinalPanel.class JavaWrapper.class 
@@ -13,10 +14,14 @@ else
 S=:
 endif
 
-CP = $(SECONDO_BUILD_DIR)/Tools/Jni$S$(SECONDO_BUILD_DIR)/Javagui
+CP = $(SECONDO_BUILD_DIR)/Tools/Jni$S$(SECONDO_BUILD_DIR)/Javagui$S$(JARS)
 
 .PHONY: all
-all: $(CLASSES)
+all: sj $(CLASSES)
+
+.PHONY: sj
+sj:
+	make -C $(SECONDO_BUILD_DIR)/Javagui/sj all
 
 %.class: %.java
 	javac -classpath $(CP) $<
