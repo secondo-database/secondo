@@ -200,10 +200,10 @@ parrays( parrays ),
 marray( 0 )
 {
   parrays->AppendRecord( recid, record );
-  record.Write( &size, sizeof(int) );
+  record.Write( &size, sizeof(int), 0 );
 
   int nil = 0;
-  record.Write( &nil, sizeof(int) + initsize * sizeof(T) - sizeof(int) );
+  record.Write( &nil, sizeof(int), sizeof(int) + initsize * sizeof(T) - sizeof(int) );
 }
 
 template<class T>
