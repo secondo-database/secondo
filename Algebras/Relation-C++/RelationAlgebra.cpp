@@ -2198,7 +2198,7 @@ static int
 Rename(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Word t;
-    
+
   switch (message)
   {
     case OPEN :
@@ -3151,6 +3151,16 @@ Operator cpprdup (
          IdenticalTypeMap         // type mapping
 );
 
+/*
+
+7.3 Set Operators
+
+These operators compute set operations on two sorted stream.
+
+7.3.1 Generic Type Mapping for Set Operations
+
+*/
+
 static ListExpr
 SetOpTypeMap( ListExpr args )
 {
@@ -3174,6 +3184,266 @@ SetOpTypeMap( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+
+7.3.2 Auxiliary Classs for Set Operations
+
+*/
+
+class SetOperation
+{
+public:
+  bool outputAWithoutB;
+  bool outputBWithoutA;
+  bool outputMatches;
+
+private:
+  LexicographicalCcTupleCmp smallerThan;
+
+  Word streamA;
+  Word streamB;
+
+  CcTuple* currentATuple;
+  CcTuple* currentBTuple;
+
+  CcTuple* NextATuple()
+  {
+    Word tuple;
+    qp->Request(streamA.addr, tuple);
+    if(qp->Received(streamA.addr))
+    {
+      currentATuple = (CcTuple*)tuple.addr;
+      return currentATuple;
+    }
+    else
+    {
+      currentATuple = 0;
+      return 0;
+    }
+  }
+
+  CcTuple* NextBTuple()
+  {
+    Word tuple;
+    qp->Request(streamB.addr, tuple);
+    if(qp->Received(streamB.addr))
+    {
+      currentBTuple = (CcTuple*)tuple.addr;
+      return currentBTuple;
+    }
+    else
+    {
+      currentBTuple = 0;
+      return 0;
+    }
+  }
+
+  bool TuplesEqual(CcTuple* a, CcTuple* b)
+  {
+    return !(smallerThan(a, b) || smallerThan(b, a));
+  }
+
+public:
+
+  SetOperation(Word streamA, Word streamB)
+  {
+    this->streamA = streamA;
+    this->streamB = streamB;
+
+    currentATuple = 0;
+    currentBTuple = 0;
+
+    qp->Open(streamA.addr);
+    qp->Open(streamB.addr);
+
+    NextATuple();
+    NextBTuple();
+  }
+
+  virtual ~SetOperation()
+  {
+    qp->Close(streamA.addr);
+    qp->Close(streamB.addr);
+  }
+
+  CcTuple* NextResultTuple()
+  {
+    CcTuple* result = 0;
+    while(result == 0)
+    {
+      if(currentATuple == 0)
+      {
+        if(currentBTuple == 0)
+        {
+          return 0;
+        }
+        else
+        {
+          if(outputBWithoutA)
+          {
+            result = currentBTuple;
+            NextBTuple();
+          }
+          else
+          {
+            return 0;
+          }
+        }
+      }
+      else
+      {
+        if(currentBTuple == 0)
+        {
+          if(outputAWithoutB)
+          {
+            result = currentATuple;
+            NextATuple();
+          }
+          else
+          {
+            return 0;
+          }
+        }
+        else
+        {
+          /* both current tuples != 0 */
+          if(smallerThan(currentATuple, currentBTuple))
+          {
+            if(outputAWithoutB)
+            {
+              result = currentATuple;
+            }
+            NextATuple();
+          }
+          else if(smallerThan(currentBTuple, currentATuple))
+          {
+            if(outputBWithoutA)
+            {
+              result = currentBTuple;
+            }
+            NextBTuple();
+          }
+          else
+          {
+            /* found match */
+            assert(TuplesEqual(currentATuple, currentBTuple));
+            CcTuple* match = currentATuple;
+            if(outputMatches)
+            {
+              result = match;
+            }
+
+            while(currentATuple != 0 && TuplesEqual(match, currentATuple))
+            {
+              NextATuple();
+            }
+            while(currentBTuple != 0 && TuplesEqual(match, currentBTuple))
+            {
+              NextBTuple();
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+};
+
+/*
+
+7.3.2 Generic Value Mapping Function for Set Operations
+
+*/
+
+template<bool outputAWithoutB, bool outputBWithoutA, bool outputMatches> int
+SetOpValueMapping(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  SetOperation* localInfo;
+
+  switch(message)
+  {
+    case OPEN:
+      localInfo = new SetOperation(args[0], args[1]);
+      localInfo->outputBWithoutA = outputBWithoutA;
+      localInfo->outputAWithoutB = outputAWithoutB;
+      localInfo->outputMatches = outputMatches;
+
+      local = SetWord(localInfo);
+      return 0;
+    case REQUEST:
+      localInfo = (SetOperation*)local.addr;
+      result = SetWord(localInfo->NextResultTuple());
+      return result.addr != 0 ? YIELD : CANCEL;
+    case CLOSE:
+      localInfo = (SetOperation*)local.addr;
+      delete localInfo;
+      return 0;
+  }
+  return 0;
+}
+
+/*
+
+4.1.3 Specification of Operator ~mergesec~
+
+*/
+const string MergeSecSpec =
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text---><text>Computes the intersection of two sorted streams.</text--->)";
+/*
+
+4.1.3 Definition of Operator ~mergesec~
+
+*/
+Operator cppmergesec(
+         "mergesec",        // name
+         MergeSecSpec,     // specification
+         SetOpValueMapping<false, false, true>,         // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         SetOpTypeMap   // type mapping
+);
+
+/*
+
+4.1.3 Specification of Operator ~mergediff~
+
+*/
+const string MergeDiffSpec =
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text---><text>Computes the difference of two sorted streams.</text--->)";
+/*
+
+4.1.3 Definition of Operator ~mergesec~
+
+*/
+Operator cppmergediff(
+         "mergediff",        // name
+         MergeDiffSpec,     // specification
+         SetOpValueMapping<true, false, false>,         // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         SetOpTypeMap   // type mapping
+);
+
+/*
+
+4.1.3 Specification of Operator ~mergeunion~
+
+*/
+const string MergeUnionSpec =
+  "(<text>((stream (tuple ((x1 t1) ... (xn tn)))) stream (tuple ((x1 t1) ... (xn tn))))) -> (stream (tuple ((x1 t1) ... (xn tn))))</text---><text>Computes the union of two sorted streams.</text--->)";
+/*
+
+4.1.3 Definition of Operator ~mergeunion~
+
+*/
+Operator cppmergeunion(
+         "mergeunion",        // name
+         MergeUnionSpec,     // specification
+         SetOpValueMapping<true, true, true>,         // value mapping
+         Operator::DummyModel,  // dummy model mapping, defines in Algebra.h
+         simpleSelect,          // trivial selection function
+         SetOpTypeMap   // type mapping
+);
 
 /*
 
@@ -3261,7 +3531,7 @@ template<bool expectIntArgument> ListExpr EquiJoinTypeMap
     {
       return nl->SymbolAtom("typeerror");
     }
-    
+
     if(expectIntArgument && nl->SymbolValue(nl->Fifth(args)) != "int")
     {
       return nl->SymbolAtom("typeerror");
@@ -4057,6 +4327,9 @@ class RelationAlgebra : public Algebra
     AddOperator(&sortBy);
     AddOperator(&cppsort);
     AddOperator(&cpprdup);
+    AddOperator(&cppmergesec);
+    AddOperator(&cppmergediff);
+    AddOperator(&cppmergeunion);
     AddOperator(&equiMergeJoinOperator);
     AddOperator(&equiHashJoinOperator);
 

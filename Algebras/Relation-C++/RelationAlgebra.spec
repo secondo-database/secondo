@@ -23,6 +23,7 @@ operator product alias PRODUCT pattern _ _ op
 operator loopjoin alias LOOPJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 operator mergesec alias MERGESEC pattern _ _ op
 operator mergediff alias MERGEDIFF pattern _ _ op
+operator mergeunion alias MERGEUNION pattern _ _ op
 
 
 operator sortby alias SORTBY pattern _ op [list]
