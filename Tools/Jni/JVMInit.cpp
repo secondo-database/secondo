@@ -1,9 +1,18 @@
-/* This module initializes the JNI Environment.
-   March, 25th, 2003 by Mirco Guenster and Ismail Zerrad.
-   changed 2003-06-17 by Th. Behr
-      new ananyse of the jni.ini-file
-      make compatible with new java-version 1.4
- */
+/*
+
+//paragraph [1] Title: [{\large\bf] [}]
+
+[1] JVMInit
+
+This module initializes the JNI Environment. \\
+\begin{center}
+   March, 25th, 2003 by Mirco Guenster and Ismail Zerrad. \\
+   changed 2003-06-17 by Th. Behr \\
+      new analyse of the jni.ini-file \\
+      make compatible with new java-version 1.4 \\
+\end{center}
+
+*/
 
 using namespace std;
 
@@ -23,10 +32,14 @@ JNIEnv* JVMInitializer::env=0;
 JavaVM* JVMInitializer::jvm=0;
 
 
-/* 1.0 The getIniFile function
-   This function returns the content of system variable JNI_INIT if available.
-   If this variable is not defined, a warning is printted out and a default
-   value is returned.
+/*
+
+1 The ~getIniFile~ function
+
+This function returns the content of system variable JNI\_INIT if available.
+If this variable is not defined, a warning is printed out and a default
+value is returned.
+
 */
 string getIniFile(){
   char* res = getenv("JNI_INIT");
@@ -38,10 +51,13 @@ string getIniFile(){
   }
 }
 
-/* 1.0 The getAbsolutePath function
-   If the given string begins with "/", the
-   string  self is returned. Otherwise
-   $SECONDO_BUILD_DIR/String is returned.
+/*
+2 The ~getAbsolutePath~ function
+
+If the given string begins with "/", the
+string  itself is returned. Otherwise
+\$SECONDO\_BUILD\_DIR/String is returned.
+
 */
 string getAbsolutePath(string Path){
   if(Path[0]=='/' | Path[0]=='.')
@@ -53,8 +69,13 @@ string getAbsolutePath(string Path){
   return SecondoHome+"/"+Path;
 }
 
-/* 1.0 The trim() function
-   This function removes spaces at begin and end of the given string */
+/*
+
+3 The ~trim~ function
+
+This function removes spaces at begin and end of the given string
+
+*/
 string trim(const string& s){
   if(s.length() == 0)
        return s;
@@ -66,9 +87,11 @@ string trim(const string& s){
 }
 
 
-/* 1.0 The processLine function
-  In this function a single line of the ini file is
-  analyzed.
+/*
+4 The ~processLine~ function
+
+In this function a single line of the ini file isanalyzed.
+
 */
 void processLine(const string& inputLine,string& classpath, string& libdir, string& version){
  // remove comment
@@ -102,10 +125,14 @@ void processLine(const string& inputLine,string& classpath, string& libdir, stri
 }
 
 
-/* 1.1 The readFile function
-   In this function the file is opened and readed. If the file can't
-   opened or an error occurs in reading this file, readFile will return
-   -1 otherwise 0.
+/*
+
+5 The ~readFile~ function
+
+In this function the file is opened and readed. If the file can't
+opened or an error occurs in reading this file, readFile will return
+-1 otherwise 0.
+
 */
 int readFile(const string& FileName,string& classpath, string& libpath, string& version){
   // open the file
@@ -122,10 +149,12 @@ int readFile(const string& FileName,string& classpath, string& libpath, string& 
   return 0;
 }
 
-/* 1.1 The error function
-   This function reports an error message and exists the program.
-*/
+/*
+6 The ~error~ function
 
+This function reports an error message and exits the program.
+
+*/
 static void error(int reason) {
   cerr << "Error during initialization of the JNI Interface: ";
   if (reason == 1) cerr << "Couldn't read the configuration file JNI.ini";
@@ -135,6 +164,13 @@ static void error(int reason) {
   exit(1);
 }
 
+/*
+7 The ~toNumber~ function
+
+This function returns the interger represented by the
+argument. if c does not represent a valid digit, -1 is returned.
+
+*/
 static int toNumber(char c){
   if(c=='0') return 0;
   if(c=='1') return 1;
@@ -150,6 +186,14 @@ static int toNumber(char c){
 }
 
 
+/*
+8 The ~Constructor~
+
+If the constructor is called the first time, the file jni.ini
+is analyzed and the Java environment is created. All other
+calls leads to no action.
+
+*/
 JVMInitializer::JVMInitializer() {
   if(initialized) return; // initialize only one time
 
@@ -240,20 +284,34 @@ JVMInitializer::JVMInitializer() {
   cout << "JNI initialization finished." << endl;
 }
 
+/*
+9 ~getEnv~
+
+Returns the Java environment.
+
+*/
 JNIEnv* JVMInitializer::getEnv() {
   return env;
 }
 
+/*
+~getJVM~
+
+Returns the java virtual machine.
+
+*/
 JavaVM* JVMInitializer::getJVM() {
   return jvm;
 }
 
+/*
+~isInitialized~
+
+Returns the state of the JavaInitializer.
+
+*/
 bool JVMInitializer::isInitialized(){
   return initialized;
 }
-
-
-
-
 
 
