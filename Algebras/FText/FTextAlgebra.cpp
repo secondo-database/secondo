@@ -616,6 +616,20 @@ TypeMapkeywords( ListExpr args ){
   return nl->SymbolAtom("typeerror");
 }
 
+ListExpr
+TypeMapsentences( ListExpr args ){
+  ListExpr arg;
+
+  if ( nl->ListLength(args) == 1 )
+  {
+    arg = nl->First(args);
+    if ( nl->IsEqual(arg, typeName) )
+      return nl->TwoElemList(nl->SymbolAtom("stream"), nl->SymbolAtom("text"));
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+
 /*
 
 3.2 Selection Function
@@ -890,6 +904,125 @@ The length of a string is three characters or more.
   return -1;
 }
 
+int
+ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
+/*
+
+*/
+{
+  struct TheText {int start, strlength; const char* subw;}* thetext;
+  Word arg0;
+  int textcursor, state;
+  string tmpstr;
+  char c;
+  FText* returnsentence;
+
+  switch( message )
+  {
+    case OPEN:
+      //cout << "open ValMapsentences" << endl; 
+      qp->Request(args[0].addr, arg0);     
+      thetext = new TheText;
+      thetext->start = 0;
+      thetext->strlength = ((FText*)arg0.addr)->TextLength();
+      thetext->subw = ((FText*)arg0.addr)->Get();
+      local.addr = thetext;
+      return 0;
+
+    case REQUEST:   
+      //cout << "request ValMapsentences" << endl;
+      thetext = ((TheText*) local.addr);
+      textcursor = thetext->start;
+      tmpstr = "";
+      state = 0;
+      
+      while (true) {
+        switch ( state ) {
+          case 0 : c = thetext->subw[textcursor];
+		   if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+	           if ( c == ',' || c == ';' || c ==':' || c ==' '
+		                 || c == '\n' || c == '\t' ) 
+		   {
+		     state = 0;
+		   }
+	           else { if ( c == '.' || c == '!' || c =='?' )
+		     {
+		       tmpstr += c;
+		       state = 3;
+		     }
+		     else  {
+		       tmpstr += c;
+		       state = 1;
+		     }
+		   }
+		   textcursor++;
+		   break;
+          case 1 : c = thetext->subw[textcursor];
+		   if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+	           if ( c == ',' || c == ';' || c ==':' )
+		   {
+		     tmpstr += c;
+		     tmpstr += " ";
+		     state = 0;
+		   }
+		   else { if ( c == ' ' || c == '\n' || c == '\t' )
+		     state = 2;
+		     else { if ( c == '.' || c == '!' || c =='?' )
+		       {
+		         tmpstr += c;
+			 state = 3;
+		       }
+		       else {
+		         tmpstr += c;
+			 state = 1;
+		       }
+		     }
+		   }
+		   textcursor++;
+		   break;
+          case 2 : c = thetext->subw[textcursor];
+		   if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+	           if ( c == ',' || c == ';' || c ==':' )
+		   {
+		     tmpstr += c;
+		     tmpstr += " ";
+		     state = 0;
+		   }
+		   else { if ( c == ' ' || c == '\n' || c == '\t' )
+		     state = 2;
+		     else { if ( c == '.' || c == '!' || c =='?' )
+		       {
+		         tmpstr += c;
+			 state = 3;
+		       }
+		       else {
+		         tmpstr += ' ';
+		         tmpstr += c;
+			 state = 1;
+		       }
+		     }
+		   }
+		   textcursor++;
+		   break;	  
+	  case 3 : if ( (c == '\0') || (textcursor > thetext->strlength) ) { return CANCEL; }
+		   returnsentence = new FText(true, (char*)tmpstr.c_str());
+		   result = SetWord(returnsentence);		   
+	           thetext->start = textcursor;
+	           local.addr = thetext;
+                   return YIELD;
+        }
+      }
+    case CLOSE:
+      //cout << "close ValMapsentences" << endl;
+      thetext = ((TheText*) local.addr);
+      delete thetext;
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+
 /*
 3.4 Definition of Operators
 
@@ -935,7 +1068,17 @@ const string keywordsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              " of the origin text, on the assumption, that words in the text"
              " are separated by a space character.</text--->"
              "<text>let Keyword = documents feed extendstream[kword: .title keywords] consume</text--->"
-             ") )"; 
+             ") )";
+
+const string sentencesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(text) -> (stream text)</text--->"
+             "<text>_ sentences</text--->"
+             "<text>Creates a stream of standardized texts containing complete sentences"
+             " of the origin text, on the assumption, that sentences in the text"
+             " are terminated by a ., ! or ? character.</text--->"
+             "<text>let MySentences = documents feed projectextendstream[title; newattr: .content sentences] consume</text--->"
+             ") )";  
 
 /*
 The Definition of the operators of the type ~text~.
@@ -983,6 +1126,17 @@ Operator getkeywords
   TypeMapkeywords        //type mapping
 );
 
+Operator getsentences
+(
+  "sentences",            //name
+  sentencesSpec,          //specification
+  ValMapsentences,        //value mapping
+  Operator::DummyModel,   //dummy model mapping, defined in Algebra.h
+  simpleSelect,           //trivial selection function
+  TypeMapsentences        //type mapping
+);
+
+
 /*
 5 Creating the algebra
 
@@ -1001,6 +1155,7 @@ public:
     AddOperator( &containsText );
     AddOperator( &length );
     AddOperator( &getkeywords );
+    AddOperator( &getsentences );
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
     )
