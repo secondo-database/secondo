@@ -4,4 +4,4 @@ if [ "$SECONDO_PLATFORM" = "win32" ]
 fi    
 
 CP="lib/java_cup_v10k_runtime.jar"$S"lib/jl0.4.jar"$S"."$S"lib/14_os_jpedal.jar"
-java -Xmx80M -classpath $CP gui.MainWindow
+java -Xmx180M -classpath $CP gui.MainWindow

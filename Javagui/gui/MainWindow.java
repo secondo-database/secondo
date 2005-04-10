@@ -44,7 +44,7 @@ private boolean DEBUG_MODE = true;
 
 
 private JPanel PanelTop;        // change to the desired components
-private CommandPanel ComPanel;
+private static CommandPanel ComPanel;
 private ObjectList OList;
 private JPanel PanelTopRight;
 private JSplitPane HSplitPane;
@@ -2229,6 +2229,9 @@ class Command_Listener implements ActionListener{
        }
 
 
+public static CommandPanel getCommandPanel(){
+	return ComPanel;
+}
 
 private static void showLicence(){
     JOptionPane.showMessageDialog(null,Licence,"Licence",JOptionPane.INFORMATION_MESSAGE);

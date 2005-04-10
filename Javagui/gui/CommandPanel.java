@@ -126,6 +126,10 @@ public class CommandPanel extends JScrollPane {
         return new Dimension(myWidth,myHeight);
      }
   }
+  
+  public ESInterface getSecondoInterface(){
+	return Secondointerface;
+  }
 
   /** returns the connection state from secondointerface */
   public boolean isConnected(){
@@ -1124,6 +1128,8 @@ public class CommandPanel extends JScrollPane {
 // define strings for special treatment when a command begins with it
 private static final String OptString ="optimizer "; 
 private static final String EvalString="eval ";
+
+
 
 
 }
