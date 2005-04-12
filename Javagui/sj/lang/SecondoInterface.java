@@ -45,7 +45,7 @@ import java.util.StringTokenizer;
  In this section we describe the implementation of the SecondoInterface class.
 
 */
-
+ 
 public class SecondoInterface extends Object {
 
 /*
@@ -56,19 +56,19 @@ hence they are accessible by the user code.
 
 */
      // Secondo executable command in nested list syntax (list).
-  public final int EXEC_COMMAND_LISTEXPR_SYNTAX    = 0;
+  public static final int EXEC_COMMAND_LISTEXPR_SYNTAX    = 0;
      // Secondo executable command in SOS syntax (text).
-  public final int EXEC_COMMAND_SOS_SYNTAX         = 1;
+  public static final int EXEC_COMMAND_SOS_SYNTAX         = 1;
      // Secondo descriptive command after, or without, algebraic optimization (list).
-  public final int DESCRIP_COMMAND_AFTER_OPT_LIST  = 2;
+  public static final int DESCRIP_COMMAND_AFTER_OPT_LIST  = 2;
      // Secondo descriptive command after, or without, algebraic optimization (text).
-  public final int DESCRIP_COMMAND_AFTER_OPT_TEXT  = 3;
+  public static final int DESCRIP_COMMAND_AFTER_OPT_TEXT  = 3;
      // Secondo descriptive command before algebraic optimization (list).
-  public final int DESCRIP_COMMAND_BEFORE_OPT_LIST = 4;
+  public static final int DESCRIP_COMMAND_BEFORE_OPT_LIST = 4;
      // Secondo descriptive command before algebraic optimization (text).
-  public final int DESCRIP_COMMAND_BEFORE_OPT_TEXT = 5;
+  public static final int DESCRIP_COMMAND_BEFORE_OPT_TEXT = 5;
      // Command in some specific query language (e.g. SQL, GraphDB, etc.).
-  public final int COMMAND_SPECIFIC_QUERY_LANGUAGE = 7;
+  public static final int COMMAND_SPECIFIC_QUERY_LANGUAGE = 7;
 
   public static final int DESCRIPTIVE_ALGEBRA = 1;
   public static final int EXECUTABLE_ALGEBRA  = 2;

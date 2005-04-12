@@ -2228,9 +2228,9 @@ class Command_Listener implements ActionListener{
         }
        }
 
-
-public static CommandPanel getCommandPanel(){
-	return ComPanel;
+/** returns a small interface to secondo needed by the 'UpdateViewer'*/
+public static UpdateInterface getUpdateInterface(){
+	return ComPanel.getUpdateInterface();
 }
 
 private static void showLicence(){

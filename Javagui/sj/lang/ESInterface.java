@@ -34,7 +34,7 @@ import java.util.StringTokenizer;
 /* this class extends the SecondoInterface
  * to make the change of server settings easy
  */
-public class ESInterface extends SecondoInterface{
+public class ESInterface extends SecondoInterface implements UpdateInterface{
 
   /*Configuration parameters*/
   private String databasesServerAddress;

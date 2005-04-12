@@ -127,7 +127,8 @@ public class CommandPanel extends JScrollPane {
      }
   }
   
-  public ESInterface getSecondoInterface(){
+  /** returns a small interface needed by the 'UpdateViewer'*/
+  public UpdateInterface getUpdateInterface(){
 	return Secondointerface;
   }
 
