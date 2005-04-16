@@ -2952,13 +2952,13 @@ QueryProcessor::GetCounters()
   ListExpr last = nl->TheEmptyList();
 
   list = nl->OneElemList( 
-	  nl->TwoElemList( nl->IntAtom(1), nl->IntAtom(counter[1]) ));
+	  nl->TwoElemList( nl->IntAtom(1), nl->IntAtom(counter[1]-1) ));
   last = list;
 
   for (int i = 2; i < NO_COUNTERS; i++) 
   {
     last = nl->Append( last, 	  
-      nl->TwoElemList( nl->IntAtom(i), nl->IntAtom(counter[i]) ));
+      nl->TwoElemList( nl->IntAtom(i), nl->IntAtom(counter[i]-1) ));
   }
   return list;
 }
