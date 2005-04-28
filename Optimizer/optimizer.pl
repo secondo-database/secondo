@@ -1188,11 +1188,14 @@ used unchanged. If it is of the form arg(N), then it is a base relation; a
 
 res(N) => res(N).
 
-arg(N) => feed(rel(Name, *, Case)) :-
-  argument(N, rel(Name, *, Case)), !.
+arg(N) => project(feed(rel(Name, *, Case)), AttrNames) :-
+  argument(N, rel(Name, *, Case)), 
+  usedAttrList(rel(Name, *, Case), AttrNames),
+  !.
 
-arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
-  argument(N, rel(Name, Var, Case)).
+arg(N) => rename(project(feed(rel(Name, Var, Case)), AttrNames), Var) :-
+  argument(N, rel(Name, Var, Case)),
+  usedAttrList(rel(Name, Var, Case), AttrNames).
 
 /*
 5.2.2 Translation of Selections
@@ -2367,13 +2370,15 @@ callLookup(Query, Query2) :-
   lookup(Query, Query2), !.
 
 newQuery :- not(clearVariables), not(clearQueryRelations), 
-  not(clearQueryAttributes).
+  not(clearQueryAttributes), not(clearUsedAttributes).
 
 clearVariables :- retract(variable(_, _)), fail.
 
 clearQueryRelations :- retract(queryRel(_, _)), fail.
 
 clearQueryAttributes :- retract(queryAttr(_)), fail.
+
+clearUsedAttributes :- retract(usedAttr(_, _)), fail.
 
 /*
 
@@ -2450,7 +2455,9 @@ Translate and store a single relation definition.
 :- dynamic
   variable/2,
   queryRel/2,
-  queryAttr/1.
+  queryAttr/1,
+  usedAttr/2.
+
 
 lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
   relation(Rel, _), !,
@@ -2508,7 +2515,8 @@ lookupAttrs(Attr, Attr2) :-
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   variable(Var, Rel2),
   Rel2 = rel(Rel, _, _),
-  spelled(Rel:Attr, attr(Attr2, _, Case)).
+  spelled(Rel:Attr, attr(Attr2, VA, Case)),
+  assert(usedAttr(Rel2, attr(Attr2, VA, Case))).
 
 lookupAttr(Attr asc, Attr2 asc) :- !,
   lookupAttr(Attr, Attr2).
@@ -2517,8 +2525,10 @@ lookupAttr(Attr desc, Attr2 desc) :- !,
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr, Attr2) :-
-  isAttribute(Attr, Rel), !,
-  spelled(Rel:Attr, Attr2).
+  isAttribute(Attr, Rel),!,
+  spelled(Rel:Attr, Attr2),
+  queryRel(Rel, Rel2),
+  assert(usedAttr(Rel2, Attr2)).
 
 lookupAttr(*, *) :- !.
 
@@ -2682,14 +2692,16 @@ found.
 lookupPred1(Var:Attr, attr(Var:Attr2, N1, Case), N, RelsBefore, N1, RelsAfter)
   :-
   variable(Var, Rel2), !,   Rel2 = rel(Rel, _, _),
-  spelled(Rel:Attr, attr(Attr2, _, Case)),
+  spelled(Rel:Attr, attr(Attr2, X, Case)),
+  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   N1 is N + 1,
   append(RelsBefore, [Rel2], RelsAfter).
 
 lookupPred1(Attr, attr(Attr2, N1, Case), N, RelsBefore, N1, RelsAfter) :-
   isAttribute(Attr, Rel), !,
-  spelled(Rel:Attr, attr(Attr2, _, Case)),
+  spelled(Rel:Attr, attr(Attr2, X, Case)),
   queryRel(Rel, Rel2),
+  assert(usedAttr(Rel2, attr(Attr2, X, Case))),
   N1 is N + 1,
   append(RelsBefore, [Rel2], RelsAfter).
 
@@ -2879,6 +2891,19 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   bestPlan(Stream, Cost),
   !.
 
+translate(Select from Rel, project(feed(Rel), AttrNames), Select, 0) :-
+  not(is_list(Rel)),
+  usedAttrList(Rel, AttrNames),
+  !.
+
+translate(Select from [Rel], project(feed(Rel), AttrNames), Select, 0) :-
+  usedAttrList(Rel, AttrNames).
+
+translate(Select from [Rel | Rels], product(project(feed(Rel), AttrNames), Stream), Select, 0) :-
+  usedAttrList(Rel, AttrNames),
+  translate(Select from Rels, Stream, Select, _).
+
+
 translate(Select from Rel, feed(Rel), Select, 0) :-
   not(is_list(Rel)),
   !.
@@ -2887,6 +2912,21 @@ translate(Select from [Rel], feed(Rel), Select, 0).
 
 translate(Select from [Rel | Rels], product(feed(Rel), Stream), Select, 0) :-
   translate(Select from Rels, Stream, Select, _).
+
+
+
+/*
+The next predicate finds all attributes of a given relation ~Rel~
+which are needed in this query. The result can be used to create
+project(feed(..)) streams instead of simply feeding all attributes
+from a relation into a stream. The system predicate ~setof~ is used
+to find all goal for query ~usedAttr(Rel,X)~.
+
+*/
+
+usedAttrList(Rel, ResList) :- 
+  setof(X, usedAttr(Rel, X), R1),
+  attrnames(R1, ResList).
 
 
 
@@ -3049,9 +3089,19 @@ queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
   finish(Stream, Select, SortAttrs, Stream2),
   !.
 
-queryToStream(Query, Stream2, Cost) :-
-  translate(Query, Stream, Select, Cost),
-  finish(Stream, Select, [], Stream2).
+
+queryToStream(Select from Rels where Preds, Stream2, Cost) :-
+  translate(Select from Rels where Preds, Stream, Select1, Cost),
+  finish(Stream, Select1, [], Stream2),
+  !.
+
+queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
+  translate(Select from Rels groupby Attrs, Stream, Select1, Cost),
+  finish(Stream, Select1, [], Stream2),
+  !.
+
+queryToStream(Select from Rels, Stream, Cost) :-
+  translate(Select from Rels, Stream, _, Cost).
 
 /*
 ----    finish(Stream, Select, Sort, Stream2) :-
@@ -3065,7 +3115,6 @@ apply the final tranformations (extend, sort, project) to obtain ~Stream2~.
 finish(Stream, Select, Sort, Stream2) :-
   selectClause(Select, Extend, Project),
   finish2(Stream, Extend, Sort, Project, Stream2).
-
 
 
 selectClause(select *, [], *).
@@ -3213,51 +3262,46 @@ sqlToPlan(QueryText, Plan) :-
 11.3.8 Examples
 
 We can now formulate the previous example queries in the user level language.
+They are stored as prolog facts sqlExample/2. Examples can be called by
+testing the predicates example/1 or example/2. Moreover, they are also
+present as facts with name ~example<No>~.
 
-
-Example3:
+Below we present some generic rules for evaluating SQL examples.
 
 */
 
-example14 :- optimize(
+showExample(Nr, Query) :- 
+  sqlExample(Nr, Query), 
+  nl, write('SQL: '), write(Query), nl, nl.
+
+example(Nr) :- showExample(Nr, Query), optimize(Query).
+example(Nr, Query, Cost) :- showExample(Nr, Example), optimize(Example, Query, Cost).
+
+
+/*
+Examples 14 - 21:
+
+*/
+
+
+sqlExample( 14,
+
   select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0]
   ).
 
-example14(Query, Cost) :- optimize(
-  select * from [staedte as s, plz as p] where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0],
-  Query, Cost
-  ).
+sqlExample( 15,
 
-
-/*
-Example4:
-
-*/
-example15 :- optimize(
   select * from staedte where bev > 500000
   ).
 
-example15(Query, Cost) :- optimize(
-  select * from staedte where bev > 500000,
-  Query, Cost
-  ).
 
-/*
-Example5:
+sqlExample( 16,
 
-*/
-example16 :-  optimize(
   select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000]
   ).
 
-example16(Query, Cost) :-  optimize(
-  select * from [staedte as s, plz as p] where [s:sname = p:ort, p:plz > 40000],
-  Query, Cost
-  ).
-
-
 /*
-Example6. This may need a larger local stack size. Start Prolog as
+Example 17. This may need a larger local stack size. Start Prolog as
 
 ----    pl -L4M
 ----
@@ -3265,7 +3309,8 @@ Example6. This may need a larger local stack size. Start Prolog as
 which initializes the local stack to 4 MB.
 
 */
-example17 :- optimize(
+
+sqlExample( 17,
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
   where [
@@ -3281,29 +3326,9 @@ example17 :- optimize(
     p3:ort starts "M"]
   ).
 
-example17(Query, Cost) :- optimize(
-  select *
-  from [staedte, plz as p1, plz as p2, plz as p3]
-  where [
-    sname = p1:ort,
-    p1:plz = p2:plz + 1,
-    p2:plz = p3:plz * 5,
-    bev > 300000,
-    bev < 500000,
-    p2:plz > 50000,
-    p2:plz < 60000,
-    kennzeichen starts "W",
-    p3:ort contains "burg",
-    p3:ort starts "M"],
-  Query, Cost
-  ).
 
 
-/*
-Example 18:
-
-*/
-example18 :- optimize(
+sqlExample( 18,
   select *
   from [staedte, plz as p1]
   where [
@@ -3317,26 +3342,8 @@ example18 :- optimize(
     p1:ort starts "M"]
   ).
 
-example18(Query, Cost) :- optimize(
-  select *
-  from [staedte, plz as p1]
-  where [
-    sname = p1:ort,
-    bev > 300000,
-    bev < 500000,
-    p1:plz > 50000,
-    p1:plz < 60000,
-    kennzeichen starts "W",
-    p1:ort contains "burg",
-    p1:ort starts "M"],
-  Query, Cost
-  ).
 
-/*
-Example 19:
-
-*/
-example19 :- optimize(
+sqlExample( 19, 
   select *
   from [staedte, plz as p1, plz as p2]
   where [
@@ -3351,28 +3358,8 @@ example19 :- optimize(
     p1:ort starts "M"]
   ).
 
-example19(Query, Cost) :- optimize(
-  select *
-  from [staedte, plz as p1, plz as p2]
-  where [
-    sname = p1:ort,
-    p1:plz = p2:plz + 1,
-    bev > 300000,
-    bev < 500000,
-    p1:plz > 50000,
-    p1:plz < 60000,
-    kennzeichen starts "W",
-    p1:ort contains "burg",
-    p1:ort starts "M"],
-  Query, Cost
-  ).
 
-
-/*
-Example 20:
-
-*/
-example20 :- optimize(
+sqlExample( 20,
   select *
   from [staedte as s, plz as p]
   where [
@@ -3381,21 +3368,8 @@ example20 :- optimize(
     s:bev > 300000]
   ).
 
-example20(Query, Cost) :- optimize(
-  select *
-  from [staedte as s, plz as p]
-  where [
-    p:ort = s:sname,
-    p:plz > 40000,
-    s:bev > 300000],
-  Query, Cost
-  ).
 
-/*
-Example 21:
-
-*/
-example21 :- optimize(
+sqlExample( 21, 
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
   where [
@@ -3404,15 +3378,26 @@ example21 :- optimize(
     p2:plz = p3:plz * 5]
   ).
 
-example21(Query, Cost) :- optimize(
-  select *
-  from [staedte, plz as p1, plz as p2, plz as p3]
-  where [
-    sname = p1:ort,
-    p1:plz = p2:plz + 1,
-    p2:plz = p3:plz * 5],
-  Query, Cost
-  ).
+
+example14 :- example(14).
+example15 :- example(15).
+example16 :- example(16).
+example17 :- example(17).
+example18 :- example(18).
+example19 :- example(19).
+example20 :- example(20).
+example21 :- example(21).
+
+
+example14(Query, Cost) :- example14(Query, Cost).
+example15(Query, Cost) :- example15(Query, Cost).
+example16(Query, Cost) :- example16(Query, Cost).
+example17(Query, Cost) :- example17(Query, Cost).
+example18(Query, Cost) :- example18(Query, Cost).
+example19(Query, Cost) :- example19(Query, Cost).
+example20(Query, Cost) :- example20(Query, Cost).
+example21(Query, Cost) :- example21(Query, Cost).
+
 
 /*
 
