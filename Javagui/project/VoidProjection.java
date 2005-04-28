@@ -40,4 +40,18 @@ public class VoidProjection implements Projection{
      return "VoidProjection";
    }
 
+   public boolean isReversible(){
+      return true;
+   }
+
+   public double getOrigX(double prjX,double prjY) {
+      return prjX;
+   }
+
+   public double getOrigY(double prjX, double prjY){
+      return prjY;
+   }
+
+
+
 }

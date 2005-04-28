@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Orthographic implements Projection{
+public class Orthographic extends ProjectionAdapter{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
       double l1 = (lambda-Lambda_0)*PI/180;

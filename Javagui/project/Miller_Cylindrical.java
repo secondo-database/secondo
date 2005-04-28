@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Miller_Cylindrical implements Projection{
+public class Miller_Cylindrical extends ProjectionAdapter{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
      //     if(lambda>180 || lambda<-180)

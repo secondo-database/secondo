@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Cylindrical implements Projection{
+public class Cylindrical extends ProjectionAdapter{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
      return lambda-Lambda_0;

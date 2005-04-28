@@ -30,6 +30,11 @@ public interface Projection{
 
    public String getName();
 
+   public boolean isReversible();
+
+   public double getOrigX(double prjX,double prjY) throws InvalidInputException;
+   public double getOrigY(double prjX,double prjY) throws InvalidInputException;
+
    static final double LOG_E = Math.log(Math.E);
    static final double PI = Math.PI;
  }

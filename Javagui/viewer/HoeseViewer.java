@@ -387,10 +387,27 @@ public class HoeseViewer extends SecondoViewer {
         try {
           p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(),p);
         } catch (Exception ex) {}
-
-        MouseKoordLabel.setText(Double.toString(p.getX()).concat("       ").substring(0,
-            7) + "/" + Double.toString(p.getY()).concat("       ").substring(0,
-            7));
+        
+        if(!ProjectionManager.isReversible()){
+           MouseKoordLabel.setText("P"+Double.toString(p.getX()).concat("       ").substring(0,
+            6) + "/P" + Double.toString(p.getY()).concat("       ").substring(0,
+            6));
+        } else{
+          
+           double px = p.getX();
+           double py = p.getY();
+           try{
+               double x = ProjectionManager.getOrigX(px,py);
+               double y = ProjectionManager.getOrigY(px,py);
+               MouseKoordLabel.setText( (""+x).concat("       ").substring(0,7) +
+                                         "/"+(""+y).concat("       ").substring(0,7));    
+          }catch(Exception e2){
+              showMessage("Error in computing the reverse projection");
+               MouseKoordLabel.setText( ("P"+px).concat("       ").substring(0,6) +
+                                         "/P"+(""+py).concat("       ").substring(0,6));    
+ 
+          }
+        }
       }
       public void mouseDragged(MouseEvent evt){
          mouseMoved(evt);

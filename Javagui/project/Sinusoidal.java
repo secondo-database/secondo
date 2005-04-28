@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Sinusoidal implements Projection{
+public class Sinusoidal extends ProjectionAdapter{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
       double phi_1 = phi*PI/180;

@@ -54,6 +54,17 @@ public class ProjectionManager {
        P = Prj;
    }
 
+   public static boolean isReversible(){
+      return P.isReversible();
+   }
+
+   public static double getOrigX(double px, double py) throws InvalidInputException{
+      return P.getOrigX(px,py);
+   }
+
+   public static double getOrigY(double px, double py) throws InvalidInputException{
+      return P.getOrigY(px,py);
+   } 
 
 // private static  Projection P = new Mercator(); // later the equals-projection
 // private static  Projection P = new Mollweide();

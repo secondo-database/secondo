@@ -52,6 +52,25 @@ public class Mercator implements Projection{
      return "Mercator";
    }
 
+   public boolean isReversible(){
+      return true;
+   }
+
+   public double getOrigX(double prjx, double prjy){
+      return prjx + Lambda_0; 
+   }
+
+   public double getOrigY(double prjx, double prjy) throws InvalidInputException{
+       try{
+         prjy = prjy*PI/180;
+         double res =  2*Math.atan(Math.exp(prjy))-0.5*PI;    
+         return res*180/PI;
+       } catch(Exception e){
+              throw new InvalidInputException("Mercator:getOrigY: prjy out of range");
+       }
+   }
+
+
 
    private double Lambda_0 = 0;
    private double secure_distance = 1;

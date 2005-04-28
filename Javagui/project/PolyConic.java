@@ -21,7 +21,7 @@ package project;
 
 
 
-public class PolyConic implements Projection{
+public class PolyConic extends ProjectionAdapter{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
       if(Math.abs(phi)<5)
