@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Cylindrical extends ProjectionAdapter{
+public class Cylindrical implements Projection{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
      return lambda-Lambda_0;
@@ -49,7 +49,18 @@ public class Cylindrical extends ProjectionAdapter{
    public String getName(){
      return "Cylindrical";
    }
+   
+   public double getOrigX(double x, double y){
+     return x + Lambda_0;
+   }
 
+   public double getOrigY(double x, double y){
+      return (Math.atan((y * PI) / 180))*180/PI; 
+   }
+  
+   public boolean isReversible(){
+      return true;
+   }
 
    private double Lambda_0 = 0;
    private double secure_distance = 10;

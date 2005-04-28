@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Orthographic extends ProjectionAdapter{
+public class Orthographic implements Projection{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
       double l1 = (lambda-Lambda_0)*PI/180;
@@ -44,6 +44,31 @@ public class Orthographic extends ProjectionAdapter{
 
    public String getName(){
      return "Orthographic";
+   }
+
+   public boolean isReversible(){
+      return true;
+   }
+
+   public double getOrigX(double x, double y){
+        x = x*PI/180;
+        y = y*PI/180;
+        double p = Math.sqrt(x*x+y*y);
+        double c = Math.asin(p);
+        double x_t =  Lambda_0 + Math.atan((x*Math.sin(c)) / 
+                     (p*Math.cos(Phi_1)*Math.cos(c) - 
+                      y*Math.sin(Phi_1)*Math.sin(c)  ));
+        return x_t*180/PI;
+   } 
+
+   public double getOrigY(double x, double y){
+     x = x*PI/180;
+     y = y*PI/180;
+     double p = Math.sqrt(x*x+y*y);
+     double c = Math.asin(p);
+     double y_t = Math.asin( Math.cos(c)*Math.sin(Phi_1)+y*Math.sin(c)*Math.cos(Phi_1)/p);
+     return 180*y_t/PI;
+
    }
 
 

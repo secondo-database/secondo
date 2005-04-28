@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Miller_Cylindrical extends ProjectionAdapter{
+public class Miller_Cylindrical implements Projection{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
      //     if(lambda>180 || lambda<-180)
@@ -48,6 +48,18 @@ public class Miller_Cylindrical extends ProjectionAdapter{
      return "Miller_Cylindrical";
    }
 
+   public boolean isReversible(){
+     return true;
+   }
+  
+   public double getOrigX(double x, double y){
+      return x + Lambda_0;
+   } 
+
+   public double getOrigY(double x, double y){
+
+       return 180*(2.5* Math.atan(Math.exp((y*4*PI)/(180*5))) - PI*5/8)/PI;
+   }
 
    private double Lambda_0 = 0;
    private double secure_distance = 1;

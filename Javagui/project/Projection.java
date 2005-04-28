@@ -19,6 +19,15 @@
 
 package project;
 
+/**
+The formulas of some of the implemented projections are taken
+from :
+
+http://mathworld.wolfram.com/topics/MapProjections.html
+
+
+*/
+
 
 public interface Projection{
 

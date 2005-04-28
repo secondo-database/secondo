@@ -21,7 +21,7 @@ package project;
 
 
 
-public class Sinusoidal extends ProjectionAdapter{
+public class Sinusoidal implements Projection{
 
    public double getPrjX(double lambda, double phi) throws InvalidInputException{
       double phi_1 = phi*PI/180;
@@ -42,6 +42,22 @@ public class Sinusoidal extends ProjectionAdapter{
    public String getName(){
      return "Sinusoidal";
    }
+
+   public boolean isReversible(){
+      return true;
+   }
+
+   public double getOrigX(double x, double y){
+      x = x*PI/180;
+      y = y*PI/180;
+      double x_t = Lambda_0 + x / Math.cos(y);
+      return 180*x_t/PI;
+   }
+
+   public double getOrigY(double x, double y){
+      return y;
+   }
+
 
 
    private double Lambda_0 = 0;
