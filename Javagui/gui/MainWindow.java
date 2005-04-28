@@ -40,8 +40,13 @@ public final int MAX_FONTSIZE = 24;
 
 // shows additional informations if an error is occured
 private boolean DEBUG_MODE = true;
-// the name of the currently opened database
+/*
+The version-line of the history 
 
+This line is used as the first line in a hisrory file 
+starting with version 2.0. 
+*/
+private final String HIST_VERSION20_LINE = "# VER 2.0";
 
 private JPanel PanelTop;        // change to the desired components
 private static CommandPanel ComPanel;
@@ -1775,7 +1780,7 @@ public void loadHistory(boolean replace){
 
 
 /** loads the history from the specified file,
-  * if the replace flag is true, tho current history is
+  * if the replace flag is true, the current history is
   * replaced by the lines from the file, otherwise the
   * file-content is appended to the current history
   * if showMessage is false, no error messages are printed out,
@@ -1788,10 +1793,43 @@ private void loadHistory(File F,boolean replace,boolean showMessage){
       try{
         BR = new BufferedReader(new FileReader(F));
         String Line = BR.readLine();
-        while(Line!=null){
-           TMP.add(Line);
-           Line = BR.readLine();
-        }
+        if(!HIST_VERSION20_LINE.equals(Line)){
+            // import version 1.0 style history
+            while(Line!=null){
+               TMP.add(Line);
+               Line = BR.readLine();
+            }
+        }else if(Line!=null){ // import version 2.0 history supporting multiline-inputs
+          String CurrentCommand=null;
+          Line = BR.readLine();
+          while(Line!=null){
+            if(Line.startsWith("#")){ // end of command found
+               if(CurrentCommand!=null){
+                 CurrentCommand=CurrentCommand.trim();
+                 if(!CurrentCommand.equals("")){
+                     TMP.add(CurrentCommand);
+                 }
+                 CurrentCommand=null;
+               }
+            }else{
+               // remove space automatically added while storing
+               // the test of a whitespace is maked for "hand-tuned" history files
+               if(Line.startsWith(" ")){
+                  if(CurrentCommand==null)
+                     CurrentCommand = Line.substring(1);
+                  else
+                     CurrentCommand += "\n" + Line.substring(1);
+               }
+            }
+            Line = BR.readLine();
+          }
+          // insert the last command if available
+          if(CurrentCommand!=null){
+             CurrentCommand = CurrentCommand.trim();
+             if(!CurrentCommand.equals(""))
+                TMP.add(CurrentCommand);
+          }
+        } // end loading of version 2.0
       } catch(Exception e){
         if(showMessage){
 	   ComPanel.appendText("load history failed \n");
@@ -1890,8 +1928,15 @@ private void saveHistory(File F,boolean showMessage,int length){
        try{
           FW = new FileWriter(F);
           int start = length<0? 0 : Math.max(ComPanel.getHistorySize()-length,0);
-	  for(int i=start;i<ComPanel.getHistorySize();i++)
-              FW.write(ComPanel.getHistoryEntryAt(i)+"\n");
+          FW.write(HIST_VERSION20_LINE+"\n");
+	  for(int i=start;i<ComPanel.getHistorySize();i++){
+              MyStringTokenizer ST = new MyStringTokenizer(ComPanel.getHistoryEntryAt(i),'\n');
+              while(ST.hasMoreTokens()){
+                  FW.write(" "+ST.nextToken()+"\n");
+              }
+              // write command delimiter
+              FW.write("#\n");
+          }
        }
        catch(Exception e){
          if(showMessage){

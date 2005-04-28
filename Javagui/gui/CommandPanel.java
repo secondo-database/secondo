@@ -56,8 +56,7 @@ public class CommandPanel extends JScrollPane {
   private String OpenedDatabase = "";
   private OptimizerInterface OptInt = new OptimizerInterface();
   private OptimizerSettingsDialog OptSet = new OptimizerSettingsDialog(null);
-
-
+  private Object SyncObj = new Object();
 
   /**
    * The constructor sets up the internal textarea.
@@ -177,11 +176,13 @@ public class CommandPanel extends JScrollPane {
    * @see <a href="CommandPanelsrc.html#showPrompt">Source</a>
    */
   public void showPrompt () {
-    if(aktPos!=SystemArea.getText().length()){ // no prompt in the moment
+    //if(aktPos!=SystemArea.getText().length()){ // no prompt in the moment
        appendText("\nSec>");
        aktPos = SystemArea.getText().length();
-       SystemArea.setCaretPosition(aktPos);
-    }
+       synchronized(SyncObj){
+          SystemArea.setCaretPosition(aktPos);
+       }
+   // }
   }
 
 
@@ -626,7 +627,7 @@ public class CommandPanel extends JScrollPane {
    * @param command The user command
    */
   public boolean execUserCommand (String command) {
-    command = command.trim();
+    command = command.replaceAll("\n"," ").trim();
     if (command.equals("")){
        showPrompt();
        return true;
@@ -957,7 +958,14 @@ public class CommandPanel extends JScrollPane {
 
   public void addToHistory(String S){
     if(S!=null){
-       History.add(S);
+       boolean store = true;
+       if(History.size()>0){
+          String last = (String) History.get(History.size()-1);
+          store = !last.equals(S);
+       }
+
+       if(store)
+          History.add(S);
        ReturnKeyListener.HistoryPos=History.size();
     }
   }
@@ -1023,15 +1031,22 @@ public class CommandPanel extends JScrollPane {
       String com = "";
       int keyCode = e.getKeyCode();
       int mod = e.getModifiersEx();
-      if (keyCode == KeyEvent.VK_ENTER) {
+      if (keyCode == KeyEvent.VK_ENTER ) {
+        if((mod&e.SHIFT_DOWN_MASK)!=0){
+           appendText("\n");
+           return;
+        }
         try {
           com = SystemArea.getText(aktPos, SystemArea.getText().length() -
               aktPos);
+          if(com.trim().length()>0){
+             History.add(com);
+             HistoryPos=History.size();
+          }
+          execUserCommand(com);
+          
         } catch (Exception ex) {}
-        History.add(com);
-        HistoryPos=History.size();
-        execUserCommand(com);
-	  }
+       }
 
 
       Caret C = SystemArea.getCaret();
@@ -1078,13 +1093,24 @@ public class CommandPanel extends JScrollPane {
       if((mod&e.SHIFT_DOWN_MASK)!=0)
          return;
       if (qrs==0) return;
-	if ((keyCode==KeyEvent.VK_DOWN) &&(HistoryPos <qrs)) HistoryPos++;
-	else if ((keyCode==KeyEvent.VK_UP) &&(HistoryPos >0))	HistoryPos--;
-	else return;
-	SystemArea.select(aktPos,SystemArea.getText().length());
-	if (HistoryPos==qrs)SystemArea.replaceSelection("");
-	else SystemArea.replaceSelection((String)History.elementAt(HistoryPos));
+      if ((keyCode==KeyEvent.VK_DOWN) &&(HistoryPos <qrs)) HistoryPos++;
+      else if ((keyCode==KeyEvent.VK_UP) &&(HistoryPos >0))	HistoryPos--;
+      else return;
 
+      SystemArea.select(aktPos,SystemArea.getText().length());
+      if (HistoryPos==qrs){
+          SystemArea.replaceSelection("");
+      }
+      else{
+        synchronized(SyncObj){
+         SystemArea.replaceSelection((String)History.elementAt(HistoryPos));
+        }
+        synchronized(SyncObj){ 
+          int length = SystemArea.getDocument().getLength();
+          SystemArea.setCaretPosition(length);
+        }
+      }
+      e.setKeyCode(0);
     }
     /*	public void keyReleased(KeyEvent e){
      if (e.getKeyCode()==KeyEvent.VK_ENTER){
@@ -1101,19 +1127,21 @@ public class CommandPanel extends JScrollPane {
      * @see <a href="CommandPanelsrc.html#caretupdate">Source</a>
      */
     public void caretUpdate (CaretEvent e) {
-      //Get the location in the text.
-      int dot = e.getDot();
-      int mark = e.getMark();
-      int CPos = Math.min(Math.min(SystemArea.getCaretPosition(),dot),mark);
-      if (dot == mark) {        // no selection
-        if (dot < aktPos)
-          SystemArea.setCaretPosition(aktPos);
+      synchronized(SyncObj){
+	      //Get the location in the text.
+	      int dot = e.getDot();
+	      int mark = e.getMark();
+	      int CPos = Math.min(Math.min(SystemArea.getCaretPosition(),dot),mark);
+	      if (dot == mark) {        // no selection
+		if (dot < aktPos)
+		  SystemArea.setCaretPosition(aktPos);
+	      }
+	      else if (mark < aktPos) {
+		appendText(SystemArea.getSelectedText());
+		SystemArea.setCaretPosition(SystemArea.getText().length());
+	      }
+	    }
       }
-      else if (mark < aktPos) {
-        appendText(SystemArea.getSelectedText());
-        SystemArea.setCaretPosition(SystemArea.getText().length());
-      }
-    }
   }
 
   class Interval{
