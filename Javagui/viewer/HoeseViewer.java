@@ -106,6 +106,11 @@ public class HoeseViewer extends SecondoViewer {
   private final int NOT_ERROR_CODE = ServerErrorCodes.NOT_ERROR_CODE;
 
 
+   /** The maximum length of a number for the mousekoordlabel */
+   private static final int MAX_COORD_LENGTH = 12;
+   /** Ensure that the next constant conatains at least MAX_COORD_LENGTH whitespaces*/
+   private static final String COORD_EXT="             ";
+
   /** The main configuration parameter hash-table */
   public static Properties configuration;
 
@@ -380,6 +385,8 @@ public class HoeseViewer extends SecondoViewer {
     allProjection.scale(ZoomFactor, ZoomFactor);
     GraphDisplay = new GraphWindow(this);
     GraphDisplay.setOpaque(true); // needed for background-color
+    MouseKoordLabel.setOpaque(true);
+    MouseKoordLabel.setHorizontalAlignment(SwingConstants.RIGHT);
     GraphDisplay.addMouseMotionListener(new MouseMotionListener() {
       public void mouseMoved (MouseEvent e) {
         //Koordinaten in Weltkoordinaten umwandeln
@@ -387,24 +394,25 @@ public class HoeseViewer extends SecondoViewer {
         try {
           p = (Point2D.Double)allProjection.inverseTransform(e.getPoint(),p);
         } catch (Exception ex) {}
-        
+        // compute the inverse projection if possible 
         if(!ProjectionManager.isReversible()){
-           MouseKoordLabel.setText("P"+Double.toString(p.getX()).concat("       ").substring(0,
-            6) + "/P" + Double.toString(p.getY()).concat("       ").substring(0,
-            6));
+           MouseKoordLabel.setBackground(Color.PINK);
+           MouseKoordLabel.setText(Double.toString(p.getX()) + " / " + 
+                                   Double.toString(p.getY()).concat(COORD_EXT).substring(0,
+                                   MAX_COORD_LENGTH));
         } else{
-          
+           MouseKoordLabel.setBackground(getBackground());
            double px = p.getX();
            double py = p.getY();
            try{
                double x = ProjectionManager.getOrigX(px,py);
                double y = ProjectionManager.getOrigY(px,py);
-               MouseKoordLabel.setText( (""+x).concat("       ").substring(0,7) +
-                                         "/"+(""+y).concat("       ").substring(0,7));    
+               MouseKoordLabel.setText( (""+x)+
+                                         " / "+(""+y).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));    
           }catch(Exception e2){
-              showMessage("Error in computing the reverse projection");
-               MouseKoordLabel.setText( ("P"+px).concat("       ").substring(0,6) +
-                                         "/P"+(""+py).concat("       ").substring(0,6));    
+               MouseKoordLabel.setBackground(Color.RED);
+               MouseKoordLabel.setText( (""+px) + " / "+ 
+                                         (""+py).concat(COORD_EXT).substring(0,MAX_COORD_LENGTH));    
  
           }
         }
