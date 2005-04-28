@@ -3,9 +3,8 @@
 %
 % Some TPC-H queries in Secondo SQL syntax
 
-tpc10 :-
-  sql(
-select
+
+tpc(10, select
       [
 	c_custkey,
 	c_name,
@@ -42,11 +41,11 @@ groupby
 	c_address,
 	c_comment
        ]
-orderby [ revenue desc ], 'head[20] consume').
+orderby [ revenue desc]
+first 20 
+).
 
-tpc5 :-
-   sql
-select
+tpc(5, select
        [
 	n_name,
 	sum(l_extendedprice * (1 - l_discount)) as revenue
@@ -76,12 +75,11 @@ where
 % which causes an  in the groupby typemapping. Maybe the list structure is not
 % analyzed carefully.
 groupby [ n_name ]
-orderby [ revenue desc ].
+orderby [ revenue desc ]
+).
 
 
-tpc3 :- 
-   sql 
-select
+tpc(3, select
 	[ 
           l_orderkey,
           sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -111,13 +109,12 @@ orderby
           revenue desc,
 	  o_orderdate asc 
         ]
-first 10.
+first 10
+).
 
 %select count(*) from lineitem.
 
-tpc1 :- 
-   sql 
-select
+tpc(1, select
 	[ 
           count(*) as count_order,
           l_returnflag,
@@ -142,6 +139,10 @@ orderby
 	[ 
           l_returnflag asc,
 	  l_linestatus asc 
-        ].
+        ]
+).
 
-
+tpc1 :- tpc(1, X), sql X.
+tpc3 :- tpc(1, X), sql X.
+tpc5 :- tpc(1, X), sql X.
+tpc10 :- tpc(1, X), sql X.
