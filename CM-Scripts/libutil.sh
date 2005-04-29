@@ -86,12 +86,13 @@ function sendMail() {
     attachment="-a ${4}"
   fi
 
-  if [ sendMail_Deliver == "true" ]; then
+  if [ $sendMail_Deliver == "true" ]; then
   mail -s"$1" ${attachment} "$2" <<-EOFM
 $3
 EOFM
 
   else
+    printf "%s\n" "Test Mode: Not sending mails !!!"
     printf "%s\n" "Mail Command:"
     printf "%s\n" "mail -s $1 $attchament $2"
 

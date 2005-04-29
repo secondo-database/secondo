@@ -25,6 +25,7 @@ coDir=tmp_secondo_${date_ymd}_${date_HMS}
 cvsDir=/${CVSROOT#*/}
 coTag="HEAD"
 coModule="secondo"
+sendMail_deliver="true"
 
 declare -i numOfArgs=$#
 let numOfArgs++
