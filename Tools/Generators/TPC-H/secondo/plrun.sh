@@ -5,13 +5,23 @@
 # Open a database and run a query using SecondoPL.
 
 pl="SecondoPL -L4m"
-# run query 
+TPC_QUERY_DIR=${SECONDO_BUILD_DIR}/Tools/Generators/TPC-H/queries
 
+# run query 
 cd ${SECONDO_BUILD_DIR}/Optimizer
+
+if [ "$1" != "" ]; then
+
 time $pl <<< "[autotest].
-['${PWD}/tpcqueries.pl'].
-open 'database $1'.
-$2"
+['${TPC_QUERY_DIR}/tpcqueries'].
+$1"
+
+else
+
+$pl
+
+fi
+
 
 #return exit code of pl
 exit $? 
