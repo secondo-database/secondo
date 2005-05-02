@@ -1,10 +1,11 @@
 %
 % November 2004, M. Spiekermann
 %
-% Some TPC-H queries in Secondo SQL syntax
+% Some TPC-H queries in Secondo SQL syntax notated
+% as prolog facts.
 
 
-tpc(10, select
+tpcQuery(10, select
       [
 	c_custkey,
 	c_name,
@@ -45,14 +46,14 @@ orderby [ revenue desc]
 first 20 
 ).
 
-tpc(5, select
+tpcQuery(5, select
        [
 	n_name,
 	sum(l_extendedprice * (1 - l_discount)) as revenue
        ]
 from
        [
-	customer,
+        customer,
 	orders,
 	lineitem,
 	supplier,
@@ -68,18 +69,15 @@ where
 	s_nationkey = n_nationkey,
 	n_regionkey = r_regionkey,
         r_name = "ASIA", 
-	not(o_orderdate < cmpdate5_1), 
+	not(o_orderdate < cmpdate5_1),
 	o_orderdate < cmpdate5_2 
        ]
-% groupby [ n_name asc ], The optimizer prints out an error, but computes a plan
-% which causes an  in the groupby typemapping. Maybe the list structure is not
-% analyzed carefully.
 groupby [ n_name ]
 orderby [ revenue desc ]
 ).
 
 
-tpc(3, select
+tpcQuery(3, select
 	[ 
           l_orderkey,
           sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -112,9 +110,7 @@ orderby
 first 10
 ).
 
-%select count(*) from lineitem.
-
-tpc(1, select
+tpcQuery(1, select
 	[ 
           count(*) as count_order,
           l_returnflag,
@@ -142,7 +138,5 @@ orderby
         ]
 ).
 
-tpc1 :- tpc(1, X), sql X.
-tpc3 :- tpc(1, X), sql X.
-tpc5 :- tpc(1, X), sql X.
-tpc10 :- tpc(1, X), sql X.
+tpc(No) :- tpcQuery(No, X), sql(X).
+tpcAfterLookup(No) :- tpcQuery(No, X), callLookup(X,Y), !, write(Y).
