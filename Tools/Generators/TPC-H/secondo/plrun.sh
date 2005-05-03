@@ -4,7 +4,7 @@
 #
 # Open a database and run a query using SecondoPL.
 
-pl="SecondoPL -L4m"
+pl="SecondoPL -G6m -L4m"
 TPC_QUERY_DIR=${SECONDO_BUILD_DIR}/Tools/Generators/TPC-H/queries
 
 # run query 

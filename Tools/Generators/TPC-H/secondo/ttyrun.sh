@@ -7,6 +7,9 @@
 stty="SecondoTTYBDB"
 # run query 
 
-time $stty <<< "open database $1;
-$2;
-q;"
+cd ${SECONDO_BUILD_DIR}/bin
+time $stty <<< "$1
+q;
+"
+
+exit $?
