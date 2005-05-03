@@ -236,7 +236,8 @@ for nodes.
 
 For a given list of relations ~Rels~ and predicates ~Preds~, ~Nodes~ and
 ~Edges~ are the predicate order graph where edges are annotated with selection
-and join operations applied to the correct arguments.
+and join operations applied to the correct arguments. Moreover, for each edge possible
+translations into terms of the executable algebra are computed by the rule ~createPlanEdges~.
 
 Example call:
 
@@ -256,8 +257,18 @@ pog(Rels, Preds, Nodes, Edges) :-
   deletePlanEdges, deleteVariables, createPlanEdges,
   HighNode is 2**M -1,
   retract(highNode(_)), assert(highNode(HighNode)),
+  % uncomment next line for debugging
+  % showpog(Rels, Preds),
   deleteSizes,
   deleteCostEdges.
+
+showpog(Rels, Preds) :-
+  nl, write('Rels: '), write(Rels),
+  nl, write('Preds: '), write(Preds), 
+  nl, nl, write('Nodes: '), nl, writeNodes,
+  nl, nl, write('Edges: '), nl, writeEdges,
+  nl, nl, write('Plan Edges: '), nl, writePlanEdges.
+
 /*
 
 3.2 partition
@@ -1189,9 +1200,8 @@ used unchanged. If it is of the form arg(N), then it is a base relation; a
 res(N) => res(N).
 
 arg(N) => project(feed(rel(Name, *, Case)), AttrNames) :-
-  argument(N, rel(Name, *, Case)), 
-  usedAttrList(rel(Name, *, Case), AttrNames),
-  !.
+  argument(N, rel(Name, *, Case)), !, 
+  usedAttrList(rel(Name, *, Case), AttrNames).
 
 arg(N) => rename(project(feed(rel(Name, Var, Case)), AttrNames), Var) :-
   argument(N, rel(Name, Var, Case)),
@@ -1458,16 +1468,19 @@ deletePlanEdge :-
 
 deletePlanEdges :- not(deletePlanEdge).
 
-writePlanEdge :-
-  planEdge(Source, Target, Plan, Result),
+planEdgeInfo(Source, Target, Plan, Result) :-
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
   write('Plan: '), wp(Plan), nl,
   % write(Plan), nl,
-  write('Result: '), write(Result), nl, nl,
+  write('Result: '), write(Result), nl, nl.
+
+writePlanEdges2:-
+  planEdge(Source, Target, Plan, Result), 
+  planEdgeInfo(Source, Target, Plan, Result), 
   fail.
 
-writePlanEdges :- not(writePlanEdge).
+writePlanEdges :- not(writePlanEdges2).
 
 
 
@@ -1774,18 +1787,26 @@ deleteCostEdge :-
 
 deleteCostEdges :- not(deleteCostEdge).
 
-writeCostEdge :-
+
+costEdgeInfo(Edge) :-
+  Edge = costEdge(Source, Target, Plan, Result, Size, Cost),
+  costEdgeInfo(Source, Target, Plan, Result, Size, Cost).
+
+
+costEdgeInfo(Source, Target, Plan, Result, Size, Cost) :-
+  nl, write('Source: '), write(Source),
+  nl, write('Target: '), write(Target),
+  nl, write('Plan  : '), wp(Plan),
+  nl, write('Result: '), write(Result),
+  nl, write('Size  : '), write(Size),
+  nl, write('Cost  : '), write(Cost), nl. 
+
+writeCostEdges2 :-
   costEdge(Source, Target, Plan, Result, Size, Cost),
-  write('Source: '), write(Source), nl,
-  write('Target: '), write(Target), nl,
-  write('Plan: '), wp(Plan), nl,
-  write('Result: '), write(Result), nl, 
-  write('Size: '), write(Size), nl, 
-  write('Cost: '), write(Cost), nl, 
-  nl,
+  costEdgeInfo(Source, Target, Plan, Result, Size, Cost), nl,
   fail.
 
-writeCostEdges :- not(writeCostEdge).
+writeCostEdges :- not(writeCostEdges2).
 
 /*
 ----    assignCosts
@@ -1937,14 +1958,41 @@ the center, updating their distance if they are already present, to obtain
 ~BoundaryNew~. 
 
 */   
-putsuccessors(Boundary, Node, BoundaryNew) :-  
-  findall(Succ, successor(Node, Succ), Successors),
+putsuccessors(Boundary, Node, BoundaryNew) :-
 
-        % write('successors of '), write(Node), nl,
-        % writeList(Successors), nl, nl,
+  % comment out next line for debugging infos
+  % succInfo(Node),
 
+  findall(Succ, successor(Node, Succ), Successors), !,
   putsucc1(Boundary, Successors, BoundaryNew). 
- 
+
+
+/* 
+Some predicates printing debugging output.
+
+*/  
+
+nodeInfo(Node) :-
+  node(Nr, D, L) = Node,
+  nl, write('Node      : '), write(Nr), 
+  nl, write('Distance  : '), write(D),
+  nl, write('Cost edges: '), nl, 
+  showCostEdges(L).
+
+showCostEdges([]) :- nl.
+showCostEdges([H|T]) :- 
+  costEdgeInfo(H), showCostEdges(T).
+
+showSuccList(Node) :- successor(Node, Succ), nodeInfo(Succ), fail.
+
+succInfo(Node) :-
+  nl, write('===> computing successors of'), nl,
+  nodeInfo(Node),
+  nl, nl, write('List of Successors:'), nl,
+  not(showSuccList(Node)), nl, nl.
+
+
+
 /* 
 ----    putsucc1(Boundary, Successors, BoundaryNew) :- 
 ----
@@ -2092,8 +2140,9 @@ highestNode(Path, N) :-
 
 bestPlan :-
   assignCosts,
-  highNode(N),
+  highNode(N), 
   dijkstra(0, N, Path, Cost),
+%   writePath(Path),
   plan(Path, Plan),
   write('The best plan is:'), nl, nl,
   wp(Plan),
@@ -2101,9 +2150,12 @@ bestPlan :-
   write('The cost is: '), write(Cost), nl.
 
 bestPlan(Plan, Cost) :-
+  nl, write('Computing best Plan ...'), nl,
   assignCosts,
-  highNode(N),
+%   writeCostEdges,
+  highNode(N), 
   dijkstra(0, N, Path, Cost),
+%   writePath(Path),
   plan(Path, Plan).
 
 /*
@@ -2926,7 +2978,8 @@ to find all goal for query ~usedAttr(Rel,X)~.
 
 usedAttrList(Rel, ResList) :- 
   setof(X, usedAttr(Rel, X), R1),
-  attrnames(R1, ResList).
+  %nl, write('AttrList: '), write(R1), nl,
+  attrnames(R1, ResList). 
 
 
 
