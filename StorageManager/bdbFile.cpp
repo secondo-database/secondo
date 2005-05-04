@@ -1330,9 +1330,9 @@ int PrefetchingIteratorImpl::ErrorCode()
   return errorCode;
 }
 
-Dbc *PrefetchingIteratorImpl::GetCursor()
+int PrefetchingIteratorImpl::Delete()
 {
-  return dbc;
+  return dbc->del( 0 );
 }
 
 /* --- bdbFile.cpp --- */

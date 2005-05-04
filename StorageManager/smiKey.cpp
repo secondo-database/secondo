@@ -90,7 +90,7 @@ SmiKey::operator=( const SmiKey& other )
 }
 
 const bool
-SmiKey::operator>( const SmiKey& other )
+SmiKey::operator>( const SmiKey& other ) const
 {
   assert( keyType == other.GetType() );
   bool ok;

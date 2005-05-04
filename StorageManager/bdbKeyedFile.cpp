@@ -35,6 +35,7 @@ using namespace std;
 #include <string>
 #include <algorithm>
 #include <cctype>
+#include <cassert>
 
 #include <db_cxx.h>
 #include "SecondoSMI.h"
@@ -455,35 +456,49 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
 }
  
 bool
-SmiKeyedFile::DeleteRecord( PrefetchingIterator& iter )
+SmiKeyedFile::DeleteRecord( const SmiKey& key, const bool all, const SmiRecordId recordId )
 {
-  int rc = ((PrefetchingIteratorImpl&)iter).GetCursor()->del( 0 );
-  if( rc == 0 )
-    SmiEnvironment::SetError( E_SMI_OK );
-  else
-    SmiEnvironment::SetError( E_SMI_RECORD_DELETE, rc );
-
-  return rc == 0;
-}
- 
-bool
-SmiKeyedFile::DeleteRecord( const SmiKey& key )
-{
-  int rc = 0;
-  Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
-  DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
-
-  rc = impl->bdbFile->del( tid, &bdbKey, 0 );
-  if ( rc == 0 )
+  if( all )
   {
-    SmiEnvironment::SetError( E_SMI_OK );
+    int rc = 0;
+
+    Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
+    DbTxn* tid = !impl->isTemporaryFile ? SmiEnvironment::instance.impl->usrTxn : 0;
+
+    rc = impl->bdbFile->del( tid, &bdbKey, 0 );
+    if ( rc == 0 )
+    {
+      SmiEnvironment::SetError( E_SMI_OK );
+    }
+    else
+    {
+      SmiEnvironment::SetError( E_SMI_RECORD_DELETE, rc );
+    }
+
+    return (rc == 0);
   }
   else
   {
-    SmiEnvironment::SetError( E_SMI_RECORD_DELETE, rc );
-  }
+    SmiKeyedFileIterator iter;
+    if( SelectRange( key, key, iter, SmiFile::ReadOnly, true ) )
+    {
+      SmiRecord record;
+      while( iter.Next( record ) )
+      {
+        SmiRecordId id;
+        SmiSize bytesRead;
+        SmiRecordId ids[2];
+        SmiSize idSize = sizeof(SmiRecordId);
+        bytesRead = record.Read(ids, 2 * idSize);
+        id = ids[0];
+        assert( bytesRead == idSize );
 
-  return (rc == 0);
+        if( id == recordId )
+          return iter.DeleteCurrent();
+      }
+    }
+    return false;
+  }
 }
 
 /* --- Implementation of class  --- */

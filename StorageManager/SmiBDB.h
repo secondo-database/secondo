@@ -532,7 +532,7 @@ public:
   SmiSize ReadCurrentData(void* userBuffer, SmiSize nBytes, SmiSize offset = 0);
   SmiSize ReadCurrentKey(void* userBuffer, SmiSize nBytes, SmiSize offset = 0);
   void ReadCurrentRecordNumber(SmiRecordId& recordNumber);
-  Dbc *GetCursor(); 
+  int Delete(); 
   int ErrorCode();
 
   static const size_t DEFAULT_BUFFER_LENGTH = 64 * 1024;
