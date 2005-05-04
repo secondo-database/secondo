@@ -67,7 +67,7 @@ class Node{
 
    /** reads this (sub) tree from a nested list.
      * The return value descibes the sucess.
-     * If the reading is unsuccessfully, the node will be
+     * If the reading is unsuccessful, the node will be
      * a single leaf labeled with "Error".
      */
    public boolean readFrom(ListExpr LE){
@@ -110,6 +110,7 @@ class Node{
        }
        if(Sons.atomType()!=LE.NO_ATOM){ // a single leaf
            sons = new Node[1];
+           sons[0] = new Node("",null); 
            sons[0].readFrom(Sons);
        }else{ // a list of sons
            if(Sons.isEmpty()){ // non sons in list
