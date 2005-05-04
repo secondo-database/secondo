@@ -343,7 +343,7 @@ Destroys a key.
 
 */
   SmiKey& operator=( const SmiKey& other );
-  const bool operator>( const SmiKey& other );
+  const bool operator>( const SmiKey& other ) const;
   const KeyDataType GetType() const;
 /*
 Returns the type of the key.
@@ -963,7 +963,7 @@ initialized by this method.
 */
   bool SelectAll( SmiRecordFileIterator& iterator,
                   const SmiFile::AccessType accessType =
-                        SmiFile::ReadOnly );
+                        SmiFile::ReadOnly);
 
 /*
 Initializes an iterator for sequentially accessing all records of the ~SmiFile~.
@@ -1166,18 +1166,11 @@ An ~SmiRecord~ handle is initialized on return to write the record.
 The function returns "true"[4] when the record was created successfully.
 
 */
-  bool DeleteRecord( const SmiKey& key );
+  bool DeleteRecord( const SmiKey& key, const bool all = true, const SmiRecordId = 0 );
 /*
 Deletes all records having the given key.
 
 The function returns "true"[4] when the records were successfully deleted.
-
-*/
-  bool DeleteRecord( PrefetchingIterator& iter );
-/*
-Deletes the record pointed to by the iterator ~iter~.
-
-The function returns "true"[4] when the record is successfully deleted.
 
 */
  protected:
@@ -1296,6 +1289,7 @@ A handle to the current record and the record number of the
 current record are returned.
 
 */
+
  protected:
  private:
   friend class SmiRecordFile;
@@ -1338,6 +1332,7 @@ function, otherwise unmapping of the key does not take place. That is ~key~ shou
 be created as "SmiKey key( keyMappingFunction );"[4].
 
 */
+ 
  protected:
  private:
   SmiKey firstKey;       // Start of selected key range
