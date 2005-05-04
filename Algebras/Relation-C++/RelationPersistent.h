@@ -91,6 +91,9 @@ The second constructor. It creates a fresh tuple from a ~typeInfo~.
 */
   ~PrivateTuple()
   {
+    for( int i = 0; i < tupleType.GetNoAttributes(); i++ )
+      attributes[i]->Finalize();
+
     if( state == Fresh || 
         state == Solid && memoryTuple == 0 )
       // This was a fresh tuple saved. In this way, the attributes were

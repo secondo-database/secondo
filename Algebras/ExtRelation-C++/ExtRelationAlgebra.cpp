@@ -4673,14 +4673,20 @@ Result type of symmproduct operation.
 */
 ListExpr SymmProductTypeMap(ListExpr args)
 {
-  ListExpr first, second, list, list1, list2;
+  ListExpr first, second, third,
+           list, list1, list2;
   string argstr, argstr2;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator symmproduct expects a list of length two.");
+cout << "---" << endl;
+nl->WriteListExpr(args);
+cout << endl << "---" << endl;
 
-  first = nl->First(args); 
+  CHECK_COND(nl->ListLength(args) == 3,
+    "Operator symmproduct expects a list of length three.");
+
+  first = nl->First(args);
   second = nl->Second(args);
+  third = nl->Third(args);
 
   nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2 &&
@@ -4702,6 +4708,15 @@ ListExpr SymmProductTypeMap(ListExpr args)
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator symmproduct gets a second list with structure '" + argstr + "'.");
 
+  nl->WriteToString(argstr, third);
+  CHECK_COND(nl->ListLength(third) == 4 &&
+             TypeOfRelAlgSymbol(nl->First(third)) == ccmap &&
+             TypeOfRelAlgSymbol(nl->Fourth(third)) == ccbool,
+    "Operator symmproduct expects a third list with structure "
+    "(map (tuple ((a11 t11)...(a1n t1n)))\n"
+    "     (tuple ((a21 t21)...(a2n t2n))) bool)\n"
+    "Operator symmproduct gets a third list with structure '" + argstr + "'.");
+
   list2 = nl->Second(nl->Second(second));
   list = ConcatLists(list1, list2);
 
@@ -4714,7 +4729,7 @@ ListExpr SymmProductTypeMap(ListExpr args)
               "and the second is '" + argstr2 + "'\n" );
 
   return nl->TwoElemList(nl->SymbolAtom("stream"),
-           nl->TwoElemList(nl->SymbolAtom("tuple"), 
+           nl->TwoElemList(nl->SymbolAtom("tuple"),
              list));
 }
 /*
@@ -4769,132 +4784,170 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       pli = (SymmProductLocalInfo*)local.addr;
 
-      if( pli->right )
-        // Get the tuple from the right stream and match it with the left stored 
-        // buffer
+      while( 1 )
+        // This loop will end in some of the returns.
       {
-        if( pli->currTuple == 0 )
+        if( pli->right )
+          // Get the tuple from the right stream and match it with the left stored
+          // buffer
         {
-          qp->Request(args[0].addr, r);
-          if( qp->Received( args[0].addr ) )
+          if( pli->currTuple == 0 )
           {
-            pli->currTuple = (Tuple*)r.addr;
-            assert( pli->leftRel != 0 && pli->leftIter == 0 );
-            pli->leftIter = pli->leftRel->MakeScan();
-          }
-          else
-          {
-            pli->rightFinished = true;
-            if( pli->leftFinished )
-              return CANCEL;
-            else 
+            qp->Request(args[0].addr, r);
+            if( qp->Received( args[0].addr ) )
             {
-              pli->right = false;
-              return SymmProduct( args, result, message, local, s );
+              pli->currTuple = (Tuple*)r.addr;
+              assert( pli->leftRel != 0 && pli->leftIter == 0 );
+              pli->leftIter = pli->leftRel->MakeScan();
             }
-          }
-        }        
-        
-        // Now we have a tuple from the right stream in currTuple and an open
-        // iterator on the left stored buffer.
-        assert( pli->currTuple != 0 && pli->leftIter != 0 );
-        Tuple *leftTuple = pli->leftIter->GetNextTuple();
-        
-        if( leftTuple == 0 )
-          // There are no more tuples in the left iterator. We then store the
-          // current tuple in the right buffer and close the left iterator.
-        {
-          if( !pli->leftFinished )
-            // We only need to keep track of the right tuples if the left stream
-            // is not finished.
-          {
-            pli->rightRel->AppendTuple( pli->currTuple );
-          }
-
-          pli->currTuple->DeleteIfAllowed();
-          pli->currTuple = 0;
-
-          delete pli->leftIter;
-          pli->leftIter = 0;
-
-          pli->right = false;
-          return SymmProduct( args, result, message, local, s );
-        }
-        else
-          // We match the tuples.
-        {
-          Tuple *resultTuple = new Tuple( *(pli->resultTupleType), true );
-          assert( resultTuple->IsFree() );
-
-          Concat( pli->currTuple, leftTuple, resultTuple );
-          leftTuple->DeleteIfAllowed();
-          leftTuple = 0;
-          result = SetWord( resultTuple );
-          return YIELD;
-        }
-      }
-      else
-        // Get the tuple from the left stream and match it with the right stored
-        // buffer
-      {
-        if( pli->currTuple == 0 )
-        {
-          qp->Request(args[1].addr, l);
-          if( qp->Received( args[1].addr ) )
-          {
-            pli->currTuple = (Tuple*)l.addr;
-            assert( pli->rightRel != 0 && pli->rightIter == 0 );
-            pli->rightIter = pli->rightRel->MakeScan();
-          }
-          else
-          {
-            pli->leftFinished = true;
-            if( pli->rightFinished )
-              return CANCEL;
             else
             {
-              pli->right = true;
-              return SymmProduct( args, result, message, local, s );
+              pli->rightFinished = true;
+              if( pli->leftFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = false;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the right stream in currTuple and an open
+          // iterator on the left stored buffer.
+          assert( pli->currTuple != 0 && pli->leftIter != 0 );
+          Tuple *leftTuple = pli->leftIter->GetNextTuple();
+
+          if( leftTuple == 0 )
+            // There are no more tuples in the left iterator. We then store the
+            // current tuple in the right buffer and close the left iterator.
+          {
+            if( !pli->leftFinished )
+              // We only need to keep track of the right tuples if the left stream
+              // is not finished.
+            {
+              pli->rightRel->AppendTuple( pli->currTuple );
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->leftIter;
+            pli->leftIter = 0;
+
+            pli->right = false;
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            (*funArgs)[0] = SetWord( pli->currTuple );
+            (*funArgs)[1] = SetWord( leftTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( *(pli->resultTupleType), true );
+              assert( resultTuple->IsFree() );
+
+              Concat( pli->currTuple, leftTuple, resultTuple );
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              result = SetWord( resultTuple );
+              return YIELD;
+            }
+            else
+            {
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              continue; // Go back to the loop
             }
           }
         }
-
-        // Now we have a tuple from the left stream in currTuple and an open
-        // iterator on the right stored buffer.
-        assert( pli->currTuple != 0 && pli->rightIter != 0 );
-        Tuple *rightTuple = pli->rightIter->GetNextTuple();
-
-        if( rightTuple == 0 )
-          // There are no more tuples in the right iterator. We then store the
-          // current tuple in the left buffer and close the right iterator.
+        else
+          // Get the tuple from the left stream and match it with the right stored
+          // buffer
         {
-          if( !pli->rightFinished )
-            // We only need to keep track of the left tuples if the right stream
-            // is not finished.
+          if( pli->currTuple == 0 )
           {
-            pli->leftRel->AppendTuple( pli->currTuple );
+            qp->Request(args[1].addr, l);
+            if( qp->Received( args[1].addr ) )
+            {
+              pli->currTuple = (Tuple*)l.addr;
+              assert( pli->rightRel != 0 && pli->rightIter == 0 );
+              pli->rightIter = pli->rightRel->MakeScan();
+            }
+            else
+            {
+              pli->leftFinished = true;
+              if( pli->rightFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = true;
+                continue; // Go back to the loop
+              }
+            }
           }
 
-          pli->currTuple->DeleteIfAllowed();
-          pli->currTuple = 0;
+          // Now we have a tuple from the left stream in currTuple and an open
+          // iterator on the right stored buffer.
+          assert( pli->currTuple != 0 && pli->rightIter != 0 );
+          Tuple *rightTuple = pli->rightIter->GetNextTuple();
 
-          delete pli->rightIter;
-          pli->rightIter = 0;
+          if( rightTuple == 0 )
+            // There are no more tuples in the right iterator. We then store the
+            // current tuple in the left buffer and close the right iterator.
+          {
+            if( !pli->rightFinished )
+              // We only need to keep track of the left tuples if the right stream
+              // is not finished.
+            {
+              pli->leftRel->AppendTuple( pli->currTuple );
+            }
 
-          pli->right = true;
-          return SymmProduct( args, result, message, local, s );
-        }
-        else
-          // We match the tuples.
-        {
-          Tuple *resultTuple = new Tuple( *(pli->resultTupleType), true );
-          assert( resultTuple->IsFree() );
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
 
-          Concat( pli->currTuple, rightTuple, resultTuple );
-          rightTuple->DeleteIfAllowed();
-          rightTuple = 0;
-          result = SetWord( resultTuple );
-          return YIELD;
+            delete pli->rightIter;
+            pli->rightIter = 0;
+
+            pli->right = true;
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            (*funArgs)[0] = SetWord( rightTuple );
+            (*funArgs)[1] = SetWord( pli->currTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( *(pli->resultTupleType), true );
+              assert( resultTuple->IsFree() );
+
+              Concat( rightTuple, pli->currTuple, resultTuple );
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              result = SetWord( resultTuple );
+              return YIELD;
+            }
+            else
+            {
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              continue; // Go back to the loop
+            }
+          }
         }
       }
     }
@@ -4921,6 +4974,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
 /*
 
 5.10.3 Specification of operator ~symmproduct~

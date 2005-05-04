@@ -102,7 +102,8 @@ class TupleElement // renamed, previous name: TupleElem
     virtual FLOB* GetFLOB( const int )
       { assert( false ); }
 
-    virtual void Initialize()   {}
+    virtual void Initialize() {}
+    virtual void Finalize()   {}
 
     virtual ostream& Print( ostream& os )
       { assert( false ); }
