@@ -5,7 +5,8 @@
 # Create databases opt and TPC_H in a temporary
 # directory and run some queries. If the optimizer
 # creates plans and executes them successfully 
-# "everything" might be ok.
+# "everything" might be ok. This is only a simple
+# check but better than nothing.
 #
 
 libFile="libutil.sh"
@@ -60,3 +61,4 @@ if [ $rc -ne 0 ]; then
   exit 2 
 fi
 
+rm -rf $tempDir

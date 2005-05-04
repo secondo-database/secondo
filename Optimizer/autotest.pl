@@ -16,7 +16,6 @@ The test is invoked by the goal ~optimizeTest~. You will need the databases
 optimizeExamples :- optimizeExamples2(_,0).
 
 optimizeExamples2(NumOfErrors, N) :- 
-  secondo('close database'),
   secondo('open database opt'),
   findall(X, sqlExample(_,X), List),
   nl, write('Testing '), write(List), nl,
@@ -25,7 +24,6 @@ optimizeExamples2(NumOfErrors, N) :-
 optimizeTPC :- optimizeTPC(_,0).
 
 optimizeTPC2(NumOfErrors, N) :-
-  secondo('close database'),
   secondo('open database tpc_h'),
   findall(X, tpcQuery(_,X), List),
   nl, write('Testing '), write(List), nl,
