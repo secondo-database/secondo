@@ -46,6 +46,15 @@ do
   fi
 done
 
+
+printf "\n%s\n\n" "Running optimizer test ..."
+cd ${buildDir}/Optimizer
+checkCmd "time TestOptimizer > ${logFile} 2>&1"
+if [ $? -ne 0 ]; then
+  let error++
+fi
+
+
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
 rm -rf $dbDir
