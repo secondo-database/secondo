@@ -272,7 +272,7 @@ SecondoTTY::ProcessCommand()
   }
   else if ( cmdWord == "Q" || cmdWord == "QUIT" )
   {
-    cout << "*** Thank you for using SECONDO!" << endl;
+    cout << "*** Thank you for using SECONDO!" << endl << endl;
     quit = true;
   }
   else if ( cmdWord[0] == '@' )

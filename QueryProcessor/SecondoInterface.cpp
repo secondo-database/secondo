@@ -286,14 +286,13 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 void
 SecondoInterface::Terminate()
 {
+  const string bullet("  - ");
+
   if ( initialized )
   {    
-    if ( derivedObjPtr != 0 ) { // The destructor closes a relation object 
-      delete derivedObjPtr;
-      derivedObjPtr = 0;
-    }    
 
-    cout << "Terminating Secondo system ...";
+    cmsg.info() << "Terminating the secondo interface instance ..." << endl;
+    cmsg.send();
     // --- Abort open transaction, if there is an open transaction
     if ( activeTransaction )
     {
@@ -305,13 +304,16 @@ SecondoInterface::Terminate()
     {
       SecondoSystem::GetInstance()->CloseDatabase();
     }
-    if ( SecondoSystem::ShutDown() )
+    if ( derivedObjPtr != 0 ) { // The destructor closes a relation object 
+      cmsg.info() << bullet << "Closing system tables ..." << endl;
+      cmsg.send();
+      delete derivedObjPtr;
+      derivedObjPtr = 0;
+    }    
+    if ( !SecondoSystem::ShutDown() )
     {
-      cout << "completed." << endl;
-    }
-    else
-    {
-      cout << "failed." << endl;
+      cmsg.error() << bullet << "Error: SecondoSytem::Shutdown() failed." << endl;
+      cmsg.send();
     }
     if ( ss != 0 )
     {
@@ -323,8 +325,9 @@ SecondoInterface::Terminate()
     {
       string errMsg;
       SmiEnvironment::GetLastErrorCode( errMsg );
-      cout << "Error: Shutdown of the storage management interface failed." << endl;
-      cout << "Error: " << errMsg << endl;
+      cmsg.error() << bullet << "Error: SmiEnvironment::ShutDown() failed." << endl;
+      cmsg.error() << bullet << "Error: " << errMsg << endl;
+      cmsg.send();
     }
     initialized = false;
     activeTransaction = false;
@@ -334,8 +337,10 @@ SecondoInterface::Terminate()
   }
   else
   {
-    cout << "Error: Secondo system already terminated." << endl;
+    cmsg.error() << bullet << "Error: Secondo interface already terminated." << endl;
   }
+  cmsg.info() << endl;
+  cmsg.send();
 }
 
 
