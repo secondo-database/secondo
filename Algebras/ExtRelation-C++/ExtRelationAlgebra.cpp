@@ -4677,10 +4677,6 @@ ListExpr SymmProductTypeMap(ListExpr args)
            list, list1, list2;
   string argstr, argstr2;
 
-cout << "---" << endl;
-nl->WriteListExpr(args);
-cout << endl << "---" << endl;
-
   CHECK_COND(nl->ListLength(args) == 3,
     "Operator symmproduct expects a list of length three.");
 
@@ -4954,15 +4950,25 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
     {
       pli = (SymmProductLocalInfo*)local.addr;
-      assert( pli->currTuple == 0 );
-      assert( pli->leftIter == 0 && pli->leftRel != 0 );
-      assert( pli->rightIter == 0 && pli->rightRel != 0 );
 
+      if( pli->currTuple != 0 )
+        pli->currTuple->DeleteIfAllowed();
+
+      delete pli->leftIter;
+      delete pli->rightIter;
       delete pli->resultTupleType;
-      pli->rightRel->Clear();
-      delete pli->rightRel;
-      pli->leftRel->Clear();
-      delete pli->leftRel;
+
+      if( pli->rightRel != 0 )
+      {
+        pli->rightRel->Clear();
+        delete pli->rightRel;
+      }
+  
+      if( pli->leftRel != 0 )
+      {
+        pli->leftRel->Clear();
+        delete pli->leftRel;
+      }
 
       delete pli;
 
@@ -4983,13 +4989,15 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
 const string SymmProductSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                 "\"Example\" ) "
                                 "( <text>((stream (tuple (x1 ... xn))) (stream "
-                                "(tuple (y1 ... ym)))) -> (stream (tuple (x1 "
+                                "(tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) "
+                                "(tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 "
                                 "... xn y1 ... ym)))</text--->"
-                                "<text>_ _ symmproduct</text--->"
+                                "<text>_ _ symmproduct[ fun ]</text--->"
                                 "<text>Computes a Cartesian product stream from "
-                                "its two argument streams.</text--->"
-                                "<text>query ten feed twenty feed symmproduct count"
-                                "</text--->"
+                                "its two argument streams filtering by the third "
+                                "argument.</text--->"
+                                "<text>query ten feed {a} twenty feed {b} "
+                                "symmproduct[.no_a = .no_b] count</text--->"
                                 " ) )";
 
 /*
