@@ -57,6 +57,7 @@ public class CommandPanel extends JScrollPane {
   private OptimizerInterface OptInt = new OptimizerInterface();
   private OptimizerSettingsDialog OptSet = new OptimizerSettingsDialog(null);
   private Object SyncObj = new Object();
+  private boolean ignoreCaretUpdate=false;
 
   /**
    * The constructor sets up the internal textarea.
@@ -1033,7 +1034,19 @@ public class CommandPanel extends JScrollPane {
       int mod = e.getModifiersEx();
       if (keyCode == KeyEvent.VK_ENTER ) {
         if((mod&e.SHIFT_DOWN_MASK)!=0){
-           appendText("\n");
+           // Note: Pressing the return key together with the 
+           // shift key has no affect in the JTextArea. Unfortunately,
+           // the setModifier method is deprecated since java 1.1.4
+           // For this reasong, we have to insert a newline manually at
+           // the plca eunder the cursor
+           String text = SystemArea.getText();
+           int cursor = SystemArea.getCaretPosition();
+           text = text.substring(0,cursor)+"\n"+text.substring(cursor,text.length());
+           ignoreCaretUpdate=true; 
+           SystemArea.setText(text);
+           SystemArea.setCaretPosition(cursor+1);
+           ignoreCaretUpdate=false;
+           e.setKeyCode(0);
            return;
         }
         try {
@@ -1127,6 +1140,8 @@ public class CommandPanel extends JScrollPane {
      * @see <a href="CommandPanelsrc.html#caretupdate">Source</a>
      */
     public void caretUpdate (CaretEvent e) {
+      if(ignoreCaretUpdate)
+          return;
       synchronized(SyncObj){
 	      //Get the location in the text.
 	      int dot = e.getDot();
