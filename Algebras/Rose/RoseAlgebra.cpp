@@ -2408,14 +2408,16 @@ Destructor of CcRegions. This destructor destroys also the
    object inside the JVM. 
 
 */
-CcRegions::~CcRegions() {
-  cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
-  //if (canDelete) {
-  env->DeleteLocalRef(obj);
-  env->DeleteLocalRef(cls);
-  //Destroy();
-  //}
-}
+  /*
+    CcRegions::~CcRegions() {
+    cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+    //if (canDelete) {
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
+    //Destroy();
+    //}
+    }
+  */
 
 /*
   ~Destroy~

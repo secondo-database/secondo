@@ -1635,7 +1635,6 @@ public class SetOps {
 	    actPair = (ElemPair)mse.value;
 	    //muliset handling
 	    for (int msenum = 0; msenum < number; msenum++) {
-		count++;
 		try {
 
 		    //if method has one argument

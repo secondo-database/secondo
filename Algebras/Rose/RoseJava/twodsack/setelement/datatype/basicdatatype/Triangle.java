@@ -140,7 +140,7 @@ public class Triangle extends Element implements Serializable {
 	    }//for i
 	    
 	}//if
-	else throws new NotAValidTriangleException("Error in Triangle.constructor: Cannot construct triangle with these points: "+p1+", "+p2+", "+p3);
+	else throw new NotAValidTriangleException("Error in Triangle.constructor: Cannot construct triangle with these points: "+p1+", "+p2+", "+p3);
     }
    
     /*
@@ -998,7 +998,6 @@ public class Triangle extends Element implements Serializable {
 	this.vertices[0].zoom(fact);
 	this.vertices[1].zoom(fact);
 	this.vertices[2].zoom(fact);
-	this.update();
     }//end method zoom
 
 
