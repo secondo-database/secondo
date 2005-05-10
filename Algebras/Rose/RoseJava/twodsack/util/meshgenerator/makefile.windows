@@ -1,0 +1,44 @@
+#
+# makefile.windows, 2004-11-14
+#
+# Dirk Ansorge, FernUniversitaet Hagen
+#
+# Use this file under windows to construct the following files:
+#	triangle.o
+#	MeshGenerator.class
+#	MeshGenerator.dll
+#
+# Call this file by writing 'make -f makefile.windows' to the prompt (in MSYS).
+#
+
+.PHONY: all
+all: Triangle/triangle.o MeshGenerator.dll
+
+Triangle/triangle.o: Triangle/triangle.c
+	cd Triangle;gcc -O -c triangle.c -DTRILIBRARY -DNO_TIMER
+
+# MeshGenerator.class: MeshGenerator.java
+#	javac MeshGenerator.java
+
+MeshGenerator.dll: MeshGenerator.h MeshGenerator.o MeshGenerator.def
+	gcc -shared -Wl,-soname,MeshGenerator.dll -o MeshGenerator.dll MeshGenerator.o Triangle/triangle.o -lm MeshGenerator.def
+
+MeshGenerator.h:
+	javah MeshGenerator
+
+MeshGenerator.o: MeshGenerator.c
+	gcc -c -g -fPIC -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/win32 MeshGenerator.c -o MeshGenerator.o
+
+MeshGenerator.def:
+	dlltool -z MeshGenerator.def.tmp  MeshGenerator.o
+	sed -e "s#\(.*\)@\(.*\)@.*;#\1 = \1@\2;#g" MeshGenerator.def.tmp >MeshGenerator.def
+	rm MeshGenerator.def.tmp
+
+.PHONY: clean
+clean:
+	rm -f *.dll
+	rm -f *.h
+	rm -f *.o
+	rm -f *.class
+	rm -f *.def
+	rm -f Triangle/triangle.o

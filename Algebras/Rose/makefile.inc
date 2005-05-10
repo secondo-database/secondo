@@ -32,16 +32,16 @@ JAVADOC = javadoc
 # set the DOCPATH
 DOCPATH = ./doc
 
-PACKAGES =
+PACKAGES = twodsack twodsack.io twodsack.operation twodsack.operation.basictypeoperation twodsack.operation.setoperation twodsack.set twodsack.setelement twodsack.setelement.datatype twodsack.setelement.datatype.basicdatatype twodsack.setelement.datatype.compositedatatype twodsack.util twodsack.util.collection twodsack.util.collectiontype twodsack.util.comparator twodsack.util.graph twodsack.util.iterator twodsack.util.meshgenerator twodsack.util.number
 
 
-FUZZYOBJECT_PATH = $(SECONDO_BUILD_DIR)/Algebras/Rose
+ROSE_PATH = $(SECONDO_BUILD_DIR)/Algebras/Rose/RoseJava
 
 
 JAVAINTERFACE_PATH = $(SECONDO_BUILD_DIR)/Javagui
 
 
-CLASSPATH=".:$(JAVAINTERFACE_PATH)"
+CLASSPATH=".:$(ROSE_PATH):$(JAVAINTERFACE_PATH)"
 
 ifeq ($(SECONDO_PLATFORM),win32)
  CLASSPATH := $(subst :,;, $(CLASSPATH))

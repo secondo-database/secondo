@@ -151,21 +151,28 @@ The following function takes a java object of type Rational
 */
 static ListExpr Convert_JavaToC_Rational(jobject jRational) {
   /* Get the class */
-  jclass cls = env->FindClass("Rational");
+  jclass cls = env->FindClass("twodsack/util/number/Rational");
   if (cls == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of getNumerator. */
-  jmethodID midNum = env->GetMethodID(cls, "getNumerator", "()I");
-  if (midNum == 0) error(__FILE__,__LINE__);
+  //jmethodID midNum = env->GetMethodID(cls, "getNumerator", "()I");
+  //if (midNum == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of getDenominator. */
-  jmethodID midDen = env->GetMethodID(cls, "getDenominator", "()I");
-  if (midDen == 0) error(__FILE__,__LINE__);
+  //jmethodID midDen = env->GetMethodID(cls, "getDenominator", "()I");
+  //if (midDen == 0) error(__FILE__,__LINE__);
+
+  /* Get method ID of getDouble. */
+  jmethodID midGetDouble = env->GetMethodID(cls, "getDouble", "()D");
 
   /* Call both methods. */
-  int num = (int)env->CallIntMethod(jRational, midNum);
-  int den = (int)env->CallIntMethod(jRational, midDen);
+  //int num = (int)env->CallIntMethod(jRational, midNum);
+  //int den = (int)env->CallIntMethod(jRational, midDen);
 
+  jdouble value = env->CallDoubleMethod(jRational, midGetDouble);
+
+  return nl->RealAtom(value);
+  /*
   return nl->Cons
     (
      nl->SymbolAtom("rat"),
@@ -191,6 +198,7 @@ static ListExpr Convert_JavaToC_Rational(jobject jRational) {
        )
       )
      );
+  */
 }
 
 /* 
@@ -200,15 +208,15 @@ The following function takes a java object of type Point
 */
 static ListExpr Convert_JavaToC_Point(jobject jPoint) {
   /* Get the class */
-  jclass cls = env->FindClass("Point");
+  jclass cls = env->FindClass("twodsack/setelement/datatype/basicdatatype/Point");
   if (cls == 0) error(__FILE__,__LINE__);
 
   /* Get the field ID of x */
-  jfieldID fidX = env->GetFieldID(cls, "x", "LRational;");
+  jfieldID fidX = env->GetFieldID(cls, "x", "Ltwodsack/util/number/Rational;");
   if (fidX == 0) error(__FILE__,__LINE__);
 
   /* Get the field ID of y. */
-  jfieldID fidY = env->GetFieldID(cls, "y", "LRational;");
+  jfieldID fidY = env->GetFieldID(cls, "y", "Ltwodsack/util/number/Rational;");
   if (fidY == 0) error(__FILE__,__LINE__);
 
   /* Get x itself */
@@ -242,7 +250,7 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
   if (cls == 0) error(__FILE__,__LINE__);
 
   /* Get the field ID of pointlist */
-  jfieldID fid = env->GetFieldID(cls, "pointset", "LPointMultiSet;");
+  jfieldID fid = env->GetFieldID(cls, "pointset", "Ltwodsack/set/PointMultiSet;");
   if (fid == 0) error(__FILE__,__LINE__);
   
   /* Get the field itself */
@@ -250,7 +258,7 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
   if (jpointlist == 0) error(__FILE__,__LINE__);
 
   /* Get the class PointMultiSet */
-  jclass clsLL = env->FindClass("PointMultiSet");
+  jclass clsLL = env->FindClass("twodsack/set/PointMultiSet");
   if (clsLL == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of toArrray */
@@ -291,15 +299,15 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
 */
 static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   /* Get the class */
-  jclass cls = env->FindClass("Segment");
+  jclass cls = env->FindClass("twodsack/setelement/datatype/basicdatatype/Segment");
   if (cls == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of startPoint */
-  jmethodID midStart = env->GetMethodID(cls, "getStartpoint", "()LPoint;");
+  jmethodID midStart = env->GetMethodID(cls, "getStartpoint", "()Ltwodsack/setelement/datatype/basicdatatype/Point;");
   if (midStart == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of endPoint */
-  jmethodID midEnd = env->GetMethodID(cls, "getEndpoint", "()LPoint;");
+  jmethodID midEnd = env->GetMethodID(cls, "getEndpoint", "()Ltwodsack/setelement/datatype/basicdatatype/Point;");
   if (midEnd == 0) error(__FILE__,__LINE__);
 
   /* Get the start Point itself */
@@ -311,23 +319,23 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   if (endP == 0) error(__FILE__,__LINE__);
 
   /* Get the class Rational */
-  jclass clsPoint = env->FindClass("Point");
+  jclass clsPoint = env->FindClass("twodsack/setelement/datatype/basicdatatype/Point");
   if (clsPoint == 0) error(__FILE__,__LINE__);
 
   /* Get the field ID of x (start point) */
-  jfieldID fidX1 = env->GetFieldID(clsPoint, "x", "LRational;");
+  jfieldID fidX1 = env->GetFieldID(clsPoint, "x", "Ltwodsack/util/number/Rational;");
   if (fidX1 == 0) error(__FILE__,__LINE__);
 
   /* Get the field ID of y (start point) */
-  jfieldID fidY1 = env->GetFieldID(clsPoint, "y", "LRational;");
+  jfieldID fidY1 = env->GetFieldID(clsPoint, "y", "Ltwodsack/util/number/Rational;");
   if (fidY1 == 0) error(__FILE__,__LINE__); 
 
   /* Get the field ID of x (end point) */
-  jfieldID fidX2 = env->GetFieldID(clsPoint, "x", "LRational;");
+  jfieldID fidX2 = env->GetFieldID(clsPoint, "x", "Ltwodsack/util/number/Rational;");
   if (fidX2 == 0) error(__FILE__,__LINE__);
 
   /* Get the field ID of y (end point) */
-  jfieldID fidY2 = env->GetFieldID(clsPoint, "y", "LRational;");
+  jfieldID fidY2 = env->GetFieldID(clsPoint, "y", "Ltwodsack/util/number/Rational;");
   if (fidY2 == 0) error(__FILE__,__LINE__);
 
   /* Get the field x itself (start point) */
@@ -379,7 +387,7 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the field ID of seglist */
-  jfieldID fid = env->GetFieldID(cls, "segset", "LSegMultiSet;");
+  jfieldID fid = env->GetFieldID(cls, "segset", "Ltwodsack/set/SegMultiSet;");
   if (fid == 0) error(__FILE__,__LINE__);
 
   /* Get the field itself */
@@ -387,7 +395,7 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
   if (jseglist == 0) error(__FILE__,__LINE__);
 
   /* Get the class SegMultiSet */
-  jclass clsLL = env->FindClass("SegMultiSet");
+  jclass clsLL = env->FindClass("twodsack/set/SegMultiSet");
   if (clsLL == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of toArrray */
@@ -469,7 +477,7 @@ static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
 */
 static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
   /* Get the class */
-  jclass cls = env->FindClass("CycleList");
+  jclass cls = env->FindClass("twodsack/util/collection/CycleList");
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the method ID of toArrray */
@@ -512,7 +520,7 @@ The following function takes a java object of type ElemListListList
 */
 static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
   /* Get the class */
-  jclass cls = env->FindClass("CycleListListPoints");
+  jclass cls = env->FindClass("twodsack/util/collection/CycleListListPoints");
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the method ID of toArrray */
@@ -557,7 +565,7 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
   if (cls == 0) error(__FILE__,__LINE__);
   
   /* Get the method ID of cyclesPoints */
-  jmethodID midCycles = env->GetMethodID(cls, "cyclesPoints", "()LCycleListListPoints;");
+  jmethodID midCycles = env->GetMethodID(cls, "cyclesPoints", "()Ltwodsack/util/collection/CycleListListPoints;");
   if (midCycles == 0) error(__FILE__,__LINE__);
 
   /* Call the method itself */ 
@@ -576,7 +584,7 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
 static jobject Convert_CToJava_Rational(const ListExpr &le) {
   /* Get the class RationalFactory */
   
-  jclass clsRatFac = env->FindClass("RationalFactory");
+  jclass clsRatFac = env->FindClass("twodsack/util/number/RationalFactory");
   if (clsRatFac == 0) error(__FILE__,__LINE__);
   /*
   jmethodID midRatFac = env->GetStaticMethodID
@@ -649,7 +657,7 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
     int intValue2 = nl->IntValue(e2);
     
     /* Find the class Point */
-    jclass clsPoint = env->FindClass("Point");
+    jclass clsPoint = env->FindClass("twodsack/setelement/datatype/basicdatatype/Point");
     if (clsPoint == 0) error(__FILE__,__LINE__);
     
     /* Get the method ID of the constructor which takes two ints. */
@@ -672,7 +680,7 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
     jfloat realValue2 = nl->RealValue(e2);
     
     /* Find the class Point */
-    jclass clsPoint = env->FindClass("Point");
+    jclass clsPoint = env->FindClass("twodsack/setelement/datatype/basicdatatype/Point");
     if (clsPoint == 0) error(__FILE__,__LINE__);
     
     /* Get the method ID of the constructor which takes two float. */
@@ -685,12 +693,12 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
     return result;
   } else {
     /* Both coordinates are Rationals */
-    jclass clsPoint = env->FindClass("Point");
+    jclass clsPoint = env->FindClass("twodsack/setelement/datatype/basicdatatype/Point");
     if (clsPoint == 0) error(__FILE__,__LINE__);
 
     /* Get the method ID of the constructor which takes two Rationals. */
     jmethodID mid = env->GetMethodID(clsPoint, "<init>", 
-				     "(LRational;LRational;)V");
+				     "(Ltwodsack/util/number/Rational;Ltwodsack/util/number/Rational;)V");
     if (mid == 0) error(__FILE__,__LINE__);
     
     jobject result = env->NewObject(clsPoint, mid, 
@@ -722,7 +730,7 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
   int ll = nl->ListLength(le);
   
   /* Get the method ID of add */
-  jmethodID midAdd = env->GetMethodID(clsPoints, "add", "(LPoint;)V");
+  jmethodID midAdd = env->GetMethodID(clsPoints, "add", "(Ltwodsack/setelement/datatype/basicdatatype/Point;)V");
   if (midAdd == 0) error(__FILE__,__LINE__);
 
   bool isPoints = true;
@@ -790,11 +798,11 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
     int intValue4 = nl->IntValue(e4);
 
     /* Find the class Segment */
-    jclass clsSegment = env->FindClass("Segment");
+    jclass clsSegment = env->FindClass("twodsack/setelement/datatype/basicdatatype/Segment");
     if (clsSegment == 0) error(__FILE__,__LINE__);
     
     /* Get the method ID of the constructor which takes four ints. */
-    jmethodID mid = env->GetMethodID(clsSegment, "<init>", "(IIII)LSegment;");
+    jmethodID mid = env->GetMethodID(clsSegment, "<init>", "(IIII)Ltwodsack/setelement/datatype/basicdatatype/Segment;");
     if (mid == 0) error(__FILE__,__LINE__);
     
     jobject result = env->NewObject(clsSegment, mid, 
@@ -821,7 +829,7 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
     double realValue4 = nl->RealValue(e4);
 
     /* Find the class Segment */
-    jclass clsPoint = env->FindClass("Segment");
+    jclass clsPoint = env->FindClass("twodsack/setelement/datatype/basicdatatype/Segment");
     if (clsPoint == 0) error(__FILE__,__LINE__);
     
     /* Get the method ID of the constructor which takes four float. */
@@ -835,7 +843,7 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
     return result;
   } else {
     /* All coordinates are Rationals */
-    jclass clsSegment = env->FindClass("Segment");
+    jclass clsSegment = env->FindClass("twodsack/setelement/datatype/basicdatatype/Segment");
     if (clsSegment == 0) error(__FILE__,__LINE__);
 
     /* Get the method ID of the constructor which takes four Rationals. */
@@ -874,7 +882,7 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
   int ll = nl->ListLength(le);
   
   /* Get the method ID of add */
-  jmethodID midAdd = env->GetMethodID(clsLines, "add", "(LSegment;)V");
+  jmethodID midAdd = env->GetMethodID(clsLines, "add", "(Ltwodsack/setelement/datatype/basicdatatype/Segment;)V");
   if (midAdd == 0) error(__FILE__,__LINE__);
 
   /* Now we insert in a for-loop all points into the Lines object. */
@@ -900,7 +908,7 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
   /* We have to collect all segments into a segment list first */
 
   /* Construct a SegmentComparator */
-  jclass clsSegComparator = env->FindClass("SegmentComparator");
+  jclass clsSegComparator = env->FindClass("twodsack/util/comparator/SegmentComparator");
   if (clsSegComparator == 0) error(__FILE__,__LINE__);
   
   /* get method ID of constructor */
@@ -908,15 +916,15 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
   if (midSC == 0) error(__FILE__,__LINE__);
 
   /* Get the class SegMultiSet */
-  jclass clsSMS = env->FindClass("SegMultiSet");
+  jclass clsSMS = env->FindClass("twodsack/set/SegMultiSet");
   if (clsSMS == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of the constructor */
-  jmethodID midSMS = env->GetMethodID(clsSMS, "<init>", "(LSegmentComparator;)V");
+  jmethodID midSMS = env->GetMethodID(clsSMS, "<init>", "(Ltwodsack/util/comparator/SegmentComparator;)V");
   if (midSMS == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of add */
-  jmethodID midSMSAdd = env->GetMethodID(clsSMS, "add", "(LSegment;)V");
+  jmethodID midSMSAdd = env->GetMethodID(clsSMS, "add", "(Ltwodsack/setelement/datatype/basicdatatype/Segment;)V");
   if (midSMSAdd == 0) error(__FILE__,__LINE__);
 
   /* Create a new SegmentComparator */
@@ -928,12 +936,12 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
   if (segMS == 0) error(__FILE__,__LINE__);
 
   /* Get the class Segment */
-  jclass clsSegment = env->FindClass("Segment");
+  jclass clsSegment = env->FindClass("twodsack/setelement/datatype/basicdatatype/Segment");
   if (clsSegment == 0) error(__FILE__,__LINE__);
 
   /* Get the method ID of the constructor */
   jmethodID midSegment = env->GetMethodID
-    (clsSegment, "<init>", "(LPoint;LPoint;)V");
+    (clsSegment, "<init>", "(Ltwodsack/setelement/datatype/basicdatatype/Point;Ltwodsack/setelement/datatype/basicdatatype/Point;)V");
   if (midSegment == 0) error(__FILE__,__LINE__);
 
   /* Determine how many faces are in le. */
@@ -990,7 +998,7 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
 
   /* Get the methodID of the constructor. */
   jmethodID midRegions = env->GetMethodID(clsRegions, "<init>", 
-					  "(LSegMultiSet;)V");
+					  "(Ltwodsack/set/SegMultiSet;)V");
   if (midRegions == 0) error(__FILE__,__LINE__);
   
   jobject result = env->NewObject(clsRegions, midRegions, segMS);
@@ -1036,6 +1044,11 @@ public:
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
+  void Finalize() {
+    cout << "++++++++++++++++++++ called destructor of CcPoints +++++++++++++++++++++++++" << endl;
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
+  }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
   
@@ -1274,7 +1287,20 @@ Destructor of CcPoints. This destructor destroys also the
 
 */
 CcPoints::~CcPoints() {
-  //env->DeleteLocalRef(obj);
+  //if(canDelete) {
+  env->DeleteLocalRef(obj);
+  //Destroy();
+  //}
+}
+
+/*
+  ~Destroy~
+  
+  The Destroy function as known from other (non-JNI) algebras.
+
+*/
+void CcPoints::Destroy(){
+  canDelete=true;
 }
 
 /* 
@@ -1581,6 +1607,11 @@ public:
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
+  void Finalize() {
+    cout << "++++++++++++++++++++ called destructor of CcLines +++++++++++++++++++++++++" << endl;
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
+  }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
 
@@ -1815,7 +1846,20 @@ Destructor of CcLines. This destructor destroys also the
 
 */
 CcLines::~CcLines() {
-  //env->DeleteLocalRef(obj);
+  //if (canDelete) {
+  env->DeleteLocalRef(obj);
+  //Destroy();
+  //}
+}
+
+/*
+  ~Destroy~
+
+  The Destroy function as known from other (non-JNI) algebras.
+
+*/
+void CcLines::Destroy(){
+  canDelete=true;
 }
 
 /* 
@@ -2121,6 +2165,11 @@ public:
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
+  void Finalize() {
+    cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
+  }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
 
@@ -2142,7 +2191,11 @@ public:
   bool GetNL(ListExpr &le);
   /* Destructor of CcRegions. This destructor destroys also the 
      object inside the JVM. */
-  ~CcRegions();
+  ~CcRegions() {
+    cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
+  }
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
 };
@@ -2356,7 +2409,23 @@ Destructor of CcRegions. This destructor destroys also the
 
 */
 CcRegions::~CcRegions() {
-  //env->DeleteLocalRef(obj);
+  cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+  //if (canDelete) {
+  env->DeleteLocalRef(obj);
+  env->DeleteLocalRef(cls);
+  //Destroy();
+  //}
+}
+
+/*
+  ~Destroy~
+
+  The Destroy function as kinown from other (non-JNI) algebras.
+
+*/
+void CcRegions::Destroy(){
+  cout << "++++++++++++++++++++ called destroy of CcRegions +++++++++++++++++++++++++" << endl;
+  canDelete=true;
 }
 
 /* 
@@ -2401,23 +2470,27 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
+  cout << "going to read " << size << " bytes" << endl;
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
+  assert ( jbytes != 0);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
   jmethodID mid = env->GetStaticMethodID(cls,"readFrom","([B)LRegions;");
   if(mid == 0){
     error(__FILE__,__LINE__);
   }
-  jobject jres = env->CallStaticObjectMethod(cls,mid,jbytes);
-  if(jres == 0){
+  obj = env->CallStaticObjectMethod(cls,mid,jbytes);
+  if(obj == 0){
     error(__FILE__,__LINE__);
   }
-  obj = jres;
+  //obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
   env->ReleaseByteArrayElements(jbytes,elems,0);
   delete [] bytes;
+  bytes = NULL;
+  env->DeleteLocalRef(jbytes);
 }
 
 /*
@@ -2495,6 +2568,7 @@ Deletion of a CcRegions object.
 
 */
 static void DeleteCcRegions(Word &w) {
+  cout << "++++++++++++++++++++ called Delete of CcRegions +++++++++++++++++++++++++" << endl; 
   delete ((CcRegions *)w.addr);
   w.addr = 0;
 }
@@ -2504,6 +2578,7 @@ Close a CcRegions object.
 
 */
 static void CloseCcRegions(Word & w) {
+  cout << "++++++++++++++++++++ called Close of CcRegions +++++++++++++++++++++++++" << endl;
   delete (CcRegions *)w.addr;
   w.addr = 0;
 }
@@ -3081,7 +3156,7 @@ static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
   if (result == 0) error (__FILE__, __LINE__);
 
   /* Get the class Rational */
-  cls_Rational = env->FindClass("Rational");
+  cls_Rational = env->FindClass("twodsack/util/number/Rational");
   if (cls_Rational == 0) error(__FILE__, name, __LINE__);
 
   /* Get the method ID of the java function. */
@@ -3137,7 +3212,7 @@ static double callRationalJMethod(char *name, Type1 *t1, char *signature) {
   if (result == 0) error (__FILE__, name, __LINE__);
 
   /* Get the Class Rational */
-  cls_Rational = env->FindClass("Rational");
+  cls_Rational = env->FindClass("twodsack/util/number/Rational");
   if (cls_Rational == 0) error(__FILE__, name, __LINE__);
 
   /* Get the method ID of the java function. */
@@ -7092,14 +7167,14 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   env = jvminit->getEnv();
   jvm = jvminit->getJVM();
 
- jclass clsRatFac = env->FindClass("RationalFactory");
+ jclass clsRatFac = env->FindClass("twodsack/util/number/RationalFactory");
   if (clsRatFac == 0) error(__FILE__,__LINE__);
 
   jmethodID midRatFac = env->GetStaticMethodID
     (clsRatFac, "setClass", "(Ljava/lang/String;)V");
   if (midRatFac == 0) error(__FILE__,__LINE__);
 
-  jstring jstr = env->NewStringUTF("RationalDouble");
+  jstring jstr = env->NewStringUTF("twodsack.util.number.RationalDouble");
   if (jstr == 0) error(__FILE__,__LINE__);
 
   env->CallStaticVoidMethod(clsRatFac, midRatFac, jstr);

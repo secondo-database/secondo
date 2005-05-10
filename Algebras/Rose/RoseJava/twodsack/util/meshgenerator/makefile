@@ -17,48 +17,37 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-########################################################################
+# file: Algebras/Rose/RoseJave/makefile
 #
-# SECONDO makefile for Rose Algebra
-#
-# 04-2005 
-#
-########################################################################
+# last change: 04-2005; Dirk Ansorge
 
-include ../../makefile.env
+include ../../../../makefile.inc
 
-MODNAME = RoseAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
+platform := $(SECONDO_PLATFORM)
+ifeq ($(platform),win32)
+MAKEMESH := makefile.windows
+else
+MAKEMESH := makefile.linux
+endif
+
+JAVAFILES =$(shell find -name "*.java")
+TMPFILES = $(subst .java,.class,$(JAVAFILES))
+CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
-all: alljava allcpp
+all: $(CLASSFILES) mesh
 
-.PHONY: alljava
-alljava:
-	make -f makejava all
+%.class: %.java
+	$(JAVAC) -classpath $(CLASSPATH) $<
 
-.PHONY: allcpp
-allcpp: $(OBJECTS) $(LIBOBJ)
+mesh: 
+	make -f $(MAKEMESH)
 
-include $(DEP_FILES)
-
-# --- Standard Algebra C++ library ---
-
-$(LIBOBJ): $(OBJECTS)
-ifeq ($(shared),yes)
-# ... as shared object
-	$(LD) $(LDFLAGS) $(LDJNIFLAGS) -o $(LIBOBJ) $(LDOPT) $(OBJECTS) $(TUPLEMANAGER) -L$(LIBDIR) $(BDBSMILIB) $(SDBLIB) $(TOOLLIB) $(DEFAULTLIB)
-else
-# ... as static library
-	$(AR) -r $(LIBOBJ) $(OBJECTS)
-endif
 
 .PHONY: clean
 clean:
-	$(MAKE) -f makejava clean
-	$(RM) $(OBJECTS) $(DEP_FILES) $(LIBOBJ) *.class *~
+	rm -f *.class
 	rm -f *.o
-
-
-
-
+	rm -f *.so
+	rm -f *.dll
+	make -f $(MAKEMESH) clean
