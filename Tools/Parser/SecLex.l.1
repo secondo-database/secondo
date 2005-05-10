@@ -41,16 +41,21 @@ October 14, 2004 RHG Added text and file tokens.
 %p 8000
 %n 2000
 %e 4000
+%x TEXT
 
 %option yylineno
 
 %{
 #include "SecParser.tab.hpp"
 #include "NestedText.h"
+#include <string>
+#include <sstream>
 
 #define yylval xxlval
 extern int yylval;
 int yywrap();
+
+ostringstream* text_sp = 0;
 
 #define YY_NO_UNPUT
 %}
@@ -62,7 +67,8 @@ num1	       	[-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2	       	[-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	       	{num1}|{num2}
 string         	\"[^\"]*\"   
-text	  	"<text>"[^<\n]+"</text--->"
+textstart       "<text>"
+textend         "</text--->"
 file	  	"<file>"[^<\n]+"</file--->"
 
 %%
@@ -113,5 +119,24 @@ counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZEQ;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
-{text}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZTEXT;}
+{textstart}	{if(text_sp)
+                   delete text_sp;
+                 text_sp = new ostringstream(); 
+                 (*text_sp) << "<text>";
+                 BEGIN(TEXT);
+                }
+<TEXT>{textend} {  (*text_sp) << "</text--->";
+                   string tmp = text_sp->str();
+                   char* tmp2 = new char[tmp.length()+1];
+                   memcpy(tmp2,tmp.c_str(),tmp.length());
+                   tmp2[tmp.length()]=0;
+                   yylval = NestedText::Atom(tmp2,tmp.length());
+                   delete [] tmp2;
+                   delete text_sp;
+                   text_sp = 0;
+                   BEGIN(INITIAL);
+                   return ZZTEXT;
+                }
+<TEXT>.|\n      { text_sp->put(yytext[0]); }
+
 {file}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFILE;}
