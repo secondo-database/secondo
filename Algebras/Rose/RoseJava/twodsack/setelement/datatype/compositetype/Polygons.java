@@ -2373,7 +2373,7 @@ public class Polygons extends Element implements Serializable {
 	double tt03 = System.currentTimeMillis();
 
 	//construct the resulting structure as follows:
-	//A CycleListList is a list of of CycleLists where each of the CycleLists
+	//A CycleListList is a list of CycleList(s) where each of the CycleLists
 	//has at least one cylce (the outer cycle for a face). All following cycles
 	//are inner cycles and therefore are holes. Since new faces inside of 
 	//holes are not supported currently, no more checks are made for those inner
@@ -2480,8 +2480,6 @@ public class Polygons extends Element implements Serializable {
      * @return sets of points representing the cycles of the <code>Polygons</code> instance.
      */
     public CycleListListPoints cyclesPoints () {
-	//System.out.print("-->computing cycles for NestedList conversion(Polygons.cyclesPoints)...");
-	
 	CycleListListPoints retList = new CycleListListPoints();
 	CycleListList cyc = this.cyclesSegments();
 

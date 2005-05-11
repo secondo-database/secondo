@@ -113,11 +113,11 @@ public class Lines implements Serializable{
 	else return 1;
     }//end method compare
     */
-    /*
+    
     public Lines copy () {
-	return new Lines(this.seglist);
+	return new Lines(SegMultiSet.convert(this.segset.copy()));
     }//end method copy
-    */
+    
 	
 }//end class Lines
     

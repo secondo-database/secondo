@@ -10,6 +10,7 @@ import twodsack.setelement.*;
 import twodsack.setelement.datatype.*;
 import twodsack.util.collectiontype.*;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 /**
@@ -19,7 +20,7 @@ import java.util.Comparator;
  * pairs of type <code>Element</code> directly, but on such types wrapped in objects of type
  * {@link MultiSetEntry}. Usually, they can be found in a {@link ElemMultiSet} structure.
  */
-public class ElemComparator implements Comparator {
+public class ElemComparator implements Comparator,Serializable {
     /*
      * methods
      */

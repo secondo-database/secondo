@@ -263,6 +263,8 @@ public class Triangle extends Element implements Serializable {
      * @return true, if p,q,r form a triangle
      */
     public boolean isTriangle(Point p, Point q, Point r){
+	return true;
+	/*
 	double res1 = ((r.y.getDouble() + p.y.getDouble()) / 2) * (r.x.getDouble() - p.x.getDouble());
 	double res2 = ((q.y.getDouble() + r.y.getDouble()) / 2) * (q.x.getDouble() - r.x.getDouble());
 	double res3 = ((p.y.getDouble() + q.y.getDouble()) / 2) * (p.x.getDouble() - q.x.getDouble());
@@ -277,6 +279,7 @@ public class Triangle extends Element implements Serializable {
 	    return true;
  	else 
 	    return false;
+	*/
     }//end method isTriangle
     
 

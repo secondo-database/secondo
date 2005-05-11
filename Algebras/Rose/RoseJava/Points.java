@@ -120,7 +120,7 @@ public class Points implements Serializable{
     */
 
     public Points copy () {
-	return new Points(this.pointset);
+	return new Points(PointMultiSet.convert(this.pointset.copy()));
     }//end method copy
 
 	

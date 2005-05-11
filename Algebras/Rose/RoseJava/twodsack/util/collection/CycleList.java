@@ -8,6 +8,7 @@ package twodsack.util.collection;
 
 import twodsack.setelement.*;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
@@ -31,5 +32,27 @@ public class CycleList extends LinkedList {
 	    }//for j
 	}//for i
     }//end method print
+
+
+    /**
+     * Returns a 'deep' copy of <i>this</i>.
+     * This means, that changes on the copy don't affect <i>this</i>.
+     *
+     * @return the copy
+     */
+    public CycleList copy() {
+	CycleList copy = new CycleList();
+	Iterator it = this.listIterator(0);
+	Iterator it2;
+	while (it.hasNext()) {
+	    LinkedList cycleCopy = new LinkedList();
+	    it2 = ((LinkedList)it.next()).listIterator(0);
+	    while (it2.hasNext()) 
+		cycleCopy.add(((Element)it2.next()).copy());
+	    copy.add(cycleCopy);
+	}//while it
+
+	return copy;
+    }//end method copy
 
 }//end class CycleList

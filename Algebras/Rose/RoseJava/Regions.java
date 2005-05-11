@@ -103,7 +103,7 @@ public class Regions implements Serializable{
     private TriMultiSet computeTriSet(SegMultiSet sms) {
 	//sl must be a regular border of a Regions value
 	//returns the triangulation of the Region
-	return Polygons.computeMesh(sms,true);
+	return Polygons.computeMesh(sms,true);  
     }//end method computeTriSet
 	
     /*
@@ -155,11 +155,13 @@ public class Regions implements Serializable{
     }//end method isRegularTriSet
 
     
-    protected CycleListListPoints cyclesPoints() {
+    public CycleListListPoints cyclesPoints() {
 	//returns the cycles of this as an CycleListListPoints
 	//which has points as elements
 	
-	if (this.cyclesDefined) return this.cycles;
+	if (this.cyclesDefined) {
+	    return this.cycles;
+	}//if
 	else {
 	    Polygons pol = new Polygons(triset);
 	    this.cycles = pol.cyclesPoints();
@@ -243,13 +245,14 @@ public class Regions implements Serializable{
     }//end method compare
     */
 
-    /*
+    
     public Regions copy () {
 	//return new Regions(this.trilist);
 	Regions nr = new Regions();
-	nr.trilist = TriList.convert(this.trilist.copy());
-	return nr;
+	nr.triset = TriMultiSet.convert(this.triset.copy());
+	nr.cyclesDefined = true;
+	nr.cycles = this.cycles.copy();
+	return nr; 
     }//end method copy
-    */	
 
 }//end class Regions

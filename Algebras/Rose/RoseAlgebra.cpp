@@ -40,6 +40,7 @@ by Sheng Liang. This book is online available as PDF file at www.sun.com.
 using namespace std;
 
 #include "Algebra.h"
+#include "Application.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"	//needed because we return a CcBool in an op.
@@ -171,34 +172,10 @@ static ListExpr Convert_JavaToC_Rational(jobject jRational) {
 
   jdouble value = env->CallDoubleMethod(jRational, midGetDouble);
 
+  env->DeleteLocalRef(jRational);
+  env->DeleteLocalRef(cls);
+
   return nl->RealAtom(value);
-  /*
-  return nl->Cons
-    (
-     nl->SymbolAtom("rat"),
-     nl->Cons
-     (
-      nl->SymbolAtom((abs(num) != num) ? "-" : "+"), 
-      nl->Cons
-      (
-       nl->IntAtom(abs(num) / den), 
-       nl->Cons
-       (
-	nl->IntAtom(abs(num) % den), 
-	nl->Cons
-	(
-	 nl->SymbolAtom("/"), 
-	 nl->Cons
-	 (
-	  nl->IntAtom(den), 
-	  nl->TheEmptyList()
-	  )
-	 )
-	)
-       )
-      )
-     );
-  */
 }
 
 /* 
@@ -226,6 +203,8 @@ static ListExpr Convert_JavaToC_Point(jobject jPoint) {
   /* Get y itself */
   jobject Y = env->GetObjectField(jPoint, fidY);
   if (Y == 0) error(__FILE__,__LINE__);
+
+  env->DeleteLocalRef(cls);
 
   return nl->Cons
     (
@@ -281,13 +260,18 @@ static ListExpr Convert_JavaToC_Points(jobject jPoints) {
   /* Then assemble the result. */
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
-    result = nl->Cons
-      (
-       Convert_JavaToC_Point(jstack.top()),
-       result
-       );
+    result = nl->Cons(Convert_JavaToC_Point(jstack.top()),result);
+    jobject tmp = jstack.top();
     jstack.pop();
+    env->DeleteLocalRef(tmp);
   } 
+
+  env->DeleteLocalRef(jpointlist);
+  //env->ReleaseObjectArrayElements(oarr);
+  env->DeleteLocalRef(oarr);
+  env->DeleteLocalRef(jPoints); 
+  env->DeleteLocalRef(cls);
+  env->DeleteLocalRef(clsLL);
 
   return result;
 }
@@ -354,6 +338,11 @@ static ListExpr Convert_JavaToC_Segment(jobject jSegment) {
   jobject Y2 = env->GetObjectField(endP, fidY2);
   if (X1 == 0) error(__FILE__,__LINE__);
 
+  env->DeleteLocalRef(cls);
+  env->DeleteLocalRef(clsPoint);
+  env->DeleteLocalRef(startP);
+  env->DeleteLocalRef(endP);
+
   return 
     nl->Cons
     (
@@ -418,13 +407,15 @@ static ListExpr Convert_JavaToC_Lines(jobject jLines) {
   /* Then assemble the result. */
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
-    result = nl->Cons
-      (
-       Convert_JavaToC_Segment(jstack.top()),
-       result
-       );
+    result = nl->Cons(Convert_JavaToC_Segment(jstack.top()),result);
+    jobject tmp = jstack.top();
     jstack.pop();
+    env->DeleteLocalRef(tmp);
   } 
+
+  env->DeleteLocalRef(oarr);
+  env->DeleteLocalRef(cls);
+  env->DeleteLocalRef(jseglist);
 
   return result;
 }
@@ -459,13 +450,14 @@ static ListExpr Convert_JavaToC_ElemList(jobject jpointList) {
   /* Then assemble the result. */
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
-    result = nl->Cons
-      (
-       Convert_JavaToC_Point(jstack.top()),
-       result
-       );
+    result = nl->Cons(Convert_JavaToC_Point(jstack.top()),result);
+    jobject tmp = jstack.top();
     jstack.pop();
+    env->DeleteLocalRef(tmp);
   } 
+
+  env->DeleteLocalRef(oarr);
+  env->DeleteLocalRef(cls);
 
   return result;
 }
@@ -500,13 +492,14 @@ static ListExpr Convert_JavaToC_ElemListList(jobject jCycleList) {
   /* Then assemble the result. */
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
-    result = nl->Cons
-      (
-       Convert_JavaToC_ElemList(jstack.top()),
-       result
-       );
+    result = nl->Cons(Convert_JavaToC_ElemList(jstack.top()),result);
+    jobject tmp = jstack.top();
     jstack.pop();
+    env->DeleteLocalRef(tmp);
   } 
+
+  env->DeleteLocalRef(oarr);
+  env->DeleteLocalRef(cls);
 
   return result;
 }
@@ -543,14 +536,16 @@ static ListExpr Convert_JavaToC_ElemListListList(jobject jCycleListListPoints) {
   /* Then assemble the result. */
   ListExpr result = nl->TheEmptyList();
   while (!jstack.empty()) {
-    result = nl->Cons
-      (
-       Convert_JavaToC_ElemListList(jstack.top()),
-       result
-       );
+    result = nl->Cons(Convert_JavaToC_ElemListList(jstack.top()),result);
+    jobject tmp = jstack.top();
     jstack.pop();
+    env->DeleteLocalRef(tmp);
   } 
 
+  env->DeleteLocalRef(oarr);
+  env->DeleteLocalRef(cls);
+  
+  
   return result;
 }
 
@@ -560,6 +555,9 @@ The following function takes a java object of type Regions
 
 */
 static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
+
+  if (!jRegions) cerr << "jRegions is NULL!" << endl;
+
   /* Get the class */
   jclass cls = env->FindClass("Regions");
   if (cls == 0) error(__FILE__,__LINE__);
@@ -572,7 +570,11 @@ static ListExpr Convert_JavaToC_Regions(jobject jRegions) {
   jobject cycles = env->CallObjectMethod(jRegions, midCycles);
   if (cycles == 0) error(__FILE__,__LINE__);
 
-  return Convert_JavaToC_ElemListListList(cycles);
+  env->DeleteLocalRef(cls);
+
+  ListExpr res = Convert_JavaToC_ElemListListList(cycles);
+  env->DeleteLocalRef(cycles);
+  return res;
 }
 
 
@@ -586,23 +588,8 @@ static jobject Convert_CToJava_Rational(const ListExpr &le) {
   
   jclass clsRatFac = env->FindClass("twodsack/util/number/RationalFactory");
   if (clsRatFac == 0) error(__FILE__,__LINE__);
-  /*
-  jmethodID midRatFac = env->GetStaticMethodID
-    (clsRatFac, "setClass", "(Ljava/lang/String;)V");
-  if (midRatFac == 0) error(__FILE__,__LINE__);
 
-  jstring jstr = env->NewStringUTF("RationalDouble");
-  if (jstr == 0) error(__FILE__,__LINE__);
-
-  env->CallStaticVoidMethod(clsRatFac, midRatFac, jstr);
-
-  jmethodID midPrecision = env->GetStaticMethodID
-    (clsRatFac, "setPrecision", "(Z)V");
-  if (midPrecision == 0) error(__FILE__,__LINE__);
-
-  env->CallStaticVoidMethod(clsRatFac, midPrecision, false);
-  */
-  /* Check wheather six elements are in le. */
+  /* Check whether six elements are in le. */
   if (nl->ListLength(le) != 6) error(__FILE__,__LINE__);
 
   /* Now we calculate the necessary data for creating a Rational object. */
@@ -622,7 +609,7 @@ static jobject Convert_CToJava_Rational(const ListExpr &le) {
   int Rat_dnmDec = value6;
 
   /* Get the method ID of constRational */
-  jmethodID mid = env->GetStaticMethodID(clsRatFac, "constRational", "(II)LRational;");
+  jmethodID mid = env->GetStaticMethodID(clsRatFac, "constRational", "(II)Ltwodsack/util/number/Rational;");
   if (mid == 0) error(__FILE__,__LINE__);
 
   jobject result = env->CallStaticObjectMethod(clsRatFac, mid, 
@@ -630,6 +617,8 @@ static jobject Convert_CToJava_Rational(const ListExpr &le) {
 					 Rat_dnmDec);
   if (result == 0) error(__FILE__,__LINE__);
   
+  env->DeleteLocalRef(clsRatFac);
+
   return result;
 }
 
@@ -639,7 +628,7 @@ static jobject Convert_CToJava_Rational(const ListExpr &le) {
 
 */
 static jobject Convert_CToJava_Point(const ListExpr &le) {
-  /* Check wheather two elements are in le. */
+  /* Check whether two elements are in le. */
   if (nl->ListLength(le) != 2) error(__FILE__,__LINE__);
 
   /* Now we calculate the necessary data for creating a Point object. */
@@ -666,6 +655,9 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
     
     jobject result = env->NewObject(clsPoint, mid, intValue1, intValue2);
     if (result == 0) error(__FILE__,__LINE__);
+
+    env->DeleteLocalRef(clsPoint);
+
     return result;
   }
   else if 
@@ -690,6 +682,9 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
     jobject result = env->NewObject(clsPoint, mid, 
 				    (jfloat)realValue1, (jfloat)realValue2);
     if (result == 0) error(__FILE__,__LINE__);
+
+    env->DeleteLocalRef(clsPoint);
+
     return result;
   } else {
     /* Both coordinates are Rationals */
@@ -701,9 +696,13 @@ static jobject Convert_CToJava_Point(const ListExpr &le) {
 				     "(Ltwodsack/util/number/Rational;Ltwodsack/util/number/Rational;)V");
     if (mid == 0) error(__FILE__,__LINE__);
     
-    jobject result = env->NewObject(clsPoint, mid, 
-				    Convert_CToJava_Rational(e1),
-				    Convert_CToJava_Rational(e2));
+    jobject num1 = Convert_CToJava_Rational(e1);
+    jobject num2 = Convert_CToJava_Rational(e2);
+
+    jobject result = env->NewObject(clsPoint, mid,num1,num2);
+    env->DeleteLocalRef(num1);
+    env->DeleteLocalRef(num2);
+
     return result;
   }
 }
@@ -735,15 +734,11 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
 
   bool isPoints = true;
 
-  //cout << "le: " << nl->ToString(le) << endl;
   ListExpr first = nl->First(le);
   if (nl->IsAtom(first)) isPoints = false;
   else {
-    //cout << "listLength: " << nl->ListLength(first) << endl;
     isPoints = nl->ListLength(first) == 2;
   }
-
-  //cout << "isPoints: " << isPoints << endl;
 
   if (isPoints) {
     /* Now we insert in a for-loop all points into the Points object. */
@@ -755,13 +750,17 @@ static jobject Convert_CToJava_Points(const ListExpr &le) {
       jobject jfirst = Convert_CToJava_Point(first);
       if (jfirst == 0) error(__FILE__,__LINE__);
       env->CallVoidMethod(points, midAdd, jfirst);
+      env->DeleteLocalRef(jfirst);
     }
   }
   else {
     jobject jfirst = Convert_CToJava_Point(le);
     if (jfirst == 0) error(__FILE__,__LINE__);
     env->CallVoidMethod(points, midAdd, jfirst);
+    env->DeleteLocalRef(jfirst);
   }
+  env->DeleteLocalRef(clsPoints);
+
   return points;
 }
 
@@ -809,6 +808,9 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
 				    intValue1, intValue2, 
 				    intValue3, intValue4);
     if (result == 0) error(__FILE__,__LINE__);
+
+    env->DeleteLocalRef(clsSegment);
+
     return result;
   }
   else if 
@@ -840,6 +842,7 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
 				     realValue1,  realValue2,
 				     realValue3,  realValue4);
     if (result == 0) error(__FILE__,__LINE__);
+    env->DeleteLocalRef(clsPoint);
     return result;
   } else {
     /* All coordinates are Rationals */
@@ -849,14 +852,20 @@ static jobject Convert_CToJava_Segment(const ListExpr &le) {
     /* Get the method ID of the constructor which takes four Rationals. */
     jmethodID mid = env->GetMethodID
       (clsSegment, "<init>", 
-       "(LRational;LRational;LRational;LRational;)V");
+       "(Ltwodsack/util/number/Rational;Ltwodsack/util/number/Rational;Ltwodsack/util/number/Rational;Ltwodsack/util/number/Rational;)V");
     if (mid == 0) error(__FILE__,__LINE__);
     
-    jobject result = env->NewObject(clsSegment, mid, 
-				    Convert_CToJava_Rational(e1),
-				    Convert_CToJava_Rational(e2),
-				    Convert_CToJava_Rational(e3),
-				    Convert_CToJava_Rational(e4));
+    jobject num1 = Convert_CToJava_Rational(e1);
+    jobject num2 = Convert_CToJava_Rational(e2);
+    jobject num3 = Convert_CToJava_Rational(e3);
+    jobject num4 = Convert_CToJava_Rational(e4);
+
+    jobject result = env->NewObject(clsSegment, mid, num1,num2,num3,num4);
+    env->DeleteLocalRef(num1);
+    env->DeleteLocalRef(num2);
+    env->DeleteLocalRef(num3);
+    env->DeleteLocalRef(num4);
+    env->DeleteLocalRef(clsSegment);
     return result;
   }
 }
@@ -894,8 +903,9 @@ static jobject Convert_CToJava_Lines(const ListExpr &le) {
     jobject jfirst = Convert_CToJava_Segment(first);
     if (jfirst == 0) error(__FILE__,__LINE__);
     env->CallVoidMethod(lines, midAdd, jfirst);
+    env->DeleteLocalRef(jfirst);
   }
-  
+  env->DeleteLocalRef(clsLines);
   return lines;
 }
 
@@ -947,9 +957,7 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
   /* Determine how many faces are in le. */
   int nllfaces = nl->ListLength(le);
   
-  //cout << "number of faces: " << nllfaces << endl;
-
-  /* Now we put all segments of the faces into the seglist. */
+ /* Now we put all segments of the faces into the seglist. */
   ListExpr restFaceList = le;
   for (int i = 0; i < nllfaces; i++) {
     ListExpr firstFace = nl->First(restFaceList);
@@ -957,11 +965,7 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
     /* Determine how many cycles are in firstFace. */
     int nllcycles = nl->ListLength(firstFace);
 
-    //cout << "actual face: " << nl->ToString(firstFace) << endl;
-  
-    //cout << "number of cycles in actual face: " << nllcycles << endl;
-
-    /* Now we put all segments of the cycles into the seglist. */
+   /* Now we put all segments of the cycles into the seglist. */
     ListExpr restCycleList = firstFace;
     for (int j = 0; j < nllcycles; j++) {
       ListExpr firstCycle = nl->First(restCycleList);
@@ -982,13 +986,22 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
 	segment[k] = env->NewObject(clsSegment, midSegment, vertex[k], vertex[k+1]);
 	if (segment[k] == 0) error(__FILE__,__LINE__);
       }
+	
       segment[nllvertex-1] = env->NewObject(clsSegment, midSegment, vertex[nllvertex-1], vertex[0]);
       if (segment[nllvertex-1] == 0) error(__FILE__,__LINE__);
+
+      //clear memory used for vertices
+      for (int k = 0; k < nllvertex; k++)
+	env->DeleteLocalRef(vertex[k]);
 
       /* Now add all segments to the SegMultiSet */
       for (int k = 0; k < nllvertex; k++) {
 	env->CallVoidMethod(segMS, midSMSAdd, segment[k]);
       }
+      
+      //clear memory used for segments
+      for (int k = 0; k < nllvertex-1; k++)
+	env->DeleteLocalRef(segment[k]);
     }
   }
   
@@ -1003,6 +1016,15 @@ static jobject Convert_CToJava_Regions(const ListExpr &le) {
   
   jobject result = env->NewObject(clsRegions, midRegions, segMS);
   if (result == 0) error(__FILE__,__LINE__);
+
+  //free memory used by Java objects
+  env->DeleteLocalRef(jSC);
+  env->DeleteLocalRef(segMS);
+  env->DeleteLocalRef(clsSegComparator);
+  env->DeleteLocalRef(clsSMS);
+  env->DeleteLocalRef(clsSegment);
+  env->DeleteLocalRef(clsRegions);
+  
 
   return result;
 }
@@ -1040,14 +1062,18 @@ public:
   void SetDefined(bool Defined);
   void CopyFrom(StandardAttribute* right);
   void Destroy();
+  jobject GetObject() {
+    return obj; }
   bool Adjacent(Attribute *arg);
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    cout << "++++++++++++++++++++ called destructor of CcPoints +++++++++++++++++++++++++" << endl;
+    cout << "++++++++++++++++++++ called Finalize of CcPoints +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     env->DeleteLocalRef(cls);
+    obj = 0;
+    cls = 0;
   }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
@@ -1070,7 +1096,13 @@ public:
   bool GetNL(ListExpr &le);
   /* Destructor of CcPoints. This destructor destroys also the 
      object inside the JVM. */
-  ~CcPoints();
+  ~CcPoints() {
+    //cout << "++++++++++++++++++++ called destructor of CcPoints +++++++++++++++++++++++++" << endl;    
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
+    cls = 0;
+    obj = 0;
+  }
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
   
@@ -1093,6 +1125,8 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcPoints::Clone() {
+  if (cls == 0) RestoreJavaObjectFromFLOB();
+
   jmethodID mid = env->GetMethodID(cls,"copy","()LPoints;");
   if (mid == 0) error(__FILE__,__LINE__);
   
@@ -1172,7 +1206,9 @@ FLOB *CcPoints::GetFLOB(const int i){
 }
 
 void CcPoints::Initialize() {
-  RestoreJavaObjectFromFLOB();
+  //RestoreJavaObjectFromFLOB();
+  obj = 0;
+  cls = 0;
 }
 
 
@@ -1276,8 +1312,9 @@ retrieves the nested list representation of the underlying
 
 */
 bool CcPoints::GetNL(ListExpr& le) {
+  if (!obj) RestoreJavaObjectFromFLOB();
+  assert(obj != 0);
   le = Convert_JavaToC_Points(obj);
-
   return true;
 }
 
@@ -1286,12 +1323,15 @@ Destructor of CcPoints. This destructor destroys also the
      object inside the JVM. 
 
 */
-CcPoints::~CcPoints() {
-  //if(canDelete) {
-  env->DeleteLocalRef(obj);
-  //Destroy();
-  //}
-}
+
+  /*
+    CcPoints::~CcPoints() {
+    //if(canDelete) {
+    env->DeleteLocalRef(obj);
+    //Destroy();
+    //}
+    }
+  */
 
 /*
   ~Destroy~
@@ -1300,6 +1340,7 @@ CcPoints::~CcPoints() {
 
 */
 void CcPoints::Destroy(){
+  //cout << "++++++++++++++++++++ called destroy of CcPoints +++++++++++++++++++++++++" << endl;
   canDelete=true;
 }
 
@@ -1319,18 +1360,17 @@ restores the java object from FLOB
 */
 void CcPoints::RestoreFLOBFromJavaObject(){
   jmethodID mid = env->GetMethodID(cls,"writeToByteArray","()[B");
-  if(mid == 0){
-     error(__FILE__,__LINE__);
-  }
+  if(mid == 0) error(__FILE__,__LINE__);
+  
   jbyteArray jbytes = (jbyteArray) env->CallObjectMethod(obj,mid);
-  if(jbytes == 0){
-       error(__FILE__,__LINE__);
-  }
+  if(jbytes == 0) error(__FILE__,__LINE__);
+  
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
   objectData.Resize(size);
   objectData.Put(0,size,bytes);
-  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
+  env->DeleteLocalRef(jbytes);
  }
 
 
@@ -1339,6 +1379,7 @@ creates the content of a FLOB from the given Java-Object
 
 */
 void CcPoints::RestoreJavaObjectFromFLOB(){
+  if (obj) return;
   // read the data from flob
   cls = env->FindClass("Points");
   if (cls == 0) {
@@ -1348,6 +1389,7 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
     return;
   }
   int size = objectData.Size();
+  cout << "going to read " << size << " bytes" << endl;
   char *bytes = new char[size];
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
@@ -1363,8 +1405,10 @@ void CcPoints::RestoreJavaObjectFromFLOB(){
   }
   obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
-  env->ReleaseByteArrayElements(jbytes,elems,0);
+  env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   delete [] bytes;
+  bytes = NULL;
+  env->DeleteLocalRef(jbytes);
 }
 
 
@@ -1433,6 +1477,7 @@ Deletion of a CcPoints object.
 
 */
 static void DeleteCcPoints(Word &w) {
+  //cout << "++++++++++++++++++++ called Delete of CcPointss +++++++++++++++++++++++++" << endl; 
   delete ((CcPoints *)w.addr);
   w.addr = 0;
 }
@@ -1442,6 +1487,7 @@ Close a CcPoints object.
 
 */
 static void CloseCcPoints(Word & w) {
+  //cout << "++++++++++++++++++++ called Close of CcPoints +++++++++++++++++++++++++" << endl; 
   delete (CcPoints *)w.addr;
   w.addr = 0;
 }
@@ -1603,14 +1649,18 @@ public:
   void SetDefined(bool Defined);
   void CopyFrom(StandardAttribute* right);
   void Destroy();
+  jobject GetObject() {
+    return obj; }
   bool Adjacent(Attribute *arg);
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    cout << "++++++++++++++++++++ called destructor of CcLines +++++++++++++++++++++++++" << endl;
+    cout << "++++++++++++++++++++ called Finalize of CcLines +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     env->DeleteLocalRef(cls);
+    cls = 0;
+    obj = 0;
   }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
@@ -1633,7 +1683,13 @@ public:
   bool GetNL(ListExpr &le);
   /* Destructor of CcLines. This destructor destroys also the 
      object inside the JVM. */
-  ~CcLines();
+  ~CcLines() {
+    //cout << "++++++++++++++++++++ called destructor of CcLines +++++++++++++++++++++++++" << endl;
+    env->DeleteLocalRef(obj);
+    env->DeleteLocalRef(cls);
+    cls = 0;
+    obj = 0;
+  }
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
 };
@@ -1655,6 +1711,8 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcLines::Clone() {
+  if (cls == 0) RestoreJavaObjectFromFLOB();
+
   jmethodID mid = env->GetMethodID(cls,"copy","()LLines;");
   if (mid == 0) error(__FILE__,__LINE__);
   
@@ -1734,7 +1792,9 @@ FLOB *CcLines::GetFLOB(const int i) {
 }
 
 void CcLines::Initialize() {
-  RestoreJavaObjectFromFLOB();
+  //RestoreJavaObjectFromFLOB();
+  obj = 0;
+  cls = 0;
 }
 
 /*
@@ -1836,6 +1896,7 @@ retrieves the nested list representation of the underlying
 
 */
 bool CcLines::GetNL(ListExpr& le) {
+  if (!obj) RestoreJavaObjectFromFLOB();
   le = Convert_JavaToC_Lines(obj);
   return true;
 }
@@ -1845,12 +1906,14 @@ Destructor of CcLines. This destructor destroys also the
      object inside the JVM. 
 
 */
-CcLines::~CcLines() {
+  /*
+    CcLines::~CcLines() {
   //if (canDelete) {
   env->DeleteLocalRef(obj);
   //Destroy();
   //}
-}
+  }
+  */
 
 /*
   ~Destroy~
@@ -1859,6 +1922,7 @@ CcLines::~CcLines() {
 
 */
 void CcLines::Destroy(){
+  //cout << "++++++++++++++++++++ called destroy of CcLines +++++++++++++++++++++++++" << endl;
   canDelete=true;
 }
 
@@ -1889,7 +1953,8 @@ void CcLines::RestoreFLOBFromJavaObject(){
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
   objectData.Resize(size);
   objectData.Put(0,size,bytes);
-  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
+  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
+  env->DeleteLocalRef(jbytes);
  }
 
 /* 
@@ -1897,6 +1962,7 @@ creates the content of a FLOB from the given Java-Object
 
 */
 void CcLines::RestoreJavaObjectFromFLOB(){
+  if (obj) return;
   // read the data from flob
   cls = env->FindClass("Lines");
   if (cls == 0) {
@@ -1921,8 +1987,10 @@ void CcLines::RestoreJavaObjectFromFLOB(){
   }
   obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
-  env->ReleaseByteArrayElements(jbytes,elems,0);
+  env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   delete [] bytes;
+  bytes = NULL;
+  env->DeleteLocalRef(jbytes);
 }
 
 
@@ -1994,6 +2062,7 @@ Deletion of a CcLines object.
 
 */
 static void DeleteCcLines(Word &w) {
+  //cout << "++++++++++++++++++++ called Delete of CcLines +++++++++++++++++++++++++" << endl;
   delete ((CcLines *)w.addr);
   w.addr = 0;
 }
@@ -2003,6 +2072,7 @@ Close a CcLines object.
 
 */
 static void CloseCcLines(Word & w) {
+  //cout << "++++++++++++++++++++ called Close of CcLines +++++++++++++++++++++++++" << endl;
   delete (CcLines *)w.addr;
   w.addr = 0;
 }
@@ -2161,14 +2231,18 @@ public:
   void SetDefined(bool Defined);
   void CopyFrom(StandardAttribute* right);
   void Destroy();
+  jobject GetObject() {
+    return obj; }
   bool Adjacent(Attribute *arg);
   int NumOfFLOBs();
   FLOB *GetFLOB(const int i);
   void Initialize();
   void Finalize() {
-    cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+    cout << "++++++++++++++++++++ called Finalize of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     env->DeleteLocalRef(cls);
+    obj = 0;
+    cls = 0;
   }
   void RestoreJavaObjectFromFLOB();
   size_t HashValue();
@@ -2192,9 +2266,11 @@ public:
   /* Destructor of CcRegions. This destructor destroys also the 
      object inside the JVM. */
   ~CcRegions() {
-    cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
+    //cout << "++++++++++++++++++++ called destructor of CcRegions +++++++++++++++++++++++++" << endl;
     env->DeleteLocalRef(obj);
     env->DeleteLocalRef(cls);
+    obj = 0;
+    cls = 0;
   }
   /* Returns the pointer to the proper java objet. */
   jobject GetObj();
@@ -2217,6 +2293,8 @@ Inherited method of StandardAttribute
 
 */
 Attribute *CcRegions::Clone() {
+  if (cls == 0) RestoreJavaObjectFromFLOB();
+  
   jmethodID mid = env->GetMethodID(cls,"copy","()LRegions;");
   if (mid == 0) error(__FILE__,__LINE__);
   
@@ -2296,7 +2374,9 @@ FLOB *CcRegions::GetFLOB(const int i){
 }
 
 void CcRegions::Initialize() {
-  RestoreJavaObjectFromFLOB();
+  //RestoreJavaObjectFromFLOB();
+  obj = 0;
+  cls = 0;
 }
 
 
@@ -2365,7 +2445,8 @@ This constructor takes a pointer to a java object which is
 */
 CcRegions::CcRegions(const jobject jobj):objectData(1) {
   /* Get the Class RoseImExport */
-  cout << "constructor(jobject) called" << endl;
+  cout << "CcRegions::constructor(jobject) called" << endl;
+  //Application::PrintStacktrace();
   canDelete = false;
   cls = env->FindClass("Regions");
   if (cls == 0) error(__FILE__, __LINE__);
@@ -2399,6 +2480,15 @@ retrieves the nested list representation of the underlying
 
 */
 bool CcRegions::GetNL(ListExpr& le) {
+  if (!obj) RestoreJavaObjectFromFLOB();
+  //le = nl->TheEmptyList();
+  /*
+    jclass clsS = env->FindClass("java/lang/System");
+    jmethodID midGC = env->GetStaticMethodID(clsS,"gc","()V");
+    if (midGC == 0) {
+    error(__FILE__,__LINE__); }
+    env->CallStaticVoidMethod(clsS,midGC);
+  */
   le = Convert_JavaToC_Regions(obj);
   return true;
 }
@@ -2426,7 +2516,7 @@ Destructor of CcRegions. This destructor destroys also the
 
 */
 void CcRegions::Destroy(){
-  cout << "++++++++++++++++++++ called destroy of CcRegions +++++++++++++++++++++++++" << endl;
+  //cout << "++++++++++++++++++++ called destroy of CcRegions +++++++++++++++++++++++++" << endl;
   canDelete=true;
 }
 
@@ -2455,14 +2545,16 @@ void CcRegions::RestoreFLOBFromJavaObject(){
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
   objectData.Resize(size);
   objectData.Put(0,size,bytes);
-  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
- }
+  env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,JNI_ABORT);
+  env->DeleteLocalRef(jbytes);
+}
 
 /* 
 creates the content of a FLOB from the given Java-Object
 
 */
 void CcRegions::RestoreJavaObjectFromFLOB(){
+  if (obj) return;
   // read the data from flob
   cls = env->FindClass("Regions");
   if (cls == 0) {
@@ -2477,7 +2569,6 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
   objectData.Get(0,size,bytes);
   // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
-  assert ( jbytes != 0);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
   jmethodID mid = env->GetStaticMethodID(cls,"readFrom","([B)LRegions;");
   if(mid == 0){
@@ -2489,7 +2580,7 @@ void CcRegions::RestoreJavaObjectFromFLOB(){
   }
   //obj = jres;
   jbyte* elems = env->GetByteArrayElements(jbytes,0);
-  env->ReleaseByteArrayElements(jbytes,elems,0);
+  env->ReleaseByteArrayElements(jbytes,elems,JNI_ABORT);
   delete [] bytes;
   bytes = NULL;
   env->DeleteLocalRef(jbytes);
@@ -2570,7 +2661,7 @@ Deletion of a CcRegions object.
 
 */
 static void DeleteCcRegions(Word &w) {
-  cout << "++++++++++++++++++++ called Delete of CcRegions +++++++++++++++++++++++++" << endl; 
+  //cout << "++++++++++++++++++++ called Delete of CcRegions +++++++++++++++++++++++++" << endl; 
   delete ((CcRegions *)w.addr);
   w.addr = 0;
 }
@@ -2580,7 +2671,7 @@ Close a CcRegions object.
 
 */
 static void CloseCcRegions(Word & w) {
-  cout << "++++++++++++++++++++ called Close of CcRegions +++++++++++++++++++++++++" << endl;
+  //cout << "++++++++++++++++++++ called Close of CcRegions +++++++++++++++++++++++++" << endl;
   delete (CcRegions *)w.addr;
   w.addr = 0;
 }
@@ -3093,6 +3184,7 @@ static bool callBooleanJMethod(char *name, Type1 *t1, Type2 *t2, char *signature
   /* Call the static method with given name */
   bool result = env->CallStaticBooleanMethod(cls_ROSE, mid_ROSE, 
 					     t1->GetObj(), t2->GetObj());
+  env->DeleteLocalRef(cls_ROSE);
   return result;
 }
 
@@ -3119,6 +3211,7 @@ static int callIntegerJMethod(char *name, Type1 *t1, char *signature) {
 
   /* Call the static method with given name */
   result = env->CallStaticIntMethod(cls_ROSE, mid_ROSE, t1->GetObj());
+  env->DeleteLocalRef(cls_ROSE);
   return result;
 }
 
@@ -3178,6 +3271,9 @@ static double callRationalJMethod(char *name, Type1 *t1, Type2 *t2,
        << "callRationalJMethod<CcLines, CcLines>:" 
        << (time2 - time1) << endl;
 
+  env->DeleteLocalRef(cls_ROSE);
+  env->DeleteLocalRef(cls_Rational);
+
   return (double)numerator / (double)denominator;
 }
 
@@ -3229,6 +3325,9 @@ static double callRationalJMethod(char *name, Type1 *t1, char *signature) {
   numerator = env->CallIntMethod(result, mid_Rational1);
   denominator = env->CallIntMethod(result, mid_Rational2);
   
+  env->DeleteLocalRef(cls_ROSE);
+  env->DeleteLocalRef(cls_Rational);
+
   return (double)numerator / (double)denominator;
 }
 
@@ -3256,6 +3355,8 @@ static double callDoubleJMethod(char *name, Type1 *t1, char *signature) {
 
   /* Call the static method with given name */
   result = (double)env->CallStaticDoubleMethod(cls_ROSE, mid_ROSE, t1->GetObj());
+  env->DeleteLocalRef(cls_ROSE);
+
   return result;
 }
 
@@ -3287,6 +3388,7 @@ static ReturnType *callObjectJMethod
   result = env->CallStaticObjectMethod(cls_ROSE, mid_ROSE, 
 					t1->GetObj(), t2->GetObj());
   if (result == 0) error (__FILE__, name, __LINE__);
+  env->DeleteLocalRef(cls_ROSE);
 
   return new ReturnType(result);
 }
@@ -3317,6 +3419,7 @@ static ReturnType *callObjectJMethod
   /* Call the static method with given name */
   result = env->CallStaticObjectMethod(cls_ROSE, mid_ROSE, t1->GetObj());
   if (result == 0) error (__FILE__, name, __LINE__);
+  env->DeleteLocalRef(cls_ROSE);
 
   return new ReturnType(result);
 }
@@ -3607,7 +3710,7 @@ static double callJMethod_PPd
 (char *name, CcPoints *ccp1, CcPoints *ccp2) {
   return
     callRationalJMethod<CcPoints, CcPoints>
-    (name, ccp1, ccp2, "(LPoints;LPoints;)LRational;");
+    (name, ccp1, ccp2, "(LPoints;LPoints;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3619,7 +3722,7 @@ static double callJMethod_PLd
 (char *name, CcPoints *ccp, CcLines *ccl) {
   return
     callRationalJMethod<CcPoints, CcLines>
-    (name, ccp, ccl, "(LPoints;LLines;)LRational;");
+    (name, ccp, ccl, "(LPoints;LLines;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3631,7 +3734,7 @@ static double callJMethod_PRd
 (char *name, CcPoints *ccp, CcRegions *ccr) {
   return
     callRationalJMethod<CcPoints, CcRegions>
-    (name, ccp, ccr, "(LPoints;LRegions;)LRational;");
+    (name, ccp, ccr, "(LPoints;LRegions;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3643,7 +3746,7 @@ static double callJMethod_LPd
 (char *name, CcLines *ccl, CcPoints *ccp) {
   return
     callRationalJMethod<CcLines, CcPoints>
-    (name, ccl, ccp, "(LLines;LPoints;)LRational;");
+    (name, ccl, ccp, "(LLines;LPoints;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3656,7 +3759,7 @@ static double callJMethod_LLd
   clock_t time1 = clock();
   double result = 
     callRationalJMethod<CcLines, CcLines>
-    (name, ccl1, ccl2, "(LLines;LLines;)LRational;");
+    (name, ccl1, ccl2, "(LLines;LLines;)Ltwodsack/util/number/Rational;");
   
   clock_t time2 = clock();
   cout << "HINWEIS: Verbrauchte Zeit in C++, callJMethod_LLd:" 
@@ -3674,7 +3777,7 @@ static double callJMethod_LRd
 (char *name, CcLines *ccl, CcRegions *ccr) {
   return
     callRationalJMethod<CcLines, CcRegions>
-    (name, ccl, ccr, "(LLines;LRegions;)LRational;");
+    (name, ccl, ccr, "(LLines;LRegions;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3686,7 +3789,7 @@ static double callJMethod_RPd
 (char *name, CcRegions *ccr, CcPoints *ccp) {
   return
     callRationalJMethod<CcRegions, CcPoints>
-    (name, ccr, ccp, "(LRegions;LPoints;)LRational;");
+    (name, ccr, ccp, "(LRegions;LPoints;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3698,7 +3801,7 @@ static double callJMethod_RLd
 (char *name, CcRegions *ccr, CcLines *ccl) {
   return
     callRationalJMethod<CcRegions, CcLines>
-    (name, ccr, ccl, "(LRegions;LLines;)LRational;");
+    (name, ccr, ccl, "(LRegions;LLines;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3710,7 +3813,7 @@ static double callJMethod_RRd
 (char *name, CcRegions *ccr1, CcRegions *ccr2) {
   return
     callRationalJMethod<CcRegions, CcRegions>
-    (name, ccr1, ccr2, "(LRegions;LRegions;)LRational;");
+    (name, ccr1, ccr2, "(LRegions;LRegions;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3722,7 +3825,7 @@ static double callJMethod_Pd(char *name, CcPoints *ccp) {
   debug(__LINE__);
   return
     callRationalJMethod<CcPoints>
-    (name, ccp, "(LPoints;)LRational;");
+    (name, ccp, "(LPoints;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3734,7 +3837,7 @@ static double callJMethod_Ld(char *name, CcLines *ccl) {
   debug(__LINE__);
   return
     callRationalJMethod<CcLines>
-    (name, ccl, "(LLines;)LRational;");
+    (name, ccl, "(LLines;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -3746,7 +3849,7 @@ static double callJMethod_Rd(char *name, CcRegions *ccr) {
   debug(__LINE__);
   return
     callRationalJMethod<CcRegions>
-    (name, ccr, "(LRegions;)LRational;");
+    (name, ccr, "(LRegions;)Ltwodsack/util/number/Rational;");
 }
 
 /*
@@ -4452,6 +4555,7 @@ static int rr_minusFun(Word* args, Word& result, int message,
   //real boolean value)
   //cout << "HERE" << endl;
   //exit(1);
+  env->DeleteLocalRef(cls_ROSE);
   return 0;
 }
 
@@ -5246,13 +5350,19 @@ static int pp_distFun(Word *args, Word &result, int message,
   CcPoints *ccp1 = ((CcPoints *)args[0].addr);
   CcPoints *ccp2 = ((CcPoints *)args[1].addr);
 
+  cout << "trying to restore objects for pp_dist..:" << endl;
+
+  if (!ccp1->GetObject()) ccp1->RestoreJavaObjectFromFLOB();
+  if (!ccp2->GetObject()) ccp2->RestoreJavaObjectFromFLOB();
+
+  cout << "finished restoring object for pp_dist" << endl;
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
   
   ((CcReal *)result.addr)->Set
-    (true, (float)callJMethod_PPd
-     ("pp_dist", ccp1, ccp2)); 
+    (true, (float)callJMethod_PPd ("pp_dist", ccp1, ccp2)); 
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -5450,13 +5560,15 @@ static int rr_distFun(Word *args, Word &result, int message,
   CcRegions *ccr1 = ((CcRegions *)args[0].addr);
   CcRegions *ccr2 = ((CcRegions *)args[1].addr);
 
+  if (!ccr1->GetObject()) ccr1->RestoreJavaObjectFromFLOB();
+  if (!ccr2->GetObject()) ccr2->RestoreJavaObjectFromFLOB();
+
   result = qp->ResultStorage(s);	
   //query processor has provided
   //a CcBool instance to take the result
   
   ((CcReal *)result.addr)->Set
-    (true, (float)callJMethod_RRd
-     ("rr_dist", ccr1, ccr2)); 
+    (true, (float)callJMethod_RRd("rr_dist", ccr1, ccr2)); 
 
   //the first argument says the boolean
   //value is defined, the second is the
@@ -7169,7 +7281,7 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   env = jvminit->getEnv();
   jvm = jvminit->getJVM();
 
- jclass clsRatFac = env->FindClass("twodsack/util/number/RationalFactory");
+  jclass clsRatFac = env->FindClass("twodsack/util/number/RationalFactory");
   if (clsRatFac == 0) error(__FILE__,__LINE__);
 
   jmethodID midRatFac = env->GetStaticMethodID
@@ -7190,5 +7302,7 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 
   nl = nlRef;
   qp = qpRef;
+  env->DeleteLocalRef(clsRatFac);
+
   return (&roseAlgebra);
 }
