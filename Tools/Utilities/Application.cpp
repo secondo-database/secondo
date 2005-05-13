@@ -30,6 +30,8 @@ Nov 2004 M. Spiekermann. A global instance of class CMsg is defined
 in this file to be used by an application to transmit Informations
 to files, screen or (in case of the server) to a client. 
 
+May 2005 M. Spiekermann. Demangling of stack trace improved.
+
 */
 
 #include <cstdio>
@@ -241,65 +243,61 @@ Application::PrintStacktrace(void)
   int depth = backtrace(buffer,256);
   char** STP = backtrace_symbols(buffer,depth);
 
-  const string tenStars = " ********** ";
-  const string stackTrace = "Stacktrace";
+  bool runaddr2line = RTFlag::isActive("DEBUG:DemangleStackTrace");
 
-  cout << tenStars << " Begin " << stackTrace << tenStars << endl;
+  string cmdStr = "addr2line -C auto -fse SecondoTTYBDB ";
+  string addressList = "";
+
   for(int i=0;i<depth;i++)
   {
     string str(STP[i]);
-
-    string cmd1 = "addr2line -e SecondoTTYBDB ";
-    string cmd2 = "c++filt ";
     string address = "";
-    string symbolName = "";
 
     // extract address information
     unsigned int p1 = str.find_last_of("[");
     unsigned int p2 = str.find_last_of("]");
-    if (p1==string::npos || p2==string::npos) {
 
-      cmd1 = "";
+    bool addressFound = (p1 != string::npos) && (p2 != string::npos);
 
-    } else {
-      
+    if ( addressFound ) {
       address = str.substr(p1+1,p2-p1-1);
-      cmd1 += address;
+      addressList += (address + " ");
     }
 
-    // extract demangled C++ function name
-    p1 = str.find("(");
-    p2 = str.find_last_of("+");
-
-    if (p1==string::npos || p2==string::npos) 
-    {
-      cmd2 = "";
-
-    } else {
-
-      symbolName = str.substr(p1+1,p2-p1-1);
-      cmd2 += symbolName;
-    }
-
-    if ( RTFlag::isActive("DEBUG:TranslateStacktrace") )
-    {
-      if ( cmd1 != "" )
-        system(cmd1.c_str());
-      if ( cmd2 != "" )
-        system(cmd2.c_str());
-
-    } else {
-     
-      if ( (cmd1 == "") || (cmd2 == "") ) { 
-        cout << str << endl;
+    if ( !addressFound || !runaddr2line ) { 
+      cout << str << endl;
+    } 
+  }
+  if ( runaddr2line )
+  {
+    FILE* fp = 0;
+    char line[2048];
+    if ( addressList != "" ) {
+      fp = popen( (cmdStr + addressList).c_str(), "r" );
+      if (fp == 0) {
+        cerr << "popen failed! Could not demangle stack trace!" << endl;
       } else {
-        cout << symbolName << " " << address << endl;
+        while ( true ) { 
+
+         if ( fgets(&line[0],1024,fp) ) { // function name
+          string fname(line);
+          cout << " " << fname.substr(0, fname.length()-1);
+         } else {
+          break;
+         }
+       
+         if ( fgets(&line[0],1024,fp) ) { // file name
+          string fname(line);
+          cout << " --> [ " << fname.substr(0, fname.length()-1) << " ]" << endl << endl;
+         } else {
+          break;
+         }
+
+        }
+      pclose(fp);
       }
     }
   }
-  cout << tenStars << " End " << stackTrace << tenStars << endl;
-
-
   free(STP);
 }
 
@@ -312,11 +310,13 @@ abort the process if not handled otherwise.
 
 */
   Counter::reportValues();
-  cout << endl << " ***************************************";
+  cout << endl << " ********************************************";
   cout << endl << " **";
-  cout << endl << " ** Signal #" << signalStr[sig] << " caught! ";
-  cout << endl << " **" << endl;
+  cout << endl << " ** Signal #" << signalStr[sig] << " caught! Printing Stack ...";
+  cout << endl << " **";
+  cout << endl << " ********************************************" << endl;
   PrintStacktrace();
+  cout << endl << " *********** End Stack **********************" << endl;
   if ( Application::appPointer->abortMode )
   {
     if ( Application::appPointer->AbortOnSignal( sig ) )
