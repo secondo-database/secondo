@@ -1103,8 +1103,20 @@ public class CommandPanel extends JScrollPane {
 
 
       int qrs=History.size();
-      if((mod&e.SHIFT_DOWN_MASK)!=0)
+      if(keyCode==KeyEvent.VK_HOME){
+         SystemArea.setCaretPosition(aktPos);
+         e.setKeyCode(0);
          return;
+      }
+
+
+      if((mod&e.SHIFT_DOWN_MASK)!=0){
+         if(keyCode==KeyEvent.VK_DOWN || keyCode==KeyEvent.VK_PAGE_DOWN ||
+            keyCode==KeyEvent.VK_UP || keyCode==KeyEvent.VK_PAGE_UP) {
+             e.setKeyCode(0);
+         }
+         return;
+      }
       if (qrs==0) return;
       if ((keyCode==KeyEvent.VK_DOWN) &&(HistoryPos <qrs)) HistoryPos++;
       else if ((keyCode==KeyEvent.VK_UP) &&(HistoryPos >0))	HistoryPos--;
@@ -1116,7 +1128,7 @@ public class CommandPanel extends JScrollPane {
       }
       else{
         synchronized(SyncObj){
-         SystemArea.replaceSelection((String)History.elementAt(HistoryPos));
+          SystemArea.replaceSelection((String)History.elementAt(HistoryPos));
         }
         synchronized(SyncObj){ 
           int length = SystemArea.getDocument().getLength();
