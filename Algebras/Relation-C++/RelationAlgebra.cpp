@@ -57,6 +57,8 @@ file.
 #include "Algebra.h"
 #include "StandardTypes.h"
 
+#include "LogMsg.h"
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -1637,6 +1639,13 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
+
+      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      cmsg.info("RA:ShowMemInfo") 
+        << "Product.MAX_MEMORY (" 
+        << MAX_MEMORY/1024 << " MB): " << endl;
+      cmsg.send();
+
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, r);
       pli = new ProductLocalInfo;
@@ -1648,8 +1657,7 @@ Product(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if(qp->Received(args[1].addr))
       {
-//        pli->rightRel = new TupleBuffer( qp->MemoryAvailableForOperator() );
-        pli->rightRel = new TupleBuffer( 2 * 1024 * 1024 );
+        pli->rightRel = new TupleBuffer( MAX_MEMORY );
       }
       else
       {

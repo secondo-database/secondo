@@ -56,6 +56,8 @@ called Relational Algebra and Extended Relational Algebra.
 #include "CPUTimeMeasurer.h"
 #include "StandardTypes.h"
 #include "Counter.h"
+#include "LogMsg.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -4277,6 +4279,7 @@ struct GroupByLocalInfo
 {
   Tuple *t;
   TupleType *resultTupleType;
+  long MAX_MEMORY;
 };
 
 int GroupByValueMapping
@@ -4313,6 +4316,7 @@ int GroupByValueMapping
   switch(message)
   {
     case OPEN:
+      
       // Get the first tuple pointer and store it in the
       // GroupBylocalInfo structure
       qp->Open (args[0].addr);
@@ -4323,7 +4327,15 @@ int GroupByValueMapping
         gbli->t = (Tuple*)sWord.addr;
         ListExpr resultType = GetTupleResultType( supplier );
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
+        gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
         local = SetWord(gbli);
+      
+        cmsg.info("ERA:ShowMemInfo") 
+          << "GroupBy.MAX_MEMORY (" 
+          << gbli->MAX_MEMORY / 1024 << " MB): = " 
+          << gbli->MAX_MEMORY / gbli->t->GetMemorySize() 
+          << " Tuples" << endl;
+        cmsg.send();
       }
       else
       {
@@ -4346,7 +4358,7 @@ int GroupByValueMapping
         Tuple* copyt = t->Clone( true );
         gbli->t->DeleteIfAllowed();
         gbli->t = 0;
-        tp = new TupleBuffer();
+        tp = new TupleBuffer(gbli->MAX_MEMORY);
         tp->AppendTuple(copyt);
         copyt->DeleteIfAllowed();
       }
@@ -4421,7 +4433,7 @@ int GroupByValueMapping
         t->PutAttribute(numberatt + i, ((Attribute*)value.addr)->Clone()) ;
       }
       result = SetWord(t);
-//      tp->Clear();
+      // tp->Clear();
       delete tp;
       return YIELD;
 
@@ -4757,10 +4769,14 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN :
     {
+      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      cmsg.info("ERA:ShowMemInfo") << "SymmProduct.MAX_MEMORY (" 
+                                   << MAX_MEMORY/1024 << " MB): " << endl;
+      cmsg.send();
       pli = new SymmProductLocalInfo;
-      pli->rightRel = new TupleBuffer( 2 * 1024 * 1024 );
+      pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
       pli->rightIter = 0;
-      pli->leftRel = new TupleBuffer( 2 * 1024 * 1024 );
+      pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
       pli->leftIter = 0;
       pli->right = true;
       pli->currTuple = 0;

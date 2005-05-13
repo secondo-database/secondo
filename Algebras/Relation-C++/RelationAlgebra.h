@@ -627,7 +627,7 @@ for the Main Memory Relational Algebra and for the Persistent Relational Algebra
 class TupleBuffer : public GenericRelation
 {
   public:
-    TupleBuffer( const size_t maxMemorySize = 33554432 );
+    TupleBuffer( const size_t maxMemorySize = 32 * 1024 * 1024 );
 /*
 The constructor. Creates an empty tuple buffer.
 

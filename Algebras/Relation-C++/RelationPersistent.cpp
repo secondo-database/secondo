@@ -97,6 +97,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "FLOB.h"
 #include "RelationPersistent.h"
+#include "LogMsg.h"
 
 extern NestedList *nl;
 
@@ -689,6 +690,11 @@ The total size occupied by the tuples in the buffer.
 TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
 privateTupleBuffer( new PrivateTupleBuffer( maxMemorySize ) )
 {
+  if (RTFlag::isActive("RA:TupleBufferInfo")) {
+    cmsg.info() << "New Instance of TupleBuffer with size " 
+                << maxMemorySize/1024 << " kb" << endl;
+    cmsg.send();
+  }
 }
 
 TupleBuffer::~TupleBuffer()
@@ -748,7 +754,12 @@ void TupleBuffer::AppendTuple( Tuple *t )
     }
     else
     {
-      privateTupleBuffer->diskBuffer = new Relation( t->GetTupleType() );
+      if (RTFlag::isActive("RA:TupleBufferInfo")) {
+
+        cmsg.info() << "Changing TupleBuffer's state from inMemory -> !inMemory" << endl;
+        cmsg.send();
+        privateTupleBuffer->diskBuffer = new Relation( t->GetTupleType() );
+      }
 
       vector<Tuple*>::iterator iter = privateTupleBuffer->memoryBuffer.begin();
       while( iter != privateTupleBuffer->memoryBuffer.end() )
