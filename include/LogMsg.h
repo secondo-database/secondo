@@ -48,6 +48,9 @@ resulting strings. This caused a hard to find bug (Value = is a whitespace) in
 nested list text atoms since value 0 is the only one which is used internally
 in text records to distinguish between empty and non empty space. 
 
+May 2005, M. Spiekermann. cmsg.info overloaded.
+
+
 1.1 Overview
 
 This file declares a class ~RTFlag~ (Runtime Flag) and a preprocessor Macro
@@ -172,6 +175,7 @@ public:
     fp->open(logFileStr.c_str()); 
     buffer.str("");
     allErrors.str("");
+    devnull.str("");
   }
   ~CMsg() // close open files
   {
@@ -209,6 +213,14 @@ public:
     return buffer; 
   }
 
+  inline ostream& info(const string& key) {
+  
+    if (RTFlag::isActive(key)) {
+      stdOutput = 1; return buffer;
+    } else { 
+      stdOutput = 0; return devnull; 
+    }
+  }
   inline ostream& info()    { stdOutput = 1; return buffer; }
   inline ostream& warning() { stdOutput = 1; return buffer; }
   inline ostream& error()   { stdOutput = 2; return buffer; }  
@@ -216,18 +228,30 @@ public:
   inline void send() {
   
     //buffer << ends;
-    if ( stdOutput == 3 ) {
+    switch (stdOutput) { 
+
+    case 3:
+    {
       (*fp) << buffer.str();
+       break;
     }
-    else {
-    
-      if ( stdOutput == 1) {
-       cout << buffer.str();
-      } 
-      else {
-       allErrors << buffer.str();
-      }
+    case 1: 
+    {
+      cout << buffer.str();
+      break;
     }
+    case 0:
+    {
+      devnull.str("");
+      devnull.clear();
+      break;
+    } 
+    default :
+    {
+      allErrors << buffer.str();
+    }
+    }
+
     buffer.str("");
     buffer.clear();
   }
@@ -247,6 +271,7 @@ private:
   ofstream* fp;
   stringstream buffer;
   stringstream allErrors;
+  stringstream devnull;
   const string logFileStr;
   map<string,ofstream*> files;
 
