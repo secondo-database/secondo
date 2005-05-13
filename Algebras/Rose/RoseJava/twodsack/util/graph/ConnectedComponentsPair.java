@@ -1,3 +1,10 @@
+/*
+ * ConnectedComponentsPair.java 2005-05-12
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.graph;
 
 import twodsack.set.*;
@@ -7,35 +14,53 @@ import twodsack.util.collectiontype.*;
 import twodsack.util.comparator.*;
 import java.util.*;
 
-public class ConnectedComponentsPair {
-    //This data structure represents the connected components of a graph.
-    //It consists of two lists. The first list is a LinkedList named compVertices, 
-    //which has a MultiSet of vertices belonging to one connected component (cc) as elements.
-    //The second list is a LinkedList named compEdges, which consists of MultiSets of
-    //edges belonging to the cc's.
-    //
-    //actually, the data structures look as follows:
-    //compVertice:
-    //SetOfVertices-SetOfVertices-SetOfVertices, so we have three cc's here
-    //compEdges:
-    //SetOfEdges-SetOfEdges-SetOfEdges, and we have also three cc's here
 
-    //members
+/**
+ * An instance of the ConnectedComponentsPair class represents the connected components of a graph. The graph itself is an instance of the
+ * {@link twodsack.util.graph} class. A ConnectedComponentsPair instance consists of two lists. The first list is a LinkedList named
+ * compVertices, which has as elements MultiSet(s) of vertices belonging to one connected component. The second list is a LinkedList with
+ * the name compEdges, which consists of MultiSets of edges belonging to the connected components. Both lists have always the same length
+ * and they are somehow connected: If there is only one entry in compVertices' element0, compEdges element0 cannot have an entry. But, for
+ * two entries in comVertices' element1, compEdges' element1 must have exactly one entry.
+ */
+public class ConnectedComponentsPair {
+    /*
+     * fields
+     */
     public LinkedList compVertices;
     public LinkedList compEdges;
 
-    //constructors
+    /*
+     * constructors
+     */
+    /**
+     * Constructs an 'empty' instance.
+     * All fields are initialized to empty LinkedList(s).
+     */
     public ConnectedComponentsPair() {
 	this.compVertices = new LinkedList();
 	this.compEdges = new LinkedList();
     }
 
+
+    /**
+     * Constructs a new instance using the passed LinkedList(s).
+     *
+     * @param v the list of MultiSets for connected components for vertices
+     * @param e the list of MultiSets for connected components for edges 
+     */
     public ConnectedComponentsPair(LinkedList v, LinkedList e) {
 	this.compVertices = v;
 	this.compEdges = e;
     }
 
-    //methods
+    
+    /*
+     * methods
+     */
+    /**
+     * Prints the data of <i>this</i> to standard output.
+     */
     public void print() {
 	System.out.println("\nconnected components");
 	System.out.println("vertices:");
@@ -55,12 +80,15 @@ public class ConnectedComponentsPair {
     }//print
 
     
+    /**
+     * Converts the list of MultiSet(s) for vertices to an ElemMultiSetList.
+     * 
+     * @return the converted list 
+     */
     public ElemMultiSetList verticesToEMSList() {
-	//extracts the data from LinkedList and returns it as ElemMultiSetList
 	ListIterator lit1 = compVertices.listIterator(0);
 	Iterator lit2;
 	MultiSet actCC;
-	//Vertex actV;
 	ElemMultiSet actEL;
 	ElemMultiSetList retList = new ElemMultiSetList();
 	
@@ -76,8 +104,12 @@ public class ConnectedComponentsPair {
     }//end method verticesToEMSList
 
 
+    /**
+     * Converts the list of MultiSet(s) for edges to a PairMultiSetList.
+     *
+     * @return the converted list
+     */
     public PairMultiSetList edgesToPairListList() {
-	//extract the data from LinkedList and returns it as PairListList
 	ListIterator lit1 = compEdges.listIterator(0);
 	Iterator lit2;
 	MultiSet actCC;

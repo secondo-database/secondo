@@ -1,14 +1,27 @@
+/*
+ * IvlComparator.java 2005-05-12
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.comparator;
 
 import twodsack.setelement.datatype.*;
 import twodsack.util.collectiontype.*;
 
-
 import java.util.*;
 
+/**
+ * This class implements a comparator for Intervals. It implements only one single method and is used with any kind of collections
+ * that need comparators. The objects that are accepted by the compare() method are of type MultiSetEntry. The objects stored in such
+ * a MultiSetEntry must be of type Interval. If not, an exception is thrown.<p>
+ * The comparator's constructor needs a flag when construced: The <i>meet</i> flag indicates, how intervals which have the same
+ * x coordinate are sorted. If meet==true, for two such intervals which have the same x coordinate and one is a left and the other
+ * is a right interval, the left interval is defined to be smaller than the other one. If meet==true, the right interval is defined
+ * to be smaller than the left interval.
+ */
 public class IvlComparator implements Comparator {
-    //This method is ment to be used in SetOps.finalSort.
-
     /*
      * fields
      */
@@ -24,6 +37,11 @@ public class IvlComparator implements Comparator {
     private IvlComparator() {}
 
 
+    /**
+     * Constructs a new IvlComparator instance with a value for the flag <i>meet</i>.
+     *
+     * @param meet flag which tells how intervals with the same x coordinate shall be sorted
+     */
     public IvlComparator(boolean meet) {
 	this.meet = meet;
     }
@@ -32,8 +50,25 @@ public class IvlComparator implements Comparator {
     /*
      * methods
      */
-    public int compare(Object ino1, Object ino2) {
-	//overwrites the original method
+    /**
+     * Compares two objects and returns one of {0, 1, -1}.
+     * Compares the objects stored in the MultiSetEntry types. For the compare operation, some rules are defined:
+     * <p><ol>
+     * <li>An interval with a smaller x coordinate is always smaller than the other.
+     * <li>"blue" is considered to be smaller than "green".
+     * <li>If meet==true intervals are always sorted that way, that the most possible 'overlaps' of intervals occur; if meet==false
+     * intervals are sorted such, that a minimal number of 'overlaps' occurs.
+     * </ol>
+     * Returns 0, if both intervals are equal.<p>
+     * Returns -1, if ino1.o is smaller.<p>
+     * Returns 1 otherwise
+     *
+     * @param ino1 the first object
+     * @param ino2 the second object
+     * @returns one of  {0, 1, -1} as int
+     * @throws WrongTypeException if ino1.o or ino2.o is not of type Interval
+     */
+    public int compare(Object ino1, Object ino2) throws WrongTypeException {
 	//For three segments s1=(1,1,3,1),s2=(3,0,3,2),s3=(3,1,5,1), the order is
 	//for meet=false (s1.r/l means right/left interval border):
 	//s1.l,s1.r,s2.l,s2.r,s3.l,s3.r
@@ -44,8 +79,6 @@ public class IvlComparator implements Comparator {
 	   (((MultiSetEntry)ino2).value instanceof Interval)) {
 	    Interval i1 = (Interval)(((MultiSetEntry)ino1).value);
 	    Interval i2 = (Interval)(((MultiSetEntry)ino2).value);
-
-	    //System.out.println("\ncomparing:"); i1.print(); i2.print();
 
 	    if (meet) {
 		if (!i1.x.equal(i2.x)) return i1.comp(i2);
@@ -75,22 +108,10 @@ public class IvlComparator implements Comparator {
 				     (i2.mark == "blueright" || i2.mark == "greenright"))
 				return -1;
 			    else return 1;
-				
-
-			    /*
-			    if ((i1.mark == "blueleft" && i2.mark == "greenleft") ||
-				(i1.mark == "blueleft" && i2.mark == "greenright") ||
-				(i1.mark == "blueright" && i2.mark == "greenright")) return -1;
-			    else if (i1.mark == i2.mark) { return i1.comp(i2); }
-			    //else return 1;
-			    else if ((i1.mark == "blueleft" && i2.mark == "blueright") ||
-				     (i1.mark == "greenleft" && i2.mark == "greenright")) return -1;
-			    else return 1;
-			    */
 			}//else if
 
 			else if (i1.buddyOnSameX && !i2.buddyOnSameX)
-			    if (i1.mark == "blueleft" || i1.mark == "greenleft") return -1;//1;
+			    if (i1.mark == "blueleft" || i1.mark == "greenleft") return -1;
 			    else return 1;//-1;
 		    }//else
 		}//else
@@ -117,8 +138,8 @@ public class IvlComparator implements Comparator {
 				((i1.mark == "blueright" || i1.mark == "greenright") &&
 				 (i2.mark == "blueright" || i2.mark == "greenright")))
 				return i1.comp(i2);
-			    else if (i1.mark == "blueleft" || i1.mark == "greenleft") return 1;//-1;
-			    else return -1;//1;
+			    else if (i1.mark == "blueleft" || i1.mark == "greenleft") return 1;
+			    else return -1;
 			
 			else if (i1.buddyOnSameX && !i2.buddyOnSameX) 
 			    if (i2.mark == "blueleft" || i2.mark == "greenleft") return -1;
@@ -132,4 +153,5 @@ public class IvlComparator implements Comparator {
 	    throw new WrongTypeException("Exception in IvlComparator: Expected type Interval - found: "+((MultiSetEntry)ino1).value.getClass()+"/"+((MultiSetEntry)ino2).value.getClass());
 	return 0;
     }//end method compare
+
 }//end class IvlComparator

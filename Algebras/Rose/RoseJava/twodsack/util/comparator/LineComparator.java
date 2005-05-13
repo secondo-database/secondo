@@ -1,3 +1,10 @@
+/*
+ * LineComparator.java 2005-05-12
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.comparator;
 
 import twodsack.setelement.datatype.*;
@@ -6,9 +13,15 @@ import twodsack.util.number.*;
 import java.util.*;
 import java.io.*;
 
-public class LineComparator implements Comparator,Serializable{
 
-    //fields
+/**
+ * A LineComparator is used to sort ojects of type Line and is usually passed to a constructor of a collection which has to be sorted using
+ * the compare() method of this class.
+ */
+public class LineComparator implements Comparator,Serializable{
+    /*
+     * fields
+     */
     public Rational x;
     public Rational yValue;
     public Line line;
@@ -16,24 +29,36 @@ public class LineComparator implements Comparator,Serializable{
     static Rational bt = RationalFactory.constRational(0);
     static Rational b1 = RationalFactory.constRational(0);
     static Rational b2 = RationalFactory.constRational(0);
-    //private Segment sweepLine;
 
-    //constructors
+
+    /*
+     * constructors
+     */
+    /**
+     * Cosntructs an 'empty' LineComparator.
+     * The x,yValue and line fields are set to NULL.
+     */
     public LineComparator() {
 	this.x = null;
 	this.yValue = null;
 	this.line = null;
-	//this.sweepLine = new Segment();
     }
 	
-    public int compare(Object ino1, Object ino2) {
-	//ino1 and ino2 shall be two Line instances
-	//The point where the lines are intersecting the y-axis are computed.
-	//Then,
-	//-1 is returned, if the intersection point of ino1 and the y-axis is smaller
-	//   than the intersection point of ino2 and the y-axis.
-	//0  is returned, if both intersection points are equal and
-	//1  otherwise
+
+    /**
+     * Compares two objects and returns one of {0, 1, -1}.
+     * Both objects must be of type Line. Then, the intersection point of both lines with the y axis is computed (if any).<p>
+     * Return 0, if both intersection points are equal.<p>
+     * Return -1, if the intersection point of ino1 and the y axis is smaller than the intersection point of ino2 and the y axis.<p>
+     * Return 1 otherwise
+     * Note, that the y axis is not really considered to lie at position x = 0, but depends on the x coordinate in the classes x field.
+     *
+     * @param ino1 the first object
+     * @param ino2 the second object
+     * @return one of {0, 1, -1} as int
+     * @throws WronTypeException if ino1 or ino2 is not of type Line
+     */
+    public int compare(Object ino1, Object ino2)  throws WrongTypeException {
 	if(ino1 instanceof Line &&
 	   ino2 instanceof Line) {
 	    Line l1 = (Line)ino1;
@@ -45,21 +70,8 @@ public class LineComparator implements Comparator,Serializable{
 		else if (l2.vert && !l1.vert) return -1;
 		else return l1.seg.getEndpoint().compY(l2.seg.getEndpoint());
 	    }//if
-	    /*
-	      sweepLine.set(new Point(this.x,l1.seg.rect().lly.minus(1)), new Point(this.x,l1.seg.rect().uly.plus(1)));
-	      Rational b1 = (sweepLine.intersection(l1.seg)).y;
-	    */
-	    //Rational b1 = this.yValue;
 	    this.b1.assign(evaluateLineFunc(l1));
-	    //this.b1 = evaluateLineFunc(l1);
-	    /*
-	      sweepLine.set(new Point(this.x,l2.seg.rect().lly.minus(1)), new Point(this.x,l2.seg.rect().uly.plus(1)));
-	      Rational b2 = (sweepLine.intersection(l2.seg)).y;
-	    */
 	    this.b2.assign(evaluateLineFunc(l2));
-	    //this.b2 = evaluateLineFunc(l2);
-	    //System.out.println("sweepLine: "+sweepLine);
-	    //System.out.println("b1: "+b1+", b2: "+b2+", m1: "+l1.m+", m2: "+l2.m);
 	    if (b1.less(b2)) return -1;
 	    if (b1.greater(b2)) return 1;
 	    if (l1.m.less(l2.m)) return -1;
@@ -74,23 +86,24 @@ public class LineComparator implements Comparator,Serializable{
     }//end method compare
     
 
+    /**
+     * Sets the x field of the comparator.
+     * The x field defines the position of the y axis used in the compare() method.
+     *
+     * @param the new x value
+     */
     public void setX (Rational x) {
 	this.x = x;
     }//end method setX
 
-    /*
-    public void setLine (Line l) {
-	//sets this.line to l and computes actual y-value for this.x
-	this.line = l;
-	if (this.x.equal(line.seg.getStartpoint().x))
-	    this.yValue = line.seg.getStartpoint().y;
-	else 
-	    this.yValue = line.m.times(this.x).plus(line.b);
-    }//end method setLine
-    */
 
+    /**
+     * For a given Line object l, evaluates the function f(x) = mx + b and returns the result.
+     * The actual x value stored in the x field is used for the computation.
+     * @param l the line 
+     * @return the reult of the evaluation as Rational
+     */
     private Rational evaluateLineFunc(Line l) {
-	//assumes that seg is a line and computes the y value for a given x
 	Rational t1 = l.m.times(this.x,this.bt).plus(l.b,this.bp);
 	return t1;
     }//end method evaluateLineFunc

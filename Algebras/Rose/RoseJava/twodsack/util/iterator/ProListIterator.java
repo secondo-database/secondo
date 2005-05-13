@@ -1,18 +1,41 @@
+/*
+ * ProListIterator.java 2005-05-12
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.iterator;
 
 import twodsack.util.collection.*;
 import twodsack.util.collectiontype.*;
 import java.util.*;
 
+
+/**
+ * The ProListIterator is a list iterator that implements the ProIterator interface. It is used for the ProLinkedList type as has the main advantage
+ * over standard iterators that it can be reset. By calling the method {@link #reset} the iterator is set to the beginning of the list.
+ */
 public class ProListIterator implements ProIterator {
-    //members
+    /*
+     * fields
+     */
     protected Entry lastReturned;
     protected Entry next;
     protected int nextIndex;
     protected int expectedModCount;
     protected ProLinkedList pll;
-    
-    //constructors
+
+
+    /*
+     * constructors
+     */
+    /**
+     * Constructs a new iterator for inPll starting at index <i>index</i>.
+     *
+     * @param inPll the list for which the iterator is constructed
+     * @param index the start index for the iterator
+     */
     public ProListIterator (ProLinkedList inPll, int index) {
 	this.pll = inPll;
 	this.lastReturned = pll.head;
@@ -33,7 +56,10 @@ public class ProListIterator implements ProIterator {
 	}//else
     }    
     
-    //methods
+
+    /*
+     * methods
+     */
     public boolean hasNext() {
 	return nextIndex != pll.size;
     }//end method hasNext

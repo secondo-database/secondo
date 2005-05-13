@@ -1,3 +1,10 @@
+/*
+ * Edge.java 2005-05-12
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.graph;
 
 import twodsack.setelement.*;
@@ -5,35 +12,66 @@ import twodsack.setelement.datatype.*;
 import twodsack.setelement.datatype.basicdatatype.*;
 import twodsack.util.*;
 
-class Edge implements ComparableMSE {
-    
+/**
+ * This class implements the Edge type for {@link twodsack.util.graph}. It is the counterpart to the {@link twodsack.util.vertex}. An edge
+ * consists of two objects of type Vertex.
+ */
+public class Edge implements ComparableMSE {
+    /*
+     * fields
+     */
     public static final double EPSILON = 0.01; //used in method rat
-
-    //members
     public Vertex first;
     public Vertex second;
 
-    //constructors
-    Edge() {
+    
+    /*
+     * constructors
+     */
+    /**
+     * The 'empty' constructor.
+     * Sets first,second fields to NULL.
+     */
+    public Edge() {
 	first = null;
 	second = null;
     }
 
-    Edge(Vertex v1, Vertex v2) {
+
+    /**
+     * Constructs a new Edge instance with two vertices.
+     *
+     * @param v1 the first vertex
+     * @param v2 the second vertex
+     */
+    public Edge(Vertex v1, Vertex v2) {
 	first = v1.copy();
 	second = v2.copy();
     }
 
-    //methods
+
+    /*
+     * methods
+     */
+    /**
+     * Prints the data of <i>this</i> to standard output.
+     */
     public void print() {
 	System.out.println("Edge:");
 	this.first.print();
 	this.second.print();
     }//end method print
 
-    public Vertex theOtherOne(Vertex inVertex) {
-	//returns that one of both vertices which is
-	//not equal to inVertex
+
+    /**
+     * Returns that vertex of <i>this</i> which is not equal to the passed <i>inVertex</i>.
+     * Uses Vertex.compare() method for comparison.
+     *
+     * @param inVertex the vertex to compare with
+     * @return the 'other' vertex
+     * @throws NoEqualVertexFoundException if inVertex is not equal to one of the vertices of <i>this</i>
+     */
+    public Vertex theOtherOne(Vertex inVertex) throws NoEqualVertexFoundException {
 	if (this.first.equal(inVertex)) return this.second;
 	else if (this.second.equal(inVertex)) return this.first;
 	else {
@@ -42,11 +80,21 @@ class Edge implements ComparableMSE {
     }//end method theOtherOne
 
 
-    public int compare(ComparableMSE inE) {
-	//returns -1,0,1 w.r.t. order of halfsegments(!)
-	//This special order is defined in the ROSE
-	//implementation paper
-	
+    /**
+     * Compares two edges and returns one of {0, 1, -1}.
+     * This method can <u>only</u> be used for two egdes which have vertices of type Point. Then, it defines an order on those pairs of 
+     * points which are assumed to represent segments. The order defined is an order for halfsegments which is defined in the ROSE implementation
+     * paper.<p>
+     *
+     * Returns 0, if both segments are equal.<p>
+     * Returns -1, if <i>this</i> segment is smaller than <i>inE</i>.segment.<p>
+     * Returns 1 otherwise.
+     *
+     * @param inE the 'in' edge
+     * @return one of {0, 1, -1} as int
+     * @throws WrongTypeException
+     */
+    public int compare(ComparableMSE inE) throws WrongTypeException {
 	Edge inEdge;
 
 	if (!(inE instanceof Edge)) throw new WrongTypeException("Expected "+this.getClass()+", found "+inE.getClass());
@@ -113,15 +161,14 @@ class Edge implements ComparableMSE {
 	return 0;
     }//end method compare
 
-    private boolean rot (Edge inEdge) {
-	//supportive method for compare
-	//returns true if inEdge is rot(atable)
-	//on this in a degree A with 0 < A <= 180
-	//CAUTION: This only works for Edges/Vertices
-	//with Points as values! Hence an edge represents
-	//a segment.
-	//System.out.println("entering Edge.rot...");
 
+    /**
+     * Returns true, if inEdge is rot(atable) on <i>this</i> in a degree A with 0 < A <= 180.
+     *
+     * @param inEdge the 'in' edge
+     * @return true, if inEdge is rotatable in the described way
+     */
+    private boolean rot (Edge inEdge) {
 	if (!(inEdge.first.value instanceof Point)) {
 	    System.out.println("Error in Edge.rot: this method only works with Point(s) --> found "+inEdge.first.value.getClass()+".");
 	    System.out.println("execution terminated.");
