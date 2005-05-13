@@ -57,20 +57,22 @@ SecondoPort=1234
 # (for debugging or profiling) or some features like creating binary 
 # list formats for CS-communication. Please document new flags otherwise
 # this mechanism is not useful. Note: a += assignment will extend the list.
+# It is also possible to change flags interactively by typing
 #
+# (set "<KeyName>" = TRUE | FALSE)
+#
+# at the SECONDO command prompt.
+
+
+###
+### SECONDO INTERFACE
+###
+
 
 # Print the counter values of Class Counter (refer Counter.h) after every query
 # command
 RTFlags = SI:PrintCounters
 
-# This flag controls the generation of binary lists.
-#RTFlags +=  Server:BinaryTransfer
-
-# If set, a result.bnl file is created on the server side.
-# Server:ResultFile
-
-# Measure the time for writing the result list to the socket object. 
-#RTFlags += Server:SendTimeMsg
 
 # Supress to measure cpu-time,real-time, and nested list 
 # memory used for processing a query.
@@ -92,15 +94,74 @@ RTFlags = SI:PrintCounters
 # Show the used times for every Secondo Command
 #RTFlags += SI:CommandTime
 
+###
+### CLIENT / SERVER
+###
+
+# This flag controls the generation of binary lists.
+#RTFlags +=  Server:BinaryTransfer
+
+# If set, a result.bnl file is created on the server side.
+#RTFlags += Server:ResultFile
+
+# Measure the time for writing the result list to the socket object. 
+#RTFlags += Server:SendTimeMsg
+
+
+###
+### SMI 
+###
+
 # Switch off the transaction and logging subsystem of Berkeley-DB
 #RTFlags += SMI:NoTransactions
 
-# Print out messages in methods of the FText algebra. 
-#RTFlags += FText:Trace
+#RTFlags += SMI:DbHandles
 
 # Show how often the requested buffersize could not be 
 # transferred and the number of sleep calls; 
 #RTFlags += Socket:SendStat
+
+###
+### ALGEBRA SPECIFIC SWITCHES
+###
+
+# Print out messages in methods of the FTextAlgebra. 
+#RTFlags += FText:Trace
+
+# Print extra output in the ExtRelationAlgebra
+#RTFLAGS += ERA:TraceMergeJoin
+#RTFLAGS += ERA:ShowMemInfo
+#RTFLAGS += ERA:Sort:PartitionInfo
+
+# Extra output for the RelationAlgebra
+#RTFLAGS += RA:TupleBufferInfo
+#RTFLAGS += RA:ShowMemInfo
+
+# Extra output for the ArrayAlgebra
+#RTFLAGS += Array::ShowTimePerFunctionCall
+
+###
+### SCANNER AND PARSER
+###
+
+#RTFlags += SecondoScanner:Debug
+#RTFlags += SecondoParser:Debug
+
+#RTFlags += NLScanner:Debug
+#RTFlags += NLParser:Debug
+#RTFlags += NL:BinaryListDebug
+
+# Uncomment the next line if you don't want 
+# to see a stack trace when Secondo chrashes.
+# Note: The stack trace is not available on windows!
+RTFlags += DEBUG:DemangleStackTrace
+
+# --- QueryProcessor Section ---
+[QueryProcessor]
+
+# Max memory in kb available for an operator (e.g. hashjoin or sort)
+# default is 16348
+#MaxMemPerOperator=4096
 
 # --- Berkeley DB Section ---
 #
@@ -117,7 +178,7 @@ CheckpointTime=5
 # Directory where logging files are stored (may be relative to home directory)
 #LogDir=
 # Cache Size in kB
-CacheSize=4096
+CacheSize=16384
 # Lock System Configuration
 MaxLockers=300000
 MaxLocks=300000
