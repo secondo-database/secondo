@@ -15,6 +15,8 @@ import java.util.*;
 /**
  * The ProListIterator is a list iterator that implements the ProIterator interface. It is used for the ProLinkedList type as has the main advantage
  * over standard iterators that it can be reset. By calling the method {@link #reset} the iterator is set to the beginning of the list.
+ * Another improvement is the {@link setList} method which can be used to reuse an iterator for another list.
+ * 
  */
 public class ProListIterator implements ProIterator {
     /*
@@ -35,8 +37,9 @@ public class ProListIterator implements ProIterator {
      *
      * @param inPll the list for which the iterator is constructed
      * @param index the start index for the iterator
+     * @throws IndexOutOfBoundsException if the index is too small or high
      */
-    public ProListIterator (ProLinkedList inPll, int index) {
+    public ProListIterator (ProLinkedList inPll, int index) throws IndexOutOfBoundsException {
 	this.pll = inPll;
 	this.lastReturned = pll.head;
 	this.expectedModCount = pll.modCount;
@@ -60,12 +63,21 @@ public class ProListIterator implements ProIterator {
     /*
      * methods
      */
+    /**
+     * Returns true, if the set has at least one more element.
+     */
     public boolean hasNext() {
 	return nextIndex != pll.size;
     }//end method hasNext
     
-    
-    public Object next() {
+
+    /**
+     * Returns the next object of the set.
+     *
+     * @return the object stored in the next entry
+     * @throws NoSuchElementException if there is no next object
+     */
+    public Object next() throws NoSuchElementException{
 	checkForComodification();
 	if (nextIndex == pll.size)
 	    throw new NoSuchElementException();
@@ -76,7 +88,13 @@ public class ProListIterator implements ProIterator {
     }//end method next
     
 
-    public Entry nextEntry() {
+    /**
+     * Returns the next entry of the set.
+     *
+     * @return the next entry
+     * @throws NoSuchElementException if there is no such entry
+     */
+    public Entry nextEntry() throws NoSuchElementException {
 	checkForComodification();
 	if (nextIndex == pll.size)
 	    throw new NoSuchElementException();
@@ -87,12 +105,23 @@ public class ProListIterator implements ProIterator {
     }//end method nextEntry
     
     
+    /**
+     * Returns true, if the set has at least one more element at the positin before the actual element.
+     *
+     * @return true, if such an element exists
+     */
     public boolean hasPrevious() {
 	return nextIndex != 0;
     }//end method hasPrevious
 
     
-    public Object previous() {
+    /**
+     * Returns the object on the position before the actual element.
+     *
+     * @return the previous object
+     * @throws NoSuchElementException if there is no such element
+     */
+    public Object previous() throws NoSuchElementException {
 	if (nextIndex == 0)
 	    throw new NoSuchElementException();
 	lastReturned = next = next.prev;
@@ -102,32 +131,30 @@ public class ProListIterator implements ProIterator {
     }//end method previous
 
     
+    /**
+     * Returns the next index.
+     *
+     * @return the next index as int
+     */
     public int nextIndex() {
 	return nextIndex;
     }//end method nextIndex
     
 
+    /**
+     * Returns the previous index.
+     *
+     * @return the previous index as int
+     */
     public int previousIndex() {
 	return nextIndex-1;
     }//end method previousIndex
     
-    
+
+    /**
+     * Removes the last element returned from the set.
+     */
     public void remove() {
-	/* OLD IMPLEMENTATION traverses list up to element that shall be deleted!
-	   checkForComodification();
-	   try {
-	   ProLinkedList.this.remove(lastReturned);
-	   }//try
-	   catch (NoSuchElementException e) {
-	   throw new IllegalStateException();
-	   }//catch
-	   if (next == lastReturned)
-	   next = lastReturned.next;
-	   else nextIndex--;
-	   lastReturned = head;
-	   expectedModCount++;
-	*/
-	/* NEW IMPLEMENTATION */
 	checkForComodification();
 	if (pll.size == 1) {
 	    pll.head.next = null;
@@ -151,13 +178,25 @@ public class ProListIterator implements ProIterator {
     }//end method remove
     
 
-    public void set (Object o) {
+    /**
+     * Sets the value of the last reeturned object to o.
+     *
+     * @param o the object that shall be added
+     * @throws IllegalStateException if there was no object returned yet
+     */
+    public void set (Object o) throws IllegalStateException {
 	if (lastReturned == pll.head)
 	    throw new IllegalStateException();
 	checkForComodification();
 	lastReturned.value = o;
     }//end method set
     
+
+    /**
+     * Adds the object o before the object that was returned before.
+     *
+     * @param o the object that shall be added
+     */
     public void addBefore (Object o) {
 	checkForComodification();
 	pll.addBeforeAct(o,lastReturned);
@@ -165,7 +204,12 @@ public class ProListIterator implements ProIterator {
 	nextIndex++;
     }//end method addBefore
     
-    
+
+    /**
+     * Adds the object o after the object that was returned before.
+     *
+     * @param o the object that shall be added
+     */
     public void add (Object o) {
 	checkForComodification();
 	lastReturned = pll.head;
@@ -175,21 +219,38 @@ public class ProListIterator implements ProIterator {
     }//end method add
     
 
-    public final void checkForComodification() {
+    /**
+     * Checks whether the iterator was used properly.
+     * The proper use is calling hasNext() first and then one of the other operations. E.g. it is
+     * not allowed to call next() two times without any other operation between.
+     *
+     * @throws ConcurrentModificationException if the iterator was not used properly
+     */
+    final void checkForComodification() {
 	if (pll.modCount != expectedModCount)
 	    throw new ConcurrentModificationException();
     }//end method checkForComodification
     
 
+    /**
+     * Resets the iterator to the beginning of the list.
+     */
     public void reset() {
-	//sets iterator to the first entry of the list
 	lastReturned = pll.head;
 	expectedModCount = pll.modCount;
 	next = pll.head.next;
 	nextIndex = 0;
     }//end method reset
 
-    
+
+    /**
+     * Sets the iterator to another list.
+     * By doing this, the iterator can be used for another list without constructing a new iterator
+     * instance. After having set the list of the iterator's next() method returnes the first
+     * element of inPll.
+     *
+     * @param inPll the new list for the iterator
+     */
     public void setList(ProLinkedList inPll) {
 	//sets the underlying ProLinkedList to a new list
 	//by doing this, the iterator can be reused for an other list

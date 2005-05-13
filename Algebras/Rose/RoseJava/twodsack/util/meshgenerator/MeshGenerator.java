@@ -200,34 +200,6 @@ public class MeshGenerator {
 	    pointlist[((PointLink)elem).number*2+1] = ((PointLink)elem).linkedPoint.y.getDouble();
 	}//while enum
 
-	
-	/* OLD CODE with O(n²) time complexity
-	//compute set of (single) points of border
-	PointMultiSet points = border.getAllPoints();
-	//construct an array with the real points in it; this is needed for
-	//construction of segmentarray
-	Point[] pointsArr = new Point[points.size()*2];
-	Iterator it = points.iterator();
-	Point actPoint;
-	//Segment actSeg;
-	pointlist = new double[points.size()*2];
-	int arrayIndex = 0;
-	while (it.hasNext()) {
-	    actPoint = (Point)((MultiSetEntry)it.next()).value;
-	    pointlist[arrayIndex] = actPoint.x.getDouble();
-	    arrayIndex++;
-	    pointlist[arrayIndex] = actPoint.y.getDouble();
-	    arrayIndex++;
-	}//while
-
-	it = points.iterator();
-	arrayIndex = 0;
-	while (it.hasNext()) {
-	    pointsArr[arrayIndex] = (Point)((MultiSetEntry)it.next()).value;
-	    arrayIndex++;
-	}//while
-	*/
-
 	pointattributelist = new double[pointlist.length/2];
 	pointmarkerlist = new int[pointlist.length/2];
 	numberofpoints = pointlist.length/2;
@@ -241,46 +213,9 @@ public class MeshGenerator {
 	numberofcorners = 0;
 	numberoftriangleattributes = 0;
 	
-
-	/* old code: new is shown above using hashtables
-	//compute segmentlist:
-	//segmentlist is an array of Integer values where each value is 
-	//the index of the proper point in pointlist
-	//CAUTION: The _name_ of the first point (at array index 0) must be 1 !
-	it = border.iterator();
-	Segment actSeg;
-	System.out.println("MeshGenerator.computeMesh(): construction of segmentlist is very time-consuming. Can be improved!");
-	int count = 0;
-	int pos = 0;
-	segmentlist = new int[border.size()*2];
-	while (it.hasNext()) {
-	    actSeg = (Segment)((MultiSetEntry)it.next()).value;
-	    //find actSeg.getStartpoint() in pointsArr
-	    for (int idx = 0; idx < pointsArr.length; idx++) {
-		if (pointsArr[idx].equal(actSeg.getStartpoint())) {
-		    pos = idx;
-		    break;
-		}//if
-	    }//for
-	    //set idx
-	    segmentlist[count] = pos+1;
-	    count++;
-	    //find actSeg.endpoint in pointsArr
-	    for (int idx = 0; idx < pointsArr.length; idx++) {
-		if (pointsArr[idx].equal(actSeg.getEndpoint())) {
-		    pos = idx;
-		    break;
-		}//if
-	    }//for
-	    segmentlist[count] = pos+1;
-	    count++;
-	}//while
-	*/	
-
 	segmentmarkerlist = null;
 	numberofsegments = segmentlist.length/2;
 	
-	//System.out.println("MeshGenerator.computeMesh(): Currently the triangulation of polygons with holes has experimental status.");
 	numberofholes = 0;
 	holelist = null;
 
@@ -289,7 +224,7 @@ public class MeshGenerator {
 
 	//call C-code
 	CALLS_OF_MESH1++;
-	//System.out.println("Meshgenerator.java: Calling C++ function MeshGenerator.triangulate() for SingleCycle.");
+
 	double[] triResultList = new MeshGenerator().triangulate(arguments,
 								 pointlist,
 								 pointattributelist,
@@ -311,14 +246,6 @@ public class MeshGenerator {
 								 numberofregions,
 								 regionlist);
 
-	//System.out.println("received pointlist from native code (length: "+triResultList.length+")");
-	//System.out.println("print received list: ");
-	//for (int i = 0; i < triResultList.length; i++) {
-	//    System.out.println("["+i+"]: "+triResultList[i]); }
-	//System.out.println("forced EXIT.");
-	
-	
-	//System.out.println("Meshgenerator.java: Returned from calling C++ function MeshGenerator.triangulate().");
 
 	return buildTriangleSet(triResultList);
     }//end method computeMeshForSingleCycle
@@ -458,45 +385,6 @@ public class MeshGenerator {
 	    pointlist[((PointLink)elem).number*2+1] = ((PointLink)elem).linkedPoint.y.getDouble();
 	}//while enum
 
-	/* OLD IMPLEMENTATION with O(n²) time complexity*/
-	/*
-	//join all segments of borderCycle to one SegMultiSet
-	SegMultiSet border = new SegMultiSet(new SegmentComparator());
-	Iterator it = borderCycles.iterator();
-	Iterator it2;
-	LinkedList actList;
-	while (it.hasNext()) {
-	    actList = (LinkedList)it.next();
-	    it2 = actList.iterator();
-	    while (it2.hasNext()) {
-		border.add(it2.next()); }
-	}//while it
-
-	//compute set of (single) points of border
-	PointMultiSet points = border.getAllPoints();
-	//construct an array with the real points in it; this is needed for
-	//construction of segmentarray
-	Point[] pointsArr = new Point[points.size()*2];
-	it = points.iterator();
-	Point actPoint;
-	//Segment actSeg;
-	pointlist = new double[points.size()*2];
-	int arrayIndex = 0;
-	while (it.hasNext()) {
-	    actPoint = (Point)((MultiSetEntry)it.next()).value;
-	    pointlist[arrayIndex] = actPoint.x.getDouble();
-	    arrayIndex++;
-	    pointlist[arrayIndex] = actPoint.y.getDouble();
-	    arrayIndex++;
-	}//while
-
-	it = points.iterator();
-	arrayIndex = 0;
-	while (it.hasNext()) {
-	    pointsArr[arrayIndex] = (Point)((MultiSetEntry)it.next()).value;
-	    arrayIndex++;
-	}//while
-	*/
 
 	pointattributelist = new double[pointlist.length/2];
 	pointmarkerlist = new int[pointlist.length/2];
@@ -512,46 +400,9 @@ public class MeshGenerator {
 	numberoftriangleattributes = 0;
 	
 
-	/* OLD IMPLEMENTATION */
-	/*
-	//compute segmentlist:
-	//segmentlist is an array of Integer values where each value is 
-	//the index of the proper point in pointlist
-	//CAUTION: The _name_ of the first point (at array index 0) must be 1 !
-	it = border.iterator();
-	Segment actSeg;
-	System.out.println("MeshGenerator.computeMesh(): construction of segmentlist is very time-consuming. Can be improved!");
-	int count = 0;
-	int pos = 0;
-	segmentlist = new int[border.size()*2];
-	while (it.hasNext()) {
-	    actSeg = (Segment)((MultiSetEntry)it.next()).value;
-	    //find actSeg.getStartpoint() in pointsArr
-	    for (int idx = 0; idx < pointsArr.length; idx++) {
-		if (pointsArr[idx].equal(actSeg.getStartpoint())) {
-		    pos = idx;
-		    break;
-		}//if
-	    }//for
-	    //set idx
-	    segmentlist[count] = pos+1;
-	    count++;
-	    //find actSeg.endpoint in pointsArr
-	    for (int idx = 0; idx < pointsArr.length; idx++) {
-		if (pointsArr[idx].equal(actSeg.getEndpoint())) {
-		    pos = idx;
-		    break;
-		}//if
-	    }//for
-	    segmentlist[count] = pos+1;
-	    count++;
-	}//while
-	*/
-
 	segmentmarkerlist = null;
 	numberofsegments = segmentlist.length/2;
 	
-	//System.out.println("MeshGenerator.computeMesh(): Currently the triangulation of polygons with holes has experimental status.");
 	numberofholes = borderCycles.size()-1;
 	if ((numberofholes) == 0) holelist = null;
 	else {
@@ -575,30 +426,10 @@ public class MeshGenerator {
 
 	numberofregions = 0;
 	regionlist = null;
-	/*
-	System.out.println("\npointlist ("+pointlist.length+"):");
-	for (int i = 0; i < pointlist.length; i++) {
-	    System.out.println("No."+(i/2+1)+" ("+pointlist[i]+", "+pointlist[i+1]+")");
-	    i++;
-	}//for i
-	System.out.println("\nsegmentlist ("+segmentlist.length+"):");
-	for (int i = 0; i < segmentlist.length; i++) {
-	    System.out.println("No."+(i/2)+" ("+segmentlist[i]+", "+segmentlist[i+1]+")");
-	    i++;
-	}//for i
-	if (numberofholes > 0) {
-	    System.out.println("\nholelist ("+holelist.length+"):");
-	    for (int i = 0; i < holelist.length; i++) {
-		System.out.println("No."+(i/2)+" ("+holelist[i]+", "+holelist[i+1]+")");
-		i++;
-	    }//for i
-	}//if
-	//System.exit(0);
-	*/
+
 	//call C-code
 	CALLS_OF_MESH2++;
 	
-	//System.out.println("Meshgenerator.java: Calling C++ function MeshGenerator.triangulate() for SingeCycleHoles.");
 	
 	double[] triResultList = new MeshGenerator().triangulate(arguments,
 								 pointlist,
@@ -621,14 +452,6 @@ public class MeshGenerator {
 								 numberofregions,
 								 regionlist);
 
-	//System.out.println("received pointlist from native code (length: "+triResultList.length+")");
-	//System.out.println("print received list: ");
-	//for (int i = 0; i < triResultList.length; i++) {
-	//    System.out.println("["+i+"]: "+triResultList[i]); }
-	//System.out.println("forced EXIT.");
-	
-
-	//System.out.println("Meshgenerator.java: Returned from calling C++ function MeshGenerator.triangulate().");
 
 	return buildTriangleSet(triResultList);
     }//end method computeMeshForSingleCycleHoles

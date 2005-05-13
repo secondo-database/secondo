@@ -4,7 +4,7 @@
  * Dirk Ansorge, FernUniversitaet Hagen
  *
  * 
- * To compile this code, use a MSYS shell (under windows) and type 'make -f makefile.windows'. 
+ * To compile this code without the Secondo make files, use a MSYS shell (under windows) and type 'make -f makefile.windows'. 
  * Make sure that you have the makefile.windows file.
  */
 
@@ -14,7 +14,15 @@
 #include "Triangle/triangle.h"
 #include <stdio.h>
 
-
+/*
+ * This C file implements only one single function. It is the triangulate() function which is a native function that is called by Java
+ * code of the class twodsack.util.meshgenerator.Meshgenerator. Communication between Java and C is possible using the JNI (Java Native
+ * Interface). It allows to call C code from Java and vice versa. Since the mesh generator that is used inside of the 2DSACK package
+ * is written in C code, we need the JNI here. The .h file for this file is generated automatically by calling javah.<p>
+ * The implementation of this function takes the big number of parameters and transforms it in a way that the C mesh generator can use it.
+ * Then, the mesh generator's main function is called. When it returns, the list of triangle coordinates is passed back to the JNI, which
+ * gives it back to the Java code.
+ */
 JNIEXPORT jobjectArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_triangulate (JNIEnv *env,
 							       jobject obj,
 							       jcharArray arguments,
@@ -37,8 +45,6 @@ JNIEXPORT jobjectArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
 							       jdoubleArray holelist,
 							       jint numberofregions,
 							       jdoubleArray regionlist) {
-  //printf ("entering MeshGenerator.c ...\n");
-  //printf ("converting JAVA types to C types...\n");
   struct triangulateio in, out, mid;
 
   /* define input */
@@ -79,29 +85,6 @@ JNIEXPORT jobjectArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
   in.edgelist = (int*) NULL;
 
 
-  /* print converted types */
-  /*
-  printf("converted types:\n");
-  int count;
-  printf("numberofpoints: %i\n",numberofpoints);
-  printf("pointlist.length: %i\n",(*env)->GetArrayLength(env,pointlist));
-  for (count = 0; count < numberofpoints*2; count++) {
-    printf("([%f] ",in.pointlist[count]);
-    count++;
-    printf("[%f])\n",in.pointlist[count]);
-  }
-  printf("\n");
-
-  printf("numberofsegments: %i\n",numberofsegments);
-  printf("segmentlist.length: %i\n",(*env)->GetArrayLength(env,segmentlist));
-  for (count = 0; count < numberofsegments*2; count++) {
-    printf("(%i ",in.segmentlist[count]);
-    count++;
-    printf("%i) ",in.segmentlist[count]);
-  }
-  printf("\n");
-  */
-  
   mid.pointlist = (REAL *) NULL;
   mid.pointattributelist = (REAL *) NULL;
   mid.pointmarkerlist = (int *) NULL;
@@ -113,18 +96,11 @@ JNIEXPORT jobjectArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
   mid.edgelist = (int *) NULL;
   mid.edgemarkerlist = (int *) NULL;
   
-  /*
-  vorout.pointlist = (REAL *) NULL;
-  vorout.pointattributelist = (REAL *) NULL;
-  vorout.edgelist = (int *) NULL;
-  vorout.normlist = (REAL *) NULL;
-  */  
   out.pointlist = (REAL *) NULL;
   out.pointattributelist = (REAL *) NULL;
   out.trianglelist = (int *) NULL;
   out.triangleattributelist = (REAL *) NULL;
 
-  //printf ("calling C function triangulate...\n");
   /* 
    * call the meshing algorithm
    * the switches mean the following:
@@ -133,7 +109,6 @@ JNIEXPORT jobjectArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
    * q : quality mesh generation
    * Q : no output until an error occurs
    */
-  //char buf[128];
   const char *str = (*env)->GetStringUTFChars(env,arguments,0);
   
   triangulate(str, &in, &mid, (struct triangulateio *) NULL);
@@ -143,27 +118,6 @@ JNIEXPORT jobjectArray JNICALL Java_twodsack_util_meshgenerator_MeshGenerator_tr
   (*env)->ReleaseIntArrayElements(env,segmentlist,slbody,0);
   if (numberofholes > 0) (*env)->ReleaseDoubleArrayElements(env,holelist,hlbody,0);
   (*env)->ReleaseStringUTFChars(env,arguments,str);
-
-  /*
-  printf ("printing resulting objects...\n");
-
-  int i;
-  printf ("mid.numberofpoints: %i\n",mid.numberofpoints);
-  //printf ("in.numberofpoints: %i\n",in.numberofpoints);
-  printf ("pointlist(mid): length(%i)\n",mid.numberofpoints);
-  for (i = 0; i < (mid.numberofpoints*2); i++) {
-    printf ("[%i]: %f\n",i,mid.pointlist[i]);
-  }
-  printf("\n");
-  printf ("trianglelist: length(%i)\n",mid.numberoftriangles);
-  for (i = 0; i < mid.numberoftriangles*3; i++) {
-    printf ("%i ",mid.trianglelist[i]);
-  }
-  printf("\n");
-  printf ("numberofcorners: %i\n",mid.numberofcorners);
-  printf ("numberoftriangleattributes: %i\n",mid.numberoftriangleattributes);
-  printf ("numberofsegments: %i\n",mid.numberofsegments);
-  */
 
   jdoubleArray returnArray;
   returnArray = (*env)->NewDoubleArray(env,mid.numberoftriangles*3*2);

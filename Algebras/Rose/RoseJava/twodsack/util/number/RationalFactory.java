@@ -1,32 +1,34 @@
+/*
+ * RationalFactory.java 2005-05-13
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
+
 package twodsack.util.number;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.*;
 
-public class RationalFactory {
-    //This class is used for constructing numeric values.
-    //It contains a set of methods called constRational()
-    //which call constructors of implementations of the
-    //abstract class Rational. At least two implementations
-    //are provided, namely
-    // - RationalBigInteger
-    // - RationalDouble
-    //
-    //The implementation used is stored in the variable
-    //RATIONAL_CLASS which must set using the method
-    //setClass().
-    //
-    //Another variable PRECISE holds the user-selected value
-    //TRUE or FALSE. It determines whether a precise but
-    //slow computation is used when computing the following
-    //predicates:
-    //Mathset.linearly_dependent(Segment,Segment)
-    //PointSeg_Ops.liesOn(Point,Segment)
-    //PRECISE should be set using setPrecicision(). If not,
-    //a warning is printed and TRUE is set.
 
-    //members
+/**
+ * The RationalFactory class is used for the construction of numeric values. Therefor, it conatins a set of methods with the name
+ * constRational() with different parameter types. This class supports the use of different implementations of the Rational class. Before
+ * a Rational instance can be constructed, the class that shall be used has to be defined using the {@link #setClass} method. After that,
+ * this class can be used.<p>
+ * Two extensions of the abstract Rational class are delivered with the 2DSACK package:<p>
+ * <ul>
+ * <li>RationalDouble
+ * <li>RationalBigInteger
+ * </ul>
+ * Another method of this class can be used to set the PRECISE field. It defines wether a more or less precise computation is used. How
+ * those two variants differ depends on the implementor of that class. The default value for PRECISE is true.
+ */
+public class RationalFactory {
+    /*
+     * fields
+     */
     static private Class RATIONAL_CLASS = null;
     static private Boolean PRECISE = null;
     static private Constructor INTEGER_CONSTRUCTOR = null;
@@ -39,12 +41,25 @@ public class RationalFactory {
     static public double DERIV_DOUBLE;
     static public double DERIV_DOUBLE_NEG;
 
-    //methods
+
+    /*
+     * methods
+     */
+    /**
+     * Defines the Rational extension class.
+     *
+     * @param ratClass the Rational implementation that shall be used
+     */
     static public void setClass(Class ratClass) {
 	RATIONAL_CLASS = ratClass;
     }//end method setClass
 
 
+    /**
+     * Sets the PRECISE value.
+     *
+     * @param prec the value for PRECISE
+     */
     static public void setPrecision(boolean prec) {
 	PRECISE = new Boolean(prec);
 	Class [] classParam = { PRECISE.getClass() };
@@ -59,11 +74,16 @@ public class RationalFactory {
 	    e.printStackTrace();
 	}//catch
 	
-
     }//end method setPrecision
 
 
-    static public void setClass(String ratClass) {
+    /**
+     * Defines the Rational extension class.
+     *
+     * @param ratClass the name of the Rational class
+     * @throws RationalClassNotExistentException if the class doesn't exist
+     */
+    static public void setClass(String ratClass) throws RationalClassNotExistentException {
 	try {
 	    RATIONAL_CLASS = Class.forName(ratClass);
 	}//try
@@ -71,29 +91,25 @@ public class RationalFactory {
 	}//catch
     }//end method setClass
 
-    /*
-    static public void setClass_RationalBigInteger() {
-	//written by Mirco 
-	//replaces this by setClass(String)
-	setClass(RationalBigInteger.class);
-    }
 
-    static public void setClass_RationalDoubles() {
-	//written by Mirco
-	//replace this by setClass(String)
-	setClass(RationalDouble.class);
-    }
-    */
-
+    /**
+     * Returns the Class of the currently used Rational implemention.
+     *
+     * @return the currently used Rational class
+     */
     static public Class readClass() {
 	return RATIONAL_CLASS;
     }//end method getClass
 
 
-    static public Rational readDeriv() {
-	//if PRECISE = TRUE, it returns the derivation value from RATIONAL_CLASS
-	//otherwise null is returned
-	
+    /**
+     * Returns the actual <i>deriv</i> value.
+     * Note: If PRECISE = true, the derivation value is returned, otherwise NULL is returned.
+     *
+     * @return the deriv value as Rational
+     * @throws NoDerivationValueFoundException if the derivation value was not implemented in the Rational class extension
+     */
+    static public Rational readDeriv() throws NoDerivationValueFoundException {
 	if (PRECISE == null) {
 	    System.out.println("WARNING: PRECISE should be set using RationalFactory.setPrecision()!\n...automatic definition to prevent program termination: PRECISE = TRUE");
 	    PRECISE = new Boolean(true);
@@ -104,7 +120,6 @@ public class RationalFactory {
 	    try {
 		Field fi = RATIONAL_CLASS.getDeclaredField("deriv");
 		res = fi.get(obj);
-		//res = (Rational)RATIONAL_CLASS.getDeclaredField("deriv").get(RATIONAL_CLASS.newInstance());
 		return (Rational)res;
 	    }//try
 	    catch (Exception e) { throw new NoDerivationValueFoundException("Error in RationalFactory: No derivation value was found. It must be implemented in chosen Rational class.");
@@ -114,7 +129,16 @@ public class RationalFactory {
     }//end method readDeriv
 
 
-    static public double readDerivDouble() {
+    /**
+     * Returns the DERIV_DOUBLE value.
+     * Additionally to the <i>deriv</i> value, DERIV_DOUBLE is defined which is a doulbe value. Computations using this value instead of
+     * <i>deriv</i> are faster. Note, that this method needs a field DERIV_DOUBLE implemented in the Rational class extension.
+     *
+     * @return DERIV_DOUBLE as double
+     * @throws RationalClassUndefinedException if the Rational class extension was not defined
+     * @throws NoDerivationValueFoundException if DERIV_DOUBLE was not implemented
+     */
+    static public double readDerivDouble() throws RationalClassUndefinedException, NoDerivationValueFoundException {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be set using setClass().");
 	}//if
@@ -127,6 +151,16 @@ public class RationalFactory {
     }//end method readDerivDouble
 
 
+    /**
+     * Returns the DERIV_DOULBE_NEG value.
+     * Additionally to the <i>deriv</i> value, DERIV_DOUBLE_NEG is defined which is a negative double value. Computations using a double
+     * value instead of a Rational value are faster. Note, that this method needs a field DERIV_DOUBLE_NEG implemented in the
+     * Rational class extension.
+     *
+     * @return DERIV_DOUBLE_NEG as double
+     * @throws RationalClassUndefinedException if the Rational class extension was not defined
+     * @throws NoDerivationValuefoundException if DERIV_DOUBLE_NEG was not implemented
+     */
     static public double readDerivDoubleNeg() {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be seut using setClass().");
@@ -139,8 +173,13 @@ public class RationalFactory {
 	return DERIV_DOUBLE_NEG;
     }//end method readDerivDoubleNeg
 
+
+    /**
+     * Returns the PRECISE value.
+     *
+     * @return the PRECISE value
+     */
     static public boolean readPrecise() {
-	//returns the value of PRECISE
 	if (PRECISE == null) {
 	    System.out.println("WARNING: PRECISE should be set using RationalFactory.setPrecision()!\n...automatic definition to prevent program termination: PRECISE = TRUE");
 	    PRECISE = new Boolean(true);
@@ -149,12 +188,19 @@ public class RationalFactory {
     }//end method readPrecise
 
 
-    static public Rational constRational(int i) {
+    /**
+     * Constructs a new Rational instance with an int.
+     *
+     * @param i the int value
+     * @return the new Rational instance
+     * @throws RationalClassUndefinedException if the Rational class extension was not defined
+     * @throws RationalClassConstructorNotFoundException if the constructor for int values was not implemented
+     */
+    static public Rational constRational(int i) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be set using setClass()");
 	}//if
 	else if (INTEGER_CONSTRUCTOR != null) {
-	    //Object[] paramValueList = { new Integer(i) };
 	    PARAM_VALUE_LIST_1[0] = new Integer(i);
 	    Rational rat = null;
 	    try {
@@ -183,12 +229,19 @@ public class RationalFactory {
     }//end method constRational
 
 
-    static public Rational constRational(double d) {
+    /**
+     * Constructs a new Rational instance with a double.
+     *
+     * @param d the double value
+     * @return the new Rational instance
+     * @throws RationalClassUndefinedException if the Rational class extension was not defined
+     * @throws RationalClassConstructorNotFoundException if the constructor for double values was not implemented
+     */
+    static public Rational constRational(double d) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be set using setClass()");
 	}//if
 	else if (DOUBLE_CONSTRUCTOR != null) {
-	    //Object[] paramValueList = { new Double(d) };
 	    PARAM_VALUE_LIST_1[0] = new Double(d);
 	    Rational rat = null;
 	    try {
@@ -216,13 +269,20 @@ public class RationalFactory {
     }//end method constRational
 
     
-    static public Rational constRational(Rational r) {
+    /**
+     * Constructs a new Rational instance with a Rational.
+     *
+     * @param r the Rational value
+     * @return the new Rational instance
+     * @throws RationalClassUndefinedException if the Rational class extension was not defined
+     * @throws RationalClassConstructorNotFoundException if the constructor for Rational values was not implemented
+     */
+    static public Rational constRational(Rational r) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be set using setClass()");
 	}//if
 	else if (RATIONAL_CONSTRUCTOR != null) {
 	    PARAM_VALUE_LIST_1[0]= r;
-	    //Object[] paramValueList = { r };
 	    Rational rat = null;
 	    try {
 		rat = (Rational)RATIONAL_CONSTRUCTOR.newInstance(PARAM_VALUE_LIST_1);
@@ -248,14 +308,27 @@ public class RationalFactory {
 	}//else
     }//end method constRational
 
-    
-    static public Rational constRational(int num, int den) {
+
+    /**
+     * Constructs a new Rational instance with two int values.
+     *
+     * @param num the numerator
+     * @param den the denominator
+     * @return the new Rational instance
+     * @throws RationalClassUndefinedException if the Rational class extension was not defined
+     * @throws RationalClassConstructorNotFoundException if the constructor for two int values was not implemented
+     */    
+    static public Rational constRational(int num, int den) throws RationalClassUndefinedException, RationalClassConstructorNotFoundException {/*
+ * Rational.java 2005-05-13
+ *
+ * Dirk Ansorge, FernUniversitaet Hagen
+ *
+ */
 	if (RATIONAL_CLASS == null) {
 	    throw new RationalClassUndefinedException("Error in RationalFactory: RATIONAL_CLASS must be set using setClass()");
 	}//if
 	
 	else if (NUM_DEN_CONSTRUCTOR != null) {
-	    //Object[] paramValueList = { new Integer(num), new Integer(den) };
 	    PARAM_VALUE_LIST_2[0] = new Integer(num);
 	    PARAM_VALUE_LIST_2[1] = new Integer(den);
 	    Rational rat = null;
