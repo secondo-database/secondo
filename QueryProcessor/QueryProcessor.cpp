@@ -124,7 +124,7 @@ February 2004, Hoffmann added static method ~ExecuteQuery~. This method
 executes Secondo queries, given in nested list syntax of C++-type ~string~,
 and returns a result of type ~Word~.
 
-July 2004, M. Spiekermann added a consistency check for the result type calculated
+July 2004, M. Spiekermann added a consistence check for the result type calculated
 by annotate. There should be no typeerror symbol in it. The groupby operators type
 mapping caused Secondo to crash since objects of type typeerror should be created
 due to a bug in the type mapping. Now a warning will appear and the operator tree
@@ -258,6 +258,13 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   values.resize( MAXVALUES );
   models.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS );
+  
+  // It would be nice if the query processor could manage the
+  // memory allocated during processing a query. Operators which
+  // have state (e.g. a hashjoin) can ask for memory and the QP answers how many
+  // they can use. However, currently we are defining a maximum
+  // per operator
+  maxMemPerOperator = 4 * 1024 * 1024;
 }
 
 QueryProcessor::~QueryProcessor()

@@ -186,11 +186,11 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       found = FileSystem::FileOrFolderExists( parmFile );
       if ( found )
       {
-  cout << "':" << endl;
+        cout << "':" << endl;
       }
       else
       {
-  cout << "' not found!" << endl;
+        cout << "' not found!" << endl;
       }
     }
     else
@@ -236,6 +236,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     ok = true;
   }
 
+
+
   if ( ok )
   {
     // --- Check storage management interface
@@ -271,6 +273,19 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     al = SecondoSystem::GetAppNestedList();
     ok = SecondoSystem::StartUp();
   }
+
+  // set the maximum memory which may be allocated by operators
+  QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
+
+  long keyVal = SmiProfile::GetParameter("QueryProcessor", "MaxMemPerOperator", 0, parmFile);
+  if (  !keyVal ) {
+    keyVal = 16 * 1024;
+  }
+  qp.SetMaxMemPerOperator(keyVal*1024);
+  
+  cmsg.info() << "Memory usage per operator limited by " << keyVal << "kb" << endl;
+  cmsg.send();
+
   initialized = ok;
   return (ok);
 }
