@@ -71,6 +71,12 @@ be used. Moreover, the input and outputs of the type mapping functions can be tr
 and if all type mappings fail all possible operators together with their algebra names
 are reported.
 
+May 2005, M. Spiekermann. New member variable ~maxmemPerOperator~ inttroduced. This
+variable will be set by the SecondoInterface at startup. The value can be defined in
+the configuration file. In the future it may be nice if the Query Processor computes
+this value based on a global memory limit per query. 
+
+
 February 3, 2003 RHG Added QP\_COUNTER and QP\_COUNTERDEF.
 
 1.1 Overview
@@ -382,6 +388,11 @@ Sets the debug level for the query processor. The following levels are defined:
   * *2* -- Debug *and* trace mode are turned on
 
 */
+
+  void SetMaxMemPerOperator(long value) { maxMemPerOperator = value; }
+  long MemoryAvailableForOperator() { return maxMemPerOperator; }
+
+
   static bool ExecuteQuery( const string& queryListStr,
                             Word& queryResult);
 /*
@@ -574,6 +585,8 @@ of the type constructor associated with the ~value~.
   static const int NO_COUNTERS = 16;
 
   int counter[NO_COUNTERS];	
+
+  long maxMemPerOperator;
 };
 
 /*
@@ -598,9 +611,9 @@ private:
   static string message;
 
 public:
-	static bool FreezeMessage;
+  static bool FreezeMessage;
   static bool TypeMapError;
-	static void Reset() { TypeMapError=false; message=""; }
+  static void Reset() { TypeMapError=false; message=""; }
   static void ReportError(string msg);
   static void ReportError(char* msg);
   static void GetErrorMessage(string& msg);
