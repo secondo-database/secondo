@@ -4,7 +4,7 @@
 #debug 3;
 
 query 
-  LINEITEM_32 
+  LINEITEM_25 
   loop[. feed  
     project [ L_RETURNFLAG, L_LINESTATUS, L_SHIPDATE, L_QUANTITY, L_EXTENDEDPRICE, L_DISCOUNT, L_TAX ] 
       filter[ .L_SHIPDATE < cmpdate1 ]  
