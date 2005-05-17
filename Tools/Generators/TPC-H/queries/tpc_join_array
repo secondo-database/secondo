@@ -9,8 +9,8 @@ query LINEITEM_25 loop[. feed LINEITEM2 feed {x} symmproduct[.L_PARTKEY = ..L_PA
 query LINEITEM_25 loop[. feed LINEITEM2 feed {x} product filter[.L_PARTKEY = .L_PARTKEY_x] count] tie[. + ..];
 
 # 2a. Non Equi Joins
-query LINEITEM_25 loop[. feed LINEITEM2 feed {x} symmproduct[.L_PARTKEY = ..L_PARTKEY_x] count] tie[. + ..];
-query LINEITEM_25 loop[. feed LINEITEM2 feed {x} product filter[.L_PARTKEY = .L_PARTKEY_x] count] tie[. + ..];
+query LINEITEM_25 loop[. feed LINEITEM2 feed {x} symmproduct[.L_PARTKEY >= ..L_PARTKEY_x] count] tie[. + ..];
+query LINEITEM_25 loop[. feed LINEITEM2 feed {x} product filter[.L_PARTKEY >= .L_PARTKEY_x] count] tie[. + ..];
 
 
 # 3. sortmergejoin
@@ -29,17 +29,6 @@ query LINEITEM_25 loop[. feed {x} loopjoin[fun(t1: TUPLE) LINEITEM_L_PARTKEY LIN
 #query LINEITEM_L_PARTKEY_25 LINEITEM_25 loopa[fun(e1: ELEMENT, e2:ELEMENT2) LINEITEM2 feed fun(t1: TUPLE) e1 e2 exactmatch[attr(t1,L_PARTKEY)] count] tie[. + ..];
 #(query (loopa LINEITEM_L_PARTKEY_25 LINEITEM_25 (fun (e1 ELEMENT) (e2 ELEMENT2) (count ((feed LINEITEM2) (fun (tuple1 TUPLE) (exactmatch e1 e2 (attr tuple1 L_PARTKEY) )))))))
 
-
-#overhead loopswitch
-query LINEITEM_25
-  loopswitch[ 
-              f1: . feed LINEITEM2 feed {x} hashjoin[L_PARTKEY, L_PARTKEY_x, 997] count
-              f2: . feed LINEITEM2 feed {x} hashjoin[L_PARTKEY, L_PARTKEY_x, 997] count
-              f3: . feed LINEITEM2 feed {x} hashjoin[L_PARTKEY, L_PARTKEY_x, 997] count
-              f4: . feed LINEITEM2 feed {x} hashjoin[L_PARTKEY, L_PARTKEY_x, 997] count
-              f5: . feed LINEITEM2 feed {x} hashjoin[L_PARTKEY, L_PARTKEY_x, 997] count
-            ]
-  tie[. + ..];
 
  
 # Overhead with materialization !!!!

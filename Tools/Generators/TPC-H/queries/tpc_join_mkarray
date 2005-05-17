@@ -22,15 +22,30 @@ let LINEITEM_L_PARTKEY_25 = LINEITEM_25 loop[. createbtree[L_PARTKEY]];
 # create arrays of relations with special join selectivities
 
 query seqinit(1);
-let LINEITEM_TMP = LINEITEM feed extend[L_ModNr: seqnext() div 100] consume
+#increment L_ModNr every 100 tuples
+let LINEITEM_TMP = LINEITEM feed extend[L_ModNr: seqnext() div 100] consume;
+#distribute values L_JoinKey between 0..L_ModNr. L_ModNr changes every 100 tuples
 let LINEITEM_J1 = LINEITEM_TMP feed extend[L_IsOne: 1, L_JoinKey: seqnext() mod (.L_ModNr + 1) ] consume;
 
 query seqinit(1);
-let LINEITEM_J2_50 = LINEITEM_J2 feed extend[pkg: seqnext() mod 50] distribute[L_ModNr];
-let LINEITEM_J5_A = LINEITEM_J2 feed extend[pkg: (seqnext() div 200)] distribute[pkg];
+# create an array. Put every 50 tuples in a new slot
+let LINEITEM_J1_A = LINEITEM_J1 feed extend[pkg: (seqnext() div 100)] distribute[pkg];
 
-query LINEITEM_J5_A loop[ . feed . feed {x} hashjoin[L_JoinKey, L_JoinKey_x, 101] count / (. count * . count)]
-let LINEITEM_J5_L_JoinKey = LINEITEM_J2 createbtree[L_JoinKey];
+# compute selectivity per slot
+query LINEITEM_J1_A loop[ . feed . feed {x} hashjoin[L_JoinKey, L_JoinKey_x, 101] count / (. count * . count)];
+
+# compute selectivity with LINEITEM_J1 
+query LINEITEM_J1_A loop[ . feed LINEITEM_J1 feed {x} hashjoin[L_JoinKey, L_JoinKey_x, 101] count / (. count * LINEITEM_J1 count)];
+
+# overall selectivity for equi join on L_JoinKey
+query LINEITEM_J1 feed LINEITEM_J1 feed {x} hashjoin[L_JoinKey, L_JoinKey_x, 101] count / (LINEITEM_J1 count * LINEITEM_J1 count);
+# selectivity for equi join on L_PARTKEY
+query LINEITEM feed LINEITEM feed {x} hashjoin[L_PARTKEY, L_PARTKEY_x, 101] count / (LINEITEM count * LINEITEM count);
+# selectivity for non equi join (>=) on L_PARTKEY
+#query LINEITEM feed LINEITEM feed {x} symmproduct[.L_PARTKEY >= ..L_PARTKEY_x] count / (LINEITEM count * LINEITEM count);
+
+
+let LINEITEM_J1_L_JoinKey = LINEITEM_J1 createbtree[L_JoinKey];
 
 
 # Expensive user defined functions
